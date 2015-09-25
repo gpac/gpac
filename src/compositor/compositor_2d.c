@@ -186,6 +186,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	if (!compositor->visual->nb_objects_on_canvas_since_last_ogl_flush)
 		goto exit;
 
+	memset(&a_tr_state, 0, sizeof(GF_TraverseState));
+	a_tr_state.color_mat.identity = 1;
 	a_tr_state.visual = compositor->visual;
 	a_tr_state.camera = &compositor->visual->camera;
 	gf_mx_init(a_tr_state.model_matrix);
@@ -193,7 +195,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	visual_3d_set_state(compositor->visual, V3D_STATE_LIGHT, GF_FALSE);
 	visual_3d_enable_antialias(compositor->visual, GF_FALSE);
 	gf_sc_texture_set_blend_mode(compositor->hybgl_txh, TX_MODULATE);
-	visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
+	//visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
+	compositor->visual->has_material_2d = 0;
 	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->hybgl_txh, NULL);
 	if (a_tr_state.mesh_num_textures ) {
 		if (area) {

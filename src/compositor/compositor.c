@@ -1938,10 +1938,10 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
-			if (compositor->autoconfig_opengl) {
 #ifndef GPAC_USE_GLES1X
-				visual_3d_init_shaders(compositor->visual);
+			visual_3d_init_shaders(compositor->visual);
 #endif
+			if (compositor->autoconfig_opengl) {
 				compositor->autoconfig_opengl = 0;
 				compositor->visual->type_3d = 0;
 				compositor->force_opengl_2d = 0;

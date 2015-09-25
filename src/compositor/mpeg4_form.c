@@ -339,17 +339,26 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 	/*update clipper*/
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		prev_clip = tr_state->visual->top_clipper;
-		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
+		tr_state->clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
 		}
+
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->type_3d)
+			visual_3d_reset_clipper_2d(tr_state->visual);
+#endif
 
 		i=0;
 		while ((cg = (ChildGroup*)gf_list_enum(st->groups, &i))) {
 			parent_node_child_traverse(cg, tr_state);
 		}
 
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->type_3d)
+			visual_3d_reset_clipper_2d(tr_state->visual);
+#endif
 		tr_state->visual->top_clipper = prev_clip;
 		if (had_clip) tr_state->clipper = prev_clipper;
 		tr_state->has_clip = had_clip;

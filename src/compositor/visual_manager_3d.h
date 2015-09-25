@@ -31,8 +31,8 @@
 #ifndef GPAC_DISABLE_3D
 
 
-#define GF_MAX_GL_CLIPS	12
-#define GF_MAX_GL_LIGHTS 12
+#define GF_MAX_GL_CLIPS	8
+#define GF_MAX_GL_LIGHTS 4
 
 /*
 *	Visual 3D functions

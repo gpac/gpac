@@ -1,23 +1,24 @@
 /**
- * Shader implementing: Clipping, Texturing, Lighting, Fog
- * Available flags: GF_GL_IS_RECT, GF_GL_IS_YUV, GF_GL_HAS_FOG, GF_GL_HAS_CLIP
- *
+ * Shader implementing: Clipping, Texturing (RGB and YUV), Lighting, Fog
  **/
- /*
- //NOTE: if there is a #version directive (e.g. #version 100), it must occur before anything else in the program (including other directives)
- #version 100	//it is set the same time as the flags
-*/
+
+//version defined first, at shader compilation
 
 //For other GL versions compatibility
 #ifdef GL_FRAGMENT_PRECISION_HIGH
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
-#elif GL_ES
+#elif defined(GL_ES)
 	precision mediump float;	//Default
 #else
-	precision lowp float;	//Fallback
+//	precision lowp float;	//Fallback
 #endif
 
 //#pragma STDGL invariant(all)	//removed due to incompatibility with the emulator
+
+//LIGHTS_MAX and CLIP_MAX defined at shader compilation
+
+
+#ifdef GF_GL_HAS_LIGHT
 
 #define FOG_TYPE_LINEAR 0
 #define FOG_TYPE_EXP    1
@@ -26,11 +27,6 @@
 #define L_DIRECTIONAL	0
 #define L_SPOT		    1
 #define L_POINT			2
-
-#define LIGHTS_MAX 		3
-#define TEXTURES_MAX 	2
-
-#define CLIPS_MAX 		4
 
 //Light Structure
 struct gfLight{
@@ -48,24 +44,31 @@ struct gfLight{
 //Generic (Scene) Uniforms
 uniform int gfNumLights;
 uniform bool gfLightTwoSide;
-uniform int gfNumTextures;
 uniform gfLight lights[LIGHTS_MAX];
-uniform bool hasClip;
-uniform bool hasMeshColor;
 
-//Material and Lighting Properties	
+//Material and Lighting Properties
 uniform vec4 gfAmbientColor;
-uniform vec4 gfDiffuseColor; 
-uniform vec4 gfSpecularColor; 
-uniform vec4 gfEmissionColor;
+uniform vec4 gfDiffuseColor;
+uniform vec4 gfSpecularColor;
 uniform float gfShininess;	//a.k.a. specular exponent
 uniform vec4 gfLightDiffuse;
-uniform vec4 gfLightAmbient; 
+uniform vec4 gfLightAmbient;
 uniform vec4 gfLightSpecular;
 
 //Fog
-uniform bool gfFogEnabled; 
+uniform bool gfFogEnabled;
 uniform vec3 gfFogColor;
+
+#endif
+
+uniform bool hasMaterial2D;
+uniform vec4 gfEmissionColor;
+
+#ifdef GF_GL_HAS_COLOR
+uniform bool hasMeshColor;
+#endif
+
+uniform int gfNumClippers;
 
 //Color Matrix
 uniform mat4 gfColorMatrix;
@@ -79,10 +82,18 @@ uniform float gfKeyLow;
 uniform float gfKeyHigh;
 uniform bool hasColorKey;
 
+#ifdef GF_GL_HAS_TEXTURE
+
+uniform int gfNumTextures;
+
 //Texture samplers
+#ifdef GF_GL_IS_YUV
 uniform sampler2D y_plane;
 uniform sampler2D u_plane;
 uniform sampler2D v_plane;
+#else
+uniform sampler2D img;
+#endif
 
 //Texture other
 uniform float alpha;
@@ -91,23 +102,34 @@ const vec3 R_mul = vec3(1.164,  0.000,  1.596);
 const vec3 G_mul = vec3(1.164, -0.391, -0.813);
 const vec3 B_mul = vec3(1.164,  2.018,  0.000);
 
+#endif
+
+
 //Varyings
-varying vec3 n;
+#ifdef GF_GL_HAS_LIGHT
+varying vec3 m_normal;
 varying vec4 gfEye;
-varying vec2 TexCoord;
 varying vec3 lightVector[LIGHTS_MAX];
 varying vec3 halfVector[LIGHTS_MAX];
-varying float clipDistance[CLIPS_MAX];
 varying float gfFogFactor;
+#endif
 
-//testing material
+#ifdef GF_GL_HAS_TEXTURE
+varying vec2 TexCoord;
+#endif
+
+#ifdef GF_GL_HAS_COLOR
 varying vec4 m_color;
+#endif
+
+varying float clipDistance[CLIPS_MAX];
 
 //constants
 const float zero_float = 0.0;
 const float one_float = 1.0;
 
 
+#ifdef GF_GL_HAS_LIGHT
 vec4 doLighting(int i){
 
 	vec4 lightColor = vec4(zero_float, zero_float, zero_float, zero_float);
@@ -117,24 +139,25 @@ vec4 doLighting(int i){
 	vec3 lightV; //temp lightVector
 	vec3 halfVnorm; //temp lightVector
 
-if(i==0){	//ES2 does not support switch() statements
+	//FIXME - couldn't we use a light[i]. something here ?
+	if(i==0) {	//ES2 does not support switch() statements
 		tempLight = lights[0];
 		lightV = lightVector[0];
 		halfVnorm = normalize(halfVector[0]);
-}else if(i==1){
+	} else if (i==1) {
 		tempLight = lights[1];
 		lightV = lightVector[1];
 		halfVnorm = normalize(halfVector[1]);
-}else if(i==2){
+	} else if(i==2) {
 		tempLight = lights[2];
 		lightV = lightVector[2];
 		halfVnorm = normalize(halfVector[2]);
-}
+	}
 	
 	lightVnorm = normalize(lightV);
-	vec3 normal = normalize(n);
+	vec3 normal = normalize(m_normal);
 
-	if(gfLightTwoSide && (!gl_FrontFacing)){//light back face
+	if (gfLightTwoSide && (!gl_FrontFacing)){//light back face
 		//originally: normal *=-1; -> Not compliant with Shading Language v1.0
 		normal *= vec3(-1.0, -1.0, -1.0);
 	}
@@ -142,7 +165,7 @@ if(i==0){	//ES2 does not support switch() statements
 	float light_cos = max(zero_float, dot(normal, lightVnorm));	//ndotl
 	float half_cos = dot(normal, halfVnorm);
 
-	if(tempLight.type == L_POINT){	//we have a point
+	if (tempLight.type == L_POINT) {	//we have a point
 		float distance = length(lightV);	
 		att = 1.0 / (tempLight.attenuation.x + tempLight.attenuation.y * distance + tempLight.attenuation.z * distance * distance);
 
@@ -151,7 +174,7 @@ if(i==0){	//ES2 does not support switch() statements
 			
 		lightColor += light_cos * tempLight.color * gfDiffuseColor;
 		
-		if(light_cos > 0.0){
+		if (light_cos > 0.0) {
 			float dotNormHalf = max(dot(normal, halfVnorm),0.0);	//ndoth
 			lightColor += (pow(dotNormHalf, gfShininess) * gfSpecularColor * tempLight.color);
 			lightColor *= att;
@@ -159,10 +182,10 @@ if(i==0){	//ES2 does not support switch() statements
 		lightColor.a = gfDiffuseColor.a;
 		return lightColor;
 		
-	}else if(tempLight.type == L_SPOT){	//we have a spot
-		if(light_cos > 0.0){
+	} else if (tempLight.type == L_SPOT) {	//we have a spot
+		if (light_cos > 0.0) {
 			float spot = dot(normalize(tempLight.direction.xyz), lightVnorm);	//it should be -direction, but we invert it before parsing
-			if (spot > tempLight.cutOffAngle){
+			if (spot > tempLight.cutOffAngle) {
 				float distance = length(lightV);	
 				float dotNormHalf = max(dot(normal, halfVnorm),0.0);	//ndoth
 				spot = pow(spot, tempLight.intensity);
@@ -173,10 +196,10 @@ if(i==0){	//ES2 does not support switch() statements
 		}
 		return lightColor;
 
-	}else if(tempLight.position.w == zero_float || tempLight.type == L_DIRECTIONAL){ //we have a direction
+	} else if(tempLight.position.w == zero_float || tempLight.type == L_DIRECTIONAL) { //we have a direction
 		vec3 lightDirection = vec3(tempLight.position);
 		lightColor = (gfDiffuseColor * gfLightDiffuse) * light_cos; 
-		if (half_cos > zero_float){ 
+		if (half_cos > zero_float) {
 			lightColor += (gfSpecularColor * gfLightSpecular) * pow(half_cos, gfShininess);
 		}
 		lightColor.a = gfDiffuseColor.a;
@@ -185,44 +208,41 @@ if(i==0){	//ES2 does not support switch() statements
 
 	return vec4(zero_float);
 }
-
+#endif //GF_GL_HAS_LIGHT
 
 void main()
 {
 	int i;
 	vec2 texc;
 	vec3 yuv, rgb;
-	vec4 fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+	vec4 rgba, fragColor = vec4(0.0, 0.0, 0.0, 0.0);
 	
-	if(hasMeshColor){	//
-		fragColor = m_color;
-	}else if(gfNumLights==0){
-	//is material2D => no lights - only colour (stored in gfEmissionColor)
-		/* Normally here there should be only the material 2D
-		 * BUT we might have a case of normal material with no lights
-		 * we treat it the same way
-		 */
+#ifdef GF_GL_HAS_COLOR
+	fragColor = m_color;
+#endif
+
+	if (hasMaterial2D) {
 		fragColor = gfEmissionColor;
-	}else if(gfNumLights>0){
-		//default material (visual->has_material) -> handled in doLighting()
 	}
 
-	//clippin
-	if(hasClip){
-		for(int i=0;i<CLIPS_MAX;i++){
-			if(clipDistance[i]<0.0) discard;
-		}
+#if defined (GF_GL_HAS_LIGHT)
+	if (gfNumLights>0) {
+#ifdef GF_GL_HAS_COLOR
+		fragColor += (gfAmbientColor * gfLightAmbient);
+#else
+		fragColor = gfEmissionColor + (gfAmbientColor * gfLightAmbient);
+#endif
+	}
+#endif
+
+	//clipping
+	for (int i=0;i<gfNumClippers; i++) {
+		if (clipDistance[i]<0.0) discard;
 	}
 
 #ifdef GF_GL_HAS_LIGHT
 	if (gfNumLights > 0) {
-	
-		fragColor = gfEmissionColor + (gfAmbientColor * gfLightAmbient);
-
-		for(int i=0; i<LIGHTS_MAX; i++){
-
-			if(i>=gfNumLights) break;
-			
+		for (int i=0; i<gfNumLights; i++) {
 			fragColor += doLighting(i);
 		}
 		fragColor.a = gfDiffuseColor.a;
@@ -230,46 +250,57 @@ void main()
 #endif
 	
 	fragColor = clamp(fragColor, zero_float, one_float);
+
+#ifdef GF_GL_HAS_TEXTURE
 	
-	if(gfNumTextures>0){	//currently supporting 1 texture
+	//currently supporting 1 texture
+	if (gfNumTextures>0) {
 #ifdef GF_GL_IS_YUV
-			texc = TexCoord.st;
-			yuv.x = texture2D(y_plane, texc).r;
-			yuv.y = texture2D(u_plane, texc).r;
-			yuv.z = texture2D(v_plane, texc).r;
-			yuv += offset;
-			rgb.r = dot(yuv, R_mul);
-			rgb.g = dot(yuv, G_mul);
-			rgb.b = dot(yuv, B_mul);
-			if(gfNumLights>0){
-				fragColor *= vec4(rgb, alpha);
-			}else{
-				fragColor = vec4(rgb, alpha);
-			}
+		texc = TexCoord.st;
+		yuv.x = texture2D(y_plane, texc).r;
+		yuv.y = texture2D(u_plane, texc).r;
+		yuv.z = texture2D(v_plane, texc).r;
+		yuv += offset;
+		rgb.r = dot(yuv, R_mul);
+		rgb.g = dot(yuv, G_mul);
+		rgb.b = dot(yuv, B_mul);
+
+		rgba = vec4(rgb, alpha);
 #else
-		if(gfNumLights>0){	//RGB texture
-			fragColor *= texture2D(y_plane, TexCoord);
-		}else if(gfNumLights==0){	//RGB texture with material 2D [TODO: check]
-			fragColor = texture2D(y_plane, TexCoord);
-		}
+		rgba = texture2D(img, TexCoord);
 #endif
 
-#ifdef GF_GL_HAS_MAT_2D	//we have mat 2 + texture
-		if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0){
-			fragColor *= gfEmissionColor;
-		}else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
-			fragColor.rgb = gfEmissionColor.rgb;
+#ifdef GF_GL_HAS_LIGHT
+		if (gfNumLights>0) {	//RGB texture
+			fragColor = rgba;
 		}
+		//RGB texture with material 2D [TODO: check]
+		else if(gfNumLights==0)
 #endif
+		{
+			fragColor = rgba;
+		}
+		
+		//we have mat 2D + texture
+		if (hasMaterial2D) {
+			if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0) {
+				fragColor *= gfEmissionColor;
+			} else if(fragColor.rgb == vec3(0.0, 0.0, 0.0)){
+				fragColor.rgb = gfEmissionColor.rgb;
+			}
+		}
 	}
 	
-	if(hasColorMatrix){
+#endif // GF_GL_HAS_TEXTURE
+	
+	
+	if (hasColorMatrix) {
 		fragColor = gfColorMatrix * fragColor;
 		fragColor += gfTranslationVector;
 		fragColor = clamp(fragColor, zero_float, one_float);
 	}
 	
-	if(hasColorKey){
+	if (hasColorKey) {
 		vec3 tempColour = vec3(0.0, 0.0, 0.0);
 		float mean = 0.0;
 		
@@ -278,15 +309,17 @@ void main()
 		tempColour.b = abs(gfKeyColor.b-fragColor.b);
 		mean = (tempColour.r + tempColour.g + tempColour.b)/3.0;
 		
-		if(mean<gfKeyLow){
+		if (mean<gfKeyLow) {
 			fragColor.a =0.0;
-		}else if(mean<=gfKeyHigh){
+		} else if(mean<=gfKeyHigh) {
 			fragColor.a = (mean-gfKeyLow) * gfKeyAlpha / (gfKeyHigh - gfKeyLow);
 		}
 	}
 	
-	if(gfFogEnabled)
+#ifdef GF_GL_HAS_LIGHT
+	if (gfFogEnabled)
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
+#endif
 	
 	gl_FragColor = fragColor;
 }

@@ -35,22 +35,20 @@
 #include "visual_manager_3d.h"
 
 
-//startof ES2.0 specifics
+//startof GL3/ES2.0 specifics
 
-/* number of preprocessor flags for ES2.0 */
-#define GF_GL_NUM_OF_FLAGS			3
-#define GF_GL_NUM_OF_SHADERS		8	//=2^GF_GL_NUM_OF_FLAGS
-#define GF_GL_NUM_OF_VALID_SHADERS	6	//GF_GL_HAS_MAT_2D xor GF_GL_HAS_LIGHT
+/* number of preprocessor flags for GL3/ES2.0 */
+#define GF_GL_NUM_OF_FLAGS			4
+#define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
+#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS
 
-/* setting preprocessor flags for ES2.0 shaders */
+/* setting preprocessor flags for GL3/ES2.0 shaders */
 enum {
-	GF_GL_IS_YUV = 1,
-	GF_GL_HAS_MAT_2D = (1<<1),	//Excludes Light
-	GF_GL_HAS_LIGHT = (1<<2),
-	//GF_GL_IS_RECT = (1<<3),	//ES2 handles all 2D textures the same
-	//GF_GL_HAS_CLIP = (1<<4),	//moved to variable hasClip
-	//GF_GL_HAS_FOG = (1<<5),		//Requires Light (variable hasFog, when GF_GL_HAS_LIGHT)
-	//GF_GL_HAS_MAT = (1<<6),		//Requires Light
+	GF_GL_HAS_TEXTURE = 1,
+	GF_GL_HAS_LIGHT = (1<<1),
+	GF_GL_HAS_COLOR = (1<<2),
+	//only for fragment shaders
+	GF_GL_IS_YUV = 1<<3,
 };
 //endof
 
@@ -251,14 +249,14 @@ struct _visual_manager
 
 	/*end of GL state to emulate with GLSL*/	
 
-#ifdef GPAC_USE_GLES2
-//startof ES2.0 elements
+//startof GL3/ES2.0 elements
 	/* shaders used for shader-only drawing */
-	GF_SHADERID glsl_vertex;
 	GF_SHADERID glsl_program;
 
 	/* Storing Compiled Shaders */
-	GF_SHADERID glsl_programs[GF_GL_NUM_OF_SHADERS];
+	GF_SHADERID glsl_programs[GF_GL_NB_FRAG_SHADERS];
+	GF_SHADERID glsl_vertex_shaders[GF_GL_NB_VERT_SHADERS];
+	GF_SHADERID glsl_fragment_shaders[GF_GL_NB_FRAG_SHADERS];
 
 	/* If GF_TRUE the Array of Shaders is built */
 	Bool glsl_has_shaders;
@@ -266,7 +264,6 @@ struct _visual_manager
 	/* Compilation/Features Flags for dynamic shader */
 	u32 glsl_flags;
 //endof
-#endif	//!GPAC_USE_GLES2
 
 #endif	//!GPAC_DISABLE_3D
 
