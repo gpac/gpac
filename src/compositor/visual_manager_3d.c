@@ -851,6 +851,37 @@ static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 	visual_3d_clear_all_lights(tr_state->visual);
 }
 
+void visual_3d_setup_clipper(GF_VisualManager *visual, GF_TraverseState *tr_state)
+{
+	GF_Rect rc;
+	/*setup top clipper*/
+	if (visual->center_coords) {
+		rc = gf_rect_center(INT2FIX(visual->width), INT2FIX(visual->height));
+	} else {
+		rc.width = INT2FIX(visual->width);
+		rc.height = INT2FIX(visual->height);
+		rc.x = 0;
+		rc.y = rc.height;
+		if (visual->compositor->visual==visual) {
+			rc.x += INT2FIX(visual->compositor->vp_x);
+			rc.y += INT2FIX(visual->compositor->vp_y);
+		}
+	}
+	
+	/*setup viewport*/
+#ifndef GPAC_DISABLE_VRML
+	if (gf_list_count(visual->view_stack)) {
+		tr_state->traversing_mode = TRAVERSE_BINDABLE;
+		tr_state->bounds = rc;
+		gf_node_traverse((GF_Node *) gf_list_get(visual->view_stack, 0), tr_state);
+	}
+#endif
+	
+	visual->top_clipper = gf_rect_pixelize(&rc);
+	tr_state->clipper = rc;
+	gf_mx_init(tr_state->layer_matrix);
+}
+
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual)
 {
 #ifndef GPAC_DISABLE_LOG
@@ -858,17 +889,22 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 #endif
 
 	visual_3d_setup(visual);
-
+	visual->glsl_flags = 0;
+	
 	/*setup our traversing state*/
 	visual_3d_setup_traversing_state(visual, tr_state);
 
 	if (is_root_visual) {
 		Bool auto_stereo = 0;
 
+		visual_3d_setup_clipper(visual, tr_state);
+		
 		if (tr_state->visual->autostereo_type>GF_3D_STEREO_SIDE) {
 			visual_3d_init_autostereo(visual);
 			auto_stereo = 1;
 		}
+		
+		
 
 #ifndef GPAC_USE_GLES1X
 		visual_3d_init_shaders(visual);

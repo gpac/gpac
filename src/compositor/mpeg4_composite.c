@@ -286,7 +286,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
-	if ( (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+	if (!compositor->visual->type_3d && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
 #endif
 
@@ -473,6 +473,24 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 	if (!txh->tx_io) return;
 
+#ifndef GPAC_DISABLE_3D
+	if (st->visual->camera.is_3D) {
+#ifdef GPAC_USE_TINYGL
+		st->visual->type_3d = 2;
+		st->visual->camera.is_3D = 1;
+#else
+		if (compositor->visual->type_3d) {
+			st->visual->type_3d = 2;
+		} else if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
+			st->visual->type_3d = 0;
+		} else {
+			st->visual->type_3d = 2;
+		}
+	}
+#endif
+	
+#endif
+	
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
 
@@ -501,7 +519,7 @@ static void composite_update(GF_TextureHandler *txh)
 	st->first = 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
-
+	
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
@@ -640,25 +658,15 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	st->visual->offscreen = node;
 	st->visual->GetSurfaceAccess = composite_get_video_access;
 	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
+	st->visual->CheckAttached = composite_check_visual_attached;
 
+	st->visual->camera.is_3D = 1;
 	st->first = 1;
 	st->visual->compositor = compositor;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, composite_traverse);
 	gf_sc_visual_register(compositor, st->visual);
 
-#ifdef GPAC_USE_TINYGL
-	st->visual->type_3d = 2;
-	st->visual->camera.is_3D = 1;
-#else
-	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
-		st->visual->type_3d = 0;
-		st->visual->camera.is_3D = 0;
-	} else {
-		st->visual->type_3d = 2;
-		st->visual->camera.is_3D = 1;
-	}
-#endif
 	camera_invalidate(&st->visual->camera);
 }
 #endif
