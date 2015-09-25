@@ -179,7 +179,6 @@ typedef struct
 
 typedef struct
 {
-	//0: directional - 1: spot - 2: point
 	GF_Plane p;
 	Bool is_2d_clip;
 	GF_Matrix *mx_clipper;
@@ -283,7 +282,7 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, 
                               SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert point light - returns 0 if too many lights*/
 Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
-/*insert directional light - returns 0 if too many lights*/
+/*insert directional light - returns 0 if too many lights. If light_mx is null, this is the headlight*/
 Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction, GF_Matrix *light_mx);
 
 void visual_3d_has_inactive_light(GF_VisualManager *visual);

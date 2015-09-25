@@ -84,7 +84,6 @@
 #elif defined(GPAC_USE_GLES2)
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
-
 #else
 
 #include <GL/gl.h>
@@ -483,6 +482,7 @@ GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 
+
 #ifndef GPAC_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
 GLDECL(void, glDisableVertexAttribArray, (GLuint index) )
@@ -499,4 +499,3 @@ GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
 #endif	/*GPAC_DISABLE_3D*/
 
 #endif	/*_GL_INC_H_*/
-

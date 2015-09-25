@@ -1947,7 +1947,7 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 				compositor->force_opengl_2d = 0;
 
 				//enable hybrid mode by default
-				if (compositor->visual->yuv_rect_glsl_program) {
+				if (compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
 					compositor->hybrid_opengl = 1;
 				} else {
@@ -2907,8 +2907,10 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		Bool locked = gf_mx_try_lock(compositor->mx);
-		if (event->setup.hw_reset)
+		if (event->setup.hw_reset) {
 			gf_sc_reset_graphics(compositor);
+			compositor->reset_graphics = 2;
+		}
 
 		if (event->setup.back_buffer)
 			compositor->recompute_ar = 1;

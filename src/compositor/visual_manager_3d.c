@@ -1865,11 +1865,11 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 	if (visual->has_inactive_lights || visual->num_lights) return;
 
 	col.blue = col.red = col.green = FIX_ONE;
-	dir.x = dir.y = 0;
-	dir.z = -FIX_ONE;
-	if (cam->is_3D) dir = camera_get_target_dir(cam);
+	dir.x = dir.y = 0; dir.z = -FIX_ONE;
+//	if (cam->is_3D) dir = camera_get_target_dir(cam);
+//	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, &cam->modelview);
 
-	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, &cam->modelview);
+	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, NULL);
 }
 
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
@@ -2019,7 +2019,16 @@ Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientInte
 	visual->lights[visual->num_lights].color = color;
 	visual->lights[visual->num_lights].intensity = intensity;
 	visual->lights[visual->num_lights].direction = direction;
-	memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
+	if (light_mx) {
+		memcpy(&visual->lights[visual->num_lights].light_mx, light_mx, sizeof(GF_Matrix) );
+	} else {
+		gf_mx_init(visual->lights[visual->num_lights].light_mx);
+		visual->lights[visual->num_lights].type = 3;
+		visual->lights[visual->num_lights].direction.x = 0;
+		visual->lights[visual->num_lights].direction.y = 0;
+		visual->lights[visual->num_lights].direction.z = -FIX_ONE;
+	}
+
 	visual->num_lights++;
 	return 1;
 }

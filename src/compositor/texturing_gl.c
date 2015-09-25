@@ -211,6 +211,14 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		}
 	}
 	return GF_OK;
+
+	//We do not have PBOs in ES2.0
+#elif !defined(GPAC_DISABLE_3D) && defined(GPAC_USE_GLES2)
+	//PBO mode: start pushing the texture
+	if (txh->tx_io->pbo_id) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] PBOs are not implemented in GL ES 2.0\n"));
+	}
+	return GF_NOT_SUPPORTED;
 #else
 	return GF_NOT_SUPPORTED;
 #endif
@@ -261,6 +269,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 {
 	if (!txh->tx_io || !txh->tx_io->id || !txh->tx_io->gl_type) return;
 
+#ifndef GPAC_USE_GLES2
 	if (!no_bind)
 		glEnable(txh->tx_io->gl_type);
 
@@ -291,6 +300,9 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 		}
 		break;
 	}
+#else
+	if (txh->transparent) glEnable(GL_BLEND);
+	//blend_mode for ES2.0 can be implemented inside the fragment shader if desired
 #endif
 
 	if (!no_bind)
@@ -318,7 +330,9 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 
 		}
 #endif
+#if !defined(GPAC_USE_GLES2)
 		glDisable(txh->tx_io->gl_type);
+#endif
 		if (txh->transparent) glDisable(GL_BLEND);
 
 		gf_sc_texture_check_pause_on_first_load(txh);
@@ -379,7 +393,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	txh->tx_io->flags = TX_IS_POW2;
 	txh->tx_io->gl_type = GL_TEXTURE_2D;
 
-	/*TODOk - all textures can be used in GLES2*/
+	/* TODOk - all textures can be used in GLES2 j */
 #ifdef GPAC_USE_GLES2
 	use_rect = GF_TRUE;
 #else
@@ -439,7 +453,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_GLES1X
-		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 			break;
 		} 
@@ -456,7 +470,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	//fallthrough
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YUVD:
-		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 		} else {
 			if (!use_rect && compositor->emul_pow2) txh->tx_io->flags = TX_EMULE_POW2;
@@ -565,7 +579,9 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 
 	//setup all textures
 	for (i=0; i<nb_tx; i++) {
+#if !defined(GPAC_USE_GLES2)
 		glEnable(txh->tx_io->gl_type);
+#endif
 		glBindTexture(txh->tx_io->gl_type, tx_id[i] );
 
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
@@ -615,7 +631,9 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 #endif
 			glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 		}
+#if !defined(GPAC_USE_GLES2)
 		glDisable(txh->tx_io->gl_type);
+#endif
 	}
 	return 1;
 }
@@ -841,6 +859,7 @@ common:
 static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_load, u8 *data, u32 stride, u32 w, u32 h, u32 pbo_id)
 {
 	Bool needs_stride;
+	GL_CHECK_ERR
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 		if (needs_stride) stride /= 2;
@@ -852,7 +871,8 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 	if (needs_stride)
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 #else
-	if (needs_stride) {
+	if (needs_stride)
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
 #endif
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -862,6 +882,10 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 	}
 	else
+#elif defined(GPAC_USE_GLES2)
+	if (txh->tx_io->pbo_pushed) {
+		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
+	} else
 #endif
 		if (first_load) {
 			glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, data);
@@ -874,7 +898,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	return;
 #else
-}
+
 
 	if (!needs_stride)
 		return;
@@ -1286,8 +1310,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	return ret;
 }
 
-static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
-{
+static Bool gf_sc_texture_enable_matte_texture(GF_Node *n){
 	return GF_FALSE;
 }
 
@@ -1312,16 +1335,35 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 {
 	GF_Matrix mx;
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
+	GF_VisualManager *visual = (GF_VisualManager *) txh->compositor->visual;
+	u32 flags;	//used for ES2.0 shader selection
+
+	if(!visual->glsl_flags)
+		visual->glsl_flags = 0;
+
+	if(visual->has_material_2d){	// mat2d (hence no lights)
+		visual->glsl_flags |= GF_GL_HAS_MAT_2D;
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+	}
+	/*
+	}else if(visual->num_lights){	// has lights
+		visual->glsl_flags |= GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}else{							//fallback: no mat2d AND no lights
+		visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
+		visual->glsl_flags &= ~GF_GL_HAS_MAT_2D;
+	}*/
+	flags = visual->glsl_flags;
 
 #ifndef GPAC_DISABLE_VRML
 	if (txh->matteTexture) {
-		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);
+		u32 ret = gf_sc_texture_enable_matte_texture(txh->matteTexture);	//Removed - will always return GF_FALSE
 		if (!ret) return 0;
 
 		if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0))
-			visual_3d_set_texture_matrix(compositor->visual, &mx);
+			visual_3d_set_texture_matrix(visual, &mx);
 		else
-			visual_3d_set_texture_matrix(compositor->visual, NULL);
+			visual_3d_set_texture_matrix(visual, NULL);
 
 		return ret;
 	}
@@ -1341,59 +1383,82 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		GF_Matrix2D mx2d;
 		txh->compute_gradient_matrix(txh, bounds, &mx2d, 1);
 		gf_mx_from_mx2d(&mx, &mx2d);
-		visual_3d_set_texture_matrix(compositor->visual, &mx);
+		visual_3d_set_texture_matrix(visual, &mx);
 	}
 	else if (gf_sc_texture_get_transform(txh, tx_transform, &mx, 0)) {
-		visual_3d_set_texture_matrix(compositor->visual, &mx);
+		visual_3d_set_texture_matrix(visual, &mx);
 	} else {
-		visual_3d_set_texture_matrix(compositor->visual, NULL);
+		visual_3d_set_texture_matrix(visual, NULL);
 	}
 
 	txh->flags |= GF_SR_TEXTURE_USED;
 
 #ifndef GPAC_USE_GLES1X
 	if (txh->tx_io->yuv_shader) {
-		GLint loc;
-		/*use our program*/
-		Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
-		compositor->visual->current_texture_glsl_program = is_rect ? compositor->visual->yuv_rect_glsl_program : compositor->visual->yuv_glsl_program;
-		GL_CHECK_ERR
-		glUseProgram(compositor->visual->current_texture_glsl_program);
-		GL_CHECK_ERR
+		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
 
+		if(compositor->shader_only_mode){	//ES2.0
+			flags |= GF_GL_IS_YUV;
+			active_shader = visual->glsl_programs[flags];	//Set active
+		}else{	//the old stuff
+			Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
+			visual->current_texture_glsl_program = is_rect ? visual->yuv_rect_glsl_program : visual->yuv_glsl_program;
+			active_shader = visual->current_texture_glsl_program;
+		}
+		GL_CHECK_ERR
+		glUseProgram(active_shader);
+		GL_CHECK_ERR
+#if !defined(GPAC_USE_GLES2)
 		glEnable(txh->tx_io->gl_type);
 
-		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "width");
+		loc = glGetUniformLocation(active_shader, "width");
 		if (loc >=0) {
 			GLfloat w = (GLfloat) txh->width;
 			glUniform1f(loc, w);
 		}
-		loc = glGetUniformLocation(compositor->visual->current_texture_glsl_program, "height");
+		GL_CHECK_ERR
+		loc = glGetUniformLocation(active_shader, "height");
 		if (loc >= 0) {
 			GLfloat h = (GLfloat) txh->height;
 			glUniform1f(loc, h);
 		}
-
+		GL_CHECK_ERR
+#endif
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 
 		glActiveTexture(GL_TEXTURE1);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 
-		glActiveTexture(GL_TEXTURE0 );
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 
+		GL_CHECK_ERR
 		tx_bind_with_mode(txh, txh->transparent, txh->tx_io->blend_mode, 1);
-
 #ifndef GPAC_USE_GLES2
 		glClientActiveTexture(GL_TEXTURE0);
 #endif
-
 	} else
 #endif
 	{
-		tx_bind(txh);
+		if(compositor->shader_only_mode){	//ES2.0
+			flags &= ~GF_GL_IS_YUV;	//its not YUV
+
+			glUseProgram(visual->glsl_programs[flags]);
+			GL_CHECK_ERR
+
+			glActiveTexture(GL_TEXTURE0);
+			GL_CHECK_ERR
+			glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+			GL_CHECK_ERR
+
+			tx_bind(txh);
+		} else {
+			tx_bind(txh);
+		}
+
 	}
+	visual->glsl_flags = flags;
 	return 1;
 
 }
