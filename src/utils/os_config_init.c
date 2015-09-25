@@ -132,7 +132,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the
 	installation path*/
-	if (!strstr(file_path, "gpac")) {
+	if (!strstr(file_path, "gpac") && !strstr(file_path, "GPAC") ) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
 
@@ -542,7 +542,7 @@ static GF_Config *create_default_config(char *file_path)
 		/*shaders are at the same location*/
 		assert(sep);
 		sep[0] = 0;
-		sprintf(gui_path, "%s%cshaders", szPath, GF_PATH_SEPARATOR);
+		sprintf(gui_path, "%s%cshaders\\", szPath, GF_PATH_SEPARATOR);
 		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", gui_path);
 	}
 

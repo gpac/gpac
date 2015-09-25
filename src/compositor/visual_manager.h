@@ -35,6 +35,25 @@
 #include "visual_manager_3d.h"
 
 
+//startof ES2.0 specifics
+
+/* number of preprocessor flags for ES2.0 */
+#define GF_GL_NUM_OF_FLAGS			3
+#define GF_GL_NUM_OF_SHADERS		8	//=2^GF_GL_NUM_OF_FLAGS
+#define GF_GL_NUM_OF_VALID_SHADERS	6	//GF_GL_HAS_MAT_2D xor GF_GL_HAS_LIGHT
+
+/* setting preprocessor flags for ES2.0 shaders */
+enum {
+	GF_GL_IS_YUV = 1,
+	GF_GL_HAS_MAT_2D = (1<<1),	//Excludes Light
+	GF_GL_HAS_LIGHT = (1<<2),
+	//GF_GL_IS_RECT = (1<<3),	//ES2 handles all 2D textures the same
+	//GF_GL_HAS_CLIP = (1<<4),	//moved to variable hasClip
+	//GF_GL_HAS_FOG = (1<<5),		//Requires Light (variable hasFog, when GF_GL_HAS_LIGHT)
+	//GF_GL_HAS_MAT = (1<<6),		//Requires Light
+};
+//endof
+
 enum
 {
 	GF_3D_STEREO_NONE = 0,
@@ -205,6 +224,9 @@ struct _visual_manager
 	GF_SHADERID current_texture_glsl_program;
 
 
+	Bool needs_projection_matrix_reload;
+
+	/*GL state to emulate with GLSL [ES2.0]*/	
 	Bool has_material_2d;
 	SFColorRGBA mat_2d;
 
@@ -219,8 +241,6 @@ struct _visual_manager
 	Bool has_tx_matrix;
 	GF_Matrix tx_matrix;
 
-	Bool needs_projection_matrix_reload;
-
 	GF_LightInfo lights[GF_MAX_GL_LIGHTS];
 	Bool has_inactive_lights;
 
@@ -229,12 +249,26 @@ struct _visual_manager
 	SFColor fog_color;
 	Fixed fog_density, fog_visibility;
 
+	/*end of GL state to emulate with GLSL*/	
 
+#ifdef GPAC_USE_GLES2
+//startof ES2.0 elements
+	/* shaders used for shader-only drawing */
 	GF_SHADERID glsl_vertex;
-	GF_SHADERID glsl_fragment;
 	GF_SHADERID glsl_program;
 
-#endif
+	/* Storing Compiled Shaders */
+	GF_SHADERID glsl_programs[GF_GL_NUM_OF_SHADERS];
+
+	/* If GF_TRUE the Array of Shaders is built */
+	Bool glsl_has_shaders;
+
+	/* Compilation/Features Flags for dynamic shader */
+	u32 glsl_flags;
+//endof
+#endif	//!GPAC_USE_GLES2
+
+#endif	//!GPAC_DISABLE_3D
 
 #ifdef GF_SR_USE_DEPTH
 	Fixed depth_vp_position, depth_vp_range;

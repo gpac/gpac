@@ -21,10 +21,12 @@
         android:name="android.hardware.camera" android:required="false"/>
     <uses-feature
         android:name="android.hardware.camera.autofocus" android:required="false"/> 
-     <uses-feature
+    <uses-feature
         android:name="android.hardware.sensor.gyroscope" android:required="false"/> 
-     <uses-feature
+    <uses-feature
         android:name="android.hardware.sensor.accelerometer" android:required="false"/>
+    <uses-feature
+        android:glEsVersion="0x00020000" android:required="true"/>
 
     <application
         android:icon="@drawable/icon"

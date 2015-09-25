@@ -112,8 +112,9 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 #ifndef GPAC_DISABLE_3D
 static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 {
+	GF_Node *appear;
 	DrawAspect2D asp;
-
+	GF_ColorKey keyColor;
 	BitmapStack *st = (BitmapStack *)gf_node_get_private(node);
 	M_Bitmap *bmp = (M_Bitmap *)node;
 
@@ -123,7 +124,27 @@ static void draw_bitmap_3d(GF_Node *node, GF_TraverseState *tr_state)
 	memset(&asp, 0, sizeof(DrawAspect2D));
 	drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
 
+	appear = tr_state->override_appearance ? tr_state->override_appearance : tr_state->appear;
+	/*check for material key materialKey*/
+	if (appear) {
+		M_Appearance *app = (M_Appearance *)appear;
+		if ( app->material && (gf_node_get_tag((GF_Node *)app->material)==TAG_MPEG4_MaterialKey) ) {
+			M_MaterialKey*mk = (M_MaterialKey*)app->material;
+			if (mk->isKeyed) {
+				keyColor.r = FIX2INT(mk->keyColor.red * 255);
+				keyColor.g = FIX2INT(mk->keyColor.green * 255);
+				keyColor.b = FIX2INT(mk->keyColor.blue * 255);
+				keyColor.alpha = FIX2INT( (FIX_ONE - mk->transparency) * 255);
+				keyColor.low = FIX2INT(mk->lowThreshold * 255);
+				keyColor.high = FIX2INT(mk->highThreshold * 255);
+				tr_state->col_key = &keyColor;
+			}
+		}
+	}
+
 	compositor_3d_draw_bitmap(st->graph, &asp, tr_state, st->size.x, st->size.y, bmp->scale.x, bmp->scale.y);
+
+	tr_state->col_key = NULL;
 }
 #endif
 
