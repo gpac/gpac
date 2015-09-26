@@ -1946,13 +1946,19 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 				compositor->visual->type_3d = 0;
 				compositor->force_opengl_2d = 0;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (compositor->visual->yuv_rect_glsl_program || compositor->visual->compositor->shader_only_mode) {
+				if (compositor->visual->compositor->shader_only_mode
+#ifndef GPAC_USE_GLES2
+					|| compositor->visual->yuv_rect_glsl_program
+#endif
+					) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
 					compositor->hybrid_opengl = 1;
 				} else {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
 				}
+#endif			
 			}
 
 		}

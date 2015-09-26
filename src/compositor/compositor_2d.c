@@ -560,18 +560,16 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 {
-	GF_Compositor *compositor = visual->compositor;
-
 	if (!visual->raster_surface) return GF_BAD_PARAM;
 
 #ifdef OPENGL_RASTER
-	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
+	if (visual->compositor->opengl_raster && visual->compositor->rasterizer->surface_attach_to_callbacks) {
 		return c2d_video_access_opengl_raster(visual);
 	}
 #endif
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->hybrid_opengl) {
+	if (visual->compositor->hybrid_opengl) {
 		return c2d_video_access_hybrid_opengl(visual);
 	}
 #endif

@@ -125,9 +125,13 @@
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
-#define GPAC_USE_GLES1X
 /*don't use fixed-point version on iOS, not needed*/
 //#define GPAC_FIXED_POINT
+
+//#define GPAC_USE_GLES1X
+#define GPAC_USE_GLES2
+
+// glu port available in gpac extra libs
 #define GPAC_HAS_GLU
 
 /*extra libs supported on iOS*/

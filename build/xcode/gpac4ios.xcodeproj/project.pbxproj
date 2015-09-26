@@ -440,6 +440,7 @@
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
 		92C7F19A1AA8B48E00BA5B4C /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 92C7F1991AA8B48E00BA5B4C /* gui */; };
+		92DD429F1BB599D100413A4B /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 92DD429E1BB599D100413A4B /* shaders */; settings = {ASSET_TAGS = (); }; };
 		92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DF5CA51BA6C6F80058A7BA /* iff.c */; };
 		92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
 		92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
@@ -1006,6 +1007,7 @@
 		92B69E011A091CFC004E74AA /* mpegu-core.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "mpegu-core.js"; sourceTree = "<group>"; };
 		92B69EB61A091CFC004E74AA /* webvtt-renderer.js */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.javascript; path = "webvtt-renderer.js"; sourceTree = "<group>"; };
 		92C7F1991AA8B48E00BA5B4C /* gui */ = {isa = PBXFileReference; lastKnownFileType = folder; name = gui; path = ../../gui; sourceTree = "<group>"; };
+		92DD429E1BB599D100413A4B /* shaders */ = {isa = PBXFileReference; lastKnownFileType = folder; name = shaders; path = ../../shaders; sourceTree = "<group>"; };
 		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930851A5ADC1A0072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
@@ -1244,6 +1246,7 @@
 		71A19B1412796AC700ACFF58 /* osmo4iOS */ = {
 			isa = PBXGroup;
 			children = (
+				92DD429E1BB599D100413A4B /* shaders */,
 				92B69DB01A091CFC004E74AA /* gui */,
 				929A929616EF8BC200B7C64F /* Default-568h@2x.png */,
 				929A929716EF8BC200B7C64F /* icon_ipad_retina.png */,
@@ -2167,6 +2170,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				92C7F19A1AA8B48E00BA5B4C /* gui in Resources */,
+				92DD429F1BB599D100413A4B /* shaders in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
 				929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */,
 				929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */,
@@ -2533,6 +2537,7 @@
 				COPY_PHASE_STRIP = NO;
 				DEAD_CODE_STRIPPING = NO;
 				DEPLOYMENT_LOCATION = YES;
+				ENABLE_BITCODE = NO;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OBJC_CALL_CXX_CDTORS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2571,6 +2576,7 @@
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				COPY_PHASE_STRIP = NO;
 				DEPLOYMENT_LOCATION = YES;
+				ENABLE_BITCODE = NO;
 				GCC_PRECOMPILE_PREFIX_HEADER = NO;
 				GCC_PREFIX_HEADER = "";
 				GCC_VERSION = "";
@@ -2604,6 +2610,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = NO;
+				ENABLE_BITCODE = NO;
 				EXECUTABLE_PREFIX = "";
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
@@ -2617,6 +2624,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/ios/,
+					../../extra_lib/include/ios/SDL2,
 					../../extra_lib/include/png,
 					../../extra_lib/include/jpeg,
 					../../extra_lib/include/js,
@@ -2641,6 +2649,7 @@
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				COPY_PHASE_STRIP = YES;
+				ENABLE_BITCODE = NO;
 				EXECUTABLE_PREFIX = "";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
@@ -2652,6 +2661,7 @@
 				HEADER_SEARCH_PATHS = (
 					../../include,
 					../../extra_lib/include/ios/,
+					../../extra_lib/include/ios/SDL2,
 					../../extra_lib/include/png,
 					../../extra_lib/include/jpeg,
 					../../extra_lib/include/js,
