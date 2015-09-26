@@ -315,6 +315,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		compositor->visual->camera_layout = GF_3D_CAMERA_STRAIGHT;
 	}
 	
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (compositor->shader_only_mode) {
 		char *shader_path =(char *) gf_cfg_get_key(compositor->user->config, "Compositor", "ShaderPath");
 		if (!shader_path) {
@@ -323,6 +324,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 			compositor->shader_only_mode = GF_FALSE;
 		}
 	}
+#endif
 }
 
 
@@ -419,6 +421,8 @@ static char *glsl_view_5VSP19 = "\
 	gl_FragColor.b = color[Vb].b;\
 	}";
 
+#ifndef GPAC_USE_GLES2
+
 static char *glsl_yuv_shader = "\
 	uniform sampler2D y_plane;\n\
 	uniform sampler2D u_plane;\n\
@@ -510,6 +514,8 @@ static char *glsl_yuv_rect_shader_relaxed= "\
 		gl_FragColor = vec4(rgb, alpha);\n\
 	}\n";
 
+#endif
+
 /**
  parses (glShaderSource) and compiles (glCompileShader) shader source
  \return GF_TRUE if successful
@@ -524,9 +530,6 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 	len = (u32) strlen(source);
 	glShaderSource(shader_id, 1, &source, &len);
 	glCompileShader(shader_id);
-	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &blen);
-	if(blen==GL_TRUE)
-		return 1;
 
 	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
 	if (is_compiled == GL_TRUE) return GF_TRUE;
@@ -732,6 +735,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
+#ifndef GPAC_USE_GLES2
 static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 {
 	u32 i;
@@ -831,7 +835,7 @@ static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
 		}
 	}
 }
-
+#endif
 static GLint gf_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
 	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
@@ -1172,10 +1176,11 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 
 	DEL_SHADER(visual->base_glsl_vertex);
 	DEL_SHADER(visual->autostereo_glsl_fragment);
-	DEL_SHADER(visual->yuv_glsl_fragment);
-
 	DEL_PROGRAM(visual->autostereo_glsl_program );
+#ifndef GPAC_USE_GLES2
+	DEL_SHADER(visual->yuv_glsl_fragment);
 	DEL_PROGRAM(visual->yuv_glsl_program );
+#endif
 
 	if (visual->gl_textures) {
 		glDeleteTextures(visual->nb_views, visual->gl_textures);
@@ -1613,7 +1618,6 @@ static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
 #endif
 }
 
-
 static void visual_3d_update_matrices(GF_TraverseState *tr_state)
 {
 	GF_Matrix mx;
@@ -1985,6 +1989,7 @@ void visual_3d_enable_fog(GF_VisualManager *visual)
 
 #endif // ! GPAC_USE_GLES2
 
+
 static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	u32 prim_type;
@@ -2032,6 +2037,8 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
+
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 static void visual_3d_load_matrix_shaders(GF_VisualManager *visual, Fixed *mat, const char *name)
 {
@@ -2647,12 +2654,16 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	glUseProgram(0);
 }
 
-#endif //GPAC_ANDROID
+#endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+
+//#endif //GPAC_USE_GLES2
 
 static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
 	Bool has_col, has_tx, has_norm;
+#ifndef GPAC_USE_GLES2
 	GF_VisualManager *visual = tr_state->visual;
+#endif
 	GF_Compositor *compositor = tr_state->visual->compositor;
 	void *base_address = NULL;
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
@@ -3951,3 +3962,5 @@ restart:
 #endif //GPAC_USE_GLES1X
 
 }
+
+#endif // GPAC_DISABLE_3D

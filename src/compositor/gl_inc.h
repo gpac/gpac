@@ -82,8 +82,16 @@
 #include <GLES/glext.h>
 
 #elif defined(GPAC_USE_GLES2)
+
+#ifdef GPAC_IPHONE
+#include "OpenGLES/ES2/gl.h"
+#include "glues.h"
+#else
+
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
+#endif
+
 #else
 
 #include <GL/gl.h>
