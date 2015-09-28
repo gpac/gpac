@@ -33,7 +33,7 @@
 
 //Light Structure
 struct gfLight{
-	int type;
+	lowp int type;
 	vec4 position;
 	vec4 direction;
 	vec3 attenuation;
@@ -65,7 +65,7 @@ attribute vec4 gfMeshColor;
 #ifdef GF_GL_HAS_LIGHT
 //Generic (Scene) uniforms
 uniform gfLight lights[LIGHTS_MAX];
-uniform int gfNumLights;
+uniform lowp int gfNumLights;
 
 
 //Fog
@@ -91,16 +91,16 @@ uniform bool hasTextureMatrix;
 #endif
 
 //Clipping
-uniform int gfNumClippers;
+uniform lowp int gfNumClippers;
 uniform vec4 clipPlane[CLIPS_MAX];
 
 //Varyings
+#ifdef GF_GL_HAS_LIGHT
+
 varying vec4 gfEye;	//camera
 
-#ifdef GF_GL_HAS_LIGHT
 varying vec3 m_normal;		//normal
 varying vec3 lightVector[LIGHTS_MAX];
-varying vec3 halfVector[LIGHTS_MAX];
 varying float gfFogFactor;
 #endif
 
@@ -135,7 +135,10 @@ float fog()
 
 void main(void)
 {
-
+#ifndef GF_GL_HAS_LIGHT
+	vec4 gfEye;
+#endif
+	
 	gfEye = gfModelViewMatrix * gfVertex;
 	
 #ifdef GF_GL_HAS_COLOR
@@ -145,21 +148,14 @@ void main(void)
 #ifdef GF_GL_HAS_LIGHT
 	m_normal = normalize( vec3(gfNormalMatrix * vec4(gfNormal, 0.0)) );
 	
-	if (gfNumLights > 0) {
-		for(int i=0; i<LIGHTS_MAX; i++){
-			
-			if(i>=gfNumLights) break;
-			
-			if ( lights[i].type == L_SPOT || lights[i].type == L_POINT ) {
-				lightVector[i] = lights[i].position.xyz - gfEye.xyz;
-			} else {
-				//if it is a directional light, position SHOULD indicate direction (modified implementation - check before committing)
-				lightVector[i] = lights[i].direction.xyz;
-			}
-			halfVector[i] = lightVector[i] + gfEye.xyz;
+	for(int i=0; i<gfNumLights; i++){
+		if ( lights[i].type == L_SPOT || lights[i].type == L_POINT ) {
+			lightVector[i] = lights[i].position.xyz - gfEye.xyz;
+		} else {
+			//if it is a directional light, position SHOULD indicate direction (modified implementation - check before committing)
+			lightVector[i] = lights[i].direction.xyz;
 		}
 	}
-	
 	gfFogFactor = gfFogEnabled ? fog() : 1.0;
 	
 #endif
