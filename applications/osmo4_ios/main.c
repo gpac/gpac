@@ -279,6 +279,7 @@ int main (int argc, char *argv[])
 	Bool ret, fill_ar, visible;
     Bool logs_set = GF_FALSE;
 	char *url_arg, *the_cfg, *rti_file;
+	const char *logs_settings = NULL;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
 
@@ -289,16 +290,14 @@ int main (int argc, char *argv[])
 
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
+	
     for (i=1; i<argc; i++) {
         char *arg = argv[i];
         if (arg[0] != '-') {
             url_arg = arg;
         }
         else if (!strcmp(arg, "-logs")) {
-            if (gf_log_set_tools_levels(argv[i+1]) != GF_OK) {
-                return 1;
-            }
-            logs_set = GF_TRUE;
+			logs_settings = argv[i+1];
             i++;
         }
         else if (!strcmp(arg, "-lf")) {
@@ -317,7 +316,14 @@ int main (int argc, char *argv[])
     
 	gf_sys_init(enable_mem_tracker);
     gf_set_progress_callback(NULL, on_progress_null);
-    
+	
+	if (logs_settings) {
+		if (gf_log_set_tools_levels(logs_settings) != GF_OK) {
+			return 1;
+		}
+		logs_set = GF_TRUE;
+	}
+	
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");

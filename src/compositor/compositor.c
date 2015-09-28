@@ -1228,7 +1228,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 #ifndef GPAC_DISABLE_3D
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "OpenGLMode");
-
+	
 	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL)) {
 		if (sOpt && strcmp(sOpt, "disable")) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] OpenGL mode %s requested but no opengl-capable output - disabling openGL\n", sOpt));
@@ -1923,7 +1923,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 	if (compositor->recompute_ar) {
 #ifndef GPAC_DISABLE_LOG
 		u32 time=0;
-
+		u32 prev_type_3d = compositor->visual->type_3d;
+		
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {
 			time = gf_sys_clock();
 		}
@@ -1943,8 +1944,8 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 #endif
 			if (compositor->autoconfig_opengl) {
 				compositor->autoconfig_opengl = 0;
-				compositor->visual->type_3d = 0;
 				compositor->force_opengl_2d = 0;
+				compositor->visual->type_3d = prev_type_3d;
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default

@@ -141,6 +141,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		} else {
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
+			ch->esd->service_url = ch->odm->net_service->url;
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
 			gf_mx_v(ch->mx);
 		}

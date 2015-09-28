@@ -1923,7 +1923,8 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
             //store src path but do not concatenate, othewise we break BT<->XMT conversion ...
             if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
                 GF_MuxInfo *mux = (GF_MuxInfo *) desc;
-                if (!mux->src_url) mux->src_url = gf_strdup(parser->load->fileName);
+                if (!mux->src_url)
+					mux->src_url = gf_strdup(parser->load->src_url ? parser->load->src_url : parser->load->fileName);
             }
         }
 	}
