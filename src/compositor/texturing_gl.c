@@ -606,9 +606,19 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		glBindTexture(txh->tx_io->gl_type, tx_id[i] );
 
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
+		
+#ifdef GPAC_USE_GLES2
+		if (!is_pow2) {
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		} else
+#endif
+		{
 		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-		if (txh->tx_io->gl_type == GL_TEXTURE_2D) {
+		}
+
+		if (is_pow2 && txh->tx_io->gl_type == GL_TEXTURE_2D) {
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 		} else {
