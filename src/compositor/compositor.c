@@ -1923,7 +1923,9 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 	if (compositor->recompute_ar) {
 #ifndef GPAC_DISABLE_LOG
 		u32 time=0;
+#ifndef GPAC_DISABLE_3D
 		u32 prev_type_3d = compositor->visual->type_3d;
+#endif
 		
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {
 			time = gf_sys_clock();
