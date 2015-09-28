@@ -395,6 +395,33 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 #endif
 
+//get real path where the .gpac dir has been created, and use this as the default path
+//for cache (tmp/ dir of ios app) and last working fir
+#ifdef GPAC_IPHONE
+static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
+{
+	char *cache_dir;
+	char buf[GF_MAX_PATH], *res, *sep;
+	res = realpath(file_path, buf);
+	if (!res) return;
+	
+	sep = strstr(res, ".gpac");
+	assert(sep);
+	sep[0] = 0;
+	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
+	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
+	
+	sep = strstr(res, "Documents");
+	assert(sep);
+	sep[0]=0;
+	strcat(res, "tmp/");
+	cache_dir = res;
+	if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
+	gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
+}
+
+#endif
+
 
 static GF_Config *create_default_config(char *file_path)
 {
@@ -430,37 +457,18 @@ static GF_Config *create_default_config(char *file_path)
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 
+#ifdef GPAC_IPHONE
+	gf_ios_refresh_cache_directory(cfg, file_path);
+#else
     /*get default temporary directoy */
     cache_dir = gf_get_default_cache_directory();
-    
-    //get real path where the .gpac dir has been created, and use this as the default path
-    //for cache (tmp/ dir of ios app) and last working fir
-#ifdef GPAC_IPHONE
-    char buf[GF_MAX_PATH], *res;
-    res = realpath(file_path, buf);
-    if (res) {
-        char *sep = strstr(res, ".gpac");
-        assert(sep);
-        sep[0] = 0;
-        gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
-        gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
-
-        sep = strstr(res, "Documents");
-        assert(sep);
-        sep[0]=0;
-        strcat(res, "tmp/");
-        cache_dir = res;
-        if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
-        gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
-        cache_dir=NULL;
-    }
-#endif
-
+	
 	if (cache_dir) {
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
 	}
-    
+#endif
+
 #if defined(GPAC_IPHONE)
     gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
 #elif defined(GPAC_ANDROID)
@@ -561,8 +569,29 @@ static GF_Config *create_default_config(char *file_path)
 static void check_modules_dir(GF_Config *cfg)
 {
 	char path[GF_MAX_PATH];
-	const char *opt;
+	
+#ifdef GPAC_IPHONE
+	char *cfg_path;
+	if ( get_default_install_path(path, GF_PATH_GUI) ) {
+		char *sep;
+		strcat(path, "/gui.bt");
+		gf_cfg_set_key(cfg, "General", "StartupFile", path);
+		
+		sep = strrchr(path, '/');
+		sep[0] = 0;
+		sep = strrchr(path, '/');
+		sep[0] = 0;
 
+		strcat(path, "/shaders/");
+		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", path);
+	}
+	cfg_path = gf_cfg_get_filename(cfg);
+	gf_ios_refresh_cache_directory(cfg, cfg_path);
+	gf_free(cfg_path);
+	
+#else
+	const char *opt;
+	
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
@@ -616,6 +645,8 @@ static void check_modules_dir(GF_Config *cfg)
 #endif
 		}
 	}
+	
+#endif
 }
 
 GF_EXPORT
