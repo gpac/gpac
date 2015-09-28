@@ -30,7 +30,7 @@
 
 //Light Structure
 struct gfLight{
-	int type;
+	lowp int type;
 	vec4 position;
 	vec4 direction;
 	vec3 attenuation;
@@ -42,7 +42,7 @@ struct gfLight{
 };
 
 //Generic (Scene) Uniforms
-uniform int gfNumLights;
+uniform lowp int gfNumLights;
 uniform bool gfLightTwoSide;
 uniform gfLight lights[LIGHTS_MAX];
 
@@ -68,7 +68,7 @@ uniform vec4 gfEmissionColor;
 uniform bool hasMeshColor;
 #endif
 
-uniform int gfNumClippers;
+uniform lowp int gfNumClippers;
 
 //Color Matrix
 uniform mat4 gfColorMatrix;
@@ -110,7 +110,6 @@ const vec3 B_mul = vec3(1.164,  2.018,  0.000);
 varying vec3 m_normal;
 varying vec4 gfEye;
 varying vec3 lightVector[LIGHTS_MAX];
-varying vec3 halfVector[LIGHTS_MAX];
 varying float gfFogFactor;
 #endif
 
@@ -143,15 +142,15 @@ vec4 doLighting(int i){
 	if(i==0) {	//ES2 does not support switch() statements
 		tempLight = lights[0];
 		lightV = lightVector[0];
-		halfVnorm = normalize(halfVector[0]);
+		halfVnorm = normalize( lightVector[0] + gfEye.xyz );
 	} else if (i==1) {
 		tempLight = lights[1];
 		lightV = lightVector[1];
-		halfVnorm = normalize(halfVector[1]);
+		halfVnorm = normalize( lightVector[1] + gfEye.xyz );
 	} else if(i==2) {
 		tempLight = lights[2];
 		lightV = lightVector[2];
-		halfVnorm = normalize(halfVector[2]);
+		halfVnorm = normalize( lightVector[2] + gfEye.xyz );
 	}
 	
 	lightVnorm = normalize(lightV);
@@ -280,7 +279,7 @@ void main()
 		{
 			fragColor = rgba;
 		}
-		
+
 		//we have mat 2D + texture
 		if (hasMaterial2D) {
 			if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0) {
@@ -320,6 +319,5 @@ void main()
 	if (gfFogEnabled)
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
 #endif
-	
 	gl_FragColor = fragColor;
 }
