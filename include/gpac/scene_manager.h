@@ -245,6 +245,8 @@ struct __scene_loader
 	GF_SceneManager *ctx;
 	/*file to import except IsoMedia files*/
 	const char *fileName;
+	//original URL for the file or NULL if same as fileName
+	const char *src_url;
 #ifndef GPAC_DISABLE_ISOM
 	/*IsoMedia file to import (we need to be able to load from an opened file for scene stats)*/
 	GF_ISOFile *isom;
