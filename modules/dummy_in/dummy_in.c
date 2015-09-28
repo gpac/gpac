@@ -181,6 +181,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	/*OK confirm*/
 	if (!read->is_service_connected) {
 		if (!gf_dm_sess_get_cache_name(read->dnload)) e = GF_IO_ERR;
+		if (e>0) e = GF_OK;
 		gf_service_connect_ack(read->service, NULL, e);
 		read->is_service_connected = GF_TRUE;
 	}

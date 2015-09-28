@@ -710,8 +710,12 @@ typedef struct
 	GF_List *IPMPDescriptorPointers;
 	GF_List *extensionDescriptors;
 
+	//GPAC internals
+
 	/* 1 if this stream is referenced by type GF_ISOM_REF_BASE, 0 otherwise*/
 	Bool has_ref_base;
+
+	const char *service_url;
 } GF_ESD;
 
 
