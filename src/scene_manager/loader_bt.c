@@ -3063,7 +3063,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 	} else if (desc->tag==GF_ODF_MUXINFO_TAG) {
 		GF_MuxInfo *mi = (GF_MuxInfo *)desc;
 		if (! mi->src_url) {
-            mi->src_url = gf_strdup(parser->load->fileName);
+			mi->src_url = gf_strdup(parser->load->src_url ? parser->load->src_url : parser->load->fileName);
 		}
 	}
 	return desc;
