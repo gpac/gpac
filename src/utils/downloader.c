@@ -905,7 +905,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 				urlConcatenateWithBaseURL = NULL;
 
 				if (!info->remotePath) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[PROTOCOL] : cannot find any protocol in url %s\n", url));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Network] No supported protocol for url %s\n", url));
 					return GF_BAD_PARAM;
 				}
 				for (i=0; i<strlen(info->remotePath); i++)
@@ -920,7 +920,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 				url = urlConcatenateWithBaseURL + proto_offset;
 			}
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[PROTOCOL] : cannot find any protocol in url %s\n", url));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Network] No supported protocol for url %s\n", url));
 			return GF_BAD_PARAM;
 		}
 	}
@@ -1001,8 +1001,21 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	else if (sess->status>GF_NETIO_DISCONNECTED)
 		socket_changed = GF_TRUE;
 
-	sess->last_error = gf_dm_get_url_info(url, &info, sess->remote_path);
+	sess->last_error = gf_dm_get_url_info(url, &info, sess->orig_url);
 	if (sess->last_error) return sess->last_error;
+	
+	if (!strstr(url, "://")) {
+		char c, *sep;
+		info.port = sess->port;
+		info.server_name = sess->server_name ? gf_strdup(sess->server_name) : NULL;
+		info.remotePath = gf_strdup(url);
+		sep = strstr(sess->orig_url_before_redirect, "://");
+		assert(sep);
+		c = sep[3];
+		sep[3] = 0;
+		info.protocol = gf_strdup(sess->orig_url_before_redirect);
+		sep[3] = c;
+	}
 
 	if (sess->port != info.port) {
 		socket_changed = GF_TRUE;
