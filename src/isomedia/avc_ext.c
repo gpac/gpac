@@ -697,6 +697,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
+		p2->id = p1->id;
 		p2->data = (char *)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->sequenceParameterSets, p2);
@@ -707,6 +708,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
 		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
+		p2->id = p1->id;
 		p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->pictureParameterSets, p2);
@@ -719,6 +721,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 			p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 			p2->size = p1->size;
+			p2->id = p1->id;
 			p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 			memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 			gf_list_add(cfg_new->sequenceParameterSetExtensions, p2);
