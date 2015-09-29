@@ -214,13 +214,6 @@ struct _visual_manager
 	GF_SHADERID autostereo_glsl_program;
 	GF_SHADERID autostereo_glsl_fragment;
 
-#if !defined(GPAC_USE_GLES2)
-	GF_SHADERID yuv_glsl_program;
-	GF_SHADERID yuv_glsl_fragment;
-	GF_SHADERID yuv_rect_glsl_program;
-	GF_SHADERID yuv_rect_glsl_fragment;
-#endif
-	
 	GF_SHADERID current_texture_glsl_program;
 
 

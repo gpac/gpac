@@ -437,101 +437,6 @@ static char *glsl_view_5VSP19 = "\
 	gl_FragColor.b = color[Vb].b;\
 	}";
 
-#ifndef GPAC_USE_GLES2
-
-static char *glsl_yuv_shader = "\
-	uniform sampler2D y_plane;\n\
-	uniform sampler2D u_plane;\n\
-	uniform sampler2D v_plane;\n\
-	uniform float alpha;\n\
-	varying vec2 TexCoord;\n\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
-	void main(void)  \n\
-	{\n\
-		vec2 texc;\n\
-		vec3 yuv, rgb;\n\
-		texc = TexCoord.st;\n\
-		yuv.x = texture2D(y_plane, texc).r;\n\
-		yuv.y = texture2D(u_plane, texc).r;\n\
-		yuv.z = texture2D(v_plane, texc).r;\n\
-		yuv += offset;\n\
-	    rgb.r = dot(yuv, R_mul);\n\
-	    rgb.g = dot(yuv, G_mul);\n\
-	    rgb.b = dot(yuv, B_mul);\n\
-		gl_FragColor = vec4(rgb, alpha);\n\
-	}\n";
-
-
-static char *glsl_yuv_rect_shader_strict = "\
-	#version 140\n\
-	#extension GL_ARB_texture_rectangle : enable\n\
-	uniform sampler2DRect y_plane;\n\
-	uniform sampler2DRect u_plane;\n\
-	uniform sampler2DRect v_plane;\n\
-	uniform float width;\n\
-	uniform float height;\n\
-	uniform float alpha;\n\
-	in vec2 TexCoord;\n\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
-	out vec4 FragColor;\n\
-	void main(void)  \n\
-	{\n\
-		vec2 texc;\n\
-		vec3 yuv, rgb;\n\
-		texc = TexCoord.st;\n\
-		texc.x *= width;\n\
-		texc.y *= height;\n\
-		yuv.x = texture2DRect(y_plane, texc).r;\n\
-		texc.x /= 2.0;\n\
-		texc.y /= 2.0;\n\
-		yuv.y = texture2DRect(u_plane, texc).r;\n\
-		yuv.z = texture2DRect(v_plane, texc).r;\n\
-		yuv += offset;\n\
-	    rgb.r = dot(yuv, R_mul);\n\
-	    rgb.g = dot(yuv, G_mul);\n\
-	    rgb.b = dot(yuv, B_mul);\n\
-		FragColor = vec4(rgb, alpha);\n\
-	}\n";
-
-static char *glsl_yuv_rect_shader_relaxed= "\
-	uniform sampler2DRect y_plane;\n\
-	uniform sampler2DRect u_plane;\n\
-	uniform sampler2DRect v_plane;\n\
-	uniform float width;\n\
-	uniform float height;\n\
-	uniform float alpha;\n\
-    varying vec2 TexCoord;\n\
-	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\n\
-	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\n\
-	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\n\
-	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\n\
-	void main(void)  \n\
-	{\n\
-		vec2 texc;\n\
-		vec3 yuv, rgb;\n\
-		texc = TexCoord.st;\n\
-		texc.x *= width;\n\
-		texc.y *= height;\n\
-		yuv.x = texture2DRect(y_plane, texc).r;\n\
-		texc.x /= 2.0;\n\
-		texc.y /= 2.0;\n\
-		yuv.y = texture2DRect(u_plane, texc).r;\n\
-		yuv.z = texture2DRect(v_plane, texc).r;\n\
-		yuv += offset;\n\
-	    rgb.r = dot(yuv, R_mul);\n\
-	    rgb.g = dot(yuv, G_mul);\n\
-	    rgb.b = dot(yuv, B_mul);\n\
-		gl_FragColor = vec4(rgb, alpha);\n\
-	}\n";
-
-#endif
-
 /**
  parses (glShaderSource) and compiles (glCompileShader) shader source
  \return GF_TRUE if successful
@@ -751,107 +656,8 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
-#ifndef GPAC_USE_GLES2
-static void visual_3d_init_yuv_shaders(GF_VisualManager *visual)
-{
-	u32 i;
-	GLint loc;
-	if (!visual->compositor->gl_caps.has_shaders) return;
-	if (visual->compositor->shader_only_mode) return;
 
-	GL_CHECK_ERR
-	if (visual->yuv_glsl_program) return;
 
-	visual->yuv_glsl_program = glCreateProgram();
-
-	if (!visual->base_glsl_vertex) {
-		visual->base_glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-		visual_3d_compile_shader(visual->base_glsl_vertex, "vertex", default_glsl_vertex);
-	}
-
-	visual->yuv_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	visual_3d_compile_shader(visual->yuv_glsl_fragment, "YUV fragment", glsl_yuv_shader);
-
-	glAttachShader(visual->yuv_glsl_program, visual->base_glsl_vertex);
-	glAttachShader(visual->yuv_glsl_program, visual->yuv_glsl_fragment);
-	glLinkProgram(visual->yuv_glsl_program);
-
-	//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-	glUseProgram(visual->yuv_glsl_program);
-	for (i=0; i<3; i++) {
-		const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
-		loc = glGetUniformLocation(visual->yuv_glsl_program, txname);
-		if (loc == -1) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-			continue;
-		}
-		glUniform1i(loc, i);
-	}
-	glUseProgram(0);
-
-	if (visual->compositor->gl_caps.rect_texture) {
-		Bool res;
-		const char *opt;
-		visual->yuv_rect_glsl_program = glCreateProgram();
-
-		opt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "YUVRectShader");
-		visual->yuv_rect_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		if (opt && !strcmp(opt, "Relaxed")) {
-			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (relaxed syntax)", glsl_yuv_rect_shader_relaxed);
-		} else {
-			if (opt) {
-				visual->yuv_rect_glsl_fragment = visual_3d_shader_from_source_file(opt, GL_FRAGMENT_SHADER);
-				if (!visual->yuv_rect_glsl_fragment) res  = GF_FALSE;
-			}
-			res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (strict syntax)", glsl_yuv_rect_shader_strict);
-			if (!res) {
-				res = visual_3d_compile_shader(visual->yuv_rect_glsl_fragment, "YUV Rect fragment (relaxed syntax)", glsl_yuv_rect_shader_relaxed);
-				if (res) {
-					if (!opt) gf_cfg_set_key(visual->compositor->user->config, "Compositor", "YUVRectShader", "Relaxed");
-					GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Using relaxed syntax version of YUV shader\n"));
-				}
-			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Using strict syntax version of YUV shader\n"));
-			}
-		}
-		if (!res) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Unable to compile fragment shader for rectangular extensions\n"));
-			DEL_SHADER(visual->yuv_rect_glsl_fragment);
-			DEL_PROGRAM(visual->yuv_rect_glsl_program);
-		}
-
-		if (visual->yuv_rect_glsl_program) {
-			glAttachShader(visual->yuv_rect_glsl_program, visual->base_glsl_vertex);
-			glAttachShader(visual->yuv_rect_glsl_program, visual->yuv_rect_glsl_fragment);
-			glLinkProgram(visual->yuv_rect_glsl_program);
-
-			//sets uniforms: y, u, v textures point to texture slots 0, 1 and 2
-			glUseProgram(visual->yuv_rect_glsl_program);
-			for (i=0; i<3; i++) {
-				const char *txname = (i==0) ? "y_plane" : (i==1) ? "u_plane" : "v_plane";
-				loc = glGetUniformLocation(visual->yuv_rect_glsl_program, txname);
-				if (loc == -1) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture %s in YUV shader\n", txname));
-					continue;
-				}
-				glUniform1i(loc, i);
-			}
-
-			loc = glGetUniformLocation(visual->yuv_rect_glsl_program, "width");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate width in YUV shader\n"));
-			}
-
-			loc = glGetUniformLocation(visual->yuv_rect_glsl_program, "height");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate height in YUV shader\n"));
-			}
-
-			glUseProgram(0);
-		}
-	}
-}
-#endif
 static GLint gf_glGetUniformLocation(GF_SHADERID glsl_program, const char *uniform_name)
 {
 	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
@@ -1155,18 +961,13 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 {
 	if (visual->compositor->visual != visual)
 		return;
+
 	if (!visual->compositor->gl_caps.has_shaders) 
 		return;
 
 	if (visual->compositor->shader_only_mode) {
 		visual_3d_init_generic_shaders(visual);
-		return;
 	}
-
-#if !defined(GPAC_USE_GLES2)
-	visual_3d_init_yuv_shaders(visual);
-#endif
-
 }
 
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
@@ -1184,10 +985,6 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 	DEL_SHADER(visual->base_glsl_vertex);
 	DEL_SHADER(visual->autostereo_glsl_fragment);
 	DEL_PROGRAM(visual->autostereo_glsl_program );
-#ifndef GPAC_USE_GLES2
-	DEL_SHADER(visual->yuv_glsl_fragment);
-	DEL_PROGRAM(visual->yuv_glsl_program );
-#endif
 
 	if (visual->gl_textures) {
 		glDeleteTextures(visual->nb_views, visual->gl_textures);

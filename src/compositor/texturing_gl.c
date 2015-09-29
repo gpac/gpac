@@ -460,11 +460,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YV12_10:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_GLES1X
-		if (compositor->gl_caps.has_shaders && (is_pow2
-#ifndef GPAC_USE_GLES2
-									|| compositor->visual->yuv_rect_glsl_program
-#endif
-									|| compositor->visual->compositor->shader_only_mode) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 			break;
 		} 
@@ -482,11 +478,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YUVD:
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-		if (compositor->gl_caps.has_shaders && (is_pow2
-#ifndef GPAC_USE_GLES2
-												|| compositor->visual->yuv_rect_glsl_program
-#endif
-												|| compositor->visual->compositor->shader_only_mode) ) {
+		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 		} else
 #endif
@@ -525,29 +517,6 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		tx_id[1] = txh->tx_io->u_id;
 		tx_id[2] = txh->tx_io->v_id;
 		nb_tx = 3;
-
-#ifndef GPAC_USE_GLES2
-		if (compositor->shader_only_mode && txh->tx_io->flags & TX_IS_RECT) {
-			GLint loc;
-			glUseProgram(compositor->visual->yuv_rect_glsl_program);
-			loc = glGetUniformLocation(compositor->visual->yuv_rect_glsl_program, "width");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"width\" in YUV shader\n"));
-			} else {
-				GLfloat w = (GLfloat) txh->width;
-				glUniform1f(loc, w);
-			}
-			loc = glGetUniformLocation(compositor->visual->yuv_rect_glsl_program, "height");
-			if (loc == -1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate uniform \"width\" in YUV shader\n"));
-			} else {
-				GLfloat h = (GLfloat) txh->height;
-				glUniform1f(loc, h);
-			}
-			glUseProgram(0);
-		}
-#endif
-	
 	}
 #endif
 
@@ -1748,50 +1717,18 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	root_visual->glsl_flags |= GF_GL_HAS_TEXTURE;
 	root_visual->glsl_flags &= ~GF_GL_IS_YUV;
 
-#ifndef GPAC_USE_GLES1X
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+
 	if (txh->tx_io->yuv_shader) {
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
-#if !defined(GPAC_USE_GLES2)
-		GLint loc;
-#endif
-		
-		if (compositor->shader_only_mode) {
-			root_visual->glsl_flags |= GF_GL_IS_YUV;
-			active_shader = root_visual->glsl_programs[root_visual->glsl_flags];	//Set active
-		}
-#ifndef GPAC_USE_GLES2
-		else {
-			//the old stuff
-			Bool is_rect = txh->tx_io->flags & TX_IS_RECT;
-			root_visual->current_texture_glsl_program = is_rect ? root_visual->yuv_rect_glsl_program : root_visual->yuv_glsl_program;
-			active_shader = root_visual->current_texture_glsl_program;
-		}
-#endif
+		root_visual->glsl_flags |= GF_GL_IS_YUV;
+		active_shader = root_visual->glsl_programs[root_visual->glsl_flags];	//Set active
 		
 		GL_CHECK_ERR
 		
 		glUseProgram(active_shader);
 		GL_CHECK_ERR
 
-#if !defined(GPAC_USE_GLES2)
-		if (! compositor->shader_only_mode) {
-			glEnable(txh->tx_io->gl_type);
-
-			loc = glGetUniformLocation(active_shader, "width");
-			if (loc >=0) {
-				GLfloat w = (GLfloat) txh->width;
-				glUniform1f(loc, w);
-			}
-			GL_CHECK_ERR
-			loc = glGetUniformLocation(active_shader, "height");
-			if (loc >= 0) {
-				GLfloat h = (GLfloat) txh->height;
-				glUniform1f(loc, h);
-			}
-			GL_CHECK_ERR
-		}
-#endif
-		
 		glActiveTexture(GL_TEXTURE2);
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
 
@@ -1806,29 +1743,25 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #ifndef GPAC_USE_GLES2
 		glClientActiveTexture(GL_TEXTURE0);
 #endif
-	} else
+
+		return 1;
+	} 
+
+	if (compositor->shader_only_mode) {
+		glUseProgram(root_visual->glsl_programs[root_visual->glsl_flags]);
+		GL_CHECK_ERR
+
+		glActiveTexture(GL_TEXTURE0);
+		GL_CHECK_ERR
+		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
+		GL_CHECK_ERR
+
+		tx_bind(txh);
+		return 1;
+	} 
 #endif
-	{
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
-		if (compositor->shader_only_mode) {
-			root_visual->glsl_flags &= ~GF_GL_IS_YUV;
 
-			glUseProgram(root_visual->glsl_programs[root_visual->glsl_flags]);
-			GL_CHECK_ERR
-
-			glActiveTexture(GL_TEXTURE0);
-			GL_CHECK_ERR
-			glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
-			GL_CHECK_ERR
-
-			tx_bind(txh);
-		} else
-#endif
-		{
-			tx_bind(txh);
-		}
-
-	}
+	tx_bind(txh);
 	return 1;
 
 }
