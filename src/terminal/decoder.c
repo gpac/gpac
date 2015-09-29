@@ -400,10 +400,10 @@ static void MediaDecoder_GetNextAU(GF_Codec *codec, GF_Channel **activeChannel, 
 	GF_DBUnit *AU;
 	GF_List *src_channels = codec->inChannels;
 	GF_ObjectManager *current_odm = codec->odm;
-	u32 count, curCTS, i, stream_state;
+	u32 count, curCTS, i, stream_state, now=0;
 	Bool scalable_check = 0;
 	s32 cts_diff;
-
+	Bool no_au_in_enhancement = GF_FALSE;
 	*nextAU = NULL;
 	*activeChannel = NULL;
 	curCTS = 0;
@@ -432,8 +432,8 @@ refetch_AU:
 			if (scalable_check==1) {
 				if (*nextAU && ((*nextAU)->flags & GF_DB_AU_REAGGREGATED)) {
 					scalable_check=2;
-				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, No AU in enhancement layer for this AU\n"));
+				} else if (*nextAU) {
+					no_au_in_enhancement = GF_TRUE;
 				}
 			}
 			if (! (*activeChannel)) *activeChannel = ch;
@@ -455,10 +455,11 @@ refetch_AU:
 				//gf_es_drop_au(ch);
 				continue;
 			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d (size %d) selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->dataLength, AU->CTS));
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d (size %d) selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->dataLength, AU->CTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
+			now = gf_clock_time(ch->clock);
 		}
 		//we allow for +/- 1ms drift due to timestamp rounding when converting to milliseconds units
 		else if (cts_diff<=1) {
@@ -479,6 +480,7 @@ refetch_AU:
 			ch->first_au_fetched = 1;
 			scalable_check = 2;
 			(*nextAU)->flags |= GF_DB_AU_REAGGREGATED;
+			no_au_in_enhancement = GF_FALSE;
 		}
 		//not the same TS for base and enhancement - either temporal scalability is used or we had a frame loss
 		else {
@@ -512,7 +514,7 @@ refetch_AU:
 				if ((AU->DTS <= codec->last_unit_dts)
 				        //we also prevent detecting temporal scalability until at least one frame from the base has been decoded
 				        || !codec->first_frame_processed) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: loss detected - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
 					ch->stream_state = stream_state;
@@ -551,8 +553,15 @@ refetch_AU:
 		goto browse_scalable;
 	}
 
-	if (*nextAU  && (scalable_check==1)) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Warning, could not find enhancement layer for this AU (DTS %d) \n", (*nextAU)->DTS ));
+	if (*nextAU  && no_au_in_enhancement ) {
+		//do we have time to wait for the enhancement to be filled ?
+		if (now < (*nextAU)->DTS) {
+			//GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Enhancement layer not ready for this AU (DTS %d) at OTB %d- decoding postponed\n", codec->decio->module_name, (*nextAU)->DTS, now));
+			*nextAU = NULL;
+			*activeChannel = NULL;
+			return;
+		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Warning: could not find enhancement layer for this AU (DTS %d) at OTB %d - decoding only base\n", codec->decio->module_name, (*nextAU)->DTS, now));
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
