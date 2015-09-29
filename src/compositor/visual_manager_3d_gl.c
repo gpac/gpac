@@ -418,24 +418,78 @@ static char *glsl_view_5VSP19 = "\
 	uniform sampler2D gfView4;\
 	uniform sampler2D gfView5;\
 	varying vec2 TexCoord;\
+	\
+	void getTextureSample(in int texID, out vec4 color) { \
+	  if (texID == 0 ) color = texture2D(gfView1, TexCoord.st); \
+	  else if (texID == 1 ) color = texture2D(gfView2, TexCoord.st); \
+	  else if (texID == 2 ) color = texture2D(gfView3, TexCoord.st); \
+	  else if (texID == 3 ) color = texture2D(gfView4, TexCoord.st); \
+	  else if (texID == 4 ) color = texture2D(gfView5, TexCoord.st); \
+	} \
+	\
 	void main(void) {\
-	vec4 color[5];\
-	color[0] = texture2D(gfView5, TexCoord.st);\
-	color[1] = texture2D(gfView4, TexCoord.st);\
-	color[2] = texture2D(gfView3, TexCoord.st);\
-	color[3] = texture2D(gfView2, TexCoord.st);\
-	color[4] = texture2D(gfView1, TexCoord.st);\
-	float pitch = 5.0 + 1.0  - mod(gl_FragCoord.y , 5.0);\
-	int col = int( mod(pitch + 3.0 * (gl_FragCoord.x), 5.0 ) );\
-	int Vr = int(col);\
-	int Vg = int(col) + 1;\
-	int Vb = int(col) + 2;\
-	if (Vg >= 5) Vg -= 5;\
-	if (Vb >= 5) Vb -= 5;\
-	gl_FragColor.r = color[Vr].r;\
-	gl_FragColor.g = color[Vg].g;\
-	gl_FragColor.b = color[Vb].b;\
+		vec4 color;\
+		float pitch = 5.0 + 1.0  - mod(gl_FragCoord.y , 5.0);\
+		int col = int( mod(pitch + 3.0 * (gl_FragCoord.x), 5.0 ) );\
+		int Vr = int(col);\
+		int Vg = int(col) + 1;\
+		int Vb = int(col) + 2;\
+		if (Vg >= 5) Vg -= 5;\
+		if (Vb >= 5) Vb -= 5;\
+		getTextureSample(Vr, color); \
+		gl_FragColor.r = color.r;\
+		getTextureSample(Vg, color); \
+		gl_FragColor.g = color.g;\
+		getTextureSample(Vb, color); \
+		gl_FragColor.b = color.b;\
 	}";
+
+static char *glsl_view_8VAlio = "\
+	uniform sampler2D gfView1; \
+	uniform sampler2D gfView2; \
+	uniform sampler2D gfView3; \
+	uniform sampler2D gfView4; \
+	uniform sampler2D gfView5; \
+	uniform sampler2D gfView6; \
+	uniform sampler2D gfView7; \
+	uniform sampler2D gfView8; \
+	varying vec2 TexCoord;\
+	 \
+	void getTextureSample(in int texID, out vec4 color) { \
+	  if (texID == 0 ) color = texture2D(gfView1, TexCoord.st); \
+	  else if (texID == 1 ) color = texture2D(gfView2, TexCoord.st); \
+	  else if (texID == 2 ) color = texture2D(gfView3, TexCoord.st); \
+	  else if (texID == 3 ) color = texture2D(gfView4, TexCoord.st); \
+	  else if (texID == 4 ) color = texture2D(gfView5, TexCoord.st); \
+	  else if (texID == 5 ) color = texture2D(gfView6, TexCoord.st); \
+	  else if (texID == 6 ) color = texture2D(gfView7, TexCoord.st); \
+	  else if (texID == 7 ) color = texture2D(gfView8, TexCoord.st); \
+	} \
+	 \
+	void main() \
+	{ \
+	  int x = int(gl_FragCoord.x + 0.5); \
+	  int y = int(gl_FragCoord.y + 0.5); \
+	  int modulox = x/8; \
+	  int moduloy = y/8; \
+	  modulox = x - 8 * modulox; \
+	  moduloy = y - 8 * moduloy; \
+	   \
+	  int viewLine = 7 - moduloy; \
+	  int viewPix = viewLine + 3 * modulox; \
+	  int viewR = viewPix - 8*(viewPix/8); \
+	  int viewG = viewPix + 1 - 8*((viewPix +1)/8); \
+	  int viewB = viewPix + 2 - 8*((viewPix +2)/8); \
+	   \
+	  vec4 color; \
+	  getTextureSample(viewR, color); \
+	  gl_FragColor.r = color.r; \
+	  getTextureSample(viewG, color);  \
+	  gl_FragColor.g = color.g; \
+	  getTextureSample(viewB, color); \
+	  gl_FragColor.b = color.b; \
+	}";
+
 
 /**
  parses (glShaderSource) and compiles (glCompileShader) shader source
@@ -638,6 +692,11 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
 		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_5VSP19);
 		break;
+	case GF_3D_STEREO_8VALIO:
+		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_8VAlio);
+		break;
+		
 	case GF_3D_STEREO_CUSTOM:
 	{
 		const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
@@ -1081,6 +1140,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glDisable(GL_TEXTURE_2D);
 
 	glClear(GL_DEPTH_BUFFER_BIT);
+	GL_CHECK_ERR
 
 	if (visual->current_view+1<visual->nb_views) return;
 
@@ -1138,6 +1198,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 		glUniform1i(loc, i);
 	}
+	GL_CHECK_ERR
 
 	glEnableClientState(GL_VERTEX_ARRAY);
 	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &visual->autostereo_mesh->vertices[0].pos);
@@ -1156,6 +1217,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, 0);
 
 	glDisable(GL_TEXTURE_2D);
+
+	GL_CHECK_ERR
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 }

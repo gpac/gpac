@@ -1345,7 +1345,22 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (!strcmp(sOpt, "Anaglyph")) compositor->visual->autostereo_type = GF_3D_STEREO_ANAGLYPH;
 	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
 	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
-	else if (!strcmp(sOpt, "SPV19")) compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+	else if (!strcmp(sOpt, "SPV19")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+		if (compositor->visual->nb_views != 5) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] SPV19 interleaving used but only %d views indicated - adjusting to 5 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 5;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "5");
+		}
+	}
+	else if (!strcmp(sOpt, "ALIO")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_8VALIO;
+		if (compositor->visual->nb_views != 8) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] ALIO interleaving used but only %d views indicated - adjusting to 8 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 8;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "8");
+		}
+	}
 
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;

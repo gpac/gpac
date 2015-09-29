@@ -69,6 +69,8 @@ enum
 	GF_3D_STEREO_ANAGLYPH,
 	/*SpatialView 19'' 5views interleaving*/
 	GF_3D_STEREO_5VSP19,
+	/*Alioscopy 8 views interleaving*/
+	GF_3D_STEREO_8VALIO
 };
 
 enum
