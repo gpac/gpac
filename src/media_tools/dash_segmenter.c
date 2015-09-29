@@ -1435,10 +1435,12 @@ restart_fragmentation_pass:
 
 		sample = NULL;
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d\n", SegmentName, nbFragmentInSegment));
 		if (simulation_pass) {
 			segments_info[nb_segments_info-1] ++;
 			e = GF_OK;
 		} else {
+
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
@@ -1463,6 +1465,7 @@ restart_fragmentation_pass:
 				e = gf_isom_clone_pssh(output, input, GF_TRUE);
 			}
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d track processing\n", SegmentName, nbFragmentInSegment));
 
 		//process track by track
 		for (i=0; i<count; i++) {
@@ -1748,6 +1751,7 @@ restart_fragmentation_pass:
 				}
 			}
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done fragment %d track processing\n", SegmentName, nbFragmentInSegment));
 
 		SegmentDuration += maxFragDurationOverSegment;
 		maxFragDurationOverSegment = 0;
@@ -1756,13 +1760,18 @@ restart_fragmentation_pass:
 		if (!simulation_pass && (!dash_cfg->enable_sidx || dash_cfg->real_time) ) {
 
 			if (tfref && dash_cfg->real_time) {
-				u64 end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
+				u64 utc, end_time = tfref->InitialTSOffset + tfref->next_sample_dts - tfref->DefaultDuration;
 				end_time *= 1000;
 				end_time /= tfref->TimeScale;
 
+				assert(tfref->InitialTSOffset + tfref->next_sample_dts >= tfref->DefaultDuration);
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, going to sleep before flushing fragment %d at "LLU" us, at UTC "LLU" (flush target UTC "LLU")\n", SegmentName, nbFragmentInSegment, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + end_time));
 				while (1) {
-					s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
-					if (diff_ms >= end_time) break;
+					//s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
+					//if (diff_ms >= end_time) break;
+					utc = gf_net_get_utc();
+					if (utc >= generation_start_utc + end_time) break;
 					gf_sleep(1);
 				}				
 
@@ -1775,6 +1784,7 @@ restart_fragmentation_pass:
 
 			nbFragmentInSegment++;
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d flushed\n", SegmentName, nbFragmentInSegment));
 
 		if (force_switch_segment || flush_all_samples || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
 			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
@@ -2387,6 +2397,7 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			input->components[input->nb_components].fps_num = gf_isom_get_media_timescale(in, i+1);
 			/*get duration of 2nd sample*/
 			input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
+			gf_isom_get_pixel_aspect_ratio(in, i+1, 1, &input->components[input->nb_components].sar_num, &input->components[input->nb_components].sar_denum);
 		}
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
@@ -4658,7 +4669,7 @@ static GF_Err write_period_header(GF_DASHSegmenter *dasher, FILE *mpd, const cha
 
 static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool use_url_template, u32 single_file_mode,
                                       GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set,
-                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name)
+                                      Bool bitstream_switching_mode, u32 max_width, u32 max_height, u32 dar_num, u32 dar_den, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name)
 {
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
@@ -4677,8 +4688,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		if (strlen(szMaxFPS))
 			fprintf(mpd, " maxFrameRate=\"%s\"", szMaxFPS);
 		gf_media_reduce_aspect_ratio(&max_width, &max_height);
-		fprintf(mpd, " par=\"%d:%d\"", max_width, max_height);
 	}
+
+	gf_media_reduce_aspect_ratio(&dar_num, &dar_den);
+	fprintf(mpd, " par=\"%d:%d\"", dar_num, dar_den);
+
 	//add lang even if "und" to comply with dash-if 
 	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
@@ -6000,6 +6014,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			u32 first_rep_in_set=0;
 			u32 max_width = 0;
 			u32 max_height = 0;
+			u32 dar_num = 1;
+			u32 dar_den = 1;
 			u32 fps_num = 0;
 			u32 fps_denum = 0;
 			Double seg_duration_in_as = 0;
@@ -6084,27 +6100,33 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					has_scalability = GF_TRUE;
 
 				for (j=0; j<dash_input->nb_components; j++) {
-					if (dash_input->components[j].width > max_width)
-						max_width = dash_input->components[j].width;
-					if (dash_input->components[j].height > max_height)
-						max_height = dash_input->components[j].height;
+					struct _dash_component *comp = & dash_input->components[j];
+					if (comp->width > max_width)
+						max_width = comp->width;
+					if (comp->height > max_height)
+						max_height = comp->height;
 
 					if (! fps_num || !fps_denum) {
-						fps_num = dash_input->components[j].fps_num;
-						fps_denum = dash_input->components[j].fps_denum;
+						fps_num = comp->fps_num;
+						fps_denum = comp->fps_denum;
 					}
-					else if (fps_num * dash_input->components[j].fps_denum < dash_input->components[j].fps_num * fps_denum) {
-						fps_num = dash_input->components[j].fps_num;
-						fps_denum = dash_input->components[j].fps_denum;
+					else if (fps_num * comp->fps_denum < comp->fps_num * fps_denum) {
+						fps_num = comp->fps_num;
+						fps_denum = comp->fps_denum;
 					}
 
-					if (dash_input->components[j].lang) {
-						if (lang && strcmp(lang, dash_input->components[j].lang) ) {
-							if (!strcmp(lang, "und") || !strcmp(dash_input->components[j].lang, "lang")) {
-								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, dash_input->components[j].lang));
+					if (dar_num * comp->sar_denum * comp->height != dar_den * comp->sar_num * comp->width) {
+						dar_num = comp->sar_num * comp->width;
+						dar_den = comp->sar_denum * comp->height;
+					}
+
+					if (comp->lang) {
+						if (lang && strcmp(lang, comp->lang) ) {
+							if (!strcmp(lang, "und") || !strcmp(comp->lang, "lang")) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] two languages in adaptation set: %s will be kept %s will be ignored\n", lang, comp->lang));
 							}
 						} else if (!lang) {
-							lang = gf_strdup(dash_input->components[j].lang);
+							lang = gf_strdup(comp->lang);
 						}
 					}
 
@@ -6126,7 +6148,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			}
 
 			e = write_adaptation_header(period_mpd, dasher->profile, dasher->use_url_template, dasher->single_file_mode, dasher->inputs, dasher->nb_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, 
-				use_bs_switching, max_width, max_height, szFPS, lang, szInit, dasher->segment_alignment_disabled, dasher->mpd_name);
+				use_bs_switching, max_width, max_height, dar_num, dar_den, szFPS, lang, szInit, dasher->segment_alignment_disabled, dasher->mpd_name);
 
 			if (e) goto exit;
 
