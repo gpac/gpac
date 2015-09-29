@@ -3254,7 +3254,7 @@ GF_Err gf_media_avc_change_par(GF_AVCConfig *avcc, s32 ar_n, s32 ar_d)
 		gf_bs_get_content(mod, (char **) &no_emulation_buf, &flag);
 		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, flag);
 		if (flag+emulation_bytes+1>slc->size)
-			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes);
+			slc->data = (char*)gf_realloc(slc->data, flag+emulation_bytes+1);
 		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data+1, flag)+1;
 
 		gf_bs_del(mod);
