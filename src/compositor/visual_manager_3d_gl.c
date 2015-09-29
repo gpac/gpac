@@ -139,6 +139,10 @@ GLDECL_STATIC(glUniformMatrix2x4fv);
 GLDECL_STATIC(glUniformMatrix4x2fv);
 GLDECL_STATIC(glUniformMatrix3x4fv);
 GLDECL_STATIC(glUniformMatrix4x3fv);
+GLDECL_STATIC(glGetProgramiv);
+GLDECL_STATIC(glGetProgramInfoLog);
+GLDECL_STATIC(glGetAttribLocation);
+
 #ifndef GPAC_ANDROID
 GLDECL_STATIC(glEnableVertexAttribArray);
 GLDECL_STATIC(glDisableVertexAttribArray);
@@ -277,6 +281,8 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glUniformMatrix4x2fv);
 		GET_GLFUN(glUniformMatrix3x4fv);
 		GET_GLFUN(glUniformMatrix4x3fv);
+		GET_GLFUN(glGetProgramiv);
+		GET_GLFUN(glGetProgramInfoLog);
 
 		compositor->gl_caps.has_shaders = 1;
 
@@ -288,7 +294,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 		GET_GLFUN(glGetAttribLocation);
 		
 		if (glGetAttribLocation != NULL) {
-			compositor->shader_only_mode = GF_FALSE;
+			compositor->shader_only_mode = GF_TRUE;
 		}
 #endif
 
