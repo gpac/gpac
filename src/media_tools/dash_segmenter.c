@@ -5412,7 +5412,6 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 		dash_input->segment_duration = input->period_duration;
 
 		e = gf_dash_segmenter_probe_input(&dasher->inputs, &dasher->nb_inputs, dasher->nb_inputs-1);
-
 		if (e) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot open file %s for dashing: %s\n", dash_input->file_name, gf_error_to_string(e) ));
 			dasher->nb_inputs --;
@@ -6371,7 +6370,4 @@ exit:
 	return e;
 }
 
-
 #endif /* GPAC_DISABLE_ISOM_WRITE */
-
-
