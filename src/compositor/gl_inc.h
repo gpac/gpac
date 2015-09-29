@@ -489,7 +489,8 @@ GLDECL(void, glUniformMatrix2x4fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
-
+GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
+GLDECL(void, glGetProgramInfoLog, (GLuint program,  GLsizei maxLength,  GLsizei *length,  char *infoLog) )
 
 #ifndef GPAC_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
