@@ -550,13 +550,10 @@ static GF_Config *create_default_config(char *file_path)
 		/*shaders are at the same location*/
 		assert(sep);
 		sep[0] = 0;
-/*		sep = strrchr(szPath, '\\');
-		if (!sep) sep = strrchr(szPath, GF_PATH_SEPARATOR);
-		assert(sep);
-		sep[0] = 0;
-*/	
-		sprintf(gui_path, "%s%cshaders%c", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
-		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", gui_path);
+		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "VertexShader", gui_path);
+		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", gui_path);
 	}
 
 	/*store and reload*/

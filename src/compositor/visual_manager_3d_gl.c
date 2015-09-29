@@ -323,12 +323,22 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (compositor->shader_only_mode) {
-		char *shader_path =(char *) gf_cfg_get_key(compositor->user->config, "Compositor", "ShaderPath");
-		if (!shader_path) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders supported but shader path not set in config, disabling shaders\n"));
-			
+		const char *shader = gf_cfg_get_key(compositor->user->config, "Compositor", "VertexShader");
+		FILE *t = shader ? fopen(shader, "rt") : NULL;
+		if (!t) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));	
 			compositor->shader_only_mode = GF_FALSE;
 		}
+		if (t) fclose(t);
+
+		shader = gf_cfg_get_key(compositor->user->config, "Compositor", "FragmentShader");
+		t = shader ? fopen(shader, "rt") : NULL;
+		if (!t) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));	
+			compositor->shader_only_mode = GF_FALSE;
+		}
+		if (t) fclose(t);
+
 	}
 #endif
 }
@@ -1033,8 +1043,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	u32 i;
 	GLint err_log = -10;
-	const char *shader_path;
-	char vertex_shader_file[GF_MAX_PATH], fragment_shader_file[GF_MAX_PATH];
+	const char *shader_file;
 
 	GF_Config *cfg = visual->compositor->user->config;
 
@@ -1076,27 +1085,19 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	visual->glsl_has_shaders = GF_TRUE;
 	GL_CHECK_ERR
 	
-#ifndef GPAC_ANDROID
-	shader_path =(char *) gf_cfg_get_key(cfg, "Compositor", "ShaderPath");
-#elif defined(GPAC_ANDROID)		//TODOk temporary patch for Android - shader files in "osmo" dir
-	shader_path =(char *) gf_cfg_get_key(cfg, "General", "LastWorkingDir");
-#endif
-	if (!shader_path) {
-		return;
-	}
-	strcpy(vertex_shader_file, shader_path);
-	strcat(vertex_shader_file, "ES2[global].vert");
+	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "VertexShader");
+	if (!shader_file) return;
 
 	for (i=0;i<GF_GL_NB_VERT_SHADERS;i++) {
 		GL_CHECK_ERR;
-		visual->glsl_vertex_shaders[i] = visual_3d_shader_with_flags(vertex_shader_file , GL_VERTEX_SHADER, i);
+		visual->glsl_vertex_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_VERTEX_SHADER, i);
 		if (!visual->glsl_vertex_shaders[i]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader\n"));
 		}
 	}
 	
-	strcpy(fragment_shader_file, shader_path);
-	strcat(fragment_shader_file, "ES2[global].frag");
+	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "FragmentShader");
+	if (!shader_file) return;
 
 	for (i=0;i<GF_GL_NB_FRAG_SHADERS;i++) {
 		GLint linked;
@@ -1110,7 +1111,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 			continue;
 		}
 		
-		visual->glsl_fragment_shaders[i] = visual_3d_shader_with_flags(fragment_shader_file , GL_FRAGMENT_SHADER, i);
+		visual->glsl_fragment_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_FRAGMENT_SHADER, i);
 		if (!visual->glsl_fragment_shaders[i]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile fragment shader\n"));
 			continue;
