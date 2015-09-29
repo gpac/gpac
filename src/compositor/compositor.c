@@ -1374,6 +1374,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	case GF_3D_STEREO_COLUMNS:
 	case GF_3D_STEREO_ROWS:
 		if (compositor->visual->nb_views != 2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Stereo interleaving used but %d views indicated - adjusting to 2 view\n", compositor->visual->nb_views ));
 			compositor->visual->nb_views = 2;
 			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "2");
 		}

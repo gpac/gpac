@@ -346,16 +346,22 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
+#ifdef GPAC_USE_GLES2
+#define GLES_VERSION_STRING "#version 100 \n"
+#else
+#define GLES_VERSION_STRING "#version 120 \n"
+#endif
 
-static char *default_glsl_vertex = "\
-	varying vec3 gfNormal;\
+
+static char *glsl_autostereo_vertex = GLES_VERSION_STRING "\
+	attribute vec4 gfVertex;\
+	attribute vec2 gfTextureCoordinates;\
+	uniform mat4 gfProjectionMatrix;\
 	varying vec2 TexCoord;\
 	void main(void)\
 	{\
-		gfNormal = normalize(gl_NormalMatrix * gl_Normal);\
-		gl_ClipVertex = gl_ModelViewMatrix * gl_Vertex;\
-		gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;\
-		TexCoord = vec2(gl_TextureMatrix[0] * gl_MultiTexCoord0);\
+		TexCoord = gfTextureCoordinates;\
+		gl_Position = gfProjectionMatrix * gfVertex;\
 	}";
 
 static char *glsl_view_anaglyph = "\
@@ -561,13 +567,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	char *shader_src;
 	char *defs, *tmp, szKey[100];
 	size_t str_size;
-	
-#ifdef GPAC_USE_GLES2
-#define GLES_VERSION_STRING "#version 100\n"
-#else
-#define GLES_VERSION_STRING "#version 120\n"
-#endif
-	
+		
 	defs = (char *) gf_strdup(GLES_VERSION_STRING);
 	str_size = strlen(defs) + 1; //+1 for trailing \0
 	
@@ -664,52 +664,75 @@ static void visual_3d_set_tx_planes(GF_VisualManager *visual)
 
 void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 {
+	GLint linked;
+	Bool res;
 	if (!visual->compositor->gl_caps.has_shaders) return;
 
 	if (visual->autostereo_glsl_program) return;
 
 	visual->autostereo_glsl_program = glCreateProgram();
 
+	res = GF_TRUE;
 	if (!visual->base_glsl_vertex) {
 		visual->base_glsl_vertex = glCreateShader(GL_VERTEX_SHADER);
-		visual_3d_compile_shader(visual->base_glsl_vertex, "vertex", default_glsl_vertex);
+		res = visual_3d_compile_shader(visual->base_glsl_vertex, "vertex", glsl_autostereo_vertex);
 	}
-
-	switch (visual->autostereo_type) {
-	case GF_3D_STEREO_COLUMNS:
-		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_columns);
-		break;
-	case GF_3D_STEREO_ROWS:
-		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_rows);
-		break;
-	case GF_3D_STEREO_ANAGLYPH:
-		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_anaglyph);
-		break;
-	case GF_3D_STEREO_5VSP19:
-		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_5VSP19);
-		break;
-	case GF_3D_STEREO_8VALIO:
-		visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-		visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_8VAlio);
-		break;
+	if (res) {
+		switch (visual->autostereo_type) {
+		case GF_3D_STEREO_COLUMNS:
+			visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+			res = visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_columns);
+			break;
+		case GF_3D_STEREO_ROWS:
+			visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+			res = visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_rows);
+			break;
+		case GF_3D_STEREO_ANAGLYPH:
+			visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+			res = visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_anaglyph);
+			break;
+		case GF_3D_STEREO_5VSP19:
+			visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+			res = visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_5VSP19);
+			break;
+		case GF_3D_STEREO_8VALIO:
+			visual->autostereo_glsl_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+			res = visual_3d_compile_shader(visual->autostereo_glsl_fragment, "fragment", glsl_view_8VAlio);
+			break;
 		
-	case GF_3D_STEREO_CUSTOM:
-	{
-		const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
-		if (sOpt) {
-			visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
+		case GF_3D_STEREO_CUSTOM:
+		{
+			const char *sOpt = gf_cfg_get_key(visual->compositor->user->config, "Compositor", "InterleaverShader");
+			if (sOpt) {
+				visual->autostereo_glsl_fragment = visual_3d_shader_from_source_file(sOpt, GL_FRAGMENT_SHADER);
+				if (visual->autostereo_glsl_fragment) res = GF_TRUE;
+			}
+		}
+		break;
 		}
 	}
-	break;
+
+	if (res) {
+		glAttachShader(visual->autostereo_glsl_program, visual->base_glsl_vertex);
+		glAttachShader(visual->autostereo_glsl_program, visual->autostereo_glsl_fragment);
+		glLinkProgram(visual->autostereo_glsl_program);
+
+		glGetProgramiv(visual->autostereo_glsl_program, GL_LINK_STATUS, &linked);
+		if (!linked) {
+			int i32CharsWritten, i32InfoLogLength;
+			char pszInfoLog[2048];
+			glGetProgramiv(visual->autostereo_glsl_program, GL_INFO_LOG_LENGTH, &i32InfoLogLength);
+			glGetProgramInfoLog(visual->autostereo_glsl_program, i32InfoLogLength, &i32CharsWritten, pszInfoLog);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
+			res = GF_FALSE;
+		}
 	}
 
-	glAttachShader(visual->autostereo_glsl_program, visual->base_glsl_vertex);
-	glAttachShader(visual->autostereo_glsl_program, visual->autostereo_glsl_fragment);
-	glLinkProgram(visual->autostereo_glsl_program);
+	if (!res) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Autostereo vertex shader failed - disabling stereo support\n"));
+		visual->autostereo_type = 0;
+		visual->nb_views = 1;
+	}
 }
 
 #define DEL_SHADER(_a) if (_a) { glDeleteShader(_a); _a = 0; }
@@ -1067,6 +1090,33 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 #endif
 }
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
+
+static void visual_3d_load_matrix_shaders(GF_SHADERID program, Fixed *mat, const char *name)
+{
+	GLint loc;
+#ifdef GPAC_FIXED_POINT
+	Float _mat[16];
+	u32 i;
+#endif
+
+	loc = gf_glGetUniformLocation(program, name);
+	if(loc<0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
+		return;
+	}
+	GL_CHECK_ERR
+
+#ifdef GPAC_FIXED_POINT
+	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
+#else
+	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
+#endif
+	GL_CHECK_ERR
+}
+
+#endif
 
 GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 {
@@ -1114,12 +1164,10 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	//TODOk - enable auto-stereo rendering with GLES2 j ?
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	u32 i;
-	GLint loc;
+	GLint loc, loc_vertex_attrib, loc_texcoord_attrib;
 	char szTex[100];
-	Double hw, hh;
-#ifdef GPAC_USE_GLES1X
+	Fixed hw, hh;
 	GF_Matrix mx;
-#endif
 
 
 	glFlush();
@@ -1143,13 +1191,12 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	GL_CHECK_ERR
 
 	if (visual->current_view+1<visual->nb_views) return;
-
-	hw = visual->width;
-	hh = visual->height;
+	hw = INT2FIX(visual->width);
+	hh = INT2FIX(visual->height);
 	/*main (not offscreen) visual*/
 	if (visual->compositor->visual==visual) {
-		hw = visual->compositor->output_width;
-		hh = visual->compositor->output_height;
+		hw = INT2FIX(visual->compositor->output_width);
+		hh = INT2FIX(visual->compositor->output_height);
 	}
 
 	glViewport(0, 0, (GLsizei) hw, (GLsizei) hh );
@@ -1157,55 +1204,59 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	hw /= 2;
 	hh /= 2;
 
-	glMatrixMode(GL_PROJECTION);
-	glLoadIdentity();
-	glOrtho(-hw, hw, -hh, hh, -10, 100);
-
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-
-
-	glMatrixMode(GL_TEXTURE);
-	glLoadIdentity();
-	glMatrixMode(GL_MODELVIEW);
-
 	/*use our program*/
 	glUseProgram(visual->autostereo_glsl_program);
 
+	//load projection
+	gf_mx_ortho(&mx, -hw, hw, -hh, hh, -10, 100);
+	visual_3d_load_matrix_shaders(visual->autostereo_glsl_program, mx.m, "gfProjectionMatrix");
+
+	//no need for modelview (identifty)
+	
 	/*push number of views if shader uses it*/
 	loc = glGetUniformLocation(visual->autostereo_glsl_program, "gfViewCount");
 	if (loc != -1) glUniform1i(loc, visual->nb_views);
 
-	glClientActiveTexture(GL_TEXTURE0);
-	glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-	glTexCoordPointer(2, GL_FLOAT, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
+	//setup vertex attrib
+	loc_vertex_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfVertex");
+	if (loc_vertex_attrib>=0) {
+		glVertexAttribPointer(loc_vertex_attrib, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].pos);
+		glEnableVertexAttribArray(loc_vertex_attrib);
 
-	/*bind all our textures*/
-	for (i=0; i<visual->nb_views; i++) {
-		sprintf(szTex, "gfView%d", i+1);
-		loc = glGetUniformLocation(visual->autostereo_glsl_program, szTex);
-		if (loc == -1) continue;
+		//setup texcoord location
+		loc_texcoord_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfTextureCoordinates");
+		if (loc_texcoord_attrib>=0) {
+			glVertexAttribPointer(loc_texcoord_attrib, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
+			glEnableVertexAttribArray(loc_texcoord_attrib);
 
-		glActiveTexture(GL_TEXTURE0 + i);
 
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+			/*bind all our textures*/
+			for (i=0; i<visual->nb_views; i++) {
+				sprintf(szTex, "gfView%d", i+1);
+				loc = glGetUniformLocation(visual->autostereo_glsl_program, szTex);
+				if (loc == -1) continue;
 
-		glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
+				glActiveTexture(GL_TEXTURE0 + i);
 
-		glUniform1i(loc, i);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+
+				glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
+
+				glUniform1i(loc, i);
+			}
+		
+			//draw
+			glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
+		}
 	}
-	GL_CHECK_ERR
 
-	glEnableClientState(GL_VERTEX_ARRAY);
-	glVertexPointer(3, GL_FLOAT, sizeof(GF_Vertex),  &visual->autostereo_mesh->vertices[0].pos);
 
-	glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
-
-	glDisableClientState(GL_VERTEX_ARRAY);
+	if (loc_vertex_attrib>=0) glDisableVertexAttribArray(loc_vertex_attrib);
+	if (loc_texcoord_attrib>=0) glDisableVertexAttribArray(loc_texcoord_attrib);
 
 	glClientActiveTexture(GL_TEXTURE0);
 	glDisableClientState(GL_TEXTURE_COORD_ARRAY );
@@ -1907,43 +1958,19 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
-static void visual_3d_load_matrix_shaders(GF_VisualManager *visual, Fixed *mat, const char *name)
-{
-	GLint loc;
-#ifdef GPAC_FIXED_POINT
-	Float _mat[16];
-	u32 i;
-#endif
-
-	loc = gf_glGetUniformLocation(visual->glsl_program, name);
-	if(loc<0){
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
-		return;
-	}
-	GL_CHECK_ERR
-
-#ifdef GPAC_FIXED_POINT
-	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
-	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
-#else
-	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
-#endif
-	GL_CHECK_ERR
-}
-
 static void visual_3d_update_matrices_shaders(GF_TraverseState *tr_state)
 {
 	GF_Matrix mx;
 	
 	if (tr_state->visual->needs_projection_matrix_reload) {
 		tr_state->visual->needs_projection_matrix_reload = 0;
-		visual_3d_load_matrix_shaders(tr_state->visual, (Fixed *) tr_state->camera->projection.m, "gfProjectionMatrix");
+		visual_3d_load_matrix_shaders(tr_state->visual->glsl_program, (Fixed *) tr_state->camera->projection.m, "gfProjectionMatrix");
 	}
 
 	//calculate ModelView matix (camera.view * model)
 	gf_mx_copy(mx, tr_state->camera->modelview);
 	gf_mx_add_matrix(&mx, &tr_state->model_matrix);
-	visual_3d_load_matrix_shaders(tr_state->visual, (Fixed *) &mx.m, "gfModelViewMatrix");
+	visual_3d_load_matrix_shaders(tr_state->visual->glsl_program, (Fixed *) &mx.m, "gfModelViewMatrix");
 }
 
 static void visual_3d_set_lights_shaders(GF_TraverseState *tr_state)
@@ -2342,7 +2369,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		
 		gf_mx_transpose(&normal_mx);
 
-		visual_3d_load_matrix_shaders(tr_state->visual, (Fixed *) &normal_mx.m, "gfNormalMatrix");
+		visual_3d_load_matrix_shaders(tr_state->visual->glsl_program, (Fixed *) &normal_mx.m, "gfNormalMatrix");
 
 		loc_normal_array = gf_glGetAttribLocation(visual->glsl_program, "gfNormal");
 		if (loc_normal_array>=0) {
