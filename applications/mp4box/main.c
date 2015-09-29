@@ -1871,6 +1871,7 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->role) gf_free(di->role);
 		}
 		gf_free(dash_inputs);
+		dash_inputs = NULL;
 	}
 	gf_sys_close();	
 	return ret_code;
