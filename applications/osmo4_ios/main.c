@@ -29,6 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
+#include <gpac/internal/terminal_dev.h>
 
 #include <pwd.h>
 #include <unistd.h>
@@ -154,6 +155,10 @@ u32 get_sys_col(int idx)
 }
 #endif
 
+
+static s32 request_next_playlist_item = GF_FALSE;
+FILE *playlist = NULL;
+
 Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 {
 	if (!term) return 0;
@@ -216,6 +221,11 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Navigation destination not supported\nGo to URL: %s\n", evt->navigate.to_url ));
 		}
 		break;
+	case GF_EVENT_DBLCLICK:
+		if (playlist) {
+			request_next_playlist_item=GF_TRUE;
+		}
+		break;
 	}
 	return 0;
 }
@@ -271,6 +281,7 @@ int main (int argc, char *argv[])
 #endif
 {
 	const char *str;
+	char *ext;
 	u32 i;
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
@@ -351,6 +362,8 @@ int main (int argc, char *argv[])
 	init_w = forced_width;
 	init_h = forced_height;
 
+	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "always");
+
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
@@ -421,9 +434,35 @@ int main (int argc, char *argv[])
 	Run = 1;
 	ret = 1;
 
-    if (url_arg) {
+	
+	ext = strrchr(url_arg, '.');
+	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
+		char pl_path[GF_MAX_PATH];
+		GF_Err e = GF_OK;
+		fprintf(stderr, "Opening Playlist %s\n", url_arg);
+		
+		strcpy(pl_path, url_arg);
+		/*this is not clean, we need to have a plugin handle playlist for ourselves*/
+		if (!strncmp("http:", url_arg, 5)) {
+			GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, url_arg, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
+			if (sess) {
+				e = gf_dm_sess_process(sess);
+				if (!e) strcpy(pl_path, gf_dm_sess_get_cache_name(sess));
+				gf_dm_sess_del(sess);
+			}
+		}
+		
+		playlist = e ? NULL : gf_fopen(pl_path, "rt");
+		if (playlist) {
+			request_next_playlist_item = GF_TRUE;
+		} else {
+			if (e)
+				fprintf(stderr, "Failed to open playlist %s: %s\n", url_arg, gf_error_to_string(e) );
+
+			fprintf(stderr, "Hit 'h' for help\n\n");
+		}
+	} else if (url_arg) {
         gf_term_connect(term, url_arg);
-        
     } else {
         str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
         if (str) {
@@ -442,6 +481,23 @@ int main (int argc, char *argv[])
 			gf_term_play_from_time(term, 0, 0);
 		}
 
+		if (request_next_playlist_item) {
+			char szPath[GF_MAX_PATH];
+			
+			request_next_playlist_item=0;
+			gf_term_disconnect(term);
+			
+			if (fscanf(playlist, "%s", szPath) == EOF) {
+				fprintf(stderr, "No more items - exiting\n");
+				Run = 0;
+			} else if (szPath[0] == '#') {
+				request_next_playlist_item = GF_TRUE;
+			} else {
+				fprintf(stderr, "Opening URL %s\n", szPath);
+				gf_term_connect_with_path(term, szPath, url_arg);
+			}
+		}
+	
 		if (!use_rtix || display_rti) UpdateRTInfo(NULL);
 		if (not_threaded) {
 			//printf("gf_term_process_step from run loop\n");
@@ -480,6 +536,7 @@ int main (int argc, char *argv[])
 	gf_sys_close();
 	if (rti_logs) gf_fclose(rti_logs);
 	if (logfile) gf_fclose(logfile);
+	if (playlist) gf_fclose(playlist);
 
 	return 0;
 }
