@@ -519,10 +519,9 @@ static void composite_update(GF_TextureHandler *txh)
 	st->first = 0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[CompositeTexture] Entering draw cycle\n"));
-	
+
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
-
 
 	if (!compositor->edited_text && st->visual->has_text_edit)
 		st->visual->has_text_edit = 0;
@@ -543,7 +542,12 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-		if (st->visual->camera.is_3D) {
+		if (st->visual->compositor->hybrid_opengl) {
+#ifndef GPAC_USE_TINYGL
+			gf_sc_copy_to_texture(&st->txh);
+#endif
+		}
+		else if (st->visual->camera.is_3D) {
 			if (st->visual->compositor->visual->type_3d) {
 #ifndef GPAC_USE_TINYGL
 				gf_sc_copy_to_texture(&st->txh);
