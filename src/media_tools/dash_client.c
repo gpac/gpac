@@ -899,6 +899,8 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 	GF_DASHFileIO *dash_io = dash->dash_io;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading %s starting at UTC "LLU" ms\n", url, gf_net_get_utc() ));
+	gf_mx_p(dash->dl_mutex);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At "LLU" grabbed dl_mutex for downloading segment\n", gf_net_get_utc()));
 
 	if (group) {
 		group_idx = gf_list_find(group->dash->groups, group);
@@ -908,6 +910,7 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 		*sess = dash_io->create(dash_io, persistent_mode ? 1 : 0, url, group_idx);
 		if (!(*sess)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot try to download %s... OUT of memory ?\n", url));
+			gf_mx_v(dash->dl_mutex);
 			return GF_OUT_OF_MEM;
 		}
 	} else {
@@ -916,6 +919,7 @@ GF_Err gf_dash_download_resource(GF_DashClient *dash, GF_DASHFileIOSession *sess
 			e = dash_io->setup_from_url(dash_io, *sess, url, group_idx);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot resetup session for url %s: %s\n", url, gf_error_to_string(e) ));
+				gf_mx_v(dash->dl_mutex);
 				return e;
 			}
 		}
@@ -933,11 +937,13 @@ retry:
 			if (had_sess) {
 				dash_io->del(dash_io, *sess);
 				*sess = NULL;
+				gf_mx_v(dash->dl_mutex);
 				return gf_dash_download_resource(dash, sess, url, start_range, end_range, persistent_mode ? 1 : 0, group);
 			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot setup byte-range download for %s: %s\n", url, gf_error_to_string(e) ));
 			if (group)
 				group->is_downloading = GF_FALSE;
+			gf_mx_v(dash->dl_mutex);
 			return e;
 		}
 	}
@@ -976,16 +982,23 @@ retry:
 				group->segment_must_be_streamed = GF_TRUE;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
 				group->is_downloading = GF_TRUE;
+				gf_mx_v(dash->dl_mutex);
 				return GF_OK;
 			}
 			group->segment_must_be_streamed = GF_FALSE;
 		}
 
+		//release dl_mutex while downloading segment
+		gf_mx_v(dash->dl_mutex);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At "LLU" released dl_mutex for downloading segment\n", gf_net_get_utc()));
 		/*we can download the file*/
 		e = dash_io->run(dash_io, *sess);
 	}
+	gf_mx_p(dash->dl_mutex);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At "LLU" grabbed dl_mutex for downloading segment\n", gf_net_get_utc()));
 	if (group && group->download_abort_type) {
 		group->is_downloading = GF_FALSE;
+		gf_mx_v(dash->dl_mutex);
 		return GF_IP_CONNECTION_CLOSED;
 	}
 	switch (e) {
@@ -999,6 +1012,7 @@ retry:
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot retry to download %s... OUT of memory ?\n", url));
 				if (group)
 					group->is_downloading = GF_FALSE;
+				gf_mx_v(dash->dl_mutex);
 				return GF_OUT_OF_MEM;
 			}
 
@@ -1020,6 +1034,8 @@ retry:
 	}
 	if (group)
 		group->is_downloading = GF_FALSE;
+	gf_mx_v(dash->dl_mutex);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At "LLU" released dl_mutex for downloading segment\n", gf_net_get_utc()));
 	return e;
 }
 
@@ -3966,13 +3982,13 @@ restart_period:
 				group->min_bitrate = (u32)-1;
 
 				/*use persistent connection for segment downloads*/
-				gf_mx_p(dash->dl_mutex);
+				//gf_mx_p(dash->dl_mutex);
 				if (use_byterange) {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
 				} else {
 					e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
 				}
-				gf_mx_v(dash->dl_mutex);
+				//gf_mx_v(dash->dl_mutex);
 
 				if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
 					group->download_abort_type = 0;
