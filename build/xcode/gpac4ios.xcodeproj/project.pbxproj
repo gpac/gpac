@@ -381,7 +381,6 @@
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
 		929A929F16EF8BC200B7C64F /* icon_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929916EF8BC200B7C64F /* icon_retina.png */; };
 		929A92A016EF8BC200B7C64F /* icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929A16EF8BC200B7C64F /* icon.png */; };
-		92A3A03E16F0C10C004EE581 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A3A03D16F0C10C004EE581 /* extract.c */; };
 		92B039F716F2050100B2568F /* libSDL2.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B039F616F2050100B2568F /* libSDL2.a */; };
 		92B32CA41A08ABBF0065F44A /* webvtt_smjs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */; };
 		92B32CA91A08AC130065F44A /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B32CA71A08AC130065F44A /* vtt_dec.c */; };
@@ -927,7 +926,6 @@
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
 		929A929916EF8BC200B7C64F /* icon_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_retina.png; path = ../../applications/osmo4_ios/Resources/icon_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929A16EF8BC200B7C64F /* icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon.png; path = ../../applications/osmo4_ios/Resources/icon.png; sourceTree = SOURCE_ROOT; };
-		92A3A03D16F0C10C004EE581 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/osmo4_ios/extract.c; sourceTree = SOURCE_ROOT; };
 		92B039F616F2050100B2568F /* libSDL2.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libSDL2.a; path = ../../extra_lib/lib/iOS/libSDL2.a; sourceTree = SOURCE_ROOT; };
 		92B32CA31A08ABBF0065F44A /* webvtt_smjs.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = webvtt_smjs.c; sourceTree = "<group>"; };
 		92B32CA71A08AC130065F44A /* vtt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_dec.c; path = ../../modules/vtt_in/vtt_dec.c; sourceTree = "<group>"; };
@@ -1251,7 +1249,6 @@
 				929A929916EF8BC200B7C64F /* icon_retina.png */,
 				929A929A16EF8BC200B7C64F /* icon.png */,
 				71EC88E01396273B004DCB6A /* osmo.icns */,
-				92A3A03D16F0C10C004EE581 /* extract.c */,
 				71A19B2012796B6F00ACFF58 /* main.c */,
 				71A19B1C12796B5700ACFF58 /* osmo4ios-Info.plist */,
 			);
@@ -2184,7 +2181,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				71A19B2112796B6F00ACFF58 /* main.c in Sources */,
-				92A3A03E16F0C10C004EE581 /* extract.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
