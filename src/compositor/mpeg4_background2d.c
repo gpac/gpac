@@ -153,13 +153,15 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 
 
 #ifndef GPAC_DISABLE_3D
-	if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
-		if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
+	if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
+		if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
 			color &= 0x00FFFFFF;
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, color, GF_FALSE);
 			is_offscreen = GF_TRUE;
 			//we may need to clear the canvas for immediate mode
 		}
+	} else {
+		is_offscreen = GF_TRUE;
 	}
 #endif
 	/*direct drawing, draw without clippers */
@@ -381,6 +383,8 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 		status->ctx.flags = stack->flags | CTX_BACKROUND_NOT_LAYER;
 	} else {
 		status->ctx.flags = stack->flags;
+		if (tr_state->is_layer)
+			status->ctx.flags &= ~CTX_BACKROUND_NOT_LAYER;
 	}
 
 
