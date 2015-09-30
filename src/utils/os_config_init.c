@@ -427,7 +427,9 @@ static GF_Config *create_default_config(char *file_path)
 {
 	FILE *f;
 	GF_Config *cfg;
+#ifndef GPAC_IPHONE
 	char *cache_dir;
+#endif
 	char szPath[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
 
