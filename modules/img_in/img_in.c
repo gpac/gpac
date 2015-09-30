@@ -174,6 +174,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	e = param->error;
 	/*wait to get the whole file*/
 	if (!e && (param->msg_type!=GF_NETIO_DATA_TRANSFERED)) return;
+	if ((e==GF_EOS) && (param->msg_type==GF_NETIO_DATA_EXCHANGE)) return;
 
 	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
