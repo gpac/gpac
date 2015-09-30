@@ -1135,9 +1135,23 @@ void gf_sc_copy_to_texture(GF_TextureHandler *txh)
 		tx_setup_format(txh);
 	}
 
+	GL_CHECK_ERR
 	tx_bind(txh);
+	GL_CHECK_ERR
+#ifdef GPAC_USE_GLES2
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+#endif
+	GL_CHECK_ERR
+
 	glCopyTexImage2D(txh->tx_io->gl_type, 0, txh->tx_io->gl_format, 0, 0, txh->width, txh->height, 0);
+#ifndef GPAC_USE_GLES2
 	glDisable(txh->tx_io->gl_type);
+#endif
+	GL_CHECK_ERR
 }
 #endif
 
