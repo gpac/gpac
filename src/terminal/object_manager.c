@@ -764,6 +764,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		odm->state = GF_ODM_STATE_IN_SETUP;
 
 		gf_odm_lock(odm, 1);
+		gf_term_lock_net(odm->term, GF_FALSE);
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 			e = gf_odm_setup_es(odm, esd, serv, syncRef);
@@ -774,6 +775,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
 			}
 		}
+		gf_term_lock_net(odm->term, GF_TRUE);
 		odm->state = GF_ODM_STATE_STOP;
 		gf_odm_lock(odm, 0);
 	}
