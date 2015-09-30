@@ -362,9 +362,6 @@ int main (int argc, char *argv[])
 	init_w = forced_width;
 	init_h = forced_height;
 
-	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "always");
-
-
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Loading modules\n" ));
 	str = gf_cfg_get_key(cfg_file, "General", "ModulesDirectory");
 
