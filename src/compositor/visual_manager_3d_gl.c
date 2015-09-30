@@ -352,8 +352,15 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #define GLES_VERSION_STRING "#version 120 \n"
 #endif
 
+#define GLSL_PREFIX GLES_VERSION_STRING \
+	"#ifdef GL_FRAGMENT_PRECISION_HIGH\n"\
+	"precision highp float;\n"\
+	"#elif defined(GL_ES)\n"\
+	"precision mediump float;\n"\
+	"#endif\n"
 
-static char *glsl_autostereo_vertex = GLES_VERSION_STRING "\
+
+static char *glsl_autostereo_vertex = GLSL_PREFIX "\
 	attribute vec4 gfVertex;\
 	attribute vec2 gfTextureCoordinates;\
 	uniform mat4 gfProjectionMatrix;\
@@ -364,7 +371,7 @@ static char *glsl_autostereo_vertex = GLES_VERSION_STRING "\
 		gl_Position = gfProjectionMatrix * gfVertex;\
 	}";
 
-static char *glsl_view_anaglyph = "\
+static char *glsl_view_anaglyph = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -378,7 +385,7 @@ static char *glsl_view_anaglyph = "\
 	}";
 
 #ifdef GPAC_UNUSED_FUNC
-static char *glsl_view_anaglyph_optimize = "\
+static char *glsl_view_anaglyph_optimize = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -393,7 +400,7 @@ static char *glsl_view_anaglyph_optimize = "\
 	}";
 #endif /*GPAC_UNUSED_FUNC*/
 
-static char *glsl_view_columns = "\
+static char *glsl_view_columns = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -405,7 +412,7 @@ static char *glsl_view_columns = "\
 			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
-static char *glsl_view_rows = "\
+static char *glsl_view_rows = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	varying vec2 TexCoord;\
@@ -417,7 +424,7 @@ static char *glsl_view_rows = "\
 			gl_FragColor = texture2D(gfView2, TexCoord.st); \
 	}";
 
-static char *glsl_view_5VSP19 = "\
+static char *glsl_view_5VSP19 = GLSL_PREFIX "\
 	uniform sampler2D gfView1;\
 	uniform sampler2D gfView2;\
 	uniform sampler2D gfView3;\
@@ -450,7 +457,7 @@ static char *glsl_view_5VSP19 = "\
 		gl_FragColor.b = color.b;\
 	}";
 
-static char *glsl_view_8VAlio = "\
+static char *glsl_view_8VAlio = GLSL_PREFIX "\
 	uniform sampler2D gfView1; \
 	uniform sampler2D gfView2; \
 	uniform sampler2D gfView3; \
@@ -726,6 +733,7 @@ void visual_3d_init_stereo_shaders(GF_VisualManager *visual)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
 			res = GF_FALSE;
 		}
+		GL_CHECK_ERR
 	}
 
 	if (!res) {
@@ -1123,6 +1131,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 bw, bh;
 	SFVec2f s;
+	Bool use_npot = visual->compositor->gl_caps.npot_texture;
 	if (visual->gl_textures) return GF_OK;
 
 	visual->gl_textures = gf_malloc(sizeof(GLuint) * visual->nb_views);
@@ -1136,20 +1145,38 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 		bh = visual->compositor->output_height;
 	}
 
-	if (visual->compositor->gl_caps.npot_texture) {
+#ifdef GPAC_USE_GLES2
+	use_npot = GF_TRUE;
+#endif
+	
+	if (use_npot) {
 		visual->auto_stereo_width = bw;
 		visual->auto_stereo_height = bh;
 	} else {
 		visual->auto_stereo_width = 2;
-		while (visual->auto_stereo_width*2 < visual->width) visual->auto_stereo_width *= 2;
+		while (visual->auto_stereo_width < bw) visual->auto_stereo_width *= 2;
 		visual->auto_stereo_height = 2;
-		while (visual->auto_stereo_height < visual->height) visual->auto_stereo_height *= 2;
+		while (visual->auto_stereo_height < bh) visual->auto_stereo_height *= 2;
 	}
 
 	visual->autostereo_mesh = new_mesh();
 	s.x = INT2FIX(bw);
 	s.y = INT2FIX(bh);
 	mesh_new_rectangle(visual->autostereo_mesh, s, NULL, 0);
+	
+	if (! use_npot) {
+		u32 i;
+		Fixed max_u = INT2FIX(bw) / visual->auto_stereo_width;
+		Fixed max_v = INT2FIX(bh) / visual->auto_stereo_height;
+		for (i=0; i<visual->autostereo_mesh->v_count; i++) {
+			if (visual->autostereo_mesh->vertices[i].texcoords.x == FIX_ONE) {
+				visual->autostereo_mesh->vertices[i].texcoords.x = max_u;
+			}
+			if (visual->autostereo_mesh->vertices[i].texcoords.y == FIX_ONE) {
+				visual->autostereo_mesh->vertices[i].texcoords.y = max_v;
+			}
+		}
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual3D] AutoStereo initialized - width %d height %d\n", visual->auto_stereo_width, visual->auto_stereo_height) );
 
@@ -1161,8 +1188,7 @@ GF_Err visual_3d_init_autostereo(GF_VisualManager *visual)
 
 void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 {
-	//TODOk - enable auto-stereo rendering with GLES2 j ?
-#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	u32 i;
 	GLint loc, loc_vertex_attrib, loc_texcoord_attrib;
 	char szTex[100];
@@ -1172,21 +1198,36 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 	glFlush();
 
-	glEnable(GL_TEXTURE_2D);
+	GL_CHECK_ERR
 
+#ifndef GPAC_USE_GLES2
+	glEnable(GL_TEXTURE_2D);
+#endif
+	
 	glBindTexture(GL_TEXTURE_2D, visual->gl_textures[visual->current_view]);
 
+#ifndef GPAC_USE_GLES2
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
-
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+#else
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+#endif
+	
+	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 0, 0, visual->auto_stereo_width, visual->auto_stereo_height, 0);
+	GL_CHECK_ERR
 
-	glCopyTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 0, 0, visual->auto_stereo_width, visual->auto_stereo_height, 0);
+#ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
-
+#endif
+	
 	glClear(GL_DEPTH_BUFFER_BIT);
 	GL_CHECK_ERR
 
@@ -1223,12 +1264,14 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 		glVertexAttribPointer(loc_vertex_attrib, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].pos);
 		glEnableVertexAttribArray(loc_vertex_attrib);
 
+		GL_CHECK_ERR
 		//setup texcoord location
 		loc_texcoord_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfTextureCoordinates");
 		if (loc_texcoord_attrib>=0) {
 			glVertexAttribPointer(loc_texcoord_attrib, 2, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), &visual->autostereo_mesh->vertices[0].texcoords);
 			glEnableVertexAttribArray(loc_texcoord_attrib);
 
+			GL_CHECK_ERR
 
 			/*bind all our textures*/
 			for (i=0; i<visual->nb_views; i++) {
@@ -1238,37 +1281,52 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 				glActiveTexture(GL_TEXTURE0 + i);
 
+#ifndef GPAC_USE_GLES2
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
+#endif
+
+				GL_CHECK_ERR
 
 				glBindTexture(GL_TEXTURE_2D, visual->gl_textures[i]);
 
+				GL_CHECK_ERR
+
 				glUniform1i(loc, i);
+
+				GL_CHECK_ERR
 			}
 		
 			//draw
+#if defined(GPAC_USE_GLES2)
+			glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_SHORT, visual->autostereo_mesh->indices);
+#else
 			glDrawElements(GL_TRIANGLES, visual->autostereo_mesh->i_count, GL_UNSIGNED_INT, visual->autostereo_mesh->indices);
+#endif
+
+			GL_CHECK_ERR
 		}
 	}
 
 
 	if (loc_vertex_attrib>=0) glDisableVertexAttribArray(loc_vertex_attrib);
 	if (loc_texcoord_attrib>=0) glDisableVertexAttribArray(loc_texcoord_attrib);
-
-	glClientActiveTexture(GL_TEXTURE0);
-	glDisableClientState(GL_TEXTURE_COORD_ARRAY );
+	GL_CHECK_ERR
 
 	glUseProgram(0);
 
+#ifndef GPAC_USE_GLES2
 	/*not sure why this is needed but it prevents a texturing bug on XP on parallels*/
 	glActiveTexture(GL_TEXTURE0);
+	GL_CHECK_ERR
+
 	glBindTexture(GL_TEXTURE_2D, 0);
-
 	glDisable(GL_TEXTURE_2D);
-
+#endif
+	
 	GL_CHECK_ERR
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 

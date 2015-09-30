@@ -538,8 +538,14 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
 
-		tr_state->camera->vp.width = gf_divfix(tr_state->camera->vp.width, INT2FIX(tr_state->visual->nb_views));
-		tr_state->camera->vp.x += gf_mulfix(INT2FIX(tr_state->visual->current_view), tr_state->camera->vp.width);
+		tr_state->camera->vp.width = tr_state->camera->vp.width / tr_state->visual->nb_views;
+		if (tr_state->visual == tr_state->visual->compositor->visual) {
+			Fixed remain = INT2FIX(tr_state->visual->compositor->output_width - orig_vp.width) / tr_state->visual->nb_views;
+			
+			tr_state->camera->vp.x = remain/2 + tr_state->visual->current_view*remain + tr_state->visual->current_view *tr_state->camera->vp.width;
+		} else {
+			tr_state->camera->vp.x = tr_state->visual->current_view * tr_state->camera->vp.width;
+		}
 
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
@@ -556,14 +562,15 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
 
-		tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.height, INT2FIX(tr_state->visual->nb_views));
-		tr_state->camera->vp.y += gf_mulfix(INT2FIX(tr_state->visual->current_view), tr_state->camera->vp.height);
-//		tr_state->camera->vp.y = orig_vp.height - tr_state->camera->vp.height - tr_state->camera->vp.y;
-		if (tr_state->visual->compositor->visual==tr_state->visual)
-			tr_state->camera->vp.y = tr_state->visual->compositor->output_height - tr_state->camera->vp.y - tr_state->camera->vp.height;
-		else
-			tr_state->camera->vp.y = tr_state->visual->height - tr_state->camera->vp.y - tr_state->camera->vp.height;
+		tr_state->camera->vp.height = tr_state->camera->vp.height / tr_state->visual->nb_views;
 
+		if (tr_state->visual == tr_state->visual->compositor->visual) {
+			Fixed remain = INT2FIX(tr_state->visual->compositor->output_height - orig_vp.height) / tr_state->visual->nb_views;
+			
+			tr_state->camera->vp.y = remain/2 + tr_state->visual->current_view*remain + tr_state->visual->current_view *tr_state->camera->vp.height;
+		} else {
+			tr_state->camera->vp.y = tr_state->visual->height - tr_state->camera->vp.y - tr_state->camera->vp.height;
+		}
 		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
 		visual_3d_set_scissor(tr_state->visual, &tr_state->camera->vp);
 
@@ -903,7 +910,6 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 			visual_3d_init_autostereo(visual);
 			auto_stereo = 1;
 		}
-		
 		
 
 #ifndef GPAC_USE_GLES1X
