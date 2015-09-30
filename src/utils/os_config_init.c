@@ -571,16 +571,19 @@ static void check_modules_dir(GF_Config *cfg)
 	char *cfg_path;
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		char *sep;
+		char shader_path[GF_MAX_PATH];
 		strcat(path, "/gui.bt");
 		gf_cfg_set_key(cfg, "General", "StartupFile", path);
-		
+		//get rid of "/gui/gui.bt"
 		sep = strrchr(path, '/');
 		sep[0] = 0;
 		sep = strrchr(path, '/');
 		sep[0] = 0;
 
-		strcat(path, "/shaders/");
-		gf_cfg_set_key(cfg, "Compositor", "ShaderPath", path);
+		sprintf(shader_path, "%s%cshaders%cvertex.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "VertexShader", shader_path);
+		sprintf(shader_path, "%s%cshaders%cfragment.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", shader_path);
 	}
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
