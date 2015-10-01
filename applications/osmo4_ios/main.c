@@ -432,7 +432,7 @@ int main (int argc, char *argv[])
 	ret = 1;
 
 	
-	ext = strrchr(url_arg, '.');
+	ext = url_arg ? strrchr(url_arg, '.') : NULL;
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 		char pl_path[GF_MAX_PATH];
 		GF_Err e = GF_OK;
