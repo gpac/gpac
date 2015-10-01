@@ -167,7 +167,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 {
 	GF_TraverseState a_tr_state;
-
+return;
 	//check if texture data has changed - if so, mark texture to be updated
 	if (compositor->traverse_state->immediate_draw) {
 		//nothing drawn, nothing to do
@@ -358,38 +358,19 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	visual->compositor->traverse_state->camera = &visual->camera;
 
 
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
 
-	glClear(GL_COLOR_BUFFER_BIT);
+	visual->camera.vp.x = visual->camera.vp.y = 0;
+	visual->camera.vp.width = visual->camera.width = INT2FIX(compositor->vp_width);
+	visual->camera.vp.height = visual->camera.height = INT2FIX(compositor->vp_height);
 
-	glLineWidth(1.0f);
-
-#ifndef GPAC_USE_GLES1X
-	glDisable(GL_POLYGON_SMOOTH);
-#endif
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-
-	glDisable(GL_NORMALIZE);
-	glDisable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LEQUAL);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-	if (compositor->opengl_raster) {
-		glDisable(GL_LINE_SMOOTH);
-	} else {
-		glEnable(GL_LINE_SMOOTH);
-	}
-
-	visual->camera.width = INT2FIX(compositor->vp_width);
-	visual->camera.height = INT2FIX(compositor->vp_height);
 	visual->camera.up.y = FIX_ONE;
 	visual->camera.end_zoom = FIX_ONE;
 	visual->camera.position.z = INT2FIX(1000);
 	visual->camera.flags = CAM_IS_DIRTY;
+
 	camera_update(&visual->camera, NULL, visual->center_coords);
+
 	visual_3d_projection_matrix_modified(visual);
 
 #ifdef OPENGL_RASTER

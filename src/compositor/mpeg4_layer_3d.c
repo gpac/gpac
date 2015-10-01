@@ -380,11 +380,29 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			return;
 		}
 	case TRAVERSE_PICK:
+		/*layers can only be used in a 2D context*/
+		if (tr_state->camera && tr_state->camera->is_3D) 
+			return;
+		break;
+
 	case TRAVERSE_SORT:
 		/*layers can only be used in a 2D context*/
-		if (tr_state->camera && tr_state->camera->is_3D) return;
+		if (tr_state->camera && tr_state->camera->is_3D) 
+			return;
+
+		if (tr_state->visual->compositor->hybrid_opengl) {
+			DrawableContext *ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
+			if (!ctx) goto l3d_exit;
+			ctx->aspect.fill_texture = &st->txh;
+			ctx->flags |= CTX_APP_DIRTY | CTX_IS_TRANSPARENT;
+			drawable_finalize_sort(ctx, tr_state, &st->clip);
+			return;
+		}
 		break;
 	case TRAVERSE_DRAW_2D:
+		if (tr_state->visual->compositor->hybrid_opengl) {
+			break;
+		}
 		layer3d_draw_2d(node, tr_state);
 		return;
 	case TRAVERSE_DRAW_3D:
@@ -405,6 +423,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->is_layer = 1;
 
 	prev_cam = tr_state->camera;
+
 	tr_state->camera = &st->visual->camera;
 	old_visual = tr_state->visual;
 
@@ -412,32 +431,23 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	gf_mx_copy(model_backup, tr_state->model_matrix);
 	gf_mx2d_copy(mx2d_backup, tr_state->transform);
 
-
 	/*compute viewport in visual coordinate*/
 	rc = st->clip;
 	if (prev_cam) {
-		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
 
-		gf_mx_apply_rect(&prev_cam->modelview, &rc);
+		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
+	
+		if (tr_state->visual->compositor->hybrid_opengl) 
+			gf_mx2d_apply_rect(&tr_state->transform, &rc);
+		else
+			gf_mx_apply_rect(&prev_cam->modelview, &rc);
+		
 		if (tr_state->camera->flags & CAM_HAS_VIEWPORT)
 			gf_mx_apply_rect(&prev_cam->viewport, &rc);
-#if 0
-		if (tr_state->visual->compositor->visual==tr_state->visual) {
-			GF_Matrix mx;
-			gf_mx_init(mx);
-			gf_mx_add_scale(&mx, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y, FIX_ONE);
-			gf_mx_apply_rect(&mx, &rc);
-		}
-#endif
+
 	} else {
 		gf_mx2d_apply_rect(&tr_state->transform, &rc);
 
-		/*		if (tr_state->visual->compositor->visual==tr_state->visual) {
-					gf_mx2d_init(mx2d_backup);
-					gf_mx2d_add_scale(&mx2d_backup, tr_state->visual->compositor->scale_x, tr_state->visual->compositor->scale_y);
-					gf_mx2d_apply_rect(&mx2d_backup, &rc);
-				}
-		*/
 		/*switch visual*/
 		tr_state->visual = st->visual;
 	}
@@ -450,7 +460,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 
 	/*drawing a layer means drawing all subelements as a whole (no depth sorting with parents)*/
-	if (tr_state->traversing_mode==TRAVERSE_SORT) {
+	if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_DRAW_2D)) {
 		u32 old_type_3d = tr_state->visual->type_3d;
 
 		if (gf_node_dirty_get(node)) changed = 1;
@@ -480,9 +490,11 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			/*setup GL*/
 			visual_3d_setup(tr_state->visual);
 		}
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 
 		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
+
 
 		tr_state->visual->type_3d = 2;
 		visual_3d_clear_all_lights(tr_state->visual);
@@ -516,16 +528,9 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->traversing_mode = TRAVERSE_SORT;
 		tr_state->visual->type_3d = old_type_3d;
 
-		//reload previous projection matrix
-		if (prev_cam) {
-			visual_3d_projection_matrix_modified(tr_state->visual);
-		}
-
-
 		/*!! we were in a 2D mode, create drawable context!!*/
-		if (!prev_cam) {
+		if (!prev_cam ) {
 			DrawableContext *ctx;
-
 			/*with TinyGL we draw directly to the offscreen buffer*/
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_stencil(&st->txh);
@@ -548,7 +553,7 @@ layer3d_unchanged_2d:
 			//	tr_state->camera = prev_cam;
 
 			ctx = drawable_init_context_mpeg4(st->drawable, tr_state);
-			if (!ctx) return;
+			if (!ctx) goto l3d_exit;
 			ctx->aspect.fill_texture = &st->txh;
 			ctx->flags |= CTX_NO_ANTIALIAS;
 			if (changed) ctx->flags |= CTX_APP_DIRTY;
@@ -625,7 +630,7 @@ layer3d_unchanged_2d:
 		                                      FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
 		                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
-		group_3d_traverse(node, (GroupingNode *)st, tr_state);
+		//group_3d_traverse(node, (GroupingNode *)st, tr_state);
 		tr_state->ray = prev_r;
 
 		/*store info if navigation allowed - we just override any layer3D picked first since we are picking 2D
@@ -637,10 +642,15 @@ layer3d_unchanged_2d:
 	}
 
 l3d_exit:
+	tr_state->visual = old_visual;
+
 	/*restore camera*/
 	tr_state->camera = prev_cam;
-	if (prev_cam) visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
-	tr_state->visual = old_visual;
+	if (prev_cam) {
+		//remember to reload previous projection matrix
+		visual_3d_projection_matrix_modified(tr_state->visual);
+		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+	}
 
 	/*restore traversing state*/
 	tr_state->backgrounds = oldb;
