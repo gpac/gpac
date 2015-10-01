@@ -542,7 +542,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-		if (st->visual->compositor->hybrid_opengl) {
+		if (st->visual->compositor->visual->type_3d) {
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_texture(&st->txh);
 #endif
