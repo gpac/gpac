@@ -233,6 +233,10 @@ void visual_2d_setup_projection(GF_VisualManager *visual, GF_TraverseState *tr_s
 
 #ifndef GPAC_DISABLE_3D
 	gf_mx_init(tr_state->model_matrix);
+	if (tr_state->camera && (visual->compositor->visual==visual)) {
+		tr_state->camera->vp.width = INT2FIX(visual->compositor->output_width);
+		tr_state->camera->vp.height = INT2FIX(visual->compositor->output_height);
+	}
 #endif
 
 	visual->top_clipper = gf_rect_pixelize(&rc);
@@ -692,13 +696,16 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	}
 
 	/*nothing to redraw*/
-	if (!hyb_force_redraw && ra_is_empty(&visual->to_redraw) ) {
+	if (ra_is_empty(&visual->to_redraw) ) {
+		if (!hyb_force_redraw) {
 #ifndef GPAC_DISABLE_3D
-		//force canvas draw
-		visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
+			//force canvas draw
+			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
 #endif
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
-		goto exit;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
+			goto exit;
+		}
+		ra_add(&visual->to_redraw, &visual->surf_rect);
 	}
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
