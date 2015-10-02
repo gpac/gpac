@@ -167,7 +167,7 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 {
 	GF_TraverseState a_tr_state;
-return;
+
 	//check if texture data has changed - if so, mark texture to be updated
 	if (compositor->traverse_state->immediate_draw) {
 		//nothing drawn, nothing to do
