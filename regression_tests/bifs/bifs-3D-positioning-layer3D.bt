@@ -32,6 +32,11 @@ OrderedGroup {
    info ["This shows a Layer3D using the entire window" "and layer2D/layer3D defining a 2D control panel" "" "GPAC Regression Tests" "$Date: 2008-11-24 14:58:25 $ - $Revision: 1.5 $" "(C) 2002-2004 GPAC Team"]
   }
 
+	Shape {
+		appearance Appearance { material DEF M2D Material2D {filled TRUE emissiveColor 0 1 0} }
+  	geometry Rectangle { size 150 150 }
+	}
+
 	Switch {
 	  whichChoice 0
 		choice [
@@ -126,6 +131,7 @@ OrderedGroup {
 			}
 		]
 	}
+
 	DEF SC Script {
 		eventIn SFBool set_nav
 		eventIn SFBool set_back
@@ -180,7 +186,8 @@ OrderedGroup {
 ROUTE TS_NAV.isActive TO SC.set_nav
 ROUTE TS_BACK.isActive TO SC.set_back
 ROUTE TIME.fraction_changed TO OI.set_fraction
-#ROUTE OI.value_changed TO TR.rotation
+ROUTE OI.value_changed TO TR.rotation
+ROUTE TIME.fraction_changed TO M2D.transparency
 
 
 AT 100 { REPLACE BACK.set_bind BY 0 }
