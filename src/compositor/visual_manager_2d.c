@@ -111,7 +111,9 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 	drawctx_reset(visual->cur_context);
 	visual->num_nodes_current_frame ++;
 
-	if (1) {
+	//pre-allocate some contexts
+#if 0
+	{
 		u32 i;
 		DrawableContext *last = visual->cur_context;
 		for (i=0; i<50; i++) {
@@ -122,6 +124,8 @@ DrawableContext *visual_2d_get_drawable_context(GF_VisualManager *visual)
 		}
 		last->next = NULL;
 	}
+#endif
+
 	return visual->cur_context;
 }
 
