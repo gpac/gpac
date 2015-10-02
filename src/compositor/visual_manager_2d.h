@@ -143,5 +143,10 @@ void visual_2d_flush_overlay_areas(GF_VisualManager *visual, GF_TraverseState *t
 /*finally blit the overlays - MUST be called once the main visual has been flushed*/
 void visual_2d_draw_overlays(GF_VisualManager *visual);
 
+
+#ifndef GPAC_DISABLE_3D
+void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_TraverseState *tr_state);
+#endif
+
 #endif	/*_VISUAL_MANAGER_2D_*/
 

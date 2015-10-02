@@ -345,15 +345,20 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	GF_Matrix2D mx2d_backup;
 	GF_Camera *prev_cam;
 	GF_VisualManager *old_visual;
+	GF_Matrix2D *transform;
 	M_Layer3D *l = (M_Layer3D *)node;
 	Layer3DStack *st = (Layer3DStack *) gf_node_get_private(node);
 	GF_TraverseState *tr_state = (GF_TraverseState *) rs;
+	GF_TraverseState a_tr;
+	u32 old_type_3d;
 
 	if (is_destroy) {
 		DestroyLayer3D(node);
 		return;
 	}
 	if (st->unsupported) return;
+
+	memcpy(&a_tr, tr_state, sizeof(GF_TraverseState));
 
 	if (gf_node_dirty_get(node)) {
 
@@ -371,6 +376,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		changed = 1;
 	}
+
+	transform = &tr_state->transform;
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_GET_BOUNDS:
@@ -401,6 +408,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		break;
 	case TRAVERSE_DRAW_2D:
 		if (tr_state->visual->compositor->hybrid_opengl) {
+			transform = &tr_state->ctx->transform;
 			break;
 		}
 		layer3d_draw_2d(node, tr_state);
@@ -437,10 +445,11 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
 	
-		if (tr_state->visual->compositor->hybrid_opengl) 
-			gf_mx2d_apply_rect(&tr_state->transform, &rc);
-		else
+		if (tr_state->visual->compositor->hybrid_opengl) {
+			gf_mx2d_apply_rect(transform, &rc);
+		} else {
 			gf_mx_apply_rect(&prev_cam->modelview, &rc);
+		}
 		
 		if (tr_state->camera->flags & CAM_HAS_VIEWPORT)
 			gf_mx_apply_rect(&prev_cam->viewport, &rc);
@@ -456,12 +465,12 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	/*check bindables*/
 	gf_mx_init(tr_state->model_matrix);
 	l3d_CheckBindables(node, tr_state, st->first);
-	if (prev_cam) gf_mx_copy(tr_state->model_matrix, model_backup);
 
+	if (prev_cam) gf_mx_copy(tr_state->model_matrix, model_backup);
 
 	/*drawing a layer means drawing all subelements as a whole (no depth sorting with parents)*/
 	if ((tr_state->traversing_mode==TRAVERSE_SORT) || (tr_state->traversing_mode==TRAVERSE_DRAW_2D)) {
-		u32 old_type_3d = tr_state->visual->type_3d;
+		u32 trav_mode = tr_state->traversing_mode;
 
 		if (gf_node_dirty_get(node)) changed = 1;
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY|GF_SG_VRML_BINDABLE_DIRTY);
@@ -495,8 +504,14 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
 
+		//this only happens in hybridGL mode
+		if (trav_mode==TRAVERSE_DRAW_2D) {
+			visual_2d_flush_hybgl_canvas(tr_state->visual, NULL, tr_state->ctx, tr_state);
+		}
 
+		old_type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 2;
+
 		visual_3d_clear_all_lights(tr_state->visual);
 
 		cur_lights = tr_state->visual->num_lights;
@@ -525,7 +540,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			visual_3d_remove_last_light(tr_state->visual);
 		}
 
-		tr_state->traversing_mode = TRAVERSE_SORT;
+		tr_state->traversing_mode = trav_mode ;
 		tr_state->visual->type_3d = old_type_3d;
 
 		/*!! we were in a 2D mode, create drawable context!!*/
@@ -573,16 +588,22 @@ layer3d_unchanged_2d:
 
 		layer3d_setup_clip(st, tr_state, prev_cam ? 1 : 0, rc);
 
+		old_type_3d = tr_state->visual->type_3d;
+		tr_state->visual->type_3d = 2;
+
 		if (tr_state->visual->compositor->active_layer==node) {
 			do_pick = (tr_state->visual->compositor->grabbed_sensor || tr_state->visual->compositor->navigation_state) ? 1 : 0;
 		}
 
-		if (!prev_cam) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
+		if (!prev_cam || tr_state->visual->compositor->hybrid_opengl) gf_mx_from_mx2d(&tr_state->model_matrix, &tr_state->transform);
 
 		if (!do_pick && !gf_list_count(tr_state->visual->compositor->sensors))
 			do_pick = gf_sc_pick_in_clipper(tr_state, &st->clip);
 
-		if (!do_pick) goto l3d_exit;
+		if (!do_pick) {
+			tr_state->visual->type_3d = old_type_3d;
+			goto l3d_exit;
+		}
 
 		prev_r = tr_state->ray;
 
@@ -601,6 +622,7 @@ layer3d_unchanged_2d:
 		}
 
 		visual_3d_setup_projection(tr_state, 1);
+
 		in_x = 2 * gf_divfix(start.x, st->visual->camera.width);
 		in_y = 2 * gf_divfix(start.y, st->visual->camera.height);
 
@@ -609,7 +631,10 @@ layer3d_unchanged_2d:
 		res.z = -FIX_ONE;
 		res.q = FIX_ONE;
 		gf_mx_apply_vec_4x4(&st->visual->camera.unprojection, &res);
-		if (!res.q) goto l3d_exit;
+		if (!res.q) {
+			tr_state->visual->type_3d = old_type_3d;
+			goto l3d_exit;
+		}
 		start.x = gf_divfix(res.x, res.q);
 		start.y = gf_divfix(res.y, res.q);
 		start.z = gf_divfix(res.z, res.q);
@@ -619,7 +644,10 @@ layer3d_unchanged_2d:
 		res.z = FIX_ONE;
 		res.q = FIX_ONE;
 		gf_mx_apply_vec_4x4(&st->visual->camera.unprojection, &res);
-		if (!res.q) goto l3d_exit;
+		if (!res.q) {
+			tr_state->visual->type_3d = old_type_3d;
+			goto l3d_exit;
+		}
 		end.x = gf_divfix(res.x, res.q);
 		end.y = gf_divfix(res.y, res.q);
 		end.z = gf_divfix(res.z, res.q);
@@ -630,8 +658,10 @@ layer3d_unchanged_2d:
 		                                      FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
 		                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
-		//group_3d_traverse(node, (GroupingNode *)st, tr_state);
+		group_3d_traverse(node, (GroupingNode *)st, tr_state);
 		tr_state->ray = prev_r;
+
+		tr_state->visual->type_3d = old_type_3d;
 
 		/*store info if navigation allowed - we just override any layer3D picked first since we are picking 2D
 		objects*/
@@ -642,15 +672,17 @@ layer3d_unchanged_2d:
 	}
 
 l3d_exit:
-	tr_state->visual = old_visual;
 
 	/*restore camera*/
 	tr_state->camera = prev_cam;
 	if (prev_cam) {
 		//remember to reload previous projection matrix
 		visual_3d_projection_matrix_modified(tr_state->visual);
-		visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+		if (tr_state->visual == old_visual) {
+			visual_3d_set_viewport(tr_state->visual, tr_state->camera->vp);
+		}
 	}
+	tr_state->visual = old_visual;
 
 	/*restore traversing state*/
 	tr_state->backgrounds = oldb;
