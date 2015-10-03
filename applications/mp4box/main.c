@@ -1812,9 +1812,18 @@ const char *grab_ifce = NULL;
 FILE *logfile = NULL;
 
 u32 mp4box_cleanup(u32 ret_code) {
-	if (mpd_base_urls) gf_free(mpd_base_urls);
-	if (sdp_lines) gf_free(sdp_lines);
-	if (metas) gf_free(metas);
+	if (mpd_base_urls) {
+		gf_free(mpd_base_urls);
+		mpd_base_urls = NULL;
+	}
+	if (sdp_lines) {
+		gf_free(sdp_lines);
+		sdp_lines = NULL;
+	}
+	if (metas) {
+		gf_free(metas);
+		metas = NULL;
+	}
 	if (tracks) {
 		for (i = 0; i<nb_track_act; i++) {
 			if (tracks[i].out_name)
@@ -1827,10 +1836,20 @@ u32 mp4box_cleanup(u32 ret_code) {
 				gf_free(tracks[i].kind_value);
 		}
 		gf_free(tracks);
+		tracks = NULL;
 	}
-	if (tsel_acts) gf_free(tsel_acts);
-	if (brand_add) gf_free(brand_add);
-	if (brand_rem) gf_free(brand_rem);
+	if (tsel_acts) {
+		gf_free(tsel_acts);
+		tsel_acts = NULL;
+	}
+	if (brand_add) {
+		gf_free(brand_add);
+		brand_add = NULL;
+	}
+	if (brand_rem) {
+		gf_free(brand_rem);
+		brand_rem = NULL;
+	}
 	if (dash_inputs) {
 		u32 i, j;
 		for (i = 0;i<nb_dash_inputs;i++) {
