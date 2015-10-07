@@ -264,6 +264,7 @@ void PrintUsage()
             "\t-no-save:       disable saving config file on exit\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
+			"\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
 	        "\n"
 	        "Dumper Options (times is a formated as start-end, with start being sec, h:m:s:f/fps or h:m:s:ms):\n"
 	        "\t-bmp [times]:   dumps given frames to bmp\n"
@@ -1267,7 +1268,12 @@ int main (int argc, char **argv)
         else if (!stricmp(arg, "--no-save")) {
 			no_cfg_save=1;
         }
-		
+        else if (!stricmp(arg, "-ntp-shift")) {
+			s32 shift = atoi(argv[i+1]);
+			i++;
+			gf_net_set_ntp_shift(shift);
+		}
+
 
 		/*arguments only used in non-gui mode*/
 		else if (!gui_mode) {
