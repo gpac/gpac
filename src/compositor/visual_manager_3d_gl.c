@@ -584,6 +584,13 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
 	strcat(defs, szKey);
 	
+#ifdef GPAC_IPHONE
+	sprintf(szKey, "#define GPAC_IPHONE\n");
+	str_size += strlen(szKey);
+	defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
+	strcat(defs, szKey);
+#endif
+	
 	if (flags & GF_GL_HAS_LIGHT) {
 		sprintf(szKey, "#define GF_GL_HAS_LIGHT\n#define LIGHTS_MAX %d\n", GF_MAX_GL_LIGHTS);
 		str_size += strlen(szKey);
@@ -1380,7 +1387,6 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glDepthFunc(GL_LEQUAL);
 #endif
 	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
 
@@ -2014,6 +2020,43 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
+static void *visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh)
+{
+	void *base_address = NULL;
+	if ((compositor->reset_graphics==2) && mesh->vbo) {
+		/*we lost OpenGL context at previous frame, recreate VBO*/
+		mesh->vbo = 0;
+	}
+	/*rebuild VBO for large ojects only (we basically filter quads out)*/
+	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
+		GL_CHECK_ERR
+		glGenBuffers(1, &mesh->vbo);
+		GL_CHECK_ERR
+		if (mesh->vbo) {
+			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+			GL_CHECK_ERR
+			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+			GL_CHECK_ERR
+			mesh->vbo_dirty = 0;
+		}
+	}
+	
+	if (mesh->vbo) {
+		base_address = NULL;
+		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
+		GL_CHECK_ERR
+	} else {
+		base_address = &mesh->vertices[0].pos;
+	}
+	
+	if (mesh->vbo_dirty) {
+		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
+		mesh->vbo_dirty = 0;
+	}
+	return base_address;
+}
+
+
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 static void visual_3d_update_matrices_shaders(GF_TraverseState *tr_state)
@@ -2241,8 +2284,9 @@ static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_Traverse
 	}
 }
 
-static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh, void *vertex_buffer_address)
+static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
+	void *vertex_buffer_address;
 	GF_VisualManager *visual = tr_state->visual;
 	GF_VisualManager *root_visual = visual->compositor->visual;
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
@@ -2284,6 +2328,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	glUseProgram(visual->glsl_program);
 	GL_CHECK_ERR
 
+	
+	vertex_buffer_address = visual_3d_bind_buffer(visual->compositor, mesh);
+	if (!vertex_buffer_address) {
+		glUseProgram(0);
+		return;
+	}
+	
 	if (visual->state_blend_on)
 		glEnable(GL_BLEND);
 
@@ -2434,7 +2485,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 #ifdef MESH_USE_FIXED_NORMAL
 			glVertexAttribPointer(loc_normal_array, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
 #else
-			glVertexAttribPointer(loc_normal_array, 3, GL_BYTE, GL_TRUE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
+			glVertexAttribPointer(loc_normal_array, 3, GL_BYTE, GL_FALSE, sizeof(GF_Vertex),  ((char *)vertex_buffer_address + MESH_NORMAL_OFFSET) );
 #endif
 			glEnableVertexAttribArray(loc_normal_array);
 		}
@@ -2610,72 +2661,46 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 //#endif //GPAC_USE_GLES2
 
+
 static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-	Bool has_col, has_tx, has_norm;
 #ifndef GPAC_USE_GLES2
-	GF_VisualManager *visual = tr_state->visual;
-#endif
 	GF_Compositor *compositor = tr_state->visual->compositor;
+	GF_VisualManager *visual = tr_state->visual;
+	Bool has_col, has_tx, has_norm;
 	void *base_address = NULL;
+
 #if defined(GPAC_FIXED_POINT) && !defined(GPAC_USE_GLES1X)
 	Float *color_array = NULL;
 	Float fix_scale = 1.0f;
 	fix_scale /= FIX_ONE;
 #endif
 
-	has_col = has_tx = has_norm = 0;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
-
-	GL_CHECK_ERR
-
-	if ((compositor->reset_graphics==2) && mesh->vbo) {
-		/*we lost OpenGL context at previous frame, recreate VBO*/
-		mesh->vbo = 0;
-	}
-	/*rebuild VBO for large ojects only (we basically filter quads out)*/
-#ifdef GPAC_USE_GLES2	//TODOk for some reason we lose the compositor->gl_caps.vbo flag in gles2 mode
-	if ((mesh->v_count>4) && !mesh->vbo) {
-#else
-	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
 #endif
-		GL_CHECK_ERR
-			glGenBuffers(1, &mesh->vbo);
-		GL_CHECK_ERR
-			if (mesh->vbo) {
-				glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-				GL_CHECK_ERR
-					glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-				GL_CHECK_ERR
-					mesh->vbo_dirty = 0;
-			}
-		}
 
-	if (mesh->vbo) {
-		base_address = NULL;
-		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-		GL_CHECK_ERR
-	} else {
-		base_address = &mesh->vertices[0].pos;
-	}
-
-	if (mesh->vbo_dirty) {
-		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
-		mesh->vbo_dirty = 0;
-	}
-
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
+	
+	GL_CHECK_ERR
+	
 #ifdef GPAC_USE_GLES2
-	visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
+	visual_3d_draw_mesh_shader_only(tr_state, mesh);
 	return;
 #else
 
 #if !defined(GPAC_ANDROID) && !defined(GPAC_IPHONE) && !defined(GPAC_FIXED_POINT)
 	if (visual->compositor->shader_only_mode) {
-		visual_3d_draw_mesh_shader_only(tr_state, mesh, base_address);
+		visual_3d_draw_mesh_shader_only(tr_state, mesh);
 		return;
 	}
 #endif
 
+	base_address = visual_3d_bind_buffer(compositor, mesh);
+	if (!base_address) {
+		return;
+	}
+
+	has_col = has_tx = has_norm = 0;
+	
 	//set lights before pushing modelview matrix
 	visual_3d_set_lights(visual);
 
@@ -3202,7 +3227,8 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 #endif
 
-	if (tr_state->visual->compositor->draw_bvol) visual_3d_draw_bounds(tr_state, mesh);
+	if (tr_state->visual->compositor->draw_bvol)
+		visual_3d_draw_bounds(tr_state, mesh);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Done drawing mesh %p\n", mesh));
 }

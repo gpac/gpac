@@ -214,10 +214,26 @@ void main()
 	int i;
 	vec2 texc;
 	vec3 yuv, rgb;
-	vec4 rgba, fragColor = vec4(0.0, 0.0, 0.0, 0.0);
+	vec4 rgba, fragColor;
+
+	//clipping
+	for (int i=0;i<gfNumClippers; i++) {
+		if (clipDistance[i]<0.0) {
+			//bug on ipadMini2 and 5s under ios7 that breaks depth buffer!
+			//check if still true with other devices or ios versions
+#ifdef GPAC_IPHONE
+			gl_FragColor = vec4(zero_float);
+			return;
+#else
+			discard;
+#endif
+		}
+	}
 	
 #ifdef GF_GL_HAS_COLOR
 	fragColor = m_color;
+#else
+	fragColor = vec4(zero_float);
 #endif
 
 	if (hasMaterial2D) {
@@ -233,11 +249,6 @@ void main()
 #endif
 	}
 #endif
-
-	//clipping
-	for (int i=0;i<gfNumClippers; i++) {
-		if (clipDistance[i]<0.0) discard;
-	}
 
 #ifdef GF_GL_HAS_LIGHT
 	if (gfNumLights > 0) {
