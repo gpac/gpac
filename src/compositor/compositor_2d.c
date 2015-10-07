@@ -362,44 +362,18 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	visual->compositor->traverse_state->camera = &visual->camera;
 
 
-	glClear(GL_DEPTH_BUFFER_BIT);
 	glViewport(0, 0, compositor->vp_width, compositor->vp_height);
 
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	glLineWidth(1.0f);
-
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-	glDisable(GL_POLYGON_SMOOTH);
-#endif
-
-#if !defined(GPAC_USE_GLES2)
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	glDisable(GL_NORMALIZE);
-
-#ifdef OPENGL_RASTER
-	if (compositor->opengl_raster) {
-		glDisable(GL_LINE_SMOOTH);
-	} else 
-#endif
-		glEnable(GL_LINE_SMOOTH);
-
-#endif
-
-	glDisable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LEQUAL);
-
-	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-
-	visual->camera.width = INT2FIX(compositor->vp_width);
-	visual->camera.height = INT2FIX(compositor->vp_height);
+	visual->camera.vp.x = visual->camera.vp.y = 0;
+	visual->camera.vp.width = visual->camera.width = INT2FIX(compositor->vp_width);
+	visual->camera.vp.height = visual->camera.height = INT2FIX(compositor->vp_height);
 	visual->camera.up.y = FIX_ONE;
 	visual->camera.end_zoom = FIX_ONE;
 	visual->camera.position.z = INT2FIX(1000);
 	visual->camera.flags = CAM_IS_DIRTY;
+
 	camera_update(&visual->camera, NULL, visual->center_coords);
+
 	visual_3d_projection_matrix_modified(visual);
 
 #ifdef OPENGL_RASTER

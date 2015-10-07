@@ -1937,11 +1937,11 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 	compositor->visual_config_time = 0;
 #endif
 	if (compositor->recompute_ar) {
-#ifndef GPAC_DISABLE_LOG
-		u32 time=0;
 #ifndef GPAC_DISABLE_3D
 		u32 prev_type_3d = compositor->visual->type_3d;
 #endif
+#ifndef GPAC_DISABLE_LOG
+		u32 time=0;
 		
 		if (gf_log_tool_level_on(GF_LOG_RTI, GF_LOG_DEBUG)) {
 			time = gf_sys_clock();
@@ -2910,20 +2910,13 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		break;
 
 	case GF_EVENT_MOVE_NOTIF:
-	case GF_EVENT_REFRESH:
-		if (!compositor->frame_draw_type) {
-			/*when refreshing the window in 3D or with overlays we redraw the scene */
-			if (compositor->last_had_overlays
-#ifndef GPAC_DISABLE_3D
-			        || compositor->visual->type_3d
-#endif
-			   ) {
-				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
-			}
-			/*reflush only*/
-			else
-				gf_sc_next_frame_state(compositor, GF_SC_DRAW_FLUSH);
+		if (compositor->last_had_overlays) {
+			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
+		break;
+	case GF_EVENT_REFRESH:
+		/*when refreshing a window with overlays we redraw the scene */
+		gf_sc_next_frame_state(compositor, compositor->last_had_overlays ? GF_SC_DRAW_FRAME : GF_SC_DRAW_FLUSH);
 		break;
 	case GF_EVENT_VIDEO_SETUP:
 	{
