@@ -138,6 +138,12 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			/*draw texture*/
 			visual_2d_texture_path(tr_state->visual, stack->drawable->path, ctx, tr_state);
 		}
+		//a quick hack, if texture not ready return (we don't have direct notification of this through the above functions
+#ifndef GPAC_DISABLE_3D
+		if (tr_state->visual->compositor->hybrid_opengl && !stack->txh.tx_io) 
+			return;
+#endif
+
 		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
 		tr_state->visual->has_modif = 1;
 #ifndef GPAC_DISABLE_3D
@@ -155,9 +161,9 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 #ifndef GPAC_DISABLE_3D
 	if (ctx->flags & CTX_BACKROUND_NOT_LAYER) {
 		if (clear_all && !tr_state->visual->offscreen && tr_state->visual->compositor->hybrid_opengl) {
-			color &= 0x00FFFFFF;
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, color, GF_FALSE);
 			is_offscreen = GF_TRUE;
+			color &= 0x00FFFFFF;
 			//we may need to clear the canvas for immediate mode
 		}
 	} else {

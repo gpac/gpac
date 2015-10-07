@@ -320,6 +320,8 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 #else
 	trans_scale = cam->width/20;
 	key_trans = cam->avatar_size.x/2;
+	//if default VP is quite far from center use larger dz/dy moves
+	if (cam->vp_dist>100) trans_scale *= 10;
 #endif
 
 	if (cam->world_bbox.is_set && (key_trans*5 > cam->world_bbox.radius)) {
