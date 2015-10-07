@@ -221,6 +221,7 @@ void main()
 		if (clipDistance[i]<0.0) {
 			//bug on ipadMini2 and 5s under ios7 that breaks depth buffer!
 			//check if still true with other devices or ios versions
+			//on 6s with ios 9 no issue
 #ifdef GPAC_IPHONE
 			gl_FragColor = vec4(zero_float);
 			return;
