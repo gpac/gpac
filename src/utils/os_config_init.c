@@ -400,9 +400,7 @@ static GF_Config *create_default_config(char *file_path)
 {
 	FILE *f;
 	GF_Config *cfg;
-#ifndef GPAC_IPHONE
 	char *cache_dir;
-#endif
 	char szPath[GF_MAX_PATH];
 	char gui_path[GF_MAX_PATH];
 
@@ -431,10 +429,7 @@ static GF_Config *create_default_config(char *file_path)
 	if (!cfg) return NULL;
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
-
-    /*get default temporary directoy */
-    cache_dir = gf_get_default_cache_directory();
-    
+	
     //get real path where the .gpac dir has been created, and use this as the default path
     //for cache (tmp/ dir of ios app) and last working fir
 #ifdef GPAC_IPHONE
@@ -454,15 +449,18 @@ static GF_Config *create_default_config(char *file_path)
         cache_dir = res;
         if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
         gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
-        cache_dir=NULL;
     }
-#endif
+#else
 
+	/*get default temporary directoy */
+	cache_dir = gf_get_default_cache_directory();
+	
 	if (cache_dir) {
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
 	}
-    
+#endif
+	
 #if defined(GPAC_IPHONE)
     gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
 #elif defined(GPAC_ANDROID)
