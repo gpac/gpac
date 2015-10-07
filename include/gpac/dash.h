@@ -405,6 +405,8 @@ GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 idx, const char *ID
 //gets download rate in bytes per second for the given group
 u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 idx);
 
+void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp);
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

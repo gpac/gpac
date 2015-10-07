@@ -276,6 +276,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_ts) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_ntp_diff_ms) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_net_set_ntp_shift) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_get_utc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_net_parse_date) )
@@ -2091,6 +2093,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_timeshift_buffer_pos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_codec_stat) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_disable_speed_adaptation) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_override_ntp) )
 
 
 #endif

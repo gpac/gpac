@@ -873,6 +873,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_time.media_timestamp = ((GF_M2TS_TemiTimecodeDescriptor*)param)->media_timestamp;
 		com.addon_time.force_reload = ((GF_M2TS_TemiTimecodeDescriptor*)param)->force_reload;
 		com.addon_time.is_paused = ((GF_M2TS_TemiTimecodeDescriptor*)param)->is_paused;
+		com.addon_time.ntp = ((GF_M2TS_TemiTimecodeDescriptor*)param)->ntp;
 		gf_service_command(m2ts->service, &com, GF_OK);
 	}
 	break;

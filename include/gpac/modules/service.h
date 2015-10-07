@@ -562,6 +562,7 @@ typedef struct
 	Bool force_reload;
 	Bool is_paused;
 	Bool is_discontinuity;
+	u64 ntp;
 } GF_AssociatedContentTiming;
 
 /*GF_NET_CHAN_NALU_MODE*/
