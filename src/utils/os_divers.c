@@ -1668,6 +1668,15 @@ s32 gf_gettimeofday(struct timeval *tp, void *tz) {
 	return gettimeofday(tp, tz);
 }
 
+
+static u32 ntp_shift = GF_NTP_SEC_1900_TO_1970;
+
+GF_EXPORT
+void gf_net_set_ntp_shift(s32 shift)
+{
+	ntp_shift = GF_NTP_SEC_1900_TO_1970 + shift;
+}
+
 /*
 		NTP tools
 */
@@ -1677,7 +1686,7 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 	u64 frac_part;
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	*sec = (u32) (now.tv_sec) + GF_NTP_SEC_1900_TO_1970;
+	*sec = (u32) (now.tv_sec) + ntp_shift;
 	frac_part = now.tv_usec * 0xFFFFFFFFULL;
 	frac_part /= 1000000;
 	*frac = (u32) ( frac_part );
