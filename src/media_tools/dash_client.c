@@ -74,7 +74,7 @@ struct __dash_client
 	u32 max_cache_duration, max_width, max_height;
 	u8 max_bit_per_pixel;
 	u32 auto_switch_count;
-	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift;
+	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift, ntp_forced;
 	Bool is_m3u8;
 
 	//set when MPD downloading fails. Will resetup DASH live once MPD is sync again
@@ -436,7 +436,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	}
 
 
-	if (group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
+	if (!group->dash->ntp_forced && group->dash->estimate_utc_drift && !group->dash->utc_drift_estimate && group->dash->mpd_dnload && group->dash->dash_io->get_header_value) {
 		const char *val = group->dash->dash_io->get_header_value(group->dash->dash_io, group->dash->mpd_dnload, "Server-UTC");
 		if (val) {
 			u64 utc;
@@ -5407,7 +5407,7 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range)
 	if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
 		u64 now, availabilityStartTime;
 		availabilityStartTime = dash->mpd->availabilityStartTime + dash->utc_shift;
-		if (dash->estimate_utc_drift) availabilityStartTime += dash->utc_drift_estimate;
+		availabilityStartTime += dash->utc_drift_estimate;
 
 		now = dash->mpd_fetch_time + (gf_sys_clock() - dash->last_update_time) - availabilityStartTime;
 
@@ -5971,6 +5971,19 @@ GF_EXPORT
 void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable)
 {
 	dash->disable_speed_adaptation = disable;
+}
+
+GF_EXPORT
+void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
+{
+	if (server_ntp) {
+		dash->utc_drift_estimate = gf_net_get_ntp_diff_ms(server_ntp);
+		dash->ntp_forced = 1;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Overwriting local NTP "LLU" to given one "LLU"\n", gf_net_get_ntp_ts(), server_ntp));
+	} else {
+		dash->utc_drift_estimate = 0;
+		dash->ntp_forced = 0;
+	}
 }
 
 #endif //GPAC_DISABLE_DASH_CLIENT

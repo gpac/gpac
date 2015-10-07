@@ -515,6 +515,7 @@ typedef struct
 	Bool force_reload;
 	Bool is_paused;
 	Bool is_discontinuity;
+	u64 ntp;
 } GF_M2TS_TemiTimecodeDescriptor;
 
 

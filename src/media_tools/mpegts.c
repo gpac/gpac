@@ -2754,7 +2754,7 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_BitStream *bs = gf_bs_new(pes->temi_tc_desc, pes->temi_tc_desc_len, GF_BITSTREAM_READ);
 	u32 has_timestamp = gf_bs_read_int(bs, 2);
-	/*u32 has_ntp = */gf_bs_read_int(bs, 1);
+	Bool has_ntp = (Bool) gf_bs_read_int(bs, 1);
 	/*u32 has_ptp = */gf_bs_read_int(bs, 1);
 	/*u32 has_timecode = */gf_bs_read_int(bs, 2);
 
@@ -2770,6 +2770,9 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			pes->temi_tc.media_timestamp = gf_bs_read_u64(bs);
 		else
 			pes->temi_tc.media_timestamp = gf_bs_read_u32(bs);
+	}
+	if (has_ntp) {
+		pes->temi_tc.ntp = gf_bs_read_u64(bs);
 	}
 	gf_bs_del(bs);
 	pes->temi_tc_desc_len = 0;
