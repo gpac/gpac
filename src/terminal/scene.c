@@ -2461,6 +2461,14 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		addon->root_od->parentscene->root_od->timeshift_depth = (u32) (1000*tsb);
 		gf_scene_set_timeshift_depth(scene);
 	}
+
+	//and forward ntp if any to underlying service
+	if (addon_time->ntp && addon->root_od && addon->root_od->net_service) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(com));
+		com.addon_time = *addon_time;
+		gf_term_service_command(addon->root_od->net_service, &com);
+	}
 }
 
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
