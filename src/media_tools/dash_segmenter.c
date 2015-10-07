@@ -785,7 +785,6 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 nb_segments_info = 0;
 	u32 protected_track = 0;
 	Double min_seg_dur, max_seg_dur, total_seg_dur, last_seg_dur;
-	Bool audio_only = GF_TRUE;
 	Bool is_bs_switching = GF_FALSE;
 	Bool use_url_template = dash_cfg->use_url_template;
 	const char *seg_rad_name = dash_cfg->seg_rad_name;
@@ -1043,8 +1042,6 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		else if (mtype == GF_ISOM_MEDIA_TEXT || mtype == GF_ISOM_MEDIA_MPEG_SUBT || mtype == GF_ISOM_MEDIA_SUBT) nb_text++;
 		else if (mtype == GF_ISOM_MEDIA_SCENE) nb_scene++;
 		else if (mtype == GF_ISOM_MEDIA_DIMS) nb_scene++;
-
-		if (mtype != GF_ISOM_MEDIA_AUDIO) audio_only = GF_FALSE;
 
 		//setup fragmenters
 		if (! dash_moov_setup) {
@@ -2112,7 +2109,7 @@ restart_fragmentation_pass:
 	if ( strlen(dash_input->representationID) ) fprintf(dash_cfg->mpd, "id=\"%s\"", dash_input->representationID);
 	else fprintf(dash_cfg->mpd, "id=\"%p\"", output);
 
-	fprintf(dash_cfg->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", audio_only ? "audio" : "video", szCodecs);
+	fprintf(dash_cfg->mpd, " mimeType=\"%s/mp4\" codecs=\"%s\"", (!nb_audio && !nb_video) ? "application" : (!nb_video ? "audio" : "video"), szCodecs);
 	if (width && height) {
 		fprintf(dash_cfg->mpd, " width=\"%u\" height=\"%u\"", width, height);
 
