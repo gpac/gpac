@@ -1185,6 +1185,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_SERVICE_CAN_REVERSE_PLAYBACK:
 		return mpdin_dash_can_reverse_playback(mpdin);
 
+	case GF_NET_ASSOCIATED_CONTENT_TIMING:
+		gf_dash_override_ntp(mpdin->dash, com->addon_time.ntp);
+		return GF_OK;
 	default:
 		break;
 	}
