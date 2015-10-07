@@ -342,6 +342,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
 			char *sep = strstr(app_path, "/bin/gcc");
+			if (!sep) sep = strstr(app_path, "/bin/osx");
 			if (sep) {
 				sep[0] = 0;
 				strcat(app_path, "/gui");
