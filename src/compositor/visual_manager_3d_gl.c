@@ -567,6 +567,12 @@ static GF_SHADERID visual_3d_shader_from_source_file(const char *src_path, u32 s
 	return shader;
 }
 
+#ifdef GPAC_IPHONE
+#include <errno.h>
+#include <sys/sysctl.h>
+#endif
+
+
 static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_type, u32 flags){
 
 	FILE *src = gf_fopen(src_path, "rt");
@@ -585,10 +591,20 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	strcat(defs, szKey);
 	
 #ifdef GPAC_IPHONE
-	sprintf(szKey, "#define GPAC_IPHONE\n");
-	str_size += strlen(szKey);
-	defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-	strcat(defs, szKey);
+
+	{
+		char str[256];
+		size_t size = sizeof(str);
+		int ret = sysctlbyname("kern.osversion", str, &size, NULL, 0);
+		
+		//ios7.1.2 has a bug in GLSL discard handling (no output at all to depth buffer !)
+		if (!ret && !stricmp(str, "11D257")) {
+			sprintf(szKey, "#define GPAC_IOS_BUG\n");
+			str_size += strlen(szKey);
+			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
+			strcat(defs, szKey);
+		}
+	}
 #endif
 	
 	if (flags & GF_GL_HAS_LIGHT) {
