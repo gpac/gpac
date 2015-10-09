@@ -1257,7 +1257,7 @@ static GF_Err id3_parse_tag(char *data, u32 length, char **output, u32 *output_s
 			/* parsing a frame */
 			type = (GF_ID3v2FrameType)(((data[pos+3]) + ((data[pos+2]) << 8) + ((data[pos+1]) << 16) + ((data[pos]) << 24)));
 			pos+=4;
-			frame_size = 10 + ((data[pos+3]) + ((data[pos+2]) << 8) + ((data[pos+1]) << 16) + ((data[pos]) << 24));
+			frame_size = 10 + ((data[pos+3] & 0x7f) + ((data[pos+2] & 0x7f) << 7) + ((data[pos+1] & 0x7f) << 14) + ((data[pos] & 0x7f) << 21));
 			pos+=4;
 			//tag_alter_preservation_flag = ((data[pos]>>7 & 0x1) ? GF_TRUE: GF_FALSE);
 			//file_alter_preservation_flag = ((data[pos]>>6 & 0x1) ? GF_TRUE: GF_FALSE);
