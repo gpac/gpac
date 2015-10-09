@@ -759,7 +759,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(0);
 			}
 			curr_playlist = playlist_element_new(
-				TYPE_UNKNOWN,
+				TYPE_PLAYLIST,
 				fullURL,
 				attribs->title,
 				attribs->codecs,
