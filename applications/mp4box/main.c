@@ -1294,13 +1294,13 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				break;
 			case META_ACTION_ADD_ITEM:
 			case META_ACTION_SET_XML:
-			case META_ACTION_DUMP_ITEM:
+			case META_ACTION_DUMP_XML:
 				strcpy(meta->szPath, szSlot);
 				ret = 1;
 				break;
 			case META_ACTION_REM_ITEM:
 			case META_ACTION_SET_PRIMARY_ITEM:
-			case META_ACTION_DUMP_XML:
+			case META_ACTION_DUMP_ITEM:
 				meta->item_id = atoi(szSlot);
 				ret = 1;
 				break;
