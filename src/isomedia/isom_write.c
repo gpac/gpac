@@ -25,6 +25,9 @@
 
 #include <gpac/internal/isomedia_dev.h>
 
+#include <gpac/iso639.h>
+
+
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
 GF_Err CanAccessMovie(GF_ISOFile *movie, u32 Mode)
@@ -242,13 +245,34 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 {
 	GF_Err e;
 	GF_TrackBox *trak;
+
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
+	
+	// Old language-storage processing
+	// if the new code is on 3 chars, we use it
+	// otherwise, we find the associated 3 chars code and use it
 	if (strlen(code) == 3) {
 		memcpy(trak->Media->mediaHeader->packedLanguage, code, sizeof(char)*3);
 	} else {
+		s32 lang_idx;
+		const char *code_3cc;
+		lang_idx = gf_lang_find(code);
+		if (lang_idx == -1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("The given code is not a valid one: %s, using 'und' as 3-letter code\n", code));
+			code_3cc = "und";
+		} else {
+			code_3cc = gf_lang_get_3cc(lang_idx);
+		}
+		memcpy(trak->Media->mediaHeader->packedLanguage, code_3cc, sizeof(char)*3);
+	}
+
+	// New language-storage processing
+	// change the code in the extended language box (if any)
+	// otherwise add an extended language box only if the given code is not 3 chars
+	{
 		u32 i, count;
 		GF_ExtendedLanguageBox *elng;
 		elng = NULL;
@@ -260,17 +284,19 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 				break;
 			}
 		}
-		if (!elng) {
+		if (!elng && (strlen(code) != 3)) {
 			elng = (GF_ExtendedLanguageBox *)elng_New();
 			if (!count) {
 				trak->Media->other_boxes = gf_list_new();
 			}
 			gf_list_add(trak->Media->other_boxes, elng);
 		}
-		if (elng->extended_language) {
-			gf_free(elng->extended_language);
+		if (elng) {
+			if (elng->extended_language) {
+				gf_free(elng->extended_language);
+			}
+			elng->extended_language = gf_strdup(code);
 		}
-		elng->extended_language = gf_strdup(code);
 	}
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
