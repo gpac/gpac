@@ -518,7 +518,7 @@ void PrintImportUsage()
 	        " \":swf-same-app\"      appearance nodes are reused\n"
 	        " \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
 	        "                         * Note: angle \'0\' means no flattening\n"
-			" \":kind=SCHEMA:type\"  sets kind for the track\n"
+			" \":kind=schemeURI:value\"  sets kind for the track\n"
 			" \":txtflags=flags\"    sets display flags (hexa number) of text track\n"
 			" \":txtflags+=flags\"   adds display flags (hexa number) to text track\n"
 			" \":txtflags-=flags\"   removes display flags (hexa number) from text track\n"
@@ -3662,9 +3662,10 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 		}
 		e = EncodeFileChunk(inName, outName ? outName : inName, input_ctx, output_ctx, tmpdir);
-		if (e) fprintf(stderr, "Error encoding chunk file %s\n", gf_error_to_string(e));
-		mp4box_cleanup(0);
-		if (e) return 1;
+		if (e) {
+			fprintf(stderr, "Error encoding chunk file %s\n", gf_error_to_string(e));
+			return mp4box_cleanup(1);
+		}
 		goto exit;
 	}
 #endif
@@ -3882,9 +3883,8 @@ int mp4boxMain(int argc, char **argv)
 		if (file) gf_isom_delete(file);
 		if (del_file)
 			gf_delete_file(inName);
-
-		mp4box_cleanup(0);
-		if (e) return 1;
+		
+		if (e) return mp4box_cleanup(1);
 		goto exit;
 	}
 
@@ -3982,7 +3982,6 @@ int mp4boxMain(int argc, char **argv)
 					convert_file_info(inName, info_track_id);
 #endif
 				}
-				mp4box_cleanup(0);
 				goto exit;
 			}
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
@@ -4041,7 +4040,6 @@ int mp4boxMain(int argc, char **argv)
 
 		e = gf_media_export(&mdump);
 		if (e) goto err_exit;
-		mp4box_cleanup(0);
 		goto exit;
 	}
 	if (!open_edit && !gf_isom_probe_file(inName) && track_dump_type) {
@@ -4067,7 +4065,6 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_media_export(&mdump);
 			if (e) goto err_exit;
 		}
-		mp4box_cleanup(0);
 		goto exit;
 	}
 
@@ -4273,7 +4270,6 @@ int mp4boxMain(int argc, char **argv)
 	}
 	if (!open_edit && !needSave) {
 		if (file) gf_isom_delete(file);
-		mp4box_cleanup(0);
 		goto exit;
 	}
 
