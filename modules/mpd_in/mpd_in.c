@@ -89,15 +89,24 @@ const char * MPD_MPD_EXT = "3gm mpd";
 const char * MPD_M3U8_DESC = "Apple HLS Streaming";
 const char * MPD_M3U8_EXT = "m3u8 m3u";
 
+const char * MPD_SMOOTH_DESC = "Apple HLS Streaming";
+const char * MPD_SMOOTH_EXT = "ism";
+
 static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 {
-	u32 i, c;
+	u32 i, c=0;
 	for (i=0; GF_DASH_MPD_MIME_TYPES[i]; i++)
 		gf_service_register_mime (plug, GF_DASH_MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC);
-	c = i;
+	c += i;
+
 	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++)
 		gf_service_register_mime(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC);
-	return c+i;
+	c += i;
+
+	for (i=0; GF_DASH_SMOOTH_MIME_TYPES[i]; i++)
+		gf_service_register_mime(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_M3U8_DESC);
+	c += i;
+	return c;
 }
 
 Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
@@ -114,6 +123,11 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++) {
 		if (gf_service_check_mime_register(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC, sExt))
+			return GF_TRUE;
+	}
+
+	for (i=0; GF_DASH_SMOOTH_MIME_TYPES[i]; i++) {
+		if (gf_service_check_mime_register(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_SMOOTH_DESC, sExt))
 			return GF_TRUE;
 	}
 

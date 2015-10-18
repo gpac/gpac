@@ -63,6 +63,11 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
+		} else if (mov->is_smooth) {
+			trak = gf_list_get(mov->moov->trackList, 0);
+			traf->trex = (GF_TrackExtendsBox*)gf_list_get(mov->moov->mvex->TrackExList, 0);
+			assert(traf->trex);
+			traf->trex->trackID = trak->Header->trackID = traf->tfhd->trackID;
 		} else {
 			trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
 			j=0;

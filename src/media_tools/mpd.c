@@ -2482,6 +2482,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	u32 start_number = 1;
 	u32 timescale=0;
+	u64 duration=0;
 	char *url;
 	char *url_to_solve, *solved_template, *first_sep, *media_url;
 	char *init_template, *index_template;
@@ -2668,6 +2669,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (period->segment_template->start_number != (u32) -1) start_number = period->segment_template->start_number;
 		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
 		if (!timescale && period->segment_template->timescale) timescale = period->segment_template->timescale;
+		if (!duration && period->segment_template->duration) duration = period->segment_template->duration;
 	}
 	if (set->segment_template) {
 		if (set->segment_template->initialization) init_template = set->segment_template->initialization;
@@ -2676,6 +2678,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (set->segment_template->start_number != (u32) -1) start_number = set->segment_template->start_number;
 		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
 		if (!timescale && set->segment_template->timescale) timescale = set->segment_template->timescale;
+		if (!duration && set->segment_template->duration) duration = set->segment_template->duration;
 	}
 	if (rep->segment_template) {
 		if (rep->segment_template->initialization) init_template = rep->segment_template->initialization;
@@ -2684,6 +2687,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (rep->segment_template->start_number != (u32) -1) start_number = rep->segment_template->start_number;
 		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
 		if (!timescale && rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+		if (!duration&& rep->segment_template->duration) duration = rep->segment_template->duration;
 	}
 
 	/*return segment duration in all cases*/
@@ -2832,6 +2836,12 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 					strcat(solved_template, szFormat);
 					break;
 				}
+			} else if (duration) {
+				u64 time = item_index * duration;
+				szPrintFormat[strlen(szPrintFormat)-1] = 0;
+				strcat(szPrintFormat, &LLD[1]);
+				sprintf(szFormat, szPrintFormat, time);
+				strcat(solved_template, szFormat);
 			}
 		}
 		else {
@@ -3161,6 +3171,258 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	if (e)
 		return e;
 
+	return GF_OK;
+}
+
+
+/*
+	smooth streaming 2.1 support
+
+	this is still very basic - we miss support for:
+	* live streams
+	* sparse stream
+	* Custom Attributes in Url pattern
+
+	The smooth maifest is transformed into an MPD with 
+		StreamIndex <=> AdaptationSet
+		Url Template <=> SegmentTemplate.media at adaptation set level
+		QualityLevel <=> Representation
+		Codecs info at quality level <=> SegmentTemplate.initialisation at representation level using internal "isobmff:// ..." scheme
+		chunks <=> Segment Timeline at adaptation set level
+*/
+
+static GF_Err smooth_parse_chunk(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
+{
+	u32 i;
+	GF_MPD_SegmentTimelineEntry *chunk;
+	GF_XMLAttribute *att;
+
+	GF_SAFEALLOC(chunk, GF_MPD_SegmentTimelineEntry);
+	if (!chunk) return GF_OUT_OF_MEM;
+	gf_list_add(container, chunk);
+	i = 0;
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "n")) {}
+		else if (!strcmp(att->name, "d")) chunk->duration = atoi(att->value);
+		else if (!strcmp(att->name, "t")) chunk->start_time = atoi(att->value);
+	}
+	return GF_OK;
+}
+
+static GF_Err smooth_replace_string(char *src_str, char *str_match, char *str_replace, char **output)
+{
+	u32 len;
+	char c, *res, *sep = strstr(src_str, str_match);
+	if (!sep) {
+		res = gf_strdup(src_str);
+		if (*output) gf_free(*output);
+		*output = res;
+		return GF_OK;
+	}
+
+	c = sep[0];
+	sep[0] = 0;
+	len = (u32) ( strlen(src_str) + strlen(str_replace) + strlen(sep+strlen(str_match)) + 1 );
+	res = gf_malloc(sizeof(char) * len);
+	strcpy(res, src_str);
+	strcat(res, str_replace);
+	strcat(res, sep+strlen(str_match));
+	sep[0] = c;
+
+	if (*output) gf_free(*output);
+	*output = res;
+	return GF_OK;
+}
+
+static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XMLNode *root, u32 timescale)
+{
+	u32 i;
+	Bool is_audio = 0;
+	GF_MPD_Representation *rep;
+	GF_XMLAttribute *att;
+	GF_Err e;
+	char szISOBMFFInit[2048];
+
+	GF_SAFEALLOC(rep, GF_MPD_Representation);
+	if (!rep) return GF_OUT_OF_MEM;
+	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
+	rep->base_URLs = gf_list_new();
+	rep->sub_representations = gf_list_new();
+	e = gf_list_add(container, rep);
+	if (e) return e;
+
+	strcpy(szISOBMFFInit, "isobmff://");
+
+
+#define ISBMFFI_ADD_KEYWORD(_name, _value) \
+	if (_value) {\
+		strcat(szISOBMFFInit, _name);\
+		strcat(szISOBMFFInit, "=");\
+		strcat(szISOBMFFInit, _value);\
+		strcat(szISOBMFFInit, " ");\
+	}
+
+
+	i = 0;
+	while ( (att = gf_list_enum(root->attributes, &i)) ) {
+		if (!strcmp(att->name, "Index")) rep->id = gf_strdup(att->value);
+		else if (!strcmp(att->name, "Bitrate")) rep->bandwidth = atoi(att->value);
+		else if (!strcmp(att->name, "MaxWidth")) {
+			rep->width = atoi(att->value);
+			ISBMFFI_ADD_KEYWORD("w", att->value)
+		}
+		else if (!strcmp(att->name, "MaxHeight")) {
+			rep->height = atoi(att->value);
+			ISBMFFI_ADD_KEYWORD("h", att->value)
+		}
+		else if (!strcmp(att->name, "FourCC")) {
+			ISBMFFI_ADD_KEYWORD("4cc", att->value)
+		}
+		else if (!strcmp(att->name, "CodecPrivateData")) {
+			ISBMFFI_ADD_KEYWORD("init", att->value)
+		}
+		else if (!strcmp(att->name, "NALUnitLengthField")) {
+			ISBMFFI_ADD_KEYWORD("nal", att->value)
+		}
+		else if (!strcmp(att->name, "BitsPerSample")) {
+			ISBMFFI_ADD_KEYWORD("bps", att->value)
+			is_audio = 1;
+		}
+		else if (!strcmp(att->name, "AudioTag")) {
+			ISBMFFI_ADD_KEYWORD("atag", att->value)
+			is_audio = 1;
+		}
+		else if (!strcmp(att->name, "Channels")) {
+			ISBMFFI_ADD_KEYWORD("ch", att->value)
+			is_audio = 1;
+		}
+		else if (!strcmp(att->name, "SamplingRate")) {
+			ISBMFFI_ADD_KEYWORD("srate", att->value)
+			is_audio = 1;
+		}
+	}
+	if (timescale != 1000000) {
+		char szTS[20];
+		sprintf(szTS, "%d", timescale);
+		ISBMFFI_ADD_KEYWORD("scale", szTS)
+	}
+	//create a url for the IS to be reconstructed
+	rep->mime_type = gf_strdup(is_audio ? "audio/mp4" : "video/mp4");
+	GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
+	rep->segment_template->initialization = gf_strdup(szISOBMFFInit);
+	return GF_OK;
+}
+
+static GF_Err smooth_parse_stream_index(GF_MPD *mpd, GF_List *container, GF_XMLNode *root, u32 timescale)
+{
+	u32 i;
+	GF_MPD_AdaptationSet *set;
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+
+	GF_SAFEALLOC(set, GF_MPD_AdaptationSet);
+	if (!set) return GF_OUT_OF_MEM;
+	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)set);
+
+	gf_list_add(container, set);
+
+	set->accessibility = gf_list_new();
+	set->role = gf_list_new();
+	set->rating = gf_list_new();
+	set->viewpoint = gf_list_new();
+	set->content_component = gf_list_new();
+	set->base_URLs = gf_list_new();
+	set->representations = gf_list_new();
+	set->segment_alignment = GF_TRUE;
+	/*assign default ID and group*/
+	set->group = -1;
+
+	i=0;
+	while ((att = gf_list_enum(root->attributes, &i))) {
+		if (!strcmp(att->name, "Type")) {}
+		else if (!strcmp(att->name, "Name")) {}
+		else if (!strcmp(att->name, "Chunks")) {} 
+		else if (!strcmp(att->name, "MaxWidth")) set->max_width = atoi(att->value);
+		else if (!strcmp(att->name, "MaxHeight")) set->max_height = atoi(att->value);
+		else if (!strcmp(att->name, "Url")) {
+			char *template_url=NULL;
+			smooth_replace_string(att->value, "{bitrate}", "$Bandwidth$", &template_url);
+			smooth_replace_string(template_url, "{Bitrate}", "$Bandwidth$", &template_url);
+			smooth_replace_string(template_url, "{start time}", "$Time$", &template_url);
+			smooth_replace_string(template_url, "{start_time}", "$Time$", &template_url);
+			//TODO handle track substitution and custom attrib
+
+			GF_SAFEALLOC(set->segment_template, GF_MPD_SegmentTemplate);
+			if (!set->segment_template) return GF_OUT_OF_MEM;
+			set->segment_template->media = template_url;
+			set->segment_template->timescale = timescale;
+			GF_SAFEALLOC(set->segment_template->segment_timeline, GF_MPD_SegmentTimeline);
+			set->segment_template->segment_timeline->entries = gf_list_new();
+		}		
+	}
+
+	i = 0;
+	while ( ( child = gf_list_enum(root->content, &i )) ) {
+		if (!strcmp(child->name, "QualityLevel")) {
+			smooth_parse_quality_level(mpd, set->representations, child, timescale);
+		}
+		if (!strcmp(child->name, "c")) {
+			smooth_parse_chunk(mpd, set->segment_template->segment_timeline->entries, child);
+		}
+	}
+	return GF_OK;
+}
+
+
+GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)
+{
+	GF_Err e;
+	u32 i, timescale;
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+	GF_MPD_Period *period;
+
+	if (!root || !mpd) return GF_BAD_PARAM;
+
+	assert(!mpd->periods);
+	mpd->periods = gf_list_new();
+	mpd->program_infos = gf_list_new();
+	mpd->base_URLs = gf_list_new();
+	mpd->locations = gf_list_new();
+	mpd->metrics = gf_list_new();
+
+	/*setup some defaults*/
+	mpd->type = GF_MPD_TYPE_STATIC;
+	mpd->time_shift_buffer_depth = (u32) -1; /*infinite by default*/
+	mpd->xml_namespace = NULL;
+
+
+	timescale = 1000000;
+	i=0;
+	while ((att = gf_list_enum(root->attributes, &i))) {
+		if (!strcmp(att->name, "TimeScale")) timescale  =atoi(att->value);
+		else if (!strcmp(att->name, "Duration")) mpd->media_presentation_duration = atoi(att->value);
+		else if (!strcmp(att->name, "IsLive") && stricmp(att->value, "true") )  mpd->type = GF_MPD_TYPE_DYNAMIC;
+		else if (!strcmp(att->name, "LookaheadCount")) {}
+		else if (!strcmp(att->name, "DVRWindowLength")) mpd->time_shift_buffer_depth = atoi(att->value);
+	}
+	mpd->media_presentation_duration = mpd->media_presentation_duration * 1000 / timescale;
+	mpd->time_shift_buffer_depth = mpd->time_shift_buffer_depth * 1000 / timescale;
+
+
+	GF_SAFEALLOC(period, GF_MPD_Period);
+	if (!period) return GF_OUT_OF_MEM;
+	gf_list_add(mpd->periods, period);
+	period->adaptation_sets = gf_list_new();
+	if (!period->adaptation_sets) return GF_OUT_OF_MEM;
+
+	i = 0;
+	while ( ( child = gf_list_enum(root->content, &i )) ) {
+		if (!strcmp(child->name, "StreamIndex")) {
+			e = smooth_parse_stream_index(mpd, period->adaptation_sets, child, timescale);
+			if (e) return e;
+		}
+	}
 	return GF_OK;
 }
 

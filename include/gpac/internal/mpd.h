@@ -416,6 +416,8 @@ void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
 void gf_mpd_getter_del_session(GF_FileDownload *getter);
 
+GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
+
 
 /*get the number of base URLs for the given representation. This cumuluates all base URLs at MPD, period, AdaptationSet and Representation levels*/
 u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep);
