@@ -1937,6 +1937,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_setup))

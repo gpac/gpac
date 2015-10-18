@@ -399,6 +399,7 @@ struct _gf_file_get
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter);
 
+GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
 
 
 typedef enum
