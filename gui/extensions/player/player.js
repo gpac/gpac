@@ -41,8 +41,8 @@ extension = {
     show_stats_init: 0,
     last_hit_x: 0,
     last_hit_y: 0,
-	def_width: 500,
-	def_height: 260,
+	def_width: 600,
+	def_height: 600,
     services: [],
     channels_wnd: null,
 	medialist_wnd: null,
@@ -872,7 +872,7 @@ extension = {
         }
 
         wnd.on_display_size = function (w, h) {
-            if (!gpac.fullscreen) {
+			if (!gpac.fullscreen) {
                 if (w < this.extension.def_width) {
                     gpac.set_size(this.extension.def_width, h);
                     return;
