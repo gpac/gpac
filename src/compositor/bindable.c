@@ -306,20 +306,32 @@ void BindableStackDelete(GF_List *stack)
 }
 
 
+//technically this code is corrrect however we never have background deletion except at scene changes
+//keeping the code may un-bind the background of the new scene if the desctruction happens
+//after loading the new scene, as is th case with the GUI
+#define REBIND_AT_DESTROY 0
+
 void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 {
+#if REBIND_AT_DESTROY
 	Bool is_bound = Bindable_GetIsBound(bindable);
+#endif
 	Bindable_SetIsBound(bindable, GF_FALSE);
 
 	while (gf_list_count(stack_list)) {
+#if REBIND_AT_DESTROY
 		GF_Node *stack_top;
+#endif
 		GF_List *stack = (GF_List*)gf_list_get(stack_list, 0);
 		gf_list_rem(stack_list, 0);
 		gf_list_del_item(stack, bindable);
+#if REBIND_AT_DESTROY
 		if (is_bound) {
 			stack_top = (GF_Node*)gf_list_get(stack, 0);
 			if (stack_top) Bindable_SetSetBind(stack_top, GF_TRUE);
 		}
+#endif
+		
 	}
 }
 
