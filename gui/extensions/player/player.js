@@ -1497,7 +1497,6 @@ extension = {
 				else if (m.type == 'Text') nb_subs++;
 			}
 		}
-		gwlog(l_err, 'video ' + nb_audio);
 		if ((nb_video > 1) || (nb_audio > 1) || (nb_subs > 1)) {
 			this.controler.media_list.show();
 		} else {
