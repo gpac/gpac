@@ -363,6 +363,7 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
+		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; settings = {ASSET_TAGS = (); }; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -909,6 +910,7 @@
 		71F2A45412830B1400C384DE /* libjs.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libjs.a; path = ../../extra_lib/lib/iOS/libjs.a; sourceTree = SOURCE_ROOT; };
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
+		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1851,6 +1853,7 @@
 		92B69DB11A091CFC004E74AA /* extensions */ = {
 			isa = PBXGroup;
 			children = (
+				9201D1101BD3FE11005E326A /* bifs_tests */,
 				92B69DB21A091CFC004E74AA /* H2B2VS */,
 				92B69DB61A091CFC004E74AA /* player */,
 				92B69DBD1A091CFC004E74AA /* widget_manager */,
@@ -2163,6 +2166,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9201D1111BD3FE11005E326A /* bifs_tests in Resources */,
 				92C7F19A1AA8B48E00BA5B4C /* gui in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
 				929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */,
