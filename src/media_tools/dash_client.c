@@ -79,7 +79,7 @@ struct __dash_client
 	u8 max_bit_per_pixel;
 	u32 auto_switch_count;
 	Bool keep_files, disable_switching, allow_local_mpd_update, enable_buffering, estimate_utc_drift, ntp_forced;
-	Bool is_m3u8;
+	Bool is_m3u8, is_smooth;
 
 	//set when MPD downloading fails. Will resetup DASH live once MPD is sync again
 	Bool in_error;
@@ -852,6 +852,21 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 
 	for (i = 0 ; GF_DASH_M3U8_MIME_TYPES[i] ; i++) {
 		if ( !stricmp(mime, GF_DASH_M3U8_MIME_TYPES[i]))
+			return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+static Bool gf_dash_is_smooth_mime(const char *url, const char * mime) 
+{
+	u32 i;
+	if (!url || !mime)
+		return GF_FALSE;
+	if (strstr(url, ".mpd") || strstr(url, ".MPD"))
+		return GF_FALSE;
+
+	for (i = 0 ; GF_DASH_SMOOTH_MIME_TYPES[i] ; i++) {
+		if ( !stricmp(mime, GF_DASH_SMOOTH_MIME_TYPES[i]))
 			return GF_TRUE;
 	}
 	return GF_FALSE;
@@ -2908,7 +2923,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->dont_delete_first_segment = 1;
 	}
 
-	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7) || !strnicmp(base_init_url, "views://", 8)) {
+	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7) || !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "isobmff://", 10)) {
 		//if file-based, check if file exists, if not switch base URL
 		if ( strnicmp(base_init_url, "gmem://", 7)) {
 			FILE *ftest = gf_fopen(base_init_url, "rb");
@@ -3764,9 +3779,58 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 	char *index_url = NULL;
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
 
-	if (rep->segment_template || group->adaptation_set->segment_template || group->period->segment_template) return GF_OK;
-	if (rep->segment_list || group->adaptation_set->segment_list || group->period->segment_list) return GF_OK;
-
+	if (!rep->segment_base && !group->adaptation_set->segment_base && !group->period->segment_base) {
+		if (rep->segment_template || group->adaptation_set->segment_template || group->period->segment_template) return GF_OK;
+		if (rep->segment_list || group->adaptation_set->segment_list || group->period->segment_list) return GF_OK;
+	} else {
+		char *profile = rep->profiles;
+		if (!profile) profile = group->adaptation_set->profiles;
+		if (!profile) profile = group->dash->mpd->profiles;
+		
+		//if on-demand cleanup all segment templates and segment list if we have base URLs
+		if (profile && strstr(profile, "on-demand")) {
+			u32 nb_rem=0;
+			if (rep->segment_template) {
+				nb_rem++;
+				gf_mpd_segment_template_free(rep->segment_template);
+				rep->segment_template = NULL;
+			}
+			if (group->adaptation_set->segment_template) {
+				nb_rem++;
+				gf_mpd_segment_template_free(group->adaptation_set->segment_template);
+				group->adaptation_set->segment_template = NULL;
+			}
+			
+			if (group->period->segment_template) {
+				nb_rem++;
+				gf_mpd_segment_template_free(group->period->segment_template);
+				group->period->segment_template = NULL;
+			}
+			if (nb_rem) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] SegmentTemplate present for on-demand with SegmentBase present - skipping SegmentTemplate\n"));
+			}
+			nb_rem=0;
+			if (rep->segment_list) {
+				nb_rem++;
+				gf_mpd_segment_template_free(rep->segment_list);
+				rep->segment_list = NULL;
+			}
+			if (group->adaptation_set->segment_list) {
+				nb_rem++;
+				gf_mpd_segment_template_free(group->adaptation_set->segment_list);
+				group->adaptation_set->segment_list = NULL;
+			}
+			if (group->period->segment_list) {
+				nb_rem++;
+				gf_mpd_segment_template_free(group->period->segment_list);
+				group->period->segment_list = NULL;
+			}
+			if (nb_rem) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] SegmentList present for on-demand with SegmentBase present - skipping SegmentList\n"));
+			}
+		}
+	}
+	
 	/*OK we are in single-file mode, download all required indexes & co*/
 	for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
 		char *sidx_file = NULL;
@@ -5865,6 +5929,8 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
 		if (gf_dash_is_m3u8_mime(reloc_url, mime) || strstr(reloc_url, ".m3u8") || strstr(reloc_url, ".M3U8")) {
 			dash->is_m3u8 = 1;
+		} else if (gf_dash_is_smooth_mime(reloc_url, mime)) {
+			dash->is_smooth = 1;
 		} else if (!gf_dash_is_dash_mime(mime) && !strstr(reloc_url, ".mpd") && !strstr(reloc_url, ".MPD")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] mime '%s' for '%s' should be m3u8 or mpd\n", mime, reloc_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
@@ -5937,7 +6003,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE);
 		}
 	} else {
-		if (!gf_dash_check_mpd_root_type(local_url)) {
+		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: wrong file type %s\n", local_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 			dash->mpd_dnload = NULL;
@@ -5960,12 +6026,9 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->mpd_dnload = NULL;
 			return GF_URL_ERROR;
 		}
-		if (dash->mpd)
-			gf_mpd_del(dash->mpd);
 
-		dash->mpd = gf_mpd_new();
-		if (!dash->mpd) {
-			e = GF_OUT_OF_MEM;
+		if (dash->is_smooth) {
+			e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
 		} else {
 			e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
 		}
