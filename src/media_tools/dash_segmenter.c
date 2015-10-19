@@ -2168,7 +2168,7 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
 
 	/* Write content protection element in representation */
-	if (protected_track) {
+	if (protected_track && !dash_cfg->content_protection_in_adaptation_set) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
 	}
 
