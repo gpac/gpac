@@ -1765,9 +1765,11 @@ retry_cache:
 	}
 
 	dm->allow_offline_cache = GF_FALSE;
-	opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
-	if (opt && !strcmp(opt, "yes") ) 
-		dm->allow_offline_cache = GF_TRUE;
+	if (cfg) {
+		opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
+		if (opt && !strcmp(opt, "yes") ) 
+			dm->allow_offline_cache = GF_TRUE;
+	}
 
 	dm->head_timeout = 5000;
 	if (cfg) {
