@@ -32,6 +32,7 @@
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
+#include <gpac/network.h>
 #include <time.h>
 
 /*ISO 639 languages*/
