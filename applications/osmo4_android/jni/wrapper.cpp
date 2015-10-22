@@ -492,6 +492,21 @@ displayInAndroidlogs:
 		case GF_LOG_MUTEX:
 			tag="GF_LOG_MUTEX";
 			break;
+		case GF_LOG_CONDITION:
+			tag="GF_LOG_CONDITION";
+			break;
+		case GF_LOG_DASH:
+			tag="GF_LOG_DASH";
+			break;
+		case GF_LOG_CONSOLE:
+			tag="GF_LOG_CONSOLE";
+			break;
+		case GF_LOG_APP:
+			tag="GF_LOG_APP";
+			break;
+		case GF_LOG_SCHEDULER:
+			tag="GF_LOG_SCHEDULER";
+			break;
 		default:
 			snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
 			tag = unknTag;
