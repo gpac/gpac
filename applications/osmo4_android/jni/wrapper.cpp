@@ -690,50 +690,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	//load config file
 	LOGI("Loading User Config %s...", "GPAC.cfg");
-	m_user.config = gf_cfg_force_new(cfg_dir, "GPAC.cfg");
+	m_user.config = gf_cfg_init(NULL, NULL);
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
-
-	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	if (!opt) {
-		FILE * fstart;
-		char msg[256];
-		LOGI("First launch, initializing new Config %s...", "GPAC.cfg");
-		/*hardcode module directory*/
-		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
-		/*startup file*/
-		snprintf(msg, 256, "%sgui.bt", gui_dir);
-		fstart = gf_fopen(msg, "r");
-		if (fstart) {
-			gf_fclose(fstart);
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
-		} else {
-			gf_cfg_set_key(m_user.config, "General", "#StartupFile", msg);
-		}
-		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
-		/*setup UDP traffic autodetect*/
-		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-		gf_cfg_set_key(m_user.config, "Compositor", "TextureTextMode", "Default");
-		//gf_cfg_set_key(m_user.config, "Compositor", "FrameRate", "30");
-		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
-		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
-		//Storage directory
-		if (!gf_cfg_get_key(m_user.config, "General", "StorageDirectory")) {
-			snprintf(msg, 256, "%sStorage", cfg_dir);
-			if (!gf_dir_exists(msg)) gf_mkdir(msg);
-			gf_cfg_set_key(m_user.config, "General", "StorageDirectory", msg);
-		}
-	}
-	/* All of this has to be done for every instance */
-	gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", modules_dir ? modules_dir : GPAC_MODULES_DIR);
-	gf_cfg_set_key(m_user.config, "General", "CacheDirectory", cache_dir ? cache_dir : GPAC_CACHE_DIR);
-	gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", cfg_dir);
-	gf_cfg_set_key(m_user.config, "General", "DeviceType", "Android");
-	gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
-	gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
-	gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	LOGI("loading modules in directory %s...", opt);

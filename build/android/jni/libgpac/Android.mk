@@ -157,6 +157,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/color.c \
 	../../../../src/utils/token.c \
 	../../../../src/utils/configfile.c \
+	../../../../src/utils/os_config_init.c \
 	../../../../src/utils/utf.c \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/cache.c \

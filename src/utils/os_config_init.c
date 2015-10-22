@@ -58,6 +58,9 @@
 #ifdef GPAC_CONFIG_LINUX
 #include <unistd.h>
 #endif
+#ifdef GPAC_ANDROID
+#define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
+#endif
 #define CFG_FILE_NAME	"GPAC.cfg"
 #define TEST_MODULE		"gm_dummy_in.so"
 #endif
@@ -213,16 +216,29 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #endif
 }
 
-/*FIXME - android initialization is a mess right now*/
+/*FIXME - the paths defined here MUST be coherent with the paths defined in applications/osmo4_android/src/com/gpac/Osmo4/GpacConfig.java'*/
 #elif defined(GPAC_ANDROID)
 
 static Bool get_default_install_path(char *file_path, u32 path_type)
 {
-	if (path_type==GF_PATH_APP) strcpy(file_path, "");
-	else if (path_type==GF_PATH_CFG) strcpy(file_path, "");
-	else if (path_type==GF_PATH_GUI) strcpy(file_path, "");
-	else if (path_type==GF_PATH_MODULES) strcpy(file_path, "");
-	return 1;
+	if (path_type==GF_PATH_APP) {
+		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
+		return 1;
+	} else if (path_type==GF_PATH_CFG) {
+		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
+		return 1;
+	} else if (path_type==GF_PATH_GUI) {
+		if (!get_default_install_path(file_path, GF_PATH_APP))
+			return 0;
+		strcat(file_path, "/gui");
+		return 1;
+	} else if (path_type==GF_PATH_MODULES) {
+		if (!get_default_install_path(file_path, GF_PATH_APP))
+			return 0;
+		strcat(file_path, "/lib");
+		return 1;
+	}
+	return 0;
 }
 
 
@@ -458,8 +474,13 @@ static GF_Config *create_default_config(char *file_path)
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
 
-#ifdef GPAC_IPHONE
+#if defined(GPAC_IPHONE)
 	gf_ios_refresh_cache_directory(cfg, file_path);
+#elif defined(GPAC_ANDROID)
+	if (get_default_install_path(szPath, GF_PATH_APP)) {
+		strcat(szPath, "/cache");
+		gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
+	}
 #else
     /*get default temporary directoy */
     cache_dir = gf_get_default_cache_directory();
@@ -504,6 +525,8 @@ static GF_Config *create_default_config(char *file_path)
 	strcpy(szPath, "/Library/Fonts");
 #endif
 
+#elif defined(GPAC_ANDROID)
+	strcpy(szPath, "/system/fonts/");
 #else
 	strcpy(szPath, "/usr/share/fonts/truetype/");
 #endif
@@ -522,6 +545,9 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "DirectX Video Output");
 #elif defined(__DARWIN__) || defined(__APPLE__)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
+#elif defined(GPAC_ANDROID)
+	gf_cfg_set_key(cfg, "Video", "DriverName", "Android Video Output");
+gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
 #else
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
@@ -539,7 +565,7 @@ static GF_Config *create_default_config(char *file_path)
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
-		char *sep = strrchr(szPath, '\\');
+		char *sep = strrchr(szPath, GF_PATH_SEPARATOR);
 		if (!sep) sep = strrchr(szPath, GF_PATH_SEPARATOR);
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
 		f = gf_fopen(gui_path, "rt");
