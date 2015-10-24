@@ -3458,12 +3458,22 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "HTTP Downloader disabled in this build\n");
 			return mp4box_cleanup(1);
 #endif
+
+			if (outName) strcpy(outfile, outName);
+			else {
+				const char *sep = strrchr(inName, '/');
+				sprintf(outfile, "%s.mpd", sep+1);
+			}
+		} else {
+			if (outName) strcpy(outfile, outName);
+			else sprintf(outfile, "%s.mpd", inName);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
+		
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
 		if (mpd_base_url) gf_free(mpd_base_url);
 
 		if (remote) {
-			//gf_delete_file("tmp_main.m3u8");
+			gf_delete_file("tmp_main.m3u8");
 		}
 		if (e != GF_OK) {
 			fprintf(stderr, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outName, gf_error_to_string(e));
