@@ -19,6 +19,7 @@ l_deb = 4;
 /*default log level*/
 gw_log_level = l_inf;
 
+GF_JS_EVENT_PLAYBACK = 20000;
 
 function gw_new_timer(progressive) {
     var obj = new SFNode('TimeSensor');

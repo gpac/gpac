@@ -2659,7 +2659,12 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		orig_file->moov->trackList = tracks;
 		iods = (GF_Box*)orig_file->moov->iods;
 		orig_file->moov->iods = NULL;
-		gf_isom_clone_box((GF_Box *)orig_file->moov, (GF_Box **)&dest_file->moov);
+		e = gf_isom_clone_box((GF_Box *)orig_file->moov, (GF_Box **)&dest_file->moov);
+		if (e) {
+			gf_list_del(tracks);
+			orig_file->moov->trackList = old_tracks;
+			return e;
+		}
 		orig_file->moov->trackList = old_tracks;
 		gf_list_del(tracks);
 		orig_file->moov->iods = (GF_ObjectDescriptorBox*)iods;

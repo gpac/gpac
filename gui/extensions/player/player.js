@@ -1197,7 +1197,12 @@ extension = {
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
             this.root_odm = null;
-            return;
+
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = true;
+			gwlib_filter_event(e);
+			return;
         }
         if (state == this.GF_STATE_PAUSE) {
             if (this.state == this.GF_STATE_STOP) return;
@@ -1205,7 +1210,12 @@ extension = {
             this.state = this.GF_STATE_PAUSE;
             this.controler.play.switch_icon(this.icon_play);
             this.set_speed(0);
-            return;
+
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = false;
+			gwlib_filter_event(e);
+			return;
         }
         //we are playing, resume from stop if needed
         if (this.stoped_url) {
@@ -1233,6 +1243,10 @@ extension = {
             }
 
             this.set_speed(1);
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = true;
+			gwlib_filter_event(e);
             return;
         }
         if (state == this.GF_STATE_TRICK) {
