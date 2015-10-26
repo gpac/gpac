@@ -19,7 +19,24 @@ l_deb = 4;
 /*default log level*/
 gw_log_level = l_inf;
 
-GF_JS_EVENT_PLAYBACK = 20000;
+GF_JS_EVENT_BASE = 20000;
+
+//playback event
+//@param is_playing boolean giving the playback status;
+GF_JS_EVENT_PLAYBACK = GF_JS_EVENT_BASE;
+
+//playlist insert event
+//@param url string giving URL to append
+GF_JS_EVENT_PLAYLIST_ADD = GF_JS_EVENT_BASE + 1;
+
+//playlist reset event
+//@param none
+GF_JS_EVENT_PLAYLIST_RESET = GF_JS_EVENT_BASE + 2;
+
+
+//playlist reset event
+//@param index item index in playlist
+GF_JS_EVENT_PLAYLIST_PLAY = GF_JS_EVENT_BASE + 3;
 
 function gw_new_timer(progressive) {
     var obj = new SFNode('TimeSensor');
@@ -416,6 +433,8 @@ gwskin.appearance_transparent.skin = true;
 gwskin.no_gl_window_back = new SFNode('Background2D')
 gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
 
+gwskin.last_hit_x = 0;
+gwskin.last_hit_y = 0;
 
 //static
 function gw_get_abs_pos(child) {
@@ -874,18 +893,22 @@ function gwskin_set_default_icon_height(value) {
 //static
 function gwlib_filter_event(evt) {
 
-    if (gw_ui_root.has_popup && (evt.type == GF_EVENT_MOUSEDOWN)) {
-        //close all open popups
-        var count = gw_ui_root.children.length;
-        for (var i = count; i > 0; i--) {
-            var c = gw_ui_root.children[i - 1];
-            if (typeof c._popup != 'undefined') {
-                c.close();
-                if (count>gw_ui_root.children.length) i--;
-            }
-        }
-        gw_ui_root.has_popup = false;
-    }
+	if (evt.type == GF_EVENT_MOUSEDOWN) {
+		if (gw_ui_root.has_popup) {
+			//close all open popups
+			var count = gw_ui_root.children.length;
+			for (var i = count; i > 0; i--) {
+				var c = gw_ui_root.children[i - 1];
+				if (typeof c._popup != 'undefined') {
+					c.close();
+					if (count>gw_ui_root.children.length) i--;
+				}
+			}
+			gw_ui_root.has_popup = false;
+		}
+		gwskin.last_hit_x = evt.mouse_x;
+		gwskin.last_hit_y = evt.mouse_y;
+	}
 
     if (gw_ui_top_wnd && gw_ui_top_wnd.on_event(evt)) return true;
 
@@ -1011,7 +1034,7 @@ function gwlib_init(root_node) {
         }
         gwskin.parse = function (serial_obj) {
             if (serial_obj.charAt(0) != '(') {
-                return eval('(' + serial_obj + ')' );
+//                return eval('(' + serial_obj + ')' );
             }
             return eval(serial_obj);
         }
@@ -3111,7 +3134,7 @@ function gw_new_file_dialog(container, label) {
 
     dlg.area = gw_new_grid_container(dlg);
     dlg.area.break_at_line = true;
-    dlg.area.dlg = dlg;
+	dlg.area.dlg = dlg;
 
     dlg.on_close = function () {
         if (this.do_sort_wnd) {
@@ -3123,6 +3146,7 @@ function gw_new_file_dialog(container, label) {
     }
 
 
+	dlg._name_sort_only = false;
     dlg._sort_type = 0;
     dlg.do_sort = function (value) {
         this._page_idx = 0;
@@ -3174,6 +3198,15 @@ function gw_new_file_dialog(container, label) {
     dlg.sort = dlg.add_tool('sort');
     dlg.sort_wnd = null;
     dlg.sort.on_click = function() {
+		
+		if (this.dlg._name_sort_only) {
+			var wnd = this.dlg;
+			if (wnd._sort_type==0) wnd._sort_type = 1;
+			else wnd._sort_type = 0;
+			wnd.do_sort(wnd._sort_type);
+			return;
+		}
+		
         if (this.dlg.sort_wnd) {
             this.dlg.sort_wnd.close();
             this.dlg.sort_wnd = null;
@@ -3283,27 +3316,41 @@ function gw_new_file_dialog(container, label) {
         this.area.reset_children();
 
         for (i = 0; i < filelist.length; i++) {
+			var f_path, f_name;
             if (!is_listing && (filelist[i].hidden || filelist[i].system)) continue;
 
-            var icon_name = gwskin.images.mime_generic;
+			var icon_name = gwskin.images.mime_generic;
+			if (is_listing && typeof filelist[i].icon == 'string') {
+				if (filelist[i].icon != '') {
+					icon_name = filelist[i].icon;
+				}
+			}
 
+			if (is_listing && typeof filelist[i] == 'string') {
+				f_path = f_name = filelist[i];
+				this._name_sort_only = true;
+			} else {
+				f_path = filelist[i].path;
+				f_name = filelist[i].name;
+			}
+			
             if ( (!is_listing || (typeof filelist[i].directory == 'boolean'))  && (filelist[i].directory || (filelist[i].name.indexOf('.') < 0))) {
                 if (filelist[i].drive) icon_name = gwskin.images.drive;
                 else icon_name = gwskin.images.folder;
             } else {
-                icon_name = gw_guess_mime_icon(is_listing ? filelist[i].path : filelist[i].name);
+                icon_name = gw_guess_mime_icon(is_listing ? f_path : f_name);
             }
 
-            var item = gw_new_icon_button(this.area, icon_name, filelist[i].name, true, 'listitem');
+            var item = gw_new_icon_button(this.area, icon_name, f_name, true, 'listitem');
             item.dlg = this;
-            item.filename = filelist[i].name;
-            item.directory = filelist[i].directory;
+            item.filename = f_name;
+			item.directory = typeof filelist[i].directory != 'undefined' ? filelist[i].directory : false;
             item.set_size(this.width, gwskin.default_control_height);
-            item.path = is_listing ? filelist[i].path : null;
+            item.path = is_listing ? f_path : null;
             item.size = typeof filelist[i].size != 'undefined' ? filelist[i].size : 0;
             item.date = typeof filelist[i].last_modified != 'undefined' ? filelist[i].last_modified : 0;
 
-            if (filelist[i].directory) {
+            if (item.directory) {
                 item.on_click = this._on_dir_browse;
             } else {
                 item.on_click = this._on_file_select;
