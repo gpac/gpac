@@ -75,13 +75,6 @@ lcov:
 
 dep:	depend
 
-# tar release (use 'make -k tar' on a checkouted tree)
-FILE=gpac-$(shell grep "\#define GPAC_VERSION " include/gpac/version.h | \
-                    cut -d "\"" -f 2 )
-
-tar:
-	( tar zcvf ~/$(FILE).tar.gz ../gpac --exclude CVS --exclude bin --exclude lib --exclude Obj --exclude temp --exclude amr_nb --exclude amr_nb_ft --exclude amr_wb_ft --exclude *.mak --exclude *.o --exclude *.~*)
-
 install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
@@ -268,7 +261,6 @@ help:
 	@echo 
 	@echo "clean: clean src repository"
 	@echo "distclean: clean src repository and host config file"
-	@echo "tar: create GPAC tarball"
 	@echo 
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"
