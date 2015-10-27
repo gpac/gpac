@@ -290,7 +290,7 @@ struct __tag_compositor
 	u32 new_width, new_height;
 
 	/*current background color*/
-	u32 back_color;
+	u32 back_color, default_back_color;
 
 	/*bounding box draw type: none, unit box/rect and sphere (3D only)*/
 	u32 draw_bvol;
