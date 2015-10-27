@@ -526,12 +526,18 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 	if (argc < 3) return JS_FALSE;
 	
 	if (JSVAL_IS_DOUBLE(argv[0]) && JSVAL_IS_DOUBLE(argv[1]) && JSVAL_IS_DOUBLE(argv[2])) {
-		u32 r = 255 * JSVAL_TO_DOUBLE(argv[0]);
-		u32 g = 255 * JSVAL_TO_DOUBLE(argv[1]);
-		u32 b = 255 * JSVAL_TO_DOUBLE(argv[2]);
-		u32 a = 255;
+		u32 r, g, b, a;
+		jsdouble d;
+		SMJS_GET_NUMBER(argv[0], d);
+		r = 255 * d;
+		SMJS_GET_NUMBER(argv[1], d);
+		g = 255 * d;
+		SMJS_GET_NUMBER(argv[2], d);
+		b = 255 * d;
+		a = 255;
 		if ((argc == 4) && JSVAL_IS_DOUBLE(argv[3])) {
-			a = 255 * JSVAL_TO_DOUBLE(argv[3]);
+			SMJS_GET_NUMBER(argv[3], d);
+			a = 255 * d;
 		}
 		
 		term->compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
