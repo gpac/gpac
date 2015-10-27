@@ -341,6 +341,16 @@ function gw_appy_effect_notif(timer, val) {
 
 //static
 function gw_window_show_hide() {
+
+	if (typeof this.show_effect == 'string') {
+		if (this.show_effect == 'none') {
+			this.visible = !this.visible;
+			this.scale.x = this.visible ? 1 : 0;
+			this.scale.y = this.visible ? 1 : 0;
+			return;
+		}
+	}
+
     if (typeof this._wnd_timer == 'undefined') {
         this._wnd_timer = gw_new_timer(1);
         this._wnd_timer.wnd = null;
@@ -694,6 +704,14 @@ s.font.skin = true;
 s = { name: 'righttext' };
 gwskin.styles.push(s);
 s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.skin = true;
+
+s = { name: 'float_text' };
+gwskin.styles.push(s);
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.justify[1] = 'END';
 s.font.skin = true;
 
 gwskin.images = new Object();
@@ -1646,6 +1664,42 @@ function gw_new_window(parent, offscreen, background, class_name, no_focus) {
     return obj;
 }
 
+function gw_new_image(parent, src_url) {
+	var obj = new SFNode('Transform2D');
+	setup_gw_object(obj, 'Image');
+	obj.children[0] = new SFNode('Layer2D');
+	obj.children[0].children[0] = new SFNode('Inline');
+	obj.children[1] = gw_new_rectangle('default', 'invisible');
+	gw_object_set_hitable(obj.children[1]);
+
+	obj.on_click = null;
+	obj.children[1]._par = obj;
+	obj.children[1].on_click = function() {
+		if (this._par.on_click) this._par.on_click();
+	}
+	obj.set_image = function(src_url) {
+		var inl = gw_load_resource(src_url, false);
+		this.children[0].children[0] = inl;
+	}
+	obj.set_size = function(width, height) {
+		this.children[0].size.x = width;
+		this.children[0].size.y = height;
+		this.width = width;
+		this.height = height;
+		this.children[1].set_size(width, height);
+	}
+	obj._pre_destroy = function () {
+		this.children[0].children.length = 0;
+	}
+	obj.on_event = function () { return false; }
+
+	obj.set_image(src_url);
+	
+	gw_add_child(parent, obj);
+	return obj;
+}
+
+
 function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     var touch;
     
@@ -1668,14 +1722,19 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     obj._icon_root = new SFNode('Transform2D');
     obj._icon_root.children[0] = new SFNode('Layer2D');
     obj._touch = new SFNode('TouchSensor');
-    obj._highlight = gw_new_rectangle(class_name, 'invisible');
 
     obj._show_highlight = false;
     obj._is_icon = false;
     obj._tooltip = true;
-    if (class_name == 'icon') {
-        obj._is_icon = true;
+    if (class_name == 'image') {
+		obj._is_icon = false;
+		obj._tooltip = false;
+		class_name = 'default';
     }
+	else if (class_name == 'icon') {
+		obj._is_icon = true;
+		obj._highlight = gw_new_rectangle(class_name, 'invisible');
+	}
     else if (class_name == 'icon_label') {
         obj._is_icon = true;
         obj._show_highlight = false;
@@ -1684,6 +1743,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     else if (class_name == 'listitem') {
         obj._is_icon = true;
         obj._show_highlight = true;
+		obj._highlight = gw_new_rectangle(class_name, 'invisible');
         obj._tooltip = false;
     } else {
         obj._highlight = gw_new_rectangle(class_name, 'invisible');
@@ -1734,7 +1794,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
             this._label.set_label(label);
         }
         obj.get_label = function () {
-            return this._label.get_label();
+			return this._label ? this._label.get_label() : null;
         }
     } else {
         obj.set_size = function (width, height) {
@@ -1835,6 +1895,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
         while (idx > this.icons.length) idx -= this.icons.length;
         this._icon_root.children[0].children[0] = this.icons[idx];
     }
+		
     obj._pre_destroy = function () {
         for (var i in this.icons) {
             gw_unload_resource(this.icons[i]);
@@ -2856,7 +2917,7 @@ function gw_new_text_edit(parent, text_data) {
     return obj;
 }
 
-function gw_new_text_area(parent, text_data) {
+function gw_new_text_area(parent, text_data, class_name) {
     var obj = new SFNode('Transform2D');
     setup_gw_object(obj, 'TextArea');
 
@@ -2867,7 +2928,8 @@ function gw_new_text_area(parent, text_data) {
     obj.children[0].justify[0] = "JUSTIFY";
     obj.children[0].justify[1] = "FIRST";
 
-    gw_new_text(obj.children[0], text_data, 'text');
+	if (arguments.length==2) class_name = 'text';
+    gw_new_text(obj.children[0], text_data, class_name);
     obj.set_size = function (width, height) {
         this.children[0].size.x = width;
         this.children[0].size.y = height;
