@@ -455,7 +455,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		stack->enabled = stack->control->enabled;
 		stack->media_start = stack->control->mediaStartTime;
 		if (stack->media_stop != stack->control->mediaStopTime) {
-			if (stack->control->mediaStopTime) need_restart  = 1;
+			if (stack->control->mediaStopTime < 1000000000) need_restart  = 1;
 			stack->media_stop = stack->control->mediaStopTime;
 		}
 		stack->is_init = 1;
