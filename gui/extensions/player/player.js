@@ -224,8 +224,6 @@ extension = {
                 ext.root_odm = gpac.get_object_manager(ext.current_url);
                 ext.reverse_playback_supported = ext.root_odm.reverse_playback_supported;
 
-                gw_background_control(false);
-
                 ext.controler.hide();
                 gpac.caption = ext.current_url;
                 ext.add_bookmark(ext.current_url, true);
@@ -341,7 +339,7 @@ extension = {
         }
 
         this.movie.children[0].on_media_end = function (evt) {
-            if (this.extension.duration) {
+            if (this.extension.duration>1) {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
                     this.extension.current_time = 0;
@@ -461,7 +459,6 @@ extension = {
                 this.extension.controlled_renderer.Seek(time);
                 return;
             }
-            gw_background_control(false);
             switch (type) {
                 //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                 case 1:
@@ -658,7 +655,7 @@ extension = {
                     gwlib_remove_event_filter(this.extension._evt_filter);
                     this.extension._evt_filter = null;
                 }
-              gw_show_dock();
+				gw_show_dock();
 				this.extension.disabled = true;
             }
         }
@@ -785,9 +782,11 @@ extension = {
             }
 
             if (this.extension.duration) {
-                if (this.extension.reverse_playback_supported && this.rewind) full_w += control_icon_size;
-                if (this.forward) full_w += control_icon_size;
-                if (this.loop) full_w += control_icon_size;
+				if (this.forward) full_w += control_icon_size;
+				if (this.extension.duration>1) {
+					if (this.extension.reverse_playback_supported && this.rewind) full_w += control_icon_size;
+					if (this.loop) full_w += control_icon_size;
+				}
             }
             else if (this.extension.movie_control.mediaStopTime < 0) {
                 if (this.forward) full_w += control_icon_size;
@@ -822,12 +821,11 @@ extension = {
             if (this.snd_low) this.snd_low.show();
             if (this.snd_ctrl) this.snd_ctrl.show();
 
-            this.rewind.hide();
-            if (this.extension.reverse_playback_supported) this.rewind.show();
-
             if (this.extension.duration) {
                 if (this.forward) this.forward.show();
-                if (this.loop) this.loop.show();
+				if (this.extension.duration>1) {
+					if (this.loop) this.loop.show();
+				}
                 if (this.stop) this.stop.show();
             }
             else if ((this.extension.movie_control.mediaStopTime < 0) || (this.extension.movie_control.mediaSpeed < 0)) {
@@ -855,7 +853,7 @@ extension = {
                 this.navigate.show();
             }
 
-            if (this.extension.duration || this.extension.timeshift_depth) {
+            if ((this.extension.duration>1.0) || this.extension.timeshift_depth) {
                 this.media_line.show();
                 this.time.show();
             } else {
@@ -1013,6 +1011,8 @@ extension = {
 
     create_restore_session: function (__anobj) {
         return function (url, media_time, media_clock) {
+			__anobj.movie_connected = false;
+			__anobj.disabled = false;
             __anobj.set_movie_url(url);
             if (media_clock) {
                 var time_in_tsb = (new Date()).getTime() - media_clock;
@@ -1139,19 +1139,26 @@ extension = {
             dlg.time.set_size(0, gwskin.default_icon_height);
             dlg.time.set_width(0);
         } else {
-            dlg.time.show();
-            dlg.media_line.show();
-            if (this.reverse_playback_supported) dlg.rewind.show();
-            dlg.stop.show();
+			if (value>1) {
+				dlg.time.show();
+				dlg.media_line.show();
+				if (this.reverse_playback_supported) dlg.rewind.show();
+				dlg.loop.show();
+				if (value < 3600) {
+					dlg.time.set_size(gwskin.default_icon_height / 2, gwskin.default_icon_height);
+					dlg.time.set_width(3 * dlg.time.font_size());
+				} else {
+					dlg.time.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+					dlg.time.set_width(4 * dlg.time.font_size());
+				}
+			} else {
+				dlg.time.hide();
+				dlg.media_line.hide();
+				dlg.rewind.hide();
+				dlg.loop.hide();
+			}
+			dlg.stop.show();
             dlg.forward.show();
-            dlg.loop.show();
-            if (value < 3600) {
-                dlg.time.set_size(gwskin.default_icon_height / 2, gwskin.default_icon_height);
-                dlg.time.set_width(3 * dlg.time.font_size());
-            } else {
-                dlg.time.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
-                dlg.time.set_width(4 * dlg.time.font_size());
-            }
         }
         dlg.on_display_size(gw_display_width, gw_display_height);
     },
@@ -1298,7 +1305,6 @@ extension = {
             this.movie_sensor.url[0] = url;
             if (this.UPnP_Enabled) UPnP.MovieURL = url;
             this.movie_connected = (url == '') ? false : true;
-            gw_background_control(this.movie_connected ? false : true);
             gpac.caption = url;
 			this.controler.layout();
 
@@ -1311,8 +1317,6 @@ extension = {
                 this.movie_control.url[0] = url;
                 this.movie_sensor.url[0] = url;
                 this.movie.children[0].url[0] = url;
-                gw_background_control(false);
-
                 return;
             }
 
