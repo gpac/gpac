@@ -375,12 +375,13 @@ Specifies whether text shall be drawn to a texture and then rendered or directly
 <p style="text-indent: 5%">
 Read-only option listing the OpenGL extensions supported by the GL driver. Only valid after the 3D renderer has been used.
 </p>
-<b>StereoType</b> [value: <i>"None", "SideBySide", "TopToBottom", "Anaglyph", "Columns", "Rows", "SPV19", "Custom"</i>]
+<b>StereoType</b> [value: <i>"None", "SideBySide", "StereoHeadset", "TopToBottom", "Anaglyph", "Columns", "Rows", "SPV19", "Custom"</i>]
 <p style="text-indent: 5%">
 Specifies the stereo output type (default "None"). If your graphic card does not support OpenGL shaders, only <i>SideBySide</i> and <i>TopToBottom</i> modes will be available.</p>
 <ul>
 <li>"SideBySide": images are displayed side by side from left to right.</li>
 <li>"TopToBottom": images are displayed from top (laft view) to bottom (right view).</li>
+<li>"StereoHeadset": same as SideBySide except that view aspect ratio is not changed.</li>
 <li>"Anaglyph": Standard color anaglyph (red for left view, green and blue for right view) is used.</li>
 <li>"Columns": images are interleaved by columns, left view on even columns and left view on odd columns.</li>
 <li>"Rows": images are interleaved by columns, left view on even rows and left view on odd rows.</li>

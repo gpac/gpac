@@ -1352,6 +1352,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
 	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
 	else if (!strcmp(sOpt, "SPV19")) compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+	else if (!strcmp(sOpt, "StereoHeadset")) compositor->visual->autostereo_type = GF_3D_STEREO_HEADSET;
 
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
@@ -1780,7 +1781,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_NUM_STEREO_VIEWS:
 #ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d) {
-			if (compositor->visual->nb_views && compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)
+			if (compositor->visual->nb_views && compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)
 				return compositor->visual->nb_views;
 		}
 #endif
@@ -1825,7 +1826,7 @@ GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fr
 {
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)) {
+	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)) {
 		GF_Err e;
 		gf_mx_p(compositor->mx);
 		e = compositor_3d_get_offscreen_buffer(compositor, framebuffer, view_idx, depth_dump_mode);
