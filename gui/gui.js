@@ -100,7 +100,7 @@ function initialize() {
     gwlib_init(ui_root);
 
     //set background color
-    root.children[0].backColor = gwskin.back_color;
+    gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
 
     //what do we do with tooltips ?
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };
@@ -252,6 +252,3 @@ function on_resize(evt) {
     layout();
 }
 
-function gw_background_control(enable) {
-    root.children[0].set_bind = enable ? true : false;
-}
