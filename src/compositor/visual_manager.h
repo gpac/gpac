@@ -40,7 +40,11 @@ enum
 	GF_3D_STEREO_NONE = 0,
 	GF_3D_STEREO_TOP,
 	GF_3D_STEREO_SIDE,
-	/*all modes above GF_3D_STEREO_SIDE require shaders*/
+	GF_3D_STEREO_HEADSET,
+	
+	GF_3D_STEREO_LAST_SINGLE_BUFFER = GF_3D_STEREO_HEADSET,
+
+	/*all modes above GF_3D_STEREO_LAST_SINGLE_BUFFER require shaders and textures for view storage*/
 
 	/*custom interleaving using GLSL shaders*/
 	GF_3D_STEREO_CUSTOM,
