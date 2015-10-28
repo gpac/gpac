@@ -3469,8 +3469,6 @@ int mp4boxMain(int argc, char **argv)
 			if (outName) strcpy(outfile, outName);
 			else sprintf(outfile, "%s.mpd", inName);
 		}
-		
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
 
 		mpd = gf_mpd_new();
 		if (!mpd) {
