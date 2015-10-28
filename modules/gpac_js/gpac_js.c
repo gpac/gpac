@@ -539,11 +539,7 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 			SMJS_GET_NUMBER(argv[3], d);
 			a = 255 * d;
 		}
-		
 		term->compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
-		
-		Bool up = (JSVAL_TO_BOOLEAN(argv[0])==JS_TRUE) ? GF_TRUE : GF_FALSE;
-		gf_term_switch_quality(term, up);
 		return JS_TRUE;
 	} else {
 		return JS_FALSE;
