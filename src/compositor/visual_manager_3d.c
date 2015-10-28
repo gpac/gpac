@@ -541,14 +541,27 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 		vp_width = orig_vp.width;
 		vp_height = orig_vp.height;
-	
-		tr_state->camera->vp.width = vp_width / tr_state->visual->nb_views;
-		tr_state->camera->vp.x += gf_mulfix(INT2FIX(tr_state->visual->current_view), tr_state->camera->vp.width);
 		
+		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
-			tr_state->camera->vp.height = gf_muldiv(vp_height, tr_state->camera->vp.width, vp_width);
-			tr_state->camera->vp.y = orig_vp.y + (vp_height - tr_state->camera->vp.height) / 2;
+			Fixed ratio = gf_divfix(vp_width, vp_height);
+			Fixed max_width = tr_state->visual->compositor->display_width / tr_state->visual->nb_views;
+			Fixed max_height = tr_state->visual->compositor->display_height;
+			
+			if (max_width < gf_mulfix(ratio, max_height) ) {
+				tr_state->camera->vp.width = max_width;
+			} else {
+				tr_state->camera->vp.width = gf_mulfix(ratio, max_height);
+			}
+			tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
+			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
+			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
+			
+		} else {
+			tr_state->camera->vp.width = vp_width / tr_state->visual->nb_views;
+			tr_state->camera->vp.x += tr_state->visual->current_view * tr_state->camera->vp.width;
 		}
+		//if first view clear up the original vp
 		if (!tr_state->visual->current_view) {
 			SFColor col;
 			col.red = INT2FIX((tr_state->visual->compositor->back_color>>16)&0xFF) / 255;
