@@ -33,7 +33,11 @@
 
 //Light Structure
 struct gfLight{
+#if defined(GL_ES)
 	lowp int type;
+#else
+	int type;
+#endif
 	vec4 position;
 	vec4 direction;
 	vec3 attenuation;
@@ -65,8 +69,11 @@ attribute vec4 gfMeshColor;
 #ifdef GF_GL_HAS_LIGHT
 //Generic (Scene) uniforms
 uniform gfLight lights[LIGHTS_MAX];
+#if defined(GL_ES)
 uniform lowp int gfNumLights;
-
+#else
+uniform int gfNumLights;
+#endif
 
 //Fog
 uniform bool gfFogEnabled; 
@@ -91,7 +98,11 @@ uniform bool hasTextureMatrix;
 #endif
 
 //Clipping
+#if defined(GL_ES)
 uniform lowp int gfNumClippers;
+#else
+uniform int gfNumClippers;
+#endif
 uniform vec4 clipPlane[CLIPS_MAX];
 
 //Varyings

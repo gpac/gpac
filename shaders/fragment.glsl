@@ -30,7 +30,11 @@
 
 //Light Structure
 struct gfLight{
+#if defined(GL_ES)
 	lowp int type;
+#else
+	int type;
+#endif
 	vec4 position;
 	vec4 direction;
 	vec3 attenuation;
@@ -42,7 +46,11 @@ struct gfLight{
 };
 
 //Generic (Scene) Uniforms
+#if defined(GL_ES)
 uniform lowp int gfNumLights;
+#else
+uniform int gfNumLights;
+#endif
 uniform bool gfLightTwoSide;
 uniform gfLight lights[LIGHTS_MAX];
 
@@ -68,7 +76,11 @@ uniform vec4 gfEmissionColor;
 uniform bool hasMeshColor;
 #endif
 
+#if defined(GL_ES)
 uniform lowp int gfNumClippers;
+#else
+uniform int gfNumClippers;
+#endif
 
 //Color Matrix
 uniform mat4 gfColorMatrix;
