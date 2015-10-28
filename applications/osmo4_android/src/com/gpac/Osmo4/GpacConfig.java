@@ -58,6 +58,10 @@ public class GpacConfig {
 
         gpacShaderDirectory = dataDir + "/shaders/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacShaderDirectory + " for shader files"); //$NON-NLS-1$ //$NON-NLS-2$
+        
+        File osmo = new File(Environment.getExternalStorageDirectory(), "osmo"); //$NON-NLS-1$
+        gpacLogDirectory = osmo.getAbsolutePath() + "/log/";
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLogDirectory + " for log files"); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     /**
@@ -66,7 +70,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacGuiDirectory, gpacShaderDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacGuiDirectory, gpacShaderDirectory, gpacLogDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
@@ -135,6 +139,15 @@ public class GpacConfig {
     public String getGpacShaderDirectory() {
         return gpacShaderDirectory;
     }
+    
+    /**
+     * Default directory for log files
+     *
+     * @return the gpacLogDirectory
+     */
+    public String getGpacLogDirectory() {
+        return gpacLogDirectory;
+    }
 
     private final String gpacFontDirectory = "/system/fonts/"; //$NON-NLS-1$
 
@@ -147,6 +160,8 @@ public class GpacConfig {
     private final String gpacGuiDirectory;
 
     private final String gpacShaderDirectory;
+    
+    private final String gpacLogDirectory;
 
     /**
      * Creates a given directory if it does not exist
