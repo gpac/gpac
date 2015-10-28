@@ -55,7 +55,7 @@ public class GPACInstance implements GPACInstanceInterface {
         if (errors != null)
             return errors;
         StringBuilder sb = new StringBuilder();
-        final String[] toLoad = { "GLESv1_CM", "dl", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
+        final String[] toLoad = { "GLESv2", "dl", "log",//$NON-NLS-3$ //$NON-NLS-2$ //$NON-NLS-1$
                                  "jpegdroid", "javaenv", //$NON-NLS-1$ //$NON-NLS-2$ 
                                  "mad", "editline", "ft2", //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                                  "js_osmo", "openjpeg", "png", "z", //$NON-NLS-1$ //$NON-NLS-2$//$NON-NLS-3$ //$NON-NLS-4$
