@@ -3576,6 +3576,12 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		for (rep_i = 0; rep_i < nb_rep; rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
 			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
+			
+			if (group_has_video && !rep->width && !rep->height) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Adaptation %s: non-video in a video group - disabling it\n", rep->id));
+				rep->playback.disabled = 1;
+				continue;
+			} 
 
 			if (group_has_video && !rep_sel->width && !rep_sel->height && rep->width && rep->height) {
 				rep_sel = rep;
