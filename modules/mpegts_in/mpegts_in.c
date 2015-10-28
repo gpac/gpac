@@ -57,7 +57,7 @@ typedef struct
 	Bool request_all_pids;
 	Bool is_connected;
 	Bool low_latency_mode;
-	Bool in_segment_download;
+	Bool in_segment_download, first_chunk_in_seg_parsed;
 	Bool first_segment_fetched;
 
 	Bool epg_requested;
@@ -998,6 +998,10 @@ static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const cha
 			}
 			//state "in progress"
 			m2ts->in_segment_download = 1;
+			if (!m2ts->first_chunk_in_seg_parsed) {
+				m2ts->first_chunk_in_seg_parsed=1;
+				m2ts->ts->pos_in_stream = 0;
+			}
 		} else {
 			if (refresh_type) {
 				//segment done downloading but was in progress mode: do a final refresh
@@ -1008,6 +1012,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const cha
 					*refresh_type = 0;
 				}
 			}
+			m2ts->first_chunk_in_seg_parsed=0;
 			m2ts->in_segment_download = 0;
 		}
 	}
@@ -1085,6 +1090,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 
 		if (e==GF_EOS) {
 			gf_m2ts_demux_file(m2ts->ts, NULL, 0, 0, 0, 1);
+		}
+		//we are currently downloading this segment, parse it ONLY IF WE ARE CALLED FROM THE PROXY THREAD
+		//TODO: we should fix this to allow concurrent access to gmem://
+		else if (m2ts->in_segment_download && (flush_type != GF_M2TS_FLUSH_DATA) ) {
+			gf_m2ts_demux_file(m2ts->ts, url, start_byterange, end_byterange, refresh_type, 0);
 		}
 
 	}

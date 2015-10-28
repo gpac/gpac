@@ -1083,144 +1083,36 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 }
 
 GF_EXPORT
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
-                      const char *mpd_file,
-                      u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter)
+void gf_mpd_getter_del_session(GF_FileDownload *getter) {
+	if (!getter && !getter->del_session) 
+		return;
+	getter->del_session(getter);
+}
+
+static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file, const char *base_url, const char *mpd_file, char *title, Double update_interval, 
+									 char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, Bool is_end, u32 max_dur, GF_MPD *mpd, Bool parse_sub_playlist)
 {
-	GF_Err e;
 	char *sep, *template_base, *template_ext;
-	u32 i, nb_streams, j, k, template_width, template_idx_start;
-	Double update_interval;
-	MasterPlaylist *pl = NULL;
-	Bool use_template;
+	u32 nb_streams, i, j, k, template_width, template_idx_start;
 	Stream *stream;
-	PlaylistElement *pe, *the_pe, *elt;
-	FILE *fmpd;
-	Bool is_end;
-	u32 max_dur = 0;
+	PlaylistElement *pe, *elt;
+	GF_MPD_ProgramInfo *info;
+	GF_MPD_Period *period;
+	GF_Err e;
+	char str[1024];
 
-	e = gf_m3u8_parse_master_playlist(m3u8_file, &pl, base_url);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
-		if (pl)
-			gf_m3u8_master_playlist_del(pl);
-		pl = NULL;
-		return e;
-	}
-	if (mpd_file == NULL) {
-		gf_delete_file(m3u8_file);
-		mpd_file = m3u8_file;
-	}
+	if (!mpd) return GF_BAD_PARAM;
+	assert(!mpd->periods);
+	mpd->periods = gf_list_new();
+	mpd->program_infos = gf_list_new();
+	mpd->base_URLs = gf_list_new();
+	mpd->locations = gf_list_new();
+	mpd->metrics = gf_list_new();
+	mpd->time_shift_buffer_depth = (u32) -1; /*infinite by default*/
+	mpd->xml_namespace = NULL;
+	mpd->type = is_end ? GF_MPD_TYPE_STATIC : GF_MPD_TYPE_DYNAMIC;
 
-	the_pe = NULL;
-	pe = NULL;
-	i = 0;
-	assert(pl);
-	assert(pl->streams);
-	while ((stream = gf_list_enum(pl->streams, &i))) {
-		j = 0;
-		while (NULL != (pe = gf_list_enum(stream->variants, &j))) {
-			Bool found = GF_FALSE;
-			char *suburl;
-			if (!pe->url)
-				continue;
 
-			/* filter out duplicated entries (seen on M6 m3u8) */
-			for (k=0; k<j-1; ++k) {
-				PlaylistElement *a_pe = gf_list_get(stream->variants, k);
-				if (a_pe->url && pe->url && !strcmp(a_pe->url, pe->url)) {
-					found = GF_TRUE;
-					break;
-				}
-			}
-			if (found)
-				continue;
-
-			the_pe = pe;
-			suburl = NULL;
-			if (!strstr(pe->url, ".m3u8"))
-				continue; /*not HLS*/
-
-			if (strcmp(base_url, pe->url))
-				suburl = gf_url_concatenate(base_url, pe->url);
-
-			if (!suburl || !strcmp(base_url, suburl)) {
-				if (suburl)
-					gf_free(suburl);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
-				continue;
-			}
-
-			if (getter && getter->new_session && getter->del_session && getter->get_cache_name) {
-				e = getter->new_session(getter, suburl);
-				if (e) {
-					gf_free(suburl);
-					pe->load_error = e;
-					continue;
-				}
-				if (e == GF_OK) {
-					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
-				}
-				getter->del_session(getter);
-			} else { /* for use in MP4Box */
-				if (strstr(suburl, "://")) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
-					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
-					if (e == GF_OK) {
-						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
-					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download faile for %s\n", suburl));
-					}
-					gf_delete_file("tmp.m3u8");
-				} else {
-					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
-				}
-			}
-			gf_free(suburl);
-		}
-		if (max_dur < (u32) stream->computed_duration) {
-			max_dur = (u32) stream->computed_duration;
-		}
-	}
-
-	is_end = !pl->playlist_needs_refresh;
-	if (!the_pe) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] The M3U8 playlist is not correct.\n"));
-		return GF_BAD_PARAM;
-	}
-
-	update_interval = 0;
-	/*update interval is set to the duration of the last media file with rules defined in http live streaming RFC section 6.3.4*/
-	switch (reload_count) {
-	case 0:
-		update_interval = the_pe->duration_info;
-		break;
-	case 1:
-		update_interval = (Double)the_pe->duration_info / 2;
-		break;
-	case 2:
-		update_interval = 3 * ((Double)the_pe->duration_info / 2);
-		break;
-	default:
-		update_interval = 3 * the_pe->duration_info;
-		break;
-	}
-	if (is_end || ((the_pe->element_type == TYPE_PLAYLIST) && the_pe->element.playlist.is_ended)) {
-		update_interval = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] No need to refresh playlist!\n"));
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->duration_info));
-	}
-
-	assert(mpd_file);
-	fmpd = gf_fopen(mpd_file, "wt");
-	if (!fmpd) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD Generator] Cannot write to temp file %s!\n", mpd_file));
-		gf_m3u8_master_playlist_del(pl);
-		return GF_IO_ERR;
-	}
-
-	fprintf(fmpd, "<MPD type=\"%s\" xmlns=\"urn:mpeg:dash:schema:mpd:2011\" xmlns:hls=\"urn:gpac:hls:aes:mpd:2015\" profiles=\"urn:mpeg:dash:profile:full:2011\"", is_end ? "static" : "dynamic" );
 	sep = strrchr(m3u8_file, '/');
 	if (!sep)
 		sep = strrchr(m3u8_file, '\\');
@@ -1228,35 +1120,43 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		sep = sep + 1;
 	else
 		sep = (char *)m3u8_file;
-	fprintf(fmpd, " id=\"%s\"", sep);
+	mpd->ID = gf_strdup(sep);
 
-	if (update_interval)
-		fprintf(fmpd, " minimumUpdatePeriod=\"PT%02.2gS\"", update_interval);
-	if (is_end)
-		fprintf(fmpd, " mediaPresentationDuration=\"PT%dS\"", max_dur);
-	fprintf(fmpd, " minBufferTime=\"PT1.5S\"");
-	fprintf(fmpd, ">\n");
-
-	fprintf(fmpd, " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n");
-	{
-		char *title = the_pe->title;
-		if (!title || strlen(title) < 2)
-			title = the_pe->url;
-		fprintf(fmpd, "  <Title>%s</Title>\n", title);
+	if (update_interval) {
+		mpd->minimum_update_period = (u32) (update_interval*1000);
 	}
-	fprintf(fmpd, "  <Source>Generated from URL %s</Source>\n", base_url );
-	fprintf(fmpd, "  <Copyright>Generated by GPAC %s from %s</Copyright>\n", GPAC_FULL_VERSION, base_url);
+	if (is_end) {
+		mpd->media_presentation_duration = (u32) (max_dur*1000);
+	}
+	if (mpd->type == GF_MPD_TYPE_STATIC)
+		mpd->minimum_update_period = mpd->time_shift_buffer_depth = 0;
+	mpd->min_buffer_time = 1500;
 
-	fprintf(fmpd, " </ProgramInformation>\n");
-	fprintf(fmpd, " <Period start=\"PT0S\"");
-	if (is_end) fprintf(fmpd, " duration=\"PT%dS\"", max_dur);
-	fprintf(fmpd, " >\n");
+	GF_SAFEALLOC(info, GF_MPD_ProgramInfo);
+	if (!info) return GF_OUT_OF_MEM;
+	info->more_info_url = gf_strdup("http://gpac.sourceforge.net");
+	info->title = gf_strdup(title);
+	sprintf(str, "Generated from URL %s", base_url);
+	info->source = gf_strdup(str);
+	sprintf(str, "Generated by GPAC %s from %s", GPAC_FULL_VERSION, base_url);	
+	info->copyright = gf_strdup(str);
+	gf_list_add(mpd->program_infos, info);
+
+	GF_SAFEALLOC(period, GF_MPD_Period);
+	if (!period) return GF_OUT_OF_MEM;
+	period->adaptation_sets = gf_list_new();
+	period->base_URLs = gf_list_new();
+	period->subsets = gf_list_new();
+	e = gf_list_add(mpd->periods, period);
+	if (e) return e;
+	if (is_end) {
+		period->duration = max_dur*1000;
+	}
 	
 	nb_streams = gf_list_count(pl->streams);
 	/*check if we use templates*/
 	template_base = NULL;
 	template_ext = NULL;
-	use_template = use_mpd_templates;
 	template_width = 0;
 	template_idx_start = 0;
 	elt = NULL;
@@ -1274,7 +1174,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 			if (!count_elements)
 				continue;
 
-			if (!template_base && use_template) {
+			if (!template_base && use_mpd_templates) {
 				char *sub_url;
 				elt = gf_list_get(pe->element.playlist.elements, 0);
 				sub_url = strrchr(elt->url, '/');
@@ -1299,14 +1199,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					}
 					k++;
 					if (!template_base[k]) {
-						use_template = GF_FALSE;
+						use_mpd_templates = GF_FALSE;
 						break;
 					}
 				}
 			}
 			if (!template_ext) template_ext="";
 
-			if (use_template) {
+			if (use_mpd_templates) {
 				for (k=0; k<count_elements; k++) {
 					char szURL[GF_MAX_PATH], *sub_url;
 					elt = gf_list_get(pe->element.playlist.elements, k);
@@ -1328,7 +1228,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					if (!sub_url) sub_url = elt->url;
 					else sub_url ++;
 					if (strcmp(szURL, sub_url)) {
-						use_template = GF_FALSE;
+						use_mpd_templates = GF_FALSE;
 						break;
 					}
 				}
@@ -1341,20 +1241,35 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	for (i=0; i<nb_streams; i++) {
 		u32 count_variants;
 		u32 width, height, samplerate, num_channels;
-		fprintf(fmpd, "  <AdaptationSet segmentAlignment=\"true\">\n");
+		GF_MPD_AdaptationSet *set;
+		GF_SAFEALLOC(set, GF_MPD_AdaptationSet);
+		if (!set) return GF_OUT_OF_MEM;
+		gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)set);
+		set->accessibility = gf_list_new();
+		set->role = gf_list_new();
+		set->rating = gf_list_new();
+		set->viewpoint = gf_list_new();
+		set->content_component = gf_list_new();
+		set->base_URLs = gf_list_new();
+		set->representations = gf_list_new();
+		/*assign default ID and group*/
+		set->group = -1;
+		set->segment_alignment = GF_TRUE;
+		e = gf_list_add(period->adaptation_sets, set);
+		if (e) return e;
 
 		/*if we use templates, put the SegmentTemplate element at the adaptationSet level*/
-		if (use_template) {
-			fprintf(fmpd, "   <SegmentTemplate");
-
-			fprintf(fmpd, " duration=\"%d\"", (u32) pe->duration_info);
+		if (use_mpd_templates) {
+			GF_SAFEALLOC(set->segment_template, GF_MPD_SegmentTemplate);
+			if (!set->segment_template)  return GF_OUT_OF_MEM;
+			set->segment_template->duration = (u32)pe->duration_info;
 			if (template_width > 1) {
-				fprintf(fmpd, " media=\"%s$%%0%ddNumber$%s\"", template_base, template_width, template_ext);
+				sprintf(str, "%s$%%0%ddNumber$%s", template_base, template_width, template_ext);
 			} else {
-				fprintf(fmpd, " media=\"%s$Number$%s\"", template_base, template_ext);
+				sprintf(str, "%s$Number$%s", template_base, template_ext);
 			}
-			fprintf(fmpd, " startNumber=\"%d\"", template_idx_start);
-			fprintf(fmpd, "/>\n");
+			set->segment_template->media = gf_strdup(str);
+			set->segment_template->start_number = template_idx_start;
 		}
 
 		if (elt && do_import) {
@@ -1384,21 +1299,19 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 			if (import.nb_tracks > 1) {
 				for (k=0; k<import.nb_tracks; k++) {
-					fprintf(fmpd, "   <ContentComponent id=\"%d\"", import.tk_info[k].track_num);
 					if (import.tk_info[k].lang)
-						fprintf(fmpd, " lang=\"%s\"", gf_4cc_to_str(import.tk_info[k].lang));
+						//fprintf(fmpd, " lang=\"%s\"", gf_4cc_to_str(import.tk_info[k].lang));
 					switch (import.tk_info[k].type) {
 					case GF_ISOM_MEDIA_VISUAL:
-						fprintf(fmpd, " contentType=\"video\"");
+						//fprintf(fmpd, " contentType=\"video\"");
 						break;
 					case GF_ISOM_MEDIA_AUDIO:
-						fprintf(fmpd, " contentType=\"audio\"");
+						//fprintf(fmpd, " contentType=\"audio\"");
 						break;
 					default:
-						fprintf(fmpd, " contentType=\"application\"");
+						//fprintf(fmpd, " contentType=\"application\"");
 						break;
 					}
-					fprintf(fmpd, "/>\n");
 				}
 			}
 			if (tmp_file)
@@ -1417,18 +1330,19 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 #endif
 			Bool is_aac = GF_FALSE;
 			char *byte_range_media_file = NULL;
+			GF_MPD_Representation *rep;
 			pe = gf_list_get(stream->variants, j);
 
 			if (pe->element_type == TYPE_MEDIA) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 Media\n"));
 			} else if (pe->load_error) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist element %s: %s\n", pe->url, gf_error_to_string(e) ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error loading playlist element %s\n", pe->url));
 			} else if (pe->element_type != TYPE_PLAYLIST) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] NOT SUPPORTED: M3U8 unknown type for %s\n", pe->url));
 			}
 
 			count_elements = gf_list_count(pe->element.playlist.elements);
-			if (!count_elements)
+			if (parse_sub_playlist && !count_elements)
 				continue;
 
 			base_url = gf_strdup(pe->url);
@@ -1451,20 +1365,17 @@ try_next_segment:
 #endif
 			k++;
 			elt = gf_list_get(pe->element.playlist.elements, k);
-			if (!elt)
+			if (parse_sub_playlist && !elt)
 				break;
 			/*get rid of level 0 aac*/
 			if (elt && strstr(elt->url, ".aac"))
 				is_aac = GF_TRUE;
 
-			if (is_aac)
-				fprintf(fmpd, "<!-- \n");
-
 			width = pe->width;
 			height = pe->height;
 			samplerate = num_channels = 0;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
-			if (import_file) {
+			if (elt && import_file) {
 				GF_Err e;
 				GF_MediaImporter import;
 				char *tmp_file = NULL;
@@ -1536,56 +1447,89 @@ try_next_segment:
 				}
 			}
 #endif
-
-			fprintf(fmpd, "   <Representation id=\"%s\" bandwidth=\"%d\"", sep ? sep+1 : base_url, pe->bandwidth);
+			GF_SAFEALLOC(rep, GF_MPD_Representation);
+			if (!rep) return GF_OUT_OF_MEM;
+			gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
+			rep->base_URLs = gf_list_new();
+			rep->sub_representations = gf_list_new();
+			e = gf_list_add(set->representations, rep);
+			if (e) return e;
+			rep->id = gf_strdup(sep ? sep+1 : base_url);
+			rep->bandwidth = pe->bandwidth;
 			/* TODO : if mime-type is still unknown, don't try to add codec information since it would be wrong */
 			if (!strcmp(M3U8_UNKNOWN_MIME_TYPE, mimeTypeForM3U8Segments)) {
-				fprintf(fmpd, " mimeType=\"%s\"", mimeTypeForM3U8Segments);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
-			} else {
-				fprintf(fmpd, " mimeType=\"%s\"", mimeTypeForM3U8Segments);
+			} 
+			rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
+			if (pe->codecs) {
+				rep->codecs = gf_strdup(pe->codecs);
 			}
-			if (pe->codecs)
-				fprintf(fmpd, " codecs=\"%s\"", pe->codecs);
-			if (pe->language)
-				fprintf(fmpd, " lang=\"%s\"", pe->language);
+			if (pe->language) {
+				//???
+			}
 			if (width && height) {
-				fprintf(fmpd, " width=\"%d\" height=\"%d\"", width, height);
+				rep->width = width;
+				rep->height = height;
 			}
-			if (samplerate)
-				fprintf(fmpd, " audioSamplingRate=\"%d\"", samplerate);
+			if (samplerate) {
+				rep->samplerate = samplerate;
+			}
 
 
-			if (use_template) {
+			if (use_mpd_templates) {
 				if (sep) {
+					GF_MPD_BaseURL *url;
+					GF_SAFEALLOC(url, GF_MPD_BaseURL);
+					if (! url) return GF_OUT_OF_MEM;
+					e = gf_list_add(rep->base_URLs, url);
+					if (e) return GF_OUT_OF_MEM;
 					/*keep final '/' */
 					sep[1] = 0;
-					fprintf(fmpd, ">\n    <BaseURL>%s</BaseURL>\n   </Representation>\n", base_url);
-				} else
-					fprintf(fmpd, "/>\n");
-
-				if (is_aac)
-					fprintf(fmpd, " -->");
+					url->URL = gf_strdup(base_url);
+				} 
 				continue;
 			}
-
-			fprintf(fmpd, ">\n");
 
 			byte_range_media_file = NULL;
 			elt = gf_list_get(pe->element.playlist.elements, 0);
 			if (elt && (elt->byte_range_end || elt->byte_range_start)) {
+				GF_MPD_BaseURL *url;
+				GF_SAFEALLOC(url, GF_MPD_BaseURL);
+				if (! url) return GF_OUT_OF_MEM;
+				e = gf_list_add(rep->base_URLs, url);
+				if (e) return GF_OUT_OF_MEM;
 				byte_range_media_file = elt->url;
-				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", byte_range_media_file);
+				url->URL = gf_strdup(byte_range_media_file);
 			} else if (sep) {
+				GF_MPD_BaseURL *url;
+				GF_SAFEALLOC(url, GF_MPD_BaseURL);
+				if (! url) return GF_OUT_OF_MEM;
+				e = gf_list_add(rep->base_URLs, url);
+				if (e) return GF_OUT_OF_MEM;
 				sep[1] = 0;
-				fprintf(fmpd, "    <BaseURL>%s</BaseURL>\n", base_url);
+				url->URL = gf_strdup(base_url);
 			}
 
-			fprintf(fmpd, "    <SegmentList duration=\"%lf\">\n", pe->duration_info);
+			GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
+			if (!rep->segment_list) return GF_OUT_OF_MEM;
+			// doesn't parse sub-playlists, we need to save URL to these sub-playlist in xlink:href so that we can get the segment URL when we need
+			if (!parse_sub_playlist) {
+				rep->segment_list->xlink_href = strdup(pe->url);
+				gf_free(base_url);
+				base_url = NULL;
+				if (template_base) {
+					gf_free(template_base);
+					template_base = NULL;
+				}
+				continue;
+			}
+			rep->segment_list->segment_URLs = gf_list_new();
+			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
 			update_interval = (count_elements - 1) * pe->duration_info * 1000;
 			for (k=0; k<count_elements; k++) {
 				u32 cmp = 0;
 				char *src_url, *seg_url;
+				GF_MPD_SegmentURL *segment_url;
 				elt = gf_list_get(pe->element.playlist.elements, k);
 
 				/* remove protocol scheme and try to find the common part in baseURL and segment URL - this avoids copying the entire url */
@@ -1599,33 +1543,27 @@ try_next_segment:
 
 				while (src_url[cmp] == seg_url[cmp]) cmp++;
 
-				fprintf(fmpd, "     <SegmentURL");
+				GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
+				if (!segment_url) return GF_OUT_OF_MEM;
+				gf_list_add(rep->segment_list->segment_URLs, segment_url);
 				if (byte_range_media_file) {
-					fprintf(fmpd, " mediaRange=\""LLU"-"LLU"\"", elt->byte_range_start, elt->byte_range_end);
-					if (strcmp(elt->url, byte_range_media_file))
-						fprintf(fmpd, " media=\"%s\"", elt->url);
+					segment_url->media_range->start_range = elt->byte_range_start;
+					segment_url->media_range->end_range = elt->byte_range_end;
+					if (strcmp(elt->url, byte_range_media_file)) {
+						segment_url->media = gf_strdup(elt->url);
+					}
 				} else {
-					fprintf(fmpd, " media=\"%s\"", cmp ? (seg_url + cmp) : elt->url);
+					segment_url->media = gf_strdup(cmp ? (seg_url + cmp) : elt->url);
 				}
 				if (elt->drm_method != DRM_NONE) {
-					fprintf(fmpd, " hls:keyMethod=\"aes-128\"");
+					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
-						u32 idx;
-						fprintf(fmpd, " hls:keyURL=%s hls:keyIV=\"", elt->key_uri);
-						for (idx=0; idx<16; idx++) {
-							fprintf(fmpd, "%02x", elt->key_iv[idx]);
-						}
-						fprintf(fmpd, "\"");
+						segment_url->key_url = strdup(elt->key_uri);
+						gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
 					}
 				}
-				fprintf(fmpd, "/>\n");
 			}
-			fprintf(fmpd, "    </SegmentList>\n");
-			fprintf(fmpd, "   </Representation>\n");
 			gf_free(base_url);
-
-			if (is_aac)
-				fprintf(fmpd, " -->\n");
 		}
 
 		if (template_base) {
@@ -1633,15 +1571,155 @@ try_next_segment:
 			template_base = NULL;
 		}
 
-		fprintf(fmpd, "  </AdaptationSet>\n");
 	}
-	fprintf(fmpd, " </Period>\n");
-	fprintf(fmpd, "</MPD>");
-
-	gf_fclose(fmpd);
-	gf_m3u8_master_playlist_del(pl);
 
 	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
+                      const char *mpd_file,
+                      u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter, 
+					  GF_MPD *mpd, Bool parse_sub_playlist)
+{
+	GF_Err e;
+	char *title;
+	u32 i, j, k;
+	Double update_interval;
+	MasterPlaylist *pl = NULL;
+	Stream *stream;
+	PlaylistElement *pe, *the_pe;
+	Bool is_end;
+	u32 max_dur = 0;
+
+	// first, we always need to parse the master playlist
+	e = gf_m3u8_parse_master_playlist(m3u8_file, &pl, base_url);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
+		if (pl)
+			gf_m3u8_master_playlist_del(pl);
+		pl = NULL;
+		return e;
+	}
+	if (mpd_file == NULL) {
+		gf_delete_file(m3u8_file);
+		mpd_file = m3u8_file;
+	}
+
+	the_pe = NULL;
+	pe = NULL;
+	i = 0;
+	assert(pl);
+	assert(pl->streams);
+	while ((stream = gf_list_enum(pl->streams, &i))) {
+		j = 0;
+		while (NULL != (pe = gf_list_enum(stream->variants, &j))) {
+			Bool found = GF_FALSE;
+			char *suburl;
+			if (!pe->url)
+				continue;
+
+			/* filter out duplicated entries (seen on M6 m3u8) */
+			for (k=0; k<j-1; ++k) {
+				PlaylistElement *a_pe = gf_list_get(stream->variants, k);
+				if (a_pe->url && pe->url && !strcmp(a_pe->url, pe->url)) {
+					found = GF_TRUE;
+					break;
+				}
+			}
+			if (found)
+				continue;
+
+			the_pe = pe;
+			suburl = NULL;
+			if (!strstr(pe->url, ".m3u8"))
+				continue; /*not HLS*/
+
+			if (!parse_sub_playlist)
+				continue;
+
+			if (strcmp(base_url, pe->url))
+				suburl = gf_url_concatenate(base_url, pe->url);
+
+			if (!suburl || !strcmp(base_url, suburl)) {
+				if (suburl)
+					gf_free(suburl);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Not downloading, programs are identical for %s...\n", pe->url));
+				continue;
+			}
+
+			if (getter && getter->new_session && getter->del_session && getter->get_cache_name) {
+				e = getter->new_session(getter, suburl);
+				if (e) {
+					gf_free(suburl);
+					pe->load_error = e;
+					continue;
+				}
+				if (e == GF_OK) {
+					pe->load_error = gf_m3u8_parse_sub_playlist(getter->get_cache_name(getter), &pl, suburl, stream, pe);
+				}
+				//getter->del_session(getter);
+			} else { /* for use in MP4Box */
+				if (strstr(suburl, "://")) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Downloading %s...\n", suburl));
+					e = gf_dm_wget(suburl, "tmp.m3u8", 0, 0, NULL);
+					if (e == GF_OK) {
+						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download faile for %s\n", suburl));
+					}
+					gf_delete_file("tmp.m3u8");
+				} else {
+					e = gf_m3u8_parse_sub_playlist(suburl, &pl, suburl, stream, pe);
+				}
+			}
+			gf_free(suburl);
+		}
+		if (max_dur < (u32) stream->computed_duration) {
+			max_dur = (u32) stream->computed_duration;
+		}
+	}
+
+	is_end = !pl->playlist_needs_refresh;
+	if (!the_pe) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] The M3U8 playlist is not correct.\n"));
+		return GF_BAD_PARAM;
+	}
+
+	update_interval = 0;
+	/*update interval is set to the duration of the last media file with rules defined in http live streaming RFC section 6.3.4*/
+	switch (reload_count) {
+	case 0:
+		update_interval = the_pe->duration_info;
+		break;
+	case 1:
+		update_interval = (Double)the_pe->duration_info / 2;
+		break;
+	case 2:
+		update_interval = 3 * ((Double)the_pe->duration_info / 2);
+		break;
+	default:
+		update_interval = 3 * the_pe->duration_info;
+		break;
+	}
+	if (is_end || ((the_pe->element_type == TYPE_PLAYLIST) && the_pe->element.playlist.is_ended)) {
+		update_interval = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] No need to refresh playlist!\n"));
+	} else {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD Generator] Playlist will be refreshed every %g seconds, len=%d\n", update_interval, the_pe->duration_info));
+	}	
+
+	title = the_pe->title;
+	if (!title || strlen(title) < 2)
+		title = the_pe->url;
+
+	assert(mpd_file);
+	assert(mpd);
+	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, is_end,  max_dur, mpd, parse_sub_playlist);
+
+	gf_m3u8_master_playlist_del(pl);
+
+	return e;
 }
 
 void gf_mpd_print_date(FILE *out, char *name, u64 time)
