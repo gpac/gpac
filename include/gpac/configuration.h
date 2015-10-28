@@ -134,6 +134,9 @@
 #define GPAC_HAS_SDL
 #define GPAC_HAS_FREETYPE
 
+#define GPAC_HAS_IPV6
+#define GPAC_HAS_SSL
+
 
 /*Configuration for Symbian*/
 #elif defined(__SYMBIAN32__)
