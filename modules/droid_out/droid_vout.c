@@ -640,6 +640,9 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				return GF_OK;
 			}
 			break;
+		case GF_EVENT_TEXT_EDITING_START:
+		case GF_EVENT_TEXT_EDITING_END:
+			return GF_NOT_SUPPORTED;
 		}
 	}
 	return GF_OK;
