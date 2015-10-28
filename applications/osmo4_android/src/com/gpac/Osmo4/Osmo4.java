@@ -312,7 +312,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 				
 				if (!exceptions.isEmpty()) {
 					try {
-              PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_gui.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
+              PrintStream out = new PrintStream(config.getGpacLogDirectory() + "debug_gui.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
 	            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
 	            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
 	                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
