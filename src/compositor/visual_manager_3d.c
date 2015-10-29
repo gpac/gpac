@@ -927,13 +927,14 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 	if (is_root_visual) {
 		Bool auto_stereo = 0;
+		
+		visual_3d_setup_clipper(visual, tr_state);
 
 		if (tr_state->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER) {
 			visual_3d_init_autostereo(visual);
 			auto_stereo = 1;
 		}
 		
-
 #ifndef GPAC_USE_GLES1X
 		visual_3d_init_shaders(visual);
 #endif
