@@ -784,6 +784,7 @@ static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnl
 		par.msg_type = dnload_status;
 		par.error = error;
 		par.sess = sess;
+		par.reply = 200;
 		sess->user_proc(sess->usr_cbk, &par);
 		sess->in_callback = GF_FALSE;
 	}
@@ -1135,6 +1136,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	}
 	sess->headers = gf_list_new();
 	sess->flags = dl_flags;
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+		sess->force_data_write_callback = GF_TRUE;
 	if (dm && !dm->head_timeout) sess->server_only_understand_get = GF_TRUE;
 	sess->user_proc = user_io;
 	sess->usr_cbk = usr_cbk;
@@ -2985,6 +2988,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->total_size = gf_cache_get_cache_filesize(sess->cache_entry);
 
 		gf_dm_sess_notify_state(sess, GF_NETIO_PARSE_REPLY, GF_OK);
+
 		gf_dm_disconnect(sess, GF_FALSE);
 		if (sess->user_proc) {
 			/* For modules that do not use cache and have problems with GF_NETIO_DATA_TRANSFERED ... */
@@ -3588,6 +3592,9 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 
 	if (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL) flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 	sess->flags = flags;
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+		sess->force_data_write_callback = GF_TRUE;
+
 	sess->user_proc = user_io;
 	sess->usr_cbk = cbk;
 	sess->reassigned = sess->init_data ? GF_TRUE : GF_FALSE;

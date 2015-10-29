@@ -3405,9 +3405,10 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	SMJS_FREE(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
-		u32 flags;
+		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
+		if (!ctx->async)
+			flags |= GF_NETIO_SESSION_NOT_THREADED;
 
-		flags = ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED;
 		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
 			if (ctx->cache == XHR_CACHETYPE_NONE) {
 				flags |= GF_NETIO_SESSION_NOT_CACHED;
