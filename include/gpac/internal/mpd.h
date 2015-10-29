@@ -258,6 +258,7 @@ typedef struct {
 
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
+	u32 m3u8_media_seq_min, m3u8_media_seq_max;
 } GF_MPD_Representation;
 
 
@@ -397,9 +398,10 @@ struct _gf_file_get
 };
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, 
+						GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
 
-
+void gf_mpd_getter_del_session(GF_FileDownload *getter);
 
 typedef enum
 {

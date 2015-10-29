@@ -1,14 +1,14 @@
 
 my_ext = {
     whoami: "GPAC-GUI-Extension",
-    name: "BIFS Tests",
-    icon: "applications-other.svg",
+    name: "Showroom",
+    icon: "osmo.bt",
     author: "JeanLF",
-    description: "GPAC BIFS Regression Tests",
+    description: "GPAC demonstrations",
     url: "http://gpac.io/",
-    execjs: ["bifs_tests.js"],
+    execjs: ["showroom.js"],
     autostart: false,
-    config_id: "TestSuite",
+    config_id: "Showroom",
     requires_gl: false,
     version_major: 1,
     version_minor: 0

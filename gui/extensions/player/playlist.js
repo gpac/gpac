@@ -1,6 +1,32 @@
 
 extension.playlist_wnd = null;
 
+extension.playlist_filter_event = function(evt) {
+	switch (evt.type) {
+	case GF_JS_EVENT_PLAYLIST_ADD:
+		this.add_playlist_item(evt.url);
+		return true;
+	case GF_JS_EVENT_PLAYLIST_RESET:
+		this.reset_playlist();
+		return true;
+	case GF_JS_EVENT_PLAYLIST_PLAY:
+		this.playlist_idx = evt.index - 1;
+		this.start();
+			this.playlist_next();
+		return true;
+	default:
+		return false;
+	}
+}
+
+extension.create_playlist_event_filter = function (__anobj) {
+	return function (evt) {
+		return __anobj.playlist_filter_event(evt);
+	}
+}
+
+extension.pl_event_filter = null;
+
 
 extension.playlist = [];
 var plist = extension.get_option('Playlist');
@@ -276,17 +302,21 @@ extension.view_playlist = function () {
 extension.playlist_mode = false;
 extension.set_playlist_mode = function(value)
 {
+	
+	if (!this.pl_event_filter) {
+		this.pl_event_filter = this.create_playlist_event_filter(this);
+		gwlib_add_event_filter(this.pl_event_filter);
+	}
+	
     if (!value || (this.playlist.length<=1)) {
         if (this.controler.playlist_next.visible) {
             this.controler.playlist_next.hide();
             this.controler.playlist_prev.hide();
-            extension.controler.layout();
         }
     } else {
         if (!this.controler.playlist_next.visible) {
             this.controler.playlist_next.show();
             this.controler.playlist_prev.show();
-            extension.controler.layout();
         }
         if (this.playlist_idx == 0) {
             this.controler.playlist_next.enable();
@@ -298,30 +328,61 @@ extension.set_playlist_mode = function(value)
     }
 
     extension.playlist_mode = value;
+	this.controler.layout();
 }
 
 extension.playlist_play = function (pl_item) {
     this.set_playlist_mode(true);
-    this.set_movie_url(pl_item.path + pl_item.name);
+
+	gwlog(l_err, 'playlist item is ' + pl_item);
+	this.set_movie_url(pl_item.path + pl_item.name);
 
     //save current index
     this.playlist_idx = this.playlist.indexOf(pl_item);
     this.set_option('PlaylistIndex', '' + this.playlist_idx);
+
+
+	var e = {};
+	e.type = GF_JS_EVENT_PLAYBACK;
+	e.is_playing = true;
+	e.index = this.playlist_idx;
+	gwlib_filter_event(e);
 }
 
 extension.playlist_next = function()
 {
     if (this.playlist_idx + 1 == this.playlist.length) return;
     this.playlist_idx++;
-    this.playlist_play( this.playlist[extension.playlist_idx] );
+	gwlog(l_err, 'playlist idx is ' + this.playlist_idx);
+	gwlog(l_err, 'playlist length is ' + this.playlist.length);
+
+    this.playlist_play( this.playlist[this.playlist_idx] );
 }
 
 extension.playlist_prev = function()
 {
     if (!this.playlist_idx) return;
     this.playlist_idx--;
-    this.playlist_play( this.playlist[extension.playlist_idx] );
+    this.playlist_play( this.playlist[this.playlist_idx] );
 }
 
+extension.add_playlist_item = function(file)
+{
+	var obj = {};
+	var names = file.split('/');
+	if (names.length == 0) names = file.split('\\');
+	obj.name = names.pop();
+	var len = file.length - obj.name.length;
+	obj.path = file.slice(0, len);
+	this.playlist.push(obj);
+	
+	this.set_playlist_mode(true);
+}
+
+extension.reset_playlist = function()
+{
+	this.playlist = [];
+	this.playlist_idx = -1;
+}
 
     

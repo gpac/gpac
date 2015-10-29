@@ -314,7 +314,7 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	compositor->shader_only_mode = GF_TRUE;
 #endif
 
-	if (!compositor->gl_caps.has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_SIDE)) {
+	if (!compositor->gl_caps.has_shaders && (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] OpenGL shaders not supported - disabling auto-stereo output\n"));
 		compositor->visual->nb_views=1;
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
