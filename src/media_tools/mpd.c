@@ -1596,9 +1596,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	e = gf_m3u8_parse_master_playlist(m3u8_file, &pl, base_url);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse root playlist '%s', error = %s\n", m3u8_file, gf_error_to_string(e)));
-		if (pl)
-			gf_m3u8_master_playlist_del(pl);
-		pl = NULL;
+		gf_m3u8_master_playlist_del(&pl);
 		return e;
 	}
 	if (mpd_file == NULL) {
@@ -1717,7 +1715,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	assert(mpd);
 	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, is_end,  max_dur, mpd, parse_sub_playlist);
 
-	gf_m3u8_master_playlist_del(pl);
+	gf_m3u8_master_playlist_del(&pl);
 
 	return e;
 }
