@@ -742,6 +742,15 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	} else
 #endif /*GPAC_DISABLE_VRML*/
 	{
+
+#ifndef GPAC_DISABLE_3D
+		//cleanup openGL screen
+		if (visual->compositor->hybrid_opengl) {
+			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, 0, GF_FALSE);
+		}
+#endif
+
+		//and clean dirty rect - for hubrid openGL this will clear the canvas, otherwise the 2D backbuffer
 		count = visual->to_redraw.count;
 		for (k=0; k<count; k++) {
 			GF_IRect rc;
@@ -752,11 +761,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			rc = visual->to_redraw.list[k].rect;
 			visual->ClearSurface(visual, &rc, 0, 1);
 		}
-#ifndef GPAC_DISABLE_3D
-		if (!count && hyb_force_redraw) {
-			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, 0, GF_FALSE);
-		}
-#endif
 	}
 	if (!redraw_all && !has_clear) visual->has_modif=0;
 
