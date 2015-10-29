@@ -572,7 +572,7 @@ void gf_check_address(void *ptr)
 		for (i=1; i<pos; i++)
 			element = element->next;
 		assert(element);
-		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p has already been freed\n             in file %s at line %d\n", ptr, element->filename, element->line);
+		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed\n             in file %s at line %d\n", ptr, element->filename, element->line);
 		assert(0);
 	}
 	/*unlock*/
@@ -614,7 +614,7 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				for (i=1; i<pos; i++)
 					element = element->next;
 				assert(element);
-				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p trying to be deleted\n             in file %s at line %d\n             has already been freed\n             in file %s at line %d\n", ptr, filename, line, element->filename, element->line);
+				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p trying to be deleted\n             in file %s at line %d\n             was already freed\n             in file %s at line %d\n", ptr, filename, line, element->filename, element->line);
 				assert(0);
 			}
 		} else {
