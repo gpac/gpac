@@ -41,9 +41,19 @@
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
-	compositor->frame_draw_type = state;
-	if (state==GF_SC_DRAW_FLUSH)
+	if (state==GF_SC_DRAW_FLUSH) {
 		compositor->skip_flush = 2;
+		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
+		if (!compositor->frame_draw_type
+#ifndef GPAC_DISABLE_3D
+			&& !compositor->visual->type_3d
+#endif
+		) {
+			compositor->frame_draw_type = state;
+		}
+	} else {
+		compositor->frame_draw_type = state;
+	}
 }
 
 
