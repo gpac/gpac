@@ -228,7 +228,7 @@ static void imagetexture_destroy(GF_Node *node, void *rs, Bool is_destroy)
 
 		/*cleanup cache if needed*/
 		if (gf_node_get_tag(node)==TAG_MPEG4_CacheTexture) {
-			char section[16];
+			char section[64];
 			const char *opt, *file;
 			Bool delete_file = 1;
 			M_CacheTexture *ct = (M_CacheTexture*)node;
@@ -355,7 +355,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				u32 i;
 				u8 hash[20];
 				FILE *cached_texture;
-				char szExtractName[GF_MAX_PATH], section[16], *opt, *src_url;
+				char szExtractName[GF_MAX_PATH], section[64], *opt, *src_url;
 				opt = (char *) gf_cfg_get_key(txh->compositor->user->config, "General", "CacheDirectory");
 				if (opt) {
 					strcpy(szExtractName, opt);

@@ -132,7 +132,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 	/*if this is run from a browser, we do not get our app path - fortunately on Windows, we always use 'GPAC' in the
 	installation path*/
-	if (!strstr(file_path, "gpac")) {
+	if (!strstr(file_path, "gpac") && !strstr(file_path, "GPAC") ) {
 		HKEY hKey = NULL;
 		DWORD dwSize = GF_MAX_PATH;
 
@@ -342,6 +342,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
 			char *sep = strstr(app_path, "/bin/gcc");
+			if (!sep) sep = strstr(app_path, "/bin/osx");
 			if (sep) {
 				sep[0] = 0;
 				strcat(app_path, "/gui");
@@ -395,6 +396,33 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 #endif
 
+//get real path where the .gpac dir has been created, and use this as the default path
+//for cache (tmp/ dir of ios app) and last working fir
+#ifdef GPAC_IPHONE
+static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
+{
+	char *cache_dir;
+	char buf[GF_MAX_PATH], *res, *sep;
+	res = realpath(file_path, buf);
+	if (!res) return;
+	
+	sep = strstr(res, ".gpac");
+	assert(sep);
+	sep[0] = 0;
+	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
+	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
+	
+	sep = strstr(res, "Documents");
+	assert(sep);
+	sep[0]=0;
+	strcat(res, "tmp/");
+	cache_dir = res;
+	if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
+	gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
+}
+
+#endif
+
 
 static GF_Config *create_default_config(char *file_path)
 {
@@ -429,38 +457,19 @@ static GF_Config *create_default_config(char *file_path)
 	if (!cfg) return NULL;
 
 	gf_cfg_set_key(cfg, "General", "ModulesDirectory", szPath);
-	
-    //get real path where the .gpac dir has been created, and use this as the default path
-    //for cache (tmp/ dir of ios app) and last working fir
+
 #ifdef GPAC_IPHONE
-    char buf[GF_MAX_PATH], *res;
-    res = realpath(file_path, buf);
-    if (res) {
-        char *sep = strstr(res, ".gpac");
-        assert(sep);
-        sep[0] = 0;
-        gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
-        gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
-
-        sep = strstr(res, "Documents");
-        assert(sep);
-        sep[0]=0;
-        strcat(res, "tmp/");
-        cache_dir = res;
-        if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
-        gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
-    }
+	gf_ios_refresh_cache_directory(cfg, file_path);
 #else
-
-	/*get default temporary directoy */
-	cache_dir = gf_get_default_cache_directory();
+    /*get default temporary directoy */
+    cache_dir = gf_get_default_cache_directory();
 	
 	if (cache_dir) {
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
 	}
 #endif
-	
+
 #if defined(GPAC_IPHONE)
     gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
 #elif defined(GPAC_ANDROID)
@@ -530,12 +539,22 @@ static GF_Config *create_default_config(char *file_path)
 
 	/*locate GUI*/
 	if ( get_default_install_path(szPath, GF_PATH_GUI) ) {
+		char *sep = strrchr(szPath, '\\');
+		if (!sep) sep = strrchr(szPath, GF_PATH_SEPARATOR);
 		sprintf(gui_path, "%s%cgui.bt", szPath, GF_PATH_SEPARATOR);
 		f = gf_fopen(gui_path, "rt");
 		if (f) {
 			gf_fclose(f);
 			gf_cfg_set_key(cfg, "General", "StartupFile", gui_path);
 		}
+
+		/*shaders are at the same location*/
+		assert(sep);
+		sep[0] = 0;
+		sprintf(gui_path, "%s%cshaders%cvertex.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "VertexShader", gui_path);
+		sprintf(gui_path, "%s%cshaders%cfragment.glsl", szPath, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", gui_path);
 	}
 
 	/*store and reload*/
@@ -548,8 +567,32 @@ static GF_Config *create_default_config(char *file_path)
 static void check_modules_dir(GF_Config *cfg)
 {
 	char path[GF_MAX_PATH];
-	const char *opt;
+	
+#ifdef GPAC_IPHONE
+	char *cfg_path;
+	if ( get_default_install_path(path, GF_PATH_GUI) ) {
+		char *sep;
+		char shader_path[GF_MAX_PATH];
+		strcat(path, "/gui.bt");
+		gf_cfg_set_key(cfg, "General", "StartupFile", path);
+		//get rid of "/gui/gui.bt"
+		sep = strrchr(path, '/');
+		sep[0] = 0;
+		sep = strrchr(path, '/');
+		sep[0] = 0;
 
+		sprintf(shader_path, "%s%cshaders%cvertex.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "VertexShader", shader_path);
+		sprintf(shader_path, "%s%cshaders%cfragment.glsl", path, GF_PATH_SEPARATOR, GF_PATH_SEPARATOR);
+		gf_cfg_set_key(cfg, "Compositor", "FragmentShader", shader_path);
+	}
+	cfg_path = gf_cfg_get_filename(cfg);
+	gf_ios_refresh_cache_directory(cfg, cfg_path);
+	gf_free(cfg_path);
+	
+#else
+	const char *opt;
+	
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
@@ -603,6 +646,8 @@ static void check_modules_dir(GF_Config *cfg)
 #endif
 		}
 	}
+	
+#endif
 }
 
 GF_EXPORT

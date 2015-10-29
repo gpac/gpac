@@ -31,13 +31,13 @@
 #include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
-#ifdef OPENGL_RASTER
 #include "gl_inc.h"
+
+#ifdef OPENGL_RASTER
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
-	return;
-#if defined(GPAC_USE_GLES1X)
+#if defined(GPAC_USE_GLES1X) 
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -64,7 +64,6 @@ static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Colo
 
 static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color, u8 alpha)
 {
-	return;
 #if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
@@ -187,6 +186,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	if (!compositor->visual->nb_objects_on_canvas_since_last_ogl_flush)
 		goto exit;
 
+	memset(&a_tr_state, 0, sizeof(GF_TraverseState));
+	a_tr_state.color_mat.identity = 1;
 	a_tr_state.visual = compositor->visual;
 	a_tr_state.camera = &compositor->visual->camera;
 	gf_mx_init(a_tr_state.model_matrix);
@@ -194,7 +195,8 @@ void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area)
 	visual_3d_set_state(compositor->visual, V3D_STATE_LIGHT, GF_FALSE);
 	visual_3d_enable_antialias(compositor->visual, GF_FALSE);
 	gf_sc_texture_set_blend_mode(compositor->hybgl_txh, TX_MODULATE);
-	visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
+	//visual_3d_set_material_2d_argb(compositor->visual, 0xFFFFFFFF);
+	compositor->visual->has_material_2d = 0;
 	a_tr_state.mesh_num_textures = gf_sc_texture_enable(compositor->hybgl_txh, NULL);
 	if (a_tr_state.mesh_num_textures ) {
 		if (area) {
@@ -280,10 +282,12 @@ Bool c2d_gl_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_state, Dr
 		GF_Mesh *mesh;
 		size.x = ctx->bi->unclip.width;
 		size.y = ctx->bi->unclip.height;
+# ifdef OPENGL_RASTER
 		if (visual->compositor->opengl_raster) {
 			orig.x = ctx->bi->unclip.x + INT2FIX(visual->compositor->vp_width)/2;
 			orig.y = INT2FIX(visual->compositor->vp_height)/2 - ctx->bi->unclip.y + ctx->bi->unclip.height;
 		}
+#endif
 		mesh = new_mesh();
 		mesh_new_rectangle(mesh, size, &orig, GF_TRUE);
 		visual_3d_mesh_paint(tr_state, mesh);
@@ -363,7 +367,6 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	visual->camera.vp.x = visual->camera.vp.y = 0;
 	visual->camera.vp.width = visual->camera.width = INT2FIX(compositor->vp_width);
 	visual->camera.vp.height = visual->camera.height = INT2FIX(compositor->vp_height);
-
 	visual->camera.up.y = FIX_ONE;
 	visual->camera.end_zoom = FIX_ONE;
 	visual->camera.position.z = INT2FIX(1000);
@@ -531,18 +534,16 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 
 GF_Err compositor_2d_get_video_access(GF_VisualManager *visual)
 {
-	GF_Compositor *compositor = visual->compositor;
-
 	if (!visual->raster_surface) return GF_BAD_PARAM;
 
 #ifdef OPENGL_RASTER
-	if (compositor->opengl_raster && compositor->rasterizer->surface_attach_to_callbacks) {
+	if (visual->compositor->opengl_raster && visual->compositor->rasterizer->surface_attach_to_callbacks) {
 		return c2d_video_access_opengl_raster(visual);
 	}
 #endif
 
 #ifndef GPAC_DISABLE_3D
-	if (compositor->hybrid_opengl) {
+	if (visual->compositor->hybrid_opengl) {
 		return c2d_video_access_hybrid_opengl(visual);
 	}
 #endif

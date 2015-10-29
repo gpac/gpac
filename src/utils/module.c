@@ -274,7 +274,8 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 GF_EXPORT
-const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs) {
+const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs)
+{
 	char* directories;
 	char* tmp_dirs;
 	char * pch;
@@ -288,7 +289,9 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 	/* Get directory from config file */
 	directories = (char*)gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
 	if (! directories) {
+#ifndef GPAC_IPHONE
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
+#endif
 		return NULL;
 	}
 

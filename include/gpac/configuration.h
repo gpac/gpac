@@ -41,6 +41,8 @@
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
+/*IPv6 enabled - for win32, this is evaluated at compile time, !! do not uncomment !!*/
+
 #define GPAC_MEMORY_TRACKING
 
 /*Win32 IPv6 is evaluated at compile time, !! do not uncomment !!*/
@@ -109,6 +111,7 @@
 #define GPAC_HAS_SPIDERMONKEY
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
+#define GPAC_HAS_GLU
 
 /*Configuration for XCode iOS*/
 #elif defined(GPAC_CONFIG_DARWIN) && defined(GPAC_IPHONE)
@@ -122,9 +125,13 @@
 #define GPAC_HAS_JPEG
 #define GPAC_HAS_PNG
 
-#define GPAC_USE_GLES1X
 /*don't use fixed-point version on iOS, not needed*/
 //#define GPAC_FIXED_POINT
+
+//#define GPAC_USE_GLES1X
+#define GPAC_USE_GLES2
+
+// glu port available in gpac extra libs
 #define GPAC_HAS_GLU
 
 /*extra libs supported on iOS*/
