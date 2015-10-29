@@ -334,7 +334,10 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
   Another pb of NLD is that the spec says nothing about object/axis alignment: should we center
   the object at 0,0,0 (local coords) or not? the results are quite different. Here we don't
   recenter the object before transform
-*/
+
+ 
+ TODO - think of a way to implement this through the vertex shader
+ */
 
 static Bool NLD_GetMatrix(M_NonLinearDeformer *nld, GF_Matrix *mx)
 {

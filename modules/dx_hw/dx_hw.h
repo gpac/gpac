@@ -86,7 +86,11 @@ typedef HRESULT(WINAPI * DIRECTDRAWCREATEPROC) (GUID *, LPDIRECTDRAW *, IUnknown
 
 #ifdef GPAC_USE_GLES1X
 #include "GLES/egl.h"
+#elif defined(GPAC_USE_GLES2)
+#include "EGL/egl.h"
 #endif
+
+#define EGL_CHECK_ERR	{s32 res = eglGetError(); if (res!=12288) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("EGL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
 typedef struct
 {
@@ -158,7 +162,7 @@ typedef struct
 	/*gl*/
 #ifndef GPAC_DISABLE_3D
 
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	NativeDisplayType gl_HDC;
 	EGLDisplay egldpy;
 	EGLSurface surface;

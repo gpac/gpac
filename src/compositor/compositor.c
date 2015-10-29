@@ -41,9 +41,19 @@
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
-	compositor->frame_draw_type = state;
-	if (state==GF_SC_DRAW_FLUSH)
+	if (state==GF_SC_DRAW_FLUSH) {
 		compositor->skip_flush = 2;
+		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
+		if (!compositor->frame_draw_type
+#ifndef GPAC_DISABLE_3D
+			&& !compositor->visual->type_3d
+#endif
+		) {
+			compositor->frame_draw_type = state;
+		}
+	} else {
+		compositor->frame_draw_type = state;
+	}
 }
 
 
@@ -1351,9 +1361,23 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (!strcmp(sOpt, "Anaglyph")) compositor->visual->autostereo_type = GF_3D_STEREO_ANAGLYPH;
 	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
 	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
-	else if (!strcmp(sOpt, "SPV19")) compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+	else if (!strcmp(sOpt, "SPV19")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+		if (compositor->visual->nb_views != 5) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] SPV19 interleaving used but only %d views indicated - adjusting to 5 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 5;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "5");
+		}
+	}
+	else if (!strcmp(sOpt, "ALIO")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_8VALIO;
+		if (compositor->visual->nb_views != 8) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] ALIO interleaving used but only %d views indicated - adjusting to 8 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 8;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "8");
+		}
+	}
 	else if (!strcmp(sOpt, "StereoHeadset")) compositor->visual->autostereo_type = GF_3D_STEREO_HEADSET;
-
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;
@@ -1366,6 +1390,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	case GF_3D_STEREO_COLUMNS:
 	case GF_3D_STEREO_ROWS:
 		if (compositor->visual->nb_views != 2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Stereo interleaving used but %d views indicated - adjusting to 2 view\n", compositor->visual->nb_views ));
 			compositor->visual->nb_views = 2;
 			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "2");
 		}
@@ -1948,21 +1973,23 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
-			if (compositor->autoconfig_opengl) {
 #ifndef GPAC_USE_GLES1X
-				visual_3d_init_shaders(compositor->visual);
+			visual_3d_init_shaders(compositor->visual);
 #endif
+			if (compositor->autoconfig_opengl) {
 				compositor->autoconfig_opengl = 0;
 				compositor->force_opengl_2d = 0;
 				compositor->visual->type_3d = prev_type_3d;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (compositor->visual->yuv_rect_glsl_program) {
+				if (compositor->visual->compositor->shader_only_mode) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
 					compositor->hybrid_opengl = 1;
 				} else {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
 				}
+#endif			
 			}
 
 		}
@@ -2917,8 +2944,10 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		Bool locked = gf_mx_try_lock(compositor->mx);
-		if (event->setup.hw_reset)
+		if (event->setup.hw_reset) {
 			gf_sc_reset_graphics(compositor);
+			compositor->reset_graphics = 2;
+		}
 
 		if (event->setup.back_buffer)
 			compositor->recompute_ar = 1;

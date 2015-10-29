@@ -420,8 +420,9 @@ static void navinfo_set_bind(GF_Node *node, GF_Route *route)
 
 static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 {
-	u32 i, nb_select_mode;
+	u32 i;
 #ifndef GPAC_DISABLE_3D
+	u32 nb_select_mode;
 	SFVec3f start, end;
 	Fixed scale;
 	ViewStack *st = (ViewStack *) gf_node_get_private(node);

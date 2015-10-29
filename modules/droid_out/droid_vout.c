@@ -30,8 +30,13 @@
 
 #include <gpac/setup.h>
 
+#ifndef GPAC_USE_GLES2
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#else
 #include <GLES/gl.h>
 #include <GLES/glext.h>
+#endif
 
 #include <android/log.h>
 
@@ -109,8 +114,10 @@ void initGL(AndroidContext *rc)
 		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
 
+#ifndef GPAC_USE_GLES2
 	/* Enable smooth shading */
 	glShadeModel(GL_SMOOTH);
+#endif
 
 	/* Set the background black */
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -137,10 +144,11 @@ void gluPerspective(GLfloat fovy, GLfloat aspect,
 	ymin = -ymax;
 	xmin = ymin * aspect;
 	xmax = ymax * aspect;
-
+#ifndef GPAC_USE_GLES2
 	glFrustumx((GLfixed)(xmin * 65536), (GLfixed)(xmax * 65536),
 	           (GLfixed)(ymin * 65536), (GLfixed)(ymax * 65536),
 	           (GLfixed)(zNear * 65536), (GLfixed)(zFar * 65536));
+#endif
 }
 
 void resizeWindow(AndroidContext *rc)
@@ -159,7 +167,7 @@ void resizeWindow(AndroidContext *rc)
 
 	/* Setup our viewport. */
 	glViewport(0, 0, (GLsizei)rc->width, (GLsizei)rc->height);
-
+#ifndef GPAC_USE_GLES2
 	/* change to the projection matrix and set our viewing volume. */
 	glMatrixMode(GL_PROJECTION);
 	glLoadIdentity();
@@ -172,6 +180,7 @@ void resizeWindow(AndroidContext *rc)
 
 	/* Reset The View */
 	glLoadIdentity();
+#endif
 	LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
 
@@ -193,11 +202,12 @@ void drawGLScene(AndroidContext *rc)
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
 	rgba[0] = 1.f;
+#ifndef GPAC_USE_GLES2
 	glColor4f(1.f, 1.f, 1.f, 1.f);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, rgba);
 	glMaterialfv(GL_FRONT_AND_BACK, GL_EMISSION, rgba);
-
+#endif
 	/* Clear The Screen And The Depth Buffer */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -208,7 +218,9 @@ void drawGLScene(AndroidContext *rc)
 	glBindTexture( GL_TEXTURE_2D, rc->texID);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+#ifndef GPAC_USE_GLES2
 	glTexEnvx(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#endif
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -226,11 +238,14 @@ void drawGLScene(AndroidContext *rc)
 	{
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
-
+#ifndef GPAC_USE_GLES2
 		glDrawTexsOES(0, 0, 0, rc->width, rc->height);
+#endif
 	}
 	else
 	{
+		//TODOk reprogram for ES2
+#ifndef GPAC_USE_GLES2
 		/* Enable VERTEX array */
 		glEnableClientState(GL_VERTEX_ARRAY);
 		glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -241,6 +256,7 @@ void drawGLScene(AndroidContext *rc)
 
 		/* Move Left 1.5 Units And Into The Screen 6.0 */
 		glLoadIdentity();
+#endif
 		//glTranslatef(0.0f, 0.0f, -3.3f);
 		//glTranslatef(0.0f, 0.0f, -2.3f);
 
@@ -271,10 +287,11 @@ void drawGLScene(AndroidContext *rc)
 
 		/* Drawing using triangle strips, draw triangles using 4 vertices */
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
+#ifndef GPAC_USE_GLES2
 		/* Disable vertex array */
 		glDisableClientState(GL_VERTEX_ARRAY);
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+#endif
 	}
 
 	glDisable(GL_TEXTURE_2D);
@@ -328,7 +345,9 @@ int createTexture(AndroidContext *rc)
 	glBindTexture( GL_TEXTURE_2D, rc->texID);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+#ifndef GPAC_USE_GLES2
 	glTexEnvx(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
+#endif
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
@@ -572,6 +591,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			//if (evt->setup.opengl_mode) return GF_OK;
 			//in fullscreen mode: do not change viewport; just update perspective
 			if (rc->fullscreen) {
+#ifndef GPAC_USE_GLES2
 				/* change to the projection matrix and set our viewing volume. */
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();
@@ -584,6 +604,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 
 				/* Reset The View */
 				glLoadIdentity();
+#endif
 				return GF_OK;
 			} else
 				return droid_Resize(dr, evt->setup.width, evt->setup.height);

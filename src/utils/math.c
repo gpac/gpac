@@ -1474,6 +1474,25 @@ void gf_mx_inverse(GF_Matrix *mx)
 	gf_mx_copy(*mx, rev);
 }
 
+GF_EXPORT
+void gf_mx_transpose(GF_Matrix *mx)
+{
+	GF_Matrix rev;
+	int i,j;
+
+	gf_mx_init(rev);
+	for (i=0; i<4 ; i++){
+		for(j=0; j<4; j++){
+			rev.m[i*4+j] = mx->m[j*4+i];
+		}
+	}
+
+
+	gf_mx_copy(*mx, rev);
+}
+
+
+
 
 GF_EXPORT
 void gf_mx_apply_vec(GF_Matrix *mx, GF_Vec *pt)
