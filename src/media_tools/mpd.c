@@ -1812,7 +1812,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 
 
 	if (!ms->bitstream_switching_url && !ms->segment_timeline && !ms->initialization_segment && !ms->representation_index) {
-		fprintf(out, "/>\n");
+		fprintf(out, ">\n");
 		return 1;
 	}
 	fprintf(out, ">\n");
