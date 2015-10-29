@@ -4,7 +4,7 @@ extension = {
 	sequence_index: 0,
 	sequences: [],
 
-	showroom_url: 'file:///Volumes/DATA/code/showroom/',
+	showroom_url: 'http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/showroom/',
 
 	ext_filter_event: function (evt) {
 		if (!this.dialog ) return;
@@ -23,17 +23,20 @@ extension = {
 
 	load_description: function () {
 		if (this.setup) return;
-		
+
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', this.showroom_url + '00_showroom.json', false);
 		xhr.send('');
-		
+
 		if ((xhr.status != 200) || (xhr.readyState != 4)) {
 			if (xhr.status) {
 				gwlog(l_err, '[ShowRoom] Failed to query server: ' + xhr.responseText);
 			} else {
 				gwlog(l_err, '[ShowRoom] Failed to send request');
 			}
+			var msg = gw_new_message(null, 'Error loading showroom', 'HTTP status '+xhr.status);
+			msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
+			msg.show();
 			return null;
 		}
 
