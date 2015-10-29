@@ -2915,7 +2915,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
-			gf_sc_reset_graphics(compositor);
+			if (event->setup.hw_reset)
+				gf_sc_reset_graphics(compositor);
+
 			if (event->setup.back_buffer)
 				compositor->recompute_ar = 1;
 		}
