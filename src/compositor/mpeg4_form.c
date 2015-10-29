@@ -339,7 +339,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 	/*update clipper*/
 	if (tr_state->traversing_mode==TRAVERSE_SORT) {
 		prev_clip = tr_state->visual->top_clipper;
-		tr_state->clipper = compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
+		compositor_2d_update_clipper(tr_state, st->clip, &had_clip, &prev_clipper, GF_FALSE);
 		if (tr_state->has_clip) {
 			tr_state->visual->top_clipper = gf_rect_pixelize(&tr_state->clipper);
 			gf_irect_intersect(&tr_state->visual->top_clipper, &prev_clip);
