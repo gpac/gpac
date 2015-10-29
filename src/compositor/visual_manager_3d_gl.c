@@ -2036,9 +2036,9 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
 }
 
-static void *visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh)
+static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void **base_address)
 {
-	void *base_address = NULL;
+	*base_address = NULL;
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
 		/*we lost OpenGL context at previous frame, recreate VBO*/
 		mesh->vbo = 0;
@@ -2054,22 +2054,24 @@ static void *visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh)
 			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 			GL_CHECK_ERR
 			mesh->vbo_dirty = 0;
+		} else {
+			return GF_FALSE;
 		}
 	}
 	
 	if (mesh->vbo) {
-		base_address = NULL;
+		*base_address = NULL;
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
 		GL_CHECK_ERR
 	} else {
-		base_address = &mesh->vertices[0].pos;
+		*base_address = &mesh->vertices[0].pos;
 	}
 	
 	if (mesh->vbo_dirty) {
 		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
 		mesh->vbo_dirty = 0;
 	}
-	return base_address;
+	return GF_TRUE;
 }
 
 
@@ -2345,8 +2347,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GL_CHECK_ERR
 
 	
-	vertex_buffer_address = visual_3d_bind_buffer(visual->compositor, mesh);
-	if (!vertex_buffer_address) {
+	if (! visual_3d_bind_buffer(visual->compositor, mesh, &vertex_buffer_address)) {
 		glUseProgram(0);
 		return;
 	}
@@ -2710,11 +2711,10 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	}
 #endif
 
-	base_address = visual_3d_bind_buffer(compositor, mesh);
-	if (!base_address) {
+	if (! visual_3d_bind_buffer(compositor, mesh, &base_address)) {
+		glUseProgram(0);
 		return;
 	}
-
 	has_col = has_tx = has_norm = 0;
 	
 	//set lights before pushing modelview matrix
