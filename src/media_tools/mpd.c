@@ -1854,7 +1854,6 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 				fprintf(out, "\"");
 			}
 			fprintf(out, "/>\n");
-			fprintf(out, "/>\n");
 		}
 	}
 	fprintf(out, "%s</SegmentList>\n", indent);
