@@ -286,7 +286,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
-	if (!compositor->visual->type_3d && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
 #endif
 
@@ -417,12 +417,12 @@ static void composite_update(GF_TextureHandler *txh)
 		st->visual->height = txh->height;
 
 		stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
-		/*TODO - add support for compositeTexture3D when root is 2D visual*/
+
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->type_3d) {
 			GF_Compositor *compositor = st->visual->compositor;
 			/*figure out what to do if main visual (eg video out) is not in OpenGL ...*/
-			if (!compositor->visual->type_3d) {
+			if (!compositor->visual->type_3d && !compositor->hybrid_opengl) {
 				/*create an offscreen window for OpenGL rendering*/
 				if ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height)) {
 #ifndef GPAC_USE_TINYGL
@@ -477,9 +477,10 @@ static void composite_update(GF_TextureHandler *txh)
 	if (st->visual->camera.is_3D) {
 #ifdef GPAC_USE_TINYGL
 		st->visual->type_3d = 2;
-		st->visual->camera.is_3D = 1;
 #else
 		if (compositor->visual->type_3d) {
+			st->visual->type_3d = 2;
+		} else if (compositor->hybrid_opengl) {
 			st->visual->type_3d = 2;
 		} else if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
 			st->visual->type_3d = 0;
@@ -543,7 +544,7 @@ static void composite_update(GF_TextureHandler *txh)
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
 		//for composite 3D, store current buffer to texture - TODO: use FBOs to avoid the copy ...
-		if (st->visual->camera.is_3D && st->visual->compositor->visual->type_3d) {
+		if (st->visual->camera.is_3D && (st->visual->compositor->visual->type_3d || st->visual->compositor->hybrid_opengl)) {
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_texture(&st->txh);
 #endif
