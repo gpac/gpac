@@ -341,6 +341,11 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 #endif
 	{
 		visual->ClearSurface(visual, NULL, 0, 0);
+#ifndef GPAC_DISABLE_3D
+		if (visual->compositor->hybrid_opengl) {
+			visual->ClearSurface(visual, NULL, 0, GF_TRUE);
+		}
+#endif
 	}
 	return GF_OK;
 }

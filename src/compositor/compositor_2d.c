@@ -372,7 +372,7 @@ static GF_Err compositor_2d_setup_opengl(GF_VisualManager *visual)
 	visual->camera.position.z = INT2FIX(1000);
 	visual->camera.flags = CAM_IS_DIRTY;
 
-	camera_update(&visual->camera, NULL, visual->center_coords);
+	camera_update(&visual->camera, NULL, visual->compositor->hybrid_opengl ? GF_TRUE : visual->center_coords);
 
 	visual_3d_projection_matrix_modified(visual);
 
