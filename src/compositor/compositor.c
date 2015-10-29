@@ -2122,7 +2122,6 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		/*request for OpenGL drawing in 2D*/
 		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 1;
-			camera_set_2d(&compositor->visual->camera);
 			if (compositor->force_opengl_2d==2) force_navigate=1;
 		}
 
@@ -2131,6 +2130,9 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->camera.is_3D = 0;
 		}
 		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? 1 : 0;
+		if (!compositor->visual->camera.is_3D)
+			camera_set_2d(&compositor->visual->camera);
+
 		camera_invalidate(&compositor->visual->camera);
 		if (force_navigate) {
 			compositor->visual->camera.navigate_mode = GF_NAVIGATE_EXAMINE;
