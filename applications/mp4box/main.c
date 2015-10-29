@@ -3445,7 +3445,7 @@ int mp4boxMain(int argc, char **argv)
 		Bool remote = GF_FALSE;
 		GF_MPD *mpd;
 		char *mpd_base_url = NULL;
-		if (!strnicmp(inName, "http://", 7)) {
+		if (!strnicmp(inName, "http://", 7) || !strnicmp(inName, "https://", 8)) {
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
 			e = gf_dm_wget(inName, "tmp_main.m3u8", 0, 0, &mpd_base_url);
 			if (e != GF_OK) {
@@ -3479,7 +3479,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_FALSE);
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE);
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 		
