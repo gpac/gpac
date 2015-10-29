@@ -185,7 +185,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
-	if (txh->stream_finished || txh->needs_refresh) return;
+	if ((txh->stream_finished && txh->tx_io) || txh->needs_refresh) return;
 
 	if (!txh->stream) {
 		txh->data = NULL;
