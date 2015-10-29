@@ -937,7 +937,13 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 
 		/*default back color is black*/
-		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFF000000;
+		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) {
+			if (compositor->default_back_color) {
+				compositor->back_color = compositor->default_back_color;
+			} else {
+				compositor->back_color = 0xFF000000;
+			}
+		}
 
 #ifndef GPAC_DISABLE_SVG
 		top_node = gf_sg_get_root_node(compositor->scene);
@@ -1361,7 +1367,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "8");
 		}
 	}
-
+	else if (!strcmp(sOpt, "StereoHeadset")) compositor->visual->autostereo_type = GF_3D_STEREO_HEADSET;
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;
@@ -1790,7 +1796,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_NUM_STEREO_VIEWS:
 #ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d) {
-			if (compositor->visual->nb_views && compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)
+			if (compositor->visual->nb_views && compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)
 				return compositor->visual->nb_views;
 		}
 #endif
@@ -1835,7 +1841,7 @@ GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fr
 {
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)) {
+	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)) {
 		GF_Err e;
 		gf_mx_p(compositor->mx);
 		e = compositor_3d_get_offscreen_buffer(compositor, framebuffer, view_idx, depth_dump_mode);
@@ -2814,11 +2820,14 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 			Fixed scale = INT2FIX( MIN(w, h) / 2);
 			if (scale) tr_state->min_hsize = scale;
 		}
-		if (!use_pm) {
-			gf_mx2d_add_scale(&transf, tr_state->min_hsize, tr_state->min_hsize);
-		} else {
-			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
-			gf_mx2d_add_scale(&transf, inv_scale, inv_scale);
+		//do not apply scale when type_3d is inheridted (eg we are loading a vrml/bifs from the gui)
+		if (!compositor->inherit_type_3d) {
+			if (!use_pm) {
+				gf_mx2d_add_scale(&transf, tr_state->min_hsize, tr_state->min_hsize);
+			} else {
+				Fixed inv_scale = gf_invfix(tr_state->min_hsize);
+				gf_mx2d_add_scale(&transf, inv_scale, inv_scale);
+			}
 		}
 		tr_state->pixel_metrics = use_pm;
 	}

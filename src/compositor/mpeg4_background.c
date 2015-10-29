@@ -371,7 +371,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 #ifdef GPAC_FIXED_POINT
 		scale = (tr_state->camera->z_far/10)*8;
 #else
-		scale = 9*tr_state->camera->z_far/10;
+		scale = 8*tr_state->camera->z_far/10;
 #endif
 		gf_mx_add_scale(&mx, scale, scale, scale);
 
@@ -398,7 +398,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 #ifdef GPAC_FIXED_POINT
 		scale = (tr_state->camera->z_far/100)*70;
 #else
-		scale = 85*tr_state->camera->z_far/100;
+		scale = 70*tr_state->camera->z_far/100;
 #endif
 		gf_mx_add_scale(&mx, scale, -scale, scale);
 
@@ -415,11 +415,12 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		gf_mx_init(mx);
 		gf_mx_add_translation(&mx, res.x, res.y, res.z);
 #ifdef GPAC_FIXED_POINT
-		scale = (tr_state->camera->z_far/100)*99;
-		gf_mx_add_scale(&mx, scale, scale, scale);
+		scale = (tr_state->camera->z_far/100)*90;
 #else
-		gf_mx_add_scale(&mx, tr_state->camera->z_far, tr_state->camera->z_far, tr_state->camera->z_far);
+		scale = (tr_state->camera->z_far/100)*90;
 #endif
+		gf_mx_add_scale(&mx, scale, scale, scale);
+		
 		visual_3d_enable_antialias(tr_state->visual, 1);
 
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);

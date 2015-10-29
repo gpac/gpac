@@ -1,67 +1,49 @@
 extension = {
-    setup: false,
-    dialog: null,
-	source_url: 'http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests_bifs_mp4/',
-	sequence_index: 0,
+	source_url: 'http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/bifs/',
+
+	filter_event : function(evt) {
+		switch (evt.type) {
+		case GF_JS_EVENT_PLAYBACK:
+			this.set_option('SequenceIndex', ''+ evt.index);
+			return false;
+		default:
+			return false;
+		}
+	},
+	
+	create_event_filter : function (__anobj) {
+		return function (evt) {
+			return __anobj.filter_event(evt);
+		}
+	},
+	
+	_event_filter : null,
 
 	start: function () {
-        gw_hide_dock();
-
-		var wnd = gw_new_grid_container(null);
-		wnd.spread_h = false;
-        wnd.break_at_hidden = true;
-
-		this.dialog = wnd;
-		this.dialog.extension = this;
-		
-		wnd.close = gw_new_icon(wnd, 'close');
-		wnd.close.on_click = function () {
-			gw_show_dock();
-			wnd.extension.dialog = null;
-			wnd.close();
-			gwskin.restore_session('', 0, 0);
-		};
-		
-		wnd.prev = gw_new_icon(wnd, 'previous');
-		wnd.next = gw_new_icon(wnd, 'next');
-
-		wnd.prev.extension = this;
-		wnd.prev.on_click = function() {
-			if (this.extension.sequence_index)
-				this.extension.sequence_index--;
-			else
-				this.extension.sequence_index = this.extension.sequences.length-1;
-			this.extension.load_sequence();
+		if (!this._event_filter) {
+			this._event_filter = this.create_event_filter(this);
+			gwlib_add_event_filter(this._event_filter);
 		}
+		var e = {};
+		e.type = GF_JS_EVENT_PLAYLIST_RESET;
+		gwlib_filter_event(e);
 
-		wnd.next.extension = this;
-		wnd.next.on_click = function() {
-			if (this.extension.sequence_index<this.extension.sequences.length-1)
-				this.extension.sequence_index++;
-			else
-				this.extension.sequence_index = 0;
-			this.extension.load_sequence();
+		e.type = GF_JS_EVENT_PLAYLIST_ADD;
+		for (var i=0; i<this.sequences.length; i++) {
+			e.url = this.source_url + this.sequences[i];
+			gwlib_filter_event(e);
 		}
-
-        wnd.on_display_size = function (width, height) {
-            w = width;
-			h = gwskin.default_control_height;
-			this.set_size(w, h);
-			this.move(0, (height-h)/2);
-        }
-
-        wnd.on_display_size(gw_display_width, gw_display_height);
-        wnd.show();
-
-
-		this.load_sequence();
+		
+		var sequence_index = parseInt( this.get_option('SequenceIndex', '0') );
+		if (sequence_index >= this.sequences.length) sequence_index = 0;
+		else if (sequence_index < 0) sequence_index = 0;
+		
+		gwlog(l_err, 'Done updating playlist');
+		
+		e.type = GF_JS_EVENT_PLAYLIST_PLAY;
+		e.index = sequence_index;
+		gwlib_filter_event(e);
     },
-	
-	load_sequence : function () {
-		gwskin.restore_session(this.source_url + this.sequences[this.sequence_index], 0, 0);
-		gw_background_control(false);
-		this.dialog.on_display_size(gw_display_width, gw_display_height);
-	},
 	
 	sequences : [
 

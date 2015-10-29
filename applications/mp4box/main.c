@@ -3443,6 +3443,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = GF_FALSE;
+		GF_MPD *mpd;
 		char *mpd_base_url = NULL;
 		if (!strnicmp(inName, "http://", 7)) {
 #if !defined(GPAC_DISABLE_CORE_TOOLS)
@@ -3458,12 +3459,32 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "HTTP Downloader disabled in this build\n");
 			return mp4box_cleanup(1);
 #endif
+
+			if (outName) strcpy(outfile, outName);
+			else {
+				const char *sep = strrchr(inName, '/');
+				sprintf(outfile, "%s.mpd", sep+1);
+			}
+		} else {
+			if (outName) strcpy(outfile, outName);
+			else sprintf(outfile, "%s.mpd", inName);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, (outName ? outName : inName), 0, "video/mp2t", GF_TRUE, use_url_template, NULL);
+
+		mpd = gf_mpd_new();
+		if (!mpd) {
+			e = GF_OUT_OF_MEM;
+			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
+			mp4box_cleanup(1);
+		}
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_FALSE);
+		if (!e)
+			gf_mpd_write_file(mpd, outfile);
+		if (mpd) gf_mpd_del(mpd);
+
 		if (mpd_base_url) gf_free(mpd_base_url);
 
 		if (remote) {
-			//gf_delete_file("tmp_main.m3u8");
+			gf_delete_file("tmp_main.m3u8");
 		}
 		if (e != GF_OK) {
 			fprintf(stderr, "Error converting M3U8 (%s) to MPD (%s): %s\n", inName, outName, gf_error_to_string(e));

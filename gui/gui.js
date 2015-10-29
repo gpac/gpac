@@ -8,44 +8,7 @@
 
 all_extensions = [];
 
-
-in_drag = 0;
-start_drag_x=start_drag_y=0;
-
-function my_filter_event(evt)
-{
- switch (evt.type) {
- case GF_EVENT_MOUSEDOWN:
-  if (evt.picked) return false;
-  start_drag_x = evt.mouse_x;
-  start_drag_y = evt.mouse_y;
-  if (gpac.navigation != GF_NAVIGATE_NONE) return false;
-  if (!gpac.fullscreen)  in_drag = 1;
-  return false;
- case GF_EVENT_DBLCLICK:
-  return true;
-case GF_EVENT_MOUSEMOVE:
-    if (in_drag) {
-        in_drag = 2;
-        gpac.move_window(evt.mouse_x - start_drag_x, evt.mouse_y - start_drag_y);
-        return true;
-    }
-    return false;
-
-case GF_EVENT_MOUSEUP:
-    if (in_drag == 2) {
-        in_drag = 0;
-        return true;
-    } 
-    in_drag = 0;
-    return false;
- default:
-  return false;
- } 
- return false;
-}
-
-function gw_insert_media_node(node) 
+function gw_insert_media_node(node)
 {
     media_root.children[media_root.children.length] = node;
 }
@@ -137,10 +100,7 @@ function initialize() {
     gwlib_init(ui_root);
 
     //set background color
-    root.children[0].backColor = gwskin.back_color;
-
-    //register custom event filter
-    gwlib_add_event_filter(my_filter_event);
+    gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
 
     //what do we do with tooltips ?
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };
@@ -292,6 +252,3 @@ function on_resize(evt) {
     layout();
 }
 
-function gw_background_control(enable) {
-    root.children[0].set_bind = enable ? true : false;
-}

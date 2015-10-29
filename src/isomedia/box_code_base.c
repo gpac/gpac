@@ -743,12 +743,11 @@ GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
 
-	if (ptr->dataSize) {
-		e = gf_isom_box_write_header(s, bs);
-		if (e) return e;
-		if (ptr->data) {
-			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
-		}
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
+	if (ptr->dataSize && ptr->data) {
+		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -757,9 +756,10 @@ GF_Err defa_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
-	if (ptr->dataSize) {
-		e = gf_isom_box_get_size(s);
-		if (e) return e;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	
+	if (ptr->dataSize && ptr->data) {
 		ptr->size += ptr->dataSize;
 	}
 	return GF_OK;

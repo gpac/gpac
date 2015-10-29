@@ -109,7 +109,7 @@ extension.view_stats = function () {
                 label += '\n';
                 if (q.width) {
                     label += 'Size ' + q.width + 'x' + q.height + (q.interlaced ? ' interlaced @' : ' progressive @') + q.fps + ' FPS - SAR ' + q.par_num + '/' + q.par_den;
-                } else {
+                } else if (q.samplerate) {
                     label += 'Samplerate ' + q.samplerate + ' Hz - ' + q.channels + ' channels';
                 }
 
@@ -231,7 +231,7 @@ extension.view_stats = function () {
                     var fps = m.frame_duration;
                     label += 'Size:' + m.width + 'x' + m.height;
                     if (m.pixelformat) label += ' (' + m.par + ' ' + m.pixelformat + ')';
-                } else {
+                } else if (m.samplerate) {
                     label += '' + m.samplerate + 'Hz ' + m.channels + ' channels';
                 }
                 label += '\n'

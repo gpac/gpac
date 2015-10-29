@@ -3326,6 +3326,8 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	fsize = gf_ftell(responseFile);
 	gf_fseek(responseFile, 0, SEEK_SET);
 
+	ctx->html_status = 200;
+
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
 	gf_fclose(responseFile);
