@@ -542,7 +542,8 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-		if (st->visual->compositor->visual->type_3d) {
+		//for composite 3D, store current buffer to texture - TODO: use FBOs to avoid the copy ...
+		if (st->visual->camera.is_3D && st->visual->compositor->visual->type_3d) {
 #ifndef GPAC_USE_TINYGL
 			gf_sc_copy_to_texture(&st->txh);
 #endif
