@@ -1724,10 +1724,6 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	has_col = has_tx = has_norm = 0;
 
-	if ((compositor->reset_graphics==2) && mesh->vbo) {
-		/*we lost OpenGL context at previous frame, recreate VBO*/
-		mesh->vbo = 0;
-	}
 	/*rebuild VBO for large ojects only (we basically filter quads out)*/
 	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
 		GL_CHECK_ERR
