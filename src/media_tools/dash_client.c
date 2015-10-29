@@ -1647,7 +1647,7 @@ static void gf_dash_solve_representation_xlink(GF_DASH_Group *group, GF_MPD_Repr
 		if (elt->drm_method != DRM_NONE) {
 			//segment_url->key_url = "aes-128";
 			if (elt->key_uri) {
-				segment_url->key_url = strdup(elt->key_uri);
+				segment_url->key_url = gf_strdup(elt->key_uri);
 				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
 			}
 		}

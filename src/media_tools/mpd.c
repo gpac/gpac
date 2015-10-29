@@ -616,7 +616,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 	i = 0;
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (strstr(att->name, "href")) set->xlink_href = gf_mpd_parse_string(att->value);
-		else if (strstr(att->name, "actuate")) set->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? 1 : 0;
+		else if (strstr(att->name, "actuate")) set->xlink_actuate_on_load = !strcmp(att->value, "onLoad") ? GF_TRUE : GF_FALSE;
 		else if (!strcmp(att->name, "id")) set->id = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "group")) set->group = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lang")) set->lang = gf_mpd_parse_string(att->value);
@@ -816,7 +816,7 @@ void gf_mpd_segment_timeline_free(void *_item)
 void gf_mpd_segment_list_free(void *_item)
 {
 	GF_MPD_SegmentList *ptr = (GF_MPD_SegmentList *)_item;
-	if (ptr->xlink_href) gf_free(ptr->xlink_href);
+	//if (ptr->xlink_href) gf_free(ptr->xlink_href);
 	if (ptr->initialization_segment) gf_mpd_url_free(ptr->initialization_segment);
 	if (ptr->bitstream_switching_url) gf_mpd_url_free(ptr->bitstream_switching_url);
 	if (ptr->representation_index) gf_mpd_url_free(ptr->representation_index);
@@ -1514,7 +1514,7 @@ try_next_segment:
 			if (!rep->segment_list) return GF_OUT_OF_MEM;
 			// doesn't parse sub-playlists, we need to save URL to these sub-playlist in xlink:href so that we can get the segment URL when we need
 			if (!parse_sub_playlist) {
-				rep->segment_list->xlink_href = strdup(pe->url);
+				rep->segment_list->xlink_href = gf_strdup(pe->url);
 				gf_free(base_url);
 				base_url = NULL;
 				if (template_base) {
@@ -1558,7 +1558,7 @@ try_next_segment:
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
-						segment_url->key_url = strdup(elt->key_uri);
+						segment_url->key_url = gf_strdup(elt->key_uri);
 						gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
 					}
 				}
