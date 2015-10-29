@@ -153,6 +153,7 @@ extension = {
     },
 	
 	load_sequence : function () {
+		if (!this.setup) return;
 		var o = this.sequences[this.sequence_index];
 		var desc = o.name + '\n\n' + o.description;
 		this.desc.set_content(desc);
