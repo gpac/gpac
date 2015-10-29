@@ -121,6 +121,6 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 /**
  * Deletes the given MasterPlaylist and all of its sub elements
  */
-GF_Err gf_m3u8_master_playlist_del(MasterPlaylist *playlist);
+GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist);
 
 #endif /* M3U8_PLAYLIST_H */
