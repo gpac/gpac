@@ -3464,13 +3464,20 @@ int mp4boxMain(int argc, char **argv)
 				strcpy(outfile, outName);
 			else {
 				const char *sep = strrchr(inName, '/');
+				char *ext = strstr(sep, ".m3u8");
+				if (ext) ext[0] = 0;
 				sprintf(outfile, "%s.mpd", sep+1);
 			}
 		} else {
 			if (outName)
 				strcpy(outfile, outName);
-			else
-				sprintf(outfile, "%s.mpd", inName);
+			else {
+				char *dst = strdup(inName);
+				char *ext = strstr(dst, ".m3u8");
+				if (ext) ext[0] = 0;
+				sprintf(outfile, "%s.mpd", dst);
+				gf_free(dst);
+			}
 		}
 
 		mpd = gf_mpd_new();
