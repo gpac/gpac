@@ -1109,7 +1109,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 	mpd->locations = gf_list_new();
 	mpd->metrics = gf_list_new();
 	mpd->time_shift_buffer_depth = (u32) -1; /*infinite by default*/
-	mpd->xml_namespace = NULL;
+	mpd->xml_namespace = "urn:mpeg:dash:schema:mpd:2011";
 	mpd->type = is_end ? GF_MPD_TYPE_STATIC : GF_MPD_TYPE_DYNAMIC;
 
 
@@ -1347,6 +1347,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 			base_url = gf_strdup(pe->url);
 			sep = strrchr(base_url, '/');
+			if (!sep)
+				sep = strrchr(base_url, '\\');
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = (u32) strlen(pe->codecs);
@@ -1541,7 +1543,7 @@ try_next_segment:
 				if (seg_url) seg_url += 3;
 				else seg_url = elt->url;
 
-				while (src_url[cmp] == seg_url[cmp]) cmp++;
+				while (sep && (src_url[cmp] == seg_url[cmp])) cmp++;
 
 				GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
 				if (!segment_url) return GF_OUT_OF_MEM;
