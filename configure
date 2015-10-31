@@ -440,7 +440,7 @@ cc="${cross_prefix}${cc}"
 cc="${cc}"
 cxx="${cross_prefix}${cxx}"
 ar="${cross_prefix}${ar}"
-if [ -e "${cross_prefix}${ranlib}" ]
+if [ -e "${cross_prefix}${ranlib}" ] ; then
     ranlib="${cross_prefix}${ranlib}"
 fi
 strip="${cross_prefix}${strip}"
