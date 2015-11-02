@@ -108,25 +108,23 @@ ifneq ($(MP4BOX_STATIC),yes)
 	$(MAKE) installdylib
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
-	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
-	if [ -d  doc ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
-	fi
-	if [ -d  gui ] ; then \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" ; \
-	cp -R gui/extensions "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.git" ; \
-	fi
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
 
 lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
