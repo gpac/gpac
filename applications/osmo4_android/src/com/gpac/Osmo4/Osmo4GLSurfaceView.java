@@ -23,6 +23,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
      */
     public Osmo4GLSurfaceView(Context context) {
         super(context);
+        setEGLContextClientVersion(2);
         setDebugFlags(DEBUG_CHECK_GL_ERROR | DEBUG_LOG_GL_CALLS);
         setFocusable(true);
         setFocusableInTouchMode(true);

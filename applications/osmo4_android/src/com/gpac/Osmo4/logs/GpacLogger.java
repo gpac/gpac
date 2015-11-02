@@ -36,7 +36,7 @@ public class GpacLogger {
         loggedModules.add(GF_Log_Module.GF_LOG_MEDIA);
         loggedModules.add(GF_Log_Module.GF_LOG_MODULE);
         loggedModules.add(GF_Log_Module.GF_LOG_CORE);
-        logger = new File(gpacConfig.getGpacCacheDirectory(), "gpac.log"); //$NON-NLS-1$
+        logger = new File(gpacConfig.getGpacLogDirectory(), "gpac.log"); //$NON-NLS-1$
     }
 
     private boolean enableLogOnDisk = false;

@@ -192,6 +192,16 @@ public interface GpacCallback {
          * 
          */
         GF_LOG_MUTEX(21),
+        /*! Log for threads and condition */
+				GF_LOG_CONDITION(22),
+				/*! Log for all HTTP streaming */
+				GF_LOG_DASH(23),
+				/*! Log for all messages coming from GF_Terminal or script alert()*/
+				GF_LOG_CONSOLE(24),
+				/*! Log for all messages coming the application, not used by libgpac or the modules*/
+				GF_LOG_APP(25),
+				/*! Log for all messages coming from the scheduler */
+				GF_LOG_SCHEDULER(26),
         /**
          * Unknown Log subsystem
          */
