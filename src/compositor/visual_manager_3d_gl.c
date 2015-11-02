@@ -1281,6 +1281,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	loc = glGetUniformLocation(visual->autostereo_glsl_program, "gfViewCount");
 	if (loc != -1) glUniform1i(loc, visual->nb_views);
 
+	loc_texcoord_attrib = -1;
 	//setup vertex attrib
 	loc_vertex_attrib = gf_glGetAttribLocation(visual->autostereo_glsl_program, "gfVertex");
 	if (loc_vertex_attrib>=0) {
