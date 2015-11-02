@@ -379,6 +379,16 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 	transform = &tr_state->transform;
 
+	/*layer3D maintains its own stacks*/
+	oldb = tr_state->backgrounds;
+	oldv = tr_state->viewpoints;
+	oldf = tr_state->fogs;
+	oldn = tr_state->navigations;
+	old_visual = tr_state->visual;
+	prev_layer = tr_state->is_layer;
+	prev_cam = tr_state->camera;
+	
+	
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_GET_BOUNDS:
 		if (!tr_state->for_node) {
@@ -419,21 +429,12 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	/*layer3D maintains its own stacks*/
-	oldb = tr_state->backgrounds;
-	oldv = tr_state->viewpoints;
-	oldf = tr_state->fogs;
-	oldn = tr_state->navigations;
 	tr_state->backgrounds = st->visual->back_stack;
 	tr_state->viewpoints = st->visual->view_stack;
 	tr_state->navigations = st->visual->navigation_stack;
 	tr_state->fogs = st->visual->fog_stack;
-	prev_layer = tr_state->is_layer;
 	tr_state->is_layer = 1;
-
-	prev_cam = tr_state->camera;
-
 	tr_state->camera = &st->visual->camera;
-	old_visual = tr_state->visual;
 
 	bbox_backup = tr_state->bbox;
 	gf_mx_copy(model_backup, tr_state->model_matrix);
