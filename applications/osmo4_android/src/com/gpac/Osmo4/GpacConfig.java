@@ -18,6 +18,11 @@ import android.util.Log;
  * @version $Revision$
  * 
  */
+ 
+/**
+ * NOTE FOR DEVELOPERS
+ * Whenever you add or change a path here, you MUST verify also the corresponding path in src/utils/os_config_init.c
+ */
 public class GpacConfig {
 
     private final static String LOG_GPAC_CONFIG = GpacConfig.class.getSimpleName();
@@ -28,19 +33,6 @@ public class GpacConfig {
      * @param context
      */
     public GpacConfig(Context context) {
-        File rootCfg = Environment.getExternalStorageDirectory();
-        File osmo = new File(rootCfg, "osmo"); //$NON-NLS-1$
-        gpacConfigDirectory = osmo.getAbsolutePath() + '/';
-        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacConfigDirectory + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
-        // gpacCacheDirectory = Environment.getDownloadCacheDirectory().getAbsolutePath();
-        // if (Build.VERSION.SDK_INT > 7){
-        gpacCacheDirectory = context.getCacheDir().getAbsolutePath();
-        // } else {
-        // gpacCacheDirectory =
-        // }
-        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacCacheDirectory + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
-        //
-        //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         String dataDir;
         try {
             if (context == null || context.getPackageManager() == null) {
@@ -52,12 +44,24 @@ public class GpacConfig {
             Log.e(LOG_GPAC_CONFIG, "This is bad, we cannot find ourself : " + context.getPackageName(), e); //$NON-NLS-1$
             throw new RuntimeException("Cannot find package " + context.getPackageName(), e); //$NON-NLS-1$
         }
+        gpacConfigDirectory = dataDir + '/';
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacConfigDirectory + " for osmo"); //$NON-NLS-1$ //$NON-NLS-2$
+        gpacCacheDirectory = context.getCacheDir().getAbsolutePath();
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacCacheDirectory + " for cache"); //$NON-NLS-1$ //$NON-NLS-2$
+        //
+        //Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacModulesDirectory + " for modules"); //$NON-NLS-1$ //$NON-NLS-2$
         gpacLibsDirectory = dataDir + "/lib/"; //$NON-NLS-1$
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLibsDirectory + " for libraries"); //$NON-NLS-1$ //$NON-NLS-2$
         
         gpacGuiDirectory = dataDir + "/gui/";
         Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacGuiDirectory + " for GUI"); //$NON-NLS-1$ //$NON-NLS-2$
 
+        gpacShaderDirectory = dataDir + "/shaders/";
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacShaderDirectory + " for shader files"); //$NON-NLS-1$ //$NON-NLS-2$
+        
+        File osmo = new File(Environment.getExternalStorageDirectory(), "osmo"); //$NON-NLS-1$
+        gpacLogDirectory = osmo.getAbsolutePath() + "/log/";
+        Log.v(LOG_GPAC_CONFIG, "Using directory " + gpacLogDirectory + " for log files"); //$NON-NLS-1$ //$NON-NLS-2$
     }
 
     /**
@@ -66,7 +70,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacShaderDirectory, gpacLogDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
@@ -127,6 +131,24 @@ public class GpacConfig {
         return gpacGuiDirectory;
     }
 
+    /**
+     * Default directory for shader files
+     *
+     * @return the gpacShaderDirectory
+     */
+    public String getGpacShaderDirectory() {
+        return gpacShaderDirectory;
+    }
+    
+    /**
+     * Default directory for log files
+     *
+     * @return the gpacLogDirectory
+     */
+    public String getGpacLogDirectory() {
+        return gpacLogDirectory;
+    }
+
     private final String gpacFontDirectory = "/system/fonts/"; //$NON-NLS-1$
 
     // private final String gpacModulesDirectory;
@@ -136,6 +158,10 @@ public class GpacConfig {
     private final String gpacCacheDirectory;
     
     private final String gpacGuiDirectory;
+
+    private final String gpacShaderDirectory;
+    
+    private final String gpacLogDirectory;
 
     /**
      * Creates a given directory if it does not exist
@@ -184,7 +210,8 @@ public class GpacConfig {
         sb.append("GpacModulesDirectory=").append(getGpacModulesDirectory()).append('\n'); //$NON-NLS-1$
         sb.append("GpacFontDirectory=").append(getGpacFontDirectory()).append('\n'); //$NON-NLS-1$
         sb.append("GpacCacheDirectory=").append(getGpacCacheDirectory()).append('\n'); //$NON-NLS-1$
-         sb.append("GpacGuiDirectory=").append(getGpacGuiDirectory()).append('\n'); //$NON-NLS-1$
+        sb.append("GpacGuiDirectory=").append(getGpacGuiDirectory()).append('\n'); //$NON-NLS-1$
+        sb.append("GpacShaderDirectory=").append(getGpacShaderDirectory()).append('\n'); //$NON-NLS-1$
         return sb.toString();
     }
 }

@@ -13,5 +13,5 @@
 #define GPAC_HAS_PNG 1
 
 #define GPAC_USE_GLES2 1
-#define GPAC_FIXED_POINT 1
+//#define GPAC_FIXED_POINT 1
 #endif
