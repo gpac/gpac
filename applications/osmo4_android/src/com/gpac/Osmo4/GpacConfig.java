@@ -70,7 +70,7 @@ public class GpacConfig {
      * @return The {@link GpacConfig} instance itself
      */
     public GpacConfig ensureAllDirectoriesExist() {
-        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacGuiDirectory, gpacShaderDirectory, gpacLogDirectory }) {
+        for (String s : new String[] { gpacConfigDirectory, gpacCacheDirectory, gpacShaderDirectory, gpacLogDirectory }) {
             createDirIfNotExist(s);
         }
         return this;
