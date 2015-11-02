@@ -273,8 +273,8 @@ public class Osmo4 extends Activity implements GpacCallback {
         	}
         	if (!guiDir.mkdir())
         		Log.e(LOG_OSMO_TAG, "Failed to create directory " + guiDir);
+        	copyAssets(gpacConfig, GUI_ROOT_ASSET_DIR);
         }
-        copyAssets(gpacConfig, GUI_ROOT_ASSET_DIR);
 
         //copy Shaders
         File shaderDir = new File(gpacConfig.getGpacShaderDirectory());
