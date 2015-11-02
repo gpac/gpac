@@ -1602,20 +1602,6 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 #endif
 }
 
-static void visual_3d_matrix_add(GF_VisualManager *visual, Fixed *mat)
-{
-#if defined(GPAC_USE_GLES1X) && defined(GPAC_FIXED_POINT)
-	glMultMatrixx(mat);
-#elif defined(GPAC_FIXED_POINT)
-	u32 i;
-	Float _mat[16];
-	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
-	glMultMatrixf(_mat);
-#else
-	glMultMatrixf(mat);
-#endif
-}
-
 static void visual_3d_update_matrices(GF_TraverseState *tr_state)
 {
 	GF_Matrix mx;
@@ -1735,7 +1721,6 @@ static void visual_3d_set_lights(GF_VisualManager *visual)
 			gf_mx_add_matrix(&mx, &li->light_mx);
 		}
 		visual_3d_matrix_load(visual, mx.m);
-		//visual_3d_matrix_add(visual, li->light_mx.m);
 
 		glEnable(iLight);
 

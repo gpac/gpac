@@ -1328,7 +1328,6 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 			Bool import_file = do_import;
 #endif
-			Bool is_aac = GF_FALSE;
 			char *byte_range_media_file = NULL;
 			GF_MPD_Representation *rep;
 			pe = gf_list_get(stream->variants, j);
@@ -1369,9 +1368,6 @@ try_next_segment:
 			elt = gf_list_get(pe->element.playlist.elements, k);
 			if (parse_sub_playlist && !elt)
 				break;
-			/*get rid of level 0 aac*/
-			if (elt && strstr(elt->url, ".aac"))
-				is_aac = GF_TRUE;
 
 			width = pe->width;
 			height = pe->height;
@@ -1454,6 +1450,11 @@ try_next_segment:
 			gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
 			rep->base_URLs = gf_list_new();
 			rep->sub_representations = gf_list_new();
+	
+			/*get rid of level 0 aac*/
+			if (elt && strstr(elt->url, ".aac"))
+				rep->playback.disabled = GF_TRUE;
+
 			e = gf_list_add(set->representations, rep);
 			if (e) return e;
 			rep->id = gf_strdup(sep ? sep+1 : base_url);

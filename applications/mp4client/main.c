@@ -1415,6 +1415,9 @@ int main (int argc, char **argv)
 
 	if (dump_mode) rti_file = NULL;
 
+	if (!logs_set) {
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+	}
 	gf_log_set_callback(NULL, on_gpac_log);
 
 	if (rti_file) init_rti_logs(rti_file, url_arg, use_rtix);
