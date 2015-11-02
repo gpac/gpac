@@ -1168,24 +1168,6 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (sOpt) sscanf(sOpt, "%x", &compositor->text_sel_color);
 	if (!compositor->text_sel_color) compositor->text_sel_color = 0xFFAAAAFF;
 
-	/*load options*/
-	if (compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
-		compositor->traverse_state->immediate_draw = 1;
-	} else {
-		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
-		if (!sOpt) {
-			sOpt = "defer";
-			gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt);
-		}
-
-		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
-		else if (!strcmp(sOpt, "defer-debug")) {
-			compositor->traverse_state->immediate_draw = 0;
-			compositor->debug_defer = 1;
-		}
-		else compositor->traverse_state->immediate_draw = 0;
-	}
-
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
 	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUV");
@@ -1417,6 +1399,26 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif //GPAC_DISABLE_3D
 
+	
+	/*load defer mode only once hybrid_opengl is known. If no hybrid openGL and no backbuffer 2D, disable defer rendering*/
+	if (!compositor->hybrid_opengl && compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
+		compositor->traverse_state->immediate_draw = 1;
+	} else {
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
+		if (!sOpt) {
+			sOpt = "defer";
+			gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt);
+		}
+		
+		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
+		else if (!strcmp(sOpt, "defer-debug")) {
+			compositor->traverse_state->immediate_draw = 0;
+			compositor->debug_defer = 1;
+		}
+		else compositor->traverse_state->immediate_draw = 0;
+	}
+	
+	
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
 	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
