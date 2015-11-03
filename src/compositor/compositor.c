@@ -3521,6 +3521,7 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		if (cam->navigation_flags & NAV_ANY) {
 			return GF_TRUE;
 		} else {
+#ifndef GPAC_DISABLE_VRML
 			M_NavigationInfo *ni = (M_NavigationInfo *)gf_list_get(compositor->visual->navigation_stack, 0);
 			if (ni) {
 				u32 i;
@@ -3535,6 +3536,7 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 					else if (!stricmp(ni->type.vals[i], "ORBIT") && (type==GF_NAVIGATE_ORBIT)) return GF_TRUE;
 				}
 			}
+#endif
 			return GF_FALSE;
 		}
 	} else
