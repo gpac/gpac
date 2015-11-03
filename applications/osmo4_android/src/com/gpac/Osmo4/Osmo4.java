@@ -664,7 +664,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     mGLView.setGpacLogs("all@error"); //$NON-NLS-1$
                 } else {
                     item.setChecked(true);
-                    mGLView.setGpacLogs("all@debug"); //$NON-NLS-1$
+                    mGLView.setGpacLogs("sync:codec:dash:media@debug:container@warning"); //$NON-NLS-1$
                 }
                 return true;
             case R.id.setAsStartupFile: {
