@@ -27,8 +27,10 @@ endif
 
 ifneq ($(CONFIG_ZLIB), no)
 PLUGDIRS+=widgetman
+ifeq ($(DISABLE_VRML),no)
 ifeq ($(DISABLE_LOADER_BT),no)
 PLUGDIRS+=osd
+endif
 endif
 endif
 endif
