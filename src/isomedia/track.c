@@ -254,7 +254,11 @@ default_sync:
 	// a little optimization here: if all our samples are sync,
 	//set the RAPOnly to true... for external users...
 	if (! stbl->SyncSample) {
-		if (moov->mvex && (esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+		if (
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			moov->mvex && 
+#endif
+			(esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);

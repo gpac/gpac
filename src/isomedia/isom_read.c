@@ -486,6 +486,7 @@ u32 gf_isom_segment_get_fragment_count(GF_ISOFile *file)
 	return 0;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 static GF_MovieFragmentBox *gf_isom_get_moof(GF_ISOFile *file, u32 moof_index)
 {
 	u32 i;
@@ -498,6 +499,7 @@ static GF_MovieFragmentBox *gf_isom_get_moof(GF_ISOFile *file, u32 moof_index)
 	}
 	return NULL;
 }
+#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
 GF_EXPORT
 u32 gf_isom_segment_get_track_fragment_count(GF_ISOFile *file, u32 moof_index)
@@ -1678,9 +1680,11 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
 	if (e) {
 		if (e==GF_EOS) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			//movie is fragmented and samples not yet received, return EOS
 			if (the_file->moov->mvex && !trak->Media->information->sampleTable->SampleSize->sampleCount)
 				return e;
+#endif
 
 			if (nextMediaTime)
 				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
@@ -2252,11 +2256,11 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 GF_EXPORT
 GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const char *new_location)
 {
-	u32 i;
-	u64 prevsize, size;
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	return GF_NOT_SUPPORTED;
 #else
+	u64 prevsize, size;
+	u32 i;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
@@ -2296,11 +2300,13 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 #endif
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_EXPORT
 void gf_isom_set_single_moof_mode(GF_ISOFile *movie, Bool mode)
 {
 	movie->single_moof_mode = mode;
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
@@ -3642,6 +3648,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 			}
 		}
 	}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (!group_desc_index && traf && traf->sampleGroups) {
 		count = gf_list_count(traf->sampleGroups);
 		for (i=0; i<count; i++) {
@@ -3665,6 +3672,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 			}
 		}
 	}
+#endif
 	/*no sampleGroup info associated*/
 	if (!group_desc_index) return GF_OK;
 
@@ -3678,11 +3686,13 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 		}
 	} else if (traf) {
 		group_desc_index -= 0x10000;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		for (j=0; j<gf_list_count(traf->sampleGroupsDescription); j++) {
 			sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(traf->sampleGroupsDescription, j);
 			if (sgdesc->grouping_type==sample_group->grouping_type) break;
 			sgdesc = NULL;
 		}
+#endif
 	}
 	/*no sampleGroup description found for this group (invalid file)*/
 	if (!sgdesc) return GF_ISOM_INVALID_FILE;

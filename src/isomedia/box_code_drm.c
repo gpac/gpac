@@ -1148,9 +1148,12 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 	e = gf_bs_seek(bs, ptr->cenc_saio->offset_first_offset_field);
 	if (e) return e;
 	//force using version 1 for saio box i.e offset has 64 bits
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->traf) {
 		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
-	} else {
+	} else
+#endif
+	{
 		gf_bs_write_u64(bs, pos);
 	}
 	return gf_bs_seek(bs, pos);

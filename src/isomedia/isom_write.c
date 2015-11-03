@@ -2670,10 +2670,12 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 		orig_file->moov->iods = (GF_ObjectDescriptorBox*)iods;
 		gf_list_add(dest_file->TopBoxes, dest_file->moov);
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 		if (dest_file->moov->mvex) {
 			gf_isom_box_del((GF_Box *)dest_file->moov->mvex);
 			dest_file->moov->mvex = NULL;
 		}
+#endif
 
 		if (clone_tracks) {
 			for (i=0; i<gf_list_count(orig_file->moov->trackList); i++) {
@@ -4604,18 +4606,24 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	return GF_OK;
 }
 
-
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 grouping_type)
+#else
+static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *traf, u32 grouping_type)
+#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 {
 	GF_List *groupList;
 	GF_SampleGroupDescriptionBox *sgdesc=NULL;
 	u32 count, i;
 	/*look in stbl or traf for sample sampleGroupsDescription*/
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf) {
 		if (!traf->sampleGroupsDescription)
 			traf->sampleGroupsDescription = gf_list_new();
 		groupList = traf->sampleGroupsDescription;
-	} else {
+	} else 
+#endif
+	{
 		if (!stbl->sampleGroupsDescription)
 			stbl->sampleGroupsDescription = gf_list_new();
 		groupList = stbl->sampleGroupsDescription;
@@ -4635,7 +4643,11 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, GF_TrackF
 	return sgdesc;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+#else
+static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 {
 	GF_List *groupList;
 	void *entry;
@@ -4662,12 +4674,15 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_Track
 	entry_idx = 1 + gf_list_find(sgdesc->group_descriptions, entry);
 
 	/*look in stbl or traf for sample sampleGroups*/
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf) {
 		if (!traf->sampleGroups)
 			traf->sampleGroups = gf_list_new();
 		groupList = traf->sampleGroups;
 		entry_idx |= 0x10000;
-	} else {
+	} else 
+#endif
+	{
 		if (!stbl->sampleGroups)
 			stbl->sampleGroups = gf_list_new();
 		groupList = stbl->sampleGroups;
@@ -4829,6 +4844,7 @@ Bool sg_encryption_compare_entry(void *udta, void *entry)
 	return GF_FALSE;
 }
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
 {
 	if (sgpd_in_traf) {
@@ -4884,6 +4900,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 
 	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, sampleGroupDescriptionIndex);
 }
+#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
