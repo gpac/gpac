@@ -872,7 +872,7 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 	return GF_NOT_SUPPORTED;
 }
 
-
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len)
 {
 	u32  i;
@@ -959,6 +959,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saio->entry_count++;
 	}
 }
+#endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
 GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u8 IV_size, char *buf, u32 len)
 {
@@ -1001,13 +1002,14 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 	}
 
 	gf_list_add(senc->samp_aux_info, sai);
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_cenc_set_saiz_saio(senc, stbl, NULL, len);
+#endif
 
 	return GF_OK;
 }
 
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_EXPORT
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 {
@@ -1016,6 +1018,7 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 	gf_free(samp);
 }
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf)
 {
 	u32 i;
