@@ -31,7 +31,9 @@ extern "C" {
 JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv * env, jclass obj, jobject callback, jint width, jint height, jstring cfg_dir, jstring modules_dir, jstring cache_dir, jstring font_dir, jstring gui_dir, jstring url_to_open)
 {
 	jboolean isCopy;
-	const char * s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
+	const char * s1 = NULL;
+	if (cfg_dir)
+		s1 = env->GetStringUTFChars(cfg_dir, &isCopy);
 	const char * s2 = env->GetStringUTFChars(modules_dir, &isCopy);
 	const char * s3 = env->GetStringUTFChars(cache_dir, &isCopy);
 	const char * s4 = env->GetStringUTFChars(font_dir, &isCopy);
@@ -57,7 +59,8 @@ JNIEXPORT jlong JNICALL Java_com_gpac_Osmo4_GPACInstance_createInstance(JNIEnv *
 		jniLOGE("FAILED to create new CNativeWrapper() : not enough memory ?");
 	}
 
-	env->ReleaseStringUTFChars(cfg_dir, s1);
+	if (s1)
+		env->ReleaseStringUTFChars(cfg_dir, s1);
 	env->ReleaseStringUTFChars(modules_dir, s2);
 	env->ReleaseStringUTFChars(cache_dir, s3);
 	env->ReleaseStringUTFChars(font_dir, s4);

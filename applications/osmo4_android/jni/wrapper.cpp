@@ -661,14 +661,18 @@ void CNativeWrapper::SetupLogs() {
 // dir should end with /
 int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * gui_dir, const char * urlToLoad) {
 	LOGI("Initializing GPAC with URL=%s...", urlToLoad);
-	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
 	strcpy(m_cache_dir, cache_dir);
 	strcpy(m_font_dir, font_dir);
-
+	if (cfg_dir)
+		strcpy(m_cfg_dir, cfg_dir);
+	
 	char m_cfg_filename[GF_MAX_PATH];
-	strcpy(m_cfg_filename, m_cfg_dir);
-	strcat(m_cfg_filename, "GPAC.cfg");
+	if (m_cfg_dir) {
+		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);
+		strcpy(m_cfg_filename, m_cfg_dir);
+		strcat(m_cfg_filename, "GPAC.cfg");
+	}
 
 	int m_Width = width;
 	int m_Height = height;
@@ -690,7 +694,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	//load config file
 	LOGI("Loading User Config %s...", "GPAC.cfg");
-	m_user.config = gf_cfg_init(NULL, NULL);
+	m_user.config = gf_cfg_init(m_cfg_dir ? m_cfg_filename : NULL, NULL);
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
@@ -750,9 +754,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_term_connect(m_term, urlToLoad);
 	}
 	debug_log("init end");
-	LOGD("Saving config file %s...\n", m_cfg_filename);
+	LOGD("Saving config file ...\n", m_cfg_filename);
 	gf_cfg_save(m_user.config);
-	LOGI("Initialization complete, config file saved as %s.\n", m_cfg_filename);
+	LOGI("Initialization complete, config file saved.\n", m_cfg_filename);
 
 	return 0;
 }
