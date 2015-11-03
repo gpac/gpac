@@ -2191,4 +2191,4 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	return GF_BAD_PARAM;
 }
 
-#endif
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
