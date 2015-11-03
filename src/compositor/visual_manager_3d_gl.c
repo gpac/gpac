@@ -966,7 +966,8 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 	GF_Config *cfg = visual->compositor->user->config;
 
-	GL_CHECK_ERR
+	//FIXME: Clear error log - for Android we will always have an GL_INVALID_VALUE error
+	glGetError();
 
 	/* test if programs exist (by using flags 0)
 	 *  this check was introduced due to losing program objects when switching rasterization modes 
