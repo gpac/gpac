@@ -3090,6 +3090,7 @@ echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 echo "MINIMAL_OD=$disable_od" >> config.mak
 echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
+echo "DISABLE_VRML=$disable_vrml" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
