@@ -1656,29 +1656,6 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
-	GF_Box *a;
-	u32 i;
-	i = 0;
-
-	while ((a = (GF_Box *)gf_list_enum(input->moov->other_boxes, &i))) {
-		if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
-			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
-			memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
-			pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
-			pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
-			memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
-			pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
-			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-			memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
-
-			gf_isom_box_add_default(in_moof ? (GF_Box*)output->moof : (GF_Box*)output->moov, (GF_Box*)pssh);
-		}
-	}
-	return GF_OK;
-}
-
 u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 {
 	u32 i, size;
@@ -2133,7 +2110,7 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
 {
 	return GF_NOT_SUPPORTED;
 }

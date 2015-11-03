@@ -1018,23 +1018,28 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 	gf_free(samp);
 }
 
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf)
+Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 {
 	u32 i;
 	GF_List *sai_sizes, *sai_offsets;
 	Bool has_saiz, has_saio;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	GF_TrackFragmentBox *traf=(GF_TrackFragmentBox *)_traf;
+#endif
 	has_saiz = has_saio = GF_FALSE;
 
 	if (stbl) {
 		sai_sizes = stbl->sai_sizes;
 		sai_offsets = stbl->sai_offsets;
 	}
-	else if (traf) {
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	else if (_traf) {
 		sai_sizes = traf->sai_sizes;
 		sai_offsets = traf->sai_offsets;
 	}
-	else return GF_FALSE;
+#endif
+	else
+		return GF_FALSE;
 
 	for (i = 0; i < gf_list_count(sai_sizes); i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(sai_sizes, i);
@@ -1043,10 +1048,12 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 			break;
 		}
 	}
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	//assume CENC if we find a senc box - hack for some ultraviolet files :(
 	if (!has_saiz && traf && (traf->sample_encryption || traf->piff_sample_encryption) )
 		has_saiz = GF_TRUE;
-
+#endif
+	
 	for (i = 0; i < gf_list_count(sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
 		if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
@@ -1055,12 +1062,27 @@ Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *tr
 		}
 	}
 
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	//assume CENC if we find a senc box - hack for some ultraviolet files :(
 	if (!has_saio && traf && (traf->sample_encryption || traf->piff_sample_encryption) )
 		has_saio = GF_TRUE;
-
+#endif
+	
 	return (has_saiz && has_saio);
 }
+
+Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl)
+{
+	return gf_isom_cenc_has_saiz_saio_full(stbl, NULL);
+}
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+Bool gf_isom_cenc_has_saiz_saio_track(GF_TrackFragmentBox *traf)
+{
+	return gf_isom_cenc_has_saiz_saio_full(NULL, traf);
+}
+#endif
+
 
 static GF_Err gf_isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber, u8 IV_size, GF_CENCSampleAuxInfo **sai)
 {
@@ -1164,7 +1186,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if (gf_isom_cenc_has_saiz_saio(stbl, NULL)) {
+	if (gf_isom_cenc_has_saiz_saio_track(stbl)) {
 		return gf_isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai);
 	}
 
@@ -1310,8 +1332,6 @@ GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, 
 
 	return GF_OK;
 }
-
-#endif //	GPAC_DISABLE_ISOM_FRAGMENTS
 
 
 void gf_isom_ipmpx_remove_tool_list(GF_ISOFile *the_file)

@@ -709,7 +709,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		}
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-		if (gf_isom_cenc_has_saiz_saio(NULL, traf)) {
+		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
 			//GF_BitStream *bs;
 			u32 size, nb_saio;
 			u64 offset;
