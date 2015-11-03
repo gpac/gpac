@@ -290,9 +290,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
-
-    
+	
 typedef struct
 {
 	char *file_name;
@@ -538,8 +536,6 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
     
 /*save file as fragmented movie*/
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec);
-
-#endif // !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_ISOM_FRAGMENTS)
 
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
