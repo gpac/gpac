@@ -3294,7 +3294,6 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 	}
 }
 
-
 GF_EXPORT
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url)
 {

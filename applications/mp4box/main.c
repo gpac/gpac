@@ -279,9 +279,13 @@ void PrintGeneralUsage()
 			" -udta ID:[OPTS]      sets udta for given track or movie if ID is 0. OPTS is a colon separated list of:\n"
 			"        type=CODE     where code is the 4CC code of the UDTA (not needed for box= option)\n"
 			"        box=FILE	          where FILE is the location of the udta data, formatted as serialized boxes\n"
+#ifndef GPAC_DISABLE_CORE_TOOLS
 			"        box=base64,DATA      where DATA is the base64 encoded udta data, formatted as serialized boxes\n"
+#endif
 			"        src=FILE	          where FILE is the location of the udta data (will be stored in a single box of type CODE)\n"
+#ifndef GPAC_DISABLE_CORE_TOOLS
 			"        src=base64,DATA      where DATA is the base64 encoded udta data (will be stored in a single box of type CODE)\n"
+#endif
 			"	                   If no source is set, UDTA of type CODE will be removed\n"
 	        "\n");
 }
@@ -725,7 +729,9 @@ void PrintDumpUsage()
 	        " -statx               generates node/field statistics for scene after each AU\n"
 	        "\n"
 	        " -hash                generates SHA-1 Hash of the input file\n"
+#ifndef GPAC_DISABLE_CORE_TOOLS
 	        " -bin                 converts input XML file using NHML bitstream syntax to binary\n"
+#endif
 	        "\n");
 }
 
@@ -1629,6 +1635,7 @@ static u32 create_new_track_action(char *string, TrackAction **actions, u32 *nb_
 	return dump_type;
 }
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
 static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 {
 	GF_Err e;
@@ -1683,7 +1690,7 @@ static GF_Err nhml_bs_to_bin(char *inName, char *outName, u32 dump_std)
 	gf_free(data);
 	return e;
 }
-
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 static GF_Err hash_file(char *name, u32 dump_std)
 {
@@ -1772,6 +1779,9 @@ Bool chunk_mode = GF_FALSE;
 Bool HintCopy = 0;
 u32 MTUSize = 1450;
 #endif
+#ifndef GPAC_DISABLE_CORE_TOOLS
+Bool do_bin_nhml = GF_FALSE;
+#endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
 Double mpd_update_time = GF_FALSE;
@@ -1795,7 +1805,6 @@ Bool frag_at_rap = GF_FALSE;
 Bool adjust_split_end = GF_FALSE;
 Bool memory_frags = GF_TRUE;
 Bool keep_utc = GF_FALSE;
-Bool do_bin_nhml = GF_FALSE;
 u32 timescale = 0;
 const char *do_wget = NULL;
 GF_DashSegmenterInput *dash_inputs = NULL;
@@ -2883,7 +2892,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
 		else if (!stricmp(arg, "-hash")) do_hash = GF_TRUE;
+#ifndef GPAC_DISABLE_CORE_TOOLS
 		else if (!stricmp(arg, "-bin")) do_bin_nhml = GF_TRUE;
+#endif
 		else if (!stricmp(arg, "-dump-udta")) {
 			char *sep, *code;
 			CHECK_NEXT_ARG
@@ -3430,7 +3441,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
-#if !defined(DISABLE_CORE_TOOLS)
+#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_wget != NULL) {
 		e = gf_dm_wget(do_wget, inName, 0, 0, NULL);
 		if (e != GF_OK) {
@@ -4006,8 +4017,10 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_MPEG2TS
 					dump_mpeg2_ts(inName, pes_dump, program_number);
 #endif
+#ifndef GPAC_DISABLE_CORE_TOOLS
 				} else if (do_bin_nhml) {
 					nhml_bs_to_bin(inName, outName, dump_std);
+#endif
 				} else if (do_hash) {
 					hash_file(inName, dump_std);
 				} else {
@@ -4141,10 +4154,12 @@ int mp4boxMain(int argc, char **argv)
 		e = hash_file(inName, dump_std);
 		if (e) goto err_exit;
 	}
+#ifndef GPAC_DISABLE_CORE_TOOLS
 	if (do_bin_nhml) {
 		e = nhml_bs_to_bin(inName, outName, dump_std);
 		if (e) goto err_exit;
 	}
+#endif
 
 	if (dump_cart) dump_cover_art(file, outfile);
 	if (dump_chap) dump_chapters(file, outfile, (dump_chap==2) ? 1 : 0);

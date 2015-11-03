@@ -29,6 +29,8 @@
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 /*TODO*/
 typedef struct
 {
@@ -419,6 +421,6 @@ typedef enum
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, 
 								char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
-
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif // _MPD_H_

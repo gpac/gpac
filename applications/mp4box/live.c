@@ -850,6 +850,8 @@ exit:
 
 #endif /*defined(GPAC_DISABLE_ISOM) || defined(GPAC_DISABLE_ISOM_WRITE)*/
 
+#ifndef GPAC_DISABLE_MPEG2TS
+
 u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *outName)
 {
 	char data[0x80000];
@@ -939,5 +941,6 @@ u32 grab_live_m2ts(const char *grab_m2ts, const char *grab_ifce, const char *out
 	return 0;
 }
 
+#endif /* GPAC_DISABLE_MPEG2TS */
 
 

@@ -35,6 +35,8 @@
 #include <time.h>
 #endif
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 static Bool gf_mpd_parse_bool(char *attr)
 {
 	if (!strcmp(attr, "true")) return 1;
@@ -2588,3 +2590,4 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	return GF_OK;
 }
 
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
