@@ -1882,6 +1882,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		height /= 2;
 
 		radius = MAX(width, height) / 2;
+#ifndef GPAC_DISABLE_VRML
 		node = gf_sg_find_node_by_name(scene->graph, "DYN_SPHERE");
 		if (node) {
 			((M_Sphere *)node)->radius = - INT2FIX(radius);
@@ -1895,6 +1896,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 			gf_node_changed(node, NULL);
 		}
+#endif /* GPAC_DISABLE_VRML */
 	}
 
 	if (scene->is_dynamic_scene) {
