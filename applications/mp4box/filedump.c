@@ -868,7 +868,6 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 
 static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 {
@@ -882,6 +881,8 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 	}
 	return nal_size;
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 {

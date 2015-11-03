@@ -429,7 +429,7 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
  */
 const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
 
-
+#ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
  * \brief Download a file over the network using a download manager
  * \param dm The downlaod manager to use, function will use all associated cache ressources
@@ -451,6 +451,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
+#endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
  *\brief Reset session
