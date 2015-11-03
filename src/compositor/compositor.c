@@ -2383,12 +2383,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (gf_smil_notify_timed_elements(compositor->scene)) {
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	}
+#ifndef GPAC_DISABLE_SCENEGRAPH
 	i = 0;
 	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 		if (gf_smil_notify_timed_elements(sg)) {
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 	}
+#endif
 
 #ifndef GPAC_DISABLE_LOG
 	smil_timing_time = gf_sys_clock() - smil_timing_time;
