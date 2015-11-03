@@ -791,8 +791,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;
 					goto exit;
-#endif
+#else
 					gf_gz_compress_payload(&data, size, &size);
+#endif
 					gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 					gf_free(data);
 				}
