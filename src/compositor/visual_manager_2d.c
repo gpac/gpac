@@ -576,6 +576,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	GF_IRect refreshRect;
 	Bool redraw_all;
 	Bool hyb_force_redraw=GF_FALSE;
+	Bool hyb_force_background=GF_FALSE;
 #ifndef GPAC_DISABLE_VRML
 	M_Background2D *bck = NULL;
 	DrawableContext *bck_ctx = NULL;
@@ -613,14 +614,14 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		if (!bck->isBound) {
 			if (visual->last_had_back) {
 				if (redraw_all_on_background_change) redraw_all = 1;
-				else hyb_force_redraw = 1;
+				else hyb_force_background = 1;
 			}
 			visual->last_had_back = 0;
 		} else {
 			bck_ctx = b2d_get_context(bck, visual->back_stack);
 			if (!visual->last_had_back || (bck_ctx->flags & CTX_REDRAW_MASK) ) {
 				if (redraw_all_on_background_change) redraw_all = 1;
-				else hyb_force_redraw = 1;
+				else hyb_force_background = 1;
 			}
 			visual->last_had_back = (bck_ctx->aspect.fill_texture && !bck_ctx->aspect.fill_texture->transparent) ? 2 : 1;
 		}
@@ -629,7 +630,9 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		if (visual->last_had_back) {
 			visual->last_had_back = 0;
 			if (redraw_all_on_background_change) redraw_all = 1;
-			else hyb_force_redraw = 1;
+			else hyb_force_background = 1;
+		} else if (!redraw_all_on_background_change) {
+			hyb_force_background = 1;
 		}
 
 	num_nodes = 0;
@@ -706,7 +709,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 
 	/*nothing to redraw*/
 	if (ra_is_empty(&visual->to_redraw) ) {
-		if (!hyb_force_redraw) {
+		if (!hyb_force_redraw && !hyb_force_background) {
 #ifndef GPAC_DISABLE_3D
 			//force canvas draw
 			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
@@ -714,12 +717,13 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
 			goto exit;
 		}
-		ra_add(&visual->to_redraw, &visual->surf_rect);
+		if (hyb_force_redraw)
+			ra_add(&visual->to_redraw, &visual->surf_rect);
 	}
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	if (!hyb_force_redraw && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
+	if (!hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}
@@ -752,10 +756,12 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		//cleanup openGL screen
 		if (visual->compositor->hybrid_opengl) {
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, 0, GF_FALSE);
+			//force canvas draw
+			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
 		}
 #endif
 
-		//and clean dirty rect - for hubrid openGL this will clear the canvas, otherwise the 2D backbuffer
+		//and clean dirty rect - for hybrid openGL this will clear the canvas, otherwise the 2D backbuffer
 		count = visual->to_redraw.count;
 		for (k=0; k<count; k++) {
 			GF_IRect rc;
@@ -767,6 +773,11 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			visual->ClearSurface(visual, &rc, 0, 1);
 		}
 	}
+	if (!visual->to_redraw.count) {
+		visual->has_modif=0;
+		goto exit;
+	}
+	
 	if (!redraw_all && !has_clear) visual->has_modif=0;
 
 skip_background:
