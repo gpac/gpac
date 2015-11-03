@@ -35,6 +35,8 @@
 /*Configuration for visual studio, 32/64 bits */
 #if defined(WIN32) && !defined(_WIN32_WCE) 
 
+#ifndef GPAC_MP4BOX_MINI
+
 #define GPAC_HAS_SSL
 
 #define GPAC_HAS_SPIDERMONKEY
@@ -50,7 +52,7 @@
 
 #define GPAC_HAS_GLU
 
-
+#endif /*GPAC_MP4BOX_MINI*/
 
 /*Configuration for WindowsCE 32 bits */
 #elif defined(_WIN32_WCE) 
@@ -170,8 +172,12 @@
 /*disables core tools */
 //#define GPAC_DISABLE_CORE_TOOLS
 
-/*disables core tools */
+/*disables zlib */
+#ifndef GPAC_MP4BOX_MINI
 //#define GPAC_DISABLE_ZLIB
+#else
+#define GPAC_DISABLE_ZLIB
+#endif
 
 /*disables SVG scene graph*/
 //#define GPAC_DISABLE_SVG
