@@ -250,7 +250,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                for (String s : new String[] { gpacConfig.getGpacConfigDirectory(), gpacConfig.getGpacCacheDirectory() }) {
+                for (String s : new String[] { gpacConfig.getGpacAppDirectory(), gpacConfig.getGpacCacheDirectory() }) {
                     File noMedia = new File(s, ".nomedia"); //$NON-NLS-1$
                     if (!noMedia.exists()) {
                         try {
@@ -412,7 +412,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     private String getRecentURLsFile() {
-        return gpacConfig.getGpacConfigDirectory() + "recentURLs.txt"; //$NON-NLS-1$
+        return gpacConfig.getGpacAppDirectory() + "recentURLs.txt"; //$NON-NLS-1$
     }
 
     private boolean openURL() {
@@ -441,7 +441,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         final AutoCompleteTextView textView = new AutoCompleteTextView(this);
         textView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-				mGLView.setGpacLogs("sync:codec:dash:media@debug:container@warning");
         builder.setMessage(R.string.pleaseEnterAnURLtoConnectTo)
                .setCancelable(true)
                .setPositiveButton(R.string.open_url, new DialogInterface.OnClickListener() {
@@ -536,7 +535,7 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     private boolean openFileDialog() {
         String title = getResources().getString(R.string.pleaseSelectAFile);
-        Uri uriDefaultDir = Uri.fromFile(new File(gpacConfig.getGpacConfigDirectory()));
+        Uri uriDefaultDir = Uri.fromFile(new File(gpacConfig.getGpacAppDirectory()));
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         // Files and directories
