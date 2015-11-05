@@ -1260,10 +1260,6 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 
 			scaleX = scaleY = FIX_ONE;
 		} else {
-			/*
-						compositor->output_width = compositor->vp_width;
-						compositor->output_height = compositor->vp_height;
-			*/
 			compositor->output_width = compositor->display_width;
 			compositor->output_height = compositor->display_height;
 			compositor->vp_width = compositor->display_width;

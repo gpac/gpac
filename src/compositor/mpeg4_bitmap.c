@@ -35,7 +35,7 @@ typedef struct _bitmap_stack
 {
 	Drawable *graph;
 	/*cached size for 3D mode*/
-	SFVec2f size;
+	SFVec2f size, scale;
 	u32 prev_tx_w, prev_tx_h;
 	GF_Rect rc;
 } BitmapStack;
@@ -63,8 +63,9 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 		return;
 	}
 	/*no change in scale and same texture size*/
-	if (!gf_node_dirty_get(node) && (st->prev_tx_w == txh->width) && (st->prev_tx_h == txh->height)) {
+	if ((st->scale.x==bmp->scale.x) && (st->scale.y==bmp->scale.y) && (st->prev_tx_w == txh->width) && (st->prev_tx_h == txh->height)) {
 		*out_rc = st->rc;
+		gf_node_dirty_clear(node, 0);
 		return;
 	}
 
@@ -75,6 +76,7 @@ static void Bitmap_BuildGraph(GF_Node *node, BitmapStack *st, GF_TraverseState *
 	if (sx<0) sx = FIX_ONE;
 	sy = bmp->scale.y;
 	if (sy<0) sy = FIX_ONE;
+	st->scale = bmp->scale;
 
 	compositor_adjust_scale(txh->owner, &sx, &sy);
 

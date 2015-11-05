@@ -333,9 +333,7 @@ extension.set_playlist_mode = function(value)
 
 extension.playlist_play = function (pl_item) {
     this.set_playlist_mode(true);
-
-	gwlog(l_err, 'playlist item is ' + pl_item);
-	this.set_movie_url(pl_item.path + pl_item.name);
+    this.set_movie_url(pl_item.path + pl_item.name);
 
     //save current index
     this.playlist_idx = this.playlist.indexOf(pl_item);
@@ -353,9 +351,6 @@ extension.playlist_next = function()
 {
     if (this.playlist_idx + 1 == this.playlist.length) return;
     this.playlist_idx++;
-	gwlog(l_err, 'playlist idx is ' + this.playlist_idx);
-	gwlog(l_err, 'playlist length is ' + this.playlist.length);
-
     this.playlist_play( this.playlist[this.playlist_idx] );
 }
 

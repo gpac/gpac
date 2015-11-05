@@ -393,7 +393,6 @@ function gw_window_show_hide() {
     if (this._wnd_timer.wnd) return;
 
     this.visible = !this.visible;
-    this.set_alpha(1.0);
     if (this.visible) {
         this._wnd_timer.target_alpha = this.get_alpha();
         this._wnd_timer.target_x = this.translation.x;
@@ -445,6 +444,14 @@ gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
 
 gwskin.last_hit_x = 0;
 gwskin.last_hit_y = 0;
+
+gwskin.enable_background = function(do_enable) {
+ if (do_enable) {
+  gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
+ } else {
+  gpac.set_back_color(0, 0, 0, 1.0);
+ }
+}
 
 //static
 function gw_get_abs_pos(child) {

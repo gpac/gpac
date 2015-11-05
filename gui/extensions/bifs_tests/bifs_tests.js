@@ -38,8 +38,11 @@ extension = {
 		if (sequence_index >= this.sequences.length) sequence_index = 0;
 		else if (sequence_index < 0) sequence_index = 0;
 		
-		gwlog(l_err, 'Done updating playlist');
-		
+		var msg = gw_new_message(null, 'Playlist Loaded', '');
+		msg.set_size(20 * gwskin.default_text_font_size, gwskin.default_icon_height + gwskin.default_text_font_size);
+		msg.set_alpha(0.8);
+		msg.show();
+
 		e.type = GF_JS_EVENT_PLAYLIST_PLAY;
 		e.index = sequence_index;
 		gwlib_filter_event(e);

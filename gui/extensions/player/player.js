@@ -225,9 +225,14 @@ extension = {
                 ext.reverse_playback_supported = ext.root_odm.reverse_playback_supported;
 
                 ext.controler.hide();
-                gpac.caption = ext.current_url;
+
+				var names = ext.current_url.split('/');
+				if (names.length == 0) names = ext.current_url.split('\\');
+				gpac.caption = names.pop();
+				
                 ext.add_bookmark(ext.current_url, true);
 
+				gwskin.enable_background(false);
                 ext.declare_addons();
 
                 if (ext.initial_service_id) {
@@ -252,6 +257,8 @@ extension = {
                 var w, h, r_w, r_h;
                 w = evt.width;
                 h = evt.height;
+
+				gpac.set_size(w, h, true);
 
                 if (w > gpac.screen_width) w = gpac.screen_width;
                 if (h > gpac.screen_height) h = gpac.screen_height;
@@ -414,7 +421,7 @@ extension = {
         if ((bmarks != null) && (bmarks != '')) {
             this.bookmarks = gwskin.parse(bmarks);
         }
-
+		
         /*create player control UI*/
         var wnd = gw_new_window(null, true, true);
         //remember it !
@@ -422,8 +429,14 @@ extension = {
         wnd.extension = this;
 
         wnd.set_corners(true, true, false, false);
-        wnd.set_alpha(0.95);
+        wnd.set_alpha(0.9);
 
+		/*create default interactive zone in case the content grabs all mouse events*/
+		this.safe_interact = gw_new_rectangle('button', 'invisible');
+		gw_add_child(null, this.safe_interact);
+		this.safe_interact.show();
+		
+		
         /*first set of controls*/
         wnd.infobar = gw_new_grid_container(wnd);
         wnd.infobar.spread_h = true;
@@ -655,6 +668,7 @@ extension = {
                     gwlib_remove_event_filter(this.extension._evt_filter);
                     this.extension._evt_filter = null;
                 }
+				gwskin.enable_background(true);
 				gw_show_dock();
 				this.extension.disabled = true;
             }
@@ -868,15 +882,16 @@ extension = {
             this.infobar.move(0, -0.1 * control_icon_size);
         }
 
-        wnd.on_display_size = function (w, h) {
+        wnd.on_display_size = function (width, height) {
+			var h;
 			if (!gpac.fullscreen) {
-                if (w < this.extension.def_width) {
-                    gpac.set_size(this.extension.def_width, h);
+                if (width < this.extension.def_width) {
+                    gpac.set_size(this.extension.def_width, height);
                     return;
                 }
             } else {
-                if (w < this.extension.def_width) {
-                    this.extension.def_width = w;
+                if (width < this.extension.def_width) {
+                    this.extension.def_width = width;
                 }
             }
 
@@ -893,6 +908,10 @@ extension = {
 
             this.set_size(this.extension.def_width, h);
 
+			this.extension.safe_interact.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+			this.extension.safe_interact.show();
+			this.extension.safe_interact.move((-gwskin.default_icon_height+width)/2, (gwskin.default_icon_height-height)/2);
+			
             this.layout();
         }
 
