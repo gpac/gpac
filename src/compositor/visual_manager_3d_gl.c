@@ -1480,6 +1480,8 @@ void visual_3d_set_background_state(GF_VisualManager *visual, Bool on)
 		visual_3d_setup_quality(visual);
 	}
 #endif
+
+	visual_3d_enable_depth_buffer(visual, ! on);
 }
 
 

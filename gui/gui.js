@@ -99,8 +99,7 @@ function initialize() {
     Browser.loadScript('gwlib.js', false);
     gwlib_init(ui_root);
 
-    //set background color
-    gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
+	gwskin.enable_background(true);
 
     //what do we do with tooltips ?
 //    gwskin.tooltip_callback = function(over, label) { alert('' + over ? label : ''); };

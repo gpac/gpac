@@ -207,7 +207,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 		                              MAX(tr_state->camera->width, tr_state->camera->height),
 		                              gf_mulfix(ar*2, gf_tan(fieldOfView/2))
 		                          );
-
+		
 		/*fixed-point overflow*/
 		if (tr_state->camera->z_far <= tr_state->camera->z_near) {
 			tr_state->camera->z_far = FIX_MAX/4;
@@ -228,8 +228,11 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	/*default VP setup - this is undocumented in the spec. Default VP pos is (0, 0, 10) but not really nice
 	in pixel metrics. We set z so that we see just the whole visual*/
 	else if (tr_state->pixel_metrics) {
-		position.z = gf_divfix(tr_state->camera->width, 2*gf_tan(fieldOfView/2) );
-
+		if (tr_state->visual != tr_state->visual->compositor->visual) {
+			position.z = gf_divfix(tr_state->camera->width, 2*gf_tan(fieldOfView/2) );
+		} else {
+			position.z = gf_mulfix(position.z, tr_state->min_hsize);
+		}
 	}
 #ifdef GF_SR_USE_DEPTH
 	/* 3D world calibration for stereoscopic screen */
@@ -281,7 +284,8 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 	dist = gf_vec_len(d);
 
 	if (!dist || (dist<tr_state->camera->z_near) || (dist > tr_state->camera->z_far)) {
-		if (dist > tr_state->camera->z_far) tr_state->camera->z_far = 2*dist;
+		if (dist > tr_state->camera->z_far)
+			tr_state->camera->z_far = 2*dist;
 
 		dist = 10 * tr_state->camera->avatar_size.x;
 		if ((dist<tr_state->camera->z_near) || (dist > tr_state->camera->z_far))
@@ -856,7 +860,7 @@ static void visual_3d_draw_node(GF_TraverseState *tr_state, GF_Node *root_node)
 
 	/*main visual, handle collisions*/
 	if ((tr_state->visual==tr_state->visual->compositor->visual) && tr_state->camera->is_3D)
-		visual_3d_check_collisions(tr_state, NULL);
+		visual_3d_check_collisions(tr_state, root_node, NULL);
 
 #ifndef GPAC_DISABLE_VRML
 	/*setup fog*/
@@ -976,7 +980,7 @@ static void reset_collide_cursor(GF_Compositor *compositor)
 	}
 }
 
-void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list)
+void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *on_node, GF_ChildNodeItem *node_list)
 {
 	SFVec3f n, dir;
 	Bool go;
@@ -1023,9 +1027,9 @@ void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *no
 		}
 		n = gf_vec_scale(dir, diff);
 		gf_vec_add(tr_state->camera->position, tr_state->camera->last_pos, n);
-		if (!node_list) {
-			gf_node_traverse(gf_sg_get_root_node(tr_state->visual->compositor->scene), tr_state);
-		} else {
+		if (on_node) {
+			gf_node_traverse(on_node, tr_state);
+		} else if (node_list) {
 			while (node_list) {
 				gf_node_traverse(node_list->node, tr_state);
 				node_list = node_list->next;

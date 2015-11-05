@@ -267,7 +267,6 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 {
 	M_Background *bck;
 	BackgroundStack *st;
-	SFColor bcol;
 	SFVec4f res;
 	Fixed scale;
 	Bool has_sky, has_ground, front_tx, back_tx, top_tx, bottom_tx, right_tx, left_tx;
@@ -316,6 +315,11 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 	if (tr_state->traversing_mode != TRAVERSE_BINDABLE) {
 		if (tr_state->traversing_mode == TRAVERSE_SORT) {
 			gf_mx_copy(st->current_mx, tr_state->model_matrix);
+			if (!tr_state->pixel_metrics && tr_state->visual->compositor->inherit_type_3d) {
+				Fixed scale = gf_divfix(FIX_ONE, tr_state->min_hsize);
+				gf_mx_add_scale(&st->current_mx, scale, scale, scale);
+				
+			}
 		}
 		return;
 	}
@@ -329,11 +333,14 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 
 	has_sky = ((bck->skyColor.count>1) && bck->skyAngle.count) ? 1 : 0;
 	has_ground = ((bck->groundColor.count>1) && bck->groundAngle.count) ? 1 : 0;
-	bcol.red = bcol.green = bcol.blue = 0;
-	if (bck->skyColor.count) bcol = bck->skyColor.vals[0];
 
 	/*if we clear the main visual clear it entirely - ONLY IF NOT IN LAYER*/
 	if ((tr_state->visual == compositor->visual) && (tr_state->visual->back_stack == tr_state->backgrounds)) {
+		SFColor bcol;
+		bcol.red = INT2FIX( GF_COL_R(tr_state->visual->compositor->back_color)) / 255;
+		bcol.green = INT2FIX( GF_COL_G(tr_state->visual->compositor->back_color)) / 255;
+		bcol.blue = INT2FIX( GF_COL_B(tr_state->visual->compositor->back_color)) / 255;
+
 		visual_3d_clear(tr_state->visual, bcol, FIX_ONE);
 		if (!has_sky && !has_ground && !front_tx && !back_tx && !top_tx && !bottom_tx && !left_tx && !right_tx) {
 			return;

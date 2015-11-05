@@ -643,7 +643,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		drawctx_update_info(ctx, visual);
 		if (!redraw_all) {
 			u32 res;
-			assert( gf_irect_inside(&visual->top_clipper, &ctx->bi->clip) );
+//			assert( gf_irect_inside(&visual->top_clipper, &ctx->bi->clip) );
 			res = register_context_rect(&visual->to_redraw, ctx, num_nodes, &first_opaque);
 			if (res) {
 				num_changed ++;
@@ -723,7 +723,8 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	if (!hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
+	//if only one opaque opject has changed and not moved, skip background unless hybgl mode
+	if (!visual->compositor->hybrid_opengl && !hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
 	}
@@ -756,8 +757,6 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		//cleanup openGL screen
 		if (visual->compositor->hybrid_opengl) {
 			compositor_2d_hybgl_clear_surface(tr_state->visual, NULL, 0, GF_FALSE);
-			//force canvas draw
-			visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
 		}
 #endif
 
@@ -775,6 +774,10 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	}
 	if (!visual->to_redraw.count) {
 		visual->has_modif=0;
+#ifndef GPAC_DISABLE_3D
+		//force canvas flush
+		visual->nb_objects_on_canvas_since_last_ogl_flush = 1;
+#endif
 		goto exit;
 	}
 	

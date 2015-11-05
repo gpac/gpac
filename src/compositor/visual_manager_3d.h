@@ -91,9 +91,8 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha);
 	- exported for text drawing*/
 void visual_3d_disable_texture(GF_TraverseState *tr_state);
 
-/*check for collisions on a list of nodes, or scene root if list is null
-	- exported for Layer3D - try to harmonize*/
-void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list);
+/*check for collisions on a given node or on a list of nodes*/
+void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *root_node, GF_ChildNodeItem *node_list);
 
 /*init drawing pass - exported for Layer3D
 	@layer_type:

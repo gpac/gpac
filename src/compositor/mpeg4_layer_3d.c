@@ -493,13 +493,13 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 			if (st->tgl_ctx) ostgl_make_current(st->tgl_ctx, 0);
 #endif
 
-			/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
-			tr_state->layer3d = node;
-
 			rc = st->vp;
 			/*setup GL*/
 			visual_3d_setup(tr_state->visual);
 		}
+		/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
+		tr_state->layer3d = node;
+		
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 
@@ -521,7 +521,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		if no previous camera, we're using offscreen rendering, force clear */
 		visual_3d_init_draw(tr_state, prev_cam ? 1 : 2);
 
-		visual_3d_check_collisions(tr_state, l->children);
+		visual_3d_check_collisions(tr_state, NULL, l->children);
 		tr_state->traversing_mode = TRAVERSE_SORT;
 
 		/*shortcut node list*/
@@ -543,6 +543,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 
 		tr_state->traversing_mode = trav_mode ;
 		tr_state->visual->type_3d = old_type_3d;
+		tr_state->layer3d = NULL;
 
 		/*!! we were in a 2D mode, create drawable context!!*/
 		if (!prev_cam ) {
@@ -564,7 +565,6 @@ layer3d_unchanged_2d:
 
 			/*restore visual*/
 			tr_state->visual = old_visual;
-			tr_state->layer3d = NULL;
 			tr_state->appear = NULL;
 			//	tr_state->camera = prev_cam;
 

@@ -46,7 +46,7 @@ void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
 		if (!compositor->frame_draw_type
 #ifndef GPAC_DISABLE_3D
-			&& !compositor->visual->type_3d
+			&& !compositor->visual->type_3d && !compositor->hybrid_opengl
 #endif
 		) {
 			compositor->frame_draw_type = state;
@@ -2836,14 +2836,11 @@ void gf_sc_traverse_subscene_ex(GF_Compositor *compositor, GF_Node *inline_paren
 			Fixed scale = INT2FIX( MIN(w, h) / 2);
 			if (scale) tr_state->min_hsize = scale;
 		}
-		//do not apply scale when type_3d is inheridted (eg we are loading a vrml/bifs from the gui)
-		if (!compositor->inherit_type_3d) {
-			if (!use_pm) {
-				gf_mx2d_add_scale(&transf, tr_state->min_hsize, tr_state->min_hsize);
-			} else {
-				Fixed inv_scale = gf_invfix(tr_state->min_hsize);
-				gf_mx2d_add_scale(&transf, inv_scale, inv_scale);
-			}
+		if (!use_pm) {
+			gf_mx2d_add_scale(&transf, tr_state->min_hsize, tr_state->min_hsize);
+		} else {
+			Fixed inv_scale = gf_invfix(tr_state->min_hsize);
+			gf_mx2d_add_scale(&transf, inv_scale, inv_scale);
 		}
 		tr_state->pixel_metrics = use_pm;
 	}
@@ -2975,8 +2972,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			} else {
-				/*remove pending resize notif*/
-				compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
+				/*remove pending resize notif but not resize requests*/
                 compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
