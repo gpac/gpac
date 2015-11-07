@@ -1912,7 +1912,8 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 	{
 		arg = argv[i];
 		if (!stricmp(arg, "-itags")) {
-			CHECK_NEXT_ARG itunes_tags = argv[i + 1];
+			CHECK_NEXT_ARG
+			itunes_tags = argv[i + 1];
 			i++;
 			open_edit = GF_TRUE;
 		}
@@ -1975,22 +1976,25 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 #ifndef GPAC_DISABLE_ISOM_HINTING
 		else if (!stricmp(arg, "-mtu")) {
-			CHECK_NEXT_ARG MTUSize = atoi(argv[i + 1]);
+			CHECK_NEXT_ARG
+			MTUSize = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-cardur")) {
-			CHECK_NEXT_ARG car_dur = atoi(argv[i + 1]);
+			CHECK_NEXT_ARG
+			car_dur = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-rate")) {
-			CHECK_NEXT_ARG rtp_rate = atoi(argv[i + 1]);
+			CHECK_NEXT_ARG
+			rtp_rate = atoi(argv[i + 1]);
 			i++;
 		}
 #ifndef GPAC_DISABLE_SENG
 		else if (!stricmp(arg, "-add-sdp") || !stricmp(arg, "-sdp_ex")) {
 			char *id;
 			CHECK_NEXT_ARG
-				sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex + 1));
+			sdp_lines = gf_realloc(sdp_lines, sizeof(SDPLine) * (nb_sdp_ex + 1));
 
 			id = strchr(argv[i + 1], ':');
 			if (id) {
@@ -2019,7 +2023,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-single")) {
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 			CHECK_NEXT_ARG
-				track_dump_type = GF_EXPORT_MP4;
+			track_dump_type = GF_EXPORT_MP4;
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 			tracks[nb_track_act].act_type = TRAC_ACTION_RAW_EXTRACT;
@@ -2038,33 +2042,33 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-new")) force_new = GF_TRUE;
 		else if (!stricmp(arg, "-timescale")) {
 			CHECK_NEXT_ARG
-				timescale = atoi(argv[i + 1]);
+			timescale = atoi(argv[i + 1]);
 			open_edit = GF_TRUE;
 			i++;
 		}
 		else if (!stricmp(arg, "-udta")) {
 			CHECK_NEXT_ARG
-				create_new_track_action(argv[i + 1], &tracks, &nb_track_act, 0);
+			create_new_track_action(argv[i + 1], &tracks, &nb_track_act, 0);
 			tracks[nb_track_act - 1].act_type = TRAC_ACTION_SET_UDTA;
 			open_edit = GF_TRUE;
 			i++;
 		}
 		else if (!stricmp(arg, "-add") || !stricmp(arg, "-import") || !stricmp(arg, "-convert")) {
 			CHECK_NEXT_ARG
-				if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
-				else if (!stricmp(arg, "-convert")) fprintf(stderr, "\tWARNING: \"-convert\" is deprecated - use \"-add\"\n");
-				nb_add++;
-				i++;
+			if (!stricmp(arg, "-import")) fprintf(stderr, "\tWARNING: \"-import\" is deprecated - use \"-add\"\n");
+			else if (!stricmp(arg, "-convert")) fprintf(stderr, "\tWARNING: \"-convert\" is deprecated - use \"-add\"\n");
+			nb_add++;
+			i++;
 		}
 		else if (!stricmp(arg, "-cat") || !stricmp(arg, "-catx")) {
 			CHECK_NEXT_ARG
-				nb_cat++;
+			nb_cat++;
 			i++;
 		}
 		else if (!stricmp(arg, "-time")) {
 			struct tm time;
 			CHECK_NEXT_ARG
-				memset(&time, 0, sizeof(struct tm));
+			memset(&time, 0, sizeof(struct tm));
 			sscanf(argv[i + 1], "%d/%d/%d-%d:%d:%d", &time.tm_mday, &time.tm_mon, &time.tm_year, &time.tm_hour, &time.tm_min, &time.tm_sec);
 			time.tm_isdst = 0;
 			time.tm_year -= 1900;
@@ -2079,12 +2083,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-unalign-cat")) align_cat = 0;
 		else if (!stricmp(arg, "-raw-cat")) {
 			CHECK_NEXT_ARG
-				raw_cat = argv[i + 1];
+			raw_cat = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-rem") || !stricmp(arg, "-disable") || !stricmp(arg, "-enable")) {
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 			if (!stricmp(arg, "-enable")) tracks[nb_track_act].act_type = TRAC_ACTION_ENABLE;
 			else if (!stricmp(arg, "-disable")) tracks[nb_track_act].act_type = TRAC_ACTION_DISABLE;
@@ -2097,7 +2101,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-set-track-id")) {
 			char *sep;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
 			sep = strchr(argv[i + 1], ':');
@@ -2117,7 +2121,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-par")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_PAR;
@@ -2149,7 +2153,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-lang")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			tracks[nb_track_act].act_type = TRAC_ACTION_SET_LANGUAGE;
@@ -2177,7 +2181,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			char *scheme_start = NULL;
 			Bool has_track_id = GF_FALSE;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			if (!stricmp(arg, "-kind")) {
@@ -2229,7 +2233,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-delay")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			strcpy(szTK, argv[i + 1]);
@@ -2249,7 +2253,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-ref")) {
 			char *szTK, *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			szTK = argv[i + 1];
@@ -2279,7 +2283,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-name")) {
 			char szTK[GF_MAX_PATH], *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			strcpy(szTK, argv[i + 1]);
@@ -2308,16 +2312,16 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-ovsbr")) import_flags |= GF_IMPORT_OVSBR;
 		else if (!stricmp(arg, "-fps")) {
 			CHECK_NEXT_ARG
-				if (!strcmp(argv[i + 1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
-				else if (strchr(argv[i + 1], '-')) {
-					u32 ticks, dts_inc;
-					sscanf(argv[i + 1], "%u-%u", &ticks, &dts_inc);
-					if (!dts_inc) dts_inc = 1;
-					import_fps = ticks;
-					import_fps /= dts_inc;
-				}
-				else import_fps = atof(argv[i + 1]);
-				i++;
+			if (!strcmp(argv[i + 1], "auto")) import_fps = GF_IMPORT_AUTO_FPS;
+			else if (strchr(argv[i + 1], '-')) {
+				u32 ticks, dts_inc;
+				sscanf(argv[i + 1], "%u-%u", &ticks, &dts_inc);
+				if (!dts_inc) dts_inc = 1;
+				import_fps = ticks;
+				import_fps /= dts_inc;
+			}
+			else import_fps = atof(argv[i + 1]);
+			i++;
 		}
 		else if (!stricmp(arg, "-agg")) {
 			CHECK_NEXT_ARG agg_samples = atoi(argv[i + 1]);
@@ -2344,7 +2348,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-mpd")) {
 			do_mpd = GF_TRUE;
 			CHECK_NEXT_ARG
-				inName = argv[i + 1];
+			inName = argv[i + 1];
 			i++;
 		}
 #endif
@@ -2353,75 +2357,76 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-def")) opts.flags |= GF_SM_ENCODE_USE_NAMES;
 		else if (!stricmp(arg, "-sync")) {
 			CHECK_NEXT_ARG
-				opts.flags |= GF_SM_ENCODE_RAP_INBAND;
+			opts.flags |= GF_SM_ENCODE_RAP_INBAND;
 			opts.rap_freq = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-shadow")) {
 			CHECK_NEXT_ARG
-				opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
+			opts.flags &= ~GF_SM_ENCODE_RAP_INBAND;
 			opts.flags |= GF_SM_ENCODE_RAP_SHADOW;
 			opts.rap_freq = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-carousel")) {
 			CHECK_NEXT_ARG
-				opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
+			opts.flags &= ~(GF_SM_ENCODE_RAP_INBAND | GF_SM_ENCODE_RAP_SHADOW);
 			opts.rap_freq = atoi(argv[i + 1]);
 			i++;
 		}
 		/*LASeR options*/
 		else if (!stricmp(arg, "-resolution")) {
 			CHECK_NEXT_ARG
-				opts.resolution = atoi(argv[i + 1]);
+			opts.resolution = atoi(argv[i + 1]);
 			i++;
 		}
 #ifndef GPAC_DISABLE_SCENE_STATS
 		else if (!stricmp(arg, "-auto-quant")) {
 			CHECK_NEXT_ARG
-				opts.resolution = atoi(argv[i + 1]);
+			opts.resolution = atoi(argv[i + 1]);
 			opts.auto_quant = 1;
 			i++;
 		}
 #endif
 		else if (!stricmp(arg, "-coord-bits")) {
 			CHECK_NEXT_ARG
-				opts.coord_bits = atoi(argv[i + 1]);
+			opts.coord_bits = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-scale-bits")) {
 			CHECK_NEXT_ARG
-				opts.scale_bits = atoi(argv[i + 1]);
+			opts.scale_bits = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-global-quant")) {
 			CHECK_NEXT_ARG
-				opts.resolution = atoi(argv[i + 1]);
+			opts.resolution = atoi(argv[i + 1]);
 			opts.auto_quant = 2;
 			i++;
 		}
 		/*chunk encoding*/
 		else if (!stricmp(arg, "-ctx-out") || !stricmp(arg, "-outctx")) {
-			CHECK_NEXT_ARG output_ctx = argv[i + 1];
+			CHECK_NEXT_ARG
+			output_ctx = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-ctx-in") || !stricmp(arg, "-inctx")) {
 			CHECK_NEXT_ARG
-				chunk_mode = GF_TRUE;
+			chunk_mode = GF_TRUE;
 			input_ctx = argv[i + 1];
 			i++;
 		}
 #endif /*GPAC_DISABLE_SCENE_ENCODER*/
 		else if (!strcmp(arg, "-crypt")) {
 			CHECK_NEXT_ARG
-				crypt = 1;
+			crypt = 1;
 			drm_file = argv[i + 1];
 			open_edit = GF_TRUE;
 			i += 1;
 		}
 		else if (!strcmp(arg, "-decrypt")) {
 			CHECK_NEXT_ARG
-				crypt = 2;
+			crypt = 2;
 			if (get_file_type_by_ext(argv[i + 1]) != 1) {
 				drm_file = argv[i + 1];
 				i += 1;
@@ -2431,7 +2436,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-set-kms")) {
 			char szTK[20], *ext;
 			CHECK_NEXT_ARG
-				tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
+			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
 
 			strncpy(szTK, argv[i + 1], 19);
@@ -2456,28 +2461,28 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-split")) {
 			CHECK_NEXT_ARG
-				split_duration = atof(argv[i + 1]);
+			split_duration = atof(argv[i + 1]);
 			if (split_duration < 0) split_duration = 0;;
 			i++;
 			split_size = 0;
 		}
 		else if (!stricmp(arg, "-split-rap") || !stricmp(arg, "-splitr")) {
 			CHECK_NEXT_ARG
-				split_duration = -1;
+			split_duration = -1;
 			split_size = -1;
 		}
 		else if (!stricmp(arg, "-split-size") || !stricmp(arg, "-splits")) {
 			CHECK_NEXT_ARG
-				split_size = (u32)atoi(argv[i + 1]);
+			split_size = (u32)atoi(argv[i + 1]);
 			i++;
 			split_duration = 0;
 		}
 		else if (!stricmp(arg, "-split-chunk") || !stricmp(arg, "-splitx") || !stricmp(arg, "-splitz")) {
 			CHECK_NEXT_ARG
-				if (!strstr(argv[i + 1], ":")) {
-					fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
-					return 2;
-				}
+			if (!strstr(argv[i + 1], ":")) {
+				fprintf(stderr, "Chunk extraction usage: \"-splitx start:end\" expressed in seconds\n");
+				return 2;
+			}
 			if (strstr(argv[i + 1], "end")) {
 				sscanf(argv[i + 1], "%lf:end", &split_start);
 				split_duration = -2;
@@ -2572,20 +2577,19 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		}
 		else if (!stricmp(arg, "-package")) {
 			CHECK_NEXT_ARG
-				pack_file = argv[i + 1];
+			pack_file = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-mgt")) {
 			CHECK_NEXT_ARG
-				pack_file = argv[i + 1];
-			pack_wgt = 1;
+			pack_file = argv[i + 1];
+			pack_wgt = GF_TRUE;
 			i++;
 		}
-
 		else if (!stricmp(arg, "-brand")) {
 			char *b = argv[i + 1];
 			CHECK_NEXT_ARG
-				major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
+			major_brand = GF_4CC(b[0], b[1], b[2], b[3]);
 			open_edit = GF_TRUE;
 			if (b[4] == ':') minor_version = atoi(b + 5);
 			i++;
@@ -2593,8 +2597,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-ab")) {
 			char *b = argv[i + 1];
 			CHECK_NEXT_ARG
-				brand_add = gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add + 1));
-
+			brand_add = (u32*)gf_realloc(brand_add, sizeof(u32) * (nb_alt_brand_add + 1));
 			brand_add[nb_alt_brand_add] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_add++;
 			open_edit = GF_TRUE;
@@ -2603,8 +2606,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-rb")) {
 			char *b = argv[i + 1];
 			CHECK_NEXT_ARG
-				brand_rem = gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem + 1));
-
+			brand_rem = (u32*)gf_realloc(brand_rem, sizeof(u32) * (nb_alt_brand_rem + 1));
 			brand_rem[nb_alt_brand_rem] = GF_4CC(b[0], b[1], b[2], b[3]);
 			nb_alt_brand_rem++;
 			open_edit = GF_TRUE;
@@ -2680,7 +2682,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			char *arg_val = arg;
 			if (!stricmp(arg, "--")) {
 				CHECK_NEXT_ARG
-					arg_val = argv[i + 1];
+				arg_val = argv[i + 1];
 				i++;
 			}
 			if (argc < 3) {
@@ -2717,7 +2719,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 
 		else if (!stricmp(arg, "-logs")) {
 			CHECK_NEXT_ARG
-				gf_logs = argv[i + 1];
+			gf_logs = argv[i + 1];
 			if (gf_logs)
 				gf_log_set_tools_levels(gf_logs);
 			i++;
@@ -2749,12 +2751,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 	#if !defined(GPAC_DISABLE_STREAMING)
 		else if (!stricmp(arg, "-grab-ts")) {
 			CHECK_NEXT_ARG
-				grab_m2ts = argv[i + 1];
+			grab_m2ts = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-ifce")) {
 			CHECK_NEXT_ARG
-				grab_ifce = argv[i + 1];
+			grab_ifce = argv[i + 1];
 			i++;
 		}
 
@@ -2762,94 +2764,95 @@ Bool mp4box_parse_args(int argc, char **argv)
 	#if !defined(GPAC_DISABLE_CORE_TOOLS)
 		else if (!stricmp(arg, "-wget")) {
 			CHECK_NEXT_ARG
-				do_wget = argv[i + 1];
+			do_wget = argv[i + 1];
 			i++;
 		}
 	#endif
 		/*******************************************************************************/
 		else if (!stricmp(arg, "-dvbhdemux")) {
-			dvbhdemux = 1;
+			dvbhdemux = GF_TRUE;
 		}
 		/********************************************************************************/
 	#ifndef GPAC_DISABLE_MEDIA_EXPORT
 		else if (!stricmp(arg, "-raw")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE);
 			i++;
 		}
 		else if (!stricmp(arg, "-raw-layer")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_SVC_LAYER);
 			i++;
 		}
 		else if (!stricmp(arg, "-qcp")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NATIVE | GF_EXPORT_USE_QCP);
 			i++;
 		}
 		else if (!stricmp(arg, "-aviraw")) {
 			CHECK_NEXT_ARG
-				if (argv[i + 1] && !stricmp(argv[i + 1], "video")) trackID = 1;
-				else if (argv[i + 1] && !stricmp(argv[i + 1], "audio")) {
-					if (strlen(argv[i + 1]) == 5) trackID = 2;
-					else trackID = 1 + atoi(argv[i + 1] + 5);
-				}
-				else {
-					fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n");
-					return 2;
-				}
-				track_dump_type = GF_EXPORT_AVI_NATIVE;
-				i++;
+			if (argv[i + 1] && !stricmp(argv[i + 1], "video")) trackID = 1;
+			else if (argv[i + 1] && !stricmp(argv[i + 1], "audio")) {
+				if (strlen(argv[i + 1]) == 5) trackID = 2;
+				else trackID = 1 + atoi(argv[i + 1] + 5);
+			} else {
+				fprintf(stderr, "Usage: \"-aviraw video\" or \"-aviraw audio\"\n");
+				return 2;
+			}
+			track_dump_type = GF_EXPORT_AVI_NATIVE;
+			i++;
 		}
 		else if (!stricmp(arg, "-raws")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_RAW_SAMPLES);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_RAW_SAMPLES);
 			i++;
 		}
 		else if (!stricmp(arg, "-nhnt")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHNT);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHNT);
 			i++;
 		}
 		else if (!stricmp(arg, "-nhml")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHML);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_NHML);
 			i++;
 		}
 		else if (!stricmp(arg, "-webvtt-raw")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_WEBVTT_META);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_WEBVTT_META);
 			i++;
 		}
 		else if (!stricmp(arg, "-six")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_SIX);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_SIX);
 			i++;
 		}
 		else if (!stricmp(arg, "-avi")) {
 			CHECK_NEXT_ARG
-				track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_AVI);
+			track_dump_type = create_new_track_action(argv[i + 1], &tracks, &nb_track_act, GF_EXPORT_AVI);
 			i++;
 		}
 	#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 	#if !defined(GPAC_DISABLE_STREAMING) && !defined(GPAC_DISABLE_SENG)
 		else if (!stricmp(arg, "-rtp")) {
-			stream_rtp = 1;
+			stream_rtp = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-live")) {
-			live_scene = 1;
+			live_scene = GF_TRUE;
 		}
 	#endif
 		else if (!stricmp(arg, "-diod")) {
-			dump_iod = 1;
+			dump_iod = GF_TRUE;
 		}
 	#ifndef GPAC_DISABLE_VRML
 		else if (!stricmp(arg, "-node")) {
-			CHECK_NEXT_ARG PrintNode(argv[i + 1], 0);
+			CHECK_NEXT_ARG
+			PrintNode(argv[i + 1], 0);
 			return 1;
 		}
 		else if (!stricmp(arg, "-xnode")) {
-			CHECK_NEXT_ARG PrintNode(argv[i + 1], 1);
+			CHECK_NEXT_ARG
+			PrintNode(argv[i + 1], 1);
 			return 1;
 		}
 		else if (!stricmp(arg, "-nodes")) {
@@ -2898,7 +2901,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dump-udta")) {
 			char *sep, *code;
 			CHECK_NEXT_ARG
-				sep = strchr(argv[i + 1], ':');
+			sep = strchr(argv[i + 1], ':');
 			if (sep) {
 				sep[0] = 0;
 				dump_udta_track = atoi(argv[i + 1]);
@@ -2925,7 +2928,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dnal")) {
 			CHECK_NEXT_ARG
-				dump_nal = atoi(argv[i + 1]);
+			dump_nal = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-dcr")) dump_cr = 1;
@@ -2971,7 +2974,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-same-app")) swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
 		else if (!stricmp(arg, "-flatten")) {
 			CHECK_NEXT_ARG
-				swf_flatten_angle = (Float)atof(argv[i + 1]);
+			swf_flatten_angle = (Float)atof(argv[i + 1]);
 			i++;
 		}
 	#endif
@@ -3019,7 +3022,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-write-buffer")) {
 			CHECK_NEXT_ARG
-				gf_isom_set_output_buffering(NULL, atoi(argv[i + 1]));
+			gf_isom_set_output_buffering(NULL, atoi(argv[i + 1]));
 			i++;
 		}
 		else if (!stricmp(arg, "-cprt")) {
@@ -3037,7 +3040,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
-				interleaving_time = atof(argv[i + 1]) / 1000;
+			interleaving_time = atof(argv[i + 1]) / 1000;
 			open_edit = GF_TRUE;
 			needSave = GF_TRUE;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
@@ -3045,14 +3048,14 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-frag")) {
 			CHECK_NEXT_ARG
-				interleaving_time = atof(argv[i + 1]) / 1000;
+			interleaving_time = atof(argv[i + 1]) / 1000;
 			needSave = GF_TRUE;
 			i++;
 			Frag = 1;
 		}
 		else if (!stricmp(arg, "-dash")) {
 			CHECK_NEXT_ARG
-				dash_duration = atof(argv[i + 1]) / 1000;
+			dash_duration = atof(argv[i + 1]) / 1000;
 			if (dash_duration == 0.0) {
 				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
 				return 2;
@@ -3061,7 +3064,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dash-strict")) {
 			CHECK_NEXT_ARG
-				dash_duration = atof(argv[i + 1]) / 1000;
+			dash_duration = atof(argv[i + 1]) / 1000;
 			if (dash_duration == 0.0) {
 				fprintf(stderr, "\tERROR: \"-dash-dash_duration\": invalid parameter %s\n", argv[i + 1]);
 				return 2;
@@ -3071,12 +3074,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
-				dash_subduration = atof(argv[i + 1]) / 1000;
+			dash_subduration = atof(argv[i + 1]) / 1000;
 			i++;
 		}
 		else if (!stricmp(arg, "-dash-scale")) {
 			CHECK_NEXT_ARG
-				dash_scale = atoi(argv[i + 1]);
+			dash_scale = atoi(argv[i + 1]);
 			if (!dash_scale) {
 				fprintf(stderr, "\tERROR: \"-dash-scale\": invalid parameter %s\n", argv[i + 1]);
 				return 2;
@@ -3085,36 +3088,36 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dash-ts-prog")) {
 			CHECK_NEXT_ARG
-				program_number = atoi(argv[i + 1]);
+			program_number = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-subsegs-per-sidx") || !stricmp(arg, "-frags-per-sidx")) {
 			CHECK_NEXT_ARG
-				subsegs_per_sidx = atoi(argv[i + 1]);
+			subsegs_per_sidx = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-segment-name")) {
 			CHECK_NEXT_ARG
-				seg_name = argv[i + 1];
+			seg_name = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
-				seg_ext = argv[i + 1];
+			seg_ext = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-bs-switching")) {
 			CHECK_NEXT_ARG
-				if (!stricmp(argv[i + 1], "no") || !stricmp(argv[i + 1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
-				else if (!stricmp(argv[i + 1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
-				else if (!stricmp(argv[i + 1], "multi"))  bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
-				else if (!stricmp(argv[i + 1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
-				else if (!stricmp(argv[i + 1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
-				else {
-					fprintf(stderr, "\tWARNING: Unrecognized bitstream switchin mode \"%s\" - please check usage\n", argv[i + 1]);
-					return 2;
-				}
-				i++;
+			if (!stricmp(argv[i + 1], "no") || !stricmp(argv[i + 1], "off")) bitstream_switching_mode = GF_DASH_BSMODE_NONE;
+			else if (!stricmp(argv[i + 1], "merge"))  bitstream_switching_mode = GF_DASH_BSMODE_MERGED;
+			else if (!stricmp(argv[i + 1], "multi"))  bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+			else if (!stricmp(argv[i + 1], "single"))  bitstream_switching_mode = GF_DASH_BSMODE_SINGLE;
+			else if (!stricmp(argv[i + 1], "inband"))  bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
+			else {
+				fprintf(stderr, "\tWARNING: Unrecognized bitstream switchin mode \"%s\" - please check usage\n", argv[i + 1]);
+				return 2;
+			}
+			i++;
 		}
 		else if (!stricmp(arg, "-dynamic")) {
 			dash_mode = GF_DASH_DYNAMIC;
@@ -3145,28 +3148,28 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-time-shift")) {
 			CHECK_NEXT_ARG
-				time_shift_depth = (u32)atoi(argv[i + 1]);
+			time_shift_depth = (u32)atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-min-buffer")) {
 			CHECK_NEXT_ARG
-				min_buffer = atoi(argv[i + 1]);
+			min_buffer = atoi(argv[i + 1]);
 			min_buffer /= 1000;
 			i++;
 		}
 		else if (!stricmp(arg, "-ast-offset")) {
 			CHECK_NEXT_ARG
-				ast_offset_ms = atoi(argv[i + 1]);
+			ast_offset_ms = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-moof-sn")) {
 			CHECK_NEXT_ARG
-				initial_moof_sn = (u32)atoi(argv[i + 1]);
+			initial_moof_sn = (u32)atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-tfdt")) {
 			CHECK_NEXT_ARG
-				sscanf(argv[i + 1], LLU, &initial_tfdt);
+			sscanf(argv[i + 1], LLU, &initial_tfdt);
 			i++;
 		}
 		else if (!stricmp(arg, "-no-frags-default")) {
@@ -3189,7 +3192,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-base-url")) {
 			CHECK_NEXT_ARG
-				dash_more_info = argv[i + 1];
+			dash_more_info = argv[i + 1];
 			mpd_base_urls = gf_realloc(mpd_base_urls, (nb_mpd_base_urls + 1)*sizeof(char**));
 			mpd_base_urls[nb_mpd_base_urls] = argv[i + 1];
 			nb_mpd_base_urls++;
@@ -3197,7 +3200,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dash-ctx")) {
 			CHECK_NEXT_ARG
-				dash_ctx_file = argv[i + 1];
+			dash_ctx_file = argv[i + 1];
 			i++;
 		}
 		else if (!stricmp(arg, "-daisy-chain")) {
@@ -3217,24 +3220,24 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
-				if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
-				else if (!stricmp(argv[i + 1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-				else if (!stricmp(argv[i + 1], "hbbtv1.5:live")) {
-					dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
-				}
-				else if (!stricmp(argv[i + 1], "dashavc264:live")) {
-					dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
-				}
-				else if (!stricmp(argv[i + 1], "dashavc264:onDemand")) {
-					dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
-				}
-				else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
-				else dash_profile = GF_DASH_PROFILE_FULL;
-				i++;
+			if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
+			else if (!stricmp(argv[i + 1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
+			else if (!stricmp(argv[i + 1], "hbbtv1.5:live")) {
+				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+			}
+			else if (!stricmp(argv[i + 1], "dashavc264:live")) {
+				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+			}
+			else if (!stricmp(argv[i + 1], "dashavc264:onDemand")) {
+				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
+			}
+			else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
+			else dash_profile = GF_DASH_PROFILE_FULL;
+			i++;
 		}
 		else if (!stricmp(arg, "-profile-ext")) {
 			CHECK_NEXT_ARG
-				dash_profile_extension = argv[i + 1];
+			dash_profile_extension = argv[i + 1];
 			i++;
 		}
 		else if (!strnicmp(arg, "-url-template", 13)) {
@@ -3252,7 +3255,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-segment-marker")) {
 			char *m;
 			CHECK_NEXT_ARG
-				m = argv[i + 1];
+			m = argv[i + 1];
 			segment_marker = GF_4CC(m[0], m[1], m[2], m[3]);
 			i++;
 		}
