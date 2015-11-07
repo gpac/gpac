@@ -3770,7 +3770,11 @@ int mp4boxMain(int argc, char **argv)
 		GF_Config *dash_ctx = NULL;
 		u32 do_abort = 0;
 		GF_DASHSegmenter *dasher;
-
+		
+		if (crypt) {
+			fprintf(stderr, "MP4Box cannot crypt and DASH on the same pass. Please encrypt your content first.\n");
+			return mp4box_cleanup(1); 
+		}
 
 		strcpy(outfile, outName ? outName : gf_url_get_resource_name(inName) );
 		sep = strrchr(outfile, '.');
@@ -4418,7 +4422,7 @@ int mp4boxMain(int argc, char **argv)
 		if ((conv_type == GF_ISOM_CONV_TYPE_ISMA) || (conv_type == GF_ISOM_CONV_TYPE_ISMA_EX)) {
 			fprintf(stderr, "Converting to ISMA Audio-Video MP4 file...\n");
 			/*keep ESIDs when doing ISMACryp*/
-			e = gf_media_make_isma(file, crypt ? 1 : 0, 0, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
+			e = gf_media_make_isma(file, crypt ? 1 : 0, GF_FALSE, (conv_type==GF_ISOM_CONV_TYPE_ISMA_EX) ? 1 : 0);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 		}
