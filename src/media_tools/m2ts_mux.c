@@ -1287,16 +1287,8 @@ void gf_m2ts_stream_update_data_following(GF_M2TS_Mux_Stream *stream)
 	stream->next_pck_flags = 0;
 	stream->copy_from_next_packets = 0;
 
-	if (stream->program->mux->one_au_per_pes) return;
-
-	switch (stream->mpeg2_stream_type) {
-	/*the following stream types do not allow PES boundaries at any place on their payload*/
-	case GF_M2TS_SYSTEMS_MPEG4_PES:
-		/*one and only one SL per PES: we cannot concatenate*/
-		return;
-	default:
-		break;
-	}
+	//AU packing in single PES is disabled
+	if (stream->force_single_au) return;
 
 	if (stream->ifce->caps & GF_ESI_AU_PULL_CAP) {
 		GF_ESIPacket test_pck;
@@ -2052,6 +2044,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->bit_rate = ifce->bit_rate;
 	stream->scheduling_priority = 1;
 
+	stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_ALL) ? GF_FALSE : GF_TRUE;
+
 	switch (ifce->stream_type) {
 	case GF_STREAM_VISUAL:
 		/*just pick first valid stream_id in visual range*/
@@ -2090,7 +2084,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			stream->min_bytes_copy_from_next = 12;
 			gf_m2ts_stream_add_hierarchy_descriptor(stream);
 			//force by default with SHVC since we don't have any delimiter / layer yet
-			stream->program->mux->one_au_per_pes = GF_TRUE;
+			stream->force_single_au = GF_TRUE;
 			break;
 		case GPAC_OTI_VIDEO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_MPEG1;
@@ -2107,6 +2101,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		case GPAC_OTI_IMAGE_JPEG:
 		case GPAC_OTI_IMAGE_PNG:
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
+			stream->force_single_au = GF_TRUE;
 			stream->mpeg2_stream_id = 0xFA;
 			gf_m2ts_stream_set_default_slconfig(stream);
 			break;
@@ -2115,6 +2110,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		}
 		break;
 	case GF_STREAM_AUDIO:
+		//override default packing for audio
+		stream->force_single_au = (stream->program->mux->au_pes_mode == GF_M2TS_PACK_NONE) ? GF_TRUE : GF_FALSE;
 		switch (ifce->object_type_indication) {
 		case GPAC_OTI_AUDIO_MPEG1:
 			stream->mpeg2_stream_type = GF_M2TS_AUDIO_MPEG1;
@@ -2145,6 +2142,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		gf_m2ts_stream_set_default_slconfig(stream);
 		if (force_pes) {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
+			stream->force_single_au = GF_TRUE;
 		} else {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_SECTIONS;
 		}
@@ -2156,6 +2154,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 
 		if (force_pes) {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
+			stream->force_single_au = GF_TRUE;
 		} else {
 			stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_SECTIONS;
 		}
@@ -2172,6 +2171,7 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 		if (program->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL) {
 			if (stream->mpeg2_stream_type != GF_M2TS_SYSTEMS_MPEG4_SECTIONS) {
 				stream->mpeg2_stream_type = GF_M2TS_SYSTEMS_MPEG4_PES;
+				stream->force_single_au = GF_TRUE;
 				stream->mpeg2_stream_id = 0xFA;/*ISO/IEC14496-1_SL-packetized_stream*/
 				gf_m2ts_stream_set_default_slconfig(stream);
 			}
@@ -2429,10 +2429,10 @@ u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer)
 }
 
 GF_EXPORT
-GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes_mode)
+GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode)
 {
 	if (!muxer) return GF_BAD_PARAM;
-	muxer->one_au_per_pes = strict_au_pes_mode ? GF_TRUE : GF_FALSE;
+	muxer->au_pes_mode = au_pes_mode;
 	return GF_OK;
 }
 

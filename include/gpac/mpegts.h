@@ -1119,6 +1119,7 @@ typedef struct __m2ts_mux_stream {
 	u32 refresh_rate_ms;
 	Bool table_needs_update;
 	Bool table_needs_send;
+	Bool force_single_au;
 
 	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
 	is available in PES, don't copy from next*/
@@ -1265,7 +1266,7 @@ struct __m2ts_mux {
 
 	Bool force_pat;
 
-	Bool one_au_per_pes;
+	Bool au_pes_mode;
 
 	Bool eos_found;
 	u64 last_br_time_us;
@@ -1310,7 +1311,13 @@ u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
 /*set muxer in/out single-au pes mode. In this mode, each PES contains one and only one AU*/
-GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes_mode);
+typedef enum
+{
+	GF_M2TS_PACK_AUDIO_ONLY,
+	GF_M2TS_PACK_NONE,
+	GF_M2TS_PACK_ALL
+} GF_M2TS_PackMode;
+GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode);
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
 
 /*user inteface functions*/

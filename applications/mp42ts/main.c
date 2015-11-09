@@ -106,6 +106,8 @@ static GFINLINE void usage()
 	        "                        * This should be set to 0 for DASH streams.\n"
 	        "-time n                request the muxer to stop after n ms\n"
 	        "-single-au             forces 1 PES = 1 AU (disabled by default)\n"
+	        "-multi-au              forces 1 PES = N AU for all streams (disabled by default).\n"
+			"                        By default, audio streams pack N AUs in one PES but video and systems data use 1 AU per PES.\n"
 	        "-rap                   forces RAP/IDR to be aligned with PES start for video streams (disabled by default)\n"
 	        "                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 	        "-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
@@ -1793,7 +1795,7 @@ static Bool enable_mem_tracker = GF_FALSE;
             || ((strlen(arg) == strlen(param)) && ++i && (i<argc) && (next_arg = argv[i]))))
 
 /*parse MP42TS arguments*/
-static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, s64 *pcr_init_val, u32 *pcr_offset, u32 *psi_refresh_rate, Bool *single_au_pes, u32 *bifs_use_pes,
+static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *carrousel_rate, s64 *pcr_init_val, u32 *pcr_offset, u32 *psi_refresh_rate, GF_M2TS_PackMode *pes_packing_mode, u32 *bifs_use_pes,
                                   M2TSSource *sources, u32 *nb_sources, char **bifs_src_name,
                                   Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
                                   u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
@@ -1938,7 +1940,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			time_found = 1;
 			*run_time = atoi(next_arg);
 		} else if (!stricmp(arg, "-single-au")) {
-			*single_au_pes = 1;
+			*pes_packing_mode = GF_M2TS_PACK_NONE;
+		} else if (!stricmp(arg, "-multi-au")) {
+			*pes_packing_mode = GF_M2TS_PACK_ALL;
 		} else if (!stricmp(arg, "-rap")) {
 			*split_rap = 1;
 		} else if (!stricmp(arg, "-flush-rap")) {
@@ -2194,9 +2198,10 @@ int main(int argc, char **argv)
 	char *ts_pack_buffer = NULL;
 	GF_Err e;
 	u32 run_time;
-	Bool real_time, single_au_pes, is_stdout;
+	Bool real_time, is_stdout;
 	s64 pcr_init_val = -1;
 	u32 usec_till_next, ttl, split_rap, sdt_refresh_rate;
+	GF_M2TS_PackMode pes_packing_mode;
 	u32 i, j, mux_rate, nb_sources, cur_pid, carrousel_rate, last_print_time, last_video_time, bifs_use_pes, psi_refresh_rate, nb_pck_pack, nb_pck_in_pack, pcr_ms;
 	char *ts_out = NULL, *udp_out = NULL, *rtp_out = NULL, *audio_input_ip = NULL;
 	FILE *ts_output_file = NULL;
@@ -2268,7 +2273,7 @@ int main(int argc, char **argv)
 	aac_reader = AAC_Reader_new();
 #endif
 	muxer = NULL;
-	single_au_pes = 0;
+	pes_packing_mode = GF_M2TS_PACK_AUDIO_ONLY;
 	bifs_use_pes = 0;
 	split_rap = 0;
 	ttl = 1;
@@ -2278,7 +2283,7 @@ int main(int argc, char **argv)
 	/***********************/
 	/*   parse arguments   */
 	/***********************/
-	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, &pcr_init_val, &pcr_offset, &psi_refresh_rate, &single_au_pes, &bifs_use_pes, sources, &nb_sources, &bifs_src_name,
+	if (GF_OK != parse_args(argc, argv, &mux_rate, &carrousel_rate, &pcr_init_val, &pcr_offset, &psi_refresh_rate, &pes_packing_mode, &bifs_use_pes, sources, &nb_sources, &bifs_src_name,
 	                        &real_time, &run_time, &video_buffer, &video_buffer_size,
 	                        &audio_input_type, &audio_input_ip, &audio_input_port,
 	                        &output_type, &ts_out, &udp_out, &rtp_out, &output_port,
@@ -2299,7 +2304,7 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Could not create the muxer. Aborting.\n");
 		goto exit;
 	}
-	gf_m2ts_mux_use_single_au_pes_mode(muxer, single_au_pes);
+	gf_m2ts_mux_use_single_au_pes_mode(muxer, pes_packing_mode);
 	if (pcr_init_val>=0) gf_m2ts_mux_set_initial_pcr(muxer, (u64) pcr_init_val);
 	gf_m2ts_mux_set_pcr_max_interval(muxer, pcr_ms);
 
