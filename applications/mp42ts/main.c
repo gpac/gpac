@@ -112,7 +112,8 @@ static GFINLINE void usage()
 	        "                          in this mode, PAT, PMT and PCR will be inserted before the first TS packet of the RAP PES\n"
 	        "-flush-rap             same as -rap but flushes all other streams (sends remaining PES packets) before inserting PAT/PMT\n"
 	        "-nb-pack N             specifies to pack up to N TS packets together before sending on network or writing to file\n"
-	        "-pcr-ms N              sets max interval in ms between 2 PCR. Default is 100 ms\n"
+	        "-pcr-ms N              sets max interval in ms between 2 PCR. Default is 100 ms or at each PES header\n"
+	        "-force-pcr-only        allows sending PCR-only packets to enforce the requested PCR rate - STILL EXPERIMENTAL.\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
 	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
@@ -1800,7 +1801,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
                                   Bool *real_time, u32 *run_time, char **video_buffer, u32 *video_buffer_size,
                                   u32 *audio_input_type, char **audio_input_ip, u16 *audio_input_port,
                                   u32 *output_type, char **ts_out, char **udp_out, char **rtp_out, u16 *output_port,
-                                  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *pcr_ms, u32 *ttl, const char **ip_ifce, const char **temi_url, u32 *sdt_refresh_rate)
+                                  char** segment_dir, u32 *segment_duration, char **segment_manifest, u32 *segment_number, char **segment_http_prefix, u32 *split_rap, u32 *nb_pck_pack, u32 *pcr_ms, u32 *ttl, const char **ip_ifce, const char **temi_url, u32 *sdt_refresh_rate, Bool *enable_forced_pcr)
 {
 	Bool rate_found=0, mpeg4_carousel_found=0, time_found=0, src_found=0, dst_found=0, audio_input_found=0, video_input_found=0,
 	     seg_dur_found=0, seg_dir_found=0, seg_manifest_found=0, seg_number_found=0, seg_http_found=0, real_time_found=0, insert_ntp=0;
@@ -1947,6 +1948,8 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*split_rap = 1;
 		} else if (!stricmp(arg, "-flush-rap")) {
 			*split_rap = 2;
+		} else if (!stricmp(arg, "-force-pcr-only")) {
+			*enable_forced_pcr = GF_TRUE;
 		} else if (CHECK_PARAM("-nb-pack")) {
 			*nb_pck_pack = atoi(next_arg);
 		} else if (CHECK_PARAM("-nb-pck")) {
@@ -2228,7 +2231,7 @@ int main(int argc, char **argv)
 	const char *ip_ifce = NULL;
 	GF_M2TS_Time prev_seg_time;
 	GF_M2TS_Mux *muxer;
-
+	Bool enable_forced_pcr = GF_FALSE;
 	/*****************/
 	/*   gpac init   */
 	/*****************/
@@ -2287,7 +2290,7 @@ int main(int argc, char **argv)
 	                        &real_time, &run_time, &video_buffer, &video_buffer_size,
 	                        &audio_input_type, &audio_input_ip, &audio_input_port,
 	                        &output_type, &ts_out, &udp_out, &rtp_out, &output_port,
-	                        &segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack, &pcr_ms, &ttl, &ip_ifce, &insert_temi, &sdt_refresh_rate)) {
+	                        &segment_dir, &segment_duration, &segment_manifest, &segment_number, &segment_http_prefix, &split_rap, &nb_pck_pack, &pcr_ms, &ttl, &ip_ifce, &insert_temi, &sdt_refresh_rate, &enable_forced_pcr)) {
 		goto exit;
 	}
 
@@ -2307,6 +2310,8 @@ int main(int argc, char **argv)
 	gf_m2ts_mux_use_single_au_pes_mode(muxer, pes_packing_mode);
 	if (pcr_init_val>=0) gf_m2ts_mux_set_initial_pcr(muxer, (u64) pcr_init_val);
 	gf_m2ts_mux_set_pcr_max_interval(muxer, pcr_ms);
+	gf_m2ts_mux_enable_pcr_only_packets(muxer, enable_forced_pcr);
+	
 
 	if (ts_out != NULL) {
 		if (segment_duration) {

@@ -1927,6 +1927,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_set_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_enable_sdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_find) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_enable_pcr_only_packets) )
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 /* M3U8 & MPD related functions */
