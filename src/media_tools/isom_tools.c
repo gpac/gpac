@@ -2414,7 +2414,7 @@ typedef struct
 } HEVCTileImport;
 
 GF_EXPORT
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 {
 #if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
@@ -2483,7 +2483,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	//then setup track references (done in two pass otherwise we would clone the tref box ...)
 	for (i=0; i<nb_tracks; i++) {
 		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
-		gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id) ;
+		if (use_extractors) {
+			gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id);
+		}
 	}
 
 	count = gf_isom_get_sample_count(file, track);
@@ -2551,25 +2553,31 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				if (e)
 					goto err_exit;
 
-				//write extractor (12 = 2*nalu_size_length + 4 bytes)
-				gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
-				gf_bs_write_int(bs, 0, 1);
-				gf_bs_write_int(bs, 49, 6); //extractor
-				gf_bs_write_int(bs, layer_id, 6);
-				gf_bs_write_int(bs, temporal_id, 3);
-				//set ref track index
-				trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
-				gf_bs_write_int(bs, trefidx, 8);
-				// no sample offset
-				gf_bs_write_int(bs, 0, 8);
-				// data offset: we start from last NAL written in this sample in this tile track
-				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
+				if (use_extractors) {
+					//write extractor (12 = 2*nalu_size_length + 4 bytes)
+					gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
+					gf_bs_write_int(bs, 0, 1);
+					gf_bs_write_int(bs, 49, 6); //extractor
+					gf_bs_write_int(bs, layer_id, 6);
+					gf_bs_write_int(bs, temporal_id, 3);
+					//set ref track index
+					trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
+					gf_bs_write_int(bs, trefidx, 8);
+					// no sample offset
+					gf_bs_write_int(bs, 0, 8);
+					// data offset: we start from last NAL written in this sample in this tile track
+					gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
                     
-                //we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
-                //at different rates :) 
-				//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-                gf_bs_write_int(bs, 0, 8*nalu_size_length);
-				
+					//we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
+					//at different rates :)
+					//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+					gf_bs_write_int(bs, 0, 8*nalu_size_length);
+				} else {
+					
+					if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
+						gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
+					}
+				}
                 tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;

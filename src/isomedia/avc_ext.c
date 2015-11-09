@@ -346,7 +346,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	u32 nal_size, max_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
 	s8 nal_type;
-	u32 nal_hdr;
+	u32 nal_hdr, sabt_ref, i, track_num;
 	u32 temporal_id = 0;
 	char *buffer;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
@@ -358,6 +358,26 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 
+	//aggregate all sabt samples with the same DTS
+	track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
+	sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
+	if ((s32) sabt_ref != -1) {
+		for (i=0; i<sabt_ref; i++) {
+			GF_ISOSample *tile_samp;
+			u32 ref_track_id, ref_track, di;
+			gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track_id);
+			ref_track = gf_isom_get_track_by_id(mdia->mediaTrack->moov->mov, ref_track_id);
+			tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
+			if (tile_samp  && tile_samp ->data) {
+				sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+				memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
+				sample->dataLength += tile_samp->dataLength;
+			}
+			if (tile_samp) gf_isom_sample_del(&tile_samp);
+		}
+	}
+	
+	
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 			sample->IsRAP = is_sample_idr(sample, entry);
@@ -413,7 +433,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
-	if (!src_bs) return GF_ISOM_INVALID_FILE;
+	if (!src_bs && sample->data) return GF_ISOM_INVALID_FILE;
 	max_size = 4096;
 
 	/*rewrite start code with NALU delim*/

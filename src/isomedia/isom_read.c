@@ -807,7 +807,7 @@ GF_Err gf_isom_get_reference_ID(GF_ISOFile *movie, u32 trackNumber, u32 referenc
 }
 
 //Return referenceIndex if the given track has a reference to the given TreckID of a given ReferenceType
-//return -1 if error
+//return 0 if error
 GF_EXPORT
 u32 gf_isom_has_track_reference(GF_ISOFile *movie, u32 trackNumber, u32 referenceType, u32 refTrackID)
 {
