@@ -285,7 +285,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
 /* Split SHVC layers */
 GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
 
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors);
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 

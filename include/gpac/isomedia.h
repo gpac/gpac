@@ -108,7 +108,8 @@ enum
 	/*ref type for the SVC tracks*/
 	GF_ISOM_REF_BASE = GF_4CC( 's', 'b', 'a', 's' ),
 	GF_ISOM_REF_SCAL = GF_4CC( 's', 'c', 'a', 'l' ),
-	GF_ISOM_REF_TBAS = GF_4CC( 't', 'b', 'a', 's' )
+	GF_ISOM_REF_TBAS = GF_4CC( 't', 'b', 'a', 's' ),
+	GF_ISOM_REF_SABT = GF_4CC( 's', 'a', 'b', 't' )
 };
 
 /*Track Edition flag*/

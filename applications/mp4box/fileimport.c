@@ -467,6 +467,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		/*EXPERIMENTAL OPTIONS NOT DOCUMENTED*/
+		else if (!strnicmp(ext+1, "tilesnox", 8)) {
+			tile_mode = 2;
+		}
 		else if (!strnicmp(ext+1, "tiles", 5)) {
 			tile_mode = 1;
 		}
@@ -664,7 +667,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
 				case GF_ISOM_SUBTYPE_HEV1:
-					tile_mode = 2;
+					break;
+				default:
+					tile_mode = 0;
 					break;
 				}
 			}
@@ -817,7 +822,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
 				case GF_ISOM_SUBTYPE_HEV1:
-					tile_mode = 2;
+					break;
+				default:
+					tile_mode = 0;
 					break;
 				}
 			}
@@ -862,8 +869,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			//TODO - merge
 		}
 	}
-	if (tile_mode == 2) {
-		gf_media_split_hevc_tiles(import.dest);
+	if (tile_mode) {
+		e = gf_media_split_hevc_tiles(import.dest, (tile_mode==1) ? GF_TRUE : GF_FALSE);
 	}
 
 
