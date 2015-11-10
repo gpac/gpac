@@ -1229,6 +1229,16 @@ enum
 	GF_SEG_BOUNDARY_FORCE_PCR,
 };
 
+/*AU packing per pes configuration*/
+typedef enum
+{
+	/*only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
+	GF_M2TS_PACK_AUDIO_ONLY,
+	/*never pack AUs in a single PES*/
+	GF_M2TS_PACK_NONE,
+	/*always try to pack AUs in a single PES*/
+	GF_M2TS_PACK_ALL
+} GF_M2TS_PackMode;
 
 struct __m2ts_mux {
 	GF_M2TS_Mux_Program *programs;
@@ -1269,7 +1279,7 @@ struct __m2ts_mux {
 
 	Bool force_pat;
 
-	Bool au_pes_mode;
+	GF_M2TS_PackMode au_pes_mode;
 
 	Bool enable_forced_pcr;
 
@@ -1315,13 +1325,6 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
-/*set muxer in/out single-au pes mode. In this mode, each PES contains one and only one AU*/
-typedef enum
-{
-	GF_M2TS_PACK_AUDIO_ONLY,
-	GF_M2TS_PACK_NONE,
-	GF_M2TS_PACK_ALL
-} GF_M2TS_PackMode;
 GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode);
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
 GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_forced_pcr);
