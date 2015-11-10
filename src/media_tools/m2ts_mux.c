@@ -938,7 +938,6 @@ static void id3_tag_create(char **input, u32 *len)
 
 static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 {
-	Bool needs_pcr = GF_FALSE;
 	u32 pck_diff;
 	s32 us_diff;
 	GF_M2TS_Time next_pcr_time, stream_time;
