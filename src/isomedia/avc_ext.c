@@ -358,22 +358,29 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 
-	//aggregate all sabt samples with the same DTS
-	track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
-	sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
-	if ((s32) sabt_ref != -1) {
-		for (i=0; i<sabt_ref; i++) {
-			GF_ISOSample *tile_samp;
-			u32 ref_track_id, ref_track, di;
-			gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track_id);
-			ref_track = gf_isom_get_track_by_id(mdia->mediaTrack->moov->mov, ref_track_id);
-			tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
-			if (tile_samp  && tile_samp ->data) {
-				sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
-				memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
-				sample->dataLength += tile_samp->dataLength;
+	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
+	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
+	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = GF_FALSE;
+	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
+
+	if (extractor_mode != GF_ISOM_NALU_EXTRACT_INSPECT) {
+		//aggregate all sabt samples with the same DTS
+		track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
+		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
+		if ((s32) sabt_ref != -1) {
+			for (i=0; i<sabt_ref; i++) {
+				GF_ISOSample *tile_samp;
+				u32 ref_track_id, ref_track, di;
+				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track_id);
+				ref_track = gf_isom_get_track_by_id(mdia->mediaTrack->moov->mov, ref_track_id);
+				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
+				if (tile_samp  && tile_samp ->data) {
+					sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
+					sample->dataLength += tile_samp->dataLength;
+				}
+				if (tile_samp) gf_isom_sample_del(&tile_samp);
 			}
-			if (tile_samp) gf_isom_sample_del(&tile_samp);
 		}
 	}
 	
@@ -385,11 +392,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 	if (!sample->IsRAP)
 		rewrite_ps = GF_FALSE;
-
-	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
-	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
-	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = GF_FALSE;
-	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
 		insert_vdrd_code = GF_FALSE;
