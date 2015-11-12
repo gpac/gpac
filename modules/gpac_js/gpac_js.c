@@ -532,7 +532,7 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 		u32 v;
 		if (JSVAL_IS_DOUBLE(argv[i])) {
 			SMJS_GET_NUMBER(argv[i], d);
-			v = 255 * d;
+			v = (u32) (255 * d);
 		} else if (JSVAL_IS_INT(argv[i])) {
 			v = 255 * JSVAL_TO_INT(argv[i]);
 		}
