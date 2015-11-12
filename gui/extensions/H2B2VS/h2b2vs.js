@@ -417,7 +417,7 @@ extension = {
         var cmd = 'ID=' + user;
 
         var obj = this.do_xhr(url, cmd);
-        if (!obj) return;
+        if (!obj || !obj.data || !obj.data.url || (obj.data.url== '') ) return;
 
         var dlg = gw_new_confirm_wnd(null, 'Restore last session ?');
         dlg.set_alpha(0.95);
