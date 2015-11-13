@@ -1134,6 +1134,11 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 	return cues;
 }
 
+Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
+{
+	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
+}
+
 GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 {
 	GF_WebVTTSample *wsample;
@@ -1242,11 +1247,6 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
 }
 #endif //GPAC_DISABLE_MEDIA_IMPORT
 
-
-Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
-{
-	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
-}
 
 void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
 {
