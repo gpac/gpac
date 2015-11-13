@@ -1574,6 +1574,11 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		gf_isom_sample_del(sample);
 		return e;
 	}
+	if (! (*sample)->IsRAP) {
+		Bool has_roll, is_rap;
+		e = gf_isom_get_sample_rap_roll_info(the_file, trackNumber, sampleNumber, &is_rap, &has_roll, NULL);
+		if (is_rap) (*sample)->IsRAP = SAP_TYPE_3;
+	}
 	//optionally get the sample number
 	if (SampleNum) {
 		*SampleNum = sampleNumber;
@@ -3372,7 +3377,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 		switch (sgdesc->grouping_type) {
 		case GF_4CC('r','a','p',' '):
-			if (is_rap) *is_rap = (group_desc_index-1) ? GF_TRUE : GF_FALSE;
+			if (is_rap) *is_rap = GF_TRUE;
 			break;
 		case GF_4CC('r','o','l','l'):
 			if (has_roll) *has_roll = GF_TRUE;

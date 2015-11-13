@@ -1093,6 +1093,12 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 	e = stbl_RemovePaddingBits(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;
 
+	e = stbl_RemoveSubSample(trak->Media->information->sampleTable, sampleNumber);
+	if (e) return e;
+	
+	e = stbl_RemoveSampleGroup(trak->Media->information->sampleTable, sampleNumber);
+	if (e) return e;
+	
 	return SetTrackDuration(trak);
 }
 

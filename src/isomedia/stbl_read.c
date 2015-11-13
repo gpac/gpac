@@ -349,6 +349,7 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 			if (first_rap_in_entry > SampleNumber) {
 				break;
 			}
+			first_sample_in_entry += sg->sample_entries[j].sample_count;
 		}
 	}
 	return GF_OK;
