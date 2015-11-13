@@ -128,6 +128,7 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	case GPAC_OTI_SCENE_VTT_MP4:
 	{
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		char start[100], end[100];
 		GF_List *cues;
 		cues = gf_webvtt_parse_cues_from_data(inBuffer, inBufferLength, 0);
@@ -142,6 +143,7 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			}
 		}
 		gf_list_del(cues);
+#endif
 	}
 	break;
 

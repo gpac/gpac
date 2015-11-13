@@ -2607,6 +2607,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			tiles[j].sample_data = NULL;
 			gf_free(sample->data);
 			sample->data = NULL;
+			
+			e = gf_isom_copy_sample_info(file, tiles[j].track, file, track, i+1);
+			if (e) goto err_exit;
 		}
 
 		gf_isom_sample_del(&sample);

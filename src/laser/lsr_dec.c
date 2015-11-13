@@ -5616,7 +5616,9 @@ static GF_Err lsr_decode_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list)
 			lsr_read_byte_align_string(lsr, NULL, "globalName");
 		}
 		pos = gf_bs_get_bit_offset(lsr->bs) - pos;
-		assert(len>=pos);
+		if (len<pos)
+			return GF_NON_COMPLIANT_BITSTREAM;
+		
 		GF_LSR_READ_INT(lsr, flag, pos, "remainingData");
 	}
 
