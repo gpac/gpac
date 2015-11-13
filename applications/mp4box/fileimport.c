@@ -1957,8 +1957,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_sample_del(&s);
 			}
 			gf_isom_sample_del(&samp);
-			if (e)
-				goto err_exit;
+			if (e) goto err_exit;
+			
+			e = gf_isom_copy_sample_info(dest, dst_tk, orig, i+1, j+1);
+			if (e) goto err_exit;
+			
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}
