@@ -1010,6 +1010,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_output_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

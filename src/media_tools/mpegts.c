@@ -195,6 +195,7 @@ static u32 gf_m2ts_reframe_reset(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool sam
 	return 0;
 }
 
+
 static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr, Bool is_hevc)
 {
 	Bool au_start_in_pes=0;
@@ -3592,11 +3593,6 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_VIDEO_MPEG2:
 			pes->reframe = gf_m2ts_reframe_mpeg_video;
 			break;
-#ifndef GPAC_DISABLE_AV_PARSERS
-		case GF_M2TS_AUDIO_MPEG1:
-		case GF_M2TS_AUDIO_MPEG2:
-			pes->reframe = gf_m2ts_reframe_mpeg_audio;
-			break;
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
 			pes->reframe = gf_m2ts_reframe_avc_h264;
@@ -3606,6 +3602,11 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 		case GF_M2TS_VIDEO_SHVC:
 			pes->reframe = gf_m2ts_reframe_hevc;
 			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
+			break;
+#ifndef GPAC_DISABLE_AV_PARSERS
+		case GF_M2TS_AUDIO_MPEG1:
+		case GF_M2TS_AUDIO_MPEG2:
+			pes->reframe = gf_m2ts_reframe_mpeg_audio;
 			break;
 		case GF_M2TS_AUDIO_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_adts;

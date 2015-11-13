@@ -1174,6 +1174,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		size_exceeded = 0;
 		max_dts = 0;
 		while (do_add) {
+			Bool is_rap;
 			Double time;
 			u32 nb_over, nb_av = 0;
 			/*perfom basic de-interleaving to make sure we're not importing too much of a given track*/
@@ -1199,6 +1200,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					samp = gf_isom_get_sample(mp4, tki->tk, tki->last_sample+1, &di);
 					samp->DTS = 0;
 					e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
+					if (!e) {
+						e = gf_isom_copy_sample_info(dest, tki->dst_tk, mp4, tki->tk, tki->last_sample+1);
+					}
+					
 					gf_isom_sample_del(&samp);
 					tki->last_sample += 1;
 					dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
@@ -1221,8 +1226,17 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				samp->DTS -= tki->firstDTS;
 
 				nb_add += 1;
+				
+				is_rap = GF_FALSE;
+				if (samp->IsRAP) {
+					is_rap = GF_TRUE;
+				} else {
+					Bool has_roll;
+					e = gf_isom_get_sample_rap_roll_info(mp4, tki->tk, tki->last_sample+1, &is_rap, &has_roll, NULL);
+				}
 
-				if (tki->has_non_raps && samp->IsRAP) {
+
+				if (tki->has_non_raps && is_rap) {
 					GF_ISOSample *next_rap;
 					u32 next_rap_num, sdi;
 					last_rap_sample_time = (Double) (s64) samp->DTS;
@@ -1239,6 +1253,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				tki->lastDTS = samp->DTS;
 				e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
 				gf_isom_sample_del(&samp);
+				
+				if (!e) {
+					e = gf_isom_copy_sample_info(dest, tki->dst_tk, mp4, tki->tk, tki->last_sample+1);
+				}
 				tki->last_sample += 1;
 				gf_set_progress("Splitting", nb_done, nb_samp);
 				nb_done++;
@@ -1957,8 +1975,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_sample_del(&s);
 			}
 			gf_isom_sample_del(&samp);
-			if (e)
-				goto err_exit;
+			if (e) goto err_exit;
+			
+			e = gf_isom_copy_sample_info(dest, dst_tk, orig, i+1, j+1);
+			if (e) goto err_exit;
+			
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}

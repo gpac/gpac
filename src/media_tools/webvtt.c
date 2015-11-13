@@ -401,7 +401,6 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 
 #endif /*GPAC_DISABLE_ISOM*/
 
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 typedef enum {
 	WEBVTT_PARSER_STATE_WAITING_SIGNATURE,
 	WEBVTT_PARSER_STATE_WAITING_HEADER,
@@ -428,6 +427,9 @@ struct _webvtt_parser {
 	void (*on_sample_parsed)(void *, GF_WebVTTSample *);
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
 };
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 
 /* mark the overlapped cue in the previous sample as split */
 /* duplicate the cue, mark it as split and adjust its timing */
@@ -619,37 +621,6 @@ u64 gf_webvtt_parser_last_duration(GF_WebVTTParser *parser)
 	}
 }
 
-Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
-{
-	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
-}
-
-void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
-{
-	u64 tmp;
-	tmp = value;
-	ts->hour = (u32)(tmp/(3600*1000));
-	tmp -= ts->hour*3600*1000;
-	ts->min  = (u32)(tmp/(60*1000));
-	tmp -= ts->min*60*1000;
-	ts->sec  = (u32)(tmp/1000);
-	tmp -= ts->sec*1000;
-	ts->ms   = (u32)tmp;
-}
-
-u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts)
-{
-	return (3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
-}
-
-void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour)
-{
-	if (dump_hour || ts->hour != 0) {
-		fprintf(dump, "%02u:", ts->hour);
-	}
-
-	fprintf(dump, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
-}
 
 static GF_Err gf_webvtt_add_cue_to_samples(GF_WebVTTParser *parser, GF_List *samples, GF_WebVTTCue *cue)
 {
@@ -1106,70 +1077,6 @@ exit:
 	return e;
 }
 
-GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
-{
-	GF_Err e;
-	GF_Box *box;
-	GF_StringBox *config;
-	GF_BitStream *bs;
-	*dumpedLength = 0;
-	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
-	e = gf_isom_parse_box(&box, bs);
-	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC)) return GF_BAD_PARAM;
-	config = (GF_StringBox *)box;
-	if (config->string) {
-		fprintf(dump, "%s", config->string);
-		*dumpedLength = (u32)strlen(config->string)+1;
-	}
-	gf_bs_del(bs);
-	gf_isom_box_del(box);
-	return e;
-}
-
-GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)
-{
-	GF_WebVTTSampleEntryBox *wvtt;
-	wvtt = gf_webvtt_isom_get_description(file, track, index);
-	if (!wvtt) return GF_BAD_PARAM;
-	fprintf(dump, "%s\n\n", wvtt->config->string);
-	return GF_OK;
-}
-
-GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample)
-{
-	GF_Err e;
-	GF_BitStream *bs;
-
-	bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
-	while(gf_bs_available(bs))
-	{
-		GF_Box *box;
-		GF_WebVTTTimestamp ts;
-		e = gf_isom_parse_box(&box, bs);
-		if (e) return e;
-		if (box->type == GF_ISOM_BOX_TYPE_VTCU) {
-			GF_VTTCueBox *cuebox = (GF_VTTCueBox *)box;
-			if (cuebox->id) fprintf(dump, "%s", cuebox->id->string);
-			gf_webvtt_timestamp_set(&ts, (iso_sample->DTS * 1000) / timescale);
-			gf_webvtt_timestamp_dump(&ts, dump, GF_FALSE);
-			fprintf(dump, " --> NEXT");
-			if (cuebox->settings) fprintf(dump, " %s", cuebox->settings->string);
-			fprintf(dump, "\n");
-			if (cuebox->payload) fprintf(dump, "%s", cuebox->payload->string);
-			fprintf(dump, "\n");
-		} else if (box->type == GF_ISOM_BOX_TYPE_VTTE) {
-			gf_webvtt_timestamp_set(&ts, (iso_sample->DTS * 1000) / timescale);
-			gf_webvtt_timestamp_dump(&ts, dump, GF_FALSE);
-			fprintf(dump, " --> NEXT\n\n");
-		} else if (box->type == GF_ISOM_BOX_TYPE_VTTA) {
-			fprintf(dump, "%s\n\n", ((GF_StringBox *)box)->string);
-		}
-		gf_isom_box_del(box);
-	}
-	gf_bs_del(bs);
-	return GF_OK;
-}
-
 GF_EXPORT
 GF_List *gf_webvtt_parse_iso_cues(GF_ISOSample *iso_sample, u64 start)
 {
@@ -1335,6 +1242,102 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
 }
 #endif //GPAC_DISABLE_MEDIA_IMPORT
 
+
+Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
+{
+	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
+}
+
+void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
+{
+	u64 tmp;
+	tmp = value;
+	ts->hour = (u32)(tmp/(3600*1000));
+	tmp -= ts->hour*3600*1000;
+	ts->min  = (u32)(tmp/(60*1000));
+	tmp -= ts->min*60*1000;
+	ts->sec  = (u32)(tmp/1000);
+	tmp -= ts->sec*1000;
+	ts->ms   = (u32)tmp;
+}
+
+u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts)
+{
+	return (3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
+}
+
+void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour)
+{
+	if (dump_hour || ts->hour != 0) {
+		fprintf(dump, "%02u:", ts->hour);
+	}
+	
+	fprintf(dump, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
+}
+GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
+{
+	GF_Err e;
+	GF_Box *box;
+	GF_StringBox *config;
+	GF_BitStream *bs;
+	*dumpedLength = 0;
+	bs = gf_bs_new(data, dataLength, GF_BITSTREAM_READ);
+	e = gf_isom_parse_box(&box, bs);
+	if (!box || (box->type != GF_ISOM_BOX_TYPE_VTTC)) return GF_BAD_PARAM;
+	config = (GF_StringBox *)box;
+	if (config->string) {
+		fprintf(dump, "%s", config->string);
+		*dumpedLength = (u32)strlen(config->string)+1;
+	}
+	gf_bs_del(bs);
+	gf_isom_box_del(box);
+	return e;
+}
+
+GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)
+{
+	GF_WebVTTSampleEntryBox *wvtt;
+	wvtt = gf_webvtt_isom_get_description(file, track, index);
+	if (!wvtt) return GF_BAD_PARAM;
+	fprintf(dump, "%s\n\n", wvtt->config->string);
+	return GF_OK;
+}
+
+GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample)
+{
+	GF_Err e;
+	GF_BitStream *bs;
+	
+	bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
+	while(gf_bs_available(bs))
+	{
+		GF_Box *box;
+		GF_WebVTTTimestamp ts;
+		e = gf_isom_parse_box(&box, bs);
+		if (e) return e;
+		if (box->type == GF_ISOM_BOX_TYPE_VTCU) {
+			GF_VTTCueBox *cuebox = (GF_VTTCueBox *)box;
+			if (cuebox->id) fprintf(dump, "%s", cuebox->id->string);
+			gf_webvtt_timestamp_set(&ts, (iso_sample->DTS * 1000) / timescale);
+			gf_webvtt_timestamp_dump(&ts, dump, GF_FALSE);
+			fprintf(dump, " --> NEXT");
+			if (cuebox->settings) fprintf(dump, " %s", cuebox->settings->string);
+			fprintf(dump, "\n");
+			if (cuebox->payload) fprintf(dump, "%s", cuebox->payload->string);
+			fprintf(dump, "\n");
+		} else if (box->type == GF_ISOM_BOX_TYPE_VTTE) {
+			gf_webvtt_timestamp_set(&ts, (iso_sample->DTS * 1000) / timescale);
+			gf_webvtt_timestamp_dump(&ts, dump, GF_FALSE);
+			fprintf(dump, " --> NEXT\n\n");
+		} else if (box->type == GF_ISOM_BOX_TYPE_VTTA) {
+			fprintf(dump, "%s\n\n", ((GF_StringBox *)box)->string);
+		}
+		gf_isom_box_del(box);
+	}
+	gf_bs_del(bs);
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_ISOM_DUMP
 static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 duration)
 {
@@ -1407,6 +1410,9 @@ GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 
 GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge)
 {
+#ifdef GPAC_DISABLE_MEDIA_IMPORT
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err  e;
 	u32     i;
 	u32     count;
@@ -1446,6 +1452,7 @@ exit:
 	gf_webvtt_parser_del(parser);
 	if (szName) gf_fclose(out);
 	return e;
+#endif
 }
 
 #endif //GPAC_DISABLE_ISOM_DUMP
