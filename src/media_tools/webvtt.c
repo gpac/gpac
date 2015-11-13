@@ -1278,6 +1278,9 @@ void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour
 }
 GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
 {
+#ifdef GPAC_DISABLE_ISOM
+	return GF_NOT_SUPPORTED;
+#else
 	GF_Err e;
 	GF_Box *box;
 	GF_StringBox *config;
@@ -1294,8 +1297,10 @@ GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength,
 	gf_bs_del(bs);
 	gf_isom_box_del(box);
 	return e;
+#endif
 }
 
+#ifndef GPAC_DISABLE_ISOM
 GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index)
 {
 	GF_WebVTTSampleEntryBox *wvtt;
@@ -1339,6 +1344,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 	gf_bs_del(bs);
 	return GF_OK;
 }
+#endif
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 duration)
