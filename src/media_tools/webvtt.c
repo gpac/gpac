@@ -1240,6 +1240,8 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
 		gf_webvtt_merge_cues(parser, start, cues);
 		gf_list_del(cues);
 	} else {
+		GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
+
 		gf_webvtt_dump_iso_sample((FILE *)parser->user, timescale, iso_sample);
 	}
 
