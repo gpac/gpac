@@ -1623,7 +1623,7 @@ static void gf_dash_solve_representation_xlink(GF_DASH_Group *group, GF_MPD_Repr
 	base_url = gf_strdup(pe->url);
 	for (k=0; k<count_elements; k++) {
 		u32 cmp = 0;
-		char *src_url, *seg_url;
+		char *src_url, *seg_url, *sep;
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 
@@ -1631,6 +1631,9 @@ static void gf_dash_solve_representation_xlink(GF_DASH_Group *group, GF_MPD_Repr
 		src_url = strstr(base_url, "://");
 		if (src_url) src_url += 3;
 		else src_url = base_url;
+
+		sep = strrchr(src_url, '/');
+		if (sep && (strlen(sep) > 1)) sep[1] = 0;
 
 		seg_url = strstr(elt->url, "://");
 		if (seg_url) seg_url += 3;
