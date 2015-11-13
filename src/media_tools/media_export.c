@@ -64,6 +64,8 @@ static GF_Err gf_export_message(GF_MediaExporter *dumper, GF_Err e, char *format
 #endif
 	return e;
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 /*that's very very crude, we only support vorbis & theora in MP4 - this will need cleanup as soon as possible*/
 static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 {
@@ -184,6 +186,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 	return GF_OK;
 #endif
 }
+#endif
 
 GF_Err gf_export_hint(GF_MediaExporter *dumper)
 {
@@ -558,6 +561,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
 static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 track, char *dsi, u32 dsiSize)
 {
 #ifndef GPAC_DISABLE_VOBSUB
@@ -686,6 +690,9 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 static const char *QCP_QCELP_GUID_1 = "\x41\x6D\x7F\x5E\x15\xB1\xD0\x11\xBA\x91\x00\x80\x5F\xB4\xB9\x7E";
 static const char *QCP_EVRC_GUID = "\x8D\xD4\x89\xE6\x76\x90\xB5\x46\x91\xEF\x73\x6A\x51\x00\xCE\xB4";
 static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\x3C\x8C\xC7\x5F\x84";
+
+#endif // GPAC_DISABLE_AV_PARSERS
+
 
 #define DUMP_AVCPARAM(_params) \
 		count = gf_list_count(_params); \
@@ -1937,7 +1944,9 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	avi_t *avi_out;
 	char dumdata[1];
 	u32 track, i, di, count, w, h, frame_d;
+#ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4VDecSpecInfo dsi;
+#endif
 	Double FPS;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
@@ -2000,6 +2009,8 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 		gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
 		w = dsi.width;
 		h = dsi.height;
+#else
+		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 #endif
 
 		v4CC = "XVID";

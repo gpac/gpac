@@ -77,6 +77,8 @@ typedef struct __validation_module
 static void validator_xvs_close(GF_Validator *validator);
 static Bool validator_xvs_next(GF_Validator *validator, Bool reverse);
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char *filename, u32 scene_time)
 {
 	GF_XMLNode *snap_node;
@@ -201,14 +203,17 @@ end:
 	if (new_name) gf_free(new_name);
 	return result;
 }
+#endif
 
 static void validator_on_video_frame(void *udta, u32 time)
 {
 	GF_Validator *validator = (GF_Validator *)udta;
 	if (validator->snapshot_next_frame) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 		char *snap_name = validator_create_snapshot(validator);
 		validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
 		gf_free(snap_name);
+#endif
 		validator->snapshot_next_frame = GF_FALSE;
 	}
 }
@@ -428,9 +433,11 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 		if (event->key.flags & GF_KEY_MOD_CTRL) {
 			rec_event = GF_FALSE;
 			if (event->key.key_code == GF_KEY_INSERT) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 				char *snap_name = validator_create_snapshot(validator);
 				validator_xvs_add_snapshot_node(validator, snap_name, gf_clock_time(validator->ck));
 				gf_free(snap_name);
+#endif
 			} else if (event->key.key_code == GF_KEY_END) {
 				GF_Event evt;
 				memset(&evt, 0, sizeof(GF_Event));
@@ -962,12 +969,14 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 			//u32 diff = gf_clock_time(validator->ck) - validator->next_time;
 			//GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Time diff: evt_time=%d  clock_time = %d, diff=%d\n", validator->next_time, gf_clock_time(validator->ck), diff));
 			if (validator->next_event_snapshot) {
+#ifndef GPAC_DISABLE_AV_PARSERS
 				Bool res;
 				char *snap_name = validator_create_snapshot(validator);
 				gf_free(snap_name);
 				res = validator_compare_snapshots(validator);
 				validator->xvs_result &= res;
 				validator->next_event_snapshot = GF_FALSE;
+#endif
 			} else {
 				validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &validator->next_event);
 			}
