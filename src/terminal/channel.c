@@ -199,6 +199,9 @@ Bool gf_es_owns_clock(GF_Channel *ch)
 {
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
+	/*It occurs in TS stream when PCR is provided in a dedicated stream. Suppose that the channel owns a clock*/
+	if (ch->force_owning_clock_flag) return 1;
+	if (ch->esd->OCRESID==ch->clock->clockID) return 1;
 	return (ch->esd->ESID==ch->clock->clockID) ? 1 : 0;
 }
 
@@ -930,8 +933,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon)
 		hdr.OCRflag = 0;
 
+	if (hdr.OCRflag)
+		ch->force_owning_clock_flag = GF_TRUE;
+
 	/*we ignore OCRs for the moment*/
-	if (hdr.OCRflag==1) {
+	if (hdr.OCRflag) {
 		if (!ch->IsClockInit) {
 			/*channel is the OCR, re-initialize the clock with the proper OCR*/
 			if (gf_es_owns_clock(ch)) {

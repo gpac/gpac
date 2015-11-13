@@ -742,6 +742,8 @@ struct _es_channel
 
 	Bool pull_forced_buffer;
 
+	Bool force_owning_clock_flag;
+
 };
 
 /*creates a new channel for this stream*/
