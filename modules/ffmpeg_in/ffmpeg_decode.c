@@ -1175,9 +1175,13 @@ redecode:
 			pix_out = PIX_FMT_YUV420P10LE;
 		}
 #endif
+
+#if (LIBAVCODEC_VERSION_MAJOR<56)
 		if (!mmlevel && frame->interlaced_frame) {
 			avpicture_deinterlace((AVPicture *) frame, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 		}
+#endif
+
 	}
 	pict.data[3] = 0;
 	pict.linesize[3] = 0;

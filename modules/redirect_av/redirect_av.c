@@ -57,11 +57,14 @@
 
 #include "ts_muxer.h"
 
-#define USE_GPAC_MPEG2TS
+//#define USE_GPAC_MPEG2TS
 #undef  USE_GPAC_MPEG2TS
 
 //#define MULTITHREAD_REDIRECT_AV
+
+#if (LIBAVCODEC_VERSION_MAJOR<56)
 #define REDIRECT_AV_AUDIO_ENABLED 1
+#endif
 
 #ifdef USE_GPAC_MPEG2TS
 #include "gpac_ts_muxer.c"
@@ -85,6 +88,8 @@
 #define TOSTR(_val) _TOSTR(_val)
 
 #endif
+
+
 
 
 /* This number * 188 should be lower than the UDP packet size */
@@ -178,6 +183,7 @@ static u32 audio_encoding_thread_run(void *param)
 				//assert( oldFrameSize <= ctx->frame_size );
 				/* buf_size * input_sample_size / output_sample_size */
 				int encoded = avcodec_encode_audio(ctx, outBuff, outBuffSize, (const short *) inBuff);
+
 				if (encoded < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[RedirectAV]: failed to encode audio, buffer size=%u, readen=%u, frame_size=%u\n", outBuffSize, readen, ctx->frame_size));
 				} else if (encoded > 0) {
@@ -370,10 +376,18 @@ static Bool start_if_needed(GF_AVRedirect *avr) {
 			pxlFormatForCodec = PIX_FMT_YUVJ420P;
 		}
 
+#if !defined(FF_API_AVFRAME_LAVC)
 		avr->RGBpicture = avcodec_alloc_frame();
+#else
+		avr->RGBpicture = av_frame_alloc();
+#endif
 		assert ( avr->RGBpicture );
 		avr->RGBpicture->data[0] = NULL;
+#if !defined(FF_API_AVFRAME_LAVC)
 		avr->YUVpicture = avcodec_alloc_frame();
+#else
+		avr->YUVpicture = av_frame_alloc();
+#endif
 		assert ( avr->YUVpicture );
 		{
 			u32 sz = sizeof ( uint8_t ) * avpicture_get_size ( pxlFormatForCodec, avr->srcWidth, avr->srcHeight );
