@@ -3386,48 +3386,54 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 	return GF_OK;
 }
 
-GF_EXPORT
-Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size)
+GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp)
 {
-
-	GF_TrackBox *trak;
 	u32 i, count;
 
-	if (default_index) *default_index = 0;
-	if (size) *size = 0;
-	if (data) *data = NULL;
-
-	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	if (!trak || !sample_description_index) return GF_FALSE;
-	if (!trak->Media->information->sampleTable->sampleGroupsDescription) return GF_FALSE;
+	if (!trak || !sample_description_index) return NULL;
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription) return NULL;
 
 	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
 	for (i=0; i<count; i++) {
-		GF_DefaultSampleGroupDescriptionEntry *entry;
 		GF_SampleGroupDescriptionBox *sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
-		if (sgdesc->grouping_type != grouping_type)
-			continue;
+		if (sgdesc->grouping_type != grouping_type) continue;
 
 		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
+		
 		if (default_index) *default_index = sgdesc->default_description_index ;
+		if (out_sgdp) *out_sgdp = sgdesc;
+		
+		if (!sample_description_index) return NULL;
+		return (GF_DefaultSampleGroupDescriptionEntry*)gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
+	}
+	return NULL;
+}
 
-		if (!sample_description_index) return GF_FALSE;
-
-		switch (grouping_type) {
+GF_EXPORT
+Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_description_index, u32 grouping_type, u32 *default_index, const char **data, u32 *size)
+{
+	GF_DefaultSampleGroupDescriptionEntry *sg_entry;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	
+	if (default_index) *default_index = 0;
+	if (size) *size = 0;
+	if (data) *data = NULL;
+	
+	sg_entry = gf_isom_get_sample_group_info_entry(the_file, trak, grouping_type, sample_description_index, default_index, NULL);
+	if (!sg_entry) return GF_FALSE;
+	
+	switch (grouping_type) {
 		case GF_4CC('r','a','p',' '):
 		case GF_4CC('r','o','l','l'):
 		case GF_4CC( 's', 'e', 'i', 'g' ):
 			return GF_TRUE;
 		default:
-			entry = (GF_DefaultSampleGroupDescriptionEntry*)gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
-			if (entry && data) *data = (char *) entry->data;
-			if (entry && size) *size = entry->length;
+			if (sg_entry && data) *data = (char *) sg_entry->data;
+			if (sg_entry && size) *size = sg_entry->length;
 			return GF_TRUE;
-		}
 	}
 	return GF_FALSE;
 }
-
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 //return the duration of the movie+fragments if known, 0 if error
