@@ -37,6 +37,7 @@
 
 #ifndef GPAC_DISABLE_SCENE_ENCODER
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 static void gf_sm_remove_mux_info(GF_ESD *src)
 {
 	u32 i;
@@ -50,6 +51,7 @@ static void gf_sm_remove_mux_info(GF_ESD *src)
 		}
 	}
 }
+#endif
 
 
 static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
@@ -83,6 +85,9 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 #endif
 }
 
+
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
+
 static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_esd_only)
 {
 	GF_UIConfig *cfg;
@@ -114,8 +119,6 @@ static GF_Err gf_sm_import_ui_stream(GF_ISOFile *mp4, GF_ESD *src, Bool rewrite_
 #endif
 }
 
-
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD *src, Double imp_time, char *mediaSource, Bool od_sample_rap)
 {

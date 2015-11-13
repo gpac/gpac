@@ -2035,7 +2035,6 @@ static GF_Err swf_def_hdr_jpeg(SWFReader *read)
 
 static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 {
-	GF_Err e;
 	u32 ID;
 	FILE *file = NULL;
 	char szName[1024];
@@ -2098,6 +2097,7 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 	if (version==3) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 		char *dst, *raw;
+		GF_Err e;
 		u8 oti;
 		u32 osize, w, h, j, pf;
 		GF_BitStream *bs;
