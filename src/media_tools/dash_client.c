@@ -1576,84 +1576,6 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 	return nb_removed;
 }
 
-static void gf_dash_solve_representation_xlink(GF_DASH_Group *group, GF_MPD_Representation *rep)
-{
-	GF_FileDownload *getter;
-	GF_Err e;
-	MasterPlaylist *pl = NULL;
-	Stream *stream;
-	PlaylistElement *pe;
-	u32 k, count_elements;
-	char *base_url;
-
-	if (!group->dash->is_m3u8 ||  !strstr(rep->segment_list->xlink_href, ".m3u8")) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
-		return;
-	}
-
-	getter = &group->dash->getter;
-	if (!getter && !getter->new_session && !getter->del_session && !getter->get_cache_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FileDownloader not found\n"));
-		return;
-	}
-	e = getter->new_session(getter, rep->segment_list->xlink_href);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
-		return;
-	}
-	e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
-		return;
-	}
-
-	assert(pl);
-	assert(pl->streams);
-	assert(gf_list_count(pl->streams) == 1);
-
-	stream = gf_list_get(pl->streams, 0);
-	assert(gf_list_count(stream->variants) == 1);
-	pe = gf_list_get(stream->variants, 0);
-	
-	rep->segment_list->duration = (u64) (pe->duration_info * 1000);
-	rep->m3u8_media_seq_min = pe->element.playlist.media_seq_min;
-	rep->m3u8_media_seq_max = pe->element.playlist.media_seq_max;
-	rep->segment_list->segment_URLs = gf_list_new();
-	count_elements = gf_list_count(pe->element.playlist.elements);
-	base_url = gf_strdup(pe->url);
-	for (k=0; k<count_elements; k++) {
-		u32 cmp = 0;
-		char *src_url, *seg_url;
-		GF_MPD_SegmentURL *segment_url;
-		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
-
-		/* remove protocol scheme and try to find the common part in baseURL and segment URL - this avoids copying the entire url */
-		src_url = strstr(base_url, "://");
-		if (src_url) src_url += 3;
-		else src_url = base_url;
-
-		seg_url = strstr(elt->url, "://");
-		if (seg_url) seg_url += 3;
-		else seg_url = elt->url;
-
-		while (src_url[cmp] == seg_url[cmp]) cmp++;
-
-		GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
-		if (!segment_url) {
-			return;
-		}
-		gf_list_add(rep->segment_list->segment_URLs, segment_url);
-		segment_url->media = gf_strdup(cmp ? (seg_url + cmp) : elt->url);
-		if (elt->drm_method != DRM_NONE) {
-			//segment_url->key_url = "aes-128";
-			if (elt->key_uri) {
-				segment_url->key_url = gf_strdup(elt->key_uri);
-				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
-			}
-		}
-	}
-	gf_free(base_url);
-}
 
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
@@ -1953,8 +1875,9 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				assert(rep->segment_list || group->adaptation_set->segment_list || period->segment_list);
 
 				//only for m3u8: if we have a xlink_href in segment_list, solve it
-				if (dash->is_m3u8 && new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx))
-					gf_dash_solve_representation_xlink(group, new_rep);
+				if (dash->is_m3u8 && new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx)) 
+					gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter);
+				
 
 				if (!new_rep->segment_list && !new_set->segment_list && !new_period->segment_list) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: representation does not use segment list as previous version\n"));
@@ -2152,7 +2075,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 
 	if (group->dash->is_m3u8) {
 		if (rep->segment_list->xlink_href)
-			gf_dash_solve_representation_xlink(group, rep);
+			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter);
 		//here we change to another representation: we need to remove all URLs from segment list and adjust the download segment index for this group
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
 			u32 next_media_seq;
