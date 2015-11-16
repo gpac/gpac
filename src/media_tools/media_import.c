@@ -4939,7 +4939,6 @@ restart_import:
 				copy_size = 0;
 				break;
 			}
-			assert(prev_nalu_prefix_size==0);
 			copy_size = nal_size;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
@@ -5172,7 +5171,7 @@ restart_import:
 			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
 				prev_nalu_prefix_size = 0;
 			} else {
-				prev_nalu_prefix_size = nal_size;
+				prev_nalu_prefix_size += nal_size;
 			}
 
 			switch (nal_type) {
