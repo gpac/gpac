@@ -1532,21 +1532,8 @@ try_next_segment:
 			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
 			update_interval = (count_elements - 1) * pe->duration_info * 1000;
 			for (k=0; k<count_elements; k++) {
-				u32 cmp = 0;
-				char *src_url, *seg_url;
 				GF_MPD_SegmentURL *segment_url;
 				elt = gf_list_get(pe->element.playlist.elements, k);
-
-				/* remove protocol scheme and try to find the common part in baseURL and segment URL - this avoids copying the entire url */
-				src_url = strstr(base_url, "://");
-				if (src_url) src_url += 3;
-				else src_url = base_url;
-
-				seg_url = strstr(elt->url, "://");
-				if (seg_url) seg_url += 3;
-				else seg_url = elt->url;
-
-				while (sep && (src_url[cmp] == seg_url[cmp])) cmp++;
 
 				GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
 				if (!segment_url) return GF_OUT_OF_MEM;
@@ -1558,7 +1545,7 @@ try_next_segment:
 						segment_url->media = gf_strdup(elt->url);
 					}
 				} else {
-					segment_url->media = gf_strdup(cmp ? (seg_url + cmp) : elt->url);
+					segment_url->media =gf_url_concatenate(pe->url, elt->url);
 				}
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
@@ -1723,6 +1710,67 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 	gf_m3u8_master_playlist_del(&pl);
 
 	return e;
+}
+
+GF_EXPORT
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter)
+{
+	GF_Err e;
+	MasterPlaylist *pl = NULL;
+	Stream *stream;
+	PlaylistElement *pe;
+	u32 k, count_elements;
+
+	if (!getter && !getter->new_session && !getter->del_session && !getter->get_cache_name) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FileDownloader not found\n"));
+		return GF_BAD_PARAM;
+	}
+
+	e = getter->new_session(getter, rep->segment_list->xlink_href);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
+		return e;
+	}
+	e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
+		return e;
+	}
+
+	assert(pl);
+	assert(pl->streams);
+	assert(gf_list_count(pl->streams) == 1);
+
+	stream = (Stream *)gf_list_get(pl->streams, 0);
+	assert(gf_list_count(stream->variants) == 1);
+	pe = (PlaylistElement *)gf_list_get(stream->variants, 0);
+	
+	rep->segment_list->duration = (u64) (pe->duration_info * 1000);
+	rep->m3u8_media_seq_min = pe->element.playlist.media_seq_min;
+	rep->m3u8_media_seq_max = pe->element.playlist.media_seq_max;
+	rep->segment_list->segment_URLs = gf_list_new();
+	count_elements = gf_list_count(pe->element.playlist.elements);
+	for (k=0; k<count_elements; k++) {
+		u32 cmp = 0;
+		GF_MPD_SegmentURL *segment_url;
+		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
+
+		GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
+		if (!segment_url) {
+			return GF_OUT_OF_MEM;
+		}
+		gf_list_add(rep->segment_list->segment_URLs, segment_url);
+		segment_url->media = gf_url_concatenate(pe->url, elt->url);
+		if (elt->drm_method != DRM_NONE) {
+			//segment_url->key_url = "aes-128";
+			if (elt->key_uri) {
+				segment_url->key_url = gf_strdup(elt->key_uri);
+				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
+			}
+		}
+	}
+
+	return GF_OK;
 }
 
 void gf_mpd_print_date(FILE *out, char *name, u64 time)
