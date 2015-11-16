@@ -1720,8 +1720,12 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	gf_bs_write_int(bs,	0, 2);    // scrambling
 	gf_bs_write_int(bs,	adaptation_field_control, 2);    // we do not use adaptation field for sections
 	gf_bs_write_int(bs,	stream->continuity_counter, 4);   // continuity counter
-	if (stream->continuity_counter < 15) stream->continuity_counter++;
-	else stream->continuity_counter=0;
+
+	//CC field shall not be incremented for if adaptation field only
+	if (adaptation_field_control != GF_M2TS_ADAPTATION_ONLY) { 
+		if (stream->continuity_counter < 15) stream->continuity_counter++;
+		else stream->continuity_counter=0;
+	}
 
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE) {
 		Bool is_rap = GF_FALSE;
