@@ -1641,7 +1641,8 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 				payload_length -= 8;
 				adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
 			}
-			if (stream->curr_pck.mpeg2_af_descriptors) {
+			//af descriptors are only inserted at the start of the pes for the time being
+			if (hdr_len && stream->curr_pck.mpeg2_af_descriptors) {
 				if (adaptation_field_control == GF_M2TS_ADAPTATION_NONE) {
 					payload_length -= 2; //AF header but no PCR
 					adaptation_field_control = GF_M2TS_ADAPTATION_AND_PAYLOAD;
@@ -1763,7 +1764,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 			stream->program->nb_pck_last_pcr = stream->program->mux->tot_pck_sent;
 		}
 		is_rap = (hdr_len && (stream->curr_pck.flags & GF_ESI_DATA_AU_RAP) ) ? GF_TRUE : GF_FALSE;
-		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, stream->curr_pck.mpeg2_af_descriptors, stream->curr_pck.mpeg2_af_descriptors_size);
+		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, needs_pcr, pcr, is_rap, padding_length, hdr_len ? stream->curr_pck.mpeg2_af_descriptors : NULL, hdr_len ? stream->curr_pck.mpeg2_af_descriptors_size : 0);
 
 		if (stream->curr_pck.mpeg2_af_descriptors) {
 			gf_free(stream->curr_pck.mpeg2_af_descriptors);
