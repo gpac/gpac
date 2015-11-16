@@ -232,6 +232,7 @@ void PrintGeneralUsage()
 	        " -cprt string         adds copyright string to movie\n"
 	        " -chap file           adds chapter information contained in file\n"
 	        " -set-track-id id1:id2 changes the id of a track from id1 to id2\n"
+	        " -swap-track-id id1:id2 swaps the IDs of the identified tracks\n"
 	        " -rem trackID         removes track from file\n"
 	        " -rap trackID         removes all non-RAP samples from track\n"
 	        " -enable trackID      enables track\n"
@@ -1431,6 +1432,7 @@ typedef enum {
 	TRAC_ACTION_REM_KIND		= 12,
 	TRAC_ACTION_SET_ID			= 13,
 	TRAC_ACTION_SET_UDTA		= 14,
+	TRAC_ACTION_SWAP_ID			= 15,
 } TrackActionType;
 
 typedef struct
@@ -2098,12 +2100,12 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			nb_track_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-set-track-id")) {
+		else if (!stricmp(arg, "-set-track-id") || !stricmp(arg, "-swap-track-id")) {
 			char *sep;
 			CHECK_NEXT_ARG
 			tracks = gf_realloc(tracks, sizeof(TrackAction) * (nb_track_act + 1));
 			memset(&tracks[nb_track_act], 0, sizeof(TrackAction));
-			tracks[nb_track_act].act_type = TRAC_ACTION_SET_ID;
+			tracks[nb_track_act].act_type = !stricmp(arg, "-set-track-id") ? TRAC_ACTION_SET_ID : TRAC_ACTION_SWAP_ID;
 			sep = strchr(argv[i + 1], ':');
 			if (!sep) {
 				fprintf(stderr, "Bad format for -set-track-id - expecting \"id1:id2\" got \"%s\"\n", argv[i + 1]);
@@ -4600,11 +4602,28 @@ int mp4boxMain(int argc, char **argv)
 		case TRAC_ACTION_SET_ID:
 			if (track) {
 				u32 newTrack;
-				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
+				newTrack = gf_isom_get_track_by_id(file, tka->trackID);
 				if (newTrack != 0) {
 					fprintf(stderr, "Error: Cannot set track id with value %d because a track already exists - ignoring", tka->newTrackID);
 				} else {
 					e = gf_isom_set_track_id(file, track, tka->newTrackID);
+					needSave = GF_TRUE;
+				}
+			} else {
+				fprintf(stderr, "Error: Cannot change id for track %d because it does not exist - ignoring", tka->trackID);
+			}
+			break;
+		case TRAC_ACTION_SWAP_ID:
+			if (track) {
+				u32 tk1, tk2;
+				tk1 = gf_isom_get_track_by_id(file, tka->trackID);
+				tk2 = gf_isom_get_track_by_id(file, tka->newTrackID);
+				if (!tk1 || !tk2) {
+					fprintf(stderr, "Error: Cannot swap track IDs because not existing - ignoring");
+				} else {
+					e = gf_isom_set_track_id(file, tk2, 0);
+					if (!e) e = gf_isom_set_track_id(file, tk1, tka->newTrackID);
+					if (!e) e = gf_isom_set_track_id(file, tk2, tka->trackID);
 					needSave = GF_TRUE;
 				}
 			} else {
