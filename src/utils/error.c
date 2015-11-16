@@ -1219,7 +1219,7 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 	u32 count = sizeof(defined_languages) / sizeof(struct lang_def);
 
 	if (!lang_or_rfc_5646_code) return -1;
-	len = 0;
+
 	sep = (char *) strchr(lang_or_rfc_5646_code, '-');
 	if (sep) {
 		sep[0] = 0;

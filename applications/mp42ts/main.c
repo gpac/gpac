@@ -2037,7 +2037,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				u32 temi_id = 0;
 				if (sscanf(next_arg, "%d", &temi_id) == 1) {
 					if (temi_id < 0x80 || temi_id>0xFF) {
-						fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n");
+						fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n", temi_id);
 						return GF_BAD_PARAM;
 					}
 				}
@@ -2061,7 +2061,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			}
 			if (sscanf(next_arg, "%d", &temi_id) == 1) {
 				if (temi_id < 0x80 || temi_id>0xFF) {
-					fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n");
+					fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n", temi_id);
 					return GF_BAD_PARAM;
 				}
 				temi_id_2 = temi_id;
