@@ -461,6 +461,7 @@ typedef struct
 	u64 modificationTime;
 	u32 timeScale;
 	u64 duration;
+	u64 original_duration;
 	u32 nextTrackID;
 	u32 preferredRate;
 	u16 preferredVolume;
@@ -605,7 +606,7 @@ typedef struct
 	u64 creationTime;
 	u64 modificationTime;
 	u32 timeScale;
-	u64 duration;
+	u64 duration, original_duration;
 	char packedLanguage[4];
 	u16 reserved;
 } GF_MediaHeaderBox;

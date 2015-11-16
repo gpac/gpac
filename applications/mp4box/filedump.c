@@ -1754,7 +1754,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	timescale = gf_isom_get_media_timescale(file, trackNum);
-	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d - Media Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d\n", trackNum, trackID, timescale);
+	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
+	
 	nb_edits = gf_isom_get_edit_segment_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
@@ -2544,8 +2547,11 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 
 	timescale = gf_isom_get_timescale(file);
-	fprintf(stderr, "* Movie Info *\n\tTimescale %d - Duration %s\n\t%d track(s)\n",
-	        timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_get_track_count(file));
+	i=gf_isom_get_track_count(file);
+	fprintf(stderr, "* Movie Info *\n\tTimescale %d - %d track%s\n", timescale, i, i>1 ? "s" : "");
+	
+	fprintf(stderr, "\tComputed Duration %s", format_duration(gf_isom_get_duration(file), timescale, szDur));
+	fprintf(stderr, " - Indicated Duration %s\n", format_duration(gf_isom_get_original_duration(file), timescale, szDur));
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {

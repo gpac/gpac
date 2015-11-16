@@ -558,6 +558,13 @@ u64 gf_isom_get_duration(GF_ISOFile *movie)
 
 	return movie->moov->mvhd->duration;
 }
+//return the duration of the movie, 0 if error
+GF_EXPORT
+u64 gf_isom_get_original_duration(GF_ISOFile *movie)
+{
+	if (!movie || !movie->moov) return 0;
+	return movie->moov->mvhd->original_duration;
+}
 
 //return the creation info of the movie
 GF_EXPORT
@@ -928,6 +935,18 @@ u64 gf_isom_get_media_duration(GF_ISOFile *movie, u32 trackNumber)
 #endif
 
 	return trak->Media->mediaHeader->duration;
+}
+
+//get the media duration (without edit)
+//return 0 if bad param
+GF_EXPORT
+u64 gf_isom_get_media_original_duration(GF_ISOFile *movie, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+	trak = gf_isom_get_track_from_file(movie, trackNumber);
+	if (!trak) return 0;
+	
+	return trak->Media->mediaHeader->original_duration;
 }
 
 //Get the timeScale of the media. All samples DTS/CTS are expressed in this timeScale
