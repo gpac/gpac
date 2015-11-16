@@ -200,7 +200,7 @@ Bool gf_es_owns_clock(GF_Channel *ch)
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
 	/*It occurs in TS stream when PCR is provided in a dedicated stream. Suppose that the channel owns a clock*/
-	if (ch->clock->ocr_on_esid) return 1;
+	if (ch->clock->ocr_on_esid == ch->esd->ESID) return 1;
 	return (ch->esd->ESID==ch->clock->clockID) ? 1 : 0;
 }
 
