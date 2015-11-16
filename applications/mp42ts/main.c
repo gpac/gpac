@@ -48,6 +48,10 @@
 #define MP42TS_PRINT_TIME_MS 500 /*refresh printed info every CLOCK_REFRESH ms*/
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
+
+u32 temi_id_1 = -1;
+u32 temi_id_2 = -1;
+
 u32 temi_url_insertion_delay = 1000;
 u32 temi_offset = 0;
 Bool temi_disable_loop = GF_FALSE;
@@ -116,10 +120,11 @@ static GFINLINE void usage()
 	        "-force-pcr-only        allows sending PCR-only packets to enforce the requested PCR rate - STILL EXPERIMENTAL.\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
-	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal\n"
+	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal, and can be a number for external timeline IDs\n"
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
 	        "-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
+	        "-temi2 ID              Inserts a secondary TEMI time codes in adaptation field of the audio PID if any. ID shall be set to the desired external timeline IDs\n"
 			"-insert-ntp            Inserts NTP timestamp in TEMI timeline descriptor\n"
 	        "-sdt-rate MS           Gives the SDT carrousel rate in milliseconds. If 0 (default), SDT is not sent\n"
 	        "\n"
@@ -198,8 +203,7 @@ typedef struct
 	M2TSSource *source;
 
 	const char *temi_url;
-	u32 last_temi_url;
-	Bool insert_temi;
+	u32 last_temi_url, timeline_id;
 	Bool insert_ntp;
 
 } GF_ESIMP4;
@@ -242,7 +246,7 @@ enum
 #endif
 };
 
-static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 *last_url_time)
+static u32 format_af_descriptor(char *af_data, u32 timeline_id, u64 timecode, u32 timescale, u64 ntp, const char *temi_url, u32 *last_url_time)
 {
 	u32 res;
 	u32 len;
@@ -266,7 +270,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		gf_bs_write_int(bs,	0, 1); //splicing_flag
 		gf_bs_write_int(bs,	0, 1); //use_base_temi_url
 		gf_bs_write_int(bs,	0xFF, 5); //reserved
-		gf_bs_write_int(bs,	0, 7); //timeline_id
+		gf_bs_write_int(bs,	timeline_id, 7); //timeline_id
 
 		if (strlen(temi_url)) {
 			char *url = (char *)temi_url;
@@ -307,7 +311,7 @@ static u32 format_af_descriptor(char *af_data, u64 timecode, u32 timescale, u64 
 		gf_bs_write_int(bs,	0, 1); //paused
 		gf_bs_write_int(bs,	0, 1); //discontinuity
 		gf_bs_write_int(bs,	0xFF, 7); //reserved
-		gf_bs_write_int(bs,	temi_url ? 0 : 150, 8); //timeline_id
+		gf_bs_write_int(bs,	timeline_id, 8); //timeline_id
 		if (timescale) {
 			gf_bs_write_u32(bs,	timescale); //timescale
 			if (use64)
@@ -353,7 +357,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		pck.cts = priv->sample->DTS + priv->ts_offset;
 		if (priv->is_repeat) pck.flags |= GF_ESI_DATA_REPEAT;
 
-		if (priv->insert_temi) {
+		if (priv->timeline_id) {
 			u64 ntp=0;
 			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
 			if (temi_disable_loop) {
@@ -371,7 +375,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 				ntp <<= 32;
 				ntp |= frac;
 			}
-			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, tc, ifce->timescale, ntp, priv->temi_url, &priv->last_temi_url);
+			pck.mpeg2_af_descriptors_size = format_af_descriptor(af_data, priv->timeline_id - 1, tc, ifce->timescale, ntp, priv->temi_url, &priv->last_temi_url);
 			pck.mpeg2_af_descriptors = af_data;
 		}
 
@@ -1397,6 +1401,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		u32 i;
 		u32 nb_tracks;
 		Bool has_bifs_od = 0;
+		Bool temi_assigned = 0;
 		u32 first_audio = 0;
 		u32 first_other = 0;
 		source->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
@@ -1438,9 +1443,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 						if (!source->pcr_idx) {
 							source->pcr_idx = i+1;
 							if (temi_url) {
-								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_temi = GF_TRUE;
-								if (insert_ntp) 
-									((GF_ESIMP4 *)source->streams[i].input_udta)->insert_ntp = GF_TRUE;
+								temi_assigned = GF_TRUE;
+								((GF_ESIMP4 *)source->streams[i].input_udta)->timeline_id = temi_id_1 + 1;
+								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_ntp = insert_ntp;
+
 								if (strcmp(temi_url, "NOTEMIURL"))
 									((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
 							}
@@ -1479,6 +1485,16 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			}
 		}
 		if (has_bifs_od && !source->mpeg4_signaling) source->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
+		if (temi_url && !temi_assigned && first_audio) {
+			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->timeline_id = temi_id_1 + 1;
+			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->insert_ntp = insert_ntp;
+
+			if (strcmp(temi_url, "NOTEMIURL"))
+				((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->temi_url = temi_url;
+		} else if (temi_id_2>0 && first_audio) {
+			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->timeline_id = temi_id_2 + 1;
+			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->insert_ntp = insert_ntp;
+		}
 
 		/*if no visual PCR found, use first audio*/
 		if (!source->pcr_idx) source->pcr_idx = first_audio;
@@ -2016,15 +2032,44 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			if (next_arg[0]=='-') {
 				*temi_url = "NOTEMIURL";
 				i--;
+				temi_id_1 = 150;
 			} else {
-				*temi_url = next_arg;
-				if (strlen(next_arg) > 150) {
-					fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
-					return GF_NOT_SUPPORTED;
+				u32 temi_id = 0;
+				if (sscanf(next_arg, "%d", &temi_id) == 1) {
+					if (temi_id < 0x80 || temi_id>0xFF) {
+						fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n");
+						return GF_BAD_PARAM;
+					}
+				}
+				if (!temi_id) {
+					*temi_url = next_arg;
+					if (strlen(next_arg) > 150) {
+						fprintf(stderr, "URLs longer than 150 bytes are not currently supported\n");
+						return GF_NOT_SUPPORTED;
+					}
+					temi_id_1 = 0;
+				} else {
+					temi_id_1 = temi_id;
+					*temi_url = "NOTEMIURL";
 				}
 			}
-		}
-		else if (CHECK_PARAM("-temi-delay")) {
+		} else if (CHECK_PARAM("-temi2")) {
+			u32 temi_id = 0;
+			if (next_arg[0]=='-') {
+				fprintf(stderr, "No ID for secondary external TEMI timeline specified\n");
+				return GF_BAD_PARAM;
+			}
+			if (sscanf(next_arg, "%d", &temi_id) == 1) {
+				if (temi_id < 0x80 || temi_id>0xFF) {
+					fprintf(stderr, "TEMI external timeline IDs shall be in the range [0x80, 0xFF], but %d was specified\n");
+					return GF_BAD_PARAM;
+				}
+				temi_id_2 = temi_id;
+			} else {
+				fprintf(stderr, "No ID for secondary external TEMI timeline specified\n");
+				return GF_BAD_PARAM;
+			}
+		} else if (CHECK_PARAM("-temi-delay")) {
 			temi_url_insertion_delay = atoi(next_arg);
 		} else if (CHECK_PARAM("-temi-offset")) {
 			temi_offset = atoi(next_arg);
