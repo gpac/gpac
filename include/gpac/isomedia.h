@@ -453,8 +453,11 @@ u32 gf_isom_get_track_count(GF_ISOFile *the_file);
 /*return the timescale of the movie, 0 if error*/
 u32 gf_isom_get_timescale(GF_ISOFile *the_file);
 
-/*return the duration of the movie, 0 if error*/
+/*return the computed duration of the movie given the media in the sample tables, 0 if error*/
 u64 gf_isom_get_duration(GF_ISOFile *the_file);
+
+/*return the duration of the movie as written in the file, regardless of the media data*/
+u64 gf_isom_get_original_duration(GF_ISOFile *movie);
 
 /*return the creation info of the movie*/
 GF_Err gf_isom_get_creation_time(GF_ISOFile *the_file, u64 *creationTime, u64 *modificationTime);
@@ -502,8 +505,11 @@ u32 gf_isom_get_sample_description_index(GF_ISOFile *the_file, u32 trackNumber, 
 0 otherwise*/
 Bool gf_isom_is_self_contained(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
 
-/*get the media duration (without edit) return 0 if no samples (URL streams)*/
+/*get the media duration (without edit) based on sample table return 0 if no samples (URL streams)*/
 u64 gf_isom_get_media_duration(GF_ISOFile *the_file, u32 trackNumber);
+
+/*get the media duration (without edit) as indicated in the file (regardless of sample tables)*/
+u64 gf_isom_get_media_original_duration(GF_ISOFile *movie, u32 trackNumber);
 
 /*Get the timeScale of the media. */
 u32 gf_isom_get_media_timescale(GF_ISOFile *the_file, u32 trackNumber);

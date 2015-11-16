@@ -2806,6 +2806,8 @@ GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->timeScale = 90000;
 	}
 
+	ptr->original_duration = ptr->duration;
+
 	//our padding bit
 	gf_bs_read_int(bs, 1);
 	//the spec is unclear here, just says "the value 0 is interpreted as undetermined"
@@ -4106,6 +4108,7 @@ GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->selectionDuration = gf_bs_read_u32(bs);
 	ptr->currentTime = gf_bs_read_u32(bs);
 	ptr->nextTrackID = gf_bs_read_u32(bs);
+	ptr->original_duration = ptr->duration;
 	return GF_OK;
 }
 
