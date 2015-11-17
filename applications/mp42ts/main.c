@@ -49,8 +49,8 @@
 #define MP42TS_VIDEO_FREQ 1000 /*meant to send AVC IDR only every CLOCK_REFRESH ms*/
 
 
-u32 temi_id_1 = -1;
-u32 temi_id_2 = -1;
+s32 temi_id_1 = -1;
+s32 temi_id_2 = -1;
 
 u32 temi_url_insertion_delay = 1000;
 u32 temi_offset = 0;
@@ -1442,13 +1442,16 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 						/*get first visual stream as PCR*/
 						if (!source->pcr_idx) {
 							source->pcr_idx = i+1;
-							if (temi_url) {
+							if ((temi_id_1>=0) || (temi_id_2>=0)) {
 								temi_assigned = GF_TRUE;
-								((GF_ESIMP4 *)source->streams[i].input_udta)->timeline_id = temi_id_1 + 1;
+								((GF_ESIMP4 *)source->streams[i].input_udta)->timeline_id = (u32) ( (temi_id_1>=0) ? temi_id_1 + 1 : temi_id_2 + 1 );
 								((GF_ESIMP4 *)source->streams[i].input_udta)->insert_ntp = insert_ntp;
 
-								if (strcmp(temi_url, "NOTEMIURL"))
+								if (temi_url && (temi_id_1>=0))
 									((GF_ESIMP4 *)source->streams[i].input_udta)->temi_url = temi_url;
+
+								if (temi_id_1>=0) temi_id_1 = -1;
+								else temi_id_2 = -1;
 							}
 						}
 					}
@@ -1485,15 +1488,15 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			}
 		}
 		if (has_bifs_od && !source->mpeg4_signaling) source->mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
-		if (temi_url && !temi_assigned && first_audio) {
-			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->timeline_id = temi_id_1 + 1;
+		if ( !temi_assigned && first_audio && ((temi_id_1>=0) || (temi_id_2>=0) ) ) {
+			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->timeline_id = (u32) ( (temi_id_1>=0) ? temi_id_1 + 1 : temi_id_2 + 1 );
 			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->insert_ntp = insert_ntp;
-
-			if (strcmp(temi_url, "NOTEMIURL"))
+			
+			if (temi_url && (temi_id_1>=0) )
 				((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->temi_url = temi_url;
-		} else if (temi_id_2>0 && first_audio) {
-			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->timeline_id = temi_id_2 + 1;
-			((GF_ESIMP4 *)source->streams[first_audio-1].input_udta)->insert_ntp = insert_ntp;
+
+			if (temi_id_1>=0) temi_id_1 = -1;
+			else temi_id_2 = -1;
 		}
 
 		/*if no visual PCR found, use first audio*/
@@ -2030,7 +2033,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			*ts_out = gf_strdup(next_arg);
 		} else if (CHECK_PARAM("-temi")) {
 			if (next_arg[0]=='-') {
-				*temi_url = "NOTEMIURL";
+				*temi_url = NULL;
 				i--;
 				temi_id_1 = 150;
 			} else {
@@ -2050,7 +2053,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 					temi_id_1 = 0;
 				} else {
 					temi_id_1 = temi_id;
-					*temi_url = "NOTEMIURL";
+					*temi_url = NULL;
 				}
 			}
 		} else if (CHECK_PARAM("-temi2")) {
@@ -2114,7 +2117,7 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 	if (*real_time) force_real_time = 1;
 	rate_found = 1;
 
-	/*second pass: other*/
+	/*second pass: open sources*/
 	for (i=1; i<argc; i++) {
 		u32 res;
 		char *src_args;
@@ -2151,6 +2154,9 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 				for (k=0; k<*nb_sources; k++) {
 					if (sources[k].ID == sources[*nb_sources].ID) {
 						sources[*nb_sources].is_not_program_declaration = 1;
+						if (sources[k].max_sample_size < sources[*nb_sources].max_sample_size)
+							sources[k].max_sample_size = sources[*nb_sources].max_sample_size;
+
 						break;
 					}
 				}
