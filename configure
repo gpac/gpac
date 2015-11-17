@@ -763,7 +763,6 @@ fi
 #look for spidermonkey JS support
 mozjs_pkgcfg="no"
 
-
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
@@ -775,10 +774,7 @@ EOF
     #try local
     js_inc="$local_inc/js"
     js_flags="-DXP_UNIX -I$local_inc/js"
-    if docc $js_flags -L$local_lib -ljs -lpthread ; then
-        has_js="local"
-        #dc added
-    elif test "$pkg_config" != "no"; then
+    if test "$pkg_config" != "no"; then
         #try pkg-config
         if $pkg_config --exists mozilla-js ; then
             mozjs_pkgcfg="mozilla-js"
@@ -786,17 +782,20 @@ EOF
             mozjs_pkgcfg="mozjs"
         elif $pkg_config --exists mozjs185 ; then
             mozjs_pkgcfg="mozjs185"
+    elif docc $js_flags -L$local_lib -ljs -lpthread ; then
+        has_js="local"
+        #dc added
     fi
 
-        if test $mozjs_pkgcfg != "no" ; then
-            js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
-            js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-            if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
-                has_js="system"
-                js_lib=`$pkg_config --libs $mozjs_pkgcfg`
-            fi
-        #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-        elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
+    if test $mozjs_pkgcfg != "no" ; then
+        js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
+        js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
+        if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
+           has_js="system"
+           js_lib=`$pkg_config --libs $mozjs_pkgcfg`
+        fi
+    #try firefox folders (starting at ubuntu 11.10, no pkg-config)
+    elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
             firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
             for i in $firefox_version ; do
                 if test "$has_js" = "no" ; then
@@ -812,7 +811,7 @@ EOF
                     fi
                 fi
             done
-        fi
+     fi
 
         if test "$has_js" = "no" ; then
             #try prefix (DC)
