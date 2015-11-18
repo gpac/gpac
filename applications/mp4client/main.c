@@ -1266,7 +1266,7 @@ int main (int argc, char **argv)
             no_prog=1;
             gf_set_progress_callback(NULL, progress_quiet);
         }
-        else if (!stricmp(arg, "--no-save")) {
+        else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
 			no_cfg_save=1;
         }
         else if (!stricmp(arg, "-ntp-shift")) {
