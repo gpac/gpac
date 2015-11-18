@@ -3522,6 +3522,12 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	scale /= trak->Media->mediaHeader->timeScale;
 	trak->Media->mediaHeader->timeScale = newTS;
 	if (!force_rescale) {
+		u32 i, k, idx;
+		GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
+		u64 cur_dts;
+		u64*DTSs = NULL;
+		s64*CTSs = NULL;
+		
 		if (trak->editBox) {
 			GF_EdtsEntry *ent;
 			u32 i=0;
@@ -3529,19 +3535,84 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				ent->mediaTime = (u32) (scale*ent->mediaTime);
 			}
 		}
-		if (trak->Media->information->sampleTable) {
-			u32 i;
-			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
-			if (stbl->TimeToSample) {
-				for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
-					stbl->TimeToSample->entries[i].sampleDelta = (u32) (scale * stbl->TimeToSample->entries[i].sampleDelta);
+		if (! stbl || !stbl->TimeToSample) {
+			return SetTrackDuration(trak);
+		}
+		
+		idx = 0;
+		cur_dts = 0;
+		//unpack the DTSs
+		DTSs = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount) );
+		CTSs = NULL;
+				
+		if (!DTSs) return GF_OUT_OF_MEM;
+		if (stbl->CompositionOffset) {
+			CTSs = (s64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount) );
+		}
+				
+		for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
+			for (k=0; k<stbl->TimeToSample->entries[i].sampleCount; k++) {
+				cur_dts += stbl->TimeToSample->entries[i].sampleDelta;
+				DTSs[idx] = cur_dts * scale;
+
+				if (stbl->CompositionOffset) {
+					s32 cts_o;
+					stbl_GetSampleCTS(stbl->CompositionOffset, idx+1, &cts_o);
+					CTSs[idx] = ((s64) cur_dts + cts_o) * scale;
+				}
+				idx++;
+			}
+		}
+		//repack DTS
+		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
+		memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
+		stbl->TimeToSample->nb_entries = 1;
+		stbl->TimeToSample->entries[0].sampleDelta = DTSs[0];
+		stbl->TimeToSample->entries[0].sampleCount = 1;
+		idx=0;
+		for (i=1; i< stbl->SampleSize->sampleCount - 1; i++) {
+			if (DTSs[i+1] - DTSs[i] == stbl->TimeToSample->entries[idx].sampleDelta) {
+				stbl->TimeToSample->entries[idx].sampleCount++;
+			} else {
+				idx++;
+				stbl->TimeToSample->entries[idx].sampleDelta = DTSs[i+1] - DTSs[i];
+				stbl->TimeToSample->entries[idx].sampleCount=1;
+			}
+		}
+		stbl->TimeToSample->nb_entries = idx+1;
+		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
+				
+		if (CTSs) {
+			//repack CTS
+			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
+			memset(stbl->CompositionOffset->entries, 0, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
+			stbl->CompositionOffset->nb_entries = 1;
+			stbl->CompositionOffset->entries[0].decodingOffset = CTSs[0] - DTSs[0];
+			stbl->CompositionOffset->entries[0].sampleCount = 1;
+			idx=0;
+			for (i=1; i< stbl->SampleSize->sampleCount; i++) {
+				s32 cts_o = CTSs[i] - DTSs[i];
+				if (cts_o == stbl->CompositionOffset->entries[idx].decodingOffset) {
+					stbl->CompositionOffset->entries[idx].sampleCount++;
+				} else {
+					idx++;
+					stbl->CompositionOffset->entries[idx].decodingOffset = cts_o;
+					stbl->CompositionOffset->entries[idx].sampleCount=1;
 				}
 			}
-			if (stbl->CompositionOffset) {
-				for (i=0; i<stbl->CompositionOffset->nb_entries; i++) {
-					stbl->CompositionOffset->entries[i].decodingOffset = (u32) (scale * stbl->CompositionOffset->entries[i].decodingOffset);
-				}
-			}
+			stbl->CompositionOffset->nb_entries = idx+1;
+			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->CompositionOffset->nb_entries);
+			
+			gf_free(CTSs);
+		}
+		gf_free(DTSs);
+		
+		if (stbl->CompositionToDecode) {
+			stbl->CompositionToDecode->compositionEndTime *= scale;
+			stbl->CompositionToDecode->compositionStartTime *= scale;
+			stbl->CompositionToDecode->compositionToDTSShift *= scale;
+			stbl->CompositionToDecode->greatestDecodeToDisplayDelta *= scale;
+			stbl->CompositionToDecode->leastDecodeToDisplayDelta *= scale;
 		}
 	}
 	return SetTrackDuration(trak);
