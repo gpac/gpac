@@ -1518,7 +1518,8 @@ try_next_segment:
 			GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
 			if (!rep->segment_list) return GF_OUT_OF_MEM;
 			// doesn't parse sub-playlists, we need to save URL to these sub-playlist in xlink:href so that we can get the segment URL when we need
-			if (!parse_sub_playlist) {
+			// note: for MPD type static, always parse all sub-playlist because we just do it once in a period
+			if ((mpd->type == GF_MPD_TYPE_DYNAMIC) && !parse_sub_playlist) {
 				rep->segment_list->xlink_href = gf_strdup(pe->url);
 				gf_free(base_url);
 				base_url = NULL;
@@ -1748,7 +1749,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	rep->segment_list->duration = (u64) (pe->duration_info * 1000);
 	rep->m3u8_media_seq_min = pe->element.playlist.media_seq_min;
 	rep->m3u8_media_seq_max = pe->element.playlist.media_seq_max;
-	rep->segment_list->segment_URLs = gf_list_new();
+	if (!rep->segment_list->segment_URLs)
+		rep->segment_list->segment_URLs = gf_list_new();
 	count_elements = gf_list_count(pe->element.playlist.elements);
 	for (k=0; k<count_elements; k++) {
 		u32 cmp = 0;
@@ -1770,8 +1772,20 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		}
 	}
 
+	if (!gf_list_count(rep->segment_list->segment_URLs)) {
+		gf_list_del(rep->segment_list->segment_URLs);
+		rep->segment_list->segment_URLs = NULL;
+	}
+
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_MPD_SegmentList *gf_mpd_solve_representation_xlink(GF_MPD *mpd, GF_XMLNode *root)
+{
+	return gf_mpd_parse_segment_list(mpd, root);
+}
+
 
 void gf_mpd_print_date(FILE *out, char *name, u64 time)
 {
