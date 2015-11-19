@@ -4684,11 +4684,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		fprintf(mpd, " maxWidth=\"%d\" maxHeight=\"%d\"", max_width, max_height);
 		if (strlen(szMaxFPS))
 			fprintf(mpd, " maxFrameRate=\"%s\"", szMaxFPS);
-		gf_media_reduce_aspect_ratio(&max_width, &max_height);
+
+		gf_media_reduce_aspect_ratio(&dar_num, &dar_den);
+		fprintf(mpd, " par=\"%d:%d\"", dar_num, dar_den);
 	}
 
-	gf_media_reduce_aspect_ratio(&dar_num, &dar_den);
-	fprintf(mpd, " par=\"%d:%d\"", dar_num, dar_den);
 
 	//add lang even if "und" to comply with dash-if 
 	if (szLang) {

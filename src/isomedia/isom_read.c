@@ -2788,19 +2788,21 @@ GF_EXPORT
 GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *hSpacing, u32 *vSpacing)
 {
 	GF_TrackBox *trak;
-	GF_SampleEntryBox *entry;
+	GF_VisualSampleEntryBox *entry;
 	GF_SampleDescriptionBox *stsd;
 
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
-	if (!trak) return GF_BAD_PARAM;
-
+	if (!trak || !hSpacing || !vSpacing) return GF_BAD_PARAM;
+	*hSpacing = 1;
+	*vSpacing = 1;
+	
 	stsd = trak->Media->information->sampleTable->SampleDescription;
 	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
 	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) return movie->LastError = GF_BAD_PARAM;
 
-	entry = (GF_SampleEntryBox *)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
+	entry = (GF_VisualSampleEntryBox *)gf_list_get(stsd->other_boxes, StreamDescriptionIndex - 1);
 	//no support for generic sample entries (eg, no MPEG4 descriptor)
-	if (entry == NULL) return GF_BAD_PARAM;
+	if (entry == NULL) return GF_OK;
 
 	//valid for MPEG visual, JPG and 3GPP H263
 	switch (entry->type) {
@@ -2820,11 +2822,13 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_BOX_TYPE_SHC1:
 	case GF_ISOM_BOX_TYPE_SHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
-		*hSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->hSpacing : 0;
-		*vSpacing = ((GF_VisualSampleEntryBox*)entry)->pasp ? ((GF_VisualSampleEntryBox*)entry)->pasp->vSpacing : 0;
+		if (entry->pasp) {
+			*hSpacing = entry->pasp->hSpacing;
+			*vSpacing = entry->pasp->vSpacing;
+		}
 		return GF_OK;
 	default:
-		return GF_BAD_PARAM;
+		return GF_OK;
 	}
 }
 
