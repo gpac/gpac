@@ -2010,6 +2010,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_configure_isobmf_default) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_utc_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_real_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_content_protection_in_adaptation_set) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_content_protection_in_representation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_profile_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_process) )
