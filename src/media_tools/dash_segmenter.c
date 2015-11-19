@@ -126,14 +126,7 @@ struct __gf_dash_segmenter
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
 
-	// According to the DASH standard, the ContentProtection element can be
-	// present in different locations, including multiple locations at the
-	// same time. But different profiles or interoperability points
-	// may require ContentProtection elements to to be present only
-	// in a specific location. So, we need additional flexibility
-	// in order to know where exactly ContentProtection must be present.
-	Bool content_protection_in_adaptation_set;
-	Bool content_protection_in_representation;
+	GF_DASH_ContentLocationMode cp_location_mode;
 
 	Double max_segment_duration;
 
@@ -2107,7 +2100,7 @@ restart_fragmentation_pass:
 	}
 
 	/* Write adaptation set content protection element */
-	if (protected_track && first_in_set && dash_cfg->content_protection_in_adaptation_set) {
+	if (protected_track && first_in_set && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION) ) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 3);
 	}
 
@@ -2174,7 +2167,7 @@ restart_fragmentation_pass:
 		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
 
 	/* Write content protection element in representation */
-	if (protected_track && dash_cfg->content_protection_in_representation) {
+	if (protected_track && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_ADPTATIONSET)) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
 	}
 
@@ -5355,71 +5348,11 @@ GF_Err gf_dasher_enable_real_time(GF_DASHSegmenter *dasher, Bool real_time)
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_content_protection_in_adaptation_set(GF_DASHSegmenter *dasher, Bool value)
+		   
+GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, GF_DASH_ContentLocationMode mode)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->content_protection_in_adaptation_set = value;
-	return GF_OK;
-}
-
-GF_EXPORT
-GF_Err gf_dasher_set_content_protection_in_representation(GF_DASHSegmenter *dasher, Bool value)
-{
-	if (!dasher) return GF_BAD_PARAM;
-	dasher->content_protection_in_representation = value;
-	return GF_OK;
-}
-
-/**
- * Sets proper locations of the ContentProtection element for protected media.
- * According to the DASH standard, this element can be located in different
- * places, including multiple places at the same time. But some profiles or
- * interoperability points may require this element to be present only in
- * specific location.
- */
-static GF_Err gf_dasher_set_content_protection_locations(GF_DASHSegmenter *dasher)
-{
-	if (!dasher) return GF_BAD_PARAM;
-
-	// If the user didn't specify explicitly desired locations, let's use proper defaults.
-	if (!dasher->content_protection_in_adaptation_set && !dasher->content_protection_in_representation) {
-		switch (dasher->profile) {
-			// According to DASH-IF IOP, the ContentProtection element shall be in the AdaptationSet element.
-			// Other locations are not explicitly prohibited.
-			case GF_DASH_PROFILE_AVC264_LIVE:
-			case GF_DASH_PROFILE_AVC264_ONDEMAND:
-				dasher->content_protection_in_adaptation_set = GF_TRUE;
-				break;
-
-			default:
-				dasher->content_protection_in_representation = GF_TRUE;
-				break;
-		}
-
-		return GF_OK;
-	}
-
-	// The user explicitly specified desired locations, so we can't use defaults anymore.
-	// Let's check whether the user's choices make sense.
-	switch (dasher->profile) {
-		case GF_DASH_PROFILE_AVC264_LIVE:
-		case GF_DASH_PROFILE_AVC264_ONDEMAND: {
-			if (!dasher->content_protection_in_adaptation_set) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, (
-					"[DASH] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element. "
-					"Use advanced options to explicitly specify that ContentProtection must be in AdaptationSet. See help for details.\n"
-				));
-
-				return GF_BAD_PARAM;
-			}
-
-			break;
-		}
-
-		default:
-			break;
-	}
-
+	dasher->cp_location_mode = mode;
 	return GF_OK;
 }
 
@@ -5685,8 +5618,18 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		dasher->profile = GF_DASH_PROFILE_FULL;
 	}
 
-	if (e = gf_dasher_set_content_protection_locations(dasher)) goto exit;
-
+	switch (dasher->profile) {
+	case GF_DASH_PROFILE_AVC264_LIVE:
+	case GF_DASH_PROFILE_AVC264_ONDEMAND:
+		if (dasher->cp_location_mode == GF_DASH_CPMODE_REPRESENTATION) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
+		}
+		return GF_BAD_PARAM;
+		
+	default:
+		break;
+	}
+	
 	/*adjust params based on profiles*/
 	switch (dasher->profile) {
 	case GF_DASH_PROFILE_LIVE:
