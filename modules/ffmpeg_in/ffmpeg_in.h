@@ -286,6 +286,7 @@ void Delete_FFMPEG_Demux(void *ifce);
 #define CODEC_ID_MP3	AV_CODEC_ID_MP3
 #define CODEC_ID_AAC	AV_CODEC_ID_AAC
 #define CODEC_ID_MPEG1VIDEO	AV_CODEC_ID_MPEG1VIDEO
+#define CODEC_ID_PNG	AV_CODEC_ID_PNG
 
 #endif
 
