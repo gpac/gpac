@@ -147,7 +147,7 @@ static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
 			ts->pcr_pid = pcr_pid;
 			ts->nb_pck_at_pcr = ts->nb_pck;
 
-			GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g sec\n", ts->duration));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g sec\n", ts->duration));
 
 			if (ts->on_event && changed) {
 				GF_M2TS_PES_PCK pck;
@@ -3281,6 +3281,12 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		if (es) {
 			GF_M2TS_PES_PCK pck;
 			s32 prev_diff_in_us;
+			Bool discontinuity;
+			s32 cc = -1;
+			
+			if (es->flags & GF_M2TS_ES_IS_PES) cc = ((GF_M2TS_PES*)es)->cc;
+			else if (((GF_M2TS_SECTION_ES*)es)->sec) cc = ((GF_M2TS_SECTION_ES*)es)->sec->cc;
+
 			memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
 			prev_diff_in_us = (s32) (es->program->last_pcr_value /27) - (s32) (es->program->before_last_pcr_value/27);
 			es->program->before_last_pcr_value = es->program->last_pcr_value;
@@ -3293,7 +3299,12 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 			pck.PTS = es->program->last_pcr_value;
 			pck.stream = (GF_M2TS_PES *)es;
-			if (paf->discontinuity_indicator) {
+			
+			discontinuity = paf->discontinuity_indicator;
+			if ((cc>=0) && (hdr.continuity_counter != ((cc + 1) & 0xF)))
+				discontinuity = GF_TRUE;
+			
+			if (discontinuity) {
 				s32 diff_in_us = (s32) (es->program->last_pcr_value /27) - (s32) (es->program->before_last_pcr_value/27);
 				u32 diff = ABS(diff_in_us - prev_diff_in_us);
 				//ignore PCR discontinuity indicator if PCR found is larger than previously received PCR and diffence between PCR before and after discontinuity indicator is smaller than 50ms
@@ -3306,15 +3317,12 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			}
 			else if ( (es->program->last_pcr_value < es->program->before_last_pcr_value) ) {
 				//if less than 100 ms before PCR loop at the last PCR, this is a PCR loop
-				if (2576980377300 - es->program->before_last_pcr_value < 2700000) {
+				if (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value < 2700000) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR loop found from "LLU" to "LLU" \n", hdr.pid, es->program->before_last_pcr_value, es->program->last_pcr_value));
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" is less than previously received PCR "LLU" but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value));
-					//if less than 10 ms no need to signal a discontinuity                                       
-					if (es->program->before_last_pcr_value - es->program->last_pcr_value > 270000) {
-						pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d signaled discontinuity flag\n", hdr.pid));
-					}
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR found "LLU" is less than previously received PCR "LLU" (PCR diff %g sec) but no discontinuity signaled\n", hdr.pid, es->program->last_pcr_value, es->program->before_last_pcr_value, (GF_M2TS_MAX_PCR - es->program->before_last_pcr_value + es->program->last_pcr_value) / 27000000.0));
+
+					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 				}
 			}
 
