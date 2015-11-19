@@ -80,10 +80,8 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no) 
-ifeq ($(CONFIG_LINUX), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
-endif
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
