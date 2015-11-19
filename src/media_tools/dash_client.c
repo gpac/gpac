@@ -1589,9 +1589,8 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 
 	//SPEC: If this value is present, the element containing the xlink:href attribute and all @xlink attributes included in the element containing @xlink:href shall be removed at the time when the resolution is due.
 	if (!strcmp(rep->segment_list->xlink_href, "urn:mpeg:dash:resolve-to-zero:2013")) {
-		//FIXME: it is just need to set rep->disabled ?
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling it\n", rep->segment_list->xlink_href));
-		rep->playback.disabled = 1;
+		gf_mpd_delete_segment_list(rep->segment_list);
+		rep->segment_list = NULL;
 		return;
 	}
 
@@ -1633,11 +1632,17 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 	}
 
 	count = gf_xml_dom_get_root_nodes_count(parser);
+	if (count > 1) {
+		gf_mpd_delete_segment_list(rep->segment_list);
+		rep->segment_list = NULL;
+		return;
+	}
 	for (i=0; i<count; i++) {
 		GF_XMLNode *root = gf_xml_dom_get_root_idx(parser, i);
 		if (!strcmp(root->name, "SegmentList")) {
 			//replace current segment list by the one from remote element entity (located by xlink:href)
-			rep->segment_list = gf_mpd_solve_representation_xlink(dash->mpd, root);
+			gf_mpd_delete_segment_list(rep->segment_list);
+			rep->segment_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
 		}
 		else
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] XML node %s is not a representation segmentlist - ignoring it\n", root->name));
@@ -2150,6 +2155,9 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter);
 		else
 			gf_dash_solve_representation_xlink(group->dash, rep);
+	}
+
+	if (group->dash->is_m3u8) {
 		//here we change to another representation: we need to remove all URLs from segment list and adjust the download segment index for this group
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
 			u32 next_media_seq;

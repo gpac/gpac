@@ -1781,9 +1781,15 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 }
 
 GF_EXPORT
-GF_MPD_SegmentList *gf_mpd_solve_representation_xlink(GF_MPD *mpd, GF_XMLNode *root)
+GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root)
 {
 	return gf_mpd_parse_segment_list(mpd, root);
+}
+
+GF_EXPORT
+void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list)
+{
+	gf_mpd_segment_list_free(segment_list);
 }
 
 
