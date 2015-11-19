@@ -391,6 +391,8 @@ void PrintDASHUsage()
 	        " -single-traf         uses a single track fragment per moof (smooth streaming and derived specs may require this)\n"
 	        " -dash-ts-prog N      program_number to be considered in case of an MPTS input file.\n"
 	        " -frag-rt             when using fragments in live mode, flush fragments according to their timing (only supported with a single input).\n"
+	        " -cp-in-as            if media is protected, adds the ContentProtection element to the AdaptationSet element.\n"
+	        " -cp-in-rep           if media is protected, adds the ContentProtection element to the Representation element.\n"
 	        "\n");
 }
 
@@ -1786,6 +1788,8 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
+Bool content_protection_in_adaptation_set = GF_FALSE;
+Bool content_protection_in_representation = GF_FALSE;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
 Bool force_co64 = GF_FALSE;
@@ -3130,6 +3134,12 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-frag-rt")) {
 			frag_real_time = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-cp-in-as")) {
+			content_protection_in_adaptation_set = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-cp-in-rep")) {
+			content_protection_in_representation = GF_TRUE;
+		}
 		else if (!strnicmp(arg, "-dash-live", 10) || !strnicmp(arg, "-ddbg-live", 10)) {
 			dash_mode = !strnicmp(arg, "-ddbg-live", 10) ? GF_DASH_DYNAMIC_DEBUG : GF_DASH_DYNAMIC;
 			dash_live = 1;
@@ -3851,6 +3861,8 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_configure_isobmf_default(dasher, no_fragments_defaults, pssh_in_moof, samplegroups_in_traf, single_traf_per_moof);
 		if (!e) e = gf_dasher_enable_utc_ref(dasher, insert_utc);
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
+		if (!e) e = gf_dasher_set_content_protection_in_adaptation_set(dasher, content_protection_in_adaptation_set);
+		if (!e) e = gf_dasher_set_content_protection_in_representation(dasher, content_protection_in_representation);
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 
 		for (i=0; i < nb_dash_inputs; i++) {
