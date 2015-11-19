@@ -267,8 +267,10 @@ void Delete_FFMPEG_Demux(void *ifce);
 
 
 /*TODO - we need to cleanup the ffmpeg code to align with only latest version and remove old compatibility code*/
-#ifndef CODEC_ID_MJPEG
 
+#if (LIBAVCODEC_VERSION_MAJOR>=54) && (LIBAVCODEC_VERSION_MINOR>=25)
+
+#error "no"
 #define CODEC_ID_SVQ3	AV_CODEC_ID_SVQ3
 #define CODEC_ID_MPEG4	AV_CODEC_ID_MPEG4
 #define CODEC_ID_H264	AV_CODEC_ID_H264
@@ -290,7 +292,7 @@ void Delete_FFMPEG_Demux(void *ifce);
 
 #endif
 
-#ifndef PIX_FMT_YUV420P
+#if (LIBAVUTIL_VERSION_MAJOR >=51) && (LIBAVUTIL_VERSION_MINOR>=42)
 #define PIX_FMT_YUV420P AV_PIX_FMT_YUV420P
 #define PIX_FMT_YUV420P10LE AV_PIX_FMT_YUV420P10LE
 #define PIX_FMT_BGR24 AV_PIX_FMT_BGR24
