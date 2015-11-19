@@ -350,6 +350,13 @@ typedef enum
 	GF_DASH_DYNAMIC_DEBUG,
 } GF_DashDynamicMode;
 
+typedef enum
+{
+	GF_DASH_CPMODE_ADPTATIONSET=0,
+	GF_DASH_CPMODE_REPRESENTATION,
+	GF_DASH_CPMODE_BOTH,
+} GF_DASH_ContentLocationMode;
+	
 typedef struct __gf_dash_segmenter GF_DASHSegmenter;
 
 /*Create a new DASH segmenter
@@ -506,18 +513,12 @@ GF_Err gf_dasher_enable_utc_ref(GF_DASHSegmenter *dasher, Bool insert_utc);
  *	\return error code if any
 */
 GF_Err gf_dasher_enable_real_time(GF_DASHSegmenter *dasher, Bool real_time);
-/*Sets whether the ContentProtection element must be added to the AdapatationSet element or not.
+/*Sets where the  ContentProtection element is inserted in an adaptation set.
 *	\param dasher the DASH segmenter object
-*	\param value if true, the ContentProtection element will be added to the AdaptationSet element.
+*	\param  ContentProtection element location mode.
 *	\return error code if any
 */
-GF_Err gf_dasher_set_content_protection_in_adaptation_set(GF_DASHSegmenter *dasher, Bool value);
-/*Sets whether the ContentProtection element must be added to the Representation element or not.
-*	\param dasher the DASH segmenter object
-*	\param value if true, the ContentProtection element will be added to the Representation element.
-*	\return error code if any
-*/
-GF_Err gf_dasher_set_content_protection_in_representation(GF_DASHSegmenter *dasher, Bool value);
+GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, GF_DASH_ContentLocationMode mode);
 /*Sets profile extension as used by DASH-IF and DVB.
  *	\param dasher the DASH segmenter object
  *	\param dash_profile_extension specifies a string of profile extensions, as used by DASH-IF and DVB.
