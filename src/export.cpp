@@ -1939,6 +1939,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_solve_representation_xlink) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_representation_xlink) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )

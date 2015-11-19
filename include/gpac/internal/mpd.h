@@ -405,6 +405,8 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *m
 
 GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter);
 
+GF_MPD_SegmentList *gf_mpd_solve_representation_xlink(GF_MPD *mpd, GF_XMLNode *root);
+
 void gf_mpd_getter_del_session(GF_FileDownload *getter);
 
 typedef enum
