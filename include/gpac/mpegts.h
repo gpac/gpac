@@ -276,6 +276,8 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 #define GF_M2TS_UDP_BUFFER_SIZE	0x40000
 #endif
 
+#define GF_M2TS_MAX_PCR	2576980377811ULL
+
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
 
