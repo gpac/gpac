@@ -24,6 +24,7 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/utf.h>
 
 #if defined(_WIN32_WCE)
 
@@ -619,7 +620,32 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	FILE *res;
 
 #if defined(WIN32)
-	res = fopen(file_name, mode);
+	{
+		char *name = gf_strdup(file_name);
+		char *cmode = gf_strdup(mode);
+		wchar_t *wname;
+		wchar_t *wmode;
+		size_t len;
+		size_t len_res;
+		
+		len = (strlen(name) + 1)*sizeof(wchar_t);
+		wname = (wchar_t *)gf_malloc(len);
+		len_res = gf_utf8_mbstowcs(wname, len, &name);
+		if (len_res == -1) {
+			return NULL;
+		}
+		len = (strlen(cmode) + 1)*sizeof(wchar_t);
+		wmode = (wchar_t *)gf_malloc(len);
+		len_res = gf_utf8_mbstowcs(wmode, len, &cmode);
+		if (len_res == -1) {
+			return NULL;
+		}
+
+		_wfopen_s(&res, wname, wmode);
+		gf_free(wname);
+		gf_free(wmode);
+		//res = fopen(file_name, mode);
+	}
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
 	res = fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))
