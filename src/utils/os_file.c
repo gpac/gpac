@@ -620,23 +620,26 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	FILE *res;
 
 #if defined(WIN32)
-	{
-		char *name = gf_strdup(file_name);
-		char *cmode = gf_strdup(mode);
+	res = fopen(filename, mode);
+	if (!res) {
+		const char *str_src;
 		wchar_t *wname;
 		wchar_t *wmode;
 		size_t len;
 		size_t len_res;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
 		
 		len = (strlen(name) + 1)*sizeof(wchar_t);
 		wname = (wchar_t *)gf_malloc(len);
-		len_res = gf_utf8_mbstowcs(wname, len, &name);
+		str_src = file_name;
+		len_res = gf_utf8_mbstowcs(wname, len, &str_src);
 		if (len_res == -1) {
 			return NULL;
 		}
 		len = (strlen(cmode) + 1)*sizeof(wchar_t);
 		wmode = (wchar_t *)gf_malloc(len);
-		len_res = gf_utf8_mbstowcs(wmode, len, &cmode);
+		str_src = mode;
+		len_res = gf_utf8_mbstowcs(wmode, len, &str_src);
 		if (len_res == -1) {
 			return NULL;
 		}
@@ -644,7 +647,6 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 		_wfopen_s(&res, wname, wmode);
 		gf_free(wname);
 		gf_free(wmode);
-		//res = fopen(file_name, mode);
 	}
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
 	res = fopen64(file_name, mode);
