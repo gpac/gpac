@@ -1790,7 +1790,7 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
-GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADPTATIONSET;
+GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
 Bool force_co64 = GF_FALSE;
@@ -3137,7 +3137,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!strnicmp(arg, "-cp-location=", 13)) {
 			if (strcmp(arg+13, "both")) cp_location_mode = GF_DASH_CPMODE_BOTH;
-			else if (strcmp(arg+13, "as")) cp_location_mode = GF_DASH_CPMODE_ADPTATIONSET;
+			else if (strcmp(arg+13, "as")) cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 			else if (strcmp(arg+13, "rep")) cp_location_mode = GF_DASH_CPMODE_REPRESENTATION;
 			else {
 				fprintf(stderr, "\tWARNING: Unrecognized ContentProtection loction mode \"%s\" - please check usage\n", argv[i + 13]);
