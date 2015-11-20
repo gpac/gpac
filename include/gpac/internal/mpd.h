@@ -166,6 +166,8 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+
+	u32 consecutive_xlink_count;
 } GF_MPD_SegmentList;
 
 typedef struct
@@ -322,6 +324,8 @@ typedef struct
 	GF_List *subsets;
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+
+	u32 consecutive_xlink_count;
 } GF_MPD_Period;
 
 typedef struct

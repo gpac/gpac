@@ -1640,9 +1640,19 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 	for (i=0; i<count; i++) {
 		GF_XMLNode *root = gf_xml_dom_get_root_idx(parser, i);
 		if (!strcmp(root->name, "SegmentList")) {
+			GF_MPD_SegmentList *new_seg_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
+			//forbiden
+			if (new_seg_list && new_seg_list->xlink_href) 
+				if (new_seg_list->xlink_actuate_on_load) {
+					gf_mpd_delete_segment_list(new_seg_list);
+					new_seg_list = NULL;
+				} else {
+					new_seg_list->consecutive_xlink_count = rep->segment_list->consecutive_xlink_count + 1;
+				}
+			
 			//replace current segment list by the one from remote element entity (located by xlink:href)
 			gf_mpd_delete_segment_list(rep->segment_list);
-			rep->segment_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
+			rep->segment_list = new_seg_list;
 		}
 		else
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] XML node %s is not a representation segmentlist - ignoring it\n", root->name));
@@ -1948,11 +1958,15 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				assert(rep->segment_list || group->adaptation_set->segment_list || period->segment_list);
 
 				//if we have a xlink_href in segment_list, solve it
-				if (new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx)) 
+				while (new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx)) {
+					if (new_rep->segment_list->consecutive_xlink_count) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", new_rep->segment_list->consecutive_xlink_count));
+					}
 					if (dash->is_m3u8)
 						gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter);
 					else
 						gf_dash_solve_representation_xlink(group->dash, new_rep);
+				}
 				
 
 				if (!new_rep->segment_list && !new_set->segment_list && !new_period->segment_list) {
@@ -2150,7 +2164,10 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		}
 	}
 
-	if (rep->segment_list->xlink_href) {
+	while (rep->segment_list->xlink_href) {
+		if (rep->segment_list->consecutive_xlink_count) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
+		}
 		if (group->dash->is_m3u8)
 			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter);
 		else
@@ -3463,6 +3480,10 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 			gf_mpd_period_free(period);
 			continue;
 		}
+
+		if (inserted_period->xlink_href) {
+			inserted_period->consecutive_xlink_count = period->consecutive_xlink_count + 1;
+		}
 		gf_list_insert(dash->mpd->periods, inserted_period, period_idx);
 		period_idx++;
 	}
@@ -4364,6 +4385,9 @@ restart:
 		period = gf_list_get(dash->mpd->periods, i);
 
 		if (period->xlink_href) {
+			if (period->consecutive_xlink_count) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in period)\n", period->consecutive_xlink_count));
+			}
 			gf_dash_solve_period_xlink(dash, i);
 			goto restart;
 		}
@@ -4435,6 +4459,9 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		Double dur;
 
 		if (period->xlink_href) {
+			if (period->consecutive_xlink_count) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in period)\n", period->consecutive_xlink_count));
+			}
 			gf_dash_solve_period_xlink(dash, i);
 			if (nb_retry) {
 				nb_retry --;
