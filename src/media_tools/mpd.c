@@ -1777,6 +1777,9 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		rep->segment_list->segment_URLs = NULL;
 	}
 
+	gf_free(rep->segment_list->xlink_href);
+	rep->segment_list->xlink_href = NULL;
+
 	return GF_OK;
 }
 
