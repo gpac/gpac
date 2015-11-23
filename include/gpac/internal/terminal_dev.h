@@ -561,6 +561,8 @@ struct _object_clock
 	//media time in ms corresponding to the init tmiestamp of the clock
 	u32 media_time_at_init;
 	Bool has_media_time_shift;
+
+	u16 ocr_on_esid;
 };
 
 /*destroys clock*/

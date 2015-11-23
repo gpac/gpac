@@ -1576,84 +1576,91 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 	return nb_removed;
 }
 
-static void gf_dash_solve_representation_xlink(GF_DASH_Group *group, GF_MPD_Representation *rep)
+static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Representation *rep)
 {
-	GF_FileDownload *getter;
+	u32 count, i;
 	GF_Err e;
-	MasterPlaylist *pl = NULL;
-	Stream *stream;
-	PlaylistElement *pe;
-	u32 k, count_elements;
-	char *base_url;
+	Bool is_local=GF_FALSE;
+	const char *local_url;
+	char *url;
+	GF_DOMParser *parser;
 
-	if (!group->dash->is_m3u8 ||  !strstr(rep->segment_list->xlink_href, ".m3u8")) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Resolving Representation SegmentList XLINK %s\n", rep->segment_list->xlink_href));
+
+	//SPEC: If this value is present, the element containing the xlink:href attribute and all @xlink attributes included in the element containing @xlink:href shall be removed at the time when the resolution is due.
+	if (!strcmp(rep->segment_list->xlink_href, "urn:mpeg:dash:resolve-to-zero:2013")) {
+		gf_mpd_delete_segment_list(rep->segment_list);
+		rep->segment_list = NULL;
 		return;
 	}
 
-	getter = &group->dash->getter;
-	if (!getter && !getter->new_session && !getter->del_session && !getter->get_cache_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FileDownloader not found\n"));
-		return;
+	//xlink relative to our MPD base URL
+	url = gf_url_concatenate(dash->base_url, rep->segment_list->xlink_href);
+
+	if (!strstr(url, "://") || !strnicmp(url, "file://", 7) ) {
+		local_url = url;
+		is_local=GF_TRUE;
+		e = GF_OK;
+	} else {
+		/*use non-persistent connection for MPD*/
+		e = gf_dash_download_resource(dash, &(dash->mpd_dnload), url ? url : rep->segment_list->xlink_href, 0, 0, 0, NULL);
+		gf_free(url);
 	}
-	e = getter->new_session(getter, rep->segment_list->xlink_href);
+
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
-		return;
-	}
-	e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot download Representation SegmentList XLINK %s: error %s\n", rep->segment_list->xlink_href, gf_error_to_string(e)));
+		gf_free(rep->segment_list->xlink_href);
+		rep->segment_list->xlink_href = NULL;
 		return;
 	}
 
-	assert(pl);
-	assert(pl->streams);
-	assert(gf_list_count(pl->streams) == 1);
-
-	stream = gf_list_get(pl->streams, 0);
-	assert(gf_list_count(stream->variants) == 1);
-	pe = gf_list_get(stream->variants, 0);
-	
-	rep->segment_list->duration = (u64) (pe->duration_info * 1000);
-	rep->m3u8_media_seq_min = pe->element.playlist.media_seq_min;
-	rep->m3u8_media_seq_max = pe->element.playlist.media_seq_max;
-	rep->segment_list->segment_URLs = gf_list_new();
-	count_elements = gf_list_count(pe->element.playlist.elements);
-	base_url = gf_strdup(pe->url);
-	for (k=0; k<count_elements; k++) {
-		u32 cmp = 0;
-		char *src_url, *seg_url;
-		GF_MPD_SegmentURL *segment_url;
-		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
-
-		/* remove protocol scheme and try to find the common part in baseURL and segment URL - this avoids copying the entire url */
-		src_url = strstr(base_url, "://");
-		if (src_url) src_url += 3;
-		else src_url = base_url;
-
-		seg_url = strstr(elt->url, "://");
-		if (seg_url) seg_url += 3;
-		else seg_url = elt->url;
-
-		while (src_url[cmp] == seg_url[cmp]) cmp++;
-
-		GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
-		if (!segment_url) {
-			return;
-		}
-		gf_list_add(rep->segment_list->segment_URLs, segment_url);
-		segment_url->media = gf_strdup(cmp ? (seg_url + cmp) : elt->url);
-		if (elt->drm_method != DRM_NONE) {
-			//segment_url->key_url = "aes-128";
-			if (elt->key_uri) {
-				segment_url->key_url = gf_strdup(elt->key_uri);
-				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
-			}
-		}
+	if (!is_local) {
+		/*in case the session has been restarted, local_url may have been destroyed - get it back*/
+		local_url = dash->dash_io->get_cache_name(dash->dash_io, dash->mpd_dnload);
 	}
-	gf_free(base_url);
+
+	parser = gf_xml_dom_new();
+	e = gf_xml_dom_parse(parser, local_url, NULL, NULL);
+	if (is_local) gf_free(url);
+
+	if (e != GF_OK) {
+		gf_xml_dom_del(parser);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot parse Representation SegmentList XLINK: error in XML parsing %s\n", gf_error_to_string(e)));
+		gf_free(rep->segment_list->xlink_href);
+		rep->segment_list->xlink_href = NULL;
+		return;
+	}
+
+	count = gf_xml_dom_get_root_nodes_count(parser);
+	if (count > 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s has more than one segment list - ignoring it\n", rep->segment_list->xlink_href));
+		gf_mpd_delete_segment_list(rep->segment_list);
+		rep->segment_list = NULL;
+		return;
+	}
+	for (i=0; i<count; i++) {
+		GF_XMLNode *root = gf_xml_dom_get_root_idx(parser, i);
+		if (!strcmp(root->name, "SegmentList")) {
+			GF_MPD_SegmentList *new_seg_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
+			//forbiden
+			if (new_seg_list && new_seg_list->xlink_href) 
+				if (new_seg_list->xlink_actuate_on_load) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s references to remote element entities that contain another @xlink:href attribute with xlink:actuate set to onLoad - forbiden\n", rep->segment_list->xlink_href));
+					gf_mpd_delete_segment_list(new_seg_list);
+					new_seg_list = NULL;
+				} else {
+					new_seg_list->consecutive_xlink_count = rep->segment_list->consecutive_xlink_count + 1;
+				}
+			
+			//replace current segment list by the one from remote element entity (located by xlink:href)
+			gf_mpd_delete_segment_list(rep->segment_list);
+			rep->segment_list = new_seg_list;
+		}
+		else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] XML node %s is not a representation segmentlist - ignoring it\n", root->name));
+	}
 }
+
 
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
@@ -1952,9 +1959,17 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				/*we're using segment list*/
 				assert(rep->segment_list || group->adaptation_set->segment_list || period->segment_list);
 
-				//only for m3u8: if we have a xlink_href in segment_list, solve it
-				if (dash->is_m3u8 && new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx))
-					gf_dash_solve_representation_xlink(group, new_rep);
+				//if we have a xlink_href in segment_list, solve it
+				while (new_rep->segment_list->xlink_href && (group->active_rep_index==rep_idx)) {
+					if (new_rep->segment_list->consecutive_xlink_count) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", new_rep->segment_list->consecutive_xlink_count));
+					}
+					if (dash->is_m3u8)
+						gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter);
+					else
+						gf_dash_solve_representation_xlink(group->dash, new_rep);
+				}
+				
 
 				if (!new_rep->segment_list && !new_set->segment_list && !new_period->segment_list) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: representation does not use segment list as previous version\n"));
@@ -2116,6 +2131,7 @@ exit:
 	return GF_OK;
 }
 
+
 static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Representation *rep)
 {
 #ifndef GPAC_DISABLE_LOG
@@ -2150,9 +2166,17 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		}
 	}
 
+	while (rep->segment_list->xlink_href) {
+		if (rep->segment_list->consecutive_xlink_count) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
+		}
+		if (group->dash->is_m3u8)
+			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter);
+		else
+			gf_dash_solve_representation_xlink(group->dash, rep);
+	}
+
 	if (group->dash->is_m3u8) {
-		if (rep->segment_list->xlink_href)
-			gf_dash_solve_representation_xlink(group, rep);
 		//here we change to another representation: we need to remove all URLs from segment list and adjust the download segment index for this group
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
 			u32 next_media_seq;
@@ -3605,7 +3629,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 						//rep->playback.disabled = 1;
 						//continue;
 					}
-					if (rep->segment_list && rep->segment_list->xlink_href) {
+					if (!dash->is_m3u8 && rep->segment_list && rep->segment_list->xlink_href) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
 						rep->playback.disabled = 1;
 						continue;
