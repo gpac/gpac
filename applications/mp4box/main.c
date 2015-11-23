@@ -4985,11 +4985,11 @@ int wmain( int argc, wchar_t** wargv )
 	size_t len;
 	size_t res_len;
 	char **argv;
-	argv = (char **)gf_malloc(argc*sizeof(wchar_t *));
+	argv = (char **)malloc(argc*sizeof(wchar_t *));
 	for (i = 0; i < argc; i++) {
 		wchar_t *src_str = wargv[i];
 		len = 2*gf_utf8_wcslen(wargv[i]);
-		argv[i] = (char *)gf_malloc(len + 1);
+		argv[i] = (char *)malloc(len + 1);
 		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
 		argv[i][res_len] = 0;
 		if (res_len > len) {
@@ -4997,10 +4997,11 @@ int wmain( int argc, wchar_t** wargv )
 			return -1;
 		}
 	}
+	res = mp4boxMain(argc, argv);
 	for (i = 0; i < argc; i++) {
-		gf_free(argv[i]);
+		free(argv[i]);
 	}
-	gf_free(argv);
+	free(argv);
 	return res;
 }
 #else
