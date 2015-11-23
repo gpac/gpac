@@ -2407,7 +2407,7 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 
 typedef struct
 {
-	u32 track, track_id;
+	u32 track, track_id, sample_count;
 	u32 tx, ty, tw, th;
 	u32 data_offset;
 	GF_BitStream *sample_data;
@@ -2472,6 +2472,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) return GF_OK;
 	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
 	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
+	if (!tiles) return GF_OUT_OF_MEM;
+ 	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tracks);
 
 	//first clone tracks
 	for (i=0; i<nb_tracks; i++) {
@@ -2601,8 +2603,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		for (j=0; j<nb_tracks; j++) {
 			sample->dataLength = 0;
 			gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
+			if (!sample->data)
+				continue;
+			
 			e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
 			if (e) goto err_exit;
+			tiles[j].sample_count ++;
+			
 			gf_bs_del(tiles[j].sample_data);
 			tiles[j].sample_data = NULL;
 			gf_free(sample->data);
@@ -2622,7 +2629,15 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		u32 width, height;
 		s32 translation_x, translation_y;
 		s16 layer;
-		GF_BitStream *bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
+		GF_BitStream *bs;
+		
+		tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
+		if (!tiles[i].sample_count) {
+			gf_isom_remove_track(file, tiles[i].track);
+			continue;
+		}
+		
+		bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, tiles[i].track);
 		gf_bs_write_int(bs, 1, 2);
 		gf_bs_write_int(bs, 0, 1);//not full frame
