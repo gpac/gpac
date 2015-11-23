@@ -1633,6 +1633,7 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 
 	count = gf_xml_dom_get_root_nodes_count(parser);
 	if (count > 1) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s has more than one segment list - ignoring it\n", rep->segment_list->xlink_href));
 		gf_mpd_delete_segment_list(rep->segment_list);
 		rep->segment_list = NULL;
 		return;
@@ -1644,6 +1645,7 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 			//forbiden
 			if (new_seg_list && new_seg_list->xlink_href) 
 				if (new_seg_list->xlink_actuate_on_load) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s references to remote element entities that contain another @xlink:href attribute with xlink:actuate set to onLoad - forbiden\n", rep->segment_list->xlink_href));
 					gf_mpd_delete_segment_list(new_seg_list);
 					new_seg_list = NULL;
 				} else {
@@ -3480,10 +3482,6 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 			gf_mpd_period_free(period);
 			continue;
 		}
-
-		if (inserted_period->xlink_href) {
-			inserted_period->consecutive_xlink_count = period->consecutive_xlink_count + 1;
-		}
 		gf_list_insert(dash->mpd->periods, inserted_period, period_idx);
 		period_idx++;
 	}
@@ -4385,9 +4383,6 @@ restart:
 		period = gf_list_get(dash->mpd->periods, i);
 
 		if (period->xlink_href) {
-			if (period->consecutive_xlink_count) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in period)\n", period->consecutive_xlink_count));
-			}
 			gf_dash_solve_period_xlink(dash, i);
 			goto restart;
 		}
@@ -4459,9 +4454,6 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		Double dur;
 
 		if (period->xlink_href) {
-			if (period->consecutive_xlink_count) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in period)\n", period->consecutive_xlink_count));
-			}
 			gf_dash_solve_period_xlink(dash, i);
 			if (nb_retry) {
 				nb_retry --;
