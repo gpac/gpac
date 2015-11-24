@@ -1753,7 +1753,6 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		rep->segment_list->segment_URLs = gf_list_new();
 	count_elements = gf_list_count(pe->element.playlist.elements);
 	for (k=0; k<count_elements; k++) {
-		u32 cmp = 0;
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 
@@ -1764,7 +1763,6 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
 		segment_url->media = gf_url_concatenate(pe->url, elt->url);
 		if (elt->drm_method != DRM_NONE) {
-			//segment_url->key_url = "aes-128";
 			if (elt->key_uri) {
 				segment_url->key_url = gf_strdup(elt->key_uri);
 				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);

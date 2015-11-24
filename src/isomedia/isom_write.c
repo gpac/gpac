@@ -3567,7 +3567,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
 		memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
 		stbl->TimeToSample->nb_entries = 1;
-		stbl->TimeToSample->entries[0].sampleDelta = DTSs[0];
+		stbl->TimeToSample->entries[0].sampleDelta = (u32) DTSs[0];
 		stbl->TimeToSample->entries[0].sampleCount = 1;
 		idx=0;
 		for (i=1; i< stbl->SampleSize->sampleCount - 1; i++) {
@@ -3575,7 +3575,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 				stbl->TimeToSample->entries[idx].sampleCount++;
 			} else {
 				idx++;
-				stbl->TimeToSample->entries[idx].sampleDelta = DTSs[i+1] - DTSs[i];
+				stbl->TimeToSample->entries[idx].sampleDelta = (u32) ( DTSs[i+1] - DTSs[i] );
 				stbl->TimeToSample->entries[idx].sampleCount=1;
 			}
 		}
@@ -3587,11 +3587,11 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
 			memset(stbl->CompositionOffset->entries, 0, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
 			stbl->CompositionOffset->nb_entries = 1;
-			stbl->CompositionOffset->entries[0].decodingOffset = CTSs[0] - DTSs[0];
+			stbl->CompositionOffset->entries[0].decodingOffset = (s32) (CTSs[0] - DTSs[0]);
 			stbl->CompositionOffset->entries[0].sampleCount = 1;
 			idx=0;
 			for (i=1; i< stbl->SampleSize->sampleCount; i++) {
-				s32 cts_o = CTSs[i] - DTSs[i];
+				s32 cts_o = (s32) (CTSs[i] - DTSs[i]);
 				if (cts_o == stbl->CompositionOffset->entries[idx].decodingOffset) {
 					stbl->CompositionOffset->entries[idx].sampleCount++;
 				} else {
