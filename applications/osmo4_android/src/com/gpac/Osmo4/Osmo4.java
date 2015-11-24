@@ -1231,4 +1231,10 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
     }
+    
+    public void setLogFile(String logfile) {
+	    logger.setEnableLogOnDisk(true);
+	    logger.setLogFile(logfile);
+    	logger.onCreate();
+    }
 }
