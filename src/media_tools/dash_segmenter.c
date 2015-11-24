@@ -5623,9 +5623,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	case GF_DASH_PROFILE_AVC264_ONDEMAND:
 		if (dasher->cp_location_mode == GF_DASH_CPMODE_REPRESENTATION) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
-		}
-		return GF_BAD_PARAM;
-		
+			return GF_BAD_PARAM;
+		}		
 	default:
 		break;
 	}
