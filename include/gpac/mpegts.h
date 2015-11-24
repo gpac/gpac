@@ -556,6 +556,9 @@ typedef struct
 	Bool is_scalable;
 
 	GF_M2TS_MetadataPointerDescriptor *metadata_pointer_descriptor;
+
+	/*continuity counter check for pure PCR PIDs*/
+	s16 pcr_cc;
 } GF_M2TS_Program;
 
 /*ES flags*/
@@ -575,6 +578,8 @@ enum
 	GF_M2TS_ES_IS_MPE = 1<<5,
 	/*stream is used to send PCR to upper layer*/
 	GF_M2TS_INHERIT_PCR = 1<<6,
+	/*siugnals the stream is used to send the PCR, but is not the original PID carrying it*/
+	GF_M2TS_FAKE_PCR = 1<<7,
 
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
