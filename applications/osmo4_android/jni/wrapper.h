@@ -154,6 +154,7 @@ typedef struct _JavaEnvTh {
 	jmethodID cbk_setCaption;
 	jmethodID cbk_onLog;
 	jmethodID cbk_onFmRequest;
+	jmethodID cbk_setLogFile;
 } JavaEnvTh;
 
 

@@ -239,6 +239,14 @@ public interface GpacCallback {
      * @param errorCode
      */
     public void displayMessage(String message, String title, int errorCode);
+    
+    
+    /**
+     * Called when setup log file
+     * 
+     * @param path
+     */
+    public void setLogFile(String path);
 
     /**
      * Called when logging
