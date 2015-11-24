@@ -1643,7 +1643,7 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 		if (!strcmp(root->name, "SegmentList")) {
 			GF_MPD_SegmentList *new_seg_list = gf_mpd_solve_segment_list_xlink(dash->mpd, root);
 			//forbiden
-			if (new_seg_list && new_seg_list->xlink_href) 
+			if (new_seg_list && new_seg_list->xlink_href) {
 				if (new_seg_list->xlink_actuate_on_load) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] XLINK %s references to remote element entities that contain another @xlink:href attribute with xlink:actuate set to onLoad - forbiden\n", rep->segment_list->xlink_href));
 					gf_mpd_delete_segment_list(new_seg_list);
@@ -1651,7 +1651,7 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 				} else {
 					new_seg_list->consecutive_xlink_count = rep->segment_list->consecutive_xlink_count + 1;
 				}
-			
+			}
 			//replace current segment list by the one from remote element entity (located by xlink:href)
 			gf_mpd_delete_segment_list(rep->segment_list);
 			rep->segment_list = new_seg_list;
