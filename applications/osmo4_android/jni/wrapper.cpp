@@ -292,6 +292,8 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 	    env->GetMethodID(localRef, "setCaption", "(Ljava/lang/String;)V");
 	envToSet->cbk_showKeyboard =
 	    env->GetMethodID(localRef, "showKeyboard", "(Z)V");
+	envToSet->cbk_setLogFile =
+	    env->GetMethodID(localRef, "setLogFile", "(Ljava/lang/String;)V");
 	env->DeleteLocalRef(localRef);
 }
 
@@ -648,6 +650,16 @@ void CNativeWrapper::SetupLogs() {
 	gf_mx_p(m_mx);
 	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 	gf_log_set_callback(this, on_gpac_log);
+	opt = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (opt) {
+		JavaEnvTh *env = getEnv();
+		if (env && env->cbk_setLogFile) {
+			env->env->PushLocalFrame(1);
+			jstring js = env->env->NewStringUTF(opt);
+			env->env->CallVoidMethod(env->cbk_obj, env->cbk_setLogFile, js);
+			env->env->PopLocalFrame(NULL);
+		}
+	}
 	gf_mx_v(m_mx);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
