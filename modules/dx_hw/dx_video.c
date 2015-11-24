@@ -142,7 +142,11 @@ static void dd_init_gl_offscreen(GF_VideoOutput *driv)
 #ifdef _WIN32_WCE
 			dd->gl_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC OpenGL Offscreen"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, GetModuleHandle(_T("gm_dx_hw.dll")), NULL);
 #else
+#ifdef UNICODE
+			dd->gl_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, GetModuleHandle(L"gm_dx_hw.dll"), NULL);
+#else
 			dd->gl_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC OpenGL Offscreen", WS_POPUP, 0, 0, 120, 100, NULL, NULL, GetModuleHandle("gm_dx_hw.dll"), NULL);
+#endif
 #endif
 			if (!dd->gl_hwnd)
 				return;
@@ -360,7 +364,11 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 			dd->bpp = atoi(sOpt);
 		}
 		if (dd->bpp > 8) {
+#ifdef UNICODE
+			highbpp_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"dummy", WS_POPUP, 0, 0, 128, 128, NULL, NULL, NULL /* GetModuleHandle("gm_dx_hw.dll")*/, NULL);
+#else
 			highbpp_hwnd = CreateWindow("GPAC DirectDraw Output", "dummy", WS_POPUP, 0, 0, 128, 128, NULL, NULL, NULL /* GetModuleHandle("gm_dx_hw.dll")*/, NULL);
+#endif
 			dd->gl_HDC = GetDC(highbpp_hwnd);
 
 			memset(&pfd, 0, sizeof(pfd));
@@ -609,8 +617,13 @@ static void DD_Shutdown(GF_VideoOutput *dr)
 
 void DD_ShowTaskbar(Bool show)
 {
-    HWND tbwnd = FindWindow("Shell_TrayWnd", NULL);
-    HWND swnd = FindWindow("Button", NULL);
+#ifdef UNICODE
+    HWND tbwnd = FindWindow(L"Shell_TrayWnd", NULL);
+    HWND swnd = FindWindow(L"Button", NULL);
+#else
+	HWND tbwnd = FindWindow("Shell_TrayWnd", NULL);
+	HWND swnd = FindWindow("Button", NULL);
+#endif
 
     if (tbwnd != NULL) {
         ShowWindow(tbwnd, show ? SW_SHOW : SW_HIDE);
@@ -873,7 +886,11 @@ static void *NewDXVideoOutput()
 	driv->SetFullScreen = DD_SetFullScreen;
 	driv->ProcessEvent = DD_ProcessEvent;
 
+#ifdef UNICODE
+	pCtx->hDDrawLib = LoadLibrary(L"ddraw.dll");
+#else 
 	pCtx->hDDrawLib = LoadLibrary("ddraw.dll");
+#endif
 	if (pCtx->hDDrawLib) {
 		pCtx->DirectDrawCreate = (DIRECTDRAWCREATEPROC) GetProcAddress(pCtx->hDDrawLib, "DirectDrawCreate");
 	}
