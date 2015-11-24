@@ -617,18 +617,21 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 GF_EXPORT
 FILE *gf_fopen(const char *file_name, const char *mode)
 {
-	FILE *res;
+	FILE *res = NULL;
 
 #if defined(WIN32)
-	res = fopen(file_name, mode);
+	Bool is_create = (strchr(mode, 'w')==NULL) ? GF_FALSE : GF_TRUE;
+	if (!is_create)
+		res = fopen(file_name, mode);
 	if (!res) {
 		const char *str_src;
 		wchar_t *wname;
 		wchar_t *wmode;
 		size_t len;
 		size_t len_res;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
-		
+		if (!is_create) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
+		}
 		len = (strlen(file_name) + 1)*sizeof(wchar_t);
 		wname = (wchar_t *)gf_malloc(len);
 		str_src = file_name;
