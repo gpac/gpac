@@ -33,6 +33,7 @@
 #include <gpac/modules/service.h>
 #include <gpac/avparse.h>
 #include <gpac/network.h>
+#include <gpac/utf.h>
 #include <time.h>
 
 /*ISO 639 languages*/
@@ -1113,7 +1114,7 @@ void set_cfg_option(char *opt_string)
 
 static void progress_quiet(const void *cbck, const char *title, u64 done, u64 total) { }
 
-int main (int argc, char **argv)
+int mp4client_main(int argc, char **argv)
 {
 	char c;
 	const char *str;
@@ -2232,6 +2233,39 @@ force_input:
 	return 0;
 }
 
+#ifdef WIN32
+int wmain(int argc, wchar_t** wargv)
+{
+	int i;
+	int res;
+	size_t len;
+	size_t res_len;
+	char **argv;
+	argv = (char **)malloc(argc*sizeof(wchar_t *));
+	for (i = 0; i < argc; i++) {
+		wchar_t *src_str = wargv[i];
+		len = 2 * gf_utf8_wcslen(wargv[i]);
+		argv[i] = (char *)malloc(len + 1);
+		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
+		argv[i][res_len] = 0;
+		if (res_len > len) {
+			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
+			return -1;
+		}
+	}
+	res = mp4client_main(argc, argv);
+	for (i = 0; i < argc; i++) {
+		free(argv[i]);
+	}
+	free(argv);
+	return res;
+}
+#else
+int main(int argc, char** argv)
+{
+	return mp4client_main(argc, argv);
+}
+#endif //win32
 static GF_ObjectManager *video_odm = NULL;
 static GF_ObjectManager *audio_odm = NULL;
 static GF_ObjectManager *scene_odm = NULL;
