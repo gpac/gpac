@@ -435,7 +435,11 @@ void *NewAudioOutput()
 
 	ctx = (DSContext*)gf_malloc(sizeof(DSContext));
 	memset(ctx, 0, sizeof(DSContext));
+#ifdef UNICODE
+	ctx->hDSoundLib = LoadLibrary(L"dsound.dll");
+#else
 	ctx->hDSoundLib = LoadLibrary("dsound.dll");
+#endif
 	if (ctx->hDSoundLib) {
 		ctx->DirectSoundCreate = (DIRECTSOUNDCREATEPROC) GetProcAddress(ctx->hDSoundLib, "DirectSoundCreate");
 	}
