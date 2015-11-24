@@ -778,7 +778,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (strrchr(lastPathPart , '.')==NULL) {
 			add_ext =  GF_TRUE;
 		} else {
-			add_ext =  GF_FALSE;
+			add_ext = (dumper->flags & GF_EXPORT_FORCE_EXT) ? GF_TRUE : GF_FALSE;
 		}
 	} else {
 		add_ext = GF_FALSE;

@@ -4247,6 +4247,7 @@ int mp4boxMain(int argc, char **argv)
 			} else {
 				sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 				mdump.out_name = szFile;
+				mdump.flags |= GF_EXPORT_FORCE_EXT;
 			}
 			if (tka->trackID==(u32) -1) {
 				u32 j;
@@ -4254,6 +4255,7 @@ int mp4boxMain(int argc, char **argv)
 					mdump.trackID = gf_isom_get_track_id(file, j+1);
 					sprintf(szFile, "%s_track%d", outfile, mdump.trackID);
 					mdump.out_name = szFile;
+					mdump.flags |= GF_EXPORT_FORCE_EXT;
 					e = gf_media_export(&mdump);
 					if (e) goto err_exit;
 				}
