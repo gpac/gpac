@@ -39,7 +39,7 @@ extern "C" {
 
 #include <gpac/scenegraph_vrml.h>
 
-#ifndef GPAC_DISABLE_VRML
+#ifndef NO_GPAC_DISABLE_VRML
 
 enum {
 	TAG_MPEG4_Anchor = GF_NODE_RANGE_FIRST_MPEG4,
