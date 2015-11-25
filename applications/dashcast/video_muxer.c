@@ -150,7 +150,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 	return GF_OK;
 #else
 	HEVCState hevc;
-	GF_HEVCParamArray *vpss = NULL, *spss = NULL, *ppss = NULL;
+	GF_HEVCParamArray *vpss = NULL, *spss = NULL, *ppss = NULL, *seis = NULL;
 	GF_BitStream *bs;
 	char *buffer = NULL;
 	u32 buffer_size = 0;
@@ -167,11 +167,19 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 		s32 idx;
 		GF_AVCConfigSlot *slc;
 		u8 nal_unit_type, temporal_id, layer_id;
-		u64 nal_start;
+		u64 nal_start, start_code;
 		u32 nal_size;
 
-		if (gf_bs_read_u32(bs) != 0x00000001) {
+		start_code = gf_bs_read_u32(bs);
+		if (start_code>>8 == 0x000001) {
+			nal_start = gf_bs_get_position(bs) - 1;
+			gf_bs_seek(bs, nal_start);
+			start_code = 1;
+		}
+		if (start_code != 0x00000001) {
 			gf_bs_del(bs);
+			if (buffer) gf_free(buffer);
+			if (vpss && spss && ppss) return GF_OK;
 			return GF_BAD_PARAM;
 		}
 		nal_start = gf_bs_get_position(bs);
@@ -307,6 +315,20 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 				gf_list_add(ppss->nalus, slc);
 			}
 			break;
+		case GF_HEVC_NALU_SEI_PREFIX:
+			if (!seis) {
+				GF_SAFEALLOC(seis, GF_HEVCParamArray);
+				seis->nalus = gf_list_new();
+				seis->array_completeness = 0;
+				seis->type = GF_HEVC_NALU_SEI_PREFIX;
+			}
+			slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+			slc->size = nal_size;
+			slc->id = idx;
+			slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+			memcpy(slc->data, buffer, sizeof(char)*slc->size);
+			gf_list_add(seis->nalus, slc);
+			break;
 		default:
 			break;
 		}
@@ -318,7 +340,7 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 	}
 
 	gf_bs_del(bs);
-	gf_free(buffer);
+	if (buffer) gf_free(buffer);
 
 	return GF_OK;
 #endif
