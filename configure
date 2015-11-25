@@ -1399,7 +1399,11 @@ cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 #include <stdio.h>
 int main(void) {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 25, 0 )
+    printf("ID %d", AV_CODEC_ID_H264);
+#else
     printf("ID %d", CODEC_ID_H264);
+#endif
     return 0;
 }
 EOF
@@ -1435,7 +1439,11 @@ cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 #include <stdio.h>
 int main(void) {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 25, 0 )
+    printf("ID %d", AV_CODEC_ID_H264);
+#else
     printf("ID %d", CODEC_ID_H264);
+#endif
     return 0;
 }
 EOF
@@ -1446,7 +1454,7 @@ else
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 int main(void) {
-    CODEC_ID_H264;
+    printf("ID %d", CODEC_ID_H264);
     return 0;
 }
 EOF
