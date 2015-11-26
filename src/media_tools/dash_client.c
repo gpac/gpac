@@ -2166,7 +2166,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		}
 	}
 
-	while (rep->segment_list->xlink_href) {
+	while (rep->segment_list && rep->segment_list->xlink_href) {
 		if (rep->segment_list->consecutive_xlink_count) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
 		}
