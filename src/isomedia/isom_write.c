@@ -3553,12 +3553,12 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
 			for (k=0; k<stbl->TimeToSample->entries[i].sampleCount; k++) {
 				cur_dts += stbl->TimeToSample->entries[i].sampleDelta;
-				DTSs[idx] = cur_dts * scale;
+				DTSs[idx] = (u64) (cur_dts * scale);
 
 				if (stbl->CompositionOffset) {
 					s32 cts_o;
 					stbl_GetSampleCTS(stbl->CompositionOffset, idx+1, &cts_o);
-					CTSs[idx] = ((s64) cur_dts + cts_o) * scale;
+					CTSs[idx] = (s64) ( ((s64) cur_dts + cts_o) * scale);
 				}
 				idx++;
 			}
@@ -3608,11 +3608,11 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		gf_free(DTSs);
 		
 		if (stbl->CompositionToDecode) {
-			stbl->CompositionToDecode->compositionEndTime *= scale;
-			stbl->CompositionToDecode->compositionStartTime *= scale;
-			stbl->CompositionToDecode->compositionToDTSShift *= scale;
-			stbl->CompositionToDecode->greatestDecodeToDisplayDelta *= scale;
-			stbl->CompositionToDecode->leastDecodeToDisplayDelta *= scale;
+			stbl->CompositionToDecode->compositionEndTime = (s32) (stbl->CompositionToDecode->compositionEndTime * scale);
+			stbl->CompositionToDecode->compositionStartTime = (s32)(stbl->CompositionToDecode->compositionStartTime * scale);
+			stbl->CompositionToDecode->compositionToDTSShift = (s32)(stbl->CompositionToDecode->compositionToDTSShift * scale);
+			stbl->CompositionToDecode->greatestDecodeToDisplayDelta = (s32)(stbl->CompositionToDecode->greatestDecodeToDisplayDelta * scale);
+			stbl->CompositionToDecode->leastDecodeToDisplayDelta = (s32)(stbl->CompositionToDecode->leastDecodeToDisplayDelta * scale);
 		}
 	}
 	return SetTrackDuration(trak);
