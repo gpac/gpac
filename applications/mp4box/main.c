@@ -26,6 +26,7 @@
 
 #include <gpac/download.h>
 #include <gpac/network.h>
+#include <gpac/utf.h>
 
 #ifndef GPAC_DISABLE_SMGR
 #include <gpac/scene_manager.h>
@@ -4978,9 +4979,39 @@ exit:
 	return 0;
 }
 
-int main( int argc, char** argv )
+#ifdef WIN32
+int wmain( int argc, wchar_t** wargv )
+{
+	int i;
+	int res;
+	size_t len;
+	size_t res_len;
+	char **argv;
+	argv = (char **)malloc(argc*sizeof(wchar_t *));
+	for (i = 0; i < argc; i++) {
+		wchar_t *src_str = wargv[i];
+		len = 2*gf_utf8_wcslen(wargv[i]);
+		argv[i] = (char *)malloc(len + 1);
+		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
+		argv[i][res_len] = 0;
+		if (res_len > len) {
+			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
+			return -1;
+		}
+	}
+	res = mp4boxMain(argc, argv);
+	for (i = 0; i < argc; i++) {
+		free(argv[i]);
+	}
+	free(argv);
+	return res;
+}
+#else
+int main(int argc, char** argv)
 {
 	return mp4boxMain( argc, argv );
 }
+#endif //win32
+
 
 #endif /*GPAC_DISABLE_ISOM*/
