@@ -126,7 +126,7 @@ static GF_Err WAV_Setup(GF_AudioOutput *dr, void *os_handle, u32 num_buffers, u3
 	return GF_OK;
 }
 
-static void CALLBACK WaveProc(HWAVEOUT hwo, UINT uMsg, DWORD dwInstance, DWORD dwParam1, DWORD dwParam2)
+static void CALLBACK WaveProc(HWAVEOUT hwo, UINT uMsg, DWORD_PTR dwInstance, DWORD_PTR dwParam1, DWORD_PTR dwParam2)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *) dwInstance;
 	WAVCTX();
@@ -250,7 +250,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 	/* Open a waveform device for output using window callback. */
 	retry = 10;
 	while (retry) {
-		hr = waveOutOpen((LPHWAVEOUT)&ctx->hwo, WAVE_MAPPER, &ctx->fmt, (DWORD) WaveProc, (DWORD) dr,
+		hr = waveOutOpen((LPHWAVEOUT)&ctx->hwo, WAVE_MAPPER, &ctx->fmt, (DWORD_PTR) WaveProc, (DWORD_PTR) dr,
 		                 CALLBACK_FUNCTION | WAVE_ALLOWSYNC | WAVE_FORMAT_DIRECT
 		                );
 
