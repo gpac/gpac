@@ -292,10 +292,6 @@ static u32 mpd_thread(void *params)
 					continue;
 				}
 
-				if (cmddata->ast_offset>0) {
-					seg_time.utc_time += cmddata->ast_offset;
-				}
-
 				if (cmddata->use_dynamic_ast) {
 					main_seg_time = seg_time;
 				} else {
@@ -319,6 +315,9 @@ static u32 mpd_thread(void *params)
 			fprintf(stdout, "Generating MPD at %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
 
 			t = (main_seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
+			if (cmddata->ast_offset>0) {
+				t += cmddata->ast_offset/1000;
+			}
 			msecs = (u32) ( (main_seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
 			ast_time = *gmtime(&t);
 			sprintf(availability_start_time, "%d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
