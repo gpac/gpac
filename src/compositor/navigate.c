@@ -773,6 +773,7 @@ static Bool compositor_handle_navigation_2d(GF_VisualManager *visual, GF_Event *
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev)
 {
 	if (!compositor->scene) return 0;
+	if (compositor->navigate_mode==GF_NAVIGATE_NONE) return 0;
 #ifndef GPAC_DISABLE_3D
 	if ( (compositor->visual->type_3d>0) || compositor->active_layer)
 		return compositor_handle_navigation_3d(compositor, ev);
