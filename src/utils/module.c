@@ -133,8 +133,8 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_WAVEOUT
 	LOAD_PLUGIN(wave_out);
 #endif
-#ifndef GPAC_DISABLE_TTXT
-	LOAD_PLUGIN(vtt_in);
+#ifndef GPAC_DISABLE_VTT
+	LOAD_PLUGIN(vtt_dec);
 #endif
 #ifndef GPAC_DISABLE_SVG
 	LOAD_PLUGIN(widgetman);
