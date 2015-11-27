@@ -1552,7 +1552,7 @@ try_next_segment:
 					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
 						segment_url->key_url = gf_strdup(elt->key_uri);
-						gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
+						 memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 					}
 				}
 			}
@@ -1765,7 +1765,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		if (elt->drm_method != DRM_NONE) {
 			if (elt->key_uri) {
 				segment_url->key_url = gf_strdup(elt->key_uri);
-				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
+				memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 			}
 		}
 	}
