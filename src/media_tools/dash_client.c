@@ -1675,7 +1675,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	char mime[128];
 	char * purl;
 	Double timeline_start_time;
-	GF_MPD *new_mpd;
+	GF_MPD *new_mpd=NULL;
 	Bool fetch_only = GF_FALSE;
 
 	if (!dash->mpd_dnload) {
@@ -1722,6 +1722,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 	}
 
+	gf_mx_p(dash->dl_mutex);
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updating Playlist %s...\n", purl ? purl : local_url));
 	if (purl) {
 		const char *mime_type;
@@ -1739,8 +1741,6 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist %s updated with success\n", purl));
 		}
-
-		gf_mx_p(dash->dl_mutex);
 
 		mime_type = dash->dash_io->get_mime(dash->dash_io, dash->mpd_dnload) ;
 		strcpy(mime, mime_type ? mime_type : "");
@@ -1779,8 +1779,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 	}
 	fetch_time = dash_get_fetch_time(dash);
 
-	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, this step should be done in gf_m3u8_to_mpd
-	if (gf_dash_is_dash_mime(mime)) {
+	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, MPD has been fetched aobve
+	if (!new_mpd) {
 		if (!gf_dash_check_mpd_root_type(local_url)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
 			gf_mx_v(dash->dl_mutex);
