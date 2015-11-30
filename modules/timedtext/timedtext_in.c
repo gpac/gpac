@@ -57,6 +57,7 @@ const char * TTIN_MIME_TYPES[] = {
 	"x-subtitle/srt", "srt", "SRT SubTitles",
 	"x-subtitle/sub", "sub", "SUB SubTitles",
 	"x-subtitle/ttxt", "ttxt", "3GPP TimedText",
+	"text/vtt", "vtt", "VTT SubTitles",
 	NULL
 };
 
