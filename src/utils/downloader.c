@@ -2095,13 +2095,12 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;
 		par.error = GF_OK;
 
-
-		gf_dm_sess_user_io(sess, &par);
 		if (sess->use_cache_file) {
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_TRUE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
+		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), 
