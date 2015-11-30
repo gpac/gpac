@@ -315,15 +315,32 @@ typedef struct
 
 typedef enum
 {
+	// DASH profiles (ISO/IEC 23009-1).
 	GF_DASH_PROFILE_FULL = 0,
 	GF_DASH_PROFILE_LIVE, /*live for ISOFF, SIMPLE for M2TS*/
 	GF_DASH_PROFILE_ONDEMAND,
 	GF_DASH_PROFILE_MAIN,
 
-	/* industry profiles */
-	GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE,
+	// DASH-IF IOP (obsolete since December 2015).
+	// OBSOLETE: These profiles are wrong, because they don't reflect what is
+	// mentioned in the DASH-IF IOP. But since they're already in the use, we
+	// can't simply remove them yet. Those who're using these profiles will
+	// start getting warnings from now on. It should be safe to remove these
+	// obsolete profiles after half a year.
 	GF_DASH_PROFILE_AVC264_LIVE,
 	GF_DASH_PROFILE_AVC264_ONDEMAND,
+
+	// DASH-IF IOP.
+	GF_DASH_PROFILE_DASHIF264,
+	GF_DASH_PROFILE_DASHIF264_SD,
+	GF_DASH_PROFILE_DASHIF264_HD,
+	GF_DASH_PROFILE_DASHIF264_MAIN,
+	GF_DASH_PROFILE_DASHIF264_HIGH,
+	GF_DASH_PROFILE_DASHIF_SIMPLE,
+	GF_DASH_PROFILE_DASHIF_MAIN,
+
+	// HbbTV.
+	GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE,
 
 	/*internal use only*/
 	GF_DASH_PROFILE_UNKNOWN
