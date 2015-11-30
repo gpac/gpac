@@ -41,7 +41,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 	start = gf_bs_get_position(bs);
-	ret = gf_isom_parse_box(outBox, bs);
+	ret = gf_isom_parse_box_ex(outBox, bs, 0, GF_TRUE);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
 		*bytesExpected = (*outBox)->size;
 		GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str( (*outBox)->type) ));
@@ -75,7 +75,7 @@ u32 gf_isom_solve_uuid_box(char *UUID)
 }
 
 
-GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
+GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box)
 {
 	u32 type, uuid_type, hdr_size;
 	u64 size, start, end;
@@ -102,8 +102,13 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
 		if (type == GF_ISOM_BOX_TYPE_TOTL)
 			size = 12;
 		if (!size) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
-			size = gf_bs_available(bs) + 8;
+			if (is_root_box) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
+				size = gf_bs_available(bs) + 8;
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 - patching to size=8 ...\n", gf_4cc_to_str(type), type));
+				size = 8;
+			}
 		}
 	}
 	/*handle uuid*/
@@ -185,7 +190,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type)
 GF_EXPORT
 GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs)
 {
-	return gf_isom_parse_box_ex(outBox, bs, 0);
+	return gf_isom_parse_box_ex(outBox, bs, 0, GF_FALSE);
 }
 
 GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs)
@@ -227,7 +232,7 @@ GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_b
 	GF_Box *a = NULL;
 
 	while (parent->size) {
-		e = gf_isom_parse_box_ex(&a, bs, parent_type);
+		e = gf_isom_parse_box_ex(&a, bs, parent_type, GF_FALSE);
 		if (e) {
 			if (a) gf_isom_box_del(a);
 			return e;

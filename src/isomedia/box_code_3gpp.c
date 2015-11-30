@@ -406,16 +406,23 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 	gpp_read_style(bs, &ptr->default_style);
 	ptr->size -= 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE;
 
-	while (ptr->size) {
+	while (ptr->size>=8) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
+		if (ptr->size<a->size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" larger than remaining bytes in tx3g - ignoring box\n", gf_4cc_to_str(a->type)));
+			ptr->size = 0;
+			gf_isom_box_del(a);
+			return GF_OK;
+		}
+		
 		ptr->size -= a->size;
 		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
 			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);
 			ptr->font_table = (GF_FontTableBox *)a;
 		} else {
-			gf_isom_box_del(a);
+			e = gf_isom_box_add_default(s, a);
+			if (e) return e;
 		}
 	}
 	return GF_OK;
