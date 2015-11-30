@@ -2795,6 +2795,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 0);
 	if (e) goto err_exit;
+	
+	if (!nb_samp) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMFF Fragmenting] No samples in movie, rewriting moof and exit\n"));
+		goto err_exit;
+	}
 
 	nb_done = 0;
 

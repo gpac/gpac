@@ -215,7 +215,7 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 	//no ent, this is really weird. Let's assume the DTS is then what is written in the table
 	if (!ent || (i == count)) {
 		(*DTS) = stts->r_CurrentDTS;
-		if (duration) *duration = ent->sampleDelta;
+		if (duration) *duration = ent ? ent->sampleDelta : 0;
 	}
 	return GF_OK;
 
