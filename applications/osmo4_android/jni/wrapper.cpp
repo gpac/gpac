@@ -33,6 +33,7 @@
 #include <gpac/modules/service.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
+#include <gpac/modules/droidaudio.h>
 
 #include "wrapper.h"
 #include "wrapper_jni.c"
@@ -217,6 +218,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	if (ret) {
 		LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
 	}
+	gf_droidaudio_register_java_vm(vm);
 	return jniV;
 }
 
@@ -751,8 +753,6 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	/*force fullscreen*/
 	gf_term_set_option(m_term, GF_OPT_FULLSCREEN, 1);
 
-	//setAudioEnvironment(javaVM);
-
 	LOGD("Setting term size m_user=%p...", &m_user);
 	gf_term_set_size(m_term, m_Width, m_Height);
 
@@ -831,16 +831,6 @@ void CNativeWrapper::step(void * env, void * bitmap) {
 	}
 }
 
-//-----------------------------------------------------
-void CNativeWrapper::setAudioEnvironment(JavaVM* javaVM) {
-	if (!m_term) {
-		debug_log("setAudioEnvironment(): no m_term found.");
-		return;
-	}
-	debug_log("setAudioEnvironment start");
-	m_term->compositor->audio_renderer->audio_out->Setup(m_term->compositor->audio_renderer->audio_out, javaVM, 0, 0);
-	debug_log("setAudioEnvironment end");
-}
 //-----------------------------------------------------
 void CNativeWrapper::resize(int w, int h) {
 	if (!m_term)

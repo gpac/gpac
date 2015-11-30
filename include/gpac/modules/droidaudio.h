@@ -1,11 +1,11 @@
 /*
  *			GPAC - Multimedia Framework C SDK
  *
- *			Authors: Ivica Arsov, Jean Le Feuvre
- *			Copyright (c) Mines-Telecom 2009-
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2012
  *					All rights reserved
  *
- *  This file is part of GPAC / Wrapper
+ *  This file is part of GPAC / modules interfaces
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -23,16 +23,20 @@
  *
  */
 
-#include <gpac/modules/droidaudio.h>
+#ifndef _GF_MODULE_DROIDAUDIO_H_
+#define _GF_MODULE_DROIDAUDIO_H_
+
+#include <jni.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-JNIEnv *gf_droidaudio_jni_get_thread_env();
-JNIEnv *gf_droidaudio_jni_attach_current_thread();
-void gf_droidaudio_jni_detach_current_thread();
+void gf_droidaudio_register_java_vm(JavaVM *vm);
 
 #ifdef __cplusplus
 }
 #endif
+
+
+#endif	/*_GF_MODULE_DROIDAUDIO_H_*/
