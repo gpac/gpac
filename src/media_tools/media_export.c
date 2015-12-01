@@ -653,7 +653,7 @@ static GF_Err gf_dump_to_vobsub(GF_MediaExporter *dumper, char *szName, u32 trac
 		mm  = (u32)(dts % 60);
 		hh  = (u32)(dts / 60);
 #if defined(WIN32)  && !defined(__GNUC__)
-		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09I64u\n", hh, mm, ss, ms, gf_ftell(fsub));
+		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: %09I64x\n", hh, mm, ss, ms, gf_ftell(fsub));
 #else
 		fprintf(fidx, "timestamp: %02u:%02u:%02u:%03u, filepos: " LLXPAD("09") "\n", hh, mm, ss, ms, gf_ftell(fsub));
 #endif
