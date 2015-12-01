@@ -652,7 +652,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	/*still seeking or not ?
 	 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
-	 2- otherwise set DTS+CTS to start value - !! FIXME we should not change the TS but rather signal the frame is a seek frame
+	 2- otherwise set DTS+CTS to start value
 	 */
 	if ((ch->speed < 0) || (ch->start <= ch->sample->DTS + ch->sample->CTS_Offset)) {
 		ch->current_slh.decodingTimeStamp = ch->sample->DTS;
