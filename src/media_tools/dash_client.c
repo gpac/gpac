@@ -664,7 +664,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		}
 
 		if (current_time_rescale >= segtime) {
-			group->download_segment_index = seg_idx;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime));
+			group->download_segment_index = seg_idx-1;
 			group->nb_segments_in_rep = 10;
 			group->start_playback_range = (current_time)/1000.0;
 			group->ast_at_init = availabilityStartTime - (u32) (ast_offset*1000);
