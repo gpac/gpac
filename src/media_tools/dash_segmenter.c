@@ -5719,7 +5719,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 
 		if (dasher->cp_location_mode == GF_DASH_CPMODE_REPRESENTATION) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile requires the ContentProtection element to be present in the AdaptationSet element.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error! The selected DASH profile requires the ContentProtection element to be present in the AdaptationSet element.\n"));
 			return GF_BAD_PARAM;
 		}
 
@@ -5728,13 +5728,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		if (dasher->single_segment) {
 			if (dasher->seg_rad_name) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! Specifying the segment name in the static (single segment) mode is meaningless.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error! Specifying the segment name in the static (single segment) mode is meaningless.\n"));
 				return GF_BAD_PARAM;
 			}
 
 			if (dasher->bitstream_switching_mode != GF_DASH_BSMODE_DEFAULT &&
 				dasher->bitstream_switching_mode != GF_DASH_BSMODE_NONE) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! Specifying the bitstream switching mode in the static (single segment) mode is meaningless.\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error! Specifying the bitstream switching mode in the static (single segment) mode is meaningless.\n"));
 				return GF_BAD_PARAM;
 			}
 		}
@@ -5780,6 +5780,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
 			return GF_BAD_PARAM;
 		}
+		break;
 	case GF_DASH_PROFILE_ONDEMAND:
 		dasher->segments_start_with_rap = GF_TRUE;
 		dasher->single_segment = GF_TRUE;
