@@ -1953,12 +1953,11 @@ GF_DashProfile get_dash_profile(const char *profile_name)
 
 	// DASH-IF AVC/264 2.0 IOP (deprecated).
 	if (!stricmp(profile_name, "dashavc264:onDemand")) {
-		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
+		fprintf(stderr, "Warning: deprecated DASH profile specified \"%s\". Switch to a newer profile.\n", profile_name);
 		return GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND;
 	}
-
 	if (!stricmp(profile_name, "dashavc264:live")) {
-		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
+		fprintf(stderr, "Warning: deprecated DASH profile specified \"%s\". Switch to a newer profile.\n", profile_name);
 		return GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE;
 	}
 
@@ -3316,16 +3315,16 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
 
-			// OBSOLETE: As of December 2015, the "-dash-profile" option is not used anywhere.
+			// FIXME: As of December 2015, the "-dash-profile" option is not used anywhere.
 			// It should be safe to remove it after half a year.
 			if (!stricmp(arg, "-dash-profile")) {
-				fprintf(stderr, "WARNING: The \"-dash-profile\" option is obsolete. Use the \"-profile\" option instead.\n");
+				fprintf(stderr, "Warning: The \"-dash-profile\" option is deprecated. Use the \"-profile\" option instead.\n");
 			}
 
 			dash_profile = get_dash_profile(argv[i + 1]);
 
 			if (dash_profile == GF_DASH_PROFILE_UNKNOWN) {
-				fprintf(stderr, "ERROR: Invalid DASH profile specified.\n");
+				fprintf(stderr, "Error: Invalid DASH profile specified.\n");
 				return 2;
 			}
 

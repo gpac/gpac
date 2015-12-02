@@ -5703,7 +5703,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	/*check requested profiles can be generated, or adjust them*/
 	if (nb_sap_type_greater_than_4 || (nb_sap_type_greater_than_3 > 1)) {
 		if (dasher->profile) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Max SAP type %d detected\n\tswitching to FULL profile\n", max_sap_type));
 		}
 		dasher->profile = GF_DASH_PROFILE_FULL;
 	}
@@ -5767,6 +5767,19 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		break;
 	}
+	case GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE:
+		dasher->segments_start_with_rap = GF_TRUE;
+		dasher->no_fragments_defaults = GF_TRUE;
+		dasher->use_url_template = 1;
+		dasher->single_segment = dasher->single_file = GF_FALSE;
+		break;
+	case GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND:
+		dasher->segments_start_with_rap = GF_TRUE;
+		dasher->no_fragments_defaults = GF_TRUE;
+		if (dasher->seg_rad_name) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
+			return GF_BAD_PARAM;
+		}
 	case GF_DASH_PROFILE_ONDEMAND:
 		dasher->segments_start_with_rap = GF_TRUE;
 		dasher->single_segment = GF_TRUE;
@@ -5805,7 +5818,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	//check we have a segment template
 	if (dasher->use_url_template && !dasher->seg_rad_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
 		dasher_format_seg_name(dasher, "%s_dash");
 	}
 
@@ -5896,13 +5909,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	if (max_comp_per_input > 1) {
 		if (is_dashif_profile(dasher->profile)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, (
-				"[DASH] WARNING! Muxed representations are prohibited by DASH-IF IOP. "
+				"[DASH] Muxed representations are prohibited by DASH-IF IOP. "
 				"Switching to the DASH \"%s\" profile.\n", dasher->single_segment ? "onDemand" : "live"));
 
 			dasher->profile = dasher->single_segment ? GF_DASH_PROFILE_ONDEMAND : GF_DASH_PROFILE_LIVE;
 		} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, (
-				"[DASH] WARNING! Muxed representations are prohibited by HbbTV 1.5 live profile. "
+				"[DASH] Muxed representations are prohibited by HbbTV 1.5 live profile. "
 				"Switching to the DASH \"live\" profile.\n"));
 
 			dasher->profile = GF_DASH_PROFILE_LIVE;
@@ -5912,19 +5925,19 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	/*HbbTV 1.5 ISO live specific checks*/
 	if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		if (max_adaptation_set > 16) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
 			dasher->profile = GF_DASH_PROFILE_LIVE;
 		}
 		if (max_period > 32) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
 			dasher->profile = GF_DASH_PROFILE_LIVE;
 		}
 		if (dasher->segment_duration < 1.0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
 			dasher->segment_duration = 1.0;
 		}
 		if (dasher->segment_duration > 15.0) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
 			dasher->segment_duration = 15.0;
 		}
 	}
