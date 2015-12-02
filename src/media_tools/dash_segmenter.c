@@ -4499,20 +4499,8 @@ static void format_duration(FILE *mpd, Double dur, const char *name)
 
 }
 
-static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg2, Double mpd_duration, Bool use_cenc, Bool use_xlink)
+static void write_header_profile(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg2, Bool use_xlink)
 {
-	u32 sec, frac;
-	u64 time_ms;
-	Double msec;
-#ifdef _WIN32_WCE
-	SYSTEMTIME syst;
-	FILETIME filet;
-#else
-	time_t gtime;
-	struct tm *t;
-#endif
-	u32 i;
-
 	// Each DASH profile has a unique identifier. Moreover, a specific profile
 	// may use another one as a base profile, which means that multiple
 	// identifier may describe the specific profile. Before we'll start mixing
@@ -4538,6 +4526,65 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 
 	// HbbTV.
 	const char *profile_hbbtv = "urn:hbbtv:dash:profile:isoff-live:2012";
+	
+	fprintf(mpd, " profiles=\"");
+
+	if (dasher->profile == GF_DASH_PROFILE_LIVE) {
+		if (use_xlink && !is_mpeg2) {
+			fprintf(mpd, "%s", profile_dash_isobmff_live_xlink);
+		} else {
+			fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_simple : profile_dash_isobmff_live);
+		}
+	} else if (dasher->profile == GF_DASH_PROFILE_ONDEMAND) {
+		if (use_xlink) {
+			fprintf(mpd, "%s", profile_dash_isobmff_ondemand_xlink);
+		} else {
+			fprintf(mpd, "%s", profile_dash_isobmff_ondemand);
+		}
+	} else if (dasher->profile == GF_DASH_PROFILE_MAIN) {
+		fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_main : profile_dash_isobmff_main);
+	} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		fprintf(mpd, "%s", profile_hbbtv);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE) {
+		fprintf(mpd, "%s, %s", profile_dash_isobmff_live, profile_dashif264);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND) {
+		fprintf(mpd, "%s, %s", profile_dash_isobmff_ondemand, profile_dashif264);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_MAIN) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_main);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_HIGH) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_high);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_SIMPLE) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif_simple);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_MAIN) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif_main);
+	} else {
+		fprintf(mpd, "%s", profile_dash_full);
+	}
+
+	if (dasher->dash_profile_extension) {
+		fprintf(mpd, ", %s", dasher->dash_profile_extension);
+	}
+
+	fprintf(mpd, "\""); // End of the "profiles" XML-attribute.
+}
+
+static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg2, Double mpd_duration, Bool use_cenc, Bool use_xlink)
+{
+	u32 sec, frac;
+	u64 time_ms;
+	Double msec;
+#ifdef _WIN32_WCE
+	SYSTEMTIME syst;
+	FILETIME filet;
+#else
+	time_t gtime;
+	struct tm *t;
+#endif
+	u32 i;
 
 	gf_net_get_ntp(&sec, &frac);
 	time_ms = sec;
@@ -4620,49 +4667,7 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 		format_duration(mpd, dasher->max_segment_duration, "maxSegmentDuration");
 	}
 
-	fprintf(mpd, " profiles=\"");
-
-	if (dasher->profile == GF_DASH_PROFILE_LIVE) {
-		if (use_xlink && !is_mpeg2) {
-			fprintf(mpd, "%s", profile_dash_isobmff_live_xlink);
-		} else {
-			fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_simple : profile_dash_isobmff_live);
-		}
-	} else if (dasher->profile == GF_DASH_PROFILE_ONDEMAND) {
-		if (use_xlink) {
-			fprintf(mpd, "%s", profile_dash_isobmff_ondemand_xlink);
-		} else {
-			fprintf(mpd, "%s", profile_dash_isobmff_ondemand);
-		}
-	} else if (dasher->profile == GF_DASH_PROFILE_MAIN) {
-		fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_main : profile_dash_isobmff_main);
-	} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		fprintf(mpd, "%s", profile_hbbtv);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE) {
-		fprintf(mpd, "%s, %s", profile_dash_isobmff_live, profile_dashif264);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND) {
-		fprintf(mpd, "%s, %s", profile_dash_isobmff_ondemand, profile_dashif264);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_MAIN) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif264_main);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_HIGH) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif264_high);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_SIMPLE) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif_simple);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_MAIN) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif_main);
-	} else {
-		fprintf(mpd, "%s", profile_dash_full);
-	}
-
-	if (dasher->dash_profile_extension) {
-		fprintf(mpd, ", %s", dasher->dash_profile_extension);
-	}
-
-	fprintf(mpd, "\""); // End of the "profiles" XML-attribute.
+	write_header_profile(dasher, mpd, is_mpeg2, use_xlink);
 
 	if (use_cenc) {
 		fprintf(mpd, " xmlns:cenc=\"urn:mpeg:cenc:2013\"");
