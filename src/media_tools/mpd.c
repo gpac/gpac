@@ -1552,7 +1552,7 @@ try_next_segment:
 					//segment_url->key_url = "aes-128";
 					if (elt->key_uri) {
 						segment_url->key_url = gf_strdup(elt->key_uri);
-						gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
+						 memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 					}
 				}
 			}
@@ -1714,7 +1714,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 }
 
 GF_EXPORT
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter)
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration)
 {
 	GF_Err e;
 	MasterPlaylist *pl = NULL;
@@ -1742,11 +1742,20 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	assert(pl->streams);
 	assert(gf_list_count(pl->streams) == 1);
 
+	if (is_static) {
+		*is_static = pl->playlist_needs_refresh ? GF_FALSE : GF_TRUE;
+	}
+
 	stream = (Stream *)gf_list_get(pl->streams, 0);
 	assert(gf_list_count(stream->variants) == 1);
 	pe = (PlaylistElement *)gf_list_get(stream->variants, 0);
+
+	if (duration) {
+		*duration = (u32) (stream->computed_duration * 1000);
+	}
 	
 	rep->segment_list->duration = (u64) (pe->duration_info * 1000);
+	rep->segment_list->timescale = 1000;
 	rep->m3u8_media_seq_min = pe->element.playlist.media_seq_min;
 	rep->m3u8_media_seq_max = pe->element.playlist.media_seq_max;
 	if (!rep->segment_list->segment_URLs)
@@ -1765,7 +1774,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		if (elt->drm_method != DRM_NONE) {
 			if (elt->key_uri) {
 				segment_url->key_url = gf_strdup(elt->key_uri);
-				gf_bin128_parse((char *)elt->key_iv, segment_url->key_iv);
+				memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 			}
 		}
 	}

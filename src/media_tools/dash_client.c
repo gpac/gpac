@@ -1965,8 +1965,18 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 					if (new_rep->segment_list->consecutive_xlink_count) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", new_rep->segment_list->consecutive_xlink_count));
 					}
-					if (dash->is_m3u8)
-						gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter);
+					if (dash->is_m3u8) {
+						Bool is_static = GF_FALSE;
+						u32 dur = 0;
+						gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
+						if (is_static) {
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[m3u8] MPD type changed from dynamic to static\n"));
+							group->dash->mpd->type = GF_MPD_TYPE_STATIC;
+							group->dash->mpd->media_presentation_duration = dur;
+							group->dash->mpd->minimum_update_period = 0;
+							group->period->duration = dur;
+						}
+					}
 					else
 						gf_dash_solve_representation_xlink(group->dash, new_rep);
 				}
@@ -2171,8 +2181,19 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		if (rep->segment_list->consecutive_xlink_count) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
 		}
-		if (group->dash->is_m3u8)
-			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter);
+		if (group->dash->is_m3u8) {
+			Bool is_static = GF_FALSE;
+			u32 dur = 0;
+			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
+			//we only know this is a static or dynamic MPD after parsing the first subplaylist
+			//if this is static, we need to update infos in mpd and period
+			if (is_static) {
+				group->dash->mpd->type = GF_MPD_TYPE_STATIC;
+				group->dash->mpd->media_presentation_duration = dur;
+				group->dash->mpd->minimum_update_period = 0;
+				group->period->duration = dur;
+			}
+		}
 		else
 			gf_dash_solve_representation_xlink(group->dash, rep);
 	}
