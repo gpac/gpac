@@ -24,6 +24,7 @@ endif
 OBJS= main.o extract.o
 
 ifeq ($(CONFIG_WIN32),yes)
+LDFLAGS+=-municode
 EXE=.exe
 PROG=MP4Client$(EXE)
 else
