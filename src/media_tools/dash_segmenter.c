@@ -5738,66 +5738,52 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				return GF_BAD_PARAM;
 			}
 		}
-	}
+	} else {
+		// Adjusting parameters for other DASH profiles.
+		switch (dasher->profile) {
+		case GF_DASH_PROFILE_LIVE:
+			dasher->segments_start_with_rap = GF_TRUE;
+			dasher->use_url_template = 1;
+			dasher->single_segment = dasher->single_file = GF_FALSE;
+			break;
+		case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
+			dasher->bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+			dasher->segments_start_with_rap = GF_TRUE;
+			dasher->no_fragments_defaults = GF_TRUE;
+			dasher->use_url_template = 1;
+			dasher->single_segment = dasher->single_file = GF_FALSE;
 
-	// Adjusting parameters for other DASH profiles.
-	switch (dasher->profile) {
-	case GF_DASH_PROFILE_LIVE:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->use_url_template = 1;
-		dasher->single_segment = dasher->single_file = GF_FALSE;
-		break;
-	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
-		dasher->bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->no_fragments_defaults = GF_TRUE;
-		dasher->use_url_template = 1;
-		dasher->single_segment = dasher->single_file = GF_FALSE;
+			for (i=0; i<dasher->nb_inputs; i++) {
+				if (dasher->inputs[i].role && !strcmp(dasher->inputs[i].role, "main"))
+					break;
+			}
 
-		for (i=0; i<dasher->nb_inputs; i++) {
-			if (dasher->inputs[i].role && !strcmp(dasher->inputs[i].role, "main"))
-				break;
-		}
+			if (i == dasher->nb_inputs) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
+				e = GF_BAD_PARAM;
+				goto exit;
+			}
 
-		if (i == dasher->nb_inputs) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
-			e = GF_BAD_PARAM;
-			goto exit;
+			break;
 		}
-
-		break;
-	}
-	case GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->no_fragments_defaults = GF_TRUE;
-		dasher->use_url_template = 1;
-		dasher->single_segment = dasher->single_file = GF_FALSE;
-		break;
-	case GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->no_fragments_defaults = GF_TRUE;
-		if (dasher->seg_rad_name) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
-			return GF_BAD_PARAM;
+		case GF_DASH_PROFILE_ONDEMAND:
+			dasher->segments_start_with_rap = GF_TRUE;
+			dasher->single_segment = GF_TRUE;
+			if ((dasher->bitstream_switching_mode != GF_DASH_BSMODE_DEFAULT) && (dasher->bitstream_switching_mode != GF_DASH_BSMODE_NONE)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] onDemand profile, bitstream switching mode cannot be used.\n"));
+				return GF_BAD_PARAM;
+			}
+			/*BS switching is meaningless in onDemand profile*/
+			dasher->bitstream_switching_mode = GF_DASH_BSMODE_NONE;
+			dasher->use_url_template = dasher->single_file = GF_FALSE;
+			break;
+		case GF_DASH_PROFILE_MAIN:
+			dasher->segments_start_with_rap = GF_TRUE;
+			dasher->single_segment = GF_FALSE;
+			break;
+		default:
+			break;
 		}
-		break;
-	case GF_DASH_PROFILE_ONDEMAND:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->single_segment = GF_TRUE;
-		if ((dasher->bitstream_switching_mode != GF_DASH_BSMODE_DEFAULT) && (dasher->bitstream_switching_mode != GF_DASH_BSMODE_NONE)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] onDemand profile, bitstream switching mode cannot be used.\n"));
-			return GF_BAD_PARAM;
-		}
-		/*BS switching is meaningless in onDemand profile*/
-		dasher->bitstream_switching_mode = GF_DASH_BSMODE_NONE;
-		dasher->use_url_template = dasher->single_file = GF_FALSE;
-		break;
-	case GF_DASH_PROFILE_MAIN:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->single_segment = GF_FALSE;
-		break;
-	default:
-		break;
 	}
 	if (dasher->bitstream_switching_mode == GF_DASH_BSMODE_DEFAULT) {
 		dasher->bitstream_switching_mode = GF_DASH_BSMODE_INBAND;
