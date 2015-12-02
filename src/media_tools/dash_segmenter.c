@@ -734,9 +734,6 @@ static Bool is_dashif_profile(GF_DashProfile profile)
 	switch (profile) {
 		case GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND:
 		case GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE:
-		case GF_DASH_PROFILE_DASHIF264:
-		case GF_DASH_PROFILE_DASHIF264_SD:
-		case GF_DASH_PROFILE_DASHIF264_HD:
 		case GF_DASH_PROFILE_DASHIF264_MAIN:
 		case GF_DASH_PROFILE_DASHIF264_HIGH:
 		case GF_DASH_PROFILE_DASHIF_SIMPLE:
@@ -4534,8 +4531,6 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 
 	// DASH-IF IOP.
 	const char *profile_dashif264 = "http://dashif.org/guidelines/dash264";
-	const char *profile_dashif264_sd = "http://dashif.org/guidelines/dash264#sd";
-	const char *profile_dashif264_hd = "http://dashif.org/guidelines/dash264#hd";
 	const char *profile_dashif264_main = "http://dashif.org/guidelines/dash264main";
 	const char *profile_dashif264_high = "http://dashif.org/guidelines/dash264high";
 	const char *profile_dashif_simple = "http://dashif.org/guidelines/dash-if-simple";
@@ -4647,15 +4642,6 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 		fprintf(mpd, "%s, %s", profile_dash_isobmff_live, profile_dashif264);
 	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND) {
 		fprintf(mpd, "%s, %s", profile_dash_isobmff_ondemand, profile_dashif264);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif264);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_SD) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif264_sd);
-	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_HD) {
-		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
-		fprintf(mpd, ", %s", profile_dashif264_hd);
 	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_MAIN) {
 		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
 		fprintf(mpd, ", %s", profile_dashif264_main);

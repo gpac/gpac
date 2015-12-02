@@ -323,9 +323,6 @@ void PrintDASHUsage()
 	        "                      DASH-IF IOP (Interoperability Points):\n"
 					"                      * dashavc264:ondemand (DASH-AVC/264 2.0 - superseeded by 3.0)\n"
 					"                      * dashavc264:live (DASH-AVC/264 2.0 - superseeded by 3.0)\n"
-	        "                      * dashif264 (DASH-AVC/264)\n"
-	        "                      * dashif264 (DASH-AVC/264)\n"
-	        "                      * dashif264-sd (DASH-AVC/264 SD)\n"
 	        "                      * dashif264-hd (DASH-AVC/264 HD)\n"
 	        "                      * dashif264-main (DASH-AVC/264 main)\n"
 	        "                      * dashif264-high (DASH-AVC/264 high)\n"
@@ -1962,15 +1959,6 @@ GF_DashProfile get_dash_profile(const char *profile_name)
 	}
 
 	// DASH-IF IOP 3.0.
-	if (!stricmp(profile_name, "dashif264"))
-		return GF_DASH_PROFILE_DASHIF264;
-
-	if (!stricmp(profile_name, "dashif264-sd"))
-		return GF_DASH_PROFILE_DASHIF264_SD;
-
-	if (!stricmp(profile_name, "dashif264-hd"))
-		return GF_DASH_PROFILE_DASHIF264_HD;
-
 	if (!stricmp(profile_name, "dashif264-main"))
 		return GF_DASH_PROFILE_DASHIF264_MAIN;
 
