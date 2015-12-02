@@ -732,8 +732,8 @@ static Bool is_splitable(u32 media_type) {
 static Bool is_dashif_profile(GF_DashProfile profile)
 {
 	switch (profile) {
-		case GF_DASH_PROFILE_AVC264_ONDEMAND:
-		case GF_DASH_PROFILE_AVC264_LIVE:
+		case GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND:
+		case GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE:
 		case GF_DASH_PROFILE_DASHIF264:
 		case GF_DASH_PROFILE_DASHIF264_SD:
 		case GF_DASH_PROFILE_DASHIF264_HD:
@@ -4643,9 +4643,9 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 		fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_main : profile_dash_isobmff_main);
 	} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		fprintf(mpd, "%s", profile_hbbtv);
-	} else if (dasher->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE) {
 		fprintf(mpd, "%s, %s", profile_dash_isobmff_live, profile_dashif264);
-	} else if (dasher->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND) {
 		fprintf(mpd, "%s, %s", profile_dash_isobmff_ondemand, profile_dashif264);
 	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264) {
 		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
@@ -4757,7 +4757,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 	Bool is_on_demand =
 		profile == GF_DASH_PROFILE_ONDEMAND ||
-		profile == GF_DASH_PROFILE_AVC264_ONDEMAND ||
+		profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND ||
 		(is_dashif_profile(profile) && !use_url_template);
 
 	//force segmentAlignment in onDemand
@@ -5710,10 +5710,10 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	// Adjusting parameters for DASH-IF IOP.
 	if (is_dashif_profile(dasher->profile)) {
-		if (dasher->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+		if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND) {
 			dasher->single_segment = GF_TRUE;
 			dasher->use_url_template = dasher->single_file = GF_FALSE;
-		} else if (dasher->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+		} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE) {
 			dasher->use_url_template = GF_TRUE;
 			dasher->single_segment = dasher->single_file = GF_FALSE;
 		}

@@ -321,14 +321,9 @@ typedef enum
 	GF_DASH_PROFILE_ONDEMAND,
 	GF_DASH_PROFILE_MAIN,
 
-	// DASH-IF IOP (obsolete since December 2015).
-	// OBSOLETE: These profiles are wrong, because they don't reflect what is
-	// mentioned in the DASH-IF IOP. But since they're already in the use, we
-	// can't simply remove them yet. Those who're using these profiles will
-	// start getting warnings from now on. It should be safe to remove these
-	// obsolete profiles after half a year.
-	GF_DASH_PROFILE_AVC264_LIVE,
-	GF_DASH_PROFILE_AVC264_ONDEMAND,
+	// DASH-IF AVC/264 2.0 IOP profiles.
+	GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE,
+	GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND,
 
 	// DASH-IF IOP.
 	GF_DASH_PROFILE_DASHIF264,

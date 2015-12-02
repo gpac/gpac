@@ -321,6 +321,9 @@ void PrintDASHUsage()
 	        "                      * full\n"
 	        "\n"
 	        "                      DASH-IF IOP (Interoperability Points):\n"
+					"                      * dashavc264:ondemand (DASH-AVC/264 2.0 - superseeded by 3.0)\n"
+					"                      * dashavc264:live (DASH-AVC/264 2.0 - superseeded by 3.0)\n"
+	        "                      * dashif264 (DASH-AVC/264)\n"
 	        "                      * dashif264 (DASH-AVC/264)\n"
 	        "                      * dashif264-sd (DASH-AVC/264 SD)\n"
 	        "                      * dashif264-hd (DASH-AVC/264 HD)\n"
@@ -1948,21 +1951,18 @@ GF_DashProfile get_dash_profile(const char *profile_name)
 	if (!stricmp(profile_name, "full"))
 		return GF_DASH_PROFILE_FULL;
 
-	// DASH-IF IOP (obsolete).
-	// See the declaration of the enum for more details.
+	// DASH-IF AVC/264 2.0 IOP (deprecated).
 	if (!stricmp(profile_name, "dashavc264:onDemand")) {
 		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
-
-		return GF_DASH_PROFILE_AVC264_ONDEMAND;
+		return GF_DASH_PROFILE_DASHIF_AVC264_2_0_ONDEMAND;
 	}
 
 	if (!stricmp(profile_name, "dashavc264:live")) {
 		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
-
-		return GF_DASH_PROFILE_AVC264_LIVE;
+		return GF_DASH_PROFILE_DASHIF_AVC264_2_0_LIVE;
 	}
 
-	// DASH-IF IOP.
+	// DASH-IF IOP 3.0.
 	if (!stricmp(profile_name, "dashif264"))
 		return GF_DASH_PROFILE_DASHIF264;
 
