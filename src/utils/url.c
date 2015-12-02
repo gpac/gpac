@@ -97,7 +97,7 @@ GF_EXPORT
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;
-	char *outPath, *name, *rad;
+	char *outPath, *name, *rad, *tmp2;
 	char tmp[GF_MAX_PATH];
 
 	if (!pathName && !parentName) return NULL;
@@ -219,7 +219,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	//strip query part or fragment part
 	rad = strchr(tmp, '?');
 	if (rad) rad[0] = 0;
-	rad = strchr(tmp, '#');
+	tmp2 = strrchr(tmp, '/');
+	if (!tmp2) tmp2 = strrchr(tmp, '\\');
+	if (!tmp2) tmp2 = tmp;
+	rad = strchr(tmp2, '#');
 	if (rad) rad[0] = 0;
 
 	/*remove the last /*/
