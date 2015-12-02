@@ -309,11 +309,28 @@ void PrintDASHUsage()
 	        " -out filename        specifies output MPD file name.\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
 	        "                       * Note: Default temp dir is OS-dependent\n"
-	        " -profile NAME        specifies the target DASH profile: \"onDemand\",\n"
-	        "                       \"live\", \"main\", \"simple\", \"full\",\n"
-	        "                       \"hbbtv1.5:live\", \"dashavc264:live\", \"dashavc264:onDemand\"\n"
-	        "                       * This will set default option values to ensure conformance to the desired profile\n"
-	        "                       * Default profile is \"full\" in static mode, \"live\" in dynamic mode\n"
+	        " -profile NAME        specifies the target DASH profile.\n"
+	        "                       This will set default option values to ensure conformance to the desired profile.\n"
+	        "                       Default profile is \"full\" in static mode, \"live\" in dynamic mode.\n"
+	        "\n"
+	        "                      DASH (ISO/IEC 23009-1):\n"
+	        "                      * onDemand\n"
+	        "                      * live\n"
+	        "                      * main\n"
+	        "                      * simple\n"
+	        "                      * full\n"
+	        "\n"
+	        "                      DASH-IF IOP (Interoperability Points):\n"
+	        "                      * dashif264 (DASH-AVC/264)\n"
+	        "                      * dashif264-sd (DASH-AVC/264 SD)\n"
+	        "                      * dashif264-hd (DASH-AVC/264 HD)\n"
+	        "                      * dashif264-main (DASH-AVC/264 main)\n"
+	        "                      * dashif264-high (DASH-AVC/264 high)\n"
+	        "                      * dashif-simple (DASH-IF IOP simple)\n"
+	        "                      * dashif-main (DASH-IF IOP main)\n"
+	        "\n"
+	        "                      HbbTV:\n"
+	        "                      * \"hbbtv1.5:live\"\n"
 	        " -profile-ext STRING  specifies a list of profile extensions, as used by DASH-IF and DVB.\n"
 	        "                       The string will be colon-concatenated with the profile used\n"
 	        "\n"
@@ -1913,6 +1930,67 @@ u32 mp4box_cleanup(u32 ret_code) {
 	return ret_code;
 }
 
+/**
+ * Returns the DASH profile based on the profile name.
+ */
+GF_DashProfile get_dash_profile(const char *profile_name)
+{
+	// DASH (ISO/IEC 23009-1).
+	if (!stricmp(profile_name, "onDemand"))
+		return GF_DASH_PROFILE_ONDEMAND;
+
+	if (!stricmp(profile_name, "live") || !stricmp(profile_name, "simple"))
+		return GF_DASH_PROFILE_LIVE;
+
+	if (!stricmp(profile_name, "main"))
+		return GF_DASH_PROFILE_MAIN;
+
+	if (!stricmp(profile_name, "full"))
+		return GF_DASH_PROFILE_FULL;
+
+	// DASH-IF IOP (obsolete).
+	// See the declaration of the enum for more details.
+	if (!stricmp(profile_name, "dashavc264:onDemand")) {
+		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
+
+		return GF_DASH_PROFILE_AVC264_ONDEMAND;
+	}
+
+	if (!stricmp(profile_name, "dashavc264:live")) {
+		fprintf(stderr, "WARNING: Obsolete DASH profile specified. Switch to a proper profile.\n");
+
+		return GF_DASH_PROFILE_AVC264_LIVE;
+	}
+
+	// DASH-IF IOP.
+	if (!stricmp(profile_name, "dashif264"))
+		return GF_DASH_PROFILE_DASHIF264;
+
+	if (!stricmp(profile_name, "dashif264-sd"))
+		return GF_DASH_PROFILE_DASHIF264_SD;
+
+	if (!stricmp(profile_name, "dashif264-hd"))
+		return GF_DASH_PROFILE_DASHIF264_HD;
+
+	if (!stricmp(profile_name, "dashif264-main"))
+		return GF_DASH_PROFILE_DASHIF264_MAIN;
+
+	if (!stricmp(profile_name, "dashif264-high"))
+		return GF_DASH_PROFILE_DASHIF264_HIGH;
+
+	if (!stricmp(profile_name, "dashif-simple"))
+		return GF_DASH_PROFILE_DASHIF_SIMPLE;
+
+	if (!stricmp(profile_name, "dashif-main"))
+		return GF_DASH_PROFILE_DASHIF_MAIN;
+
+	// HbbTV.
+	if (!stricmp(profile_name, "hbbtv1.5:live"))
+		return GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+
+	return GF_DASH_PROFILE_UNKNOWN;
+}
+
 u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 {
 	u32 i = *current_index;
@@ -3237,19 +3315,20 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-dash-profile") || !stricmp(arg, "-profile")) {
 			CHECK_NEXT_ARG
-			if (!stricmp(argv[i + 1], "live") || !stricmp(argv[i + 1], "simple")) dash_profile = GF_DASH_PROFILE_LIVE;
-			else if (!stricmp(argv[i + 1], "onDemand")) dash_profile = GF_DASH_PROFILE_ONDEMAND;
-			else if (!stricmp(argv[i + 1], "hbbtv1.5:live")) {
-				dash_profile = GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE;
+
+			// OBSOLETE: As of December 2015, the "-dash-profile" option is not used anywhere.
+			// It should be safe to remove it after half a year.
+			if (!stricmp(arg, "-dash-profile")) {
+				fprintf(stderr, "WARNING: The \"-dash-profile\" option is obsolete. Use the \"-profile\" option instead.\n");
 			}
-			else if (!stricmp(argv[i + 1], "dashavc264:live")) {
-				dash_profile = GF_DASH_PROFILE_AVC264_LIVE;
+
+			dash_profile = get_dash_profile(argv[i + 1]);
+
+			if (dash_profile == GF_DASH_PROFILE_UNKNOWN) {
+				fprintf(stderr, "ERROR: Invalid DASH profile specified.\n");
+				return 2;
 			}
-			else if (!stricmp(argv[i + 1], "dashavc264:onDemand")) {
-				dash_profile = GF_DASH_PROFILE_AVC264_ONDEMAND;
-			}
-			else if (!stricmp(argv[i + 1], "main")) dash_profile = GF_DASH_PROFILE_MAIN;
-			else dash_profile = GF_DASH_PROFILE_FULL;
+
 			i++;
 		}
 		else if (!stricmp(arg, "-profile-ext")) {

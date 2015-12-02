@@ -726,6 +726,28 @@ static Bool is_splitable(u32 media_type) {
 	}
 }
 
+/**
+ * Returns true if the provided profile is DASH-IF IOP; otherwise, false.
+ */
+static Bool is_dashif_profile(GF_DashProfile profile)
+{
+	switch (profile) {
+		case GF_DASH_PROFILE_AVC264_ONDEMAND:
+		case GF_DASH_PROFILE_AVC264_LIVE:
+		case GF_DASH_PROFILE_DASHIF264:
+		case GF_DASH_PROFILE_DASHIF264_SD:
+		case GF_DASH_PROFILE_DASHIF264_HD:
+		case GF_DASH_PROFILE_DASHIF264_MAIN:
+		case GF_DASH_PROFILE_DASHIF264_HIGH:
+		case GF_DASH_PROFILE_DASHIF_SIMPLE:
+		case GF_DASH_PROFILE_DASHIF_MAIN:
+			return GF_TRUE;
+
+		default:
+			return GF_FALSE;
+	}
+}
+
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
 	u8 NbBits;
@@ -4494,6 +4516,34 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 #endif
 	u32 i;
 
+	// Each DASH profile has a unique identifier. Moreover, a specific profile
+	// may use another one as a base profile, which means that multiple
+	// identifier may describe the specific profile. Before we'll start mixing
+	// different identifiers for the chosen profile, let's define their identifiers.
+
+	// DASH (ISO/IEC 23009-1).
+	const char *profile_dash_full = "urn:mpeg:dash:profile:full:2011";
+	const char *profile_dash_isobmff_main = "urn:mpeg:dash:profile:isoff-main:2011";
+	const char *profile_dash_isobmff_ondemand = "urn:mpeg:dash:profile:isoff-on-demand:2011";
+	const char *profile_dash_isobmff_live = "urn:mpeg:dash:profile:isoff-live:2011";
+	const char *profile_dash_mpeg2ts_main = "urn:mpeg:dash:profile:mp2t-main:2011";
+	const char *profile_dash_mpeg2ts_simple = "urn:mpeg:dash:profile:mp2t-simple:2011";
+
+	const char *profile_dash_isobmff_ondemand_xlink = "urn:mpeg:dash:profile:isoff-ext-on-demand:2014";
+	const char *profile_dash_isobmff_live_xlink = "urn:mpeg:dash:profile:isoff-ext-live:2014";
+
+	// DASH-IF IOP.
+	const char *profile_dashif264 = "http://dashif.org/guidelines/dash264";
+	const char *profile_dashif264_sd = "http://dashif.org/guidelines/dash264#sd";
+	const char *profile_dashif264_hd = "http://dashif.org/guidelines/dash264#hd";
+	const char *profile_dashif264_main = "http://dashif.org/guidelines/dash264main";
+	const char *profile_dashif264_high = "http://dashif.org/guidelines/dash264high";
+	const char *profile_dashif_simple = "http://dashif.org/guidelines/dash-if-simple";
+	const char *profile_dashif_main = "http://dashif.org/guidelines/dash-if-main";
+
+	// HbbTV.
+	const char *profile_hbbtv = "urn:hbbtv:dash:profile:isoff-live:2012";
+
 	gf_net_get_ntp(&sec, &frac);
 	time_ms = sec;
 	time_ms *= 1000;
@@ -4575,34 +4625,58 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 		format_duration(mpd, dasher->max_segment_duration, "maxSegmentDuration");
 	}
 
-	if (dasher->profile==GF_DASH_PROFILE_LIVE) {
+	fprintf(mpd, " profiles=\"");
+
+	if (dasher->profile == GF_DASH_PROFILE_LIVE) {
 		if (use_xlink && !is_mpeg2) {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-live:2014");
+			fprintf(mpd, "%s", profile_dash_isobmff_live_xlink);
 		} else {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-simple" : "isoff-live");
+			fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_simple : profile_dash_isobmff_live);
 		}
-	} else if (dasher->profile==GF_DASH_PROFILE_ONDEMAND) {
+	} else if (dasher->profile == GF_DASH_PROFILE_ONDEMAND) {
 		if (use_xlink) {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-ext-on-demand:2014");
+			fprintf(mpd, "%s", profile_dash_isobmff_ondemand_xlink);
 		} else {
-			fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011");
+			fprintf(mpd, "%s", profile_dash_isobmff_ondemand);
 		}
-	} else if (dasher->profile==GF_DASH_PROFILE_MAIN) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-main" : "isoff-main");
-	} else if (dasher->profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		fprintf(mpd, " profiles=\"urn:hbbtv:dash:profile:isoff-live:2012");
-	} else if (dasher->profile==GF_DASH_PROFILE_AVC264_LIVE) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-live:2011,http://dashif.org/guidelines/dash264");
-	} else if (dasher->profile==GF_DASH_PROFILE_AVC264_ONDEMAND) {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:isoff-on-demand:2011,http://dashif.org/guidelines/dash264");
+	} else if (dasher->profile == GF_DASH_PROFILE_MAIN) {
+		fprintf(mpd, "%s", is_mpeg2 ? profile_dash_mpeg2ts_main : profile_dash_isobmff_main);
+	} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
+		fprintf(mpd, "%s", profile_hbbtv);
+	} else if (dasher->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+		fprintf(mpd, "%s, %s", profile_dash_isobmff_live, profile_dashif264);
+	} else if (dasher->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+		fprintf(mpd, "%s, %s", profile_dash_isobmff_ondemand, profile_dashif264);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_SD) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_sd);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_HD) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_hd);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_MAIN) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_main);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF264_HIGH) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif264_high);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_SIMPLE) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif_simple);
+	} else if (dasher->profile == GF_DASH_PROFILE_DASHIF_MAIN) {
+		fprintf(mpd, "%s", dasher->single_segment ? profile_dash_isobmff_ondemand : profile_dash_isobmff_live);
+		fprintf(mpd, ", %s", profile_dashif_main);
 	} else {
-		fprintf(mpd, " profiles=\"urn:mpeg:dash:profile:full:2011");
+		fprintf(mpd, "%s", profile_dash_full);
 	}
 
 	if (dasher->dash_profile_extension) {
-		fprintf(mpd, ",%s", dasher->dash_profile_extension);
+		fprintf(mpd, ", %s", dasher->dash_profile_extension);
 	}
-	fprintf(mpd, "\"");
+
+	fprintf(mpd, "\""); // End of the "profiles" XML-attribute.
 
 	if (use_cenc) {
 		fprintf(mpd, " xmlns:cenc=\"urn:mpeg:cenc:2013\"");
@@ -4679,11 +4753,15 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
                                       Bool bitstream_switching_mode, u32 max_width, u32 max_height, u32 dar_num, u32 dar_den, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name)
 {
 	u32 i, j;
-	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
 
+	Bool is_on_demand =
+		profile == GF_DASH_PROFILE_ONDEMAND ||
+		profile == GF_DASH_PROFILE_AVC264_ONDEMAND ||
+		(is_dashif_profile(profile) && !use_url_template);
+
 	//force segmentAlignment in onDemand
-	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", (!is_on_demand  && segment_alignment_disabled) ? "false" : "true");
+	fprintf(mpd, "  <AdaptationSet segmentAlignment=\"%s\"", (!is_on_demand && segment_alignment_disabled) ? "false" : "true");
 	if (bitstream_switching_mode) {
 		fprintf(mpd, " bitstreamSwitching=\"true\"");
 	}
@@ -4699,17 +4777,18 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		fprintf(mpd, " par=\"%d:%d\"", dar_num, dar_den);
 	}
 
-
 	//add lang even if "und" to comply with dash-if 
 	if (szLang) {
 		fprintf(mpd, " lang=\"%s\"", szLang);
 	}
-    if ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND)) {
+
+	if (is_on_demand) {
 		fprintf(mpd, " subsegmentAlignment=\"%s\"", segment_alignment_disabled ? "false" : "true");
-        //FIXME - we need inspection of the segments to figure out the SAP type !
-        fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
-    }
-	fprintf(mpd, ">\n");
+		//FIXME - we need inspection of the segments to figure out the SAP type !
+		fprintf(mpd, " subsegmentStartsWithSAP=\"1\"");
+	}
+
+	fprintf(mpd, ">\n"); // End of the "AdaptationSet" XML-element.
 
 	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
 	for (i=0; i< nb_dash_inputs; i++) {
@@ -5629,18 +5708,39 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		dasher->profile = GF_DASH_PROFILE_FULL;
 	}
 
-	switch (dasher->profile) {
-	case GF_DASH_PROFILE_AVC264_LIVE:
-	case GF_DASH_PROFILE_AVC264_ONDEMAND:
+	// Adjusting parameters for DASH-IF IOP.
+	if (is_dashif_profile(dasher->profile)) {
+		if (dasher->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+			dasher->single_segment = GF_TRUE;
+			dasher->use_url_template = dasher->single_file = GF_FALSE;
+		} else if (dasher->profile == GF_DASH_PROFILE_AVC264_LIVE) {
+			dasher->use_url_template = GF_TRUE;
+			dasher->single_segment = dasher->single_file = GF_FALSE;
+		}
+
 		if (dasher->cp_location_mode == GF_DASH_CPMODE_REPRESENTATION) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile (DASH-IF IOP) requires the ContentProtection element to be present in the AdaptationSet element.\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! The selected DASH profile requires the ContentProtection element to be present in the AdaptationSet element.\n"));
 			return GF_BAD_PARAM;
-		}		
-	default:
-		break;
+		}
+
+		dasher->segments_start_with_rap = GF_TRUE;
+		dasher->no_fragments_defaults = GF_TRUE;
+
+		if (dasher->single_segment) {
+			if (dasher->seg_rad_name) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! Specifying the segment name in the static (single segment) mode is meaningless.\n"));
+				return GF_BAD_PARAM;
+			}
+
+			if (dasher->bitstream_switching_mode != GF_DASH_BSMODE_DEFAULT &&
+				dasher->bitstream_switching_mode != GF_DASH_BSMODE_NONE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] ERROR! Specifying the bitstream switching mode in the static (single segment) mode is meaningless.\n"));
+				return GF_BAD_PARAM;
+			}
+		}
 	}
-	
-	/*adjust params based on profiles*/
+
+	// Adjusting parameters for other DASH profiles.
 	switch (dasher->profile) {
 	case GF_DASH_PROFILE_LIVE:
 		dasher->segments_start_with_rap = GF_TRUE;
@@ -5649,29 +5749,24 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		break;
 	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
 		dasher->bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
+		dasher->segments_start_with_rap = GF_TRUE;
+		dasher->no_fragments_defaults = GF_TRUE;
+		dasher->use_url_template = 1;
+		dasher->single_segment = dasher->single_file = GF_FALSE;
+
 		for (i=0; i<dasher->nb_inputs; i++) {
 			if (dasher->inputs[i].role && !strcmp(dasher->inputs[i].role, "main"))
 				break;
 		}
+
 		if (i == dasher->nb_inputs) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
 			e = GF_BAD_PARAM;
 			goto exit;
 		}
-	}
-	case GF_DASH_PROFILE_AVC264_LIVE:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->no_fragments_defaults = GF_TRUE;
-		dasher->use_url_template = 1;
-		dasher->single_segment = dasher->single_file = GF_FALSE;
+
 		break;
-	case GF_DASH_PROFILE_AVC264_ONDEMAND:
-		dasher->segments_start_with_rap = GF_TRUE;
-		dasher->no_fragments_defaults = GF_TRUE;
-		if (dasher->seg_rad_name) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment-name not allowed in DASH-AVC/264 onDemand profile.\n"));
-			return GF_BAD_PARAM;
-		}
+	}
 	case GF_DASH_PROFILE_ONDEMAND:
 		dasher->segments_start_with_rap = GF_TRUE;
 		dasher->single_segment = GF_TRUE;
@@ -5799,34 +5894,37 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	if (max_comp_per_input > 1) {
-		if (dasher->profile == GF_DASH_PROFILE_AVC264_LIVE) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 live profile\n\tswitching to regular live profile\n"));
-			dasher->profile = GF_DASH_PROFILE_LIVE;
+		if (is_dashif_profile(dasher->profile)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, (
+				"[DASH] WARNING! Muxed representations are prohibited by DASH-IF IOP. "
+				"Switching to the DASH \"%s\" profile.\n", dasher->single_segment ? "onDemand" : "live"));
+
+			dasher->profile = dasher->single_segment ? GF_DASH_PROFILE_ONDEMAND : GF_DASH_PROFILE_LIVE;
 		} else if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in HbbTV 1.5 ISOBMF live profile\n\tswitching to regular live profile\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, (
+				"[DASH] WARNING! Muxed representations are prohibited by HbbTV 1.5 live profile. "
+				"Switching to the DASH \"live\" profile.\n"));
+
 			dasher->profile = GF_DASH_PROFILE_LIVE;
-		} else if (dasher->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Muxed representations not allowed in DASH-IF AVC264 onDemand profile\n\tswitching to regular onDemand profile\n"));
-			dasher->profile = GF_DASH_PROFILE_ONDEMAND;
 		}
 	}
 
 	/*HbbTV 1.5 ISO live specific checks*/
 	if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		if (max_adaptation_set > 16) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to DASH AVC/264 live profile\n"));
-			dasher->profile = GF_DASH_PROFILE_AVC264_LIVE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max 16 adaptation sets in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
+			dasher->profile = GF_DASH_PROFILE_LIVE;
 		}
 		if (max_period > 32) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to regular DASH AVC/264 live profile\n"));
-			dasher->profile = GF_DASH_PROFILE_AVC264_LIVE;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max 32 periods in HbbTV 1.5 ISO live profile\n\tswitching to the DASH live profile\n"));
+			dasher->profile = GF_DASH_PROFILE_LIVE;
 		}
 		if (dasher->segment_duration < 1.0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Min segment duration 1s in HbbTV 1.5 ISO live profile\n\tcapping to 1s\n"));
 			dasher->segment_duration = 1.0;
 		}
 		if (dasher->segment_duration > 15.0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! Max segment duration 15s in HbbTV 1.5 ISO live profile\n\tcapping to 15s\n"));
 			dasher->segment_duration = 15.0;
 		}
 	}
