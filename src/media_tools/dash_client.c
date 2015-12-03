@@ -1968,7 +1968,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 					if (dash->is_m3u8) {
 						Bool is_static = GF_FALSE;
 						u32 dur = 0;
-						gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
+						gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter, &is_static, &dur);
 						if (is_static) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[m3u8] MPD type changed from dynamic to static\n"));
 							group->dash->mpd->type = GF_MPD_TYPE_STATIC;
