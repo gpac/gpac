@@ -295,7 +295,9 @@ void PrintGeneralUsage()
 void PrintDASHUsage()
 {
 	fprintf(stderr, "DASH Options:\n"
-	        " -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
+		    " -mpd m3u8            converts HLS manifest (local or remote http) to MPD \n"
+			"                       Note: not compatible with other DASH options (except -out and -tmp) and does not convert associated segments\n"
+			" -dash dur            enables DASH-ing of the file(s) with a segment duration of DUR ms\n"
 	        "                       Note: the duration of a fragment (subsegment) is set\n"
 	        "	                            using the -frag switch.\n"
 	        "                       Note: for onDemand profile, sets duration of a subsegment\n"
