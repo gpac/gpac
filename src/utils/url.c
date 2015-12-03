@@ -294,6 +294,7 @@ void gf_url_to_fs_path(char *sURL)
 
 //TODO handle reserved characters
 const char *pce_special = " %";
+const char *pce_encoded = "0123456789ABCDEF";
 
 char *gf_url_percent_encode(const char *path)
 {
@@ -306,7 +307,9 @@ char *gf_url_percent_encode(const char *path)
 	for (i=0; i<len; i++) {
 		u8 c = path[i];
 		if (strchr(pce_special, c) != NULL) {
-			count+=2;
+			if ((i+2<len) && (strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL)) {
+				count+=2;
+			}
 		} else if (c>>7) {
 			count+=2;
 		}
@@ -321,7 +324,9 @@ char *gf_url_percent_encode(const char *path)
 		u8 c = path[i];
 
 		if (strchr(pce_special, c) != NULL) {
-			do_enc = GF_TRUE;
+			if ((i+2<len) && (strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL)) {
+				do_enc = GF_TRUE;
+			}
 		} else if (c>>7) {
 			do_enc = GF_TRUE;
 		}
