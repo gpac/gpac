@@ -14,15 +14,21 @@
 
 #include <gpac/isomedia.h>
 #include <openHevcWrapper.h>
+
+#ifdef WIN32
+
 #include <windows.h>
+#endif
+
+
 #define SDL_MAIN_HANDLED
 #include <SDL.h>
 #include <gpac/maths.h>
 
 #define GL_GLEXT_PROTOTYPES
 
-#include <GL/GL.h>
-#include <gpac/isomedia.h>
+#include <GL/gl.h>
+#include <gpac/color.h>
 
 
 
@@ -67,6 +73,7 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define DEL_PROGRAM(_a) if (_a) { glDeleteProgram(_a); _a = 0; }
 
 
+#ifdef WIN32
 GLDECL(GLuint, glCreateProgram, (void) )
 GLDECL(void, glDeleteProgram, (GLuint ) )
 GLDECL(void, glLinkProgram, (GLuint program) )
@@ -91,7 +98,7 @@ GLDECL(void, glBufferData, (GLenum, int, void *, GLenum) )
 GLDECL(void, glBufferSubData, (GLenum, int, int, void *) )
 GLDECL(void *, glMapBuffer, (GLenum, GLenum) )
 GLDECL(void *, glUnmapBuffer, (GLenum) )
-
+#endif
 
 #define GL_TEXTURE_RECTANGLE_EXT 0x84F5
 
