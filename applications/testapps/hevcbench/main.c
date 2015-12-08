@@ -44,6 +44,8 @@ GLint texture_type=GL_TEXTURE_RECTANGLE_EXT;
 u32 gl_nb_frames = 1;
 u64 gl_upload_time = 0;
 u64 gl_draw_time = 0;
+u64 gl_upload_time_frame = 0;
+u64 gl_draw_time_frame = 0;
 Bool pbo_mode = GF_TRUE;
 Bool first_tx_load = GF_FALSE;
 Bool use_vsync=0;
@@ -56,6 +58,7 @@ GLint pbo_Y=0;
 GLint pbo_U=0;
 GLint pbo_V=0;
 
+#ifdef WIN32
 GLDECL_STATIC(glActiveTexture);
 GLDECL_STATIC(glClientActiveTexture);
 GLDECL_STATIC(glCreateProgram);
@@ -80,6 +83,7 @@ GLDECL_STATIC(glBufferData);
 GLDECL_STATIC(glBufferSubData);
 GLDECL_STATIC(glMapBuffer);
 GLDECL_STATIC(glUnmapBuffer);
+#endif
 
 
 static char *glsl_yuv_shader = "\
@@ -171,7 +175,9 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 
-	flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS | SDL_WINDOW_MAXIMIZED;
+	flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
+	if (height==2160) flags |= SDL_WINDOW_MAXIMIZED;
+
 	if (use_vsync) flags |= SDL_RENDERER_PRESENTVSYNC;
 	window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
 	glctx = SDL_GL_CreateContext(window);
@@ -226,6 +232,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_CULL_FACE);
 
+#ifdef WIN32
 
 	GET_GLFUN(glActiveTexture);
 	GET_GLFUN(glClientActiveTexture);
@@ -251,6 +258,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	GET_GLFUN(glBufferSubData);
 	GET_GLFUN(glMapBuffer);
 	GET_GLFUN(glUnmapBuffer);
+#endif
 
 	glsl_program = glCreateProgram();
 	vertex_shader = glCreateShader(GL_VERTEX_SHADER);
@@ -381,7 +389,7 @@ void sdl_draw_quad()
 void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 stride)
 {
 	u32 needs_stride = 0;
-	u64 now, end;
+	u64 draw_start, end;
 
 	if (stride != w) {
 		if (bit_depth==10) {
@@ -395,7 +403,7 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 	glEnable(texture_type);
 
-	now = gf_sys_clock_high_res();
+	draw_start = gf_sys_clock_high_res();
 
 
 	if (first_tx_load) {
@@ -570,12 +578,13 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 	}
-	end = gf_sys_clock_high_res() - now;
+	end = gf_sys_clock_high_res() - draw_start;
 
 	if (!first_tx_load) {
 		gl_nb_frames ++;
 		gl_upload_time += end;
 	}
+	gl_upload_time_frame = end;
 
 	glUseProgram(glsl_program);
 
@@ -601,7 +610,8 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 	SDL_GL_SwapWindow(window);
 
-	gl_draw_time += gf_sys_clock_high_res() - now;
+	gl_draw_time_frame = gf_sys_clock_high_res() - draw_start;
+	gl_draw_time += gl_draw_time_frame;
 	return;
 }
 
@@ -634,8 +644,10 @@ void PrintUsage()
 	        "-bench-yuv10: only bench YUV10 upload rate\n"
 	        "-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
 	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
+			"-output-8b: forces CPU conversion to 8 bit before display (only available when -sys-mem is used)\n"
 	        "-no-display: disables video output\n"
 	        "-nb-threads=N: sets number of frame to N (default N=6)\n"
+	        "-logs=logfile: outputs numbers in CSV format to logfile\n"
 	        "-mode=[frame|wpp|frame+wpp] : sets threading type (default is frame)\n"
 	       );
 }
@@ -647,13 +659,13 @@ int main(int argc, char **argv)
 	Bool sdl_bench_yuv = GF_FALSE;
 	Bool no_display = GF_FALSE;
 	u64 start, now;
-	u32 check_prompt;
+	u32 check_prompt, nb_frames_at_start;
 	Bool sdl_is_init=GF_FALSE, run;
 	Bool paused = GF_FALSE;
 	u64 pause_time = 0;
+	u64 max_time_spent = 0;
 	GF_ISOFile *isom;
 	u32 i, count, track = 0;
-	u32 nb_frames_at_start = 0;
 	GF_ESD *esd;
 	u32 nb_threads = 6;
 	u32 mode = 1;
@@ -661,7 +673,10 @@ int main(int argc, char **argv)
 	OpenHevc_Handle ohevc;
 	Bool use_pbo = GF_FALSE;
 	Bool enable_mem_tracker = GF_FALSE;
+	Bool output_8bit = GF_FALSE;
+	GF_SystemRTInfo rti;
 	const char *src = NULL;
+	FILE *csv_logs = NULL;
 
 	if (argc<2) {
 		PrintUsage();
@@ -680,14 +695,17 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-vsync")) use_vsync = 1;
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
+		else if (!strcmp(arg, "-output-8b")) output_8bit = GF_TRUE;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_TRUE;
 		else if (!strncmp(arg, "-nb-threads=", 12)) nb_threads = atoi(arg+12);
 		else if (!strncmp(arg, "-mode=", 6)) {
 			if (!strcmp(arg+6, "wpp")) mode = 2;
-			else if (!strcmp(arg+6, "frame+wpp")) mode = 3;
+			else if (!strcmp(arg+6, "frame+wpp")) mode = 4;
 			else mode = 1;
 		}
-
+		else if (!strncmp(arg, "-logs=", 6)) {
+			csv_logs = fopen(arg+6, "wt");
+		}
 		else if (!strcmp(arg, "-h")) {
 			PrintUsage();
 			return 0;
@@ -741,6 +759,8 @@ int main(int argc, char **argv)
 		return 0;
 	}
 
+	gf_sys_get_rti(10, &rti, 0);
+	nb_frames_at_start = 0;
 	count = gf_isom_get_sample_count(isom, track);
 	start = gf_sys_clock_high_res();
 
@@ -757,27 +777,35 @@ int main(int argc, char **argv)
 	gf_odf_desc_del((GF_Descriptor *)esd);
 	gf_isom_set_sample_padding(isom, track, 8);
 
+
+	if (csv_logs) {
+		fprintf(csv_logs, "Time,FrameDecode,Frame GPU Upload,Frame GPU Draw,CPU %%,RAP type\n");
+	}
+
 	run=1;
 	check_prompt=0;
 	for (i=0; i<count && run; i++) {
 		u32 di;
 		if (!paused) {
+			u64 time_spent = gf_sys_clock_high_res();
 			GF_ISOSample *sample = gf_isom_get_sample(isom, track, i+1, &di);
 
 			if ( libOpenHevcDecode(ohevc, sample->data, sample->dataLength, sample->DTS+sample->CTS_Offset) ) {
 				if (no_display) {
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
+					time_spent = gf_sys_clock_high_res() - time_spent;
 				} else if (use_raw_memory) {
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
+					time_spent = gf_sys_clock_high_res() - time_spent;
 
 
 					if (!sdl_is_init && !no_display) {
+						u64 sdl_init_time = gf_sys_clock_high_res();
 						sdl_init(HVCFrame_ptr.frameInfo.nWidth, HVCFrame_ptr.frameInfo.nHeight, HVCFrame_ptr.frameInfo.nBitDepth, HVCFrame_ptr.frameInfo.nYPitch, use_pbo);
 						sdl_is_init=1;
-						start = gf_sys_clock_high_res();
-						nb_frames_at_start = i+1;
+						start += gf_sys_clock_high_res() - sdl_init_time;
 					}
 
 					sdl_draw_frame((u8 *) HVCFrame_ptr.pvY, (u8 *) HVCFrame_ptr.pvU, (u8 *) HVCFrame_ptr.pvV, HVCFrame_ptr.frameInfo.nWidth, HVCFrame_ptr.frameInfo.nHeight, HVCFrame_ptr.frameInfo.nBitDepth, HVCFrame_ptr.frameInfo.nYPitch);
@@ -786,28 +814,69 @@ int main(int argc, char **argv)
 					memset(&HVCFrame, 0, sizeof(OpenHevc_Frame_cpy) );
 
 					libOpenHevcGetPictureInfoCpy(ohevc, &HVCFrame.frameInfo);
+					time_spent = gf_sys_clock_high_res() - time_spent;
 
 					if (!sdl_is_init && !no_display) {
-						sdl_init(HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch, use_pbo);
+						u64 sdl_init_time = gf_sys_clock_high_res();
+						u32 stride = HVCFrame.frameInfo.nYPitch;
+						u32 bpp = HVCFrame.frameInfo.nBitDepth;
+						if ((bpp==10) && output_8bit) {
+							bpp = 8;
+							stride = HVCFrame.frameInfo.nYPitch/2;
+						}
+
+						sdl_init(HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, bpp, stride, use_pbo);
 						sdl_is_init=1;
-						start = gf_sys_clock_high_res();
-						nb_frames_at_start = i+1;
+						start += gf_sys_clock_high_res() - sdl_init_time;
 					}
 
-					HVCFrame.pvY = (void*) pY;
-					HVCFrame.pvU = (void*) pU;
-					HVCFrame.pvV = (void*) pV;
+					if ((HVCFrame.frameInfo.nBitDepth==10) && output_8bit) {
+						OpenHevc_Frame HVCFrame_ptr;
+						GF_VideoSurface dst;
+						memset(&dst, 0, sizeof(GF_VideoSurface));
+						dst.width = HVCFrame.frameInfo.nWidth;
+						dst.height = HVCFrame.frameInfo.nHeight;
+						dst.pitch_y = HVCFrame.frameInfo.nWidth;
+						dst.video_buffer = pY;
+						dst.u_ptr = pU;
+						dst.v_ptr = pV;
+						dst.pixel_format = GF_PIXEL_YV12;
 
-					libOpenHevcGetOutputCpy(ohevc, 1, &HVCFrame);
+						libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
+
+						gf_color_write_yv12_10_to_yuv(&dst, (u8 *) HVCFrame_ptr.pvY, (u8 *) HVCFrame_ptr.pvU, (u8 *) HVCFrame_ptr.pvV, HVCFrame_ptr.frameInfo.nYPitch, HVCFrame_ptr.frameInfo.nWidth, HVCFrame_ptr.frameInfo.nHeight, NULL, GF_FALSE);
+
+						HVCFrame.frameInfo.nBitDepth = 8;
+						HVCFrame.frameInfo.nYPitch = HVCFrame.frameInfo.nWidth;
+					} else {
+						HVCFrame.pvY = (void*) pY;
+						HVCFrame.pvU = (void*) pU;
+						HVCFrame.pvV = (void*) pV;
+
+						libOpenHevcGetOutputCpy(ohevc, 1, &HVCFrame);
+					}
 
 					sdl_draw_frame(pY, pU, pV, HVCFrame.frameInfo.nWidth, HVCFrame.frameInfo.nHeight, HVCFrame.frameInfo.nBitDepth, HVCFrame.frameInfo.nYPitch);
 				}
 			}
+			//ignore first frame
+			if (!max_time_spent) {
+				max_time_spent = 1;
+			} else if (max_time_spent<time_spent) {
+				max_time_spent = time_spent;
+			}
+
+			gf_sys_get_rti(10, &rti, 0);
+			now = gf_sys_clock_high_res();
+			fprintf(stderr, "%d %% %d frames in %d ms - FPS %03.2f - push time "LLD" ms - draw "LLD" ms - CPU %03d\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000, rti.process_cpu_usage);
+
+			if (csv_logs) {
+				fprintf(csv_logs, LLD","LLD",%d,%d,%d,%d\n", now-start, time_spent, gl_upload_time_frame, gl_draw_time_frame, rti.process_cpu_usage, sample->IsRAP);
+			}
 
 			gf_isom_sample_del(&sample);
 
-			now = gf_sys_clock_high_res();
-			fprintf(stderr, "%d %% %d frames in %d ms - FPS %03.2f - push time "LLD" ms - draw "LLD" ms\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000 );
+
 		} else {
 			gf_sleep(10);
 			i--;
@@ -844,10 +913,12 @@ int main(int argc, char **argv)
 		}
 	}
 	now = gf_sys_clock_high_res();
-	fprintf(stderr, "\nDecoded %d frames in %d ms - FPS %g\n", i+1, (now-start)/1000, 1000000.0 * (i+1) / (now-start) );
+	fprintf(stderr, "\nDecoded %d frames in %d ms - FPS %g - max frame decode %d us\n", i+1, (now-start)/1000, 1000000.0 * (i+1) / (now-start), max_time_spent);
 
 	libOpenHevcClose(ohevc);
 	gf_isom_close(isom);
+
+	if (csv_logs) fclose(csv_logs);
 
 	if (!no_display)
 		sdl_close();
