@@ -27,7 +27,12 @@
 
 #define GL_GLEXT_PROTOTYPES
 
+#if defined (CONFIG_DARWIN_GL)
+#include <OpenGL/gl.h>
+#else
 #include <GL/gl.h>
+#endif
+
 #include <gpac/color.h>
 
 

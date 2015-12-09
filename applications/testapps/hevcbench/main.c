@@ -20,6 +20,13 @@
 #pragma comment(lib, "opengl32")
 #endif
 
+#if defined( _LP64 ) && defined(CONFIG_DARWIN_GL)
+#define GF_SHADERID u64
+#else
+#define GF_SHADERID u32
+#endif
+
+
 //0: memcpy - 1: memmove - 2: u32 * cast and for loop copy of u32* - 3: memset 0 - 4: not touching the mapped buffer: 5: full memcpy, rely on stride in pixelstorei
 #define COPY_TYPE 0
 //set to 1 to disable final gltexImage in PBO mode
@@ -51,8 +58,8 @@ Bool first_tx_load = GF_FALSE;
 Bool use_vsync=0;
 
 GLint glsl_program;
-GLint vertex_shader;
-GLint fragment_shader;
+GF_SHADERID vertex_shader;
+GF_SHADERID fragment_shader;
 
 GLint pbo_Y=0;
 GLint pbo_U=0;
@@ -132,7 +139,7 @@ static char *default_glsl_vertex = "\
 
 
 
-Bool sdl_compile_shader(u32 shader_id, const char *name, const char *source)
+Bool sdl_compile_shader(GF_SHADERID shader_id, const char *name, const char *source)
 {
 	GLint blen = 0;
 	GLsizei slen = 0;
@@ -632,7 +639,7 @@ void sdl_bench()
 	rate *= count*1000;
 	rate /= start; //in ms
 	rate /= 1000; //==*1000 (in s) / 1000 * 1000 in MB /s
-	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, start/1000, 1000000.0*count/start, rate);
+	fprintf(stdout, "gltext pushed %d frames in %d ms - FPS %g - data rate %g MB/s\n", count, (u32) (start/1000), 1000000.0*count/start, rate);
 }
 
 void PrintUsage()
@@ -656,7 +663,7 @@ void PrintUsage()
 
 int main(int argc, char **argv)
 {
-	Bool sdl_bench_yuv = GF_FALSE;
+	u32 sdl_bench_yuv = 0;
 	Bool no_display = GF_FALSE;
 	u64 start, now;
 	u32 check_prompt, nb_frames_at_start;
@@ -870,10 +877,10 @@ int main(int argc, char **argv)
 
 			gf_sys_get_rti(10, &rti, 0);
 			now = gf_sys_clock_high_res();
-			fprintf(stderr, "%d %% %d frames in %d us - FPS %03.2f - push "LLD" us - draw "LLD" us - CPU %03d\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000, rti.process_cpu_usage);
+			fprintf(stderr, "%d %% %d frames in "LLD" us - FPS %03.2f - push "LLD" us - draw "LLD" us - CPU %03d\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000, rti.process_cpu_usage);
 
 			if (csv_logs) {
-				fprintf(csv_logs, LLD","LLD",%d,%d,%d,%d\n", now-start, time_spent, gl_upload_time_frame, gl_draw_time_frame, rti.process_cpu_usage, sample->IsRAP);
+				fprintf(csv_logs, LLD","LLD","LLD","LLD",%d,%d\n", now-start, time_spent, gl_upload_time_frame, gl_draw_time_frame, rti.process_cpu_usage, sample->IsRAP);
 			}
 
 			gf_isom_sample_del(&sample);
@@ -915,7 +922,7 @@ int main(int argc, char **argv)
 		}
 	}
 	now = gf_sys_clock_high_res();
-	fprintf(stderr, "\nDecoded %d frames in %d ms - FPS %g - max frame decode %d us\n", i+1, (now-start)/1000, 1000000.0 * (i+1) / (now-start), max_time_spent);
+	fprintf(stderr, "\nDecoded %d frames in %d ms - FPS %g - max frame decode "LLD" us\n", i+1, (u32) ((now-start)/1000), 1000000.0 * (i+1) / (now-start), max_time_spent);
 
 	libOpenHevcClose(ohevc);
 	gf_isom_close(isom);
