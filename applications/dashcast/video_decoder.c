@@ -91,6 +91,16 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 
 	video_input_file->av_fmt_ctx = NULL;
 
+	if (video_data_conf->demux_buffer_size) {
+		char szBufSize[100];
+		sprintf(szBufSize, "%d", video_data_conf->demux_buffer_size);
+		ret = av_dict_set(&options, "buffer_size", szBufSize, 0);
+		if (ret < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set demuxer's input buffer size.\n"));
+			return -1;
+		}
+	}
+	
 	/* Open video */
 	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
@@ -277,15 +287,20 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 
 		/* Is this a packet from the video stream? */
 		if (packet.stream_index == video_input_file->vstream_idx) {
-			if (!already_locked) {
+			u32 nb_retry = 10;
+			while (!already_locked) {
 				if (dc_producer_lock(&video_input_data->producer, &video_input_data->circular_buf) < 0) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[dashcast] Live system dropped a video frame\n"));
+					if (!nb_retry) break;
+					gf_sleep(10);
+					nb_retry--;
 					continue;
 				}
-
 				dc_producer_unlock_previous(&video_input_data->producer, &video_input_data->circular_buf);
-
 				already_locked = 1;
+			}
+			if (!already_locked) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[dashcast] Live system dropped a video frame\n"));
+				continue;
 			}
 
 			video_data_node = (VideoDataNode *) dc_producer_produce(&video_input_data->producer, &video_input_data->circular_buf);
@@ -312,23 +327,32 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				if (use_source_timing && is_live_capture) {
 					u64 pts;
 					if (video_input_file->pts_init == 0) {
-						video_input_file->pts_init = GF_TRUE;
+						video_input_file->pts_init = 1;
 						video_input_file->utc_at_init = gf_net_get_utc();
 						video_input_file->first_pts = packet.pts;
 						video_input_file->prev_pts = 0;
-						video_input_data->frame_duration = codec_ctx->time_base.num;
-						
-						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
-						//TODO - check with audio if sync is OK
+						video_input_data->frame_duration = 0;
+					}
+					if (video_input_file->pts_init && (video_input_file->pts_init!=3) ) {
+						if (packet.pts==AV_NOPTS_VALUE) {
+							video_input_file->pts_init=1;
+						} else if (video_input_file->pts_init==1) {
+							video_input_file->pts_init=2;
+							video_input_file->pts_dur_estimate = packet.pts;
+						} else if (video_input_file->pts_init==2) {
+							video_input_file->pts_init=3;
+							video_input_data->frame_duration = packet.pts - video_input_file->pts_dur_estimate;
+							video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
+							//TODO - check with audio if sync is OK
+						}
 					}
 					
 					//move to 0-based PTS
-					pts = packet.pts - video_input_file->first_pts;
-
-					if (video_input_file->prev_pts + video_input_data->frame_duration / 2 > pts) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DashCast] Error in PTS , diff too small (previous "LLU" - current "LLU"\n", video_input_file->prev_pts, pts));
-					} 
-					
+					if (packet.pts!=AV_NOPTS_VALUE) {
+						pts = packet.pts - video_input_file->first_pts;
+					} else {
+						pts = video_input_file->prev_pts + video_input_data->frame_duration;
+					}					
 
 					//check for drop frames
 #ifndef GPAC_DISABLE_LOG
