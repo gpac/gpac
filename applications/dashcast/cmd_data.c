@@ -447,7 +447,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -pixf FMT                set the input pixel format\n"
 	    "    -vfr N                   force the input video framerate\n"
 	    "    -vres WxH                force the video resolution (e.g. 640x480)\n"
-	    "    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
+		"    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
+		"    -demux-buffer SIZE       sets demux buffer size to SIZE.\n"
 	    "* Audio options:\n"
 	    "    -a string                set the source name for an audio input\n"
 	    "                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
@@ -463,8 +464,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -vcustom string         send custom parameters directly to the video encoder\n"
 	    "    -gdr                    use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
 	    "    -gop                    specify GOP size in frames - default is framerate (1 sec gop)\n"
-	    "    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
-	    "* Audio encoding options:\n"
+	"    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
+	"* Audio encoding options:\n"
 	    "    -acodec string          set the output audio codec (default: aac)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
 	    "    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
@@ -750,6 +751,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return -1;
 			}
 			cmd_data->min_buffer_time = (float)atof(argv[i]);
+			i++;
+		} else if (strcmp(argv[i], "-demux-buffer") == 0) {
+			DASHCAST_CHECK_NEXT_ARG
+			cmd_data->video_data_conf.demux_buffer_size = (int)atoi(argv[i]);
 			i++;
 		} else if (strcmp(argv[i], "-base-url") == 0) {
 			DASHCAST_CHECK_NEXT_ARG
