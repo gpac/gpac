@@ -307,7 +307,7 @@ char *gf_url_percent_encode(const char *path)
 	for (i=0; i<len; i++) {
 		u8 c = path[i];
 		if (strchr(pce_special, c) != NULL) {
-			if ((i+2<len) && (strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL)) {
+			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
 				count+=2;
 			}
 		} else if (c>>7) {
@@ -324,7 +324,7 @@ char *gf_url_percent_encode(const char *path)
 		u8 c = path[i];
 
 		if (strchr(pce_special, c) != NULL) {
-			if ((i+2<len) && (strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL)) {
+			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
 				do_enc = GF_TRUE;
 			}
 		} else if (c>>7) {
