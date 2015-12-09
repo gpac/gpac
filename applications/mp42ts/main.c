@@ -2745,10 +2745,10 @@ call_flush:
 
 	{
 		u64 bits = muxer->tot_pck_sent*8*188;
-		u32 dur_sec = gf_m2ts_get_ts_clock(muxer) / 1000;
-		if (!dur_sec) dur_sec = 1;
-		fprintf(stderr, "Done muxing - %d sec - average rate %d kbps "LLD" packets written\n", dur_sec, (u32) (bits/dur_sec/1000), muxer->tot_pck_sent);
-		fprintf(stderr, "\tPadding: "LLD" packets - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_sec/1000) );
+		u64 dur_ms = gf_m2ts_get_ts_clock(muxer);
+		if (!dur_ms) dur_ms = 1;
+		fprintf(stderr, "Done muxing - %.02f sec - average rate %d kbps "LLD" packets written\n", ((Double) dur_ms)/1000.0, (u32) (bits/dur_ms), muxer->tot_pck_sent);
+		fprintf(stderr, " Padding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, (Double) (muxer->tot_pad_sent*188*8.0/dur_ms) , muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_ms) );
 	}
 
 exit:
