@@ -646,7 +646,7 @@ void PrintUsage()
 	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
 			"-output-8b: forces CPU conversion to 8 bit before display (only available when -sys-mem is used)\n"
 	        "-no-display: disables video output\n"
-	        "-nb-threads=N: sets number of frame to N (default N=6)\n"
+	        "-nb-threads=N: sets number of frame to N (default N=nb virtual cores)\n"
 	        "-logs=logfile: outputs numbers in CSV format to logfile\n"
 	        "-mode=[frame|wpp|frame+wpp] : sets threading type (default is frame)\n"
 	       );
@@ -667,7 +667,7 @@ int main(int argc, char **argv)
 	GF_ISOFile *isom;
 	u32 i, count, track = 0;
 	GF_ESD *esd;
-	u32 nb_threads = 6;
+	u32 nb_threads = 0;
 	u32 mode = 1;
 	Bool use_raw_memory = GF_TRUE;
 	OpenHevc_Handle ohevc;
@@ -760,6 +760,8 @@ int main(int argc, char **argv)
 	}
 
 	gf_sys_get_rti(10, &rti, 0);
+	if (!nb_threads) nb_threads = rti.nb_cores;
+
 	nb_frames_at_start = 0;
 	count = gf_isom_get_sample_count(isom, track);
 	start = gf_sys_clock_high_res();
@@ -868,7 +870,7 @@ int main(int argc, char **argv)
 
 			gf_sys_get_rti(10, &rti, 0);
 			now = gf_sys_clock_high_res();
-			fprintf(stderr, "%d %% %d frames in %d ms - FPS %03.2f - push time "LLD" ms - draw "LLD" ms - CPU %03d\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000, rti.process_cpu_usage);
+			fprintf(stderr, "%d %% %d frames in %d us - FPS %03.2f - push "LLD" us - draw "LLD" us - CPU %03d\r", 100*(i+1-nb_frames_at_start)/count, i+1-nb_frames_at_start, (now-start)/1000, 1000000.0 * (i+1-nb_frames_at_start) / (now-start), gl_upload_time / gl_nb_frames/1000 , (gl_draw_time - gl_upload_time) / gl_nb_frames/1000, rti.process_cpu_usage);
 
 			if (csv_logs) {
 				fprintf(csv_logs, LLD","LLD",%d,%d,%d,%d\n", now-start, time_spent, gl_upload_time_frame, gl_draw_time_frame, rti.process_cpu_usage, sample->IsRAP);
