@@ -6,7 +6,7 @@
 
 
 //For other GL versions compatibility
-#ifdef GL_FRAGMENT_PRECISION_HIGH
+#if defined(GL_FRAGMENT_PRECISION_HIGH) && (version >= 130)
 	precision highp float;	//Desktop (or ES2.0 supporting highp)
 #elif defined(GL_ES)
 	precision mediump float;	//Default
