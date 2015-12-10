@@ -2203,8 +2203,10 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
 			u32 next_media_seq;
 			GF_MPD_Representation *prev_active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
-			while (gf_list_count(prev_active_rep->segment_list->segment_URLs)) {
-				gf_list_rem(prev_active_rep->segment_list->segment_URLs, 0);
+			if (group->dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
+				while (gf_list_count(prev_active_rep->segment_list->segment_URLs)) {
+					gf_list_rem(prev_active_rep->segment_list->segment_URLs, 0);
+				}
 			}
 
 			next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
