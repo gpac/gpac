@@ -2701,7 +2701,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	if (! visual_3d_bind_buffer(compositor, mesh, &base_address)) {
+#if! defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_TINYGL)
 		glUseProgram(0);
+#endif
 		return;
 	}
 	has_col = has_tx = has_norm = 0;
