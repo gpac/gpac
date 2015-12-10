@@ -191,6 +191,8 @@ struct _visual_manager
 	GF_List *fog_stack;
 #endif
 
+	Bool gl_setup;
+
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;
 

@@ -188,10 +188,16 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 			compositor->gl_caps.point_sprite = 2;
 		}
 	}
+
+#ifdef GPAC_USE_GLES2
+	compositor->gl_caps.vbo = 1;
+#else
 	if (CHECK_GL_EXT("GL_ARB_vertex_buffer_object")) {
 		compositor->gl_caps.vbo = 1;
 	}
-
+#endif
+	
+	
 #ifndef GPAC_USE_GLES1X
 	if (CHECK_GL_EXT("GL_EXT_texture_rectangle") || CHECK_GL_EXT("GL_NV_texture_rectangle")) {
 		compositor->gl_caps.rect_texture = 1;
@@ -338,7 +344,6 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 			compositor->shader_only_mode = GF_FALSE;
 		}
 		if (t) fclose(t);
-
 	}
 #endif
 }
@@ -958,7 +963,7 @@ static void gf_glQueryAttributes(GF_SHADERID progObj)
 }
 #endif
 
-static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
+static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 {
 	u32 i;
 	GLint err_log = -10;
@@ -995,7 +1000,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 	//nothing to do
 	if (visual->glsl_has_shaders){
-		return;
+		return GF_TRUE;
 	}
 	
 	//Creating Program for the shaders
@@ -1006,18 +1011,19 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 	GL_CHECK_ERR
 	
 	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "VertexShader");
-	if (!shader_file) return;
+	if (!shader_file) return GF_FALSE;
 
 	for (i=0;i<GF_GL_NB_VERT_SHADERS;i++) {
 		GL_CHECK_ERR;
 		visual->glsl_vertex_shaders[i] = visual_3d_shader_with_flags(shader_file , GL_VERTEX_SHADER, i);
 		if (!visual->glsl_vertex_shaders[i]) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to compile vertex shader\n"));
+			return GF_FALSE;
 		}
 	}
 	
 	shader_file =(char *) gf_cfg_get_key(cfg, "Compositor", "FragmentShader");
-	if (!shader_file) return;
+	if (!shader_file) return GF_FALSE;
 
 	for (i=0;i<GF_GL_NB_FRAG_SHADERS;i++) {
 		GLint linked;
@@ -1069,6 +1075,7 @@ static void visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 	/* Set texture planes*/
 	visual_3d_set_tx_planes(visual);
+	return GF_TRUE;
 }
 
 void visual_3d_init_shaders(GF_VisualManager *visual)
@@ -1080,7 +1087,17 @@ void visual_3d_init_shaders(GF_VisualManager *visual)
 		return;
 
 	if (visual->compositor->shader_only_mode) {
-		visual_3d_init_generic_shaders(visual);
+		//If we fail to configure shaders, force 2D mode
+		if (! visual_3d_init_generic_shaders(visual)) {
+			visual->compositor->hybrid_opengl = GF_FALSE;
+			visual->compositor->force_opengl_2d = GF_FALSE;
+			/*force resetup*/
+			visual->compositor->root_visual_setup = 0;
+			/*force texture setup when switching to OpenGL*/
+			gf_sc_reset_graphics(visual->compositor);
+			/*force redraw*/
+			gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
+		}
 	}
 }
 
@@ -1399,6 +1416,11 @@ static void visual_3d_setup_quality(GF_VisualManager *visual)
 
 void visual_3d_setup(GF_VisualManager *visual)
 {
+	
+	if (visual->gl_setup) {
+		glClear(GL_DEPTH_BUFFER_BIT);
+		return;
+	}
 
 #ifndef GPAC_USE_TINYGL
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -1458,6 +1480,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 	visual->max_lights=GF_MAX_GL_LIGHTS;
 	visual->max_clips=GF_MAX_GL_CLIPS;
 	
+	visual->gl_setup = GF_TRUE;
 	
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
@@ -1536,7 +1559,7 @@ void visual_3d_clear_depth(GF_VisualManager *visual)
 	glClear(GL_DEPTH_BUFFER_BIT);
 }
 
-static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 prim_type, GF_Plane *fplanes, u32 *p_indices, AABBNode *n)
+static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, u32 prim_type, GF_Plane *fplanes, u32 *p_indices, AABBNode *n, void *idx_addr)
 {
 	u32 i;
 
@@ -1564,8 +1587,8 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 		if (cull==CULL_OUTSIDE) return;
 
 		if (cull==CULL_INTERSECTS) {
-			visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_indices, n->pos);
-			visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_indices, n->neg);
+			visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_indices, n->pos, idx_addr);
+			visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_indices, n->neg, idx_addr);
 			return;
 		}
 	}
@@ -1575,10 +1598,15 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	However we must push triangles one by one since primitive order may have been swapped when
 	building the AABB tree*/
 	for (i=0; i<n->nb_idx; i++) {
+		u32 idx = 3*n->indices[i];
+		void *vbi_addr;
+		if (!idx_addr) vbi_addr = sizeof(IDX_TYPE) * idx;
+		else vbi_addr = &mesh->indices[idx];
+		
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
-		glDrawElements(prim_type, 3, GL_UNSIGNED_SHORT, &mesh->indices[3*n->indices[i]]);
+		glDrawElements(prim_type, 3, GL_UNSIGNED_SHORT, vbi_addr);
 #else
-		glDrawElements(prim_type, 3, GL_UNSIGNED_INT, &mesh->indices[3*n->indices[i]]);
+		glDrawElements(prim_type, 3, GL_UNSIGNED_INT, vbi_addr);
 #endif
 	}
 }
@@ -1982,6 +2010,7 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 	u32 prim_type;
 	GF_Matrix mx;
 	u32 i, p_idx[6];
+	void *idx_addr = NULL;
 	GF_Plane fplanes[6];
 
 
@@ -1996,33 +2025,44 @@ static void visual_3d_do_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 		prim_type = GL_TRIANGLES;
 		break;
 	}
+	
+	if (mesh->vbo_idx) {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+	} else {
+		idx_addr = mesh->indices;
+	}
+	
 
 	/*if inside or no aabb for the mesh draw vertex array*/
 	if (tr_state->visual->compositor->disable_gl_cull || (tr_state->cull_flag==CULL_INSIDE) || !mesh->aabb_root || !mesh->aabb_root->pos)	{
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
-		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, mesh->indices);
+		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_SHORT, idx_addr);
 #else
-		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, mesh->indices);
+		glDrawElements(prim_type, mesh->i_count, GL_UNSIGNED_INT, idx_addr);
 #endif
 
-		return;
-	}
+	} else {
 
-	/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must
-	be a compromise: we're slowing down the compositor here, however the gain is really appreciable for
-	large meshes, especially terrains/elevation grids*/
+		/*otherwise cull aabb against frustum - after some testing it appears (as usual) that there must
+		 be a compromise: we're slowing down the compositor here, however the gain is really appreciable for
+		 large meshes, especially terrains/elevation grids*/
 
-	/*first get transformed frustum in local space*/
-	gf_mx_copy(mx, tr_state->model_matrix);
-	gf_mx_inverse(&mx);
-	for (i=0; i<6; i++) {
-		fplanes[i] = tr_state->camera->planes[i];
-		gf_mx_apply_plane(&mx, &fplanes[i]);
-		p_idx[i] = gf_plane_get_p_vertex_idx(&fplanes[i]);
+		/*first get transformed frustum in local space*/
+		gf_mx_copy(mx, tr_state->model_matrix);
+		gf_mx_inverse(&mx);
+		for (i=0; i<6; i++) {
+			fplanes[i] = tr_state->camera->planes[i];
+			gf_mx_apply_plane(&mx, &fplanes[i]);
+			p_idx[i] = gf_plane_get_p_vertex_idx(&fplanes[i]);
+		}
+		/*then recursively cull & draw AABB tree*/
+		visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos, idx_addr);
+		visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg, idx_addr);
 	}
-	/*then recursively cull & draw AABB tree*/
-	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->pos);
-	visual_3d_draw_aabb_node(tr_state, mesh, prim_type, fplanes, p_idx, mesh->aabb_root->neg);
+	
+	if (mesh->vbo_idx) {
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	}
 }
 
 static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void **base_address)
@@ -2031,18 +2071,26 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 	if ((compositor->reset_graphics==2) && mesh->vbo) {
 		/*we lost OpenGL context at previous frame, recreate VBO*/
 		mesh->vbo = 0;
+		mesh->vbo_idx = 0;
 	}
 	/*rebuild VBO for large ojects only (we basically filter quads out)*/
-	if ((mesh->v_count>4) && !mesh->vbo && compositor->gl_caps.vbo) {
-		GL_CHECK_ERR
+	if (!mesh->vbo && compositor->gl_caps.vbo
+#ifndef GPAC_USE_GLES2
+		&& (mesh->v_count>4)
+#endif
+		) {
 		glGenBuffers(1, &mesh->vbo);
-		GL_CHECK_ERR
 		if (mesh->vbo) {
 			glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-			GL_CHECK_ERR
 			glBufferData(GL_ARRAY_BUFFER, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-			GL_CHECK_ERR
 			mesh->vbo_dirty = 0;
+		} else {
+			return GF_FALSE;
+		}
+		glGenBuffers(1, &mesh->vbo_idx);
+		if (mesh->vbo_idx) {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->i_count*sizeof(IDX_TYPE), mesh->indices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		} else {
 			return GF_FALSE;
 		}
@@ -2051,13 +2099,18 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 	if (mesh->vbo) {
 		*base_address = NULL;
 		glBindBuffer(GL_ARRAY_BUFFER, mesh->vbo);
-		GL_CHECK_ERR
 	} else {
 		*base_address = &mesh->vertices[0].pos;
 	}
 	
 	if (mesh->vbo_dirty) {
 		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->i_count*sizeof(IDX_TYPE), mesh->indices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+		
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		
 		mesh->vbo_dirty = 0;
 	}
 	return GF_TRUE;

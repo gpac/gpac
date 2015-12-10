@@ -320,9 +320,9 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 
 #ifndef GPAC_USE_GLES1X
 		if (txh->tx_io->yuv_shader) {
-			glUseProgram(0);
+//			glUseProgram(0);
 			txh->compositor->visual->current_texture_glsl_program = 0;
-			glActiveTexture(GL_TEXTURE0);
+//			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(txh->tx_io->gl_type, 0);
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture drawn (CTS %d)\n", txh->last_frame_time));

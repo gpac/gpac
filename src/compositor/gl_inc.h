@@ -35,20 +35,14 @@
 
 #ifdef GPAC_USE_GLES1X
 
-#ifndef GPAC_FIXED_POINT
-//#error "OpenGL ES defined without fixed-point support - unsupported."
-#endif
-
 #ifdef GPAC_ANDROID
 #include "GLES/gl.h"
-#else
-#ifdef GPAC_IPHONE
+#elif defined(GPAC_IPHONE)
 #include "OpenGLES/ES1/gl.h"
 #include "OpenGLES/ES1/glext.h"
 #include "glues.h"
 #else
 #include "GLES/egl.h"
-#endif
 #endif
 
 #if defined(GPAC_HAS_GLU) && !defined (GPAC_IPHONE)
