@@ -166,6 +166,7 @@ typedef struct __gf_mesh
 //	u32 aabb_nb_index;
 
 	u32 vbo;
+	u32 vbo_idx;
 	Bool vbo_dirty, vbo_dynamic;
 } GF_Mesh;
 
