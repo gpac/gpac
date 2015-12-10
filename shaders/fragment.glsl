@@ -4,13 +4,17 @@
 
 //version defined first, at shader compilation
 
-//For other GL versions compatibility
-#if defined(GL_FRAGMENT_PRECISION_HIGH) && (version >= 130)
-	precision highp float;	//Desktop (or ES2.0 supporting highp)
-#elif defined(GL_ES)
-	precision mediump float;	//Default
+#if defined(GL_ES)
+
+#if defined(GL_FRAGMENT_PRECISION_HIGH)
+precision highp float;	//ES2.0 supporting highp
 #else
-//	precision lowp float;	//Fallback
+precision mediump float;	//Default
+#endif
+
+//For other GL versions compatibility
+#elif (version >= 130) && defined (GL_FRAGMENT_PRECISION_HIGH)
+precision highp float;	//Desktop
 #endif
 
 //#pragma STDGL invariant(all)	//removed due to incompatibility with the emulator
