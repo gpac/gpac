@@ -2709,7 +2709,7 @@ call_flush:
 			u32 now=gf_sys_clock();
 			if (now > last_print_time + MP42TS_PRINT_TIME_MS) {
 				last_print_time = now;
-				fprintf(stderr, "M2TS: time % 6d - TS time % 6d - avg bitrate % 8d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->average_birate_kbps);
+				fprintf(stderr, "M2TS: time % 6d - TS time % 6d - bitrate % 8d\r", gf_m2ts_get_sys_clock(muxer), gf_m2ts_get_ts_clock(muxer), muxer->average_birate_kbps);
 
 				if (gf_prompt_has_input()) {
 					char c = gf_prompt_get_char();
@@ -2747,7 +2747,7 @@ call_flush:
 		u64 bits = muxer->tot_pck_sent*8*188;
 		u64 dur_ms = gf_m2ts_get_ts_clock(muxer);
 		if (!dur_ms) dur_ms = 1;
-		fprintf(stderr, "Done muxing - %.02f sec - average rate %d kbps "LLD" packets written\n", ((Double) dur_ms)/1000.0, (u32) (bits/dur_ms), muxer->tot_pck_sent);
+		fprintf(stderr, "Done muxing - %.02f sec - %sbitrate %d kbps "LLD" packets written\n", ((Double) dur_ms)/1000.0,mux_rate ? "" : "average ", (u32) (bits/dur_ms), muxer->tot_pck_sent);
 		fprintf(stderr, " Padding: "LLD" packets (%g kbps) - "LLD" PES padded bytes (%g kbps)\n", muxer->tot_pad_sent, (Double) (muxer->tot_pad_sent*188*8.0/dur_ms) , muxer->tot_pes_pad_bytes, (Double) (muxer->tot_pes_pad_bytes*8.0/dur_ms) );
 	}
 
