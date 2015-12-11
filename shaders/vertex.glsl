@@ -162,7 +162,9 @@ void main(void)
 #ifdef GF_GL_HAS_LIGHT
 	m_normal = normalize( vec3(gfNormalMatrix * vec4(gfNormal, 0.0)) );
 	
-	for(int i=0; i<gfNumLights; i++){
+	for(int i=0; i<LIGHTS_MAX; i++){
+		if (i==gfNumLights) break;
+		
 		if ( lights[i].type == L_SPOT || lights[i].type == L_POINT ) {
 			lightVector[i] = lights[i].position.xyz - gfEye.xyz;
 		} else {
@@ -184,7 +186,8 @@ void main(void)
 	
 	
 	//clipPlane are given in eye coordinate
-	for (int i=0; i<gfNumClippers; i++) {
+	for (int i=0; i<CLIPS_MAX; i++) {
+		if (i==gfNumClippers) break;
 		clipDistance[i] = dot(gfEye.xyz, clipPlane[i].xyz) + clipPlane[i].w;
 	}
 	

@@ -236,7 +236,8 @@ void main()
 	vec4 rgba, fragColor;
 
 	//clipping
-	for (int i=0;i<gfNumClippers; i++) {
+	for (int i=0; i<CLIPS_MAX; i++) {
+		if (i==gfNumClippers) break;
 		if (clipDistance[i]<0.0) {
 			//do not discard on GLES too slow on most devices
 #ifdef GL_ES
@@ -278,7 +279,8 @@ void main()
 
 #ifdef GF_GL_HAS_LIGHT
 	if (gfNumLights > 0) {
-		for (int i=0; i<gfNumLights; i++) {
+		for (int i=0; i<LIGHTS_MAX; i++) {
+			if (i==gfNumLights) break;
 			fragColor += doLighting(i);
 		}
 		fragColor.a = gfDiffuseColor.a;
