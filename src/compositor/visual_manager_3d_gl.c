@@ -595,23 +595,6 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
 	strcat(defs, szKey);
 	
-#ifdef GPAC_IPHONE
-
-	{
-		char str[256];
-		size_t size = sizeof(str);
-		int ret = sysctlbyname("kern.osversion", str, &size, NULL, 0);
-		
-		//ios7.1.2 has a bug in GLSL discard handling (no output at all to depth buffer !)
-		if (!ret && !stricmp(str, "11D257")) {
-			sprintf(szKey, "#define GPAC_IOS_BUG\n");
-			str_size += strlen(szKey);
-			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-			strcat(defs, szKey);
-		}
-	}
-#endif
-	
 	if (flags & GF_GL_HAS_LIGHT) {
 		sprintf(szKey, "#define GF_GL_HAS_LIGHT\n#define LIGHTS_MAX %d\n", GF_MAX_GL_LIGHTS);
 		str_size += strlen(szKey);
@@ -1600,7 +1583,7 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	for (i=0; i<n->nb_idx; i++) {
 		u32 idx = 3*n->indices[i];
 		void *vbi_addr;
-		if (!idx_addr) vbi_addr = (void *) (u32) ( sizeof(IDX_TYPE) * idx );
+		if (!idx_addr) vbi_addr = (void *) PTR_TO_U_CAST ( sizeof(IDX_TYPE) * idx );
 		else vbi_addr = &mesh->indices[idx];
 		
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
@@ -2087,6 +2070,7 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 		} else {
 			return GF_FALSE;
 		}
+
 		glGenBuffers(1, &mesh->vbo_idx);
 		if (mesh->vbo_idx) {
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
@@ -2106,10 +2090,12 @@ static Bool visual_3d_bind_buffer(GF_Compositor *compositor, GF_Mesh *mesh, void
 	if (mesh->vbo_dirty) {
 		glBufferSubData(GL_ARRAY_BUFFER, 0, mesh->v_count * sizeof(GF_Vertex) , mesh->vertices);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->i_count*sizeof(IDX_TYPE), mesh->indices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+		if (mesh->vbo_idx) {
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh->vbo_idx);
+			glBufferData(GL_ELEMENT_ARRAY_BUFFER, mesh->i_count*sizeof(IDX_TYPE), mesh->indices, (mesh->vbo_dynamic) ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
 		
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+		}
 		
 		mesh->vbo_dirty = 0;
 	}
