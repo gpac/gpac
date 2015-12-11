@@ -1600,7 +1600,7 @@ static void visual_3d_draw_aabb_node(GF_TraverseState *tr_state, GF_Mesh *mesh, 
 	for (i=0; i<n->nb_idx; i++) {
 		u32 idx = 3*n->indices[i];
 		void *vbi_addr;
-		if (!idx_addr) vbi_addr = sizeof(IDX_TYPE) * idx;
+		if (!idx_addr) vbi_addr = (void *) (u32) ( sizeof(IDX_TYPE) * idx );
 		else vbi_addr = &mesh->indices[idx];
 		
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
