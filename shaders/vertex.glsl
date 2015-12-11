@@ -13,7 +13,7 @@
 #endif
 
 //For other GL versions compatibility
-#elif (version >= 130) && defined (GL_FRAGMENT_PRECISION_HIGH)
+#elif defined (GL_FRAGMENT_PRECISION_HIGH) && (version >= 130)
 precision highp float;	//Desktop
 #endif
 

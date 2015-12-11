@@ -13,7 +13,7 @@ precision mediump float;	//Default
 #endif
 
 //For other GL versions compatibility
-#elif (version >= 130) && defined (GL_FRAGMENT_PRECISION_HIGH)
+#elif defined (GL_FRAGMENT_PRECISION_HIGH) && (version >= 130)
 precision highp float;	//Desktop
 #endif
 
@@ -227,6 +227,9 @@ vec4 doLighting(int i){
 
 void main()
 {
+#ifdef GL_ES
+	bool do_clip = false;
+#endif
 	int i;
 	vec2 texc;
 	vec3 yuv, rgb;
@@ -235,14 +238,23 @@ void main()
 	//clipping
 	for (int i=0;i<gfNumClippers; i++) {
 		if (clipDistance[i]<0.0) {
-#ifdef GPAC_IOS_BUG
-			gl_FragColor = vec4(zero_float);
-			return;
+			//do not discard on GLES too slow on most devices
+#ifdef GL_ES
+			do_clip = true;
+			break;
 #else
 			discard;
 #endif
 		}
 	}
+
+#ifdef GL_ES
+	if (do_clip) {
+		//do not use "return" on GLES, too slow on most devices!!
+		gl_FragColor.a = 0.0;
+	} else {
+#endif
+	
 	
 #ifdef GF_GL_HAS_COLOR
 	fragColor = m_color;
@@ -345,4 +357,9 @@ void main()
 		fragColor = fragColor * gfFogFactor + vec4(gfFogColor, zero_float) * (one_float - gfFogFactor);
 #endif
 	gl_FragColor = fragColor;
+
+	
+ #ifdef GL_ES
+	}
+#endif
 }
