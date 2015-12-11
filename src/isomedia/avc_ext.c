@@ -370,9 +370,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		if ((s32) sabt_ref != -1) {
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
-				u32 ref_track_id, ref_track, di;
-				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track_id);
-				ref_track = gf_isom_get_track_by_id(mdia->mediaTrack->moov->mov, ref_track_id);
+				u32 ref_track, di;
+				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
 				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
 				if (tile_samp  && tile_samp ->data) {
 					sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
