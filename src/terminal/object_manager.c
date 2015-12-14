@@ -1765,7 +1765,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	if (odm->parentscene && odm->parentscene->pause_at_first_frame)
 		media_control_paused = GF_TRUE;
 
-	if (media_control_paused) {
+	if (odm->codec && media_control_paused) {
 		gf_odm_pause(odm);
 	}
 }

@@ -403,7 +403,7 @@ void gf_sc_flush_next_audio(GF_Compositor *compositor)
 Bool gf_sc_check_audio_pending(GF_Compositor *compositor) 
 {
 	Bool res = GF_FALSE;
-	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
+	gf_mixer_lock(compositor->audio_renderer->mixer, GF_TRUE);
 	if (compositor->audio_renderer->step_mode) 
 		res = GF_FALSE;
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
