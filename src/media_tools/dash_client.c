@@ -2212,13 +2212,15 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
 			if (rep->m3u8_media_seq_min > next_media_seq) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] There are something wrong: next media segment %d vs min media segment in segment list %d - some segments missing\n", next_media_seq, rep->m3u8_media_seq_min));
+				group->download_segment_index = -1;
 			} else if (rep->m3u8_media_seq_max < next_media_seq) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Too late: next media segment %d vs max media segment in segment list %d - force updating mpd\n", next_media_seq, rep->m3u8_media_seq_max));
-				group->dash->force_mpd_update = GF_TRUE;			
+				group->dash->force_mpd_update = GF_TRUE;
+				group->download_segment_index = -1;
 			} else{
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] next  media segment %d found in  segment list (min %d - max %d) - adjusting download segment index\n", next_media_seq, rep->m3u8_media_seq_min, rep->m3u8_media_seq_max));
+				group->download_segment_index =  next_media_seq - rep->m3u8_media_seq_min;
 			}
-			group->download_segment_index = next_media_seq >= rep->m3u8_media_seq_min ? next_media_seq - rep->m3u8_media_seq_min : 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] after switching download segment index should be %d\n", group->download_segment_index));
 		}
 		group->m3u8_start_media_seq = rep->m3u8_media_seq_min;
