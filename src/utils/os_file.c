@@ -36,6 +36,7 @@
 #include <windows.h>
 #include <direct.h>
 #include <sys/stat.h>
+#include <Share.h>
 
 #else
 
@@ -647,7 +648,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 			return NULL;
 		}
 
-		_wfopen_s(&res, wname, wmode);
+		res = _wfsopen(wname, wmode, _SH_DENYNO);
 		gf_free(wname);
 		gf_free(wmode);
 	}
