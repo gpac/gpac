@@ -441,7 +441,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	clipper.y = INT2FIX(ctx->bi->clip.y);
 	clipper.width = INT2FIX(ctx->bi->clip.width);
 	clipper.height = INT2FIX(ctx->bi->clip.height);
-	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL, 1);
+	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL);
 
 	gf_node_allow_cyclic_traverse(ctx->drawable->node);
 	gf_node_traverse(ctx->drawable->node, tr_state);

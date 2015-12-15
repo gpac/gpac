@@ -80,10 +80,12 @@ uniform vec4 gfEmissionColor;
 uniform bool hasMeshColor;
 #endif
 
+#ifdef GF_GL_HAS_CLIP
 #if defined(GL_ES)
 uniform lowp int gfNumClippers;
 #else
 uniform int gfNumClippers;
+#endif
 #endif
 
 //Color Matrix
@@ -137,7 +139,9 @@ varying vec2 TexCoord;
 varying vec4 m_color;
 #endif
 
+#ifdef GF_GL_HAS_CLIP
 varying float clipDistance[CLIPS_MAX];
+#endif
 
 //constants
 const float zero_float = 0.0;
@@ -227,36 +231,37 @@ vec4 doLighting(int i){
 
 void main()
 {
-#ifdef GL_ES
-	bool do_clip = false;
+#if defined(GF_GL_HAS_CLIP) && defined(GL_ES)
+	bool do_clip=false;
 #endif
 	int i;
 	vec2 texc;
 	vec3 yuv, rgb;
 	vec4 rgba, fragColor;
 
+#ifdef GF_GL_HAS_CLIP
 	//clipping
 	for (int i=0; i<CLIPS_MAX; i++) {
 		if (i==gfNumClippers) break;
 		if (clipDistance[i]<0.0) {
 			//do not discard on GLES too slow on most devices
-#ifdef GL_ES
-			do_clip = true;
+#if defined(GL_ES)
+			do_clip=true;
 			break;
 #else
 			discard;
 #endif
 		}
 	}
-
-#ifdef GL_ES
-	if (do_clip) {
-		//do not use "return" on GLES, too slow on most devices!!
-		gl_FragColor.a = 0.0;
-	} else {
 #endif
 	
-	
+#if defined(GF_GL_HAS_CLIP) && defined(GL_ES)
+	if (do_clip) {
+		gl_FragColor = vec4(zero_float);
+	} else {
+#endif
+		
+		
 #ifdef GF_GL_HAS_COLOR
 	fragColor = m_color;
 #else
@@ -360,8 +365,7 @@ void main()
 #endif
 	gl_FragColor = fragColor;
 
-	
- #ifdef GL_ES
+#if defined(GF_GL_HAS_CLIP) && defined(GL_ES)
 	}
 #endif
 }

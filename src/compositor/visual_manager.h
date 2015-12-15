@@ -38,17 +38,18 @@
 //startof GL3/ES2.0 specifics
 
 /* number of preprocessor flags for GL3/ES2.0 */
-#define GF_GL_NUM_OF_FLAGS			4
+#define GF_GL_NUM_OF_FLAGS			5
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
-#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS
+#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 (YUV ignored in vertex shader)
 
 /* setting preprocessor flags for GL3/ES2.0 shaders */
 enum {
 	GF_GL_HAS_TEXTURE = 1,
 	GF_GL_HAS_LIGHT = (1<<1),
 	GF_GL_HAS_COLOR = (1<<2),
+	GF_GL_HAS_CLIP = (1<<3),
 	//only for fragment shaders
-	GF_GL_IS_YUV = 1<<3,
+	GF_GL_IS_YUV = 1<<4,
 };
 //endof
 
@@ -193,6 +194,8 @@ struct _visual_manager
 
 	Bool gl_setup;
 
+	GF_IRect clipper_2d;
+ 	Bool has_clipper_2d;
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;
 
