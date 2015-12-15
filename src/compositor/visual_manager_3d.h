@@ -237,7 +237,7 @@ it is the caller responsability to restore previous 2D clipers
 
 the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
 if NULL, no specific clipping transform will be used*/
-void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper, Bool is_2d_clip);
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper);
 /*remove 2D clipper*/
 void visual_3d_reset_clipper_2d(GF_VisualManager *visual);
 

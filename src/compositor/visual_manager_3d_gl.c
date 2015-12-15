@@ -589,12 +589,6 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 	defs = (char *) gf_strdup(GLES_VERSION_STRING);
 	str_size = strlen(defs) + 1; //+1 for trailing \0
 	
-	/*clipping is always enabled*/
-	sprintf(szKey, "#define CLIPS_MAX %d\n", GF_MAX_GL_CLIPS);
-	str_size += strlen(szKey);
-	defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
-	strcat(defs, szKey);
-	
 	if (flags & GF_GL_HAS_LIGHT) {
 		sprintf(szKey, "#define GF_GL_HAS_LIGHT\n#define LIGHTS_MAX %d\n", GF_MAX_GL_LIGHTS);
 		str_size += strlen(szKey);
@@ -612,6 +606,14 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		str_size += strlen("#define GF_GL_HAS_TEXTURE \n");
 		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
 		strcat(defs,"#define GF_GL_HAS_TEXTURE \n");
+	}
+	
+	if(flags & GF_GL_HAS_CLIP) {
+		/*clipping is always enabled*/
+		sprintf(szKey, "#define CLIPS_MAX %d\n#define GF_GL_HAS_CLIP\n", GF_MAX_GL_CLIPS);
+		str_size += strlen(szKey);
+		defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
+		strcat(defs, szKey);
 	}
 	
 	if (shader_type==GL_FRAGMENT_SHADER) {
@@ -1122,6 +1124,28 @@ void visual_3d_reset_graphics(GF_VisualManager *visual)
 #endif
 }
 
+void visual_3d_set_clipper_scissor(GF_VisualManager *visual, GF_TraverseState *tr_state)
+{
+#ifndef GPAC_USE_TINYGL
+	if (visual->has_clipper_2d) {
+		u32 x, y;
+		glEnable(GL_SCISSOR_TEST);
+		
+		if (visual->center_coords) {
+			x = visual->clipper_2d.x + visual->width/2;
+			y = visual->height/2 + visual->clipper_2d.y - visual->clipper_2d.height;
+		} else {
+			x = visual->clipper_2d.x;
+			y = visual->height - visual->clipper_2d.y;
+		}
+		glScissor(x, y, visual->clipper_2d.width, visual->clipper_2d.height);
+	} else {
+		glDisable(GL_SCISSOR_TEST);
+	}
+#endif
+}
+
+
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 
 static void visual_3d_load_matrix_shaders(GF_SHADERID program, Fixed *mat, const char *name)
@@ -1401,6 +1425,7 @@ void visual_3d_setup(GF_VisualManager *visual)
 {
 	
 	if (visual->gl_setup) {
+		visual->has_fog = GF_FALSE;
 		glClear(GL_DEPTH_BUFFER_BIT);
 		return;
 	}
@@ -1448,7 +1473,6 @@ void visual_3d_setup(GF_VisualManager *visual)
 	glDisable(GL_TEXTURE_2D);
 	glDisable(GL_CULL_FACE);
 	glDisable(GL_FOG);
-	visual->has_fog = GF_FALSE;
 	/*Note: we cannot enable/disable normalization on the fly, because we have no clue when the GL implementation
 	will actually compute the related fragments. Since a typical world always use scaling, we always turn normalization on
 	to avoid tracking scale*/
@@ -2294,12 +2318,14 @@ static void visual_3d_set_clippers_shaders(GF_VisualManager *visual, GF_Traverse
 	u32 i;
 	GF_Matrix inv_mx, eye_mx;
 
+	if (!visual->num_clips) return;
+
 	gf_mx_copy(inv_mx, tr_state->model_matrix);
 	gf_mx_inverse(&inv_mx);
 	
 	gf_mx_copy(eye_mx, tr_state->camera->modelview);
 	gf_mx_add_matrix(&eye_mx, &tr_state->model_matrix);
-
+	
 	loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumClippers");
 	if (loc>=0)
 		glUniform1i(loc, visual->num_clips);
@@ -2356,12 +2382,18 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		
 	}
 
-	if(visual->num_lights) {
+	if (visual->num_lights) {
 		flags |= GF_GL_HAS_LIGHT;
 	} else {
 		flags &= ~GF_GL_HAS_LIGHT;
 	}
 
+	if (visual->num_clips) {
+		flags |= GF_GL_HAS_CLIP;
+	} else {
+		flags &= ~GF_GL_HAS_CLIP;
+	}
+	
 	root_visual->glsl_flags = visual->glsl_flags = flags;
 	
 	//check if we are using a different program than last time, if so force matrices updates
@@ -2400,7 +2432,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, sizeof(GF_Vertex), vertex_buffer_address);
 #endif
 
-	//setup clippers (always true)
+	//setup scissor
+	visual_3d_set_clipper_scissor(visual, tr_state);
+	
+	//setup clippers
 	visual_3d_set_clippers_shaders(visual, tr_state);
 	
 	/* Material2D does not have any lights, color used is "gfEmissionColor" uniform */
@@ -2690,6 +2725,10 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		if (loc>=0)	glUniform1i(loc, 0);
 		GL_CHECK_ERR
 	}
+	
+	if (visual->has_clipper_2d) {
+		glDisable(GL_SCISSOR_TEST);
+	}
 
 	visual->has_material_2d = 0;
 	visual->glsl_flags = visual->compositor->visual->glsl_flags;
@@ -2760,6 +2799,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 	if (visual->state_blend_on) glEnable(GL_BLEND);
 
+	//setup scissor
+	visual_3d_set_clipper_scissor(visual, tr_state);
 
 	if (visual->num_clips)
 		visual_3d_set_clippers(visual, tr_state);
@@ -3065,6 +3106,9 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 
+	if (visual->has_clipper_2d) {
+		glDisable(GL_SCISSOR_TEST);
+	}
 	visual_3d_reset_lights(visual);
 
 	glDisable(GL_COLOR_MATERIAL);

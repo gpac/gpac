@@ -101,12 +101,14 @@ uniform bool hasTextureMatrix;
 #endif
 
 //Clipping
+#ifdef GF_GL_HAS_CLIP
 #if defined(GL_ES)
 uniform lowp int gfNumClippers;
 #else
 uniform int gfNumClippers;
 #endif
 uniform vec4 clipPlane[CLIPS_MAX];
+#endif
 
 //Varyings
 #ifdef GF_GL_HAS_LIGHT
@@ -126,7 +128,9 @@ varying vec2 TexCoord;
 varying vec4 m_color;
 #endif
 
+#ifdef GF_GL_HAS_CLIP
 varying float clipDistance[CLIPS_MAX];
+#endif
 
 
 #ifdef GF_GL_HAS_LIGHT
@@ -185,11 +189,13 @@ void main(void)
 #endif
 	
 	
+#ifdef GF_GL_HAS_CLIP
 	//clipPlane are given in eye coordinate
 	for (int i=0; i<CLIPS_MAX; i++) {
 		if (i==gfNumClippers) break;
 		clipDistance[i] = dot(gfEye.xyz, clipPlane[i].xyz) + clipPlane[i].w;
 	}
+#endif
 	
 	gl_Position = gfProjectionMatrix * gfEye;
 }
