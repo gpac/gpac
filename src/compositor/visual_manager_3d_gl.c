@@ -2714,6 +2714,9 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (mesh->vbo)
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 
+	if (mesh->vbo)
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	if (loc_vertex_array>=0) glDisableVertexAttribArray(loc_vertex_array);
 	if (loc_color_array>=0) glDisableVertexAttribArray(loc_color_array);
 	if (loc_normal_array>=0) glDisableVertexAttribArray(loc_normal_array);
@@ -2732,7 +2735,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	visual->has_material_2d = 0;
 	visual->glsl_flags = visual->compositor->visual->glsl_flags;
-	root_visual->glsl_flags &= ~GF_GL_IS_YUV;
+	root_visual->glsl_flags &= ~ (GF_GL_IS_YUV | GF_GL_HAS_COLOR);
 	visual->has_material = 0;
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);
