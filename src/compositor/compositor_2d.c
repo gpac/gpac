@@ -568,6 +568,13 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 		GF_Err e;
 		GF_VideoSurface video_src;
 		GF_Window src_wnd, dst_wnd;
+
+		if (!BackColor && !visual->offscreen) {
+			if (!visual->compositor->user || !(visual->compositor->user->init_flags & GF_TERM_WINDOW_TRANSPARENT)) {
+				BackColor = visual->compositor->back_color;
+			}
+		}
+
 		data[0] = data[3] = data[6] = data[9] = GF_COL_R(BackColor);
 		data[1] = data[4] = data[7] = data[10] = GF_COL_G(BackColor);
 		data[2] = data[5] = data[8] = data[11] = GF_COL_B(BackColor);
@@ -583,8 +590,13 @@ void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 Bac
 		src_wnd.x = src_wnd.y = 0;
 		src_wnd.w = src_wnd.h = 1;
 		if (rc) {
-			dst_wnd.x = rc->x;
-			dst_wnd.y = rc->y;
+			if (visual->center_coords) {
+				dst_wnd.x = rc->x + visual->width/2;
+				dst_wnd.y = visual->height/2 - rc->y;
+			} else {
+				dst_wnd.x = rc->x;
+				dst_wnd.y = rc->y - visual->height/2;
+			}
 			dst_wnd.w = rc->width;
 			dst_wnd.h = rc->height;
 		} else {
