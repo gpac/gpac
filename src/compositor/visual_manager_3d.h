@@ -227,11 +227,12 @@ void visual_3d_projection_matrix_modified(GF_VisualManager *visual);
 
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
+
 /*setup scissors region (vp: top-left, width, height) - if vp is NULL, disables scissors*/
 void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp);
 
 /*setup rectangular cliper (clip: top-left, width, height)
-NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
+NOTE: 2D clippers can only be set from a 2D context, and will always use glScissor.
 In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME,
 it is the caller responsability to restore previous 2D clipers
 
