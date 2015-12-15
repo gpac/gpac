@@ -3475,7 +3475,7 @@ function gw_new_plotter(parent) {
         for (var i = 0; i < this.series.length; i++) {
             var s = this.series[i];
             s.scale = new SFVec2f(width - this.label_width, height);
-            s.but.set_size(this.label_width, 0.9*gwskin.default_text_font_size);
+            s.but.set_size(2*this.label_width, 0.9*gwskin.default_text_font_size);
             s.but.set_font_size(0.9 * gwskin.default_text_font_size);
             s.translation.x = -this.label_width / 2;
         }
@@ -3553,7 +3553,7 @@ function gw_new_plotter(parent) {
         s.but = gw_new_text(this, '' + legend, 'custom');
         s.but.set_align('END');
         s.but.set_color(r, g, b);
-        s.but.set_size(this.label_width, gwskin.default_text_font_size);
+        s.but.set_size(2*this.label_width, gwskin.default_text_font_size);
         s.but.hide();
         return s;
 
