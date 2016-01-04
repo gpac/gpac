@@ -355,7 +355,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			compositor->video_out->evt_cbk_hdl = compositor;
 			compositor->video_out->on_event = gf_sc_on_event;
 			/*init hw*/
-			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
+			if (!compositor->video_out->Setup || compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to Setup Video Driver %s!\n", sOpt));
 				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 				compositor->video_out = NULL;
@@ -380,7 +380,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			}
 
 			/*init hw*/
-			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
+			if (compositor->video_out->Setup && compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
 				gf_cfg_set_key(compositor->user->config, "Video", "DriverName", compositor->video_out->module_name);
 				break;
 			}
@@ -396,7 +396,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		}
 	}
 	if (!compositor->video_out ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver."));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver.\n"));
 		return GF_IO_ERR;
 	}
 
@@ -430,7 +430,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		if (compositor->rasterizer) gf_cfg_set_key(compositor->user->config, "Compositor", "Raster2D", compositor->rasterizer->module_name);
 	}
 	if (!compositor->rasterizer) {
-		compositor->video_out->Shutdown(compositor->video_out);
+		if (compositor->video_out->Shutdown) compositor->video_out->Shutdown(compositor->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 		compositor->video_out = NULL;
 		return GF_IO_ERR;

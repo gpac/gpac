@@ -906,7 +906,7 @@ GF_EXPORT
 void gf_term_disconnect(GF_Terminal *term)
 {
 	Bool handle_services;
-	if (!term->root_scene) return;
+	if (!term || !term->root_scene) return;
 
 	if (term->nb_calls_in_event_proc) {
 		if (!term->disconnect_request_status)

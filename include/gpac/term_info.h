@@ -39,6 +39,7 @@ extern "C" {
 	ALL ITEMS ARE READ-ONLY AND SHALL NOT BE MODIFIED
 */
 #include <gpac/mpeg4_odf.h>
+#include <gpac/terminal.h>
 
 /*returns top-level OD of the presentation*/
 GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term);
