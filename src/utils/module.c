@@ -168,13 +168,13 @@ GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*regis
 	GF_Err rc;
 
 	if (!pr) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically loaded module\n"));
 		return GF_NOT_SUPPORTED;
 	}
 
 	rc = gf_list_add(pm->plugin_registry, pr);
 	if (rc != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically loaded module\n"));
 		return rc;
 	}
 	return GF_OK;
