@@ -326,6 +326,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_module_directories) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_module_get_file_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_module_load_static) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_close_interface) )
