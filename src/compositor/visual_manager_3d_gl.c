@@ -358,10 +358,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif
 
 #define GLSL_PREFIX GLES_VERSION_STRING \
+	"#ifdef GL_ES"\
 	"#ifdef GL_FRAGMENT_PRECISION_HIGH\n"\
 	"precision highp float;\n"\
-	"#elif defined(GL_ES)\n"\
+	"#else\n"\
 	"precision mediump float;\n"\
+	"#endif\n" \
 	"#endif\n"
 
 
@@ -2399,7 +2401,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//check if we are using a different program than last time, if so force matrices updates
 	if ((visual->glsl_program != root_visual->glsl_programs[visual->glsl_flags])
 			|| !root_visual->glsl_programs[visual->glsl_flags]) {
-		tr_state->visual->needs_projection_matrix_reload = 1;
+		tr_state->visual->needs_projection_matrix_reload = GF_TRUE;
 	}
 
 	visual->glsl_program = root_visual->glsl_programs[visual->glsl_flags];
