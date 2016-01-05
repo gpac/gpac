@@ -2126,23 +2126,3 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
