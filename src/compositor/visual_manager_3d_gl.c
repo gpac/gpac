@@ -2408,7 +2408,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	glUseProgram(visual->glsl_program);
 	GL_CHECK_ERR
 
-	
 	if (! visual_3d_bind_buffer(visual->compositor, mesh, &vertex_buffer_address)) {
 		glUseProgram(0);
 		return;
