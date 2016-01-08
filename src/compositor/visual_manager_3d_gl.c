@@ -1131,14 +1131,23 @@ void visual_3d_set_clipper_scissor(GF_VisualManager *visual, GF_TraverseState *t
 #ifndef GPAC_USE_TINYGL
 	if (visual->has_clipper_2d) {
 		u32 x, y;
+		u32 dw, dh;
 		glEnable(GL_SCISSOR_TEST);
 		
+		if (visual->offscreen) {
+			dw = visual->width;
+			dh = visual->height;
+		} else {
+			dw = visual->compositor->display_width;
+			dh = visual->compositor->display_height;
+		}
+		
 		if (visual->center_coords) {
-			x = visual->clipper_2d.x + visual->width/2;
-			y = visual->height/2 + visual->clipper_2d.y - visual->clipper_2d.height;
+			x = visual->clipper_2d.x + dw / 2;
+			y = dh / 2 + visual->clipper_2d.y - visual->clipper_2d.height;
 		} else {
 			x = visual->clipper_2d.x;
-			y = visual->height - visual->clipper_2d.y;
+			y = dh - visual->clipper_2d.y;
 		}
 		glScissor(x, y, visual->clipper_2d.width, visual->clipper_2d.height);
 	} else {
