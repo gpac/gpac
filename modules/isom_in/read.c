@@ -1041,7 +1041,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		for (i = 0; i < count; i++)
 		{
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
-			if (gf_isom_has_scalable_layer(read->mov)) {
+			if (gf_isom_needs_layer_reconstruction(read->mov)) {
 				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
 			}
 		}

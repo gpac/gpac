@@ -732,10 +732,45 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(mpdin->dash); i++) {
 			const char *mime, *init_segment;
+			u32 j;
+			Bool playable = GF_TRUE;
 			//let the player decide which group to play
 			if (!gf_dash_is_group_selectable(mpdin->dash, i))
 				continue;
-
+			
+			j=0;
+			while (1) {
+				const char *desc_id, *desc_scheme, *desc_value;
+				if (! gf_dash_group_enum_descriptor(mpdin->dash, i, GF_MPD_DESC_ESSENTIAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
+					break;
+				j++;
+				//we don't want to play srd, only the backward compatible version
+				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
+					playable = GF_FALSE;
+					break;
+				} else {
+					playable = GF_FALSE;
+					break;
+				}
+			}
+			
+			j=0;
+			while (1) {
+				const char *desc_id, *desc_scheme, *desc_value;
+				if (! gf_dash_group_enum_descriptor(mpdin->dash, i, GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
+					break;
+				j++;
+				//we don't want to play srd, only the backward compatible version
+				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
+					playable = GF_FALSE;
+					break;
+				}
+			}
+			if (!playable) {
+				gf_dash_group_select(mpdin->dash, i, 0);
+				continue;
+			}
+			
 			mime = gf_dash_group_get_segment_mime(mpdin->dash, i);
 			init_segment = gf_dash_group_get_segment_init_url(mpdin->dash, i, NULL, NULL);
 			e = MPD_LoadMediaService(mpdin, i, mime, init_segment);
