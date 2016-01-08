@@ -826,7 +826,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_needs_layer_reconstruction) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
