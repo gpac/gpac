@@ -621,8 +621,11 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			bck_ctx = b2d_get_context(bck, visual->back_stack);
 			if (!visual->last_had_back || (bck_ctx->flags & CTX_REDRAW_MASK) ) {
 				if (redraw_all_on_background_change) redraw_all = 1;
-				else hyb_force_background = 1;
 			}
+			/*in hybridGL we will have to force background draw even if no change, since backbuffer GL is not persistent*/
+			if (!redraw_all_on_background_change) 
+				hyb_force_background = 1;
+
 			visual->last_had_back = (bck_ctx->aspect.fill_texture && !bck_ctx->aspect.fill_texture->transparent) ? 2 : 1;
 		}
 	} else
