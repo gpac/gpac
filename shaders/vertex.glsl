@@ -6,9 +6,9 @@
 
 #if defined(GL_ES)
 #if defined(GL_FRAGMENT_PRECISION_HIGH)
-	precision highp float;	//ES2.0 supporting highp
+precision highp float;	//ES2.0 supporting highp
 #else
-	precision mediump float;	//Default
+precision mediump float;	//Default
 #endif
 #endif
 
