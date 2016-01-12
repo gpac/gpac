@@ -74,7 +74,7 @@ typedef struct
 
 	//Functions specific to OpenGL ES2
 	#ifdef GPAC_USE_GLES2
-	u32 base_vertex, base_fragment, base_program;
+	GLuint base_vertex, base_fragment, base_program;
 	#endif
 } AndroidContext;
 
@@ -100,11 +100,11 @@ typedef struct
 
 
 //we custom-define these instead of importing gl_inc.h
-#define GL_VERTEX_SHADER 0x8B31
-#define GL_FRAGMENT_SHADER 0x8B30
 #define GL_COMPILE_STATUS 0x8B81
+#define GL_FRAGMENT_SHADER 0x8B30
 #define GL_INFO_LOG_LENGTH 0x8B84
-
+#define GL_LINK_STATUS 0x8B82
+#define GL_VERTEX_SHADER 0x8B31
 
 
 
@@ -135,6 +135,7 @@ static char *glsl_fragment = "attribute vec4 gfVertex;\
 		gl_FragColor = fragcolor;\
 	}";
 
+#define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
 //modified version of visual_3d_compile_shader function
 Bool compile_shader(u32 shader_id, const char *name, const char *source){
