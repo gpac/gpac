@@ -132,8 +132,8 @@ static char *glsl_fragment = "attribute vec4 gfVertex;\
 	uniform sampler2D img;\
 	void main(void){\
 		vec4 fragColor = vec4(0.0);\
-		fragcolor = texture2D(img, TexCoord);\
-		gl_FragColor = fragcolor;\
+		fragColor = texture2D(img, TexCoord);\
+		gl_FragColor = fragColor;\
 	}";
 
 #define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
@@ -353,10 +353,7 @@ void resizeWindow(AndroidContext *rc)
 	glUseProgram(rc->base_program);
 	calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
 	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
-	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfModelViewMatrix");
-
-
-
+	load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
 #endif
 	LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
