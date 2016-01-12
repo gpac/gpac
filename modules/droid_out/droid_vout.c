@@ -90,6 +90,25 @@ typedef struct
 #warning "Using FrameBuffer"
 #endif
 
+
+//Functions specific to OpenGL ES2
+#ifdef GPAC_USE_GLES2
+
+#define GL_VERTEX_SHADER 0x8B31
+#define GL_FRAGMENT_SHADER 0x8B30
+
+
+static GF_Err initGLES2(AndroidContext *rc){
+	rc->base_program = glCreateProgram();
+	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
+	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+	return GF_OK;
+}
+#endif
+
+
+
 void initGL(AndroidContext *rc)
 {
 	char* ext;
