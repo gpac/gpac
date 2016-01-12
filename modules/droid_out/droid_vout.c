@@ -136,6 +136,34 @@ static char *glsl_fragment = "attribute vec4 gfVertex;\
 	}";
 
 
+//modified version of visual_3d_compile_shader function
+Bool compile_shader(u32 shader_id, const char *name, const char *source){
+	GLint blen = 0;
+	GLsizei slen = 0;
+	u32 len;
+	Bool is_compiled = GF_FALSE;
+
+
+	if(!source || !shader_id) return 0;
+	len = (u32) strlen(source);
+	glShaderSource(shader_id, 1, &source, &len);
+	glCompileShader(shader_id);
+
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
+	if (is_compiled == GL_TRUE) return GF_TRUE;
+
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
+	if (blen > 1) {
+		char* compiler_log = (char*) gf_malloc(blen);
+		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile %s shader: %s\n", name, compiler_log));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
+		gf_free (compiler_log);
+		return GF_FALSE;
+	}
+
+	return GF_TRUE;
+}
 
 static Bool initGLES2(AndroidContext *rc){
 
