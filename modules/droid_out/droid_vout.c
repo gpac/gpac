@@ -71,6 +71,11 @@ typedef struct
 	u8 non_power_two;
 
 	Bool fullscreen;
+
+	//Functions specific to OpenGL ES2
+	#ifdef GPAC_USE_GLES2
+	u32 base_vertex, base_fragment, base_program;
+	#endif
 } AndroidContext;
 
 
