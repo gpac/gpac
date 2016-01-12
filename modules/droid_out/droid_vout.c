@@ -91,11 +91,22 @@ typedef struct
 #endif
 
 
+
 //Functions specific to OpenGL ES2
 #ifdef GPAC_USE_GLES2
 
+#define GF_TRUE 1
+#define GF_FALSE 0
+
+
+//we custom-define these instead of importing gl_inc.h
 #define GL_VERTEX_SHADER 0x8B31
 #define GL_FRAGMENT_SHADER 0x8B30
+#define GL_COMPILE_STATUS 0x8B81
+#define GL_INFO_LOG_LENGTH 0x8B84
+
+
+
 
 static char *glsl_vertex = "attribute vec4 gfVertex;\
 	attribute vec4 gfTexCoord;\
