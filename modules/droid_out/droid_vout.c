@@ -97,6 +97,34 @@ typedef struct
 #define GL_VERTEX_SHADER 0x8B31
 #define GL_FRAGMENT_SHADER 0x8B30
 
+static char *glsl_vertex = "attribute vec4 gfVertex;\
+	attribute vec4 gfTexCoord;\
+	varying vec2 TexCoord;\
+	uniform mat4 gfModelViewMatrix;\
+	uniform mat4 gfProjectionMatrix;\
+	uniform mat4 gfTextureMatrix;\
+	uniform bool hasTextureMatrix;\
+	void main(void){\
+		vec4 gfEye;\
+		gfEye = gfModelViewMatrix * gfVertex;\
+		if(hasTextureMatrix){\
+			TexCoord = vec2(gfTextureMatrix * gfTexCoord);\
+		}else{\
+			TexCoord = vec2(gfTexCoord);\
+		}\
+		gl_Position = gfProjectionMatrix * gfEye;\
+	}";
+
+static char *glsl_fragment = "attribute vec4 gfVertex;\
+	varying vec2 TexCoord;\
+	uniform sampler2D img;\
+	void main(void){\
+		vec4 fragColor = vec4(0.0);\
+		fragcolor = texture2D(img, TexCoord);\
+		gl_FragColor = fragcolor;\
+	}";
+
+
 
 static GF_Err initGLES2(AndroidContext *rc){
 	rc->base_program = glCreateProgram();
