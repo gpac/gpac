@@ -75,6 +75,7 @@ typedef struct
 	//Functions specific to OpenGL ES2
 	#ifdef GPAC_USE_GLES2
 	GLuint base_vertex, base_fragment, base_program;
+	GF_Matrix identity, ortho;
 	#endif
 } AndroidContext;
 
@@ -171,6 +172,8 @@ static Bool initGLES2(AndroidContext *rc){
 	Bool res = GF_FALSE;
 	GLint linked;
 
+	gf_mx_init(rc->identity);
+
 	rc->base_program = glCreateProgram();
 	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
 	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
@@ -198,6 +201,51 @@ static Bool initGLES2(AndroidContext *rc){
 
 	return GF_OK;
 }
+
+static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
+{
+	GLint loc;
+#ifdef GPAC_FIXED_POINT
+	Float _mat[16];
+	u32 i;
+#endif
+
+	loc = glGetUniformLocation(program, name);
+	if(loc<0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
+		return;
+	}
+	GL_CHECK_ERR
+
+#ifdef GPAC_FIXED_POINT
+	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
+#else
+	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
+#endif
+	GL_CHECK_ERR
+}
+
+
+static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc){
+	//glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+
+	if((left==right)|(bottom==top)|(near==far)){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid Orthogonal projection values", __FILE__, __LINE__));
+		return;
+	}
+
+	gf_mx_init(rc->ortho);
+	rc->ortho.m[0] = gf_divfix(2, (right-left));
+	rc->ortho.m[3] = -gf_divfix(right+left, right-left);
+	rc->ortho.m[5] = gf_divfix(2, (top-bottom));
+	rc->ortho.m[7] = - gf_divfix(top+bottom, top-bottom);
+	rc->ortho.m[10] = gf_divfix(-2, far-near);
+	rc->ortho.m[11] = - gf_divfix(far+near, far-near);
+	rc->ortho.m[15] = FIX_ONE;
+
+}
+
 #endif
 
 
@@ -301,6 +349,14 @@ void resizeWindow(AndroidContext *rc)
 
 	/* Reset The View */
 	glLoadIdentity();
+#else
+	glUseProgram(rc->base_program);
+	calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
+	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
+	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfModelViewMatrix");
+
+
+
 #endif
 	LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
