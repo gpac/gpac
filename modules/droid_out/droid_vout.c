@@ -137,10 +137,35 @@ static char *glsl_fragment = "attribute vec4 gfVertex;\
 
 
 
-static GF_Err initGLES2(AndroidContext *rc){
+static Bool initGLES2(AndroidContext *rc){
+
+	Bool res = GF_FALSE;
+	GLint linked;
+
 	rc->base_program = glCreateProgram();
 	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
 	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+	res = compile_shader(rc->base_vertex, "vertex", glsl_vertex);
+	if(!res) return GF_FALSE;
+	res = compile_shader(rc->base_fragment, "fragment", glsl_fragment);
+	if(!res) return GF_FALSE;
+
+	glAttachShader(rc->base_program, rc->base_vertex);
+	glAttachShader(rc->base_program, rc->base_fragment);
+	glLinkProgram(rc->base_program);
+
+	glGetProgramiv(rc->base_program, GL_LINK_STATUS, &res);
+	if (!linked) {
+		int i32CharsWritten, i32InfoLogLength;
+		char pszInfoLog[2048];
+		glGetProgramiv(rc->base_program, GL_INFO_LOG_LENGTH, &i32InfoLogLength);
+		glGetProgramInfoLog(rc->base_program, i32InfoLogLength, &i32CharsWritten, pszInfoLog);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
+		return GF_FALSE;
+	}
+
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android GLES2 basic shaders compiled");
 
 	return GF_OK;
 }
@@ -176,6 +201,10 @@ void initGL(AndroidContext *rc)
 		rc->non_power_two = 0;
 		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
+
+#ifdef GPAC_USE_GLES2
+	initGLES2(rc);
+#endif
 
 #ifndef GPAC_USE_GLES2
 	/* Enable smooth shading */
