@@ -5771,16 +5771,16 @@ GF_Err gf_dash_group_get_next_segment_location(GF_DashClient *dash, u32 idx, u32
 	}
 	group->force_segment_switch = 0;
 
-	if (group->cached[index+1].cache) {
+	if (group->cached[index].has_dep_following) {
+		if (has_next_segment) *has_next_segment = GF_TRUE;
+	} else if (group->cached[index+1].cache) {
 		GF_MPD_Representation *rep;
 
 		rep = gf_list_get(group->adaptation_set->representations, group->cached[index].representation_index);
-		if (rep->enhancement_rep_index_plus_one == group->cached[index+1].representation_index+1) {
+		if (rep && rep->enhancement_rep_index_plus_one == group->cached[index+1].representation_index+1) {
 			if (has_next_segment) *has_next_segment = GF_TRUE;
 		}
 	}
-	if (has_next_segment)
-		*has_next_segment = group->cached[index].has_dep_following;
 	
 	gf_mx_v(dash->dl_mutex);
 	return GF_OK;
