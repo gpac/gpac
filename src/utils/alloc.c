@@ -177,11 +177,11 @@ size_t gpac_nb_alloc_blocs = 0;
 #endif
 
 
-//#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 
-#define BACKTRACE_PRINT(prefix)  "%s\n", prefix backtrace
+#define BACKTRACE_PRINT(prefix)  "file %s at line %d\n%s\n", prefix filename, prefix line, prefix backtrace
 #define BACKTRACE_PRINT0         BACKTRACE_PRINT((char*))
 #define BACKTRACE_ARGS           char *backtrace
 #define BACKTRACE_CALL           backtrace
@@ -441,11 +441,10 @@ typedef struct s_memory_element
 	int size;
 	struct s_memory_element *next;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-	char *backtrace; //must be the last since we write the backtrace string from this address (beyond the struct itself)
-#else
+	char backtrace[STACK_PRINT_SIZE*SYMBOL_MAX_SIZE];
+#endif
 	int line;
 	char *filename;
-#endif
 } memory_element;
 
 /*pointer to the first element of the list*/
@@ -480,18 +479,15 @@ typedef memory_element* memory_list;
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
 static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const char *filename, int line)
 {
-#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
-	element->backtrace = (char*)&(element->backtrace)+sizeof(element->backtrace);
-	print_backtrace(element->backtrace);
-#else
 	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+strlen(filename)+1);
+	element->ptr = ptr;
+	element->size = size;
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+	print_backtrace(element->backtrace);
+#endif
 	element->line = line;
 	element->filename = (char*)&(element->filename)+sizeof(element->filename);
 	strcpy(element->filename, filename);
-#endif
-	element->ptr = ptr;
-	element->size = size;
 	element->next = *p;
 	*p = element;
 }
