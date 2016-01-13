@@ -231,6 +231,10 @@ struct __dash_group
 	u32 nb_segments_done;
 	u32 last_segment_time;
 
+	//stats of last downloaded segment
+	u32 total_size, bytes_per_sec;
+
+	
 	Bool segment_must_be_streamed;
 	Bool broken_timing;
 	Bool buffering;
@@ -802,6 +806,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 	u32 download_rate, set_idx, time_since_start, done, tot_size, time_until_end;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
+	if (group->has_depend_group) return GF_BAD_PARAM;
 	if (group->dash->disable_switching) return GF_OK;
 
 	if (group->buffering)
@@ -2370,41 +2375,44 @@ static Double gf_dash_get_max_available_speed(GF_DashClient *dash, GF_DASH_Group
 	return max_available_speed/2; // for testing and debug
 } 
 
-static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, GF_MPD_Representation *rep)
+static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, GF_DASHFileIOSession segment_download)
+{
+	group->total_size = dash->dash_io->get_total_size(dash->dash_io, segment_download);
+	group->bytes_per_sec = dash->dash_io->get_bytes_per_sec(dash->dash_io, segment_download);
+	group->last_segment_time = gf_sys_clock();
+}
+static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 {
 	Double bitrate, time, speed;
 	u32 k, dl_rate;
 	Bool go_up_bitrate = GF_FALSE;
 	u32 nb_inter_rep = 0;
-	GF_MPD_Representation *new_rep;
-	u32 total_size, bytes_per_sec;
+	GF_MPD_Representation *rep, *new_rep;
 	Double max_available_speed;
 	Bool force_below_resolution = GF_FALSE;
 
 	if (dash->auto_switch_count) return;
 	if (group->dash->disable_switching) return;
-
-	total_size = dash->dash_io->get_total_size(dash->dash_io, group->segment_download);
-	bytes_per_sec = dash->dash_io->get_bytes_per_sec(dash->dash_io, group->segment_download);
-	group->last_segment_time = gf_sys_clock();
-
-	if (/*(!group->buffering || !group->min_bandwidth_selected) && */ total_size && bytes_per_sec && group->current_downloaded_segment_duration) {
+	
+	if (group->total_size && group->bytes_per_sec && group->current_downloaded_segment_duration) {
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %s %d bytes at %d bytes per seconds - skipping rate adaptation\n", dash->dash_io->get_url(dash->dash_io, group->segment_download), total_size, bytes_per_sec));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %s %d bytes at %d bytes per seconds - skipping rate adaptation\n", dash->dash_io->get_url(dash->dash_io, group->segment_download), group->total_size, group->bytes_per_sec));
 		return;
 	}
 
-	bitrate = 8*total_size;
+	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	
+	bitrate = 8*group->total_size;
 	bitrate /= group->current_downloaded_segment_duration;
-	time = total_size;
-	time /= bytes_per_sec;
+	time = group->total_size;
+	time /= group->bytes_per_sec;
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %s %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", dash->dash_io->get_url(dash->dash_io, group->segment_download), total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*bytes_per_sec/1000));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded segment %s %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", dash->dash_io->get_url(dash->dash_io, group->segment_download), group->total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*group->bytes_per_sec/1000));
 
 	//adjust the download rate according to the playback speed
 	speed = dash->speed;
 	if (speed<0) speed = -speed;
-	dl_rate = (u32)  (8*bytes_per_sec / speed);
+	dl_rate = (u32)  (8*group->bytes_per_sec / speed);
 
 	if (rep->bandwidth < dl_rate) {
 		go_up_bitrate = 1;
@@ -2790,7 +2798,8 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	/*if this was not an init segment, perform rate adaptation*/
 	if (nb_segment_read) {
-		dash_do_rate_adaptation(dash, group, rep);
+		dash_store_stats(dash, group, group->segment_download);
+		dash_do_rate_adaptation(dash, group);
 	}
 
 	return GF_OK;
@@ -4089,20 +4098,20 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			return GF_DASH_DownloadRestart;
 		}
 	} else {
-		group->max_bitrate = 0;
-		group->min_bitrate = (u32)-1;
+		base_group->max_bitrate = 0;
+		base_group->min_bitrate = (u32)-1;
 		
 		/*use persistent connection for segment downloads*/
 		//gf_mx_p(dash->dl_mutex);
 		if (use_byterange) {
-			e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, start_range, end_range, 1, group);
+			e = gf_dash_download_resource(dash, &(base_group->segment_download), new_base_seg_url, start_range, end_range, 1, base_group);
 		} else {
-			e = gf_dash_download_resource(dash, &(group->segment_download), new_base_seg_url, 0, 0, 1, group);
+			e = gf_dash_download_resource(dash, &(base_group->segment_download), new_base_seg_url, 0, 0, 1, base_group);
 		}
 		//gf_mx_v(dash->dl_mutex);
 		
 		if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
-			group->download_abort_type = 0;
+			base_group->download_abort_type = 0;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Aborted while downloading segment (seek ?)%s \n", new_base_seg_url));
 			gf_free(new_base_seg_url);
 			gf_free(key_url);
@@ -4205,16 +4214,21 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				return GF_DASH_DownloadRestart;
 			}
 		}
+		group->segment_must_be_streamed = base_group->segment_must_be_streamed;
 		
-		if (group->segment_must_be_streamed) local_file_name = dash->dash_io->get_url(dash->dash_io, group->segment_download);
-		else local_file_name = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
+		if (group->segment_must_be_streamed)
+			local_file_name = dash->dash_io->get_url(dash->dash_io, base_group->segment_download);
+		else
+			local_file_name = dash->dash_io->get_cache_name(dash->dash_io, base_group->segment_download);
 		
-		if (dash->dash_io->get_total_size(dash->dash_io, group->segment_download)==0) {
+		if (dash->dash_io->get_total_size(dash->dash_io, base_group->segment_download)==0) {
 			empty_file = GF_TRUE;
 		}
-		resource_name = dash->dash_io->get_url(dash->dash_io, group->segment_download);
+		resource_name = dash->dash_io->get_url(dash->dash_io, base_group->segment_download);
+
+		dash_store_stats(dash, group, base_group->segment_download);
 		
-		dash_do_rate_adaptation(dash, group, rep);
+		dash_do_rate_adaptation(dash, group);
 	}
 	
 	if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
