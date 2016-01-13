@@ -115,16 +115,10 @@ static char *glsl_vertex = "precision mediump float;\
 	varying vec2 TexCoord;\
 	uniform mat4 gfModelViewMatrix;\
 	uniform mat4 gfProjectionMatrix;\
-	uniform mat4 gfTextureMatrix;\
-	uniform bool hasTextureMatrix;\
 	void main(void){\
 		vec4 gfEye;\
 		gfEye = gfModelViewMatrix * gfVertex;\
-		if(hasTextureMatrix){\
-			TexCoord = vec2(gfTextureMatrix * gfTexCoord);\
-		}else{\
-			TexCoord = vec2(gfTexCoord);\
-		}\
+		TexCoord = vec2(gfTexCoord);\
 		gl_Position = gfProjectionMatrix * gfEye;\
 	}";
 
