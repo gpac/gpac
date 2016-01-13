@@ -340,6 +340,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		} else if (path_type==GF_PATH_MODULES) {
 			/*look in possible install dirs ...*/
 			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return 1;
+			if (check_file_exists(TEST_MODULE, "/usr/lib64/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/local/lib/gpac", file_path)) return 1;
