@@ -322,7 +322,7 @@ GF_Err gf_dash_group_get_representation_info(GF_DashClient *dash, u32 idx, u32 r
 /*gets media buffering info for all active representations*/
 void gf_dash_get_buffer_info(GF_DashClient *dash, u32 *total_buffer, u32 *media_buffered);
 
-/*updates media bandwidth for the given group*/
+/*updates media bandwidth for the given group. Only allowed for groups without dependencies to other groups*/
 GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx);
 
 /*resync the downloader so that the next downloaded segment falls into the indicated range - used for error recovery*/
