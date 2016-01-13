@@ -41,6 +41,7 @@
 #define GPAC_DISABLE_MPEG2TS
 #endif
 
+//#define GENERATE_VIRTUAL_REP_SRD
 
 typedef struct _dash_segment_input GF_DashSegInput;
 
@@ -180,7 +181,10 @@ struct _dash_segment_input
 	u32 moof_seqnum_increase;
 
 	u32 protection_scheme_type;
+
+#ifdef GENERATE_VIRTUAL_REP_SRD
 	Bool virtual_representation;
+#endif
 	
 	Double segment_duration;
 	/*all these shall be set after call to dasher_get_components_info*/
@@ -836,7 +840,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	//create output file
 	/*need to precompute bandwidth*/
-	if (dash_input->virtual_representation ||(!bandwidth && seg_rad_name && strstr(seg_rad_name, "$Bandwidth$"))) {
+	if ((!bandwidth && seg_rad_name && strstr(seg_rad_name, "$Bandwidth$"))
+#ifdef GENERATE_VIRTUAL_REP_SRD
+		|| dash_input->virtual_representation
+#endif
+	) {
 		for (i=0; i<gf_isom_get_track_count(input); i++) {
 			Double tk_dur = (Double) gf_isom_get_media_duration(input, i+1);
 			tk_dur /= gf_isom_get_media_timescale(input, i+1);
@@ -925,22 +933,33 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	fragmenters = gf_list_new();
 
 	
+#ifdef GENERATE_VIRTUAL_REP_SRD
 	if (dash_input->virtual_representation) {
 		char *virtual_url;
+		FILE *vseg;
+		GF_BitStream *bs;
 		gf_media_get_rfc_6381_codec_name(input, dash_input->trackNum , szCodec, dash_cfg->inband_param_set, GF_TRUE);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcpy(szCodecs, szCodec);
 		
 		sprintf(SegmentName, "virtual_rep_%d_segment.m4s", dash_input->idx_representations);
 		virtual_url = gf_url_concatenate(output_file, SegmentName);
+		vseg = gf_fopen(virtual_url, "w");
+		bs = gf_bs_from_file(vseg, GF_BITSTREAM_WRITE);
+		gf_bs_write_u32(bs, 20);
+		gf_bs_write_u32(bs, GF_4CC('s','t','y','p'));
+		gf_bs_write_u32(bs, GF_4CC('m','s','d','h'));
+		gf_bs_write_u32(bs, 0);
+		gf_bs_write_u32(bs, GF_4CC('m','s','d','h'));
+		gf_bs_del(bs);
+		gf_fclose(vseg);
 
-		output = gf_isom_open(virtual_url, GF_ISOM_OPEN_WRITE, dash_cfg->tmpdir);
-		gf_isom_set_brand_info(output, GF_4CC('m','s','d','h'), 0);
 		gf_free(virtual_url);
-		gf_isom_close(output);
+
 		output = NULL;
 		goto restart_fragmentation_pass;
 	}
+#endif
 	
 	if (! dash_moov_setup) {
 		e = gf_isom_clone_movie(input, output, GF_FALSE, GF_FALSE, !dash_cfg->pssh_moof );
@@ -1401,8 +1420,10 @@ restart_fragmentation_pass:
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
+#ifdef GENERATE_VIRTUAL_REP_SRD
 		if (dash_input->virtual_representation)
 			break;
+#endif
 		
 		if (switch_segment) {
 			if (dash_cfg->subduration && (segment_start_time + MaxSegmentDuration/2 >= dash_cfg->dash_scale * dash_cfg->subduration)) {
@@ -2225,8 +2246,11 @@ restart_fragmentation_pass:
 		/*segment template depends on file name, but the template at the representation level*/
 		if (dash_cfg->variable_seg_rad_name) {
 			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
+#ifdef GENERATE_VIRTUAL_REP_SRD
 			//if virtual rep, SegmentName already contains the name of the empty media segment used
-			if (!dash_input->virtual_representation) {
+			if (!dash_input->virtual_representation)
+#endif
+			{
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			}
 			
@@ -2262,10 +2286,13 @@ restart_fragmentation_pass:
 			}
 		}
 	} else if (dash_cfg->single_file_mode==1) {
+#ifdef GENERATE_VIRTUAL_REP_SRD
 		if (dash_input->virtual_representation) {
 			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", SegmentName);
 			fprintf(dash_cfg->mpd, "    <SegmentBase />\n");
-		} else {
+		} else
+#endif
+		{
 			fprintf(dash_cfg->mpd, "    <BaseURL>%s</BaseURL>\n", gf_dasher_strip_output_dir(dash_cfg->mpd_name,  gf_isom_get_filename(output) ) );
 			fprintf(dash_cfg->mpd, "    <SegmentBase indexRangeExact=\"true\" indexRange=\"%d-%d\"", index_start_range, index_end_range);
 		
@@ -2300,8 +2327,11 @@ restart_fragmentation_pass:
 			if (!seg_rad_name) {
 				fprintf(dash_cfg->mpd, " range=\"0-"LLD"\"", init_seg_size-1);
 			} else {
+#ifdef GENERATE_VIRTUAL_REP_SRD
 				//if virtual rep, SegmentName already contains the name of the empty media segment used
-				if (!dash_input->virtual_representation) {
+				if (!dash_input->virtual_representation)
+#endif
+				{
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_INITIALIZATION, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, gf_dasher_strip_output_dir(dash_cfg->mpd_name,  seg_rad_name) , !stricmp(seg_ext, "null") ? NULL : "mp4", 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 				}
 				fprintf(dash_cfg->mpd, " sourceURL=\"%s\"", SegmentName);
@@ -2493,9 +2523,10 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		if (dash_inputs[input_idx].y != dash_inputs[i].y) continue;
 		if (dash_inputs[input_idx].w != dash_inputs[i].w) continue;
 		if (dash_inputs[input_idx].h != dash_inputs[i].h) continue;
-		if (dash_inputs[i].virtual_representation)
-			continue;
-
+#ifdef GENERATE_VIRTUAL_REP_SRD
+		if (dash_inputs[i].virtual_representation) continue;
+#endif
+		
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 
 		for (j=0; j<gf_isom_get_track_count(set_file); j++) {
@@ -4441,6 +4472,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
                 }
 			}
 		}
+#ifdef GENERATE_VIRTUAL_REP_SRD
 		if (has_tiling) {
 			GF_DashSegInput *di = &dash_inputs [cur_idx];
 			*nb_dash_inputs += 1;
@@ -4468,6 +4500,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 			di->virtual_representation = GF_TRUE;
 		}
+#endif
 
 
 
@@ -4481,7 +4514,11 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				
 				di = &dash_inputs[j];
 
+#ifdef GENERATE_VIRTUAL_REP_SRD
 				if (k==0) dep_type = (di->virtual_representation) ? GF_ISOM_REF_SABT : GF_ISOM_REF_TBAS;
+#else
+				if (k==0) dep_type = GF_ISOM_REF_TBAS;
+#endif
 				else dep_type = GF_ISOM_REF_SCAL;
 
 				count = gf_isom_get_reference_count(file, di->trackNum, dep_type);
@@ -4800,7 +4837,11 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
     //check SRD
     for (i=0; i< nb_dash_inputs; i++) {
         if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
-            if (dash_inputs[i].w && dash_inputs[i].h && !dash_inputs[i].virtual_representation) {
+            if (dash_inputs[i].w && dash_inputs[i].h
+#ifdef GENERATE_VIRTUAL_REP_SRD
+				&& !dash_inputs[i].virtual_representation
+#endif
+			) {
 				if (dash_inputs[i].dependencyID) {
 					fprintf(mpd, "   <SupplementalProperty schemeIdUri=\"urn:mpeg:dash:srd:2014\" value=\"1,%d,%d,%d,%d\"/>\n", dash_inputs[i].x, dash_inputs[i].y, dash_inputs[i].w, dash_inputs[i].h);
 				}
