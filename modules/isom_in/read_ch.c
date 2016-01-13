@@ -114,9 +114,9 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 		read->drop_next_segment = 0;
 		param.url_query.drop_first_segment = 1;
 	}
-
+	
 	//if first time trying to fetch next segment, check if we have to discard it
-	if (!do_refresh && (read->seg_opened==2)) {
+	if (!do_refresh && (read->seg_opened==2) && !read->pending_scalable_enhancement_segment_index) {
 #ifdef DASH_USE_PULL
 		for (i=0; i<count; i++) {
 			ISOMChannel *ch = gf_list_get(read->channels, i);
@@ -137,6 +137,15 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 		param.url_query.drop_first_segment = 1;
 	}
 
+	if (read->pending_scalable_enhancement_segment_index) {
+		do_refresh = 0;
+		param.url_query.drop_first_segment = 0;
+		param.url_query.dependent_representation_index = read->pending_scalable_enhancement_segment_index;
+		scalable_segment = 1;
+		read->pending_scalable_enhancement_segment_index = 0;
+	}
+	
+	
 next_segment:
 	/*update current fragment if any*/
 	e = read->input->query_proxy(read->input, &param);
@@ -179,6 +188,7 @@ next_segment:
 				//we did the last refresh and the segment is downloaded, move to fully parsed mode
 				if (! param.url_query.current_download) {
 					read->seg_opened = 2;
+					read->waiting_for_data = GF_FALSE;
 				}
 				gf_mx_v(read->segment_mutex);
 				return;
@@ -215,7 +225,7 @@ next_segment:
 				} else if (param.url_query.end_range) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", param.url_query.next_url, param.url_query.start_range, param.url_query.end_range ));
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s\n", param.url_query.next_url));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s (has next dep %d)\n", param.url_query.next_url, param.url_query.has_next));
 				}
 #endif
 			}
@@ -313,13 +323,16 @@ next_segment:
 	} else if (e==GF_EOS) {
 		/*consider we are done*/
 		read->frag_type = 2;
+		read->waiting_for_data = GF_FALSE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] No more segments - done playing file\n"));
 	} else if (e==GF_BUFFER_TOO_SMALL) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Next segment is not yet available\n"));
 		read->waiting_for_data = GF_TRUE;
+		read->pending_scalable_enhancement_segment_index = param.url_query.dependent_representation_index;
 	} else {
 		/*consider we are done*/
 		read->frag_type = 2;
+		read->waiting_for_data = GF_FALSE;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error fetching next DASH segment: no more segments\n"));
 	}
 	gf_mx_v(read->segment_mutex);
@@ -816,6 +829,14 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 
 	//update data
 	isor_segment_switch_or_refresh(read, do_refresh);
+	
+	//segment not ready
+	if ( read->pending_scalable_enhancement_segment_index) {
+		read->in_data_flush = 0;
+		gf_mx_v(read->segment_mutex);
+		return;
+	}
+
 
 	//for all channels, fetch and send ...
 	count = gf_list_count(read->channels);
@@ -865,7 +886,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		/*close current segment*/
 		gf_isom_release_segment(read->mov, 1);
 		read->seg_opened = 0;
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment \n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Done playing segment - closing it\n"));
 	}
 	read->in_data_flush = 0;
 

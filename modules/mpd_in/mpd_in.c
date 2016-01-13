@@ -295,6 +295,8 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			GF_MPDGroup *group;
 			if (!gf_dash_is_group_selectable(mpdin->dash, i)) continue;
 			group = gf_dash_get_group_udta(mpdin->dash, i);
+			if (!group) continue;
+			
 			if (group->segment_ifce == ifce) {
 				gf_dash_group_get_segment_init_url(mpdin->dash, i, &param->url_query.start_range, &param->url_query.end_range);
 				param->url_query.current_download = 0;
@@ -744,30 +746,19 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				if (! gf_dash_group_enum_descriptor(mpdin->dash, i, GF_MPD_DESC_ESSENTIAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
 					break;
 				j++;
-				//we don't want to play srd, only the backward compatible version
 				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
-					playable = GF_FALSE;
-					break;
 				} else {
 					playable = GF_FALSE;
 					break;
 				}
 			}
-			
-			j=0;
-			while (1) {
-				const char *desc_id, *desc_scheme, *desc_value;
-				if (! gf_dash_group_enum_descriptor(mpdin->dash, i, GF_MPD_DESC_SUPPLEMENTAL_PROPERTIES, j, &desc_id, &desc_scheme, &desc_value))
-					break;
-				j++;
-				//we don't want to play srd, only the backward compatible version
-				if (!strcmp(desc_scheme, "urn:mpeg:dash:srd:2014")) {
-					playable = GF_FALSE;
-					break;
-				}
-			}
 			if (!playable) {
-				gf_dash_group_select(mpdin->dash, i, 0);
+				gf_dash_group_select(mpdin->dash, i, GF_FALSE);
+				continue;
+			}
+			
+			if (gf_dash_group_has_dependent_group(mpdin->dash, i)) {
+				gf_dash_group_select(mpdin->dash, i, GF_TRUE);
 				continue;
 			}
 			
@@ -775,7 +766,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			init_segment = gf_dash_group_get_segment_init_url(mpdin->dash, i, NULL, NULL);
 			e = MPD_LoadMediaService(mpdin, i, mime, init_segment);
 			if (e != GF_OK) {
-				gf_dash_group_select(mpdin->dash, i, 0);
+				gf_dash_group_select(mpdin->dash, i, GF_FALSE);
 			} else {
 				u32 w, h;
 				/*connect our media service*/
@@ -789,7 +780,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				e = group->segment_ifce->ConnectService(group->segment_ifce, mpdin->service, init_segment);
 				if (e) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD_IN] Unable to connect input service to %s\n", init_segment));
-					gf_dash_group_select(mpdin->dash, i, 0);
+					gf_dash_group_select(mpdin->dash, i, GF_FALSE);
 				} else {
 					group->service_connected = 1;
 				}
