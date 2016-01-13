@@ -1641,7 +1641,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 		for (i=0; i<h/2; i++) {
 			u16 *src = (u16 *) (pU + i*src_stride/2);
 			u8 *dst = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2;
-			if (vs_dst->u_ptr) dst = vs_dst->u_ptr + i*vs_dst->pitch_y/2;
+			if (vs_dst->u_ptr) dst = (u8 *) (vs_dst->u_ptr + i*vs_dst->pitch_y/2);
 
 			for (j=0; j<w/2; j++) {
 				*dst = (*src) >> 2;
@@ -1653,7 +1653,7 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 		for (i=0; i<h/2; i++) {
 			u16 *src = (u16 *) (pV + i*src_stride/2);
 			u8 *dst = (u8 *) vs_dst->video_buffer + 5*vs_dst->pitch_y * vs_dst->height/4  + i*vs_dst->pitch_y/2;
-			if (vs_dst->v_ptr) dst = vs_dst->v_ptr + i*vs_dst->pitch_y/2;
+			if (vs_dst->v_ptr) dst = (u8 *) (vs_dst->v_ptr + i*vs_dst->pitch_y/2);
 
 			for (j=0; j<w/2; j++) {
 				*dst = (*src) >> 2;
