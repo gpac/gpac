@@ -109,7 +109,8 @@ typedef struct
 
 
 
-static char *glsl_vertex = "attribute vec4 gfVertex;\
+static char *glsl_vertex = "precision mediump float;\
+	attribute vec4 gfVertex;\
 	attribute vec4 gfTexCoord;\
 	varying vec2 TexCoord;\
 	uniform mat4 gfModelViewMatrix;\
@@ -127,7 +128,7 @@ static char *glsl_vertex = "attribute vec4 gfVertex;\
 		gl_Position = gfProjectionMatrix * gfEye;\
 	}";
 
-static char *glsl_fragment = "attribute vec4 gfVertex;\
+static char *glsl_fragment = "precision mediump float;\
 	varying vec2 TexCoord;\
 	uniform sampler2D img;\
 	void main(void){\
