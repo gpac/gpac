@@ -139,6 +139,24 @@ static char *glsl_fragment = "precision mediump float;\
 
 #define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
 
+static GLint gf_glGetUniformLocation(u32 glsl_program, const char *uniform_name)
+{
+	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find uniform \"%s\" in GLSL program\n", uniform_name));
+	}
+	return loc;
+}
+
+static GLint gf_glGetAttribLocation(u32 glsl_program, const char *attrib_name)
+{
+	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find attrib \"%s\" in GLSL program\n", attrib_name));
+	}
+	return loc;
+}
+
 //modified version of visual_3d_compile_shader function
 Bool compile_shader(u32 shader_id, const char *name, const char *source){
 	GLint blen = 0;
