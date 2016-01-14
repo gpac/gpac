@@ -184,17 +184,55 @@ Bool compile_shader(u32 shader_id, const char *name, const char *source){
 	return GF_TRUE;
 }
 
+
 static Bool initGLES2(AndroidContext *rc){
 
+
+//PRINT OpengGL INFO
+	char* ext;
+
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android InitGLES2");
+
+	ext = (char*)glGetString(GL_VENDOR);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Vendor: %s", ext);
+
+	ext = (char*)glGetString(GL_RENDERER);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Renderer: %s", ext);
+
+	ext = (char*)glGetString(GL_VERSION);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Version: %s", ext);
+
+	ext = (char*)glGetString(GL_EXTENSIONS);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Extensions: %s", ext);
+
+
+
+//Generic GL setup
+	/* Set the background black */
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	/* Depth buffer setup */
+	glClearDepthf(1.0f);
+
+	/* Enables Depth Testing */
+	glEnable(GL_DEPTH_TEST);
+
+	/* The Type Of Depth Test To Do */
+	glDepthFunc(GL_LEQUAL);
+
+
+
+//Shaders setup
 	Bool res = GF_FALSE;
 	GLint linked;
 
+	GL_CHECK_ERR
 	gf_mx_init(rc->identity);
-
 	rc->base_program = glCreateProgram();
 	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
 	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-
+	GL_CHECK_ERR
+	GF_LOG(ANDROID_LOG_DEBUG, TAG, ("Compiling shaders for program: %d\n", rc->base_program))
 	res = compile_shader(rc->base_vertex, "vertex", glsl_vertex);
 	if(!res) return GF_FALSE;
 	res = compile_shader(rc->base_fragment, "fragment", glsl_fragment);
@@ -213,8 +251,9 @@ static Bool initGLES2(AndroidContext *rc){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
 		return GF_FALSE;
 	}
-
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android GLES2 basic shaders compiled");
+	glUseProgram(rc->base_program);
+	GL_CHECK_ERR
+	LOG( ANDROID_LOG_DEBUG, TAG, "Shaders compiled");
 
 	return GF_OK;
 }
@@ -263,10 +302,12 @@ static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fi
 
 }
 
-#endif
 
 
+#endif	//Endof specifix for GLES2 (ifdef GPAC_USE_GLES2)
 
+
+#ifndef GPAC_USE_GLES2
 void initGL(AndroidContext *rc)
 {
 	char* ext;
@@ -296,10 +337,6 @@ void initGL(AndroidContext *rc)
 		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
 
-#ifdef GPAC_USE_GLES2
-	initGLES2(rc);
-#endif
-
 #ifndef GPAC_USE_GLES2
 	/* Enable smooth shading */
 	glShadeModel(GL_SMOOTH);
@@ -320,6 +357,7 @@ void initGL(AndroidContext *rc)
 	/* Really Nice Perspective Calculations */
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }
+#endif
 
 void gluPerspective(GLfloat fovy, GLfloat aspect,
                     GLfloat zNear, GLfloat zFar)
