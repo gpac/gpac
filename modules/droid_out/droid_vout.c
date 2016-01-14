@@ -30,7 +30,7 @@
 
 #include <gpac/setup.h>
 
-#ifndef GPAC_USE_GLES2
+#ifdef GPAC_USE_GLES2
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #else
