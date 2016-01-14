@@ -160,7 +160,7 @@ Bool compile_shader(u32 shader_id, const char *name, const char *source){
 	GLint blen = 0;
 	GLsizei slen = 0;
 	u32 len;
-	Bool is_compiled = GF_FALSE;
+	GLint is_compiled = 0;
 
 
 	if(!source || !shader_id) return 0;
@@ -169,7 +169,7 @@ Bool compile_shader(u32 shader_id, const char *name, const char *source){
 	glCompileShader(shader_id);
 
 	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
-	if (is_compiled == GL_TRUE) return GF_TRUE;
+	if (is_compiled == 1) return GF_TRUE;
 
 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
@@ -221,7 +221,6 @@ static Bool initGLES2(AndroidContext *rc){
 	glDepthFunc(GL_LEQUAL);
 
 
-
 //Shaders setup
 	Bool res = GF_FALSE;
 	GLint linked;
@@ -231,8 +230,8 @@ static Bool initGLES2(AndroidContext *rc){
 	rc->base_program = glCreateProgram();
 	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
 	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
-	GL_CHECK_ERR
-	GF_LOG(ANDROID_LOG_DEBUG, TAG, ("Compiling shaders for program: %d\n", rc->base_program))
+
+	LOG( ANDROID_LOG_DEBUG, TAG, ("Compiling shaders"));
 	res = compile_shader(rc->base_vertex, "vertex", glsl_vertex);
 	if(!res) return GF_FALSE;
 	res = compile_shader(rc->base_fragment, "fragment", glsl_fragment);
@@ -242,7 +241,7 @@ static Bool initGLES2(AndroidContext *rc){
 	glAttachShader(rc->base_program, rc->base_fragment);
 	glLinkProgram(rc->base_program);
 
-	glGetProgramiv(rc->base_program, GL_LINK_STATUS, &res);
+	glGetProgramiv(rc->base_program, GL_LINK_STATUS, &linked);
 	if (!linked) {
 		int i32CharsWritten, i32InfoLogLength;
 		char pszInfoLog[2048];
@@ -255,17 +254,17 @@ static Bool initGLES2(AndroidContext *rc){
 	GL_CHECK_ERR
 	LOG( ANDROID_LOG_DEBUG, TAG, "Shaders compiled");
 
-	return GF_OK;
+	return GF_TRUE;
 }
 
 static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 {
-	GLint loc;
+	GLint loc=-1;
 #ifdef GPAC_FIXED_POINT
 	Float _mat[16];
 	u32 i;
 #endif
-
+GL_CHECK_ERR
 	loc = glGetUniformLocation(program, name);
 	if(loc<0){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
@@ -337,10 +336,8 @@ void initGL(AndroidContext *rc)
 		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
 
-#ifndef GPAC_USE_GLES2
 	/* Enable smooth shading */
 	glShadeModel(GL_SMOOTH);
-#endif
 
 	/* Set the background black */
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -726,6 +723,17 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 	int ret;
 
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Setup: %d", init_flags);
+
+
+#ifdef GPAC_USE_GLES2
+
+	if ( rc->out_3d_type == 0 ){
+		LOG( ANDROID_LOG_DEBUG, TAG, "We are in OpenGL: disable mode");
+		res = initGLES2(rc);
+		if(res==GF_FALSE)LOG( ANDROID_LOG_ERROR, TAG, "ERROR Compiling ES2 Shaders");
+	}
+
+#else
 
 #ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
