@@ -40,7 +40,11 @@
 
 #include <android/log.h>
 
+#ifdef GPAC_USE_GLES2
+#define TAG "DROID_VIDEO [GLES2]"
+#else
 #define TAG "DROID_VIDEO"
+#endif
 
 #define LOG   __android_log_print
 
