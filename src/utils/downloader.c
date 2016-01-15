@@ -201,7 +201,7 @@ struct __gf_download_manager
 	GF_Config *cfg;
 	GF_List *sessions;
 	Bool disable_cache, simulate_no_connection, allow_offline_cache;
-	u32 limit_data_rate;
+	u32 limit_data_rate, read_buf_size;
 
 	GF_List *skip_proxy_servers;
 	GF_List *credentials;
@@ -1111,7 +1111,7 @@ static u32 gf_dm_session_thread(void *par)
 			sess->do_requests(sess);
 		}
 		gf_mx_v(sess->mx);
-		gf_sleep(2);
+		gf_sleep(1);
 	}
 	/*destroy all sessions*/
 	gf_dm_disconnect(sess, GF_FALSE);
@@ -1485,12 +1485,12 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
 		case GF_NETIO_SETUP:
 			gf_dm_connect(sess);
 			if (sess->status == GF_NETIO_SETUP)
-				gf_sleep(16);
+				gf_sleep(1);
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
 			if (timer == 0)
 				timer = gf_sys_clock();
-			gf_sleep(16);
+			gf_sleep(1);
 			{
 				u32 timer2 = gf_sys_clock();
 				if (timer2 - timer > 5000) {
@@ -1608,10 +1608,10 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		case GF_NETIO_SETUP:
 			gf_dm_connect(sess);
 			if (sess->status == GF_NETIO_SETUP)
-				gf_sleep(16);
+				gf_sleep(1);
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
-			gf_sleep(16);
+			gf_sleep(1);
 		case GF_NETIO_CONNECTED:
 		case GF_NETIO_DATA_EXCHANGE:
 			sess->do_requests(sess);
@@ -1649,10 +1649,9 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
 		case GF_NETIO_SETUP:
 			gf_dm_connect(sess);
 			if (sess->status == GF_NETIO_SETUP)
-				gf_sleep(16);
+				gf_sleep(1);
 			break;
 		case GF_NETIO_WAIT_FOR_REPLY:
-//            gf_sleep(16);
 			gf_sleep(1);
 		case GF_NETIO_CONNECTED:
 			sess->do_requests(sess);
@@ -1759,7 +1758,13 @@ retry_cache:
 
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
-	if (opt) dm->limit_data_rate = 1024 * atoi(opt) / 8;
+	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
+
+	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+	//for data rates lower than 2 mbps use smaller read size otherwise we will not be able to limit the rate
+	if (dm->limit_data_rate && dm->limit_data_rate < 2500) {
+		dm->read_buf_size = 1024;
+	}
 
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "DisableCache");
@@ -2516,27 +2521,26 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 
 
-static Bool dm_exceeds_cap_rate(GF_DownloadSession * sess)
+static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 {
 	u32 cumul_rate = 0;
-	u32 i, count = gf_list_count(sess->dm->sessions);
-
-	dm_sess_update_download_rate(sess, GF_FALSE);
-	//we already exceed the max rate
-	if (sess->bytes_per_sec>sess->dm->limit_data_rate) return GF_TRUE;
+	u32 nb_sess = 0;
+	u32 i, count = gf_list_count(dm->sessions);
 
 	//check if this fits with all other sessions
 	for (i=0; i<count; i++) {
-		GF_DownloadSession * a_sess = (GF_DownloadSession*)gf_list_get(sess->dm->sessions, i);
-		if (sess == a_sess) continue;
-		//session done
-		if (a_sess->total_size==a_sess->bytes_done) {
-			continue;
-		}
-		dm_sess_update_download_rate(a_sess, GF_FALSE);
-		cumul_rate += a_sess->bytes_per_sec;
+		GF_DownloadSession * sess = (GF_DownloadSession*)gf_list_get(dm->sessions, i);
+
+		//session not running done
+		if (sess->status != GF_NETIO_DATA_EXCHANGE) continue;
+
+		dm_sess_update_download_rate(sess, GF_FALSE);
+		cumul_rate += sess->bytes_per_sec;
+		nb_sess ++;
 	}
-	if (sess->bytes_per_sec + cumul_rate >= sess->dm->limit_data_rate) return GF_TRUE;
+	if ( cumul_rate >= nb_sess * dm->limit_data_rate)
+		return GF_TRUE;
+	
 	return GF_FALSE;
 }
 
@@ -2550,18 +2554,18 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 {
 	u32 size;
 	GF_Err e;
-	u32 buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+	u32 buf_size = sess->dm ? sess->dm->read_buf_size : GF_DOWNLOAD_BUFFER_SIZE;
 	u32 remaining_data_size = sess->remaining_data_size;
-	if (sess->dm && sess->dm->limit_data_rate)
-		buf_size = 1024;
 
 	while (1) {
 		if (sess->status>=GF_NETIO_DISCONNECTED)
 			return GF_REMOTE_SERVICE_ERROR;
 
 		if (sess->dm && sess->dm->limit_data_rate && sess->bytes_per_sec) {
-			if (dm_exceeds_cap_rate(sess))
+			if (dm_exceeds_cap_rate(sess->dm)) {
+				gf_sleep(1);
 				return GF_OK;
+			}
 		}
 
 		//the data remaining from the last buffer (i.e size for chunk that couldn't be read because the buffer does not contain enough bytes)
@@ -2611,7 +2615,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 		gf_dm_data_received(sess, (u8 *) sHTTP, size+remaining_data_size, GF_FALSE, NULL);
 
 		/*socket empty*/
-		if (size < GF_DOWNLOAD_BUFFER_SIZE) {
+		if (size < buf_size) {
 			gf_sleep(1);
 			return GF_OK;
 		}
@@ -2685,9 +2689,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		return GF_OK;
 	}
 
-	buf_size = GF_DOWNLOAD_BUFFER_SIZE;
-	if (sess->dm && sess->dm->limit_data_rate)
-		buf_size = 1024;
+	buf_size = sess->dm ? sess->dm->read_buf_size : GF_DOWNLOAD_BUFFER_SIZE;
 
 	//always set start time to the time at last attempt reply parsing
 	sess->start_time = gf_sys_clock_high_res();
@@ -3618,6 +3620,12 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 			char opt[100];
 			sprintf(opt, "%d", rate_in_bits_per_sec / 1024);
 			gf_cfg_set_key(dm->cfg, "Downloader", "MaxRate", opt);
+		}
+
+		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
+		//for data rates lower than 2 mbps use smaller read size otherwise we will not be able to limit the rate
+		if (dm->limit_data_rate && dm->limit_data_rate < 2500) {
+			dm->read_buf_size = 1024;
 		}
 	}
 }
