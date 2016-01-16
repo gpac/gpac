@@ -2200,6 +2200,10 @@ restart_fragmentation_pass:
 		}
 	}
 
+	if (!max_segment_duration || !dash_cfg->segment_duration_strict) {
+		max_segment_duration = dash_cfg->segment_duration;
+	}
+
 	if (use_url_template) {
 		/*segment template depends on file name, but the template at the representation level*/
 		if (dash_cfg->variable_seg_rad_name) {
@@ -2207,8 +2211,6 @@ restart_fragmentation_pass:
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
-				if (!max_segment_duration || !dash_cfg->segment_duration_strict)
-					max_segment_duration = dash_cfg->segment_duration;
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
 			}
 			if (!is_bs_switching) {
