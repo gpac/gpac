@@ -2027,6 +2027,30 @@ restart_fragmentation_pass:
 
 	bandwidth += dash_input->dependency_bandwidth;
 	dash_input->bandwidth = bandwidth;
+	
+
+	/* max segment duration */
+	if (dash_cfg->dash_ctx) {
+		Double seg_dur;
+		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration");
+		if (opt) {
+			seg_dur = atof(opt);
+			if (seg_dur < max_segment_duration) {
+				sprintf(sOpt, "%f", max_segment_duration);
+				gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+				seg_dur = max_segment_duration;
+			} else {
+				max_segment_duration = seg_dur;
+			}
+		} else {
+			sprintf(sOpt, "%f", max_segment_duration);
+			gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+		}
+	}
+
+	if (!max_segment_duration || !dash_cfg->segment_duration_strict) {
+		max_segment_duration = dash_cfg->segment_duration;
+	}
 
 
 	if (use_url_template) {
@@ -2180,28 +2204,6 @@ restart_fragmentation_pass:
 	/* Write content protection element in representation */
 	if (protected_track && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_ADAPTATION_SET)) {
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
-	}
-
-	if (dash_cfg->dash_ctx) {
-		Double seg_dur;
-		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration");
-		if (opt) {
-			seg_dur = atof(opt);
-			if (seg_dur < max_segment_duration) {
-				sprintf(sOpt, "%f", max_segment_duration);
-				gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
-				seg_dur = max_segment_duration;
-			} else {
-				max_segment_duration = seg_dur;
-			}
-		} else {
-			sprintf(sOpt, "%f", max_segment_duration);
-			gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
-		}
-	}
-
-	if (!max_segment_duration || !dash_cfg->segment_duration_strict) {
-		max_segment_duration = dash_cfg->segment_duration;
 	}
 
 	if (use_url_template) {
