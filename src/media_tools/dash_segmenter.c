@@ -4286,7 +4286,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 	GF_DashSegInput *dash_input = & dash_inputs[idx];
 	char *uri_frag = strchr(dash_input->file_name, '#');
 	FILE *t;
-	
+
 	if (uri_frag) uri_frag[0] = 0;
 
 	t = gf_fopen(dash_input->file_name, "rb");
@@ -4340,6 +4340,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 			dash_input->moof_seqnum_increase = 0;
 
+			gf_isom_close(file);
 			return GF_OK;
 		}
 
@@ -4376,7 +4377,6 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				continue;
 			}
 
-
 			di = &dash_inputs [cur_idx];
 			*nb_dash_inputs += 1;
 			cur_idx++;
@@ -4396,13 +4396,12 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				u32 default_sample_group_index, id, independent;
 				Bool full_frame;
 				gf_isom_get_tile_info(file, di->trackNum, 1, &default_sample_group_index, &id, &independent, &full_frame, &di->x, &di->y, &di->w, &di->h);
-                
-                if (!dash_input->w) {
-                    gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
-                }
+
+				if (!dash_input->w) {
+					gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
+				}
 			}
 		}
-
 
 		/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 		for (j = idx; j < *nb_dash_inputs; j++) {
@@ -4417,15 +4416,15 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			di->lower_layer_track = dash_input->trackNum;
 			strcpy(depID, "");
 			for (t=0; t < count; t++) {
-                u32 al_len = 0;
-                char *rid;
-                if (t) al_len++;
-                gf_isom_get_reference(file, di->trackNum, GF_ISOM_REF_SCAL, t+1, &ref_track);
-                rid = gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track);
+				u32 al_len = 0;
+				char *rid;
+				if (t) al_len++;
+				gf_isom_get_reference(file, di->trackNum, GF_ISOM_REF_SCAL, t+1, &ref_track);
+				rid = gf_dash_get_representationID(dash_inputs, *nb_dash_inputs, di->file_name, ref_track);
 
-                if (!rid) continue;
-                al_len += (u32) strlen(rid);
-                al_len += (u32) strlen(depID)+1;
+				if (!rid) continue;
+				al_len += (u32) strlen(rid);
+				al_len += (u32) strlen(depID)+1;
 
 				depID = (char*)gf_realloc(depID, sizeof(char)*al_len);
 				if (t)
@@ -4434,8 +4433,10 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 				di->lower_layer_track = ref_track;
 			}
-            di->dependencyID = depID;
+
+			di->dependencyID = depID;
 		}
+
 		gf_isom_close(file);
 		return GF_OK;
 	}
@@ -6173,6 +6174,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 			e = write_adaptation_header(period_mpd, dasher->profile, dasher->use_url_template, dasher->single_file_mode, dasher->inputs, dasher->nb_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, 
 				use_bs_switching, max_width, max_height, dar_num, dar_den, szFPS, lang, szInit, dasher->segment_alignment_disabled, dasher->mpd_name);
+			gf_free(lang);
 
 			if (e) goto exit;
 
@@ -6391,7 +6393,9 @@ exit:
 			PeriodEntry *p = (PeriodEntry *) gf_list_pop_back(period_links);
 			if (p) gf_free(p);
 		}
+		gf_list_del(period_links);
 	}
+
 	return e;
 }
 
