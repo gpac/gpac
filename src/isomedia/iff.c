@@ -116,9 +116,9 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
 		return GF_OK;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
 		gf_bs_skip_bytes(bs, p->size);
-		return GF_NOT_SUPPORTED;
+		return GF_OK;
 	}
 }
 
