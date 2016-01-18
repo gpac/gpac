@@ -410,11 +410,17 @@ void drawGLScene(AndroidContext *rc)
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : start");
 #endif /* DROID_EXTREME_LOGS */
+#ifdef GPAC_USE_GLES2
+	GLuint loc_vertex_array, loc_texcoord_array;
+	loc_vertex_array = loc_texcoord_array = -1;
+#endif
+
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
 
 	float rgba[4];
+GL_CHECK_ERR
 
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
@@ -427,12 +433,16 @@ void drawGLScene(AndroidContext *rc)
 #endif
 	/* Clear The Screen And The Depth Buffer */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	GL_CHECK_ERR
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+#ifndef GPAC_USE_GLES2
 	glEnable(GL_TEXTURE_2D);
+#endif
+	glUseProgram(rc->base_program);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture( GL_TEXTURE_2D, rc->texID);
+	GL_CHECK_ERR
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 #ifndef GPAC_USE_GLES2
@@ -450,17 +460,20 @@ void drawGLScene(AndroidContext *rc)
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, rc->tex_width, rc->tex_height, 0,
 	              GL_RGBA, GL_UNSIGNED_BYTE, rc->texData );
 
+GL_CHECK_ERR
 	if ( rc->draw_texture )
 	{
+		GL_CHECK_ERR
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 #ifndef GPAC_USE_GLES2
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 		glDrawTexsOES(0, 0, 0, rc->width, rc->height);
 #endif
 	}
 	else
 	{
-		//TODOk reprogram for ES2
+		GL_CHECK_ERR
+
 #ifndef GPAC_USE_GLES2
 		/* Enable VERTEX array */
 		glEnableClientState(GL_VERTEX_ARRAY);
