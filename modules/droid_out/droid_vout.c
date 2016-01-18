@@ -485,6 +485,20 @@ GL_CHECK_ERR
 
 		/* Move Left 1.5 Units And Into The Screen 6.0 */
 		glLoadIdentity();
+#else
+		loc_vertex_array = glGetAttribLocation(rc->base_program, "gfVertex");
+		if(loc_vertex_array<0)
+			return;
+		glEnableVertexAttribArray(loc_vertex_array);
+		glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+
+		loc_texcoord_array = glGetAttribLocation(rc->base_program, "gfTexCoord");
+		if (loc_texcoord_array>=0) {
+			glVertexAttribPointer(loc_texcoord_array, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+			glEnableVertexAttribArray(loc_texcoord_array);
+		}
+
+
 #endif
 		//glTranslatef(0.0f, 0.0f, -3.3f);
 		//glTranslatef(0.0f, 0.0f, -2.3f);
