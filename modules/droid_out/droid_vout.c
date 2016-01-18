@@ -274,8 +274,10 @@ GL_CHECK_ERR
 }
 
 
+//ES2 version of glOrthox() - resulting matrix is stored in rc->ortho
+//more info on Orthographic projection matrix at http://www.songho.ca/opengl/gl_projectionmatrix.html#ortho
 static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc){
-	//glOrthox(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1));
+
 
 	if((left==right)|(bottom==top)|(near==far)){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid Orthogonal projection values", __FILE__, __LINE__));
@@ -283,14 +285,15 @@ static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fi
 	}
 
 	gf_mx_init(rc->ortho);
-	rc->ortho.m[0] = gf_divfix(2, (right-left));
-	rc->ortho.m[3] = -gf_divfix(right+left, right-left);
-	rc->ortho.m[5] = gf_divfix(2, (top-bottom));
-	rc->ortho.m[7] = - gf_divfix(top+bottom, top-bottom);
-	rc->ortho.m[10] = gf_divfix(-2, far-near);
-	rc->ortho.m[11] = - gf_divfix(far+near, far-near);
-	rc->ortho.m[15] = FIX_ONE;
 
+//For Orthographic Projection
+	rc->ortho.m[0] = gf_divfix(2, (right-left));
+	rc->ortho.m[5] = gf_divfix(2, (top-bottom));
+	rc->ortho.m[10] = gf_divfix(-2, far-near);
+	rc->ortho.m[12] = -gf_divfix(right+left, right-left);
+	rc->ortho.m[13] = -gf_divfix(top+bottom, top-bottom);
+	rc->ortho.m[14] = -gf_divfix(far+near, far-near);
+	rc->ortho.m[15] = FIX_ONE;
 }
 
 
