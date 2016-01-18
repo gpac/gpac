@@ -124,9 +124,7 @@ static char *glsl_fragment = "precision mediump float;\
 	varying vec2 TexCoord;\
 	uniform sampler2D img;\
 	void main(void){\
-		vec4 fragColor = vec4(0.0);\
-		fragColor = texture2D(img, TexCoord);\
-		gl_FragColor = fragColor;\
+		gl_FragColor = texture2D(img, TexCoord);\
 	}";
 
 #define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
