@@ -776,6 +776,10 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 					mpdin->width = w;
 					mpdin->height = h;
 				}
+				if (gf_dash_group_get_srd_max_size_info(mpdin->dash, i, &w, &h)) {
+					mpdin->width = w;
+					mpdin->height = h;
+				}
 
 				e = group->segment_ifce->ConnectService(group->segment_ifce, mpdin->service, init_segment);
 				if (e) {
@@ -909,9 +913,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	const char *opt;
 	GF_Err e;
 	s32 shift_utc_ms, debug_adaptation_set;
-	u32 max_cache_duration, auto_switch_count, init_timeshift;
+	u32 max_cache_duration, auto_switch_count, init_timeshift, tiles_rate_decrease;
 	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
+	GF_DASHTileAdaptationMode tile_adapt_mode;
 	Bool keep_files, disable_switching;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
@@ -966,6 +971,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		opt = "minBandwidth";
 	}
 	if (opt && !strcmp(opt, "maxBandwidth")) first_select_mode = GF_DASH_SELECT_BANDWIDTH_HIGHEST;
+	else if (opt && !strcmp(opt, "maxBandwidthTiles")) first_select_mode = GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES;
 	else if (opt && !strcmp(opt, "minQuality")) first_select_mode = GF_DASH_SELECT_QUALITY_LOWEST;
 	else if (opt && !strcmp(opt, "maxQuality")) first_select_mode = GF_DASH_SELECT_QUALITY_HIGHEST;
 	else first_select_mode = GF_DASH_SELECT_BANDWIDTH_LOWEST;
@@ -1022,6 +1028,34 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
+	
+	tile_adapt_mode = 0;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation", "none");
+		opt = "none";
+	}
+	if (!strcmp(opt, "none")) tile_adapt_mode = GF_DASH_ADAPT_TILE_NONE;
+	else if (!strcmp(opt, "rows")) tile_adapt_mode = GF_DASH_ADAPT_TILE_ROWS;
+	else if (!strcmp(opt, "reverseRows")) tile_adapt_mode = GF_DASH_ADAPT_TILE_ROWS_REVERSE;
+	else if (!strcmp(opt, "middleRows")) tile_adapt_mode = GF_DASH_ADAPT_TILE_ROWS_MIDDLE;
+	else if (!strcmp(opt, "columns")) tile_adapt_mode = GF_DASH_ADAPT_TILE_COLUMNS;
+	else if (!strcmp(opt, "reverseColumns")) tile_adapt_mode = GF_DASH_ADAPT_TILE_COLUMNS_REVERSE;
+	else if (!strcmp(opt, "middleColumns")) tile_adapt_mode = GF_DASH_ADAPT_TILE_COLUMNS_MIDDLE;
+	else if (!strcmp(opt, "center")) tile_adapt_mode = GF_DASH_ADAPT_TILE_CENTER;
+	else if (!strcmp(opt, "edges")) tile_adapt_mode = GF_DASH_ADAPT_TILE_EDGES;
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPDIn] Unrecognized tile adaptation mode %s - defaulting to none\n", opt));
+		tile_adapt_mode = GF_DASH_ADAPT_TILE_NONE;
+	}
+
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileRateDecrease");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "TileRateDecrease", "100");
+		opt = "100";
+	}
+	tiles_rate_decrease = atoi(opt);
+	
 	//override all service callbacks
 	mpdin->fn_connect_ack = serv->fn_connect_ack;
 	serv->fn_connect_ack = mpdin_connect_ack;
@@ -1038,6 +1072,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	gf_dash_set_utc_shift(mpdin->dash, shift_utc_ms);
 	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
+	gf_dash_set_tile_adaptation_mode(mpdin->dash, tile_adapt_mode, tiles_rate_decrease);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
 	//default mode is no for the time being
@@ -1227,6 +1262,15 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		/* TODO - we are interactive if not live without timeshift */
 		return GF_OK;
+	
+	case GF_NET_CHAN_GET_SRD:
+	{
+		Bool res;
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->base.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
+		res = gf_dash_group_get_srd_info(mpdin->dash, idx, NULL, &com->srd.x, &com->srd.y, &com->srd.w, &com->srd.h, &com->srd.width, &com->srd.height);
+		return res ? GF_OK : GF_NOT_SUPPORTED;
+	}
 
 	case GF_NET_GET_STATS:
 	{
