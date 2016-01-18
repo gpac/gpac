@@ -397,10 +397,12 @@ void resizeWindow(AndroidContext *rc)
 	/* Reset The View */
 	glLoadIdentity();
 #else
+	GL_CHECK_ERR
 	glUseProgram(rc->base_program);
 	calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
 	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
 	load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
+	GL_CHECK_ERR
 #endif
 	LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
@@ -539,6 +541,7 @@ GL_CHECK_ERR
 #ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
 #endif
+	GL_CHECK_ERR
 
 	/* Flush all drawings */
 	glFinish();
@@ -549,6 +552,7 @@ GL_CHECK_ERR
 
 int releaseTexture(AndroidContext *rc)
 {
+	GL_CHECK_ERR
 	if (!rc)
 		return 0;
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete Texture");
@@ -564,6 +568,7 @@ int releaseTexture(AndroidContext *rc)
 		rc->texData = NULL;
 	}
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Delete Texture DONE");
+	GL_CHECK_ERR
 	return 0;
 }
 
@@ -645,6 +650,7 @@ GL_CHECK_ERR
 		createTexture(rc);
 	}
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Resize DONE", w, h);
+	GL_CHECK_ERR
 	return GF_OK;
 }
 
