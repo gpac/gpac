@@ -89,12 +89,6 @@ typedef struct
 
 #define RAWCTX	AndroidContext *rc = (AndroidContext *)dr->opaque
 
-//#define GLES_FRAMEBUFFER_TEST
-
-#ifdef GLES_FRAMEBUFFER_TEST
-#warning "Using FrameBuffer"
-#endif
-
 
 
 //Functions specific to OpenGL ES2
@@ -421,10 +415,6 @@ void drawGLScene(AndroidContext *rc)
 
 	float rgba[4];
 
-#ifdef GLES_FRAMEBUFFER_TEST
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-#endif
-
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
 	rgba[0] = 1.f;
@@ -455,10 +445,9 @@ void drawGLScene(AndroidContext *rc)
 //    		rc->texData[ i*rc->width*NBPP + j*NBPP + 3] = 200;
 
 //    memset(rc->texData, 255, 4 * rc->width * rc->height );
-#ifndef GLES_FRAMEBUFFER_TEST
+
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, rc->tex_width, rc->tex_height, 0,
 	              GL_RGBA, GL_UNSIGNED_BYTE, rc->texData );
-#endif
 
 	if ( rc->draw_texture )
 	{
@@ -524,9 +513,6 @@ void drawGLScene(AndroidContext *rc)
 
 	/* Flush all drawings */
 	glFinish();
-#ifdef GLES_FRAMEBUFFER_TEST
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
-#endif
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : end");
 #endif /* DROID_EXTREME_LOGS */
@@ -585,90 +571,6 @@ int createTexture(AndroidContext *rc)
 	return 0;
 }
 
-#ifdef GLES_FRAMEBUFFER_TEST
-
-int releaseFrameBuffer(AndroidContext *rc)
-{
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete FrameBuffer");
-
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-
-	if ( rc->framebuff >= 0 )
-	{
-		glDeleteFramebuffersOES(1, &(rc->framebuff));
-		rc->framebuff = -1;
-	}
-	if ( rc->depthbuff >= 0 )
-	{
-		glDeleteRenderbuffersOES(1, &(rc->depthbuff));
-		rc->depthbuff = -1;
-	}
-}
-
-int createFrameBuffer(AndroidContext *rc)
-{
-	int backingWidth;
-	int backingHeight;
-	int res;
-
-	if ( rc->framebuff >= 0 )
-		releaseFrameBuffer(rc);
-
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android Create FrameBuffer"));
-
-	glGenFramebuffersOES(1, &(rc->framebuff));
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
-
-//	glGenRenderbuffersOES(1, &(rc->depthbuff));
-//	glBindRenderbufferOES(GL_RENDERBUFFER_OES, rc->depthbuff);
-
-//	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-//	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-//	LOG( ANDROID_LOG_ERROR, TAG, "Android Depth Buffer Size: %dx%d\n", backingWidth, backingHeight));
-
-//    glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, rc->width, rc->height);
-
-//    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES,
-//            GL_RENDERBUFFER_OES, rc->depthbuff);
-
-	glFramebufferTexture2DOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES,
-	                          GL_TEXTURE_2D, rc->texID, 0);
-
-	if ( (res=(int)glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)) != GL_FRAMEBUFFER_COMPLETE_OES )
-	{
-		LOG( ANDROID_LOG_ERROR, TAG, "Android failed to make complete framebuffer object:");
-		switch (res)
-		{
-		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES");
-			break;
-		case GL_FRAMEBUFFER_UNSUPPORTED_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_UNSUPPORTED_OES");
-			break;
-		default :
-			LOG( ANDROID_LOG_ERROR, TAG, "Unknown error: %d", res);
-			break;
-		}
-
-		return 1;
-	}
-
-	//glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-
-	return 0;
-}
-
-#endif
 
 u32 find_pow_2(u32 num)
 {
@@ -708,9 +610,6 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 	if ( rc->out_3d_type == 0 )
 	{
 		createTexture(rc);
-#ifdef GLES_FRAMEBUFFER_TEST
-		createFrameBuffer(rc);
-#endif
 	}
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Resize DONE", w, h);
 	return GF_OK;
@@ -735,9 +634,8 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 
 #else
 
-#ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
-#endif
+
 		initGL(rc);
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Setup DONE");
 	return GF_OK;
@@ -750,9 +648,7 @@ static void droid_Shutdown(GF_VideoOutput *dr)
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Shutdown\n");
 
 	releaseTexture(rc);
-#ifdef GLES_FRAMEBUFFER_TEST
-	releaseFrameBuffer(rc);
-#endif
+
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Shutdown DONE");
 }
 
@@ -764,9 +660,7 @@ static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush\n");
 #endif /* DROID_EXTREME_LOGS */
 
-#ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
-#endif
 		drawGLScene(rc);
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush DONE");
