@@ -817,7 +817,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 	}
 	//flush request from terminal: only process if nothing is opened and we have pending segments
 	//we have to keep the polling event when no segments are pending, in order to detect period switch - we therefore tolerate a couble of requests even though no segments are pending
-	if (!check_buffer_level && !read->seg_opened && !read->has_pending_segments && (read->nb_force_flush > 2) && !read->drop_next_segment) {
+	if (!check_buffer_level && read->seg_opened && (!read->has_pending_segments || (read->nb_force_flush > 2)) && !read->drop_next_segment) {
 		read->in_data_flush = 0;
 		gf_mx_v(read->segment_mutex);
 		return;

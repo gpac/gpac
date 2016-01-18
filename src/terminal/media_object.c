@@ -238,6 +238,9 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 static void gf_mo_update_visual_info(GF_MediaObject *mo)
 {
+	GF_Channel *ch;
+	GF_NetworkCommand com;
+	
 	GF_CodecCapability cap;
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return;
 
@@ -271,7 +274,7 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	if (mo->odm && mo->odm->parentscene->is_dynamic_scene) {
 #ifndef GPAC_DISABLE_VRML
 		const char *name = gf_node_get_name(gf_event_target_get_node(gf_mo_event_target_get(mo, 0)));
-		if (name && !strcmp(name, "DYN_VIDEO")) {
+		if (name && !strcmp(name, "DYN_VIDEO1")) {
 			const char *opt;
 			u32 r, g, b, a;
 			M_Background2D *back = (M_Background2D *) gf_sg_find_node_by_name(mo->odm->parentscene->graph, "DYN_BACK");
@@ -306,16 +309,14 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	if (! (mo->pixel_ar & 0x0000FFFF)) mo->pixel_ar = 0;
 	if (! (mo->pixel_ar & 0xFFFF0000)) mo->pixel_ar = 0;
 
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	ch = (GF_Channel *)gf_list_get(mo->odm->channels, 0);
+	if (!ch) return;
+	com.base.on_channel = ch;
+	
 	/**/
 	if (! mo->pixel_ar) {
-		GF_Channel *ch;
-		GF_NetworkCommand com;
 		com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
-		ch = (GF_Channel *)gf_list_get(mo->odm->channels, 0);
-		if (!ch) return;
-
-		com.base.on_channel = ch;
-		com.par.hSpacing = com.par.vSpacing = 0;
 		if (gf_term_service_command(ch->service, &com) == GF_OK) {
 			if ((com.par.hSpacing>65535) || (com.par.vSpacing>65535)) {
 				com.par.hSpacing>>=16;
@@ -323,6 +324,18 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 			}
 			if (com.par.hSpacing|| com.par.vSpacing)
 				mo->pixel_ar = (com.par.hSpacing<<16) | com.par.vSpacing;
+		}
+	}
+	
+	com.base.command_type = GF_NET_CHAN_GET_SRD;
+	if (gf_term_service_command(ch->service, &com) == GF_OK) {
+		mo->srd_x = com.srd.x;
+		mo->srd_y = com.srd.y;
+		mo->srd_w = com.srd.w;
+		mo->srd_h = com.srd.h;
+		
+		if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+			mo->odm->parentscene->is_srd = GF_TRUE;
 		}
 	}
 }

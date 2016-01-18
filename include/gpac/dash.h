@@ -137,8 +137,10 @@ typedef enum
 	GF_DASH_SELECT_QUALITY_HIGHEST,
 	//selects the lowest bandwidth when starting - if one of the representation does not have video (HLS), it will NOT be selected
 	GF_DASH_SELECT_BANDWIDTH_LOWEST,
-	//selects the highest bandwidth when starting 
-	GF_DASH_SELECT_BANDWIDTH_HIGHEST
+	//selects the highest bandwidth when starting - for tiles all low priority tiles will have the lower (below max) bandwidth selected
+	GF_DASH_SELECT_BANDWIDTH_HIGHEST,
+	//selects the highest bandwidth when starting - for tiles all low priority tiles will have their lowest bandwidth selected
+	GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES
 } GF_DASHInitialSelectionMode;
 
 /*create a new DASH client:
@@ -408,8 +410,42 @@ GF_Err gf_dash_group_select_quality(GF_DashClient *dash, u32 idx, const char *ID
 //gets download rate in bytes per second for the given group
 u32 gf_dash_group_get_download_rate(GF_DashClient *dash, u32 idx);
 
+//forces NTP of the DASH client to be the given NTP
 void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp);
 
+//specifies how bitrate is allocated accross tiles of the same video
+typedef enum
+{
+	//each tile receives the same amount of bitrate (default strategy)
+	GF_DASH_ADAPT_TILE_NONE=0,
+	//bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row
+	GF_DASH_ADAPT_TILE_ROWS,
+	//bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row
+	GF_DASH_ADAPT_TILE_ROWS_REVERSE,
+	//bitrate decreased for top and bottom rows only, same rate for each tile on the row
+	GF_DASH_ADAPT_TILE_ROWS_MIDDLE,
+	//bitrate decreases for each column of tiles starting from the left, same rate for each tile on the column
+	GF_DASH_ADAPT_TILE_COLUMNS,
+	//bitrate decreases for each column of tiles starting from the right, same rate for each tile on the column
+	GF_DASH_ADAPT_TILE_COLUMNS_REVERSE,
+	//bitrate decreased for left and right columns only, same rate for each tile on the column
+	GF_DASH_ADAPT_TILE_COLUMNS_MIDDLE,
+	//bitrate decreased for all tiles on the edge of the picture
+	GF_DASH_ADAPT_TILE_CENTER,
+	//bitrate decreased for all tiles on the center of the picture
+	GF_DASH_ADAPT_TILE_EDGES,
+} GF_DASHTileAdaptationMode;
+
+//sets type of tile adaptation.
+// @tile_rate_decrease: percentage (0->100) of global bandwidth to use at each level (recursive rate decrease for all level). If 0% or 100%, automatic rate allocation among tiles is performed (default mode)
+void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptationMode mode, u32 tile_rate_decrease);
+
+//gets max width and height in pixels of the SRD this group belongs to, if any
+Bool gf_dash_group_get_srd_max_size_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
+
+//gets SRD info, in SRD coordinate, of the SRD this group belongs to, if any
+Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height);
+	
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

@@ -754,9 +754,11 @@ Forces the player to set the output video resolution to the max resolution avail
 <b>UseScreenResolution</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Disables all resolutions that are higher than the screen resolution. Default is yes</p>
-<b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, minQuality, maxQuality</i>]
+<b>StartRepresentation</b> [value: <i>minBandwidth, maxBandwidth, maxBandwidthTiles, minQuality, maxQuality</i>]
 <p style="text-indent: 5%">
-Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.</p>
+Instructs the DASH client to start playing the indicated representation before doing any switching. Default is minBandwidth.
+<i>maxBandwidthTiles</i> selects the highest bandwidth for tiles with high priority and lowest for other tiles, whereas <i>maxBandwidth</i> selects the highest bandwidth for tiles with high priority and closest lower bandwidth for other tiles.
+</p>
 <b>InitialTimeshift</b> [value: <i>positive integer </i> ]
 <p style="text-indent: 5%">
 If between 0 and 100, indicates the percentage of the timeshift buffer when starting playback.<br/> 
@@ -781,7 +783,24 @@ Plays only the adaptation set indicated by its index in the MPD. If index is neg
 Sets how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations. 
 Default value is 1.
 </p>
-
+<b>TileAdaptation</b> [value: <i>none, rows, reverseRows, middleRows, columns, reverseColumns, middleColumns, center</i>]
+<p style="text-indent: 5%">
+Selects how bitrate is shared across tiles of a video:
+<ul> 
+<li>none: bitrate is shared equaly accross all tiles (default).</li>
+<li>rows: bitrate decreases for each row of tiles starting from the top, same rate for each tile on the row.</li> 
+<li>reverseRows: bitrate decreases for each row of tiles starting from the bottom, same rate for each tile on the row.</li> 
+<li>middleRows: bitrate decreased for top and bottom rows only, same rate for each tile on the row.</li> 
+<li>columns: bitrate decreases for each columns of tiles starting from the left, same rate for each tile on the columns.</li> 
+<li>reverseColumns: bitrate decreases for each columns of tiles starting from the right, same rate for each tile on the columns.</li> 
+<li>middleColumns: bitrate decreased for left and right columns only, same rate for each tile on the columns.</li> 
+<li>center: bitrate decreased for all tiles on the edge of the picture.</li> 
+<li>edges: bitrate decreased for all tiles on the center of the picture.</li> 
+</ul>
+</p>
+<b>TileRateDecrease</b> [value: <i>percentage</i>]
+<p style="text-indent: 5%">
+Indicates the amount of bandwidth to use at each level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 0 or 100, automatic rate allocation will be done by maximizing the quality in order of priority. Default is 100.</p>
 
 
 <br/><br/>
