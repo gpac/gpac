@@ -536,8 +536,9 @@ GL_CHECK_ERR
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
 	}
-
+#ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
+#endif
 
 	/* Flush all drawings */
 	glFinish();
@@ -620,7 +621,11 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		dr->max_screen_width = w;
 		dr->max_screen_height = h;
 	}
-
+	//npot textures are supported in ES2
+#ifdef GPAC_USE_GLES2
+		rc->tex_width = rc->width;
+		rc->tex_height = rc->height;
+#else
 	if ( rc->non_power_two )
 	{
 		rc->tex_width = rc->width;
@@ -631,8 +636,8 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		rc->tex_width = find_pow_2(rc->width);
 		rc->tex_height = find_pow_2(rc->height);
 	}
-	
-
+#endif
+GL_CHECK_ERR
 	resizeWindow(rc);
 
 	if ( rc->out_3d_type == 0 )
@@ -647,7 +652,7 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 {
 	RAWCTX;
 	void * pixels;
-	int ret;
+	Bool res = GF_FALSE;
 
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Setup: %d", init_flags);
 
@@ -657,7 +662,13 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 	if ( rc->out_3d_type == 0 ){
 		LOG( ANDROID_LOG_DEBUG, TAG, "We are in OpenGL: disable mode");
 		res = initGLES2(rc);
-		if(res==GF_FALSE)LOG( ANDROID_LOG_ERROR, TAG, "ERROR Compiling ES2 Shaders");
+		if(res==GF_FALSE){
+			LOG( ANDROID_LOG_ERROR, TAG, "ERROR Compiling ES2 Shaders");
+		}else{	//set texture
+			glUseProgram(rc->base_program);
+			GLint loc = gf_glGetUniformLocation(rc->base_program, "img");
+			glUniform1i(loc,0);
+		}
 	}
 
 #else
@@ -665,6 +676,8 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 	if ( rc->out_3d_type == 0 )
 
 		initGL(rc);
+#endif //GPAC_USE_GLES2
+
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Setup DONE");
 	return GF_OK;
 }
