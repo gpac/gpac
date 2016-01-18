@@ -722,7 +722,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			//if (evt->setup.opengl_mode) return GF_OK;
 			//in fullscreen mode: do not change viewport; just update perspective
 			if (rc->fullscreen) {
-#ifndef GPAC_USE_GLES2
+#ifdef GPAC_USE_GLES2
+				GL_CHECK_ERR
+				glUseProgram(rc->base_program);
+				calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
+				load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
+				load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
+				GL_CHECK_ERR
+#else
 				/* change to the projection matrix and set our viewing volume. */
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();
