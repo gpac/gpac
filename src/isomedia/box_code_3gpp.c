@@ -461,8 +461,34 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 
 	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
 	ptr->size -= 1;
-	if (ptr->size < pSize)
-		return GF_ISOM_INVALID_FILE;
+	if (ptr->size < pSize) {
+		u32 s = pSize;
+		size_t i = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: trying to decode anyway.\n"));
+		ptr->textName = (char*)gf_malloc(ptr->size + 1 + 1);
+		do {
+			char c = (char)s;
+			if (c == '\0') {
+				break;
+			} else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+				ptr->textName[i] = c;
+			} else {
+				gf_free(ptr->textName);
+				ptr->textName = NULL;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string and contains non-chars. Abort.\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+			i++;
+			if (!ptr->size)
+				break;
+			ptr->size--;
+			s = gf_bs_read_u8(bs);
+		} while (s);
+
+		ptr->textName[i] = '\0';				/*Font name*/
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: \"%s\" detected.\n", ptr->textName));
+		return GF_OK;
+	}
 	if (pSize) {
 		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
 		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {

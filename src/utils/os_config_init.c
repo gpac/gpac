@@ -66,17 +66,6 @@
 #endif
 
 
-#ifdef GPAC_STATIC_MODULES
-static Bool enum_mod_dir(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
-{
-	if (!strnicmp(item_name, "gm_", 3)) {
-		printf("Found %s\n", item_name);
-		*(Bool *) cbck = GF_TRUE;
-	}
-	return GF_FALSE;
-}
-#endif
-
 static Bool check_file_exists(char *name, char *path, char *outPath)
 {
 	char szPath[GF_MAX_PATH];
@@ -84,9 +73,7 @@ static Bool check_file_exists(char *name, char *path, char *outPath)
 
 #ifdef GPAC_STATIC_MODULES
 	if (!strcmp(name, TEST_MODULE)) {
-		Bool found = GF_FALSE;
-		gf_enum_directory(path, GF_FALSE, enum_mod_dir, &found, NULL);
-		if (!found) return 0;
+		if (! gf_dir_exists(path)) return 0;
 		if (outPath != path) strcpy(outPath, path);
 		return 1;
 	}
@@ -339,6 +326,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists("gui.bt", "/opt/local/share/gpac/gui", file_path)) return 1;
 		} else if (path_type==GF_PATH_MODULES) {
 			/*look in possible install dirs ...*/
+			if (check_file_exists(TEST_MODULE, "/usr/lib64/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/usr/local/lib/gpac", file_path)) return 1;
 			if (check_file_exists(TEST_MODULE, "/opt/lib/gpac", file_path)) return 1;

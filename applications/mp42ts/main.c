@@ -1181,7 +1181,9 @@ static u32 seng_output(void *param)
 	u64 last_src_modif, mod_time;
 	M2TSSource *source = (M2TSSource *)param;
 	GF_SceneEngine *seng = source->seng;
+#ifndef GPAC_DISABLE_PLAYER
 	GF_SimpleDataDescriptor *audio_desc;
+#endif
 	Bool update_context=0;
 	Bool force_rap, adjust_carousel_time, discard_pending, signal_rap, signal_critical, version_inc, aggregate_au;
 	u32 period, ts_delta;
@@ -1193,6 +1195,7 @@ static u32 seng_output(void *param)
 	last_src_modif = source->bifs_src_name ? gf_file_modification_time(source->bifs_src_name) : 0;
 
 	/*send the audio descriptor*/
+#ifndef GPAC_DISABLE_PLAYER
 	if (source->mpeg4_signaling==GF_M2TS_MPEG4_SIGNALING_FULL && audio_OD_stream_id!=(u32)-1) {
 		audio_desc = source->streams[audio_OD_stream_id].input_udta;
 		if (audio_desc && audio_desc->data) /*RTP/UDP + MP3 case*/
@@ -1207,7 +1210,8 @@ static u32 seng_output(void *param)
 			source->streams[audio_OD_stream_id].input_udta = NULL;
 		}
 	}
-
+#endif
+	
 	while (run) {
 		if (!gf_prompt_has_input()) {
 			if (source->bifs_src_name) {
@@ -1681,6 +1685,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				}
 			}
 
+#ifndef GPAC_DISABLE_PLAYER
 			/*when an audio input is present, declare it and store OD + ESD_U*/
 			if (audio_input_ip) {
 				/*add the audio program*/
@@ -1738,7 +1743,8 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				}
 				source->nb_streams++;
 			}
-
+#endif
+			
 			/*when an audio input is present, declare it and store OD + ESD_U*/
 			if (video_buffer) {
 				/*add the video program*/

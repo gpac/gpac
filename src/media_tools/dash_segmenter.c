@@ -2069,6 +2069,30 @@ restart_fragmentation_pass:
 
 	bandwidth += dash_input->dependency_bandwidth;
 	dash_input->bandwidth = bandwidth;
+	
+
+	/* max segment duration */
+	if (dash_cfg->dash_ctx) {
+		Double seg_dur;
+		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration");
+		if (opt) {
+			seg_dur = atof(opt);
+			if (seg_dur < max_segment_duration) {
+				sprintf(sOpt, "%f", max_segment_duration);
+				gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+				seg_dur = max_segment_duration;
+			} else {
+				max_segment_duration = seg_dur;
+			}
+		} else {
+			sprintf(sOpt, "%f", max_segment_duration);
+			gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
+		}
+	}
+
+	if (!max_segment_duration || !dash_cfg->segment_duration_strict) {
+		max_segment_duration = dash_cfg->segment_duration;
+	}
 
 
 	if (use_url_template) {
@@ -2224,24 +2248,6 @@ restart_fragmentation_pass:
 		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 4);
 	}
 
-	if (dash_cfg->dash_ctx) {
-		Double seg_dur;
-		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration");
-		if (opt) {
-			seg_dur = atof(opt);
-			if (seg_dur < max_segment_duration) {
-				sprintf(sOpt, "%f", max_segment_duration);
-				gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
-				seg_dur = max_segment_duration;
-			} else {
-				max_segment_duration = seg_dur;
-			}
-		} else {
-			sprintf(sOpt, "%f", max_segment_duration);
-			gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
-		}
-	}
-
 	if (use_url_template) {
 		/*segment template depends on file name, but the template at the representation level*/
 		if (dash_cfg->variable_seg_rad_name) {
@@ -2256,8 +2262,6 @@ restart_fragmentation_pass:
 			
 			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
-				if (!max_segment_duration)
-					max_segment_duration = dash_cfg->segment_duration;
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
 			}
 			//don't write init if scalable rep
@@ -4352,7 +4356,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 	GF_DashSegInput *dash_input = & dash_inputs[idx];
 	char *uri_frag = strchr(dash_input->file_name, '#');
 	FILE *t;
-	
+
 	if (uri_frag) uri_frag[0] = 0;
 
 	t = gf_fopen(dash_input->file_name, "rb");
@@ -4409,6 +4413,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 			dash_input->moof_seqnum_increase = 0;
 
+			gf_isom_close(file);
 			return GF_OK;
 		}
 
@@ -4490,7 +4495,6 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				continue;
 			}
 
-
 			di = &dash_inputs [cur_idx];
 			*nb_dash_inputs += 1;
 			cur_idx++;
@@ -4508,10 +4512,10 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 
 			if (gf_isom_get_reference_count(file, di->trackNum, GF_ISOM_REF_TBAS)) {
 				gf_isom_get_tile_info(file, di->trackNum, 1, &default_sample_group_index, &id, &independent, &full_frame, &di->x, &di->y, &di->w, &di->h);
-                
-                if (!dash_input->w) {
-                    gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
-                }
+
+				if (!dash_input->w) {
+					gf_isom_get_visual_info(file, dash_input->trackNum, 1, &dash_input->w, &dash_input->h);
+				}
 			}
 		}
 #ifdef GENERATE_VIRTUAL_REP_SRD
@@ -4543,9 +4547,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			di->virtual_representation = GF_TRUE;
 		}
 #endif
-
-
-
+		
 		/*dependencyID - FIXME - the delaration of dependency and new dash_input entries should be in DEDENDENCY ORDER*/
 		for (k=0; k<2; k++) {
 			for (j = idx; j < *nb_dash_inputs; j++) {
@@ -4589,7 +4591,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				di->dependencyID = depID;
 			}
 		}
-		
+
 		gf_isom_close(file);
 		return GF_OK;
 	}
@@ -6348,6 +6350,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 			e = write_adaptation_header(period_mpd, dasher->profile, dasher->use_url_template, dasher->single_file_mode, dasher->inputs, dasher->nb_inputs, cur_period+1, cur_adaptation_set+1, first_rep_in_set, 
 				use_bs_switching, max_width, max_height, dar_num, dar_den, szFPS, lang, szInit, dasher->segment_alignment_disabled, dasher->mpd_name);
+			gf_free(lang);
 
 			if (e) goto exit;
 
@@ -6566,7 +6569,9 @@ exit:
 			PeriodEntry *p = (PeriodEntry *) gf_list_pop_back(period_links);
 			if (p) gf_free(p);
 		}
+		gf_list_del(period_links);
 	}
+
 	return e;
 }
 

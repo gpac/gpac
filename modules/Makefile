@@ -109,21 +109,18 @@ endif
 endif
 endif
 
-ifeq ($(CONFIG_OPENHEVC), yes)
-ifeq ($(CONFIG_FFMPEG), no)
-PLUGDIRS+=openhevc_dec
-endif
-endif
+#openHEVC is disabled in static build
 
 #if static modules are used, disable all previous modules (built-in in libgpac)
 ifeq ($(STATIC_MODULES), yes)
 PLUGDIRS=
+
+else 
+
+ifeq ($(CONFIG_OPENHEVC),yes)
+PLUGDIRS+=openhevc_dec
 endif
 
-ifneq ($(CONFIG_FFMPEG), no)
-ifeq ($(CONFIG_OPENHEVC),yes)
-PLUGDIRS+=ffmpeg_in openhevc_dec
-endif
 endif
 
 
