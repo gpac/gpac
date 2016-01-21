@@ -6828,6 +6828,7 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
 	}
 }
 
+GF_EXPORT
 void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptationMode mode, u32 tile_rate_decrease)
 {
 	u32 i;
