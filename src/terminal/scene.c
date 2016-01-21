@@ -1416,11 +1416,11 @@ void gf_scene_regenerate(GF_Scene *scene)
 			if (!a_odm->mo || !a_odm->mo->srd_w) {
 				continue;
 			}
-			if (a_odm->mo->srd_x<min_x) min_x = a_odm->mo->srd_x;
-			if (a_odm->mo->srd_y<min_y) min_y = a_odm->mo->srd_y;
+			if ((s32) a_odm->mo->srd_x < min_x) min_x = (s32) a_odm->mo->srd_x;
+			if ((s32) a_odm->mo->srd_y < min_y) min_y = (s32) a_odm->mo->srd_y;
 
-			if (a_odm->mo->srd_x + a_odm->mo->srd_w > min_x + max_x) max_x = a_odm->mo->srd_x + a_odm->mo->srd_w - min_x;
-			if (a_odm->mo->srd_y + a_odm->mo->srd_h > min_y + max_y) max_y = a_odm->mo->srd_y + a_odm->mo->srd_h - min_y;
+			if ((s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w > min_x + max_x) max_x = (s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w - min_x;
+			if ((s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h > min_y + max_y) max_y = (s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h - min_y;
 			nb_srd++;
 		}
 		
