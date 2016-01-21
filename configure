@@ -3279,6 +3279,7 @@ if test "$source_path_used" = "yes" ; then
         mkdir -p "$dir"
     done
     ln -sf "$source_path/Makefile" Makefile
+    ln -sf "$source_path/static.mak" static.mak
     ln -sf "$source_path/src/Makefile" src/Makefile
 
     mkdir -p applications

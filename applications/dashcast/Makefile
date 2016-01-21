@@ -4,7 +4,7 @@ vpath %.c $(SRC_PATH)/applications/dashcast
 
 CFLAGS= $(OPTFLAGS) -D_GNU_SOURCE -I"$(SRC_PATH)/include" -I../../ $(ffmpeg_cflags)
 
-LINKLIBS=$(GPAC_SH_FLAGS)
+LINKFLAGS=$(GPAC_SH_FLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -26,12 +26,9 @@ endif
 
 ifneq ($(CONFIG_LIBAVRESAMPLE),no)
 CFLAGS+=-DDC_AUDIO_RESAMPLER
-LINKLIBS+=-lavresample
+LINKFLAGS+=-lavresample
 endif
 
-
-#common obj
-OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o task.o
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
@@ -41,11 +38,25 @@ EXT=
 PROG=DashCast
 endif
 
-LINKLIBS+= $(ffmpeg_lflags)
+
+ifeq ($(STATICBUILD),yes)
+##include static modules and other deps for libgpac
+include ../../static.mak
+LINKFLAGS+=-lgpac_static
+LINKFLAGS+=$(EXTRALIBS)
+else
+LINKFLAGS+=-lgpac
+endif
+
+#common obj
+OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o task.o
+
+
+LINKFLAGS+= $(ffmpeg_lflags)
 
 ifeq ($(CONFIG_DARWIN), yes)
 #fixme - use proper detection of libavdevice dependencies
-LINKLIBS+=-lavfilter -lswresample -lbz2 
+LINKFLAGS+=-lavfilter -lswresample -lbz2 
 endif
 
 
@@ -54,7 +65,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc  -lgpac $(LINKLIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
