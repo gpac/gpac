@@ -2152,6 +2152,10 @@ for opt do
     esac
 done
 
+#always force static modules when static build is used, we cannot have one exe with libgpac_static using a module with libgpac dynamic, this would cause bugs with gf_sys_init()
+if test "$static_build" = "yes"; then
+static_modules="yes"
+fi
 
 
 if test "$disable_core_tools" = "no"; then
