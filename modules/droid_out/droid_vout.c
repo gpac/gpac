@@ -30,7 +30,7 @@
 
 #include <gpac/setup.h>
 
-#ifndef GPAC_USE_GLES2
+#ifdef GPAC_USE_GLES2
 #include <GLES2/gl2.h>
 #include <GLES2/gl2ext.h>
 #else
@@ -40,7 +40,11 @@
 
 #include <android/log.h>
 
+#ifdef GPAC_USE_GLES2
+#define TAG "DROID_VIDEO [GLES2]"
+#else
 #define TAG "DROID_VIDEO"
+#endif
 
 #define LOG   __android_log_print
 
@@ -71,6 +75,12 @@ typedef struct
 	u8 non_power_two;
 
 	Bool fullscreen;
+
+	//Functions specific to OpenGL ES2
+	#ifdef GPAC_USE_GLES2
+	GLuint base_vertex, base_fragment, base_program;
+	GF_Matrix identity, ortho;
+	#endif
 } AndroidContext;
 
 
@@ -79,12 +89,219 @@ typedef struct
 
 #define RAWCTX	AndroidContext *rc = (AndroidContext *)dr->opaque
 
-//#define GLES_FRAMEBUFFER_TEST
 
-#ifdef GLES_FRAMEBUFFER_TEST
-#warning "Using FrameBuffer"
+
+//Functions specific to OpenGL ES2
+#ifdef GPAC_USE_GLES2
+
+#define GF_TRUE 1
+#define GF_FALSE 0
+
+
+//we custom-define these instead of importing gl_inc.h
+#define GL_COMPILE_STATUS 0x8B81
+#define GL_FRAGMENT_SHADER 0x8B30
+#define GL_INFO_LOG_LENGTH 0x8B84
+#define GL_LINK_STATUS 0x8B82
+#define GL_VERTEX_SHADER 0x8B31
+
+
+
+static char *glsl_vertex = "precision mediump float;\
+	attribute vec4 gfVertex;\
+	attribute vec4 gfTexCoord;\
+	varying vec2 TexCoord;\
+	uniform mat4 gfModelViewMatrix;\
+	uniform mat4 gfProjectionMatrix;\
+	void main(void){\
+		vec4 gfEye;\
+		gfEye = gfModelViewMatrix * gfVertex;\
+		TexCoord = vec2(gfTexCoord);\
+		gl_Position = gfProjectionMatrix * gfEye;\
+	}";
+
+static char *glsl_fragment = "precision mediump float;\
+	varying vec2 TexCoord;\
+	uniform sampler2D img;\
+	void main(void){\
+		gl_FragColor = texture2D(img, TexCoord);\
+	}";
+
+#define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
+
+static GLint gf_glGetUniformLocation(u32 glsl_program, const char *uniform_name)
+{
+	GLint loc = glGetUniformLocation(glsl_program, uniform_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find uniform \"%s\" in GLSL program\n", uniform_name));
+	}
+	return loc;
+}
+
+static GLint gf_glGetAttribLocation(u32 glsl_program, const char *attrib_name)
+{
+	GLint loc = glGetAttribLocation(glsl_program, attrib_name);
+	if (loc<0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Cannot find attrib \"%s\" in GLSL program\n", attrib_name));
+	}
+	return loc;
+}
+
+//modified version of visual_3d_compile_shader function
+Bool compile_shader(u32 shader_id, const char *name, const char *source){
+	GLint blen = 0;
+	GLsizei slen = 0;
+	u32 len;
+	GLint is_compiled = 0;
+
+
+	if(!source || !shader_id) return 0;
+	len = (u32) strlen(source);
+	glShaderSource(shader_id, 1, &source, &len);
+	glCompileShader(shader_id);
+
+	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
+	if (is_compiled == 1) return GF_TRUE;
+
+	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
+	if (blen > 1) {
+		char* compiler_log = (char*) gf_malloc(blen);
+		glGetShaderInfoLog(shader_id, blen, &slen, compiler_log);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[GLSL] Failed to compile %s shader: %s\n", name, compiler_log));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[GLSL] ***** faulty shader code ****\n%s\n**********************\n", source));
+		gf_free (compiler_log);
+		return GF_FALSE;
+	}
+
+	return GF_TRUE;
+}
+
+
+static Bool initGLES2(AndroidContext *rc){
+
+
+//PRINT OpengGL INFO
+	char* ext;
+
+	LOG( ANDROID_LOG_DEBUG, TAG, "Android InitGLES2");
+
+	ext = (char*)glGetString(GL_VENDOR);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Vendor: %s", ext);
+
+	ext = (char*)glGetString(GL_RENDERER);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Renderer: %s", ext);
+
+	ext = (char*)glGetString(GL_VERSION);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Version: %s", ext);
+
+	ext = (char*)glGetString(GL_EXTENSIONS);
+	LOG( ANDROID_LOG_INFO, TAG, "OpenGL ES Extensions: %s", ext);
+
+
+
+//Generic GL setup
+	/* Set the background black */
+	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+
+	/* Depth buffer setup */
+	glClearDepthf(1.0f);
+
+	/* Enables Depth Testing */
+	glEnable(GL_DEPTH_TEST);
+
+	/* The Type Of Depth Test To Do */
+	glDepthFunc(GL_LEQUAL);
+
+
+//Shaders setup
+	Bool res = GF_FALSE;
+	GLint linked;
+
+	GL_CHECK_ERR
+	gf_mx_init(rc->identity);
+	rc->base_program = glCreateProgram();
+	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
+	rc->base_fragment = glCreateShader(GL_FRAGMENT_SHADER);
+
+	LOG( ANDROID_LOG_DEBUG, TAG, ("Compiling shaders"));
+	res = compile_shader(rc->base_vertex, "vertex", glsl_vertex);
+	if(!res) return GF_FALSE;
+	res = compile_shader(rc->base_fragment, "fragment", glsl_fragment);
+	if(!res) return GF_FALSE;
+
+	glAttachShader(rc->base_program, rc->base_vertex);
+	glAttachShader(rc->base_program, rc->base_fragment);
+	glLinkProgram(rc->base_program);
+
+	glGetProgramiv(rc->base_program, GL_LINK_STATUS, &linked);
+	if (!linked) {
+		int i32CharsWritten, i32InfoLogLength;
+		char pszInfoLog[2048];
+		glGetProgramiv(rc->base_program, GL_INFO_LOG_LENGTH, &i32InfoLogLength);
+		glGetProgramInfoLog(rc->base_program, i32InfoLogLength, &i32CharsWritten, pszInfoLog);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, (pszInfoLog));
+		return GF_FALSE;
+	}
+	glUseProgram(rc->base_program);
+	GL_CHECK_ERR
+	LOG( ANDROID_LOG_DEBUG, TAG, "Shaders compiled");
+
+	return GF_TRUE;
+}
+
+static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
+{
+	GLint loc=-1;
+#ifdef GPAC_FIXED_POINT
+	Float _mat[16];
+	u32 i;
 #endif
+GL_CHECK_ERR
+	loc = glGetUniformLocation(program, name);
+	if(loc<0){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
+		return;
+	}
+	GL_CHECK_ERR
 
+#ifdef GPAC_FIXED_POINT
+	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
+	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
+#else
+	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
+#endif
+	GL_CHECK_ERR
+}
+
+
+//ES2 version of glOrthox() - resulting matrix is stored in rc->ortho
+//more info on Orthographic projection matrix at http://www.songho.ca/opengl/gl_projectionmatrix.html#ortho
+static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc){
+
+
+	if((left==right)|(bottom==top)|(near==far)){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid Orthogonal projection values", __FILE__, __LINE__));
+		return;
+	}
+
+	gf_mx_init(rc->ortho);
+
+//For Orthographic Projection
+	rc->ortho.m[0] = gf_divfix(2, (right-left));
+	rc->ortho.m[5] = gf_divfix(2, (top-bottom));
+	rc->ortho.m[10] = gf_divfix(-2, far-near);
+	rc->ortho.m[12] = -gf_divfix(right+left, right-left);
+	rc->ortho.m[13] = -gf_divfix(top+bottom, top-bottom);
+	rc->ortho.m[14] = -gf_divfix(far+near, far-near);
+	rc->ortho.m[15] = FIX_ONE;
+}
+
+
+
+#endif	//Endof specifix for GLES2 (ifdef GPAC_USE_GLES2)
+
+
+#ifndef GPAC_USE_GLES2
 void initGL(AndroidContext *rc)
 {
 	char* ext;
@@ -114,10 +331,8 @@ void initGL(AndroidContext *rc)
 		LOG( ANDROID_LOG_INFO, TAG, "Using GL_ARB_texture_non_power_of_two");
 	}
 
-#ifndef GPAC_USE_GLES2
 	/* Enable smooth shading */
 	glShadeModel(GL_SMOOTH);
-#endif
 
 	/* Set the background black */
 	glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -134,6 +349,7 @@ void initGL(AndroidContext *rc)
 	/* Really Nice Perspective Calculations */
 	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_NICEST);
 }
+#endif
 
 void gluPerspective(GLfloat fovy, GLfloat aspect,
                     GLfloat zNear, GLfloat zFar)
@@ -180,6 +396,13 @@ void resizeWindow(AndroidContext *rc)
 
 	/* Reset The View */
 	glLoadIdentity();
+#else
+	GL_CHECK_ERR
+	glUseProgram(rc->base_program);
+	calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
+	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
+	load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
+	GL_CHECK_ERR
 #endif
 	LOG( ANDROID_LOG_VERBOSE, TAG, "resizeWindow : end");
 }
@@ -189,15 +412,17 @@ void drawGLScene(AndroidContext *rc)
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : start");
 #endif /* DROID_EXTREME_LOGS */
+#ifdef GPAC_USE_GLES2
+	GLuint loc_vertex_array, loc_texcoord_array;
+	loc_vertex_array = loc_texcoord_array = -1;
+#endif
+
 	GLfloat vertices[4][3];
 	GLfloat texcoord[4][2];
 //	int i, j;
 
 	float rgba[4];
-
-#ifdef GLES_FRAMEBUFFER_TEST
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-#endif
+GL_CHECK_ERR
 
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
@@ -210,12 +435,16 @@ void drawGLScene(AndroidContext *rc)
 #endif
 	/* Clear The Screen And The Depth Buffer */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+	GL_CHECK_ERR
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
+#ifndef GPAC_USE_GLES2
 	glEnable(GL_TEXTURE_2D);
+#endif
+	glUseProgram(rc->base_program);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture( GL_TEXTURE_2D, rc->texID);
+	GL_CHECK_ERR
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 #ifndef GPAC_USE_GLES2
@@ -229,22 +458,24 @@ void drawGLScene(AndroidContext *rc)
 //    		rc->texData[ i*rc->width*NBPP + j*NBPP + 3] = 200;
 
 //    memset(rc->texData, 255, 4 * rc->width * rc->height );
-#ifndef GLES_FRAMEBUFFER_TEST
+
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, rc->tex_width, rc->tex_height, 0,
 	              GL_RGBA, GL_UNSIGNED_BYTE, rc->texData );
-#endif
 
+GL_CHECK_ERR
 	if ( rc->draw_texture )
 	{
+		GL_CHECK_ERR
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
-		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 #ifndef GPAC_USE_GLES2
+		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
 		glDrawTexsOES(0, 0, 0, rc->width, rc->height);
 #endif
 	}
 	else
 	{
-		//TODOk reprogram for ES2
+		GL_CHECK_ERR
+
 #ifndef GPAC_USE_GLES2
 		/* Enable VERTEX array */
 		glEnableClientState(GL_VERTEX_ARRAY);
@@ -256,6 +487,20 @@ void drawGLScene(AndroidContext *rc)
 
 		/* Move Left 1.5 Units And Into The Screen 6.0 */
 		glLoadIdentity();
+#else
+		loc_vertex_array = glGetAttribLocation(rc->base_program, "gfVertex");
+		if(loc_vertex_array<0)
+			return;
+		glEnableVertexAttribArray(loc_vertex_array);
+		glVertexAttribPointer(loc_vertex_array, 3, GL_FLOAT, GL_FALSE, 0, vertices);
+
+		loc_texcoord_array = glGetAttribLocation(rc->base_program, "gfTexCoord");
+		if (loc_texcoord_array>=0) {
+			glVertexAttribPointer(loc_texcoord_array, 2, GL_FLOAT, GL_FALSE, 0, texcoord);
+			glEnableVertexAttribArray(loc_texcoord_array);
+		}
+
+
 #endif
 		//glTranslatef(0.0f, 0.0f, -3.3f);
 		//glTranslatef(0.0f, 0.0f, -2.3f);
@@ -293,14 +538,13 @@ void drawGLScene(AndroidContext *rc)
 		glDisableClientState(GL_TEXTURE_COORD_ARRAY);
 #endif
 	}
-
+#ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
+#endif
+	GL_CHECK_ERR
 
 	/* Flush all drawings */
 	glFinish();
-#ifdef GLES_FRAMEBUFFER_TEST
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
-#endif
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "drawGLScene : end");
 #endif /* DROID_EXTREME_LOGS */
@@ -308,6 +552,7 @@ void drawGLScene(AndroidContext *rc)
 
 int releaseTexture(AndroidContext *rc)
 {
+	GL_CHECK_ERR
 	if (!rc)
 		return 0;
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete Texture");
@@ -323,6 +568,7 @@ int releaseTexture(AndroidContext *rc)
 		rc->texData = NULL;
 	}
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Delete Texture DONE");
+	GL_CHECK_ERR
 	return 0;
 }
 
@@ -359,90 +605,6 @@ int createTexture(AndroidContext *rc)
 	return 0;
 }
 
-#ifdef GLES_FRAMEBUFFER_TEST
-
-int releaseFrameBuffer(AndroidContext *rc)
-{
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android Delete FrameBuffer");
-
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-
-	if ( rc->framebuff >= 0 )
-	{
-		glDeleteFramebuffersOES(1, &(rc->framebuff));
-		rc->framebuff = -1;
-	}
-	if ( rc->depthbuff >= 0 )
-	{
-		glDeleteRenderbuffersOES(1, &(rc->depthbuff));
-		rc->depthbuff = -1;
-	}
-}
-
-int createFrameBuffer(AndroidContext *rc)
-{
-	int backingWidth;
-	int backingHeight;
-	int res;
-
-	if ( rc->framebuff >= 0 )
-		releaseFrameBuffer(rc);
-
-	LOG( ANDROID_LOG_DEBUG, TAG, "Android Create FrameBuffer"));
-
-	glGenFramebuffersOES(1, &(rc->framebuff));
-	glBindFramebufferOES(GL_FRAMEBUFFER_OES, rc->framebuff);
-
-//	glGenRenderbuffersOES(1, &(rc->depthbuff));
-//	glBindRenderbufferOES(GL_RENDERBUFFER_OES, rc->depthbuff);
-
-//	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &backingWidth);
-//	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &backingHeight);
-
-//	LOG( ANDROID_LOG_ERROR, TAG, "Android Depth Buffer Size: %dx%d\n", backingWidth, backingHeight));
-
-//    glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, rc->width, rc->height);
-
-//    glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES,
-//            GL_RENDERBUFFER_OES, rc->depthbuff);
-
-	glFramebufferTexture2DOES(GL_FRAMEBUFFER_OES, GL_COLOR_ATTACHMENT0_OES,
-	                          GL_TEXTURE_2D, rc->texID, 0);
-
-	if ( (res=(int)glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES)) != GL_FRAMEBUFFER_COMPLETE_OES )
-	{
-		LOG( ANDROID_LOG_ERROR, TAG, "Android failed to make complete framebuffer object:");
-		switch (res)
-		{
-		case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS_OES");
-			break;
-		case GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_INCOMPLETE_FORMATS_OES");
-			break;
-		case GL_FRAMEBUFFER_UNSUPPORTED_OES:
-			LOG( ANDROID_LOG_ERROR, TAG, "GL_FRAMEBUFFER_UNSUPPORTED_OES");
-			break;
-		default :
-			LOG( ANDROID_LOG_ERROR, TAG, "Unknown error: %d", res);
-			break;
-		}
-
-		return 1;
-	}
-
-	//glBindFramebufferOES(GL_FRAMEBUFFER_OES, 0);
-
-	return 0;
-}
-
-#endif
 
 u32 find_pow_2(u32 num)
 {
@@ -464,7 +626,11 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		dr->max_screen_width = w;
 		dr->max_screen_height = h;
 	}
-
+	//npot textures are supported in ES2
+#ifdef GPAC_USE_GLES2
+		rc->tex_width = rc->width;
+		rc->tex_height = rc->height;
+#else
 	if ( rc->non_power_two )
 	{
 		rc->tex_width = rc->width;
@@ -475,18 +641,16 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		rc->tex_width = find_pow_2(rc->width);
 		rc->tex_height = find_pow_2(rc->height);
 	}
-	
-
+#endif
+GL_CHECK_ERR
 	resizeWindow(rc);
 
 	if ( rc->out_3d_type == 0 )
 	{
 		createTexture(rc);
-#ifdef GLES_FRAMEBUFFER_TEST
-		createFrameBuffer(rc);
-#endif
 	}
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Resize DONE", w, h);
+	GL_CHECK_ERR
 	return GF_OK;
 }
 
@@ -494,14 +658,32 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 {
 	RAWCTX;
 	void * pixels;
-	int ret;
+	Bool res = GF_FALSE;
 
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Setup: %d", init_flags);
 
-#ifndef GLES_FRAMEBUFFER_TEST
+
+#ifdef GPAC_USE_GLES2
+
+	if ( rc->out_3d_type == 0 ){
+		LOG( ANDROID_LOG_DEBUG, TAG, "We are in OpenGL: disable mode");
+		res = initGLES2(rc);
+		if(res==GF_FALSE){
+			LOG( ANDROID_LOG_ERROR, TAG, "ERROR Compiling ES2 Shaders");
+		}else{	//set texture
+			glUseProgram(rc->base_program);
+			GLint loc = gf_glGetUniformLocation(rc->base_program, "img");
+			glUniform1i(loc,0);
+		}
+	}
+
+#else
+
 	if ( rc->out_3d_type == 0 )
-#endif
+
 		initGL(rc);
+#endif //GPAC_USE_GLES2
+
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Setup DONE");
 	return GF_OK;
 }
@@ -513,9 +695,7 @@ static void droid_Shutdown(GF_VideoOutput *dr)
 	LOG( ANDROID_LOG_DEBUG, TAG, "Android Shutdown\n");
 
 	releaseTexture(rc);
-#ifdef GLES_FRAMEBUFFER_TEST
-	releaseFrameBuffer(rc);
-#endif
+
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Shutdown DONE");
 }
 
@@ -527,9 +707,7 @@ static GF_Err droid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush\n");
 #endif /* DROID_EXTREME_LOGS */
 
-#ifndef GLES_FRAMEBUFFER_TEST
 	if ( rc->out_3d_type == 0 )
-#endif
 		drawGLScene(rc);
 #ifdef DROID_EXTREME_LOGS
 	LOG( ANDROID_LOG_VERBOSE, TAG, "Android Flush DONE");
@@ -591,7 +769,14 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			//if (evt->setup.opengl_mode) return GF_OK;
 			//in fullscreen mode: do not change viewport; just update perspective
 			if (rc->fullscreen) {
-#ifndef GPAC_USE_GLES2
+#ifdef GPAC_USE_GLES2
+				GL_CHECK_ERR
+				glUseProgram(rc->base_program);
+				calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
+				load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
+				load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
+				GL_CHECK_ERR
+#else
 				/* change to the projection matrix and set our viewing volume. */
 				glMatrixMode(GL_PROJECTION);
 				glLoadIdentity();

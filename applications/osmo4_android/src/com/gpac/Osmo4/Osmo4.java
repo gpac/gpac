@@ -371,9 +371,6 @@ public class Osmo4 extends Activity implements GpacCallback {
             if(root == GUI_ROOT_ASSET_DIR){
 				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
 					return;
-            }else if(root == SHADER_ROOT_ASSET_DIR){
-                if ((new File(config.getGpacShaderDirectory() + filename).exists()))
-                    return;
             }
 				AssetManager assetManager = getAssets();
 				InputStream in = null;

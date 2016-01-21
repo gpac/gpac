@@ -14,28 +14,22 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-#common obj
-OBJS=main.o filedump.o fileimport.o 
-ifeq ($(DISABLE_STREAMING),no)
-OBJS+=live.o
+LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
+
+ifeq ($(STATICBUILD),yes)
+##include static modules and other deps for libgpac
+include ../../static.mak
+LINKFLAGS+=-lgpac_static
+LINKFLAGS+=$(EXTRALIBS)
+else
+LINKFLAGS+=-lgpac
 endif
 
-LINKFLAGS=-L../../bin/gcc -L../../extra_lib/lib/gcc
 
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
 LINKFLAGS+=-municode
-
-ifeq ($(MP4BOX_STATIC),yes)
-LINKFLAGS+=-lgpac_static $(EXTRALIBS) 
-ifneq ($(CONFIG_ZLIB),no)
-LINKFLAGS+=-lz
-endif
-
-else
-LINKFLAGS+=-lgpac
-endif
 
 else
 
@@ -43,28 +37,18 @@ EXT=
 PROG=MP4Box
 
 ifeq ($(MP4BOX_STATIC),yes)
-
-LINKFLAGS+=-lgpac_static $(EXTRALIBS) $(GPAC_SH_FLAGS)
-
-ifneq ($(CONFIG_ZLIB),no)
-LINKFLAGS+=-lz
-endif
-
-# spidermonkey support
-ifeq ($(CONFIG_JS),no)
-else
-SCENEGRAPH_CFLAGS+=$(JS_FLAGS)
-ifeq ($(CONFIG_JS),local)
-NEED_LOCAL_LIB="yes"
-endif
-LINKFLAGS+=$(JS_LIBS)
-endif
-
-else
-LINKFLAGS+=-lgpac
+LINKFLAGS+= $(GPAC_SH_FLAGS)
 endif
 
 endif
+
+
+#common obj
+OBJS=main.o filedump.o fileimport.o 
+ifeq ($(DISABLE_STREAMING),no)
+OBJS+=live.o
+endif
+
 
 
 SRCS := $(OBJS:.o=.c) 

@@ -358,10 +358,12 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif
 
 #define GLSL_PREFIX GLES_VERSION_STRING \
+	"#ifdef GL_ES"\
 	"#ifdef GL_FRAGMENT_PRECISION_HIGH\n"\
 	"precision highp float;\n"\
-	"#elif defined(GL_ES)\n"\
+	"#else\n"\
 	"precision mediump float;\n"\
+	"#endif\n" \
 	"#endif\n"
 
 
@@ -1129,14 +1131,23 @@ void visual_3d_set_clipper_scissor(GF_VisualManager *visual, GF_TraverseState *t
 #ifndef GPAC_USE_TINYGL
 	if (visual->has_clipper_2d) {
 		u32 x, y;
+		u32 dw, dh;
 		glEnable(GL_SCISSOR_TEST);
 		
+		if (visual->offscreen) {
+			dw = visual->width;
+			dh = visual->height;
+		} else {
+			dw = visual->compositor->display_width;
+			dh = visual->compositor->display_height;
+		}
+		
 		if (visual->center_coords) {
-			x = visual->clipper_2d.x + visual->width/2;
-			y = visual->height/2 + visual->clipper_2d.y - visual->clipper_2d.height;
+			x = visual->clipper_2d.x + dw / 2;
+			y = dh / 2 + visual->clipper_2d.y - visual->clipper_2d.height;
 		} else {
 			x = visual->clipper_2d.x;
-			y = visual->height - visual->clipper_2d.y;
+			y = dh - visual->clipper_2d.y;
 		}
 		glScissor(x, y, visual->clipper_2d.width, visual->clipper_2d.height);
 	} else {
@@ -2399,14 +2410,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	//check if we are using a different program than last time, if so force matrices updates
 	if ((visual->glsl_program != root_visual->glsl_programs[visual->glsl_flags])
 			|| !root_visual->glsl_programs[visual->glsl_flags]) {
-		tr_state->visual->needs_projection_matrix_reload = 1;
+		tr_state->visual->needs_projection_matrix_reload = GF_TRUE;
 	}
 
 	visual->glsl_program = root_visual->glsl_programs[visual->glsl_flags];
 	glUseProgram(visual->glsl_program);
 	GL_CHECK_ERR
 
-	
 	if (! visual_3d_bind_buffer(visual->compositor, mesh, &vertex_buffer_address)) {
 		glUseProgram(0);
 		return;

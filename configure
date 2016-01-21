@@ -585,7 +585,7 @@ EOF
         mingw32="yes"
         win32="yes"
         want_pic="no"
-        extralibs="$extralibs -lws2_32 -lwinmm"
+        extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
         CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
         if test "$cross_prefix" != "" ; then
             GPAC_SH_FLAGS=""
@@ -2152,6 +2152,10 @@ for opt do
     esac
 done
 
+#always force static modules when static build is used, we cannot have one exe with libgpac_static using a module with libgpac dynamic, this would cause bugs with gf_sys_init()
+if test "$static_build" = "yes"; then
+static_modules="yes"
+fi
 
 
 if test "$disable_core_tools" = "no"; then
@@ -2951,7 +2955,10 @@ if test "$use_fixed_point" = "yes"; then
 fi
 
 if test "$use_memory_tracking" = "yes"; then
-    echo "#define GPAC_MEMORY_TRACKING" >> $TMPH
+    echo "#define GPAC_MEMORY_TRACKING" >> $TMPHz
+    if test "$cygwin" = "yes" ; then
+		echo "#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE" >> $TMPHz
+    fi
 fi
 
 
@@ -3276,6 +3283,7 @@ if test "$source_path_used" = "yes" ; then
         mkdir -p "$dir"
     done
     ln -sf "$source_path/Makefile" Makefile
+    ln -sf "$source_path/static.mak" static.mak
     ln -sf "$source_path/src/Makefile" src/Makefile
 
     mkdir -p applications
