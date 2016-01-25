@@ -36,7 +36,7 @@
 #include <windows.h>
 #include <direct.h>
 #include <sys/stat.h>
-#include <Share.h>
+#include <share.h>
 
 #else
 

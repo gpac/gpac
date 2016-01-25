@@ -1707,6 +1707,7 @@ restart_fragmentation_pass:
 							if (next_sap_time) {
 								u32 scaler, SegmentNum;
 								Double SegmentStart;
+								u64 next_sap_dur;
 								if (dash_cfg->segment_duration_strict) {
 									SegmentStart = 0;
 									SegmentNum = 1;
@@ -1715,13 +1716,17 @@ restart_fragmentation_pass:
 									SegmentNum = cur_seg - first_seg;
 								}
 								/*this is the fragment duration from last sample added to next SAP*/
-								frag_dur += (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
+								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (SegmentStart + SegmentDuration + frag_dur > MaxSegmentDuration * SegmentNum)) {
+								if (!tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur > SegmentStart + MaxSegmentDuration)) {
+								//if (!tf->splitable && (SegmentStart + SegmentDuration + frag_dur > MaxSegmentDuration * SegmentNum)) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
 									stop_frag = GF_TRUE;
+									if (frag_dur < MaxSegmentDuration) {
+										GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but segment duration is not aligned with GOP duration (%d vs %d) - using GOP duration for this segment\n", MaxSegmentDuration, frag_dur));
+									}
 								}
 
 								if (! tf->all_sample_raps) {
@@ -1752,6 +1757,9 @@ restart_fragmentation_pass:
 							|| (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
 						) {
 							stop_frag = GF_TRUE;
+							if (split_seg_at_rap && (next && !next->IsRAP)) {
+								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but next segment will not be compatible\n"));
+							}
 						}
 					}
 				}
@@ -2047,12 +2055,15 @@ restart_fragmentation_pass:
 		gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 	}
 	else if (!dash_cfg->use_segment_timeline) {
+		if (3*min_seg_dur < max_seg_dur) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
+		}
 		if (dash_cfg->dash_ctx) {
 			max_segment_duration = dash_cfg->segment_duration;
-		} else {
-			if (3*min_seg_dur < max_seg_dur) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration variation is higher than the +/- 50%% allowed by DASH-IF (min %g, max %g) - please reconsider encoding\n", (Double) min_seg_dur / dash_cfg->dash_scale, (Double) max_seg_dur / dash_cfg->dash_scale));
+			if ((Double) max_seg_dur / dash_cfg->dash_scale < dash_cfg->segment_duration) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment duration is smaller than required (require %g s but DASH-ing only %g s)\n", dash_cfg->segment_duration, (Double) max_seg_dur / dash_cfg->dash_scale));
 			}
+		} else {
 			if (nb_segments == 1) {
 				max_segment_duration = (Double) total_seg_dur;
 				max_segment_duration /= nb_segments * dash_cfg->dash_scale;
