@@ -849,42 +849,45 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	u32 i, count;
 
 	gf_bs_write_int(bs, cfg->configurationVersion, 8);
-	gf_bs_write_int(bs, cfg->profile_space, 2);
-	gf_bs_write_int(bs, cfg->tier_flag, 1);
-	gf_bs_write_int(bs, cfg->profile_idc, 5);
-	gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
 
-	gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
-	gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
-	gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
-	gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
-	/*only lowest 44 bits used*/
-	gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
-	gf_bs_write_int(bs, cfg->level_idc, 8);
+	if (!cfg->is_shvc) {
+		gf_bs_write_int(bs, cfg->profile_space, 2);
+		gf_bs_write_int(bs, cfg->tier_flag, 1);
+		gf_bs_write_int(bs, cfg->profile_idc, 5);
+		gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
+		gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
+		gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
+		gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
+		gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
+		/*only lowest 44 bits used*/
+		gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
+		gf_bs_write_int(bs, cfg->level_idc, 8);
+	}
+
 	gf_bs_write_int(bs, 0xFF, 4);
 	gf_bs_write_int(bs, cfg->min_spatial_segmentation_idc, 12);
 
 	gf_bs_write_int(bs, 0xFF, 6);
 	gf_bs_write_int(bs, cfg->parallelismType, 2);
 
-	gf_bs_write_int(bs, 0xFF, 6);
-	gf_bs_write_int(bs, cfg->chromaFormat, 2);
-	gf_bs_write_int(bs, 0xFF, 5);
-	gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
-	gf_bs_write_int(bs, 0xFF, 5);
-	gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
-	gf_bs_write_int(bs, cfg->avgFrameRate, 16);
-	gf_bs_write_int(bs, cfg->constantFrameRate, 2);
+	if (!cfg->is_shvc) {
+		gf_bs_write_int(bs, 0xFF, 6);
+		gf_bs_write_int(bs, cfg->chromaFormat, 2);
+		gf_bs_write_int(bs, 0xFF, 5);
+		gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
+		gf_bs_write_int(bs, 0xFF, 5);
+		gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
+		gf_bs_write_int(bs, cfg->avgFrameRate, 16);
+	}
+
+	if (!cfg->is_shvc)
+		gf_bs_write_int(bs, cfg->constantFrameRate, 2);
+	else
+		gf_bs_write_int(bs, 0xFF, 2);
+
 	gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
 	gf_bs_write_int(bs, cfg->temporalIdNested, 1);
 	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
-
-	if (cfg->is_shvc) {
-		gf_bs_write_int(bs, cfg->complete_representation, 1);
-		gf_bs_write_int(bs, cfg->non_hevc_base_layer, 1);
-		gf_bs_write_int(bs, cfg->num_layers ? cfg->num_layers - 1 : 0, 6);
-		gf_bs_write_int(bs, cfg->scalability_mask, 16);
-	}
 
 	count = gf_list_count(cfg->param_array);
 	gf_bs_write_int(bs, count, 8);
@@ -927,44 +930,48 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
 
 	cfg->configurationVersion = gf_bs_read_int(bs, 8);
-	cfg->profile_space = gf_bs_read_int(bs, 2);
-	cfg->tier_flag = gf_bs_read_int(bs, 1);
-	cfg->profile_idc = gf_bs_read_int(bs, 5);
-	cfg->general_profile_compatibility_flags = gf_bs_read_int(bs, 32);
 
-	cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
-	cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);
-	cfg->non_packed_constraint_flag = gf_bs_read_int(bs, 1);
-	cfg->frame_only_constraint_flag = gf_bs_read_int(bs, 1);
-	/*only lowest 44 bits used*/
-	cfg->constraint_indicator_flags = gf_bs_read_long_int(bs, 44);
-	cfg->level_idc = gf_bs_read_int(bs, 8);
-	gf_bs_read_int(bs, 4);
+	if (!is_shvc) {
+		cfg->profile_space = gf_bs_read_int(bs, 2);
+		cfg->tier_flag = gf_bs_read_int(bs, 1);
+		cfg->profile_idc = gf_bs_read_int(bs, 5);
+		cfg->general_profile_compatibility_flags = gf_bs_read_int(bs, 32);
+
+		cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
+		cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);
+		cfg->non_packed_constraint_flag = gf_bs_read_int(bs, 1);
+		cfg->frame_only_constraint_flag = gf_bs_read_int(bs, 1);
+		/*only lowest 44 bits used*/
+		cfg->constraint_indicator_flags = gf_bs_read_long_int(bs, 44);
+		cfg->level_idc = gf_bs_read_int(bs, 8);
+	}
+
+	gf_bs_read_int(bs, 4); //reserved
 	cfg->min_spatial_segmentation_idc = gf_bs_read_int(bs, 12);
 
-	gf_bs_read_int(bs, 6);
+	gf_bs_read_int(bs, 6);//reserved
 	cfg->parallelismType = gf_bs_read_int(bs, 2);
 
-	gf_bs_read_int(bs, 6);
-	cfg->chromaFormat = gf_bs_read_int(bs, 2);
-	gf_bs_read_int(bs, 5);
-	cfg->luma_bit_depth = gf_bs_read_int(bs, 3) + 8;
-	gf_bs_read_int(bs, 5);
-	cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
-	cfg->avgFrameRate = gf_bs_read_int(bs, 16);
-	cfg->constantFrameRate = gf_bs_read_int(bs, 2);
+	if (!is_shvc) {
+		gf_bs_read_int(bs, 6);
+		cfg->chromaFormat = gf_bs_read_int(bs, 2);
+		gf_bs_read_int(bs, 5);
+		cfg->luma_bit_depth = gf_bs_read_int(bs, 3) + 8;
+		gf_bs_read_int(bs, 5);
+		cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
+		cfg->avgFrameRate = gf_bs_read_int(bs, 16);
+	}
+
+	if (!is_shvc)
+		cfg->constantFrameRate = gf_bs_read_int(bs, 2);
+	else
+		gf_bs_read_int(bs, 2); //reserved
+
 	cfg->numTemporalLayers = gf_bs_read_int(bs, 3);
 	cfg->temporalIdNested = gf_bs_read_int(bs, 1);
 
 	cfg->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 
-	if (is_shvc) {
-		cfg->is_shvc = GF_TRUE;
-		cfg->complete_representation = (Bool)gf_bs_read_int(bs, 1);
-		cfg->non_hevc_base_layer = (Bool)gf_bs_read_int(bs, 1);
-		cfg->num_layers = 1 + gf_bs_read_int(bs, 6);
-		cfg->scalability_mask = gf_bs_read_int(bs, 16);
-	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
