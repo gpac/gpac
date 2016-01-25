@@ -5070,12 +5070,12 @@ restart_import:
 			/*write sampleGroups info*/
 			if (!samp->IsRAP && ( (sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count>=0) {
+				if (sei_recovery_frame_count > 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
 				/*open-GOP*/
-				else if (sample_has_islice) {
+				else if ((sei_recovery_frame_count == 0) && sample_has_islice) {
 					if (!use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
 				}
@@ -6057,7 +6057,7 @@ restart_import:
 			/*write sampleGroups info*/
 			if (!samp->IsRAP && ((sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count >= 0) {
+				if (sei_recovery_frame_count > 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
