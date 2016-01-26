@@ -2967,6 +2967,15 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			*/
 			Bool lock_ok = gf_mx_try_lock(compositor->mx);
 			if ((compositor->display_width!=event->size.width) || (compositor->display_height!=event->size.height)) {
+
+				//OSX bug with SDL when requesting 4k window we get max screen height but 4k width ...
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+				if (compositor->display_width==event->size.width) {
+					if (compositor->display_height > 2*event->size.height) {
+						event->size.width = compositor->display_width * event->size.height / compositor->display_height;
+					}
+				}
+#endif
 				compositor->new_width = event->size.width;
 				compositor->new_height = event->size.height;
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
