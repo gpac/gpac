@@ -210,7 +210,6 @@ void PrintGeneralUsage()
 	        " -flat                stores file with all media data first, non-interleaved\n"
 	        " -frag time_in_ms     fragments file (track fragments of time_in_ms)\n"
 	        "                       * Note: Always disables interleaving\n"
-	        " -ffspace size        inserts free space before moof in fragmented files\n"
 	        " -out filename        specifies output file name\n"
 	        "                       * Note: By default input (MP4,3GP) file is overwritten\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
