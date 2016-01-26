@@ -3510,7 +3510,9 @@ GF_Err gf_isom_get_fragmented_samples_info(GF_ISOFile *movie, u32 trackID, u32 *
 				if (traf->tfhd->trackID != trackID)
 					continue;
 
-				def_duration = (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) ? traf->tfhd->def_sample_duration : traf->trex->def_sample_duration;
+				def_duration = 0;
+				if (traf->tfhd->flags & GF_ISOM_TRAF_SAMPLE_DUR) def_duration = traf->tfhd->def_sample_duration;
+				else if (traf->trex) def_duration = traf->trex->def_sample_duration;
 
 				for (k=0; k<gf_list_count(traf->TrackRuns); k++) {
 					GF_TrackFragmentRunBox *trun = (GF_TrackFragmentRunBox*)gf_list_get(traf->TrackRuns, k);
