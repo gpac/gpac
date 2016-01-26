@@ -2527,14 +2527,18 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		time_spent_in_anim = 0;
 #endif
 
+		if (compositor->traverse_state->immediate_draw) {
+			compositor->frame_draw_type = GF_SC_DRAW_FRAME;
+		}
+		
 		/*video flush only*/
 		if (compositor->frame_draw_type==GF_SC_DRAW_FLUSH) {
 			compositor->frame_draw_type = 0;
+
 		}
 		/*full render*/
 		else {
 			compositor->frame_draw_type = 0;
-
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Redrawing scene - STB %d\n", compositor->scene_sampled_clock));
 			gf_sc_draw_scene(compositor);
