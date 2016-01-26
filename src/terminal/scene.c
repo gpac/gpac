@@ -1409,7 +1409,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		s32 min_x, max_x, min_y, max_y;
 		i=0;
 
-		min_x = min_y = (u32) -1;
+		min_x = min_y = INT_MAX;
 		max_x = max_y = 0;
 		
 		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
