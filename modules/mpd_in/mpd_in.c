@@ -55,6 +55,8 @@ typedef struct __mpd_module
 	MpdInBuffer buffer_mode;
 	u32 nb_playing;
 
+	Bool buffer_adaptation;
+
 	/*max width & height in all active representations*/
 	u32 width, height;
 
@@ -880,6 +882,13 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		com.command_type = GF_NET_SERVICE_CODEC_STAT_QUERY;
 		gf_service_command(mpdin->service, &com, GF_OK);
 		gf_dash_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
+
+		if (mpdin->buffer_adaptation) {
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_BUFFER_QUERY;
+			gf_service_command(mpdin->service, &com, GF_OK);
+			gf_dash_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
+		}
 	}
 
 	return GF_OK;
@@ -961,8 +970,15 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (opt && !strcmp(opt, "yes")) keep_files = 1;
 
 	disable_switching = 0;
-	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DisableSwitching");
-	if (opt && !strcmp(opt, "yes")) disable_switching = 1;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "NetworkAdaptation");
+	if (!opt) {
+		opt = "buffer";
+		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "NetworkAdaptation", opt);
+	}
+	if (!strcmp(opt, "disabled")) disable_switching = 2;
+	else if (!strcmp(opt, "bandwidth")) mpdin->buffer_adaptation = GF_FALSE;
+	else mpdin->buffer_adaptation = GF_TRUE;
+	
 
 	first_select_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
