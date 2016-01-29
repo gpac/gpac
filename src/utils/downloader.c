@@ -1761,8 +1761,8 @@ retry_cache:
 	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
-	//for data rates lower than 2 mbps use smaller read size otherwise we will not be able to limit the rate
-	if (dm->limit_data_rate && dm->limit_data_rate < 2500) {
+	//when rate is limited, use smaller smaller read size 
+	if (dm->limit_data_rate) {
 		dm->read_buf_size = 1024;
 	}
 
@@ -3623,10 +3623,8 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		}
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
-		//for data rates lower than 2 mbps use smaller read size otherwise we will not be able to limit the rate
-		if (dm->limit_data_rate && dm->limit_data_rate < 2500) {
-			dm->read_buf_size = 1024;
-		}
+		//when rate is limited, use smaller smaller read size 
+		if (dm->limit_data_rate) dm->read_buf_size = 1024;
 	}
 }
 
