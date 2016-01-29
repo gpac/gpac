@@ -720,6 +720,9 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			if (!term->root_scene || !term->root_scene->root_od)
 				break;
 
+			if (gf_list_count(term->media_queue) ) 
+				continue;
+
 			//wait for audio to be flushed
 			if (gf_sc_check_audio_pending(term->compositor) ) 
 				continue;

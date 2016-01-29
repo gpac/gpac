@@ -561,10 +561,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	if (CU->next->dataLength) {
 		diff = (s32) (CU->next->TS) - (s32) obj_time;
-		mo->ms_until_next = FIX2INT(diff * mo->speed);
 	} else  {
-		mo->ms_until_next = 1;
+		diff = mo->odm->codec->min_frame_dur;
 	}
+	mo->ms_until_next = FIX2INT(diff * mo->speed);
+
 	diff = (mo->speed >= 0) ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
