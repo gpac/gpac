@@ -4269,12 +4269,12 @@ restart_period:
 					key_url = NULL;
 					continue;
 				}
-
-				group->prev_segment_ok = GF_TRUE;
-				if (group->time_at_first_failure) {
+				
+				if (!group->prev_segment_ok) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
 					group->time_at_first_failure = 0;
 					group->nb_consecutive_fail = 0;
+					group->prev_segment_ok = GF_TRUE;
 				}
 
 				if ((e==GF_OK) && group->force_switch_bandwidth) {
