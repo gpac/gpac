@@ -463,8 +463,6 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 			u32 diff=1;
 			if (term->compositor->ms_until_next_frame>0) diff = term->compositor->ms_until_next_frame;
 			gf_term_step_clocks(term, diff);
-			mediacontrol_resume(term->root_scene->root_od, 0);
-			mediacontrol_pause(term->root_scene->root_od);
 		}
 		return;
 	}
@@ -856,28 +854,45 @@ GF_Err gf_term_del(GF_Terminal * term)
 GF_EXPORT
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 {
-	u32 i, j;
-	GF_ClientService *ns;
 	/*only play/pause if connected*/
 	if (!term || !term->root_scene || !term->root_scene->root_od) return GF_BAD_PARAM;
 
 	if (ms_diff) {
+		u32 i, j;
+		GF_ClientService *ns;
+		GF_Clock *ck;
+
 		if (term->play_state == GF_STATE_PLAYING) return GF_BAD_PARAM;
 
 		gf_sc_lock(term->compositor, 1);
 		i=0;
 		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
-			GF_Clock *ck;
 			j=0;
 			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 				ck->init_time += ms_diff;
 				ck->media_time_at_init += ms_diff;
+				//make sure we don't touch clock while doing resume/pause below
+				ck->Paused ++;
 			}
 		}
 		term->compositor->step_mode = 1;
-
 		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
+
+		//resume/pause to trigger codecs state change
+		mediacontrol_resume(term->root_scene->root_od, 0);
+		mediacontrol_pause(term->root_scene->root_od);
+
+		//release our safety
+		i=0;
+		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+			j=0;
+			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
+			ck->Paused --;
+			}
+		}
+
 		gf_sc_lock(term->compositor, 0);
+
 	}
 
 	gf_sc_flush_next_audio(term->compositor);

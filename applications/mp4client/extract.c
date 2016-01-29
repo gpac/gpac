@@ -715,7 +715,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 
 	fprintf(stderr, "Opening URL %s\n", url);
-	/*connect in pause mode*/
+	/*connect and pause */
 	gf_term_connect_from_time(term, url, 0, 1);
 
 	while (!term->compositor->scene
