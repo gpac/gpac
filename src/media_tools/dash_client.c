@@ -245,7 +245,7 @@ struct __dash_group
 	u32 time_at_first_failure;
 	Bool prev_segment_ok, segment_in_valid_range;
 	//this is the number of 404
-	u32 nb_consecutive_fail;
+	u32 nb_consecutive_segments_lost;
 	u64 retry_after_utc;
 	/*set when switching segment, indicates the current downloaded segment duration*/
 	u64 current_downloaded_segment_duration;
@@ -4241,12 +4241,15 @@ restart_period:
 							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 							group->time_at_first_failure = 0;
 							group->prev_segment_ok = GF_FALSE;
+						} else {
+							//in this case, we are likely asking too late ...
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - %d consecutive segments not found, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), group->nb_consecutive_segments_lost));
 						}
 #if 1
-						group->nb_consecutive_fail ++;
+						group->nb_consecutive_segments_lost ++;
 						//we are lost ....
-						if (group->nb_consecutive_fail == 20) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
+						if (group->nb_consecutive_segments_lost == 20) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] %d consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n", group->nb_consecutive_segments_lost));
 							min_wait = 1000;
 							group->maybe_end_of_stream = 1;
 						} else
@@ -4274,8 +4277,8 @@ restart_period:
 				if (group->time_at_first_failure) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
 					group->time_at_first_failure = 0;
-					group->nb_consecutive_fail = 0;
 				}
+				group->nb_consecutive_segments_lost = 0;
 
 				if ((e==GF_OK) && group->force_switch_bandwidth) {
 					if (!dash->auto_switch_count) {
