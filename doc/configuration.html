@@ -733,18 +733,25 @@ Specifies whether downloaded files should not be deleted.</p>
 <b>AutoSwitchCount</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 For debug purposes, instructs the player to switch representation every N segments. If 0 (default), switching is disabled.</p>
-<b>BufferMode</b> [value: <i>segments, minBuffer, none</i>]
+<b>BufferingMode</b> [value: <i>segments, minBuffer, none</i>]
 <p style="text-indent: 5%">
 Selects buffer mode:
 <ul> 
 <li>segments: buffers complete segments as indicated in MPD before handing them to the player.</li>
-<li>minBuffer: asks the player to buffer media for the time indicated in the MPD (default mode), but segments are not pre-buffered.</li> 
+<li>minBuffer: asks the player to buffer media for the time indicated in the MPD, but segments are not pre-buffered. Default mode.</li> 
 <li>none: uses the  player settings for buffering.</li> 
 </ul>
 </p>
-<b>DisableSwitching</b> [value: <i>yes, no</i>]
+<b>NetworkAdaptation</b> [value: <i>disabled, bandwidth, buffer</i>]
 <p style="text-indent: 5%">
-Disables automatic adaptation logic. Default is no</p>
+Sets automatic adaptation logic mode:
+<ul>
+<li>disabled: no adaptation to network condition is used.</li>
+<li>bandwidth: network adaptation is based only on available download rate.</li> 
+<li>buffer: network adaptation is based on available download rate for quality increase and buffer levels for quality drops. Default mode.</li> 
+</ul>
+
+</p>
 <b>MemoryStorage</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Files are only stored in memory and destroyed after playback, no disk IO is used. Default is yes</p>
@@ -770,13 +777,25 @@ Sets low-latency mode enabled. In low-latency mode, media data is parsed as soon
 If chunk is selected, media data is re-parsed at each HTTP 1.1 chunk end. If always is selected, media data is re-parsed as soon as HTTP data is received.</p> 
 <b>AllowAbort</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
-Enables aborts of HTTP transfer when rate gets too low. This may result in a packet drops. Default is no.</p>
+Enables aborts of HTTP transfer when rate gets too low. This imply data loss and may also result in a connection loss. Default is no.</p>
 <b>UseServerUTC</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Enables using <i>Server-UTC</i> HTTP header to compensate any drift between client and server. Default is yes.</p>
 <b>DebugAdaptationSet</b> [value: <i>integer</i>]
 <p style="text-indent: 5%">
 Plays only the adaptation set indicated by its index in the MPD. If index is negative, all sets are used (default mode).
+</p>
+<b>TimeBetween404</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Sets how many millisconds to wait between two 404 on the same segment. Default is 500. 
+</p>
+<b>SegmentExpirationThreshold</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+Sets how many millisconds to wait after the segment AvailabilityEndDate before considering the segment lost. Default is 100. 
+</p>
+<b>SpeedAdaptation</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+Enables adaptation based on playback speed. Default is no. 
 </p>
 <b>SwitchProbeCount</b> [value: <i>unsigned integer</i>]
 <p style="text-indent: 5%">
@@ -800,7 +819,9 @@ Selects how bitrate is shared across tiles of a video:
 </p>
 <b>TileRateDecrease</b> [value: <i>percentage</i>]
 <p style="text-indent: 5%">
-Indicates the amount of bandwidth to use at each level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 0 or 100, automatic rate allocation will be done by maximizing the quality in order of priority. Default is 100.</p>
+Indicates the amount of bandwidth to use at each quality level. The rate is recursively applied at each level, e.g. if 50%, Level1 gets 50%, level2 gets 25%, ... If 100, automatic rate allocation will be done by maximizing the quality in order of priority. 
+If 0, bitstream will not be smoothed across tiles/qualities, and concurrency may happen between different media.
+Default is 100.</p>
 
 
 <br/><br/>

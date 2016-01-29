@@ -2102,6 +2102,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_timeshift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_timeshift_buffer_pos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_codec_stat) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_buffer_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_disable_speed_adaptation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_override_ntp) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_has_dependent_group) )

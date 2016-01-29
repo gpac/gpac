@@ -235,6 +235,7 @@ struct __dash_group
 
 	u32 nb_segments_done;
 	u32 last_segment_time;
+	u32 nb_segments_since_switch;
 
 	//stats of last downloaded segment
 	u32 total_size, bytes_per_sec;
@@ -277,9 +278,14 @@ struct __dash_group
 
 	/*Codec statistics*/
 	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
-	u32 display_width, display_height;
 	Bool codec_reset;
 	Bool decode_only_rap;
+	/*display statistics*/
+	u32 display_width, display_height;
+	/*buffer status*/
+	u32 buffer_min_ms, buffer_max_ms, buffer_occupancy_ms;
+	u32 buffer_occupancy_at_last_seg;
+
 
 	u32 m3u8_start_media_seq;
 	
@@ -2264,7 +2270,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	GET_REP_ATTR(samplerate);
 	GET_REP_ATTR(framerate);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Switched to representation bandwidth %d kbps\n", rep->bandwidth/1024));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d switched to representation bandwidth %d kbps\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1024));
 	if (group->max_bitrate) GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tmax download bandwidth: %d kbps\n", group->max_bitrate/1024));
 	if (width&&height) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tWidth %d Height %d", width, height));
@@ -2397,7 +2403,7 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, GF_DASHF
 	group->total_size = dash->dash_io->get_total_size(dash->dash_io, segment_download);
 	group->bytes_per_sec = dash->dash_io->get_bytes_per_sec(dash->dash_io, segment_download);
 	group->last_segment_time = gf_sys_clock();
-
+	group->nb_segments_since_switch ++;
 
 #ifndef GPAC_DISABLE_LOG
 	if (group->total_size && group->bytes_per_sec && group->current_downloaded_segment_duration) {
@@ -2408,16 +2414,16 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, GF_DASHF
 		time = group->total_size;
 		time /= group->bytes_per_sec;
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded stats: %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", group->total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*group->bytes_per_sec/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d download stats: %d bytes in %g seconds - duration %g sec - Bandwidth (kbps): indicated %d - computed %d - download %d\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->total_size, time, group->current_downloaded_segment_duration/1000.0, rep->bandwidth/1000, (u32) bitrate, 8*group->bytes_per_sec/1000));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloaded stats: %d bytes at %d bytes per seconds\n", group->total_size, group->bytes_per_sec));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d download stats: %d bytes at %d bytes per seconds\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->total_size, group->bytes_per_sec));
 	}
 #endif
 }
 
 static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 {
-	Double bitrate, speed;
+	Double speed;
 	u32 k, dl_rate;
 	Bool go_up_bitrate = GF_FALSE;
 	u32 nb_inter_rep = 0;
@@ -2425,21 +2431,18 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	Double max_available_speed;
 	Bool force_below_resolution = GF_FALSE;
 	GF_DASH_Group *base_group = group;
+	Bool do_switch = GF_TRUE;
 
 	if (dash->auto_switch_count) return;
 	if (group->dash->disable_switching) return;
-	
-	if (group->total_size && group->bytes_per_sec && group->current_downloaded_segment_duration) {
-	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Unknown segment duration - skipping rate adaptation\n"));
+
+	//nothing downloaded for this group, no rate adaptation to be done
+	if (!group->total_size || !group->bytes_per_sec) {
 		return;
 	}
 
 	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 	
-	bitrate = 8*group->total_size;
-	bitrate /= group->current_downloaded_segment_duration;
-
 	while (base_group->depend_on_group) {
 		base_group = base_group->depend_on_group;
 	}
@@ -2455,7 +2458,10 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	if (dl_rate < group->min_representation_bitrate)
 		dl_rate = group->min_representation_bitrate;
 
-	/*query codec statistics*/
+	group->buffer_max_ms = group->buffer_occupancy_ms = 0;
+	group->codec_reset = 0;
+
+	/*query codec and buffer statistics*/
 	dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_CODEC_STAT_QUERY, gf_list_find(group->dash->groups, group), GF_OK);
 	if (rep->playback.waiting_codec_reset && group->codec_reset) rep->playback.waiting_codec_reset = GF_FALSE;
 
@@ -2465,54 +2471,107 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		if (max_available_speed && (speed > max_available_speed))
 			force_below_resolution = GF_TRUE;
 	}
+	
+	/*buffer-based control: if we are below half of the buffer don't try to go up and limit rate to less than our current rep bandwidth*/
+	if (group->buffer_max_ms) {
+		u32 buf_high_threshold, buf_low_threshold;
+		s32 occ;
+
+		if (group->current_downloaded_segment_duration && (group->buffer_max_ms > group->current_downloaded_segment_duration))
+			buf_high_threshold = group->buffer_max_ms - (u32) group->current_downloaded_segment_duration;
+		else
+			buf_high_threshold = 2*group->buffer_max_ms/3;
+
+		buf_low_threshold = (group->current_downloaded_segment_duration && (group->buffer_min_ms>10)) ? group->buffer_min_ms : (u32) group->current_downloaded_segment_duration;
+		if (buf_low_threshold > group->buffer_max_ms) buf_low_threshold = 1*group->buffer_max_ms/3;
+
+		//compute how much we managed to refill (current state minus previous state)
+		occ = (s32) group->buffer_occupancy_ms;
+		occ -= (s32) group->buffer_occupancy_at_last_seg;
+		//if above max buffer force occ>0 since a segment may still be pending and not dispatched (buffer regulation)
+		if (group->buffer_occupancy_ms>group->buffer_max_ms) occ=1;
+
+		//switch down if current buffer falls below min threshold 
+		if ( (s32) group->buffer_occupancy_ms < (s32) buf_low_threshold) {
+			if (!group->buffer_occupancy_ms) dl_rate = group->min_representation_bitrate;
+			else dl_rate = (rep->bandwidth>10) ? rep->bandwidth - 10 : 1;
+			go_up_bitrate = 0;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running low, switching down, target rate %d\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
+		} 
+		//switch up if above max threshold and buffer refill is fast enough
+		else if ((occ>0) && (group->buffer_occupancy_ms > buf_high_threshold)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - running high, will try to switch up, target rate %d\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ, dl_rate));
+			go_up_bitrate = 1;
+		} 
+		//don't do anything in the middle or if refill not fast enough
+		else {
+			do_switch = GF_FALSE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d bitrate %d bps buffer max %d current %d refill since last %d - steady\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, group->buffer_max_ms, group->buffer_occupancy_ms, occ));
+		}
+	}
 
 	/*find best bandwidth that fits our bitrate and playing speed*/
 	new_rep = NULL;
 
-	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
-		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Repesentation %s prev max available speed: %f \n", arep->id, arep->playback.prev_max_available_speed));
-		if (arep->playback.disabled) continue;
-		if (arep->playback.prev_max_available_speed && (speed > arep->playback.prev_max_available_speed)) 
-			continue;
+	if (do_switch) {
+		for (k=0; k<gf_list_count(group->adaptation_set->representations) && do_switch; k++) {
+			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Repesentation %s prev max available speed: %f \n", arep->id, arep->playback.prev_max_available_speed));
+			if (arep->playback.disabled) continue;
+			if (arep->playback.prev_max_available_speed && (speed > arep->playback.prev_max_available_speed)) 
+				continue;
 
-		if (dl_rate >= arep->bandwidth) {
-			if (force_below_resolution && !dash->disable_speed_adaptation) {
-				if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Speed adaptation\n"));
-				/*try to switch to highest quality below the current one*/
-				if ((arep->quality_ranking < rep->quality_ranking) || (arep->width < rep->width) || (arep->height < rep->height)) {
-					if (!new_rep) 
-						new_rep = arep;
-					else if ((arep->quality_ranking > new_rep->quality_ranking) || (arep->width > new_rep->width) || (arep->height > new_rep->height))
-						new_rep = arep;
-				}
-				rep->playback.prev_max_available_speed = max_available_speed;
-				go_up_bitrate = GF_FALSE;
-			} else {
-				if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Bitrate adaptation\n"));
-				if (!new_rep) new_rep = arep;
-				else if (go_up_bitrate) {
-					/*try to switch to highest bitrate below available download rate*/
-					if (arep->bandwidth > new_rep->bandwidth) {
-						if (new_rep->bandwidth > rep->bandwidth) {
+			if (dl_rate >= arep->bandwidth) {
+				if (force_below_resolution && !dash->disable_speed_adaptation) {
+					if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Speed adaptation\n"));
+					/*try to switch to highest quality below the current one*/
+					if ((arep->quality_ranking < rep->quality_ranking) || (arep->width < rep->width) || (arep->height < rep->height)) {
+						if (!new_rep) 
+							new_rep = arep;
+						else if ((arep->quality_ranking > new_rep->quality_ranking) || (arep->width > new_rep->width) || (arep->height > new_rep->height))
+							new_rep = arep;
+					}
+					rep->playback.prev_max_available_speed = max_available_speed;
+					go_up_bitrate = GF_FALSE;
+				} else {
+					if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Bitrate adaptation\n"));
+					if (!new_rep) new_rep = arep;
+					else if (go_up_bitrate) {
+#if 0
+						/*try to switch to highest bitrate below available download rate*/
+						if (arep->bandwidth > new_rep->bandwidth) {
+							if (new_rep->bandwidth > rep->bandwidth) {
+								nb_inter_rep ++;
+							}
+							new_rep = arep;
+						} else if (arep->bandwidth > rep->bandwidth) {
 							nb_inter_rep ++;
 						}
-						new_rep = arep;
-					} else if (arep->bandwidth > rep->bandwidth) {
-						nb_inter_rep ++;
-					}
-				} else {
-					/*try to switch to highest bitrate below available download rate*/
-					if (arep->bandwidth > new_rep->bandwidth) {
-						new_rep = arep;
+#else
+						/*try to switch to lowest bitrate above our current rep*/
+						if (new_rep->bandwidth<=rep->bandwidth) {
+							new_rep = arep;
+						} else if ( (arep->bandwidth < new_rep->bandwidth) && (arep->bandwidth > rep->bandwidth)) {
+							new_rep = arep;
+						}
+#endif
+					} else {
+						/*try to switch to highest bitrate below available download rate*/
+						if (arep->bandwidth > new_rep->bandwidth) {
+							new_rep = arep;
+						}
 					}
 				}
 			}
 		}
+
+		if (!new_rep || (new_rep==rep)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d no rep found better matching requested bandwidth %d - not switching !\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), dl_rate));
+			do_switch=GF_FALSE;
+		}
 	}
 
-	if (!dash->disable_switching && new_rep && (new_rep!=rep)) {
-		Bool do_switch = GF_TRUE;
+	if (do_switch) {
 		//if we're switching to the next upper bitrate (no intermediate bitrates), do not immediately switch
 		//but for a given number of segments - this avoids fluctuation in the quality
 		if (go_up_bitrate && ! nb_inter_rep) {
@@ -2523,22 +2582,30 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 				do_switch = 0;
 			}
 		}
-		if (do_switch) {
-			if (force_below_resolution) {
-				new_rep->playback.waiting_codec_reset = GF_TRUE;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Playing speed %f - switching representation from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dash->speed, rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
-			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\n\n[DASH] Download rate %d - switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms\n\n", dl_rate, go_up_bitrate ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc() ));
-			}
-			gf_dash_set_group_representation(group, new_rep);
+	}
+
+	if (do_switch) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d switching after playing %d segments from current rep\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), group->nb_segments_since_switch));
+		group->nb_segments_since_switch = 0;
+
+		if (force_below_resolution) {
+			new_rep->playback.waiting_codec_reset = GF_TRUE;
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d switching representation from bandwidth %d bps to %d bps at UTC "LLU" ms (playback speed %f)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth, new_rep->bandwidth, gf_net_get_utc(), dash->speed ));
+		} else {
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d switching representation %s from bandwidth %d bps to %d bps at UTC "LLU" ms (download rate %d)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), go_up_bitrate ? "up" : "down", rep->bandwidth, new_rep->bandwidth, gf_net_get_utc(), dl_rate));
 		}
 
-		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
-			if (new_rep==arep) continue;
-			arep->playback.probe_switch_count = 0;
-		}
+		gf_dash_set_group_representation(group, new_rep);
 	}
+
+	group->buffer_occupancy_at_last_seg = group->buffer_occupancy_ms;
+
+	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
+		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+		if (new_rep==arep) continue;
+		arep->playback.probe_switch_count = 0;
+	}
+
 	if (force_below_resolution && !new_rep) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Speed %f is too fast to play - speed down \n", dash->speed));
 		/*FIXME: should do something here*/
@@ -3704,8 +3771,8 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 		res = srd->srd_nb_rows/2 - tile_group->srd_row_idx;
 		res = srd->srd_nb_rows/2 - ABS(res);
 		res2 = srd->srd_nb_cols/2 - tile_group->srd_col_idx;
-		res2 = srd->srd_nb_rows/2 - ABS(res2);
-		return MAX( res, res2 );
+		res2 = srd->srd_nb_cols/2 - ABS(res2);
+		return MIN( res, res2 );
 	}
 	return 0;
 }
@@ -4618,6 +4685,8 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 		if (total_rate > group->bytes_per_sec)
 			total_rate = group->bytes_per_sec;
 	}
+	if (total_rate == (u32) -1)
+		total_rate = 0;
 
 	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
@@ -4639,9 +4708,12 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 		}
 		min_bandwidth += bandwidths[q_idx];
 	}
-		
+
+	/*no per-quality adaptation, we may have oscillations*/
+	if (!dash->tile_rate_decrease) {
+	}
 	/*automatic rate alloc*/
-	if (dash->tile_rate_decrease==100) {
+	else if (dash->tile_rate_decrease==100) {
 		//for each quality level (starting from highest priority), increase the bitrate if possible
 		for (q_idx=0; q_idx < max_level; q_idx++) {
 			while (1) {
@@ -4675,13 +4747,15 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 					break;
 			}
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]Â Rate Adaptation - download rate %d kbps - %d quality levels (cumulated representations rate %d kbps)\n", 8*total_rate/1000, max_level, min_bandwidth/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Rate Adaptation - download rate %d kbps - %d quality levels (cumulated representations rate %d kbps)\n", 8*total_rate/1000, max_level, min_bandwidth/1000));
 		for (q_idx=0; q_idx<max_level; q_idx++) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]\tLevel #%d - %d Adaptation Sets for a total %d kbps allocated\n", q_idx+1, groups_per_quality[q_idx], bandwidths[q_idx]/1000 ));
 		}
 			
 		force_rep_idx = GF_TRUE;
-	} else {
+	}
+	/*for each quality level get tile_rate_decrease% of the available bandwidth*/
+	else {
 		u32 rate = bandwidths[0] = total_rate * dash->tile_rate_decrease / 100;
 		for (i=1; i<max_level; i++) {
 			u32 remain = total_rate - rate;
@@ -4693,7 +4767,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 			}
 		}
 		
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]Â Rate Adaptation - download rate %d kbps - %d quality levels (cumulated rate %d kbps)\n", 8*total_rate/1000, max_level, 8*min_bandwidth/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Rate Adaptation - download rate %d kbps - %d quality levels (cumulated rate %d kbps)\n", 8*total_rate/1000, max_level, 8*min_bandwidth/1000));
 		for (q_idx=0; q_idx<max_level; q_idx++) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH]\tLevel #%d - %d Adaptation Sets for a total %d kbps allocated\n", q_idx+1, groups_per_quality[q_idx], 8*bandwidths[q_idx]/1000 ));
 		}
@@ -4708,7 +4782,9 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 			rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep);
 			//add 100 bytes/sec to make sure we select the target one
 			group->bytes_per_sec = 100 + rep->bandwidth / 8;
-		} else {
+		}
+		//decrease by quality level
+		else if (dash->tile_rate_decrease) {
 			quality_rank = gf_dash_get_tiles_quality_rank(dash, group);
 			assert(groups_per_quality[quality_rank]);
 			group->bytes_per_sec = bandwidths[quality_rank] / groups_per_quality[quality_rank];
@@ -6811,6 +6887,17 @@ void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 
 }
 
 GF_EXPORT
+void gf_dash_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms)
+{
+	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
+	if (!group) return;
+	group->buffer_min_ms = buffer_min_ms;
+	group->buffer_max_ms = buffer_max_ms;
+	group->buffer_occupancy_ms = buffer_occupancy_ms;
+}
+
+
+GF_EXPORT
 void gf_dash_disable_speed_adaptation(GF_DashClient *dash, Bool disable)
 {
 	dash->disable_speed_adaptation = disable;
@@ -6834,7 +6921,7 @@ void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptation
 {
 	u32 i;
 	dash->tile_adapt_mode = mode;
-	dash->tile_rate_decrease = tile_rate_decrease ? tile_rate_decrease : 100;
+	dash->tile_rate_decrease = (tile_rate_decrease<100) ? tile_rate_decrease : 100;
 	for (i=0; i<gf_list_count(dash->groups); i++) {
 		GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, i);
 		if (group->srd_desc) gf_dash_set_tiles_quality(dash, group->srd_desc);
