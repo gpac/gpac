@@ -1449,7 +1449,11 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 				mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, szTex);
 				set_media_url(scene, &url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
-				
+
+				if (!scene->dyn_ck && a_odm->codec) {
+					scene->dyn_ck = a_odm->codec->ck;
+				}
+
 				tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
 				th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 
