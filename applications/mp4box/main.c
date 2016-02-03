@@ -4621,7 +4621,7 @@ int mp4boxMain(int argc, char **argv)
 		case TRAC_ACTION_SET_ID:
 			if (track) {
 				u32 newTrack;
-				newTrack = gf_isom_get_track_by_id(file, tka->trackID);
+				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
 				if (newTrack != 0) {
 					fprintf(stderr, "Error: Cannot set track id with value %d because a track already exists - ignoring", tka->newTrackID);
 				} else {
