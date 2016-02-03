@@ -2454,6 +2454,8 @@ typedef struct {
 	u16 transfer_characteristics;
 	u16 matrix_coefficients;
 	Bool full_range_flag;
+	u8 *opaque;
+	u32 opaque_size;
 } GF_ColourInformationBox;
 
 typedef struct {
