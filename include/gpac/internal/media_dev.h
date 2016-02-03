@@ -363,7 +363,7 @@ typedef struct
 	u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
 	u32 layer_id_in_vps[MAX_SHVC_LAYERS];
 
-
+	u8 num_profile_tier_level, num_output_layer_sets;
 	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
 	HEVC_ProfileTierLevel ext_ptl[MAX_SHVC_LAYERS];
 
@@ -372,6 +372,14 @@ typedef struct
 	u32 rep_format_idx[16];
 	Bool base_layer_internal_flag, base_layer_available_flag;
 	u8 num_layers_in_id_list[MAX_NUM_LAYER_SETS];
+	u8 direct_dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	Bool output_layer_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	u8 profile_tier_level_idx[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	Bool alt_output_layer_flag[MAX_SHVC_LAYERS];
+	u8 num_necessary_layers[MAX_SHVC_LAYERS];
+	Bool necessary_layers_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	u8 LayerSetLayerIdList[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	u8 LayerSetLayerIdListMax[MAX_SHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
 } HEVC_VPS;
 
 typedef struct
