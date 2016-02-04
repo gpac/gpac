@@ -119,7 +119,7 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 		p->opaque = gf_malloc(sizeof(u8)*p->size);
 		p->opaque_size = (u32) p->size;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
-		gf_bs_read_data(bs, p->opaque, p->opaque_size);
+		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
 	}
 	return GF_OK;
 }
@@ -133,7 +133,8 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	if (p->colour_type != GF_4CC('n','c','l','x')) { 
-		gf_bs_write_data(bs, p->opaque, p->opaque_size);
+		gf_bs_write_u32(bs, p->colour_type);
+		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
 	} else {
 		gf_bs_write_u32(bs, p->colour_type);
 		gf_bs_write_u16(bs, p->colour_primaries);
@@ -151,7 +152,7 @@ GF_Err colr_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	if (p->colour_type != GF_4CC('n','c','l','x')) { 
-		p->size += p->opaque_size;
+		p->size += 4 + p->opaque_size;
 	} else {
 		p->size += 11;
 	}
