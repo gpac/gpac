@@ -703,6 +703,7 @@ GF_HEVCConfig *HEVC_DuplicateConfig(GF_HEVCConfig *cfg)
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 
 	new_cfg = gf_odf_hevc_cfg_read_bs(bs, cfg->is_shvc);
+	new_cfg->is_shvc = cfg->is_shvc;
 	gf_bs_del(bs);
 	gf_free(data);
 	return new_cfg;
@@ -1348,8 +1349,8 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHV1:
+	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
@@ -1401,7 +1402,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		/*SVCC replacement*/
 		if (operand_type==GF_ISOM_HVCC_SET_SHVC) {
 			if (!cfg) return GF_BAD_PARAM;
-			if (!entry->shvc_config) entry->shvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SHCC);
+			if (!entry->shvc_config) entry->shvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
 			if (entry->shvc_config->config) gf_odf_hevc_cfg_del(entry->shvc_config->config);
 			entry->shvc_config->config = HEVC_DuplicateConfig(cfg);
 			entry->type = GF_ISOM_BOX_TYPE_HVC1;
@@ -1413,15 +1414,15 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 					gf_isom_box_del((GF_Box*)entry->shvc_config);
 					entry->shvc_config = NULL;
 				}
-				if (entry->type==GF_ISOM_BOX_TYPE_SHV1) entry->type = GF_ISOM_BOX_TYPE_HEV1;
+				if (entry->type==GF_ISOM_BOX_TYPE_LHE1) entry->type = GF_ISOM_BOX_TYPE_HEV1;
 				else entry->type = GF_ISOM_BOX_TYPE_HVC1;
 			} else {
-				entry->type = GF_ISOM_BOX_TYPE_SHC1;
+				entry->type = GF_ISOM_BOX_TYPE_LHV1;
 				if (entry->hevc_config) {
 					gf_isom_box_del((GF_Box*)entry->hevc_config);
 					entry->hevc_config = NULL;
 				}
-				if (!entry->shvc_config) entry->shvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_SHCC);
+				if (!entry->shvc_config) entry->shvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
 				if (entry->shvc_config->config) gf_odf_hevc_cfg_del(entry->shvc_config->config);
 				entry->shvc_config->config = HEVC_DuplicateConfig(cfg);
 			}
@@ -1568,8 +1569,8 @@ u32 gf_isom_get_hevc_shvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHV1:
+	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
@@ -1982,10 +1983,11 @@ GF_Err hvcc_Size(GF_Box *s)
 		ptr->size = 0;
 		return e;
 	}
-	ptr->size += 23;
-	if (ptr->config->is_shvc) {
-		ptr->size += 3;
-	}
+	
+	if (!ptr->config->is_shvc)
+		ptr->size += 23;
+	else
+		ptr->size += 6;
 
 	count = gf_list_count(ptr->config->param_array);
 	for (i=0; i<count; i++) {
