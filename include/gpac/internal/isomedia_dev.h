@@ -227,9 +227,12 @@ enum
 
 	GF_ISOM_BOX_TYPE_HVC2	= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
-	GF_ISOM_BOX_TYPE_SHCC	= GF_4CC( 's', 'h', 'c', 'C' ),
-	GF_ISOM_BOX_TYPE_SHC1	= GF_4CC( 's', 'h', 'c', '1' ),
-	GF_ISOM_BOX_TYPE_SHV1	= GF_4CC( 's', 'h', 'v', '1' ),
+	//GF_ISOM_BOX_TYPE_SHCC	= GF_4CC( 's', 'h', 'c', 'C' ),
+	//GF_ISOM_BOX_TYPE_SHC1	= GF_4CC( 's', 'h', 'c', '1' ),
+	//GF_ISOM_BOX_TYPE_SHV1	= GF_4CC( 's', 'h', 'v', '1' ),
+	GF_ISOM_BOX_TYPE_LHVC	= GF_4CC( 'l', 'h', 'v', 'C' ),
+	GF_ISOM_BOX_TYPE_LHV1	= GF_4CC( 'l', 'h', 'v', '1' ),
+	GF_ISOM_BOX_TYPE_LHE1	= GF_4CC( 'l', 'h', 'e', '1' ),
 
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
@@ -2270,6 +2273,63 @@ typedef struct
 } GF_RollRecoveryEntry;
 
 
+/*Operating Points Information - 'oinf' type*/
+typedef struct
+{
+	u16 scalability_mask;
+	u8 num_profile_tier_level;
+	GF_List* profile_tier_levels;
+	u16 num_operating_points;
+	GF_List* operating_points;
+	u8 max_layer_count;
+	GF_List* dependency_layers;
+} GF_OperatingPointsInformation;
+
+GF_OperatingPointsInformation *gf_oinf_new_entry();
+void gf_oinf_del_entry(void *entry);
+GF_Err gf_oinf_read_entry(void *entry, GF_BitStream *bs);
+GF_Err gf_oinf_write_entry(void *entry, GF_BitStream *bs);
+u32 gf_oinf_size_entry(void *entry);
+
+#define MAX_LHEVC_LAYERS	256
+
+typedef struct
+{
+	u8 general_profile_space, general_tier_flag, general_profile_idc, general_level_idc;
+	u32 general_profile_compatibility_flags;
+	u64 general_constraint_indicator_flags;
+} LHEVC_ProfileTierLevel;
+
+typedef struct
+{
+	u8 ptl_idx;
+	u8 layer_id;
+	Bool is_outputlayer, is_alternate_outputlayer;
+} LHEVC_LayerInfo;
+
+typedef struct
+{
+	u16 output_layer_set_idx;
+	u8 max_temporal_id;
+	u8 layer_count;
+	LHEVC_LayerInfo layers_info[MAX_LHEVC_LAYERS];
+	u16 minPicWidth, minPicHeight, maxPicWidth, maxPicHeight;
+	u8 maxChromaFormat, maxBitDepth;
+	Bool frame_rate_info_flag, bit_rate_info_flag;
+	u16 avgFrameRate;
+	u8 constantFrameRate;
+	u32 maxBitRate, avgBitRate;
+} LHEVC_OperatingPoint;
+
+
+typedef struct
+{
+	u8 dependent_layerID;
+	u8 num_layers_dependent_on;
+	u8 dependent_on_layerID[MAX_LHEVC_LAYERS];
+	u8 dimension_identifier[16];
+} LHEVC_DependentLayer;
+
 
 /*
 		CENC stuff
@@ -2879,7 +2939,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 #endif
 void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len);
 
-void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
+void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h);
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 
