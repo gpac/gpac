@@ -347,7 +347,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_SVCC:
 		return avcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_HVCC:
-	case GF_ISOM_BOX_TYPE_SHCC:
+	case GF_ISOM_BOX_TYPE_LHVC:
 		return hvcc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_BTRT:
 		return btrt_dump(a, trace);
@@ -362,8 +362,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHV1:
+	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		return mp4v_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PASP:
@@ -1902,32 +1902,31 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
-	const char *name = (a->type==GF_ISOM_BOX_TYPE_HVCC) ? "HEVC" : "SHVC";
+	const char *name = (a->type==GF_ISOM_BOX_TYPE_HVCC) ? "HEVC" : "L-HEVC";
 	GF_HEVCConfigurationBox *p = (GF_HEVCConfigurationBox *) a;
 
 	fprintf(trace, "<%sConfigurationBox>\n", name);
 
 	fprintf(trace, "<%sDecoderConfigurationRecord nal_unit_size=\"%d\" ", name, p->config->nal_unit_size);
 	fprintf(trace, "configurationVersion=\"%d\" ", p->config->configurationVersion);
-	fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
-	fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
-	fprintf(trace, "profile_idc=\"%d\" ", p->config->profile_idc);
-	fprintf(trace, "general_profile_compatibility_flags=\"%d\" ", p->config->general_profile_compatibility_flags);
-	fprintf(trace, "progressive_source_flag=\"%d\" ", p->config->progressive_source_flag);
-	fprintf(trace, "interlaced_source_flag=\"%d\" ", p->config->interlaced_source_flag);
-	fprintf(trace, "non_packed_constraint_flag=\"%d\" ", p->config->non_packed_constraint_flag);
-	fprintf(trace, "frame_only_constraint_flag=\"%d\" ", p->config->frame_only_constraint_flag);
-	fprintf(trace, "constraint_indicator_flags=\""LLD"\" ", p->config->constraint_indicator_flags);
-	fprintf(trace, "level_idc=\"%d\" ", p->config->level_idc);
+	if (a->type==GF_ISOM_BOX_TYPE_HVCC) {
+		fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
+		fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
+		fprintf(trace, "profile_idc=\"%d\" ", p->config->profile_idc);
+		fprintf(trace, "general_profile_compatibility_flags=\"%d\" ", p->config->general_profile_compatibility_flags);
+		fprintf(trace, "progressive_source_flag=\"%d\" ", p->config->progressive_source_flag);
+		fprintf(trace, "interlaced_source_flag=\"%d\" ", p->config->interlaced_source_flag);
+		fprintf(trace, "non_packed_constraint_flag=\"%d\" ", p->config->non_packed_constraint_flag);
+		fprintf(trace, "frame_only_constraint_flag=\"%d\" ", p->config->frame_only_constraint_flag);
+		fprintf(trace, "constraint_indicator_flags=\""LLD"\" ", p->config->constraint_indicator_flags);
+		fprintf(trace, "level_idc=\"%d\" ", p->config->level_idc);
+	}
 	fprintf(trace, "min_spatial_segmentation_idc=\"%d\" ", p->config->min_spatial_segmentation_idc);
 	fprintf(trace, "parallelismType=\"%d\" ", p->config->parallelismType);
 
-	fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
+	if (a->type==GF_ISOM_BOX_TYPE_HVCC)
+		fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
 	        p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
-
-	if (p->config->is_shvc) {
-		fprintf(trace, " completeRepresentation=\"%d\" nonHEVCBaseLayer=\"%d\" numLayers=\"%d\" scalabilityMask=\"0x%02X\" ", p->config->complete_representation, p->config->non_hevc_base_layer, p->config->num_layers, p->config->scalability_mask);
-	}
 
 	fprintf(trace, ">\n");
 
@@ -4333,6 +4332,51 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+static void oinf_dump(void *entry, FILE * trace)
+{
+	GF_OperatingPointsInformation *ptr = gf_oinf_new_entry();
+	GF_BitStream *bs = gf_bs_new(((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
+	u32 i;
+	gf_oinf_read_entry(ptr, bs);
+	fprintf(trace, "<OperatingPointsInformation");
+	fprintf(trace, " scalability_mask=\"%d\" num_profile_tier_level=\"%d\"", ptr->scalability_mask, ptr->num_profile_tier_level);
+	fprintf(trace, " num_operating_points=\"%d\" max_layer_count=\"%d\"", ptr->num_operating_points, ptr->max_layer_count);
+	fprintf(trace, ">\n");
+	for (i = 0; i < ptr->num_operating_points; i++) {
+		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
+		fprintf(trace, "<OperatingPoint output_layer_set_idx=\"%d\"", op->output_layer_set_idx);
+		fprintf(trace, " max_temporal_id=\"%d\" layer_count=\"%d\"", op->max_temporal_id, op->layer_count);
+		fprintf(trace, " minPicWidth=\"%d\" minPicHeight=\"%d\"", op->minPicWidth, op->minPicHeight);
+		fprintf(trace, " maxPicWidth=\"%d\" maxPicHeight=\"%d\"", op->maxPicWidth, op->maxPicHeight);
+		fprintf(trace, " maxChromaFormat=\"%d\" maxBitDepth=\"%d\"", op->maxChromaFormat, op->maxBitDepth);
+		fprintf(trace, " frame_rate_info_flag=\"%d\" bit_rate_info_flag=\"%d\"", op->frame_rate_info_flag, op->bit_rate_info_flag);
+		if (op->frame_rate_info_flag) 
+			fprintf(trace, " avgFrameRate=\"%d\" constantFrameRate=\"%d\"", op->avgFrameRate, op->constantFrameRate);
+		if (op->bit_rate_info_flag) 
+			fprintf(trace, " maxBitRate=\"%d\" avgBitRate=\"%d\"", op->maxBitRate, op->avgBitRate);
+		fprintf(trace, "/>\n");
+	}
+	for (i = 0; i < ptr->max_layer_count; i++) {
+		u32 j;
+		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
+		fprintf(trace, "<Layer dependent_layerID=\"%d\" num_layers_dependent_on=\"%d\"", dep->dependent_layerID, dep->num_layers_dependent_on);
+		if (dep->num_layers_dependent_on) {
+			fprintf(trace, " dependent_on_layerID=\"");
+			for (j = 0; j < dep->num_layers_dependent_on; j++)
+				fprintf(trace, "%d ", dep->dependent_on_layerID[j]);
+			fprintf(trace, "\"");
+		}
+		fprintf(trace, " dimension_identifier=\"");
+		for (j = 0; j < 16; j++)
+			if (ptr->scalability_mask & (1 << j))
+				fprintf(trace, "%d ", dep->dimension_identifier[j]);
+		fprintf(trace, "\"/>\n");
+	}
+	fprintf(trace, "</OperatingPointsInformation>\n");
+	gf_oinf_del_entry(ptr);
+	return;
+}
+
 GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -4361,18 +4405,20 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			DumpDataHex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->KID, 16);
 			fprintf(trace, "\"/>\n");
 			break;
+		case GF_4CC( 'o', 'i', 'n', 'f'):
+			oinf_dump(entry, trace);
+			break;
 		case GF_4CC( 't', 'r', 'i', 'f' ):
 		{
 			u32 x,y,w,h, id, independent;
-			Bool full_frame;
+			Bool full_picture;
 
-			gf_isom_parse_trif_info( (const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_frame, &x, &y, &w, &h);
-
+			gf_isom_parse_trif_info( (const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_picture, &x, &y, &w, &h);
 			fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" independent=\"%d\"", id, independent);
-			if (!full_frame) fprintf(trace, " x=\"%d\" y=\"%d\"", x, y);
-			fprintf(trace, " w=\"%d\" h=\"%d\"/>\n", w, h);
+			if (!full_picture) fprintf(trace, " horizontal_offset=\"%d\" vertical_offset=\"%d\"", x, y);
+			fprintf(trace, " region_width=\"%d\" region_height=\"%d\"/>\n", w, h);
 		}
-		break;
+			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			DumpData(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);

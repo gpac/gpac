@@ -38,6 +38,7 @@
 #include <gpac/xml.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
+#include <gpac/internal/isomedia_dev.h>
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -5563,6 +5564,123 @@ static void hevc_set_parall_type(GF_HEVCConfig *hevc_cfg)
 
 #endif
 
+static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 track, HEVC_VPS *vps)
+{
+	GF_OperatingPointsInformation *oinf;
+	u32 di = 0;
+	GF_BitStream *bs;
+	char *data;
+	u32 data_size;
+	u32 i;
+
+	oinf = gf_oinf_new_entry();
+	if (!oinf) return GF_OUT_OF_MEM;
+
+	oinf->scalability_mask = 0;
+	for (i = 0; i < 16; i++) {
+		if (vps->scalability_mask[i])
+			oinf->scalability_mask |= 1 << i;
+	}
+
+	oinf->num_profile_tier_level = vps->num_profile_tier_level;
+	for (i = 0; i < oinf->num_profile_tier_level; i++) {
+		HEVC_ProfileTierLevel ptl = (i == 0) ? vps->ptl : vps->ext_ptl[i-1];
+		LHEVC_ProfileTierLevel *lhevc_ptl;
+		GF_SAFEALLOC(lhevc_ptl, LHEVC_ProfileTierLevel);
+		lhevc_ptl->general_profile_space = ptl.profile_space;
+		lhevc_ptl->general_tier_flag = ptl.tier_flag;
+		lhevc_ptl->general_profile_idc = ptl.profile_idc;
+		lhevc_ptl->general_profile_compatibility_flags = ptl.profile_compatibility_flag;
+		lhevc_ptl->general_constraint_indicator_flags = 0;
+		if (ptl.general_progressive_source_flag)
+			lhevc_ptl->general_constraint_indicator_flags |= 1 << 47;
+		if (ptl.general_interlaced_source_flag)
+			lhevc_ptl->general_constraint_indicator_flags |= 1 << 46;
+		if (ptl.general_non_packed_constraint_flag)
+			lhevc_ptl->general_constraint_indicator_flags |= 1 << 45;
+		if (ptl.general_frame_only_constraint_flag)
+			lhevc_ptl->general_constraint_indicator_flags |= 1 << 44;
+		lhevc_ptl->general_constraint_indicator_flags |= ptl.general_reserved_44bits;
+		lhevc_ptl->general_level_idc = ptl.level_idc;
+		gf_list_add(oinf->profile_tier_levels, lhevc_ptl);
+	}
+	
+	oinf->num_operating_points = vps->num_output_layer_sets;
+	for (i = 0; i < oinf->num_operating_points; i++) {
+		LHEVC_OperatingPoint *op;
+		u32 j;
+		u16 minPicWidth, minPicHeight, maxPicWidth, maxPicHeight;
+		u8 maxChromaFormat, maxBitDepth;
+		GF_SAFEALLOC(op, LHEVC_OperatingPoint);
+		op->output_layer_set_idx = i;
+		op->layer_count = vps->num_necessary_layers[i];
+		minPicWidth = minPicHeight = maxPicWidth = maxPicHeight = 0;
+		maxChromaFormat = maxBitDepth = 0;
+		for (j = 0; j < op->layer_count; j++) {
+			u32 format_idx;
+			u32 bitDepth;
+			op->layers_info[j].ptl_idx = vps->profile_tier_level_idx[i][j];
+			op->layers_info[j].layer_id = j;
+			op->layers_info[j].is_outputlayer = vps->output_layer_flag[i][j];
+			//FIXME: we consider that this flag is never set
+			op->layers_info[j].is_alternate_outputlayer = GF_FALSE;
+			format_idx = vps->rep_format_idx[op->layers_info[j].layer_id];
+			if (!minPicWidth || (minPicWidth > vps->rep_formats[format_idx].pic_width_luma_samples))
+				minPicWidth = vps->rep_formats[format_idx].pic_width_luma_samples;
+			if (!minPicHeight || (minPicHeight > vps->rep_formats[format_idx].pic_height_luma_samples))
+				minPicHeight = vps->rep_formats[format_idx].pic_height_luma_samples;
+			if (!maxPicWidth || (maxPicWidth < vps->rep_formats[format_idx].pic_width_luma_samples))
+				maxPicWidth = vps->rep_formats[format_idx].pic_width_luma_samples;
+			if (!maxPicHeight || (maxPicHeight < vps->rep_formats[format_idx].pic_height_luma_samples))
+				maxPicHeight = vps->rep_formats[format_idx].pic_height_luma_samples;
+			if (!maxChromaFormat || (maxChromaFormat < vps->rep_formats[format_idx].chroma_format_idc))
+				maxChromaFormat = vps->rep_formats[format_idx].chroma_format_idc;
+			bitDepth = vps->rep_formats[format_idx].bit_depth_chroma > vps->rep_formats[format_idx].bit_depth_luma ? vps->rep_formats[format_idx].bit_depth_chroma : vps->rep_formats[format_idx].bit_depth_luma;
+			if (!maxChromaFormat || (maxChromaFormat < bitDepth))
+				maxChromaFormat = bitDepth;
+		}
+		op->minPicWidth = minPicWidth;
+		op->minPicHeight = minPicHeight;
+		op->maxPicWidth = maxPicWidth;
+		op->maxPicHeight = maxPicHeight;
+		op->maxChromaFormat = maxChromaFormat;
+		op->maxBitDepth = maxBitDepth;
+		op->bit_rate_info_flag = GF_FALSE; //we don't use it
+		gf_list_add(oinf->operating_points, op);
+	}
+
+	oinf->max_layer_count = vps->max_layers;
+	for (i = 0; i < oinf->max_layer_count; i++) {
+		LHEVC_DependentLayer *dep;
+		u32 j, k;
+		GF_SAFEALLOC(dep, LHEVC_DependentLayer);
+		dep->dependent_layerID = vps->layer_id_in_nuh[i];
+		for (j = 0; j < vps->max_layers; j++) {
+			if (vps->direct_dependency_flag[dep->dependent_layerID][j]) {
+				dep->dependent_on_layerID[dep->num_layers_dependent_on] = j;
+				dep->num_layers_dependent_on ++;
+			}
+		}
+		k = 0;
+		for (j = 0; j < 16; j++) {
+			if (oinf->scalability_mask & (1 << j)) {
+				dep->dimension_identifier[j] = vps->dimension_id[i][k];
+				k++;
+			}
+		}
+		gf_list_add(oinf->dependency_layers, dep);
+	}
+
+	//write Operating Points Information Sample Group
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_oinf_write_entry(oinf, bs);
+	gf_bs_get_content(bs, &data, &data_size);
+	gf_bs_del(bs);
+	gf_oinf_del_entry(oinf);
+	gf_isom_add_sample_group_info(file, track, GF_4CC( 'o', 'i', 'n', 'f'), data, data_size, 0, &di);
+	return GF_OK;
+}
+
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
 {
 #ifdef GPAC_DISABLE_HEVC
@@ -5588,6 +5706,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	u32 use_opengop_gdr = 0;
 	u8 layer_ids[64];
 	SAPType sample_rap_type;
+	s32 cur_vps_id = -1;
 
 
 	Double FPS;
@@ -5772,7 +5891,7 @@ restart_import:
 		case GF_HEVC_NALU_VID_PARAM:
 			idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
 			if (idx<0) {
-				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
 				goto exit;
 			}
 			/*if we get twice the same VPS put in the the bitstream and set array_completeness to 0 ...*/
@@ -5821,6 +5940,7 @@ restart_import:
 				copy_size = nal_size;
 			}
 
+			cur_vps_id = idx;
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
 			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
@@ -6474,6 +6594,11 @@ next_nal:
 		if (import->esd->decoderConfig) gf_odf_desc_del((GF_Descriptor *)import->esd->decoderConfig);
 		import->esd->decoderConfig = gf_isom_get_decoder_config(import->dest, track, 1);
 		gf_isom_change_mpeg4_description(import->dest, track, 1, import->esd);
+	}
+
+	// This is a L-HEVC bitstream ... 
+	if ((cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1)) {
+		gf_lhevc_set_operating_points_information(import->dest, track, &hevc.vps[cur_vps_id]);
 	}
 
 exit:
