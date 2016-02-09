@@ -1015,6 +1015,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_group) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

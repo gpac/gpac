@@ -2414,6 +2414,9 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 //sampleGroupDescriptionIndex is optional, used to retrieve the index
 GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex);
 
+//remove a sample group description of the give grouping type (if found)
+GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_type);
+
 //tags the sample in the grouping adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default
 GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex);
 
