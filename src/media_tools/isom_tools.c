@@ -2316,6 +2316,11 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
 
+				//for an L-HEVC bitstream: only base track carries the 'oinf' sample group, other track have a track reference of type 'oref' to base track
+				e = gf_isom_remove_sample_group(file, sti[j].track_num, GF_4CC('o','i','n','f'));
+				if (e) goto exit;
+				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('o','r','e','f'), track_id);
+
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 				gf_isom_adjust_visual_info(file, sti[j].track_num);

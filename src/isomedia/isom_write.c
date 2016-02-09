@@ -4832,6 +4832,38 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_type)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+	u32 count, i;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription)
+		return GF_OK;
+
+	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+	for (i=0; i<count; i++) {
+		sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+		if (sgdesc->grouping_type==grouping_type) {
+			gf_isom_box_del((GF_Box*)sgdesc);
+			gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+			i--;
+			count--;
+		}
+		sgdesc = NULL;
+	}
+
+	return GF_OK;
+}
+
 GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex)
 {
 	GF_Err e;
