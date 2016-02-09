@@ -4334,10 +4334,10 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 
 static void oinf_dump(void *entry, FILE * trace)
 {
-	GF_OperatingPointsInformation *ptr = gf_oinf_new_entry();
+	GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
 	GF_BitStream *bs = gf_bs_new(((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
 	u32 i;
-	gf_oinf_read_entry(ptr, bs);
+	gf_isom_oinf_read_entry(ptr, bs);
 	fprintf(trace, "<OperatingPointsInformation");
 	fprintf(trace, " scalability_mask=\"%d\" num_profile_tier_level=\"%d\"", ptr->scalability_mask, ptr->num_profile_tier_level);
 	fprintf(trace, " num_operating_points=\"%d\" max_layer_count=\"%d\"", ptr->num_operating_points, ptr->max_layer_count);
@@ -4373,7 +4373,7 @@ static void oinf_dump(void *entry, FILE * trace)
 		fprintf(trace, "\"/>\n");
 	}
 	fprintf(trace, "</OperatingPointsInformation>\n");
-	gf_oinf_del_entry(ptr);
+	gf_isom_oinf_del_entry(ptr);
 	return;
 }
 

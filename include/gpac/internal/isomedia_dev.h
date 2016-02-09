@@ -2285,11 +2285,11 @@ typedef struct
 	GF_List* dependency_layers;
 } GF_OperatingPointsInformation;
 
-GF_OperatingPointsInformation *gf_oinf_new_entry();
-void gf_oinf_del_entry(void *entry);
-GF_Err gf_oinf_read_entry(void *entry, GF_BitStream *bs);
-GF_Err gf_oinf_write_entry(void *entry, GF_BitStream *bs);
-u32 gf_oinf_size_entry(void *entry);
+GF_OperatingPointsInformation *gf_isom_oinf_new_entry();
+void gf_isom_oinf_del_entry(void *entry);
+GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs);
+GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs);
+u32 gf_isom_oinf_size_entry(void *entry);
 
 #define MAX_LHEVC_LAYERS	256
 

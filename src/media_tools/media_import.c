@@ -5573,7 +5573,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 	u32 data_size;
 	u32 i;
 
-	oinf = gf_oinf_new_entry();
+	oinf = gf_isom_oinf_new_entry();
 	if (!oinf) return GF_OUT_OF_MEM;
 
 	oinf->scalability_mask = 0;
@@ -5645,6 +5645,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 		op->maxPicHeight = maxPicHeight;
 		op->maxChromaFormat = maxChromaFormat;
 		op->maxBitDepth = maxBitDepth;
+		op->frame_rate_info_flag = GF_FALSE; //FIXME: should fetch this info from VUI
 		op->bit_rate_info_flag = GF_FALSE; //we don't use it
 		gf_list_add(oinf->operating_points, op);
 	}
@@ -5673,10 +5674,10 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 
 	//write Operating Points Information Sample Group
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_oinf_write_entry(oinf, bs);
+	gf_isom_oinf_write_entry(oinf, bs);
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
-	gf_oinf_del_entry(oinf);
+	gf_isom_oinf_del_entry(oinf);
 	gf_isom_add_sample_group_info(file, track, GF_4CC( 'o', 'i', 'n', 'f'), data, data_size, 0, &di);
 	return GF_OK;
 }
