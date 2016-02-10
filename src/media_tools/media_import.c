@@ -5564,7 +5564,7 @@ static void hevc_set_parall_type(GF_HEVCConfig *hevc_cfg)
 
 #endif
 
-static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 track, HEVC_VPS *vps)
+static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 track, HEVC_VPS *vps, u8 *max_temporal_id)
 {
 	GF_OperatingPointsInformation *oinf;
 	u32 di = 0;
@@ -5611,10 +5611,11 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 		u32 j;
 		u16 minPicWidth, minPicHeight, maxPicWidth, maxPicHeight;
 		u8 maxChromaFormat, maxBitDepth;
+		u8 maxTemporalId;
 		GF_SAFEALLOC(op, LHEVC_OperatingPoint);
 		op->output_layer_set_idx = i;
 		op->layer_count = vps->num_necessary_layers[i];
-		minPicWidth = minPicHeight = maxPicWidth = maxPicHeight = 0;
+		minPicWidth = minPicHeight = maxPicWidth = maxPicHeight = maxTemporalId = 0;
 		maxChromaFormat = maxBitDepth = 0;
 		for (j = 0; j < op->layer_count; j++) {
 			u32 format_idx;
@@ -5624,6 +5625,8 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 			op->layers_info[j].is_outputlayer = vps->output_layer_flag[i][j];
 			//FIXME: we consider that this flag is never set
 			op->layers_info[j].is_alternate_outputlayer = GF_FALSE;
+			if (!maxTemporalId || (maxTemporalId < max_temporal_id[op->layers_info[j].layer_id]))
+				maxTemporalId = max_temporal_id[op->layers_info[j].layer_id];
 			format_idx = vps->rep_format_idx[op->layers_info[j].layer_id];
 			if (!minPicWidth || (minPicWidth > vps->rep_formats[format_idx].pic_width_luma_samples))
 				minPicWidth = vps->rep_formats[format_idx].pic_width_luma_samples;
@@ -5639,6 +5642,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 			if (!maxChromaFormat || (maxChromaFormat < bitDepth))
 				maxChromaFormat = bitDepth;
 		}
+		op->max_temporal_id = maxTemporalId;
 		op->minPicWidth = minPicWidth;
 		op->minPicHeight = minPicHeight;
 		op->maxPicWidth = maxPicWidth;
@@ -5708,6 +5712,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	u8 layer_ids[64];
 	SAPType sample_rap_type;
 	s32 cur_vps_id = -1;
+	u8 max_temporal_id[64];
 
 
 	Double FPS;
@@ -5814,6 +5819,7 @@ restart_import:
 	poc_shift = 0;
 	flush_next_sample = GF_FALSE;
 	is_empty_sample = GF_TRUE;
+	memset(max_temporal_id, 0, 64*sizeof(u8));
 
 	while (gf_bs_available(bs)) {
 		s32 res;
@@ -5841,6 +5847,9 @@ restart_import:
 		gf_bs_seek(bs, nal_start);
 
 		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+
+		if (max_temporal_id[layer_id] < temporal_id)
+			max_temporal_id[layer_id] = temporal_id;
 
 		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
 			goto next_nal;
@@ -6599,7 +6608,7 @@ next_nal:
 
 	// This is a L-HEVC bitstream ... 
 	if ((cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1)) {
-		gf_lhevc_set_operating_points_information(import->dest, track, &hevc.vps[cur_vps_id]);
+		gf_lhevc_set_operating_points_information(import->dest, track, &hevc.vps[cur_vps_id], max_temporal_id);
 	}
 
 exit:
