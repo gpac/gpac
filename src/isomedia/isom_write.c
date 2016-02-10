@@ -4654,6 +4654,13 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 		last_sample_in_entry += sgroup->sample_entries[i].sample_count;
 	}
 
+	if (last_sample_in_entry == sample_number) {
+		if (sgroup->sample_entries[sgroup->entry_count-1].group_description_index==sampleGroupDescriptionIndex)
+			return GF_OK;
+		else
+			return GF_NOT_SUPPORTED;
+	}
+
 	if ((sgroup->sample_entries[sgroup->entry_count-1].group_description_index==sampleGroupDescriptionIndex) && (last_sample_in_entry+1==sample_number)) {
 		sgroup->sample_entries[sgroup->entry_count-1].sample_count++;
 		return GF_OK;
