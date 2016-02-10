@@ -169,6 +169,7 @@ static void movietexture_update_time(GF_TimeNode *st)
 	equal to startTime, an isActive TRUE event is generated and the time-dependent node becomes active 	*/
 
 	if (! mt->isActive) movietexture_activate(stack, mt, time);
+	stack->txh.stream_finished = GF_FALSE;
 }
 
 void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
