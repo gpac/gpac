@@ -1894,11 +1894,12 @@ void gf_dm_del(GF_DownloadManager *dm)
  * Data will be skipped and parsed and sent as a GF_NETIO_Parameter to the user_io,
  * so modules interrested by those streams may use the data
  * \param sess The GF_DownloadSession
- * \param icy_metaint The number of bytes of data before reaching possible meta data
  * \param data last data received
  * \param nbBytes The number of bytes contained into data
  */
-static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const char * data, u32 nbBytes) {
+static void gf_icy_skip_data(GF_DownloadSession * sess, const char * data, u32 nbBytes)
+{
+	u32 icy_metaint = sess->icy_metaint;
 	assert( icy_metaint > 0 );
 	while (nbBytes) {
 		if (sess->icy_bytes == icy_metaint) {
@@ -1922,6 +1923,8 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const c
 					par.sess = sess;
 					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[ICY] Found metainfo in stream=%s, (every %d bytes)\n", szData, icy_metaint));
 					gf_dm_sess_user_io(sess, &par);
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[ICY] Empty metainfo in stream, (every %d bytes)\n", icy_metaint));
 				}
 				nbBytes -= sess->icy_count;
 				data += sess->icy_count;
@@ -2075,7 +2078,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 
 		if (sess->icy_metaint > 0)
-			gf_icy_skip_data(sess, sess->icy_metaint, (char *) data, nbBytes);
+			gf_icy_skip_data(sess, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
 				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes);
@@ -2422,7 +2425,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 	if (sess->http_read_type!=OTHER) {
 		/*signal we support title streaming*/
-		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
+//		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
 		/* This will force the server to respond with Icy-Metaint */
 		strcat(sHTTP, "Icy-Metadata: 1\r\n");
 
@@ -3258,7 +3261,9 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (sess->reassigned) {
 
 			if (sess->icy_metaint > 0) {
-				gf_icy_skip_data(sess, sess->icy_metaint, sess->init_data, sess->init_data_size);
+				//we are reparsing init data, reset icy status
+				sess->icy_bytes = 0;
+				gf_icy_skip_data(sess, sess->init_data, sess->init_data_size);
 			} else {
 				GF_NETIO_Parameter par;
 				par.msg_type = GF_NETIO_DATA_EXCHANGE;

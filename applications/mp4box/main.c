@@ -4526,6 +4526,11 @@ int mp4boxMain(int argc, char **argv)
 				e = GF_BAD_PARAM;
 				goto err_exit;
 			}
+			if (get_file_type_by_ext(inName) != GF_FILE_TYPE_ISO_MEDIA) {
+				fprintf(stderr, "MP4Box can crypt only ISOMedia File\n");
+				e = GF_BAD_PARAM;
+				goto err_exit;
+			}
 			if (crypt == 1) {
 				e = gf_crypt_file(file, drm_file);
 			} else if (crypt ==2) {
