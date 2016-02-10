@@ -4339,7 +4339,21 @@ static void oinf_dump(void *entry, FILE * trace)
 	u32 i;
 	gf_isom_oinf_read_entry(ptr, bs);
 	fprintf(trace, "<OperatingPointsInformation");
-	fprintf(trace, " scalability_mask=\"%d\" num_profile_tier_level=\"%d\"", ptr->scalability_mask, ptr->num_profile_tier_level);
+	fprintf(trace, " scalability_mask=\"%d (", ptr->scalability_mask);
+	switch (ptr->scalability_mask) {
+	case 2:
+		fprintf(trace, "Multiview");
+		break;
+	case 4:
+		fprintf(trace, "Spatial scalability");
+		break;
+	case 8:
+		fprintf(trace, "Auxilary");
+		break;
+	default:
+		fprintf(trace, "unknown");
+	}
+	fprintf(trace, ")\" num_profile_tier_level=\"%d\"", ptr->num_profile_tier_level);
 	fprintf(trace, " num_operating_points=\"%d\" max_layer_count=\"%d\"", ptr->num_operating_points, ptr->max_layer_count);
 	fprintf(trace, ">\n");
 	for (i = 0; i < ptr->num_operating_points; i++) {
