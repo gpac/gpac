@@ -2463,6 +2463,11 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %02.4f FPS", (mtype==GPAC_OTI_VIDEO_MPEG1) ? "MPEG-1" : "MPEG-2", w, h, FPS);
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 
+	if (!gf_isom_get_media_timescale(import->dest, track)) {
+		e = gf_import_message(import, GF_BAD_PARAM, "No timescale for imported track - ignoring");
+		if (e) goto exit;
+	}
+
 	gf_isom_set_cts_packing(import->dest, track, GF_TRUE);
 
 	file_size = mpeg2ps_get_ps_size(ps);

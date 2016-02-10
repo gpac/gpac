@@ -621,9 +621,19 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	FILE *res = NULL;
 
 #if defined(WIN32)
-	Bool is_create = (strchr(mode, 'w')==NULL) ? GF_FALSE : GF_TRUE;
-	if (!is_create)
-		res = fopen(file_name, mode);
+	Bool is_create;
+	is_create = (strchr(mode, 'w') == NULL) ? GF_FALSE : GF_TRUE;
+	if (!is_create) {
+		if (strchr(mode, 'a')) {
+			res = fopen(file_name, "rb");
+			if (res) {
+				fclose(res);
+				res = fopen(file_name, mode);
+			} 
+		} else {
+			res = fopen(file_name, mode);
+		}
+	}
 	if (!res) {
 		const char *str_src;
 		wchar_t *wname;
