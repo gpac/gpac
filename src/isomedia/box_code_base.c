@@ -854,7 +854,15 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err dinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, dinf_AddBox);
+	GF_Err e = gf_isom_read_box_list(s, bs, dinf_AddBox);
+	if (e) {
+		return e;
+	}
+	if (!((GF_DataInformationBox *)s)->dref) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing dref box in dinf\n"));
+		((GF_DataInformationBox *)s)->dref = (GF_DataReferenceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
+	}
+	return GF_OK;
 }
 
 GF_Box *dinf_New()
