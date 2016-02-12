@@ -136,10 +136,12 @@ void isor_check_buffer_level(ISOMReader *read)
 	dld_time_remaining = total-done;
 	dld_time_remaining /= Bps;
 
-	//we add 30 seconds to smooth out bitrate variations ..;
-	dld_time_remaining += 30;
-
 	mov_rate = total;
+	if (read->frag_type) {
+		u64 bytesMissing=0;
+		gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
+		mov_rate = done + bytesMissing;
+	}
 	dur = gf_isom_get_duration(read->mov);
 	if (dur) {
 		mov_rate /= dur;
@@ -160,12 +162,14 @@ void isor_check_buffer_level(ISOMReader *read)
 			u64 data_offset;
 			u32 di, sn = ch->sample_num ? ch->sample_num : 1;
 			GF_ISOSample *samp = gf_isom_get_sample_info(read->mov, ch->track, sn, &di, &data_offset);
-			if (!samp) continue;
+			if (!samp) {
+				do_buffer = GF_TRUE;
+				continue;
+			}
 
 			data_offset += samp->dataLength;
 
-			//we only send buffer on/off based on remainging playback time in channel
-#if 0
+#if 1
 			//we don't have enough data
 			if (((data_offset + ch->buffer_min * mov_rate/1000 > done))) {
 				do_buffer = GF_TRUE;
@@ -173,8 +177,12 @@ void isor_check_buffer_level(ISOMReader *read)
 			//we have enough buffer
 			else if ((data_offset + ch->buffer_max * mov_rate/1000 <= done)) {
 				do_buffer = GF_FALSE;
+			} else {
+				do_buffer = ch->buffering;
 			}
-#endif
+			buffer_level = (u32) ( (done - data_offset) / mov_rate * 1000);
+#else
+			//we only send buffer on/off based on remainging playback time in channel
 			time_remain_ch -= (samp->DTS + samp->CTS_Offset);
 			if (time_remain_ch<0) time_remain_ch=0;
 			gf_isom_sample_del(&samp);
@@ -191,6 +199,7 @@ void isor_check_buffer_level(ISOMReader *read)
 			} else {
 				do_buffer = GF_FALSE;
 			}
+#endif
 		}
 
 		if (do_buffer != ch->buffering) {

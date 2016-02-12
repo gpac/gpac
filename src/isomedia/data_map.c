@@ -469,11 +469,11 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 	//can we seek till that point ???
 	if (fileOffset > gf_bs_get_size(ptr->bs)) return 0;
 
-	//ouch, we are not at the previous location, do a seek
-	if (ptr->curPos != fileOffset) {
+	if (gf_bs_get_position(ptr->bs) != fileOffset) {
+		//we are not at the previous location, do a seek	
 		if (gf_bs_seek(ptr->bs, fileOffset) != GF_OK) return 0;
-		ptr->curPos = fileOffset;
 	}
+	ptr->curPos = fileOffset;
 
 	//read our data.
 	bytesRead = gf_bs_read_data(ptr->bs, buffer, bufferLength);
