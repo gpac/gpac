@@ -277,6 +277,7 @@ struct _visual_manager
 	Fixed depth_vp_position, depth_vp_range;
 #endif
 
+	u32 yuv_pixelformat_type;
 };
 
 /*constructor/destructor*/

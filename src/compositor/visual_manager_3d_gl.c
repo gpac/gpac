@@ -2742,6 +2742,13 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	if (visual->has_clipper_2d) {
 		glDisable(GL_SCISSOR_TEST);
 	}
+	
+	if (flags & GF_GL_IS_YUV) {
+		loc = gf_glGetUniformLocation(visual->glsl_program, "isNV21PixelFormat");
+		if (loc>=0)	
+			glUniform1i(loc, visual->yuv_pixelformat_type == GF_PIXEL_NV21 ? 1 : 0);
+		GL_CHECK_ERR
+	}
 
 	visual->has_material_2d = 0;
 	visual->glsl_flags = visual->compositor->visual->glsl_flags;
