@@ -753,7 +753,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 	case GF_NET_CHAN_BUFFER:
 		ch->MaxBuffer = com->buffer.max;
 		ch->MinBuffer = com->buffer.min;
-		ch->BufferTime = com->buffer.max * com->buffer.occupancy / 100;
+		ch->BufferTime = com->buffer.occupancy;
 		gf_es_update_buffering(ch, 1);
 		break;
 	default:
