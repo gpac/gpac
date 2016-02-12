@@ -54,6 +54,8 @@ public class Preview {
     private int width = 0;
 
     private int height = 0;
+    
+    private int bitsPerPixel = 0;
 	
 	public static Activity context = null;
 	
@@ -243,6 +245,7 @@ public class Preview {
         // Define buffer size
         PixelFormat pixelinfo = new PixelFormat();
         PixelFormat.getPixelFormatInfo(mPreviewFormat, pixelinfo);
+        bitsPerPixel = pixelinfo.bitsPerPixel;
         mBufferSize = mPreviewSize.width * mPreviewSize.height * pixelinfo.bitsPerPixel / 8;
         Log.d(TAG, "Pixelsize = " + pixelinfo.bitsPerPixel + " Buffersize = " + mBufferSize); //$NON-NLS-1$//$NON-NLS-2$
         nBuffers = 1;
@@ -303,6 +306,15 @@ public class Preview {
         if (sz == null)
             return -1;
         return sz.width;
+    }
+    
+    /**
+     * Get the bits per pixel
+     * 
+     * @return 0 if not initialized
+     */
+    public int getBitsPerPixel() {
+        return bitsPerPixel;
     }
 
     /**

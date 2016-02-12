@@ -101,6 +101,7 @@ uniform int gfNumTextures;
 
 //Texture samplers
 #ifdef GF_GL_IS_YUV
+uniform bool isNV21PixelFormat;
 uniform sampler2D y_plane;
 uniform sampler2D u_plane;
 uniform sampler2D v_plane;
@@ -296,8 +297,14 @@ void main()
 #ifdef GF_GL_IS_YUV
 		texc = TexCoord.st;
 		yuv.x = texture2D(y_plane, texc).r;
-		yuv.y = texture2D(u_plane, texc).r;
-		yuv.z = texture2D(v_plane, texc).r;
+		if (isNV21PixelFormat) {
+			yuv.y = texture2D(u_plane, texc).a;
+			yuv.z = texture2D(u_plane, texc).r;
+		}
+		else {
+			yuv.y = texture2D(u_plane, texc).r;
+			yuv.z = texture2D(v_plane, texc).r;
+		}
 		yuv += offset;
 		rgb.r = dot(yuv, R_mul);
 		rgb.g = dot(yuv, G_mul);
