@@ -559,6 +559,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		if (txh->pixelformat==GF_PIXEL_YV12_10) {
 			txh->tx_io->gl_dtype = GL_UNSIGNED_SHORT;
 		}
+		txh->compositor->visual->yuv_pixelformat_type = txh->pixelformat;
 	}
 
 	/*note we don't free the data if existing, since this only happen when re-setting up after context loss (same size)*/
@@ -860,6 +861,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 {
 	Bool needs_stride;
 	GL_CHECK_ERR
+	
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 		if (needs_stride) stride /= 2;
@@ -872,7 +874,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glPixelStorei(GL_UNPACK_ROW_LENGTH, stride);
 #else
 	if (needs_stride)
-		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[V3D:GLSL] Texture with stride - OpenGL ES2.0 extension \"EXT_unpack_subimage\" is required\n"));
 #endif
 
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -1031,13 +1033,26 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			do_tex_image_2d(txh, tx_mode, first_load, pY, txh->stride, w, h, txh->tx_io->pbo_id);
 			GL_CHECK_ERR
 
-			glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
-			do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
-			GL_CHECK_ERR
+			/*
+			 * Note: GF_PIXEL_NV21 is default for Android camera review. First wxh bytes is the Y channel, 
+			 * the following (wxh)/2 bytes is UV plane.
+			 * Reference: http://stackoverflow.com/questions/22456884/how-to-render-androids-yuv-nv21-camera-image-on-the-background-in-libgdx-with-o
+			 */
+			if (txh->pixelformat == GF_PIXEL_NV21) {
+				txh->tx_io->gl_format = GL_LUMINANCE_ALPHA;
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+				do_tex_image_2d(txh, GL_LUMINANCE_ALPHA, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
+				txh->tx_io->gl_format = tx_mode;
+				GL_CHECK_ERR
+			} else {
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+				do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
+				GL_CHECK_ERR
 
-			glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-			do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
-			GL_CHECK_ERR
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+				do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
+				GL_CHECK_ERR
+			}
 
 			push_time = gf_sys_clock() - push_time;
 
@@ -1280,7 +1295,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 			M_TextureTransform *tt = (M_TextureTransform *)tx_transform;
 			gf_mx2d_init(mat);
 
-			/*cf VRML spec:  Tc' = -C × S × R × C × T × Tc*/
+			/*cf VRML spec:  Tc' = -C \D7 S \D7 R \D7 C \D7 T \D7 Tc*/
 			gf_mx2d_add_translation(&mat, -tt->center.x, -tt->center.y);
 			gf_mx2d_add_scale(&mat, tt->scale.x, tt->scale.y);
 			if (fabs(tt->rotation) > FIX_EPSILON) gf_mx2d_add_rotation(&mat, tt->center.x, tt->center.y, tt->rotation);
