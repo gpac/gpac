@@ -30,6 +30,9 @@
 #include <gpac/internal/media_dev.h>
 #include <openHevcWrapper.h>
 
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+
 #define OPEN_SHVC
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
@@ -648,6 +651,8 @@ void DeleteHEVCDec(GF_BaseDecoder *ifcg)
 	gf_free(ctx);
 	gf_free(ifcg);
 }
+
+#endif
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()

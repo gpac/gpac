@@ -330,13 +330,20 @@ case -1: //"last_working_directory"
 case -32://"caption"
 {
 	GF_Event evt;
+	char *caption;
 	if (!JSVAL_IS_STRING(*vp)) {
 		return JS_FALSE;
 	}
 	evt.type = GF_EVENT_SET_CAPTION;
-	evt.caption.caption = SMJS_CHARS(c, *vp);
+	caption = SMJS_CHARS(c, *vp);
+	if (!strnicmp(caption, "gpac://", 7)) {
+		evt.caption.caption = caption + 7;
+	} else {
+		evt.caption.caption = caption;
+	}
+
 	gf_term_user_event(term, &evt);
-	SMJS_FREE(c, (char*)evt.caption.caption);
+	SMJS_FREE(c, (char*)caption);
 }
 break;
 case -13://"fullscreen"
@@ -508,6 +515,36 @@ static JSBool SMJS_FUNCTION(gpac_get_arg)
 	return JS_TRUE;
 }
 
+
+static JSBool SMJS_FUNCTION(gpac_set_back_color)
+{
+	SMJS_OBJ
+	SMJS_ARGS
+	u32 r, g, b, a, i;
+	jsdouble d;
+	GF_Terminal *term = gpac_get_term(c, obj);
+	if (!term) return JS_FALSE;
+	
+	if (argc < 3) return JS_FALSE;
+	r = g = b = 0;
+	a = 255;
+	for (i=0; i<argc; i++) {
+		u32 v;
+		if (JSVAL_IS_DOUBLE(argv[i])) {
+			SMJS_GET_NUMBER(argv[i], d);
+			v = (u32) (255 * d);
+		} else if (JSVAL_IS_INT(argv[i])) {
+			v = 255 * JSVAL_TO_INT(argv[i]);
+		}
+		if (i==0) r = v;
+		else if (i==1) g = v;
+		else if (i==2) b = v;
+		else if (i==3) a = v;
+	}
+	term->compositor->back_color = term->compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
+	gf_sc_invalidate(term->compositor, NULL);
+	return JS_TRUE;
+}
 
 
 static JSBool SMJS_FUNCTION(gpac_switch_quality)
@@ -1468,6 +1505,7 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 			return JS_TRUE;
 		}
 		if (!strncmp(service_url, "gpac://", 7)) url = service_url + 7;
+		if (!strncmp(service_url, "file://", 7)) url = service_url + 7;
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = gf_list_get(scene->resources, i);
@@ -1963,6 +2001,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("switch_quality",		gpac_switch_quality, 1),
 		SMJS_FUNCTION_SPEC("reload",		gpac_reload, 1),
 		SMJS_FUNCTION_SPEC("navigation_supported",		gpac_navigation_supported, 1),
+		SMJS_FUNCTION_SPEC("set_back_color",		gpac_set_back_color, 3),
 		
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)

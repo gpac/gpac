@@ -36,7 +36,7 @@ public class GpacLogger {
         loggedModules.add(GF_Log_Module.GF_LOG_MEDIA);
         loggedModules.add(GF_Log_Module.GF_LOG_MODULE);
         loggedModules.add(GF_Log_Module.GF_LOG_CORE);
-        logger = new File(gpacConfig.getGpacCacheDirectory(), "gpac.log"); //$NON-NLS-1$
+        logDir = gpacConfig.getGpacLogDirectory(); //$NON-NLS-1$
     }
 
     private boolean enableLogOnDisk = false;
@@ -54,8 +54,15 @@ public class GpacLogger {
     public synchronized void setEnableLogOnDisk(boolean enableLogOnDisk) {
         this.enableLogOnDisk = enableLogOnDisk;
     }
-
-    private final File logger;
+    
+    private String logDir;
+    private String logFile;
+    
+    public synchronized void setLogFile(String logFile) {
+    	//reset writer
+	    writer = null;
+    	this.logFile = logDir + logFile;
+    }
 
     /**
      * Called when creating logger
@@ -65,7 +72,7 @@ public class GpacLogger {
             return;
         if (writer == null) {
             try {
-                writer = new PrintStream(new BufferedOutputStream(new FileOutputStream(logger), 128), true, "UTF-8"); //$NON-NLS-1$
+                writer = new PrintStream(new BufferedOutputStream(new FileOutputStream(new File(logFile)), 128), true, "UTF-8"); //$NON-NLS-1$
             } catch (Exception e) {
                 Log.e(GpacLogger.class.getSimpleName(), "Failed to create writer", e); //$NON-NLS-1$
             }

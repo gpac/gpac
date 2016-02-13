@@ -163,6 +163,9 @@ GF_Err gf_term_process_flush_video(GF_Terminal *term);
 /*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
 Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 
+/*post event to terminal*/
+Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
+
 /*post extended user mouse interaction to terminal
 	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
 	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged

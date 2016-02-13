@@ -691,7 +691,13 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		assert(width);
 		assert(height);
 #if SDL_VERSION_ATLEAST(2,0,0)
-        
+		
+#ifdef GPAC_USE_GLES2
+		/* Set the correct attributes for MASK and MAJOR version */
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_ES);
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
+#endif
+		
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", 0, 0, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));

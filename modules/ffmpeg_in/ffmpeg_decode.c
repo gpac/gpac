@@ -263,6 +263,10 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 				codec_id = CODEC_ID_MJPEG;
 				ffd->is_image = GF_TRUE;
 				break;
+			case GPAC_OTI_IMAGE_PNG:
+				codec_id = CODEC_ID_PNG;
+				ffd->is_image = GF_TRUE;
+				break;
 			case 0xFF:
 				codec_id = CODEC_ID_SVQ3;
 				break;
@@ -414,6 +418,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 #if (LIBAVCODEC_VERSION_INT > AV_VERSION_INT(51, 20, 0))
 		case CODEC_ID_GIF:
 #endif
+		case CODEC_ID_PNG:
 		case CODEC_ID_RAWVIDEO:
 			if ((*ctx)->pix_fmt==PIX_FMT_YUV420P) {
 				ffd->pix_fmt = GF_PIXEL_YV12;
@@ -594,6 +599,8 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 	case GF_CODEC_STRIDE:
 		if (ffd->out_pix_fmt==GF_PIXEL_RGB_24)
 			capability->cap.valueInt = ffd->stride*3;
+		else if (ffd->out_pix_fmt==GF_PIXEL_RGBA)
+			capability->cap.valueInt = ffd->stride*4;
 		else if (ffd->conv_buffer)
 			capability->cap.valueInt = ffd->base_ctx->width;
 		else
@@ -1010,7 +1017,11 @@ redecode:
 	   ) {
 
 		ffd->stride = (!ffd->conv_to_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
-		if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
+		if (ctx->pix_fmt  == PIX_FMT_RGBA) {
+			ffd->out_pix_fmt = ffd->pix_fmt = GF_PIXEL_RGBA;
+			outsize = ctx->width * ctx->height * 4;
+		}
+		else if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
 		}
 #ifndef NO_10bit
@@ -1128,6 +1139,8 @@ redecode:
 #if defined(_WIN32_WCE) || defined(__SYMBIAN32__)
 	if (ffd->pix_fmt==GF_PIXEL_RGB_24) {
 		memcpy(outBuffer, frame->data[0], sizeof(char)*3*ctx->width);
+	} else if (ffd->pix_fmt==GF_PIXEL_RGBA) {
+		memcpy(outBuffer, frame->data[0], sizeof(char)*4*ctx->width);
 	} else {
 		s32 i;
 		char *pYO, *pUO, *pVO;
@@ -1162,6 +1175,10 @@ redecode:
 		pict.data[0] =  (uint8_t *)outBuffer;
 		pict.linesize[0] = 3*ctx->width;
 		pix_out = PIX_FMT_RGB24;
+	} else if (ffd->out_pix_fmt==GF_PIXEL_RGBA) {
+		pict.data[0] =  (uint8_t *)outBuffer;
+		pict.linesize[0] = 4*ctx->width;
+		pix_out = PIX_FMT_RGBA;
 	} else {
 		pict.data[0] =  (uint8_t *)outBuffer;
 		pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
@@ -1175,9 +1192,13 @@ redecode:
 			pix_out = PIX_FMT_YUV420P10LE;
 		}
 #endif
+
+#if (LIBAVCODEC_VERSION_MAJOR<56)
 		if (!mmlevel && frame->interlaced_frame) {
 			avpicture_deinterlace((AVPicture *) frame, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 		}
+#endif
+
 	}
 	pict.data[3] = 0;
 	pict.linesize[3] = 0;
@@ -1190,11 +1211,11 @@ redecode:
 	                                   SWS_BICUBIC, NULL, NULL, NULL);
 	if ((*cached_sws)) {
 #if LIBSWSCALE_VERSION_INT < AV_VERSION_INT(0, 9, 0)
-		int sz = sws_scale((*cached_sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+		sws_scale((*cached_sws), frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 #else
-		int sz = sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
+		sws_scale((*cached_sws), (const uint8_t * const*)frame->data, frame->linesize, 0, ctx->height, pict.data, pict.linesize);
 #endif
-		assert( sz > 0 );
+
 	}
 #endif
 
@@ -1344,6 +1365,11 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 				return GF_CODEC_MAYBE_SUPPORTED;
 
 			return GF_CODEC_NOT_SUPPORTED;
+		case GPAC_OTI_IMAGE_PNG:
+			if (avcodec_find_decoder(CODEC_ID_PNG) != NULL)
+				return GF_CODEC_MAYBE_SUPPORTED;
+			return GF_CODEC_NOT_SUPPORTED;
+
 		default:
 			return GF_CODEC_NOT_SUPPORTED;
 		}

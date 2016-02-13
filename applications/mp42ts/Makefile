@@ -14,9 +14,6 @@ CFLAGS+=-pg
 LDFLAGS+=-pg
 endif
 
-#common obj
-OBJS= main.o
-
 LINKFLAGS=-L../../bin/gcc
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
@@ -25,8 +22,24 @@ else
 EXT=
 PROG=MP42TS
 endif
-LINKFLAGS+=-lgpac
 
+ifeq ($(STATICBUILD),yes)
+##include static modules and other deps for libgpac
+include ../../static.mak
+
+#FIXME we have to disable AAC+bifs support in mp42ts since it reuses things from aac_in already in libgpac ...
+ifeq ($(STATIC_MODULES), yes)
+CFLAGS+=-DGPAC_DISABLE_PLAYER
+endif
+
+LINKFLAGS+=-lgpac_static
+LINKFLAGS+=$(EXTRALIBS)
+else
+LINKFLAGS+=-lgpac
+endif
+
+#common objs - insert after ../static if any to overwrite list of objects
+OBJS= main.o
 
 SRCS := $(OBJS:.o=.c) 
 

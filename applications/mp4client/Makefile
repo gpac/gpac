@@ -4,7 +4,7 @@ vpath %.c $(SRC_PATH)/applications/mp4client
 
 CFLAGS= $(OPTFLAGS) -I"$(SRC_PATH)/include" -I../../
 
-LINKLIBS=$(GPAC_SH_FLAGS)
+LINKFLAGS=$(GPAC_SH_FLAGS)
 
 ifeq ($(DEBUGBUILD), yes)
 CFLAGS+=-g
@@ -20,10 +20,8 @@ ifeq ($(GPACREADONLY), yes)
 CFLAGS+=-DGPAC_READ_ONLY
 endif
 
-#common obj
-OBJS= main.o extract.o
-
 ifeq ($(CONFIG_WIN32),yes)
+LDFLAGS+=-municode
 EXE=.exe
 PROG=MP4Client$(EXE)
 else
@@ -31,17 +29,30 @@ EXT=
 PROG=MP4Client
 endif
 
+ifeq ($(STATICBUILD),yes)
+##include static modules and other deps for libgpac
+include ../../static.mak
+LINKFLAGS+=-lgpac_static
+LINKFLAGS+=$(EXTRALIBS)
+else
+LINKFLAGS+=-lgpac
+endif
+
+
+#common obj
+OBJS= main.o extract.o
 ifeq ($(CONFIG_DARWIN),yes)
 OBJS+= carbon_events.o
 LDFLAGS += -framework Carbon
 endif
+
 
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LINKLIBS)
+	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)

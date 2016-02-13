@@ -2463,6 +2463,11 @@ GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 	gf_import_message(import, GF_OK, "%s Video import - Resolution %d x %d @ %02.4f FPS", (mtype==GPAC_OTI_VIDEO_MPEG1) ? "MPEG-1" : "MPEG-2", w, h, FPS);
 	gf_isom_set_visual_info(import->dest, track, di, w, h);
 
+	if (!gf_isom_get_media_timescale(import->dest, track)) {
+		e = gf_import_message(import, GF_BAD_PARAM, "No timescale for imported track - ignoring");
+		if (e) goto exit;
+	}
+
 	gf_isom_set_cts_packing(import->dest, track, GF_TRUE);
 
 	file_size = mpeg2ps_get_ps_size(ps);
@@ -4939,7 +4944,6 @@ restart_import:
 				copy_size = 0;
 				break;
 			}
-			assert(prev_nalu_prefix_size==0);
 			copy_size = nal_size;
 			break;
 		case GF_AVC_NALU_SVC_SLICE:
@@ -5071,12 +5075,12 @@ restart_import:
 			/*write sampleGroups info*/
 			if (!samp->IsRAP && ( (sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count>=0) {
+				if (sei_recovery_frame_count > 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
 				/*open-GOP*/
-				else if (sample_has_islice) {
+				else if ((sei_recovery_frame_count == 0) && sample_has_islice) {
 					if (!use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
 				}
@@ -5172,7 +5176,7 @@ restart_import:
 			if (nal_type != GF_AVC_NALU_SVC_PREFIX_NALU) {
 				prev_nalu_prefix_size = 0;
 			} else {
-				prev_nalu_prefix_size = nal_size;
+				prev_nalu_prefix_size += nal_size;
 			}
 
 			switch (nal_type) {
@@ -5566,12 +5570,14 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, flush_next_sample, is_empty_sample, sample_is_rap, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_hevc;
 	u32 use_opengop_gdr = 0;
 	u8 layer_ids[64];
+	SAPType sample_rap_type;
+
 
 	Double FPS;
 	char *buffer;
@@ -5655,7 +5661,7 @@ restart_import:
 	memset(layer_ids, 0, sizeof(u8)*64);
 
 	sample_data = NULL;
-	sample_is_rap = GF_FALSE;
+	sample_rap_type = RAP_NO;
 	sample_has_islice = GF_FALSE;
 	cur_samp = 0;
 	is_paff = GF_FALSE;
@@ -6030,8 +6036,8 @@ restart_import:
 		if (flush_sample && sample_data) {
 			GF_ISOSample *samp = gf_isom_sample_new();
 			samp->DTS = (u64)dts_inc*cur_samp;
-			samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
-			if (!sample_is_rap) {
+			samp->IsRAP = ((sample_rap_type==SAP_TYPE_1) || (sample_rap_type==SAP_TYPE_2)) ? RAP : RAP_NO;
+			if (! samp->IsRAP) {
 				if (sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0)) {
 					samp->IsRAP = RAP;
 					if (!use_opengop_gdr) {
@@ -6056,12 +6062,12 @@ restart_import:
 			/*write sampleGroups info*/
 			if (!samp->IsRAP && ((sei_recovery_frame_count>=0) || sample_has_islice) ) {
 				/*generic GDR*/
-				if (sei_recovery_frame_count >= 0) {
+				if (sei_recovery_frame_count > 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
 					e = gf_isom_set_sample_roll_group(import->dest, track, cur_samp, (s16) sei_recovery_frame_count);
 				}
 				/*open-GOP*/
-				else if (sample_has_islice) {
+				else if (sample_rap_type==SAP_TYPE_3) {
 					if (!use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
 				}
@@ -6145,8 +6151,6 @@ restart_import:
 					first_nal = GF_FALSE;
 					if (hevc.sei.recovery_point.valid || (import->flags & GF_IMPORT_FORCE_SYNC)) {
 						Bool bIntraSlice = gf_media_hevc_slice_is_intra(&hevc);
-						assert(hevc.s_info.nal_unit_type!=GF_AVC_NALU_IDR_SLICE || bIntraSlice);
-
 						sei_recovery_frame_count = hevc.sei.recovery_point.frame_cnt;
 
 						/*we allow to mark I-frames as sync on open-GOPs (with sei_recovery_frame_count=0) when forcing sync even when the SEI RP is not available*/
@@ -6161,7 +6165,24 @@ restart_import:
 						if (bIntraSlice && (import->flags & GF_IMPORT_FORCE_SYNC) && (sei_recovery_frame_count==0))
 							slice_force_ref = GF_TRUE;
 					}
-					sample_is_rap = gf_media_hevc_slice_is_IDR(&hevc);
+					sample_rap_type = RAP_NO;
+					if (gf_media_hevc_slice_is_IDR(&hevc)) {
+						sample_rap_type = SAP_TYPE_1;
+					}
+					else {
+						switch (hevc.s_info.nal_unit_type) {
+						case GF_HEVC_NALU_SLICE_BLA_W_LP:
+						case GF_HEVC_NALU_SLICE_BLA_W_DLP:
+							sample_rap_type = SAP_TYPE_3;
+							break;
+						case GF_HEVC_NALU_SLICE_BLA_N_LP:
+							sample_rap_type = SAP_TYPE_1;
+							break;
+						case GF_HEVC_NALU_SLICE_CRA:
+							sample_rap_type = SAP_TYPE_3;
+							break;
+						}
+					}
 				}
 
 				if (hevc.s_info.poc<poc_shift) {
@@ -6262,8 +6283,8 @@ next_nal:
 	if (sample_data) {
 		GF_ISOSample *samp = gf_isom_sample_new();
 		samp->DTS = (u64)dts_inc*cur_samp;
-		samp->IsRAP = sample_is_rap ? RAP : RAP_NO;
-		if (!sample_is_rap && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
+		samp->IsRAP = (sample_rap_type == SAP_TYPE_1) ? RAP : RAP_NO;
+		if (!sample_rap_type && sample_has_islice && (import->flags & GF_IMPORT_FORCE_SYNC)) {
 			samp->IsRAP = RAP;
 		}
 		/*we store the frame order (based on the POC) as the CTS offset and update the whole table at the end*/
@@ -8163,6 +8184,14 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 			}
 		}
 
+		if (samp->DTS < pck->stream->first_dts) {
+			u32 sample_num = gf_isom_get_sample_count(import->dest, tsimp->track);
+			u32 dur = gf_isom_get_sample_duration(import->dest, tsimp->track, sample_num);
+
+			pck->stream->first_dts = samp->DTS - (tsimp->last_dts + 1 + dur);
+			pck->stream->program->first_dts = pck->stream->first_dts;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Import] negative time sample - PCR loop/discontinuity, adjusting\n"));
+		}
 		if (samp->DTS >= pck->stream->first_dts) {
 			samp->DTS -= pck->stream->first_dts;
 			samp->IsRAP = (pck->flags & GF_M2TS_PES_PCK_RAP) ? RAP : RAP_NO;

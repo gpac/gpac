@@ -41,9 +41,19 @@
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
-	compositor->frame_draw_type = state;
-	if (state==GF_SC_DRAW_FLUSH)
+	if (state==GF_SC_DRAW_FLUSH) {
 		compositor->skip_flush = 2;
+		//if in openGL mode ignore refresh events (content of the window is still OK). This is only used for overlays in 2d
+		if (!compositor->frame_draw_type
+#ifndef GPAC_DISABLE_3D
+			&& !compositor->visual->type_3d && !compositor->hybrid_opengl
+#endif
+		) {
+			compositor->frame_draw_type = state;
+		}
+	} else {
+		compositor->frame_draw_type = state;
+	}
 }
 
 
@@ -345,7 +355,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			compositor->video_out->evt_cbk_hdl = compositor;
 			compositor->video_out->on_event = gf_sc_on_event;
 			/*init hw*/
-			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
+			if (!compositor->video_out->Setup || compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags) != GF_OK) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Failed to Setup Video Driver %s!\n", sOpt));
 				gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 				compositor->video_out = NULL;
@@ -370,7 +380,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 			}
 
 			/*init hw*/
-			if (compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
+			if (compositor->video_out->Setup && compositor->video_out->Setup(compositor->video_out, compositor->user->os_window_handler, compositor->user->os_display, compositor->user->init_flags)==GF_OK) {
 				gf_cfg_set_key(compositor->user->config, "Video", "DriverName", compositor->video_out->module_name);
 				break;
 			}
@@ -386,7 +396,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		}
 	}
 	if (!compositor->video_out ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver."));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to create compositor->video_out, did not find any suitable driver.\n"));
 		return GF_IO_ERR;
 	}
 
@@ -420,7 +430,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		if (compositor->rasterizer) gf_cfg_set_key(compositor->user->config, "Compositor", "Raster2D", compositor->rasterizer->module_name);
 	}
 	if (!compositor->rasterizer) {
-		compositor->video_out->Shutdown(compositor->video_out);
+		if (compositor->video_out->Shutdown) compositor->video_out->Shutdown(compositor->video_out);
 		gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
 		compositor->video_out = NULL;
 		return GF_IO_ERR;
@@ -937,7 +947,13 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 #endif
 
 		/*default back color is black*/
-		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) compositor->back_color = 0xFF000000;
+		if (! (compositor->user->init_flags & GF_TERM_WINDOWLESS)) {
+			if (compositor->default_back_color) {
+				compositor->back_color = compositor->default_back_color;
+			} else {
+				compositor->back_color = 0xFF000000;
+			}
+		}
 
 #ifndef GPAC_DISABLE_SVG
 		top_node = gf_sg_get_root_node(compositor->scene);
@@ -1152,24 +1168,6 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	if (sOpt) sscanf(sOpt, "%x", &compositor->text_sel_color);
 	if (!compositor->text_sel_color) compositor->text_sel_color = 0xFFAAAAFF;
 
-	/*load options*/
-	if (compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
-		compositor->traverse_state->immediate_draw = 1;
-	} else {
-		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
-		if (!sOpt) {
-			sOpt = "defer";
-			gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt);
-		}
-
-		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
-		else if (!strcmp(sOpt, "defer-debug")) {
-			compositor->traverse_state->immediate_draw = 0;
-			compositor->debug_defer = 1;
-		}
-		else compositor->traverse_state->immediate_draw = 0;
-	}
-
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ScalableZoom");
 	compositor->scalable_zoom = (!sOpt || !stricmp(sOpt, "yes") ) ? 1 : 0;
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DisableYUV");
@@ -1345,8 +1343,23 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (!strcmp(sOpt, "Anaglyph")) compositor->visual->autostereo_type = GF_3D_STEREO_ANAGLYPH;
 	else if (!strcmp(sOpt, "Columns")) compositor->visual->autostereo_type = GF_3D_STEREO_COLUMNS;
 	else if (!strcmp(sOpt, "Rows")) compositor->visual->autostereo_type = GF_3D_STEREO_ROWS;
-	else if (!strcmp(sOpt, "SPV19")) compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
-
+	else if (!strcmp(sOpt, "SPV19")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_5VSP19;
+		if (compositor->visual->nb_views != 5) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] SPV19 interleaving used but only %d views indicated - adjusting to 5 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 5;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "5");
+		}
+	}
+	else if (!strcmp(sOpt, "ALIO")) {
+		compositor->visual->autostereo_type = GF_3D_STEREO_8VALIO;
+		if (compositor->visual->nb_views != 8) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] ALIO interleaving used but only %d views indicated - adjusting to 8 view\n", compositor->visual->nb_views ));
+			compositor->visual->nb_views = 8;
+			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "8");
+		}
+	}
+	else if (!strcmp(sOpt, "StereoHeadset")) compositor->visual->autostereo_type = GF_3D_STEREO_HEADSET;
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;
@@ -1359,6 +1372,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	case GF_3D_STEREO_COLUMNS:
 	case GF_3D_STEREO_ROWS:
 		if (compositor->visual->nb_views != 2) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor] Stereo interleaving used but %d views indicated - adjusting to 2 view\n", compositor->visual->nb_views ));
 			compositor->visual->nb_views = 2;
 			gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "2");
 		}
@@ -1385,6 +1399,26 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif //GPAC_DISABLE_3D
 
+	
+	/*load defer mode only once hybrid_opengl is known. If no hybrid openGL and no backbuffer 2D, disable defer rendering*/
+	if (!compositor->hybrid_opengl && compositor->video_out->hw_caps & GF_VIDEO_HW_DIRECT_ONLY) {
+		compositor->traverse_state->immediate_draw = 1;
+	} else {
+		sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawMode");
+		if (!sOpt) {
+			sOpt = "defer";
+			gf_cfg_set_key(compositor->user->config, "Compositor", "DrawMode", sOpt);
+		}
+		
+		if (!strcmp(sOpt, "immediate")) compositor->traverse_state->immediate_draw = 1;
+		else if (!strcmp(sOpt, "defer-debug")) {
+			compositor->traverse_state->immediate_draw = 0;
+			compositor->debug_defer = 1;
+		}
+		else compositor->traverse_state->immediate_draw = 0;
+	}
+	
+	
 #ifdef GF_SR_USE_DEPTH
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "AutoStereoCalibration");
 	compositor->auto_calibration = (sOpt && !strcmp(sOpt, "yes")) ? 1 : 0;
@@ -1774,7 +1808,7 @@ u32 gf_sc_get_option(GF_Compositor *compositor, u32 type)
 	case GF_OPT_NUM_STEREO_VIEWS:
 #ifndef GPAC_DISABLE_3D
 		if (compositor->visual->type_3d) {
-			if (compositor->visual->nb_views && compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)
+			if (compositor->visual->nb_views && compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)
 				return compositor->visual->nb_views;
 		}
 #endif
@@ -1819,7 +1853,7 @@ GF_Err gf_sc_get_offscreen_buffer(GF_Compositor *compositor, GF_VideoSurface *fr
 {
 	if (!compositor || !framebuffer) return GF_BAD_PARAM;
 #ifndef GPAC_DISABLE_3D
-	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type>GF_3D_STEREO_SIDE)) {
+	if (compositor->visual->type_3d && compositor->visual->nb_views && (compositor->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER)) {
 		GF_Err e;
 		gf_mx_p(compositor->mx);
 		e = compositor_3d_get_offscreen_buffer(compositor, framebuffer, view_idx, depth_dump_mode);
@@ -1941,21 +1975,23 @@ static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 		if (compositor->visual->type_3d) {
 			compositor_3d_set_aspect_ratio(compositor);
 			gf_sc_load_opengl_extensions(compositor, compositor->visual->type_3d);
-			if (compositor->autoconfig_opengl) {
 #ifndef GPAC_USE_GLES1X
-				visual_3d_init_shaders(compositor->visual);
+			visual_3d_init_shaders(compositor->visual);
 #endif
+			if (compositor->autoconfig_opengl) {
 				compositor->autoconfig_opengl = 0;
 				compositor->force_opengl_2d = 0;
 				compositor->visual->type_3d = prev_type_3d;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 				//enable hybrid mode by default
-				if (compositor->visual->yuv_rect_glsl_program) {
+				if (compositor->visual->compositor->shader_only_mode) {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "hybrid");
 					compositor->hybrid_opengl = 1;
 				} else {
 					gf_cfg_set_key(compositor->user->config, "Compositor", "OpenGLMode", "disable");
 				}
+#endif			
 			}
 
 		}
@@ -2088,7 +2124,6 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 		/*request for OpenGL drawing in 2D*/
 		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
 			compositor->visual->type_3d = 1;
-			camera_set_2d(&compositor->visual->camera);
 			if (compositor->force_opengl_2d==2) force_navigate=1;
 		}
 
@@ -2097,6 +2132,9 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->camera.is_3D = 0;
 		}
 		compositor->visual->camera.is_3D = (compositor->visual->type_3d>1) ? 1 : 0;
+		if (!compositor->visual->camera.is_3D)
+			camera_set_2d(&compositor->visual->camera);
+
 		camera_invalidate(&compositor->visual->camera);
 		if (force_navigate) {
 			compositor->visual->camera.navigate_mode = GF_NAVIGATE_EXAMINE;
@@ -2345,12 +2383,14 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	if (gf_smil_notify_timed_elements(compositor->scene)) {
 		gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 	}
+#ifndef GPAC_DISABLE_SCENEGRAPH
 	i = 0;
 	while ((sg = (GF_SceneGraph*)gf_list_enum(compositor->extra_scenes, &i))) {
 		if (gf_smil_notify_timed_elements(sg)) {
 			gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
 		}
 	}
+#endif
 
 #ifndef GPAC_DISABLE_LOG
 	smil_timing_time = gf_sys_clock() - smil_timing_time;
@@ -2878,7 +2918,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
-			gf_sc_reset_graphics(compositor);
+			if (event->setup.hw_reset)
+				gf_sc_reset_graphics(compositor);
+
 			if (event->setup.back_buffer)
 				compositor->recompute_ar = 1;
 		}
@@ -2903,8 +2945,10 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	case GF_EVENT_VIDEO_SETUP:
 	{
 		Bool locked = gf_mx_try_lock(compositor->mx);
-		if (event->setup.hw_reset)
+		if (event->setup.hw_reset) {
 			gf_sc_reset_graphics(compositor);
+			compositor->reset_graphics = 2;
+		}
 
 		if (event->setup.back_buffer)
 			compositor->recompute_ar = 1;
@@ -2923,13 +2967,21 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			*/
 			Bool lock_ok = gf_mx_try_lock(compositor->mx);
 			if ((compositor->display_width!=event->size.width) || (compositor->display_height!=event->size.height)) {
+
+				//OSX bug with SDL when requesting 4k window we get max screen height but 4k width ...
+#if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
+				if (compositor->display_width==event->size.width) {
+					if (compositor->display_height > 2*event->size.height) {
+						event->size.width = compositor->display_width * event->size.height / compositor->display_height;
+					}
+				}
+#endif
 				compositor->new_width = event->size.width;
 				compositor->new_height = event->size.height;
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			} else {
-				/*remove pending resize notif*/
-				compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
+				/*remove pending resize notif but not resize requests*/
                 compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
@@ -3474,6 +3526,7 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		if (cam->navigation_flags & NAV_ANY) {
 			return GF_TRUE;
 		} else {
+#ifndef GPAC_DISABLE_VRML
 			M_NavigationInfo *ni = (M_NavigationInfo *)gf_list_get(compositor->visual->navigation_stack, 0);
 			if (ni) {
 				u32 i;
@@ -3488,6 +3541,7 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 					else if (!stricmp(ni->type.vals[i], "ORBIT") && (type==GF_NAVIGATE_ORBIT)) return GF_TRUE;
 				}
 			}
+#endif
 			return GF_FALSE;
 		}
 	} else

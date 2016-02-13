@@ -569,7 +569,6 @@ GF_Err gf_rtp_send_packet(GF_RTPChannel *ch, GF_RTPHeader *rtp_hdr, char *pck, u
 	if (!ch || !rtp_hdr
 	        || !ch->send_buffer
 	        || !pck
-	        || (rtp_hdr->CSRCCount && !rtp_hdr->CSRC)
 	        || (rtp_hdr->CSRCCount > 15)) return GF_BAD_PARAM;
 
 	if (rtp_hdr->CSRCCount) fast_send = GF_FALSE;

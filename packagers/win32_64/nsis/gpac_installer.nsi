@@ -297,6 +297,11 @@ Section "GPAC Player" SecOsmo4
   SetOutPath $INSTDIR\gui\extensions
   File /r /x .git ${GPAC_ROOT}\gui\extensions\*
 
+  ;copy shaders
+  SetOutPath $INSTDIR\shaders
+  File "${GPAC_ROOT}\shaders\vertex.glsl"
+  File "${GPAC_ROOT}\shaders\fragment.glsl"
+
   SetOutPath $INSTDIR
 SectionEnd
 

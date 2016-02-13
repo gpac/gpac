@@ -264,7 +264,14 @@ GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
+	ptr->size -= 2;
+	if (ptr->size<ptr->entry_count*3) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Corrupted ftap box, skipping\n"));
+		ptr->entry_count = 0;
+		return GF_OK;
+	}
 	ptr->fonts = (GF_FontRecord *) gf_malloc(sizeof(GF_FontRecord)*ptr->entry_count);
+	memset(ptr->fonts, 0, sizeof(GF_FontRecord)*ptr->entry_count);
 	for (i=0; i<ptr->entry_count; i++) {
 		u32 len;
 		ptr->fonts[i].fontID = gf_bs_read_u16(bs);
@@ -406,16 +413,23 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 	gpp_read_style(bs, &ptr->default_style);
 	ptr->size -= 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE;
 
-	while (ptr->size) {
+	while (ptr->size>=8) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
+		if (ptr->size<a->size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" larger than remaining bytes in tx3g - ignoring box\n", gf_4cc_to_str(a->type)));
+			ptr->size = 0;
+			gf_isom_box_del(a);
+			return GF_OK;
+		}
+		
 		ptr->size -= a->size;
 		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
 			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);
 			ptr->font_table = (GF_FontTableBox *)a;
 		} else {
-			gf_isom_box_del(a);
+			e = gf_isom_box_add_default(s, a);
+			if (e) return e;
 		}
 	}
 	return GF_OK;
@@ -447,8 +461,34 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 
 	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
 	ptr->size -= 1;
-	if (ptr->size < pSize)
-		return GF_ISOM_INVALID_FILE;
+	if (ptr->size < pSize) {
+		u32 s = pSize;
+		size_t i = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: trying to decode anyway.\n"));
+		ptr->textName = (char*)gf_malloc(ptr->size + 1 + 1);
+		do {
+			char c = (char)s;
+			if (c == '\0') {
+				break;
+			} else if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+				ptr->textName[i] = c;
+			} else {
+				gf_free(ptr->textName);
+				ptr->textName = NULL;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string and contains non-chars. Abort.\n"));
+				return GF_ISOM_INVALID_FILE;
+			}
+			i++;
+			if (!ptr->size)
+				break;
+			ptr->size--;
+			s = gf_bs_read_u8(bs);
+		} while (s);
+
+		ptr->textName[i] = '\0';				/*Font name*/
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: \"%s\" detected.\n", ptr->textName));
+		return GF_OK;
+	}
 	if (pSize) {
 		ptr->textName = (char*) gf_malloc(pSize+1 * sizeof(char));
 		if (gf_bs_read_data(bs, ptr->textName, pSize) != pSize) {

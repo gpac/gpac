@@ -292,6 +292,8 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 	    env->GetMethodID(localRef, "setCaption", "(Ljava/lang/String;)V");
 	envToSet->cbk_showKeyboard =
 	    env->GetMethodID(localRef, "showKeyboard", "(Z)V");
+	envToSet->cbk_setLogFile =
+	    env->GetMethodID(localRef, "setLogFile", "(Ljava/lang/String;)V");
 	env->DeleteLocalRef(localRef);
 }
 
@@ -492,6 +494,21 @@ displayInAndroidlogs:
 		case GF_LOG_MUTEX:
 			tag="GF_LOG_MUTEX";
 			break;
+		case GF_LOG_CONDITION:
+			tag="GF_LOG_CONDITION";
+			break;
+		case GF_LOG_DASH:
+			tag="GF_LOG_DASH";
+			break;
+		case GF_LOG_CONSOLE:
+			tag="GF_LOG_CONSOLE";
+			break;
+		case GF_LOG_APP:
+			tag="GF_LOG_APP";
+			break;
+		case GF_LOG_SCHEDULER:
+			tag="GF_LOG_SCHEDULER";
+			break;
 		default:
 			snprintf(unknTag, 32, "GPAC_UNKNOWN[%d]", lm);
 			tag = unknTag;
@@ -633,6 +650,16 @@ void CNativeWrapper::SetupLogs() {
 	gf_mx_p(m_mx);
 	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 	gf_log_set_callback(this, on_gpac_log);
+	opt = gf_cfg_get_key(m_user.config, "General", "LogFile");
+	if (opt) {
+		JavaEnvTh *env = getEnv();
+		if (env && env->cbk_setLogFile) {
+			env->env->PushLocalFrame(1);
+			jstring js = env->env->NewStringUTF(opt);
+			env->env->CallVoidMethod(env->cbk_obj, env->cbk_setLogFile, js);
+			env->env->PopLocalFrame(NULL);
+		}
+	}
 	gf_mx_v(m_mx);
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Osmo4 logs initialized\n"));
@@ -646,14 +673,18 @@ void CNativeWrapper::SetupLogs() {
 // dir should end with /
 int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int width, int height, const char * cfg_dir, const char * modules_dir, const char * cache_dir, const char * font_dir, const char * gui_dir, const char * urlToLoad) {
 	LOGI("Initializing GPAC with URL=%s...", urlToLoad);
-	strcpy(m_cfg_dir, cfg_dir);
 	strcpy(m_modules_dir, modules_dir);
 	strcpy(m_cache_dir, cache_dir);
 	strcpy(m_font_dir, font_dir);
-
+	if (cfg_dir)
+		strcpy(m_cfg_dir, cfg_dir);
+	
 	char m_cfg_filename[GF_MAX_PATH];
-	strcpy(m_cfg_filename, m_cfg_dir);
-	strcat(m_cfg_filename, "GPAC.cfg");
+	if (m_cfg_dir) {
+		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);
+		strcpy(m_cfg_filename, m_cfg_dir);
+		strcat(m_cfg_filename, "GPAC.cfg");
+	}
 
 	int m_Width = width;
 	int m_Height = height;
@@ -675,50 +706,8 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 
 	//load config file
 	LOGI("Loading User Config %s...", "GPAC.cfg");
-	m_user.config = gf_cfg_force_new(cfg_dir, "GPAC.cfg");
+	m_user.config = gf_cfg_init(m_cfg_dir ? m_cfg_filename : NULL, NULL);
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
-
-	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
-	if (!opt) {
-		FILE * fstart;
-		char msg[256];
-		LOGI("First launch, initializing new Config %s...", "GPAC.cfg");
-		/*hardcode module directory*/
-		gf_cfg_set_key(m_user.config, "Downloader", "CleanCache", "yes");
-		/*startup file*/
-		snprintf(msg, 256, "%sgui.bt", gui_dir);
-		fstart = gf_fopen(msg, "r");
-		if (fstart) {
-			gf_fclose(fstart);
-			gf_cfg_set_key(m_user.config, "General", "StartupFile", msg);
-		} else {
-			gf_cfg_set_key(m_user.config, "General", "#StartupFile", msg);
-		}
-		gf_cfg_set_key(m_user.config, "GUI", "UnhideControlPlayer", "1");
-		/*setup UDP traffic autodetect*/
-		gf_cfg_set_key(m_user.config, "Network", "AutoReconfigUDP", "yes");
-		gf_cfg_set_key(m_user.config, "Network", "UDPTimeout", "10000");
-		gf_cfg_set_key(m_user.config, "Network", "BufferLength", "3000");
-		gf_cfg_set_key(m_user.config, "Compositor", "TextureTextMode", "Default");
-		//gf_cfg_set_key(m_user.config, "Compositor", "FrameRate", "30");
-		gf_cfg_set_key(m_user.config, "Audio", "ForceConfig", "no");
-		gf_cfg_set_key(m_user.config, "Audio", "NumBuffers", "1");
-		gf_cfg_set_key(m_user.config, "FontEngine", "FontReader", "ft_font");
-		//Storage directory
-		if (!gf_cfg_get_key(m_user.config, "General", "StorageDirectory")) {
-			snprintf(msg, 256, "%sStorage", cfg_dir);
-			if (!gf_dir_exists(msg)) gf_mkdir(msg);
-			gf_cfg_set_key(m_user.config, "General", "StorageDirectory", msg);
-		}
-	}
-	/* All of this has to be done for every instance */
-	gf_cfg_set_key(m_user.config, "General", "ModulesDirectory", modules_dir ? modules_dir : GPAC_MODULES_DIR);
-	gf_cfg_set_key(m_user.config, "General", "CacheDirectory", cache_dir ? cache_dir : GPAC_CACHE_DIR);
-	gf_cfg_set_key(m_user.config, "General", "LastWorkingDir", cfg_dir);
-	gf_cfg_set_key(m_user.config, "General", "DeviceType", "Android");
-	gf_cfg_set_key(m_user.config, "FontEngine", "FontDirectory", GPAC_FONT_DIR);
-	gf_cfg_set_key(m_user.config, "Video", "DriverName", "Android Video Output");
-	gf_cfg_set_key(m_user.config, "Audio", "DriverName", "Android Audio Output");
 
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	LOGI("loading modules in directory %s...", opt);
@@ -777,9 +766,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_term_connect(m_term, urlToLoad);
 	}
 	debug_log("init end");
-	LOGD("Saving config file %s...\n", m_cfg_filename);
+	LOGD("Saving config file ...\n", m_cfg_filename);
 	gf_cfg_save(m_user.config);
-	LOGI("Initialization complete, config file saved as %s.\n", m_cfg_filename);
+	LOGI("Initialization complete, config file saved.\n", m_cfg_filename);
 
 	return 0;
 }

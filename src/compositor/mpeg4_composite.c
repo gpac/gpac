@@ -286,7 +286,7 @@ static void composite_update(GF_TextureHandler *txh)
 
 #ifndef GPAC_DISABLE_3D
 	/*no alpha support in offscreen rendering*/
-	if ( (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
+	if (!compositor->visual->type_3d && !compositor->hybrid_opengl && (st->visual->type_3d) && !(compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN_ALPHA))
 		new_pixel_format = GF_PIXEL_RGB_24;
 #endif
 
@@ -417,12 +417,12 @@ static void composite_update(GF_TextureHandler *txh)
 		st->visual->height = txh->height;
 
 		stencil = raster->stencil_new(raster, GF_STENCIL_TEXTURE);
-		/*TODO - add support for compositeTexture3D when root is 2D visual*/
+
 #ifndef GPAC_DISABLE_3D
 		if (st->visual->type_3d) {
 			GF_Compositor *compositor = st->visual->compositor;
 			/*figure out what to do if main visual (eg video out) is not in OpenGL ...*/
-			if (!compositor->visual->type_3d) {
+			if (!compositor->visual->type_3d && !compositor->hybrid_opengl) {
 				/*create an offscreen window for OpenGL rendering*/
 				if ((compositor->offscreen_width < st->txh.width) || (compositor->offscreen_height < st->txh.height)) {
 #ifndef GPAC_USE_TINYGL
@@ -473,6 +473,25 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 	if (!txh->tx_io) return;
 
+#ifndef GPAC_DISABLE_3D
+	if (st->visual->camera.is_3D) {
+#ifdef GPAC_USE_TINYGL
+		st->visual->type_3d = 2;
+#else
+		if (compositor->visual->type_3d) {
+			st->visual->type_3d = 2;
+		} else if (compositor->hybrid_opengl) {
+			st->visual->type_3d = 2;
+		} else if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
+			st->visual->type_3d = 0;
+		} else {
+			st->visual->type_3d = 2;
+		}
+	}
+#endif
+	
+#endif
+	
 	stencil = gf_sc_texture_get_stencil(txh);
 	if (!stencil) return;
 
@@ -505,7 +524,6 @@ static void composite_update(GF_TextureHandler *txh)
 	txh->needs_refresh = visual_draw_frame(st->visual, st->txh.owner, tr_state, 0);
 	txh->transparent = (st->visual->last_had_back==2) ? 0 : 1;
 
-
 	if (!compositor->edited_text && st->visual->has_text_edit)
 		st->visual->has_text_edit = 0;
 
@@ -525,7 +543,13 @@ static void composite_update(GF_TextureHandler *txh)
 
 	if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D
-		if (st->visual->camera.is_3D) {
+		//for composite 3D, store current buffer to texture - TODO: use FBOs to avoid the copy ...
+		if (st->visual->camera.is_3D && (st->visual->compositor->visual->type_3d || st->visual->compositor->hybrid_opengl)) {
+#ifndef GPAC_USE_TINYGL
+			gf_sc_copy_to_texture(&st->txh);
+#endif
+		}
+		else if (st->visual->camera.is_3D) {
 			if (st->visual->compositor->visual->type_3d) {
 #ifndef GPAC_USE_TINYGL
 				gf_sc_copy_to_texture(&st->txh);
@@ -640,25 +664,15 @@ void compositor_init_compositetexture3d(GF_Compositor *compositor, GF_Node *node
 	st->visual->offscreen = node;
 	st->visual->GetSurfaceAccess = composite_get_video_access;
 	st->visual->ReleaseSurfaceAccess = composite_release_video_access;
+	st->visual->CheckAttached = composite_check_visual_attached;
 
+	st->visual->camera.is_3D = 1;
 	st->first = 1;
 	st->visual->compositor = compositor;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, composite_traverse);
 	gf_sc_visual_register(compositor, st->visual);
 
-#ifdef GPAC_USE_TINYGL
-	st->visual->type_3d = 2;
-	st->visual->camera.is_3D = 1;
-#else
-	if (! (compositor->video_out->hw_caps & GF_VIDEO_HW_OPENGL_OFFSCREEN)) {
-		st->visual->type_3d = 0;
-		st->visual->camera.is_3D = 0;
-	} else {
-		st->visual->type_3d = 2;
-		st->visual->camera.is_3D = 1;
-	}
-#endif
 	camera_invalidate(&st->visual->camera);
 }
 #endif

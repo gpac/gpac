@@ -31,8 +31,8 @@
 #ifndef GPAC_DISABLE_3D
 
 
-#define GF_MAX_GL_CLIPS	12
-#define GF_MAX_GL_LIGHTS 12
+#define GF_MAX_GL_CLIPS	8
+#define GF_MAX_GL_LIGHTS 4
 
 /*
 *	Visual 3D functions
@@ -91,9 +91,8 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha);
 	- exported for text drawing*/
 void visual_3d_disable_texture(GF_TraverseState *tr_state);
 
-/*check for collisions on a list of nodes, or scene root if list is null
-	- exported for Layer3D - try to harmonize*/
-void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_ChildNodeItem *node_list);
+/*check for collisions on a given node or on a list of nodes*/
+void visual_3d_check_collisions(GF_TraverseState *tr_state, GF_Node *root_node, GF_ChildNodeItem *node_list);
 
 /*init drawing pass - exported for Layer3D
 	@layer_type:
@@ -179,7 +178,6 @@ typedef struct
 
 typedef struct
 {
-	//0: directional - 1: spot - 2: point
 	GF_Plane p;
 	Bool is_2d_clip;
 	GF_Matrix *mx_clipper;
@@ -229,17 +227,18 @@ void visual_3d_projection_matrix_modified(GF_VisualManager *visual);
 
 /*setup viewport (vp: top-left, width, height)*/
 void visual_3d_set_viewport(GF_VisualManager *visual, GF_Rect vp);
+
 /*setup scissors region (vp: top-left, width, height) - if vp is NULL, disables scissors*/
 void visual_3d_set_scissor(GF_VisualManager *visual, GF_Rect *vp);
 
 /*setup rectangular cliper (clip: top-left, width, height)
-NOTE: 2D clippers can only be set from a 2D context, hence will always take the 4 first GL clip planes.
+NOTE: 2D clippers can only be set from a 2D context, and will always use glScissor.
 In order to allow multiple Layer2D in Layer2D, THERE IS ALWAYS AT MOST ONE 2D CLIPPER USED AT ANY TIME,
 it is the caller responsability to restore previous 2D clipers
 
 the matrix is not copied, care should be taken to keep it unmodified until the cliper is reset (unless desired otherwise)
 if NULL, no specific clipping transform will be used*/
-void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper, Bool is_2d_clip);
+void visual_3d_set_clipper_2d(GF_VisualManager *visual, GF_Rect clip, GF_Matrix *mx_at_clipper);
 /*remove 2D clipper*/
 void visual_3d_reset_clipper_2d(GF_VisualManager *visual);
 
@@ -283,7 +282,7 @@ Bool visual_3d_add_spot_light(GF_VisualManager *visual, Fixed ambientIntensity, 
                               SFColor color, Fixed cutOffAngle, SFVec3f direction, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
 /*insert point light - returns 0 if too many lights*/
 Bool visual_3d_add_point_light(GF_VisualManager *visual, Fixed ambientIntensity, SFVec3f attenuation, SFColor color, Fixed intensity, SFVec3f location, GF_Matrix *light_mx);
-/*insert directional light - returns 0 if too many lights*/
+/*insert directional light - returns 0 if too many lights. If light_mx is null, this is the headlight*/
 Bool visual_3d_add_directional_light(GF_VisualManager *visual, Fixed ambientIntensity, SFColor color, Fixed intensity, SFVec3f direction, GF_Matrix *light_mx);
 
 void visual_3d_has_inactive_light(GF_VisualManager *visual);

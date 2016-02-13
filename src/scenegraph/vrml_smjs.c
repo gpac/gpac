@@ -1339,8 +1339,7 @@ static void JS_ObjectDestroyed(JSContext *c, JSObject *obj, GF_JSField *ptr, Boo
 
 		/*if ptr is a field, remove field binding from parent*/
 		if (ptr->owner && ptr->owner->sgprivate->interact && ptr->owner->sgprivate->interact->js_binding) {
-			int res = gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
-			assert(res>=0);
+			gf_list_del_item(ptr->owner->sgprivate->interact->js_binding->fields, ptr);
 		}
 
 

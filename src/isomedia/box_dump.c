@@ -65,6 +65,34 @@ static void DumpDataHex(FILE *trace, char *data, u32 dataLength)
 	}
 }
 
+static void DumpDataString(FILE *trace, char *data, u32 dataLength)
+{
+	u32 i;
+	for (i=0; i<dataLength; i++) {
+		switch ((unsigned char) data[i]) {
+		case '\'':
+			fprintf(trace, "&apos;");
+			break;
+		case '\"':
+			fprintf(trace, "&quot;");
+			break;
+		case '&':
+			fprintf(trace, "&amp;");
+			break;
+		case '>':
+			fprintf(trace, "&gt;");
+			break;
+		case '<':
+			fprintf(trace, "&lt;");
+			break;
+		default:
+			fprintf(trace, "%c", (u8) data[i]);
+			break;
+		}
+	}
+}
+
+
 GF_Err DumpBox(GF_Box *a, FILE * trace)
 {
 	if (a->size > 0xFFFFFFFF) {
@@ -3757,13 +3785,13 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 			break;
 		default:
 			if (strcmp(name, "Unknown") && itune->data->data) {
+				fprintf(trace, " value=\"");
 				if (itune->data && itune->data->data[0]) {
-					fprintf(trace, " value=\"%s\" ", itune->data->data);
+					DumpDataString(trace, itune->data->data, itune->data->dataSize);
 				} else {
-					fprintf(trace, " value=\"");
 					DumpData(trace, itune->data->data, itune->data->dataSize);
-					fprintf(trace, "\" ");
 				}
+				fprintf(trace, "\" ");
 			}
 			break;
 		}

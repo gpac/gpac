@@ -24,6 +24,7 @@
  */
 
 #include <gpac/tools.h>
+#include <gpac/utf.h>
 
 #if defined(_WIN32_WCE)
 
@@ -35,6 +36,7 @@
 #include <windows.h>
 #include <direct.h>
 #include <sys/stat.h>
+#include <share.h>
 
 #else
 
@@ -616,10 +618,50 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 GF_EXPORT
 FILE *gf_fopen(const char *file_name, const char *mode)
 {
-	FILE *res;
+	FILE *res = NULL;
 
 #if defined(WIN32)
-	res = fopen(file_name, mode);
+	Bool is_create;
+	is_create = (strchr(mode, 'w') == NULL) ? GF_FALSE : GF_TRUE;
+	if (!is_create) {
+		if (strchr(mode, 'a')) {
+			res = fopen(file_name, "rb");
+			if (res) {
+				fclose(res);
+				res = fopen(file_name, mode);
+			} 
+		} else {
+			res = fopen(file_name, mode);
+		}
+	}
+	if (!res) {
+		const char *str_src;
+		wchar_t *wname;
+		wchar_t *wmode;
+		size_t len;
+		size_t len_res;
+		if (!is_create) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
+		}
+		len = (strlen(file_name) + 1)*sizeof(wchar_t);
+		wname = (wchar_t *)gf_malloc(len);
+		str_src = file_name;
+		len_res = gf_utf8_mbstowcs(wname, len, &str_src);
+		if (len_res == -1) {
+			return NULL;
+		}
+		len = (strlen(mode) + 1)*sizeof(wchar_t);
+		wmode = (wchar_t *)gf_malloc(len);
+		str_src = mode;
+		len_res = gf_utf8_mbstowcs(wmode, len, &str_src);
+		if (len_res == -1) {
+			return NULL;
+		}
+
+		res = _wfsopen(wname, wmode, _SH_DENYNO);
+		gf_free(wname);
+		gf_free(wmode);
+	}
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
 	res = fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))

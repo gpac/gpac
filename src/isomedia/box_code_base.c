@@ -743,12 +743,11 @@ GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (!s) return GF_BAD_PARAM;
 
-	if (ptr->dataSize) {
-		e = gf_isom_box_write_header(s, bs);
-		if (e) return e;
-		if (ptr->data) {
-			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
-		}
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	
+	if (ptr->dataSize && ptr->data) {
+		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
 	return GF_OK;
 }
@@ -757,9 +756,10 @@ GF_Err defa_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
-	if (ptr->dataSize) {
-		e = gf_isom_box_get_size(s);
-		if (e) return e;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	
+	if (ptr->dataSize && ptr->data) {
 		ptr->size += ptr->dataSize;
 	}
 	return GF_OK;
@@ -854,7 +854,15 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err dinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, dinf_AddBox);
+	GF_Err e = gf_isom_read_box_list(s, bs, dinf_AddBox);
+	if (e) {
+		return e;
+	}
+	if (!((GF_DataInformationBox *)s)->dref) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Missing dref box in dinf\n"));
+		((GF_DataInformationBox *)s)->dref = (GF_DataReferenceBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
+	}
+	return GF_OK;
 }
 
 GF_Box *dinf_New()
@@ -2806,6 +2814,8 @@ GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->timeScale = 90000;
 	}
 
+	ptr->original_duration = ptr->duration;
+
 	//our padding bit
 	gf_bs_read_int(bs, 1);
 	//the spec is unclear here, just says "the value 0 is interpreted as undetermined"
@@ -4106,6 +4116,7 @@ GF_Err mvhd_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->selectionDuration = gf_bs_read_u32(bs);
 	ptr->currentTime = gf_bs_read_u32(bs);
 	ptr->nextTrackID = gf_bs_read_u32(bs);
+	ptr->original_duration = ptr->duration;
 	return GF_OK;
 }
 

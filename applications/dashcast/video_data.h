@@ -73,6 +73,8 @@ typedef struct {
 	char custom[GF_MAX_PATH];
 	/*low delay is used*/
 	int low_delay;
+	/*demuxer buffer size or 0 if default FFmpeg one is used*/
+	int demux_buffer_size;
 
 	/* used for source switching */
 	char source_id[GF_MAX_PATH];

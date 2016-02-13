@@ -19,6 +19,24 @@ l_deb = 4;
 /*default log level*/
 gw_log_level = l_inf;
 
+GF_JS_EVENT_BASE = 20000;
+
+//playback event
+//@param is_playing boolean giving the playback status;
+GF_JS_EVENT_PLAYBACK = GF_JS_EVENT_BASE;
+
+//playlist insert event
+//@param url string giving URL to append
+GF_JS_EVENT_PLAYLIST_ADD = GF_JS_EVENT_BASE + 1;
+
+//playlist reset event
+//@param none
+GF_JS_EVENT_PLAYLIST_RESET = GF_JS_EVENT_BASE + 2;
+
+
+//playlist reset event
+//@param index item index in playlist
+GF_JS_EVENT_PLAYLIST_PLAY = GF_JS_EVENT_BASE + 3;
 
 function gw_new_timer(progressive) {
     var obj = new SFNode('TimeSensor');
@@ -323,6 +341,16 @@ function gw_appy_effect_notif(timer, val) {
 
 //static
 function gw_window_show_hide() {
+
+	if (typeof this.show_effect == 'string') {
+		if (this.show_effect == 'none') {
+			this.visible = !this.visible;
+			this.scale.x = this.visible ? 1 : 0;
+			this.scale.y = this.visible ? 1 : 0;
+			return;
+		}
+	}
+
     if (typeof this._wnd_timer == 'undefined') {
         this._wnd_timer = gw_new_timer(1);
         this._wnd_timer.wnd = null;
@@ -365,7 +393,6 @@ function gw_window_show_hide() {
     if (this._wnd_timer.wnd) return;
 
     this.visible = !this.visible;
-    this.set_alpha(1.0);
     if (this.visible) {
         this._wnd_timer.target_alpha = this.get_alpha();
         this._wnd_timer.target_x = this.translation.x;
@@ -415,6 +442,16 @@ gwskin.appearance_transparent.skin = true;
 gwskin.no_gl_window_back = new SFNode('Background2D')
 gwskin.no_gl_window_back.backColor = new SFColor(0, 0, 0);
 
+gwskin.last_hit_x = 0;
+gwskin.last_hit_y = 0;
+
+gwskin.enable_background = function(do_enable) {
+ if (do_enable) {
+  gpac.set_back_color(gwskin.back_color.r, gwskin.back_color.g, gwskin.back_color.b, 1.0);
+ } else {
+  gpac.set_back_color(0, 0, 0, 1.0);
+ }
+}
 
 //static
 function gw_get_abs_pos(child) {
@@ -676,6 +713,14 @@ gwskin.styles.push(s);
 s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
 s.font.skin = true;
 
+s = { name: 'float_text' };
+gwskin.styles.push(s);
+s.text = gw_new_appearance(1, 1, 1);
+s.text.skin = true;
+s.font = gw_new_fontstyle(gwskin.default_text_font_size, 0);
+s.font.justify[1] = 'END';
+s.font.skin = true;
+
 gwskin.images = new Object();
 gwskin.labels = new Object();
 
@@ -873,18 +918,22 @@ function gwskin_set_default_icon_height(value) {
 //static
 function gwlib_filter_event(evt) {
 
-    if (gw_ui_root.has_popup && (evt.type == GF_EVENT_MOUSEDOWN)) {
-        //close all open popups
-        var count = gw_ui_root.children.length;
-        for (var i = count; i > 0; i--) {
-            var c = gw_ui_root.children[i - 1];
-            if (typeof c._popup != 'undefined') {
-                c.close();
-                if (count>gw_ui_root.children.length) i--;
-            }
-        }
-        gw_ui_root.has_popup = false;
-    }
+	if (evt.type == GF_EVENT_MOUSEDOWN) {
+		if (gw_ui_root.has_popup) {
+			//close all open popups
+			var count = gw_ui_root.children.length;
+			for (var i = count; i > 0; i--) {
+				var c = gw_ui_root.children[i - 1];
+				if (typeof c._popup != 'undefined') {
+					c.close();
+					if (count>gw_ui_root.children.length) i--;
+				}
+			}
+			gw_ui_root.has_popup = false;
+		}
+		gwskin.last_hit_x = evt.mouse_x;
+		gwskin.last_hit_y = evt.mouse_y;
+	}
 
     if (gw_ui_top_wnd && gw_ui_top_wnd.on_event(evt)) return true;
 
@@ -1622,6 +1671,42 @@ function gw_new_window(parent, offscreen, background, class_name, no_focus) {
     return obj;
 }
 
+function gw_new_image(parent, src_url) {
+	var obj = new SFNode('Transform2D');
+	setup_gw_object(obj, 'Image');
+	obj.children[0] = new SFNode('Layer2D');
+	obj.children[0].children[0] = new SFNode('Inline');
+	obj.children[1] = gw_new_rectangle('default', 'invisible');
+	gw_object_set_hitable(obj.children[1]);
+
+	obj.on_click = null;
+	obj.children[1]._par = obj;
+	obj.children[1].on_click = function() {
+		if (this._par.on_click) this._par.on_click();
+	}
+	obj.set_image = function(src_url) {
+		var inl = gw_load_resource(src_url, false);
+		this.children[0].children[0] = inl;
+	}
+	obj.set_size = function(width, height) {
+		this.children[0].size.x = width;
+		this.children[0].size.y = height;
+		this.width = width;
+		this.height = height;
+		this.children[1].set_size(width, height);
+	}
+	obj._pre_destroy = function () {
+		this.children[0].children.length = 0;
+	}
+	obj.on_event = function () { return false; }
+
+	obj.set_image(src_url);
+	
+	gw_add_child(parent, obj);
+	return obj;
+}
+
+
 function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     var touch;
     
@@ -1644,14 +1729,19 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     obj._icon_root = new SFNode('Transform2D');
     obj._icon_root.children[0] = new SFNode('Layer2D');
     obj._touch = new SFNode('TouchSensor');
-    obj._highlight = gw_new_rectangle(class_name, 'invisible');
 
     obj._show_highlight = false;
     obj._is_icon = false;
     obj._tooltip = true;
-    if (class_name == 'icon') {
-        obj._is_icon = true;
+    if (class_name == 'image') {
+		obj._is_icon = false;
+		obj._tooltip = false;
+		class_name = 'default';
     }
+	else if (class_name == 'icon') {
+		obj._is_icon = true;
+		obj._highlight = gw_new_rectangle(class_name, 'invisible');
+	}
     else if (class_name == 'icon_label') {
         obj._is_icon = true;
         obj._show_highlight = false;
@@ -1660,6 +1750,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
     else if (class_name == 'listitem') {
         obj._is_icon = true;
         obj._show_highlight = true;
+		obj._highlight = gw_new_rectangle(class_name, 'invisible');
         obj._tooltip = false;
     } else {
         obj._highlight = gw_new_rectangle(class_name, 'invisible');
@@ -1710,7 +1801,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
             this._label.set_label(label);
         }
         obj.get_label = function () {
-            return this._label.get_label();
+			return this._label ? this._label.get_label() : null;
         }
     } else {
         obj.set_size = function (width, height) {
@@ -1811,6 +1902,7 @@ function gw_new_icon_button(parent, icon_url, label, horizontal, class_name) {
         while (idx > this.icons.length) idx -= this.icons.length;
         this._icon_root.children[0].children[0] = this.icons[idx];
     }
+		
     obj._pre_destroy = function () {
         for (var i in this.icons) {
             gw_unload_resource(this.icons[i]);
@@ -2832,7 +2924,7 @@ function gw_new_text_edit(parent, text_data) {
     return obj;
 }
 
-function gw_new_text_area(parent, text_data) {
+function gw_new_text_area(parent, text_data, class_name) {
     var obj = new SFNode('Transform2D');
     setup_gw_object(obj, 'TextArea');
 
@@ -2843,7 +2935,8 @@ function gw_new_text_area(parent, text_data) {
     obj.children[0].justify[0] = "JUSTIFY";
     obj.children[0].justify[1] = "FIRST";
 
-    gw_new_text(obj.children[0], text_data, 'text');
+	if (arguments.length==2) class_name = 'text';
+    gw_new_text(obj.children[0], text_data, class_name);
     obj.set_size = function (width, height) {
         this.children[0].size.x = width;
         this.children[0].size.y = height;
@@ -3110,7 +3203,7 @@ function gw_new_file_dialog(container, label) {
 
     dlg.area = gw_new_grid_container(dlg);
     dlg.area.break_at_line = true;
-    dlg.area.dlg = dlg;
+	dlg.area.dlg = dlg;
 
     dlg.on_close = function () {
         if (this.do_sort_wnd) {
@@ -3122,6 +3215,7 @@ function gw_new_file_dialog(container, label) {
     }
 
 
+	dlg._name_sort_only = false;
     dlg._sort_type = 0;
     dlg.do_sort = function (value) {
         this._page_idx = 0;
@@ -3173,6 +3267,15 @@ function gw_new_file_dialog(container, label) {
     dlg.sort = dlg.add_tool('sort');
     dlg.sort_wnd = null;
     dlg.sort.on_click = function() {
+		
+		if (this.dlg._name_sort_only) {
+			var wnd = this.dlg;
+			if (wnd._sort_type==0) wnd._sort_type = 1;
+			else wnd._sort_type = 0;
+			wnd.do_sort(wnd._sort_type);
+			return;
+		}
+		
         if (this.dlg.sort_wnd) {
             this.dlg.sort_wnd.close();
             this.dlg.sort_wnd = null;
@@ -3282,27 +3385,41 @@ function gw_new_file_dialog(container, label) {
         this.area.reset_children();
 
         for (i = 0; i < filelist.length; i++) {
+			var f_path, f_name;
             if (!is_listing && (filelist[i].hidden || filelist[i].system)) continue;
 
-            var icon_name = gwskin.images.mime_generic;
+			var icon_name = gwskin.images.mime_generic;
+			if (is_listing && typeof filelist[i].icon == 'string') {
+				if (filelist[i].icon != '') {
+					icon_name = filelist[i].icon;
+				}
+			}
 
+			if (is_listing && typeof filelist[i] == 'string') {
+				f_path = f_name = filelist[i];
+				this._name_sort_only = true;
+			} else {
+				f_path = filelist[i].path;
+				f_name = filelist[i].name;
+			}
+			
             if ( (!is_listing || (typeof filelist[i].directory == 'boolean'))  && (filelist[i].directory || (filelist[i].name.indexOf('.') < 0))) {
                 if (filelist[i].drive) icon_name = gwskin.images.drive;
                 else icon_name = gwskin.images.folder;
             } else {
-                icon_name = gw_guess_mime_icon(is_listing ? filelist[i].path : filelist[i].name);
+                icon_name = gw_guess_mime_icon(is_listing ? f_path : f_name);
             }
 
-            var item = gw_new_icon_button(this.area, icon_name, filelist[i].name, true, 'listitem');
+            var item = gw_new_icon_button(this.area, icon_name, f_name, true, 'listitem');
             item.dlg = this;
-            item.filename = filelist[i].name;
-            item.directory = filelist[i].directory;
+            item.filename = f_name;
+			item.directory = typeof filelist[i].directory != 'undefined' ? filelist[i].directory : false;
             item.set_size(this.width, gwskin.default_control_height);
-            item.path = is_listing ? filelist[i].path : null;
+            item.path = is_listing ? f_path : null;
             item.size = typeof filelist[i].size != 'undefined' ? filelist[i].size : 0;
             item.date = typeof filelist[i].last_modified != 'undefined' ? filelist[i].last_modified : 0;
 
-            if (filelist[i].directory) {
+            if (item.directory) {
                 item.on_click = this._on_dir_browse;
             } else {
                 item.on_click = this._on_file_select;
@@ -3358,7 +3475,7 @@ function gw_new_plotter(parent) {
         for (var i = 0; i < this.series.length; i++) {
             var s = this.series[i];
             s.scale = new SFVec2f(width - this.label_width, height);
-            s.but.set_size(this.label_width, 0.9*gwskin.default_text_font_size);
+            s.but.set_size(2*this.label_width, 0.9*gwskin.default_text_font_size);
             s.but.set_font_size(0.9 * gwskin.default_text_font_size);
             s.translation.x = -this.label_width / 2;
         }
@@ -3436,7 +3553,7 @@ function gw_new_plotter(parent) {
         s.but = gw_new_text(this, '' + legend, 'custom');
         s.but.set_align('END');
         s.but.set_color(r, g, b);
-        s.but.set_size(this.label_width, gwskin.default_text_font_size);
+        s.but.set_size(2*this.label_width, gwskin.default_text_font_size);
         s.but.hide();
         return s;
 

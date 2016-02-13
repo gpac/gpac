@@ -34,6 +34,10 @@ extern "C" {
 
 #ifndef GPAC_DISABLE_ISOM
 
+	
+#if defined(GPAC_DISABLE_ISOM_FRAGMENTS) && !defined(GPAC_DISABLE_ISOM_ADOBE)
+#define GPAC_DISABLE_ISOM_ADOBE
+#endif
 
 /*the default size is 64, cause we need to handle large boxes...
 
@@ -93,6 +97,7 @@ GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs);
 GF_Err gf_isom_read_box_list(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
 GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
+GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
 #define gf_isom_full_box_init(__pre)
 
@@ -457,6 +462,7 @@ typedef struct
 	u64 modificationTime;
 	u32 timeScale;
 	u64 duration;
+	u64 original_duration;
 	u32 nextTrackID;
 	u32 preferredRate;
 	u16 preferredVolume;
@@ -601,7 +607,7 @@ typedef struct
 	u64 creationTime;
 	u64 modificationTime;
 	u32 timeScale;
-	u64 duration;
+	u64 duration, original_duration;
 	char packedLanguage[4];
 	u16 reserved;
 } GF_MediaHeaderBox;
@@ -2369,11 +2375,11 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 #else
 GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *ptr);
 #endif
-
-GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 
 /*
 	Boxes for Adobe's protection scheme
@@ -2448,6 +2454,8 @@ typedef struct {
 	u16 transfer_characteristics;
 	u16 matrix_coefficients;
 	Bool full_range_flag;
+	u8 *opaque;
+	u32 opaque_size;
 } GF_ColourInformationBox;
 
 typedef struct {
@@ -2811,15 +2819,19 @@ GF_Err stbl_RemoveShadow(GF_ShadowSyncBox *stsh, u32 sampleNumber);
 GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber);
 GF_Err stbl_RemoveSampleFragments(GF_SampleTableBox *stbl, u32 sampleNumber);
 GF_Err stbl_RemoveRedundant(GF_SampleTableBox *stbl, u32 SampleNumber);
-
-GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
+GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber);
+GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
+GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
 #endif
+
+Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_ISOFile *the_file, GF_TrackBox *trak, u32 grouping_type, u32 sample_description_index, u32 *default_index, GF_SampleGroupDescriptionBox **out_sgdp);
 
 GF_Err GetNextMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
 GF_Err GetPrevMediaTime(GF_TrackBox *trak, u64 movieTime, u64 *OutMovieTime);
@@ -2858,9 +2870,13 @@ void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
 
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
+Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl);
+
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+Bool gf_isom_cenc_has_saiz_saio_traf(GF_TrackFragmentBox *traf);
 void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, GF_TrackFragmentBox  *traf, u32 len);
+#endif
 void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox *stbl, u64 offset, u32 len);
-Bool gf_isom_cenc_has_saiz_saio(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf);
 
 void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
 

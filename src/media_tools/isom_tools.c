@@ -2407,14 +2407,14 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 
 typedef struct
 {
-	u32 track, track_id;
+	u32 track, track_id, sample_count;
 	u32 tx, ty, tw, th;
 	u32 data_offset;
 	GF_BitStream *sample_data;
 } HEVCTileImport;
 
 GF_EXPORT
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 {
 #if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
@@ -2472,6 +2472,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) return GF_OK;
 	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
 	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
+	if (!tiles) return GF_OUT_OF_MEM;
+ 	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tracks);
 
 	//first clone tracks
 	for (i=0; i<nb_tracks; i++) {
@@ -2483,7 +2485,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	//then setup track references (done in two pass otherwise we would clone the tref box ...)
 	for (i=0; i<nb_tracks; i++) {
 		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
-		gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id) ;
+		if (use_extractors) {
+			gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id);
+		}
 	}
 
 	count = gf_isom_get_sample_count(file, track);
@@ -2551,25 +2555,31 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				if (e)
 					goto err_exit;
 
-				//write extractor (12 = 2*nalu_size_length + 4 bytes)
-				gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
-				gf_bs_write_int(bs, 0, 1);
-				gf_bs_write_int(bs, 49, 6); //extractor
-				gf_bs_write_int(bs, layer_id, 6);
-				gf_bs_write_int(bs, temporal_id, 3);
-				//set ref track index
-				trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
-				gf_bs_write_int(bs, trefidx, 8);
-				// no sample offset
-				gf_bs_write_int(bs, 0, 8);
-				// data offset: we start from last NAL written in this sample in this tile track
-				gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
+				if (use_extractors) {
+					//write extractor (12 = 2*nalu_size_length + 4 bytes)
+					gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
+					gf_bs_write_int(bs, 0, 1);
+					gf_bs_write_int(bs, 49, 6); //extractor
+					gf_bs_write_int(bs, layer_id, 6);
+					gf_bs_write_int(bs, temporal_id, 3);
+					//set ref track index
+					trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
+					gf_bs_write_int(bs, trefidx, 8);
+					// no sample offset
+					gf_bs_write_int(bs, 0, 8);
+					// data offset: we start from last NAL written in this sample in this tile track
+					gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
                     
-                //we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
-                //at different rates :) 
-				//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-                gf_bs_write_int(bs, 0, 8*nalu_size_length);
-				
+					//we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
+					//at different rates :)
+					//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
+					gf_bs_write_int(bs, 0, 8*nalu_size_length);
+				} else {
+					
+					if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
+						gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
+					}
+				}
                 tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;
@@ -2593,12 +2603,20 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		for (j=0; j<nb_tracks; j++) {
 			sample->dataLength = 0;
 			gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
+			if (!sample->data)
+				continue;
+			
 			e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
 			if (e) goto err_exit;
+			tiles[j].sample_count ++;
+			
 			gf_bs_del(tiles[j].sample_data);
 			tiles[j].sample_data = NULL;
 			gf_free(sample->data);
 			sample->data = NULL;
+			
+			e = gf_isom_copy_sample_info(file, tiles[j].track, file, track, i+1);
+			if (e) goto err_exit;
 		}
 
 		gf_isom_sample_del(&sample);
@@ -2611,7 +2629,15 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 		u32 width, height;
 		s32 translation_x, translation_y;
 		s16 layer;
-		GF_BitStream *bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
+		GF_BitStream *bs;
+		
+		tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
+		if (!tiles[i].sample_count) {
+			gf_isom_remove_track(file, tiles[i].track);
+			continue;
+		}
+		
+		bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, tiles[i].track);
 		gf_bs_write_int(bs, 1, 2);
 		gf_bs_write_int(bs, 0, 1);//not full frame
@@ -2769,6 +2795,11 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 0);
 	if (e) goto err_exit;
+	
+	if (!nb_samp) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMFF Fragmenting] No samples in movie, rewriting moof and exit\n"));
+		goto err_exit;
+	}
 
 	nb_done = 0;
 

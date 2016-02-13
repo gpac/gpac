@@ -1792,7 +1792,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 					dec_confidence = conf;
 					dec_ifce = ifce;
 					ifce = NULL;
-					if (dec_confidence==GF_CODEC_SUPPORTED) {
+					if (dec_confidence>=GF_CODEC_MAYBE_SUPPORTED) {
 						codec->decio = dec_ifce;
 						return GF_OK;
 					}

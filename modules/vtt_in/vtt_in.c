@@ -29,7 +29,7 @@
 #include <gpac/constants.h>
 #include <gpac/modules/js_usr.h>
 
-#ifndef GPAC_DISABLE_VTT
+#if 0
 
 typedef struct
 {
@@ -335,7 +335,7 @@ static void *NewVTTInput()
 	VTTIn *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
-	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC VTT Reader", "gpac distribution")
 
 	plug->RegisterMimeTypes = VTT_RegisterMimeTypes;
 	plug->CanHandleURL = VTT_CanHandleURL;
@@ -369,77 +369,6 @@ void DeleteVTTInput(void *ifce)
 	gf_free(plug);
 }
 
-#if !defined(GPAC_DISABLE_SVG)
-void *NewVTTDec();
-void DeleteVTTDec(GF_BaseDecoder *plug);
-#endif
-
-/*interface create*/
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
-{
-	switch (InterfaceType) {
-#if !defined(GPAC_DISABLE_SVG)
-	case GF_SCENE_DECODER_INTERFACE:
-		return (GF_BaseInterface *)NewVTTDec();
-#endif
-	case GF_NET_CLIENT_INTERFACE:
-		return (GF_BaseInterface *)NewVTTInput();
-	default:
-		return NULL;
-	}
-}
-
-
-/*interface destroy*/
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-#if !defined(GPAC_DISABLE_SVG)
-	case GF_SCENE_DECODER_INTERFACE:
-		DeleteVTTDec((GF_BaseDecoder *)ifce);
-		break;
-#endif
-	case GF_NET_CLIENT_INTERFACE:
-		DeleteVTTInput(ifce);
-		break;
-	}
-}
-
-#else
-
-
-/*interface create*/
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
-{
-	return NULL;
-}
-
-
-/*interface destroy*/
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-}
 
 #endif
 
-/*interface query*/
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces()
-{
-	static u32 si [] = {
-#if !defined(GPAC_DISABLE_VTT) 
-		GF_NET_CLIENT_INTERFACE,
-#if !defined(GPAC_DISABLE_SVG)
-		GF_SCENE_DECODER_INTERFACE,
-#endif
-#endif
-		0
-	};
-	return si;
-}
-
-GPAC_MODULE_STATIC_DECLARATION( vtt_in )

@@ -133,8 +133,8 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_WAVEOUT
 	LOAD_PLUGIN(wave_out);
 #endif
-#ifndef GPAC_DISABLE_TTXT
-	LOAD_PLUGIN(vtt_in);
+#ifndef GPAC_DISABLE_VTT
+	LOAD_PLUGIN(vtt_dec);
 #endif
 #ifndef GPAC_DISABLE_SVG
 	LOAD_PLUGIN(widgetman);
@@ -168,13 +168,13 @@ GF_Err gf_module_load_static(GF_ModuleManager *pm, GF_InterfaceRegister *(*regis
 	GF_Err rc;
 
 	if (!pr) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically loaded module\n"));
 		return GF_NOT_SUPPORTED;
 	}
 
 	rc = gf_list_add(pm->plugin_registry, pr);
 	if (rc != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically load module\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Failed to statically loaded module\n"));
 		return rc;
 	}
 	return GF_OK;
@@ -274,7 +274,8 @@ u32 gf_modules_get_count(GF_ModuleManager *pm)
 }
 
 GF_EXPORT
-const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs) {
+const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_dirs)
+{
 	char* directories;
 	char* tmp_dirs;
 	char * pch;
@@ -288,7 +289,9 @@ const char **gf_modules_get_module_directories(GF_ModuleManager *pm, u32* num_di
 	/* Get directory from config file */
 	directories = (char*)gf_cfg_get_key(pm->cfg, "General", "ModulesDirectory");
 	if (! directories) {
+#ifndef GPAC_IPHONE
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Module directory not found - check the configuration file exit and the \"ModulesDirectory\" key is set\n"));
+#endif
 		return NULL;
 	}
 

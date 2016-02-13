@@ -305,7 +305,6 @@ void BindableStackDelete(GF_List *stack)
 	gf_list_del(stack);
 }
 
-
 void PreDestroyBindable(GF_Node *bindable, GF_List *stack_list)
 {
 	Bool is_bound = Bindable_GetIsBound(bindable);

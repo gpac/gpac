@@ -35,20 +35,14 @@
 
 #ifdef GPAC_USE_GLES1X
 
-#ifndef GPAC_FIXED_POINT
-//#error "OpenGL ES defined without fixed-point support - unsupported."
-#endif
-
 #ifdef GPAC_ANDROID
 #include "GLES/gl.h"
-#else
-#ifdef GPAC_IPHONE
+#elif defined(GPAC_IPHONE)
 #include "OpenGLES/ES1/gl.h"
 #include "OpenGLES/ES1/glext.h"
 #include "glues.h"
 #else
 #include "GLES/egl.h"
-#endif
 #endif
 
 #if defined(GPAC_HAS_GLU) && !defined (GPAC_IPHONE)
@@ -76,10 +70,30 @@
 
 
 #define GL_GLEXT_PROTOTYPES
+
+#ifdef GPAC_USE_OGLES1X
+#include <GLES/gl.h>
+#include <GLES/glext.h>
+
+#elif defined(GPAC_USE_GLES2)
+
+#ifdef GPAC_IPHONE
+#include "OpenGLES/ES2/gl.h"
+#include "glues.h"
+#else
+
+#include <GLES2/gl2.h>
+#include <GLES2/gl2ext.h>
+#endif
+
+#else
+
 #include <GL/gl.h>
 
 #ifdef GPAC_HAS_GLU
 #include <GL/glu.h>
+#endif
+
 #endif
 
 #endif
@@ -119,8 +133,15 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define GET_GLFUN(funname) funname = (proc_ ## funname) glXGetProcAddress(#funname)
 #endif
 
+#ifndef YCBCR_MESA
+#define YCBCR_MESA	0x8757
+#endif
 
-#if !defined(GPAC_USE_GLES1X)
+#ifndef YCBCR_422_APPLE
+#define YCBCR_422_APPLE			0x85B9
+#endif
+
+#if !defined(GPAC_USE_GLES1X) &&  !defined(GPAC_USE_GLES2)
 
 /*redefine all ext needed*/
 
@@ -140,14 +161,6 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 
 #ifndef GL_RESCALE_NORMAL
 #define GL_RESCALE_NORMAL 0x803A
-#endif
-
-#ifndef YCBCR_MESA
-#define YCBCR_MESA	0x8757
-#endif
-
-#ifndef YCBCR_422_APPLE
-#define YCBCR_422_APPLE			0x85B9
 #endif
 
 #ifndef UNSIGNED_SHORT_8_8_MESA
@@ -322,6 +335,7 @@ GLDECL(void, glPointParameterfv, (GLenum, const GLfloat *) )
 #endif
 
 #define GL_ARRAY_BUFFER	0x8892
+#define GL_ELEMENT_ARRAY_BUFFER	0x8893
 #define GL_STREAM_DRAW	0x88E0
 #define GL_STATIC_DRAW	0x88E4
 #define GL_DYNAMIC_DRAW 0x88E8
@@ -470,6 +484,8 @@ GLDECL(void, glUniformMatrix2x4fv, (GLint location, GLsizei count, GLboolean tra
 GLDECL(void, glUniformMatrix4x2fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix3x4fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
 GLDECL(void, glUniformMatrix4x3fv, (GLint location, GLsizei count, GLboolean transpose, const GLfloat *value) )
+GLDECL(void, glGetProgramiv, (GLuint program, GLenum pname, GLint *params) )
+GLDECL(void, glGetProgramInfoLog, (GLuint program,  GLsizei maxLength,  GLsizei *length,  char *infoLog) )
 
 #ifndef GPAC_ANDROID
 GLDECL(void, glEnableVertexAttribArray, (GLuint index) )
@@ -487,4 +503,3 @@ GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
 #endif	/*GPAC_DISABLE_3D*/
 
 #endif	/*_GL_INC_H_*/
-

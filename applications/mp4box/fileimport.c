@@ -54,6 +54,53 @@ typedef struct
 	GF_List *imports;
 } WGTEnum;
 
+GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array)
+{
+	char *data = NULL;
+	u32 size;
+	bin128 uuid;
+	memset(uuid, 0 , 16);
+
+	if (!udta_type && !is_box_array) return GF_BAD_PARAM;
+
+	if (!src) {
+		return gf_isom_remove_user_data(dest, tracknum, udta_type, uuid);
+	}
+
+#ifndef GPAC_DISABLE_CORE_TOOLS
+	if (!strnicmp(src, "base64", 6)) {
+		src += 7;
+		size = (u32) strlen(src);
+		data = gf_malloc(sizeof(char) * size);
+		size = gf_base64_decode(src, size, data, size);
+	} else 
+#endif
+	{
+		FILE *t = gf_fopen(src, "rb");
+		if (!t) return GF_IO_ERR;
+		fseek(t, 0, SEEK_END);
+		size = ftell(t);
+		fseek(t, 0, SEEK_SET);
+		data = gf_malloc(sizeof(char)*size);
+		if (size != fread(data, 1, size, t) ) {
+			gf_free(data);
+			gf_fclose(t);
+			return GF_IO_ERR;
+		}
+		gf_fclose(t);
+	}
+
+	if (size && data) {
+		if (is_box_array) {
+			gf_isom_add_user_data_boxes(dest, tracknum, data, size);
+		} else {
+			gf_isom_add_user_data(dest, tracknum, udta_type, uuid, data, size);
+		}
+		gf_free(data);
+	}
+	return GF_OK;
+}
+
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 extern u32 swf_flags;
@@ -192,50 +239,6 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 		chap_duration = ref_duration - chap_duration;
 		gf_isom_set_last_sample_duration(file, track, (u32) chap_duration);
 	}
-}
-
-GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array)
-{
-	char *data = NULL;
-	u32 size;
-	bin128 uuid;
-	memset(uuid, 0 , 16);
-
-	if (!udta_type && !is_box_array) return GF_BAD_PARAM;
-
-	if (!src) {
-		return gf_isom_remove_user_data(dest, tracknum, udta_type, uuid);
-	}
-
-	if (!strnicmp(src, "base64", 6)) {
-		src += 7;
-		size = (u32) strlen(src);
-		data = gf_malloc(sizeof(char) * size);
-		size = gf_base64_decode(src, size, data, size);
-	} else {
-		FILE *t = gf_fopen(src, "rb");
-		if (!t) return GF_IO_ERR;
-		fseek(t, 0, SEEK_END);
-		size = ftell(t);
-		fseek(t, 0, SEEK_SET);
-		data = gf_malloc(sizeof(char)*size);
-		if (size != fread(data, 1, size, t) ) {
-			gf_free(data);
-			gf_fclose(t);
-			return GF_IO_ERR;
-		}
-		gf_fclose(t);
-	}
-
-	if (size && data) {
-		if (is_box_array) {
-			gf_isom_add_user_data_boxes(dest, tracknum, data, size);
-		} else {
-			gf_isom_add_user_data(dest, tracknum, udta_type, uuid, data, size);
-		}
-		gf_free(data);
-	}
-	return GF_OK;
 }
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
@@ -464,6 +467,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		/*EXPERIMENTAL OPTIONS NOT DOCUMENTED*/
+		else if (!strnicmp(ext+1, "tilesnox", 8)) {
+			tile_mode = 2;
+		}
 		else if (!strnicmp(ext+1, "tiles", 5)) {
 			tile_mode = 1;
 		}
@@ -661,7 +667,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				switch (gf_isom_get_media_subtype(import.dest, i+1, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
 				case GF_ISOM_SUBTYPE_HEV1:
-					tile_mode = 2;
+					break;
+				default:
+					tile_mode = 0;
 					break;
 				}
 			}
@@ -788,8 +796,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;
 					goto exit;
-#endif
+#else
 					gf_gz_compress_payload(&data, size, &size);
+#endif
 					gf_isom_set_rvc_config(import.dest, track, 1, 0, "application/rvc-config+xml+gz", data, size);
 					gf_free(data);
 				}
@@ -813,7 +822,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				switch (gf_isom_get_media_subtype(import.dest, track, 1)) {
 				case GF_ISOM_SUBTYPE_HVC1:
 				case GF_ISOM_SUBTYPE_HEV1:
-					tile_mode = 2;
+					break;
+				default:
+					tile_mode = 0;
 					break;
 				}
 			}
@@ -858,8 +869,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			//TODO - merge
 		}
 	}
-	if (tile_mode == 2) {
-		gf_media_split_hevc_tiles(import.dest);
+	if (tile_mode) {
+		e = gf_media_split_hevc_tiles(import.dest, (tile_mode==1) ? GF_TRUE : GF_FALSE);
 	}
 
 
@@ -1163,6 +1174,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 		size_exceeded = 0;
 		max_dts = 0;
 		while (do_add) {
+			Bool is_rap;
 			Double time;
 			u32 nb_over, nb_av = 0;
 			/*perfom basic de-interleaving to make sure we're not importing too much of a given track*/
@@ -1188,6 +1200,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					samp = gf_isom_get_sample(mp4, tki->tk, tki->last_sample+1, &di);
 					samp->DTS = 0;
 					e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
+					if (!e) {
+						e = gf_isom_copy_sample_info(dest, tki->dst_tk, mp4, tki->tk, tki->last_sample+1);
+					}
+					
 					gf_isom_sample_del(&samp);
 					tki->last_sample += 1;
 					dts = gf_isom_get_sample_dts(mp4, tki->tk, tki->last_sample+1);
@@ -1210,8 +1226,17 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				samp->DTS -= tki->firstDTS;
 
 				nb_add += 1;
+				
+				is_rap = GF_FALSE;
+				if (samp->IsRAP) {
+					is_rap = GF_TRUE;
+				} else {
+					Bool has_roll;
+					e = gf_isom_get_sample_rap_roll_info(mp4, tki->tk, tki->last_sample+1, &is_rap, &has_roll, NULL);
+				}
 
-				if (tki->has_non_raps && samp->IsRAP) {
+
+				if (tki->has_non_raps && is_rap) {
 					GF_ISOSample *next_rap;
 					u32 next_rap_num, sdi;
 					last_rap_sample_time = (Double) (s64) samp->DTS;
@@ -1228,6 +1253,10 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				tki->lastDTS = samp->DTS;
 				e = gf_isom_add_sample(dest, tki->dst_tk, di, samp);
 				gf_isom_sample_del(&samp);
+				
+				if (!e) {
+					e = gf_isom_copy_sample_info(dest, tki->dst_tk, mp4, tki->tk, tki->last_sample+1);
+				}
 				tki->last_sample += 1;
 				gf_set_progress("Splitting", nb_done, nb_samp);
 				nb_done++;
@@ -1946,8 +1975,11 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				gf_isom_sample_del(&s);
 			}
 			gf_isom_sample_del(&samp);
-			if (e)
-				goto err_exit;
+			if (e) goto err_exit;
+			
+			e = gf_isom_copy_sample_info(dest, dst_tk, orig, i+1, j+1);
+			if (e) goto err_exit;
+			
 			gf_set_progress("Appending", nb_done, nb_samp);
 			nb_done++;
 		}

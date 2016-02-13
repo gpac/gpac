@@ -152,7 +152,6 @@ public class Osmo4 extends Activity implements GpacCallback {
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
         		WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        
         try {
 			Class c = Class.forName("com.lge.real3d.Real3D");
 			final String LGE_3D_DISPLAY = "lge.hardware.real3d.barrier.landscape";
@@ -162,7 +161,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         catch (ClassNotFoundException e) {
         	m3DLibraryLoaded = false;
         }
-
 		MPEGVSensor.myAct = this;
         MPEGVSensor.initSensorManager((SensorManager) getSystemService(Context.SENSOR_SERVICE));
 		MPEGVSensor.initLocationManager((LocationManager)getSystemService(Context.LOCATION_SERVICE));
@@ -205,7 +203,6 @@ public class Osmo4 extends Activity implements GpacCallback {
             // OK, it means activity has already been started
             return;
         }
-		
 		Preview.context = this;
        
         setContentView(R.layout.main);
@@ -253,7 +250,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
             @Override
             public void run() {
-                for (String s : new String[] { gpacConfig.getGpacConfigDirectory(), gpacConfig.getGpacCacheDirectory() }) {
+                for (String s : new String[] { gpacConfig.getGpacAppDirectory(), gpacConfig.getGpacCacheDirectory() }) {
                     File noMedia = new File(s, ".nomedia"); //$NON-NLS-1$
                     if (!noMedia.exists()) {
                         try {
@@ -265,7 +262,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                 }
             }
         });
-        
+
         //copy GUI elements
         File guiDir = new File(gpacConfig.getGpacGuiDirectory());
         if (!guiDir.isDirectory()) {
@@ -276,9 +273,21 @@ public class Osmo4 extends Activity implements GpacCallback {
         	}
         	if (!guiDir.mkdir())
         		Log.e(LOG_OSMO_TAG, "Failed to create directory " + guiDir);
-        	copyGui(gpacConfig);
+        	copyAssets(gpacConfig, GUI_ROOT_ASSET_DIR);
         }
 
+        //copy Shaders
+        File shaderDir = new File(gpacConfig.getGpacShaderDirectory());
+        if (!shaderDir.isDirectory()) {
+            // we do not delete the directory if it already exists, because it might contain custom shaders
+            // TODOk consider behaviour when we want to update the shaders in the apk
+            if (shaderDir.exists()) {
+                    Log.v(LOG_OSMO_TAG, "Shader directory already exists at: " + shaderDir);
+            }else if (!shaderDir.mkdir()){
+                Log.e(LOG_OSMO_TAG, "Failed to create directory " + shaderDir);
+            }
+        }
+        copyAssets(gpacConfig, SHADER_ROOT_ASSET_DIR);
     }
     
     /*
@@ -289,21 +298,23 @@ public class Osmo4 extends Activity implements GpacCallback {
      * Reference: http://stackoverflow.com/questions/4447477/android-how-to-copy-files-from-assets-folder-to-sdcard
     */
     private final static String GUI_ROOT_ASSET_DIR = "gui";
-    private void copyGui(GpacConfig config) {
+    private final static String SHADER_ROOT_ASSET_DIR = "shaders";
+
+    private void copyAssets(GpacConfig config, String asset_dir) {    
      		StringBuilder sb = new StringBuilder();
      		HashMap<String, Throwable> exceptions = new HashMap<String, Throwable>();
 				AssetManager assetManager = getAssets();
 				String[] list = null;
-				Log.d(LOG_OSMO_TAG, "Copy GUI elements");
+				Log.d(LOG_OSMO_TAG, "Copy assets of " + asset_dir);
 				try {
-				    list = assetManager.list(GUI_ROOT_ASSET_DIR);
+				    list = assetManager.list(asset_dir);
 				} catch (IOException e) {
 				    Log.e(LOG_OSMO_TAG, "Failed to get asset file list.", e);
 				    exceptions.put("Failed to get asset file list", e);
 				}
 				for(String path : list) {
 				    try {
-				      copyFileOrDir(config, path);
+				      copyFileOrDir(config, asset_dir, path);
 				    } catch(IOException e) {
 				        Log.e(LOG_OSMO_TAG, "Failed to copy: " + path, e);
 				        exceptions.put("Failed to copy " + path, e);
@@ -312,7 +323,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 				
 				if (!exceptions.isEmpty()) {
 					try {
-              PrintStream out = new PrintStream(config.getGpacConfigDirectory() + "debug_gui.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
+              PrintStream out = new PrintStream(config.getGpacLogDirectory() + "debug_assets.txt", "UTF-8"); //$NON-NLS-1$//$NON-NLS-2$
 	            sb.append("*** Exceptions:\n"); //$NON-NLS-1$
 	            for (Map.Entry<String, Throwable> ex : exceptions.entrySet()) {
 	                sb.append(ex.getKey()).append(": ") //$NON-NLS-1$
@@ -329,32 +340,51 @@ public class Osmo4 extends Activity implements GpacCallback {
           }
 				}
 		}
-		private void copyFileOrDir(GpacConfig config, String path) throws IOException {
+
+		private void copyFileOrDir(GpacConfig config, String root, String path) throws IOException {
 				AssetManager assetManager = getAssets();
 				String assets[] = null;
-				assets = assetManager.list(GUI_ROOT_ASSET_DIR + "/" + path);
+				assets = assetManager.list(root + "/" + path);
 				if (assets.length == 0) {
-				   copyFile(config, path);
+				   copyFile(config, root, path);
 		    } else {
-		        String fullPath = config.getGpacGuiDirectory() + path;
+                    String fullPath = null;
+                    if(root == GUI_ROOT_ASSET_DIR){
+                        fullPath = config.getGpacGuiDirectory() + path;
+                    }else if(root == SHADER_ROOT_ASSET_DIR){
+                        fullPath = config.getGpacShaderDirectory() + path;
+                    }else{  //Fallback (useless for now)
+                        fullPath = path;
+                    }
 		        File dir = new File(fullPath);
 		        if (!dir.exists())
 		            dir.mkdir();
 		        for (int i = 0; i < assets.length; ++i) {
-		            copyFileOrDir(config, path + "/" + assets[i]);
+		            copyFileOrDir(config, root, path + "/" + assets[i]);
 		        }
 		    }
 		}
 
-		private void copyFile(GpacConfig config, String filename) throws IOException {
+		private void copyFile(GpacConfig config, String root, String filename) throws IOException {
 		// if this file exists, do nothing
+
+            if(root == GUI_ROOT_ASSET_DIR){
 				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
 					return;
+            }
 				AssetManager assetManager = getAssets();
 				InputStream in = null;
 				OutputStream out = null;
-			  in = assetManager.open(GUI_ROOT_ASSET_DIR + "/" + filename);
-			  String newFileName = config.getGpacGuiDirectory() + filename;
+			  in = assetManager.open(root + "/" + filename);
+
+            String newFileName = null;
+            if(root == GUI_ROOT_ASSET_DIR){
+			     newFileName = config.getGpacGuiDirectory() + filename;
+            }else if(root == SHADER_ROOT_ASSET_DIR){
+                newFileName = config.getGpacShaderDirectory() + filename;
+            }else{  //Fallback
+                newFileName = filename;
+            }
 			  out = new FileOutputStream(newFileName);
 
 			  byte[] buffer = new byte[1024];
@@ -379,7 +409,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     }
 
     private String getRecentURLsFile() {
-        return gpacConfig.getGpacConfigDirectory() + "recentURLs.txt"; //$NON-NLS-1$
+        return gpacConfig.getGpacAppDirectory() + "recentURLs.txt"; //$NON-NLS-1$
     }
 
     private boolean openURL() {
@@ -408,7 +438,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         final AutoCompleteTextView textView = new AutoCompleteTextView(this);
         textView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
-
         builder.setMessage(R.string.pleaseEnterAnURLtoConnectTo)
                .setCancelable(true)
                .setPositiveButton(R.string.open_url, new DialogInterface.OnClickListener() {
@@ -503,7 +532,7 @@ public class Osmo4 extends Activity implements GpacCallback {
      */
     private boolean openFileDialog() {
         String title = getResources().getString(R.string.pleaseSelectAFile);
-        Uri uriDefaultDir = Uri.fromFile(new File(gpacConfig.getGpacConfigDirectory()));
+        Uri uriDefaultDir = Uri.fromFile(new File(gpacConfig.getGpacAppDirectory()));
         Intent intent = new Intent();
         intent.setAction(Intent.ACTION_PICK);
         // Files and directories
@@ -632,7 +661,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                     mGLView.setGpacLogs("all@error"); //$NON-NLS-1$
                 } else {
                     item.setChecked(true);
-                    mGLView.setGpacLogs("all@debug"); //$NON-NLS-1$
+                    mGLView.setGpacLogs("sync:codec:dash:media@debug:container@warning"); //$NON-NLS-1$
                 }
                 return true;
             case R.id.setAsStartupFile: {
@@ -1198,5 +1227,11 @@ public class Osmo4 extends Activity implements GpacCallback {
                 mGLView.requestFocus();
             }
         });
+    }
+    
+    public void setLogFile(String logfile) {
+	    logger.setEnableLogOnDisk(true);
+	    logger.setLogFile(logfile);
+    	logger.onCreate();
     }
 }

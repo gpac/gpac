@@ -711,6 +711,9 @@ void gf_bbox_get_vertices(GF_Vec bmin, GF_Vec bmax, GF_Vec *vecs);
  *Inits the matrix to the identity matrix
 */
 #define gf_mx_init(_obj) { memset((_obj).m, 0, sizeof(Fixed)*16); (_obj).m[0] = (_obj).m[5] = (_obj).m[10] = (_obj).m[15] = FIX_ONE; }
+
+#define gf_mx_is_identity(_obj) ((!(_obj).m[1] && !(_obj).m[2] && !(_obj).m[3] && !(_obj).m[4] && !(_obj).m[6] && !(_obj).m[7] && !(_obj).m[8] && !(_obj).m[9] && !(_obj).m[11] && !(_obj).m[12] && !(_obj).m[13] && !(_obj).m[14] && ((_obj).m[0]==FIX_ONE) && ((_obj).m[5]==FIX_ONE)&& ((_obj).m[10]==FIX_ONE)&& ((_obj).m[15]==FIX_ONE)) ? 1 : 0)
+
 /*!\brief matrix copy
  *\hideinitializer
  *
@@ -777,6 +780,12 @@ void gf_mx_add_matrix_2d(GF_Matrix *mx, GF_Matrix2D *mat2D);
  *\param mx the matrix to inverse
  */
 void gf_mx_inverse(GF_Matrix *mx);
+/*!\brief transpose 4x4 matrix
+ *
+ *Transposes a 4x4 matrix
+ *\param mx the matrix to transpose
+ */
+void gf_mx_transpose(GF_Matrix *mx);
 /*!\brief matrix point transformation
  *
  *Applies a 3D matrix transformation to a 3D point

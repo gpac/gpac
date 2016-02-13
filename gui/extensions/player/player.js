@@ -39,17 +39,16 @@ extension = {
     initial_speed: 1,
     initial_start: 0,
     show_stats_init: 0,
-    last_hit_x: 0,
-    last_hit_y: 0,
-	def_width: 500,
-	def_height: 260,
+	def_width: 600,
+	def_height: 600,
+	disabled: false,
     services: [],
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
 
     do_show_controler: function () {
-        if (this.file_open_dlg) {
+		if (this.file_open_dlg) {
             alert('Cannot show - File dialog is open');
             return false;
         }
@@ -62,87 +61,86 @@ extension = {
     },
 
     ext_filter_event: function (evt) {
+		if (this.disabled) return false;
+		
         switch (evt.type) {
-            case GF_EVENT_MOUSEDOWN:
-                this.last_hit_x = evt.mouse_x;
-                this.last_hit_y = evt.mouse_y;
-                return false;
-            case GF_EVENT_MOUSEUP:
-                if ((this.last_hit_x == evt.mouse_x) && (this.last_hit_y == evt.mouse_y)) {
-                    this.do_show_controler();
-                }
-                //we always return false so that the event is handled by the navigation logic of the player, otherwise
-                //the mouse would never be released and navigation would stay always on
-                return false;
-            case GF_EVENT_KEYUP:
-                if (evt.keycode == gwskin.keys.close) {
-                    this.do_show_controler();
-                    return true;
-                }
-                return false;
-            case GF_EVENT_QUALITY_SWITCHED:
-                if (this.stat_wnd) {
-                    this.stat_wnd.quality_changed();
-                }
-                return true;
-            case GF_EVENT_TIMESHIFT_UPDATE:
-                if (this.timeshift_depth) {
-                    this.set_time(0);
-                }
-                return true;
-            case GF_EVENT_TIMESHIFT_OVERFLOW:
-                var msg = '';
-                if ((this.state == this.GF_STATE_PAUSE) || (this.movie_control.mediaSpeed != 1)) {
-                    this.set_state(this.GF_STATE_PLAY);
-                    this.set_speed(1);
+		case GF_EVENT_MOUSEUP:
+			if ((gwskin.last_hit_x == evt.mouse_x) && (gwskin.last_hit_y == evt.mouse_y)) {
+				this.do_show_controler();
+			}
+			//we always return false so that the event is handled by the navigation logic of the player, otherwise
+			//the mouse would never be released and navigation would stay always on
+			return false;
+		case GF_EVENT_KEYUP:
+			if (evt.keycode == gwskin.keys.close) {
+				this.do_show_controler();
+				return true;
+			}
+			return false;
+		case GF_EVENT_QUALITY_SWITCHED:
+			if (this.stat_wnd) {
+				this.stat_wnd.quality_changed();
+			}
+			return true;
+		case GF_EVENT_TIMESHIFT_UPDATE:
+			if (this.timeshift_depth) {
+				this.set_time(0);
+			}
+			return true;
+		case GF_EVENT_TIMESHIFT_OVERFLOW:
+			var msg = '';
+			if ((this.state == this.GF_STATE_PAUSE) || (this.movie_control.mediaSpeed != 1)) {
+				this.set_state(this.GF_STATE_PLAY);
+				this.set_speed(1);
 
-                    msg = gw_new_message(null, 'Timeshift Overflow', 'Falling outside of timeshift buffer: resuming playback');
-                    msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
-                    msg.show();
-                }
-                return true;
-            case GF_EVENT_TIMESHIFT_UNDERRUN:
-                if (this.movie_control.mediaSpeed > 1) {
-                    this.set_speed(1);
-                    var msg = gw_new_message(null, 'Timeshift Underrun', 'Resuming to normal speed');
-                    msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
-                    msg.show();
-                }
-                return true;
-            case GF_EVENT_NAVIGATE:
-                this.set_movie_url(evt.target_url);
-                return true;
-            case GF_EVENT_KEYDOWN:
-                //alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
-                if (evt.keycode == 'F1') {
-                    this.controler.rewind.on_click();
-                    return true;
-                }
-                if (evt.keycode == 'F2') {
-                    this.controler.play.on_click();
-                    return true;
-                }
-                if (evt.keycode == 'F3') {
-                    this.controler.forward.on_click();
-                    return true;
-                }
-                if (evt.keycode == 'F4') {
-                    this.controler.back_live.on_click();
-                    return true;
-                }
-                /*            	if (evt.keycode == 'F7') {
-                this.controler.fullscreen.on_click();
-                return true;
-                }
-                if (evt.keycode == 'F8') {
-                gpac.reload();
-                return true;
-                }
-                */
-                return false;
+				msg = gw_new_message(null, 'Timeshift Overflow', 'Falling outside of timeshift buffer: resuming playback');
+				msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
+				msg.show();
+			}
+			return true;
+		case GF_EVENT_TIMESHIFT_UNDERRUN:
+			if (this.movie_control.mediaSpeed > 1) {
+				this.set_speed(1);
+				var msg = gw_new_message(null, 'Timeshift Underrun', 'Resuming to normal speed');
+				msg.set_size(380, gwskin.default_icon_height + 2 * gwskin.default_text_font_size);
+				msg.show();
+			}
+			return true;
+		case GF_EVENT_NAVIGATE:
+			this.set_movie_url(evt.target_url);
+			return true;
+		case GF_EVENT_KEYDOWN:
+			//alert('key is '+evt.keycode + ' hw code is ' + evt.hwkey);
+			if (evt.keycode == 'F1') {
+				this.controler.rewind.on_click();
+				return true;
+			}
+			if (evt.keycode == 'F2') {
+				this.controler.play.on_click();
+				return true;
+			}
+			if (evt.keycode == 'F3') {
+				this.controler.forward.on_click();
+				return true;
+			}
+			if (evt.keycode == 'F4') {
+				this.controler.back_live.on_click();
+				return true;
+			}
+			/*
+			if (evt.keycode == 'F7') {
+			 this.controler.fullscreen.on_click();
+			 return true;
+			}
+			if (evt.keycode == 'F8') {
+			 gpac.reload();
+			 return true;
+			}
+			*/
+			return false;
 
-            default:
-                return false;
+		default:
+			return false;
         }
     },
 
@@ -226,12 +224,15 @@ extension = {
                 ext.root_odm = gpac.get_object_manager(ext.current_url);
                 ext.reverse_playback_supported = ext.root_odm.reverse_playback_supported;
 
-                gw_background_control(false);
-
                 ext.controler.hide();
-                gpac.caption = ext.current_url;
+
+				var names = ext.current_url.split('/');
+				if (names.length == 0) names = ext.current_url.split('\\');
+				gpac.caption = names.pop();
+				
                 ext.add_bookmark(ext.current_url, true);
 
+				gwskin.enable_background(false);
                 ext.declare_addons();
 
                 if (ext.initial_service_id) {
@@ -256,6 +257,8 @@ extension = {
                 var w, h, r_w, r_h;
                 w = evt.width;
                 h = evt.height;
+
+				gpac.set_size(w, h, true);
 
                 if (w > gpac.screen_width) w = gpac.screen_width;
                 if (h > gpac.screen_height) h = gpac.screen_height;
@@ -343,7 +346,7 @@ extension = {
         }
 
         this.movie.children[0].on_media_end = function (evt) {
-            if (this.extension.duration) {
+            if (this.extension.duration>1) {
                 if (this.extension.movie_control.loop) {
                     this.extension.movie_control.mediaStartTime = 0;
                     this.extension.current_time = 0;
@@ -418,7 +421,7 @@ extension = {
         if ((bmarks != null) && (bmarks != '')) {
             this.bookmarks = gwskin.parse(bmarks);
         }
-
+		
         /*create player control UI*/
         var wnd = gw_new_window(null, true, true);
         //remember it !
@@ -426,8 +429,14 @@ extension = {
         wnd.extension = this;
 
         wnd.set_corners(true, true, false, false);
-        wnd.set_alpha(0.95);
+        wnd.set_alpha(0.9);
 
+		/*create default interactive zone in case the content grabs all mouse events*/
+		this.safe_interact = gw_new_rectangle('button', 'invisible');
+		gw_add_child(null, this.safe_interact);
+		this.safe_interact.show();
+		
+		
         /*first set of controls*/
         wnd.infobar = gw_new_grid_container(wnd);
         wnd.infobar.spread_h = true;
@@ -463,7 +472,6 @@ extension = {
                 this.extension.controlled_renderer.Seek(time);
                 return;
             }
-            gw_background_control(false);
             switch (type) {
                 //start sliding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   
                 case 1:
@@ -660,7 +668,9 @@ extension = {
                     gwlib_remove_event_filter(this.extension._evt_filter);
                     this.extension._evt_filter = null;
                 }
-                gw_show_dock();
+				gwskin.enable_background(true);
+				gw_show_dock();
+				this.extension.disabled = true;
             }
         }
 
@@ -786,9 +796,11 @@ extension = {
             }
 
             if (this.extension.duration) {
-                if (this.extension.reverse_playback_supported && this.rewind) full_w += control_icon_size;
-                if (this.forward) full_w += control_icon_size;
-                if (this.loop) full_w += control_icon_size;
+				if (this.forward) full_w += control_icon_size;
+				if (this.extension.duration>1) {
+					if (this.extension.reverse_playback_supported && this.rewind) full_w += control_icon_size;
+					if (this.loop) full_w += control_icon_size;
+				}
             }
             else if (this.extension.movie_control.mediaStopTime < 0) {
                 if (this.forward) full_w += control_icon_size;
@@ -823,12 +835,11 @@ extension = {
             if (this.snd_low) this.snd_low.show();
             if (this.snd_ctrl) this.snd_ctrl.show();
 
-            this.rewind.hide();
-            if (this.extension.reverse_playback_supported) this.rewind.show();
-
             if (this.extension.duration) {
                 if (this.forward) this.forward.show();
-                if (this.loop) this.loop.show();
+				if (this.extension.duration>1) {
+					if (this.loop) this.loop.show();
+				}
                 if (this.stop) this.stop.show();
             }
             else if ((this.extension.movie_control.mediaStopTime < 0) || (this.extension.movie_control.mediaSpeed < 0)) {
@@ -856,7 +867,7 @@ extension = {
                 this.navigate.show();
             }
 
-            if (this.extension.duration || this.extension.timeshift_depth) {
+            if ((this.extension.duration>1.0) || this.extension.timeshift_depth) {
                 this.media_line.show();
                 this.time.show();
             } else {
@@ -871,15 +882,16 @@ extension = {
             this.infobar.move(0, -0.1 * control_icon_size);
         }
 
-        wnd.on_display_size = function (w, h) {
-            if (!gpac.fullscreen) {
-                if (w < this.extension.def_width) {
-                    gpac.set_size(this.extension.def_width, h);
+        wnd.on_display_size = function (width, height) {
+			var h;
+			if (!gpac.fullscreen) {
+                if (width < this.extension.def_width) {
+                    gpac.set_size(this.extension.def_width, height);
                     return;
                 }
             } else {
-                if (w < this.extension.def_width) {
-                    this.extension.def_width = w;
+                if (width < this.extension.def_width) {
+                    this.extension.def_width = width;
                 }
             }
 
@@ -896,6 +908,10 @@ extension = {
 
             this.set_size(this.extension.def_width, h);
 
+			this.extension.safe_interact.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+			this.extension.safe_interact.show();
+			this.extension.safe_interact.move((-gwskin.default_icon_height+width)/2, (gwskin.default_icon_height-height)/2);
+			
             this.layout();
         }
 
@@ -919,6 +935,8 @@ extension = {
             gwlib_add_event_filter(this._evt_filter);
         }
 
+		this.disabled = false;
+		
         if (!this.movie) {
             this.init_extension();
 
@@ -1012,6 +1030,8 @@ extension = {
 
     create_restore_session: function (__anobj) {
         return function (url, media_time, media_clock) {
+			__anobj.movie_connected = false;
+			__anobj.disabled = false;
             __anobj.set_movie_url(url);
             if (media_clock) {
                 var time_in_tsb = (new Date()).getTime() - media_clock;
@@ -1022,7 +1042,12 @@ extension = {
             } else {
                 __anobj.initial_start = media_time;
             }
-            alert('initial start is ' + __anobj.initial_start);
+			if (!__anobj.movie_connected) {
+				__anobj.reverse_playback_supported = false;
+				__anobj.duration = 0;
+				__anobj.root_odm = null;
+			}
+			__anobj.controler.on_display_size(gw_display_width, gw_display_height);
         }
     },
 
@@ -1133,19 +1158,26 @@ extension = {
             dlg.time.set_size(0, gwskin.default_icon_height);
             dlg.time.set_width(0);
         } else {
-            dlg.time.show();
-            dlg.media_line.show();
-            if (this.reverse_playback_supported) dlg.rewind.show();
-            dlg.stop.show();
+			if (value>1) {
+				dlg.time.show();
+				dlg.media_line.show();
+				if (this.reverse_playback_supported) dlg.rewind.show();
+				dlg.loop.show();
+				if (value < 3600) {
+					dlg.time.set_size(gwskin.default_icon_height / 2, gwskin.default_icon_height);
+					dlg.time.set_width(3 * dlg.time.font_size());
+				} else {
+					dlg.time.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+					dlg.time.set_width(4 * dlg.time.font_size());
+				}
+			} else {
+				dlg.time.hide();
+				dlg.media_line.hide();
+				dlg.rewind.hide();
+				dlg.loop.hide();
+			}
+			dlg.stop.show();
             dlg.forward.show();
-            dlg.loop.show();
-            if (value < 3600) {
-                dlg.time.set_size(gwskin.default_icon_height / 2, gwskin.default_icon_height);
-                dlg.time.set_width(3 * dlg.time.font_size());
-            } else {
-                dlg.time.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
-                dlg.time.set_width(4 * dlg.time.font_size());
-            }
         }
         dlg.on_display_size(gw_display_width, gw_display_height);
     },
@@ -1197,7 +1229,13 @@ extension = {
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
             this.root_odm = null;
-            return;
+
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = false;
+			e.index = this.playlist_idx;
+			gwlib_filter_event(e);
+			return;
         }
         if (state == this.GF_STATE_PAUSE) {
             if (this.state == this.GF_STATE_STOP) return;
@@ -1205,7 +1243,13 @@ extension = {
             this.state = this.GF_STATE_PAUSE;
             this.controler.play.switch_icon(this.icon_play);
             this.set_speed(0);
-            return;
+
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = false;
+			e.index = this.playlist_idx;
+			gwlib_filter_event(e);
+			return;
         }
         //we are playing, resume from stop if needed
         if (this.stoped_url) {
@@ -1233,6 +1277,11 @@ extension = {
             }
 
             this.set_speed(1);
+			var e = {};
+			e.type = GF_JS_EVENT_PLAYBACK;
+			e.is_playing = true;
+			e.index = this.playlist_idx;
+			gwlib_filter_event(e);
             return;
         }
         if (state == this.GF_STATE_TRICK) {
@@ -1275,8 +1324,8 @@ extension = {
             this.movie_sensor.url[0] = url;
             if (this.UPnP_Enabled) UPnP.MovieURL = url;
             this.movie_connected = (url == '') ? false : true;
-            gw_background_control(this.movie_connected ? false : true);
             gpac.caption = url;
+			this.controler.layout();
 
         } else if (this.controlled_renderer == null) {
             //resume from stop  
@@ -1287,8 +1336,6 @@ extension = {
                 this.movie_control.url[0] = url;
                 this.movie_sensor.url[0] = url;
                 this.movie.children[0].url[0] = url;
-                gw_background_control(false);
-
                 return;
             }
 
@@ -1326,6 +1373,7 @@ extension = {
         }
         this.current_url = url;
 
+		if (this.disabled) return;
         if (url == '') this.controler.show();
         else this.controler.hide();
 
@@ -1497,7 +1545,6 @@ extension = {
 				else if (m.type == 'Text') nb_subs++;
 			}
 		}
-		gwlog(l_err, 'video ' + nb_audio);
 		if ((nb_video > 1) || (nb_audio > 1) || (nb_subs > 1)) {
 			this.controler.media_list.show();
 		} else {

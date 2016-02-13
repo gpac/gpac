@@ -100,6 +100,7 @@ GF_Box *colr_New()
 void colr_del(GF_Box *a)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox *)a;
+	if (p->opaque) gf_free(p->opaque);
 	gf_free(p);
 }
 
@@ -114,12 +115,13 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 		p->transfer_characteristics = gf_bs_read_u16(bs);
 		p->matrix_coefficients = gf_bs_read_u16(bs);
 		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
-		return GF_OK;
 	} else {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported" ));
-		gf_bs_skip_bytes(bs, p->size);
-		return GF_NOT_SUPPORTED;
+		p->opaque = gf_malloc(sizeof(u8)*p->size);
+		p->opaque_size = (u32) p->size;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
+		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
 	}
+	return GF_OK;
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -131,14 +133,15 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	if (p->colour_type != GF_4CC('n','c','l','x')) { 
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported" ));
-		return GF_NOT_SUPPORTED;
+		gf_bs_write_u32(bs, p->colour_type);
+		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
+	} else {
+		gf_bs_write_u32(bs, p->colour_type);
+		gf_bs_write_u16(bs, p->colour_primaries);
+		gf_bs_write_u16(bs, p->transfer_characteristics);
+		gf_bs_write_u16(bs, p->matrix_coefficients);
+		gf_bs_write_u8(bs, (p->full_range_flag == GF_TRUE ? 0x80 : 0));
 	}
-	gf_bs_write_u32(bs, p->colour_type);
-	gf_bs_write_u16(bs, p->colour_primaries);
-	gf_bs_write_u16(bs, p->transfer_characteristics);
-	gf_bs_write_u16(bs, p->matrix_coefficients);
-	gf_bs_write_u8(bs, (p->full_range_flag == GF_TRUE ? 0x80 : 0));
 	return GF_OK;
 }
 
@@ -149,10 +152,10 @@ GF_Err colr_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	if (p->colour_type != GF_4CC('n','c','l','x')) { 
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported" ));
-		return GF_NOT_SUPPORTED;
+		p->size += 4 + p->opaque_size;
+	} else {
+		p->size += 11;
 	}
-	p->size += 11;
 	return GF_OK;
 }
 

@@ -29,6 +29,7 @@
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/nodes_svg.h>
 #include <gpac/webvtt.h>
 
@@ -128,6 +129,7 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	case GPAC_OTI_SCENE_VTT_MP4:
 	{
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		char start[100], end[100];
 		GF_List *cues;
 		cues = gf_webvtt_parse_cues_from_data(inBuffer, inBufferLength, 0);
@@ -142,6 +144,7 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 			}
 		}
 		gf_list_del(cues);
+#endif
 	}
 	break;
 
@@ -151,6 +154,29 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 
 	return e;
 }
+
+void VTT_UpdateSizeInfo(VTTDec *vttdec)
+{
+	u32 w, h;
+	GF_FieldInfo info;
+	char szVB[100];
+	GF_Node *root = gf_sg_get_root_node(vttdec->sg);
+	if (!root) return;
+	w = vttdec->scene->root_od->term->compositor->display_width;
+	h = vttdec->scene->root_od->term->compositor->display_height;
+
+	w=1280;
+	h=720;
+	/*apply*/
+	gf_sg_set_scene_size_info(vttdec->sg, w, h, GF_TRUE);
+
+	sprintf(szVB, "0 0 %d %d", w, h);
+	gf_node_get_attribute_by_tag(root, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
+	gf_svg_parse_attribute(root, &info, szVB, 0);
+
+}
+
+
 
 void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 {
@@ -169,10 +195,9 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 	n = root = gf_node_new(graph, TAG_SVG_svg);
 	gf_node_register(root, NULL);
 	gf_sg_set_root_node(graph, root);
-	gf_node_get_attribute_by_tag(n, TAG_SVG_ATT_viewBox, GF_TRUE, GF_FALSE, &info);
-	gf_svg_parse_attribute(n, &info, "0 0 320 240", 0);
 	gf_node_get_attribute_by_name(n, "xmlns", 0, GF_TRUE, GF_FALSE, &info);
 	gf_svg_parse_attribute(n, &info, "http://www.w3.org/2000/svg", 0);
+	VTT_UpdateSizeInfo(vttdec);
 	gf_node_init(n);
 
 	n = gf_node_new(graph, TAG_SVG_script);
@@ -196,7 +221,15 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 	if (jsfile) {
 		gf_fclose(jsfile);
 		gf_node_get_attribute_by_tag(n, TAG_XLINK_ATT_href, GF_TRUE, GF_FALSE, &info);
-		gf_svg_parse_attribute(n, &info, (char *) path, 0);
+		if (strstr(path, ":\\")) {
+			gf_svg_parse_attribute(n, &info, (char *) path, 0);
+		} else {
+			char szPath[GF_MAX_PATH];
+			strcpy(szPath, "file://");
+			strcat(szPath, path);
+			gf_svg_parse_attribute(n, &info, (char *) szPath, 0);
+		}
+		
 		vttdec->has_rendering_script = GF_TRUE;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot open Rendering Script - %s\n", path));
@@ -352,6 +385,7 @@ static GF_Err VTT_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability capab
 		/* TODO */
 	} else if (capability.CapCode==GF_CODEC_SHOW_SCENE) {
 		if (capability.cap.valueInt) {
+			VTT_UpdateSizeInfo(vttdec);
 			gf_scene_register_extra_graph(vttdec->scene, vttdec->sg, GF_FALSE);
 		} else {
 			gf_scene_register_extra_graph(vttdec->scene, vttdec->sg, GF_TRUE);
@@ -394,3 +428,47 @@ void DeleteVTTDec(GF_BaseDecoder *plug)
 }
 
 #endif // !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
+
+
+/*interface create*/
+GPAC_MODULE_EXPORT
+GF_BaseInterface *LoadInterface(u32 InterfaceType)
+{
+	switch (InterfaceType) {
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
+		case GF_SCENE_DECODER_INTERFACE:
+			return (GF_BaseInterface *)NewVTTDec();
+#endif
+		default:
+			return NULL;
+	}
+}
+
+
+/*interface destroy*/
+GPAC_MODULE_EXPORT
+void ShutdownInterface(GF_BaseInterface *ifce)
+{
+	switch (ifce->InterfaceType) {
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
+		case GF_SCENE_DECODER_INTERFACE:
+			DeleteVTTDec((GF_BaseDecoder *)ifce);
+			break;
+#endif
+	}
+}
+
+/*interface query*/
+GPAC_MODULE_EXPORT
+const u32 *QueryInterfaces()
+{
+	static u32 si [] = {
+#if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
+		GF_SCENE_DECODER_INTERFACE,
+#endif
+		0
+	};
+	return si;
+}
+
+GPAC_MODULE_STATIC_DECLARATION( vtt_dec )

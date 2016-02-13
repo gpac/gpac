@@ -26,6 +26,7 @@
 
 #include "dx_hw.h"
 #include <gpac/user.h>
+#include <gpac/utf.h>
 #include "resource.h"
 
 /*crude redef of winuser.h due to windows/winsock2 conflicts*/
@@ -583,7 +584,12 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 		evt.open_file.nb_files = DragQueryFile(hDrop, 0xFFFFFFFF, NULL, 0);
 		evt.open_file.files = (char**)gf_malloc(sizeof(char *)*evt.open_file.nb_files);
 		for (i=0; i<evt.open_file.nb_files; i++) {
+#ifdef UNICODE
+			/* TODO: Fix by converting to WC */
 			u32 res = DragQueryFile(hDrop, i, szFile, GF_MAX_PATH);
+#else
+			u32 res = DragQueryFile(hDrop, i, szFile, GF_MAX_PATH);
+#endif
 			evt.open_file.files[i] = res ? gf_strdup(szFile) : NULL;
 		}
 		DragFinish(hDrop);
@@ -742,9 +748,16 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 
 			hglbCopy = GetClipboardData(CF_TEXT);
 			if (hglbCopy) {
-				LPTSTR lptstrCopy = (char *) GlobalLock(hglbCopy);
+#ifdef UNICODE
+				LPTSTR lptstrCopy = (wchar_t *) GlobalLock(hglbCopy);
+				evt.type = GF_EVENT_PASTE_TEXT;
+				/* TODO: Convert to UTF-8 */
+				evt.message.message = lptstrCopy;
+#else 
+				LPTSTR lptstrCopy = (char *)GlobalLock(hglbCopy);
 				evt.type = GF_EVENT_PASTE_TEXT;
 				evt.message.message = lptstrCopy;
+#endif
 				ret = vout->on_event(vout->evt_cbk_hdl, &evt);
 				GlobalUnlock(hglbCopy);
 			}
@@ -765,9 +778,16 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				if (!len) break;
 
 				hglbCopy = GlobalAlloc(GMEM_MOVEABLE, (len + 1) * sizeof(char));
+#ifdef UNICODE
+				/* TODO fix encoding*/
+				lptstrCopy = (wchar_t *)GlobalLock(hglbCopy);
+				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
+				lptstrCopy[len] = 0;
+#else 
 				lptstrCopy = (char *) GlobalLock(hglbCopy);
 				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
 				lptstrCopy[len] = 0;
+#endif
 				GlobalUnlock(hglbCopy);
 				SetClipboardData(CF_TEXT, hglbCopy);
 				CloseClipboard();
@@ -832,7 +852,11 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 	if (!isWin2K) return;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DX Out] Enabling windowless mode\n"));
+#ifdef UNICODE
+	hUser32 = GetModuleHandle(L"USER32.DLL");
+#else
 	hUser32 = GetModuleHandle("USER32.DLL");
+#endif
 	if (hUser32 == NULL) return;
 
 	_SetLayeredWindowAttributes = (typSetLayeredWindowAttributes) GetProcAddress(hUser32,"SetLayeredWindowAttributes");
@@ -873,7 +897,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 	HINSTANCE hInst;
 
 #ifndef _WIN32_WCE
+#ifdef UNICODE
+	hInst = GetModuleHandle(L"gm_dx_hw.dll");
+#else
 	hInst = GetModuleHandle("gm_dx_hw.dll");
+#endif
 #else
 	hInst = GetModuleHandle(_T("gm_dx_hw.dll"));
 #endif
@@ -882,7 +910,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 #ifndef _WIN32_WCE
 	wc.style = CS_BYTEALIGNWINDOW;
 	wc.hIcon = LoadIcon (hInst, MAKEINTRESOURCE(IDI_OSMO_ICON) );
+#ifdef UNICODE
+	wc.lpszClassName = L"GPAC DirectDraw Output";
+#else
 	wc.lpszClassName = "GPAC DirectDraw Output";
+#endif
 #else
 	wc.lpszClassName = _T("GPAC DirectDraw Output");
 #endif
@@ -913,7 +945,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 			styles = WS_CLIPCHILDREN | WS_CLIPSIBLINGS | WS_OVERLAPPEDWINDOW;
 		}
 		use_fs_wnd = GF_FALSE;
+#ifdef UNICODE
+		ctx->os_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
 		ctx->os_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw Output", styles, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
 		ctx->backup_styles = styles;
 #endif
 		if (ctx->os_hwnd == NULL) {
@@ -948,7 +984,11 @@ Bool DD_InitWindows(GF_VideoOutput *vout, DDContext *ctx)
 #ifdef _WIN32_WCE
 		ctx->fs_hwnd = CreateWindow(_T("GPAC DirectDraw Output"), _T("GPAC DirectDraw FS Output"), WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
 #else
+#ifdef UNICODE
+		ctx->fs_hwnd = CreateWindow(L"GPAC DirectDraw Output", L"GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#else
 		ctx->fs_hwnd = CreateWindow("GPAC DirectDraw Output", "GPAC DirectDraw FS Output", WS_POPUP, 0, 0, 120, 100, NULL, NULL, hInst, NULL);
+#endif
 #endif
 		if (!ctx->fs_hwnd) {
 			return GF_FALSE;
@@ -987,7 +1027,7 @@ u32 DD_WindowThread(void *par)
 
 	GF_VideoOutput *vout = (GF_VideoOutput*)par;
 	DDContext *ctx = (DDContext *)vout->opaque;
-
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
 
 	if (DD_InitWindows(vout, ctx)) {
@@ -1001,7 +1041,21 @@ u32 DD_WindowThread(void *par)
 			DispatchMessage (&(msg));
 
 			if (ctx->caption) {
+#ifdef UNICODE
+				char *str_src = ctx->caption;
+				wchar_t *wcaption;
+				size_t len;
+				size_t len_res;
+				len = (strlen(str_src) + 1)*sizeof(wchar_t);
+				wcaption = (wchar_t *)gf_malloc(len);
+				len_res = gf_utf8_mbstowcs(wcaption, len, &str_src);
+				if (len_res != -1) {
+					SetWindowTextW(ctx->os_hwnd, wcaption);
+				}
+				gf_free(wcaption);
+#else
 				SetWindowText(ctx->os_hwnd, ctx->caption);
+#endif
 				gf_free(ctx->caption);
 				ctx->caption = NULL;
 			}
@@ -1099,7 +1153,11 @@ void DD_ShutdownWindow(GF_VideoOutput *dr)
 #ifdef _WIN32_WCE
 	UnregisterClass(_T("GPAC DirectDraw Output"), GetModuleHandle(_T("gm_dx_hw.dll")) );
 #else
+#ifdef UNICODE
+	UnregisterClass(L"GPAC DirectDraw Output", GetModuleHandle(L"gm_dx_hw.dll"));
+#else
 	UnregisterClass("GPAC DirectDraw Output", GetModuleHandle("gm_dx_hw.dll"));
+#endif
 #endif
 	ctx->os_hwnd = NULL;
 	ctx->fs_hwnd = NULL;
@@ -1170,7 +1228,12 @@ GF_Err DD_ProcessEvent(GF_VideoOutput*dr, GF_Event *evt)
 			MSG msg;
 
 			if (ctx->caption) {
+#ifdef UNICODE
+				/* TODO: Fix by converting UTF-8 to WC */
 				SetWindowText(ctx->os_hwnd, ctx->caption);
+#else
+				SetWindowText(ctx->os_hwnd, ctx->caption);
+#endif
 				gf_free(ctx->caption);
 				ctx->caption = NULL;
 			}

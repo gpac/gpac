@@ -1340,6 +1340,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 #endif
 
 
+#ifndef GPAC_IPHONE
 	the_rti.physical_memory = the_rti.physical_memory_avail = 0;
 	f = gf_fopen("/proc/meminfo", "r");
 	if (f) {
@@ -1357,7 +1358,8 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open /proc/meminfo\n"));
 	}
-
+#endif
+	
 
 	the_rti.sampling_instant = last_update_time;
 

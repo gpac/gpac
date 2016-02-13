@@ -100,7 +100,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 	/*background & direct drawing : use ctx clip*/
 	if ((ctx->flags & CTX_IS_BACKGROUND) || tr_state->immediate_draw) {
 		if (ctx->bi->clip.width && ctx->bi->clip.height) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s[%s] (direct draw)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s [%s] (direct draw)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node) ));
 
 			if (stencil) {
 				raster->surface_set_clipper(visual->raster_surface, &ctx->bi->clip);
@@ -123,7 +123,7 @@ static void visual_2d_fill_path(GF_VisualManager *visual, DrawableContext *ctx, 
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s[%s] (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node), i));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] Redrawing node %s [%s] (indirect draw @ dirty rect idx %d)\n", gf_node_get_log_name(ctx->drawable->node), gf_node_get_class_name(ctx->drawable->node), i));
 				if (stencil) {
 					raster->surface_set_clipper(visual->raster_surface, &clip);
 					raster->surface_fill(visual->raster_surface, stencil);
@@ -441,7 +441,7 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	clipper.y = INT2FIX(ctx->bi->clip.y);
 	clipper.width = INT2FIX(ctx->bi->clip.width);
 	clipper.height = INT2FIX(ctx->bi->clip.height);
-	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL, 1);
+	visual_3d_set_clipper_2d(tr_state->visual, clipper, NULL);
 
 	gf_node_allow_cyclic_traverse(ctx->drawable->node);
 	gf_node_traverse(ctx->drawable->node, tr_state);

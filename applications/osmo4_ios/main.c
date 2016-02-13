@@ -344,7 +344,7 @@ int main (int argc, char *argv[])
     if (!logs_set)
         gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
-
+	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "disable");
 
 	if (!logfile) {
 		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
@@ -432,7 +432,7 @@ int main (int argc, char *argv[])
 	ret = 1;
 
 	
-	ext = strrchr(url_arg, '.');
+	ext = url_arg ? strrchr(url_arg, '.') : NULL;
 	if (ext && (!stricmp(ext, ".m3u") || !stricmp(ext, ".pls"))) {
 		char pl_path[GF_MAX_PATH];
 		GF_Err e = GF_OK;

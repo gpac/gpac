@@ -57,6 +57,7 @@ const char * TTIN_MIME_TYPES[] = {
 	"x-subtitle/srt", "srt", "SRT SubTitles",
 	"x-subtitle/sub", "sub", "SUB SubTitles",
 	"x-subtitle/ttxt", "ttxt", "3GPP TimedText",
+	"text/vtt", "vtt", "VTT SubTitles",
 	NULL
 };
 
@@ -91,6 +92,7 @@ static Bool TTIn_is_local(const char *url)
 	if (!url)
 		return GF_FALSE;
 	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
+	if (!strnicmp(url, "gmem://", 7)) return GF_TRUE;
 	if (strstr(url, "://")) return GF_FALSE;
 	return GF_TRUE;
 }
@@ -100,11 +102,12 @@ static GF_ESD *tti_get_esd(TTIn *tti)
 	return gf_media_map_esd(tti->mp4, tti->tt_track);
 }
 
-static void tti_setup_object(TTIn *tti)
+static void tti_setup_object(TTIn *tti, GF_InputService *plug)
 {
 	GF_ObjectDescriptor *od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 	GF_ESD *esd = tti_get_esd(tti);
-	od->objectDescriptorID = esd->ESID;
+	od->objectDescriptorID = 0;
+	od->service_ifce = plug;
 	gf_list_add(od->ESDescriptors, esd);
 	gf_service_declare_media(tti->service, (GF_Descriptor *)od, GF_FALSE);
 }
@@ -139,15 +142,35 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	import.dest = tti->mp4;
 	/*override layout from sub file*/
 	import.flags = GF_IMPORT_SKIP_TXT_BOX;
-	import.in_name = gf_strdup(url);
-
-	e = gf_media_import(&import);
+	
+	if (!strnicmp(url, "gmem://", 7)) {
+		u8 *mem_address;
+		u32 size;
+		FILE *tmp_txt;
+		import.streamFormat = "TEXT";
+		
+		if (sscanf(url, "gmem://%d@%p", &size, &mem_address) != 2) {
+			return GF_BAD_PARAM;
+		}
+		strcat(szFILE, "_tmptxt");
+		tmp_txt = gf_fopen(szFILE, "w");
+		if (!tmp_txt) return GF_IO_ERR;
+		fwrite(mem_address, size, 1, tmp_txt);
+		fclose(tmp_txt);
+		
+		import.in_name = szFILE;
+		e = gf_media_import(&import);
+		
+		gf_delete_file(szFILE);
+		
+	} else {
+		import.in_name = (char *) url;
+		e = gf_media_import(&import);
+	}
 	if (!e) {
 		tti->tt_track = 1;
 		gf_isom_text_set_streaming_mode(tti->mp4, GF_TRUE);
 	}
-	if (import.in_name)
-		gf_free(import.in_name);
 	return e;
 }
 
@@ -170,14 +193,14 @@ void TTIn_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			e = TTIn_LoadFile(plug, szCache, GF_TRUE);
 		}
 	}
-	else if (param->msg_type==GF_NETIO_DATA_EXCHANGE)
+	else if (!e || (param->msg_type==GF_NETIO_DATA_EXCHANGE))
 		return;
 
 	/*OK confirm*/
 	if (tti->needs_connection) {
 		tti->needs_connection = GF_FALSE;
 		gf_service_connect_ack(tti->service, NULL, e);
-		if (!e && !tti->od_done) tti_setup_object(tti);
+		if (!e && !tti->od_done) tti_setup_object(tti, plug);
 	}
 }
 
@@ -216,7 +239,7 @@ static GF_Err TTIn_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 	e = TTIn_LoadFile(plug, url, GF_FALSE);
 	gf_service_connect_ack(serv, NULL, e);
-	if (!e && !tti->od_done) tti_setup_object(tti);
+	if (!e && !tti->od_done) tti_setup_object(tti, plug);
 	return GF_OK;
 }
 
@@ -405,7 +428,7 @@ void *NewTTReader()
 	TTIn *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
-	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC SubTitle Reader", "gpac distribution")
+	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC TimedText Reader", "gpac distribution")
 
 	plug->RegisterMimeTypes = TTIN_RegisterMimeTypes;
 	plug->CanHandleURL = TTIn_CanHandleURL;

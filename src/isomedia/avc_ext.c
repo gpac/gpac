@@ -346,7 +346,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	u32 nal_size, max_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
 	s8 nal_type;
-	u32 nal_hdr;
+	u32 nal_hdr, sabt_ref, i, track_num;
 	u32 temporal_id = 0;
 	char *buffer;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
@@ -358,6 +358,32 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	buffer = NULL;
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 
+	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
+	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
+	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = GF_FALSE;
+	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
+
+	if (extractor_mode != GF_ISOM_NALU_EXTRACT_INSPECT) {
+		//aggregate all sabt samples with the same DTS
+		track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
+		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
+		if ((s32) sabt_ref != -1) {
+			for (i=0; i<sabt_ref; i++) {
+				GF_ISOSample *tile_samp;
+				u32 ref_track, di;
+				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
+				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
+				if (tile_samp  && tile_samp ->data) {
+					sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
+					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
+					sample->dataLength += tile_samp->dataLength;
+				}
+				if (tile_samp) gf_isom_sample_del(&tile_samp);
+			}
+		}
+	}
+	
+	
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 			sample->IsRAP = is_sample_idr(sample, entry);
@@ -365,11 +391,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	}
 	if (!sample->IsRAP)
 		rewrite_ps = GF_FALSE;
-
-	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
-	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
-	if (!entry->svc_config && !entry->shvc_config) insert_vdrd_code = GF_FALSE;
-	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_LAYER_ONLY)
 		insert_vdrd_code = GF_FALSE;
@@ -413,7 +434,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
-	if (!src_bs) return GF_ISOM_INVALID_FILE;
+	if (!src_bs && sample->data) return GF_ISOM_INVALID_FILE;
 	max_size = 4096;
 
 	/*rewrite start code with NALU delim*/
@@ -697,6 +718,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, i);
 		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
+		p2->id = p1->id;
 		p2->data = (char *)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->sequenceParameterSets, p2);
@@ -707,6 +729,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 		p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
 		p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 		p2->size = p1->size;
+		p2->id = p1->id;
 		p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 		memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 		gf_list_add(cfg_new->pictureParameterSets, p2);
@@ -719,6 +742,7 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 			p1 = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSetExtensions, i);
 			p2 = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
 			p2->size = p1->size;
+			p2->id = p1->id;
 			p2->data = (char*)gf_malloc(sizeof(char)*p1->size);
 			memcpy(p2->data, p1->data, sizeof(char)*p1->size);
 			gf_list_add(cfg_new->sequenceParameterSetExtensions, p2);

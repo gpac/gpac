@@ -6,7 +6,7 @@ LOCAL_MODULE		:= gm_droidout
 
 include $(LOCAL_PATH)/base.mk
 
-LOCAL_LDLIBS    +=  -lGLESv1_CM -llog -ldl
+LOCAL_LDLIBS    +=  -lGLESv2 -llog -ldl
 
 LOCAL_SRC_FILES := ../../../../modules/droid_out/droid_vout.c
 
