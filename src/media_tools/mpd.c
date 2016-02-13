@@ -3301,7 +3301,7 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
 			is_audio = 1;
 		}
 	}
-	if (timescale != 1000000) {
+	if (timescale != 10000000) {
 		char szTS[20];
 		sprintf(szTS, "%d", timescale);
 		ISBMFFI_ADD_KEYWORD("scale", szTS)
@@ -3397,10 +3397,10 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 	mpd->xml_namespace = NULL;
 
 
-	timescale = 1000000;
+	timescale = 10000000;
 	i=0;
 	while ((att = gf_list_enum(root->attributes, &i))) {
-		if (!strcmp(att->name, "TimeScale")) timescale  =atoi(att->value);
+		if (!strcmp(att->name, "TimeScale")) timescale = atoi(att->value);
 		else if (!strcmp(att->name, "Duration")) mpd->media_presentation_duration = atoi(att->value);
 		else if (!strcmp(att->name, "IsLive") && stricmp(att->value, "true") )  mpd->type = GF_MPD_TYPE_DYNAMIC;
 		else if (!strcmp(att->name, "LookaheadCount")) {}

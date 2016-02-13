@@ -881,6 +881,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 
 	if (dash->rate_adaptation_download_monitor)
 		return dash->rate_adaptation_download_monitor(dash, group);
+
 	return GF_OK;
 }
 
@@ -2613,13 +2614,11 @@ static u32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Grou
 			new_rep->playback.probe_switch_count++;
 			if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
 				new_rep->playback.probe_switch_count = 0;
-			}
-			else {
+			} else {
 				new_index = group->active_rep_index;
 			}
 		}
 	}
-
 	return new_index;
 }
 
@@ -6026,7 +6025,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->mpd_dnload = NULL;
 			return GF_URL_ERROR;
 		}
-
 		if (dash->is_smooth) {
 			e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
 		} else {
@@ -7455,7 +7453,7 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 GF_EXPORT
 Bool gf_dash_get_automatic_switching(GF_DashClient *dash)
 {
-	return (dash && dash->disable_switching) ? 0 : 1;
+	return (dash && dash->disable_switching) ? GF_FALSE : GF_TRUE;
 }
 
 GF_EXPORT
