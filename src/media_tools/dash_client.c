@@ -812,7 +812,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 {
 	Bool default_switch_mode = GF_FALSE;
 	u32 download_rate, set_idx, time_since_start, done, tot_size, time_until_end;
-	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	GF_DASH_Group *group = (GF_DASH_Group*)gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
 	if (group->dash->disable_switching) return GF_OK;
 
@@ -881,7 +881,7 @@ GF_Err gf_dash_group_check_bandwidth(GF_DashClient *dash, u32 idx)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download time longer than segment duration - trying to resync on next segment\n"));
 	} else {
 		u32 target_rate;
-		//compute min bitrate needed to fetch the segement in another rep, with the time remaining
+		//compute min bitrate needed to fetch the segment in another rep, with the time remaining
 		Double ratio = ((u32)group->current_downloaded_segment_duration - time_since_start);
 		ratio /= (u32)group->current_downloaded_segment_duration;
 
@@ -2439,7 +2439,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 	new_rep = NULL;
 
 	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
-		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
+		GF_MPD_Representation *arep = (GF_MPD_Representation*)gf_list_get(group->adaptation_set->representations, k);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Repesentation %s prev max available speed: %f \n", arep->id, arep->playback.prev_max_available_speed));
 		if (arep->playback.disabled) continue;
 		if (arep->playback.prev_max_available_speed && (speed > arep->playback.prev_max_available_speed)) 
@@ -2489,7 +2489,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 			if (new_rep->playback.probe_switch_count > dash->probe_times_before_switch) {
 				new_rep->playback.probe_switch_count = 0;
 			} else {
-				do_switch = 0;
+				do_switch = GF_FALSE;
 			}
 		}
 		if (do_switch) {
@@ -2503,8 +2503,8 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group, G
 		}
 
 		for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
-			if (new_rep==arep) continue;
+			GF_MPD_Representation *arep = (GF_MPD_Representation*)gf_list_get(group->adaptation_set->representations, k);
+			if (new_rep == arep) continue;
 			arep->playback.probe_switch_count = 0;
 		}
 	}
@@ -4862,7 +4862,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE);
 		}
 	} else {
-		if (!gf_dash_check_mpd_root_type(local_url)) {
+		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: wrong file type %s\n", local_url));
 			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
 			dash->mpd_dnload = NULL;
@@ -4870,13 +4870,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		}
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] parsing MPD %s\n", local_url));
-
-		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: wrong file type %s\n", local_url));
-			dash->dash_io->del(dash->dash_io, dash->mpd_dnload);
-			dash->mpd_dnload = NULL;
-			return GF_URL_ERROR;
-		}
 
 		/* parse the MPD */
 		mpd_parser = gf_xml_dom_new();
@@ -4892,16 +4885,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->mpd_dnload = NULL;
 			return GF_URL_ERROR;
 		}
-		if (dash->mpd)
-			gf_mpd_del(dash->mpd);
-
-		dash->mpd = gf_mpd_new();
-		if (!dash->mpd) {
-			e = GF_OUT_OF_MEM;
-		} else {
-			e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
-		}
-		gf_xml_dom_del(mpd_parser);
 	}
 
 	if (dash->mpd)
@@ -6244,7 +6227,7 @@ Bool gf_dash_group_enum_descriptor(GF_DashClient *dash, u32 group_idx, GF_DashDe
 GF_EXPORT
 Bool gf_dash_get_automatic_switching(GF_DashClient *dash)
 {
-	return (dash && dash->disable_switching) ? 0 : 1;
+	return (dash && dash->disable_switching) ? GF_FALSE : GF_TRUE;
 }
 
 GF_EXPORT

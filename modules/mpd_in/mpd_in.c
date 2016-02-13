@@ -938,16 +938,16 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount", "0");
 	if (opt) auto_switch_count = atoi(opt);
 
-	keep_files = 0;
+	keep_files = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
-	if (opt && !strcmp(opt, "yes")) keep_files = 1;
+	if (opt && !strcmp(opt, "yes")) keep_files = GF_TRUE;
 
-	disable_switching = 0;
+	disable_switching = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DisableSwitching");
-	if (opt && !strcmp(opt, "yes")) disable_switching = 1;
+	if (opt && !strcmp(opt, "yes")) disable_switching = GF_TRUE;
 
-	first_select_mode = 0;
+	first_select_mode = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation", "minBandwidth");
@@ -960,18 +960,18 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage", "yes");
-	mpdin->memory_storage = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->memory_storage = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) {
 		opt = "yes";
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", opt);
 	}
-	mpdin->use_max_res = !strcmp(opt, "yes") ? 1 : 0;
+	mpdin->use_max_res = !strcmp(opt, "yes") ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
-	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "BufferingMode");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "BufferingMode", "minBuffer");
