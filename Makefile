@@ -75,22 +75,13 @@ lcov:
 
 dep:	depend
 
-# tar release (use 'make -k tar' on a checkouted tree)
-FILE=gpac-$(shell grep "\#define GPAC_VERSION " include/gpac/version.h | \
-                    cut -d "\"" -f 2 )
-
-tar:
-	( tar zcvf ~/$(FILE).tar.gz ../gpac --exclude CVS --exclude bin --exclude lib --exclude Obj --exclude temp --exclude amr_nb --exclude amr_nb_ft --exclude amr_wb_ft --exclude *.mak --exclude *.o --exclude *.~*)
-
 install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no) 
-ifeq ($(CONFIG_LINUX), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
-endif
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
@@ -115,25 +106,29 @@ ifneq ($(MP4BOX_STATIC),yes)
 	$(MAKE) installdylib
 endif
 	$(INSTALL) -d "$(DESTDIR)$(mandir)"
-	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1";
-	if [ -d  doc ] ; then \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/ ; \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/ ;  \
-	fi
-	if [ -d  gui ] ; then \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons" ; \
-	$(INSTALL) $(INSTFLAGS) -m 644 gui/icons/*.svg "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" ; \
-	cp -R gui/extensions "$(DESTDIR)$(prefix)/share/gpac/gui/" ; \
-	rm -rf "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/*.git" ; \
-	fi
+	$(INSTALL) -d "$(DESTDIR)$(mandir)/man1"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4box.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/mp4client.1 $(DESTDIR)$(mandir)/man1/ 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/man/gpac.1 $(DESTDIR)$(mandir)/man1/
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/doc/gpac.mp4 $(DESTDIR)$(prefix)/share/gpac/  
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.bt "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+ifeq ($(CONFIG_DARWIN),yes)
+	cp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
+	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
+	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
+else
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
+endif
 
 lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
@@ -268,7 +263,6 @@ help:
 	@echo 
 	@echo "clean: clean src repository"
 	@echo "distclean: clean src repository and host config file"
-	@echo "tar: create GPAC tarball"
 	@echo 
 	@echo "install: install applications and modules on system"
 	@echo "uninstall: uninstall applications and modules"

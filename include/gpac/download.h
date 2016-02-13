@@ -164,15 +164,15 @@ enum
 	/*!session is not threaded, the user must explicitely fetch the data , either with the function gf_dm_sess_fetch_data
 	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
 	GF_NETIO_SESSION_NOT_THREADED	=	1,
-	/*! session data is live, e.g. data will be sent to the user if threaded mode (live streams like radios & co)
-			Whether the data is cached or not to disk cannot be controlled by the user at the current time.
-	*/
+	/*! session data is cached or not */
 	GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
+	/*! forces data notification even when session is threaded*/
+	GF_NETIO_SESSION_NOTIFY_DATA =	1<<2,
 	/*indicates that the connection to the server should be kept once the download is successfully completed*/
-	GF_NETIO_SESSION_PERSISTENT =	1<<2,
+	GF_NETIO_SESSION_PERSISTENT =	1<<3,
 	/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
 	Memory cached files are destroyed upon downloader destruction*/
-	GF_NETIO_SESSION_MEMORY_CACHE	=	1<<3,
+	GF_NETIO_SESSION_MEMORY_CACHE	=	1<<4,
 };
 
 
@@ -429,7 +429,7 @@ const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
  */
 const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
 
-
+#ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
  * \brief Download a file over the network using a download manager
  * \param dm The downlaod manager to use, function will use all associated cache ressources
@@ -451,6 +451,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
+#endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
  *\brief Reset session

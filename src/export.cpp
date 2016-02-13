@@ -326,6 +326,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_module_directories) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_get_file_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_module_get_file_name) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_module_load_static) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_load_interface_by_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_modules_close_interface) )
@@ -690,7 +691,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_track_fragmented) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_tables) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_reset_data_offset) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_single_moof_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_release_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_highest_track_in_scalable_segment) )
@@ -698,6 +698,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_timescale) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_original_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_creation_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_by_id) )
@@ -712,6 +713,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_description_index) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_self_contained) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_original_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_media_timescale) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_chunks_infos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_handler_name) )
@@ -1011,6 +1013,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_output_buffering) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )
@@ -1042,6 +1045,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_flush_fragments) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_reference_time) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_option) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_single_moof_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_append_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sai) )
@@ -1927,6 +1931,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_set_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_enable_sdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_program_find) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_mux_enable_pcr_only_packets) )
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 /* M3U8 & MPD related functions */
@@ -1934,9 +1939,13 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_from_dom) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_del) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_to_mpd) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_solve_representation_xlink) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_solve_segment_list_xlink) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_delete_segment_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m3u8_parse_master_playlist) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_getter_del_session) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 
 
@@ -2006,6 +2015,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_configure_isobmf_default) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_utc_ref) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_real_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_content_protection_location_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_profile_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_process) )
@@ -2117,23 +2127,3 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(utf8_to_ucs4) )
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -33,6 +33,8 @@ extern "C" {
 #include <gpac/tools.h>
 #include <gpac/list.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 /*!
  *	\file <gpac/xml.h>
  *	\brief XML functions.
@@ -292,6 +294,6 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 }
 #endif
 
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif		/*_XML_PARSER_H_*/
-

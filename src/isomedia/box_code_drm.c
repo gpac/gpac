@@ -1148,9 +1148,12 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 	e = gf_bs_seek(bs, ptr->cenc_saio->offset_first_offset_field);
 	if (e) return e;
 	//force using version 1 for saio box i.e offset has 64 bits
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->traf) {
 		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
-	} else {
+	} else
+#endif
+	{
 		gf_bs_write_u64(bs, pos);
 	}
 	return gf_bs_seek(bs, pos);
@@ -1312,12 +1315,18 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 	if (!ptr->samp_aux_info) ptr->samp_aux_info = gf_list_new();
 	for (i=0; i<count; i++) {
 		u32 is_encrypted;
+		u32 samp_count;
 		GF_CENCSampleAuxInfo *sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
 		memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
 
-		e = gf_isom_get_sample_cenc_info_ex(trak, traf, (trak ? trak->sample_count_at_seg_start : 0 )+ i+1, &is_encrypted, &sai->IV_size, NULL);
+		samp_count = i+1;
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+		if (trak) samp_count += trak->sample_count_at_seg_start;
+#endif
+	
+		e = gf_isom_get_sample_cenc_info_ex(trak, traf, samp_count, &is_encrypted, &sai->IV_size, NULL);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", trak->sample_count_at_seg_start + i+1, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));
 			return e;
 		}
 		if (is_encrypted) {

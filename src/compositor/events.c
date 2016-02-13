@@ -2026,12 +2026,14 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 		/*remember active layer on mouse click - may be NULL*/
 		if ((evt->type==GF_EVENT_MOUSEDOWN) && (evt->mouse.button==GF_MOUSE_LEFT)) compositor->active_layer = compositor->traverse_state->layer3d;
 #endif
-		/*process navigation events*/
-		if (compositor->interaction_level & GF_INTERACT_NAVIGATION)
-			ret = compositor_handle_navigation(compositor, evt);
 	}
 	if (!ret) {
 		ret = forward_event(compositor, evt, ret);
+	}
+	if (!ret) {
+		/*process navigation events*/
+		if (compositor->interaction_level & GF_INTERACT_NAVIGATION)
+		ret = compositor_handle_navigation(compositor, evt);
 	}
 	return ret;
 }

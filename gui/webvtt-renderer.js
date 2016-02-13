@@ -10,7 +10,7 @@ var height = rect.height;
 var xOffset = 5;
 var yOffset = 5;
 var fontSize = 20;
-var textColor = "red";
+var textColor = "white";
 var fontFamily = "SANS";
 var lineIncrement = fontSize;
 var nbCues = 0;
@@ -25,18 +25,22 @@ function reportMessage(msg) {
 }
 
 function createTextArea(settingsObj) {
-	reportMessage("Creating textArea with settings: "+settingsObj);
 	var t = document.createElement("textArea");
 	t.setAttribute("x", xOffset+settingsObj.xPosition);
 	t.setAttribute("y", yOffset);
+	var w, h;
 	if (settingsObj.fromTop) {
 		t.setAttribute("display-align", "before");
-		t.setAttribute("height", height-2*yOffset);
+		h=height-2*yOffset;
 	} else {
 		t.setAttribute("display-align", "after");
-		t.setAttribute("height", height-2*yOffset-settingsObj.linePosition);
+		h = height-2*yOffset-settingsObj.linePosition;
 	}
-	t.setAttribute("width", settingsObj.size-2*xOffset);
+	w = settingsObj.size-2*xOffset;
+	t.setAttribute("height", h);
+	t.setAttribute("width", w);
+	reportMessage("Creating textArea size " + w + " x " + h);
+	
 	t.setAttribute("fill", textColor);
 	t.setAttribute("font-size", fontSize);
 	t.setAttribute("font-family", fontFamily);
@@ -133,12 +137,12 @@ function parseCueSettings(cueSettings){
 		obj.size = parseFloat(compositeCueSettings.size.replace(/\%/ig,""));
 		if (isNaN(obj.size)) {
 			obj.size = 100;
-		} else {
-			obj.size *= width/100;
 		}
 	} else {
 		obj.size = 100;
 	}
+	obj.size *= width/100;
+	
 	reportMessage("size: "+obj.size);
 	if (compositeCueSettings.align !== undefined) {
 		if (compositeCueSettings.align === "middle") {

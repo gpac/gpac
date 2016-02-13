@@ -97,7 +97,7 @@ GF_EXPORT
 char *gf_url_concatenate(const char *parentName, const char *pathName)
 {
 	u32 pathSepCount, i, prot_type;
-	char *outPath, *name, *rad;
+	char *outPath, *name, *rad, *tmp2;
 	char tmp[GF_MAX_PATH];
 
 	if (!pathName && !parentName) return NULL;
@@ -219,7 +219,10 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	//strip query part or fragment part
 	rad = strchr(tmp, '?');
 	if (rad) rad[0] = 0;
-	rad = strchr(tmp, '#');
+	tmp2 = strrchr(tmp, '/');
+	if (!tmp2) tmp2 = strrchr(tmp, '\\');
+	if (!tmp2) tmp2 = tmp;
+	rad = strchr(tmp2, '#');
 	if (rad) rad[0] = 0;
 
 	/*remove the last /*/
@@ -289,33 +292,57 @@ void gf_url_to_fs_path(char *sURL)
 	}
 }
 
+//TODO handle reserved characters
+const char *pce_special = " %";
+const char *pce_encoded = "0123456789ABCDEF";
+
 char *gf_url_percent_encode(const char *path)
 {
-	char *outpath, *sep;
-	u32 count;
+	char *outpath;
+	u32 i, count, len;
 	if (!path) return NULL;
 
-	sep = strchr(path, ' ');
-	if (!sep) return gf_strdup(path);
-	count = 1;
-	sep ++;
-	while (1) {
-		sep = strchr(sep, ' ');
-		if (!sep) break;
-		sep ++;
-		count ++;
-		sep++;
+	len = (u32) strlen(path);
+	count = 0;
+	for (i=0; i<len; i++) {
+		u8 c = path[i];
+		if (strchr(pce_special, c) != NULL) {
+			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
+				count+=2;
+			}
+		} else if (c>>7) {
+			count+=2;
+		}
 	}
-	outpath = (char*)gf_malloc(sizeof(char) * (strlen(path) + 2*count + 1));
+	if (!count) return gf_strdup(path);
+	outpath = (char*)gf_malloc(sizeof(char) * (len + count + 1));
 	strcpy(outpath, path);
-	while (1) {
-		sep = strchr(outpath, ' ');
-		if (!sep) break;
-		memmove(sep+3, sep+1, strlen(sep+1)+1);
-		sep[0] = '%';
-		sep[1] = '2';
-		sep[2] = '0';
+
+	count = 0;
+	for (i=0; i<len; i++) {
+		Bool do_enc = GF_FALSE;
+		u8 c = path[i];
+
+		if (strchr(pce_special, c) != NULL) {
+			if ((i+2<len) && ((strchr(pce_encoded, path[i+1]) == NULL) || (strchr(pce_encoded, path[i+2]) == NULL))) {
+				do_enc = GF_TRUE;
+			}
+		} else if (c>>7) {
+			do_enc = GF_TRUE;
+		}
+
+		if (do_enc) {
+			char szChar[3];
+			sprintf(szChar, "%02X", c);
+			outpath[i+count] = '%';
+			outpath[i+count+1] = szChar[0];
+			outpath[i+count+2] = szChar[1];
+			count+=2;
+		} else {
+			outpath[i+count] = c;
+		}
 	}
+	outpath[i+count] = 0;
 	return outpath;
 }
 

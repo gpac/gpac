@@ -1656,29 +1656,6 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
-	GF_Box *a;
-	u32 i;
-	i = 0;
-
-	while ((a = (GF_Box *)gf_list_enum(input->moov->other_boxes, &i))) {
-		if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
-			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
-			memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
-			pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
-			pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
-			memmove(pssh->KIDs, ((GF_ProtectionSystemHeaderBox *)a)->KIDs, pssh->KID_count*sizeof(bin128));
-			pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
-			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
-			memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
-
-			gf_isom_box_add_default(in_moof ? (GF_Box*)output->moof : (GF_Box*)output->moov, (GF_Box*)pssh);
-		}
-	}
-	return GF_OK;
-}
-
 u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 {
 	u32 i, size;
@@ -1809,18 +1786,20 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	}
 
 	//finally write the data
-	if (!traf->DataCache) {
-		if (!gf_bs_write_data(movie->editFileMap->bs, sample->data, sample->dataLength)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (no DataCache)\n", sample->dataLength));
-			return GF_OUT_OF_MEM;
+	if (sample->dataLength) {
+		if (!traf->DataCache) {
+			if (!gf_bs_write_data(movie->editFileMap->bs, sample->data, sample->dataLength)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (no DataCache)\n", sample->dataLength));
+				return GF_OUT_OF_MEM;
+			}
+		} else if (trun->cache) {
+			if (!gf_bs_write_data(trun->cache, sample->data, sample->dataLength)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (with cache)\n", sample->dataLength));
+				return GF_OUT_OF_MEM;
+			}
+		} else {
+			return GF_BAD_PARAM;
 		}
-	} else if (trun->cache) {
-		if (!gf_bs_write_data(trun->cache, sample->data, sample->dataLength)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso fragment] Could not add a sample with a size of %u bytes (with cache)\n", sample->dataLength));
-			return GF_OUT_OF_MEM;
-		}
-	} else {
-		return GF_BAD_PARAM;
 	}
 	if (od_sample) gf_isom_sample_del(&od_sample);
 	return GF_OK;
@@ -1883,7 +1862,6 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		if (sai->subsample_count) senc->flags = 0x00000002;
 
 		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IsEncrypted ? IV_size+2+6*sai->subsample_count : 0);
-
 	}
 
 	return GF_OK;
@@ -2134,7 +2112,7 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 	return GF_NOT_SUPPORTED;
 }
 
-GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber)
+GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
 {
 	return GF_NOT_SUPPORTED;
 }

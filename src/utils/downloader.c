@@ -784,6 +784,7 @@ static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnl
 		par.msg_type = dnload_status;
 		par.error = error;
 		par.sess = sess;
+		par.reply = 200;
 		sess->user_proc(sess->usr_cbk, &par);
 		sess->in_callback = GF_FALSE;
 	}
@@ -1065,7 +1066,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	if (sess->remote_path) gf_free(sess->remote_path);
 	sess->remote_path = gf_strdup(info.remotePath);
 
-	if (!socket_changed && info.userName  && sess->creds->username && !strcmp(info.userName, sess->creds->username)) {
+	if (!socket_changed && info.userName  && !strcmp(info.userName, sess->creds->username)) {
 	} else {
 		sess->creds = NULL;
 		if (info.userName ) {
@@ -1135,6 +1136,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	}
 	sess->headers = gf_list_new();
 	sess->flags = dl_flags;
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+		sess->force_data_write_callback = GF_TRUE;
 	if (dm && !dm->head_timeout) sess->server_only_understand_get = GF_TRUE;
 	sess->user_proc = user_io;
 	sess->usr_cbk = usr_cbk;
@@ -1765,9 +1768,11 @@ retry_cache:
 	}
 
 	dm->allow_offline_cache = GF_FALSE;
-	opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
-	if (opt && !strcmp(opt, "yes") ) 
-		dm->allow_offline_cache = GF_TRUE;
+	if (cfg) {
+		opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
+		if (opt && !strcmp(opt, "yes") ) 
+			dm->allow_offline_cache = GF_TRUE;
+	}
 
 	dm->head_timeout = 5000;
 	if (cfg) {
@@ -1889,11 +1894,12 @@ void gf_dm_del(GF_DownloadManager *dm)
  * Data will be skipped and parsed and sent as a GF_NETIO_Parameter to the user_io,
  * so modules interrested by those streams may use the data
  * \param sess The GF_DownloadSession
- * \param icy_metaint The number of bytes of data before reaching possible meta data
  * \param data last data received
  * \param nbBytes The number of bytes contained into data
  */
-static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const char * data, u32 nbBytes) {
+static void gf_icy_skip_data(GF_DownloadSession * sess, const char * data, u32 nbBytes)
+{
+	u32 icy_metaint = sess->icy_metaint;
 	assert( icy_metaint > 0 );
 	while (nbBytes) {
 		if (sess->icy_bytes == icy_metaint) {
@@ -1917,6 +1923,8 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, u32 icy_metaint, const c
 					par.sess = sess;
 					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[ICY] Found metainfo in stream=%s, (every %d bytes)\n", szData, icy_metaint));
 					gf_dm_sess_user_io(sess, &par);
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[ICY] Empty metainfo in stream, (every %d bytes)\n", icy_metaint));
 				}
 				nbBytes -= sess->icy_count;
 				data += sess->icy_count;
@@ -2070,7 +2078,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 
 		if (sess->icy_metaint > 0)
-			gf_icy_skip_data(sess, sess->icy_metaint, (char *) data, nbBytes);
+			gf_icy_skip_data(sess, (char *) data, nbBytes);
 		else {
 			if (sess->use_cache_file)
 				gf_cache_write_to_cache( sess->cache_entry, sess, (char *) data, nbBytes);
@@ -2090,13 +2098,12 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;
 		par.error = GF_OK;
 
-
-		gf_dm_sess_user_io(sess, &par);
 		if (sess->use_cache_file) {
 			gf_cache_close_write_cache(sess->cache_entry, sess, GF_TRUE);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK,
 			       ("[CACHE] url %s saved as %s\n", gf_cache_get_url(sess->cache_entry), gf_cache_get_cache_filename(sess->cache_entry)));
 		}
+		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), 
@@ -2418,7 +2425,7 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 
 	if (sess->http_read_type!=OTHER) {
 		/*signal we support title streaming*/
-		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
+//		if (!strcmp(sess->remote_path, "/")) strcat(sHTTP, "icy-metadata:1\r\n");
 		/* This will force the server to respond with Icy-Metaint */
 		strcat(sHTTP, "Icy-Metadata: 1\r\n");
 
@@ -2983,6 +2990,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->total_size = gf_cache_get_cache_filesize(sess->cache_entry);
 
 		gf_dm_sess_notify_state(sess, GF_NETIO_PARSE_REPLY, GF_OK);
+
 		gf_dm_disconnect(sess, GF_FALSE);
 		if (sess->user_proc) {
 			/* For modules that do not use cache and have problems with GF_NETIO_DATA_TRANSFERED ... */
@@ -3253,7 +3261,9 @@ void http_do_requests(GF_DownloadSession *sess)
 		if (sess->reassigned) {
 
 			if (sess->icy_metaint > 0) {
-				gf_icy_skip_data(sess, sess->icy_metaint, sess->init_data, sess->init_data_size);
+				//we are reparsing init data, reset icy status
+				sess->icy_bytes = 0;
+				gf_icy_skip_data(sess, sess->init_data, sess->init_data_size);
 			} else {
 				GF_NETIO_Parameter par;
 				par.msg_type = GF_NETIO_DATA_EXCHANGE;
@@ -3287,7 +3297,6 @@ static void wget_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		}
 	}
 }
-
 
 GF_EXPORT
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url)
@@ -3586,6 +3595,9 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 
 	if (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL) flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 	sess->flags = flags;
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+		sess->force_data_write_callback = GF_TRUE;
+
 	sess->user_proc = user_io;
 	sess->usr_cbk = cbk;
 	sess->reassigned = sess->init_data ? GF_TRUE : GF_FALSE;

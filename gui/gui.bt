@@ -27,7 +27,6 @@ EXTERNPROTO StyleGroup [
 
 DEF GPAC_UI OrderedGroup {
  children [
-  Background2D {}
   
   DEF MEDIA_ROOT OrderedGroup {}
   DEF UI_ROOT Untransform {}

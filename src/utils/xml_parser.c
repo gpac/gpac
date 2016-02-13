@@ -1143,7 +1143,7 @@ static GF_Err xml_sax_read_file(GF_SAXParser *parser)
 
 	while (!parser->suspended) {
 #ifdef NO_GZIP
-		s32 read = fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
+		s32 read = (s32)fread(szLine, 1, XML_INPUT_SIZE, parser->f_in);
 #else
 		s32 read = gzread(parser->gz_in, szLine, XML_INPUT_SIZE);
 #endif
@@ -1419,7 +1419,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 			dobreak=GF_TRUE;
 		} else {
 #ifdef NO_GZIP
-			read = fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
+			read = (u32)fread(cur_line, 1, XML_INPUT_SIZE, parser->f_in);
 #else
 			read = gzread(parser->gz_in, cur_line, XML_INPUT_SIZE);
 #endif
@@ -2191,4 +2191,4 @@ GF_Err gf_xml_get_element_check_namespace(const GF_XMLNode *n, const char *expec
 	return GF_BAD_PARAM;
 }
 
-#endif
+#endif /*GPAC_DISABLE_CORE_TOOLS*/

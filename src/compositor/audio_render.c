@@ -329,7 +329,6 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 		if (ar->filter_chain.enable_filters) {
 			char *ptr = buffer;
-			u32 res = buffer_size;
 			written = 0;
 			delay_ms += ar->filter_chain.delay_ms;
 
@@ -358,7 +357,6 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				ar->nb_used += to_copy;
 				if (ar->nb_used==ar->nb_filled) ar->nb_used = 0;
 			}
-			assert(res==written);
 		} else {
 			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
@@ -405,7 +403,7 @@ void gf_sc_flush_next_audio(GF_Compositor *compositor)
 Bool gf_sc_check_audio_pending(GF_Compositor *compositor) 
 {
 	Bool res = GF_FALSE;
-	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
+	gf_mixer_lock(compositor->audio_renderer->mixer, GF_TRUE);
 	if (compositor->audio_renderer->step_mode) 
 		res = GF_FALSE;
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);

@@ -1762,10 +1762,11 @@ void gf_odm_play(GF_ObjectManager *odm)
 		media_control_paused = 1;
 	}
 
-	if (odm->parentscene && odm->parentscene->pause_at_first_frame)
+	if (odm->term->root_scene && odm->term->root_scene->pause_at_first_frame) {
 		media_control_paused = GF_TRUE;
+	}
 
-	if (media_control_paused) {
+	if ((odm->codec || odm->subscene) && media_control_paused) {
 		gf_odm_pause(odm);
 	}
 }
@@ -2085,12 +2086,17 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	if (odm->codec) {
 		//we don't pause codec but only change its status to PAUSE - this will allow decoding until CB is full, which will turn the codec in pause mode
 		gf_codec_set_status(odm->codec, GF_ESM_CODEC_PAUSE);
-	} else if (odm->subscene) {
+	}
+	//when pause_at_first_frame is set we still want to decode and process the first AUs in OD and scene channels, otherwise no scene and no frame to display ...
+	else if (odm->subscene && ! odm->subscene->pause_at_first_frame) {
 		if (odm->subscene->scene_codec) {
 			gf_codec_set_status(odm->subscene->scene_codec, GF_ESM_CODEC_PAUSE);
 			gf_term_stop_codec(odm->subscene->scene_codec, 1);
 		}
-		if (odm->subscene->od_codec) gf_term_stop_codec(odm->subscene->od_codec, 1);
+		if (odm->subscene->od_codec) {
+			gf_codec_set_status(odm->subscene->scene_codec, GF_ESM_CODEC_PAUSE);
+			gf_term_stop_codec(odm->subscene->od_codec, 1);
+		}
 	}
 	if (odm->ocr_codec) gf_term_stop_codec(odm->ocr_codec, 1);
 #ifndef GPAC_MINIMAL_ODF

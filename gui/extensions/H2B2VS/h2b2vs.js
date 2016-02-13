@@ -100,6 +100,13 @@ extension = {
                 }
 */
                 return false;
+			case GF_JS_EVENT_PLAYBACK:
+				//whenever paused, store pause time
+				if (! evt.is_playing) {
+					this.save_session();
+				}
+				return false;
+				
             default:
                 return false;
         }
@@ -410,7 +417,7 @@ extension = {
         var cmd = 'ID=' + user;
 
         var obj = this.do_xhr(url, cmd);
-        if (!obj) return;
+        if (!obj || !obj.data || !obj.data.url || (obj.data.url== '') ) return;
 
         var dlg = gw_new_confirm_wnd(null, 'Restore last session ?');
         dlg.set_alpha(0.95);
@@ -429,10 +436,6 @@ extension = {
 
         if (this.disable_save_session) return;
 
-        var server = this.get_option('SessionServer', null);
-        var user = this.get_option('UserID', null);
-        if (!server || !user) return;
-
         var obj = {};
         var url = gwskin.pvr_url;
         if (url === '') url = gwskin.media_url;
@@ -446,7 +449,11 @@ extension = {
         var str = gwskin.stringify(obj);
         gwlog(l_deb, 'H2B2VS storing state: ' + str);
 
-        var url = server + 'setData';
+		var server = this.get_option('SessionServer', null);
+		var user = this.get_option('UserID', null);
+		if (!server || !user) return;
+
+		var url = server + 'setData';
         var cmd = 'ID=' + user + '&Data=' + str;
         this.do_xhr(url, cmd);
 

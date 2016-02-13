@@ -633,12 +633,12 @@ MasterPlaylist* master_playlist_new()
 
 /********** master_playlist **********/
 
-GF_Err gf_m3u8_master_playlist_del(MasterPlaylist *playlist) {
-	if (playlist == NULL)
+GF_Err gf_m3u8_master_playlist_del(MasterPlaylist **playlist) {
+	if ((playlist == NULL) || (*playlist == NULL))
 		return GF_OK;
-	assert(playlist->streams);
-	while (gf_list_count(playlist->streams)) {
-		Stream *p = gf_list_get(playlist->streams, 0);
+	assert((*playlist)->streams);
+	while (gf_list_count((*playlist)->streams)) {
+		Stream *p = gf_list_get((*playlist)->streams, 0);
 		assert(p);
 		while (gf_list_count(p->variants)) {
 			PlaylistElement *pl = gf_list_get(p->variants, 0);
@@ -649,11 +649,12 @@ GF_Err gf_m3u8_master_playlist_del(MasterPlaylist *playlist) {
 		gf_list_del(p->variants);
 		p->variants = NULL;
 		stream_del(p);
-		gf_list_rem(playlist->streams, 0);
+		gf_list_rem((*playlist)->streams, 0);
 	}
-	gf_list_del(playlist->streams);
-	playlist->streams = NULL;
-	gf_free(playlist);
+	gf_list_del((*playlist)->streams);
+	(*playlist)->streams = NULL;
+	gf_free(*playlist);
+	*playlist = NULL;
 
 	return GF_OK;
 }
@@ -719,8 +720,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			stream = stream_new(attribs->stream_id);
 			if (stream == NULL) {
 				/* OUT of memory */
-				gf_m3u8_master_playlist_del(*playlist);
-				playlist = NULL;
+				gf_m3u8_master_playlist_del(playlist);
 				return GF_OUT_OF_MEM;
 			}
 			gf_list_add((*playlist)->streams, stream);
@@ -759,7 +759,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(0);
 			}
 			curr_playlist = playlist_element_new(
-				TYPE_UNKNOWN,
+				TYPE_PLAYLIST,
 				fullURL,
 				attribs->title,
 				attribs->codecs,
@@ -769,8 +769,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				attribs->key_method, attribs->key_url, attribs->key_iv);
 			if (curr_playlist == NULL) {
 				/* OUT of memory */
-				gf_m3u8_master_playlist_del(*playlist);
-				playlist = NULL;
+				gf_m3u8_master_playlist_del(playlist);
 				return GF_OUT_OF_MEM;
 			}
 			assert(fullURL);
@@ -811,8 +810,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					attribs->key_iv);
 				if (curr_playlist == NULL) {
 					/* OUT of memory */
-					gf_m3u8_master_playlist_del(*playlist);
-					playlist = NULL;
+					gf_m3u8_master_playlist_del(playlist);
 					return GF_OUT_OF_MEM;
 				}
 				assert(curr_playlist->element.playlist.elements);
@@ -831,9 +829,8 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 					attribs->key_method, attribs->key_url,
 					attribs->key_iv);
 				if (subElement == NULL) {
-					gf_m3u8_master_playlist_del(*playlist);
+					gf_m3u8_master_playlist_del(playlist);
 					playlist_element_del(curr_playlist);
-					playlist = NULL;
 					return GF_OUT_OF_MEM;
 				}
 				gf_list_add(curr_playlist->element.playlist.elements, subElement);
@@ -859,9 +856,8 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 						curr_playlist->element.playlist.elements = gf_list_new();
 				}
 				if (subElement == NULL) {
-					gf_m3u8_master_playlist_del(*playlist);
+					gf_m3u8_master_playlist_del(playlist);
 					playlist_element_del(curr_playlist);
-					playlist = NULL;
 					return GF_OUT_OF_MEM;
 				}
 				gf_list_add(curr_playlist->element.playlist.elements, subElement);
@@ -987,7 +983,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			/* Playlist MUST start with #EXTM3U */
 			if (len < 7 || (strncmp("#EXTM3U", currentLine, 7) != 0)) {
 				gf_fclose(f);
-				gf_m3u8_master_playlist_del(*playlist);
+				gf_m3u8_master_playlist_del(playlist);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Failed to parse M3U8 File, it should start with #EXTM3U, but was : %s\n", currentLine));
 				return GF_STREAM_NOT_FOUND;
 			}

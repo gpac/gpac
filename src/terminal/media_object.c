@@ -490,14 +490,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
 			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Frame TS %d too late in no-drop mode, enabling drop\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
 			}
 		}
 	}
-
 		
 	if (skip_resync) {
 		resync=GF_MO_FETCH;
@@ -514,9 +514,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if (resync) {
 		u32 nb_dropped = 0;
 		while (1) {
-			if (CU->TS*codec->ck->speed >= obj_time*codec->ck->speed)
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time)
 				break;
-
+				
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
 					obj_time = gf_clock_time(codec->ck);
@@ -526,21 +527,22 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 						gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
 					}
 					gf_odm_lock(mo->odm, 1);
-					if (!CU->next->dataLength)
+					if (!CU->next->dataLength) {
 						break;
+					}
 				} else {
 					break;
 				}
 			}
 
 			/*figure out closest time*/
-			if (codec->ck->speed*CU->next->TS > codec->ck->speed*obj_time) {
+			if (codec->ck->speed > 0 ? CU->next->TS > obj_time : CU->next->TS < obj_time) {
 				*eos = GF_FALSE;
 				break;
 			}
 
 			nb_dropped ++;
-			if (nb_dropped>1) {
+			if (nb_dropped>=1) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
 				codec->nb_dropped++;
 			}
@@ -559,10 +561,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	if (CU->next->dataLength) {
 		diff = (s32) (CU->next->TS) - (s32) obj_time;
-		mo->ms_until_next = FIX2INT(diff * mo->speed);
 	} else  {
-		mo->ms_until_next = 1;
+		diff = mo->odm->codec->min_frame_dur;
 	}
+	mo->ms_until_next = FIX2INT(diff * mo->speed);
+
 	diff = (mo->speed >= 0) ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 

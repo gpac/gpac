@@ -276,6 +276,8 @@ typedef struct __gf_dvb_tuner GF_Tuner;
 #define GF_M2TS_UDP_BUFFER_SIZE	0x40000
 #endif
 
+#define GF_M2TS_MAX_PCR	2576980377811ULL
+
 /*returns readable name for given stream type*/
 const char *gf_m2ts_get_stream_name(u32 streamType);
 
@@ -554,6 +556,9 @@ typedef struct
 	Bool is_scalable;
 
 	GF_M2TS_MetadataPointerDescriptor *metadata_pointer_descriptor;
+
+	/*continuity counter check for pure PCR PIDs*/
+	s16 pcr_cc;
 } GF_M2TS_Program;
 
 /*ES flags*/
@@ -573,6 +578,8 @@ enum
 	GF_M2TS_ES_IS_MPE = 1<<5,
 	/*stream is used to send PCR to upper layer*/
 	GF_M2TS_INHERIT_PCR = 1<<6,
+	/*siugnals the stream is used to send the PCR, but is not the original PID carrying it*/
+	GF_M2TS_FAKE_PCR = 1<<7,
 
 	/*all flags above this mask are used by importers & co*/
 	GF_M2TS_ES_STATIC_FLAGS_MASK = 0x0000FFFF,
@@ -1108,6 +1115,9 @@ typedef struct __m2ts_mux_stream {
 	/*multiplexer time - NOT THE PCR*/
 	GF_M2TS_Time time;
 
+	GF_M2TS_Time next_time;
+	Bool pcr_only_mode;
+
 	/*table tools*/
 	GF_M2TS_Mux_Table *tables;
 	/*total table sizes for bitrate estimation (PMT/PAT/...)*/
@@ -1119,6 +1129,7 @@ typedef struct __m2ts_mux_stream {
 	u32 refresh_rate_ms;
 	Bool table_needs_update;
 	Bool table_needs_send;
+	Bool force_single_au;
 
 	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
 	is available in PES, don't copy from next*/
@@ -1225,6 +1236,16 @@ enum
 	GF_SEG_BOUNDARY_FORCE_PCR,
 };
 
+/*AU packing per pes configuration*/
+typedef enum
+{
+	/*only audio AUs are packed in a single PES, video and systems are not (recommended default)*/
+	GF_M2TS_PACK_AUDIO_ONLY,
+	/*never pack AUs in a single PES*/
+	GF_M2TS_PACK_NONE,
+	/*always try to pack AUs in a single PES*/
+	GF_M2TS_PACK_ALL
+} GF_M2TS_PackMode;
 
 struct __m2ts_mux {
 	GF_M2TS_Mux_Program *programs;
@@ -1265,7 +1286,9 @@ struct __m2ts_mux {
 
 	Bool force_pat;
 
-	Bool one_au_per_pes;
+	GF_M2TS_PackMode au_pes_mode;
+
+	Bool enable_forced_pcr;
 
 	Bool eos_found;
 	u64 last_br_time_us;
@@ -1309,9 +1332,9 @@ const char *gf_m2ts_mux_process(GF_M2TS_Mux *muxer, u32 *status, u32 *usec_till_
 u32 gf_m2ts_get_sys_clock(GF_M2TS_Mux *muxer);
 u32 gf_m2ts_get_ts_clock(GF_M2TS_Mux *muxer);
 
-/*set muxer in/out single-au pes mode. In this mode, each PES contains one and only one AU*/
-GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, Bool strict_au_pes_mode);
+GF_Err gf_m2ts_mux_use_single_au_pes_mode(GF_M2TS_Mux *muxer, GF_M2TS_PackMode au_pes_mode);
 GF_Err gf_m2ts_mux_set_initial_pcr(GF_M2TS_Mux *muxer, u64 init_pcr_value);
+GF_Err gf_m2ts_mux_enable_pcr_only_packets(GF_M2TS_Mux *muxer, Bool enable_forced_pcr);
 
 /*user inteface functions*/
 GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_scale);

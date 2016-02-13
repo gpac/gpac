@@ -14,6 +14,7 @@
 #endif
 
 
+
 #define STREAM_FRAME_RATE 25 /* 25 images/s */
 #define STREAM_NB_FRAMES  ((int)(STREAM_DURATION * STREAM_FRAME_RATE))
 #define STREAM_PIX_FMT PIX_FMT_YUV420P /* default pix_fmt */
@@ -181,7 +182,12 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 		ts->oc->oformat = GUESS_FORMAT("mpegts", NULL, NULL);
 	assert( ts->oc->oformat);
 #if REDIRECT_AV_AUDIO_ENABLED
+
+#ifdef FF_API_AVFRAME_LAVC
+	ts->audio_st = avformat_new_stream(ts->oc, avr->audioCodec);
+#else
 	ts->audio_st = av_new_stream(ts->oc, avr->audioCodec->id);
+#endif
 	{
 		AVCodecContext * c = ts->audio_st->codec;
 		c->codec_id = avr->audioCodec->id;
@@ -199,7 +205,11 @@ GF_AbstractTSMuxer * ts_amux_new(GF_AVRedirect * avr, u32 videoBitrateInBitsPerS
 	}
 #endif
 
+#ifdef FF_API_AVFRAME_LAVC
+	ts->video_st = avformat_new_stream(ts->oc, avr->videoCodec);
+#else
 	ts->video_st = av_new_stream(ts->oc, avr->videoCodec->id);
+#endif
 	{
 		AVCodecContext * c = ts->video_st->codec;
 		c->codec_id = avr->videoCodec->id;

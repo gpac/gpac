@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		2839E2821A162C48002D73E1 /* opensvc_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D018D70D4B00E2FF12 /* opensvc_dec.c */; };
 		2839E2831A162CC9002D73E1 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		2839E28D1A1635F7002D73E1 /* DashCast.1 in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2839E28C1A1635F7002D73E1 /* DashCast.1 */; };
 		2839E2B21A16363E002D73E1 /* audio_data.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2921A16363E002D73E1 /* audio_data.c */; };
 		2839E2B31A16363E002D73E1 /* audio_decoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2941A16363E002D73E1 /* audio_decoder.c */; };
 		2839E2B41A16363E002D73E1 /* audio_encoder.c in Sources */ = {isa = PBXBuildFile; fileRef = 2839E2961A16363E002D73E1 /* audio_encoder.c */; };
@@ -581,7 +580,6 @@
 			dstPath = /usr/share/man/man1/;
 			dstSubfolderSpec = 0;
 			files = (
-				2839E28D1A1635F7002D73E1 /* DashCast.1 in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 1;
 		};
@@ -617,8 +615,6 @@
 /* Begin PBXFileReference section */
 		2839E27E1A162C24002D73E1 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		2839E2881A1635F7002D73E1 /* DashCast */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = DashCast; sourceTree = BUILT_PRODUCTS_DIR; };
-		2839E28A1A1635F7002D73E1 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
-		2839E28C1A1635F7002D73E1 /* DashCast.1 */ = {isa = PBXFileReference; lastKnownFileType = text.man; path = DashCast.1; sourceTree = "<group>"; };
 		2839E2921A16363E002D73E1 /* audio_data.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_data.c; path = ../../applications/dashcast/audio_data.c; sourceTree = "<group>"; };
 		2839E2931A16363E002D73E1 /* audio_data.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = audio_data.h; path = ../../applications/dashcast/audio_data.h; sourceTree = "<group>"; };
 		2839E2941A16363E002D73E1 /* audio_decoder.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_decoder.c; path = ../../applications/dashcast/audio_decoder.c; sourceTree = "<group>"; };
@@ -1518,15 +1514,6 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		2839E2891A1635F7002D73E1 /* DashCast */ = {
-			isa = PBXGroup;
-			children = (
-				2839E28A1A1635F7002D73E1 /* main.c */,
-				2839E28C1A1635F7002D73E1 /* DashCast.1 */,
-			);
-			path = DashCast;
-			sourceTree = "<group>";
-		};
 		2839E2911A1635FE002D73E1 /* DashCast */ = {
 			isa = PBXGroup;
 			children = (
@@ -1796,7 +1783,6 @@
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
 				9201FE7E18D5A444003D1ACA /* libgpac */,
-				2839E2891A1635F7002D73E1 /* DashCast */,
 			);
 			sourceTree = "<group>";
 		};

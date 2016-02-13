@@ -29,6 +29,8 @@
 #include <gpac/xml.h>
 #include <gpac/media_tools.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 /*TODO*/
 typedef struct
 {
@@ -164,6 +166,8 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+
+	u32 consecutive_xlink_count;
 } GF_MPD_SegmentList;
 
 typedef struct
@@ -258,6 +262,7 @@ typedef struct {
 
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
+	u32 m3u8_media_seq_min, m3u8_media_seq_max;
 } GF_MPD_Representation;
 
 
@@ -397,10 +402,17 @@ struct _gf_file_get
 };
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, 
+						GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
+
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration);
+GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root);
 
 GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
 
+void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
+
+void gf_mpd_getter_del_session(GF_FileDownload *getter);
 
 typedef enum
 {
@@ -418,6 +430,6 @@ typedef enum
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, 
 								char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
-
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif // _MPD_H_

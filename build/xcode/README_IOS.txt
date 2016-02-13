@@ -34,6 +34,7 @@ Unzip it in its current directory (ie not a subfolder) so that you have the foll
    Otherwise copy manually the libs to the gpac/extra_lib/lib/ios directory.
 
 6) Compile GPAC:
+   execute /gpac/configure to generate include/gpac/revision.h
    execute the "gpac/build/xcode/generate_ios.sh" script.
    The script checks that all files have been compiled, print an error message if needed.
    Otherwise it generats a .tar.gz archive into the gpac/bin/iOS directory.

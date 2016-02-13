@@ -107,7 +107,7 @@ typedef struct
 
 #endif
 
-#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL)
+#if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 # define OPENGL_RASTER
 #else
 # ifdef OPENGL_RASTER
@@ -290,7 +290,7 @@ struct __tag_compositor
 	u32 new_width, new_height;
 
 	/*current background color*/
-	u32 back_color;
+	u32 back_color, default_back_color;
 
 	/*bounding box draw type: none, unit box/rect and sphere (3D only)*/
 	u32 draw_bvol;
@@ -496,8 +496,11 @@ struct __tag_compositor
 
 	u32 offscreen_width, offscreen_height;
 
+#if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	Bool shader_only_mode;
-
+#endif
+	
+	
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
 #endif

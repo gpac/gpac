@@ -3326,6 +3326,8 @@ static GF_Err xml_http_process_local(XMLHTTPContext *ctx)
 	fsize = gf_ftell(responseFile);
 	gf_fseek(responseFile, 0, SEEK_SET);
 
+	ctx->html_status = 200;
+
 	ctx->data = (char *)gf_malloc(sizeof(char)*(size_t)(fsize+1));
 	fsize = fread(ctx->data, sizeof(char), (size_t)fsize, responseFile);
 	gf_fclose(responseFile);
@@ -3403,9 +3405,10 @@ static JSBool SMJS_FUNCTION(xml_http_send)
 	SMJS_FREE(c, data);
 
 	if (!strncmp(ctx->url, "http://", 7)) {
-		u32 flags;
+		u32 flags = GF_NETIO_SESSION_NOTIFY_DATA;
+		if (!ctx->async)
+			flags |= GF_NETIO_SESSION_NOT_THREADED;
 
-		flags = ctx->async ? 0 : GF_NETIO_SESSION_NOT_THREADED;
 		if (ctx->cache != XHR_CACHETYPE_NORMAL) {
 			if (ctx->cache == XHR_CACHETYPE_NONE) {
 				flags |= GF_NETIO_SESSION_NOT_CACHED;

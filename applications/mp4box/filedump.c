@@ -868,7 +868,6 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 }
 
 
-#ifndef GPAC_DISABLE_AV_PARSERS
 
 static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 {
@@ -882,6 +881,8 @@ static u32 read_nal_size_hdr(char *ptr, u32 nalh_size)
 	}
 	return nal_size;
 }
+
+#ifndef GPAC_DISABLE_AV_PARSERS
 
 static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 {
@@ -917,7 +918,7 @@ static void dump_sei(FILE *dump, u8 *ptr, u32 ptr_size, Bool is_hevc)
 	fprintf(dump, "\"");
 }
 
-static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_hevc, AVCState *avc, u32 nalh_size)
+static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCState *hevc, AVCState *avc, u32 nalh_size)
 {
 	s32 res;
 	u8 type;
@@ -927,9 +928,11 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	u32 data_offset, idx, data_size;
 	GF_BitStream *bs;
 
-	if (is_hevc) {
+	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
-		type = (ptr[0]  & 0x7E) >> 1;
+		bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
+		res = gf_media_hevc_parse_nalu(bs, hevc, &type, &temporal_id, &quality_id);
+
 		fprintf(dump, "code=\"%d\" type=\"", type);
 		switch (type) {
 		case GF_HEVC_NALU_SLICE_TRAIL_N:
@@ -982,12 +985,15 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 			break;
 
 		case GF_HEVC_NALU_VID_PARAM:
+			gf_media_hevc_read_vps(ptr, ptr_size, hevc);
 			fputs("Video Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
+			gf_media_hevc_read_sps(ptr, ptr_size, hevc);
 			fputs("Sequence Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
+			gf_media_hevc_read_pps(ptr, ptr_size, hevc);
 			fputs("Picture Parameter Set", dump);
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
@@ -1026,10 +1032,18 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 		fputs("\"", dump);
 
 		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
-			dump_sei(dump, (u8 *) ptr, ptr_size, is_hevc);
+			dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
+		}
+		
+		if (type<GF_HEVC_NALU_VID_PARAM) {
+
+			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
+			fprintf(dump, " first_slice_in_pic=\"%d\"", hevc->s_info.first_slice_segment_in_pic_flag);
+			fprintf(dump, " dependent_slice_segment=\"%d\"", hevc->s_info.dependent_slice_segment_flag);
 		}
 
-		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", ((ptr[0] & 0x1) << 5) | (ptr[1]>>3), (ptr[1] & 0x7) );
+		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
+		
 #endif //GPAC_DISABLE_HEVC
 		return;
 	}
@@ -1132,7 +1146,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, Bool is_
 	fputs("\"", dump);
 
 	if (type==GF_AVC_NALU_SEI) {
-		dump_sei(dump, (u8 *) ptr, ptr_size, is_hevc);
+		dump_sei(dump, (u8 *) ptr, ptr_size, GF_FALSE);
 	}
 
 	if (res<0)
@@ -1151,6 +1165,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 #ifndef GPAC_DISABLE_AV_PARSERS
 	Bool is_hevc = GF_FALSE;
 	AVCState avc;
+	HEVCState hevc;
 	GF_AVCConfig *avccfg, *svccfg;
 	GF_HEVCConfig *hevccfg, *shvccfg;
 	GF_AVCConfigSlot *slc;
@@ -1163,6 +1178,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 	memset(&avc, 0, sizeof(AVCState));
 	avccfg = gf_isom_avc_config_get(file, track, 1);
 	svccfg = gf_isom_svc_config_get(file, track, 1);
+	memset(&hevc, 0, sizeof(HEVCState));
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	shvccfg = gf_isom_shvc_config_get(file, track, 1);
 	if (!avccfg && !svccfg && !hevccfg && !shvccfg) {
@@ -1202,7 +1218,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
 			fprintf(dump, "  <%s number=\"%d\" size=\"%d\" ", name, i+1, slc->size);\
-			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc, &avc, nalh_size);\
+			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);\
 			fprintf(dump, "/>\n");\
 		}\
 	}\
@@ -1320,7 +1336,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 			} else {
 				fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", idx, nal_size);
 #ifndef GPAC_DISABLE_AV_PARSERS
-				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc, &avc, nalh_size);
+				dump_nalu(dump, ptr, nal_size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);
 #endif
 				fprintf(dump, "/>\n");
 			}
@@ -1659,7 +1675,7 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 	}
 }
 
-#ifndef GPAC_DISABLE_HEVC
+#if !defined(GPAC_DISABLE_HEVC) && !defined( GPAC_DISABLE_AV_PARSERS)
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
 	u32 k, idx;
@@ -1738,7 +1754,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	timescale = gf_isom_get_media_timescale(file, trackNum);
-	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d - Media Duration %s\n", trackNum, trackID, timescale, format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d\n", trackNum, trackID, timescale);
+	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
+	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
+	
 	nb_edits = gf_isom_get_edit_segment_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
@@ -2006,7 +2025,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					if (full_dump) fprintf(stderr, "\t");
 					if (e) fprintf(stderr, "Corrupted AAC Config\n");
 					else {
-						fprintf(stderr, "%s - %d Channel(s) - SampleRate %d", gf_m4a_object_type_name(a_cfg.base_object_type), a_cfg.nb_chan, a_cfg.base_sr);
+						char *heaac = "";
+						if (!is_mp2 && a_cfg.has_sbr) {
+							if (a_cfg.has_ps) heaac = "(HE-AAC v2) ";
+							else heaac = "(HE-AAC v1) ";
+						}
+						fprintf(stderr, "%s %s- %d Channel(s) - SampleRate %d", gf_m4a_object_type_name(a_cfg.base_object_type), heaac, a_cfg.nb_chan, a_cfg.base_sr);
 						if (is_mp2) fprintf(stderr, " (MPEG-2 Signaling)");
 						if (a_cfg.has_sbr) fprintf(stderr, " - SBR: SampleRate %d Type %s", a_cfg.sbr_sr, gf_m4a_object_type_name(a_cfg.sbr_object_type));
 						if (a_cfg.has_ps) fprintf(stderr, " - PS");
@@ -2528,8 +2552,11 @@ void DumpMovieInfo(GF_ISOFile *file)
 	}
 
 	timescale = gf_isom_get_timescale(file);
-	fprintf(stderr, "* Movie Info *\n\tTimescale %d - Duration %s\n\t%d track(s)\n",
-	        timescale, format_duration(gf_isom_get_duration(file), timescale, szDur), gf_isom_get_track_count(file));
+	i=gf_isom_get_track_count(file);
+	fprintf(stderr, "* Movie Info *\n\tTimescale %d - %d track%s\n", timescale, i, i>1 ? "s" : "");
+	
+	fprintf(stderr, "\tComputed Duration %s", format_duration(gf_isom_get_duration(file), timescale, szDur));
+	fprintf(stderr, " - Indicated Duration %s\n", format_duration(gf_isom_get_original_duration(file), timescale, szDur));
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (gf_isom_is_fragmented(file)) {

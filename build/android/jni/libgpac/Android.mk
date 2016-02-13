@@ -19,7 +19,7 @@ LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../extra_lib/include/js/
 LOCAL_C_INCLUDES 	+= $(LOCAL_PATH)/../../../../modules
 
 LOCAL_LDLIBS    += -L$(LOCAL_PATH)/../../../../extra_lib/lib/android/$(TARGET_ARCH_ABI)
-LOCAL_LDLIBS    += -lGLESv1_CM -ldl
+LOCAL_LDLIBS    += -lGLESv2 -ldl
 LOCAL_LDLIBS    += -ljs_osmo -leditline -lft2 -ljpegdroid -lopenjpeg -lpng -lz
 #LOCAL_EXPORT_LDLIBS= -ljs_osmo -leditline -lft2 -ljpeg -lopenjpeg -lpng -lz
 
@@ -157,6 +157,7 @@ LOCAL_SRC_FILES := \
 	../../../../src/utils/color.c \
 	../../../../src/utils/token.c \
 	../../../../src/utils/configfile.c \
+	../../../../src/utils/os_config_init.c \
 	../../../../src/utils/utf.c \
 	../../../../src/utils/os_thread.c \
 	../../../../src/utils/cache.c \

@@ -81,6 +81,10 @@ void mesh_reset(GF_Mesh *mesh)
 		glDeleteBuffers(1, &mesh->vbo);
 		mesh->vbo = 0;
 	}
+	if (mesh->vbo_idx) {
+		glDeleteBuffers(1, &mesh->vbo_idx);
+		mesh->vbo_idx = 0;
+	}
 }
 
 void mesh_free(GF_Mesh *mesh)

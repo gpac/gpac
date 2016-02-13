@@ -561,6 +561,8 @@ struct _object_clock
 	//media time in ms corresponding to the init tmiestamp of the clock
 	u32 media_time_at_init;
 	Bool has_media_time_shift;
+
+	u16 ocr_on_esid;
 };
 
 /*destroys clock*/
@@ -1184,8 +1186,6 @@ GF_Err gf_odm_post_es_setup(struct _es_channel *ch, struct _generic_codec *dec, 
 */
 void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
 
-
-Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 
 /*media access events */
 void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);

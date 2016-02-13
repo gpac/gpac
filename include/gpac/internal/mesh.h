@@ -134,7 +134,7 @@ enum
 };
 
 /*indexes as used in glDrawElements - note that integer type is not allowed with oglES*/
-#ifdef GPAC_USE_GLES1X
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 #define IDX_TYPE	u16
 #else
 #define IDX_TYPE	u32
@@ -166,6 +166,7 @@ typedef struct __gf_mesh
 //	u32 aabb_nb_index;
 
 	u32 vbo;
+	u32 vbo_idx;
 	Bool vbo_dirty, vbo_dynamic;
 } GF_Mesh;
 

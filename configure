@@ -440,7 +440,9 @@ cc="${cross_prefix}${cc}"
 cc="${cc}"
 cxx="${cross_prefix}${cxx}"
 ar="${cross_prefix}${ar}"
-ranlib="${cross_prefix}${ranlib}"
+if [ -e "${cross_prefix}${ranlib}" ] ; then
+    ranlib="${cross_prefix}${ranlib}"
+fi
 strip="${cross_prefix}${strip}"
 pkg_config="${pkg_config}"
 windres="${cross_prefix}${windres}"
@@ -583,7 +585,7 @@ EOF
         mingw32="yes"
         win32="yes"
         want_pic="no"
-        extralibs="$extralibs -lws2_32 -lwinmm"
+        extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
         CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
         if test "$cross_prefix" != "" ; then
             GPAC_SH_FLAGS=""
@@ -761,7 +763,6 @@ fi
 #look for spidermonkey JS support
 mozjs_pkgcfg="no"
 
-
 #spidermonkey test for new API
 if test "$has_js" = "no" ; then
 
@@ -773,10 +774,7 @@ EOF
     #try local
     js_inc="$local_inc/js"
     js_flags="-DXP_UNIX -I$local_inc/js"
-    if docc $js_flags -L$local_lib -ljs -lpthread ; then
-        has_js="local"
-        #dc added
-    elif test "$pkg_config" != "no"; then
+    if test "$pkg_config" != "no"; then
         #try pkg-config
         if $pkg_config --exists mozilla-js ; then
             mozjs_pkgcfg="mozilla-js"
@@ -784,17 +782,20 @@ EOF
             mozjs_pkgcfg="mozjs"
         elif $pkg_config --exists mozjs185 ; then
             mozjs_pkgcfg="mozjs185"
+    elif docc $js_flags -L$local_lib -ljs -lpthread ; then
+        has_js="local"
+        #dc added
     fi
 
-        if test $mozjs_pkgcfg != "no" ; then
-            js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
-            js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
-            if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
-                has_js="system"
-                js_lib=`$pkg_config --libs $mozjs_pkgcfg`
-            fi
-        #try firefox folders (starting at ubuntu 11.10, no pkg-config)
-        elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
+    if test $mozjs_pkgcfg != "no" ; then
+        js_flags=`$pkg_config --cflags $mozjs_pkgcfg`
+        js_lib_pkg=`$pkg_config --libs $mozjs_pkgcfg`
+        if docc $js_flags $js_lib_pkg $LDFLAGS -lpthread ; then
+           has_js="system"
+           js_lib=`$pkg_config --libs $mozjs_pkgcfg`
+        fi
+    #try firefox folders (starting at ubuntu 11.10, no pkg-config)
+    elif ls -d /usr/lib/firefox* > /dev/null 2>>$logs ; then
             firefox_version=`cd /usr/lib ; ls -d firefox* | grep -v addons | grep -v devel ; cd - > /dev/null`
             for i in $firefox_version ; do
                 if test "$has_js" = "no" ; then
@@ -810,7 +811,7 @@ EOF
                     fi
                 fi
             done
-        fi
+     fi
 
         if test "$has_js" = "no" ; then
             #try prefix (DC)
@@ -1398,7 +1399,11 @@ cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 #include <stdio.h>
 int main(void) {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 25, 0 )
+    printf("ID %d", AV_CODEC_ID_H264);
+#else
     printf("ID %d", CODEC_ID_H264);
+#endif
     return 0;
 }
 EOF
@@ -1434,7 +1439,11 @@ cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 #include <stdio.h>
 int main(void) {
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(54, 25, 0 )
+    printf("ID %d", AV_CODEC_ID_H264);
+#else
     printf("ID %d", CODEC_ID_H264);
+#endif
     return 0;
 }
 EOF
@@ -1445,7 +1454,7 @@ else
 cat > $TMPC << EOF
 #include <libavcodec/avcodec.h>
 int main(void) {
-    CODEC_ID_H264;
+    printf("ID %d", CODEC_ID_H264);
     return 0;
 }
 EOF
@@ -2143,6 +2152,10 @@ for opt do
     esac
 done
 
+#always force static modules when static build is used, we cannot have one exe with libgpac_static using a module with libgpac dynamic, this would cause bugs with gf_sys_init()
+if test "$static_build" = "yes"; then
+static_modules="yes"
+fi
 
 
 if test "$disable_core_tools" = "no"; then
@@ -2942,7 +2955,10 @@ if test "$use_fixed_point" = "yes"; then
 fi
 
 if test "$use_memory_tracking" = "yes"; then
-    echo "#define GPAC_MEMORY_TRACKING" >> $TMPH
+    echo "#define GPAC_MEMORY_TRACKING" >> $TMPHz
+    if test "$cygwin" = "yes" ; then
+		echo "#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE" >> $TMPHz
+    fi
 fi
 
 
@@ -3088,6 +3104,7 @@ echo "DISABLE_OD_DUMP=$disable_od_dump" >> config.mak
 echo "DISABLE_OD_PARSE=$disable_od_parse" >> config.mak
 echo "MINIMAL_OD=$disable_od" >> config.mak
 echo "DISABLE_ISOM_ADOBE=$disable_isoff_hds" >> config.mak
+echo "DISABLE_VRML=$disable_vrml" >> config.mak
 
 if test "$disable_parsers" = "yes" ; then
     disable_m2ts_mux="yes"
@@ -3266,6 +3283,7 @@ if test "$source_path_used" = "yes" ; then
         mkdir -p "$dir"
     done
     ln -sf "$source_path/Makefile" Makefile
+    ln -sf "$source_path/static.mak" static.mak
     ln -sf "$source_path/src/Makefile" src/Makefile
 
     mkdir -p applications

@@ -254,7 +254,11 @@ default_sync:
 	// a little optimization here: if all our samples are sync,
 	//set the RAPOnly to true... for external users...
 	if (! stbl->SyncSample) {
-		if (moov->mvex && (esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+		if (
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+			moov->mvex && 
+#endif
+			(esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
@@ -397,45 +401,6 @@ GF_Err SetTrackDuration(GF_TrackBox *trak)
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-
-Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
-{
-	Bool res = GF_FALSE;
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	GF_BitStream *bs1, *bs2;
-	char *buf1, *buf2;
-	u32 len1, len2;
-
-	if (!ptr1 || !ptr2)
-		return GF_FALSE;
-
-	bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (grouping_type) {
-		sgpd_write_entry(grouping_type, ptr1, bs1);
-	} else {
-		sgpd_Write((GF_Box *)ptr1, bs1);
-	}
-	gf_bs_get_content(bs1, &buf1, &len1);
-	gf_bs_del(bs1);
-
-	bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (grouping_type) {
-		sgpd_write_entry(grouping_type, ptr2, bs2);
-	} else {
-		sgpd_Write((GF_Box *)ptr2, bs2);
-	}
-	gf_bs_get_content(bs2, &buf2, &len2);
-	gf_bs_del(bs2);
-
-
-	if ((len1==len2) && !memcmp(buf1, buf2, len1))
-		res = GF_TRUE;
-
-	gf_free(buf1);
-	gf_free(buf2);
-#endif
-	return res;
-}
 
 GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset, Bool is_first_merge)
 {
@@ -705,7 +670,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		}
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-		if (gf_isom_cenc_has_saiz_saio(NULL, traf)) {
+		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
 			//GF_BitStream *bs;
 			u32 size, nb_saio;
 			u64 offset;

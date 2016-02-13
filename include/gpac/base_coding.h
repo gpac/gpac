@@ -46,6 +46,8 @@ extern "C" {
 
 #include <gpac/tools.h>
 
+#ifndef GPAC_DISABLE_CORE_TOOLS
+
 /*!
  *\brief base64 encoder
  *
@@ -101,6 +103,6 @@ u32 gf_base16_decode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 
 }
 #endif
 
+#endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif		/*_GF_BASE_CODING_H_*/
-
