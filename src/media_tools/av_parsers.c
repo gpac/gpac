@@ -2216,6 +2216,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
 	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb, luma_bd, chroma_bd;
+	u8 separate_colour_plane_flag;
 	GF_BitStream *bs;
 	char *sps_data_without_emulation_bytes = NULL;
 	u32 sps_data_without_emulation_bytes_size = 0;
@@ -2271,7 +2272,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		chroma_format_idc = bs_get_ue(bs);
 		ChromaArrayType = chroma_format_idc;
 		if (chroma_format_idc == 3) {
-			u8 separate_colour_plane_flag = gf_bs_read_int(bs, 1);
+			separate_colour_plane_flag = gf_bs_read_int(bs, 1);
 			/*
 			Depending on the value of separate_colour_plane_flag, the value of the variable ChromaArrayType is assigned as follows.
 			\96	If separate_colour_plane_flag is equal to 0, ChromaArrayType is set equal to chroma_format_idc.
@@ -2339,13 +2340,32 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	gf_bs_read_int(bs, 1); /*direct_8x8_inference_flag*/
 	cl = cr = ct = cb = 0;
 	if (gf_bs_read_int(bs, 1)) { /*crop*/
+		int CropUnitX, CropUnitY, SubWidthC = -1, SubHeightC = -1;
+
+		if (chroma_format_idc == 1) {
+			SubWidthC = 2, SubHeightC = 2;
+		} else if (chroma_format_idc == 2) {
+			SubWidthC = 2, SubHeightC = 1;
+		} else if ((chroma_format_idc == 3) && (separate_colour_plane_flag == 0)) {
+			SubWidthC = 1, SubHeightC = 1;
+		} 
+
+		if (ChromaArrayType == 0) {
+			assert(SubWidthC==-1);
+			CropUnitX = 1;
+			CropUnitY = 2-sps->frame_mbs_only_flag;
+		} else {
+			CropUnitX = SubWidthC;
+			CropUnitY = SubHeightC * (2-sps->frame_mbs_only_flag);
+		}
+
 		cl = bs_get_ue(bs); /*crop_left*/
 		cr = bs_get_ue(bs); /*crop_right*/
 		ct = bs_get_ue(bs); /*crop_top*/
 		cb = bs_get_ue(bs); /*crop_bottom*/
 
-		sps->width = 16*mb_width - 2*(cl + cr);
-		sps->height -= (2-sps->frame_mbs_only_flag)*2*(ct + cb);
+		sps->width = 16*mb_width - CropUnitX * (cl + cr);
+		sps->height -= (2-sps->frame_mbs_only_flag) * CropUnitY * (ct + cb);
 	}
 
 	if (vui_flag_pos) {
