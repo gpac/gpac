@@ -48,7 +48,7 @@ This directory will be reminded as <GPAC_EXTRA_DIR>
 
 4) Building GPAC for Android
  
-	(optionnal) Links the Android SDK and NDK directories
+	(optional) Links the Android SDK and NDK directories
     
 		* cd /opt/
 		* sudo ln -s /home/xxx/xxx/<Android SDK> android_sdk /* /opt/android_sdk will then become your new <ANDROID_SDK_DIR> */
@@ -58,10 +58,10 @@ This directory will be reminded as <GPAC_EXTRA_DIR>
 
 		(optionnal)Create a link to the ANT directory 
 			* cd /opt/
-			* sudo ln -s /home/xxx/xxx/ANT_DIR ant /* /opt/ant will then cecome your new <ANT_DIR>
+			* sudo ln -s /home/xxx/xxx/ANT_DIR ant /* /opt/ant will then become your new <ANT_DIR>
       
 		Then go to GPAC_DIR/build/android/jni and launch the script 
-		./gpac_build_android <ANDROID_NDK_DIR> <ANDROID_SDK_DIR> <ANT_DIR>
+		./gpac_build_android -ndk=<ANDROID_NDK_DIR> -sdk=<ANDROID_SDK_DIR> -ant=<ANT_DIR>
 		It will generate the package Osmo4.apk.
 		You can find the Osmo4.apk in GPAC_DIR/applications/osmo4_android/bin
  
