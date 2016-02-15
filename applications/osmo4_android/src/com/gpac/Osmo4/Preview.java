@@ -379,11 +379,7 @@ public class Preview {
             throw new IllegalArgumentException("parameters must not be null"); //$NON-NLS-1$
         // Get preview size
         mPreviewSize = parameters.getPreviewSize();
-		mPreviewSize = getOptimalPreviewSize(parameters.getSupportedPreviewSizes(), 800, 480);
-		
-		parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
-		
-		mPreviewSize = parameters.getPreviewSize();
+				parameters.setPreviewSize(mPreviewSize.width, mPreviewSize.height);
         Log.d(TAG, "PreviewSize: " + mPreviewSize.width + 'x' + mPreviewSize.height); //$NON-NLS-1$
 
         // Get preview format
@@ -397,8 +393,9 @@ public class Preview {
             parameters.setPreviewFormat(mPreviewFormat);
         }
 
-        parameters.setPreviewFrameRate(15);
-        parameters.setFocusMode(Parameters.FOCUS_MODE_AUTO);
+				Log.d(TAG, "PreviewFrameRate: " + parameters.getPreviewFrameRate()); //$NON-NLS-1$
+        parameters.setPreviewFrameRate(parameters.getPreviewFrameRate());
+        parameters.setFocusMode(Parameters.FOCUS_MODE_CONTINUOUS_VIDEO );
 
         return parameters;
     }
