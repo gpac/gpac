@@ -3834,8 +3834,8 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 	i=0;
 	while ((a = (GF_Box*)gf_list_enum(movie->TopBoxes, &i))) {
 		e = gf_isom_box_size(a);
-		assert (e == GF_OK);
-		mdat_size += a->size;
+		if (e == GF_OK)
+			mdat_size += a->size;
 	}
 	return mdat_size;
 }

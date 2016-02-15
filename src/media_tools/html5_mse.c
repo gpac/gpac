@@ -787,8 +787,10 @@ u32 gf_mse_parse_segment(void *par)
 				e = sb->parser->ChannelGetSLP(sb->parser, track->channel,
 				                              &packet->data, &packet->size, &packet->sl_header,
 				                              &packet->is_compressed, &packet->status, &packet->is_new_data);
-				assert(e == GF_OK);
-				if (packet->status == GF_OK && packet->is_new_data && packet->size) {
+				if (e!=GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MSE] Failed to fetch AU from channel\n"));
+				}
+				else if (packet->status == GF_OK && packet->is_new_data && packet->size) {
 					char *data;
 					assert(packet->is_new_data && packet->size);
 					data = (char *)gf_malloc(packet->size);

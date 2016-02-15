@@ -1339,6 +1339,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	return ret;
 }
 
+#if !defined(GPAC_DISABLE_VRML) && !defined(GPAC_DISABLE_3D)
 static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 {
 	return GF_FALSE;
@@ -1676,6 +1677,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	
 #endif
 }
+#endif //GPAC_DISABLE_VRML
 
 Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh)
 {

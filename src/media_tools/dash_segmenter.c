@@ -737,7 +737,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	GF_Err e;
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
-	u32 first_seg, cur_seg, fragment_index, max_sap_type;
+	u32 cur_seg, fragment_index, max_sap_type;
+//	u32 first_seg;
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -1320,7 +1321,8 @@ restart_fragmentation_pass:
 
 	if (!seg_rad_name) use_url_template = GF_FALSE;
 
-	first_seg = cur_seg = 1;
+	//first_seg = 1;
+	cur_seg = 1;
 	fragment_index = 1;
 	if (dash_input->moof_seqnum_increase) {
 		fragment_index = dash_input->moof_seqnum_increase * dash_input->idx_representations + 1;
@@ -1347,7 +1349,10 @@ restart_fragmentation_pass:
 		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
-		if (opt) first_seg = cur_seg = atoi(opt);
+		if (opt) {
+			cur_seg = atoi(opt);
+			//first_seg = cur_seg;
+		}
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextFragmentIndex");
 		if (opt) fragment_index = atoi(opt);
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "CumulatedDuration");
@@ -1663,15 +1668,16 @@ restart_fragmentation_pass:
 							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
-								u32 scaler, SegmentNum;
+								u32 scaler;
+//								u32 SegmentNum;
 								Double SegmentStart;
 								u64 next_sap_dur;
 								if (dash_cfg->segment_duration_strict) {
 									SegmentStart = 0;
-									SegmentNum = 1;
+//									SegmentNum = 1;
 								} else {
 									SegmentStart = segment_start_time;
-									SegmentNum = cur_seg - first_seg;
+//									SegmentNum = cur_seg - first_seg;
 								}
 								/*this is the fragment duration from last sample added to next SAP*/
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
@@ -2950,6 +2956,7 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 
 		if (target_duration_in_timescale < track_duration) {
 			u32 i, j, track_duration2, sample_count = gf_isom_get_sample_count(in, trackNumber);
+			track_duration2 = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Target track %u duration shorter than %lfs: removing samples and adjusting last sample duration.\n", trackNumber, duration_in_sec));
 			for (i=1; i <= sample_count; ++i) {
 				u32 di;

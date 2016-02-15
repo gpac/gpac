@@ -483,7 +483,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		/* Probably out of memory */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, aborting due to OUT of MEMORY !\n", __LINE__));
 		err = gf_cache_delete_entry ( entry );
-		assert ( err == GF_OK );
+		if ( err != GF_OK ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, failed to delete cache entry!\n", __LINE__));
+		}
 		return NULL;
 	}
 
@@ -527,7 +529,9 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 		/* OUT of memory ? */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, aborting due to OUT of MEMORY !\n", __LINE__));
 		err = gf_cache_delete_entry ( entry );
-		assert ( err == GF_OK );
+		if ( err != GF_OK ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, failed to delete cache entry!\n", __LINE__));
+		}
 		return NULL;
 	}
 	gf_cache_set_etag_on_disk(entry, gf_cfg_get_key(entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_ETAG));

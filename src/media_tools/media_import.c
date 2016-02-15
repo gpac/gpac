@@ -3115,7 +3115,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 {
 	GF_Err e;
 	GF_DIMSDescription dims;
-	Bool destroy_esd, inRootOD, do_compress, use_dict, is_dims;
+	Bool destroy_esd, inRootOD, do_compress, is_dims;
 	u32 i, track, tkID, di, mtype, max_size, count, streamType, oti, timescale, specInfoSize, header_end, dts_inc, par_den, par_num;
 	GF_ISOSample *samp;
 	GF_XMLAttribute *att;
@@ -3129,7 +3129,10 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node, *childnode;
 	char *szRootName, *szSampleName, *szImpName;
-
+#ifndef GPAC_DISABLE_ZLIB
+	Bool use_dict = GF_FALSE;
+#endif
+	
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
 	szSampleName = dims_doc ? "DIMSUnit" : "NHNTSample";
 	szImpName = dims_doc ? "DIMS" : "NHML";
@@ -3185,7 +3188,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
 		goto exit;
 	}
-	use_dict = GF_FALSE;
+	
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
 	tkID = mtype = streamType = oti = par_den = par_num = 0;
 	timescale = 1000;
@@ -3230,7 +3233,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			NHML_SCAN_INT("%u", dts_inc)
 		} else if (!stricmp(att->name, "gzipSamples")) {
 			do_compress = (!stricmp(att->value, "yes")) ? GF_TRUE : GF_FALSE;
-		} else if (!stricmp(att->name, "gzipDictionary")) {
+		}
+#ifndef GPAC_DISABLE_ZLIB
+		else if (!stricmp(att->name, "gzipDictionary")) {
 			u64 d_size;
 			if (stricmp(att->value, "self")) {
 				FILE *d = gf_fopen(att->value, "rb");
@@ -3247,6 +3252,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			}
 			use_dict = GF_TRUE;
 		}
+#endif
 		/*unknow desc related*/
 		else if (!stricmp(att->name, "compressorName")) {
 			strcpy(sdesc.compressor_name, att->value);
@@ -3805,7 +3811,7 @@ exit:
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, sample_rate, block_size, i, readen;
+	u32 track, trackID, di, sample_rate, block_size, i, read;
 	GF_ISOSample *samp;
 	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
@@ -3993,8 +3999,11 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		}
 
 		if (samp->dataLength) {
-			readen = (u32) fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
-			assert(readen == samp->dataLength);
+			read = (u32) fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
+			if (read != samp->dataLength) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Failed to read logs");
+				goto exit;
+			}
 		}
 		samp->dataLength += 1;
 		/*if last frame is "no data", abort - this happens in many files with constant mode (ie constant files), where
@@ -6973,7 +6982,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
 	GF_Err e;
 	GF_ISOSample *samp;
-	u32 mtype, track, di, timescale, readen;
+	u32 mtype, track, di, timescale, read;
 	FILE *src;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -7048,8 +7057,12 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	gf_fseek(src, 0, SEEK_SET);
 	samp->IsRAP = RAP;
 	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
-	readen = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
-	assert( readen == samp->dataLength );
+	read = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
+	if ( read != samp->dataLength ) {
+		e = gf_import_message(import, GF_IO_ERR, "Failed to read raw unit %d bytes", samp->dataLength);
+		goto exit;
+		
+	}
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
 	gf_media_update_bitrate(import->dest, track);

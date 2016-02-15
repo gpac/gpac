@@ -2342,9 +2342,9 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 		if (level) slc->data[3] = level;
 	}
 	e = gf_isom_avc_config_update(file, track, 1, avcc);
-	assert (e == GF_OK);
+
 	gf_odf_avc_cfg_del(avcc);
-	return GF_OK;
+	return e;
 }
 
 

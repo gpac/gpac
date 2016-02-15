@@ -2636,9 +2636,9 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 	if (!kwd) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)kwd, &size);
-	assert(e == GF_OK);
+	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, kwd->tag, size);
-	assert(e == GF_OK);
+	if (e) return e;
 
 	gf_bs_write_int(bs, kwd->languageCode, 24);
 	gf_bs_write_int(bs, kwd->isUTF8, 1);

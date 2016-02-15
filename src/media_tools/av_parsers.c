@@ -4719,7 +4719,10 @@ Bool gf_ac3_parser_bs(GF_BitStream *bs, GF_AC3Header *hdr, Bool full_parse)
 	pos = gf_bs_get_position(bs);
 
 	syncword = gf_bs_read_u16(bs);
-	assert (syncword == 0x0B77);
+	if (syncword != 0x0B77) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[AC3] Wrong sync word detected (0x%X - expecting 0x0B77).\n", syncword));
+		return GF_FALSE;
+	}
 	gf_bs_read_u16(bs); //crc1
 	fscod = gf_bs_read_int(bs, 2);
 	frmsizecod = gf_bs_read_int(bs, 6);
@@ -4791,7 +4794,11 @@ restart:
 
 block:
 	syncword = gf_bs_read_u16(bs);
-	assert(syncword == 0x0B77);
+	if (syncword != 0x0B77) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[E-AC3] Wrong sync word detected (0x%X - expecting 0x0B77).\n", syncword));
+		return GF_FALSE;
+	}
+
 	gf_bs_read_int(bs, 2); //strmtyp
 	substreamid = gf_bs_read_int(bs, 3);
 	framesize += gf_bs_read_int(bs, 11);

@@ -1980,7 +1980,9 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 	data_size = section->data_size;
 
 	/*TOT only contains 40 bits of UTC_time; TDT add descriptors and a CRC*/
-	assert(table_id!=GF_M2TS_TABLE_ID_TDT || data_size == 5); /**/
+	if ((table_id==GF_M2TS_TABLE_ID_TDT) && (data_size != 5)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Corrupted TDT size\n", table_name));
+	}
 	GF_SAFEALLOC(time_table, GF_M2TS_TDT_TOT);
 
 	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/

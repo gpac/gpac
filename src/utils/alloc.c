@@ -23,6 +23,9 @@
  *
  */
 
+#if defined(__GNUC__) && __GNUC__ >= 4
+#define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
