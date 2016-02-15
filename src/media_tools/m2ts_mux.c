@@ -495,7 +495,10 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 	stream->table_needs_send = GF_FALSE;
 	table = stream->current_table;
-	assert(table);
+	if (!table) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Invalid muxer state, table is NULL!\n"));
+		return;
+	}
 
 	section = stream->current_section;
 	assert(section);

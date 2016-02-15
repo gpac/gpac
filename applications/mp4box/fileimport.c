@@ -789,9 +789,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					gf_fseek(f, 0, SEEK_SET);
 					data = gf_malloc(sizeof(char)*size);
 					read = fread(data, 1, size, f);
-					assert(read);
-					assert(read == size);
 					gf_fclose(f);
+					if (read != size) {
+						fprintf(stderr, "Error: could not read rvc config from %s\n", rvc_config);
+						e = GF_IO_ERR;
+						goto exit;
+					}
 #ifdef GPAC_DISABLE_ZLIB
 					fprintf(stderr, "Error: no zlib support - RVC not available\n");
 					e = GF_NOT_SUPPORTED;

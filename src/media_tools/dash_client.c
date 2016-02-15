@@ -1320,8 +1320,9 @@ static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u
 
 static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segment_duration)
 {
-	u64 start, dur;
-	u32 scale;
+	u64 start = 0;
+	u64 dur = 0;
+	u32 scale = 1000;
 
 	start = gf_dash_get_segment_start_time_with_timescale(group, &dur, &scale);
 	if (segment_duration) {
@@ -1667,7 +1668,7 @@ static void gf_dash_solve_representation_xlink(GF_DashClient *dash, GF_MPD_Repre
 static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 {
 	GF_Err e;
-	Bool force_timeline_setup;
+	Bool force_timeline_setup = GF_FALSE;
 	u32 group_idx, rep_idx, i, j;
 	u64 fetch_time=0;
 	GF_DOMParser *mpd_parser;
@@ -1776,9 +1777,8 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 
 		purl = NULL;
-
-
 	}
+	
 	fetch_time = dash_get_fetch_time(dash);
 
 	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, MPD has been fetched aobve

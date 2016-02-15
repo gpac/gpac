@@ -1392,7 +1392,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 			SSL_set_fd(sess->ssl, gf_sk_get_handle(sess->sock));
 			SSL_set_connect_state(sess->ssl);
 			ret = SSL_connect(sess->ssl);
-			assert(ret>0);
+			if (ret<=0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Cannot connect, error %d\n", ret));
+			}
 
 			cert = SSL_get_peer_certificate(sess->ssl);
 			/*if we have a cert, check it*/

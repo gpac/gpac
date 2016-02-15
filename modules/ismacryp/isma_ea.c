@@ -395,7 +395,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	bin128 KID;
 	char *buffer;
 	u32 max_size, i, subsample_count;
-	u64 BSO;
 	GF_CENCSampleAuxInfo *sai;
 
 	e = GF_OK;
@@ -472,7 +471,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	//sub-sample encryption
 	if (sai->subsample_count) {
 		subsample_count = 0;
-		BSO = 0;
 		while (gf_bs_available(cyphertext_bs)) {
 			if (subsample_count >= sai->subsample_count)
 				break;

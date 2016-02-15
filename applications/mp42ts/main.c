@@ -1024,8 +1024,12 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 							GF_Err e;
 							source->streams[i].timescale = esd->slConfig->timestampResolution;
 							e = gf_m2ts_program_stream_update_ts_scale(&source->streams[i], esd->slConfig->timestampResolution);
-							assert(!e);
-							if (!source->streams[i].sl_config) source->streams[i].sl_config = (GF_SLConfig *)gf_odf_desc_new(GF_ODF_SLC_TAG);
+							if (e != GF_OK) {
+								fprintf(stderr, "Failed updating TS program timescale\n");
+							}
+							else if (!source->streams[i].sl_config)
+								source->streams[i].sl_config = (GF_SLConfig *)gf_odf_desc_new(GF_ODF_SLC_TAG);
+							
 							memcpy(source->streams[i].sl_config, esd->slConfig, sizeof(GF_SLConfig));
 							break;
 						}

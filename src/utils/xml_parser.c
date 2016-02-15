@@ -1245,7 +1245,9 @@ GF_Err gf_xml_sax_parse_file(GF_SAXParser *parser, const char *fileName, gf_xml_
 	//open file and copy possible BOM
 #ifdef NO_GZIP
 	parser->f_in = gf_fopen(fileName, "rt");
-	fread(szLine, 1, 4, parser->f_in);
+	if (fread(szLine, 1, 4, parser->f_in) != 4) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[XML] Error loading BOM\n"));
+	}
 #else
 	gzInput = gzopen(fileName, "rb");
 	if (!gzInput) return GF_IO_ERR;

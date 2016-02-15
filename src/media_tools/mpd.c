@@ -1162,6 +1162,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 	template_width = 0;
 	template_idx_start = 0;
 	elt = NULL;
+	pe = NULL;
 	for (i=0; i<nb_streams; i++) {
 		u32 count_variants;
 		stream = gf_list_get(pl->streams, i);

@@ -3519,8 +3519,8 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 				GF_Err e;
 				GF_BitStream *bs = gf_bs_new(wave->data+offset, wave->dataSize-offset, GF_BITSTREAM_READ);
 				e = gf_isom_parse_box(&a, bs);
-				assert(e == GF_OK);
 				gf_bs_del(bs);
+				if (e) return e;
 				ptr->esd = (GF_ESDBox *)a;
 			}
 			gf_isom_box_del(a);
