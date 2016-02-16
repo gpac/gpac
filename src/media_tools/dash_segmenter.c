@@ -2949,10 +2949,11 @@ static u32 isom_get_track_duration_from_samples_in_timescale(GF_ISOFile *in, u32
 static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_in_sec, const Double fragment_duration_in_sec) {
 	GF_Err e = GF_OK;
 
-	u32 trackNumber;
-	for (trackNumber=1; trackNumber<=gf_isom_get_track_count(in); ++trackNumber) {
+	u32 trackNumber, trackCount=gf_isom_get_track_count(in);
+	for (trackNumber=1; trackNumber<=trackCount; ++trackNumber) {
 		const u32 target_duration_in_timescale = (u32)(duration_in_sec * gf_isom_get_timescale(in));
 		const u32 track_duration = isom_get_track_duration_from_samples_in_timescale(in, trackNumber);
+		gf_set_progress("ISO File Force Duration", trackNumber-1, trackCount);
 
 		if (target_duration_in_timescale < track_duration) {
 			u32 i, j, track_duration2, sample_count = gf_isom_get_sample_count(in, trackNumber);
@@ -2961,6 +2962,7 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			for (i=1; i <= sample_count; ++i) {
 				u32 di;
 				GF_ISOSample *s = gf_isom_get_sample(in, trackNumber, i, &di);
+				gf_set_progress("ISO File Force Duration", (trackNumber-1)*sample_count+i, trackCount*sample_count);
 				if (s->DTS >= duration_in_sec * gf_isom_get_media_timescale(in, trackNumber)) {
 					track_duration2 = (u32)(s->DTS * gf_isom_get_timescale(in) / gf_isom_get_media_timescale(in, trackNumber));
 					break;
@@ -2969,6 +2971,7 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			for (j=i; j <= sample_count; ++j) {
 				u32 di;
 				GF_ISOSample *s = gf_isom_get_sample(in, trackNumber, i, &di);
+				gf_set_progress("ISO File Force Duration", (trackNumber-1)*sample_count+j, trackCount*sample_count);
 				e = gf_isom_remove_sample(in, trackNumber, i);
 				gf_isom_sample_del(&s);
 				assert(e == GF_OK);
@@ -2983,6 +2986,7 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 			for (i=1; i<=edit_count; ++i) {
 				u64 EditTime, SegmentDuration, MediaTime;
 				u8 EditMode;
+				gf_set_progress("ISO File Force Duration", (trackNumber-1)*edit_count+i, trackCount*edit_count);
 				e = gf_isom_get_edit_segment(in, trackNumber, i, &EditTime, &SegmentDuration, &MediaTime, &EditMode);
 				if (e) {
 					e = GF_OK;
@@ -3010,7 +3014,8 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 		if (e)
 			break;
 	}
-
+	
+	gf_set_progress("ISO File Force Duration", 1, 1);
 	gf_isom_update_duration(in);
 	
 	return e;
