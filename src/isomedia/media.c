@@ -603,6 +603,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 //Get the total media duration based on the TimeToSample table
 GF_Err Media_SetDuration(GF_TrackBox *trak)
 {
+	GF_Err e;
 	GF_ESD *esd;
 	u64 DTS;
 	GF_SttsEntry *ent;
@@ -632,8 +633,15 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	default:
 		//we assume a constant frame rate for the media and assume the last sample
 		//will be hold the same time as the prev one
-		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
+		e = stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
+		if (e < 0) {
+			return e;
+		}
+		if (trak->Media->information->sampleTable->TimeToSample->nb_entries > 0) {
+			ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
+		} else {
+			ent = NULL;
+		}
 		trak->Media->mediaHeader->duration = DTS;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		trak->Media->mediaHeader->duration += trak->dts_at_seg_start;
@@ -641,7 +649,7 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 			
 			
 #if 1
-		trak->Media->mediaHeader->duration += ent->sampleDelta;
+		if (ent) trak->Media->mediaHeader->duration += ent->sampleDelta;
 #else
 		if (!ent) {
 			u64 DTSprev;
