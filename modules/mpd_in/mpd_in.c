@@ -89,7 +89,7 @@ const char * MPD_MPD_EXT = "3gm mpd";
 const char * MPD_M3U8_DESC = "Apple HLS Streaming";
 const char * MPD_M3U8_EXT = "m3u8 m3u";
 
-const char * MPD_SMOOTH_DESC = "Apple HLS Streaming";
+const char * MPD_SMOOTH_DESC = "Microsoft Smooth Streaming";
 const char * MPD_SMOOTH_EXT = "ism";
 
 static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
