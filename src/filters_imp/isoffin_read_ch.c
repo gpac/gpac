@@ -221,10 +221,17 @@ next_segment:
 			}
 			e = GF_OK;
 			if (param.url_query.next_url_init_or_switch_segment) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
+				u64 tfdt = gf_isom_get_current_tfdt(read->mov, 1);
+				char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU")\n", param.url_query.next_url_init_or_switch_segment, tfdt));
+				if (tfdt_val) {
+					sprintf(tfdt_val+5, LLU, tfdt);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+				}
 				if (read->mov) gf_isom_close(read->mov);
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
-				if (e<0) {
+				if (e < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc(), gf_error_to_string(e) ));
 				}
 			}
