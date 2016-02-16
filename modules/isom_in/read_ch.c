@@ -82,7 +82,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
-	Bool scalable_segment = 0;
+	Bool scalable_segment = GF_FALSE;
 	GF_Err e;
 
 	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
@@ -396,7 +396,7 @@ static void init_reader(ISOMChannel *ch)
 		else
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
 	}
-	ch->to_init = 0;
+	ch->to_init = GF_FALSE;
 
 	ch->current_slh.seekFlag = 0;
 	if (ch->disable_seek) {
@@ -430,7 +430,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	if ((ch->owner->seg_opened==1) && ch->is_pulling) {
-		isor_segment_switch_or_refresh(ch->owner, 1);
+		isor_segment_switch_or_refresh(ch->owner, GF_TRUE);
 	}
 
 	if (ch->to_init) {
@@ -590,7 +590,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->owner->frag_type==1) {
 				//if segment is fully opened and no more data, this track is done, wait for next segment
 				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy && (ch->owner->seg_opened==2) ) {
-					ch->wait_for_segment_switch = 1;
+					ch->wait_for_segment_switch = GF_TRUE;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
 				/*if sample cannot be found and file is fragmented, rewind sample*/
