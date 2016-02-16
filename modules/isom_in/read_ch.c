@@ -435,7 +435,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->to_init) {
 		init_reader(ch);
-        sample_desc_index = ch->last_sample_desc_index;
+		sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
 		if (!ch->sample_time) {
 			ch->last_state = GF_EOS;
