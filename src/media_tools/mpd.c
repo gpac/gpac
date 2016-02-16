@@ -3400,11 +3400,16 @@ GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *de
 	timescale = 10000000;
 	i=0;
 	while ((att = gf_list_enum(root->attributes, &i))) {
-		if (!strcmp(att->name, "TimeScale")) timescale = atoi(att->value);
-		else if (!strcmp(att->name, "Duration")) mpd->media_presentation_duration = atoi(att->value);
-		else if (!strcmp(att->name, "IsLive") && stricmp(att->value, "true") )  mpd->type = GF_MPD_TYPE_DYNAMIC;
-		else if (!strcmp(att->name, "LookaheadCount")) {}
-		else if (!strcmp(att->name, "DVRWindowLength")) mpd->time_shift_buffer_depth = atoi(att->value);
+		if (!strcmp(att->name, "TimeScale"))
+			timescale = atoi(att->value);
+		else if (!strcmp(att->name, "Duration"))
+			mpd->media_presentation_duration = atoi(att->value);
+		else if (!strcmp(att->name, "IsLive") && stricmp(att->value, "true") )
+			mpd->type = GF_MPD_TYPE_DYNAMIC;
+		else if (!strcmp(att->name, "LookaheadCount"))
+		{}
+		else if (!strcmp(att->name, "DVRWindowLength"))
+			mpd->time_shift_buffer_depth = atoi(att->value);
 	}
 	mpd->media_presentation_duration = mpd->media_presentation_duration * 1000 / timescale;
 	mpd->time_shift_buffer_depth = mpd->time_shift_buffer_depth * 1000 / timescale;
