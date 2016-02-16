@@ -2742,7 +2742,7 @@ static GF_Err smooth_replace_string(char *src_str, char *str_match, char *str_re
 static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XMLNode *root, u32 timescale)
 {
 	u32 i;
-	Bool is_audio = 0;
+	Bool is_audio = GF_FALSE;
 	GF_MPD_Representation *rep;
 	GF_XMLAttribute *att;
 	GF_Err e;
@@ -2791,19 +2791,19 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
 		}
 		else if (!strcmp(att->name, "BitsPerSample")) {
 			ISBMFFI_ADD_KEYWORD("bps", att->value)
-			is_audio = 1;
+			is_audio = GF_TRUE;
 		}
 		else if (!strcmp(att->name, "AudioTag")) {
 			ISBMFFI_ADD_KEYWORD("atag", att->value)
-			is_audio = 1;
+			is_audio = GF_TRUE;
 		}
 		else if (!strcmp(att->name, "Channels")) {
 			ISBMFFI_ADD_KEYWORD("ch", att->value)
-			is_audio = 1;
+			is_audio = GF_TRUE;
 		}
 		else if (!strcmp(att->name, "SamplingRate")) {
 			ISBMFFI_ADD_KEYWORD("srate", att->value)
-			is_audio = 1;
+			is_audio = GF_TRUE;
 		}
 	}
 	if (timescale != 10000000) {
@@ -2811,6 +2811,7 @@ static GF_Err smooth_parse_quality_level(GF_MPD *mpd, GF_List *container, GF_XML
 		sprintf(szTS, "%d", timescale);
 		ISBMFFI_ADD_KEYWORD("scale", szTS)
 	}
+	ISBMFFI_ADD_KEYWORD("tfdt", "0000000000000000000")
 	//create a url for the IS to be reconstructed
 	rep->mime_type = gf_strdup(is_audio ? "audio/mp4" : "video/mp4");
 	GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
