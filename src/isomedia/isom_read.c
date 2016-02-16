@@ -157,6 +157,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	u32 width = 0;
 	u32 height = 0;
 	u32 timescale = 10000000;
+	u64 tfdt = 0;
 	char sz4cc[5];
 	char CodecParams[2048];
 	u32 CodecParamLen=0;
@@ -191,6 +192,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		else if (!strncmp(val, "w=", 2)) width = atoi(val+2);
 		else if (!strncmp(val, "h=", 2)) height = atoi(val+2);
 		else if (!strncmp(val, "scale=", 6)) timescale = atoi(val+6);
+		else if (!strncmp(val, "tfdt=", 5)) tfdt = atoi(val+5);
 
 		if (!sep) break;
 		sep[0] = ' ';
@@ -243,6 +245,8 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	trak->Media->information->sampleTable->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
 
 	trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+
+	trak->dts_at_seg_start = tfdt;
 
 	
 	if (!stricmp(sz4cc, "H264")) {
