@@ -4561,7 +4561,7 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, 
 static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay, nb_nalus;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	u8 nal_type;
@@ -4682,6 +4682,7 @@ restart_import:
 	prev_nalu_prefix_size = 0;
 	res_prev_nalu_prefix = 0;
 	priority_prev_nalu_prefix = 0;
+	nb_nalus = 0;
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
@@ -4712,6 +4713,7 @@ restart_import:
 		if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM || nal_type == GF_AVC_NALU_SVC_PREFIX_NALU || nal_type == GF_AVC_NALU_SVC_SLICE) {
 			avc.is_svc = GF_TRUE;
 		}
+		nb_nalus ++;
 
 		switch (gf_media_avc_parse_nalu(bs, nal_hdr, &avc)) {
 		case 1:
@@ -5464,11 +5466,11 @@ restart_import:
 	} else {
 		u32 i;
 		if (nb_sp || nb_si) {
-			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 		} else {
-			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
 		for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
@@ -5568,7 +5570,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 #else
 	Bool detect_fps;
 	u64 nal_start, nal_end, total_size;
-	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay, nb_nalus;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	GF_Err e;
@@ -5634,6 +5636,7 @@ restart_import:
 	first_hevc = GF_TRUE;
 	sei_recovery_frame_count = -1;
 	spss = ppss = vpss = NULL;
+	nb_nalus = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -5722,6 +5725,8 @@ restart_import:
 		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
 			goto next_nal;
 		}
+
+		nb_nalus++;
 
 		is_islice = GF_FALSE;
 
@@ -6443,11 +6448,11 @@ next_nal:
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
 		if (nb_sp || nb_si) {
-			gf_import_message(import, GF_OK, "HEVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "HEVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 		} else {
-			gf_import_message(import, GF_OK, "HEVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "HEVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
 		if (max_total_delay>1) {

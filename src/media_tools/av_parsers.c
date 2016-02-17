@@ -3063,7 +3063,15 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 		psize += gf_bs_read_int(bs, 8);
 
 		start = gf_bs_get_position(bs);
+		
 		do_copy = 1;
+		
+		if (start+psize >= nal_size) {
+			if (written == 1) written = 0;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), skiping %sSEI message\n", ptype, psize, nal_size-start, written ? "end of " : ""));
+			break;
+		}
+		
 		switch (ptype) {
 		/*remove SEI messages forbidden in MP4*/
 		case 3: /*filler data*/
@@ -3075,7 +3083,6 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 		case 5: /*user unregistered */
 		{
 			char prev;
-			assert(start+psize+1 < nal_size+1);
 			prev = sei_without_emulation_bytes[start+psize+1];
 			sei_without_emulation_bytes[start+psize+1] = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[avc-h264] SEI user message %s\n", sei_without_emulation_bytes+start+16));
