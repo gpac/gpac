@@ -4696,6 +4696,9 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	if (!ptr->SyncSample)
 		ptr->no_sync_found = 1;
 
+	ptr->nb_sgpd_in_stbl = gf_list_count(ptr->sampleGroupsDescription);
+	ptr->nb_other_boxes_in_stbl = gf_list_count(ptr->other_boxes);
+
 	return GF_OK;
 }
 
