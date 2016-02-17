@@ -283,6 +283,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
 	GF_CENCConfig *cfg = (GF_CENCConfig*)evt->config_data;
 	u32 i;
+	Bool is_playing = (priv->state == ISMAEA_STATE_PLAY) ? GF_TRUE : GF_FALSE;
 
 	priv->state = ISMAEA_STATE_ERROR;
 
@@ -351,7 +352,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	else
 		priv->is_cbc = GF_TRUE;
 
-	priv->state = ISMAEA_STATE_SETUP;
+	priv->state = is_playing ? ISMAEA_STATE_PLAY : ISMAEA_STATE_SETUP;
 	//priv->nb_allow_play = 1;
 	return GF_OK;
 }

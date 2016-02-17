@@ -1280,6 +1280,8 @@ typedef struct
 
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;
+	u32 nb_sgpd_in_stbl;
+	u32 nb_other_boxes_in_stbl;
 
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
