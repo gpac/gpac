@@ -1174,6 +1174,10 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 	if (!sai) return GF_OK; /*we need only container_type*/
 
+#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
+	sampleNumber -= trak->sample_count_at_seg_start;
+#endif
+
 	if (*sai) {
 		gf_isom_cenc_samp_aux_info_del(*sai);
 		*sai = NULL;
