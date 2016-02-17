@@ -2358,7 +2358,9 @@ GF_EXPORT
 GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 i;
+	u32 i, j;
+	GF_Box *a;
+
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
@@ -2386,6 +2388,29 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 		RECREATE_BOX(stbl->ShadowSync, (GF_ShadowSyncBox *));
 		RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 		RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
+
+		gf_isom_box_array_del(stbl->sai_offsets);
+		stbl->sai_offsets = NULL;
+
+		gf_isom_box_array_del(stbl->sai_sizes);
+		stbl->sai_sizes = NULL;
+
+		gf_isom_box_array_del(stbl->sampleGroups);
+		stbl->sampleGroups = NULL;
+
+		j = stbl->nb_sgpd_in_stbl;
+		while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
+			gf_isom_box_del(a);
+			j--;
+			gf_list_rem(stbl->sampleGroupsDescription, j);
+		}
+
+		j = stbl->nb_other_boxes_in_stbl;
+		while ((a = (GF_Box *)gf_list_enum(stbl->other_boxes, &j))) {
+			gf_isom_box_del(a);
+			j--;
+			gf_list_rem(stbl->other_boxes, j);
+		}
 
 		if (reset_sample_count) {
 			trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
@@ -2469,6 +2494,29 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 			RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
 
+			gf_isom_box_array_del(stbl->sai_offsets);
+			stbl->sai_offsets = NULL;
+
+			gf_isom_box_array_del(stbl->sai_sizes);
+			stbl->sai_sizes = NULL;
+
+			gf_isom_box_array_del(stbl->sampleGroups);
+			stbl->sampleGroups = NULL;
+
+			j = stbl->nb_sgpd_in_stbl;
+			while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
+				gf_isom_box_del(a);
+				j--;
+				gf_list_rem(stbl->sampleGroupsDescription, j);
+			}
+
+
+			j = stbl->nb_other_boxes_in_stbl;
+			while ((a = (GF_Box *)gf_list_enum(stbl->other_boxes, &j))) {
+				gf_isom_box_del(a);
+				j--;
+				gf_list_rem(stbl->other_boxes, j);
+			}
 		}
 
 
