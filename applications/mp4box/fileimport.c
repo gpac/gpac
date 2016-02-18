@@ -244,7 +244,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
 	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, tile_mode, txt_flags;
-	s32 par_d, par_n, prog_id, delay;
+	s32 par_d, par_n, prog_id, delay, max_layer_id_plus_one, max_temporal_id_plus_one;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
 	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_shvc;
@@ -286,7 +286,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	tile_mode = 0;
 	rap_only = 0;
 	txt_flags = 0;
-
+	max_layer_id_plus_one = max_temporal_id_plus_one = -1;
+	
 	tw = th = tx = ty = txtw = txth = txtx = txty = 0;
 	par_d = par_n = -2;
 	/*use ':' as separator, but beware DOS paths...*/
@@ -374,6 +375,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
 		else if (!stricmp(ext+1, "xps_inband")) import_flags |= GF_IMPORT_FORCE_XPS_INBAND;
+		else if (!strnicmp(ext+1, "max_lid=", 8)) max_layer_id_plus_one = 1 + atoi(ext+9);
+		else if (!strnicmp(ext+1, "max_tid=", 8)) max_temporal_id_plus_one = 1 + atoi(ext+9);
 		
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
@@ -576,6 +579,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	import.video_fps = force_fps;
 	import.frames_per_sample = frames_per_sample;
 	import.flags = import_flags;
+	if (max_layer_id_plus_one>=0)
+		import.max_layer_id_plus_one = (u8) max_layer_id_plus_one;
+	if (max_temporal_id_plus_one>=0)
+		import.max_temporal_id_plus_one = (u8) max_temporal_id_plus_one;
 
 	if (!import.nb_tracks) {
 		u32 count, o_count;

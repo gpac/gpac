@@ -4400,7 +4400,11 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	*nal_unit_type = n_state.nal_unit_type = gf_bs_read_int(bs, 6);
 	*layer_id = gf_bs_read_int(bs, 6);
 	*temporal_id = n_state.temporal_id = gf_bs_read_int(bs, 3);
-
+	if (! (*temporal_id))
+		return -1;
+	
+	*temporal_id -= 1;
+	
 	ret = 0;
 	switch (n_state.nal_unit_type) {
 	case GF_HEVC_NALU_ACCESS_UNIT:
