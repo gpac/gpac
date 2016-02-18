@@ -3854,6 +3854,10 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 	/*setup all groups*/
 	gf_dash_setup_groups(dash);
 
+	if (dash->debug_group_index>=0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Debuging adaptation set #%d in period, ignoring other ones!\n\n", dash->debug_group_index + 1));
+	}
+
 	nb_groups_ok = 0;
 	for (group_i=0; group_i<gf_list_count(dash->groups); group_i++) {
 		GF_MPD_Representation *rep_sel;
