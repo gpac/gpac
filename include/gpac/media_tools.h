@@ -247,6 +247,10 @@ typedef struct __track_import
 	u32 nb_progs;
 	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
 
+	//for hevc import
+	u8 max_temporal_id_plus_one;
+	u8 max_layer_id_plus_one;
+	
 	GF_Err last_error;
 } GF_MediaImporter;
 
