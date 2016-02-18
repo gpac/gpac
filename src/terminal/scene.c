@@ -1230,6 +1230,53 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	}
 }
 
+static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, const char *texture_name, const char *name_geo)
+{
+	M_MovieTexture *mt;
+	GF_Node *n1, *n2;
+	
+	/*create a shape and bitmap node*/
+	n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, tr_name);
+	gf_node_list_add_child( &((GF_ParentNode *)root)->children, n2);
+	gf_node_register(n2, root);
+	n1 = n2;
+	n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
+	gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
+	gf_node_register(n2, n1);
+	n1 = n2;
+	n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
+	((M_Shape *)n1)->appearance = n2;
+	gf_node_register(n2, n1);
+	
+	/*note we create a movie texture even for images...*/
+	mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, texture_name);
+	mt->startTime = gf_scene_get_time(scene);
+	((M_Appearance *)n2)->texture = (GF_Node *)mt;
+	gf_node_register((GF_Node *)mt, n2);
+	
+	//TODO srd in 360
+	if (scene->is_live360) {
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
+	} else if (scene->is_srd) {
+		GF_Node *app = n2;
+		
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
+		//force  appearance material2D.filled = TRUE
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Material2D, NULL);
+		((M_Material2D *)n2)->filled = GF_TRUE;
+		((M_Appearance *)app)->material = n2;
+		gf_node_register(n2, app);
+		
+	} else {
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, name_geo);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
+	}
+}
 /*regenerates the scene graph for dynamic scene.
 This will also try to reload any previously presented streams. Note that in the usual case the scene is generated
 just once when receiving the first OD AU (ressources are NOT destroyed when seeking), but since the network may need
@@ -1311,31 +1358,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_node_register(n2, n1);
 		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
 
-		/*create a shape and bitmap node*/
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Shape, NULL);
-		gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
-		gf_node_register(n2, n1);
-		n1 = n2;
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
-		((M_Shape *)n1)->appearance = n2;
-		gf_node_register(n2, n1);
-
-		/*note we create a movie texture even for images...*/
-		mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, "DYN_VIDEO");
-		mt->startTime = gf_scene_get_time(scene);
-		((M_Appearance *)n2)->texture = (GF_Node *)mt;
-		gf_node_register((GF_Node *)mt, n2);
-
-		if (scene->is_live360) {
-			n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, "DYN_SPHERE");
-			((M_Shape *)n1)->geometry = n2;
-		} else {
-			n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, NULL);
-			((M_Shape *)n1)->geometry = n2;
-		}
-		gf_node_register(n2, n1);
-
-
+		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
+		
 		if (! scene->is_live360) {
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
@@ -1376,9 +1400,87 @@ void gf_scene_regenerate(GF_Scene *scene)
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 	set_media_url(scene, &scene->audio_url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 
-	mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
-	set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
+	if (scene->is_srd) {
+		char szName[20], szTex[20], szGeom[20];
+		u32 i, nb_srd = 0;
+		GF_ObjectManager *a_odm;
+		SFURL url;
+		u32 sw, sh;
+		s32 min_x, max_x, min_y, max_y;
+		i=0;
 
+		min_x = min_y = INT_MAX;
+		max_x = max_y = 0;
+		
+		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+			if (!a_odm->mo || !a_odm->mo->srd_w) {
+				continue;
+			}
+			if ((s32) a_odm->mo->srd_x < min_x) min_x = (s32) a_odm->mo->srd_x;
+			if ((s32) a_odm->mo->srd_y < min_y) min_y = (s32) a_odm->mo->srd_y;
+
+			if ((s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w > min_x + max_x) max_x = (s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w - min_x;
+			if ((s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h > min_y + max_y) max_y = (s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h - min_y;
+			nb_srd++;
+		}
+		
+		n1 = gf_sg_find_node_by_name(scene->graph, "DYN_TRANS");
+		for (i=1; i<nb_srd; i++) {
+			sprintf(szName, "TR%d", i+1);
+			sprintf(szTex, "DYN_VIDEO%d", i+1);
+			sprintf(szGeom, "DYN_GEOM%d", i+1);
+			n2 = gf_sg_find_node_by_name(scene->graph, szName);
+			if (!n2) {
+				create_movie(scene, n1, szName, szTex, szGeom);
+			}
+		}
+
+		url.url = NULL;
+		gf_sg_get_scene_size_info(scene->graph, &sw, &sh);
+		i=0;
+		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+			if (a_odm->mo && a_odm->mo->srd_w) {
+				Fixed tw, th, tx, ty;
+
+				sprintf(szName, "TR%d", i);
+				sprintf(szTex, "DYN_VIDEO%d", i);
+				sprintf(szGeom, "DYN_GEOM%d", i);
+				url.OD_ID = a_odm->OD->objectDescriptorID;
+
+				mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, szTex);
+				set_media_url(scene, &url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
+
+				if (!scene->dyn_ck && a_odm->codec) {
+					scene->dyn_ck = a_odm->codec->ck;
+				}
+
+				tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
+				th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
+
+				n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+				((M_Rectangle *)n2)->size.x = tw;
+				((M_Rectangle *)n2)->size.y = th;
+				gf_node_changed(n2, NULL);
+				
+				tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
+				tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
+				
+				ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
+				ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
+				
+				addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
+				addon_tr->translation.x = tx;
+				addon_tr->translation.y = ty;
+				
+				gf_node_changed((GF_Node *)addon_tr, NULL);
+			}
+		}
+	} else {
+		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
+		set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
+	}
+	
+	
 	if (! scene->is_live360) {
 		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
@@ -1532,7 +1634,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 
 	if (odm->state) {
 		if (check_odm_deactivate(&scene->audio_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO")) ) return;
-		if (check_odm_deactivate(&scene->visual_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO") )) return;
+		if (check_odm_deactivate(&scene->visual_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1") )) return;
 		if (check_odm_deactivate(&scene->text_url, odm, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT") )) return;
 	}
 
@@ -1573,7 +1675,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 
 	if (odm->codec->type == GF_STREAM_VISUAL) {
-		M_MovieTexture *mt = (M_MovieTexture*) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
+		M_MovieTexture *mt = (M_MovieTexture*) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		if (!mt) return;
 		if (scene->visual_url.url) gf_free(scene->visual_url.url);
 		scene->visual_url.url = NULL;
@@ -1625,7 +1727,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 
 	if (set_on) {
 		odm_deactivate(gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO"));
-		odm_deactivate(gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO"));
+		odm_deactivate(gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1"));
 		odm_deactivate(gf_sg_find_node_by_name(scene->graph, "DYN_TEXT"));
 
 
@@ -1654,7 +1756,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		scene->obj_clock_at_main_activation = 0;
 
 		odm_activate(&scene->audio_url, gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO"));
-		odm_activate(&scene->visual_url, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO"));
+		odm_activate(&scene->visual_url, gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1"));
 		odm_activate(&scene->text_url, gf_sg_find_node_by_name(scene->graph, "DYN_TEXT"));
 
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
@@ -1845,7 +1947,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 	/*also check nodes since they may be deactivated (end of stream)*/
 	if (scene->is_dynamic_scene) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
-		M_MovieTexture *mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO");
+		M_MovieTexture *mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		M_AnimationStream *as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		if (ac) {
 			ac->startTime = gf_scene_get_time(scene);
@@ -1883,7 +1985,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 		radius = MAX(width, height) / 2;
 #ifndef GPAC_DISABLE_VRML
-		node = gf_sg_find_node_by_name(scene->graph, "DYN_SPHERE");
+		node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
 		if (node) {
 			((M_Sphere *)node)->radius = - INT2FIX(radius);
 			gf_node_changed(node, NULL);
@@ -1961,6 +2063,9 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		}
 	}
 	gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
+
+	if (scene->is_srd)
+		gf_scene_regenerate(scene);
 
 #ifndef GPAC_DISABLE_VRML
 	IS_UpdateVideoPos(scene);

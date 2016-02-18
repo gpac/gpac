@@ -207,6 +207,8 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
+	Bool is_srd;
+	
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
 	/*list of externproto libraries*/
@@ -1166,6 +1168,7 @@ struct _mediaobj
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
+	u32 srd_x, srd_y, srd_w, srd_h;
 };
 
 GF_MediaObject *gf_mo_new();
