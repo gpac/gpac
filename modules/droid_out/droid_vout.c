@@ -117,7 +117,16 @@ static char *glsl_fragment = "precision mediump float;\
 		gl_FragColor = texture2D(img, TexCoord);\
 	}";
 
-#define GL_CHECK_ERR {s32 res = glGetError(); if (res) GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("GL Error %d file %s line %d\n", res, __FILE__, __LINE__)); }
+static inline void gl_check_error()
+{
+	s32 res = glGetError();
+	if (res) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE,
+		       ("GL Error %d file %s line %d\n", res,
+				__FILE__, __LINE__));
+	}
+}
+
 
 static GLint gf_glGetUniformLocation(u32 glsl_program, const char *uniform_name)
 {
@@ -207,7 +216,7 @@ static Bool initGLES2(AndroidContext *rc){
 	Bool res = GF_FALSE;
 	GLint linked;
 
-	GL_CHECK_ERR
+	gl_check_error();
 	gf_mx_init(rc->identity);
 	rc->base_program = glCreateProgram();
 	rc->base_vertex = glCreateShader(GL_VERTEX_SHADER);
@@ -233,7 +242,7 @@ static Bool initGLES2(AndroidContext *rc){
 		return GF_FALSE;
 	}
 	glUseProgram(rc->base_program);
-	GL_CHECK_ERR
+	gl_check_error();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Shaders compiled"))
 
 	return GF_TRUE;
@@ -246,13 +255,13 @@ static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 	Float _mat[16];
 	u32 i;
 #endif
-GL_CHECK_ERR
+	gl_check_error();
 	loc = glGetUniformLocation(program, name);
 	if(loc<0){
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
 		return;
 	}
-	GL_CHECK_ERR
+	gl_check_error();
 
 #ifdef GPAC_FIXED_POINT
 	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
@@ -260,7 +269,7 @@ GL_CHECK_ERR
 #else
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
 #endif
-	GL_CHECK_ERR
+	gl_check_error();
 }
 
 
@@ -387,12 +396,12 @@ void resizeWindow(AndroidContext *rc)
 	/* Reset The View */
 	glLoadIdentity();
 #else
-	GL_CHECK_ERR
+	gl_check_error();
 	glUseProgram(rc->base_program);
 	calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
 	load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
 	load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
-	GL_CHECK_ERR
+	gl_check_error();
 #endif
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("resizeWindow : end"));
 }
@@ -412,7 +421,7 @@ void drawGLScene(AndroidContext *rc)
 //	int i, j;
 
 	float rgba[4];
-GL_CHECK_ERR
+	gl_check_error();
 
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
@@ -425,7 +434,7 @@ GL_CHECK_ERR
 #endif
 	/* Clear The Screen And The Depth Buffer */
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-	GL_CHECK_ERR
+	gl_check_error();
 	//glEnable(GL_BLEND);
 	//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 #ifndef GPAC_USE_GLES2
@@ -434,7 +443,7 @@ GL_CHECK_ERR
 	glUseProgram(rc->base_program);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture( GL_TEXTURE_2D, rc->texID);
-	GL_CHECK_ERR
+	gl_check_error();
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 #ifndef GPAC_USE_GLES2
@@ -452,10 +461,10 @@ GL_CHECK_ERR
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, rc->tex_width, rc->tex_height, 0,
 	              GL_RGBA, GL_UNSIGNED_BYTE, rc->texData );
 
-GL_CHECK_ERR
+	gl_check_error();
 	if ( rc->draw_texture )
 	{
-		GL_CHECK_ERR
+		gl_check_error();
 		int cropRect[4] = {0,rc->height,rc->width,-rc->height};
 #ifndef GPAC_USE_GLES2
 		glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_CROP_RECT_OES, cropRect);
@@ -464,7 +473,7 @@ GL_CHECK_ERR
 	}
 	else
 	{
-		GL_CHECK_ERR
+		gl_check_error();
 
 #ifndef GPAC_USE_GLES2
 		/* Enable VERTEX array */
@@ -531,7 +540,7 @@ GL_CHECK_ERR
 #ifndef GPAC_USE_GLES2
 	glDisable(GL_TEXTURE_2D);
 #endif
-	GL_CHECK_ERR
+	gl_check_error();
 
 	/* Flush all drawings */
 	glFinish();
@@ -542,12 +551,12 @@ GL_CHECK_ERR
 
 int releaseTexture(AndroidContext *rc)
 {
-	GL_CHECK_ERR
+	gl_check_error();
 	if (!rc)
 		return 0;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android Delete Texture"));
 
-	if ( rc->texID >= 0 )
+	if ( rc->texID >= 0)
 	{
 		glDeleteTextures(1, &(rc->texID));
 		rc->texID = -1;
@@ -558,7 +567,7 @@ int releaseTexture(AndroidContext *rc)
 		rc->texData = NULL;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android Delete Texture DONE"))
-	GL_CHECK_ERR
+	gl_check_error();
 	return 0;
 }
 
@@ -631,7 +640,7 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		rc->tex_height = find_pow_2(rc->height);
 	}
 #endif
-GL_CHECK_ERR
+	gl_check_error();
 	resizeWindow(rc);
 
 	if ( rc->out_3d_type == 0 )
@@ -639,7 +648,7 @@ GL_CHECK_ERR
 		createTexture(rc);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("Android Resize DONE", w, h))
-	GL_CHECK_ERR
+	gl_check_error();
 	return GF_OK;
 }
 
@@ -758,12 +767,12 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 			//in fullscreen mode: do not change viewport; just update perspective
 			if (rc->fullscreen) {
 #ifdef GPAC_USE_GLES2
-				GL_CHECK_ERR
+				gl_check_error();
 				glUseProgram(rc->base_program);
 				calculate_ortho(0, INT2FIX(rc->width), 0, INT2FIX(rc->height), INT2FIX(-1), INT2FIX(1), rc);
 				load_matrix_shaders(rc->base_program, (Fixed *) rc->ortho.m, "gfProjectionMatrix");
 				load_matrix_shaders(rc->base_program, (Fixed *) rc->identity.m, "gfModelViewMatrix");
-				GL_CHECK_ERR
+				gl_check_error();
 #else
 				/* change to the projection matrix and set our viewing volume. */
 				glMatrixMode(GL_PROJECTION);
