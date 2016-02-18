@@ -389,7 +389,7 @@ void dump_scene_stats(char *file, char *inName, u32 stat_level)
 		dump = gf_fopen(szBuf, "wt");
 		close = 1;
 	} else {
-		dump = stderr;
+		dump = stdout;
 		close = 0;
 	}
 
@@ -747,7 +747,7 @@ void dump_isom_xml(GF_ISOFile *file, char *inName)
 		gf_isom_dump(file, dump);
 		gf_fclose(dump);
 	} else {
-		gf_isom_dump(file, stderr);
+		gf_isom_dump(file, stdout);
 	}
 }
 #endif
@@ -767,7 +767,7 @@ void dump_file_rtp(GF_ISOFile *file, char *inName)
 		strcat(szBuf, "_rtp.xml");
 		dump = gf_fopen(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 	}
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -803,7 +803,7 @@ void dump_file_timestamps(GF_ISOFile *file, char *inName)
 		strcat(szBuf, "_ts.txt");
 		dump = gf_fopen(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 	}
 
 	has_error = 0;
@@ -1193,7 +1193,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 		sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
 		dump = gf_fopen(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 	}
 
 	count = gf_isom_get_sample_count(file, track);
@@ -1379,7 +1379,7 @@ void dump_file_ismacryp(GF_ISOFile *file, char *inName)
 		strcat(szBuf, "_ismacryp.xml");
 		dump = gf_fopen(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 	}
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
@@ -1462,7 +1462,7 @@ void DumpSDP(GF_ISOFile *file, char *inName)
 		strcat(szBuf, "_sdp.txt");
 		dump = gf_fopen(szBuf, "wt");
 	} else {
-		dump = stderr;
+		dump = stdout;
 		fprintf(dump, "* File SDP content *\n\n");
 	}
 	//get the movie SDP
