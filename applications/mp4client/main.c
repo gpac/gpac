@@ -738,12 +738,12 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_P:
 			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
-				u32 is_pause = gf_term_get_option(term, GF_OPT_PLAY_STATE) ;
-				fprintf(stderr, "[Status: %s]\n", is_pause ? "Playing" : "Paused");
-				if ((is_pause == GF_STATE_PAUSED) && (evt->key.flags & GF_KEY_MOD_SHIFT)) {
+				u32 pause_state = gf_term_get_option(term, GF_OPT_PLAY_STATE) ;
+				fprintf(stderr, "[Status: %s]\n", pause_state ? "Playing" : "Paused");
+				if ((pause_state == GF_STATE_PAUSED) && (evt->key.flags & GF_KEY_MOD_SHIFT)) {
 					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
 				} else {
-					gf_term_set_option(term, GF_OPT_PLAY_STATE, (gf_term_get_option(term, GF_OPT_PLAY_STATE)==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
+					gf_term_set_option(term, GF_OPT_PLAY_STATE, (pause_state==GF_STATE_PAUSED) ? GF_STATE_PLAYING : GF_STATE_PAUSED);
 				}
 			}
 			break;

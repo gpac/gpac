@@ -1319,7 +1319,8 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!samp) return NULL;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (sampleNumber<=trak->sample_count_at_seg_start) return NULL;
+	if (sampleNumber<=trak->sample_count_at_seg_start)
+		return NULL;
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 
@@ -2434,7 +2435,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	Bool has_scalable;
 	GF_Box *a;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
-	has_scalable = gf_isom_has_scalable_layer(movie);
+	has_scalable = gf_isom_needs_layer_reconstruction(movie);
 	base_track_sample_count = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
@@ -2445,6 +2446,9 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		if (trak->Media->information->scalableDataHandler == movie->movieFileMap) {
 			trak->Media->information->scalableDataHandler = NULL;
 		} else {
+			if (trak->Media->information->scalableDataHandler==trak->Media->information->dataHandler)
+				trak->Media->information->dataHandler = NULL;
+
 			gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
 			trak->Media->information->scalableDataHandler = NULL;
 		}
@@ -3617,7 +3621,7 @@ s32 gf_isom_get_composition_offset_shift(GF_ISOFile *file, u32 track)
 }
 
 GF_EXPORT
-Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
+Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file)
 {
 	u32 count, i;
 	if (!file)
@@ -3625,6 +3629,9 @@ Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
 	count = gf_isom_get_track_count(file);
 	for (i = 0; i < count; i++) {
 		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SCAL) > 0) {
+			return GF_TRUE;
+		}
+		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SABT) > 0) {
 			return GF_TRUE;
 		}
 	}

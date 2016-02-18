@@ -66,6 +66,8 @@ typedef struct
 	Bool waiting_for_data, reset_frag_state;
 	GF_Mutex *segment_mutex;
 
+	u32 pending_scalable_enhancement_segment_index;
+
 	Bool use_memory;
 	/*0: segment is not opened - 1: segment is opened but can be refreshed incomplete file) - 2: segment is fully parsed, no need for refresh*/
 	u32 seg_opened;
