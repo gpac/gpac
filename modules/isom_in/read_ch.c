@@ -114,7 +114,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 		read->drop_next_segment = 0;
 		param.url_query.drop_first_segment = 1;
 	}
-	
+
 	//if first time trying to fetch next segment, check if we have to discard it
 	if (!do_refresh && (read->seg_opened==2) && !read->pending_scalable_enhancement_segment_index) {
 #ifdef DASH_USE_PULL
@@ -144,8 +144,8 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 		scalable_segment = 1;
 		read->pending_scalable_enhancement_segment_index = 0;
 	}
-	
-	
+
+
 next_segment:
 	/*update current fragment if any*/
 	e = read->input->query_proxy(read->input, &param);
@@ -425,7 +425,7 @@ static void init_reader(ISOMChannel *ch)
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample ? ch->sample->IsRAP : 0;
 	if (!sample_desc_index) sample_desc_index = 1;
-    ch->last_sample_desc_index = sample_desc_index;
+	ch->last_sample_desc_index = sample_desc_index;
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
 
@@ -448,7 +448,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->to_init) {
 		init_reader(ch);
-        sample_desc_index = ch->last_sample_desc_index;
+		sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
 		if (!ch->sample_time) {
 			ch->last_state = GF_EOS;
@@ -625,39 +625,39 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		}
 		return;
 	}
-    
-    if (sample_desc_index != ch->last_sample_desc_index) {
-        u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
-        switch (mtype) {
-        case GF_ISOM_MEDIA_VISUAL:
-            //code is here as a reminder, but by default we use inband param set extraction so no need for it
+
+	if (sample_desc_index != ch->last_sample_desc_index) {
+		u32 mtype = gf_isom_get_media_type(ch->owner->mov, ch->track);
+		switch (mtype) {
+		case GF_ISOM_MEDIA_VISUAL:
+			//code is here as a reminder, but by default we use inband param set extraction so no need for it
 #if 0
-            if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
-                u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
-        
-                gf_isom_sample_del(&ch->sample);
-                ch->sample = NULL;
-                gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
-                ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index);
-        
-                gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
-            }
+			if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
+				u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
+
+				gf_isom_sample_del(&ch->sample);
+				ch->sample = NULL;
+				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
+				ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index);
+
+				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+			}
 #endif
-            break;
-        case GF_ISOM_MEDIA_TEXT:
-        case GF_ISOM_MEDIA_SUBPIC:
-        case GF_ISOM_MEDIA_MPEG_SUBT:
-            break;
-        default:
-            //TODO: do we want to support codec changes ?
-            GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
-            gf_isom_sample_del(&ch->sample);
-            ch->sample = NULL;
-            ch->last_state = GF_NOT_SUPPORTED;
-            return;
-        }
-    }
-    
+			break;
+		case GF_ISOM_MEDIA_TEXT:
+		case GF_ISOM_MEDIA_SUBPIC:
+		case GF_ISOM_MEDIA_MPEG_SUBT:
+			break;
+		default:
+			//TODO: do we want to support codec changes ?
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
+			gf_isom_sample_del(&ch->sample);
+			ch->sample = NULL;
+			ch->last_state = GF_NOT_SUPPORTED;
+			return;
+		}
+	}
+
 	ch->last_state = GF_OK;
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
@@ -692,7 +692,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->current_slh.sender_ntp = 0;
 	}
-    
+
 
 	if (ch->is_encrypted) {
 		GF_ISMASample *ismasamp = gf_isom_get_ismacryp_sample(ch->owner->mov, ch->track, ch->sample, 1);
@@ -721,7 +721,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					sai = NULL;
 					gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, &sai, NULL);
 					if (sai) {
-                        u32 i;
+						u32 i;
 						GF_BitStream *bs;
 						bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 						/*write sample auxiliary information*/
@@ -829,7 +829,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 
 	//update data
 	isor_segment_switch_or_refresh(read, do_refresh);
-	
+
 	//segment not ready
 	if ( read->pending_scalable_enhancement_segment_index) {
 		read->in_data_flush = 0;

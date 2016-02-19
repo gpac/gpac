@@ -1323,7 +1323,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		if (trak) samp_count += trak->sample_count_at_seg_start;
 #endif
-	
+
 		e = gf_isom_get_sample_cenc_info_ex(trak, traf, samp_count, &is_encrypted, &sai->IV_size, NULL);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));

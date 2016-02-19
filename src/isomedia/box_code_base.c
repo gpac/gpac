@@ -745,7 +745,7 @@ GF_Err defa_Write(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
-	
+
 	if (ptr->dataSize && ptr->data) {
 		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
 	}
@@ -758,7 +758,7 @@ GF_Err defa_Size(GF_Box *s)
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	
+
 	if (ptr->dataSize && ptr->data) {
 		ptr->size += ptr->dataSize;
 	}
@@ -6474,7 +6474,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_isom_box_del((GF_Box *)a);
 			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genv, i-1);
 		}
-			break;
+		break;
 		case GF_ISOM_MEDIA_AUDIO:
 		{
 			GF_GenericAudioSampleEntryBox *gena;
@@ -6511,7 +6511,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_isom_box_del((GF_Box *)a);
 			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, gena, i-1);
 		}
-			break;
+		break;
 
 		default:
 		{
@@ -6551,7 +6551,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			gf_isom_box_del((GF_Box *)a);
 			gf_list_insert(trak->Media->information->sampleTable->SampleDescription->other_boxes, genm, i-1);
 		}
-			break;
+		break;
 		}
 
 	}
@@ -7787,7 +7787,7 @@ GF_Err metx_Size(GF_Box *s)
 			ptr->size++;
 		}
 
-	} 
+	}
 	//mett, sbtt, stxt
 	else {
 		if (ptr->mime_type)

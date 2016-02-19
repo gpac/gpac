@@ -254,7 +254,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount);
  */
 void gf_sema_del(GF_Semaphore *sm);
 /*
- *\brief semaphore notification. 
+ *\brief semaphore notification.
  *
  *Notifies the semaphore of a certain amount of releases.
  *\param sm the semaphore object

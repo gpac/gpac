@@ -2099,7 +2099,7 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 								if (nwfe != 0) {
 									s64 lpos = gf_ftell(AVI->fdes);
 									gf_fseek(AVI->fdes, header_offset + i + sizeof(alWAVEFORMATEX),
-									            SEEK_SET);
+									         SEEK_SET);
 									wfe = (alWAVEFORMATEX *)nwfe;
 									nwfe = &nwfe[sizeof(alWAVEFORMATEX)];
 									avi_read(AVI->fdes, nwfe,

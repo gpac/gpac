@@ -348,7 +348,7 @@ static void imagetexture_update(GF_TextureHandler *txh)
 				}
 				break;
 			}
-			
+
 #endif // GPAC_DISABLE_AV_PARSERS
 
 			/*cacheURL is specified, store the image*/

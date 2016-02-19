@@ -2945,7 +2945,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo, u32 *max_size)
 {
 	GF_Err e;
-    u32 read;
+	u32 read;
 	XMLBreaker breaker;
 	char *tmp;
 	FILE *xml;
@@ -2962,13 +2962,13 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
 	read = (u32) fread(szBOM, 1, 3, xml);
-    if (read==3) {
-        fseek(xml, 0, SEEK_SET);
-        if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
-            e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
-            goto exit;
-        }
-    }
+	if (read==3) {
+		fseek(xml, 0, SEEK_SET);
+		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
+			e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
+			goto exit;
+		}
+	}
 
 
 	memset(&breaker, 0, sizeof(XMLBreaker));
@@ -3132,7 +3132,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 #ifndef GPAC_DISABLE_ZLIB
 	Bool use_dict = GF_FALSE;
 #endif
-	
+
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
 	szSampleName = dims_doc ? "DIMSUnit" : "NHNTSample";
 	szImpName = dims_doc ? "DIMS" : "NHML";
@@ -3188,7 +3188,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
 		goto exit;
 	}
-	
+
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
 	tkID = mtype = streamType = oti = par_den = par_num = 0;
 	timescale = 1000;
@@ -3319,7 +3319,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	}
 	if (sdesc.samplerate && !timescale) {
 		timescale = sdesc.samplerate;
-	} 
+	}
 	if (!sdesc.bits_per_sample) {
 		sdesc.bits_per_sample = 16;
 	}
@@ -3352,7 +3352,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
-		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, mdia);		
+		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, mdia);
 		specInfo[specInfoSize] = 0;
 		header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
@@ -3485,16 +3485,16 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
 			e = gf_isom_new_xml_subtitle_description(import->dest, track,
-													 dims.mime_type, dims.xml_schema_loc, NULL,
-													 &di);
+			        dims.mime_type, dims.xml_schema_loc, NULL,
+			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -3507,12 +3507,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_METX) {
 			e = gf_isom_new_xml_metadata_description(import->dest, track,
-													 dims.mime_type, dims.xml_schema_loc, dims.textEncoding, 
-													 &di);
+			        dims.mime_type, dims.xml_schema_loc, dims.textEncoding,
+			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_METT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_METT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -5725,7 +5725,7 @@ restart_import:
 		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
 			goto next_nal;
 		}
-		
+
 		if (import->max_temporal_id_plus_one && (temporal_id+1 > import->max_temporal_id_plus_one)) {
 			goto next_nal;
 		}
@@ -5928,7 +5928,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-			} 
+			}
 			break;
 
 		case GF_HEVC_NALU_PIC_PARAM:
@@ -5974,7 +5974,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-			} 
+			}
 
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
@@ -5984,7 +5984,7 @@ restart_import:
 				if (copy_size)
 					nb_sei++;
 			}
-            break;
+			break;
 		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
 				copy_size = nal_size;
@@ -7073,7 +7073,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	if ( read != samp->dataLength ) {
 		e = gf_import_message(import, GF_IO_ERR, "Failed to read raw unit %d bytes", samp->dataLength);
 		goto exit;
-		
+
 	}
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
@@ -8514,7 +8514,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				gf_isom_hevc_set_inband_config(import->dest, tsimp.track, 1);
 			}
-			
+
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 

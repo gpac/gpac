@@ -678,7 +678,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	strcpy(m_font_dir, font_dir);
 	if (cfg_dir)
 		strcpy(m_cfg_dir, cfg_dir);
-	
+
 	char m_cfg_filename[GF_MAX_PATH];
 	if (m_cfg_dir) {
 		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);

@@ -2010,7 +2010,7 @@ static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 		const char *szBase64 = NULL;
 		const char *szData = NULL;
 		if (node->type) continue;
-		
+
 		if (stricmp(node->name, "BS") ) {
 			gf_xml_parse_bit_sequence_bs(node, bs);
 			continue;

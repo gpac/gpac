@@ -464,38 +464,38 @@ static s32 meta_find_prop(GF_ItemPropertyContainerBox *boxes, GF_ImageItemProper
 	for (i = 0; i < count; i++) {
 		GF_Box *b = (GF_Box *)gf_list_get(boxes->other_boxes, i);
 		switch(b->type) {
-			case GF_ISOM_BOX_TYPE_ISPE:
-			{
-				GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)b;
-				if ((prop->width || prop->height) && ispe->image_width == prop->width && ispe->image_height == prop->height) {
-					return i;
-				}
+		case GF_ISOM_BOX_TYPE_ISPE:
+		{
+			GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)b;
+			if ((prop->width || prop->height) && ispe->image_width == prop->width && ispe->image_height == prop->height) {
+				return i;
 			}
-			break;
-			case GF_ISOM_BOX_TYPE_RLOC:
-			{
-				GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)b;
-				if ((prop->hOffset || prop->vOffset) && rloc->horizontal_offset == prop->hOffset && rloc->vertical_offset == prop->vOffset) {
-					return i;
-				}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_RLOC:
+		{
+			GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)b;
+			if ((prop->hOffset || prop->vOffset) && rloc->horizontal_offset == prop->hOffset && rloc->vertical_offset == prop->vOffset) {
+				return i;
 			}
-			break;
-			case GF_ISOM_BOX_TYPE_PASP:
-			{
-				GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)b;
-				if ((prop->hOffset || prop->vOffset) && pasp->hSpacing == prop->hSpacing && pasp->vSpacing == prop->vSpacing) {
-					return i;
-				}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_PASP:
+		{
+			GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)b;
+			if ((prop->hOffset || prop->vOffset) && pasp->hSpacing == prop->hSpacing && pasp->vSpacing == prop->vSpacing) {
+				return i;
 			}
-			break;
-			case GF_ISOM_BOX_TYPE_IROT:
-			{
-				GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
-				if (prop->angle && irot->angle*90 == prop->angle) {
-					return i;
-				}
+		}
+		break;
+		case GF_ISOM_BOX_TYPE_IROT:
+		{
+			GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
+			if (prop->angle && irot->angle*90 == prop->angle) {
+				return i;
 			}
-			break;
+		}
+		break;
 		}
 	}
 	return -1;
@@ -555,7 +555,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			ispe->image_height = image_props->height;
 			gf_list_add(ipco->other_boxes, ispe);
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
-		} 
+		}
 		meta_add_item_property_association(ipma, item_ID, prop_index, GF_FALSE);
 		searchprop.width = 0;
 		searchprop.height = 0;
@@ -570,7 +570,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			rloc->vertical_offset = image_props->vOffset;
 			gf_list_add(ipco->other_boxes, rloc);
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
-		} 
+		}
 		meta_add_item_property_association(ipma, item_ID, prop_index, GF_FALSE);
 		searchprop.hOffset = 0;
 		searchprop.vOffset = 0;
@@ -585,7 +585,7 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			pasp->vSpacing = image_props->vSpacing;
 			gf_list_add(ipco->other_boxes, pasp);
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
-		} 
+		}
 		meta_add_item_property_association(ipma, item_ID, prop_index, GF_FALSE);
 		searchprop.hSpacing = 0;
 		searchprop.vSpacing = 0;
@@ -598,17 +598,17 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 			irot->angle = image_props->angle/90;
 			gf_list_add(ipco->other_boxes, irot);
 			prop_index = gf_list_count(ipco->other_boxes) - 1;
-		} 
+		}
 		meta_add_item_property_association(ipma, item_ID, prop_index, GF_FALSE);
 		searchprop.angle = 0;
 	}
 }
 
-GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, 
-									  const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, 
-									  GF_ImageItemProperties *image_props,
-									  const char *URL, const char *URN, 
-									  char *data, u32 data_len)
+GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path,
+                                      const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding,
+                                      GF_ImageItemProperties *image_props,
+                                      const char *URL, const char *URN,
+                                      char *data, u32 data_len)
 {
 	GF_Err e;
 	GF_ItemLocationEntry *location_entry;
@@ -786,9 +786,9 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 }
 
 GF_EXPORT
-GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, 
-							 const char *mime_type, const char *content_encoding, const char *URL, const char *URN,
-							 GF_ImageItemProperties *image_props)
+GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id,
+                             const char *mime_type, const char *content_encoding, const char *URL, const char *URN,
+                             GF_ImageItemProperties *image_props)
 {
 	return gf_isom_add_meta_item_extended(file, root_meta, track_num, self_reference, resource_path, item_name, item_id, mime_type, content_encoding, image_props, URL, URN, NULL, 0);
 }

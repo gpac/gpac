@@ -335,7 +335,7 @@ void compositor_init_extrusion(GF_Compositor *compositor, GF_Node *node)
   the object at 0,0,0 (local coords) or not? the results are quite different. Here we don't
   recenter the object before transform
 
- 
+
  TODO - think of a way to implement this through the vertex shader
  */
 

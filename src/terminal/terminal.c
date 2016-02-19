@@ -359,7 +359,7 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 		gf_cfg_set_key(term->user->config, "Network", "LowLatencyBufferMax", sOpt);
 	}
 	term->low_latency_buffer_max = atoi(sOpt);
-	
+
 
 	if (!(term->user->init_flags & GF_TERM_NO_DECODER_THREAD) ) {
 		prio = GF_THREAD_PRIORITY_NORMAL;
@@ -887,7 +887,7 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff)
 		while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
 			j=0;
 			while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
-			ck->Paused --;
+				ck->Paused --;
 			}
 		}
 
@@ -926,7 +926,7 @@ void gf_term_disconnect(GF_Terminal *term)
 	if (term->nb_calls_in_event_proc) {
 		if (!term->disconnect_request_status)
 			term->disconnect_request_status = 1;
-	
+
 		return;
 	}
 
@@ -2192,7 +2192,7 @@ GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)
 		j=0;
 		while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j)) ) {
 			//we will have to reissue a PLAY command since playback direction changed
-			if ( gf_mulfix(ck->speed,speed) < 0) 
+			if ( gf_mulfix(ck->speed,speed) < 0)
 				restart = 1;
 			gf_clock_set_speed(ck, speed);
 
@@ -2474,11 +2474,11 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 			gf_scene_switch_quality(odm->subscene, up);
 
 		if (odm->scalable_addon) {
-			if (up) 
+			if (up)
 				gf_odm_start(odm, 0);
 			else
 				gf_odm_stop(odm, GF_FALSE);
-		} 
+		}
 	}
 }
 

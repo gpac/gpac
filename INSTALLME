@@ -1,10 +1,10 @@
 Installation instructions for latest GPAC GIT version - March 2015:
 
-For Windows, Linux and Mac OS X versions, follow the instructions on gpac.wp.mines-telecom.fr/downloads/
+For Windows, Linux and Mac OS X versions, follow the instructions on http://gpac.io/downloads/
 
 For Android, follow the instructions in gpac/build/android/README
 
-(WindowsMobile platform i sno longer maintained)
+(WindowsMobile platform is no longer maintained)
 For WindowsMobile platform, get the latest package of gpac extra libs available here:
 
 https://sourceforge.net/p/gpac/code/HEAD/tree/trunk/gpac_extra_libs/
@@ -33,7 +33,7 @@ https://sourceforge.net/p/gpac/code/HEAD/tree/trunk/gpac_extra_libs/
 	* Libpng version 1.2.33 (older versions should work)
 	* MAD version 0.15.1b (older versions should work)
 	* xvid version 1.0 (0.9.0 / .1 / .2 should also work)
-	* ffmpeg (latest stable API version checked was 08 February 2007 snapshot, you may need to change a few things with current versions)
+	* ffmpeg (latest stable API version checked was 17 February 2016 snapshot, you may need to change a few things with current versions)
 	* libogg 1.1, libvorbis 1.1 and libtheora 1.0 from Xiph.org (newer versions work)
 	* faad2, version 2.0 or above (2.6.1 working)
 	* liba52, version 0.7.4
@@ -65,5 +65,3 @@ Detailed instruction for iOS Compilation are available in gpac/build/xcode/READM
 
 GPAC's client configuration is documented in gpac/doc/configuration.html
 MP4Box documentation is available online at http://gpac.sourceforge.net
-
-	

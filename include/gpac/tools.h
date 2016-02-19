@@ -937,9 +937,9 @@ char * gf_get_default_cache_directory();
 
 /**
  * Gets the number of open file handles (gf_fopen/gf_fclose only).
- * \return  number of open file handles 
+ * \return  number of open file handles
  */
-u32 gf_file_handles_count(); 
+u32 gf_file_handles_count();
 
 
 /**

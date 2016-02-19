@@ -303,7 +303,7 @@ void tx_bind_with_mode(GF_TextureHandler *txh, Bool transparent, u32 blend_mode,
 	if (txh->transparent) glEnable(GL_BLEND);
 	//blend_mode for ES2.0 can be implemented inside the fragment shader if desired
 #endif
-	
+
 	if (!no_bind)
 		glBindTexture(txh->tx_io->gl_type, txh->tx_io->id);
 }
@@ -415,7 +415,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		if (!use_rect && !compositor->gl_caps.npot_texture && !is_pow2) txh->tx_io->flags = TX_MUST_SCALE;
 	}
 #endif
-	
+
 	use_yuv_shaders = 0;
 	txh->tx_io->nb_comp = txh->tx_io->gl_format = 0;
 	txh->tx_io->gl_dtype = GL_UNSIGNED_BYTE;
@@ -463,7 +463,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
 			break;
-		} 
+		}
 #ifndef GPAC_USE_GLES2
 		else if (!compositor->disable_yuvgl && compositor->gl_caps.yuv_texture && !(txh->tx_io->flags & TX_MUST_SCALE) ) {
 			txh->tx_io->gl_format = compositor->gl_caps.yuv_texture;
@@ -576,7 +576,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		glBindTexture(txh->tx_io->gl_type, tx_id[i] );
 
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
-		
+
 #ifdef GPAC_USE_GLES2
 		if (!is_pow2) {
 			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -584,8 +584,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		} else
 #endif
 		{
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
-		GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_S, (txh->flags & GF_SR_TEXTURE_REPEAT_S) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
+			GLTEXPARAM(txh->tx_io->gl_type, GL_TEXTURE_WRAP_T, (txh->flags & GF_SR_TEXTURE_REPEAT_T) ? GL_REPEAT : GL_CLAMP_TO_EDGE);
 		}
 
 		if (is_pow2 && txh->tx_io->gl_type == GL_TEXTURE_2D) {
@@ -861,7 +861,7 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 {
 	Bool needs_stride;
 	GL_CHECK_ERR
-	
+
 	if (txh->tx_io->gl_dtype==GL_UNSIGNED_SHORT) {
 		needs_stride = (stride != 2*w*txh->tx_io->nb_comp) ? GF_TRUE : GF_FALSE;
 		if (needs_stride) stride /= 2;
@@ -910,11 +910,11 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 		glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, NULL);
 	}
 	{
-	u32 i;
-	for (i=0; i<h; i++) {
-		u8 *ptr = data + i*stride;
-		glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, 1, txh->tx_io->gl_format, txh->tx_io->gl_dtype, ptr);
-	}
+		u32 i;
+		for (i=0; i<h; i++) {
+			u8 *ptr = data + i*stride;
+			glTexSubImage2D(txh->tx_io->gl_type, 0, 0, 0, w, 1, txh->tx_io->gl_format, txh->tx_io->gl_dtype, ptr);
+		}
 	}
 #endif
 }
@@ -988,7 +988,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		w = txh->width;
 		h = txh->height;
 	}
-#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2) 
+#if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	tx_mode = txh->tx_io->gl_format;
 #else
 	tx_mode = txh->tx_io->nb_comp;
@@ -1020,7 +1020,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				pV = (u8 *) pU + txh->height*txh->stride/4;
 			}
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2) 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (txh->pixelformat==GF_PIXEL_YV12_10) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 				//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
@@ -1034,7 +1034,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			GL_CHECK_ERR
 
 			/*
-			 * Note: GF_PIXEL_NV21 is default for Android camera review. First wxh bytes is the Y channel, 
+			 * Note: GF_PIXEL_NV21 is default for Android camera review. First wxh bytes is the Y channel,
 			 * the following (wxh)/2 bytes is UV plane.
 			 * Reference: http://stackoverflow.com/questions/22456884/how-to-render-androids-yuv-nv21-camera-image-on-the-background-in-libgdx-with-o
 			 */
@@ -1063,7 +1063,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->nb_frames ++;
 			txh->upload_time += push_time;
 
-#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2) 
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (txh->pixelformat==GF_PIXEL_YV12_10) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 				glPixelTransferi(GL_RED_SCALE, 1);
@@ -1345,7 +1345,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 	return GF_FALSE;
 
 #if 0
-	
+
 	GF_TextureHandler *b_surf;
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	GF_TextureHandler *matte_hdl;
@@ -1372,7 +1372,7 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 
 #ifdef LOAD_GL_1_3
-    /*To remove: gcc 4.6 introduces this warning*/
+	/*To remove: gcc 4.6 introduces this warning*/
 #if __GNUC__ == 4 && __GNUC_MINOR__ >= 6
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Waddress"
@@ -1387,8 +1387,8 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 #endif
 
 #endif
-    
-    matte_hdl = gf_node_get_private(n);
+
+	matte_hdl = gf_node_get_private(n);
 	if (!matte_hdl->tx_io) {
 		gf_sc_texture_allocate(matte_hdl);
 	}
@@ -1672,9 +1672,9 @@ static Bool gf_sc_texture_enable_matte_texture(GF_Node *n)
 
 	tx_bind(b_surf);
 	return 1;
-	
+
 #endif
-	
+
 #endif
 }
 #endif //GPAC_DISABLE_VRML
@@ -1703,7 +1703,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	GF_Compositor *compositor = (GF_Compositor *)txh->compositor;
 #endif
 	GF_VisualManager *root_visual = (GF_VisualManager *) txh->compositor->visual;
-	
+
 	if (root_visual->has_material_2d) {	// mat2d (hence no lights)
 		root_visual->glsl_flags &= ~GF_GL_HAS_LIGHT;
 	}
@@ -1754,9 +1754,9 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 		u32 active_shader;	//stores current shader (GLES2.0 or the old stuff)
 		root_visual->glsl_flags |= GF_GL_IS_YUV;
 		active_shader = root_visual->glsl_programs[root_visual->glsl_flags];	//Set active
-		
+
 		GL_CHECK_ERR
-		
+
 		glUseProgram(active_shader);
 		GL_CHECK_ERR
 
@@ -1776,7 +1776,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 #endif
 
 		return 1;
-	} 
+	}
 
 	if (compositor->shader_only_mode) {
 		glUseProgram(root_visual->glsl_programs[root_visual->glsl_flags]);
@@ -1789,7 +1789,7 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 
 		tx_bind(txh);
 		return 1;
-	} 
+	}
 #endif
 
 	tx_bind(txh);

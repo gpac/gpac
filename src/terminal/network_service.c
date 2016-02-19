@@ -624,8 +624,8 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 avg_dec_time;
 			/*the decoder statistics are reliable only if we decoded at least 1s*/
-			if (!odm->codec || !odm->codec->nb_dec_frames || 
-				(odm->codec->ck->speed > 0 ? odm->codec->stat_start + 1000 > odm->codec->last_unit_dts : odm->codec->stat_start - 1000 < odm->codec->last_unit_dts)) 
+			if (!odm->codec || !odm->codec->nb_dec_frames ||
+			        (odm->codec->ck->speed > 0 ? odm->codec->stat_start + 1000 > odm->codec->last_unit_dts : odm->codec->stat_start - 1000 < odm->codec->last_unit_dts))
 				continue;
 			avg_dec_time = (u32) (odm->codec->total_dec_time / odm->codec->nb_dec_frames);
 			if (avg_dec_time > com->codec_stat.avg_dec_time) {

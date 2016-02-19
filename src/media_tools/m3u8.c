@@ -230,7 +230,7 @@ static GFINLINE int string2num(const char *s) {
 	MEDIA_TYPE_##type + \
 	string2num(group_id) \
 	) \
-
+ 
 static Bool safe_start_equals(const char *attribute, const char *line) {
 	size_t len, atlen;
 	if (line == NULL)
@@ -271,7 +271,7 @@ typedef struct _s_accumulated_attributes {
 	bin128 key_iv;
 } s_accumulated_attributes;
 
-static void reset_attributes(s_accumulated_attributes *attributes) 
+static void reset_attributes(s_accumulated_attributes *attributes)
 {
 	memset(attributes, 0, sizeof(s_accumulated_attributes));
 	attributes->type = MEDIA_TYPE_UNKNOWN;
@@ -596,9 +596,9 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			attributes->mediaURL = NULL;
 		}
 		if ((attributes->type == MEDIA_TYPE_AUDIO && !attributes->group.audio)
-			|| (attributes->type == MEDIA_TYPE_VIDEO && !attributes->group.video)) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: missing GROUP-ID attribute. Ignoring the line.\n"));
-				return NULL;
+		        || (attributes->type == MEDIA_TYPE_VIDEO && !attributes->group.video)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: missing GROUP-ID attribute. Ignoring the line.\n"));
+			return NULL;
 		}
 		if (!attributes->stream_id) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA: no ID was computed. Check previous errors. Ignoring the line.\n"));
@@ -759,14 +759,14 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(0);
 			}
 			curr_playlist = playlist_element_new(
-				TYPE_PLAYLIST,
-				fullURL,
-				attribs->title,
-				attribs->codecs,
-				attribs->language,
-				attribs->duration_in_seconds,
-				attribs->byte_range_start, attribs->byte_range_end,
-				attribs->key_method, attribs->key_url, attribs->key_iv);
+			                    TYPE_PLAYLIST,
+			                    fullURL,
+			                    attribs->title,
+			                    attribs->codecs,
+			                    attribs->language,
+			                    attribs->duration_in_seconds,
+			                    attribs->byte_range_start, attribs->byte_range_end,
+			                    attribs->key_method, attribs->key_url, attribs->key_iv);
 			if (curr_playlist == NULL) {
 				/* OUT of memory */
 				gf_m3u8_master_playlist_del(playlist);
@@ -799,15 +799,15 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				PlaylistElement *subElement;
 				assert(baseURL);
 				curr_playlist = playlist_element_new(
-					TYPE_PLAYLIST,
-					baseURL,
-					attribs->title,
-					attribs->codecs,
-					attribs->language,
-					attribs->duration_in_seconds,
-					attribs->byte_range_start, attribs->byte_range_end,
-					attribs->key_method, attribs->key_url,
-					attribs->key_iv);
+				                    TYPE_PLAYLIST,
+				                    baseURL,
+				                    attribs->title,
+				                    attribs->codecs,
+				                    attribs->language,
+				                    attribs->duration_in_seconds,
+				                    attribs->byte_range_start, attribs->byte_range_end,
+				                    attribs->key_method, attribs->key_url,
+				                    attribs->key_iv);
 				if (curr_playlist == NULL) {
 					/* OUT of memory */
 					gf_m3u8_master_playlist_del(playlist);
@@ -819,15 +819,15 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				curr_playlist->title = NULL;
 				curr_playlist->codecs = NULL;
 				subElement = playlist_element_new(
-					TYPE_UNKNOWN,
-					fullURL,
-					attribs->title,
-					attribs->codecs,
-					attribs->language,
-					attribs->duration_in_seconds,
-					attribs->byte_range_start, attribs->byte_range_end,
-					attribs->key_method, attribs->key_url,
-					attribs->key_iv);
+				                 TYPE_UNKNOWN,
+				                 fullURL,
+				                 attribs->title,
+				                 attribs->codecs,
+				                 attribs->language,
+				                 attribs->duration_in_seconds,
+				                 attribs->byte_range_start, attribs->byte_range_end,
+				                 attribs->key_method, attribs->key_url,
+				                 attribs->key_iv);
 				if (subElement == NULL) {
 					gf_m3u8_master_playlist_del(playlist);
 					playlist_element_del(curr_playlist);
@@ -841,15 +841,15 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				assert(curr_playlist);
 			} else {
 				PlaylistElement *subElement = playlist_element_new(
-					TYPE_UNKNOWN,
-					fullURL,
-					attribs->title,
-					attribs->codecs,
-					attribs->language,
-					attribs->duration_in_seconds,
-					attribs->byte_range_start, attribs->byte_range_end,
-					attribs->key_method, attribs->key_url,
-					attribs->key_iv);
+				                                  TYPE_UNKNOWN,
+				                                  fullURL,
+				                                  attribs->title,
+				                                  attribs->codecs,
+				                                  attribs->language,
+				                                  attribs->duration_in_seconds,
+				                                  attribs->byte_range_start, attribs->byte_range_end,
+				                                  attribs->key_method, attribs->key_url,
+				                                  attribs->key_iv);
 				if (curr_playlist->element_type != TYPE_PLAYLIST) {
 					curr_playlist->element_type = TYPE_PLAYLIST;
 					if (!curr_playlist->element.playlist.elements)

@@ -237,7 +237,7 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-			"\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
+	        "\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -262,18 +262,18 @@ void PrintUsage()
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
 	        "\t-service ID:    auto-tune to given service ID in a multiplex\n"
-            "\t-noprog:        disable progress report\n"
-            "\t-no-save:       disable saving config file on exit\n"
+	        "\t-noprog:        disable progress report\n"
+	        "\t-no-save:       disable saving config file on exit\n"
 	        "\t-no-addon:      disable automatic loading of media addons declared in source URL\n"
 	        "\t-gui:           starts in GUI mode. The GUI is indicated in GPAC config, section General, by the key [StartupFile]\n"
-			"\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
+	        "\t-ntp-shift T:   shifts NTP clock of T (signed int) milliseconds\n"
 	        "\n"
 	        "Dumper Options (times is a formated as start-end, with start being sec, h:m:s:f/fps or h:m:s:ms):\n"
 	        "\t-bmp [times]:   dumps given frames to bmp\n"
 	        "\t-png [times]:   dumps given frames to png\n"
 	        "\t-raw [times]:   dumps given frames to raw\n"
 	        "\t-avi [times]:   dumps given file to raw avi\n"
-			"\t-sha [times]:   dumps given file to raw SHA-1 (1 hash per frame)\n"
+	        "\t-sha [times]:   dumps given file to raw SHA-1 (1 hash per frame)\n"
 	        "\r-out filename:  name of the output file\n"
 	        "\t-rgbds:         dumps the RGBDS pixel format texture\n"
 	        "\t                 with -avi [times]: dumps an rgbds-format .avi\n"
@@ -1096,7 +1096,7 @@ void set_cfg_option(char *opt_string)
 		szKey[sepIdx] = 0;
 		strcpy(szVal, sep2+1);
 	}
-	
+
 	if (!stricmp(szKey, "*")) {
 		if (stricmp(szVal, "null")) {
 			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
@@ -1105,7 +1105,7 @@ void set_cfg_option(char *opt_string)
 		gf_cfg_del_section(cfg_file, szSec);
 		return;
 	}
-	
+
 	if (!stricmp(szVal, "null")) {
 		szVal[0]=0;
 	}
@@ -1263,18 +1263,18 @@ int mp4client_main(int argc, char **argv)
 			gf_cfg_set_key(cfg_file, "Network", "DefaultMCastInterface", argv[i+1]);
 			i++;
 		}
-        else if (!stricmp(arg, "-help")) {
-            PrintUsage();
-            return 1;
-        }
-        else if (!stricmp(arg, "-noprog")) {
-            no_prog=1;
-            gf_set_progress_callback(NULL, progress_quiet);
-        }
-        else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
+		else if (!stricmp(arg, "-help")) {
+			PrintUsage();
+			return 1;
+		}
+		else if (!stricmp(arg, "-noprog")) {
+			no_prog=1;
+			gf_set_progress_callback(NULL, progress_quiet);
+		}
+		else if (!stricmp(arg, "-no-save") || !stricmp(arg, "--no-save") /*old versions used --n-save ...*/) {
 			no_cfg_save=1;
-        }
-        else if (!stricmp(arg, "-ntp-shift")) {
+		}
+		else if (!stricmp(arg, "-ntp-shift")) {
 			s32 shift = atoi(argv[i+1]);
 			i++;
 			gf_net_set_ntp_shift(shift);
@@ -1288,7 +1288,7 @@ int mp4client_main(int argc, char **argv)
 			}
 			else if (!strcmp(arg, "-out")) {
 				out_arg = argv[i+1];
-                i++;
+				i++;
 			}
 			else if (!stricmp(arg, "-fps")) {
 				fps = atof(argv[i+1]);
@@ -1375,11 +1375,11 @@ int mp4client_main(int argc, char **argv)
 			}
 		}
 	}
-    if (is_cfg_only) {
-        gf_cfg_del(cfg_file);
-        fprintf(stderr, "GPAC Config updated\n");
-        return 0;
-    }
+	if (is_cfg_only) {
+		gf_cfg_del(cfg_file);
+		fprintf(stderr, "GPAC Config updated\n");
+		return 0;
+	}
 	if (dump_mode && !url_arg ) {
 		fprintf(stderr, "Missing argument for dump\n");
 		PrintUsage();
@@ -1414,9 +1414,9 @@ int mp4client_main(int argc, char **argv)
 		simulation_time_in_ms += gf_sys_clock();
 
 #if defined(__DARWIN__) || defined(__APPLE__)
-    carbon_init();
+	carbon_init();
 #endif
-    
+
 
 	if (dump_mode) rti_file = NULL;
 
@@ -1661,14 +1661,14 @@ int mp4client_main(int argc, char **argv)
 force_input:
 		switch (c) {
 		case 'q':
-			{
-				GF_Event evt;
-				memset(&evt, 0, sizeof(GF_Event));
-				evt.type = GF_EVENT_QUIT;
-				gf_term_send_event(term, &evt);
-			}
+		{
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_QUIT;
+			gf_term_send_event(term, &evt);
+		}
 //			Run = 0;
-			break;
+		break;
 		case 'X':
 			exit(0);
 			break;
@@ -2229,7 +2229,7 @@ force_input:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_memory_print();
+		gf_memory_print();
 		return 2;
 	}
 #endif

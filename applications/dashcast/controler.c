@@ -79,7 +79,7 @@ void optimize_seg_frag_dur(int *seg, int *frag)
 	if (!frag_nb) frag_nb = 1;
 
 	min_rem = seg_nb % frag_nb;
-	
+
 	if (seg_nb % (frag_nb + 1) < min_rem) {
 		min_rem = seg_nb % (frag_nb + 1);
 		*seg = seg_nb;

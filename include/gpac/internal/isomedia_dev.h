@@ -34,7 +34,7 @@ extern "C" {
 
 #ifndef GPAC_DISABLE_ISOM
 
-	
+
 #if defined(GPAC_DISABLE_ISOM_FRAGMENTS) && !defined(GPAC_DISABLE_ISOM_ADOBE)
 #define GPAC_DISABLE_ISOM_ADOBE
 #endif
@@ -1068,7 +1068,7 @@ typedef struct
 } GF_DIMSSampleEntryBox;
 
 
-typedef struct 
+typedef struct
 {
 	GF_ISOM_FULL_BOX
 	char *config;

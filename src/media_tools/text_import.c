@@ -986,78 +986,78 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	/*** style ***/
 #if 0
 	{
-	Bool has_styling, has_style;
-	GF_TextSampleDescriptor *sd;
-	has_styling = GF_FALSE;
-	has_style = GF_FALSE;
-	sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
-	i=0;
-	while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
-		if (node->type) {
-			continue;
-		} else if (gf_xml_get_element_check_namespace(node, "head", root->ns) == GF_OK) {
-			GF_XMLNode *head_node;
-			u32 head_idx = 0;
-			while ( (head_node = (GF_XMLNode*)gf_list_enum(node->content, &head_idx))) {
-				if (gf_xml_get_element_check_namespace(head_node, "styling", root->ns) == GF_OK) {
-					GF_XMLNode *styling_node;
-					u32 styling_idx;
-					if (has_styling) {
-						e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"styling\" element. Abort.\n");
-						goto exit;
-					}
-					has_styling = GF_TRUE;
+		Bool has_styling, has_style;
+		GF_TextSampleDescriptor *sd;
+		has_styling = GF_FALSE;
+		has_style = GF_FALSE;
+		sd = (GF_TextSampleDescriptor*)gf_odf_desc_new(GF_ODF_TX3G_TAG);
+		i=0;
+		while ( (node = (GF_XMLNode*)gf_list_enum(root->content, &i))) {
+			if (node->type) {
+				continue;
+			} else if (gf_xml_get_element_check_namespace(node, "head", root->ns) == GF_OK) {
+				GF_XMLNode *head_node;
+				u32 head_idx = 0;
+				while ( (head_node = (GF_XMLNode*)gf_list_enum(node->content, &head_idx))) {
+					if (gf_xml_get_element_check_namespace(head_node, "styling", root->ns) == GF_OK) {
+						GF_XMLNode *styling_node;
+						u32 styling_idx;
+						if (has_styling) {
+							e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"styling\" element. Abort.\n");
+							goto exit;
+						}
+						has_styling = GF_TRUE;
 
-					styling_idx = 0;
-					while ( (styling_node = (GF_XMLNode*)gf_list_enum(head_node->content, &styling_idx))) {
-						if (gf_xml_get_element_check_namespace(styling_node, "style", root->ns) == GF_OK) {
-							GF_XMLAttribute *p_att;
-							u32 style_idx = 0;
-							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(styling_node->attributes, &style_idx))) {
-								if (!strcmp(p_att->name, "tts:direction")) {
-								} else if (!strcmp(p_att->name, "tts:fontFamily")) {
-									sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
-									sd->font_count = 1;
-									sd->fonts[0].fontID = 1;
-									sd->fonts[0].fontName = gf_strdup(p_att->value);
-								} else if (!strcmp(p_att->name, "tts:backgroundColor")) {
-									GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
-									//sd->back_color = ;
-								} else {
-									if ( !strcmp(p_att->name, "tts:fontSize")
-									        || !strcmp(p_att->name, "tts:lineHeight")
-									        || !strcmp(p_att->name, "tts:textAlign")
-									        || !strcmp(p_att->name, "tts:color")
-									        || !strcmp(p_att->name, "tts:fontStyle")
-									        || !strcmp(p_att->name, "tts:fontWeight")
-									        || !strcmp(p_att->name, "tts:textDecoration")
-									        || !strcmp(p_att->name, "tts:unicodeBidi")
-									        || !strcmp(p_att->name, "tts:wrapOption")
-									        || !strcmp(p_att->name, "tts:multiRowAlign")
-									        || !strcmp(p_att->name, "tts:linePadding")) {
+						styling_idx = 0;
+						while ( (styling_node = (GF_XMLNode*)gf_list_enum(head_node->content, &styling_idx))) {
+							if (gf_xml_get_element_check_namespace(styling_node, "style", root->ns) == GF_OK) {
+								GF_XMLAttribute *p_att;
+								u32 style_idx = 0;
+								while ( (p_att = (GF_XMLAttribute*)gf_list_enum(styling_node->attributes, &style_idx))) {
+									if (!strcmp(p_att->name, "tts:direction")) {
+									} else if (!strcmp(p_att->name, "tts:fontFamily")) {
+										sd->fonts = (GF_FontRecord*)gf_malloc(sizeof(GF_FontRecord));
+										sd->font_count = 1;
+										sd->fonts[0].fontID = 1;
+										sd->fonts[0].fontName = gf_strdup(p_att->value);
+									} else if (!strcmp(p_att->name, "tts:backgroundColor")) {
 										GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
+										//sd->back_color = ;
 									} else {
-										GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("EBU-TTD unknown style attribute: \"%s\". Ignoring.\n", p_att->name));
+										if ( !strcmp(p_att->name, "tts:fontSize")
+										        || !strcmp(p_att->name, "tts:lineHeight")
+										        || !strcmp(p_att->name, "tts:textAlign")
+										        || !strcmp(p_att->name, "tts:color")
+										        || !strcmp(p_att->name, "tts:fontStyle")
+										        || !strcmp(p_att->name, "tts:fontWeight")
+										        || !strcmp(p_att->name, "tts:textDecoration")
+										        || !strcmp(p_att->name, "tts:unicodeBidi")
+										        || !strcmp(p_att->name, "tts:wrapOption")
+										        || !strcmp(p_att->name, "tts:multiRowAlign")
+										        || !strcmp(p_att->name, "tts:linePadding")) {
+											GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("EBU-TTD style attribute \"%s\" ignored.\n", p_att->name));
+										} else {
+											GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("EBU-TTD unknown style attribute: \"%s\". Ignoring.\n", p_att->name));
+										}
 									}
 								}
+								break; //TODO: we only take care of the first style
 							}
-							break; //TODO: we only take care of the first style
 						}
 					}
 				}
 			}
 		}
-	}
-	if (!has_styling) {
-		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"styling\" element. Abort.\n");
-		goto exit;
-	}
-	if (!has_style) {
-		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"style\" element. Abort.\n");
-		goto exit;
-	}
-	e = gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
-	gf_odf_desc_del((GF_Descriptor*)sd);
+		if (!has_styling) {
+			e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"styling\" element. Abort.\n");
+			goto exit;
+		}
+		if (!has_style) {
+			e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"style\" element. Abort.\n");
+			goto exit;
+		}
+		e = gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
+		gf_odf_desc_del((GF_Descriptor*)sd);
 	}
 #else
 	e = gf_isom_new_xml_subtitle_description(import->dest, track, TTML_NAMESPACE, NULL, NULL, &desc_idx);

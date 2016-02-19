@@ -250,7 +250,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 	if (!trak) return GF_BAD_PARAM;
 	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
-	
+
 	// Old language-storage processing
 	// if the new code is on 3 chars, we use it
 	// otherwise, we find the associated 3 chars code and use it
@@ -1095,10 +1095,10 @@ GF_Err gf_isom_remove_sample(GF_ISOFile *movie, u32 trackNumber, u32 sampleNumbe
 
 	e = stbl_RemoveSubSample(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;
-	
+
 	e = stbl_RemoveSampleGroup(trak->Media->information->sampleTable, sampleNumber);
 	if (e) return e;
-	
+
 	return SetTrackDuration(trak);
 }
 
@@ -1426,7 +1426,7 @@ GF_Err gf_isom_set_storage_mode(GF_ISOFile *movie, u8 storageMode)
 	}
 }
 
-GF_EXPORT 
+GF_EXPORT
 void gf_isom_force_64bit_chunk_offset(GF_ISOFile *file, Bool set_on)
 {
 	file->force_co64 = set_on;
@@ -3527,7 +3527,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		u64 cur_dts;
 		u64*DTSs = NULL;
 		s64*CTSs = NULL;
-		
+
 		if (trak->editBox) {
 			GF_EdtsEntry *ent;
 			u32 i=0;
@@ -3538,18 +3538,18 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		if (! stbl || !stbl->TimeToSample) {
 			return SetTrackDuration(trak);
 		}
-		
+
 		idx = 0;
 		cur_dts = 0;
 		//unpack the DTSs
 		DTSs = (u64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount) );
 		CTSs = NULL;
-				
+
 		if (!DTSs) return GF_OUT_OF_MEM;
 		if (stbl->CompositionOffset) {
 			CTSs = (s64*)gf_malloc(sizeof(u64) * (stbl->SampleSize->sampleCount) );
 		}
-				
+
 		for (i=0; i<stbl->TimeToSample->nb_entries; i++) {
 			for (k=0; k<stbl->TimeToSample->entries[i].sampleCount; k++) {
 				cur_dts += stbl->TimeToSample->entries[i].sampleDelta;
@@ -3581,7 +3581,7 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 		}
 		stbl->TimeToSample->nb_entries = idx+1;
 		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
-				
+
 		if (CTSs) {
 			//repack CTS
 			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
@@ -3602,11 +3602,11 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			}
 			stbl->CompositionOffset->nb_entries = idx+1;
 			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->CompositionOffset->nb_entries);
-			
+
 			gf_free(CTSs);
 		}
 		gf_free(DTSs);
-		
+
 		if (stbl->CompositionToDecode) {
 			stbl->CompositionToDecode->compositionEndTime = (s32) (stbl->CompositionToDecode->compositionEndTime * scale);
 			stbl->CompositionToDecode->compositionStartTime = (s32)(stbl->CompositionToDecode->compositionStartTime * scale);
@@ -4357,7 +4357,7 @@ GF_Err gf_isom_apple_set_tag(GF_ISOFile *mov, u32 tag, const char *data, u32 dat
 			gf_list_del_item(meta->other_boxes, ilst);
 			gf_isom_box_del((GF_Box *) ilst);
 		}
-		return GF_OK;	
+		return GF_OK;
 	}
 
 	return gf_list_add(ilst->other_boxes, info);
@@ -4698,7 +4698,7 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *tra
 		if (!traf->sampleGroupsDescription)
 			traf->sampleGroupsDescription = gf_list_new();
 		groupList = traf->sampleGroupsDescription;
-	} else 
+	} else
 #endif
 	{
 		if (!stbl->sampleGroupsDescription)
@@ -4757,7 +4757,7 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 			traf->sampleGroups = gf_list_new();
 		groupList = traf->sampleGroups;
 		entry_idx |= 0x10000;
-	} else 
+	} else
 #endif
 	{
 		if (!stbl->sampleGroups)
@@ -5121,10 +5121,10 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	GF_BitStream *bs1, *bs2;
 	char *buf1, *buf2;
 	u32 len1, len2;
-	
+
 	if (!ptr1 || !ptr2)
 		return GF_FALSE;
-	
+
 	bs1 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr1, bs1);
@@ -5133,7 +5133,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	}
 	gf_bs_get_content(bs1, &buf1, &len1);
 	gf_bs_del(bs1);
-	
+
 	bs2 = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr2, bs2);
@@ -5142,11 +5142,11 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	}
 	gf_bs_get_content(bs2, &buf2, &len2);
 	gf_bs_del(bs2);
-	
-	
+
+
 	if ((len1==len2) && !memcmp(buf1, buf2, len1))
 		res = GF_TRUE;
-	
+
 	gf_free(buf1);
 	gf_free(buf2);
 #endif
@@ -5168,7 +5168,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 	if (!dst_trak) return GF_BAD_PARAM;
 
 	dst_sample_num = dst_trak->Media->information->sampleTable->SampleSize->sampleCount;
-	
+
 	/*modify depends flags*/
 	if (src_trak->Media->information->sampleTable->SampleDep) {
 		u32 isLeading, dependsOn, dependedOn, redundant;
@@ -5220,7 +5220,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					dst_trak->Media->information->sampleTable->sampleGroups = gf_list_new();
 
 				group_desc_index_src = group_desc_index_dst = sg->sample_entries[j].group_description_index;
-				
+
 				if (group_desc_index_src) {
 					GF_SampleGroupDescriptionBox *sgd_src, *sgd_dst;
 					GF_DefaultSampleGroupDescriptionEntry *sgde_src, *sgde_dst;
@@ -5228,7 +5228,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					group_desc_index_dst = 0;
 					//check that the sample group description exists !!
 					sgde_src = gf_isom_get_sample_group_info_entry(src, src_trak, sg->grouping_type, sg->sample_entries[j].group_description_index, &default_index, &sgd_src);
-				
+
 					if (!sgde_src) break;
 
 					if (!dst_trak->Media->information->sampleTable->sampleGroupsDescription)
@@ -5244,7 +5244,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 						gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **) &sgd_dst);
 						gf_list_add(dst_trak->Media->information->sampleTable->sampleGroupsDescription, sgd_dst);
 					}
-				
+
 					//find the same entry
 					for (k=0; k<gf_list_count(sgd_dst->group_descriptions); k++) {
 						sgde_dst = gf_list_get(sgd_dst->group_descriptions, i);
@@ -5263,8 +5263,8 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 						group_desc_index_dst = gf_list_count(sgd_dst->group_descriptions);
 					}
 				}
-				
-				
+
+
 				/*found our sample, add it to trak->sampleGroups*/
 				e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, group_desc_index_dst);
 				if (e) return e;
@@ -5308,7 +5308,7 @@ GF_Err gf_isom_text_set_display_flags(GF_ISOFile *file, u32 track, u32 desc_inde
 		}
 	}
 	return GF_OK;
-	
+
 }
 
 
@@ -5383,7 +5383,7 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 	trak->Header->duration = trackDuration;
 
 	return GF_OK;
-	
+
 }
 
 
@@ -5392,7 +5392,7 @@ GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
 	GF_Box *a;
 	u32 i;
 	i = 0;
-	
+
 	while ((a = (GF_Box *)gf_list_enum(input->moov->other_boxes, &i))) {
 		if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
 			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
@@ -5403,7 +5403,7 @@ GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
 			pssh->private_data_size = ((GF_ProtectionSystemHeaderBox *)a)->private_data_size;
 			pssh->private_data = (u8 *)gf_malloc(pssh->private_data_size*sizeof(char));
 			memmove(pssh->private_data, ((GF_ProtectionSystemHeaderBox *)a)->private_data, pssh->private_data_size);
-			
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 			gf_isom_box_add_default(in_moof ? (GF_Box*)output->moof : (GF_Box*)output->moov, (GF_Box*)pssh);
 #else

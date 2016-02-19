@@ -129,7 +129,7 @@ typedef struct
 
 	u32 lang;
 	const char *lang_code;
-	
+
 	/*name of media if not defined in OD framework*/
 	const char *media_url;
 } GF_MediaInfo;

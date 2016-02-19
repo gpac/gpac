@@ -1583,7 +1583,7 @@ static GF_Err gf_media_export_avi_track(GF_MediaExporter *dumper)
 			e = GF_NON_COMPLIANT_BITSTREAM;
 			goto exit;
 		}
-		if (size == 0) 
+		if (size == 0)
 			break;
 
 		num_samples += size;

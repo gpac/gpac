@@ -422,9 +422,9 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 				fprintf(stderr, "Error writing frame\n");
 		} else
 #endif
-		if (sha_out) {
-			write_hash(sha_out, conv_buf, fb.height*fb.width*3);
-		}
+			if (sha_out) {
+				write_hash(sha_out, conv_buf, fb.height*fb.width*3);
+			}
 
 		/*in -depth -avi mode, do not release it yet*/
 		if (dump_mode_flags & DUMP_DEPTH_ONLY) return;
@@ -582,11 +582,11 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 		if (avi_out) {
 			if (AVI_write_frame(avi_out, conv_buf, out_size, 1) <0)
 				fprintf(stderr, "Error writing frame\n");
-		} else 
+		} else
 #endif
-		if (sha_out) {
-			write_hash(sha_out, conv_buf, out_size);
-		}
+			if (sha_out) {
+				write_hash(sha_out, conv_buf, out_size);
+			}
 		break;
 	case DUMP_BMP:
 		write_bmp(&fb, rad_name, frameNum);
@@ -608,7 +608,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 
 #ifndef GPAC_DISABLE_AVILIB
 
-typedef struct 
+typedef struct
 {
 	GF_AudioListener al;
 	GF_Mutex *mx;
@@ -616,14 +616,14 @@ typedef struct
 	u32 time_scale;
 	u64 max_dur, nb_bytes, audio_time;
 	u32 next_video_time, audio_time_init, flush_retry, nb_write, audio_clock_at_video_init;
-    u32 samplerate, bits_per_sample, nb_channel;
+	u32 samplerate, bits_per_sample, nb_channel;
 } AVI_AudioListener;
 
 void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 delay)
 {
 	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
 
-	if (avil->audio_clock_at_video_init > time) 
+	if (avil->audio_clock_at_video_init > time)
 		return;
 
 	if (avil->audio_time >= avil->audio_time_init + avil->max_dur)
@@ -631,12 +631,12 @@ void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 de
 
 	gf_mx_p(avil->mx);
 
-    if (!avil->time_scale) {
-        AVI_set_audio(avil->avi, avil->nb_channel, avil->samplerate, avil->bits_per_sample, WAVE_FORMAT_PCM, 0);
-        avil->time_scale = avil->nb_channel*avil->bits_per_sample*avil->samplerate/8;
+	if (!avil->time_scale) {
+		AVI_set_audio(avil->avi, avil->nb_channel, avil->samplerate, avil->bits_per_sample, WAVE_FORMAT_PCM, 0);
+		avil->time_scale = avil->nb_channel*avil->bits_per_sample*avil->samplerate/8;
 		gf_term_set_option(term, GF_OPT_FORCE_AUDIO_CONFIG, 1);
-    }
-    
+	}
+
 	avil->nb_bytes+=buffer_size;
 	avil->flush_retry=0;
 
@@ -648,7 +648,7 @@ void avi_audio_frame(void *udta, char *buffer, u32 buffer_size, u32 time, u32 de
 
 	avil->audio_time = 1000*avil->nb_bytes/avil->time_scale;
 
-	//we are behind video dump, force audio flush 
+	//we are behind video dump, force audio flush
 	if (avil->audio_time < avil->next_video_time)  {
 		gf_term_step_clocks(term, 0);
 	}
@@ -659,9 +659,9 @@ void avi_audio_reconfig(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_
 {
 	AVI_AudioListener *avil = (AVI_AudioListener *)udta;
 
-    avil->nb_channel = nb_channel;
-    avil->samplerate = samplerate;
-    avil->bits_per_sample = bits_per_sample;
+	avil->nb_channel = nb_channel;
+	avil->samplerate = samplerate;
+	avil->bits_per_sample = bits_per_sample;
 }
 #endif
 
@@ -693,7 +693,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	u32 cur_time_idx;
 	u32 mode = dump_mode_flags & 0x0000FFFF;
 
-    if (!out_url) out_url = url;
+	if (!out_url) out_url = url;
 	prev = strstr(url, "://");
 	if (prev) {
 		prev = strrchr(url, '/');
@@ -781,7 +781,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 #endif
 	}
-	
+
 	if (mode==DUMP_SHA1) {
 		strcat(szOutPath, ".sha1");
 		sha_out = gf_fopen(szOutPath, "wb");
@@ -837,7 +837,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #ifndef GPAC_DISABLE_AVILIB
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
-	
+
 		if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 			memset(&avi_al, 0, sizeof(avi_al));
 			avi_al.al.udta = &avi_al;
@@ -850,14 +850,14 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			gf_sc_add_audio_listener(term->compositor, &avi_al.al);
 		}
 
-		if (dump_mode_flags & DUMP_DEPTH_ONLY) 
+		if (dump_mode_flags & DUMP_DEPTH_ONLY)
 			AVI_set_video(depth_avi_out, width, height, fps, comp);
 #endif
 	}
 
 	if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
-		
-		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) ) 
+
+		if (dump_mode_flags & (DUMP_RGB_DEPTH | DUMP_RGB_DEPTH_SHAPE) )
 			conv_buf = gf_malloc(sizeof(char) * width * height * 4);
 		else
 			conv_buf = gf_malloc(sizeof(char) * width * height * 3);
@@ -883,8 +883,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 		if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
 
-            if (!no_prog)
-                fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
+			if (!no_prog)
+				fprintf(stderr, "Dumping %02d/100 %% - time %.02f sec\r", (u32) ((100.0*prev_time)/dump_dur), prev_time/1000.0 );
 
 			if (avi_mx) gf_mx_p(avi_mx);
 

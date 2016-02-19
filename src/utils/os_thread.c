@@ -691,7 +691,7 @@ void gf_sema_del(GF_Semaphore *sm)
 #ifdef GPAC_IPHONE
 	sem_close(sm->hSemaphore);
 #else
-    sem_close(sm->hSemaphore);
+	sem_close(sm->hSemaphore);
 //	sem_destroy(sm->hSemaphore);
 #endif
 	gf_free(sm->SemName);
@@ -707,7 +707,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 #ifndef WIN32
 	sem_t *hSem;
 #else
-    u32 prevCount;
+	u32 prevCount;
 #endif
 
 	if (!sm) return GF_FALSE;
@@ -722,7 +722,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 	hSem = sm->hSemaphore;
 #endif
 
-    while (NbRelease) {
+	while (NbRelease) {
 		if (sem_post(hSem) < 0) return GF_FALSE;
 		NbRelease -= 1;
 	}

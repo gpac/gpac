@@ -100,7 +100,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 			return -1;
 		}
 	}
-	
+
 	/* Open video */
 	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
@@ -168,7 +168,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (codec_ctx->time_base.num==1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("AVCTX give frame duration of %d/%d - keeping requested rate %d, but this may result in unexpected behaviour.\n", codec_ctx->time_base.num, codec_ctx->time_base.den, video_data_conf->framerate ));
-		
+
 		if (codec_ctx->time_base.den==1000000) {
 			codec_ctx->time_base.num = codec_ctx->time_base.den / video_data_conf->framerate;
 		}
@@ -346,13 +346,13 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 							//TODO - check with audio if sync is OK
 						}
 					}
-					
+
 					//move to 0-based PTS
 					if (packet.pts!=AV_NOPTS_VALUE) {
 						pts = packet.pts - video_input_file->first_pts;
 					} else {
 						pts = video_input_file->prev_pts + video_input_data->frame_duration;
-					}					
+					}
 
 					//check for drop frames
 #ifndef GPAC_DISABLE_LOG

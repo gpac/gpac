@@ -270,8 +270,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #ifdef GPAC_IPHONE
 		res = realpath(user_home, buf);
 		if (res) {
-            strcpy(file_path, buf);
-            strcat(file_path, "/Documents");
+			strcpy(file_path, buf);
+			strcat(file_path, "/Documents");
 		} else
 #endif
 			strcpy(file_path, user_home);
@@ -409,13 +409,13 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 	char buf[GF_MAX_PATH], *res, *sep;
 	res = realpath(file_path, buf);
 	if (!res) return;
-	
+
 	sep = strstr(res, ".gpac");
 	assert(sep);
 	sep[0] = 0;
 	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
 	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
-	
+
 	sep = strstr(res, "Documents");
 	assert(sep);
 	sep[0]=0;
@@ -472,9 +472,9 @@ static GF_Config *create_default_config(char *file_path)
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", szPath);
 	}
 #else
-    /*get default temporary directoy */
-    cache_dir = gf_get_default_cache_directory();
-	
+	/*get default temporary directoy */
+	cache_dir = gf_get_default_cache_directory();
+
 	if (cache_dir) {
 		gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 		gf_free(cache_dir);
@@ -482,13 +482,13 @@ static GF_Config *create_default_config(char *file_path)
 #endif
 
 #if defined(GPAC_IPHONE)
-    gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
+	gf_cfg_set_key(cfg, "General", "DeviceType", "iOS");
 #elif defined(GPAC_ANDROID)
-    gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
+	gf_cfg_set_key(cfg, "General", "DeviceType", "Android");
 #else
-    gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
+	gf_cfg_set_key(cfg, "General", "DeviceType", "Desktop");
 #endif
-    
+
 	gf_cfg_set_key(cfg, "Compositor", "Raster2D", "GPAC 2D Raster");
 	gf_cfg_set_key(cfg, "Audio", "ForceConfig", "yes");
 	gf_cfg_set_key(cfg, "Audio", "NumBuffers", "2");
@@ -537,7 +537,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "SDL Video Output");
 #elif defined(GPAC_ANDROID)
 	gf_cfg_set_key(cfg, "Video", "DriverName", "Android Video Output");
-gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
+	gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
 #else
 	gf_cfg_set_key(cfg, "Video", "DriverName", "X11 Video Output");
 	gf_cfg_set_key(cfg, "Audio", "DriverName", "SDL Audio Output");
@@ -583,7 +583,7 @@ gf_cfg_set_key(cfg, "Audio", "DriverName", "Android Audio Output");
 static void check_modules_dir(GF_Config *cfg)
 {
 	char path[GF_MAX_PATH];
-	
+
 #ifdef GPAC_IPHONE
 	char *cfg_path;
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
@@ -605,10 +605,10 @@ static void check_modules_dir(GF_Config *cfg)
 	cfg_path = gf_cfg_get_filename(cfg);
 	gf_ios_refresh_cache_directory(cfg, cfg_path);
 	gf_free(cfg_path);
-	
+
 #else
 	const char *opt;
-	
+
 	if ( get_default_install_path(path, GF_PATH_MODULES) ) {
 		opt = gf_cfg_get_key(cfg, "General", "ModulesDirectory");
 		//for OSX, we can have an install in /usr/... and an install in /Applications/Osmo4.app - always change
@@ -652,7 +652,7 @@ static void check_modules_dir(GF_Config *cfg)
 
 	/*if startup file was disabled, do not attempt to correct it*/
 	if (gf_cfg_get_key(cfg, "General", "StartupFile")==NULL) return;
-    
+
 	if ( get_default_install_path(path, GF_PATH_GUI) ) {
 		opt = gf_cfg_get_key(cfg, "General", "StartupFile");
 		if (strstr(opt, "gui.bt") && strcmp(opt, path) && strstr(path, ".app") ) {
@@ -662,7 +662,7 @@ static void check_modules_dir(GF_Config *cfg)
 #endif
 		}
 	}
-	
+
 #endif
 }
 
@@ -718,7 +718,7 @@ GF_Config *gf_cfg_init(const char *file, Bool *new_cfg)
 		if (!gf_dir_exists(szPath)) gf_mkdir(szPath);
 		gf_cfg_set_key(cfg, "General", "StorageDirectory", szPath);
 	}
-    
+
 	if (new_cfg) *new_cfg = GF_TRUE;
 	return cfg;
 }

@@ -278,9 +278,9 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_TEXTINPUT:
 #ifndef GPAC_DISABLE_SVG
-        evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
+		evt_node->name = gf_strdup(gf_dom_event_get_name(event->type));
 #endif
-        break;
+		break;
 	}
 
 	if (!evt_node->name) {
@@ -704,7 +704,7 @@ static void validator_xvs_close(GF_Validator *validator)
 static void validator_test_open(GF_Validator *validator)
 {
 	char filename[100];
-	
+
 	if (!validator->trace_mode) {
 		if (validator->test_base)
 			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
@@ -772,10 +772,10 @@ static Bool validator_load_event(GF_Validator *validator)
 		validator->next_event_snapshot = GF_TRUE;
 	} else {
 #ifndef GPAC_DISABLE_SVG
-        validator->next_event.type = gf_dom_event_type_by_name(event_node->name);
+		validator->next_event.type = gf_dom_event_type_by_name(event_node->name);
 		if (validator->next_event.type == GF_EVENT_UNKNOWN)
 #endif
-        {
+		{
 			return GF_TRUE;
 		}
 	}
@@ -807,10 +807,10 @@ static Bool validator_load_event(GF_Validator *validator)
 		} else if (!strcmp(att->name, "ctrl") && !strcmp(att->value, "true")) {
 			validator->next_event.mouse.key_states |= GF_KEY_MOD_CTRL;
 #ifndef GPAC_DISABLE_SVG
-        } else if (!strcmp(att->name, "key_identifier")) {
+		} else if (!strcmp(att->name, "key_identifier")) {
 			validator->next_event.key.key_code = gf_dom_get_key_type(att->value);
 #endif
-        } else if (!strcmp(att->name, "unicode-char")) {
+		} else if (!strcmp(att->name, "unicode-char")) {
 			validator->next_event.character.unicode_char = atoi(att->value);
 		}
 		att_index++;
@@ -983,20 +983,20 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 			has_more_events = validator_load_event(validator);
 			if (!has_more_events) {
 				validator_xvs_close(validator);
-                if (! validator->trace_mode) {
-                    gf_term_disconnect(validator->term);
-                    gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
-                    validator_xvs_next(validator, GF_FALSE);
-                    if (!validator->xvs_node) {
-                        GF_Event evt;
-                        memset(&evt, 0, sizeof(GF_Event));
-                        evt.type = GF_EVENT_QUIT;
-                        validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
-                    } else {
-                        if (!validator->is_recording) {
-                            validator_load_event(validator);
-                        }
-                    }
+				if (! validator->trace_mode) {
+					gf_term_disconnect(validator->term);
+					gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
+					validator_xvs_next(validator, GF_FALSE);
+					if (!validator->xvs_node) {
+						GF_Event evt;
+						memset(&evt, 0, sizeof(GF_Event));
+						evt.type = GF_EVENT_QUIT;
+						validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
+					} else {
+						if (!validator->is_recording) {
+							validator_load_event(validator);
+						}
+					}
 				}
 			}
 		}

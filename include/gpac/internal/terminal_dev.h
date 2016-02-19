@@ -208,7 +208,7 @@ struct _scene
 	SFURL visual_url, audio_url, text_url, dims_url;
 
 	Bool is_srd;
-	
+
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
 	/*list of externproto libraries*/
@@ -279,7 +279,7 @@ not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 
-//check clock status. 
+//check clock status.
 //If @check_buffering is 0, returns 1 if all clocks have seen eos, 0 otherwise
 //If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering);

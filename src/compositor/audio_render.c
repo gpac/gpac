@@ -400,11 +400,11 @@ void gf_sc_flush_next_audio(GF_Compositor *compositor)
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
 }
 
-Bool gf_sc_check_audio_pending(GF_Compositor *compositor) 
+Bool gf_sc_check_audio_pending(GF_Compositor *compositor)
 {
 	Bool res = GF_FALSE;
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_TRUE);
-	if (compositor->audio_renderer->step_mode) 
+	if (compositor->audio_renderer->step_mode)
 		res = GF_FALSE;
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_FALSE);
 
@@ -426,11 +426,11 @@ u32 gf_ar_proc(void *p)
 
 	while (ar->audio_th_state == 1) {
 		//do mix even if mixer is empty, otherwise we will push the same buffer over and over to the sound card
-/*
-		if (ar->Frozen ) {
-			gf_sleep(0);
-		} else 
-*/		{
+		/*
+				if (ar->Frozen ) {
+					gf_sleep(0);
+				} else
+		*/		{
 			if (ar->need_reconfig) gf_sc_ar_reconfig(ar);
 			ar->audio_out->WriteAudio(ar->audio_out);
 		}
@@ -692,7 +692,7 @@ u32 gf_sc_ar_get_clock(GF_AudioRenderer *ar)
 
 	if (ar->Frozen) {
 		return (u32) ((ar->freeze_time - ar->start_time) / 1000);
-	} 
+	}
 
 	return (u32) ((gf_sys_clock_high_res() - ar->start_time) / 1000);
 }

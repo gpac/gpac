@@ -1852,13 +1852,13 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber, const char *encoding, const char *config, u32 DescriptionIndex);
 
-GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, 
-											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
+GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex,
+        const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
 GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
-											const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
-											u32 *outDescriptionIndex);
+        const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
+        u32 *outDescriptionIndex);
 GF_Err gf_isom_update_xml_subtitle_description(GF_ISOFile *movie, u32 trackNumber,
-											   u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
+        u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
 
 
 

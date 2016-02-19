@@ -254,7 +254,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 			}
 			gf_scene_restart_dynamic(in_scene, time, 0, 1);
 			return;
-		} 
+		}
 		gf_clock_set_speed(ck, speed);
 		gf_odm_set_speed(odm, speed, GF_TRUE);
 	}
