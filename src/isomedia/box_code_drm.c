@@ -549,9 +549,9 @@ GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->PaddingScheme);
 	gf_bs_write_u64(bs, ptr->PlaintextLength);
 
-	cid_len = ptr->ContentID ? (u32) strlen(ptr->ContentID) : 0;
+	cid_len = ptr->ContentID ? (u16) strlen(ptr->ContentID) : 0;
 	gf_bs_write_u16(bs, cid_len);
-	ri_len = ptr->RightsIssuerURL ? (u32) strlen(ptr->RightsIssuerURL) : 0;
+	ri_len = ptr->RightsIssuerURL ? (u16) strlen(ptr->RightsIssuerURL) : 0;
 	gf_bs_write_u16(bs, ri_len);
 	gf_bs_write_u16(bs, ptr->TextualHeadersLen);
 
@@ -629,7 +629,7 @@ GF_Err grpi_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gid_len = ptr->GroupID ? (u32) strlen(ptr->GroupID) : 0;
+	gid_len = ptr->GroupID ? (u16) strlen(ptr->GroupID) : 0;
 	gf_bs_write_u16(bs, gid_len);
 	gf_bs_write_u8(bs, ptr->GKEncryptionMethod);
 	gf_bs_write_u16(bs, ptr->GKLength);

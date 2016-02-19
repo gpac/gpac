@@ -140,7 +140,7 @@ void isor_check_buffer_level(ISOMReader *read)
 	if (read->frag_type) {
 		u64 bytesMissing=0;
 		gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
-		mov_rate = done + bytesMissing;
+		mov_rate = (Double) (done + bytesMissing);
 	}
 	dur = gf_isom_get_duration(read->mov);
 	if (dur) {

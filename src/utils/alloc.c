@@ -220,7 +220,7 @@ static void print_backtrace(char *backtrace)
 		char *symbol_name = "unresolved";
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
-		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", frames-i-1, symbol->Address, symbol_name);
+		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
 		if (len<0)  len = SYMBOL_MAX_SIZE-1;
 		backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
@@ -455,7 +455,11 @@ typedef memory_element** memory_list;
 
 static unsigned int gf_memory_hash(void *ptr)
 {
-	return (((unsigned int)ptr>>4)+(unsigned int)ptr)%HASH_ENTRIES;
+#if defined(WIN32)
+	return (unsigned int) ( (((unsigned __int64)ptr>>4)+(unsigned __int64)ptr) % HASH_ENTRIES );
+#else
+	return (((unsigned int)ptr >> 4) + (unsigned int)ptr) % HASH_ENTRIES;
+#endif
 }
 
 #else
