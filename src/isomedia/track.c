@@ -256,9 +256,9 @@ default_sync:
 	if (! stbl->SyncSample) {
 		if (
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-			moov->mvex && 
+		    moov->mvex &&
 #endif
-			(esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
+		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
 			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
@@ -1133,7 +1133,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				entry_a->esd->desc = esd;
 				//type cast possible now
 				entry = (GF_MPEGSampleEntryBox*) entry_a;
-				}
+			}
 			break;
 		default:
 			if ((esd->decoderConfig->streamType==0x03) && (esd->decoderConfig->objectTypeIndication==0x09)) {

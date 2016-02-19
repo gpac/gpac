@@ -1038,7 +1038,7 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	if (!scene->visual_url.OD_ID && !scene->visual_url.url) return;
 
 	if (scene->is_live360) return;
-	
+
 	url.count = 1;
 	url.vals = &scene->visual_url;
 	mo = IS_CheckExistingObject(scene, &url, GF_MEDIA_OBJECT_VIDEO);
@@ -1198,12 +1198,12 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 }
 
-static void scene_video_mouse_move(void *param, GF_FieldInfo *field) 
+static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 {
 	u32 i, count;
 	GF_Scene *scene = (GF_Scene *) param;
 	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
-	
+
 	if (!scene->visual_url.OD_ID) return;
 
 	count = gf_list_count(scene->resources);
@@ -1234,7 +1234,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 {
 	M_MovieTexture *mt;
 	GF_Node *n1, *n2;
-	
+
 	/*create a shape and bitmap node*/
 	n2 = is_create_node(scene->graph, TAG_MPEG4_Transform2D, tr_name);
 	gf_node_list_add_child( &((GF_ParentNode *)root)->children, n2);
@@ -1247,13 +1247,13 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	n2 = is_create_node(scene->graph, TAG_MPEG4_Appearance, NULL);
 	((M_Shape *)n1)->appearance = n2;
 	gf_node_register(n2, n1);
-	
+
 	/*note we create a movie texture even for images...*/
 	mt = (M_MovieTexture *) is_create_node(scene->graph, TAG_MPEG4_MovieTexture, texture_name);
 	mt->startTime = gf_scene_get_time(scene);
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
-	
+
 	//TODO srd in 360
 	if (scene->is_live360) {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
@@ -1261,7 +1261,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		gf_node_register(n2, n1);
 	} else if (scene->is_srd) {
 		GF_Node *app = n2;
-		
+
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
@@ -1270,7 +1270,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		((M_Material2D *)n2)->filled = GF_TRUE;
 		((M_Appearance *)app)->material = n2;
 		gf_node_register(n2, app);
-		
+
 	} else {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, name_geo);
 		((M_Shape *)n1)->geometry = n2;
@@ -1359,7 +1359,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_sg_route_new_to_callback(scene->graph, n2, 3/*"hitTexCoord_changed"*/, scene, scene_video_mouse_move);
 
 		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
-		
+
 		if (! scene->is_live360) {
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
@@ -1411,7 +1411,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		min_x = min_y = INT_MAX;
 		max_x = max_y = 0;
-		
+
 		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 			if (!a_odm->mo || !a_odm->mo->srd_w) {
 				continue;
@@ -1423,7 +1423,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			if ((s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h > min_y + max_y) max_y = (s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h - min_y;
 			nb_srd++;
 		}
-		
+
 		n1 = gf_sg_find_node_by_name(scene->graph, "DYN_TRANS");
 		for (i=1; i<nb_srd; i++) {
 			sprintf(szName, "TR%d", i+1);
@@ -1461,17 +1461,17 @@ void gf_scene_regenerate(GF_Scene *scene)
 				((M_Rectangle *)n2)->size.x = tw;
 				((M_Rectangle *)n2)->size.y = th;
 				gf_node_changed(n2, NULL);
-				
+
 				tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
 				tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
-				
+
 				ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
 				ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
-				
+
 				addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
 				addon_tr->translation.x = tx;
 				addon_tr->translation.y = ty;
-				
+
 				gf_node_changed((GF_Node *)addon_tr, NULL);
 			}
 		}
@@ -1479,8 +1479,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 		mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		set_media_url(scene, &scene->visual_url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 	}
-	
-	
+
+
 	if (! scene->is_live360) {
 		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
@@ -1870,7 +1870,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 				//we're timeshifting through the main addon, activate it
 				if (from_time < -1) {
 					gf_scene_select_main_addon(scene, odm, GF_TRUE, gf_clock_time(ck));
-					
+
 					/*no timeshift, this is a VoD associated with the live broadcast: get current time*/
 					if (! odm->timeshift_depth) {
 						s64 live_clock = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;
@@ -1894,7 +1894,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 				//object is not an addon and main addon is selected, do not add
 				if (!odm->addon && scene->main_addon_selected) {
-				} 
+				}
 				//object is an addon and enabled, restart if main and main is enabled, or if not main
 				else if (odm->addon && odm->addon->enabled) {
 					if (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
@@ -2045,7 +2045,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				devt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
-				
+
 				skip_notif = GF_TRUE;
 
 				width = w;
@@ -2072,7 +2072,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 #endif
 
 	if (skip_notif) return;
-	
+
 	gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 }
 
@@ -2444,7 +2444,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 
 			if (addon_info->enable_if_defined)
 				addon->enabled = GF_TRUE;
-			
+
 			//restart addon
 			if (!addon->root_od && addon->timeline_ready && addon->enabled) {
 				load_associated_media(scene, addon);

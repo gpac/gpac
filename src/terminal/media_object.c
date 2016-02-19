@@ -240,7 +240,7 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 {
 	GF_Channel *ch;
 	GF_NetworkCommand com;
-	
+
 	GF_CodecCapability cap;
 	if ((mo->type != GF_MEDIA_OBJECT_VIDEO) && (mo->type!=GF_MEDIA_OBJECT_TEXT)) return;
 
@@ -313,7 +313,7 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	ch = (GF_Channel *)gf_list_get(mo->odm->channels, 0);
 	if (!ch) return;
 	com.base.on_channel = ch;
-	
+
 	/**/
 	if (! mo->pixel_ar) {
 		com.base.command_type = GF_NET_CHAN_GET_PIXEL_AR;
@@ -326,14 +326,14 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 				mo->pixel_ar = (com.par.hSpacing<<16) | com.par.vSpacing;
 		}
 	}
-	
+
 	com.base.command_type = GF_NET_CHAN_GET_SRD;
 	if (gf_term_service_command(ch->service, &com) == GF_OK) {
 		mo->srd_x = com.srd.x;
 		mo->srd_y = com.srd.y;
 		mo->srd_w = com.srd.w;
 		mo->srd_h = com.srd.h;
-		
+
 		if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
 			mo->odm->parentscene->is_srd = GF_TRUE;
 		}
@@ -436,15 +436,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
 			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
 			codec->force_cb_resize=0;
-            //decode and resize CB
+			//decode and resize CB
 			force_decode_mode = 1;
 		}
 	}
 
 	/*fast forward, bench mode with composition memory: force one decode if no data is available*/
-    if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation) || (codec->type==GF_STREAM_AUDIO) ) ) {
-        force_decode_mode = 2;
-    }
+	if (! *eos && ((codec->ck->speed > FIX_ONE) || (codec->odm->term->bench_mode && !codec->CB->no_allocation) || (codec->type==GF_STREAM_AUDIO) ) ) {
+		force_decode_mode = 2;
+	}
 
 	if (force_decode_mode) {
 		u32 retry = 100;
@@ -511,7 +511,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			}
 		}
 	}
-		
+
 	if (skip_resync) {
 		resync=GF_MO_FETCH;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
@@ -530,7 +530,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
 			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time)
 				break;
-				
+
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
 					obj_time = gf_clock_time(codec->ck);

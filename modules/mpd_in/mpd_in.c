@@ -298,7 +298,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 			if (!gf_dash_is_group_selectable(mpdin->dash, i)) continue;
 			group = gf_dash_get_group_udta(mpdin->dash, i);
 			if (!group) continue;
-			
+
 			if (group->segment_ifce == ifce) {
 				gf_dash_group_get_segment_init_url(mpdin->dash, i, &param->url_query.start_range, &param->url_query.end_range);
 				param->url_query.current_download = 0;
@@ -410,7 +410,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 
 		e = gf_dash_group_get_next_segment_location(mpdin->dash, group_idx, param->url_query.dependent_representation_index, &param->url_query.next_url, &param->url_query.start_range, &param->url_query.end_range,
 		        NULL, &param->url_query.next_url_init_or_switch_segment, &param->url_query.switch_start_range , &param->url_query.switch_end_range,
-				&src_url, &param->url_query.has_next, &param->url_query.key_url, &group->key_IV);
+		        &src_url, &param->url_query.has_next, &param->url_query.key_url, &group->key_IV);
 		if (e)
 			return e;
 
@@ -741,7 +741,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			//let the player decide which group to play
 			if (!gf_dash_is_group_selectable(mpdin->dash, i))
 				continue;
-			
+
 			j=0;
 			while (1) {
 				const char *desc_id, *desc_scheme, *desc_value;
@@ -758,12 +758,12 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				gf_dash_group_select(mpdin->dash, i, GF_FALSE);
 				continue;
 			}
-			
+
 			if (gf_dash_group_has_dependent_group(mpdin->dash, i)) {
 				gf_dash_group_select(mpdin->dash, i, GF_TRUE);
 				continue;
 			}
-			
+
 			mime = gf_dash_group_get_segment_mime(mpdin->dash, i);
 			init_segment = gf_dash_group_get_segment_init_url(mpdin->dash, i, NULL, NULL);
 			e = MPD_LoadMediaService(mpdin, i, mime, init_segment);
@@ -978,7 +978,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!strcmp(opt, "disabled")) disable_switching = 2;
 	else if (!strcmp(opt, "bandwidth")) mpdin->buffer_adaptation = GF_FALSE;
 	else mpdin->buffer_adaptation = GF_TRUE;
-	
+
 
 	first_select_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
@@ -1040,7 +1040,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
-	
+
 	tile_adapt_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation");
 	if (!opt) {
@@ -1067,7 +1067,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		opt = "100";
 	}
 	tiles_rate_decrease = atoi(opt);
-	
+
 	//override all service callbacks
 	mpdin->fn_connect_ack = serv->fn_connect_ack;
 	serv->fn_connect_ack = mpdin_connect_ack;
@@ -1274,7 +1274,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_INTERACTIVE:
 		/* TODO - we are interactive if not live without timeshift */
 		return GF_OK;
-	
+
 	case GF_NET_CHAN_GET_SRD:
 	{
 		Bool res;

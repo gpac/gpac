@@ -148,7 +148,7 @@ struct __gf_download_session
 	/* Range information if needed for the download (cf flag) */
 	Bool needs_range;
 	u64 range_start, range_end;
-	
+
 	u32 connect_time, ssl_setup_time, reply_time, total_time_since_req, req_hdr_size, rsp_hdr_size;
 
 	/*0: GET
@@ -1004,7 +1004,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 
 	sess->last_error = gf_dm_get_url_info(url, &info, sess->orig_url);
 	if (sess->last_error) return sess->last_error;
-	
+
 	if (!strstr(url, "://")) {
 		char c, *sep;
 		info.port = sess->port;
@@ -1136,7 +1136,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	}
 	sess->headers = gf_list_new();
 	sess->flags = dl_flags;
-	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA)
 		sess->force_data_write_callback = GF_TRUE;
 	if (dm && !dm->head_timeout) sess->server_only_understand_get = GF_TRUE;
 	sess->user_proc = user_io;
@@ -1369,7 +1369,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 		sess->connect_time = (u32) (gf_sys_clock_high_res() - now);
 		sess->status = GF_NETIO_CONNECTED;
-        GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
 		gf_sk_set_buffer_size(sess->sock, GF_TRUE, GF_DOWNLOAD_BUFFER_SIZE);
 		gf_sk_set_buffer_size(sess->sock, GF_FALSE, GF_DOWNLOAD_BUFFER_SIZE);
@@ -1435,7 +1435,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 					for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 						const char *valid_name = (const char*) gf_list_get(valid_names, i);
 						if (rfc2818_match(valid_name, sess->server_name)) {
-						success = GF_TRUE;
+							success = GF_TRUE;
 							GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[SSL] Hostname %s matches %s\n", sess->server_name, valid_name));
 							break;
 						}
@@ -1763,7 +1763,7 @@ retry_cache:
 	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
-	//when rate is limited, use smaller smaller read size 
+	//when rate is limited, use smaller smaller read size
 	if (dm->limit_data_rate) {
 		dm->read_buf_size = 1024;
 	}
@@ -1777,7 +1777,7 @@ retry_cache:
 	dm->allow_offline_cache = GF_FALSE;
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "AllowOfflineCache");
-		if (opt && !strcmp(opt, "yes") ) 
+		if (opt && !strcmp(opt, "yes") )
 			dm->allow_offline_cache = GF_TRUE;
 	}
 
@@ -2033,7 +2033,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	nbBytes = payload_size;
 	hdr_size = 0;
 	remaining = 0;
-	if (!payload) 
+	if (!payload)
 		return; //nothing to do
 	if (sess->chunked) {
 		data = (u8 *) gf_dm_get_chunk_data(sess, (char *) payload, &nbBytes, &hdr_size);
@@ -2046,7 +2046,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			payload_size = 0;
 			payload = NULL;
 		} else if (hdr_size + nbBytes + 2 > payload_size) {
-			/* The entire payload was read, 
+			/* The entire payload was read,
 			   and the payload contained the chunk size + CRLF
 			   but we need to wait for the next payloads to finish the chunk */
 			remaining = nbBytes + 2 - payload_size + hdr_size;
@@ -2113,8 +2113,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), 
-				gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req, sess->reply_time ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry),
+		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req, sess->reply_time ));
 	}
 
 	if (rewrite_size && sess->chunked) {
@@ -2545,7 +2545,7 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
 	}
 	if ( cumul_rate >= nb_sess * dm->limit_data_rate)
 		return GF_TRUE;
-	
+
 	return GF_FALSE;
 }
 
@@ -3205,7 +3205,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->status = GF_NETIO_DATA_EXCHANGE;
 		sess->bytes_done = 0;
 	}
-	
+
 
 	/* we may have existing data in this buffer ... */
 	if (!e && (BodyStart < (s32) bytesRead)) {
@@ -3599,7 +3599,7 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
 
 	if (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL) flags |= GF_DOWNLOAD_SESSION_USE_SSL;
 	sess->flags = flags;
-	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA) 
+	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA)
 		sess->force_data_write_callback = GF_TRUE;
 
 	sess->user_proc = user_io;
@@ -3630,7 +3630,7 @@ void gf_dm_set_data_rate(GF_DownloadManager *dm, u32 rate_in_bits_per_sec)
 		}
 
 		dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
-		//when rate is limited, use smaller smaller read size 
+		//when rate is limited, use smaller smaller read size
 		if (dm->limit_data_rate) dm->read_buf_size = 1024;
 	}
 }

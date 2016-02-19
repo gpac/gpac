@@ -114,8 +114,8 @@ const char *gf_m4v_get_profile_name(u8 video_pl)
 		return "Basic Animated Texture Profile @ Level 1";
 	case 0x72:
 		return "Basic Animated Texture Profile @ Level 2";
-    case 0x7F:
-        return "AVC/H264 Profile";
+	case 0x7F:
+		return "AVC/H264 Profile";
 	case 0x81:
 		return "Hybrid Profile @ Level 1";
 	case 0x82:
@@ -1120,7 +1120,7 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	case 2: /*AAC LC*/
 		if (cfg->nb_chan<=2)
 			return (cfg->base_sr<=24000) ? 0x28 : 0x29; /*LC@L1 or LC@L2*/
-		if (cfg->nb_chan<=5) 
+		if (cfg->nb_chan<=5)
 			return (cfg->base_sr<=48000) ? 0x2A : 0x2B; /*LC@L4 or LC@L5*/
 		return (cfg->base_sr<=48000) ? 0x50 : 0x51; /*LC@L4 or LC@L5*/
 	case 5: /*HE-AAC - SBR*/
@@ -1132,7 +1132,7 @@ u32 gf_m4a_get_profile(GF_M4ADecSpecInfo *cfg)
 	case 29: /*HE-AACv2 - SBR+PS*/
 		if (cfg->nb_chan<=2)
 			return (cfg->base_sr<=24000) ? 0x30 : 0x31; /*HE-AACv2@L2 or HE-AACv2@L3*/
-		if (cfg->nb_chan<=5) 
+		if (cfg->nb_chan<=5)
 			return (cfg->base_sr<=48000) ? 0x32 : 0x33; /*HE-AACv2@L4 or HE-AACv2@L5*/
 		return (cfg->base_sr<=48000) ? 0x54 : 0x55; /*HE-AACv2@L6 or HE-AACv2@L7*/
 	/*default to HQ*/
@@ -1256,7 +1256,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 			gf_bs_align(bs);
 			cfg->comment_field_bytes = gf_bs_read_int(bs, 8);
 			gf_bs_read_data(bs, (char *) cfg->comments, cfg->comment_field_bytes);
-	
+
 			cfg->nb_chan = cfg->num_front_channel_elements + cfg->num_back_channel_elements + cfg->num_side_channel_elements + cfg->num_lfe_channel_elements;
 		}
 
@@ -1488,7 +1488,7 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 			gf_bs_align(bs);
 			gf_bs_write_int(bs, cfg->comment_field_bytes, 8);
 			gf_bs_write_data(bs, (char *) cfg->comments, cfg->comment_field_bytes);
-		}		
+		}
 
 		if ((cfg->base_object_type == 6) || (cfg->base_object_type == 20)) {
 			gf_bs_write_int(bs, 0, 3);
@@ -2348,7 +2348,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 			SubWidthC = 2, SubHeightC = 1;
 		} else if ((chroma_format_idc == 3) && (separate_colour_plane_flag == 0)) {
 			SubWidthC = 1, SubHeightC = 1;
-		} 
+		}
 
 		if (ChromaArrayType == 0) {
 			assert(SubWidthC==-1);
@@ -3063,15 +3063,15 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 		psize += gf_bs_read_int(bs, 8);
 
 		start = gf_bs_get_position(bs);
-		
+
 		do_copy = 1;
-		
+
 		if (start+psize >= nal_size) {
 			if (written == 1) written = 0;
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), skiping %sSEI message\n", ptype, psize, nal_size-start, written ? "end of " : ""));
 			break;
 		}
-		
+
 		switch (ptype) {
 		/*remove SEI messages forbidden in MP4*/
 		case 3: /*filler data*/
@@ -4402,9 +4402,9 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	*temporal_id = n_state.temporal_id = gf_bs_read_int(bs, 3);
 	if (! (*temporal_id))
 		return -1;
-	
+
 	*temporal_id -= 1;
-	
+
 	ret = 0;
 	switch (n_state.nal_unit_type) {
 	case GF_HEVC_NALU_ACCESS_UNIT:

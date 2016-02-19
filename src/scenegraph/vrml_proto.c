@@ -691,10 +691,10 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 		}
 
 		if (route->ToNode->sgprivate->tag==TAG_MPEG4_Script)
-            gf_sg_route_activate(route);
+			gf_sg_route_activate(route);
 #ifndef GPAC_DISABLE_X3D
-        else if (route->ToNode->sgprivate->tag==TAG_X3D_Script)
-            gf_sg_route_activate(route);
+		else if (route->ToNode->sgprivate->tag==TAG_X3D_Script)
+			gf_sg_route_activate(route);
 #endif
 	}
 

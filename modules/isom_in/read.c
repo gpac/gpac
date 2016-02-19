@@ -1065,7 +1065,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK) 
+	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
 		return GF_OK;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;

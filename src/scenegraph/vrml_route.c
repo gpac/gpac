@@ -489,7 +489,7 @@ void gf_sg_route_new_to_callback(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromF
 
 	r->is_setup = 1;
 	r->graph = sg;
-	
+
 	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
 	if (!fromNode->sgprivate->interact->routes) fromNode->sgprivate->interact->routes = gf_list_new();
 	gf_list_add(fromNode->sgprivate->interact->routes, r);

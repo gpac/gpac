@@ -1549,7 +1549,7 @@ GF_FieldInfo info;
 GF_JSField *ptr;
 GF_ScriptPriv *priv;
 
-if (! GF_JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) ) 
+if (! GF_JS_InstanceOf(c, obj, &js_rt->SFNodeClass, NULL) )
 	return JS_FALSE;
 ptr = (GF_JSField *) SMJS_GET_PRIVATE(c, obj);
 assert(ptr->field.fieldType==GF_SG_VRML_SFNODE);

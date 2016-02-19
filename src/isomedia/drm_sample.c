@@ -1053,7 +1053,7 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 	if (!has_saiz && traf && (traf->sample_encryption || traf->piff_sample_encryption) )
 		has_saiz = GF_TRUE;
 #endif
-	
+
 	for (i = 0; i < gf_list_count(sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
 		if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
@@ -1067,7 +1067,7 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 	if (!has_saio && traf && (traf->sample_encryption || traf->piff_sample_encryption) )
 		has_saio = GF_TRUE;
 #endif
-	
+
 	return (has_saiz && has_saio);
 }
 

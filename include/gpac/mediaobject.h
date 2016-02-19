@@ -99,7 +99,7 @@ GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u
 u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo);
 
 typedef enum
-{	
+{
 	//never resync the content of the decoded media buffer (used fo audio)
 	//if clock is paused do not fetch
 	GF_MO_FETCH = 0,

@@ -154,8 +154,8 @@ enum
 	GF_CODEC_ABORT,
 
 	/*sets current hitpoint on the video texture. hitpoint is an integer (valueInt) containing:
-		the X coord in upper 16 bits, ranging from 0 to 0xFFFF 
-		the Y coord in lower 16 bits, ranging from 0 to 0xFFFF 
+		the X coord in upper 16 bits, ranging from 0 to 0xFFFF
+		the Y coord in lower 16 bits, ranging from 0 to 0xFFFF
 	 x,y are in normalized texture coordinates (0,0 bottom left, 1,1 top right)
 	 return GF_NOT_SUPPORTED if your codec does'nt handle this
 	*/

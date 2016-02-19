@@ -646,8 +646,8 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		trak->Media->mediaHeader->duration += trak->dts_at_seg_start;
 #endif
-			
-			
+
+
 #if 1
 		if (ent) trak->Media->mediaHeader->duration += ent->sampleDelta;
 #else

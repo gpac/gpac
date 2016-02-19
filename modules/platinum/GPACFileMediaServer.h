@@ -117,7 +117,7 @@ protected:
 	        const PLT_HttpRequestContext& context,
 	        bool                          with_count = true,
 	        bool                          keep_extension_in_title = false,
-            bool                          allip = false);
+	        bool                          allip = false);
 
 	PLT_MediaObject* BuildFromFilePathAndHost(const NPT_String&        filepath,
 	        const PLT_HttpRequestContext *context = NULL,

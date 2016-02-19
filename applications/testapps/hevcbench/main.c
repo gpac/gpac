@@ -651,7 +651,7 @@ void PrintUsage()
 	        "-bench-yuv10: only bench YUV10 upload rate\n"
 	        "-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
 	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
-			"-output-8b: forces CPU conversion to 8 bit before display (only available when -sys-mem is used)\n"
+	        "-output-8b: forces CPU conversion to 8 bit before display (only available when -sys-mem is used)\n"
 	        "-no-display: disables video output\n"
 	        "-nb-threads=N: sets number of frame to N (default N=nb virtual cores)\n"
 	        "-logs=logfile: outputs numbers in CSV format to logfile\n"

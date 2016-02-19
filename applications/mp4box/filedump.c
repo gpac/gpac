@@ -1034,7 +1034,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		if ((type==GF_HEVC_NALU_SEI_PREFIX) || (type==GF_HEVC_NALU_SEI_SUFFIX)) {
 			dump_sei(dump, (u8 *) ptr, ptr_size, hevc ? GF_TRUE : GF_FALSE);
 		}
-		
+
 		if (type<GF_HEVC_NALU_VID_PARAM) {
 
 			fprintf(dump, " slice=\"%s\" poc=\"%d\"", (hevc->s_info.slice_type==GF_HEVC_TYPE_I) ? "I" : (hevc->s_info.slice_type==GF_HEVC_TYPE_P) ? "P" : (hevc->s_info.slice_type==GF_HEVC_TYPE_B) ? "B" : "Unknown", hevc->s_info.poc);
@@ -1043,7 +1043,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		}
 
 		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
-		
+
 #endif //GPAC_DISABLE_HEVC
 		return;
 	}
@@ -1172,7 +1172,7 @@ void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName)
 #endif
 
 	track = gf_isom_get_track_by_id(file, trackID);
-	nalh_size = 0; 
+	nalh_size = 0;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	memset(&avc, 0, sizeof(AVCState));
@@ -1567,7 +1567,7 @@ GF_Err dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_ud
 	if (e) {
 		fprintf(stderr, "Error dumping UDTA %s: %s\n", gf_4cc_to_str(dump_udta_type), gf_error_to_string(e) );
 		return e;
-	} 
+	}
 	sprintf(szName, "%s_%s.udta", inName, gf_4cc_to_str(dump_udta_type) );
 	t = gf_fopen(szName, "wb");
 	if (!t) {
@@ -1757,7 +1757,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	fprintf(stderr, "Track # %d Info - TrackID %d - TimeScale %d\n", trackNum, trackID, timescale);
 	fprintf(stderr, "Media Duration %s - ", format_duration(gf_isom_get_media_duration(file, trackNum), timescale, szDur));
 	fprintf(stderr, "Indicated Duration %s\n", format_duration(gf_isom_get_media_original_duration(file, trackNum), timescale, szDur));
-	
+
 	nb_edits = gf_isom_get_edit_segment_count(file, trackNum);
 	if (nb_edits)
 		fprintf(stderr, "Track has %d edit lists: track duration is %s\n", nb_edits, format_duration(gf_isom_get_track_duration(file, trackNum), gf_isom_get_timescale(file), szDur));
@@ -2341,7 +2341,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			}
 			if (schema_loc != NULL) {
 				fprintf(stderr, " - schema-location %s", schema_loc);
-			} 
+			}
 			fprintf(stderr, "\n");
 		} else {
 			fprintf(stderr, "Unknown Metadata Stream\n");
@@ -2405,15 +2405,15 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		fprintf(stderr, "\tAll samples are sync\n");
 		break;
 	case 1:
-		{
-			u32 nb_sync = gf_isom_get_sync_point_count(file, trackNum) - 1;
-			if (! nb_sync) {
-				fprintf(stderr, "\tOnly one sync sample\n");
-			} else {
-				fprintf(stderr, "\tAverage GOP length: %d samples\n", gf_isom_get_sample_count(file, trackNum) / nb_sync);
-			}
+	{
+		u32 nb_sync = gf_isom_get_sync_point_count(file, trackNum) - 1;
+		if (! nb_sync) {
+			fprintf(stderr, "\tOnly one sync sample\n");
+		} else {
+			fprintf(stderr, "\tAverage GOP length: %d samples\n", gf_isom_get_sample_count(file, trackNum) / nb_sync);
 		}
-		break;
+	}
+	break;
 	case 2:
 		fprintf(stderr, "\tNo sync sample found\n");
 		break;
@@ -2554,7 +2554,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	timescale = gf_isom_get_timescale(file);
 	i=gf_isom_get_track_count(file);
 	fprintf(stderr, "* Movie Info *\n\tTimescale %d - %d track%s\n", timescale, i, i>1 ? "s" : "");
-	
+
 	fprintf(stderr, "\tComputed Duration %s", format_duration(gf_isom_get_duration(file), timescale, szDur));
 	fprintf(stderr, " - Indicated Duration %s\n", format_duration(gf_isom_get_original_duration(file), timescale, szDur));
 

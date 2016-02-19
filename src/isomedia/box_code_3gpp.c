@@ -422,7 +422,7 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 			gf_isom_box_del(a);
 			return GF_OK;
 		}
-		
+
 		ptr->size -= a->size;
 		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
 			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);

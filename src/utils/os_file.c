@@ -187,19 +187,19 @@ GF_Err gf_delete_file(const char *fileName)
  * The caller is responsible for deallocating the returns string with gf_free()
  */
 static char* gf_sanetize_single_quoted_string(const char *src) {
-    int i, j;
-    char *out = (char*)gf_malloc(4*strlen(src)+3);
-    out[0] = '\'';
-    for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
-        if (src[i]=='\'') {
-            out[++j]='\\';
-            out[++j]='\'';
-            out[++j]='\'';
-        }
-    }
-    out[j++] = '\'';
-    out[j++] = 0;
-    return out;
+	int i, j;
+	char *out = (char*)gf_malloc(4*strlen(src)+3);
+	out[0] = '\'';
+	for (i=0, j=1; (out[j]=src[i]); ++i, ++j) {
+		if (src[i]=='\'') {
+			out[++j]='\\';
+			out[++j]='\'';
+			out[++j]='\'';
+		}
+	}
+	out[j++] = '\'';
+	out[j++] = 0;
+	return out;
 }
 #endif
 
@@ -629,7 +629,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 			if (res) {
 				fclose(res);
 				res = fopen(file_name, mode);
-			} 
+			}
 		} else {
 			res = fopen(file_name, mode);
 		}

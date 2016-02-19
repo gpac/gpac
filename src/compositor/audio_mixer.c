@@ -123,7 +123,7 @@ void gf_mixer_remove_all(GF_AudioMixer *am)
 		gf_free(in);
 	}
 	am->isEmpty = GF_TRUE,
-	gf_mixer_lock(am, GF_FALSE);
+	    gf_mixer_lock(am, GF_FALSE);
 }
 
 Bool gf_mixer_is_src_present(GF_AudioMixer *am, GF_AudioInterface *ifce)

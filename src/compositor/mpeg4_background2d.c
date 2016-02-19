@@ -140,7 +140,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 		}
 		//a quick hack, if texture not ready return (we don't have direct notification of this through the above functions
 #ifndef GPAC_DISABLE_3D
-		if (tr_state->visual->compositor->hybrid_opengl && !stack->txh.tx_io) 
+		if (tr_state->visual->compositor->hybrid_opengl && !stack->txh.tx_io)
 			return;
 #endif
 
@@ -357,7 +357,7 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		u32 i;
-		
+
 		stack->flags |= CTX_APP_DIRTY;
 		gf_node_dirty_clear(node, 0);
 
@@ -367,7 +367,7 @@ static void TraverseBackground2D(GF_Node *node, void *rs, Bool is_destroy)
 			status->ctx.aspect.fill_color = col;
 			stack->flags |= CTX_APP_DIRTY;
 		}
-		for (i=0; i<4;i++) {
+		for (i=0; i<4; i++) {
 			stack->col_tx[3*i] = FIX2INT(255 * bck->backColor.red);
 			stack->col_tx[3*i+1] = FIX2INT(255 * bck->backColor.green);
 			stack->col_tx[3*i+2] = FIX2INT(255 * bck->backColor.blue);

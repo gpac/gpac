@@ -144,7 +144,7 @@ This is only needed when building libgpac and modules when libgpac is not instal
 #ifndef GPAC_MEMORY_TRACKING
 
 #include <gpac/setup.h>
-GF_EXPORT 
+GF_EXPORT
 void *gf_malloc(size_t size)
 {
 	return MALLOC(size);
@@ -205,7 +205,7 @@ static void print_backtrace(char *backtrace)
 	size_t i, frames, bt_idx = 0;
 	SYMBOL_INFO *symbol;
 	HANDLE process;
-	
+
 	process = GetCurrentProcess();
 	SymInitialize(process, NULL, TRUE);
 
@@ -239,7 +239,7 @@ static char* backtrace()
 
 	size = backtrace(stack, STACK_PRINT_SIZE);
 	messages = backtrace_symbols(stack, size);
-	
+
 	for (i=1; i<size && messages!=NULL; ++i) {
 		int len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u %s", i, messages[i]);
 		if (len<0)  len = SYMBOL_MAX_SIZE-1;

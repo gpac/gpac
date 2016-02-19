@@ -382,8 +382,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			}
 		}
 	}
-	
-	
+
+
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 			sample->IsRAP = is_sample_idr(sample, entry);

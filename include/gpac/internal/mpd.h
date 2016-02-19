@@ -49,7 +49,7 @@ typedef struct
 #define MPD_EXTENSIBLE	\
 	GF_List *attributes;	\
 	GF_List *children;	\
-
+ 
 typedef struct
 {
 	MPD_EXTENSIBLE
@@ -127,7 +127,7 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
-
+ 
 
 typedef struct
 {
@@ -141,7 +141,7 @@ typedef struct
 	u32 start_number;	\
 	GF_MPD_SegmentTimeline *segment_timeline;	\
 	GF_MPD_URL *bitstream_switching_url;	\
-
+ 
 typedef struct
 {
 	GF_MPD_MULTIPLE_SEGMENT_BASE
@@ -211,7 +211,7 @@ typedef enum
 	GF_List *essential_properties;	\
 	GF_List *supplemental_properties;	\
 	GF_List *isobmf_tracks;	\
-
+ 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 } GF_MPD_CommonAttributes;
@@ -402,8 +402,8 @@ struct _gf_file_get
 };
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, 
-						GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates,
+                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
 
 GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration);
 
@@ -426,8 +426,8 @@ typedef enum
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when pruging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, 
-								char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
+                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 

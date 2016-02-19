@@ -133,7 +133,7 @@ typedef enum
 {
 	//selects the lowest quality when starting - if one of the representation does not have video (HLS), it may be selected
 	GF_DASH_SELECT_QUALITY_LOWEST,
-	//selects the highest quality when starting 
+	//selects the highest quality when starting
 	GF_DASH_SELECT_QUALITY_HIGHEST,
 	//selects the lowest bandwidth when starting - if one of the representation does not have video (HLS), it will NOT be selected
 	GF_DASH_SELECT_BANDWIDTH_LOWEST,
@@ -449,7 +449,7 @@ Bool gf_dash_group_get_srd_max_size_info(GF_DashClient *dash, u32 idx, u32 *max_
 
 //gets SRD info, in SRD coordinate, of the SRD this group belongs to, if any
 Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height);
-	
+
 #endif //GPAC_DISABLE_DASH_CLIENT
 
 

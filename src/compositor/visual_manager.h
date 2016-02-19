@@ -59,7 +59,7 @@ enum
 	GF_3D_STEREO_TOP,
 	GF_3D_STEREO_SIDE,
 	GF_3D_STEREO_HEADSET,
-	
+
 	GF_3D_STEREO_LAST_SINGLE_BUFFER = GF_3D_STEREO_HEADSET,
 
 	/*all modes above GF_3D_STEREO_LAST_SINGLE_BUFFER require shaders and textures for view storage*/
@@ -195,7 +195,7 @@ struct _visual_manager
 	Bool gl_setup;
 
 	GF_IRect clipper_2d;
- 	Bool has_clipper_2d;
+	Bool has_clipper_2d;
 	/*the one and only camera associated with the visual*/
 	GF_Camera camera;
 
@@ -230,7 +230,7 @@ struct _visual_manager
 
 	Bool needs_projection_matrix_reload;
 
-	/*GL state to emulate with GLSL [ES2.0]*/	
+	/*GL state to emulate with GLSL [ES2.0]*/
 	Bool has_material_2d;
 	SFColorRGBA mat_2d;
 
@@ -253,7 +253,7 @@ struct _visual_manager
 	SFColor fog_color;
 	Fixed fog_density, fog_visibility;
 
-	/*end of GL state to emulate with GLSL*/	
+	/*end of GL state to emulate with GLSL*/
 
 //startof GL3/ES2.0 elements
 	/* shaders used for shader-only drawing */

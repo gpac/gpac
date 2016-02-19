@@ -483,7 +483,7 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 		else {
 			nb_select_mode++;
 		}
-		
+
 		if (!tr_state->camera->navigate_mode) {
 			if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "NONE")) tr_state->camera->navigate_mode = GF_NAVIGATE_NONE;
 			else if (ni->type.vals[i] && !stricmp(ni->type.vals[i], "WALK")) tr_state->camera->navigate_mode = GF_NAVIGATE_WALK;

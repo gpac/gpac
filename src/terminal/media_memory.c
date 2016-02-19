@@ -44,12 +44,12 @@ GF_DBUnit *gf_db_unit_new()
 
 void gf_db_unit_del(GF_DBUnit *db)
 {
-    while (db) {
-        GF_DBUnit *next = db->next;
-        if (db->data) gf_free(db->data);
-        gf_free(db);
-        db = next;
-    }
+	while (db) {
+		GF_DBUnit *next = db->next;
+		if (db->data) gf_free(db->data);
+		gf_free(db);
+		db = next;
+	}
 }
 
 static GF_CMUnit *gf_cm_unit_new()

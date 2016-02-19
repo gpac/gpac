@@ -227,7 +227,7 @@ const char * gf_cache_get_mime_type ( const DownloadedCacheEntry entry )
 	return entry ? entry->mimeType : NULL;
 }
 
-	
+
 GF_Err gf_cache_set_headers_processed(const DownloadedCacheEntry entry)
 {
 	if (!entry) return GF_BAD_PARAM;

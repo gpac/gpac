@@ -128,7 +128,7 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Timeout for RTCP: no SR recevied after %d ms - forcing playback, sync may be broken\n", RTCP_DEFAULT_TIMEOUT_MS));
 		ch->rtcp_init = GF_TRUE;
 	}
-	
+
 	cts = hdr->compositionTimeStamp;
 	dts = hdr->decodingTimeStamp;
 

@@ -945,7 +945,7 @@ u64 gf_isom_get_media_original_duration(GF_ISOFile *movie, u32 trackNumber)
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
-	
+
 	return trak->Media->mediaHeader->original_duration;
 }
 
@@ -2847,7 +2847,7 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (!trak || !hSpacing || !vSpacing) return GF_BAD_PARAM;
 	*hSpacing = 1;
 	*vSpacing = 1;
-	
+
 	stsd = trak->Media->information->sampleTable->SampleDescription;
 	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
 	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) return movie->LastError = GF_BAD_PARAM;
@@ -3479,10 +3479,10 @@ GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_I
 		if (sgdesc->grouping_type != grouping_type) continue;
 
 		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
-		
+
 		if (default_index) *default_index = sgdesc->default_description_index ;
 		if (out_sgdp) *out_sgdp = sgdesc;
-		
+
 		if (!sample_description_index) return NULL;
 		return (GF_DefaultSampleGroupDescriptionEntry*)gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
 	}
@@ -3494,23 +3494,23 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 {
 	GF_DefaultSampleGroupDescriptionEntry *sg_entry;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	
+
 	if (default_index) *default_index = 0;
 	if (size) *size = 0;
 	if (data) *data = NULL;
-	
+
 	sg_entry = gf_isom_get_sample_group_info_entry(the_file, trak, grouping_type, sample_description_index, default_index, NULL);
 	if (!sg_entry) return GF_FALSE;
-	
+
 	switch (grouping_type) {
-		case GF_4CC('r','a','p',' '):
-		case GF_4CC('r','o','l','l'):
-		case GF_4CC( 's', 'e', 'i', 'g' ):
-			return GF_TRUE;
-		default:
-			if (sg_entry && data) *data = (char *) sg_entry->data;
-			if (sg_entry && size) *size = sg_entry->length;
-			return GF_TRUE;
+	case GF_4CC('r','a','p',' '):
+	case GF_4CC('r','o','l','l'):
+	case GF_4CC( 's', 'e', 'i', 'g' ):
+		return GF_TRUE;
+	default:
+		if (sg_entry && data) *data = (char *) sg_entry->data;
+		if (sg_entry && size) *size = sg_entry->length;
+		return GF_TRUE;
 	}
 	return GF_FALSE;
 }

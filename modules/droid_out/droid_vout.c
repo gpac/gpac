@@ -77,10 +77,10 @@ typedef struct
 	Bool fullscreen;
 
 	//Functions specific to OpenGL ES2
-	#ifdef GPAC_USE_GLES2
+#ifdef GPAC_USE_GLES2
 	GLuint base_vertex, base_fragment, base_program;
 	GF_Matrix identity, ortho;
-	#endif
+#endif
 } AndroidContext;
 
 
@@ -148,7 +148,7 @@ static GLint gf_glGetAttribLocation(u32 glsl_program, const char *attrib_name)
 }
 
 //modified version of visual_3d_compile_shader function
-Bool compile_shader(u32 shader_id, const char *name, const char *source){
+Bool compile_shader(u32 shader_id, const char *name, const char *source) {
 	GLint blen = 0;
 	GLsizei slen = 0;
 	u32 len;
@@ -177,7 +177,7 @@ Bool compile_shader(u32 shader_id, const char *name, const char *source){
 }
 
 
-static Bool initGLES2(AndroidContext *rc){
+static Bool initGLES2(AndroidContext *rc) {
 
 
 //PRINT OpengGL INFO
@@ -256,16 +256,16 @@ static void load_matrix_shaders(GLuint program, Fixed *mat, const char *name)
 	Float _mat[16];
 	u32 i;
 #endif
-GL_CHECK_ERR
+	GL_CHECK_ERR
 	loc = glGetUniformLocation(program, name);
-	if(loc<0){
+	if(loc<0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid matrix name", __FILE__, __LINE__));
 		return;
 	}
 	GL_CHECK_ERR
 
 #ifdef GPAC_FIXED_POINT
-	for (i=0; i<16;i++) _mat[i] = FIX2FLT(mat[i]);
+	for (i=0; i<16; i++) _mat[i] = FIX2FLT(mat[i]);
 	glUniformMatrix4fv(loc, 1, GL_FALSE, (GLfloat *) _mat);
 #else
 	glUniformMatrix4fv(loc, 1, GL_FALSE, mat);
@@ -276,10 +276,10 @@ GL_CHECK_ERR
 
 //ES2 version of glOrthox() - resulting matrix is stored in rc->ortho
 //more info on Orthographic projection matrix at http://www.songho.ca/opengl/gl_projectionmatrix.html#ortho
-static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc){
+static void calculate_ortho(Fixed left, Fixed right, Fixed bottom, Fixed top, Fixed near, Fixed far,  AndroidContext *rc) {
 
 
-	if((left==right)|(bottom==top)|(near==far)){
+	if((left==right)|(bottom==top)|(near==far)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("GL Error (file %s line %d): Invalid Orthogonal projection values", __FILE__, __LINE__));
 		return;
 	}
@@ -422,7 +422,7 @@ void drawGLScene(AndroidContext *rc)
 //	int i, j;
 
 	float rgba[4];
-GL_CHECK_ERR
+	GL_CHECK_ERR
 
 	// Reset states
 	rgba[0] = rgba[1] = rgba[2] = 0.f;
@@ -462,7 +462,7 @@ GL_CHECK_ERR
 	glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, rc->tex_width, rc->tex_height, 0,
 	              GL_RGBA, GL_UNSIGNED_BYTE, rc->texData );
 
-GL_CHECK_ERR
+	GL_CHECK_ERR
 	if ( rc->draw_texture )
 	{
 		GL_CHECK_ERR
@@ -621,15 +621,15 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 
 	rc->width = w;
 	rc->height = h;
-	
+
 	if ((dr->max_screen_width < w) || (dr->max_screen_height < h)) {
 		dr->max_screen_width = w;
 		dr->max_screen_height = h;
 	}
 	//npot textures are supported in ES2
 #ifdef GPAC_USE_GLES2
-		rc->tex_width = rc->width;
-		rc->tex_height = rc->height;
+	rc->tex_width = rc->width;
+	rc->tex_height = rc->height;
 #else
 	if ( rc->non_power_two )
 	{
@@ -642,7 +642,7 @@ static GF_Err droid_Resize(GF_VideoOutput *dr, u32 w, u32 h)
 		rc->tex_height = find_pow_2(rc->height);
 	}
 #endif
-GL_CHECK_ERR
+	GL_CHECK_ERR
 	resizeWindow(rc);
 
 	if ( rc->out_3d_type == 0 )
@@ -665,12 +665,12 @@ GF_Err droid_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 in
 
 #ifdef GPAC_USE_GLES2
 
-	if ( rc->out_3d_type == 0 ){
+	if ( rc->out_3d_type == 0 ) {
 		LOG( ANDROID_LOG_DEBUG, TAG, "We are in OpenGL: disable mode");
 		res = initGLES2(rc);
-		if(res==GF_FALSE){
+		if(res==GF_FALSE) {
 			LOG( ANDROID_LOG_ERROR, TAG, "ERROR Compiling ES2 Shaders");
-		}else{	//set texture
+		} else {	//set texture
 			glUseProgram(rc->base_program);
 			GLint loc = gf_glGetUniformLocation(rc->base_program, "img");
 			glUniform1i(loc,0);
@@ -793,7 +793,7 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 				return GF_OK;
 			} else
 				return droid_Resize(dr, evt->setup.width, evt->setup.height);
-			
+
 		case GF_EVENT_VIDEO_SETUP:
 			LOG( ANDROID_LOG_DEBUG, TAG, "Android OpenGL mode: %d", evt->setup.opengl_mode);
 			switch (evt->setup.opengl_mode)
@@ -833,10 +833,10 @@ static GF_Err droid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 	return GF_OK;
 }
 
-static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight) 
+static GF_Err droid_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
 	RAWCTX;;
-	
+
 	*outWidth = dr->max_screen_width;
 	*outHeight = dr->max_screen_height;
 	rc->fullscreen = bOn;

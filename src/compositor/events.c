@@ -541,7 +541,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 	flush_text_node_edit(compositor, is_end);
 }
 
-static void toggle_keyboard(GF_Compositor * compositor, Bool do_show) 
+static void toggle_keyboard(GF_Compositor * compositor, Bool do_show)
 {
 	GF_Event evt;
 	memset(&evt, 0, sizeof(GF_Event));
@@ -572,12 +572,12 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 	tag = gf_node_get_tag(text);
 
 #ifndef GPAC_DISABLE_VRML
-    switch (tag) {
-    case TAG_MPEG4_Text:
+	switch (tag) {
+	case TAG_MPEG4_Text:
 #ifndef GPAC_DISABLE_X3D
-    case TAG_X3D_Text:
+	case TAG_X3D_Text:
 #endif
-    {
+	{
 		M_FontStyle *fs = (M_FontStyle *) ((M_Text *)text)->fontStyle;
 		if (!fs || !fs->style.buffer) return GF_FALSE;
 		if (strstr(fs->style.buffer, "editable") || strstr(fs->style.buffer, "EDITABLE")) {
@@ -591,9 +591,9 @@ static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
 		compositor->focus_node = text;
 		toggle_keyboard(compositor, compositor->focus_text_type > 2 ? GF_TRUE : GF_FALSE);
 		return GF_TRUE;
-    }
-    default:
-        break;
+	}
+	default:
+		break;
 	}
 #endif /*GPAC_DISABLE_VRML*/
 	if (tag <= GF_NODE_FIRST_DOM_NODE_TAG) return GF_FALSE;
@@ -911,7 +911,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 
 		/*try to remove this sensor from the previous sensor list*/
 		gf_list_del_item(compositor->previous_sensors, hs);
-		if (gf_node_get_id(hs->sensor)) 
+		if (gf_node_get_id(hs->sensor))
 			stype = gf_node_get_tag(hs->sensor);
 
 		keynav = gf_scene_get_keynav(gf_node_get_graph(hs->sensor), hs->sensor);
@@ -920,7 +920,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		/*call the sensor LAST, as this may triger a destroy of the scene the sensor is in
 		this is only true for anchors, as other other sensors output events are queued as routes untill next pass*/
 		res += hs->OnUserEvent(hs, GF_TRUE, GF_FALSE, ev, compositor);
-        if (stype == TAG_MPEG4_Anchor) check_anchor = GF_TRUE;
+		if (stype == TAG_MPEG4_Anchor) check_anchor = GF_TRUE;
 #ifndef GPAC_DISABLE_X3D
 		else if (stype == TAG_X3D_Anchor) check_anchor = GF_TRUE;
 #endif
@@ -2033,7 +2033,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (!ret) {
 		/*process navigation events*/
 		if (compositor->interaction_level & GF_INTERACT_NAVIGATION)
-		ret = compositor_handle_navigation(compositor, evt);
+			ret = compositor_handle_navigation(compositor, evt);
 	}
 	return ret;
 }
