@@ -89,6 +89,8 @@ size_t gf_utf8_wcslen(const unsigned short *s);
  */
 Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len);
 
+static const size_t UTF8_MAX_BYTES_PER_CHAR = 4;
+
 /*! @} */
 
 #ifdef __cplusplus
