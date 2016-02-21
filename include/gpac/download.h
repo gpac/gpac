@@ -392,10 +392,10 @@ u64 gf_dm_sess_get_utc_start(GF_DownloadSession *sess);
 /*!
  *\brief fetch session object
  *
- *Fetch the session object (process all headers and data transfer). This is only usable if the session is not threaded
+ *Fetches the session object (process all headers and data transfer). This is only usable if the session is not threaded
  *\param sess the download session
  *\return the last error in the session or 0 if none*/
-GF_Err gf_dm_sess_process(GF_DownloadSession * sess);
+GF_Err gf_dm_sess_process(GF_DownloadSession *sess);
 
 /*!
  *\brief fetch session object headers
@@ -412,6 +412,7 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession * sess);
  *\param sess the download session
  *\return the session status*/
 u32 gf_dm_sess_get_status(GF_DownloadSession * sess);
+
 /*!
  *\brief Get session resource url
  *
@@ -420,6 +421,7 @@ u32 gf_dm_sess_get_status(GF_DownloadSession * sess);
  *\return the associated URL
  */
 const char *gf_dm_sess_get_resource_name(GF_DownloadSession *sess);
+
 /*!
  *\brief Get session original resource url
  *
@@ -437,6 +439,7 @@ const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
  * \param filename The filename to download
  * \param start_range start position of a byte range
  * \param end_range end position of a byte range
+ * \param redirected_url If not NULL, @redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
@@ -448,9 +451,11 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
  * \param filename The filename to download
  * \param start_range start position of a byte range
  * \param end_range end position of a byte range
+ * \param redirected_url If not NULL, @redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
+
 #endif /* GPAC_DISABLE_CORE_TOOLS */
 
 /*!
@@ -541,7 +546,7 @@ u32 gf_dm_get_global_rate(GF_DownloadManager *dm);
 /*
  *\brief fetches remote file in memory
  *
- *Fetches remote file in memory .
+ *Fetches remote file in memory.
  *\param url the data to fetch
  *\param out_data output data (allocated by function)
  *\param out_size output data size
@@ -559,7 +564,7 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
  *\param req_hdr_size request header size in bytes. May be NULL.
  *\param rsp_hdr_size response header size in bytes. May be NULL.
  *\param connect_time connection time in micro seconds. May be NULL.
- *\param reply_time ellapsed time between request sent and response header received, in micro seconds. May be NULL.
+ *\param reply_time elapsed time between request sent and response header received, in micro seconds. May be NULL.
  *\param download_time download time since request sent, in micro seconds. May be NULL.
  *\return error code if any
  */

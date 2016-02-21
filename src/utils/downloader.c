@@ -23,7 +23,6 @@
  *
  */
 
-
 #include <gpac/download.h>
 #include <gpac/network.h>
 #include <gpac/token.h>
@@ -69,8 +68,8 @@ static void gf_dm_connect(GF_DownloadSession *sess);
 /*internal flags*/
 enum
 {
-	GF_DOWNLOAD_SESSION_USE_SSL		=	1<<10,
-	GF_DOWNLOAD_SESSION_THREAD_DEAD	=	1<<11
+	GF_DOWNLOAD_SESSION_USE_SSL     = 1<<10,
+	GF_DOWNLOAD_SESSION_THREAD_DEAD = 1<<11
 };
 
 typedef struct __gf_user_credentials
@@ -81,7 +80,8 @@ typedef struct __gf_user_credentials
 	Bool valid;
 } gf_user_credentials_struct;
 
-enum REQUEST_TYPE {
+enum REQUEST_TYPE
+{
 	GET = 0,
 	HEAD = 1,
 	OTHER = 2
@@ -143,7 +143,7 @@ struct __gf_download_session
 	u64 start_time_utc;
 	Bool connection_close;
 	Bool is_range_continuation;
-	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases*/
+	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases)*/
 	u32 needs_cache_reconfig;
 	/* Range information if needed for the download (cf flag) */
 	Bool needs_range;
@@ -192,9 +192,8 @@ struct __gf_download_manager
 {
 	GF_Mutex *cache_mx;
 	char *cache_directory;
-	char szCookieDir[GF_MAX_PATH];
 
-	Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
+	Bool (*get_user_password)(void *usr_cbk, const char *site_url, char *usr_name, char *password);
 	void *usr_cbk;
 
 	u32 head_timeout, request_timeout;
@@ -207,7 +206,7 @@ struct __gf_download_manager
 	GF_List *credentials;
 	GF_List *cache_entries;
 	/* FIXME : should be placed in DownloadedCacheEntry maybe... */
-	GF_List * partial_downloads;
+	GF_List *partial_downloads;
 #ifdef GPAC_HAS_SSL
 	SSL_CTX *ssl_ctx;
 #endif
@@ -240,7 +239,7 @@ static void init_prng (void)
 #endif
 
 /*
- * Private methods of cache.c
+ * Private methods of cache
  */
 
 /**
@@ -279,7 +278,7 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
  * \param entry The entry to use
  * \return cache file pointer or NULL
  */
-FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry) ;
+FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry);
 
 /*modify end range when chaining byte-range requests*/
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end);
@@ -290,8 +289,7 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry);
 /**
  * Find a User's credentials for a given site
  */
-static
-gf_user_credentials_struct * gf_find_user_credentials_for_site(GF_DownloadManager *dm, const char * server_name) {
+static gf_user_credentials_struct* gf_find_user_credentials_for_site(GF_DownloadManager *dm, const char *server_name) {
 	u32 count, i;
 	if (!dm || !dm->credentials || !server_name || !strlen(server_name))
 		return NULL;
@@ -311,8 +309,7 @@ gf_user_credentials_struct * gf_find_user_credentials_for_site(GF_DownloadManage
  * \param creds The credentials to fill
  * \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static
-GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password) {
+static GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credentials_struct * creds, const char * password) {
 	int size;
 	char pass_buf[1024], range_buf[1024];
 	if (!dm || !creds || !password)
@@ -331,23 +328,20 @@ GF_Err gf_user_credentials_save_digest( GF_DownloadManager * dm, gf_user_credent
  * \param creds The credentials to fill
  * \return GF_OK if info has been filled, GF_BAD_PARAM if creds == NULL or dm == NULL, GF_AUTHENTICATION_FAILURE if user did not filled the info.
  */
-static
-GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds)
+static GF_Err gf_user_credentials_ask_password( GF_DownloadManager * dm, gf_user_credentials_struct * creds)
 {
 	char szPASS[50];
 	if (!dm || !creds)
 		return GF_BAD_PARAM;
 	memset(szPASS, 0, 50);
-	if (!dm->GetUserPassword || !dm->GetUserPassword(dm->usr_cbk, creds->site, creds->username, szPASS)) {
+	if (!dm->get_user_password || !dm->get_user_password(dm->usr_cbk, creds->site, creds->username, szPASS)) {
 		return GF_AUTHENTICATION_FAILURE;
 	}
 	return gf_user_credentials_save_digest(dm, creds, szPASS);
 	return GF_OK;
 }
 
-
-static
-gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * dm, const char * server_name, const char * username, const char * password, Bool valid)
+static gf_user_credentials_struct * gf_user_credentials_register(GF_DownloadManager * dm, const char * server_name, const char * username, const char * password, Bool valid)
 {
 	gf_user_credentials_struct * creds;
 	if (!dm)
@@ -489,7 +483,8 @@ static Bool gf_dm_can_handle_url(GF_DownloadManager *dm, const char *url)
  * \param sess The session configured with the URL
  * \return NULL if none found, the DownloadedCacheEntry otherwise
  */
-DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess) {
+DownloadedCacheEntry gf_dm_find_cached_entry_by_url(GF_DownloadSession * sess)
+{
 	u32 i, count;
 	assert( sess && sess->dm && sess->dm->cache_entries );
 	gf_mx_p( sess->dm->cache_mx );
@@ -541,7 +536,7 @@ s32 gf_cache_remove_session_from_cache_entry(DownloadedCacheEntry entry, GF_Down
  * If the cache entry is marked for deletion and has no sessions associated with it, it will be
  * removed (so some modules using a streaming like cache will still work).
  */
-void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
+static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
 	if (sess && sess->cache_entry) {
 		gf_cache_remove_session_from_cache_entry(sess->cache_entry, sess);
 		if (sess->dm
@@ -576,7 +571,7 @@ void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
  */
 s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
-void gf_dm_configure_cache(GF_DownloadSession *sess)
+static void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
 	DownloadedCacheEntry entry;
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags & GF_NETIO_SESSION_NOT_CACHED ? "no" : "yes" ));
@@ -1185,7 +1180,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 {
 	GF_Err e;
 
-
 	if (sess->dm && sess->dm->simulate_no_connection) {
 		if (sess->sock) {
 			sess->status = GF_NETIO_DISCONNECTED;
@@ -1211,7 +1205,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		return e;
 	}
 #endif
-
 
 	if (!sess->sock) {
 		sess->status = GF_NETIO_DISCONNECTED;
@@ -1809,11 +1802,11 @@ retry_cache:
 }
 
 void gf_dm_set_auth_callback(GF_DownloadManager *dm,
-                             Bool (*GetUserPassword)(void *usr_cbk, const char *site_url, char *usr_name, char *password),
+                             Bool (*get_user_password)(void *usr_cbk, const char *site_url, char *usr_name, char *password),
                              void *usr_cbk)
 {
 	if (dm) {
-		dm->GetUserPassword = GetUserPassword;
+		dm->get_user_password = get_user_password;
 		dm->usr_cbk = usr_cbk;
 	}
 }

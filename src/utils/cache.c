@@ -1,27 +1,27 @@
 /*
-*					GPAC Multimedia Framework
-*
+ *					GPAC Multimedia Framework
+ *
  *			Authors: Pierre Souchay, Jean Le Feuvre
  *			Copyright (c) Telecom ParisTech 2010-2012
-*					All rights reserved
-*
-*  This file is part of GPAC / common tools sub-project
-*
-*  GPAC is free software; you can redistribute it and/or modify
-*  it under the terms of the GNU Lesser General Public License as published by
-*  the Free Software Foundation; either version 2, or (at your option)
-*  any later version.
-*
-*  GPAC is distributed in the hope that it will be useful,
-*  but WITHOUT ANY WARRANTY; without even the implied warranty of
-*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-*  GNU Lesser General Public License for more details.
-*
-*  You should have received a copy of the GNU Lesser General Public
-*  License along with this library; see the file COPYING.  If not, write to
-*  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
-*
-*/
+ *					All rights reserved
+ *
+ *   This file is part of GPAC / common tools sub-project
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
@@ -42,17 +42,11 @@
 #endif
 
 static const char * CACHE_SECTION_NAME = "cache";
-
 static const char * CACHE_SECTION_NAME_URL = "url";
-
 static const char * CACHE_SECTION_NAME_RANGE = "range";
-
 static const char * CACHE_SECTION_NAME_ETAG = "ETag";
-
 static const char * CACHE_SECTION_NAME_MIME_TYPE = "Content-Type";
-
 static const char * CACHE_SECTION_NAME_CONTENT_SIZE = "Content-Length";
-
 static const char * CACHE_SECTION_NAME_LAST_MODIFIED = "Last-Modified";
 
 enum CacheValid
@@ -385,11 +379,8 @@ GF_Err gf_cache_append_http_headers(const DownloadedCacheEntry entry, char * htt
 }
 
 #define _CACHE_HASH_SIZE 20
-
 #define _CACHE_MAX_EXTENSION_SIZE 6
-
 static const char * default_cache_file_suffix = ".dat";
-
 static const char * cache_file_info_suffix = ".txt";
 
 DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char * cache_directory, const char * url , u64 start_range, u64 end_range, Bool mem_storage)
@@ -558,7 +549,8 @@ DownloadedCacheEntry gf_cache_create_entry ( GF_DownloadManager * dm, const char
 	return entry;
 }
 
-GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length ) {
+GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length )
+{
 	CHECK_ENTRY;
 	if (entry->continue_file) {
 		entry->contentLength = entry->previousRangeContentLength + length;
@@ -568,11 +560,13 @@ GF_Err gf_cache_set_content_length( const DownloadedCacheEntry entry, u32 length
 	return GF_OK;
 }
 
-u32 gf_cache_get_content_length( const DownloadedCacheEntry entry) {
+u32 gf_cache_get_content_length( const DownloadedCacheEntry entry)
+{
 	return entry ? entry->contentLength : 0;
 }
 
-GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success ) {
+GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess, Bool success )
+{
 	GF_Err e = GF_OK;
 	CHECK_ENTRY;
 	if (!sess || !entry->write_session || entry->write_session != sess)
@@ -626,8 +620,8 @@ GF_Err gf_cache_close_write_cache( const DownloadedCacheEntry entry, const GF_Do
 	return e;
 }
 
-
-GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess ) {
+GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_DownloadSession * sess )
+{
 	CHECK_ENTRY;
 	if (!sess)
 		return GF_BAD_PARAM;
@@ -642,7 +636,6 @@ GF_Err gf_cache_open_write_cache( const DownloadedCacheEntry entry, const GF_Dow
 		entry->written_in_cache = 0;
 	}
 	entry->flags &= ~CORRUPTED;
-
 
 	if (entry->memory_stored) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Opening cache file %s for write (%s)...\n", entry->cache_filename, entry->url));
@@ -818,18 +811,15 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free(entry->diskLastModified);
 	entry->diskLastModified = NULL;
 
-	if ( entry->hash )
-	{
+	if ( entry->hash ) {
 		gf_free ( entry->hash );
 		entry->hash = NULL;
 	}
-	if ( entry->url )
-	{
+	if ( entry->url ) {
 		gf_free ( entry->url );
 		entry->url = NULL;
 	}
-	if ( entry->mimeType )
-	{
+	if ( entry->mimeType ) {
 		gf_free ( entry->mimeType );
 		entry->mimeType = NULL;
 	}
@@ -837,13 +827,11 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_free(entry->mem_storage);
 	}
 
-	if ( entry->cache_filename )
-	{
+	if ( entry->cache_filename ) {
 		gf_free ( entry->cache_filename );
 		entry->cache_filename = NULL;
 	}
-	if ( entry->properties )
-	{
+	if ( entry->properties ) {
 		char * propfile;
 		if (entry->deletableFilesOnDelete)
 			propfile = gf_cfg_get_filename(entry->properties);
@@ -852,7 +840,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 		gf_cfg_del ( entry->properties );
 		entry->properties = NULL;
 		if (propfile) {
-			//this may fil becaus ethe prop file is not yet flushed to disk
+			//this may fail because the prop file is not yet flushed to disk
 			gf_delete_file( propfile );
 			gf_free ( propfile );
 		}
@@ -868,11 +856,10 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 	return GF_OK;
 }
 
-Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry) {
-
+Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
+{
 	FILE *the_cache = gf_fopen ( entry->cache_filename, "rb" );
-	if ( the_cache )
-	{
+	if ( the_cache ) {
 		char * endPtr;
 		const char * keyValue = gf_cfg_get_key ( entry->properties, CACHE_SECTION_NAME, CACHE_SECTION_NAME_CONTENT_SIZE );
 
@@ -957,7 +944,6 @@ FILE *gf_cache_get_file_pointer(const DownloadedCacheEntry entry)
 	return NULL;
 }
 
-
 void gf_cache_set_end_range(DownloadedCacheEntry entry, u64 range_end)
 {
 	entry->previousRangeContentLength = entry->contentLength;
@@ -969,7 +955,7 @@ Bool gf_cache_is_in_progress(const DownloadedCacheEntry entry)
 {
 	if (!entry) return GF_FALSE;
 	if (entry->writeFilePtr) return GF_TRUE;
-	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength) )
+	if (entry->mem_storage && entry->written_in_cache && entry->contentLength && (entry->written_in_cache<entry->contentLength))
 		return GF_TRUE;
 	return GF_FALSE;
 }
