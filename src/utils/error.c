@@ -1220,6 +1220,7 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 
 	if (!lang_or_rfc_5646_code) return -1;
 
+	len = (u32)strlen(lang_or_rfc_5646_code);
 	sep = (char *) strchr(lang_or_rfc_5646_code, '-');
 	if (sep) {
 		sep[0] = 0;
@@ -1231,10 +1232,10 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 		if (!strcmp(defined_languages[i].name, lang_or_rfc_5646_code)) {
 			return i;
 		}
-		if (sep && (len==3) && !strnicmp(defined_languages[i].three_char_code, lang_or_rfc_5646_code, 3)) {
+		if ((len==3) && !strnicmp(defined_languages[i].three_char_code, lang_or_rfc_5646_code, 3)) {
 			return i;
 		}
-		if (sep && (len==2) && !strnicmp(defined_languages[i].two_char_code, lang_or_rfc_5646_code, 2)) {
+		if ((len==2) && !strnicmp(defined_languages[i].two_char_code, lang_or_rfc_5646_code, 2)) {
 			return i;
 		}
 	}
