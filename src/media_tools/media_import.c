@@ -8539,11 +8539,11 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 				pdur = gf_isom_get_media_duration(import->dest, tsimp.track) * 1.0 * moov_ts / media_ts;
 				dur = (u64)pdur;
 				if (poffset != offset || pdur != dur) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Movie timescale not precise enough to store edit\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Movie timescale (%u) not precise enough to store edit (media timescale: %u)\n", moov_ts, media_ts));
 				}
 				gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
-				gf_import_message(import, GF_OK, "Timeline offset: %d ms", (offset * 1000) / moov_ts);
+				gf_import_message(import, GF_OK, "Timeline offset: %u ms", (offset * 1000) / moov_ts);
 			}
 
 			if (tsimp.nb_p) {
