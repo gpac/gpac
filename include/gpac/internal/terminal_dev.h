@@ -52,7 +52,7 @@ typedef struct _gf_addon_media GF_AddonMedia;
 
 struct _net_service
 {
-	/*the module handling this service - must be declared first to typecast with GF_DownlaodSession upon deletion*/
+	/*the module handling this service - must be declared first to typecast with GF_DownloadSession upon deletion*/
 	GF_InputService *ifce;
 
 	//function table of service
