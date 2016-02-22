@@ -494,8 +494,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_HVC2:
 	case GF_ISOM_SUBTYPE_HEV2:
 	case GF_ISOM_SUBTYPE_HVT1:
-	case GF_ISOM_SUBTYPE_SHC1:
-	case GF_ISOM_SUBTYPE_SHV1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_LHE1:
 
 		if (force_inband) {
 			if (subtype==GF_ISOM_SUBTYPE_HVC1) subtype = GF_ISOM_SUBTYPE_HEV1;
@@ -2786,9 +2786,9 @@ retry_track:
 						/*we don't want to clone SPS/PPS since they are already inside the samples*/
 						merge_mode = 2;
 						break;
-					case GF_ISOM_SUBTYPE_SHC1:
+					case GF_ISOM_SUBTYPE_LHV1:
 						break;
-					case GF_ISOM_SUBTYPE_SHV1:
+					case GF_ISOM_SUBTYPE_LHE1:
 						merge_mode = 2;
 						break;
 					default:

@@ -1002,8 +1002,8 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		           || (m_stype==GF_ISOM_SUBTYPE_HVC1)
 		           || (m_stype==GF_ISOM_SUBTYPE_HVC2)
 		           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
-		           || (m_stype==GF_ISOM_SUBTYPE_SHC1)
-		           || (m_stype==GF_ISOM_SUBTYPE_SHV1)
+		           || (m_stype==GF_ISOM_SUBTYPE_LHV1)
+		           || (m_stype==GF_ISOM_SUBTYPE_LHE1)
 		          ) {
 			hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
 			shvccfg = gf_isom_shvc_config_get(dumper->file, track, 1);

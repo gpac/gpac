@@ -198,8 +198,10 @@ enum
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_SUBTYPE_HEV2			= GF_4CC( 'h', 'e', 'v', '2' ),
-	GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
-	GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
+	//GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
+	//GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
+	GF_ISOM_SUBTYPE_LHV1			= GF_4CC( 'l', 'h', 'v', '1' ),
+	GF_ISOM_SUBTYPE_LHE1			= GF_4CC( 'l', 'h', 'e', '1' ),
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
 	/*3GPP(2) extension subtypes*/
