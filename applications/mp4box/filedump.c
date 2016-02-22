@@ -1883,8 +1883,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
-	        || (msub_type==GF_ISOM_SUBTYPE_SHV1)
-	        || (msub_type==GF_ISOM_SUBTYPE_SHC1)
+	        || (msub_type==GF_ISOM_SUBTYPE_LHV1)
+	        || (msub_type==GF_ISOM_SUBTYPE_LHE1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
 	   )  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
