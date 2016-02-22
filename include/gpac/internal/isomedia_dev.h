@@ -2290,6 +2290,7 @@ void gf_isom_oinf_del_entry(void *entry);
 GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs);
 GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs);
 u32 gf_isom_oinf_size_entry(void *entry);
+Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPointsInformation **ptr);
 
 #define MAX_LHEVC_LAYERS	256
 
