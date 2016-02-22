@@ -38,12 +38,12 @@ extern "C" {
 /*!
  * All the possible Mime-types for MPD files
  */
-static const char * GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", "video/vnd.mpeg.dash.mpd", "audio/vnd.mpeg.dash.mpd", NULL };
+static const char * const GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "video/vnd.3gpp.mpd", "audio/vnd.3gpp.mpd", "video/vnd.mpeg.dash.mpd", "audio/vnd.mpeg.dash.mpd", NULL };
 
 /*!
  * All the possible Mime-types for M3U8 files
  */
-static const char * GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
+static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
 typedef enum
 {
@@ -86,7 +86,7 @@ struct _gf_dash_io
 	/*signals errors or specific actions to perform*/
 	GF_Err (*on_dash_event)(GF_DASHFileIO *dashio, GF_DASHEventType evt, s32 group_idx, GF_Err setup_error);
 
-	/*used to check whether a representation is supported or not. Function returns 1 if supported, 0 otheriwse
+	/*used to check whether a representation is supported or not. Function returns 1 if supported, 0 otherwise
 	if this callback is not set, the representation is assumed to be supported*/
 	Bool (*dash_codec_supported)(GF_DASHFileIO *dashio, const char *codec, u32 width, u32 height, Bool is_interlaced, u32 fps_num, u32 fps_denum, u32 sample_rate);
 
@@ -146,7 +146,7 @@ typedef enum
 /*create a new DASH client:
 	@dash_io: DASH callbacks to the user
 	@max_cache_duration: maximum duration in milliseconds for the cached media. If less than mpd@minBufferTime, mpd@minBufferTime is used
-	@auto_switch_count: forces representation switching every auto_switch_count segments
+	@auto_switch_count: forces representation switching every auto_switch_count segments, set to 0 to disable
 	@keep_files: do not delete files from the cache
 	@disable_switching: turn off bandwidth switching algorithm
 	@first_select_mode: indicates which representation to select upon startup
