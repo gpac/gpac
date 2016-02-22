@@ -1158,7 +1158,7 @@ GF_Err gf_odf_read_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd, u32 DescSize)
 			break;
 
 		/*iPod fix: delete and aborts, this will create an InvalidDescriptor at the ESD level with a loaded DSI,
-		laoding will abort with a partially valid ESD which is all the matters*/
+		loading will abort with a partially valid ESD which is all the matters*/
 		case GF_ODF_SLC_TAG:
 			gf_odf_delete_descriptor(tmp);
 			return GF_OK;

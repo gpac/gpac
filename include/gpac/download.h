@@ -159,28 +159,28 @@ typedef enum
 } GF_NetIOStatus;
 
 /*!session download flags*/
-enum
+typedef enum
 {
 	/*!session is not threaded, the user must explicitely fetch the data , either with the function gf_dm_sess_fetch_data
 	or the function gf_dm_sess_process- if the session is threaded, the user must call gf_dm_sess_process to start the session*/
-	GF_NETIO_SESSION_NOT_THREADED	=	1,
+	GF_NETIO_SESSION_NOT_THREADED = 1,
 	/*! session data is cached or not */
-	GF_NETIO_SESSION_NOT_CACHED	=	1<<1,
+	GF_NETIO_SESSION_NOT_CACHED = 1<<1,
 	/*! forces data notification even when session is threaded*/
-	GF_NETIO_SESSION_NOTIFY_DATA =	1<<2,
+	GF_NETIO_SESSION_NOTIFY_DATA = 1<<2,
 	/*indicates that the connection to the server should be kept once the download is successfully completed*/
-	GF_NETIO_SESSION_PERSISTENT =	1<<3,
+	GF_NETIO_SESSION_PERSISTENT = 1<<3,
 	/*file is stored in memory, and the cache name is set to gpac://%u@%p, where %d is the size in bytes and %d is the the pointer to the memory.
 	Memory cached files are destroyed upon downloader destruction*/
-	GF_NETIO_SESSION_MEMORY_CACHE	=	1<<4,
-};
+	GF_NETIO_SESSION_MEMORY_CACHE = 1<<4,
+} GF_NetIOFlags;
 
 
 /*!protocol I/O parameter*/
 typedef struct
 {
 	/*!parameter message type*/
-	u32 msg_type;
+	GF_NetIOFlags msg_type;
 	/*error code if any. Valid for all message types.*/
 	GF_Err error;
 	/*!data received or data to send. Only valid for GF_NETIO_GET_CONTENT and GF_NETIO_DATA_EXCHANGE (when no cache is setup) messages*/
@@ -434,7 +434,7 @@ const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
 #ifndef GPAC_DISABLE_CORE_TOOLS
 /*!
  * \brief Download a file over the network using a download manager
- * \param dm The downlaod manager to use, function will use all associated cache ressources
+ * \param dm The download manager to use, function will use all associated cache ressources
  * \param url The url to download
  * \param filename The filename to download
  * \param start_range start position of a byte range
