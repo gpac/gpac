@@ -3894,4 +3894,28 @@ Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file)
     return file->drop_date_version_info;
 }
 
+GF_EXPORT
+Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPointsInformation **ptr)
+{
+	GF_BitStream *bs;
+	const char *data;
+	u32 size;
+
+	if (!ptr)
+		return GF_FALSE;
+
+	if (!gf_isom_get_sample_group_info(file, trackNumber, 1, GF_4CC('o','i','n','f'), NULL, &data, &size))
+		return GF_FALSE;
+
+	*ptr = gf_isom_oinf_new_entry();
+	if (!(*ptr))
+		return GF_FALSE;
+	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+	if (!bs)
+		return GF_FALSE;
+	gf_isom_oinf_read_entry(*ptr, bs);
+	gf_bs_del(bs);
+	return GF_TRUE;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/
