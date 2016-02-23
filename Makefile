@@ -15,7 +15,7 @@ endif
 GITREV_PATH:=$(SRC_PATH)/include/gpac/revision.h
 TAG:=$(shell git --git-dir=$(SRC_PATH)/.git describe --tags --abbrev=0 2> /dev/null)
 VERSION:=$(shell echo `git --git-dir=$(SRC_PATH)/.git describe --tags --long  || echo "UNKNOWN"` | sed "s/^$(TAG)-//")
-BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+BRANCH:=$(shell git --git-dir=$(SRC_PATH)/.git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 
 version:
 	@if [ -d $(SRC_PATH)/".git" ]; then \
