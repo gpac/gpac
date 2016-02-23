@@ -55,11 +55,11 @@ all: $(LIB)
 $(LIB): $(OBJS)
 ifeq ($(CONFIG_WIN32),yes)
 	windres osmozilla.rc osmoz.o
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS)
+	$(CXX) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) osmoz.o $(LINKLIBS) $(LDFLAGS)
 	cp "$(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_w32" ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 else
-	$(CXX) $(SHFLAGS) $(LDFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@ 
+	$(CXX) $(SHFLAGS) $(OBJS) $(LINKLIBS) -o ../../bin/gcc/$@  $(LDFLAGS)
 	cp "$(SRC_PATH)/applications/osmozilla/nsIOsmozilla.xpt_linux" ../../bin/gcc/nposmozilla.xpt
 	chmod +w ../../bin/gcc/nposmozilla.xpt
 endif
