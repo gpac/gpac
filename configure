@@ -555,7 +555,6 @@ EOF
             CFLAGS_DIR="-I/opt/local/include $CFLAGS_DIR"
             LDFLAGS="-L/opt/local/lib $LDFLAGS"
         fi
-        cc="cc"
         Mac_Applications="/Applications"
         SHFLAGS="-dynamiclib"
         DYN_LIB_SUFFIX=".dylib"
