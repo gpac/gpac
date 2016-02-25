@@ -104,7 +104,7 @@ static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 	c += i;
 
 	for (i=0; GF_DASH_SMOOTH_MIME_TYPES[i]; i++)
-		gf_service_register_mime(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_M3U8_DESC);
+		gf_service_register_mime(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_SMOOTH_DESC);
 	c += i;
 	return c;
 }
