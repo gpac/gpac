@@ -396,7 +396,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 #endif
 		e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
 		if (e != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
 			gf_filter_setup_failure(filter, e);
 			return e;
 		}
