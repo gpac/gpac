@@ -51,7 +51,7 @@ typedef struct
 	u32 nb_allow_play;
 	Bool is_oma;
 	u32 preview_range;
-	/*for Common Enxryption*/
+	/*for Common Encryption*/
 	Bool is_cenc;
 	Bool is_cbc;
 	Bool first_crypted_samp;
