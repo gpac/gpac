@@ -1753,7 +1753,11 @@ retry_cache:
 
 	opt = cfg ? gf_cfg_get_key(cfg, "Downloader", "MaxRate") : NULL;
 	/*use it in in BYTES per second*/
-	if (opt) dm->limit_data_rate = 1000 * atoi(opt) / 8;
+	if (opt)
+		dm->limit_data_rate = 1000 * atoi(opt) / 8;
+	else
+		gf_cfg_set_key(cfg, "Downloader", "MaxRate", "0");
+	
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 	//when rate is limited, use smaller smaller read size
