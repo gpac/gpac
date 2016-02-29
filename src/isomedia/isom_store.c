@@ -199,8 +199,6 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 	u32 i, j, k, l, last;
 	TrackWriter *writer;
 	GF_StscEntry *ent;
-	GF_ChunkOffsetBox *stco;
-	GF_ChunkLargeOffsetBox *co64;
 
 	if (file->meta) ShiftMetaOffset(file->meta, offset);
 	if (file->moov && file->moov->meta) ShiftMetaOffset(file->moov->meta, offset);
@@ -216,40 +214,46 @@ static GF_Err ShiftOffset(GF_ISOFile *file, GF_List *writers, u64 offset)
 
 			//OK, get the chunk(s) number(s) and "shift" its (their) offset(s).
 			if (writer->stco->type == GF_ISOM_BOX_TYPE_STCO) {
-				stco = (GF_ChunkOffsetBox *) writer->stco;
+				GF_ChunkLargeOffsetBox *new_stco64 = NULL;
+				GF_ChunkOffsetBox *stco = (GF_ChunkOffsetBox *) writer->stco;
+
 				//be carefull for the last entry, nextChunk is set to 0 in edit mode...
 				last = ent->nextChunk ? ent->nextChunk : stco->nb_entries + 1;
 				for (k = ent->firstChunk; k < last; k++) {
 
-					if (file->force_co64 || (stco->offsets[k-1] + offset > 0xFFFFFFFF)) {
-						//too bad, rewrite the table....
-						co64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
-						if (!co64) return GF_OUT_OF_MEM;
-						co64->nb_entries = stco->nb_entries;
-						co64->offsets = (u64*)gf_malloc(co64->nb_entries * sizeof(u64));
-						memset(co64->offsets, 0, co64->nb_entries * sizeof(u64));
-						if (!co64) {
-							gf_isom_box_del((GF_Box *)co64);
-							return GF_OUT_OF_MEM;
+					//we need to rewrite the table: only allocate co64 if not done previously and convert all offsets
+					//to co64. Then (whether co64 was created or not) adjust the offset
+					//Do not reassign table until we are done with the current sampleToChunk processing
+					//since we have a test on stco->offsets[k-1], we need to keep stco untouched
+					if (new_stco64 || file->force_co64 || (stco->offsets[k-1] + offset > 0xFFFFFFFF)) {
+						if (!new_stco64) {
+							new_stco64 = (GF_ChunkLargeOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CO64);
+							if (!new_stco64) return GF_OUT_OF_MEM;
+							new_stco64->nb_entries = stco->nb_entries;
+							new_stco64->offsets = (u64 *) gf_malloc(new_stco64->nb_entries * sizeof(u64));
+							if (!new_stco64->offsets) return GF_OUT_OF_MEM;
+							//copy over the stco table
+							for (l = 0; l < new_stco64->nb_entries; l++) {
+								new_stco64->offsets[l] = (u64) stco->offsets[l];
+							}
 						}
-						//duplicate the table
-						for (l = 0; l < co64->nb_entries; l++) {
-							co64->offsets[l] = (u64) stco->offsets[l];
-							if (l + 1 == k) co64->offsets[l] += offset;
-						}
-						//and replace our box
-						gf_isom_box_del(writer->stco);
-						writer->stco = (GF_Box *)co64;
+						new_stco64->offsets[k-1] += offset;
 					} else {
 						stco->offsets[k-1] += (u32) offset;
 					}
 				}
+				if (new_stco64) {
+					//done with this sampleToChunk entry, replace the box if we moved to co64
+					gf_isom_box_del(writer->stco);
+					writer->stco = (GF_Box *)new_stco64;
+					new_stco64 = NULL;
+				}
 			} else {
-				co64 = (GF_ChunkLargeOffsetBox *) writer->stco;
+				GF_ChunkLargeOffsetBox *stco64 = (GF_ChunkLargeOffsetBox *) writer->stco;
 				//be carefull for the last entry ...
-				last = ent->nextChunk ? ent->nextChunk : co64->nb_entries + 1;
+				last = ent->nextChunk ? ent->nextChunk : stco64->nb_entries + 1;
 				for (k = ent->firstChunk; k < last; k++) {
-					co64->offsets[k-1] += offset;
+					stco64->offsets[k-1] += offset;
 				}
 			}
 		}
