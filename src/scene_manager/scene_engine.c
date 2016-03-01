@@ -338,7 +338,7 @@ start:
 	}
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
-	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
+	dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 	if (!dumper) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
 		e = GF_IO_ERR;
@@ -358,7 +358,7 @@ start:
 
 		sprintf(rad_name, "%s%c%s%s", cache_dir, GF_PATH_SEPARATOR, "rap_", dump_name);
 
-		dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, ' ', GF_SM_DUMP_SVG);
+		dumper = gf_sm_dumper_new(seng->ctx->scene_graph, rad_name, GF_FALSE, ' ', GF_SM_DUMP_SVG);
 		if (!dumper) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SceneEngine] Cannot create SVG dumper for %s.svg\n", rad_name));
 			e = GF_IO_ERR;
@@ -629,7 +629,7 @@ GF_Err gf_seng_save_context(GF_SceneEngine *seng, char *ctxFileName)
 		return GF_NOT_SUPPORTED;
 #endif
 	} else {
-		e = gf_sm_dump(seng->ctx, ctxFileName ? szF : NULL, d_mode);
+		e = gf_sm_dump(seng->ctx, ctxFileName ? szF : NULL, GF_FALSE, d_mode);
 	}
 	return e;
 #endif

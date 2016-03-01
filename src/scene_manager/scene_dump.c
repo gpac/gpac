@@ -81,7 +81,7 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 GF_Err gf_sm_dump_command_list(GF_SceneDumper *sdump, GF_List *comList, u32 indent, Bool skip_first_replace);
 
 GF_EXPORT
-GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char indent_char, GF_SceneDumpFormat dump_mode)
+GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_final_name, char indent_char, GF_SceneDumpFormat dump_mode)
 {
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
@@ -100,8 +100,8 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 		if (_rad_name) {
 			const char* ext_name = tmp->LSRDump ? ".xsr" : ".svg";
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
-			strcpy(tmp->filename, _rad_name ? _rad_name : "");
-			strcat(tmp->filename, ext_name);
+			strcpy(tmp->filename, _rad_name);
+			if (!is_final_name) strcat(tmp->filename, ext_name);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
@@ -152,9 +152,10 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, char ind
 				ext_name = ".bt";
 				break;
 			}
+			
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
-			strcat(tmp->filename, ext_name);
+			if (!is_final_name) strcat(tmp->filename, ext_name);
 			tmp->trace = gf_fopen(tmp->filename, "wt");
 			if (!tmp->trace) {
 				gf_free(tmp);
@@ -3415,7 +3416,7 @@ static void ReorderAUContext(GF_List *sample_list, GF_AUContext *au, Bool lsr_du
 
 
 GF_EXPORT
-GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, GF_SceneDumpFormat dump_mode)
+GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_SceneDumpFormat dump_mode)
 {
 	GF_Err e;
 	GF_List *sample_list;
@@ -3432,7 +3433,7 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, GF_SceneDumpFormat dump_
 	num_scene = num_od = 0;
 	num_tracks = 0;
 	indent = 0;
-	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, ' ', dump_mode);
+	dumper = gf_sm_dumper_new(ctx->scene_graph, rad_name, is_final_name, ' ', dump_mode);
 	e = GF_OK;
 	/*configure all systems streams we're dumping*/
 	i=0;

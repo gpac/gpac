@@ -2580,7 +2580,7 @@ GF_Err EncodeFileChunk(char *chunkFile, char *bifs, char *inputContext, char *ou
 			if (e) gf_isom_delete(mp4);
 			else gf_isom_close(mp4);
 		}
-		else e = gf_sm_dump(ctx, szF, d_mode);
+		else e = gf_sm_dump(ctx, szF, GF_FALSE, d_mode);
 	}
 
 exit:
