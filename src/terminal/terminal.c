@@ -835,7 +835,7 @@ GF_Err gf_term_del(GF_Terminal * term)
 #ifndef GPAC_DISABLE_SCENE_DUMP
 		if (term->dcci_doc->modified) {
 			char *pref_file = (char *)gf_cfg_get_key(term->user->config, "General", "EnvironmentFile");
-			GF_SceneDumper *dumper = gf_sm_dumper_new(term->dcci_doc, pref_file, ' ', GF_SM_DUMP_AUTO_XML);
+			GF_SceneDumper *dumper = gf_sm_dumper_new(term->dcci_doc, pref_file, GF_FALSE, ' ', GF_SM_DUMP_AUTO_XML);
 			if (!dumper) return GF_IO_ERR;
 			e = gf_sm_dump_graph(dumper, 1, 0);
 			gf_sm_dumper_del(dumper);

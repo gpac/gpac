@@ -83,41 +83,41 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 
 #endif
 
-GF_Err dump_cover_art(GF_ISOFile *file, char *inName);
-GF_Err dump_chapters(GF_ISOFile *file, char *inName, Bool dump_ogg);
-void dump_udta(GF_ISOFile *file, char *inName, u32 dump_udta_type, u32 dump_udta_track);
+GF_Err dump_isom_cover_art(GF_ISOFile *file, char *inName, Bool is_final_name);
+GF_Err dump_isom_chapters(GF_ISOFile *file, char *inName, Bool is_final_name, Bool dump_ogg);
+void dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 dump_udta_type, u32 dump_udta_track);
 GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array);
 u32 id3_get_genre_tag(const char *name);
 
 /*in filedump.c*/
 #ifndef GPAC_DISABLE_SCENE_DUMP
-GF_Err dump_file_text(char *file, char *inName, GF_SceneDumpFormat dump_mode, Bool do_log);
+GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDumpFormat dump_mode, Bool do_log);
 //void gf_check_isom_files(char *conf_rules, char *inName);
 #endif
 #ifndef GPAC_DISABLE_SCENE_STATS
-void dump_scene_stats(char *file, char *inName, u32 stat_level);
+void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 stat_level);
 #endif
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-void dump_isom_xml(GF_ISOFile *file, char *inName);
+void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #ifndef GPAC_DISABLE_ISOM_DUMP
-void dump_file_rtp(GF_ISOFile *file, char *inName);
+void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
-void DumpSDP(GF_ISOFile *file, char *inName);
+void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
-void dump_file_timestamps(GF_ISOFile *file, char *inName);
-void dump_file_nal(GF_ISOFile *file, u32 trackID, char *inName);
+void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name);
+void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name);
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-void dump_file_ismacryp(GF_ISOFile *file, char *inName);
-void dump_timed_text_track(GF_ISOFile *file, u32 trackID, char *inName, Bool is_convert, GF_TextDumpType dump_type);
+void dump_isom_ismacryp(GF_ISOFile *file, char *inName, Bool is_final_name);
+void dump_isom_timed_text(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name, Bool is_convert, GF_TextDumpType dump_type);
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
 
 
@@ -2933,8 +2933,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-dts")) {
 			dump_timestamps = 1;
 			if (((i + 1<(u32)argc) && inName) || (i + 2<(u32)argc)) {
-				if (argv[i + 1][0] != '-') program_number = atoi(argv[i + 1]);
-				i++;
+				if (isdigit(argv[i + 1][0])) {
+					program_number = atoi(argv[i + 1]);
+					i++;
+				}
 			}
 		}
 		else if (!stricmp(arg, "-dnal")) {
@@ -3597,8 +3599,8 @@ int mp4boxMain(int argc, char **argv)
 		}
 #ifndef GPAC_DISABLE_ISOM_DUMP
 		/* Start the export of the track #1, in the appropriate dump type, indicating it's a conversion */
-		dump_timed_text_track(file, gf_isom_get_track_id(file, 1),
-		                      dump_std ? NULL : outfile,
+		dump_isom_timed_text(file, gf_isom_get_track_id(file, 1),
+							  dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
 		                      GF_TRUE,
 		                      (import_subtitle==2) ? GF_TEXTDUMPTYPE_SVG : (dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT));
 #endif
@@ -4152,17 +4154,17 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	if (dump_mode != GF_SM_DUMP_NONE) {
-		e = dump_file_text(inName, dump_std ? NULL : outfile, dump_mode, do_log);
+		e = dump_isom_scene(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_mode, do_log);
 		if (e) goto err_exit;
 	}
 #endif
 
 #ifndef GPAC_DISABLE_SCENE_STATS
-	if (stat_level) dump_scene_stats(inName, dump_std ? NULL : outfile, stat_level);
+	if (stat_level) dump_isom_scene_stats(inName, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, stat_level);
 #endif
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
-	if (!HintIt && print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
+	if (!HintIt && print_sdp) dump_isom_sdp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 #endif
 	if (print_info) {
 		if (!file) {
@@ -4173,16 +4175,20 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : outfile);
-	if (dump_cr) dump_file_ismacryp(file, dump_std ? NULL : outfile);
-	if ((dump_ttxt || dump_srt) && trackID) dump_timed_text_track(file, trackID, dump_std ? NULL : outfile, 0, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if ((dump_ttxt || dump_srt) && trackID)
+		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+							  GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+
 #ifndef GPAC_DISABLE_ISOM_HINTING
-	if (dump_rtp) dump_file_rtp(file, dump_std ? NULL : outfile);
-#endif
+	if (dump_rtp) dump_isom_rtp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 #endif
 
-	if (dump_timestamps) dump_file_timestamps(file, dump_std ? NULL : outfile);
-	if (dump_nal) dump_file_nal(file, dump_nal, dump_std ? NULL : outfile);
+#endif
+
+	if (dump_timestamps) dump_isom_timestamps(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_nal) dump_isom_nal(file, dump_nal, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 
 	if (do_hash) {
 		e = hash_file(inName, dump_std);
@@ -4195,9 +4201,9 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
-	if (dump_cart) dump_cover_art(file, outfile);
-	if (dump_chap) dump_chapters(file, outfile, (dump_chap==2) ? 1 : 0);
-	if (dump_udta_type) dump_udta(file, outfile, dump_udta_type, dump_udta_track);
+	if (dump_cart) dump_isom_cover_art(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_chap) dump_isom_chapters(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,(dump_chap==2) ? 1 : 0);
+	if (dump_udta_type) dump_isom_udta(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, dump_udta_type, dump_udta_track);
 
 	if (dump_iod) {
 		GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *)gf_isom_get_root_od(file);
@@ -4855,7 +4861,7 @@ int mp4boxMain(int argc, char **argv)
 		e = HintFile(file, MTUSize, max_ptime, rtp_rate, hint_flags, HintCopy, HintInter, regular_iod, single_group);
 		if (e) goto err_exit;
 		needSave = GF_TRUE;
-		if (print_sdp) DumpSDP(file, dump_std ? NULL : outfile);
+		if (print_sdp) dump_isom_sdp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	}
 #endif
 

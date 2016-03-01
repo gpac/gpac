@@ -468,7 +468,7 @@ GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bo
 		else if(!strncmp(szExt, ".bt", 3) || !strncmp(szExt, ".xmt", 4) || !strncmp(szExt, ".mp4", 4) ) mode = xml_dump ? GF_SM_DUMP_XMTA : GF_SM_DUMP_BT;
 	}
 
-	dumper = gf_sm_dumper_new(sg, rad_name, ' ', mode);
+	dumper = gf_sm_dumper_new(sg, rad_name, GF_FALSE, ' ', mode);
 
 	if (!dumper) return GF_IO_ERR;
 	e = gf_sm_dump_graph(dumper, skip_protos, 0);

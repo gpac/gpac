@@ -2066,7 +2066,15 @@ found:
 		gf_bs_write_u32(bs, s);
 		gf_bs_write_u32(bs, ptr->type);
 		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (char *) map->uuid, 16);
-		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		if (ptr->data) {
+			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		} else if (ptr->other_boxes) {
+#ifndef GPAC_DISABLE_ISOM_WRITE
+			gf_isom_box_array_write((GF_Box *)ptr, ptr->other_boxes, bs);
+#else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ISOBMF: udta is a box-list - cannot export in read-only version of libisom in GPAC\n" ));
+#endif
+		}
 	}
 	gf_bs_get_content(bs, userData, userDataSize);
 	gf_bs_del(bs);
