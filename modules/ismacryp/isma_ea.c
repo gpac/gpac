@@ -502,7 +502,14 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*evt->data_size);
 		}
 		gf_bs_read_data(cyphertext_bs, buffer, evt->data_size);
-		gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);
+		if (priv->is_cenc) {			
+			gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);
+		} else {
+			u32 ret = evt->data_size % 16;
+			if (evt->data_size >= 16) {
+				gf_crypt_decrypt(priv->crypt, buffer, evt->data_size-ret);
+			}
+		}
 	}
 	memmove(evt->data, buffer, evt->data_size);
 
