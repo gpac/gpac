@@ -20,8 +20,6 @@ endif
 CFLAGS = -Wall -g
 LDFLAGS= --as-needed
 
-VERSION=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`
-
 CC:=ccache $(CC)
 CXX:=ccache $(CXX)
 
@@ -73,14 +71,7 @@ install: build
 
 	$(MAKE) install-lib prefix=$(CURDIR)/debian/tmp/usr
 
-#	rm debian/tmp/usr/lib/libgpac.so
-#	dh_link -plibgpac-dev usr/lib/libgpac.so.0.5.0 usr/lib/libgpac.so
-	dh_link -pgpac usr/lib/libgpac.so.0.5.0 usr/lib/libgpac.so
-
 	dh_install
-#	dh_install --fail-missing
-
-#	dh_movefiles --sourcedir=debian/gpac
 
 #	dh_install -pmozilla-gpac bin/gcc/nposmozilla.so usr/lib/mozilla/plugins
 #	dh_install -pmozilla-gpac bin/gcc/nposmozilla.xpt usr/lib/mozilla/plugins
@@ -107,9 +98,9 @@ binary-arch: build install
 	dh_strip
 	dh_compress
 	dh_fixperms
-	dh_makeshlibs -V --major=0.5.0
+	dh_makeshlibs -V
 	dh_installdeb
-	dh_shlibdeps -ldebian/libgpac_0.5.0/usr/lib
+	dh_shlibdeps
 	dh_gencontrol
 	dh_md5sums
 	dh_builddeb --destdir=.
