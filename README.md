@@ -1,6 +1,6 @@
 [![Build Status](https://travis-ci.org/gpac/gpac.svg?branch=master)](https://travis-ci.org/gpac/gpac)
 
-README for GPAC version 0.5.0, May 2012.
+README for GPAC version 0.6.0-DEV
 
 GPAC is a multimedia framework oriented towards rich media and distributed under the LGPL license (see COPYING).
 GPAC supports many multimedia formats, from simple audiovisual containers (avi, mov, mpg) to complex 

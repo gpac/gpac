@@ -8,6 +8,25 @@ version="`grep '#define GPAC_VERSION ' \"./include/gpac/version.h\" | cut -d '"'
 
 echo "Version is $version"
 
+#patch README.md
+source="README.md"
+sed -e "s/README for GPAC version.*/README for GPAC version $version/;" $source > ftmp
+rm $source
+mv ftmp $source
+
+#patch doc/configuration.html
+source="doc/configuration.html"
+sed -e "s/GPAC Version.*/GPAC Version $version/;" $source > ftmp
+rm $source
+mv ftmp $source
+
+#patch doc/man/gpac.1
+source="doc/man/gpac.1"
+sed -e "s/GPAC framework version.*/GPAC framework version $version./;" $source > ftmp
+rm $source
+mv ftmp $source
+
+
 #patch  applications/osmo4_ios/osmo4ios-Info.plist 
 
 source="applications/osmo4_ios/osmo4ios-Info.plist"
