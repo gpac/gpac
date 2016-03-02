@@ -869,10 +869,9 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 		goto exit;
 	}
 	while (gf_bs_available(pleintext_bs)) {
-		GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
-
 		if (is_nalu_video) {
 			char nal_hdr[2];
+			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
 			if (size>max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
@@ -891,19 +890,14 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 
 			entry->bytes_clear_data = nalu_size_length + bytes_in_nalhr;
 			entry->bytes_encrypted_data = size - bytes_in_nalhr;
-
+			gf_list_add(subsamples, entry);
 		} else {
 			gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
 			gf_crypt_encrypt(mc, buffer, samp->dataLength);
 			gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
 
 			BSO += samp->dataLength;
-			entry->bytes_clear_data = 0;
-			entry->bytes_encrypted_data = samp->dataLength;
 		}
-
-
-		gf_list_add(subsamples, entry);
 	}
 
 	if (samp->data) {
@@ -912,13 +906,15 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 		samp->dataLength = 0;
 	}
 	gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
-	gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
-	while (gf_list_count(subsamples)) {
-		GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
-		gf_list_rem(subsamples, 0);
-		gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
-		gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
-		gf_free(ptr);
+	if (gf_list_count(subsamples)) {
+		gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
+		while (gf_list_count(subsamples)) {
+			GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
+			gf_list_rem(subsamples, 0);
+			gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
+			gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
+			gf_free(ptr);
+		}
 	}
 	gf_list_del(subsamples);
 	gf_bs_get_content(sai_bs, sai, saiz);
@@ -954,10 +950,10 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 	}
 	while (gf_bs_available(pleintext_bs)) {
 		u32 ret;
-		GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 
 		if (is_nalu_video) {
 			char nal_hdr[2];
+			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
 			if (size+1 > max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*(size+1));
@@ -983,22 +979,18 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 
 			entry->bytes_clear_data = nalu_size_length + bytes_in_nalhr + ret;
 			entry->bytes_encrypted_data = (size-bytes_in_nalhr >= 16) ? size - bytes_in_nalhr - ret : 0  ;
+			gf_list_add(subsamples, entry);
 		} else {
 			gf_bs_read_data(pleintext_bs, buffer, samp->dataLength);
 			ret = samp->dataLength % 16;
-			if (ret) {
-				gf_bs_write_data(cyphertext_bs, buffer, ret);
-			}
 			if (samp->dataLength >= 16) {
-				gf_crypt_encrypt(mc, buffer, samp->dataLength);
-				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength);
+				gf_crypt_encrypt(mc, buffer, samp->dataLength-ret);
+				gf_bs_write_data(cyphertext_bs, buffer, samp->dataLength-ret);
 			}
-
-			entry->bytes_clear_data = ret;
-			entry->bytes_encrypted_data = (samp->dataLength >= 16) ? samp->dataLength - ret : 0;
+			if (ret) {
+				gf_bs_write_data(cyphertext_bs, buffer+samp->dataLength-ret, ret);
+			}
 		}
-
-		gf_list_add(subsamples, entry);
 	}
 
 	if (samp->data) {
@@ -1007,13 +999,15 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 		samp->dataLength = 0;
 	}
 	gf_bs_get_content(cyphertext_bs, &samp->data, &samp->dataLength);
-	gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
-	while (gf_list_count(subsamples)) {
-		GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
-		gf_list_rem(subsamples, 0);
-		gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
-		gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
-		gf_free(ptr);
+	if (gf_list_count(subsamples)) {
+		gf_bs_write_u16(sai_bs, gf_list_count(subsamples));
+		while (gf_list_count(subsamples)) {
+			GF_CENCSubSampleEntry *ptr = (GF_CENCSubSampleEntry *)gf_list_get(subsamples, 0);
+			gf_list_rem(subsamples, 0);
+			gf_bs_write_u16(sai_bs, ptr->bytes_clear_data);
+			gf_bs_write_u32(sai_bs, ptr->bytes_encrypted_data);
+			gf_free(ptr);
+		}
 	}
 	gf_list_del(subsamples);
 	gf_bs_get_content(sai_bs, sai, saiz);
@@ -1396,8 +1390,19 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 				max_size = samp->dataLength;
 			}
 			gf_bs_read_data(cyphertext_bs, buffer,samp->dataLength);
-			gf_crypt_decrypt(mc, buffer, samp->dataLength);
-			gf_bs_write_data(pleintext_bs, buffer, samp->dataLength);
+			if (tci->enc_type == 2) {
+				gf_crypt_decrypt(mc, buffer, samp->dataLength);
+				gf_bs_write_data(pleintext_bs, buffer, samp->dataLength);
+			} else if (tci->enc_type == 3) {
+				u32 ret = samp->dataLength % 16;
+				if (samp->dataLength >= 16) {
+					gf_crypt_decrypt(mc, buffer, samp->dataLength-ret);
+					gf_bs_write_data(pleintext_bs, buffer, samp->dataLength-ret);
+				}
+				if (ret) {
+					gf_bs_write_data(pleintext_bs, buffer+samp->dataLength-ret, ret);
+				}
+			}
 		}
 
 		gf_isom_cenc_samp_aux_info_del(sai);
