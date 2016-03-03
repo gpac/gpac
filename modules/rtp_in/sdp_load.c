@@ -413,6 +413,8 @@ void MigrateSDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		param->data = rtp->session_state_data + strlen("data:application/sdp,");
 		param->size = (u32) strlen(param->data);
 		return;
+	default:
+		return;
 	}
 }
 
