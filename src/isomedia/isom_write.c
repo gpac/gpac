@@ -3564,25 +3564,27 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 			}
 		}
 		//repack DTS
-		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
-		memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
-		stbl->TimeToSample->nb_entries = 1;
-		stbl->TimeToSample->entries[0].sampleDelta = (u32) DTSs[0];
-		stbl->TimeToSample->entries[0].sampleCount = 1;
-		idx=0;
-		for (i=1; i< stbl->SampleSize->sampleCount - 1; i++) {
-			if (DTSs[i+1] - DTSs[i] == stbl->TimeToSample->entries[idx].sampleDelta) {
-				stbl->TimeToSample->entries[idx].sampleCount++;
-			} else {
-				idx++;
-				stbl->TimeToSample->entries[idx].sampleDelta = (u32) ( DTSs[i+1] - DTSs[i] );
-				stbl->TimeToSample->entries[idx].sampleCount=1;
+		if (stbl->SampleSize->sampleCount) {
+			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
+			memset(stbl->TimeToSample->entries, 0, sizeof(GF_SttsEntry)*stbl->SampleSize->sampleCount);
+			stbl->TimeToSample->nb_entries = 1;
+			stbl->TimeToSample->entries[0].sampleDelta = (u32) DTSs[0];
+			stbl->TimeToSample->entries[0].sampleCount = 1;
+			idx=0;
+			for (i=1; i< stbl->SampleSize->sampleCount - 1; i++) {
+				if (DTSs[i+1] - DTSs[i] == stbl->TimeToSample->entries[idx].sampleDelta) {
+					stbl->TimeToSample->entries[idx].sampleCount++;
+				} else {
+					idx++;
+					stbl->TimeToSample->entries[idx].sampleDelta = (u32) ( DTSs[i+1] - DTSs[i] );
+					stbl->TimeToSample->entries[idx].sampleCount=1;
+				}
 			}
+			stbl->TimeToSample->nb_entries = idx+1;
+			stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
 		}
-		stbl->TimeToSample->nb_entries = idx+1;
-		stbl->TimeToSample->entries = gf_realloc(stbl->TimeToSample->entries, sizeof(GF_SttsEntry)*stbl->TimeToSample->nb_entries);
 
-		if (CTSs) {
+		if (CTSs && stbl->SampleSize->sampleCount>0) {
 			//repack CTS
 			stbl->CompositionOffset->entries = gf_realloc(stbl->CompositionOffset->entries, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
 			memset(stbl->CompositionOffset->entries, 0, sizeof(GF_DttsEntry)*stbl->SampleSize->sampleCount);
