@@ -333,10 +333,24 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 	return GF_FALSE;
 }
 
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
 #ifndef _WIN32_WCE
-	vfprintf(stderr, fmt, vlist);
+  char * fmtColored = malloc((strlen(fmt) + strlen(ANSI_COLOR_RED) + strlen(ANSI_COLOR_RESET))*sizeof(char));
+	strcat(fmtColored , ANSI_COLOR_RED);
+	strcat(fmtColored , fmt);
+	strcat(fmtColored , ANSI_COLOR_RESET);
+
+  vfprintf(stderr, fmt, vlist);
+  free(fmtColored);
 #endif
 }
 
