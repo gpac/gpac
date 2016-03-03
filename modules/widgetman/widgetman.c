@@ -2821,6 +2821,8 @@ void wm_relocate_proc(void *usr_cbk, GF_NETIO_Parameter *parameter)
 	case GF_NETIO_GET_METHOD:
 		parameter->name = "HEAD";
 		break;
+	default:
+		return;
 	}
 }
 
