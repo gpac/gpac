@@ -2992,7 +2992,7 @@ retry_track:
 static GF_Err dasher_isom_adjust_last_sample(GF_ISOFile *in, const u32 trackNumber, const u32 track_duration, const u32 target_duration_in_timescale, const Double fragment_duration_in_sec) {
 	const u32 fragment_duration_in_media_timescale = (u32)(fragment_duration_in_sec * gf_isom_get_media_timescale(in, trackNumber));
 	const u32 last_sample_duration = gf_isom_get_sample_duration(in, trackNumber, gf_isom_get_sample_count(in, trackNumber));
-	const u32 new_last_sample_duration_in_media_timescale = last_sample_duration + (target_duration_in_timescale - MIN(track_duration, target_duration_in_timescale)) * (u64)gf_isom_get_media_timescale(in, trackNumber) / gf_isom_get_timescale(in);
+	const u32 new_last_sample_duration_in_media_timescale = (u32) ( last_sample_duration + (target_duration_in_timescale - MIN(track_duration, target_duration_in_timescale)) * (u64)gf_isom_get_media_timescale(in, trackNumber) / gf_isom_get_timescale(in) );
 
 	if (new_last_sample_duration_in_media_timescale != last_sample_duration) {
 		if (!is_splitable(gf_isom_get_media_type(in, trackNumber)) && (new_last_sample_duration_in_media_timescale > fragment_duration_in_media_timescale)) {
