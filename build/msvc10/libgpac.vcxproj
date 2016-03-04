@@ -595,8 +595,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>"$(ProjectDir)..\..\version.bat"</Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
@@ -635,8 +634,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug - MP4Box_only|x64'">
     <PreBuildEvent>
-      <Command>
-      </Command>
+      <Command>"$(ProjectDir)..\..\version.bat"</Command>
     </PreBuildEvent>
     <ClCompile>
       <AdditionalOptions>/MP %(AdditionalOptions)</AdditionalOptions>
