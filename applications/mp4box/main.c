@@ -1334,7 +1334,6 @@ typedef enum {
 	TSEL_ACTION_SET_PARAM = 0,
 	TSEL_ACTION_REMOVE_TSEL = 1,
 	TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP = 2,
-	TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE = 3,
 } TSELActionType;
 
 typedef struct
@@ -1765,7 +1764,7 @@ GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, dash_live, no_fragments_defaults, single_traf_per_moof;
+Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
 u32 track_dump_type;
 u32 trackID;
@@ -2560,7 +2559,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			nb_meta_act++;
 			i++;
 		}
-		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem")) {
+		else if (!stricmp(arg, "-group-add") || !stricmp(arg, "-group-rem-track") || !stricmp(arg, "-group-rem") || !stricmp(arg, "-group-clean")) {
 			TSELActionType act_type;
 			if (!stricmp(arg, "-group-rem")) {
 				act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP;
@@ -2579,8 +2578,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			i++;
 		}
 		else if (!stricmp(arg, "-group-clean")) {
-			tsel_acts[nb_tsel_acts].act_type = TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE;
-			nb_tsel_acts++;
+			clean_groups = 1;
 			open_edit = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-group-single")) {
@@ -3310,7 +3308,7 @@ int mp4boxMain(int argc, char **argv)
 #ifndef GPAC_DISABLE_SCENE_DUMP
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
-	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = GF_FALSE;
+	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE,
@@ -4365,6 +4363,12 @@ int mp4boxMain(int argc, char **argv)
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
+	if (clean_groups) {
+		e = gf_isom_reset_switch_parameters(file);
+		if (e) goto err_exit;
+		needSave = GF_TRUE;
+	}
+	
 	for (i=0; i<nb_tsel_acts; i++) {
 		switch (tsel_acts[i].act_type) {
 		case TSEL_ACTION_SET_PARAM:
@@ -4384,11 +4388,6 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		case TSEL_ACTION_REMOVE_ALL_TSEL_IN_GROUP:
 			e = gf_isom_reset_track_switch_parameter(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), 1);
-			if (e) goto err_exit;
-			needSave = GF_TRUE;
-			break;
-		case TSEL_ACTION_REMOVE_ALL_TSEL_IN_FILE:
-			e = gf_isom_reset_switch_parameters(file);
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 			break;
