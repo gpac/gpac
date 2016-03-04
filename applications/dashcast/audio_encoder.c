@@ -63,7 +63,14 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 		audio_output_file->codec_ctx->time_base = time_base;
 	}
 	audio_output_file->codec_ctx->channels = audio_data_conf->channels;
-	audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO; /*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
+	
+	/*FIXME: depends on channels -> http://ffmpeg.org/doxygen/trunk/channel__layout_8c_source.html#l00074*/
+	if (audio_data_conf->channels == 1) {
+		audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_MONO;
+	} else {
+		audio_output_file->codec_ctx->channel_layout = AV_CH_LAYOUT_STEREO;
+	}
+
 	audio_output_file->codec_ctx->sample_fmt = audio_output_file->codec->sample_fmts[0];
 #ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aresampler = NULL;
