@@ -426,6 +426,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 
+#ifndef GPAC_DISABLE_SWF_IMPORT
 		else if (!stricmp(ext+1, "swf-global")) import.swf_flags |= GF_SM_SWF_STATIC_DICT;
 		else if (!stricmp(ext+1, "swf-no-ctrl")) import.swf_flags &= ~GF_SM_SWF_SPLIT_TIMELINE;
 		else if (!stricmp(ext+1, "swf-no-text")) import.swf_flags |= GF_SM_SWF_NO_TEXT;
@@ -437,7 +438,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "swf-ic2d")) import.swf_flags |= GF_SM_SWF_USE_IC2D;
 		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
 		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
-
+#endif
+		
 		else if (!strnicmp(ext+1, "kind=", 5)) {
 			char *kind_scheme, *kind_value;
 			char *kind_data = ext+6;
@@ -871,6 +873,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (e) goto exit;
 		}
 	}
+#ifndef GPAC_DISABLE_HEVC
 	if (check_track_for_shvc) {
 		if (svc_mode) {
 			e = gf_media_split_shvc(import.dest, check_track_for_shvc, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? 0 : 1 );
@@ -882,7 +885,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	if (tile_mode) {
 		e = gf_media_split_hevc_tiles(import.dest, (tile_mode==1) ? GF_TRUE : GF_FALSE);
 	}
-
+#endif /*GPAC_DISABLE_HEVC*/
 
 exit:
 	while (gf_list_count(kinds)) {
@@ -1616,6 +1619,7 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 	return dst_tk;
 }
 
+#ifndef GPAC_DISABLE_HEVC
 static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 src_track, Bool force_cat)
 {
 	u32 i;
@@ -1668,6 +1672,7 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 	}
 	return dst_tk;
 }
+#endif /*GPAC_DISABLE_HEVC */
 
 GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command)
 {
@@ -1892,6 +1897,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				        || (stype == GF_ISOM_SUBTYPE_AVC4_H264) ) {
 					dst_tk = merge_avc_config(dest, tk_id, orig, i+1, force_cat);
 				}
+#ifndef GPAC_DISABLE_HEVC
 				/*merge HEVC config if possible*/
 				else if ((stype == GF_ISOM_SUBTYPE_HVC1)
 				         || (stype == GF_ISOM_SUBTYPE_HEV1)
@@ -1899,6 +1905,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 				         || (stype == GF_ISOM_SUBTYPE_HEV2)) {
 					dst_tk = merge_hevc_config(dest, tk_id, orig, i+1, force_cat);
 				}
+#endif /*GPAC_DISABLE_HEVC*/
 			}
 		}
 

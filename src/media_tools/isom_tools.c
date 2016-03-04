@@ -1955,7 +1955,7 @@ exit:
 	return e;
 }
 
-
+#ifndef GPAC_DISABLE_HEVC
 /* Split SHVC layers */
 static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
@@ -2313,6 +2313,7 @@ exit:
 	if (nal_data) gf_free(nal_data);
 	return e;
 }
+#endif /*GPAC_DISABLE_HEVC*/
 
 GF_EXPORT
 GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
@@ -2347,7 +2348,7 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 	return e;
 }
 
-
+#ifndef GPAC_DISABLE_HEVC
 static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;
@@ -2665,6 +2666,7 @@ err_exit:
 	return e;
 #endif
 }
+#endif /*GPAC_DISABLE_HEVC*/
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
