@@ -1221,11 +1221,11 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		char szBuf[GF_MAX_PATH];
 		strcpy(szBuf, inName);
 		if (!is_final_name) sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
+		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
 			return;
 		}
-		dump = gf_fopen(szBuf, "wt");
 	} else {
 		dump = stdout;
 	}
