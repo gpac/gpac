@@ -4234,7 +4234,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
-#if !(definedGPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	if (split_duration || split_size) {
 		split_isomedia_file(file, split_duration, split_size, inName, interleaving_time, split_start, adjust_split_end, outName, tmpdir);
 		/*never save file when splitting is desired*/
