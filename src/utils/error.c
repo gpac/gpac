@@ -333,10 +333,35 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 	return GF_FALSE;
 }
 
+#define RED     "\x1b[31m"
+#define YELLOW  "\x1b[33m"
+#define WHITE   "\x1b[37m"
+#define RESET   "\x1b[0m"
+
 void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
 {
 #ifndef _WIN32_WCE
-	vfprintf(stderr, fmt, vlist);
+  /*! RED, GREEN, YELLOW, and so on have the same size, RESET is one byte shorter */
+  char * fmtColored = malloc((strlen(fmt) + strlen(RED))*sizeof(char));
+	switch(level) {
+    case GF_LOG_ERROR:
+      strcat(fmtColored , RED);
+      break;
+    case GF_LOG_WARNING:
+      strcat(fmtColored , YELLOW);
+      break;
+    case GF_LOG_INFO:
+      strcat(fmtColored, WHITE);
+      break;
+    default:
+      strcat(fmtColored , RESET);
+      break;
+  }
+
+  strcat(fmtColored , fmt);
+
+  vfprintf(stderr, fmtColored, vlist);
+  free(fmtColored);
 #endif
 }
 
