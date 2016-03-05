@@ -21,7 +21,7 @@ CFLAGS+=-DGPAC_READ_ONLY
 endif
 
 ifeq ($(CONFIG_WIN32),yes)
-LDFLAGS+=-municode
+LINKFLAGS+=$(UNICODEFLAGS)
 EXE=.exe
 PROG=MP4Client$(EXE)
 else
