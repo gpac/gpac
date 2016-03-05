@@ -29,7 +29,7 @@ endif
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
-LINKFLAGS+=-municode
+LINKFLAGS+=$(UNICODEFLAGS)
 
 else
 
