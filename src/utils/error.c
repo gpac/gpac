@@ -25,6 +25,13 @@
 
 #include <gpac/tools.h>
 
+#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+#include <Windows.h>
+#include <Wincon.h>
+static HANDLE console = NULL;
+static WORD console_attr_ori = 0;
+#endif
+
 
 static char szTYPE[5];
 
@@ -333,35 +340,68 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 	return GF_FALSE;
 }
 
-#define RED     "\x1b[31m"
-#define YELLOW  "\x1b[33m"
-#define WHITE   "\x1b[37m"
-#define RESET   "\x1b[0m"
+#define RED    "\x1b[31m"
+#define YELLOW "\x1b[33m"
+#define GREEN  "\x1b[32m"
+#define CYAN   "\x1b[36m"
+#define WHITE  "\x1b[37m"
+#define RESET  "\x1b[0m"
 
-void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
+void default_log_callback(void *cbck, u32 level, u32 tool, const char *fmt, va_list vlist)
 {
-#ifndef _WIN32_WCE
-  /*! RED, GREEN, YELLOW, and so on have the same size, RESET is one byte shorter */
-  char * fmtColored = malloc((strlen(fmt) + strlen(RED))*sizeof(char));
+#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+	if (console == NULL) {
+		CONSOLE_SCREEN_BUFFER_INFO console_info;
+		console = GetStdHandle(STD_ERROR_HANDLE);
+		assert(console != INVALID_HANDLE_VALUE);
+		if (console != INVALID_HANDLE_VALUE) {
+			GetConsoleScreenBufferInfo(console, &console_info);
+			console_attr_ori = console_info.wAttributes;
+		}
+	}
 	switch(level) {
-    case GF_LOG_ERROR:
-      strcat(fmtColored , RED);
-      break;
-    case GF_LOG_WARNING:
-      strcat(fmtColored , YELLOW);
-      break;
-    case GF_LOG_INFO:
-      strcat(fmtColored, WHITE);
-      break;
-    default:
-      strcat(fmtColored , RESET);
-      break;
-  }
+		case GF_LOG_ERROR:
+			SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_INTENSITY);
+			break;
+		case GF_LOG_WARNING:
+			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN);
+			break;
+		case GF_LOG_INFO:
+			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+			break;
+		case GF_LOG_DEBUG:
+			SetConsoleTextAttribute(console, FOREGROUND_GREEN);
+			break;
+		default:
+			SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+			break;
+	}
+	
+	vfprintf(stderr, fmt, vlist);
+	SetConsoleTextAttribute(console, console_attr_ori);
+#elif !defined(_WIN32_WCE)
+	switch(level) {
+		case GF_LOG_ERROR:
+			fprintf(stderr, RED);
+			break;
+		case GF_LOG_WARNING:
+			fprintf(stderr, YELLOW);
+			break;
+		case GF_LOG_INFO:
+			fprintf(stderr, GREEN);
+			break;
+		case GF_LOG_DEBUG:
+			fprintf(stderr, CYAN);
+			break;
+		default:
+			fprintf(stderr, WHITE);
+			break;
+	}
 
-  strcat(fmtColored , fmt);
-
-  vfprintf(stderr, fmtColored, vlist);
-  free(fmtColored);
+	vfprintf(stderr, fmt, vlist);
+	fprintf(stderr, RESET);
+#else /*_WIN32_WCE*/
+	/*no log*/
 #endif
 }
 
