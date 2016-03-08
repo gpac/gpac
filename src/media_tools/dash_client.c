@@ -4226,7 +4226,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	//commented out as we end up doing too many requets
 	GF_Err e;
 	GF_MPD_Representation *rep;
-	u32 group_count;
 	u32 min_wait = 0;
 	char *new_base_seg_url;
 	char *key_url=NULL;
@@ -4276,7 +4275,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error updating MPD %s\n", gf_error_to_string(e)));
 			}
-			group_count = gf_list_count(dash->groups);
 			rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 		} else {
 			gf_sleep(1);
@@ -4657,7 +4655,6 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 {
 	u32 quality_rank;
 	u32 min_bandwidth = 0;
-	u32 max_bandwidth = 0;
 	Bool force_rep_idx = GF_FALSE;
 	GF_MPD_Representation *rep;
 	u32 total_rate, bandwidths[20], groups_per_quality[20], max_level;
@@ -4665,7 +4662,6 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 	u32 i, count = gf_list_count(dash->groups);
 
 	//initialize min/max bandwidth
-	max_bandwidth = 0;
 	min_bandwidth = 0;
 	max_level = 0;
 	total_rate = (u32) -1;
