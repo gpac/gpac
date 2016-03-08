@@ -187,6 +187,10 @@ enum
 
 	/* Encryption Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_ADOBE_SCHEME	= GF_4CC('a','d','k','m'),
+
+	/* Pattern Encryption Scheme Type in the SchemeTypeInfoBox */
+	GF_ISOM_CENS_SCHEME	= GF_4CC('c','e','n','s'),
+	GF_ISOM_CBCS_SCHEME	= GF_4CC('c','b','c','s'),
 };
 
 
@@ -2080,7 +2084,9 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID);
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID,
+								   u8 default_crypt_byte_block, u8 default_skip_byte_block, 
+								   u8 default_cosntant_IV_size, bin128 default_constant_IV);
 
 GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, char *data, u32 len);
 
@@ -2107,6 +2113,9 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
 GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type);
 
 void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
+
+Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex);
+void gf_isom_cenc_get_default_pattern_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 *default_crypt_byte_block, u8 *default_skip_byte_block);
 
 u32 gf_isom_get_pssh_count(GF_ISOFile *file);
 /*index is 1-based, all pointers shall not be free*/
@@ -2424,8 +2433,9 @@ GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_num
 - currently sample group info MUST be added in order (no insertion in the tables)*/
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance);
 
-/*set encryption group for a sample_number; buf specifies the parameters for this group: IsEncrypted, IV_size, KID*/
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool isEncrypted, u8 IV_size, bin128 KeyID);
+/*set encryption group for a sample_number; see GF_CENCSampleEncryptionGroupEntry for the parameters*/
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID,
+									u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV);
 
 GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use_negative_offsets);
 
@@ -2441,7 +2451,8 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 
 #endif
 
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID);
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
+									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

@@ -286,7 +286,8 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	priv->state = ISMAEA_STATE_ERROR;
 
-	if ((cfg->scheme_type != GF_4CC('c', 'e', 'n', 'c')) && (cfg->scheme_type != GF_4CC('c','b','c','1'))) return GF_NOT_SUPPORTED;
+	if ((cfg->scheme_type != GF_4CC('c', 'e', 'n', 'c')) && (cfg->scheme_type != GF_4CC('c','b','c','1')) && (cfg->scheme_type != GF_4CC('c', 'e', 'n', 's')) && (cfg->scheme_type != GF_4CC('c','b','c','s'))) 
+		return GF_NOT_SUPPORTED;
 	if (cfg->scheme_version != 0x00010000) return GF_NOT_SUPPORTED;
 
 	for (i = 0; i < cfg->PSSH_count; i++) {
@@ -346,7 +347,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		}
 	}
 
-	if (cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c'))
+	if ((cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (cfg->scheme_type == GF_4CC('c', 'e', 'n', 's')))
 		priv->is_cenc = GF_TRUE;
 	else
 		priv->is_cbc = GF_TRUE;
@@ -403,7 +404,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	if (!priv->crypt) return GF_SERVICE_ERROR;
 
-	if (!evt->is_encrypted || !evt->IV_size || !evt->saiz) return GF_OK;
+	if (!evt->is_encrypted) return GF_OK;
 
 	cyphertext_bs = gf_bs_new(evt->data, evt->data_size, GF_BITSTREAM_READ);
 	sai_bs = gf_bs_new(evt->sai, evt->saiz, GF_BITSTREAM_READ);
@@ -438,9 +439,15 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	}
 
 	if (priv->first_crypted_samp) {
-		memmove(IV, sai->IV, sai->IV_size);
-		if (sai->IV_size == 8)
-			memset(IV+8, 0, sizeof(char)*8);
+		if (evt->IV_size) {
+			memmove(IV, sai->IV, sai->IV_size);
+			if (sai->IV_size == 8)
+				memset(IV+8, 0, sizeof(char)*8);
+		} else {
+			memmove(IV, evt->constant_IV, evt->constant_IV_size);
+			if (evt->constant_IV_size == 8)
+				memset(IV+8, 0, sizeof(char)*8);
+		}
 		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
@@ -473,6 +480,12 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		while (gf_bs_available(cyphertext_bs)) {
 			if (subsample_count >= sai->subsample_count)
 				break;
+			if (!evt->IV_size) {
+				memmove(IV, evt->constant_IV, evt->constant_IV_size);
+				if (evt->constant_IV_size == 8)
+					memset(IV+8, 0, sizeof(char)*8);
+				gf_crypt_set_state(priv->crypt, IV, 16);
+			}
 
 			/*read clear data and write it to pleintext bitstream*/
 			if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
@@ -488,7 +501,22 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 				max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
 			}
 			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
-			gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			//pattern decryption
+			if (evt->crypt_byte_block && evt->skip_byte_block) {
+				u32 pos = 0;
+				u32 res = sai->subsamples[subsample_count].bytes_encrypted_data;
+				while (res) {
+					gf_crypt_decrypt(priv->crypt, buffer+pos, res >= (u32) (16*evt->crypt_byte_block) ? 16*evt->crypt_byte_block : res);
+					if (res >= (u32) (16 * (evt->crypt_byte_block + evt->skip_byte_block))) {
+						pos += 16 * (evt->crypt_byte_block + evt->skip_byte_block);
+						res -= 16 * (evt->crypt_byte_block + evt->skip_byte_block);
+					} else {
+						res = 0;
+					}
+			}
+			} else {
+				gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			}
 			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 
 			subsample_count++;
@@ -534,7 +562,8 @@ static GF_Err IPMP_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 #ifdef OMA_DRM_MP4MC
 		if (evt->config_data_code == GF_4CC('o','d','r','m')) return OMA_DRM_Setup(priv, evt);
 #endif
-		if((evt->config_data_code != GF_4CC('c', 'e', 'n', 'c')) || (evt->config_data_code != GF_4CC('c','b','c','1'))) return CENC_Setup(priv, evt);
+		if((evt->config_data_code == GF_4CC('c', 'e', 'n', 'c')) || (evt->config_data_code == GF_4CC('c','b','c','1')) || (evt->config_data_code == GF_4CC('c', 'e', 'n', 's')) || (evt->config_data_code == GF_4CC('c','b','c','s'))) 
+			return CENC_Setup(priv, evt);
 		return GF_NOT_SUPPORTED;
 
 	case GF_IPMP_TOOL_GRANT_ACCESS:
