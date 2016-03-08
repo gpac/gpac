@@ -8819,10 +8819,20 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		GF_CENCSampleEncryptionGroupEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
 		if (!ptr) return NULL;
-		ptr->IsEncrypted = gf_bs_read_u24(bs);
-		ptr->IV_size = gf_bs_read_u8(bs);
+		gf_bs_read_u8(bs); //reserved
+		ptr->crypt_byte_block = gf_bs_read_int(bs, 4);
+		ptr->skip_byte_block = gf_bs_read_int(bs, 4);
+		ptr->IsProtected = gf_bs_read_u8(bs);
+		ptr->Per_Sample_IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *)ptr->KID, 16);
 		*total_bytes = 20;
+		if ((ptr->IsProtected == 1) && !ptr->Per_Sample_IV_size) {
+			ptr->constant_IV_size = gf_bs_read_u8(bs);
+			assert((ptr->constant_IV_size == 8) || (ptr->constant_IV_size == 16));
+			gf_bs_read_data(bs, (char *)ptr->constant_IV, ptr->constant_IV_size);
+			*total_bytes += 1 + ptr->constant_IV_size;
+		}
+		
 		return ptr;
 	}
 	case GF_4CC( 't', 'r', 'i', 'f' ):
@@ -8878,10 +8888,17 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 		gf_bs_write_int(bs, ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples, 7);
 		return;
 	case GF_4CC( 's', 'e', 'i', 'g' ):
-		gf_bs_write_u24(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsEncrypted);
-		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IV_size);
+		gf_bs_write_u8(bs, 0x0);
+		gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry*)entry)->crypt_byte_block, 4);
+		gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry*)entry)->skip_byte_block, 4);
+		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected);
+		gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size);
 		gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
-		return; 
+		if ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) {
+			gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
+			gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
+		}
+		return;
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
@@ -8899,7 +8916,7 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 	case GF_4CC( 'r', 'a', 'p', ' ' ):
 		return 1;
 	case GF_4CC( 's', 'e', 'i', 'g' ):
-		return 20;
+		return ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) ? 21 + ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size : 20;
 	default:
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}

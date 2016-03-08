@@ -4440,8 +4440,12 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "/>\n");
 			break;
 		case GF_4CC( 's', 'e', 'i', 'g' ):
-			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->IsEncrypted, ((GF_CENCSampleEncryptionGroupEntry*)entry)->IV_size);
+			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->IsProtected, ((GF_CENCSampleEncryptionGroupEntry*)entry)->Per_Sample_IV_size);
 			DumpDataHex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->KID, 16);
+			if ((((GF_CENCSampleEncryptionGroupEntry*)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry*)entry)->Per_Sample_IV_size) {
+				fprintf(trace, "\" constant_IV_size=\"%d\"  constant_IV=\"", ((GF_CENCSampleEncryptionGroupEntry*)entry)->constant_IV_size);
+				DumpDataHex(trace, (char *)((GF_CENCSampleEncryptionGroupEntry*)entry)->constant_IV, ((GF_CENCSampleEncryptionGroupEntry*)entry)->constant_IV_size);
+			}
 			fprintf(trace, "\"/>\n");
 			break;
 		case GF_4CC( 'o', 'i', 'n', 'f'):
@@ -4559,8 +4563,17 @@ GF_Err tenc_dump(GF_Box *a, FILE * trace)
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*) a;
 	if (!a) return GF_BAD_PARAM;
 
-	fprintf(trace, "<TrackEncryptionBox isEncrypted=\"%d\" IV_size=\"%d\" KID=\"", ptr->IsEncrypted, ptr->IV_size);
+	fprintf(trace, "<TrackEncryptionBox isEncrypted=\"%d\"", ptr->isProtected);
+	if (ptr->Per_Sample_IV_Size)
+		fprintf(trace, " IV_size=\"%d\" KID=\"", ptr->Per_Sample_IV_Size);
+	else {
+		fprintf(trace, " constant_IV_size=\"%d\" constant_IV=\"", ptr->constant_IV_size);
+		DumpDataHex(trace, (char *) ptr->KID, 16);
+		fprintf(trace, "\"  KID=\"");
+	}
 	DumpDataHex(trace, (char *) ptr->KID, 16);
+	if (ptr->version) 
+		fprintf(trace, "\" crypt_byte_block=\"%d\" skip_byte_block=\"%d", ptr->crypt_byte_block, ptr->skip_byte_block);
 	fprintf(trace, "\">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
