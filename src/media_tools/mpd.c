@@ -1086,7 +1086,7 @@ GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_b
 
 GF_EXPORT
 void gf_mpd_getter_del_session(GF_FileDownload *getter) {
-	if (!getter && !getter->del_session)
+	if (!getter || !getter->del_session)
 		return;
 	getter->del_session(getter);
 }
