@@ -358,14 +358,13 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #endif
 
 #define GLSL_PREFIX GLES_VERSION_STRING \
-	"#ifdef GL_ES"\
+	"#ifdef GL_ES\n"\
 	"#ifdef GL_FRAGMENT_PRECISION_HIGH\n"\
 	"precision highp float;\n"\
 	"#else\n"\
 	"precision mediump float;\n"\
 	"#endif\n" \
 	"#endif\n"
-
 
 static char *glsl_autostereo_vertex = GLSL_PREFIX "\
 	attribute vec4 gfVertex;\
