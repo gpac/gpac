@@ -214,7 +214,8 @@ void PrintGeneralUsage()
 	        "                       * Note: By default input (MP4,3GP) file is overwritten\n"
 	        " -tmp dirname         specifies directory for temporary file creation\n"
 	        "                       * Note: Default temp dir is OS-dependent\n"
-	        " -co64                forces usage of 64-bit chunk offsets for ISOBMF files\n"
+			" -for-test            disables all creation/modif dates and GPAC versions in files\n"
+			" -co64                forces usage of 64-bit chunk offsets for ISOBMF files\n"
 	        " -write-buffer SIZE   specifies write buffer in bytes for ISOBMF files\n"
 	        " -no-sys              removes all MPEG-4 Systems info except IOD (profiles)\n"
 	        "                       * Note: Set by default whith '-add' and '-cat'\n"
@@ -1796,6 +1797,7 @@ Bool frag_real_time = GF_FALSE;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
+Bool force_test_mode = GF_FALSE;
 Bool force_co64 = GF_FALSE;
 Bool live_scene = GF_FALSE;
 Bool enable_mem_tracker = GF_FALSE;
@@ -3027,6 +3029,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			CHECK_NEXT_ARG tmpdir = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-for-test")) {
+			force_test_mode = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-co64")) {
 			force_co64 = GF_TRUE;
 			open_edit = GF_TRUE;
@@ -4081,6 +4086,11 @@ int mp4boxMain(int argc, char **argv)
 	if (file && keep_utc && open_edit) {
 		gf_isom_keep_utc_times(file, 1);
 	}
+
+	if (file && force_test_mode) {
+		gf_isom_no_version_date_info(file, 1);
+	}
+
 
 	strcpy(outfile, outName ? outName : inName);
 	if (strrchr(outfile, '.')) {
