@@ -94,6 +94,10 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	gf_sg_set_node_callback(tmp->graph, gf_term_node_callback);
 	gf_sg_set_scene_time_callback(tmp->graph, gf_scene_get_time);
 
+	//copy over pause_at_first_frame flag so that new subscene is not paused right away
+	if (parentScene)
+		tmp->pause_at_first_frame = parentScene->pause_at_first_frame;
+
 #ifndef GPAC_DISABLE_VRML
 	tmp->extern_protos = gf_list_new();
 	gf_sg_set_proto_loader(tmp->graph, gf_inline_get_proto_lib);
