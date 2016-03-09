@@ -555,7 +555,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		case GF_ISOM_SUBTYPE_HEV1:
 		case GF_ISOM_SUBTYPE_HVC2:
 		case GF_ISOM_SUBTYPE_HEV2:
-		case GF_ISOM_SUBTYPE_SHC1:
+		case GF_ISOM_SUBTYPE_LHV1:
 		{
 			GF_HEVCConfig *hevcc = NULL, *shvcc = NULL;
 			hevcc = gf_isom_hevc_config_get(streamer->isom, track->track_num, 1);
