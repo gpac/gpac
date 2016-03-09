@@ -1176,7 +1176,7 @@ int mp4client_main(int argc, char **argv)
 			gui_mode = 2;
 		} else if (!strcmp(arg, "-h") || !strcmp(arg, "-help")) {
 			PrintUsage();
-			return 1;
+			return 0;
 		}
 	}
 
