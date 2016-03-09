@@ -503,11 +503,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
 			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
 			}
 		}
 	}
@@ -527,7 +527,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if (resync) {
 		u32 nb_dropped = 0;
 		while (1) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
 			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time)
 				break;
 
@@ -556,7 +556,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 			nb_dropped ++;
 			if (nb_dropped>=1) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
 				codec->nb_dropped++;
 			}
 			/*discard*/
