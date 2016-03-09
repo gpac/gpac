@@ -724,7 +724,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	      ) {
 		if (last_error) return 1;
 		gf_term_process_flush(term);
-		gf_sleep(10);
 	}
 
 	if (width && height) {
@@ -936,7 +935,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		avi_al.flush_retry=0;
 		while ((avi_al.flush_retry <100) && (avi_al.audio_time < dump_dur)) {
 			gf_term_step_clocks(term, 0);
-			gf_sleep(1);
 			avi_al.flush_retry++;
 		}
 	}
