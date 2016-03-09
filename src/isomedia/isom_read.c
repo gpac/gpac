@@ -3655,6 +3655,13 @@ void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc)
 
 
 GF_EXPORT
+void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info)
+{
+	if (!file) return;
+	file->drop_date_version_info = drop_info;
+}
+
+GF_EXPORT
 u32 gf_isom_get_pssh_count(GF_ISOFile *file)
 {
 	u32 count=0;

@@ -28,7 +28,8 @@
 
 #if !defined(GPAC_DISABLE_ISOM) && !defined(GPAC_DISABLE_ISOM_WRITE)
 
-#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC "GPAC_FULL_VERSION
+#define GPAC_ISOM_CPRT_NOTICE "IsoMedia File Produced with GPAC"
+#define GPAC_ISOM_CPRT_NOTICE_VERSION GPAC_ISOM_CPRT_NOTICE" "GPAC_FULL_VERSION
 
 static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 {
@@ -40,11 +41,11 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 		if (a->type == GF_ISOM_BOX_TYPE_FREE) {
 			_free = (GF_FreeSpaceBox *)a;
 			if (_free->dataSize) {
-				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE)) return GF_OK;
-				if (strstr(_free->data, "File Produced with GPAC")) {
+				if (!strcmp(_free->data, GPAC_ISOM_CPRT_NOTICE_VERSION)) return GF_OK;
+				if (strstr(_free->data, GPAC_ISOM_CPRT_NOTICE)) {
 					gf_free(_free->data);
-					_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
-					_free->dataSize = (u32) strlen(_free->data);
+					_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+					_free->dataSize = 1 + (u32) strlen(_free->data);
 					return GF_OK;
 				}
 			}
@@ -53,8 +54,8 @@ static GF_Err gf_isom_insert_copyright(GF_ISOFile *movie)
 	a = gf_isom_box_new(GF_ISOM_BOX_TYPE_FREE);
 	if (!a) return GF_OUT_OF_MEM;
 	_free = (GF_FreeSpaceBox *)a;
-	_free->dataSize = (u32) strlen(GPAC_ISOM_CPRT_NOTICE) + 1;
-	_free->data = gf_strdup(GPAC_ISOM_CPRT_NOTICE);
+	_free->data = gf_strdup(movie->drop_date_version_info ? GPAC_ISOM_CPRT_NOTICE : GPAC_ISOM_CPRT_NOTICE_VERSION);
+	_free->dataSize = (u32) strlen(_free->data) + 1;
 	if (!_free->data) return GF_OUT_OF_MEM;
 	return gf_list_add(movie->TopBoxes, _free);
 }
@@ -1279,6 +1280,24 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
+
+	if (movie->drop_date_version_info) {
+		u32 i;
+		GF_TrackBox *trak;
+		movie->moov->mvhd->creationTime = 0;
+		movie->moov->mvhd->modificationTime = 0;
+		i=0;
+		while ( (trak = gf_list_enum(movie->moov->trackList, &i))) {
+			trak->Header->creationTime = 0;
+			trak->Header->modificationTime = 0;
+			if (trak->Media->handler->nameUTF8 && strstr(trak->Media->handler->nameUTF8, "@GPAC")) {
+				gf_free(trak->Media->handler->nameUTF8);
+				trak->Media->handler->nameUTF8 = gf_strdup("MediaHandler");
+			}
+			trak->Media->mediaHeader->creationTime = 0;
+			trak->Media->mediaHeader->modificationTime = 0;
+		}
+	}
 
 	//capture mode: we don't need a new bitstream
 	if (movie->openMode == GF_ISOM_OPEN_WRITE) {

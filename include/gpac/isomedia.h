@@ -851,6 +851,9 @@ u32 gf_isom_guess_specification(GF_ISOFile *file);
 /*keeps UTC edit times when storing*/
 void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc);
 
+/*drops all modification/creation times and handler/copyright containing GPAC rev info (used for tests)*/
+void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info);
+
 
 /*gets last UTC/timestamp values indicated for the reference track in the file if any. Returns 0 if no info found*/
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
