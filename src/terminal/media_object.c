@@ -328,7 +328,7 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	}
 
 	com.base.command_type = GF_NET_CHAN_GET_SRD;
-	if (gf_term_service_command(ch->service, &com) == GF_OK) {
+	if ((gf_term_service_command(ch->service, &com) == GF_OK) && com.srd.w && com.srd.h) {
 		mo->srd_x = com.srd.x;
 		mo->srd_y = com.srd.y;
 		mo->srd_w = com.srd.w;
