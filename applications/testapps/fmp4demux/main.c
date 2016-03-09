@@ -28,7 +28,7 @@
 #include <gpac/isomedia.h>
 #include <gpac/thread.h>
 
-#define BUFFER_BLOC_SIZE 1000
+#define BUFFER_BLOCK_SIZE 1000
 #define MAX_BUFFER_SIZE 200000
 
 typedef struct iso_progressive_reader {
@@ -230,7 +230,7 @@ int main(int argc, char **argv)
 	gf_th_run(reading_thread, iso_progressive_read_thread, &reader);
 
 	/* start the data reading */
-	reader.data_size = BUFFER_BLOC_SIZE;
+	reader.data_size = BUFFER_BLOCK_SIZE;
 	reader.data = (u8 *)gf_malloc(reader.data_size);
 	reader.valid_data_size = 0;
 	total_read_bytes = 0;
@@ -238,20 +238,20 @@ int main(int argc, char **argv)
 		/* block the parser until we are done manipulating the data buffer */
 		gf_mx_p(reader.mutex);
 
-		if (reader.valid_data_size + BUFFER_BLOC_SIZE > MAX_BUFFER_SIZE) {
+		if (reader.valid_data_size + BUFFER_BLOCK_SIZE > MAX_BUFFER_SIZE) {
 			/* regulate the reader to limit the max buffer size and let some time to the parser to release buffer data */
 			fprintf(stdout, "Buffer full (%d/%d)- waiting to read next data \r", reader.valid_data_size, reader.data_size);
 			gf_mx_v(reader.mutex);
 			//gf_sleep(10);
 		} else {
 			/* make sure we have enough space in the buffer to read the next bloc of data */
-			if (reader.valid_data_size + BUFFER_BLOC_SIZE > reader.data_size) {
-				reader.data = (u8 *)gf_realloc(reader.data, reader.data_size + BUFFER_BLOC_SIZE);
-				reader.data_size += BUFFER_BLOC_SIZE;
+			if (reader.valid_data_size + BUFFER_BLOCK_SIZE > reader.data_size) {
+				reader.data = (u8 *)gf_realloc(reader.data, reader.data_size + BUFFER_BLOCK_SIZE);
+				reader.data_size += BUFFER_BLOCK_SIZE;
 			}
 
 			/* read the next bloc of data and update the data buffer url */
-			read_bytes = fread(reader.data+reader.valid_data_size, 1, BUFFER_BLOC_SIZE, input);
+			read_bytes = fread(reader.data+reader.valid_data_size, 1, BUFFER_BLOCK_SIZE, input);
 			total_read_bytes += read_bytes;
 			fprintf(stdout, "Read "LLD" bytes of "LLD" bytes from input file %s (buffer status: %5d/%5d)\r", total_read_bytes, file_size, argv[1], reader.valid_data_size, reader.data_size);
 			if (read_bytes) {
