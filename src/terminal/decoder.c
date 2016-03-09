@@ -981,9 +981,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
 	if (codec->CB->Capacity == codec->CB->UnitCount) {
-		if (codec->Status==GF_ESM_CODEC_PAUSE) {
-			gf_term_stop_codec(codec, 1);
-		}
+		//do not stop codec!
 		if (codec->CB->UnitCount > 1) return GF_OK;
 		else if (codec->direct_vout) return GF_OK;
 	}

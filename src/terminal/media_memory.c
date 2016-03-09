@@ -513,12 +513,14 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	switch (cb->Status) {
 	case CB_BUFFER:
 	case CB_STOP:
-	case CB_PAUSE:
-		/*only visual buffers deliver data when paused*/
+		/*only visual buffers deliver data when buffering or stop*/
 		if (cb->odm->codec->type != GF_STREAM_VISUAL) return NULL;
 		break;
 	case CB_BUFFER_DONE:
 		cb->Status = CB_PLAY;
+		break;
+	//we always deliver in pause, up to the caller to decide to consume or not the frame
+	case CB_PAUSE:
 		break;
 	}
 

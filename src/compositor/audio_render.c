@@ -667,14 +667,20 @@ void gf_sc_ar_set_priority(GF_AudioRenderer *ar, u32 priority)
 
 void gf_sc_ar_reconfig(GF_AudioRenderer *ar)
 {
+	Bool frozen;
 	if (!ar->need_reconfig || !ar->audio_out) return;
 	/*lock mixer*/
 	gf_mixer_lock(ar->mixer, GF_TRUE);
 
-	gf_ar_pause(ar, GF_TRUE, GF_TRUE, GF_FALSE);
+	frozen = ar->Frozen;
+	if (!frozen ) 
+		gf_ar_pause(ar, GF_TRUE, GF_TRUE, GF_FALSE);
+	
 	ar->need_reconfig = GF_FALSE;
 	gf_ar_setup_output_format(ar);
-	gf_ar_pause(ar, GF_FALSE, GF_TRUE, GF_FALSE);
+	
+	if (!frozen)
+		gf_ar_pause(ar, GF_FALSE, GF_TRUE, GF_FALSE);
 
 	/*unlock mixer*/
 	gf_mixer_lock(ar->mixer, GF_FALSE);
