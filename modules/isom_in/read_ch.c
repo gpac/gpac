@@ -419,6 +419,8 @@ static void init_reader(ISOMChannel *ch)
 	} else {
 		ch->current_slh.decodingTimeStamp = ch->start;
 		ch->current_slh.compositionTimeStamp = ch->start;
+		
+		//TODO - we need to notify scene decoder how many secs elapsed between RAP and seek point
 		if (ch->current_slh.compositionTimeStamp != ch->sample->DTS + ch->sample->CTS_Offset) {
 			ch->current_slh.seekFlag = 1;
 		}
@@ -674,10 +676,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->current_slh.compositionTimeStamp = ch->start;
 		ch->current_slh.seekFlag = 1;
-		if (ch->streamType==GF_STREAM_SCENE)
-			ch->current_slh.decodingTimeStamp = ch->sample->DTS;
-		else
-			ch->current_slh.decodingTimeStamp = ch->start;
+		ch->current_slh.decodingTimeStamp = ch->start;
 	}
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
