@@ -141,7 +141,7 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 static struct log_tool_info {
 	u32 type;
 	const char *name;
-	u32 level;
+	GF_LOG_Level level;
 } global_log_tools [] =
 {
 	{ GF_LOG_CORE, "core", GF_LOG_WARNING },
@@ -333,7 +333,7 @@ u32 call_lev = 0;
 u32 call_tool = 0;
 
 GF_EXPORT
-Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
+Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
 	assert(log_tool<GF_LOG_TOOL_MAX);
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
@@ -347,7 +347,7 @@ Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
 #define WHITE  "\x1b[37m"
 #define RESET  "\x1b[0m"
 
-void default_log_callback(void *cbck, u32 level, u32 tool, const char *fmt, va_list vlist)
+void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
 #if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
 	if (console == NULL) {
@@ -427,7 +427,7 @@ void gf_log_set_strict_error(Bool strict)
 }
 
 GF_EXPORT
-void gf_log_set_tool_level(u32 tool, u32 level)
+void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 {
 	assert(tool<=GF_LOG_TOOL_MAX);
 	if (tool==GF_LOG_ALL) {
@@ -440,7 +440,7 @@ void gf_log_set_tool_level(u32 tool, u32 level)
 }
 
 GF_EXPORT
-void gf_log_lt(u32 ll, u32 lt)
+void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 	call_lev = ll;
 	call_tool = lt;
@@ -462,7 +462,7 @@ void gf_log(const char *fmt, ...)
 {
 }
 GF_EXPORT
-void gf_log_lt(u32 ll, u32 lt)
+void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 }
 GF_EXPORT

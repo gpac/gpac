@@ -295,7 +295,7 @@ BOOL CGPAXPlugin::PreTranslateMessage(MSG* pMsg)
 
 #define GPAC_REG_KEY	HKEY_CURRENT_USER
 
-static void gpax_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+static void gpax_do_log(void *cbk, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list list)
 {
 	FILE *logs = (FILE *) cbk;
 	vfprintf(logs, fmt, list);

@@ -839,7 +839,7 @@ void PrintUsage()
 }
 
 
-void scene_coding_log(void *cbk, u32 log_level, u32 log_tool, const char *fmt, va_list vlist)
+void scene_coding_log(void *cbk, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char *fmt, va_list vlist)
 {
 	FILE *logs = cbk;
 	if (log_tool != GF_LOG_CODING) return;
@@ -1723,7 +1723,7 @@ static GF_Err hash_file(char *name, u32 dump_std)
 Bool log_sys_clock = GF_FALSE;
 Bool log_utc_time = GF_FALSE;
 
-static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
 
@@ -3452,7 +3452,7 @@ int mp4boxMain(int argc, char **argv)
 	if (gf_logs) {
 		//gf_log_set_tools_levels(gf_logs);
 	} else {
-		u32 level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
+		GF_LOG_Level level = verbose ? GF_LOG_DEBUG : GF_LOG_INFO;
 		gf_log_set_tool_level(GF_LOG_CONTAINER, level);
 		gf_log_set_tool_level(GF_LOG_SCENE, level);
 		gf_log_set_tool_level(GF_LOG_PARSER, level);
@@ -3465,7 +3465,6 @@ int mp4boxMain(int argc, char **argv)
 		if (quiet) {
 			if (quiet==2) gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_QUIET);
 			gf_set_progress_callback(NULL, progress_quiet);
-
 		}
 	}
 
