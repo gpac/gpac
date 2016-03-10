@@ -231,7 +231,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 }
 
 
-static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk;
 

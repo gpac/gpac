@@ -1023,7 +1023,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 }
 
 static u64 last_log_time=0;
-static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	FILE *logs = cbk ? cbk : stderr;
 

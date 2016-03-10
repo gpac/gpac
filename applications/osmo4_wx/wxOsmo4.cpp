@@ -515,7 +515,7 @@ void wxOsmo4Frame::CheckVideoOut()
 	SetWindowStyle(wxDEFAULT_FRAME_STYLE & ~(wxMAXIMIZE_BOX | wxRESIZE_BORDER));
 }
 
-static void wxOsmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+static void wxOsmo4_do_log(void *cbk, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list list)
 {
 	wxOsmo4Frame *osmo = (wxOsmo4Frame *)cbk;
 
