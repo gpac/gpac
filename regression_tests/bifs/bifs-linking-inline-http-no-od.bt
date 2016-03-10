@@ -39,7 +39,7 @@ OrderedGroup {
   Transform2D {
    children [
     Inline {
-     url ["rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/classic_cars_300.mp4"]
+     url ["http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/mp4/counter_video_360.mp4"]
     }
    ]
   }
