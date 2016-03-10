@@ -103,7 +103,7 @@ static u64 gf_mpd_parse_date(char *attr)
 	return gf_net_parse_date(attr);
 }
 
-static u32 gf_mpd_parse_duration(char *duration) {
+static u64 gf_mpd_parse_duration(char *duration) {
 	u32 i;
 	if (!duration) return 0;
 	i = 0;
@@ -144,14 +144,23 @@ static u32 gf_mpd_parse_duration(char *duration) {
 				s = atof(sep2);
 				*sep1 = 'S';
 			}
-			return (u32)((h*3600+m*60+s)*1000);
+			return (u64)((h*3600+m*60+s)*(u64)1000);
 		}
 	} else {
 		return 0;
 	}
 }
 
-
+static u32 gf_mpd_parse_duration_u32(char *duration)
+{
+	u64 dur = gf_mpd_parse_duration(duration);
+	if (dur <= GF_UINT_MAX) {
+		return (u32)dur;
+	} else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Parsed duration "LLU" doesn't fit on 32 bits! Setting to the 32 bits max.\n", dur));
+		return GF_UINT_MAX;
+	}
+}
 
 static GF_MPD_ByteRange *gf_mpd_parse_byte_range(char *attr)
 {
@@ -277,7 +286,7 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 		else if (!strcmp(att->name, "indexRange")) seg->index_range = gf_mpd_parse_byte_range(att->value);
 		else if (!strcmp(att->name, "indexRangeExact")) seg->index_range_exact = gf_mpd_parse_bool(att->value);
 		else if (!strcmp(att->name, "availabilityTimeOffset")) seg->availability_time_offset = gf_mpd_parse_double(att->value);
-		else if (!strcmp(att->name, "timeShiftBufferDepth")) seg->time_shift_buffer_depth = gf_mpd_parse_duration(att->value);
+		else if (!strcmp(att->name, "timeShiftBufferDepth")) seg->time_shift_buffer_depth = gf_mpd_parse_duration_u32(att->value);
 	}
 
 	if (mpd->type == GF_MPD_TYPE_STATIC)
@@ -1018,17 +1027,17 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *defau
 		} else if (!strcmp(att->name, "mediaPresentationDuration")) {
 			mpd->media_presentation_duration = gf_mpd_parse_duration(att->value);
 		} else if (!strcmp(att->name, "minimumUpdatePeriod")) {
-			mpd->minimum_update_period = gf_mpd_parse_duration(att->value);
+			mpd->minimum_update_period = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "minBufferTime")) {
-			mpd->min_buffer_time = gf_mpd_parse_duration(att->value);
+			mpd->min_buffer_time = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "timeShiftBufferDepth")) {
-			mpd->time_shift_buffer_depth = gf_mpd_parse_duration(att->value);
+			mpd->time_shift_buffer_depth = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "suggestedPresentationDelay")) {
-			mpd->suggested_presentaton_delay = gf_mpd_parse_duration(att->value);
+			mpd->suggested_presentation_delay = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "maxSegmentDuration")) {
-			mpd->max_segment_duration = gf_mpd_parse_duration(att->value);
+			mpd->max_segment_duration = gf_mpd_parse_duration_u32(att->value);
 		} else if (!strcmp(att->name, "maxSubsegmentDuration")) {
-			mpd->max_subsegment_duration = gf_mpd_parse_duration(att->value);
+			mpd->max_subsegment_duration = gf_mpd_parse_duration_u32(att->value);
 		} else {
 			MPD_STORE_EXTENSION_ATTR(mpd)
 		}
@@ -1128,7 +1137,7 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 		mpd->minimum_update_period = (u32) (update_interval*1000);
 	}
 	if (is_end) {
-		mpd->media_presentation_duration = (u32) (max_dur*1000);
+		mpd->media_presentation_duration = (u64) (max_dur*1000);
 	}
 	if (mpd->type == GF_MPD_TYPE_STATIC)
 		mpd->minimum_update_period = mpd->time_shift_buffer_depth = 0;
@@ -1715,7 +1724,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 }
 
 GF_EXPORT
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration)
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration)
 {
 	GF_Err e;
 	MasterPlaylist *pl = NULL;
@@ -1813,7 +1822,7 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", name, 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-void gf_mpd_print_duration(FILE *out, char *name, u32 duration)
+void gf_mpd_print_duration(FILE *out, char *name, u64 duration)
 {
 	u32 h, m;
 	Double s;
@@ -2214,8 +2223,8 @@ static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
 		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time);
 	if (mpd->time_shift_buffer_depth)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth);
-	if (mpd->suggested_presentaton_delay)
-		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentaton_delay);
+	if (mpd->suggested_presentation_delay)
+		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay);
 	if (mpd->max_segment_duration)
 		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration);
 	if (mpd->max_subsegment_duration)
@@ -2294,7 +2303,7 @@ GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
 
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
 {
 	GF_MPD_BaseURL *url_child;
 	GF_MPD_SegmentTimeline *timeline = NULL;
@@ -2304,6 +2313,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	char *url_to_solve, *solved_template, *first_sep, *media_url;
 	char *init_template, *index_template;
 
+	if (!out_range_start || !out_range_end || !out_url || !mpd_url || !segment_duration_in_ms)
+		return GF_BAD_PARAM;
 	*out_range_start = *out_range_end = 0;
 	*out_url = NULL;
 	if (out_key_url) *out_key_url = NULL;
@@ -2472,7 +2483,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 				*out_range_end = segment->media_range->end_range;
 			}
 			if (segment->duration) {
-				*segment_duration = (u32) ((Double) (segment->duration) * 1000.0 / timescale);
+				*segment_duration_in_ms = (u32) ((Double) (segment->duration) * 1000.0 / timescale);
 			}
 			if (segment->key_url && out_key_url) {
 				*out_key_url = gf_strdup((const char *) segment->key_url);
@@ -2632,8 +2643,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 						start_time += ent->duration * (1 + ent->repeat_count);
 						continue;
 					}
-					*segment_duration = ent->duration;
-					*segment_duration = (u32) ((Double) (*segment_duration) * 1000.0 / timescale);
+					*segment_duration_in_ms = ent->duration;
+					*segment_duration_in_ms = (u32) ((Double) (*segment_duration_in_ms) * 1000.0 / timescale);
 					nb_repeat = item_index - cur_idx;
 					time = ent->start_time ? ent->start_time : start_time;
 					time += nb_repeat * ent->duration;

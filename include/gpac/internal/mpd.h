@@ -311,8 +311,8 @@ typedef struct
 typedef struct
 {
 	char *ID;
-	u32 start; /* expressed in ms, relative to the start of the MPD */
-	u32 duration; /* expressed in ms*/
+	u64 start; /* expressed in ms, relative to the start of the MPD */
+	u64 duration; /* expressed in ms*/
 	Bool bitstream_switching;
 
 	GF_List *base_URLs;
@@ -350,12 +350,12 @@ typedef struct {
 	u64 availabilityStartTime; /* expressed in milliseconds */	/*MANDATORY if type=dynamic*/
 	u64 availabilityEndTime;/* expressed in milliseconds */
 	u64 publishTime;/* expressed in milliseconds */
-	u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
+	u64 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
 	u32 minimum_update_period; /* expressed in milliseconds */
 	u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
 
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */
-	u32 suggested_presentaton_delay; /* expressed in milliseconds */
+	u32 suggested_presentation_delay; /* expressed in milliseconds */
 
 	u32 max_segment_duration; /* expressed in milliseconds */
 	u32 max_subsegment_duration; /* expressed in milliseconds */
@@ -405,7 +405,7 @@ struct _gf_file_get
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates,
                       GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
 
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration);
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration);
 
 GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root);
 
