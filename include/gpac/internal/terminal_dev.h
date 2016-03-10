@@ -287,6 +287,8 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 
 void gf_scene_mpeg4_inline_restart(GF_Scene *scene);
+void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene);
+
 
 GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 

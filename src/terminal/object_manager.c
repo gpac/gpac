@@ -1950,6 +1950,12 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	if (on_channel) {
 		if (nb_eos==nb_share_clock) {
 			on_channel->clock->has_seen_eos = 1;
+#ifndef GPAC_DISABLE_VRML
+			//check for scene restart upon end of stream
+			if (odm->subscene) {
+				gf_scene_mpeg4_inline_check_restart(odm->subscene);
+			}
+#endif
 		} else {
 			nb_ck_running++;
 		}
