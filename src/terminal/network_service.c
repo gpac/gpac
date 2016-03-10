@@ -878,10 +878,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (no_mime_check) {
 		mime_type = NULL;
 	} else {
-		/*fetch a mime type if any. If error don't even attempt to open the service
-		TRYTOFIXME: it would be nice to reuse the downloader created while fetching the mime type, however
-		we don't know if the plugin will want it threaded or not....
-		*/
+		/*fetch a mime type if any. If error don't even attempt to open the service	*/
 		mime_type = get_mime_type(term, sURL, &e, the_session);
 		if (e) {
 			(*ret_code) = e;
