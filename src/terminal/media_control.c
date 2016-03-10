@@ -664,7 +664,9 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (odm->subscene && odm->subscene->needs_restart) return 0;
 		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);
-		if (now<=dur) return 0;
+		//if next frame is after current segment trigger switch now
+		if (now + odm->term->compositor->frame_duration < dur)
+			return 0;
 	} else {
 		/*FIXME - for natural media with scalability, we should only process when all streams of the object are done*/
 	}

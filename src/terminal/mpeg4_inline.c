@@ -194,10 +194,17 @@ static void gf_inline_check_restart(GF_Scene *scene)
 					gf_term_invalidate_compositor(scene->root_od->term);
 				}
 			}
-		} else {
-			/*trigger render until to watch for restart...*/
-			gf_term_invalidate_compositor(scene->root_od->term);
 		}
+	}
+}
+
+void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene)
+{
+	gf_inline_check_restart(scene);
+	
+	if (scene->needs_restart) {
+		gf_term_invalidate_compositor(scene->root_od->term);
+		return;
 	}
 }
 
