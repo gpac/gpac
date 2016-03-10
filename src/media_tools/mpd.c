@@ -962,6 +962,7 @@ void gf_mpd_period_free(void *_item)
 GF_EXPORT
 void gf_mpd_del(GF_MPD *mpd)
 {
+	if (!mpd) return;
 	gf_mpd_del_list(mpd->program_infos, gf_mpd_prog_info_free, 0);
 	gf_mpd_del_list(mpd->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(mpd->locations, gf_mpd_string_free, 0);
