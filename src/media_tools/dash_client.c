@@ -549,7 +549,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 #if 0
 	{
-		s32 diff = (s32) current_time - (s32) (mpd->media_presentation_duration);
+		s64 diff = (s64) current_time - (s64) (mpd->media_presentation_duration);
 		if (ABS(diff)>10) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Broken UTC timing in client or server - got Media URL is not set in segment list\n"));
 
@@ -1168,7 +1168,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 
 	/*single segment*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
-		*max_seg_duration = mpd->media_presentation_duration;
+		*max_seg_duration = (Double)mpd->media_presentation_duration;
 		*max_seg_duration /= 1000;
 		*nb_segments = 1;
 		return;
@@ -1197,7 +1197,7 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 
 	/*if no SegmentXXX is found, this is a single segment representation (onDemand profile)*/
 	if (single_segment) {
-		*max_seg_duration = mpd->media_presentation_duration;
+		*max_seg_duration = (Double)mpd->media_presentation_duration;
 		*max_seg_duration /= 1000;
 		*nb_segments = 1;
 		return;
@@ -1211,14 +1211,14 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 			*max_seg_duration = (Double) duration;
 			*max_seg_duration /= timescale;
 		}
-		mediaDuration = period->duration;
+		mediaDuration = (Double)period->duration;
 		if (!mediaDuration) {
 			u32 i, count = gf_list_count(mpd->periods);
 			Double start = 0;
 			for (i=0; i<count; i++) {
 				GF_MPD_Period *ap = gf_list_get(mpd->periods, i);
 				if (ap==period) break;
-				if (ap->start) start = ap->start;
+				if (ap->start) start = (Double)ap->start;
 				start += ap->duration;
 			}
 			mediaDuration = mpd->media_presentation_duration - start;
@@ -1812,7 +1812,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 	fetch_time = dash_get_fetch_time(dash);
 
-	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, MPD has been fetched aobve
+	// parse the mpd file for filling the GF_MPD structure. Note: for m3u8, MPD has been fetched above
 	if (!new_mpd) {
 		if (!gf_dash_check_mpd_root_type(local_url)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: MPD file type is not correct %s\n", local_url));
@@ -1999,7 +1999,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 					}
 					if (dash->is_m3u8) {
 						Bool is_static = GF_FALSE;
-						u32 dur = 0;
+						u64 dur = 0;
 						gf_m3u8_solve_representation_xlink(new_rep, &group->dash->getter, &is_static, &dur);
 						if (is_static) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[m3u8] MPD type changed from dynamic to static\n"));
@@ -2125,18 +2125,18 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		}
 
 		group->maybe_end_of_stream = 0;
-		reset_segment_count = 0;
+		reset_segment_count = GF_FALSE;
 		/*compute fetchTime + minUpdatePeriod and check period end time*/
 		if (new_mpd->minimum_update_period && new_mpd->media_presentation_duration) {
-			u32 endTime = (u32) (fetch_time - new_mpd->availabilityStartTime - period->start);
+			u64 endTime = fetch_time - new_mpd->availabilityStartTime - period->start;
 			if (endTime > new_mpd->media_presentation_duration) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Period EndTime is signaled to %d, less than fetch time %d ! Ignoring mediaPresentationDuration\n", new_mpd->media_presentation_duration, endTime));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Period EndTime is signaled to "LLU", less than fetch time "LLU" ! Ignoring mediaPresentationDuration\n", new_mpd->media_presentation_duration, endTime));
 				new_mpd->media_presentation_duration = 0;
-				reset_segment_count = 1;
+				reset_segment_count = GF_TRUE;
 			} else {
 				endTime += new_mpd->minimum_update_period;
 				if (endTime > new_mpd->media_presentation_duration) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Period EndTime is signaled to %d, less than fetch time + next update - maybe end of stream ?\n", new_mpd->availabilityStartTime, endTime));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Period EndTime is signaled to "LLU", less than fetch time + next update "LLU" - maybe end of stream ?\n", new_mpd->availabilityStartTime, endTime));
 					group->maybe_end_of_stream = 1;
 				}
 			}
@@ -2200,11 +2200,11 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	group->max_cached_segments = nb_cached_seg_per_rep * gf_dash_group_count_rep_needed(group);
 	nb_segs = group->nb_segments_in_rep;
 
-	group->min_bandwidth_selected = 1;
+	group->min_bandwidth_selected = GF_TRUE;
 	for (k=0; k<gf_list_count(group->adaptation_set->representations); k++) {
 		GF_MPD_Representation *arep = gf_list_get(group->adaptation_set->representations, k);
 		if (group->active_bitrate > arep->bandwidth) {
-			group->min_bandwidth_selected = 0;
+			group->min_bandwidth_selected = GF_FALSE;
 			break;
 		}
 	}
@@ -2215,7 +2215,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		}
 		if (group->dash->is_m3u8) {
 			Bool is_static = GF_FALSE;
-			u32 dur = 0;
+			u64 dur = 0;
 			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
 			//we only know this is a static or dynamic MPD after parsing the first subplaylist
 			//if this is static, we need to update infos in mpd and period
@@ -5015,7 +5015,8 @@ exit:
 
 static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u32 time)
 {
-	u32 i, count, cumul_start=0;
+	u32 i, count;
+	u64 cumul_start = 0;
 	GF_MPD_Period *period;
 
 restart:
@@ -5031,7 +5032,7 @@ restart:
 		if ((period->start > time) || (cumul_start > time)) {
 			break;
 		}
-		cumul_start+=period->duration;
+		cumul_start += period->duration;
 
 		if (time < cumul_start) {
 			break;
@@ -5107,7 +5108,7 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		} else {
 			nb_retry = 10;
 		}
-		dur = period->duration;
+		dur = (Double)period->duration;
 		dur /= 1000;
 		if (seek_time >= start_time) {
 			if ((i+1==gf_list_count(dash->mpd->periods)) || (seek_time < start_time + dur) ) {
@@ -6641,9 +6642,9 @@ void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms)
 
 /*returns active period start in ms*/
 GF_EXPORT
-u32 gf_dash_get_period_start(GF_DashClient *dash)
+u64 gf_dash_get_period_start(GF_DashClient *dash)
 {
-	u32 start;
+	u64 start;
 	u32 i;
 	GF_MPD_Period *period;
 	if (!dash || !dash->mpd) return 0;
@@ -6661,9 +6662,9 @@ u32 gf_dash_get_period_start(GF_DashClient *dash)
 
 /*returns active period duration in ms*/
 GF_EXPORT
-u32 gf_dash_get_period_duration(GF_DashClient *dash)
+u64 gf_dash_get_period_duration(GF_DashClient *dash)
 {
-	u32 start;
+	u64 start;
 	u32 i;
 	GF_MPD_Period *period = NULL;
 	if (!dash || !dash->mpd) return 0;

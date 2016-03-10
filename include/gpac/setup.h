@@ -300,6 +300,7 @@ typedef u8 bin128[16];
 #define GF_EPSILON_FLOAT	FLT_EPSILON
 #define GF_SHORT_MAX		SHRT_MAX
 #define GF_SHORT_MIN		SHRT_MIN
+#define GF_UINT_MAX			UINT_MAX
 #define GF_INT_MAX			INT_MAX
 #define GF_INT_MIN			INT_MIN
 
