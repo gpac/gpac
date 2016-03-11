@@ -688,6 +688,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
 
+		if (ctx->hidden)
+			flags |= SDL_WINDOW_HIDDEN;
+		
 		assert(width);
 		assert(height);
 #if SDL_VERSION_ATLEAST(2,0,0)
@@ -760,6 +763,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			ctx->screen=NULL;
 		}
 #endif
+
+		if (ctx->hidden)
+			flags |= SDL_WINDOW_HIDDEN;
 
 		if (!ctx->screen) {
 			ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
@@ -1158,6 +1164,7 @@ GF_Err SDLVid_Setup(struct _video_out *dr, void *os_handle, void *os_display, u3
 	ctx->is_init = GF_FALSE;
 	ctx->output_3d_type = 0;
 	ctx->force_alpha = (init_flags & GF_TERM_WINDOW_TRANSPARENT) ? GF_TRUE : GF_FALSE;
+	ctx->hidden = (init_flags & GF_TERM_INIT_HIDE) ? GF_TRUE : GF_FALSE;
 
 	if (!SDLOUT_InitSDL())
 		return GF_IO_ERR;
