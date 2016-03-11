@@ -55,6 +55,7 @@ static Bool gf_inline_set_scene(M_Inline *root)
 {
 	GF_MediaObject *mo;
 	GF_Scene *parent;
+	GF_Scene *scene = gf_node_get_private((GF_Node *) root);
 	GF_SceneGraph *graph = gf_node_get_graph((GF_Node *) root);
 	parent = (GF_Scene *)gf_sg_get_private(graph);
 	if (!parent) return GF_FALSE;
@@ -68,6 +69,7 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
+	mo->odm->subscene->object_attached = GF_TRUE;
 
 	/*play*/
 	gf_mo_play(mo, 0, -1, GF_FALSE);
@@ -111,6 +113,7 @@ void gf_inline_on_modified(GF_Node *node)
 					break;
 				}
 
+				scene->object_attached = GF_FALSE;
 				mo->num_open --;
 				if (!mo->num_open) {
 					if (ODID == GF_MEDIA_EXTERNAL_ID) {
@@ -311,6 +314,9 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	if (!scene->graph_attached) {
 		/*just like protos, we must invalidate parent graph until attached*/
 		gf_node_dirty_set(n, 0, GF_TRUE);
+		//and request bew anim frame until attached
+		if (scene->object_attached)
+			gf_term_invalidate_compositor(scene->root_od->term);
 		return;
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/

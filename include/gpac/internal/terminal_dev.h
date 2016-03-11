@@ -163,6 +163,9 @@ struct _scene
 	*/
 	u32 graph_attached;
 
+	//indicates a valid object is attached to the scene
+	Bool object_attached;
+	
 	/*set to 1 when single time-line presentation with only static resources (ONE OD AU is detected or no media removal/adding possible)
 	This allows preventing OD/BIFS streams shutdown/startup when seeking.*/
 	Bool static_media_ressources;

@@ -432,7 +432,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		need_restart = 0;
 	}
 
-	if (!stack->changed || !stack->control->enabled || !stack->stream) return;
+	if ((stack->is_init && !stack->changed) || !stack->control->enabled || !stack->stream) return;
 
 
 	/*if not previously enabled and now enabled, switch all other controls off and reactivate*/
