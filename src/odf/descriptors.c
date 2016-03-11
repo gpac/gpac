@@ -929,6 +929,8 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 	u32 i, count;
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
 
+	cfg->is_shvc = is_shvc;
+
 	cfg->configurationVersion = gf_bs_read_int(bs, 8);
 
 	if (!is_shvc) {
