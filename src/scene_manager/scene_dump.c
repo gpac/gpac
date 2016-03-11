@@ -223,7 +223,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 	if (sdump->XMLDump) {
 		fprintf(sdump->trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 		if (sdump->dump_mode==GF_SM_DUMP_XML) return;
-		fprintf(sdump->trace, "<!-- %s Scene Dump - GPAC version " GPAC_FULL_VERSION " -->\n",
+		fprintf(sdump->trace, "<!-- %s Scene Dump -->\n",
 		        (sdump->dump_mode==GF_SM_DUMP_SVG) ? "SVG" :
 		        (sdump->dump_mode==GF_SM_DUMP_LASER) ? "LASeR" :
 		        sdump->X3DDump ? "X3D" : "XMT-A"
