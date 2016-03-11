@@ -1706,7 +1706,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (hdr_len && gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_CONTAINER) ) {
+	if (hdr_len && gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG) ) {
 		u64 pcr = (s64) gf_m2ts_get_pcr(stream)/300;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Start sending PES: PID %d - %d bytes - DTS "LLD" PCR "LLD" (diff %d) - stream time %d:%09d - mux time %d:%09d (%d us ahead of mux time)\n",
 		                                        stream->pid, stream->curr_pck.data_len, stream->curr_pck.dts, pcr, (s64) stream->curr_pck.dts - (s64) pcr,
