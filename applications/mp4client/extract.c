@@ -668,6 +668,7 @@ void avi_audio_reconfig(void *udta, u32 samplerate, u32 bits_per_sample, u32 nb_
 Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 width, u32 height, Float scale, u32 *times, u32 nb_times)
 {
 	GF_Err e;
+	Bool ret = 0;
 	u32 i = 0;
 	GF_VideoSurface fb;
 	char szPath[GF_MAX_PATH];
@@ -933,12 +934,16 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	//flush audio dump
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
-		while ((avi_al.flush_retry <100) && (avi_al.audio_time < dump_dur)) {
+		while ((avi_al.flush_retry <1000) && (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur)) {
 			gf_term_step_clocks(term, 0);
 			avi_al.flush_retry++;
 		}
+		if (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur) {
+			fprintf(stderr, "Failed to flush audio frames: audio time "LLU" - expected "LLU"\n", avi_al.audio_time, avi_al.audio_time_init + avi_al.max_dur);
+			ret = 1;
+		}
 	}
-
+	
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
 	}
@@ -955,6 +960,6 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		fprintf(stderr, "Dumping done: %d frames at %g FPS\n", nb_frames, fps);
 	}
 
-	return 0;
+	return ret;
 }
 
