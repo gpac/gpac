@@ -98,7 +98,7 @@ typedef struct
 	u32 output_3d_type;
 	void *os_handle;
 
-	Bool force_alpha;
+	Bool force_alpha, hidden;
 
 	u32 last_mouse_move;
 	Bool cursor_on;
