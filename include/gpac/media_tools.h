@@ -247,10 +247,6 @@ typedef struct __track_import
 	u32 nb_progs;
 	struct __program_import_info pg_info[GF_IMPORT_MAX_TRACKS];
 
-	//for hevc import
-	u8 max_temporal_id_plus_one;
-	u8 max_layer_id_plus_one;
-
 	GF_Err last_error;
 } GF_MediaImporter;
 
@@ -290,6 +286,8 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
 GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
 
 GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors);
+
+GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one);
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
