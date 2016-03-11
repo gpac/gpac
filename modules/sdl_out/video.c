@@ -688,8 +688,10 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, nb_bits);
 		SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, nb_bits);
 
+#if SDL_VERSION_ATLEAST(2,0,0)
 		if (ctx->hidden)
 			flags |= SDL_WINDOW_HIDDEN;
+#endif
 		
 		assert(width);
 		assert(height);
@@ -764,8 +766,10 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		}
 #endif
 
+#if SDL_VERSION_ATLEAST(2,0,0)
 		if (ctx->hidden)
 			flags |= SDL_WINDOW_HIDDEN;
+#endif
 
 		if (!ctx->screen) {
 			ctx->screen = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
