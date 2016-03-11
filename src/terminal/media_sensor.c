@@ -77,7 +77,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 	/*check OCR streams*/
 	else if (st->stream->odm->ocr_codec) ck = st->stream->odm->ocr_codec->ck;
 
-	if (ck && gf_clock_is_started(ck) ) {
+	if (ck && ck->clock_init ) {
 		if (do_update_clock)
 			st->stream->odm->media_current_time = gf_clock_media_time(ck);
 		mediasensor_update_timing(st->stream->odm, 0);
