@@ -481,7 +481,12 @@ void gf_term_stop_scheduler(GF_Terminal *term);
 void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec);
 void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec);
 void gf_term_start_codec(GF_Codec *codec, Bool is_resume);
-void gf_term_stop_codec(GF_Codec *codec, Bool is_pause);
+/*stops codec, reason if
+ -0: regular stop
+ -1: pause
+ -2: stop codec because end of stream : doesn't reset composition memory
+ */
+void gf_term_stop_codec(GF_Codec *codec, u32 reason);
 void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
