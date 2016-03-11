@@ -1438,8 +1438,10 @@ int mp4client_main(int argc, char **argv)
 
 	/*setup dumping options*/
 	if (dump_mode) {
-		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION /*| GF_TERM_INIT_HIDE*/;
-		if (visible || dump_mode==8) user.init_flags |= GF_TERM_INIT_HIDE;
+		user.init_flags |= GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_REGULATION;
+		if (!visible)
+			user.init_flags |= GF_TERM_INIT_HIDE;
+
 		gf_cfg_set_key(cfg_file, "Audio", "DriverName", "Raw Audio Output");
 		no_cfg_save=GF_TRUE;
 	} else {
