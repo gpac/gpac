@@ -324,6 +324,8 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 	//reset URLs
 	gf_scene_reset_urls(scene);
+
+	scene->object_attached = 0;
 	gf_term_lock_compositor(scene->root_od->term, GF_FALSE);
 }
 
