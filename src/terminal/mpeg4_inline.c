@@ -55,13 +55,16 @@ static Bool gf_inline_set_scene(M_Inline *root)
 {
 	GF_MediaObject *mo;
 	GF_Scene *parent;
-	GF_Scene *scene = gf_node_get_private((GF_Node *) root);
 	GF_SceneGraph *graph = gf_node_get_graph((GF_Node *) root);
 	parent = (GF_Scene *)gf_sg_get_private(graph);
 	if (!parent) return GF_FALSE;
 
 	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
-	if (!mo || !mo->odm) return GF_FALSE;
+	if (!mo) return GF_FALSE;
+	//invalidate as soon as we have an mo (eg something is attached to the scene)
+	gf_term_invalidate_compositor(parent->root_od->term);
+
+	if (!mo->odm) return GF_FALSE;
 
 	if (!mo->odm->subscene) {
 		gf_term_invalidate_compositor(parent->root_od->term);
