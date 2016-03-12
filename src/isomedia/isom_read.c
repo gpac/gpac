@@ -153,6 +153,8 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 	GF_Err e;
 	GF_ISOFile *movie;
 
+	if (!BytesMissing || !the_file)
+		return GF_BAD_PARAM;
 	*BytesMissing = 0;
 	*the_file = NULL;
 
