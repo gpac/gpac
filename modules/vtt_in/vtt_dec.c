@@ -213,7 +213,7 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 			gf_modules_set_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript", path);
 			gf_fclose(jsfile);
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script - check config file\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script [WebVTT:RenderingScript] - check config file\n"));
 			return;
 		}
 	}
