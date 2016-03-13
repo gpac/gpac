@@ -74,6 +74,8 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	GF_SLConfig *slc;
 	GF_MPEGSampleEntryBox *entry;
 
+	if (!moov) return GF_ISOM_INVALID_FILE;
+
 	track_num = gf_isom_get_tracknum_from_id(moov, trackID);
 	dpnd = NULL;
 	*outESD = NULL;
