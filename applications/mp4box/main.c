@@ -822,7 +822,6 @@ void PrintUsage()
 	         " -xnodes              lists supported X3D nodes\n"
 	         " -xnode NodeName      gets X3D node syntax\n"
 	         " -snodes              lists supported SVG nodes\n"
-	         " -snode NodeName      gets SVG node syntax\n"
 	         " -languages           lists supported ISO 639 languages\n"
 	         "\n"
 	         " -quiet                quiet mode\n"
@@ -2876,10 +2875,6 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 #endif
 #ifndef GPAC_DISABLE_SVG
-		else if (!stricmp(arg, "-snode")) {
-			CHECK_NEXT_ARG PrintNode(argv[i + 1], 2);
-			return 1;
-		}
 		else if (!stricmp(arg, "-snodes")) {
 			PrintBuiltInNodes(2);
 			return 1;
@@ -3361,7 +3356,7 @@ int mp4boxMain(int argc, char **argv)
 	if (argc < 2) {
 		PrintUsage();
 		gf_sys_close();
-		return 1;
+		return 0;
 	}
 
 	i = mp4box_parse_args(argc, argv);
