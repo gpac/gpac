@@ -58,6 +58,12 @@ distclean:
 	$(MAKE) -C modules distclean
 	rm -f config.mak config.h
 
+docs:
+	@cd $(SRC_PATH)/doc && doxygen
+
+tests:
+	@cd $(SRC_PATH)/regression_tests && ./test_suite_make.sh
+
 lcov_clean:
 	lcov --directory . --zerocounters
 
@@ -284,6 +290,11 @@ endif
 	@echo "install-lib: install gpac library (dyn and static) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (dyn and static) and headers"
 	@echo
-	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
+	@echo "tests: run all tests. For more info, check gpac/regression_tests/test_suite_make.sh -h"
+	@echo
+	@echo "lcov: generate lcov files"
+	@echo "lcov_clean: clean all lcov/gcov files"
+	@echo
+	@echo "docs:  build libgpac documentation in gpac/doc"
 
 -include .depend
