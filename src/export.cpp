@@ -1294,6 +1294,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_hevc_tiles) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_shvc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_filter_hevc) )
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 

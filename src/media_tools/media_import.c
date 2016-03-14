@@ -5726,13 +5726,6 @@ restart_import:
 			goto next_nal;
 		}
 
-		if (import->max_temporal_id_plus_one && (temporal_id+1 > import->max_temporal_id_plus_one)) {
-			goto next_nal;
-		}
-		if (import->max_layer_id_plus_one && (layer_id+1 > import->max_layer_id_plus_one)) {
-			goto next_nal;
-		}
-
 		nb_nalus++;
 
 		is_islice = GF_FALSE;
