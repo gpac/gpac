@@ -79,6 +79,10 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+ifeq ($(DISABLE_ISOFF), no)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+ifneq ($(MP4BOX_STATIC), yes)
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 ifneq ($(CONFIG_WIN32), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(DISABLE_CORE_TOOLS), yes)
@@ -88,10 +92,6 @@ endif
 endif
 endif
 endif
-ifeq ($(DISABLE_ISOFF), no)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
-ifneq ($(MP4BOX_STATIC), yes)
-	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 endif
 endif
 ifneq ($(MP4BOX_STATIC), yes)
@@ -138,11 +138,6 @@ lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
-ifeq ($(DISABLE_ISOFF), no) 
-ifneq ($(CONFIG_FFMPEG), no)
-	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
-endif
-endif
 ifeq ($(DISABLE_ISOFF), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)
@@ -150,6 +145,15 @@ endif
 ifneq ($(MP4BOX_STATIC),yes)
 ifeq ($(DISABLE_PLAYER), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Client$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Client$(EXE_SUFFIX)
+endif
+ifneq ($(CONFIG_WIN32), yes)
+ifneq ($(CONFIG_FFMPEG), no)
+ifneq ($(DISABLE_CORE_TOOLS), yes)
+ifneq ($(DISABLE_AV_PARSERS), yes)
+	ln -sf $(BUILD_PATH)/bin/gcc/DashCast$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/DashCast$(EXE_SUFFIX)
+endif
+endif
+endif
 endif
 endif
 ifeq ($(CONFIG_DARWIN),yes)
