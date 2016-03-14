@@ -79,9 +79,13 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
-ifeq ($(DISABLE_ISOFF), no) 
+ifneq ($(CONFIG_WIN32), yes)
 ifneq ($(CONFIG_FFMPEG), no)
+ifneq ($(DISABLE_CORE_TOOLS), yes)
+ifneq ($(DISABLE_AV_PARSERS), yes)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
+endif
+endif
 endif
 endif
 ifeq ($(DISABLE_ISOFF), no)
