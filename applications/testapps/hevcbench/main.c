@@ -93,37 +93,28 @@ GLDECL_STATIC(glUnmapBuffer);
 #endif
 
 
-static char *glsl_yuv_shader = "\
-	#version 140\n\
-	#extension GL_ARB_texture_rectangle : enable\n\
-	uniform sampler2DRect y_plane;\
-	uniform sampler2DRect u_plane;\
-	uniform sampler2DRect v_plane;\
-	uniform float width;\
-	uniform float height;\
+static char *glsl_yuv_shader = "#version 120\n"\
+	"uniform sampler2D y_plane;\
+	uniform sampler2D u_plane;\
+	uniform sampler2D v_plane;\
 	const vec3 offset = vec3(-0.0625, -0.5, -0.5);\
 	const vec3 R_mul = vec3(1.164,  0.000,  1.596);\
 	const vec3 G_mul = vec3(1.164, -0.391, -0.813);\
 	const vec3 B_mul = vec3(1.164,  2.018,  0.000);\
-	out vec4 FragColor;\
 	void main(void)  \
 	{\
 		vec2 texc;\
 		vec3 yuv, rgb;\
 		texc = gl_TexCoord[0].st;\
 		texc.y = 1.0 - texc.y;\
-		texc.x *= width;\
-		texc.y *= height;\
-		yuv.x = texture2DRect(y_plane, texc).r; \
-		texc.x /= 2.0;\
-		texc.y /= 2.0;\
-		yuv.y = texture2DRect(u_plane, texc).r; \
-		yuv.z = texture2DRect(v_plane, texc).r; \
+		yuv.x = texture2D(y_plane, texc).r; \
+		yuv.y = texture2D(u_plane, texc).r; \
+		yuv.z = texture2D(v_plane, texc).r; \
 		yuv += offset; \
 	    rgb.r = dot(yuv, R_mul); \
 	    rgb.g = dot(yuv, G_mul); \
 	    rgb.b = dot(yuv, B_mul); \
-		FragColor = vec4(rgb, 1.0);\
+		gl_FragColor = vec4(rgb, 1.0);\
 	}";
 
 static char *default_glsl_vertex = "\
@@ -312,6 +303,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		}
 		glUniform1i(loc, i);
 	}
+/*
 	loc = glGetUniformLocation(glsl_program, "width");
 	if (loc>= 0) {
 		Float w = (Float) width;
@@ -322,7 +314,7 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		Float h = (Float) height;
 		glUniform1f(loc, h);
 	}
-
+*/
 	glUseProgram(0);
 
 
