@@ -2113,6 +2113,10 @@ restart_fragmentation_pass:
 		max_segment_duration = dash_cfg->segment_duration;
 	}
 
+	/* Write adaptation set content protection element */
+	if (protected_track && first_in_set && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION)) {
+		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 3);
+	}
 
 	if (use_url_template) {
 		/*segment template does not depend on file name, write the template at the adaptationSet level*/
@@ -2193,11 +2197,6 @@ restart_fragmentation_pass:
 		gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
 		gf_free(mpd_seg_info);
 		fprintf(dash_cfg->mpd, "   </SegmentList>\n");
-	}
-
-	/* Write adaptation set content protection element */
-	if (protected_track && first_in_set && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_REPRESENTATION) ) {
-		gf_isom_write_content_protection(input, dash_cfg->mpd, protected_track, 3);
 	}
 
 	fprintf(dash_cfg->mpd, "   <Representation ");
