@@ -585,6 +585,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_STSA_R:
 				if (temporal_id < (nal_hdr & 0x7))
 					temporal_id = (nal_hdr & 0x7);
+				/*rewrite nal*/
+				gf_bs_read_data(src_bs, buffer, nal_size-2);
+				if (rewrite_start_codes)
+					gf_bs_write_u32(dst_bs, 1);
+				else
+					gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+
+				gf_bs_write_u16(dst_bs, nal_hdr);
+				gf_bs_write_data(dst_bs, buffer, nal_size-2);
+				break;
 
 			case GF_HEVC_NALU_SLICE_BLA_W_LP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
