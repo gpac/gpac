@@ -51,9 +51,6 @@ typedef struct iso_progressive_reader {
 	/* Boolean indicating if the thread should stop */
 	volatile Bool do_run;
 
-	/* Boolean state to indicate if the needs to be parsed */
-	Bool refresh_boxes;
-
 	/* id of the track in the ISO to be read */
 	u32 track_id;
 
@@ -103,16 +100,10 @@ static u32 iso_progressive_read_thread(void *param)
 					}
 				}
 				if (sample_count == 0) {
-					/* no sample yet, let the data input force a reparsing of the data */
-					reader->refresh_boxes = GF_TRUE;
 					/*let the reader push new data */
 					gf_mx_v(reader->mutex);
 					//gf_sleep(1000);
 				} else {
-					/* we have some samples, lets keep things stable in the parser for now and
-					  don't let the data input force a reparsing of the data */
-					reader->refresh_boxes = GF_FALSE;
-
 					/* let's analyze the samples we have parsed so far one by one */
 					iso_sample = gf_isom_get_sample(reader->movie, track_number, sample_index, &di);
 					if (iso_sample) {
