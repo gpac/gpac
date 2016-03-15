@@ -1279,6 +1279,12 @@ int mp4client_main(int argc, char **argv)
 			i++;
 			gf_net_set_ntp_shift(shift);
 		}
+		else if (!stricmp(arg, "-run-for")) {
+			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
+			if (!simulation_time_in_ms)
+			simulation_time_in_ms = 1; /*1ms*/
+			i++;
+		}
 
 
 		/*arguments only used in non-gui mode*/
@@ -1353,12 +1359,6 @@ int mp4client_main(int argc, char **argv)
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
 				views = argv[i+1];
-				i++;
-			}
-			else if (!stricmp(arg, "-run-for")) {
-				simulation_time_in_ms = atoi(argv[i+1]) * 1000;
-				if (!simulation_time_in_ms)
-					simulation_time_in_ms = 1; /*1ms*/
 				i++;
 			}
 			else if (!stricmp(arg, "-com")) {
