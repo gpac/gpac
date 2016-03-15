@@ -1286,47 +1286,47 @@ int mp4client_main(int argc, char **argv)
 			i++;
 		}
 
+		else if (!strcmp(arg, "-out")) {
+			out_arg = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-fps")) {
+			fps = atof(argv[i+1]);
+			i++;
+		} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
+			dump_mode &= 0xFFFF0000;
 
+			if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
+			else dump_mode |= DUMP_AVI;
+
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
+				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
+		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
+				dump_mode |= DUMP_RGB_DEPTH;
+		} else if (!strcmp(arg, "-depth")) {
+				dump_mode |= DUMP_DEPTH_ONLY;
+		} else if (!strcmp(arg, "-bmp")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_BMP;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-png")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_PNG;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-raw")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_RAW;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!stricmp(arg, "-scale")) {
+			sscanf(argv[i+1], "%f", &scale);
+			i++;
+		}
+		
 		/*arguments only used in non-gui mode*/
-		else if (!gui_mode) {
+		if (!gui_mode) {
 			if (arg[0] != '-') {
 				url_arg = arg;
-			}
-			else if (!strcmp(arg, "-out")) {
-				out_arg = argv[i+1];
-				i++;
-			}
-			else if (!stricmp(arg, "-fps")) {
-				fps = atof(argv[i+1]);
-				i++;
-			} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
-				dump_mode &= 0xFFFF0000;
-
-				if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
-				else dump_mode |= DUMP_AVI;
-
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
-				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
-			} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
-				dump_mode |= DUMP_RGB_DEPTH;
-			} else if (!strcmp(arg, "-depth")) {
-				dump_mode |= DUMP_DEPTH_ONLY;
-			} else if (!strcmp(arg, "-bmp")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_BMP;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-png")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_PNG;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-raw")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_RAW;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!stricmp(arg, "-scale")) {
-				sscanf(argv[i+1], "%f", &scale);
-				i++;
 			}
 			else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 			else if (!strcmp(arg, "-bench")) bench_mode = 1;
@@ -1368,8 +1368,6 @@ int mp4client_main(int argc, char **argv)
 			else if (!stricmp(arg, "-service")) {
 				initial_service_id = atoi(argv[i+1]);
 				i++;
-			} else if (!strcmp(arg, "-mem-track")) {
-
 			} else {
 				fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
 			}
@@ -1381,10 +1379,17 @@ int mp4client_main(int argc, char **argv)
 		return 0;
 	}
 	if (dump_mode && !url_arg ) {
-		fprintf(stderr, "Missing argument for dump\n");
-		PrintUsage();
-		if (logfile) gf_fclose(logfile);
-		return 1;
+		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		FILE *test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
+		if (!test) url_arg = NULL;
+		else gf_fclose(test);
+		
+		if (!url_arg) {
+			fprintf(stderr, "Missing argument for dump\n");
+			PrintUsage();
+			if (logfile) gf_fclose(logfile);
+			return 1;
+		}
 	}
 
 	if (!gui_mode && !url_arg && (gf_cfg_get_key(cfg_file, "General", "StartupFile") != NULL)) {

@@ -116,6 +116,9 @@ Bool MC_URLChanged(MFURL *old_url, MFURL *new_url)
 {
 	u32 i;
 	if (gf_mo_get_od_id(old_url) != gf_mo_get_od_id(new_url)) return 1;
+	
+	if ((new_url->count==1) && new_url->vals[0].url && !strlen(new_url->vals[0].url) ) new_url->count = 0;
+	
 	if (old_url->count != new_url->count) return 1;
 
 	for (i=0; i<old_url->count; i++) {
