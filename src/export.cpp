@@ -1946,6 +1946,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_write_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_getter_del_session) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_duration) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_segment_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 
 
