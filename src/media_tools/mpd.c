@@ -2901,7 +2901,7 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 		} else {
 			*out_duration = 0;
 			timescale = 0;
-		}		
+		}
 		if (rep->segment_base && rep->segment_base->presentation_time_offset) pts_offset = rep->segment_base->presentation_time_offset;
 		if (rep->segment_base && rep->segment_base->timescale) timescale = rep->segment_base->timescale;
 		if (!pts_offset && set->segment_base && set->segment_base->presentation_time_offset) pts_offset = set->segment_base->presentation_time_offset;
@@ -3173,7 +3173,6 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 
 	return GF_OK;
 }
-
 
 /*
 	smooth streaming 2.1 support

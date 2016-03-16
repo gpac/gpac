@@ -467,6 +467,12 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
 
+/*get duration of the presentation*/
+Double gf_mpd_get_duration(GF_MPD *mpd);
+
+/*get the duration of media segments in seconds*/
+void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif // _MPD_H_
