@@ -1983,7 +1983,10 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_getter_del_session) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_get_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_segment_duration) )
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> add useful functions on the DASH API
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 >>>>>>> Initial support for smooth manifest and IS reconstruction
 
