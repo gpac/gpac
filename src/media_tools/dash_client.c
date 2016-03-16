@@ -1363,7 +1363,7 @@ static Double gf_dash_get_segment_start_time(GF_DASH_Group *group, Double *segme
 	return ((Double)start)/scale;
 }
 
-u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *group, u32 segment_index, u32 *seg_dur_ms)
+static u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *group, u32 segment_index, u32 *seg_dur_ms)
 {
 	Double seg_ast, seg_dur=0.0;
 	seg_ast = gf_dash_get_segment_start_time(group, &seg_dur);
@@ -1375,72 +1375,6 @@ u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Group *grou
 
 	return (u64) seg_ast;
 }
-
-static void gf_dash_resolve_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline)
-{
-	u32 timescale = 0;
-	u64 pts_offset = 0;
-	GF_MPD_SegmentTimeline *segment_timeline;
-	GF_MPD_MultipleSegmentBase *mbase_rep, *mbase_set, *mbase_period;
-
-	if (out_segment_timeline) *out_segment_timeline = NULL;
-	if (out_pts_offset) *out_pts_offset = 0;
-
-	/*single media segment - duration is not known unless indicated in period*/
-	if (rep->segment_base || set->segment_base || period->segment_base) {
-		*out_duration = period ? period->duration : 0;
-		timescale = 0;
-		if (rep->segment_base && rep->segment_base->presentation_time_offset) pts_offset = rep->segment_base->presentation_time_offset;
-		if (rep->segment_base && rep->segment_base->timescale) timescale = rep->segment_base->timescale;
-		if (!pts_offset && set->segment_base && set->segment_base->presentation_time_offset) pts_offset = set->segment_base->presentation_time_offset;
-		if (!timescale && set->segment_base && set->segment_base->timescale) timescale = set->segment_base->timescale;
-		if (!pts_offset && period->segment_base && period->segment_base->presentation_time_offset) pts_offset = period->segment_base->presentation_time_offset;
-		if (!timescale && period->segment_base && period->segment_base->timescale) timescale = period->segment_base->timescale;
-
-		if (out_pts_offset) *out_pts_offset = pts_offset;
-		*out_timescale = timescale ? timescale : 1;
-		return;
-	}
-	/*we have a segment template list or template*/
-	mbase_rep = rep->segment_list ? (GF_MPD_MultipleSegmentBase *) rep->segment_list : (GF_MPD_MultipleSegmentBase *) rep->segment_template;
-	mbase_set = set->segment_list ? (GF_MPD_MultipleSegmentBase *)set->segment_list : (GF_MPD_MultipleSegmentBase *)set->segment_template;
-	mbase_period = period->segment_list ? (GF_MPD_MultipleSegmentBase *)period->segment_list : (GF_MPD_MultipleSegmentBase *)period->segment_template;
-
-	segment_timeline = NULL;
-	if (mbase_period) segment_timeline =  mbase_period->segment_timeline;
-	if (mbase_set && mbase_set->segment_timeline) segment_timeline =  mbase_set->segment_timeline;
-	if (mbase_rep && mbase_rep->segment_timeline) segment_timeline =  mbase_rep->segment_timeline;
-
-	timescale = mbase_rep ? mbase_rep->timescale : 0;
-	if (!timescale && mbase_set && mbase_set->timescale) timescale = mbase_set->timescale;
-	if (!timescale && mbase_period && mbase_period->timescale) timescale  = mbase_period->timescale;
-	if (!timescale) timescale = 1;
-	*out_timescale = timescale;
-
-	if (out_pts_offset) {
-		pts_offset = mbase_rep ? mbase_rep->presentation_time_offset : 0;
-		if (!pts_offset && mbase_set && mbase_set->presentation_time_offset) pts_offset = mbase_set->presentation_time_offset;
-		if (!pts_offset && mbase_period && mbase_period->presentation_time_offset) pts_offset = mbase_period->presentation_time_offset;
-		*out_pts_offset = pts_offset;
-	}
-
-	if (mbase_rep && mbase_rep->duration) *out_duration = mbase_rep->duration;
-	else if (mbase_set && mbase_set->duration) *out_duration = mbase_set->duration;
-	else if (mbase_period && mbase_period->duration) *out_duration = mbase_period->duration;
-
-	if (out_segment_timeline) *out_segment_timeline = segment_timeline;
-
-	/*for SegmentTimeline, just pick the first one as an indication (exact timeline solving is not done here)*/
-	if (segment_timeline) {
-		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(segment_timeline->entries, 0);
-		if (ent) *out_duration = ent->duration;
-	}
-	else if (rep->segment_list) {
-		GF_MPD_SegmentURL *url = gf_list_get(rep->segment_list->segment_URLs, 0);
-		if (url && url->duration) *out_duration = url->duration;
-	}
-}
-
 
 static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 start, u64 start_timescale, u64 timescale)
 {
@@ -1558,7 +1492,7 @@ static u32 gf_dash_purge_segment_timeline(GF_DASH_Group *group, Double min_start
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
 
 	if (!min_start_time) return 0;
-	gf_dash_resolve_duration(rep, group->adaptation_set, group->period, &duration, &time_scale, NULL, &timeline);
+	gf_mpd_resolve_segment_duration(rep, group->adaptation_set, group->period, &duration, &time_scale, NULL, &timeline);
 	if (!timeline) return 0;
 
 	min_start = (u64) (min_start_time*time_scale);
@@ -2369,7 +2303,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		item_index = group->download_segment_index;
 	}
 
-	gf_dash_resolve_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
+	gf_mpd_resolve_segment_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
 	*segment_duration = (resolve_type==GF_MPD_RESOLVE_URL_MEDIA) ? (u32) ((Double) ((*segment_duration) * 1000.0) / timescale) : 0;
 	e = gf_mpd_resolve_url(mpd, rep, set, period, mpd_url, resolve_type, item_index, group->nb_segments_purged, out_url, out_range_start, out_range_end, segment_duration, is_in_base_url, out_key_url, out_key_iv);
 	if (e == GF_NON_COMPLIANT_BITSTREAM)  {
@@ -3440,6 +3374,7 @@ static GF_Err dash_load_box_type(const char *cache_name, u32 offset, u32 *box_ty
 	return GF_OK;
 }
 
+extern void gf_mpd_segment_template_free(void *_item);
 static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 {
 	u32 i;
@@ -5770,17 +5705,7 @@ void gf_dash_switch_quality(GF_DashClient *dash, Bool switch_up, Bool immediate_
 GF_EXPORT
 Double gf_dash_get_duration(GF_DashClient *dash)
 {
-	Double duration;
-	duration = (Double)dash->mpd->media_presentation_duration;
-	if (!duration) {
-		u32 i;
-		for (i=0; i<gf_list_count(dash->mpd->periods); i++) {
-			GF_MPD_Period *period = gf_list_get(dash->mpd->periods, i);
-			duration += (Double)period->duration;
-		}
-	}
-	duration /= 1000;
-	return duration;
+	return gf_mpd_get_duration(dash->mpd);
 }
 
 GF_EXPORT
@@ -6164,7 +6089,7 @@ GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, 
 	if (group) {
 		u64 duration;
 		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-		gf_dash_resolve_duration(rep, group->adaptation_set, group->period, &duration, timescale, presentation_time_offset, NULL);
+		gf_mpd_resolve_segment_duration(rep, group->adaptation_set, group->period, &duration, timescale, presentation_time_offset, NULL);
 		return GF_OK;
 	}
 	return GF_BAD_PARAM;

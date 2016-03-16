@@ -186,8 +186,10 @@ Bool gf_dash_is_running(GF_DashClient *dash);
 
 /*get duration of the presentation*/
 Double gf_dash_get_duration(GF_DashClient *dash);
+
 /*check that the given file has the right XML root element*/
 Bool gf_dash_check_mpd_root_type(const char *local_url);
+
 /*sets timeshift for the presentation - this function does not trigger a seek, this has to be done by the caller
 	@ms_in_timeshift: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
 */

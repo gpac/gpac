@@ -424,10 +424,16 @@ typedef enum
 
 /*resolves a URL based for a given segment, based on the MPD url, the type of resolution
 	item_index: current downloading index of the segment
-	nb_segments_removed: number of segments removed when pruging the MPD after updates (can be 0). The start number will be offset by this value
+	nb_segments_removed: number of segments removed when purging the MPD after updates (can be 0). The start number will be offset by this value
 */
 GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
                           char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
+
+/*get duration of the presentation*/
+Double gf_mpd_get_duration(GF_MPD *mpd);
+
+/*get the duration of media segments in seconds*/
+void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
