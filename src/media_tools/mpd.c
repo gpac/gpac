@@ -1776,6 +1776,11 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 
+		if (elt && strstr(elt->url, ".aac")) {
+			rep->playback.disabled = GF_TRUE;
+			return GF_OK;
+		}
+
 		GF_SAFEALLOC(segment_url, GF_MPD_SegmentURL);
 		if (!segment_url) {
 			return GF_OUT_OF_MEM;
