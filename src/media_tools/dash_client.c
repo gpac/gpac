@@ -5463,6 +5463,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 	dash->probe_times_before_switch = 1;
 	dash->dash_thread = gf_th_new("MPD Segment Downloader Thread");
 	dash->dl_mutex = gf_mx_new("MPD Segment Downloader Mutex");
+	//FIXME: mime type for segments MUST be mp2t, webvtt or a Packed Audio file (like AAC)
 	dash->mimeTypeForM3U8Segments = gf_strdup( "video/mp2t" );
 
 	dash->max_cache_duration = max_cache_duration;

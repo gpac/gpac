@@ -1776,6 +1776,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
 
+		//NOTE: for GPAC now, we disable stream AAC to avoid the problem when switching quality. It should be improved later !
 		if (elt && strstr(elt->url, ".aac")) {
 			rep->playback.disabled = GF_TRUE;
 			return GF_OK;
