@@ -2490,7 +2490,10 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 		GF_Err e;
 
 		e = gf_isom_datamap_new(new_location, NULL, GF_ISOM_DATA_MAP_READ_ONLY, &movie->movieFileMap);
-		if (e) return e;
+		if (e) {
+			movie->movieFileMap = previous_movie_fileMap_address;
+			return e;
+		}
 
 		delete_map = (previous_movie_fileMap_address != NULL ? GF_TRUE: GF_FALSE);
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
