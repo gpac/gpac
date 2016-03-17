@@ -2151,6 +2151,9 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			Bool is_static = GF_FALSE;
 			u64 dur = 0;
 			gf_m3u8_solve_representation_xlink(rep, &group->dash->getter, &is_static, &dur);
+			//after resolving xlink: if this represenstation is marked as disabled, we have nothing to do
+			if (rep->playback.disabled)
+				return;
 			//we only know this is a static or dynamic MPD after parsing the first subplaylist
 			//if this is static, we need to update infos in mpd and period
 			if (is_static) {
@@ -3803,6 +3806,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		Bool disabled = GF_FALSE;
 		Bool cp_supported = GF_FALSE;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
+		Bool active_rep_found;
 
 		if ((dash->debug_group_index>=0) && (group_i != (u32) dash->debug_group_index)) {
 			group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
@@ -3900,10 +3904,18 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			}
 		}
 
+select_active_rep:
 		group->min_representation_bitrate = (u32) -1;
-		active_rep = 0;
+		active_rep_found = GF_FALSE;
 		for (rep_i = 0; rep_i < nb_rep; rep_i++) {
 			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, rep_i);
+			if (rep->playback.disabled)
+				continue;
+			if (!active_rep_found) {
+				active_rep = rep_i;
+				active_rep_found = GF_TRUE;
+			}
+
 			rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
 
 			if (group_has_video && !rep->width && !rep->height) {
@@ -3985,6 +3997,9 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		rep_sel = gf_list_get(group->adaptation_set->representations, active_rep);
 
 		gf_dash_set_group_representation(group, rep_sel);
+		// active representation is marked as disabled, we need to redo the selection
+		if (rep_sel->playback.disabled) 
+			goto select_active_rep;
 
 		//adjust seek
 		if (dash->start_range_period) {
