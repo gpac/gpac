@@ -26,8 +26,8 @@
 #include <gpac/tools.h>
 
 #if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
-#include <Windows.h>
-#include <Wincon.h>
+#include <windows.h>
+#include <wincon.h>
 static HANDLE console = NULL;
 static WORD console_attr_ori = 0;
 #endif
