@@ -2300,7 +2300,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
 	/*refresh size*/
-	size = gf_bs_get_size(movie->movieFileMap->bs);
+	size = movie->movieFileMap ? gf_bs_get_size(movie->movieFileMap->bs) : 0;
 
 	if (new_location) {
 		Bool delete_map;
