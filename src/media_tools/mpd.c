@@ -2066,7 +2066,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	return 0;
 }
 
-static void gf_mpd_print_representation(FILE *out, GF_MPD_Representation *rep)
+static void gf_mpd_print_representation(GF_MPD_Representation const * const rep, FILE *out)
 {
 	Bool can_close = GF_FALSE;
 	fprintf(out, "   <Representation");
@@ -2102,7 +2102,7 @@ static void gf_mpd_print_representation(FILE *out, GF_MPD_Representation *rep)
 	fprintf(out, "   </Representation>\n");
 }
 
-static void gf_mpd_print_adaptation_set(FILE *out, GF_MPD_AdaptationSet *as)
+static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, FILE *out)
 {
 	u32 i;
 	GF_MPD_Representation *rep;
@@ -2154,14 +2154,14 @@ static void gf_mpd_print_adaptation_set(FILE *out, GF_MPD_AdaptationSet *as)
 
 	i=0;
 	while ((rep = (GF_MPD_Representation *)gf_list_enum(as->representations, &i))) {
-		gf_mpd_print_representation(out, rep);
+		gf_mpd_print_representation(rep, out);
 	}
 	fprintf(out, "  </AdaptationSet>\n");
 
 
 }
 
-static void gf_mpd_print_period(GF_MPD_Period *period, FILE *out)
+static void gf_mpd_print_period(GF_MPD_Period const * const period, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
 	u32 i;
@@ -2196,18 +2196,23 @@ static void gf_mpd_print_period(GF_MPD_Period *period, FILE *out)
 
 	i=0;
 	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-		gf_mpd_print_adaptation_set(out, as);
+		gf_mpd_print_adaptation_set(as, out);
 	}
 	fprintf(out, " </Period>\n");
 
 }
 
-static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
+static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
 	u32 i;
 	GF_MPD_ProgramInfo *info;
 	char *text;
 	GF_MPD_Period *period;
+
+	if (!mpd->xml_namespace) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Aborting.\n"));
+		return GF_BAD_PARAM;
+	}
 
 	fprintf(out, "<?xml version=\"1.0\"?>\n<MPD xmlns=\"%s\" type=\"%s\"", mpd->xml_namespace, (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
 
@@ -2292,7 +2297,7 @@ static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
 }
 
 GF_EXPORT
-GF_Err gf_mpd_write_file(GF_MPD *mpd, const char *file_name)
+GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 {
 	GF_Err e;
 	FILE *out;
