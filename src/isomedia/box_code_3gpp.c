@@ -348,7 +348,7 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 		u32 s = pSize;
 		size_t i = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: trying to decode anyway.\n"));
-		ptr->textName = (char*)gf_malloc((u32) ptr->size + 1 + 1);
+		ptr->textName = (char*)gf_malloc((size_t)ptr->size + 1 + 1);
 		do {
 			char c = (char)s;
 			if (c == '\0') {
