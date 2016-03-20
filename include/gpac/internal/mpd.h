@@ -386,7 +386,7 @@ void gf_mpd_segment_base_free(void *ptr);
 
 void gf_mpd_period_free(void *_item);
 
-GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name);
+GF_Err gf_mpd_write_file(GF_MPD *mpd, const char *file_name);
 
 
 typedef struct _gf_file_get GF_FileDownload;
