@@ -1829,13 +1829,13 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", name, 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
 }
 
-void gf_mpd_print_duration(FILE *out, char *name, u64 duration)
+void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
 {
 	u32 h, m;
 	Double s;
-	h = (u32) (duration / 3600000);
-	m = (u32) (duration/ 60000) - h*60;
-	s = ((Double) duration/1000.0) - h*3600 - m*60;
+	h = (u32) (duration_in_ms / 3600000);
+	m = (u32) (duration_in_ms/ 60000) - h*60;
+	s = ((Double) duration_in_ms/1000.0) - h*3600 - m*60;
 
 	fprintf(out, " %s=\"PT%02dH%02dM%02.2fS\"", name, h, m, s);
 }
