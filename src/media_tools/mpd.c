@@ -2292,7 +2292,7 @@ static GF_Err gf_mpd_write(GF_MPD *mpd, FILE *out)
 }
 
 GF_EXPORT
-GF_Err gf_mpd_write_file(GF_MPD *mpd, char *file_name)
+GF_Err gf_mpd_write_file(GF_MPD *mpd, const char *file_name)
 {
 	GF_Err e;
 	FILE *out;
