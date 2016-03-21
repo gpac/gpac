@@ -2664,7 +2664,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
 			case GF_HEVC_NALU_SLICE_RADL_R:
+			case GF_HEVC_NALU_SLICE_RADL_N:
 			case GF_HEVC_NALU_SLICE_RASL_R:
+			case GF_HEVC_NALU_SLICE_RASL_N:
 				tx = ty = tw = th = 0;
 				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
 				if (cur_tile>=nb_tracks) {
