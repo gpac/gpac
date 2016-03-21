@@ -1925,14 +1925,23 @@ GF_XMLAttribute *gf_xml_dom_set_attribute(GF_XMLNode *node, const char* name, co
 		if (!node->attributes) return NULL;
 	}
 
+	att = gf_xml_dom_create_attribute(name, value);
+	if (!att) return NULL;
+	gf_list_add(node->attributes, att);
+	return att;
+}
+
+GF_EXPORT
+GF_XMLAttribute *gf_xml_dom_create_attribute(const char* name, const char* value) {
+	GF_XMLAttribute *att;
 	GF_SAFEALLOC(att, GF_XMLAttribute);
 	if (!att) return NULL;
 
 	att->name = gf_strdup(name);
 	att->value = gf_strdup(value);
-	gf_list_add(node->attributes, att);
 	return att;
 }
+
 
 GF_EXPORT
 GF_XMLAttribute *gf_xml_dom_get_attribute(GF_XMLNode *node, const char* name) {
