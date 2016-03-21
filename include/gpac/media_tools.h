@@ -640,7 +640,7 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
  *	\param sourceInfo MPD source info
  *	\return error code if any
 */
-GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo);
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, const char *lang);
 
 /*!
  Sets MPD Location. This is useful to distrubute a dynamic MPD by mail or any non-HTTP mean
@@ -1150,7 +1150,6 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
  \return error if any
  */
 GF_Err gf_saf_mux_for_time(GF_SAFMuxer *mux, u32 time_ms, Bool force_end_of_session, char **out_data, u32 *out_size);
-
 
 #ifdef __cplusplus
 }

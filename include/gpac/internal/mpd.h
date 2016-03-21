@@ -40,7 +40,9 @@ typedef struct
 /*TODO*/
 typedef struct
 {
-	u32 dummy;
+	u32 id;
+	char *type;
+	char *lang;
 } GF_MPD_ContentComponent;
 
 
@@ -157,6 +159,8 @@ typedef struct
 	char *key_url;
 	bin128 key_iv;
 } GF_MPD_SegmentURL;
+
+GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range);
 
 typedef struct
 {
@@ -385,10 +389,15 @@ void gf_mpd_del(GF_MPD *mpd);
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
 
+GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
+void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out);
+GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 
+GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *uri, const char *value);
+GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new();
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get
@@ -462,6 +471,11 @@ GF_EXPORT
 GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
+
+void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent);
+void gf_mpd_base_url_free(void *_item);
+void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
+
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
