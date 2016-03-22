@@ -2534,6 +2534,14 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		if (!duration&& rep->segment_template->duration) duration = rep->segment_template->duration;
 	}
 
+	/*return segment duration in all cases*/
+	{
+		u64 out_duration;
+		u32 out_timescale;
+		gf_mpd_resolve_segment_duration(rep, set, period, &out_duration, &out_timescale, NULL, NULL);
+		*segment_duration = (u64)((out_duration * 1000.0) / out_timescale);
+	}
+
 	/*offset the start_number with the number of discarded segments (no longer in our lists)*/
 	start_number += nb_segments_removed;
 
