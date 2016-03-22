@@ -129,6 +129,8 @@ struct __dash_client
 	Double speed;
 	u32 probe_times_before_switch;
 
+	u32 min_wait_ms_before_next_request;
+
 	Bool force_mpd_update;
 
 	u32 user_buffer_ms;
@@ -4176,7 +4178,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	//commented out as we end up doing too many requets
 	GF_Err e;
 	GF_MPD_Representation *rep;
-	u32 min_wait = 0;
 	char *new_base_seg_url;
 	char *key_url=NULL;
 	bin128 key_iv;
@@ -4294,7 +4295,10 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 
 		if (group->retry_after_utc > (u64) now) {
-			min_wait = (u32) (group->retry_after_utc - (u64) now);
+			to_wait = (u32) (group->retry_after_utc - (u64) now);
+			if (!dash->min_wait_ms_before_next_request || ((u32) to_wait < dash->min_wait_ms_before_next_request))
+				dash->min_wait_ms_before_next_request = to_wait;
+
 			gf_mx_v(dash->dl_mutex);
 			return GF_DASH_DownloadCancel;
 		}
@@ -4310,8 +4314,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] %d ms elapsed since previous segment download\n", clock_time - group->last_segment_time));
 			}
 			gf_mx_v(dash->dl_mutex);
-			if (!min_wait || ((u32) to_wait < min_wait))
-				min_wait = to_wait;
+			if (!dash->min_wait_ms_before_next_request || ((u32) to_wait < dash->min_wait_ms_before_next_request))
+				dash->min_wait_ms_before_next_request = to_wait;
 
 			return GF_DASH_DownloadCancel;
 		} else {
@@ -4327,8 +4331,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 #endif
 		}
 	}
-	min_wait = 0;
-
 
 	/* At this stage, there are some segments left to be downloaded */
 	e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv);
@@ -4382,8 +4384,11 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		/*TODO decide what is the best, fetch from another representation or ignore ...*/
 		if (e != GF_OK) {
 			clock_time = gf_sys_clock();
-			min_wait = dash->min_timeout_between_404;
-			group->retry_after_utc = min_wait + gf_net_get_utc();
+
+			if (!dash->min_wait_ms_before_next_request || (dash->min_timeout_between_404 < dash->min_wait_ms_before_next_request))
+				dash->min_wait_ms_before_next_request = dash->min_timeout_between_404;
+
+			group->retry_after_utc = dash->min_timeout_between_404 + gf_net_get_utc();
 
 			if (group->maybe_end_of_stream) {
 				if (group->maybe_end_of_stream==2) {
@@ -4422,7 +4427,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				//we are lost ....
 				if (group->nb_consecutive_segments_lost == 20) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Too many consecutive segments not found, sync or signal has been lost - entering end of stream detection mode\n"));
-					min_wait = 1000;
+					if (dash->min_wait_ms_before_next_request || (dash->min_wait_ms_before_next_request > 1000))
+						dash->min_wait_ms_before_next_request = 1000;
 					group->maybe_end_of_stream = 1;
 				} else
 #endif
@@ -4750,7 +4756,6 @@ static u32 dash_main_thread_proc(void *par)
 	GF_DashClient *dash = (GF_DashClient*) par;
 	u32 i, group_count, ret = 0;
 	Bool go_on = GF_TRUE;
-	u32 min_wait = 0;
 	Bool first_period_in_mpd = GF_TRUE;
 
 	assert(dash);
@@ -4824,7 +4829,7 @@ restart_period:
 	dash->dash_state = GF_DASH_STATE_RUNNING;
 	gf_mx_v(dash->dl_mutex);
 
-	min_wait = 0;
+	dash->min_wait_ms_before_next_request = 0;
 	while (go_on) {
 
 		/*wait until next segment is needed*/
@@ -4853,9 +4858,9 @@ restart_period:
 				Bool cache_full = GF_TRUE;
 
 				/*wait if nothing is ready to be downloaded*/
-				if (min_wait>1) {
-					u32 sleep_for = MIN(min_wait/2, 1000);
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", min_wait, sleep_for));
+				if (dash->min_wait_ms_before_next_request > 1) {
+					u32 sleep_for = MIN(dash->min_wait_ms_before_next_request/2, 1000);
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segments available on the server until %d ms - going to sleep for %d ms\n", dash->min_wait_ms_before_next_request, sleep_for));
 					gf_sleep(sleep_for);
 				}
 
@@ -4925,7 +4930,7 @@ restart_period:
 			break;
 		}
 
-		min_wait = 0;
+		dash->min_wait_ms_before_next_request = 0;
 
 		/*for each selected groups*/
 		for (i=0; i<group_count; i++) {
