@@ -911,7 +911,17 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->dependency_id) gf_free(ptr->dependency_id);
 	if (ptr->media_stream_structure_id) gf_free(ptr->media_stream_structure_id);
 
-	if (ptr->playback.cached_init_segment_url) gf_free(ptr->playback.cached_init_segment_url);
+	if (ptr->playback.cached_init_segment_url) {
+		if (ptr->playback.owned_gmem && !strnicmp(ptr->playback.cached_init_segment_url, "gmem://", 7)) {
+			u32 size;
+			char *mem_address;
+			if (sscanf(ptr->playback.cached_init_segment_url, "gmem://%d@%p", &size, &mem_address) != 2) {
+				assert(0);
+			}
+			gf_free(mem_address);
+		}
+		gf_free(ptr->playback.cached_init_segment_url);
+	}
 	if (ptr->playback.init_segment_data) gf_free(ptr->playback.init_segment_data);
 	if (ptr->playback.key_url) gf_free(ptr->playback.key_url);
 

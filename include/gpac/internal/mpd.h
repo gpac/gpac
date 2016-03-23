@@ -229,6 +229,7 @@ typedef struct
 {
 	Bool disabled;
 	char *cached_init_segment_url;
+	Bool owned_gmem;
 	u64 init_start_range, init_end_range;
 	u32 probe_switch_count;
 	char *init_segment_data;
