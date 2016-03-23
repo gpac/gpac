@@ -116,6 +116,58 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 	return GF_OK;
 }
 
+static void FixTrackID(GF_ISOFile *mov)
+{
+	if (gf_list_count(mov->moov->trackList) == 1 && gf_list_count(mov->moof->TrackList) == 1) {
+		GF_TrackFragmentBox *traf = (GF_TrackFragmentBox*)gf_list_get(mov->moof->TrackList, 0);
+		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(mov->moov->trackList, 0);
+		if ((traf->tfhd->trackID != trak->Header->trackID)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: trackID of MOOF/TRAF(%u) is not the same as MOOV/TRAK(%u). Trying to fix.\n", traf->tfhd->trackID, trak->Header->trackID));
+			traf->tfhd->trackID = trak->Header->trackID;
+		}
+	}
+}
+
+static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
+{
+	u32 k;
+	if (!moof)
+		return;
+
+	for (k = 0; k < gf_list_count(moof->TrackList); k++) {
+		GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, k);
+		if (traf->sdtp) {
+			GF_TrackBox *trak = (GF_TrackBox*)traf;
+			GF_TrackFragmentRunBox *trun;
+			u32 j = 0, sample_index = 0;
+
+			if (traf->sdtp->sampleCount == gf_list_count(traf->TrackRuns)) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Warning: TRAF box of track id=%u contains a SDTP. Converting to TRUN sample flags.\n", traf->tfhd->trackID));
+			}
+
+			while ((trun = (GF_TrackFragmentRunBox*)gf_list_enum(traf->TrackRuns, &j))) {
+				u32 i = 0;
+				GF_TrunEntry *entry;
+				trun->flags |= GF_ISOM_TRUN_FLAGS;
+				while ((entry = (GF_TrunEntry*)gf_list_enum(trun->entries, &i))) {
+					const u8 info = traf->sdtp->sample_info[sample_index];
+					entry->flags |= GF_ISOM_GET_FRAG_DEPEND_FLAGS(info >> 6, info >> 4, info >> 2, info);
+					sample_index++;
+					if (sample_index > traf->sdtp->sampleCount) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TRAF box of track id=%u contained an inconsistent SDTP.\n", traf->tfhd->trackID));
+						return;
+					}
+				}
+			}
+			if (sample_index < traf->sdtp->sampleCount) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: TRAF box of track id=%u list less samples than SDTP.\n", traf->tfhd->trackID));
+			}
+			gf_isom_box_del((GF_Box*)traf->sdtp);
+			traf->sdtp = NULL;
+		}
+	}
+}
+
 #endif
 
 GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progressive_mode)
@@ -126,7 +178,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 	totSize = 0;
 
-
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (mov->single_moof_mode && mov->single_moof_state == 2) {
 		return e;
@@ -135,7 +186,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 	/*restart from where we stopped last*/
 	totSize = mov->current_top_box_start;
 	gf_bs_seek(mov->movieFileMap->bs, mov->current_top_box_start);
-
 #endif
 
 
@@ -291,6 +341,11 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 			totSize += a->size;
 			mov->moof = (GF_MovieFragmentBox *) a;
+
+			/*some smooth streaming streams contain a SDTP under the TRAF: this is incorrect, convert it*/
+			FixTrackID(mov);
+			FixSDTPInTRAF(mov->moof);
+
 			/*read & debug: store at root level*/
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				u32 k;
