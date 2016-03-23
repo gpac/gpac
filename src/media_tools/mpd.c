@@ -1846,7 +1846,7 @@ static void gf_mpd_print_base_url(FILE *out, GF_List *base_URLs, char *indent)
 	u32 i;
 	i=0;
 	while ((url = (GF_MPD_BaseURL *)gf_list_enum(base_URLs, &i))) {
-		fprintf(out, "%s<BaseURL ", indent);
+		fprintf(out, "%s<BaseURL", indent);
 		if (url->service_location)
 			fprintf(out, " serviceLocation=\"%s\"", url->service_location);
 		if (url->byte_range)
@@ -1894,11 +1894,11 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 
 	i = 0;
 	while ( (se = gf_list_enum(tl->entries, &i))) {
-		fprintf(out, "%s <S ", indent);
+		fprintf(out, "%s <S", indent);
 		if (se->start_time) fprintf(out, " t=\""LLD"\"", se->start_time);
 		if (se->duration) fprintf(out, " d=\"%d\"", se->duration);
 		if (se->repeat_count) fprintf(out, " r=\"%d\"", se->repeat_count);
-		fprintf(out, ">\n");
+		fprintf(out, "/>\n");
 	}
 	fprintf(out, "%s </SegmentTimeline>\n", indent);
 }
