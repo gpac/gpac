@@ -546,6 +546,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_IDEN:
 	case GF_ISOM_BOX_TYPE_STTG:
 	case GF_ISOM_BOX_TYPE_PAYL:
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTTA:
 		return boxstring_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_VTCU:
@@ -554,7 +555,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return vtte_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_dump(a, trace);
-
+#endif
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SBTT:

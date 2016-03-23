@@ -932,6 +932,8 @@ GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber,
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#ifndef GPAC_DISABLE_VTT
+
 GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex)
 {
 	GF_WebVTTSampleEntryBox *wvtt;
@@ -960,7 +962,11 @@ GF_WebVTTSampleEntryBox *gf_webvtt_isom_get_description(GF_ISOFile *movie, u32 t
 	return wvtt;
 }
 
+#endif /*GPAC_DISABLE_VTT*/
+
 #ifndef GPAC_DISABLE_ISOM_WRITE
+
+#ifndef GPAC_DISABLE_VTT
 
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config)
 {
@@ -1040,6 +1046,8 @@ GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_Tex
 	if (outDescriptionIndex) *outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_VTT*/
 
 GF_BitRateBox *gf_isom_sample_entry_get_bitrate(GF_SampleEntryBox *ent, Bool create)
 {

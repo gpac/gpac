@@ -423,7 +423,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		ifce->output_ctrl(ifce, GF_ESI_OUTPUT_DATA_DISPATCH, &pck);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Track %d: sample %d CTS %d\n", priv->track, priv->sample_number+1, pck.cts));
 
-#ifndef GPAC_DISABLE_TTXT
+#ifndef GPAC_DISABLE_VTT
 		if (cues) {
 			while (gf_list_count(cues)) {
 				GF_WebVTTCue *cue = (GF_WebVTTCue *)gf_list_get(cues, 0);

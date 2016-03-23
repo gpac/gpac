@@ -722,6 +722,8 @@ typedef struct {
 	u32 descriptionIndex;
 } GF_ISOFlusher;
 
+#ifndef GPAC_DISABLE_VTT
+
 static GF_Err gf_webvtt_import_report(void *user, GF_Err e, char *message, const char *line)
 {
 	GF_ISOFlusher     *flusher = (GF_ISOFlusher *)user;
@@ -844,6 +846,8 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	gf_webvtt_parser_del(vttparser);
 	return e;
 }
+
+#endif /*GPAC_DISABLE_VTT*/
 
 static char *ttxt_parse_string(GF_MediaImporter *import, char *str, Bool strip_lines)
 {
@@ -2585,8 +2589,10 @@ GF_Err gf_import_timed_text(GF_MediaImporter *import)
 		return gf_text_import_ttxt(import);
 	case GF_TEXT_IMPORT_TEXML:
 		return gf_text_import_texml(import);
+#ifndef GPAC_DISABLE_VTT
 	case GF_TEXT_IMPORT_WEBVTT:
 		return gf_text_import_webvtt(import);
+#endif
 	case GF_TEXT_IMPORT_SWF_SVG:
 		return gf_text_import_swf(import);
 	case GF_TEXT_IMPORT_TTML:
