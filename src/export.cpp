@@ -2116,7 +2116,7 @@
 
 #endif
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_VTT)
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_addCue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_removeCues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )

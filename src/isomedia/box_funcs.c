@@ -829,7 +829,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return metx_New(GF_ISOM_BOX_TYPE_STXT);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_New();
-
+		
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTCU:
 		return vtcu_New();
 	case GF_ISOM_BOX_TYPE_VTTE:
@@ -848,6 +849,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return boxstring_New(GF_ISOM_BOX_TYPE_PAYL);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_New();
+#endif
 
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_New(GF_ISOM_BOX_TYPE_STPP);
@@ -1506,7 +1508,8 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TXTC:
 		txtc_del(a);
 		return;
-
+		
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTCU:
 		vtcu_del(a);
 		return;
@@ -1524,6 +1527,7 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_WVTT:
 		wvtt_del(a);
 		return;
+#endif /*GPAC_DISABLE_VTT*/
 
 	case GF_ISOM_BOX_TYPE_STPP:
 		metx_del(a);
@@ -2008,7 +2012,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return metx_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Read(a, bs);
-
+		
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTCU:
 		return vtcu_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_VTTE:
@@ -2022,6 +2027,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return boxstring_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_Read(a, bs);
+#endif
 
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_Read(a, bs);
@@ -2494,7 +2500,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return metx_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Write(a, bs);
-
+		
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTCU:
 		return vtcu_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_VTTE:
@@ -2508,6 +2515,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return boxstring_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_Write(a, bs);
+#endif
 
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_Write(a, bs);
@@ -2985,7 +2993,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return metx_Size(a);
 	case GF_ISOM_BOX_TYPE_TXTC:
 		return txtc_Size(a);
-
+		
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTCU:
 		return vtcu_Size(a);
 	case GF_ISOM_BOX_TYPE_VTTE:
@@ -2999,6 +3008,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return boxstring_Size(a);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_Size(a);
+#endif
 
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_Size(a);

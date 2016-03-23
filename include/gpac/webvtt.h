@@ -64,7 +64,9 @@ typedef struct _webvtt_cue
 
 void gf_webvtt_cue_del(GF_WebVTTCue * cue);
 
+#ifndef GPAC_DISABLE_VTT
 GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *printLength);
+#endif
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/scenegraph_dev.h>

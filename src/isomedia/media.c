@@ -207,6 +207,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		ESDa = entry->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		break;
+#ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {
@@ -214,8 +215,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			if (e) return e;
 			break;
 		}
-		else return GF_ISOM_INVALID_MEDIA;
-#ifndef GPAC_DISABLE_TTXT
+		else
+			return GF_ISOM_INVALID_MEDIA;
+#endif
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_WVTT:
 	{
 		GF_BitStream *bs;
