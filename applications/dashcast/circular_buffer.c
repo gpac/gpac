@@ -78,7 +78,6 @@ int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf)
 	Node *node = &circular_buf->list[consumer->idx];
 
 	gf_mx_p(node->mutex);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("consumer %s enters lock %d\n", consumer->name, consumer->idx));
 	if (node->marked == 2) {
 		gf_mx_v(node->mutex);
 		return -1;
@@ -103,7 +102,6 @@ int dc_consumer_lock(Consumer *consumer, CircularBuffer *circular_buf)
 	}
 	node->num_consumers++;
 	node->num_consumers_accessed++;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("consumer %s exits lock %d \n", consumer->name, consumer->idx));
 	gf_mx_v(node->mutex);
 
 	return 0;
@@ -125,7 +123,6 @@ int dc_consumer_unlock(Consumer *consumer, CircularBuffer *circular_buf)
 
 	gf_sema_notify(node->producers_semaphore, 1);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("consumer %s unlock %d \n", consumer->name, consumer->idx));
 	gf_mx_v(node->mutex);
 
 	return last_consumer;
@@ -152,7 +149,6 @@ int dc_consumer_unlock_previous(Consumer *consumer, CircularBuffer *circular_buf
 
 	gf_sema_notify(node->producers_semaphore, 1);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("consumer %s unlock %d \n", consumer->name, node_idx));
 	gf_mx_v(node->mutex);
 
 	return last_consumer;
@@ -180,7 +176,6 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 	Node *node = &circular_buf->list[producer->idx];
 
 	gf_mx_p(node->mutex);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s enters lock %d \n", producer->name, producer->idx));
 
 	if ( (circular_buf->mode == LIVE_CAMERA || circular_buf->mode == LIVE_MEDIA) && (node->num_consumers || node->marked)) {
 		gf_mx_v(node->mutex);
@@ -198,7 +193,6 @@ int dc_producer_lock(Producer *producer, CircularBuffer *circular_buf)
 		node->marked = 1;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s exits lock %d \n", producer->name, producer->idx));
 	gf_mx_v(node->mutex);
 
 	return 0;
@@ -211,7 +205,6 @@ void dc_producer_unlock(Producer *producer, CircularBuffer *circular_buf)
 	gf_mx_p(node->mutex);
 	node->num_producers--;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s unlock %d \n", producer->name, producer->idx));
 	gf_mx_v(node->mutex);
 }
 
@@ -223,7 +216,6 @@ void dc_producer_unlock_previous(Producer *producer, CircularBuffer *circular_bu
 	gf_mx_p(node->mutex);
 	node->num_producers = 0;
 	gf_sema_notify(node->consumers_semaphore, node->num_consumers_waiting);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("producer %s unlock %d \n", producer->name, node_idx));
 	gf_mx_v(node->mutex);
 }
 

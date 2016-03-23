@@ -134,6 +134,7 @@ int dc_video_scaler_data_init(VideoInputData *video_input_data, VideoScaledData 
 		video_scaled_data->circular_buf.list[i].data = dc_video_scaler_node_create(video_scaled_data->out_width, video_scaled_data->out_height, video_input_data->vprop[i].crop_x, video_input_data->vprop[i].crop_y, video_scaled_data->out_pix_fmt);
 	}
 
+	video_scaled_data->vsprop->video_input_data = video_input_data;
 	return 0;
 }
 
@@ -188,8 +189,6 @@ int dc_video_scaler_scale(VideoInputData *video_input_data, VideoScaledData *vid
 	video_data_node = (VideoDataNode*)dc_consumer_consume(&video_scaled_data->consumer, &video_input_data->circular_buf);
 	video_scaled_data_node = (VideoScaledDataNode*)dc_producer_produce(&video_scaled_data->producer, &video_scaled_data->circular_buf);
 	index = video_data_node->source_number;
-
-	video_scaled_data->frame_duration = video_input_data->frame_duration;
 
 	//crop if necessary
 	if (video_input_data->vprop[index].crop_x || video_input_data->vprop[index].crop_y) {
