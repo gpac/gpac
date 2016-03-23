@@ -432,7 +432,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 /*get duration of the presentation*/
 Double gf_mpd_get_duration(GF_MPD *mpd);
 
-/*get the duration of media segments in seconds*/
+/*get the duration of media segments*/
 void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
