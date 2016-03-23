@@ -20,7 +20,6 @@ extension = {
     icon_pause: 1,
     icon_play: 0,
     controler: null,
-    stat_wnd: null,
     buffer_wnd: null,
     current_time: 0,
     duration: 0,
@@ -46,6 +45,12 @@ extension = {
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
+
+    stats_wnd: null,
+    stats_data: [],
+    stats_window: 100,
+    stats_resources: [],
+    stats_timer: null,
 
     do_show_controler: function () {
 		if (this.file_open_dlg) {
@@ -78,8 +83,8 @@ extension = {
 			}
 			return false;
 		case GF_EVENT_QUALITY_SWITCHED:
-			if (this.stat_wnd) {
-				this.stat_wnd.quality_changed();
+			if (this.stats_wnd) {
+				this.stats_wnd.quality_changed();
 			}
 			return true;
 		case GF_EVENT_TIMESHIFT_UPDATE:
@@ -240,6 +245,13 @@ extension = {
                     if (odm) odm.select_service(ext.initial_service_id);
                     ext.initial_service_id = 0;
                 }
+
+                /* Start collecting statistics on media resources */
+                ext.gather_stats_resources(ext.root_odm, ext.root_odm.selected_service);
+                ext.stats_timer = gw_new_timer(false);
+                ext.stats_timer.ext = ext;
+                ext.stats_timer.set_timeout(1, true);
+                ext.stats_timer.on_event = ext.stats_timer_on_event;
                 if (ext.show_stats_init) {
                     ext.view_stats();
                 }
@@ -1215,7 +1227,7 @@ extension = {
         if (state == this.state) return;
 
         if (state == this.GF_STATE_STOP) {
-            if (this.stat_wnd) this.stat_wnd.close_all();
+            if (this.stats_wnd) this.stats_wnd.close_all();
             this.stoped_url = '' + this.current_url;
             if (this.controlled_renderer) this.controlled_renderer.Stop();
             else {
@@ -1592,8 +1604,90 @@ extension = {
 			wnd.show();
 		}
 	
-	}
+	},
 
+    gather_stats_resources: function (root, selected_service) {
+        //if not dynamic scene, add main OD to stats
+        if (!root.dynamic_scene)
+            this.stats_resources.push(root);
 
+        for (var res_i = 0; res_i < root.nb_resources; res_i++) {
+            var m = root.get_resource(res_i);
+            if (!m) continue;
+            if (m.service_id && (m.service_id != selected_service)) continue;
+
+            if (!m.dynamic_scene) {
+                this.stats_resources.push(m);
+            }
+
+            if (m.type == 'Scene' || m.type == 'Subscene') {
+                this.gather_stats_resources(m);
+            }
+        }
+    },
+
+    stats_timer_on_event: function (val) {
+        var ext = this.ext;
+        var wnd = ext.stats_wnd;
+        var nb_buff = 0;
+
+        if (ext.stats_data.length >= ext.stats_window) {
+            ext.stats_data.splice(0, 1);
+        }
+
+        var stat_obj = {};
+        ext.stats_data.push(stat_obj);
+
+        var t = new Date()
+        stat_obj.time = Math.round(t.getTime() / 1000);
+        stat_obj.fps = Math.round(100 * gpac.fps) / 100;
+        stat_obj.cpu = gpac.cpu;
+        stat_obj.memory = Math.round(100 * gpac.memory / 1000 / 1000) / 100;
+        stat_obj.bitrate = 0;
+        var b = gpac.http_bitrate;
+        if (b < 50000) stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 10) / 100;
+        else stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 1000);
+        stat_obj.buffer = 0;
+        stat_obj.ntp_diff = 0;
+
+        for (var i = 0; i < ext.stats_resources.length; i++) {
+            var m = ext.stats_resources[i];
+
+            var bl;
+            if (m.max_buffer) {
+                var speed = ext.movie_control.mediaSpeed;
+                if (speed < 0) speed = 1;
+                else if (speed == 0) speed = 1;
+                var buf = m.buffer / speed;
+                bl = 100 * buf / m.max_buffer;
+
+                if (stat_obj) {
+                    if (!stat_obj.buffer || (buf && buf < stat_obj.buffer)) {
+                        stat_obj.buffer = buf;
+                    }
+                }
+            }
+            else bl = 100;
+
+            if (stat_obj) {
+                if (m.ntp_diff > stat_obj.ntp_diff) {
+                    stat_obj.ntp_diff = m.ntp_diff;
+                }
+            }        
+
+            if (wnd) {
+                wnd.update_resource_gui(m, bl);
+            }
+
+            if (stat_obj) {
+                if (m.status != 'Stopped')
+                    stat_obj.bitrate += Math.round(m.avg_bitrate / 1000);
+            }
+        }
+
+        if (wnd && stat_obj && ext.stats_data.length) {
+            wnd.update_series();
+        }
+    }
 };
 

@@ -1,21 +1,22 @@
 
 extension.reload_stats = function () {
-    if (this.stat_wnd) {
-        this.stat_wnd.reload_request = true;
-        this.stat_wnd.close();
+    if (this.stats_wnd) {
+        this.stats_wnd.reload_request = true;
+        this.stats_wnd.close();
     }
 }
 
 extension.view_stats = function () {
-    if (this.stat_wnd) {
-        this.stat_wnd.close();
-        this.stat_wnd = null;
+
+    if (this.stats_wnd) {
+        this.stats_wnd.close();
+        this.stats_wnd = null;
         return;
     }
 
     var wnd = gw_new_window_full(null, true, 'Stats');
     gw_object_set_dragable(wnd);
-    this.stat_wnd = wnd;
+    this.stats_wnd = wnd;
     wnd.extension = this;
     wnd.reload_request = false;
 
@@ -30,32 +31,9 @@ extension.view_stats = function () {
     var nb_ntp_diff = 0;
 
     wnd.has_select = false;
-    wnd.objs = [];
 
-    wnd.gather_res = function (root, selected_service) {
-        //if not dynamic scene, add main OD to stats
-        if (!root.dynamic_scene)
-            this.objs.push(root);
-
-        for (var res_i = 0; res_i < root.nb_resources; res_i++) {
-            var m = root.get_resource(res_i);
-            if (!m) continue;
-            if (m.service_id && (m.service_id != selected_service)) continue;
-
-            if (!m.dynamic_scene) {
-                this.objs.push(m);
-            }
-
-            if (m.type == 'Scene' || m.type == 'Subscene') {
-                this.gather_res(m);
-            }
-        }
-    }
-
-    wnd.gather_res(root_odm, root_odm.selected_service);
-
-    for (var res_i = 0; res_i < wnd.objs.length; res_i++) {
-        var m = wnd.objs[res_i];
+    for (var res_i = 0; res_i < wnd.extension.stats_resources.length; res_i++) {
+        var m = wnd.extension.stats_resources[res_i];
         m.gui = {};
 
         var label = '' + m.type;
@@ -181,13 +159,11 @@ extension.view_stats = function () {
                 }
             }
             m.update_qualities();
-
         } else {
             m.gui.select = null;
             m.gui.select_label = null;
             m.update_qualities = function () { }
         }
-
 
         m.gui.info = gw_new_icon(wnd.area, 'information');
 
@@ -385,30 +361,31 @@ extension.view_stats = function () {
         if (this.has_select)
             w += 4 * gwskin.default_icon_height;
 
-        for (var i = 0; i < this.objs.length; i++) {
+        for (var i = 0; i < this.extension.stats_resources.length; i++) {
+            var res = this.extension.stats_resources[i];
             var aw = w;
 
-            this.objs[i].gui.info.set_size(1.5 * gwskin.default_icon_height, gwskin.default_icon_height);
-            aw -= this.objs[i].gui.info.width;
+            res.gui.info.set_size(1.5 * gwskin.default_icon_height, gwskin.default_icon_height);
+            aw -= res.gui.info.width;
 
-            if (this.objs[i].gui.buffer) {
-                this.objs[i].gui.buffer.set_size(2 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
+            if (res.gui.buffer) {
+                res.gui.buffer.set_size(2 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
             }
-            if (this.objs[i].gui.play) {
-                this.objs[i].gui.play.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+            if (res.gui.play) {
+                res.gui.play.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
             }
             aw -= 4 * gwskin.default_icon_height;
 
-            if (this.objs[i].gui.select) {
-                this.objs[i].gui.select.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
+            if (res.gui.select) {
+                res.gui.select.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
                 aw -= gwskin.default_icon_height;
-                this.objs[i].gui.select_label.set_size(4 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
+                res.gui.select_label.set_size(4 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
                 aw -= 4 * gwskin.default_icon_height;
             }
 
 
-            this.objs[i].gui.txt.set_size(aw, gwskin.default_icon_height);
-            this.objs[i].gui.txt.set_width(aw);
+            res.gui.txt.set_size(aw, gwskin.default_icon_height);
+            res.gui.txt.set_width(aw);
             h += gwskin.default_icon_height;
         }
 
@@ -427,30 +404,27 @@ extension.view_stats = function () {
         this.move((w - width) / 2, (height - h) / 2);
     }
     wnd.on_close = function () {
-        this.timer.stop();
-        this.objs = [];
+        //this.timer.stop();
+        //this.objs = [];
         if (this.reload_request) {
-            var translation = this.extension.stat_wnd.translation;
-            this.extension.stat_wnd = null;
+            var translation = this.extension.stats_wnd.translation;
+            this.extension.stats_wnd = null;
             this.extension.view_stats();
-            this.extension.stat_wnd.translation = translation;
+            this.extension.stats_wnd.translation = translation;
         } else {
-            this.extension.stat_wnd = null;
+            this.extension.stats_wnd = null;
         }
     }
 
-    wnd.timer = gw_new_timer(false);
-    wnd.timer.wnd = wnd;
-    wnd.timer.set_timeout(0.25, true);
+    //wnd.timer = gw_new_timer(false);
+    //wnd.timer.wnd = wnd;
+    //wnd.timer.set_timeout(0.25, true);
 
     var label = 'Statistics (' + gpac.nb_cores + ' cores - ';
     if (gpac.system_memory > 1000000000) label += '' + Math.round(gpac.system_memory / 1000 / 1000 / 1000) + ' GB RAM)';
     else label += '' + Math.round(gpac.system_memory / 1000 / 1000) + ' MB RAM)';
 
     wnd.set_label(label);
-
-    wnd.stats = [];
-    wnd.stats_window = 32;
 
     if (wnd.plot) {
         wnd.s_fps = wnd.plot.add_serie('FPS', 'Hz', 0.8, 0, 0);
@@ -475,130 +449,69 @@ extension.view_stats = function () {
 
     }
 
-    wnd.timer.on_event = function (val) {
-        var wnd = this.wnd;
-        var nb_buff = 0;
+    wnd.update_series = function() {
+        var ext = this.extension;
+        var length = (ext.stats_data.length > ext.stats_window ? stats_window : ext.stats_data.length);
 
-        var stat_obj = null;
-        //stats every second
-        if (!(val % 4)) {
-            if (wnd.stats.length >= wnd.stats_window) {
-                wnd.stats.splice(0, 1);
-            }
-            stat_obj = {};
-            wnd.stats.push(stat_obj);
-
-            var t = new Date()
-            stat_obj.time = Math.round(t.getTime() / 1000);
-            stat_obj.fps = Math.round(100 * gpac.fps) / 100;
-            stat_obj.cpu = gpac.cpu;
-            stat_obj.memory = Math.round(100 * gpac.memory / 1000 / 1000) / 100;
-            stat_obj.bitrate = 0;
-            if (wnd.s_bw) {
-                var b = gpac.http_bitrate;
-                if (b < 50000) stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 10) / 100;
-                else stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 1000);
-            }
-            //            stat_obj.buffer = 0;
-            stat_obj.buffer = 0;
-            stat_obj.ntp_diff = 0;
+        this.s_fps.refresh_serie(ext.stats_data, 'time', 'fps', length, 4);
+        if (this.s_bw) {
+            this.s_bw.refresh_serie(ext.stats_data, 'time', 'http_bandwidth', length, 1);
         }
-
-        for (var i = 0; i < wnd.objs.length; i++) {
-            var m = wnd.objs[i];
-
-            if (m.gui.buffer) {
-                var label = ' ' + m.type;
-
-                if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
-                else if (m.samplerate) label += ' (' + Math.round(m.samplerate / 10) / 100 + ' kHz ' + m.channels + ' ch)';
-                else if (m.scalable_enhancement) label += ' (Enh. Layer)';
-
-                var url = m.service_url;
-                if ((url.indexOf('udp://') >= 0) || (url.indexOf('rtp://') >= 0) || (url.indexOf('dvb://') >= 0))
-                    label += ' Broadcast';
-                else if ((url.indexOf('file://') >= 0) || (url.indexOf('://') < 0))
-                    label += ' File';
-                else
-                    label += ' Broadband';
-
-                m.gui.txt.set_label(label);
-
-                var bl;
-                if (m.max_buffer) {
-                    var speed = wnd.extension.movie_control.mediaSpeed;
-                    if (speed < 0) speed = 1;
-                    else if (speed == 0) speed = 1;
-                    var buf = m.buffer / speed;
-                    bl = 100 * buf / m.max_buffer;
-
-                    if (stat_obj) {
-                        if (!stat_obj.buffer || (buf && buf < stat_obj.buffer)) {
-                            stat_obj.buffer = buf;
-                        }
-                        //stat_obj.buffer += buf;
-                        //nb_buff++;
-                    }
-                }
-                else bl = 100;
-                m.gui.buffer.set_value(bl);
-
-                m.gui.buffer.set_label('' + Math.round(m.buffer / 10) / 100 + ' s');
-
-                if (stat_obj) {
-                    bl = m.ntp_diff;
-                    if (bl > stat_obj.ntp_diff)
-                        stat_obj.ntp_diff = bl;
-                }
-            }
-
-            if (stat_obj) {
-                if (m.status != 'Stopped')
-                    stat_obj.bitrate += Math.round(m.avg_bitrate / 1000);
-            }
+        if (this.s_buf) {
+            this.s_buf.refresh_serie(ext.stats_data, 'time', 'buffer', length, 1.5);
         }
-
-        if (stat_obj && wnd.stats.length) {
-            wnd.s_fps.refresh_serie(wnd.stats, 'time', 'fps', wnd.stats_window, 4);
-            if (wnd.s_bw) {
-                wnd.s_bw.refresh_serie(this.wnd.stats, 'time', 'http_bandwidth', wnd.stats_window, 1);
-            }
-            if (wnd.s_buf) {
-                if (nb_buff) {
-                    //                    stat_obj.buffer /= nb_buff;
-                }
-                wnd.s_buf.refresh_serie(this.wnd.stats, 'time', 'buffer', wnd.stats_window, 1.5);
-            }
-            if (stat_obj.bitrate) {
-                wnd.s_bitrate.refresh_serie(this.wnd.stats, 'time', 'bitrate', wnd.stats_window, 2);
-            } else {
-                wnd.s_bitrate.hide();
-            }
-            if (wnd.s_ntp) {
-                wnd.s_ntp.refresh_serie(this.wnd.stats, 'time', 'ntp_diff', wnd.stats_window, 3);
-            }
-
-            wnd.s_cpu.refresh_serie(wnd.stats, 'time', 'cpu', wnd.stats_window, 10);
-            wnd.s_mem.refresh_serie(wnd.stats, 'time', 'memory', wnd.stats_window, 6);
+        var stat_obj = ext.stats_data[ext.stats_data.length-1];
+        if (stat_obj.bitrate) {
+            this.s_bitrate.refresh_serie(ext.stats_data, 'time', 'bitrate', length, 2);
+        } else {
+            this.s_bitrate.hide();
         }
+        if (this.s_ntp) {
+            this.s_ntp.refresh_serie(ext.stats_data, 'time', 'ntp_diff', length, 3);
+        }
+        this.s_cpu.refresh_serie(ext.stats_data, 'time', 'cpu', length, 10);
+        this.s_mem.refresh_serie(ext.stats_data, 'time', 'memory', length, 6);
     }
 
     wnd.quality_changed = function () {
-        for (var i = 0; i < this.objs.length; i++) {
-            var m = this.objs[i];
+        for (var i = 0; i < this.extension.stats_resources.length; i++) {
+            var m = this.extension.stats_resources[i];
             m.update_qualities();
         }
     }
     wnd.close_all = function () {
-        for (var i = 0; i < this.objs.length; i++) {
-            if (this.objs[i].gui.info_wnd) {
-                this.objs[i].gui.info_wnd.odm = null;
-                this.objs[i].gui.info_wnd.close();
+        for (var i = 0; i < this.extension.stats_resources.length; i++) {
+            if (this.extension.stats_resources[i].gui.info_wnd) {
+                this.extension.stats_resources[i].gui.info_wnd.odm = null;
+                this.extension.stats_resources[i].gui.info_wnd.close();
             }
         }
-        this.objs.length = 0;
+        this.extension.stats_resources.length = 0;
         this.close();
     }
+
+    wnd.update_resource_gui = function(m, bl) {
+        if (m.gui && m.gui.buffer) {
+            var label = ' ' + m.type;
+
+            if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
+            else if (m.samplerate) label += ' (' + Math.round(m.samplerate / 10) / 100 + ' kHz ' + m.channels + ' ch)';
+            else if (m.scalable_enhancement) label += ' (Enh. Layer)';
+
+            var url = m.service_url;
+            if ((url.indexOf('udp://') >= 0) || (url.indexOf('rtp://') >= 0) || (url.indexOf('dvb://') >= 0))
+                label += ' Broadcast';
+            else if ((url.indexOf('file://') >= 0) || (url.indexOf('://') < 0))
+                label += ' File';
+            else
+                label += ' Broadband';
+
+            m.gui.txt.set_label(label);
+            m.gui.buffer.set_value(bl);
+            m.gui.buffer.set_label('' + Math.round(m.buffer / 10) / 100 + ' s');
+        }
+    }
+
     wnd.on_display_size(gw_display_width, gw_display_height);
     wnd.set_alpha(0.9);
     wnd.show();
