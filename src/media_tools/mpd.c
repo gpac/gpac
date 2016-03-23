@@ -1903,7 +1903,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	fprintf(out, "%s </SegmentTimeline>\n", indent);
 }
 
-static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentBase *ms, char *indent)
+static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentBase *ms, char *indent, Bool close_if_no_child)
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
 
@@ -1912,6 +1912,7 @@ static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentB
 
 
 	if (!ms->bitstream_switching_url && !ms->segment_timeline && !ms->initialization_segment && !ms->representation_index) {
+		if (close_if_no_child) fprintf(out, "/");
 		fprintf(out, ">\n");
 		return 1;
 	}
@@ -1933,7 +1934,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 		if (s->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
 	}
-	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent);
+	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_FALSE);
 
 	if (s->segment_URLs) {
 		u32 i;
@@ -1968,7 +1969,7 @@ static void gf_mpd_print_segment_template(FILE *out, GF_MPD_SegmentTemplate *s, 
 	if (s->initialization) fprintf(out, " initialization=\"%s\"", s->initialization);
 	if (s->bitstream_switching) fprintf(out, " bitstreamSwitching=\"%s\"", s->bitstream_switching);
 
-	if (gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent))
+	if (gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_TRUE))
 		return;
 
 	fprintf(out, "%s</SegmentTemplate>\n", indent);
@@ -2210,11 +2211,10 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	GF_MPD_Period *period;
 
 	if (!mpd->xml_namespace) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Aborting.\n"));
-		return GF_BAD_PARAM;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));
 	}
 
-	fprintf(out, "<?xml version=\"1.0\"?>\n<MPD xmlns=\"%s\" type=\"%s\"", mpd->xml_namespace, (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
+	fprintf(out, "<?xml version=\"1.0\"?>\n<MPD xmlns=\"%s\" type=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
 
 	if (mpd->ID)
 		fprintf(out, " ID=\"%s\"", mpd->ID);
