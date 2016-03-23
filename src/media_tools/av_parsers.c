@@ -3821,7 +3821,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	u8 layer_id_in_list_flag[64];
 	Bool OutputLayerFlag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
 
-	if ((vps->max_layers > 1) && vps->base_layer_available_flag)
+	if ((vps->max_layers > 1) && vps->base_layer_internal_flag)
 		profile_tier_level(bs, 0, vps->max_sub_layers-1, &vps->ext_ptl[0]);
 
 	splitting_flag = gf_bs_read_int(bs, 1);
@@ -4614,7 +4614,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 	case GF_HEVC_NALU_SLICE_RASL_R:
 		slice = 1;
 		//fixme with latest SHVC syntax
-		if (*layer_id) return 0;
+		//if (*layer_id) return 0;
 
 		/* slice - read the info and compare.*/
 		ret = hevc_parse_slice_segment(bs, hevc, &n_state);

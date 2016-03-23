@@ -5713,6 +5713,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	SAPType sample_rap_type;
 	s32 cur_vps_id = -1;
 	u8 max_temporal_id[64];
+	u32 min_layer_id = (1<<32) -1;
 
 
 	Double FPS;
@@ -5756,6 +5757,7 @@ restart_import:
 	shvc_cfg = gf_odf_hevc_cfg_new();
 	shvc_cfg->complete_representation = GF_TRUE;
 	shvc_cfg->non_hevc_base_layer = GF_FALSE;
+	shvc_cfg->is_shvc = GF_TRUE;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 	first_hevc = GF_TRUE;
@@ -5892,7 +5894,7 @@ restart_import:
 			break;
 		}
 
-		if (! layer_id && flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
+		if ( (layer_id == min_layer_id) && flush_next_sample && (nal_unit_type!=GF_HEVC_NALU_SEI_SUFFIX)) {
 			flush_next_sample = GF_FALSE;
 			flush_sample = GF_TRUE;
 		}
@@ -6043,8 +6045,7 @@ restart_import:
 					gf_import_message(import, GF_OK, "SHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				}
 
-				//width and height only for base layer if HEVC
-				if ((force_shvc || (dst_cfg==hevc_cfg)) && (max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
+				if ((max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
 					max_w = hevc.sps[idx].width;
 					max_h = hevc.sps[idx].height;
 				}
@@ -6137,6 +6138,8 @@ restart_import:
 		case GF_HEVC_NALU_SLICE_IDR_N_LP:
 		case GF_HEVC_NALU_SLICE_CRA:
 			is_slice = GF_TRUE;
+			if (min_layer_id > layer_id)
+				min_layer_id = layer_id;
 			/*			if ((hevc.s_info.slice_segment_address<=100) || (hevc.s_info.slice_segment_address>=200))
 							skip_nal = 1;
 						if (!hevc.s_info.slice_segment_address)
@@ -6284,7 +6287,7 @@ restart_import:
 
 
 			//fixme with latest SHVC syntax
-			if (!layer_id && is_slice) {
+			if ((layer_id == min_layer_id) && is_slice) {
 				slice_is_ref = gf_media_hevc_slice_is_IDR(&hevc);
 				if (slice_is_ref)
 					nb_idr++;
@@ -6438,7 +6441,8 @@ next_nal:
 		gf_bs_del(sample_data);
 		sample_data = NULL;
 		e = gf_isom_add_sample(import->dest, track, di, samp);
-		if (e) goto exit;
+		if (e) goto exit;	
+		
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
@@ -6549,6 +6553,45 @@ next_nal:
 		hevc_set_parall_type(hevc_cfg);
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
 		gf_isom_hevc_set_inband_config(import->dest, track, 1);
+	} else if (min_layer_id != 0) {
+		//SHVC bitstream with external base layer
+		//Because layer_id of vps is 0, we need to clone vps from hevc_cfg to shvc_cfg first
+		for (i = 0; i < gf_list_count(hevc_cfg->param_array); i++) {
+			u32 j, k, count2;
+			GF_HEVCParamArray *s_ar = NULL;
+			GF_HEVCParamArray *ar = gf_list_get(hevc_cfg->param_array, i);
+			if (ar->type != GF_HEVC_NALU_VID_PARAM) continue;
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+				GF_AVCConfigSlot *sl2;
+				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+				if (layer_id) continue;
+
+				for (k=0; k < gf_list_count(shvc_cfg->param_array); k++) {
+					s_ar = gf_list_get(shvc_cfg->param_array, k);
+					if (s_ar->type==GF_HEVC_NALU_VID_PARAM) 
+						break;
+					s_ar = NULL;
+				}
+				if (!s_ar) {
+					GF_SAFEALLOC(s_ar, GF_HEVCParamArray);
+					s_ar->nalus = gf_list_new();
+					s_ar->type = GF_HEVC_NALU_VID_PARAM;
+					gf_list_insert(shvc_cfg->param_array, s_ar, 0);
+				}
+				s_ar->array_completeness = ar->array_completeness;
+
+				GF_SAFEALLOC(sl2, GF_AVCConfigSlot);
+				sl2->data = gf_malloc(sl->size);
+				memcpy(sl2->data, sl->data, sl->size);
+				sl2->id = sl->id;
+				sl2->size = sl->size;
+				gf_list_add(s_ar->nalus, sl2);
+			}
+		}
+		hevc_set_parall_type(shvc_cfg);
+		gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, GF_FALSE);
 	} else if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
 		hevc_set_parall_type(hevc_cfg);
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
@@ -6609,6 +6652,34 @@ next_nal:
 	// This is a L-HEVC bitstream ... 
 	if ((cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1)) {
 		gf_lhevc_set_operating_points_information(import->dest, track, &hevc.vps[cur_vps_id], max_temporal_id);
+	}
+
+	//base layer (i.e layer with layer_id = 0) not found in bitstream
+	//we are importing an SHVC bitstream with external base layer
+	//find this base layer with the imported tracks. 
+	//if we find more than one HEVC/AVC track, return an warning
+	if (min_layer_id != 0) {
+		u32 avc_base_track, ref_track_id, nb_avc_track;
+		avc_base_track = nb_avc_track = 0;
+		for (i = 1; i <= gf_isom_get_track_count(import->dest); i++) {
+			u32 subtype = gf_isom_get_media_subtype(import->dest, i, 1);
+			if ((subtype == GF_ISOM_SUBTYPE_AVC_H264) || (subtype == GF_ISOM_SUBTYPE_AVC2_H264) || (subtype == GF_ISOM_SUBTYPE_AVC3_H264) || (subtype == GF_ISOM_SUBTYPE_AVC4_H264)) {
+				if (!avc_base_track)
+					avc_base_track = i;
+				nb_avc_track++;
+			}
+		}
+		if (nb_avc_track > 1) {
+			gf_import_message(import, GF_OK, "Waring: More than one AVC bitstream found, use track %d as base layer", avc_base_track);
+		}
+
+		if (!avc_base_track) {
+			e = gf_import_message(import, GF_BAD_PARAM, "Using SHVC external base layer, but AVC base layer not found");;
+			goto exit;
+		}
+		ref_track_id = gf_isom_get_track_id(import->dest, avc_base_track);
+		gf_isom_set_track_reference(import->dest, track, GF_4CC('s','b','a','s'), ref_track_id);
+		gf_isom_set_track_reference(import->dest, track, GF_4CC('s','c','a','l'), ref_track_id);
 	}
 
 exit:
