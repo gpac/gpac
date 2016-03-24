@@ -2218,7 +2218,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 		group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
 	}
 
-	if (data_url_process && !strncmp(*out_url, "data:", 5)) {
+	if (*out_url && data_url_process && !strncmp(*out_url, "data:", 5)) {
 		char *sep;
 		sep = strstr(*out_url, ";base64,");
 		if (sep) {
