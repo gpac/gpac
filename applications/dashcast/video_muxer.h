@@ -99,6 +99,8 @@ typedef struct {
 	u32 nb_segments;
 	Bool fragment_started, segment_started;
 	const char *rep_id;
+
+	u64 frame_ntp, frame_utc;
 } VideoOutputFile;
 
 int dc_video_muxer_init(VideoOutputFile *video_output_file, VideoDataConf *video_data_conf, VideoMuxerType muxer_type, int frame_per_segment, int frame_per_fragment, u32 seg_marker, int gdr, int seg_dur, int frag_dur, int frame_dur, int gop_size, int video_cb_size);
@@ -107,7 +109,7 @@ int dc_video_muxer_free(VideoOutputFile *video_output_file);
 
 int dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, char *id_name, int seg);
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp);
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_ntp_timestamp);
 
 int dc_video_muxer_close(VideoOutputFile *video_output_file);
 

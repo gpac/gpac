@@ -808,7 +808,7 @@ GF_Err dc_video_muxer_open(VideoOutputFile *video_output_file, char *directory, 
 	return -2;
 }
 
-int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 ntp_timestamp)
+int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool insert_ntp)
 {
 	Bool segment_close = GF_FALSE;
 	Bool fragment_close = GF_FALSE;
@@ -829,9 +829,10 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 				if (ret < 0)
 					return -1;
 
+				
 				//insert UTC for each fragment
-				if (ntp_timestamp) {
-					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->codec_ctx->coded_frame->pts);
+				if (insert_ntp) {
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, video_output_file->frame_ntp, video_output_file->codec_ctx->coded_frame->pts);
 				}
 
 				video_output_file->first_dts_in_fragment = video_output_file->codec_ctx->coded_frame->pkt_dts;
@@ -843,9 +844,9 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 					}
 
 #ifndef GPAC_DISABLE_LOG
-					if (ntp_timestamp && gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
+					if (insert_ntp && gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO)) {
 						if (!video_output_file->ntp_at_first_dts) {
-							video_output_file->ntp_at_first_dts = ntp_timestamp;
+							video_output_file->ntp_at_first_dts = video_output_file->frame_ntp;
 						} else {
 							s32 ntp_diff = gf_net_get_ntp_diff_ms(video_output_file->ntp_at_first_dts);
 							s32 ts_diff = (s32) ( 1000 * (video_output_file->codec_ctx->coded_frame->pts - video_output_file->pts_at_first_segment) / video_output_file->timescale );
@@ -899,8 +900,8 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 				video_output_file->pts_at_segment_start = video_output_file->codec_ctx->coded_frame->pts;
 				video_output_file->segment_started = 1;
 
-				if (ntp_timestamp) {
-					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, ntp_timestamp, video_output_file->pts_at_segment_start);
+				if (insert_ntp) {
+					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, video_output_file->frame_ntp, video_output_file->pts_at_segment_start);
 				}
 			}
 
