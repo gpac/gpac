@@ -286,7 +286,7 @@
 //#define GPAC_DISABLE_TTML
 
 /*disables WebVTT */
-#define GPAC_DISABLE_VTT
+//#define GPAC_DISABLE_VTT
 
 /*disables DASH MPD */
 //#define GPAC_DISABLE_MPD
