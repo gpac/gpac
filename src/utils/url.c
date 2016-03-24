@@ -103,7 +103,12 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if (!pathName) return gf_strdup(parentName);
 	if (!parentName) return gf_strdup(pathName);
 
-	if ( (strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH) ) return NULL;
+	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
+
+	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
+		return NULL;
+	}
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {
