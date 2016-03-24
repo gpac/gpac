@@ -436,6 +436,28 @@ Double gf_mpd_get_duration(GF_MPD *mpd);
 /*get the duration of media segments*/
 void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
+/*get the start_time from the segment index of a period/set/rep*/
+GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
+	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	u64 *out_segment_start_time, u64 *out_opt_segment_duration, u32 *out_opt_scale);
+
+typedef enum {
+	MPD_SEEK_PREV,    /*will return the segment containing the requested time*/
+	MPD_SEEK_NEAREST, /*the nearest segment start time, may be the previous or the next one*/
+} MPDSeekMode;
+
+
+/*returns the segment index in the given period for the given time*/
+GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	u32 *out_segment_index, Double *out_opt_seek_time);
+
+/*get the index and the period for a given time in the MPD*/
+GF_EXPORT
+GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
 #endif // _MPD_H_

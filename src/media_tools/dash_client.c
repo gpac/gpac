@@ -1238,117 +1238,19 @@ static void gf_dash_get_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adap
 	}
 }
 
-static u64 gf_dash_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 segment_index, u64 *segment_duration)
-{
-	u64 start_time = 0;
-	u32 i, idx, k;
-	idx = 0;
-	for (i=0; i<gf_list_count(timeline->entries); i++) {
-		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
-		if (ent->start_time) start_time = ent->start_time;
-		for (k=0; k<ent->repeat_count+1; k++) {
-			if (idx==segment_index) {
-				if (segment_duration)
-					*segment_duration = ent->duration;
-				return start_time;
-			}
-			idx ++;
-			start_time += ent->duration;
-		}
-	}
-	return start_time;
-}
-
 
 static u64 gf_dash_get_segment_start_time_with_timescale(GF_DASH_Group *group, u64 *segment_duration, u32 *scale)
 {
-	GF_MPD_Representation *rep;
-	GF_MPD_AdaptationSet *set;
-	GF_MPD_Period *period;
-	u64 start_time;
-	u32 timescale;
-	s32 segment_index;
-	u64 duration;
-	GF_List *seglist = NULL;
-	GF_MPD_SegmentTimeline *timeline = NULL;
-	timescale = 0;
-	duration = 0;
-	start_time = 0;
+	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
+	GF_MPD_AdaptationSet *set = group->adaptation_set;
+	GF_MPD_Period *period = group->period;
+	s32 segment_index = group->download_segment_index;
+	u64 start_time = 0;
 
-	rep = gf_list_get(group->adaptation_set->representations, group->active_rep_index);
-	set = group->adaptation_set;
-	period = group->period;
-	segment_index = group->download_segment_index;
+	gf_mpd_get_segment_start_time_with_timescale(segment_index,
+		period, set, rep,
+		&start_time, segment_duration, scale);
 
-	/*single segment: return nothing*/
-	if (rep->segment_base || set->segment_base || period->segment_base) {
-		return start_time;
-	}
-	if (rep->segment_list || set->segment_list || period->segment_list) {
-		if (period->segment_list) {
-			if (period->segment_list->duration) duration = period->segment_list->duration;
-			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
-			if (period->segment_list->segment_timeline) timeline = period->segment_list->segment_timeline;
-			if (gf_list_count(period->segment_list->segment_URLs)) seglist = period->segment_list->segment_URLs;
-		}
-		if (set->segment_list) {
-			if (set->segment_list->duration) duration = set->segment_list->duration;
-			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
-			if (set->segment_list->segment_timeline) timeline = set->segment_list->segment_timeline;
-			if (gf_list_count(set->segment_list->segment_URLs)) seglist = set->segment_list->segment_URLs;
-		}
-		if (rep->segment_list) {
-			if (rep->segment_list->duration) duration = rep->segment_list->duration;
-			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
-			if (gf_list_count(rep->segment_list->segment_URLs)) seglist = rep->segment_list->segment_URLs;
-		}
-		if (! timescale) timescale=1;
-
-		if (timeline) {
-			start_time = gf_dash_segment_timeline_start(timeline, segment_index, &duration);
-		} else if (duration) {
-			start_time = segment_index * duration;
-		} else if (seglist && (segment_index>=0) ) {
-			u32 i;
-			start_time = 0;
-			for (i=0; i <= (u32) segment_index; i++) {
-				GF_MPD_SegmentURL *url = gf_list_get(seglist, i);
-				if (!url) break;
-				duration = url->duration;
-				if (i < (u32) segment_index)
-					start_time += url->duration;
-			}
-		}
-		if (segment_duration) *segment_duration = duration;
-		if (scale) *scale = timescale;
-		return start_time;
-	}
-
-	if (period->segment_template) {
-		if (period->segment_template->duration) duration = period->segment_template->duration;
-		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
-		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
-
-	}
-	if (set->segment_template) {
-		if (set->segment_template->duration) duration = set->segment_template->duration;
-		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
-		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
-	}
-	if (rep->segment_template) {
-		if (rep->segment_template->duration) duration = rep->segment_template->duration;
-		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
-		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
-	}
-	if (!timescale) timescale=1;
-
-	if (timeline) {
-		start_time = gf_dash_segment_timeline_start(timeline, segment_index, &duration);
-	} else {
-		start_time = segment_index * duration;
-	}
-	if (segment_duration) *segment_duration = duration;
-	if (scale) *scale = timescale;
 	return start_time;
 }
 
@@ -3701,7 +3603,6 @@ static void gf_dash_solve_period_xlink(GF_DashClient *dash, u32 period_idx)
 	gf_mpd_del(new_mpd);
 
 	gf_mx_v(dash->dl_mutex);
-
 }
 
 static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *tile_group)
@@ -5114,30 +5015,17 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic)
 {
-	Double seg_start;
+	GF_Err e = GF_OK;
 	u32 first_downloaded, last_downloaded, segment_idx, orig_idx;
 
 	group->force_segment_switch = 0;
 	if (!is_dynamic) {
-
 		/*figure out where to seek*/
 		orig_idx = group->download_segment_index;
-		segment_idx = 0;
-		seg_start = 0.0;
-		while (1) {
-			Double dur = group->segment_duration;
-			if (!dur) {
-				group->download_segment_index = segment_idx;
-				//TODO this could be further optimized by directly querying the index for this start time ...
-				seg_start = gf_dash_get_segment_start_time(group, &dur);
-			}
-			if (!dur)
-				break;
-			if ((seek_to >= seg_start) && (seek_to < seg_start + dur))
-				break;
-			seg_start += dur;
-			segment_idx++;
-		}
+		e = gf_mpd_seek_in_period(seek_to, MPD_SEEK_PREV, group->period, group->adaptation_set, gf_list_get(group->adaptation_set->representations, group->active_rep_index), &segment_idx, NULL);
+		if (e<0)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] An error occured while seeking to time %lf: %s\n", seek_to, gf_error_to_string(e)));
+			
 		group->download_segment_index = orig_idx;
 
 		/*remember to seek to given duration*/
@@ -5148,7 +5036,8 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 			first_downloaded = group->download_segment_index + 1 - group->nb_cached_segments;
 		}
 		/*we are seeking in our download range, just go on*/
-		if ((segment_idx >= first_downloaded) && (segment_idx<=last_downloaded)) return;
+		if ((segment_idx>=first_downloaded) && (segment_idx<=last_downloaded))
+			return;
 
 		group->force_segment_switch = 1;
 		group->download_segment_index = segment_idx;

@@ -2789,4 +2789,213 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 	}
 }
 
+static u64 gf_mpd_segment_timeline_start(GF_MPD_SegmentTimeline *timeline, u32 segment_index, u64 *segment_duration)
+{
+	u64 start_time = 0;
+	u32 i, idx, k;
+	idx = 0;
+	for (i = 0; i<gf_list_count(timeline->entries); i++) {
+		GF_MPD_SegmentTimelineEntry *ent = gf_list_get(timeline->entries, i);
+		if (ent->start_time) start_time = ent->start_time;
+		for (k = 0; k<ent->repeat_count + 1; k++) {
+			if (idx == segment_index) {
+				if (segment_duration)
+					*segment_duration = ent->duration;
+				return start_time;
+			}
+			idx++;
+			start_time += ent->duration;
+		}
+	}
+	return start_time;
+}
+
+GF_EXPORT
+GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
+	GF_MPD_Period const * const period, GF_MPD_AdaptationSet const * const set, GF_MPD_Representation const * const rep,
+	u64 *out_segment_start_time, u64 *out_opt_segment_duration, u32 *out_opt_scale)
+{
+	u64 duration = 0, start_time = 0;
+	u32 timescale = 0;
+	GF_List *seglist = NULL;
+	GF_MPD_SegmentTimeline *timeline = NULL;
+
+	if (!out_segment_start_time || !period || !set || !rep) {
+		return GF_BAD_PARAM;
+	}
+
+	/*single segment: return nothing*/
+	if (rep->segment_base || set->segment_base || period->segment_base) {
+		*out_segment_start_time = start_time;
+		return GF_OK;
+	}
+	if (rep->segment_list || set->segment_list || period->segment_list) {
+		if (period->segment_list) {
+			if (period->segment_list->duration) duration = period->segment_list->duration;
+			if (period->segment_list->timescale) timescale = period->segment_list->timescale;
+			if (period->segment_list->segment_timeline) timeline = period->segment_list->segment_timeline;
+			if (gf_list_count(period->segment_list->segment_URLs)) seglist = period->segment_list->segment_URLs;
+		}
+		if (set->segment_list) {
+			if (set->segment_list->duration) duration = set->segment_list->duration;
+			if (set->segment_list->timescale) timescale = set->segment_list->timescale;
+			if (set->segment_list->segment_timeline) timeline = set->segment_list->segment_timeline;
+			if (gf_list_count(set->segment_list->segment_URLs)) seglist = set->segment_list->segment_URLs;
+		}
+		if (rep->segment_list) {
+			if (rep->segment_list->duration) duration = rep->segment_list->duration;
+			if (rep->segment_list->timescale) timescale = rep->segment_list->timescale;
+			if (gf_list_count(rep->segment_list->segment_URLs)) seglist = rep->segment_list->segment_URLs;
+		}
+		if (!timescale) timescale = 1;
+
+		if (timeline) {
+			start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+		}
+		else if (duration) {
+			start_time = in_segment_index * duration;
+		}
+		else if (seglist && (in_segment_index >= 0)) {
+			u32 i;
+			start_time = 0;
+			for (i = 0; i <= (u32)in_segment_index; i++) {
+				GF_MPD_SegmentURL *url = gf_list_get(seglist, i);
+				if (!url) break;
+				duration = url->duration;
+				if (i < (u32)in_segment_index)
+					start_time += url->duration;
+			}
+		}
+		if (out_opt_segment_duration) *out_opt_segment_duration = duration;
+		if (out_opt_scale) *out_opt_scale = timescale;
+
+		*out_segment_start_time = start_time;
+		return GF_OK;
+	}
+
+	if (period->segment_template) {
+		if (period->segment_template->duration) duration = period->segment_template->duration;
+		if (period->segment_template->timescale) timescale = period->segment_template->timescale;
+		if (period->segment_template->segment_timeline) timeline = period->segment_template->segment_timeline;
+
+	}
+	if (set->segment_template) {
+		if (set->segment_template->duration) duration = set->segment_template->duration;
+		if (set->segment_template->timescale) timescale = set->segment_template->timescale;
+		if (set->segment_template->segment_timeline) timeline = set->segment_template->segment_timeline;
+	}
+	if (rep->segment_template) {
+		if (rep->segment_template->duration) duration = rep->segment_template->duration;
+		if (rep->segment_template->timescale) timescale = rep->segment_template->timescale;
+		if (rep->segment_template->segment_timeline) timeline = rep->segment_template->segment_timeline;
+	}
+	if (!timescale) timescale = 1;
+
+	if (timeline) {
+		start_time = gf_mpd_segment_timeline_start(timeline, in_segment_index, &duration);
+	}
+	else {
+		start_time = in_segment_index * duration;
+	}
+
+	if (out_opt_segment_duration) *out_opt_segment_duration = duration;
+	if (out_opt_scale) *out_opt_scale = timescale;
+	return start_time;
+
+	return GF_OK;
+}
+
+static GF_Err mpd_seek_periods(Double seek_time, GF_MPD const * const in_mpd, GF_MPD_Period **out_period)
+{
+	Double start_time;
+	u32 i;
+
+	start_time = 0;
+	for (i=0; i<gf_list_count(in_mpd->periods); i++) {
+		GF_MPD_Period *period = gf_list_get(in_mpd->periods, i);
+		Double dur;
+
+		if (period->xlink_href) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Period contains XLINKs. Not supported.\n", period->xlink_href));
+			return GF_NOT_SUPPORTED;
+		}
+
+		dur = (Double)period->duration;
+		dur /= 1000;
+		if (seek_time >= start_time) {
+			if ((i + 1 == gf_list_count(in_mpd->periods)) || (seek_time < start_time + dur)) {
+				*out_period = period;
+				break;
+			}
+		}
+		start_time += dur;
+	}
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	u32 *out_segment_index, Double *out_opt_seek_time)
+{
+	Double seg_start = 0.0, segment_duration = 0.0;
+	u64 segment_duration_in_scale = 0, seg_start_in_scale = 0;
+	u32 timescale = 0, segment_idx = 0;
+
+	if (!out_segment_index) {
+		return GF_BAD_PARAM;
+	}
+
+	while (1) {
+		//TODO this could be further optimized by directly querying the index for this start time ...
+		GF_Err e = gf_mpd_get_segment_start_time_with_timescale(segment_idx, in_period, in_set, in_rep, &seg_start_in_scale, &segment_duration_in_scale, &timescale);
+		if (e<0)
+			return e;
+		segment_duration = segment_duration_in_scale / (Double)timescale;
+		
+		if (seek_mode == MPD_SEEK_PREV) {
+			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration))
+				break;
+		} else if (seek_mode == MPD_SEEK_NEAREST) {
+			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration)) {
+				Double dist_to_prev = seek_time - seg_start;
+				Double dist_to_next = seg_start + segment_duration - seek_time;
+				if (dist_to_next < dist_to_prev) {
+					if (out_opt_seek_time) *out_opt_seek_time = seg_start + segment_duration;
+					segment_idx++;
+				} else {
+					if (out_opt_seek_time) *out_opt_seek_time = seg_start;
+				}
+				break;
+			}
+		} else {
+			assert(0);
+			return GF_NOT_SUPPORTED;
+		}
+
+		seg_start += segment_duration;
+		segment_idx++;
+	}
+
+	*out_segment_index = segment_idx;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time)
+{
+	if (!out_period || !out_segment_index) {
+		return GF_BAD_PARAM;
+	}
+
+	if (mpd_seek_periods(seek_time, in_mpd, out_period) != GF_OK) {
+		return GF_NOT_SUPPORTED;
+	}
+
+	return gf_mpd_seek_in_period(seek_time, seek_mode, *out_period, in_set, in_rep, out_segment_index, out_opt_seek_time);
+}
+
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
