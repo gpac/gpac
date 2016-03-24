@@ -313,6 +313,9 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			av_frame_unref(video_data_node->vframe);
 #endif
 
+			video_data_node->frame_ntp = gf_net_get_ntp_ts();
+			video_data_node->frame_utc = gf_net_get_utc();
+
 			/* Decode video frame */
 			if (avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet) < 0) {
 				av_free_packet(&packet);
@@ -393,7 +396,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				}
 				video_input_file->frame_decoded++;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms (frame duration %d )\n", video_data_node->vframe->pts, gf_net_get_utc(), video_input_data->frame_duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms (frame duration %d)\n", video_data_node->vframe->pts, gf_net_get_utc(), video_input_data->frame_duration));
 
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
