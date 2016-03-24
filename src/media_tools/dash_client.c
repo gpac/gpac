@@ -2214,8 +2214,11 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	gf_mpd_resolve_segment_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
 	*segment_duration = (resolve_type==GF_MPD_RESOLVE_URL_MEDIA) ? (u32) ((Double) ((*segment_duration) * 1000.0) / timescale) : 0;
 	e = gf_mpd_resolve_url(mpd, rep, set, period, mpd_url, resolve_type, item_index, group->nb_segments_purged, out_url, out_range_start, out_range_end, segment_duration, is_in_base_url, out_key_url, out_key_iv);
-	if (e == GF_NON_COMPLIANT_BITSTREAM)  {
+	if (e == GF_NON_COMPLIANT_BITSTREAM) {
 		group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+	}
+	if (!*out_url) {
+		return GF_OK;
 	}
 
 	if (*out_url && data_url_process && !strncmp(*out_url, "data:", 5)) {
