@@ -601,7 +601,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 			if (CU->sender_ntp) {
 				s32 ntp_diff = gf_net_get_ntp_diff_ms(CU->sender_ntp);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS NTP diff with sender %d ms\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, ntp_diff));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, CU->TS, ntp_diff));
 			}
 		}
 #endif
