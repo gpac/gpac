@@ -1643,12 +1643,11 @@ extension = {
         stat_obj.fps = Math.round(100 * gpac.fps) / 100;
         stat_obj.cpu = gpac.cpu;
         stat_obj.memory = Math.round(100 * gpac.memory / 1000 / 1000) / 100;
+        stat_obj.http_bandwidth = Math.round(gpac.http_bitrate);
         stat_obj.bitrate = 0;
-        var b = gpac.http_bitrate;
-        if (b < 50000) stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 10) / 100;
-        else stat_obj.http_bandwidth = Math.round(gpac.http_bitrate / 1000);
         stat_obj.buffer = 0;
         stat_obj.ntp_diff = 0;
+        stat_obj.quality = 0;
 
         for (var i = 0; i < ext.stats_resources.length; i++) {
             var m = ext.stats_resources[i];
@@ -1667,7 +1666,13 @@ extension = {
                     }
                 }
             }
-            else bl = 100;
+            else bl = 100;            
+            for (var j = 0; j < m.nb_qualities; j++) {
+                var q = m.get_quality(j);                
+                if (q.is_selected) {
+                    stat_obj.quality += Math.round(q.bandwidth / 1000);
+                }
+            }
 
             if (stat_obj) {
                 if (m.ntp_diff > stat_obj.ntp_diff) {
@@ -1681,7 +1686,7 @@ extension = {
 
             if (stat_obj) {
                 if (m.status != 'Stopped')
-                    stat_obj.bitrate += Math.round(m.avg_bitrate / 1000);
+                    stat_obj.bitrate += Math.round(m.avg_bitrate/1000);
             }
         }
 

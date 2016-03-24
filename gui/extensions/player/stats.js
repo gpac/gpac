@@ -152,8 +152,7 @@ extension.view_stats = function () {
                         label += q.samplerate;
                         if (q.channels) label += '/' + q.channels;
                     }
-                    if (q.bandwidth < 1000000) label += '@' + Math.round(q.bandwidth / 1000) + 'K';
-                    else label += '@' + Math.round(q.bandwidth / 10000) / 100 + 'M';
+                    label += '@' + Math.round(q.bandwidth / 1000) + 'Kbps';
 
                     this.gui.select_label.set_label(label);
                 }
@@ -232,19 +231,19 @@ extension.view_stats = function () {
                 label += '\n'
                 label += 'Average bitrate: ';
                 bw = m.avg_bitrate;
-                if (bw < 8000000) label += '' + Math.round(bw / 1000) + ' kbps';
-                else label += '' + Math.round(bw / 1000 / 1000) + ' mbps';
+                if (bw < 8000000) label += '' + Math.round(bw / 1000) + ' Kbps';
+                else label += '' + Math.round(bw / 1000 / 1000) + ' Mbps';
 
                 label += ' - Maximum ';
                 bw = m.max_bitrate;
-                if (bw < 8000000) label += '' + Math.round(bw / 1000) + ' kbps';
-                else label += '' + Math.round(bw / 1000 / 1000) + ' mbps';
+                if (bw < 8000000) label += '' + Math.round(bw / 1000) + ' Kbps';
+                else label += '' + Math.round(bw / 1000 / 1000) + ' Mbps';
 
                 label += '\n'
                 label += 'Download bandwidth: ';
                 var bw = m.bandwidth_down;
-                if (bw < 8000) label += '' + bw + ' kbps';
-                else label += '' + Math.round(bw / 1000) + ' mbps';
+                if (bw < 8000) label += '' + bw + ' Kbps';
+                else label += '' + Math.round(bw / 1000) + ' Mbps';
 
                 label += '\n'
                 label += 'Codec: ' + m.codec;
@@ -315,7 +314,7 @@ extension.view_stats = function () {
             }
             wnd.http_control.set_value(v);
 
-            wnd.http_text.set_label('HTTP cap ' + Math.round(100 * gpac.http_max_bitrate / 1000 / 1000) / 100 + ' Kbps');
+            wnd.http_text.set_label('HTTP cap ' + Math.round(gpac.http_max_bitrate) + ' Kbps');
 
         } else {
             wnd.http_control.set_value(100);
@@ -429,11 +428,12 @@ extension.view_stats = function () {
     if (wnd.plot) {
         wnd.s_fps = wnd.plot.add_serie('FPS', 'Hz', 0.8, 0, 0);
         if (nb_http) {
-            wnd.s_bw = wnd.plot.add_serie('BW', 'Mbps', 0.8, 0, 0.8);
+            wnd.s_bw = wnd.plot.add_serie('BW', 'Kbps', 0.8, 0, 0.8);
         } else {
             wnd.s_bw = null;
         }
         wnd.s_bitrate = wnd.plot.add_serie('Rate', 'Kbps', 0, 0.8, 0);
+        wnd.s_quality = wnd.plot.add_serie('Quality', 'Kbps', 1, 0.65, 0);
         if (nb_buffering)
             wnd.s_buf = wnd.plot.add_serie('Buffer', 'ms', 0, 0, 0.8);
         else
@@ -463,14 +463,13 @@ extension.view_stats = function () {
         var stat_obj = ext.stats_data[ext.stats_data.length-1];
         if (stat_obj.bitrate) {
             this.s_bitrate.refresh_serie(ext.stats_data, 'time', 'bitrate', length, 2);
-        } else {
-            this.s_bitrate.hide();
         }
         if (this.s_ntp) {
             this.s_ntp.refresh_serie(ext.stats_data, 'time', 'ntp_diff', length, 3);
         }
         this.s_cpu.refresh_serie(ext.stats_data, 'time', 'cpu', length, 10);
         this.s_mem.refresh_serie(ext.stats_data, 'time', 'memory', length, 6);
+        this.s_quality.refresh_serie(ext.stats_data, 'time', 'quality', length, 2.5);
     }
 
     wnd.quality_changed = function () {
