@@ -876,11 +876,12 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, u64 n
 			segment_close =  ((video_output_file->last_pts - video_output_file->pts_at_segment_start + 3*video_output_file->frame_dur/2) * 1000 >=
 			                  (video_output_file->seg_dur * (u64)video_output_file->timescale);
 #endif
-			                  fragment_close = ((video_output_file->last_dts - video_output_file->first_dts_in_fragment + video_output_file->frame_dur) * 1000 >=
+			//flush fragment if adding next frame will exceed target duration by half the frame duration
+			                  fragment_close = ((video_output_file->last_dts - video_output_file->first_dts_in_fragment + 3 * video_output_file->frame_dur / 2) * 1000 >=
 			                                    (video_output_file->frag_dur * (u64)video_output_file->timescale));
 
 			if (segment_close || fragment_close) {
-			gf_isom_flush_fragments(video_output_file->isof, 1);
+				gf_isom_flush_fragments(video_output_file->isof, 1);
 				video_output_file->fragment_started = 0;
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Flushed fragment at UTC "LLU" ms - First DTS "LLU" last PTS "LLU" - First Segment PTS "LLU" timescale %d\n", gf_net_get_utc(), video_output_file->first_dts_in_fragment, video_output_file->codec_ctx->coded_frame->pts, video_output_file->pts_at_segment_start, video_output_file->timescale));
 			}
