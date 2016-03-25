@@ -2918,7 +2918,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 
 	if (out_opt_segment_duration) *out_opt_segment_duration = duration;
 	if (out_opt_scale) *out_opt_scale = timescale;
-	return start_time;
+	*out_segment_start_time = start_time;
 
 	return GF_OK;
 }
