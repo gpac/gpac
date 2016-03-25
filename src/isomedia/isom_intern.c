@@ -139,7 +139,6 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 	for (k = 0; k < gf_list_count(moof->TrackList); k++) {
 		GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, k);
 		if (traf->sdtp) {
-			GF_TrackBox *trak = (GF_TrackBox*)traf;
 			GF_TrackFragmentRunBox *trun;
 			u32 j = 0, sample_index = 0;
 
