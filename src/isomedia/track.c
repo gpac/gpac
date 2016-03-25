@@ -639,7 +639,9 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		if (new_idx) gf_free(new_idx);
 	}
 
-	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)) {
+	/*content is encrypted*/
+	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)
+		|| traf->piff_sample_encryption || traf->sample_encryption) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
 		GF_List *sais = NULL;
@@ -679,13 +681,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 		/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
 		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
-			//GF_BitStream *bs;
 			u32 size, nb_saio;
 			u64 offset;
 			GF_SampleAuxiliaryInfoOffsetBox *saio = NULL;
 			GF_SampleAuxiliaryInfoSizeBox *saiz = NULL;
-			//GF_CENCSampleAuxInfo *sai;
-			//char *buffer;
 
 			offset = nb_saio = 0;
 
@@ -707,17 +706,21 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			}
 			if (saiz && saio) {
 				for (i = 0; i < saiz->sample_count; i++) {
+					GF_CENCSampleAuxInfo *sai;
+					char *buffer;
+					GF_BitStream *bs;
+					u64 cur_position;
 					if (nb_saio != 1)
 						offset = (saio->version ? saio->offsets_large[i] : saio->offsets[i]) + moof_offset;
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
-					/*cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
+					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
 					buffer = (char *)gf_malloc(size);
 					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
 
-					sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
+					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 					bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
 					gf_bs_read_data(bs, (char *)sai->IV, 16);
 					if (size > 16) {
@@ -730,7 +733,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 						gf_bs_del(bs);
 					}
 					gf_list_add(senc->samp_aux_info, sai);
-					if (sai->subsample_count) senc->flags = 0x00000002;*/
+					if (sai->subsample_count) senc->flags = 0x00000002;
 					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, offset, size);
 					if (nb_saio == 1)
 						offset += size;
