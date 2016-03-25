@@ -248,7 +248,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 
 	if (recompute_form) {
 		GF_Rect bounds;
-		GF_LOG(GF_LOG_COMPOSE, GF_LOG_DEBUG, ("[Form] Recomputing positions\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Form] Recomputing positions\n"));
 
 		parent_node_reset((ParentNode2D*)st);
 
