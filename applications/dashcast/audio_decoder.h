@@ -75,7 +75,7 @@ typedef struct {
  *
  * @return 0 on success -1 on failure.
  */
-int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop);
+int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop, int video_framerate);
 
 /*
  * Read and decode audio and put samples on circular buffer

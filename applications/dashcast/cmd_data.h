@@ -109,6 +109,7 @@ typedef struct {
 
 	Bool use_source_timing;
 	Bool use_mem_track;
+	Bool no_mpd_rewrite;
 } CmdData;
 
 /*
