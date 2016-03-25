@@ -3722,7 +3722,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (KID) memset(*KID, 0, 16);
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (!traf)
+	if (traf)
 		return GF_BAD_PARAM;
 #endif
 
