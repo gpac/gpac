@@ -153,8 +153,12 @@ static void dc_create_configuration(CmdData *cmd_data)
 				gf_cfg_set_key(conf, section_name, "channels", value);
 			}
 
-			if (!gf_cfg_get_key(conf, section_name, "codec"))
-				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
+			if (!gf_cfg_get_key(conf, section_name, "codec")) {
+				if (strlen(cmd_data->audio_data_conf.codec))
+					gf_cfg_set_key(conf, section_name, "codec", cmd_data->audio_data_conf.codec);
+				else
+					gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
+			}
 		}
 	}
 }
@@ -422,7 +426,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -live-media              system is live and input is a media file\n"
 	    "    -no-loop                 system does not loop on the input media file when live\n"
 	    "    -dynamic-ast             changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)\n"
-	    "    -insert-utc              inserts UTC clock at the start of each segment\n"
+    	"    -insert-utc              inserts UTC clock at the start of each segment\n"
+	    "    -no-rewrite              Do not rewrite the MPD as a static one at the end of the live session\n"
 	    "\n"
 	    "Source options:\n"
 	    "    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
@@ -783,6 +788,9 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-insert-utc") == 0) {
 			cmd_data->insert_utc = 1;
 			i++;
+		} else if (strcmp(argv[i], "-no-rewrite") == 0) {
+			cmd_data->no_mpd_rewrite = 1;
+			i++;
 		} else if (strcmp(argv[i], "-dynamic-ast") == 0) {
 			cmd_data->use_dynamic_ast = 1;
 			i++;
@@ -868,7 +876,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	if ((cmd_data->minimum_update_period == -1) && (cmd_data->mode == LIVE_CAMERA)) {
 		fprintf(stderr, "MPD refresh time not set in live - defaulting to segment duration\n");
-		cmd_data->minimum_update_period = cmd_data->seg_dur;
+		cmd_data->minimum_update_period = cmd_data->seg_dur / 1000;
 	}
 
 	//safety checks

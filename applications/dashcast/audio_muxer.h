@@ -57,7 +57,7 @@ typedef enum {
  *
  */
 typedef struct {
-	//AudioDataConf *audio_data_conf;
+	AudioDataConf *audio_data_conf;
 
 	/* File format context structure */
 	AVFormatContext *av_fmt_ctx;
