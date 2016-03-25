@@ -1368,8 +1368,6 @@ int mp4client_main(int argc, char **argv)
 			else if (!stricmp(arg, "-service")) {
 				initial_service_id = atoi(argv[i+1]);
 				i++;
-			} else {
-				fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
 			}
 		}
 	}
