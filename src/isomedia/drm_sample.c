@@ -1203,7 +1203,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	}
 
 	/*get sample auxiliary information by saiz/saio rather than by parsing senc box*/
-	if (gf_isom_cenc_has_saiz_saio_track(stbl)) {
+	if (IV_size && gf_isom_cenc_has_saiz_saio_track(stbl)) {
 		return isom_cenc_get_sai_by_saiz_saio(trak->Media, sampleNumber, IV_size, sai);
 	}
 
@@ -1224,10 +1224,14 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
 	if (! (*sai) ) return GF_OUT_OF_MEM;
 	if (a_box) {
-		memmove((*sai)->IV, a_sai->IV, 16);
+		u8 size = ((*sai)->IV_size > 0) ? (*sai)->IV_size : 8 /*default for PIFF/CENC*/;
+		(*sai)->IV_size = size;
+		memmove((*sai)->IV, a_sai->IV, (*sai)->IV_size);
 		(*sai)->subsample_count = a_sai->subsample_count;
-		(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
-		memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+		if ((*sai)->subsamples > 0) {
+			(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+			memmove((*sai)->subsamples, a_sai->subsamples, sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
+		}
 	}
 
 	return GF_OK;
@@ -1240,8 +1244,6 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (default_IsEncrypted) *default_IsEncrypted = 0;
 	if (default_IV_size) *default_IV_size = 0;
 	if (default_KID) memset(*default_KID, 0, 16);
-
-
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
