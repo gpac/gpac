@@ -1224,9 +1224,8 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
 	if (! (*sai) ) return GF_OUT_OF_MEM;
 	if (a_box) {
-		u8 size = ((*sai)->IV_size > 0) ? (*sai)->IV_size : 8 /*default for PIFF/CENC*/;
-		(*sai)->IV_size = size;
-		memmove((*sai)->IV, a_sai->IV, (*sai)->IV_size);
+		u8 size = ((*sai)->IV_size != 0) ? (*sai)->IV_size : 8/*default for modern PIFF/CENC with AES-CTR*/;
+		memmove((*sai)->IV, a_sai->IV, size);
 		(*sai)->subsample_count = a_sai->subsample_count;
 		if ((*sai)->subsamples > 0) {
 			(*sai)->subsamples = (GF_CENCSubSampleEntry*)gf_malloc(sizeof(GF_CENCSubSampleEntry)*(*sai)->subsample_count);
