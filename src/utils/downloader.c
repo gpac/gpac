@@ -1973,12 +1973,19 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 		return body_start;
 	}
 
+	if (*payload_size == 2) {
+		*header_size = 0;
+	}
 	*header_size = 0;
 	/*skip remaining CRLF from previous chunk if any*/
 	if (*payload_size >= 2) {
 		if ((body_start[0]=='\r') && (body_start[1]=='\n')) {
 			body_start += 2;
 			*header_size = 2;
+		}
+		if (*payload_size <= 4) {
+			*header_size = 0;
+			return NULL;
 		}
 		te_header = strstr((char *) body_start, "\r\n");
 	} else {
@@ -2054,6 +2061,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		} else if (hdr_size + nbBytes > payload_size) {
 			/* chunk header is processed but we will need several TCP frames to get the entire chunk*/
 			remaining = nbBytes + hdr_size - payload_size;
+			assert(payload_size >= hdr_size);
 			nbBytes = payload_size - hdr_size;
 			payload_size = 0;
 			payload = NULL;
@@ -2071,7 +2079,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		remaining = payload_size = 0;
 	}
 
-	if (data && store_in_init) {
+	if (data && nbBytes && store_in_init) {
 		sess->init_data = (char *) gf_realloc(sess->init_data , sizeof(char) * (sess->init_data_size + nbBytes) );
 		memcpy(sess->init_data+sess->init_data_size, data, nbBytes);
 		sess->init_data_size += nbBytes;
@@ -2119,6 +2127,9 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry),
 		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req, sess->reply_time ));
+		
+		if (sess->chunked && (payload_size==2))
+			payload_size=0;
 	}
 
 	if (rewrite_size && sess->chunked) {
@@ -2130,6 +2141,9 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	if (!sess->nb_left_in_chunk && remaining) {
 		sess->nb_left_in_chunk = remaining;
 	} else if (payload_size) {
+		if (sess->chunked && (payload_size==2))
+			payload_size=2;
+	
 		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size);
 	}
 }
