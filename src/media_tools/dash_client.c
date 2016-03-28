@@ -4266,7 +4266,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	/* At this stage, there are some segments left to be downloaded */
 	e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL);
 	gf_mx_v(dash->dl_mutex);
-	if (e) {
+	if (e || !new_base_seg_url) {
 		/*do something!!*/
 		return GF_DASH_DownloadCancel;
 	}
