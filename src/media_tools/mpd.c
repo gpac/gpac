@@ -2642,6 +2642,13 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 				sprintf(szFormat, szPrintFormat, start_number + item_index);
 				strcat(solved_template, szFormat);
 			}
+
+			/*check total duration*/
+			if ((start_number + item_index) * *segment_duration_in_ms > period->duration) {
+				gf_free(url);
+				gf_free(solved_template);
+				return GF_EOS;
+			}
 		}
 		else if (!strcmp(first_sep+1, "Index")) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Wrong template identifier Index detected - using Number instead\n\n"));
@@ -2667,9 +2674,14 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 					if (item_index>cur_idx+ent->repeat_count) {
 						cur_idx += 1 + ent->repeat_count;
 						if (ent->start_time) start_time = ent->start_time;
-
-						start_time += ent->duration * (1 + ent->repeat_count);
-						continue;
+						if (k<nb_seg-1) {
+							start_time += ent->duration * (1 + ent->repeat_count);
+							continue;
+						} else {
+							gf_free(url);
+							gf_free(solved_template);
+							return GF_EOS;
+						}
 					}
 					*segment_duration_in_ms = ent->duration;
 					*segment_duration_in_ms = (u32) ((Double) (*segment_duration_in_ms) * 1000.0 / timescale);
@@ -2928,9 +2940,12 @@ static GF_Err mpd_seek_periods(Double seek_time, GF_MPD const * const in_mpd, GF
 		dur = (Double)period->duration;
 		dur /= 1000;
 		if (seek_time >= start_time) {
-			if ((i + 1 == gf_list_count(in_mpd->periods)) || (seek_time < start_time + dur)) {
+			if ((seek_time < start_time + dur)
+				|| (i+1 == gf_list_count(in_mpd->periods) && dur == 0.0)) {
 				*out_period = period;
 				break;
+			} else {
+				return GF_EOS;
 			}
 		}
 		start_time += dur;
@@ -2992,15 +3007,21 @@ GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time)
 {
+	GF_Err e = GF_OK;
+
 	if (!out_period || !out_segment_index) {
 		return GF_BAD_PARAM;
 	}
 
-	if (mpd_seek_periods(seek_time, in_mpd, out_period) != GF_OK) {
-		return GF_NOT_SUPPORTED;
-	}
+	e = mpd_seek_periods(seek_time, in_mpd, out_period);
+	if (e)
+		return e;
 
-	return gf_mpd_seek_in_period(seek_time, seek_mode, *out_period, in_set, in_rep, out_segment_index, out_opt_seek_time);
+	e = gf_mpd_seek_in_period(seek_time, seek_mode, *out_period, in_set, in_rep, out_segment_index, out_opt_seek_time);
+	if (e)
+		return e;
+
+	return GF_OK;
 }
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
