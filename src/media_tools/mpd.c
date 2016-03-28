@@ -2736,8 +2736,13 @@ void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_Adaptati
 
 	/*single media segment - duration is not known unless indicated in period*/
 	if (rep->segment_base || set->segment_base || period->segment_base) {
-		*out_duration = period ? period->duration : 0;
-		timescale = 0;
+		if (period && period->duration) {
+			*out_duration = period->duration;
+			timescale = 1000;
+		} else {
+			*out_duration = 0;
+			timescale = 0;
+		}		
 		if (rep->segment_base && rep->segment_base->presentation_time_offset) pts_offset = rep->segment_base->presentation_time_offset;
 		if (rep->segment_base && rep->segment_base->timescale) timescale = rep->segment_base->timescale;
 		if (!pts_offset && set->segment_base && set->segment_base->presentation_time_offset) pts_offset = set->segment_base->presentation_time_offset;
