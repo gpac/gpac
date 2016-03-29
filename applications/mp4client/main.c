@@ -1377,8 +1377,9 @@ int mp4client_main(int argc, char **argv)
 		return 0;
 	}
 	if (dump_mode && !url_arg ) {
+		FILE *test;
 		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
-		FILE *test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
+		test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
 		if (!test) url_arg = NULL;
 		else gf_fclose(test);
 		
