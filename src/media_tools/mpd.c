@@ -1567,7 +1567,7 @@ try_next_segment:
 						segment_url->media = gf_strdup(elt->url);
 					}
 				} else {
-					segment_url->media =gf_url_concatenate(pe->url, elt->url);
+					segment_url->media = gf_url_concatenate(pe->url, elt->url);
 				}
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
@@ -2644,7 +2644,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 
 			/*check total duration*/
-			if ((start_number + item_index) * *segment_duration_in_ms > period->duration) {
+			if (period->duration
+				&& ((start_number + item_index) * *segment_duration_in_ms > period->duration)) {
 				gf_free(url);
 				gf_free(solved_template);
 				return GF_EOS;
