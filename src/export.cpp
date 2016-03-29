@@ -836,6 +836,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tile_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_drop_date_version_info_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_oinf_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_del_oinf_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 
