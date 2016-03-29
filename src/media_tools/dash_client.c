@@ -4674,6 +4674,7 @@ static u32 dash_download_threaded(void *par)
 		break;
 	}
 	group->download_th_done = GF_TRUE;
+	return 0;
 }
 
 static u32 dash_main_thread_proc(void *par)
