@@ -311,6 +311,7 @@ static u32 mpd_thread(void *params)
 			}
 
 			last_seg_time = seg_time;
+			assert(main_seg_time.ntpts <= seg_time.ntpts);
 			
 			t = (seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
 			msecs = (u32) ( (seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
