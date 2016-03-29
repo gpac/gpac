@@ -307,7 +307,18 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 #else
 				int sample_rate = audio_input_data->aframe->sample_rate;
 				int num_channels = audio_input_data->aframe->channels;
-				u64 channel_layout = audio_input_data->aframe->channel_layout;
+				u64 channel_layout;
+				if (!audio_input_data->aframe->channel_layout) {
+					if (audio_input_data->aframe->channels == 2) {
+						audio_input_data->aframe->channel_layout = AV_CH_LAYOUT_STEREO;
+					} else if (audio_input_data->aframe->channels == 1) {
+						audio_input_data->aframe->channel_layout = AV_CH_LAYOUT_MONO;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown input channel layout for %d channels. Aborting.\n", audio_input_data->aframe->channels));
+						exit(1);
+					}
+				}
+				channel_layout = audio_input_data->aframe->channel_layout;
 #endif
 				enum AVSampleFormat sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
 				Bool resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
