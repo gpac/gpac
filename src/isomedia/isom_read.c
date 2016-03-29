@@ -3912,4 +3912,12 @@ Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPoints
 	return GF_TRUE;
 }
 
+GF_EXPORT
+void gf_isom_del_oinf_info(GF_OperatingPointsInformation **ptr)
+{
+	if (!(*ptr)) return;
+	gf_isom_oinf_del_entry(*ptr);
+	*ptr = NULL;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/
