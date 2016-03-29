@@ -2058,7 +2058,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							}
 							fprintf(stderr, ") num_profile_tier_level %d ", oinf->num_profile_tier_level);
 							fprintf(stderr, " num_operating_points %d max_layer_count %d \n", oinf->num_operating_points, oinf->max_layer_count);
-							gf_isom_oinf_del_entry(oinf);
+							gf_isom_del_oinf_info(&oinf);
 						}
 					}
 					if (hevccfg) {
