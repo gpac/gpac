@@ -57,8 +57,9 @@ u32 gf_isom_solve_uuid_box(char *UUID)
 	u32 i;
 	char strUUID[33], strChar[3];
 	strUUID[0] = 0;
+	strUUID[32] = 0;
 	for (i=0; i<16; i++) {
-		sprintf(strChar, "%02X", (unsigned char) UUID[i]);
+		snprintf(strChar, 32, "%02X", (unsigned char) UUID[i]);
 		strcat(strUUID, strChar);
 	}
 	if (!strnicmp(strUUID, "8974dbce7be74c5184f97148f9882554", 32))
