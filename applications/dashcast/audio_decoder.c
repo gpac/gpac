@@ -297,6 +297,8 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 			if (got_frame) {
 				uint8_t **data;
 				int data_size;
+				enum AVSampleFormat sample_format;
+				Bool resample;
 #ifdef DC_AUDIO_RESAMPLER
 				int num_planes_out;
 #endif
@@ -320,8 +322,8 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 				}
 				channel_layout = audio_input_data->aframe->channel_layout;
 #endif
-				enum AVSampleFormat sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
-				Bool resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
+				sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
+				resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
 				                 || num_channels   != DC_AUDIO_NUM_CHANNELS
 				                 || channel_layout != DC_AUDIO_CHANNEL_LAYOUT
 				                 || sample_format  != DC_AUDIO_SAMPLE_FORMAT);
