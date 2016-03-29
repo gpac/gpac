@@ -4664,6 +4664,8 @@ static u32 dash_download_threaded(void *par)
 {
 	GF_DASH_Group *group = (GF_DASH_Group *) par;
 	
+	group->download_th_done = GF_FALSE;
+	
 	while (1) {
 		DownloadGroupStatus res = dash_download_group(group->dash, group, group, group->groups_depending_on ? GF_TRUE : GF_FALSE);
 		if (res==GF_DASH_DownloadRestart) {
@@ -4878,11 +4880,17 @@ restart_period:
 
 			if (group->depend_on_group) continue;
 			
-			if (i && dash->use_threaded_download) {
+			if (dash->use_threaded_download) {
 				group->download_th_done = GF_FALSE;
-				gf_th_run(group->download_th, dash_download_threaded, group);
+				e = gf_th_run(group->download_th, dash_download_threaded, group);
+				if (e!=GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot launch download thread for AdaptationSet #%d - error %s\n", i+1, gf_error_to_string(e)));
+					group->download_th_done = GF_TRUE;
+				}
 			} else {
-				DownloadGroupStatus res = dash_download_group(dash, group, group, group->groups_depending_on ? GF_TRUE : GF_FALSE);
+				DownloadGroupStatus res;
+				group->download_th_done = GF_FALSE;
+				res = dash_download_group(dash, group, group, group->groups_depending_on ? GF_TRUE : GF_FALSE);
 				if (res==GF_DASH_DownloadRestart) {
 					i--;
 					continue;
@@ -4891,19 +4899,22 @@ restart_period:
 			}
 		}
 		
-		if (dash->use_threaded_download) {
-			while (1) {
-				Bool all_done = GF_TRUE;
-				for (i=0; i<group_count; i++) {
-					GF_DASH_Group *group = gf_list_get(dash->groups, i);
-					if (!group->download_th_done) {
-						all_done = GF_FALSE;
-						break;
-					}
+		while (dash->use_threaded_download) {
+			Bool all_done = GF_TRUE;
+			for (i=0; i<group_count; i++) {
+				GF_DASH_Group *group = gf_list_get(dash->groups, i);
+				if (group->selection != GF_DASH_GROUP_SELECTED) {
+					continue;
 				}
-				if (all_done)
+				if (group->depend_on_group) continue;
+					
+				if (!group->download_th_done) {
+					all_done = GF_FALSE;
 					break;
+				}
 			}
+			if (all_done)
+				break;
 		}
 		
 		dash_global_rate_adaptation(dash);
