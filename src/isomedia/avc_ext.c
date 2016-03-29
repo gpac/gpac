@@ -50,8 +50,8 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('h','e','v','1'):
 	case GF_4CC('h','v','c','2'):
 	case GF_4CC('h','e','v','2'):
-	case GF_4CC('s','h','v','1'):
-	case GF_4CC('s','h','c','1'):
+	case GF_4CC('l','h','v','1'):
+	case GF_4CC('l','h','e','1'):
 	case GF_4CC('m','h','v','1'):
 	case GF_4CC('m','h','c','1'):
 		return GF_TRUE;
