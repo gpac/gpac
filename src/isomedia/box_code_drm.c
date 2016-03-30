@@ -1114,6 +1114,7 @@ void piff_psec_del(GF_Box *s)
 
 GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 {
+	u32 sample_count, i, j;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->version = gf_bs_read_u8(bs);
@@ -1126,10 +1127,37 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_read_data(bs, (char *) ptr->KID, 16);
 		ptr->size -= 20;
 	}
+	if (ptr->IV_size == 0)
+		ptr->IV_size = 8; //default to 8
+
+	sample_count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+	if (ptr->IV_size != 8 && ptr->IV_size != 16) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] PIFF PSEC box incorrect IV size: %u - shall be 8 or 16\n", ptr->IV_size));
+		return GF_BAD_PARAM;
+	}
+
+	ptr->samp_aux_info = gf_list_new();
+	for (i=0; i<sample_count; ++i) {
+		GF_CENCSampleAuxInfo *sai;
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		sai->IV_size = ptr->IV_size;
+		gf_bs_read_data(bs, sai->IV, ptr->IV_size);
+		ptr->size -= ptr->IV_size;
+		if (ptr->flags & 2) {
+			sai->subsample_count = gf_bs_read_u16(bs);
+			sai->subsamples = gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			for (j = 0; j < sai->subsample_count; ++j) {
+				sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
+				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
+			ptr->size -= 2+sai->subsample_count*6;
+		}
+		gf_list_add(ptr->samp_aux_info, sai);
+	}
 
 	ptr->bs_offset = gf_bs_get_position(bs);
-	gf_bs_skip_bytes(bs, ptr->size);
-	ptr->size = 0;
+	assert(ptr->size == 0);
 	return GF_OK;
 }
 
