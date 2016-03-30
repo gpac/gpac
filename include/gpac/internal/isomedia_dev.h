@@ -2332,7 +2332,7 @@ typedef struct __piff_sample_enc_box
 	u8 version;
 	u32 flags;
 
-	GF_List *samp_aux_info;
+	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2343,7 +2343,7 @@ typedef struct __piff_sample_enc_box
 	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
 	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
 
-	//do NOT change order below this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
+	//do NOT change order above this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
 
 
 	u32 AlgorithmID;
@@ -2358,7 +2358,7 @@ typedef struct __sample_encryption_box
 	u8 version;
 	u32 flags;
 
-	GF_List *samp_aux_info;
+	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
