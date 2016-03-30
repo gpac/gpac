@@ -1749,6 +1749,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		Double seg_dur;
 		Bool reset_segment_count;
 		GF_MPD_AdaptationSet *set, *new_set;
+		u32 rep_i;
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
 
 		/*update info even if the group is not selected !*/
@@ -1757,6 +1758,23 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 		set = group->adaptation_set;
 		new_set = gf_list_get(new_period->adaptation_sets, group_idx);
+
+		//sort by  bandwidth and quality
+		for (rep_i = 1; rep_i < gf_list_count(new_set->representations); rep_i++) {
+			Bool swap=GF_FALSE;
+			GF_MPD_Representation *r2 = gf_list_get(new_set->representations, rep_i);
+			GF_MPD_Representation *r1 = gf_list_get(new_set->representations, rep_i-1);
+			if (r1->bandwidth > r2->bandwidth) {
+				swap=GF_TRUE;
+			} else if ((r1->bandwidth == r2->bandwidth) && (r1->quality_ranking<r2->quality_ranking)) {
+				swap=GF_TRUE;
+			}
+			if (swap) {
+				gf_list_rem(new_set->representations, rep_i);
+				gf_list_insert(new_set->representations, r2, rep_i-1);
+				rep_i=0;
+			}
+		}
 
 		if (gf_list_count(new_set->representations) != gf_list_count(group->adaptation_set->representations)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing representation in adaptation set\n"));
