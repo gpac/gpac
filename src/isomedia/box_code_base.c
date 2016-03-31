@@ -3043,13 +3043,12 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->traf_bits = (gf_bs_read_int(bs, 2)+1)*8;
 	ptr->trun_bits = (gf_bs_read_int(bs, 2)+1)*8;
 	ptr->sample_bits = (gf_bs_read_int(bs, 2)+1)*8;
-	ptr->number_of_entries = gf_bs_read_u32(bs);
+	ptr->nb_entries = gf_bs_read_u32(bs);
 
-	//read each entry (even though nothing may be written)
-	ptr->entries = p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->number_of_entries);
+	ptr->entries = p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
 	if (!p) return GF_OUT_OF_MEM;
 
-	for (i=0; i<ptr->number_of_entries; i++) {
+	for (i=0; i<ptr->nb_entries; i++) {
 		memset(p, 0, sizeof(GF_RandomAccessEntry));
 
 		if (ptr->version==1) {

@@ -460,7 +460,7 @@ typedef struct
   u8 trun_bits;
   u8 sample_bits;
   u32 number_of_entries;
-  GF_List *entries;
+  GF_RandomAccessEntry *entries;
 } GF_TrackFragmentRandomAccessBox;
 
 typedef struct
