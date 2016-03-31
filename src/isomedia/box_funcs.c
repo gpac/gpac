@@ -491,10 +491,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return tref_New();
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_New();
-        case GF_ISOM_BOX_TYPE_MFRA:
-                return mfra_New();
-        case GF_ISOM_BOX_TYPE_TFRA:
-                return tfra_New();
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_New();
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_New();
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_New();
 
