@@ -373,7 +373,7 @@ typedef struct {
 	GF_List *periods;
 
 	/*set during parsing*/
-	const char *xml_namespace;
+	const char *xml_namespace; /*won't be freed by GPAC*/
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
