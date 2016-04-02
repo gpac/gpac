@@ -1326,6 +1326,10 @@ int mp4client_main(int argc, char **argv)
 		/*arguments only used in non-gui mode*/
 		if (!gui_mode) {
 			if (arg[0] != '-') {
+				if (url_arg) {
+					fprintf(stderr, "Several input URLs provided (\"%s\", \"%s\"). Check your command-line.\n", url_arg, arg);
+					return 1;
+				}
 				url_arg = arg;
 			}
 			else if (!strcmp(arg, "-loop")) loop_at_end = 1;
