@@ -2234,9 +2234,9 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->availabilityStartTime)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
-		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityEndTime);
+		gf_mpd_print_date(out, "availabilityEndTime", mpd->availabilityEndTime);
 	if (mpd->publishTime)
-		gf_mpd_print_date(out, "availabilityStartTime", mpd->publishTime);
+		gf_mpd_print_date(out, "publishTime", mpd->publishTime);
 	if (mpd->media_presentation_duration)
 		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration);
 	if (mpd->minimum_update_period)
