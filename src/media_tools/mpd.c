@@ -2172,7 +2172,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 }
 
-static void gf_mpd_print_period(GF_MPD_Period const * const period, FILE *out)
+static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
 	u32 i;
@@ -2184,10 +2184,10 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, FILE *out)
 	}
 	if (period->ID)
 		fprintf(out, " id=\"%s\"", period->ID);
-	if (period->start)
+	if (is_dynamic || period->start)
 		gf_mpd_print_duration(out, "start", period->start);
 	if (period->duration)
-		gf_mpd_print_duration(out, "duration", period->start);
+		gf_mpd_print_duration(out, "duration", period->duration);
 	if (period->bitstream_switching)
 		fprintf(out, " bitstreamSwitching=\"true\"");
 
@@ -2298,7 +2298,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	i=0;
 	while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
-		gf_mpd_print_period(period, out);
+		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
 	}
 
 	fprintf(out, "</MPD>\n");
