@@ -939,6 +939,7 @@ u32 audio_encoder_thread(void *params)
 //				}
 //			}
 
+			audio_output_file.frame_ntp = gf_net_get_ntp_ts();
 			ret = dc_audio_encoder_read(&audio_output_file, audio_input_data);
 			if (ret == -2) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("Audio encoder has no more data to encode.\n"));
@@ -961,7 +962,7 @@ u32 audio_encoder_thread(void *params)
 					break;
 				}
 
-				ret = dc_audio_muxer_write(&audio_output_file, frame_nb);
+				ret = dc_audio_muxer_write(&audio_output_file, frame_nb, in_data->insert_utc);
 				if (ret == -1) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("An error occured while writing audio frame.\n"));
 					quit = 1;
