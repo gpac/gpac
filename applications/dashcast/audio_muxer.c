@@ -407,7 +407,7 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 	return ret;
 }
 
-int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
+int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool insert_ntp)
 {
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
@@ -417,6 +417,11 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
 			gf_isom_start_fragment(audio_output_file->isof, 1);
+			
+			if (insert_ntp) {
+				gf_isom_set_fragment_reference_time(audio_output_file->isof, 1, audio_output_file->frame_ntp, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
+			}
+
 			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			audio_output_file->first_dts += audio_output_file->frame_per_frag;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio start fragment first DTS %d at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
