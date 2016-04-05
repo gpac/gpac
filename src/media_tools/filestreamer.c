@@ -121,7 +121,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "t=0 0");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-200X - http://gpac.sourceforge.net");
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-2016 - http://gpac.io");
 		fprintf(sdp_out, "%s\n", sdpLine);
 		if (streamer->base_track)
 		{
