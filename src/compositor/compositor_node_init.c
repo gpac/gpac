@@ -451,7 +451,7 @@ void gf_sc_on_node_init(GF_Compositor *compositor, GF_Node *node)
 #endif /*GPAC_DISABLE_X3D*/
 
 	case TAG_ProtoNode:
-		compositor_init_hardcoded_proto(compositor, node);
+		gf_sc_init_hardcoded_proto(compositor, node);
 		break;
 
 	case TAG_MPEG4_SBVCAnimation:
