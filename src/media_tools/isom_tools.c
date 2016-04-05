@@ -2824,10 +2824,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration;
 	GF_TrackFragmenter *tf;
-
+    Bool drop_version = gf_isom_drop_date_version_info_enabled(input);
+    
 	//create output file
 	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
+
+    gf_isom_no_version_date_info(output, drop_version);
 
 
 	nb_samp = 0;
