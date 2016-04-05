@@ -362,9 +362,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			nb_threads = atoi(sOpt);
 		}
 		if (nb_threads > detected_nb_threads) {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_WARNING, ("[HEVC@ffmpeg] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVC@ffmpeg] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
 		} else {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads));
 		}
 		fprintf(stderr, "[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads);
 		av_opt_set_int(*ctx, "threads", nb_threads, 0);
