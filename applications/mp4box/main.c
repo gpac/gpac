@@ -1373,7 +1373,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 		if (next) next[0] = 0;
 
 
-		if (!strnicmp(szSlot, "ref=", 4)) refTrackID = atoi(szSlot+4);
+		if (!strnicmp(szSlot, "refTrack=", 9)) refTrackID = atoi(szSlot+9);
 		else if (!strnicmp(szSlot, "switchID=", 9)) {
 			if (atoi(szSlot+9)<0) {
 				switch_id = 0;
@@ -4382,6 +4382,14 @@ int mp4boxMain(int argc, char **argv)
 			                                       tsel_acts[i].is_switchGroup ? 1 : 0,
 			                                       &tsel_acts[i].switchGroupID,
 			                                       tsel_acts[i].criteria, tsel_acts[i].nb_criteria);
+			if (e == GF_BAD_PARAM) {
+				u32 alternateGroupID, nb_groups;
+				gf_isom_get_track_switch_group_count(file, gf_isom_get_track_by_id(file, tsel_acts[i].trackID), &alternateGroupID, &nb_groups);
+				if (alternateGroupID)
+					fprintf(stderr, "Hint: for adding more tracks to group, using: -group-add -refTrack=ID1:[criteria:]trackID=ID2\n");
+				else
+					fprintf(stderr, "Hint: for creates a new grouping information, using -group-add -trackID=ID1:[criteria:]trackID=ID2\n");
+			}
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 			break;
