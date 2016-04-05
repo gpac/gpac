@@ -4394,7 +4394,10 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 	if (trackRefGroup) {
 		GF_TrackBox *trak_ref = gf_isom_get_track_from_file(movie, trackRefGroup);
 		if (trak_ref != trak) {
-			if (!trak_ref || !trak_ref->Header->alternate_group) return GF_BAD_PARAM;
+			if (!trak_ref || !trak_ref->Header->alternate_group) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Track %d has not an alternate group - skipping\n", trak_ref->Header->trackID));
+				return GF_BAD_PARAM;
+			}
 			alternateGroupID = trak_ref->Header->alternate_group;
 		} else {
 			alternateGroupID = trak->Header->alternate_group;
@@ -4402,7 +4405,10 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 	}
 	if (!alternateGroupID) {
 		/*there is a function for this ....*/
-		if (trak->Header->alternate_group) return GF_BAD_PARAM;
+		if (trak->Header->alternate_group) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Track %d has already an alternate group - skipping\n", trak->Header->trackID));
+			return GF_BAD_PARAM;
+		}
 		alternateGroupID = gf_isom_get_next_alternate_group_id(movie);
 	}
 
