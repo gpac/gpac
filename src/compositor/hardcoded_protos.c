@@ -1267,6 +1267,8 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 
 	for (i=0; i<proto_url->count; i++) {
 		const char *url = proto_url->vals[0].url;
+        if (!url) continue;
+        
 #ifndef GPAC_DISABLE_3D
 		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
 			compositor_init_path_extrusion(compositor, node);
