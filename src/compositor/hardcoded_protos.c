@@ -1366,7 +1366,7 @@ GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n)
         const char *url = proto_url->vals[0].url;
         if (!strcmp(url, "urn:inet:gpac:builtin:CustomTexture")) {
             CustomTextureStack *stack = gf_node_get_private(n);
-            return &stack->txh;
+            if (stack) return &stack->txh;
         }
     }
     return NULL;
