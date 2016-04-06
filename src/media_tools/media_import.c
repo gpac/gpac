@@ -2945,7 +2945,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo, u32 *max_size)
 {
 	GF_Err e;
-    u32 read;
+	u32 read;
 	XMLBreaker breaker;
 	char *tmp;
 	FILE *xml;
@@ -2962,13 +2962,13 @@ GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, c
 	//we cannot use files with BOM since the XML position we get from the parser are offsets in the UTF-8 version of the XML.
 	//TODO: to support files with BOM we would need to serialize on the fly the callback from the sax parser
 	read = (u32) fread(szBOM, 1, 3, xml);
-    if (read==3) {
-        fseek(xml, 0, SEEK_SET);
-        if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
-            e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
-            goto exit;
-        }
-    }
+	if (read==3) {
+		fseek(xml, 0, SEEK_SET);
+		if ((szBOM[0]==0xFF) || (szBOM[0]==0xFE) || (szBOM[0]==0xEF)) {
+			e = gf_import_message(import, GF_NOT_SUPPORTED, "NHML import failure: XML file %s uses BOM, please convert to plin UTF-8 or ANSI first", xml_file);
+			goto exit;
+		}
+	}
 
 
 	memset(&breaker, 0, sizeof(XMLBreaker));
@@ -3115,7 +3115,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 {
 	GF_Err e;
 	GF_DIMSDescription dims;
-	Bool destroy_esd, inRootOD, do_compress, use_dict, is_dims;
+	Bool destroy_esd, inRootOD, do_compress, is_dims;
 	u32 i, track, tkID, di, mtype, max_size, count, streamType, oti, timescale, specInfoSize, header_end, dts_inc, par_den, par_num;
 	GF_ISOSample *samp;
 	GF_XMLAttribute *att;
@@ -3129,6 +3129,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node, *childnode;
 	char *szRootName, *szSampleName, *szImpName;
+#ifndef GPAC_DISABLE_ZLIB
+	Bool use_dict = GF_FALSE;
+#endif
 
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
 	szSampleName = dims_doc ? "DIMSUnit" : "NHNTSample";
@@ -3185,7 +3188,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		e = gf_import_message(import, GF_BAD_PARAM, "Error parsing %s file - \"%s\" root expected, got \"%s\"", szImpName, szRootName, root->name);
 		goto exit;
 	}
-	use_dict = GF_FALSE;
+
 	memset(&sdesc, 0, sizeof(GF_GenericSampleDescription));
 	tkID = mtype = streamType = oti = par_den = par_num = 0;
 	timescale = 1000;
@@ -3230,7 +3233,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			NHML_SCAN_INT("%u", dts_inc)
 		} else if (!stricmp(att->name, "gzipSamples")) {
 			do_compress = (!stricmp(att->value, "yes")) ? GF_TRUE : GF_FALSE;
-		} else if (!stricmp(att->name, "gzipDictionary")) {
+		}
+#ifndef GPAC_DISABLE_ZLIB
+		else if (!stricmp(att->name, "gzipDictionary")) {
 			u64 d_size;
 			if (stricmp(att->value, "self")) {
 				FILE *d = gf_fopen(att->value, "rb");
@@ -3247,6 +3252,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			}
 			use_dict = GF_TRUE;
 		}
+#endif
 		/*unknow desc related*/
 		else if (!stricmp(att->name, "compressorName")) {
 			strcpy(sdesc.compressor_name, att->value);
@@ -3313,7 +3319,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	}
 	if (sdesc.samplerate && !timescale) {
 		timescale = sdesc.samplerate;
-	} 
+	}
 	if (!sdesc.bits_per_sample) {
 		sdesc.bits_per_sample = 16;
 	}
@@ -3346,7 +3352,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		/* for text based streams, the decoder specific info can be at the beginning of the file */
 		specInfoSize = header_end;
 		specInfo = (char*)gf_malloc(sizeof(char) * (specInfoSize+1));
-		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, mdia);		
+		specInfoSize = (u32) fread(specInfo, sizeof(char), specInfoSize, mdia);
 		specInfo[specInfoSize] = 0;
 		header_end = specInfoSize;
 	} else if (strlen(szXmlHeaderEnd)) {
@@ -3479,16 +3485,16 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
 			e = gf_isom_new_xml_subtitle_description(import->dest, track,
-													 dims.mime_type, dims.xml_schema_loc, NULL,
-													 &di);
+			        dims.mime_type, dims.xml_schema_loc, NULL,
+			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STXT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_STXT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -3501,12 +3507,12 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_METX) {
 			e = gf_isom_new_xml_metadata_description(import->dest, track,
-													 dims.mime_type, dims.xml_schema_loc, dims.textEncoding, 
-													 &di);
+			        dims.mime_type, dims.xml_schema_loc, dims.textEncoding,
+			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_METT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_METT,
-											 dims.mime_type, dims.textEncoding, specInfo,
-											 &di);
+			                                 dims.mime_type, dims.textEncoding, specInfo,
+			                                 &di);
 		} else {
 			e = GF_NOT_SUPPORTED;
 		}
@@ -3805,7 +3811,7 @@ exit:
 GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 {
 	GF_Err e;
-	u32 track, trackID, di, sample_rate, block_size, i, readen;
+	u32 track, trackID, di, sample_rate, block_size, i, read;
 	GF_ISOSample *samp;
 	char magic[20], *msg;
 	Bool delete_esd, update_gpp_cfg;
@@ -3993,8 +3999,11 @@ GF_Err gf_import_amr_evrc_smv(GF_MediaImporter *import)
 		}
 
 		if (samp->dataLength) {
-			readen = (u32) fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
-			assert(readen == samp->dataLength);
+			read = (u32) fread( samp->data + 1, sizeof(char), samp->dataLength, mdia);
+			if (read != samp->dataLength) {
+				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Failed to read logs");
+				goto exit;
+			}
 		}
 		samp->dataLength += 1;
 		/*if last frame is "no data", abort - this happens in many files with constant mode (ie constant files), where
@@ -4552,7 +4561,7 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, 
 static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 {
 	u64 nal_start, nal_end, total_size;
-	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	u32 nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay, nb_nalus;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	u8 nal_type;
@@ -4673,6 +4682,7 @@ restart_import:
 	prev_nalu_prefix_size = 0;
 	res_prev_nalu_prefix = 0;
 	priority_prev_nalu_prefix = 0;
+	nb_nalus = 0;
 
 	while (gf_bs_available(bs)) {
 		u8 nal_hdr, skip_nal, is_subseq, add_sps;
@@ -4703,6 +4713,7 @@ restart_import:
 		if (nal_type == GF_AVC_NALU_SVC_SUBSEQ_PARAM || nal_type == GF_AVC_NALU_SVC_PREFIX_NALU || nal_type == GF_AVC_NALU_SVC_SLICE) {
 			avc.is_svc = GF_TRUE;
 		}
+		nb_nalus ++;
 
 		switch (gf_media_avc_parse_nalu(bs, nal_hdr, &avc)) {
 		case 1:
@@ -5455,11 +5466,11 @@ restart_import:
 	} else {
 		u32 i;
 		if (nb_sp || nb_si) {
-			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 		} else {
-			gf_import_message(import, GF_OK, "AVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "AVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
 		for (i=0; i<gf_list_count(svccfg->sequenceParameterSets); i++) {
@@ -5559,7 +5570,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 #else
 	Bool detect_fps;
 	u64 nal_start, nal_end, total_size;
-	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay;
+	u32 i, nal_size, track, trackID, di, cur_samp, nb_i, nb_idr, nb_p, nb_b, nb_sp, nb_si, nb_sei, max_w, max_h, max_total_delay, nb_nalus;
 	s32 idx, sei_recovery_frame_count;
 	u64 duration;
 	GF_Err e;
@@ -5625,6 +5636,7 @@ restart_import:
 	first_hevc = GF_TRUE;
 	sei_recovery_frame_count = -1;
 	spss = ppss = vpss = NULL;
+	nb_nalus = 0;
 
 	bs = gf_bs_from_file(mdia, GF_BITSTREAM_READ);
 	if (!gf_media_nalu_is_start_code(bs)) {
@@ -5713,6 +5725,8 @@ restart_import:
 		if (layer_id && (import->flags & GF_IMPORT_SVC_NONE)) {
 			goto next_nal;
 		}
+
+		nb_nalus++;
 
 		is_islice = GF_FALSE;
 
@@ -5907,7 +5921,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-			} 
+			}
 			break;
 
 		case GF_HEVC_NALU_PIC_PARAM:
@@ -5953,7 +5967,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-			} 
+			}
 
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
@@ -5963,7 +5977,7 @@ restart_import:
 				if (copy_size)
 					nb_sei++;
 			}
-            break;
+			break;
 		case GF_HEVC_NALU_SEI_PREFIX:
 			if (hevc.sps_active_idx != -1) {
 				copy_size = nal_size;
@@ -6434,11 +6448,11 @@ next_nal:
 		e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Import results: No SPS or PPS found in the bitstream ! Nothing imported\n");
 	} else {
 		if (nb_sp || nb_si) {
-			gf_import_message(import, GF_OK, "HEVC Import results: %d samples - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "HEVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B %d SP %d SI - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sp, nb_si, nb_sei, nb_idr);
 		} else {
-			gf_import_message(import, GF_OK, "HEVC Import results: %d samples - Slices: %d I %d P %d B - %d SEI - %d IDR",
-			                  cur_samp, nb_i, nb_p, nb_b, nb_sei, nb_idr);
+			gf_import_message(import, GF_OK, "HEVC Import results: %d samples (%d NALUs) - Slices: %d I %d P %d B - %d SEI - %d IDR",
+			                  cur_samp, nb_nalus, nb_i, nb_p, nb_b, nb_sei, nb_idr);
 		}
 
 		if (max_total_delay>1) {
@@ -6973,7 +6987,7 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
 	GF_Err e;
 	GF_ISOSample *samp;
-	u32 mtype, track, di, timescale, readen;
+	u32 mtype, track, di, timescale, read;
 	FILE *src;
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -7048,8 +7062,12 @@ GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 	gf_fseek(src, 0, SEEK_SET);
 	samp->IsRAP = RAP;
 	samp->data = (char *)gf_malloc(sizeof(char)*samp->dataLength);
-	readen = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
-	assert( readen == samp->dataLength );
+	read = (u32) fread(samp->data, sizeof(char), samp->dataLength, src);
+	if ( read != samp->dataLength ) {
+		e = gf_import_message(import, GF_IO_ERR, "Failed to read raw unit %d bytes", samp->dataLength);
+		goto exit;
+
+	}
 	e = gf_isom_add_sample(import->dest, track, di, samp);
 	gf_isom_sample_del(&samp);
 	gf_media_update_bitrate(import->dest, track);
@@ -8489,7 +8507,7 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				gf_isom_hevc_set_inband_config(import->dest, tsimp.track, 1);
 			}
-			
+
 			gf_isom_set_visual_info(import->dest, tsimp.track, 1, w, h);
 			gf_isom_set_track_layout_info(import->dest, tsimp.track, w<<16, h<<16, 0, 0, 0);
 
@@ -8514,11 +8532,11 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 				pdur = gf_isom_get_media_duration(import->dest, tsimp.track) * 1.0 * moov_ts / media_ts;
 				dur = (u64)pdur;
 				if (poffset != offset || pdur != dur) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Movie timescale not precise enough to store edit\n"));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("Movie timescale (%u) not precise enough to store edit (media timescale: %u)\n", moov_ts, media_ts));
 				}
 				gf_isom_set_edit_segment(import->dest, tsimp.track, 0, offset, 0, GF_ISOM_EDIT_EMPTY);
 				gf_isom_set_edit_segment(import->dest, tsimp.track, offset, dur, 0, GF_ISOM_EDIT_NORMAL);
-				gf_import_message(import, GF_OK, "Timeline offset: %d ms", (offset * 1000) / moov_ts);
+				gf_import_message(import, GF_OK, "Timeline offset: %u ms", (offset * 1000) / moov_ts);
 			}
 
 			if (tsimp.nb_p) {

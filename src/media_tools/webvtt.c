@@ -1273,7 +1273,7 @@ void gf_webvtt_timestamp_dump(GF_WebVTTTimestamp *ts, FILE *dump, Bool dump_hour
 	if (dump_hour || ts->hour != 0) {
 		fprintf(dump, "%02u:", ts->hour);
 	}
-	
+
 	fprintf(dump, "%02u:%02u.%03u", ts->min, ts->sec, ts->ms);
 }
 GF_Err gf_webvtt_dump_header_boxed(FILE *dump, const char *data, u32 dataLength, u32 *dumpedLength)
@@ -1314,7 +1314,7 @@ GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sa
 {
 	GF_Err e;
 	GF_BitStream *bs;
-	
+
 	bs = gf_bs_new(iso_sample->data, iso_sample->dataLength, GF_BITSTREAM_READ);
 	while(gf_bs_available(bs))
 	{

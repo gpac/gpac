@@ -39,6 +39,8 @@ typedef struct {
 	int in_width;
 	int in_height;
 	int in_pix_fmt;
+
+	VideoInputData *video_input_data;
 } VideoScaledProp;
 
 /*
@@ -73,8 +75,6 @@ typedef struct {
 	 * (Which are the encoders who are using this resolution) */
 	int num_consumers;
 	int num_producers;
-
-	u64 frame_duration;
 } VideoScaledData;
 
 /*
@@ -82,8 +82,9 @@ typedef struct {
  * To use the circular buffer for scaled video frame we must define the node. This structure contains the data needed to encode a video frame.
  */
 typedef struct {
-	AVFrame *v_frame;
+	AVFrame *vframe;
 	AVFrame *cropped_frame;
+	u64 frame_ntp, frame_utc;
 } VideoScaledDataNode;
 
 /*

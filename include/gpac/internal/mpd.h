@@ -49,7 +49,7 @@ typedef struct
 #define MPD_EXTENSIBLE	\
 	GF_List *attributes;	\
 	GF_List *children;	\
-
+ 
 typedef struct
 {
 	MPD_EXTENSIBLE
@@ -127,7 +127,7 @@ typedef struct
 	Double availability_time_offset;	\
 	GF_MPD_URL *initialization_segment;	\
 	GF_MPD_URL *representation_index;	\
-
+ 
 
 typedef struct
 {
@@ -141,7 +141,7 @@ typedef struct
 	u32 start_number;	\
 	GF_MPD_SegmentTimeline *segment_timeline;	\
 	GF_MPD_URL *bitstream_switching_url;	\
-
+ 
 typedef struct
 {
 	GF_MPD_MULTIPLE_SEGMENT_BASE
@@ -211,7 +211,7 @@ typedef enum
 	GF_List *essential_properties;	\
 	GF_List *supplemental_properties;	\
 	GF_List *isobmf_tracks;	\
-
+ 
 typedef struct {
 	GF_MPD_COMMON_ATTRIBUTES_ELEMENTS
 } GF_MPD_CommonAttributes;
@@ -229,6 +229,7 @@ typedef struct
 {
 	Bool disabled;
 	char *cached_init_segment_url;
+	Bool owned_gmem;
 	u64 init_start_range, init_end_range;
 	u32 probe_switch_count;
 	char *init_segment_data;
@@ -311,8 +312,8 @@ typedef struct
 typedef struct
 {
 	char *ID;
-	u32 start; /* expressed in ms, relative to the start of the MPD */
-	u32 duration; /* expressed in ms*/
+	u64 start; /* expressed in ms, relative to the start of the MPD */
+	u64 duration; /* expressed in ms*/
 	Bool bitstream_switching;
 
 	GF_List *base_URLs;
@@ -350,12 +351,12 @@ typedef struct {
 	u64 availabilityStartTime; /* expressed in milliseconds */	/*MANDATORY if type=dynamic*/
 	u64 availabilityEndTime;/* expressed in milliseconds */
 	u64 publishTime;/* expressed in milliseconds */
-	u32 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
+	u64 media_presentation_duration; /* expressed in milliseconds */	/*MANDATORY if type=static*/
 	u32 minimum_update_period; /* expressed in milliseconds */
 	u32 min_buffer_time; /* expressed in milliseconds */	/*MANDATORY*/
 
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */
-	u32 suggested_presentaton_delay; /* expressed in milliseconds */
+	u32 suggested_presentation_delay; /* expressed in milliseconds */
 
 	u32 max_segment_duration; /* expressed in milliseconds */
 	u32 max_subsegment_duration; /* expressed in milliseconds */
@@ -386,7 +387,7 @@ void gf_mpd_segment_base_free(void *ptr);
 
 void gf_mpd_period_free(void *_item);
 
-GF_Err gf_mpd_write_file(GF_MPD *mpd, const char *file_name);
+GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
 
 
 typedef struct _gf_file_get GF_FileDownload;
@@ -402,10 +403,11 @@ struct _gf_file_get
 };
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
-GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, 
-						GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
+GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates,
+                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
 
-GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u32 *duration);
+GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration);
+
 GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root);
 
 GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
@@ -427,8 +429,36 @@ typedef enum
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when purging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, 
-								char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
+                          char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
+
+/*get duration of the presentation*/
+Double gf_mpd_get_duration(GF_MPD *mpd);
+
+/*get the duration of media segments*/
+void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
+
+/*get the start_time from the segment index of a period/set/rep*/
+GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
+	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	u64 *out_segment_start_time, u64 *out_opt_segment_duration, u32 *out_opt_scale);
+
+typedef enum {
+	MPD_SEEK_PREV,    /*will return the segment containing the requested time*/
+	MPD_SEEK_NEAREST, /*the nearest segment start time, may be the previous or the next one*/
+} MPDSeekMode;
+
+
+/*returns the segment index in the given period for the given time*/
+GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD_Period const * const in_period, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	u32 *out_segment_index, Double *out_opt_seek_time);
+
+/*get the index and the period for a given time in the MPD*/
+GF_EXPORT
+GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
+	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
+	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
 
 /*get duration of the presentation*/
 Double gf_mpd_get_duration(GF_MPD *mpd);

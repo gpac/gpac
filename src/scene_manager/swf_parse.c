@@ -2111,7 +2111,9 @@ static GF_Err swf_def_bits_jpeg(SWFReader *read, u32 version)
 		raw = gf_malloc(sizeof(char)*osize);
 		memset(raw, 0, sizeof(char)*osize);
 		e = gf_img_jpeg_dec( (char *) buf+skip, size-skip, &w, &h, &pf, raw, &osize, 4);
-		assert(e == GF_OK);
+		if (e != GF_OK) {
+			swf_report(read, e, "Cannopt decode JPEG image");
+		}
 
 		/*read alpha map and decompress it*/
 		if (size<AlphaPlaneSize) buf = gf_realloc(buf, sizeof(u8)*AlphaPlaneSize);

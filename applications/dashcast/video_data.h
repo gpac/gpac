@@ -127,6 +127,8 @@ typedef struct {
 	int source_number;
 	uint8_t nb_raw_frames_ref;
 	AVPacket raw_packet;
+
+	u64 frame_ntp, frame_utc;
 } VideoDataNode;
 
 void dc_video_data_set_default(VideoDataConf *video_data_conf);

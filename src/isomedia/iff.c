@@ -107,7 +107,7 @@ void colr_del(GF_Box *a)
 GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox *)s;
-	
+
 	p->colour_type = gf_bs_read_u32(bs);
 	p->size -= 4;
 	if (p->colour_type == GF_4CC('n','c','l','x')) {
@@ -132,7 +132,7 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	if (p->colour_type != GF_4CC('n','c','l','x')) { 
+	if (p->colour_type != GF_4CC('n','c','l','x')) {
 		gf_bs_write_u32(bs, p->colour_type);
 		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
 	} else {
@@ -151,7 +151,7 @@ GF_Err colr_Size(GF_Box *s)
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
-	if (p->colour_type != GF_4CC('n','c','l','x')) { 
+	if (p->colour_type != GF_4CC('n','c','l','x')) {
 		p->size += 4 + p->opaque_size;
 	} else {
 		p->size += 11;
@@ -453,7 +453,7 @@ void ipma_del(GF_Box *a)
 		count = gf_list_count(p->entries);
 
 		for (i = 0; i < count; i++) {
-			GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(p->entries, i); 
+			GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(p->entries, i);
 			if (entry) {
 				count2 = gf_list_count(entry->essential);
 				for (j = 0; j < count2; j++) {

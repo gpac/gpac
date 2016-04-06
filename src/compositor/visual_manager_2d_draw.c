@@ -360,7 +360,7 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 	u32 nb_obj_left_on_canvas = visual->nb_objects_on_canvas_since_last_ogl_flush;
 	u8 alpha;
 
-	if (! visual->hybgl_drawn.count) 
+	if (! visual->hybgl_drawn.count)
 		return;
 
 	//we have drawn things on the canvas before this object, flush canvas to GPU
@@ -377,7 +377,7 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 		prev_color = ctx->aspect.fill_color;
 		ctx->aspect.fill_texture = NULL;
 		ctx->aspect.fill_color = 0;
-		
+
 	}
 	transparent = txh ? (txh->transparent || (alpha!=0xFF)) : GF_TRUE;
 	//clear wherever we have overlap
@@ -596,7 +596,7 @@ void visual_2d_texture_path(GF_VisualManager *visual, GF_Path *path, struct _dra
 	return;
 #endif
 	if (! visual->CheckAttached(visual) ) return;
-	
+
 	if ((ctx->flags & CTX_PATH_FILLED) || !ctx->aspect.fill_texture || visual->compositor->is_hidden) return;
 
 	/*this is ambiguous in the spec, what if the material is filled and the texture is transparent ?
@@ -779,7 +779,7 @@ void visual_2d_fill_irect(GF_VisualManager *visual, GF_IRect *rc, u32 fill, u32 
 #endif
 
 	if (!rc) return;
-	
+
 	if (! visual->CheckAttached(visual) ) return;
 
 	if (!fill && !strike ) return;

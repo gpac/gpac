@@ -1481,8 +1481,8 @@ void gf_mx_transpose(GF_Matrix *mx)
 	int i,j;
 
 	gf_mx_init(rev);
-	for (i=0; i<4 ; i++){
-		for(j=0; j<4; j++){
+	for (i=0; i<4 ; i++) {
+		for(j=0; j<4; j++) {
 			rev.m[i*4+j] = mx->m[j*4+i];
 		}
 	}

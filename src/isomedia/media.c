@@ -207,6 +207,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		ESDa = entry->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		break;
+#ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_TX3G:
 	case GF_ISOM_BOX_TYPE_TEXT:
 		if (!true_desc_only && mdia->mediaTrack->moov->mov->convert_streaming_text) {
@@ -214,8 +215,10 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 			if (e) return e;
 			break;
 		}
-		else return GF_ISOM_INVALID_MEDIA;
-#ifndef GPAC_DISABLE_TTXT
+		else
+			return GF_ISOM_INVALID_MEDIA;
+#endif
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_WVTT:
 	{
 		GF_BitStream *bs;
@@ -603,6 +606,7 @@ GF_Err Media_FindDataRef(GF_DataReferenceBox *dref, char *URLname, char *URNname
 //Get the total media duration based on the TimeToSample table
 GF_Err Media_SetDuration(GF_TrackBox *trak)
 {
+	GF_Err e;
 	GF_ESD *esd;
 	u64 DTS;
 	GF_SttsEntry *ent;
@@ -632,16 +636,23 @@ GF_Err Media_SetDuration(GF_TrackBox *trak)
 	default:
 		//we assume a constant frame rate for the media and assume the last sample
 		//will be hold the same time as the prev one
-		stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
-		ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
+		e = stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, nbSamp, &DTS);
+		if (e < 0) {
+			return e;
+		}
+		if (trak->Media->information->sampleTable->TimeToSample->nb_entries > 0) {
+			ent = &trak->Media->information->sampleTable->TimeToSample->entries[trak->Media->information->sampleTable->TimeToSample->nb_entries-1];
+		} else {
+			ent = NULL;
+		}
 		trak->Media->mediaHeader->duration = DTS;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		trak->Media->mediaHeader->duration += trak->dts_at_seg_start;
 #endif
-			
-			
+
+
 #if 1
-		trak->Media->mediaHeader->duration += ent->sampleDelta;
+		if (ent) trak->Media->mediaHeader->duration += ent->sampleDelta;
 #else
 		if (!ent) {
 			u64 DTSprev;

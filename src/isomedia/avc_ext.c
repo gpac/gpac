@@ -372,7 +372,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				GF_ISOSample *tile_samp;
 				u32 ref_track, di;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
-				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber, &di);
+				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
 				if (tile_samp  && tile_samp ->data) {
 					sample->data = gf_realloc(sample->data, sample->dataLength+tile_samp->dataLength);
 					memcpy(sample->data + sample->dataLength, tile_samp->data, tile_samp->dataLength);
@@ -382,8 +382,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			}
 		}
 	}
-	
-	
+
+
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
 			sample->IsRAP = is_sample_idr(sample, entry);
@@ -585,6 +585,16 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_STSA_R:
 				if (temporal_id < (nal_hdr & 0x7))
 					temporal_id = (nal_hdr & 0x7);
+				/*rewrite nal*/
+				gf_bs_read_data(src_bs, buffer, nal_size-2);
+				if (rewrite_start_codes)
+					gf_bs_write_u32(dst_bs, 1);
+				else
+					gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+
+				gf_bs_write_u16(dst_bs, nal_hdr);
+				gf_bs_write_data(dst_bs, buffer, nal_size-2);
+				break;
 
 			case GF_HEVC_NALU_SLICE_BLA_W_LP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
@@ -1470,6 +1480,13 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 {
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;
+	if (gf_isom_get_reference_count(the_file, trackNumber, GF_ISOM_REF_TBAS)) {
+		u32 ref_track;
+		GF_Err e = gf_isom_get_reference(the_file, trackNumber, GF_ISOM_REF_TBAS, 1, &ref_track);
+		if (e == GF_OK) {
+			trackNumber = ref_track;
+		}
+	}
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !trak->Media || !DescriptionIndex) return NULL;
 	if (gf_isom_get_hevc_shvc_type(the_file, trackNumber, DescriptionIndex)==GF_ISOM_HEVCTYPE_NONE)

@@ -142,13 +142,13 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 	import.dest = tti->mp4;
 	/*override layout from sub file*/
 	import.flags = GF_IMPORT_SKIP_TXT_BOX;
-	
+
 	if (!strnicmp(url, "gmem://", 7)) {
 		u8 *mem_address;
 		u32 size;
 		FILE *tmp_txt;
 		import.streamFormat = "TEXT";
-		
+
 		if (sscanf(url, "gmem://%d@%p", &size, &mem_address) != 2) {
 			return GF_BAD_PARAM;
 		}
@@ -157,12 +157,12 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 		if (!tmp_txt) return GF_IO_ERR;
 		fwrite(mem_address, size, 1, tmp_txt);
 		fclose(tmp_txt);
-		
+
 		import.in_name = szFILE;
 		e = gf_media_import(&import);
-		
+
 		gf_delete_file(szFILE);
-		
+
 	} else {
 		import.in_name = (char *) url;
 		e = gf_media_import(&import);

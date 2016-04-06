@@ -401,7 +401,7 @@ void CNativeWrapper::on_fm_request(void *cbk, u32 type, u32 param, int *value) {
 
 
 //-------------------------------
-void CNativeWrapper::on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list) {
+void CNativeWrapper::on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list) {
 	char szMsg[4096];
 	const char * tag;
 	char unknTag[32];
@@ -678,7 +678,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	strcpy(m_font_dir, font_dir);
 	if (cfg_dir)
 		strcpy(m_cfg_dir, cfg_dir);
-	
+
 	char m_cfg_filename[GF_MAX_PATH];
 	if (m_cfg_dir) {
 		LOGI("GPAC.cfg found in %s, force using it.\n", m_cfg_dir);

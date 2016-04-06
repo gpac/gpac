@@ -141,7 +141,7 @@ void isor_check_buffer_level(ISOMReader *read)
 	if (read->frag_type) {
 		u64 bytesMissing=0;
 		gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
-		mov_rate = done + bytesMissing;
+		mov_rate = (Double) (done + bytesMissing);
 	}
 	dur = gf_isom_get_duration(read->mov);
 	if (dur) {
@@ -1051,7 +1051,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		for (i = 0; i < count; i++)
 		{
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
-			if (gf_isom_has_scalable_layer(read->mov)) {
+			if (gf_isom_needs_layer_reconstruction(read->mov)) {
 				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
 			}
 		}
@@ -1066,7 +1066,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			isor_flush_data(read, 0, 0);
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK) 
+	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
 		return GF_OK;
 
 	if (!com->base.on_channel) return GF_NOT_SUPPORTED;

@@ -197,7 +197,7 @@ GF_Err schm_Write(GF_Box *s, GF_BitStream *bs)
 	GF_SchemeTypeBox *ptr = (GF_SchemeTypeBox *) s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
-	assert(e == GF_OK);
+	if (e) return e;
 	gf_bs_write_u32(bs, ptr->scheme_type);
 	gf_bs_write_u32(bs, ptr->scheme_version);
 	if (ptr->flags & 0x000001) gf_bs_write_data(bs, ptr->URI, (u32) strlen(ptr->URI)+1);
@@ -549,9 +549,9 @@ GF_Err ohdr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->PaddingScheme);
 	gf_bs_write_u64(bs, ptr->PlaintextLength);
 
-	cid_len = ptr->ContentID ? (u32) strlen(ptr->ContentID) : 0;
+	cid_len = ptr->ContentID ? (u16) strlen(ptr->ContentID) : 0;
 	gf_bs_write_u16(bs, cid_len);
-	ri_len = ptr->RightsIssuerURL ? (u32) strlen(ptr->RightsIssuerURL) : 0;
+	ri_len = ptr->RightsIssuerURL ? (u16) strlen(ptr->RightsIssuerURL) : 0;
 	gf_bs_write_u16(bs, ri_len);
 	gf_bs_write_u16(bs, ptr->TextualHeadersLen);
 
@@ -629,7 +629,7 @@ GF_Err grpi_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	gid_len = ptr->GroupID ? (u32) strlen(ptr->GroupID) : 0;
+	gid_len = ptr->GroupID ? (u16) strlen(ptr->GroupID) : 0;
 	gf_bs_write_u16(bs, gid_len);
 	gf_bs_write_u8(bs, ptr->GKEncryptionMethod);
 	gf_bs_write_u16(bs, ptr->GKLength);
@@ -1114,6 +1114,7 @@ void piff_psec_del(GF_Box *s)
 
 GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 {
+	u32 sample_count, i, j;
 	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->version = gf_bs_read_u8(bs);
@@ -1126,10 +1127,37 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 		gf_bs_read_data(bs, (char *) ptr->KID, 16);
 		ptr->size -= 20;
 	}
+	if (ptr->IV_size == 0)
+		ptr->IV_size = 8; //default to 8
+
+	sample_count = gf_bs_read_u32(bs);
+	ptr->size -= 4;
+	if (ptr->IV_size != 8 && ptr->IV_size != 16) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] PIFF PSEC box incorrect IV size: %u - shall be 8 or 16\n", ptr->IV_size));
+		return GF_BAD_PARAM;
+	}
+
+	ptr->samp_aux_info = gf_list_new();
+	for (i=0; i<sample_count; ++i) {
+		GF_CENCSampleAuxInfo *sai;
+		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		sai->IV_size = ptr->IV_size;
+		gf_bs_read_data(bs, sai->IV, ptr->IV_size);
+		ptr->size -= ptr->IV_size;
+		if (ptr->flags & 2) {
+			sai->subsample_count = gf_bs_read_u16(bs);
+			sai->subsamples = gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
+			for (j = 0; j < sai->subsample_count; ++j) {
+				sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
+				sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+			}
+			ptr->size -= 2+sai->subsample_count*6;
+		}
+		gf_list_add(ptr->samp_aux_info, sai);
+	}
 
 	ptr->bs_offset = gf_bs_get_position(bs);
-	gf_bs_skip_bytes(bs, ptr->size);
-	ptr->size = 0;
+	assert(ptr->size == 0);
 	return GF_OK;
 }
 
@@ -1323,7 +1351,7 @@ GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncr
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		if (trak) samp_count += trak->sample_count_at_seg_start;
 #endif
-	
+
 		e = gf_isom_get_sample_cenc_info_ex(trak, traf, samp_count, &is_encrypted, &sai->IV_size, NULL);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", samp_count, gf_error_to_string(e) ));

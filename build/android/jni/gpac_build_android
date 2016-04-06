@@ -71,19 +71,13 @@ export BUILDPATH=$(dirname "$0")
 cd $BUILDPATH
 export BUILDPATH=$(pwd)
 echo "Current Dir = $BUILDPATH"
-TAG=$(git describe --tags --abbrev=0 2> /dev/null)
-REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
-version="$REVISION-$BRANCH"
-echo "*** Build path is $BUILDPATH, setting revision number $version"
-if grep "$version" ../../../include/gpac/revision.h >/dev/null 2>&1 ; then
-  echo "Version $version already set"
-else
-  echo "#define GPAC_GIT_REVISION \"$version\"" > ../../../include/gpac/revision.h
-fi
+
 echo "Building lib gpac ..."
 cd ../../../
 BASEPATH=$(pwd)
+#check revision.h is here
+./check_revision.sh
+version="`grep '#define GPAC_GIT_REVISION' \"./include/gpac/revision.h\" | cut -d '"' -f 2`"
 
 #rm -rf $BUILDPATH/../obj/*
 

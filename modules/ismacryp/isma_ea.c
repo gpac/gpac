@@ -51,7 +51,7 @@ typedef struct
 	u32 nb_allow_play;
 	Bool is_oma;
 	u32 preview_range;
-	/*for Common Enxryption*/
+	/*for Common Encryption*/
 	Bool is_cenc;
 	Bool is_cbc;
 	Bool first_crypted_samp;
@@ -283,6 +283,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
 	GF_CENCConfig *cfg = (GF_CENCConfig*)evt->config_data;
 	u32 i;
+	Bool is_playing = (priv->state == ISMAEA_STATE_PLAY) ? GF_TRUE : GF_FALSE;
 
 	priv->state = ISMAEA_STATE_ERROR;
 
@@ -351,7 +352,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	else
 		priv->is_cbc = GF_TRUE;
 
-	priv->state = ISMAEA_STATE_SETUP;
+	priv->state = is_playing ? ISMAEA_STATE_PLAY : ISMAEA_STATE_SETUP;
 	//priv->nb_allow_play = 1;
 	return GF_OK;
 }
@@ -395,7 +396,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	bin128 KID;
 	char *buffer;
 	u32 max_size, i, subsample_count;
-	u64 BSO;
 	GF_CENCSampleAuxInfo *sai;
 
 	e = GF_OK;
@@ -472,7 +472,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	//sub-sample encryption
 	if (sai->subsample_count) {
 		subsample_count = 0;
-		BSO = 0;
 		while (gf_bs_available(cyphertext_bs)) {
 			if (subsample_count >= sai->subsample_count)
 				break;

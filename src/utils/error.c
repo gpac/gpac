@@ -25,6 +25,13 @@
 
 #include <gpac/tools.h>
 
+#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+#include <windows.h>
+#include <wincon.h>
+static HANDLE console = NULL;
+static WORD console_attr_ori = 0;
+#endif
+
 
 static char szTYPE[5];
 
@@ -134,7 +141,7 @@ void gf_set_progress_callback(void *_user_cbk, gf_on_progress_cbk _prog_cbk)
 static struct log_tool_info {
 	u32 type;
 	const char *name;
-	u32 level;
+	GF_LOG_Level level;
 } global_log_tools [] =
 {
 	{ GF_LOG_CORE, "core", GF_LOG_WARNING },
@@ -326,17 +333,75 @@ u32 call_lev = 0;
 u32 call_tool = 0;
 
 GF_EXPORT
-Bool gf_log_tool_level_on(u32 log_tool, u32 log_level)
+Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 {
 	assert(log_tool<GF_LOG_TOOL_MAX);
 	if (global_log_tools[log_tool].level >= log_level) return GF_TRUE;
 	return GF_FALSE;
 }
 
-void default_log_callback(void *cbck, u32 level, u32 tool, const char* fmt, va_list vlist)
+#define RED    "\x1b[31m"
+#define YELLOW "\x1b[33m"
+#define GREEN  "\x1b[32m"
+#define CYAN   "\x1b[36m"
+#define WHITE  "\x1b[37m"
+#define RESET  "\x1b[0m"
+
+void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
-#ifndef _WIN32_WCE
+#if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
+	if (console == NULL) {
+		CONSOLE_SCREEN_BUFFER_INFO console_info;
+		console = GetStdHandle(STD_ERROR_HANDLE);
+		assert(console != INVALID_HANDLE_VALUE);
+		if (console != INVALID_HANDLE_VALUE) {
+			GetConsoleScreenBufferInfo(console, &console_info);
+			console_attr_ori = console_info.wAttributes;
+		}
+	}
+	switch(level) {
+		case GF_LOG_ERROR:
+			SetConsoleTextAttribute(console, FOREGROUND_RED | FOREGROUND_INTENSITY);
+			break;
+		case GF_LOG_WARNING:
+			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED | FOREGROUND_GREEN);
+			break;
+		case GF_LOG_INFO:
+			SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_GREEN);
+			break;
+		case GF_LOG_DEBUG:
+			SetConsoleTextAttribute(console, FOREGROUND_GREEN);
+			break;
+		default:
+			SetConsoleTextAttribute(console, FOREGROUND_GREEN | FOREGROUND_RED | FOREGROUND_BLUE);
+			break;
+	}
+	
 	vfprintf(stderr, fmt, vlist);
+	SetConsoleTextAttribute(console, console_attr_ori);
+#elif !defined(_WIN32_WCE)
+	switch(level) {
+		case GF_LOG_ERROR:
+			fprintf(stderr, RED);
+			break;
+		case GF_LOG_WARNING:
+			fprintf(stderr, YELLOW);
+			break;
+		case GF_LOG_INFO:
+			fprintf(stderr, GREEN);
+			break;
+		case GF_LOG_DEBUG:
+			fprintf(stderr, CYAN);
+			break;
+		default:
+			fprintf(stderr, WHITE);
+			break;
+	}
+
+	vfprintf(stderr, fmt, vlist);
+	fprintf(stderr, RESET);
+#else /*_WIN32_WCE*/
+	/*no log*/
 #endif
 }
 
@@ -362,7 +427,7 @@ void gf_log_set_strict_error(Bool strict)
 }
 
 GF_EXPORT
-void gf_log_set_tool_level(u32 tool, u32 level)
+void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level)
 {
 	assert(tool<=GF_LOG_TOOL_MAX);
 	if (tool==GF_LOG_ALL) {
@@ -375,7 +440,7 @@ void gf_log_set_tool_level(u32 tool, u32 level)
 }
 
 GF_EXPORT
-void gf_log_lt(u32 ll, u32 lt)
+void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 	call_lev = ll;
 	call_tool = lt;
@@ -397,7 +462,7 @@ void gf_log(const char *fmt, ...)
 {
 }
 GF_EXPORT
-void gf_log_lt(u32 ll, u32 lt)
+void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 }
 GF_EXPORT
@@ -1220,6 +1285,7 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 
 	if (!lang_or_rfc_5646_code) return -1;
 
+	len = (u32)strlen(lang_or_rfc_5646_code);
 	sep = (char *) strchr(lang_or_rfc_5646_code, '-');
 	if (sep) {
 		sep[0] = 0;
@@ -1231,10 +1297,10 @@ s32 gf_lang_find(const char *lang_or_rfc_5646_code)
 		if (!strcmp(defined_languages[i].name, lang_or_rfc_5646_code)) {
 			return i;
 		}
-		if (sep && (len==3) && !strnicmp(defined_languages[i].three_char_code, lang_or_rfc_5646_code, 3)) {
+		if ((len==3) && !strnicmp(defined_languages[i].three_char_code, lang_or_rfc_5646_code, 3)) {
 			return i;
 		}
-		if (sep && (len==2) && !strnicmp(defined_languages[i].two_char_code, lang_or_rfc_5646_code, 2)) {
+		if ((len==2) && !strnicmp(defined_languages[i].two_char_code, lang_or_rfc_5646_code, 2)) {
 			return i;
 		}
 	}

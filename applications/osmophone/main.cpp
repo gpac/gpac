@@ -207,7 +207,7 @@ void set_full_screen()
 }
 
 
-static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_gpac_rti_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	if (!log_file) return;
 
@@ -228,7 +228,7 @@ static void on_gpac_rti_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list 
 		vfprintf(log_file, fmt, list);
 	}
 }
-static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list)
+static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
 	if (fmt && log_file) vfprintf(log_file, fmt, list);
 }

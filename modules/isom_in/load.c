@@ -95,7 +95,7 @@ void isor_declare_objects(ISOMReader *read)
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
-		if (!gf_isom_is_track_enabled(read->mov, i+1)) 
+		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
 		switch (gf_isom_get_media_type(read->mov, i+1)) {
@@ -138,7 +138,7 @@ void isor_declare_objects(ISOMReader *read)
 				esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_get_media_language(read->mov, i+1, &esd->langDesc->full_lang_code);
 			}
-			
+
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;

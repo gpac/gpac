@@ -338,6 +338,8 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 	GF_Err e;
 	GF_ISOFile *movie;
 
+	if (!BytesMissing || !the_file)
+		return GF_BAD_PARAM;
 	*BytesMissing = 0;
 	*the_file = NULL;
 
@@ -586,7 +588,7 @@ u32 gf_isom_get_track_count(GF_ISOFile *movie)
 {
 	if (!movie || !movie->moov) return 0;
 
-	if (! movie->moov->trackList) {
+	if (!movie->moov->trackList) {
 		movie->LastError = GF_ISOM_INVALID_FILE;
 		return 0;
 	}
@@ -1138,7 +1140,7 @@ u64 gf_isom_get_media_original_duration(GF_ISOFile *movie, u32 trackNumber)
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(movie, trackNumber);
 	if (!trak) return 0;
-	
+
 	return trak->Media->mediaHeader->original_duration;
 }
 
@@ -1512,7 +1514,8 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!samp) return NULL;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (sampleNumber<=trak->sample_count_at_seg_start) return NULL;
+	if (sampleNumber<=trak->sample_count_at_seg_start)
+		return NULL;
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
 
@@ -2258,7 +2261,15 @@ found:
 		gf_bs_write_u32(bs, s);
 		gf_bs_write_u32(bs, ptr->type);
 		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (char *) map->uuid, 16);
-		gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		if (ptr->data) {
+			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		} else if (ptr->other_boxes) {
+#ifndef GPAC_DISABLE_ISOM_WRITE
+			gf_isom_box_array_write((GF_Box *)ptr, ptr->other_boxes, bs);
+#else
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ISOBMF: udta is a box-list - cannot export in read-only version of libisom in GPAC\n" ));
+#endif
+		}
 	}
 	gf_bs_get_content(bs, userData, userDataSize);
 	gf_bs_del(bs);
@@ -2554,7 +2565,9 @@ GF_EXPORT
 GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	u32 i;
+	u32 i, j;
+	GF_Box *a;
+
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(movie->moov->trackList, i);
@@ -2583,6 +2596,29 @@ GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)
 		RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 		RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
 
+		gf_isom_box_array_del(stbl->sai_offsets);
+		stbl->sai_offsets = NULL;
+
+		gf_isom_box_array_del(stbl->sai_sizes);
+		stbl->sai_sizes = NULL;
+
+		gf_isom_box_array_del(stbl->sampleGroups);
+		stbl->sampleGroups = NULL;
+
+		j = stbl->nb_sgpd_in_stbl;
+		while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
+			gf_isom_box_del(a);
+			j--;
+			gf_list_rem(stbl->sampleGroupsDescription, j);
+		}
+
+		j = stbl->nb_other_boxes_in_stbl;
+		while ((a = (GF_Box *)gf_list_enum(stbl->other_boxes, &j))) {
+			gf_isom_box_del(a);
+			j--;
+			gf_list_rem(stbl->other_boxes, j);
+		}
+
 		if (reset_sample_count) {
 			trak->Media->information->sampleTable->SampleSize->sampleCount = 0;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2605,7 +2641,7 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 	Bool has_scalable;
 	GF_Box *a;
 	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
-	has_scalable = gf_isom_has_scalable_layer(movie);
+	has_scalable = gf_isom_needs_layer_reconstruction(movie);
 	base_track_sample_count = 0;
 	for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 		GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
@@ -2616,6 +2652,9 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		if (trak->Media->information->scalableDataHandler == movie->movieFileMap) {
 			trak->Media->information->scalableDataHandler = NULL;
 		} else {
+			if (trak->Media->information->scalableDataHandler==trak->Media->information->dataHandler)
+				trak->Media->information->dataHandler = NULL;
+
 			gf_isom_datamap_del(trak->Media->information->scalableDataHandler);
 			trak->Media->information->scalableDataHandler = NULL;
 		}
@@ -2665,6 +2704,29 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 			RECREATE_BOX(stbl->SyncSample, (GF_SyncSampleBox *));
 			RECREATE_BOX(stbl->TimeToSample, (GF_TimeToSampleBox *));
 
+			gf_isom_box_array_del(stbl->sai_offsets);
+			stbl->sai_offsets = NULL;
+
+			gf_isom_box_array_del(stbl->sai_sizes);
+			stbl->sai_sizes = NULL;
+
+			gf_isom_box_array_del(stbl->sampleGroups);
+			stbl->sampleGroups = NULL;
+
+			j = stbl->nb_sgpd_in_stbl;
+			while ((a = (GF_Box *)gf_list_enum(stbl->sampleGroupsDescription, &j))) {
+				gf_isom_box_del(a);
+				j--;
+				gf_list_rem(stbl->sampleGroupsDescription, j);
+			}
+
+
+			j = stbl->nb_other_boxes_in_stbl;
+			while ((a = (GF_Box *)gf_list_enum(stbl->other_boxes, &j))) {
+				gf_isom_box_del(a);
+				j--;
+				gf_list_rem(stbl->other_boxes, j);
+			}
 		}
 
 
@@ -2991,7 +3053,7 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (!trak || !hSpacing || !vSpacing) return GF_BAD_PARAM;
 	*hSpacing = 1;
 	*vSpacing = 1;
-	
+
 	stsd = trak->Media->information->sampleTable->SampleDescription;
 	if (!stsd) return movie->LastError = GF_ISOM_INVALID_FILE;
 	if (!StreamDescriptionIndex || StreamDescriptionIndex > gf_list_count(stsd->other_boxes)) return movie->LastError = GF_BAD_PARAM;
@@ -3623,10 +3685,10 @@ GF_DefaultSampleGroupDescriptionEntry * gf_isom_get_sample_group_info_entry(GF_I
 		if (sgdesc->grouping_type != grouping_type) continue;
 
 		if (sgdesc->default_description_index && !sample_description_index) sample_description_index = sgdesc->default_description_index;
-		
+
 		if (default_index) *default_index = sgdesc->default_description_index ;
 		if (out_sgdp) *out_sgdp = sgdesc;
-		
+
 		if (!sample_description_index) return NULL;
 		return (GF_DefaultSampleGroupDescriptionEntry*)gf_list_get(sgdesc->group_descriptions, sample_description_index-1);
 	}
@@ -3638,23 +3700,23 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 {
 	GF_DefaultSampleGroupDescriptionEntry *sg_entry;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	
+
 	if (default_index) *default_index = 0;
 	if (size) *size = 0;
 	if (data) *data = NULL;
-	
+
 	sg_entry = gf_isom_get_sample_group_info_entry(the_file, trak, grouping_type, sample_description_index, default_index, NULL);
 	if (!sg_entry) return GF_FALSE;
-	
+
 	switch (grouping_type) {
-		case GF_4CC('r','a','p',' '):
-		case GF_4CC('r','o','l','l'):
-		case GF_4CC( 's', 'e', 'i', 'g' ):
-			return GF_TRUE;
-		default:
-			if (sg_entry && data) *data = (char *) sg_entry->data;
-			if (sg_entry && size) *size = sg_entry->length;
-			return GF_TRUE;
+	case GF_4CC('r','a','p',' '):
+	case GF_4CC('r','o','l','l'):
+	case GF_4CC( 's', 'e', 'i', 'g' ):
+		return GF_TRUE;
+	default:
+		if (sg_entry && data) *data = (char *) sg_entry->data;
+		if (sg_entry && size) *size = sg_entry->length;
+		return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -3765,7 +3827,7 @@ s32 gf_isom_get_composition_offset_shift(GF_ISOFile *file, u32 track)
 }
 
 GF_EXPORT
-Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
+Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file)
 {
 	u32 count, i;
 	if (!file)
@@ -3773,6 +3835,9 @@ Bool gf_isom_has_scalable_layer(GF_ISOFile *file)
 	count = gf_isom_get_track_count(file);
 	for (i = 0; i < count; i++) {
 		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SCAL) > 0) {
+			return GF_TRUE;
+		}
+		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SABT) > 0) {
 			return GF_TRUE;
 		}
 	}
@@ -3786,6 +3851,13 @@ void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc)
 	file->keep_utc = keep_utc;
 }
 
+
+GF_EXPORT
+void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info)
+{
+	if (!file) return;
+	file->drop_date_version_info = drop_info;
+}
 
 GF_EXPORT
 u32 gf_isom_get_pssh_count(GF_ISOFile *file)
@@ -3843,7 +3915,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (KID) memset(*KID, 0, 16);
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (!traf)
+	if (traf)
 		return GF_BAD_PARAM;
 #endif
 

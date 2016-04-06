@@ -173,9 +173,9 @@ GF_Err gf_odf_write_od_remove(GF_BitStream *bs, GF_ODRemove *odRem)
 	if (! odRem) return GF_BAD_PARAM;
 
 	e = gf_odf_size_od_remove(odRem, &size);
-	assert(e == GF_OK);
+	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, odRem->tag, size);
-	assert(e == GF_OK);
+	if (e) return e;
 
 	for (i = 0; i < odRem->NbODs; i++) {
 		gf_bs_write_int(bs, odRem->OD_ID[i], 10);
@@ -572,9 +572,9 @@ GF_Err gf_odf_del_ipmp_update(GF_IPMPUpdate *IPMPDUpdate)
 	while (gf_list_count(IPMPDUpdate->IPMPDescList)) {
 		GF_Descriptor *tmp = (GF_Descriptor*)gf_list_get(IPMPDUpdate->IPMPDescList, 0);
 		e = gf_odf_delete_descriptor(tmp);
-		assert(e == GF_OK);
+		if (e) return e;
 		e = gf_list_rem(IPMPDUpdate->IPMPDescList, 0);
-		assert(e == GF_OK);
+		if (e) return e;
 	}
 	gf_list_del(IPMPDUpdate->IPMPDescList);
 	gf_free(IPMPDUpdate);

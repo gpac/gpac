@@ -23,6 +23,9 @@
  *
  */
 
+#if defined(__GNUC__) && __GNUC__ >= 4
+#define _GNU_SOURCE
+#endif
 #include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
@@ -141,7 +144,7 @@ This is only needed when building libgpac and modules when libgpac is not instal
 #ifndef GPAC_MEMORY_TRACKING
 
 #include <gpac/setup.h>
-GF_EXPORT 
+GF_EXPORT
 void *gf_malloc(size_t size)
 {
 	return MALLOC(size);
@@ -202,7 +205,7 @@ static void print_backtrace(char *backtrace)
 	size_t i, frames, bt_idx = 0;
 	SYMBOL_INFO *symbol;
 	HANDLE process;
-	
+
 	process = GetCurrentProcess();
 	SymInitialize(process, NULL, TRUE);
 
@@ -217,7 +220,7 @@ static void print_backtrace(char *backtrace)
 		char *symbol_name = "unresolved";
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
-		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", frames-i-1, symbol->Address, symbol_name);
+		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
 		if (len<0)  len = SYMBOL_MAX_SIZE-1;
 		backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
@@ -236,7 +239,7 @@ static char* backtrace()
 
 	size = backtrace(stack, STACK_PRINT_SIZE);
 	messages = backtrace_symbols(stack, size);
-	
+
 	for (i=1; i<size && messages!=NULL; ++i) {
 		int len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u %s", i, messages[i]);
 		if (len<0)  len = SYMBOL_MAX_SIZE-1;
@@ -452,7 +455,11 @@ typedef memory_element** memory_list;
 
 static unsigned int gf_memory_hash(void *ptr)
 {
-	return (((unsigned int)ptr>>4)+(unsigned int)ptr)%HASH_ENTRIES;
+#if defined(WIN32)
+	return (unsigned int) ( (((unsigned __int64)ptr>>4)+(unsigned __int64)ptr) % HASH_ENTRIES );
+#else
+	return (((unsigned int)ptr >> 4) + (unsigned int)ptr) % HASH_ENTRIES;
+#endif
 }
 
 #else

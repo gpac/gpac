@@ -311,7 +311,7 @@ void gf_es_reset_timing(GF_Channel *ch, Bool reset_buffer)
 		ch->buffer = NULL;
 		ch->len = ch->allocSize = 0;
 	}
-	
+
 	while (au) {
 		au->CTS = au->DTS = 0;
 		au = au->next;
@@ -506,14 +506,14 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 
 
 	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 100*ch->MaxBuffer)) )
-       || (ch->AU_Count>10000)
-    ) {
-        if (ch->AU_Count>10000) {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
-        } else {
-            GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong,  decoding buffer exceeded (%d ms vs %d max) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->BufferTime, ch->MaxBuffer));
-            
-        }
+	        || (ch->AU_Count>10000)
+	  ) {
+		if (ch->AU_Count>10000) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong,  decoding buffer exceeded (%d ms vs %d max) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->BufferTime, ch->MaxBuffer));
+
+		}
 		gf_db_unit_del(ch->AU_buffer_first->next);
 		ch->AU_buffer_first->next = NULL;
 		ch->AU_buffer_last = ch->AU_buffer_first;
@@ -1004,10 +1004,10 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			//PCR loop or disc - use 10 sec as a threshold - it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems
 			//1- check the PCR diff is greater than 10 seconds
 			//2- check the diff between this PCR diff and last PCR diff is greater than 10 seconds
-			//the first test is used to avoid disc detecting when the TS is sent in burst (eg DASH): 
+			//the first test is used to avoid disc detecting when the TS is sent in burst (eg DASH):
 			if (ch->IsClockInit && (ABS(pcr_diff) > 10000)  && (ABS(pcr_pcrprev_diff) > 10000) ) {
 				discontinuity = GF_TRUE;
-			} 
+			}
 
 			if (discontinuity) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u detected PCR %s (PCR diff %d - last PCR diff %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), (hdr.m2ts_pcr==2) ? "discontinuity" : "looping", pcr_diff, ch->prev_pcr_diff));
@@ -1156,7 +1156,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					res = gf_scene_adjust_timestamp_for_addon(ch->odm->parentscene->root_od->addon, ch->DTS);
 					if (res<0) res=0;
 					ch->DTS = (u32) res;
-					
+
 				}
 
 				if (ch->clock->probe_ocr && gf_es_owns_clock(ch)) {

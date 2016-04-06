@@ -1955,7 +1955,7 @@ exit:
 	return e;
 }
 
-
+#ifndef GPAC_DISABLE_HEVC
 /* Split SHVC layers */
 static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 type)
 {
@@ -2009,6 +2009,130 @@ static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
 	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
 
 	return gf_isom_set_visual_info(file, track, 1, width, height);
+}
+
+GF_EXPORT
+GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one)
+{
+	GF_HEVCConfig *hevccfg, *shvccfg;
+	u32 i, count, cur_extract_mode;
+	char *nal_data=NULL;
+	u32 nal_alloc_size, nalu_size;
+	GF_Err e = GF_OK;
+
+	if (!max_temporal_id_plus_one && !max_layer_id_plus_one)
+		return GF_OK;
+
+	hevccfg = gf_isom_hevc_config_get(file, track, 1);
+	shvccfg = gf_isom_shvc_config_get(file, track, 1);
+	if (!hevccfg && !shvccfg)
+		nalu_size = 4;
+	else
+		nalu_size = hevccfg ? hevccfg->nal_unit_size : shvccfg->nal_unit_size;
+
+	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
+	gf_isom_set_nalu_extract_mode(file, track, GF_ISOM_NALU_EXTRACT_INSPECT);
+
+	nal_alloc_size = 10000;
+	nal_data = gf_malloc(sizeof(char) * nal_alloc_size);
+
+	if (hevccfg) {
+		count = gf_list_count(hevccfg->param_array);
+		for (i=0; i<count; i++) {
+			u32 j, count2;
+			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hevccfg->param_array, i);
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				//u8 nal_type = (sl->data[0] & 0x7E) >> 1;
+				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+				u8 temporal_id_plus_one = sl->data[1] & 0x07;
+
+				if ((max_temporal_id_plus_one && (temporal_id_plus_one > max_temporal_id_plus_one)) || (max_layer_id_plus_one && (layer_id+1 > max_layer_id_plus_one))) {
+					gf_list_rem(ar->nalus, j);
+					j--;
+					count2--;
+				}
+			}
+		}
+	}
+
+	if (shvccfg) {
+		count = gf_list_count(shvccfg->param_array);
+		for (i=0; i<count; i++) {
+			u32 j, count2;
+			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(shvccfg->param_array, i);
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+				//u8 nal_type = (sl->data[0] & 0x7E) >> 1;
+				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+				u8 temporal_id_plus_one = sl->data[1] & 0x07;
+
+				if ((max_temporal_id_plus_one && (temporal_id_plus_one > max_temporal_id_plus_one)) || (max_layer_id_plus_one && (layer_id+1 > max_layer_id_plus_one))) {
+					gf_list_rem(ar->nalus, j);
+					j--;
+					count2--;
+				}
+			}
+		}
+	}
+
+	//parse all samples
+	count = gf_isom_get_sample_count(file, track);
+	for (i=0; i<count; i++) {
+		GF_BitStream *bs, *dst_bs;
+		u32 di;
+		GF_ISOSample *sample;
+
+		sample = gf_isom_get_sample(file, track, i+1, &di);
+
+		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+		dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		while (gf_bs_available(bs)) {
+			u32 size = gf_bs_read_int(bs, nalu_size*8);
+			u8 fzero = gf_bs_read_int(bs, 1);
+			u8 nal_type = gf_bs_read_int(bs, 6);
+			u8 layer_id = gf_bs_read_int(bs, 6);
+			u8 temporal_id_plus_one = gf_bs_read_int(bs, 3);
+			size -= 2;
+
+			if ((max_temporal_id_plus_one && (temporal_id_plus_one > max_temporal_id_plus_one)) || (max_layer_id_plus_one && (layer_id+1 > max_layer_id_plus_one))) {
+				gf_bs_skip_bytes(bs, size);
+				continue;
+			}
+
+			if (size>nal_alloc_size) {
+				nal_alloc_size = size;
+				nal_data = (char *)gf_realloc(nal_data, nal_alloc_size);
+			}
+			gf_bs_read_data(bs, nal_data, size);
+
+			gf_bs_write_int(dst_bs, size+2, nalu_size*8);
+			gf_bs_write_int(dst_bs, fzero, 1);
+			gf_bs_write_int(dst_bs, nal_type, 6);
+			gf_bs_write_int(dst_bs, layer_id, 6);
+			gf_bs_write_int(dst_bs, temporal_id_plus_one, 3);
+			gf_bs_write_data(dst_bs, nal_data, size);
+		}
+
+		gf_bs_del(bs);
+		gf_free(sample->data);
+		sample->data = NULL;
+		sample->dataLength = 0;
+
+		gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
+		e = gf_isom_update_sample(file, track, i+1, sample, GF_TRUE);
+		if (e)
+			goto exit;
+	}
+
+exit:
+	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
+	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
+	if (nal_data) gf_free(nal_data);
+	return e;
 }
 
 GF_EXPORT
@@ -2313,6 +2437,7 @@ exit:
 	if (nal_data) gf_free(nal_data);
 	return e;
 }
+#endif /*GPAC_DISABLE_HEVC*/
 
 GF_EXPORT
 GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
@@ -2342,21 +2467,21 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 		if (level) slc->data[3] = level;
 	}
 	e = gf_isom_avc_config_update(file, track, 1, avcc);
-	assert (e == GF_OK);
+
 	gf_odf_avc_cfg_del(avcc);
-	return GF_OK;
+	return e;
 }
 
-
+#ifndef GPAC_DISABLE_HEVC
 static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;
 	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
 
-    PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
-    if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
-    PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
-    if (PicHeightInCtbsY * si->sps->max_CU_width < si->sps->height) PicHeightInCtbsY++;
+	PicWidthInCtbsY = si->sps->width / si->sps->max_CU_width;
+	if (PicWidthInCtbsY * si->sps->max_CU_width < si->sps->width) PicWidthInCtbsY++;
+	PicHeightInCtbsY = si->sps->height / si->sps->max_CU_width;
+	if (PicHeightInCtbsY * si->sps->max_CU_width < si->sps->height) PicHeightInCtbsY++;
 
 	tbX = si->slice_segment_address % PicWidthInCtbsY;
 	tbY = si->slice_segment_address / PicWidthInCtbsY;
@@ -2473,7 +2598,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
 	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
 	if (!tiles) return GF_OUT_OF_MEM;
- 	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tracks);
+	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tracks);
 
 	//first clone tracks
 	for (i=0; i<nb_tracks; i++) {
@@ -2539,7 +2664,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_CRA:
 			case GF_HEVC_NALU_SLICE_RADL_R:
+			case GF_HEVC_NALU_SLICE_RADL_N:
 			case GF_HEVC_NALU_SLICE_RASL_R:
+			case GF_HEVC_NALU_SLICE_RASL_N:
 				tx = ty = tw = th = 0;
 				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
 				if (cur_tile>=nb_tracks) {
@@ -2569,18 +2696,18 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 					gf_bs_write_int(bs, 0, 8);
 					// data offset: we start from last NAL written in this sample in this tile track
 					gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-                    
+
 					//we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
 					//at different rates :)
 					//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
 					gf_bs_write_int(bs, 0, 8*nalu_size_length);
 				} else {
-					
+
 					if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
 						gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
 					}
 				}
-                tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
+				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 
 				break;
 			default:
@@ -2605,16 +2732,16 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
 			if (!sample->data)
 				continue;
-			
+
 			e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
 			if (e) goto err_exit;
 			tiles[j].sample_count ++;
-			
+
 			gf_bs_del(tiles[j].sample_data);
 			tiles[j].sample_data = NULL;
 			gf_free(sample->data);
 			sample->data = NULL;
-			
+
 			e = gf_isom_copy_sample_info(file, tiles[j].track, file, track, i+1);
 			if (e) goto err_exit;
 		}
@@ -2630,13 +2757,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		s32 translation_x, translation_y;
 		s16 layer;
 		GF_BitStream *bs;
-		
+
 		tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
 		if (!tiles[i].sample_count) {
 			gf_isom_remove_track(file, tiles[i].track);
 			continue;
 		}
-		
+
 		bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
 		gf_bs_write_u16(bs, tiles[i].track);
 		gf_bs_write_int(bs, 1, 2);
@@ -2665,6 +2792,7 @@ err_exit:
 	return e;
 #endif
 }
+#endif /*GPAC_DISABLE_HEVC*/
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
@@ -2795,7 +2923,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 0);
 	if (e) goto err_exit;
-	
+
 	if (!nb_samp) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[ISOBMFF Fragmenting] No samples in movie, rewriting moof and exit\n"));
 		goto err_exit;

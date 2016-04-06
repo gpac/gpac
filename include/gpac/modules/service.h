@@ -90,6 +90,8 @@ typedef enum
 	GF_NET_CHAN_GET_ESD,
 	/*retrieves visual PAR as indicated in container if any*/
 	GF_NET_CHAN_GET_PIXEL_AR,
+	/*retrieves visual SRD as indicated in container if any*/
+	GF_NET_CHAN_GET_SRD,
 
 	/*service buffer query (for all channels running in service), app<-module*/
 	GF_NET_BUFFER_QUERY,
@@ -355,14 +357,23 @@ typedef struct __netstatcom
 	u16 multiplex_port;
 } GF_NetComStats;
 
-/*GF_NET_CHAN_GET_PIXEL_AR*/
+/*GF_NET_CHAN_GET_PIXEL_AR and GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE*/
 typedef struct
 {
 	u32 command_type;
 	LPNETCHANNEL on_channel;
 	u32 hSpacing, vSpacing;
 	u32 width, height, pixel_format;
+	Bool is_srd;
 } GF_NetComPixelAR;
+
+/*GF_NET_CHAN_GET_SRD*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	u32 w,h,x,y, width, height;
+} GF_NetComSRDInfo;
 
 /*GF_NET_SERVICE_INFO*/
 typedef struct __netinfocom
@@ -579,7 +590,7 @@ typedef struct
 /*GF_NET_SERVICE_CODEC_STAT_QUERY*/
 typedef struct
 {
-	/*avg_dec_time is the maximum average decoding time of all channels; 
+	/*avg_dec_time is the maximum average decoding time of all channels;
 	  max_dec_time, irap_avg_dec_time and irap_max_dec_time is the maximum decoding time of a frame and a I frame in this channel*/
 	u32 avg_dec_time, max_dec_time, irap_avg_dec_time, irap_max_dec_time;
 	/*flag codec has been reset*/
@@ -617,6 +628,7 @@ typedef union __netcommand
 	GF_NetComSendEvent send_event;
 	GF_NetQualityQuery quality_query;
 	GF_CodecStat codec_stat;
+	GF_NetComSRDInfo srd;
 } GF_NetworkCommand;
 
 /*

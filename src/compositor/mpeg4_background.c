@@ -318,7 +318,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 			if (!tr_state->pixel_metrics && tr_state->visual->compositor->inherit_type_3d) {
 				Fixed scale = gf_divfix(FIX_ONE, tr_state->min_hsize);
 				gf_mx_add_scale(&st->current_mx, scale, scale, scale);
-				
+
 			}
 		}
 		return;
@@ -427,7 +427,7 @@ static void TraverseBackground(GF_Node *node, void *rs, Bool is_destroy)
 		scale = (tr_state->camera->z_far/100)*90;
 #endif
 		gf_mx_add_scale(&mx, scale, scale, scale);
-		
+
 		visual_3d_enable_antialias(tr_state->visual, 1);
 
 		gf_mx_add_matrix(&tr_state->model_matrix, &mx);

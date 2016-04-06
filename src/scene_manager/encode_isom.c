@@ -232,14 +232,14 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	if (!mux->file_name) return GF_OK;
 
 	memset(&import, 0, sizeof(GF_MediaImporter));
-    if (mux->src_url) {
-        ext = gf_url_concatenate(mux->src_url, mux->file_name);
-        strcpy(szName, ext ? ext : mux->file_name);
-        if (ext) gf_free(ext);
-    } else {
-        strcpy(szName, mux->file_name);
-    }
-    ext = strrchr(szName, '.');
+	if (mux->src_url) {
+		ext = gf_url_concatenate(mux->src_url, mux->file_name);
+		strcpy(szName, ext ? ext : mux->file_name);
+		if (ext) gf_free(ext);
+	} else {
+		strcpy(szName, mux->file_name);
+	}
+	ext = strrchr(szName, '.');
 
 	/*get track types for AVI*/
 	if (ext && !strnicmp(ext, ".avi", 4)) {
@@ -308,13 +308,13 @@ static GF_Err gf_sm_import_stream_special(GF_SceneManager *ctx, GF_ESD *esd)
 	e = GF_OK;
 	/*SRT/SUB BIFS import if text node unspecified*/
 	if (mux->textNode) {
-        if (mux->src_url) {
-            char *src = gf_url_concatenate(mux->src_url, mux->file_name);
-            if (src) {
-                gf_free(mux->file_name);
-                mux->file_name = src;
-            }
-        } 
+		if (mux->src_url) {
+			char *src = gf_url_concatenate(mux->src_url, mux->file_name);
+			if (src) {
+				gf_free(mux->file_name);
+				mux->file_name = src;
+			}
+		}
 		e = gf_sm_import_bifs_subtitle(ctx, esd, mux);
 		gf_sm_remove_mux_info(esd);
 	}

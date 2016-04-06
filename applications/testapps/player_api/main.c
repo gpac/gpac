@@ -30,7 +30,7 @@ static Bool play_pause_seek_gettime(GF_Terminal *term, const char *fn)
 	gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_STEP_PAUSE);
 	time = gf_term_get_time_in_ms(term);
 	assert(time == target_time_in_ms);
-	
+
 	//seek to 0
 	connected = GF_FALSE;
 	gf_term_play_from_time(term, 0, GF_FALSE);
@@ -50,7 +50,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 	default:
 		break;
 	}
-  
+
 	return GF_FALSE;
 }
 

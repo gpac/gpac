@@ -100,7 +100,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 			return -1;
 		}
 	}
-	
+
 	/* Open video */
 	open_res = avformat_open_input(&video_input_file->av_fmt_ctx, video_data_conf->filename, in_fmt, options ? &options : NULL);
 	if ( (open_res < 0) && !stricmp(video_data_conf->filename, "screen-capture-recorder") ) {
@@ -168,7 +168,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	video_input_file->pix_fmt = codec_ctx->pix_fmt;
 	if (codec_ctx->time_base.num==1) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("AVCTX give frame duration of %d/%d - keeping requested rate %d, but this may result in unexpected behaviour.\n", codec_ctx->time_base.num, codec_ctx->time_base.den, video_data_conf->framerate ));
-		
+
 		if (codec_ctx->time_base.den==1000000) {
 			codec_ctx->time_base.num = codec_ctx->time_base.den / video_data_conf->framerate;
 		}
@@ -313,6 +313,9 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			av_frame_unref(video_data_node->vframe);
 #endif
 
+			video_data_node->frame_ntp = gf_net_get_ntp_ts();
+			video_data_node->frame_utc = gf_net_get_utc();
+
 			/* Decode video frame */
 			if (avcodec_decode_video2(codec_ctx, video_data_node->vframe, &got_frame, &packet) < 0) {
 				av_free_packet(&packet);
@@ -333,6 +336,7 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 						video_input_file->prev_pts = 0;
 						video_input_data->frame_duration = 0;
 					}
+#if 0
 					if (video_input_file->pts_init && (video_input_file->pts_init!=3) ) {
 						if (packet.pts==AV_NOPTS_VALUE) {
 							video_input_file->pts_init=1;
@@ -346,13 +350,14 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 							//TODO - check with audio if sync is OK
 						}
 					}
-					
+#endif
+
 					//move to 0-based PTS
 					if (packet.pts!=AV_NOPTS_VALUE) {
 						pts = packet.pts - video_input_file->first_pts;
 					} else {
 						pts = video_input_file->prev_pts + video_input_data->frame_duration;
-					}					
+					}
 
 					//check for drop frames
 #ifndef GPAC_DISABLE_LOG
@@ -370,6 +375,14 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 					}
 #endif
 
+#if 1
+					if ((pts != video_input_file->prev_pts) && (video_input_file->pts_init == 1)) {
+						video_input_file->pts_init = 2;
+						video_input_data->frame_duration = pts - video_input_file->prev_pts;
+						video_input_file->sync_tolerance = 9*video_input_data->frame_duration/5;
+					}
+#endif
+
 					video_input_file->prev_pts = pts;
 					video_data_node->vframe->pts = pts;
 				}
@@ -383,20 +396,23 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 				}
 				video_input_file->frame_decoded++;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms\n", video_data_node->vframe->pts, gf_net_get_utc() ));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video Frame TS "LLU" decoded at UTC "LLU" ms (frame duration %d)\n", video_data_node->vframe->pts, gf_net_get_utc(), video_input_data->frame_duration));
 
 				// For a decode/encode process we must free this memory.
 				//But if the input is raw and there is no need to decode then
 				// the packet is directly passed for decoded frame. We must wait until rescale is done before freeing it
 
 				if (codec_ctx->codec->id == CODEC_ID_RAWVIDEO) {
-					video_data_node->nb_raw_frames_ref = video_input_file->nb_consumers;
+					if (is_live_capture && !video_input_data->frame_duration) {
+					} else {
+						video_data_node->nb_raw_frames_ref = video_input_file->nb_consumers;
 
-					video_data_node->raw_packet = packet;
+						video_data_node->raw_packet = packet;
 
-					dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
-					while (video_data_node->nb_raw_frames_ref && ! *exit_signal_addr) {
-						gf_sleep(0);
+						dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);
+						while (video_data_node->nb_raw_frames_ref && ! *exit_signal_addr) {
+							gf_sleep(0);
+						}
 					}
 				} else {
 					dc_producer_advance(&video_input_data->producer, &video_input_data->circular_buf);

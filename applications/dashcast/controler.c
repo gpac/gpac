@@ -79,7 +79,7 @@ void optimize_seg_frag_dur(int *seg, int *frag)
 	if (!frag_nb) frag_nb = 1;
 
 	min_rem = seg_nb % frag_nb;
-	
+
 	if (seg_nb % (frag_nb + 1) < min_rem) {
 		min_rem = seg_nb % (frag_nb + 1);
 		*seg = seg_nb;
@@ -139,6 +139,8 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 	char name[GF_MAX_PATH];
 	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Write MPD at UTC "LLU" ms - %s : %s\n", gf_net_get_utc(), (cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime", (cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time));
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		audio_data_conf = (const AudioDataConf*)gf_list_get(cmddata->audio_lst, 0);
@@ -313,6 +315,7 @@ static u32 mpd_thread(void *params)
 			msecs = (u32) ( (seg_time.ntpts & 0xFFFFFFFF) * (1000.0/0xFFFFFFFF) );
 			ast_time = *gmtime(&t);
 			fprintf(stdout, "Generating MPD at %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Generating MPD at %d-%02d-%02dT%02d:%02d:%02d.%03dZ - UTC "LLU" ms\n", 1900 + ast_time.tm_year, ast_time.tm_mon+1, ast_time.tm_mday, ast_time.tm_hour, ast_time.tm_min, ast_time.tm_sec, msecs, seg_time.utc_time));
 
 			t = (main_seg_time.ntpts >> 32)  - GF_NTP_SEC_1900_TO_1970;
 			if (cmddata->ast_offset>0) {
@@ -380,7 +383,6 @@ u32 delete_seg_thread(void *params)
 		ret = dc_message_queue_get(mq, (void*) buff);
 		if (ret > 0) {
 			int status;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Message received: %s\n", buff));
 			status = unlink(buff);
 			if (status != 0) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unable to delete the file %s\n", buff));
@@ -406,10 +408,6 @@ Bool fragmenter_thread(void *params)
 
 	while (1) {
 		ret = dc_message_queue_get(mq, (void*) buff);
-		if (ret > 0) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Message received: %s\n", buff));
-		}
-
 		if (cmd_data->exit_signal) {
 			break;
 		}
@@ -782,17 +780,7 @@ u32 video_encoder_thread(void *params)
 	if (seg_frame_max <= 0)
 		seg_frame_max = -1;
 
-	shift = 0;
-	if (in_data->use_source_timing) {
-		//ugly patch ...
-		shift = 1000;
-		while (!video_scaled_data->frame_duration && shift) {
-			gf_sleep(1);
-			shift--;
-		}
-		shift = (u32) video_scaled_data->frame_duration;
-	}
-	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, shift, in_data->gop_size, video_cb_size) < 0) {
+	if (dc_video_muxer_init(&out_file, video_data_conf, muxer_type, seg_frame_max, frag_frame_max, in_data->seg_marker, in_data->gdr, in_data->seg_dur, in_data->frag_dur, (u32) video_scaled_data->vsprop->video_input_data->frame_duration, in_data->gop_size, video_cb_size) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot init output video file.\n"));
 		in_data->exit_signal = 1;
 		return -1;
@@ -844,6 +832,7 @@ u32 video_encoder_thread(void *params)
 		//force writing MPD before any encoding happens (eg don't wait for the end of the first segment)
 		if (init_mpd) {
 			init_mpd = GF_FALSE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Initial MPD publish at UTC "LLU" ms\n", time_at_segment_start.utc_time));
 			dc_message_queue_put(mq, &time_at_segment_start, sizeof(time_at_segment_start));
 		}
 
@@ -856,8 +845,6 @@ u32 video_encoder_thread(void *params)
 		}
 //		fprintf(stdout, "Header size: %d\n", ret);
 		while (1) {
-			u64 ntpts = gf_net_get_ntp_ts();
-
 			//we have the RAP already encoded, skip coder
 			if (loss_state == 2) {
 				ret = 1;
@@ -886,7 +873,7 @@ u32 video_encoder_thread(void *params)
 					break;
 				}
 
-				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? ntpts : 0);
+				r = dc_video_muxer_write(&out_file, frame_nb, in_data->insert_utc ? GF_TRUE : GF_FALSE);
 				if (r < 0) {
 					quit = 1;
 					in_data->exit_signal = 1;
@@ -1353,6 +1340,31 @@ int dc_run_controler(CmdData *in_data)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for mpd_thread.\n"));
 	}
 
+
+	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
+		/* Create video decoder thread */
+		vdecoder_th_params.in_data = in_data;
+		vdecoder_th_params.video_input_data = &video_input_data;
+		vdecoder_th_params.video_input_file = video_input_file;
+		if (gf_th_run(vdecoder_th_params.thread, video_decoder_thread, (void *) &vdecoder_th_params) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for video_decoder_thread.\n"));
+		}
+
+		while ((in_data->mode == LIVE_CAMERA) && !video_input_data.frame_duration) {
+			gf_sleep(0);
+		}
+	}
+
+	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
+		/* Create audio decoder thread */
+		adecoder_th_params.in_data = in_data;
+		adecoder_th_params.audio_input_data = &audio_input_data;
+		adecoder_th_params.audio_input_file = &audio_input_file;
+		if (gf_th_run(adecoder_th_params.thread, audio_decoder_thread, (void *) &adecoder_th_params) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for audio_decoder_thread.\n"));
+		}
+	}
+
 	/****************************/
 
 	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
@@ -1399,26 +1411,6 @@ int dc_run_controler(CmdData *in_data)
 			if (gf_th_run(aencoder_th_params[i].thread, audio_encoder_thread, (void *) &aencoder_th_params[i]) != GF_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for audio_encoder_thread.\n"));
 			}
-		}
-	}
-
-	if (strcmp(in_data->video_data_conf.filename, "") != 0) {
-		/* Create video decoder thread */
-		vdecoder_th_params.in_data = in_data;
-		vdecoder_th_params.video_input_data = &video_input_data;
-		vdecoder_th_params.video_input_file = video_input_file;
-		if (gf_th_run(vdecoder_th_params.thread, video_decoder_thread, (void *) &vdecoder_th_params) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for video_decoder_thread.\n"));
-		}
-	}
-
-	if (strcmp(in_data->audio_data_conf.filename, "") != 0) {
-		/* Create audio decoder thread */
-		adecoder_th_params.in_data = in_data;
-		adecoder_th_params.audio_input_data = &audio_input_data;
-		adecoder_th_params.audio_input_file = &audio_input_file;
-		if (gf_th_run(adecoder_th_params.thread, audio_decoder_thread, (void *) &adecoder_th_params) != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error while doing pthread_create for audio_decoder_thread.\n"));
 		}
 	}
 

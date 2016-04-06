@@ -546,6 +546,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_IDEN:
 	case GF_ISOM_BOX_TYPE_STTG:
 	case GF_ISOM_BOX_TYPE_PAYL:
+#ifndef GPAC_DISABLE_VTT
 	case GF_ISOM_BOX_TYPE_VTTA:
 		return boxstring_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_VTCU:
@@ -554,7 +555,7 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return vtte_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_WVTT:
 		return wvtt_dump(a, trace);
-
+#endif
 	case GF_ISOM_BOX_TYPE_STPP:
 		return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SBTT:
@@ -3337,7 +3338,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			styles = 0;
 			new_styles = txtd->default_style.style_flags;
 			color = new_color = txtd->default_style.text_color;
-			
+
 			for (j=0; j<len; j++) {
 				Bool is_new_line;
 
@@ -3409,7 +3410,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 			if (color != txtd->default_style.text_color) {
 				fprintf(dump, "</font>");
 				color = txtd->default_style.text_color;
-			} 
+			}
 			fprintf(dump, "\n");
 		}
 		gf_isom_sample_del(&s);
@@ -4782,13 +4783,13 @@ GF_Err ipma_dump(GF_Box *a, FILE * trace)
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ptr->entries, i);
 		u32 association_count = gf_list_count(entry->essential);
- 		fprintf(trace, "<AssociationEntry item_ID=\"%d\" association_count=\"%d\">\n", entry->item_id, association_count);
+		fprintf(trace, "<AssociationEntry item_ID=\"%d\" association_count=\"%d\">\n", entry->item_id, association_count);
 		for (j = 0; j < association_count; j++) {
 			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
 			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
 			fprintf(trace, "<Property index=\"%d\" essential=\"%d\"/>\n", *prop_index, *ess);
 		}
- 		fprintf(trace, "</AssociationEntry>\n");
+		fprintf(trace, "</AssociationEntry>\n");
 	}
 	gf_box_dump_done("ItemPropertyAssociationBox", a, trace);
 	return GF_OK;

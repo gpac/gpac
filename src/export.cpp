@@ -807,6 +807,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_single_av) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_guess_specification) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_keep_utc_times) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_no_version_date_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sync_shadows) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sample_dependency) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_find_od_for_track) )
@@ -826,7 +827,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_nalu_extract_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_composition_offset_shift) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_scalable_layer) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_needs_layer_reconstruction) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_last_producer_time_box) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_current_tfdt) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_is_adobe_protection_media) )
@@ -1293,6 +1294,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_hevc_tiles) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_shvc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_filter_hevc) )
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
@@ -1950,7 +1952,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_resolve_segment_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_mpd_init_smooth_from_dom) )
 
-
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_setup))
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_play) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_m2ts_demuxer_close) )
@@ -2105,13 +2106,17 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_timeshift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_timeshift_buffer_pos) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_codec_stat) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_buffer_levels) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_disable_speed_adaptation) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_override_ntp) )
-
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_has_dependent_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_tile_adaptation_mode) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_max_size_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_info) )
 
 #endif
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_VTT)
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_addCue) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_js_removeCues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )

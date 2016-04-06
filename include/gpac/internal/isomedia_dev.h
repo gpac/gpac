@@ -34,7 +34,7 @@ extern "C" {
 
 #ifndef GPAC_DISABLE_ISOM
 
-	
+
 #if defined(GPAC_DISABLE_ISOM_FRAGMENTS) && !defined(GPAC_DISABLE_ISOM_ADOBE)
 #define GPAC_DISABLE_ISOM_ADOBE
 #endif
@@ -1068,7 +1068,7 @@ typedef struct
 } GF_DIMSSampleEntryBox;
 
 
-typedef struct 
+typedef struct
 {
 	GF_ISOM_FULL_BOX
 	char *config;
@@ -1280,6 +1280,8 @@ typedef struct
 
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;
+	u32 nb_sgpd_in_stbl;
+	u32 nb_other_boxes_in_stbl;
 
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
@@ -2330,7 +2332,7 @@ typedef struct __piff_sample_enc_box
 	u8 version;
 	u32 flags;
 
-	GF_List *samp_aux_info;
+	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2341,7 +2343,7 @@ typedef struct __piff_sample_enc_box
 	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
 	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
 
-	//do NOT change order below this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
+	//do NOT change order above this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
 
 
 	u32 AlgorithmID;
@@ -2356,7 +2358,7 @@ typedef struct __sample_encryption_box
 	u8 version;
 	u32 flags;
 
-	GF_List *samp_aux_info;
+	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2635,7 +2637,7 @@ struct __tag_isom {
 	u8 is_jp2;
 	u8 force_co64;
 
-	Bool keep_utc;
+	Bool keep_utc, drop_date_version_info;
 	/*main boxes for fast access*/
 	/*moov*/
 	GF_MovieBox *moov;

@@ -555,7 +555,6 @@ EOF
             CFLAGS_DIR="-I/opt/local/include $CFLAGS_DIR"
             LDFLAGS="-L/opt/local/lib $LDFLAGS"
         fi
-        cc="cc"
         Mac_Applications="/Applications"
         SHFLAGS="-dynamiclib"
         DYN_LIB_SUFFIX=".dylib"
@@ -587,6 +586,7 @@ EOF
         want_pic="no"
         extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
         CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+		LDFLAGS="$LDFLAGS"
         if test "$cross_prefix" != "" ; then
             GPAC_SH_FLAGS=""
         fi
@@ -2512,18 +2512,10 @@ version_minor=`grep '#define GPAC_VERSION_MINOR ' $source_path/include/gpac/vers
 version_micro=`grep '#define GPAC_VERSION_MICRO ' $source_path/include/gpac/version.h | sed 's/[^0-9]*//g'`
 soname_version="${version_major}.${version_minor}.${version_micro}"
 
-
-if [ -d ".git" ]; then
-    TAG=$(git describe --tags --abbrev=0 2>>$logs)
-    VERSION=$(echo `git describe --tags --long 2>>$logs || echo "UNKNOWN"` | sed "s/^$TAG-//")
-    BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>$logs || echo "UNKNOWN")
-    revision="$VERSION-$BRANCH"
-    echo "#define GPAC_GIT_REVISION	\"$revision\"" > $source_path/include/gpac/revision.h
-else
-    if [ ! -e "$source_path/include/gpac/revision.h" ]; then
-        echo "#define GPAC_GIT_REVISION	\"UNKNOWN-UNKNOWN\"" > $source_path/include/gpac/revision.h
-    fi
-fi
+#check revision.h
+cd $source_path
+./check_revision.sh
+cd $build_path
 
 echo ""
 echo "** System Configuration"
@@ -2969,6 +2961,9 @@ if test "$win32" = "yes" ; then
     if test "$cygwin" = "yes" ; then
         echo "#define ftello64 ftell" >> $TMPH
         echo "#define fseeko64 fseek" >> $TMPH
+    fi
+    if test "$mingw32" = "yes" ; then
+        echo "UNICODEFLAGS=-municode" >> config.mak
     fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak

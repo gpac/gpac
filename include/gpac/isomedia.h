@@ -851,6 +851,9 @@ u32 gf_isom_guess_specification(GF_ISOFile *file);
 /*keeps UTC edit times when storing*/
 void gf_isom_keep_utc_times(GF_ISOFile *file, Bool keep_utc);
 
+/*drops all modification/creation times and handler/copyright containing GPAC rev info (used for tests)*/
+void gf_isom_no_version_date_info(GF_ISOFile *file, Bool drop_info);
+
 
 /*gets last UTC/timestamp values indicated for the reference track in the file if any. Returns 0 if no info found*/
 Bool gf_isom_get_last_producer_time_box(GF_ISOFile *file, u32 *refTrackID, u64 *ntp, u64 *timestamp, Bool reset_info);
@@ -1735,7 +1738,8 @@ GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 /*gets SHVC config - user is responsible for deleting it*/
 GF_HEVCConfig *gf_isom_shvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-Bool gf_isom_has_scalable_layer(GF_ISOFile *file);
+/*return true if track dependencies implying extractors or implicit reconstruction are found*/
+Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);
 
 enum
 {
@@ -1844,20 +1848,22 @@ GF_GenericSubtitleSample *gf_isom_new_generic_subtitle_sample();
 /*destroy generic subtitle sample handle*/
 void gf_isom_delete_generic_subtitle_sample(GF_GenericSubtitleSample *generic_subtitle_samp);
 
+#ifndef GPAC_DISABLE_VTT
 GF_Err gf_isom_new_webvtt_description(GF_ISOFile *movie, u32 trackNumber, GF_TextSampleDescriptor *desc, char *URLname, char *URNname, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
+#endif
 
 GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, const char **mime, const char **encoding, const char **config);
 GF_Err gf_isom_new_stxt_description(GF_ISOFile *movie, u32 trackNumber, u32 type, const char *mime, const char *encoding, const char *config, u32 *outDescriptionIndex);
 GF_Err gf_isom_update_stxt_description(GF_ISOFile *movie, u32 trackNumber, const char *encoding, const char *config, u32 DescriptionIndex);
 
-GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, 
-											const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
+GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex,
+        const char **xmlnamespace, const char **xml_schema_loc, const char **mimes);
 GF_Err gf_isom_new_xml_subtitle_description(GF_ISOFile  *movie, u32 trackNumber,
-											const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
-											u32 *outDescriptionIndex);
+        const char *xmlnamespace, const char *xml_schema_loc, const char *auxiliary_mimes,
+        u32 *outDescriptionIndex);
 GF_Err gf_isom_update_xml_subtitle_description(GF_ISOFile *movie, u32 trackNumber,
-											   u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
+        u32 descriptionIndex, GF_GenericSubtitleSampleDescriptor *desc);
 
 
 

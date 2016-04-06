@@ -508,8 +508,8 @@ GF_Err stbl_AppendDependencyType(GF_SampleTableBox *stbl, u32 isLeading, u32 dep
 	sdtp = stbl->SampleDep;
 
 	flags = 0;
-    flags |= isLeading << 6;
-    flags |= dependsOn << 4;
+	flags |= isLeading << 6;
+	flags |= dependsOn << 4;
 	flags |= dependedOn << 2;
 	flags |= redundant;
 
@@ -1178,10 +1178,10 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber)
 {
 	u32 i, count, prev_sample, delta;
-	
+
 	if (!stbl->SubSamples) return GF_OK;
 	if (! stbl->SubSamples->Samples) return GF_OK;
-	
+
 	prev_sample = 0;
 	count = gf_list_count(stbl->SubSamples->Samples);
 	for (i=0; i<count; i++) {
@@ -1210,9 +1210,9 @@ GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber)
 GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber)
 {
 	u32 i, k, count, prev_sample;
-	
+
 	if (!stbl->sampleGroups) return GF_OK;
-	
+
 	count = gf_list_count(stbl->sampleGroups);
 	prev_sample = 0;
 	for (i=0; i<count; i++) {

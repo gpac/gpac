@@ -495,7 +495,10 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 	stream->table_needs_send = GF_FALSE;
 	table = stream->current_table;
-	assert(table);
+	if (!table) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] Invalid muxer state, table is NULL!\n"));
+		return;
+	}
 
 	section = stream->current_section;
 	assert(section);
@@ -941,7 +944,7 @@ static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_
 	u32 pck_diff;
 	s32 us_diff;
 	GF_M2TS_Time next_pcr_time, stream_time;
-	
+
 	if (!muxer->enable_forced_pcr) return 1;
 
 	if (!muxer->bit_rate) return 1;
@@ -962,7 +965,7 @@ static Bool gf_m2ts_adjust_next_stream_time_for_pcr(GF_M2TS_Mux *muxer, GF_M2TS_
 		stream->time = next_pcr_time;
 		/*if too ahead of mux time, don't insert PCR*/
 		us_diff = gf_m2ts_time_diff_us(&stream->program->mux->time, &stream->time);
-		if (us_diff>1000) 
+		if (us_diff>1000)
 			return 0;
 	} else if (stream->pcr_only_mode) {
 		stream->pcr_only_mode = GF_FALSE;
@@ -1703,7 +1706,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (hdr_len && gf_log_tool_level_on(GF_LOG_DEBUG, GF_LOG_CONTAINER) ) {
+	if (hdr_len && gf_log_tool_level_on(GF_LOG_CONTAINER, GF_LOG_DEBUG) ) {
 		u64 pcr = (s64) gf_m2ts_get_pcr(stream)/300;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Start sending PES: PID %d - %d bytes - DTS "LLD" PCR "LLD" (diff %d) - stream time %d:%09d - mux time %d:%09d (%d us ahead of mux time)\n",
 		                                        stream->pid, stream->curr_pck.data_len, stream->curr_pck.dts, pcr, (s64) stream->curr_pck.dts - (s64) pcr,
@@ -1723,7 +1726,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 	gf_bs_write_int(bs,	stream->continuity_counter, 4);   // continuity counter
 
 	//CC field shall not be incremented for if adaptation field only
-	if (adaptation_field_control != GF_M2TS_ADAPTATION_ONLY) { 
+	if (adaptation_field_control != GF_M2TS_ADAPTATION_ONLY) {
 		if (stream->continuity_counter < 15) stream->continuity_counter++;
 		else stream->continuity_counter=0;
 	}
@@ -1748,11 +1751,11 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 				if (stream->program->mux->real_time) {
 					u32 diff = (s32) (now - stream->program->sys_clock_at_last_pcr);
-					//since we currently only send the PCR when an AU is sent, it may happen that we exceed PCR the refresh rate depending in the target bitrate and frame rate. 
+					//since we currently only send the PCR when an AU is sent, it may happen that we exceed PCR the refresh rate depending in the target bitrate and frame rate.
 					//we only throw a warning when twiice the PCR refresh is exceeded
 					if (diff > 5000 + 2*stream->program->mux->pcr_update_ms*1000 ) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[MPEG2-TS Muxer] Sending PCR %d us too late (PCR send rate %d ms)\n", (u32) (diff - stream->program->mux->pcr_update_ms*1000), stream->program->mux->pcr_update_ms ));
-					} 
+					}
 				}
 			}
 

@@ -1980,7 +1980,9 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 	data_size = section->data_size;
 
 	/*TOT only contains 40 bits of UTC_time; TDT add descriptors and a CRC*/
-	assert(table_id!=GF_M2TS_TABLE_ID_TDT || data_size == 5); /**/
+	if ((table_id==GF_M2TS_TABLE_ID_TDT) && (data_size != 5)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Corrupted TDT size\n", table_name));
+	}
 	GF_SAFEALLOC(time_table, GF_M2TS_TDT_TOT);
 
 	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/
@@ -3286,7 +3288,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			s64 prev_diff_in_us;
 			Bool discontinuity;
 			s32 cc = -1;
-			
+
 			if (es->flags & GF_M2TS_FAKE_PCR) {
 				cc = es->program->pcr_cc;
 				es->program->pcr_cc = hdr.continuity_counter;
@@ -3318,7 +3320,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 			pck.PTS = es->program->last_pcr_value;
 			pck.stream = (GF_M2TS_PES *)es;
-			
+
 			//try to ignore all discontinuities that are less than 200 ms (seen in some HLS setup ...)
 			if (discontinuity) {
 				s64 diff_in_us = (s64) (es->program->last_pcr_value - es->program->before_last_pcr_value) / 27;
@@ -4584,7 +4586,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	if (_TS < (u64) -ts_shift) _TS = pcr_mod + _TS + ts_shift; \
 	else _TS = _TS + ts_shift; \
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
-
+ 
 
 GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {
