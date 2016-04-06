@@ -1674,7 +1674,7 @@ GF_Err tfra_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackFragmentRandomAccessBox TrackId=\"%u\" number_of_entries=\"%u\">\n", p->track_id, p->nb_entries);
 	DumpBox(a, trace);
 	for (i=0; i<p->nb_entries; i++)
-		fprintf(trace, "<RandomAccessEntry time=\"%lu\" moof_offset=\"%lu\" traf=\"%u\" trun=\"%u\" sample=\"%u\"/>\n",
+		fprintf(trace, "<RandomAccessEntry time=\""LLU"\" moof_offset=\""LLU"\" traf=\"%u\" trun=\"%u\" sample=\"%u\"/>\n",
 			p->entries[i].time, p->entries[i].moof_offset,
 			p->entries[i].traf_number, p->entries[i].trun_number, p->entries[i].sample_number);
 
