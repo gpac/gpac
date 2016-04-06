@@ -560,8 +560,8 @@ typedef struct {
 	u32 carousel_period_plus_one;
 	u16 aggregate_on_esid;
 
-    /*original source URL*/
-    char *src_url;
+	/*original source URL*/
+	char *src_url;
 } GF_MuxInfo;
 
 typedef struct

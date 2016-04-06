@@ -1401,7 +1401,6 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		                              xWindow->w_width, xWindow->w_height, 0,
 		                              xWindow->depth, InputOutput,
 		                              xWindow->visual, 0, NULL);
-		XMapWindow (xWindow->display, (Window) xWindow->wnd);
 	} else {
 		XWindowAttributes pwa;
 		XGetWindowAttributes(xWindow->display, xWindow->par_wnd, &pwa);
@@ -1411,6 +1410,9 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		                              xWindow->w_width, xWindow->w_height, 0,
 		                              xWindow->depth, InputOutput,
 		                              xWindow->visual, 0, NULL);
+	}
+
+	if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
 		XMapWindow (xWindow->display, (Window) xWindow->wnd);
 	}
 
@@ -1433,8 +1435,9 @@ X11_SetupWindow (GF_VideoOutput * vout)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Cannot select input focus\n"));
 	}
 	XSync(xWindow->display, False);
-	XMapWindow (xWindow->display, (Window) xWindow->wnd);
-
+	if (!(xWindow->init_flags & GF_TERM_INIT_HIDE)) {
+		XMapWindow (xWindow->display, (Window) xWindow->wnd);
+	}
 	XSizeHints *Hints = XAllocSizeHints ();
 	Hints->flags = PSize | PMinSize;
 	Hints->min_width = 64;

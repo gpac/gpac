@@ -753,7 +753,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				evt.type = GF_EVENT_PASTE_TEXT;
 				/* TODO: Convert to UTF-8 */
 				evt.message.message = lptstrCopy;
-#else 
+#else
 				LPTSTR lptstrCopy = (char *)GlobalLock(hglbCopy);
 				evt.type = GF_EVENT_PASTE_TEXT;
 				evt.message.message = lptstrCopy;
@@ -783,7 +783,7 @@ LRESULT APIENTRY DD_WindowProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam
 				lptstrCopy = (wchar_t *)GlobalLock(hglbCopy);
 				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
 				lptstrCopy[len] = 0;
-#else 
+#else
 				lptstrCopy = (char *) GlobalLock(hglbCopy);
 				memcpy(lptstrCopy, evt.message.message, len * sizeof(char));
 				lptstrCopy[len] = 0;
@@ -1027,7 +1027,7 @@ u32 DD_WindowThread(void *par)
 
 	GF_VideoOutput *vout = (GF_VideoOutput*)par;
 	DDContext *ctx = (DDContext *)vout->opaque;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[DirectXOutput] Entering thread ID %d\n", gf_th_id() ));
 
 	if (DD_InitWindows(vout, ctx)) {

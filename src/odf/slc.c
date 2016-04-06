@@ -263,9 +263,9 @@ GF_Err gf_odf_write_slc(GF_BitStream *bs, GF_SLConfig *sl)
 	if (! sl) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)sl, &size);
-	assert(e == GF_OK);
+	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, sl->tag, size);
-	assert(e == GF_OK);
+	if (e) return e;
 
 	gf_bs_write_int(bs, sl->predefined, 8);
 	if (! sl->predefined) {

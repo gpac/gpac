@@ -68,21 +68,21 @@ typedef struct
 
 
 #if SDL_VERSION_ATLEAST(2,0,0)
-    char szCaption[100];
-    Bool enable_defer_mode;
-    Bool needs_clear;
-    Bool needs_bb_flush;
-    Bool needs_bb_grab;
+	char szCaption[100];
+	Bool enable_defer_mode;
+	Bool needs_clear;
+	Bool needs_bb_flush;
+	Bool needs_bb_grab;
 
-    SDL_GLContext gl_context;
+	SDL_GLContext gl_context;
 	SDL_Renderer *renderer;
 	SDL_Window *screen;
 
-    SDL_Texture *tx_back_buffer;
-    char *back_buffer_pixels;
+	SDL_Texture *tx_back_buffer;
+	char *back_buffer_pixels;
 
 	SDL_Texture *pool_rgb, *pool_rgba, *pool_yuv;
-    
+
 #else
 	SDL_Surface *screen;
 	SDL_Surface *back_buffer;
@@ -98,7 +98,7 @@ typedef struct
 	u32 output_3d_type;
 	void *os_handle;
 
-	Bool force_alpha;
+	Bool force_alpha, hidden;
 
 	u32 last_mouse_move;
 	Bool cursor_on;

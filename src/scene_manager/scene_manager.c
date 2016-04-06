@@ -715,7 +715,8 @@ GF_Err gf_sm_load_init(GF_SceneLoader *load)
 	case GF_SM_LOAD_QT:
 		return gf_sm_load_init_qt(load);
 #endif
-
+	default:
+		return GF_NOT_SUPPORTED;
 	}
 	return GF_NOT_SUPPORTED;
 }
@@ -761,7 +762,9 @@ void gf_sm_update_bitwrapper_buffer(GF_Node *node, const char *fileName)
 				fseek(f, 0, SEEK_SET);
 				data = gf_malloc(sizeof(char)*data_size);
 				if (data) {
-					fread(data, 1, data_size, f);
+					if (fread(data, 1, data_size, f) != data_size) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[Scene Manager] error reading bitwrapper file %s\n", url));
+					}
 				}
 				gf_fclose(f);
 			}

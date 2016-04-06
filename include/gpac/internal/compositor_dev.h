@@ -499,8 +499,8 @@ struct __tag_compositor
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	Bool shader_only_mode;
 #endif
-	
-	
+
+
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;
 #endif
@@ -804,7 +804,7 @@ struct _traversing_state
 	GF_ColorMatrix color_mat;
 	/* Contains the viewbox transform, used for svg ref() transform */
 	GF_Matrix2D vb_transform;
-	
+
 	/*only used for bitmap drawing*/
 	GF_ColorKey *col_key;
 

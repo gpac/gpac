@@ -363,7 +363,7 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
-		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; settings = {ASSET_TAGS = (); }; };
+		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -442,7 +442,7 @@
 		92BC213B16EF8E7A000E0620 /* widgetman.c in Sources */ = {isa = PBXBuildFile; fileRef = 71A1998E1278777A00ACFF58 /* widgetman.c */; };
 		92BC213C16EF8E7A000E0620 /* widgetman.h in Headers */ = {isa = PBXBuildFile; fileRef = 71A1998F1278777A00ACFF58 /* widgetman.h */; };
 		92C7F19A1AA8B48E00BA5B4C /* gui in Resources */ = {isa = PBXBuildFile; fileRef = 92C7F1991AA8B48E00BA5B4C /* gui */; };
-		92D127FE1BBADC7F00DA003B /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 92D127FD1BBADC7F00DA003B /* shaders */; settings = {ASSET_TAGS = (); }; };
+		92D127FE1BBADC7F00DA003B /* shaders in Resources */ = {isa = PBXBuildFile; fileRef = 92D127FD1BBADC7F00DA003B /* shaders */; };
 		92DF5CA61BA6C6F80058A7BA /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DF5CA51BA6C6F80058A7BA /* iff.c */; };
 		92E8C78B1A0CD57A00E0436D /* timedtext_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826116F254F50002629E /* timedtext_dec.c */; };
 		92E8C78C1A0CD57A00E0436D /* timedtext_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA826216F254F50002629E /* timedtext_in.c */; };
@@ -2125,6 +2125,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 71CCF1351277037B00339E12 /* Build configuration list for PBXNativeTarget "libgpac_static" */;
 			buildPhases = (
+				92B2C7281C89BEB7001430F0 /* Run Script */,
 				71CCF12D1277037A00339E12 /* Headers */,
 				71CCF12E1277037A00339E12 /* Sources */,
 				71CCF12F1277037A00339E12 /* Frameworks */,
@@ -2190,6 +2191,23 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		92B2C7281C89BEB7001430F0 /* Run Script */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Run Script";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd ../..\n./check_revision.sh";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		71A19B1712796B5600ACFF58 /* Sources */ = {

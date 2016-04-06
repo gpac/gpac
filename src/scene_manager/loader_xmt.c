@@ -1920,13 +1920,13 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 		else {
 			e = gf_odf_set_field(desc, att->name, att->value);
 			if (e) xmt_report(parser, e, "Warning: %s not a valid attribute for descriptor %s", att->name, name);
-            //store src path but do not concatenate, othewise we break BT<->XMT conversion ...
-            if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
-                GF_MuxInfo *mux = (GF_MuxInfo *) desc;
-                if (!mux->src_url)
+			//store src path but do not concatenate, othewise we break BT<->XMT conversion ...
+			if ((desc->tag==GF_ODF_MUXINFO_TAG) && (!stricmp(att->name, "fileName") || !stricmp(att->name, "url"))) {
+				GF_MuxInfo *mux = (GF_MuxInfo *) desc;
+				if (!mux->src_url)
 					mux->src_url = gf_strdup(parser->load->src_url ? parser->load->src_url : parser->load->fileName);
-            }
-        }
+			}
+		}
 	}
 	if (binaryID || xmt_desc_name) {
 		if ((tag == GF_ODF_IOD_TAG) || (tag == GF_ODF_OD_TAG))

@@ -213,7 +213,7 @@ static void BuildLinearGradientTexture(GF_TextureHandler *txh)
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
-		
+
 		pix_fmt = GF_PIXEL_RGBA;
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
 		if (e) {
@@ -392,22 +392,22 @@ static void BuildRadialGradientTexture(GF_TextureHandler *txh)
 	}
 
 	if (st->txh.flags & GF_SR_TEXTURE_GRAD_NO_RGB) transparent = 1;
-	
+
 	if (st->tx_data && (st->txh.transparent != transparent)) {
 		gf_free(st->tx_data);
 		st->tx_data = NULL;
 	}
-	
+
 	if (transparent) {
 		if (!st->tx_data) {
 			st->tx_data = (char *) gf_malloc(sizeof(char)*GRAD_TEXTURE_SIZE*GRAD_TEXTURE_SIZE*4);
 		}
 		memset(st->tx_data, 0, sizeof(char)*txh->stride*txh->height);
-		
+
 		pix_fmt = GF_PIXEL_RGBA;
-		
+
 		e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);
-		
+
 		if (e) {
 			pix_fmt = GF_PIXEL_ARGB;
 			e = raster->stencil_set_texture(texture2D, st->tx_data, GRAD_TEXTURE_SIZE, GRAD_TEXTURE_SIZE, 4*GRAD_TEXTURE_SIZE, pix_fmt, pix_fmt, 1);

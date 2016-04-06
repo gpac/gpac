@@ -215,10 +215,9 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				no_alloc = 1;
 			}
 			//very low latency
-			else if (ch->MaxBuffer<=300) {
-//				max /= MAX(max/2, 2);
+			else if (codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) {
+				max = (codec->type==GF_STREAM_AUDIO) ? 4 : 2;
 			}
-
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM] Creating composition buffer for codec %s - %d units %d bytes each\n", codec->decio->module_name, max, CUsize));
 
 			codec->CB = gf_cm_new(CUsize, max, no_alloc);
@@ -981,9 +980,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 
 	//cannot output frame, do nothing (we force a channel query before for pull mode)
 	if (codec->CB->Capacity == codec->CB->UnitCount) {
-		if (codec->Status==GF_ESM_CODEC_PAUSE) {
-			gf_term_stop_codec(codec, 1);
-		}
+		//do not stop codec!
 		if (codec->CB->UnitCount > 1) return GF_OK;
 		else if (codec->direct_vout) return GF_OK;
 	}

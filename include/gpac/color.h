@@ -71,8 +71,8 @@ typedef struct
 	Bool is_hardware_memory;
 	/*!indicates U and V (and optional alpha) buffers in case of planar video with separated component. If not set, all components are in the video_buffer pointer*/
 	char *u_ptr, *v_ptr, *a_ptr;
-    /*! alpha value for this surface*/
-    u8 global_alpha;
+	/*! alpha value for this surface*/
+	u8 global_alpha;
 } GF_VideoSurface;
 
 /*!\brief Video Window object

@@ -207,7 +207,7 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 		                              MAX(tr_state->camera->width, tr_state->camera->height),
 		                              gf_mulfix(ar*2, gf_tan(fieldOfView/2))
 		                          );
-		
+
 		/*fixed-point overflow*/
 		if (tr_state->camera->z_far <= tr_state->camera->z_near) {
 			tr_state->camera->z_far = FIX_MAX/4;
@@ -545,13 +545,13 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 		vp_width = orig_vp.width;
 		vp_height = orig_vp.height;
-		
+
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
 			Fixed ratio = gf_divfix(vp_width, vp_height);
 			Fixed max_width = INT2FIX(tr_state->visual->compositor->display_width) / tr_state->visual->nb_views;
 			Fixed max_height = INT2FIX(tr_state->visual->compositor->display_height);
-			
+
 			if (max_width < gf_mulfix(ratio, max_height) ) {
 				tr_state->camera->vp.width = max_width;
 			} else {
@@ -560,7 +560,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 			tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
 			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
 			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
-			
+
 		} else {
 			tr_state->camera->vp.width = vp_width / tr_state->visual->nb_views;
 			tr_state->camera->vp.x += tr_state->visual->current_view * tr_state->camera->vp.width;
@@ -595,7 +595,7 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 
 		if (tr_state->visual == tr_state->visual->compositor->visual) {
 			Fixed remain = INT2FIX(tr_state->visual->compositor->output_height - orig_vp.height) / tr_state->visual->nb_views;
-			
+
 			tr_state->camera->vp.y = remain/2 + tr_state->visual->current_view*remain + tr_state->visual->current_view *tr_state->camera->vp.height;
 		} else {
 			tr_state->camera->vp.y = tr_state->visual->height - tr_state->camera->vp.y - tr_state->camera->vp.height;
@@ -904,7 +904,7 @@ void visual_3d_setup_clipper(GF_VisualManager *visual, GF_TraverseState *tr_stat
 			rc.y += INT2FIX(visual->compositor->vp_y);
 		}
 	}
-	
+
 	/*setup viewport*/
 #ifndef GPAC_DISABLE_VRML
 	if (gf_list_count(visual->view_stack)) {
@@ -913,7 +913,7 @@ void visual_3d_setup_clipper(GF_VisualManager *visual, GF_TraverseState *tr_stat
 		gf_node_traverse((GF_Node *) gf_list_get(visual->view_stack, 0), tr_state);
 	}
 #endif
-	
+
 	visual->top_clipper = gf_rect_pixelize(&rc);
 	tr_state->clipper = rc;
 	gf_mx_init(tr_state->layer_matrix);
@@ -927,20 +927,20 @@ Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseSt
 
 	visual_3d_setup(visual);
 	visual->glsl_flags = 0;
-	
+
 	/*setup our traversing state*/
 	visual_3d_setup_traversing_state(visual, tr_state);
 
 	if (is_root_visual) {
 		Bool auto_stereo = 0;
-		
+
 		visual_3d_setup_clipper(visual, tr_state);
 
 		if (tr_state->visual->autostereo_type > GF_3D_STEREO_LAST_SINGLE_BUFFER) {
 			visual_3d_init_autostereo(visual);
 			auto_stereo = 1;
 		}
-		
+
 #ifndef GPAC_USE_GLES1X
 		visual_3d_init_shaders(visual);
 #endif
@@ -1936,7 +1936,8 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 	if (visual->has_inactive_lights || visual->num_lights) return;
 
 	col.blue = col.red = col.green = FIX_ONE;
-	dir.x = dir.y = 0; dir.z = -FIX_ONE;
+	dir.x = dir.y = 0;
+	dir.z = -FIX_ONE;
 //	if (cam->is_3D) dir = camera_get_target_dir(cam);
 //	visual_3d_add_directional_light(visual, 0, col, FIX_ONE, dir, &cam->modelview);
 

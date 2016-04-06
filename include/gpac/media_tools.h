@@ -287,10 +287,12 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors);
 
+GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one);
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 
 
-	
+
 typedef struct
 {
 	char *file_name;
@@ -356,7 +358,7 @@ typedef enum
 	GF_DASH_CPMODE_REPRESENTATION,
 	GF_DASH_CPMODE_BOTH,
 } GF_DASH_ContentLocationMode;
-	
+
 typedef struct __gf_dash_segmenter GF_DASHSegmenter;
 
 /*Create a new DASH segmenter
@@ -391,7 +393,7 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
  *	\return error code if any
 */
 GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location);
-/*Adds a base URL to the MPD 
+/*Adds a base URL to the MPD
  *	\param dasher the DASH segmenter object
  *	\param base_url base url to add
  *	\return error code if any
@@ -429,7 +431,7 @@ GF_Err gf_dasher_enable_single_file(GF_DASHSegmenter *dasher, Bool enable);
  *	\return error code if any
 */
 GF_Err gf_dasher_set_switch_mode(GF_DASHSegmenter *dasher, GF_DashSwitchingMode bitstream_switching);
-/*Sets segment and fragment durations. 
+/*Sets segment and fragment durations.
  *	\param dasher the DASH segmenter object
  *	\param default_segment_duration the duration of a dash segment
  *	\param segment_duration_strict indicated is the duration is strict (otherwise we consider the mean duration)
@@ -450,7 +452,7 @@ GF_Err gf_dasher_enable_rap_splitting(GF_DASHSegmenter *dasher, Bool segments_st
  *	\return error code if any
 */
 GF_Err gf_dasher_set_segment_marker(GF_DASHSegmenter *dasher, u32 segment_marker_4cc);
-/*Enables segment indexes 
+/*Enables segment indexes
  *	\param dasher the DASH segmenter object
  *	\param enable_sidx enable or disable
  *	\param subsegs_per_sidx number of subsegments per segment
@@ -545,8 +547,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
 
 
-    
-    
+
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*save file as fragmented movie*/
 GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double max_duration_sec);

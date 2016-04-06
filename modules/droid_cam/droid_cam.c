@@ -146,7 +146,7 @@ jint static_JNI_OnLoad(JavaVM* vm, void* reserved)
 		LOGE("[ANDROID_CAMERA] Function getImageWidth not found");
 		return -1;
 	}
-	
+
 	getBitsPerPixel = (*env)->GetMethodID(env, camCtrlClass, "getBitsPerPixel", "()I");
 	if (getBitsPerPixel == 0)
 	{
@@ -331,7 +331,7 @@ GF_Err CAM_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	read->term = serv->term;
 
 	loadCameraControler(read);
-	
+
 	camStartCamera(read);
 
 	/*reply to user*/
@@ -597,12 +597,12 @@ u32 getFormat(ISOMReader *read)
 
 	pixel_format = (*env)->CallNonvirtualIntMethod(env, read->camCtrlObj, read->camCtrlClass, read->getImageFormat);
 	switch (pixel_format) {
-		case 17: //NV21
-			return GF_PIXEL_NV21;
-		case 842094169: //YV12
-			return GF_PIXEL_YV12;
-		default:
-			return 0; //should never be here
+	case 17: //NV21
+		return GF_PIXEL_NV21;
+	case 842094169: //YV12
+		return GF_PIXEL_YV12;
+	default:
+		return 0; //should never be here
 	}
 }
 

@@ -425,10 +425,10 @@ void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 {
 	u32 sampleCount, i, j, RunSize, RunDur, RunFlags, NeedFlags, UseCTS, count;
-	/* enum: 
-	   0 - use values per sample in the trun box 
+	/* enum:
+	   0 - use values per sample in the trun box
 	   1 - use default values from track fragment header
-	   2 - use default values from track extends header */	 
+	   2 - use default values from track extends header */
 	u32 UseDefaultSize, UseDefaultDur, UseDefaultFlag;
 	GF_TrackFragmentRunBox *trun;
 	GF_TrunEntry *ent, *first_ent;
@@ -538,7 +538,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 					/* if all previous runs used explicit flags per sample, we can still use trex flags for this run */
 					UseDefaultFlag = 2;
 				} else if (UseDefaultFlag==1) {
-					/* otherwise if one of the previous runs did use tfhd flags, 
+					/* otherwise if one of the previous runs did use tfhd flags,
 					we have no choice but to explicitly use flags per sample for this run */
 					NeedFlags = GF_TRUE;
 				}
@@ -548,7 +548,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 					/* if all previous runs used explicit flags per sample, we can still use tfhd flags for this run */
 					UseDefaultFlag = 1;
 				} else if(UseDefaultFlag==2) {
-					/* otherwise if one of the previous runs did use trex flags, 
+					/* otherwise if one of the previous runs did use trex flags,
 					we have no choice but to explicitly use flags per sample for this run */
 					NeedFlags = GF_TRUE;
 				}
@@ -568,7 +568,7 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 				trun->flags |= GF_ISOM_TRUN_FIRST_FLAG;
 			}
 		}
-		
+
 		//CTS flag
 		if (UseCTS) trun->flags |= GF_ISOM_TRUN_CTS_OFFSET;
 
@@ -714,8 +714,8 @@ u32 moof_get_duration(GF_MovieFragmentBox *moof, u32 refTrackID)
 
 static u64 moof_get_earliest_cts(GF_MovieFragmentBox *moof, u32 refTrackID)
 {
-    u32 i, j;
-    u64 cts, duration;
+	u32 i, j;
+	u64 cts, duration;
 	GF_TrunEntry *ent;
 	GF_TrackFragmentBox *traf=NULL;
 	GF_TrackFragmentRunBox *trun;
@@ -1164,7 +1164,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
 	}
 
-	if (subsegments_per_sidx < 0) { 
+	if (subsegments_per_sidx < 0) {
 		referenceTrackID = 0;
 		subsegments_per_sidx = 0;
 	}

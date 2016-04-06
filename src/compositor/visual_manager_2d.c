@@ -532,8 +532,8 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 
 static void register_dirty_rect(GF_RectArray *ra, GF_IRect *rc)
 {
-    if (!rc->width || !rc->height) return;
-    
+	if (!rc->width || !rc->height) return;
+
 	/*technically this is correct however the gain is not that big*/
 #if 0
 
@@ -623,7 +623,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 				if (redraw_all_on_background_change) redraw_all = 1;
 			}
 			/*in hybridGL we will have to force background draw even if no change, since backbuffer GL is not persistent*/
-			if (!redraw_all_on_background_change) 
+			if (!redraw_all_on_background_change)
 				hyb_force_background = 1;
 
 			visual->last_had_back = (bck_ctx->aspect.fill_texture && !bck_ctx->aspect.fill_texture->transparent) ? 2 : 1;
@@ -783,7 +783,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 #endif
 		goto exit;
 	}
-	
+
 	if (!redraw_all && !has_clear) visual->has_modif=0;
 
 skip_background:

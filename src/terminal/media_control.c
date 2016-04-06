@@ -254,7 +254,7 @@ void mediacontrol_set_speed(GF_ObjectManager *odm, Fixed speed)
 			}
 			gf_scene_restart_dynamic(in_scene, time, 0, 1);
 			return;
-		} 
+		}
 		gf_clock_set_speed(ck, speed);
 		gf_odm_set_speed(odm, speed, GF_TRUE);
 	}
@@ -432,7 +432,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 		need_restart = 0;
 	}
 
-	if (!stack->changed || !stack->control->enabled || !stack->stream) return;
+	if ((stack->is_init && !stack->changed) || !stack->control->enabled || !stack->stream) return;
 
 
 	/*if not previously enabled and now enabled, switch all other controls off and reactivate*/
@@ -664,7 +664,9 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		cur = (GF_Segment *)gf_list_get(ctrl->seg, ctrl->current_seg);
 		if (odm->subscene && odm->subscene->needs_restart) return 0;
 		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);
-		if (now<=dur) return 0;
+		//if next frame is after current segment trigger switch now
+		if (now + odm->term->compositor->frame_duration < dur)
+			return 0;
 	} else {
 		/*FIXME - for natural media with scalability, we should only process when all streams of the object are done*/
 	}

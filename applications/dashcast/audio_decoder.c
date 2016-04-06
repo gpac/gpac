@@ -297,7 +297,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					nb_samp = resample_audio(audio_input_file, audio_input_data, codec_ctx, &output, &num_planes_out, num_channels, sample_format);
 					if (nb_samp<0) {
 						return -1;
-					} 
+					}
 
 					av_samples_get_buffer_size(&data_size, DC_AUDIO_NUM_CHANNELS, nb_samp, DC_AUDIO_SAMPLE_FORMAT, 0);
 					data = output;

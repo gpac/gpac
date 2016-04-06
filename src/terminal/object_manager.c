@@ -288,11 +288,11 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
 		gf_term_send_event(odm->term, &evt);
-    }
-    //this is an extra scene not part of the main tree (eg declared from modules), don't post events
-    else if (odm->subscene) {
-        gf_scene_del(odm->subscene);
-    }
+	}
+	//this is an extra scene not part of the main tree (eg declared from modules), don't post events
+	else if (odm->subscene) {
+		gf_scene_del(odm->subscene);
+	}
 
 	gf_term_lock_net(term, GF_TRUE);
 	/*delete the ODMan*/
@@ -1626,7 +1626,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 			if (!ch->clock->clock_init && com.play.timestamp_based)
 				com.play.timestamp_based = 2;
 
-			if (ck_time<0) 
+			if (ck_time<0)
 				ck_time=0;
 
 			if (odm->scalable_addon) {
@@ -1800,7 +1800,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 #endif
 
 	GF_NetworkCommand com;
-	//root ODs of dynamic scene may not have seen play/pause request 
+	//root ODs of dynamic scene may not have seen play/pause request
 	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
 #if 0
@@ -1950,6 +1950,12 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	if (on_channel) {
 		if (nb_eos==nb_share_clock) {
 			on_channel->clock->has_seen_eos = 1;
+#ifndef GPAC_DISABLE_VRML
+			//check for scene restart upon end of stream
+			if (odm->subscene) {
+				gf_scene_mpeg4_inline_check_restart(odm->subscene);
+			}
+#endif
 		} else {
 			nb_ck_running++;
 		}

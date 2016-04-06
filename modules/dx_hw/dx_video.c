@@ -618,22 +618,22 @@ static void DD_Shutdown(GF_VideoOutput *dr)
 void DD_ShowTaskbar(Bool show)
 {
 #ifdef UNICODE
-    HWND tbwnd = FindWindow(L"Shell_TrayWnd", NULL);
-    HWND swnd = FindWindow(L"Button", NULL);
+	HWND tbwnd = FindWindow(L"Shell_TrayWnd", NULL);
+	HWND swnd = FindWindow(L"Button", NULL);
 #else
 	HWND tbwnd = FindWindow("Shell_TrayWnd", NULL);
 	HWND swnd = FindWindow("Button", NULL);
 #endif
 
-    if (tbwnd != NULL) {
-        ShowWindow(tbwnd, show ? SW_SHOW : SW_HIDE);
-        UpdateWindow(tbwnd);
-    }
-    if (swnd != NULL) { 
-        // Vista
-        ShowWindow(swnd, show ? SW_SHOW : SW_HIDE);
-        UpdateWindow(swnd);
-    }       
+	if (tbwnd != NULL) {
+		ShowWindow(tbwnd, show ? SW_SHOW : SW_HIDE);
+		UpdateWindow(tbwnd);
+	}
+	if (swnd != NULL) {
+		// Vista
+		ShowWindow(swnd, show ? SW_SHOW : SW_HIDE);
+		UpdateWindow(swnd);
+	}
 }
 static GF_Err DD_SetFullScreen(GF_VideoOutput *dr, Bool bOn, u32 *outWidth, u32 *outHeight)
 {
@@ -888,7 +888,7 @@ static void *NewDXVideoOutput()
 
 #ifdef UNICODE
 	pCtx->hDDrawLib = LoadLibrary(L"ddraw.dll");
-#else 
+#else
 	pCtx->hDDrawLib = LoadLibrary("ddraw.dll");
 #endif
 	if (pCtx->hDDrawLib) {

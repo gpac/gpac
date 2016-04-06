@@ -153,7 +153,7 @@ COsmo4::COsmo4()
 
 COsmo4 theApp;
 
-static void osmo4_do_log(void *cbk, u32 level, u32 tool, const char *fmt, va_list list)
+static void osmo4_do_log(void *cbk, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list list)
 {
 	FILE *logs = (FILE *) cbk;
 	if (logs) {

@@ -387,8 +387,8 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	old_visual = tr_state->visual;
 	prev_layer = tr_state->is_layer;
 	prev_cam = tr_state->camera;
-	
-	
+
+
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_GET_BOUNDS:
 		if (!tr_state->for_node) {
@@ -398,13 +398,13 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	case TRAVERSE_PICK:
 		/*layers can only be used in a 2D context*/
-		if (tr_state->camera && tr_state->camera->is_3D) 
+		if (tr_state->camera && tr_state->camera->is_3D)
 			return;
 		break;
 
 	case TRAVERSE_SORT:
 		/*layers can only be used in a 2D context*/
-		if (tr_state->camera && tr_state->camera->is_3D) 
+		if (tr_state->camera && tr_state->camera->is_3D)
 			return;
 
 		if (tr_state->visual->compositor->hybrid_opengl) {
@@ -445,13 +445,13 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	if (prev_cam) {
 
 		gf_mx_apply_rect(&tr_state->model_matrix, &rc);
-	
+
 		if (tr_state->visual->compositor->hybrid_opengl) {
 			gf_mx2d_apply_rect(transform, &rc);
 		} else {
 			gf_mx_apply_rect(&prev_cam->modelview, &rc);
 		}
-		
+
 		if (tr_state->camera->flags & CAM_HAS_VIEWPORT)
 			gf_mx_apply_rect(&prev_cam->viewport, &rc);
 
@@ -499,7 +499,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 		}
 		/*note that we don't backup the state as a layer3D cannot be declared in a layer3D*/
 		tr_state->layer3d = node;
-		
+
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer3D] Redrawing\n"));
 

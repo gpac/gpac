@@ -516,7 +516,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			OfficialPayloadID = 14;
 			required_rate = 90000;
 		}
-			break;
+		break;
 		default:
 			/*ERROR*/
 			hintType = 0;

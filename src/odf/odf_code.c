@@ -1158,7 +1158,7 @@ GF_Err gf_odf_read_dcd(GF_BitStream *bs, GF_DecoderConfig *dcd, u32 DescSize)
 			break;
 
 		/*iPod fix: delete and aborts, this will create an InvalidDescriptor at the ESD level with a loaded DSI,
-		laoding will abort with a partially valid ESD which is all the matters*/
+		loading will abort with a partially valid ESD which is all the matters*/
 		case GF_ODF_SLC_TAG:
 			gf_odf_delete_descriptor(tmp);
 			return GF_OK;
@@ -1644,7 +1644,7 @@ GF_Err gf_odf_del_muxinfo(GF_MuxInfo *mi)
 {
 	if (!mi) return GF_BAD_PARAM;
 	if (mi->file_name) gf_free(mi->file_name);
-    if (mi->src_url) gf_free(mi->src_url);
+	if (mi->src_url) gf_free(mi->src_url);
 	if (mi->streamFormat) gf_free(mi->streamFormat);
 	if (mi->textNode) gf_free(mi->textNode);
 	if (mi->fontNode) gf_free(mi->fontNode);
@@ -2636,9 +2636,9 @@ GF_Err gf_odf_write_kw(GF_BitStream *bs, GF_KeyWord *kwd)
 	if (!kwd) return GF_BAD_PARAM;
 
 	e = gf_odf_size_descriptor((GF_Descriptor *)kwd, &size);
-	assert(e == GF_OK);
+	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, kwd->tag, size);
-	assert(e == GF_OK);
+	if (e) return e;
 
 	gf_bs_write_int(bs, kwd->languageCode, 24);
 	gf_bs_write_int(bs, kwd->isUTF8, 1);

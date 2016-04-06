@@ -229,7 +229,7 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 			strcat(szPath, path);
 			gf_svg_parse_attribute(n, &info, (char *) szPath, 0);
 		}
-		
+
 		vttdec->has_rendering_script = GF_TRUE;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot open Rendering Script - %s\n", path));
@@ -436,11 +436,11 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
 #if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
-		case GF_SCENE_DECODER_INTERFACE:
-			return (GF_BaseInterface *)NewVTTDec();
+	case GF_SCENE_DECODER_INTERFACE:
+		return (GF_BaseInterface *)NewVTTDec();
 #endif
-		default:
-			return NULL;
+	default:
+		return NULL;
 	}
 }
 
@@ -451,9 +451,9 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
 #if !defined(GPAC_DISABLE_VTT) && !defined(GPAC_DISABLE_SVG)
-		case GF_SCENE_DECODER_INTERFACE:
-			DeleteVTTDec((GF_BaseDecoder *)ifce);
-			break;
+	case GF_SCENE_DECODER_INTERFACE:
+		DeleteVTTDec((GF_BaseDecoder *)ifce);
+		break;
 #endif
 	}
 }

@@ -36,9 +36,7 @@ enum
 	/*relative URL*/
 	GF_URL_TYPE_RELATIVE ,
 	/*any other URL*/
-	GF_URL_TYPE_ANY,
-	/*BLOB URL*/
-	GF_URL_TYPE_BLOB
+	GF_URL_TYPE_ANY
 };
 
 /*resolve the protocol type, for a std URL: http:// or ftp:// ...*/
@@ -47,12 +45,13 @@ static u32 URL_GetProtocolType(const char *pathName)
 	char *begin;
 	if (!pathName) return GF_URL_TYPE_ANY;
 
+	/* URL with the data scheme are not relative to avoid concatenation */
+	if (!strnicmp(pathName, "data:", 5)) return GF_URL_TYPE_ANY;
+
 	if ((pathName[0] == '/') || (pathName[0] == '\\')
 	        || (pathName[1] == ':')
 	        || ((pathName[0] == ':') && (pathName[1] == ':'))
 	   ) return GF_URL_TYPE_FILE;
-
-	if (!strncmp(pathName, "blob:", 5)) return GF_URL_TYPE_BLOB;
 
 	begin = strstr(pathName, "://");
 	if (!begin) begin = strstr(pathName, "|//");
@@ -104,7 +103,12 @@ char *gf_url_concatenate(const char *parentName, const char *pathName)
 	if (!pathName) return gf_strdup(parentName);
 	if (!parentName) return gf_strdup(pathName);
 
-	if ( (strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH) ) return NULL;
+	if (!strncmp(pathName, "data:", 5)) return gf_strdup(pathName);
+
+	if ((strlen(parentName) > GF_MAX_PATH) || (strlen(pathName) > GF_MAX_PATH)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("URL too long for concatenation: \n%s\n", pathName));
+		return NULL;
+	}
 
 	prot_type = URL_GetProtocolType(pathName);
 	if (prot_type != GF_URL_TYPE_RELATIVE) {

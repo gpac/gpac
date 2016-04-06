@@ -43,8 +43,8 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
 		GF_SensorHandler *hsens;
-        Bool check_anchor=0;
-        u32 ntag = gf_node_get_tag(node);
+		Bool check_anchor=0;
+		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
 		if (group->sensors) gf_list_reset(group->sensors);
 
@@ -54,9 +54,9 @@ void group_2d_traverse(GF_Node *node, GroupingNode2D *group, GF_TraverseState *t
 		but still mark the group as empty*/
 		group->bounds.width = 0;
 		/*special case for anchor which is a parent node acting as a sensor*/
-        if (ntag==TAG_MPEG4_Anchor) check_anchor=1;
+		if (ntag==TAG_MPEG4_Anchor) check_anchor=1;
 #ifndef GPAC_DISABLE_X3D
-        else if (ntag==TAG_X3D_Anchor) check_anchor=1;
+		else if (ntag==TAG_X3D_Anchor) check_anchor=1;
 #endif
 		if (check_anchor) {
 			GF_SensorHandler *gf_sc_anchor_get_handler(GF_Node *n);
@@ -221,7 +221,7 @@ void group_2d_traverse_with_order(GF_Node *node, GroupingNode2D *group, GF_Trave
 	backup = gf_node_dirty_get(node);
 	if (backup & GF_SG_CHILD_DIRTY) {
 		GF_SensorHandler *hsens;
-        Bool check_anchor=0;
+		Bool check_anchor=0;
 		/*never trigger bounds recompute in 2D since we don't cull 2D groups*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;
@@ -679,7 +679,7 @@ void parent_node_traverse(GF_Node *node, ParentNode2D *group, GF_TraverseState *
 	GF_ChildNodeItem *l;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
-        Bool check_anchor=0;
+		Bool check_anchor=0;
 		/*parent groups must recompute their bounds themselves since they modify children layout*/
 		u32 ntag = gf_node_get_tag(node);
 		group->flags &= ~GROUP_HAS_SENSORS;

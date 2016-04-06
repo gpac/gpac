@@ -60,7 +60,11 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	if (!parent) return GF_FALSE;
 
 	mo = gf_scene_get_media_object_ex(parent, &root->url, GF_MEDIA_OBJECT_SCENE, GF_FALSE, NULL, GF_FALSE, (GF_Node*)root);
-	if (!mo || !mo->odm) return GF_FALSE;
+	if (!mo) return GF_FALSE;
+	//invalidate as soon as we have an mo (eg something is attached to the scene)
+	gf_term_invalidate_compositor(parent->root_od->term);
+
+	if (!mo->odm) return GF_FALSE;
 
 	if (!mo->odm->subscene) {
 		gf_term_invalidate_compositor(parent->root_od->term);
@@ -68,6 +72,7 @@ static Bool gf_inline_set_scene(M_Inline *root)
 	}
 	/*assign inline scene as private stack of inline node, and remember inline node for event propagation*/
 	gf_node_set_private((GF_Node *)root, mo->odm->subscene);
+	mo->odm->subscene->object_attached = GF_TRUE;
 
 	/*play*/
 	gf_mo_play(mo, 0, -1, GF_FALSE);
@@ -111,6 +116,7 @@ void gf_inline_on_modified(GF_Node *node)
 					break;
 				}
 
+				scene->object_attached = GF_FALSE;
 				mo->num_open --;
 				if (!mo->num_open) {
 					if (ODID == GF_MEDIA_EXTERNAL_ID) {
@@ -194,10 +200,17 @@ static void gf_inline_check_restart(GF_Scene *scene)
 					gf_term_invalidate_compositor(scene->root_od->term);
 				}
 			}
-		} else {
-			/*trigger render until to watch for restart...*/
-			gf_term_invalidate_compositor(scene->root_od->term);
 		}
+	}
+}
+
+void gf_scene_mpeg4_inline_check_restart(GF_Scene *scene)
+{
+	gf_inline_check_restart(scene);
+	
+	if (scene->needs_restart) {
+		gf_term_invalidate_compositor(scene->root_od->term);
+		return;
 	}
 }
 
@@ -304,6 +317,9 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 	if (!scene->graph_attached) {
 		/*just like protos, we must invalidate parent graph until attached*/
 		gf_node_dirty_set(n, 0, GF_TRUE);
+		//and request bew anim frame until attached
+		if (scene->object_attached)
+			gf_term_invalidate_compositor(scene->root_od->term);
 		return;
 	}
 	/*clear dirty flags for any sub-inlines, bitmaps or protos*/

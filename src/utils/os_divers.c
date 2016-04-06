@@ -877,7 +877,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 	if (!rti) return GF_FALSE;
 
 	proc_idle_time = proc_k_u_time = process_k_u_time = 0;
-	
+
 	entry_time = gf_sys_clock();
 	if (last_update_time && (entry_time - last_update_time < refresh_time_ms)) {
 		memcpy(rti, &the_rti, sizeof(GF_SystemRTInfo));
@@ -1359,7 +1359,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[RTI] cannot open /proc/meminfo\n"));
 	}
 #endif
-	
+
 
 	the_rti.sampling_instant = last_update_time;
 
@@ -1713,7 +1713,7 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	remote_s = (ntp >> 32);
 	remote_f = (u32) (ntp & 0xFFFFFFFFULL);
 	gf_net_get_ntp(&local_s, &local_f);
-	
+
 	local = local_s;
 	local *= 1000;
 	local += ((u64) local_f)*1000 / 0xFFFFFFFFULL;
@@ -1753,36 +1753,36 @@ s32 gf_net_get_timezone()
 }
 
 //no mkgmtime on mingw..., use our own
-#if (defined(WIN32) && defined(__GNUC__)) 
+#if (defined(WIN32) && defined(__GNUC__))
 
 static Bool leap_year(u32 year) {
-    year += 1900;
-    return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) ? GF_TRUE : GF_FALSE;
+	year += 1900;
+	return (year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0) ? GF_TRUE : GF_FALSE;
 }
 static time_t gf_mktime_utc(struct tm *tm)
 {
-   static const u32 days_per_month[2][12] = {
-        {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
-        {31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
-    };
-    time_t time=0;
-    int i;
+	static const u32 days_per_month[2][12] = {
+		{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31},
+		{31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+	};
+	time_t time=0;
+	int i;
 
-    for (i=70; i<tm->tm_year; i++) {
+	for (i=70; i<tm->tm_year; i++) {
 		time += leap_year(i) ? 366 : 365;
 	}
 
-    for (i=0; i<tm->tm_mon; ++i) {
+	for (i=0; i<tm->tm_mon; ++i) {
 		time += days_per_month[leap_year(tm->tm_year)][i];
 	}
 	time += tm->tm_mday - 1;
-    time *= 24;
-    time += tm->tm_hour;
-    time *= 60;
-    time += tm->tm_min;
-    time *= 60;
-    time += tm->tm_sec;
-    return time;
+	time *= 24;
+	time += tm->tm_hour;
+	time *= 60;
+	time += tm->tm_min;
+	time *= 60;
+	time += tm->tm_sec;
+	return time;
 }
 
 #elif defined(WIN32)

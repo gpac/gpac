@@ -37,7 +37,7 @@
 
 static void c2d_gl_fill_no_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color color)
 {
-#if defined(GPAC_USE_GLES1X) 
+#if defined(GPAC_USE_GLES1X)
 	GLfloat line[4];
 
 	line[0] = FIX2FLT(x);
@@ -455,11 +455,11 @@ static GF_Err c2d_video_access_hybrid_opengl(GF_VisualManager *visual)
 		memset(compositor->hybgl_txh->data, 0, 4*compositor->hybgl_txh->width*compositor->hybgl_txh->height);
 
 	e = compositor->rasterizer->surface_attach_to_buffer(visual->raster_surface, compositor->hybgl_txh->data,
-		    compositor->hybgl_txh->width,
-		    compositor->hybgl_txh->height,
-		    0,
-		    compositor->hybgl_txh->width * 4,
-		    (GF_PixelFormat) GF_PIXEL_RGBA);
+	        compositor->hybgl_txh->width,
+	        compositor->hybgl_txh->height,
+	        0,
+	        compositor->hybgl_txh->width * 4,
+	        (GF_PixelFormat) GF_PIXEL_RGBA);
 	if (e) return e;
 	e = compositor_2d_setup_opengl(visual);
 	if (e) return e;
@@ -556,7 +556,7 @@ Bool compositor_2d_check_attached(GF_VisualManager *visual)
 	if (!visual->is_attached) {
 		c2d_get_video_access_normal(visual);
 	}
-	
+
 	return visual->is_attached;
 }
 
@@ -847,13 +847,13 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_RGBD:
 //		case GF_PIXEL_RGB_555:
 //		case GF_PIXEL_RGB_565:
-            if ((alpha==0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGB)) {
-                use_soft_stretch = GF_FALSE;
-            }
-            else if ((alpha!=0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGBA)) {
-                use_soft_stretch = GF_FALSE;
-            }
-            break;
+			if ((alpha==0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGB)) {
+				use_soft_stretch = GF_FALSE;
+			}
+			else if ((alpha!=0xFF) && (hw_caps & GF_VIDEO_HW_HAS_RGBA)) {
+				use_soft_stretch = GF_FALSE;
+			}
+			break;
 		case GF_PIXEL_ARGB:
 		case GF_PIXEL_RGBA:
 		case GF_PIXEL_RGBAS:
@@ -932,7 +932,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		video_src.u_ptr = (char *) txh->pU;
 		video_src.v_ptr = (char *) txh->pV;
 	}
-    video_src.global_alpha = alpha;
+	video_src.global_alpha = alpha;
 
 	//overlay queing
 	if (overlay_type==2) {
@@ -1348,7 +1348,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 		compositor->traverse_state->vp_size.y = INT2FIX(compositor->output_height);
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Reconfigured display size %d x %d done\n", evt.setup.width, evt.setup.height));
-	
+
 	/*set scale factor*/
 	compositor_set_ar_scale(compositor, scaleX, scaleY);
 	return GF_OK;

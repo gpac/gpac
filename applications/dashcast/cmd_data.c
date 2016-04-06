@@ -392,7 +392,7 @@ void dc_cmd_data_destroy(CmdData *cmd_data)
 	gf_sys_close();
 }
 
-static void on_dc_log(void *cbk, u32 ll, u32 lm, const char *av_fmt_ctx, va_list list)
+static void on_dc_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *av_fmt_ctx, va_list list)
 {
 	FILE *logs = (FILE*)cbk;
 	vfprintf(logs, av_fmt_ctx, list);
@@ -447,8 +447,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -pixf FMT                set the input pixel format\n"
 	    "    -vfr N                   force the input video framerate\n"
 	    "    -vres WxH                force the video resolution (e.g. 640x480)\n"
-		"    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
-		"    -demux-buffer SIZE       sets demux buffer size to SIZE.\n"
+	    "    -vcrop XxY               crop the source video from X pixels left and Y pixels top. Must be used with -vres.\n"
+	    "    -demux-buffer SIZE       sets demux buffer size to SIZE.\n"
 	    "* Audio options:\n"
 	    "    -a string                set the source name for an audio input\n"
 	    "                                - if input is from microphone, use \"plughw:[x],[y]\"\n"
@@ -464,8 +464,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -vcustom string         send custom parameters directly to the video encoder\n"
 	    "    -gdr                    use Gradual Decoder Refresh feature for video encoding (h264 codec only)\n"
 	    "    -gop                    specify GOP size in frames - default is framerate (1 sec gop)\n"
-	"    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
-	"* Audio encoding options:\n"
+	    "    -low-delay               specify that low delay settings should be used (no B-frames, fast encoding)\n"
+	    "* Audio encoding options:\n"
 	    "    -acodec string          set the output audio codec (default: aac)\n"
 #if 0 //TODO: bind to option and params - test first how it binds to current input parameters
 	    "    -ab int                 set the output audio bitrate in bits (default: 192000)\n"
@@ -476,7 +476,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "\n"
 	    "DASH options:\n"
 	    "    -seg-dur dur:int         set the segment duration in millisecond (default value: 1000)\n"
-		"    -frag dur:int            set the fragment duration in millisecond (default value: 1000) (same as -frag-dur)\n"
+	    "    -frag dur:int            set the fragment duration in millisecond (default value: 1000) (same as -frag-dur)\n"
 	    "    -seg-marker marker:4cc   add a marker box named marker at the end of DASH segment\n"
 	    "    -out outdir:str          outdir is the output data directory (default: output)\n"
 	    "    -mpd mpdname:str         mpdname is the MPD file name (default: dashcast.mpd)\n"
@@ -494,10 +494,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    DashCast -a test_audio.mp3 -v test_audio.mp4 -live-media\n"
 #ifdef WIN32
 	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"screen-capture-recorder\" -live (please install http://screencapturer.sf.net/)\n"
-		"    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live (see https://trac.ffmpeg.org/wiki/DirectShow)\n"
+	    "    DashCast -vf dshow  -vres 1280x720 -vfr 24 -v video=\"YOUR-WEBCAM\" -pixf yuv420p -live (see https://trac.ffmpeg.org/wiki/DirectShow)\n"
 #elif defined(__DARWIN) || defined(__APPLE__)
-        "    DashCast -vf avfoundation -vres 1280x720 -v \"FaceTime HD Camera\" -vfr 25 -live\n"
-        "    DashCast -vf avfoundation -vres 1280x720 -v \"Capture screen 0\" -vfr 25 -live\n"
+	    "    DashCast -vf avfoundation -vres 1280x720 -v \"FaceTime HD Camera\" -vfr 25 -live\n"
+	    "    DashCast -vf avfoundation -vres 1280x720 -v \"Capture screen 0\" -vfr 25 -live\n"
 #else
 	    "    DashCast -vf video4linux2 -vres 1280x720 -vfr 24 -v4l2f mjpeg -v /dev/video0 -af alsa -a plughw:1,0 -live\n"
 	    "    DashCast -vf x11grab -vres 800x600 -vfr 25 -v :0.0 -live\n"

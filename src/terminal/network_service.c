@@ -624,8 +624,8 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		while ((odm = (GF_ObjectManager*)gf_list_enum(od_list, &i))) {
 			u32 avg_dec_time;
 			/*the decoder statistics are reliable only if we decoded at least 1s*/
-			if (!odm->codec || !odm->codec->nb_dec_frames || 
-				(odm->codec->ck->speed > 0 ? odm->codec->stat_start + 1000 > odm->codec->last_unit_dts : odm->codec->stat_start - 1000 < odm->codec->last_unit_dts)) 
+			if (!odm->codec || !odm->codec->nb_dec_frames ||
+			        (odm->codec->ck->speed > 0 ? odm->codec->stat_start + 1000 > odm->codec->last_unit_dts : odm->codec->stat_start - 1000 < odm->codec->last_unit_dts))
 				continue;
 			avg_dec_time = (u32) (odm->codec->total_dec_time / odm->codec->nb_dec_frames);
 			if (avg_dec_time > com->codec_stat.avg_dec_time) {
@@ -878,10 +878,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (no_mime_check) {
 		mime_type = NULL;
 	} else {
-		/*fetch a mime type if any. If error don't even attempt to open the service
-		TRYTOFIXME: it would be nice to reuse the downloader created while fetching the mime type, however
-		we don't know if the plugin will want it threaded or not....
-		*/
+		/*fetch a mime type if any. If error don't even attempt to open the service	*/
 		mime_type = get_mime_type(term, sURL, &e, the_session);
 		if (e) {
 			(*ret_code) = e;

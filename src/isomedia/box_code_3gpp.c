@@ -422,7 +422,7 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 			gf_isom_box_del(a);
 			return GF_OK;
 		}
-		
+
 		ptr->size -= a->size;
 		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
 			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);
@@ -570,7 +570,8 @@ GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u8(bs, ptr->reserved2);				/*Reserved*/
 	gf_bs_write_u16(bs, ptr->reserved3);			/*Reserved*/
 	gf_bs_write_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
-	if (ptr->textName && (pSize=(u32) strlen(ptr->textName))) {
+	//pSize assignment below is not a mistake
+	if (ptr->textName && (pSize = (u16) strlen(ptr->textName))) {
 		gf_bs_write_u8(bs, pSize);					/*a Pascal string begins with its size*/
 		gf_bs_write_data(bs, ptr->textName, pSize);	/*Font name*/
 	} else {
@@ -642,7 +643,7 @@ GF_Err styl_Write(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
 	e = gf_isom_box_write_header(s, bs);
-	assert(e == GF_OK);
+	if (e) return e;
 
 	gf_bs_write_u16(bs, ptr->entry_count);
 	for (i=0; i<ptr->entry_count; i++) gpp_write_style(bs, &ptr->styles[i]);

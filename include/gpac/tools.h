@@ -294,7 +294,7 @@ const char *gf_error_to_string(GF_Err e);
  *
  * These levels describes messages priority used when filtering logs
  */
-enum
+typedef enum
 {
 	/*! Disable all Log message*/
 	GF_LOG_QUIET = 0,
@@ -306,7 +306,7 @@ enum
 	GF_LOG_INFO,
 	/*! Log message is a debug info*/
 	GF_LOG_DEBUG
-};
+} GF_LOG_Level;
 
 /*!
  *	\brief Log exits at first error assignment
@@ -332,7 +332,7 @@ char *gf_log_get_tools_levels();
  *
  * These flags describes which sub-part of GPAC generates the log and are used when filtering logs
  */
-enum
+typedef enum
 {
 	/*! Log message from the core library (init, threads, network calls, etc)*/
 	GF_LOG_CORE = 0,
@@ -392,7 +392,7 @@ enum
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
 	GF_LOG_TOOL_MAX = GF_LOG_ALL,
-};
+} GF_LOG_Tool;
 
 /*!
  *	\brief Log modules assignment
@@ -402,7 +402,7 @@ enum
  *	\param level level of logging for this tool.
  *
  */
-void gf_log_set_tool_level(u32 tool, u32 level);
+void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 
 /*!
  *	\brief Log Message Callback
@@ -415,7 +415,7 @@ void gf_log_set_tool_level(u32 tool, u32 level);
  *	\param vlist message log param.
  *
  */
-typedef void (*gf_log_cbk)(void *cbck, u32 log_level, u32 log_tool, const char* fmt, va_list vlist);
+typedef void (*gf_log_cbk)(void *cbck, GF_LOG_Level log_level, GF_LOG_Tool log_tool, const char* fmt, va_list vlist);
 
 /*!
  *	\brief Log overwrite
@@ -447,7 +447,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 
 /*this is all a bit ugly, but most compilers don't properly handle variadic macros...*/
 void gf_log(const char *fmt, ...);
-void gf_log_lt(u32 ll, u32 lt);
+void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt);
 
 
 /*!
@@ -458,7 +458,7 @@ void gf_log_lt(u32 ll, u32 lt);
  *	\param log_level level to check
  *	\return 1 if logged, 0 otherwise
 */
-Bool gf_log_tool_level_on(u32 log_tool, u32 log_level);
+Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level);
 
 /*!
  *	\brief Set log tools and levels
@@ -485,7 +485,7 @@ GF_Err gf_log_modify_tools_levels(const char *val);
  *	\param tool tool to log
  *	\param level log level for this tool
 */
-void gf_log_set_tool_level(u32 tool, u32 level);
+void gf_log_set_tool_level(GF_LOG_Tool tool, GF_LOG_Level level);
 
 #ifdef GPAC_DISABLE_LOG
 #define GF_LOG(_ll, _lm, __args)
@@ -937,9 +937,9 @@ char * gf_get_default_cache_directory();
 
 /**
  * Gets the number of open file handles (gf_fopen/gf_fclose only).
- * \return  number of open file handles 
+ * \return  number of open file handles
  */
-u32 gf_file_handles_count(); 
+u32 gf_file_handles_count();
 
 
 /**

@@ -92,7 +92,7 @@ typedef struct
 
 	u32 map_media_time_on_prog_id;
 	Double media_start_range;
-	
+
 	const char *force_temi_url;
 } M2TSIn;
 
@@ -569,7 +569,7 @@ static void forward_m2ts_event(M2TSIn *m2ts, u32 evt_type, void *param)
 static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
 	M2TSIn *m2ts = (M2TSIn *) ts->user;
-				
+
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
 		/*	example code showing how to forward an event from MPEG-2 TS input service to GPAC user*/
@@ -1038,11 +1038,11 @@ void m2ts_flush_data(M2TSIn *m2ts, u32 flush_type)
 			m2ts->has_pending_segments++;
 		return;
 	}
-    if (! gf_mx_try_lock(m2ts->mx)) {
-        if (flush_type==GF_M2TS_PUSH_SEGMENT)
-            m2ts->has_pending_segments++;
-        return;
-    }
+	if (! gf_mx_try_lock(m2ts->mx)) {
+		if (flush_type==GF_M2TS_PUSH_SEGMENT)
+			m2ts->has_pending_segments++;
+		return;
+	}
 	m2ts->in_data_flush = 1;
 
 	//check buffer level when start of new segment
@@ -1120,7 +1120,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->ts->record_to = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "RecordTo");
 
 	m2ts->service = serv;
-	
+
 	m2ts->force_temi_url = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "ForceTEMILocation");
 	if (m2ts->force_temi_url && !strlen(m2ts->force_temi_url)) m2ts->force_temi_url = NULL;
 

@@ -33,7 +33,7 @@
   except for symbian32 which uses .mmp directives ... */
 
 /*Configuration for visual studio, 32/64 bits */
-#if defined(WIN32) && !defined(_WIN32_WCE) 
+#if defined(WIN32) && !defined(_WIN32_WCE)
 
 #ifndef GPAC_MP4BOX_MINI
 
@@ -55,7 +55,7 @@
 #endif /*GPAC_MP4BOX_MINI*/
 
 /*Configuration for WindowsCE 32 bits */
-#elif defined(_WIN32_WCE) 
+#elif defined(_WIN32_WCE)
 
 #ifndef GPAC_FIXED_POINT
 #define GPAC_FIXED_POINT
@@ -84,7 +84,7 @@
 
 
 /*Configuration for Android */
-#elif defined(GPAC_CONFIG_ANDROID) 
+#elif defined(GPAC_CONFIG_ANDROID)
 
 #ifndef GPAC_ANDROID
 #define GPAC_ANDROID
@@ -284,6 +284,9 @@
 
 /*disables TTML */
 //#define GPAC_DISABLE_TTML
+
+/*disables WebVTT */
+//#define GPAC_DISABLE_VTT
 
 /*disables DASH MPD */
 //#define GPAC_DISABLE_MPD

@@ -3095,6 +3095,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 9201F93B18D5A38A003D1ACA /* Build configuration list for PBXNativeTarget "libgpac" */;
 			buildPhases = (
+				92E2EF8E1C89BBEA00639C91 /* ShellScript */,
 				9201F93318D5A38A003D1ACA /* Sources */,
 				9201F93418D5A38A003D1ACA /* Frameworks */,
 				9201F93518D5A38A003D1ACA /* Headers */,
@@ -3342,6 +3343,22 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		92E2EF8E1C89BBEA00639C91 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "cd ../..\n./check_revision.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		2839E27A1A162C24002D73E1 /* Sources */ = {

@@ -219,7 +219,7 @@ public:
 	int Quit(int code);
 	GF_Config *create_default_config(char *file_path, char *file_name);
 
-	static void on_gpac_log(void *cbk, u32 ll, u32 lm, const char *fmt, va_list list);
+	static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list);
 	static void on_fm_request(void *cbk, u32 type, u32 param, int *value);
 	static Bool GPAC_EventProc(void *cbk, GF_Event *evt);
 	void progress_cbk(const char *title, u64 done, u64 total);
