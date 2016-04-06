@@ -58,7 +58,8 @@ void PrintStreamerUsage()
 	        "MP4Box can stream ISO files to RTP. The streamer currently doesn't support\n"
 	        "data carrouselling and will therefore not handle BIFS and OD streams properly.\n"
 	        "\n"
-	        "-rtp         enables streamer\n"
+            "-rtp         enables streamer\n"
+            "-run-for=T   runs for T seconds of the media then exits\n"
 	        "-noloop      disables looping when streaming\n"
 	        "-mpeg4       forces MPEG-4 ES Generic for all RTP streams\n"
 	        "-dst=IP      IP destination (uni/multi-cast). Default: 127.0.0.1\n"
@@ -92,7 +93,8 @@ int stream_file_rtp(int argc, char **argv)
 	Bool loop = GF_TRUE;
 	Bool mem_track = GF_FALSE;
 	Bool force_mpeg4 = GF_FALSE;
-	u32 path_mtu = 1450;
+    u32 path_mtu = 1450;
+    Double run_for = -1.0;
 	u32 i;
 
 	for (i = 1; i < (u32) argc ; i++) {
@@ -116,6 +118,7 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!stricmp(arg, "-mem-track")) mem_track = GF_TRUE;
 		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
 		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
+        else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
 	}
 
 	gf_sys_init(mem_track);
@@ -138,11 +141,14 @@ int stream_file_rtp(int argc, char **argv)
 	if (!file_streamer) {
 		fprintf(stderr, "Cannot create file streamer\n");
 	} else {
+        Bool run = GF_TRUE;
 		u32 check = 50;
 		fprintf(stderr, "Starting streaming %s to %s:%d\n", inName, ip_dest, port);
 		gf_isom_streamer_write_sdp(file_streamer, sdp_file);
 
-		while (1) {
+        if (run_for==0) run=GF_FALSE;
+        
+		while (run) {
 			gf_isom_streamer_send_next_packet(file_streamer, 0, 0);
 			check--;
 			if (!check) {
@@ -152,6 +158,8 @@ int stream_file_rtp(int argc, char **argv)
 				}
 				check = 50;
 			}
+            if ((run_for > 0) && (run_for < gf_isom_streamer_get_current_time(file_streamer)) )
+                break;
 		}
 		gf_isom_streamer_del(file_streamer);
 	}
