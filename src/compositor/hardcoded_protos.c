@@ -1187,7 +1187,9 @@ static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
 
 static void CustomTexture_update(GF_TextureHandler *txh)
 {
+#ifndef GPAC_DISABLE_3D
     char data[12];
+#endif
     CustomTextureStack *stack = gf_node_get_private(txh->owner);
     //texture not setup, do it
     if (!txh->tx_io) {
