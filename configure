@@ -2947,9 +2947,9 @@ if test "$use_fixed_point" = "yes"; then
 fi
 
 if test "$use_memory_tracking" = "yes"; then
-    echo "#define GPAC_MEMORY_TRACKING" >> $TMPHz
+    echo "#define GPAC_MEMORY_TRACKING" >> $TMPH
     if test "$cygwin" = "yes" ; then
-		echo "#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE" >> $TMPHz
+		echo "#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE" >> $TMPH
     fi
 fi
 
