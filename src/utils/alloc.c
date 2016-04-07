@@ -179,8 +179,10 @@ size_t gpac_nb_alloc_blocs = 0;
 #define assert(p)
 #endif
 
-
-//#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+//currently not working on OSX
+#if defined(GPAC_CONFIG_DARWIN)
+#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+#endif
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 
