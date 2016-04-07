@@ -2241,6 +2241,7 @@ force_input:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
