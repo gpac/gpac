@@ -180,7 +180,8 @@ void PrintUsage()
 	fprintf(stderr, "Usage MP4Client [options] [filename]\n"
 	        "\t-c fileName:    user-defined configuration file. Also works with -cfg\n"
 #ifdef GPAC_MEMORY_TRACKING
-	        "\t-mem-track:  enables memory tracker\n"
+            "\t-mem-track:  enables memory tracker\n"
+            "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
 	        "\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
@@ -1135,7 +1136,7 @@ int mp4client_main(int argc, char **argv)
 
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
-	Bool enable_mem_tracker = GF_FALSE;
+    GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible;
@@ -1164,11 +1165,11 @@ int mp4client_main(int argc, char **argv)
 			the_cfg = argv[i+1];
 			i++;
 		}
-		else if (!strcmp(arg, "-mem-track")) {
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-dump")) {
 #ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = GF_TRUE;
+            mem_track = !strcmp(arg, "-mem-track-dump") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		} else if (!strcmp(arg, "-gui")) {
 			gui_mode = 1;
@@ -1181,9 +1182,9 @@ int mp4client_main(int argc, char **argv)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	gf_sys_init(enable_mem_tracker);
+	gf_sys_init(mem_track);
 #else
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 #endif
 	gf_sys_set_args(argc, (const char **) argv);
 
@@ -2240,7 +2241,7 @@ force_input:
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
         gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;

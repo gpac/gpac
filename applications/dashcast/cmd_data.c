@@ -405,7 +405,7 @@ static void on_dc_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *av
 
 int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 {
-	Bool use_mem_track = GF_FALSE;
+	GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	int i;
 
 	const char *command_usage =
@@ -417,6 +417,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -logs LOGS               set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 #ifdef GPAC_MEMORY_TRACKING
 	    "    -mem-track               enable the memory tracker\n"
+        "    -mem-track-stack         enable the memory tracker with stack dumping\n"
 #endif
 	    "    -conf filename           set the configuration file name (default: dashcast.conf)\n"
 	    "    -switch-source filename  set the configuration file name for source switching\n"
@@ -519,24 +520,28 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #ifdef GPAC_MEMORY_TRACKING
 	i = 1;
 	while (i < argc) {
-		if (strcmp(argv[i], "-mem-track") == 0) {
-			use_mem_track = GF_TRUE;
-			break;
-		}
+        if (strcmp(argv[i], "-mem-track") == 0) {
+            mem_track = GF_MemTrackerSimple;
+            break;
+        }
+        else if (strcmp(argv[i], "-mem-track-stack") == 0) {
+            mem_track = GF_MemTrackerBackTrace;
+            break;
+        }
 		i++;
 	}
 #endif
 
-	gf_sys_init(use_mem_track);
+	gf_sys_init(mem_track);
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-	if (use_mem_track) {
+	if (mem_track) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 	}
 
 	/* Initialize command data */
 	dc_cmd_data_init(cmd_data);
-	cmd_data->use_mem_track = use_mem_track;
+	cmd_data->mem_track = mem_track;
 
 	i = 1;
 	while (i < argc) {
@@ -805,10 +810,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return 1;
 			}
 			i++;
-		} else if (strcmp(argv[i], "-mem-track") == 0) {
+		} else if (!strcmp(argv[i], "-mem-track") || !strcmp(argv[i], "-mem-track-stack") ) {
 			i++;
 #ifndef GPAC_MEMORY_TRACKING
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", argv[i]));
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			DASHCAST_CHECK_NEXT_ARG

@@ -197,7 +197,8 @@ void PrintGeneralUsage()
 {
 	fprintf(stderr, "General Options:\n"
 #ifdef GPAC_MEMORY_TRACKING
-	        " -mem-track:  enables memory tracker\n"
+            " -mem-track:  enables memory tracker\n"
+            " -mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
 	        " -strict-error        exits after the first error is reported\n"
 	        " -inter time_in_ms    interleaves file data (track chunks of time_in_ms)\n"
@@ -1799,7 +1800,8 @@ Bool stream_rtp = GF_FALSE;
 Bool force_test_mode = GF_FALSE;
 Bool force_co64 = GF_FALSE;
 Bool live_scene = GF_FALSE;
-Bool enable_mem_tracker = GF_FALSE;
+GF_MemTrackerType mem_track = GF_MemTrackerNone;
+
 Bool dump_iod = GF_FALSE;
 Bool pssh_in_moof = GF_FALSE;
 Bool samplegroups_in_traf = GF_FALSE;
@@ -2725,7 +2727,8 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-sdp")) print_sdp = 1;
 		else if (!stricmp(arg, "-quiet")) quiet = 2;
-		else if (!strcmp(argv[i], "-mem-track")) continue;
+        else if (!strcmp(argv[i], "-mem-track")) continue;
+        else if (!strcmp(argv[i], "-mem-track-stack")) continue;
 
 		else if (!stricmp(arg, "-logs")) {
 			CHECK_NEXT_ARG
@@ -3341,18 +3344,18 @@ int mp4boxMain(int argc, char **argv)
 	tmpdir = NULL;
 
 	for (i = 1; i < (u32) argc ; i++) {
-		if (!strcmp(argv[i], "-mem-track")) {
+		if (!strcmp(argv[i], "-mem-track") || !strcmp(argv[i], "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = 1;
+            mem_track = !strcmp(argv[i], "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", argv[i]);
 #endif
 			break;
 		}
 	}
 
 	/*init libgpac*/
-	gf_sys_init(enable_mem_tracker);
+	gf_sys_init(mem_track);
 	if (argc < 2) {
 		PrintUsage();
 		gf_sys_close();
@@ -3454,7 +3457,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_log_set_tool_level(GF_LOG_AUTHOR, level);
 		gf_log_set_tool_level(GF_LOG_CODING, level);
 #ifdef GPAC_MEMORY_TRACKING
-		if (enable_mem_tracker)
+		if (mem_track)
 			gf_log_set_tool_level(GF_LOG_MEMORY, level);
 #endif
 		if (quiet) {
@@ -5002,7 +5005,7 @@ exit:
 	mp4box_cleanup(0);
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
         gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
