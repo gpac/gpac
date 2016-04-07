@@ -62,7 +62,8 @@ typedef struct __validation_module
 	char *xvs_filename;
 	GF_DOMParser *xvs_parser;
 	GF_XMLNode *xvs_node;
-	Bool xvs_result;
+    Bool xvs_result;
+    Bool owns_root;
 
 	/* test sequence */
 	char *test_base;
@@ -568,7 +569,8 @@ static Bool validator_xvs_open(GF_Validator *validator)
 			GF_SAFEALLOC(validator->xvs_node, GF_XMLNode);
 			validator->xvs_node->name = gf_strdup("TestValidationScript");
 			validator->xvs_node->attributes = gf_list_new();
-			validator->xvs_node->content = gf_list_new();
+            validator->xvs_node->content = gf_list_new();
+            validator->owns_root = GF_TRUE;
 		} else {
 			gf_xml_dom_del(validator->xvs_parser);
 			validator->xvs_parser = NULL;
@@ -658,13 +660,19 @@ static void validator_xvs_close(GF_Validator *validator)
 				att = att_file;
 				if (att->value) gf_free(att->value);
 			}
-			sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
-			att->value = gf_strdup(filename);
+            if (validator->test_base) {
+                sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
+                att->value = gf_strdup(filename);
+            } else {
+                att->value = gf_strdup(validator->test_filename);
+            }
 			xvs_content = gf_xml_dom_serialize(validator->xvs_node, GF_FALSE);
 			xvs_fp = gf_fopen(validator->xvs_filename, "wt");
 			gf_fwrite(xvs_content, strlen(xvs_content), 1, xvs_fp);
 			gf_fclose(xvs_fp);
 			gf_free(xvs_content);
+            if (validator->owns_root)
+                gf_xml_dom_node_del(validator->xvs_node);
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MODULE, ("[Validator] XVS Result : %s\n", (validator->xvs_result?"Success":"Failure")));
 			if (validator->xvs_node_in_xvl) {
