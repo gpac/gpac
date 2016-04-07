@@ -152,6 +152,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 
 	in = gf_fopen(file, "rb");
+    if (!in) return GF_URL_ERROR;
 	gf_fseek(in, 0, SEEK_END);
 	size = gf_ftell(in);
 	gf_fseek(in, 0, SEEK_SET);
