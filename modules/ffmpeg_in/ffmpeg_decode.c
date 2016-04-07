@@ -77,8 +77,10 @@ static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
     if (codec) return codec;
 	/*custom mapings*/
     if (!stricmp(name, "s263")) codec = avcodec_find_decoder(CODEC_ID_H263);
+    else if (!stricmp(name, "mjp2")) codec = avcodec_find_decoder(AV_CODEC_ID_JPEG2000);
     else if (!stricmp(name, "samr") || !stricmp(name, "amr ")) codec = avcodec_find_decoder(CODEC_ID_AMR_NB);
     else if (!stricmp(name, "sawb")) codec = avcodec_find_decoder(CODEC_ID_AMR_WB);
+
 	
 	return codec;
 }
@@ -1343,6 +1345,8 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
         case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
         case GPAC_OTI_AUDIO_AAC_MPEG4:
             codec_id = CODEC_ID_AAC;
+            if (avcodec_find_decoder(codec_id) != NULL)
+                return GF_CODEC_MAYBE_SUPPORTED;
             break;
 		}
 	}
