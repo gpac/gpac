@@ -192,14 +192,14 @@ size_t gpac_nb_alloc_blocs = 0;
 /*malloc dynamic storage needed for each alloc is STACK_PRINT_SIZE*SYMBOL_MAX_SIZE+1, keep them small!*/
 #define STACK_FIRST_IDX  5 //remove the gpac memory allocator self trace
 #define STACK_PRINT_SIZE 10
-#define SYMBOL_MAX_SIZE  50
 
 #ifdef WIN32
+#define SYMBOL_MAX_SIZE  50
 #include <windows.h>
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 /*memory ownership to the caller*/
-static void print_backtrace(char *backtrace)
+static void print_backtrace(char *s_backtrace)
 {
 	void *stack[STACK_PRINT_SIZE];
 	size_t i, frames, bt_idx = 0;
@@ -220,18 +220,21 @@ static void print_backtrace(char *backtrace)
 		char *symbol_name = "unresolved";
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
-		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
-		if (len<0)  len = SYMBOL_MAX_SIZE-1;
-		backtrace[bt_idx+len]='\n';
+		len = _snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
+		if (len<0) len = SYMBOL_MAX_SIZE-1;
+		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
-	backtrace[bt_idx-1] = '\0';
+	s_backtrace[bt_idx-1] = '\0';
 }
+
 #else /*WIN32*/
+
+#define SYMBOL_MAX_SIZE  500
 #include <execinfo.h>
 /*memory ownership to the caller*/
-static char* backtrace()
+static void print_backtrace(char *s_backtrace)
 {
 	size_t i, size, bt_idx=0;
 	void *stack[STACK_PRINT_SIZE];
@@ -241,13 +244,13 @@ static char* backtrace()
 	messages = backtrace_symbols(stack, size);
 
 	for (i=1; i<size && messages!=NULL; ++i) {
-		int len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u %s", i, messages[i]);
-		if (len<0)  len = SYMBOL_MAX_SIZE-1;
-		backtrace[bt_idx+len]='\n';
+		int len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
+		if (len<0) len = SYMBOL_MAX_SIZE-1;
+		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
-	backtrace[bt_idx-1] = '\0';
+	s_backtrace[bt_idx-1] = '\0';
 	free(messages);
 }
 #endif /*WIN32*/
