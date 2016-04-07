@@ -1165,9 +1165,9 @@ int mp4client_main(int argc, char **argv)
 			the_cfg = argv[i+1];
 			i++;
 		}
-		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-dump")) {
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
-            mem_track = !strcmp(arg, "-mem-track-dump") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
