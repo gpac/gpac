@@ -668,7 +668,7 @@ sh4_change_fpscr(int off, int on)
 #endif
 
 #ifdef GPAC_MEMORY_TRACKING
-void gf_mem_enable_tracker();
+void gf_mem_enable_tracker(Bool enable_backtrace);
 #endif
 
 static u64 memory_at_gpac_startup = 0;
@@ -704,7 +704,7 @@ const char *gf_sys_get_arg(u32 arg)
 
 
 GF_EXPORT
-void gf_sys_init(Bool enable_memory_tracker)
+void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 {
 	if (!sys_init) {
 #if defined (WIN32)
@@ -715,9 +715,9 @@ void gf_sys_init(Bool enable_memory_tracker)
 #endif
 #endif
 
-		if (enable_memory_tracker) {
+		if (mem_tracker_type!=GF_MemTrackerNone) {
 #ifdef GPAC_MEMORY_TRACKING
-			gf_mem_enable_tracker();
+            gf_mem_enable_tracker( (mem_tracker_type==GF_MemTrackerBackTrace) ? GF_TRUE : GF_FALSE);
 #endif
 		}
 #ifndef GPAC_DISABLE_LOG

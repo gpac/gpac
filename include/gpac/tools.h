@@ -680,6 +680,19 @@ void gf_prompt_set_echo_off(Bool echo_off);
   *	@{
  */
 
+/*!
+ * Selection flags for memory tracker
+ *	\hideinitializer
+ */
+typedef enum
+{
+    /*! No memory tracking*/
+    GF_MemTrackerNone = 0,
+    /*! Memory tracking without backtrace*/
+    GF_MemTrackerSimple,
+    /*! Memory tracking with backtrace*/
+    GF_MemTrackerBackTrace,
+} GF_MemTrackerType;
 
 /*!
  *	\brief System setup
@@ -688,7 +701,7 @@ void gf_prompt_set_echo_off(Bool echo_off);
  * function before calling any other GPAC functions, since on some systems (like winCE) it may result in a better memory usage estimation.
  *	\note This can be called several times but only the first call will result in system setup.
  */
-void gf_sys_init(Bool enable_memory_tracker);
+void gf_sys_init(GF_MemTrackerType mem_tracker_type);
 /*!
  *	\brief System closing
  *

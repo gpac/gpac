@@ -91,7 +91,7 @@ int stream_file_rtp(int argc, char **argv)
 	u16 port = 7000;
 	u32 ttl = 1;
 	Bool loop = GF_TRUE;
-	Bool mem_track = GF_FALSE;
+    GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	Bool force_mpeg4 = GF_FALSE;
     u32 path_mtu = 1450;
     Double run_for = -1.0;
@@ -115,7 +115,8 @@ int stream_file_rtp(int argc, char **argv)
 		else if (!strnicmp(arg, "-ttl=", 5)) ttl = atoi(arg+5);
 		else if (!strnicmp(arg, "-ifce=", 6)) ifce_addr = arg+6;
 		else if (!strnicmp(arg, "-sdp=", 5)) sdp_file = arg+5;
-		else if (!stricmp(arg, "-mem-track")) mem_track = GF_TRUE;
+        else if (!stricmp(arg, "-mem-track")) mem_track = GF_MemTrackerSimple;
+        else if (!stricmp(arg, "-mem-track-stack")) mem_track = GF_MemTrackerBackTrace;
 		else if (!strnicmp(arg, "-logs=", 6)) logs = arg+6;
 		else if (!strnicmp(arg, "-lf=", 4)) logfile = gf_fopen(arg+4, "wt");
         else if (!strnicmp(arg, "-run-for=", 9)) run_for = atof(arg+9);
@@ -497,7 +498,7 @@ int live_session(int argc, char **argv)
 	aggregate_au = 1;
 	es_id = 0;
 	no_rap = 0;
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 
 	memset(&livesess, 0, sizeof(LiveSession));
 
