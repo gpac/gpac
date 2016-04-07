@@ -642,29 +642,32 @@ static void validator_xvs_close(GF_Validator *validator)
 			GF_XMLAttribute *att;
 			GF_XMLAttribute *att_file = NULL;
 			u32 att_index = 0;
-			while (1) {
-				att = (GF_XMLAttribute*)gf_list_get(validator->xvs_node->attributes, att_index);
-				if (!att) {
-					break;
-				} else if (!strcmp(att->name, "file")) {
-					att_file = att;
-				}
-				att_index++;
-			}
+            
+            if (!validator->trace_mode) {
+                while (1) {
+                    att = (GF_XMLAttribute*)gf_list_get(validator->xvs_node->attributes, att_index);
+                    if (!att) {
+                        break;
+                    } else if (!strcmp(att->name, "file")) {
+                        att_file = att;
+                    }
+                    att_index++;
+                }
 
-			if (!att_file) {
-				GF_SAFEALLOC(att, GF_XMLAttribute);
-				att->name = gf_strdup("file");
-				gf_list_add(validator->xvs_node->attributes, att);
-			} else {
-				att = att_file;
-				if (att->value) gf_free(att->value);
-			}
-            if (validator->test_base) {
-                sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
-                att->value = gf_strdup(filename);
-            } else {
-                att->value = gf_strdup(validator->test_filename);
+                if (!att_file) {
+                    GF_SAFEALLOC(att, GF_XMLAttribute);
+                    att->name = gf_strdup("file");
+                    gf_list_add(validator->xvs_node->attributes, att);
+                } else {
+                    att = att_file;
+                    if (att->value) gf_free(att->value);
+                }
+                if (validator->test_base) {
+                    sprintf(filename, "%s%c%s", validator->test_base, GF_PATH_SEPARATOR, validator->test_filename);
+                    att->value = gf_strdup(filename);
+                } else {
+                    att->value = gf_strdup(validator->test_filename);
+                }
             }
 			xvs_content = gf_xml_dom_serialize(validator->xvs_node, GF_FALSE);
 			xvs_fp = gf_fopen(validator->xvs_filename, "wt");
