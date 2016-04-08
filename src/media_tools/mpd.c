@@ -2976,8 +2976,10 @@ GF_Err gf_mpd_seek_in_period(Double seek_time, MPDSeekMode seek_mode,
 		segment_duration = segment_duration_in_scale / (Double)timescale;
 		
 		if (seek_mode == MPD_SEEK_PREV) {
-			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration))
+			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration)) {
+				if (out_opt_seek_time) *out_opt_seek_time = seg_start;
 				break;
+			}
 		} else if (seek_mode == MPD_SEEK_NEAREST) {
 			if ((seek_time >= seg_start) && (seek_time < seg_start + segment_duration)) {
 				Double dist_to_prev = seek_time - seg_start;
