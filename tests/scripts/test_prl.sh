@@ -1,5 +1,7 @@
+#test file for parallel execution of tests, disabled by default
+return
 
-function my_test
+my_test ()
 {
 #test MP4Box RTP streaming and MP4 client
 test_begin $2
