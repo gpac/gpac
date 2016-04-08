@@ -1,3 +1,6 @@
+return
+
+#not done yet
 
 #test MP4Box RTP streaming and MP4 client
 test_begin "mp4box-rtp" "play"
