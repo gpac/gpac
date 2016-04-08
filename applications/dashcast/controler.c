@@ -990,7 +990,7 @@ u32 audio_encoder_thread(void *params)
 				u64 now = gf_net_get_utc();
 				check_first_seg_utc = GF_FALSE;
 				
-				diff = now - time_at_segment_start.utc_time;
+				diff = (int) (now - time_at_segment_start.utc_time);
 				if (diff  < real_audio_seg_dur / 2) {
 					u32 sec, frac, ms;
 					s32 left, nb_s;
