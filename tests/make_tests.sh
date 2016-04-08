@@ -238,7 +238,7 @@ fi
 #test for GNU time
 res=`$GNU_TIME --version 2> /dev/null`
 res=$?
-if [[ $res != 0 ]] ; then
+if [ $res != 0 ] ; then
 echo "GNU time not found (ret $res) - exiting"
 exit
 fi
@@ -246,7 +246,7 @@ fi
 #test for GNU date
 res=`$GNU_DATE 2> /dev/null`
 res=$?
-if [[ $res != 0 ]] ; then
+if [ $res != 0 ] ; then
 echo "GNU date not found (ret $res) - exiting"
 exit
 fi
