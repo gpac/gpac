@@ -62,7 +62,7 @@ docs:
 	@cd $(SRC_PATH)/doc && doxygen
 
 tests:
-	@cd $(SRC_PATH)/regression_tests && ./test_suite_make.sh
+	@cd $(SRC_PATH)/regression_tests && ./make_tests.sh
 
 lcov_clean:
 	lcov --directory . --zerocounters
