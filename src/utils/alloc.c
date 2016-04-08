@@ -172,6 +172,23 @@ char *gf_strdup(const char *str)
 
 #else /*GPAC_MEMORY_TRACKING**/
 
+
+static void gf_memory_log(unsigned int level, const char *fmt, ...);
+enum
+{
+	/*! Disable all Log message*/
+	GF_MEMORY_QUIET = 0,
+	/*! Log message describes an error*/
+	GF_MEMORY_ERROR = 1,
+	/*! Log message describes a warning*/
+	GF_MEMORY_WARNING,
+	/*! Log message is informational (state, etc..)*/
+	GF_MEMORY_INFO,
+	/*! Log message is a debug info*/
+	GF_MEMORY_DEBUG,
+};
+
+
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
@@ -215,9 +232,17 @@ static void store_backtrace(char *s_backtrace)
 
 	for (i=0; i<frames; i++) {
 		int len;
+		int bt_len;
 		char *symbol_name = "unresolved";
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
+
+		bt_len = strlen(symbol_name) + 10;
+		if (bt_idx + bt_len > STACK_PRINT_SIZE*SYMBOL_MAX_SIZE) {
+			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
+			break;
+		}
+		
 		len = _snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
@@ -243,10 +268,19 @@ static void store_backtrace(char *s_backtrace)
 	messages = backtrace_symbols(stack, size);
 
 	for (i=STACK_FIRST_IDX; i<size && messages!=NULL; ++i) {
-		int len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
+		int bt_len = strlen(messages[i]) + 10;
+		int len;
+
+		if (bt_idx + bt_len > STACK_PRINT_SIZE*SYMBOL_MAX_SIZE) {
+			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
+			break;
+		}
+		
+		len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
+		
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
 	s_backtrace[bt_idx-1] = '\0';
@@ -261,20 +295,6 @@ static void store_backtrace(char *s_backtrace)
 static void register_address(void *ptr, size_t size, const char *filename, int line);
 static int unregister_address(void *ptr, const char *filename, int line);
 
-static void gf_memory_log(unsigned int level, const char *fmt, ...);
-enum
-{
-	/*! Disable all Log message*/
-	GF_MEMORY_QUIET = 0,
-	/*! Log message describes an error*/
-	GF_MEMORY_ERROR = 1,
-	/*! Log message describes a warning*/
-	GF_MEMORY_WARNING,
-	/*! Log message is informational (state, etc..)*/
-	GF_MEMORY_INFO,
-	/*! Log message is a debug info*/
-	GF_MEMORY_DEBUG,
-};
 
 static void *gf_mem_malloc_basic(size_t size, const char *filename, int line)
 {
