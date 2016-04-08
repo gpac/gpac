@@ -61,7 +61,7 @@ distclean:
 docs:
 	@cd $(SRC_PATH)/doc && doxygen
 
-tests:
+test_suite:
 	@cd $(SRC_PATH)/tests && ./make_tests.sh
 
 lcov_clean:
