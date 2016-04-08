@@ -1,5 +1,7 @@
 This is the documentation for creating a new test in GPAC test suite.
-Your test must be placed in gpac/tests/scripts/ and use bash language.
+Your tests must be placed in gpac/tests/scripts/ and use bash language.
+Media files used in the tests are in gpac/tests/media. 
+The gpac/tests/rules contains errors that may happen in some tests and that do not fail the test.
 The following functions can be called for your test.
 
 # @ test_begin TESTNAME PAR1 ... PARN
