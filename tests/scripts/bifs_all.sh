@@ -1,6 +1,6 @@
 
 #@bt_test execute tests on BT file: BT<->XMT, BT<->MP4, XMT<->MP4,  conversions BT, XMT and MP4 Playback
-function bt_test
+bt_test ()
 {
  btfile=$1
  xmtfile=${btfile%.*}'.xmt'
@@ -88,7 +88,8 @@ function bt_test
 }
 
 
-function bifs_tests {
+bifs_tests ()
+{
 
  for bt in $MEDIA_DIR/bifs/*.bt ; do
   bt_test $bt

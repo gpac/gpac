@@ -90,7 +90,7 @@ mkdir $TEMP_DIR
 fi
 
 
-function print_usage
+print_usage ()
 {
 echo "GPAC Test Suite Usage: use either one of this command or no command at all"
 echo "*** Test suite validation options"
@@ -115,7 +115,7 @@ echo "  -h:                    print this help"
 
 
 #performs mirroring of media and references hash & videos
-function sync_resources
+sync_resources ()
 {
  echo "Mirroring $REFERENCE_DIR to $EXTERNAL_MEDIA_DIR"
  cd $EXTERNAL_MEDIA_DIR
@@ -302,7 +302,7 @@ VERSION="`head -1 $TEMP_DIR/version.txt | cut -d ' ' -f 5-` "
 rm $TEMP_DIR/version.txt
 
 #reset all the possible return values
-function reset_stat
+reset_stat ()
 {
  EXECUTION_STATUS="N/A"
  RETURN_VALUE="N/A"
@@ -320,7 +320,7 @@ function reset_stat
 }
 
 #begin a test with name $1 and using hashes called $1-$2 ... $1-$N
-function test_begin
+test_begin ()
 {
 
  result=''
@@ -416,7 +416,7 @@ function test_begin
 }
 
 #ends test - gather all logs/stats produced and generate report
-function test_end
+test_end ()
 {
  if [ $test_skip = 1 ] ; then
   return
@@ -529,7 +529,7 @@ function test_end
  fi
 }
 
-function mark_errexit
+mark_errexit ()
 {
  if [ $strict_mode = 1 ] ; then
   echo "" > "$TEMP_DIR/err_exit"
@@ -538,7 +538,7 @@ function mark_errexit
 
 #@do_test execute the command line given $1 using GNU time and store stats with return value, command line ($1) and subtest name ($2)
 ret=0
-function do_test
+do_test ()
 {
  if [ $strict_mode = 1 ] ; then
   if [ -f "$TEMP_DIR/err_exit" ] ; then
@@ -600,7 +600,7 @@ ret=$rv
 
 #@do_playback_test: checks for user input record if any, then launch MP4Client with $1 with dump_dur and dump_size video sec AVI recording, then checks audio and video hash of the dump and convert the video to MP4 when generating the hash. The results are logged as with do_test
 
-function do_playback_test
+do_playback_test ()
 {
  if [ $strict_mode = 1 ] ; then
   if [ -f "$TEMP_DIR/err_exit" ] ; then
@@ -666,7 +666,7 @@ fi
 #end do_playback_test
 
 #@do_hash_test: generates a hash for $1 file , compare it to HASH_DIR/$TEST_NAME$2.hash
-function do_hash_test
+do_hash_test ()
 {
  if [ $strict_mode = 1 ] ; then
   if [ -f "$TEMP_DIR/err_exit" ] ; then
@@ -719,7 +719,7 @@ function do_hash_test
 #end do_hash_test
 
 #@ffmpeg_encode: encode source file $1 to $2 using default ffmpeg settings
-function ffmpeg_encode
+ffmpeg_encode ()
 {
  #run ffmpeg in force overwrite mode
  $FFMPEG -y -i $1 -pix_fmt yuv420p -strict -2 $2 2> /dev/null
@@ -727,7 +727,7 @@ function ffmpeg_encode
 #end
 
 
-function load_ui_rules
+load_ui_rules ()
 {
 rules_sh=$RULES_DIR/$1.sh
 if [ -f $rules_sh ] ; then
@@ -736,7 +736,7 @@ fi
 
 }
 #@do_ui_tests: if $do_ui is 1 records user input on $1 playback (10 sec) and stores in $RULES_DIR/$1-ui.xml. If $do_ui is 2, plays back the recorded stream
-function do_ui_tests
+do_ui_tests ()
 {
  if [[ $1 == *"-game-"* ]] ; then
   return

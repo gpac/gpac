@@ -1,4 +1,4 @@
-function hint_test
+hint_test ()
 {
  tempfile=$1'.tmp'
  hintfile=$1'.hint'
@@ -19,7 +19,7 @@ function hint_test
 }
 
 #@mp4_test execute basics MP4Box tests on source file: -add, -info, -dts, -hint -drtp -sdp -unhint and MP4 Playback
-function mp4_test
+mp4_test ()
 {
  name=$(basename $1)
  name=${name%.*}
@@ -80,7 +80,8 @@ function mp4_test
 }
 
 
-function mp4box_tests {
+mp4box_tests ()
+{
 
  for src in $MEDIA_DIR/auxiliary_files/* ; do
   mp4_test $src

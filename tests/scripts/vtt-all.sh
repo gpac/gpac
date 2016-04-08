@@ -1,6 +1,6 @@
 
 #@bt_test execute tests on BT file: BT<->XMT, BT<->MP4, XMT<->MP4,  conversions BT, XMT and MP4 Playback
-function vtt_test
+vtt_test ()
 {
  vttfile=$1
  mp4file="$TEMP_DIR/test.mp4"
@@ -27,7 +27,8 @@ function vtt_test
 }
 
 
-function vtt_tests {
+vtt_tests ()
+{
  for t in $MEDIA_DIR/webvtt/* ; do
   vtt_test $t
  done
