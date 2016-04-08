@@ -1149,13 +1149,11 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	GF_TrackBox *trak;
 	GF_SampleTableBox *stbl;
 	GF_Box *a_box = NULL;
-	GF_TrackFragmentBox *traf;
 	u32 i, type;
 	GF_CENCSampleAuxInfo *a_sai;
 	u8 IV_size;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
-	traf = (GF_TrackFragmentBox*)trak;
 	if (!trak) return GF_BAD_PARAM;
 	stbl = trak->Media->information->sampleTable;
 	if (!stbl)
