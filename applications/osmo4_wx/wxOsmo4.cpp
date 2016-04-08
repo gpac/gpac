@@ -566,7 +566,7 @@ Bool wxOsmo4Frame::LoadTerminal()
 	/*set log level*/
 	gf_log_set_tools_levels( gf_cfg_get_key(m_user.config, "General", "Logs") );
 
-	gf_sys_init(0);
+	gf_sys_init(GF_MemTrackerNone);
 
 	::wxLogMessage(wxT("GPAC configuration file opened - looking for modules"));
 

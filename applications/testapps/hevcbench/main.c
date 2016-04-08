@@ -671,7 +671,7 @@ int main(int argc, char **argv)
 	Bool use_raw_memory = GF_TRUE;
 	OpenHevc_Handle ohevc;
 	Bool use_pbo = GF_FALSE;
-	Bool enable_mem_tracker = GF_FALSE;
+	GF_MemTrackerType enable_mem_tracker = GF_MemTrackerNone;
 	Bool output_8bit = GF_FALSE;
 	GF_SystemRTInfo rti;
 	const char *src = NULL;
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-use-pbo")) use_pbo = 1;
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
 		else if (!strcmp(arg, "-output-8b")) output_8bit = GF_TRUE;
-		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_TRUE;
+		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_MemTrackerSimple;
 		else if (!strncmp(arg, "-nb-threads=", 12)) nb_threads = atoi(arg+12);
 		else if (!strncmp(arg, "-mode=", 6)) {
 			if (!strcmp(arg+6, "wpp")) mode = 2;
@@ -719,7 +719,7 @@ int main(int argc, char **argv)
 #ifdef GPAC_MEMORY_TRACKING
 	gf_sys_init(enable_mem_tracker);
 #else
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 #endif
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 

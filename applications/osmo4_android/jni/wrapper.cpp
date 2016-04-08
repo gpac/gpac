@@ -734,7 +734,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	}
 
 	LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 	gf_fm_request_set_callback(this, on_fm_request);
 	SetupLogs();
 	m_term = gf_term_new(&m_user);
