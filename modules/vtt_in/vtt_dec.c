@@ -342,7 +342,10 @@ static GF_Err VTT_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	VTT_CleanExtraScene(vttdec);
 	vttdec->file_name = NULL;
 	vttdec->is_stream_attached = GF_FALSE;
-
+	if (vttdec->config) {
+		gf_free(vttdec->config);
+		vttdec->config = NULL;
+	}
 	return GF_OK;
 }
 
