@@ -393,6 +393,10 @@ function test_begin
 
   }
 
+ if [ $disable_hash = 1 ] ; then
+  hash_skipable=1
+ fi
+
   if [ $hash_skipable = 1 ] ; then
    test_skip=1
   fi
