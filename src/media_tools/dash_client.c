@@ -1644,6 +1644,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		if (strcmp(purl, dash->base_url)) {
 			gf_free(dash->base_url);
 			dash->base_url = gf_strdup(purl);
+
 		}
 
 		purl = NULL;
