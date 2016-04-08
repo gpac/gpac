@@ -644,7 +644,7 @@ int main(int argc, char **argv)
 		}
 	}
 
-	gf_sys_init();
+	gf_sys_init(GF_MemTrackerNone);
 	if (out) lc.out = gf_fopen(out, "wt");
 	if (!lc.out) {
 		fprintf(stderr, "Cannot open output file %s\n", out);
