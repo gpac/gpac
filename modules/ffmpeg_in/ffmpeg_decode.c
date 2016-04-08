@@ -77,7 +77,10 @@ static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
     if (codec) return codec;
 	/*custom mapings*/
     if (!stricmp(name, "s263")) codec = avcodec_find_decoder(CODEC_ID_H263);
-    else if (!stricmp(name, "mjp2")) codec = avcodec_find_decoder(AV_CODEC_ID_JPEG2000);
+	else if (!stricmp(name, "mjp2")) {
+		codec = avcodec_find_decoder_by_name("jpeg2000");
+		if (!codec) codec = avcodec_find_decoder_by_name("libopenjpeg");
+	}
     else if (!stricmp(name, "samr") || !stricmp(name, "amr ")) codec = avcodec_find_decoder(CODEC_ID_AMR_NB);
     else if (!stricmp(name, "sawb")) codec = avcodec_find_decoder(CODEC_ID_AMR_WB);
 
