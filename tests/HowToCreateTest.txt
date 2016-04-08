@@ -1,7 +1,9 @@
-# This is a template for GPAC test suite
+# This is the documentation for creating a new test in GPAC test suite
+#
+#Your test must be placed in gpac/tests/scripts/ and use bash language
 #
 #The following functions can be called for your test
-
+#
 
 
 # @ test_begin TESTNAME PAR1 ... PARN
