@@ -60,9 +60,14 @@ ALL_LOGS="$LOCAL_OUT_DIR/all_logs.txt"
 rm -f "$TEMP_DIR/err_exit" 2> /dev/null
 rm -f "$LOGS_DIR/*.sh" 2> /dev/null
 
+if [ ! -e $LOCAL_OUT_DIR ] ; then
+mkdir $LOCAL_OUT_DIR
+fi
+
 if [ ! -e $HASH_DIR ] ; then
 mkdir $HASH_DIR
 fi
+
 if [ ! -e $VIDEO_DIR ] ; then
 mkdir $VIDEO_DIR
 fi
