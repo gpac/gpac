@@ -51,12 +51,21 @@ clean:
 	$(MAKE) -C src clean
 	$(MAKE) -C applications clean
 	$(MAKE) -C modules clean
+	gcov_clean
 
 distclean:
 	$(MAKE) -C src distclean
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
 	rm -f config.mak config.h
+	gcov_clean
+
+gcov_clean:
+	@find . -type f -name '*.gcno*' -delete
+	@find . -type f -name '*.gcda*' -delete
+	@rm -f all.info 2> /dev/null
+	@rm -f cover.info 2> /dev/null
+	@rm -rf coverage 2> /dev/null
 
 docs:
 	@cd $(SRC_PATH)/doc && doxygen
