@@ -2216,7 +2216,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
 	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb, luma_bd, chroma_bd;
-	u8 separate_colour_plane_flag;
+	u8 separate_colour_plane_flag = 0;
 	GF_BitStream *bs;
 	char *sps_data_without_emulation_bytes = NULL;
 	u32 sps_data_without_emulation_bytes_size = 0;
