@@ -1222,9 +1222,9 @@ static void CustomTexture_update(GF_TextureHandler *txh)
 #ifndef GPAC_DISABLE_3D
     //setup our texture data
     memset(data, 0, sizeof(char)*12);
-    data[0] = 0xFF * FIX2FLT(stack->tx.intensity); //first pixel red modulated by intensity
-    data[4] = 0xFF * FIX2FLT(stack->tx.intensity); //second pixel green
-    data[8] = 0xFF * FIX2FLT(stack->tx.intensity); //third pixel blue
+    data[0] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
+    data[4] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
+    data[8] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
     //last pixel black
     
     glBindTexture( GL_TEXTURE_2D, stack->gl_id);

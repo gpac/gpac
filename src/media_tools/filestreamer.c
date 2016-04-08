@@ -76,7 +76,7 @@ struct __isom_rtp_streamer
 	Bool loop;
 	Bool force_mpeg4_generic;
 	/*timeline origin of our session (all tracks) in microseconds*/
-	u32 timelineOrigin;
+	u64 timelineOrigin;
 	/*list of streams in session*/
 	GF_RTPTrack *stream;
 
@@ -229,7 +229,7 @@ void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop)
 		if (is_loop) {
 			Double scale = track->timescale/1000.0;
 			track->ts_offset += (u32) (streamer->duration_ms * scale);
-			track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale)) + streamer->timelineOrigin;
+			track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale) + streamer->timelineOrigin);
 		} else {
 			track->ts_offset += 0;
 			track->microsec_ts_offset = 0;
@@ -277,14 +277,14 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 				/*increment ts offset*/
 				scale = track->timescale/1000.0;
 				track->ts_offset += (u32) (streamer->duration_ms * scale);
-				track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale)) + streamer->timelineOrigin;
+				track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale) + streamer->timelineOrigin);
 				track->current_au = 0;
 			}
 
 			track->au = gf_isom_get_sample(streamer->isom, track->track_num, track->current_au + 1, &track->sample_desc_index);
 			track->current_au ++;
 			if (track->au) {
-				track->microsec_dts = (u64) (track->microsec_ts_scale * (s64) (track->au->DTS)) + track->microsec_ts_offset + streamer->timelineOrigin;
+				track->microsec_dts = (u64) (track->microsec_ts_scale * (s64) (track->au->DTS) + track->microsec_ts_offset + streamer->timelineOrigin);
 			}
 		}
 
@@ -393,7 +393,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 GF_EXPORT
 Double gf_isom_streamer_get_current_time(GF_ISOMRTPStreamer *streamer)
 {
-    Double res = streamer->last_min_dts - streamer->timelineOrigin;
+    Double res = (Double) (streamer->last_min_dts - streamer->timelineOrigin);
     res /= 1000000;
     return res;
 }
