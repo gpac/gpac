@@ -229,20 +229,20 @@ static void store_backtrace(char *s_backtrace)
 
 #else /*WIN32*/
 
-#define SYMBOL_MAX_SIZE  500
+#define SYMBOL_MAX_SIZE  100
 #include <execinfo.h>
 
 /*memory ownership to the caller*/
 static void store_backtrace(char *s_backtrace)
 {
 	size_t i, size, bt_idx=0;
-	void *stack[STACK_PRINT_SIZE];
+	void *stack[STACK_PRINT_SIZE+STACK_FIRST_IDX];
 	char **messages;
 
-	size = backtrace(stack, STACK_PRINT_SIZE);
+	size = backtrace(stack, STACK_PRINT_SIZE+STACK_FIRST_IDX);
 	messages = backtrace_symbols(stack, size);
 
-	for (i=1; i<size && messages!=NULL; ++i) {
+	for (i=STACK_FIRST_IDX; i<size && messages!=NULL; ++i) {
 		int len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
 		if (len<0) len = SYMBOL_MAX_SIZE-1;
 		s_backtrace[bt_idx+len]='\n';
@@ -780,7 +780,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 static void print_memory_size()
 {
 	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
-	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated in %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+	GF_LOG(level, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
 }
 
 GF_EXPORT
