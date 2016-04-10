@@ -2350,10 +2350,10 @@ GF_EXPORT
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
 	*top_box_start = movie->current_top_box_start;
 	movie->current_top_box_start = 0;
-	if (movie->single_moof_mode) {
+	if (movie->moov->mvex && movie->single_moof_mode) {
 		movie->single_moof_state = 0;
 	}
 #endif
