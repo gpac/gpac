@@ -724,7 +724,11 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	        || (gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)
 	      ) {
 		if (last_error) return 1;
-		gf_term_process_flush(term);
+		e = gf_term_process_flush(term);
+		if (e) {
+			fprintf(stderr, "Error initializing plalback: %s\n", gf_error_to_string(e));
+			return 1;
+		}
 	}
 
 	if (width && height) {
@@ -738,7 +742,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 #endif
 	if (e != GF_OK) {
 		fprintf(stderr, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
-		return 0;
+		return 1;
 	}
 	width = fb.width;
 	height = fb.height;
@@ -876,10 +880,17 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	avi_al.audio_clock_at_video_init = gf_term_get_clock(term);
 #endif
 
+	ret = 0;
 	while (time < dump_dur) {
 		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
-			gf_term_process_flush(term);
+			e = gf_term_process_flush(term);
+			if (e) {
+				ret = 1;
+				break;
+			}
 		}
+		if (ret)
+			break;
 
 		if ((mode==DUMP_AVI) || (mode==DUMP_SHA1)) {
 
