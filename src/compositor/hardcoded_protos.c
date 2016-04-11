@@ -1197,8 +1197,9 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         gf_sc_texture_allocate(txh);
         if (!txh->tx_io) return;
     }
+#ifndef GPAC_DISABLE_3D
     //texture not setup, do it
-    if (!gf_sc_texture_get_gl_id(txh)) {
+    if (! gf_sc_texture_get_gl_id(txh)) {
         
         //setup some defaults (these two vars are used to setup internal texture format)
         //in our case we only want to test openGL so no need to fill in the texture width/height stride
@@ -1213,11 +1214,10 @@ static void CustomTexture_update(GF_TextureHandler *txh)
         gf_sc_texture_push_image(txh, GF_FALSE, GF_FALSE);
         
         //OK we have a valid textureID
-#ifndef GPAC_DISABLE_3D
         stack->gl_id = gf_sc_texture_get_gl_id(txh);
-
-#endif
     }
+#endif
+
 
     //get current value of node->value
     CustomTexture_GetNode(txh->owner, &stack->tx);
