@@ -107,7 +107,3 @@ bifs_tests ()
 
 bifs_tests
 
-#bt_test "bifs/bifs-2D-background-background2D-bind.bt"
-#bt_test "bifs/bifs-game-bubble.bt"
-#bt_test "bifs-media-movietexture-no-od.bt"
-
