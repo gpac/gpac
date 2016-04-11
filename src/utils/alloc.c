@@ -672,7 +672,7 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 	gf_mx_v(gpac_allocations_lock);
 }
 
-void log_bactrace(unsigned int log_level, memory_element *element)
+void log_backtrace(unsigned int log_level, memory_element *element)
 {
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     if (gf_mem_backtrace_enabled) {
@@ -702,7 +702,7 @@ void gf_check_address(void *ptr)
 			element = element->next;
 		assert(element);
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
-        log_bactrace(GF_MEMORY_ERROR, element);
+        log_backtrace(GF_MEMORY_ERROR, element);
 		assert(0);
 	}
 	/*unlock*/
@@ -747,7 +747,7 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p trying to be deleted in:\n", ptr);
 				gf_memory_log(GF_MEMORY_ERROR, "             file %s at line %d\n", filename, line);
 				gf_memory_log(GF_MEMORY_ERROR, "             was already freed in:\n");
-				log_bactrace(GF_MEMORY_ERROR, element);
+				log_backtrace(GF_MEMORY_ERROR, element);
 				assert(0);
 			}
 		} else {
@@ -836,12 +836,12 @@ void gf_memory_print()
 				char szVal[51];
 				u32 size;
 				next_element = curr_element->next;
-				size = curr_element->size>=50 ? 49 : curr_element->size;
-				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
-				szVal[size+1] = 0;
+//				size = curr_element->size>=50 ? 50 : curr_element->size;
+//				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
+//				szVal[size] = 0;
 				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated in:\n", curr_element->ptr, curr_element->size);
-				log_bactrace(GF_MEMORY_INFO, curr_element);
-				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
+				log_backtrace(GF_MEMORY_INFO, curr_element);
+//				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
 				curr_element = next_element;
 			}
 		}
