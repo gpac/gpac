@@ -110,7 +110,7 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 	last_dts = 0;
 	dur = gf_isom_get_media_duration(file, track);
 
-	gf_isom_set_cts_packing(file, track, 1);
+	gf_isom_set_cts_packing(file, track, GF_TRUE);
 
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
@@ -128,7 +128,7 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 		i--;
 		count--;
 	}
-	gf_isom_set_cts_packing(file, track, 0);
+	gf_isom_set_cts_packing(file, track, GF_FALSE);
 	gf_isom_set_last_sample_duration(file, track, (u32) (dur - last_dts) );
 	return GF_OK;
 }
