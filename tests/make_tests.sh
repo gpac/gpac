@@ -561,7 +561,7 @@ echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
 $GNU_TIME -o $stat_subtest -f ' EXECUTION_STATUS="OK"\n RETURN_STATUS=%x\n MEM_TOTAL_AVG=%K\n MEM_RESIDENT_AVG=%t\n MEM_RESIDENT_MAX=%M\n CPU_PERCENT=%P\n CPU_ELAPSED_TIME=%E\n CPU_USER_TIME=%U\n CPU_KERNEL_TIME=%S\n PAGE_FAULTS=%F\n FILE_INPUTS=%I\n SOCKET_MSG_REC=%r\n SOCKET_MSG_SENT=%s' $1 >> $log_subtest 2>&1
 rv=$?
 
-if [[ $rv != 0 && $rv != 1 && $rv != 2 ]] ; then
+if [ $rv -gt 2 ] ; then
  echo " Return Value $rv - re-executing without GNU TIME" >> $log_subtest
  $1 >> $log_subtest 2>&1
  rv=$?
@@ -738,7 +738,7 @@ fi
 #@do_ui_tests: if $do_ui is 1 records user input on $1 playback (10 sec) and stores in $RULES_DIR/$1-ui.xml. If $do_ui is 2, plays back the recorded stream
 do_ui_tests ()
 {
- if [[ $1 == *"-game-"* ]] ; then
+ if [ $1 == *"-game-"* ] ; then
   return
  fi
 
@@ -838,7 +838,7 @@ if [ $check_names != 0 ] ; then
  exit
 fi
 
-#count all tests using genertaed -stats.sh
+#count all tests using generated -stats.sh
 TESTS_SKIP=0
 TESTS_TOTAL=0
 TESTS_DONE=0
@@ -851,6 +851,8 @@ TESTS_HASH=0
 TESTS_HASH_FAIL=0
 
 for i in $LOGS_DIR/*-stats.sh ; do
+if [ -f $i ] ; then
+
 #reset stats
 TEST_SKIP=0
 TEST_FAIL=0
@@ -878,6 +880,9 @@ TESTS_LEAK=$((TESTS_LEAK + $TEST_LEAK))
 TESTS_SUBTESTS=$((TESTS_SUBTESTS + $NB_SUBTESTS))
 TESTS_HASH=$((TESTS_HASH + $NB_HASH_TEST))
 TESTS_HASH_FAIL=$((TESTS_HASH_FAIL + $NB_HASH_FAIL))
+
+fi
+
 done
 
 rm -f $LOGS_DIR/*-stats.sh > /dev/null
@@ -919,10 +924,15 @@ for i in $LOGS_DIR/*-logs.txt-new; do
  fi
 done
 
+if [ $TESTS_TOTAL = 0 ] ; then
+echo "No tests exectuted"
+else
+
 pc=$((100*TESTS_SKIP/TESTS_TOTAL))
 echo "Number of Tests OK cached $TESTS_SKIP ($pc %)"
 pc=$((100*TESTS_DONE/TESTS_TOTAL))
 echo "Number of Tests Run $TESTS_DONE ($pc %)"
+
 
 if [ $TESTS_DONE != 0 ] ; then
  pc=$((100*TESTS_PASSED/TESTS_DONE))
@@ -938,6 +948,8 @@ if [ $TESTS_DONE != 0 ] ; then
   pc=$((100*TESTS_HASH_FAIL/TESTS_HASH))
   echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc %)"
  fi
+fi
+
 fi
 
 end=`$GNU_DATE +%s%N`

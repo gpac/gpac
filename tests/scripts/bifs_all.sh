@@ -8,11 +8,24 @@ bt_test ()
  libfile=""
  name=$(basename $1)
  name=${name%.*}
+ extern_proto=0
+ inline_resource=0
 
  #file used by other test
- if [[ $btfile = *"-inline.bt" ]] ; then
-  return
- fi
+ case $btfile in
+ *-inline.bt )
+  return ;;
+ *-lib.bt )
+  return ;;
+ *externproto* )
+  extern_proto=1
+  break ;;
+ *inline-http* )
+  break ;;
+ *inline* )
+  inline_resource=1
+  break ;;
+ esac
 
  #start our test, specifying all hash names we will check
  test_begin "$name" "bt-to-xmt" "xmt-to-bt" "xmt-to-mp4" "bt-to-mp4" "mp4-to-bt" "mp4-to-xmt" "play"
@@ -21,25 +34,21 @@ bt_test ()
  fi
 
  #check for extern proto, and make MP4 out of lib
- if [[ $btfile == *"externproto"* ]] ; then
-  if [[ $btfile != *"-lib.bt" ]] ; then
-   libfile="${btfile%.*}-lib.bt"
-   do_test "$MP4BOX -mp4 $libfile" "Proto lib BT->MP4"
-   libfile="${btfile%.*}-lib.mp4"
-  fi
+ if [ $extern_proto = 1 ] ; then
+  libfile="${btfile%.*}-lib.bt"
+  do_test "$MP4BOX -mp4 $libfile" "Proto-lib-BT->MP4"
+  libfile="${btfile%.*}-lib.mp4"
  fi
 
  #check for *-inline used in linking and mediacontrol - the dependent file is $basename-inline.bt
- if [[ $btfile == *"-inline"* ]] ; then
-  if [[ $btfile != *"inline-http" ]] ; then
-   libfile="${btfile%.*}-inline.bt"
-   if [ -f $libfile ] ; then
-	do_test "$MP4BOX -mp4 $libfile" "Inline BT->MP4"
-	libfile="${btfile%.*}-inline.mp4"
-   else
-	libfile=""
+ if [ $inline_resource = 1 ] ; then
+  libfile="${btfile%.*}-inline.bt"
+  if [ -f $libfile ] ; then
+   do_test "$MP4BOX -mp4 $libfile" "Inline BT->MP4"
+   libfile="${btfile%.*}-inline.mp4"
+  else
+   libfile=""
    fi
-  fi
  fi
 
  #first do BT->MP4
