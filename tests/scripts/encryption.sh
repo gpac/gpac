@@ -34,16 +34,16 @@ test_end
 }
 
 #test adobe
-crypto_test "adobe" $MEDIA_DIR/crypto/drm_adobe.xml &
+crypto_test "adobe" $MEDIA_DIR/encryption/drm_adobe.xml &
 
 #test isma
-crypto_test "isma" $MEDIA_DIR/crypto/drm_isma.xml &
+crypto_test "isma" $MEDIA_DIR/encryption/drm_isma.xml &
 
 #test cenc CTR
-crypto_test "cenc-ctr" $MEDIA_DIR/crypto/drm_ctr.xml &
+crypto_test "cenc-ctr" $MEDIA_DIR/encryption/drm_ctr.xml &
 
 #test cenc CBC
-crypto_test "cenc-cbc" $MEDIA_DIR/crypto/drm_cbc.xml &
+crypto_test "cenc-cbc" $MEDIA_DIR/encryption/drm_cbc.xml &
 
 
 
