@@ -606,7 +606,8 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_box_array_del(mov->moof_list);
 #endif
-
+	if (mov->last_producer_ref_time)
+		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);
 	if (mov->fileName) gf_free(mov->fileName);
 	gf_free(mov);
 }
