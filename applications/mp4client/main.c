@@ -1123,6 +1123,7 @@ int mp4client_main(int argc, char **argv)
 {
 	char c;
 	const char *str;
+	int ret_val = 0;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
@@ -1555,7 +1556,7 @@ int mp4client_main(int argc, char **argv)
 			times[0] = 0;
 			nb_times++;
 		}
-		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
+		ret_val = dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	}
 	else if (views) {
@@ -2248,7 +2249,7 @@ force_input:
 	}
 #endif
 
-	return 0;
+	return ret_val;
 }
 
 #ifdef WIN32

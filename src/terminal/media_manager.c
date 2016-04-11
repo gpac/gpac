@@ -707,6 +707,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 {
 	u32 i;
 	CodecEntry *ce;
+	u32 diff, now = gf_sys_clock();
 	if (!(term->flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
 
 	/*update till frame mature*/
@@ -736,6 +737,13 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			//force end of buffer
 			if (gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 1))
 				break;
+			
+			//consider timeout after 30 s
+			diff = gf_sys_clock() - now;
+			if (diff>30000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Waited more than %d ms to flush frame - aborting\n", diff));
+				return GF_IP_UDP_TIMEOUT;
+			}
 		}
 
 		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))
