@@ -79,6 +79,12 @@ This test looks for the files:
 # @ test_end
 Triggers the end of the test and writes all logs and statistics
 The function shall be called at the end of the test, except when $test_skip is 1
+The function evaluates the variable $result. If not empty the test is considered failed, otherwise (default) the test has passed. 
+All results or subtests are automatically appended to the $result variable in the end_test function.
+WARNING: this variable can not be set in a subshell (eg through my_function SOME_PARAM &)
+
+# @ do_compare_file_hashes FILE1 FILE2
+Compares hashes of FILE1 and FILE2. returns 0 if OK or error code otherwise.
 
 Subtests may be run in subscripts, for example:
 ```
