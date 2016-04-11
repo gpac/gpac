@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 #for user doc, check scripts/00-template
 
