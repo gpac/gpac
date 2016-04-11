@@ -1230,6 +1230,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	}
 
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+
 exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (mc) gf_crypt_close(mc);
