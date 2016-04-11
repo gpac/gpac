@@ -1,6 +1,6 @@
 
 #create our test file
-mp4file="$TEMP_DIR/crypto_test.mp4"
+mp4file="$TEMP_DIR/source_media.mp4"
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -new $mp4file 2> /dev/null
 
 
@@ -10,7 +10,7 @@ crypto_test()
 cryptfile="$TEMP_DIR/$1-crypted.mp4"
 decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 
-test_begin $1 "crypt" "decrypt"
+test_begin "encryption-$1" "crypt" "decrypt"
 if [ $test_skip  = 1 ] ; then
  return
 fi
@@ -18,12 +18,16 @@ fi
 do_test "$MP4BOX -crypt $2 -out $cryptfile $mp4file" "Encrypt"
 do_hash_test $cryptfile "crypt"
 
-
 do_test "$MP4BOX -decrypt $2 -out $decryptfile $mp4file" "Decrypt"
 do_hash_test $decryptfile "decrypt"
 
-rm $cryptfile 2> /dev/null
-rm $decryptfile 2> /dev/null
+#compare hashes of source and decrypted
+do_compare_file_hashes $mp4file $decryptfile
+rv=$?
+
+if [ $rv != 0 ] ; then
+result="Hash is not the same between source content and decrypted content"
+fi
 
 test_end
 

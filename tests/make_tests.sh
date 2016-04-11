@@ -323,7 +323,7 @@ reset_stat ()
 test_begin ()
 {
 
- result=''
+ result=""
  TEST_NAME=$1
 
  if [ $check_names != 0 ] ; then
@@ -430,7 +430,6 @@ test_end ()
  stat_xml_temp="$TEMP_DIR/$TEST_NAME-statstemp.xml"
  echo "" > $stat_xml_temp
 
- result=""
  test_fail=0
  test_leak=0
  test_exec_na=0
@@ -438,6 +437,10 @@ test_end ()
  nb_test_hash=0
  nb_hash_fail=0
  nb_hash_missing=0
+
+ if [ "$result" != "" ] ; then
+  test_fail=1
+ fi
 
  #gather all stats per subtests
  for i in $TEMP_DIR/$TEST_NAME-stats-*.sh ; do
@@ -717,6 +720,32 @@ do_hash_test ()
  fi
 }
 #end do_hash_test
+
+#compare hashes of $1 and $2, return 0 if OK, error otherwise
+do_compare_file_hashes ()
+{
+test_hash_first="$TEMP_DIR/$TEST_NAME-$(basename $1).hash"
+test_hash_second="$TEMP_DIR/$TEST_NAME-$(basename $2).hash"
+
+$MP4BOX -hash -std $1 > $test_hash_first 2> /dev/null
+$MP4BOX -hash -std $1 > $test_hash_second 2> /dev/null
+$DIFF $test_hash_first $test_hash_first > /dev/null
+
+rv=$?
+if [ $rv != 0 ] ; then
+echo "Hash fail between $1 and $2"  >> $log_subtest
+else
+echo "Same Hash for $1 and $2"  >> $log_subtest
+fi
+
+rm $test_hash_first
+rm $test_hash_second
+
+return $rv
+
+}
+#end do_compare_file_hashes
+
 
 #@ffmpeg_encode: encode source file $1 to $2 using default ffmpeg settings
 ffmpeg_encode ()
