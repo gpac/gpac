@@ -1191,11 +1191,14 @@ static void CustomTexture_update(GF_TextureHandler *txh)
     char data[12];
 #endif
     CustomTextureStack *stack = gf_node_get_private(txh->owner);
-    //texture not setup, do it
+    //alloc texture
     if (!txh->tx_io) {
         //allocate texture
         gf_sc_texture_allocate(txh);
         if (!txh->tx_io) return;
+    }
+    //texture not setup, do it
+    if (!gf_sc_texture_get_gl_id(txh)) {
         
         //setup some defaults (these two vars are used to setup internal texture format)
         //in our case we only want to test openGL so no need to fill in the texture width/height stride
@@ -1228,9 +1231,7 @@ static void CustomTexture_update(GF_TextureHandler *txh)
     //last pixel black
     
     glBindTexture( GL_TEXTURE_2D, stack->gl_id);
-    glEnable( GL_TEXTURE_2D );
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glDisable( GL_TEXTURE_2D );
     
 #endif
  
