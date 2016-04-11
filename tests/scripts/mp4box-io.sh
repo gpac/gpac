@@ -27,21 +27,30 @@ mp4_test ()
  tmp1="$TEMP_DIR/$name.1.tmp"
  tmp2="$TEMP_DIR/$name.2.tmp"
 
- if [[ $1 == *".xslt"* || $1 == *".bt"* || $1 == *".wrl"* ]] ; then
-  return
- fi
+ do_hint=1
+
+ #ignore xlst & others, no hinting for images
+ case $1 in
+ *.xslt )
+  return ;;
+ *.bt )
+  return ;;
+ *.wrl )
+  return ;;
+ *.jpg )
+  do_hint=0 ;;
+ *.jpeg )
+  do_hint=0 ;;
+ *.png )
+  do_hint=0 ;;
+ *.mj2 )
+  do_hint=0 ;;
+ esac
 
  #only check the logo.png
- if [ $1 == *"/logo.jpg"* ] ; then
+ if [ $1 = "*/logo.jpg" ] ; then
   return
  fi
-
- #no hinting for images
- do_hint=1
- if [[ $1 == *".jpg" || $1 == *".png" || $1 == *".jpeg"*  || $1 == *".mj2"* ]] ; then
-  do_hint=0
- fi
-
 
  if [ $do_hint != 0 ] ; then
   test_begin "mp4box-io-$name" "add" "diso" "dts" "hint" "drtp" "unhint" "play"
