@@ -430,6 +430,8 @@ static void gf_es_update_buffer_time(GF_Channel *ch)
 		}
 
 		if (bt>0) {
+			if (bt>1000000)
+				bt=1000000;
 			ch->BufferTime = (u32) bt;
 		} else {
 			ch->BufferTime = 0;
@@ -505,7 +507,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	gf_es_lock(ch, 1);
 
 
-	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 100*ch->MaxBuffer)) )
+	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 300000)) )
 	        || (ch->AU_Count>10000)
 	  ) {
 		if (ch->AU_Count>10000) {
@@ -661,11 +663,16 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 				} else {
 					au->next = au_prev->next;
 					au_prev->next = au;
+
+					if (!au->next && (ch->AU_buffer_last == au_prev)) {
+						ch->AU_buffer_last = au;
+					}
 				}
 			}
 		}
 		ch->AU_Count += 1;
 	}
+	assert(!ch->AU_buffer_last || ch->AU_buffer_last->next == NULL);
 
 	gf_es_update_buffer_time(ch);
 	ch->au_duration = 0;
@@ -1640,6 +1647,7 @@ void gf_es_drop_au(GF_Channel *ch)
 
 	/*lock the channel before touching the queue*/
 	gf_es_lock(ch, 1);
+
 	if (!ch->AU_buffer_first) {
 		gf_es_lock(ch, 0);
 		return;
@@ -1662,7 +1670,7 @@ void gf_es_drop_au(GF_Channel *ch)
 		ch->AU_buffer_first = NULL;
 	}
 	if (!ch->AU_buffer_first) ch->AU_buffer_last = NULL;
-
+	else if (!ch->AU_buffer_first->next) ch->AU_buffer_last = ch->AU_buffer_first;
 
 	gf_es_update_buffer_time(ch);
 
