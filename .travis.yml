@@ -17,8 +17,8 @@ env:
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" INSTALL="" DOTESTS="" DOCOVER=""
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" INSTALL="" DOTESTS="" DOCOVER=""
 before_script:
-  - export PATH=$PATH:/home/travis/build/gpac/gpac/bin/gcc
-  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/gpac/gpac/bin/gcc
+  - export PATH=$PATH:/home/travis/gpac/gpac/bin/gcc
+  - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/gpac/gpac/bin/gcc
 script: 
   - ./configure $GPAC_CONFIGURE_OPTIONS && make && $INSTALL && $DOTESTS && $DOCOVER
 
