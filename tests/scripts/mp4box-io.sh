@@ -83,6 +83,7 @@ mp4_test ()
  fi
 
  #MP4 playback
+ dump_dur=8
  do_playback_test $mp4file "play" && rm $mp4file &
 
  test_end
@@ -91,7 +92,6 @@ mp4_test ()
 
 mp4box_tests ()
 {
-
  for src in $MEDIA_DIR/auxiliary_files/* ; do
   mp4_test $src
  done
