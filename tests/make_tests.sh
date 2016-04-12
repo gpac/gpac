@@ -513,8 +513,8 @@ test_end ()
  done
  rm -f $LOGS_DIR/$TEST_NAME-logs-*.txt > /dev/null
 
- #debug test for travisCI
- cat $LOGS 2> stderr
+#debug test for travisCI
+# cat $LOGS 2> stderr
 
  echo "NB_SUBTESTS=$nb_subtests" >> $test_stats
 
