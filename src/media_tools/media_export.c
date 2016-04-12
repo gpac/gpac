@@ -2168,15 +2168,32 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			}
 			gf_free(sdesc);
 		} else {
-			const char *mime, *encoding, *config;
+			const char *mime, *encoding, *config, *namespace, *location;
 			switch (mstype) {
 			case GF_ISOM_SUBTYPE_METT:
 				if (gf_isom_stxt_get_description(dumper->file, track, 1, &mime, &encoding, &config) == GF_OK) {
-					sprintf(szName, "%s.info", dumper->out_name);
-					inf = gf_fopen(szName, "wb");
-					if (inf) gf_fwrite(config, strlen(config), 1, inf);
-					gf_fclose(inf);
-					fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+					if (mime)
+						fprintf(nhml, "mime_type=\"%s\" ", mime);
+					if (config) {
+						sprintf(szName, "%s.info", dumper->out_name);
+						inf = gf_fopen(szName, "wb");
+						if (inf) gf_fwrite(config, strlen(config), 1, inf);
+						gf_fclose(inf);
+						fprintf(nhml, "specificInfoFile=\"%s\" ", szName);
+					}
+					if (encoding)
+						fprintf(nhml, "encoding=\"%s\" ", encoding);
+				}
+				break;
+			case GF_ISOM_SUBTYPE_METX:
+			case GF_ISOM_SUBTYPE_STPP:
+				if (gf_isom_xml_subtitle_get_description(dumper->file, track, 1, &namespace, &location, &mime) == GF_OK) {
+					if (mime)
+						fprintf(nhml, "mime_type=\"%s\" ", mime);
+					if (namespace)
+						fprintf(nhml, "xml_namespace=\"%s\" ", namespace);
+					if (location)
+						fprintf(nhml, "xml_schema_location=\"%s\" ", location);
 				}
 				break;
 			}
