@@ -641,8 +641,6 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 			if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", tmp)==GF_FALSE) {
 				glDeleteShader(shader);
 				shader = 0;
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GLSL] compile shader %s OK - rendering flags %08X\n", (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", flags));
 			}
 		}
 		gf_free(shader_src);
