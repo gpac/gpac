@@ -4973,6 +4973,7 @@ int mp4boxMain(int argc, char **argv)
 		else fprintf(stderr, "%.3f secs Interleaving%s\n", interleaving_time, old_interleave ? " - no drift control" : "");
 
 		e = gf_isom_close(file);
+		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
 			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
