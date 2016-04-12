@@ -527,8 +527,7 @@ Bool visual_3d_compile_shader(GF_SHADERID shader_id, const char *name, const cha
 
 	glGetShaderiv(shader_id, GL_COMPILE_STATUS, &is_compiled);
 	if (is_compiled == GL_TRUE) return GF_TRUE;
-
-	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
+ 	glGetShaderiv(shader_id, GL_INFO_LOG_LENGTH , &blen);
 	if (blen > 1) {
 		char* compiler_log = (char*) gf_malloc(blen);
 #ifdef CONFIG_DARWIN_GL
@@ -642,6 +641,8 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 			if (visual_3d_compile_shader(shader, (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", tmp)==GF_FALSE) {
 				glDeleteShader(shader);
 				shader = 0;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GLSL] compile shader %s OK - rendering flags %08X\n", (shader_type == GL_FRAGMENT_SHADER) ? "fragment" : "vertex", flags));
 			}
 		}
 		gf_free(shader_src);

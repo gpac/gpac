@@ -293,7 +293,7 @@ fi
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
-MP4CLIENT="MP4Client -noprog -strict-error $base_args"
+MP4CLIENT="MP4Client -noprog -strict-error -logs all@warning $base_args"
 MP42TS="MP42TS $base_args"
 DASHCAST="DashCast $base_args"
 
