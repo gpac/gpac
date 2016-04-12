@@ -9,7 +9,7 @@ install:
   - sudo apt-get install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev
 env:
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" TARGET="" INSTALL="make install" DOTESTS="" DOCOVER=""
-  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" TARGET="" INSTALL="export PATH=$PATH:/home/travis/build/gpac/gpac/bin/gcc && export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/gpac/gpac/bin/gcc" DOTESTS="make test_suite" DOCOVER="coveralls --exclude lib --exclude tests --gcov-options '\-lp' --build-root /home/travis/build/gpac/gpac"
+  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" TARGET="" INSTALL="export PATH=$PATH:/home/travis/build/gpac/gpac/bin/gcc;export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/home/travis/build/gpac/gpac/bin/gcc" DOTESTS="make test_suite" DOCOVER="coveralls --exclude lib --exclude tests --gcov-options '\-lp' --build-root /home/travis/build/gpac/gpac"
   - GPAC_CONFIGURE_OPTIONS="--disable-all" TARGET="" INSTALL="" DOTESTS="" DOCOVER=""
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --static-mp4box" TARGET="" INSTALL="make install" DOTESTS="" DOCOVER=""
   - GPAC_CONFIGURE_OPTIONS="--static-modules" TARGET="" INSTALL="" DOTESTS="" DOCOVER=""
