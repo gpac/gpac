@@ -1236,7 +1236,11 @@ GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *movie, u32 trackNumber, u32 
 	//duplicate our desc
 	e = gf_odf_desc_copy((GF_Descriptor *)newESD, (GF_Descriptor **)&esd);
 	if (e) return e;
-	return Track_SetStreamDescriptor(trak, StreamDescriptionIndex, entry->dataReferenceIndex, esd, NULL);
+	e = Track_SetStreamDescriptor(trak, StreamDescriptionIndex, entry->dataReferenceIndex, esd, NULL);
+	if (e != GF_OK) {
+		gf_odf_desc_del((GF_Descriptor *) esd);
+	}
+	return e;
 }
 
 GF_EXPORT

@@ -7923,6 +7923,7 @@ GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs)
 		i++;
 	}
 	if (i) ptr->config = gf_strdup(str);
+	gf_free(str);
 
 	return GF_OK;
 }
