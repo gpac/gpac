@@ -293,7 +293,7 @@ fi
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
-MP4CLIENT="MP4Client -noprog -strict-error -logs all@warning $base_args"
+MP4CLIENT="MP4Client -noprog -strict-error $base_args"
 MP42TS="MP42TS $base_args"
 DASHCAST="DashCast $base_args"
 
@@ -852,6 +852,9 @@ echo "Logs for GPAC test suite - execution date $(date '+%d/%m/%Y %H:%M:%S')" > 
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
+
+#travis test
+url_arg="scripts/mp4box-io.sh"
 
 #run our tests
 if [ -n "$url_arg" ] ; then
