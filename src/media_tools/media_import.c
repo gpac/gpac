@@ -3123,7 +3123,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
 	char *dictionary = NULL;
-	char *ext, szName[1000], szMedia[1000], szMediaTemp[1000], szInfo[1000], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
+	char *ext, szName[1000], szMedia[GF_MAX_PATH], szMediaTemp[1000], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
 	char *specInfo;
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
@@ -3220,9 +3220,13 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		} else if (!stricmp(att->name, "numChannels")) {
 			NHML_SCAN_INT("%hu", sdesc.nb_channels)
 		} else if (!stricmp(att->name, "baseMediaFile")) {
-			strcpy(szMedia, att->value);
+			char *url = gf_url_concatenate(import->in_name, att->value);
+			strcpy(szMedia, url ? url : att->value);
+			if (url) gf_free(url);
 		} else if (!stricmp(att->name, "specificInfoFile")) {
-			strcpy(szInfo, att->value);
+			char *url = gf_url_concatenate(import->in_name, att->value);
+			strcpy(szInfo, url ? url : att->value);
+			if (url) gf_free(url);
 		} else if (!stricmp(att->name, "headerEnd")) {
 			NHML_SCAN_INT("%u", header_end)
 		} else if (!stricmp(att->name, "trackID")) {
@@ -3238,7 +3242,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		else if (!stricmp(att->name, "gzipDictionary")) {
 			u64 d_size;
 			if (stricmp(att->value, "self")) {
-				FILE *d = gf_fopen(att->value, "rb");
+				char *url = gf_url_concatenate(import->in_name, att->value);
+				FILE *d = gf_fopen(url ? url : att->value, "rb");
+				if (url) gf_free(url);
 				if (!d) {
 					gf_import_message(import, GF_IO_ERR, "Cannot open dictionary file %s", att->value);
 					continue;
@@ -3605,7 +3611,11 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			else if (!stricmp(att->name, "isSyncShadow")) samp->IsRAP = !stricmp(att->value, "yes") ? RAP_REDUNDANT : RAP_NO;
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
-			else if (!stricmp(att->name, "mediaFile")) strcpy(szMediaTemp, att->value);
+			else if (!stricmp(att->name, "mediaFile")) {
+				char *url = gf_url_concatenate(import->in_name, att->value);
+				strcpy(szMediaTemp, url ? url : att->value);
+				if (url) gf_free(url);
+			}
 			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
 			else if (!stricmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
 			/*DIMS flags*/
@@ -3704,6 +3714,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 
 			gf_fseek(f, offset, SEEK_SET);
 			if (is_dims) {
+				u32 read;
 				GF_BitStream *bs;
 				if (samp->dataLength+3>max_size) {
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * (samp->dataLength+3));
@@ -3712,8 +3723,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
 				gf_bs_write_u16(bs, samp->dataLength+1);
 				gf_bs_write_u8(bs, (u8) dims_flags);
-				if (samp->dataLength != fread( samp->data+3, sizeof(char), samp->dataLength, f)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read samp->dataLength\n"));
+				read = fread( samp->data+3, sizeof(char), samp->dataLength, f);
+				if (samp->dataLength != read) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}
 				gf_bs_del(bs);
 				samp->dataLength+=3;
@@ -3722,12 +3734,14 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 					append = GF_TRUE;
 			} else {
+				u32 read;
 				if (samp->dataLength>max_size) {
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
-				if (samp->dataLength != fread( samp->data, sizeof(char), samp->dataLength, f)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] Failed to fully read samp->dataLength\n"));
+				read = fread( samp->data, sizeof(char), samp->dataLength, f);
+				if (samp->dataLength != read) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}
 			}
 			if (close) gf_fclose(f);
