@@ -240,7 +240,7 @@ res=`$GNU_TIME --version 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
 echo "GNU time not found (ret $res) - exiting"
-exit
+exit 1
 fi
 
 #test for GNU date
@@ -248,7 +248,7 @@ res=`$GNU_DATE 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
 echo "GNU date not found (ret $res) - exiting"
-exit
+exit 1
 fi
 
 #test for ffmpeg - if not present, disable video storing
@@ -265,20 +265,20 @@ fi
 `MP4Box -h 2> /dev/null`
 if [ $? != 0 ] ; then
 echo "MP4Box not found (ret $?) - exiting"
-exit
+exit 1
 fi
 
 `MP4Client -run-for 0 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
 echo "MP4Client not found (ret $res) - exiting"
-exit
+exit 1
 fi
 
 `MP42TS -h 2> /dev/null`
 if [ $? != 0 ] ; then
 echo "MP42TS not found (ret $?) - exiting"
-exit
+exit 1
 fi
 
 #check mem tracking is supported
@@ -985,4 +985,6 @@ end=`$GNU_DATE +%s%N`
 runtime=$((end-start))
 runtime=$(($runtime / 1000000))
 echo "Generation done in $runtime milliseconds"
+
+
 
