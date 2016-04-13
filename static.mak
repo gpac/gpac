@@ -327,7 +327,7 @@ EXTRALIBS+=-DGPAC_HAS_WAVEOUT -DDISABLE_WAVE_EX
 endif
 
 ifeq ($(CONFIG_DIRECTX),yes)
-OBJS+= ../dx_hw/dx_hw/dx_audio.o  ../dx_hw/dx_hw/dx_video.o  ../dx_hw/dx_hw/dx_window.o  ../dx_hw/dx_hw/dx_2d.o  ../dx_hw/dx_hw/copy_pixels.o
+OBJS+= ../modules/dx_hw/dx_audio.o  ../modules/dx_hw/dx_video.o  ../modules/dx_hw/dx_window.o  ../modules/dx_hw/dx_2d.o  ../modules/dx_hw/copy_pixels.o
 CFLAGS+=-DGPAC_HAS_DIRECTX -DDIRECTSOUND_VERSION=0x0500
 ifneq ($(DX_PATH), system)
 EXTRALIBS+=-L$(DX_PATH)/lib
