@@ -76,7 +76,9 @@ enum
 	messages during this phase in order to avoid any deadlocks*/
 	GF_SR_IN_RECONFIG = 1<<4,
 	/*special flag indicating the set size is actually due to a notif by the plugin*/
-	GF_SR_CFG_WINDOWSIZE_NOTIF = 1<<10,
+	GF_SR_CFG_WINDOWSIZE_NOTIF = 1<<5,
+	/*special flag indicating this is the initial resize, and video setup should be sent*/
+	GF_SR_CFG_INITIAL_RESIZE = 1<<6,
 };
 
 
