@@ -661,7 +661,7 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		u32 flags, nb_bits;
 		const char *opt;
 
-		if ((ctx->width==width) && (ctx->height==height) ) {
+		if (ctx->screen && (ctx->width==width) && (ctx->height==height) ) {
 			gf_mx_v(ctx->evt_mx);
 			return GF_OK;
 		}
@@ -730,8 +730,12 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 #else
 		hw_reset = GF_TRUE;
 		ctx->screen = SDL_SetVideoMode(width, height, 0, flags);
+		if (!ctx->screen) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
+			gf_mx_v(ctx->evt_mx);
+			return GF_IO_ERR;
+		}
 #endif
-		assert(ctx->screen);
 		ctx->width = width;
 		ctx->height = height;
 		memset(&evt, 0, sizeof(GF_Event));
