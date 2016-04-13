@@ -77,7 +77,9 @@ lcov_only:
 	@lcov --remove all.info /usr/* /opt/* --output coverage.info 2> /dev/null
 	@rm all.info
 	@echo "Purging lcov info"
+	#we have a weird bug with lcov,  src/subdir/file appear as src/subdir/subdir/file ...
 	@for dir in src/* ; do sed -i -- "s~$$dir~src~g" coverage.info; done
+	@echo "Done - coverage.info ready"
 
 lcov:	lcov_only
 	@rm -rf coverage/
