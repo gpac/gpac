@@ -110,6 +110,16 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
  */
 void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop);
 
+    
+/*!
+ *	\brief gets current media time
+ *
+ *	Get the media time (DTS) of the last RTP packet sent in this session
+ *	\param streamer RTP streamer object
+ *	\return media time (DTS) in seconds
+ */
+Double gf_isom_streamer_get_current_time(GF_ISOMRTPStreamer *streamer);
+    
 /*! @} */
 
 #ifdef __cplusplus

@@ -479,7 +479,7 @@ void gf_term_start_codec(GF_Codec *codec, Bool is_resume)
 		gf_mx_v(ce->mx);
 }
 
-void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
+void gf_term_stop_codec(GF_Codec *codec, u32 reason)
 {
 	GF_CodecCapability cap;
 	Bool locked = 0;
@@ -501,7 +501,7 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 		locked = gf_mx_try_lock(term->mm_mx);
 	}
 
-	if (!is_pause) {
+	if (reason == 0) {
 		cap.CapCode = GF_CODEC_ABORT;
 		cap.cap.valueInt = 0;
 		gf_codec_set_capability(codec, cap);
@@ -517,7 +517,9 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 	/*for audio codec force CB to stop state to discard any pending AU. Not doing so would lead to a wrong estimation of the clock drift
 	when resuming the object*/
 	if (codec->type==GF_STREAM_AUDIO) {
-		gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
+		if (reason != 2) {
+			gf_codec_set_status(codec, GF_ESM_CODEC_STOP);
+		}
 	}
 	//if video is in a dynamic scene, reset the CB if user stop (eg codec was not in EOS). Otherwise (bifs,svg) we may want to keep the last decoded image
 	else if ((codec->Status<GF_ESM_CODEC_EOS) && codec->odm && codec->odm->parentscene && codec->odm->parentscene->is_dynamic_scene && codec->CB && (codec->CB->Capacity>1)) {
@@ -526,6 +528,10 @@ void gf_term_stop_codec(GF_Codec *codec, Bool is_pause)
 	/*otherwise set status directly and don't touch CB state*/
 	else {
 		codec->Status = GF_ESM_CODEC_STOP;
+	}
+
+	if ((reason==2) && codec->CB) {
+		gf_cm_set_eos(codec->CB);
 	}
 
 	/*don't wait for end of thread since this can be triggered within the decoding thread*/
@@ -701,6 +707,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 {
 	u32 i;
 	CodecEntry *ce;
+	u32 diff, now = gf_sys_clock();
 	if (!(term->flags & GF_TERM_NO_COMPOSITOR_THREAD) ) return GF_BAD_PARAM;
 
 	/*update till frame mature*/
@@ -730,6 +737,13 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			//force end of buffer
 			if (gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 1))
 				break;
+			
+			//consider timeout after 30 s
+			diff = gf_sys_clock() - now;
+			if (diff>30000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Waited more than %d ms to flush frame - aborting\n", diff));
+				return GF_IP_UDP_TIMEOUT;
+			}
 		}
 
 		if (! (term->user->init_flags & GF_TERM_NO_REGULATION))

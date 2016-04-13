@@ -203,7 +203,7 @@ BOOL COsmo4::InitInstance()
 		return FALSE;
 	}
 
-	gf_sys_init();
+	gf_sys_init(GF_MemTrackerNone);
 
 	SetRegistryKey(_T("GPAC"));
 

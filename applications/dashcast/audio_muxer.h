@@ -57,7 +57,7 @@ typedef enum {
  *
  */
 typedef struct {
-	//AudioDataConf *audio_data_conf;
+	AudioDataConf *audio_data_conf;
 
 	/* File format context structure */
 	AVFormatContext *av_fmt_ctx;
@@ -107,6 +107,7 @@ typedef struct {
 	int first_dts;
 
 	u32 seg_marker;
+	u64 frame_ntp;
 } AudioOutputFile;
 
 int dc_audio_muxer_init(AudioOutputFile *audio_output_file, AudioDataConf *audio_data_conf, AudioMuxerType muxer_type, int frame_per_seg, int frame_per_frag, u32 seg_marker);
@@ -124,7 +125,7 @@ void dc_audio_muxer_free(AudioOutputFile *audio_output_file);
  */
 GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, char *id_name, int seg);
 
-GF_Err dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb);
+GF_Err dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool insert_ntp);
 
 GF_Err dc_audio_muxer_close(AudioOutputFile *audio_output_file);
 
