@@ -1567,7 +1567,7 @@ try_next_segment:
 						segment_url->media = gf_strdup(elt->url);
 					}
 				} else {
-					segment_url->media =gf_url_concatenate(pe->url, elt->url);
+					segment_url->media = gf_url_concatenate(pe->url, elt->url);
 				}
 				if (elt->drm_method != DRM_NONE) {
 					//segment_url->key_url = "aes-128";
@@ -2172,7 +2172,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 }
 
-static void gf_mpd_print_period(GF_MPD_Period const * const period, FILE *out)
+static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
 	u32 i;
@@ -2184,10 +2184,10 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, FILE *out)
 	}
 	if (period->ID)
 		fprintf(out, " id=\"%s\"", period->ID);
-	if (period->start)
+	if (is_dynamic || period->start)
 		gf_mpd_print_duration(out, "start", period->start);
 	if (period->duration)
-		gf_mpd_print_duration(out, "duration", period->start);
+		gf_mpd_print_duration(out, "duration", period->duration);
 	if (period->bitstream_switching)
 		fprintf(out, " bitstreamSwitching=\"true\"");
 
@@ -2234,9 +2234,9 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->availabilityStartTime)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
-		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityEndTime);
+		gf_mpd_print_date(out, "availabilityEndTime", mpd->availabilityEndTime);
 	if (mpd->publishTime)
-		gf_mpd_print_date(out, "availabilityStartTime", mpd->publishTime);
+		gf_mpd_print_date(out, "publishTime", mpd->publishTime);
 	if (mpd->media_presentation_duration)
 		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration);
 	if (mpd->minimum_update_period)
@@ -2298,7 +2298,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	i=0;
 	while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
-		gf_mpd_print_period(period, out);
+		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
 	}
 
 	fprintf(out, "</MPD>\n");
@@ -2644,7 +2644,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			}
 
 			/*check total duration*/
-			if ((start_number + item_index) * *segment_duration_in_ms > period->duration) {
+			if (period->duration
+				&& ((start_number + item_index) * *segment_duration_in_ms > period->duration)) {
 				second_sep[0] = '$';
 				/*look for next keyword - copy over remaining text if any*/
 				first_sep = strchr(second_sep + 1, '$');
@@ -2924,7 +2925,7 @@ GF_Err gf_mpd_get_segment_start_time_with_timescale(s32 in_segment_index,
 
 	if (out_opt_segment_duration) *out_opt_segment_duration = duration;
 	if (out_opt_scale) *out_opt_scale = timescale;
-	return start_time;
+	*out_segment_start_time = start_time;
 
 	return GF_OK;
 }

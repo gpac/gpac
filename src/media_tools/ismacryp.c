@@ -619,7 +619,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		range_end = gf_isom_get_media_timescale(mp4, track) * tci->sel_enc_range;
 	}
 
-	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, 1);
+	if (gf_isom_has_time_offset(mp4, track)) gf_isom_set_cts_packing(mp4, track, GF_TRUE);
 
 	count = gf_isom_get_sample_count(mp4, track);
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -707,7 +707,7 @@ GF_Err gf_ismacryp_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 		gf_isom_sample_del(&samp);
 		gf_set_progress("ISMA Encrypt", i+1, count);
 	}
-	gf_isom_set_cts_packing(mp4, track, 0);
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 	gf_crypt_close(mc);
 
 
@@ -1230,6 +1230,8 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	}
 
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
+
 exit:
 	if (samp) gf_isom_sample_del(&samp);
 	if (mc) gf_crypt_close(mc);
@@ -1426,6 +1428,8 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	gf_isom_remove_cenc_saio(mp4, track);
 	gf_isom_remove_samp_enc_box(mp4, track);
 	gf_isom_remove_samp_group_box(mp4, track);
+
+	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
 
 exit:
 	if (mc) gf_crypt_close(mc);

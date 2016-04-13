@@ -118,7 +118,7 @@ const char * IMG_MIME_TYPES[] = {
 static u32 IMG_RegisterMimeTypes(const GF_InputService *plug) {
 	u32 i;
 	if (!plug) {
-		GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("IMG_RegisterMimeTypes : plug is NULL !!\n"));
 	}
 	for (i = 0 ; IMG_MIME_TYPES[i]; i+=3)
 		gf_service_register_mime(plug, IMG_MIME_TYPES[i], IMG_MIME_TYPES[i+1], IMG_MIME_TYPES[i+2]);
@@ -130,7 +130,7 @@ static Bool IMG_CanHandleURL(GF_InputService *plug, const char *url)
 {
 	char *sExt;
 	u32 i;
-	GF_LOG(GF_LOG_MEDIA, GF_LOG_INFO, ("IMG_CanHandleURL(%s)\n", url));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("IMG_CanHandleURL(%s)\n", url));
 	if (!plug || !url)
 		return GF_FALSE;
 	sExt = strrchr(url, '.');
@@ -437,7 +437,6 @@ void DeleteLoaderInterface(void *ifce)
 {
 	IMGLoader *read;
 	GF_InputService *plug = (GF_InputService *) ifce;
-	GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 1\n"));
 	if (!plug)
 		return;
 	read = (IMGLoader *)plug->priv;
@@ -445,5 +444,4 @@ void DeleteLoaderInterface(void *ifce)
 		gf_free(read);
 	plug->priv = NULL;
 	gf_free(plug);
-	GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("DeleteLoaderInterface : 2\n"));
 }

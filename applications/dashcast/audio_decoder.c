@@ -25,13 +25,15 @@
 
 #include "audio_decoder.h"
 
-int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop)
+int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio_data_conf, int mode, int no_loop, int video_framerate)
 {
 	u32 i;
 	AVCodecContext *codec_ctx;
 	AVCodec *codec;
 	AVInputFormat *in_fmt = NULL;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder enter setup at UTC "LLU"\n", gf_net_get_utc() ));
+	
 	if (audio_data_conf->format && strcmp(audio_data_conf->format,"") != 0) {
 		in_fmt = av_find_input_format(audio_data_conf->format);
 		if (in_fmt == NULL) {
@@ -44,10 +46,36 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	 * Open audio (may already be opened when shared with the video input).
 	 */
 	if (!audio_input_file->av_fmt_ctx) {
-		if (avformat_open_input(&audio_input_file->av_fmt_ctx, audio_data_conf->filename, in_fmt, NULL) != 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file: %s\n", audio_data_conf->filename));
-			return -1;
+		s32 ret;
+		AVDictionary *options = NULL;
+		//we may need to set the framerate when the default one used by ffmpeg is not supported
+		if (video_framerate > 0) {
+			char vfr[16];
+			snprintf(vfr, sizeof(vfr), "%d", video_framerate);
+			ret = av_dict_set(&options, "framerate", vfr, 0);
+			if (ret < 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Could not set video framerate %s.\n", vfr));
+				return -1;
+			}
 		}
+		
+		ret = avformat_open_input(&audio_input_file->av_fmt_ctx, audio_data_conf->filename, in_fmt, options ? &options : NULL);
+
+		if (ret != 0) {
+			if (options) {
+				av_dict_free(&options);
+				options = NULL;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error %d opening input - retrying without options\n", ret));
+				ret = avformat_open_input(&audio_input_file->av_fmt_ctx, audio_data_conf->filename, in_fmt, NULL);
+			}
+
+			if (ret != 0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot open file: %s\n", audio_data_conf->filename));
+				return -1;
+			}
+		}
+
+		if (options) av_dict_free(&options);
 
 		/*
 		* Retrieve stream information
@@ -59,6 +87,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 
 		av_dump_format(audio_input_file->av_fmt_ctx, 0, audio_data_conf->filename, 0);
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio capture open at UTC "LLU"\n", gf_net_get_utc() ));
 
 	/*
 	 * Find the first audio stream
@@ -110,6 +139,8 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	audio_input_file->mode = mode;
 	audio_input_file->no_loop = no_loop;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder open at UTC "LLU"\n", gf_net_get_utc() ));
+	
 	return 0;
 }
 
@@ -260,10 +291,14 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 
 			audio_input_data->next_pts += ((int64_t)AV_TIME_BASE * audio_input_data->aframe->nb_samples) / codec_ctx->sample_rate;
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Decode audio frame pts %d at UTC "LLU"\n", audio_input_data->next_pts, gf_net_get_utc() ));
+			
 			/* Did we get an audio frame? */
 			if (got_frame) {
 				uint8_t **data;
 				int data_size;
+				enum AVSampleFormat sample_format;
+				Bool resample;
 #ifdef DC_AUDIO_RESAMPLER
 				int num_planes_out;
 #endif
@@ -274,10 +309,21 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 #else
 				int sample_rate = audio_input_data->aframe->sample_rate;
 				int num_channels = audio_input_data->aframe->channels;
-				u64 channel_layout = audio_input_data->aframe->channel_layout;
+				u64 channel_layout;
+				if (!audio_input_data->aframe->channel_layout) {
+					if (audio_input_data->aframe->channels == 2) {
+						audio_input_data->aframe->channel_layout = AV_CH_LAYOUT_STEREO;
+					} else if (audio_input_data->aframe->channels == 1) {
+						audio_input_data->aframe->channel_layout = AV_CH_LAYOUT_MONO;
+					} else {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Unknown input channel layout for %d channels. Aborting.\n", audio_input_data->aframe->channels));
+						exit(1);
+					}
+				}
+				channel_layout = audio_input_data->aframe->channel_layout;
 #endif
-				enum AVSampleFormat sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
-				Bool resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
+				sample_format = (enum AVSampleFormat)audio_input_data->aframe->format;
+				resample = (sample_rate    != DC_AUDIO_SAMPLE_RATE
 				                 || num_channels   != DC_AUDIO_NUM_CHANNELS
 				                 || channel_layout != DC_AUDIO_CHANNEL_LAYOUT
 				                 || sample_format  != DC_AUDIO_SAMPLE_FORMAT);
@@ -331,7 +377,6 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 					while (av_fifo_size(audio_input_file->fifo) >= LIVE_FRAME_SIZE) {
 						/* Lock the current node in the circular buffer. */
 						if (dc_producer_lock(&audio_input_data->producer, &audio_input_data->circular_buf) < 0) {
-							GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[dashcast] Live system dropped an audio frame\n"));
 							continue;
 						}
 

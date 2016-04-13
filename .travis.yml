@@ -2,21 +2,22 @@ language: c
 compiler: gcc
 before_install: 
   - sudo apt-get update -qq
+  - pip install --user cpp-coveralls
 install:
   - sudo apt-get install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ 
   - sudo apt-get install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev
   - sudo apt-get install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev
 env:
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/all" GPAC_CONFIGURE_OPTIONS="" GPAC_CONFIGURE_ECFLAGS="" GPAC_CONFIGURE_ELDFLAGS="" GPAC_CONFIGURE_CROSS="" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/disable-all" GPAC_CONFIGURE_OPTIONS="--disable-all" GPAC_CONFIGURE_ECFLAGS="" GPAC_CONFIGURE_ELDFLAGS="" GPAC_CONFIGURE_CROSS="" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/static-mp4box" GPAC_CONFIGURE_OPTIONS="--static-mp4box" GPAC_CONFIGURE_ECFLAGS="" GPAC_CONFIGURE_ELDFLAGS="" GPAC_CONFIGURE_CROSS="" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/static-modules" GPAC_CONFIGURE_OPTIONS="--static-modules" GPAC_CONFIGURE_ECFLAGS="" GPAC_CONFIGURE_ELDFLAGS="" GPAC_CONFIGURE_CROSS="" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/disable-manual" GPAC_CONFIGURE_OPTIONS="--use-js=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg -disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse" GPAC_CONFIGURE_ECFLAGS="" GPAC_CONFIGURE_ELDFLAGS="" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/i686-w64-mingw32" GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no" GPAC_CONFIGURE_ECFLAGS="-Ibuild/i686-w64-mingw32/include -w -fPIC" GPAC_CONFIGURE_ELDFLAGS="-Lbuild/i686-w64-mingw32/lib" GPAC_CONFIGURE_CROSS="--target-os=mingw32 --cross-prefix=i686-w64-mingw32-" TARGET=""
-  - GPAC_CONFIGURE_PREFIX="--prefix=build/x86_64-w64-mingw32" GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" GPAC_CONFIGURE_ELDFLAGS="-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_CROSS="--target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" TARGET=""
- 
+  - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTESTS="make test_suite" DOCOVER="coveralls --exclude lib --exclude tests --gcov-options '\-lp' --build-root /home/travis/build/gpac/gpac"
+  - GPAC_CONFIGURE_OPTIONS="--disable-all" DOINSTALL="" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --static-mp4box" DOINSTALL="make install" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--static-modules" DOINSTALL="" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--use-js=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg -disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse" DOINSTALL="" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" DOINSTALL="" DOTESTS="" DOCOVER=""
+  - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" DOINSTALL="" DOTESTS="" DOCOVER=""
 script: 
-  - ./configure $GPAC_CONFIGURE_PREFIX $GPAC_CONFIGURE_OPTIONS --extra-cflags="$GPAC_CONFIGURE_ECFLAGS" --extra-ldflags="$GPAC_CONFIGURE_ELDFLAGS" && make clean && make $TARGET && make install
+  - ./configure $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTESTS && $DOCOVER
 
 notifications:
   email:

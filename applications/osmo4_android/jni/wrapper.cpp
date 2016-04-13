@@ -42,11 +42,11 @@
 
 #define TAG "GPAC_WRAPPER"
 
-#define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
-#define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
-#define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
-#define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
-#define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, TAG,  __VA_ARGS__)
+#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
+#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, TAG,  __VA_ARGS__)
+#define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
+#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 #include <pthread.h>
 
 static JavaVM* javaVM = NULL;
@@ -172,7 +172,7 @@ static JNINativeMethod sMethods[] = {
 jint JNI_OnUnLoad(JavaVM* vm, void* reserved) {
 	LOGI("Deleting library, vm=%p...\n", vm);
 	if (pthread_key_delete(jni_thread_env_key)) {
-		LOGW("Failed to delete key jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
+		LOGW("Failed to delete key jni_thread_env_key jni_thread_env_key=%d\n", jni_thread_env_key);
 	}
 	javaVM = NULL;
 	jni_thread_env_key = (int) NULL;
@@ -215,7 +215,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
 	LOGI("Registering natives DONE, now registering pthread_keys with destructor=%p\n", &jni_destroy_env_func);
 	int ret = pthread_key_create(&jni_thread_env_key, &jni_destroy_env_func);
 	if (ret) {
-		LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%p\n", jni_thread_env_key);
+		LOGE("Failed to register jni_thread_env_key jni_thread_env_key=%d\n", jni_thread_env_key);
 	}
 	return jniV;
 }
@@ -699,7 +699,7 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	memset(mainJavaEnv, 0, sizeof(JavaEnvTh));
 	setJavaEnv(mainJavaEnv, env, env->NewGlobalRef(*callback));
 	if (pthread_setspecific( jni_thread_env_key, mainJavaEnv)) {
-		LOGE("Failed to set specific thread data to jni_thread_env_key=%p for main thread !", jni_thread_env_key);
+		LOGE("Failed to set specific thread data to jni_thread_env_key=%d for main thread !", jni_thread_env_key);
 	}
 
 	m_mx = gf_mx_new("Osmo4");
@@ -734,12 +734,12 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	}
 
 	LOGD("Loading GPAC terminal, m_user=%p...", &m_user);
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 	gf_fm_request_set_callback(this, on_fm_request);
 	SetupLogs();
 	m_term = gf_term_new(&m_user);
 	if (!m_term) {
-		LOGE("Cannot load GPAC Terminal with m_user=%p", m_user);
+		LOGE("Cannot load GPAC Terminal with m_user=%p", &m_user);
 		MessageBox("Cannot load GPAC terminal", "Fatal Error", GF_SERVICE_ERROR);
 		gf_modules_del(m_user.modules);
 		m_user.modules = NULL;
@@ -766,9 +766,9 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 		gf_term_connect(m_term, urlToLoad);
 	}
 	debug_log("init end");
-	LOGD("Saving config file ...\n", m_cfg_filename);
+	LOGD("Saving config file...\n");
 	gf_cfg_save(m_user.config);
-	LOGI("Initialization complete, config file saved.\n", m_cfg_filename);
+	LOGI("Initialization complete, config file saved.\n");
 
 	return 0;
 }

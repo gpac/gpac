@@ -1401,7 +1401,7 @@ int WINAPI WinMain(HINSTANCE hInstance,
 	disp_h = screen_h;
 #endif
 
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 	user.modules = gf_modules_new(NULL, user.config);
 	if (!gf_modules_get_count(user.modules)) {
 		MessageBox(GetForegroundWindow(), _T("No modules found"), _T("GPAC Init Error"), MB_OK);

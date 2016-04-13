@@ -1142,7 +1142,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 		GF_CENCSampleAuxInfo *sai;
 		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 		sai->IV_size = ptr->IV_size;
-		gf_bs_read_data(bs, sai->IV, ptr->IV_size);
+		gf_bs_read_data(bs, (char*)sai->IV, ptr->IV_size);
 		ptr->size -= ptr->IV_size;
 		if (ptr->flags & 2) {
 			sai->subsample_count = gf_bs_read_u16(bs);

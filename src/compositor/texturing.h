@@ -94,6 +94,9 @@ enum
 /*set texturing blend mode*/
 void gf_sc_texture_set_blend_mode(GF_TextureHandler *txh, u32 mode);
 
+/*retrieves internal textureID used for the color plane (interleaved) or primary plane (YUV)*/
+u32 gf_sc_texture_get_gl_id(GF_TextureHandler *txh);
+
 #endif	/*GPAC_DISABLE_3D*/
 #ifdef __cplusplus
 }

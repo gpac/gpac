@@ -218,11 +218,11 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		sprintf(szO, "%d", nb_threads);
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads", szO);
 		ctx->nb_threads = nb_threads;
-		GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[OpenHEVC] Initializing with %d threads\n", ctx->nb_threads));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenHEVC] Initializing with %d threads\n", ctx->nb_threads));
 	} else {
 		ctx->nb_threads = atoi(sOpt);
 		if (ctx->nb_threads > nb_threads) {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_WARNING, ("[OpenHEVC] Initializing with %d threads but only %d available cores detected on the system\n", ctx->nb_threads, rti.nb_cores));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[OpenHEVC] Initializing with %d threads but only %d available cores detected on the system\n", ctx->nb_threads, rti.nb_cores));
 		}
 	}
 

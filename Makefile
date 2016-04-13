@@ -57,6 +57,16 @@ distclean:
 	$(MAKE) -C applications distclean
 	$(MAKE) -C modules distclean
 	rm -f config.mak config.h
+	@find . -type f -name '*.gcno*' -delete
+	@find . -type f -name '*.gcda*' -delete
+	@rm -f all.info 2> /dev/null
+	@rm -f cover.info 2> /dev/null
+
+docs:
+	@cd $(SRC_PATH)/doc && doxygen
+
+test_suite:
+	@cd $(SRC_PATH)/tests && ./make_tests.sh
 
 lcov_clean:
 	lcov --directory . --zerocounters
@@ -129,9 +139,9 @@ ifeq ($(CONFIG_DARWIN),yes)
 	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
 	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
 else
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
+	cp -v --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" | true
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" | true 
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" | true
 endif
 
 lninstall:
@@ -284,6 +294,11 @@ endif
 	@echo "install-lib: install gpac library (dyn and static) and headers <gpac/*.h>, <gpac/modules/*.h> and <gpac/internal/*.h>"
 	@echo "uninstall-lib: uninstall gpac library (dyn and static) and headers"
 	@echo
-	@echo "to build libgpac documentation, go to gpac/doc and type 'doxygen'"
+	@echo "tests: run all tests. For more info, check gpac/regression_tests/test_suite_make.sh -h"
+	@echo
+	@echo "lcov: generate lcov files"
+	@echo "lcov_clean: clean all lcov/gcov files"
+	@echo
+	@echo "docs:  build libgpac documentation in gpac/doc"
 
 -include .depend

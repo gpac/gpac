@@ -110,7 +110,7 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 	last_dts = 0;
 	dur = gf_isom_get_media_duration(file, track);
 
-	gf_isom_set_cts_packing(file, track, 1);
+	gf_isom_set_cts_packing(file, track, GF_TRUE);
 
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
@@ -128,7 +128,7 @@ GF_Err gf_media_remove_non_rap(GF_ISOFile *file, u32 track)
 		i--;
 		count--;
 	}
-	gf_isom_set_cts_packing(file, track, 0);
+	gf_isom_set_cts_packing(file, track, GF_FALSE);
 	gf_isom_set_last_sample_duration(file, track, (u32) (dur - last_dts) );
 	return GF_OK;
 }
@@ -152,6 +152,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 
 	in = gf_fopen(file, "rb");
+    if (!in) return GF_URL_ERROR;
 	gf_fseek(in, 0, SEEK_END);
 	size = gf_ftell(in);
 	gf_fseek(in, 0, SEEK_SET);
@@ -2824,10 +2825,13 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	GF_List *fragmenters;
 	u32 MaxFragmentDuration;
 	GF_TrackFragmenter *tf;
-
+    Bool drop_version = gf_isom_drop_date_version_info_enabled(input);
+    
 	//create output file
 	output = gf_isom_open(output_file, GF_ISOM_OPEN_WRITE, NULL);
 	if (!output) return gf_isom_last_error(NULL);
+
+    gf_isom_no_version_date_info(output, drop_version);
 
 
 	nb_samp = 0;

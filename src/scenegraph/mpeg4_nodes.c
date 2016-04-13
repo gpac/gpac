@@ -36587,6 +36587,7 @@ static void Storage_Del(GF_Node *node)
 {
 	M_Storage *p = (M_Storage *) node;
 	gf_sg_sfstring_del(p->name);
+	gf_sg_mfattrref_del(p->storageList);
 	gf_node_free((GF_Node *) p);
 }
 
