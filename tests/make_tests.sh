@@ -22,6 +22,8 @@ GNU_TIME=gtime
 GNU_DATE=gdate
 fi
 
+MP4CLIENT_NOT_FOUND=0
+
 generate_hash=0
 play_all=0
 do_ui=0
@@ -268,11 +270,14 @@ echo "MP4Box not found (ret $?) - exiting"
 exit 1
 fi
 
+MP4CLIENT="MP4Client"
 `MP4Client -run-for 0 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
-echo "MP4Client not found (ret $res) - exiting"
-exit 1
+echo ""
+echo "WARNING: MP4Client not found (ret $res) - disabling all playback tests"
+echo ""
+MP4CLIENT_NOT_FOUND=1
 fi
 
 `MP42TS -h 2> /dev/null`
@@ -458,15 +463,27 @@ test_end ()
   echo "   <command_line>$COMMAND_LINE</command_line>" >> $stat_xml_temp
   echo "  </stat>" >> $stat_xml_temp
 
+  test_ok=1
+
   if [ $RETURN_VALUE -eq 1 ] ; then
    result="$SUBTEST_NAME:Fail $result"
+   test_ok=0
    test_fail=$((test_fail + 1))
   elif [ $RETURN_VALUE -eq 2 ] ; then
    result="$SUBTEST_NAME:MemLeak $result"
+   test_ok=0
    test_leak=$((test_leak + 1))
   elif [ $RETURN_VALUE != 0 ] ; then
    result="$SUBTEST_NAME:UnknownFailure($RETURN_VALUE) $result"
+   test_ok=0
    test_exec_na=$((test_exec_na + 1))
+  fi
+
+  if [ $test_ok = 0 ] ; then
+    sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_NAME.txt
+    if [ -f $sublog ] ; then
+	 cat $sublog 2> stderr
+    fi
   fi
  done
  rm -f $TEMP_DIR/$TEST_NAME-stat-*.sh > /dev/null
@@ -485,6 +502,7 @@ test_end ()
     nb_hash_missing=$((nb_hash_missing + 1))
    elif [ $HASH_FAIL -eq 1 ] ; then
     result="$HASH_TEST:HashFail $result"
+    test_ok=0
     nb_hash_fail=$((nb_hash_fail + 1))
    fi
   fi
@@ -512,9 +530,6 @@ test_end ()
   cat $i >> $LOGS
  done
  rm -f $LOGS_DIR/$TEST_NAME-logs-*.txt > /dev/null
-
-#debug test for travisCI
-# cat $LOGS 2> stderr
 
  echo "NB_SUBTESTS=$nb_subtests" >> $test_stats
 
@@ -556,6 +571,11 @@ do_test ()
   return
  fi
 
+ if [ $MP4CLIENT_NOT_FOUND != 0 ] ; then
+	case $1 in MP4Client*)
+		return
+	esac
+ fi
 
 log_subtest="$LOGS_DIR/$TEST_NAME-logs-$2.txt"
 stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$2.sh"
