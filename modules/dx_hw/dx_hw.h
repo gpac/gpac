@@ -227,7 +227,7 @@ GF_Err DD_SetupOpenGL(GF_VideoOutput *dr, u32 offscreen_width, u32 offscreen_hei
 
 
 void *NewAudioOutput();
-void DeleteAudioOutput(void *);
+void DeleteDxAudioOutput(void *);
 
 
 #define SAFE_DS_RELEASE(p) { if(p) { p->lpVtbl->Release(p); (p)=NULL; } }
