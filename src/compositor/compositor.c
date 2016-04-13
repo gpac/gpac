@@ -123,6 +123,33 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 
 		compositor->msg_type |= GF_SR_IN_RECONFIG;
 
+		if (compositor->msg_type & GF_SR_CFG_INITIAL_RESIZE) {
+			GF_Event evt;
+			memset(&evt, 0, sizeof(GF_Event));
+			evt.type = GF_EVENT_VIDEO_SETUP;
+			evt.setup.width = compositor->new_width;
+			evt.setup.height = compositor->new_height;
+			evt.setup.system_memory = compositor->video_memory ? GF_FALSE : GF_TRUE;
+			
+#ifdef OPENGL_RASTER
+			if (compositor->opengl_raster) {
+				evt.setup.opengl_mode = 1;
+				evt.setup.system_memory = GF_FALSE;
+				evt.setup.back_buffer = GF_TRUE;
+			}
+#endif
+			
+#ifndef GPAC_DISABLE_3D
+			if (compositor->hybrid_opengl || compositor->force_opengl_2d) {
+				evt.setup.opengl_mode = 1;
+				evt.setup.system_memory = GF_FALSE;
+				evt.setup.back_buffer = GF_TRUE;
+			}
+			
+#endif
+			compositor->video_out->ProcessEvent(compositor->video_out, &evt);		
+			compositor->msg_type &= ~GF_SR_CFG_INITIAL_RESIZE;
+		}
 		/*scene size has been overriden*/
 		if (compositor->msg_type & GF_SR_CFG_OVERRIDE_SIZE) {
 			GF_Event evt;
@@ -162,9 +189,10 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			evt.size.height = compositor->new_height;
 
 			/*send resize event*/
-			if (!(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
+			if ( !(compositor->msg_type & GF_SR_CFG_WINDOWSIZE_NOTIF)) {
 				compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 			}
+			
 			compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 
 			if (restore_fs) {
@@ -527,6 +555,7 @@ static u32 gf_sc_proc(void *par)
 
 GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
+	Bool lock_ok;
 	GF_Err e;
 	GF_Compositor *tmp;
 
@@ -577,13 +606,15 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
 
-#if 1
 	/*set default size if owning output*/
+	lock_ok = gf_mx_try_lock(tmp->mx);
+
 	if (!tmp->user->os_window_handler) {
 		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
 	}
-#endif
-
+	tmp->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
+	if (lock_ok) gf_mx_v(tmp->mx);
+	
 	/*try to load GL extensions*/
 #ifndef GPAC_DISABLE_3D
 	gf_sc_load_opengl_extensions(tmp, GF_FALSE);
