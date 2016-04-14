@@ -10,7 +10,7 @@ install:
   - npm install coveralls
 env:
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTESTS="" DOCOVER="" DOREPORT=""
-  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTESTS="make test" DOCOVER="make lcov_only" DOREPORT="ls `npm bin` && `npm bin`/coveralls < coverage.info"
+  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTESTS="make test" DOCOVER="make lcov_only" DOREPORT="`npm bin`/coveralls < coverage.info"
   - GPAC_CONFIGURE_OPTIONS="--disable-all" DOINSTALL="" DOTESTS="" DOCOVER="" DOREPORT=""
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --static-mp4box" DOINSTALL="make install" DOTESTS="" DOCOVER="" DOREPORT=""
   - GPAC_CONFIGURE_OPTIONS="--static-modules" DOINSTALL="" DOTESTS="" DOCOVER="" DOREPORT=""
