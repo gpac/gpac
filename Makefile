@@ -68,9 +68,6 @@ docs:
 test_suite:
 	@cd $(SRC_PATH)/tests && ./make_tests.sh
 
-test:
-	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn
-
 lcov_clean:
 	lcov --directory . --zerocounters
 
@@ -86,6 +83,16 @@ lcov_only:
 lcov:	lcov_only
 	@rm -rf coverage/
 	@genhtml -q -o coverage coverage.info 2> /dev/null
+
+travis_tests:
+	@echo "Running tests"
+	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn
+
+travis_coveralls:
+	@echo "Uploading coverage"
+	@cat coverage.info | `npm bin`/coveralls
+
+travis: travis_tests lcov_only travis_coveralls
 
 dep:	depend
 
