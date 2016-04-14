@@ -59,8 +59,7 @@ distclean:
 	rm -f config.mak config.h
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
-	@rm -f all.info 2> /dev/null
-	@rm -f cover.info 2> /dev/null
+	@rm -f coverage.info 2> /dev/null
 
 docs:
 	@cd $(SRC_PATH)/doc && doxygen
@@ -73,11 +72,11 @@ lcov_clean:
 
 lcov_only:
 	@echo "Generating lcov info in coverage.info"
-	@lcov -q --capture --directory $(SRC_PATH) --output-file all.info 2> /dev/null
+	@lcov -q --capture --directory . --output-file all.info 2> /dev/null
 	@lcov --remove all.info /usr/* /opt/* --output coverage.info 2> /dev/null
 	@rm all.info
 	@echo "Purging lcov info"
-	@for dir in src/* ; do sed -i -- "s~$$dir~src~g" coverage.info; done
+	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
 	@echo "Done - coverage.info ready"
 
 lcov:	lcov_only
