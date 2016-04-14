@@ -4652,6 +4652,10 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_ID:
+			if (!tka->trackID && (gf_isom_get_track_count(file) == 1)) {
+				fprintf(stderr, "Warning: track id is not specified, but file has only one track - assume that you want to change id for this track\n");
+				track = 1;
+			}
 			if (track) {
 				u32 newTrack;
 				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
