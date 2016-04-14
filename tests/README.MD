@@ -1,7 +1,14 @@
 This is the documentation for creating a new test in GPAC test suite.
 Your tests must be placed in gpac/tests/scripts/ and use bash language.
 Media files used in the tests are in gpac/tests/media. 
-The gpac/tests/rules contains errors that may happen in some tests and that do not fail the test.
+The gpac/tests/rules contains:
+- stderr errors that may happen in some tests and that do not fail the test
+- shell scripts sourced for each test to customize some tests in a batch of tests
+
+The test suite generates:
+- result/all_logs.txt: logs of all tests that were executed in the last pass
+- result/all_results.xml: gtime statistics and execution status of all tests that were executed in the last pass
+
 The following functions can be called for your test.
 
 # @ test_begin TESTNAME PAR1 ... PARN
@@ -14,6 +21,7 @@ Each test generates:
 
 TESTNAME shall be unique. In case of doubts, run the test suite script with -check-name.
 
+Tests are cached, so that only failed tests are re-launched when running the test suite (cf make_tests -h for more info).
 After calling test_begin, the $test_skip variable is set to 0 or 1.
 When set to 1, indicates all subtests are OK in the cache and all subtests are being skipped. 
 
@@ -40,6 +48,8 @@ do_test CMD_LINE1 "Name2"
 test_end
 ```
 
+The test sources the $RULES_DIR/$TESTNAME.sh file, allowing custom variables to be set
+
 # @ do_test CMD_LINE SUBTEST_NAME
 You can call as many subtests using do_test function. 
 - CMD_LINE: the command line to exectute
@@ -62,8 +72,8 @@ The generated hashes are:
 -  $TESTNAME-$SUBTEST-avirawaudio.hash
 
 The generated videos are
--  $TESTNAME-$SUBTEST-ref.mp4 reference video file (not used by test suite, only used for visual checking of the generation)
--  $TESTNAME-$SUBTEST-test.mp4  video file after test (not used by test suite, only used for debugging a test)
+-  external_videos_refs/$TESTNAME-$SUBTEST-ref.mp4 reference video file (not used by test suite, only used for visual checking of the generation)
+-  results/videos/$TESTNAME-$SUBTEST-test.mp4  video file after test (not used by test suite, only used for debugging a test)
 
 Note: you only need to specify SUBTEST as a hash name in @test_begin, -avirawaudio and -avirawvideo are checked automatically
 
