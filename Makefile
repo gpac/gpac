@@ -68,6 +68,10 @@ docs:
 test_suite:
 	@cd $(SRC_PATH)/tests && ./make_tests.sh
 
+test:
+	#used for travisCI
+	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn
+
 lcov_clean:
 	lcov --directory . --zerocounters
 
