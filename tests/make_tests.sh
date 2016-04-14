@@ -27,6 +27,7 @@ MP4CLIENT_NOT_FOUND=0
 generate_hash=0
 play_all=0
 do_ui=0
+log_after_fail=0
 
 DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
@@ -108,22 +109,44 @@ echo "  -uirec [FILE]:         generates UI record traces. If FILE is set, recor
 echo "  -uiplay [FILE]:        replays all recorded UI traces. If FILE is set, replays the given file."
 echo ""
 echo "*** General options"
-echo "  -strict:               stops at the first error"
+echo "  -strict:               stops at the first failed test"
+echo "  -warn:                 dump logs after each failed test (used for travisCI)"
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
-echo "  -sync:                 syncs all remote resources and results with local base (warning this can be long)"
+echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
+echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -check-names:          check name of each test is unique"
 echo "  -h:                    print this help"
 }
 
 
 #performs mirroring of media and references hash & videos
-sync_resources ()
+sync_media ()
 {
- echo "Mirroring $REFERENCE_DIR to $EXTERNAL_MEDIA_DIR"
+ echo "Mirroring $REFERENCE_DIR/media to $EXTERNAL_MEDIA_DIR"
  cd $EXTERNAL_MEDIA_DIR
- wget -m -nH --no-parent --cut-dirs=3 --reject *.gif $REFERENCE_DIR
+ wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/media
  cd $main_dir
 }
+
+#performs mirroring of media
+sync_hash ()
+{
+echo "Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
+cd $HASH_DIR
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/hashes
+cd $main_dir
+}
+
+#performs mirroring of media and references hash & videos
+sync_refs ()
+{
+echo "Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
+cd $VIDEO_DIR_REF
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/video_refs
+cd $main_dir
+}
+
 
 url_arg=""
 do_clean=0
@@ -153,11 +176,19 @@ for i in $* ; do
   disable_hash=1
  elif [ "$i" = "-strict" ] ; then
   strict_mode=1
- elif [ "$i" = "-sync" ] ; then
-  sync_resources
+ elif [ "$i" = "-sync-hash" ] ; then
+  sync_hash
+  exit
+ elif [ "$i" = "-sync-media" ] ; then
+  sync_media
+  exit
+ elif [ "$i" = "-sync-refs" ] ; then
+  sync_refs
   exit
  elif [ "$i" = "-check-names" ] ; then
   check_names=1
+ elif [ "$i" = "-warn" ] ; then
+  log_after_fail=1
  elif [ "$i" = "-h" ] ; then
   print_usage
   exit
@@ -219,10 +250,13 @@ if [ $do_clean != 0 ] ; then
  exit
 fi
 
+echo "Checking test suite config"
 
 if [ ! "$(ls -A $HASH_DIR)" ]; then
-disable_hash=1
-echo "Hashes not found - skippping them"
+ disable_hash=1
+ echo "** Reference hashes unavailable - you may sync them using -sync-hash  - skippping hash tests **"
+else
+ echo "** Reference hashes available - enabling hash tests **"
 fi
 
 if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
@@ -232,9 +266,9 @@ EXTERNAL_MEDIA_AVAILABLE=0
 fi
 
 if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
-echo ""
-echo "** External media dir unavailable - you may sync it using -sync **"
-echo ""
+ echo "** External media dir unavailable - you may sync it using -sync-media **"
+else
+ echo "** External media dir available **"
 fi
 
 #test for GNU time
@@ -289,11 +323,13 @@ fi
 #check mem tracking is supported
 res=`MP4Box -mem-track -h 2>&1 | grep "WARNING"`
 if [ -n "$res" ]; then
-  echo "GPAC not compiled with memory tracking"
+  echo "** GPAC not compiled with memory tracking **"
 else
- echo "Enabling memory-tracking"
+ echo "** Enabling memory-tracking **"
  base_args="$base_args -mem-track"
 fi
+
+echo ""
 
 
 #reassign our default programs
@@ -479,11 +515,13 @@ test_end ()
    test_exec_na=$((test_exec_na + 1))
   fi
 
-  if [ $test_ok = 0 ] ; then
+  if [ $log_after_fail = 1 ] ; then
+   if [ $test_ok = 0 ] ; then
     sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_NAME.txt
     if [ -f $sublog ] ; then
 	 cat $sublog 2> stderr
     fi
+   fi
   fi
  done
  rm -f $TEMP_DIR/$TEST_NAME-stat-*.sh > /dev/null
@@ -873,8 +911,10 @@ echo "Logs for GPAC test suite - execution date $(date '+%d/%m/%Y %H:%M:%S')" > 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
-#travis test
-url_arg="scripts/mp4box-io.sh"
+#temp travis test
+if [ $log_after_fail = 1 ] ; then
+ url_arg="scripts/mp4box-io.sh"
+fi
 
 #run our tests
 if [ -n "$url_arg" ] ; then
