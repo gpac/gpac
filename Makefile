@@ -87,12 +87,13 @@ lcov:	lcov_only
 travis_tests:
 	@echo "Running tests"
 	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn
+	@rm ./gpac-conf--*
 
 travis_coveralls:
 	@echo "Uploading coverage"
 	@cat coverage.info | `npm bin`/coveralls
 
-travis: travis_tests lcov_only travis_coveralls
+travis: lcov_clean travis_tests lcov_only travis_coveralls
 
 dep:	depend
 
