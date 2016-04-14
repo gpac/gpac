@@ -911,11 +911,6 @@ echo "Logs for GPAC test suite - execution date $(date '+%d/%m/%Y %H:%M:%S')" > 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
-#temp travis test
-if [ $log_after_fail = 1 ] ; then
- url_arg="scripts/mp4box-io.sh"
-fi
-
 #run our tests
 if [ -n "$url_arg" ] ; then
  source $url_arg
