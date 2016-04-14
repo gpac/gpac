@@ -9,8 +9,8 @@ install:
   - sudo apt-get -qq install lcov
   - npm install coveralls
 env:
-  - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTRAVIS="make travis"
+  - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--disable-all" DOINSTALL="" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --static-mp4box" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--static-modules" DOINSTALL="" DOTRAVIS=""
