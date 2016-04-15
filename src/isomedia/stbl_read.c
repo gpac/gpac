@@ -266,6 +266,8 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 	u32 i, j, count, count2;
 	assert(prevRAP);
 	assert(nextRAP);
+	(*prevRAP) = 0;
+	(*nextRAP) = 0;
 	(*IsRAP) = RAP_NO;
 
 	if (!stbl->sampleGroups || !stbl->sampleGroupsDescription) return GF_OK;
