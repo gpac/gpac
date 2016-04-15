@@ -529,7 +529,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *sampleNumber, u8 mode)
 {
 	SAPType isRAP;
-	u32 next, prev;
+	u32 next, prev, next_in_sap, prev_in_sap;
 	if (!stbl || !stbl->SyncSample) return GF_BAD_PARAM;
 
 	//set to current sample if we don't find a RAP
@@ -551,11 +551,16 @@ GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *
 	}
 
 	/*check sample groups - prev & next are overwritten if RAP group is found, but are not re-initialized otherwise*/
-	stbl_SearchSAPs(stbl, searchFromSample, &isRAP, &prev, &next);
+	stbl_SearchSAPs(stbl, searchFromSample, &isRAP, &prev_in_sap, &next_in_sap);
 	if (isRAP) {
 		(*sampleNumber) = searchFromSample;
 		return GF_OK;
 	}
+
+	if (prev_in_sap > prev)
+		prev = prev_in_sap;
+	if (next_in_sap < next)
+		next = next_in_sap;
 
 	//nothing yet, go for next time...
 	if (mode == GF_ISOM_SEARCH_SYNC_FORWARD) {
