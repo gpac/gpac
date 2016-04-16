@@ -2,11 +2,6 @@ language: c
 compiler: gcc
 before_install: 
   - sudo apt-get update -qq
-  - sudo apt-get install -y portaudio19-dev
-  - sudo apt-get install libasound2-dev alsa-utils alsa-oss
-  - sudo bash test/prep-dummy-soundcard.sh
-  - sudo modprobe snd-dummy
-  - sudo lsmod
 install:
   - sudo apt-get install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ 
   - sudo apt-get install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev
@@ -14,7 +9,7 @@ install:
   - sudo apt-get -qq install lcov
   - npm install coveralls
 env:
-  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTRAVIS="make travis"
+  - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--disable-all" DOINSTALL="" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --static-mp4box" DOINSTALL="make install" DOTRAVIS=""
