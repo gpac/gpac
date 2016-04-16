@@ -950,7 +950,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			avi_al.flush_retry++;
 		}
 		if (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur) {
-			fprintf(stderr, "Failed to flush audio frames: audio time "LLU" - expected "LLU"\n", avi_al.audio_time, avi_al.audio_time_init + avi_al.max_dur);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to flush audio frames: audio time "LLU" - expected "LLU"\n", avi_al.audio_time, avi_al.audio_time_init + avi_al.max_dur));
 			ret = 1;
 		}
 	}
