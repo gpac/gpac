@@ -312,6 +312,10 @@ echo ""
 echo "WARNING: MP4Client not found (ret $res) - disabling all playback tests"
 echo ""
 MP4CLIENT_NOT_FOUND=1
+elif [ $log_after_fail != 0 ] ; then
+echo "** Dumping GPAC config file **"
+cat $HOME/.gpac/GPAC.cfg
+echo "** End of dump **"
 fi
 
 `MP42TS -h 2> /dev/null`
