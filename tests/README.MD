@@ -96,6 +96,12 @@ WARNING: this variable can not be set in a subshell (eg through my_function SOME
 # @ do_compare_file_hashes FILE1 FILE2
 Compares hashes of FILE1 and FILE2. returns 0 if OK or error code otherwise.
 
+# @ single_test CMD_LINE TESTNAME
+performs a single test without hash using $CMD_LINE as command line and $TESTNAME as test name
+
+# @ single_playback_test CMD_LINE TESTNAME
+performs a single playback test with hash using $CMD_LINE as command line and $TESTNAME as test name
+
 Subtests may be run in subscripts, for example:
 ```
 test_begin TESTNAME
