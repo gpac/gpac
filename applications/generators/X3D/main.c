@@ -395,6 +395,7 @@ void WriteNodeCode(GF_List *BNodes, FILE *vrml_code)
 			        || !strcmp(bf->familly, "SFString")
 			        || !strcmp(bf->familly, "SFURL")
 			        || !strcmp(bf->familly, "SFImage")
+					|| !strcmp(bf->familly, "MFColorRGBA")
 
 			   ) {
 				char szName[500];
