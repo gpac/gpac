@@ -141,6 +141,8 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
 				sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
 				gf_webvtt_js_addCue(vttdec->sg->RootNode, cue->id, start, end, cue->settings, cue->text);
+
+				gf_webvtt_cue_del(cue);
 			}
 		}
 		gf_list_del(cues);
