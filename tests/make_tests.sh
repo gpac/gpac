@@ -820,6 +820,28 @@ ffmpeg_encode ()
 }
 #end
 
+#@single_test: performs a single test without hash with $1 command line and $2 test name
+single_test ()
+{
+test_begin "$2"
+if [ $test_skip  = 1 ] ; then
+return
+fi
+do_test $1 "single"
+test_end
+}
+
+#@single_playback_test: performs a single playback test with hashes with $1 command line and $2 test name
+single_playback_test ()
+{
+test_begin "$2" "play"
+if [ $test_skip  = 1 ] ; then
+return
+fi
+do_playback_test $1 "single"
+test_end
+}
+
 
 load_ui_rules ()
 {
