@@ -395,7 +395,7 @@ test_begin ()
  hash_skipable=0
  test_skip=0
 
- test_args=("$@")
+ test_args="$@"
  test_nb_args=$#
  skip_play_hash=0
 
@@ -407,7 +407,7 @@ test_begin ()
  #we are generating - check all hash are present. If so, skip test
  if [ $generate_hash != 0 ] ; then
   hash_skipable=1
-  for ((i=1; i < test_nb_args; i++)) {
+  for ((i=1; i < $test_nb_args; i++)) {
    hash_found=0
 
    if [ $skip_play_hash = 0 ] ; then
