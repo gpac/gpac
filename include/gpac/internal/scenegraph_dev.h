@@ -362,7 +362,7 @@ void gf_sg_mffloat_del(MFFloat par);
 void gf_sg_mfdouble_del(MFDouble par);
 void gf_sg_mfbool_del(MFBool par);
 void gf_sg_mfcolor_del(MFColor par);
-void gf_sg_mfcolor_rgba_del(MFColorRGBA par);
+void gf_sg_mfcolorrgba_del(MFColorRGBA par);
 void gf_sg_mfrotation_del(MFRotation par);
 void gf_sg_mfstring_del(MFString par);
 void gf_sg_mftime_del(MFTime par);

@@ -1492,6 +1492,7 @@ static GF_Node *ColorInterpolator_Create()
 static void ColorRGBA_Del(GF_Node *node)
 {
 	X_ColorRGBA *p = (X_ColorRGBA *) node;
+	gf_sg_mfcolorrgba_del(p->color);
 	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
