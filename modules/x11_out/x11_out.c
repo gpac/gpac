@@ -1046,8 +1046,6 @@ static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 	}
 #endif
 	if (xWindow->surface) {
-		if (xWindow->surface->data)
-			gf_free(xWindow->surface->data);
 		XFree(xWindow->surface);
 		xWindow->surface = NULL;
 	}
@@ -1149,10 +1147,9 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 {
 	X11VID ();
 
-	if (!xWindow->setup_done) X11_SetupWindow(vout);
+	X11_SetupWindow(vout);
 
 	if (evt) {
-
 		switch (evt->type) {
 		case GF_EVENT_SET_CURSOR:
 			break;
@@ -1345,6 +1342,11 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	X11VID ();
 	const char *sOpt;
 	Bool autorepeat, supported;
+
+	if (xWindow->setup_done) return;
+	xWindow->setup_done = 1;
+
+	XInitThreads();
 
 	xWindow->display = XOpenDisplay (NULL);
 	xWindow->screennum = DefaultScreen (xWindow->display);
@@ -1693,7 +1695,6 @@ retry_8bpp:
 	/*turn off xscreensaver*/
 	X11_XScreenSaverState(xWindow, 0);
 
-	xWindow->setup_done = 1;
 	XFree (Hints);
 }
 
@@ -1715,15 +1716,10 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 void X11_Shutdown (struct _video_out *vout)
 {
 	X11VID ();
+	X11_ReleaseBackBuffer (vout);
 
-	if (xWindow->output_3d_mode==1) {
 #ifdef GPAC_HAS_OPENGL
-		X11_ReleaseGL(xWindow);
-#endif
-	} else {
-		X11_ReleaseBackBuffer (vout);
-	}
-#ifdef GPAC_HAS_OPENGL
+	X11_ReleaseGL(xWindow);
 	if (xWindow->glx_visualinfo)
 		XFree(xWindow->glx_visualinfo);
 	xWindow->glx_visualinfo = NULL;
