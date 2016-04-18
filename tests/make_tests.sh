@@ -33,9 +33,9 @@ DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
 
 #remote location of resource files: all media files, hash files and generated videos
-REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources/"
+REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
 #dir where all external media are stored
-EXTERNAL_MEDIA_DIR="$main_dir/external"
+EXTERNAL_MEDIA_DIR="$main_dir/external_media"
 #dir where all hashes are stored
 HASH_DIR="$main_dir/hash_refs"
 #dir where all specific test rules (override of defaults, positive tests, ...) are stored
@@ -115,6 +115,7 @@ echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty b
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
+echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
 echo "  -check-names:          check name of each test is unique"
 echo "  -h:                    print this help"
 }
@@ -123,9 +124,12 @@ echo "  -h:                    print this help"
 #performs mirroring of media and references hash & videos
 sync_media ()
 {
- echo "Mirroring $REFERENCE_DIR/media to $EXTERNAL_MEDIA_DIR"
+ echo "Mirroring $REFERENCE_DIR/media/ to $EXTERNAL_MEDIA_DIR"
+ if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
+  mkdir $EXTERNAL_MEDIA_DIR
+ fi
  cd $EXTERNAL_MEDIA_DIR
- wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/media
+ wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
  cd $main_dir
 }
 
@@ -134,7 +138,7 @@ sync_hash ()
 {
 echo "Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/hashes
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/hashes/
 cd $main_dir
 }
 
@@ -143,7 +147,7 @@ sync_refs ()
 {
 echo "Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
-wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/video_refs
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/video_refs/
 cd $main_dir
 }
 
@@ -185,6 +189,8 @@ for i in $* ; do
  elif [ "$i" = "-sync-refs" ] ; then
   sync_refs
   exit
+ elif [ "$i" = "-sync-before" ] ; then
+  sync_media
  elif [ "$i" = "-check-names" ] ; then
   check_names=1
  elif [ "$i" = "-warn" ] ; then
