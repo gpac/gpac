@@ -3748,6 +3748,8 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
 		Bool active_rep_found;
 
+		active_rep = 0;
+		
 		if ((dash->debug_group_index>=0) && (group_i != (u32) dash->debug_group_index)) {
 			group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
 			continue;
