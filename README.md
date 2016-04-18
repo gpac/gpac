@@ -1,5 +1,5 @@
 [![Build Status](https://travis-ci.org/gpac/gpac.svg?branch=master)](https://travis-ci.org/gpac/gpac)
-[![Coverage Status](https://coveralls.io/repos/github/gpac/gpac/badge.svg?branch=master)](https://coveralls.io/github/gpac/gpac?branch=master)
+[![codecov.io](https://codecov.io/github/gpac/gpac/coverage.svg?branch=master)](https://codecov.io/github/gpac/gpac?branch=master)
 
 README for GPAC version 0.6.2-DEV
 
