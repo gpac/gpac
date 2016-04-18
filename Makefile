@@ -151,9 +151,9 @@ ifeq ($(CONFIG_DARWIN),yes)
 	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
 	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
 else
-	cp -v --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" | true
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" | true 
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" | true
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
 endif
 
 lninstall:
