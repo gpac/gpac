@@ -138,7 +138,7 @@ sync_hash ()
 {
 echo "Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/hashes/
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hashes/"
 cd $main_dir
 }
 
@@ -147,7 +147,7 @@ sync_refs ()
 {
 echo "Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
-wget -m -nH --no-parent --cut-dirs=4 --reject *.gif $REFERENCE_DIR/video_refs/
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
 cd $main_dir
 }
 
