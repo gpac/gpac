@@ -1399,7 +1399,6 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 #ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
 #endif
-	s64 min_offset = 0;
 
 	memset(source, 0, sizeof(M2TSSource));
 	source->mpeg4_signaling = mpeg4_signaling;
@@ -1413,6 +1412,8 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		Bool temi_assigned = 0;
 		u32 first_audio = 0;
 		u32 first_other = 0;
+		s64 min_offset = 0;
+		u32 min_offset_timescale = 0;
 		source->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
 		source->nb_streams = 0;
 		source->real_time = force_real_time;
@@ -1426,8 +1427,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				continue;
 
 			fill_isom_es_ifce(source, &source->streams[i], source->mp4, i+1, bifs_use_pes, compute_max_size);
-			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset)
+			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset) {
 				min_offset = ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset;
+				min_offset_timescale = source->streams[i].timescale;
+			}
 
 			switch(source->streams[i].stream_type) {
 			case GF_STREAM_OD:
@@ -1520,7 +1523,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 
 		if (min_offset < 0) {
 			for (i=0; i<source->nb_streams; i++) {
-				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += -min_offset;
+				Double scale = source->streams[i].timescale;
+				scale /= min_offset_timescale;
+				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += -min_offset * scale;
 			}
 		}
 
