@@ -36,9 +36,9 @@ extern "C" {
  */
 
 /*!
- *	\addtogroup utf_grp UTF
- *	\ingroup utils_grp
- *	\brief UTF encoding functions
+ * \addtogroup uni_grp
+ * \ingroup utfuni_grp
+ * \brief UTF encoding functions
  *
  *This section documents the UTF functions of the GPAC framework.\n
  *The wide characters in GPAC are unsignad shorts, in other words GPAC only supports UTF8 and UTF16 coding styles.

@@ -31,6 +31,21 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/scenegraph_vrml.h>
+ *	\brief Scenegraph for VRML files
+ */
+	
+/*!
+ *	\addtogroup svrml BIFS/VRML/X3D Scenegraph
+ *	\ingroup scene_grp
+ *	\brief Scenegraph for VRML files.
+ *
+ *This section documents the Scenegraph for VRML files.
+ *	@{
+ */
+
+
 #include <gpac/scenegraph.h>
 #include <gpac/maths.h>
 
@@ -667,6 +682,7 @@ GF_Err gf_node_proto_set_grouping(GF_Node *node);
 /*assigns callback to an eventIn field of an hardcoded proto*/
 GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) );
 
+/*! @} */
 
 
 #ifdef __cplusplus

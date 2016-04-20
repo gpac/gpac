@@ -31,6 +31,19 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/dash.h>
+ *	\brief DASH Client API. The DASH client can be used without GPAC player but requires at least the base utils (threads, lists, NTP timing). The HTTP interface used can be either GPAC's one or any other downloader.
+ */
+	
+/*!
+ *	\addtogroup dashc_grp DASH
+ *	\ingroup media_grp
+ *	\brief MPEG-DASH and HLS Client
+ *
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
 #ifndef GPAC_DISABLE_DASH_CLIENT
@@ -45,32 +58,32 @@ static const char * const GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "
  */
 static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
+/*! DASH Event type. The DASH client communitcaes with the user through a callback mechanism using events*/
 typedef enum
 {
-	/*event sent if an error occurs when setting up manifest*/
+	/*! event sent if an error occurs when setting up manifest*/
 	GF_DASH_EVENT_MANIFEST_INIT_ERROR,
-	/*event sent before groups first segment is fetched - user shall decide which group to select at this point*/
+	/*! event sent before groups first segment is fetched - user shall decide which group to select at this point*/
 	GF_DASH_EVENT_SELECT_GROUPS,
-	/*event sent if an error occurs during period setup - the download thread will exit at this point*/
+	/*! event sent if an error occurs during period setup - the download thread will exit at this point*/
 	GF_DASH_EVENT_PERIOD_SETUP_ERROR,
-	/*event sent once the first segment of each selected group is fetched - user should load playback chain(s) at this point*/
+	/*! event sent once the first segment of each selected group is fetched - user should load playback chain(s) at this point*/
 	GF_DASH_EVENT_CREATE_PLAYBACK,
-	/*event sent when reseting groups at period switch or at exit - user should unload playback chain(s) at this point*/
+	/*! event sent when reseting groups at period switch or at exit - user should unload playback chain(s) at this point*/
 	GF_DASH_EVENT_DESTROY_PLAYBACK,
-
+	/*! event sent after each segment begins/ends download when segment bufferig is enabled*/
 	GF_DASH_EVENT_BUFFERING,
+	/*! event sent once buffering is done*/
 	GF_DASH_EVENT_BUFFER_DONE,
-
+	/*! event sent once a new segment becomes available*/
 	GF_DASH_EVENT_SEGMENT_AVAILABLE,
-
-	/*event sent when quality has been switched for the given group*/
+	/*! event sent when quality has been switched for the given group*/
 	GF_DASH_EVENT_QUALITY_SWITCH,
-
-	/*position in timeshift buffer has changed (eg, paused)*/
+	/*! position in timeshift buffer has changed (eg, paused)*/
 	GF_DASH_EVENT_TIMESHIFT_UPDATE,
-	/*event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
+	/*! event sent when timeshift buffer is overflown - the group_idx param contains the max number of dropped segments of all representations droped by the client, or -1 if play pos is ahead of live */
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
-	/*event send when we need the decoding statistics*/
+	/*! event send when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
 } GF_DASHEventType;
 
@@ -458,6 +471,7 @@ void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 
+/*!	@} */
 
 #ifdef __cplusplus
 }

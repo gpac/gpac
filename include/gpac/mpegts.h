@@ -26,6 +26,21 @@
 #ifndef _GF_MPEG_TS_H_
 #define _GF_MPEG_TS_H_
 
+/*!
+ *	\file <gpac/mpegts.h>
+ *	\brief MPEG-TS demultiplexer and multiplexer APIs
+ */
+
+/*!
+ *	\addtogroup m2ts_grp MPEG-2 TS
+ *	\ingroup media_grp
+ *	\brief MPEG-TS demultiplexer and multiplexer APIs.
+ *
+ *This section documents the MPEG-TS demultiplexer and multiplexer APIs.
+ *	@{
+ */
+
+
 #include <gpac/list.h>
 #include <gpac/network.h>
 #include <gpac/thread.h>
@@ -1387,5 +1402,6 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts);
 /*quick hack to get M2TS over IP or UDP socket*/
 GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket);
 
+/*! @} */
 
 #endif	//_GF_MPEG_TS_H_

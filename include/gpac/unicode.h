@@ -32,8 +32,15 @@ extern "C" {
 
 /*!
  *	\file <gpac/unicode.h>
- *	\brief Unicode conversion functions.
+ *	\brief Unicode conversion.
  */
+ 
+/*!
+ *\addtogroup uni_grp Unicode and UTF
+ *\ingroup utils_grp
+ *\brief Unicode and UTF string management
+ 	@{
+*/
 
 #include <gpac/setup.h>
 
@@ -45,6 +52,8 @@ extern "C" {
  * \return the length of the ucs4_buf. Note that the ucs4_buf should be allocated by parent and should be at least utf8_len * 4
  */
 u32 utf8_to_ucs4 (u32 *ucs4_buf, u32 utf8_len, unsigned char *utf8_buf);
+
+/* @} */
 
 #ifdef __cplusplus
 }

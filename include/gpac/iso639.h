@@ -30,6 +30,21 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/iso639.h>
+ *	\brief Language codes helper tools.
+ */
+
+/*!
+ *	\addtogroup lang_grp Languages
+ *	\ingroup utils_grp
+ *	\brief Language codes helper tools
+ *
+ *	This section documents the language codes used in GPAC, based in ISO 639 or RFC 5646.
+ *	@{
+ */
+
 #include <gpac/setup.h>
 
 /*!
@@ -65,6 +80,7 @@ const char *gf_lang_get_2cc(u32 lang_idx);
 */
 const char *gf_lang_get_3cc(u32 lang_idx);
 
+/*! @} */
 
 #ifdef __cplusplus
 }

@@ -31,6 +31,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/ismacryp.h>
+ *	\brief Utility tools for ISMA and Common Encryption.
+ */
+	
+/*!
+ *	\addtogroup crypt_grp
+ *	\ingroup media_grp
+ *	\brief Utility tools for ISMA and Common Encryption.
+ *
+ *This section documents the encryption and decryption of ISOBMF files according to ISMA and CENC specifications.
+ *	@{
+ */
+
 #include <gpac/isomedia.h>
 
 /*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
@@ -141,6 +155,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 #endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
+/*! @} */
 
 #ifdef __cplusplus
 }
