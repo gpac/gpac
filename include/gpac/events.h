@@ -32,6 +32,19 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/events.h>
+ *	\brief Event system used by GPAC playback.
+ */
+	
+/*!
+ *	\addtogroup evt_grp Event System
+ *	\ingroup playback_grp
+ *	\brief Event system used by GPAC playback.
+ *
+ *This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
+ *	@{
+ */
 
 #include <gpac/maths.h>
 #include <gpac/tools.h>
@@ -316,6 +329,7 @@ typedef union
 	GF_EventFromService from_service;
 } GF_Event;
 
+/*! @} */
 
 #ifdef __cplusplus
 }

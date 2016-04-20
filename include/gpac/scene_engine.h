@@ -31,6 +31,21 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/scene_engine.h>
+ *	\brief Live scene encoding engine with RAP generation support.
+ */
+	
+/*!
+ *	\addtogroup seng Scene Engine
+ *	\ingroup scene_grp
+ *	\brief Live scene encoding engine with RAP generation support.
+ *
+ *This section documents the live scene encoding tools of GPAC.
+ *	@{
+ */
+
 #include <gpac/scene_manager.h>
 
 #ifndef GPAC_DISABLE_SENG
@@ -196,6 +211,7 @@ GF_Err gf_seng_dump_rap_on(GF_SceneEngine *seng, Bool dump_rap);
 
 #endif /*GPAC_DISABLE_SENG*/
 
+/*! @} */
 
 #ifdef __cplusplus
 }

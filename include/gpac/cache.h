@@ -28,15 +28,15 @@
 
 /*!
  *      \file <gpac/cache.h>
- *      \brief Cache management functions.
+ *      \brief HTTP Cache management.
  */
 
 /*!
- *      \addtogroup dld_grp downloader
+ *      \addtogroup dld_grp Downloader
  *      \ingroup utils_grp
- *      \brief File Cache Downloader objects
+ *      \brief HTTP Downloader Cache
  *
- *      This section documents the file caching tools the GPAC framework.
+ *      This section documents the file HTTP caching tools the GPAC framework.
  *
  *      @{
  */

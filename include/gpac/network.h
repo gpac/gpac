@@ -32,13 +32,13 @@ extern "C" {
 
 /*!
  *	\file <gpac/network.h>
- *	\brief IP network functions.
+ *	\brief Networking.
  */
 
 /*!
-*	\addtogroup net_grp network
+*	\addtogroup net_grp Network
 *	\ingroup utils_grp
-*	\brief IP Network Functions
+*	\brief Networking tools (URL resolution, TCP/UDP sockets)
 *
 *This section documents the IP network functions of the GPAC framework.
 *	@{
@@ -457,28 +457,28 @@ Bool gf_net_is_ipv6(const char *address);
 /*!
  *host to network conversion of integer
  *
- *\param integrer to convert
+ *\param val integrer to convert
  *\return converted integer
  */
 u32 gf_htonl(u32 val);
 /*!
  *network to host conversion of integer
  *
- *\param integrer to convert
+ *\param val integrer to convert
  *\return converted integer
  */
 u32 gf_ntohl(u32 val);
 /*!
  *host to network conversion of short integer
  *
- *\param short integrer to convert
+ *\param val short integrer to convert
  *\return converted integer
  */
 u16 gf_htons(u16 val);
 /*!
  *network to host conversion of short integer
  *
- *\param short integrer to convert
+ *\param val short integrer to convert
  *\return converted integer
  */
 u16 gf_tohs(u16 val);

@@ -232,7 +232,7 @@ void GF_IPMPX_ParseDate(char *val, GF_IPMPX_Date *date)
 	}
 }
 
-GF_Err GF_IPMPX_ParseEventType(char *val, u8 *eventType, u8 *eventTypeCount)
+GF_Err GF_IPMPX_ParseEventType(char *val, GF_IPMPX_ListenType *eventType, u8 *eventTypeCount)
 {
 	char szVal[50];
 	u32 i, j, len, v;

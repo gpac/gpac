@@ -890,7 +890,8 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	GF_RTPHinter *hinter;
 	Bool copy, has_iod, single_av;
 	u8 init_payt = BASE_PAYT;
-	u32 iod_mode, mtype;
+	u32 mtype;
+	GF_SDP_IODProfile iod_mode = GF_SDP_IOD_NONE;
 	u32 media_group = 0;
 	u8 media_prio = 0;
 

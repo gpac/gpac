@@ -32,11 +32,11 @@ extern "C" {
 
 /*!
  *	\file <gpac/config_file.h>
- *	\brief configuration file functions.
+ *	\brief configuration file.
  */
 
 /*!
-*	\addtogroup cfg_grp configuration
+*	\addtogroup cfg_grp Configuration File
 *	\ingroup utils_grp
 *	\brief Configuration File object
 *

@@ -1057,7 +1057,7 @@ Bool gf_hinter_can_embbed_data(char *data, u32 data_size, u32 streamType)
 
 
 GF_EXPORT
-GF_Err gf_hinter_finalize(GF_ISOFile *file, u32 IOD_Profile, u32 bandwidth)
+GF_Err gf_hinter_finalize(GF_ISOFile *file, GF_SDP_IODProfile IOD_Profile, u32 bandwidth)
 {
 	u32 i, sceneT, odT, descIndex, size, size64;
 	GF_InitialObjectDescriptor *iod;
