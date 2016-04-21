@@ -50,6 +50,7 @@ The config file is ordered by sections and keys.
 <b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
 <b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
 <b><a href="#M2TS" style="text-decoration: underline;">M2TS</a></b>
+<b><a href="#RAW" style="text-decoration: underline;">RAWVideo</a></b>
 
 </p>
 <br/><br/>
@@ -961,6 +962,18 @@ Overrides the URL in TEMI location descriptor with the specified value.</p>
 <b>RecordTo</b> [value: <i>file path</i>]
 <p style="text-indent: 5%">
 Records the TS content to the specified file.</p>
+
+<a name="RAW"></a>
+<span style="text-decoration: underline;"><b>Section "RAWVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>
+The "RAWVideo" section of the config file holds configuration options for Raw video and audio output module.</a>
+</p>
+<b>RawOutput</b> [value: <i>"null" or any string</i>]
+<p style="text-indent: 5%">
+If set to <i>null</i> string, the raw output does nothing (no bliting calls, no backbuffer) - used for bench mode only.</p>
+<b>PixelFormat</b> [value: <i>555, 565, rgb, bgr, rgb32, bgr32, rgba, argb</i>]
+<p style="text-indent: 5%">
+Sets the output video format of the raw module, mostly used for testing. The default format is rgb.</p>
 
 </body>
 </html>
