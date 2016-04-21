@@ -60,7 +60,9 @@ TEMP_DIR="$LOCAL_OUT_DIR/temp"
 ALL_REPORTS="$LOCAL_OUT_DIR/all_results.xml"
 ALL_LOGS="$LOCAL_OUT_DIR/all_logs.txt"
 
-rm -f "$TEMP_DIR/err_exit" 2> /dev/null
+TEST_ERR_FILE="$TEMP_DIR/err_exit"
+
+rm -f "$TEST_ERR_FILE" 2> /dev/null
 rm -f "$LOGS_DIR/*.sh" 2> /dev/null
 
 if [ ! -e $LOCAL_OUT_DIR ] ; then
@@ -99,7 +101,6 @@ echo "GPAC Test Suite Usage: use either one of this command or no command at all
 echo "*** Test suite validation options"
 echo "  -clean [ARG]:          removes all removes all results (logs, stat cache and video). If ARG is specified, only removes for test names ARG*."
 echo "  -play-all:             force playback of BT and XMT files for BIFS (by default only MP4)."
-echo "  -force:                force recomputing all tests."
 echo "  -no-hash:              runs test suite without hash checking."
 echo ""
 echo "*** Test suite generation options"
@@ -404,6 +405,7 @@ test_begin ()
  test_args="$@"
  test_nb_args=$#
  skip_play_hash=0
+ subtest_idx=0
 
  rules_sh=$RULES_DIR/$TEST_NAME.sh
  if [ -f $rules_sh ] ; then
@@ -457,14 +459,31 @@ test_begin ()
   test_skip=1
  fi
 
- if [ $test_skip = 1 ] ; then
+ #if error in strict mode,mark the test as skippable using value 2
+ if [ $strict_mode = 1 ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
+   test_skip=2
+  fi
+ fi
+
+
+ if [ $test_skip != 0 ] ; then
   test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
-  echo "TEST_SKIP=1" > $test_stats
+  echo "TEST_SKIP=$test_skip" > $test_stats
+  test_skip=1
  else
   echo "*** $TEST_NAME logs (GPAC version $VERSION) - test date $(date '+%d/%m/%Y %H:%M:%S') ***" > $LOGS
   echo "" >> $LOGS
  fi
 }
+
+mark_test_error ()
+{
+ if [ $strict_mode = 1 ] ; then
+  echo "" > $TEST_ERR_FILE
+ fi
+}
+
 
 #ends test - gather all logs/stats produced and generate report
 test_end ()
@@ -499,6 +518,7 @@ test_end ()
   RETURN_VALUE=0
   SUBTEST_NAME=""
   COMMAND_LINE=""
+  SUBTEST_IDX=0
 
   nb_subtests=$((nb_subtests + 1))
 
@@ -527,7 +547,7 @@ test_end ()
 
   if [ $log_after_fail = 1 ] ; then
    if [ $test_ok = 0 ] ; then
-    sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_NAME.txt
+    sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_IDX-$SUBTEST_NAME.txt
     if [ -f $sublog ] ; then
 	 cat $sublog 2> stderr
     fi
@@ -567,11 +587,11 @@ test_end ()
  echo " </test>" >> $report
 
  echo "TEST_FAIL=$test_fail" >> $test_stats
- echo "TEST_LEAK=$test_leak" >> $test_stats
  echo "TEST_EXEC_NA=$test_exec_na" >> $test_stats
- echo "NB_HASH_TEST=$nb_test_hash" >> $test_stats
- echo "NB_HASH_MISSING=$nb_hash_missing" >> $test_stats
- echo "NB_HASH_FAIL=$nb_hash_fail" >> $test_stats
+ echo "SUBTESTS_LEAK=$test_leak" >> $test_stats
+ echo "NB_HASH_SUBTESTS=$nb_test_hash" >> $test_stats
+ echo "NB_HASH_SUBTESTS_MISSING=$nb_hash_missing" >> $test_stats
+ echo "NB_HASH_SUBTESTS_FAIL=$nb_hash_fail" >> $test_stats
 
  # list all logs files
  for i in $LOGS_DIR/$TEST_NAME-logs-*.txt; do
@@ -585,32 +605,20 @@ test_end ()
   mv $report "$LOGS_DIR/$TEST_NAME-passed-new.xml"
  else
   mv $report "$LOGS_DIR/$TEST_NAME-failed.xml"
+  mark_test_error
  fi
 
  echo "$TEST_NAME: $result"
-
- if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
-   cat $LOGS >> $ALL_LOGS
-   cat "$LOGS_DIR/$TEST_NAME-failed.xml" >> $ALL_REPORTS
-   exit
-  fi
- fi
 }
 
-mark_errexit ()
-{
- if [ $strict_mode = 1 ] ; then
-  echo "" > "$TEMP_DIR/err_exit"
- fi
-}
 
 #@do_test execute the command line given $1 using GNU time and store stats with return value, command line ($1) and subtest name ($2)
 ret=0
 do_test ()
 {
+
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -625,9 +633,12 @@ do_test ()
 	esac
  fi
 
-log_subtest="$LOGS_DIR/$TEST_NAME-logs-$2.txt"
-stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$2.sh"
+subtest_idx=$((subtest_idx + 1))
+
+log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
+stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
 echo "SUBTEST_NAME=$2" > $stat_subtest
+echo "SUBTEST_IDX=$subtest_idx" > $stat_subtest
 
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
@@ -661,7 +672,7 @@ fi
 #override generated stats if error, since gtime may put undesired lines in output file which would break sourcing
 if [ $rv != 0 ] ; then
 echo "SUBTEST_NAME=$2" > $stat_subtest
-mark_errexit
+mark_test_error
 fi
 
 echo "RETURN_VALUE=$rv" >> $stat_subtest
@@ -677,7 +688,7 @@ ret=$rv
 do_playback_test ()
 {
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -743,7 +754,7 @@ fi
 do_hash_test ()
 {
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -897,6 +908,8 @@ do_ui_tests ()
 #record all user inputs and exit
 if [ $do_ui != 0 ] ; then
 
+ echo "User Inputs Tests - GPAC version $VERSION - execution date $(date '+%d/%m/%Y %H:%M:%S')" > $ALL_LOGS
+
  if [ -n "$url_arg" ] ; then
   test_name=$(basename $url_arg)
   ui_stream=$RULES_DIR/${test_name%.*}-ui.xml
@@ -917,8 +930,6 @@ echo "$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Vali
   exit
  fi
 
- echo "User Inputs Tests - GPAC version $VERSION" > $ALL_LOGS
-
  #check bifs files
  for i in bifs/*.bt ; do
   has_sensor=`grep Sensor $i | grep -v TimeSensor | grep -v MediaSensor`
@@ -933,75 +944,90 @@ fi
 
 #start of our tests
 start=`$GNU_DATE +%s%N`
+start_date="$(date '+%d/%m/%Y %H:%M:%S')"
 
 if [ $generate_hash = 1 ] ; then
  echo "SHA-1 Hash Generation enabled"
 fi
 
-echo "Logs for GPAC test suite - execution date $(date '+%d/%m/%Y %H:%M:%S')" > $ALL_LOGS
+#gather all tests reports and build our final report
+finalize_make_test()
+{
+#create logs and final report
+echo "Logs for GPAC test suite - execution date $start_date" > $ALL_LOGS
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
-echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
+echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
-#run our tests
-if [ -n "$url_arg" ] ; then
- source $url_arg
-else
- for i in $SCRIPTS_DIR/*.sh ; do
-  source $i
- done
-fi
-#wait for all tests to be done, since some tests may use subshells
-wait
+
 
 rm -rf $TEMP_DIR/* 2> /dev/null
-
-if [ $check_names != 0 ] ; then
- exit
-fi
 
 #count all tests using generated -stats.sh
 TESTS_SKIP=0
 TESTS_TOTAL=0
 TESTS_DONE=0
 TESTS_PASSED=0
-TESTS_FAIL=0
-TESTS_EXEC_NA=0
+TESTS_FAILED=0
 TESTS_LEAK=0
-TESTS_SUBTESTS=0
-TESTS_HASH=0
-TESTS_HASH_FAIL=0
+TESTS_EXEC_NA=0
+
+SUBTESTS_FAIL=0
+SUBTESTS_EXEC_NA=0
+SUBTESTS_DONE=0
+SUBTESTS_LEAK=0
+SUBTESTS_HASH=0
+SUBTESTS_HASH_FAIL=0
+SUBTESTS_HASH_MISSING=0
 
 for i in $LOGS_DIR/*-stats.sh ; do
 if [ -f $i ] ; then
 
 #reset stats
 TEST_SKIP=0
-TEST_FAIL=0
-TEST_LEAK=0
-TEST_EXEC_NA=0
-NB_HASH_TEST=0
-NB_HASH_FAIL=0
+SUBTEST_FAIL=0
+SUBTEST_EXEC_NA=0
+SUBTESTS_LEAK=0
+NB_HASH_SUBTESTS=0
+NB_HASH_SUBTESTS_MISSING=0
+NB_HASH_SUBTESTS_FAIL=0
 NB_SUBTESTS=0
 
 #load stats
 source $i
+
+#test not run due to error in strict mode
+if [ $TEST_SKIP = 2 ] ; then
+continue;
+fi
 
 TESTS_TOTAL=$((TESTS_TOTAL + 1))
 if [ $TEST_SKIP = 0 ] ; then
  TESTS_DONE=$((TESTS_DONE + 1))
  if [ $TEST_FAIL = 0 ] ; then
   TESTS_PASSED=$((TESTS_PASSED + 1))
+ else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
  fi
 fi
 
 TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
-TESTS_FAIL=$((TESTS_FAIL + $TEST_FAIL))
-TESTS_EXEC_NA=$((TESTS_EXEC_NA + $TEST_EXEC_NA))
-TESTS_LEAK=$((TESTS_LEAK + $TEST_LEAK))
-TESTS_SUBTESTS=$((TESTS_SUBTESTS + $NB_SUBTESTS))
-TESTS_HASH=$((TESTS_HASH + $NB_HASH_TEST))
-TESTS_HASH_FAIL=$((TESTS_HASH_FAIL + $NB_HASH_FAIL))
+
+if [ $SUBTEST_EXEC_NA != 0 ] ; then
+  TESTS_EXEC_NA=$((TESTS_EXEC_NA + 1))
+fi
+
+if [ $SUBTESTS_LEAK != 0 ] ; then
+  TESTS_LEAK=$((TESTS_LEAK + 1))
+fi
+
+SUBTESTS_FAIL=$((SUBTESTS_FAIL + $SUBTEST_FAIL))
+SUBTESTS_EXEC_NA=$((SUBTESTS_EXEC_NA + $SUBTEST_FAIL))
+SUBTESTS_DONE=$((SUBTESTS_DONE + $NB_SUBTESTS))
+SUBTESTS_LEAK=$((SUBTESTS_LEAK + $SUBTESTS_LEAK))
+SUBTESTS_HASH=$((SUBTESTS_HASH + $NB_HASH_SUBTESTS))
+SUBTESTS_HASH_FAIL=$((SUBTESTS_HASH_FAIL + $NB_HASH_SUBTESTS_FAIL))
+SUBTESTS_HASH_MISSING=$((SUBTESTS_HASH_MISSING + $NB_HASH_SUBTESTS_MISSING))
 
 fi
 
@@ -1009,7 +1035,7 @@ done
 
 rm -f $LOGS_DIR/*-stats.sh > /dev/null
 
-echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAIL\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" />" >> $ALL_REPORTS
+echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAILED\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" />" >> $ALL_REPORTS
 
 #gather all failed reports first
 for i in $LOGS_DIR/*-failed.xml; do
@@ -1047,7 +1073,7 @@ for i in $LOGS_DIR/*-logs.txt-new; do
 done
 
 if [ $TESTS_TOTAL = 0 ] ; then
-echo "No tests exectuted"
+echo "No tests executed"
 else
 
 pc=$((100*TESTS_SKIP/TESTS_TOTAL))
@@ -1058,17 +1084,21 @@ echo "Number of Tests Run $TESTS_DONE ($pc %)"
 
 if [ $TESTS_DONE != 0 ] ; then
  pc=$((100*TESTS_PASSED/TESTS_DONE))
- echo "Tests passed $TESTS_PASSED ($pc %) - $TESTS_SUBTESTS sub-tests"
- pc=$((100*TESTS_FAIL/TESTS_DONE))
- echo "Tests failed $TESTS_FAIL ($pc %)"
- pc=$((100*TESTS_LEAK/TESTS_DONE))
- echo "Tests Leaked $TESTS_LEAK ($pc %)"
- pc=$((100*TESTS_EXEC_NA/TESTS_DONE))
- echo "Tests Unknown $TESTS_EXEC_NA ($pc %)"
+ echo "Tests passed $TESTS_PASSED ($pc %) - $SUBTESTS_DONE sub-tests"
 
- if [ $TESTS_HASH != 0 ] ; then
-  pc=$((100*TESTS_HASH_FAIL/TESTS_HASH))
-  echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc %)"
+ # the follwing % are in subtests
+ pc=$((100*SUBTESTS_FAIL/SUBTESTS_DONE))
+ echo "Tests failed $TESTS_FAILED ($pc % of subtests)"
+
+ pc=$((100*SUBTESTS_LEAK/SUBTESTS_DONE))
+ echo "Tests Leaked $TESTS_LEAK ($pc % of subtests)"
+
+ pc=$((100*SUBTESTS_EXEC_NA/SUBTESTS_DONE))
+ echo "Tests Unknown $TESTS_EXEC_NA ($pc % of subtests)"
+
+ if [ $SUBTESTS_HASH != 0 ] ; then
+  pc=$((100*SUBTESTS_HASH_FAIL/SUBTESTS_DONE))
+  echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc % of subtests)"
  fi
 fi
 
@@ -1078,6 +1108,51 @@ end=`$GNU_DATE +%s%N`
 runtime=$((end-start))
 runtime=$(($runtime / 1000000))
 echo "Generation done in $runtime milliseconds"
+
+}
+
+
+
+# trap ctrl-c and generate reports
+trap ctrl_c_trap INT
+
+ctrl_c_trap() {
+	echo "CTRL-C trapped - cleanup and building up reports"
+	local pids=$(jobs -pr)
+	[ -n "$pids" ] && kill $pids
+	finalize_make_test
+	exit
+}
+
+
+#run our tests
+if [ -n "$url_arg" ] ; then
+ source $url_arg
+else
+ for i in $SCRIPTS_DIR/*.sh ; do
+  source $i
+
+  #break if error and error
+  if [ $strict_mode = 1 ] ; then
+   #wait for all tests to be done before checking error marker
+   wait
+   if [ -f $TEST_ERR_FILE ] ; then
+    break
+   fi
+  fi
+ done
+fi
+
+#wait for all tests to be done, since some tests may use subshells
+wait
+
+if [ $check_names != 0 ] ; then
+ exit
+fi
+
+
+finalize_make_test
+
 
 
 
