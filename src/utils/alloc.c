@@ -836,12 +836,12 @@ void gf_memory_print()
 				char szVal[51];
 				u32 size;
 				next_element = curr_element->next;
-//				size = curr_element->size>=50 ? 50 : curr_element->size;
-//				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
-//				szVal[size] = 0;
+				size = curr_element->size>=50 ? 50 : curr_element->size;
+				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
+				szVal[size] = 0;
 				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated in:\n", curr_element->ptr, curr_element->size);
 				log_backtrace(GF_MEMORY_INFO, curr_element);
-//				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
+				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
 				curr_element = next_element;
 			}
 		}
