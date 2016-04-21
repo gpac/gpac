@@ -907,7 +907,7 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
 
 	if (!parser) return GF_BAD_PARAM;
 	if (parser->is_srt) {
-		parser->on_header_parsed(parser->user, gf_strdup("WEBVTT\n"));
+		parser->on_header_parsed(parser->user, "WEBVTT\n");
 	}
 	while (do_parse) {
 		sOK = gf_text_get_utf8_line(szLine, 2048, parser->vtt_in, parser->unicode_type);
@@ -1179,8 +1179,6 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 						cue->post_text = old_cue->post_text;
 						old_cue->post_text = NULL;
 					}
-					/* delete the old cue */
-					gf_webvtt_cue_del(old_cue);
 				} else {
 					/* finalize the end cue time */
 					if (gf_webvtt_timestamp_is_zero(&old_cue->end)) {
@@ -1195,6 +1193,8 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 						gf_list_add(wsample->cues, old_cue);
 					}
 				}
+				/* delete the old cue */
+				gf_webvtt_cue_del(old_cue);
 			}
 		}
 	}
@@ -1215,6 +1215,7 @@ GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 				/* keep the cue in the current sample to respect cue start ordering */
 				gf_list_add(wsample->cues, cue);
 			}
+			gf_webvtt_cue_del(cue);
 		}
 		gf_webvtt_sample_del(prev_wsample);
 		gf_list_rem_last(parser->samples);
@@ -1360,6 +1361,7 @@ static GF_Err gf_webvtt_parser_dump_finalize(GF_WebVTTParser *parser, u64 durati
 				gf_webvtt_timestamp_set(&cue->end, duration);
 			}
 			parser->on_cue_read(parser->user, cue);
+			gf_webvtt_cue_del(cue);
 		}
 		gf_webvtt_sample_del(sample);
 		gf_list_rem(parser->samples, 0);
@@ -1450,8 +1452,10 @@ GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 trac
 			goto exit;
 		}
 		e = gf_webvtt_parse_iso_sample(parser, timescale, samp, merge);
-		if (e) goto exit;
-		//gf_webvtt_dump_iso_sample(out, timescale, samp);
+		if (e) {
+			goto exit;
+		}
+		gf_isom_sample_del(&samp);
 	}
 	duration = gf_isom_get_media_duration(dumper->file, track);
 	gf_webvtt_parser_dump_finalize(parser, duration);
