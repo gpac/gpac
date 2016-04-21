@@ -1525,7 +1525,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 			for (i=0; i<source->nb_streams; i++) {
 				Double scale = source->streams[i].timescale;
 				scale /= min_offset_timescale;
-				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += -min_offset * scale;
+				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += (s64) (-min_offset * scale);
 			}
 		}
 
