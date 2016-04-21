@@ -1448,7 +1448,7 @@ typedef struct
 {
 	TrackActionType act_type;
 	u32 trackID;
-	char *lang;
+	char lang[10];
 	s32 delay_ms;
 	const char *kms;
 	const char *hdl_name;
@@ -2175,13 +2175,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strcpy(szTK, argv[i + 1]);
 			ext = strchr(szTK, '=');
 			if (!strnicmp(argv[i + 1], "all=", 4)) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i + 1] + 4);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1] + 4, 10);
 			}
 			else if (!ext) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i + 1]);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1], 10);
 			}
 			else {
-				tracks[nb_track_act].lang = gf_strdup(ext + 1);
+				strncpy(tracks[nb_track_act].lang, ext + 1, 10);
 				ext[0] = 0;
 				tracks[nb_track_act].trackID = atoi(szTK);
 				ext[0] = '=';
@@ -2287,7 +2287,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			ext[0] = 0;
-			tracks[nb_track_act].lang = gf_strdup(szTK);
+			strncpy(tracks[nb_track_act].lang, szTK, 10);
 			ext[0] = ':';
 			tracks[nb_track_act].delay_ms = (s32)atoi(ext + 1);
 			open_edit = GF_TRUE;
