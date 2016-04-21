@@ -278,7 +278,7 @@ else
 fi
 
 #test for GNU time
-res=`$GNU_TIME --version 2> /dev/null`
+res=`$GNU_TIME ls 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
 echo "GNU time not found (ret $res) - exiting"
