@@ -237,7 +237,7 @@ static void store_backtrace(char *s_backtrace)
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
 
-		bt_len = strlen(symbol_name) + 10;
+		bt_len = (int) strlen(symbol_name) + 10;
 		if (bt_idx + bt_len > STACK_PRINT_SIZE*SYMBOL_MAX_SIZE) {
 			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
 			break;
