@@ -122,6 +122,7 @@ echo "  -sync-media:           syncs all remote media with local base (warning t
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
 echo "  -check-names:          check name of each test is unique"
+echo "  -track-stack:          track stack in malloc and turns on -warn option"
 echo "  -h:                    print this help"
 }
 
@@ -164,6 +165,7 @@ do_clean_hash=0
 check_names=0
 disable_hash=0
 strict_mode=0
+track_stack=0
 
 #Parse arguments
 for i in $* ; do
@@ -200,6 +202,8 @@ for i in $* ; do
   check_names=1
  elif [ "$i" = "-warn" ] ; then
   log_after_fail=1
+ elif [ "$i" = "-track-stack" ] ; then
+  track_stack=1
  elif [ "$i" = "-h" ] ; then
   print_usage
   exit
@@ -341,7 +345,12 @@ if [ -n "$res" ]; then
   echo "** GPAC not compiled with memory tracking **"
 else
  echo "** Enabling memory-tracking **"
- base_args="$base_args -mem-track"
+ if [ $track_stack = 1 ]; then
+  base_args="$base_args -mem-track-stack"
+  log_after_fail=1
+ else
+  base_args="$base_args -mem-track"
+ fi
 fi
 
 echo ""
@@ -405,6 +414,7 @@ test_begin ()
 
  hash_skipable=0
  test_skip=0
+ single_test=0
 
  test_args="$@"
  test_nb_args=$#
@@ -642,7 +652,7 @@ subtest_idx=$((subtest_idx + 1))
 log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
 stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
 echo "SUBTEST_NAME=$2" > $stat_subtest
-echo "SUBTEST_IDX=$subtest_idx" > $stat_subtest
+echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
@@ -658,7 +668,11 @@ fi
 
 #regular error, check if this is a negative test.
 if [ $rv -eq 1 ] ; then
- negative_test_stderr=$RULES_DIR/$TEST_NAME-$2-stderr.txt
+ if [ $single_test = 1 ] ; then
+  negative_test_stderr=$RULES_DIR/$TEST_NAME-stderr.txt
+ else
+  negative_test_stderr=$RULES_DIR/$TEST_NAME-$2-stderr.txt
+ fi
  if [ -f $negative_test_stderr ] ; then
   #look for all lines in -stderr file, if one found consider this a success
   while read line ; do
@@ -676,6 +690,7 @@ fi
 #override generated stats if error, since gtime may put undesired lines in output file which would break sourcing
 if [ $rv != 0 ] ; then
 echo "SUBTEST_NAME=$2" > $stat_subtest
+echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 mark_test_error
 fi
 
@@ -701,11 +716,16 @@ do_playback_test ()
   return 0
  fi
 
- AVI_DUMP="$TEMP_DIR/$TEST_NAME-$2-dump"
+ if [ $single_test = 1 ] ; then
+  FULL_SUBTEST="$TEST_NAME"
+ else
+  FULL_SUBTEST="$TEST_NAME-$2"
+ fi
+ AVI_DUMP="$TEMP_DIR/$FULL_SUBTEST-dump"
 
  args="$MP4CLIENT -avi 0-$dump_dur -out $AVI_DUMP -size $dump_size $1"
 
- ui_rec=$RULES_DIR/$TEST_NAME-$2-ui.xml
+ ui_rec=$RULES_DIR/$FULL_SUBTEST-ui.xml
 
  if [ -f $ui_rec ] ; then
   args="$args -opt Validator:Mode=Play -opt Validator:Trace=$ui_rec"
@@ -735,17 +755,17 @@ do_playback_test ()
 
  if [ $do_store_video != 0 ] ; then
   if [ $generate_hash != 0 ] ; then
-   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$TEST_NAME-$2-ref.mp4"
+   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$FULL_SUBTEST-ref.mp4"
   else
-   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR/$TEST_NAME-$2-test.mp4"
+   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR/$FULL_SUBTEST-test.mp4"
   fi
  fi
 
 if [ $keep_avi != 0 ] ; then
  if [ $generate_hash != 0 ] ; then
-   mv "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$TEST_NAME-$2-raw-ref.avi"
+   mv "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$FULL_SUBTEST-raw-ref.avi"
   else
-   mv "$AVI_DUMP.avi" "$VIDEO_DIR/$TEST_NAME-$2-raw-test.avi"
+   mv "$AVI_DUMP.avi" "$VIDEO_DIR/$FULL_SUBTEST-raw-test.avi"
   fi
 else
   rm "$AVI_DUMP.avi" 2> /dev/null
@@ -848,6 +868,7 @@ test_begin "$2"
 if [ $test_skip  = 1 ] ; then
 return
 fi
+single_test=1
 do_test $1 "single"
 test_end
 }
@@ -859,7 +880,8 @@ test_begin "$2" "play"
 if [ $test_skip  = 1 ] ; then
 return
 fi
-do_playback_test $1 "single"
+single_test=1
+do_playback_test "$1" "play"
 test_end
 }
 
