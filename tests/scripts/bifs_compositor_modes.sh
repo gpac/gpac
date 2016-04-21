@@ -58,6 +58,6 @@ compositor_test "hyb-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolat
 opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=immediate"
 compositor_test "nogl-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
 opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=defer-debug"
-compositor_test "hyb-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
+compositor_test "hyb-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
 opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=defer-debug"
-compositor_test "nogl-immediate" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
+compositor_test "nogl-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
