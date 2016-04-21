@@ -14,9 +14,13 @@ FFMPEG=ffmpeg
 
 EXTERNAL_MEDIA_AVAILABLE=1
 
-main_dir=`pwd`
-
 platform=`uname -s`
+main_dir=`pwd`
+case $platform in MINGW*) 
+  main_dir=`pwd -W | sed 's|/|\\\\|g'`
+  echo $main_dir
+esac
+
 if [ $platform = "Darwin" ] ; then
 GNU_TIME=gtime
 GNU_DATE=gdate
