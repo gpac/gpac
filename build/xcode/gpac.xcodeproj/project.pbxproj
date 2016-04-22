@@ -313,6 +313,7 @@
 		9225733318D7269700D6FD98 /* vorbis_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732E18D7269700D6FD98 /* vorbis_dec.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
+		92A9D3C91CCA7AAA006FF303 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A9D3C61CCA79B4006FF303 /* amr_in.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
 		92AAF0E618D6DB8600E2FF12 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF0DB18D6DB5500E2FF12 /* sdl_out.h */; };
@@ -1199,6 +1200,7 @@
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
+		92A9D3C61CCA79B4006FF303 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
 		92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sdl_out.c; path = ../../modules/sdl_out/sdl_out.c; sourceTree = "<group>"; };
@@ -2351,6 +2353,14 @@
 			name = ogg_in;
 			sourceTree = "<group>";
 		};
+		92A9D3C81CCA79BD006FF303 /* amr_in */ = {
+			isa = PBXGroup;
+			children = (
+				92A9D3C61CCA79B4006FF303 /* amr_in.c */,
+			);
+			name = amr_in;
+			sourceTree = "<group>";
+		};
 		92AAF0D718D6DB3400E2FF12 /* sdl_out */ = {
 			isa = PBXGroup;
 			children = (
@@ -2365,6 +2375,7 @@
 		92AAF0E918D6E35200E2FF12 /* builtin_modules */ = {
 			isa = PBXGroup;
 			children = (
+				92A9D3C81CCA79BD006FF303 /* amr_in */,
 				92AAF0F318D6E5BB00E2FF12 /* audio_filter */,
 				92AAF0F618D6E5EA00E2FF12 /* bifs_dec */,
 				92AAF0F918D6E60B00E2FF12 /* ctx_load */,
@@ -3586,6 +3597,7 @@
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
 				9201017818D5A445003D1ACA /* text_to_bifs.c in Sources */,
+				92A9D3C91CCA7AAA006FF303 /* amr_in.c in Sources */,
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
@@ -4113,6 +4125,7 @@
 					NO_JS_RUNTIMETHREAD,
 					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -4166,6 +4179,7 @@
 					CONFIG_DARWIN_GL,
 					NO_JS_RUNTIMETHREAD,
 					SPIDERMONKEY_NEW_API,
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;

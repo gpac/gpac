@@ -50,6 +50,8 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_AC3
 	LOAD_PLUGIN(ac3);
 #endif
+	LOAD_PLUGIN(amr_in);
+	
 #ifdef GPAC_HAS_ALSA
 	LOAD_PLUGIN(alsa);
 #endif

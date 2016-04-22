@@ -31,10 +31,10 @@
 
 enum
 {
-	TYPE_AMR = 0,
-	TYPE_AMR_WB,
-	TYPE_EVRC,
-	TYPE_SMV,
+	TYPE_AMR = GF_4CC('s','a','m','r'),
+	TYPE_AMR_WB = GF_4CC('s','a','w','r'),
+	TYPE_EVRC = GF_4CC('e','v','r','c'),
+	TYPE_SMV = GF_4CC('s','m','v',' ')
 };
 
 typedef struct
@@ -65,9 +65,6 @@ typedef struct
 
 	//Bool is_live;
 } AMR_Reader;
-
-
-static const char * AMR_MIMES[] = { "audio/ac3", "audio/x-ac3", NULL };
 
 static u32 AMR_RegisterMimeTypes(const GF_InputService *plug)
 {
@@ -569,6 +566,7 @@ void DeleteAESReader(void *ifce)
 
 
 #ifdef GPAC_AMR_IN_STANDALONE
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
@@ -600,7 +598,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 	}
 }
 
-GPAC_MODULE_STATIC_DECLARATION( amr_in )
+GPAC_MODULE_STATIC_DECLARATION(amr_in)
 
 #endif
 
