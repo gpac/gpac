@@ -1431,7 +1431,7 @@ int mp4client_main(int argc, char **argv)
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	}
 	//only override default log callback when needed
 	if (rti_file || logfile || log_utc_time || log_time_start)
