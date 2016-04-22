@@ -1626,7 +1626,6 @@ extension = {
             }
         }
         this.nb_objs_at_last_scan = root.nb_resources;
-        alert(1, 'Num objects '+this.nb_objs_at_last_scan);
     },
 
     stats_timer_on_event: function (val) {
