@@ -50,6 +50,7 @@ extension = {
     stats_data: [],
     stats_window: 100,
     stats_resources: [],
+    nb_objs_at_last_scan: 0,
     stats_timer: null,
 
     do_show_controler: function () {
@@ -972,7 +973,7 @@ extension = {
 
                 //MP4Client options taking 2 args
                 else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-c') || (arg == '-cfg') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
-                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift') || (arg == '-fps') || (arg == '-scale')
+                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift') || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for')
                 ) {
 			i++;
                 } else if (arg == '-service') {
@@ -1624,13 +1625,23 @@ extension = {
                 this.gather_stats_resources(m);
             }
         }
+        this.nb_objs_at_last_scan = root.nb_resources;
+        alert(1, 'Num objects '+this.nb_objs_at_last_scan);
     },
 
     stats_timer_on_event: function (val) {
         var ext = this.ext;
         var wnd = ext.stats_wnd;
         var nb_buff = 0;
-
+        
+        if (!ext.root_odm) return;
+        
+        if (ext.nb_objs_at_last_scan != ext.root_odm.nb_resources) {
+          ext.stats_resources = [];
+          ext.gather_stats_resources(ext.root_odm, ext.root_odm.selected_service);
+          ext.reload_stats();
+        }
+                
         if (ext.stats_data.length >= ext.stats_window) {
             ext.stats_data.splice(0, 1);
         }
@@ -1668,8 +1679,8 @@ extension = {
             }
             else bl = 100;            
             for (var j = 0; j < m.nb_qualities; j++) {
-                var q = m.get_quality(j);                
-                if (q.is_selected) {
+                var q = m.get_quality(j);
+                if (q && q.is_selected) {
                     stat_obj.quality += Math.round(q.bandwidth / 1000);
                 }
             }

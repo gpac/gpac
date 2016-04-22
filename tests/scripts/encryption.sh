@@ -10,7 +10,12 @@ crypto_test()
 cryptfile="$TEMP_DIR/$1-crypted.mp4"
 decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 
+if [ $1 != "adobe" ] ; then
+test_begin "encryption-$1" "crypt" "decrypt" "play"
+else
 test_begin "encryption-$1" "crypt" "decrypt"
+fi
+
 if [ $test_skip  = 1 ] ; then
  return
 fi
@@ -27,6 +32,10 @@ rv=$?
 
 if [ $rv != 0 ] ; then
 result="Hash is not the same between source content and decrypted content"
+fi
+
+if [ $1 != "adobe" ] ; then
+do_playback_test "$cryptfile" "play"
 fi
 
 test_end

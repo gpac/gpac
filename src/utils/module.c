@@ -440,12 +440,18 @@ GF_BaseInterface *gf_modules_load_interface_by_name(GF_ModuleManager *pm, const 
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Plugin %s of type %d not found in cache, searching for it...\n", plug_name, InterfaceFamily));
 	for (i=0; i<count; i++) {
+		const char *mod_filename;
 		ifce = gf_modules_load_interface(pm, i, InterfaceFamily);
 		if (!ifce) continue;
 		if (ifce->module_name && !strnicmp(ifce->module_name, plug_name, MIN(strlen(ifce->module_name), strlen(plug_name)) )) {
 			/*update cache entry*/
 			gf_cfg_set_key(pm->cfg, "PluginsCache", plug_name, ((ModuleInstance*)ifce->HPLUG)->name);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Added plugin cache %s for %s\n", plug_name, ((ModuleInstance*)ifce->HPLUG)->name));
+			return ifce;
+		}
+		/*check direct adressing by dynamic lib name*/
+		mod_filename = gf_module_get_file_name(ifce);
+		if (mod_filename && strstr(mod_filename, plug_name)) {
 			return ifce;
 		}
 		gf_modules_close_interface(ifce);

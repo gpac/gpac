@@ -32,11 +32,11 @@ extern "C" {
 
 /*!
  *	\file <gpac/list.h>
- *	\brief list functions.
+ *	\brief Generic list of objects.
  */
 
 /*!
- *	\addtogroup list_grp list
+ *	\addtogroup list_grp List
  *	\ingroup utils_grp
  *	\brief List object
  *

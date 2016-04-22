@@ -32,6 +32,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/ietf.h>
+ *	\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
+ */
+	
+/*!
+ *	\addtogroup ietf_grp RTP Streaming
+ *	\ingroup media_grp
+ *	\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+ *
+ *This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+ *	@{
+ */
+
 #include <gpac/list.h>
 
 #ifndef GPAC_DISABLE_STREAMING
@@ -1343,6 +1357,8 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
 
 
 #endif /*GPAC_DISABLE_STREAMING*/
+
+/*! @} */
 
 #ifdef __cplusplus
 }

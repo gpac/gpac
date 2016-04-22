@@ -477,6 +477,9 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 				com->buffer.occupancy = buf_time;
 			}
 		}
+		if (ch->BufferOn) {
+			com->buffer.buffering = GF_TRUE;
+		}
 	}
 }
 
@@ -492,6 +495,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		GF_ObjectManager *odm;
 		com->buffer.max = 0;
 		com->buffer.min = com->buffer.occupancy = (u32) -1;
+		com->buffer.buffering = GF_FALSE;
 		if (!service->owner) {
 			com->buffer.occupancy = 0;
 			return;

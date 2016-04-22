@@ -26,7 +26,7 @@ LIB=gm_alsa$(DYN_LIB_SUFFIX)
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lasound
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LDFLAGS) -lasound -L../../bin/gcc -lgpac
 
 
 clean: 

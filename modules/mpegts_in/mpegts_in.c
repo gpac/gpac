@@ -679,7 +679,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				com.base.on_channel = NULL;
 				while (ts->run_state) {
 					gf_service_command(m2ts->service, &com, GF_OK);
-					if (!com.buffer.occupancy) {
+					if (!com.buffer.occupancy || com.buffer.buffering) {
 						break;
 					}
 					gf_sleep(1);

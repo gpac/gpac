@@ -32,13 +32,13 @@ extern "C" {
 
 /*!
  *	\file <gpac/thread.h>
- *	\brief threading functions.
+ *	\brief Threading and Mutual Exclusion
  */
 
 /*!
-*	\addtogroup thr_grp threading
+*	\addtogroup thr_grp Threading
 *	\ingroup utils_grp
-*	\brief Threading and Mutual Exclusion Functions
+*	\brief Threading and Mutual Exclusion
 *
 *This section documents the threading of the GPAC framework. These provide an easy way to implement
 *safe multithreaded tools.

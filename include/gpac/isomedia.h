@@ -33,6 +33,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/isomedia.h>
+ *	\brief ISOBMFF parsing and writing library.
+ */
+	
+/*!
+ *	\addtogroup iso_grp ISO Base Media File
+ *	\ingroup isobmf_grp
+ *	\brief ISOBMF, 3GPP, AVC and HEVC file format utilities.
+ *
+ *This section documents the reading and writing of ISOBMF, 3GPP, AVC and HEVC file format  using GPAC.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
 
@@ -2426,6 +2440,9 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+/*! @} */
+
 
 #ifdef __cplusplus
 }

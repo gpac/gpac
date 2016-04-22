@@ -95,8 +95,12 @@ char *js_get_utf8(JSContext *c, jsval val)
 	txt[len]=0;
 	return txt;
 #elif (JS_VERSION>=185)
+	char *result, *txt;
 	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
-	return SMJS_CHARS(c, val);
+	txt = SMJS_CHARS(c, val);
+	result = gf_strdup(txt);
+	SMJS_FREE(c, txt);
+	return result;
 #else
 	if (!JSVAL_CHECK_STRING(val) || JSVAL_IS_NULL(val)) return NULL;
 	return gf_strdup( SMJS_CHARS(c, val) );

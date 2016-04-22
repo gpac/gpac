@@ -641,7 +641,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 		size_t len;
 		size_t len_res;
 		if (!is_create) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file %s mode %s in UTF-8 mode, trying UTF-16\n", file_name, mode));
 		}
 		len = (strlen(file_name) + 1)*sizeof(wchar_t);
 		wname = (wchar_t *)gf_malloc(len);
@@ -672,6 +672,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 
 	if (res) {
 		gpac_file_handles++;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file %s opened in mode %s - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)

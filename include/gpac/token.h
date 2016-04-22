@@ -32,13 +32,13 @@ extern "C" {
 
 /*!
  *	\file <gpac/token.h>
- *	\brief tokenizer functions.
+ *	\brief String Tokenizer
  */
 
 /*!
-*	\addtogroup tok_grp tokenizer
+*	\addtogroup tok_grp Tokenizer
 *	\ingroup utils_grp
-*	\brief String Tokenizer Functions
+*	\brief String Tokenizer
 *
 *This section documents the basic string tokenizer of the GPAC framework.
 *	@{

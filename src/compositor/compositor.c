@@ -555,7 +555,6 @@ static u32 gf_sc_proc(void *par)
 
 GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 {
-	Bool lock_ok;
 	GF_Err e;
 	GF_Compositor *tmp;
 
@@ -576,6 +575,15 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 			GF_HardcodedProto *ifce = (GF_HardcodedProto *) gf_modules_load_interface(user->modules, i, GF_HARDCODED_PROTO_INTERFACE);
 			if (ifce) gf_list_add(tmp->proto_modules, ifce);
 		}
+	}
+
+	/*force initial for 2D/3D setup*/
+	tmp->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
+	/*set default size if owning output*/
+	if (!tmp->user->os_window_handler) {
+		tmp->new_width = SC_DEF_WIDTH;
+		tmp->new_height = SC_DEF_HEIGHT;
+		tmp->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 
 
@@ -605,15 +613,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
-
-	/*set default size if owning output*/
-	lock_ok = gf_mx_try_lock(tmp->mx);
-
-	if (!tmp->user->os_window_handler) {
-		gf_sc_set_size(tmp, SC_DEF_WIDTH, SC_DEF_HEIGHT);
-	}
-	tmp->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
-	if (lock_ok) gf_mx_v(tmp->mx);
 	
 	/*try to load GL extensions*/
 #ifndef GPAC_DISABLE_3D
@@ -1136,6 +1135,8 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 {
 	Bool lock_ok;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("sc_set_size %dx%d\n", NewWidth, NewHeight));
+
 	if ((compositor->display_width == NewWidth) && (compositor->display_height == NewHeight))
 		return GF_OK;
 
@@ -1147,6 +1148,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	/*EXTRA CARE HERE: the caller (user app) is likely a different thread than the compositor one, and depending on window
 	manager we may get called here as a result of a message sent to user but not yet returned */
 	lock_ok = gf_mx_try_lock(compositor->mx);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("line %d lock_ok %d\n", __LINE__, lock_ok));
 
 	compositor->new_width = NewWidth;
 	compositor->new_height = NewHeight;

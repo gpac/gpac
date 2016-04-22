@@ -30,6 +30,18 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/sync_layer.h>
+ *	\brief MPEG-4 Object Descriptor Framework Sync Layer.
+ */
+	
+/*!
+ *	\ingroup odf_grp
+ *	\brief MPEG-4 Object Descriptor Framework  Sync Layer
+ *
+ *This section documents the MPEG-4 OD  Sync Layer used in GPAC.
+ *	@{
+ */
 
 /*the Sync Layer config descriptor*/
 typedef struct
@@ -137,6 +149,7 @@ u32 gf_sl_get_header_size(GF_SLConfig* slConfig, GF_SLHeader *Header);
 /*depacketize SL-PDU*/
 void gf_sl_depacketize(GF_SLConfig *slConfig, GF_SLHeader *Header, const char *PDU, u32 PDULength, u32 *HeaderLen);
 
+/*! @} */
 
 #ifdef __cplusplus
 }

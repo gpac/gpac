@@ -989,6 +989,7 @@ void *New_FFMPEG_Demux()
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
 	/* register all codecs, demux and protocols */
 	av_register_all();
+	avformat_network_init();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
 
 	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;

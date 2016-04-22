@@ -1005,7 +1005,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 		str = strchr(arg, '-');
 		if (str) str[0] = 0;
 		/*HH:MM:SS:MS time code*/
-		if (strchr(arg, ':') && (sscanf(arg, "%02ud:%02ud:%02ud:%02ud", &h, &m, &s, &ms)==4)) {
+		if (strchr(arg, ':') && (sscanf(arg, "%u:%u:%u:%u", &h, &m, &s, &ms)==4)) {
 			sec = ms;
 			sec /= 1000;
 			sec += 3600*h + 60*m + s;
@@ -1301,7 +1301,13 @@ int mp4client_main(int argc, char **argv)
 			if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
 			else dump_mode |= DUMP_AVI;
 
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) {
+				if (!strcmp(arg, "-avi") && (nb_times!=2) ) {
+					fprintf(stderr, "Only one time arg found for -avi - check usage\n");
+					return 1;
+				}
+				i++;
+			}
 		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
 				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
 		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
@@ -1431,7 +1437,7 @@ int mp4client_main(int argc, char **argv)
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	}
 	//only override default log callback when needed
 	if (rti_file || logfile || log_utc_time || log_time_start)

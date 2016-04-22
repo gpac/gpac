@@ -7,6 +7,11 @@ vtt_test ()
  name=$(basename $1)
  name=${name%.*}
 
+ case $1 in
+ *.srt )
+  name="$name-srt" ;;
+ esac
+
  #start our test, specifying all hash names we will check
  test_begin "vtt-$name" "vtt-to-mp4" "play"
  if [ $test_skip  = 1 ] ; then

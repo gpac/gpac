@@ -14,9 +14,14 @@ FFMPEG=ffmpeg
 
 EXTERNAL_MEDIA_AVAILABLE=1
 
-main_dir=`pwd`
-
 platform=`uname -s`
+main_dir=`pwd`
+# May be needed in some particular mingw cases
+#case $platform in MINGW*) 
+#  main_dir=`pwd -W | sed 's|/|\\\\|g'`
+#  echo $main_dir
+#esac
+
 if [ $platform = "Darwin" ] ; then
 GNU_TIME=gtime
 GNU_DATE=gdate
@@ -27,14 +32,15 @@ MP4CLIENT_NOT_FOUND=0
 generate_hash=0
 play_all=0
 do_ui=0
+log_after_fail=0
 
 DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
 
 #remote location of resource files: all media files, hash files and generated videos
-REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources/"
+REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
 #dir where all external media are stored
-EXTERNAL_MEDIA_DIR="$main_dir/external"
+EXTERNAL_MEDIA_DIR="$main_dir/external_media"
 #dir where all hashes are stored
 HASH_DIR="$main_dir/hash_refs"
 #dir where all specific test rules (override of defaults, positive tests, ...) are stored
@@ -59,7 +65,9 @@ TEMP_DIR="$LOCAL_OUT_DIR/temp"
 ALL_REPORTS="$LOCAL_OUT_DIR/all_results.xml"
 ALL_LOGS="$LOCAL_OUT_DIR/all_logs.txt"
 
-rm -f "$TEMP_DIR/err_exit" 2> /dev/null
+TEST_ERR_FILE="$TEMP_DIR/err_exit"
+
+rm -f "$TEST_ERR_FILE" 2> /dev/null
 rm -f "$LOGS_DIR/*.sh" 2> /dev/null
 
 if [ ! -e $LOCAL_OUT_DIR ] ; then
@@ -98,7 +106,6 @@ echo "GPAC Test Suite Usage: use either one of this command or no command at all
 echo "*** Test suite validation options"
 echo "  -clean [ARG]:          removes all removes all results (logs, stat cache and video). If ARG is specified, only removes for test names ARG*."
 echo "  -play-all:             force playback of BT and XMT files for BIFS (by default only MP4)."
-echo "  -force:                force recomputing all tests."
 echo "  -no-hash:              runs test suite without hash checking."
 echo ""
 echo "*** Test suite generation options"
@@ -108,22 +115,49 @@ echo "  -uirec [FILE]:         generates UI record traces. If FILE is set, recor
 echo "  -uiplay [FILE]:        replays all recorded UI traces. If FILE is set, replays the given file."
 echo ""
 echo "*** General options"
-echo "  -strict:               stops at the first error"
+echo "  -strict:               stops at the first failed test"
+echo "  -warn:                 dump logs after each failed test (used for travisCI)"
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
-echo "  -sync:                 syncs all remote resources and results with local base (warning this can be long)"
+echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
+echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
+echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
 echo "  -check-names:          check name of each test is unique"
+echo "  -track-stack:          track stack in malloc and turns on -warn option"
 echo "  -h:                    print this help"
 }
 
 
 #performs mirroring of media and references hash & videos
-sync_resources ()
+sync_media ()
 {
- echo "Mirroring $REFERENCE_DIR to $EXTERNAL_MEDIA_DIR"
+ echo "Mirroring $REFERENCE_DIR/media/ to $EXTERNAL_MEDIA_DIR"
+ if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
+  mkdir $EXTERNAL_MEDIA_DIR
+ fi
  cd $EXTERNAL_MEDIA_DIR
- wget -m -nH --no-parent --cut-dirs=3 --reject *.gif $REFERENCE_DIR
+ wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
  cd $main_dir
 }
+
+#performs mirroring of media
+sync_hash ()
+{
+echo "Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
+cd $HASH_DIR
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hashes/"
+cd $main_dir
+}
+
+#performs mirroring of media and references hash & videos
+sync_refs ()
+{
+echo "Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
+cd $VIDEO_DIR_REF
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
+cd $main_dir
+}
+
 
 url_arg=""
 do_clean=0
@@ -132,6 +166,7 @@ do_clean_hash=0
 check_names=0
 disable_hash=0
 strict_mode=0
+track_stack=0
 
 #Parse arguments
 for i in $* ; do
@@ -153,11 +188,23 @@ for i in $* ; do
   disable_hash=1
  elif [ "$i" = "-strict" ] ; then
   strict_mode=1
- elif [ "$i" = "-sync" ] ; then
-  sync_resources
+ elif [ "$i" = "-sync-hash" ] ; then
+  sync_hash
   exit
+ elif [ "$i" = "-sync-media" ] ; then
+  sync_media
+  exit
+ elif [ "$i" = "-sync-refs" ] ; then
+  sync_refs
+  exit
+ elif [ "$i" = "-sync-before" ] ; then
+  sync_media
  elif [ "$i" = "-check-names" ] ; then
   check_names=1
+ elif [ "$i" = "-warn" ] ; then
+  log_after_fail=1
+ elif [ "$i" = "-track-stack" ] ; then
+  track_stack=1
  elif [ "$i" = "-h" ] ; then
   print_usage
   exit
@@ -219,10 +266,13 @@ if [ $do_clean != 0 ] ; then
  exit
 fi
 
+echo "Checking test suite config"
 
 if [ ! "$(ls -A $HASH_DIR)" ]; then
-disable_hash=1
-echo "Hashes not found - skippping them"
+ disable_hash=1
+ echo "** Reference hashes unavailable - you may sync them using -sync-hash  - skippping hash tests **"
+else
+ echo "** Reference hashes available - enabling hash tests **"
 fi
 
 if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
@@ -232,13 +282,13 @@ EXTERNAL_MEDIA_AVAILABLE=0
 fi
 
 if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
-echo ""
-echo "** External media dir unavailable - you may sync it using -sync **"
-echo ""
+ echo "** External media dir unavailable - you may sync it using -sync-media **"
+else
+ echo "** External media dir available **"
 fi
 
 #test for GNU time
-res=`$GNU_TIME --version 2> /dev/null`
+res=`$GNU_TIME ls 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
 echo "GNU time not found (ret $res) - exiting"
@@ -271,13 +321,17 @@ exit 1
 fi
 
 MP4CLIENT="MP4Client"
-`MP4Client -run-for 0 2> /dev/null`
+`MP4Client -run-for 0`
 res=$?
 if [ $res != 0 ] ; then
 echo ""
 echo "WARNING: MP4Client not found (ret $res) - disabling all playback tests"
 echo ""
 MP4CLIENT_NOT_FOUND=1
+elif [ $log_after_fail != 0 ] ; then
+echo "** Dumping GPAC config file **"
+cat $HOME/.gpac/GPAC.cfg
+echo "** End of dump **"
 fi
 
 `MP42TS -h 2> /dev/null`
@@ -289,11 +343,18 @@ fi
 #check mem tracking is supported
 res=`MP4Box -mem-track -h 2>&1 | grep "WARNING"`
 if [ -n "$res" ]; then
-  echo "GPAC not compiled with memory tracking"
+  echo "** GPAC not compiled with memory tracking **"
 else
- echo "Enabling memory-tracking"
- base_args="$base_args -mem-track"
+ echo "** Enabling memory-tracking **"
+ if [ $track_stack = 1 ]; then
+  base_args="$base_args -mem-track-stack"
+  log_after_fail=1
+ else
+  base_args="$base_args -mem-track"
+ fi
 fi
+
+echo ""
 
 
 #reassign our default programs
@@ -354,10 +415,12 @@ test_begin ()
 
  hash_skipable=0
  test_skip=0
+ single_test=0
 
- test_args=("$@")
+ test_args="$@"
  test_nb_args=$#
  skip_play_hash=0
+ subtest_idx=0
 
  rules_sh=$RULES_DIR/$TEST_NAME.sh
  if [ -f $rules_sh ] ; then
@@ -367,7 +430,7 @@ test_begin ()
  #we are generating - check all hash are present. If so, skip test
  if [ $generate_hash != 0 ] ; then
   hash_skipable=1
-  for ((i=1; i < test_nb_args; i++)) {
+  for ((i=1; i < $test_nb_args; i++)) {
    hash_found=0
 
    if [ $skip_play_hash = 0 ] ; then
@@ -411,14 +474,31 @@ test_begin ()
   test_skip=1
  fi
 
- if [ $test_skip = 1 ] ; then
+ #if error in strict mode,mark the test as skippable using value 2
+ if [ $strict_mode = 1 ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
+   test_skip=2
+  fi
+ fi
+
+
+ if [ $test_skip != 0 ] ; then
   test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
-  echo "TEST_SKIP=1" > $test_stats
+  echo "TEST_SKIP=$test_skip" > $test_stats
+  test_skip=1
  else
   echo "*** $TEST_NAME logs (GPAC version $VERSION) - test date $(date '+%d/%m/%Y %H:%M:%S') ***" > $LOGS
   echo "" >> $LOGS
  fi
 }
+
+mark_test_error ()
+{
+ if [ $strict_mode = 1 ] ; then
+  echo "" > $TEST_ERR_FILE
+ fi
+}
+
 
 #ends test - gather all logs/stats produced and generate report
 test_end ()
@@ -453,6 +533,7 @@ test_end ()
   RETURN_VALUE=0
   SUBTEST_NAME=""
   COMMAND_LINE=""
+  SUBTEST_IDX=0
 
   nb_subtests=$((nb_subtests + 1))
 
@@ -479,11 +560,13 @@ test_end ()
    test_exec_na=$((test_exec_na + 1))
   fi
 
-  if [ $test_ok = 0 ] ; then
-    sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_NAME.txt
+  if [ $log_after_fail = 1 ] ; then
+   if [ $test_ok = 0 ] ; then
+    sublog=$LOGS_DIR/$TEST_NAME-logs-$SUBTEST_IDX-$SUBTEST_NAME.txt
     if [ -f $sublog ] ; then
 	 cat $sublog 2> stderr
     fi
+   fi
   fi
  done
  rm -f $TEMP_DIR/$TEST_NAME-stat-*.sh > /dev/null
@@ -519,11 +602,11 @@ test_end ()
  echo " </test>" >> $report
 
  echo "TEST_FAIL=$test_fail" >> $test_stats
- echo "TEST_LEAK=$test_leak" >> $test_stats
  echo "TEST_EXEC_NA=$test_exec_na" >> $test_stats
- echo "NB_HASH_TEST=$nb_test_hash" >> $test_stats
- echo "NB_HASH_MISSING=$nb_hash_missing" >> $test_stats
- echo "NB_HASH_FAIL=$nb_hash_fail" >> $test_stats
+ echo "SUBTESTS_LEAK=$test_leak" >> $test_stats
+ echo "NB_HASH_SUBTESTS=$nb_test_hash" >> $test_stats
+ echo "NB_HASH_SUBTESTS_MISSING=$nb_hash_missing" >> $test_stats
+ echo "NB_HASH_SUBTESTS_FAIL=$nb_hash_fail" >> $test_stats
 
  # list all logs files
  for i in $LOGS_DIR/$TEST_NAME-logs-*.txt; do
@@ -537,32 +620,20 @@ test_end ()
   mv $report "$LOGS_DIR/$TEST_NAME-passed-new.xml"
  else
   mv $report "$LOGS_DIR/$TEST_NAME-failed.xml"
+  mark_test_error
  fi
 
  echo "$TEST_NAME: $result"
-
- if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
-   cat $LOGS >> $ALL_LOGS
-   cat "$LOGS_DIR/$TEST_NAME-failed.xml" >> $ALL_REPORTS
-   exit
-  fi
- fi
 }
 
-mark_errexit ()
-{
- if [ $strict_mode = 1 ] ; then
-  echo "" > "$TEMP_DIR/err_exit"
- fi
-}
 
 #@do_test execute the command line given $1 using GNU time and store stats with return value, command line ($1) and subtest name ($2)
 ret=0
 do_test ()
 {
+
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -577,9 +648,12 @@ do_test ()
 	esac
  fi
 
-log_subtest="$LOGS_DIR/$TEST_NAME-logs-$2.txt"
-stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$2.sh"
+subtest_idx=$((subtest_idx + 1))
+
+log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
+stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
 echo "SUBTEST_NAME=$2" > $stat_subtest
+echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
@@ -595,7 +669,11 @@ fi
 
 #regular error, check if this is a negative test.
 if [ $rv -eq 1 ] ; then
- negative_test_stderr=$RULES_DIR/$TEST_NAME-$2-stderr.txt
+ if [ $single_test = 1 ] ; then
+  negative_test_stderr=$RULES_DIR/$TEST_NAME-stderr.txt
+ else
+  negative_test_stderr=$RULES_DIR/$TEST_NAME-$2-stderr.txt
+ fi
  if [ -f $negative_test_stderr ] ; then
   #look for all lines in -stderr file, if one found consider this a success
   while read line ; do
@@ -613,7 +691,8 @@ fi
 #override generated stats if error, since gtime may put undesired lines in output file which would break sourcing
 if [ $rv != 0 ] ; then
 echo "SUBTEST_NAME=$2" > $stat_subtest
-mark_errexit
+echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
+mark_test_error
 fi
 
 echo "RETURN_VALUE=$rv" >> $stat_subtest
@@ -629,7 +708,7 @@ ret=$rv
 do_playback_test ()
 {
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -638,11 +717,16 @@ do_playback_test ()
   return 0
  fi
 
- AVI_DUMP="$TEMP_DIR/$TEST_NAME-$2-dump"
+ if [ $single_test = 1 ] ; then
+  FULL_SUBTEST="$TEST_NAME"
+ else
+  FULL_SUBTEST="$TEST_NAME-$2"
+ fi
+ AVI_DUMP="$TEMP_DIR/$FULL_SUBTEST-dump"
 
  args="$MP4CLIENT -avi 0-$dump_dur -out $AVI_DUMP -size $dump_size $1"
 
- ui_rec=$RULES_DIR/$TEST_NAME-$2-ui.xml
+ ui_rec=$RULES_DIR/$FULL_SUBTEST-ui.xml
 
  if [ -f $ui_rec ] ; then
   args="$args -opt Validator:Mode=Play -opt Validator:Trace=$ui_rec"
@@ -672,17 +756,17 @@ do_playback_test ()
 
  if [ $do_store_video != 0 ] ; then
   if [ $generate_hash != 0 ] ; then
-   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$TEST_NAME-$2-ref.mp4"
+   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$FULL_SUBTEST-ref.mp4"
   else
-   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR/$TEST_NAME-$2-test.mp4"
+   ffmpeg_encode "$AVI_DUMP.avi" "$VIDEO_DIR/$FULL_SUBTEST-test.mp4"
   fi
  fi
 
 if [ $keep_avi != 0 ] ; then
  if [ $generate_hash != 0 ] ; then
-   mv "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$TEST_NAME-$2-raw-ref.avi"
+   mv "$AVI_DUMP.avi" "$VIDEO_DIR_REF/$FULL_SUBTEST-raw-ref.avi"
   else
-   mv "$AVI_DUMP.avi" "$VIDEO_DIR/$TEST_NAME-$2-raw-test.avi"
+   mv "$AVI_DUMP.avi" "$VIDEO_DIR/$FULL_SUBTEST-raw-test.avi"
   fi
 else
   rm "$AVI_DUMP.avi" 2> /dev/null
@@ -695,7 +779,7 @@ fi
 do_hash_test ()
 {
  if [ $strict_mode = 1 ] ; then
-  if [ -f "$TEMP_DIR/err_exit" ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
    return
   fi
  fi
@@ -778,6 +862,30 @@ ffmpeg_encode ()
 }
 #end
 
+#@single_test: performs a single test without hash with $1 command line and $2 test name
+single_test ()
+{
+test_begin "$2"
+if [ $test_skip  = 1 ] ; then
+return
+fi
+single_test=1
+do_test $1 "single"
+test_end
+}
+
+#@single_playback_test: performs a single playback test with hashes with $1 command line and $2 test name
+single_playback_test ()
+{
+test_begin "$2" "play"
+if [ $test_skip  = 1 ] ; then
+return
+fi
+single_test=1
+do_playback_test "$1" "play"
+test_end
+}
+
 
 load_ui_rules ()
 {
@@ -827,6 +935,8 @@ do_ui_tests ()
 #record all user inputs and exit
 if [ $do_ui != 0 ] ; then
 
+ echo "User Inputs Tests - GPAC version $VERSION - execution date $(date '+%d/%m/%Y %H:%M:%S')" > $ALL_LOGS
+
  if [ -n "$url_arg" ] ; then
   test_name=$(basename $url_arg)
   ui_stream=$RULES_DIR/${test_name%.*}-ui.xml
@@ -847,8 +957,6 @@ echo "$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Vali
   exit
  fi
 
- echo "User Inputs Tests - GPAC version $VERSION" > $ALL_LOGS
-
  #check bifs files
  for i in bifs/*.bt ; do
   has_sensor=`grep Sensor $i | grep -v TimeSensor | grep -v MediaSensor`
@@ -863,78 +971,90 @@ fi
 
 #start of our tests
 start=`$GNU_DATE +%s%N`
+start_date="$(date '+%d/%m/%Y %H:%M:%S')"
 
 if [ $generate_hash = 1 ] ; then
  echo "SHA-1 Hash Generation enabled"
 fi
 
-echo "Logs for GPAC test suite - execution date $(date '+%d/%m/%Y %H:%M:%S')" > $ALL_LOGS
+#gather all tests reports and build our final report
+finalize_make_test()
+{
+#create logs and final report
+echo "Logs for GPAC test suite - execution date $start_date" > $ALL_LOGS
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
-echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
+echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
-#travis test
-url_arg="scripts/mp4box-io.sh"
 
-#run our tests
-if [ -n "$url_arg" ] ; then
- source $url_arg
-else
- for i in $SCRIPTS_DIR/*.sh ; do
-  source $i
- done
-fi
-#wait for all tests to be done, since some tests may use subshells
-wait
 
 rm -rf $TEMP_DIR/* 2> /dev/null
-
-if [ $check_names != 0 ] ; then
- exit
-fi
 
 #count all tests using generated -stats.sh
 TESTS_SKIP=0
 TESTS_TOTAL=0
 TESTS_DONE=0
 TESTS_PASSED=0
-TESTS_FAIL=0
-TESTS_EXEC_NA=0
+TESTS_FAILED=0
 TESTS_LEAK=0
-TESTS_SUBTESTS=0
-TESTS_HASH=0
-TESTS_HASH_FAIL=0
+TESTS_EXEC_NA=0
+
+SUBTESTS_FAIL=0
+SUBTESTS_EXEC_NA=0
+SUBTESTS_DONE=0
+SUBTESTS_LEAK=0
+SUBTESTS_HASH=0
+SUBTESTS_HASH_FAIL=0
+SUBTESTS_HASH_MISSING=0
 
 for i in $LOGS_DIR/*-stats.sh ; do
 if [ -f $i ] ; then
 
 #reset stats
 TEST_SKIP=0
-TEST_FAIL=0
-TEST_LEAK=0
-TEST_EXEC_NA=0
-NB_HASH_TEST=0
-NB_HASH_FAIL=0
+SUBTEST_FAIL=0
+SUBTEST_EXEC_NA=0
+SUBTESTS_LEAK=0
+NB_HASH_SUBTESTS=0
+NB_HASH_SUBTESTS_MISSING=0
+NB_HASH_SUBTESTS_FAIL=0
 NB_SUBTESTS=0
 
 #load stats
 source $i
+
+#test not run due to error in strict mode
+if [ $TEST_SKIP = 2 ] ; then
+continue;
+fi
 
 TESTS_TOTAL=$((TESTS_TOTAL + 1))
 if [ $TEST_SKIP = 0 ] ; then
  TESTS_DONE=$((TESTS_DONE + 1))
  if [ $TEST_FAIL = 0 ] ; then
   TESTS_PASSED=$((TESTS_PASSED + 1))
+ else
+  TESTS_FAILED=$((TESTS_FAILED + 1))
  fi
 fi
 
 TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
-TESTS_FAIL=$((TESTS_FAIL + $TEST_FAIL))
-TESTS_EXEC_NA=$((TESTS_EXEC_NA + $TEST_EXEC_NA))
-TESTS_LEAK=$((TESTS_LEAK + $TEST_LEAK))
-TESTS_SUBTESTS=$((TESTS_SUBTESTS + $NB_SUBTESTS))
-TESTS_HASH=$((TESTS_HASH + $NB_HASH_TEST))
-TESTS_HASH_FAIL=$((TESTS_HASH_FAIL + $NB_HASH_FAIL))
+
+if [ $SUBTEST_EXEC_NA != 0 ] ; then
+  TESTS_EXEC_NA=$((TESTS_EXEC_NA + 1))
+fi
+
+if [ $SUBTESTS_LEAK != 0 ] ; then
+  TESTS_LEAK=$((TESTS_LEAK + 1))
+fi
+
+SUBTESTS_FAIL=$((SUBTESTS_FAIL + $SUBTEST_FAIL))
+SUBTESTS_EXEC_NA=$((SUBTESTS_EXEC_NA + $SUBTEST_FAIL))
+SUBTESTS_DONE=$((SUBTESTS_DONE + $NB_SUBTESTS))
+SUBTESTS_LEAK=$((SUBTESTS_LEAK + $SUBTESTS_LEAK))
+SUBTESTS_HASH=$((SUBTESTS_HASH + $NB_HASH_SUBTESTS))
+SUBTESTS_HASH_FAIL=$((SUBTESTS_HASH_FAIL + $NB_HASH_SUBTESTS_FAIL))
+SUBTESTS_HASH_MISSING=$((SUBTESTS_HASH_MISSING + $NB_HASH_SUBTESTS_MISSING))
 
 fi
 
@@ -942,7 +1062,7 @@ done
 
 rm -f $LOGS_DIR/*-stats.sh > /dev/null
 
-echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAIL\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" />" >> $ALL_REPORTS
+echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAILED\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" />" >> $ALL_REPORTS
 
 #gather all failed reports first
 for i in $LOGS_DIR/*-failed.xml; do
@@ -980,7 +1100,7 @@ for i in $LOGS_DIR/*-logs.txt-new; do
 done
 
 if [ $TESTS_TOTAL = 0 ] ; then
-echo "No tests exectuted"
+echo "No tests executed"
 else
 
 pc=$((100*TESTS_SKIP/TESTS_TOTAL))
@@ -991,17 +1111,21 @@ echo "Number of Tests Run $TESTS_DONE ($pc %)"
 
 if [ $TESTS_DONE != 0 ] ; then
  pc=$((100*TESTS_PASSED/TESTS_DONE))
- echo "Tests passed $TESTS_PASSED ($pc %) - $TESTS_SUBTESTS sub-tests"
- pc=$((100*TESTS_FAIL/TESTS_DONE))
- echo "Tests failed $TESTS_FAIL ($pc %)"
- pc=$((100*TESTS_LEAK/TESTS_DONE))
- echo "Tests Leaked $TESTS_LEAK ($pc %)"
- pc=$((100*TESTS_EXEC_NA/TESTS_DONE))
- echo "Tests Unknown $TESTS_EXEC_NA ($pc %)"
+ echo "Tests passed $TESTS_PASSED ($pc %) - $SUBTESTS_DONE sub-tests"
 
- if [ $TESTS_HASH != 0 ] ; then
-  pc=$((100*TESTS_HASH_FAIL/TESTS_HASH))
-  echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc %)"
+ # the follwing % are in subtests
+ pc=$((100*SUBTESTS_FAIL/SUBTESTS_DONE))
+ echo "Tests failed $TESTS_FAILED ($pc % of subtests)"
+
+ pc=$((100*SUBTESTS_LEAK/SUBTESTS_DONE))
+ echo "Tests Leaked $TESTS_LEAK ($pc % of subtests)"
+
+ pc=$((100*SUBTESTS_EXEC_NA/SUBTESTS_DONE))
+ echo "Tests Unknown $TESTS_EXEC_NA ($pc % of subtests)"
+
+ if [ $SUBTESTS_HASH != 0 ] ; then
+  pc=$((100*SUBTESTS_HASH_FAIL/SUBTESTS_DONE))
+  echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc % of subtests)"
  fi
 fi
 
@@ -1011,6 +1135,51 @@ end=`$GNU_DATE +%s%N`
 runtime=$((end-start))
 runtime=$(($runtime / 1000000))
 echo "Generation done in $runtime milliseconds"
+
+}
+
+
+
+# trap ctrl-c and generate reports
+trap ctrl_c_trap INT
+
+ctrl_c_trap() {
+	echo "CTRL-C trapped - cleanup and building up reports"
+	local pids=$(jobs -pr)
+	[ -n "$pids" ] && kill $pids
+	finalize_make_test
+	exit
+}
+
+
+#run our tests
+if [ -n "$url_arg" ] ; then
+ source $url_arg
+else
+ for i in $SCRIPTS_DIR/*.sh ; do
+  source $i
+
+  #break if error and error
+  if [ $strict_mode = 1 ] ; then
+   #wait for all tests to be done before checking error marker
+   wait
+   if [ -f $TEST_ERR_FILE ] ; then
+    break
+   fi
+  fi
+ done
+fi
+
+#wait for all tests to be done, since some tests may use subshells
+wait
+
+if [ $check_names != 0 ] ; then
+ exit
+fi
+
+
+finalize_make_test
+
 
 
 
