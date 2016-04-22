@@ -71,6 +71,11 @@ bt_test ()
  #MP4->XMT
  do_test "$MP4BOX -xmt $mp4file -out test.xmt" "MP42XMT" && do_hash_test "test.xmt" "mp4-to-xmt" && rm test.xmt 2> /dev/null &
 
+ #MP4 stat
+ do_test "$MP4BOX -stat $mp4file -std" "MP4STAT" 2> /dev/null &
+ do_test "$MP4BOX -stats $mp4file -std" "MP4STAT" 2> /dev/null &
+ do_test "$MP4BOX -statx $mp4file -std" "MP4STAT" 2> /dev/null &
+
  if [ $play_all = 1 ] ; then
 
   #BT playback
