@@ -364,6 +364,7 @@
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
 		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; };
+		9212E8031CCA82310036F310 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212E8021CCA82300036F310 /* amr_in.c */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -914,6 +915,7 @@
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
 		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
+		9212E8021CCA82300036F310 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1799,6 +1801,7 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				9212E8021CCA82300036F310 /* amr_in.c */,
 				28F2240B17D6372100E9D2BE /* ffmpeg_in */,
 				97E29F7B17D1190600904FBF /* osd.c */,
 				97E29F7917D118F100904FBF /* raw_video.c */,
@@ -2272,6 +2275,7 @@
 				92BC211916EF8E7A000E0620 /* laser_dec.c in Sources */,
 				92BC211B16EF8E7A000E0620 /* mad_dec.c in Sources */,
 				92BC211D16EF8E7A000E0620 /* mp3_in.c in Sources */,
+				9212E8031CCA82310036F310 /* amr_in.c in Sources */,
 				92BC211E16EF8E7A000E0620 /* mpd_in.c in Sources */,
 				92BC211F16EF8E7A000E0620 /* mpegts_in.c in Sources */,
 				92BC212016EF8E7A000E0620 /* odf_dec.c in Sources */,
@@ -2647,6 +2651,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_VERSION = "";
@@ -2684,6 +2689,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_VERSION = "";

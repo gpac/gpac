@@ -470,7 +470,7 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = GF_TRUE;
 
 fetch_next:
-		pos = ftell(read->stream);
+		pos = (u32) ftell(read->stream);
 
 		toc = fgetc(read->stream);
 		switch (read->mtype) {
