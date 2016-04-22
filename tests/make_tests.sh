@@ -16,10 +16,11 @@ EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
 main_dir=`pwd`
-case $platform in MINGW*) 
-  main_dir=`pwd -W | sed 's|/|\\\\|g'`
-  echo $main_dir
-esac
+# May be needed in some particular mingw cases
+#case $platform in MINGW*) 
+#  main_dir=`pwd -W | sed 's|/|\\\\|g'`
+#  echo $main_dir
+#esac
 
 if [ $platform = "Darwin" ] ; then
 GNU_TIME=gtime
