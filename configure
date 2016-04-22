@@ -1142,7 +1142,7 @@ else
     LINK_SSL="-lssl -lcrypto"
 fi
 
-if docc $LINK_SSL $LDFLAGS ; then
+if docc $CFLAGS_DIR $LINK_SSL $LDFLAGS ; then
     has_ssl="yes"
 fi
 
