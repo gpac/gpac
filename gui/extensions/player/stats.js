@@ -302,7 +302,7 @@ extension.view_stats = function () {
 
         if (gpac.http_max_bitrate) {
             var br = Math.round(100 * gpac.http_max_bitrate / 1000 / 1000) / 100;
-            if (br > 200) bt = 200;
+            if (br > 200) br = 200;
             if (br <= 1) {
                 v = 30 * br;
             } else if (br <= 10) {
@@ -314,8 +314,7 @@ extension.view_stats = function () {
             }
             wnd.http_control.set_value(v);
 
-            wnd.http_text.set_label('HTTP cap ' + Math.round(gpac.http_max_bitrate) + ' Kbps');
-
+            wnd.http_text.set_label('HTTP cap ' + Math.round(gpac.http_max_bitrate / 10000)/100 + ' Mbps');
         } else {
             wnd.http_control.set_value(100);
             wnd.http_text.set_label('HTTP cap off');
@@ -395,7 +394,8 @@ extension.view_stats = function () {
 
         if (wnd.http_control) {
             wnd.http_text.set_size(11 * gwskin.default_text_font_size, gwskin.default_icon_height);
-            wnd.http_control.set_size(w - 11 * gwskin.default_text_font_size, 0.2 * gwskin.default_icon_height);
+            var ch = 0.5 * gwskin.default_icon_height;
+            wnd.http_control.set_size(w - 11 * gwskin.default_text_font_size, ch, ch, ch);
             h += gwskin.default_icon_height;
         }
 
@@ -498,13 +498,14 @@ extension.view_stats = function () {
             else if (m.scalable_enhancement) label += ' (Enh. Layer)';
 
             var url = m.service_url;
+/*
             if ((url.indexOf('udp://') >= 0) || (url.indexOf('rtp://') >= 0) || (url.indexOf('dvb://') >= 0))
                 label += ' Broadcast';
             else if ((url.indexOf('file://') >= 0) || (url.indexOf('://') < 0))
                 label += ' File';
             else
                 label += ' Broadband';
-
+*/
             m.gui.txt.set_label(label);
             m.gui.buffer.set_value(bl);
             m.gui.buffer.set_label('' + Math.round(m.buffer / 10) / 100 + ' s');
