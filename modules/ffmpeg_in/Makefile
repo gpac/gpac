@@ -71,7 +71,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LOCAL_LIB) $(LINKFLAGS) 
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LOCAL_LIB) $(LDFLAGS) $(LINKFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

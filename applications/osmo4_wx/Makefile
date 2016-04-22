@@ -46,7 +46,7 @@ SRCS := $(OBJS:.o=.cpp)
 all: $(PROG)
 
 Osmo4$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS) $(LINKFLAGS)
+	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(WX_LFLAGS) $(LINKFLAGS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)
