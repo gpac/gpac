@@ -478,6 +478,7 @@ exit:
 	if (sm) gf_sm_stats_del(sm);
 	gf_sm_del(ctx);
 	gf_sg_del(scene_graph);
+	if (load.isom) gf_isom_delete(load.isom);
 	if (e) {
 		fprintf(stderr, "%s\n", gf_error_to_string(e));
 	} else {
