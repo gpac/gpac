@@ -668,7 +668,7 @@ fi
 
 #regular error, check if this is a negative test.
 if [ $rv -eq 1 ] ; then
- if [ $single_test = 1 ] ; then
+ if [ $single_test = 1 ] ; then
   negative_test_stderr=$RULES_DIR/$TEST_NAME-stderr.txt
  else
   negative_test_stderr=$RULES_DIR/$TEST_NAME-$2-stderr.txt
