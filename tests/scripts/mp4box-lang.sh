@@ -1,7 +1,7 @@
 #!/bin/sh
 test_begin "mp4box-lang"
 
-$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:dur=1 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $TEMP_DIR/file.mp4
+$MP4BOX -add $MEDIA_DIR/auxiliary_files/subtitle.srt:dur=1 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $TEMP_DIR/file.mp4 2> /dev/null
 
 do_test "$MP4BOX -lang all=en $TEMP_DIR/file.mp4 -out $TEMP_DIR/out.mp4" "all-2-char"
 do_test "$MP4BOX -info $TEMP_DIR/out.mp4"
