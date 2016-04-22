@@ -1348,7 +1348,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (max>com->buffer.max)
 				com->buffer.max = max;
 
-			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) {
+			if (!com->buffer.min && ! gf_dash_is_dynamic_mpd(mpdin->dash)) {
 				com->buffer.min = 1;
 			}
 		}
