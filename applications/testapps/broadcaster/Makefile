@@ -26,7 +26,7 @@ LINKFLAGS=-L../../../bin/gcc -lgpac
 all: broadcaster
 
 broadcaster: $(OBJS) *.h
-	$(CC) $(LDFLAGS) -o $(APPNAME) $(OBJS) $(LINKFLAG)
+	$(CC) -o $(APPNAME) $(OBJS) $(LINKFLAG) $(LDFLAGS)
 
 clean:
 	-rm -f $(OBJS) $(APPNAME) *~
