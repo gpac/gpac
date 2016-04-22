@@ -1760,7 +1760,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		set = group->adaptation_set;
 		new_set = gf_list_get(new_period->adaptation_sets, group_idx);
 
-		//sort by  bandwidth and quality
+		//sort by bandwidth and quality
 		for (rep_i = 1; rep_i < gf_list_count(new_set->representations); rep_i++) {
 			Bool swap=GF_FALSE;
 			GF_MPD_Representation *r2 = gf_list_get(new_set->representations, rep_i);
@@ -1915,7 +1915,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 			/*what else should we check ??*/
 
 
-			/*switch all intertnal GPAC stuff*/
+			/*switch all internal GPAC stuff*/
 			memcpy(&new_rep->playback, &rep->playback, sizeof(GF_DASH_RepresentationPlayback));
 			if (rep->playback.cached_init_segment_url) rep->playback.cached_init_segment_url = NULL;
 
