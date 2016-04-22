@@ -1740,6 +1740,7 @@ void X11_Shutdown (struct _video_out *vout)
 
 	XCloseDisplay (xWindow->display);
 	gf_free(xWindow);
+	vout->opaque = NULL;
 }
 
 
@@ -1777,6 +1778,7 @@ void *NewX11VideoOutput ()
 void
 DeleteX11VideoOutput (GF_VideoOutput * vout)
 {
+	if (vout->opaque) gf_free(vout->opaque);
 	gf_free(vout);
 }
 
@@ -1792,7 +1794,7 @@ const u32 *QueryInterfaces()
 	};
 	return si;
 }
-
+	
 
 /*
  * interface create

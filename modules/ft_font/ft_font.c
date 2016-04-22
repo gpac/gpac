@@ -727,6 +727,7 @@ void ft_delete(GF_BaseInterface *ifce)
 	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
 	if (ftpriv->font_sans) gf_free(ftpriv->font_sans);
 	if (ftpriv->font_fixed) gf_free(ftpriv->font_fixed);
+	if (ftpriv->font_default) gf_free(ftpriv->font_default);
 	assert(!gf_list_count(ftpriv->loaded_fonts) );
 
 	gf_list_del(ftpriv->loaded_fonts);
