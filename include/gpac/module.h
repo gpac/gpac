@@ -32,13 +32,12 @@ extern "C" {
 
 /*!
  *	\file <gpac/module.h>
- *	\brief plugable module functions.
+ *	\brief plugable dynamic module.
  */
 
 /*!
- *	\addtogroup mods_grp plugable modules
- *	\ingroup utils_grp
- *	\brief Plugable Module functions
+ *	\ingroup mods_grp
+ *	\brief Plugable Dynamic Modules
  *
  *This section documents the plugable module functions of the GPAC framework.
  *A module is a dynamic/shared library providing one or several interfaces to the GPAC framework.

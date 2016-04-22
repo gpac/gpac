@@ -245,7 +245,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 				if (esd->decoderConfig->objectTypeIndication != 0x09) continue;
 				if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) continue;
 				gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &lsrcfg);
-				gf_odf_dump_desc(&lsrcfg, sdump->trace, 1, 1);
+				gf_odf_dump_desc((GF_Descriptor*)&lsrcfg, sdump->trace, 1, 1);
 			}
 			fprintf(sdump->trace, "</saf:sceneHeader>\n");
 		}

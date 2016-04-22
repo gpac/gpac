@@ -1578,7 +1578,7 @@ GF_Err esds_dump(GF_Box *a, FILE * trace)
 
 	if (p->desc) {
 #ifndef GPAC_DISABLE_OD_DUMP
-		gf_odf_dump_desc(p->desc, trace, 1, GF_TRUE);
+		gf_odf_dump_desc((GF_Descriptor *) p->desc, trace, 1, GF_TRUE);
 #else
 		fprintf(trace, "<!-- Object Descriptor Dumping disabled in this build of GPAC -->\n");
 #endif

@@ -3723,7 +3723,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
 				gf_bs_write_u16(bs, samp->dataLength+1);
 				gf_bs_write_u8(bs, (u8) dims_flags);
-				read = fread( samp->data+3, sizeof(char), samp->dataLength, f);
+				read = (u32) fread( samp->data+3, sizeof(char), samp->dataLength, f);
 				if (samp->dataLength != read) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}
@@ -3739,7 +3739,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
-				read = fread( samp->data, sizeof(char), samp->dataLength, f);
+				read = (u32) fread( samp->data, sizeof(char), samp->dataLength, f);
 				if (samp->dataLength != read) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}

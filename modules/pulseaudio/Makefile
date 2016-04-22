@@ -17,7 +17,6 @@ endif
 #common obj
 OBJS= pulseaudio.o
 
-
 SRCS := $(OBJS:.o=.c) 
 
 LIB=gm_pulseaudio$(DYN_LIB_SUFFIX)
@@ -25,7 +24,8 @@ LIB=gm_pulseaudio$(DYN_LIB_SUFFIX)
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -L/usr/lib -lpulse-simple
+	echo $(LDFLAGS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac -lpulse -lpulse-simple 
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

@@ -1836,6 +1836,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		char *kind_scheme, *kind_value;
 		gf_isom_get_track_kind(file, trackNum, i, &kind_scheme, &kind_value);
 		fprintf(stderr, "Kind: %s - %s\n", kind_scheme, kind_value);
+		if (kind_scheme) gf_free(kind_scheme);
+		if (kind_value) gf_free(kind_value);
 	}
 
 	if (gf_isom_is_track_fragmented(file, trackID) ) {

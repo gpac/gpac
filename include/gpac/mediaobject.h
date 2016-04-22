@@ -32,6 +32,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/mediaobject.h>
+ *	\brief Interface between compositor and decoding engine for media data access.
+ */
+	
+/*!
+ *\addtogroup mobj_grp MediaObject
+ *\ingroup playback_grp
+ *\brief Interface between compositor and decoding engine for media data access.
+ *
+ *This section documents the API betwwen the compositor of GPAC and the decoding engine (terminal)
+ *	@{
+ */
+	
 #include <gpac/scenegraph_vrml.h>
 
 
@@ -186,6 +200,8 @@ s32                 gf_mo_event_target_find_by_node(GF_MediaObject *mo, GF_Node 
 GF_Node            *gf_mo_event_target_enum_node(GF_MediaObject *mo, u32 *i);
 
 GF_Node            *gf_event_target_get_node(GF_DOMEventTarget *target);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

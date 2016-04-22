@@ -324,8 +324,11 @@ static GF_MPD_SegmentTimeline *gf_mpd_parse_segment_timeline(GF_MPD *mpd, GF_XML
 					seg_tl_ent->start_time = gf_mpd_parse_long_int(att->value);
 				else if (!strcmp(att->name, "d"))
 					seg_tl_ent->duration = gf_mpd_parse_int(att->value);
-				else if (!strcmp(att->name, "r"))
-					seg_tl_ent->repeat_count = (u32) gf_mpd_parse_int(att->value);
+				else if (!strcmp(att->name, "r")) {
+					seg_tl_ent->repeat_count = gf_mpd_parse_int(att->value);
+					if (seg_tl_ent->repeat_count == (u32)-1)
+						seg_tl_ent->repeat_count--;
+				} 
 			}
 		}
 	}
@@ -778,6 +781,7 @@ void gf_mpd_url_free(void *_item)
 {
 	GF_MPD_URL *ptr = (GF_MPD_URL*)_item;
 	if (ptr->sourceURL) gf_free(ptr->sourceURL);
+	if (ptr->byte_range) gf_free(ptr->byte_range);
 	gf_free(ptr);
 }
 void gf_mpd_string_free(void *_item) {

@@ -35,9 +35,9 @@ LIB=gm_oss_audio$(DYN_LIB_SUFFIX)
 all: $(LIB)
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(OSS_LDFLAGS)
+	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_oss_audio-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(OSS_LDFLAGS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_oss_audio-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(OSS_LDFLAGS) $(LDFLAGS)
 endif
 
 clean: 

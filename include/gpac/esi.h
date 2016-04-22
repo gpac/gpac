@@ -30,6 +30,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/esi.h>
+ *	\brief Draft elementary stream interface API used by MP42TS.
+ */
+	
+/*!
+ *	\addtogroup esi_grp ES Interface
+ *	\ingroup media_grp
+ *	\brief Draft elementary stream interface API used by MP42TS.
+ *
+ *This section documents the draft ES interface used by MP42TS to abstract input sources.
+ *	@{
+ */
+
 #include <gpac/tools.h>
 
 /* ESI input control commands*/
@@ -189,6 +203,7 @@ typedef struct __data_io
 	void *udta;
 } GF_DataIO;
 
+/*! @} */
 
 #ifdef __cplusplus
 }

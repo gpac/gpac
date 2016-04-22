@@ -572,7 +572,7 @@ return JS_TRUE;
 
 static SMJS_FUNC_PROP_SET(sourceBuffer_set_mode)
 char *smode = NULL;
-GF_HTML_MediaSource_AppendMode mode;
+GF_HTML_MediaSource_AppendMode mode = MEDIA_SOURCE_APPEND_MODE_SEGMENTS;
 SB_BASIC_CHECK
 if (!JSVAL_CHECK_STRING(*vp)) {
 	return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);

@@ -31,6 +31,21 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/scene_manager.h>
+ *	\brief Scene management for importing/encoding of BIFS, XMT, LASeR scenes
+ */
+	
+/*!
+ *	\addtogroup smgr Scene Manager
+ *	\ingroup scene_grp
+ *	\brief Scene management for importing/encoding of BIFS, XMT, LASeR scenes.
+ *
+ *This section documents the Scene manager used for importing/encoding of BIFS, XMT, LASeR scenes.
+ *	@{
+ */
+
 #include <gpac/isomedia.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/scenegraph_vrml.h>
@@ -487,6 +502,7 @@ GF_Err gf_sm_stats_for_command(GF_StatManager *stat, GF_Command *com);
 
 #endif /*GPAC_DISABLE_SCENE_STATS*/
 
+/*! @} */
 
 #ifdef __cplusplus
 }

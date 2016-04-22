@@ -27,6 +27,19 @@
 #ifndef _GF_EVENTS_CONSTANTS_H_
 #define _GF_EVENTS_CONSTANTS_H_
 
+/*!
+ *	\file <gpac/events_constants.h>
+ *	\brief Constants for event system used by GPAC playback.
+ */
+	
+/*!
+ *	\addtogroup evt_grp
+ *	\ingroup playback_grp
+ *	\brief Constants for event system used by GPAC playback.
+ *
+ *This section documents the event types used by the terminal, the compositor, input modules and output rendering modules for communication.
+ *	@{
+ */
 
 
 /*
@@ -512,5 +525,7 @@ enum
 	/*events forwarded from MPEG-2 stack*/
 	GF_EVT_MPEG2 = 1,
 };
+
+/*! @} */
 
 #endif
