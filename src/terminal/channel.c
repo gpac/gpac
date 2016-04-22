@@ -56,6 +56,7 @@ void gf_es_buffer_on(GF_Channel *ch)
 	/*just in case*/
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
+		ch->last_au_time = gf_term_get_time(ch->odm->term);
 		gf_clock_buffer_on(ch->clock);
 		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 	}
