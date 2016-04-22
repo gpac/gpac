@@ -125,6 +125,9 @@ CFLAGS+=-DGPAC_HAS_LIBA52
 EXTRALIBS+= -la52
 endif
 
+OBJS+=../modules/amr_dec/amr_in.o
+CFLAGS+=-DGPAC_AMR_IN_STANDALONE
+
 ifeq ($(CONFIG_ALSA), yes)
 OBJS+=../modules/alsa/alsa.o
 CFLAGS+=-DGPAC_HAS_ALSA
