@@ -950,7 +950,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
-		DeleteAudioOutput(ifce);
+		DeleteDxAudioOutput(ifce);
 		break;
 	}
 }

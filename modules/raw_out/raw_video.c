@@ -269,7 +269,7 @@ void *NewRawAudioOutput()
 	return driv;
 }
 
-void DeleteAudioOutput(void *ifce)
+static void DeleteAudioOutput(void *ifce)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
 	RawContext *ctx = (RawContext*)dr->opaque;
