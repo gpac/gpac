@@ -700,11 +700,18 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 		if (duration && (start >= duration)) break;
 	}
 
+	/*final flush*/	
+	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
+		gf_isom_text_reset(samp);
+		s = gf_isom_text_to_sample(samp);
+		s->DTS = (u64) ((timescale*end)/1000);
+		s->IsRAP = RAP;
+		gf_isom_add_sample(import->dest, track, 1, s);
+		gf_isom_sample_del(&s);
+		nb_samp++;
+	}
 	gf_isom_delete_text_sample(samp);
-	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
-	to figure out when to stop displaying the last text sample
-	However update the last sample duration*/
-	gf_isom_set_last_sample_duration(import->dest, track, (u32) (end-start) );
+	gf_isom_set_last_sample_duration(import->dest, track, 0);
 	gf_set_progress("Importing SRT", nb_samp, nb_samp);
 
 exit:
@@ -839,10 +846,12 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	if (e != GF_OK) {
 		gf_isom_remove_track(import->dest, track);
 	}
+
 	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
 	to figure out when to stop displaying the last text sample
 	However update the last sample duration*/
 	gf_isom_set_last_sample_duration(import->dest, track, (u32) gf_webvtt_parser_last_duration(vttparser));
+	
 	gf_webvtt_parser_del(vttparser);
 	return e;
 }
@@ -1715,12 +1724,18 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 		gf_set_progress("Importing SUB", gf_ftell(sub_in), file_size);
 		if (duration && (end >= duration)) break;
 	}
+	/*final flush*/
+	if (end && !(import->flags & GF_IMPORT_NO_TEXT_FLUSH ) ) {
+		gf_isom_text_reset(samp);
+		s = gf_isom_text_to_sample(samp);
+		s->DTS = (u64)(FPS*(s64)end);
+		gf_isom_add_sample(import->dest, track, 1, s);
+		gf_isom_sample_del(&s);
+		nb_samp++;
+	}
 	gf_isom_delete_text_sample(samp);
-	/*do not add any empty sample at the end since it modifies track duration and is not needed - it is the player job
-	to figure out when to stop displaying the last text sample
-		However update the last sample duration*/
-
-	gf_isom_set_last_sample_duration(import->dest, track, (u32) (end-start) );
+	
+	gf_isom_set_last_sample_duration(import->dest, track, 0);
 	gf_set_progress("Importing SUB", nb_samp, nb_samp);
 
 exit:
