@@ -781,6 +781,7 @@ void gf_mpd_url_free(void *_item)
 {
 	GF_MPD_URL *ptr = (GF_MPD_URL*)_item;
 	if (ptr->sourceURL) gf_free(ptr->sourceURL);
+	if (ptr->byte_range) gf_free(ptr->byte_range);
 	gf_free(ptr);
 }
 void gf_mpd_string_free(void *_item) {
