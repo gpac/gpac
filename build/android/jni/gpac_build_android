@@ -188,32 +188,41 @@ then
 	rm bin/Osmo4-*
 	echo -e "\n[OK] success."
 	
-	echo -e "\nBuiding Osmo4.apk (support libstagefright)" 
-	cd "$BASEPATH/extra_lib/lib/android"
-	echo "Copying libstagefright supported libs to $LIBS_DIR ..."
-	LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
-	for i in $(find . -name '*_stagefright.so')
-	do
-		echo " Copy $i"
-		TMP_DIR=$(dirname $i)
-		dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
-		mkdir -p "$LIBS_DIR/$TMP_DIR"
-		echo "dest $LIBS_DIR/$dest_file"
-		cp "$i" "$LIBS_DIR/$dest_file"
-	done
-	echo "[OK] success extra lib for Osmo4."
+	if [ ! -z "$(find . -name '*_stagefrigh.so')" ]
+	then 
+	    has_libstagefright=1 
+    else 
+        has_libstagefright=0 
+    fi
+	if [ $has_libstagefright -eq 1 ]
+	then	
+        echo -e "\nBuiding Osmo4.apk (support libstagefright)" 
+        cd "$BASEPATH/extra_lib/lib/android"
+        echo "Copying libstagefright supported libs to $LIBS_DIR ..."
+        LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+        for i in $(find . -name '*_stagefright.so')
+        do
+	        echo " Copy $i"
+	        TMP_DIR=$(dirname $i)
+	        dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
+	        mkdir -p "$LIBS_DIR/$TMP_DIR"
+	        echo "dest $LIBS_DIR/$dest_file"
+	        cp "$i" "$LIBS_DIR/$dest_file"
+        done
+        echo "[OK] success extra lib for Osmo4."
 
-	cd $BASEPATH/applications/osmo4_android/
-	ant release
+        cd $BASEPATH/applications/osmo4_android/
+        ant release
 
-	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
-	then
-	echo -e "\nOld Osmo4.apk found. Removing it ..." 
-	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-	fi  
+        if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
+        then
+        echo -e "\nOld Osmo4.apk found. Removing it ..." 
+        rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+        fi  
 
-	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-	rm bin/Osmo4-*
-	echo -e "\n[OK] success."
+        zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+        rm bin/Osmo4-*
+        echo -e "\n[OK] success."
+    fi
 fi
 
