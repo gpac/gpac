@@ -264,6 +264,15 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 			}
 			break;
 		case 4:
+			//don't dispatch anything until we have a play request
+			while (!read->nb_playing) {
+				if (read->run_state==0) {
+					gf_bs_del(bs);
+					return;
+				}
+				gf_sleep(1);
+			}
+			
 			if (ch) {
 				bs_pos = gf_bs_get_position(bs);
 				memset(&sl_hdr, 0, sizeof(GF_SLHeader));
