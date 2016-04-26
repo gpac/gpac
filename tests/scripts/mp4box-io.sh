@@ -22,6 +22,7 @@ hint_test ()
 mp4_test ()
 {
  do_hint=1
+ do_play=1
 
  #ignore xlst & others, no hinting for images
  case $1 in
@@ -44,6 +45,8 @@ mp4_test ()
   do_hint=0 ;;
  *.mj2 )
   do_hint=0 ;;
+ *.qcp )
+  do_play=0 ;;
  esac
 
  name=$(basename $1)
@@ -62,6 +65,8 @@ mp4_test ()
   return
  fi
 
+ #test media
+ do_test "$MP4BOX -info $1" "RawMediaInfo"
  #import media
  do_test "$MP4BOX -add $1 -new $mp4file" "MediaImport"
  do_hash_test $mp4file "add"
@@ -72,19 +77,21 @@ mp4_test ()
  do_test "$MP4BOX -info $mp4file" "MediaInfo" &
 
  #test -diso
- do_test "$MP4BOX -diso $mp4file -out $tmp1" "XMDDump" && do_hash_test $tmp1 "diso" && rm $tmp1 &
+ do_test "$MP4BOX -diso $mp4file -out $tmp1" "XMDDump" && do_hash_test $tmp1 "diso" && rm $tmp1 2> /dev/null &
 
  #test dts
- do_test "$MP4BOX -dts $mp4file -out $tmp2" "MediaTime" && do_hash_test $tmp2 "dts" && rm $tmp2 &
+ do_test "$MP4BOX -dts $mp4file -out $tmp2" "MediaTime" && do_hash_test $tmp2 "dts" && rm $tmp2 2> /dev/null &
 
 
  if [ $do_hint != 0 ] ; then
   hint_test $mp4file &
  fi
 
- #MP4 playback
- dump_dur=8
- do_playback_test $mp4file "play" && rm $mp4file &
+ if [ $do_play != 0 ] ; then
+  #MP4 playback
+  dump_dur=8
+  do_playback_test $mp4file "play" && rm $mp4file &
+ fi
 
  test_end
 }
