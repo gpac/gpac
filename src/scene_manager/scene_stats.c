@@ -100,13 +100,15 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
 		i=0;
 		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->proto_stats, &i))) {
-			if (pr->proto_interface->ID == ptr->tag) break;
+			if (pr->proto_interface && (pr->proto_interface->ID == ptr->tag)) break;
 			ptr = NULL;
 		}
 		if (!ptr) {
 			GF_SAFEALLOC(ptr, GF_NodeStats);
-			ptr->tag = pr->proto_interface->ID;
-			ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
+			if (pr->proto_interface) {
+				ptr->tag = pr->proto_interface->ID;
+				ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
+			}
 			gf_list_add(stat->proto_stats, ptr);
 		}
 #endif

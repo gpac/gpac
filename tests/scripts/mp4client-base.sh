@@ -34,7 +34,9 @@ single_playback_test "$EXTERNAL_MEDIA_DIR/import/bear_video.263" "mp4client-h263
 
 single_playback_test "$EXTERNAL_MEDIA_DIR/import/rus_utf16.srt" "mp4client-srt-utf16"
 
-single_playback_test "$EXTERNAL_MEDIA_DIR/import/dead.ogg" "mp4client-ogg"
+single_playback_test "$EXTERNAL_MEDIA_DIR/import/dead_ogg.ogg" "mp4client-ogg"
+
+single_playback_test "$EXTERNAL_MEDIA_DIR/import/dead_mpg.mpg" "mp4client-mpg"
 
 fi
 

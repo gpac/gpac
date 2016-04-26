@@ -723,8 +723,9 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	u32 i;
 	GF_ProtoField *inst, *from_field;
 	GF_ProtoFieldInterface *field;
-
 	GF_ProtoInstance *proto_node;
+	if (!proto) return NULL;
+	
 	GF_SAFEALLOC(proto_node, GF_ProtoInstance)
 	if (!proto_node) return NULL;
 
