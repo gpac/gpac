@@ -140,6 +140,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		GF_IRect rc1, rc2;
 		u32 type_3d;
 		u32 prev_flags;
+		Bool prev_hybgl, visual_attached;
 		GF_Rect cache_bounds;
 		GF_SURFACE offscreen_surface, old_surf;
 		GF_Raster2D *r2d = tr_state->visual->compositor->rasterizer;
@@ -160,6 +161,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 0;
 #endif
+		prev_hybgl = tr_state->visual->compositor->hybrid_opengl;
+		tr_state->visual->compositor->hybrid_opengl = GF_FALSE;
 
 		/*step 2: collect the bounds of all children*/
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -180,6 +183,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #ifndef GPAC_DISABLE_3D
 			tr_state->visual->type_3d = type_3d;
 #endif
+			tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
 			return 0;
 		}
 
@@ -194,7 +198,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		}
 		if (!group_ctx) return 0;
-
+		
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
 			create temp raster visual & attach to buffer
@@ -239,6 +243,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		                              cache->txh.stride,
 		                              cache->txh.pixelformat);
 
+		visual_attached = tr_state->visual->is_attached;
+		tr_state->visual->is_attached = 1;
 
 		/*recompute the bounds with the final scaling used*/
 		scale_x = gf_divfix(INT2FIX(rc1.width), tr_state->bounds.width);
@@ -298,6 +304,9 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		gf_mx2d_copy(tr_state->transform, backup);
 		tr_state->in_group_cache = 0;
 		tr_state->immediate_draw = prev_flags;
+		tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
+		tr_state->visual->is_attached = visual_attached;
+
 		r2d->surface_delete(offscreen_surface);
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;

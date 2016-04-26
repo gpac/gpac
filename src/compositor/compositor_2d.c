@@ -1025,7 +1025,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (e) {
 			use_soft_stretch = GF_TRUE;
 			if (visual->compositor->video_memory==1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - will use soft one\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - will use soft one\n"));
 				visual->compositor->video_memory = 2;
 			}
 			/*force a reconfigure of video output*/
