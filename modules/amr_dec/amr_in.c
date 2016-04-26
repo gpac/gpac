@@ -32,7 +32,7 @@
 enum
 {
 	TYPE_AMR = GF_4CC('s','a','m','r'),
-	TYPE_AMR_WB = GF_4CC('s','a','w','r'),
+	TYPE_AMR_WB = GF_4CC('s','a','w','b'),
 	TYPE_EVRC = GF_4CC('e','v','r','c'),
 	TYPE_SMV = GF_4CC('s','m','v',' ')
 };
@@ -514,7 +514,6 @@ fetch_next:
 				read->start_range = 0;
 			}
 		}
-		assert(read->data_size==31);
 		assert(read->data_size);
 		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
