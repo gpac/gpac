@@ -580,8 +580,8 @@ test_end ()
     fi
    fi
   fi
+  rm -f $i > /dev/null
  done
- rm -f $TEMP_DIR/$TEST_NAME-stat-*.sh > /dev/null
 
  #gather all hashes for this test
  for i in $TEMP_DIR/$TEST_NAME-stathash-*.sh ; do
@@ -601,8 +601,8 @@ test_end ()
     nb_hash_fail=$((nb_hash_fail + 1))
    fi
   fi
+  rm -f $i > /dev/null
  done
- rm -f $TEMP_DIR/$TEST_NAME-stathash-*.sh > /dev/null
 
  if [ "$result" = "" ] ; then
   result="OK"
