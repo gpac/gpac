@@ -44,6 +44,7 @@ compositor_test $1 "$BIFS_DIR/bifs-2D-viewport-complete.bt" $opt
 compositor_test $1 "$BIFS_DIR/bifs-3D-positioning-layer3D.bt" $opt
 compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-meter-metrics.bt" $opt
 compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-pixel-metrics.bt" $opt
+compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" $opt
 }
 
 opt="-opt Compositor:OpenGLMode=disable"
