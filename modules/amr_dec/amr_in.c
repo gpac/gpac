@@ -471,8 +471,19 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 
 fetch_next:
 		pos = (u32) ftell(read->stream);
+		if (feof(read->stream)) {
+			read->done = GF_TRUE;
+			*out_reception_status = GF_EOS;
+			return GF_OK;
+		}
 
 		toc = fgetc(read->stream);
+		if (feof(read->stream)) {
+			read->done = GF_TRUE;
+			*out_reception_status = GF_EOS;
+			return GF_OK;
+		}
+		
 		switch (read->mtype) {
 		case TYPE_AMR:
 			ft = (toc >> 3) & 0x0F;
@@ -503,7 +514,8 @@ fetch_next:
 				read->start_range = 0;
 			}
 		}
-
+		assert(read->data_size==31);
+		assert(read->data_size);
 		read->data_size++;
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 		read->data = (unsigned char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
