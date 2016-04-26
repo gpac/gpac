@@ -37,6 +37,19 @@
 
 #ifndef GPAC_DISABLE_3D
 
+
+#define CHECK_FIELD(__name, __index, __type) \
+	if (gf_node_get_field(node, __index, &field) != GF_OK) {\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] Cannot get field index %d\n", __index));\
+		return GF_FALSE; \
+	}\
+	if (field.fieldType != __type) {\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_by_name(__type) ));\
+		return GF_FALSE;\
+	}
+
+
+
 /*PathExtrusion hardcoded proto*/
 
 typedef struct
@@ -51,33 +64,34 @@ typedef struct
 	Bool txAlongSpine;
 } PathExtrusion;
 
+
 static Bool PathExtrusion_GetNode(GF_Node *node, PathExtrusion *path_ext)
 {
 	GF_FieldInfo field;
 	memset(path_ext, 0, sizeof(PathExtrusion));
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 0, GF_SG_VRML_SFNODE);
 	path_ext->geometry = * (GF_Node **) field.far_ptr;
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFVEC3F) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 1, GF_SG_VRML_MFVEC3F);
 	path_ext->spine = (MFVec3f *) field.far_ptr;
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+
+	CHECK_FIELD("PathExtrusion", 2, GF_SG_VRML_SFBOOL);
 	path_ext->beginCap = *(SFBool *) field.far_ptr;
-	if (gf_node_get_field(node, 3, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 3, GF_SG_VRML_SFBOOL);
 	path_ext->endCap = *(SFBool *) field.far_ptr;
-	if (gf_node_get_field(node, 4, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 4, GF_SG_VRML_SFFLOAT);
 	path_ext->creaseAngle = *(SFFloat *) field.far_ptr;
-	if (gf_node_get_field(node, 5, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFROTATION) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 5, GF_SG_VRML_MFROTATION);
 	path_ext->orientation = (MFRotation *) field.far_ptr;
-	if (gf_node_get_field(node, 6, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFVEC2F) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 6, GF_SG_VRML_MFVEC2F);
 	path_ext->scale = (MFVec2f *) field.far_ptr;
-	if (gf_node_get_field(node, 7, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	
+	CHECK_FIELD("PathExtrusion", 7, GF_SG_VRML_SFBOOL);
 	path_ext->txAlongSpine = *(SFBool *) field.far_ptr;
 	return GF_TRUE;
 }
@@ -155,36 +169,37 @@ static Bool PlanarExtrusion_GetNode(GF_Node *node, PlanarExtrusion *path_ext)
 {
 	GF_FieldInfo field;
 	memset(path_ext, 0, sizeof(PathExtrusion));
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return GF_FALSE;
+
+	CHECK_FIELD("PlanarExtrusion", 0, GF_SG_VRML_SFNODE);
 	path_ext->geometry = * (GF_Node **) field.far_ptr;
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 1, GF_SG_VRML_SFNODE);
 	path_ext->spine = * (GF_Node **) field.far_ptr;
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 2, GF_SG_VRML_SFBOOL);
 	path_ext->beginCap = *(SFBool *) field.far_ptr;
-	if (gf_node_get_field(node, 3, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 3, GF_SG_VRML_SFBOOL);
 	path_ext->endCap = *(SFBool *) field.far_ptr;
-	if (gf_node_get_field(node, 4, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 4, GF_SG_VRML_SFFLOAT);
 	path_ext->creaseAngle = *(SFFloat *) field.far_ptr;
-	if (gf_node_get_field(node, 5, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFFLOAT) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 5, GF_SG_VRML_MFFLOAT);
 	path_ext->orientationKeys = (MFFloat *) field.far_ptr;
-	if (gf_node_get_field(node, 6, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFROTATION) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 6, GF_SG_VRML_MFROTATION);
 	path_ext->orientation = (MFRotation *) field.far_ptr;
-	if (gf_node_get_field(node, 7, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFFLOAT) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 7, GF_SG_VRML_MFFLOAT);
 	path_ext->scaleKeys = (MFFloat *) field.far_ptr;
-	if (gf_node_get_field(node, 8, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFVEC2F) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 8, GF_SG_VRML_MFVEC2F);
 	path_ext->scale = (MFVec2f *) field.far_ptr;
-	if (gf_node_get_field(node, 9, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	
+	CHECK_FIELD("PlanarExtrusion", 9, GF_SG_VRML_SFBOOL);
 	path_ext->txAlongSpine = *(SFBool *) field.far_ptr;
+
 	return GF_TRUE;
 }
 
@@ -383,14 +398,13 @@ static Bool PlaneClipper_GetNode(GF_Node *node, PlaneClipper *pc)
 	memset(pc, 0, sizeof(PlaneClipper));
 	pc->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFVEC3F) return GF_FALSE;
+	CHECK_FIELD("PlaneClipper", 0, GF_SG_VRML_SFVEC3F);
 	pc->plane.normal = * (SFVec3f *) field.far_ptr;
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+
+	CHECK_FIELD("PlaneClipper", 1, GF_SG_VRML_SFFLOAT);
 	pc->plane.d = * (SFFloat *) field.far_ptr;
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFNODE) return GF_FALSE;
+	
+	CHECK_FIELD("PlaneClipper", 2, GF_SG_VRML_MFNODE) return GF_FALSE;
 	pc->children = *(GF_ChildNodeItem **) field.far_ptr;
 	return GF_TRUE;
 }
@@ -484,17 +498,15 @@ static Bool OffscreenGroup_GetNode(GF_Node *node, OffscreenGroup *og)
 	memset(og, 0, sizeof(OffscreenGroup));
 	og->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFNODE) return GF_FALSE;
+	CHECK_FIELD("OffscreenGroup", 0, GF_SG_VRML_MFNODE);
 	og->children = *(GF_ChildNodeItem **) field.far_ptr;
 
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFINT32) return GF_FALSE;
+	CHECK_FIELD("OffscreenGroup", 1, GF_SG_VRML_SFINT32);
 	og->offscreen = * (SFInt32 *) field.far_ptr;
 
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("OffscreenGroup", 2, GF_SG_VRML_SFFLOAT);
 	og->opacity = * (SFFloat *) field.far_ptr;
+	
 	return GF_TRUE;
 }
 
@@ -609,19 +621,15 @@ static Bool DepthGroup_GetNode(GF_Node *node, DepthGroup *dg)
 	memset(dg, 0, sizeof(DepthGroup));
 	dg->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFNODE) return GF_FALSE;
+	CHECK_FIELD("DepthGroup", 0, GF_SG_VRML_MFNODE);
 	dg->children = *(GF_ChildNodeItem **) field.far_ptr;
 
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFINT32) return GF_FALSE;
+	CHECK_FIELD("DepthGroup", 1, GF_SG_VRML_SFINT32);
 
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("DepthGroup", 2, GF_SG_VRML_SFFLOAT);
 	dg->depth_gain = * (SFFloat *) field.far_ptr;
 
-	if (gf_node_get_field(node, 3, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("DepthGroup", 3, GF_SG_VRML_SFFLOAT);
 	dg->depth_offset = * (SFFloat *) field.far_ptr;
 
 	return GF_TRUE;
@@ -762,20 +770,16 @@ static Bool IndexedCurve2D_GetNode(GF_Node *node, IndexedCurve2D *ic2d)
 
 	ic2d->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return GF_FALSE;
+	CHECK_FIELD("IndexedCurve2D", 0, GF_SG_VRML_SFNODE);
 	ic2d->point = * (GF_Node **) field.far_ptr;
 
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("IndexedCurve2D", 1, GF_SG_VRML_SFFLOAT);
 	ic2d->fineness = *(SFFloat *) field.far_ptr;
 
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFINT32) return GF_FALSE;
+	CHECK_FIELD("IndexedCurve2D", 2, GF_SG_VRML_MFINT32);
 	ic2d->type = *(MFInt32 *) field.far_ptr;
 
-	if (gf_node_get_field(node, 3, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFINT32) return GF_FALSE;
+	CHECK_FIELD("IndexedCurve2D", 3, GF_SG_VRML_MFINT32);
 	ic2d->index = *(MFInt32 *) field.far_ptr;
 
 	return GF_TRUE;
@@ -856,8 +860,7 @@ static Bool Untransform_GetNode(GF_Node *node, Untransform *tr)
 	memset(tr, 0, sizeof(Untransform));
 	tr->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFNODE) return GF_FALSE;
+	CHECK_FIELD("Untransform", 0, GF_SG_VRML_MFNODE);
 	tr->children = *(GF_ChildNodeItem **) field.far_ptr;
 
 	return GF_TRUE;
@@ -992,12 +995,10 @@ static Bool StyleGroup_GetNode(GF_Node *node, StyleGroup *sg)
 	memset(sg, 0, sizeof(StyleGroup));
 	sg->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_MFNODE) return GF_FALSE;
+	CHECK_FIELD("StyleGroup", 0, GF_SG_VRML_MFNODE);
 	sg->children = *(GF_ChildNodeItem **) field.far_ptr;
 
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFNODE) return GF_FALSE;
+	CHECK_FIELD("StyleGroup", 1, GF_SG_VRML_SFNODE);
 	sg->appearance = *(GF_Node **)field.far_ptr;
 
 	return GF_TRUE;
@@ -1073,18 +1074,15 @@ static Bool TestSensor_GetNode(GF_Node *node, TestSensor *ts)
 	memset(ts, 0, sizeof(TestSensor));
 	ts->sgprivate = node->sgprivate;
 
-	if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFBOOL) return GF_FALSE;
+	CHECK_FIELD("TestSensor", 0, GF_SG_VRML_SFBOOL);
 	if (field.eventType != GF_SG_EVENT_IN) return GF_FALSE;
 	ts->onTrigger = *(SFBool *)field.far_ptr;
 
-	if (gf_node_get_field(node, 1, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("TestSensor", 1, GF_SG_VRML_SFFLOAT);
 	if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
 	ts->value = *(SFFloat *)field.far_ptr;
 
-	if (gf_node_get_field(node, 2, &field) != GF_OK) return GF_FALSE;
-	if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("TestSensor", 2, GF_SG_VRML_SFFLOAT) return GF_FALSE;
 	if (field.eventType != GF_SG_EVENT_OUT) return GF_FALSE;
 
 	return GF_TRUE;
@@ -1161,9 +1159,7 @@ static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
     memset(tx, 0, sizeof(CustomTexture));
     tx->sgprivate = node->sgprivate;
     
-    if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
-    if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
-    if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
+	CHECK_FIELD("CustomTexture", 0, GF_SG_VRML_SFFLOAT) return GF_FALSE;
     tx->intensity = *(SFFloat *)field.far_ptr;
     
     return GF_TRUE;
