@@ -1358,7 +1358,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			}
 		}
 		/* Paint server not found, stroke is equivalent to none */
-		if (props->stroke->iri.type == XMLRI_ELEMENTID) {
+		if ((props->stroke->iri.type == XMLRI_ELEMENTID) && props->stroke->iri.target) {
 			switch (gf_node_get_tag((GF_Node *)props->stroke->iri.target)) {
 			case TAG_SVG_solidColor:
 			{
