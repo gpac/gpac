@@ -2251,7 +2251,8 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		goto exit;
 	}
 
-	chroma_format_idc = luma_bd = chroma_bd = 0;
+	luma_bd = chroma_bd = 0;
+	chroma_format_idc = ChromaArrayType = 1;
 	sps = &avc->sps[sps_id];
 	sps->state |= subseq_sps ? AVC_SUBSPS_PARSED : AVC_SPS_PARSED;
 
@@ -2364,8 +2365,8 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		ct = bs_get_ue(bs); /*crop_top*/
 		cb = bs_get_ue(bs); /*crop_bottom*/
 
-		sps->width = 16*mb_width - CropUnitX * (cl + cr);
-		sps->height -= (2-sps->frame_mbs_only_flag) * CropUnitY * (ct + cb);
+		sps->width -= CropUnitX * (cl + cr);
+		sps->height -= CropUnitY * (ct + cb);
 	}
 
 	if (vui_flag_pos) {
