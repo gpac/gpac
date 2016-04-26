@@ -3068,11 +3068,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		/* Cache file is the most recent */
 		sess->status = GF_NETIO_DATA_TRANSFERED;
+		par.error = GF_OK;
 		gf_dm_sess_notify_state(sess, GF_NETIO_DATA_TRANSFERED, GF_OK);
 		gf_dm_disconnect(sess, GF_FALSE);
-		par.msg_type = GF_NETIO_DATA_TRANSFERED;
-		par.error = GF_OK;
-		gf_dm_sess_user_io(sess, &par);
 		return GF_OK;
 	}
 	case 401:
