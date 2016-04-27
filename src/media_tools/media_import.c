@@ -38,6 +38,7 @@
 #include <gpac/xml.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
+#include <gpac/base_coding.h>
 
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -3123,7 +3124,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
 	char *dictionary = NULL;
-	char *ext, szName[1000], szMedia[GF_MAX_PATH], szMediaTemp[1000], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
+	char *ext, szName[1000], szMedia[GF_MAX_PATH], szMediaTemp[GF_MAX_PATH], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
 	char *specInfo;
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
@@ -3578,6 +3579,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	while ((node = (GF_XMLNode *) gf_list_enum(root->content, &i))) {
 		u32 j, dims_flags;
 		Bool append, compress, has_subbs;
+		char *base_data = NULL;
 		if (node->type) continue;
 		if (stricmp(node->name, szSampleName) ) continue;
 
@@ -3612,9 +3614,18 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			else if (!stricmp(att->name, "mediaOffset")) offset = (s64) atof(att->value) ;
 			else if (!stricmp(att->name, "dataLength")) samp->dataLength = atoi(att->value);
 			else if (!stricmp(att->name, "mediaFile")) {
-				char *url = gf_url_concatenate(import->in_name, att->value);
-				strcpy(szMediaTemp, url ? url : att->value);
-				if (url) gf_free(url);
+				if (!strncmp(att->value, "data:", 5)) {
+					char *base = strstr(att->value, "base64,");
+					if (!base) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[NHML import] Data encoding scheme not recognized - skipping\n"));
+					} else {
+						base_data = att->value;
+					}
+				} else {
+					char *url = gf_url_concatenate(import->in_name, att->value);
+					strcpy(szMediaTemp, url ? url : att->value);
+					if (url) gf_free(url);
+				}
 			}
 			else if (!stricmp(att->name, "xmlFrom")) strcpy(szXmlFrom, att->value);
 			else if (!stricmp(att->name, "xmlTo")) strcpy(szXmlTo, att->value);
@@ -3689,6 +3700,16 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			samp->dataLength = 0;
 			e = gf_xml_parse_bit_sequence(node, &samp->data, &samp->dataLength);
 			max_size = samp->dataLength;
+		} else if (base_data) {
+			char *start = strchr(base_data, ',');
+			if (start) {
+				u32 len = strlen(start+1);
+				if (len>max_size) {
+					max_size=len;
+					samp->data = gf_realloc(samp->data, sizeof(char)*max_size);
+				}
+				samp->dataLength = gf_base64_decode(start, len, samp->data, len);
+			}
 		} else {
 			Bool close = GF_FALSE;
 			FILE *f = mdia;
