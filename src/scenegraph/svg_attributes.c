@@ -4441,6 +4441,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 				attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
 				strcat(attVal, szT);
+				gf_free(szT);
 			}
 			return attVal;
 		}
