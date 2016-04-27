@@ -579,7 +579,7 @@ EOF
         esac
         ;;
 
-    MINGW32*|mingw32|MINGW64*|mingw64)
+    MINGW32*|mingw32|MINGW64*|mingw64|msys*|MSYS*)
         js_flags="-DXP_PC -D_declspec=__declspec"
         mingw32="yes"
         win32="yes"
