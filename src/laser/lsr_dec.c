@@ -1436,8 +1436,10 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 				da->type=SVG_STROKEDASHARRAY_ARRAY;
 				da->array.count = lsr_read_vluimsbf5(lsr, "len");
 				da->array.vals = (Fixed*)gf_malloc(sizeof(Fixed)*da->array.count);
+				da->array.units = (u8*)gf_malloc(sizeof(u8)*da->array.count);
 				for (j=0; j<da->array.count; j++) {
 					da->array.vals[j] = lsr_read_fixed_16_8(lsr, "dash");
+					da->array.units[j] = 0;
 				}
 			}
 		}
@@ -1721,9 +1723,11 @@ static void lsr_translate_anim_value(SMIL_AnimateValue *val, u32 coded_type)
 		} else {
 			da->type = SVG_STROKEDASHARRAY_ARRAY;
 			da->array.vals = (Fixed *) gf_malloc(sizeof(Fixed)*da->array.count);
+			da->array.units = (u8 *) gf_malloc(sizeof(u8)*da->array.count);
 			for (i=0; i<da->array.count; i++) {
 				Fixed *v = (Fixed *)gf_list_get(l, i);
 				da->array.vals[i] = *v;
+				da->array.units[i] = 0;
 				gf_free(v);
 			}
 			gf_list_del(l);
@@ -1813,9 +1817,11 @@ static void lsr_translate_anim_values(SMIL_AnimateValues *val, u32 coded_type)
 			} else {
 				da->type = SVG_STROKEDASHARRAY_ARRAY;
 				da->array.vals = (Fixed *)gf_malloc(sizeof(Fixed)*da->array.count);
+				da->array.units = (u8 *) gf_malloc(sizeof(u8)*da->array.count);
 				for (j=0; j<da->array.count; j++) {
 					Fixed *v = (Fixed *)gf_list_get(l, j);
 					da->array.vals[j] = *v;
+					da->array.units[j] = 0;
 					gf_free(v);
 				}
 				gf_list_del(l);
@@ -2099,6 +2105,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	u8 *enum_val;
 	u32 *id_val;
 	char *string;
+	SVG_String *svg_string;
 	SVG_Number *num;
 	XMLRI *iri;
 	SVG_Point *pt;
@@ -2111,7 +2118,9 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	case 0:
 		string = NULL;
 		lsr_read_byte_align_string(lsr, &string, name);
-		return string;
+		GF_SAFEALLOC(svg_string, SVG_String);
+		*svg_string = string;
+		return svg_string;
 	case 1:
 		num = (SVG_Number*)gf_malloc(sizeof(SVG_Number));
 		if (escapeFlag) {

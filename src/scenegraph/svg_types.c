@@ -403,6 +403,7 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		break;
 	case SVG_StrokeDashArray_datatype:
 		if (((SVG_StrokeDashArray*)value)->array.vals) gf_free(((SVG_StrokeDashArray*)value)->array.vals);
+		if (((SVG_StrokeDashArray*)value)->array.units) gf_free(((SVG_StrokeDashArray*)value)->array.units);
 		gf_free(value);
 		break;
 	case SMIL_KeyTimes_datatype:

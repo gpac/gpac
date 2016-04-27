@@ -4619,8 +4619,14 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		if (att_name->name)
 			return gf_strdup(att_name->name);
 
-		if (att_name->tag)
-			return gf_strdup( gf_svg_get_attribute_name(elt, att_name->tag) );
+		if (att_name->tag) {
+			char *att_name_val = (char *)gf_svg_get_attribute_name(elt, att_name->tag);
+			if (!att_name_val) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] unknown attribute name for tag %d\n", att_name->tag));
+				return NULL;
+			}
+			return gf_strdup(att_name_val );
+		}
 	}
 	break;
 

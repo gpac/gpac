@@ -422,14 +422,16 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	GFpng udta;
 	png_struct *png_ptr;
 	png_info *info_ptr;
-	png_byte **rows;
+	png_byte **rows = NULL;
 	u32 i, stride, out_size;
 	png_bytep trans_alpha;
 	int num_trans;
 	png_color_16p trans_color;
 
-	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
-
+	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Wrong signature\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	udta.buffer = png;
 	udta.size = png_size;
 	udta.pos = 0;
@@ -444,6 +446,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
+		if (rows) gf_free(rows);
 		return GF_IO_ERR;
 	}
 	png_set_read_fn(png_ptr, &udta, (png_rw_ptr) gf_png_user_read_data);

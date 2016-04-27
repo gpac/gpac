@@ -3138,11 +3138,11 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		}
 		info.far_ptr = att->data;
 		attValue = gf_svg_dump_attribute((GF_Node*)svg, &info);
-		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = (u32) strlen(attValue)))
-			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
-
-		if (attValue) gf_free(attValue);
-
+		if (attValue) {
+			if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = (u32) strlen(attValue)))
+				fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
+			gf_free(attValue);
+		}
 		fflush(sdump->trace);
 		att = att->next;
 	}
