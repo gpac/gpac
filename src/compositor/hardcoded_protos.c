@@ -33,9 +33,6 @@
 #include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
-#ifndef GPAC_DISABLE_VRML
-
-#ifndef GPAC_DISABLE_3D
 
 
 #define CHECK_FIELD(__name, __index, __type) \
@@ -48,6 +45,11 @@
 		return GF_FALSE;\
 	}
 
+
+
+#ifndef GPAC_DISABLE_VRML
+
+#ifndef GPAC_DISABLE_3D
 
 
 /*PathExtrusion hardcoded proto*/
