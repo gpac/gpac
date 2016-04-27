@@ -1915,6 +1915,7 @@ u32 mp4box_cleanup(u32 ret_code) {
 		gf_free(dash_inputs);
 		dash_inputs = NULL;
 	}
+	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return ret_code;
 }
