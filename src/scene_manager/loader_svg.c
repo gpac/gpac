@@ -1485,6 +1485,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 				} else {
 					if (parser->load->localPath) {
 						strcpy(szName, parser->load->localPath);
+						strcat(szName, "/");
 						strcat(szName, ID);
 					} else {
 						strcpy(szName, ID);
@@ -1493,9 +1494,13 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					mux->file_name = gf_strdup(szName);
 					st->nhml_info = mux->file_name;
 					nhml = gf_fopen(st->nhml_info, "wt");
-					fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-					fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, OTI, st->id);
-					gf_fclose(nhml);
+					if (nhml) {
+						fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+						fprintf(nhml, "<NHNTStream version=\"1.0\" timeScale=\"%d\" streamType=\"%d\" objectTypeIndication=\"%d\" inRootOD=\"no\" trackID=\"%d\">\n", ts_res, ST, OTI, st->id);
+						gf_fclose(nhml);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[LASeR Parser] Error opening nhml file %s while preparing import\n", st->nhml_info));
+					}
 					mux->delete_file = GF_TRUE;
 				}
 			}
