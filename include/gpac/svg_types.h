@@ -864,8 +864,8 @@ typedef u8 SVG_Overlay;
 
 enum {
 	SVG_FOCUSABLE_AUTO = 0,
-	SVG_FOCUSABLE_TRUE,
 	SVG_FOCUSABLE_FALSE,
+	SVG_FOCUSABLE_TRUE,
 };
 typedef u8 SVG_Focusable;
 
