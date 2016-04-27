@@ -287,7 +287,7 @@ endif
 endif
 
 ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?), 1)
-	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc
+	@echo "Libs.private: -lgpac_static $(EXTRALIBS)" >> ../gpac.pc
 endif
 
 dep:
