@@ -1,12 +1,18 @@
 language: c
 compiler: gcc
+os:
+  - linux
+  - osx
 before_install: 
-  - sudo apt-get update -qq
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get update -qq ; fi
 install:
-  - sudo apt-get install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ 
-  - sudo apt-get install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev
-  - sudo apt-get install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev
-  - sudo apt-get -qq install lcov
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq install lcov ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew update; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install coreutils gnu-time gnu-sed gnu-tar xz; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
 env:
   - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all" DOINSTALL="make install" DOTRAVIS=""
@@ -17,9 +23,9 @@ env:
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
 before_script:
-  - "export DISPLAY=:99.0"
-  - "sh -e /etc/init.d/xvfb start"
-  - sleep 3 # give xvfb some time to start
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then "export DISPLAY=:99.0" ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then "sh -e /etc/init.d/xvfb start" ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sleep 3 ; fi # give xvfb some time to start
 script: 
   - ./configure $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTRAVIS
 after_success:
