@@ -1538,7 +1538,6 @@ static void lsr_read_rare_full(GF_LASeRCodec *lsr, GF_Node *n)
 			lsr_read_focus(lsr, (SVG_Focus*)info.far_ptr, "focusEast");
 			break;
 		case TAG_SVG_ATT_focusable:
-			/*wrong !!*/
 			GF_LSR_READ_INT(lsr, *(SVG_Focusable*)info.far_ptr, 2, "focusable");
 			break;
 		case TAG_SVG_ATT_nav_right:
@@ -2116,7 +2115,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	case 1:
 		num = (SVG_Number*)gf_malloc(sizeof(SVG_Number));
 		if (escapeFlag) {
-			num->type = escape_val;
+			num->type = (escape_val==1) ? SVG_NUMBER_INHERIT : SVG_NUMBER_VALUE;
 		} else {
 			num->type = SVG_NUMBER_VALUE;
 			num->value = lsr_read_fixed_16_8(lsr, name);
@@ -2137,7 +2136,7 @@ static void *lsr_read_an_anim_value(GF_LASeRCodec *lsr, u32 coded_type, const ch
 	case 4:
 		num = (SVG_Number*)gf_malloc(sizeof(SVG_Number));
 		if (escapeFlag) {
-			num->type = escape_val;
+			num->type = (escape_val==1) ? SVG_NUMBER_INHERIT : SVG_NUMBER_VALUE;
 		} else {
 			num->type = SVG_NUMBER_VALUE;
 			num->value = lsr_read_fixed_clamp(lsr, name);
