@@ -66,6 +66,7 @@ import android.widget.AutoCompleteTextView;
 import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.content.res.AssetManager;
+import android.os.Environment;
 
 import com.gpac.Osmo4.Osmo4GLSurfaceView;
 import com.gpac.Osmo4.Preview;
@@ -288,6 +289,26 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         }
         copyAssets(gpacConfig, SHADER_ROOT_ASSET_DIR);
+        
+        //if there is not a GPAC.cfg in external storage (i.e  using config in app directory)
+        //copy GPAC.cfg from gpacAppDirectoryto gpacLogDirectory
+        File osmo = new File(Environment.getExternalStorageDirectory(), "osmo");
+        File gpac_external_cfg = new File(osmo.getAbsolutePath(), "GPAC.cfg");
+        if (!gpac_external_cfg.exists()) {
+            try {
+                InputStream in = new FileInputStream(gpacConfig.getGpacAppDirectory() + "GPAC.cfg");
+                OutputStream out = new FileOutputStream(gpacConfig.getGpacLogDirectory() + "GPAC.cfg");
+                byte[] buf = new byte[1024];
+                int len;
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+                in.close();
+                out.close();
+            } catch (IOException e) {
+                Log.d(LOG_OSMO_TAG, "Error in copying config file: " + e.toString());
+            }
+        }
     }
     
     /*
