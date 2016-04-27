@@ -405,6 +405,9 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		if (((SVG_StrokeDashArray*)value)->array.vals) gf_free(((SVG_StrokeDashArray*)value)->array.vals);
 		gf_free(value);
 		break;
+	case SMIL_KeyTimes_datatype:
+	case SMIL_KeyPoints_datatype:
+	case SMIL_KeySplines_datatype:
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 	case SVG_Points_datatype:
@@ -460,17 +463,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 			gf_list_rem_last(l);
 			if (r->string) gf_free(r->string);
 			gf_free(r);
-		}
-		gf_list_del(l);
-		gf_free(value);
-		break;
-	case SMIL_KeyTimes_datatype:
-	case SMIL_KeySplines_datatype:
-		l = *(GF_List**)value;
-		while (gf_list_count(l)) {
-			Fixed *f = gf_list_last(l);
-			gf_list_rem_last(l);
-			gf_free(f);
 		}
 		gf_list_del(l);
 		gf_free(value);
