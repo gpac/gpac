@@ -86,7 +86,7 @@ lcov:	lcov_only
 travis_tests:
 	@echo "Running tests"
 	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
-	@rm ./gpac-conf--*
+	@rm -f ./gpac-conf--* > /dev/null
 
 travis: travis_tests lcov_only
 

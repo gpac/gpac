@@ -23,8 +23,8 @@ env:
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=\"-w -fPIC\" --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
 before_script:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then "export DISPLAY=:99.0" ; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then "sh -e /etc/init.d/xvfb start" ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0 ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sh -e /etc/init.d/xvfb start ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sleep 3 ; fi # give xvfb some time to start
 script: 
   - ./configure $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTRAVIS
