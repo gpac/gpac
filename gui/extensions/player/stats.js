@@ -35,19 +35,26 @@ extension.view_stats = function () {
 
     for (var res_i = 0; res_i < wnd.extension.stats_resources.length; res_i++) {
         var m = wnd.extension.stats_resources[res_i];
+		var num_qualities;
         m.gui = {};
 		if (!srd_obj && m.has_srd) srd_obj = m;
+		if (m.dependent_group_id) srd_obj = m;
 
         var label = '' + m.type;
-
-        if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
+		if (m.dependent_group_id) label += '(dependent group)';
+        else if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
         else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';
         else if (m.scalable_enhancement) label += ' (Enhancement Layer)';
 
         m.gui.txt = gw_new_text(wnd.area, label, 'lefttext');
 
+		num_qualities = m.nb_qualities;
+		if (m.dependent_group_id) {
+			var q = m.get_quality(1, m.dependent_group_id);
+			if (q) num_qualities=2;
+		}
 
-        if (m.nb_qualities > 1) {
+        if (num_qualities > 1) {
             wnd.has_select = true;
             m.gui.select_label = gw_new_button(wnd.area, 'Quality');
             m.gui.select_label.odm = m;
@@ -65,9 +72,9 @@ extension.view_stats = function () {
                         notif.show();
                         return;
                     }
-                    this.odm.select_quality(this.odm.gui.qualities[idx - 1].ID);
+                    this.odm.select_quality(this.odm.gui.qualities[idx - 1].ID, this.odm.dependent_group_id);
                 } else {
-                    this.odm.select_quality('auto');
+                    this.odm.select_quality('auto', this.odm.dependent_group_id);
 
                     this.odm.update_qualities();
                 }
@@ -116,12 +123,22 @@ extension.view_stats = function () {
             m.update_qualities = function () {
                 var sel_idx = 0;
                 this.gui.qualities = [];
-                for (i = 0; i < this.nb_qualities; i++) {
-                    var q = this.get_quality(i);
-                    if (q) {
-                        this.gui.qualities.push(q);
-                    }
-                }
+				if (this.dependent_group_id) {
+					var dqidx=0;
+					while (1) {
+						var q = this.get_quality(dqidx, this.dependent_group_id);
+						if (!q) break;
+						this.gui.qualities.push(q);
+						dqidx++;
+					}
+				} else {
+					for (i = 0; i < this.nb_qualities; i++) {
+						var q = this.get_quality(i);
+						if (q) {
+							this.gui.qualities.push(q);
+						}
+					}
+				}
                 this.gui.qualities.sort(function (a, b) { return a.bandwidth - b.bandwidth });
 
                 for (i = 0; i < this.gui.qualities.length; i++) {
@@ -130,7 +147,7 @@ extension.view_stats = function () {
                 }
 
                 this.gui.select.min = 0;
-                this.gui.select.max = m.nb_qualities;
+                this.gui.select.max = this.gui.qualities.length;
                 if (this.gui.selected_idx != sel_idx) {
                     this.show_select(sel_idx);
                     this.gui.selected_idx = sel_idx;
@@ -166,8 +183,10 @@ extension.view_stats = function () {
             m.update_qualities = function () { }
         }
 
+		m.gui.info = null;
+		if (!m.dependent_group_id) {
+		
         m.gui.info = gw_new_icon(wnd.area, 'information');
-
         m.gui.info.odm = m;
         m.gui.info.on_click = function () {
             if (this.odm.gui.info_wnd) {
@@ -269,14 +288,14 @@ extension.view_stats = function () {
             odm.gui.info_wnd.on_display_size(gw_display_width, gw_display_height);
             odm.gui.info_wnd.set_alpha(0.9);
             odm.gui.info_wnd.show();
-
         }
-
+		}
+		
         m.gui.buffer = null;
         m.gui.play = null;
 
         if (m.selected_service == m.service_id) {
-            if (m.max_buffer) {
+            if (m.max_buffer && !m.dependent_group_id) {
                 nb_buffering++;
                 m.gui.buffer = gw_new_gauge(wnd.area, 'Buffer');
             }
@@ -407,9 +426,10 @@ extension.view_stats = function () {
             var res = this.extension.stats_resources[i];
             var aw = w;
 
-            res.gui.info.set_size(1.5 * gwskin.default_icon_height, gwskin.default_icon_height);
-            aw -= res.gui.info.width;
-
+            if (res.gui.info) {
+				res.gui.info.set_size(1.5 * gwskin.default_icon_height, gwskin.default_icon_height);
+				aw -= res.gui.info.width;
+			}
             if (res.gui.buffer) {
                 res.gui.buffer.set_size(2 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
             }
@@ -465,10 +485,6 @@ extension.view_stats = function () {
             this.extension.stats_wnd = null;
         }
     }
-
-    //wnd.timer = gw_new_timer(false);
-    //wnd.timer.wnd = wnd;
-    //wnd.timer.set_timeout(0.25, true);
 
     var label = 'Statistics (' + gpac.nb_cores + ' cores - ';
     if (gpac.system_memory > 1000000000) label += '' + Math.round(gpac.system_memory / 1000 / 1000 / 1000) + ' GB RAM)';

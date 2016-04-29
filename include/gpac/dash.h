@@ -218,8 +218,15 @@ void *gf_dash_get_group_udta(GF_DashClient *dash, u32 group_index);
 /*indicates whether a group is selected for playback or not. Currently groups cannot be selected during playback*/
 Bool gf_dash_is_group_selected(GF_DashClient *dash, u32 group_index);
 
-/*indicates whether this group is dependent on another group (because representations are). If this is the case, all representations of this group will be made available through the base group (and @has_next_segment flag) if the group is selected.*/
-Bool gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx);
+/*indicates whether this group is dependent on another group (because representations are). If this is the case, all representations of this group will be made available through the base group (and @has_next_segment flag) if the group is selected.
+returns -1 if not dependent on another group, otherwise return dependent group index*/
+s32 gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx);
+
+/*gives the number of groups depending on this one for decoding.*/
+u32 gf_dash_group_get_num_groups_depending_on(GF_DashClient *dash, u32 idx);
+
+/*gets the index of the depending_on group with the specified group_depending_on_dep_idx (between 0 and gf_dash_group_get_num_groups_depending_on()-1)*/
+s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 idx, u32 group_depending_on_dep_idx);
 
 /*indicates whether a group can be selected for playback or not. Some groups may have been disabled because of non supported features*/
 Bool gf_dash_is_group_selectable(GF_DashClient *dash, u32 idx);

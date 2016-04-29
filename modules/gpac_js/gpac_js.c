@@ -1274,8 +1274,24 @@ break;
 case -52:
 	*vp = BOOLEAN_TO_JSVAL((odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) ? JS_TRUE : JS_FALSE);
 	break;
+
+case -53:
+{
+	GF_NetworkCommand com;
+	memset(&com, 0, sizeof(GF_NetworkCommand));
+	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
+	com.base.on_channel = gf_list_get(odm->channels, 0);
+
+	gf_term_service_command(odm->net_service, &com);
+	if (com.quality_query.index) {
+		*vp = INT_TO_JSVAL(com.quality_query.dependent_group_index);
+	} else {
+		*vp = INT_TO_JSVAL(0);
+	}
+	break;
 }
 
+}
 return JS_TRUE;
 }
 
@@ -1285,14 +1301,19 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	s32 idx, dep_idx=0;
 
 	if (!odm) return JS_TRUE;
 	if (argc<1) return JS_TRUE;
 	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
+	idx = JSVAL_TO_INT(argv[0]);
+	if (argc>=2) dep_idx = JSVAL_TO_INT(argv[1]);
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
-	com.quality_query.index = 1 + JSVAL_TO_INT(argv[0]);
+	com.quality_query.index = 1 + idx;
+	com.quality_query.dependent_group_index = dep_idx;
+	
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 
 	if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
@@ -1314,6 +1335,8 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 		JS_DefineProperty(c, a, "is_selected", BOOLEAN_TO_JSVAL(com.quality_query.is_selected), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, a, "automatic", BOOLEAN_TO_JSVAL(com.quality_query.automatic), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, a, "tile_mode", INT_TO_JSVAL(com.quality_query.tile_adaptation_mode), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "dependent_groups", INT_TO_JSVAL(com.quality_query.dependent_group_index), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+
 
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
 	} else {
@@ -1328,14 +1351,18 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	GF_NetworkCommand com;
 	char *ID = NULL;
 	s32 tile_mode = -1;
+	u32 dep_idx = 0;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
 
 	if (!odm) return JS_TRUE;
 
-	if ((argc==1) && JSVAL_IS_STRING(argv[0])) {
+	if ((argc>=1) && JSVAL_IS_STRING(argv[0])) {
 		ID = SMJS_CHARS(c, argv[0]);
+		if ((argc>=2) && JSVAL_IS_INT(argv[1])) {
+			dep_idx = JSVAL_TO_INT( argv[1]);
+		}
 	}
 	if ((argc==1) && JSVAL_IS_INT(argv[0])) {
 		tile_mode = JSVAL_TO_INT( argv[0]);
@@ -1350,10 +1377,13 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	
 	if (tile_mode>=0) {
 		com.switch_quality.set_tile_mode_plus_one = 1 + tile_mode;
-	} else if (!strcmp(ID, "auto")) {
-		com.switch_quality.set_auto = 1;
 	} else {
-		com.switch_quality.ID = ID;
+		com.switch_quality.dependent_group_index = dep_idx;
+		if (!strcmp(ID, "auto")) {
+			com.switch_quality.set_auto = 1;
+		} else {
+			com.switch_quality.ID = ID;
+		}
 	}
 
 	gf_term_service_command(odm->net_service, &com);
@@ -1683,23 +1713,29 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 
 	if (gjs->evt != NULL) return 0;
 
-	/*fixme - events should all be handled by the compositor */
+	/*fixme - events should all be handled by the compositor - allow for max 30 ms before getting the compositor mutex */
 	res = 0;
 	retry=100;
 	while (retry && gjs->nb_loaded) {
 		res = gf_mx_try_lock(gjs->term->compositor->mx);
 		if (res) break;
 		retry --;
-		gf_sleep(0);
+		gf_sleep(1);
 	}
-	if (!res) return 0;
+	if (!res) {
+//		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GPAC-JS] Cannot grab compositor mutex - dropping event %d\n", evt->type));
+		return 0;
+	}
 
 	res = 0;
 	while (gjs->nb_loaded) {
 		res = gf_sg_try_lock_javascript(gjs->c);
 		if (res) break;
 	}
-	if (!res) return 0;
+	if (!res) {
+//		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GPAC-JS] Cannot grab JavaScript mutex - dropping event %d\n", evt->type));
+		return 0;
+	}
 
 	rval = JSVAL_VOID;
 	gjs->evt = evt;
@@ -2020,7 +2056,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 	JSPropertySpec odmClassProps[] = {
 		SMJS_PROPERTY_SPEC("ID",				-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("nb_resources",			-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_resources",		-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("service_url",		-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("duration",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("clock_time",		-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
@@ -2071,6 +2107,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_media_time",		-51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("has_srd",		-52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dependent_groups",		-53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 
 

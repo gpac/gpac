@@ -2927,11 +2927,30 @@ s32 gf_dash_group_get_dependency_group(GF_DashClient *dash, u32 idx)
 }
 
 GF_EXPORT
-Bool gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx)
+s32 gf_dash_group_has_dependent_group(GF_DashClient *dash, u32 idx)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_FALSE;
-	return group->depend_on_group ? GF_TRUE : GF_FALSE;
+	return group->depend_on_group ? gf_list_find(dash->groups, group->depend_on_group) : -1;
+}
+
+GF_EXPORT
+u32 gf_dash_group_get_num_groups_depending_on(GF_DashClient *dash, u32 idx)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return 0;
+	return group->groups_depending_on ? gf_list_count(group->groups_depending_on) : 0;
+}
+
+GF_EXPORT
+s32 gf_dash_get_dependent_group_index(GF_DashClient *dash, u32 idx, u32 group_depending_on_dep_idx)
+{
+	GF_DASH_Group *group_depending_on;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group || !group->groups_depending_on) return -1;
+	group_depending_on = gf_list_get(group->groups_depending_on, group_depending_on_dep_idx);
+	if (!group_depending_on) return -1;
+	return gf_list_find(dash->groups, group_depending_on);
 }
 
 /* create groups (implementation of adaptations set) */

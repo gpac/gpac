@@ -482,6 +482,8 @@ typedef struct
 	Bool up;
 
 	Bool set_auto;
+	//0: current group, otherwise index of the depending_on group
+	u32 dependent_group_index;
 	//or ID of the quality to switch, as indicated in query quality
 	const char *ID;
 	//1+tile mode adaptation (doesn't change other selections)
@@ -497,9 +499,11 @@ typedef struct
 	LPNETCHANNEL on_channel;
 
 	//1-based index of quality to query
-	//if 0, the command is used to query the number of quality for the object
+	//if 0, the command is used to query the number of quality for the object and the number of objects depending on this one in dependent_group_index
 	u32 index;
-
+	//if not 0, the parameters are queried for the depending on grup with the given index
+	u32 dependent_group_index;
+	
 	//all out params
 	u32 bandwidth;
 	const char *ID;
