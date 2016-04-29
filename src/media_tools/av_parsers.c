@@ -4458,7 +4458,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 			ret=1;
 			break;
 		}
-		if (hevc->s_info.first_slice_segment_in_pic_flag) {
+		if (n_state.first_slice_segment_in_pic_flag) {
 			ret=1;
 			break;
 		}
