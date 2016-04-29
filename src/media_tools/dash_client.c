@@ -2304,7 +2304,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	if (group->dash->disable_switching) return;
 
 	//nothing downloaded for this group, no rate adaptation to be done
-	if (!group->total_size || !group->bytes_per_sec) {
+	if (!group->bytes_per_sec) {
 		return;
 	}
 
@@ -4545,7 +4545,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 	GF_MPD_Representation *rep;
 	u32 total_rate, bandwidths[20], groups_per_quality[20], max_level;
 	u32 q_idx, nb_qualities = 0;
-	u32 i, count = gf_list_count(dash->groups);
+	u32 i, count = gf_list_count(dash->groups), local_files = 0;
 
 	//initialize min/max bandwidth
 	min_bandwidth = 0;
@@ -4565,14 +4565,20 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 	for (i=0; i<count; i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection != GF_DASH_GROUP_SELECTED) continue;
+		if (group->local_files) local_files ++;
 		if (!group->bytes_per_sec) continue;
 
 		//keep min rate to perform rate adaptation
 		if (total_rate > group->bytes_per_sec)
 			total_rate = group->bytes_per_sec;
 	}
-	if (total_rate == (u32) -1)
+	if (total_rate == (u32) -1) {
 		total_rate = 0;
+	}
+	if (local_files==count) {
+		total_rate = dash->dash_io->get_bytes_per_sec(dash->dash_io, NULL);
+	}
+	
 
 	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
@@ -4659,7 +4665,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 		}
 	}
 
-	//bandiwtdh sharing done, perform rate adaptation with this new numbers
+	//bandwitdh sharing done, perform rate adaptation with theses new numbers
 	for (i=0; i<count; i++) {
 		GF_DASH_Group *group = gf_list_get(dash->groups, i);
 		if (group->selection != GF_DASH_GROUP_SELECTED) continue;
@@ -6851,6 +6857,12 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
 		dash->utc_drift_estimate = 0;
 		dash->ntp_forced = 0;
 	}
+}
+
+GF_EXPORT
+GF_DASHTileAdaptationMode gf_dash_get_tile_adaptation_mode(GF_DashClient *dash)
+{
+	return dash->tile_adapt_mode;
 }
 
 GF_EXPORT

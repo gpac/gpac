@@ -132,7 +132,8 @@ struct _gf_dash_io
 	const char *(*get_header_value)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session, const char *header_name);
 	/*gets the UTC time at which reply has been received. Function is optional*/
 	u64 (*get_utc_start_time)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
-	/*get the average download rate for the session*/
+	/*get the average download rate for the session. If no session is specified, gets the max download rate
+	for the client (used for bandwidth simulation in local files)*/
 	u32 (*get_bytes_per_sec)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the total size on bytes for the session*/
 	u32 (*get_total_size)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
@@ -458,6 +459,9 @@ typedef enum
 //sets type of tile adaptation.
 // @tile_rate_decrease: percentage (0->100) of global bandwidth to use at each level (recursive rate decrease for all level). If 0% or 100%, automatic rate allocation among tiles is performed (default mode)
 void gf_dash_set_tile_adaptation_mode(GF_DashClient *dash, GF_DASHTileAdaptationMode mode, u32 tile_rate_decrease);
+
+/*returns tile adaptation mode currently used*/
+GF_DASHTileAdaptationMode gf_dash_get_tile_adaptation_mode(GF_DashClient *dash);
 
 //gets max width and height in pixels of the SRD this group belongs to, if any
 Bool gf_dash_group_get_srd_max_size_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);

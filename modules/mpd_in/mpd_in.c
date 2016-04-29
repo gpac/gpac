@@ -669,7 +669,13 @@ u32 mpdin_dash_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 {
 	u32 bps=0;
 //	GF_DownloadSession *sess = (GF_DownloadSession *)session;
-	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
+	if (session) {
+		gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
+	} else {
+		GF_MPD_In *mpdin = (GF_MPD_In *)dashio->udta;
+		bps = gf_dm_get_data_rate(mpdin->service->term->downloader);
+		bps/=8;
+	}
 	return bps;
 }
 u32 mpdin_dash_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
@@ -1246,7 +1252,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
-		if (com->switch_quality.set_auto) {
+		if (com->switch_quality.set_tile_mode_plus_one) {
+			GF_DASHTileAdaptationMode tile_mode = com->switch_quality.set_tile_mode_plus_one - 1;
+			gf_dash_set_tile_adaptation_mode(mpdin->dash, tile_mode, 100);
+		} else if (com->switch_quality.set_auto) {
 			gf_dash_set_automatic_switching(mpdin->dash, 1);
 		} else if (com->base.on_channel) {
 			segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
@@ -1336,6 +1345,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->quality_query.disabled = qinfo.disabled;
 		com->quality_query.is_selected = qinfo.is_selected;
 		com->quality_query.automatic = gf_dash_get_automatic_switching(mpdin->dash);
+		com->quality_query.tile_adaptation_mode = (u32) gf_dash_get_tile_adaptation_mode(mpdin->dash);
 		return GF_OK;
 	}
 

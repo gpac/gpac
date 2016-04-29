@@ -1271,6 +1271,9 @@ case -51:
 	}
 }
 break;
+case -52:
+	*vp = BOOLEAN_TO_JSVAL((odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) ? JS_TRUE : JS_FALSE);
+	break;
 }
 
 return JS_TRUE;
@@ -1310,6 +1313,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 		JS_DefineProperty(c, a, "disabled", BOOLEAN_TO_JSVAL(com.quality_query.disabled), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, a, "is_selected", BOOLEAN_TO_JSVAL(com.quality_query.is_selected), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 		JS_DefineProperty(c, a, "automatic", BOOLEAN_TO_JSVAL(com.quality_query.automatic), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "tile_mode", INT_TO_JSVAL(com.quality_query.tile_adaptation_mode), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
 
 		SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
 	} else {
@@ -1323,6 +1327,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 {
 	GF_NetworkCommand com;
 	char *ID = NULL;
+	s32 tile_mode = -1;
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
@@ -1332,14 +1337,20 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	if ((argc==1) && JSVAL_IS_STRING(argv[0])) {
 		ID = SMJS_CHARS(c, argv[0]);
 	}
-	if (!ID) {
+	if ((argc==1) && JSVAL_IS_INT(argv[0])) {
+		tile_mode = JSVAL_TO_INT( argv[0]);
+	}
+	if (!ID && (tile_mode<0) ) {
 		return JS_TRUE;
 	}
 
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
 	com.base.on_channel = gf_list_get(odm->channels, 0);
-	if (!strcmp(ID, "auto")) {
+	
+	if (tile_mode>=0) {
+		com.switch_quality.set_tile_mode_plus_one = 1 + tile_mode;
+	} else if (!strcmp(ID, "auto")) {
 		com.switch_quality.set_auto = 1;
 	} else {
 		com.switch_quality.ID = ID;
@@ -2059,6 +2070,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_media_time",		-51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("has_srd",		-52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 
 
