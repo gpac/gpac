@@ -715,8 +715,10 @@ struct _es_channel
 	Double ocr_scale;
 	/*clock driving this stream - currently only CTS is supported (no OCR)*/
 	struct _object_clock *clock;
-	/*flag for clock init. Only a channel owning the clock will set this flag on clock init*/
+	/*flag for clock init*/
 	Bool IsClockInit;
+	/*flag for clock init*/
+	Bool clock_inherited;
 	/*indicates that no DTS is signaled and that they should be recomputed if needed (video only)*/
 	Bool recompute_dts;
 	u32 min_ts_inc, min_computed_cts;

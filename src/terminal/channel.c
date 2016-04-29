@@ -38,7 +38,7 @@ void gf_es_buffer_off(GF_Channel *ch)
 	if (ch->BufferOn) {
 		ch->BufferOn = GF_FALSE;
 		gf_clock_buffer_off(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at OTB %d (STB %d) (nb wait on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_time(ch->clock), gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time
 		//at the end of the buffering period
 		if ((ch->clock->data_timeout==ch->odm->term->net_data_timeout) && (ch->BufferTime>=(s32) ch->MaxBuffer))
@@ -58,7 +58,7 @@ void gf_es_buffer_on(GF_Channel *ch)
 		ch->BufferOn = 1;
 		ch->last_au_time = gf_term_get_time(ch->odm->term);
 		gf_clock_buffer_on(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_time(ch->clock), gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 	}
 }
 
@@ -198,6 +198,10 @@ void gf_es_del(GF_Channel *ch)
 
 Bool gf_es_owns_clock(GF_Channel *ch)
 {
+	//if we share the clock with a clock from the same clock namespace but the clock was inherited
+	//don't trust ESIDs (typically happen in DASH where all streams may end up with the same ID...)
+	if (ch->clock_inherited) return GF_FALSE;
+	
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
 	/*It occurs in TS stream when PCR is provided in a dedicated stream. Suppose that the channel owns a clock*/
@@ -431,9 +435,7 @@ static void gf_es_update_buffer_time(GF_Channel *ch)
 		}
 
 		if (bt>0) {
-			if (bt>1000000)
-				bt=1000000;
-			ch->BufferTime = (u32) bt;
+				ch->BufferTime = (u32) bt;
 		} else {
 			ch->BufferTime = 0;
 		}
