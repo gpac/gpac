@@ -484,6 +484,8 @@ typedef struct
 	Bool set_auto;
 	//or ID of the quality to switch, as indicated in query quality
 	const char *ID;
+	//1+tile mode adaptation (doesn't change other selections)
+	u32 set_tile_mode_plus_one;
 } GF_NetQualitySwitch;
 
 
@@ -514,6 +516,7 @@ typedef struct
 	Bool disabled;
 	Bool is_selected;
 	Bool automatic;
+	u32 tile_adaptation_mode;
 } GF_NetQualityQuery;
 
 /*GF_NET_SERVICE_STATUS_PROXY*/
