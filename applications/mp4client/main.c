@@ -1425,6 +1425,10 @@ int mp4client_main(int argc, char **argv)
 	if (gui_mode==1) {
 		hide_shell(1);
 	}
+	if (gui_mode) {
+		no_prog=1;
+		gf_set_progress_callback(NULL, progress_quiet);
+	}
 
 	if (!url_arg && simulation_time_in_ms)
 		simulation_time_in_ms += gf_sys_clock();
