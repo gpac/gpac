@@ -148,7 +148,7 @@ void gf_cm_del(GF_CompositionMemory *cb)
 	/*may happen when CB is destroyed right after creation */
 	if (cb->Status == CB_BUFFER) {
 		gf_clock_buffer_off(cb->odm->codec->ck);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB destroy - ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB destroy - ODM%d: buffering off at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck), gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	if (cb->input) {
 		/*break the loop and destroy*/
@@ -324,7 +324,7 @@ exit:
 static void cb_set_buffer_off(GF_CompositionMemory *cb)
 {
 	gf_clock_buffer_off(cb->odm->codec->ck);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB Buffering done ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB Buffering done ODM%d: buffering off at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck), gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 
 	gf_term_service_media_event(cb->odm->parentscene->root_od, GF_EVENT_MEDIA_CANPLAY);
 }
@@ -639,7 +639,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		case CB_STOP:
 			cb->Status = CB_BUFFER;
 			gf_clock_buffer_on(cb->odm->codec->ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck),gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 			break;
 		case CB_PAUSE:
 			cb->Status = CB_PLAY;
@@ -656,7 +656,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->LastRenderedTS = 0;
 		if (cb->Status == CB_BUFFER) {
 			gf_clock_buffer_off(cb->odm->codec->ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering off at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck), gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		}
 		if (Status == CB_STOP) {
 			gf_cm_reset(cb);
@@ -665,7 +665,7 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 		cb->Status = Status;
 		if (Status==CB_BUFFER) {
 			gf_clock_buffer_on(cb->odm->codec->ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck), gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 		}
 	}
 
@@ -682,7 +682,7 @@ void gf_cm_set_eos(GF_CompositionMemory *cb)
 	if (cb->Status == CB_BUFFER) {
 		cb->Status = CB_BUFFER_DONE;
 		gf_clock_buffer_off(cb->odm->codec->ck);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB EOS - ODM%d: buffering off at %d (nb buffering on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB EOS - ODM%d: buffering off at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck), gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
 	}
 	cb->HasSeenEOS = 1;
 

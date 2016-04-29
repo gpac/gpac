@@ -966,6 +966,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	Bool emulated_od = 0;
 	GF_Err e;
 	GF_Scene *scene;
+	Bool clock_inherited = GF_TRUE;
 
 	/*find the clock for this new channel*/
 	ck = NULL;
@@ -1059,6 +1060,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 	if (!ck) return GF_OUT_OF_MEM;
 	esd->OCRESID = ck->clockID;
 	ck->service_id = odm->OD->ServiceID;
+	clock_inherited = GF_FALSE;
 	/*special case for non-dynamic scenes forcing clock share of all subscene, we assign the
 	parent scene clock to the first clock created in the sunscenes*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline && !scene->root_od->parentscene->dyn_ck)
@@ -1070,6 +1072,7 @@ clock_setup:
 	if (!ch) return GF_OUT_OF_MEM;
 	ch->clock = ck;
 	ch->service = serv;
+	ch->clock_inherited = clock_inherited;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Creating codec for stream %d\n", ch->esd->ESID));
 
