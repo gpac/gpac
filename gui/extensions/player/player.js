@@ -1620,12 +1620,19 @@ extension = {
             if (!m) continue;
             if (m.service_id && (m.service_id != selected_service)) continue;
 
-            if (!m.dynamic_scene) {
-                this.stats_resources.push(m);
-            }
+			m.dependent_group_id=0;
+			this.stats_resources.push(m);
+			
+			var nb_deps = m.dependent_groups;
+			for (var dep_j=0; dep_j < nb_deps; dep_j++) {
+				var copy_m = root.get_resource(res_i);
+				copy_m.dependent_group_id = dep_j + 1;
+				this.stats_resources.push(copy_m);
+			}
+
             if (m.type == 'Scene' || m.type == 'Subscene') {
                 this.gather_stats_resources(m);
-            }
+			}
         }
         this.nb_objs_at_last_scan = root.nb_resources;
     },
@@ -1678,13 +1685,27 @@ extension = {
                     }
                 }
             }
-            else bl = 100;            
-            for (var j = 0; j < m.nb_qualities; j++) {
-                var q = m.get_quality(j);
-                if (q && q.is_selected) {
-                    stat_obj.quality += Math.round(q.bandwidth / 1000);
-                }
-            }
+            else bl = 100;
+			
+			if (m.dependent_group_id) {
+				var dq_idx=0;
+				while (1) {
+					var q = m.get_quality(dq_idx, m.dependent_group_id);
+					if (!q) break;
+					if (q.is_selected) {
+						stat_obj.quality += Math.round(q.bandwidth / 1000);
+					}
+					dq_idx++;
+				}
+			} else {
+				var nb_qual = m.nb_qualities;
+				for (var j = 0; j < nb_qual; j++) {
+					var q = m.get_quality(j);
+					if (q && q.is_selected) {
+						stat_obj.quality += Math.round(q.bandwidth / 1000);
+					}
+				}
+			}
 
             if (stat_obj) {
                 if (m.ntp_diff > stat_obj.ntp_diff) {
