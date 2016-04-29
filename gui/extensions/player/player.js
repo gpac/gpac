@@ -45,7 +45,7 @@ extension = {
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
-
+	
     stats_wnd: null,
     stats_data: [],
     stats_window: 100,
@@ -1552,6 +1552,7 @@ extension = {
 			for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
 				var m = root_odm.get_resource(res_i);
 				if (root_odm.selected_service != m.service_id) continue;
+				if (m.has_srd) continue;
 				
 				if (m.type == 'Video') nb_video++;
 				else if (m.type == 'Audio') nb_audio++;
@@ -1609,9 +1610,11 @@ extension = {
 
     gather_stats_resources: function (root, selected_service) {
         //if not dynamic scene, add main OD to stats
-        if (!root.dynamic_scene)
+        if (!root.dynamic_scene) {
             this.stats_resources.push(root);
+		}
 
+	
         for (var res_i = 0; res_i < root.nb_resources; res_i++) {
             var m = root.get_resource(res_i);
             if (!m) continue;
@@ -1620,7 +1623,6 @@ extension = {
             if (!m.dynamic_scene) {
                 this.stats_resources.push(m);
             }
-
             if (m.type == 'Scene' || m.type == 'Subscene') {
                 this.gather_stats_resources(m);
             }
@@ -1704,5 +1706,6 @@ extension = {
             wnd.update_series();
         }
     }
+	
 };
 

@@ -29,12 +29,14 @@ extension.view_stats = function () {
     var nb_http = root_odm.nb_http;
     var nb_buffering = 0;
     var nb_ntp_diff = 0;
+    var srd_obj = null;
 
     wnd.has_select = false;
 
     for (var res_i = 0; res_i < wnd.extension.stats_resources.length; res_i++) {
         var m = wnd.extension.stats_resources[res_i];
         m.gui = {};
+		if (!srd_obj && m.has_srd) srd_obj = m;
 
         var label = '' + m.type;
 
@@ -295,7 +297,7 @@ extension.view_stats = function () {
     }
 
     wnd.http_control = null;
-    if (nb_http) {
+    if (nb_http || wnd.has_select) {
         wnd.http_text = gw_new_text(wnd.area, 'HTTP rate', 'lefttext');
 
         wnd.http_control = gw_new_slider(wnd.area);
@@ -347,6 +349,48 @@ extension.view_stats = function () {
         gw_new_separator(wnd.area);
     }
 
+    wnd.srd_modes = null;
+	if (srd_obj) {
+        wnd.srd_text = gw_new_text(wnd.area, 'SRD Control', 'lefttext');
+        wnd.srd_modes = gw_new_button(wnd.area, 'Modes');
+		wnd.srd_modes.wnd = wnd;
+		wnd.srd_modes.srd_obj = srd_obj;
+		wnd.srd_modes.on_click = function() {
+			this.wnd.srd_selected_mode = this.wnd.srd_current_mode;
+			this.wnd.srd_set_mode(this.wnd.srd_current_mode);
+			this.srd_obj.select_quality(this.wnd.srd_selected_mode);
+		}
+		wnd.srd_select = gw_new_spincontrol(wnd.area, true);
+		wnd.srd_select.wnd = wnd;
+		wnd.srd_select.on_click = function (val) {
+			this.wnd.srd_set_mode(val);
+		}
+        wnd.srd_select.min = 0;
+        wnd.srd_select.max = 8;
+        wnd.srd_selected_mode = srd_obj.gui.qualities[0].tile_mode;
+        wnd.srd_current_mode = 0;
+		
+		wnd.srd_set_mode = function(mode) {
+		 var label = '';
+		 this.srd_current_mode = mode;
+		 if (this.srd_current_mode == this.srd_selected_mode) label='* ';
+
+		 switch (mode) {
+		 case 0: label+='Equal'; break;
+		 case 1: label+='Top Rows'; break;
+		 case 2: label+='Bottom Rows'; break;
+		 case 3: label+='Middle Rows'; break;
+		 case 4: label+='Left Column'; break;
+		 case 5: label+='Right Column'; break;
+		 case 6: label+='Midle Column'; break;
+		 case 7: label+='Center'; break;
+		 case 8: label+='Edges'; break;
+		 }
+		 this.srd_modes.set_label(label);
+		}
+		wnd.srd_set_mode(wnd.srd_selected_mode);
+	}
+
     wnd.plot = gw_new_plotter(wnd.area);
 
 
@@ -357,7 +401,7 @@ extension.view_stats = function () {
         w = 20 * gwskin.default_text_font_size;
         w += 4 * gwskin.default_icon_height;
         if (this.has_select)
-            w += 4 * gwskin.default_icon_height;
+            w += 6 * gwskin.default_icon_height;
 
         for (var i = 0; i < this.extension.stats_resources.length; i++) {
             var res = this.extension.stats_resources[i];
@@ -377,7 +421,7 @@ extension.view_stats = function () {
             if (res.gui.select) {
                 res.gui.select.set_size(gwskin.default_icon_height, gwskin.default_icon_height);
                 aw -= gwskin.default_icon_height;
-                res.gui.select_label.set_size(4 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
+                res.gui.select_label.set_size(6 * gwskin.default_icon_height, 0.75 * gwskin.default_icon_height);
                 aw -= 4 * gwskin.default_icon_height;
             }
 
@@ -392,12 +436,19 @@ extension.view_stats = function () {
             h += 8 * gwskin.default_icon_height;
         }
 
-        if (wnd.http_control) {
-            wnd.http_text.set_size(11 * gwskin.default_text_font_size, gwskin.default_icon_height);
+        if (this.http_control) {
+            this.http_text.set_size(11 * gwskin.default_text_font_size, gwskin.default_icon_height);
             var ch = 0.5 * gwskin.default_icon_height;
-            wnd.http_control.set_size(w - 11 * gwskin.default_text_font_size, ch, ch, ch);
+            this.http_control.set_size(w - 11 * gwskin.default_text_font_size, ch, ch, ch);
             h += gwskin.default_icon_height;
         }
+		
+		if (this.srd_modes) {
+			var cw = 0.75 * gwskin.default_icon_height;
+			this.srd_text.set_size(12 * gwskin.default_text_font_size, gwskin.default_icon_height);
+			this.srd_modes.set_size(w - 12 * gwskin.default_text_font_size - gwskin.default_icon_height, cw);
+			this.srd_select.set_size(gwskin.default_icon_height, cw);
+		}
 
         this.set_size(w, h);
         this.move((w - width) / 2, (height - h) / 2);
