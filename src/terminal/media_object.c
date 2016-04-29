@@ -382,7 +382,6 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	}
 }
 
-
 GF_EXPORT
 char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
 {
@@ -399,8 +398,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 
-	if (!gf_odm_lock_mo(mo))
+	if (!gf_odm_lock_mo(mo)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock MO, returning\n", mo->odm->OD->objectDescriptorID));
 		return NULL;
+	}
 
 	if (!mo->odm->codec || !mo->odm->codec->CB) {
 		gf_odm_lock(mo->odm, 0);
@@ -410,6 +411,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	/*if frame locked return it*/
 	if (mo->nb_fetch) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CU already fetched, returning\n", mo->odm->OD->objectDescriptorID));
 		mo->nb_fetch ++;
 		gf_odm_lock(mo->odm, 0);
 		return mo->frame;
@@ -421,6 +423,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	/*not running and no resync (ie audio)*/
 	if (!resync && !gf_cm_is_running(codec->CB)) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: CB not running, returning\n", mo->odm->OD->objectDescriptorID));
 		gf_odm_lock(mo->odm, 0);
 		return NULL;
 	}
@@ -467,8 +470,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		if (!retry && (force_decode_mode==1)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize, decode and fetch next frame in 100 ms - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
-		if (!gf_odm_lock_mo(mo))
+		if (!gf_odm_lock_mo(mo)) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock ODM\n", mo->odm->OD->objectDescriptorID));
 			return NULL;
+		}
 	}
 
 	/*new frame to fetch, lock*/
@@ -476,6 +481,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	/*no output*/
 	if (!CU || (CU->RenderedLength == CU->dataLength)) {
 		gf_odm_lock(mo->odm, 0);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] No CU available\n", mo->odm->OD->objectDescriptorID));
 		return NULL;
 	}
 
@@ -503,7 +509,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
+//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
 			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
@@ -516,8 +522,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		resync=GF_MO_FETCH;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %d now %d\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
 			CU = gf_cm_get_output(codec->CB);
 			if (!CU) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] No next CU available, skipping\n", mo->odm->OD->objectDescriptorID));
 				gf_odm_lock(mo->odm, 0);
 				return NULL;
 			}
@@ -527,9 +535,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if (resync) {
 		u32 nb_dropped = 0;
 		while (1) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
-			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time)
+			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time )
 				break;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
 
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
@@ -613,6 +622,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	} else if (*eos) {
 		//already rendered the last frame, consider we no longer have pending late frame on this stream
 		mo->ms_until_pres = 0;
+	} else {
+//		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u same frame fetch TS %u\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, obj_time, CU->TS ));
 	}
 
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
