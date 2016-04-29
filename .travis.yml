@@ -11,7 +11,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq install lcov ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew update; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install coreutils gnu-time gnu-sed gnu-tar xz; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install coreutils gnu-time gnu-sed gnu-tar xz lcov; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
 env:
   - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
@@ -23,9 +23,9 @@ env:
 matrix:
   include:
     - os: linux
-      env: GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags='-w -fPIC' --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
+      env: GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=-fPIC --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
     - os: linux
-      env: GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags='-w -fPIC' --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
+      env: GPAC_CONFIGURE_OPTIONS="--static-mp4box --use-zlib=no --extra-cflags=-fPIC --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" DOINSTALL="" DOTRAVIS=""
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0 ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sh -e /etc/init.d/xvfb start ; fi
