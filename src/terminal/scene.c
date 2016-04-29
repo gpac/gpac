@@ -1408,7 +1408,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	if (scene->is_srd) {
 		char szName[20], szTex[20], szGeom[20];
-		u32 i, nb_srd = 0;
+		u32 i, nb_srd = 0, srd_missing = 0;
 		GF_ObjectManager *a_odm;
 		SFURL url;
 		u32 sw, sh;
@@ -1420,6 +1420,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 			if (!a_odm->mo || !a_odm->mo->srd_w) {
+				srd_missing++;
 				continue;
 			}
 			if ((s32) a_odm->mo->srd_x < min_x) min_x = (s32) a_odm->mo->srd_x;
@@ -1431,7 +1432,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		}
 
 		n1 = gf_sg_find_node_by_name(scene->graph, "DYN_TRANS");
-		for (i=1; i<nb_srd; i++) {
+		for (i=1; i<nb_srd+srd_missing; i++) {
 			sprintf(szName, "TR%d", i+1);
 			sprintf(szTex, "DYN_VIDEO%d", i+1);
 			sprintf(szGeom, "DYN_GEOM%d", i+1);
@@ -1454,6 +1455,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 				url.OD_ID = a_odm->OD->objectDescriptorID;
 
 				mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, szTex);
+				if (!mt) continue;
+
 				set_media_url(scene, &url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 
 				if (!scene->dyn_ck && a_odm->codec) {
@@ -1495,7 +1498,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
 
 		n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
-		((M_TouchSensor *)n2)->enabled = GF_TRUE;
+		((M_TouchSensor *)n2)->enabled = GF_FALSE;
 	}
 
 	gf_sc_lock(scene->root_od->term->compositor, 0);
