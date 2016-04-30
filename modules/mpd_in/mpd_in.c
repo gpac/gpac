@@ -1135,6 +1135,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "SwitchProbeCount", "1");
 	}
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AgressiveSwitching");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AgressiveSwitching", "no");
+	gf_dash_set_agressive_adaptation(mpdin->dash,  (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet", "-1");
@@ -1148,6 +1151,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_FALSE);
 	else
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
+
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);

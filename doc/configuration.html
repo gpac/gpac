@@ -810,6 +810,10 @@ Enables adaptation based on playback speed. Default is no.
 Sets how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations. 
 Default value is 1.
 </p>
+<b>AgressiveSwitching</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+If yes, switching targets to the closest bandwidth fitting the available download rate. If no, switching targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth). Default value is no.
+</p>
 <b>TileAdaptation</b> [value: <i>none, rows, reverseRows, middleRows, columns, reverseColumns, middleColumns, center</i>]
 <p style="text-indent: 5%">
 Selects how bitrate is shared across tiles of a video:
