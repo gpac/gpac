@@ -91,6 +91,9 @@ typedef struct
 	//list of config files for storage
 	GF_List *storages;
 
+	GF_List *event_queue;
+	GF_Mutex *event_mx;
+
 } GF_GPACJSExt;
 
 
@@ -1703,41 +1706,12 @@ if (SMJS_ID_IS_INT(id)) {
 return JS_TRUE;
 }
 
-static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
+static Bool gjs_event_filter_process(GF_GPACJSExt *gjs, GF_Event *evt)
 {
-	u32 retry;
 	Bool res;
 	jsval argv[1], rval;
-	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
-	if (consumed_by_compositor) return 0;
-
-	if (gjs->evt != NULL) return 0;
-
-	/*fixme - events should all be handled by the compositor - allow for max 30 ms before getting the compositor mutex */
-	res = 0;
-	retry=100;
-	while (retry && gjs->nb_loaded) {
-		res = gf_mx_try_lock(gjs->term->compositor->mx);
-		if (res) break;
-		retry --;
-		gf_sleep(1);
-	}
-	if (!res) {
-//		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GPAC-JS] Cannot grab compositor mutex - dropping event %d\n", evt->type));
-		return 0;
-	}
-
-	res = 0;
-	while (gjs->nb_loaded) {
-		res = gf_sg_try_lock_javascript(gjs->c);
-		if (res) break;
-	}
-	if (!res) {
-//		GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[GPAC-JS] Cannot grab JavaScript mutex - dropping event %d\n", evt->type));
-		return 0;
-	}
-
 	rval = JSVAL_VOID;
+
 	gjs->evt = evt;
 	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, gjs);
 	argv[0] = OBJECT_TO_JSVAL(gjs->evt_obj);
@@ -1745,7 +1719,6 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	JS_CallFunctionValue(gjs->c, gjs->evt_filter_obj, gjs->evt_fun, 1, argv, &rval);
 	SMJS_SET_PRIVATE(gjs->c, gjs->evt_obj, NULL);
 	gjs->evt = NULL;
-	gf_mx_v(gjs->term->compositor->mx);
 
 	res = 0;
 	if (JSVAL_IS_BOOLEAN(rval) ) {
@@ -1753,7 +1726,52 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	} else if (JSVAL_IS_INT(rval) ) {
 		res = (JSVAL_TO_INT(rval)) ? 1 : 0;
 	}
+	return res;
+}
 
+static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_compositor)
+{
+	u32 lock_fail;
+	Bool res;
+	GF_GPACJSExt *gjs = (GF_GPACJSExt *)udta;
+	if (consumed_by_compositor) return 0;
+
+	if (gjs->evt != NULL) return 0;
+
+	lock_fail=0;
+	res = gf_mx_try_lock(gjs->term->compositor->mx);
+	if (!res) {
+		lock_fail=1;
+	} else {
+		res = gf_sg_try_lock_javascript(gjs->c);
+		if (!res) lock_fail=2;
+	}
+	if (lock_fail) {
+		GF_Event *evt_clone;
+		gf_mx_p(gjs->event_mx);
+		evt_clone = gf_malloc(sizeof(GF_Event));;
+		memcpy(evt_clone, evt, sizeof(GF_Event));
+		gf_list_add(gjs->event_queue, evt_clone);
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[GPACJS] Couldn't lock % mutex, queing event\n", (lock_fail==2) ? "JavaScript" : "Compositor"));
+		gf_mx_v(gjs->event_mx);
+
+		if (lock_fail==2){
+			gf_mx_v(gjs->term->compositor->mx);
+		}
+		return 0;
+	}
+	
+	gf_mx_p(gjs->event_mx);
+	while (gf_list_count(gjs->event_queue)) {
+		GF_Event *an_evt = (GF_Event *) gf_list_pop_front(gjs->event_queue);
+		gjs_event_filter_process(gjs, an_evt);
+		gf_free(an_evt);
+	}
+	gf_mx_v(gjs->event_mx);
+	
+	res = gjs_event_filter_process(gjs, evt);
+
+	gf_mx_v(gjs->term->compositor->mx);
 	gf_sg_lock_javascript(gjs->c, 0);
 	return res;
 }
@@ -2247,6 +2265,8 @@ GF_JSUserExtension *gjs_new()
 	gjs->rti_refresh_rate = GPAC_JS_RTI_REFRESH_RATE;
 	gjs->evt_fun = JSVAL_NULL;
 	gjs->storages = gf_list_new();
+	gjs->event_queue = gf_list_new();
+	gjs->event_mx = gf_mx_new("GPACJSEvt");
 	dr->load = gjs_load;
 	dr->udta = gjs;
 	return dr;
@@ -2264,6 +2284,13 @@ void gjs_delete(GF_BaseInterface *ifce)
 		gf_cfg_del(cfg);
 	}
 	gf_list_del(gjs->storages);
+
+	while (gf_list_count(gjs->event_queue)) {
+		GF_Event *evt = (GF_Event *) gf_list_pop_back(gjs->event_queue);
+		gf_free(evt);
+	}
+	gf_list_del(gjs->event_queue);
+	gf_mx_del(gjs->event_mx);
 
 	gf_free(gjs);
 	gf_free(dr);
