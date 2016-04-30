@@ -392,6 +392,9 @@ void gf_dash_set_user_buffer(GF_DashClient *dash, u32 buffer_time_ms);
 //bandwidth or one more segment before switching up, event if download rate is enough)
 //seting to 0 means the switch will happen instantly, but this is more prone to quality changes due to network variations
 void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_count);
+/*If agressive switching is enabled, switching targets to the closest bandwidth fitting the available download rate. Otherwise, switching targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth). Default value is no.
+*/
+void gf_dash_set_agressive_adaptation(GF_DashClient *dash, Bool eanble_agressive_switch);
 
 /*returns active period start in ms*/
 u64 gf_dash_get_period_start(GF_DashClient *dash);

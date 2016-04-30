@@ -129,7 +129,7 @@ struct __dash_client
 
 	Double speed;
 	u32 probe_times_before_switch;
-
+	Bool agressive_switching;
 	u32 min_wait_ms_before_next_request;
 
 	Bool force_mpd_update;
@@ -2406,24 +2406,24 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 					if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Bitrate adaptation\n"));
 					if (!new_rep) new_rep = arep;
 					else if (go_up_bitrate) {
-#if 0
-						/*try to switch to highest bitrate below available download rate*/
-						if (arep->bandwidth > new_rep->bandwidth) {
-							if (new_rep->bandwidth > rep->bandwidth) {
+						if (dash->agressive_switching) {
+							/*try to switch to highest bitrate below available download rate*/
+							if (arep->bandwidth > new_rep->bandwidth) {
+								if (new_rep->bandwidth > rep->bandwidth) {
+									nb_inter_rep ++;
+								}
+								new_rep = arep;
+							} else if (arep->bandwidth > rep->bandwidth) {
 								nb_inter_rep ++;
 							}
-							new_rep = arep;
-						} else if (arep->bandwidth > rep->bandwidth) {
-							nb_inter_rep ++;
+						} else {
+							/*try to switch to lowest bitrate above our current rep*/
+							if (new_rep->bandwidth<=rep->bandwidth) {
+								new_rep = arep;
+							} else if ( (arep->bandwidth < new_rep->bandwidth) && (arep->bandwidth > rep->bandwidth)) {
+								new_rep = arep;
+							}
 						}
-#else
-						/*try to switch to lowest bitrate above our current rep*/
-						if (new_rep->bandwidth<=rep->bandwidth) {
-							new_rep = arep;
-						} else if ( (arep->bandwidth < new_rep->bandwidth) && (arep->bandwidth > rep->bandwidth)) {
-							new_rep = arep;
-						}
-#endif
 					} else {
 						/*try to switch to highest bitrate below available download rate*/
 						if (arep->bandwidth > new_rep->bandwidth) {
@@ -5525,6 +5525,12 @@ GF_EXPORT
 void gf_dash_set_switching_probe_count(GF_DashClient *dash, u32 switch_probe_count)
 {
 	dash->probe_times_before_switch = switch_probe_count;
+}
+
+GF_EXPORT
+void gf_dash_set_agressive_adaptation(GF_DashClient *dash, Bool agressive_switch)
+{
+	dash->agressive_switching = agressive_switch;
 }
 
 
