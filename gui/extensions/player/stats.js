@@ -401,7 +401,7 @@ extension.view_stats = function () {
 		 case 3: label+='Middle Rows'; break;
 		 case 4: label+='Left Column'; break;
 		 case 5: label+='Right Column'; break;
-		 case 6: label+='Midle Column'; break;
+		 case 6: label+='Middle Column'; break;
 		 case 7: label+='Center'; break;
 		 case 8: label+='Edges'; break;
 		 }
