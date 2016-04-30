@@ -30,7 +30,7 @@ before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sh -e /etc/init.d/xvfb start ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sleep 3 ; fi # give xvfb some time to start
 script: 
-  - ./configure --extra-cflags="$GPAC_CONFIGURE_ECFLAGS" $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTRAVIS
+  - ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTRAVIS
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash) ; fi 
 
