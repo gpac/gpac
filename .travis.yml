@@ -22,9 +22,9 @@ env:
 matrix:
   include:
     - os: linux
-      env: GPAC_CONFIGURE_OPTIONS="--enable-debug --static-mp4box --use-zlib=no --target-os=mingw32 --cross-prefix=i686-w64-mingw32-" GPAC_CONFIGURE_ECFLAGS="-w -fPIC" DOINSTALL="" DOTRAVIS=""
+      env: GPAC_CONFIGURE_OPTIONS="--prefix=build/x86_64-w64-mingw32 --enable-debug --static-mp4box --use-zlib=no --target-os=mingw32 --cross-prefix=i686-w64-mingw32- --extra-ldflags=-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" DOINSTALL="" DOTRAVIS=""
     - os: linux
-      env: GPAC_CONFIGURE_OPTIONS="--enable-debug --static-mp4box --use-zlib=no --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32-" GPAC_CONFIGURE_ECFLAGS="-w -fPIC" DOINSTALL="" DOTRAVIS=""
+      env: GPAC_CONFIGURE_OPTIONS="--prefix=build/x86_64-w64-mingw32 --enable-debug --static-mp4box --use-zlib=no --target-os=mingw32 --cross-prefix=x86_64-w64-mingw32- --extra-ldflags=-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" DOINSTALL="" DOTRAVIS=""
 before_script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then export DISPLAY=:99.0 ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sh -e /etc/init.d/xvfb start ; fi
