@@ -440,9 +440,7 @@ cc="${cross_prefix}${cc}"
 cc="${cc}"
 cxx="${cross_prefix}${cxx}"
 ar="${cross_prefix}${ar}"
-if [ -e "${cross_prefix}${ranlib}" ] ; then
-    ranlib="${cross_prefix}${ranlib}"
-fi
+ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
 pkg_config="${pkg_config}"
 windres="${cross_prefix}${windres}"
