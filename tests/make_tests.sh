@@ -1002,7 +1002,8 @@ fi
 echo "Logs for GPAC test suite - execution date $start_date" > $ALL_LOGS
 
 echo '<?xml version="1.0" encoding="UTF-8"?>' > $ALL_REPORTS
-echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
+echo '<?xml-stylesheet href="stylesheet.xsl" type="text/xsl"?>' >> $ALL_REPORTS
+echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"$start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
 
 
