@@ -31,15 +31,13 @@ if grep "platform=\"Linux\"" all_results.xml > /dev/null; then
         echo 'GH_REF_LINUX is not defined, do nothing'
         exit 0
     fi
-    echo "git push --force --quiet "https://${GH_TOKEN}@${GH_REF_LINUX}" master:gh-pages"
-    #git push --force --quiet "https://${GH_TOKEN}@${GH_REF_LINUX}" master:gh-pages > /dev/null 2>&1
+    git push --force --quiet "https://${GH_TOKEN}@${GH_REF_LINUX}" master:gh-pages > /dev/null 2>&1
 elif grep "platform=\"Darwin\"" all_results.xml > /dev/null; then
    if [ -z "$GH_REF_MACOS" ]; then
         echo 'GH_REF_MACOS is not defined, do nothing'
         exit 0
     fi
-    echo "git push --force --quiet "https://${GH_TOKEN}@${GH_REF_MACOS}" master:gh-pages"
-    #git push --force --quiet "https://${GH_TOKEN}@${GH_REF_MACOS}" master:gh-pages > /dev/null 2>&1 
+    git push --force --quiet "https://${GH_TOKEN}@${GH_REF_MACOS}" master:gh-pages > /dev/null 2>&1 
 else
     echo 'platform unknown, do nothing'
 fi
