@@ -1117,9 +1117,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->upload_time += push_time;
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-			if (txh->pixelformat==GF_PIXEL_YV12_10 || GF_PIXEL_YUV444_10 || GF_PIXEL_YUV422_10 ) {
+			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-				glPixelTransferi(GL_RED_SCALE, 1);// pourquoi 1 et non pas 64 
+				glPixelTransferi(GL_RED_SCALE, 1);
 			}
 #endif
 
