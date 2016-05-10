@@ -96,6 +96,112 @@ typedef struct
 
 } GF_GPACJSExt;
 
+enum {
+	GJS_OM_PROP_ID = -1,
+	GJS_OM_PROP_NB_RES = -2,
+	GJS_OM_PROP_URL = -3,
+	GJS_OM_PROP_DUR = -4,
+	GJS_OM_PROP_CLOCK = -5,
+	GJS_OM_PROP_DRIFT = -6,
+	GJS_OM_PROP_STATUS = -7,
+	GJS_OM_PROP_BUFFER = -8,
+	GJS_OM_PROP_DB_COUNT = -9,
+	GJS_OM_PROP_CB_COUNT = -10,
+	GJS_OM_PROP_CB_CAP = -11,
+	GJS_OM_PROP_TYPE = -12,
+	GJS_OM_PROP_SAMPLERATE = -13,
+	GJS_OM_PROP_CHANNELS = -14,
+	GJS_OM_PROP_LANG = -15,
+	GJS_OM_PROP_WIDTH = -16,
+	GJS_OM_PROP_HEIGHT = -17,
+	GJS_OM_PROP_PIXELFORMAT = -18,
+	GJS_OM_PROP_PAR = -19,
+	GJS_OM_PROP_DEC_FRAMES = -20,
+	GJS_OM_PROP_DROP_FRAMES = -21,
+	GJS_OM_PROP_DEC_TIME_MAX = -22,
+	GJS_OM_PROP_DEC_TIME_TOTAL = -23,
+	GJS_OM_PROP_AVG_RATE = -24,
+	GJS_OM_PROP_MAX_RATE = -25,
+	GJS_OM_PROP_SERVICE_HANDLER = -26,
+	GJS_OM_PROP_CODEC = -27,
+	GJS_OM_PROP_NB_QUALITIES = -28,
+	GJS_OM_PROP_MAX_BUFFER = -29,
+	GJS_OM_PROP_MIN_BUFFER = -30,
+	GJS_OM_PROP_FRAME_DUR = -31,
+	GJS_OM_PROP_NB_IRAP = -32,
+	GJS_OM_PROP_IRAP_DEC_TIME = -33,
+	GJS_OM_PROP_IRAP_MAX_TIME = -34,
+	GJS_OM_PROP_SERVICE_ID = -35,
+	GJS_OM_PROP_SELECTED_SERVICE = -36,
+	GJS_OM_PROP_BANDWIDTH_DOWN = -37,
+	GJS_OM_PROP_NB_HTTP = -38,
+	GJS_OM_PROP_TIMESHIFT_DEPTH = -39,
+	GJS_OM_PROP_TIMESHIFT_TIME = -40,
+	GJS_OM_PROP_IS_ADDON = -41,
+	GJS_OM_PROP_MAIN_ADDON_ON = -42,
+	GJS_OM_PROP_IS_OVER = -43,
+	GJS_OM_PROP_IS_PULLING = -44,
+	GJS_OM_PROP_DYNAMIC_SCENE = -45,
+	GJS_OM_PROP_SERVICE_NAME = -46,
+	GJS_OM_PROP_NTP_DIFF = -47,
+	GJS_OM_PROP_MAIN_ADDON_URL = -48,
+	GJS_OM_PROP_REVERSE_PLAYBACK = -49,
+	GJS_OM_PROP_SCALABLE_ENHANCEMENT = -50,
+	GJS_OM_PROP_MAIN_ADDON_MEDIATIME = -51,
+	GJS_OM_PROP_SRD = -52,
+	GJS_OM_PROP_DEPENDENT_GROUPS = -53,
+};
+
+enum {
+	GJS_GPAC_PROP_LAST_WORK_DIR = -1,
+	GJS_GPAC_PROP_SCALE_X = -2,
+	GJS_GPAC_PROP_SCALE_Y = -3,
+	GJS_GPAC_PROP_TRANSLATION_X = -4,
+	GJS_GPAC_PROP_TRANSLATION_Y = -5,
+	GJS_GPAC_PROP_RECT_TEXTURES = -6,
+	GJS_GPAC_PROP_BATTERY_ON = -7,
+	GJS_GPAC_PROP_BATTERY_CHARGE = -8,
+	GJS_GPAC_PROP_BATTERY_PERCENT = -9,
+	GJS_GPAC_PROP_BATTERY_LIFETIME = -10,
+	GJS_GPAC_PROP_BATTERY_LIFETIME_FULL = -11,
+	GJS_GPAC_PROP_HOSTNAME = -12,
+	GJS_GPAC_PROP_FULLSCREEN = -13,
+	GJS_GPAC_PROP_CURRENT_PATH = -14,
+	GJS_GPAC_PROP_VOLUME = -15,
+	GJS_GPAC_PROP_NAVIGATION = -16,
+	GJS_GPAC_PROP_NAVIGATION_TYPE = -17,
+	GJS_GPAC_PROP_HARDWARE_YUV = -18,
+	GJS_GPAC_PROP_HARDWARE_RGB = -19,
+	GJS_GPAC_PROP_HARDWARE_RGBA = -20,
+	GJS_GPAC_PROP_HARDWARE_STRETCH = -21,
+	GJS_GPAC_PROP_SCREEN_WIDTH = -22,
+	GJS_GPAC_PROP_SCREEN_HEIGHT = -23,
+	GJS_GPAC_PROP_HTTP_MAX_RATE = -24,
+	GJS_GPAC_PROP_HTTP_RATE = -25,
+	GJS_GPAC_PROP_FPS = -26,
+	GJS_GPAC_PROP_CPU = -27,
+	GJS_GPAC_PROP_NB_CORES = -28,
+	GJS_GPAC_PROP_MEMORY_SYSTEM = -29,
+	GJS_GPAC_PROP_MEMORY = -30,
+	GJS_GPAC_PROP_ARGC = -31,
+	GJS_GPAC_PROP_CAPTION = -32,
+	GJS_GPAC_PROP_FOCUS_HIGHLIGHT = -33,
+	GJS_GPAC_PROP_DPI_X = -34,
+	GJS_GPAC_PROP_DPI_Y = -35,
+};
+
+enum {
+	GJS_EVT_PROP_KEYCODE = -1,
+	GJS_EVT_PROP_MOUSE_X = -2,
+	GJS_EVT_PROP_MOUSE_Y = -3,
+	GJS_EVT_PROP_PICKED = -4,
+	GJS_EVT_PROP_WHEEL = -5,
+	GJS_EVT_PROP_BUTTON = -6,
+	GJS_EVT_PROP_TYPE = -7,
+	GJS_EVT_PROP_NAME = -8,
+	GJS_EVT_PROP_HWKEY = -9,
+};
+
 
 static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
 {
@@ -114,29 +220,29 @@ if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 prop_id = SMJS_ID_TO_INT(id);
 
 switch (prop_id) {
-case -1: //"last_working_directory"
+case GJS_GPAC_PROP_LAST_WORK_DIR:
 	res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
 	if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
 	break;
 
-case -2: //"scale_x"))
+case GJS_GPAC_PROP_SCALE_X:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
 	break;
 
-case -3: //"scale_y"
+case GJS_GPAC_PROP_SCALE_Y:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
 	break;
 
-case -4: //"translation_x"
+case GJS_GPAC_PROP_TRANSLATION_X:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
 	break;
 
-case -5: //"translation_y"
+case GJS_GPAC_PROP_TRANSLATION_Y:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
 	break;
 
-case -6: //"rectangular_textures"
+case GJS_GPAC_PROP_RECT_TEXTURES:
 {
 	Bool any_size = GF_FALSE;
 #ifndef GPAC_DISABLE_3D
@@ -147,7 +253,7 @@ case -6: //"rectangular_textures"
 }
 break;
 
-case -7: //"batteryOn"
+case GJS_GPAC_PROP_BATTERY_ON:
 {
 	Bool on_battery = GF_FALSE;
 	gf_sys_get_battery_state(&on_battery, NULL, NULL, NULL, NULL);
@@ -155,7 +261,7 @@ case -7: //"batteryOn"
 }
 break;
 
-case -8: //	"batteryCharging"
+case GJS_GPAC_PROP_BATTERY_CHARGE:
 {
 	u32 on_charge = 0;
 	gf_sys_get_battery_state(NULL, &on_charge, NULL, NULL, NULL);
@@ -163,7 +269,7 @@ case -8: //	"batteryCharging"
 }
 break;
 
-case -9: //	"batteryPercent"
+case GJS_GPAC_PROP_BATTERY_PERCENT:
 {
 	u32 level = 0;
 	gf_sys_get_battery_state(NULL, NULL, &level, NULL, NULL);
@@ -171,7 +277,7 @@ case -9: //	"batteryPercent"
 }
 break;
 
-case -10: //"batteryLifeTime"
+case GJS_GPAC_PROP_BATTERY_LIFETIME:
 {
 	u32 level = 0;
 	gf_sys_get_battery_state(NULL, NULL, NULL, &level, NULL);
@@ -179,7 +285,7 @@ case -10: //"batteryLifeTime"
 }
 break;
 
-case -11: //"batteryFullLifeTime"
+case GJS_GPAC_PROP_BATTERY_LIFETIME_FULL:
 {
 	u32 level = 0;
 	gf_sys_get_battery_state(NULL, NULL, NULL, NULL, &level);
@@ -187,7 +293,7 @@ case -11: //"batteryFullLifeTime"
 }
 break;
 
-case -12: //"hostname"
+case GJS_GPAC_PROP_HOSTNAME:
 {
 	char hostname[100];
 	gf_sk_get_host_name((char*)hostname);
@@ -195,11 +301,11 @@ case -12: //"hostname"
 }
 break;
 
-case -13: //"fullscreen"
+case GJS_GPAC_PROP_FULLSCREEN:
 	*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE);
 	break;
 
-case -14: //"current_path"
+case GJS_GPAC_PROP_CURRENT_PATH:
 {
 	char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
 	if (!url) url = gf_strdup("");
@@ -208,27 +314,27 @@ case -14: //"current_path"
 }
 break;
 
-case -15: //"volume"
+case GJS_GPAC_PROP_VOLUME:
 	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
 	break;
 
-case -16: //"navigation"
+case GJS_GPAC_PROP_NAVIGATION:
 	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
 	break;
 
-case -17: //"navigation_type"
+case GJS_GPAC_PROP_NAVIGATION_TYPE:
 	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
 	break;
 
-case -18: //"hardware_yuv"
+case GJS_GPAC_PROP_HARDWARE_YUV:
 	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
 	break;
 
-case -19: //"hardware_rgb"
+case GJS_GPAC_PROP_HARDWARE_RGB:
 	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
 	break;
 
-case -20: //"hardware_rgba"
+case GJS_GPAC_PROP_HARDWARE_RGBA:
 {
 	u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
 #ifndef GPAC_DISABLE_3D
@@ -238,31 +344,31 @@ case -20: //"hardware_rgba"
 }
 break;
 
-case -21: //"hardware_stretch"
+case GJS_GPAC_PROP_HARDWARE_STRETCH:
 	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
 	break;
 
-case -22: //"screen_width"
+case GJS_GPAC_PROP_SCREEN_WIDTH:
 	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
 	break;
 
-case -23: //"screen_height"
+case GJS_GPAC_PROP_SCREEN_HEIGHT:
 	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
 	break;
 
-case -24: //"http_max_bitrate"
+case GJS_GPAC_PROP_HTTP_MAX_RATE:
 	*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader));
 	break;
 
-case -25: //"http_bitrate"
+case GJS_GPAC_PROP_HTTP_RATE:
 	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(term->downloader) / 1000);
 	break;
 
-case -26: //"fps"
+case GJS_GPAC_PROP_FPS:
 	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_term_get_framerate(term, 0) ) );
 	break;
 
-case -27: //"cpu_load" || "cpu"
+case GJS_GPAC_PROP_CPU:
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
@@ -270,7 +376,7 @@ case -27: //"cpu_load" || "cpu"
 }
 break;
 
-case -28: //"nb_cores"
+case GJS_GPAC_PROP_NB_CORES:
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
@@ -278,7 +384,7 @@ case -28: //"nb_cores"
 }
 break;
 
-case -29: //"system_memory"
+case GJS_GPAC_PROP_MEMORY_SYSTEM:
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
@@ -286,7 +392,7 @@ case -29: //"system_memory"
 }
 break;
 
-case -30: //"memory"
+case GJS_GPAC_PROP_MEMORY:
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
 	gf_sys_get_rti(ext->rti_refresh_rate, &ext->rti, 0);
@@ -294,15 +400,15 @@ case -30: //"memory"
 }
 break;
 
-case -31: //"argc"
+case GJS_GPAC_PROP_ARGC:
 	*vp = INT_TO_JSVAL(gf_sys_get_argc() );
 	break;
 
-case -36://"dpi_x"
+case GJS_GPAC_PROP_DPI_X:
 	*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_x);
 	break;
 
-case -37://"dpi_y"
+case GJS_GPAC_PROP_DPI_Y:
 	*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_y);
 	break;
 }
@@ -322,7 +428,7 @@ if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 prop_id = SMJS_ID_TO_INT(id);
 
 switch (prop_id) {
-case -1: //"last_working_directory"
+case GJS_GPAC_PROP_LAST_WORK_DIR:
 	if (!JSVAL_IS_STRING(*vp)) {
 		return JS_FALSE;
 	}
@@ -330,7 +436,7 @@ case -1: //"last_working_directory"
 	gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
 	SMJS_FREE(c, prop_val);
 	break;
-case -32://"caption"
+case GJS_GPAC_PROP_CAPTION:
 {
 	GF_Event evt;
 	char *caption;
@@ -349,7 +455,7 @@ case -32://"caption"
 	SMJS_FREE(c, (char*)caption);
 }
 break;
-case -13://"fullscreen"
+case GJS_GPAC_PROP_FULLSCREEN:
 {
 	/*no fullscreen for iOS (always on)*/
 #ifndef GPAC_IPHONE
@@ -360,7 +466,7 @@ case -13://"fullscreen"
 #endif
 }
 break;
-case -15: //"volume"
+case GJS_GPAC_PROP_VOLUME:
 	if (JSVAL_IS_NUMBER(*vp)) {
 		jsdouble d;
 		SMJS_GET_NUMBER(*vp, d);
@@ -370,33 +476,19 @@ case -15: //"volume"
 	}
 	break;
 
-case -16: //"navigation"
+case GJS_GPAC_PROP_NAVIGATION:
 	gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
 	break;
-case -17: //"navigation_type"
+case GJS_GPAC_PROP_NAVIGATION_TYPE:
 	gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
 	break;
-case -33: //"disable_hardware_blit"
-	term->compositor->disable_hardware_blit = JSVAL_TO_INT(*vp) ? 1 : 0;
-	gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
-	break;
-case -34: //"disable_composite_blit"
-{
-	Bool new_val = JSVAL_TO_INT(*vp) ? 1 : 0;
-	if (new_val != term->compositor->disable_composite_blit) {
-		term->compositor->disable_composite_blit = new_val;
-		term->compositor->rebuild_offscreen_textures = 1;
-		gf_sc_set_option(term->compositor, GF_OPT_REFRESH, 0);
-	}
-}
-break;
-case -24:  //"http_max_bitrate"
+case GJS_GPAC_PROP_HTTP_MAX_RATE:
 {
 	u32 new_rate = JSVAL_TO_INT(*vp);
 	gf_dm_set_data_rate(term->downloader, new_rate);
 }
 break;
-case -35: //"focus_highlight"
+case GJS_GPAC_PROP_FOCUS_HIGHLIGHT:
 	term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
 	break;
 }
@@ -922,25 +1014,25 @@ gf_term_get_object_info(odm->term, odm, &odi);
 
 prop_id = SMJS_ID_TO_INT(id);
 switch (prop_id) {
-case -1:
+case GJS_OM_PROP_ID:
 	*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
 	break;
-case -2:
+case GJS_OM_PROP_NB_RES:
 	*vp = INT_TO_JSVAL(odm->subscene ? gf_list_count(odm->subscene->resources) : 0);
 	break;
-case -3:
+case GJS_OM_PROP_URL:
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_url));
 	break;
-case -4:
+case GJS_OM_PROP_DUR:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.duration) );
 	break;
-case -5:
+case GJS_OM_PROP_CLOCK:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, odi.current_time) );
 	break;
-case -6:
+case GJS_OM_PROP_DRIFT:
 	*vp = INT_TO_JSVAL( odi.clock_drift);
 	break;
-case -7:
+case GJS_OM_PROP_STATUS:
 	if (odi.status==0) str = "Stopped";
 	else if (odi.status==1) str = "Playing";
 	else if (odi.status==2) str = "Paused";
@@ -948,19 +1040,19 @@ case -7:
 	else str = "Setup Failed";
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
 	break;
-case -8:
+case GJS_OM_PROP_BUFFER:
 	*vp = INT_TO_JSVAL( odi.buffer);
 	break;
-case -9:
+case GJS_OM_PROP_DB_COUNT:
 	*vp = INT_TO_JSVAL( odi.db_unit_count);
 	break;
-case -10:
+case GJS_OM_PROP_CB_COUNT:
 	*vp = INT_TO_JSVAL( odi.cb_unit_count);
 	break;
-case -11:
+case GJS_OM_PROP_CB_CAP:
 	*vp = INT_TO_JSVAL( odi.cb_max_count);
 	break;
-case -12:
+case GJS_OM_PROP_TYPE:
 	if (odi.od_type==GF_STREAM_SCENE) str = "Scene";
 	else if (odi.od_type==GF_STREAM_OD) str = "Object Descriptor";
 	else if (odi.od_type==GF_STREAM_VISUAL) str = "Video";
@@ -970,25 +1062,25 @@ case -12:
 	else str = "Unknow";
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
 	break;
-case -13:
+case GJS_OM_PROP_SAMPLERATE:
 	*vp = INT_TO_JSVAL( odi.sample_rate);
 	break;
-case -14:
+case GJS_OM_PROP_CHANNELS:
 	*vp = INT_TO_JSVAL( odi.num_channels);
 	break;
-case -15:
+case GJS_OM_PROP_LANG:
 	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, odi.lang_code ? odi.lang_code : gf_4cc_to_str(odi.lang) ) );
 	break;
-case -16:
+case GJS_OM_PROP_WIDTH:
 	*vp = INT_TO_JSVAL( odi.width);
 	break;
-case -17:
+case GJS_OM_PROP_HEIGHT:
 	*vp = INT_TO_JSVAL( odi.height);
 	break;
-case -18:
+case GJS_OM_PROP_PIXELFORMAT:
 	*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, gf_4cc_to_str(odi.pixelFormat) ) );
 	break;
-case -19:
+case GJS_OM_PROP_PAR:
 	if (odi.par) {
 		char szPar[50];
 		sprintf(szPar, "%d:%d", (odi.par>>16)&0xFF, (odi.par)&0xFF );
@@ -997,31 +1089,31 @@ case -19:
 		*vp = STRING_TO_JSVAL( JS_NewStringCopyZ(c, "1:1" ) );
 	}
 	break;
-case -20:
+case GJS_OM_PROP_DEC_FRAMES:
 	*vp = INT_TO_JSVAL(odi.nb_dec_frames);
 	break;
-case -21:
+case GJS_OM_PROP_DROP_FRAMES:
 	*vp = INT_TO_JSVAL(odi.nb_dropped);
 	break;
-case -22:
+case GJS_OM_PROP_DEC_TIME_MAX:
 	*vp = INT_TO_JSVAL(odi.max_dec_time);
 	break;
-case -23:
+case GJS_OM_PROP_DEC_TIME_TOTAL:
 	*vp = INT_TO_JSVAL(odi.total_dec_time);
 	break;
-case -24:
+case GJS_OM_PROP_AVG_RATE:
 	*vp = INT_TO_JSVAL(odi.avg_bitrate);
 	break;
-case -25:
+case GJS_OM_PROP_MAX_RATE:
 	*vp = INT_TO_JSVAL(odi.max_bitrate);
 	break;
-case -26:
+case GJS_OM_PROP_SERVICE_HANDLER:
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.service_handler));
 	break;
-case -27:
+case GJS_OM_PROP_CODEC:
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, odi.codec_name));
 	break;
-case -28:
+case GJS_OM_PROP_NB_QUALITIES:
 {
 	//first check network
 	GF_NetworkCommand com;
@@ -1057,31 +1149,31 @@ case -28:
 	*vp = INT_TO_JSVAL(1);
 	break;
 }
-case -29:
+case GJS_OM_PROP_MAX_BUFFER:
 	*vp = INT_TO_JSVAL(odi.max_buffer);
 	break;
-case -30:
+case GJS_OM_PROP_MIN_BUFFER:
 	*vp = INT_TO_JSVAL(odi.min_buffer);
 	break;
-case -31:
+case GJS_OM_PROP_FRAME_DUR:
 	*vp = INT_TO_JSVAL(odi.au_duration);
 	break;
-case -32:
+case GJS_OM_PROP_NB_IRAP:
 	*vp = INT_TO_JSVAL(odi.nb_iraps);
 	break;
-case -33:
+case GJS_OM_PROP_IRAP_DEC_TIME:
 	*vp = INT_TO_JSVAL(odi.irap_total_dec_time);
 	break;
-case -34:
+case GJS_OM_PROP_IRAP_MAX_TIME:
 	*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
 	break;
-case -35:
+case GJS_OM_PROP_SERVICE_ID:
 	*vp = INT_TO_JSVAL(odi.od ? odi.od->ServiceID : 0);
 	break;
-case -36:
+case GJS_OM_PROP_SELECTED_SERVICE:
 	*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 	break;
-case -37:
+case GJS_OM_PROP_BANDWIDTH_DOWN:
 {
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -1091,17 +1183,17 @@ case -37:
 	*vp = INT_TO_JSVAL(com.net_stats.bw_down/1000);
 }
 break;
-case -38:
+case GJS_OM_PROP_NB_HTTP:
 	*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
 	break;
-case -39:
+case GJS_OM_PROP_TIMESHIFT_DEPTH:
 	if ((s32) odm->timeshift_depth > 0) {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, ((Double) odm->timeshift_depth) / 1000.0 ) );
 	} else {
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, 0.0) );
 	}
 	break;
-case -40:
+case GJS_OM_PROP_TIMESHIFT_TIME:
 {
 	GF_NetworkCommand com;
 	GF_Scene *scene;
@@ -1162,31 +1254,31 @@ case -40:
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, res) );
 }
 break;
-case -41:
+case GJS_OM_PROP_IS_ADDON:
 	*vp = BOOLEAN_TO_JSVAL( (odm->addon || (!odm->subscene && odm->parentscene->root_od->addon)) ? JS_TRUE : JS_FALSE);
 	break;
-case -42:
+case GJS_OM_PROP_MAIN_ADDON_ON:
 {
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	*vp = BOOLEAN_TO_JSVAL( scene->main_addon_selected ? JS_TRUE : JS_FALSE);
 }
 break;
-case -43:
+case GJS_OM_PROP_IS_OVER:
 {
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
 }
 break;
-case -44:
+case GJS_OM_PROP_IS_PULLING:
 {
 	GF_Channel *ch = gf_list_get(odm->channels, 0);
 	*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? JS_TRUE : JS_FALSE);
 }
 break;
-case -45:
+case GJS_OM_PROP_DYNAMIC_SCENE:
 	*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->is_dynamic_scene ? JS_TRUE : JS_FALSE);
 	break;
-case -46:
+case GJS_OM_PROP_SERVICE_NAME:
 {
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -1200,11 +1292,11 @@ case -46:
 	}
 }
 break;
-case -47:
+case GJS_OM_PROP_NTP_DIFF:
 	*vp = INT_TO_JSVAL( odi.ntp_diff);
 	break;
 
-case -48:
+case GJS_OM_PROP_MAIN_ADDON_URL:
 {
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	u32 i, count = gf_list_count(scene->resources);
@@ -1223,7 +1315,7 @@ case -48:
 	}
 }
 break;
-case -49:
+case GJS_OM_PROP_REVERSE_PLAYBACK:
 {
 	u32 i, count;
 	GF_Err e;
@@ -1250,10 +1342,10 @@ case -49:
 	*vp = BOOLEAN_TO_JSVAL((e==GF_OK) ? GF_TRUE : GF_FALSE );
 }
 break;
-case -50:
+case GJS_OM_PROP_SCALABLE_ENHANCEMENT:
 	*vp = BOOLEAN_TO_JSVAL(odm && (odm->lower_layer_odm || odm->scalable_addon) ? JS_TRUE : JS_FALSE);
 	break;
-case -51:
+case GJS_OM_PROP_MAIN_ADDON_MEDIATIME:
 {
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	u32 i, count = gf_list_count(scene->resources);
@@ -1274,11 +1366,11 @@ case -51:
 	}
 }
 break;
-case -52:
+case GJS_OM_PROP_SRD:
 	*vp = BOOLEAN_TO_JSVAL((odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) ? JS_TRUE : JS_FALSE);
 	break;
 
-case -53:
+case GJS_OM_PROP_DEPENDENT_GROUPS:
 {
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -1647,38 +1739,38 @@ if (!evt) return 0;
 
 if (SMJS_ID_IS_INT(id)) {
 	switch (SMJS_ID_TO_INT(id)) {
-	case -1:
+	case GJS_EVT_PROP_KEYCODE:
 #ifndef GPAC_DISABLE_SVG
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_get_key_name(evt->key.key_code) ));
 #endif
 		break;
-	case -2:
+	case GJS_EVT_PROP_MOUSE_X:
 		*vp = INT_TO_JSVAL(evt->mouse.x);
 		break;
-	case -3:
+	case GJS_EVT_PROP_MOUSE_Y:
 		*vp = INT_TO_JSVAL(evt->mouse.y);
 		break;
-	case -4:
+	case GJS_EVT_PROP_PICKED:
 		if (gjs->term->compositor->hit_appear) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else if (gf_list_count(gjs->term->compositor->previous_sensors) ) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else if (gjs->term->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 		break;
-	case -5:
+	case GJS_EVT_PROP_WHEEL:
 		*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(evt->mouse.wheel_pos)) );
 		break;
-	case -6:
+	case GJS_EVT_PROP_BUTTON:
 		*vp = INT_TO_JSVAL( evt->mouse.button);
 		break;
-	case -7:
+	case GJS_EVT_PROP_TYPE:
 		*vp = INT_TO_JSVAL(evt->type);
 		break;
-	case -8:
+	case GJS_EVT_PROP_NAME:
 #ifndef GPAC_DISABLE_SVG
 		*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, gf_dom_event_get_name(evt->type) ));
 #endif
 		break;
-	case -9:
+	case GJS_EVT_PROP_HWKEY:
 		*vp = INT_TO_JSVAL(evt->key.hw_code);
 		break;
 	}
@@ -1986,15 +2078,15 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 	GF_JSAPIParam par;
 
 	JSPropertySpec gpacEvtClassProps[] = {
-		SMJS_PROPERTY_SPEC("keycode",			-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_x",			-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("mouse_y",			-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("picked",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("wheel",				-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("button",			-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("type",				-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("name",				-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("hwkey",				-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("keycode",			GJS_EVT_PROP_KEYCODE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_x",			GJS_EVT_PROP_MOUSE_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("mouse_y",			GJS_EVT_PROP_MOUSE_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("picked",			GJS_EVT_PROP_PICKED, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("wheel",				GJS_EVT_PROP_WHEEL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("button",			GJS_EVT_PROP_BUTTON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("type",				GJS_EVT_PROP_TYPE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("name",				GJS_EVT_PROP_NAME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hwkey",				GJS_EVT_PROP_HWKEY, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
 	JSFunctionSpec gpacEvtClassFuncs[] = {
@@ -2003,44 +2095,42 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 	JSPropertySpec gpacClassProps[] = {
 
-		SMJS_PROPERTY_SPEC("last_working_directory",	-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-		SMJS_PROPERTY_SPEC("scale_x",					-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("scale_y",					-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("translation_x",				-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("translation_y",				-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("rectangular_textures",		-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("batteryOn",					-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("batteryCharging",			-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("batteryPercent",			-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("batteryLifeTime",			-10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("batteryFullLifeTime",		-11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("hostname",					-12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("fullscreen",				-13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-		SMJS_PROPERTY_SPEC("current_path",				-14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("volume",					-15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-		SMJS_PROPERTY_SPEC("navigation",				-16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-		SMJS_PROPERTY_SPEC("navigation_type",			-17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-		SMJS_PROPERTY_SPEC("hardware_yuv",				-18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("hardware_rgb",				-19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("hardware_rgba",				-20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("hardware_stretch",			-21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("screen_width",				-22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("screen_height",				-23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("http_max_bitrate",			-24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
-		SMJS_PROPERTY_SPEC("http_bitrate",				-25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("fps",						-26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("cpu_load",					-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("cpu",						-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("nb_cores",					-28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("system_memory",				-29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("memory",					-30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("argc",						-31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("caption",					-32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-		SMJS_PROPERTY_SPEC("disable_hardware_blit",		-33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-		SMJS_PROPERTY_SPEC("disable_composite_blit",	-34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-		SMJS_PROPERTY_SPEC("focus_highlight",			-35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-		SMJS_PROPERTY_SPEC("dpi_x",						-36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("dpi_y",						-37,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("last_working_directory",	GJS_GPAC_PROP_LAST_WORK_DIR, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("scale_x",					GJS_GPAC_PROP_SCALE_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("scale_y",					GJS_GPAC_PROP_SCALE_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("translation_x",				GJS_GPAC_PROP_TRANSLATION_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("translation_y",				GJS_GPAC_PROP_TRANSLATION_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("rectangular_textures",		GJS_GPAC_PROP_RECT_TEXTURES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryOn",					GJS_GPAC_PROP_BATTERY_ON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryCharging",			GJS_GPAC_PROP_BATTERY_CHARGE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryPercent",			GJS_GPAC_PROP_BATTERY_PERCENT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryLifeTime",			GJS_GPAC_PROP_BATTERY_LIFETIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("batteryFullLifeTime",		GJS_GPAC_PROP_BATTERY_LIFETIME_FULL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hostname",					GJS_GPAC_PROP_HOSTNAME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("fullscreen",				GJS_GPAC_PROP_FULLSCREEN, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("current_path",				GJS_GPAC_PROP_CURRENT_PATH, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("volume",					GJS_GPAC_PROP_VOLUME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("navigation",				GJS_GPAC_PROP_NAVIGATION, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("navigation_type",			GJS_GPAC_PROP_NAVIGATION_TYPE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_yuv",				GJS_GPAC_PROP_HARDWARE_YUV, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_rgb",				GJS_GPAC_PROP_HARDWARE_RGB, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_rgba",				GJS_GPAC_PROP_HARDWARE_RGBA, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("hardware_stretch",			GJS_GPAC_PROP_HARDWARE_STRETCH,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("screen_width",				GJS_GPAC_PROP_SCREEN_WIDTH, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("screen_height",				GJS_GPAC_PROP_SCREEN_HEIGHT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("http_max_bitrate",			GJS_GPAC_PROP_HTTP_MAX_RATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED , 0, 0),
+		SMJS_PROPERTY_SPEC("http_bitrate",				GJS_GPAC_PROP_HTTP_RATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("fps",						GJS_GPAC_PROP_FPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cpu_load",					GJS_GPAC_PROP_CPU, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cpu",						GJS_GPAC_PROP_CPU, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_cores",					GJS_GPAC_PROP_NB_CORES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("system_memory",				GJS_GPAC_PROP_MEMORY_SYSTEM, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("memory",					GJS_GPAC_PROP_MEMORY, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("argc",						GJS_GPAC_PROP_ARGC, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("caption",					GJS_GPAC_PROP_CAPTION, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("focus_highlight",			GJS_GPAC_PROP_FOCUS_HIGHLIGHT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
+		SMJS_PROPERTY_SPEC("dpi_x",						GJS_GPAC_PROP_DPI_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dpi_y",						GJS_GPAC_PROP_DPI_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
@@ -2071,61 +2161,61 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};
-
+	
 	JSPropertySpec odmClassProps[] = {
-		SMJS_PROPERTY_SPEC("ID",				-1,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("nb_resources",		-2,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("service_url",		-3,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("duration",			-4,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("clock_time",		-5,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("clock_drift",		-6,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("status",			-7,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("buffer",			-8,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("db_unit_count",		-9,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("cb_unit_count",		-10,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("cb_capacity",		-11,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("type",				-12,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("samplerate",		-13,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("channels",			-14,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("lang",				-15,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("width",				-16,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("height",			-17,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("pixelformt",		-18,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("par",				-19,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("dec_frames",		-20,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("drop_frames",		-21,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("max_dec_time",		-22,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("total_dec_time",	-23,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("avg_bitrate",		-24,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("max_bitrate",		-25,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("service_handler",	-26,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("codec",				-27,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("nb_qualities",		-28,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("max_buffer",		-29,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("min_buffer",		-30,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("frame_duration",	-31,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("irap_frames",		-32,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("irap_dec_time",		-33,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("irap_max_time",		-34,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("service_id",		-35,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("selected_service",	-36,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("bandwidth_down",	-37,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("nb_http",			-38,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("timeshift_depth",	-39,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("timeshift_time",	-40,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("is_addon",			-41,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("main_addon_on",		-42,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("is_over",			-43,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("is_pulling",		-44,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("dynamic_scene",		-45,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("service_name",		-46,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("ntp_diff",			-47,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("main_addon_url",	-48,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("reverse_playback_supported",		-49,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("scalable_enhancement",		-50,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("main_addon_media_time",		-51,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("has_srd",		-52,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("dependent_groups",		-53,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("ID",				GJS_OM_PROP_ID, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_resources",		GJS_OM_PROP_NB_RES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_url",		GJS_OM_PROP_URL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("duration",			GJS_OM_PROP_DUR, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("clock_time",		GJS_OM_PROP_CLOCK, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("clock_drift",		GJS_OM_PROP_DRIFT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("status",			GJS_OM_PROP_STATUS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("buffer",			GJS_OM_PROP_BUFFER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("db_unit_count",		GJS_OM_PROP_DB_COUNT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cb_unit_count",		GJS_OM_PROP_CB_COUNT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("cb_capacity",		GJS_OM_PROP_CB_CAP, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("type",				GJS_OM_PROP_TYPE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("samplerate",		GJS_OM_PROP_SAMPLERATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("channels",			GJS_OM_PROP_CHANNELS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("lang",				GJS_OM_PROP_LANG, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("width",				GJS_OM_PROP_WIDTH, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("height",			GJS_OM_PROP_HEIGHT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("pixelformt",		GJS_OM_PROP_PIXELFORMAT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("par",				GJS_OM_PROP_PAR, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dec_frames",		GJS_OM_PROP_DEC_FRAMES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("drop_frames",		GJS_OM_PROP_DROP_FRAMES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_dec_time",		GJS_OM_PROP_DEC_TIME_MAX, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("total_dec_time",	GJS_OM_PROP_DEC_TIME_TOTAL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("avg_bitrate",		GJS_OM_PROP_AVG_RATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_bitrate",		GJS_OM_PROP_MAX_RATE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_handler",	GJS_OM_PROP_SERVICE_HANDLER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("codec",				GJS_OM_PROP_CODEC, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_qualities",		GJS_OM_PROP_NB_QUALITIES, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("max_buffer",		GJS_OM_PROP_MAX_BUFFER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("min_buffer",		GJS_OM_PROP_MIN_BUFFER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("frame_duration",	GJS_OM_PROP_FRAME_DUR, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_frames",		GJS_OM_PROP_NB_IRAP, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_dec_time",		GJS_OM_PROP_IRAP_DEC_TIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("irap_max_time",		GJS_OM_PROP_IRAP_MAX_TIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_id",		GJS_OM_PROP_SERVICE_ID, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("selected_service",	GJS_OM_PROP_SELECTED_SERVICE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("bandwidth_down",	GJS_OM_PROP_BANDWIDTH_DOWN, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("nb_http",			GJS_OM_PROP_NB_HTTP, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("timeshift_depth",	GJS_OM_PROP_TIMESHIFT_DEPTH, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("timeshift_time",	GJS_OM_PROP_TIMESHIFT_TIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_addon",			GJS_OM_PROP_IS_ADDON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_on",		GJS_OM_PROP_MAIN_ADDON_ON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_over",			GJS_OM_PROP_IS_OVER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("is_pulling",		GJS_OM_PROP_IS_PULLING, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dynamic_scene",		GJS_OM_PROP_DYNAMIC_SCENE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("service_name",		GJS_OM_PROP_SERVICE_NAME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("ntp_diff",			GJS_OM_PROP_NTP_DIFF, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_url",	GJS_OM_PROP_MAIN_ADDON_URL, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("reverse_playback_supported", GJS_OM_PROP_REVERSE_PLAYBACK, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("scalable_enhancement",		GJS_OM_PROP_SCALABLE_ENHANCEMENT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("main_addon_media_time",		GJS_OM_PROP_MAIN_ADDON_MEDIATIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("srd",		GJS_OM_PROP_SRD, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("dependent_groups",		GJS_OM_PROP_DEPENDENT_GROUPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 
 
