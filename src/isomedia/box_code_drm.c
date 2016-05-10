@@ -1621,11 +1621,11 @@ GF_Err aprm_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_AdobeStdEncryptionParamsBox *ptr = (GF_AdobeStdEncryptionParamsBox *)s;
 	switch (a->type) {
-	case GF_ISOM_BOX_TYPE_AHDR:
+	case GF_ISOM_BOX_TYPE_AEIB:
 		if (ptr->enc_info) return GF_ISOM_INVALID_FILE;
 		ptr->enc_info = (GF_AdobeEncryptionInfoBox *)a;
 		break;
-	case GF_ISOM_BOX_TYPE_ADAF:
+	case GF_ISOM_BOX_TYPE_AKEY:
 		if (ptr->key_info) return GF_ISOM_INVALID_FILE;
 		ptr->key_info = (GF_AdobeKeyInfoBox *)a;
 		break;
@@ -1652,10 +1652,10 @@ GF_Err aprm_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	//ahdr
+	//aeib
 	e = gf_isom_box_write((GF_Box *) ptr->enc_info, bs);
 	if (e) return e;
-	//adaf
+	//akey
 	e = gf_isom_box_write((GF_Box *) ptr->key_info, bs);
 	if (e) return e;
 
