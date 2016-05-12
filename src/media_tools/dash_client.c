@@ -2864,6 +2864,7 @@ static void gf_dash_group_reset(GF_DashClient *dash, GF_DASH_Group *group)
 
 		gf_dash_group_reset_cache_entry(&group->cached[group->nb_cached_segments]);
 	}
+	
 	group->timeline_setup = 0;
 }
 
@@ -2888,6 +2889,8 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 
 		if (group->cache_mutex)
 			gf_mx_del(group->cache_mutex);
+		if (group->bs_switching_init_segment_url)
+			gf_free(group->bs_switching_init_segment_url);
 		
 		gf_free(group);
 	}
