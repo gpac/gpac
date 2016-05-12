@@ -3862,6 +3862,12 @@ int mp4boxMain(int argc, char **argv)
 				return mp4box_cleanup(1);
 			}
 		}
+
+		if (segment_timeline && !use_url_template) {
+			fprintf(stderr, "DASH Warning: using -segment-timeline with not -url-template\n");
+			use_url_template = GF_TRUE;
+		}
+		
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
