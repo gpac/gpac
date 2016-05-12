@@ -331,8 +331,13 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 		}
 	}
 
-	if (is_template && ( ! use_segment_timeline || !strstr(seg_rad_name, "$Time")) && !strstr(seg_rad_name, "$Number"))
-		strcat(segment_name, "$Number$");
+	if (is_template) {
+		if (use_segment_timeline && !strstr(seg_rad_name, "$Time")) {
+			strcat(segment_name, "$Time");
+		} else if (!use_segment_timeline && !strstr(seg_rad_name, "$Number")) {
+			strcat(segment_name, "$Number");
+		}
+	}
 
 	if (needs_init)
 		strcat(segment_name, "init");

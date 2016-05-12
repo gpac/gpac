@@ -3864,7 +3864,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 
 		if (segment_timeline && !use_url_template) {
-			fprintf(stderr, "DASH Warning: using -segment-timeline with not -url-template\n");
+			fprintf(stderr, "DASH Warning: using -segment-timeline with no -url-template. Forcing URL template.\n");
 			use_url_template = GF_TRUE;
 		}
 		
