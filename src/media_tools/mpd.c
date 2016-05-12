@@ -27,6 +27,7 @@
 #include <gpac/download.h>
 #include <gpac/internal/m3u8.h>
 #include <gpac/network.h>
+#include <gpac/maths.h>
 
 #ifdef _WIN32_WCE
 #include <winbase.h>
@@ -2327,9 +2328,55 @@ GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 }
 
 GF_EXPORT
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
+u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep)
+{
+	u32 base_url_count, i;
+	base_url_count = 1;
+	i = gf_list_count(mpd->base_URLs);
+	if (i>1) base_url_count *= i;
+	i = gf_list_count(period->base_URLs);
+	if (i>1) base_url_count *= i;
+	i = gf_list_count(set->base_URLs);
+	if (i>1) base_url_count *= i;
+	i = gf_list_count(rep->base_URLs);
+	if (i>1) base_url_count *= i;
+
+	return base_url_count;
+}
+
+static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_index)
 {
 	GF_MPD_BaseURL *url_child;
+	u32 idx = 0;
+	u32 nb_base = gf_list_count(baseURLs);
+	if (nb_base>1) {
+		u32 nb_bits = gf_get_bit_size(nb_base-1);
+		u32 mask=0;
+		u32 i=0;
+		while (1) {
+			mask |= 1;
+			i++;
+			if (i>=nb_bits) break;
+			mask <<= 1;
+		}
+		idx = (*base_url_index) & mask;
+		(*base_url_index) = (*base_url_index) >> nb_bits;
+	} else {
+		idx = 0;
+	}
+	
+	url_child = gf_list_get(baseURLs, idx);
+	if (url_child) {
+		char *t_url = gf_url_concatenate(url, url_child->URL);
+		gf_free(url);
+		url = t_url;
+	}
+	return url;
+}
+
+GF_EXPORT
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed, char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration_in_ms, Bool *is_in_base_url, char **out_key_url, bin128 *out_key_iv)
+{
 	GF_MPD_SegmentTimeline *timeline = NULL;
 	u32 start_number = 1;
 	u32 timescale=0;
@@ -2345,33 +2392,11 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 	/*resolve base URLs from document base (download location) to representation (media)*/
 	url = gf_strdup(mpd_url);
 
-	url_child = gf_list_get(mpd->base_URLs, 0);
-	if (url_child) {
-		char *t_url = gf_url_concatenate(url, url_child->URL);
-		gf_free(url);
-		url = t_url;
-	}
-
-	url_child = gf_list_get(period->base_URLs, 0);
-	if (url_child) {
-		char *t_url = gf_url_concatenate(url, url_child->URL);
-		gf_free(url);
-		url = t_url;
-	}
-
-	url_child = gf_list_get(set->base_URLs, 0);
-	if (url_child) {
-		char *t_url = gf_url_concatenate(url, url_child->URL);
-		gf_free(url);
-		url = t_url;
-	}
-
-	url_child = gf_list_get(rep->base_URLs, 0);
-	if (url_child) {
-		char *t_url = gf_url_concatenate(url, url_child->URL);
-		gf_free(url);
-		url = t_url;
-	}
+	url = gf_mpd_get_base_url(mpd->base_URLs, url, &base_url_index);
+	url = gf_mpd_get_base_url(period->base_URLs, url, &base_url_index);
+	url = gf_mpd_get_base_url(set->base_URLs, url, &base_url_index);
+	url = gf_mpd_get_base_url(rep->base_URLs, url, &base_url_index);
+	assert(url);
 
 	/*single URL*/
 	if (!rep->segment_list && !set->segment_list && !period->segment_list && !rep->segment_template && !set->segment_template && !period->segment_template) {
@@ -2382,7 +2407,8 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 		switch (resolve_type) {
 		case GF_MPD_RESOLVE_URL_MEDIA:
 		case GF_MPD_RESOLVE_URL_MEDIA_TEMPLATE:
-			if (!url) return GF_NON_COMPLIANT_BITSTREAM;
+			if (!url)
+				return GF_NON_COMPLIANT_BITSTREAM;
 			*out_url = url;
 			return GF_OK;
 		case GF_MPD_RESOLVE_URL_INIT:
@@ -2652,6 +2678,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 				&& ((start_number + item_index) * *segment_duration_in_ms > period->duration)) {
 				gf_free(url);
 				gf_free(solved_template);
+				second_sep[0] = '$';
 				return GF_EOS;
 			}
 		}
@@ -2685,6 +2712,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 						} else {
 							gf_free(url);
 							gf_free(solved_template);
+							second_sep[0] = '$';
 							return GF_EOS;
 						}
 					}
@@ -2708,6 +2736,7 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 			*out_url = NULL;
 			gf_free(url);
 			gf_free(solved_template);
+			second_sep[0] = '$';
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		if (format_tag) format_tag[0] = '%';

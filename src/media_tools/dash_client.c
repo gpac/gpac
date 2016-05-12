@@ -306,6 +306,9 @@ struct __dash_group
 
 	GF_Thread *download_th;
 	Bool download_th_done;
+
+	/*current index of the base URL used*/
+	u32 current_base_url_idx;
 };
 
 struct _dash_srd_desc
@@ -1064,7 +1067,8 @@ retry:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Download %s complete at UTC "LLU" ms\n", url, gf_net_get_utc() ));
 		break;
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
+		//log as warning, maybe the dash client can recover from this error
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FAILED to download %s = %s...\n", url, gf_error_to_string(e)));
 		break;
 	}
 	if (group)
@@ -2211,12 +2215,13 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 
 	gf_mpd_resolve_segment_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
 	*segment_duration = (resolve_type==GF_MPD_RESOLVE_URL_MEDIA) ? (u32) ((Double) ((*segment_duration) * 1000.0) / timescale) : 0;
-	e = gf_mpd_resolve_url(mpd, rep, set, period, mpd_url, resolve_type, item_index, group->nb_segments_purged, out_url, out_range_start, out_range_end, segment_duration, is_in_base_url, out_key_url, out_key_iv);
+	e = gf_mpd_resolve_url(mpd, rep, set, period, mpd_url, group->current_base_url_idx, resolve_type, item_index, group->nb_segments_purged, out_url, out_range_start, out_range_end, segment_duration, is_in_base_url, out_key_url, out_key_iv);
+
 	if (e == GF_NON_COMPLIANT_BITSTREAM) {
-		group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+//		group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
 	}
 	if (!*out_url) {
-		return GF_OK;
+		return e;
 	}
 
 	if (*out_url && data_url_process && !strncmp(*out_url, "data:", 5)) {
@@ -2531,6 +2536,23 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 	}
 
 	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7) || !strnicmp(base_init_url, "views://", 8)) {
+		//if file-based, check if file exists, if not switch base URL
+		if ( strnicmp(base_init_url, "gmem://", 7)) {
+			FILE *ftest = gf_fopen(base_init_url, "rb");
+			if (!ftest) {
+				if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
+					group->current_base_url_idx++;
+					gf_free(base_init_url);
+					return gf_dash_download_init_segment(dash, group);
+				} else {
+					e = GF_NOT_FOUND;
+				}
+			} else {
+				gf_fclose(ftest);
+			}
+		}
+		//we don't reset the baseURL index until we are done fetching all init segments
+
 		assert(!group->nb_cached_segments);
 		group->cached[0].cache = gf_strdup(base_init_url);
 		group->cached[0].url = gf_strdup(base_init_url);
@@ -2588,6 +2610,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] First segment is %s \n", init_segment_local_url));
 		gf_free(base_init_url);
+		group->current_base_url_idx=0;
 		return GF_OK;
 	}
 
@@ -2601,6 +2624,15 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		if (key_url) gf_free(key_url);
 		gf_dash_switch_group_representation(dash, group);
 		return gf_dash_download_init_segment(dash, group);
+	}
+	
+	if ((e==GF_URL_ERROR) && base_init_url) {
+		if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
+			group->current_base_url_idx++;
+			gf_free(base_init_url);
+			if (key_url) gf_free(key_url);
+			return gf_dash_download_init_segment(dash, group);
+		}
 	}
 
 
@@ -2675,7 +2707,6 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		if (!valid) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Mime '%s' is not correct for '%s', it should be '%s'\n", mime, base_init_url, mime_type));
 			dash->mpd_stop_request = 0;
-			gf_mx_v(dash->dl_mutex);
 			gf_free(base_init_url);
 			if (key_url) gf_free(key_url);
 			return GF_BAD_PARAM;
@@ -2764,7 +2795,8 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 		}
 	}
-
+	//reset baseURL idx to use first base URL
+	group->current_base_url_idx = 0;
 	/*if this was not an init segment, perform rate adaptation*/
 	if (nb_segment_read) {
 		dash_store_stats(dash, group, group->segment_download);
@@ -4296,6 +4328,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 	/*local file*/
 	if (!strstr(new_base_seg_url, "://") || (!strnicmp(new_base_seg_url, "file://", 7) || !strnicmp(new_base_seg_url, "gmem://", 7)) ) {
+		FILE *ftest;
 		resource_name = local_file_name = (char *) new_base_seg_url;
 		e = GF_OK;
 		/*do not erase local files*/
@@ -4306,29 +4339,38 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			/*restart*/
 			return GF_DASH_DownloadRestart;
 		}
+		ftest = gf_fopen(local_file_name, "rb");
+		if (!ftest) {
+			if (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) ){
+				group->current_base_url_idx++;
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
+				return dash_download_group_download(dash, group, base_group, has_dep_following);
+			} else {
+				e = GF_NOT_FOUND;
+			}
+		} else {
+			gf_fclose(ftest);
+		}
+		group->current_base_url_idx = 0;
 	} else {
 		base_group->max_bitrate = 0;
 		base_group->min_bitrate = (u32)-1;
 
 		/*use persistent connection for segment downloads*/
-		//gf_mx_p(dash->dl_mutex);
 		if (use_byterange) {
 			e = gf_dash_download_resource(dash, &(base_group->segment_download), new_base_seg_url, start_range, end_range, 1, base_group);
 		} else {
 			e = gf_dash_download_resource(dash, &(base_group->segment_download), new_base_seg_url, 0, 0, 1, base_group);
 		}
-		//gf_mx_v(dash->dl_mutex);
 
 		if ((e==GF_IP_CONNECTION_CLOSED) && group->download_abort_type) {
 			base_group->download_abort_type = 0;
 			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Aborted while downloading segment (seek ?)%s \n", new_base_seg_url));
-			gf_free(new_base_seg_url);
-			gf_free(key_url);
-			new_base_seg_url = NULL;
-			key_url = NULL;
+			if (new_base_seg_url) gf_free(new_base_seg_url);
+			if (key_url) gf_free(key_url);
 			return GF_DASH_DownloadSuccess;
 		}
-
 
 		/*TODO decide what is the best, fetch from another representation or ignore ...*/
 		if (e != GF_OK) {
@@ -4360,12 +4402,20 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			} else if (group->prev_segment_ok && !group->time_at_first_failure) {
 				if (!group->loop_detected) {
 					group->time_at_first_failure = clock_time;
-					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - starting countdown for %d ms\n", new_base_seg_url, gf_error_to_string(e), group->current_downloaded_segment_duration));
 				}
+			}
+			//if multiple baseURL, try switching the base
+			else if ((e==GF_URL_ERROR) && (group->current_base_url_idx + 1 < gf_mpd_get_base_url_count(dash->mpd, group->period, group->adaptation_set, rep) )) {
+				group->current_base_url_idx++;
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
+				return dash_download_group_download(dash, group, base_group, has_dep_following);
 			}
 			//if previous segment download was OK, we are likely asking too early - retry for the complete duration in case one segment was lost - we add 100ms safety
 			else if (group->prev_segment_ok && (clock_time - group->time_at_first_failure <= group->current_downloaded_segment_duration + dash->segment_lost_after_ms )) {
 			} else {
+				
 				if (group->prev_segment_ok) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error in downloading new segment: %s %s - waited %d ms but segment still not available, checking next one ...\n", new_base_seg_url, gf_error_to_string(e), clock_time - group->time_at_first_failure));
 					group->time_at_first_failure = 0;
@@ -4393,36 +4443,35 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 					}
 				}
 			}
-			gf_free(new_base_seg_url);
-			gf_free(key_url);
-			new_base_seg_url = NULL;
-			key_url = NULL;
+			if (new_base_seg_url) gf_free(new_base_seg_url);
+			if (key_url) gf_free(key_url);
 			return GF_DASH_DownloadCancel;
 		}
 
 		group->prev_segment_ok = GF_TRUE;
 		if (group->time_at_first_failure) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
+			if (group->current_base_url_idx) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 by switching baseURL\n", new_base_seg_url));
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Recovered segment %s after 404 - was our download schedule too early ?\n", new_base_seg_url));
+			}
 			group->time_at_first_failure = 0;
 		}
 		group->nb_consecutive_segments_lost = 0;
+		group->current_base_url_idx = 0;
 
 		if ((e==GF_OK) && group->force_switch_bandwidth) {
 			if (!dash->auto_switch_count) {
 				gf_dash_switch_group_representation(dash, group);
-				gf_free(new_base_seg_url);
-				new_base_seg_url = NULL;
-				gf_free(key_url);
-				key_url = NULL;
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
 				/*restart*/
 				return GF_DASH_DownloadRestart;
 			}
 			if (rep->playback.disabled) {
 				gf_dash_skip_disabled_representation(group, rep, GF_FALSE);
-				gf_free(new_base_seg_url);
-				new_base_seg_url = NULL;
-				gf_free(key_url);
-				key_url = NULL;
+				if (new_base_seg_url) gf_free(new_base_seg_url);
+				if (key_url) gf_free(key_url);
 				/*restart*/
 				return GF_DASH_DownloadRestart;
 			}
@@ -4511,12 +4560,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
 		
 	}
-	gf_free(new_base_seg_url);
-	new_base_seg_url = NULL;
-	if (key_url) {
-		gf_free(key_url);
-		key_url = NULL;
-	}
+	if (new_base_seg_url) gf_free(new_base_seg_url);
+	if (key_url) gf_free(key_url);
 	return GF_DASH_DownloadSuccess;
 }
 

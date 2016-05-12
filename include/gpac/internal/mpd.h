@@ -414,6 +414,10 @@ void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
 void gf_mpd_getter_del_session(GF_FileDownload *getter);
 
+
+/*get the number of base URLs for the given representation. This cumuluates all base URLs at MPD, period, AdaptationSet and Representation levels*/
+u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep);
+
 typedef enum
 {
 	GF_MPD_RESOLVE_URL_MEDIA,
@@ -424,10 +428,11 @@ typedef enum
 } GF_MPD_URLResolveType;
 
 /*resolves a URL based for a given segment, based on the MPD url, the type of resolution
+	base_url_index: 0-based index of the baseURL to use
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when purging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
                           char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
 /*get duration of the presentation*/
