@@ -2673,9 +2673,9 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 				strcat(solved_template, szFormat);
 			}
 
-			/*check total duration*/
+			/*check start time is in period (start time is ~seg_duration * item_index, since startNumber seg has start time = 0 in the period*/
 			if (period->duration
-				&& ((start_number + item_index) * *segment_duration_in_ms > period->duration)) {
+				&& (item_index * (*segment_duration_in_ms) > period->duration)) {
 				gf_free(url);
 				gf_free(solved_template);
 				second_sep[0] = '$';
