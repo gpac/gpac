@@ -375,6 +375,7 @@ typedef struct
 	u32 command_type;
 	LPNETCHANNEL on_channel;
 	u32 w,h,x,y, width, height;
+	u32 dependent_group_index;
 } GF_NetComSRDInfo;
 
 /*GF_NET_SERVICE_INFO*/
