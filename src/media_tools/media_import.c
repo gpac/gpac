@@ -3703,7 +3703,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		} else if (base_data) {
 			char *start = strchr(base_data, ',');
 			if (start) {
-				u32 len = strlen(start+1);
+				u32 len = (u32)strlen(start+1);
 				if (len>max_size) {
 					max_size=len;
 					samp->data = gf_realloc(samp->data, sizeof(char)*max_size);
