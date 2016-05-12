@@ -148,8 +148,7 @@ enum {
 	GJS_OM_PROP_REVERSE_PLAYBACK = -49,
 	GJS_OM_PROP_SCALABLE_ENHANCEMENT = -50,
 	GJS_OM_PROP_MAIN_ADDON_MEDIATIME = -51,
-	GJS_OM_PROP_SRD = -52,
-	GJS_OM_PROP_DEPENDENT_GROUPS = -53,
+	GJS_OM_PROP_DEPENDENT_GROUPS = -52,
 };
 
 enum {
@@ -1366,9 +1365,6 @@ case GJS_OM_PROP_MAIN_ADDON_MEDIATIME:
 	}
 }
 break;
-case GJS_OM_PROP_SRD:
-	*vp = BOOLEAN_TO_JSVAL((odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) ? JS_TRUE : JS_FALSE);
-	break;
 
 case GJS_OM_PROP_DEPENDENT_GROUPS:
 {
@@ -1438,6 +1434,53 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 		SMJS_SET_RVAL(JSVAL_NULL);
 	}
 
+	return JS_TRUE;
+}
+
+static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
+{
+	GF_NetworkCommand com;
+	SMJS_OBJ
+	SMJS_ARGS
+	GF_ObjectManager *odm = (GF_ObjectManager *)SMJS_GET_PRIVATE(c, obj);
+	s32 dep_idx=0;
+	s32 x, y, w, h;
+
+	if (!odm) return JS_TRUE;
+	
+	x = y = w = h = 0;
+	if (argc && JSVAL_IS_INT(argv[0]) ) {
+		dep_idx = JSVAL_TO_INT(argv[0]);
+
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_CHAN_GET_SRD;
+		com.base.on_channel = gf_list_get(odm->channels, 0);
+		com.srd.dependent_group_index = dep_idx;
+
+		if (gf_term_service_command(odm->net_service, &com) == GF_OK) {
+			x = com.srd.x;
+			y = com.srd.y;
+			w = com.srd.w;
+			h = com.srd.h;
+		}
+	} else if (odm && odm->mo && odm->mo->srd_w && odm->mo->srd_h) {
+		x = odm->mo->srd_x;
+		y = odm->mo->srd_y;
+		w = odm->mo->srd_w;
+		h = odm->mo->srd_h;
+	}
+	
+	if (w && h) {
+		JSObject *a = JS_NewObject(c, NULL, NULL, NULL);
+
+		JS_DefineProperty(c, a, "x", INT_TO_JSVAL(x), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "y", INT_TO_JSVAL(y), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "w", INT_TO_JSVAL(w), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		JS_DefineProperty(c, a, "h", INT_TO_JSVAL(h), 0, 0, JSPROP_READONLY | JSPROP_PERMANENT);
+		SMJS_SET_RVAL( OBJECT_TO_JSVAL(a) );
+	} else {
+		SMJS_SET_RVAL(JSVAL_NULL);
+	}
 	return JS_TRUE;
 }
 
@@ -2214,7 +2257,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("reverse_playback_supported", GJS_OM_PROP_REVERSE_PLAYBACK, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		GJS_OM_PROP_SCALABLE_ENHANCEMENT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_media_time",		GJS_OM_PROP_MAIN_ADDON_MEDIATIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("srd",		GJS_OM_PROP_SRD, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dependent_groups",		GJS_OM_PROP_DEPENDENT_GROUPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 
@@ -2232,6 +2274,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_FUNCTION_SPEC("select_quality", gjs_odm_select_quality, 1),
 		SMJS_FUNCTION_SPEC("disable_main_addon", gjs_odm_disable_main_addon, 1),
 		SMJS_FUNCTION_SPEC("select", gjs_odm_select, 1),
+		SMJS_FUNCTION_SPEC("get_srd", gjs_odm_get_srd, 1),
 
 		SMJS_FUNCTION_SPEC(0, 0, 0)
 	};

@@ -4627,8 +4627,11 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 	else if (dash->tile_rate_decrease==100) {
 		//for each quality level (starting from highest priority), increase the bitrate if possible
 		for (q_idx=0; q_idx < max_level; q_idx++) {
+			Bool test_pass = GF_TRUE;
 			while (1) {
 				u32 nb_rep_increased = 0;
+				u32 nb_rep_in_qidx = 0;
+				u32 cumulated_bw_in_pass = 0;
 
 				for (i=0; i<count; i++) {
 					u32 diff;
@@ -4641,21 +4644,34 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 					if (group->target_new_rep + 1 == gf_list_count(group->adaptation_set->representations))
 						continue;
 
+					nb_rep_in_qidx++;
+					
 					rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep);
 					diff = rep->bandwidth;
 					rep = gf_list_get(group->adaptation_set->representations, group->target_new_rep+1);
 					diff = rep->bandwidth - diff;
-
-					if (min_bandwidth + diff < 8*total_rate) {
+					
+					if (test_pass) {
+						cumulated_bw_in_pass+= diff;
+						nb_rep_increased ++;
+					} else if (min_bandwidth + diff < 8*total_rate) {
 						min_bandwidth += diff;
+						nb_rep_increased ++;
 						bandwidths[q_idx] += diff;
 						group->target_new_rep++;
-						nb_rep_increased ++;
+					}
+				}
+				if (test_pass) {
+					//all reps cannot be switched up in this quality level, do it
+					if ( min_bandwidth + cumulated_bw_in_pass > 8*total_rate) {
+						break;
 					}
 				}
 				//no more adjustement possible for this quality level
 				if (! nb_rep_increased)
 					break;
+				
+				test_pass = !test_pass;
 			}
 		}
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Rate Adaptation - download rate %d kbps - %d quality levels (cumulated representations rate %d kbps)\n", 8*total_rate/1000, max_level, min_bandwidth/1000));

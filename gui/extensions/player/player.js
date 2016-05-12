@@ -1552,7 +1552,7 @@ extension = {
 			for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
 				var m = root_odm.get_resource(res_i);
 				if (root_odm.selected_service != m.service_id) continue;
-				if (m.has_srd) continue;
+				if (m.get_srd() != null) continue;
 				
 				if (m.type == 'Video') nb_video++;
 				else if (m.type == 'Audio') nb_audio++;

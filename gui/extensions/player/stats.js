@@ -36,15 +36,23 @@ extension.view_stats = function () {
     for (var res_i = 0; res_i < wnd.extension.stats_resources.length; res_i++) {
         var m = wnd.extension.stats_resources[res_i];
 		var num_qualities;
+		var odm_srd = m.get_srd();
         m.gui = {};
-		if (!srd_obj && m.has_srd) srd_obj = m;
-		if (m.dependent_group_id) srd_obj = m;
+		if (!srd_obj && odm_srd) srd_obj = m;
+		if (m.dependent_group_id) {
+			srd_obj = m;
+			odm_srd = m.get_srd(m.dependent_group_id);
+		}
 
         var label = '' + m.type;
-		if (m.dependent_group_id) label += '(dependent group)';
+		if (m.dependent_group_id) label += '(Dep. Group)';
+        else if (m.scalable_enhancement) label += ' (Enh. Layer)';
         else if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
         else if (m.samplerate) label += ' (' + m.samplerate + ' Hz ' + m.channels + ' channels)';
-        else if (m.scalable_enhancement) label += ' (Enhancement Layer)';
+		
+		if (odm_srd) {
+		 label += ' (SRD ' + odm_srd.x + ',' + odm_srd.y + ',' + odm_srd.w + ',' + odm_srd.h + ')';
+		}
 
         m.gui.txt = gw_new_text(wnd.area, label, 'lefttext');
 
@@ -558,11 +566,23 @@ extension.view_stats = function () {
 
     wnd.update_resource_gui = function(m, bl) {
         if (m.gui && m.gui.buffer) {
+			var odm_srd = m.get_srd();
+
+			if (m.dependent_group_id) {
+				odm_srd = m.get_srd(m.dependent_group_id);
+			}
+
             var label = ' ' + m.type;
 
-            if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
+			if (m.dependent_group_id) label += '(Dep. Group)';
+			else if (m.scalable_enhancement) label += ' (Enh. Layer)';
+            else if (m.width) label += ' (' + m.width + 'x' + m.height + ')';
             else if (m.samplerate) label += ' (' + Math.round(m.samplerate / 10) / 100 + ' kHz ' + m.channels + ' ch)';
             else if (m.scalable_enhancement) label += ' (Enh. Layer)';
+
+			if (odm_srd) {
+				label += ' (SRD ' + odm_srd.x + ',' + odm_srd.y + ',' + odm_srd.w + ',' + odm_srd.h + ')';
+			}
 
             var url = m.service_url;
 /*
