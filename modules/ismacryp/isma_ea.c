@@ -314,7 +314,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 				keyIDs as usual (before private data)
 				URL len on 8 bits
 				URL
-				keys, cyphered with oyur magic key :)
+				keys, cyphered with our magic key :)
 			*/
 			cypherOffset = pssh->private_data[0] + 1;
 			gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
