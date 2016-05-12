@@ -2897,9 +2897,9 @@ static void gf_dash_reset_groups(GF_DashClient *dash)
 	gf_list_del(dash->groups);
 	dash->groups = NULL;
 
-	while (gf_list_count(dash->groups)) {
+	while (gf_list_count(dash->SRDs)) {
 		struct _dash_srd_desc *srd = gf_list_last(dash->SRDs);
-		gf_list_rem_last(dash->groups);
+		gf_list_rem_last(dash->SRDs);
 		gf_free(srd);
 	}
 	gf_list_del(dash->SRDs);
