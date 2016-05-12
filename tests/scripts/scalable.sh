@@ -2,20 +2,15 @@
 
 scalable_test()
 {
-if [ $1 = "svc" ] ; then
-sourcefile="$EXTERNAL_MEDIA_DIR/scalable/svc.264"
-else
-sourcefile="$EXTERNAL_MEDIA_DIR/scalable/shvc.265"
-fi
+testname=$(basename "$1" | cut -d '.' -f1)
+mp4file="$TEMP_DIR/$testname.mp4"
+splitfile="$TEMP_DIR/$testname-split.mp4"
+mergefile="$TEMP_DIR/$testname-merge.mp4"
 
-mp4file="$TEMP_DIR/$1.mp4"
-splitfile="$TEMP_DIR/$1-split.mp4"
-mergefile="$TEMP_DIR/$1-merge.mp4"
+$MP4BOX -add $1 -new $mp4file 2> /dev/null
 
-$MP4BOX -add $sourcefile -new $mp4file 2> /dev/null
-
-test_begin $1 "split" "merge" "play"
-do_test "$MP4BOX -add "$sourcefile:svcmode=split" -new $splitfile" "Split"
+test_begin $testname "split" "merge" "play"
+do_test "$MP4BOX -add "$1:svcmode=split" -new $splitfile" "Split"
 do_hash_test $splitfile "split"
 
 do_test "$MP4BOX -add "$splitfile:svcmode=merge" -new $mergefile" "Merge"
@@ -35,8 +30,9 @@ test_end
 
 }
 
-#test svc
-scalable_test "svc" &
+for i in `ls $EXTERNAL_MEDIA_DIR/scalable/* | grep -v "html"` ; do
 
-#test shvc
-scalable_test "shvc"&
+scalable_test $i
+
+done
+
