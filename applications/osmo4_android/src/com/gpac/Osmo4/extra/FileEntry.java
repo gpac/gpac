@@ -49,7 +49,7 @@ public class FileEntry implements Comparable<FileEntry> {
 
     @Override
     public int compareTo(FileEntry o) {
-        return getName().toLowerCase().compareTo(o.getName());
+        return getName().compareToIgnoreCase(o.getName());
     }
 
     /**
