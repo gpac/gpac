@@ -642,7 +642,7 @@ typedef struct _scriptfield GF_ScriptField;
 /*creates new sript field - script fields are dynamically added to the node, and thus can be accessed through the
 same functions as other GF_Node fields*/
 GF_ScriptField *gf_sg_script_field_new(GF_Node *script, u32 eventType, u32 fieldType, const char *name);
-/*retrieves field info, usefull to get the field index*/
+/*retrieves field info, useful to get the field index*/
 GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info);
 
 /*activate eventIn for script node - needed for BIFS field replace*/

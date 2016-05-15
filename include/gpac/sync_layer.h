@@ -117,7 +117,7 @@ typedef struct
 	/*Everything below this comment is internal to GPAC*/
 
 	/*this is NOT part of standard SL, only used internally: signals duration of access unit if known
-	this is usefull for streams with very random updates, to prevent buffering for instance a subtitle stream
+	this is useful for streams with very random updates, to prevent buffering for instance a subtitle stream
 	which is likely to have no updates during the first minutes... expressed in media timescale*/
 	u32 au_duration;
 	/*ISMACryp extensions*/

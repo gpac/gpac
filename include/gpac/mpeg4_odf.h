@@ -1349,7 +1349,7 @@ u32 gf_odf_stream_type_by_name(const char *streamType);
 
 /*! Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
 that have no containers (a bit like an OD command, but for descriptors)
-This is usefull for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
+This is useful for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
 As it could be used for other purposes we keep it generic
 you must create the list yourself, the functions just encode/decode from/to the list*/
 

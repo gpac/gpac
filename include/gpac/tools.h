@@ -661,7 +661,7 @@ char gf_prompt_get_char();
 /*!
  *	\brief turns prompt echo on/off
  *
- *	Turns the prompt character echo on/off - this is usefull when entering passwords.
+ *	Turns the prompt character echo on/off - this is useful when entering passwords.
  *	\param echo_off indicates whether echo should be turned on or off.
  *	\note Function not available under WindowsCE nor SymbianOS
 */

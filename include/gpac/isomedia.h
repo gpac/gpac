@@ -1187,7 +1187,7 @@ GF_Err gf_isom_remove_track_from_root_od(GF_ISOFile *the_file, u32 trackNumber);
 describe external media, this will creat a data reference for the media*/
 GF_Err gf_isom_new_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, GF_ESD *esd, char *URLname, char *URNname, u32 *outDescriptionIndex);
 
-/*use carefully. Very usefull when you made a lot of changes (IPMP, IPI, OCI, ...)
+/*use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 THIS WILL REPLACE THE WHOLE DESCRIPTOR ...*/
 GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ESD *newESD);
 
@@ -1375,7 +1375,7 @@ enum
 	optimizing sample flags (padding, priority, ..)
 	param: on/off (0/1)*/
 	GF_ISOM_TRAF_RANDOM_ACCESS,
-	/*activate data cache on track fragment. This is usefull when writing interleaved
+	/*activate data cache on track fragment. This is useful when writing interleaved
 	media from a live source (typically audio-video), and greatly reduces file size
 	param: Number of samples (> 1) to cache before disk flushing. You shouldn't try
 	to cache too many samples since this will load your memory. base that on FPS/SR*/
@@ -1441,7 +1441,7 @@ the sample shadowing must be a Sync sample (error if not)*/
 GF_Err gf_isom_set_sync_shadow(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 syncSample);
 
 /*set the GroupID of a track (only used for optimized interleaving). By setting GroupIDs
-you can specify the storage order for media data of a group of streams. This is usefull
+you can specify the storage order for media data of a group of streams. This is useful
 for BIFS presentation so that static resources of the scene can be downloaded before BIFS*/
 GF_Err gf_isom_set_track_group(GF_ISOFile *the_file, u32 trackNumber, u32 GroupID);
 
@@ -1459,7 +1459,7 @@ GF_Err gf_isom_set_max_samples_per_chunk(GF_ISOFile *the_file, u32 trackNumber, 
 all the SL params must be fixed by the calling app!
 The SLConfig is stored by the API for further use. A NULL pointer will result
 in using the default SLConfig (predefined = 2) remapped to predefined = 0
-This is usefull while reading the IOD / OD stream of an MP4 file. Note however that
+This is useful while reading the IOD / OD stream of an MP4 file. Note however that
 only full AUs are extracted, therefore the calling application must SL-packetize the streams*/
 GF_Err gf_isom_set_extraction_slc(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_SLConfig *slConfig);
 
@@ -1538,7 +1538,7 @@ DataLength: the length of bytes to copy in the packet
 offsetInSample: the offset in bytes in the sample at which to begin copying data
 
 extra_data: only used when the sample is actually the sample that will contain this packet
-(usefull to store en encrypted version of a packet only available while streaming)
+(useful to store en encrypted version of a packet only available while streaming)
 	In this case, set SourceTrackID to the HintTrack ID and SampleNumber to 0
 	In this case, the DataOffset MUST BE NULL and length will indicate the extra_data size
 
