@@ -777,7 +777,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		i=0;
 		while ((esd = (GF_ESD *)gf_list_enum(odm->OD->ESDescriptors, &i)) ) {
 			e = gf_odm_setup_es(odm, esd, serv, syncRef);
-			/*notify error but still go on, all streams are not so usefull*/
+			/*notify error but still go on, all streams are not so useful*/
 			if (e==GF_OK) {
 				numOK++;
 			} else {

@@ -1204,7 +1204,7 @@ insertIPI:
 }
 
 
-//use carefully. Very usefull when you made a lot of changes (IPMP, IPI, OCI, ...)
+//use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 //THIS WILL REPLACE THE WHOLE DESCRIPTOR ...
 GF_EXPORT
 GF_Err gf_isom_change_mpeg4_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_ESD *newESD)
@@ -3067,7 +3067,7 @@ GF_Err gf_isom_new_generic_sample_description(GF_ISOFile *movie, u32 trackNumber
 	return e;
 }
 
-//use carefully. Very usefull when you made a lot of changes (IPMP, IPI, OCI, ...)
+//use carefully. Very useful when you made a lot of changes (IPMP, IPI, OCI, ...)
 //THIS WILL REPLACE THE WHOLE DESCRIPTOR ...
 GF_Err gf_isom_change_generic_sample_description(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, GF_GenericSampleDescription *udesc)
 {

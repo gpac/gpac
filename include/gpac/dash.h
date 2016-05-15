@@ -342,7 +342,7 @@ void gf_dash_set_speed(GF_DashClient *dash, Double speed);
 /*returns the start_time of the first segment in the queue (usually the one being played)*/
 Double gf_dash_group_current_segment_start_time(GF_DashClient *dash, u32 idx);
 
-/*allow reloading of MPD on the local file system - usefull for testing live generators*/
+/*allow reloading of MPD on the local file system - useful for testing live generators*/
 void gf_dash_allow_local_mpd_update(GF_DashClient *dash, Bool allow_local_mpd_update);
 
 /*gets media info for representation*/

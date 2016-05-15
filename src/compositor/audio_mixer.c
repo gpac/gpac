@@ -715,7 +715,7 @@ do_mix:
 
 	/*if only one active source in native format, process as single source (direct copy)
 	this is needed because mediaControl on an audio object doesn't deactivate it (eg the audio
-	object is still present in the mixer). this opt is typically usefull for language selection
+	object is still present in the mixer). this opt is typically useful for language selection
 	content (cf mp4menu)*/
 	if ((nb_act_src==1) && single_source) goto single_source_mix;
 
