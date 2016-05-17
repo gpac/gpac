@@ -1862,8 +1862,11 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll)
 				goto exit;
 			}
 
-			if ((samp->DTS + DTS_offset[t]) != avc_samp->DTS)
+			if ((samp->DTS + DTS_offset[t]) != avc_samp->DTS) {
+				gf_isom_sample_del(&samp);
+				samp = NULL;
 				continue;
+			}
 			bs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 			/*reset*/
 			memset(buffer, 0, sizeof(char) * max_size);
