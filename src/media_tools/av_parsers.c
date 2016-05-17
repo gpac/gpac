@@ -1854,6 +1854,20 @@ const char *gf_hevc_get_profile_name(u8 video_prof)
 		return "Unknown";
 	}
 }
+GF_EXPORT
+const char *gf_get_chroma_format_name(u8 chroma_format)
+{
+	switch (chroma_format) {
+		case 1:
+			return "YUV 4:2:0";
+		case 2:
+			return "YUV 4:2:2";
+		case 3:
+			return "YUV 4:4:4";
+		default:
+			return "Unknown";
+	}
+}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
