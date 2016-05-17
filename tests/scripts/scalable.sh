@@ -26,6 +26,9 @@ fi
 
 do_playback_test "$splitfile" "play"
 
+do_test "$MP4BOX -dash 1000 $splitfile -out $TEMP_DIR/$testname.mpd" "dash"
+do_playback_test "$TEMP_DIR/$testname.mpd" "dash-playback"
+
 test_end
 
 }

@@ -4582,7 +4582,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			for (j = idx; j < *nb_dash_inputs; j++) {
 				GF_DashSegInput *di;
 				u32 count, t, ref_track;
-				char *depID = (char*)gf_malloc(2);
+				char *depID = NULL;
 				u32 dep_type;
 
 				di = &dash_inputs[j];
@@ -4598,6 +4598,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				if (!count) continue;
 
 				di->lower_layer_track = dash_input->trackNum;
+				depID = (char*)gf_malloc(2);
 				strcpy(depID, "");
 				for (t=0; t < count; t++) {
 					u32 al_len = 0;
