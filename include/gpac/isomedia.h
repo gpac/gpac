@@ -212,8 +212,10 @@ enum
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_SUBTYPE_HEV2			= GF_4CC( 'h', 'e', 'v', '2' ),
-	GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
-	GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
+	//GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
+	//GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
+	GF_ISOM_SUBTYPE_LHV1			= GF_4CC( 'l', 'h', 'v', '1' ),
+	GF_ISOM_SUBTYPE_LHE1			= GF_4CC( 'l', 'h', 'e', '1' ),
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
 
 	/*3GPP(2) extension subtypes*/
@@ -2430,6 +2432,9 @@ GF_Err gf_isom_set_composition_offset_mode(GF_ISOFile *file, u32 track, Bool use
 //adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default.
 //sampleGroupDescriptionIndex is optional, used to retrieve the index
 GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_type, void *data, u32 data_size, Bool is_default, u32 *sampleGroupDescriptionIndex);
+
+//remove a sample group description of the give grouping type (if found)
+GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_type);
 
 //tags the sample in the grouping adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default
 GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex);

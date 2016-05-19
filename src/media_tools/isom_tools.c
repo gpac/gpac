@@ -811,8 +811,8 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track)
 	case GF_ISOM_SUBTYPE_HEV1:
 	case GF_ISOM_SUBTYPE_HVC2:
 	case GF_ISOM_SUBTYPE_HEV2:
-	case GF_ISOM_SUBTYPE_SHC1:
-	case GF_ISOM_SUBTYPE_SHV1:
+	case GF_ISOM_SUBTYPE_LHV1:
+	case GF_ISOM_SUBTYPE_LHE1:
 		return gf_isom_get_esd(mp4, track, 1);
 	}
 
@@ -2319,6 +2319,11 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				if (e) goto exit;
 
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
+
+				//for an L-HEVC bitstream: only base track carries the 'oinf' sample group, other track have a track reference of type 'oref' to base track
+				e = gf_isom_remove_sample_group(file, sti[j].track_num, GF_4CC('o','i','n','f'));
+				if (e) goto exit;
+				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('o','r','e','f'), track_id);
 
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 

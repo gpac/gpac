@@ -1282,8 +1282,8 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHVC:
+	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		((GF_VisualSampleEntryBox*)entry)->Width = Width;
 		((GF_VisualSampleEntryBox*)entry)->Height = Height;
@@ -1343,8 +1343,8 @@ GF_Err gf_isom_set_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHVC:
+	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
@@ -3690,8 +3690,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_HEV1:
 		case GF_ISOM_BOX_TYPE_HVC2:
 		case GF_ISOM_BOX_TYPE_HEV2:
-		case GF_ISOM_BOX_TYPE_SHC1:
-		case GF_ISOM_BOX_TYPE_SHV1:
+		case GF_ISOM_BOX_TYPE_LHVC:
+		case GF_ISOM_BOX_TYPE_LHV1:
 		{
 			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
 			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;
@@ -4588,8 +4588,8 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
 	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_SHC1:
-	case GF_ISOM_BOX_TYPE_SHV1:
+	case GF_ISOM_BOX_TYPE_LHVC:
+	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		break;
 	default:
@@ -4662,6 +4662,13 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 		/*TODO*/
 		if (last_sample_in_entry + sgroup->sample_entries[i].sample_count > sample_number) return GF_NOT_SUPPORTED;
 		last_sample_in_entry += sgroup->sample_entries[i].sample_count;
+	}
+
+	if (last_sample_in_entry == sample_number) {
+		if (sgroup->sample_entries[sgroup->entry_count-1].group_description_index==sampleGroupDescriptionIndex)
+			return GF_OK;
+		else
+			return GF_NOT_SUPPORTED;
 	}
 
 	if ((sgroup->sample_entries[sgroup->entry_count-1].group_description_index==sampleGroupDescriptionIndex) && (last_sample_in_entry+1==sample_number)) {
@@ -4838,6 +4845,38 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_
 		sgdesc->version = 2;
 	}
 	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 1 + gf_list_find(sgdesc->group_descriptions, entry);
+
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_type)
+{
+	GF_Err e;
+	GF_TrackBox *trak;
+	GF_SampleGroupDescriptionBox *sgdesc = NULL;
+	u32 count, i;
+
+	e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+	if (e) return e;
+
+	trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (!trak->Media->information->sampleTable->sampleGroupsDescription)
+		return GF_OK;
+
+	count = gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription);
+	for (i=0; i<count; i++) {
+		sgdesc = (GF_SampleGroupDescriptionBox*)gf_list_get(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+		if (sgdesc->grouping_type==grouping_type) {
+			gf_isom_box_del((GF_Box*)sgdesc);
+			gf_list_rem(trak->Media->information->sampleTable->sampleGroupsDescription, i);
+			i--;
+			count--;
+		}
+		sgdesc = NULL;
+	}
 
 	return GF_OK;
 }

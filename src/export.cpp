@@ -835,6 +835,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tile_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_drop_date_version_info_enabled) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_oinf_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_del_oinf_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 
@@ -1016,6 +1018,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_group_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_group) )
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )
