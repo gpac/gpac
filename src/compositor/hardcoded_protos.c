@@ -34,7 +34,6 @@
 #include "texturing.h"
 
 
-
 #define CHECK_FIELD(__name, __index, __type) \
 	if (gf_node_get_field(node, __index, &field) != GF_OK) {\
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] Cannot get field index %d\n", __index));\
@@ -44,7 +43,6 @@
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[HardcodedProtos] %s field idx %d (%s) is not of type %s\n", __name, field.fieldIndex, field.name, gf_sg_vrml_get_field_type_by_name(__type) ));\
 		return GF_FALSE;\
 	}
-
 
 
 #ifndef GPAC_DISABLE_VRML
@@ -406,7 +404,7 @@ static Bool PlaneClipper_GetNode(GF_Node *node, PlaneClipper *pc)
 	CHECK_FIELD("PlaneClipper", 1, GF_SG_VRML_SFFLOAT);
 	pc->plane.d = * (SFFloat *) field.far_ptr;
 	
-	CHECK_FIELD("PlaneClipper", 2, GF_SG_VRML_MFNODE) return GF_FALSE;
+	CHECK_FIELD("PlaneClipper", 2, GF_SG_VRML_MFNODE);
 	pc->children = *(GF_ChildNodeItem **) field.far_ptr;
 	return GF_TRUE;
 }
@@ -1084,7 +1082,7 @@ static Bool TestSensor_GetNode(GF_Node *node, TestSensor *ts)
 	if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
 	ts->value = *(SFFloat *)field.far_ptr;
 
-	CHECK_FIELD("TestSensor", 2, GF_SG_VRML_SFFLOAT) return GF_FALSE;
+	CHECK_FIELD("TestSensor", 2, GF_SG_VRML_SFFLOAT);
 	if (field.eventType != GF_SG_EVENT_OUT) return GF_FALSE;
 
 	return GF_TRUE;
@@ -1161,7 +1159,8 @@ static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
     memset(tx, 0, sizeof(CustomTexture));
     tx->sgprivate = node->sgprivate;
     
-	CHECK_FIELD("CustomTexture", 0, GF_SG_VRML_SFFLOAT) return GF_FALSE;
+    CHECK_FIELD("CustomTexture", 0, GF_SG_VRML_SFFLOAT);
+	if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
     tx->intensity = *(SFFloat *)field.far_ptr;
     
     return GF_TRUE;
