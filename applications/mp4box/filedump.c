@@ -53,6 +53,7 @@
 #include <gpac/scene_manager.h>
 #endif
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -1738,8 +1739,14 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
 	u32 k, idx;
-	fprintf(stderr, "\t%s Info: Profile %s @ Level %g - Chroma Format %d\n", hevccfg->is_shvc ? "SHVC" : "HEVC", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, hevccfg->chromaFormat);
-	fprintf(stderr, "\tNAL Unit length bits: %d - general profile compatibility 0x%08X\n", 8*hevccfg->nal_unit_size, hevccfg->general_profile_compatibility_flags);
+	fprintf(stderr, "\t%s Info:", hevccfg->is_shvc ? "SHVC" : "HEVC");
+	if (!hevccfg->is_shvc)
+		fprintf(stderr, " Profile %s @ Level %g - Chroma Format %d\n", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, hevccfg->chromaFormat);
+	fprintf(stderr, "\n");
+	fprintf(stderr, "\tNAL Unit length bits: %d", 8*hevccfg->nal_unit_size);
+	if (!hevccfg->is_shvc)
+		fprintf(stderr, " - general profile compatibility 0x%08X\n", hevccfg->general_profile_compatibility_flags);
+	fprintf(stderr, "\n");
 	fprintf(stderr, "\tParameter Sets: ");
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
 		GF_HEVCParamArray *ar=gf_list_get(hevccfg->param_array, k);
@@ -1780,7 +1787,10 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 		}
 
 	}
-	fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
+	if (!hevccfg->is_shvc)
+		fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
+	else
+		fprintf(stderr, "\t%d temporal layers\n", hevccfg->numTemporalLayers);
 	if (hevccfg->is_shvc) {
 		fprintf(stderr, "\t%sNum Layers: %d (scalability mask 0x%02X)%s\n", hevccfg->non_hevc_base_layer ? "Non-HEVC base layer - " : "", hevccfg->num_layers, hevccfg->scalability_mask, hevccfg->complete_representation ? "" : " - no VCL data");
 	}
@@ -1883,8 +1893,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
-	        || (msub_type==GF_ISOM_SUBTYPE_SHV1)
-	        || (msub_type==GF_ISOM_SUBTYPE_SHC1)
+	        || (msub_type==GF_ISOM_SUBTYPE_LHV1)
+	        || (msub_type==GF_ISOM_SUBTYPE_LHE1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
 	   )  {
 		esd = gf_isom_get_esd(file, trackNum, 1);
@@ -2022,6 +2032,34 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						}
 					} else if (!hevccfg && !shvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
+					}
+
+					if ((msub_type==GF_ISOM_SUBTYPE_HVC1)
+					|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
+					|| (msub_type==GF_ISOM_SUBTYPE_LHV1)
+					|| (msub_type==GF_ISOM_SUBTYPE_LHE1)) {
+						GF_OperatingPointsInformation *oinf;
+						if (gf_isom_get_oinf_info(file, trackNum, &oinf)) {
+							//TODO: need to dump more info ?
+							fprintf(stderr, "Operating Points Information -");
+							fprintf(stderr, " scalability_mask %d (", oinf->scalability_mask);
+							switch (oinf->scalability_mask) {
+							case 2:
+								fprintf(stderr, "Multiview");
+								break;
+							case 4:
+								fprintf(stderr, "Spatial scalability");
+								break;
+							case 8:
+								fprintf(stderr, "Auxilary");
+								break;
+							default:
+								fprintf(stderr, "unknown");
+							}
+							fprintf(stderr, ") num_profile_tier_level %d ", oinf->num_profile_tier_level);
+							fprintf(stderr, " num_operating_points %d max_layer_count %d \n", oinf->num_operating_points, oinf->max_layer_count);
+							gf_isom_del_oinf_info(&oinf);
+						}
 					}
 					if (hevccfg) {
 						dump_hevc_track_info(file, trackNum, hevccfg, &hevc_state);
