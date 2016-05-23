@@ -814,7 +814,7 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 			if (gf_node_get_field(fromNode, com->fromFieldIndex, &b) != GF_OK) return GF_NON_COMPLIANT_BITSTREAM;
 
 			if ((inf->fieldIndex==(u32) -1) && (inf->fieldType==DOM_String_datatype)) {
-				char *str = *(SVG_String*)inf->field_ptr;
+				char *str = inf->field_ptr ? *(SVG_String*)inf->field_ptr : NULL;
 
 				if (com->tag == GF_SG_LSR_REPLACE) {
 					GF_DOMText *t = ((SVG_Element*)com->node)->children ? (GF_DOMText*) ((SVG_Element*)com->node)->children->node :NULL;

@@ -40,6 +40,10 @@ GF_VisualManager *visual_new(GF_Compositor *compositor)
 {
 	GF_VisualManager *tmp;
 	GF_SAFEALLOC(tmp, GF_VisualManager);
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate new visual\n"));
+		return NULL;
+	}
 
 	tmp->center_coords = 1;
 	tmp->compositor = compositor;

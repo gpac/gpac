@@ -372,6 +372,7 @@ GF_Err gf_odf_read_qos(GF_BitStream *bs, GF_QoS_Descriptor *qos, u32 DescSize)
 	while (nbBytes < DescSize) {
 		tmp = NULL;
 		e = gf_odf_parse_qos(bs, &tmp, &tmp_size);
+		if (e) return e;
 		if (!tmp) return GF_ODF_INVALID_DESCRIPTOR;
 		e = gf_list_add(qos->QoS_Qualifiers, tmp);
 		if (e) return e;

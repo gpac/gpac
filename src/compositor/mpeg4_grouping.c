@@ -645,6 +645,10 @@ void parent_node_start_group(ParentNode2D *group, GF_Node *n, Bool discardable)
 		n = cg->child;
 	}
 	GF_SAFEALLOC(cg, ChildGroup);
+	if (!cg) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate child group\n"));
+		return;
+	}
 	cg->child = n;
 	cg->text_type = discardable;
 	gf_list_add(group->groups, cg);

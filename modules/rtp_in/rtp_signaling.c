@@ -252,7 +252,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 
 exit:
 	/*confirm only on first connect, otherwise this is a re-SETUP of the rtsp session, not the channel*/
-	if (! (ch->flags & RTP_CONNECTED) ) {
+	if (ch && ! (ch->flags & RTP_CONNECTED) ) {
 		if (!e)
 			ch->flags |= RTP_CONNECTED;
 		RP_ConfirmChannelConnect(ch, e);
@@ -573,7 +573,7 @@ process_reply:
 			agg_ch->status = RTP_Running;
 
 			/*skip next play command on this channel if aggregated control*/
-			if (ch!=agg_ch && (ch->rtsp->flags & RTSP_AGG_CONTROL) ) agg_ch->flags |= RTP_SKIP_NEXT_COM;
+			if ((ch != agg_ch) && ch && (ch->rtsp->flags & RTSP_AGG_CONTROL) ) agg_ch->flags |= RTP_SKIP_NEXT_COM;
 
 
 			if (gf_rtp_is_interleaved(agg_ch->rtp_ch)) {
@@ -584,7 +584,7 @@ process_reply:
 			}
 		}
 		/*no rtp info (just in case), no time mapped - set to 0 and specify we're not interactive*/
-		if (!i) {
+		if (ch && !i) {
 			ch->current_start = 0.0;
 			ch->check_rtp_time = RTP_SET_TIME_RTP;
 			RP_InitStream(ch, GF_TRUE);
@@ -594,7 +594,7 @@ process_reply:
 				                            ch, gf_rtp_get_low_interleave_id(ch->rtp_ch), gf_rtp_get_hight_interleave_id(ch->rtp_ch));
 			}
 		}
-		ch->flags &= ~RTP_SKIP_NEXT_COM;
+		if (ch) ch->flags &= ~RTP_SKIP_NEXT_COM;
 	} else if (ch_ctrl->com.command_type == GF_NET_CHAN_PAUSE) {
 		if (ch) {
 			SkipCommandOnSession(ch);

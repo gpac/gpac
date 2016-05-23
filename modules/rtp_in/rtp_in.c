@@ -419,6 +419,8 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	        ) {
 
 		GF_SAFEALLOC(ch, RTPStream);
+		if (!ch) return GF_OUT_OF_MEM;
+		
 		ch->control = gf_strdup(url);
 		ch->owner = priv;
 		ch->channel = channel;
@@ -430,7 +432,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		return GF_OK;
 	}
 	/*session migration resume - don't send data to the server*/
-	if (ch->status==RTP_SessionResume) {
+	if (ch && (ch->status==RTP_SessionResume)) {
 		ch->flags |= RTP_CONNECTED;
 		RP_InitStream(ch, GF_FALSE);
 		RP_ConfirmChannelConnect(ch, GF_OK);
@@ -823,8 +825,14 @@ GF_InputService *RTP_Load()
 	RTPClient *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
-	memset(plug, 0, sizeof(GF_InputService));
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
+
+	GF_SAFEALLOC(priv, RTPClient);
+	if (!priv) {
+		gf_free(plug);
+		return NULL;
+	}
 
 	plug->CanHandleURL = RP_CanHandleURL;
 	plug->CanHandleURLInService = RP_CanHandleURLInService;
@@ -840,7 +848,6 @@ GF_InputService *RTP_Load()
 	plug->ChannelGetSLP = RP_ChannelGetSLP;
 	plug->ChannelReleaseSLP = RP_ChannelReleaseSLP;
 
-	GF_SAFEALLOC(priv, RTPClient);
 	priv->sessions = gf_list_new();
 	priv->channels = gf_list_new();
 

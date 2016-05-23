@@ -154,7 +154,6 @@ GF_Err dump_isom_scene(char *file, char *inName, Bool is_final_name, GF_SceneDum
 	GF_FileType ftype;
 	gf_log_cbk prev_logs = NULL;
 	FILE *logs = NULL;
-	e = GF_OK;
 
 	sg = gf_sg_new();
 	ctx = gf_sm_new(sg);
@@ -574,7 +573,6 @@ void PrintNode(const char *name, u32 graph_type)
 		is_nodefield = 1;
 	}
 
-	tag = 0;
 	if (graph_type==1) {
 #ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(name);
@@ -1055,7 +1053,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
 			break;
 		default:
-			fputs("UNKNOWN", dump);
+			fprintf(dump, "UNKNOWN (parsing return %d)", res);
 			break;
 		}
 		fputs("\"", dump);
@@ -1201,7 +1199,6 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 #endif
 
 	track = gf_isom_get_track_by_id(file, trackID);
-	nalh_size = 0;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	memset(&avc, 0, sizeof(AVCState));
@@ -3035,7 +3032,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	gf_fseek(src, 0, SEEK_END);
 	fsize = gf_ftell(src);
 	gf_fseek(src, 0, SEEK_SET);
-	fdone = 0;
 
 	/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 	while (!feof(src)) {

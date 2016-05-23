@@ -74,7 +74,7 @@ static pascal OSErr ae_open_doc (const AppleEvent *ae_event, AppleEvent *ae_repl
 			}
 		}
 	}
-	err = AEDisposeDesc(&docList);
+	AEDisposeDesc(&docList);
 
 	if (main_evt_loop_run) {
 		QuitApplicationEventLoop();

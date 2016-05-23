@@ -289,6 +289,10 @@ void compositor_init_bitmap(GF_Compositor  *compositor, GF_Node *node)
 {
 	BitmapStack *st;
 	GF_SAFEALLOC(st, BitmapStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate bitmap stack\n"));
+		return;
+	}
 	st->graph = drawable_new();
 	st->graph->node = node;
 	st->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;

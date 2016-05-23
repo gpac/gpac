@@ -163,7 +163,6 @@ void isor_check_buffer_level(ISOMReader *read)
 			u32 di, sn = ch->sample_num ? ch->sample_num : 1;
 			GF_ISOSample *samp = gf_isom_get_sample_info(read->mov, ch->track, sn, &di, &data_offset);
 			if (!samp) {
-				do_buffer = GF_TRUE;
 				continue;
 			}
 
@@ -273,9 +272,8 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 			}
 			return;
 		}
-		e = GF_OK;
 		read->mov = gf_isom_open(local_name, GF_ISOM_OPEN_READ, NULL);
-		if (!read->mov) e = gf_isom_last_error(NULL);
+		if (!read->mov) gf_isom_last_error(NULL);
 		else read->time_scale = gf_isom_get_timescale(read->mov);
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
 		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
@@ -296,7 +294,7 @@ void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
 		if (read->frag_type && (param->reply==1) ) {
 			u64 bytesMissing = 0;
 			gf_mx_p(read->segment_mutex);
-			e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
+			gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
 			gf_mx_v(read->segment_mutex);
 		}
 		return;
@@ -557,7 +555,6 @@ static GF_Descriptor *ISOR_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	/*no matter what always read text as TTUs*/
 	gf_isom_text_set_streaming_mode(read->mov, 1);
 
-	trackID = 0;
 	if (!sub_url) {
 		trackID = read->play_only_track_id;
 		read->play_only_track_id = 0;
@@ -782,6 +779,10 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	}
 
 	GF_SAFEALLOC(ch, ISOMChannel);
+	if (!ch) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
 	ch->owner = read;
 	ch->channel = channel;
 	gf_list_add(read->channels, ch);
@@ -1228,7 +1229,19 @@ GF_InputService *isor_client_load()
 	ISOMReader *reader;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC IsoMedia Reader", "gpac distribution")
+
+	GF_SAFEALLOC(reader, ISOMReader);
+	if (!reader) {
+		gf_free(plug);
+		return NULL;
+	}
+	reader->channels = gf_list_new();
+	reader->segment_mutex = gf_mx_new("ISO Segment");
+
+	plug->priv = reader;
+	
 	plug->RegisterMimeTypes = ISOR_RegisterMimeTypes;
 	plug->CanHandleURL = ISOR_CanHandleURL;
 	plug->ConnectService = ISOR_ConnectService;
@@ -1241,12 +1254,6 @@ GF_InputService *isor_client_load()
 	/*we do support pull mode*/
 	plug->ChannelGetSLP = ISOR_ChannelGetSLP;
 	plug->ChannelReleaseSLP = ISOR_ChannelReleaseSLP;
-
-	GF_SAFEALLOC(reader, ISOMReader);
-	reader->channels = gf_list_new();
-	reader->segment_mutex = gf_mx_new("ISO Segment");
-
-	plug->priv = reader;
 	return plug;
 }
 

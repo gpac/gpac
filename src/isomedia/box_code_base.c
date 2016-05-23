@@ -143,6 +143,7 @@ GF_Err chpl_Read(GF_Box *s,GF_BitStream *bs)
 	count = 0;
 	while (nb_chaps) {
 		GF_SAFEALLOC(ce, GF_ChapterEntry);
+		if (!ce) return GF_OUT_OF_MEM;
 		ce->start_time = gf_bs_read_u64(bs);
 		len = gf_bs_read_u8(bs);
 		if (len) {
@@ -892,6 +893,7 @@ GF_Err dinf_Size(GF_Box *s)
 	GF_Err e;
 	GF_DataInformationBox *ptr = (GF_DataInformationBox *)s;
 	e = gf_isom_box_get_size(s);
+	if (e) return e;
 	if (ptr->dref) {
 		e = gf_isom_box_size((GF_Box *) ptr->dref);
 		if (e) return e;
@@ -1837,7 +1839,7 @@ GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
 			}
 			gf_bs_read_data(bs, rtp->sdpText, length);
 			rtp->sdpText[length] = 0;
-			sr += length;
+//			sr += length;
 			e = hnti_AddBox(ptr, (GF_Box *)rtp);
 			if (e) return e;
 			if (ptr->size<rtp->size) return GF_ISOM_INVALID_FILE;
@@ -2684,7 +2686,7 @@ GF_Err iods_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_odf_desc_read(desc, descSize, &ptr->descriptor);
 	//OK, free our desc
 	gf_free(desc);
-	return GF_OK;
+	return e;
 }
 
 GF_Box *iods_New()
@@ -8797,6 +8799,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	{
 		GF_RollRecoveryEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_RollRecoveryEntry);
+		if (!ptr) return NULL;
 		ptr->roll_distance = gf_bs_read_int(bs, 16);
 		*total_bytes = 2;
 		return ptr;
@@ -8805,6 +8808,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	{
 		GF_VisualRandomAccessEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_VisualRandomAccessEntry);
+		if (!ptr) return NULL;
 		ptr->num_leading_samples_known = gf_bs_read_int(bs, 1);
 		ptr->num_leading_samples = gf_bs_read_int(bs, 7);
 		*total_bytes = 1;
@@ -8814,6 +8818,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	{
 		GF_CENCSampleEncryptionGroupEntry *ptr;
 		GF_SAFEALLOC(ptr, GF_CENCSampleEncryptionGroupEntry);
+		if (!ptr) return NULL;
 		ptr->IsEncrypted = gf_bs_read_u24(bs);
 		ptr->IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *)ptr->KID, 16);
@@ -8833,6 +8838,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		GF_DefaultSampleGroupDescriptionEntry *ptr;
 		if (!entry_size) return NULL;
 		GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
+		if (!ptr) return NULL;
 		ptr->length = entry_size;
 		ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
 		gf_bs_read_data(bs, (char *) ptr->data, ptr->length);

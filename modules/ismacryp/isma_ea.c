@@ -74,7 +74,6 @@ static GF_Err ISMA_GetGPAC_KMS(ISMAEAPriv *priv, GF_Channel *ch, const char *kms
 	else if (!strnicmp(kms_url, "(uri)", 5)) kms_url += 5;
 	else if (!strnicmp(kms_url, "file://", 7)) kms_url += 7;
 
-	e = GF_OK;
 	/*try local*/
 	t = (strstr(kms_url, "://") == NULL) ? gf_fopen(kms_url, "r") : NULL;
 	if (t) {
@@ -398,7 +397,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	u32 max_size, i, subsample_count;
 	GF_CENCSampleAuxInfo *sai;
 
-	e = GF_OK;
 	pleintext_bs = cyphertext_bs = sai_bs = NULL;
 	buffer = NULL;
 	max_size = 4096;
@@ -502,7 +500,6 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	else {
 		if (max_size < evt->data_size) {
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*evt->data_size);
-			max_size = evt->data_size;
 		}
 		gf_bs_read_data(cyphertext_bs, buffer, evt->data_size);
 		gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);

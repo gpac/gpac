@@ -175,6 +175,10 @@ void gf_sg_script_init(GF_Node *node)
 
 
 	GF_SAFEALLOC(priv, GF_ScriptPriv)
+	if (!priv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to create script node\n"));
+		return;
+	}
 	priv->fields = gf_list_new();
 
 	gf_node_set_private(node, priv);
@@ -202,6 +206,10 @@ GF_ScriptField *gf_sg_script_field_new(GF_Node *node, u32 eventType, u32 fieldTy
 	priv = (GF_ScriptPriv *)gf_node_get_private(node);
 
 	GF_SAFEALLOC(field, GF_ScriptField)
+	if (!field) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to create script field\n"));
+		return NULL;
+	}
 	field->fieldType = fieldType;
 	field->name = gf_strdup(name);
 

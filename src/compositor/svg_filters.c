@@ -375,8 +375,8 @@ void svg_draw_filter(GF_Node *filter, GF_Node *node, GF_TraverseState *tr_state)
 	} else {
 		bounds.x = all_atts.x ? all_atts.x->value : 0;
 		bounds.y = all_atts.y ? all_atts.y->value : 0;
-		bounds.width = all_atts.width ? all_atts.x->value : bounds.width;
-		bounds.height = all_atts.x ? all_atts.x->value : 120;
+		bounds.width = all_atts.width ? all_atts.width->value : bounds.width;
+		bounds.height = all_atts.height ? all_atts.height->value : 120;
 	}
 	gf_mx2d_apply_rect(&backup, &bounds);
 
@@ -426,6 +426,10 @@ void compositor_init_svg_filter(GF_Compositor *compositor, GF_Node *node)
 {
 	GF_FilterStack *stack;
 	GF_SAFEALLOC(stack, GF_FilterStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg filter stack\n"));
+		return;
+	}
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, svg_traverse_filter);
 

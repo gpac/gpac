@@ -1259,7 +1259,6 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll)
 
 	for (t = 0; t < num_svc_track; t++)
 	{
-		e = GF_OK;
 		svc_track = gf_isom_new_track(file, t+1+max_id, GF_ISOM_MEDIA_VISUAL, timescale);
 		if (!svc_track)
 		{
@@ -1970,6 +1969,7 @@ static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 typ
 		if (ar->type==type) return ar;
 	}
 	GF_SAFEALLOC(ar, GF_HEVCParamArray);
+	if (!ar) return NULL;
 	ar->nalus = gf_list_new();
 	ar->type = type;
 	if (ar->type == GF_HEVC_NALU_VID_PARAM)
@@ -1990,7 +1990,7 @@ typedef struct
 } SHVCTrackInfo;
 
 static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
-	u32 width, height, i, j;
+	u32 width=0, height=0, i, j;
 	GF_HEVCConfig *shvccfg;
 	HEVCState hevc;
 
@@ -2556,7 +2556,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 	u32 i, j, cur_tile, count, stype, track, nb_tracks, di, nalu_size_length, tx, ty, tw, th;
 	s32 pps_idx=-1, ret;
 	u8 trefidx;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	HEVCState hevc;
 	HEVCTileImport *tiles;
 	GF_HEVCConfig *hvcc;
@@ -2644,7 +2644,6 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		}
 
 		sample->data = (char *) data;
-		cur_tile = 0;
 
 		while (size) {
 			u8 temporal_id, layer_id;
@@ -2917,6 +2916,10 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 			if (e) goto err_exit;
 
 			GF_SAFEALLOC(tf, GF_TrackFragmenter);
+			if (!tf) {
+				e = GF_OUT_OF_MEM;
+				goto err_exit;
+			}
 			tf->TrackID = gf_isom_get_track_id(output, TrackNum);
 			tf->SampleCount = count;
 			tf->OriginalTrack = i+1;

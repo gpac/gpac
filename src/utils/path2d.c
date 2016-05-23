@@ -31,6 +31,7 @@ GF_Path *gf_path_new()
 {
 	GF_Path *gp;
 	GF_SAFEALLOC(gp, GF_Path);
+	if (!gp) return NULL;
 	gp->fineness = FIX_ONE;
 	return gp;
 }
@@ -535,10 +536,6 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 	c_x = gf_mulfix(cos_phi, cxp) - gf_mulfix(sin_phi, cyp) + (start_x + end_x)/2;
 	c_y = gf_mulfix(sin_phi, cxp) + gf_mulfix(cos_phi, cyp) + (start_y + end_y)/2;
 
-	ux = FIX_ONE;
-	uy = 0;
-	normu = FIX_ONE;
-
 	vx = gf_divfix(xmidp-cxp,r_x);
 	vy = gf_divfix(ymidp-cyp,r_y);
 	normv = gf_sqrt(gf_mulfix(vx, vx) + gf_mulfix(vy,vy));
@@ -549,7 +546,6 @@ GF_Err gf_path_add_svg_arc_to(GF_Path *gp, Fixed end_x, Fixed end_y, Fixed r_x, 
 
 	ux = vx;
 	uy = vy;
-	normu = normv;
 
 	vx = gf_divfix(-xmidp-cxp,r_x);
 	vy = gf_divfix(-ymidp-cyp,r_y);
@@ -791,7 +787,6 @@ GF_Err gf_path_get_bounds(GF_Path *gp, GF_Rect *rc)
 		return GF_OK;
 	}
 	pt = gp->points;
-	end = pt + gp->n_points;
 	xMin = xMax = cxMin = cxMax = pt->x;
 	yMin = yMax = cyMin = cyMax = pt->y;
 	pt++;

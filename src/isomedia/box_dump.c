@@ -3309,7 +3309,7 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 	ts = trak->Media->mediaHeader->timeScale;
 	cur_frame = 0;
-	start = end = 0;
+	end = 0;
 
 	count = gf_isom_get_sample_count(the_file, track);
 	for (i=0; i<count; i++) {
@@ -3432,12 +3432,12 @@ static GF_Err gf_isom_dump_srt_track(GF_ISOFile *the_file, u32 track, FILE *dump
 				if (styles & GF_TXT_STYLE_ITALIC) fprintf(dump, "</i>");
 				if (styles & GF_TXT_STYLE_BOLD) fprintf(dump, "</b>");
 
-				styles = 0;
+//				styles = 0;
 			}
 
 			if (color != txtd->default_style.text_color) {
 				fprintf(dump, "</font>");
-				color = txtd->default_style.text_color;
+//				color = txtd->default_style.text_color;
 			}
 			fprintf(dump, "\n");
 		}
@@ -3477,7 +3477,7 @@ static GF_Err gf_isom_dump_svg_track(GF_ISOFile *the_file, u32 track, FILE *dump
 
 	ts = trak->Media->mediaHeader->timeScale;
 	cur_frame = 0;
-	start = end = 0;
+	end = 0;
 
 	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(dump, "<svg version=\"1.2\" baseProfile=\"tiny\" xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" width=\"%d\" height=\"%d\" fill=\"black\">\n", trak->Header->width >> 16 , trak->Header->height >> 16);

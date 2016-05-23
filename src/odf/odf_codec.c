@@ -600,8 +600,9 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 			}
 			if (!found) {
 				GF_ObjectDescriptor *od_new;
-				gf_odf_desc_copy((GF_Descriptor*)od, (GF_Descriptor**)&od_new);
-				gf_list_add(odU_o->objectDescriptors, od_new);
+				GF_Err e = gf_odf_desc_copy((GF_Descriptor*)od, (GF_Descriptor**)&od_new);
+				if (e==GF_OK)
+					gf_list_add(odU_o->objectDescriptors, od_new);
 			}
 
 		}

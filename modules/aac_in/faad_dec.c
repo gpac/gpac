@@ -466,7 +466,12 @@ GF_BaseDecoder *NewFAADDec()
 	FAADDec *dec;
 
 	GF_SAFEALLOC(ifce, GF_MediaDecoder);
+	if (!ifce) return NULL;
 	GF_SAFEALLOC(dec, FAADDec);
+	if (!dec) {
+		gf_free(dec);
+		return NULL;
+	}
 	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "FAAD2 Decoder", "gpac distribution")
 
 	ifce->privateStack = dec;

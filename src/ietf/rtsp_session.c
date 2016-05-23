@@ -123,7 +123,7 @@ GF_RTSPSession *gf_rtsp_session_new(char *sURL, u16 DefaultPort)
 	if (e) return NULL;
 
 	GF_SAFEALLOC(sess, GF_RTSPSession);
-
+	if (!sess) return NULL;
 	sess->ConnectionType = UseTCP ? GF_SOCK_TYPE_TCP : GF_SOCK_TYPE_UDP;
 	if (Port) sess->Port = Port;
 	else if (DefaultPort) sess->Port = DefaultPort;
@@ -607,7 +607,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "x-sessioncookie: %s\r\n", sess->HTTP_Cookie);
 	pos += sprintf(buffer + pos, "Accept: application/x-rtsp-tunnelled\r\n" );
 	pos += sprintf(buffer + pos, "Pragma: no-cache\r\n" );
-	pos += sprintf(buffer + pos, "Cache-Control: no-cache\r\n\r\n" );
+	/*pos += */sprintf(buffer + pos, "Cache-Control: no-cache\r\n\r\n" );
 
 	//	send it!
 	e = gf_sk_send_wait(sess->connection, buffer, (u32) strlen(buffer), HTTP_WAIT_SEC);
@@ -637,7 +637,7 @@ GF_Err gf_rtsp_http_tunnel_start(GF_RTSPSession *sess, char *UserAgent)
 	pos += sprintf(buffer + pos, "Pragma: no-cache\r\n");
 	pos += sprintf(buffer + pos, "Cache-Control: no-cache\r\n");
 	pos += sprintf(buffer + pos, "Content-Length: 32767\r\n");
-	pos += sprintf(buffer + pos, "Expires: Sun. 9 Jan 1972 00:00:00 GMT\r\n\r\n");
+	/*pos += */sprintf(buffer + pos, "Expires: Sun. 9 Jan 1972 00:00:00 GMT\r\n\r\n");
 
 	//	send it!
 	e = gf_sk_send_wait(sess->http, buffer, (u32) strlen(buffer), HTTP_WAIT_SEC);
@@ -685,7 +685,8 @@ GF_RTSPSession *gf_rtsp_session_new_server(GF_Socket *rtsp_listener)
 
 	//OK create a new session
 	GF_SAFEALLOC(sess, GF_RTSPSession);
-
+	if (!sess) return NULL;
+	
 	sess->connection = new_conn;
 	sess->Port = port;
 	sess->ConnectionType = fam;

@@ -1653,6 +1653,7 @@ static void visual_3d_matrix_load(GF_VisualManager *visual, Fixed *mat)
 static void visual_3d_update_matrices(GF_TraverseState *tr_state)
 {
 	GF_Matrix mx;
+	if (!tr_state || !tr_state->camera) return;
 	if (tr_state->visual->needs_projection_matrix_reload) {
 		tr_state->visual->needs_projection_matrix_reload = 0;
 		glMatrixMode(GL_PROJECTION);
@@ -3860,10 +3861,10 @@ void visual_3d_point_sprite(GF_VisualManager *visual, Drawable *stack, GF_Textur
 		glEnable(GL_POINT_SMOOTH);
 		glDisable(GL_LIGHTING);
 
-		scale = FIX2FLT(visual->compositor->depth_gl_scale);
+//		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
-		x = 0;
+//		x = 0;
 		y = 1;
 		y = gf_mulfix(y, INT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
@@ -3919,7 +3920,7 @@ restart:
 		scale = FIX2FLT(visual->compositor->depth_gl_scale);
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
-		x = 0;
+//		x = 0;
 		y = 1;
 		y = gf_mulfix(y, INT2FIX(txh->height/2));;
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
@@ -4008,32 +4009,34 @@ restart:
 		stack->mesh->vbo_dynamic = 1;
 		inc = 1;
 		if (!tr_state->pixel_metrics) inc /= FIX2FLT(tr_state->min_hsize);
-		x = 0;
+//		x = 0;
 		y = 1;
 		y = gf_mulfix(y, FLT2FIX(txh->height/2));
 		if (!tr_state->pixel_metrics) y = gf_divfix(y, tr_state->min_hsize);
 
-		for (h=0; h<txh->height; h++) {
-			u32 idx_offset = h ? ((h-1)*txh->width) : 0;
-			x = -1;
-			x = gf_mulfix(x, FLT2FIX(txh->width/2));
-			if (!tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
+		if (txh->width>1 && txh->height>1) {
+			for (h=0; h<txh->height; h++) {
+				u32 idx_offset = h ? ((h-1)*txh->width) : 0;
+				x = -1;
+				x = gf_mulfix(x, FLT2FIX(txh->width/2));
+				if (tr_state->min_hsize && !tr_state->pixel_metrics) x = gf_divfix(x, tr_state->min_hsize);
 
-			for (w=0; w<txh->width; w++) {
-				mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w / (txh->width-1)), INT2FIX((txh->height - h  -1) / (txh->height-1)) );
-				x += FLT2FIX(inc);
+				for (w=0; w<txh->width; w++) {
+					mesh_set_vertex(stack->mesh, x, y, 0, 0, 0, -FIX_ONE, INT2FIX(w / (txh->width-1)), INT2FIX((txh->height - h  -1) / (txh->height-1)) );
+					x += FLT2FIX(inc);
 
-				/*set triangle*/
-				if (h && w) {
-					u32 first_idx = idx_offset + w - 1;
-					mesh_set_triangle(stack->mesh, first_idx, first_idx+1, txh->width + first_idx +1);
-					mesh_set_triangle(stack->mesh, first_idx, txh->width + first_idx, txh->width + first_idx +1);
+					/*set triangle*/
+					if (h && w) {
+						u32 first_idx = idx_offset + w - 1;
+						mesh_set_triangle(stack->mesh, first_idx, first_idx+1, txh->width + first_idx +1);
+						mesh_set_triangle(stack->mesh, first_idx, txh->width + first_idx, txh->width + first_idx +1);
+					}
 				}
+				y -= FLT2FIX(inc);
 			}
-			y -= FLT2FIX(inc);
+			/*force recompute of Z*/
+			txh->needs_refresh = 1;
 		}
-		/*force recompute of Z*/
-		txh->needs_refresh = 1;
 	}
 
 	/*texture has been updated, recompute Z*/

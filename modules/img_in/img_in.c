@@ -415,7 +415,15 @@ void *NewLoaderInterface()
 	IMGLoader *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution")
+
+	GF_SAFEALLOC(priv, IMGLoader);
+	if (!priv) {
+		gf_free(plug);
+		return NULL;
+	}
+	plug->priv = priv;
 
 	plug->RegisterMimeTypes = IMG_RegisterMimeTypes;
 	plug->CanHandleURL = IMG_CanHandleURL;
@@ -429,8 +437,6 @@ void *NewLoaderInterface()
 	plug->ChannelReleaseSLP = IMG_ChannelReleaseSLP;
 	plug->ServiceCommand = IMG_ServiceCommand;
 
-	GF_SAFEALLOC(priv, IMGLoader);
-	plug->priv = priv;
 	return plug;
 }
 

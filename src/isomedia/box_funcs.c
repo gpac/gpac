@@ -83,7 +83,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	char uuid[16];
 	GF_Err e;
 	GF_Box *newBox;
-	e = GF_OK;
+
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
 
@@ -307,6 +307,9 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 			break;
 		case GF_ISOM_BOX_UUID_PSSH:
 			memcpy(strUUID, "D08A4F1810F34A82B6C832D8ABA183D3", 32);
+			break;
+		default:
+			memset(strUUID, 0, 32);
 			break;
 		}
 

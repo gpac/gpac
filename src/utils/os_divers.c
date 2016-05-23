@@ -825,9 +825,12 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 	/*init RTI stats*/
 	if (!memory_at_gpac_startup) {
 		GF_SystemRTInfo rti;
-		gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		memory_at_gpac_startup = rti.physical_memory_avail;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] System init OK - process id %d - %d MB physical RAM - %d cores\n", rti.pid, (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
+		if (gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY)) {
+			memory_at_gpac_startup = rti.physical_memory_avail;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] System init OK - process id %d - %d MB physical RAM - %d cores\n", rti.pid, (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
+		} else {
+			memory_at_gpac_startup = 0;
+		}
 	}
 }
 
@@ -1213,7 +1216,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			percent +=  (u32) (100 * (double)thi->cpu_usage / TH_USAGE_SCALE);
 		}
 	}
-	error = vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
+	vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
 	mach_port_deallocate(mach_task_self(), task);
 
 	process_u_k_time = utime + stime;

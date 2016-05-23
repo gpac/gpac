@@ -171,6 +171,10 @@ void compositor_init_timesensor(GF_Compositor *compositor, GF_Node *node)
 {
 	TimeSensorStack *st;
 	GF_SAFEALLOC(st, TimeSensorStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate time  sensor 2d stack\n"));
+		return;
+	}
 	st->time_handle.UpdateTimeNode = timesensor_update_time;
 	st->time_handle.udta = node;
 	st->store_info = 1;

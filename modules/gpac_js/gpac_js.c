@@ -778,7 +778,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	if ((argc >= 3) && JSVAL_IS_BOOLEAN(argv[2])) {
 		if (JSVAL_TO_BOOLEAN(argv[2])==JS_TRUE) {
 			url = gf_url_concatenate(dir, "..");
-			if (!strcmp(url, "..") || (url[0]==0)) {
+			if (dir && ( !strcmp(url, "..") || (url[0]==0) )) {
 				if ((dir[1]==':') && ((dir[2]=='/') || (dir[2]=='\\')) ) browse_root = 1;
 				else if (!strcmp(dir, "/")) browse_root = 1;
 			}
@@ -813,6 +813,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 		url = an_url;
 	}
 	err = gf_enum_directory(url ? url : dir, 1, enum_dir_fct, &cbk, NULL);
+	if (err) return JS_FALSE;
 
 	if (!dir_only) {
 		cbk.is_dir = 0;
@@ -2390,11 +2391,15 @@ GF_JSUserExtension *gjs_new()
 {
 	GF_JSUserExtension *dr;
 	GF_GPACJSExt *gjs;
-	dr = gf_malloc(sizeof(GF_JSUserExtension));
-	memset(dr, 0, sizeof(GF_JSUserExtension));
+	GF_SAFEALLOC(dr, GF_JSUserExtension);
+	if (!dr) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "GPAC JavaScript Bindings", "gpac distribution");
 
 	GF_SAFEALLOC(gjs, GF_GPACJSExt);
+	if (!gjs) {
+		gf_free(dr);
+		return NULL;
+	}
 	gjs->rti_refresh_rate = GPAC_JS_RTI_REFRESH_RATE;
 	gjs->evt_fun = JSVAL_NULL;
 	gjs->storages = gf_list_new();

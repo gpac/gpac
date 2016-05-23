@@ -397,6 +397,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	//the data info
 	if (!sIDX && !no_data) return GF_BAD_PARAM;
 	if (!sIDX && !out_offset) return GF_OK;
+	if (!sIDX) return GF_OK;
 
 	(*sIDX) = 0;
 	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &isEdited);

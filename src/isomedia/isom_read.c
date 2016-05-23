@@ -664,7 +664,6 @@ GF_Err gf_isom_get_media_language(GF_ISOFile *the_file, u32 trackNumber, char **
 		for (i = 0; i < count; i++) {
 			GF_Box *box = (GF_Box *)gf_list_get(trak->Media->other_boxes, i);
 			if (box->type == GF_ISOM_BOX_TYPE_ELNG) {
-				elng_found = GF_TRUE;
 				*lang = gf_strdup(((GF_ExtendedLanguageBox *)box)->extended_language);
 				return GF_OK;
 			}
@@ -1599,6 +1598,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	if (! (*sample)->IsRAP) {
 		Bool has_roll, is_rap;
 		e = gf_isom_get_sample_rap_roll_info(the_file, trackNumber, sampleNumber, &is_rap, &has_roll, NULL);
+		if (e) return e;
 		if (is_rap) (*sample)->IsRAP = SAP_TYPE_3;
 	}
 	//optionally get the sample number
@@ -1683,6 +1683,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 		if (sampleNumber) *sampleNumber = 0;
 		*sample = gf_isom_sample_new();
+		if (! *sample) return GF_OUT_OF_MEM;
 		(*sample)->DTS = movieTime;
 		return GF_OK;
 	}
@@ -2296,7 +2297,7 @@ GF_Err gf_isom_refresh_fragmented(GF_ISOFile *movie, u64 *MissingBytes, const ch
 #else
 	u64 prevsize, size;
 	u32 i;
-	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	if (!movie || !movie->movieFileMap || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
 	if (movie->openMode != GF_ISOM_OPEN_READ) return GF_BAD_PARAM;
 
 	/*refresh size*/
@@ -2470,10 +2471,9 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 		if (reset_tables) {
 			u32 type, dur;
 			u64 dts;
-			Bool scalable = has_scalable;
 			GF_SampleTableBox *stbl = trak->Media->information->sampleTable;
 
-			if (scalable) {
+			if (has_scalable) {
 				//check if the base reference is in the file - if not, do not consider the track is scalable.
 				if (gf_isom_get_reference_count(movie, i+1, GF_ISOM_REF_BASE) > 0) {
 					u32 on_track=0;
@@ -2482,7 +2482,6 @@ GF_Err gf_isom_release_segment(GF_ISOFile *movie, Bool reset_tables)
 
 					base = gf_isom_get_track_from_file(movie, on_track);
 					if (!base) {
-						scalable = GF_FALSE;
 						base_track_sample_count=0;
 					} else {
 						base_track_sample_count = base->Media->information->sampleTable->SampleSize->sampleCount;
@@ -2702,6 +2701,7 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		return NULL;
 	case GF_ISOM_BOX_TYPE_GNRV:
 		GF_SAFEALLOC(udesc, GF_GenericSampleDescription);
+		if (!udesc) return NULL;
 		if (entry->EntryType == GF_ISOM_BOX_TYPE_UUID) {
 			memcpy(udesc->UUID, ((GF_UUIDBox*)entry)->uuid, sizeof(bin128));
 		} else {
@@ -2722,12 +2722,17 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		if (entry->data_size) {
 			udesc->extension_buf_size = entry->data_size;
 			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * entry->data_size);
+			if (!udesc->extension_buf) {
+				gf_free(udesc);
+				return NULL;
+			}
 			memcpy(udesc->extension_buf, entry->data, entry->data_size);
 		}
 		return udesc;
 	case GF_ISOM_BOX_TYPE_GNRA:
 		gena = (GF_GenericAudioSampleEntryBox *)entry;
 		GF_SAFEALLOC(udesc, GF_GenericSampleDescription);
+		if (!udesc) return NULL;
 		if (gena->EntryType == GF_ISOM_BOX_TYPE_UUID) {
 			memcpy(udesc->UUID, ((GF_UUIDBox*)gena)->uuid, sizeof(bin128));
 		} else {
@@ -2742,12 +2747,17 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		if (gena->data_size) {
 			udesc->extension_buf_size = gena->data_size;
 			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * gena->data_size);
+			if (!udesc->extension_buf) {
+				gf_free(udesc);
+				return NULL;
+			}
 			memcpy(udesc->extension_buf, gena->data, gena->data_size);
 		}
 		return udesc;
 	case GF_ISOM_BOX_TYPE_GNRM:
 		genm = (GF_GenericSampleEntryBox *)entry;
 		GF_SAFEALLOC(udesc, GF_GenericSampleDescription);
+		if (!udesc) return NULL;
 		if (genm->EntryType == GF_ISOM_BOX_TYPE_UUID) {
 			memcpy(udesc->UUID, ((GF_UUIDBox*)genm)->uuid, sizeof(bin128));
 		} else {
@@ -2756,6 +2766,10 @@ GF_GenericSampleDescription *gf_isom_get_generic_sample_description(GF_ISOFile *
 		if (genm->data_size) {
 			udesc->extension_buf_size = genm->data_size;
 			udesc->extension_buf = (char*)gf_malloc(sizeof(char) * genm->data_size);
+			if (!udesc->extension_buf) {
+				gf_free(udesc);
+				return NULL;
+			}
 			memcpy(udesc->extension_buf, genm->data, genm->data_size);
 		}
 		return udesc;

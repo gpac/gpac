@@ -346,6 +346,10 @@ static void OGG_NewStream(OGGReader *read, ogg_page *oggpage)
 	}
 
 	GF_SAFEALLOC(st, OGGStream);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[OGG] Failed to allocate stream for demux\n"));
+		return;
+	}
 	st->serial_no = serial_no;
 	ogg_stream_init(&st->os, st->serial_no);
 	ogg_stream_pagein(&st->os, oggpage);
@@ -745,7 +749,7 @@ static GF_Err OGG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 {
 	char szURL[2048];
 	char *ext;
-	GF_Err reply;
+	GF_Err reply=GF_OK;
 	OGGReader *read = (OGGReader*)plug->priv;
 	read->service = serv;
 
@@ -772,7 +776,6 @@ static GF_Err OGG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		if (!read->ogfile) {
 			reply = GF_URL_ERROR;
 		} else {
-			reply = GF_OK;
 			/*init ogg file in local mode*/
 			if (!OGG_CheckFile(read)) {
 				gf_fclose(read->ogfile);
@@ -841,6 +844,7 @@ static GF_Err OGG_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	OGGStream *st;
 	OGGReader *read = (OGGReader*)plug->priv;
 
+	ES_ID=0;
 	e = GF_STREAM_NOT_FOUND;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%u", &ES_ID);

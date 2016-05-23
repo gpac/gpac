@@ -1018,7 +1018,6 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		}
 		data += remain;
 		data_len -= remain;
-		remain=0;
 	}
 
 	pes->frame_state = gf_mp3_get_next_header_mem((char *)data, data_len, &pos);
@@ -1066,7 +1065,7 @@ static u32 gf_m2ts_reframe_mpeg_audio(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 		pck.data_len = data_len;
 		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 		/*update PTS in case we don't get any update*/
-		PTS += gf_mp3_window_size(pes->frame_state)*90000/gf_mp3_sampling_rate(pes->frame_state);
+		pes->PTS += gf_mp3_window_size(pes->frame_state)*90000/gf_mp3_sampling_rate(pes->frame_state);
 		pes->frame_state = frame_size - data_len;
 	} else  {
 		pes->frame_state = 0;
@@ -1214,6 +1213,8 @@ typedef enum {
 
 static void add_text(char **buffer, u32 *size, u32 *pos, char *msg, u32 msg_len)
 {
+	if (!msg || !buffer || ! *buffer) return;
+	
 	if (*pos+msg_len>*size) {
 		*size = *pos+msg_len-*size+256;
 		*buffer = (char *)gf_realloc(*buffer, *size);
@@ -1551,6 +1552,10 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 		/*create table*/
 		if (!t) {
 			GF_SAFEALLOC(t, GF_M2TS_Table);
+			if (!t) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to alloc table %d %d\n", table_id, extended_table_id));
+				return;
+			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Creating table %d %d\n", table_id, extended_table_id));
 			t->table_id = table_id;
 			t->ex_table_id = extended_table_id;
@@ -1605,7 +1610,10 @@ static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter 
 			GF_M2TS_Section *section;
 
 			GF_SAFEALLOC(section, GF_M2TS_Section);
-			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Creating section\n"));
+			if (!section) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to create section\n"));
+				return;
+			}
 			section->data_size = sec->length - section_start;
 			section->data = (unsigned char*)gf_malloc(sizeof(unsigned char)*section->data_size);
 			memcpy(section->data, sec->section + section_start, sizeof(unsigned char)*section->data_size);
@@ -1849,6 +1857,10 @@ static void gf_m2ts_process_sdt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 		u32 descs_size, d_pos, ulen;
 
 		GF_SAFEALLOC(sdt, GF_M2TS_SDT);
+		if (!sdt) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to create SDT\n"));
+			return;
+		}
 		gf_list_add(ts->SDTs, sdt);
 
 		sdt->service_id = (data[pos]<<8) + data[pos+1];
@@ -1937,12 +1949,11 @@ static void dvb_decode_mjd_date(u32 date, u16 *year, u8 *month, u8 *day)
 	u32 yp, mp, k;
 	yp = (u32)((date - 15078.2)/365.25);
 	mp = (u32)((date - 14956.1 - (u32)(yp * 365.25))/30.6001);
-	*day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
+	if (day) *day = (u32)(date - 14956 - (u32)(yp * 365.25) - (u32)(mp * 30.6001));
 	if (mp == 14 || mp == 15) k = 1;
 	else k = 0;
-	*year = yp + k + 1900;
-	*month = mp - 1 - k*12;
-	assert(*year>=1900 && *year<=2100 && *month && *month<=12 && *day && *day<=31);
+	if (year) *year = yp + k + 1900;
+	if (month) *month = mp - 1 - k*12;
 }
 
 
@@ -1984,6 +1995,10 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] Corrupted TDT size\n", table_name));
 	}
 	GF_SAFEALLOC(time_table, GF_M2TS_TDT_TOT);
+	if (!time_table) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Fail to alloc DVB time table\n"));
+		return;
+	}
 
 	/*UTC_time - see annex C of DVB-SI ETSI EN 300468*/
 	dvb_decode_mjd_date(data[0]*256 + data[1], &(time_table->year), &(time_table->month), &(time_table->day));
@@ -2065,6 +2080,7 @@ static GF_M2TS_MetadataPointerDescriptor *gf_m2ts_read_metadata_pointer_descript
 	u32 size;
 	GF_M2TS_MetadataPointerDescriptor *d;
 	GF_SAFEALLOC(d, GF_M2TS_MetadataPointerDescriptor);
+	if (!d) return NULL;
 	d->application_format = gf_bs_read_u16(bs);
 	size = 2;
 	if (d->application_format == 0xFFFF) {
@@ -2119,6 +2135,7 @@ static GF_M2TS_MetadataDescriptor *gf_m2ts_read_metadata_descriptor(GF_BitStream
 	u32 size;
 	GF_M2TS_MetadataDescriptor *d;
 	GF_SAFEALLOC(d, GF_M2TS_MetadataDescriptor);
+	if (!d) return NULL;
 	d->application_format = gf_bs_read_u16(bs);
 	size = 2;
 	if (d->application_format == 0xFFFF) {
@@ -2278,7 +2295,6 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		stream_type = data[0];
 		pid = ((data[1] & 0x1f) << 8) | data[2];
 		desc_len = ((data[3] & 0xf) << 8) | data[4];
-		reg_desc_format = 0;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("stream_type :%d \n",stream_type));
 		switch (stream_type) {
@@ -2303,6 +2319,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_SUBTITLE_DVB:
 		case GF_M2TS_METADATA_PES:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			if (!pes) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				return;
+			}
 			pes->cc = -1;
 			pes->flags = GF_M2TS_ES_IS_PES;
 			if (inherit_pcr)
@@ -2311,6 +2331,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			break;
 		case GF_M2TS_PRIVATE_DATA:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
+			if (!pes) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				return;
+			}
 			pes->cc = -1;
 			pes->flags = GF_M2TS_ES_IS_PES;
 			es = (GF_M2TS_ES *)pes;
@@ -2318,6 +2342,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		/* Sections */
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
+			if (!es) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				return;
+			}
 			es = (GF_M2TS_ES *)ses;
 			es->flags |= GF_M2TS_ES_IS_SECTION;
 			/* carriage of ISO_IEC_14496 data in sections */
@@ -2339,6 +2367,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_13818_6_ANNEX_D:
 		case GF_M2TS_PRIVATE_SECTION:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
+			if (!es) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				return;
+			}
 			es = (GF_M2TS_ES *)ses;
 			es->flags |= GF_M2TS_ES_IS_SECTION;
 			es->pid = pid;
@@ -2462,8 +2494,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					if (metad->application_format_identifier == GF_4CC('I', 'D', '3', ' ') &&
 					        metad->format_identifier == GF_4CC('I', 'D', '3', ' ')) {
 						/*HLS ID3 Metadata */
-						pes->metadata_descriptor = metad;
-						pes->stream_type = GF_M2TS_METADATA_ID3_HLS;
+						if (pes) {
+							pes->metadata_descriptor = metad;
+							pes->stream_type = GF_M2TS_METADATA_ID3_HLS;
+						}
 					} else {
 						/* don't know what to do with it for now, delete */
 						gf_m2ts_metadata_descriptor_del(metad);
@@ -2480,7 +2514,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			data += len+2;
 			pos += len+2;
 			if (desc_len < len+2) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", es->pid ) );
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] Invalid PMT es descriptor size for PID %d\n", pid ) );
 				break;
 			}
 			desc_len-=len+2;
@@ -2606,12 +2640,20 @@ static void gf_m2ts_process_pat(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *ses, GF
 			}
 		} else {
 			GF_SAFEALLOC(prog, GF_M2TS_Program);
+			if (!prog) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Fail to allocate program for pid %d\n", pid));
+				return;
+			}
 			prog->streams = gf_list_new();
 			prog->pmt_pid = pid;
 			prog->number = number;
 			prog->ts = ts;
 			gf_list_add(ts->programs, prog);
 			GF_SAFEALLOC(pmt, GF_M2TS_SECTION_ES);
+			if (!pmt) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Fail to allocate pmt filter for pid %d\n", pid));
+				return;
+			}
 			pmt->flags = GF_M2TS_ES_IS_SECTION;
 			gf_list_add(prog->streams, pmt);
 			pmt->pid = prog->pmt_pid;
@@ -2741,7 +2783,7 @@ void gf_m2ts_pes_header(GF_M2TS_PES *pes, unsigned char *data, u32 data_size, GF
 	}
 	if (has_dts) {
 		pesh->DTS = gf_m2ts_get_pts(data);
-		data+=5;
+		//data+=5;
 		len_check += 5;
 	} else {
 		pesh->DTS = pesh->PTS;
@@ -2785,7 +2827,8 @@ static void gf_m2ts_store_temi(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_M2TS_PESHeader pesh;
-
+	if (!ts) return;
+	
 	/*we need at least a full, valid start code !!*/
 	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2]==0x1)) {
 		u32 len;
@@ -2892,7 +2935,8 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			if (pes->temi_pending) {
 				pes->temi_pending = 0;
 				pes->temi_tc.pes_pts = pes->PTS;
-				ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
+				if (ts->on_event)
+					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
 
 			if (! ts->start_range)
@@ -2941,7 +2985,6 @@ static void gf_m2ts_process_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, GF_M2TS_H
 			pes->flags &= ~GF_M2TS_ES_IGNORE_NEXT_DISCONTINUITY;
 			disc = 0;
 		}
-		disc = 0;
 		if (disc) {
 			if (hdr->payload_start) {
 				if (pes->pck_data_len) {
@@ -3584,6 +3627,8 @@ u32 gf_m2ts_pes_get_framing_mode(GF_M2TS_PES *pes)
 GF_EXPORT
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
+	if (!pes) return GF_BAD_PARAM;
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Setting pes framing mode of PID %d to %d\n", pes->pid, mode) );
 	/*ignore request for section PIDs*/
 	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
@@ -3677,6 +3722,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	GF_M2TS_Demuxer *ts;
 
 	GF_SAFEALLOC(ts, GF_M2TS_Demuxer);
+	if (!ts) return NULL;
 	ts->programs = gf_list_new();
 	ts->SDTs = gf_list_new();
 
@@ -3869,7 +3915,7 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 
 		/*process chunk*/
 		ts->abort_parsing = GF_FALSE;
-		e = gf_m2ts_process_data(ts, mem_address, size);
+		/*e = */gf_m2ts_process_data(ts, mem_address, size);
 
 		if (refresh_type==2)
 			ts->pos_in_stream = 0;
@@ -4121,7 +4167,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 			ts->force_file_refresh = 0;
 
 			if (ts_bs) {
-				pos = (u32) gf_bs_get_position(ts_bs);
+				/*pos = (u32) gf_bs_get_position(ts_bs);*/
 				gf_bs_del(ts_bs);
 				ts_bs = NULL;
 			}

@@ -1141,6 +1141,8 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<sample_count; ++i) {
 		GF_CENCSampleAuxInfo *sai;
 		GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
+		if (!sai) return GF_OUT_OF_MEM;
+
 		sai->IV_size = ptr->IV_size;
 		gf_bs_read_data(bs, (char *) sai->IV, ptr->IV_size);
 		ptr->size -= ptr->IV_size;
@@ -1809,7 +1811,7 @@ GF_Err akey_Size(GF_Box *s)
 	if (e) return e;
 	ptr->size += ptr->params->size;
 	e = gf_isom_box_size((GF_Box *) ptr->params);
-	return GF_OK;
+	return e;
 }
 #endif //GPAC_DISABLE_ISOM_WRITE
 

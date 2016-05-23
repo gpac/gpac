@@ -86,6 +86,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneDumper);
+	if (!tmp) return NULL;
 
 	/*store original*/
 	tmp->dump_mode = dump_mode;
@@ -2227,6 +2228,7 @@ static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
 		toNode = gf_sg_find_node(com->in_scene, com->toNodeID);
 		if (!toNode) return GF_NON_COMPLIANT_BITSTREAM;
 		e = gf_node_get_field(toNode, com->toFieldIndex, &idxField);
+		if (e) return e;
 	}
 	else {
 		/*indexed replacement */
@@ -2285,6 +2287,7 @@ static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
 			target = gf_sg_find_node(com->in_scene, com->fromNodeID);
 			if (!target) return GF_NON_COMPLIANT_BITSTREAM;
 			e = gf_node_get_field(target, com->fromFieldIndex, &idxField);
+			if (e) return e;
 
 			fprintf(sdump->trace, " fromNode=\"");
 			scene_dump_vrml_id(sdump, target);
@@ -2715,28 +2718,31 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
 			}
 		}
+		if (!f->new_node && !f->node_list) {
+			fprintf(sdump->trace, "/>\n");
+			return GF_OK;
+		}
+		if (f->new_node && f->new_node->sgprivate->tag==TAG_DOMText) is_text = 1;
+		/*if fieldIndex (eg attributeName) is set, this is children replacement*/
+		if (f->fieldIndex>0)
+			fprintf(sdump->trace, "attributeName=\"children\" ");
 	}
-	if (!f->new_node && !f->node_list) {
-		fprintf(sdump->trace, "/>\n");
-		return GF_OK;
-	}
-	if (f->new_node && f->new_node->sgprivate->tag==TAG_DOMText) is_text = 1;
-	/*if fieldIndex (eg attributeName) is set, this is children replacement*/
-	if (f->fieldIndex>0)
-		fprintf(sdump->trace, "attributeName=\"children\" ");
+
 
 	fprintf(sdump->trace, ">");
 	if (!is_text) {
 		fprintf(sdump->trace, "\n");
 		sdump->indent++;
 	}
-	if (f->new_node) {
-		gf_dump_svg_element(sdump, f->new_node, com->node, 0);
-	} else if (f->node_list) {
-		GF_ChildNodeItem *list = f->node_list;
-		while (list) {
-			gf_dump_svg_element(sdump, list->node, com->node, 0);
-			list = list->next;
+	if (f) {
+		if (f->new_node) {
+			gf_dump_svg_element(sdump, f->new_node, com->node, 0);
+		} else if (f->node_list) {
+			GF_ChildNodeItem *list = f->node_list;
+			while (list) {
+				gf_dump_svg_element(sdump, list->node, com->node, 0);
+				list = list->next;
+			}
 		}
 	}
 	sdump->indent--;
@@ -3528,9 +3534,10 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 		}
 		else {
 			if (dumper->LSRDump) {
-				if (time != au->timing_sec) {
+/*				if (time != au->timing_sec) {
 					time = au->timing_sec;
 				}
+*/
 			} else if (!time && !num_scene && first_bifs) {
 			} else if (num_scene || num_od) {
 				if (!first_par) {

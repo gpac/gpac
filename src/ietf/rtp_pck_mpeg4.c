@@ -260,7 +260,6 @@ GF_Err gp_rtp_builder_do_mpeg4(GP_RTPPacketizer *builder, char *data, u32 data_s
 			/*prepare the mapped headers*/
 			builder->pck_hdr = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			builder->payload = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			pckSize = infoSize = 0;
 			builder->bytesInPacket = 0;
 
 			/*in multiSL there is a MSLHSize structure on 2 bytes*/

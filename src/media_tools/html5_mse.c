@@ -33,6 +33,7 @@ GF_HTML_MediaSource *gf_mse_media_source_new()
 {
 	GF_HTML_MediaSource *ms;
 	GF_SAFEALLOC(ms, GF_HTML_MediaSource);
+	if (!ms) return NULL;
 	ms->sourceBuffers.list = gf_list_new();
 	ms->sourceBuffers.parent = ms;
 	ms->sourceBuffers.evt_target = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_MSE_SOURCEBUFFERLIST, &ms->sourceBuffers);
@@ -148,6 +149,7 @@ GF_HTML_SourceBuffer *gf_mse_source_buffer_new(GF_HTML_MediaSource *mediasource)
 	char name[256];
 	GF_HTML_SourceBuffer *source;
 	GF_SAFEALLOC(source, GF_HTML_SourceBuffer);
+	if (!source) return NULL;
 	sprintf(name, "SourceBuffer_Thread_%p", source);
 	source->mediasource = mediasource;
 	source->buffered = gf_html_timeranges_new(1);
@@ -783,6 +785,8 @@ u32 gf_mse_parse_segment(void *par)
 				GF_Err e;
 				track = (GF_HTML_Track *)gf_list_get(sb->tracks, i);
 				GF_SAFEALLOC(packet, GF_MSE_Packet);
+				if (!packet) continue;
+				
 				assert(track->channel);
 				e = sb->parser->ChannelGetSLP(sb->parser, track->channel,
 				                              &packet->data, &packet->size, &packet->sl_header,

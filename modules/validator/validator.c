@@ -85,14 +85,28 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
 	GF_XMLNode *snap_node;
 	GF_XMLAttribute *att;
 	GF_SAFEALLOC(snap_node, GF_XMLNode);
+	if (!snap_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate snapshot\n"));
+		return;
+	}
 	snap_node->name = gf_strdup("snapshot");
 	snap_node->attributes = gf_list_new();
+
 	GF_SAFEALLOC(att, GF_XMLAttribute);
+	if (!att) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate snapshot\n"));
+		return;
+	}
 	att->name = gf_strdup("time");
 	att->value = (char*)gf_malloc(100);
 	sprintf(att->value, "%d", scene_time);
 	gf_list_add(snap_node->attributes, att);
+	
 	GF_SAFEALLOC(att, GF_XMLAttribute);
+	if (!att) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate snapshot\n"));
+		return;
+	}
 	att->name = gf_strdup("image");
 	att->value = gf_strdup(filename);
 	gf_list_add(snap_node->attributes, att);
@@ -100,6 +114,10 @@ static void validator_xvs_add_snapshot_node(GF_Validator *validator, const char 
 
 	/* adding an extra text node for line break in serialization */
 	GF_SAFEALLOC(snap_node, GF_XMLNode);
+	if (!snap_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate snapshot\n"));
+		return;
+	}
 	snap_node->type = GF_XML_TEXT_TYPE;
 	snap_node->name = gf_strdup("\n");
 	gf_list_add(validator->xvs_node->content, snap_node);
@@ -266,6 +284,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	GF_XMLAttribute *att;
 
 	GF_SAFEALLOC(evt_node, GF_XMLNode);
+	if (!evt_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event\n"));
+		return;
+	}
 
 	switch (event->type) {
 	case GF_EVENT_CLICK:
@@ -292,6 +314,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	evt_node->attributes = gf_list_new();
 
 	GF_SAFEALLOC(att, GF_XMLAttribute);
+	if (!att) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event time\n"));
+		return;
+	}
 	att->name = gf_strdup("time");
 	att->value = (char*)gf_malloc(100);
 	sprintf(att->value, "%f", gf_scene_get_time(validator->term->root_scene)*1000);
@@ -307,6 +333,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_MOUSEWHEEL:
 		if (event->type == GF_EVENT_MOUSEDOWN || event->type == GF_EVENT_MOUSEUP) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("button");
 			switch (event->mouse.button) {
 			case 0:
@@ -322,17 +352,30 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 			gf_list_add(evt_node->attributes, att);
 		}
 		GF_SAFEALLOC(att, GF_XMLAttribute);
+		if (!att) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+			return;
+		}
 		att->name = gf_strdup("x");
 		att->value = (char*)gf_malloc(100);
 		sprintf(att->value, "%d", event->mouse.x);
 		gf_list_add(evt_node->attributes, att);
+
 		GF_SAFEALLOC(att, GF_XMLAttribute);
+		if (!att) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+			return;
+		}
 		att->name = gf_strdup("y");
 		att->value = (char*)gf_malloc(100);
 		sprintf(att->value, "%d", event->mouse.y);
 		gf_list_add(evt_node->attributes, att);
 		if (event->type == GF_EVENT_MOUSEWHEEL) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("wheel_pos");
 			att->value = (char*)gf_malloc(100);
 			sprintf(att->value, "%f", FIX2FLT( event->mouse.wheel_pos) );
@@ -340,18 +383,30 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 		}
 		if (event->mouse.key_states & GF_KEY_MOD_SHIFT) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("shift");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
 		}
 		if (event->mouse.key_states & GF_KEY_MOD_CTRL) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("ctrl");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
 		}
 		if (event->mouse.key_states & GF_KEY_MOD_ALT) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("alt");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
@@ -362,6 +417,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	case GF_EVENT_KEYDOWN:
 	case GF_EVENT_LONGKEYPRESS:
 		GF_SAFEALLOC(att, GF_XMLAttribute);
+		if (!att) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+			return;
+		}
 		att->name = gf_strdup("key_identifier");
 #ifndef GPAC_DISABLE_SVG
 		att->value = gf_strdup(gf_dom_get_key_name(event->key.key_code));
@@ -369,18 +428,30 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 		gf_list_add(evt_node->attributes, att);
 		if (event->key.flags & GF_KEY_MOD_SHIFT) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("shift");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
 		}
 		if (event->key.flags & GF_KEY_MOD_CTRL) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("ctrl");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
 		}
 		if (event->key.flags & GF_KEY_MOD_ALT) {
 			GF_SAFEALLOC(att, GF_XMLAttribute);
+			if (!att) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+				return;
+			}
 			att->name = gf_strdup("alt");
 			att->value = gf_strdup("true");
 			gf_list_add(evt_node->attributes, att);
@@ -388,6 +459,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 		break;
 	case GF_EVENT_TEXTINPUT:
 		GF_SAFEALLOC(att, GF_XMLAttribute);
+		if (!att) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event info\n"));
+			return;
+		}
 		att->name = gf_strdup("unicode-char");
 		att->value = (char*)gf_malloc(100);
 		sprintf(att->value, "%d", event->character.unicode_char);
@@ -397,6 +472,10 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	gf_list_add(validator->xvs_node->content, evt_node);
 	/* adding an extra text node for line break in serialization */
 	GF_SAFEALLOC(evt_node, GF_XMLNode);
+	if (!evt_node) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate event\n"));
+		return;
+	}
 	evt_node->type = GF_XML_TEXT_TYPE;
 	evt_node->name = gf_strdup("\n");
 	gf_list_add(validator->xvs_node->content, evt_node);
@@ -567,6 +646,11 @@ static Bool validator_xvs_open(GF_Validator *validator)
 	if (e != GF_OK) {
 		if (validator->is_recording) {
 			GF_SAFEALLOC(validator->xvs_node, GF_XMLNode);
+			if (!validator->xvs_node) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate root node\n"));
+				return 0;
+			}
+			
 			validator->xvs_node->name = gf_strdup("TestValidationScript");
 			validator->xvs_node->attributes = gf_list_new();
             validator->xvs_node->content = gf_list_new();
@@ -623,6 +707,10 @@ static Bool validator_xvs_open(GF_Validator *validator)
 		}
 		/* adding an extra text node for line break in serialization */
 		GF_SAFEALLOC(node, GF_XMLNode);
+		if (!node) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate node\n"));
+			return GF_FALSE;
+		}
 		node->type = GF_XML_TEXT_TYPE;
 		node->name = gf_strdup("\n");
 		gf_list_add(validator->xvs_node->content, node);
@@ -656,6 +744,10 @@ static void validator_xvs_close(GF_Validator *validator)
 
                 if (!att_file) {
                     GF_SAFEALLOC(att, GF_XMLAttribute);
+					if (!att) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate file attribute\n"));
+						return;
+					}
                     att->name = gf_strdup("file");
                     gf_list_add(validator->xvs_node->attributes, att);
                 } else {
@@ -693,6 +785,10 @@ static void validator_xvs_close(GF_Validator *validator)
 				}
 				if (!att_result) {
 					GF_SAFEALLOC(att_result, GF_XMLAttribute);
+					if (!att_result) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Validator] Failed to allocate result attribute\n"));
+						return;
+					}
 					att_result->name = gf_strdup("result");
 					gf_list_add(validator->xvs_node_in_xvl->attributes, att_result);
 				}

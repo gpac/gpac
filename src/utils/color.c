@@ -1123,8 +1123,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 
 	if ( (src_h / dst_h) * dst_h != src_h) force_load_odd_yuv_lines = GF_TRUE;
 
-	dst_bits = (u8 *) dst->video_buffer;
-
 	pos_y = 0x10000;
 	inc_y = (src_h << 16) / dst_h;
 	inc_x = (src_w << 16) / dst_w;
@@ -1143,7 +1141,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	if (has_alpha && dst->is_hardware_memory)
 		dst_temp_bits = (u8 *) gf_malloc(sizeof(u8) * dst_bpp * dst_w);
 
-	kl = kh = ka = kr = kg = kb = 0;
 	if (key) {
 		ka = key->alpha;
 		kr = key->r;
@@ -1178,7 +1175,6 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 						} else {
 							load_line_yuva(src->video_buffer, x_off, the_row, src->pitch_y, src_w, src->height, tmp, (u8 *) src->u_ptr, (u8 *) src->v_ptr, (u8 *) src->a_ptr);
 						}
-						the_row = src_row - 1;
 
 						if (cmat) {
 							for (i=0; i<2*src_w; i++) {
@@ -1293,7 +1289,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		/*do NOT use memcpy if the target buffer is not in systems memory*/
 		else if (no_memcpy) {
 			copy_row(rows, src_w, dst_bits, dst_w, inc_x, dst_x_pitch, alpha);
-		} else {
+		} else if (dst_bits && dst_bits_prev) {
 			memcpy(dst_bits, dst_bits_prev, dst_w_size);
 		}
 

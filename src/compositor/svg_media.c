@@ -428,6 +428,10 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg image stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	stack->drawable->node = node;
@@ -559,6 +563,10 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg video stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	stack->drawable->node = node;
@@ -897,6 +905,10 @@ void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_updates_stack *stack;
 	GF_SAFEALLOC(stack, SVG_updates_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate laser updates stack\n"));
+		return;
+	}
 
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);

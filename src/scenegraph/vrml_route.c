@@ -49,7 +49,14 @@ GF_Route *gf_sg_route_new(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromField, G
 	r->ToField.fieldIndex = toField;
 	r->graph = sg;
 
-	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+	if (!fromNode->sgprivate->interact) {
+		GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+		if (!fromNode->sgprivate->interact) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to create interact storage\n"));
+			gf_free(r);
+			return NULL;
+		}
+	}
 	if (!fromNode->sgprivate->interact->routes) fromNode->sgprivate->interact->routes = gf_list_new();
 	gf_list_add(fromNode->sgprivate->interact->routes, r);
 	gf_list_add(sg->Routes, r);
@@ -490,7 +497,14 @@ void gf_sg_route_new_to_callback(GF_SceneGraph *sg, GF_Node *fromNode, u32 fromF
 	r->is_setup = 1;
 	r->graph = sg;
 
-	if (!fromNode->sgprivate->interact) GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+	if (!fromNode->sgprivate->interact) {
+		GF_SAFEALLOC(fromNode->sgprivate->interact, struct _node_interactive_ext);
+		if (!fromNode->sgprivate->interact) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to create interact storage\n"));
+			gf_free(r);
+			return;
+		}
+	}
 	if (!fromNode->sgprivate->interact->routes) fromNode->sgprivate->interact->routes = gf_list_new();
 	gf_list_add(fromNode->sgprivate->interact->routes, r);
 	gf_list_add(fromNode->sgprivate->scenegraph->Routes, r);

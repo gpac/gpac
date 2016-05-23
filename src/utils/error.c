@@ -189,7 +189,6 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 			return GF_BAD_PARAM;
 		}
 
-		level = 0;
 		if (!strnicmp(sep_level+1, "error", 5)) {
 			level = GF_LOG_ERROR;
 			next_val = sep_level+1 + 5;

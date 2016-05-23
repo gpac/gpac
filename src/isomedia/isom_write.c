@@ -172,7 +172,8 @@ GF_Err gf_isom_remove_track_from_root_od(GF_ISOFile *movie, u32 trackNumber)
 	if (!gf_isom_is_track_in_root_od(movie, trackNumber)) return GF_OK;
 
 	if (!movie->moov->iods) AddMovieIOD(movie->moov, 0);
-
+	if (!movie->moov->iods) return GF_OUT_OF_MEM;
+	
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_IOD_TAG:
 		esds = ((GF_IsomInitialObjectDescriptor *)movie->moov->iods->descriptor)->ES_ID_IncDescriptors;
@@ -348,6 +349,7 @@ GF_Err gf_isom_add_desc_to_root_od(GF_ISOFile *movie, GF_Descriptor *theDesc)
 	gf_isom_insert_moov(movie);
 
 	if (!movie->moov->iods) AddMovieIOD(movie->moov, 0);
+	if (!movie->moov->iods) return GF_OUT_OF_MEM;
 	if (theDesc->tag==GF_ODF_IPMP_TL_TAG) gf_isom_set_root_iod(movie);
 
 	desc = movie->moov->iods->descriptor;
@@ -452,6 +454,7 @@ GF_Err gf_isom_set_root_od_id(GF_ISOFile *movie, u32 OD_ID)
 
 	gf_isom_insert_moov(movie);
 	if (!movie->moov->iods) AddMovieIOD(movie->moov, 0);
+	if (!movie->moov->iods) return GF_OUT_OF_MEM;
 
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_OD_TAG:
@@ -474,6 +477,8 @@ GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, char *url_string)
 	gf_isom_insert_moov(movie);
 
 	if (!movie->moov->iods) AddMovieIOD(movie->moov, 0);
+	if (!movie->moov->iods) return GF_OUT_OF_MEM;
+	
 	switch (movie->moov->iods->descriptor->tag) {
 	case GF_ODF_ISOM_OD_TAG:
 		if (((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString) gf_free(((GF_IsomObjectDescriptor *)movie->moov->iods->descriptor)->URLString);
@@ -1957,6 +1962,8 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	} else {
 		ptr = (GF_ChapterListBox*)gf_list_get(map->other_boxes, 0);
 	}
+	if (!map) return GF_OUT_OF_MEM;
+	
 	/*this may happen if original MP4 is not properly formatted*/
 	if (!ptr) {
 		ptr = (GF_ChapterListBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CHPL);
@@ -1964,6 +1971,8 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	}
 
 	GF_SAFEALLOC(ce, GF_ChapterEntry);
+	if (!ce) return GF_OUT_OF_MEM;
+	
 	ce->start_time = timestamp * 10000L;
 	ce->name = name ? gf_strdup(name) : NULL;
 
@@ -2269,9 +2278,11 @@ GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, u8 AddIt)
 
 	if (!movie->brand && AddIt) {
 		movie->brand = (GF_FileTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FTYP);
+		if (!movie->brand) return GF_OUT_OF_MEM;
 		gf_list_add(movie->TopBoxes, movie->brand);
 	}
-
+	if (!AddIt && !movie->brand) return GF_OK;
+	
 	//do not mofify major one
 	if (!AddIt && movie->brand->majorBrand == Brand) return GF_OK;
 
@@ -3193,6 +3204,8 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 	}
 	//find a ref of the given type
 	e = Track_FindRef(trak, referenceType, &dpnd);
+	if (e) return e;
+	
 	if (!dpnd) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
 		dpnd->reference_type = referenceType;
@@ -4255,6 +4268,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *d
 	}
 
 	GF_SAFEALLOC(uuid, GF_UnknownUUIDBox);
+	if (!uuid) return GF_OUT_OF_MEM;
 	uuid->type = GF_ISOM_BOX_TYPE_UUID;
 	memcpy(uuid->uuid, UUID, sizeof(bin128));
 	uuid->dataSize = data_size;
@@ -4905,6 +4919,7 @@ void *sg_rap_create_entry(void *udta)
 	u32 *num_leading_samples = (u32 *) udta;
 	assert(udta);
 	GF_SAFEALLOC(entry, GF_VisualRandomAccessEntry);
+	if (!entry) return NULL;
 	entry->num_leading_samples = *num_leading_samples;
 	entry->num_leading_samples_known = entry->num_leading_samples ? 1 : 0;
 	return entry;
@@ -4929,6 +4944,7 @@ void *sg_roll_create_entry(void *udta)
 	GF_RollRecoveryEntry *entry;
 	s16 *roll_distance = (s16 *) udta;
 	GF_SAFEALLOC(entry, GF_RollRecoveryEntry);
+	if (!entry) return NULL;
 	entry->roll_distance = *roll_distance;
 	return entry;
 }
@@ -4950,6 +4966,7 @@ void *sg_encryption_create_entry(void *udta)
 	GF_CENCSampleEncryptionGroupEntry *entry;
 	GF_BitStream *bs;
 	GF_SAFEALLOC(entry, GF_CENCSampleEncryptionGroupEntry);
+	if (!entry) return NULL;
 	bs = gf_bs_new((char *) udta, sizeof(GF_CENCSampleEncryptionGroupEntry), GF_BITSTREAM_READ);
 	entry->IsEncrypted = gf_bs_read_u24(bs);
 	entry->IV_size = gf_bs_read_u8(bs);
@@ -5295,6 +5312,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					}
 					if (!sgd_dst) {
 						gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **) &sgd_dst);
+						if (!sgd_dst) return GF_OUT_OF_MEM;
 						gf_list_add(dst_trak->Media->information->sampleTable->sampleGroupsDescription, sgd_dst);
 					}
 
@@ -5309,6 +5327,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 					if (!group_desc_index_dst) {
 						GF_SampleGroupDescriptionBox *cloned=NULL;
 						gf_isom_clone_box( (GF_Box *) sgd_src, (GF_Box **)  &cloned);
+						if (!cloned) return GF_OUT_OF_MEM;
 						sgde_dst = gf_list_get(cloned->group_descriptions, group_desc_index_dst);
 						gf_list_rem(cloned->group_descriptions, group_desc_index_dst);
 						gf_isom_box_del( (GF_Box *) cloned);

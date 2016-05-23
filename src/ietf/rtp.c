@@ -462,7 +462,8 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	if (ch->last_SR_rtp_time) {
 		s32 diff_sec = ((s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time) / (s32) ch->TimeScale;
 		u32 sec = ch->last_SR_NTP_sec;
-		s64 frac = ch->last_SR_NTP_frac;
+		s64 frac;
+		//frac = ch->last_SR_NTP_frac;
 
 		frac = (s32) rtp_hdr->TimeStamp - (s32) ch->last_SR_rtp_time - diff_sec*(s32)ch->TimeScale;
 		frac *= 0xFFFFFFFF;
@@ -784,6 +785,7 @@ GF_RTPReorder *gf_rtp_reorderer_new(u32 MaxCount, u32 MaxDelay)
 	if (MaxCount <= 1 || !MaxDelay) return NULL;
 
 	GF_SAFEALLOC(tmp , GF_RTPReorder);
+	if (!tmp) return NULL;
 	tmp->MaxCount = MaxCount;
 	tmp->MaxDelay = MaxDelay;
 	return tmp;

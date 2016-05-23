@@ -486,6 +486,7 @@ GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry;
 		GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
+		if (!entry) return GF_OUT_OF_MEM;
 		entry->essential = gf_list_new();
 		entry->property_index = gf_list_new();
 		gf_list_add(p->entries, entry);

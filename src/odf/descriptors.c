@@ -404,6 +404,10 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 {
 	u32 to_skip;
 	GF_BitStream *bs;
+	
+	if (!cfg) return GF_BAD_PARAM;
+	memset(cfg, 0, sizeof(GF_LASERConfig));
+	
 	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	memset(cfg, 0, sizeof(GF_LASERConfig));
@@ -979,6 +983,10 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 		u32 nalucount, j;
 		GF_HEVCParamArray *ar;
 		GF_SAFEALLOC(ar, GF_HEVCParamArray);
+		if (!ar) {
+			gf_odf_hevc_cfg_del(cfg);
+			return NULL;
+		}
 		ar->nalus = gf_list_new();
 		gf_list_add(cfg->param_array, ar);
 
@@ -989,6 +997,10 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 		for (j=0; j<nalucount; j++) {
 			GF_AVCConfigSlot *sl;
 			GF_SAFEALLOC(sl, GF_AVCConfigSlot );
+			if (!sl) {
+				gf_odf_hevc_cfg_del(cfg);
+				return NULL;
+			}
 
 			sl->size = gf_bs_read_int(bs, 16);
 

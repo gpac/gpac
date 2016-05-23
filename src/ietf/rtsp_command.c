@@ -35,6 +35,7 @@ GF_RTSPCommand *gf_rtsp_command_new()
 {
 	GF_RTSPCommand *tmp;
 	GF_SAFEALLOC(tmp, GF_RTSPCommand);
+	if (!tmp) return NULL;
 	tmp->Xtensions = gf_list_new();
 	tmp->Transports = gf_list_new();
 	return tmp;

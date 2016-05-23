@@ -1127,6 +1127,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
         GF_Err *e)
 {
 	GF_DownloadSession *sess;
+	if (!dm) return NULL;
+	
 	GF_SAFEALLOC(sess, GF_DownloadSession);
 	if (!sess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("%s:%d Cannot allocate session for URL %s: OUT OF MEMORY!\n", __FILE__, __LINE__, url));
@@ -1136,7 +1138,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	sess->flags = dl_flags;
 	if (sess->flags & GF_NETIO_SESSION_NOTIFY_DATA)
 		sess->force_data_write_callback = GF_TRUE;
-	if (dm && !dm->head_timeout) sess->server_only_understand_get = GF_TRUE;
+	if (!dm->head_timeout) sess->server_only_understand_get = GF_TRUE;
 	sess->user_proc = user_io;
 	sess->usr_cbk = usr_cbk;
 	sess->creds = NULL;
@@ -1346,7 +1348,7 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 
 		/*failed*/
 		if (e) {
-			if (!sess->cache_entry && sess->dm->allow_offline_cache) {
+			if (!sess->cache_entry && sess->dm && sess->dm->allow_offline_cache) {
 				gf_dm_configure_cache(sess);
 				if (sess->cache_entry && !gf_cache_check_if_cache_file_is_corrupted(sess->cache_entry)) {
 					sess->from_cache_only = GF_TRUE;
@@ -1374,10 +1376,10 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 #ifdef GPAC_HAS_SSL
 	if (!sess->ssl && (sess->flags & GF_DOWNLOAD_SESSION_USE_SSL)) {
 		u64 now = gf_sys_clock_high_res();
-		if (!sess->dm->ssl_ctx)
+		if (sess->dm && !sess->dm->ssl_ctx)
 			ssl_init(sess->dm, 0);
 		/*socket is connected, configure SSL layer*/
-		if (sess->dm->ssl_ctx) {
+		if (sess->dm && sess->dm->ssl_ctx) {
 			int ret;
 			long vresult;
 			char common_name[256];
@@ -1695,6 +1697,10 @@ GF_DownloadManager *gf_dm_new(GF_Config *cfg)
 	char * default_cache_dir;
 	GF_DownloadManager *dm;
 	GF_SAFEALLOC(dm, GF_DownloadManager);
+	if (!dm) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[Downloader] Failed to allocate downloader\n"));
+		return NULL;
+	}
 	dm->sessions = gf_list_new();
 	dm->cache_entries = gf_list_new();
 	dm->credentials = gf_list_new();
@@ -2768,7 +2774,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			BodyStart += 2;
 			break;
 		}
-		BodyStart=0;
 	}
 	if (bytesRead < 0) {
 		e = GF_REMOTE_SERVICE_ERROR;
@@ -2801,7 +2806,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		goto exit;
 	}
 	rsp_code = (u32) atoi(comp);
-	Pos = gf_token_get(buf, Pos, " \r\n", comp, 400);
+	/*Pos = */gf_token_get(buf, Pos, " \r\n", comp, 400);
 
 	no_range = range = ContentLength = first_byte = last_byte = total_size = 0;
 	/* parse headers*/
@@ -2825,10 +2830,12 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 
 		GF_SAFEALLOC(hdrp, GF_HTTPHeader);
-		hdrp->name = gf_strdup(hdr);
-		hdrp->value = gf_strdup(hdr_val);
-		gf_list_add(sess->headers, hdrp);
-
+		if (hdrp) {
+			hdrp->name = gf_strdup(hdr);
+			hdrp->value = gf_strdup(hdr_val);
+			gf_list_add(sess->headers, hdrp);
+		}
+	
 		if (sep) sep[0]=':';
 		if (hdr_sep) hdr_sep[0] = '\r';
 	}
@@ -2871,7 +2878,6 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			if (mime) gf_free(mime);
 		}
 		else if (!stricmp(hdrp->name, "Content-Range")) {
-			range = 1;
 			if (!strncmp(hdrp->value, "bytes", 5)) {
 				val = hdrp->value + 5;
 				if (val[0] == ':') val += 1;

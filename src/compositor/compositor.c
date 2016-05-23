@@ -95,7 +95,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		evt.message.error = e;
 		gf_term_send_event(compositor->term, &evt);
 		compositor->fullscreen = 0;
-		e = compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
+		compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] recomputing aspect ratio\n"));
 	compositor->recompute_ar = 1;
@@ -317,6 +317,11 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	compositor->visuals = gf_list_new();
 
 	GF_SAFEALLOC(compositor->traverse_state, GF_TraverseState);
+	if (!compositor->traverse_state) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to initilaize compositor\n"));
+		return GF_OUT_OF_MEM;
+	}
+
 	compositor->traverse_state->vrml_sensors = gf_list_new();
 	compositor->traverse_state->use_stack = gf_list_new();
 #ifndef GPAC_DISABLE_3D
@@ -580,7 +585,7 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	/*force initial for 2D/3D setup*/
 	tmp->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
-	if (!tmp->user->os_window_handler) {
+	if (tmp->user && !tmp->user->os_window_handler) {
 		tmp->new_width = SC_DEF_WIDTH;
 		tmp->new_height = SC_DEF_HEIGHT;
 		tmp->msg_type |= GF_SR_CFG_SET_SIZE;
@@ -1958,7 +1963,6 @@ Double gf_sc_get_fps(GF_Compositor *compositor, Bool absoluteFPS)
 	} else {
 		/*start from last frame and get first frame time*/
 		fidx = compositor->current_frame;
-		frames = 0;
 		run_time = compositor->frame_time[fidx];
 		fidx = (fidx+1)% GF_SR_FPS_COMPUTE_SIZE;
 		assert(run_time >= compositor->frame_time[fidx]);
@@ -1997,8 +2001,9 @@ GF_Node *gf_sc_pick_node(GF_Compositor *compositor, s32 X, s32 Y)
 
 static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node)
 {
-	Bool force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
-
+	Bool force_pause;
+	
+//	force_pause = compositor->audio_renderer->Frozen ? 0 : 1;
 	force_pause = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
@@ -3375,8 +3380,9 @@ const char *gf_sc_get_selected_text(GF_Compositor *compositor)
 	compositor->sel_buffer_alloc = 0;
 	gf_node_traverse(compositor->text_selection, compositor->traverse_state);
 	compositor->traverse_state->traversing_mode = 0;
-	compositor->sel_buffer[compositor->sel_buffer_len]=0;
+	if (compositor->sel_buffer) compositor->sel_buffer[compositor->sel_buffer_len]=0;
 	srcp = compositor->sel_buffer;
+	
 	if (compositor->selected_text) gf_free(compositor->selected_text);
 	compositor->selected_text = gf_malloc(sizeof(char)*2*compositor->sel_buffer_len);
 	len = gf_utf8_wcstombs((char *) compositor->selected_text, 2*compositor->sel_buffer_len, &srcp);
@@ -3481,8 +3487,12 @@ void gf_sc_queue_event(GF_Compositor *compositor, GF_Event *evt)
 		}
 	}
 	GF_SAFEALLOC(qev, GF_QueuedEvent);
-	qev->evt = *evt;
-	gf_list_add(compositor->event_queue, qev);
+	if (!qev) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate event for queuing\n"));
+	} else {
+		qev->evt = *evt;
+		gf_list_add(compositor->event_queue, qev);
+	}
 	gf_mx_v(compositor->evq_mx);
 }
 
@@ -3502,9 +3512,13 @@ void gf_sc_queue_dom_event(GF_Compositor *compositor, GF_Node *node, GF_DOM_Even
 		}
 	}
 	GF_SAFEALLOC(qev, GF_QueuedEvent);
-	qev->node = node;
-	qev->dom_evt = *evt;
-	gf_list_add(compositor->event_queue, qev);
+	if (!qev) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate event for queuing\n"));
+	} else {
+		qev->node = node;
+		qev->dom_evt = *evt;
+		gf_list_add(compositor->event_queue, qev);
+	}
 	gf_mx_v(compositor->evq_mx);
 }
 
@@ -3525,10 +3539,14 @@ void gf_sc_queue_dom_event_on_target(GF_Compositor *compositor, GF_DOM_Event *ev
 	}
 
 	GF_SAFEALLOC(qev, GF_QueuedEvent);
-	qev->sg = sg;
-	qev->target = target;
-	qev->dom_evt = *evt;
-	gf_list_add(compositor->event_queue, qev);
+	if (!qev) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate event for queuing\n"));
+	} else {
+		qev->sg = sg;
+		qev->target = target;
+		qev->dom_evt = *evt;
+		gf_list_add(compositor->event_queue, qev);
+	}
 	gf_mx_v(compositor->evq_mx);
 }
 

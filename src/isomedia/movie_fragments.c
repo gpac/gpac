@@ -134,6 +134,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 					//clone it!
 					GF_SAFEALLOC(cslg, GF_CompositionToDecodeBox);
+					if (!cslg) return GF_OUT_OF_MEM;
 					memcpy(cslg, trex->track->Media->information->sampleTable->CompositionToDecode, sizeof(GF_CompositionToDecodeBox) );
 					cslg->other_boxes = gf_list_new();
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
@@ -654,7 +655,7 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		if (trun->flags & GF_ISOM_TRUN_FIRST_FLAG) {
 			if (GF_ISOM_GET_FRAG_SYNC(trun->flags)) {
 				ent = (GF_TrunEntry*)gf_list_get(trun->entries, 0);
-				if (!delta) earliest_cts = ent->CTS_Offset;
+//				if (!delta) earliest_cts = ent->CTS_Offset;
 				*sap_delta = delta + ent->CTS_Offset - ent->CTS_Offset;
 				*starts_with_sap = first;
 				sap_type = ent->SAP_type;
@@ -789,7 +790,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 			gf_bs_get_content(bs, &movie->moof->mdat, &movie->moof->mdat_size);
 
 			gf_bs_del(bs);
-			bs = movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			movie->editFileMap->bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		} else {
 			u64 offset = movie->segment_start;
 			gf_bs_seek(bs, offset);
@@ -830,6 +831,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	offset = 0;
 	if (movie->use_segments) {
 		e = gf_isom_box_size((GF_Box *) movie->moof);
+		if (e) return e;
 		offset = (s32) movie->moof->size;
 		/*mdat size & type*/
 		offset += 8;
@@ -887,6 +889,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 			offset = (s32) (movie->moof->size + 8 - offset);
 			update_trun_offsets(movie, offset);
 			e = gf_isom_box_size((GF_Box *) movie->moof);
+			if (e) return e;
 		}
 	}
 #endif
@@ -1047,6 +1050,7 @@ GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment)
 		movie->moof->fragment_offset = gf_bs_get_position(movie->editFileMap->bs);
 
 		e = StoreFragment(movie, GF_FALSE, offset_diff, &moof_size);
+		if (e) return e;
 
 		gf_isom_box_del((GF_Box *) movie->moof);
 		movie->moof = NULL;
@@ -1103,7 +1107,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	u64 sidx_start, sidx_end;
 	Bool first_frag_in_subseg;
 	Bool no_sidx = GF_FALSE;
-	u32 count, idx, cur_dur, sidx_dur, sidx_idx, idx_offset, frag_count;
+	u32 count, cur_idx, cur_dur, sidx_dur, sidx_idx, idx_offset, frag_count;
 	u64 last_top_box_pos, root_prev_offset, local_sidx_start, local_sidx_end, prev_earliest_cts;
 	GF_TrackBox *trak = NULL;
 	GF_Err e;
@@ -1162,6 +1166,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 	if (referenceTrackID) {
 		trak = gf_isom_get_track_from_id(movie->moov, referenceTrackID);
+		if (!trak) return GF_BAD_PARAM;
 	}
 
 	if (subsegments_per_sidx < 0) {
@@ -1290,7 +1295,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			root_sidx = sidx;
 			sidx = NULL;
 		}
-		count = idx = 0;
+		count = cur_idx = 0;
 	}
 
 
@@ -1302,6 +1307,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 	/*cumulated segments duration since start of the sidx */
 	frag_count = frags_per_subsidx;
 	cur_dur = 0;
+	cur_idx = 0;
 	first_frag_in_subseg = GF_TRUE;
 	e = GF_OK;
 	while (gf_list_count(movie->moof_list)) {
@@ -1316,7 +1322,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			u32 subsegments_remaining;
 			sidx = (GF_SegmentIndexBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SIDX);
 			sidx->reference_ID = referenceTrackID;
-			sidx->timescale = trak->Media->mediaHeader->timeScale;
+			sidx->timescale = trak ? trak->Media->mediaHeader->timeScale : 1000;
 			sidx->earliest_presentation_time = get_presentation_time( ref_track_decode_time + sidx_dur + moof_get_earliest_cts(movie->moof, referenceTrackID), ts_shift);
 
 			frag_count = frags_per_subsidx;
@@ -1356,6 +1362,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			if (daisy_sidx) {
 				SIDXEntry *entry;
 				GF_SAFEALLOC(entry, SIDXEntry);
+				if (!entry) return GF_OUT_OF_MEM;
 				entry->sidx = sidx;
 				entry->start_offset = local_sidx_start;
 				gf_list_add(daisy_sidx, entry);
@@ -1370,7 +1377,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 
 
 			if (sidx) {
-				u32 cur_index = idx_offset + idx;
+				u32 cur_index = idx_offset + cur_idx;
 
 				/*do not compute earliest CTS if single segment sidx since we only have set the info for one subsegment*/
 				if (!movie->root_sidx && first_frag_in_subseg) {
@@ -1411,11 +1418,11 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				if (count==frags_per_subseg) {
 					count = 0;
 					first_frag_in_subseg = GF_TRUE;
-					idx++;
+					cur_idx++;
 				}
 
 				/*switching to next SIDX*/
-				if ((idx==subseg_per_sidx) || !frag_count) {
+				if ((cur_idx==subseg_per_sidx) || !frag_count) {
 					u32 subseg_dur;
 					u64 next_cts;
 					/*update last ref duration*/
@@ -1453,7 +1460,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 					sidx_dur += cur_dur;
 					cur_dur = 0;
 					count = 0;
-					idx=0;
+					cur_idx=0;
 					if (movie->root_sidx)
 						movie->root_sidx_index++;
 					sidx_idx++;
@@ -1763,6 +1770,7 @@ GF_Err gf_isom_fragment_add_sample(GF_ISOFile *movie, u32 TrackID, const GF_ISOS
 	}
 
 	GF_SAFEALLOC(ent, GF_TrunEntry);
+	if (!ent) return GF_OUT_OF_MEM;
 	ent->CTS_Offset = sample->CTS_Offset;
 	ent->Duration = Duration;
 	ent->size = sample->dataLength;
@@ -2014,6 +2022,8 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 
 				/*found our sample, add it to trak->sampleGroups*/
 				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->sample_entries[j].group_description_index, sgpd_in_traf);
+				if (e) return e;
+				
 				break;
 			}
 		}

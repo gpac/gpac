@@ -137,6 +137,10 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	if (cd) goto exit;
 
 	GF_SAFEALLOC(cd, CodecEntry);
+	if (!cd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate decoder entry\n"));
+		return;
+	}
 	cd->dec = codec;
 	if (!cd->dec->Priority)
 		cd->dec->Priority = 1;

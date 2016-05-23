@@ -503,7 +503,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		if (ext2) ext2[0] = ':';
-		ext2 = ext+1;
+
 		ext[0] = 0;
 		ext = strchr(ext+1, ':');
 	}
@@ -1121,7 +1121,6 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			start /= tki->time_scale;
 			if (start<chunk_start) {
 				tki->stop_state = 2;
-				needs_rap_sync = 0;
 			} else  {
 				e = gf_isom_get_sample_for_media_time(mp4, tki->tk, (u64) (chunk_start*tki->time_scale), &di, GF_ISOM_SEARCH_SYNC_BACKWARD, &samp, &sample_num);
 				if (e!=GF_OK) {
@@ -1270,7 +1269,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 					is_rap = GF_TRUE;
 				} else {
 					Bool has_roll;
-					e = gf_isom_get_sample_rap_roll_info(mp4, tki->tk, tki->last_sample+1, &is_rap, &has_roll, NULL);
+					gf_isom_get_sample_rap_roll_info(mp4, tki->tk, tki->last_sample+1, &is_rap, &has_roll, NULL);
 				}
 
 
@@ -1944,12 +1943,13 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 			if (align_timelines) {
 				u32 max_timescale = 0;
-				u32 dst_timescale = 0;
+//				u32 dst_timescale = 0;
 				u32 idx;
 				for (idx=0; idx<nb_tracks; idx++) {
 					if (max_timescale < gf_isom_get_media_timescale(orig, idx+1))
 						max_timescale = gf_isom_get_media_timescale(orig, idx+1);
 				}
+#if 0
 				if (dst_timescale < max_timescale) {
 					dst_timescale = gf_isom_get_media_timescale(dest, dst_tk);
 					idx = max_timescale / dst_timescale;
@@ -1958,6 +1958,9 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 
 					gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
 				}
+#else
+				gf_isom_set_media_timescale(dest, dst_tk, max_timescale, 0);
+#endif
 			}
 
 			/*remove cloned edit list, as it will be rewritten after import*/
@@ -2420,8 +2423,7 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 	}
 
 	count = gf_list_count(ctx->streams);
-
-	for (i=0; i<gf_list_count(ctx->streams); i++) {
+	for (i=0; i<count; i++) {
 		u32 nbb;
 		GF_StreamContext *sc = gf_list_get(ctx->streams, i);
 		esd = NULL;
@@ -2448,11 +2450,13 @@ GF_Err EncodeBIFSChunk(GF_SceneManager *ctx, char *bifsOutputFile, GF_Err (*AUCa
 
 		if (!esd) {
 			esd = gf_odf_desc_esd_new(2);
+			if (!esd) return GF_OUT_OF_MEM;
 			gf_odf_desc_del((GF_Descriptor *) esd->decoderConfig->decoderSpecificInfo);
 			esd->decoderConfig->decoderSpecificInfo = NULL;
 			esd->ESID = sc->ESID;
 			esd->decoderConfig->streamType = GF_STREAM_SCENE;
 		}
+		if (!esd->decoderConfig) return GF_OUT_OF_MEM;
 
 		/*should NOT happen (means inputctx is not properly setup)*/
 		if (!esd->decoderConfig->decoderSpecificInfo) {
@@ -2832,7 +2836,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			encoding = "binary-gzip";
 		}
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, mime, NULL, NULL,  NULL, NULL);
+		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, mime, encoding, NULL,  NULL, NULL);
 		gf_free(name);
 		if (e) goto exit;
 	}

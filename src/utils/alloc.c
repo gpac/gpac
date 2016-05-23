@@ -370,15 +370,17 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int l
 		gf_mem_free_tracker(ptr, filename, line);
 		return NULL;
 	}
+	size_prev = unregister_address(ptr, filename, line);
 	ptr_g = REALLOC(ptr, size);
 	if (!ptr_g) {
 		/*b) The return value is NULL if there is not enough available memory to expand the block to the given size. In this case, the original block is unchanged.*/
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] realloc() has returned a NULL pointer\n");
+		register_address(ptr, size_prev, filename, line);
 		assert(0);
 	} else {
-		size_prev = unregister_address(ptr, filename, line);
 		register_address(ptr_g, size, filename, line);
-		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p (instead of %p)\n", size, size_prev, ptr_g, ptr);
+//		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p (instead of %p)\n", size, size_prev, ptr_g, ptr);
+		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p\n", size, size_prev, ptr_g);
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 	}
 	return ptr_g;
@@ -487,20 +489,33 @@ static unsigned int gf_memory_hash(void *ptr)
 /*base functions (add, find, del_item, del) are implemented upon a stack model*/
 static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const char *filename, int line)
 {
-	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element)+strlen(filename)+1);
+	memory_element *element = (memory_element*)MALLOC(sizeof(memory_element));
+	if (!element) {
+		gf_memory_log(GF_MEMORY_ERROR, ("[Mem] Fail to register stack for allocation\n"));
+		return;
+	}
 	element->ptr = ptr;
 	element->size = size;
+	element->line = line;
+	
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     if (gf_mem_backtrace_enabled) {
         element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
-        store_backtrace(element->backtrace_stack);
+		if (!element->backtrace_stack) {
+			gf_memory_log(GF_MEMORY_WARNING, ("[Mem] Fail to register backtrace of allocation\n"));
+			element->backtrace_stack = NULL;
+		} else {
+			store_backtrace(element->backtrace_stack);
+		}
     } else {
         element->backtrace_stack = NULL;
     }
 #endif
-	element->line = line;
-	element->filename = (char*)&(element->filename)+sizeof(element->filename);
-	strcpy(element->filename, filename);
+
+	element->filename = MALLOC(strlen(filename) + 1);
+	if (element->filename)
+		strcpy(element->filename, filename);
+
 	element->next = *p;
 	*p = element;
 }

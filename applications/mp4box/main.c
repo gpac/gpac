@@ -1291,7 +1291,9 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
-			meta->image_props->angle = atoi(szSlot+11);
+			if (meta->image_props) {
+				meta->image_props->angle = atoi(szSlot+11);
+			}
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
@@ -1359,7 +1361,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 	u32 nb_criteria = 0;
 	TSELAction *tsel_act;
 	char szSlot[1024], *next;
-	TSELAction *tsel_list = *__tsel_list;
+	TSELAction *tsel_list;
 
 	has_switch_id = 0;
 
@@ -1598,6 +1600,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 static GF_Err parse_track_action_params(char *string, TrackAction *action)
 {
 	char *param = string;
+	if (!action || !string) return GF_BAD_PARAM;
+	
 	while (param) {
 		param = strchr(param, ':');
 		if (param) {

@@ -128,6 +128,7 @@ GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType)
 		return NULL;
 	}
 	GF_SAFEALLOC(tmp, GF_HintSample);
+	if (!tmp) return NULL;
 	tmp->packetTable = gf_list_new();
 	tmp->HintType = type;
 	return tmp;
@@ -863,6 +864,7 @@ static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *
 	Media_GetSample(trak->Media, sample_num, &samp, &i, 0, NULL);
 	if (!samp) return NULL;
 	GF_SAFEALLOC(hdc, GF_HintDataCache);
+	if (!hdc) return NULL;
 	hdc->samp = samp;
 	hdc->sample_num = sample_num;
 	hdc->trak = trak;

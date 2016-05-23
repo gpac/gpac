@@ -1206,6 +1206,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		return GF_NOT_SUPPORTED;
 
 	GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
+	if (! (*sai) ) return GF_OUT_OF_MEM;
 	if (a_box) {
 		memmove((*sai)->IV, a_sai->IV, 16);
 		(*sai)->subsample_count = a_sai->subsample_count;

@@ -38,8 +38,8 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 	(*prevSampleNumber) = 0;
 
 	if (!stbl->TimeToSample) return GF_ISOM_INVALID_FILE;
-	if (!stbl->CompositionOffset) useCTS = 0;
-	/*FIXME: CTS is ALWAYS disabled for now to make sure samples are fetched in
+	/*if (!stbl->CompositionOffset) useCTS = 0;
+	FIXME: CTS is ALWAYS disabled for now to make sure samples are fetched in
 	decoding order. */
 	useCTS = 0;
 

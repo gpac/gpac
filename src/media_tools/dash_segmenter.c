@@ -802,22 +802,20 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	const char *seg_rad_name = dash_cfg->seg_rad_name;
 	const char *seg_ext = dash_cfg->seg_ext;
 	const char *bs_switching_segment_name = NULL;
-	u64 generation_start_ntp = 0;
 	u64 generation_start_utc = 0;
 	u64 ntpts = 0;
 	SegmentName[0] = 0;
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
+	
+	if (!dash_input) return GF_BAD_PARAM;
 	if (!seg_ext) seg_ext = "m4s";
 
 	if (dash_cfg->real_time && dash_cfg->dash_ctx) {
 		u32 sec, frac;
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, "DASH", "GenerationNTP");
 		sscanf(opt, "%u:%u", &sec, &frac);
-		generation_start_ntp = sec;
-		generation_start_ntp <<= 32;
-		generation_start_ntp |= frac;
 
 		generation_start_utc = sec - GF_NTP_SEC_1900_TO_1970;
 		generation_start_utc *= 1000;
@@ -1333,7 +1331,6 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	start_range = 0;
 	file_size = gf_isom_get_file_size(bs_switch_segment ? bs_switch_segment : output);
-	end_range = file_size - 1;
 	init_seg_size = file_size;
 
 	if (dash_cfg->dash_ctx) {
@@ -1360,7 +1357,6 @@ restart_fragmentation_pass:
 	ref_track_first_dts = (u64) -1;
 	nb_done = 0;
 
-	maxFragDurationOverSegment=0;
 	switch_segment=GF_TRUE;
 
 	if (!seg_rad_name) use_url_template = GF_FALSE;
@@ -1522,7 +1518,6 @@ restart_fragmentation_pass:
 
 			}
 			if (store_pssh) {
-				store_pssh = GF_FALSE;
 				e = gf_isom_clone_pssh(output, input, GF_TRUE);
 			}
 		}
@@ -1824,7 +1819,6 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done fragment %d track processing\n", SegmentName, nbFragmentInSegment));
 
 		SegmentDuration += maxFragDurationOverSegment;
-		maxFragDurationOverSegment = 0;
 
 		/*if no simulation and no SIDX or realtime is used, flush fragments as we write them*/
 		if (!simulation_pass && (!dash_cfg->enable_sidx || dash_cfg->real_time) ) {
@@ -1838,8 +1832,6 @@ restart_fragmentation_pass:
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, going to sleep before flushing fragment %d at "LLU" us, at UTC "LLU" (flush target UTC "LLU")\n", SegmentName, nbFragmentInSegment, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + end_time));
 				while (1) {
-					//s32 diff_ms = gf_net_get_ntp_diff_ms(generation_start_ntp);
-					//if (diff_ms >= end_time) break;
 					utc = gf_net_get_utc();
 					if (utc >= generation_start_utc + end_time) break;
 					gf_sleep(1);
@@ -2013,7 +2005,6 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
 		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
 		nb_segments++;
-		nbFragmentInSegment = 0;
 
 		if (!seg_rad_name) {
 			file_size = gf_isom_get_file_size(output);
@@ -2104,7 +2095,6 @@ restart_fragmentation_pass:
 			if (seg_dur < max_segment_duration) {
 				sprintf(sOpt, "%f", max_segment_duration);
 				gf_cfg_set_key(dash_cfg->dash_ctx, "DASH", "MaxSegmentDuration", sOpt);
-				seg_dur = max_segment_duration;
 			} else {
 				max_segment_duration = seg_dur;
 			}
@@ -3747,8 +3737,6 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		pck = (GF_M2TS_PES_PCK*)par;
 		/*We need the interpolated PCR for the pcrb, hence moved this calculus out, and saving the calculated value in ts_seg to put it in the pcrb*/
 		pes = pck->stream;
-		/* Interpolated PCR value for the TS packet containing the PES header start */
-		interpolated_pcr_value = 0;
 		if (pes->last_pcr_value && pes->before_last_pcr_value_pck_number && pes->last_pcr_value > pes->before_last_pcr_value) {
 			u32 delta_pcr_pck_num = pes->last_pcr_value_pck_number - pes->before_last_pcr_value_pck_number;
 			u32 delta_pts_pcr_pck_num = pes->pes_start_packet_number - pes->last_pcr_value_pck_number;
@@ -3819,7 +3807,7 @@ static void dash_m2ts_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 		}
 		break;
 	case GF_M2TS_EVT_PES_PCR:
-		pck = (GF_M2TS_PES_PCK*)par;
+		//pck = (GF_M2TS_PES_PCK*)par;
 		if (!ts_seg->first_pcr_position_valid) {
 			ts_seg->first_pcr_position_valid = GF_TRUE;
 			ts_seg->first_pcr_position = (ts->pck_number-1)*188;
@@ -4281,7 +4269,6 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				gf_set_progress("Extracting segment ", i+1, ts_seg.sidx->nb_refs);
 			}
 			gf_fclose(src);
-			cumulated_duration = current_time;
 		}
 		if (!dash_cfg->seg_rad_name || !dash_cfg->use_url_template) {
 			fprintf(dash_cfg->mpd, "    </SegmentList>\n");
@@ -5066,7 +5053,7 @@ GF_EXPORT
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 {
 	Double max_dur = 0;
-	Double safety_dur;
+//	Double safety_dur;
 	Double ms_elapsed;
 	u32 i, ntp_sec, frac, prev_sec, prev_frac, dash_scale;
 	const char *opt, *section;
@@ -5076,11 +5063,13 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
 	if (!opt) return 0;
 
+/*
 	safety_dur = atof(opt) / 2;
 	if (safety_dur > dasher->mpd_update_time)
 		safety_dur = dasher->mpd_update_time;
 
 	safety_dur = 0;
+*/
 
 	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "GenerationNTP");
 	sscanf(opt, "%u:%u", &prev_sec, &prev_frac);
@@ -5113,7 +5102,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 	ms_elapsed += (ntp_sec - prev_sec)*1000;
 
 	/*check if we need to generate */
-	if (ms_elapsed < (max_dur - safety_dur)*1000 ) {
+	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
 		return (u32) (1000*max_dur - ms_elapsed);
 	}
 	return 0;
@@ -5314,6 +5303,7 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 {
 	GF_DASHSegmenter *dasher;
 	GF_SAFEALLOC(dasher, GF_DASHSegmenter);
+	if (!dasher) return NULL;
 
 	dasher->mpd_name = gf_strdup(mpdName);
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;

@@ -126,6 +126,10 @@ void compositor_init_audioclip(GF_Compositor *compositor, GF_Node *node)
 {
 	AudioClipStack *st;
 	GF_SAFEALLOC(st, AudioClipStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate style group stack\n"));
+		return;
+	}
 	gf_sc_audio_setup(&st->input, compositor, node);
 
 	st->time_handle.UpdateTimeNode = audioclip_update_time;
@@ -258,6 +262,10 @@ void compositor_init_audiosource(GF_Compositor *compositor, GF_Node *node)
 {
 	AudioSourceStack *st;
 	GF_SAFEALLOC(st, AudioSourceStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate style group stack\n"));
+		return;
+	}
 	gf_sc_audio_setup(&st->input, compositor, node);
 
 	st->time_handle.UpdateTimeNode = audiosource_update_time;
@@ -551,7 +559,7 @@ void audiobuffer_add_source(GF_AudioGroup *_this, GF_AudioInput *src)
 }
 
 
-void setup_audiobufer(GF_AudioInput *ai, GF_Compositor *compositor, GF_Node *node)
+void setup_audiobuffer(GF_AudioInput *ai, GF_Compositor *compositor, GF_Node *node)
 {
 	memset(ai, 0, sizeof(GF_AudioInput));
 	ai->owner = node;
@@ -573,9 +581,13 @@ void compositor_init_audiobuffer(GF_Compositor *compositor, GF_Node *node)
 {
 	AudioBufferStack *st;
 	GF_SAFEALLOC(st, AudioBufferStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate audiobuffer stack\n"));
+		return;
+	}
 
 	/*use our private input*/
-	setup_audiobufer(&st->output, compositor, node);
+	setup_audiobuffer(&st->output, compositor, node);
 	st->add_source = audiobuffer_add_source;
 
 	st->time_handle.UpdateTimeNode = audiobuffer_update_time;

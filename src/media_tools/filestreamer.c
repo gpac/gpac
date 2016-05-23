@@ -312,7 +312,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 		u32 ntp_type = to_send->au->IsRAP ? 2 : 1;
 		gf_net_get_ntp(&ntp_sec, &ntp_frac);
 		track = streamer->stream;
-		while (track) {
+		while (track && track->au) {
 			u32 ts = (u32) (track->au->DTS + track->au->CTS_Offset + track->ts_offset);
 			gf_rtp_streamer_send_rtcp(track->rtp, GF_TRUE, ts, ntp_type, ntp_sec, ntp_frac);
 			track = track->next;
@@ -359,7 +359,6 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 		char *ptr = to_send->au->data;
 
 		au_start = 1;
-		au_end = 0;
 		while (remain) {
 			size = 0;
 			v = to_send->avc_nalu_size;
@@ -432,6 +431,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 	if (!path_mtu) path_mtu = 1450;
 
 	GF_SAFEALLOC(streamer, GF_ISOMRTPStreamer);
+	if (!streamer) return NULL;
 	streamer->dest_ip = gf_strdup(ip_dest);
 
 	payt = 96;
@@ -486,6 +486,10 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		}
 
 		GF_SAFEALLOC(track, GF_RTPTrack);
+		if (!track) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("Could not allocate file streamer track\n"));
+			continue;
+		}
 		if (prev_track) prev_track->next = track;
 		else streamer->stream = track;
 		prev_track = track;

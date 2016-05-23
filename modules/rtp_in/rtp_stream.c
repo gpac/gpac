@@ -260,6 +260,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		if (tmp) return NULL;
 
 		GF_SAFEALLOC(tmp, RTPStream);
+		if (!tmp) return NULL;
 		tmp->owner = rtp;
 	}
 

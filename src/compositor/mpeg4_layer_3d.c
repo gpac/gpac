@@ -707,6 +707,10 @@ void compositor_init_layer3d(GF_Compositor *compositor, GF_Node *node)
 {
 	Layer3DStack *stack;
 	GF_SAFEALLOC(stack, Layer3DStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layer 3d stack\n"));
+		return;
+	}
 
 	stack->visual = visual_new(compositor);
 	stack->visual->type_3d = 2;

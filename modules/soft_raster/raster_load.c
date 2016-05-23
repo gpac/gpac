@@ -31,6 +31,7 @@ GF_Raster2D *EVG_LoadRenderer()
 {
 	GF_Raster2D *dr;
 	GF_SAFEALLOC(dr, GF_Raster2D);
+	if (!dr) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_RASTER_2D_INTERFACE, "GPAC 2D Raster", "gpac distribution")
 
 

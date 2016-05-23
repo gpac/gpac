@@ -537,8 +537,6 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	png_infop info_ptr;
 	u32 type, nb_comp;
 
-	type = 0;
-	nb_comp = 0;
 	switch (pixel_format) {
 	case GF_PIXEL_GREYSCALE:
 		nb_comp = 1;

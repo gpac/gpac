@@ -185,6 +185,8 @@ GF_Err AddCompositionOffset(GF_CompositionOffsetBox *ctts, u32 offset)
 			if (!ctts->entries) return GF_OUT_OF_MEM;
 			memset(&ctts->entries[ctts->nb_entries], 0, sizeof(GF_DttsEntry)*(ctts->alloc_size-ctts->nb_entries) );
 		}
+		if (!ctts->entries) return GF_OUT_OF_MEM;
+		
 		ctts->entries[ctts->nb_entries].decodingOffset = offset;
 		ctts->entries[ctts->nb_entries].sampleCount = 1;
 		ctts->nb_entries++;
@@ -1177,7 +1179,7 @@ GF_Err stbl_RemovePaddingBits(GF_SampleTableBox *stbl, u32 SampleNumber)
 
 GF_Err stbl_RemoveSubSample(GF_SampleTableBox *stbl, u32 SampleNumber)
 {
-	u32 i, count, prev_sample, delta;
+	u32 i, count, prev_sample, delta=0;
 
 	if (!stbl->SubSamples) return GF_OK;
 	if (! stbl->SubSamples->Samples) return GF_OK;
@@ -1284,6 +1286,7 @@ GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 siz
 	}
 	//if we get here add a new entry
 	GF_SAFEALLOC(ent, GF_StsfEntry);
+	if (!ent) return GF_OUT_OF_MEM;
 	ent->SampleNumber = sampleNumber;
 	gf_list_add(stsf->entryList, ent);
 	stsf->w_currentEntry = ent;
@@ -1785,6 +1788,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	//check if we can remove the current sampleToChunk entry (same properties)
 	if (the_stsc->nb_entries > 1) {
 		ent = &the_stsc->entries[the_stsc->nb_entries - 2];
+		if (!ent) return GF_OUT_OF_MEM;
 		if ( (ent->sampleDescriptionIndex == cur_ent->sampleDescriptionIndex)
 		        && (ent->samplesPerChunk == cur_ent->samplesPerChunk)
 		   ) {
@@ -1806,6 +1810,7 @@ GF_Err stbl_SetChunkAndOffset(GF_SampleTableBox *stbl, u32 sampleNumber, u32 Str
 	}
 	//create a new entry (could be the first one, BTW)
 	newEnt = &the_stsc->entries[the_stsc->nb_entries];
+	if (!newEnt) return GF_OUT_OF_MEM;
 
 	//get the first chunk value
 	if ((*the_stco)->type == GF_ISOM_BOX_TYPE_STCO) {

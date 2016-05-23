@@ -284,6 +284,7 @@ GF_M4VParser *gf_m4v_parser_new(char *data, u64 data_size, Bool mpeg12video)
 	GF_M4VParser *tmp;
 	if (!data || !data_size) return NULL;
 	GF_SAFEALLOC(tmp, GF_M4VParser);
+	if (!tmp) return NULL;
 	tmp->bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	tmp->mpeg12 = mpeg12video;
 	return tmp;
@@ -293,6 +294,7 @@ GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video)
 {
 	GF_M4VParser *tmp;
 	GF_SAFEALLOC(tmp, GF_M4VParser);
+	if (!tmp) return NULL;
 	tmp->bs = bs;
 	tmp->mpeg12 = mpeg12video;
 	return tmp;
@@ -641,7 +643,7 @@ static GF_Err gf_m4v_parse_frame_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi
 			hasVOP = 1;
 			*is_coded = 1;
 
-			val = gf_bs_read_u8(m4v->bs);
+			/*val = */gf_bs_read_u8(m4v->bs);
 			val = gf_bs_read_u8(m4v->bs);
 			*frame_type = ( (val >> 3) & 0x7 ) - 1;
 			break;
@@ -788,7 +790,7 @@ GF_Err gf_m4v_rewrite_par(char **o_data, u32 *o_dataLen, s32 par_n, s32 par_d)
 	m4v = gf_m4v_parser_new(*o_data, *o_dataLen, 0);
 	mod = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-	end = start = 0;
+	start = 0;
 	while (go) {
 		u32 type = M4V_LoadObject(m4v);
 
@@ -1277,7 +1279,7 @@ GF_Err gf_m4a_parse_config(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg, Bool size_k
 				gf_bs_read_int(bs, 1);
 				gf_bs_read_int(bs, 1);
 			}
-			ext_flag = gf_bs_read_int(bs, 1);
+			/*ext_flag = */gf_bs_read_int(bs, 1);
 		}
 	}
 	break;
@@ -2353,7 +2355,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	/*mb_adaptive_frame_field_flag*/
 	if (!sps->frame_mbs_only_flag) gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 1); /*direct_8x8_inference_flag*/
-	cl = cr = ct = cb = 0;
+	
 	if (gf_bs_read_int(bs, 1)) { /*crop*/
 		int CropUnitX, CropUnitY, SubWidthC = -1, SubHeightC = -1;
 
@@ -2910,7 +2912,7 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 	n_state.nal_ref_idc = (nal_hdr>>5) & 0x3;
 
 	idr_flag = 0;
-	ret = 0;
+
 	switch (n_state.nal_unit_type) {
 	case GF_AVC_NALU_ACCESS_UNIT:
 	case GF_AVC_NALU_END_OF_SEQ:
@@ -2922,7 +2924,7 @@ s32 gf_media_avc_parse_nalu(GF_BitStream *bs, u32 nal_hdr, AVCState *avc)
 		SVC_ReadNal_header_extension(bs, &n_state.NalHeader);
 		slice = 1;
 		// slice buffer - read the info and compare.
-		ret = svc_parse_slice(bs, avc, &n_state);
+		/*ret = */svc_parse_slice(bs, avc, &n_state);
 		if (avc->s_info.nal_ref_idc) {
 			n_state.poc_lsb_prev = avc->s_info.poc_lsb;
 			n_state.poc_msb_prev = avc->s_info.poc_msb;
@@ -4169,8 +4171,8 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 		hevc_parse_vps_extension(vps, bs);
 		if (/*vps_extension2_flag*/gf_bs_read_int(bs, 1)) {
 			while (gf_bs_available(bs)) {
-			/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
-		}
+				/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
+			}
 		}
 	}
 

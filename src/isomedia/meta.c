@@ -519,6 +519,8 @@ static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ip
 	}
 	if (!found_entry) {
 		GF_SAFEALLOC(found_entry, GF_ItemPropertyAssociationEntry);
+		if (!found_entry) return;
+		
 		gf_list_add(ipma->entries, found_entry);
 		found_entry->item_id = item_ID;
 		found_entry->essential = gf_list_new();

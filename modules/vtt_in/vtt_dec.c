@@ -164,11 +164,14 @@ void VTT_UpdateSizeInfo(VTTDec *vttdec)
 	char szVB[100];
 	GF_Node *root = gf_sg_get_root_node(vttdec->sg);
 	if (!root) return;
+#if 0
 	w = vttdec->scene->root_od->term->compositor->display_width;
 	h = vttdec->scene->root_od->term->compositor->display_height;
-
+#else
 	w=1280;
 	h=720;
+#endif
+
 	/*apply*/
 	gf_sg_set_scene_size_info(vttdec->sg, w, h, GF_TRUE);
 
@@ -408,9 +411,14 @@ GF_BaseInterface *NewVTTDec()
 	GF_SceneDecoder *sdec;
 
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
+	if (!sdec) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC WebVTT Parser", "gpac distribution");
 
 	GF_SAFEALLOC(vttdec, VTTDec);
+	if (!vttdec) {
+		gf_free(sdec);
+		return NULL;
+	}
 	vttdec->cues = gf_list_new();
 	vttdec->module = (GF_BaseInterface *)sdec;
 

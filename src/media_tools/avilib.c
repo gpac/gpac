@@ -2645,7 +2645,6 @@ multiple_riff:
 		AVI->track[0].audio_chunks = nai[0];
 
 		for(j=0; j<AVI->anum; ++j) AVI->track[j].audio_bytes = tot[j];
-		idx_type = 1;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] done. nvi=%ld nai=%ld tot=%ld\n", nvi, nai[0], tot[0]));
 
 	} // total_frames but no indx chunk (xawtv does this)

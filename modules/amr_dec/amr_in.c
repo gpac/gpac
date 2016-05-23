@@ -360,6 +360,7 @@ static GF_Err AMR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, co
 	if (read->ch==channel) goto exit;
 
 	e = GF_STREAM_NOT_FOUND;
+	ES_ID=0;
 	if (strstr(url, "ES_ID")) {
 		sscanf(url, "ES_ID=%d", &ES_ID);
 	}
@@ -442,7 +443,7 @@ static GF_Err AMR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
 {
-	u32 pos, start_from, i;
+	u32 start_from, i;
 	u8 toc, ft;
 	AMR_Reader *read = (AMR_Reader*)plug->priv;
 
@@ -470,7 +471,7 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = GF_TRUE;
 
 fetch_next:
-		pos = (u32) ftell(read->stream);
+		/*pos = (u32) */ftell(read->stream);
 		if (feof(read->stream)) {
 			read->done = GF_TRUE;
 			*out_reception_status = GF_EOS;

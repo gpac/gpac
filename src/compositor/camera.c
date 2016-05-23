@@ -34,6 +34,7 @@ GF_Camera *new_camera()
 {
 	GF_Camera *tmp;
 	GF_SAFEALLOC(tmp, GF_Camera);
+	if (!tmp) return NULL;
 	tmp->speed = 1;
 
 	return tmp;
@@ -528,7 +529,6 @@ Bool camera_animate(GF_Camera *cam)
 
 	if (!cam->anim_start) {
 		cam->anim_start = gf_sys_clock();
-		now = 0;
 		frac = 0;
 	} else {
 		now = gf_sys_clock() - cam->anim_start;

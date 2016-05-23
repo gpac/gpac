@@ -67,6 +67,10 @@ static void b2D_new_status(Background2DStack *bck, M_Background2D*back)
 	BackgroundStatus *status;
 
 	GF_SAFEALLOC(status, BackgroundStatus);
+	if (!status) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate background2D status\n"));
+		return;
+	}
 	gf_mx2d_init(status->ctx.transform);
 	status->ctx.drawable = bck->drawable;
 	status->ctx.flags = CTX_IS_BACKGROUND;
@@ -443,6 +447,10 @@ void compositor_init_background2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Background2DStack *ptr;
 	GF_SAFEALLOC(ptr, Background2DStack);
+	if (!ptr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate background2D stack\n"));
+		return;
+	}
 
 	ptr->status_stack = gf_list_new();
 	ptr->reg_stacks = gf_list_new();
