@@ -1741,7 +1741,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 	u32 k, idx;
 	fprintf(stderr, "\t%s Info:", hevccfg->is_shvc ? "SHVC" : "HEVC");
 	if (!hevccfg->is_shvc)
-		fprintf(stderr, " Profile %s @ Level %g - Chroma Format %d\n", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, hevccfg->chromaFormat);
+		fprintf(stderr, " Profile %s @ Level %g - Chroma Format %s\n", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, gf_get_chroma_format_name(hevccfg->chromaFormat));
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\tNAL Unit length bits: %d", 8*hevccfg->nal_unit_size);
 	if (!hevccfg->is_shvc)
