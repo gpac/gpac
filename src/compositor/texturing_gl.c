@@ -1030,17 +1030,14 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				pV = (u8 *) txh->pV;
 			} else {
 				pU = (u8 *) pY + txh->height*txh->stride;
-				if ( txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV444)
-				{
+				if ( txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV444) {
 					pV = (u8 *) pU + txh->height*txh->stride ;
-				}
-				else if (  txh->pixelformat==GF_PIXEL_YUV422_10 || txh->pixelformat==GF_PIXEL_YUV422)
-				{
+				} else if (  txh->pixelformat==GF_PIXEL_YUV422_10 || txh->pixelformat==GF_PIXEL_YUV422) {
 					pV = (u8 *) pU + txh->height*txh->stride/2 ;
-				}
-				else if  ( txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YV12 )
-				{
+				} else if  ( txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YV12 ) {
 					pV = (u8 *) pU + txh->height*txh->stride/4 ;
+				} else {
+					pV = NULL;
 				}
 			
 			}
@@ -1071,15 +1068,16 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				txh->tx_io->gl_format = tx_mode;
 				GL_CHECK_ERR
 			} 
-			
 			else if (txh->pixelformat == GF_PIXEL_YV12_10 || txh->pixelformat == GF_PIXEL_YV12 ) {
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
 				GL_CHECK_ERR
 
-				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-				do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+				if (pV) {
+					glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+					do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
+					GL_CHECK_ERR
+				}
 			}
 			else if (txh->pixelformat == GF_PIXEL_YUV422_10 || txh->pixelformat == GF_PIXEL_YUV422) {
 				
@@ -1087,22 +1085,23 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2 , h , txh->tx_io->u_pbo_id);
 				GL_CHECK_ERR
 
-				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-				do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2 , h, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+				if (pV) {
+					glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+					do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2 , h, txh->tx_io->v_pbo_id);
+					GL_CHECK_ERR
+				}
 			}
-			
-			
-			
-			
 			else if (txh->pixelformat == GF_PIXEL_YUV444_10 || txh->pixelformat == GF_PIXEL_YUV444) {
 				
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 		      	do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride, w, h, txh->tx_io->u_pbo_id);
 				GL_CHECK_ERR
-            				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
-	        	do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride, w, h, txh->tx_io->v_pbo_id);
-				GL_CHECK_ERR
+ 
+				if (pV) {
+					glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+					do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride, w, h, txh->tx_io->v_pbo_id);
+					GL_CHECK_ERR
+				}
 			}
 			
 			
