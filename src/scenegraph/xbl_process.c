@@ -133,6 +133,9 @@ static void xbl_node_start(void *sax_cbck, const char *name, const char *name_sp
 	if (!parser->root) parser->root = elt;
 
 	GF_SAFEALLOC(stack, XBL_NodeStack);
+	if (!stack) {
+		return;
+	}
 	stack->node = elt;
 	gf_list_add(parser->node_stack, stack);
 
@@ -187,6 +190,7 @@ static GF_XBL_Parser *xbl_new_parser(GF_SceneLoader *load)
 	} else if (load->type!=GF_SM_LOAD_XBL) return NULL;
 
 	GF_SAFEALLOC(parser, GF_XBL_Parser);
+	if (!parser) return NULL;
 	parser->node_stack = gf_list_new();
 	parser->sax_parser = gf_xml_sax_new(xbl_node_start, xbl_node_end, xbl_text_content, parser);
 	parser->load = load;

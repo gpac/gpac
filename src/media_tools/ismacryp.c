@@ -69,6 +69,10 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 	}
 	if (!strcmp(node_name, "CrypTrack")) {
 		GF_SAFEALLOC(tkc, GF_TrackCryptInfo);
+		if (!tkc) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannnot allocate crypt track, skipping\n"));
+			return;
+		}
 		gf_list_add(info->tcis, tkc);
 
 		if (!strcmp(node_name, "OMATrack")) {
@@ -255,6 +259,7 @@ static GF_CryptInfo *load_crypt_file(const char *file)
 	GF_CryptInfo *info;
 	GF_SAXParser *sax;
 	GF_SAFEALLOC(info, GF_CryptInfo);
+	if (!info) return NULL;
 	info->tcis = gf_list_new();
 	sax = gf_xml_sax_new(isma_ea_node_start, isma_ea_node_end, isma_ea_text, info);
 	e = gf_xml_sax_parse_file(sax, file, NULL);
@@ -368,6 +373,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	e = gf_isom_get_ismacryp_info(mp4, track, 1, &is_avc, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
+	if (e) return e;
 	is_avc = (is_avc==GF_4CC('2','6','4','b')) ? 1 : 0;
 
 
@@ -465,7 +471,6 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	}
 
 	/*update OD track if any*/
-	track = 0;
 	for (i=0; i<gf_isom_get_track_count(mp4); i++) {
 		GF_ODCodec *cod;
 		if (gf_isom_get_media_type(mp4, i+1) != GF_ISOM_MEDIA_OD) continue;
@@ -1037,12 +1042,10 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	char *buf;
 	GF_BitStream *bs;
 
-	e = GF_OK;
 	nalu_size_length = 0;
 	mc = NULL;
 	buf = NULL;
 	bs = NULL;
-	idx = 0;
 	bytes_in_nalhr = 0;
 
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
@@ -1122,6 +1125,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 	gf_isom_set_nalu_extract_mode(mp4, track, GF_ISOM_NALU_EXTRACT_INSPECT);
 	for (i = 0; i < count; i++) {
+		len=0;
 		samp = gf_isom_get_sample(mp4, track, i+1, &di);
 		if (!samp)
 		{
@@ -1253,7 +1257,6 @@ GF_Err gf_cenc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	GF_CENCSampleAuxInfo *sai;
 	char *buffer;
 
-	e = GF_OK;
 	pleintext_bs = cyphertext_bs = NULL;
 	mc = NULL;
 	buffer = NULL;
@@ -1454,7 +1457,6 @@ GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	GF_BitStream *bs;
 	int IV_size;
 
-	e = GF_OK;
 	samp = NULL;
 	mc = NULL;
 	buf = NULL;
@@ -1584,7 +1586,6 @@ GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pr
 	char *ptr;
 	GF_BitStream *bs;
 
-	e = GF_OK;
 	mc = NULL;
 	samp = NULL;
 	bs = NULL;
@@ -1687,8 +1688,8 @@ GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
-	u32 i, idx, count, common_idx, nb_tracks, scheme_type;
-	const char *scheme_URI, *KMS_URI;
+	u32 i, idx, count, common_idx, nb_tracks, scheme_type, crypt_type;
+	const char *scheme_URI="", *KMS_URI="";
 	GF_CryptInfo *info;
 	Bool is_oma;
 	GF_TrackCryptInfo *a_tci, tci;
@@ -1713,6 +1714,8 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 	}
 
+	crypt_type = info ? info->crypt_type : 0;
+	
 	nb_tracks = gf_isom_get_track_count(mp4);
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
@@ -1737,7 +1740,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 			tci.trackID = trackID;
 		}
 
-		switch (info->crypt_type) {
+		switch (crypt_type) {
 		case 1:
 			gf_decrypt_track = gf_ismacryp_decrypt_track;
 			break;
@@ -1817,7 +1820,7 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		e = gf_isom_set_brand_info(mp4, GF_4CC('i','s','o','2'), 0x00000001);
 		if (!e) e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','d','c','f'), 0);
 	}
-	if ((info->crypt_type == 2) || (info->crypt_type == 3))
+	if ((crypt_type == 2) || (crypt_type == 3))
 		e = gf_isom_remove_pssh_box(mp4);
 	if (info) del_crypt_info(info);
 	return e;
@@ -1918,7 +1921,7 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 		data = (char *)gf_malloc(len*sizeof(char));
 		gf_bs_read_data(bs, data, len);
 
-		if (has_key && has_IV && (cypherOffset >= 0)) {
+		if (has_key && has_IV && (cypherOffset >= 0) && (cypherMode != 2)) {
 			/*TODO*/
 			GF_Crypt *mc;
 			mc = gf_crypt_open("AES-128", "CTR");
@@ -1930,7 +1933,7 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 			gf_crypt_encrypt(mc, data+cypherOffset, len-cypherOffset);
 			gf_crypt_close(mc);
 		}
-		e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len);
+		if (!e) e = gf_cenc_set_pssh(mp4, systemID, version, KID_count, KIDs, data, len);
 		if (specInfo) gf_free(specInfo);
 		if (data) gf_free(data);
 		if (KIDs) gf_free(KIDs);

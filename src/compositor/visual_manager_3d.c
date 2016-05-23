@@ -39,6 +39,10 @@ Drawable3D *drawable_3d_new(GF_Node *node)
 {
 	Drawable3D *tmp;
 	GF_SAFEALLOC(tmp, Drawable3D);
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D stack\n"));
+		return NULL;
+	}
 	tmp->mesh = new_mesh();
 	gf_node_set_private(node, tmp);
 	return tmp;
@@ -677,7 +681,7 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 	}
 
 	/*check alpha texture in3D or with bitmap*/
-	if (is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap)) {
+	if (tr_state->appear && ( is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap))) {
 		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 		if (txh && txh->transparent) return 1;
 	}
@@ -727,8 +731,12 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		return;
 	}
 
-
 	GF_SAFEALLOC(ctx, Drawable3DContext);
+	if (!ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D context\n"));
+		return;
+	}
+	
 	ctx->directional_lights = gf_list_new();
 	ctx->geometry = geometry;
 	ctx->appearance = tr_state->appear;
@@ -1331,7 +1339,6 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 	count = gf_list_count(tr_state->vrml_sensors);
 	compositor = tr_state->visual->compositor;
 
-	node_is_over = 0;
 	if (mesh) {
 		if (mesh->mesh_type!=MESH_TRIANGLES)
 			return;

@@ -251,7 +251,7 @@ static GF_Err BD_XReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		break;
 	}
 	gf_bifs_check_field_change(target, &targetField);
-	return GF_OK;
+	return e;
 }
 
 static GF_Err BD_DecProtoDelete(GF_BifsDecoder * codec, GF_BitStream *bs)
@@ -791,6 +791,7 @@ static GF_Err BD_DecFieldReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	if (e) return e;
 
 	e = gf_node_get_field(node, field_ind, &field);
+	if (e) return e;
 
 	prev_node = NULL;
 	prev_child = NULL;
@@ -842,6 +843,7 @@ static GF_Err BD_DecIndexValueReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 	if (e) return e;
 
 	e = gf_node_get_field(node, field_ind, &field);
+	if (e) return e;
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) return GF_NON_COMPLIANT_BITSTREAM;
 
 	type = gf_bs_read_int(bs, 2);
@@ -950,8 +952,14 @@ static GF_Err BD_DecRouteReplace(GF_BifsDecoder * codec, GF_BitStream *bs)
 		r->ToNode = InNode;
 		r->ToField.fieldIndex = toID;
 
-		if (!r->FromNode->sgprivate->interact) GF_SAFEALLOC(r->FromNode->sgprivate->interact, struct _node_interactive_ext);
-		if (!r->FromNode->sgprivate->interact->routes) r->FromNode->sgprivate->interact->routes = gf_list_new();
+		if (!r->FromNode->sgprivate->interact) {
+			GF_SAFEALLOC(r->FromNode->sgprivate->interact, struct _node_interactive_ext);
+			if (!r->FromNode->sgprivate->interact) return GF_OUT_OF_MEM;
+		}
+		if (!r->FromNode->sgprivate->interact->routes) {
+			r->FromNode->sgprivate->interact->routes = gf_list_new();
+			if (!r->FromNode->sgprivate->interact->routes) return GF_OUT_OF_MEM;
+		}
 		gf_list_add(r->FromNode->sgprivate->interact->routes, r);
 	} else {
 		r = gf_sg_route_new(codec->current_graph, OutNode, fromID, InNode, toID);
@@ -1051,7 +1059,6 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				if (gf_sg_vrml_is_sf_field(field_type)) {
 					e = gf_bifs_dec_sf_field(codec, bs, NULL, &field, GF_FALSE);
 				} else {
-					f = 0;
 					if (codec->info->config.UsePredictiveMFField) {
 						f = gf_bs_read_int(bs, 1);
 						/*predictive encoding of proto field is not possible since QP info is not present yet*/
@@ -1091,7 +1098,7 @@ GF_Err gf_bifs_dec_proto_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List 
 				assert(!flag);
 			}
 			/*reserved*/
-			flag = gf_bs_read_int(bs, 1);
+			gf_bs_read_int(bs, 1);
 
 			/*list or vector*/
 			flag = gf_bs_read_int(bs, 1);
@@ -1262,6 +1269,7 @@ GF_Err gf_bifs_dec_route(GF_BifsDecoder * codec, GF_BitStream *bs, Bool is_inser
 	numBits = gf_get_bit_size(numBits);
 	ind = gf_bs_read_int(bs, numBits);
 	e = gf_bifs_get_field_index(OutNode, ind, GF_SG_FIELD_CODING_OUT, &outField);
+	if (e) return e;
 
 	/*target*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
@@ -1295,7 +1303,7 @@ GF_Err BD_DecSceneReplace(GF_BifsDecoder * codec, GF_BitStream *bs, GF_List *pro
 	if (!proto_list) gf_sg_reset(codec->current_graph);
 
 	/*reserved*/
-	i = gf_bs_read_int(bs, 6);
+	gf_bs_read_int(bs, 6);
 
 	codec->UseName = (Bool)gf_bs_read_int(bs, 1);
 	/*parse PROTOS*/

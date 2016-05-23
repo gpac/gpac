@@ -208,7 +208,9 @@ void mesh_set_vertex(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, Fixed nx, Fixed n
 
 void mesh_set_vertex_v(GF_Mesh *mesh, SFVec3f pt, SFVec3f nor, SFVec2f tx, SFColorRGBA col)
 {
+	if (!mesh) return;
 	MESH_CHECK_VERTEX(mesh);
+	if (!mesh->vertices) return;
 	mesh->vertices[mesh->v_count].pos = pt;
 	mesh->vertices[mesh->v_count].texcoords = tx;
 	mesh->vertices[mesh->v_count].color = MESH_MAKE_COL(col);
@@ -1372,6 +1374,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		} else {
 			for (i=0; i<face_count; i++) {
 				SFVec3f v1, v2, n;
+				if (! faces[i] || ! faces[i]->vertices) continue;
 				gf_vec_diff(v1, faces[i]->vertices[1].pos, faces[i]->vertices[0].pos);
 				gf_vec_diff(v2, faces[i]->vertices[2].pos, faces[i]->vertices[0].pos);
 				n = gf_vec_cross(v1, v2);
@@ -1388,6 +1391,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	if (has_color) mesh->flags |= MESH_HAS_COLOR;
 
 	for (i=0; i<face_count; i++) {
+		if (! faces[i]) continue;
 		if (faces[i]->v_count) TesselateFaceMesh(mesh, faces[i]);
 		mesh_free(faces[i]);
 	}
@@ -1849,7 +1853,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				else alpha = gf_asin(spine_vec.x);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.x;
-				sin_g = 0;
+
 				if (NEAR_ZERO(cos_a)) gamma = 0;
 				else {
 					Fixed __abs;
@@ -1878,7 +1882,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				else alpha = gf_asin(spine_vec.z);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.z;
-				sin_g = 0;
+
 				if (NEAR_ZERO(cos_a) ) gamma = 0;
 				else {
 					Fixed __abs;
@@ -1953,9 +1957,6 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 		}
 	}
 	gf_free(SCPi);
-
-	SCPbegin = SCPs[0];
-	SCPend = SCPs[nb_spine-1];
 
 	r.x = r.q = r.z = 0;
 	r.y = FIX_ONE;

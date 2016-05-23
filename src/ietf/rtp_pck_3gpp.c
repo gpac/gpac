@@ -576,7 +576,8 @@ GF_Err gp_rtp_builder_do_dims(GP_RTPPacketizer *builder, char *data, u32 data_si
 		frag_state = 0;
 		while (du_size) {
 			u32 size_offset = 0;
-			u32 size = du_size;
+			u32 size;
+			//size = du_size;
 
 			/*does not fit, flush required*/
 			if (builder->bytesInPacket && (du_size + 1 + builder->bytesInPacket > builder->Path_MTU)) {

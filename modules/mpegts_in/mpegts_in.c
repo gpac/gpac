@@ -661,6 +661,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PES_PCR:
 	{
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
+		GF_M2TS_PES_PCK *pck;
 		/*send pcr*/
 		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
 			GF_SLHeader slh;
@@ -700,12 +701,13 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				m2ts->pcr_last = 0;
 			}
 		}
-		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
+		pck = (GF_M2TS_PES_PCK *) param;
+		if (pck->stream && pck->stream->program) pck->stream->program->first_dts = 1;
 
 		if (discontinuity) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", m2ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
 			if (m2ts->pcr_last) {
-				m2ts->pcr_last = ((GF_M2TS_PES_PCK *) param)->PTS;
+				m2ts->pcr_last = pck->PTS;
 				m2ts->stb_at_last_pcr = gf_sys_clock();
 			}
 			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities
@@ -714,15 +716,17 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 
 		if (m2ts->file_regulate) {
-			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
+			u64 pcr = pck->PTS;
 			u32 stb = gf_sys_clock();
 
-			if (m2ts->regulation_pcr_pid==0) {
-				/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
-				only check buffer levels, not DTS/PTS of the streams in the regulation step*/
-				m2ts->regulation_pcr_pid = ((GF_M2TS_PES_PCK *) param)->stream->pid;
-			} else if (m2ts->regulation_pcr_pid != ((GF_M2TS_PES_PCK *) param)->stream->pid) {
-				return;
+			if (pck->stream) {
+				if (m2ts->regulation_pcr_pid==0) {
+					/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
+					only check buffer levels, not DTS/PTS of the streams in the regulation step*/
+					m2ts->regulation_pcr_pid = pck->stream->pid;
+				} else if (m2ts->regulation_pcr_pid != pck->stream->pid) {
+					return;
+				}
 			}
 
 
@@ -1201,7 +1205,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (frag) frag++;
 
 	/* consider the channel name in DVB URL as a fragment */
-	if (!frag && !strncmp(sub_url, "dvb://", 6)) {
+	if (!frag && sub_url && !strncmp(sub_url, "dvb://", 6)) {
 		frag = (char*)sub_url + 6;
 	}
 
@@ -1212,6 +1216,10 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		gf_mx_p(m2ts->mx);
 		if (!strnicmp(frag, "pid=", 4)) {
 			GF_SAFEALLOC(prog, M2TSIn_Prog);
+			if (!prog) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Fail to allocate pid playback request"));
+				return NULL;
+			}
 			prog->pid = atoi(frag+4);
 			gf_list_add(m2ts->ts->requested_pids, prog);
 		} else if (!strnicmp(frag, "EPG", 3)) {
@@ -1228,6 +1236,10 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			}
 			if (!prog) {
 				GF_SAFEALLOC(prog, M2TSIn_Prog);
+				if (!prog) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Fail to allocate URI fragment playback request"));
+					return NULL;
+				}
 				gf_list_add(m2ts->ts->requested_progs, prog);
 				prog->fragment = gf_strdup(frag);
 			}

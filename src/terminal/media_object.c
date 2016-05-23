@@ -44,6 +44,8 @@ static GF_MediaObject *get_sync_reference(GF_Scene *scene, XMLRI *iri, u32 o_typ
 	GF_Node *ref = NULL;
 
 	u32 stream_id = 0;
+	if (post_pone) *post_pone = GF_FALSE;
+	
 	if (iri->type==XMLRI_STREAMID) {
 		stream_id = iri->lsr_stream_id;
 	} else if (!iri->string) {
@@ -603,7 +605,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			while (s && s->root_od->addon) {
 				s = s->root_od->parentscene;
 			}
-			s->root_od->media_current_time = mo->odm->media_current_time;
+			if (s && s->root_od)
+				s->root_od->media_current_time = mo->odm->media_current_time;
 		}
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_MEDIA, GF_LOG_DEBUG)) {

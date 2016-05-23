@@ -528,7 +528,6 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	if (!repeat_t && (y < - _fd)) y = 0;
 	while (y<0) y += _fd;
 
-	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_replace_cmat = _this->cmat_is_replace ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;

@@ -153,6 +153,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	}
 
 	ret = gf_media_get_rfc_6381_codec_name(audio_output_file->isof, track, audio_output_file->audio_data_conf->codec6381, GF_FALSE, GF_FALSE);
+	if (ret != GF_OK) return -1;
 	return 0;
 }
 

@@ -105,6 +105,10 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 	if (!capacity) return NULL;
 
 	GF_SAFEALLOC(tmp, GF_CompositionMemory)
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate composition memory\n"));
+		return NULL;
+	}
 
 	tmp->Capacity = capacity;
 	tmp->UnitSize = UnitSize;

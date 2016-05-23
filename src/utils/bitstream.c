@@ -280,7 +280,7 @@ u32 gf_bs_read_u8(GF_BitStream *bs)
 GF_EXPORT
 u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_length) {
 	u32 i = 0;
-	char token;
+	char token=0;
 	u64 cur_pos = gf_bs_get_position(bs);
 
 	if (!max_length) out = NULL;
@@ -447,7 +447,8 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (!bs->original) return;
 			bs->size *= 2;
 		}
-		bs->original[bs->position] = val;
+		if (bs->original)
+			bs->original[bs->position] = val;
 		bs->position++;
 		return;
 	}

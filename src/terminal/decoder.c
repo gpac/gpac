@@ -97,6 +97,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 	GF_Codec *tmp;
 	if (!codec->decio) return NULL;
 	GF_SAFEALLOC(tmp, GF_Codec);
+	if (!tmp) return NULL;
 	tmp->type = codec->type;
 	tmp->inChannels = gf_list_new();
 	tmp->Status = GF_ESM_CODEC_STOP;
@@ -116,15 +117,17 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	GF_CodecCapability cap;
 	u32 min, max;
 
+	if (!ch || !ch->esd) return GF_BAD_PARAM;
+
 	if (ch && ch->odm && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
 		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) {
 		com.get_dsi.dsi = NULL;
-		if (ch->esd->decoderConfig->upstream) codec->flags |= GF_ESM_CODEC_HAS_UPSTREAM;
+		if (ch->esd->decoderConfig && ch->esd->decoderConfig->upstream) codec->flags |= GF_ESM_CODEC_HAS_UPSTREAM;
 		/*For objects declared in OD stream, override with network DSI if any*/
-		if (ch->service && !(ch->odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
+		if (ch->service && ch->odm && !(ch->odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
 			com.command_type = GF_NET_CHAN_GET_DSI;
 			com.base.on_channel = ch;
 			e = gf_term_service_command(ch->service, &com);
@@ -141,7 +144,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		} else {
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
-			ch->esd->service_url = ch->odm->net_service->url;
+			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
 			gf_mx_v(ch->mx);
 		}
@@ -670,7 +673,8 @@ check_unit:
 			sdec->GetCapabilities(codec->decio, &cap);
 			if (!cap.cap.valueInt) {
 				gf_term_stop_codec(codec, 2);
-				gf_odm_signal_eos(ch->odm);
+				if (ch)
+					gf_odm_signal_eos(ch->odm);
 				if ((codec->type==GF_STREAM_OD) && (codec->nb_dec_frames==1)) {
 					/*this is just by safety, since seeking is only allowed when a single clock is present
 					in the scene*/
@@ -1009,7 +1013,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				if (codec->odm->term->bench_mode != 2) {
 					e = mdec->ProcessData(mdec, NULL, 0, 0, &CU->TS, CU->data, &unit_size, 0, 0);
 					if (e==GF_OK) {
-						e = UnlockCompositionUnit(codec, CU, unit_size);
+						/*e = */UnlockCompositionUnit(codec, CU, unit_size);
 						if (unit_size) return GF_OK;
 					}
 				}

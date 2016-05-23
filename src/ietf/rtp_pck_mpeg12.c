@@ -178,7 +178,7 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 		if (data_size <= max_pck_size) {
 			len_to_write = data_size;
 			last_pck = GF_TRUE;
-			prev_slice = 0;
+//			prev_slice = 0;
 		} else {
 			got_slice = (!first_slice && !slices_done && (next_slice <= max_pck_size)) ? GF_TRUE : GF_FALSE;
 			first_slice = GF_FALSE;
@@ -206,9 +206,9 @@ GF_Err gp_rtp_builder_do_mpeg12_video(GP_RTPPacketizer *builder, char *data, u32
 
 		if (got_slice || last_pck) {
 			mpv_hdr[2] |= 0x08;
-			start_with_slice = GF_TRUE;
+//			start_with_slice = GF_TRUE;
 		} else {
-			start_with_slice = GF_FALSE;
+//			start_with_slice = GF_FALSE;
 		}
 
 		builder->OnData(builder->cbk_obj, mpv_hdr, 4, GF_FALSE);

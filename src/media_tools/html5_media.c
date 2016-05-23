@@ -35,6 +35,7 @@ GF_HTML_MediaTimeRanges *gf_html_timeranges_new(u32 timescale)
 {
 	GF_HTML_MediaTimeRanges *ranges;
 	GF_SAFEALLOC(ranges, GF_HTML_MediaTimeRanges);
+	if (!ranges) return NULL;
 	ranges->times = gf_list_new();
 	ranges->timescale = timescale;
 	return ranges;
@@ -328,6 +329,7 @@ GF_HTML_Track *gf_html_media_track_new(GF_HTML_TrackType type, const char *mime,
 {
 	GF_HTML_Track *track;
 	GF_SAFEALLOC(track, GF_HTML_Track);
+	if (!track) return NULL;
 	track->type     = type;
 	track->mime     = gf_strdup(mime);
 	track->id       = gf_strdup(id);
@@ -368,6 +370,7 @@ GF_HTML_MediaElement *gf_html_media_element_new(GF_Node *media_node, GF_HTML_Med
 {
 	GF_HTML_MediaElement *me;
 	GF_SAFEALLOC(me, GF_HTML_MediaElement);
+	if (!me) return NULL;
 	me->node                    = media_node;
 	me->controller              = mc;
 	me->audioTracks.tracks      = gf_list_new();
@@ -396,6 +399,7 @@ GF_HTML_MediaController *gf_html_media_controller_new()
 {
 	GF_HTML_MediaController *mc;
 	GF_SAFEALLOC(mc, GF_HTML_MediaController);
+	if (!mc) return NULL;
 	mc->buffered          = gf_html_timeranges_new(1);
 	mc->played            = gf_html_timeranges_new(1);
 	mc->seekable          = gf_html_timeranges_new(1);

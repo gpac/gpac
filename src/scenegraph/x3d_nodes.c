@@ -16296,7 +16296,6 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 	u32 count, i;
 	if (!NodeTag) return 0;
 	types = NULL;
-	count = 0;
 	switch (NDT_Tag) {
 	case NDT_SFWorldNode:
 		types = SFWorldNode_X3D_TypeToTag;

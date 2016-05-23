@@ -180,7 +180,6 @@ void svg_drawable_3d_pick(Drawable *drawable, GF_TraverseState *tr_state, DrawAs
 
 	compositor = tr_state->visual->compositor;
 
-	node_is_over = 0;
 	r = tr_state->ray;
 	gf_mx_copy(mx, tr_state->model_matrix);
 	gf_mx_inverse(&mx);

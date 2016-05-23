@@ -579,8 +579,7 @@ GF_Err gf_odf_write_iod(GF_BitStream *bs, GF_InitialObjectDescriptor *iod)
 			if (e) return e;
 		}
 	}
-	e = gf_odf_write_descriptor_list(bs, iod->extensionDescriptors);
-	return GF_OK;
+	return gf_odf_write_descriptor_list(bs, iod->extensionDescriptors);
 }
 
 
@@ -728,8 +727,7 @@ GF_Err gf_odf_write_od(GF_BitStream *bs, GF_ObjectDescriptor *od)
 		e = gf_odf_write_descriptor_list_filter(bs, od->IPMP_Descriptors, GF_ODF_IPMP_TAG);
 		if (e) return e;
 	}
-	e = gf_odf_write_descriptor_list(bs, od->extensionDescriptors);
-	return GF_OK;
+	return gf_odf_write_descriptor_list(bs, od->extensionDescriptors);
 }
 
 GF_Descriptor *gf_odf_new_isom_iod()
@@ -1905,6 +1903,7 @@ GF_Err gf_odf_read_cc_name(GF_BitStream *bs, GF_CC_Name *cnd, u32 DescSize)
 		if (e) return e;
 		nbBytes += len;
 		e = gf_list_add(cnd->ContentCreators, tmp);
+		if (e) return e;
 	}
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
@@ -2223,7 +2222,6 @@ GF_Err gf_odf_write_exp_text(GF_BitStream *bs, GF_ExpandedTextual *etd)
 		OD_WriteUTF8String(bs, tmp->text, etd->isUTF8);
 	}
 	if (etd->NonItemText) {
-		nonLen = (u32) strlen((const char*)etd->NonItemText) + 1;
 		if (etd->isUTF8) {
 			nonLen = (u32) strlen((const char*)etd->NonItemText);
 		} else {
@@ -3240,8 +3238,7 @@ GF_Err gf_odf_write_ipmp_tool_list(GF_BitStream *bs, GF_IPMP_ToolList *ipmptl)
 	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, ipmptl->tag, size);
 	if (e) return e;
-	e = gf_odf_write_descriptor_list(bs, ipmptl->ipmp_tools);
-	return GF_OK;
+	return gf_odf_write_descriptor_list(bs, ipmptl->ipmp_tools);
 }
 
 GF_Descriptor *gf_odf_new_ipmp_tool()

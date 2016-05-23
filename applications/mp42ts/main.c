@@ -496,6 +496,10 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	s64 mediaOffset;
 
 	GF_SAFEALLOC(priv, GF_ESIMP4);
+	if (!priv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate MP4 input handler\n"));
+		return;
+	}
 
 	priv->mp4 = mp4;
 	priv->track = track_num;
@@ -566,8 +570,12 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	ifce->duration /= ifce->timescale;
 
 	GF_SAFEALLOC(ifce->sl_config, GF_SLConfig);
+	if (!ifce->sl_config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate interface SLConfig\n"));
+		return;
+	}
+	
 	ifce->sl_config->tag = GF_ODF_SLC_TAG;
-//	ifce->sl_config->predefined = 3;
 	ifce->sl_config->useAccessUnitStartFlag = 1;
 	ifce->sl_config->useAccessUnitEndFlag = 1;
 	ifce->sl_config->useRandomAccessPointFlag = 1;
@@ -831,6 +839,10 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	/*check payload type*/
 	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 	GF_SAFEALLOC(rtp, GF_ESIRTP);
+	if (!rtp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate RTP input handler\n"));
+		return;
+	}
 
 	memset(ifce, 0, sizeof(GF_ESInterface));
 	rtp->rtp_ch = gf_rtp_new();
@@ -1043,6 +1055,10 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 					{
 						/*audio OD descriptor: rap=1 and vers_inc=0*/
 						GF_SAFEALLOC(source->streams[audio_OD_stream_id].input_udta, GF_ESIStream);
+						if (!source->streams[audio_OD_stream_id].input_udta) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate aac input handler\n"));
+							return;
+						}
 						((GF_ESIStream*)source->streams[audio_OD_stream_id].input_udta)->rap = 1;
 
 						/*we have the descriptor; now call this callback recursively so that a player gets the audio descriptor before audio data.*/
@@ -1378,7 +1394,11 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 	ifce->repeat_rate = period;
 	GF_SAFEALLOC(stream, GF_ESIStream);
-	memset(stream, 0, sizeof(GF_ESIStream));
+	if (!stream) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate SENG input handler\n"));
+		return;
+	}
+
 	stream->rap = 1;
 	if (ifce->input_udta)
 		gf_free(ifce->input_udta);
@@ -1712,6 +1732,11 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				source->streams[source->nb_streams].timescale = 1000;
 
 				GF_SAFEALLOC(source->streams[source->nb_streams].input_udta, GF_ESIStream);
+				if (!source->streams[source->nb_streams].input_udta) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate audio input handler\n"));
+					return 0;
+				}
+				
 				((GF_ESIStream*)source->streams[source->nb_streams].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
 				assert( source );
 				//assert( source->iod);
@@ -1765,6 +1790,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				source->streams[source->nb_streams].timescale = 1000;
 
 				GF_SAFEALLOC(source->streams[source->nb_streams].input_udta, GF_ESIStream);
+				if (!source->streams[source->nb_streams].input_udta) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate video input handler\n"));
+					return 0;
+				}
 				((GF_ESIStream*)source->streams[source->nb_streams].input_udta)->vers_inc = 1;	/*increment version number at every video update*/
 				assert(source);
 

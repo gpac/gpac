@@ -780,7 +780,12 @@ GF_BaseDecoder *NewContextLoader()
 	GF_SceneDecoder *tmp;
 
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
+	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, CTXLoadPriv);
+	if (!priv) {
+		gf_free(tmp);
+		return NULL;
+	}
 	priv->files_to_delete = gf_list_new();
 
 	tmp->privateStack = priv;

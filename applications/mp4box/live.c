@@ -363,6 +363,10 @@ static void live_session_setup(LiveSession *livesess, char *ip, u16 port, u32 pa
 		gf_seng_get_stream_config(livesess->seng, i, &ESID, &config, &config_len, &st, &oti, &ts);
 
 		GF_SAFEALLOC(rtpch, RTPChannel);
+		if (!rtpch) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Cannot allocate rtp input handler\n"));
+			continue;
+		}
 		rtpch->timescale = ts;
 		rtpch->init_time = gf_sys_clock();
 
@@ -629,6 +633,7 @@ int live_session(int argc, char **argv)
 					e = gf_seng_encode_from_string(livesess.seng, 0, 0, szCom, live_session_callback);
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					e = gf_seng_aggregate_context(livesess.seng, 0);
+					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
 					livesess.critical = 0;
 					update_context = 1;
 				}
@@ -651,6 +656,7 @@ int live_session(int argc, char **argv)
 					if (e) fprintf(stderr, "Processing command failed: %s\n", gf_error_to_string(e));
 					livesess.critical = 0;
 					e = gf_seng_aggregate_context(livesess.seng, 0);
+					if (e) fprintf(stderr, "Aggregating context failed: %s\n", gf_error_to_string(e));
 
 				}
 				break;

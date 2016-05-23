@@ -76,6 +76,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 
 	err = inflateInit(&d_stream);
 	if (err == Z_OK) {
+		e = GF_OK;
 		while (d_stream.total_in < buffer_len) {
 			err = inflate(&d_stream, Z_NO_FLUSH);
 			if (err < Z_OK) {
@@ -90,7 +91,7 @@ static GF_Err svgin_deflate(SVGIn *svgin, const char *buffer, u32 buffer_len)
 			d_stream.next_out = (Bytef*)svg_data;
 		}
 		inflateEnd(&d_stream);
-		return GF_OK;
+		return e;
 	}
 	return GF_NON_COMPLIANT_BITSTREAM;
 }
@@ -146,7 +147,6 @@ static GF_Err SVG_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				nb_read = gzread(svgin->src, file_buf, SVG_PROGRESSIVE_BUFFER_SIZE);
 				/*we may have read nothing but we still need to call parse in case the parser got suspended*/
 				if (nb_read<=0) {
-					nb_read = 0;
 					if ((e==GF_EOS) && gzeof(svgin->src)) {
 						gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 						gzclose(svgin->src);
@@ -393,9 +393,14 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_SCENE_DECODER_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
+	if (!sdec) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC SVG Parser", "gpac distribution");
 
 	GF_SAFEALLOC(svgin, SVGIn);
+	if (!svgin) {
+		gf_free(sdec);
+		return NULL;
+	}
 	sdec->privateStack = svgin;
 	sdec->AttachStream = SVG_AttachStream;
 	sdec->CanHandleStream = SVG_CanHandleStream;

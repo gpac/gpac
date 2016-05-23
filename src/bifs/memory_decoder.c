@@ -168,6 +168,7 @@ static GF_Err BM_ParseGlobalQuantizer(GF_BifsDecoder *codec, GF_BitStream *bs, G
 	GF_Command *com;
 	GF_CommandField *inf;
 	node = gf_bifs_dec_node(codec, bs, NDT_SFWorldNode);
+	if (!node) return GF_NON_COMPLIANT_BITSTREAM;
 
 	/*reset global QP*/
 	if (codec->scenegraph->global_qp) {
@@ -240,7 +241,6 @@ static GF_Err BM_XReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com_
 	target = gf_sg_find_node(codec->current_graph, id);
 	if (!target) return GF_SG_UNKNOWN_NODE;
 
-	e = GF_OK;
 	com = gf_sg_command_new(codec->current_graph, GF_SG_XREPLACE);
 	BM_SetCommandNode(com, target);
 
@@ -545,6 +545,7 @@ GF_Err BM_ParseRouteInsert(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *com
 	numBits = gf_get_bit_size(numBits);
 	ind = gf_bs_read_int(bs, numBits);
 	e = gf_bifs_get_field_index(OutNode, ind, GF_SG_FIELD_CODING_OUT, &outField);
+	if (e) return e;
 
 	/*target*/
 	node_id = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
@@ -710,6 +711,7 @@ GF_Err BM_ParseFieldReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_List *co
 	if (e) return e;
 
 	e = gf_node_get_field(node, field_ind, &field);
+	if (e) return e;
 
 	com = gf_sg_command_new(codec->current_graph, GF_SG_FIELD_REPLACE);
 	BM_SetCommandNode(com, node);
@@ -751,6 +753,7 @@ GF_Err BM_ParseIndexValueReplace(GF_BifsDecoder *codec, GF_BitStream *bs, GF_Lis
 	if (e) return e;
 
 	e = gf_node_get_field(node, field_ind, &field);
+	if (e) return e;
 	if (gf_sg_vrml_is_sf_field(field.fieldType)) return GF_NON_COMPLIANT_BITSTREAM;
 
 	type = gf_bs_read_int(bs, 2);

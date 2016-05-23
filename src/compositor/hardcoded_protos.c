@@ -578,7 +578,7 @@ static void TraverseOffscreenGroup(GF_Node *node, void *rs, Bool is_destroy)
 		if (tr_state->traversing_mode == TRAVERSE_GET_BOUNDS) {
 			tr_state->bounds = stack->bounds;
 		}
-		else if (tr_state->traversing_mode == TRAVERSE_PICK) {
+		else if (stack->cache && (tr_state->traversing_mode == TRAVERSE_PICK)) {
 			vrml_drawable_pick(stack->cache->drawable, tr_state);
 		}
 	}
@@ -590,6 +590,10 @@ void compositor_init_offscreen_group(GF_Compositor *compositor, GF_Node *node)
 	if (OffscreenGroup_GetNode(node, &og)) {
 		OffscreenGroupStack *stack;
 		GF_SAFEALLOC(stack, OffscreenGroupStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate offscreen group stack\n"));
+			return;
+		}
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseOffscreenGroup);
 		stack->og = og;
@@ -702,6 +706,10 @@ void compositor_init_depth_group(GF_Compositor *compositor, GF_Node *node)
 	if (DepthGroup_GetNode(node, &dg)) {
 		DepthGroupStack *stack;
 		GF_SAFEALLOC(stack, DepthGroupStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate depth group stack\n"));
+			return;
+		}
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseDepthGroup);
 		stack->dg = dg;
@@ -965,6 +973,10 @@ void compositor_init_untransform(GF_Compositor *compositor, GF_Node *node)
 	if (Untransform_GetNode(node, &tr)) {
 		UntransformStack *stack;
 		GF_SAFEALLOC(stack, UntransformStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate untransform stack\n"));
+			return;
+		}
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseUntransform);
 		stack->untr = tr;
@@ -1043,6 +1055,10 @@ void compositor_init_style_group(GF_Compositor *compositor, GF_Node *node)
 	if (StyleGroup_GetNode(node, &sg)) {
 		StyleGroupStack *stack;
 		GF_SAFEALLOC(stack, StyleGroupStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate style group stack\n"));
+			return;
+		}
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseStyleGroup);
 		stack->sg = sg;

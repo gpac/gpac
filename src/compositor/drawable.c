@@ -119,11 +119,25 @@ Drawable *drawable_new()
 {
 	Drawable *tmp;
 	GF_SAFEALLOC(tmp, Drawable)
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable object\n"));
+		return NULL;
+	}
 	tmp->path = gf_path_new();
 	/*allocate a default visual container*/
 	GF_SAFEALLOC(tmp->dri, DRInfo);
-	/*allocate a default bounds container*/
-	GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
+	if (tmp->dri) {
+		/*allocate a default bounds container*/
+		GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
+	}
+	
+	if (!tmp->dri || !tmp->dri->current_bounds) {
+		if (tmp->dri) gf_free(tmp->dri);
+		gf_path_del(tmp->path);
+		gf_free(tmp);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable object bounds\n"));
+		return NULL;
+	}
 	return tmp;
 }
 
@@ -256,6 +270,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	}
 	if (!dri) {
 		GF_SAFEALLOC(dri, DRInfo);
+		if (!dri) return NULL;
 		dri->visual = visual;
 		if (prev) prev->next = dri;
 		else ctx->drawable->dri = dri;
@@ -272,6 +287,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	}
 	if (!bi) {
 		GF_SAFEALLOC(bi, BoundInfo);
+		if (!bi) return NULL;
 		if (_prev) {
 //			assert(!_prev->next);
 			_prev->next = bi;
@@ -807,6 +823,9 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 	if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {
 		struct _drawable_store *it;
 		GF_SAFEALLOC(it, struct _drawable_store);
+		if (!it) {
+			return 0;
+		}
 		it->drawable = ctx->drawable;
 		if (tr_state->visual->last_prev_entry) {
 			tr_state->visual->last_prev_entry->next = it;
@@ -1097,6 +1116,9 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	/*not found, add*/
 	if (!si) {
 		GF_SAFEALLOC(si, StrikeInfo2D);
+		if (!si) {
+			return NULL;
+		}
 		si->lineProps = lp;
 		si->drawable = drawable;
 
@@ -1246,6 +1268,10 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 {
 	LinePropStack *st;
 	GF_SAFEALLOC(st, LinePropStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate line properties stack\n"));
+		return;
+	}
 	st->compositor = compositor;
 	st->last_mod_time = 0;
 	gf_node_set_private(node, st);

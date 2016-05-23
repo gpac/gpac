@@ -420,7 +420,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 			iloc->base_offset = baseOffset;
 
 			/*new resource*/
-			if (iinf->full_path) {
+			if (iinf && iinf->full_path) {
 				FILE *src=NULL;
 
 				if (!iinf->data_len) {
@@ -850,8 +850,6 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	//this is used to emulate the write ...
 	u64 offset, totSize, sampOffset;
 	GF_ISOFile *movie = mw->movie;
-	e = GF_OK;
-
 
 	totSize = 0;
 	curGroupID = 1;
@@ -859,9 +857,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 	prevWriter = NULL;
 	//we emulate a write from this offset...
 	offset = StartOffset;
-	writeGroup = 1;
 	tracksDone = 0;
-
 
 	//browse each groups
 	while (1) {
@@ -895,7 +891,6 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 			//no sample found, we're done with this group
 			if (!curWriter) {
 				//we're done with the group
-				curTrackPriority = 0;
 				writeGroup = 0;
 				continue;
 			}
@@ -926,7 +921,7 @@ GF_Err DoFullInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 
 					offset += sampSize;
 					totSize += sampSize;
 				} else {
-					if (curWriter->prev_offset != sampOffset) forceNewChunk = 1;
+//					if (curWriter->prev_offset != sampOffset) forceNewChunk = 1;
 					curWriter->prev_offset = sampOffset + sampSize;
 
 					//we have a DataRef, so use the offset idicated in sampleToChunk
@@ -976,6 +971,7 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	u64 offset, sampOffset, size, mdatSize;
 	u32 count;
 	GF_ISOFile *movie = mw->movie;
+	if (!movie->moov || !movie->moov->mvhd) return GF_NON_COMPLIANT_BITSTREAM;
 
 	mdatSize = 0;
 
@@ -1028,12 +1024,9 @@ GF_Err DoInterleave(MovieWriter *mw, GF_List *writers, GF_BitStream *bs, u8 Emul
 	if (movie->storageMode == GF_ISOM_STORE_TIGHT)
 		return DoFullInterleave(mw, writers, bs, Emulation, StartOffset);
 
-	e = GF_OK;
-
 	curGroupID = 1;
 	//we emulate a write from this offset...
 	offset = StartOffset;
-	writeGroup = 1;
 	tracksDone = 0;
 
 #ifdef TEST_LARGE_FILES
@@ -1213,13 +1206,13 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 	finalSize = GetMoovAndMetaSize(movie, writers);
 	if (firstSize != finalSize) {
 		finalOffset = finalSize;
-		if (movie->mdat->dataSize) finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
+		if (movie->mdat && movie->mdat->dataSize) finalOffset += 8 + (movie->mdat->dataSize > 0xFFFFFFFF ? 8 : 0);
 		//OK, now we're sure about the final size -> shift the offsets
 		//we don't need to re-emulate, as the only thing that changed is the offset
 		//so just shift the offset
 		e = ShiftOffset(movie, writers, finalOffset - offset);
 		if (e) goto exit;
-		firstSize = GetMoovAndMetaSize(movie, writers);
+		/*firstSize = */GetMoovAndMetaSize(movie, writers);
 	}
 	//now write our stuff
 	e = WriteMoovAndMeta(movie, writers, bs);

@@ -91,6 +91,7 @@ GF_Err gf_laser_encoder_new_stream(GF_LASeRCodec *codec, u16 ESID, GF_LASERConfi
 	LASeRStreamInfo *pInfo;
 	if (lsr_get_stream(codec, ESID) != NULL) return GF_BAD_PARAM;
 	GF_SAFEALLOC(pInfo, LASeRStreamInfo);
+	if (!pInfo) return GF_OUT_OF_MEM;
 	pInfo->ESID = ESID;
 	memcpy(&pInfo->cfg, cfg, sizeof(GF_LASERConfig));
 	if (!pInfo->cfg.time_resolution) pInfo->cfg.time_resolution = 1000;
@@ -3914,7 +3915,7 @@ static GF_Err lsr_write_add_replace_insert(GF_LASeRCodec *lsr, GF_Command *com)
 		GF_LSR_WRITE_INT(lsr, attType, 8, "attributeName");
 	}
 	/*single text */
-	else if (field->new_node->sgprivate->tag==TAG_DOMText) {
+	else if (field && field->new_node && field->new_node->sgprivate->tag==TAG_DOMText) {
 		GF_LSR_WRITE_INT(lsr, 1, 1, "has_attributeName");
 		GF_LSR_WRITE_INT(lsr, 0, 1, "choice");
 		GF_LSR_WRITE_INT(lsr, LSR_UPDATE_TYPE_TEXT_CONTENT, 8, "attributeName");

@@ -32,9 +32,11 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	AVCodec *codec;
 	AVInputFormat *in_fmt = NULL;
 
+	if (!audio_data_conf) return -1;
+	
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder enter setup at UTC "LLU"\n", gf_net_get_utc() ));
 	
-	if (audio_data_conf->format && strcmp(audio_data_conf->format,"") != 0) {
+	if (strcmp(audio_data_conf->format,"") != 0) {
 		in_fmt = av_find_input_format(audio_data_conf->format);
 		if (in_fmt == NULL) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find the format %s.\n", audio_data_conf->format));
@@ -300,7 +302,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 				enum AVSampleFormat sample_format;
 				Bool resample;
 #ifdef DC_AUDIO_RESAMPLER
-				int num_planes_out;
+				int num_planes_out=0;
 #endif
 #ifdef GPAC_USE_LIBAV
 				int sample_rate = codec_ctx->sample_rate;

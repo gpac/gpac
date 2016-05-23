@@ -90,7 +90,8 @@ GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec)
 {
 	GF_BifsDecoder *tmp;
 	GF_SAFEALLOC(tmp, GF_BifsDecoder);
-
+	if (!tmp) return NULL;
+	
 	tmp->QPs = gf_list_new();
 	tmp->streamInfo = gf_list_new();
 	tmp->info = NULL;
@@ -131,6 +132,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	if (!DecoderSpecificInfo) {
 		/* Hack for T-DMB non compliant streams */
 		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
+		if (!pInfo) return GF_OUT_OF_MEM;
 		pInfo->ESID = ESID;
 		pInfo->config.PixelMetrics = GF_TRUE;
 		pInfo->config.version = (objectTypeIndication==2) ? 1 : 2;
@@ -146,6 +148,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 	}
 	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
 	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
+	if (!pInfo) return GF_OUT_OF_MEM;
 	pInfo->ESID = ESID;
 
 	pInfo->config.version = objectTypeIndication;
@@ -345,6 +348,7 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 	}
 
 	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
+	if (!pInfo) return GF_OUT_OF_MEM;
 	pInfo->ESID = ESID;
 	codec->UseName = encodeNames;
 	pInfo->config.Height = cfg->pixelHeight;
@@ -363,6 +367,10 @@ GF_Err gf_bifs_encoder_new_stream(GF_BifsEncoder *codec, u16 ESID, GF_BIFSConfig
 			BIFSElementaryMask *bem;
 			GF_ElementaryMask *em = (GF_ElementaryMask *)gf_list_get(cfg->elementaryMasks, i);
 			GF_SAFEALLOC(bem, BIFSElementaryMask);
+			if (!bem) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Fail to allocate elementary mask"));
+				continue;
+			}
 			if (em->node_id) bem->node = gf_sg_find_node(codec->scene_graph, em->node_id);
 			else if (em->node_name) bem->node = gf_sg_find_node_by_name(codec->scene_graph, em->node_name);
 			bem->node_id = em->node_id;

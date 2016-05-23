@@ -2027,8 +2027,8 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 				DTS = samp->DTS;
 				gf_isom_sample_del(&samp);
 			}
-			DTS /= (count-1);
-			frame_d = max_CTSO / (u32) DTS;
+			if (count>1) DTS /= (count-1);
+			if (DTS) frame_d = max_CTSO / (u32) DTS;
 			frame_d -= 1;
 			/*dummy delay frame for xvid unpacked bitstreams*/
 			dumdata[0] = 127;
@@ -2709,7 +2709,6 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 		if (mtype==GF_ISOM_MEDIA_OD) continue;
 		if (mtype==GF_ISOM_MEDIA_HINT) continue;
 
-		stream_id = 0;
 		time_scale = gf_isom_get_media_timescale(dumper->file, i+1);
 		esd = gf_isom_get_esd(dumper->file, i+1, 1);
 		if (esd) {
@@ -2769,7 +2768,7 @@ GF_Err gf_media_export_saf(GF_MediaExporter *dumper)
 
 	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
 		is_stdout = 1;
-	strcpy(out_file, dumper->out_name);
+	strcpy(out_file, dumper->out_name ? dumper->out_name : "");
 	strcat(out_file, ".saf");
 	saf_f = is_stdout ? stdout : gf_fopen(out_file, "wb");
 

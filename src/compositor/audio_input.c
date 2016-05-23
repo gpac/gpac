@@ -423,7 +423,8 @@ GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src,
 	if (!src || !filter_name) return NULL;
 
 	GF_SAFEALLOC(filter, GF_AudioFilterItem);
-
+	if (!filter) return NULL;
+	
 	filter->src = src;
 	filter->input.FetchFrame = gf_af_fetch_frame;
 	filter->input.ReleaseFrame = gf_af_release_frame;

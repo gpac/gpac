@@ -147,7 +147,7 @@ static JSBool SMJS_FUNCTION(mediasource_addSourceBuffer)
 	GF_Err					e;
 	u32						exception = 0;
 
-	e = GF_OK;
+
 	if (!GF_JS_InstanceOf(c, obj, &html_media_rt->mediaSourceClass, NULL) ) {
 		return dom_throw_exception(c, GF_DOM_EXC_INVALID_ACCESS_ERR);
 	}
@@ -730,6 +730,8 @@ GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length)
 {
 	GF_HTML_ArrayBuffer *ab = NULL;
 	GF_SAFEALLOC(ab, GF_HTML_ArrayBuffer);
+	if (!ab) return NULL;
+	
 	if (length > 0) {
 		ab->data = data;
 		ab->length = length;

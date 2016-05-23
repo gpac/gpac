@@ -1046,6 +1046,10 @@ void compositor_init_svg_text(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg text stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->node = node;
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
@@ -1230,6 +1234,10 @@ void compositor_init_svg_tspan(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg tspan stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->node = node;
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
@@ -1320,8 +1328,6 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 	   ) {
 		u32 mode;
 
-		child = ((GF_ParentNode *) text)->children;
-
 		svg_reset_text_stack(st);
 		gf_node_dirty_clear(node, 0);
 		drawable_mark_modified(st->drawable, tr_state);
@@ -1385,7 +1391,6 @@ static void svg_traverse_textArea(GF_Node *node, void *rs, Bool is_destroy)
 			gf_list_del(tr_state->x_anchors);
 			tr_state->x_anchors = NULL;
 
-			remain = 0;
 			if (tr_state->refresh_children_bounds) {
 				refresh_to_idx = (u32) -1;
 				tr_state->base_shift = 0;
@@ -1478,6 +1483,10 @@ void compositor_init_svg_textarea(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_TextStack *stack;
 	GF_SAFEALLOC(stack, SVG_TextStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg textarea stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->node = node;
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;

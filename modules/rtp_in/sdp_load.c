@@ -474,6 +474,10 @@ void RP_SaveSessionState(RTPClient *rtp)
 			ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
 
 			GF_SAFEALLOC(att, GF_X_Attribute);
+			if (!att) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save stream state for channel\n"));
+				continue;
+			}
 			att->Name = gf_strdup("x-stream-state");
 			porta = ch->rtp_ch->net_info.port_first ? ch->rtp_ch->net_info.port_first : ch->rtp_ch->net_info.client_port_first;
 			portb = ch->rtp_ch->net_info.port_last ? ch->rtp_ch->net_info.port_last : ch->rtp_ch->net_info.client_port_last;
@@ -512,16 +516,24 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 		if (sess->session_id) {
 			GF_SAFEALLOC(att, GF_X_Attribute);
-			att->Name = gf_strdup("x-session-id");
-			att->Value = gf_strdup(sess->session_id);
-			gf_list_add(sdp->Attributes, att);
+			if (!att) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save session ID\n"));
+			} else {
+				att->Name = gf_strdup("x-session-id");
+				att->Value = gf_strdup(sess->session_id);
+				gf_list_add(sdp->Attributes, att);
+			}
 		}
 
 		GF_SAFEALLOC(att, GF_X_Attribute);
-		att->Name = gf_strdup("x-session-name");
-		sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
-		att->Value = gf_strdup(szURL);
-		gf_list_add(sdp->Attributes, att);
+		if (!att) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save session name\n"));
+		} else {
+			att->Name = gf_strdup("x-session-name");
+			sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
+			att->Value = gf_strdup(szURL);
+			gf_list_add(sdp->Attributes, att);
+		}
 	}
 
 	gf_free(rtp->session_state_data);
@@ -563,7 +575,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 				e = GF_IO_ERR;
 			}
 		}
-		if (e<0) {
+		if (sess && sess->owner && (e<0)) {
 			RP_SendMessage(sess->owner->service, e, "Error saving session state");
 		}
 	}

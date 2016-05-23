@@ -765,6 +765,8 @@ static GF_AVCConfig *AVC_DuplicateConfig(GF_AVCConfig *cfg)
 static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 {
 	GF_AVCConfig *cfg = AVC_DuplicateConfig(src_cfg);
+	if (!cfg || !dst_cfg) return;
+	
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);

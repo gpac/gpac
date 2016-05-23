@@ -308,8 +308,6 @@ static GF_Err gf_seng_encode_dims_au(GF_SceneEngine *seng, u16 ESID, GF_List *co
 
 	if (!data) return GF_BAD_PARAM;
 
-	e = GF_OK;
-
 	if (!seng->dump_path) cache_dir = gf_get_default_cache_directory();
 	else cache_dir = seng->dump_path;
 
@@ -404,7 +402,6 @@ start:
 	file = NULL;
 
 	/* Then, set DIMS unit header - TODO: notify redundant units*/
-	dims_header = 0;
 	if (commands && gf_list_count(commands)) {
 		dims_header = GF_DIMS_UNIT_P; /* streamer->all_non_rap_critical ? 0 : GF_DIMS_UNIT_P;*/
 	} else {

@@ -528,7 +528,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		default:
 			return;
 		}
-		if (!is_end) {
+		if (!is_end && compositor->sel_buffer) {
 			if (compositor->caret_pos==prev_caret) return;
 			memmove(&compositor->sel_buffer[prev_caret], &compositor->sel_buffer[prev_caret+1], sizeof(u16)*(compositor->sel_buffer_len-prev_caret));
 			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
@@ -677,7 +677,6 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			GF_Node *focus;
 			Bool hit_changed = GF_FALSE;
 			GF_Node *current_use = (GF_Node*)gf_list_last(compositor->hit_use_stack);
-			cursor_type = compositor->sensor_type;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.clientX = evt.screenX = FIX2INT(X);
 			evt.clientY = evt.screenY = FIX2INT(Y);
@@ -888,7 +887,6 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 					hs->OnUserEvent(hs, GF_FALSE, GF_TRUE, ev, compositor);
 					gf_list_add(compositor->sensors, hs);
 					compositor->grabbed_sensor = 1;
-					stype = gf_node_get_tag(hs->sensor);
 				}
 			}
 
@@ -898,11 +896,10 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		compositor->prev_hit_appear = compositor->hit_appear;
 	}
 
+	count = gf_list_count(compositor->sensors);
 	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoid
 	resetting the cursor when the picked node is a DOM node in a composite texture*/
-	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
-
-	count = gf_list_count(compositor->sensors);
+//	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
 	stype = GF_CURSOR_NORMAL;
 	for (i=0; i<count; i++) {
 		GF_Node *keynav;

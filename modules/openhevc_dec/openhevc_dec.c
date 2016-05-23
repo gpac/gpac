@@ -635,7 +635,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	if (got_pic>0) {
 		e = HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		if (e) return e;
-		got_pic = 0;
 	}
 
 	return GF_OK;
@@ -696,7 +695,12 @@ GF_BaseDecoder *NewHEVCDec()
 	HEVCDec *dec;
 
 	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
+	if (!ifcd) return NULL;
 	GF_SAFEALLOC(dec, HEVCDec);
+	if (!dec) {
+		gf_free(ifcd);
+		return NULL;
+	}
 	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "HEVC Decoder", "gpac distribution")
 
 	ifcd->privateStack = dec;

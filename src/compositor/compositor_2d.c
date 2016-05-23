@@ -475,7 +475,6 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 	GF_Compositor *compositor = visual->compositor;
 
 	compositor->hw_locked = GF_FALSE;
-	e = GF_IO_ERR;
 
 	/*try from video memory handle (WIN32) if supported*/
 	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC)
@@ -504,8 +503,6 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to attach video surface callbacks to raster\n"));
 	}
-
-	e = GF_NOT_SUPPORTED;
 
 	e = compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_TRUE);
 	if (e==GF_OK) {
@@ -915,7 +912,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (has_scale && !(hw_caps & GF_VIDEO_HW_HAS_STRETCH) && !overlay_type) {
-		force_soft_blt = use_soft_stretch = GF_TRUE;
+		use_soft_stretch = GF_TRUE;
 	}
 
 	memset(&video_src, 0, sizeof(GF_VideoSurface));
@@ -941,6 +938,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		/*queue overlay in order*/
 		GF_SAFEALLOC(ol, GF_OverlayStack);
+		if (!ol) {
+			return GF_FALSE;
+		}
 		ol->ctx = ctx;
 		ol->dst = dst_wnd;
 		ol->src = src_wnd;
@@ -1055,7 +1055,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 #ifndef GPAC_DISABLE_LOG
 			log_blit_times(txh, push_time);
 #endif
-			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
+			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 			if (is_attached) visual_2d_init_raster(visual);
@@ -1431,7 +1431,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 		if (!compositor->visual->center_coords) {
 			Fixed c_x, c_y, nc_x, nc_y;
 			c_x = INT2FIX(compositor->display_width/2);
-			nc_y = c_y = INT2FIX(compositor->display_height/2);
+			c_y = INT2FIX(compositor->display_height/2);
 			nc_x = gf_mulfix(c_x, ratio);
 			nc_y = gf_mulfix(c_y, ratio);
 			compositor->trans_x -= (nc_x-c_x);

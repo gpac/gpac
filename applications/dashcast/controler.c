@@ -135,6 +135,8 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	FILE *f;
 
 	char name[GF_MAX_PATH];
+	if (!audio_data_conf) return;
+	
 	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Write MPD at UTC "LLU" ms - %s : %s\n", gf_net_get_utc(), (cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime", (cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time));
@@ -281,6 +283,7 @@ static u32 mpd_thread(void *params)
 			segtime seg_time;
 			seg_time.segnum = 0;
 			seg_time.utc_time = 0;
+			seg_time.ntpts = 0;
 
 			if (cmddata->exit_signal) {
 				break;
@@ -351,7 +354,7 @@ static u32 mpd_thread(void *params)
 			if (dur > cmddata->time_shift * 1000) {
 				u32 nb_seg = cmddata->time_shift*1000 / cmddata->seg_dur;
 				main_seg_time.segnum = last_seg_time.segnum - nb_seg;
-				dur = cmddata->time_shift;
+				//dur = cmddata->time_shift;
 			}
 			dur = cmddata->seg_dur * (last_seg_time.segnum - main_seg_time.segnum);
 		}
@@ -417,7 +420,7 @@ u32 delete_seg_thread(void *params)
 
 Bool fragmenter_thread(void *params)
 {
-	int ret;
+//	int ret;
 	ThreadParam *th_param = (ThreadParam*)params;
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
@@ -425,7 +428,7 @@ Bool fragmenter_thread(void *params)
 	char buff[GF_MAX_PATH];
 
 	while (1) {
-		ret = dc_message_queue_get(mq, (void*) buff);
+		/*ret = */dc_message_queue_get(mq, (void*) buff);
 		if (cmd_data->exit_signal) {
 			break;
 		}
@@ -491,9 +494,9 @@ u32 video_decoder_thread(void *params)
 
 		//fprintf(stdout, "sourcenumber: %d\n", source_number);
 
-		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
+//		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
 			gf_gettimeofday(&time_start, NULL);
-		}
+//		}
 
 		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, (const int *) &in_data->exit_signal);
 #ifdef DASHCAST_PRINT
@@ -561,9 +564,9 @@ u32 audio_decoder_thread(void *params)
 		return 0;
 
 	while (1) {
-		if (audio_input_file->mode == LIVE_MEDIA) {
+//		if (audio_input_file->mode == LIVE_MEDIA) {
 			gf_gettimeofday(&time_start, NULL);
-		}
+//		}
 
 		ret = dc_audio_decoder_read(audio_input_file, audio_input_data);
 		if (ret == -2) {
@@ -679,7 +682,7 @@ u32 video_encoder_thread(void *params)
 
 	time_at_segment_start.ntpts = 0;
 	start_utc = gf_net_get_utc();
-	seg_utc = 0;
+
 	while (1) {
 		frame_nb = 0;
 		//log time at segment start, because segment availabilityStartTime is computed from AST anchor + segment duration
@@ -908,7 +911,6 @@ u32 audio_encoder_thread(void *params)
 
 	start_utc = gf_net_get_utc();
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[audio_encoder] start_utc="LLU"\n", start_utc));
-	seg_utc = 0;
 
 	while (1) {
 		//logging at the end of the segment production will induce one segment delay

@@ -133,6 +133,10 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	if (!table) {
 		/* if no, the table is created */
 		GF_SAFEALLOC(table, GF_M2TS_Mux_Table);
+		if (!table) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate table id %d\n", stream->pid, table_id));
+			return;
+		}
 		table->table_id = table_id;
 		if (prev_table) prev_table->next = table;
 		else stream->tables = table;
@@ -180,7 +184,10 @@ void gf_m2ts_mux_table_update(GF_M2TS_Mux_Stream *stream, u8 table_id, u16 table
 	while (offset < table_payload_length) {
 		u32 remain;
 		GF_SAFEALLOC(section, GF_M2TS_Mux_Section);
-
+		if (!section) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate section for table id %d\n", stream->pid, table_id));
+			return;
+		}
 		remain = table_payload_length - offset;
 		if (remain > maxSectionLength - overhead_size) {
 			section->length = maxSectionLength;
@@ -310,6 +317,10 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 	if (!table) {
 		/* if no, the table is created */
 		GF_SAFEALLOC(table, GF_M2TS_Mux_Table);
+		if (!table) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate table id %d\n", stream->pid, table_id));
+			return;
+		}
 		table->table_id = table_id;
 		if (prev_table) prev_table->next = table;
 		else stream->tables = table;
@@ -346,6 +357,10 @@ void gf_m2ts_mux_table_update_mpeg4(GF_M2TS_Mux_Stream *stream, u8 table_id, u16
 		char *slhdr;
 		u32 slhdr_size;
 		GF_SAFEALLOC(section, GF_M2TS_Mux_Section);
+		if (!section) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate section for table id %d\n", stream->pid, table_id));
+			return;
+		}
 
 		hdr.accessUnitEndFlag = (section_number+1==nb_sections) ? stream->sl_header.accessUnitEndFlag : 0;
 		gf_sl_packetize(stream->ifce->sl_config, &hdr, NULL, 0, &slhdr, &slhdr_size);
@@ -1588,14 +1603,11 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 	if (stream->pcr_only_mode) {
 		payload_length = 184 - 8;
-		payload_to_copy = padding_length = 0;
 		needs_pcr = GF_TRUE;
 		adaptation_field_control = GF_M2TS_ADAPTATION_ONLY;
 		hdr_len = 0;
 	} else {
 		hdr_len = gf_m2ts_stream_get_pes_header_length(stream);
-
-		adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 
 		/*we may need two pass in case we first compute hdr len and TS payload size by considering
 		we concatenate next au start in this PES but finally couldn't do it when computing PES len
@@ -1610,7 +1622,6 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 			adaptation_field_control = GF_M2TS_ADAPTATION_NONE;
 			payload_length = 184 - hdr_len;
-			payload_to_copy = padding_length = 0;
 			needs_pcr = GF_FALSE;
 
 			if (stream == stream->program->pcr) {
@@ -1909,6 +1920,10 @@ GF_M2TS_Mux_Stream *gf_m2ts_stream_new(u32 pid) {
 	GF_M2TS_Mux_Stream *stream;
 
 	GF_SAFEALLOC(stream, GF_M2TS_Mux_Stream);
+	if (!stream) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate\n", pid));
+		return NULL;
+	}
 	stream->pid = pid;
 	stream->process = gf_m2ts_stream_process_pes;
 
@@ -1939,6 +1954,11 @@ GF_Err gf_m2ts_output_ctrl(GF_ESInterface *_self, u32 ctrl_type, void *param)
 		}
 		if (!stream->pck_reassembler) {
 			GF_SAFEALLOC(stream->pck_reassembler, GF_M2TS_Packet);
+			if (!stream->pck_reassembler) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: fail to allocate packet reassembler\n", stream->pid));
+				return GF_OUT_OF_MEM;
+			}
+
 			stream->pck_reassembler->cts = esi_pck->cts;
 			stream->pck_reassembler->dts = esi_pck->dts;
 			stream->pck_reassembler->duration = esi_pck->duration;
@@ -2001,7 +2021,8 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	GF_M2TSDescriptor *desc;
 	GF_BitStream *bs;
 	u32 data_len;
-
+	if (!stream || !stream->program || !stream->program->pmt) return;
+	
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	/*reserved*/
 	gf_bs_write_int(bs, 1, 1);
@@ -2029,6 +2050,8 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	gf_bs_write_int(bs, stream->ifce->stream_id, 6);
 
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	if (!desc) return;
+	
 	desc->tag = (u8) GF_M2TS_HIERARCHY_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2052,6 +2075,8 @@ static void gf_m2ts_stream_add_metadata_pointer_descriptor(GF_M2TS_Mux_Program *
 	gf_bs_write_int(bs, 0x1F, 5); /* reserved */
 	gf_bs_write_u16(bs, program->number);
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	if (!desc) return;
+	
 	desc->tag = (u8) GF_M2TS_METADATA_POINTER_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2074,6 +2099,8 @@ static void gf_m2ts_stream_add_metadata_descriptor(GF_M2TS_Mux_Stream *stream)
 	gf_bs_write_int(bs, 0, 1); /* dsmcc flag */
 	gf_bs_write_int(bs, 0xF, 4); /* reserved */
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
+	if (!desc) return;
+	
 	desc->tag = (u8) GF_M2TS_METADATA_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2279,6 +2306,8 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 	GF_M2TS_Mux_Program *program;
 
 	GF_SAFEALLOC(program, GF_M2TS_Mux_Program);
+	if (!program) return NULL;
+	
 	program->mux = muxer;
 	program->mpeg4_signaling = mpeg4_signaling;
 	program->pcr_offset = pcr_offset;
@@ -2319,7 +2348,13 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	GF_BitStream *bs;
 	GF_M2TS_Mux *muxer;
 	GF_SAFEALLOC(muxer, GF_M2TS_Mux);
+	if (!muxer) return NULL;
+	
 	muxer->pat = gf_m2ts_stream_new(GF_M2TS_PID_PAT);
+	if (!muxer->pat) {
+		gf_free(muxer);
+		return NULL;
+	}
 	muxer->pat->process = gf_m2ts_stream_process_pat;
 	muxer->pat->refresh_rate_ms = pat_refresh_rate ? pat_refresh_rate : (u32) -1;
 	muxer->real_time = real_time;

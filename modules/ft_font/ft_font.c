@@ -651,8 +651,12 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 
 
 	GF_SAFEALLOC(glyph, GF_Glyph);
+	if (!glyph) return NULL;
 	GF_SAFEALLOC(glyph->path, GF_Path);
-
+	if (!glyph->path) {
+		gf_free(glyph);
+		return NULL;
+	}
 	/*setup outliner*/
 	ft_outl_funcs.shift = 0;
 	ft_outl_funcs.delta = 0;

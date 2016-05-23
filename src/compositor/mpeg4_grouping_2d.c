@@ -208,6 +208,10 @@ void compositor_init_transform2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Transform2DStack *stack;
 	GF_SAFEALLOC(stack, Transform2DStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate transform2d stack\n"));
+		return;
+	}
 
 	gf_mx2d_init(stack->mat);
 	stack->is_identity = 1;

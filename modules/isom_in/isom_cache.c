@@ -136,6 +136,9 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 			return GF_NOT_SUPPORTED;
 		}
 		GF_SAFEALLOC(mch, ISOMChannel);
+		if (!mch) {
+			return GF_OUT_OF_MEM;
+		}
 		mch->time_scale = esd->slConfig->timestampResolution;
 		mch->streamType = esd->decoderConfig->streamType;
 		mch->track = gf_isom_new_track(cache->mov, com.cache_esd.esd->ESID, mtype, mch->time_scale);
@@ -258,7 +261,16 @@ GF_BaseInterface *isow_load_cache()
 	ISOMReader *cache;
 	GF_StreamingCache *plug;
 	GF_SAFEALLOC(plug, GF_StreamingCache);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_STREAMING_MEDIA_CACHE, "GPAC IsoMedia Cache", "gpac distribution")
+
+	GF_SAFEALLOC(cache, ISOMReader);
+	if (!cache) {
+		gf_free(plug);
+		return NULL;
+	}
+	cache->channels = gf_list_new();
+	plug->priv = cache;
 
 	plug->Open = ISOW_Open;
 	plug->Close = ISOW_Close;
@@ -267,9 +279,6 @@ GF_BaseInterface *isow_load_cache()
 	plug->ChannelReleaseSLP = ISOW_ChannelReleaseSLP;
 	plug->ServiceCommand = ISOW_ServiceCommand;
 
-	GF_SAFEALLOC(cache, ISOMReader);
-	cache->channels = gf_list_new();
-	plug->priv = cache;
 	return (GF_BaseInterface *) plug;
 }
 

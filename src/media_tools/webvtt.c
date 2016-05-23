@@ -443,8 +443,9 @@ static GF_WebVTTCue *gf_webvtt_cue_split_at(GF_WebVTTCue *cue, GF_WebVTTTimestam
 	cue->orig_end      = cue->end;
 
 	GF_SAFEALLOC(dup_cue, GF_WebVTTCue);
+	if (!dup_cue) return NULL;
 	dup_cue->split          = GF_TRUE;
-	dup_cue->start          = *time;
+	if (time) dup_cue->start          = *time;
 	dup_cue->end            = cue->end;
 	dup_cue->orig_start     = cue->orig_start;
 	dup_cue->orig_end       = cue->orig_end;
@@ -452,7 +453,7 @@ static GF_WebVTTCue *gf_webvtt_cue_split_at(GF_WebVTTCue *cue, GF_WebVTTTimestam
 	dup_cue->settings       = gf_strdup((cue->settings ? cue->settings : ""));
 	dup_cue->text           = gf_strdup((cue->text ? cue->text : ""));
 
-	cue->end = *time;
+	if (time) cue->end = *time;
 	return dup_cue;
 }
 
@@ -485,7 +486,6 @@ static GF_Err gf_webvtt_cue_add_property(GF_WebVTTCue *cue, GF_WebVTTCueProperty
 		*prop = (char*)gf_realloc(*prop, sizeof(char) * (len + text_len + 1) );
 		strcpy(*prop + len, text_data);
 	} else {
-		len = 0;
 		*prop = gf_strdup(text_data);
 	}
 	return GF_OK;
@@ -540,6 +540,7 @@ GF_WebVTTParser *gf_webvtt_parser_new()
 {
 	GF_WebVTTParser *parser;
 	GF_SAFEALLOC(parser, GF_WebVTTParser);
+	if (!parser) return NULL;
 	parser->samples = gf_list_new();
 	return parser;
 }
@@ -832,7 +833,7 @@ GF_Err gf_webvtt_parser_parse_timings_settings(GF_WebVTTParser *parser, GF_WebVT
 	GF_Err  e;
 	char *timestamp_string;
 	u32 pos;
-	e = GF_OK;
+
 	pos = 0;
 	if (!cue || !line || !len) return GF_BAD_PARAM;
 	SKIP_WHITESPACE
@@ -1051,7 +1052,6 @@ GF_Err gf_webvtt_parser_parse(GF_WebVTTParser *parser, u32 duration)
 			}
 		}
 		if (duration && (start >= duration)) {
-			do_parse = GF_FALSE;
 			break;
 		}
 	}
@@ -1254,6 +1254,7 @@ GF_Err gf_webvtt_parse_iso_sample(GF_WebVTTParser *parser, u32 timescale, GF_ISO
 void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
 {
 	u64 tmp;
+	if (!ts) return;
 	tmp = value;
 	ts->hour = (u32)(tmp/(3600*1000));
 	tmp -= ts->hour*3600*1000;
@@ -1266,6 +1267,7 @@ void gf_webvtt_timestamp_set(GF_WebVTTTimestamp *ts, u64 value)
 
 u64 gf_webvtt_timestamp_get(GF_WebVTTTimestamp *ts)
 {
+	if (!ts) return 0;
 	return (3600*ts->hour + 60*ts->min + ts->sec)*1000 + ts->ms;
 }
 

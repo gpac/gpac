@@ -537,7 +537,6 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 
 	stop_anim = 0;
 	/*compute scroll diff for non-smooth mode*/
-	do_scroll = 1;
 	if (smooth) {
 		do_scroll = 1;
 	} else {
@@ -560,8 +559,8 @@ static void layout_scroll(GF_TraverseState *tr_state, LayoutStack *st, M_Layout 
 				}
 				break;
 			} else if (ABS(scroll_diff) >= dim) {
-				if (scroll_diff<0) scroll_diff = -dim;
-				else scroll_diff = dim;
+//				if (scroll_diff<0) scroll_diff = -dim;
+//				else scroll_diff = dim;
 				do_scroll = 1;
 				break;
 			}
@@ -619,7 +618,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 	u32 i;
 	ChildGroup *cg;
 	GF_IRect prev_clip;
-	Bool mode_bckup, had_clip;
+	Bool mode_bckup, had_clip=GF_FALSE;
 	ParentNode2D *parent_bck;
 	GF_Rect prev_clipper;
 	M_Layout *l = (M_Layout *)node;
@@ -809,6 +808,10 @@ void compositor_init_layout(GF_Compositor *compositor, GF_Node *node)
 {
 	LayoutStack *stack;
 	GF_SAFEALLOC(stack, LayoutStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layout stack\n"));
+		return;
+	}
 
 	parent_node_setup((ParentNode2D*)stack);
 	stack->lines = gf_list_new();

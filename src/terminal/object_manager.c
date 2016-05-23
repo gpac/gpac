@@ -346,7 +346,8 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 		}
 		gf_odf_desc_del((GF_Descriptor *) odm->OD);
 		odm->OD=NULL;
-		odm->subscene->is_dynamic_scene = GF_FALSE;
+		if (odm->subscene)
+			odm->subscene->is_dynamic_scene = GF_FALSE;
 	}
 
 	if (!desc) {
@@ -835,7 +836,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 	/*case 1: object is the root, always start*/
 	if (!odm->parentscene) {
 		assert(odm->subscene == odm->term->root_scene);
-		assert(odm->subscene->root_od==odm);
+		assert(odm->subscene && (odm->subscene->root_od==odm));
 		odm->flags &= ~GF_ODM_NOT_SETUP;
 		gf_odm_start(odm, 0);
 	}
@@ -889,7 +890,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 			if (odm->addon->addon_type >= GF_ADDON_TYPE_MAIN) return;
 
 			//check role - for now look into URL, we need to inspect DASH roles
-			if (odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {
+			if (odm->mo && odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {
 				char *sep = strchr(odm->mo->URLs.vals[0].url, '?');
 				if (sep && strstr(sep, "role=main")) {
 					odm->addon->addon_type = GF_ADDON_TYPE_MAIN;
@@ -1005,6 +1006,7 @@ GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *ser
 
 	/*get clocks namespace (eg, parent scene)*/
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
+	if (!scene) return GF_BAD_PARAM;
 
 	ck_namespace = odm->net_service->Clocks;
 	odm->set_speed = odm->net_service->set_speed;
@@ -1411,7 +1413,7 @@ void ODM_DeleteChannel(GF_ObjectManager *odm, GF_Channel *ch)
 #endif
 	if (!count && odm->subscene) {
 		if (odm->subscene->scene_codec) count = gf_codec_remove_channel(odm->subscene->scene_codec, ch);
-		if (!count) count = gf_codec_remove_channel(odm->subscene->od_codec, ch);
+		if (!count) /*count = */gf_codec_remove_channel(odm->subscene->od_codec, ch);
 	}
 	if (ch->service) {
 		ch->service->ifce->DisconnectChannel(ch->service->ifce, ch);
@@ -1652,7 +1654,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 		if (range_end) {
 			com.play.end_range = (s64) range_end / 1000.0;
 		} else {
-			if (!odm->subscene && gf_odm_shares_clock(odm->parentscene->root_od, ch->clock)
+			if (!odm->subscene && odm->parentscene && gf_odm_shares_clock(odm->parentscene->root_od, ch->clock)
 			        && (odm->parentscene->root_od->media_stop_time != odm->parentscene->root_od->duration)
 			   ) {
 				com.play.end_range = (s64) odm->parentscene->root_od->media_stop_time / 1000.0;
@@ -1979,19 +1981,21 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_LOAD_DONE);
 
-	if (odm->codec && (on_channel->esd->decoderConfig->streamType==odm->codec->type)) {
-		gf_codec_set_status(odm->codec, GF_ESM_CODEC_EOS);
-		return;
-	}
-	if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OCR) {
-		gf_codec_set_status(odm->ocr_codec, GF_ESM_CODEC_EOS);
-		return;
-	}
-	if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OCI) {
+	if (on_channel && on_channel->esd && on_channel->esd->decoderConfig) {
+		if (odm->codec && (on_channel->esd->decoderConfig->streamType==odm->codec->type)) {
+			gf_codec_set_status(odm->codec, GF_ESM_CODEC_EOS);
+			return;
+		}
+		if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OCR) {
+			gf_codec_set_status(odm->ocr_codec, GF_ESM_CODEC_EOS);
+			return;
+		}
+		if (on_channel->esd->decoderConfig->streamType==GF_STREAM_OCI) {
 #ifndef GPAC_MINIMAL_ODF
-		gf_codec_set_status(odm->oci_codec, GF_ESM_CODEC_EOS);
+			gf_codec_set_status(odm->oci_codec, GF_ESM_CODEC_EOS);
 #endif
-		return;
+			return;
+		}
 	}
 	if (!odm->subscene) return;
 

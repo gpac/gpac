@@ -273,7 +273,6 @@ static void composite_update(GF_TextureHandler *txh)
 	}
 	gf_node_dirty_clear(st->txh.owner, 0);
 
-	new_pixel_format = 0;
 	back = gf_list_get(st->visual->back_stack, 0);
 	if (back && back->isBound) new_pixel_format = GF_PIXEL_RGB_24;
 	else new_pixel_format = GF_PIXEL_RGBA;
@@ -500,6 +499,10 @@ static void composite_update(GF_TextureHandler *txh)
 #endif
 
 		GF_SAFEALLOC(tr_state, GF_TraverseState);
+		if (!tr_state) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate traverse state for composite texture\n"));
+			return;
+		}
 		tr_state->vrml_sensors = gf_list_new();
 		tr_state->visual = st->visual;
 		tr_state->invalidate_all = invalidate_all;
@@ -610,6 +613,11 @@ static void composite_update(GF_TextureHandler *txh)
 		M_CompositeTexture2D *c2d = (M_CompositeTexture2D *)node;
 		CompositeTextureStack *st;
 		GF_SAFEALLOC(st, CompositeTextureStack);
+
+		if (!st) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
+			return;
+		}
 		st->sensors = gf_list_new();
 		st->previous_sensors = gf_list_new();
 		gf_sc_texture_setup(&st->txh, compositor, node);
@@ -647,6 +655,10 @@ static void composite_update(GF_TextureHandler *txh)
 		M_CompositeTexture3D *c3d = (M_CompositeTexture3D *)node;
 		CompositeTextureStack *st;
 		GF_SAFEALLOC(st, CompositeTextureStack);
+		if (!st) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture stack\n"));
+			return;
+		}
 		st->sensors = gf_list_new();
 		st->previous_sensors = gf_list_new();
 		gf_sc_texture_setup(&st->txh, compositor, node);
@@ -727,6 +739,10 @@ static void composite_update(GF_TextureHandler *txh)
 
 
 			GF_SAFEALLOC(tr_state, GF_TraverseState);
+			if (!tr_state) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate composite texture state\n"));
+				return 0;
+			}
 			tr_state->vrml_sensors = gf_list_new();
 			tr_state->visual = stack->visual;
 			tr_state->traversing_mode = TRAVERSE_PICK;

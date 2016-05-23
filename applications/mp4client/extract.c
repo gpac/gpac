@@ -936,14 +936,13 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
 			fprintf(stderr, "Aborting dump\n");
-			dump_dur=0;
 			break;
 		}
 	}
 
 #ifndef GPAC_DISABLE_AVILIB
 	//flush audio dump
-	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+	if ((mode==DUMP_AVI) && ! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
 		while ((avi_al.flush_retry <1000) && (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur)) {
 			gf_term_step_clocks(term, 0);

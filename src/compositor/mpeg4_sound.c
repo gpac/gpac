@@ -83,6 +83,10 @@ void compositor_init_sound2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Sound2DStack *snd;
 	GF_SAFEALLOC(snd, Sound2DStack);
+	if (!snd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate sound 2d stack\n"));
+		return;
+	}
 	snd->snd_ifce.GetPriority = SND2D_GetPriority;
 	snd->snd_ifce.GetChannelVolume = SND2D_GetChannelVolume;
 	snd->snd_ifce.owner = node;
@@ -275,6 +279,10 @@ void compositor_init_sound(GF_Compositor *compositor, GF_Node *node)
 {
 	SoundStack *snd;
 	GF_SAFEALLOC(snd, SoundStack);
+	if (!snd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate sound stack\n"));
+		return;
+	}
 	snd->snd_ifce.GetChannelVolume = SND_GetChannelVolume;
 	snd->snd_ifce.GetPriority = SND_GetPriority;
 	snd->snd_ifce.owner = node;

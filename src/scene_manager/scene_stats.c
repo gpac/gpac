@@ -39,6 +39,8 @@ static GF_SceneStatistics *NewSceneStats()
 {
 	GF_SceneStatistics *tmp;
 	GF_SAFEALLOC(tmp, GF_SceneStatistics);
+	if (!tmp) return NULL;
+
 	tmp->node_stats = gf_list_new();
 	tmp->proto_stats = gf_list_new();
 
@@ -105,6 +107,8 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 		}
 		if (!ptr) {
 			GF_SAFEALLOC(ptr, GF_NodeStats);
+			if (!ptr) return;
+
 			if (pr->proto_interface) {
 				ptr->tag = pr->proto_interface->ID;
 				ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
@@ -120,6 +124,7 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 		}
 		if (!ptr) {
 			GF_SAFEALLOC(ptr, GF_NodeStats);
+			if (!ptr) return;
 			ptr->tag = n->sgprivate->tag;
 			ptr->name = gf_node_get_class_name(n);
 			gf_list_add(stat->node_stats, ptr);

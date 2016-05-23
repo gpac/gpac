@@ -62,8 +62,10 @@ static FormGroup *form_new_group(FormStack *st)
 {
 	FormGroup *fg;
 	GF_SAFEALLOC(fg, FormGroup);
-	memset(&fg->final, 0, sizeof(GF_Rect));
-	memset(&fg->origin, 0, sizeof(GF_Rect));
+	if (!fg) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate form group\n"));
+		return NULL;
+	}
 	fg->children = gf_list_new();
 	gf_list_add(st->grouplist, fg);
 	return fg;
@@ -292,6 +294,7 @@ static void TraverseForm(GF_Node *n, void *rs, Bool is_destroy)
 			gf_list_add(fg->children, cg);
 		}
 
+		memset(idx, 0, sizeof(u32)*MAX_FORM_GROUP_INDEX);
 		last_ind = 0;
 		for (i=0; i<fm->constraints.count; i++) {
 			index = 0;
@@ -382,6 +385,10 @@ void compositor_init_form(GF_Compositor *compositor, GF_Node *node)
 {
 	FormStack *stack;
 	GF_SAFEALLOC(stack, FormStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate form stack\n"));
+		return;
+	}
 
 	parent_node_setup((ParentNode2D*)stack);
 	stack->grouplist = gf_list_new();

@@ -73,7 +73,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		}
 
 		if (!trak || !traf->trex) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: Cannot find fragment track with ID %d\n", traf->tfhd->trackID));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Error: Cannot find fragment track with ID %d\n", traf->tfhd ? traf->tfhd->trackID : 0));
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -177,8 +177,6 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 	u64 totSize;
 	GF_Err e = GF_OK;
 
-	totSize = 0;
-
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (mov->single_moof_mode && mov->single_moof_state == 2) {
 		return e;
@@ -201,7 +199,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		e = gf_isom_parse_root_box(&a, mov->movieFileMap->bs, bytesMissing, progressive_mode);
 
 		if (e >= 0) {
-			e = GF_OK;
+
 		} else if (e == GF_ISOM_INCOMPLETE_FILE) {
 			/*our mdat is uncomplete, only valid for READ ONLY files...*/
 			if (mov->openMode != GF_ISOM_OPEN_READ) {
@@ -232,9 +230,8 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			if (mov->moov->mvex) mov->moov->mvex->mov = mov;
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
-			if (e) {
-				return e;
-			}
+			if (e) return e;
+			
 			totSize += a->size;
 			break;
 
@@ -292,6 +289,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			mov->brand = (GF_FileTypeBox *)a;
 			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);
+			if (e) return e;
 			break;
 
 		case GF_ISOM_BOX_TYPE_PDIN:
@@ -304,6 +302,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			mov->pdin = (GF_ProgressiveDownloadBox *) a;
 			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);
+			if (e) return e;
 			break;
 
 
@@ -327,6 +326,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			totSize += a->size;
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
 				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
 			} else {
 				gf_isom_box_del(a);
 			}
@@ -375,6 +375,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 						if (traf->trex && traf->trex->track && (traf->piff_sample_encryption || traf->sample_encryption)) {
 							GF_TrackBox *trak = GetTrackbyID(mov->moov, traf->tfhd->trackID);
 							e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->piff_sample_encryption ? (GF_SampleEncryptionBox *) traf->piff_sample_encryption : traf->sample_encryption);
+							if (e) return e;
 						}
 					}
 				}
@@ -385,6 +386,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			} else {
 				/*merge all info*/
 				e = MergeFragment((GF_MovieFragmentBox *)a, mov);
+				if (e) return e;
 				gf_isom_box_del(a);
 			}
 			break;
@@ -417,6 +419,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		default:
 			totSize += a->size;
 			e = gf_list_add(mov->TopBoxes, a);
+			if (e) return e;
 			break;
 		}
 
@@ -571,16 +574,16 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 
 	//OK, let's parse the movie...
 	mov->LastError = gf_isom_parse_movie_boxes(mov, &bytes, 0);
+
+	if (!mov->LastError && (OpenMode == GF_ISOM_OPEN_CAT_FRAGMENTS)) {
+		gf_isom_datamap_del(mov->movieFileMap);
+		/*reopen the movie file map in cat mode*/
+		mov->LastError = gf_isom_datamap_new(fileName, tmp_dir, GF_ISOM_DATA_MAP_CAT, & mov->movieFileMap);
+	}
 	if (mov->LastError) {
 		gf_isom_set_last_error(NULL, mov->LastError);
 		gf_isom_delete_movie(mov);
 		return NULL;
-	}
-
-	if (OpenMode == GF_ISOM_OPEN_CAT_FRAGMENTS) {
-		gf_isom_datamap_del(mov->movieFileMap);
-		/*reopen the movie file map in cat mode*/
-		e = gf_isom_datamap_new(fileName, tmp_dir, GF_ISOM_DATA_MAP_CAT, & mov->movieFileMap);
 	}
 	return mov;
 }

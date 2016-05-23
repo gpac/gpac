@@ -154,7 +154,6 @@ void RP_ProcessCommands(RTSPSession *sess)
 	if (sess->session_id && !com->Session)
 		com->Session = sess->session_id;
 
-	e = GF_OK;
 	/*preprocess describe before sending (always the ESD url thing)*/
 	if (!strcmp(com->method, GF_RTSP_DESCRIBE)) {
 		com->Session = NULL;
@@ -258,6 +257,7 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	if (!rtsp) return NULL;
 
 	GF_SAFEALLOC(tmp, RTSPSession);
+	if (!tmp) return NULL;
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 

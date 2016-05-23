@@ -186,7 +186,7 @@ static mpeg2ps_record_pes_t *create_record (s64 loc, u64 ts)
 {
 	mpeg2ps_record_pes_t *ret;
 	GF_SAFEALLOC(ret, mpeg2ps_record_pes_t);
-
+	if (!ret) return NULL;
 	ret->next_rec = NULL;
 	ret->dts = ts;
 	ret->location = loc;
@@ -230,10 +230,12 @@ void mpeg2ps_record_pts (mpeg2ps_stream_t *sptr, s64 location, mpeg2ps_ts_t *pTs
 		p = q;
 		q = q->next_rec;
 	}
-	if (p->dts + MPEG2PS_RECORD_TIME <= ts &&
-	        ts + MPEG2PS_RECORD_TIME <= q->dts) {
-		p->next_rec = create_record(location, ts);
-		p->next_rec->next_rec = q;
+	if (q) {
+		if (p->dts + MPEG2PS_RECORD_TIME <= ts &&
+				ts + MPEG2PS_RECORD_TIME <= q->dts) {
+			p->next_rec = create_record(location, ts);
+			p->next_rec->next_rec = q;
+		}
 	}
 }
 static Double mpeg12_frame_rate_table[16] =
@@ -385,6 +387,7 @@ static mpeg2ps_stream_t *mpeg2ps_stream_create (u8 stream_id,
 {
 	mpeg2ps_stream_t *ptr;
 	GF_SAFEALLOC(ptr, mpeg2ps_stream_t);
+	if (!ptr) return NULL;
 	ptr->m_stream_id = stream_id;
 	ptr->m_substream_id = substream;
 	ptr->is_video = stream_id >= 0xe0;

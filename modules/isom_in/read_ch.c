@@ -173,8 +173,11 @@ next_segment:
 					u64 bytesMissing=0;
 					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
 
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
-
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to reparse segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+					} else {
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+					}
 #ifndef GPAC_DISABLE_LOG
 					if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
 						for (i=0; i<count; i++) {
@@ -258,7 +261,6 @@ next_segment:
 
 			isor_check_producer_ref_time(read);
 
-			trackID = 0;
 			for (i=0; i<count; i++) {
 				ISOMChannel *ch = gf_list_get(read->channels, i);
 				ch->wait_for_segment_switch = 0;
@@ -340,7 +342,7 @@ next_segment:
 
 static void init_reader(ISOMChannel *ch)
 {
-	u32 sample_desc_index;
+	u32 sample_desc_index=0;
 	if (ch->is_pulling && ch->wait_for_segment_switch) {
 		isor_segment_switch_or_refresh(ch->owner, 0);
 		if (ch->wait_for_segment_switch)
@@ -514,9 +516,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						if (s2 && s1) {
 							assert(s2->DTS >= s1->DTS);
 							time_diff = (u32) (s2->DTS - s1->DTS);
-							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+							/*e = */gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
 						} else if (s1 && !s2) {
-							e = GF_EOS;
+							/*e = GF_EOS;*/
 						}
 						gf_isom_sample_del(&s1);
 						gf_isom_sample_del(&s2);

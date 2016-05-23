@@ -181,7 +181,7 @@ GF_Err ListItem_Size(GF_Box *s)
 		ptr->size += ptr->data->size;
 	}
 	/*QT way*/
-	else {
+	else if (ptr->data) {
 		ptr->size += ptr->data->dataSize + 4;
 	}
 	return GF_OK;

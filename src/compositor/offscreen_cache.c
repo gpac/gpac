@@ -65,6 +65,10 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupCache *cache;
 	GF_SAFEALLOC(cache, GroupCache);
+	if (!cache) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate group cache\n"));
+		return NULL;
+	}
 	gf_sc_texture_setup(&cache->txh, compositor, node);
 	cache->drawable = drawable_new();
 	/*draw the cache through traverse callback*/
@@ -155,7 +159,6 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		gf_mx2d_copy(backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
 
-		type_3d = 0;
 #ifndef GPAC_DISABLE_3D
 		/*force 2D rendering*/
 		type_3d = tr_state->visual->type_3d;

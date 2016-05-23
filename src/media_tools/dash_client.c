@@ -414,8 +414,10 @@ void gf_dash_get_buffer_info(GF_DashClient *dash, u32 *total_buffer, u32 *media_
 		}
 		if (*media_buffered > *total_buffer)
 			*media_buffered  = *total_buffer;
-		*total_buffer /= nb_buffering;
-		*media_buffered /= nb_buffering;
+		if (nb_buffering) {
+			*total_buffer /= nb_buffering;
+			*media_buffered /= nb_buffering;
+		}
 	}
 }
 
@@ -545,7 +547,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				if (group->dash->utc_shift + group->dash->utc_drift_estimate > 0) {
 					availabilityStartTime = current_time;
 				} else {
-					current_time = 0;
 					group->broken_timing = GF_TRUE;
 					return;
 				}
@@ -2132,8 +2133,6 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (group->dash->ignore_mpd_duration)
 		group->nb_segments_in_rep = nb_segs;
 
-
-	timeshift = -1;
 	timeshift = (s32) (rep->segment_base ? rep->segment_base->time_shift_buffer_depth : (rep->segment_list ? rep->segment_list->time_shift_buffer_depth : (rep->segment_template ? rep->segment_template->time_shift_buffer_depth : -1) ) );
 	if (timeshift == -1) timeshift = (s32) (set->segment_base ? set->segment_base->time_shift_buffer_depth : (set->segment_list ? set->segment_list->time_shift_buffer_depth : (set->segment_template ? set->segment_template->time_shift_buffer_depth : -1) ) );
 	if (timeshift == -1) timeshift = (s32) (period->segment_base ? period->segment_base->time_shift_buffer_depth : (period->segment_list ? period->segment_list->time_shift_buffer_depth : (period->segment_template ? period->segment_template->time_shift_buffer_depth : -1) ) );
@@ -2544,8 +2543,6 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 					group->current_base_url_idx++;
 					gf_free(base_init_url);
 					return gf_dash_download_init_segment(dash, group);
-				} else {
-					e = GF_NOT_FOUND;
 				}
 			} else {
 				gf_fclose(ftest);
@@ -2693,10 +2690,11 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 
 	if (!rep->mime_type) {
 		rep->mime_type = gf_strdup( mime_type ? mime_type : mime );
-		mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
-	}
+	
 	//disable mime type check
 #if 0
+		mime_type = gf_dash_get_mime_type(NULL, rep, group->adaptation_set);
+	}
 	if (stricmp(mime, mime_type)) {
 		Bool valid = GF_FALSE;
 		char *stype1, *stype2;
@@ -2712,7 +2710,10 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 			return GF_BAD_PARAM;
 		}
 	}
+	if (!rep->mime_type) {
+		rep->mime_type = gf_strdup( mime_type ? mime_type : mime );
 #endif
+	}
 
 	if (group->segment_must_be_streamed ) {
 		init_segment_local_url = (char *) dash->dash_io->get_url(dash->dash_io, group->segment_download);
@@ -3283,7 +3284,9 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 			}
 		} else {
 			GF_SAFEALLOC(seg, GF_MPD_SegmentURL);
+			if (!seg) return GF_OUT_OF_MEM;
 			GF_SAFEALLOC(seg->media_range, GF_MPD_ByteRange);
+			if (!seg->media_range) return GF_OUT_OF_MEM;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Found media segment size %d - duration %d - start with SAP: %d - SAP type %d - SAP Deltat Time %d\n",
 			                                   sidx->refs[i].reference_size, sidx->refs[i].subsegment_duration, sidx->refs[i].starts_with_SAP, sidx->refs[i].SAP_type, sidx->refs[i].SAP_delta_time));
 
@@ -3405,10 +3408,18 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 		if (is_isom && (init_in_base || index_in_base)) {
 			if (!strstr(init_url, "://") || (!strnicmp(init_url, "file://", 7) || !strnicmp(init_url, "views://", 7)) ) {
 				GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
-				rep->segment_list->segment_URLs  =gf_list_new();
+				if (!rep->segment_list) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
+				rep->segment_list->segment_URLs = gf_list_new();
 
 				if (init_in_base) {
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
+					if (!rep->segment_list->initialization_segment) {
+						e = GF_OUT_OF_MEM;
+						goto exit;
+					}
 					rep->segment_list->initialization_segment->sourceURL = gf_strdup(init_url);
 					rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
 					/*we don't want to load the entire movie */
@@ -3441,6 +3452,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					} else {
 						const u32 offset_ori = offset;
 						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
+						if (e < 0) goto exit;
 						offset += box_size;
 						/*we need to refresh the cache name because of our memory astorage thing ...*/
 						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
@@ -3472,12 +3484,20 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Done downloading init segment and SIDX\n"));
 
 				GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
+				if (!rep->segment_list) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				rep->segment_list->segment_URLs = gf_list_new();
 
 				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
 				if (init_in_base) {
 					char szName[100];
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
+					if (!rep->segment_list->initialization_segment) {
+						e = GF_OUT_OF_MEM;
+						goto exit;
+					}
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
 					if (!strnicmp(cache_name, "gmem://", 7)) {
 						char *mem_address;
@@ -3503,7 +3523,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							res = (u32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
 							if (res != rep->playback.init_segment_size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
-							} else {
+							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
 								sprintf(szName, "gmem://%d@%p", rep->playback.init_segment_size, rep->playback.init_segment_data);
 								rep->segment_list->initialization_segment->sourceURL = gf_strdup(szName);
 								rep->segment_list->initialization_segment->is_resolved = GF_TRUE;
@@ -3745,6 +3765,7 @@ static struct _dash_srd_desc *gf_dash_get_srd_desc(GF_DashClient *dash, u32 srd_
 	}
 	if (!do_create) return NULL;
 	GF_SAFEALLOC(srd, struct _dash_srd_desc);
+	if (!srd) return NULL;
 	srd->id = srd_id;
 	if (!dash->SRDs) dash->SRDs = gf_list_new();
 	gf_list_add(dash->SRDs, srd);
@@ -4973,7 +4994,6 @@ restart_period:
 
 		/* stop the thread if requested */
 		if (dash->mpd_stop_request) {
-			go_on = 0;
 			break;
 		}
 
@@ -5425,7 +5445,6 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			strcat(local_path, ".mpd");
 
 			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE);
-			local_url = local_path;
 		} else {
 			const char *redirected_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
 			if (!redirected_url) redirected_url=manifest_url;
@@ -5531,6 +5550,7 @@ GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, u32 max_cache_duration, u32 a
 {
 	GF_DashClient *dash;
 	GF_SAFEALLOC(dash, GF_DashClient);
+	if (!dash) return NULL;
 	dash->dash_io = dash_io;
 	dash->speed = 1.0;
 

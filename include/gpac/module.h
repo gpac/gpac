@@ -153,6 +153,7 @@ typedef struct
 	GF_InterfaceRegister *gf_register_module_##__name()	{	\
 		GF_InterfaceRegister *reg;	\
 		GF_SAFEALLOC(reg, GF_InterfaceRegister);	\
+		if (!reg) return NULL;\
 		reg->name = "gsm_" #__name;	\
 		reg->QueryInterfaces = QueryInterfaces;	\
 		reg->LoadInterface = LoadInterface;	\

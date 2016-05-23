@@ -1453,6 +1453,8 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 
 	min_time = min_buffer = (u32) -1;
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
+	if (!scene) return;
+	
 	/*get buffering on root OD*/
 	media_event_collect_info(odm->net_service, scene->root_od, &evt.media_event, &min_time, &min_buffer);
 	gf_mx_p(scene->mx_resources);
@@ -1501,7 +1503,6 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 {
 	u32 i, count;
 
-	i=0;
 	count = gf_list_count(term->uri_relocators);
 	for (i=0; i<count; i++) {
 		Bool result;
@@ -1519,6 +1520,10 @@ void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char 
 {
 	GF_TermConnectObject *connect;
 	GF_SAFEALLOC(connect, GF_TermConnectObject);
+	if (!connect) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media connection task\n"));
+		return;
+	}
 	connect->odm = odm;
 	connect->service_url = gf_strdup(serviceURL);
 	connect->parent_url = parent_url ? gf_strdup(parent_url) : NULL;
@@ -1590,7 +1595,6 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
 			if (net_locked) {
 				gf_term_lock_net(term, 0);
-				net_locked = 0;
 			}
 
 			/*wait for service to setup - service may become destroyed if not available*/
@@ -1599,13 +1603,11 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 				if (!ns->owner) {
 					if (net_locked) {
 						gf_term_lock_net(term, 0);
-						net_locked = 0;
 					}
 					return;
 				}
 				if (net_locked) {
 					gf_term_lock_net(term, 0);
-					net_locked = 0;
 				}
 
 				if (ns->owner->OD) break;
@@ -1859,6 +1861,11 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 	odm->term = term;
 
 	GF_SAFEALLOC(odm->net_service , GF_ClientService);
+	if (!odm->net_service) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate network service\n"));
+		gf_term_lock_net(term, 0);
+		return;
+	}
 	odm->net_service->term = term;
 	odm->net_service->owner = odm;
 	odm->net_service->ifce = service_hdl;
@@ -1887,7 +1894,7 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	u32 i, tag;
 	GF_SceneLoader load;
 
-	if (!term) return GF_BAD_PARAM;
+	if (!term || !com) return GF_BAD_PARAM;
 
 	if (type && (!stricmp(type, "application/ecmascript") || !stricmp(type, "js")) )  {
 		return gf_scene_execute_script(term->root_scene->graph, com);

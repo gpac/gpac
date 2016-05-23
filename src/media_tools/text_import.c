@@ -101,7 +101,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		u32 read = (u32) fread(szUTF, 1, 1023, test);
 		szUTF[read]=0;
 		sptr = (u16*)szUTF;
-		read = (u32) gf_utf8_wcstombs(szLine, read, &sptr);
+		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
 		val = (u32) fread(szLine, 1, 1024, test);
 		szLine[val]=0;
@@ -521,7 +521,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				}
 				len = (u32) _len;
 			}
-			char_line = 0;
 			i=j=0;
 			rem_styles = 0;
 			rem_color = 0;
@@ -683,7 +682,6 @@ static GF_Err gf_text_import_srt(GF_MediaImporter *import)
 				set_start_char = GF_TRUE;
 				rec.startCharOffset = char_len + j;
 				rec.style_flags &= ~rem_styles;
-				rem_styles = 0;
 			}
 
 			char_line = j;
@@ -764,7 +762,7 @@ static GF_Err gf_text_import_webvtt(GF_MediaImporter *import)
 	u32							track;
 	u32							timescale;
 	u32							duration;
-	u32							descIndex;
+	u32							descIndex=1;
 	u32							ID;
 	u32							OCR_ES_ID;
 	GF_GenericSubtitleConfig	*cfg;
@@ -952,7 +950,6 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	samp_text = NULL;
 	root_working_copy = NULL;
 	parser_working_copy = NULL;
-	e = GF_OK;
 
 	/*setup track in 3GP format directly (no ES desc)*/
 	ID = (import->esd) ? import->esd->ESID : 0;
@@ -1134,6 +1131,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 
 							//sample is either in the <p> ...
 							while ( (p_att = (GF_XMLAttribute*)gf_list_enum(div_node->attributes, &p_idx))) {
+								if (!p_att) continue;
+								
 								if (!strcmp(p_att->name, "begin")) {
 									if (ts_begin != -1) {
 										e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute. Abort.\n");
@@ -1175,6 +1174,8 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 									u32 span_idx = 0;
 									GF_XMLAttribute *span_att;
 									while ( (span_att = (GF_XMLAttribute*)gf_list_enum(p_node->attributes, &span_idx))) {
+										if (!span_att) continue;
+									
 										if (!strcmp(span_att->name, "begin")) {
 											if (ts_begin != -1) {
 												e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"begin\" attribute under <span>. Abort.\n");
@@ -1182,7 +1183,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_begin = (h*3600 + m*60+s)*1000+ms;
-											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_begin = (h*3600 + m*60+s)*1000;
 											}
 										} else if (!strcmp(span_att->name, "end")) {
@@ -1192,7 +1193,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 											}
 											if (sscanf(span_att->value, "%u:%u:%u.%u", &h, &m, &s, &ms) == 4) {
 												ts_end = (h*3600 + m*60+s)*1000+ms;
-											} else if (sscanf(p_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
+											} else if (sscanf(span_att->value, "%u:%u:%u", &h, &m, &s) == 3) {
 												ts_end = (h*3600 + m*60+s)*1000;
 											}
 										}
@@ -1467,7 +1468,6 @@ GF_Err gf_text_import_swf(GF_MediaImporter *import)
 	flusher.descriptionIndex = descIndex;
 	gf_swf_reader_set_user_mode(read, &flusher, swf_svg_add_iso_sample, swf_svg_add_iso_header);
 
-	e = GF_NOT_SUPPORTED;
 	if (!import->streamFormat || (import->streamFormat && !stricmp(import->streamFormat, "SVG"))) {
 #ifndef GPAC_DISABLE_SVG
 		e = swf_to_svg_init(read, import->swf_flags, import->swf_flatten_angle);
@@ -1517,10 +1517,6 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	GF_ISOSample *s;
 
 	sub_in = gf_fopen(import->in_name, "rt");
-	gf_fseek(sub_in, 0, SEEK_END);
-	file_size = gf_ftell(sub_in);
-	gf_fseek(sub_in, 0, SEEK_SET);
-
 	unicode_type = gf_text_get_utf_type(sub_in);
 	if (unicode_type<0) {
 		gf_fclose(sub_in);
@@ -1634,7 +1630,7 @@ static GF_Err gf_text_import_sub(GF_MediaImporter *import)
 	samp = gf_isom_new_text_sample();
 
 	FPS = ((Double) timescale ) / FPS;
-	start = end = prev_end = 0;
+	end = prev_end = 0;
 
 	line = 0;
 	first_samp = GF_TRUE;
@@ -2439,7 +2435,7 @@ static GF_Err gf_text_import_texml(GF_MediaImporter *import)
 				u16 start, end;
 				u32 styleID;
 				u32 nb_chars, txt_len, m;
-				txt_len = nb_chars = 0;
+				nb_chars = 0;
 
 				samp = gf_isom_new_text_sample();
 

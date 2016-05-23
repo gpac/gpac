@@ -47,6 +47,7 @@ void gf_media_get_sample_average_infos(GF_ISOFile *file, u32 Track, u32 *avgSize
 	tdelta = 0;
 
 	count = gf_isom_get_sample_count(file, Track);
+	if (!count) return;
 	*const_duration = 0;
 
 	for (i=0; i<count; i++) {
@@ -289,7 +290,6 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	avc_nalu_size = 0;
 	has_mpeg4_mapping = 1;
 	TrackMediaType = gf_isom_get_media_type(file, TrackNum);
-	TrackMediaSubType = gf_isom_get_media_subtype(file, TrackNum, 1);
 
 	/*for max compatibility with QT*/
 	if (!default_rtp_rate) default_rtp_rate = 90000;
@@ -743,7 +743,7 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 		}
 
 		duration = gf_isom_get_sample_duration(tkHint->file, tkHint->TrackNum, i+1);
-		ts = (u32) (ft * (s64) (duration));
+//		ts = (u32) (ft * (s64) (duration));
 
 		/*unpack nal units*/
 		if (tkHint->avc_nalu_size) {
@@ -999,7 +999,7 @@ GF_Err gf_hinter_track_finalize(GF_RTPHinter *tkHint, Bool AddSystemInfo)
 			strcat(sdpLine, ";content-coding=");
 			strcat(sdpLine, dims.contentEncoding);
 		}
-		if (dims.content_script_types && strlen(dims.content_script_types) ) {
+		if (dims.contentEncoding && dims.content_script_types && strlen(dims.content_script_types) ) {
 			strcat(sdpLine, ";content-script-types=");
 			strcat(sdpLine, dims.contentEncoding);
 		}

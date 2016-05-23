@@ -1582,16 +1582,19 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				GF_HEVCParamArray *ar;
 				if (!stricmp(att->Name, "sprop-vps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_VID_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-sps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_SEQ_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-pps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_PIC_PARAM;
 				}
@@ -1685,6 +1688,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 	if (!payt) return NULL;
 
 	GF_SAFEALLOC(tmp, GF_RTPDepacketizer);
+	if (!tmp) return NULL;
 	tmp->payt = payt;
 
 	e = gf_rtp_payt_setup(tmp, map, media);

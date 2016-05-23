@@ -456,6 +456,8 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 			if (segment_ifce) {
 				GF_MPDGroup *group;
 				GF_SAFEALLOC(group, GF_MPDGroup);
+				if (!group) return GF_OUT_OF_MEM;
+				
 				group->segment_ifce = segment_ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
@@ -474,6 +476,7 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 			if (ifce->CanHandleURL && ifce->CanHandleURL(ifce, init_segment_name)) {
 				GF_MPDGroup *group;
 				GF_SAFEALLOC(group, GF_MPDGroup);
+				if (!group) return GF_OUT_OF_MEM;
 				group->segment_ifce = ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
@@ -988,8 +991,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	else if (!strcmp(opt, "bandwidth")) mpdin->buffer_adaptation = GF_FALSE;
 	else mpdin->buffer_adaptation = GF_TRUE;
 
-
-	first_select_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation", "minBandwidth");
@@ -1057,8 +1058,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
-
-	tile_adapt_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation", "none");
@@ -1590,7 +1589,17 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MPD Loader", "gpac distribution")
+	
+	GF_SAFEALLOC(mpdin, GF_MPD_In);
+	if (!mpdin) {
+		gf_free(plug);
+		return NULL;
+	}
+	plug->priv = mpdin;
+	mpdin->plug = plug;
+	
 	plug->RegisterMimeTypes = MPD_RegisterMimeTypes;
 	plug->CanHandleURL = MPD_CanHandleURL;
 	plug->ConnectService = MPD_ConnectService;
@@ -1602,9 +1611,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = MPD_CanHandleURLInService;
 	plug->ChannelGetSLP = MPD_ChannelGetSLP;
 	plug->ChannelReleaseSLP = MPD_ChannelReleaseSLP;
-	GF_SAFEALLOC(mpdin, GF_MPD_In);
-	plug->priv = mpdin;
-	mpdin->plug = plug;
+
 	return (GF_BaseInterface *)plug;
 }
 

@@ -185,6 +185,8 @@ static SVG_SAFExternalStream *svg_saf_get_next_available_stream(GF_SVG_Parser *p
 		st = st->next;
 	}
 	GF_SAFEALLOC(st, SVG_SAFExternalStream);
+	if (!st) return NULL;
+	
 	if (prev) prev->next = st;
 	else parser->streams = st;
 	st->id = id+1;
@@ -742,6 +744,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 
 	if (gf_svg_is_animation_tag(tag)) {
 		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		if (!anim) {
+			parser->last_error = GF_OUT_OF_MEM;
+			return NULL;
+		}
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		if (!parent) {
@@ -755,6 +761,10 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		/* warning: we use the SVG_DeferedAnimation structure for some timing nodes which are not
 		   animations, but we put the parse stage at 1 (timing) see svg_parse_animation. */
 		GF_SAFEALLOC(anim, SVG_DeferedAnimation);
+		if (!anim) {
+			parser->last_error = GF_OUT_OF_MEM;
+			return NULL;
+		}
 		/*default anim target is parent node*/
 		anim->animation_elt = elt;
 		if (!parent) {
@@ -1058,7 +1068,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 			}
 		}
 		/*check handler, create it if not specified*/
-		if (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_handler, GF_TRUE, GF_FALSE, &info) == GF_OK) {
+		if (parent && (gf_node_get_attribute_by_tag((GF_Node *)listener, TAG_XMLEV_ATT_handler, GF_TRUE, GF_FALSE, &info) == GF_OK)) {
 			XMLRI *handler = (XMLRI *)info.far_ptr;
 			if (!handler->target) {
 				if (!handler->string) handler->target = parent->node;
@@ -1073,7 +1083,7 @@ static SVG_Element *svg_parse_element(GF_SVG_Parser *parser, const char *name, c
 		if (post_pone) {
 			gf_list_add(parser->defered_listeners, listener);
 		} else {
-			if (!par) par = parent->node;
+			if (!par && parent) par = parent->node;
 			gf_node_dom_listener_add((GF_Node *)par, (GF_Node *) listener);
 		}
 	}
@@ -1181,7 +1191,7 @@ static GF_Err lsr_parse_command(GF_SVG_Parser *parser, const GF_XMLAttribute *at
 				info.fieldType = SVG_Transform_Translate_datatype;
 				info.fieldIndex = TAG_LSR_ATT_translation;
 			}
-			else if (!strcmp(atAtt, "rotation")) {
+			else /*if (!strcmp(atAtt, "rotation")) */ {
 				info.fieldType = SVG_Transform_Rotate_datatype;
 				info.fieldIndex = TAG_LSR_ATT_rotation;
 			}
@@ -1486,9 +1496,9 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 					if (parser->load->localPath) {
 						strcpy(szName, parser->load->localPath);
 						strcat(szName, "/");
-						strcat(szName, ID);
+						strcat(szName, ID ? ID : "");
 					} else {
-						strcpy(szName, ID);
+						strcpy(szName, ID ? ID : "");
 					}
 					strcat(szName, "_temp.nhml");
 					mux->file_name = gf_strdup(szName);
@@ -1608,7 +1618,7 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 			switch (com_type) {
 			case GF_SG_LSR_NEW_SCENE:
 			case GF_SG_LSR_REFRESH_SCENE:
-				parser->laser_au->flags |= GF_SM_AU_RAP;
+				if (parser->laser_au) parser->laser_au->flags |= GF_SM_AU_RAP;
 				break;
 			}
 
@@ -1635,6 +1645,10 @@ static void svg_node_start(void *sax_cbck, const char *name, const char *name_sp
 		return;
 	}
 	GF_SAFEALLOC(stack, SVG_NodeStack);
+	if (!stack) {
+		parser->last_error = GF_OUT_OF_MEM;
+		return;
+	}
 	stack->node = elt;
 	stack->current_ns = xmlns;
 	stack->has_ns = has_ns;
@@ -1904,6 +1918,9 @@ static GF_SVG_Parser *svg_new_parser(GF_SceneLoader *load)
 	}
 
 	GF_SAFEALLOC(parser, GF_SVG_Parser);
+	if (!parser) {
+		return NULL;
+	}
 	parser->node_stack = gf_list_new();
 	parser->defered_hrefs = gf_list_new();
 	parser->defered_animations = gf_list_new();
