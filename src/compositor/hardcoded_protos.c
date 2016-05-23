@@ -456,6 +456,10 @@ void compositor_init_plane_clipper(GF_Compositor *compositor, GF_Node *node)
 	if (PlaneClipper_GetNode(node, &pc)) {
 		PlaneClipperStack *stack;
 		GF_SAFEALLOC(stack, PlaneClipperStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate plane clipper stack\n"));
+			return;
+		}
 		//SetupGroupingNode(stack, compositor->compositor, node, & pc.children);
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraversePlaneClipper);
@@ -1140,6 +1144,10 @@ void compositor_init_test_sensor(GF_Compositor *compositor, GF_Node *node)
 		GF_Err e;
 		TestSensorStack *stack;
 		GF_SAFEALLOC(stack, TestSensorStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate test sensor stack\n"));
+			return;
+		}
 		gf_node_set_private(node, stack);
 		gf_node_set_callback_function(node, TraverseTestSensor);
 		stack->ts = ts;
@@ -1256,6 +1264,10 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
     if (CustomTexture_GetNode(node, &tx)) {
         CustomTextureStack *stack;
         GF_SAFEALLOC(stack, CustomTextureStack);
+		if (!stack) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate custom texture group stack\n"));
+			return;
+		}
         gf_node_set_private(node, stack);
         gf_node_set_callback_function(node, TraverseCustomTexture);
         stack->tx = tx;

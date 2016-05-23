@@ -4198,7 +4198,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
 	s32 vps_id, sps_id = -1;
-	u8 max_sub_layers_minus1, update_rep_format_flag, flag;
+	u8 max_sub_layers_minus1, flag;
 	u8 layer_id/*, temporal_id, sps_rep_format_idx*/;
 	Bool scaling_list_enable_flag;
 	u32 i, nb_CTUs, depth;
@@ -4259,9 +4259,8 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	vps = &hevc->vps[vps_id];
 
 	//sps_rep_format_idx = 0;
-	update_rep_format_flag = 0;
 	if (multiLayerExtSpsFlag) {
-		update_rep_format_flag = gf_bs_read_int(bs, 1);
+		u8 update_rep_format_flag = gf_bs_read_int(bs, 1);
 		if (update_rep_format_flag) {
 			sps->rep_format_idx = gf_bs_read_int(bs, 8);
 		} else {
@@ -4284,7 +4283,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 		sps->height = bs_get_ue(bs);
 		if (/*conformance_window_flag*/gf_bs_read_int(bs, 1)) {
 			u32 SubWidthC, SubHeightC;
-			SubWidthC = SubHeightC = 1;
+
 			if (sps->chroma_format_idc==1) {
 				SubWidthC = SubHeightC = 2;
 			}
