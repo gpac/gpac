@@ -4364,7 +4364,7 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 static void oinf_dump(void *entry, FILE * trace)
 {
 	GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
-	GF_BitStream *bs = gf_bs_new(((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
+	GF_BitStream *bs = gf_bs_new((const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
 	u32 i;
 	gf_isom_oinf_read_entry(ptr, bs);
 	fprintf(trace, "<OperatingPointsInformation");

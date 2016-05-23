@@ -206,9 +206,8 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete MDAT while file is not read-only\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
-			if (mov->is_dump_mode ) {
+			if (mov->is_dump_mode) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete file was reading for dump - aborting parsing\n"));
-				e=GF_OK;
 				break;
 			}
 			return e;

@@ -5617,13 +5617,13 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 		lhevc_ptl->general_profile_compatibility_flags = ptl.profile_compatibility_flag;
 		lhevc_ptl->general_constraint_indicator_flags = 0;
 		if (ptl.general_progressive_source_flag)
-			lhevc_ptl->general_constraint_indicator_flags |= 1 << 47;
+			lhevc_ptl->general_constraint_indicator_flags |= ((u64)1) << 47;
 		if (ptl.general_interlaced_source_flag)
-			lhevc_ptl->general_constraint_indicator_flags |= 1 << 46;
+			lhevc_ptl->general_constraint_indicator_flags |= ((u64)1) << 46;
 		if (ptl.general_non_packed_constraint_flag)
-			lhevc_ptl->general_constraint_indicator_flags |= 1 << 45;
+			lhevc_ptl->general_constraint_indicator_flags |= ((u64)1) << 45;
 		if (ptl.general_frame_only_constraint_flag)
-			lhevc_ptl->general_constraint_indicator_flags |= 1 << 44;
+			lhevc_ptl->general_constraint_indicator_flags |= ((u64)1) << 44;
 		lhevc_ptl->general_constraint_indicator_flags |= ptl.general_reserved_44bits;
 		lhevc_ptl->general_level_idc = ptl.level_idc;
 		gf_list_add(oinf->profile_tier_levels, lhevc_ptl);
@@ -5737,7 +5737,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	SAPType sample_rap_type;
 	s32 cur_vps_id = -1;
 	u8 max_temporal_id[64];
-	u32 min_layer_id = (1<<32) -1;
+	u32 min_layer_id = (u32) -1;
 
 
 	Double FPS;
@@ -5849,7 +5849,6 @@ restart_import:
 
 	while (gf_bs_available(bs)) {
 		s32 res;
-		Bool force_shvc = GF_FALSE;
 		GF_HEVCConfig *prev_cfg;
 		u8 nal_unit_type, temporal_id, layer_id;
 		Bool skip_nal, add_sps, is_slice, has_vcl_nal;
@@ -5889,7 +5888,6 @@ restart_import:
 		//todo check layer type, for now only scalable (not 3D etc) ...
 		if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
 			dst_cfg = shvc_cfg;
-			force_shvc = GF_TRUE;
 		} else
 			dst_cfg = layer_id ? shvc_cfg : hevc_cfg;
 
