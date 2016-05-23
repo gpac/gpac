@@ -457,7 +457,11 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		break;
 #endif
 	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
+    case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:		
+        case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
 #ifndef GPAC_USE_GLES1X
 		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
@@ -556,7 +560,8 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->gl_format = GL_LUMINANCE;
 		txh->tx_io->nb_comp = 1;
 		txh->tx_io->yuv_shader = 1;
-		if (txh->pixelformat==GF_PIXEL_YV12_10) {
+		if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ||txh->pixelformat==GF_PIXEL_YUV444_10 ) {
+			
 			txh->tx_io->gl_dtype = GL_UNSIGNED_SHORT;
 		}
 		txh->compositor->visual->yuv_pixelformat_type = txh->pixelformat;
@@ -618,7 +623,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		}
 #endif
 
-		if (txh->tx_io->yuv_shader && (txh->pixelformat==GF_PIXEL_YV12_10)) {
+		if (txh->tx_io->yuv_shader && (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ||txh->pixelformat==GF_PIXEL_YUV444_10)) {
 			//will never happen on GLES for now since we don't have GLES2 support yet ...
 			//FIXME - allow 10bit support in GLES2
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
@@ -742,6 +747,10 @@ common:
 		return 1;
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:		
+    case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_I420:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
@@ -799,6 +808,10 @@ common:
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV444:		
+    case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_BGR_24:
@@ -1017,11 +1030,24 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				pV = (u8 *) txh->pV;
 			} else {
 				pU = (u8 *) pY + txh->height*txh->stride;
-				pV = (u8 *) pU + txh->height*txh->stride/4;
+				if ( txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV444)
+				{
+					pV = (u8 *) pU + txh->height*txh->stride ;
+				}
+				else if (  txh->pixelformat==GF_PIXEL_YUV422_10 || txh->pixelformat==GF_PIXEL_YUV422)
+				{
+					pV = (u8 *) pU + txh->height*txh->stride/2 ;
+				}
+				else if  ( txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YV12 )
+				{
+					pV = (u8 *) pU + txh->height*txh->stride/4 ;
+				}
+			
 			}
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-			if (txh->pixelformat==GF_PIXEL_YV12_10) {
+		
+			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ||txh->pixelformat==GF_PIXEL_YUV444_10) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
 				//we use 10 bits but GL will normalise using 16 bits, so we need to multiply the nomralized result by 2^6
 				glPixelTransferi(GL_RED_SCALE, 64);
@@ -1044,7 +1070,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				do_tex_image_2d(txh, GL_LUMINANCE_ALPHA, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
 				txh->tx_io->gl_format = tx_mode;
 				GL_CHECK_ERR
-			} else {
+			} 
+			
+			else if (txh->pixelformat == GF_PIXEL_YV12_10 || txh->pixelformat == GF_PIXEL_YV12 ) {
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
 				do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2, h/2, txh->tx_io->u_pbo_id);
 				GL_CHECK_ERR
@@ -1053,7 +1081,32 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2, h/2, txh->tx_io->v_pbo_id);
 				GL_CHECK_ERR
 			}
+			else if (txh->pixelformat == GF_PIXEL_YUV422_10 || txh->pixelformat == GF_PIXEL_YUV422) {
+				
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+				do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride/2, w/2 , h , txh->tx_io->u_pbo_id);
+				GL_CHECK_ERR
 
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+				do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride/2, w/2 , h, txh->tx_io->v_pbo_id);
+				GL_CHECK_ERR
+			}
+			
+			
+			
+			
+			else if (txh->pixelformat == GF_PIXEL_YUV444_10 || txh->pixelformat == GF_PIXEL_YUV444) {
+				
+				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);
+		      	do_tex_image_2d(txh, tx_mode, first_load, pU, txh->stride, w, h, txh->tx_io->u_pbo_id);
+				GL_CHECK_ERR
+            				glBindTexture(txh->tx_io->gl_type, txh->tx_io->v_id);
+	        	do_tex_image_2d(txh, tx_mode, first_load, pV, txh->stride, w, h, txh->tx_io->v_pbo_id);
+				GL_CHECK_ERR
+			}
+			
+			
+			
 			push_time = gf_sys_clock() - push_time;
 
 			if (txh->nb_frames==100) {
@@ -1064,7 +1117,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			txh->upload_time += push_time;
 
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
-			if (txh->pixelformat==GF_PIXEL_YV12_10) {
+			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
 				glPixelTransferi(GL_RED_SCALE, 1);
 			}

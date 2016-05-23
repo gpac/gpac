@@ -686,6 +686,65 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 		return GF_NOT_SUPPORTED;
 	}
 }
+static GF_Err FFDEC_GetOutputPixelFromat (u32 pix_fmt, u32 * out_pix_fmt, FFDec *ffd)
+{
+	if ( out_pix_fmt == NULL || ffd == NULL ) 
+	{
+		return GF_BAD_PARAM;
+	}
+	else 
+	{
+		switch (pix_fmt) {
+		case PIX_FMT_YUV420P:
+			*out_pix_fmt = GF_PIXEL_YV12;
+			break;
+		case PIX_FMT_YUV420P10LE:
+			if (ffd->output_as_8bit){
+				*out_pix_fmt  = GF_PIXEL_YV12;
+			} else {
+				*out_pix_fmt  = GF_PIXEL_YV12_10;
+			}
+			break;
+		case PIX_FMT_YUV422P:
+			*out_pix_fmt = GF_PIXEL_YUV422;
+			break;
+		case PIX_FMT_YUV422P10LE:
+			if (ffd->output_as_8bit){
+				*out_pix_fmt  =  GF_PIXEL_YUV422;
+			} else {
+				*out_pix_fmt  = GF_PIXEL_YUV422_10;
+			}
+			break;
+		case PIX_FMT_YUV444P:
+			*out_pix_fmt = GF_PIXEL_YUV444;
+			break;
+		case PIX_FMT_YUV444P10LE:
+			if (ffd->output_as_8bit){
+				*out_pix_fmt = GF_PIXEL_YUV444;
+			} else {
+				*out_pix_fmt = GF_PIXEL_YUV444_10;
+			}
+			break;
+		case PIX_FMT_RGBA:
+			*out_pix_fmt = GF_PIXEL_RGBA;
+			break;
+		case PIX_FMT_RGB24:
+			*out_pix_fmt = GF_PIXEL_RGB_24;
+			break;
+		case PIX_FMT_BGR24:
+			*out_pix_fmt = GF_PIXEL_BGR_24;
+			break;
+			
+		default:
+			return GF_NOT_SUPPORTED;
+	
+		}
+		return GF_OK;
+		
+	}
+	
+	
+}
 
 static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
                                 char *inBuffer, u32 inBufferLength,
@@ -698,8 +757,8 @@ static GF_Err FFDEC_ProcessData(GF_MediaDecoder *plug,
 #endif
 	AVPicture pict;
 	u32 pix_out;
-	s32 w, h, gotpic, stride;
-	u32 outsize;
+	s32 w, h, gotpic, stride, ret;
+	u32 outsize, out_pix_fmt;
 	AVCodecContext *ctx;
 	AVCodec **codec;
 	AVFrame *frame;
@@ -1041,19 +1100,28 @@ redecode:
 	}
 
 	stride = frame->linesize[0];
+	ffd->conv_to_8bit = GF_FALSE;
 #ifndef NO_10bit
-	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
+	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE || ctx->pix_fmt == PIX_FMT_YUV422P10LE  || ctx->pix_fmt == PIX_FMT_YUV444P10LE  ) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
 		ffd->conv_to_8bit = GF_TRUE;
 		stride=w;
 	}
 #endif
-
+	
+	ret = FFDEC_GetOutputPixelFromat(ctx->pix_fmt, &out_pix_fmt, ffd);
+	if ( ret < 0)
+	{
+		return ret;
+	}
+	
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
 	        || (ffd->direct_output && (stride != ffd->stride))
 	        || ((ffd->out_pix_fmt==GF_PIXEL_YV12) && (ctx->pix_fmt != PIX_FMT_YUV420P) && !ffd->output_as_8bit )
 	        //need to realloc the conversion buffer
 	        || (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output)
+		|| (out_pix_fmt != ffd->out_pix_fmt)
+		
 	   ) {
 
 		ffd->stride = (!ffd->conv_to_8bit && ffd->direct_output) ? frame->linesize[0] : ctx->width;
@@ -1064,19 +1132,56 @@ redecode:
 		else if (ffd->out_pix_fmt == GF_PIXEL_RGB_24) {
 			outsize = ctx->width * ctx->height * 3;
 		}
+		else if (ctx->pix_fmt == PIX_FMT_YUV420P)
+		{
+			outsize = ffd->stride * ctx->height * 3 /2 ;
+			ffd->out_pix_fmt = GF_PIXEL_YV12;
+			
+		}
+		
+		else if (ctx->pix_fmt == PIX_FMT_YUV422P)
+		{
+			outsize = ffd->stride * ctx->height * 2 ;
+			ffd->out_pix_fmt = GF_PIXEL_YUV422;
+		
+		}
+		else if (ctx->pix_fmt == PIX_FMT_YUV444P)
+		{
+			outsize = ffd->stride * ctx->height * 3 ;
+			ffd->out_pix_fmt = GF_PIXEL_YUV444;
+		}
 #ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
-		else if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE) && !ffd->output_as_8bit) {
-			ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width*2;
-			outsize = ffd->stride * ctx->height * 3 / 2;
-			ffd->out_pix_fmt = GF_PIXEL_YV12_10;
+		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE)  {
+			if (ffd->output_as_8bit){
+				ffd->out_pix_fmt = GF_PIXEL_YV12;
+			} else {
+				ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width*2;
+			    ffd->out_pix_fmt = GF_PIXEL_YV12_10;
+		}
+		outsize = ffd->stride * ctx->height * 3 / 2;
+		}
+		else if (ctx->pix_fmt == PIX_FMT_YUV422P10LE) {
+			if (ffd->output_as_8bit){
+				ffd->out_pix_fmt = GF_PIXEL_YUV422;
+			} else {
+				ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width*2;
+			    ffd->out_pix_fmt = GF_PIXEL_YUV422_10;
+			}
+			outsize = ffd->stride * ctx->height *  2;
+		}
+		else if (ctx->pix_fmt == PIX_FMT_YUV444P10LE) {
+			if (ffd->output_as_8bit){
+				ffd->out_pix_fmt = GF_PIXEL_YUV444;
+			} else {
+				ffd->stride = ffd->direct_output ? frame->linesize[0] : ctx->width*2;
+			    ffd->out_pix_fmt = GF_PIXEL_YUV444_10;
+		}
+		outsize = ffd->stride * ctx->height * 3 ;
 		}
 #endif
-		//the rest will be YUV
-		else {
-			outsize = ffd->stride * ctx->height * 3 / 2;
-			ffd->out_pix_fmt = GF_PIXEL_YV12;
-		}
+		
+		
 
 		if (ffd->depth_codec) {
 			outsize = 5 * ctx->width * ctx->height / 2;
@@ -1153,9 +1258,16 @@ redecode:
 		dst.height = ctx->height;
 		dst.pitch_y = ctx->width;
 		dst.video_buffer = ffd->direct_output ? ffd->conv_buffer : outBuffer;
-		dst.pixel_format = GF_PIXEL_YV12;
-
-		gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
+		
+        if (ffd->out_pix_fmt == GF_PIXEL_YV12){
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
+		} else if (ffd->out_pix_fmt == GF_PIXEL_YUV422) {
+			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
+		} else if (ffd->out_pix_fmt == GF_PIXEL_YUV444) {
+			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
+		} else {
+			return GF_NOT_SUPPORTED;
+		}
 		*outBufferLength = ffd->out_size;
 		return GF_OK;
 	}
@@ -1219,17 +1331,50 @@ redecode:
 		pict.data[0] =  (uint8_t *)outBuffer;
 		pict.linesize[0] = 4*ctx->width;
 		pix_out = PIX_FMT_RGBA;
-	} else {
+	} else { 
+		if (ffd->out_pix_fmt == GF_PIXEL_YV12) {
 		pict.data[0] =  (uint8_t *)outBuffer;
 		pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
 		pict.data[2] =  (uint8_t *)outBuffer + 5 * ffd->stride * ctx->height / 4;
 		pict.linesize[0] = ffd->stride;
 		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
 		pix_out = PIX_FMT_YUV420P;
+		} else if (ffd->out_pix_fmt == GF_PIXEL_YUV422) {
+		pict.data[0] =  (uint8_t *)outBuffer;
+		pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+		pict.data[2] =  (uint8_t *)outBuffer + 3*ffd->stride * ctx->height/2;
+		pict.linesize[0] = ffd->stride;
+		pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
+		pix_out = PIX_FMT_YUV422P;
+	    } else if (ffd->out_pix_fmt == GF_PIXEL_YUV444) {
+		pict.data[0] =  (uint8_t *)outBuffer;
+		pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+		pict.data[2] =  (uint8_t *)outBuffer + 2*ffd->stride * ctx->height;
+		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffd->stride;
+		pix_out = PIX_FMT_YUV444P;
+	    }
 #ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
 		if (ctx->pix_fmt==PIX_FMT_YUV420P10LE) {
+			pict.data[0] =  (uint8_t *)outBuffer;
+			pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+			pict.data[2] =  (uint8_t *)outBuffer + 5 * ffd->stride * ctx->height / 4;
+			pict.linesize[0] = ffd->stride;
+			pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
 			pix_out = PIX_FMT_YUV420P10LE;
+		} else if (ctx->pix_fmt==PIX_FMT_YUV422P10LE) {
+			pict.data[0] =  (uint8_t *)outBuffer;
+			pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+			pict.data[2] =  (uint8_t *)outBuffer + 3*ffd->stride * ctx->height/2;
+			pict.linesize[0] = ffd->stride;
+			pict.linesize[1] = pict.linesize[2] = ffd->stride/2;
+			pix_out = PIX_FMT_YUV422P10LE;
+		} else if (ctx->pix_fmt==PIX_FMT_YUV444P10LE) {
+			pict.data[0] =  (uint8_t *)outBuffer;
+			pict.data[1] =  (uint8_t *)outBuffer + ffd->stride * ctx->height;
+			pict.data[2] =  (uint8_t *)outBuffer + 2*ffd->stride * ctx->height;
+			pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffd->stride;
+			pix_out = PIX_FMT_YUV444P10LE;
 		}
 #endif
 

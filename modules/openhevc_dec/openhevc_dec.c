@@ -72,6 +72,7 @@ typedef struct
 	Bool pack_mode;
 
 	u32 dec_frames;
+	u8  chroma_format_idc;
 
 
 	FILE *raw_out;
@@ -121,7 +122,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	u32 i, j;
 	GF_HEVCConfig *cfg = NULL;
 	ctx->ES_ID = esd->ESID;
-	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = 0;
+	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = ctx->chroma_format_idc = 0;
 
 	ctx->nb_layers = 1;
 
@@ -146,7 +147,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 					ctx->height = MAX(hevc.sps[idx].height, ctx->height);
 					ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
 					ctx->chroma_bpp = MAX(hevc.sps[idx].bit_depth_chroma, ctx->chroma_bpp);
-
+					ctx->chroma_format_idc  = hevc.sps[idx].chroma_format_idc;
+					
 					if (hdr & 0x1f8) {
 						ctx->nb_layers ++;
 					}
@@ -188,8 +190,21 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
-	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-
+	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
+		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+	}
+	else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
+		ctx->out_size = ctx->stride * ctx->height * 2 ;
+	}
+	else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
+		ctx->out_size = ctx->stride * ctx->height * 3;
+	}
+	else {
+		return GF_NOT_SUPPORTED;
+	}
+	
+   
+   
 	if (ctx->output_as_8bit && (ctx->stride>ctx->width)) {
 		ctx->stride /=2;
 		ctx->out_size /= 2;
@@ -278,11 +293,31 @@ static GF_Err HEVC_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	return GF_OK;
 }
 
+static u32 HEVC_GetPixelFormat( u32 luma_bpp, u8 chroma_format_idc)
+{ 
+	u32 ret = 0;
+	if (chroma_format_idc == 1)
+	{
+		ret =  (luma_bpp==10) ? GF_PIXEL_YV12_10 : GF_PIXEL_YV12;
+	}
+	else if (chroma_format_idc == 2)
+	{
+		ret = (luma_bpp==10) ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
+	}
+	else if (chroma_format_idc == 3)
+	{
+		ret = (luma_bpp==10) ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+	}
+	
+	return ret;
+	
+}
+
 
 static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
-
+	
 	switch (capability->CapCode) {
 	case GF_CODEC_RESILIENT:
 		capability->cap.valueInt = 1;
@@ -316,7 +351,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		}
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = (ctx->luma_bpp==10) ? GF_PIXEL_YV12_10 : GF_PIXEL_YV12;
+		capability->cap.valueInt = HEVC_GetPixelFormat(ctx->luma_bpp, ctx->chroma_format_idc);
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
@@ -365,6 +400,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
+	if (ctx->nb_layers==1) return GF_OK;
 		/*switch up*/
 		if (capability.cap.valueInt > 0) {
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
@@ -391,6 +427,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 {
 	unsigned int a_w, a_h, a_stride, bit_depth;
 	OpenHevc_Frame_cpy openHevcFrame;
+	int        chromat_format;
 
 	if (ctx->direct_output)
 		libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
@@ -401,9 +438,9 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	a_h      = openHevcFrame.frameInfo.nHeight;
 	a_stride = openHevcFrame.frameInfo.nYPitch;
 	bit_depth = openHevcFrame.frameInfo.nBitDepth;
-
+   chromat_format = openHevcFrame.frameInfo.chromat_format;
 	*CTS = (u32) openHevcFrame.frameInfo.nTimeStamp;
-
+     ctx->conv_to_8bit = GF_FALSE;
 	if (!ctx->output_as_8bit) {
 		if ((ctx->luma_bpp>8) || (ctx->chroma_bpp>8)) {
 			ctx->pack_mode = GF_FALSE;
@@ -417,13 +454,22 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		}
 	}
 
-	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) ) {
+	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) ){
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
+		if( chromat_format == YUV420 ) {
 		ctx->out_size = ctx->stride * a_w * 3 / 2;
+		}
+		else if  ( chromat_format == YUV422 ) {
+			ctx->out_size = ctx->stride * a_w * 2;
+		}
+		else if ( chromat_format == YUV444 ) {
+			ctx->out_size = ctx->stride * a_w * 3;
+		} 
 		ctx->had_pic = GF_TRUE;
 		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;
+		ctx->chroma_format_idc = chromat_format + 1;
 		/*always force layer resize*/
 		*outBufferLength = ctx->out_size;
 
@@ -447,13 +493,26 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 			dst.height = ctx->height;
 			dst.pitch_y = ctx->width;
 			dst.video_buffer = ctx->direct_output ? ctx->conv_buffer : outBuffer;
-			dst.pixel_format = GF_PIXEL_YV12;
-
-			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, GF_FALSE);
+			if( chromat_format == YUV444 ) 
+			{
+					gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, GF_FALSE);
+			}
+			else if ( chromat_format == YUV420 )
+			{
+					gf_color_write_yv12_10_to_yuv(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, GF_FALSE);
+			}
+			else if (chromat_format == YUV422)
+			{
+				gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *) openHevcFramePtr.pvY, (u8 *) openHevcFramePtr.pvU, (u8 *) openHevcFramePtr.pvV, openHevcFramePtr.frameInfo.nYPitch, ctx->width, ctx->height, NULL, GF_FALSE);
+			}
+			else
+			{
+				return GF_NOT_SUPPORTED;
+			}
 			*outBufferLength = ctx->out_size;
 
 			if (ctx->direct_output )
-				ctx->has_pic = GF_TRUE;
+			 	ctx->has_pic = GF_TRUE;
 		}
 		return GF_OK;
 	}
@@ -507,7 +566,18 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 
 	openHevcFrame.pvY = (void*) outBuffer;
 	openHevcFrame.pvU = (void*) (outBuffer + ctx->stride * ctx->height);
-	openHevcFrame.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
+		if( chromat_format == YUV420 ) 
+		{
+			openHevcFrame.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
+		}
+		else if (chromat_format == YUV422)
+		{
+			openHevcFrame.pvV = (void*) (outBuffer + 3*ctx->stride * ctx->height/2);
+		}
+		else if ( chromat_format == YUV444)
+		{
+			openHevcFrame.pvV = (void*) (outBuffer + 2*ctx->stride * ctx->height);
+		}
 	*outBufferLength = 0;
 	if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
 		*outBufferLength = ctx->out_size;
