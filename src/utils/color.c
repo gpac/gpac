@@ -1567,6 +1567,163 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 		return GF_OK;
 	
 }
+
+static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 i, j, w, h;
+	if (!pU) {
+		pU = pY + src_stride * src_height;
+		pV = pY + 3*src_stride * src_height/2;
+	}
+
+	if (_src_wnd) {
+		pY = pY + src_stride * _src_wnd->y + _src_wnd->x;
+		pU = pU + (src_stride * _src_wnd->y  + _src_wnd->x) / 2;
+		pV = pV + (src_stride * _src_wnd->y  + _src_wnd->x) / 2;
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+	} else {
+		w = src_width;
+		h = src_height;
+	}
+
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
+	}
+
+
+	
+	__m128i val1, val2, val_dst, *src1, *src2, *dst;
+	for (i=0; i<h; i++) {
+		src1 = (__m128i *)(pY + i*src_stride);
+		src2 = src1+1;
+		dst = (__m128i *)(vs_dst->video_buffer + i*vs_dst->pitch_y);
+
+		for (j=0; j<w/16; j++, src1+=2, src2+=2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+
+	for (i=0; i<h; i++) {
+		src1 = (__m128i *) (pU + i*src_stride/2);
+		src2 = src1+1;
+		if (vs_dst->u_ptr) dst = (__m128i *) (vs_dst->u_ptr + i*vs_dst->pitch_y/2);
+		else dst = (__m128i *)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y/2);
+
+		for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+
+	for (i=0; i<h; i++) {
+		src1 = (__m128i *) (pV + i*src_stride/2);
+		src2 = src1+1;
+		if (vs_dst->v_ptr) dst = (__m128i *) (vs_dst->v_ptr + i*vs_dst->pitch_y/2);
+		else dst = (__m128i *)(vs_dst->video_buffer + 3*vs_dst->pitch_y * vs_dst->height/2  + i*vs_dst->pitch_y/2);
+
+		for (j=0; j<w/32; j++, src1+=2, src2+=2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+	return GF_OK;
+	
+}
+
+static GF_Err gf_color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
+{
+	u32 i, j, w, h;
+	if (!pU) {
+		pU = pY + src_stride * src_height;
+		pV = pY + 2 * src_stride * src_height ;
+	}
+
+	if (_src_wnd) {
+		pY = pY + src_stride * _src_wnd->y  + _src_wnd->x;
+		pU = pU + src_stride * _src_wnd->y  + _src_wnd->x;
+		pV = pV + src_stride * _src_wnd->y  + _src_wnd->x;
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+	}
+	else {
+		w = src_width;
+		h = src_height;
+	}
+
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
+	}
+
+
+	
+	__m128i val1, val2, val_dst, *src1, *src2, *dst;
+	for (i = 0; i<h; i++) {
+		src1 = (__m128i *)(pY + i*src_stride);
+		src2 = src1 + 1;
+		dst = (__m128i *)(vs_dst->video_buffer + i*vs_dst->pitch_y);
+
+		for (j = 0; j<w / 16; j++, src1 += 2, src2 += 2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+
+	for (i = 0; i<h; i++) {
+		src1 = (__m128i *) (pU + i*src_stride );
+		src2 = src1 + 1;
+		if (vs_dst->u_ptr) dst = (__m128i *) (vs_dst->u_ptr + i*vs_dst->pitch_y );
+		else dst = (__m128i *)(vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y );
+
+		for (j = 0; j<w / 16; j++, src1 += 2, src2 += 2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+
+	for (i = 0; i<h ; i++) {
+		src1 = (__m128i *) (pV + i*src_stride );
+		src2 = src1 + 1;
+		if (vs_dst->v_ptr) dst = (__m128i *) (vs_dst->v_ptr + i*vs_dst->pitch_y);
+		else dst = (__m128i *)(vs_dst->video_buffer + 2 * vs_dst->pitch_y * vs_dst->height  + i*vs_dst->pitch_y );
+
+		for (j = 0; j<w / 16; j++, src1 += 2, src2 += 2, dst++) {
+			val1 = _mm_load_si128(src1);
+			val1 = _mm_srli_epi16(val1, 2);
+			val2 = _mm_load_si128(src2);
+			val2 = _mm_srli_epi16(val2, 2);
+			val_dst = _mm_packus_epi16(val1, val2);
+			_mm_store_si128(dst, val_dst);
+		}
+	}
+	return GF_OK;
+	
+}
 #endif
 
 
@@ -1661,15 +1818,52 @@ GF_Err gf_color_write_yv12_10_to_yuv(GF_VideoSurface *vs_dst,  unsigned char *pY
 }
 
 GF_EXPORT
-GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv)
+GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
-	w = src_width;
-	h = src_height;
-	
-	if ( vs_dst == NULL || pY == NULL || pU == NULL || pV == NULL)
-	{
-		return GF_BAD_PARAM;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+	} else {
+		w = src_width;
+		h = src_height;
+	}
+
+
+#ifdef GPAC_HAS_SSE2
+
+#ifdef GPAC_64_BITS
+#define GFINTCAST  (u64)
+#else
+#define GFINTCAST  (u32)
+#endif
+
+	if ( (w%32 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y/2)%8 == 0)
+	        && (GFINTCAST (pU + src_stride/2)%8 == 0)
+	        && (GFINTCAST (pV + src_stride/2)%8 == 0)
+	   ) {
+		return gf_color_write_yuv422_10_to_yuv422_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd, swap_uv);
+	}
+#endif
+
+	if (!pU) {
+		pU = pY + src_stride * src_height;
+		pV = pY + 3*src_stride * src_height/2;
+	}
+
+	if (_src_wnd) {
+		pY = pY + src_stride * _src_wnd->y + _src_wnd->x;
+		pU = pU + (src_stride * _src_wnd->y + _src_wnd->x) / 2;
+		pV = pV + (src_stride * _src_wnd->y + _src_wnd->x) / 2;
+	}
+
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
 	}
 	
 	for (i=0; i<h; i++) {
@@ -1707,17 +1901,54 @@ GF_Err gf_color_write_yuv422_10_to_yuv422(GF_VideoSurface *vs_dst,  unsigned cha
 }
 
 GF_EXPORT
-GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *src_wnd, Bool swap_uv)
+GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
-	w = src_width;
-	h = src_height;
-	
-	if ( vs_dst == NULL || pY == NULL || pU == NULL || pV == NULL)
-	{
-		return GF_BAD_PARAM;
+
+	if (_src_wnd) {
+		w = _src_wnd->w;
+		h = _src_wnd->h;
+	} else {
+		w = src_width;
+		h = src_height;
 	}
-	
+
+
+#ifdef GPAC_HAS_SSE2
+
+#ifdef GPAC_64_BITS
+#define GFINTCAST  (u64)
+#else
+#define GFINTCAST  (u32)
+#endif
+
+	if ( (w%32 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y)%8 == 0)
+	        && (GFINTCAST (vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height + vs_dst->pitch_y)%8 == 0)
+	        && (GFINTCAST (pU + src_stride)%8 == 0)
+	        && (GFINTCAST (pV + src_stride)%8 == 0)
+	   ) {
+		return gf_color_write_yuv444_10_to_yuv444_intrin(vs_dst, pY, pU, pV, src_stride, src_width, src_height, _src_wnd, swap_uv);
+	}
+#endif
+
+	if (!pU) {
+		pU = pY + src_stride * src_height;
+		pV = pY + 2*src_stride * src_height;
+	}
+
+	if (_src_wnd) {
+		pY = pY + src_stride * _src_wnd->y  + _src_wnd->x;
+		pU = pU + src_stride * _src_wnd->y  + _src_wnd->x ;
+		pV = pV + src_stride * _src_wnd->y  + _src_wnd->x;
+	}
+
+	if (swap_uv) {
+		u8 *t = pV;
+		pV = pU;
+		pU = t;
+	}
+
 	for (i=0; i<h; i++) {
 		u16 *src_y = (u16 *) (pY + i*src_stride);
 		u8 *dst_y = (u8 *) vs_dst->video_buffer + i*vs_dst->pitch_y;
