@@ -405,7 +405,7 @@ typedef struct
 	Bool dependent_slice_segment_flag;
 	Bool first_slice_segment_in_pic_flag;
 	u32 slice_segment_address;
-	u8 prev_layer_id;
+	u8 prev_layer_id_plus1;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
