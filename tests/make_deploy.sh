@@ -20,7 +20,7 @@ git config user.email "travisci@gpac.io"
 
 # The first and only commit to this new Git repo contains all the
 # files present with the commit message "Deploy to GitHub Pages".
-git add all_results.xml stylesheet.xsl index.html logs lcov.info
+git add all_results.xml stylesheet.xsl index.html logs coverage coverage.info
 git commit -q -m "Deploy to GitHub Pages"
 
 # Force push from the current repo's master branch to the remote
