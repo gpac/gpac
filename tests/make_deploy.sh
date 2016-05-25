@@ -7,7 +7,7 @@ fi
 
 set -e # exit with nonzero exit code if anything fails
 
-cp -f stylesheet.xsl index.html ../lcov.txt results
+cp -rf stylesheet.xsl index.html ../coverage ../coverage.info results
 
 # go to the results directory and create a *new* Git repo
 cd results
