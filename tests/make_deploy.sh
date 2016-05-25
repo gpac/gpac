@@ -7,7 +7,7 @@ fi
 
 set -e # exit with nonzero exit code if anything fails
 
-cp -f stylesheet.xsl index.html results
+cp -f stylesheet.xsl index.html ../lcov.txt results
 
 # go to the results directory and create a *new* Git repo
 cd results
@@ -20,7 +20,7 @@ git config user.email "travisci@gpac.io"
 
 # The first and only commit to this new Git repo contains all the
 # files present with the commit message "Deploy to GitHub Pages".
-git add all_results.xml stylesheet.xsl index.html logs
+git add all_results.xml stylesheet.xsl index.html logs lcov.info
 git commit -q -m "Deploy to GitHub Pages"
 
 # Force push from the current repo's master branch to the remote
