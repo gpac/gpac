@@ -85,10 +85,14 @@ lcov:	lcov_only
 
 travis_tests:
 	@echo "Running tests"
-	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before && ./make_deploy.sh
+	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
 	@rm -f ./gpac-conf--* > /dev/null
 
-travis: travis_tests lcov_only
+travis_deploy:
+	@echo "Deploying results"
+	@cd $(SRC_PATH)/tests && ./make_deploy.sh
+
+travis: travis_tests lcov travis_deploy
 
 dep:	depend
 
