@@ -42,12 +42,12 @@ u8 *pU = NULL;
 u8 *pV = NULL;
 u32 width = 0;
 u32 height = 0;
-u32 size=0;
 u32 bpp=8;
 u32 Bpp=1;
+u32 yuv_fmt=0;
 GLint memory_format=GL_UNSIGNED_BYTE;
 GLint pixel_format=GL_LUMINANCE;
-GLint texture_type=GL_TEXTURE_RECTANGLE_EXT;
+GLint texture_type=GL_TEXTURE_2D;
 u32 gl_nb_frames = 1;
 u64 gl_upload_time = 0;
 u64 gl_draw_time = 0;
@@ -155,16 +155,20 @@ Bool sdl_compile_shader(GF_SHADERID shader_id, const char *name, const char *sou
 	return 1;
 }
 
+u32 y_size=0;
+u32 u_size=0;
+u32 v_size=0;
+
 void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 {
 	u32 i, flags;
 	Float hw, hh;
 	GLint loc;
 	GF_Matrix mx;
+	
 	width = _width;
 	height = _height;
 	bpp = _bpp;
-
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
 	SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
@@ -185,20 +189,24 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 
 
 #if (COPY_TYPE==5)
-	size = stride*height;
+	y_size = stride*height;
 #else
-	size = width*height;
+	y_size = width*height;
 #endif
 	if (bpp>8) {
-		size *= 2;
+		y_size *= 2;
 		Bpp = 2;
 	}
-	pY = gf_malloc(size*sizeof(u8));
-	memset(pY, 0x80, size*sizeof(u8));
-	pU = gf_malloc(size/4*sizeof(u8));
-	memset(pU, 0, size/4*sizeof(u8));
-	pV = gf_malloc(size/4*sizeof(u8));
-	memset(pV, 0, size/4*sizeof(u8));
+	pY = gf_malloc(y_size*sizeof(u8));
+	memset(pY, 0x80, y_size*sizeof(u8));
+	if (yuv_fmt==2) u_size = v_size = y_size;
+	else if (yuv_fmt==1) u_size = v_size = y_size/2;
+	else u_size = v_size = y_size/4;
+
+	pU = gf_malloc(u_size*sizeof(u8));
+	memset(pU, 0, u_size*sizeof(u8));
+	pV = gf_malloc(v_size*sizeof(u8));
+	memset(pV, 0, v_size*sizeof(u8));
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	glViewport(0, 0, width, height);
@@ -329,13 +337,13 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 		glGenBuffers(1, &pbo_V);
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_Y);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size, NULL, GL_DYNAMIC_DRAW_ARB);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, y_size, NULL, GL_DYNAMIC_DRAW_ARB);
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_U);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size/4, NULL, GL_DYNAMIC_DRAW_ARB);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, u_size, NULL, GL_DYNAMIC_DRAW_ARB);
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_V);
-		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, size/4, NULL, GL_DYNAMIC_DRAW_ARB);
+		glBufferData(GL_PIXEL_UNPACK_BUFFER_ARB, v_size, NULL, GL_DYNAMIC_DRAW_ARB);
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 	}
@@ -389,6 +397,23 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 {
 	u32 needs_stride = 0;
 	u64 draw_start, end;
+	u32 uv_w, uv_h, uv_stride;
+	
+	if (yuv_fmt==2) {
+		uv_w = w;
+		uv_h = h;
+		uv_stride = stride;
+	}
+	else if (yuv_fmt==1) {
+		uv_w = w;
+		uv_h = h/2;
+		uv_stride = stride;
+	}
+	else {
+		uv_w = w/2;
+		uv_h = h/2;
+		uv_stride = stride/2;
+	}
 
 	if (stride != w) {
 		if (bit_depth==10) {
@@ -408,15 +433,15 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 	if (first_tx_load) {
 		glBindTexture(texture_type, txid[0] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
-		glTexImage2D(texture_type, 0, 1, w, h, 0, pixel_format, memory_format, pY);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, w, h, 0, pixel_format, memory_format, pY);
 
 		glBindTexture(texture_type, txid[1] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexImage2D(texture_type, 0, 1, w/2, h/2, 0, pixel_format, memory_format, pU);
+		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, pU);
 
 		glBindTexture(texture_type, txid[2] );
-		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexImage2D(texture_type, 0, 1, w/2, h/2, 0, pixel_format, memory_format, pV);
+		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, uv_stride);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, pV);
 
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
 		first_tx_load = GF_FALSE;
@@ -468,14 +493,14 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_U);
 		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 #if (COPY_TYPE==5)
-		memcpy(ptr, pU, size/4);
+		memcpy(ptr, pU, uv_w * uv_h);
 #elif (COPY_TYPE==3)
-		memset(ptr, 0x80, size/4);
+		memset(ptr, 0x80, uv_w * uv_h);
 #elif (COPY_TYPE==4)
 #else
-		linesize = width*Bpp/2;
-		p_stride = stride/2;
-		count/=2;
+		linesize = uv_w * Bpp;
+		p_stride = uv_stride;
+		count = uv_h;
 #if (COPY_TYPE==2)
 		c2 /= 2;
 		s = (u32 *)pU;
@@ -503,9 +528,9 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_V);
 		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
 #if (COPY_TYPE==5)
-		memcpy(ptr, pV, size/4);
+		memcpy(ptr, pV, uv_w * uv_h);
 #elif (COPY_TYPE==3)
-		memset(ptr, 0x80, size/4);
+		memset(ptr, 0x80, uv_w * uv_h);
 #elif (COPY_TYPE==4)
 #else
 #if (COPY_TYPE==2)
@@ -540,21 +565,21 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 		glBindTexture(texture_type, txid[0] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_Y);
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride);
-		glTexImage2D(texture_type, 0, 1, w, h, 0, pixel_format, memory_format, NULL);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, w, h, 0, pixel_format, memory_format, NULL);
 		//glTexSubImage2D crashes with PBO and 2-bytes luminance on my FirePro W5000 ...
 //		glTexSubImage2D(texture_type, 0, 0, 0, w, h, pixel_format, memory_format, pY);
 
 		glBindTexture(texture_type, txid[1] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_U);
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexImage2D(texture_type, 0, 1, w/2, h/2, 0, pixel_format, memory_format, NULL);
-//		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pU);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, NULL);
+//		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pU);
 
 		glBindTexture(texture_type, txid[2] );
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, pbo_V);
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexImage2D(texture_type, 0, 1, w/2, h/2, 0, pixel_format, memory_format, NULL);
-//		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pV);
+		glTexImage2D(texture_type, 0, GL_LUMINANCE, uv_w, uv_h, 0, pixel_format, memory_format, NULL);
+//		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pV);
 #endif
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
@@ -567,12 +592,12 @@ void sdl_draw_frame(u8 *pY, u8 *pU, u8 *pV, u32 w, u32 h, u32 bit_depth, u32 str
 
 		glBindTexture(texture_type, txid[1] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pU);
+		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pU);
 		glBindTexture(texture_type, 0);
 
 		glBindTexture(texture_type, txid[2] );
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, needs_stride/2);
-		glTexSubImage2D(texture_type, 0, 0, 0, w/2, h/2, pixel_format, memory_format, pV);
+		glTexSubImage2D(texture_type, 0, 0, 0, uv_w, uv_h, pixel_format, memory_format, pV);
 		glBindTexture(texture_type, 0);
 
 		if (needs_stride) glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
@@ -621,13 +646,21 @@ void sdl_bench()
 	u32 i, count;
 	u64 start = gf_sys_clock_high_res();
 
-	count = 600;
+	fprintf(stderr, "Benching YUV %s blitting\n", (yuv_fmt==2) ? "444" : (yuv_fmt==1) ? "422" : "420");
+
+	count = 2000;
 	for (i=0; i<count; i++) {
+	/*
+		u8 val = i%255;
+		memset(pY, val, sizeof(char) * y_size);
+		memset(pU, val, sizeof(char) * u_size);
+		memset(pV, val, sizeof(char) * v_size);
+	*/
 		sdl_draw_frame(pY, pU, pV, width, height, bpp, width);
 	}
 
 	start = gf_sys_clock_high_res() - start;
-	rate = 3*size/2;
+	rate = y_size+u_size+v_size;
 	rate *= count*1000;
 	rate /= start; //in ms
 	rate /= 1000; //==*1000 (in s) / 1000 * 1000 in MB /s
@@ -641,6 +674,7 @@ void PrintUsage()
 	        "Options:\n"
 	        "-bench-yuv: only bench YUV upload rate\n"
 	        "-bench-yuv10: only bench YUV10 upload rate\n"
+	        "-yuv-fmt=N: sets YUV format for yuv bench modes. N = 420, 422 or 444 only\n"
 	        "-sys-mem: uses  copy from decoder mem to system mem before upload (removes stride)\n"
 	        "-use-pbo: uses PixelBufferObject for texture transfer\n"
 	        "-output-8b: forces CPU conversion to 8 bit before display (only available when -sys-mem is used)\n"
@@ -696,6 +730,11 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
 		else if (!strcmp(arg, "-output-8b")) output_8bit = GF_TRUE;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_MemTrackerSimple;
+		else if (!strncmp(arg, "-yuv-fmt=", 9)) {
+			if (!strcmp(arg+9, "444")) yuv_fmt=2;
+			else if (!strcmp(arg+9, "422")) yuv_fmt=1;
+			else yuv_fmt=0;
+		}
 		else if (!strncmp(arg, "-nb-threads=", 12)) nb_threads = atoi(arg+12);
 		else if (!strncmp(arg, "-mode=", 6)) {
 			if (!strcmp(arg+6, "wpp")) mode = 2;
