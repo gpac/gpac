@@ -661,7 +661,7 @@ static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 }
 
 
-static void check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
+void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
 {
 #ifndef GPAC_DISABLE_3D
 	Bool texture_ready=0;
@@ -778,7 +778,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 	ctx->flags |= drawable_get_aspect_2d_mpeg4(drawable->node, &ctx->aspect, tr_state);
 
-	check_texture_dirty(ctx, drawable, tr_state);
+	drawable_check_texture_dirty(ctx, drawable, tr_state);
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may
 	completely break layout of children. We consider the node should be drawn*/
@@ -1544,7 +1544,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 		}
 	}
 
-	check_texture_dirty(ctx, drawable, tr_state);
+	drawable_check_texture_dirty(ctx, drawable, tr_state);
 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
 	if (tr_state->fliped_coords)

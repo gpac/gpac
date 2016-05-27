@@ -16,6 +16,8 @@ compositor_test ()
 }
 
 BIFS_DIR="$MEDIA_DIR/bifs"
+BIFS_DIR="$MEDIA_DIR/bifs"
+SVG_DIR="$MEDIA_DIR/svg"
 
 #we don't check all files for 2D or always mode checking, onnly: backgrounds2D, interactivity (one is enough), material, texturing and bitmap
 test_2d_3d()
@@ -62,3 +64,17 @@ opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=defer-debug"
 compositor_test "hyb-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
 opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=defer-debug"
 compositor_test "nogl-defer-debug" "$BIFS_DIR/bifs-interpolation-positioninterpolator2D-position.bt" $opt
+
+
+#test opacity on SVG
+opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=immediate"
+compositor_test "svgopacity-hyb-immediate" "$SVG_DIR/opacity.svg" $opt
+opt="-opt Compositor:OpenGLMode=hybrid -opt Compositor:DrawMode=defer"
+compositor_test "svgopacity-hyb-defer" "$SVG_DIR/opacity.svg" $opt
+opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=immediate"
+compositor_test "svgopacity-nogl-immediate" "$SVG_DIR/opacity.svg" $opt
+opt="-opt Compositor:OpenGLMode=disable -opt Compositor:DrawMode=defer"
+compositor_test "svgopacity-nogl-defer" "$SVG_DIR/opacity.svg" $opt
+opt="-opt Compositor:OpenGLMode=always"
+compositor_test "svgopacity-gl" "$SVG_DIR/opacity.svg" $opt
+

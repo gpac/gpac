@@ -324,4 +324,5 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp);
 
 Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc);
 
+void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state);
 #endif

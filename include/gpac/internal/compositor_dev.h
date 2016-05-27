@@ -244,6 +244,8 @@ struct __tag_compositor
 	u32 force_next_frame_redraw;
 	/*freeze_display prevents any screen updates - needed when output driver uses direct video memory access*/
 	Bool is_hidden, freeze_display;
+
+	//debug non-immediate mode ny erasing the parts that would have been drawn
 	Bool debug_defer;
 
 	Bool disable_composite_blit, disable_hardware_blit, rebuild_offscreen_textures;
@@ -772,6 +774,10 @@ struct _traversing_state
 	u32 traversing_mode;
 	/*for 2D drawing, indicates objects are to be drawn as soon as traversed, at each frame*/
 	Bool immediate_draw;
+	//flag set when immediate_draw whn in defer mode, so that canvas is not erased in hybgl mode
+	Bool immediate_for_defer;
+	
+	
 	/*current subtree is part of a switched-off subtree (needed for audio)*/
 	Bool switched_off;
 	/*set by the traversed subtree to indicate no cull shall be performed*/
