@@ -277,11 +277,15 @@ GF_Err visual_2d_init_draw(GF_VisualManager *visual, GF_TraverseState *tr_state)
 	if (e)
 		return e;
 
+	tr_state->immediate_for_defer = GF_FALSE;
 	draw_mode = 0;
-	if (tr_state->immediate_draw) draw_mode = 1;
+	if (tr_state->immediate_draw) {
+		draw_mode = 1;
+	}
 	/*if we're requested to invalidate everything, switch to direct drawing but don't reset bounds*/
 	else if (tr_state->invalidate_all) {
 		tr_state->immediate_draw = 1;
+		tr_state->immediate_for_defer = GF_TRUE;
 		draw_mode = 2;
 	}
 	tr_state->invalidate_all = 0;
