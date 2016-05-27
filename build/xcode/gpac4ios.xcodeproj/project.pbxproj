@@ -365,6 +365,11 @@
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
 		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; };
 		9212E8031CCA82310036F310 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212E8021CCA82300036F310 /* amr_in.c */; };
+		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
+		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
+		921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA21CF881DE00B437C2 /* sensors_def.h */; };
+		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
+		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -472,9 +477,7 @@
 		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
-		976AF99A1704C5C9004E9C00 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
-		9793AE351704C0BD00E0C938 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9793AE341704C0BD00E0C938 /* CoreGraphics.framework */; };
 		97A5D5891704C61A00144E5D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
 		97A8DDC41896AFF300F4680F /* ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 97A8DDC31896AFF300F4680F /* ttml.c */; };
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
@@ -916,6 +919,11 @@
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
 		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
 		9212E8021CCA82300036F310 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
+		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		921FEBA21CF881DE00B437C2 /* sensors_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors_def.h; path = ../../applications/osmo4_ios/sensors_def.h; sourceTree = "<group>"; };
+		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
+		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -1065,6 +1073,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */,
+				921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */,
 				928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */,
 				928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */,
 				2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */,
@@ -1099,8 +1109,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9793AE351704C0BD00E0C938 /* CoreGraphics.framework in Frameworks */,
-				976AF99A1704C5C9004E9C00 /* AudioToolbox.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1134,6 +1142,8 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				921FEB9E1CF8665900B437C2 /* CoreLocation.framework */,
+				921FEB9C1CF8664800B437C2 /* CoreMotion.framework */,
 				928B2D111BE11BC100CAC65D /* libcrypto.a */,
 				928B2D121BE11BC100CAC65D /* libssl.a */,
 				2897039B1A13C4050063E9C0 /* libswresample.a */,
@@ -1256,6 +1266,9 @@
 		71A19B1412796AC700ACFF58 /* osmo4iOS */ = {
 			isa = PBXGroup;
 			children = (
+				921FEBA21CF881DE00B437C2 /* sensors_def.h */,
+				921FEBA31CF881DE00B437C2 /* sensors.h */,
+				921FEBA41CF881DE00B437C2 /* sensors.m */,
 				92D127FD1BBADC7F00DA003B /* shaders */,
 				92B69DB01A091CFC004E74AA /* gui */,
 				929A929616EF8BC200B7C64F /* Default-568h@2x.png */,
@@ -1999,6 +2012,7 @@
 				71CCF2961277045100339E12 /* visual_manager_2d.h in Headers */,
 				71CCF2991277045100339E12 /* visual_manager_3d.h in Headers */,
 				925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */,
+				921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */,
 				71CCF2E11277045100339E12 /* mpeg2_ps.h in Headers */,
 				922EB5861AAE13C500DF46D0 /* version.h in Headers */,
 				71CCF31B1277045100339E12 /* input_sensor.h in Headers */,
@@ -2053,6 +2067,7 @@
 				71CCF3DB12770A8C00339E12 /* mediaobject.h in Headers */,
 				71CCF3DC12770A8C00339E12 /* module.h in Headers */,
 				71CCF3DD12770A8C00339E12 /* audio_out.h in Headers */,
+				921FEBA61CF881DE00B437C2 /* sensors.h in Headers */,
 				71CCF3DE12770A8C00339E12 /* codec.h in Headers */,
 				71CCF3DF12770A8C00339E12 /* font.h in Headers */,
 				71CCF3E012770A8C00339E12 /* ipmp.h in Headers */,
@@ -2274,6 +2289,7 @@
 				92BC210F16EF8E7A000E0620 /* gpac_js.c in Sources */,
 				92BC211916EF8E7A000E0620 /* laser_dec.c in Sources */,
 				92BC211B16EF8E7A000E0620 /* mad_dec.c in Sources */,
+				921FEBA71CF881DE00B437C2 /* sensors.m in Sources */,
 				92BC211D16EF8E7A000E0620 /* mp3_in.c in Sources */,
 				9212E8031CCA82310036F310 /* amr_in.c in Sources */,
 				92BC211E16EF8E7A000E0620 /* mpd_in.c in Sources */,

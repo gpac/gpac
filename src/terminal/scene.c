@@ -1310,6 +1310,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
+		GF_Event evt;
 		scene->is_live360 = GF_FALSE;
 		if (strstr(scene->root_od->net_service->url, "#LIVE360TV")) {
 			scene->is_live360 = GF_TRUE;
@@ -1337,6 +1338,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			((M_NavigationInfo *)n2)->type.vals[0] = gf_strdup("VR");
 			gf_free( ((M_NavigationInfo *)n2)->type.vals[1] );
 			((M_NavigationInfo *)n2)->type.vals[1] = gf_strdup("NONE");
+			((M_NavigationInfo *)n2)->type.count = 2;
 			((M_NavigationInfo *)n2)->avatarSize.count = 0;
 
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
@@ -1402,6 +1404,14 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
 		}
+		
+
+		//send activation for sensors
+		memset(&evt, 0, sizeof(GF_Event));
+		evt.type = GF_EVENT_SENSOR_REQUEST;
+		evt.activate_sensor.activate = scene->is_live360;
+		evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
+		gf_term_send_event(scene->root_od->term, &evt);
 	}
 
 

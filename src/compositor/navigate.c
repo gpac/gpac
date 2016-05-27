@@ -595,6 +595,34 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 			break;
 		}
 		break;
+	case GF_EVENT_SENSOR_ORIENTATION:
+	{
+		Fixed x, y, z, w, yaw, pitch, roll;
+		GF_Vec target;
+		GF_Matrix mx;
+		x = ev->sensor.x;
+		y = ev->sensor.y;
+		z = ev->sensor.z;
+		w = ev->sensor.w;
+		
+		
+		yaw = atan2(2*z*w - 2*y*x , 1 - 2*pow(z,2) - 2*pow(x,2));
+		pitch = asin(2*y*z + 2*x*w);
+		roll = atan2(2*y*w - 2*z*x , 1 - 2*pow(y,2) - 2*pow(x,2));
+
+		target.x = 0;
+		target.y = -FIX_ONE;
+		target.z = 0;
+		gf_mx_init(mx);
+		gf_mx_add_rotation(&mx, yaw, 0, FIX_ONE, 0);
+		gf_mx_add_rotation(&mx, -roll, FIX_ONE, 0, 0);
+		
+		gf_mx_apply_vec(&mx, &target);
+
+		cam->target = target;
+		update_pan_up(compositor, cam);
+	}
+		return 1;
 	}
 	return 0;
 }

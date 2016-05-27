@@ -28,12 +28,14 @@
 #include <gpac/term_info.h>
 #include <gpac/constants.h>
 #include <gpac/options.h>
+#include <gpac/events.h>
 #include <gpac/modules/service.h>
 #include <gpac/internal/terminal_dev.h>
 
 #include <pwd.h>
 #include <unistd.h>
 
+#include "sensors_def.h"
 
 static Bool restart = 0;
 static Bool not_threaded = 1;
@@ -156,6 +158,28 @@ u32 get_sys_col(int idx)
 #endif
 
 
+void *gyro_dev = NULL;
+
+void ios_sensor_callback(int sensorType, float x, float y, float z, float w)
+{
+	GF_Event evt;
+	memset(&evt, 0, sizeof(GF_Event));
+	
+	switch (sensorType) {
+	case SENSOR_ORIENTATION:
+		evt.type = GF_EVENT_SENSOR_ORIENTATION;
+		evt.sensor.x = x;
+		evt.sensor.y = y;
+		evt.sensor.z = z;
+		evt.sensor.w = w;
+		gf_term_user_event(term, &evt);
+		return;
+	default:
+		return;
+	}
+}
+
+
 static s32 request_next_playlist_item = GF_FALSE;
 FILE *playlist = NULL;
 
@@ -226,6 +250,19 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			request_next_playlist_item=GF_TRUE;
 		}
 		break;
+	case GF_EVENT_SENSOR_REQUEST:
+		if (evt->activate_sensor.sensor_type==GF_EVENT_SENSOR_ORIENTATION) {
+			if (evt->activate_sensor.activate) {
+				if (gyro_dev) return 0;
+				/*start sensors*/
+				gyro_dev = sensor_create(SENSOR_ORIENTATION, ios_sensor_callback);
+				sensor_start(gyro_dev);
+			} else if (gyro_dev) {
+				sensor_stop(gyro_dev);
+				sensor_destroy(&gyro_dev);
+			}
+		}
+		break;
 	}
 	return 0;
 }
@@ -271,9 +308,7 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 
 static void on_progress_null(const void *_ptr, const char *_title, u64 done, u64 total)
 {
-
 }
-
 #ifdef GPAC_IPHONE
 int SDL_main (int argc, char *argv[])
 #else
@@ -293,7 +328,6 @@ int main (int argc, char *argv[])
 	const char *logs_settings = NULL;
 	GF_SystemRTInfo rti;
 	FILE *logfile = NULL;
-
 	/*by default use current dir*/
 	strcpy(the_url, ".");
 
@@ -324,7 +358,7 @@ int main (int argc, char *argv[])
 #endif
 		}
 	}
-
+	
 	gf_sys_init(enable_mem_tracker);
 	gf_set_progress_callback(NULL, on_progress_null);
 
@@ -376,6 +410,10 @@ int main (int argc, char *argv[])
 		return 1;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
+
+//	url_arg="/var/root/NBA_under_the_hoop_hd.mp4#LIVE360TV";
+//	gf_cfg_set_key(cfg_file, "Compositor", "NumViews", "2");
+//	gf_cfg_set_key(cfg_file, "Compositor", "StereoType", "SideBySide");
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
@@ -512,7 +550,6 @@ int main (int argc, char *argv[])
 		continue;
 	}
 
-
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
@@ -523,6 +560,12 @@ int main (int argc, char *argv[])
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("GPAC cleanup ...\n"));
 	gf_modules_del(user.modules);
 	gf_cfg_del(cfg_file);
+
+	if (gyro_dev) {
+		sensor_stop(gyro_dev);
+		sensor_destroy(&gyro_dev);
+	}
+
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
