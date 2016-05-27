@@ -50,7 +50,7 @@ void camera_invalidate(GF_Camera *cam)
 	cam->had_viewpoint = 2;
 	cam->had_nav_info = GF_TRUE;
 	cam->flags = CAM_IS_DIRTY;
-	cam->navigate_mode = GF_NAVIGATE_NONE;
+//	cam->navigate_mode = GF_NAVIGATE_NONE;
 }
 
 static void camera_frustum_from_matrix(GF_Camera *cam, GF_Matrix *mx)
