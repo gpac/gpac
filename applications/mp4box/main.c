@@ -417,7 +417,7 @@ void PrintFormats()
 	        " PNG Images           .png\n"
 	        " MPEG 1-2 Audio       .mp3, .mp2, .m1a, .m2a\n"
 	        " ADTS-AAC Audio       .aac\n"
-			" Dolby (e)AC-3 Audio  .ac3 .ec3\n"
+	        " Dolby (e)AC-3 Audio  .ac3 .ec3\n"
 	        " AMR(WB) Audio        .amr .awb\n"
 	        " EVRC Audio           .evc\n"
 	        " SMV Audio            .smv\n"
