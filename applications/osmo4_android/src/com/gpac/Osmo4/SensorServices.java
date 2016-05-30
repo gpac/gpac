@@ -14,7 +14,7 @@ import android.hardware.SensorManager;
  * @version $Revision$
  * 
  */
-public class SensorsServices implements SensorEventListener {
+public class SensorServices implements SensorEventListener {
 
 	private static SensorManager sensorManager;
 
@@ -37,7 +37,7 @@ public class SensorsServices implements SensorEventListener {
      * @return SensorServices object
      *
      */
-    public SensorsServices(Context context){
+    public SensorServices(Context context){
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
