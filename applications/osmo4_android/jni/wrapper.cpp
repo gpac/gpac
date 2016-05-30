@@ -607,6 +607,11 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 		case GF_EVENT_NAVIGATE:
 			ptr->navigate( evt);
 			break;
+		case GF_EVENT_SENSOR_REQUEST:
+			if(evt->activate_sensor.sensor_type == GF_EVENT_SENSOR_ORIENTATION && evt->activate_sensor.activate){
+				//TODOk: code for handling 360 sensors goes here
+			}
+			break;
 		default:
 			LOGI("Unknown Message %d", evt->type);
 		}
