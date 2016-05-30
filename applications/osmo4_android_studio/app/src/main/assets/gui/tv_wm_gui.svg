@@ -1,0 +1,31 @@
+<svg width="1600" height="1024" xmlns="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny"
+     xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events" preserveAspectRatio="none"
+     viewport-fill="black">
+    <script xlink:href="mpegu-core.js"/>
+    <script xlink:href="tv_wm_gui.js"/>
+    <defs>
+        <radialGradient id="activeGradient" cx="1" cy="1" r="1.5">
+            <stop offset="0" stop-color="blue" stop-opacity="1"/>
+            <stop offset="1" stop-color="black" stop-opacity="1"/>
+        </radialGradient>
+        <radialGradient id="inactiveGradient" cx="1" cy="1" r="1.5">
+            <stop offset="0" stop-color="grey" stop-opacity="1"/>
+            <stop offset="1" stop-color="black" stop-opacity="1"/>
+        </radialGradient>
+    </defs>
+    <rect width="1600" height="1024" fill="gray"/>
+    <video id="movie" x="0" y="0" width="1600" restart="always" preserveAspectRatio="none" height="1024"
+           repeatCount="indefinite" xlink:href="../widgets/media/local_video/movies/Clovis Cornillac.mp4"/>
+    <g id="widget_display"/>
+    <g id="display"/>
+    <g id="dock">
+        <g>
+            <rect rx="2" stroke="black" stroke-width="1" fill="url(#inactiveGradient)"/>
+            <animation x="0" y="0" width="10" height="30" preserveAspectRatio="none"
+                       xlink:href="icons/go-previous.svg"/>
+            <animation x="310" y="0" width="10" height="30" preserveAspectRatio="none" xlink:href="icons/go-next.svg"/>
+        </g>
+    </g>
+    <handler ev:event="load">initialize();</handler>
+    <handler ev:event="resize">resize();</handler>
+</svg>
