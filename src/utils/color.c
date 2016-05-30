@@ -1954,11 +1954,12 @@ GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned cha
 		
 		u16 *src_u= (u16 *) (pU + i*src_stride);
 		u8 *dst_u = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height+ i*vs_dst->pitch_y;
-		if (vs_dst->u_ptr) dst_u = (u8 *) (vs_dst->u_ptr + i*vs_dst->pitch_y);
 		
 		u16 *src_v = (u16 *) (pV + i*src_stride);
 		u8 *dst_v = (u8 *) vs_dst->video_buffer + 2*vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y;
-		if (vs_dst->v_ptr) dst_v = (u8 *) (vs_dst->v_ptr + i*vs_dst->pitch_y);
+
+		if (vs_dst->u_ptr) dst_u = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y);
+		if (vs_dst->v_ptr) dst_v = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y);
 
 		for (j=0; j<w; j++) {
 			*dst_y = (*src_y) >> 2;
