@@ -130,7 +130,6 @@ done
 echo
 echo "[OK] success module for MP4box."
 
-
 LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
@@ -226,3 +225,5 @@ then
     fi
 fi
 
+
+cp -r "$BASEPATH/applications/osmo4_android/libs" "$BASEPATH/applications/osmo4_android_studio/app/src/main/jniLibs"

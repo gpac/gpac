@@ -1,0 +1,62 @@
+apply plugin: 'com.android.application'
+import org.apache.tools.ant.taskdefs.condition.Os
+
+android {
+    compileSdkVersion 18
+    buildToolsVersion "23.0.3"
+
+    defaultConfig {
+        applicationId "com.gpac.Osmo4"
+        minSdkVersion 8
+        targetSdkVersion 8
+    }
+
+    sourceSets.main {
+        jni.srcDirs = [] // This prevents the auto generation of Android.mk
+        jniLibs.srcDir 'src/main/jniLibs' // This is not necessary unless you have precompiled libraries in your project.
+    }
+
+    task buildNative(type: Exec, description: 'Compile JNI source via NDK') {
+        def ndkDir = android.ndkDirectory
+        def ndkCmd = "ndk-build"
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            ndkCmd = "ndk-build.cmd"
+        }
+
+        commandLine "$ndkDir/$ndkCmd",
+                '-C', file('src/main/jni').absolutePath, // Change src/main/jni the relative path to your jni source
+                '-j', Runtime.runtime.availableProcessors(),
+                'all',
+                'NDK_DEBUG=1'
+    }
+
+    task cleanNative(type: Exec, description: 'Clean JNI object files') {
+        def ndkDir = android.ndkDirectory
+        def ndkCmd = "ndk-build"
+        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+            ndkCmd = "ndk-build.cmd"
+        }
+
+        commandLine "$ndkDir/$ndkCmd",
+                '-C', file('src/main/jni').absolutePath, // Change src/main/jni the relative path to your jni source
+                'clean'
+    }
+
+    clean.dependsOn 'cleanNative'
+
+    tasks.withType(JavaCompile) {
+        compileTask -> compileTask.dependsOn buildNative
+    }
+
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
+        }
+    }
+}
+
+dependencies {
+    compile files('libs/real3d.jar')
+}

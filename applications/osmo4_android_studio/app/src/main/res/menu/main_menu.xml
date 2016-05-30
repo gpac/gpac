@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:visible="true" android:enabled="true" android:title="@string/open_file" android:id="@+id/open_file"
+        android:checkable="false"/>
+    <item android:visible="true" android:enabled="true" android:title="@string/open_url" android:id="@+id/open_url"
+        android:checkable="false"/>
+    <item android:visible="true" android:id="@+id/quit" android:title="@string/quit" android:enabled="true"
+        android:checkable="false"/>
+    <group android:id="@+id/options" android:enabled="true" android:visible="true" android:checkableBehavior="none"
+        android:menuCategory="secondary">
+        <item android:visible="true" android:enabled="true" android:title="@string/showVirtualKeyboard" android:id="@+id/showVirtualKeyboard"
+            android:checkable="false"/>
+        <item android:checkable="false" android:visible="true" android:title="@string/about" android:id="@+id/about"
+            android:enabled="true"/>
+        <item android:title="@string/quickSettings" 		android:id="@+id/quickSettings">
+			<menu>
+				<group android:checkableBehavior="all">
+			    	<item android:title="@string/debug" 		android:id="@+id/enableDebug"></item>
+			    	<item android:title="@string/autoRotate" 	android:id="@+id/autoRotate"	android:checked="true"></item>
+				</group>
+			</menu>
+		</item>
+        <item android:id="@+id/cleanCache" android:enabled="true" android:title="@string/cleanCache"
+            android:checkable="false" android:visible="true"/>
+        <item android:checkable="false" android:visible="true" android:title="@string/reloadFile" android:id="@+id/reloadFile"
+            android:enabled="true"/>
+        <item android:enabled="true" android:checkable="false" android:id="@+id/setAsStartupFile" android:visible="true"
+            android:title="@string/setAsStartupFile"/>
+        <item android:enabled="true" android:checkable="false" android:id="@+id/resetGpacConfig" android:visible="true"
+            android:title="@string/resetGpacConfig"/>
+    </group>
+
+</menu>
