@@ -1,6 +1,7 @@
 package com.gpac.Osmo4;
 
 import android.content.Context;
+import android.util.Log;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -29,6 +30,7 @@ public class SensorServices implements SensorEventListener {
 
     private boolean initAcc = false, initMagn = false;
 
+    private static final String LOG_TAG = "GPAC SensorServices";
 
     /**
      * Constructor (initialize sensors)
@@ -60,9 +62,34 @@ public class SensorServices implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-    	//new data arrives here
-    }
 
+        switch(event.sensor.getType()){
+            case Sensor.TYPE_ACCELEROMETER:
+                lastAcc = event.values;
+                initAcc = true;
+                break;
+            case Sensor.TYPE_MAGNETIC_FIELD:
+                lastMagn = event.values;
+                initMagn = true;
+                break;
+            default:
+                return;
+        }
+
+        boolean gotRotation = false;
+        try {
+            gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
+        } catch (Exception e) {
+            gotRotation = false;
+            Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
+        }
+
+        if(gotRotation){
+            float orientation[] = new float[3];
+            SensorManager.getOrientation(rotation, orientation);
+            Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
+        }
+    }
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
