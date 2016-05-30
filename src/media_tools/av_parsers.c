@@ -4645,8 +4645,10 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 			break;
 		}
 		if (n_state.first_slice_segment_in_pic_flag) {
-			ret=1;
-			break;
+			if (!(*layer_id) || !n_state.prev_layer_id_plus1 || ((*layer_id) <= n_state.prev_layer_id_plus1 - 1)) {
+				ret = 1;
+				break;
+			}
 		}
 		break;
 	case GF_HEVC_NALU_SEQ_PARAM:
@@ -4664,6 +4666,7 @@ s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_typ
 
 		n_state.poc_lsb_prev = hevc->s_info.poc_lsb;
 		n_state.poc_msb_prev = hevc->s_info.poc_msb;
+		n_state.prev_layer_id_plus1 = *layer_id + 1;
 	}
 	if (slice) hevc_compute_poc(&n_state);
 	memcpy(&hevc->s_info, &n_state, sizeof(HEVCSliceInfo));
