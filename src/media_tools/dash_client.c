@@ -4834,6 +4834,8 @@ restart_period:
 	/*setup period*/
 	e = gf_dash_setup_period(dash);
 	if (e) {
+		//move to stop state before sending the error event otherwise we might deadlock when disconnecting the dash client
+		dash->dash_state = GF_DASH_STATE_STOPPED;
 		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
 		ret = 1;
 		goto exit;
@@ -4860,6 +4862,8 @@ restart_period:
 
 	/*if error signal to the user*/
 	if (e != GF_OK) {
+		//move to stop state before sending the error event otherwise we might deadlock when disconnecting the dash client
+		dash->dash_state = GF_DASH_STATE_STOPPED;
 		dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_PERIOD_SETUP_ERROR, -1, e);
 		ret = 1;
 		goto exit;
@@ -5115,7 +5119,6 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 		gf_mx_v(dash->dash_mutex);
 		while (1) {
 			/* waiting for the download thread to stop */
-			gf_sleep(16);
 			gf_mx_p(dash->dash_mutex);
 			if (dash->dash_state == GF_DASH_STATE_STOPPED) {
 				/* it's stopped we can continue */
