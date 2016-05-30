@@ -143,6 +143,11 @@ public class Osmo4 extends Activity implements GpacCallback {
     
     private LinearLayout gl_view;
 
+    /**
+     * Handling of Sensors
+     */
+    private SensorServices sensors;
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -309,6 +314,9 @@ public class Osmo4 extends Activity implements GpacCallback {
                 Log.d(LOG_OSMO_TAG, "Error in copying config file: " + e.toString());
             }
         }
+
+        sensors = new SensorServices(this);
+
     }
     
     /*
