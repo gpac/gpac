@@ -1263,4 +1263,19 @@ public class Osmo4 extends Activity implements GpacCallback {
 	    logger.setLogFile(logfile);
     	logger.onCreate();
     }
+
+    /**
+     * @see com.gpac.Osmo4.GpacCallback#sensorSwitch(boolean)
+     */
+    @Override
+    public void sensorSwitch(final boolean active) {
+        if(active){
+            sensors.registerSensors();
+            Log.i(LOG_OSMO_TAG, "Received Register Sensors call");
+        }else{
+            sensors.unregisterSensors();
+            Log.i(LOG_OSMO_TAG, "Received Un-Register Sensors call");
+        }
+    }
+
 }

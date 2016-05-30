@@ -294,6 +294,8 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 	    env->GetMethodID(localRef, "showKeyboard", "(Z)V");
 	envToSet->cbk_setLogFile =
 	    env->GetMethodID(localRef, "setLogFile", "(Ljava/lang/String;)V");
+	envToSet->cbk_sensorSwitch =
+	    env->GetMethodID(localRef, "sensorSwitch", "(Z)V");
 	env->DeleteLocalRef(localRef);
 }
 
@@ -608,8 +610,17 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 			ptr->navigate( evt);
 			break;
 		case GF_EVENT_SENSOR_REQUEST:
-			if(evt->activate_sensor.sensor_type == GF_EVENT_SENSOR_ORIENTATION && evt->activate_sensor.activate){
-				//TODOk: code for handling 360 sensors goes here
+			if(evt->activate_sensor.sensor_type == GF_EVENT_SENSOR_ORIENTATION){
+				if(evt->activate_sensor.activate){
+					LOGV("We received Sensor Request for turning ON location sensors");
+					JavaEnvTh * env = ptr->getEnv();
+					if (!env || !env->cbk_sensorSwitch)
+						return GF_FALSE;
+					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
+					//TODOk: code for handling 360 sensors
+				}else{
+					LOGV("We received Sensor Request for turning OFF location sensors");
+				}
 			}
 			break;
 		default:
