@@ -2551,6 +2551,9 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 			Bool same_codec = GF_TRUE;
 			u32 track = gf_isom_get_track_by_id(in, gf_isom_get_track_id(set_file, j+1));
 
+			if (dash_inputs[input_idx].single_track_num && ((j + 1) != dash_inputs[input_idx].single_track_num))
+				continue;
+
 			if (!track) {
 				valid_in_adaptation_set = GF_FALSE;
 				assign_to_group = GF_FALSE;
