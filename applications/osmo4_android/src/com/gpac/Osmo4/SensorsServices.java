@@ -43,6 +43,20 @@ public class SensorsServices implements SensorEventListener {
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
+    /**
+     * Register sensors to start receiving data
+     * 
+     * @return SensorServices object
+     *
+     */
+    public void registerSensors(){
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+    }
+
+    public void unregisterSensors(){
+        sensorManager.unregisterListener(this);
+    }
 
     @Override
     public void onSensorChanged(SensorEvent event) {
