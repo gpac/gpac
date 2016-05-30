@@ -2674,6 +2674,7 @@
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
+					../../extra_lib/include/,
 					../../extra_lib/include/ios/,
 					../../extra_lib/include/ios/SDL2,
 					../../extra_lib/include/png,
@@ -2712,6 +2713,7 @@
 				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				HEADER_SEARCH_PATHS = (
 					../../include,
+					../../extra_lib/include/,
 					../../extra_lib/include/ios/,
 					../../extra_lib/include/ios/SDL2,
 					../../extra_lib/include/png,
