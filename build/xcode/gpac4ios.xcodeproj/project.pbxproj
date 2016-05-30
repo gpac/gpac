@@ -1115,6 +1115,187 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		28619BDD1CFCCAB800DA9823 /* amr_in */ = {
+			isa = PBXGroup;
+			children = (
+				9212E8021CCA82300036F310 /* amr_in.c */,
+			);
+			name = amr_in;
+			sourceTree = "<group>";
+		};
+		28619BDE1CFCCBDE00DA9823 /* ac3_in */ = {
+			isa = PBXGroup;
+			children = (
+				97E29F7317D1154D00904FBF /* liba52_dec.c */,
+				97E29F7217D1154D00904FBF /* ac3_in.c */,
+			);
+			name = ac3_in;
+			sourceTree = "<group>";
+		};
+		28619BDF1CFCCC1E00DA9823 /* saf_in */ = {
+			isa = PBXGroup;
+			children = (
+				92FA825D16F254C60002629E /* saf_in.c */,
+			);
+			name = saf_in;
+			sourceTree = "<group>";
+		};
+		28619BE01CFCCC2C00DA9823 /* validator */ = {
+			isa = PBXGroup;
+			children = (
+				92FA825916F2549D0002629E /* validator.c */,
+			);
+			name = validator;
+			sourceTree = "<group>";
+		};
+		28619BE11CFCCC3900DA9823 /* raw_out */ = {
+			isa = PBXGroup;
+			children = (
+				97E29F7917D118F100904FBF /* raw_video.c */,
+			);
+			name = raw_out;
+			sourceTree = "<group>";
+		};
+		28619BE21CFCCC8600DA9823 /* mse_in */ = {
+			isa = PBXGroup;
+			children = (
+				97E29F6D17D114E900904FBF /* mse_in.c */,
+			);
+			name = mse_in;
+			sourceTree = "<group>";
+		};
+		28619BE31CFCCC9C00DA9823 /* mpd_in */ = {
+			isa = PBXGroup;
+			children = (
+				71179CBF1292EC1800A83216 /* mpd_in.c */,
+			);
+			name = mpd_in;
+			sourceTree = "<group>";
+		};
+		28619BE41CFCCCF300DA9823 /* osd */ = {
+			isa = PBXGroup;
+			children = (
+				97E29F7B17D1190600904FBF /* osd.c */,
+			);
+			name = osd;
+			sourceTree = "<group>";
+		};
+		28619BE51CFCCCFA00DA9823 /* timedtext */ = {
+			isa = PBXGroup;
+			children = (
+				92FA826116F254F50002629E /* timedtext_dec.c */,
+				92FA826216F254F50002629E /* timedtext_in.c */,
+			);
+			name = timedtext;
+			sourceTree = "<group>";
+		};
+		28619BE61CFCCD3800DA9823 /* mp3_in */ = {
+			isa = PBXGroup;
+			children = (
+				71A19937127876D300ACFF58 /* mad_dec.c */,
+				71A19939127876D300ACFF58 /* mp3_in.c */,
+			);
+			name = mp3_in;
+			sourceTree = "<group>";
+		};
+		28619BE71CFCCD5300DA9823 /* svg_in */ = {
+			isa = PBXGroup;
+			children = (
+				71A19933127876C300ACFF58 /* svg_in.c */,
+			);
+			name = svg_in;
+			sourceTree = "<group>";
+		};
+		28619BE81CFCCD6100DA9823 /* odf_dec */ = {
+			isa = PBXGroup;
+			children = (
+				71A199671278773900ACFF58 /* odf_dec.c */,
+			);
+			name = odf_dec;
+			sourceTree = "<group>";
+		};
+		28619BE91CFCCD6C00DA9823 /* dummy_in */ = {
+			isa = PBXGroup;
+			children = (
+				71A19928127876A200ACFF58 /* dummy_in.c */,
+			);
+			name = dummy_in;
+			sourceTree = "<group>";
+		};
+		28619BEA1CFCCD7200DA9823 /* mpegts_in */ = {
+			isa = PBXGroup;
+			children = (
+				71A1997D1278775900ACFF58 /* mpegts_in.c */,
+			);
+			name = mpegts_in;
+			sourceTree = "<group>";
+		};
+		28619BEB1CFCCD8E00DA9823 /* laser_dec */ = {
+			isa = PBXGroup;
+			children = (
+				71A199611278772500ACFF58 /* laser_dec.c */,
+			);
+			name = laser_dec;
+			sourceTree = "<group>";
+		};
+		28619BEC1CFCCD9F00DA9823 /* gpac_js */ = {
+			isa = PBXGroup;
+			children = (
+				71A1994F127876FA00ACFF58 /* gpac_js.c */,
+			);
+			name = gpac_js;
+			sourceTree = "<group>";
+		};
+		28619BED1CFCCDCE00DA9823 /* ft_font */ = {
+			isa = PBXGroup;
+			children = (
+				71A199811278776700ACFF58 /* ft_font.c */,
+				71A199821278776700ACFF58 /* ft_font.h */,
+			);
+			name = ft_font;
+			sourceTree = "<group>";
+		};
+		28619BEE1CFCCDDD00DA9823 /* aac_in */ = {
+			isa = PBXGroup;
+			children = (
+				71A199071278765600ACFF58 /* aac_in.c */,
+				71A199081278765600ACFF58 /* faad_dec.c */,
+			);
+			name = aac_in;
+			sourceTree = "<group>";
+		};
+		28619BEF1CFCCDE900DA9823 /* ctx_load */ = {
+			isa = PBXGroup;
+			children = (
+				71A1992D127876B000ACFF58 /* ctx_load.c */,
+			);
+			name = ctx_load;
+			sourceTree = "<group>";
+		};
+		28619BF01CFCCDF700DA9823 /* bifs_dec */ = {
+			isa = PBXGroup;
+			children = (
+				71A1990E1278767B00ACFF58 /* bifs_dec.c */,
+			);
+			name = bifs_dec;
+			sourceTree = "<group>";
+		};
+		28619BF11CFCCE1100DA9823 /* audio_filter */ = {
+			isa = PBXGroup;
+			children = (
+				92FA825B16F254AF0002629E /* audio_filter.c */,
+			);
+			name = audio_filter;
+			sourceTree = "<group>";
+		};
+		28619BF21CFCCE1900DA9823 /* isma_ea */ = {
+			isa = PBXGroup;
+			children = (
+				92FA825F16F254DA0002629E /* isma_ea.c */,
+			);
+			name = isma_ea;
+			sourceTree = "<group>";
+		};
 		28F2240B17D6372100E9D2BE /* ffmpeg_in */ = {
 			isa = PBXGroup;
 			children = (
@@ -1814,19 +1995,29 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
-				9212E8021CCA82300036F310 /* amr_in.c */,
+				28619BF21CFCCE1900DA9823 /* isma_ea */,
+				28619BF11CFCCE1100DA9823 /* audio_filter */,
+				28619BF01CFCCDF700DA9823 /* bifs_dec */,
+				28619BEF1CFCCDE900DA9823 /* ctx_load */,
+				28619BEE1CFCCDDD00DA9823 /* aac_in */,
+				28619BED1CFCCDCE00DA9823 /* ft_font */,
+				28619BEC1CFCCD9F00DA9823 /* gpac_js */,
+				28619BEB1CFCCD8E00DA9823 /* laser_dec */,
+				28619BEA1CFCCD7200DA9823 /* mpegts_in */,
+				28619BE91CFCCD6C00DA9823 /* dummy_in */,
+				28619BE81CFCCD6100DA9823 /* odf_dec */,
+				28619BE71CFCCD5300DA9823 /* svg_in */,
+				28619BE61CFCCD3800DA9823 /* mp3_in */,
+				28619BE51CFCCCFA00DA9823 /* timedtext */,
+				28619BE41CFCCCF300DA9823 /* osd */,
+				28619BE31CFCCC9C00DA9823 /* mpd_in */,
+				28619BE21CFCCC8600DA9823 /* mse_in */,
+				28619BE11CFCCC3900DA9823 /* raw_out */,
+				28619BE01CFCCC2C00DA9823 /* validator */,
+				28619BDE1CFCCBDE00DA9823 /* ac3_in */,
+				28619BDD1CFCCAB800DA9823 /* amr_in */,
 				28F2240B17D6372100E9D2BE /* ffmpeg_in */,
-				97E29F7B17D1190600904FBF /* osd.c */,
-				97E29F7917D118F100904FBF /* raw_video.c */,
-				97E29F7217D1154D00904FBF /* ac3_in.c */,
-				97E29F7317D1154D00904FBF /* liba52_dec.c */,
-				97E29F6D17D114E900904FBF /* mse_in.c */,
-				92FA826116F254F50002629E /* timedtext_dec.c */,
-				92FA826216F254F50002629E /* timedtext_in.c */,
-				92FA825F16F254DA0002629E /* isma_ea.c */,
-				92FA825D16F254C60002629E /* saf_in.c */,
-				92FA825B16F254AF0002629E /* audio_filter.c */,
-				92FA825916F2549D0002629E /* validator.c */,
+				28619BDF1CFCCC1E00DA9823 /* saf_in */,
 				71A1993D127876E300ACFF58 /* img_in */,
 				71A199531278770900ACFF58 /* isom_in */,
 				71A1996A1278774A00ACFF58 /* rtp_in */,
@@ -1834,21 +2025,6 @@
 				71A199141278769100ACFF58 /* soft_raster */,
 				92B32CA61A08ABF10065F44A /* vtt */,
 				71A199871278777A00ACFF58 /* widgetman */,
-				71A199071278765600ACFF58 /* aac_in.c */,
-				71A1990E1278767B00ACFF58 /* bifs_dec.c */,
-				71A1992D127876B000ACFF58 /* ctx_load.c */,
-				71A19928127876A200ACFF58 /* dummy_in.c */,
-				71A199081278765600ACFF58 /* faad_dec.c */,
-				71A199811278776700ACFF58 /* ft_font.c */,
-				71A199821278776700ACFF58 /* ft_font.h */,
-				71A1994F127876FA00ACFF58 /* gpac_js.c */,
-				71A199611278772500ACFF58 /* laser_dec.c */,
-				71A19937127876D300ACFF58 /* mad_dec.c */,
-				71A19939127876D300ACFF58 /* mp3_in.c */,
-				71A1997D1278775900ACFF58 /* mpegts_in.c */,
-				71179CBF1292EC1800A83216 /* mpd_in.c */,
-				71A199671278773900ACFF58 /* odf_dec.c */,
-				71A19933127876C300ACFF58 /* svg_in.c */,
 			);
 			name = modules;
 			sourceTree = "<group>";
