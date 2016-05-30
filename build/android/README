@@ -35,12 +35,19 @@ This directory will be reminded as <GPAC_EXTRA_DIR>
 
 3) Compile extra-libs for android 
 
-	A. Build all extra-libs
+	A. Unzip all libs
+	
+		Go to <GPAC_EXTRA_DIR>. Set the right to execute the unzip_all script (e.g. chmod +x unzip_all.sh)
+		Run the script as follows :  ./unzip_all
+
+	B. Build all extra-libs
 	
 		Go to <GPAC_EXTRA_DIR>/build/android. Set the right to execute the script gpac_build_all_extra_libs (e.g. chmod u+x gpac_build_all_extra_libs ).
-		Run the script as follow : ./gpac_build_all_extra_libs <ANDROID_NDK_DIR>
+		Run the script as follows : ./gpac_build_all_extra_libs <ANDROID_NDK_DIR>
 	
- 	B. Copy all the compiled extra lib to the right folder
+		NOTE: In case there is an error compiling ffmpeg, make sure there is permission to execute the script compile_ffmpeg_android as well (e.g. chmod u+rxw compile_ffmpeg_android)
+	
+ 	C. Copy all the compiled extra lib to the right folder
 	
 		Go back to <GPAC_EXTRA_DIR>
 		Copy the just compiled libs into <GPAC_DIR>/extra_lib/lib/android by entering this command : 
