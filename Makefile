@@ -81,7 +81,7 @@ lcov_only:
 
 lcov:	lcov_only
 	@rm -rf coverage/
-	@genhtml -q -o coverage coverage.info 2> /dev/null
+	@genhtml -q -o coverage coverage.info
 
 travis_tests:
 	@echo "Running tests"
