@@ -24,15 +24,16 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     protected  Osmo4Renderer rend;
 
-	private float[] lastAcc;
-	private float[] lastMagn;
+	private float[] lastAcc = {0.0f, 0.0f, 0.0f}, prevAcc;
+	private float[] lastMagn = {0.0f, 0.0f, 0.0f}, prevMagn;
 
     private float rotation[] = new float[9];
     private float identity[] = new float[9];
 
-    private boolean initAcc = false, initMagn = false;
-
     private static final String LOG_TAG = "GPAC SensorServices";
+
+    //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
+    private static final float filterLevel = 0.2f;
 
     /**
      * Constructor (initialize sensors)
@@ -71,19 +72,20 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         switch(event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
                 lastAcc = event.values;
-                initAcc = true;
+                prevAcc = smoothSensorMeasurement(lastAcc, prevAcc);
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 lastMagn = event.values;
-                initMagn = true;
+                prevMagn = smoothSensorMeasurement(lastMagn, prevMagn);
                 break;
             default:
                 return;
         }
 
         boolean gotRotation = false;
+
         try {
-            gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
+            gotRotation = SensorManager.getRotationMatrix(rotation, identity, prevAcc, prevMagn);
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
@@ -101,6 +103,18 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         }
 
     }
+
+    private static float[] smoothSensorMeasurement(float[] in, float[] out){
+        
+        if(out==null) return in;
+
+        for(int i=0; i<in.length; i++){
+            out[i] = out[i] + filterLevel * (in[i] - out[i]);
+        }
+
+        return out;
+    }
+
 
     @Override
     public void onAccuracyChanged(Sensor sensor, int accuracy) {
