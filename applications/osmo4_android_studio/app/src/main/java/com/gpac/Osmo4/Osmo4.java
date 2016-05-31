@@ -107,6 +107,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     /**
      * @param shouldDeleteGpacConfig the shouldDeleteGpacConfig to set
      */
+    
     public synchronized void setShouldDeleteGpacConfig(boolean shouldDeleteGpacConfig) {
         this.shouldDeleteGpacConfig = shouldDeleteGpacConfig;
     }
