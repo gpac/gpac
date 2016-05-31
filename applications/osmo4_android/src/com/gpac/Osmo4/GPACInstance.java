@@ -372,7 +372,23 @@ public class GPACInstance implements GPACInstanceInterface {
      * @param x Position in pixels
      * @param y Position in pixels
      */
-    private native void gpaceventmousemove(float x, float y);
+    private native static void gpaceventmousemove(float x, float y);
+
+
+
+    public static void orientationEvent(float yaw, float pitch, float roll){
+        gpaceventorientationchange(yaw, pitch, roll);
+    }
+
+    /**
+     * To call when a change in orientation is returned from the sensors
+     * All angles are in RADIANS and positive in the COUNTER-CLOCKWISE direction
+     * 
+     * @param x yaw (rotation around the -Z axis) range: [-PI, PI]
+     * @param y pitch (rotation around the -X axis) range: [-PI/2, PI/2]
+     * @param z roll (rotation around the Y axis) range: [-PI, PI]
+     */
+    private native static void gpaceventorientationchange(float x, float y, float z);
 
     @Override
     public void destroy() {
