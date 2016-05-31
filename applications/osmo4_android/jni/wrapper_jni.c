@@ -158,7 +158,7 @@ JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange(JNIEnv * env, jobject obj, jfloat x, jfloat y, jfloat z) {
 	CAST_HANDLE(wr);
 	if (wr)	
-		wr->onOrientationChange(float x, float y, float z);
+		wr->onOrientationChange(x, y, z);
 }
 
 /*
