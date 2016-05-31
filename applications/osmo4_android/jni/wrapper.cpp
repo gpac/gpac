@@ -158,7 +158,7 @@ static JNINativeMethod sMethods[] = {
 		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove
 	},
 	{	"gpaceventorientationchange",
-		"(FF)V",
+		"(FFF)V",
 		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange
 	},
 	{	"setGpacPreference",
@@ -1056,6 +1056,7 @@ void CNativeWrapper::onOrientationChange(float x, float y, float z) {
 	evt.sensor.x = x;
 	evt.sensor.y = y;
 	evt.sensor.z = z;
+	evt.sensor.w = 0;
 
 	int ret = gf_term_user_event(m_term, &evt);
 }

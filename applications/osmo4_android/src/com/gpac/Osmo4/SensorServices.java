@@ -15,12 +15,14 @@ import android.hardware.SensorManager;
  * @version $Revision$
  * 
  */
-public class SensorServices implements SensorEventListener {
+public class SensorServices implements SensorEventListener, GPACInstanceInterface {
 
 	private static SensorManager sensorManager;
 
 	private static Sensor accelerometer;
 	private static Sensor magnetometer;
+
+    protected  Osmo4Renderer rend;
 
 	private float[] lastAcc;
 	private float[] lastMagn;
@@ -45,6 +47,9 @@ public class SensorServices implements SensorEventListener {
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
     }
 
+    public void setRenderer(Osmo4Renderer renderer){
+            rend = renderer;
+}
     /**
      * Register sensors to start receiving data
      * 
@@ -85,10 +90,15 @@ public class SensorServices implements SensorEventListener {
         }
 
         if(gotRotation){
+
             float orientation[] = new float[3];
             SensorManager.getOrientation(rotation, orientation);
             Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
+
+            rend.getInstance().onOrientationChange(orientation[0], orientation[1], orientation[2]);
+
         }
+
     }
 
     @Override
@@ -96,4 +106,18 @@ public class SensorServices implements SensorEventListener {
     	//required - but not used
     }
 
+    @Override
+    public native void setGpacLogs(String tools_at_levels);
+
+    @Override
+    public native void setGpacPreference(String category, String name, String value);
+
+    @Override
+    public void destroy(){}
+
+    @Override
+    public void connect(String pop){}
+
+    @Override
+    public void disconnect(){}
 }

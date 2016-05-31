@@ -217,6 +217,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 		
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
         
+        sensors = new SensorServices(this);
+
         if( m3DLibraryLoaded ) //should be checking wether the terminal is a LG one
         {
         	//TryLoad3DClass(true);
@@ -246,6 +248,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                         mGLView.setRenderer(renderer);
                        
                         gl_view.addView(mGLView);
+
+                        sensors.setRenderer(renderer);
                     }
                 });
 
@@ -314,8 +318,6 @@ public class Osmo4 extends Activity implements GpacCallback {
                 Log.d(LOG_OSMO_TAG, "Error in copying config file: " + e.toString());
             }
         }
-
-        sensors = new SensorServices(this);
 
     }
     
