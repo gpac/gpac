@@ -209,6 +209,7 @@ public:
 	void onMouseDown(float x, float y);
 	void onMouseUp(float x, float y);
 	void onMouseMove(float x, float y);
+	void onOrientationChange(float x, float y, float z);
 	void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
 	void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
 	void navigate( GF_Event* evt);
