@@ -95,7 +95,8 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             SensorManager.getOrientation(rotation, orientation);
             Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
 
-            rend.getInstance().onOrientationChange(orientation[0], orientation[1], orientation[2]);
+            //NOTE: we invert yaw and roll (for 360 navigation)
+            rend.getInstance().onOrientationChange(- orientation[0], orientation[1], - orientation[2]);
 
         }
 

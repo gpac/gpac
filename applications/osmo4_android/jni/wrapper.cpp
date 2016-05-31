@@ -1048,6 +1048,11 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt) {
 	}
 }
 //-----------------------------------------------------
+     /**
+      * x: yaw (azimuth - rotation around the -Z axis) range: [-PI, PI]
+      * y: pitch (rotation around the -X axis) range: [-PI/2, PI/2]
+      * z: roll (rotation around the Y axis) range: [-PI, PI]
+      */
 void CNativeWrapper::onOrientationChange(float x, float y, float z) {
 	if (!m_term)
 		return;
