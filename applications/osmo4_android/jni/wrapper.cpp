@@ -157,6 +157,10 @@ static JNINativeMethod sMethods[] = {
 		"(FF)V",
 		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove
 	},
+	{	"gpaceventorientationchange",
+		"(FF)V",
+		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange
+	},
 	{	"setGpacPreference",
 		"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
 		(void*)Java_com_gpac_Osmo4_GPACInstance_setGpacPreference
@@ -1043,7 +1047,18 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt) {
 		break;
 	}
 }
+//-----------------------------------------------------
+void CNativeWrapper::onOrientationChange(float x, float y, float z) {
+	if (!m_term)
+		return;
+	GF_Event evt;
+	evt.type = GF_EVENT_SENSOR_ORIENTATION;
+	evt.sensor.x = x;
+	evt.sensor.y = y;
+	evt.sensor.z = z;
 
+	int ret = gf_term_user_event(m_term, &evt);
+}
 //-----------------------------------------------------
 void CNativeWrapper::setGpacLogs(const char *tools_at_level)
 {
