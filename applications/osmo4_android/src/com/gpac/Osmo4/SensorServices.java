@@ -26,6 +26,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
 	private float[] lastAcc = {0.0f, 0.0f, 0.0f}, prevAcc;
 	private float[] lastMagn = {0.0f, 0.0f, 0.0f}, prevMagn;
+    private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
     private float rotation[] = new float[9];
     private float identity[] = new float[9];
@@ -97,8 +98,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             SensorManager.getOrientation(rotation, orientation);
             Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
 
+            lastOrient = orientation;
+                prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
             //NOTE: we invert yaw and roll (for 360 navigation)
-            rend.getInstance().onOrientationChange(- orientation[0], orientation[1], - orientation[2]);
+            //rend.getInstance().onOrientationChange(- orientation[0], orientation[1], - orientation[2]);
+            rend.getInstance().onOrientationChange(- prevOrient[0], prevOrient[1], - prevOrient[2]);
 
         }
 
