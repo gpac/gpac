@@ -393,10 +393,11 @@ public class Osmo4 extends Activity implements GpacCallback {
 				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
 					return;
             }
-				AssetManager assetManager = getAssets();
-				InputStream in = null;
-				OutputStream out = null;
-			  in = assetManager.open(root + "/" + filename);
+
+            AssetManager assetManager = getAssets();
+			InputStream in = null;
+			OutputStream out = null;
+			in = assetManager.open(root + "/" + filename);
 
             String newFileName = null;
             if(root == GUI_ROOT_ASSET_DIR){
@@ -502,13 +503,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                        });
                    }
                })
-               .setNegativeButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
-
-                   @Override
-                   public void onClick(DialogInterface dialog, int id) {
-                       dialog.cancel();
-                   }
-               });
+               .setNegativeButton(R.string.cancel_button, null);
 
         textView.setText("http://"); //$NON-NLS-1$
         builder.setView(textView);
@@ -581,13 +576,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
                        .setCancelable(true)
-                       .setPositiveButton(R.string.cancel_button, new DialogInterface.OnClickListener() {
-
-                           @Override
-                           public void onClick(DialogInterface dialog, int id) {
-                               dialog.cancel();
-                           }
-                       });
+                       .setPositiveButton(R.string.cancel_button, null);
                 AlertDialog alert = builder.create();
                 alert.show();
                 return false;
@@ -721,26 +710,19 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
             case R.id.resetGpacConfig: {
                 AlertDialog.Builder b = new AlertDialog.Builder(this);
-                b.setCancelable(true);
-                b.setTitle(R.string.resetGpacConfig);
-                b.setMessage(R.string.resetGpacConfigMessage);
-                b.setNegativeButton(R.string.cancel_button, new OnClickListener() {
-
-                    @Override
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-                b.setPositiveButton(R.string.ok_button, new OnClickListener() {
-
+                b.setCancelable(true)
+                .setTitle(R.string.resetGpacConfig)
+                .setMessage(R.string.resetGpacConfigMessage)
+                .setNegativeButton(R.string.cancel_button, null)
+                .setPositiveButton(R.string.ok_button, new OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
                         setShouldDeleteGpacConfig(true);
                         deleteConfigIfNeeded();
                     }
-                });
-                b.show();
+                })
+                .show();
                 return true;
             }
             case R.id.about: {
