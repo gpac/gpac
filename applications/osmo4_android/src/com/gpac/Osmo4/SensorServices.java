@@ -86,7 +86,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         boolean gotRotation = false;
 
         try {
-            gotRotation = SensorManager.getRotationMatrix(rotation, identity, prevAcc, prevMagn);
+            gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
@@ -99,7 +99,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
 
             lastOrient = orientation;
+            boolean refreshOrientation = keepOrientation(lastOrient, prevOrient);
+
+            if(refreshOrientation){
                 prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
+            }
+
             //NOTE: we invert yaw and roll (for 360 navigation)
             //rend.getInstance().onOrientationChange(- orientation[0], orientation[1], - orientation[2]);
             rend.getInstance().onOrientationChange(- prevOrient[0], prevOrient[1], - prevOrient[2]);
@@ -107,6 +112,19 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         }
 
     }
+
+
+    private static boolean keepOrientation(float[] in, float[] out){
+        
+        if(out==null) return true;
+        
+        for(int i=0; i<in.length; i++){
+            if(Math.abs(in[0]-out[0])<0.05) return false;
+        }
+
+        return true;
+    }
+
 
     private static float[] smoothSensorMeasurement(float[] in, float[] out){
         
