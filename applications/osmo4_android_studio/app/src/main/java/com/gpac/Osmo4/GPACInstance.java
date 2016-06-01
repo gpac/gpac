@@ -25,6 +25,14 @@ public class GPACInstance implements GPACInstanceInterface {
 
     private final Thread uniqueThread;
 
+    /**
+     *
+     * a recursive method to get the directory hierarchy under root.
+     *
+     * @param sb StringBuilder object which will return the final hierarchy
+     * @param root root of the hierarchy
+     * @param inc initial number of spaces.
+     */
     private static void listing(StringBuilder sb, File root, int inc) {
         StringBuilder increment = new StringBuilder();
         for (int i = 0; i < inc; i++)
