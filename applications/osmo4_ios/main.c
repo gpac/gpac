@@ -321,7 +321,8 @@ int main (int argc, char *argv[])
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
 	Bool use_rtix = 0;
-	Bool enable_mem_tracker = GF_FALSE;
+    GF_MemTrackerType mem_track = GF_MemTrackerNone;
+
 	Bool ret, fill_ar, visible;
 	Bool logs_set = GF_FALSE;
 	char *url_arg, *the_cfg, *rti_file;
@@ -350,16 +351,17 @@ int main (int argc, char *argv[])
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		}
-		else if (!strcmp(arg, "-mem-track")) {
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = GF_TRUE;
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		}
+		else if (!strcmp(arg, "-no-audio")) no_audio = GF_TRUE;
 	}
 	
-	gf_sys_init(enable_mem_tracker);
+	gf_sys_init(mem_track);
 	gf_set_progress_callback(NULL, on_progress_null);
 
 	if (logs_settings) {
@@ -368,7 +370,6 @@ int main (int argc, char *argv[])
 		}
 		logs_set = GF_TRUE;
 	}
-
 	cfg_file = gf_cfg_init(the_cfg, NULL);
 	if (!cfg_file) {
 		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
@@ -378,7 +379,7 @@ int main (int argc, char *argv[])
 	if (!logs_set)
 		gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
-	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "disable");
+	gf_cfg_set_key(cfg_file, "Compositor", "OpenGLMode", "hybrid");
 
 	if (!logfile) {
 		const char *opt = gf_cfg_get_key(cfg_file, "General", "LogFile");
@@ -568,7 +569,7 @@ int main (int argc, char *argv[])
 
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
 		gf_memory_print();
 	}
 #endif
