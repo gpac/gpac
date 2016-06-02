@@ -312,6 +312,11 @@
 		9225733218D7269700D6FD98 /* theora_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732D18D7269700D6FD98 /* theora_dec.c */; };
 		9225733318D7269700D6FD98 /* vorbis_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9225732E18D7269700D6FD98 /* vorbis_dec.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		9235E04B1CFECCD50051D8A1 /* vtb_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 9235E04A1CFECCD50051D8A1 /* vtb_decode.c */; };
+		9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
+		9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E04F1CFECD370051D8A1 /* CoreVideo.framework */; };
+		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
+		9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
 		92A9D3C91CCA7AAA006FF303 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A9D3C61CCA79B4006FF303 /* amr_in.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
@@ -1199,6 +1204,9 @@
 		9225732D18D7269700D6FD98 /* theora_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = theora_dec.c; path = ../../modules/ogg/theora_dec.c; sourceTree = "<group>"; };
 		9225732E18D7269700D6FD98 /* vorbis_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vorbis_dec.c; path = ../../modules/ogg/vorbis_dec.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
+		9235E04A1CFECCD50051D8A1 /* vtb_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtb_decode.c; path = ../../modules/vtb_decode/vtb_decode.c; sourceTree = "<group>"; };
+		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92A9D3C61CCA79B4006FF303 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1416,6 +1424,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */,
+				9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */,
+				9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */,
+				9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */,
 				920101D118D5ACA7003D1ACA /* libz.dylib in Frameworks */,
 				920101CF18D5AC67003D1ACA /* OpenGL.framework in Frameworks */,
 			);
@@ -1762,6 +1774,8 @@
 		9201F92718D5A359003D1ACA = {
 			isa = PBXGroup;
 			children = (
+				9235E0511CFECD450051D8A1 /* VideoToolbox.framework */,
+				9235E04F1CFECD370051D8A1 /* CoreVideo.framework */,
 				2839E2CC1A163E1E002D73E1 /* Foundation.framework */,
 				2839E2CA1A16375C002D73E1 /* QTKit.framework */,
 				2839E2C81A16373B002D73E1 /* QuickTime.framework */,
@@ -2353,6 +2367,14 @@
 			name = ogg_in;
 			sourceTree = "<group>";
 		};
+		9235E04C1CFECCD90051D8A1 /* vtb_decode */ = {
+			isa = PBXGroup;
+			children = (
+				9235E04A1CFECCD50051D8A1 /* vtb_decode.c */,
+			);
+			name = vtb_decode;
+			sourceTree = "<group>";
+		};
 		92A9D3C81CCA79BD006FF303 /* amr_in */ = {
 			isa = PBXGroup;
 			children = (
@@ -2397,6 +2419,7 @@
 				92AAF14318D6E7E400E2FF12 /* svg_dec */,
 				92AAF14618D6E81700E2FF12 /* timed_text */,
 				92AAF14B18D6E82A00E2FF12 /* validator */,
+				9235E04C1CFECCD90051D8A1 /* vtb_decode */,
 				92AAF1D418D7108600E2FF12 /* vtt_in */,
 				92AAF14E18D6E85D00E2FF12 /* widget_man */,
 			);
@@ -3633,6 +3656,7 @@
 				9201019C18D5A445003D1ACA /* media_object.c in Sources */,
 				9201019D18D5A445003D1ACA /* media_sensor.c in Sources */,
 				9201019E18D5A445003D1ACA /* mpeg4_inline.c in Sources */,
+				9235E04B1CFECCD50051D8A1 /* vtb_decode.c in Sources */,
 				9201019F18D5A445003D1ACA /* network_service.c in Sources */,
 				920101A018D5A445003D1ACA /* object_browser.c in Sources */,
 				920101A118D5A445003D1ACA /* object_manager.c in Sources */,
