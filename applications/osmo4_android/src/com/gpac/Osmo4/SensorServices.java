@@ -130,11 +130,13 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         
         if(out==null) return in;
 
+        float[] output = {0.0f, 0.0f, 0.0f};
+
         for(int i=0; i<in.length; i++){
-            out[i] = out[i] + filterLevel * (in[i] - out[i]);
+            output[i] = out[i] + filterLevel * (in[i] - out[i]);
         }
 
-        return out;
+        return output;
     }
 
 
