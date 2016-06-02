@@ -36,6 +36,8 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
     private static final float filterLevel = 0.2f;
 
+    private static final boolean useSensorFilter = false;        //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
+
     /**
      * Constructor (initialize sensors)
      * 
@@ -73,11 +75,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         switch(event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
                 lastAcc = event.values;
-                prevAcc = smoothSensorMeasurement(lastAcc, prevAcc);
+                if(useSensorFilter) prevAcc = smoothSensorMeasurement(lastAcc, prevAcc);
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 lastMagn = event.values;
-                prevMagn = smoothSensorMeasurement(lastMagn, prevMagn);
+                if(useSensorFilter) prevMagn = smoothSensorMeasurement(lastMagn, prevMagn);
                 break;
             default:
                 return;
@@ -86,7 +88,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         boolean gotRotation = false;
 
         try {
-            gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
+            if(!useSensorFilter){
+                gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
+            }else{
+                gotRotation = SensorManager.getRotationMatrix(rotation, identity, prevAcc, prevMagn);
+            }
+            
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
