@@ -86,6 +86,8 @@ typedef struct
 	u32 time_increment;
 	/*for MPEG 1/2*/
 	Double fps;
+	
+	u32 next_object_start;
 } GF_M4VDecSpecInfo;
 
 
@@ -105,8 +107,11 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*returns 1 if current object is a valid MPEG-4 Visual object*/
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
-/*decodes DSI*/
+/*decodes DSI/VOSHeader for MPEG4*/
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+/*decodes DSI/VOSHeader for MPEG12*/
+GF_Err gf_mpegv12_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+
 /*rewrites PL code in DSI*/
 void gf_m4v_rewrite_pl(char **io_dsi, u32 *io_dsi_len, u8 PL);
 /*rewrites PAR code in DSI. Negative values will remove the par*/
