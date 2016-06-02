@@ -35,6 +35,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
     private static final float filterLevel = 0.2f;
+    private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
 
     private static final boolean useSensorFilter = false;        //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
 
@@ -106,7 +107,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
 
             lastOrient = orientation;
-            boolean refreshOrientation = keepOrientation(lastOrient, prevOrient);
+            boolean refreshOrientation = true;
+            if(useOrientationThreshold){
+                refreshOrientation = keepOrientation(lastOrient, prevOrient);
+            }else{
+                prevOrient = lastOrient;
+            }
 
             if(refreshOrientation){
                 prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
