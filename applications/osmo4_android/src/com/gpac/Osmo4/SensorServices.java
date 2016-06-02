@@ -34,10 +34,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final String LOG_TAG = "GPAC SensorServices";
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float filterLevel = 0.2f;
+    private static final float filterLevel = 0.5f;
+
+    private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
+    private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
     private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
 
-    private static final boolean useSensorFilter = false;        //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
 
     /**
      * Constructor (initialize sensors)
@@ -110,12 +112,14 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             boolean refreshOrientation = true;
             if(useOrientationThreshold){
                 refreshOrientation = keepOrientation(lastOrient, prevOrient);
-            }else{
-                prevOrient = lastOrient;
             }
 
             if(refreshOrientation){
-                prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
+                if(useOrientationFilter){
+                    prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
+                }else{
+                    prevOrient = lastOrient;
+                }
             }
 
             //NOTE: we invert yaw and roll (for 360 navigation)
