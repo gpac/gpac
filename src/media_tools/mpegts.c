@@ -2948,6 +2948,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			pes->prev_data_len = 0;
 			if (remain) {
 				pes->prev_data = gf_malloc(sizeof(char)*remain);
+				assert(pes->pck_data_len >= remain);
 				memcpy(pes->prev_data, pes->pck_data + pes->pck_data_len - remain, remain);
 				pes->prev_data_len = remain;
 			}
@@ -4604,7 +4605,7 @@ Bool gf_m2ts_probe_file(const char *fileName)
 		if (!t) return 0;
 		size = (u32) fread(buf, 1, M2TS_PROBE_SIZE, t);
 		gf_fclose(t);
-		if (!size) return 0;
+		if ((s32) size <= 0) return 0;
 	}
 	ts = gf_m2ts_demux_new();
 	e = gf_m2ts_process_data(ts, buf, size);

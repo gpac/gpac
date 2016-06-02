@@ -2149,6 +2149,11 @@ static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 			gf_fseek(_tmp, offset, SEEK_SET);
 			while (remain) {
 				read = (u32) fread(block, 1, (remain>1024) ? 1024 : remain, _tmp);
+				if ((s32) read < 0) {
+					gf_fclose(_tmp);
+					return GF_IO_ERR;
+				}
+
 				gf_bs_write_data(bs, block, read);
 				remain -= size;
 			}

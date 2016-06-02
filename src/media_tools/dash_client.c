@@ -3514,13 +3514,13 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					} else {
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
-							u32 res;
+							s32 res;
 							fseek(t, 0, SEEK_END);
 							rep->playback.init_segment_size = (u32) gf_ftell(t);
 							fseek(t, 0, SEEK_SET);
 
 							rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
-							res = (u32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
+							res = (s32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
 							if (res != rep->playback.init_segment_size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
