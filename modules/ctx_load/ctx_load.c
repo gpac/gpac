@@ -390,8 +390,11 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			entry_time = gf_sys_clock();
 			gf_fseek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
-				u32 diff, nb_read;
-				nb_read = (u32) fread(file_buf, 1, 4096, priv->src);
+				u32 diff;
+				s32 nb_read = (s32) fread(file_buf, 1, 4096, priv->src);
+				if (nb_read<0) {
+					return GF_IO_ERR;
+				}
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (priv->file_pos==priv->file_size) {

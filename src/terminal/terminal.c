@@ -632,8 +632,7 @@ Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime)
 {
 	if (mime) {
 		/* TODO: handle codecs and params */
-		const char *sPlug;
-		sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime);
+		const char *sPlug = gf_cfg_get_key(term->user->config, "MimeTypes", mime);
 		if (sPlug) {
 			return 1;
 		} else {
