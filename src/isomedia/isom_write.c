@@ -1959,6 +1959,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 		ptr = (GF_ChapterListBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CHPL);
 		e = udta_AddBox(udta, (GF_Box *) ptr);
 		if (e) return e;
+		map = udta_getEntry(udta, GF_ISOM_BOX_TYPE_CHPL, NULL);
 	} else {
 		ptr = (GF_ChapterListBox*)gf_list_get(map->other_boxes, 0);
 	}
@@ -1967,6 +1968,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	/*this may happen if original MP4 is not properly formatted*/
 	if (!ptr) {
 		ptr = (GF_ChapterListBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CHPL);
+		if (!ptr) return GF_OUT_OF_MEM;
 		gf_list_add(map->other_boxes, ptr);
 	}
 
