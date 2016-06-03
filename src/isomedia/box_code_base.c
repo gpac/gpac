@@ -3000,13 +3000,14 @@ void mfra_del(GF_Box *s)
 {
 	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->tfra) gf_isom_box_del((GF_Box *)ptr->tfra);
+	gf_isom_box_array_del(ptr->tfra_list);
 	gf_free(ptr);
 }
 
 GF_Box *mfra_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MovieFragmentRandomAccessBox, GF_ISOM_BOX_TYPE_MFRA);
+	tmp->tfra_list = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -3015,9 +3016,7 @@ GF_Err mfra_AddBox(GF_Box *s, GF_Box *a)
 	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
 	switch(a->type) {
 	case GF_ISOM_BOX_TYPE_TFRA:
-		if (ptr->tfra) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->tfra = (GF_TrackFragmentRandomAccessBox*)a;
-		return GF_OK;
+		return gf_list_add(ptr->tfra_list, a);
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
