@@ -96,7 +96,7 @@ static void VTBDec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
     ctx->frame = CVPixelBufferRetain(image);
 }
 
-static CFDictionaryRef create_buffer_attributes(int width, int height, OSType pix_fmt)
+static CFDictionaryRef VTBDec_CreateBufferAttributes(int width, int height, OSType pix_fmt)
 {
     CFMutableDictionaryRef buffer_attributes;
     CFMutableDictionaryRef surf_props;
@@ -125,18 +125,21 @@ static CFDictionaryRef create_buffer_attributes(int width, int height, OSType pi
 
 static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 {
-	CFMutableDictionaryRef dec_cfg;
+	CFMutableDictionaryRef dec_dsi, dec_type;
 	CFMutableDictionaryRef dsi;
 	VTDecompressionOutputCallbackRecord cbacks;
     CFDictionaryRef buffer_attribs;
     OSStatus status;
+	OSType kColorSpace;
+	
 	CFDataRef data = NULL;
 	char *dsi_data=NULL;
 	u32 dsi_data_size=0;
 	
-    dec_cfg = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    CFDictionarySetValue(dec_cfg, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
-	ctx->is_hardware = GF_TRUE;
+    dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+	
+	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
+	ctx->pix_fmt = GF_PIXEL_YV12;
 	
 	switch (ctx->esd->decoderConfig->objectTypeIndication) {
     case GPAC_OTI_VIDEO_AVC :
@@ -160,6 +163,34 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 			ctx->chroma_format = avc.sps[idx].chroma_format;
 			ctx->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 			ctx->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+		
+			switch (ctx->chroma_format) {
+			case 2:
+				//422 decoding doesn't seem supported ...
+				if (ctx->luma_bit_depth>8) {
+					kColorSpace = kCVPixelFormatType_422YpCbCr10;
+					ctx->pix_fmt = GF_PIXEL_YUV422_10;
+				} else {
+					kColorSpace = kCVPixelFormatType_422YpCbCr8;
+					ctx->pix_fmt = GF_PIXEL_YUV422;
+				}
+				break;
+			case 3:
+				if (ctx->luma_bit_depth>8) {
+					kColorSpace = kCVPixelFormatType_444YpCbCr10;
+					ctx->pix_fmt = GF_PIXEL_YUV444_10;
+				} else {
+					kColorSpace = kCVPixelFormatType_444YpCbCr8;
+					ctx->pix_fmt = GF_PIXEL_YUV444;
+				}
+				break;
+			default:
+				if (ctx->luma_bit_depth>8) {
+					kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
+					ctx->pix_fmt = GF_PIXEL_YV12_10;
+				}
+				break;
+			}
 		
 			if (!ctx->esd->decoderConfig->decoderSpecificInfo || force_dsi_rewrite || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
 				GF_AVCConfigSlot *slc_s, *slc_p;
@@ -195,9 +226,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 			data = CFDataCreate(kCFAllocatorDefault, dsi_data, dsi_data_size);
 			if (data) {
 				CFDictionarySetValue(dsi, CFSTR("avcC"), data);
-
-				CFDictionarySetValue(dec_cfg, kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, dsi);
-
+				CFDictionarySetValue(dec_dsi, kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, dsi);
 				CFRelease(data);
 			}
 			CFRelease(dsi);
@@ -269,7 +298,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 			
 			if (data) {
 				CFDictionarySetValue(dsi, CFSTR("esds"), data);
-				CFDictionarySetValue(dec_cfg, kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, dsi);
+				CFDictionarySetValue(dec_dsi, kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, dsi);
 				CFRelease(data);
 			}
 			CFRelease(dsi);
@@ -303,30 +332,32 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 
 	if (! ctx->width || !ctx->height) return GF_NOT_SUPPORTED;
 
-    status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_cfg, &ctx->fmt_desc);
+    status = CMVideoFormatDescriptionCreate(kCFAllocatorDefault, ctx->vtb_type, ctx->width, ctx->height, dec_dsi, &ctx->fmt_desc);
 
     if (!ctx->fmt_desc) {
-		if (dec_cfg)
-			CFRelease(dec_cfg);
+		if (dec_dsi) CFRelease(dec_dsi);
         return GF_NON_COMPLIANT_BITSTREAM;
     }
-
-//    buffer_attribs = create_buffer_attributes(ctx->width, ctx->height, kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange);
-    buffer_attribs = create_buffer_attributes(ctx->width, ctx->height, kCVPixelFormatType_420YpCbCr8Planar);
-
-    cbacks.decompressionOutputCallback = VTBDec_on_frame;
+	buffer_attribs = VTBDec_CreateBufferAttributes(ctx->width, ctx->height, kColorSpace);
+	
+	cbacks.decompressionOutputCallback = VTBDec_on_frame;
     cbacks.decompressionOutputRefCon   = ctx;
 
-    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_cfg, buffer_attribs, &cbacks, &ctx->vtb_session);
+    dec_type = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+    CFDictionarySetValue(dec_type, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
+	ctx->is_hardware = GF_TRUE;
+
+    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, NULL, &cbacks, &ctx->vtb_session);
 	//if HW decoder not available, try soft one
 	if (status) {
-	    CFDictionarySetValue(dec_cfg, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanFalse);
-		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_cfg, buffer_attribs, &cbacks, &ctx->vtb_session);
+		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, NULL, buffer_attribs, &cbacks, &ctx->vtb_session);
 		ctx->is_hardware = GF_FALSE;
 	}
 	
-	if (dec_cfg)
-		CFRelease(dec_cfg);
+	if (dec_dsi)
+		CFRelease(dec_dsi);
+	if (dec_type)
+		CFRelease(dec_type);
     if (buffer_attribs)
         CFRelease(buffer_attribs);
 
@@ -349,8 +380,17 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
     }
 	
 	//good to go !
-	ctx->out_size = ctx->width*ctx->height*3/2;
-	ctx->pix_fmt = GF_PIXEL_YV12;
+	if (ctx->pix_fmt == GF_PIXEL_YUV422) {
+		ctx->out_size = ctx->width*ctx->height*2;
+	} else if (ctx->pix_fmt == GF_PIXEL_YUV444) {
+		ctx->out_size = ctx->width*ctx->height*3;
+	} else {
+		// (ctx->pix_fmt == GF_PIXEL_YV12)
+		ctx->out_size = ctx->width*ctx->height*3/2;
+	}
+	if (ctx->luma_bit_depth>8) {
+		ctx->out_size *= 2;
+	}
 	
 	return GF_OK;
 }
@@ -706,6 +746,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	if (ctx->cached_annex_b)
 		gf_free(in_data);
 	
+	if (ctx->last_error) return ctx->last_error;
 	if (status) return GF_NON_COMPLIANT_BITSTREAM;
 	
 	if (!ctx->frame) {
@@ -726,7 +767,13 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
         u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(ctx->frame);
 		char *dst = outBuffer;
 		Bool needs_stride=GF_FALSE;
-		if ((type==kCVPixelFormatType_420YpCbCr8Planar) || (type==kCVPixelFormatType_420YpCbCr8Planar)) {
+		if ((type==kCVPixelFormatType_420YpCbCr8Planar)
+			|| (type==kCVPixelFormatType_420YpCbCr8PlanarFullRange)
+			|| (type==kCVPixelFormatType_422YpCbCr8_yuvs)
+			|| (type==kCVPixelFormatType_444YpCbCr8)
+			|| (type=='444v')
+		
+		) {
 			u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 0);
 			
 			//TOCHECK - for now the 3 planes are consecutive in VideoToolbox
@@ -739,7 +786,16 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 					u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, i);
 					u32 w, h = (u32) CVPixelBufferGetHeightOfPlane(ctx->frame, i);
 					w = ctx->width;
-					if (i) w /= 2;
+					if (i) {
+						switch (ctx->pix_fmt) {
+						case GF_PIXEL_YUV444:
+							break;
+						case GF_PIXEL_YUV422:
+						case GF_PIXEL_YV12:
+							w /= 2;
+							break;
+						}
+					}
 					if (stride != w) {
 						needs_stride=GF_TRUE;
 						for (j=0; j<h; j++) {
@@ -803,6 +859,30 @@ static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *e
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
+		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			Bool cp_ok = GF_TRUE;
+			if (!cfg->chroma_format) {
+				GF_AVCConfigSlot *s = gf_list_get(cfg->sequenceParameterSets, 0);
+				if (s) {
+					AVCState avc;
+					s32 idx;
+					memset(&avc, 0, sizeof(AVCState));
+					avc.sps_active_idx = -1;
+					idx = gf_media_avc_read_sps(s->data, s->size, &avc, 0, NULL);
+					cfg->chroma_format = avc.sps[idx].chroma_format;
+					cfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
+					cfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+				}
+			}
+			if ((cfg->chroma_bit_depth>8) || (cfg->luma_bit_depth > 8) || (cfg->chroma_format>1)) {
+				cp_ok = GF_FALSE;
+			}
+			gf_odf_avc_cfg_del(cfg);
+			if (!cp_ok) return GF_CODEC_PROFILE_NOT_SUPPORTED;
+		}
+		return GF_CODEC_SUPPORTED * 2;
+
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
 		return GF_CODEC_SUPPORTED * 2;
 

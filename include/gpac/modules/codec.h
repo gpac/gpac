@@ -169,6 +169,7 @@ enum
 	GF_CODEC_NOT_SUPPORTED = 0,
 	/*stream type (eg audio, video) is supported by this codec*/
 	GF_CODEC_STREAM_TYPE_SUPPORTED = 1,
+	GF_CODEC_PROFILE_NOT_SUPPORTED = 2,
 	/*stream format may be (partially) supported by this codec*/
 	GF_CODEC_MAYBE_SUPPORTED = 127,
 	/*stream format is supported by this codec*/
