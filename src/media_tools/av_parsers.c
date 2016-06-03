@@ -1851,6 +1851,7 @@ const char *gf_avc_get_profile_name(u8 video_prof)
 	case 0x7A:
 		return "High 4:2:2";
 	case 0x90:
+	case 0xF4:
 		return "High 4:4:4";
 	default:
 		return "Unknown";
@@ -1872,17 +1873,17 @@ const char *gf_hevc_get_profile_name(u8 video_prof)
 	}
 }
 GF_EXPORT
-const char *gf_get_chroma_format_name(u8 chroma_format)
+const char *gf_avc_hevc_get_chroma_format_name(u8 chroma_format)
 {
 	switch (chroma_format) {
-		case 1:
-			return "YUV 4:2:0";
-		case 2:
-			return "YUV 4:2:2";
-		case 3:
-			return "YUV 4:4:4";
-		default:
-			return "Unknown";
+	case 1:
+		return "YUV 4:2:0";
+	case 2:
+		return "YUV 4:2:2";
+	case 3:
+		return "YUV 4:4:4";
+	default:
+		return "Unknown";
 	}
 }
 

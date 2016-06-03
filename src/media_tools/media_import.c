@@ -4812,10 +4812,18 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
+				
 				dstcfg->chroma_format = avc.sps[idx].chroma_format;
 				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
-
+			
+				if (dstcfg->AVCProfileIndication<100 && ((dstcfg->chroma_format>1) || (dstcfg->luma_bit_depth>8) || (dstcfg->chroma_bit_depth>8)) ) {
+					if ((dstcfg->luma_bit_depth>8) || (dstcfg->chroma_bit_depth>8)) {
+						dstcfg->AVCProfileIndication=110;
+					} else {
+						dstcfg->AVCProfileIndication = (dstcfg->chroma_format==3) ? 244 : 122;
+					}
+				}
 
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					copy_size = nal_size;
