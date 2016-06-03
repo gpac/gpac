@@ -23,6 +23,7 @@
     <ClCompile Include="..\..\..\src\isomedia\box_funcs.c" />
     <ClCompile Include="..\..\..\src\isomedia\data_map.c" />
     <ClCompile Include="..\..\..\src\isomedia\drm_sample.c" />
+    <ClCompile Include="..\..\..\src\isomedia\iff.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_intern.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_read.c" />
     <ClCompile Include="..\..\..\src\isomedia\isom_store.c" />
@@ -55,6 +56,7 @@
     <ClCompile Include="..\..\..\src\utils\os_file.c" />
     <ClCompile Include="..\..\..\src\utils\os_thread.c" />
     <ClCompile Include="..\..\..\src\utils\url.c" />
+    <ClCompile Include="..\..\..\src\utils\utf.c" />
     <ClCompile Include="main.c" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
