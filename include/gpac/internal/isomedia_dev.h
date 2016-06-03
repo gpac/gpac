@@ -469,7 +469,7 @@ typedef struct
 typedef struct
 {
   GF_ISOM_BOX
-  GF_TrackFragmentRandomAccessBox* tfra;
+  GF_List* tfra_list;
 } GF_MovieFragmentRandomAccessBox;
 
 typedef struct
