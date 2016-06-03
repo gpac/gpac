@@ -289,15 +289,19 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
-const char *gf_avc_get_profile_name(u8 video_prof);
 
 //hevc_state is optionnal but shall be used for layer extensions since all size info is in VPS and not SPS
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-const char *gf_hevc_get_profile_name(u8 video_prof);
-//chroma format
+//get chroma format name from chroma format (1: 420, 2: 422, 3: 444
 const char * gf_avc_hevc_get_chroma_format_name(u8 chroma_format);
+/*get AVC profile name from profile indication*/
+const char *gf_avc_get_profile_name(u8 profile_idc);
+/*returns true if given profile is in range extensions*/
+Bool gf_avc_is_rext_profile(u8 profile_idc);
+/*get HEVC profile name from profile indication*/
+const char *gf_hevc_get_profile_name(u8 profile_idc);
 
 
 /*gets image size (bs must contain the whole image)

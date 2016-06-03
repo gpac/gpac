@@ -1829,6 +1829,28 @@ u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
+GF_EXPORT
+Bool gf_avc_is_rext_profile(u8 profile_idc)
+{
+	switch (profile_idc) {
+	case 100:
+	case 110:
+	case 122:
+	case 244:
+	case 44:
+	case 83:
+	case 86:
+	case 118:
+	case 128:
+	case 138:
+	case 139:
+	case 134:
+	case 135:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+}
 
 GF_EXPORT
 const char *gf_avc_get_profile_name(u8 video_prof)

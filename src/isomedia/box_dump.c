@@ -1884,13 +1884,8 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, " complete_representation=\"%d\"", p->config->complete_representation);
 
 	if (p->type==GF_ISOM_BOX_TYPE_AVCC) {
-		switch (p->config->AVCProfileIndication) {
-		case 100:
-		case 110:
-		case 122:
-		case 244:
+		if (gf_avc_is_rext_profile(p->config->AVCProfileIndication)) {
 			fprintf(trace, " chroma_format=\"%s\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\"", gf_avc_hevc_get_chroma_format_name(p->config->chroma_format), p->config->luma_bit_depth, p->config->chroma_bit_depth);
-			break;
 		}
 	}
 

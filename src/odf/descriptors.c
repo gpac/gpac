@@ -574,11 +574,7 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 		gf_bs_write_int(bs, sl->size, 16);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
-	switch (cfg->AVCProfileIndication) {
-	case 100:
-	case 110:
-	case 122:
-	case 244:
+	if (gf_avc_is_rext_profile(cfg->AVCProfileIndication)) {
 		gf_bs_write_int(bs, 0xFF, 6);
 		gf_bs_write_int(bs, cfg->chroma_format, 2);
 		gf_bs_write_int(bs, 0xFF, 5);
@@ -593,7 +589,6 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 			gf_bs_write_u16(bs, sl->size);
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
-		break;
 	}
 	*outSize = 0;
 	*outData = NULL;
@@ -631,11 +626,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
-	switch (avcc->AVCProfileIndication) {
-	case 100:
-	case 110:
-	case 122:
-	case 244:
+	if (gf_avc_is_rext_profile(avcc->AVCProfileIndication)) {
 		gf_bs_read_int(bs, 6);
 		avcc->chroma_format = gf_bs_read_int(bs, 2);
 		gf_bs_read_int(bs, 5);
@@ -654,7 +645,6 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 				gf_list_add(avcc->sequenceParameterSetExtensions, sl);
 			}
 		}
-		break;
 	}
 
 
