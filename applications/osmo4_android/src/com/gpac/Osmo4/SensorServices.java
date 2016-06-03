@@ -32,9 +32,10 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private float identity[] = new float[9];
 
     private static final String LOG_TAG = "GPAC SensorServices";
+    private static final float _PI_ = (float) Math.PI;
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float filterLevel = 0.5f;
+    private static final float filterLevel = 0.2f;
 
     private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
     private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
@@ -148,9 +149,37 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         if(out==null) return in;
 
         float[] output = {0.0f, 0.0f, 0.0f};
+        float diff = 0.0f;
+        
 
         for(int i=0; i<in.length; i++){
-            output[i] = out[i] + filterLevel * (in[i] - out[i]);
+
+            diff = (in[i] - out[i]);
+
+            if(Math.abs(diff)>Math.PI){
+                float diff_f = 0.0f;
+                if(diff>Math.PI){
+                    diff = 2*_PI_ - diff;
+                    diff_f = out[i]-filterLevel * diff;
+                    if(diff_f < -Math.PI){
+                        output[i] = (2*_PI_ + diff_f);
+                    }else{
+                        output[i] = diff_f;
+                    }
+                }else if(diff<-Math.PI){
+                    diff = 2*_PI_ + diff;
+                    diff_f = out[i] + filterLevel * diff;
+                    if(diff_f > Math.PI){
+                        output[i] = -2*_PI_+diff_f;
+                    }else{
+                        output[i] = diff_f;
+                    }
+
+                }
+
+            }else{
+                output[i] = out[i] + filterLevel * diff;
+            }
         }
 
         return output;
