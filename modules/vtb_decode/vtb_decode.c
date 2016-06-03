@@ -347,7 +347,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
     CFDictionarySetValue(dec_type, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
 	ctx->is_hardware = GF_TRUE;
 
-    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, NULL, &cbacks, &ctx->vtb_session);
+    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, buffer_attribs, &cbacks, &ctx->vtb_session);
 	//if HW decoder not available, try soft one
 	if (status) {
 		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, NULL, buffer_attribs, &cbacks, &ctx->vtb_session);
