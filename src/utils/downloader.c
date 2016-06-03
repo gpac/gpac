@@ -198,8 +198,9 @@ struct __gf_download_manager
 	u32 head_timeout, request_timeout;
 	GF_Config *cfg;
 	GF_List *sessions;
-	Bool disable_cache, simulate_no_connection, allow_offline_cache;
+	Bool disable_cache, simulate_no_connection, allow_offline_cache, clean_cache;
 	u32 limit_data_rate, read_buf_size;
+	u64 max_cache_size;
 
 	GF_List *skip_proxy_servers;
 	GF_List *credentials;
@@ -1664,12 +1665,10 @@ GF_Err gf_dm_sess_process_headers(GF_DownloadSession *sess)
 	return sess->last_error;
 }
 
-static Bool gf_dm_needs_to_delete_cache(GF_DownloadManager * dm) {
-	const char * opt;
-	if (!dm || !dm->cfg)
-		return GF_FALSE;
-	opt = gf_cfg_get_key(dm->cfg, "Downloader", "CleanCache");
-	return opt && (!strncmp("yes", opt, 3) || !strncmp("true", opt, 4) || !strncmp("1", opt, 1));
+static Bool gf_dm_needs_to_delete_cache(GF_DownloadManager * dm)
+{
+	if (!dm) return GF_FALSE;
+	return dm->clean_cache;
 }
 
 #ifdef BUGGY_gf_cache_cleanup_cache
@@ -1690,6 +1689,29 @@ static void gf_cache_cleanup_cache(GF_DownloadManager * dm) {
 }
 #endif
 
+typedef struct
+{
+	Bool check_size;
+	u64 out_size;
+} cache_probe;
+
+static Bool gather_cache_size(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	u64 *out_size = (u64 *) cbck;
+	*out_size += file_info->size;
+	return 0;
+}
+
+static void gf_dm_clean_cache(GF_DownloadManager *dm)
+{
+	u64 out_size = 0;
+	gf_enum_directory(dm->cache_directory, GF_FALSE, gather_cache_size, &out_size, "*");
+	if (out_size >= dm->max_cache_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cache size %d exceeds max allowed %d, deleting entire cache\n", out_size, dm->max_cache_size));
+		gf_cleanup_dir(dm->cache_directory);
+
+	}
+}
 
 GF_EXPORT
 GF_DownloadManager *gf_dm_new(GF_Config *cfg)
@@ -1778,6 +1800,26 @@ retry_cache:
 		if (opt && !strcmp(opt, "yes") )
 			dm->allow_offline_cache = GF_TRUE;
 	}
+
+	dm->allow_offline_cache = GF_FALSE;
+	if (cfg) {
+		opt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
+		if (opt) {
+			if (!strcmp(opt, "yes") ) {
+				dm->clean_cache = GF_TRUE;
+				dm->max_cache_size=0;
+				gf_dm_clean_cache(dm);
+			} else if (sscanf(opt, LLU"M", &dm->max_cache_size)==1) {
+				dm->max_cache_size*=1000;
+				dm->max_cache_size*=1000;
+				gf_dm_clean_cache(dm);
+			} else if (sscanf(opt, LLU"K", &dm->max_cache_size)==1) {
+				dm->max_cache_size*=1000;
+				gf_dm_clean_cache(dm);
+			}
+		}
+	}
+
 
 	dm->head_timeout = 5000;
 	if (cfg) {
