@@ -128,6 +128,12 @@
     <ClCompile Include="..\..\..\src\utils\os_file.c">
       <Filter>others</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\..\src\isomedia\iff.c">
+      <Filter>isoff</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\..\src\utils\utf.c">
+      <Filter>others</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="isoff">
