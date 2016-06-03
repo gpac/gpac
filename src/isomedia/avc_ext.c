@@ -1767,7 +1767,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 		case 100:
 		case 110:
 		case 122:
-		case 144:
+		case 244:
 			if (!ptr->size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 				AVCState avc;
@@ -1872,7 +1872,7 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 		case 100:
 		case 110:
 		case 122:
-		case 144:
+		case 244:
 			gf_bs_write_int(bs, 0xFF, 6);
 			gf_bs_write_int(bs, ptr->config->chroma_format, 2);
 			gf_bs_write_int(bs, 0xFF, 5);
@@ -1917,7 +1917,7 @@ GF_Err avcc_Size(GF_Box *s)
 		case 100:
 		case 110:
 		case 122:
-		case 144:
+		case 244:
 			ptr->size += 4;
 			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			for (i=0; i<count; i++)

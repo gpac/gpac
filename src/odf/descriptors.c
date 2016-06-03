@@ -510,6 +510,10 @@ GF_AVCConfig *gf_odf_avc_cfg_new()
 	if (!cfg) return NULL;
 	cfg->sequenceParameterSets = gf_list_new();
 	cfg->pictureParameterSets = gf_list_new();
+	cfg->AVCLevelIndication = 1;
+	cfg->chroma_format = 1;
+	cfg->chroma_bit_depth = 8;
+	cfg->luma_bit_depth = 8;
 	return cfg;
 }
 
@@ -574,7 +578,7 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 	case 100:
 	case 110:
 	case 122:
-	case 144:
+	case 244:
 		gf_bs_write_int(bs, 0xFF, 6);
 		gf_bs_write_int(bs, cfg->chroma_format, 2);
 		gf_bs_write_int(bs, 0xFF, 5);
@@ -631,7 +635,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 	case 100:
 	case 110:
 	case 122:
-	case 144:
+	case 244:
 		gf_bs_read_int(bs, 6);
 		avcc->chroma_format = gf_bs_read_int(bs, 2);
 		gf_bs_read_int(bs, 5);

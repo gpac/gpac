@@ -27,6 +27,7 @@
 #include <gpac/utf.h>
 #include <gpac/network.h>
 #include <gpac/color.h>
+#include <gpac/avparse.h>
 #include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
@@ -1887,8 +1888,8 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 		case 100:
 		case 110:
 		case 122:
-		case 144:
-			fprintf(trace, " chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\"", p->config->chroma_format, p->config->luma_bit_depth, p->config->chroma_bit_depth);
+		case 244:
+			fprintf(trace, " chroma_format=\"%s\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\"", gf_avc_hevc_get_chroma_format_name(p->config->chroma_format), p->config->luma_bit_depth, p->config->chroma_bit_depth);
 			break;
 		}
 	}
@@ -1954,8 +1955,8 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "parallelismType=\"%d\" ", p->config->parallelismType);
 
 	if (a->type==GF_ISOM_BOX_TYPE_HVCC)
-		fprintf(trace, "chroma_format=\"%d\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
-	        p->config->chromaFormat, p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
+		fprintf(trace, "chroma_format=\"%s\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
+	        gf_avc_hevc_get_chroma_format_name(p->config->chromaFormat), p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
 
 	fprintf(trace, ">\n");
 
