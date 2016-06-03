@@ -1308,6 +1308,17 @@ void gf_service_download_update_stats(GF_DownloadSession * sess)
 		gf_term_service_media_event_with_download(serv->owner, GF_EVENT_MEDIA_PROGRESS, bytes_done, total_size, bytes_per_sec);
 		break;
 	case GF_NETIO_DATA_TRANSFERED:
+		/*notify some connection / ...*/
+		if (total_size) {
+			GF_Event evt;
+			evt.type = GF_EVENT_PROGRESS;
+			evt.progress.progress_type = 1;
+			evt.progress.service = szURI;
+			evt.progress.total = total_size;
+			evt.progress.done = total_size;
+			evt.progress.bytes_per_seconds = bytes_per_sec;
+			gf_term_send_event(serv->term, &evt);
+		}
 		gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_LOAD_DONE);
 		if (serv->owner && !(serv->owner->flags & GF_ODM_DESTROYED) && serv->owner->duration) {
 			GF_Clock *ck = gf_odm_get_media_clock(serv->owner);
