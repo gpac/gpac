@@ -3264,6 +3264,8 @@ void minf_del(GF_Box *);
 void tkhd_del(GF_Box *);
 void tref_del(GF_Box *);
 void mdia_del(GF_Box *);
+void mfra_del(GF_Box *);
+void tfra_del(GF_Box *);
 void defa_del(GF_Box *);
 void uuid_del(GF_Box *);
 void void_del(GF_Box *);
