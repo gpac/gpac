@@ -409,7 +409,7 @@ are closed. As this lib doesn't maintain the number of valid streams
 you MUST call reset when all your streams are shutdown (either requested through
 TEARDOWN or signaled through RTCP BYE packets for RTP, or any other signaling means
 for other protocols)
-reset connection will destroy the socket - this is isefull in case of timeouts, because
+reset connection will destroy the socket - this is useful in case of timeouts, because
 some servers do not restart with the right CSeq...*/
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
