@@ -893,6 +893,7 @@ static GF_InputService *gf_term_can_handle_service(GF_Terminal *term, const char
 	if (mime_type &&
 	        (!stricmp(mime_type, "text/plain")
 	         || !stricmp(mime_type, "video/quicktime")
+	         || !stricmp(mime_type, "video/mpeg")
 	         || !stricmp(mime_type, "application/octet-stream")
 	        )
 	   ) {

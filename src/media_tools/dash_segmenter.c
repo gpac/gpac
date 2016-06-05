@@ -3841,7 +3841,10 @@ static GF_Err dasher_get_ts_demux(GF_TSSegmenter *ts_seg, const char *file, u32 
 		/* first loop to process all packets between two PAT, and assume all signaling was found between these 2 PATs */
 		while (!feof(ts_seg->src)) {
 			char data[188];
-			u32 size = (u32) fread(data, 1, 188, ts_seg->src);
+			s32 size = (s32) fread(data, 1, 188, ts_seg->src);
+			if (size<0) {
+				return GF_IO_ERR;
+			}
 			if (size<188) break;
 
 			gf_m2ts_process_data(ts_seg->ts, data, size);
@@ -3977,7 +3980,11 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 
 			while (!feof(ts_seg.src) && !ts_seg.has_seen_pat) {
 				char data[NB_TSPCK_IO_BYTES];
-				u32 size = (u32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+				s32 size = (s32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+				if (size<0) {
+					e = GF_IO_ERR;
+					goto exit;
+				}
 				gf_m2ts_process_data(ts_seg.ts, data, size);
 
 				if (size<NB_TSPCK_IO_BYTES) break;
@@ -4005,7 +4012,11 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/*index the file*/
 	while (!feof(ts_seg.src) && !ts_seg.suspend_indexing) {
 		char data[NB_TSPCK_IO_BYTES];
-		u32 size = (u32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+		s32 size = (s32) fread(data, 1, NB_TSPCK_IO_BYTES, ts_seg.src);
+		if (size<0) {
+			e = GF_IO_ERR;
+			goto exit;
+		}
 		gf_m2ts_process_data(ts_seg.ts, data, size);
 		if (size<NB_TSPCK_IO_BYTES) break;
 	}
@@ -4236,13 +4247,13 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					pos = start;
 					end = start+ref->reference_size;
 					while (pos<end) {
-						u32 res;
+						s32 res;
 						u32 to_read = NB_TSPCK_IO_BYTES;
 						if (pos+NB_TSPCK_IO_BYTES >= end) {
 							to_read = (u32) (end-pos);
 						}
-						res = (u32) fread(buf, 1, to_read, src);
-						if (res==to_read) {
+						res = (s32) fread(buf, 1, to_read, src);
+						if (res == (s32) to_read) {
 							gf_m2ts_restamp(buf, res, pcr_shift, is_pes);
 							res = (u32) fwrite(buf, 1, to_read, dst);
 						}
@@ -4296,7 +4307,11 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_fseek(in, 0, SEEK_SET);
 		done = 0;
 		while (1) {
-			u32 read = (u32) fread(buf, 1, NB_TSPCK_IO_BYTES, in);
+			s32 read = (s32) fread(buf, 1, NB_TSPCK_IO_BYTES, in);
+			if (read<0) {
+				e = GF_IO_ERR;
+				goto exit;
+			}
 			gf_m2ts_restamp(buf, read, pcr_shift, is_pes);
 			fwrite(buf, 1, read, out);
 			done+=read;
@@ -5257,10 +5272,11 @@ static GF_Err dash_insert_period_xml(FILE *mpd, char *szPeriodXML)
 
 	while (xml_size) {
 		char buf[4096];
-		u32 read, size = 4096;
+		u32 read;
+		u32 size = 4096;
 		if (xml_size<4096) size = xml_size;
-		read = (u32) fread(buf, 1, size, period_mpd);
-		if (read != size) {
+		read = (s32) fread(buf, 1, size, period_mpd);
+		if (read != (s32) size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Error reading from period MPD file: got %d but requested %d bytes\n", read, size ));
 			gf_fclose(period_mpd);
 			return GF_IO_ERR;

@@ -146,6 +146,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	u64 size, tot;
 	FILE *in;
 	GF_SHA1Context *ctx;
+	GF_Err e = GF_OK;
 #ifndef GPAC_DISABLE_ISOM
 	GF_BitStream *bs = NULL;
 	Bool is_isom = gf_isom_probe_file(file);
@@ -192,6 +193,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 		{
 			read = (u32) fread(block, 1, 1024, in);
+			if ((s32) read < 0) {
+				e = GF_IO_ERR;
+				break;
+			}
 			gf_sha1_update(ctx, block, read);
 			tot += read;
 		}
@@ -201,7 +206,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	if (bs) gf_bs_del(bs);
 #endif
 	gf_fclose(in);
-	return GF_OK;
+	return e;
 #endif
 }
 
