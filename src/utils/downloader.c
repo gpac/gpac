@@ -576,7 +576,8 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[Downloader] gf_dm_configure_cache(%p), cached=%s\n", sess, sess->flags & GF_NETIO_SESSION_NOT_CACHED ? "no" : "yes" ));
 	gf_dm_remove_cache_entry_from_session(sess);
 	if (sess->flags & GF_NETIO_SESSION_NOT_CACHED) {
-		sess->cache_entry = NULL;
+		sess->reused_cache_entry = GF_FALSE;
+		gf_cache_close_write_cache(sess->cache_entry, sess, GF_FALSE);
 	} else {
 		Bool found = GF_FALSE;
 		u32 i, count;
@@ -2480,12 +2481,12 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			assert (user_profile);
 			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
-				u32 readen = (u32) fread(tmp_buf+len, sizeof(char), par.size, profile);
-				if (readen<par.size) {
+				s32 read = (s32) fread(tmp_buf+len, sizeof(char), par.size, profile);
+				if ((read<0) || (read<par.size)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
-					       ("Error while loading Downloader/UserProfile, size=%d, should be %d.", readen, par.size));
-					for (; readen < par.size; readen++) {
-						tmp_buf[len + readen] = 0;
+					       ("Error while loading Downloader/UserProfile, size=%d, should be %d.", read, par.size));
+					for (; read < par.size; read++) {
+						tmp_buf[len + read] = 0;
 					}
 				}
 				gf_fclose(profile);
@@ -3052,11 +3053,11 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 
 			sess->status = GF_NETIO_DATA_EXCHANGE;
 			if (! (sess->flags & GF_NETIO_SESSION_NOT_THREADED) || sess->force_data_write_callback) {
-				char file_cache_buff[16384];
-				int read = 0;
+				char file_cache_buff[16544];
+				s32 read = 0;
 				u32 total_size = gf_cache_get_cache_filesize(sess->cache_entry);
 				do {
-					read = (u32) fread(file_cache_buff, sizeof(char), 16384, f);
+					read = (s32) fread(file_cache_buff, sizeof(char), 16384, f);
 					if (read > 0) {
 						sess->bytes_done += read;
 						sess->total_size = total_size;
@@ -3414,11 +3415,12 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
 		e = gf_cache_close_write_cache(dnload->cache_entry, dnload, e == GF_OK);
 
 	if (!e) {
-		u32 size = (u32) ftell(f), read;
+		u32 size = (u32) ftell(f);
+		s32 read;
 		*out_size = size;
 		*out_data = (char*)gf_malloc(sizeof(char)* ( 1 + size));
 		fseek(f, 0, SEEK_SET);
-		read = (u32) fread(*out_data, 1, size, f);
+		read = (s32) fread(*out_data, 1, size, f);
 		if (read != size) {
 			gf_free(*out_data);
 			e = GF_IO_ERR;

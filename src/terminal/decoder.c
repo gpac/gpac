@@ -1694,6 +1694,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	GF_BaseDecoder *ifce, *dec_ifce;
 	u32 i, plugCount;
 	u32 ifce_type;
+	Bool do_dec_switch = GF_TRUE;
 	u32 dec_confidence;
 	GF_Terminal *term = codec->odm->term;
 
@@ -1807,6 +1808,8 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		if (!ifce) continue;
 		if (ifce->CanHandleStream) {
 			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+			
+			if (conf==GF_CODEC_PROFILE_NOT_SUPPORTED) do_dec_switch = GF_FALSE;
 
 			if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>dec_confidence)) {
 				/*switch*/
@@ -1822,8 +1825,10 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 
 	if (dec_ifce) {
 		codec->decio = dec_ifce;
-		sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-		gf_cfg_set_key(term->user->config, "Systems", szPrefDec, dec_ifce->module_name);
+		if (do_dec_switch) {
+			sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
+			gf_cfg_set_key(term->user->config, "Systems", szPrefDec, dec_ifce->module_name);
+		}
 		return GF_OK;
 	}
 

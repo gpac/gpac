@@ -148,6 +148,10 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(xvid);
 #endif
 
+#if defined(GPAC_IPHONE) || defined(__DARWIN__) || defined(__APPLE__)
+    LOAD_PLUGIN(vtb);
+#endif
+
 	//todo fix project for iOS
 #ifdef GPAC_IPHONE
 	//these do not compile with xcode 4.2

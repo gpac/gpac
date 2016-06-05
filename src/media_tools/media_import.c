@@ -209,6 +209,7 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 	data = (char*)gf_malloc(sizeof(char)*size);
 	size = (u32) fread(data, sizeof(char), size, src);
 	gf_fclose(src);
+	if ((s32) size < 0) return GF_IO_ERR;
 
 	/*get image size*/
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
@@ -378,6 +379,7 @@ static GF_Err gf_import_afx_sc3dmc(GF_MediaImporter *import, Bool mult_desc_allo
 	data = (char*)gf_malloc(sizeof(char)*size);
 	size = (u32) fread(data, sizeof(char), size, src);
 	gf_fclose(src);
+	if ((s32) size < 0) return GF_IO_ERR;
 
 	OTI = GPAC_OTI_SCENE_AFX;
 
@@ -480,6 +482,8 @@ GF_Err gf_import_mp3(GF_MediaImporter *import)
 	{
 		unsigned char id3v2[10];
 		u32 pos = (u32) fread(id3v2, sizeof(unsigned char), 10, in);
+		if ((s32) pos < 0) return gf_import_message(import, GF_IO_ERR, "IO error reading file %s", import->in_name);
+
 		if (pos == 10) {
 			/* Did we read an ID3v2 ? */
 			if (id3v2[0] == 'I' && id3v2[1] == 'D' && id3v2[2] == '3') {
@@ -4808,10 +4812,20 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
+				
 				dstcfg->chroma_format = avc.sps[idx].chroma_format;
 				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
-
+				/*try to patch ?*/
+				if (!gf_avc_is_rext_profile(dstcfg->AVCProfileIndication)
+					&& ((dstcfg->chroma_format>1) || (dstcfg->luma_bit_depth>8) || (dstcfg->chroma_bit_depth>8))
+				) {
+					if ((dstcfg->luma_bit_depth>8) || (dstcfg->chroma_bit_depth>8)) {
+						dstcfg->AVCProfileIndication=110;
+					} else {
+						dstcfg->AVCProfileIndication = (dstcfg->chroma_format==3) ? 244 : 122;
+					}
+				}
 
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					copy_size = nal_size;
@@ -9204,7 +9218,7 @@ exit:
 GF_EXPORT
 GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 {
-	int readen=0;
+	s32 read=0;
 	GF_Err e;
 	u32 state, offset;
 	u32 cur_chap;
@@ -9215,8 +9229,12 @@ GF_Err gf_media_import_chapters_file(GF_MediaImporter *import)
 	FILE *f = gf_fopen(import->in_name, "rt");
 	if (!f) return GF_URL_ERROR;
 
-	readen = (u32) fread(line, 1, 4, f);
-	if (readen < 4) {
+	read = (s32) fread(line, 1, 4, f);
+	if (read < 0) {
+		e = GF_IO_ERR;
+		goto err_exit;
+	}
+	if (read < 4) {
 		e = GF_URL_ERROR;
 		goto err_exit;
 	}
