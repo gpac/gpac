@@ -55,7 +55,7 @@ GF_Err RTSP_UnpackURL(char *sURL, char *Server, u16 *Port, char *Service, Bool *
 
 found:
 	schema[i] = 0;
-	if (stricmp(schema, "rtsp") && stricmp(schema, "rtspu")) return GF_URL_ERROR;
+	if (stricmp(schema, "rtsp") && stricmp(schema, "rtspu") && stricmp(schema, "satip")) return GF_URL_ERROR;
 	//check for user/pass - not allowed
 	/*
 		test = strstr(sURL, "@");
@@ -68,7 +68,8 @@ found:
 	retest = strstr(test, "/");
 	if (!retest) return GF_URL_ERROR;
 
-	if (!stricmp(schema, "rtsp")) *useTCP = GF_TRUE;
+	if (!stricmp(schema, "rtsp") || !stricmp(schema, "satip"))
+		*useTCP = GF_TRUE;
 
 	//check for port
 	retest = strrchr(test, ':');
