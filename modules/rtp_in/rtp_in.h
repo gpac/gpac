@@ -132,6 +132,9 @@ typedef struct _rtp_session
 	u32 command_time;
 	GF_List *rtsp_commands;
 	GF_Err connect_error;
+
+	/*SAT>IP uses a non-conformant version of RTSP*/
+	Bool satip;
 } RTSPSession;
 
 /*creates new RTSP session handler*/

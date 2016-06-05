@@ -27,6 +27,7 @@
 
 #ifndef GPAC_DISABLE_STREAMING
 
+#define GPAC_SATIP_PORT 1400
 
 Bool channel_is_valid(RTPClient *rtp, RTPStream *ch)
 {
@@ -383,7 +384,17 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 
 	/*send describe*/
 	com = gf_rtsp_command_new();
-	com->method = gf_strdup(GF_RTSP_DESCRIBE);
+	if (!sess->satip) {
+		com->method = gf_strdup(GF_RTSP_DESCRIBE);
+	} else {
+		GF_RTSPTransport *trans;
+		GF_SAFEALLOC(trans, GF_RTSPTransport);
+		com->method = gf_strdup(GF_RTSP_SETUP);
+		trans->client_port_first = GPAC_SATIP_PORT;
+		trans->client_port_last = GPAC_SATIP_PORT+1;
+		trans->Profile = gf_strdup("RTP/AVP");
+		gf_list_add(com->Transports, trans);
+	}
 
 	if (channel || esd_url) {
 		com->Accept = gf_strdup("application/sdp");

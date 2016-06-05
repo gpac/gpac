@@ -204,7 +204,8 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	        strstr(url, "data:application/mpeg4-es-au;base64")) return GF_TRUE;
 
 	/*we need rtsp/tcp , rtsp/udp or direct RTP sender (no control)*/
-	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "rtp://", 6)) return GF_TRUE;
+	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "rtp://", 6)  || !strnicmp(url, "satip://", 6))
+		return GF_TRUE;
 	/*we don't check extensions*/
 	return GF_FALSE;
 }
@@ -255,7 +256,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	/*rtsp and rtsp over udp*/
-	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
+	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "satip://", 8)) {
 		char *the_url = gf_strdup(url);
 		char *the_ext = strrchr(the_url, '#');
 		if (the_ext) {
@@ -264,6 +265,8 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 			the_ext[0] = 0;
 		}
 		sess = RP_NewSession(priv, (char *) the_url);
+		if (!strnicmp(url, "satip://", 8))
+			sess->satip = GF_TRUE;
 		gf_free(the_url);
 		if (!sess) {
 			gf_service_connect_ack(serv, NULL, GF_NOT_SUPPORTED);
@@ -407,7 +410,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		sess = ch->rtsp;
 	}
 	/*rtsp url - create a session if needed*/
-	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
+	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "satip://", 8)) {
 		sess = RP_CheckSession(priv, (char *) url);
 		if (!sess) sess = RP_NewSession(priv, (char *) url);
 		es_url = (char *) url;
