@@ -366,6 +366,7 @@ typedef struct
 	char *Session;
 	u32 SessionTimeOut;
 	Double Speed;
+	u32 StreamID; //only when sess->satip is true
 	char *Timestamp;
 	/*nota : RTSP allows several configurations for a single channel (multicast and
 	unicast , ...). Usually only 1*/
