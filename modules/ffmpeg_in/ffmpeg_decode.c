@@ -589,7 +589,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 	case GF_CODEC_REORDER:
 		capability->cap.valueInt = 1;
 		return GF_OK;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		capability->cap.valueBool = GF_TRUE;
 		return GF_OK;
 	case GF_CODEC_WANTS_THREAD:
@@ -695,7 +695,7 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 			if (ffd->depth_ctx && ffd->depth_ctx->codec) avcodec_flush_buffers(ffd->depth_ctx);
 		}
 		return GF_OK;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		ffd->direct_output = GF_TRUE;
 		return GF_OK;
 	default:
@@ -1464,7 +1464,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		if ((StreamType==GF_STREAM_VISUAL) || (StreamType==GF_STREAM_AUDIO)) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 		return GF_CODEC_NOT_SUPPORTED;
 	}
-
+return GF_CODEC_NOT_SUPPORTED;
 	/*store types*/
 	ffd->oti = esd->decoderConfig->objectTypeIndication;
 	ffd->st = StreamType;

@@ -3624,3 +3624,13 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		}
 	return GF_TRUE;
 }
+
+Bool gf_sc_use_3d(GF_Compositor *compositor)
+{
+#ifndef GPAC_DISABLE_3D
+	return (compositor->visual->type_3d || compositor->hybrid_opengl) ? 1 : 0;
+#else
+	return 0;
+#endif
+}
+

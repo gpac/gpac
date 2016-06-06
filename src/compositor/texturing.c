@@ -193,7 +193,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	/*should never happen!!*/
-	if (txh->needs_release) gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+	if (txh->needs_release)
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 
 	/*check init flag*/
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
@@ -203,7 +204,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next);
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
@@ -253,8 +254,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;
 	txh->size = size;
-	if (txh->raw_memory) {
-		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV);
+	if (txh->raw_memory && (!txh->frame || !txh->frame->GetGLTexture) ) {
+		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV, &txh->stride, &txh->stride_chroma);
 	}
 	if (gf_mo_is_muted(txh->stream)) return;
 

@@ -136,9 +136,10 @@ enum
 	GF_CODEC_CU_DURATION,
 	/*queries whether data is RAW (directly dispatched to CompositionMemory) or not*/
 	GF_CODEC_RAW_MEDIA,
-	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only*/
-	GF_CODEC_DIRECT_OUTPUT,
-
+	/*queries or set  support for usage of raw YUV from decoder memory - used for video codecs only, single frame pending*/
+	GF_CODEC_RAW_MEMORY,
+	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only, multiple frames shall be supported*/
+	GF_CODEC_FRAME_OUTPUT,
 	/*This is only called on scene decoders to signal that potential overlay scene should be
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/
 	GF_CODEC_SHOW_SCENE,
@@ -219,6 +220,22 @@ typedef struct _basedecoder
 /*interface name and version for media decoder */
 #define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
 
+typedef struct _mediadecoderframe
+{
+	//release media frame
+	void (*Release)(struct _mediadecoderframe *frame);
+	//get media frame plane
+	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
+	// @outPlane: adress of target color plane
+	// @outStride: stride in bytes of target color plane
+	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
+
+	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id);
+
+	//allocated space by the decoder
+	void *user_data;
+} GF_MediaDecoderFrame;
+
 /*the media module interface. A media module MUST be implemented in synchronous mode as time
 and resources management is done by the terminal*/
 typedef struct _mediadecoder
@@ -240,8 +257,11 @@ typedef struct _mediadecoder
 	                      u8 PaddingBits, u32 mmlevel);
 
 
-	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_DIRECT_OUTPUT*/
+	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
 	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+
+	/*optionnal (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
+	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
 } GF_MediaDecoder;
 
 

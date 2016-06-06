@@ -477,7 +477,7 @@ int main (int argc, char *argv[])
 	if (not_threaded) user.init_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
-	user.init_flags |= GF_TERM_NO_DECODER_THREAD;
+//	user.init_flags |= GF_TERM_NO_DECODER_THREAD;
 
 	if (bench_mode) {
 		gf_cfg_discard_changes(user.config);
