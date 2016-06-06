@@ -3317,11 +3317,15 @@ static void visual_3d_draw_bounds(GF_TraverseState *tr_state, GF_Mesh *mesh)
 
 void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
+#if !defined(GPAC_USE_GLES2)
 	Bool mesh_drawn = 0;
+#endif
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
 	if (tr_state->visual->compositor->wiremode != GF_WIREFRAME_ONLY) {
 		visual_3d_draw_mesh(tr_state, mesh);
+#if !defined(GPAC_USE_GLES2)
 		mesh_drawn = 1;
+#endif
 	}
 
 	//TODOk - allow normal drawing and wireframe with GLES2 j

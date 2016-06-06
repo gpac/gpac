@@ -700,10 +700,13 @@ void log_backtrace(unsigned int log_level, memory_element *element)
 }
 
 
-#if 0
-void gf_check_address(void *ptr)
+#if 1
+Bool gf_check_address(void *ptr)
 {
+	Bool res = GF_TRUE;
 	int pos;
+
+	if (!gpac_allocations_lock) return res;
 
 	/*lock*/
 	gf_mx_p(gpac_allocations_lock);
@@ -717,11 +720,13 @@ void gf_check_address(void *ptr)
 			element = element->next;
 		assert(element);
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
+		res = GF_FALSE;
         log_backtrace(GF_MEMORY_ERROR, element);
 		assert(0);
 	}
 	/*unlock*/
 	gf_mx_v(gpac_allocations_lock);
+	return res;
 }
 #endif
 

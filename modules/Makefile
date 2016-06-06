@@ -100,6 +100,10 @@ PLUGDIRS+=dx_hw
 endif
 endif
 
+#OSX plugins
+ifeq ($(CONFIG_DARWIN),yes)
+PLUGDIRS+=vtb_decode
+endif
 
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(CONFIG_LIBAV), new) #we don't support libav newest APIs

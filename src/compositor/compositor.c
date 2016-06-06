@@ -273,9 +273,9 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 			*ms_till_next = compositor->ms_until_next_frame;
 	}
 	//next frame is late, we should redraw
-	if (compositor->ms_until_next_frame < 0) return 1;
-	if (compositor->frame_draw_type) return 1;
-	if (compositor->fonts_pending) return 1;
+	if (compositor->ms_until_next_frame < 0) return GF_TRUE;
+	if (compositor->frame_draw_type) return GF_TRUE;
+	if (compositor->fonts_pending) return GF_TRUE;
 	return GF_FALSE;
 }
 

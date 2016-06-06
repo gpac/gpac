@@ -871,9 +871,24 @@ GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 	if (!rawdsi || !rawdsi_size) return GF_NON_COMPLIANT_BITSTREAM;
 	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, 0);
 	e = gf_m4v_parse_config(vparse, dsi);
+	dsi->next_object_start = (u32) vparse->current_object_start;
 	gf_m4v_parser_del(vparse);
 	return e;
 }
+
+GF_EXPORT
+GF_Err gf_mpegv12_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
+{
+	GF_Err e;
+	GF_M4VParser *vparse;
+	if (!rawdsi || !rawdsi_size) return GF_NON_COMPLIANT_BITSTREAM;
+	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, GF_TRUE);
+	e = gf_m4v_parse_config(vparse, dsi);
+	dsi->next_object_start = (u32) vparse->current_object_start;
+	gf_m4v_parser_del(vparse);
+	return e;
+}
+
 #endif
 
 
@@ -1814,6 +1829,28 @@ u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
+GF_EXPORT
+Bool gf_avc_is_rext_profile(u8 profile_idc)
+{
+	switch (profile_idc) {
+	case 100:
+	case 110:
+	case 122:
+	case 244:
+	case 44:
+	case 83:
+	case 86:
+	case 118:
+	case 128:
+	case 138:
+	case 139:
+	case 134:
+	case 135:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+}
 
 GF_EXPORT
 const char *gf_avc_get_profile_name(u8 video_prof)
@@ -1836,6 +1873,7 @@ const char *gf_avc_get_profile_name(u8 video_prof)
 	case 0x7A:
 		return "High 4:2:2";
 	case 0x90:
+	case 0xF4:
 		return "High 4:4:4";
 	default:
 		return "Unknown";
@@ -1857,17 +1895,17 @@ const char *gf_hevc_get_profile_name(u8 video_prof)
 	}
 }
 GF_EXPORT
-const char *gf_get_chroma_format_name(u8 chroma_format)
+const char *gf_avc_hevc_get_chroma_format_name(u8 chroma_format)
 {
 	switch (chroma_format) {
-		case 1:
-			return "YUV 4:2:0";
-		case 2:
-			return "YUV 4:2:2";
-		case 3:
-			return "YUV 4:4:4";
-		default:
-			return "Unknown";
+	case 1:
+		return "YUV 4:2:0";
+	case 2:
+		return "YUV 4:2:2";
+	case 3:
+		return "YUV 4:4:4";
+	default:
+		return "Unknown";
 	}
 }
 

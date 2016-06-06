@@ -633,7 +633,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if (codec->bytes_per_sec) mo->timestamp += CU->RenderedLength * 1000 / codec->bytes_per_sec;
 
 	if (bench_mode) {
-//		mo->timestamp = gf_clock_time(codec->ck);
 		mo->ms_until_pres = -1;
 		mo->ms_until_next = 1;
 	}

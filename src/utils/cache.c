@@ -764,7 +764,7 @@ s32 gf_cache_reader_read( GF_CacheReader reader, char * buff, s32 length) {
 	s32 read;
 	if (!reader || !buff || length < 0 || !reader->readPtr)
 		return -1;
-	read = (u32) fread(buff, sizeof(char), length, reader->readPtr);
+	read = (s32) fread(buff, sizeof(char), length, reader->readPtr);
 	if (read > 0)
 		reader->readPosition+= read;
 	return read;

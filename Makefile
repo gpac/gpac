@@ -81,12 +81,11 @@ lcov_only:
 
 lcov:	lcov_only
 	@rm -rf coverage/
-	@genhtml -q -o coverage coverage.info 2> /dev/null
+	@genhtml -q -o coverage coverage.info
 
 travis_tests:
 	@echo "Running tests"
 	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
-	@rm -f ./gpac-conf--* > /dev/null
 
 travis_deploy:
 	@echo "Deploying results"
