@@ -36,6 +36,8 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
     private static final float filterLevel = 0.2f;
+    //threshold to discard orientation x, y, z
+    private static float[] orThreshold = {0.5f, 0.02f, 0.02f};
 
     private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
     private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
@@ -136,11 +138,13 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
         if(out==null) return true;
 
+
+
         for(int i=0; i<in.length; i++){
-            if(Math.abs(in[0]-out[0])<0.05) return false;
+            if(Math.abs(in[i]-out[i])>orThreshold[i]) return true;
         }
 
-        return true;
+        return false;
     }
 
 
