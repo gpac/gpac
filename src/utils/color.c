@@ -1491,6 +1491,7 @@ void gf_cmx_apply_fixed(GF_ColorMatrix *_this, Fixed *a, Fixed *r, Fixed *g, Fix
 static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
+	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 5*src_stride * src_height/4;
@@ -1517,7 +1518,6 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 
 
 	
-		__m128i val1, val2, val_dst, *src1, *src2, *dst;
 		for (i=0; i<h; i++) {
 			src1 = (__m128i *)(pY + i*src_stride);
 			src2 = src1+1;
@@ -1571,6 +1571,7 @@ static GF_Err gf_color_write_yv12_10_to_yuv_intrin(GF_VideoSurface *vs_dst,  uns
 static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,  unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
+	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 3*src_stride * src_height/2;
@@ -1595,7 +1596,6 @@ static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,
 
 
 	
-	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	for (i=0; i<h; i++) {
 		src1 = (__m128i *)(pY + i*src_stride);
 		src2 = src1+1;
@@ -1649,6 +1649,7 @@ static GF_Err gf_color_write_yuv422_10_to_yuv422_intrin(GF_VideoSurface *vs_dst,
 static GF_Err gf_color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst, unsigned char *pY, unsigned char *pU, unsigned char*pV, u32 src_stride, u32 src_width, u32 src_height, const GF_Window *_src_wnd, Bool swap_uv)
 {
 	u32 i, j, w, h;
+	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	if (!pU) {
 		pU = pY + src_stride * src_height;
 		pV = pY + 2 * src_stride * src_height ;
@@ -1673,8 +1674,6 @@ static GF_Err gf_color_write_yuv444_10_to_yuv444_intrin(GF_VideoSurface *vs_dst,
 	}
 
 
-	
-	__m128i val1, val2, val_dst, *src1, *src2, *dst;
 	for (i = 0; i<h; i++) {
 		src1 = (__m128i *)(pY + i*src_stride);
 		src2 = src1 + 1;
@@ -1955,11 +1954,12 @@ GF_Err gf_color_write_yuv444_10_to_yuv444(GF_VideoSurface *vs_dst,  unsigned cha
 		
 		u16 *src_u= (u16 *) (pU + i*src_stride);
 		u8 *dst_u = (u8 *) vs_dst->video_buffer + vs_dst->pitch_y * vs_dst->height+ i*vs_dst->pitch_y;
-		if (vs_dst->u_ptr) dst_u = (u8 *) (vs_dst->u_ptr + i*vs_dst->pitch_y);
 		
 		u16 *src_v = (u16 *) (pV + i*src_stride);
 		u8 *dst_v = (u8 *) vs_dst->video_buffer + 2*vs_dst->pitch_y * vs_dst->height + i*vs_dst->pitch_y;
-		if (vs_dst->v_ptr) dst_v = (u8 *) (vs_dst->v_ptr + i*vs_dst->pitch_y);
+
+		if (vs_dst->u_ptr) dst_u = (u8 *)(vs_dst->u_ptr + i*vs_dst->pitch_y);
+		if (vs_dst->v_ptr) dst_v = (u8 *)(vs_dst->v_ptr + i*vs_dst->pitch_y);
 
 		for (j=0; j<w; j++) {
 			*dst_y = (*src_y) >> 2;

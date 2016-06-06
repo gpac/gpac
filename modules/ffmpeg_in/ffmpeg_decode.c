@@ -314,6 +314,22 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	}
 	/*should never happen*/
 	if (! (*codec)) return GF_OUT_OF_MEM;
+	
+	/*not sure this is the right way to do so, no doc in ffmpeg on this topic */
+#if 0
+	/*check HW accel*/
+	avcodec_get_context_defaults3(*ctx, *codec);
+	if (*codec) {
+		AVHWAccel *hwaccel=NULL;
+		while ((hwaccel = av_hwaccel_next(hwaccel))){
+			if (hwaccel->id == (*codec)->id) {
+				(*ctx)->hwaccel_context = hwaccel;
+				(*ctx)->pix_fmt = hwaccel->pix_fmt;
+				break;
+			}
+		}
+	}
+#endif
 
 	/*setup MPEG-4 video streams*/
 	if (ffd->st==GF_STREAM_VISUAL) {
@@ -410,6 +426,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		if (avcodec_open((*ctx), (*codec) )<0) return GF_NON_COMPLIANT_BITSTREAM;
 #endif
 	}
+	
 	/*setup audio streams*/
 	if (ffd->st==GF_STREAM_AUDIO) {
 		if ((*codec)->id == CODEC_ID_MP2) {
@@ -1454,7 +1471,7 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 
 	codec_id = 0;
 	check_4cc = GF_FALSE;
-
+	
 	/*private from FFMPEG input*/
 	if (ffd->oti == GPAC_OTI_MEDIA_FFMPEG) {
 		bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);

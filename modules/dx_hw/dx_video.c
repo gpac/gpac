@@ -769,7 +769,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (!dd) return GF_BAD_PARAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] FLushing video output\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Flushing video output\n"));
 
 #ifndef GPAC_DISABLE_3D
 

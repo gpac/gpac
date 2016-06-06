@@ -530,6 +530,11 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
+					priv->dsi = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+					priv->dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+					memcpy(priv->dsi, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				}
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
 			case GPAC_OTI_VIDEO_SHVC:
