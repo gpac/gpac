@@ -13,19 +13,19 @@ import android.hardware.SensorManager;
  *
  * @author Emmanouil Potetsianakis <emmanouil.potetsianakis@telecom-paristech.fr>
  * @version $Revision$
- * 
+ *
  */
 public class SensorServices implements SensorEventListener, GPACInstanceInterface {
 
-	private static SensorManager sensorManager;
+    private static SensorManager sensorManager;
 
-	private static Sensor accelerometer;
-	private static Sensor magnetometer;
+    private static Sensor accelerometer;
+    private static Sensor magnetometer;
 
     protected  Osmo4Renderer rend;
 
-	private float[] lastAcc = {0.0f, 0.0f, 0.0f}, prevAcc;
-	private float[] lastMagn = {0.0f, 0.0f, 0.0f}, prevMagn;
+    private float[] lastAcc = {0.0f, 0.0f, 0.0f}, prevAcc;
+    private float[] lastMagn = {0.0f, 0.0f, 0.0f}, prevMagn;
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
     private float rotation[] = new float[9];
@@ -39,12 +39,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
     private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
-    private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
+    private static final boolean useOrientationThreshold = false;    //if true keepOrientation() discards results within the error margin
 
 
     /**
      * Constructor (initialize sensors)
-     * 
+     *
      * @param context The parent Context
      * @return SensorServices object
      *
@@ -56,11 +56,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     }
 
     public void setRenderer(Osmo4Renderer renderer){
-            rend = renderer;
-}
+        rend = renderer;
+    }
     /**
      * Register sensors to start receiving data
-     * 
+     *
      * @return SensorServices object
      *
      */
@@ -97,7 +97,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             }else{
                 gotRotation = SensorManager.getRotationMatrix(rotation, identity, prevAcc, prevMagn);
             }
-            
+
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
@@ -107,7 +107,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
             float orientation[] = new float[3];
             SensorManager.getOrientation(rotation, orientation);
-            Log.v(LOG_TAG, "We have orientation: "+orientation[0]+" ,  "+orientation[1]+" ,  "+orientation[2]);
+            Log.v(LOG_TAG, "Received Orientation - Yaw: "+orientation[0]+" , Pitch: "+orientation[1]+" , Roll: "+orientation[2]);
 
             lastOrient = orientation;
             boolean refreshOrientation = true;
@@ -118,13 +118,13 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             if(refreshOrientation){
                 if(useOrientationFilter){
                     prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
+                    Log.v(LOG_TAG, "Smoothed Orientation - Yaw: "+prevOrient[0]+" , Pitch: "+prevOrient[1]+" , Roll: "+prevOrient[2]);
                 }else{
                     prevOrient = lastOrient;
                 }
             }
 
             //NOTE: we invert yaw and roll (for 360 navigation)
-            //rend.getInstance().onOrientationChange(- orientation[0], orientation[1], - orientation[2]);
             rend.getInstance().onOrientationChange(- prevOrient[0], prevOrient[1], - prevOrient[2]);
 
         }
@@ -133,9 +133,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
 
     private static boolean keepOrientation(float[] in, float[] out){
-        
+
         if(out==null) return true;
-        
+
         for(int i=0; i<in.length; i++){
             if(Math.abs(in[0]-out[0])<0.05) return false;
         }
@@ -145,12 +145,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
 
     private static float[] smoothSensorMeasurement(float[] in, float[] out){
-        
+
         if(out==null) return in;
 
         float[] output = {0.0f, 0.0f, 0.0f};
         float diff = 0.0f;
-        
+
 
         for(int i=0; i<in.length; i++){
 
