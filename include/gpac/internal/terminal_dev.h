@@ -888,7 +888,7 @@ struct _generic_codec
 	u32 bytes_per_sec;
 	Double fps;
 	u32 nb_dispatch_skipped;
-	Bool direct_vout;
+	Bool direct_vout, direct_frame_output;
 
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size, stat_start;
@@ -1181,6 +1181,8 @@ struct _mediaobj
 	Bool is_flipped;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 	u32 srd_x, srd_y, srd_w, srd_h;
+	
+	GF_MediaDecoderFrame *media_frame;
 };
 
 GF_MediaObject *gf_mo_new();

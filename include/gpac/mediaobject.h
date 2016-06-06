@@ -47,6 +47,7 @@ extern "C" {
  */
 	
 #include <gpac/scenegraph_vrml.h>
+#include <gpac/modules/codec.h>
 
 
 /*
@@ -106,7 +107,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
 Bool gf_mo_is_raw_memory(GF_MediaObject *mo);
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma);
 
 
 /*returns min frame duration for his object or 0 if unknown*/
@@ -127,7 +128,7 @@ typedef enum
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop

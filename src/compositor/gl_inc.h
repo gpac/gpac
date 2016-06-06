@@ -30,8 +30,12 @@
 #include <windows.h>
 #endif
 
+
+#ifndef _GF_SETUP_H_
+#error "Missing gpac/setup.h include"
+#endif
+
 #ifndef GPAC_DISABLE_3D
-#include <gpac/internal/compositor_dev.h>
 
 #ifdef GPAC_USE_GLES1X
 
@@ -141,7 +145,14 @@ extern void (*glXGetProcAddress(const GLubyte *procname))( void );
 #define YCBCR_422_APPLE			0x85B9
 #endif
 
-#if !defined(GPAC_USE_GLES1X) &&  !defined(GPAC_USE_GLES2)
+#if defined(GPAC_USE_GLES2)
+#define GL_UNPACK_ROW_LENGTH_EXT            0x0CF2
+#define GL_UNPACK_SKIP_ROWS_EXT             0x0CF3
+#define GL_UNPACK_SKIP_PIXELS_EXT           0x0CF4
+#endif
+
+
+#if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 
 /*redefine all ext needed*/
 
@@ -498,7 +509,7 @@ GLDECL(GLint, glGetAttribLocation, (GLuint prog, const char *name) )
 
 #endif //GL_VERSION_2_0
 
-#endif //GPAC_USE_GLES1X 
+#endif //GPAC_USE_GLES1X || GPAC_USE_GLES2
 
 #endif	/*GPAC_DISABLE_3D*/
 

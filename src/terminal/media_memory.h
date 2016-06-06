@@ -100,6 +100,8 @@ typedef struct _composition_unit {
 	char* data;
 
 	u64 sender_ntp;
+	
+	GF_MediaDecoderFrame *frame;
 } GF_CMUnit;
 
 
