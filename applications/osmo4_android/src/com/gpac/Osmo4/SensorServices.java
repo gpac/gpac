@@ -35,13 +35,13 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final float _PI_ = (float) Math.PI;
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float filterLevel = 0.2f;
+    private static final float filterLevel = 0.05f;
     //threshold to discard orientation x, y, z
-    private static float[] orThreshold = {0.5f, 0.02f, 0.02f};
+    private static float[] orThreshold = {0.2f, 0.02f, 0.02f};
 
     private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
     private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
-    private static final boolean useOrientationThreshold = false;    //if true keepOrientation() discards results within the error margin
+    private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
 
 
     /**
@@ -67,8 +67,8 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      *
      */
     public void registerSensors(){
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_UI);
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_UI);
+        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
     }
 
     public void unregisterSensors(){
