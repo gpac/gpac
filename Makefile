@@ -72,7 +72,8 @@ lcov_clean:
 
 lcov_only:
 	@echo "Generating lcov info in coverage.info"
-	@lcov -q --capture --directory . --output-file all.info 
+	@rm -f ./gpac-conf-* > /dev/null
+	@lcov -q -capture --directory . --output-file all.info 
 	@lcov --remove all.info /usr/* /usr/include/* /usr/local/include/* /usr/include/libkern/i386/* /usr/include/sys/_types/* /opt/* /opt/local/include/* /opt/local/include/mozjs185/* --output coverage.info
 	@rm all.info
 	@echo "Purging lcov info"
