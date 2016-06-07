@@ -26,6 +26,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private float[] acceleration = {0.0f, 0.0f, 0.0f};
     private float[] magnetic = {0.0f, 0.0f, 0.0f};
+    private float[] orientation = {0.0f, 0.0f, 0.0f};
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
     private float rotationMx[] = new float[9];
@@ -84,6 +85,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                 boolean update = calculateRotationMx();
                 if(!update) return;
                 calculateOrientation();
+                updateOrientation();
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 magnetic = event.values;
@@ -115,10 +117,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private void calculateOrientation(){
 
-            float orientation[] = new float[3];
             SensorManager.getOrientation(rotationMx, orientation);
             Log.v(LOG_TAG, "Received Orientation - Yaw: "+orientation[0]+" , Pitch: "+orientation[1]+" , Roll: "+orientation[2]);
+    }
 
+    private void updateOrientation(){
             lastOrient = orientation;
             boolean refreshOrientation = true;
             if(useOrientationThreshold){
@@ -133,7 +136,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                     prevOrient = lastOrient;
                 }
             }
-            
+
             //NOTE: we invert yaw and roll (for 360 navigation)
             rend.getInstance().onOrientationChange(- prevOrient[0], prevOrient[1], - prevOrient[2]);
     }
