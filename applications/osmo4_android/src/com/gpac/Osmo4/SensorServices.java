@@ -28,8 +28,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private float[] magnetic = {0.0f, 0.0f, 0.0f};
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
-    private float rotation[] = new float[9];
-    private float identity[] = new float[9];
+    private float rotationMx[] = new float[9];
 
     private static final String LOG_TAG = "GPAC SensorServices";
     private static final float _PI_ = (float) Math.PI;
@@ -59,11 +58,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     public void setRenderer(Osmo4Renderer renderer){
         rend = renderer;
     }
+
     /**
      * Register sensors to start receiving data
-     *
-     * @return SensorServices object
-     *
      */
     public void registerSensors(){
         sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
@@ -74,12 +71,19 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         sensorManager.unregisterListener(this);
     }
 
+    /**
+     * We calculate rotation/orientation on new acc measurements
+     *
+     **/
     @Override
     public void onSensorChanged(SensorEvent event) {
 
         switch(event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
                 acceleration = event.values;
+                boolean update = calculateRotationMx();
+                if(!update) return;
+                calculateOrientation();
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 magnetic = event.values;
@@ -87,20 +91,32 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             default:
                 return;
         }
+    }
 
+    /**
+     * Calculate orientation X,Y,Z from Acc and Magn
+     * Orientation is stored in prevOrient
+     * Rotation matrix is stored in rotationMx
+     *
+     * @return true if rotationMatrix was updated
+     */
+    private boolean calculateRotationMx(){
         boolean gotRotation = false;
 
         try {
-                gotRotation = SensorManager.getRotationMatrix(rotation, identity, acceleration, magnetic);
+            gotRotation = SensorManager.getRotationMatrix(rotationMx, null, acceleration, magnetic);
         } catch (Exception e) {
             gotRotation = false;
-            Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
+            Log.e(LOG_TAG, "Error getting rotation matrix"+ e.getMessage());
         }
 
-        if(gotRotation){
+        return gotRotation;
+    }
+
+    private void calculateOrientation(){
 
             float orientation[] = new float[3];
-            SensorManager.getOrientation(rotation, orientation);
+            SensorManager.getOrientation(rotationMx, orientation);
             Log.v(LOG_TAG, "Received Orientation - Yaw: "+orientation[0]+" , Pitch: "+orientation[1]+" , Roll: "+orientation[2]);
 
             lastOrient = orientation;
@@ -117,12 +133,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                     prevOrient = lastOrient;
                 }
             }
-
+            
             //NOTE: we invert yaw and roll (for 360 navigation)
             rend.getInstance().onOrientationChange(- prevOrient[0], prevOrient[1], - prevOrient[2]);
-
-        }
-
     }
 
 
