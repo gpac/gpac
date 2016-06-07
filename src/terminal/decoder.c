@@ -1351,6 +1351,8 @@ scalable_retry:
 					else if (needs_resize) {
 						//if dynamic scene, set size
 						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
+							/*update config*/
+							gf_mo_update_caps(codec->odm->mo);
 							gf_scene_force_size_to_video(codec->odm->parentscene, codec->odm->mo);
 						}
 					}
