@@ -350,7 +350,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				Bool needs_iod = GF_FALSE;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
+					if (ch->depacketizer && (ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
 //						|| ((ch->depacketizer->payt==GF_RTP_PAYT_3GPP_DIMS) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE))
 					   ) {
 						needs_iod = GF_TRUE;
