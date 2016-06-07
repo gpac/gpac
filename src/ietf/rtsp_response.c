@@ -210,7 +210,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%u", &rsp->Bandwidth);
 	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%u", &rsp->Blocksize);
 	else if (!stricmp(Header, "Cache-Control")) rsp->Cache_Control = gf_strdup(Value);
-	else if (!stricmp(Header, "com.ses.streamID")) rsp->StreamID = gf_strdup(Value);
+	else if (!stricmp(Header, "com.ses.streamID")) sscanf(Value, "%u", &rsp->StreamID);
 	else if (!stricmp(Header, "Conference")) rsp->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) rsp->Connection = gf_strdup(Value);
 	else if (!stricmp(Header, "Content-Base")) rsp->Content_Base = gf_strdup(Value);
