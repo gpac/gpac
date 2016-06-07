@@ -549,7 +549,6 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
-
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
 		u32 i;
 		for (i=0; i<gf_list_count(priv->channels); i++) {

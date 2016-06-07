@@ -483,9 +483,6 @@ exit:
 	return e;
 }
 
-
-
-
 GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
                           unsigned char **out_buffer, u32 *out_size)
 {
