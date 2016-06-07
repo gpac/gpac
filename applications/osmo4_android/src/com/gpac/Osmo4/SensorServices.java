@@ -24,8 +24,8 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     protected  Osmo4Renderer rend;
 
-    private float[] lastAcc = {0.0f, 0.0f, 0.0f}, prevAcc;
-    private float[] lastMagn = {0.0f, 0.0f, 0.0f}, prevMagn;
+    private float[] acceleration = {0.0f, 0.0f, 0.0f};
+    private float[] magnetic = {0.0f, 0.0f, 0.0f};
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
     private float rotation[] = new float[9];
@@ -39,8 +39,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     //threshold to discard orientation x, y, z
     private static float[] orThreshold = {0.2f, 0.02f, 0.02f};
 
-    private static final boolean useSensorFilter = false;           //if true smoothSensorMeasurement is applied to Sensor values (Acceleration, Magnetic)
-    private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
+        private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
     private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
 
 
@@ -80,12 +79,10 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
         switch(event.sensor.getType()){
             case Sensor.TYPE_ACCELEROMETER:
-                lastAcc = event.values;
-                if(useSensorFilter) prevAcc = smoothSensorMeasurement(lastAcc, prevAcc);
+                acceleration = event.values;
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
-                lastMagn = event.values;
-                if(useSensorFilter) prevMagn = smoothSensorMeasurement(lastMagn, prevMagn);
+                magnetic = event.values;
                 break;
             default:
                 return;
@@ -94,12 +91,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         boolean gotRotation = false;
 
         try {
-            if(!useSensorFilter){
-                gotRotation = SensorManager.getRotationMatrix(rotation, identity, lastAcc, lastMagn);
-            }else{
-                gotRotation = SensorManager.getRotationMatrix(rotation, identity, prevAcc, prevMagn);
-            }
-
+                gotRotation = SensorManager.getRotationMatrix(rotation, identity, acceleration, magnetic);
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation and identity matrices"+ e.getMessage());
