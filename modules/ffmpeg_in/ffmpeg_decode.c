@@ -564,16 +564,6 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 	if (ffd->depth_frame) {
 		av_free(ffd->depth_frame);
 	}
-#else
-	if (ffd->audio_frame) {
-		av_frame_free(ffd->audio_frame);
-	}
-	if (ffd->base_frame) {
-		av_frame_free(ffd->base_frame);
-	}
-	if (ffd->depth_frame) {
-		av_frame_free(ffd->depth_frame);
-	}
 #endif
 
 #ifdef FFMPEG_SWSCALE
@@ -609,8 +599,10 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueBool = GF_TRUE;
 		return GF_OK;
 	case GF_CODEC_FRAME_OUTPUT:
+#if defined(USE_AVCTX3)
 		//deactivated by default until we have more tests (stride, color formats)
 		capability->cap.valueBool = GF_FALSE;
+#endif
 		return GF_OK;
 	case GF_CODEC_WANTS_THREAD:
 		capability->cap.valueBool= GF_TRUE;
@@ -1529,6 +1521,8 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 	return GF_OK;
 }
 
+#if defined(USE_AVCTX3)
+
 typedef struct
 {
 	FFDec *ctx;
@@ -1601,6 +1595,7 @@ static GF_Err FFDEC_GetOutputFrame(GF_MediaDecoder *ifcg, u16 ES_ID, GF_MediaDec
 
 	return GF_OK;
 }
+#endif //USE_AVCTX3
 
 static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *esd, u8 PL)
 {
@@ -1811,9 +1806,10 @@ void *FFDEC_Load()
 	ptr->GetName = FFDEC_GetCodecName;
 	ptr->ProcessData = FFDEC_ProcessData;
 	ptr->GetOutputBuffer = FFDEC_GetOutputBuffer;
+#if defined(USE_AVCTX3)
 	ptr->GetOutputFrame = FFDEC_GetOutputFrame;
+#endif
 	
-
 	GF_REGISTER_MODULE_INTERFACE(ptr, GF_MEDIA_DECODER_INTERFACE, "FFMPEG decoder", "gpac distribution");
 	return (GF_BaseInterface *) ptr;
 }
