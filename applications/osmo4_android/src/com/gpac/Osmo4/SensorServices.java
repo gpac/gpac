@@ -54,9 +54,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final float NS2S = 1.0f / 1000000000.0f;
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float filterLevel = 0.05f;
+    private static final float filterLevel = 0.06f;
     //threshold to discard orientation x, y, z
-    private static float[] orThreshold = {0.2f, 0.02f, 0.02f};
+    private static final float[] orThreshold = {0.2f, 0.02f, 0.02f};
 
     private boolean useGyroscope;   //automatically set to true, if gyroscope sensor is detected
 
@@ -156,8 +156,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     }
 
     private void calculateOrientation(){
-
-            SensorManager.getOrientation(rotationMx, orientation);
+            float[] tmpOrient = new float[3];
+            SensorManager.getOrientation(rotationMx, tmpOrient);
+            orientation = tmpOrient;
             Log.v(LOG_TAG, "Received Orientation - Yaw: "+orientation[0]+" , Pitch: "+orientation[1]+" , Roll: "+orientation[2]);
     }
 
@@ -299,8 +300,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static boolean keepOrientation(float[] in, float[] out){
 
         if(out==null) return true;
-
-
 
         for(int i=0; i<in.length; i++){
             if(Math.abs(in[i]-out[i])>orThreshold[i]) return true;
