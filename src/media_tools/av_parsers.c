@@ -3871,8 +3871,12 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	u8 /*avc_base_layer_flag, */NumLayerSets, /*default_one_target_output_layer_flag, */rep_format_idx_present_flag, ols_ids_to_ls_idx;
 	u8 layer_set_idx_for_ols_minus1[MAX_SHVC_LAYERS];
 	u32 k,d, r, p, iNuhLId, jNuhLId;
-	u8 num_direct_ref_layers[64], num_ref_layers[64], num_pred_layers[64], num_layers_in_tree_partition[MAX_SHVC_LAYERS];
-	u8 dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS], id_direct_ref_layers[64][MAX_SHVC_LAYERS], id_ref_layers[64][MAX_SHVC_LAYERS], id_pred_layers[64][MAX_SHVC_LAYERS], tree_partition_layer_id[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	u8 num_direct_ref_layers[64], num_pred_layers[64], num_layers_in_tree_partition[MAX_SHVC_LAYERS];
+	u8 dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS], id_pred_layers[64][MAX_SHVC_LAYERS];
+//	u8 num_ref_layers[64];
+//	u8 tree_partition_layer_id[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+//	u8 id_ref_layers[64][MAX_SHVC_LAYERS];
+//	u8 id_direct_ref_layers[64][MAX_SHVC_LAYERS];
 	u8 layer_id_in_list_flag[64];
 	Bool OutputLayerFlag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
 
@@ -3955,15 +3959,15 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		d = r = p = 0;
 		for (j = 0; j < vps->max_layers; j++) {
 			jNuhLId = vps->layer_id_in_nuh[j];
-			if (vps->direct_dependency_flag[i][j])
-				id_direct_ref_layers[iNuhLId][d++] = jNuhLId;
-			if (dependency_flag[i][j])
-				id_ref_layers[iNuhLId][r++] = jNuhLId;
+//			if (vps->direct_dependency_flag[i][j])
+//				id_direct_ref_layers[iNuhLId][d++] = jNuhLId;
+//			if (dependency_flag[i][j])
+//				id_ref_layers[iNuhLId][r++] = jNuhLId;
 			if (dependency_flag[j][i])
 				id_pred_layers[iNuhLId][p++] = jNuhLId;
 		}
 		num_direct_ref_layers[iNuhLId] = d;
-		num_ref_layers[iNuhLId] = r;
+//		num_ref_layers[iNuhLId] = r;
 		num_pred_layers[iNuhLId] = p;
 	}
 
@@ -3973,11 +3977,11 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		iNuhLId = vps->layer_id_in_nuh[i];
 		if (!num_direct_ref_layers[iNuhLId]) {
 			u32 h = 1;
-			tree_partition_layer_id[k][0] = iNuhLId;		
+			//tree_partition_layer_id[k][0] = iNuhLId;		
 			for (j = 0; j < num_pred_layers[iNuhLId]; j++) {
 				u32 predLId = id_pred_layers[iNuhLId][j];
 				if (!layer_id_in_list_flag[predLId]) {
-					tree_partition_layer_id[k][h++] = predLId;
+					//tree_partition_layer_id[k][h++] = predLId;
 					layer_id_in_list_flag[predLId] = 1;
 				}
 			}

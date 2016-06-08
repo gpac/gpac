@@ -798,7 +798,7 @@ static GF_Err FFDEC_ProcessAudio(FFDec *ffd,
 	AVPacket pkt;
 #endif
 	s32 gotpic;
-	AVCodecContext *ctx;
+	AVCodecContext *ctx = ffd->base_ctx;
 	s32 len;
 	u32 buf_size = (*outBufferLength);
 
