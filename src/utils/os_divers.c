@@ -64,7 +64,6 @@
 #include <errno.h>
 #endif
 
-
 #define SLEEP_ABS_SELECT		1
 
 static u32 sys_start_time = 0;
@@ -792,24 +791,7 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = getpid();
-
-#ifdef GPAC_CONFIG_FREEBSD
-		{
-			s32 flags[4];
-			size_t len = sizeof(u32);
-			flags[0] = CTL_HW;
-			flags[1] = HW_AVAILCPU;
-			sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
-			if( the_rti.nb_cores < 1 ) {
-				flags[1] = HW_NCPU;
-				sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
-				if (the_rti.nb_cores<1) the_rti.nb_cores = 1;
-			}
-		}
-#else
 		the_rti.nb_cores = (u32) sysconf( _SC_NPROCESSORS_ONLN );
-#endif
-
 		sys_start_time = gf_sys_clock();
 		sys_start_time_hr = gf_sys_clock_high_res();
 #endif
