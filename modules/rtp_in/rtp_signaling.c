@@ -235,6 +235,10 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 			e = GF_REMOTE_SERVICE_ERROR;
 			continue;
 		}
+		if (sess->satip) {
+			/*SAT>IP has no DESCRIBE so no SDP. All the information is conveyed by the SETUP command.*/
+			ch->rtp_ch = gf_rtp_new();
+		}
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
 		if (!e) break;
 	}
@@ -260,7 +264,6 @@ exit:
 	}
 	com->user_data = NULL;
 }
-
 
 
 /*
