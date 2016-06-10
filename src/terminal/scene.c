@@ -580,7 +580,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		evt.type = event_type;
 		evt.screen_rect.width = INT2FIX(w);
 		evt.screen_rect.height = INT2FIX(h);
-		evt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
+		evt.key_flags = scene->is_dynamic_scene ? (scene->vr_type ? 2 : 1) : 0;
 		if (root) {
 #ifndef GPAC_DISABLE_VRML
 			switch (gf_node_get_tag(root)) {
@@ -1045,7 +1045,7 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	u32 w, h, v_w, v_h;
 	if (!scene->visual_url.OD_ID && !scene->visual_url.url) return;
 
-	if (scene->is_live360) return;
+	if (scene->vr_type) return;
 
 	url.count = 1;
 	url.vals = &scene->visual_url;
@@ -1263,7 +1263,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	gf_node_register((GF_Node *)mt, n2);
 
 	//TODO srd in 360
-	if (scene->is_live360) {
+	if (scene->vr_type) {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
@@ -1311,13 +1311,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
 		GF_Event evt;
-		scene->is_live360 = GF_FALSE;
-		if (strstr(scene->root_od->net_service->url, "#LIVE360TV")) {
-			scene->is_live360 = GF_TRUE;
-		}
-
+		
 		/*create an OrderedGroup*/
-		n1 = is_create_node(scene->graph, scene->is_live360 ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
+		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
@@ -1327,7 +1323,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_register(n2, n1);
 		}
 
-		if (scene->is_live360) {
+		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
@@ -1370,7 +1366,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
 
-		if (! scene->is_live360) {
+		if (! scene->vr_type) {
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
@@ -1409,7 +1405,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		//send activation for sensors
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SENSOR_REQUEST;
-		evt.activate_sensor.activate = scene->is_live360;
+		evt.activate_sensor.activate = scene->vr_type;
 		evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
 		gf_term_send_event(scene->root_od->term, &evt);
 	}
@@ -1502,7 +1498,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	}
 
 
-	if (! scene->is_live360) {
+	if (! scene->vr_type) {
 		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
 
@@ -1998,7 +1994,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
 
-	if (scene->is_live360) {
+	if (scene->vr_type) {
 		GF_Node *node;
 		u32 radius;
 		width /= 2;
@@ -2063,7 +2059,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				devt.type = GF_EVENT_SCENE_SIZE;
 				devt.screen_rect.width = INT2FIX(width);
 				devt.screen_rect.height = INT2FIX(height);
-				devt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
+				devt.key_flags = scene->is_dynamic_scene ? (scene->vr_type ? 2 : 1) : 0;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
 

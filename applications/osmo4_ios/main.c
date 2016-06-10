@@ -455,6 +455,10 @@ int main (int argc, char *argv[])
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Modules Loaded (%d found in %s)\n", i, str));
 
+//	url_arg="$IOS_DOCS/NBA_score_table_2_hd.mp4#LIVE360TV";
+	gf_cfg_set_key(cfg_file, "Compositor", "NumViews", "1");
+//	gf_cfg_set_key(cfg_file, "Compositor", "StereoType", "SideBySide");
+
 	if (url_arg && !strncmp(url_arg, "$IOS_DOCS", 9)) {
 		char *path = (char *) gf_cfg_get_key(cfg_file, "General", "iOSDocumentsDir");
 		if (path) {
@@ -466,10 +470,7 @@ int main (int argc, char *argv[])
 			}
 		}
 	}
-//	url_arg="/var/root/NBA_under_the_hoop_hd.mp4#LIVE360TV";
-//	gf_cfg_set_key(cfg_file, "Compositor", "NumViews", "2");
-//	gf_cfg_set_key(cfg_file, "Compositor", "StereoType", "SideBySide");
-
+	
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
