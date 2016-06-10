@@ -364,9 +364,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 }
 
 
-
-
-void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
+static void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 {
 	GF_NetworkCommand com;
 	GF_Err e;

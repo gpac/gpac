@@ -67,7 +67,6 @@ void gf_rtp_del(GF_RTPChannel *ch)
 }
 
 
-
 GF_EXPORT
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address)
 {
