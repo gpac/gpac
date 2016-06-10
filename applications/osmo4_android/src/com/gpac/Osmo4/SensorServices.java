@@ -23,6 +23,8 @@ import android.hardware.SensorManager;
 public class SensorServices implements SensorEventListener, GPACInstanceInterface {
 
     //Options
+    private static final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;   // 0: SENSOR_DELAY_FASTEST, 1: SENSOR_DELAY_GAME, 2: SENSOR_DELAY_UI, 3: SENSOR_DELAY_NORMAL
+
     private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
     private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
 
@@ -106,10 +108,10 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      * Register sensors to start receiving data
      */
     public void registerSensors() {
-        sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
-        sensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_GAME);
+        sensorManager.registerListener(this, magnetometer, sensorDelay);
+        sensorManager.registerListener(this, accelerometer, sensorDelay);
         if (useGyroscope) {
-            sensorManager.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_GAME);
+            sensorManager.registerListener(this, gyroscope, sensorDelay);
             fuseTimer.scheduleAtFixedRate(new calculateFusedOrientationTask(), 1000, TIME_CONSTANT);
         }
     }
