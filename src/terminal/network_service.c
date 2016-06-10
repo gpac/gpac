@@ -518,7 +518,7 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		max_buffer_time=0;
 		if (!gf_list_count(scene->resources)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
-		} else {
+		} else {
 			i=0;
 			while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 				gather_buffer_level(odm, service, com, &max_buffer_time);
