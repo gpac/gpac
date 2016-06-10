@@ -1388,7 +1388,8 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 
 			if (pe->codecs && (pe->codecs[0] == '\"')) {
 				u32 len = (u32) strlen(pe->codecs);
-				strncpy(pe->codecs, pe->codecs+1, len-1);
+//				strncpy(pe->codecs, pe->codecs+1, len-1);
+				memmove(pe->codecs, pe->codecs+1, len-1);
 				pe->codecs[len-2] = 0;
 			}
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -1766,12 +1767,16 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		return GF_BAD_PARAM;
 	}
 
-	e = getter->new_session(getter, rep->segment_list->xlink_href);
-	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
-		return e;
+	if (gf_url_is_local(rep->segment_list->xlink_href)) {
+		e = gf_m3u8_parse_master_playlist(rep->segment_list->xlink_href, &pl, rep->segment_list->xlink_href);
+	} else {
+		e = getter->new_session(getter, rep->segment_list->xlink_href);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Download failed for %s\n", rep->segment_list->xlink_href));
+			return e;
+		}
+		e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
 	}
-	e = gf_m3u8_parse_master_playlist(getter->get_cache_name(getter), &pl, rep->segment_list->xlink_href);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[M3U8] Failed to parse playlist %s\n", rep->segment_list->xlink_href));
 		return e;

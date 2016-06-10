@@ -243,7 +243,7 @@ struct _scene
 	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
 
 	Bool pause_at_first_frame;
-	Bool is_live360;
+	u32 vr_type;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
