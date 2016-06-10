@@ -387,13 +387,34 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	if (!sess->satip) {
 		com->method = gf_strdup(GF_RTSP_DESCRIBE);
 	} else {
+		RTPStream *ch = NULL;
+		GF_RTSPCommand *com2 = NULL;
+
+		/*setup transport ports*/
 		GF_RTSPTransport *trans;
 		GF_SAFEALLOC(trans, GF_RTSPTransport);
 		com->method = gf_strdup(GF_RTSP_SETUP);
 		trans->client_port_first = GPAC_SATIP_PORT;
 		trans->client_port_last = GPAC_SATIP_PORT+1;
-		trans->Profile = gf_strdup("RTP/AVP");
+		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 		gf_list_add(com->Transports, trans);
+
+		/*hardcoded channel*/
+		GF_SAFEALLOC(ch, RTPStream);
+		ch->control = gf_strdup(esd_url);
+		ch->owner = sess->owner;
+		ch->channel = channel;
+		ch->status = RTP_Connected;
+		gf_list_add(ch->owner->channels, ch);
+		RP_ConfirmChannelConnect(ch, GF_OK);
+		com->user_data = ch;
+
+		/*send and process the hardcoded describe*/
+		com2 = gf_rtsp_command_new();
+		com2->method = gf_strdup(GF_RTSP_DESCRIBE);
+		sess->rtsp_rsp->ResponseCode = NC_RTSP_OK;
+		RP_ProcessDescribe(sess, com2, GF_OK);
+		sess->rtsp_rsp->ResponseCode = 0;
 	}
 
 	if (channel || esd_url) {
