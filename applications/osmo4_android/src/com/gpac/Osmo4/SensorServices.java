@@ -22,20 +22,21 @@ import android.hardware.SensorManager;
  */
 public class SensorServices implements SensorEventListener, GPACInstanceInterface {
 
-    //Options
-    private static final int sensorDelay = SensorManager.SENSOR_DELAY_FASTEST;   // 0: SENSOR_DELAY_FASTEST, 1: SENSOR_DELAY_GAME, 2: SENSOR_DELAY_UI, 3: SENSOR_DELAY_NORMAL
+    //Startof Options
+    private static final int SENSOR_DELAY = SensorManager.SENSOR_DELAY_FASTEST;   // 0: SENSOR_DELAY_FASTEST, 1: SENSOR_DELAY_GAME, 2: SENSOR_DELAY_UI, 3: SENSOR_DELAY_NORMAL
 
-    private static final boolean useOrientationFilter = true;       //if true smoothSensorMeasurement is applied to getOrientation result
-    private static final boolean useOrientationThreshold = true;    //if true keepOrientation() discards results within the error margin
+    private static final boolean USE_ORIENTATION_FILTER = true;       //if true smoothSensorMeasurement is applied to getOrientation result
+    private static final boolean USE_ORIENTATION_THRESHOLD = true;    //if true keepOrientation() discards results within the error margin
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float filterLevel = 0.06f;
+    private static final float ORIENTATION_FILTER_LVL = 0.06f;
     //threshold to discard orientation x, y, z
-    private static final float[] orThreshold = {0.2f, 0.02f, 0.02f};
+    private static final float[] ORIENTATION_THRESHOLD = {0.2f, 0.02f, 0.02f};
 
     //for sensors fusion filter
     public static final int TIME_CONSTANT = 30;
     public static final float FILTER_COEFFICIENT = 0.98f;
+    //Endof Options
 
 
     private static SensorManager sensorManager;
@@ -108,10 +109,10 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      * Register sensors to start receiving data
      */
     public void registerSensors() {
-        sensorManager.registerListener(this, magnetometer, sensorDelay);
-        sensorManager.registerListener(this, accelerometer, sensorDelay);
+        sensorManager.registerListener(this, magnetometer, SENSOR_DELAY);
+        sensorManager.registerListener(this, accelerometer, SENSOR_DELAY);
         if (useGyroscope) {
-            sensorManager.registerListener(this, gyroscope, sensorDelay);
+            sensorManager.registerListener(this, gyroscope, SENSOR_DELAY);
             fuseTimer.scheduleAtFixedRate(new calculateFusedOrientationTask(), 1000, TIME_CONSTANT);
         }
     }
@@ -196,12 +197,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private void updateOrientation() {
         lastOrient = orientation;
         boolean refreshOrientation = true;
-        if (useOrientationThreshold) {
+        if (USE_ORIENTATION_THRESHOLD) {
             refreshOrientation = keepOrientation(lastOrient, prevOrient);
         }
 
         if (refreshOrientation) {
-            if (useOrientationFilter) {
+            if (USE_ORIENTATION_FILTER) {
                 prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
                 Log.v(LOG_TAG, "Smoothed Orientation - Yaw: " + prevOrient[0] + " , Pitch: " + prevOrient[1] + " , Roll: " + prevOrient[2]);
             } else {
@@ -350,7 +351,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         if (out == null) return true;
 
         for (int i = 0; i < in.length; i++) {
-            if (Math.abs(in[i] - out[i]) > orThreshold[i]) return true;
+            if (Math.abs(in[i] - out[i]) > ORIENTATION_THRESHOLD[i]) return true;
         }
 
         return false;
@@ -373,7 +374,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                 float diff_f = 0.0f;
                 if (diff > Math.PI) {
                     diff = 2 * _PI_ - diff;
-                    diff_f = out[i] - filterLevel * diff;
+                    diff_f = out[i] - ORIENTATION_FILTER_LVL * diff;
                     if (diff_f < -Math.PI) {
                         output[i] = (2 * _PI_ + diff_f);
                     } else {
@@ -381,7 +382,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                     }
                 } else if (diff < -Math.PI) {
                     diff = 2 * _PI_ + diff;
-                    diff_f = out[i] + filterLevel * diff;
+                    diff_f = out[i] + ORIENTATION_FILTER_LVL * diff;
                     if (diff_f > Math.PI) {
                         output[i] = -2 * _PI_ + diff_f;
                     } else {
@@ -391,7 +392,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                 }
 
             } else {
-                output[i] = out[i] + filterLevel * diff;
+                output[i] = out[i] + ORIENTATION_FILTER_LVL * diff;
             }
         }
 
