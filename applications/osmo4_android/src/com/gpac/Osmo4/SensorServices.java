@@ -2,6 +2,10 @@ package com.gpac.Osmo4;
 
 import android.content.Context;
 import android.util.Log;
+import android.view.Display;
+import android.view.WindowManager;
+
+
 
 import java.util.TimerTask;
 import java.util.Timer;
@@ -27,6 +31,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static Sensor gyroscope;
 
     protected  Osmo4Renderer rend;
+    private Display displayDev;
 
     private boolean newOrientation = false; //auto-set to true when new Rotation arrives (from acc), auto-set to false when rotation is sent to player
     private boolean initGyro = true;   //when gyro is initialized it is set to false
@@ -43,8 +48,10 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private float[] fusedOrientation = {0.0f, 0.0f, 0.0f};  //from acc+magn+gyro
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
     private float gyroTimestamp = 0;
+    private int defaultDisplayOrientation;
 
     private float rotationMx[] = new float[9];
+    private float rotationMxRaw[] = new float[9];
     private float[] gyroMx = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};    //init to identity
 
     private static final String LOG_TAG = "GPAC SensorServices";
@@ -85,6 +92,9 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
             Log.i(LOG_TAG, "No Gyroscope found - using only Accelerometer and Magnetic Field");
         }
 
+        WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+        displayDev = wm.getDefaultDisplay();
+
     }
 
     public void setRenderer(Osmo4Renderer renderer){
@@ -93,6 +103,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     /**
      * Register sensors to start receiving data
+     *
      */
     public void registerSensors(){
         sensorManager.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_GAME);
@@ -146,10 +157,29 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         boolean gotRotation = false;
 
         try {
-            gotRotation = SensorManager.getRotationMatrix(rotationMx, null, acceleration, magnetic);
+            gotRotation = SensorManager.getRotationMatrix(rotationMxRaw, null, acceleration, magnetic);
         } catch (Exception e) {
             gotRotation = false;
             Log.e(LOG_TAG, "Error getting rotation matrix"+ e.getMessage());
+        }
+
+        if(gotRotation){
+            //NOTE: the rotation considered is according to device natural orientation
+            //and it might NOT be the same as the screen orientation
+            switch(displayDev.getRotation()){
+                case 1: //no rotation (= Surface.ROTATION_0)
+                    rotationMx = rotationMxRaw.clone();
+                    break;
+                case 2: //Surface.ROTATION_90
+                    SensorManager.remapCoordinateSystem(rotationMxRaw, SensorManager.AXIS_Y, SensorManager.AXIS_MINUS_X, rotationMx);
+                    break;
+                case 3: //Surface.ROTATION_180
+                    SensorManager.remapCoordinateSystem(rotationMxRaw, SensorManager.AXIS_MINUS_X, SensorManager.AXIS_MINUS_Y, rotationMx);
+                    break;
+                case 0: //Surface.ROTATION_270
+                    SensorManager.remapCoordinateSystem(rotationMxRaw, SensorManager.AXIS_MINUS_Y, SensorManager.AXIS_X, rotationMx);
+                    break;
+            }
         }
 
         return gotRotation;

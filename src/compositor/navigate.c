@@ -603,7 +603,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 
 #ifndef GPAC_ANDROID
 		/*
-		 * In iOS we get x, y, z (rad/s) and we calculate yaw, pitch, roll
+		 * In iOS we get x, y, z in quaternions (first measurement is the frame of reference)
 		 */
 		x = ev->sensor.x;
 		y = ev->sensor.y;
@@ -616,7 +616,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 #else
 		/*
 		 * In Android we get yaw, pitch, roll values (in rad)
-		 * NOTE: yaw and roll are inverted in android (we change them before being sent here)
+		 * The frame of reference is absolute
 		 */
 		yaw = ev->sensor.x;
 		pitch = ev->sensor.y;
