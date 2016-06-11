@@ -74,7 +74,6 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 			if (sOpt) reorder_size = atoi(sOpt);
 			else reorder_size = 10;
 
-
 			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "DefaultMCastInterface");
 			if (!ip_ifce) {
 				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "MobileIPEnabled");
