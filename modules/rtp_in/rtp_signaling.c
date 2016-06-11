@@ -235,10 +235,13 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 			e = GF_REMOTE_SERVICE_ERROR;
 			continue;
 		}
+		
 		if (sess->satip) {
 			/*SAT>IP has no DESCRIBE so no SDP. All the information is conveyed by the SETUP command.*/
 			ch->rtp_ch = gf_rtp_new();
+			gf_rtp_enable_nat_keepalive(ch->rtp_ch, 30000); /*keep-alive every 30s, SAT>IP max is 60s*/
 		}
+
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
 		if (!e) break;
 	}
@@ -392,6 +395,7 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	} else {
 		RTPStream *ch = NULL;
 		GF_RTSPCommand *com2 = NULL;
+		//ChannelDescribe *ch_desc = NULL;
 
 		/*setup transport ports*/
 		GF_RTSPTransport *trans;
@@ -412,9 +416,15 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 		RP_ConfirmChannelConnect(ch, GF_OK);
 		com->user_data = ch;
 
+		/*channel describe*/
+		//GF_SAFEALLOC(ch_desc, ChannelDescribe);
+		//ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
+		//ch_desc->channel = channel;
+
 		/*send and process the hardcoded describe*/
 		com2 = gf_rtsp_command_new();
 		com2->method = gf_strdup(GF_RTSP_DESCRIBE);
+		//com2->user_data = ch_desc;
 		sess->rtsp_rsp->ResponseCode = NC_RTSP_OK;
 		RP_ProcessDescribe(sess, com2, GF_OK);
 		sess->rtsp_rsp->ResponseCode = 0;
