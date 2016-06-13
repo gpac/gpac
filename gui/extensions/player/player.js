@@ -190,13 +190,17 @@ extension = {
                         this.movie_connected = true;
                     }
                 }
+				//reset stats objects and data
+				ext.root_odm=null;
+				ext.nb_objs_at_last_scan = 0;
+				ext.stats_resources = [];
+				ext.stats_data = [];
 
                 //switch back inline nodes and remove from dictionary
                 gw_detach_child(this);
                 //force detach, we don't know when GC will be done
                 ext.movie.children[0].url[0] = '';
                 ext.movie.children[0] = this;
-
                 if (evt.error) return;
 
                 //success !

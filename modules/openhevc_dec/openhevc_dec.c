@@ -371,7 +371,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	case GF_CODEC_TRUSTED_CTS:
 		capability->cap.valueInt = 1;
 		break;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		capability->cap.valueBool = GF_TRUE;
 		break;
 	/*not known at our level...*/
@@ -410,7 +410,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
 		return GF_OK;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		ctx->direct_output = GF_TRUE;
 		ctx->pack_mode = GF_FALSE;
 		if (ctx->conv_to_8bit && ctx->out_size)

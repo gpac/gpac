@@ -410,7 +410,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #ifdef GPAC_IPHONE
 static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 {
-	char *cache_dir;
+	char *cache_dir, *old_cache_dir;
 	char buf[GF_MAX_PATH], *res, *sep;
 	res = realpath(file_path, buf);
 	if (!res) return;
@@ -421,12 +421,16 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
 	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
 
-	sep = strstr(res, "Documents");
-	assert(sep);
-	sep[0]=0;
-	strcat(res, "tmp/");
+	strcat(res, "cache/");
 	cache_dir = res;
-	if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
+	old_cache_dir = (char*) gf_cfg_get_key(cfg, "General", "CacheDirectory");
+
+	if (!gf_dir_exists(cache_dir)) {
+		if (old_cache_dir && strcmp(old_cache_dir, cache_dir)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Cache dir changed: old %d -> new %s\n\n", old_cache_dir, cache_dir ));
+		}
+		gf_mkdir(cache_dir);
+	}
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 }
 
@@ -527,7 +531,7 @@ static GF_Config *create_default_config(char *file_path)
 #endif
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
+	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "200M");
 	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
 	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30.0");
 	/*use power-of-2 emulation in OpenGL if no rectangular texture extension*/

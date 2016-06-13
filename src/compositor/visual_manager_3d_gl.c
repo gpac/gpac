@@ -206,6 +206,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	}
 #endif
 
+	if (CHECK_GL_EXT("EXT_unpack_subimage") ) {
+		compositor->gl_caps.gles2_unpack = 1;
+	}
+	
 	if (!has_gl_context) return;
 
 
@@ -2762,9 +2766,14 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	if (flags & GF_GL_IS_YUV) {
-		loc = gf_glGetUniformLocation(visual->glsl_program, "isNV21PixelFormat");
-		if (loc>=0)
-			glUniform1i(loc, visual->yuv_pixelformat_type == GF_PIXEL_NV21 ? 1 : 0);
+		loc = gf_glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
+		if (loc>=0) {
+			int yuv_mode = 0;
+			if (visual->yuv_pixelformat_type == GF_PIXEL_NV21) yuv_mode = 1;
+			else if (visual->yuv_pixelformat_type == GF_PIXEL_YPVU) yuv_mode = 2;
+			
+			glUniform1i(loc, yuv_mode);
+		}
 		GL_CHECK_ERR
 	}
 
