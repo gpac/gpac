@@ -24,6 +24,9 @@
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
 
+
+
+
 typedef struct {
     ANativeWindow *window;
     AMediaCodec *codec;
@@ -32,7 +35,6 @@ typedef struct {
     u32 width;
     u32 height;
 } MCDec;
-
 
 
     //select track using MediaExtractor
