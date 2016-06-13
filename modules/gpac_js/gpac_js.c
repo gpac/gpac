@@ -1010,9 +1010,9 @@ s32 prop_id;
 char *str;
 if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
+prop_id = SMJS_ID_TO_INT(id);
 gf_term_get_object_info(odm->term, odm, &odi);
 
-prop_id = SMJS_ID_TO_INT(id);
 switch (prop_id) {
 case GJS_OM_PROP_ID:
 	*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);

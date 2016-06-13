@@ -516,11 +516,13 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		gf_mx_p(scene->mx_resources);
 
 		max_buffer_time=0;
-		if (!gf_list_count(scene->resources))
+		if (!gf_list_count(scene->resources)) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM] No object manager found for the scene (URL: %s), buffer occupancy will remain unchanged\n", service->url));
-		i=0;
-		while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-			gather_buffer_level(odm, service, com, &max_buffer_time);
+		} else {
+			i=0;
+			while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
+				gather_buffer_level(odm, service, com, &max_buffer_time);
+			}
 		}
 		gf_mx_v(scene->mx_resources);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
@@ -1308,6 +1310,17 @@ void gf_service_download_update_stats(GF_DownloadSession * sess)
 		gf_term_service_media_event_with_download(serv->owner, GF_EVENT_MEDIA_PROGRESS, bytes_done, total_size, bytes_per_sec);
 		break;
 	case GF_NETIO_DATA_TRANSFERED:
+		/*notify some connection / ...*/
+		if (total_size) {
+			GF_Event evt;
+			evt.type = GF_EVENT_PROGRESS;
+			evt.progress.progress_type = 1;
+			evt.progress.service = szURI;
+			evt.progress.total = total_size;
+			evt.progress.done = total_size;
+			evt.progress.bytes_per_seconds = bytes_per_sec;
+			gf_term_send_event(serv->term, &evt);
+		}
 		gf_term_service_media_event(serv->owner, GF_EVENT_MEDIA_LOAD_DONE);
 		if (serv->owner && !(serv->owner->flags & GF_ODM_DESTROYED) && serv->owner->duration) {
 			GF_Clock *ck = gf_odm_get_media_clock(serv->owner);
