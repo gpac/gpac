@@ -187,6 +187,29 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo);
 /*returns scene graph associated with a scene/document object, or NULL if wrong type or not loaded*/
 GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
 
+
+
+typedef struct
+{
+	u32 vr_type;
+	s32 srd_x;
+	s32 srd_y;
+	s32 srd_w;
+	s32 srd_h;
+	
+	s32 srd_min_x;
+	s32 srd_min_y;
+	s32 srd_max_x;
+	s32 srd_max_y;
+	
+	u32 scene_width;
+	u32 scene_height;
+	
+} GF_MediaObjectVRInfo;
+
+//get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
+Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
+
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);
 

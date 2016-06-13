@@ -1456,3 +1456,26 @@ void gf_mo_del(GF_MediaObject *mo)
 	gf_free(mo);
 }
 
+
+Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
+{
+	GF_Scene *scene;
+	if (!vr_info) return GF_FALSE;
+	if (!gf_odm_lock_mo(mo)) return GF_FALSE;
+	
+	scene = mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene;
+	memset(vr_info, 0, sizeof(GF_MediaObjectVRInfo));
+
+	vr_info->srd_x = mo->srd_x;
+	vr_info->srd_y = mo->srd_y;
+	vr_info->srd_w = mo->srd_w;
+	vr_info->srd_h = mo->srd_h;
+	vr_info->srd_min_x = scene->srd_min_x;
+	vr_info->srd_min_y = scene->srd_min_y;
+	vr_info->srd_max_x = scene->srd_max_x;
+	vr_info->srd_max_y = scene->srd_max_y;
+	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
+
+	gf_odm_lock(mo->odm, 0);
+	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
+}

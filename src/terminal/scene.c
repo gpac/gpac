@@ -1238,6 +1238,36 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	}
 }
 
+static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
+{
+	GF_Proto *proto;
+	GF_Node *node;
+	const char *name = "urn:inet:gpac:builtin:VRGeometry";
+	
+	proto = gf_sg_find_proto(sg, 0, name);
+	if (!proto) {
+		MFURL *url;
+		proto = gf_sg_proto_new(sg, 0, name, GF_FALSE);
+		url = gf_sg_proto_get_extern_url(proto);
+		if (url)
+			url->vals = gf_malloc(sizeof(SFURL));
+		if (!url || !url->vals) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate VR proto\n"));
+			return NULL;
+		}
+		url->count=1;
+		url->vals = gf_malloc(sizeof(SFURL));
+		url->vals[0].url = gf_strdup(name);
+	}
+	node = gf_sg_proto_create_instance(sg, proto);
+	if (node) {
+		if (def_name) gf_node_set_id(node, gf_sg_get_next_available_node_id(sg), def_name);
+		gf_node_init(node);
+	}
+	return node;
+}
+
+
 static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, const char *texture_name, const char *name_geo)
 {
 	M_MovieTexture *mt;
@@ -1262,15 +1292,15 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
-	//TODO srd in 360
-	if (scene->vr_type) {
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
-		((M_Shape *)n1)->geometry = n2;
-		gf_node_register(n2, n1);
-	} else if (scene->is_srd) {
+	if (scene->is_srd) {
 		GF_Node *app = n2;
-
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
+		
+		if (scene->vr_type) {
+			n2 = load_vr_proto_node(scene->graph, name_geo);
+		} else {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
+		}
+		
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
 		//force  appearance material2D.filled = TRUE
@@ -1278,7 +1308,10 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		((M_Material2D *)n2)->filled = GF_TRUE;
 		((M_Appearance *)app)->material = n2;
 		gf_node_register(n2, app);
-
+	} else if (scene->vr_type) {
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
 	} else {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, name_geo);
 		((M_Shape *)n1)->geometry = n2;
@@ -1323,6 +1356,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_register(n2, n1);
 		}
 
+		//create VP info regardless of VR type
 		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
@@ -1444,12 +1478,17 @@ void gf_scene_regenerate(GF_Scene *scene)
 			sprintf(szName, "TR%d", i+1);
 			sprintf(szTex, "DYN_VIDEO%d", i+1);
 			sprintf(szGeom, "DYN_GEOM%d", i+1);
-			n2 = gf_sg_find_node_by_name(scene->graph, szName);
+			n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 			if (!n2) {
 				create_movie(scene, n1, szName, szTex, szGeom);
 			}
 		}
 
+		scene->srd_min_x = min_x;
+		scene->srd_min_y = min_y;
+		scene->srd_max_x = max_x;
+		scene->srd_max_y = max_y;
+		
 		url.url = NULL;
 		gf_sg_get_scene_size_info(scene->graph, &sw, &sh);
 		i=0;
@@ -1470,26 +1509,30 @@ void gf_scene_regenerate(GF_Scene *scene)
 				if (!scene->dyn_ck && a_odm->codec) {
 					scene->dyn_ck = a_odm->codec->ck;
 				}
+				
+				if (scene->vr_type) {
+					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+					gf_node_changed(n2, NULL);
+				} else {
+					tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
+					th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 
-				tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
-				th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
+					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+					((M_Rectangle *)n2)->size.x = tw;
+					((M_Rectangle *)n2)->size.y = th;
+					gf_node_changed(n2, NULL);
 
-				n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
-				((M_Rectangle *)n2)->size.x = tw;
-				((M_Rectangle *)n2)->size.y = th;
-				gf_node_changed(n2, NULL);
+					tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
+					tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
 
-				tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
-				tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
+					ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
+					ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
 
-				ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
-				ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
-
-				addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
-				addon_tr->translation.x = tx;
-				addon_tr->translation.y = ty;
-
-				gf_node_changed((GF_Node *)addon_tr, NULL);
+					addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
+					addon_tr->translation.x = tx;
+					addon_tr->translation.y = ty;
+					gf_node_changed((GF_Node *)addon_tr, NULL);
+				}
 			}
 		}
 	} else {
@@ -2002,10 +2045,12 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 		radius = MAX(width, height) / 2;
 #ifndef GPAC_DISABLE_VRML
-		node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
-		if (node) {
-			((M_Sphere *)node)->radius = - INT2FIX(radius);
-			gf_node_changed(node, NULL);
+		if (! scene->is_srd) {
+			node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
+			if (node) {
+				((M_Sphere *)node)->radius = - INT2FIX(radius);
+				gf_node_changed(node, NULL);
+			}
 		}
 
 		node = gf_sg_find_node_by_name(scene->graph, "DYN_VP");
