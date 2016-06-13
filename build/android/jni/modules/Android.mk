@@ -26,3 +26,6 @@ include $(LOCAL_PATH)/gm_mpd_in.mk
 include $(LOCAL_PATH)/gm_aac_in.mk
 include $(LOCAL_PATH)/gm_widgetman.mk
 include $(LOCAL_PATH)/gm_osd.mk
+
+include $(LOCAL_PATH)/gm_mc_decode.mk
+
