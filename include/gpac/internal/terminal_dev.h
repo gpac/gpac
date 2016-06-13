@@ -211,6 +211,8 @@ struct _scene
 	SFURL visual_url, audio_url, text_url, dims_url;
 
 	Bool is_srd;
+	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
+
 
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
