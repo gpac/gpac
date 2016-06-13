@@ -124,7 +124,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*layers can only be used in a 2D context*/
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d && tr_state->camera->is_3D) return;
+	if (tr_state->visual->type_3d && tr_state->camera && tr_state->camera->is_3D) return;
 #endif
 
 	/*layer2D maintains its own stacks*/
