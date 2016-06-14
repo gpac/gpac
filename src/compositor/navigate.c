@@ -619,7 +619,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		 * The frame of reference is absolute
 		 */
 		yaw = ev->sensor.x;
-		pitch = ev->sensor.y;
+		//pitch = ev->sensor.y;
 		roll = ev->sensor.z;
 #endif
 		target.x = 0;
