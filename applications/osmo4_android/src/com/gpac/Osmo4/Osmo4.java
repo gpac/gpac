@@ -290,7 +290,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         File shaderDir = new File(gpacConfig.getGpacShaderDirectory());
         if (!shaderDir.isDirectory()) {
             // we do not delete the directory if it already exists, because it might contain custom shaders
-            // TODOk consider behaviour when we want to update the shaders in the apk
             if (shaderDir.exists()) {
                     Log.v(LOG_OSMO_TAG, "Shader directory already exists at: " + shaderDir);
             }else if (!shaderDir.mkdir()){
@@ -1272,6 +1271,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void sensorSwitch(final boolean active) {
         if(active){
+            //this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
             sensors.registerSensors();
             Log.i(LOG_OSMO_TAG, "Received Register Sensors call");
         }else{
