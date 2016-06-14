@@ -542,7 +542,7 @@ void PrintImportUsage()
 	        " \":swf-same-app\"      appearance nodes are reused\n"
 	        " \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
 	        "                         * Note: angle \'0\' means no flattening\n"
-	        " \":kind=schemeURI:value\"  sets kind for the track\n"
+	        " \":kind=schemeURI=value\"  sets kind for the track\n"
 	        " \":txtflags=flags\"    sets display flags (hexa number) of text track\n"
 	        " \":txtflags+=flags\"   adds display flags (hexa number) to text track\n"
 	        " \":txtflags-=flags\"   removes display flags (hexa number) from text track\n"
