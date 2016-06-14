@@ -141,7 +141,6 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	if (force_recompute) {
 		GF_Matrix2D backup;
 		GF_IRect rc1, rc2;
-		u32 type_3d;
 		u32 prev_flags;
 		Bool prev_hybgl, visual_attached, for_3d=GF_FALSE;
 		GF_Rect cache_bounds;
@@ -150,6 +149,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		DrawableContext *child_ctx;
 		Fixed temp_x, temp_y, scale_x, scale_y;
 #ifndef GPAC_DISABLE_3D
+		u32 type_3d;
 		GF_Matrix2D transf;
 #endif
 

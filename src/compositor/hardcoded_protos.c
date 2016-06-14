@@ -1281,6 +1281,8 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
     }
 }
 
+#ifndef GPAC_DISABLE_3D
+
 static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TextureHandler *txh;
@@ -1328,6 +1330,7 @@ static void compositor_init_vr_geometry(GF_Compositor *compositor, GF_Node *node
 	gf_node_set_callback_function(node, TraverseVRGeometry);
 }
 
+#endif //GPAC_DISABLE_3D
 
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
@@ -1346,18 +1349,22 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
         if (!url) continue;
         
 #ifndef GPAC_DISABLE_3D
-		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
-			compositor_init_path_extrusion(compositor, node);
-			return;
-		}
-		if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
-			compositor_init_planar_extrusion(compositor, node);
-			return;
-		}
-		if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
-			compositor_init_plane_clipper(compositor, node);
-			return;
-		}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
+		compositor_init_path_extrusion(compositor, node);
+		return;
+	}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
+		compositor_init_planar_extrusion(compositor, node);
+		return;
+	}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
+		compositor_init_plane_clipper(compositor, node);
+		return;
+	}
+        if (!strcmp(url, "urn:inet:gpac:builtin:VRGeometry")) {
+            compositor_init_vr_geometry(compositor, node);
+            return;
+        }
 #endif
 		if (!strcmp(url, "urn:inet:gpac:builtin:TextureText")) {
 			compositor_init_texture_text(compositor, node);
@@ -1397,10 +1404,6 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 		}
         if (!strcmp(url, "urn:inet:gpac:builtin:CustomTexture")) {
             compositor_init_custom_texture(compositor, node);
-            return;
-        }
-        if (!strcmp(url, "urn:inet:gpac:builtin:VRGeometry")) {
-            compositor_init_vr_geometry(compositor, node);
             return;
         }
 		
