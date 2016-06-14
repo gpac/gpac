@@ -1192,7 +1192,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			/*track done - we remove the track from destination, an empty video track could cause pbs to some players*/
 			if (tki->stop_state==2) continue;
 
-			e = gf_isom_clone_track(mp4, tki->tk, dest, 0, &tki->dst_tk);
+			e = gf_isom_clone_track(mp4, tki->tk, dest, GF_FALSE, &tki->dst_tk);
 			if (e) {
 				fprintf(stderr, "Error cloning track %d\n", tki->tk);
 				goto err_exit;
@@ -1936,7 +1936,7 @@ GF_Err cat_isomedia_file(GF_ISOFile *dest, char *fileName, u32 import_flags, Dou
 		/*looks like a new track*/
 		if (!dst_tk) {
 			fprintf(stderr, "No suitable destination track found - creating new one (type %s)\n", gf_4cc_to_str(mtype));
-			e = gf_isom_clone_track(orig, i+1, dest, 1, &dst_tk);
+			e = gf_isom_clone_track(orig, i+1, dest, GF_FALSE, &dst_tk);
 			if (e) goto err_exit;
 			gf_isom_clone_pl_indications(orig, dest);
 			new_track = 1;
