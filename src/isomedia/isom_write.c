@@ -2705,7 +2705,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 				GF_TrackBox *trak = (GF_TrackBox*)gf_list_get( orig_file->moov->trackList, i);
 				if (!trak) continue;
 				if (keep_hint_tracks || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT)) {
-					e = gf_isom_clone_track(orig_file, i+1, dest_file, GF_TRUE, &dstTrack);
+					e = gf_isom_clone_track(orig_file, i+1, dest_file, GF_FALSE, &dstTrack);
 					if (e) return e;
 				}
 			}
@@ -2861,6 +2861,15 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 			u32 dref;
 			Media_CreateDataRef(new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
 			entry->dataReferenceIndex = dref;
+		}
+	} else {
+		u32 i;
+		for (i=0; i<gf_list_count(new_tk->Media->information->dataInformation->dref->other_boxes); i++) {
+			GF_DataEntryBox *dref_entry = (GF_SampleEntryBox*)gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, i);
+			if (dref_entry->flags & 1) {
+				dref_entry->flags &= ~1;
+				dref_entry->location = gf_strdup(orig_file->fileName);
+			}
 		}
 	}
 
