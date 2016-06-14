@@ -1242,7 +1242,7 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
 {
 	GF_Proto *proto;
 	GF_Node *node;
-	const char *name = "urn:inet:gpac:builtin:VRGeometry";
+	char *name = "urn:inet:gpac:builtin:VRGeometry";
 	
 	proto = gf_sg_find_proto(sg, 0, name);
 	if (!proto) {
@@ -1297,7 +1297,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		
 		if (scene->vr_type) {
 			n2 = load_vr_proto_node(scene->graph, name_geo);
-		} else {
+		} else {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		}
 		
@@ -1513,7 +1513,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 				if (scene->vr_type) {
 					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 					gf_node_changed(n2, NULL);
-				} else {
+				} else {
 					tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
 					th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 
