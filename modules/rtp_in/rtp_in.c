@@ -210,6 +210,63 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	return GF_FALSE;
 }
 
+//simplified version of RTSP_UnpackURL for SAT>IP
+static void Satip_GetServerIP(const char *sURL, char *Server)
+{
+	char schema[10], *test, text[1024], *retest;
+	u32 i, len;
+	Bool is_ipv6;
+
+	strcpy(Server, "");
+
+	//extract the schema
+	i = 0;
+	while (i <= strlen(sURL)) {
+		if (sURL[i] == ':')
+			goto found;
+		schema[i] = sURL[i];
+		i += 1;
+	}
+	return;
+
+found:
+	schema[i] = 0;
+	assert(!stricmp(schema, "satip"));
+	test = strstr(sURL, "://");
+	test += 3;
+	//check for service
+	retest = strstr(test, "/");
+
+	//check for port
+	retest = strrchr(test, ':');
+	/*IPV6 address*/
+	if (retest && strchr(retest, ']')) retest = NULL;
+
+	if (retest && strstr(retest, "/")) {
+		retest += 1;
+		i = 0;
+		while (i<strlen(retest)) {
+			if (retest[i] == '/') break;
+			text[i] = retest[i];
+			i += 1;
+		}
+		text[i] = 0;
+	}
+	//get the server name
+	is_ipv6 = GF_FALSE;
+	len = (u32)strlen(test);
+	i = 0;
+	while (i<len) {
+		if (test[i] == '[') is_ipv6 = GF_TRUE;
+		else if (test[i] == ']') is_ipv6 = GF_FALSE;
+		if ((test[i] == '/') || (!is_ipv6 && (test[i] == ':'))) break;
+		text[i] = test[i];
+		i += 1;
+	}
+	text[i] = 0;
+	strcpy(Server, text);
+}
+
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration)
 {
 	char *session_cache;
@@ -265,8 +322,11 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 			the_ext[0] = 0;
 		}
 		sess = RP_NewSession(priv, (char *) the_url);
-		if (!strnicmp(url, "satip://", 8))
+		if (!strnicmp(url, "satip://", 8)) {
 			sess->satip = GF_TRUE;
+			sess->satip_server = gf_malloc(GF_MAX_PATH);
+			Satip_GetServerIP(url, sess->satip_server);
+		}
 		gf_free(the_url);
 		if (!sess) {
 			gf_service_connect_ack(serv, NULL, GF_NOT_SUPPORTED);

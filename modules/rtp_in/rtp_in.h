@@ -135,6 +135,7 @@ typedef struct _rtp_session
 
 	/*SAT>IP uses a non-conformant version of RTSP*/
 	Bool satip;
+	char *satip_server;
 } RTSPSession;
 
 /*creates new RTSP session handler*/
@@ -273,6 +274,8 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 
 /*creates new RTP stream from SDP info*/
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream);
+/*creates new SAT>IP stream*/
+RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip);
 /*destroys RTP stream */
 void RP_DeleteStream(RTPStream *ch);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/

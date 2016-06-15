@@ -155,6 +155,56 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	hdr->decodingTimeStamp = dts;
 }
 
+RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip)
+{
+	char *ctrl;
+	GF_RTPMap map;
+	GF_RTSPTransport trans;
+	RTPStream *tmp;
+	GF_SAFEALLOC(tmp, RTPStream);
+	if (!tmp) return NULL;
+	tmp->owner = rtp;
+
+	/*create an RTP channel*/
+	tmp->rtp_ch = gf_rtp_new();
+	tmp->control = gf_strdup("*");
+
+	memset(&trans, 0, sizeof(GF_RTSPTransport));
+	trans.Profile = "RTP/AVP";
+	trans.source = gf_strdup(server_ip);
+	trans.IsUnicast = GF_TRUE;
+	trans.client_port_first = 0;
+	trans.client_port_last = 0;
+	trans.port_first = 0;
+	trans.port_last = 0;
+
+	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
+
+	/*setup channel*/
+	memset(&map, 0, sizeof(GF_RTPMap));
+	map.PayloadType = 33;
+	map.ClockRate = 90000;
+	gf_rtp_setup_payload(tmp->rtp_ch, &map);
+
+	ctrl = (char *)gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(rtp->service), "Streaming", "DisableRTCP");
+	if (!ctrl || stricmp(ctrl, "yes")) tmp->flags |= RTP_ENABLE_RTCP;
+
+	/*setup NAT keep-alive*/
+	ctrl = (char *)gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(rtp->service), "Streaming", "NATKeepAlive");
+	if (ctrl) {
+		gf_rtp_enable_nat_keepalive(tmp->rtp_ch, atoi(ctrl));
+	} else {
+		gf_rtp_enable_nat_keepalive(tmp->rtp_ch, 30000); /*keep-alive every 30s, SAT>IP max is 60s*/
+	}
+
+	tmp->range_start = 0;
+	tmp->range_end = 0;
+
+	return tmp;
+}
 
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream)
 {
