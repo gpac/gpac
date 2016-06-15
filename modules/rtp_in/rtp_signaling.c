@@ -173,7 +173,7 @@ GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc)
 	/*assign channel handle if not done*/
 	if (ch_desc && ch->channel) {
 		assert(ch->channel == ch_desc->channel);
-	} else if (!ch->channel) {
+	} else if (!ch->channel && ch->rtsp && !ch->rtsp->satip) {
 		assert(ch_desc);
 		assert(ch_desc->channel);
 		ch->channel = ch_desc->channel;
@@ -183,7 +183,7 @@ GF_Err RP_SetupChannel(RTPStream *ch, ChannelDescribe *ch_desc)
 	if (!ch->rtsp) {
 		ch->flags |= RTP_CONNECTED;
 		/*init rtp*/
-		resp = RP_InitStream(ch, GF_FALSE),
+		resp = RP_InitStream(ch, GF_FALSE);
 		/*send confirmation to user*/
 		RP_ConfirmChannelConnect(ch, resp);
 	} else {
@@ -234,12 +234,6 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTSP] Requested interleaved RTP over RTSP but server did not setup interleave - cannot process command\n"));
 			e = GF_REMOTE_SERVICE_ERROR;
 			continue;
-		}
-		
-		if (sess->satip) {
-			/*SAT>IP has no DESCRIBE so no SDP. All the information is conveyed by the SETUP command.*/
-			ch->rtp_ch = gf_rtp_new();
-			gf_rtp_enable_nat_keepalive(ch->rtp_ch, 30000); /*keep-alive every 30s, SAT>IP max is 60s*/
 		}
 
 		e = gf_rtp_setup_transport(ch->rtp_ch, trans, gf_rtsp_get_server_name(sess->session));
@@ -393,41 +387,32 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 	if (!sess->satip) {
 		com->method = gf_strdup(GF_RTSP_DESCRIBE);
 	} else {
+		GF_Err e;
 		RTPStream *ch = NULL;
-		GF_RTSPCommand *com2 = NULL;
-		//ChannelDescribe *ch_desc = NULL;
+
+		com->method = gf_strdup(GF_RTSP_SETUP);
 
 		/*setup transport ports*/
 		GF_RTSPTransport *trans;
 		GF_SAFEALLOC(trans, GF_RTSPTransport);
-		com->method = gf_strdup(GF_RTSP_SETUP);
+		trans->IsUnicast = GF_TRUE;
 		trans->client_port_first = GPAC_SATIP_PORT;
 		trans->client_port_last = GPAC_SATIP_PORT+1;
 		trans->Profile = gf_strdup(GF_RTSP_PROFILE_RTP_AVP);
 		gf_list_add(com->Transports, trans);
 
 		/*hardcoded channel*/
-		GF_SAFEALLOC(ch, RTPStream);
-		ch->control = gf_strdup(esd_url);
-		ch->owner = sess->owner;
-		ch->channel = channel;
-		ch->status = RTP_Connected;
-		gf_list_add(ch->owner->channels, ch);
-		RP_ConfirmChannelConnect(ch, GF_OK);
+		ch = RP_NewSatipStream(sess->owner, sess->satip_server);
+		if (!ch) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("SAT>IP: couldn't create the RTP stream.\n"));
+			return;
+		}
+		e = RP_AddStream(sess->owner, ch, "*");
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("SAT>IP: couldn't add the RTP stream.\n"));
+			return;
+		}
 		com->user_data = ch;
-
-		/*channel describe*/
-		//GF_SAFEALLOC(ch_desc, ChannelDescribe);
-		//ch_desc->esd_url = esd_url ? gf_strdup(esd_url) : NULL;
-		//ch_desc->channel = channel;
-
-		/*send and process the hardcoded describe*/
-		com2 = gf_rtsp_command_new();
-		com2->method = gf_strdup(GF_RTSP_DESCRIBE);
-		//com2->user_data = ch_desc;
-		sess->rtsp_rsp->ResponseCode = NC_RTSP_OK;
-		RP_ProcessDescribe(sess, com2, GF_OK);
-		sess->rtsp_rsp->ResponseCode = 0;
 	}
 
 	if (channel || esd_url) {

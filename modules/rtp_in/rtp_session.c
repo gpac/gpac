@@ -261,7 +261,6 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 
-
 	szCtrl = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIPEnabled");
 	if (szCtrl && !strcmp(szCtrl, "yes")) {
 		char *ip = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIP");
@@ -395,6 +394,7 @@ void RP_DelSession(RTSPSession *sess)
 	gf_rtsp_session_del(sess->session);
 	if (sess->control) gf_free(sess->control);
 	if (sess->session_id) gf_free(sess->session_id);
+	if (sess->satip_server) gf_free(sess->satip_server);
 	gf_free(sess);
 }
 
