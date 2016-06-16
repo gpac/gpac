@@ -17,6 +17,7 @@
 	SensorDataCallback* sensorCallbak;
 	int sensorType;
 	int gpsActive;
+	int sensorActive;
 }
 
 @property (nonatomic, retain) CMMotionManager *motionManager;
