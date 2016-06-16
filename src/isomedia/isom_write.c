@@ -2865,7 +2865,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	} else {
 		u32 i;
 		for (i=0; i<gf_list_count(new_tk->Media->information->dataInformation->dref->other_boxes); i++) {
-			GF_DataEntryBox *dref_entry = (GF_SampleEntryBox*)gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, i);
+			GF_DataEntryBox *dref_entry = (GF_DataEntryBox *)gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, i);
 			if (dref_entry->flags & 1) {
 				dref_entry->flags &= ~1;
 				dref_entry->location = gf_strdup(orig_file->fileName);
