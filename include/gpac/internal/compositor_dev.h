@@ -274,7 +274,7 @@ struct __tag_compositor
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
-
+	
 	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU.
 	//the mode supports defer and immediate rendering
 	Bool hybrid_opengl;
