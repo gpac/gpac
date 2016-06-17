@@ -1442,6 +1442,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		evt.activate_sensor.activate = scene->vr_type;
 		evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
 		gf_term_send_event(scene->root_od->term, &evt);
+		scene->root_od->term->orientation_sensors_active = scene->vr_type;
 	}
 
 

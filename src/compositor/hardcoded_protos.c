@@ -1303,7 +1303,6 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	if (!txh->stream) return;
 	
 	if (gf_node_dirty_get(node)) {
-		SFVec2f size, position;
 		mesh_reset(stack->mesh);
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;

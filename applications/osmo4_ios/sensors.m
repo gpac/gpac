@@ -54,12 +54,13 @@
 
 - (int) startSensor
 {
+	sensorActive=1;
     switch (sensorType) {
         case SENSOR_ACCELEROMETER:
             if ( ![[self motionManager] isAccelerometerAvailable] )
                 return 1;
             [[self motionManager] startAccelerometerUpdatesToQueue:[self queue] withHandler:^(CMAccelerometerData* data, NSError* error) {
-                    if ( sensorCallbak ) {
+                    if ( sensorCallbak && sensorActive) {
                         sensorCallbak(sensorType, data.acceleration.x, data.acceleration.y, data.acceleration.z, 0);
                     }
                 }
@@ -70,7 +71,7 @@
             if ( ![[self motionManager] isGyroAvailable] )
                 return 1;
             [[self motionManager] startGyroUpdatesToQueue:[self queue] withHandler:^(CMGyroData* data, NSError* error) {
-                if ( sensorCallbak ) {
+                if ( sensorCallbak  && sensorActive) {
                     sensorCallbak(sensorType, data.rotationRate.x, data.rotationRate.y, data.rotationRate.z, 0);
                 }
             }
@@ -81,7 +82,7 @@
             if ( ![[self motionManager] isGyroAvailable] )
                 return 1;
             [[self motionManager] startDeviceMotionUpdatesToQueue:[self queue] withHandler:^(CMDeviceMotion* data, NSError* error) {
-                if ( sensorCallbak ) {
+                if ( sensorCallbak  && sensorActive) {
                     sensorCallbak(sensorType, data.attitude.quaternion.x, data.attitude.quaternion.y, data.attitude.quaternion.z, data.attitude.quaternion.w);
                 }
             }
@@ -92,7 +93,7 @@
             if ( ![[self motionManager] isMagnetometerAvailable] )
                 return 1;
             [[self motionManager] startMagnetometerUpdatesToQueue:[self queue] withHandler:^(CMMagnetometerData* data, NSError* error) {
-                if ( sensorCallbak ) {
+                if ( sensorCallbak  && sensorActive) {
                     sensorCallbak(sensorType, data.magneticField.x, data.magneticField.y, data.magneticField.z, 0);
                 }
             }
@@ -111,6 +112,7 @@
 
 - (int) stopSensor
 {
+	sensorActive=0;
     switch (sensorType) {
         case SENSOR_ACCELEROMETER:
             [[self motionManager] stopAccelerometerUpdates];

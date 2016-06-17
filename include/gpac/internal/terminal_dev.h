@@ -474,6 +474,8 @@ struct _tag_terminal
 
 	u32 nb_calls_in_event_proc;
 	u32 disconnect_request_status;
+	
+	Bool orientation_sensors_active;
 };
 
 
