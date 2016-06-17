@@ -621,9 +621,12 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 					if (!env || !env->cbk_sensorSwitch)
 						return GF_FALSE;
 					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
-					//TODOk: code for handling 360 sensors
 				}else{
 					LOGV("We received Sensor Request for turning OFF location sensors");
+					JavaEnvTh * env = ptr->getEnv();
+					if (!env || !env->cbk_sensorSwitch)
+						return GF_FALSE;
+					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
 				}
 			}
 			break;
