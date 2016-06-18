@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 import org.apache.tools.ant.taskdefs.condition.Os
 
 android {
-    compileSdkVersion 23
+    compileSdkVersion 18
     buildToolsVersion "23.0.3"
 
     defaultConfig {
         applicationId "com.gpac.Osmo4"
-        minSdkVersion 16
-        targetSdkVersion 22
+        minSdkVersion 8
+        targetSdkVersion 8
     }
 
     sourceSets.main {
