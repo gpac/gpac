@@ -2342,7 +2342,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		/* Sections */
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
-			if (!es) {
+			if (!ses) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
@@ -2367,7 +2367,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_13818_6_ANNEX_D:
 		case GF_M2TS_PRIVATE_SECTION:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
-			if (!es) {
+			if (!ses) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
@@ -4104,7 +4104,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				gf_rtp_reorderer_del(ch);
 #endif
 
-			if (ts->sock) gf_sk_del(ts->sock);
+			if (ts->sock && !ts->sock_is_delegate) gf_sk_del(ts->sock);
 			ts->sock = NULL;
 		} else if (ts->dnload) {
 			while (ts->run_state) {
@@ -4247,9 +4247,14 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 
 static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 {
-	GF_Err e;
-	e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
-	if (e) return e;
+	if (!strnicmp(url, "mpegts-sk://", 12)) {
+		sscanf(url, "mpegts-sk://%p", &ts->sock);
+		ts->sock_is_delegate = GF_TRUE;
+	} else {
+		GF_Err e;
+		e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		if (e) return e;
+	}
 
 	if (ts->socket_url) gf_free(ts->socket_url);
 	ts->socket_url = gf_strdup(url);
@@ -4532,6 +4537,7 @@ GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 	if (!strnicmp(url, "udp://", 6)
 	        || !strnicmp(url, "mpegts-udp://", 13)
 	        || !strnicmp(url, "mpegts-tcp://", 13)
+	        || !strnicmp(url, "mpegts-sk://", 12)
 	   ) {
 		return gf_m2ts_demuxer_setup_live(ts, (char *) szURL);
 	}
