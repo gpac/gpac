@@ -252,6 +252,15 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		gf_rtsp_set_interleave_callback(sess->session, RP_DataOnTCP);
 	}
 
+	if (sess->satip) {
+		ChannelControl *ch_ctrl = NULL;
+		GF_RTSPCommand *com = gf_rtsp_command_new();
+		com->method = gf_strdup(GF_RTSP_PLAY);
+		GF_SAFEALLOC(ch_ctrl, ChannelControl);
+		ch_ctrl->ch = ch;
+		RP_QueueCommand(sess, ch, com, GF_TRUE);
+	}
+
 exit:
 	/*confirm only on first connect, otherwise this is a re-SETUP of the rtsp session, not the channel*/
 	if (ch && ! (ch->flags & RTP_CONNECTED) ) {
@@ -517,6 +526,8 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	u32 i, count;
 	GF_RTPInfo *info;
 
+	if (sess->satip)
+		return;
 
 	ch_ctrl = (ChannelControl *)com->user_data;
 	ch = ch_ctrl->ch;
