@@ -15,10 +15,6 @@
         android:name="lge.hardware.real3d.barrier.landscape"
         android:required="false" />
 
-    <uses-sdk
-        android:minSdkVersion="16"
-        android:targetSdkVersion="22" />
-
     <uses-feature
         android:name="android.hardware.camera"
         android:required="false" />
