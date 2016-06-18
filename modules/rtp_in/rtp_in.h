@@ -269,6 +269,7 @@ typedef struct
 	
 	/*SAT>IP M2TS demux*/
 	GF_InputService *satip_m2ts_ifce;
+	Bool satip_m2ts_service_connected;
 } RTPStream;
 
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);

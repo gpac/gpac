@@ -24,6 +24,7 @@
  */
 
 #include "rtp_in.h"
+#include <gpac/internal/ietf_dev.h>
 
 #ifndef GPAC_DISABLE_STREAMING
 
@@ -258,6 +259,7 @@ void RP_ProcessSetup(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 		com->method = gf_strdup(GF_RTSP_PLAY);
 		GF_SAFEALLOC(ch_ctrl, ChannelControl);
 		ch_ctrl->ch = ch;
+		com->user_data = ch_ctrl;
 		RP_QueueCommand(sess, ch, com, GF_TRUE);
 	}
 
@@ -477,14 +479,16 @@ Bool RP_PreprocessUserCom(RTSPSession *sess, GF_RTSPCommand *com)
 	if (!ch_ctrl || !ch_ctrl->ch) return GF_TRUE;
 	ch = ch_ctrl->ch;
 
-	if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
-		gf_free(ch_ctrl);
-		com->user_data = NULL;
-		return GF_FALSE;
-	}
+	if (!sess->satip) {
+		if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
+			gf_free(ch_ctrl);
+			com->user_data = NULL;
+			return GF_FALSE;
+		}
 
-	assert(ch->rtsp == sess);
-	assert(ch->channel==ch_ctrl->com.base.on_channel);
+		assert(ch->rtsp == sess);
+		assert(ch->channel == ch_ctrl->com.base.on_channel);
+	}
 
 	skip_it = GF_FALSE;
 	if (!com->Session) {
@@ -526,11 +530,33 @@ void RP_ProcessUserCommand(RTSPSession *sess, GF_RTSPCommand *com, GF_Err e)
 	u32 i, count;
 	GF_RTPInfo *info;
 
-	if (sess->satip)
-		return;
-
 	ch_ctrl = (ChannelControl *)com->user_data;
 	ch = ch_ctrl->ch;
+
+	if (sess->satip) {
+		if (!strcmp(com->method, GF_RTSP_PLAY)) {
+			char url[64];
+			snprintf(url, 64, "mpegts-sk://%p", ch->rtp_ch->rtp);
+			e = ch->satip_m2ts_ifce->ConnectService(ch->satip_m2ts_ifce, sess->owner->service, url);
+			if (e) {
+				assert(0);
+				GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[SATIP] Couldn't connect the M2TS service.\n"));
+				return;
+			} else {
+				ch->satip_m2ts_service_connected = GF_TRUE;
+			}
+		} else if (!strcmp(com->method, GF_RTSP_PLAY)) {
+			if (ch->satip_m2ts_service_connected) {
+				ch->satip_m2ts_ifce->CloseService(ch->satip_m2ts_ifce);
+				ch->satip_m2ts_service_connected = GF_FALSE;
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[SATIP] Unhandled RTSP command: %s\n", com->method));
+			return;
+		}
+		return;
+	}
+
 	if (ch) {
 		if (!ch->channel || !channel_is_valid(sess->owner, ch)) {
 			gf_free(ch_ctrl);

@@ -108,7 +108,12 @@ void RP_DeleteStream(RTPStream *ch)
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
 	if (ch->control) gf_free(ch->control);
 	if (ch->session_id) gf_free(ch->session_id);
-	if (ch->satip_m2ts_ifce) gf_modules_close_interface((GF_BaseInterface *)ch->satip_m2ts_ifce);
+	if (ch->satip_m2ts_ifce) {
+		if (ch->satip_m2ts_service_connected) {
+			ch->satip_m2ts_ifce->CloseService(ch->satip_m2ts_ifce);
+		}
+		gf_modules_close_interface((GF_BaseInterface *)ch->satip_m2ts_ifce);
+	}
 	gf_free(ch);
 }
 
