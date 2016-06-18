@@ -266,7 +266,9 @@ typedef struct
 	u32 rtcp_check_start;
 
 	u64 ts_offset;
-
+	
+	/*SAT>IP M2TS demux*/
+	GF_InputService *satip_m2ts_ifce;
 } RTPStream;
 
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);

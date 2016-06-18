@@ -25,6 +25,7 @@
 
 #include "rtp_in.h"
 #include <gpac/internal/ietf_dev.h>
+#include <gpac/internal/terminal_dev.h> //for SAT>IP: we need to instantiate the M2TS demuxer
 
 #ifndef GPAC_DISABLE_STREAMING
 
@@ -107,6 +108,7 @@ void RP_DeleteStream(RTPStream *ch)
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
 	if (ch->control) gf_free(ch->control);
 	if (ch->session_id) gf_free(ch->session_id);
+	if (ch->satip_m2ts_ifce) gf_modules_close_interface((GF_BaseInterface *)ch->satip_m2ts_ifce);
 	gf_free(ch);
 }
 
@@ -202,6 +204,13 @@ RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip)
 
 	tmp->range_start = 0;
 	tmp->range_end = 0;
+
+	tmp->satip_m2ts_ifce = (GF_InputService*)gf_modules_load_interface_by_name(rtp->service->term->user->modules, "GPAC MPEG-2 TS Reader", GF_NET_CLIENT_INTERFACE);
+	if (!tmp->satip_m2ts_ifce) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[SAT>IP] \n"));
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
 
 	return tmp;
 }
