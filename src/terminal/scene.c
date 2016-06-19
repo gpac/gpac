@@ -580,7 +580,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		evt.type = event_type;
 		evt.screen_rect.width = INT2FIX(w);
 		evt.screen_rect.height = INT2FIX(h);
-		evt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
+		evt.key_flags = scene->is_dynamic_scene ? (scene->vr_type ? 2 : 1) : 0;
 		if (root) {
 #ifndef GPAC_DISABLE_VRML
 			switch (gf_node_get_tag(root)) {
@@ -1045,7 +1045,7 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	u32 w, h, v_w, v_h;
 	if (!scene->visual_url.OD_ID && !scene->visual_url.url) return;
 
-	if (scene->is_live360) return;
+	if (scene->vr_type) return;
 
 	url.count = 1;
 	url.vals = &scene->visual_url;
@@ -1238,6 +1238,36 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 	}
 }
 
+static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
+{
+	GF_Proto *proto;
+	GF_Node *node;
+	char *name = "urn:inet:gpac:builtin:VRGeometry";
+	
+	proto = gf_sg_find_proto(sg, 0, name);
+	if (!proto) {
+		MFURL *url;
+		proto = gf_sg_proto_new(sg, 0, name, GF_FALSE);
+		url = gf_sg_proto_get_extern_url(proto);
+		if (url)
+			url->vals = gf_malloc(sizeof(SFURL));
+		if (!url || !url->vals) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate VR proto\n"));
+			return NULL;
+		}
+		url->count=1;
+		url->vals = gf_malloc(sizeof(SFURL));
+		url->vals[0].url = gf_strdup(name);
+	}
+	node = gf_sg_proto_create_instance(sg, proto);
+	if (node) {
+		if (def_name) gf_node_set_id(node, gf_sg_get_next_available_node_id(sg), def_name);
+		gf_node_init(node);
+	}
+	return node;
+}
+
+
 static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, const char *texture_name, const char *name_geo)
 {
 	M_MovieTexture *mt;
@@ -1262,15 +1292,15 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
-	//TODO srd in 360
-	if (scene->is_live360) {
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
-		((M_Shape *)n1)->geometry = n2;
-		gf_node_register(n2, n1);
-	} else if (scene->is_srd) {
+	if (scene->is_srd) {
 		GF_Node *app = n2;
-
-		n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
+		
+		if (scene->vr_type) {
+			n2 = load_vr_proto_node(scene->graph, name_geo);
+		} else {
+			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
+		}
+		
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
 		//force  appearance material2D.filled = TRUE
@@ -1278,7 +1308,10 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 		((M_Material2D *)n2)->filled = GF_TRUE;
 		((M_Appearance *)app)->material = n2;
 		gf_node_register(n2, app);
-
+	} else if (scene->vr_type) {
+		n2 = is_create_node(scene->graph, TAG_MPEG4_Sphere, name_geo);
+		((M_Shape *)n1)->geometry = n2;
+		gf_node_register(n2, n1);
 	} else {
 		n2 = is_create_node(scene->graph, TAG_MPEG4_Bitmap, name_geo);
 		((M_Shape *)n1)->geometry = n2;
@@ -1311,13 +1344,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
 		GF_Event evt;
-		scene->is_live360 = GF_FALSE;
-		if (strstr(scene->root_od->net_service->url, "#LIVE360TV")) {
-			scene->is_live360 = GF_TRUE;
-		}
-
+		
 		/*create an OrderedGroup*/
-		n1 = is_create_node(scene->graph, scene->is_live360 ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
+		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
@@ -1327,7 +1356,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_register(n2, n1);
 		}
 
-		if (scene->is_live360) {
+		//create VP info regardless of VR type
+		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
@@ -1370,7 +1400,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		create_movie(scene, n1, "TR1", "DYN_VIDEO1", "DYN_GEOM1");
 
-		if (! scene->is_live360) {
+		if (! scene->vr_type) {
 			/*text streams controlled through AnimationStream*/
 			n1 = gf_sg_get_root_node(scene->graph);
 			as = (M_AnimationStream *) is_create_node(scene->graph, TAG_MPEG4_AnimationStream, "DYN_TEXT");
@@ -1409,9 +1439,10 @@ void gf_scene_regenerate(GF_Scene *scene)
 		//send activation for sensors
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SENSOR_REQUEST;
-		evt.activate_sensor.activate = scene->is_live360;
+		evt.activate_sensor.activate = scene->vr_type;
 		evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
 		gf_term_send_event(scene->root_od->term, &evt);
+		scene->root_od->term->orientation_sensors_active = scene->vr_type;
 	}
 
 
@@ -1448,12 +1479,17 @@ void gf_scene_regenerate(GF_Scene *scene)
 			sprintf(szName, "TR%d", i+1);
 			sprintf(szTex, "DYN_VIDEO%d", i+1);
 			sprintf(szGeom, "DYN_GEOM%d", i+1);
-			n2 = gf_sg_find_node_by_name(scene->graph, szName);
+			n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 			if (!n2) {
 				create_movie(scene, n1, szName, szTex, szGeom);
 			}
 		}
 
+		scene->srd_min_x = min_x;
+		scene->srd_min_y = min_y;
+		scene->srd_max_x = max_x;
+		scene->srd_max_y = max_y;
+		
 		url.url = NULL;
 		gf_sg_get_scene_size_info(scene->graph, &sw, &sh);
 		i=0;
@@ -1474,26 +1510,30 @@ void gf_scene_regenerate(GF_Scene *scene)
 				if (!scene->dyn_ck && a_odm->codec) {
 					scene->dyn_ck = a_odm->codec->ck;
 				}
+				
+				if (scene->vr_type) {
+					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+					gf_node_changed(n2, NULL);
+				} else {
+					tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
+					th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
 
-				tw = INT2FIX( sw * a_odm->mo->srd_w) /  (max_x - min_x);
-				th = INT2FIX(sh * a_odm->mo->srd_h) / (max_y - min_y);
+					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
+					((M_Rectangle *)n2)->size.x = tw;
+					((M_Rectangle *)n2)->size.y = th;
+					gf_node_changed(n2, NULL);
 
-				n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
-				((M_Rectangle *)n2)->size.x = tw;
-				((M_Rectangle *)n2)->size.y = th;
-				gf_node_changed(n2, NULL);
+					tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
+					tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
 
-				tx = INT2FIX(a_odm->mo->srd_x * sw) / (max_x - min_x);
-				tx = tx - INT2FIX(sw) / 2 + INT2FIX(tw) / 2;
+					ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
+					ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
 
-				ty = INT2FIX(a_odm->mo->srd_y * sh) / (max_y - min_y);
-				ty = INT2FIX(sh) / 2 - ty - INT2FIX(th) / 2;
-
-				addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
-				addon_tr->translation.x = tx;
-				addon_tr->translation.y = ty;
-
-				gf_node_changed((GF_Node *)addon_tr, NULL);
+					addon_tr = (M_Transform2D  *) gf_sg_find_node_by_name(scene->graph, szName);
+					addon_tr->translation.x = tx;
+					addon_tr->translation.y = ty;
+					gf_node_changed((GF_Node *)addon_tr, NULL);
+				}
 			}
 		}
 	} else {
@@ -1502,7 +1542,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	}
 
 
-	if (! scene->is_live360) {
+	if (! scene->vr_type) {
 		as = (M_AnimationStream *) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		set_media_url(scene, &scene->text_url, (GF_Node*)as, &as->url, GF_STREAM_TEXT);
 
@@ -1998,7 +2038,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
 
-	if (scene->is_live360) {
+	if (scene->vr_type) {
 		GF_Node *node;
 		u32 radius;
 		width /= 2;
@@ -2006,10 +2046,12 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 		radius = MAX(width, height) / 2;
 #ifndef GPAC_DISABLE_VRML
-		node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
-		if (node) {
-			((M_Sphere *)node)->radius = - INT2FIX(radius);
-			gf_node_changed(node, NULL);
+		if (! scene->is_srd) {
+			node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
+			if (node) {
+				((M_Sphere *)node)->radius = - INT2FIX(radius);
+				gf_node_changed(node, NULL);
+			}
 		}
 
 		node = gf_sg_find_node_by_name(scene->graph, "DYN_VP");
@@ -2063,7 +2105,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				devt.type = GF_EVENT_SCENE_SIZE;
 				devt.screen_rect.width = INT2FIX(width);
 				devt.screen_rect.height = INT2FIX(height);
-				devt.key_flags = scene->is_dynamic_scene ? (scene->is_live360 ? 2 : 1) : 0;
+				devt.key_flags = scene->is_dynamic_scene ? (scene->vr_type ? 2 : 1) : 0;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
 
@@ -2200,6 +2242,7 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering)
 {
 	GF_Clock *ck;
+	Bool initialized = GF_FALSE;
 	u32 i;
 	if (scene) {
 		GF_ObjectManager *odm;
@@ -2211,6 +2254,7 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 			if (odm->net_service && (odm->net_service != ns)) {
 				if (!gf_scene_check_clocks(odm->net_service, NULL, check_buffering)) return 0;
 			} else if (odm->codec && odm->codec->CB) {
+				initialized = GF_TRUE;
 				if (!check_buffering) {
 					if (!gf_cm_is_eos(odm->codec->CB) ) {
 						return 0;
@@ -2225,6 +2269,7 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 	}
 	i=0;
 	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
+		initialized = GF_TRUE;
 		if (!check_buffering) {
 			if (!ck->has_seen_eos) return 0;
 		} else {
@@ -2234,9 +2279,13 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 	}
 
 	if (!check_buffering && scene) {
-		if (scene->scene_codec && (scene->scene_codec->Status != GF_ESM_CODEC_STOP)) return 0;
+		if (scene->scene_codec) {
+			initialized = GF_TRUE;
+			if (scene->scene_codec->Status != GF_ESM_CODEC_STOP) return 0;
+		}
 		if (scene->od_codec && (scene->od_codec->Status != GF_ESM_CODEC_STOP)) return 0;
 	}
+	if (!initialized) return 0;
 	return 1;
 }
 

@@ -102,6 +102,7 @@ typedef struct
 	Bool rect_texture;
 	Bool point_sprite;
 	Bool vbo, pbo;
+	Bool gles2_unpack;
 	u32 yuv_texture;
 	Bool has_shaders;
 	s32 max_texture_size;
@@ -273,7 +274,7 @@ struct __tag_compositor
 #ifdef OPENGL_RASTER
 	Bool opengl_raster;
 #endif
-
+	
 	//in this mode all 2D raster is done through and RGBA canvas except background IO and textures which are done by the GPU. The canvas is then flushed to GPU.
 	//the mode supports defer and immediate rendering
 	Bool hybrid_opengl;
@@ -640,12 +641,14 @@ typedef struct _gf_sc_texture_handler
 
 	/*image data for natural media*/
 	char *data;
-	u32 size, width, height, stride, pixelformat, pixel_ar;
+	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma;
 	Bool is_flipped;
 
 	Bool raw_memory;
 	u8 *pU, *pV;
 	u32 nb_frames, upload_time;
+	
+	GF_MediaDecoderFrame *frame;
 
 #ifndef GPAC_DISABLE_VRML
 	/*if set texture has been transformed by MatteTexture -> disable blit*/
@@ -1464,6 +1467,9 @@ Bool gf_sc_is_over(GF_Compositor *compositor, GF_SceneGraph *scene_graph);
 
 /*returns true if scene or current layer accepts tghe requested navigation type, false otherwise*/
 Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type);
+
+/*returns true if 3D acceleration is enabled*/
+Bool gf_sc_use_3d(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }

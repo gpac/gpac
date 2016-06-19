@@ -64,7 +64,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	if (!ai->stream) return NULL;
 
 	done = ai->stream_finished;
-	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, &ai->stream_finished, &ts, size, NULL, NULL);
+	frame = gf_mo_fetch_data(ai->stream, ai->compositor->audio_renderer->step_mode ? GF_MO_FETCH_PAUSED : GF_MO_FETCH, &ai->stream_finished, &ts, size, NULL, NULL, NULL);
 	/*invalidate scene on end of stream to refresh audio graph*/
 	if (done != ai->stream_finished) {
 		gf_sc_invalidate(ai->compositor, NULL);
