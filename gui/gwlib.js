@@ -826,6 +826,8 @@ gwskin.images.channels = 'icons/tv.svg';
 gwskin.labels.channels = 'TV Channels';
 gwskin.images.view360 = 'icons/image.svg';
 gwskin.labels.view360 = '360°';
+gwskin.images.sensors = 'icons/compass.svg';
+gwskin.labels.sensors = 'Orientation';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";

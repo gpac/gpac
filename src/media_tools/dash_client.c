@@ -3062,7 +3062,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					continue;
 				}
 			}
-			if (dash->max_width && dash->max_height) {
+			//filter out everything above HD
+			if ((dash->max_width>2000) && (dash->max_height>2000)) {
 				if ((rep->width>dash->max_width) || (rep->height>dash->max_height)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation size %dx%d exceeds max display size allowed %dx%d - ignoring\n", rep->width, rep->height, dash->max_width, dash->max_height));
 					rep->playback.disabled = 1;

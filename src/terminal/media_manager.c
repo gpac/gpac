@@ -702,10 +702,9 @@ u32 gf_term_process_step(GF_Terminal *term)
 	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return sleep_time;
 
 	assert((s32) sleep_time >= 0);
-	if (sleep_time>50) sleep_time=50;
+	if (sleep_time>33) sleep_time = 33;
 
 	gf_sleep(sleep_time);
-
 	return sleep_time;
 }
 
