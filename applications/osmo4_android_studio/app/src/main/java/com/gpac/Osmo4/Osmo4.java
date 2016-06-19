@@ -150,10 +150,11 @@ public class Osmo4 extends Activity implements GpacCallback {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_PROGRESS);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-		
+		/*
 		requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
         		WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        */
         try {
 			Class c = Class.forName("com.lge.real3d.Real3D");
 			final String LGE_3D_DISPLAY = "lge.hardware.real3d.barrier.landscape";
@@ -577,9 +578,9 @@ public class Osmo4 extends Activity implements GpacCallback {
                 AlertDialog.Builder builder = new AlertDialog.Builder(this);
                 builder.setMessage("Impossible to find an Intent to choose a file... Cannot open file !") //$NON-NLS-1$
                        .setCancelable(true)
-                       .setPositiveButton(R.string.cancel_button, null);
-                AlertDialog alert = builder.create();
-                alert.show();
+                       .setPositiveButton(R.string.cancel_button, null)
+                        .create()
+                        .show();
                 return false;
             }
         }
