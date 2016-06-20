@@ -212,10 +212,11 @@ RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip)
 
 	tmp->satip_m2ts_ifce = (GF_InputService*)gf_modules_load_interface_by_name(rtp->service->term->user->modules, "GPAC MPEG-2 TS Reader", GF_NET_CLIENT_INTERFACE);
 	if (!tmp->satip_m2ts_ifce) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[SAT>IP] \n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[SAT>IP] Couldn't load the M2TS demuxer.\n"));
 		RP_DeleteStream(tmp);
 		return NULL;
 	}
+	tmp->satip_m2ts_ifce->proxy_udta = rtp;
 
 	return tmp;
 }
