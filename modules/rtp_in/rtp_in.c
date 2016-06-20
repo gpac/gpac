@@ -414,9 +414,18 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_Descriptor *desc;
+	RTSPSession *sess = NULL;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Fetching service descriptor\n"));
+
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->GetServiceDescriptor(ch->satip_m2ts_ifce, expect_type, sub_url);
+	}
+
 	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_UPDATES)) {
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
@@ -434,13 +443,19 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 {
 	u32 ESID, i;
 	RTPStream *ch, *next_ch;
-	RTSPSession *sess;
+	RTSPSession *sess = NULL;
 	char *es_url;
 	RTPClient *priv = (RTPClient *)plug->priv;
 	if (upstream) return GF_NOT_SUPPORTED;
 
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Connecting channel @%08x - %s\n", channel, url));
+
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->ConnectChannel(ch->satip_m2ts_ifce, channel, url, upstream);
+	}
 
 	ch = RP_FindChannel(priv, channel, 0, (char *) url, GF_FALSE);
 	if (ch && (ch->status != RTP_Disconnected) ) return GF_SERVICE_ERROR;
@@ -515,8 +530,16 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
+	RTSPSession *sess = NULL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Disconnecting channel @%08x\n", channel));
+	
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->DisconnectChannel(ch->satip_m2ts_ifce, channel);
+	}
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, GF_FALSE);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -608,6 +631,14 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
+	RTSPSession *sess = NULL;
+
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->ServiceCommand(ch->satip_m2ts_ifce, com);
+	}
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
 		u32 i;
