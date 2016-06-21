@@ -35,7 +35,7 @@ typedef struct {
     AMediaCodec *codec;
     AMediaExtractor *extractor;
 #endif
-    bool isPlaying;
+    Bool isPlaying;
     u32 width;
     u32 height;
 } MCDec;
