@@ -7,7 +7,7 @@
 #include "media/NdkMediaFormat.h"
 
 
-#include<android/log.h>
+#include <android/log.h>
 
 #define TAG "mc_decode"
 
@@ -18,19 +18,20 @@
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
 
+//#define ANDROID(A) A
+
 
 typedef struct 
 {
     AMediaCodec *codec;
     AMediaFormat *format;
-    bool isPlaying;
+
     u32 width;
     u32 height;
     u32 stride;
 
     u32 max_input_size;
     u32 pix_fmt;
-
 
     GF_ESD *esd;
     GF_Err last_error;
@@ -43,7 +44,6 @@ typedef struct
     u32 pixel_ar;
 
 } MCDec;
-
 
 
 
@@ -72,7 +72,6 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx, const char *mime) {
     //uint8_t es[2] = {0x12, 0x12};
     //AMediaFormat_setBuffer(format, "csd-0", es, 2);
 
-    ctx->isPlaying = false;
     ctx->inputEOS = false;
     ctx->outputEOS = false;
 
@@ -254,10 +253,10 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 
     MCDec *ctx = (MCDec *)ifcg->privateStack;
 
-    u32 DEQUEU_TIMEOUT = 10000;
+    u32 DEQUEUE_TIMEOUT = 10000;
 
         if(!ctx->inputEOS && !inBuffer) {
-            ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec, DEQUEU_TIMEOUT);
+            ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec, DEQUEUE_TIMEOUT);
 
             LOGV("Input Buffer Index: %d", inIndex);
 
@@ -308,7 +307,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
         if(!ctx->outputEOS) {
 
             AMediaCodecBufferInfo info;
-            ssize_t outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &info, DEQUEU_TIMEOUT);
+            ssize_t outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &info, DEQUEUE_TIMEOUT);
             
             switch(outIndex) {
 
@@ -357,7 +356,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                         //copying output
                         memcpy(outBuffer, buffer, *outBufferLength);
 
-                        AMediaCodec_releaseOutputBuffer(ctx->codec, outIndex, false); //3rd timestamp;
+                        AMediaCodec_releaseOutputBuffer(ctx->codec, outIndex, false); 
 
                     } else{
                         LOGE("Output Buffer not available");
