@@ -1,6 +1,8 @@
-#include <jni.h>
-
 #include <gpac/modules/codec.h>
+
+#ifdef GPAC_ANDROID
+
+#include <jni.h>
 
 #include "media/NdkMediaCodec.h"
 #include "media/NdkMediaExtractor.h"
@@ -23,14 +25,16 @@
 #define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
-
+#endif
 
 
 
 typedef struct {
+#ifdef GPAC_ANDROID
     ANativeWindow *window;
     AMediaCodec *codec;
     AMediaExtractor *extractor;
+#endif
     bool isPlaying;
     u32 width;
     u32 height;
@@ -39,6 +43,7 @@ typedef struct {
 
     //select track using MediaExtractor
     u32 selectTrack(MCDec *dec) {
+#ifdef GPAC_ANDROID
         int trackCount = (int) AMediaExtractor_getTrackCount(dec->extractor);
         size_t i;
         LOGV("Total num. of tracks: %d", trackCount);
@@ -72,5 +77,6 @@ typedef struct {
 
         }
         LOGE("Video Track not found");
+#endif
         return  -1;
     }
