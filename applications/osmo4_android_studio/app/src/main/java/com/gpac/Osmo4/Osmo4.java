@@ -372,9 +372,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 				   copyFile(config, root, path);
 		    } else {
                     String fullPath = null;
-                    if(root == GUI_ROOT_ASSET_DIR){
+                    if(root.equals(GUI_ROOT_ASSET_DIR)){
                         fullPath = config.getGpacGuiDirectory() + path;
-                    }else if(root == SHADER_ROOT_ASSET_DIR){
+                    }else if(root.equals(SHADER_ROOT_ASSET_DIR)){
                         fullPath = config.getGpacShaderDirectory() + path;
                     }else{  //Fallback (useless for now)
                         fullPath = path;
@@ -391,7 +391,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 		private void copyFile(GpacConfig config, String root, String filename) throws IOException {
 		// if this file exists, do nothing
 
-            if(root == GUI_ROOT_ASSET_DIR){
+            if(root.equals(GUI_ROOT_ASSET_DIR)){
 				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
 					return;
             }
@@ -402,9 +402,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 			in = assetManager.open(root + "/" + filename);
 
             String newFileName = null;
-            if(root == GUI_ROOT_ASSET_DIR){
+            if(root.equals(GUI_ROOT_ASSET_DIR)){
 			     newFileName = config.getGpacGuiDirectory() + filename;
-            }else if(root == SHADER_ROOT_ASSET_DIR){
+            }else if(root.equals(SHADER_ROOT_ASSET_DIR)){
                 newFileName = config.getGpacShaderDirectory() + filename;
             }else{  //Fallback
                 newFileName = filename;
