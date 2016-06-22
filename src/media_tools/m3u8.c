@@ -313,7 +313,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 				start = i+1;
 			} else {
 				if (!strncmp(&line[start+spaces], "\t", sz-spaces) || !strncmp(&line[start+spaces], "\n", sz-spaces)) {
-				} else {
+				} else {
 					ret[curr_attribute] = gf_calloc( (1+sz-spaces), sizeof(char));
 					strncpy(ret[curr_attribute], &(line[start+spaces]), sz-spaces);
 					curr_attribute++;
@@ -328,7 +328,7 @@ static char** extract_attributes(const char *name, const char *line, const int n
 		if ((line[i] == '\'') || (line[i] == '"'))  {
 			if (quote) {
 				quote = 0;
-			} else {
+			} else {
 				quote = line[i];
 			}
 		}
