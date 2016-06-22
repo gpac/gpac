@@ -3160,7 +3160,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				nb_dependant_rep++;
 		}
 
-		if (!seg_dur) {
+		if (!seg_dur && !dash->is_m3u8) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot compute default segment duration\n"));
 		}
 

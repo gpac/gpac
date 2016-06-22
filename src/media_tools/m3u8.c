@@ -103,7 +103,7 @@ GF_Err playlist_element_del(PlaylistElement * e) {
  * This element can be either a playlist of a stream according to first parameter.
  * \return NULL if element could not be created. Elements will be deleted recursively.
  */
-static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, const char *language, double duration_info, u64 byte_range_start, u64 byte_range_end, PlaylistElementDRMMethod drm_method, const char *key_uri, const unsigned char *iv) {
+static PlaylistElement* playlist_element_new(PlaylistElementType element_type, const char *url, const char *title, const char *codecs, const char *language, double duration_info, u64 byte_range_start, u64 byte_range_end, const char *init_url, PlaylistElementDRMMethod drm_method, const char *key_uri, const unsigned char *iv) {
 	PlaylistElement *e = gf_malloc(sizeof(PlaylistElement));
 	memset(e, 0, sizeof(PlaylistElement));
 	if (e == NULL)
@@ -116,6 +116,7 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->codecs = (codecs ? gf_strdup(codecs) : NULL);
 	e->language = (language ? gf_strdup(language) : NULL);
 	e->drm_method = drm_method;
+	e->init_segment_url = init_url ? gf_strdup(init_url) : NULL;
 	e->key_uri = (key_uri ? gf_strdup(key_uri) : NULL);
 	memcpy(e->key_iv, iv, sizeof(bin128));
 
@@ -143,6 +144,8 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 				gf_free(e->video_group);
 			if (e->url)
 				gf_free(e->url);
+			if (e->init_segment_url)
+				gf_free(e->init_segment_url);
 			if (e->key_uri)
 				gf_free(e->key_uri);
 			e->url = NULL;
@@ -267,8 +270,10 @@ typedef struct _s_accumulated_attributes {
 	Bool is_playlist_ended;
 	u64 byte_range_start, byte_range_end;
 	PlaylistElementDRMMethod key_method;
+	char *init_url;
 	char *key_url;
 	bin128 key_iv;
+	Bool independant_segments;
 } s_accumulated_attributes;
 
 static void reset_attributes(s_accumulated_attributes *attributes)
@@ -443,6 +448,20 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		M3U8_COMPATIBILITY_VERSION(3);
 		return ret;
 	}
+	ret = extract_attributes("#EXT-X-MAP", line, 1);
+	if (ret) {
+		/* #EXT-X-MAP:URI="<URI>"] */
+		if (ret[0] != NULL && safe_start_equals(":URI=\"", ret[0])) {
+			char *uri = ret[0] + 6;
+			int_value = (u32) strlen(uri);
+			if (uri[int_value-1] == '"') {
+				attributes->init_url = gf_strdup(uri);
+				attributes->init_url[int_value-1]=0;
+			}
+		}
+		M3U8_COMPATIBILITY_VERSION(3);
+		return ret;
+	}
 	ret = extract_attributes("#EXT-X-STREAM-INF:", line, 10);
 	if (ret) {
 		/* #EXT-X-STREAM-INF:[attribute=value][,attribute=value]* */
@@ -486,8 +505,8 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			}
 			i++;
 		}
-		if (!attributes->stream_id) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-STREAM-INF: no PROGRAM-ID found. Ignoring the line.\n"));
+		if (!attributes->bandwidth) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-STREAM-INF: no BANDWIDTH found. Ignoring the line.\n"));
 			return NULL;
 		}
 		return ret;
@@ -606,6 +625,11 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 		}
 
 		return ret;
+	}
+	if (!strncmp(line, "#EXT-X-INDEPENDENT-SEGMENTS", strlen("#EXT-X-INDEPENDENT-SEGMENTS") )) {
+		attributes->independant_segments = GF_TRUE;
+		M3U8_COMPATIBILITY_VERSION(1);
+		return NULL;
 	}
 	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unknown line in M3U8 file %s\n", line));
 	return NULL;
@@ -766,6 +790,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 			                    attribs->language,
 			                    attribs->duration_in_seconds,
 			                    attribs->byte_range_start, attribs->byte_range_end,
+								attribs->init_url,
 			                    attribs->key_method, attribs->key_url, attribs->key_iv);
 			if (curr_playlist == NULL) {
 				/* OUT of memory */
@@ -806,6 +831,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				                    attribs->language,
 				                    attribs->duration_in_seconds,
 				                    attribs->byte_range_start, attribs->byte_range_end,
+									attribs->init_url,
 				                    attribs->key_method, attribs->key_url,
 				                    attribs->key_iv);
 				if (curr_playlist == NULL) {
@@ -826,6 +852,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				                 attribs->language,
 				                 attribs->duration_in_seconds,
 				                 attribs->byte_range_start, attribs->byte_range_end,
+								 attribs->init_url,
 				                 attribs->key_method, attribs->key_url,
 				                 attribs->key_iv);
 				if (subElement == NULL) {
@@ -848,6 +875,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				                                  attribs->language,
 				                                  attribs->duration_in_seconds,
 				                                  attribs->byte_range_start, attribs->byte_range_end,
+												  attribs->init_url,
 				                                  attribs->key_method, attribs->key_url,
 				                                  attribs->key_iv);
 				if (curr_playlist->element_type != TYPE_PLAYLIST) {
@@ -1011,6 +1039,9 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 				if (attribs.is_playlist_ended) {
 					(*playlist)->playlist_needs_refresh = GF_FALSE;
 				}
+				if (attribs.independant_segments) {
+					(*playlist)->independent_segments = GF_TRUE;
+				}
 				if (attribs.mediaURL) {
 					GF_Err e = declare_sub_playlist(attribs.mediaURL, baseURL, &attribs, sub_playlist, playlist, in_stream);
 					gf_free(attribs.mediaURL);
@@ -1054,6 +1085,9 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 	}
 	if (attribs.key_url)
 		gf_free(attribs.key_url);
+	if (attribs.init_url)
+		gf_free(attribs.init_url);
+
 	if (attribs.version < attribs.compatibility_version) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
 	}
