@@ -1347,12 +1347,15 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 try_next_segment:
 #endif
-			k++;
 			elt = gf_list_get(pe->element.playlist.elements, k);
 			if (parse_sub_playlist && !elt)
 				break;
 
-			base_url = gf_url_concatenate(pe->url, elt->url);
+			if (elt) {
+				base_url = gf_url_concatenate(pe->url, elt->url);
+			} else {
+				base_url = gf_strdup(pe->url);
+			}
 			sep = strrchr(base_url, '/');
 			if (!sep)
 				sep = strrchr(base_url, '\\');
@@ -1387,6 +1390,7 @@ try_next_segment:
 				e = gf_media_import(&import);
 				if (e != GF_OK) {
 //					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s< (Playlist %s) %s \n", import.in_name, base_url));
+					k++;
 					goto try_next_segment;
 				}
 
@@ -1456,7 +1460,7 @@ try_next_segment:
 			if (!strcmp(M3U8_UNKNOWN_MIME_TYPE, mimeTypeForM3U8Segments)) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Unknown mime-type when converting from M3U8 HLS playlist, setting %s\n", mimeTypeForM3U8Segments));
 			}
-			if (elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
+			if (elt && elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
 			} else {
 				rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
