@@ -259,6 +259,7 @@ typedef struct _s_accumulated_attributes {
 	union {
 		char *audio;
 		char *video;
+		char *subtitle;
 	} group;
 	int target_duration_in_seconds;
 	int min_media_sequence;
@@ -547,8 +548,10 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 					attributes->type = MEDIA_TYPE_AUDIO;
 				} else if (!strncmp(ret[i]+5, "VIDEO", 5)) {
 					attributes->type = MEDIA_TYPE_VIDEO;
+				} else if (!strncmp(ret[i]+5, "SUBTITLES", 9)) {
+					attributes->type = MEDIA_TYPE_SUBTITLES;
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:TYPE=%s\n", ret[i]+5));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH,("[M3U8] Unsupported #EXT-X-MEDIA:TYPE=%s\n", ret[i]+5));
 				}
 			} else if (safe_start_equals("URI=\"", ret[i])) {
 				size_t len;
@@ -566,6 +569,9 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 				} else if (attributes->type == MEDIA_TYPE_VIDEO) {
 					attributes->group.video = gf_strdup(ret[i]+9);
 					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(VIDEO, attributes->group.video);
+				} else if (attributes->type == MEDIA_TYPE_SUBTITLES) {
+					attributes->group.subtitle = gf_strdup(ret[i]+9);
+					attributes->stream_id = GROUP_ID_TO_PROGRAM_ID(VIDEO, attributes->group.subtitle);
 				} else if (attributes->type == MEDIA_TYPE_UNKNOWN) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Invalid #EXT-X-MEDIA:GROUP-ID=%s. Ignoring the line.\n", ret[i]+9));
 					return NULL;
