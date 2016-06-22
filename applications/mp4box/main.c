@@ -376,7 +376,7 @@ void PrintDASHUsage()
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
-	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"
+	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
