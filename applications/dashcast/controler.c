@@ -182,7 +182,7 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	fprintf(f, ">\n");
 
 	fprintf(f,
-	        " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
+	        " <ProgramInformation moreInformationURL=\"http://gpac.io\">\n"
 	        "  <Title>%s</Title>\n"
 	        " </ProgramInformation>\n", cmddata->mpd_filename);
 

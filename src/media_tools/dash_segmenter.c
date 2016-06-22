@@ -4806,7 +4806,7 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 
 	fprintf(mpd, ">\n");
 
-	fprintf(mpd, " <ProgramInformation moreInformationURL=\"%s\">\n", dasher->moreInfoURL ? dasher->moreInfoURL : "http://gpac.sourceforge.net");
+	fprintf(mpd, " <ProgramInformation moreInformationURL=\"%s\">\n", dasher->moreInfoURL ? dasher->moreInfoURL : "http://gpac.io");
 	if (dasher->title)
 		fprintf(mpd, "  <Title>%s</Title>\n", dasher->title);
 	else
