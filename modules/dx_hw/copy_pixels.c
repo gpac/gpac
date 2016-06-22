@@ -256,11 +256,11 @@ static void write_yuv422_to_yuv(GF_VideoSurface *vs, unsigned char *pY, u32 src_
 			if (i < src_wnd->h / 2)
 			{
 				src2 = _src2 + i*src_stride;
-				dst2 += vs->pitch_y / 2;
 				src3 = _src3 + i*src_stride;
-				dst3 += vs->pitch_y / 2;
 				memcpy(dst2, src2, src_wnd->w / 2);
 				memcpy(dst3, src3, src_wnd->w / 2);
+				dst2 += vs->pitch_y / 2;
+				dst3 += vs->pitch_y / 2;
 
 			}
 
