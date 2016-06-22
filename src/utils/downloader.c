@@ -701,8 +701,8 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 		return;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Downloader] gf_dm_disconnect(%p)\n", sess ));
-	if (sess->mx)
-		gf_mx_p(sess->mx);
+
+	gf_mx_p(sess->mx);
 
 	if (force_close || !(sess->flags & GF_NETIO_SESSION_PERSISTENT)) {
 #ifdef GPAC_HAS_SSL
@@ -723,8 +723,8 @@ static void gf_dm_disconnect(GF_DownloadSession *sess, Bool force_close)
 	}
 	sess->status = GF_NETIO_DISCONNECTED;
 	if (sess->num_retry) sess->num_retry--;
-	if (sess->mx)
-		gf_mx_v(sess->mx);
+
+	gf_mx_v(sess->mx);
 }
 
 GF_EXPORT
@@ -747,10 +747,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 			gf_sleep(1);
 		gf_th_stop(sess->th);
 		gf_th_del(sess->th);
-		if (sess->mx)
-			gf_mx_del(sess->mx);
 		sess->th = NULL;
-		sess->mx = NULL;
 	}
 
 	if (sess->dm) gf_list_del_item(sess->dm->sessions, sess);
@@ -770,6 +767,8 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 	if (sess->sock)
 		gf_sk_del(sess->sock);
 	gf_list_del(sess->headers);
+	gf_mx_del(sess->mx);
+	
 	gf_free(sess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
@@ -1146,6 +1145,13 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 	sess->creds = NULL;
 	sess->dm = dm;
 	sess->disable_cache = dm->disable_cache;
+	sess->mx = gf_mx_new(url);
+	if (!sess->mx) {
+		gf_free(sess);
+		return NULL;
+	}
+	
+	
 	assert( dm );
 
 	*e = gf_dm_sess_setup_from_url(sess, url);
@@ -1594,8 +1600,6 @@ GF_Err gf_dm_sess_process(GF_DownloadSession *sess)
 		}
 		sess->th = gf_th_new(sess->orig_url);
 		if (!sess->th) return GF_OUT_OF_MEM;
-		sess->mx = gf_mx_new(sess->orig_url);
-		if (!sess->mx) return GF_OUT_OF_MEM;
 		gf_th_run(sess->th, gf_dm_session_thread, sess);
 		return GF_OK;
 	}
@@ -2288,15 +2292,10 @@ GF_EXPORT
 void gf_dm_sess_abort(GF_DownloadSession * sess)
 {
 	assert(sess);
-	if (sess->mx) {
-		gf_mx_p(sess->mx);
-		gf_dm_disconnect(sess, GF_TRUE);
-		sess->status = GF_NETIO_STATE_ERROR;
-		gf_mx_v(sess->mx);
-	} else {
-		gf_dm_disconnect(sess, GF_TRUE);
-		sess->status = GF_NETIO_STATE_ERROR;
-	}
+	gf_mx_p(sess->mx);
+	gf_dm_disconnect(sess, GF_TRUE);
+	sess->status = GF_NETIO_STATE_ERROR;
+	gf_mx_v(sess->mx);
 }
 void *gf_dm_sess_get_private(GF_DownloadSession * sess)
 {
