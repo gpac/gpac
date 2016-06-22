@@ -55,10 +55,20 @@ typedef struct s_playList Playlist;
 typedef enum e_playlistElementType  { TYPE_PLAYLIST, TYPE_MEDIA, TYPE_UNKNOWN } PlaylistElementType;
 
 typedef enum e_playlistElementDRMMethod { DRM_NONE, DRM_AES_128 } PlaylistElementDRMMethod;
+
+typedef enum _e_MediaType {
+	MEDIA_TYPE_UNKNOWN         = 0,
+	MEDIA_TYPE_AUDIO           = 0x100000,
+	MEDIA_TYPE_VIDEO           = 0x200000,
+	MEDIA_TYPE_SUBTITLES       = 0x300000,
+	MEDIA_TYPE_CLOSED_CAPTIONS = 0x400000
+} MediaType;
+
 /**
  * The Structure containing the playlist element
  */
 struct s_playlistElement {
+	MediaType media_type;
 	double duration_info;
 	u64 byte_range_start, byte_range_end;
 	int bandwidth, width, height;
@@ -69,6 +79,7 @@ struct s_playlistElement {
 	char *video_group;
 	char *url;
 	char *init_segment_url;
+	u64 init_byte_range_start, init_byte_range_end;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;

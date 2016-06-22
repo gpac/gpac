@@ -1342,6 +1342,14 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 				import_file = GF_FALSE;
 			}
 #endif
+			if (pe->media_type==MEDIA_TYPE_SUBTITLES) {
+				import_file = GF_FALSE;
+				if (!pe->codecs) pe->codecs = gf_strdup("wvtt");
+			}
+			if (pe->media_type==MEDIA_TYPE_CLOSED_CAPTIONS) {
+				import_file = GF_FALSE;
+				if (!pe->codecs) pe->codecs = gf_strdup("wvtt");
+			}
 
 			k = 0;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -1359,6 +1367,10 @@ try_next_segment:
 			sep = strrchr(base_url, '/');
 			if (!sep)
 				sep = strrchr(base_url, '\\');
+			/*keep final '/' */
+			if (sep)
+				sep[1] = 0;
+
 
 			width = pe->width;
 			height = pe->height;
@@ -1368,7 +1380,13 @@ try_next_segment:
 				GF_Err e;
 				GF_MediaImporter import;
 				char *elt_url = elt->init_segment_url ? elt->init_segment_url : elt->url;
+				u64 br_start, br_end;
 				char *tmp_file = NULL;
+				
+				br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
+				br_end = elt->init_segment_url ? elt->init_byte_range_end : elt->byte_range_end;
+				elt_url = gf_url_concatenate(pe->url, elt_url);
+
 				memset(&import, 0, sizeof(GF_MediaImporter));
 				import.trackID = 0;
 				import.flags = GF_IMPORT_PROBE_ONLY;
@@ -1379,7 +1397,7 @@ try_next_segment:
 						tmp_file = strrchr(elt_url, '\\');
 					if (tmp_file) {
 						tmp_file++;
-						e = gf_dm_wget(elt_url, tmp_file, elt->byte_range_start, elt->byte_range_end, NULL);
+						e = gf_dm_wget(elt_url, tmp_file, br_start, br_end, NULL);
 						if (e == GF_OK) {
 							import.in_name = tmp_file;
 						}
@@ -1388,6 +1406,8 @@ try_next_segment:
 					import.in_name = elt_url;
 				}
 				e = gf_media_import(&import);
+				gf_free(elt_url);
+				
 				if (e != GF_OK) {
 //					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s< (Playlist %s) %s \n", import.in_name, base_url));
 					k++;
@@ -1491,23 +1511,20 @@ try_next_segment:
 
 
 			if (use_template) {
-				if (sep) {
-					GF_MPD_BaseURL *url;
-					GF_SAFEALLOC(url, GF_MPD_BaseURL);
-					if (! url) return GF_OUT_OF_MEM;
-					e = gf_list_add(rep->base_URLs, url);
-					if (e) return GF_OUT_OF_MEM;
-					/*keep final '/' */
-					sep[1] = 0;
-					url->URL = gf_strdup(base_url);
-				}
+				GF_MPD_BaseURL *url;
+				GF_SAFEALLOC(url, GF_MPD_BaseURL);
+				if (! url) return GF_OUT_OF_MEM;
+				e = gf_list_add(rep->base_URLs, url);
+				if (e) return GF_OUT_OF_MEM;
+				url->URL = gf_strdup(base_url);
+				
 				
 				if (elt->init_segment_url) {
 					u32 len = strlen(base_url);
 					GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
 					if (!rep->segment_template)  return GF_OUT_OF_MEM;
 					rep->segment_template->start_number = (u32) -1;
-					if (!strncmp(base_url, elt->url, len)) {
+					if (!strncmp(base_url, elt->init_segment_url, len)) {
 						rep->segment_template->initialization = gf_strdup(elt->init_segment_url + len);
 					} else {
 						rep->segment_template->initialization = gf_strdup(elt->init_segment_url);
@@ -1527,13 +1544,12 @@ try_next_segment:
 				if (e) return GF_OUT_OF_MEM;
 				byte_range_media_file = elt->url;
 				url->URL = gf_strdup(byte_range_media_file);
-			} else if (sep) {
+			} else {
 				GF_MPD_BaseURL *url;
 				GF_SAFEALLOC(url, GF_MPD_BaseURL);
 				if (! url) return GF_OUT_OF_MEM;
 				e = gf_list_add(rep->base_URLs, url);
 				if (e) return GF_OUT_OF_MEM;
-				sep[1] = 0;
 				url->URL = gf_strdup(base_url);
 			}
 
@@ -1557,10 +1573,15 @@ try_next_segment:
 				u32 len = strlen(base_url);
 				GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 				
-				if (!strncmp(base_url, elt->url, len)) {
+				if (!strncmp(base_url, elt->init_segment_url, len)) {
 					rep->segment_list->initialization_segment->sourceURL = gf_strdup(elt->init_segment_url + len);
 				} else {
 					rep->segment_list->initialization_segment->sourceURL = gf_strdup(elt->init_segment_url);
+				}
+				if (elt->init_byte_range_end) {
+					GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
+					rep->segment_list->initialization_segment->byte_range->start_range = elt->init_byte_range_start;
+					rep->segment_list->initialization_segment->byte_range->end_range = elt->init_byte_range_end;
 				}
 			}
 			
@@ -1573,6 +1594,7 @@ try_next_segment:
 				if (!segment_url) return GF_OUT_OF_MEM;
 				gf_list_add(rep->segment_list->segment_URLs, segment_url);
 				if (byte_range_media_file) {
+					GF_SAFEALLOC(segment_url->media_range, GF_MPD_ByteRange);
 					segment_url->media_range->start_range = elt->byte_range_start;
 					segment_url->media_range->end_range = elt->byte_range_end;
 					if (strcmp(elt->url, byte_range_media_file)) {
@@ -1813,6 +1835,11 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 				if (rep->mime_type) gf_free(rep->mime_type);
 				rep->mime_type = gf_strdup("video/mp4");
 			}
+			if (pe->init_byte_range_end) {
+				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
+				 rep->segment_list->initialization_segment->byte_range->start_range = pe->init_byte_range_start;
+				 rep->segment_list->initialization_segment->byte_range->end_range = pe->init_byte_range_end;
+			}
 		}
 	}
 	rep->starts_with_sap = pl->independent_segments ? 1: 3;
@@ -1846,6 +1873,11 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 				segment_url->key_url = gf_strdup(elt->key_uri);
 				memcpy(segment_url->key_iv, elt->key_iv, sizeof(bin128));
 			}
+		}
+		if (elt->byte_range_end) {
+			GF_SAFEALLOC(segment_url->media_range, GF_MPD_ByteRange);
+			segment_url->media_range->start_range = elt->byte_range_start;
+			segment_url->media_range->end_range = elt->byte_range_end;
 		}
 	}
 
