@@ -114,7 +114,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "i=This is an MP4 time-sliced Streaming demo");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "u=http://gpac.sourceforge.net");
+		sprintf(sdpLine, "u=http://gpac.io");
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "e=admin@");
 		fprintf(sdp_out, "%s\n", sdpLine);
