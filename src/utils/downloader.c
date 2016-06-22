@@ -201,7 +201,8 @@ struct __gf_download_manager
 	Bool disable_cache, simulate_no_connection, allow_offline_cache, clean_cache;
 	u32 limit_data_rate, read_buf_size;
 	u64 max_cache_size;
-
+	Bool allow_broken_certificate;
+	
 	GF_List *skip_proxy_servers;
 	GF_List *credentials;
 	GF_List *cache_entries;
@@ -1203,9 +1204,17 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 	if (!sess)
 		return GF_BAD_PARAM;
 
+	gf_mx_p(sess->mx);
+	if (!sess->sock) {
+		sess->status = GF_NETIO_DISCONNECTED;
+		gf_mx_v(sess->mx);
+		return GF_IP_CONNECTION_CLOSED;
+	}
+	
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
-		s32 size = SSL_read(sess->ssl, data, data_size);
+		s32 size;
+		size = SSL_read(sess->ssl, data, data_size);
 		if (size < 0)
 			e = GF_IO_ERR;
 		else if (!size)
@@ -1215,16 +1224,12 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 			data[size] = 0;
 			*out_read = size;
 		}
-		return e;
-	}
+	} else
 #endif
 
-	if (!sess->sock) {
-		sess->status = GF_NETIO_DISCONNECTED;
-		return GF_IP_CONNECTION_CLOSED;
-	}
-	e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
+		e = gf_sk_receive(sess->sock, data, data_size, 0, out_read);
 
+	gf_mx_v(sess->mx);
 	return e;
 }
 
@@ -1451,6 +1456,9 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 						for (i = 0; i < (int)gf_list_count(valid_names); ++i) {
 							const char *valid_name = (const char*) gf_list_get(valid_names, i);
 							GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[SSL] Tried name: %s\n", valid_name));
+						}
+						if (sess->dm && sess->dm->allow_broken_certificate) {
+							success = GF_TRUE;
 						}
 					}
 
@@ -1821,6 +1829,12 @@ retry_cache:
 				dm->max_cache_size*=1000;
 				gf_dm_clean_cache(dm);
 			}
+		}
+		opt = gf_cfg_get_key(cfg, "Downloader", "AllowBrokenCertificate");
+		if (!opt) {
+			gf_cfg_set_key(cfg, "Downloader", "AllowBrokenCertificate", "no");
+		} else if (!strcmp(opt, "yes")) {
+			dm->allow_broken_certificate = GF_TRUE;
 		}
 	}
 
