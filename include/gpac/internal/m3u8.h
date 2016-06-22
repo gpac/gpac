@@ -68,6 +68,7 @@ struct s_playlistElement {
 	char *audio_group;
 	char *video_group;
 	char *url;
+	char *init_segment_url;
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;
@@ -94,6 +95,7 @@ struct s_masterPlaylist {
 	GF_List *streams; /*Stream*/
 	int current_stream;
 	Bool playlist_needs_refresh;
+	Bool independent_segments;
 };
 typedef struct s_masterPlaylist MasterPlaylist;
 
