@@ -837,7 +837,8 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
-		fprintf(dump, "#dumping track ID %d timing: Num DTS CTS Size RAP Offset isLeading DependsOn DependedOn Redundant RAP-SampleGroup Roll-SampleGroup Roll-Distance\n", gf_isom_get_track_id(file, i+1));
+		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1)); 
+		fprintf(dump, "Num\tDTS\tCTS\tSize\tRAP\tOffset\tisLeading\tDependsOn\tDependedOn\tRedundant\tRAP-SampleGroup\tRoll-SampleGroup\tRoll-Distance\n");
 		count = gf_isom_get_sample_count(file, i+1);
 
 		for (j=0; j<count; j++) {
