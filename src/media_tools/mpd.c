@@ -1458,7 +1458,7 @@ try_next_segment:
 			}
 			if (elt->init_segment_url && (strstr(elt->init_segment_url, ".mp4") || strstr(elt->init_segment_url, ".MP4")) ) {
 				rep->mime_type = gf_strdup(samplerate ? "audio/mp4" : "video/mp4");
-			} else {
+			} else {
 				rep->mime_type = gf_strdup(mimeTypeForM3U8Segments);
 			}
 			if (pe->codecs) {
@@ -1601,7 +1601,7 @@ try_next_segment:
 	}
 	if (all_template_used) {
 		mpd->profiles = gf_strdup("urn:mpeg:dash:profile:isoff-live:2011");
-	} else {
+	} else {
 		mpd->profiles = gf_strdup("urn:mpeg:dash:profile:isoff-main:2011");
 	}
 
