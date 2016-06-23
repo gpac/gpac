@@ -142,7 +142,8 @@ struct _dash_segment_input
 	u32 nb_baseURL;
 	char **baseURL;
 	char *xlink;
-	char *role;
+	u32 nb_roles;
+	char **roles;
 	u32 nb_rep_descs;
 	char **rep_descs;
 	u32 nb_as_descs;
@@ -2499,6 +2500,32 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 	return gf_isom_close(in);
 }
 
+static Bool dasher_inputs_have_same_roles(GF_DashSegInput *d1, GF_DashSegInput *d2)
+{
+	if (d1->roles && d2->roles) {
+		if (d1->nb_roles != d2->nb_roles)
+			return GF_FALSE;
+		else {
+			u32 r1, r2;
+			for (r1=0; r1<d1->nb_roles; r1++) {
+				Bool found = GF_FALSE;
+				for (r2=0; r2<d2->nb_roles; r2++) {
+					if (!strcmp(d1->roles[r1], d2->roles[r2])) {
+						found = GF_TRUE;
+						break;
+					}
+				}
+				if (!found) return GF_FALSE;
+			}
+			return GF_TRUE;
+		}
+	}
+	if (!d1->roles && !d2->roles)
+		return GF_TRUE;
+
+	return GF_FALSE;
+}
+
 static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 input_idx, u32 *current_group_id, u32 *max_sap_type)
 {
 	u32 i, j;
@@ -2521,9 +2548,10 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		if (strcmp(dash_inputs[input_idx].szMime, dash_inputs[i].szMime))
 			continue;
 
-		if (dash_inputs[input_idx].role && dash_inputs[i].role && strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
+		if (! dasher_inputs_have_same_roles(&dash_inputs[input_idx], &dash_inputs[i]) ) {
 			continue;
-
+		}
+		
 		/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 		   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 		if (dash_inputs[input_idx].nb_as_descs != dash_inputs[i].nb_as_descs)
@@ -3147,7 +3175,7 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 		if (strcmp(dash_inputs[input_idx].szMime, dash_inputs[i].szMime))
 			continue;
 
-		if (strcmp(dash_inputs[input_idx].role, dash_inputs[i].role))
+		if (! dasher_inputs_have_same_roles(&dash_inputs[input_idx], &dash_inputs[i]))
 			continue;
 
 		memset(&probe, 0, sizeof(GF_MediaImporter));
@@ -4952,15 +4980,20 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		}
 
 		/*set role*/
-		if (first_rep->role) {
-			if (!strcmp(first_rep->role, "caption") || !strcmp(first_rep->role, "subtitle") || !strcmp(first_rep->role, "main")
-			        || !strcmp(first_rep->role, "alternate") || !strcmp(first_rep->role, "supplementary") || !strcmp(first_rep->role, "commentary")
-			        || !strcmp(first_rep->role, "dub")
-			   ) {
-				fprintf(mpd, "   <Role schemeIdUri=\"urn:mpeg:dash:role:2011\" value=\"%s\"/>\n", first_rep->role);
-			} else {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Unrecognized role %s - using GPAC urn for schemaID\n", first_rep->role));
-				fprintf(mpd, "   <Role schemeIdUri=\"urn:gpac:dash:role:2013\" value=\"%s\"/>\n", first_rep->role);
+		if (first_rep->roles) {
+			u32 r;
+			for (r=0; r<first_rep->nb_roles; r++) {
+				char *role = first_rep->roles[r];
+				if (!strcmp(role, "caption") || !strcmp(role, "subtitle") || !strcmp(role, "main")
+			        || !strcmp(role, "alternate") || !strcmp(role, "supplementary") || !strcmp(role, "commentary")
+			        || !strcmp(role, "dub") || !strcmp(role, "description") || !strcmp(role, "sign")
+					 || !strcmp(role, "metadata") || !strcmp(role, "enhanced-audio- intelligibility")
+				) {
+					fprintf(mpd, "   <Role schemeIdUri=\"urn:mpeg:dash:role:2011\" value=\"%s\"/>\n", role);
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Unrecognized role %s - using GPAC urn for schemaID\n", role));
+					fprintf(mpd, "   <Role schemeIdUri=\"urn:gpac:dash:role:2013\" value=\"%s\"/>\n", role);
+				}
 			}
 		}
 
@@ -5606,7 +5639,8 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	dash_input->nb_baseURL = input->nb_baseURL;
 	dash_input->baseURL = input->baseURL;
 	dash_input->xlink = input->xlink;
-	dash_input->role = input->role;
+	dash_input->nb_roles = input->nb_roles;
+	dash_input->roles = input->roles;
 
 	dash_input->nb_rep_descs = input->nb_rep_descs;
 	dash_input->rep_descs = input->rep_descs;
@@ -5646,6 +5680,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	return GF_OK;
 }
 
+static const char *role_default = "main";
 
 GF_EXPORT
 GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
@@ -5722,6 +5757,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	max_period = 0;
 
 	for (i=0; i<dasher->nb_inputs; i++) {
+		u32 r;
 		GF_DashSegInput *dash_input = &dasher->inputs[i];
 		dash_input->period = 0;
 
@@ -5735,8 +5771,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		if (dash_input->xlink) uses_xlink = GF_TRUE;
 
-		if (dash_input->role && strcmp(dash_input->role, "main"))
-			has_role = GF_TRUE;
+		for (r=0; r<dash_input->nb_roles; r++) {
+			if (dash_input->roles[r] && strcmp(dash_input->roles[r], "main")) {
+				has_role = GF_TRUE;
+				break;
+			}
+		}
 
 		if (dash_input->period_id_not_specified) {
 			max_period = 1;
@@ -5755,9 +5795,10 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		GF_DashSegInput *dash_input = &dasher->inputs[i];
 
 		/*set all default roles to main if needed*/
-		if (has_role && !dash_input->role)
-			dash_input->role = "main";
-
+		if (has_role && !dash_input->roles) {
+			dash_input->roles = &role_default;
+			dash_input->nb_roles = 1;
+		}
 		//reset adaptation classifier
 		dash_input->adaptation_set = 0;
 
@@ -5859,12 +5900,18 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		dasher->single_segment = dasher->single_file = GF_FALSE;
 		break;
 	case GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE: {
+		Bool role_main_found=GF_FALSE;
 		dasher->bitstream_switching_mode = GF_DASH_BSMODE_MULTIPLE_ENTRIES;
 		for (i=0; i<dasher->nb_inputs; i++) {
-			if (dasher->inputs[i].role && !strcmp(dasher->inputs[i].role, "main"))
-				break;
+			u32 r;
+			for (r=0; r<dasher->inputs[i].nb_roles; r++) {
+				if (!strcmp(dasher->inputs[i].roles[r], "main")) {
+					role_main_found=GF_TRUE;
+					break;
+				}
+			}
 		}
-		if (i == dasher->nb_inputs) {
+		if (! role_main_found) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] HbbTV 1.5 ISO live profile requires to have at least one Adaptation Set\nlabelled with a Role@value of \"main\". Consider adding \":role=main\" to your inputs.\n"));
 			e = GF_BAD_PARAM;
 			goto exit;
