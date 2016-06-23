@@ -207,6 +207,15 @@ typedef struct
 	
 } GF_MediaObjectVRInfo;
 
+typedef struct
+{
+	Bool tiles;
+	Fixed min_phi;
+	Fixed max_phi;
+	Fixed min_theta;	
+	Fixed max_theta;
+} GF_MediaObjectAngles;
+
 //get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
 Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
 
