@@ -1549,8 +1549,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
 				di->nb_baseURL++;
 			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
-			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
-			else if (!strnicmp(opts, "desc", 4)) {
+			else if (!strnicmp(opts, "role=", 5)) {
+				di->roles = gf_realloc(di->roles, sizeof (char *) * (di->nb_roles+1));
+				di->roles[di->nb_roles] = gf_strdup(opts+5);
+				di->nb_roles++;
+			} else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
 				char ***descs=NULL;
 				u32 opt_offset=0;
@@ -1923,7 +1926,13 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->representationID) gf_free(di->representationID);
 			if (di->periodID) gf_free(di->periodID);
 			if (di->xlink) gf_free(di->xlink);
-			if (di->role) gf_free(di->role);
+
+			if (di->roles) {
+				for (j = 0; j<di->nb_roles; j++) {
+					gf_free(di->roles[j]);
+				}
+				gf_free(di->roles);
+			}
 		}
 		gf_free(dash_inputs);
 		dash_inputs = NULL;
