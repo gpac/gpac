@@ -5796,7 +5796,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		/*set all default roles to main if needed*/
 		if (has_role && !dash_input->roles) {
-			dash_input->roles = &role_default;
+			dash_input->roles = (char**) &role_default;
 			dash_input->nb_roles = 1;
 		}
 		//reset adaptation classifier
