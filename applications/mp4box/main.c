@@ -323,7 +323,7 @@ void PrintDASHUsage()
 	        "Input media files to dash can use the following modifiers\n"
 	        " \"#trackID=N\"       only uses the track ID N from the source file\n"
 	        " \"#video\"           only uses the first video track from the source file\n"
-	        " \"#audio\"           only uses the first video track from the source file\n"
+	        " \"#audio\"           only uses the first audio track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
 	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
