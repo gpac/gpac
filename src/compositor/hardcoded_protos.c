@@ -1287,7 +1287,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
-	
+	GF_MediaObjectAngles angles360;
+
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -1306,10 +1307,16 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		mesh_reset(stack->mesh);
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
-		
-/*		todo - build proper geometry based on VR type
-*/
-		mesh_new_sphere(stack->mesh, -1 * (s32) (vrinfo.scene_width/2), GF_FALSE);
+			
+		angles360.tiles = GF_TRUE;
+			
+	        angles360.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
+		angles360.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
+
+		angles360.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
+		angles360.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
+
+		mesh_new_sphere(stack->mesh, -1 * (s32) (vrinfo.scene_width), GF_FALSE, &angles360);
 		
 		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 	}
