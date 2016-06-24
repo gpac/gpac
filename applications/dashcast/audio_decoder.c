@@ -34,7 +34,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 
 	if (!audio_data_conf) return -1;
 	
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder enter setup at UTC "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder enter setup at UTC "LLU"\n", gf_net_get_utc() ));
 	
 	if (strcmp(audio_data_conf->format,"") != 0) {
 		in_fmt = av_find_input_format(audio_data_conf->format);
@@ -89,7 +89,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 
 		av_dump_format(audio_input_file->av_fmt_ctx, 0, audio_data_conf->filename, 0);
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio capture open at UTC "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio capture open at UTC "LLU"\n", gf_net_get_utc() ));
 
 	/*
 	 * Find the first audio stream
@@ -141,7 +141,7 @@ int dc_audio_decoder_open(AudioInputFile *audio_input_file, AudioDataConf *audio
 	audio_input_file->mode = mode;
 	audio_input_file->no_loop = no_loop;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder open at UTC "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio Decoder open at UTC "LLU"\n", gf_net_get_utc() ));
 	
 	return 0;
 }
@@ -293,7 +293,7 @@ int dc_audio_decoder_read(AudioInputFile *audio_input_file, AudioInputData *audi
 
 			audio_input_data->next_pts += ((int64_t)AV_TIME_BASE * audio_input_data->aframe->nb_samples) / codec_ctx->sample_rate;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Decode audio frame pts %d at UTC "LLU"\n", audio_input_data->next_pts, gf_net_get_utc() ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Decode audio frame pts %d at UTC "LLU"\n", audio_input_data->next_pts, gf_net_get_utc() ));
 			
 			/* Did we get an audio frame? */
 			if (got_frame) {
