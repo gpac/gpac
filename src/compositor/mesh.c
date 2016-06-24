@@ -607,11 +607,22 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 			coords[i * num_steps + j].y = gf_mulfix(radius, y);
 			coords[i * num_steps + j].z = gf_mulfix(radius, z);
 			if (radius>0) {
-				texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
-				texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
-			} else {
-				texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
-				texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+				if (!angles360->tiles){
+					texcoords[i * num_steps + j].x = FIX_ONE - j*FIX_ONE/num_steps;
+					texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+
+				}
+			}else {
+				if (!angles360->tiles){
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps);
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+				}
 			}
 		}
 	}
@@ -674,7 +685,6 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAn
 
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);
 }
-
 
 void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 {
