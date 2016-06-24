@@ -33,7 +33,7 @@
 #ifndef GPAC_DISABLE_3D
 
 #include <gpac/options.h>
-
+#include <gpac/mediaobject.h>
 
 void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*build_shape)(GF_Node*,Drawable3D *,GF_TraverseState *) )
 {
@@ -115,9 +115,11 @@ void compositor_init_cylinder(GF_Compositor *compositor, GF_Node *node)
 }
 
 static void build_shape_sphere(GF_Node *n, Drawable3D *stack, GF_TraverseState *tr_state)
-{
+{	
+	GF_MediaObjectAngles angles360;
+	angles360.tiles = GF_FALSE;
 	M_Sphere *sp = (M_Sphere *)n;
-	mesh_new_sphere(stack->mesh, sp->radius, tr_state->visual->compositor->high_speed, NULL);
+	mesh_new_sphere(stack->mesh, sp->radius, tr_state->visual->compositor->high_speed, &angles360);
 }
 
 static void TraverseSphere(GF_Node *n, void *rs, Bool is_destroy)
