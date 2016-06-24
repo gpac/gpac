@@ -1315,13 +1315,19 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
+		DrawAspect2D asp;
 		visual_3d_draw(tr_state, stack->mesh);
-		/*todo - notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
+	
+		/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
+		memset(&asp, 0, sizeof(DrawAspect2D));
+		drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
+		gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
  
 	} else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bbox = stack->mesh->bounds;
 	}
 }
+
 
 static void compositor_init_vr_geometry(GF_Compositor *compositor, GF_Node *node)
 {
