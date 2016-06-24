@@ -210,6 +210,10 @@ typedef struct
 //get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
 Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
 
+/*sets quality degradation hint for this media object  - quality_rank is between 0 (max quality) and 100 (worst quality)*/
+void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation);
+
+
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);
 

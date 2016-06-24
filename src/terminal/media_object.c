@@ -1479,3 +1479,27 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	gf_odm_lock(mo->odm, 0);
 	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
 }
+
+/*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
+void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
+{
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm || !mo->odm->codec) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if (mo->quality_degradation_hint != quality_degradation) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
+		com.switch_quality.quality_degradation = quality_degradation;
+		gf_term_service_command(mo->odm->net_service, &com);
+		
+		mo->quality_degradation_hint = quality_degradation;
+	}
+
+	gf_odm_lock(mo->odm, 0);
+}
+
+
