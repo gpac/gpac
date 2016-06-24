@@ -63,7 +63,7 @@ This directory will be reminded as <GPAC_EXTRA_DIR>
 
 	i) Building Osmo4.apk without Eclipse
 
-		(optionnal)Create a link to the ANT directory 
+		(optional)Create a link to the ANT directory 
 			* cd /opt/
 			* sudo ln -s /home/xxx/xxx/ANT_DIR ant /* /opt/ant will then become your new <ANT_DIR>
       
