@@ -1484,7 +1484,7 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 {
 	if (!gf_odm_lock_mo(mo)) return;
-	if (!mo->odm || !mo->odm->codec) {
+	if (!mo->odm || !mo->odm->codec) {
 		gf_odm_lock(mo->odm, 0);
 		return;
 	}

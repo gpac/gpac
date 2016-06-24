@@ -1520,7 +1520,7 @@ void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char 
 	GF_TermConnectObject *connect;
 	GF_SAFEALLOC(connect, GF_TermConnectObject);
 	if (!connect) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media connection task\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media connection task\n"));
 		return;
 	}
 	connect->odm = odm;
@@ -1861,7 +1861,7 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 
 	GF_SAFEALLOC(odm->net_service , GF_ClientService);
 	if (!odm->net_service) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate network service\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate network service\n"));
 		gf_term_lock_net(term, 0);
 		return;
 	}
