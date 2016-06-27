@@ -1099,7 +1099,7 @@ int dc_run_controler(CmdData *in_data)
 	MessageQueue delete_seg_mq;
 	MessageQueue send_frag_mq;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Controler init at UTC "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Controler init at UTC "LLU"\n", gf_net_get_utc() ));
 	dc_register_libav();
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)
