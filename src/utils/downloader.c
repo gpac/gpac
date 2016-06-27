@@ -3559,13 +3559,13 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 		snprintf(newFilename, maxLen, "%s " LLU LLU, orig, startOffset, endOffset);
 		fw = gf_fopen(newFilename, "wb");
 		if (!fw) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open partial cache file %s for write\n", newFilename));
 			gf_free( newFilename );
 			return NULL;
 		}
 		fr = gf_fopen(orig, "rb");
 		if (!fr) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot open full cache file %s\n", orig));
 			gf_free( newFilename );
 			gf_fclose( fw );
 		}
@@ -3576,7 +3576,7 @@ const char * gf_cache_get_cache_filename_range( const GF_DownloadSession * sess,
 			total = endOffset - startOffset;
 			read = gf_fseek(fr, startOffset, SEEK_SET);
 			if (read != startOffset) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot seek at right start offset in %s\n", orig));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[CACHE] Cannot seek at right start offset in %s\n", orig));
 				gf_fclose( fr );
 				gf_fclose( fw );
 				gf_free( newFilename );

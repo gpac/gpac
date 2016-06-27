@@ -484,7 +484,7 @@ void PA_Init(GF_Node *n)
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
 	if (!stack) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator stack\n"));
 		return;
 	}
 	stack->is_dirty = 1;
@@ -650,7 +650,7 @@ void PA2D_Init(GF_Node *n)
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
 	if (!stack) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator 2D stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator 2D stack\n"));
 		return;
 	}
 	stack->is_dirty = 1;
@@ -812,7 +812,7 @@ void SA_Init(GF_Node *n)
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
 	if (!stack) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate scalar animator stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate scalar animator stack\n"));
 		return;
 	}
 	stack->is_dirty = 1;
