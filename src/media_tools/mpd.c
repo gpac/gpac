@@ -1343,11 +1343,15 @@ static GF_Err gf_m3u8_fill_mpd_struct(MasterPlaylist *pl, const char *m3u8_file,
 			}
 #endif
 			if (pe->media_type==MEDIA_TYPE_SUBTITLES) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 				import_file = GF_FALSE;
+#endif
 				if (!pe->codecs) pe->codecs = gf_strdup("wvtt");
 			}
 			if (pe->media_type==MEDIA_TYPE_CLOSED_CAPTIONS) {
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 				import_file = GF_FALSE;
+#endif
 				if (!pe->codecs) pe->codecs = gf_strdup("wvtt");
 			}
 
