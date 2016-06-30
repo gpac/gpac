@@ -1832,7 +1832,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		if (!traf)  return GF_BAD_PARAM;
 
 		sai = NULL;
-		gf_isom_get_sample_cenc_info(input, trackNum, SampleNum, &IsEncrypted, &IV_size, NULL);
+		gf_isom_get_sample_cenc_info(input, trackNum, SampleNum, &IsEncrypted, &IV_size, NULL, NULL, NULL, NULL, NULL);
 		e = gf_isom_cenc_get_sample_aux_info(input, trackNum, SampleNum, &sai, &boxType);
 		if (e) return e;
 		sai->IV_size = IV_size;
