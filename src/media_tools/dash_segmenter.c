@@ -6059,6 +6059,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			switch (dash_input->protection_scheme_type) {
 			case GF_ISOM_CENC_SCHEME:
 			case GF_ISOM_CBC_SCHEME:
+			case GF_ISOM_CENS_SCHEME:
+			case GF_ISOM_CBCS_SCHEME:
 				use_cenc = GF_TRUE;
 				break;
 			}

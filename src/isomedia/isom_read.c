@@ -3716,9 +3716,9 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 
 GF_EXPORT
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #endif
 {
 	GF_SampleGroupBox *sample_group;
@@ -3734,6 +3734,10 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (IsEncrypted) *IsEncrypted = 0;
 	if (IV_size) *IV_size = 0;
 	if (KID) memset(*KID, 0, 16);
+	if (crypt_byte_block) *crypt_byte_block = 0;
+	if (skip_byte_block) *skip_byte_block = 0;
+	if (constant_IV_size) *constant_IV_size = 0;
+	if (constant_IV) memset(*constant_IV, 0, 16);
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
@@ -3825,19 +3829,24 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	entry = (GF_CENCSampleEncryptionGroupEntry *) gf_list_get(sgdesc->group_descriptions, group_desc_index - 1);
 	if (!entry) return GF_ISOM_INVALID_FILE;
 
-	if (IsEncrypted) *IsEncrypted = entry->IsEncrypted;
-	if (IV_size) *IV_size = entry->IV_size;
+	if (IsEncrypted) *IsEncrypted = entry->IsProtected;
+	if (IV_size) *IV_size = entry->Per_Sample_IV_size;
 	if (KID) memmove(*KID, entry->KID, 16);
+	if (crypt_byte_block) *crypt_byte_block = entry->crypt_byte_block;
+	if (skip_byte_block) *skip_byte_block = entry->skip_byte_block;
+	if (constant_IV_size) *constant_IV_size = entry->constant_IV_size;
+	if (constant_IV) memmove(*constant_IV, entry->constant_IV, 16);
 
 	return GF_OK;
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID)
+GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
+									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 {
 	GF_TrackBox *trak;
 	trak = gf_isom_get_track_from_file(movie, track);
-	return gf_isom_get_sample_cenc_info_ex(trak, NULL, sample_number, IsEncrypted, IV_size, KID);
+	return gf_isom_get_sample_cenc_info_ex(trak, NULL, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 }
 
 GF_EXPORT

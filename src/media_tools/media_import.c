@@ -2265,6 +2265,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			u32 container_type, len, j, Is_Encrypted;
 			u8 IV_size;
 			bin128 KID;
+			u8 crypt_byte_block, skip_byte_block;
+			u8 constant_IV_size;
+			bin128 constant_IV;
 			GF_BitStream *bs;
 			char *buffer;
 
@@ -2273,16 +2276,18 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			if (e)
 				goto exit;
 
-			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID);
+			e = gf_isom_get_sample_cenc_info(import->orig, track_in, i+1, &Is_Encrypted, &IV_size, &KID, &crypt_byte_block, &skip_byte_block, &constant_IV_size, &constant_IV);
 			if (e) goto exit;
 
 			if (Is_Encrypted) {
 				bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				gf_bs_write_data(bs, (const char *)sai->IV, IV_size);
-				gf_bs_write_u16(bs, sai->subsample_count);
-				for (j = 0; j < sai->subsample_count; j++) {
-					gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
-					gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+				if (sai->subsample_count) {
+					gf_bs_write_u16(bs, sai->subsample_count);
+					for (j = 0; j < sai->subsample_count; j++) {
+						gf_bs_write_u16(bs, sai->subsamples[j].bytes_clear_data);
+						gf_bs_write_u32(bs, sai->subsamples[j].bytes_encrypted_data);
+					}
 				}
 				gf_isom_cenc_samp_aux_info_del(sai);
 				gf_bs_get_content(bs, &buffer, &len);
@@ -2294,7 +2299,7 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 			}
 			if (e) goto exit;
 
-			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID);
+			e = gf_isom_set_sample_cenc_group(import->dest, track, i+1, Is_Encrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 			if (e) goto exit;
 		}
 	}

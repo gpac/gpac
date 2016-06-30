@@ -114,6 +114,10 @@ typedef struct
 	char *sai;
 	u8 IV_size;
 	u32 saiz;
+	//for CENC pattern encryption mode
+	u8 crypt_byte_block, skip_byte_block;
+	u8 constant_IV_size;
+	bin128 constant_IV;
 } GF_IPMPEvent;
 
 /*interface name and version for IPMP tools*/
