@@ -1302,35 +1302,90 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	
 	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
 	if (!txh->stream) return;
-	
-	if (gf_node_dirty_get(node)) {
-		mesh_reset(stack->mesh);
+
+	if (gf_node_dirty_get(node) || (tr_state->traversing_mode==TRAVERSE_DRAW_3D)) {
+		u32 radius;
+
+
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
 		angles360.tiles = GF_TRUE;
 			
-	        angles360.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
+		angles360.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
 		angles360.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
 
 		angles360.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
 		angles360.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
 
-		mesh_new_sphere(stack->mesh, -1 * (s32) (vrinfo.scene_width), GF_FALSE, &angles360);
-		
-		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
-	}
+		if (gf_node_dirty_get(node)) {
+			u32 radius;
+			mesh_reset(stack->mesh);
 
-	if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
-		DrawAspect2D asp;
-		visual_3d_draw(tr_state, stack->mesh);
+			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
+
+			mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &angles360);
+		
+			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+		}
+		
+		
+		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
+			GF_Vec center, target, ref;
+			Fixed r, theta_angle, phi_angle;
+			DrawAspect2D asp;
+			Bool visible = GF_FALSE;
+			Fixed center_phi = angles360.min_phi + (angles360.max_phi - angles360.min_phi) / 2;
+			Fixed center_theta = angles360.min_theta + (angles360.max_theta - angles360.min_theta) / 2;
+			
+			visual_3d_draw(tr_state, stack->mesh);
 	
-		/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
-		memset(&asp, 0, sizeof(DrawAspect2D));
-		drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
-		gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
- 
-	} else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+			/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
+			memset(&asp, 0, sizeof(DrawAspect2D));
+			drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
+		
+			center.y = gf_sin(center_phi);
+			r = gf_sqrt(FIX_ONE - gf_mulfix(center.y, center.y) );
+			center.x = gf_mulfix(r, gf_cos(center_theta) );
+			center.z = gf_mulfix(r, gf_sin(center_theta) );
+			gf_vec_norm(&center);
+
+			ref = center;
+			ref.y = 0;
+			gf_vec_norm(&ref);
+			target = camera_get_target_dir(tr_state->camera);
+			target.y=0;
+			gf_vec_norm(&target);
+			theta_angle = gf_acos( gf_vec_dot(target, ref) );
+			theta_angle-=GF_PI;
+			if (theta_angle<0) theta_angle = -theta_angle;
+
+			ref = center;
+			ref.x = 0;
+			gf_vec_norm(&ref);
+			target = camera_get_target_dir(tr_state->camera);
+			target.x=0;
+			gf_vec_norm(&target);
+			phi_angle = gf_acos( gf_vec_dot(target, ref) );
+			phi_angle-=GF_PI;
+			if (phi_angle<-GF_PI2) phi_angle += GF_PI;
+			
+			if ((theta_angle < tr_state->camera->fieldOfView/2 + (angles360.max_theta-angles360.min_theta)/2)
+				&& (phi_angle < tr_state->camera->fieldOfView/2 + (angles360.max_phi-angles360.min_phi) /2)
+			) {
+				visible = GF_TRUE;
+			}
+			
+//			fprintf(stderr, "Angle center-cam is %.02f h %.02f v - visible %d\n", theta_angle, phi_angle, visible);
+
+			if (visible) {
+				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
+			} else {
+				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 100);
+			}
+		}
+	}
+	if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
 		tr_state->bbox = stack->mesh->bounds;
 	}
 }
