@@ -146,6 +146,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	u64 size, tot;
 	FILE *in;
 	GF_SHA1Context *ctx;
+	GF_Err e = GF_OK;
 #ifndef GPAC_DISABLE_ISOM
 	GF_BitStream *bs = NULL;
 	Bool is_isom = gf_isom_probe_file(file);
@@ -192,6 +193,10 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 #endif
 		{
 			read = (u32) fread(block, 1, 1024, in);
+			if ((s32) read < 0) {
+				e = GF_IO_ERR;
+				break;
+			}
 			gf_sha1_update(ctx, block, read);
 			tot += read;
 		}
@@ -201,7 +206,7 @@ GF_Err gf_media_get_file_hash(const char *file, u8 hash[20])
 	if (bs) gf_bs_del(bs);
 #endif
 	gf_fclose(in);
-	return GF_OK;
+	return e;
 #endif
 }
 
@@ -2312,7 +2317,7 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 			//clone track
 			if (! sti[j].track_num) {
 				u32 track_id = gf_isom_get_track_id(file, track);
-				e = gf_isom_clone_track(file, track, file, 0, &sti[j].track_num);
+				e = gf_isom_clone_track(file, track, file, GF_FALSE, &sti[j].track_num);
 				if (e) goto exit;
 
 				e = gf_isom_shvc_config_update(file, sti[j].track_num, 1, sti[j].shvccfg, 0);
@@ -2611,7 +2616,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 
 	//first clone tracks
 	for (i=0; i<nb_tracks; i++) {
-		e = gf_isom_clone_track(file, track, file, 0, &tiles[i].track );
+		e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
 		if (e) goto err_exit;
 		tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
 		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL);
@@ -2881,7 +2886,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	MaxFragmentDuration = (u32) (max_duration_sec * 1000);
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		e = gf_isom_clone_track(input, i+1, output, 0, &TrackNum);
+		e = gf_isom_clone_track(input, i+1, output, GF_FALSE, &TrackNum);
 		if (e) goto err_exit;
 
 		for (j = 0; j < gf_isom_get_track_kind_count(input, i+1); j++) {

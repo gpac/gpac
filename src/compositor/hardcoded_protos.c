@@ -1281,6 +1281,62 @@ void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
     }
 }
 
+#ifndef GPAC_DISABLE_3D
+
+static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
+{
+	GF_TextureHandler *txh;
+	GF_MediaObjectVRInfo vrinfo;
+	
+	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
+	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
+
+	if (is_destroy) {
+		drawable_3d_del(node);
+		return;
+	}
+
+	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
+		return;
+	
+	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
+	if (!txh->stream) return;
+	
+	if (gf_node_dirty_get(node)) {
+		mesh_reset(stack->mesh);
+		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
+			return;
+		
+/*		todo - build proper geometry based on VR type
+*/
+		mesh_new_sphere(stack->mesh, -1 * (s32) (vrinfo.scene_width/2), GF_FALSE);
+		
+		gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
+	}
+
+	if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
+		DrawAspect2D asp;
+		visual_3d_draw(tr_state, stack->mesh);
+	
+		/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
+		memset(&asp, 0, sizeof(DrawAspect2D));
+		drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
+		gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
+ 
+	} else if (tr_state->traversing_mode==TRAVERSE_GET_BOUNDS) {
+		tr_state->bbox = stack->mesh->bounds;
+	}
+}
+
+
+static void compositor_init_vr_geometry(GF_Compositor *compositor, GF_Node *node)
+{
+	drawable_3d_new(node);
+	gf_node_set_callback_function(node, TraverseVRGeometry);
+}
+
+#endif //GPAC_DISABLE_3D
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
 void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
@@ -1298,18 +1354,22 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
         if (!url) continue;
         
 #ifndef GPAC_DISABLE_3D
-		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
-			compositor_init_path_extrusion(compositor, node);
-			return;
-		}
-		if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
-			compositor_init_planar_extrusion(compositor, node);
-			return;
-		}
-		if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
-			compositor_init_plane_clipper(compositor, node);
-			return;
-		}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
+		compositor_init_path_extrusion(compositor, node);
+		return;
+	}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PlanarExtrusion")) {
+		compositor_init_planar_extrusion(compositor, node);
+		return;
+	}
+	if (!strcmp(url, "urn:inet:gpac:builtin:PlaneClipper")) {
+		compositor_init_plane_clipper(compositor, node);
+		return;
+	}
+        if (!strcmp(url, "urn:inet:gpac:builtin:VRGeometry")) {
+            compositor_init_vr_geometry(compositor, node);
+            return;
+        }
 #endif
 		if (!strcmp(url, "urn:inet:gpac:builtin:TextureText")) {
 			compositor_init_texture_text(compositor, node);
@@ -1351,7 +1411,7 @@ void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
             compositor_init_custom_texture(compositor, node);
             return;
         }
-        
+		
 
 		/*check proto modules*/
 		if (compositor->proto_modules) {

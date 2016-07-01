@@ -47,6 +47,7 @@ extern "C" {
  */
 	
 #include <gpac/scenegraph_vrml.h>
+#include <gpac/modules/codec.h>
 
 
 /*
@@ -106,7 +107,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
 Bool gf_mo_is_raw_memory(GF_MediaObject *mo);
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma);
 
 
 /*returns min frame duration for his object or 0 if unknown*/
@@ -127,7 +128,7 @@ typedef enum
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop
@@ -185,6 +186,33 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo);
 /*returns scene graph associated with a scene/document object, or NULL if wrong type or not loaded*/
 GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
+
+
+
+typedef struct
+{
+	u32 vr_type;
+	s32 srd_x;
+	s32 srd_y;
+	s32 srd_w;
+	s32 srd_h;
+	
+	s32 srd_min_x;
+	s32 srd_min_y;
+	s32 srd_max_x;
+	s32 srd_max_y;
+	
+	u32 scene_width;
+	u32 scene_height;
+	
+} GF_MediaObjectVRInfo;
+
+//get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
+Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
+
+/*sets quality degradation hint for this media object  - quality_rank is between 0 (max quality) and 100 (worst quality)*/
+void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation);
+
 
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);

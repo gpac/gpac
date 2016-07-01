@@ -1134,7 +1134,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 
 	if (url && !strnicmp(url, "http://", 7)) {
-		m2ts->ts->dnload = gf_service_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+		m2ts->ts->dnload = gf_service_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOTIFY_DATA, m2ts_net_io, m2ts);
 		if (!m2ts->ts->dnload) {
 			gf_service_connect_ack(m2ts->service, NULL, GF_NOT_SUPPORTED);
 			return GF_OK;

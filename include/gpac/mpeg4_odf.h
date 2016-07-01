@@ -1301,6 +1301,14 @@ the output buffer is allocated and you must delete it when done
  */
 GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize);
 
+/*! use this function to encode a standalone descriptor in a bitstream object
+the desc will be formatted with tag and size field
+ \param desc descriptor to encode
+ \param bs the bitstream object in write mode
+ \return error if any
+ */
+GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs);
+
 /*! use this function to get the size of a standalone descriptor (including tag and size fields)
  \param desc descriptor to encode
  \return 0 if error or encoded desc size otherwise*/

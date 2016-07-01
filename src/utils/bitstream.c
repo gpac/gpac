@@ -402,6 +402,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 	if (bs->position+nbBytes > bs->size) return 0;
 
 	if (BS_IsAlign(bs)) {
+		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
 		case GF_BITSTREAM_WRITE:
@@ -413,9 +414,10 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 		case GF_BITSTREAM_FILE_WRITE:
 			if (bs->buffer_io)
 				bs_flush_cache(bs);
-			nbBytes = (u32) fread(data, 1, nbBytes, bs->stream);
-			bs->position += nbBytes;
-			return nbBytes;
+			bytes_read = (s32) fread(data, 1, nbBytes, bs->stream);
+			if (bytes_read<0) return 0;
+			bs->position += bytes_read;
+			return bytes_read;
 		default:
 			return 0;
 		}

@@ -428,7 +428,17 @@ opaque_audio:
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 			break;
 		case CODEC_ID_MPEG2VIDEO:
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_MAIN;
+			break;
+
+		case CODEC_ID_H263:
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, GF_4CC('s', '2', '6', '3') );
+			gf_bs_write_u16(bs, dec->width);
+			gf_bs_write_u16(bs, dec->height);
+			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(bs);
 			break;
 		default:
 opaque_video:

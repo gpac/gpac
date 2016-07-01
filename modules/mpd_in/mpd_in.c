@@ -1285,6 +1285,9 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 				idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
 				if (idx < 0) return GF_BAD_PARAM;
 			
+				gf_dash_group_set_quality_degradation_hint(mpdin->dash, idx, com->switch_quality.quality_degradation);
+				if (! com->switch_quality.ID) return GF_OK;
+			
 				if (com->switch_quality.dependent_group_index) {
 					if (com->switch_quality.dependent_group_index > gf_dash_group_get_num_groups_depending_on(mpdin->dash, idx))
 						return GF_BAD_PARAM;

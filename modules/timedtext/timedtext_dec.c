@@ -900,7 +900,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	if (!txt->styles || !txt->styles->entry_count) {
 		GF_SAFEALLOC(tc, TTDTextChunk);
 		if (!tc) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
 		} else {
 			tc->end_char = char_count;
 			gf_list_add(chunks, tc);
@@ -916,7 +916,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			if (char_offset < srec->startCharOffset) {
 				GF_SAFEALLOC(tc, TTDTextChunk);
 				if (!tc) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
 				} else {
 					tc->start_char = char_offset;
 					tc->end_char = srec->startCharOffset;
@@ -925,7 +925,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			}
 			GF_SAFEALLOC(tc, TTDTextChunk);
 			if (!tc) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
 			} else {
 				tc->start_char = srec->startCharOffset;
 				tc->end_char = srec->endCharOffset;
@@ -938,7 +938,7 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 		if (srec->endCharOffset<char_count) {
 			GF_SAFEALLOC(tc, TTDTextChunk);
 			if (!tc) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
 			} else {
 				tc->start_char = char_offset;
 				tc->end_char = char_count;

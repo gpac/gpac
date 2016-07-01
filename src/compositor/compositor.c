@@ -273,9 +273,9 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 			*ms_till_next = compositor->ms_until_next_frame;
 	}
 	//next frame is late, we should redraw
-	if (compositor->ms_until_next_frame < 0) return 1;
-	if (compositor->frame_draw_type) return 1;
-	if (compositor->fonts_pending) return 1;
+	if (compositor->ms_until_next_frame < 0) return GF_TRUE;
+	if (compositor->frame_draw_type) return GF_TRUE;
+	if (compositor->fonts_pending) return GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -3624,3 +3624,13 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		}
 	return GF_TRUE;
 }
+
+Bool gf_sc_use_3d(GF_Compositor *compositor)
+{
+#ifndef GPAC_DISABLE_3D
+	return (compositor->visual->type_3d || compositor->hybrid_opengl) ? 1 : 0;
+#else
+	return 0;
+#endif
+}
+

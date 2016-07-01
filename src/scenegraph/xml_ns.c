@@ -1047,6 +1047,7 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 		gf_fseek(f, 0, SEEK_SET);
 		while (fsize) {
 			u32 read = (u32) fread(cache, 1, 1024, f);
+			if ((s32) read < 0) return 0;
 			fsize -= read;
 			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
 			offset+=read;

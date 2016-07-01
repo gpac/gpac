@@ -597,7 +597,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		break;
 	case GF_EVENT_SENSOR_ORIENTATION:
 	{
-		Fixed x, y, z, w, yaw, pitch, roll;
+		Fixed x, y, z, w, yaw, /*pitch, */roll;
 		GF_Vec target;
 		GF_Matrix mx;
 		x = ev->sensor.x;
@@ -607,7 +607,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		
 		
 		yaw = atan2(2*z*w - 2*y*x , 1 - 2*pow(z,2) - 2*pow(x,2));
-		pitch = asin(2*y*z + 2*x*w);
+		//pitch = asin(2*y*z + 2*x*w);
 		roll = atan2(2*y*w - 2*z*x , 1 - 2*pow(y,2) - 2*pow(x,2));
 
 		target.x = 0;

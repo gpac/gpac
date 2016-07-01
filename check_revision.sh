@@ -6,7 +6,7 @@ version="`grep '#define GPAC_VERSION ' \"./include/gpac/version.h\" | cut -d '"'
 if [ -d ".git" ]; then
 TAG=$(git describe --tags --abbrev=0 2>>gtmp)
 VERSION=$(echo `git describe --tags --long 2>>gtmp || echo "UNKNOWN"` | sed "s/^$TAG-//")
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>gtmp || echo "UNKNOWN")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2>>gtmp || echo "UNKNOWN")
 revision="$VERSION-$BRANCH"
 
 rm gtmp

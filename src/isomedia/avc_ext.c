@@ -1762,12 +1762,7 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	}
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
-
-		switch (ptr->config->AVCProfileIndication) {
-		case 100:
-		case 110:
-		case 122:
-		case 144:
+		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			if (!ptr->size) {
 #ifndef GPAC_DISABLE_AV_PARSERS
 				AVCState avc;
@@ -1812,7 +1807,6 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 					ptr->size -= sl->size + 2;
 				}
 			}
-			break;
 		}
 	}
 	return GF_OK;
@@ -1868,11 +1862,7 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
-		switch (ptr->config->AVCProfileIndication) {
-		case 100:
-		case 110:
-		case 122:
-		case 144:
+		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			gf_bs_write_int(bs, 0xFF, 6);
 			gf_bs_write_int(bs, ptr->config->chroma_format, 2);
 			gf_bs_write_int(bs, 0xFF, 5);
@@ -1887,7 +1877,6 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 				gf_bs_write_u16(bs, sl->size);
 				gf_bs_write_data(bs, sl->data, sl->size);
 			}
-			break;
 		}
 	}
 	return GF_OK;
@@ -1913,16 +1902,11 @@ GF_Err avcc_Size(GF_Box *s)
 		ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->pictureParameterSets, i))->size;
 
 	if (ptr->type==GF_ISOM_BOX_TYPE_AVCC) {
-		switch (ptr->config->AVCProfileIndication) {
-		case 100:
-		case 110:
-		case 122:
-		case 144:
+		if (gf_avc_is_rext_profile(ptr->config->AVCProfileIndication)) {
 			ptr->size += 4;
 			count = ptr->config->sequenceParameterSetExtensions ?gf_list_count(ptr->config->sequenceParameterSetExtensions) : 0;
 			for (i=0; i<count; i++)
 				ptr->size += 2 + ((GF_AVCConfigSlot *)gf_list_get(ptr->config->sequenceParameterSetExtensions, i))->size;
-			break;
 		}
 	}
 	return GF_OK;

@@ -58,10 +58,10 @@ enum
 
 s32 gf_text_get_utf_type(FILE *in_src)
 {
-	u32 readen;
+	u32 read;
 	unsigned char BOM[5];
-	readen = (u32) fread(BOM, sizeof(char), 5, in_src);
-	if (readen < 1)
+	read = (u32) fread(BOM, sizeof(char), 5, in_src);
+	if ((s32) read < 1)
 		return -1;
 
 	if ((BOM[0]==0xFF) && (BOM[1]==0xFE)) {
@@ -99,11 +99,17 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		const u16 *sptr;
 		char szUTF[1024];
 		u32 read = (u32) fread(szUTF, 1, 1023, test);
+		if ((s32) read) {
+			gf_fclose(test);
+			return GF_IO_ERR;
+		}
 		szUTF[read]=0;
 		sptr = (u16*)szUTF;
 		/*read = (u32) */gf_utf8_wcstombs(szLine, read, &sptr);
 	} else {
 		val = (u32) fread(szLine, 1, 1024, test);
+		if ((s32) val<0) return GF_IO_ERR;
+		
 		szLine[val]=0;
 	}
 	REM_TRAIL_MARKS(szLine, "\r\n\t ")

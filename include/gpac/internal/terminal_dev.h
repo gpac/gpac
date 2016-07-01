@@ -211,6 +211,8 @@ struct _scene
 	SFURL visual_url, audio_url, text_url, dims_url;
 
 	Bool is_srd;
+	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
+
 
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
@@ -243,7 +245,7 @@ struct _scene
 	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
 
 	Bool pause_at_first_frame;
-	Bool is_live360;
+	u32 vr_type;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -472,6 +474,8 @@ struct _tag_terminal
 
 	u32 nb_calls_in_event_proc;
 	u32 disconnect_request_status;
+	
+	Bool orientation_sensors_active;
 };
 
 
@@ -888,7 +892,7 @@ struct _generic_codec
 	u32 bytes_per_sec;
 	Double fps;
 	u32 nb_dispatch_skipped;
-	Bool direct_vout;
+	Bool direct_vout, direct_frame_output;
 
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size, stat_start;
@@ -1181,6 +1185,10 @@ struct _mediaobj
 	Bool is_flipped;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 	u32 srd_x, srd_y, srd_w, srd_h;
+	
+	u32 quality_degradation_hint;
+	
+	GF_MediaDecoderFrame *media_frame;
 };
 
 GF_MediaObject *gf_mo_new();

@@ -70,7 +70,7 @@ static u32 avi_read(FILE *fd, char *buf, u32 len)
 	u32 r = 0;
 
 	while (r < len) {
-		n = (u32) fread(buf + r, 1, len - r, fd);
+		n = (s32) fread(buf + r, 1, len - r, fd);
 		if (n == 0) break;
 		if (n < 0) return r;
 		r += n;
