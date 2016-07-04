@@ -1524,7 +1524,7 @@ try_next_segment:
 				
 				
 				if (elt->init_segment_url) {
-					u32 len = strlen(base_url);
+					u32 len = (u32) strlen(base_url);
 					GF_SAFEALLOC(rep->segment_template, GF_MPD_SegmentTemplate);
 					if (!rep->segment_template)  return GF_OUT_OF_MEM;
 					rep->segment_template->start_number = (u32) -1;
@@ -1574,7 +1574,7 @@ try_next_segment:
 			rep->segment_list->segment_URLs = gf_list_new();
 			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
 			if (elt->init_segment_url) {
-				u32 len = strlen(base_url);
+				u32 len = (u32) strlen(base_url);
 				GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 				
 				if (!strncmp(base_url, elt->init_segment_url, len)) {
@@ -1605,7 +1605,7 @@ try_next_segment:
 						segment_url->media = gf_strdup(elt->url);
 					}
 				} else {
-					u32 len = strlen(base_url);
+					u32 len = (u32) strlen(base_url);
 					if (!strncmp(base_url, elt->url, len)) {
 						segment_url->media = gf_strdup(elt->url+len);
 					} else {
