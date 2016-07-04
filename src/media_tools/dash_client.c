@@ -7025,7 +7025,6 @@ void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads)
 GF_EXPORT
 GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, u32 quality_degradation_hint)
 {
-	u32 i, count;
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
 
