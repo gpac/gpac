@@ -708,8 +708,8 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 				seg_idx++;
 			}
 		}
-
-		if (current_time_rescale >= segtime) {
+		//check if we're ahead of time but "reasonnably" ahead (max 1 min) - otherwise consider the timing is broken
+		if ((current_time_rescale >= segtime) && (current_time_rescale <= segtime + 60*timescale)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] current time "LLU" is greater than last SegmentTimeline end "LLU" - defaulting to last entry in SegmentTimeline\n", current_time_rescale, segtime));
 			group->download_segment_index = seg_idx-1;
 			group->nb_segments_in_rep = 10;
@@ -4153,6 +4153,7 @@ static void gf_dash_group_check_time(GF_DASH_Group *group)
 
 	if (group->dash->is_m3u8) return;
 	if (! group->timeline_setup) return;
+	if (group->broken_timing) return;
 
 	check_time = (s64) gf_net_get_utc();
 	nb_dropped = 0;
