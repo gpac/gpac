@@ -240,7 +240,7 @@ static void write_yuv422_to_yuv(GF_VideoSurface *vs, unsigned char *pY, u32 src_
 
 	if (is_planar_yuv(vs->pixel_format)) {
 		/*complete source copy*/
-		u32 i, j;
+		u32 i;
 		unsigned char *dst, *src, *dst2, *src2, *dst3, *src3, *_src2, *_src3;
 
 		src = pY;
