@@ -588,35 +588,49 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 
 }
 
-void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps)
+void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps, GF_MediaObjectAngles * angles360)
 {
 	Fixed r, angle, x, y, z;
 	u32 i, j;
 
 	for (i=0; i<num_steps; i++) {
-		angle = (i * GF_PI / (num_steps-1) ) - GF_PI2;
+		if (!angles360->tiles) { angle = (i * GF_PI / (num_steps-1) ) - GF_PI2; }
+		else { angle = (i * (angles360->max_phi - angles360->min_phi) / (num_steps-1) ) + angles360->min_phi; }
 		y = gf_sin(angle);
 		r = gf_sqrt(FIX_ONE - gf_mulfix(y, y));
-		for (j = 0; j < num_steps; j++) {
-			angle = GF_2PI * j / num_steps - GF_PI2;
+		for (j = 0; j<num_steps; j++) {
+			if (!angles360->tiles) { angle = GF_2PI * j / num_steps - GF_PI2; } 
+			else { angle = (j * (angles360->max_theta - angles360->min_theta) / (num_steps-1) ) + angles360->min_theta; }
 			x = gf_mulfix(gf_cos(angle), r);
 			z = gf_mulfix(gf_sin(angle), r);
 			coords[i * num_steps + j].x = gf_mulfix(radius, x);
 			coords[i * num_steps + j].y = gf_mulfix(radius, y);
 			coords[i * num_steps + j].z = gf_mulfix(radius, z);
 			if (radius>0) {
-				texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
-				texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
-			} else {
-				texcoords[i * num_steps + j].x = j*FIX_ONE/num_steps;
-				texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/num_steps;
+				if (!angles360->tiles){
+					texcoords[i * num_steps + j].x = FIX_ONE - j*FIX_ONE/num_steps;
+					texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+
+				}
+			}else {
+				if (!angles360->tiles){
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps);
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+				}
 			}
 		}
 	}
+
 }
 
 #define SPHERE_SUBDIV	24
-void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
+void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAngles * angles360)
 {
 	u32 i, j, num_steps, npts;
 	SFVec3f *coords;
@@ -628,7 +642,7 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
 	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*npts);
-	compute_sphere(radius, coords, texcoords, num_steps);
+	compute_sphere(radius, coords, texcoords, num_steps, angles360);
 
 	for (i=0; i<num_steps-1; i++) {
 		u32 n = i * num_steps;
@@ -646,9 +660,9 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 				mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
 				mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
 			}
-
+		
 		}
-
+		
 		last_tx_coord = (radius>0) ? 0 : FIX_ONE;
 		mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
 		                coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
@@ -658,6 +672,7 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 		                last_tx_coord, texcoords[n].y);
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
 		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
+		
 	}
 
 	gf_free(coords);
@@ -670,7 +685,6 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);
 }
-
 
 void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 {
