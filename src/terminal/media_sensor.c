@@ -96,7 +96,7 @@ void InitMediaSensor(GF_Scene *scene, GF_Node *node)
 	MediaSensorStack *st;
 	GF_SAFEALLOC(st, MediaSensorStack);
 	if (!st) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media sensor stack\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media sensor stack\n"));
 		return;
 	}
 

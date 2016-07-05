@@ -1058,7 +1058,7 @@ GF_ClientService *gf_term_service_new(GF_Terminal *term, struct _od_manager *own
 	}
 	GF_SAFEALLOC(serv, GF_ClientService);
 	if (!serv) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate network service\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate network service\n"));
 		return NULL;
 	}
 	serv->term = term;

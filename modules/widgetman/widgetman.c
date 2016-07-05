@@ -3275,7 +3275,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		}
 		gf_list_del(global_prefs);
 
-		/*check for optionnal meta data*/
+		/*check for optional meta data*/
 		name = wm_xml_find(root, widget_ns_prefix, "name", user_locale);
 		if (name) {
 			const char *shortname = wm_xml_get_attr(name, "short");
