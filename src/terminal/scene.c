@@ -2539,7 +2539,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	if (!addon) {
 		GF_SAFEALLOC(addon, GF_AddonMedia);
 		if (!addon) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media addon\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media addon\n"));
 			return;
 		}
 		addon->timeline_id = addon_info->timeline_id;

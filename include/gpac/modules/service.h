@@ -489,6 +489,8 @@ typedef struct
 	const char *ID;
 	//1+tile mode adaptation (doesn't change other selections)
 	u32 set_tile_mode_plus_one;
+	
+	u32 quality_degradation;
 } GF_NetQualitySwitch;
 
 

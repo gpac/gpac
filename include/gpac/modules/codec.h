@@ -257,10 +257,10 @@ typedef struct _mediadecoder
 	                      u8 PaddingBits, u32 mmlevel);
 
 
-	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
+	/*optional (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
 	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
 
-	/*optionnal (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
+	/*optional (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
 	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
 } GF_MediaDecoder;
 
