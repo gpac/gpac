@@ -3959,14 +3959,19 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		d = r = p = 0;
 		for (j = 0; j < vps->max_layers; j++) {
 			jNuhLId = vps->layer_id_in_nuh[j];
-//			if (vps->direct_dependency_flag[i][j])
-//				id_direct_ref_layers[iNuhLId][d++] = jNuhLId;
-//			if (dependency_flag[i][j])
-//				id_ref_layers[iNuhLId][r++] = jNuhLId;
+			if (vps->direct_dependency_flag[i][j]) {
+//				id_direct_ref_layers[iNuhLId][d] = jNuhLId;
+				d++;
+			}
+			if (dependency_flag[i][j]) {
+//				id_ref_layers[iNuhLId][r] = jNuhLId;
+				r++;
+			}
+				
 			if (dependency_flag[j][i])
 				id_pred_layers[iNuhLId][p++] = jNuhLId;
 		}
-		num_direct_ref_layers[iNuhLId] = ++d;
+		num_direct_ref_layers[iNuhLId] = d;
 //		num_ref_layers[iNuhLId] = r;
 		num_pred_layers[iNuhLId] = p;
 	}
