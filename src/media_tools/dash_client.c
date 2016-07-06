@@ -4255,7 +4255,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				update_playlist = 1;
 		}
 		if (update_playlist) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist shoudl be updated, postponing group download until playlist is updated\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist should be updated, postponing group download until playlist is updated\n"));
 			dash->force_mpd_update = 1;
 			return GF_DASH_DownloadCancel;
 		}
