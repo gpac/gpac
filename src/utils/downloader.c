@@ -1088,6 +1088,8 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 		sess->sock = NULL;
 		sess->status = GF_NETIO_SETUP;
 	}
+	sess->total_size=0;
+	sess->bytes_done=0;
 	return sess->last_error;
 }
 
