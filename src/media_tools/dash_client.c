@@ -677,7 +677,7 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 
 				//if current time is before the start of the previous segement, consider our timing is broken
 				if (current_time_rescale + ent->duration < segtime) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] current time "LLU" is before start time "LLU" of first segment in timeline (timescale %d) by %g sec - using first segment as starting point\n", current_time_rescale, segtime, timescale, (segtime-current_time_rescale)*1.0/timescale));
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] current time "LLU" is before start time "LLU" of first segment in timeline (timescale %d) by %g sec - using first segment as starting point\n", current_time_rescale, segtime, timescale, (segtime-current_time_rescale)*1.0/timescale));
 					group->download_segment_index = seg_idx;
 					group->nb_segments_in_rep = count;
 					group->start_playback_range = (segtime)*1.0/timescale;
@@ -1285,7 +1285,7 @@ static u64 gf_dash_get_segment_availability_start_time(GF_MPD *mpd, GF_DASH_Grou
 	return (u64) seg_ast;
 }
 
-static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 start, u64 start_timescale, u64 timescale)
+static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 segment_start, u64 start_timescale, u64 timescale)
 {
 	u64 start_time = 0;
 	u32 idx = 0;
@@ -1299,9 +1299,17 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 		repeat = ent->repeat_count+1;
 		while (repeat) {
 			if (start_timescale==timescale) {
-				if (start_time == start ) return idx;
+				if (start_time == segment_start ) return idx;
+				if (start_time > segment_start) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Warning: segment timeline entry start "LLU" greater than segment start "LLU", using current entry\n", start_time, segment_start));
+					return idx;
+				}
 			} else {
-				if (start_time*start_timescale == start * timescale) return idx;
+				if (start_time*start_timescale == segment_start * timescale) return idx;
+				if (start_time*start_timescale > segment_start * timescale) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Warning: segment timeline entry start "LLU" greater than segment start "LLU", using current entry\n", start_time, segment_start));
+					return idx;
+				}
 			}
 			start_time+=ent->duration;
 			repeat--;
@@ -1310,9 +1318,9 @@ static u32 gf_dash_get_index_in_timeline(GF_MPD_SegmentTimeline *timeline, u64 s
 	}
 	//end of list in regular case: segment was the last one of the previous list and no changes happend
 	if (start_timescale==timescale) {
-		if (start_time == start ) return idx;
+		if (start_time == segment_start ) return idx;
 	} else {
-		if (start_time*start_timescale == start * timescale) return idx;
+		if (start_time*start_timescale == segment_start * timescale) return idx;
 	}
 
 	GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: could not find previous segment start in current timeline ! seeking to end of timeline\n"));
@@ -1366,7 +1374,7 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 		group->nb_segments_in_rep = nb_new_segs;
 		group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, group->current_start_time, group->current_timescale, timescale ? timescale : group->current_timescale);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", group->download_segment_index , prev_idx, group->current_start_time));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", group->download_segment_index , prev_idx, group->current_start_time));
 	} else {
 		u32 i;
 		for (i=0; i<gf_list_count(dash->groups); i++) {
@@ -1375,17 +1383,17 @@ static GF_Err gf_dash_merge_segment_timeline(GF_DASH_Group *group, GF_DashClient
 			a_group->nb_segments_in_rep = nb_new_segs;
 			a_group->download_segment_index = gf_dash_get_index_in_timeline(new_timeline, a_group->current_start_time, a_group->current_timescale, timescale ? timescale : a_group->current_timescale);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", a_group->download_segment_index , prev_idx, a_group->current_start_time));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Updated SegmentTimeline: New segment number %d - old %d - start time "LLD"\n", a_group->download_segment_index , prev_idx, a_group->current_start_time));
 		}
 	}
 
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG) ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] New SegmentTimeline: \n"));
+	if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_INFO) ) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] New SegmentTimeline: \n"));
 		for (idx=0; idx<gf_list_count(new_timeline->entries); idx++) {
 			GF_MPD_SegmentTimelineEntry *ent = gf_list_get(new_timeline->entries, idx);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("\tt="LLU" d=%d r=%d\n", ent->start_time, ent->duration, ent->repeat_count));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("\tt="LLU" d=%d r=%d\n", ent->start_time, ent->duration, ent->repeat_count));
 		}
 	}
 #endif
@@ -4247,7 +4255,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				update_playlist = 1;
 		}
 		if (update_playlist) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Last segment in current playlist downloaded, postponing until playlist is updated\n"));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Playlist shoudl be updated, postponing group download until playlist is updated\n"));
 			dash->force_mpd_update = 1;
 			return GF_DASH_DownloadCancel;
 		}
@@ -4278,8 +4286,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 					}
 					if (now - group->time_at_first_reload_required < group->cache_duration)
 						return GF_DASH_DownloadCancel;
-					if (dash->mpd->minimum_update_period && (now - group->time_at_first_reload_required < dash->mpd->minimum_update_period))
-						return GF_DASH_DownloadCancel;
+					if (dash->mpd->minimum_update_period) {
+						if (now - group->time_at_first_reload_required < dash->mpd->minimum_update_period)
+							return GF_DASH_DownloadCancel;
+					} else if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+						if (timer < group->nb_segments_in_rep * group->segment_duration * 1000) 
+							return GF_DASH_DownloadCancel;
+					}
 
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment list has not been updated for more than %d ms - assuming end of period\n", now - group->time_at_first_reload_required));
 					group->done = 1;
@@ -4916,7 +4929,7 @@ restart_period:
 			if (dash->force_mpd_update || (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period))) {
 				u32 diff = gf_sys_clock();
 				dash->force_mpd_update = 0;
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reload rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
+				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reload rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
 				
 				gf_mx_p(dash->dash_mutex);
 				e = gf_dash_update_manifest(dash);
@@ -6354,6 +6367,12 @@ GF_Err gf_dash_group_probe_current_download_segment_location(GF_DashClient *dash
 	if (group->download_abort_type==2) {
 		group->download_abort_type = 0;
 		*switched = GF_TRUE;
+	}
+
+	//no download yet
+	if ( ! dash->dash_io->get_bytes_done(dash->dash_io, group->segment_download)) {
+		gf_mx_v(dash->dash_mutex);
+		return GF_OK;
 	}
 
 	*url = dash->dash_io->get_cache_name(dash->dash_io, group->segment_download);
