@@ -65,10 +65,6 @@
 #undef GL_MAX_CLIP_PLANES
 #endif
 
-#ifdef GPAC_USE_GLES1X
-#define GL_CLAMP GL_CLAMP_TO_EDGE
-#endif
-
 
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
@@ -1268,8 +1264,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, visual->gl_textures[visual->current_view]);
 
 #ifndef GPAC_USE_GLES2
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -1344,8 +1340,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 				glActiveTexture(GL_TEXTURE0 + i);
 
 #ifndef GPAC_USE_GLES2
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -1546,6 +1542,15 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 #ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
+
+/*		glDisable(GL_DITHER);
+		glDisable(GL_POINT_SMOOTH);
+		glHint(GL_POINT_SMOOTH, GL_DONT_CARE);
+		glHint(GL_LINE_SMOOTH, GL_DONT_CARE);
+		glHint(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
+	
+		glDisable( GL_MULTISAMPLE_ARB);
+*/
 	}
 
 #endif
