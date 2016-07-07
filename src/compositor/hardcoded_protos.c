@@ -1287,7 +1287,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 {
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
-	GF_MediaObjectAngles angles360;
+	GF_MeshSphereAngles sphere_angles;
 
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
@@ -1309,13 +1309,11 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
-		angles360.tiles = GF_TRUE;
-			
-		angles360.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
-		angles360.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
+		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
+		sphere_angles.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
 
-		angles360.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
-		angles360.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
+		sphere_angles.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
+		sphere_angles.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
 
 		if (gf_node_dirty_get(node)) {
 			u32 radius;
@@ -1323,7 +1321,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 
 			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
 			if (radius) {
-				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &angles360);
+				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &sphere_angles);
 
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_S;
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_T;
@@ -1337,8 +1335,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			Fixed r, theta_angle, phi_angle;
 			DrawAspect2D asp;
 			Bool visible = GF_FALSE;
-			Fixed center_phi = angles360.min_phi + (angles360.max_phi - angles360.min_phi) / 2;
-			Fixed center_theta = angles360.min_theta + (angles360.max_theta - angles360.min_theta) / 2;
+			Fixed center_phi = sphere_angles.min_phi + (sphere_angles.max_phi - sphere_angles.min_phi) / 2;
+			Fixed center_theta = sphere_angles.min_theta + (sphere_angles.max_theta - sphere_angles.min_theta) / 2;
 			
 			visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 			visual_3d_draw(tr_state, stack->mesh);
@@ -1373,8 +1371,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			phi_angle-=GF_PI;
 			if (phi_angle<-GF_PI2) phi_angle += GF_PI;
 			
-			if ((theta_angle < tr_state->camera->fieldOfView/2 + (angles360.max_theta-angles360.min_theta)/2)
-				&& (phi_angle < tr_state->camera->fieldOfView/2 + (angles360.max_phi-angles360.min_phi) /2)
+			if ((theta_angle < tr_state->camera->fieldOfView/2 + (sphere_angles.max_theta-sphere_angles.min_theta)/2)
+				&& (phi_angle < tr_state->camera->fieldOfView/2 + (sphere_angles.max_phi-sphere_angles.min_phi) /2)
 			) {
 				visible = GF_TRUE;
 			}
