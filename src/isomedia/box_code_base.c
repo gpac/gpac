@@ -2996,9 +2996,18 @@ GF_Err mdia_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void mfra_del(GF_Box *s)
+{
+	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
+	if (ptr == NULL) return;
+	gf_isom_box_array_del(ptr->tfra_list);
+	gf_free(ptr);
+}
+
 GF_Box *mfra_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MovieFragmentRandomAccessBox, GF_ISOM_BOX_TYPE_MFRA);
+	tmp->tfra_list = gf_list_new();
 	return (GF_Box *)tmp;
 }
 
@@ -3007,9 +3016,7 @@ GF_Err mfra_AddBox(GF_Box *s, GF_Box *a)
 	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
 	switch(a->type) {
 	case GF_ISOM_BOX_TYPE_TFRA:
-		if (ptr->tfra) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->tfra = (GF_TrackFragmentRandomAccessBox*)a;
-		return GF_OK;
+		return gf_list_add(ptr->tfra_list, a);
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -3021,19 +3028,27 @@ GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, mfra_AddBox);
 }
 
+
+
+void tfra_del(GF_Box *s)
+{
+	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
+	if (ptr == NULL) return;
+	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr);
+}
+
 GF_Box *tfra_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TrackFragmentRandomAccessBox, GF_ISOM_BOX_TYPE_TFRA);
 	return (GF_Box *)tmp;
 }
 
-
-
 GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 i;
-	GF_RandomAccessEntry *p;
+	GF_RandomAccessEntry *p = 0;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 
 	e = gf_isom_full_box_read(s, bs);
@@ -3047,8 +3062,13 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->sample_bits = (gf_bs_read_int(bs, 2)+1)*8;
 	ptr->nb_entries = gf_bs_read_u32(bs);
 
-	ptr->entries = p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
-	if (!p) return GF_OUT_OF_MEM;
+	if (ptr->nb_entries)
+	{
+		p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
+		if (!p) return GF_OUT_OF_MEM;
+	}
+
+	ptr->entries = p;
 
 	for (i=0; i<ptr->nb_entries; i++) {
 		memset(p, 0, sizeof(GF_RandomAccessEntry));
