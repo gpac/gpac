@@ -1306,7 +1306,6 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	if (gf_node_dirty_get(node) || (tr_state->traversing_mode==TRAVERSE_DRAW_3D)) {
 		u32 radius;
 
-
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
@@ -1323,9 +1322,12 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			mesh_reset(stack->mesh);
 
 			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
+			if (radius) {
+				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &angles360);
 
-			mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &angles360);
-		
+				txh->flags &= ~GF_SR_TEXTURE_REPEAT_S;
+				txh->flags &= ~GF_SR_TEXTURE_REPEAT_T;
+			}
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		}
 		
@@ -1338,6 +1340,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			Fixed center_phi = angles360.min_phi + (angles360.max_phi - angles360.min_phi) / 2;
 			Fixed center_theta = angles360.min_theta + (angles360.max_theta - angles360.min_theta) / 2;
 			
+			visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 			visual_3d_draw(tr_state, stack->mesh);
 	
 			/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
