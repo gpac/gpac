@@ -203,7 +203,17 @@ void mesh_new_ellipse(GF_Mesh *mesh, Fixed a_dia, Fixed b_dia, Bool low_res);
 void mesh_new_box(GF_Mesh *mesh, SFVec3f size);
 void mesh_new_cylinder(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool top, Bool low_res);
 void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool side, Bool low_res);
-void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAngles * angles360);
+
+
+typedef struct
+{
+	Fixed min_phi;
+	Fixed max_phi;
+	Fixed min_theta;	
+	Fixed max_theta;
+} GF_MeshSphereAngles;
+/*create a new sphere of the given radius. If angles is set, mesh is a partial sphere but tx coords still range from 0,0 to 1,1*/
+void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *angles);
 /*inserts ILS/ILS2D and IFS2D outline when not filled*/
 void mesh_new_ils(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex, GF_Node *__color, MFInt32 *colorIndex, Bool colorPerVertex, Bool do_close);
 /*inserts IFS2D*/

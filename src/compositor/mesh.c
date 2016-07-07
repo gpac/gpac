@@ -588,26 +588,32 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 
 }
 
-void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps, GF_MediaObjectAngles * angles360)
+void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps, GF_MeshSphereAngles *sphere_angles)
 {
 	Fixed r, angle, x, y, z;
 	u32 i, j;
 
 	for (i=0; i<num_steps; i++) {
-		if (!angles360->tiles) { angle = (i * GF_PI / (num_steps-1) ) - GF_PI2; }
-		else { angle = (i * (angles360->max_phi - angles360->min_phi) / (num_steps-1) ) + angles360->min_phi; }
+		if (!sphere_angles) {
+			angle = (i * GF_PI / (num_steps-1) ) - GF_PI2;
+		} else {
+			angle = (i * (sphere_angles->max_phi - sphere_angles->min_phi) / (num_steps-1) ) + sphere_angles->min_phi;
+		}
 		y = gf_sin(angle);
 		r = gf_sqrt(FIX_ONE - gf_mulfix(y, y));
 		for (j = 0; j<num_steps; j++) {
-			if (!angles360->tiles) { angle = GF_2PI * j / num_steps - GF_PI2; } 
-			else { angle = (j * (angles360->max_theta - angles360->min_theta) / (num_steps-1) ) + angles360->min_theta; }
+			if (!sphere_angles) {
+				angle = GF_2PI * j / num_steps - GF_PI2;
+			} else {
+				angle = (j * (sphere_angles->max_theta - sphere_angles->min_theta) / (num_steps-1) ) + sphere_angles->min_theta;
+			}
 			x = gf_mulfix(gf_cos(angle), r);
 			z = gf_mulfix(gf_sin(angle), r);
 			coords[i * num_steps + j].x = gf_mulfix(radius, x);
 			coords[i * num_steps + j].y = gf_mulfix(radius, y);
 			coords[i * num_steps + j].z = gf_mulfix(radius, z);
 			if (radius>0) {
-				if (!angles360->tiles){
+				if (!sphere_angles){
 					texcoords[i * num_steps + j].x = FIX_ONE - j*FIX_ONE/num_steps;
 					texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
 				}else{
@@ -616,7 +622,7 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 
 				}
 			}else {
-				if (!angles360->tiles){
+				if (!sphere_angles){
 					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps);
 					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps);
 				}else{
@@ -630,7 +636,7 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 }
 
 #define SPHERE_SUBDIV	24
-void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAngles * angles360)
+void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *sphere_angles)
 {
 	u32 i, j, num_steps, npts;
 	SFVec3f *coords;
@@ -642,7 +648,7 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAn
 
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
 	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*npts);
-	compute_sphere(radius, coords, texcoords, num_steps, angles360);
+	compute_sphere(radius, coords, texcoords, num_steps, sphere_angles);
 
 	for (i=0; i<num_steps-1; i++) {
 		u32 n = i * num_steps;
@@ -662,22 +668,25 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MediaObjectAn
 			}
 		
 		}
-		
-		last_tx_coord = (radius>0) ? 0 : FIX_ONE;
-		mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
-		                coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
-		                last_tx_coord, texcoords[n + num_steps].y);
-		mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z,
-		                coords[n].x, coords[n].y, coords[n].z,
-		                last_tx_coord, texcoords[n].y);
-		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
-		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
-		
+		if (!sphere_angles) {
+			last_tx_coord = (radius>0) ? 0 : FIX_ONE;
+			mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
+					coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
+					last_tx_coord, texcoords[n + num_steps].y);
+			mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z,
+					coords[n].x, coords[n].y, coords[n].z,
+					last_tx_coord, texcoords[n].y);
+
+			mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
+			mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
+		}
 	}
 
 	gf_free(coords);
 	gf_free(texcoords);
-	mesh->flags |= MESH_IS_SOLID;
+	if (!sphere_angles) {
+		mesh->flags |= MESH_IS_SOLID;
+	}
 
 	mesh->bounds.min_edge.x = mesh->bounds.min_edge.y = mesh->bounds.min_edge.z = -radius;
 	mesh->bounds.max_edge.x = mesh->bounds.max_edge.y = mesh->bounds.max_edge.z = radius;
