@@ -4677,6 +4677,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 	if (local_files==count) {
 		total_rate = dash->dash_io->get_bytes_per_sec(dash->dash_io, NULL);
 	}
+	if (!total_rate) return;
 	
 
 	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
