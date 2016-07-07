@@ -1304,8 +1304,6 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	if (!txh->stream) return;
 
 	if (gf_node_dirty_get(node) || (tr_state->traversing_mode==TRAVERSE_DRAW_3D)) {
-		u32 radius;
-
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
@@ -1381,7 +1379,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 
 			if (visible) {
 				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
-			} else {
+			} else {
 				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 100);
 			}
 		}
