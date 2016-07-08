@@ -635,14 +635,16 @@ void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_s
 
 }
 
-#define SPHERE_SUBDIV	24
 void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *sphere_angles)
 {
 	u32 i, j, num_steps, npts;
 	SFVec3f *coords;
 	SFVec2f *texcoords;
 
-	num_steps = SPHERE_SUBDIV;
+	num_steps = 48;
+	//this is 360 VR, use a large number of subdivisions (1 seg for 5 degrees should be enough )
+	if (radius<0) num_steps = 72;
+
 	if (low_res) num_steps /= 2;
 	npts = num_steps * num_steps;
 
