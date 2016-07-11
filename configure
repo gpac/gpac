@@ -582,8 +582,20 @@ EOF
         mingw32="yes"
         win32="yes"
         want_pic="no"
-        extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
-        CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+        #ugly patch for msys2 mingw32/mingw64 where toolchain is not properly setup
+        if [ -e /mingw64 ]; then
+          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -I/mingw64/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          LDFLAGS="$LDFLAGS -L/mingw64/lib"
+        elif [ -e /mingw32 ]; then
+          extralibs="-L/mingw32/lib $extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -I/mingw32/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          LDFLAGS="$LDFLAGS -L/mingw32/lib"
+        else
+          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          echo "titi"
+        fi
 		LDFLAGS="$LDFLAGS"
         if test "$cross_prefix" != "" ; then
             GPAC_SH_FLAGS=""
@@ -1066,8 +1078,8 @@ if test "$darwin" = "yes" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
   ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread "
 elif test "$cross_prefix" = "" ; then
-  ohevc_cflags=""
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_cflags="-I/usr/include -I/usr/local/include"
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread"
 else
   ohevc_cflags="-I${prefix}include"
   ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
@@ -1134,7 +1146,9 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$win32" = "yes" ; then
+if test "$mingw32" = "yes" ; then
+    LINK_SSL="-lssl -lcrypto"
+elif test "$win32" = "yes" ; then
     LINK_SSL="-lssleay32 -leay32"
 else
     LINK_SSL="-lssl -lcrypto"
@@ -2390,8 +2404,8 @@ fi
 #look at endianess
 if test -z "$cross_prefix" ; then
 
-    # big/little endian test
-    cat > $TMPC << EOF
+# big/little endian test
+cat > $TMPC << EOF
 #include <inttypes.h>
 int main(int argc, char ** argv){
 volatile uint32_t i=0x01234567;
@@ -2961,7 +2975,20 @@ if test "$win32" = "yes" ; then
         echo "#define fseeko64 fseek" >> $TMPH
     fi
     if test "$mingw32" = "yes" ; then
-        echo "UNICODEFLAGS=-municode" >> config.mak
+    
+# -municode test
+cat > $TMPC << EOF
+#include <inttypes.h>
+int main(int argc, char ** argv){
+return 0;
+}
+EOF
+
+        if docc -municode ; then
+          echo "UNICODEFLAGS=-municode" >> config.mak
+        else
+          echo "UNICODEFLAGS=" >> config.mak
+        fi
     fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak
