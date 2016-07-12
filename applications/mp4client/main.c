@@ -2262,7 +2262,7 @@ force_input:
 	return ret_val;
 }
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(NO_WMAIN)
 int wmain(int argc, wchar_t** wargv)
 {
 	int i;

@@ -595,7 +595,7 @@ u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
@@ -617,7 +617,7 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) fseeko64(fp, offset, whence);
 #else

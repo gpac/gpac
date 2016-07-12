@@ -62,7 +62,13 @@
 #define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
 #endif
 #define CFG_FILE_NAME	"GPAC.cfg"
+
+#if defined(GPAC_CONFIG_WIN32)
+#define TEST_MODULE		"gm_dummy_in.dll"
+#else
 #define TEST_MODULE		"gm_dummy_in.so"
+#endif
+
 #endif
 
 
@@ -266,7 +272,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		char buf[PATH_MAX];
 		char *res;
 #endif
-		if (!user_home) return 0;
+		if (!user_home) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
+			return 0;
+		}
 #ifdef GPAC_IPHONE
 		res = realpath(user_home, buf);
 		if (res) {
@@ -308,13 +317,38 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (sep) sep[0] = 0;
 			return 1;
 		}
+
+#elif defined(GPAC_CONFIG_WIN32)
+		GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
+		if (strstr(file_path, ".exe")) {
+			sep = strrchr(file_path, '\\');
+			if (sep) sep[0] = 0;
+			if ((file_path[1]==':') && (file_path[2]=='\\')) {
+				strcpy(file_path, &file_path[2]);
+			}
+			sep = file_path;
+			while ( sep[0] ) {
+				if (sep[0]=='\\') sep[0]='/';
+				sep++;
+			}
+			//get rid of /mingw32 or /mingw64
+			sep = strstr(file_path, "/usr/");
+			if (sep) {
+				strcpy(file_path, sep);
+			}
+			return 1;
+		}
 #endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
 		return 0;
 	}
 
 
 	/*locate the app*/
-	if (!get_default_install_path(app_path, GF_PATH_APP)) return 0;
+	if (!get_default_install_path(app_path, GF_PATH_APP)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
+		return 0;
+	}
 
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
@@ -368,6 +402,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			/*on OSX check modules subdirectory */
 			strcat(app_path, "/modules");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			/*modules not found*/
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
@@ -376,6 +412,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, failure*/
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
 		return 0;
 	}
 
