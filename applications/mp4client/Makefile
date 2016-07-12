@@ -24,6 +24,11 @@ ifeq ($(CONFIG_WIN32),yes)
 LINKFLAGS+=$(UNICODEFLAGS)
 EXE=.exe
 PROG=MP4Client$(EXE)
+
+ifeq ($(HAS_WMAIN),no)
+CFLAGS+=-DNO_WMAIN
+endif
+
 else
 EXT=
 PROG=MP4Client

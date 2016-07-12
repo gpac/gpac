@@ -2979,16 +2979,22 @@ if test "$win32" = "yes" ; then
 # -municode test
 cat > $TMPC << EOF
 #include <inttypes.h>
-int main(int argc, char ** argv){
+int wmain(int argc, char ** argv){
 return 0;
 }
 EOF
 
-        if docc -municode ; then
-          echo "UNICODEFLAGS=-municode" >> config.mak
+      if docc -municode ; then
+        echo "UNICODEFLAGS=-municode" >> config.mak
+        echo "HAS_WMAIN=yes" >> config.mak
+      else
+        echo "UNICODEFLAGS=" >> config.mak
+        if docc ; then
+          echo "HAS_WMAIN=yes" >> config.mak
         else
-          echo "UNICODEFLAGS=" >> config.mak
+          echo "HAS_WMAIN=no" >> config.mak
         fi
+      fi
     fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak
