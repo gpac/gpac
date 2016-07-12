@@ -2539,10 +2539,10 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 			profile = gf_fopen(user_profile, "rt");
 			if (profile) {
 				s32 read = (s32) fread(tmp_buf+len, sizeof(char), par.size, profile);
-				if ((read<0) || (read<par.size)) {
+				if ((read<0) || (read< (s32) par.size)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK,
 					       ("Error while loading Downloader/UserProfile, size=%d, should be %d.", read, par.size));
-					for (; read < par.size; read++) {
+					for (; read < (s32) par.size; read++) {
 						tmp_buf[len + read] = 0;
 					}
 				}
