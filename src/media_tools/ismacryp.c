@@ -2164,11 +2164,13 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 		/*default to FILE uri*/
 		if (!strlen(tci->KMS_URI)) strcpy(tci->KMS_URI, drm_file);
 
-		e = gf_encrypt_track(mp4, tci, NULL, NULL);
-		if (e) break;
+		if (tci->IsEncrypted > 0) {
+			e = gf_encrypt_track(mp4, tci, NULL, NULL);
+			if (e) break;
 
-		is_encrypted = GF_TRUE;
-		if (tci->enc_type==1) is_oma = 1;
+			is_encrypted = GF_TRUE;
+			if (tci->enc_type == 1) is_oma = 1;
+		}
 	}
 
 	if (is_oma) {
