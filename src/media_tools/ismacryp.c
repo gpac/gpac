@@ -1173,6 +1173,11 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	/*select key*/
+	if (!tci->keys) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] No key specified\n"));
+		e = GF_BAD_PARAM;
+		goto exit;
+	}
 	if (tci->defaultKeyIdx && (tci->defaultKeyIdx < tci->KID_count)) {
 		memcpy(tci->key, tci->keys[tci->defaultKeyIdx], 16);
 		memcpy(tci->default_KID, tci->KIDs[tci->defaultKeyIdx], 16);
@@ -1236,7 +1241,6 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 					goto exit;
 				buf = NULL;
 
-				//alreaduy done: memset(tmp, 0, 16);
 				memset(NULL_IV, 0, 16);
 				e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL_IV, 0, 0, 0, NULL);
 				if (e) goto exit;
@@ -1324,7 +1328,6 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 		nb_samp_encrypted++;
 		gf_set_progress("CENC Encrypt", i+1, count);
-
 	}
 
 	gf_isom_set_cts_packing(mp4, track, GF_FALSE);
@@ -2154,7 +2157,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 			gf_encrypt_track = gf_adobe_encrypt_track;
 			break;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not sopported\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Encryption type not supported\n"));
 			return GF_NOT_SUPPORTED;;
 		}
 
