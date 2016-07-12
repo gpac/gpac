@@ -2086,7 +2086,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
                                    u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID,
 								   u8 default_crypt_byte_block, u8 default_skip_byte_block, 
-								   u8 default_cosntant_IV_size, bin128 default_constant_IV);
+								   u8 default_constant_IV_size, bin128 default_constant_IV);
 
 GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, char *data, u32 len);
 

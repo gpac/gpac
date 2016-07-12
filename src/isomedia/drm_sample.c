@@ -606,7 +606,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
                                    u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID, 
 								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
-								    u8 default_cosntant_IV_size, bin128 default_constant_IV)
+								    u8 default_constant_IV_size, bin128 default_constant_IV)
 {
 	GF_Err e;
 	GF_ProtectionInfoBox *sinf;
@@ -625,7 +625,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 		sinf->info->tenc->skip_byte_block = default_skip_byte_block;
 	}
 	if (scheme_type == GF_ISOM_CBCS_SCHEME) {
-		sinf->info->tenc->constant_IV_size = default_cosntant_IV_size;
+		sinf->info->tenc->constant_IV_size = default_constant_IV_size;
 		memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
 	}
 	return GF_OK;
