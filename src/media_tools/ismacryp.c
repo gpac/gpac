@@ -123,6 +123,9 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 				else if (!strnicmp(att->value, "Preview", 7)) {
 					tkc->sel_enc_type = GF_CRYPT_SELENC_PREVIEW;
 				}
+				else if (!strnicmp(att->value, "Clear", 5)) {
+					tkc->sel_enc_type = GF_CRYPT_SELENC_CLEAR;
+				}
 			}
 			else if (!stricmp(att->name, "Preview")) {
 				tkc->sel_enc_type = GF_CRYPT_SELENC_PREVIEW;
@@ -1191,7 +1194,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	/*create CENC protection*/
 	e = gf_isom_set_cenc_protection(mp4, track, 1, tci->cenc_scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID, 
 		tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
-	if (e) goto  exit;
+	if (e) goto exit;
 
 
 	count = gf_isom_get_sample_count(mp4, track);
@@ -1243,6 +1246,22 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 
 				memset(NULL_IV, 0, 16);
 				e = gf_isom_set_sample_cenc_group(mp4, track, i+1, 0, 0, NULL_IV, 0, 0, 0, NULL);
+				if (e) goto exit;
+
+				gf_isom_sample_del(&samp);
+				continue;
+			}
+			break;
+		case GF_CRYPT_SELENC_CLEAR:
+			{
+				bin128 NULL_IV;
+				e = gf_isom_track_cenc_add_sample_info(mp4, track, tci->sai_saved_box_type, 0, NULL, 0);
+				if (e)
+					goto exit;
+				buf = NULL;
+
+				memset(NULL_IV, 0, 16);
+				e = gf_isom_set_sample_cenc_group(mp4, track, i + 1, 0, 0, NULL_IV, 0, 0, 0, NULL);
 				if (e) goto exit;
 
 				gf_isom_sample_del(&samp);

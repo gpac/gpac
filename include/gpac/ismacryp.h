@@ -80,6 +80,8 @@ enum
 	GF_CRYPT_SELENC_RANGE = 5,
 	/*encryption of all samples but the preview range*/
 	GF_CRYPT_SELENC_PREVIEW = 6,
+	/*encryption of no samples*/
+	GF_CRYPT_SELENC_CLEAR = 7,
 };
 
 typedef struct
