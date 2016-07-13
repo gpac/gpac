@@ -636,6 +636,7 @@ void PrintEncryptUsage()
 	        "                       * Note: \'self\' writes key and salt in the file\n"
 	        " selectiveType        selective encryption type - understood values are:\n"
 	        "   \"None\"             all samples encrypted (default)\n"
+	        "   \"Clear\"            all samples clean (not encrypted)\n"
 	        "   \"RAP\"              only encrypts random access units\n"
 	        "   \"Non-RAP\"          only encrypts non-random access units\n"
 	        "   \"Rand\"             random selection is performed\n"
