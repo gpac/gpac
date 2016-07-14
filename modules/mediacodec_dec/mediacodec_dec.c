@@ -15,7 +15,7 @@
 
 #include <android/log.h>
 
-#define TAG "mc_decode"
+#define TAG "mediacodec_dec"
 
 #define LOGV(...)  __android_log_print(ANDROID_LOG_VERBOSE, TAG,  __VA_ARGS__)
 #define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
@@ -23,8 +23,7 @@
 #define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
-
-#define DEQUEUE_TIMEOUT 10000
+#define DEQUEUE_TIMEOUT 100000
 
 #endif
 
