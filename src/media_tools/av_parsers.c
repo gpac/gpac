@@ -871,9 +871,24 @@ GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
 	if (!rawdsi || !rawdsi_size) return GF_NON_COMPLIANT_BITSTREAM;
 	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, 0);
 	e = gf_m4v_parse_config(vparse, dsi);
+	dsi->next_object_start = (u32) vparse->current_object_start;
 	gf_m4v_parser_del(vparse);
 	return e;
 }
+
+GF_EXPORT
+GF_Err gf_mpegv12_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi)
+{
+	GF_Err e;
+	GF_M4VParser *vparse;
+	if (!rawdsi || !rawdsi_size) return GF_NON_COMPLIANT_BITSTREAM;
+	vparse = gf_m4v_parser_new(rawdsi, rawdsi_size, GF_TRUE);
+	e = gf_m4v_parse_config(vparse, dsi);
+	dsi->next_object_start = (u32) vparse->current_object_start;
+	gf_m4v_parser_del(vparse);
+	return e;
+}
+
 #endif
 
 
@@ -1814,6 +1829,28 @@ u32 gf_mp3_get_next_header_mem(const char *buffer, u32 size, u32 *pos)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 
+GF_EXPORT
+Bool gf_avc_is_rext_profile(u8 profile_idc)
+{
+	switch (profile_idc) {
+	case 100:
+	case 110:
+	case 122:
+	case 244:
+	case 44:
+	case 83:
+	case 86:
+	case 118:
+	case 128:
+	case 138:
+	case 139:
+	case 134:
+	case 135:
+		return GF_TRUE;
+	default:
+		return GF_FALSE;
+	}
+}
 
 GF_EXPORT
 const char *gf_avc_get_profile_name(u8 video_prof)
@@ -1836,6 +1873,7 @@ const char *gf_avc_get_profile_name(u8 video_prof)
 	case 0x7A:
 		return "High 4:2:2";
 	case 0x90:
+	case 0xF4:
 		return "High 4:4:4";
 	default:
 		return "Unknown";
@@ -1857,17 +1895,17 @@ const char *gf_hevc_get_profile_name(u8 video_prof)
 	}
 }
 GF_EXPORT
-const char *gf_get_chroma_format_name(u8 chroma_format)
+const char *gf_avc_hevc_get_chroma_format_name(u8 chroma_format)
 {
 	switch (chroma_format) {
-		case 1:
-			return "YUV 4:2:0";
-		case 2:
-			return "YUV 4:2:2";
-		case 3:
-			return "YUV 4:4:4";
-		default:
-			return "Unknown";
+	case 1:
+		return "YUV 4:2:0";
+	case 2:
+		return "YUV 4:2:2";
+	case 3:
+		return "YUV 4:4:4";
+	default:
+		return "Unknown";
 	}
 }
 
@@ -3833,8 +3871,12 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	u8 /*avc_base_layer_flag, */NumLayerSets, /*default_one_target_output_layer_flag, */rep_format_idx_present_flag, ols_ids_to_ls_idx;
 	u8 layer_set_idx_for_ols_minus1[MAX_SHVC_LAYERS];
 	u32 k,d, r, p, iNuhLId, jNuhLId;
-	u8 num_direct_ref_layers[64], num_ref_layers[64], num_pred_layers[64], num_layers_in_tree_partition[MAX_SHVC_LAYERS];
-	u8 dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS], id_direct_ref_layers[64][MAX_SHVC_LAYERS], id_ref_layers[64][MAX_SHVC_LAYERS], id_pred_layers[64][MAX_SHVC_LAYERS], tree_partition_layer_id[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+	u8 num_direct_ref_layers[64], num_pred_layers[64], num_layers_in_tree_partition[MAX_SHVC_LAYERS];
+	u8 dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS], id_pred_layers[64][MAX_SHVC_LAYERS];
+//	u8 num_ref_layers[64];
+//	u8 tree_partition_layer_id[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
+//	u8 id_ref_layers[64][MAX_SHVC_LAYERS];
+//	u8 id_direct_ref_layers[64][MAX_SHVC_LAYERS];
 	u8 layer_id_in_list_flag[64];
 	Bool OutputLayerFlag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
 
@@ -3917,15 +3959,15 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		d = r = p = 0;
 		for (j = 0; j < vps->max_layers; j++) {
 			jNuhLId = vps->layer_id_in_nuh[j];
-			if (vps->direct_dependency_flag[i][j])
-				id_direct_ref_layers[iNuhLId][d++] = jNuhLId;
-			if (dependency_flag[i][j])
-				id_ref_layers[iNuhLId][r++] = jNuhLId;
+//			if (vps->direct_dependency_flag[i][j])
+//				id_direct_ref_layers[iNuhLId][d++] = jNuhLId;
+//			if (dependency_flag[i][j])
+//				id_ref_layers[iNuhLId][r++] = jNuhLId;
 			if (dependency_flag[j][i])
 				id_pred_layers[iNuhLId][p++] = jNuhLId;
 		}
 		num_direct_ref_layers[iNuhLId] = d;
-		num_ref_layers[iNuhLId] = r;
+//		num_ref_layers[iNuhLId] = r;
 		num_pred_layers[iNuhLId] = p;
 	}
 
@@ -3935,11 +3977,11 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		iNuhLId = vps->layer_id_in_nuh[i];
 		if (!num_direct_ref_layers[iNuhLId]) {
 			u32 h = 1;
-			tree_partition_layer_id[k][0] = iNuhLId;		
+			//tree_partition_layer_id[k][0] = iNuhLId;		
 			for (j = 0; j < num_pred_layers[iNuhLId]; j++) {
 				u32 predLId = id_pred_layers[iNuhLId][j];
 				if (!layer_id_in_list_flag[predLId]) {
-					tree_partition_layer_id[k][h++] = predLId;
+					//tree_partition_layer_id[k][h++] = predLId;
 					layer_id_in_list_flag[predLId] = 1;
 				}
 			}

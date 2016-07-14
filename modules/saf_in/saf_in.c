@@ -209,7 +209,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				SAFChannel *first = (SAFChannel *)gf_list_get(read->channels, 0);
 				GF_SAFEALLOC(ch, SAFChannel);
 				if (!ch) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Failed to allocate SAF channel"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Failed to allocate SAF channel"));
 					gf_bs_del(bs);
 					return;
 				}
@@ -329,7 +329,7 @@ u32 SAF_Run(void *_p)
 	read->run_state = 1;
 	while (read->run_state && !feof(read->stream) ) {
 		par.size = (u32) fread(data, 1, 1024, read->stream);
-		if (!par.size) break;
+		if ((s32) par.size <= 0) break;
 		SAF_NetIO(read, &par);
 	}
 	read->run_state = 2;

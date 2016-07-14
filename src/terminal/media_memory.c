@@ -31,9 +31,6 @@
 #include "media_memory.h"
 #include "media_control.h"
 
-#define NO_TEMPORAL_SCALABLE	1
-
-
 GF_DBUnit *gf_db_unit_new()
 {
 	GF_DBUnit *tmp;
@@ -93,6 +90,10 @@ static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 			my_large_gf_free(cb->data);
 		}
 		cb->data = NULL;
+		if (cb->frame) {
+			cb->frame->Release(cb->frame);
+			cb->frame=NULL;
+		}
 	}
 	gf_free(cb);
 }
@@ -106,7 +107,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 
 	GF_SAFEALLOC(tmp, GF_CompositionMemory)
 	if (!tmp) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate composition memory\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate composition memory\n"));
 		return NULL;
 	}
 
@@ -176,10 +177,8 @@ void gf_cm_rewind_input(GF_CompositionMemory *cb)
 /*access to the input buffer - return NULL if no input is available (buffer full)*/
 GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reordering)
 {
-#if !NO_TEMPORAL_SCALABLE
 	GF_CMUnit *cu;
 	if (codec_reordering) {
-#endif
 		/*there is still something in the input buffer*/
 		if (cb->input->dataLength) {
 			if (cb->input->TS==TS)
@@ -188,8 +187,6 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 		}
 		cb->input->TS = TS;
 		return cb->input;
-
-#if !NO_TEMPORAL_SCALABLE
 	}
 
 	/*spatial scalable, go backward to fetch same TS*/
@@ -212,7 +209,6 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 		if (cu == cb->input) return NULL;
 	}
 	return NULL;
-#endif
 }
 
 #if 0
@@ -233,11 +229,12 @@ static void check_temporal(GF_CompositionMemory *cb)
 static GF_CMUnit *gf_cm_reorder_unit(GF_CompositionMemory *cb, GF_CMUnit *unit, Bool codec_reordering)
 {
 	GF_CMUnit *cu;
-#if NO_TEMPORAL_SCALABLE
-	cu = cb->input;
-	cb->input = cb->input->next;
-	return cu;
-#else
+	if (codec_reordering) {
+		cu = cb->input;
+		cb->input = cb->input->next;
+		return cu;
+	}
+
 	/*lock the buffer since we may move pointers*/
 	gf_odm_lock(cb->odm, 1);
 
@@ -322,7 +319,6 @@ exit:
 	/*unlock the buffer*/
 	gf_odm_lock(cb->odm, 0);
 	return unit;
-#endif
 }
 
 static void cb_set_buffer_off(GF_CompositionMemory *cb)
@@ -342,6 +338,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		return;
 	}
 	gf_odm_lock(cb->odm, 1);
+//		assert(cu->frame);
 
 	if (codec_reordering) {
 		cb->input = cb->input->next;
@@ -391,12 +388,20 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	}
 
 	cu->dataLength = 0;
+	if (cu->frame) {
+		cu->frame->Release(cu->frame);
+		cu->frame = NULL;
+	}
 	cu->TS = 0;
 	cu = cu->next;
 	while (cu != cb->input) {
 		cu->RenderedLength = 0;
 		cu->TS = 0;
 		cu->dataLength = 0;
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
+		}
 		cu = cu->next;
 	}
 	cb->UnitCount = 0;
@@ -618,6 +623,10 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 	/*reset the output*/
 	cb->output->dataLength = 0;
+	if (cb->output->frame) {
+		cb->output->frame->Release(cb->output->frame);
+		cb->output->frame = NULL;
+	}
 	cb->output->TS = 0;
 	cb->output = cb->output->next;
 	cb->UnitCount -= 1;

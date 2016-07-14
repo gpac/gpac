@@ -728,7 +728,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 	fsize = (u32)gf_ftell(f);
 	gf_fseek(f, 0, SEEK_SET);
 	data = gf_malloc(fsize);
-	read = (u32) fread(data, sizeof(char), fsize, f);
+	read = (s32) fread(data, sizeof(char), fsize, f);
 	gf_fclose( f );
 	if (read != fsize) return GF_IO_ERR;
 

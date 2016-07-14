@@ -384,6 +384,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			gf_fseek(read->stream, 0, SEEK_SET);
 			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			read->data_size = (u32) fread(read->data, sizeof(char), read->data_size, read->stream);
+			if ((s32) read->data_size<0) return GF_IO_ERR;
 			gf_fseek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 

@@ -149,6 +149,7 @@ enum {
 	GJS_OM_PROP_SCALABLE_ENHANCEMENT = -50,
 	GJS_OM_PROP_MAIN_ADDON_MEDIATIME = -51,
 	GJS_OM_PROP_DEPENDENT_GROUPS = -52,
+	GJS_OM_PROP_IS_VR_SCENE = -53,
 };
 
 enum {
@@ -187,6 +188,8 @@ enum {
 	GJS_GPAC_PROP_FOCUS_HIGHLIGHT = -33,
 	GJS_GPAC_PROP_DPI_X = -34,
 	GJS_GPAC_PROP_DPI_Y = -35,
+	GJS_GPAC_PROP_SENSORS_ACTIVE = -36,
+	
 };
 
 enum {
@@ -410,6 +413,10 @@ case GJS_GPAC_PROP_DPI_X:
 case GJS_GPAC_PROP_DPI_Y:
 	*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_y);
 	break;
+	
+case GJS_GPAC_PROP_SENSORS_ACTIVE:
+	*vp = BOOLEAN_TO_JSVAL(term->orientation_sensors_active);
+	break;
 }
 
 return JS_TRUE;
@@ -489,6 +496,18 @@ case GJS_GPAC_PROP_HTTP_MAX_RATE:
 break;
 case GJS_GPAC_PROP_FOCUS_HIGHLIGHT:
 	term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
+	break;
+case GJS_GPAC_PROP_SENSORS_ACTIVE:
+{
+	GF_Event evt;
+	term->orientation_sensors_active = JSVAL_TO_BOOLEAN(*vp);
+	//send activation for sensors
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_SENSOR_REQUEST;
+	evt.activate_sensor.activate = term->orientation_sensors_active;
+	evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
+	gf_term_send_event(term, &evt);
+}
 	break;
 }
 return JS_TRUE;
@@ -1010,9 +1029,9 @@ s32 prop_id;
 char *str;
 if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
+prop_id = SMJS_ID_TO_INT(id);
 gf_term_get_object_info(odm->term, odm, &odi);
 
-prop_id = SMJS_ID_TO_INT(id);
 switch (prop_id) {
 case GJS_OM_PROP_ID:
 	*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
@@ -1383,6 +1402,9 @@ case GJS_OM_PROP_DEPENDENT_GROUPS:
 	break;
 }
 
+case GJS_OM_PROP_IS_VR_SCENE:
+	*vp = BOOLEAN_TO_JSVAL(odm->subscene && odm->subscene->vr_type ? JS_TRUE : JS_FALSE);
+	break;
 }
 return JS_TRUE;
 }
@@ -1678,7 +1700,8 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 	GF_Scene *scene = term->root_scene;
 
 	if (JSVAL_IS_STRING(argv[0]) ) {
-		char *url;
+		char *url, *an_url;
+		u32 url_len;
 		url = service_url = SMJS_CHARS(c, argv[0]);
 		if (!service_url) {
 			SMJS_SET_RVAL(JSVAL_NULL);
@@ -1686,10 +1709,20 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 		}
 		if (!strncmp(service_url, "gpac://", 7)) url = service_url + 7;
 		if (!strncmp(service_url, "file://", 7)) url = service_url + 7;
+		url_len = (u32) strlen(url);
+		an_url = strchr(url, '#');
+		if (an_url) url_len -= strlen(an_url);
+		
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = gf_list_get(scene->resources, i);
-			if (odm->net_service && !strcmp(odm->net_service->url, url)) break;
+			if (odm->net_service) {
+				an_url = odm->net_service->url;
+				if (!strncmp(an_url, "gpac://", 7)) an_url = an_url + 7;
+				if (!strncmp(an_url, "file://", 7)) an_url = an_url + 7;
+				if (!strncmp(an_url, url, url_len))
+					break;
+			}
 			odm = NULL;
 		}
 	}
@@ -2175,6 +2208,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("focus_highlight",			GJS_GPAC_PROP_FOCUS_HIGHLIGHT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 		SMJS_PROPERTY_SPEC("dpi_x",						GJS_GPAC_PROP_DPI_X, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dpi_y",						GJS_GPAC_PROP_DPI_Y, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
+		SMJS_PROPERTY_SPEC("sensors_active",			GJS_GPAC_PROP_SENSORS_ACTIVE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};
@@ -2259,8 +2293,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("scalable_enhancement",		GJS_OM_PROP_SCALABLE_ENHANCEMENT, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_media_time",		GJS_OM_PROP_MAIN_ADDON_MEDIATIME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dependent_groups",		GJS_OM_PROP_DEPENDENT_GROUPS, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-
-
+		SMJS_PROPERTY_SPEC("vr_scene",		GJS_OM_PROP_IS_VR_SCENE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 
 		SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
 	};

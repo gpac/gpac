@@ -371,7 +371,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	case GF_CODEC_TRUSTED_CTS:
 		capability->cap.valueInt = 1;
 		break;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		capability->cap.valueBool = GF_TRUE;
 		break;
 	/*not known at our level...*/
@@ -410,7 +410,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
 		return GF_OK;
-	case GF_CODEC_DIRECT_OUTPUT:
+	case GF_CODEC_RAW_MEMORY:
 		ctx->direct_output = GF_TRUE;
 		ctx->pack_mode = GF_FALSE;
 		if (ctx->conv_to_8bit && ctx->out_size)
@@ -459,13 +459,13 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		ctx->stride = a_stride;
 		ctx->height = a_h;
 		if( chromat_format == YUV420 ) {
-		ctx->out_size = ctx->stride * a_w * 3 / 2;
+		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 		}
 		else if  ( chromat_format == YUV422 ) {
-			ctx->out_size = ctx->stride * a_w * 2;
+			ctx->out_size = ctx->stride * ctx->height * 2;
 		}
 		else if ( chromat_format == YUV444 ) {
-			ctx->out_size = ctx->stride * a_w * 3;
+			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
 		ctx->had_pic = GF_TRUE;
 		ctx->luma_bpp = ctx->chroma_bpp = bit_depth;

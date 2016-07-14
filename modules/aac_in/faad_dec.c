@@ -433,7 +433,7 @@ static u32 FAAD_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	}
 	/*this codec currently requires AAC config in ESD*/
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] DecoderSpecificInfo missing - cannot initialize\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] DecoderSpecificInfo missing - cannot initialize\n"));
 		return GF_CODEC_NOT_SUPPORTED;
 	}
 #ifndef GPAC_DISABLE_AV_PARSERS

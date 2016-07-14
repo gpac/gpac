@@ -190,13 +190,17 @@ extension = {
                         this.movie_connected = true;
                     }
                 }
+				//reset stats objects and data
+				ext.root_odm=null;
+				ext.nb_objs_at_last_scan = 0;
+				ext.stats_resources = [];
+				ext.stats_data = [];
 
                 //switch back inline nodes and remove from dictionary
                 gw_detach_child(this);
                 //force detach, we don't know when GC will be done
                 ext.movie.children[0].url[0] = '';
                 ext.movie.children[0] = this;
-
                 if (evt.error) return;
 
                 //success !
@@ -607,6 +611,7 @@ extension = {
 
 
         wnd.navigate = gw_new_icon(wnd.infobar, 'navigation');
+        wnd.navigate.add_icon('sensors');
         wnd.navigate.extension = this;
         wnd.navigate.on_click = function () {
             this.extension.select_navigation_type();
@@ -769,12 +774,27 @@ extension = {
 
             if (this.navigate) {
                 this.navigate.hide();
-                if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+
+				if (this.extension.root_odm && this.extension.root_odm.vr_scene) {
                     show_navigate = true;
                     full_w += control_icon_size;
-                }
-            }
+				
+					wnd.navigate.on_click = function () {
+						var sensors_active = gpac.sensors_active;
+						gpac.sensors_active = !sensors_active;
+						this.switch_icon(sensors_active ? 1 : 0);
+					}
+				} else if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+                    show_navigate = true;
+                    full_w += control_icon_size;
 
+					wnd.navigate.on_click = function () {
+						this.extension.select_navigation_type();
+					}
+                }
+ 
+            }
+			
             if (this.extension.movie_connected) {
                 if (this.extension.state == this.extension.GF_STATE_STOP) {
                     this.stats.hide();

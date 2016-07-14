@@ -439,9 +439,8 @@ char* gf_strdup(const char *str);
 #define PTR_TO_U_CAST
 #endif
 
-
-#ifndef GF_EXPORT
-#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR)
+#if !defined(GF_EXPORT)
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_IPHONE)
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
@@ -449,10 +448,9 @@ char* gf_strdup(const char *str);
 #endif
 #endif
 
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#if defined(GPAC_IPHONE)
 #define GPAC_STATIC_MODULES
 #endif
-
 
 /*safety checks on macros*/
 

@@ -350,6 +350,12 @@ endif
 EXTRALIBS+=-lfreenect
 endif
 
+
+ifeq ($(CONFIG_DARWIN),yes)
+OBJS+=../modules/vtb_decode/vtb_decode.o
+EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
+endif
+
 #end of static modules
 
 endif

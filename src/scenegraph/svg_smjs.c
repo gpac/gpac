@@ -2721,6 +2721,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fsize = (u32) fread(jsscript, sizeof(char), (size_t)fsize, jsf);
 	gf_fclose(jsf);
 	jsscript[fsize] = 0;
+	if ((s32) fsize<0) return GF_FALSE;
 
 	/*for handler, only load code*/
 	if (script->sgprivate->tag==TAG_SVG_handler) {

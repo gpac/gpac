@@ -120,7 +120,7 @@ static GFINLINE void usage()
 	        "-force-pcr-only        allows sending PCR-only packets to enforce the requested PCR rate - STILL EXPERIMENTAL.\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
-	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal, and can be a number for external timeline IDs\n"
+	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optional, and can be a number for external timeline IDs\n"
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
 	        "-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
@@ -530,6 +530,11 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
+					priv->dsi = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+					priv->dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+					memcpy(priv->dsi, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				}
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
 			case GPAC_OTI_VIDEO_SHVC:

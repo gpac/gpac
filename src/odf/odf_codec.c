@@ -318,29 +318,40 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 //use this function to encode a standalone descriptor
 //the desc will be formatted with tag and size field
 GF_EXPORT
-GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_BitStream *bs;
+	if (!desc || !bs) return GF_BAD_PARAM;
 
-	if (!desc || !outEncDesc || !outSize) return GF_BAD_PARAM;
-
-	*outEncDesc = NULL;
-	*outSize = 0;
-
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!bs) return GF_OUT_OF_MEM;
 	//then encode our desc...
 	e = gf_odf_write_descriptor(bs, desc);
 	if (e) {
 		gf_bs_del(bs);
 		return e;
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+{
+	GF_Err e;
+	GF_BitStream *bs;
+	if (!desc || !outEncDesc || !outSize) return GF_BAD_PARAM;
+	*outEncDesc = NULL;
+	*outSize = 0;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	e = gf_odf_desc_write_bs(desc, bs);
+	
 	//then get the content from our bitstream
 	gf_bs_get_content(bs, outEncDesc, outSize);
 	gf_bs_del(bs);
-	return GF_OK;
+	return e;
 }
+
 
 //use this function to get the size of a standalone descriptor
 GF_EXPORT

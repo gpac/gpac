@@ -309,6 +309,8 @@ struct __dash_group
 
 	/*current index of the base URL used*/
 	u32 current_base_url_idx;
+	
+	u32 quality_degradation_hint;
 };
 
 struct _dash_srd_desc
@@ -3062,7 +3064,8 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 					continue;
 				}
 			}
-			if (dash->max_width && dash->max_height) {
+			//filter out everything above HD
+			if ((dash->max_width>2000) && (dash->max_height>2000)) {
 				if ((rep->width>dash->max_width) || (rep->height>dash->max_height)) {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation size %dx%d exceeds max display size allowed %dx%d - ignoring\n", rep->width, rep->height, dash->max_width, dash->max_height));
 					rep->playback.disabled = 1;
@@ -3159,7 +3162,7 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 				nb_dependant_rep++;
 		}
 
-		if (!seg_dur) {
+		if (!seg_dur && !dash->is_m3u8) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot compute default segment duration\n"));
 		}
 
@@ -3514,13 +3517,13 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 					} else {
 						FILE *t = gf_fopen(cache_name, "rb");
 						if (t) {
-							u32 res;
+							s32 res;
 							fseek(t, 0, SEEK_END);
 							rep->playback.init_segment_size = (u32) gf_ftell(t);
 							fseek(t, 0, SEEK_SET);
 
 							rep->playback.init_segment_data = gf_malloc(sizeof(char) * rep->playback.init_segment_size);
-							res = (u32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
+							res = (s32) fread(rep->playback.init_segment_data, sizeof(char), rep->playback.init_segment_size, t);
 							if (res != rep->playback.init_segment_size) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to store init segment\n"));
 							} else if (rep->segment_list && rep->segment_list->initialization_segment) {
@@ -3693,9 +3696,17 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 {
 	s32 res, res2;
 	struct _dash_srd_desc *srd = tile_group->srd_desc;
+	
 	//no SRD is max quality for now
 	if (!srd) return 0;
-
+	
+	if (tile_group->quality_degradation_hint) {
+		u32 v = tile_group->quality_degradation_hint * MAX(srd->srd_nb_rows, srd->srd_nb_cols);
+		v/=100;
+		return v;
+	}
+	
+	
 	switch (dash->tile_adapt_mode) {
 	case GF_DASH_ADAPT_TILE_NONE:
 		return 0;
@@ -7011,6 +7022,16 @@ void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads)
 	dash->use_threaded_download = use_threads;
 }
 
+GF_EXPORT
+GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, u32 quality_degradation_hint)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_BAD_PARAM;
+
+	group->quality_degradation_hint = quality_degradation_hint;
+	if (group->quality_degradation_hint > 100) group->quality_degradation_hint=100;
+	return GF_OK;
+}
 
 
 #endif //GPAC_DISABLE_DASH_CLIENT
