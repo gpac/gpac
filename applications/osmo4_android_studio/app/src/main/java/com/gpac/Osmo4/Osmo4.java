@@ -150,9 +150,9 @@ public class Osmo4 extends Activity implements GpacCallback {
         requestWindowFeature(Window.FEATURE_PROGRESS);
         requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
 		
-		requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
         		WindowManager.LayoutParams.FLAG_FULLSCREEN);
+
         try {
 			Class c = Class.forName("com.lge.real3d.Real3D");
 			final String LGE_3D_DISPLAY = "lge.hardware.real3d.barrier.landscape";
