@@ -55,6 +55,7 @@
     <string name="setAsStartupFileNull">No startup file</string>
     <string name="setAsStartupFileMessageNoURL">You are not connected to any URL. You may use this entry to set an URL as a startup file when
         connected to a given URL or file.</string>
+    <string name="requestPermissionStorage">You need to give permission to access External Storage</string>
     <!-- All authors in alphabetical order -->
     <string-array name="allAuthors_array">
         <item>Romain Bouqueau</item>
