@@ -57,7 +57,7 @@ typedef struct
 
     //hevc
     char *vps;
-    u32 nb_layers, luma_bpp, chroma_bpp, dec_frames;
+    u32 luma_bpp, chroma_bpp, dec_frames;
     u8 chroma_format_idc;
     u16 ES_ID;
     u32 vps_size;
@@ -74,6 +74,11 @@ u8 sdkInt()
 }
 #endif
 
+/* 
+ * Maps the GPAC pixel formats to the Android pixel formats.
+ * Android pixel format values taken from: https://developer.android.com/reference/android/graphics/ImageFormat.html
+ *
+*/
 
 u32 androidPixelFormat(u32 pix_fmt) {
 
@@ -140,18 +145,214 @@ void initMediaFormat(MCDec *ctx, AMediaFormat *format)
 }
 
 
+GF_Err MCDec_InitAvcDecoder(MCDec *ctx) 
+{
+    if (ctx->sps && ctx->pps) {
+        AVCState avc;
+        s32 idx;
+        memset(&avc, 0, sizeof(AVCState));
+        avc.sps_active_idx = -1;
 
-//todo initialise other items
-static GF_Err MCDec_InitDecoder(MCDec *ctx) {
+        idx = gf_media_avc_read_sps(ctx->sps, ctx->sps_size, &avc, 0, NULL);
+
+        assert(ctx->sps);
+        ctx->width = avc.sps[idx].width;
+        ctx->height = avc.sps[idx].height;
+
+        ctx->out_size = ctx->height * ctx->width * 3/2 ;
+
+        if (avc.sps[idx].vui.par_num && avc.sps[idx].vui.par_den) {
+            ctx->pixel_ar = avc.sps[idx].vui.par_num;
+            ctx->pixel_ar <<= 16;
+            ctx->pixel_ar |= avc.sps[idx].vui.par_den;
+        }
+        ctx->chroma_format = avc.sps[idx].chroma_format;
+        ctx->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
+        ctx->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+    
+       switch (ctx->chroma_format) {
+        case 2:
+            if (ctx->luma_bit_depth>8) {
+                ctx->pix_fmt = GF_PIXEL_YUV422_10;
+            } else {
+                ctx->pix_fmt = GF_PIXEL_YUV422;
+            }
+            break;
+        case 3:
+            if (ctx->luma_bit_depth>8) {
+                ctx->pix_fmt = GF_PIXEL_YUV444_10;
+            } else {
+                ctx->pix_fmt = GF_PIXEL_YUV444;
+            }
+            break;
+        default:
+            if (ctx->luma_bit_depth>8) {
+                ctx->pix_fmt = GF_PIXEL_YV12_10;
+            }
+            break;
+        }
+    
+        ctx->mime = "video/avc";
+
+        u32 sps_size = 4 + ctx->sps_size;
+        u32 pps_size = 4 + ctx->pps_size;   
+        char *sps = (char *)malloc(sps_size);
+        char *pps = (char *)malloc(pps_size);
+        
+        prependStartCode(ctx->sps, sps, &ctx->sps_size);
+        prependStartCode(ctx->pps, pps, &ctx->pps_size);
+
+        AMediaFormat_setBuffer(ctx->format, "csd-0", sps, sps_size);
+        AMediaFormat_setBuffer(ctx->format, "csd-1", pps, pps_size);
+    }
+
+    return GF_OK;
+}
 
 
+GF_Err MCDec_InitMpeg4Decoder(MCDec *ctx) 
+{
     char *dsi_data = NULL;
     u32 dsi_data_size = 0;
 
-    //for hevc
+    if (!ctx->esd->decoderConfig->decoderSpecificInfo) {
+        ctx->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
+    }
+    
+    if (ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+        GF_M4VDecSpecInfo vcfg;
+        GF_BitStream *bs;
+        
+        gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
+        ctx->width = vcfg.width;
+        ctx->height = vcfg.height;
+
+        if (ctx->esd->slConfig) {
+            ctx->esd->slConfig->predefined  = 2;
+        }
+
+        bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+        gf_bs_write_u32(bs, 0);
+        gf_odf_desc_write_bs((GF_Descriptor *) ctx->esd, bs);
+        gf_bs_get_content(bs, &dsi_data, &dsi_data_size);
+        gf_bs_del(bs);
+
+        ctx->mime = "video/mp4v-es";
+
+        char *esds = (char *)malloc(dsi_data_size);
+        memcpy(esds, dsi_data, dsi_data_size);
+
+        esds[0] = 0x00;
+        esds[1] = 0x00;
+        esds[2] = 0x00;
+        esds[3] = 0x01;
+       
+        AMediaFormat_setBuffer(ctx->format, "csd-0", esds, dsi_data_size);
+
+        gf_free(dsi_data);
+        return GF_OK;
+    } 
+    return GF_NOT_SUPPORTED;
+}
+
+
+GF_Err MCDec_InitHevcDecoder(MCDec *ctx) 
+{
     u32 i, j;
     GF_HEVCConfig *cfg = NULL;
 
+    ctx->ES_ID = ctx->esd->ESID;
+    ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = ctx->chroma_format_idc = 0;
+
+    if (ctx->esd->decoderConfig->decoderSpecificInfo && ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+        HEVCState hevc;
+        memset(&hevc, 0, sizeof(HEVCState));
+
+        cfg = gf_odf_hevc_cfg_read(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
+        if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
+        ctx->nalu_size_length = cfg->nal_unit_size;
+
+        for (i=0; i< gf_list_count(cfg->param_array); i++) {
+            GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
+            for (j=0; j< gf_list_count(ar->nalus); j++) {
+                GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+                s32 idx;
+                u16 hdr = sl->data[0] << 8 | sl->data[1];
+
+                if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+                    idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
+                    ctx->width = MAX(hevc.sps[idx].width, ctx->width);
+                    ctx->height = MAX(hevc.sps[idx].height, ctx->height);
+                    ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
+                    ctx->chroma_bpp = MAX(hevc.sps[idx].bit_depth_chroma, ctx->chroma_bpp);
+                    ctx->chroma_format_idc  = hevc.sps[idx].chroma_format_idc;
+
+                    ctx->sps = (char *) malloc(4 + sl->size);
+                    ctx->sps_size = sl->size;
+                    prependStartCode(sl->data, ctx->sps, &ctx->sps_size);
+                }
+                else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+                    gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+
+                    ctx->vps = (char *) malloc(4 + sl->size);
+                    ctx->vps_size = sl->size;
+                    prependStartCode(sl->data, ctx->vps, &ctx->vps_size);
+                }
+                else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+                    gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
+
+                    ctx->pps = (char *) malloc(4 + sl->size);
+                    ctx->pps_size = sl->size;
+                    prependStartCode(sl->data, ctx->pps, &ctx->pps_size);          
+                }
+            }
+        }
+        gf_odf_hevc_cfg_del(cfg);
+    } else {
+        ctx->nalu_size_length = 0;
+    }
+
+    ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
+    if ( ctx->chroma_format_idc  == 1) { // 4:2:0
+        ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+    }
+    else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
+        ctx->out_size = ctx->stride * ctx->height * 2 ;
+    }
+    else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
+        ctx->out_size = ctx->stride * ctx->height * 3;
+    }
+    else {
+        return GF_NOT_SUPPORTED;
+    }
+    
+    ctx->mime = "video/hevc";
+    
+    u32 csd0_size = ctx->sps_size + ctx-> pps_size + ctx->vps_size;
+    char *csd0 = (char *) malloc(csd0_size);
+
+    u32 k;
+
+    for(k = 0; k < csd0_size; k++) {
+
+       if(k < ctx->vps_size) {
+            csd0[k] = ctx->vps[k];
+       }
+       else if (k < ctx-> vps_size + ctx->sps_size ) {
+            csd0[k] = ctx->sps[k - ctx->vps_size];
+       }
+       else csd0[k] = ctx->pps[k - ctx->vps_size - ctx->sps_size];
+    }
+
+    AMediaFormat_setBuffer(ctx->format, "csd-0", csd0, csd0_size);
+    return GF_OK;
+}
+
+
+
+static GF_Err MCDec_InitDecoder(MCDec *ctx) {
+
+    GF_Err err;
     ctx->format = AMediaFormat_new();
 
     if(!ctx->format) {
@@ -162,218 +363,29 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
 
 #ifdef GPAC_ANDROID
 
-        ctx->pix_fmt = GF_PIXEL_NV21;
+    ctx->pix_fmt = GF_PIXEL_NV21;
 
-switch (ctx->esd->decoderConfig->objectTypeIndication) {
-    case GPAC_OTI_VIDEO_AVC :
-        if (ctx->sps && ctx->pps) {
-            AVCState avc;
-            s32 idx;
-            memset(&avc, 0, sizeof(AVCState));
-            avc.sps_active_idx = -1;
+    switch (ctx->esd->decoderConfig->objectTypeIndication) {
 
-            idx = gf_media_avc_read_sps(ctx->sps, ctx->sps_size, &avc, 0, NULL);
-
-            assert(ctx->sps);
-            ctx->width = avc.sps[idx].width;
-            ctx->height = avc.sps[idx].height;
-
-            ctx->out_size = ctx->height * ctx->width * 3/2 ;
-
-            if (avc.sps[idx].vui.par_num && avc.sps[idx].vui.par_den) {
-                ctx->pixel_ar = avc.sps[idx].vui.par_num;
-                ctx->pixel_ar <<= 16;
-                ctx->pixel_ar |= avc.sps[idx].vui.par_den;
-            }
-            ctx->chroma_format = avc.sps[idx].chroma_format;
-            ctx->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-            ctx->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
-        
-           switch (ctx->chroma_format) {
-            case 2:
-                if (ctx->luma_bit_depth>8) {
-                    ctx->pix_fmt = GF_PIXEL_YUV422_10;
-                } else {
-                    ctx->pix_fmt = GF_PIXEL_YUV422;
-                }
-                break;
-            case 3:
-                if (ctx->luma_bit_depth>8) {
-                    ctx->pix_fmt = GF_PIXEL_YUV444_10;
-                } else {
-                    ctx->pix_fmt = GF_PIXEL_YUV444;
-                }
-                break;
-            default:
-                if (ctx->luma_bit_depth>8) {
-                    ctx->pix_fmt = GF_PIXEL_YV12_10;
-                }
-                break;
-            }
-        
-            ctx->mime = "video/avc";
-    
-            u32 sps_size = 4 + ctx->sps_size;
-            u32 pps_size = 4 + ctx->pps_size;   
-            char *sps = (char *)malloc(sps_size);
-            char *pps = (char *)malloc(pps_size);
-            
-            prependStartCode(ctx->sps, sps, &ctx->sps_size);
-            prependStartCode(ctx->pps, pps, &ctx->pps_size);
-
-            AMediaFormat_setBuffer(ctx->format, "csd-0", sps, sps_size);
-            AMediaFormat_setBuffer(ctx->format, "csd-1", pps, pps_size);
-        }
-
-        break;
-
+        case GPAC_OTI_VIDEO_AVC :
+            err = MCDec_InitAvcDecoder(ctx);
+            break;
 
         case GPAC_OTI_VIDEO_MPEG4_PART2 :
-        
-                if (!ctx->esd->decoderConfig->decoderSpecificInfo) {
-                    ctx->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-                }
-                
-                if (ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-                    GF_M4VDecSpecInfo vcfg;
-                    GF_BitStream *bs;
-                    
-                    gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
-                    ctx->width = vcfg.width;
-                    ctx->height = vcfg.height;
-
-                    if (ctx->esd->slConfig) {
-                        ctx->esd->slConfig->predefined  = 2;
-                    }
-
-                    bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-                    gf_bs_write_u32(bs, 0);
-                    gf_odf_desc_write_bs((GF_Descriptor *) ctx->esd, bs);
-                    gf_bs_get_content(bs, &dsi_data, &dsi_data_size);
-                    gf_bs_del(bs);
-
-                    ctx->mime = "video/mp4v-es";
-
-                    char *esds = (char *)malloc(dsi_data_size);
-                    memcpy(esds, dsi_data, dsi_data_size);
-
-                    esds[0] = 0x00;
-                    esds[1] = 0x00;
-                    esds[2] = 0x00;
-                    esds[3] = 0x01;
-                   
-                    AMediaFormat_setBuffer(ctx->format, "csd-0", esds, dsi_data_size);
-
-                    gf_free(dsi_data);
-
-                } else {
-                    return GF_OK;
-                }
-        break;
-        
-
+            err = MCDec_InitMpeg4Decoder(ctx);            
+            break;
+            
         case GPAC_OTI_VIDEO_HEVC:
-
-            ctx->ES_ID = ctx->esd->ESID;
-            ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = ctx->chroma_format_idc = 0;
-
-            ctx->nb_layers = 1;
-
-            if (ctx->esd->decoderConfig->decoderSpecificInfo && ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-                HEVCState hevc;
-                memset(&hevc, 0, sizeof(HEVCState));
-
-                cfg = gf_odf_hevc_cfg_read(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
-                if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
-                ctx->nalu_size_length = cfg->nal_unit_size;
-
-                for (i=0; i< gf_list_count(cfg->param_array); i++) {
-                    GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
-                    for (j=0; j< gf_list_count(ar->nalus); j++) {
-                        GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-                        s32 idx;
-                        u16 hdr = sl->data[0] << 8 | sl->data[1];
-
-                        if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-                            idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
-                            ctx->width = MAX(hevc.sps[idx].width, ctx->width);
-                            ctx->height = MAX(hevc.sps[idx].height, ctx->height);
-                            ctx->luma_bpp = MAX(hevc.sps[idx].bit_depth_luma, ctx->luma_bpp);
-                            ctx->chroma_bpp = MAX(hevc.sps[idx].bit_depth_chroma, ctx->chroma_bpp);
-                            ctx->chroma_format_idc  = hevc.sps[idx].chroma_format_idc;
-
-
-                            ctx->sps = (char *) malloc(4 + sl->size);
-                            ctx->sps_size = sl->size;
-                            prependStartCode(sl->data, ctx->sps, &ctx->sps_size);
-
-                            if (hdr & 0x1f8) {
-                                ctx->nb_layers ++;
-                            }
-                        }
-                        else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-                            gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
-
-                            ctx->vps = (char *) malloc(4 + sl->size);
-                            ctx->vps_size = sl->size;
-                            prependStartCode(sl->data, ctx->vps, &ctx->vps_size);
-                        }
-                        else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-                            gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
-
-                            ctx->pps = (char *) malloc(4 + sl->size);
-                            ctx->pps_size = sl->size;
-                            prependStartCode(sl->data, ctx->pps, &ctx->pps_size);          
-                        }
-                    }
-                }
-                gf_odf_hevc_cfg_del(cfg);
-            } else {
-                ctx->nalu_size_length = 0;
-            }
-
-            ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
-            if ( ctx->chroma_format_idc  == 1) { // 4:2:0
-                ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-            }
-            else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
-                ctx->out_size = ctx->stride * ctx->height * 2 ;
-            }
-            else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
-                ctx->out_size = ctx->stride * ctx->height * 3;
-            }
-            else {
-                return GF_NOT_SUPPORTED;
-            }
-            
-            
-            ctx->mime = "video/hevc";
-            
-            u32 csd0_size = ctx->sps_size + ctx-> pps_size + ctx->vps_size;
-            char *csd0 = (char *) malloc(csd0_size);
-
-            u32 k;
-            LOGV("csd0_size:   %d", csd0_size);
-            for(k = 0; k < csd0_size; k++) {
-
-               if(k < ctx->vps_size) {
-                    csd0[k] = ctx->vps[k];
-               }
-               else if (k < ctx-> vps_size + ctx->sps_size ) {
-                    csd0[k] = ctx->sps[k - ctx->vps_size];
-               }
-               else csd0[k] = ctx->pps[k - ctx->vps_size - ctx->sps_size];
-            }
-
-            AMediaFormat_setBuffer(ctx->format, "csd-0", csd0, csd0_size);
-
-        break;
-
+            err = MCDec_InitHevcDecoder(ctx);
+            break;
+     
         default:
             return GF_NOT_SUPPORTED;
     }
 
-
+    if(err != GF_OK){
+        return err;
+    }
 
     ctx->frame_rate = 30;
     ctx->stride = ctx->width;
@@ -412,7 +424,6 @@ switch (ctx->esd->decoderConfig->objectTypeIndication) {
 
     LOGI("Video size: %d x %d", ctx->width, ctx->height);
     return GF_OK;
-
 
 }
 
