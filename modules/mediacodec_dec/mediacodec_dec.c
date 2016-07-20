@@ -29,7 +29,6 @@
 
 typedef struct 
 {
-
 #ifdef GPAC_ANDROID
 
     AMediaCodec *codec;
@@ -74,47 +73,6 @@ u8 sdkInt()
 }
 #endif
 
-/* 
- * Maps the GPAC pixel formats to the Android pixel formats.
- * Android pixel format values taken from: https://developer.android.com/reference/android/graphics/ImageFormat.html
- *
-*/
-
-u32 androidPixelFormat(u32 pix_fmt) {
-
-    switch(pix_fmt) {
-        case GF_PIXEL_YV12:
-            return 0x32315659;
-
-        case GF_PIXEL_YUV422:
-                return 0x27;
-
-        case GF_PIXEL_YUV444:
-                return 0x28;
-
-        case GF_PIXEL_NV21:
-                return 0x11;
-
-        case GF_PIXEL_RGB_565:
-                return 0x04;
-
-        case GF_PIXEL_YUY2:
-                return 0x14;
-
-        case GF_PIXEL_RGB_32:
-                return 0x2a;
-
-        case GF_PIXEL_RGB_24:
-                return 0x29;
-
-        case GF_PIXEL_YUV444_10:
-        case GF_PIXEL_YV12_10:
-        case GF_PIXEL_YUV422_10:
-        default: 
-            return -1;
-    }
-}
-
 
 //prepend the inBuffer with the start code i.e. 0x00 0x00 0x00 0x01
 void prependStartCode(char *inBuffer, char *outBuffer, u32 *size) 
@@ -140,7 +98,6 @@ void initMediaFormat(MCDec *ctx, AMediaFormat *format)
     AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, ctx->width);
     AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_HEIGHT, ctx->height);
     AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_STRIDE, ctx->stride);  
-    AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_COLOR_FORMAT, androidPixelFormat(ctx->pix_fmt));  
     AMediaFormat_setInt32(ctx->format, AMEDIAFORMAT_KEY_MAX_INPUT_SIZE, ctx->width * ctx->height);
 }
 
@@ -349,7 +306,6 @@ GF_Err MCDec_InitHevcDecoder(MCDec *ctx)
 }
 
 
-
 static GF_Err MCDec_InitDecoder(MCDec *ctx) {
 
     GF_Err err;
@@ -363,7 +319,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
 
 #ifdef GPAC_ANDROID
 
-    ctx->pix_fmt = GF_PIXEL_NV21;
+    ctx->pix_fmt = GF_PIXEL_YPVU;
 
     switch (ctx->esd->decoderConfig->objectTypeIndication) {
 
@@ -410,7 +366,6 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         return GF_BAD_PARAM;
     }
 
-
     if( AMediaCodec_start(ctx->codec) != AMEDIA_OK){
         LOGE("AMediaCodec_start failed");
         return GF_BAD_PARAM;
@@ -424,13 +379,11 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
 
     LOGI("Video size: %d x %d", ctx->width, ctx->height);
     return GF_OK;
-
 }
 
 
 static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
-
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     ctx->esd = esd;
     GF_Err e;
@@ -467,7 +420,6 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
         }
     }
 
-
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
             ctx->width=ctx->height=128;
@@ -484,8 +436,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
             return MCDec_InitDecoder(ctx);
         }
     }
-
-    
+  
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC) {
         ctx->esd= esd;
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
@@ -499,7 +450,6 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
     return MCDec_InitDecoder(ctx);
 }
-
 
 
 
@@ -521,7 +471,6 @@ static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 
 static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
-
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     
     switch (capability->CapCode) {
@@ -587,29 +536,16 @@ static GF_Err MCDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 }
 
 
-void convertNV12toNV21(char *bytes, u32 width, u32 height) 
-{
-    u32 i;
-    for(i = width*height; i < 3 * (width * height)/ 2 - 1; i++){
-        bytes[i] = bytes[i + 1];
-    }
-}
-
-
-
 static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                                char *inBuffer, u32 inBufferLength,
                                u16 ES_ID, u32 *CTS,
                                char *outBuffer, u32 *outBufferLength,
                                u8 PaddingBits, u32 mmlevel)
 {
-
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     *outBufferLength = 0;
 
-
 #ifdef GPAC_ANDROID
-
 
         if(!ctx->inputEOS) {
 
@@ -619,7 +555,6 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
             if (inIndex >= 0) {
 
                 size_t inSize;
-                
                 char *buffer = (char *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
 
                 if (inBufferLength > inSize)  {
@@ -675,8 +610,6 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                default:
                     memcpy(buffer, inBuffer, inBufferLength);
                     break;
-
-
             }
 
                 if(!inBuffer || inBufferLength == 0){
@@ -704,7 +637,6 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
             }
 
         }
-
 
         if(!ctx->outputEOS) {
 
@@ -750,9 +682,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                             else *outBufferLength = ctx->out_size;
                         }
 
-                        convertNV12toNV21(buffer, ctx->width, ctx->height);
                         memcpy(outBuffer, buffer, *outBufferLength);
-
                         AMediaCodec_releaseOutputBuffer(ctx->codec, outIndex, false); 
 
                     } else{
@@ -767,10 +697,8 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 }
 
 
-
 static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
-
     if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 
     /*media type query*/
@@ -799,6 +727,7 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
     return GF_CODEC_NOT_SUPPORTED;
 }
 
+
 static const char *MCDec_GetCodecName(GF_BaseDecoder *dec)
 {   
     MCDec *ctx = (MCDec *) dec->privateStack;
@@ -814,7 +743,6 @@ static const char *MCDec_GetCodecName(GF_BaseDecoder *dec)
 
     else return "MediaCodec not supported";
 }
-
 
 
 GF_BaseDecoder *NewMCDec()
