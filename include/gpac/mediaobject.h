@@ -128,7 +128,7 @@ typedef enum
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame, Bool * force_to_8bit);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop

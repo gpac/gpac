@@ -269,6 +269,10 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	gf_codec_get_capability(mo->odm->codec, &cap);
 	mo->pixelformat = cap.cap.valueInt;
 
+	cap.CapCode = GF_CODEC_FORCE_8_BIT;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->force_to_8bit = cap.cap.valueInt;
+
 	cap.CapCode = GF_CODEC_FPS;
 	gf_codec_get_capability(mo->odm->codec, &cap);
 	mo->odm->codec->fps = cap.cap.valueFloat;
@@ -385,7 +389,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame, Bool *force_to_8bit)
 {
 	GF_Codec *codec;
 	u32 force_decode_mode = 0;
@@ -397,6 +401,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	*eos = GF_FALSE;
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
+	*force_to_8bit = mo->force_to_8bit;
+
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = NULL;
