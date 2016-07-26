@@ -29,7 +29,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final boolean USE_ORIENTATION_THRESHOLD = true;    //if true keepOrientation() discards results within the error margin
 
     //the lower the value, the more smoothing is applied (lower response) - set to 1.0 for no filter
-    private static final float ORIENTATION_FILTER_LVL = 0.06f;
+    private static final float ORIENTATION_FILTER_LVL = 0.04f;
     //threshold to discard orientation x, y, z
     private static final float[] ORIENTATION_THRESHOLD = {0.2f, 0.02f, 0.02f};
 
@@ -190,12 +190,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private void calculateOrientation() {
         float[] tmpOrient = new float[3];
         SensorManager.getOrientation(rotationMx, tmpOrient);
-        orientation = tmpOrient;
+        orientation = tmpOrient.clone();
         Log.v(LOG_TAG, "Received Orientation - Yaw: " + orientation[0] + " , Pitch: " + orientation[1] + " , Roll: " + orientation[2]);
     }
 
     private void updateOrientation() {
-        lastOrient = orientation;
+        lastOrient = orientation.clone();
         boolean refreshOrientation = true;
         if (USE_ORIENTATION_THRESHOLD) {
             refreshOrientation = keepOrientation(lastOrient, prevOrient);
