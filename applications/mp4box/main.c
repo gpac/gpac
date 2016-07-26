@@ -323,7 +323,7 @@ void PrintDASHUsage()
 	        "Input media files to dash can use the following modifiers\n"
 	        " \"#trackID=N\"       only uses the track ID N from the source file\n"
 	        " \"#video\"           only uses the first video track from the source file\n"
-	        " \"#audio\"           only uses the first video track from the source file\n"
+	        " \"#audio\"           only uses the first audio track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
 	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
@@ -376,7 +376,7 @@ void PrintDASHUsage()
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
-	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"
+	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -636,6 +636,7 @@ void PrintEncryptUsage()
 	        "                       * Note: \'self\' writes key and salt in the file\n"
 	        " selectiveType        selective encryption type - understood values are:\n"
 	        "   \"None\"             all samples encrypted (default)\n"
+	        "   \"Clear\"            all samples clean (not encrypted)\n"
 	        "   \"RAP\"              only encrypts random access units\n"
 	        "   \"Non-RAP\"          only encrypts non-random access units\n"
 	        "   \"Rand\"             random selection is performed\n"
@@ -1549,8 +1550,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
 				di->nb_baseURL++;
 			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
-			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
-			else if (!strnicmp(opts, "desc", 4)) {
+			else if (!strnicmp(opts, "role=", 5)) {
+				di->roles = gf_realloc(di->roles, sizeof (char *) * (di->nb_roles+1));
+				di->roles[di->nb_roles] = gf_strdup(opts+5);
+				di->nb_roles++;
+			} else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
 				char ***descs=NULL;
 				u32 opt_offset=0;
@@ -1923,7 +1927,13 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->representationID) gf_free(di->representationID);
 			if (di->periodID) gf_free(di->periodID);
 			if (di->xlink) gf_free(di->xlink);
-			if (di->role) gf_free(di->role);
+
+			if (di->roles) {
+				for (j = 0; j<di->nb_roles; j++) {
+					gf_free(di->roles[j]);
+				}
+				gf_free(di->roles);
+			}
 		}
 		gf_free(dash_inputs);
 		dash_inputs = NULL;
@@ -5040,7 +5050,7 @@ exit:
 	return 0;
 }
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(NO_WMAIN)
 int wmain( int argc, wchar_t** wargv )
 {
 	int i;

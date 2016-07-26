@@ -1186,6 +1186,8 @@ struct _mediaobj
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 	u32 srd_x, srd_y, srd_w, srd_h;
 	
+	u32 quality_degradation_hint;
+	
 	GF_MediaDecoderFrame *media_frame;
 };
 

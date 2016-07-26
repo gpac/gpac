@@ -499,8 +499,10 @@ typedef struct
 	char **baseURL;
 	/*! xlink of the period if desired, NULL otherwise*/
 	char *xlink;
+	/*! number of items in roles*/
+	u32 nb_roles;
 	/*! role of the representation according to MPEG-DASH*/
-	char *role;
+	char **roles;
 	/*! number of items in rep_descs*/
 	u32 nb_rep_descs;
 	/*! descriptors to be inserted in the representation*/

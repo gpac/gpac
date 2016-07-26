@@ -610,9 +610,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		z = ev->sensor.z;
 		w = ev->sensor.w;
 		
-		yaw = atan2(2*z*w - 2*y*x , 1 - 2*pow(z,2) - 2*pow(x,2));
+		yaw = gf_atan2(2*gf_mulfix(z,w) - 2*gf_mulfix(y,x) , 1 - 2*gf_mulfix(z,z) - 2*gf_mulfix(x,x));
 		//pitch = asin(2*y*z + 2*x*w);
-		roll = atan2(2*y*w - 2*z*x , 1 - 2*pow(y,2) - 2*pow(x,2));
+		roll = gf_atan2(2*gf_mulfix(y,w) - 2*gf_mulfix(z,x) , 1 - 2*gf_mulfix(y,y) - 2*gf_mulfix(x,x));
 #else
 		/*
 		 * In Android we get yaw, pitch, roll values (in rad)

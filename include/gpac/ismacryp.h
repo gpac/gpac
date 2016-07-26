@@ -53,6 +53,17 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 /*loads key and salt for MPEG4IP protected files*/
 Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
 
+
+enum
+{
+	GF_CRYPT_ISMA_CRYPT_TYPE	= GF_4CC( 'i', 'A', 'E', 'C' ),
+	GF_CRYPT_CENC_CRYPT_TYPE	= GF_4CC('c','e','n','c'),
+	GF_CRYPT_CBC1_CRYPT_TYPE	= GF_4CC('c','b','c','1'),
+	GF_CRYPT_ADOBE_CRYPT_TYPE	= GF_4CC('a','d','k','m'),
+	GF_CRYPT_CENS_CRYPT_TYPE	= GF_4CC('c','e','n','s'),
+	GF_CRYPT_CBCS_CRYPT_TYPE	= GF_4CC('c','b','c','s'),
+};
+
 enum
 {
 	/*no selective encryption*/
@@ -69,12 +80,14 @@ enum
 	GF_CRYPT_SELENC_RANGE = 5,
 	/*encryption of all samples but the preview range*/
 	GF_CRYPT_SELENC_PREVIEW = 6,
+	/*encryption of no samples*/
+	GF_CRYPT_SELENC_CLEAR = 7,
 };
 
 typedef struct
 {
-	/*0: ISMACryp - 1: OMA DRM - 2: CENC CTR - 3: CENC CBC - 4: ADOBE*/
-	u32 enc_type;
+	/*0: ISMACryp - 1: OMA DRM*/
+	u32 enc_type;//for now only used for ISMACrypt
 	u32 trackID;
 	unsigned char key[16];
 	unsigned char salt[16];
@@ -112,6 +125,12 @@ typedef struct
 	unsigned char first_IV[16];
 	u32 defaultKeyIdx;
 	u32 keyRoll;
+	u8 crypt_byte_block, skip_byte_block;
+	u8 constant_IV_size;
+	unsigned char constant_IV[16];
+	//true if using AES-CTR mode, false if using AES-CBC mode
+	Bool ctr_mode;
+	u32 cenc_scheme_type;
 
 	char metadata[5000];
 	u32 metadata_len;

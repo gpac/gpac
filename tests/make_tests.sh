@@ -213,7 +213,7 @@ for i in $* ; do
   exit
  else
   if [ -n "$url_arg" ] ; then
-   echo "More than one input secified - check usage (-h)"
+   echo "More than one input specified - check usage (-h)"
    exit
   fi
   url_arg=$i
