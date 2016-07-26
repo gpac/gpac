@@ -72,6 +72,7 @@ import android.os.Environment;
 import com.gpac.Osmo4.Osmo4GLSurfaceView;
 import com.gpac.Osmo4.Preview;
 import com.gpac.Osmo4.R;
+import com.gpac.Osmo4.extra.ConfigFileEditorActivity;
 import com.gpac.Osmo4.extra.FileChooserActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
 
@@ -389,7 +390,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 		private void copyFile(GpacConfig config, String root, String filename) throws IOException {
 		// if this file exists, do nothing
 
-            if(root == GUI_ROOT_ASSET_DIR){
+            if(root.equals(GUI_ROOT_ASSET_DIR)){
 				if ((new File(config.getGpacGuiDirectory() + filename).exists()))
 					return;
             }
@@ -400,9 +401,9 @@ public class Osmo4 extends Activity implements GpacCallback {
 			in = assetManager.open(root + "/" + filename);
 
             String newFileName = null;
-            if(root == GUI_ROOT_ASSET_DIR){
+            if(root.equals(GUI_ROOT_ASSET_DIR)){
 			     newFileName = config.getGpacGuiDirectory() + filename;
-            }else if(root == SHADER_ROOT_ASSET_DIR){
+            }else if(root.equals(SHADER_ROOT_ASSET_DIR)){
                 newFileName = config.getGpacShaderDirectory() + filename;
             }else{  //Fallback
                 newFileName = filename;
@@ -725,6 +726,12 @@ public class Osmo4 extends Activity implements GpacCallback {
                 .show();
                 return true;
             }
+
+            case R.id.configFileEditor: {
+                Intent i = new Intent(Osmo4.this, ConfigFileEditorActivity.class);
+                startActivity(i);
+            }
+
             case R.id.about: {
                 Dialog d = new Dialog(this);
                 d.setTitle(R.string.aboutTitle);

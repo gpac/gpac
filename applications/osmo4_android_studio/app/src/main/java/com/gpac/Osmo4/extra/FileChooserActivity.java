@@ -25,8 +25,8 @@ public class FileChooserActivity extends Activity {
     final String FILE_CHOOSER_FRAGMENT = "fileChooserFragment";
     public final static String TITLE_PARAMETER = "org.openintents.extra.TITLE";
 
-    FragmentManager fm;
-    FileChooserFragment fileChooserFragment;
+    private FragmentManager fm;
+    private FileChooserFragment fileChooserFragment;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
