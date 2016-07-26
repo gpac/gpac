@@ -1423,7 +1423,7 @@ void gf_smil_anim_init_discard(GF_Node *node)
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 	GF_SAFEALLOC(e->xlinkp, XLinkAttributesPointers);
 	if (!e->xlinkp) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("[SMIL] Error creating anim xlink attrib\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("[SMIL] Error creating anim xlink attrib\n"));
 		return;
 	}
 	xlinkp = e->xlinkp;

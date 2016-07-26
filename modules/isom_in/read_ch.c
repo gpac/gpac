@@ -714,9 +714,18 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				u32 Is_Encrypted;
 				u8 IV_size;
 				bin128 KID;
+				u8 crypt_bytr_block, skip_byte_block;
+				u8 constant_IV_size;
+				bin128 constant_IV;
 
-				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID);
+				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
 				ch->current_slh.IV_size = IV_size;
+				ch->current_slh.crypt_byte_block = crypt_bytr_block;
+				ch->current_slh.skip_byte_block = skip_byte_block;
+				if (Is_Encrypted && !ch->current_slh.IV_size) {
+					ch->current_slh.constant_IV_size = constant_IV_size;
+					memmove(ch->current_slh.constant_IV, constant_IV, ch->current_slh.constant_IV_size);
+				}
 				if (Is_Encrypted) {
 					ch->current_slh.cenc_encrypted = 1;
 					sai = NULL;

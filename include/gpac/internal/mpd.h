@@ -201,7 +201,7 @@ typedef enum
 	char *segmentProfiles;	\
 	char *codecs;	\
 	u32 maximum_sap_period;	\
-	Bool starts_with_sap;	\
+	u32 starts_with_sap;	\
 	Double max_playout_rate;	\
 	Bool coding_dependency;	\
 	GF_MPD_ScanType scan_type;	\

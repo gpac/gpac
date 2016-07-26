@@ -474,8 +474,11 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
+	ar->volume = 100;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
-	ar->volume = sOpt ? atoi(sOpt) : 75;
+	if (!sOpt) gf_cfg_set_key(user->config, "Audio", "Volume", "100");
+	else ar->volume = atoi(sOpt);
+	
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
 	ar->pan = sOpt ? atoi(sOpt) : 50;
 

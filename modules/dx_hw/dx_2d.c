@@ -47,6 +47,10 @@ static Bool pixelformat_yuv(u32 pixel_format)
 	case GF_PIXEL_IYUV:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_YV12_10:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
+	case GF_PIXEL_YUV422_10:
+	case GF_PIXEL_YUV422:
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -81,6 +85,14 @@ static u32 get_win_4CC(u32 pixel_format)
 		return mmioFOURCC('I', '4', '2', '0');
 	case GF_PIXEL_YV12_10:
 		return mmioFOURCC('P', '0', '1', '0');
+	case GF_PIXEL_YUV444:
+		return mmioFOURCC('Y', '4', '4', '4');
+	case GF_PIXEL_YUV444_10:
+		return mmioFOURCC('Y', '4', '1', '0');
+	case GF_PIXEL_YUV422_10:
+		return mmioFOURCC('Y', '2', '1', '0');
+	case GF_PIXEL_YUV422:
+		return mmioFOURCC('Y', '4', '4', '2');
 	default:
 		return 0;
 	}

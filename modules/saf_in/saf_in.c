@@ -209,7 +209,7 @@ static void SAF_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				SAFChannel *first = (SAFChannel *)gf_list_get(read->channels, 0);
 				GF_SAFEALLOC(ch, SAFChannel);
 				if (!ch) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Failed to allocate SAF channel"));
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[SAF] Failed to allocate SAF channel"));
 					gf_bs_del(bs);
 					return;
 				}

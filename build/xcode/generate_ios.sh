@@ -6,7 +6,7 @@ echo "*** Set version within Info.plist application file ***"
 version=`grep '#define GPAC_VERSION ' ../../include/gpac/version.h | cut -d '"' -f 2`
 TAG=$(git describe --tags --abbrev=0 2> /dev/null)
 REVISION=$(echo `git describe --tags --long 2> /dev/null || echo "UNKNOWN"` | sed "s/^$TAG-//")
-BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
+BRANCH=$(git rev-parse --abbrev-ref HEAD 2> /dev/null || echo "UNKNOWN")
 rev="$REVISION-$BRANCH"
 if [ "$rev" != "" ]
 then

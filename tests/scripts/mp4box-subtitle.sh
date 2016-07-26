@@ -39,4 +39,6 @@ do_test "$MP4BOX -raw 1:output=$TEMP_DIR/subtitle-out.vtt $TEMP_DIR/subtitle-srt
 #do_test "$MP4BOX -raw 1 $TEMP_DIR/subtitle-ttml-stpp.mp4" "ttml-raw"
 #do_test "$MP4BOX -raw 1:output=$TEMP_DIR/subtitle-out.ttml $TEMP_DIR/subtitle-ttml-stpp.mp4" "ttml-raw-output"
 
+do_test "$MP4BOX -diso $MEDIA_DIR/auxiliary_files/subs.ismt -out $TEMP_DIR/out_info.xml" "fragmented-ttml"
+
 test_end
