@@ -1,97 +1,99 @@
 /**
  * $URL$
- *
+ * <p/>
  * $LastChangedBy$ - $LastChangedDate$
  */
 package com.gpac.Osmo4.extra;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import android.app.ListActivity;
-import android.content.Intent;
-import android.net.Uri;
+import android.Manifest;
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.app.FragmentManager;
+import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.ListView;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.view.Menu;
+import android.view.MenuItem;
+
 import com.gpac.Osmo4.R;
 
-/**
- * @version $Revision$
- * 
- */
-public class FileChooserActivity extends ListActivity {
 
-    private File currentDir;
+public class FileChooserActivity extends Activity {
 
-    private FileArrayAdapter adapter;
+    final String FILE_CHOOSER_FRAGMENT = "fileChooserFragment";
+    public final static String TITLE_PARAMETER = "org.openintents.extra.TITLE";
 
-    /**
-     * The parameter name to use to search for title
-     */
-    public final static String TITLE_PARAMETER = "org.openintents.extra.TITLE"; //$NON-NLS-1$
-
-    private String customTitle;
-
-    private void updateTitle(File currentPath) {
-        setTitle(getResources().getString(R.string.selectFileTitlePattern, customTitle, currentPath.getAbsolutePath()));
-    }
+    FragmentManager fm;
+    FileChooserFragment fileChooserFragment;
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Intent intent = getIntent();
-        currentDir = new File("/"); //$NON-NLS-1$
-        this.customTitle = getResources().getString(R.string.selectFileDefaultTitle);
-        if (intent != null) {
-            if (intent.getData() != null) {
-                File f = new File(intent.getData().getPath());
-                if (f.exists() && f.isDirectory() && f.canRead())
-                    currentDir = f;
-            }
-            String title = intent.getExtras().getString(TITLE_PARAMETER);
-            if (title != null)
-                this.customTitle = title;
+        setContentView(R.layout.activity_file_chooser);
+
+        requestForPermission();
+        fm = getFragmentManager();
+
+        if (fm.findFragmentById(R.id.fileChooserLayout) == null) {
+            fileChooserFragment = new FileChooserFragment();
+            fm.beginTransaction()
+                    .add(R.id.fileChooserLayout, fileChooserFragment, FILE_CHOOSER_FRAGMENT)
+                    .addToBackStack(FILE_CHOOSER_FRAGMENT)
+                    .commit();
         }
-        fillList(currentDir);
     }
 
-    private void fillList(File f) {
-        File[] dirs = f.listFiles();
-        updateTitle(f);
-        List<FileEntry> dir = new ArrayList<FileEntry>();
-        List<FileEntry> fls = new ArrayList<FileEntry>();
-        if (dirs != null) {
-            for (File ff : dirs) {
-                dir.add(new FileEntry(ff.getAbsoluteFile()));
+    private void requestForPermission() {
+
+        if (ContextCompat.checkSelfPermission(FileChooserActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(FileChooserActivity.this,
+                    Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+
+                promptForPermissionsDialog(getString(R.string.requestPermissionStorage), new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        ActivityCompat.requestPermissions(FileChooserActivity.this,
+                                new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                                100);
+                    }
+                });
+            } else {
+                ActivityCompat.requestPermissions(FileChooserActivity.this,
+                        new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                        100);
             }
-            Collections.sort(dir);
-            Collections.sort(fls);
-            dir.addAll(fls);
         }
-        if (f.getParentFile() != null)
-            dir.add(0, new FileEntry(f.getParentFile(), getResources().getString(R.string.parentDirectory)));
-        adapter = new FileArrayAdapter(this, R.layout.file_view, dir);
-        this.setListAdapter(adapter);
+    }
+
+    private void promptForPermissionsDialog(String message, DialogInterface.OnClickListener onClickListener) {
+        new AlertDialog.Builder(FileChooserActivity.this)
+                .setMessage(message)
+                .setPositiveButton(getString(R.string.yes), onClickListener)
+                .setNegativeButton(getString(R.string.no), null)
+                .create()
+                .show();
     }
 
     @Override
-    protected void onListItemClick(ListView l, View v, int position, long id) {
-        super.onListItemClick(l, v, position, id);
-        FileEntry o = adapter.getItem(position);
-        if (o.getFile().isDirectory()) {
-            fillList(o.getFile());
-        } else {
-            onFileClick(o);
-        }
+    public void onBackPressed() {
+        fileChooserFragment.backPressed();
     }
 
-    private void onFileClick(FileEntry o) {
-        Intent data = new Intent();
-        data.setData(Uri.fromFile(o.getFile()));
-        setResult(RESULT_OK, data);
-        finish();
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        return super.onOptionsItemSelected(item);
     }
 
 }
