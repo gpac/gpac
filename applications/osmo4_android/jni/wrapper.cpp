@@ -630,6 +630,12 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 				}
 			}
 			break;
+		case GF_EVENT_SENSOR_ORIENTATION:
+		/* Ignore this event */
+		/*
+		LOGV("We received Sensor Orientation event (x: %f, y: %f, z: %f)",evt->sensor.x, evt->sensor.y, evt->sensor.z);
+		*/
+			break;
 		default:
 			LOGI("Unknown Message %d", evt->type);
 		}
