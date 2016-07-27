@@ -56,11 +56,17 @@ Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
 
 enum
 {
+	/*ISMA E&A encryption*/
 	GF_CRYPT_ISMA_CRYPT_TYPE	= GF_4CC( 'i', 'A', 'E', 'C' ),
+	/*CENC CTR-128 encryption*/
 	GF_CRYPT_CENC_CRYPT_TYPE	= GF_4CC('c','e','n','c'),
+	/*CENC CBC-128 encryption*/
 	GF_CRYPT_CBC1_CRYPT_TYPE	= GF_4CC('c','b','c','1'),
+	/*Adobe CBC-128 encryption*/
 	GF_CRYPT_ADOBE_CRYPT_TYPE	= GF_4CC('a','d','k','m'),
+	/*CENC CTR-128 pattern encryption*/
 	GF_CRYPT_CENS_CRYPT_TYPE	= GF_4CC('c','e','n','s'),
+	/*CENC CBC-128 pattern encryption*/
 	GF_CRYPT_CBCS_CRYPT_TYPE	= GF_4CC('c','b','c','s'),
 };
 
