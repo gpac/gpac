@@ -59,12 +59,18 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
 			if (!stricmp(att->name, "type")) {
-				if (!stricmp(att->value, "ISMA"))info->crypt_type = GF_CRYPT_ISMA_CRYPT_TYPE;
-				else if (!stricmp(att->value, "CENC AES-CTR")) info->crypt_type = GF_CRYPT_CENC_CRYPT_TYPE;
-				else if (!stricmp(att->value, "CENC AES-CBC")) info->crypt_type = GF_CRYPT_CBC1_CRYPT_TYPE;
-				else if (!stricmp(att->value, "ADOBE")) info->crypt_type = GF_CRYPT_ADOBE_CRYPT_TYPE;
-				else if (!stricmp(att->value, "Pattern AES-CTR")) info->crypt_type = GF_CRYPT_CENS_CRYPT_TYPE;
-				else if (!stricmp(att->value, "Pattern AES-CBC")) info->crypt_type = GF_CRYPT_CBCS_CRYPT_TYPE;
+				if (!stricmp(att->value, "ISMA") || !stricmp(att->value, "iAEC"))
+					info->crypt_type = GF_CRYPT_ISMA_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CTR") || !stricmp(att->value, "cenc"))
+					info->crypt_type = GF_CRYPT_CENC_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CBC") || !stricmp(att->value, "cbc1"))
+					info->crypt_type = GF_CRYPT_CBC1_CRYPT_TYPE;
+				else if (!stricmp(att->value, "ADOBE") || !stricmp(att->value, "adkm"))
+					info->crypt_type = GF_CRYPT_ADOBE_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CTR Pattern") || !stricmp(att->value, "cens"))
+					info->crypt_type = GF_CRYPT_CENS_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CBC Pattern") || !stricmp(att->value, "cbcs"))
+					info->crypt_type = GF_CRYPT_CBCS_CRYPT_TYPE;
 			}
 		}
 		return;
