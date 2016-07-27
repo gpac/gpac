@@ -41,9 +41,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private static SensorManager sensorManager;
 
-    private static Sensor accelerometer;
-    private static Sensor magnetometer;
-    private static Sensor gyroscope;
+    private static Sensor accelerometer;    //base sensor
+    private static Sensor magnetometer;     //base sensor
+    private static Sensor gyroscope;        //base sensor
+    //TODOk implement this
+    //private static Sensor rotationVector;   //composite sensor
 
     protected Osmo4Renderer rend;
     private Display displayDev;
@@ -128,15 +130,15 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     @Override
     public void onSensorChanged(SensorEvent event) {
 
+        boolean newevent = false;
+
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
+                newevent=true;
                 acceleration = event.values;
-                newOrientation = calculateRotationMx();
-                if (!newOrientation) return;
-                calculateOrientation();
-                if (!useGyroscope) updateOrientation();
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
+                newevent=true;
                 magnetic = event.values;
                 break;
             case Sensor.TYPE_GYROSCOPE:
@@ -145,6 +147,12 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
                 break;
             default:
                 return;
+        }
+        if(newevent){
+                newOrientation = calculateRotationMx();
+                if (!newOrientation) return;
+                calculateOrientation();
+                if (!useGyroscope) updateOrientation();
         }
     }
 
