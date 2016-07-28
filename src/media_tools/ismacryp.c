@@ -81,6 +81,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannnot allocate crypt track, skipping\n"));
 			return;
 		}
+		//by default track is encrypted
+		tkc->IsEncrypted = 1;
 		gf_list_add(info->tcis, tkc);
 
 		if (!strcmp(node_name, "OMATrack")) {
@@ -239,9 +241,15 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 
 		if ((info->crypt_type == GF_CRYPT_CENC_CRYPT_TYPE) || (info->crypt_type == GF_CRYPT_CBC1_CRYPT_TYPE) || (info->crypt_type == GF_CRYPT_CENS_CRYPT_TYPE)) {
 			if (tkc->constant_IV_size) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used \n", gf_4cc_to_str(info->crypt_type)));
-				tkc->constant_IV_size = 0;
-				memset(tkc->constant_IV, 0, 16);
+				if (!tkc->IV_size) {
+					tkc->IV_size = tkc->constant_IV_size;
+					memcpy(tkc->first_IV, tkc->constant_IV, 16);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, using constant IV as first IV\n", gf_4cc_to_str(info->crypt_type)));
+				} else {
+					tkc->constant_IV_size = 0;
+					memset(tkc->constant_IV, 0, 16);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, ignoring\n", gf_4cc_to_str(info->crypt_type)));
+				}
 			}
 		}
 	}
@@ -2088,7 +2096,10 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 			KID_count = 0;
 			KIDs = NULL;
 		}
-
+		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
+			continue;
+		}
 		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
 		data = (char *)gf_malloc(len*sizeof(char));
 		gf_bs_read_data(bs, data, len);
@@ -2208,7 +2219,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 #endif
 	}
 
-	if (is_encrypted == GF_FALSE) {
+	if (!e && (is_encrypted == GF_FALSE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n"));
 	}
 
