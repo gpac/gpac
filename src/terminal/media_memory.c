@@ -534,7 +534,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 
 	/*no output*/
-	if (!cb->output->dataLength) {
+	if (!cb->UnitCount || !cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
