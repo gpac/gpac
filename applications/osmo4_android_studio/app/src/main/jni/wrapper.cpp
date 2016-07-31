@@ -24,9 +24,8 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
 #include <jni.h>
-#include <signal.h>
-#include <unistd.h>
 
 #include <gpac/terminal.h>
 #include <gpac/thread.h>

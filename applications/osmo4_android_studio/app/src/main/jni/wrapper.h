@@ -26,11 +26,9 @@
  */
 
 #ifndef WRAPPER
-#define WRAPPER
+#define  WRAPPER
 
 #include <jni.h>
-#include <signal.h>
-#include <unistd.h>
 
 #include <gpac/terminal.h>
 #include <gpac/thread.h>
@@ -221,9 +219,7 @@ public:
 
 public:
 	int MessageBox(const char* msg, const char* title, GF_Err status);
-	int Quit(int code);
-	GF_Config *create_default_config(char *file_path, char *file_name);
-
+	int Quit(int code);WRAPPER
 	static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list);
 	static void on_fm_request(void *cbk, u32 type, u32 param, int *value);
 	static Bool GPAC_EventProc(void *cbk, GF_Event *evt);
@@ -237,5 +233,5 @@ private:
 	void debug_log(const char* msg);
 
 };
-#endif
 
+#endif
