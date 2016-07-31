@@ -660,6 +660,8 @@ typedef struct _gf_sc_texture_handler
 
 	/*user data for video output module, if needed*/
 	void *vout_udta;
+	/*force data conversion to 8bits*/
+	Bool force_to_8bit;
 } GF_TextureHandler;
 
 /*setup texturing object*/

@@ -161,6 +161,9 @@ enum
 	 return GF_NOT_SUPPORTED if your codec does'nt handle this
 	*/
 	GF_CODEC_INTERACT_COORDS,
+
+	/* force data to 8bits*/
+	GF_CODEC_FORCE_8_BIT,
 };
 
 

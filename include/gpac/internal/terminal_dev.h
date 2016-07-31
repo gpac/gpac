@@ -1182,7 +1182,7 @@ struct _mediaobj
 
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat;
-	Bool is_flipped;
+	Bool is_flipped, force_to_8bit;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
 	u32 srd_x, srd_y, srd_w, srd_h;
 	

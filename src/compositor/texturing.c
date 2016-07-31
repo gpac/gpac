@@ -204,7 +204,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame, &txh->force_to_8bit);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
@@ -273,9 +273,41 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		setup_texture_object(txh, 0);
 	}
 
-	/*try to push texture on graphics but don't complain if failure*/
-	gf_sc_texture_set_data(txh);
+	
+	if (txh->force_to_8bit) {
+		GF_VideoSurface dst;
+		u8  *p_y, *p_u, *p_v;
+		u32 src_stride = txh->stride * 2;
+		memset(&dst, 0, sizeof(GF_VideoSurface));
+		dst.width = txh->width;
+		dst.height = txh->height;
+		dst.pitch_y = txh->width;
+		dst.video_buffer = (u8 *)txh->data;
 
+		if (txh->pixelformat == GF_PIXEL_YV12) {
+			p_y = (u8 *)txh->data;
+			p_u = (u8 *)txh->data + src_stride*txh->height;
+			p_v = (u8 *)txh->data + 5 * src_stride*txh->height / 4;
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *)p_y, (u8 *)p_u, (u8 *)p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV422) {
+			p_y = (u8 *)txh->data;
+			p_u = (u8 *)txh->data + src_stride*txh->height;
+			p_v = (u8 *)txh->data + 3 * src_stride*txh->height / 2;
+			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *)p_y, (u8 *)p_u, (u8 *)p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV444) {
+			p_y = (u8 *)txh->data;
+			p_u = (u8 *)txh->data + src_stride*txh->height;
+			p_v = (u8 *)txh->data + 2 * src_stride*txh->height;
+			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *)p_y, (u8 *)p_u, (u8 *)p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+		}
+	}
+	
+	gf_sc_texture_set_data(txh);
+	
 	txh->needs_refresh = 1;
 	gf_sc_invalidate(txh->compositor, NULL);
 }
