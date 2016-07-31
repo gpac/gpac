@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 echo -e "\n\033[32m If you have problem using this script, read the README in  trunk/gpac/build/android \033[0m\n"
- 
+
 NDK=0
 SDK=0
 ANT=0
@@ -11,34 +11,34 @@ for i in $*
 do
 
 #! Check for force rebuild
- if [ "$i" = "-force_rebuild" ] 
-then 
-  echo -e "\033[31m Usage: $0 Force Rebuild : Activated \033[0m" 
-  REBUILD=1  
+ if [ "$i" = "-force_rebuild" ]
+then
+  echo -e "\033[31m Usage: $0 Force Rebuild : Activated \033[0m"
+  REBUILD=1
 fi
 
 #! Check for the NDK path
- if [ "${i%=*}" = "-ndk" ] 
-then 
+ if [ "${i%=*}" = "-ndk" ]
+then
   echo -e "\033[31m Usage: $0 Path to Android NDK : Ok \033[0m"
-  NDK=1 
-  export PATH="$(echo $i | cut -d"=" -f2):$PATH"  
+  NDK=1
+  export PATH="$(echo $i | cut -d"=" -f2):$PATH"
 fi
 
 #! Check for the SDK path
- if [ "${i%=*}" = "-sdk" ] 
-then 
+ if [ "${i%=*}" = "-sdk" ]
+then
   echo -e "\033[31m Usage: $0 Path to Android SDK : Ok \033[0m"
-  SDK=1 
-  export PATH="$(echo $i | cut -d"=" -f2)/tools:$PATH"  
+  SDK=1
+  export PATH="$(echo $i | cut -d"=" -f2)/tools:$PATH"
 fi
 
 #! Check for the ANT path
- if [ "${i%=*}" = "-ant" ] 
-then 
+ if [ "${i%=*}" = "-ant" ]
+then
   echo -e "\033[31m Usage: $0 Path to Ant : Ok \033[0m"
-  ANT=1 
-  export PATH="$(echo $i | cut -d"=" -f2)/bin:$PATH"  
+  ANT=1
+  export PATH="$(echo $i | cut -d"=" -f2)/bin:$PATH"
 fi
 
 done
@@ -49,20 +49,20 @@ then
   exit 1
 fi
 
-if [ $SDK -eq 0 ] 
-then 
-  echo -e "\n\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -sdk=PATH_TO_SDK\033[0m" 
-fi 
-	 	 
-if [ $ANT -eq 0 ] 
-then 
-  echo -e "\n\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -ant=PATH_TO_ANT \033[0m" 
-fi 
+if [ $SDK -eq 0 ]
+then
+  echo -e "\n\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -sdk=PATH_TO_SDK\033[0m"
+fi
 
-if [ $REBUILD -eq 0 ] 
-then 
-  echo -e "\n\033[33m Usage: $0 Force Rebuild : Add -force_rebuild to rebuild the whole solution \033[0m" 
-fi 
+if [ $ANT -eq 0 ]
+then
+  echo -e "\n\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -ant=PATH_TO_ANT \033[0m"
+fi
+
+if [ $REBUILD -eq 0 ]
+then
+  echo -e "\n\033[33m Usage: $0 Force Rebuild : Add -force_rebuild to rebuild the whole solution \033[0m"
+fi
 
 echo -e "\n $PATH"
 
@@ -100,9 +100,9 @@ cd ../libs/
 #	cp "$i" "$BASEPATH/applications/osmo4_android/res/raw/"
 #done
 #echo
-#echo "[OK] success." 
+#echo "[OK] success."
 
-LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+LIBS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/libs"
 mkdir -p $LIBS_DIR
 echo "Copying libs to libs dir $LIBS_DIR ..."
 for i in $(find . -name '*.so')
@@ -130,7 +130,7 @@ done
 echo
 echo "[OK] success module for MP4box."
 
-LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+LIBS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
@@ -157,7 +157,7 @@ do
 done
 echo "[OK] success extra lib MP4box."
 
-ASSETS_DIR="$BASEPATH/applications/osmo4_android/assets/"
+ASSETS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/assets/"
 mkdir -p $ASSETS_DIR
 
 echo "Copying gui folder to $ASSETS_DIR ..."
@@ -167,63 +167,60 @@ echo "[OK] success GUI for Osmo4."
 echo "Copying shaders folder to $ASSETS_DIR ..."
 cp -R "$BASEPATH/shaders" $ASSETS_DIR
 echo "[OK] success Shader Folder for Osmo4."
-
-if [ $ANT -eq 1 ]
-then
-	echo "\nSelf-updating project"
-	android update project -p "$BASEPATH/applications/osmo4_android/" --target android-18
-
-	echo -e "\nBuiding Osmo4.apk (without libstagefright)" 
-	cd $BASEPATH/applications/osmo4_android/
-	ant release
-
-	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
-	then
-	echo -e "\nOld Osmo4.apk found. Removing it ..." 
-	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-	fi  
-
-	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-	rm bin/Osmo4-*
-	echo -e "\n[OK] success."
-	
-	if [ ! -z "$(find . -name '*_stagefrigh.so')" ]
-	then 
-	    has_libstagefright=1 
-    else 
-        has_libstagefright=0 
-    fi
-	if [ $has_libstagefright -eq 1 ]
-	then	
-        echo -e "\nBuiding Osmo4.apk (support libstagefright)" 
-        cd "$BASEPATH/extra_lib/lib/android"
-        echo "Copying libstagefright supported libs to $LIBS_DIR ..."
-        LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
-        for i in $(find . -name '*_stagefright.so')
-        do
-	        echo " Copy $i"
-	        TMP_DIR=$(dirname $i)
-	        dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
-	        mkdir -p "$LIBS_DIR/$TMP_DIR"
-	        echo "dest $LIBS_DIR/$dest_file"
-	        cp "$i" "$LIBS_DIR/$dest_file"
-        done
-        echo "[OK] success extra lib for Osmo4."
-
-        cd $BASEPATH/applications/osmo4_android/
-        ant release
-
-        if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
-        then
-        echo -e "\nOld Osmo4.apk found. Removing it ..." 
-        rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-        fi  
-
-        zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-        rm bin/Osmo4-*
-        echo -e "\n[OK] success."
-    fi
-fi
-
-
-cp -r "$BASEPATH/applications/osmo4_android/libs" "$BASEPATH/applications/osmo4_android_studio/app/src/main/jniLibs"
+#
+# if [ $ANT -eq 1 ]
+# then
+# 	echo "\nSelf-updating project"
+# 	android update project -p "$BASEPATH/applications/osmo4_android_studio/" --target android-18
+#
+# 	echo -e "\nBuiding Osmo4.apk (without libstagefright)"
+# 	cd $BASEPATH/applications/osmo4_android/
+# 	ant release
+#
+# 	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+# 	then
+# 	echo -e "\nOld Osmo4.apk found. Removing it ..."
+# 	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+# 	fi
+#
+# 	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+# 	rm bin/Osmo4-*
+# 	echo -e "\n[OK] success."
+#
+# 	if [ ! -z "$(find . -name '*_stagefrigh.so')" ]
+# 	then
+# 	    has_libstagefright=1
+#     else
+#         has_libstagefright=0
+#     fi
+# 	if [ $has_libstagefright -eq 1 ]
+# 	then
+#         echo -e "\nBuiding Osmo4.apk (support libstagefright)"
+#         cd "$BASEPATH/extra_lib/lib/android"
+#         echo "Copying libstagefright supported libs to $LIBS_DIR ..."
+#         LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
+#         for i in $(find . -name '*_stagefright.so')
+#         do
+# 	        echo " Copy $i"
+# 	        TMP_DIR=$(dirname $i)
+# 	        dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
+# 	        mkdir -p "$LIBS_DIR/$TMP_DIR"
+# 	        echo "dest $LIBS_DIR/$dest_file"
+# 	        cp "$i" "$LIBS_DIR/$dest_file"
+#         done
+#         echo "[OK] success extra lib for Osmo4."
+#
+#         cd $BASEPATH/applications/osmo4_android/
+#         ant release
+#
+#         if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
+#         then
+#         echo -e "\nOld Osmo4.apk found. Removing it ..."
+#         rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+#         fi
+#
+#         zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
+#         rm bin/Osmo4-*
+#         echo -e "\n[OK] success."
+#     fi
+# fi

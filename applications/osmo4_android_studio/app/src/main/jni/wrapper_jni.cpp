@@ -1,27 +1,9 @@
 //#include "wrapper_jni.h"
-
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <android/log.h>
-
-#define jniTAG "WRAPPER_JNI"
-
-#define jniLOGV(X)  __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, X)
-#define jniLOGI(X)  __android_log_print(ANDROID_LOG_INFO, jniTAG, X)
-#define jniLOGE(X)  __android_log_print(ANDROID_LOG_ERROR, jniTAG, X)
-
-#define CAST_HANDLE(wr) jclass c = env->GetObjectClass(obj);\
-                        if (!c) return;\
-                        jfieldID fid = env->GetFieldID(c, "handle", "J");\
-                        if (!fid){\
-                          __android_log_print(ANDROID_LOG_ERROR, jniTAG, "No Field ID, ERROR");\
-                          return;\
-                        }\
-                        jlong h = env->GetLongField(obj, fid);\
-                        CNativeWrapper* wr = (CNativeWrapper*) h;
-//                        __android_log_print(ANDROID_LOG_VERBOSE, jniTAG, "Handle = %p", wr);
+#include "wrapper_jni.hpp"
 
 /*
  * Class:     com_gpac_Osmo4_GPACInstance
