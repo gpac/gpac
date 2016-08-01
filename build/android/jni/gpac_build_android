@@ -86,6 +86,9 @@ echo -n "Buiding all libs from $BUILDPATH..."
 if [ $REBUILD -eq 1 ]
 then
 ndk-build clean
+cd $BASEPATH/applications/osmo4_android_studio/
+./gradlew clean
+cd -
 ndk-build -B
 else
 ndk-build
@@ -167,60 +170,9 @@ echo "[OK] success GUI for Osmo4."
 echo "Copying shaders folder to $ASSETS_DIR ..."
 cp -R "$BASEPATH/shaders" $ASSETS_DIR
 echo "[OK] success Shader Folder for Osmo4."
-#
-# if [ $ANT -eq 1 ]
-# then
-# 	echo "\nSelf-updating project"
-# 	android update project -p "$BASEPATH/applications/osmo4_android_studio/" --target android-18
-#
-# 	echo -e "\nBuiding Osmo4.apk (without libstagefright)"
-# 	cd $BASEPATH/applications/osmo4_android/
-# 	ant release
-#
-# 	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
-# 	then
-# 	echo -e "\nOld Osmo4.apk found. Removing it ..."
-# 	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-# 	fi
-#
-# 	zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-# 	rm bin/Osmo4-*
-# 	echo -e "\n[OK] success."
-#
-# 	if [ ! -z "$(find . -name '*_stagefrigh.so')" ]
-# 	then
-# 	    has_libstagefright=1
-#     else
-#         has_libstagefright=0
-#     fi
-# 	if [ $has_libstagefright -eq 1 ]
-# 	then
-#         echo -e "\nBuiding Osmo4.apk (support libstagefright)"
-#         cd "$BASEPATH/extra_lib/lib/android"
-#         echo "Copying libstagefright supported libs to $LIBS_DIR ..."
-#         LIBS_DIR="$BASEPATH/applications/osmo4_android/libs"
-#         for i in $(find . -name '*_stagefright.so')
-#         do
-# 	        echo " Copy $i"
-# 	        TMP_DIR=$(dirname $i)
-# 	        dest_file=$(echo $i | sed "s/\(_stagefright\)//g")
-# 	        mkdir -p "$LIBS_DIR/$TMP_DIR"
-# 	        echo "dest $LIBS_DIR/$dest_file"
-# 	        cp "$i" "$LIBS_DIR/$dest_file"
-#         done
-#         echo "[OK] success extra lib for Osmo4."
-#
-#         cd $BASEPATH/applications/osmo4_android/
-#         ant release
-#
-#         if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk ]
-#         then
-#         echo -e "\nOld Osmo4.apk found. Removing it ..."
-#         rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-#         fi
-#
-#         zipalign -v 4 bin/Osmo4-release-unaligned.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version-stagefright.apk
-#         rm bin/Osmo4-*
-#         echo -e "\n[OK] success."
-#     fi
-# fi
+
+echo "Building osmo4 apk"
+cd $BASEPATH/applications/osmo4_android_studio/
+./gradlew assembleRelease
+cd -
+echo "[OK] success Building osmo4 apk"
