@@ -56,6 +56,20 @@
     <string name="setAsStartupFileMessageNoURL">You are not connected to any URL. You may use this entry to set an URL as a startup file when
         connected to a given URL or file.</string>
     <string name="requestPermissionStorage">You need to give permission to access External Storage</string>
+    <string name="configFileEditor">Config File Editor</string>
+    <string name="noAttribute">No attribute found</string>
+    <string name="noKey">No key found</string>
+    <string name="noChange">New value same as old value</string>
+    <string name="valueUpdated">Value updated</string>
+    <string name="valueNotValid">Value not valid</string>
+    <string name="option">Option</string>
+    <string name="type">Type</string>
+    <string name="dfault">Default</string>
+    <string name="usage">Usage</string>
+    <string name="description">Description</string>
+    <string name="currentValue">Current value</string>
+    <string name="newValue">New value</string>
+    <string name="save">Save</string>
     <!-- All authors in alphabetical order -->
     <string-array name="allAuthors_array">
         <item>Romain Bouqueau</item>

@@ -142,6 +142,10 @@
 
             </intent-filter>
         </activity>
+
+        <activity android:name=".extra.ConfigFileEditorActivity"
+            android:label="@string/configFileEditor"/>
+
     </application>
 
 </manifest>
