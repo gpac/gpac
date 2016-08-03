@@ -88,4 +88,13 @@
             android:visible="true" />
     </group>
 
+
+    <item
+        android:id="@+id/configFileEditor"
+        android:checkable="false"
+        android:enabled="true"
+        android:title="@string/configFileEditor"
+        android:visible="true" />
+
+
 </menu>
