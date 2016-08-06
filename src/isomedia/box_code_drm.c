@@ -1198,20 +1198,33 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 	if (!ptr->cenc_saio) return GF_OK;
 
 	pos = gf_bs_get_position(bs);
-	if (pos>0xFFFFFFFFULL) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] \"senc\" offset larger than 32-bits , \"saio\" box version must be 1 .\n"));
-	}
+
 	e = gf_bs_seek(bs, ptr->cenc_saio->offset_first_offset_field);
 	if (e) return e;
-	//force using version 1 for saio box i.e offset has 64 bits
+
+  // BOOM
+  if (pos>0xFFFFFFFFULL) {
+    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 64\n"));
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-	if (ptr->traf) {
-		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
-	} else
+    if (ptr->traf) {
+  		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
+  	} else
 #endif
-	{
-		gf_bs_write_u64(bs, pos);
-	}
+    {
+      gf_bs_write_u64(bs, pos);
+    }
+  } else {
+    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 32\n"));
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+    if (ptr->traf) {
+  		gf_bs_write_u32(bs, (u32) ( pos - ptr->traf->moof_start_in_bs) );
+  	} else
+#endif
+    {
+  		gf_bs_write_u32(bs, (u32) pos);
+    }
+  }
+
 	return gf_bs_seek(bs, pos);
 }
 
