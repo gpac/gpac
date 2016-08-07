@@ -604,7 +604,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID, 
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID,
 								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
 								    u8 default_constant_IV_size, bin128 default_constant_IV)
 {
@@ -905,8 +905,11 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
-		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
-		senc->cenc_saio->version = 1;
+    // BOOM free
+    //if (senc->cenc_saio->offsets_large) {
+    // this appears to make all the difference with the larger files... I think I need a larger file
+    //senc->cenc_saio->version = 1;
+    //}
 		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		senc->cenc_saio->entry_count = 1;
@@ -944,8 +947,11 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	}
 	if (!senc->cenc_saio) {
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
-		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
-		senc->cenc_saio->version = 1;
+    // BOOM
+    //if (senc->cenc_saio->offsets_large) {
+    // setting here makes no difference
+    //senc->cenc_saio->version = 1;
+    //}
 		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		if (stbl)
@@ -967,14 +973,32 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saiz->sample_count++;
 	}
 
+  // BOOM
 	if (!senc->cenc_saio->entry_count) {
-		senc->cenc_saio->offsets_large = (u64 *)gf_malloc(sizeof(u64));
-		senc->cenc_saio->offsets_large[0] = offset;
-		senc->cenc_saio->entry_count ++;
+    if (offset>0xFFFFFFFFULL) {
+      senc->cenc_saio->version = 1;
+      senc->cenc_saio->offsets_large = (u64 *)gf_malloc(sizeof(u64));
+      senc->cenc_saio->offsets_large[0] = offset;
+      senc->cenc_saio->entry_count ++;
+    } else {
+      senc->cenc_saio->version = 0;
+  		senc->cenc_saio->offsets = (u32 *)gf_malloc(sizeof(u32));
+  		senc->cenc_saio->offsets[0] = offset;
+  		senc->cenc_saio->entry_count ++;
+    }
 	} else {
-		senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
-		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
-		senc->cenc_saio->entry_count++;
+    if (offset>0xFFFFFFFFULL) {
+      GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] BOOM setting 64\n"));
+      senc->cenc_saio->version = 1;
+      senc->cenc_saio->offsets_large = (u64*)gf_realloc(senc->cenc_saio->offsets_large, sizeof(u64)*(senc->cenc_saio->entry_count+1));
+  		senc->cenc_saio->offsets_large[senc->cenc_saio->entry_count] = offset;
+    } else {
+      GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] BOOM setting 32\n"));
+      senc->cenc_saio->version = 0;
+    	senc->cenc_saio->offsets = (u32*)gf_realloc(senc->cenc_saio->offsets, sizeof(u32)*(senc->cenc_saio->entry_count+1));
+  		senc->cenc_saio->offsets[senc->cenc_saio->entry_count] = offset;
+    }
+    senc->cenc_saio->entry_count++;
 	}
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
