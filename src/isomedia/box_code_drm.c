@@ -1204,7 +1204,7 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 
   // BOOM
   if (pos>0xFFFFFFFFULL) {
-    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 64\n"));
+    // GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 64\n"));
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
     if (ptr->traf) {
   		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
@@ -1214,7 +1214,7 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
       gf_bs_write_u64(bs, pos);
     }
   } else {
-    GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 32\n"));
+    // GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[iso file] BOOM writing 32\n"));
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
     if (ptr->traf) {
   		gf_bs_write_u32(bs, (u32) ( pos - ptr->traf->moof_start_in_bs) );
