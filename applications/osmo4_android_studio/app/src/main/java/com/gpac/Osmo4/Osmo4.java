@@ -74,6 +74,7 @@ import com.gpac.Osmo4.Preview;
 import com.gpac.Osmo4.R;
 import com.gpac.Osmo4.extra.ConfigFileEditorActivity;
 import com.gpac.Osmo4.extra.FileChooserActivity;
+import com.gpac.Osmo4.extra.PrefsActivity;
 import com.gpac.Osmo4.logs.GpacLogger;
 
 import java.lang.reflect.InvocationTargetException;
@@ -730,6 +731,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             case R.id.configFileEditor: {
                 Intent i = new Intent(Osmo4.this, ConfigFileEditorActivity.class);
                 startActivity(i);
+                return true;
             }
 
             case R.id.about: {
@@ -740,6 +742,13 @@ public class Osmo4 extends Activity implements GpacCallback {
                 d.show();
             }
                 return true;
+
+            case R.id.preferences:{
+                Intent i = new Intent(Osmo4.this, PrefsActivity.class);
+                startActivity(i);
+                return true;
+            }
+
             case R.id.quit:
                 if ( mGLView != null )
             		mGLView.disconnect();
