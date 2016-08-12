@@ -154,6 +154,13 @@ JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventkeypress(JNIEnv
 		wr->onKeyPress(keycode, rawkeycode, up, flag, unicode);
 	//jniLOGV("keypress::end");
 }
+//-----------------------------------
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange(JNIEnv * env, jobject obj, jfloat x, jfloat y, jfloat z) {
+	CAST_HANDLE(wr);
+	if (wr)	
+		wr->onOrientationChange(x, y, z);
+}
+
 /*
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_getdpi(JNIEnv * env, jobject obj, jint keycode,jfloat x, jfloat y){
         CAST_HANDLE(wr);

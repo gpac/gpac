@@ -301,4 +301,13 @@ public interface GpacCallback {
      * @param showKeyboard
      */
     public void showKeyboard(boolean showKeyboard);
+
+    /**
+     * Toggle Sensors on/off
+     * 
+     * @param active sensor (true/false)
+     */
+    public void sensorSwitch(boolean active);
+    
+
 }

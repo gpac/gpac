@@ -143,6 +143,11 @@ public class Osmo4 extends Activity implements GpacCallback {
     
     private LinearLayout gl_view;
 
+    /**
+     * Handling of Sensors
+     */
+    private SensorServices sensors;
+
     // ---------------------------------------
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -212,6 +217,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 		
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
         
+        sensors = new SensorServices(this);
+
         if( m3DLibraryLoaded ) //should be checking wether the terminal is a LG one
         {
         	//TryLoad3DClass(true);
@@ -241,6 +248,8 @@ public class Osmo4 extends Activity implements GpacCallback {
                         mGLView.setRenderer(renderer);
                        
                         gl_view.addView(mGLView);
+
+                        sensors.setRenderer(renderer);
                     }
                 });
 
@@ -281,7 +290,6 @@ public class Osmo4 extends Activity implements GpacCallback {
         File shaderDir = new File(gpacConfig.getGpacShaderDirectory());
         if (!shaderDir.isDirectory()) {
             // we do not delete the directory if it already exists, because it might contain custom shaders
-            // TODOk consider behaviour when we want to update the shaders in the apk
             if (shaderDir.exists()) {
                     Log.v(LOG_OSMO_TAG, "Shader directory already exists at: " + shaderDir);
             }else if (!shaderDir.mkdir()){
@@ -309,6 +317,7 @@ public class Osmo4 extends Activity implements GpacCallback {
                 Log.d(LOG_OSMO_TAG, "Error in copying config file: " + e.toString());
             }
         }
+
     }
     
     /*
@@ -1255,4 +1264,20 @@ public class Osmo4 extends Activity implements GpacCallback {
 	    logger.setLogFile(logfile);
     	logger.onCreate();
     }
+
+    /**
+     * @see com.gpac.Osmo4.GpacCallback#sensorSwitch(boolean)
+     */
+    @Override
+    public void sensorSwitch(final boolean active) {
+        if(active){
+            //this.setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE);
+            sensors.registerSensors();
+            Log.i(LOG_OSMO_TAG, "Received Register Sensors call");
+        }else{
+            sensors.unregisterSensors();
+            Log.i(LOG_OSMO_TAG, "Received Un-Register Sensors call");
+        }
+    }
+
 }
