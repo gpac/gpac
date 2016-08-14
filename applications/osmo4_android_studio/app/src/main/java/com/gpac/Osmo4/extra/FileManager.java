@@ -1,5 +1,9 @@
 package com.gpac.Osmo4.extra;
 
+import android.os.Build;
+import android.support.annotation.Nullable;
+import android.util.Log;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -10,10 +14,10 @@ public class FileManager {
 
     public static final String SORT_ORDER_ASC = "ASC";
     public static final String SORT_ORDER_DESC = "DESC";
-    public static final String SORT_ORDER_FOLDERS_FIRST = "NONE";
 
     public static final String SORT_BY_NAME = "NAME";
     public static final String SORT_BY_SIZE = "SIZE";
+    public static final String SORT_BY_LAST_MODIFIED = "LAST_MODIFIED";
 
     public static String getExtension(String url) {
 
@@ -34,86 +38,139 @@ public class FileManager {
         }
     }
 
-    public static ArrayList<File> sort(ArrayList<File> files, String sortOrder, String sortBy) {
+    public static ArrayList<File> sort(ArrayList<File> files, String sortOrder, String sortBy, boolean folderFirst) {
 
         switch (sortOrder) {
 
             case SORT_ORDER_ASC:
                 switch (sortBy) {
-                    case SORT_BY_NAME:
-                        return sortByName(files, SORT_ORDER_ASC);
                     case SORT_BY_SIZE:
-                        return sortBySize(files, SORT_ORDER_ASC);
+                        return sortBySize(files, SORT_ORDER_ASC, folderFirst);
+
+                    case SORT_BY_LAST_MODIFIED:
+                        return sortByLastModified(files, SORT_ORDER_ASC, folderFirst);
+
+                    case SORT_BY_NAME:
                     default:
-                        return sortByName(files, SORT_ORDER_ASC);
+                        return sortByName(files, SORT_ORDER_ASC, folderFirst);
                 }
 
             case SORT_ORDER_DESC:
                 switch (sortBy) {
                     case SORT_BY_NAME:
-                        return sortByName(files, SORT_ORDER_DESC);
+                        return sortByName(files, SORT_ORDER_DESC, folderFirst);
+
+                    case SORT_BY_LAST_MODIFIED:
+                        return sortByLastModified(files, SORT_ORDER_DESC, folderFirst);
+
                     case SORT_BY_SIZE:
-                        return sortBySize(files, SORT_ORDER_DESC);
                     default:
-                        return sortBySize(files, SORT_ORDER_ASC);
+                        return sortBySize(files, SORT_ORDER_DESC, folderFirst);
                 }
 
-            case SORT_ORDER_FOLDERS_FIRST:
-                return sortFoldersFirst(files, SORT_BY_NAME);
             default:
-                return sortByName(files, SORT_ORDER_ASC);
+                return sortByName(files, SORT_ORDER_ASC, folderFirst);
         }
 
     }
 
-    private static ArrayList<File> sortByName(ArrayList<File> files, final String sortOrder) {
+    private static ArrayList<File> sortByName(final ArrayList<File> files, final String sortOrder, final boolean folderFirst) {
 
         Collections.sort(files, new Comparator<File>() {
             @Override
             public int compare(File lhs, File rhs) {
+                if(folderFirst) {
+                    if (lhs.isDirectory() && !rhs.isDirectory()) return -1;
+                    if (!lhs.isDirectory() && rhs.isDirectory()) return 1;
+                }
+                switch (sortOrder) {
+                    case SORT_ORDER_DESC:
+                        return rhs.getName().compareToIgnoreCase(lhs.getName());
 
-                if (sortOrder.equals(SORT_ORDER_ASC))
-                    return lhs.getName().compareToIgnoreCase(rhs.getName());
-                else return rhs.getName().compareToIgnoreCase(lhs.getName());
+                    case SORT_ORDER_ASC:
+                    default:
+                        return lhs.getName().compareToIgnoreCase(rhs.getName());
+                }
             }
         });
         return files;
     }
 
-    private static ArrayList<File> sortBySize(ArrayList<File> files, final String sortOrder) {
+    private static ArrayList<File> sortBySize(ArrayList<File> files, final String sortOrder, final boolean folderFirst) {
 
         Collections.sort(files, new Comparator<File>() {
             @Override
             public int compare(File lhs, File rhs) {
-                long diff;
-                if (sortOrder.equals(SORT_ORDER_ASC)) {
-                    diff = lhs.length() - rhs.length();
-                } else diff = rhs.length() - lhs.length();
 
-                if (diff < 0)
-                    return -1;
-                else if (diff > 0)
-                    return 1;
+                if(folderFirst) {
+                    if (lhs.isDirectory() && !rhs.isDirectory()) return -1;
+                    if (!lhs.isDirectory() && rhs.isDirectory()) return 1;
+                }
+
+                long lhsLength = 0, rhsLength = 0, diff;
+
+                if(lhs.isDirectory()) lhsLength = getFolderSize(lhs);
+                if(lhs.isFile()) lhsLength = lhs.length();
+                if(rhs.isDirectory()) rhsLength = getFolderSize(rhs);
+                if(rhs.isFile()) rhsLength = rhs.length();
+
+                switch (sortOrder) {
+                    case SORT_ORDER_DESC:
+                        diff = rhsLength - lhsLength;
+                        break;
+                    case SORT_ORDER_ASC:
+                    default:
+                        diff = lhsLength - rhsLength;
+                        break;
+                }
+
+                if (diff < 0) return -1;
+                else if (diff > 0) return 1;
                 else return 0;
-
             }
         });
         return files;
     }
 
-    private static ArrayList<File> sortFoldersFirst(ArrayList<File> fileList, String sortBy) {
-        ArrayList<File> dirs = new ArrayList<>();
-        ArrayList<File> files = new ArrayList<>();
+    private static ArrayList<File> sortByLastModified(ArrayList<File> files, final String sortOrder, final boolean foldersFirst) {
 
-        for (File f : fileList) {
-            if (f.isDirectory())
-                dirs.add(f);
-            else files.add(f);
+        Collections.sort(files, new Comparator<File>() {
+            @Override
+            public int compare(File lhs, File rhs) {
+
+                if (foldersFirst){
+                    if(lhs.isDirectory() && !rhs.isDirectory())  return -1;
+                    if(!lhs.isDirectory() && rhs.isDirectory()) return 1;
+                }
+
+                long diff;
+                switch (sortOrder) {
+                    case SORT_ORDER_DESC:
+                        diff = rhs.lastModified() - lhs.lastModified();
+                        break;
+
+                    case SORT_ORDER_ASC:
+                    default:
+                        diff = lhs.lastModified() - rhs.lastModified();
+                        break;
+                }
+
+                if (diff < 0) return -1;
+                else if (diff > 0) return 1;
+                else return 0;
+            }
+        });
+        return files;
+    }
+
+    public static long getFolderSize(File file) {
+
+        long size = 0;
+        for (File f : file.listFiles()) {
+            if (f.isFile()) size += f.length();
+            else size += getFolderSize(f);
         }
-        dirs = sortBy.equals(SORT_BY_SIZE) ? sortBySize(dirs, SORT_ORDER_ASC) : sortByName(dirs, SORT_ORDER_ASC);
-        files = sortBy.equals(SORT_BY_SIZE) ? sortBySize(files, SORT_ORDER_ASC) : sortByName(files, SORT_ORDER_ASC);
-        dirs.addAll(files);
-        return dirs;
+        return size;
     }
 
     public static boolean isHiddenFile(File file) {

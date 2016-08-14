@@ -32,12 +32,18 @@ public class FileChooserFragment extends Fragment {
     private final String PREF_SHOW_HIDDEN_FILES = "SHOW_HIDDEN_FILES";
     private final String PREF_SORT_ORDER = "SORT_ORDER";
     private final String PREF_SORT_BY = "SORT_BY";
+    private final String PREF_FOLDERS_FIRST = "FOLDERS_FIRST";
 
     private File currDir;
     private ArrayList<File> files;
     private FileArrayAdapter adapter;
     private SharedPreferences prefs;
     private ActionBar actionBar;
+
+    private boolean showHiddenFiles;
+    private String sortOrder;
+    private String sortBy;
+    private boolean foldersFirst;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -63,10 +69,24 @@ public class FileChooserFragment extends Fragment {
         actionBar = getActivity().getActionBar();
         adapter = new FileArrayAdapter(files, onItemClickListenerCallback, getActivity());
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        setPreferences();
         recyclerView.setLayoutManager(gridLayoutManager);
         populateList(currDir);
         recyclerView.setAdapter(adapter);
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        setPreferences();
+    }
+
+    private void setPreferences() {
+        showHiddenFiles = prefs.getBoolean(PREF_SHOW_HIDDEN_FILES, true);
+        sortOrder = prefs.getString(PREF_SORT_ORDER, FileManager.SORT_ORDER_ASC);
+        sortBy = prefs.getString(PREF_SORT_BY, FileManager.SORT_BY_NAME);
+        foldersFirst = prefs.getBoolean(PREF_FOLDERS_FIRST, true);
     }
 
     public void backPressed() {
@@ -122,9 +142,10 @@ public class FileChooserFragment extends Fragment {
 
             files.addAll(
                     FileManager.sort(
-                            prefs.getBoolean(PREF_SHOW_HIDDEN_FILES, false) ? list : FileManager.removeHiddenFiles(list),
-                            prefs.getString(PREF_SORT_ORDER, FileManager.SORT_ORDER_FOLDERS_FIRST),
-                            prefs.getString(PREF_SORT_BY, FileManager.SORT_BY_NAME)
+                            showHiddenFiles? list : FileManager.removeHiddenFiles(list),
+                            sortOrder,
+                            sortBy,
+                            foldersFirst
                     ));
             currDir = file;
             return true;
