@@ -146,6 +146,10 @@
         <activity android:name=".extra.ConfigFileEditorActivity"
             android:label="@string/configFileEditor"/>
 
+        <activity
+            android:name=".extra.PrefsActivity"
+            android:label="@string/preferences"/>
+
     </application>
 
 </manifest>

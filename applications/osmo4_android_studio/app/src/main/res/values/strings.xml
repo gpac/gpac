@@ -70,6 +70,16 @@
     <string name="currentValue">Current value</string>
     <string name="newValue">New value</string>
     <string name="save">Save</string>
+    <string name="files">Files</string>
+    <string name="showHiddenFiles">Show hidden files</string>
+    <string name="hiddenFilesSummary">Show files starting with \' . \'</string>
+    <string name="sorting">Sorting</string>
+    <string name="optionSummary">Click to view Options</string>
+    <string name="sortOrder">Sort order</string>
+    <string name="selectOne">Select one</string>
+    <string name="sortBy">Sort files by</string>
+    <string name="preferences">Preferences</string>
+    <string name="foldersFirst">Folders First</string>
     <!-- All authors in alphabetical order -->
     <string-array name="allAuthors_array">
         <item>Romain Bouqueau</item>
