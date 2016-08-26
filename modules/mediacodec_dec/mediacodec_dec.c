@@ -4,14 +4,11 @@
 
 #include "../../src/compositor/gl_inc.h"
 
-#ifdef GPAC_ANDROID
-
 #include <jni.h>
 
 #include "media/NdkMediaCodec.h"
 #include "media/NdkMediaExtractor.h"
 #include "media/NdkMediaFormat.h"
-
 
 #include <android/log.h>
 
@@ -23,18 +20,12 @@
 #define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
 #define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
-#define DEQUEUE_TIMEOUT 100000
-
-#endif
 
 typedef struct 
 {
-#ifdef GPAC_ANDROID
-
     AMediaCodec *codec;
     AMediaFormat *format;
-
-#endif
+    u32 dequeue_timeout;
 
     u32 width, height, stride, out_size;
     u32 pixel_ar, pix_fmt;
@@ -64,14 +55,12 @@ typedef struct
 } MCDec;
 
 
-#ifdef GPAC_ANDROID
 u8 sdkInt() 
 {
     char sdk_str[3] = "0";
     __system_property_get("ro.build.version.sdk", sdk_str, "0");
     return atoi(sdk_str);
 }
-#endif
 
 
 //prepend the inBuffer with the start code i.e. 0x00 0x00 0x00 0x01
@@ -316,9 +305,6 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         return GF_CODEC_NOT_FOUND;
     }
 
-
-#ifdef GPAC_ANDROID
-
     ctx->pix_fmt = GF_PIXEL_YPVU;
 
     switch (ctx->esd->decoderConfig->objectTypeIndication) {
@@ -344,6 +330,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
     }
 
     ctx->frame_rate = 30;
+    ctx->dequeue_timeout = 100000;
     ctx->stride = ctx->width;
     initMediaFormat(ctx, ctx->format);
 
@@ -370,8 +357,6 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         LOGE("AMediaCodec_start failed");
         return GF_BAD_PARAM;
     }
-
-#endif
 
     ctx->inputEOS = GF_FALSE;
     ctx->outputEOS = GF_FALSE;
@@ -457,13 +442,9 @@ static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     
-#ifdef GPAC_ANDROID
-
     if(AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
         LOGE("AMediaCodec_stop failed");
     }
-
-#endif
 
     return GF_OK;
 }
@@ -545,154 +526,150 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     *outBufferLength = 0;
 
-#ifdef GPAC_ANDROID
+    if(!ctx->inputEOS) {
 
-        if(!ctx->inputEOS) {
+        ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec, ctx->dequeue_timeout);
+        //LOGV("Input Buffer Index: %d", inIndex);
 
-            ssize_t inIndex = AMediaCodec_dequeueInputBuffer(ctx->codec, DEQUEUE_TIMEOUT);
-            //LOGV("Input Buffer Index: %d", inIndex);
+        if (inIndex >= 0) {
 
-            if (inIndex >= 0) {
+            size_t inSize;
+            char *buffer = (char *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
 
-                size_t inSize;
-                char *buffer = (char *)AMediaCodec_getInputBuffer(ctx->codec, inIndex, &inSize);
+            if (inBufferLength > inSize)  {
+                LOGE("The returned buffer is too small");
+                return GF_BUFFER_TOO_SMALL;
+            }
 
-                if (inBufferLength > inSize)  {
-                    LOGE("The returned buffer is too small");
-                    return GF_BUFFER_TOO_SMALL;
+        switch (ctx->esd->decoderConfig->objectTypeIndication) {
+
+            case GPAC_OTI_VIDEO_AVC:
+                
+                if(inBuffer[4] == 0x67) { //check for sps
+
+                    u32 start = ctx->sps_size + ctx->pps_size;
+
+                    u32 i;    
+                    for (i = start; i < inBufferLength ; ++i) {
+                        buffer[i - start] = inBuffer[i];
+                    }
                 }
 
-            switch (ctx->esd->decoderConfig->objectTypeIndication) {
-
-                case GPAC_OTI_VIDEO_AVC:
-                    
-                    if(inBuffer[4] == 0x67) { //check for sps
-
-                        u32 start = ctx->sps_size + ctx->pps_size;
-
-                        u32 i;    
-                        for (i = start; i < inBufferLength ; ++i) {
-                            buffer[i - start] = inBuffer[i];
-                        }
-                    }
-
-                    else {
-                        memcpy(buffer, inBuffer, inBufferLength);
-                    }
-
-                    buffer[0] = 0x00;
-                    buffer[1] = 0x00;
-                    buffer[2] = 0x00;
-                    buffer[3] = 0x01;
-                    break;
-
-
-                case GPAC_OTI_VIDEO_HEVC:
-
-                    if(inBuffer[4] == 0x40) { //check for vps
-                        u32 start = ctx->vps_size + ctx->sps_size + ctx->pps_size;
-                        u32 i;
-                                        
-                        for (i = start; i < inBufferLength ; ++i) {
-                            buffer[i - start] = inBuffer[i];
-                        }
-                    }
-                    else {
-                        memcpy(buffer, inBuffer, inBufferLength);
-                    }
-
-                    buffer[0] = 0x00;
-                    buffer[1] = 0x00;
-                    buffer[2] = 0x00;
-                    buffer[3] = 0x01;
-                    break;
-
-               default:
+                else {
                     memcpy(buffer, inBuffer, inBufferLength);
-                    break;
-            }
-
-                if(!inBuffer || inBufferLength == 0){
-                    LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input");
-                    ctx->inputEOS = true;
-                }
-        
-                u64 presentationTimeUs = ctx->counter * 1000000 / ctx->frame_rate;
-                ctx->counter++;
-                    
-                if(AMediaCodec_queueInputBuffer(ctx->codec,
-                                        inIndex,
-                                        0, 
-                                        inBufferLength,
-                                        ctx->inputEOS ? 0 : presentationTimeUs,
-                                        inBuffer ? 0 : AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM
-                    ) != AMEDIA_OK)
-                    {
-                    LOGE("AMediaCodec_queueInputBuffer failed");
-                    return GF_BAD_PARAM;
                 }
 
-            } else {
-                LOGI("Input Buffer not available.");
-            }
+                buffer[0] = 0x00;
+                buffer[1] = 0x00;
+                buffer[2] = 0x00;
+                buffer[3] = 0x01;
+                break;
 
-        }
 
-        if(!ctx->outputEOS) {
+            case GPAC_OTI_VIDEO_HEVC:
 
-            AMediaCodecBufferInfo info;
-            ssize_t outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &info, DEQUEUE_TIMEOUT);
-            //LOGV("OutputIndex: %d", outIndex);
-
-            switch(outIndex) {
-
-                case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
-                    LOGI("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED");
-                    ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
-                    break;
-
-                case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
-                    LOGI("AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED");
-                    break;
-
-                case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
-                    LOGI("AMEDIACODEC_INFO_TRY_AGAIN_LATER");
-                    break;
-
-                default:
-
-                    if (outIndex >= 0) {
-
-                        if(info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
-                            LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
-                            ctx->outputEOS = true;
-                        }
-
-                        size_t outSize;
-                        uint8_t *buffer = AMediaCodec_getOutputBuffer(ctx->codec, outIndex, &outSize);
-
-                        if(!buffer) {
-                            LOGE("AMediaCodec_getOutputBuffer failed");
-                            *outBufferLength = 0;
-                        } else {
-                            
-                            if(info.size < ctx->out_size)
-                                *outBufferLength = info.size;
-
-                            else *outBufferLength = ctx->out_size;
-                        }
-
-                        memcpy(outBuffer, buffer, *outBufferLength);
-                        AMediaCodec_releaseOutputBuffer(ctx->codec, outIndex, false); 
-
-                    } else{
-                        LOGE("Output Buffer not available");
+                if(inBuffer[4] == 0x40) { //check for vps
+                    u32 start = ctx->vps_size + ctx->sps_size + ctx->pps_size;
+                    u32 i;
+                                    
+                    for (i = start; i < inBufferLength ; ++i) {
+                        buffer[i - start] = inBuffer[i];
                     }
-            }
+                }
+                else {
+                    memcpy(buffer, inBuffer, inBufferLength);
+                }
 
+                buffer[0] = 0x00;
+                buffer[1] = 0x00;
+                buffer[2] = 0x00;
+                buffer[3] = 0x01;
+                break;
+
+           default:
+                memcpy(buffer, inBuffer, inBufferLength);
+                break;
         }
 
-#endif
+            if(!inBuffer || inBufferLength == 0){
+                LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM input");
+                ctx->inputEOS = true;
+            }
+    
+            u64 presentationTimeUs = ctx->counter * 1000000 / ctx->frame_rate;
+            ctx->counter++;
+                
+            if(AMediaCodec_queueInputBuffer(ctx->codec,
+                                    inIndex,
+                                    0, 
+                                    inBufferLength,
+                                    ctx->inputEOS ? 0 : presentationTimeUs,
+                                    inBuffer ? 0 : AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM
+                ) != AMEDIA_OK)
+                {
+                LOGE("AMediaCodec_queueInputBuffer failed");
+                return GF_BAD_PARAM;
+            }
+
+        } else {
+            LOGI("Input Buffer not available.");
+        }
+
+    }
+
+    if(!ctx->outputEOS) {
+
+        AMediaCodecBufferInfo info;
+        ssize_t outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &info, ctx->dequeue_timeout);
+        //LOGV("OutputIndex: %d", outIndex);
+
+        switch(outIndex) {
+
+            case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+                LOGI("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED");
+                ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
+                break;
+
+            case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
+                LOGI("AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED");
+                break;
+
+            case AMEDIACODEC_INFO_TRY_AGAIN_LATER:
+                LOGI("AMEDIACODEC_INFO_TRY_AGAIN_LATER");
+                break;
+
+            default:
+
+                if (outIndex >= 0) {
+
+                    if(info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
+                        LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
+                        ctx->outputEOS = true;
+                    }
+
+                    size_t outSize;
+                    uint8_t *buffer = AMediaCodec_getOutputBuffer(ctx->codec, outIndex, &outSize);
+
+                    if(!buffer) {
+                        LOGE("AMediaCodec_getOutputBuffer failed");
+                        *outBufferLength = 0;
+                    } else {
+                        
+                        if(info.size < ctx->out_size)
+                            *outBufferLength = info.size;
+
+                        else *outBufferLength = ctx->out_size;
+                    }
+
+                    memcpy(outBuffer, buffer, *outBufferLength);
+                    AMediaCodec_releaseOutputBuffer(ctx->codec, outIndex, false); 
+
+                } else{
+                    LOGE("Output Buffer not available");
+                }
+        }
+
+    }
     return GF_OK;        
 }
 
@@ -712,11 +689,9 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 
         case GPAC_OTI_VIDEO_HEVC:
 
-#ifdef GPAC_ANDROID
             if(sdkInt() >= 21){
                 return GF_CODEC_SUPPORTED;
             }
-#endif
             return GF_CODEC_NOT_SUPPORTED;
 
 
@@ -777,7 +752,6 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
 {
     MCDec *ctx = (MCDec *)ifcg->privateStack;
 
-#ifdef GPAC_ANDROID
     if(AMediaFormat_delete(ctx->format) != AMEDIA_OK){
         LOGE("AMediaFormat_delete failed");
     }
@@ -785,7 +759,6 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
     if(AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
         LOGE("AMediaCodec_delete failed");
     }
-#endif
 
     gf_free(ctx);
     gf_free(ifcg);
