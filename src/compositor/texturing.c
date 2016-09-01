@@ -55,8 +55,6 @@ void gf_sc_texture_destroy(GF_TextureHandler *txh)
 	Bool lock = gf_mx_try_lock(compositor->mx);
 
 	gf_sc_texture_release(txh);
-	if (txh->compositor->conv_buffer) gf_free(txh->compositor->conv_buffer);
-	txh->compositor->conv_buffer = NULL;
 	if (txh->is_open) gf_sc_texture_stop(txh);
 	gf_list_del_item(txh->compositor->textures, txh);
 
@@ -134,7 +132,9 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->data = NULL;
 	}
 	txh->is_open = 0;
-
+	if (txh->conv_buffer) gf_free(txh->conv_buffer);
+	txh->conv_buffer = NULL;
+	
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
@@ -160,15 +160,15 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 
 		if (txh->compositor->output_as_8bit && txh->stride >= 2*txh->width) {
 			txh->stride /= 2;
-			txh->compositor->conv_to_8bit = GF_TRUE;
+			txh->conv_to_8bit = GF_TRUE;
 			if (txh->pixelformat == GF_PIXEL_YV12_10) {
 				txh->pixelformat = GF_PIXEL_YV12;
-				txh->compositor->conv_buffer = (char*) gf_realloc(txh->compositor->conv_buffer, 3*sizeof(char)* txh->stride * txh->height /2);
+				txh->conv_buffer = (char*) gf_realloc(txh->conv_buffer, 3*sizeof(char)* txh->stride * txh->height /2);
 			}
 			else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
 				txh->pixelformat = GF_PIXEL_YUV422;
-				txh->compositor->conv_buffer = (char*)gf_realloc(txh->compositor->conv_buffer, 2 * sizeof(char)* txh->stride * txh->height );
-			}			else if (txh->pixelformat == GF_PIXEL_YUV444_10) {				txh->pixelformat = GF_PIXEL_YUV444;				txh->compositor->conv_buffer = (char*)gf_realloc(txh->compositor->conv_buffer, 3 * sizeof(char)* txh->stride * txh->height);			}
+				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 2 * sizeof(char)* txh->stride * txh->height );
+			}			else if (txh->pixelformat == GF_PIXEL_YUV444_10) {				txh->pixelformat = GF_PIXEL_YUV444;				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 3* sizeof(char)* txh->stride * txh->height);			}
 		}
 
 		if (private_media) {
@@ -289,7 +289,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	
-	if (txh->compositor->conv_to_8bit) {
+	if (txh->conv_to_8bit) {
 		GF_VideoSurface dst;
 		u8  *p_y;
 		u32 src_stride = txh->stride * 2;
@@ -297,7 +297,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		dst.width = txh->width;
 		dst.height = txh->height;
 		dst.pitch_y = txh->stride;
-		dst.video_buffer = txh->raw_memory ? txh->compositor->conv_buffer : txh->data;
+		dst.video_buffer = txh->raw_memory ? txh->conv_buffer : txh->data;
 		p_y = (u8 *)txh->data;
 
 		if (txh->pixelformat == GF_PIXEL_YV12) {
