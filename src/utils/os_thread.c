@@ -231,7 +231,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	t->_signal = gf_sema_new(1, 0);
 
 #ifdef WIN32
-	t->threadH = CreateThread(NULL,  t->stackSize, &(RunThread), (void *)t, 0, &id);
+	t->threadH = CreateThread(NULL, t->stackSize, &(RunThread), (void *)t, 0, &id);
 	if (t->threadH != NULL) {
 #ifdef _MSC_VER
 		/*add thread name for the msvc debugger*/
