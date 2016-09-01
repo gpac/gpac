@@ -422,7 +422,7 @@ static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, 
 	sess = gf_list_get(priv->sessions, 0);
 	if (sess && sess->satip) {
 		RTPStream *ch = gf_list_get(priv->channels, 0);
-		if (!ch) return GF_SERVICE_ERROR;
+		if (!ch) return NULL;
 		return ch->satip_m2ts_ifce->GetServiceDescriptor(ch->satip_m2ts_ifce, expect_type, sub_url);
 	}
 
