@@ -505,17 +505,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 		}
 	}
 
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "Systems", "Output8bit");
-	if (!sOpt) gf_modules_set_option((GF_BaseInterface *)plug, "Systems", "Output8bit", (ffd->display_bpp>8) ? "no" : "yes");
-	if (sOpt && !strcmp(sOpt, "yes")) ffd->output_as_8bit = GF_TRUE;
-
-	if (ffd->output_as_8bit && (ffd->stride > (u32) (*ctx)->width)) {
-		ffd->stride /=2;
-		ffd->out_size /= 2;
-		ffd->conv_to_8bit = GF_TRUE;
-	}
-
 	return GF_OK;
 }
 
@@ -572,10 +561,7 @@ static GF_Err FFDEC_DetachStream(GF_BaseDecoder *plug, u16 ES_ID)
 		*sws = NULL;
 	}
 #endif
-	if (ffd->conv_buffer) {
-		gf_free(ffd->conv_buffer);
-		ffd->conv_buffer = NULL;
-	}
+	
 	return GF_OK;
 }
 
@@ -650,8 +636,6 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 			capability->cap.valueInt = ffd->stride*3;
 		else if (ffd->out_pix_fmt==GF_PIXEL_RGBA)
 			capability->cap.valueInt = ffd->stride*4;
-		else if (ffd->conv_buffer)
-			capability->cap.valueInt = ffd->base_ctx->width;
 		else
 			capability->cap.valueInt = ffd->stride;
 		break;
@@ -663,7 +647,6 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		if (ffd->base_ctx->width) capability->cap.valueInt = ffd->out_pix_fmt;
-		if (ffd->conv_buffer) capability->cap.valueInt = GF_PIXEL_YV12;
 		break;
 	/*ffmpeg performs frame reordering internally*/
 	case GF_CODEC_REORDER:
@@ -697,9 +680,6 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 	assert(plug);
 	assert( ffd );
 	switch (capability.CapCode) {
-	case GF_CODEC_DISPLAY_BPP:
-		ffd->display_bpp = capability.cap.valueInt;
-		return GF_OK;
 	case GF_CODEC_WAIT_RAP:
 		ffd->frame_start = 0;
 		if (ffd->st==GF_STREAM_VISUAL) {
@@ -720,42 +700,27 @@ static GF_Err FFDEC_SetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability cap
 }
 static GF_Err FFDEC_GetOutputPixelFromat (u32 pix_fmt, u32 * out_pix_fmt, FFDec *ffd)
 {
-	if ( out_pix_fmt == NULL || ffd == NULL ) 
-	{
-		return GF_BAD_PARAM;
-	}
-	else 
-	{
-		switch (pix_fmt) {
+
+	if (!out_pix_fmt || !ffd) return GF_BAD_PARAM;
+	
+	switch (pix_fmt) {
 		case PIX_FMT_YUV420P:
 			*out_pix_fmt = GF_PIXEL_YV12;
 			break;
 		case PIX_FMT_YUV420P10LE:
-			if (ffd->output_as_8bit){
-				*out_pix_fmt  = GF_PIXEL_YV12;
-			} else {
-				*out_pix_fmt  = GF_PIXEL_YV12_10;
-			}
+			*out_pix_fmt = GF_PIXEL_YV12_10;
 			break;
 		case PIX_FMT_YUV422P:
 			*out_pix_fmt = GF_PIXEL_YUV422;
 			break;
 		case PIX_FMT_YUV422P10LE:
-			if (ffd->output_as_8bit){
-				*out_pix_fmt  =  GF_PIXEL_YUV422;
-			} else {
-				*out_pix_fmt  = GF_PIXEL_YUV422_10;
-			}
+			*out_pix_fmt = GF_PIXEL_YUV422_10;
 			break;
 		case PIX_FMT_YUV444P:
 			*out_pix_fmt = GF_PIXEL_YUV444;
 			break;
 		case PIX_FMT_YUV444P10LE:
-			if (ffd->output_as_8bit){
-				*out_pix_fmt = GF_PIXEL_YUV444;
-			} else {
-				*out_pix_fmt = GF_PIXEL_YUV444_10;
-			}
+			*out_pix_fmt = GF_PIXEL_YUV444_10;
 			break;
 		case PIX_FMT_RGBA:
 			*out_pix_fmt = GF_PIXEL_RGBA;
@@ -773,9 +738,6 @@ static GF_Err FFDEC_GetOutputPixelFromat (u32 pix_fmt, u32 * out_pix_fmt, FFDec 
 		}
 		return GF_OK;
 		
-	}
-	
-	
 }
 
 
@@ -1157,13 +1119,6 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	}
 
 	stride = frame->linesize[0];
-	ffd->conv_to_8bit = GF_FALSE;
-#ifndef NO_10bit
-	if ((ctx->pix_fmt == PIX_FMT_YUV420P10LE || ctx->pix_fmt == PIX_FMT_YUV422P10LE  || ctx->pix_fmt == PIX_FMT_YUV444P10LE  ) && ffd->output_as_8bit && (frame->linesize[0] >= 2*w) )  {
-		ffd->conv_to_8bit = GF_TRUE;
-		stride=w;
-	}
-#endif
 	
 	ret = FFDEC_GetOutputPixelFromat(ctx->pix_fmt, &out_pix_fmt, ffd);
 	if ( ret < 0)
@@ -1173,15 +1128,13 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	
 	/*recompute outsize in case on-the-fly change*/
 	if ((w != ctx->width) || (h != ctx->height)
-	        || (ffd->direct_output_mode && (stride != ffd->stride))
-	        || ((ffd->out_pix_fmt==GF_PIXEL_YV12) && (ctx->pix_fmt != PIX_FMT_YUV420P) && !ffd->output_as_8bit )
-	        //need to realloc the conversion buffer
-	        || (ffd->conv_to_8bit && !ffd->conv_buffer && ffd->direct_output_mode)
-		|| (out_pix_fmt != ffd->out_pix_fmt)
+		|| (ffd->direct_output_mode && (stride != ffd->stride))
+		|| (ffd->out_pix_fmt != out_pix_fmt)
+		//need to realloc the conversion buffer
 		
 	   ) {
 
-		ffd->stride = (!ffd->conv_to_8bit && ffd->direct_output_mode) ? frame->linesize[0] : ctx->width;
+		ffd->stride = (ffd->direct_output_mode) ? frame->linesize[0] : ctx->width;
 		if (ctx->pix_fmt  == PIX_FMT_RGBA) {
 			ffd->out_pix_fmt = ffd->pix_fmt = GF_PIXEL_RGBA;
 			outsize = ctx->width * ctx->height * 4;
@@ -1209,32 +1162,20 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		}
 #ifndef NO_10bit
 		//this YUV format is handled natively in GPAC
-		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE)  {
-			if (ffd->output_as_8bit){
-				ffd->out_pix_fmt = GF_PIXEL_YV12;
-			} else {
-				ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width*2;
-			    ffd->out_pix_fmt = GF_PIXEL_YV12_10;
-		}
-		outsize = ffd->stride * ctx->height * 3 / 2;
+		else if (ctx->pix_fmt == PIX_FMT_YUV420P10LE) {
+			ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width * 2;
+			ffd->out_pix_fmt = GF_PIXEL_YV12_10;
+			outsize = 3*ffd->stride * ctx->height / 2;
 		}
 		else if (ctx->pix_fmt == PIX_FMT_YUV422P10LE) {
-			if (ffd->output_as_8bit){
-				ffd->out_pix_fmt = GF_PIXEL_YUV422;
-			} else {
-				ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width*2;
-			    ffd->out_pix_fmt = GF_PIXEL_YUV422_10;
-			}
-			outsize = ffd->stride * ctx->height *  2;
+			ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width * 2;
+			ffd->out_pix_fmt = GF_PIXEL_YUV422_10;
+			outsize = ffd->stride * ctx->height * 2;
 		}
 		else if (ctx->pix_fmt == PIX_FMT_YUV444P10LE) {
-			if (ffd->output_as_8bit){
-				ffd->out_pix_fmt = GF_PIXEL_YUV444;
-			} else {
-				ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width*2;
-			    ffd->out_pix_fmt = GF_PIXEL_YUV444_10;
-		}
-		outsize = ffd->stride * ctx->height * 3 ;
+				ffd->stride = ffd->direct_output_mode ? frame->linesize[0] : ctx->width * 2;
+				ffd->out_pix_fmt = GF_PIXEL_YUV444_10;
+				 outsize = ffd->stride * ctx->height * 3;
 		}
 #endif
 		
@@ -1269,12 +1210,9 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 #endif
 		ffd->had_pic = GF_TRUE;
 
-		if (ffd->conv_to_8bit && ffd->direct_output_mode) {
-			ffd->conv_buffer = (char*)gf_realloc(ffd->conv_buffer, sizeof(char)*ffd->out_size);
-		}
-
 		if (ffd->direct_output_mode) {
 			ffd->frame_size_changed = GF_TRUE;
+			
 		} else {
 			return GF_BUFFER_TOO_SMALL;
 		}
@@ -1311,32 +1249,10 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	}
 #endif
 
-	if (ffd->direct_output_mode && !ffd->conv_to_8bit) {
+	if (ffd->direct_output_mode) {
 		*outBufferLength = ffd->out_size;
 		return GF_OK;
 	}
-
-	if (ffd->conv_to_8bit) {
-		GF_VideoSurface dst;
-		memset(&dst, 0, sizeof(GF_VideoSurface));
-		dst.width = ctx->width;
-		dst.height = ctx->height;
-		dst.pitch_y = ctx->width;
-		dst.video_buffer = ffd->direct_output_mode ? ffd->conv_buffer : outBuffer;
-		
-        if (ffd->out_pix_fmt == GF_PIXEL_YV12){
-			gf_color_write_yv12_10_to_yuv(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
-		} else if (ffd->out_pix_fmt == GF_PIXEL_YUV422) {
-			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
-		} else if (ffd->out_pix_fmt == GF_PIXEL_YUV444) {
-			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *) frame->data[0], frame->data[1], frame->data[2], frame->linesize[0], ctx->width, ctx->height, NULL, GF_FALSE);
-		} else {
-			return GF_NOT_SUPPORTED;
-		}
-		*outBufferLength = ffd->out_size;
-		return GF_OK;
-	}
-
 
 	if (ES_ID == ffd->depth_ES_ID) {
 		s32 i;
@@ -1502,13 +1418,6 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 
 	if (ffd->direct_output_mode != 1) return GF_BAD_PARAM;
 	
-	if (ffd->conv_buffer) {
-		*pY_or_RGB = (u8 *) ffd->conv_buffer;
-		*pU = (u8 *) ffd->conv_buffer + ffd->stride * ffd->base_ctx->height;
-		*pV = (u8 *) ffd->conv_buffer + 5*ffd->stride * ffd->base_ctx->height/4;
-		return GF_OK;
-	}
-
 	if (ES_ID && (ffd->depth_ES_ID==ES_ID)) {
 		frame = ffd->depth_frame;
 		*pY_or_RGB = frame->data[0];
