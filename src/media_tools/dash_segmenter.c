@@ -5150,7 +5150,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 	ms_elapsed -= prev_frac;
 	ms_elapsed /= 0xFFFFFFFF;
 	ms_elapsed *= 1000;
-	ms_elapsed += (ntp_sec - prev_sec)*1000;
+	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
