@@ -1188,6 +1188,8 @@ struct _mediaobj
 	
 	u32 quality_degradation_hint;
 	
+	int nb_views;
+
 	GF_MediaDecoderFrame *media_frame;
 };
 

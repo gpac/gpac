@@ -71,6 +71,8 @@ GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, B
 /*unregister the node from the media object*/
 void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo);
 
+void gf_get_nblayers(GF_MediaObject *mo, int * nb_layers);
+
 /*opens media object*/
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop);
 /*stops media object - video memory is not reset, last frame is kept*/
