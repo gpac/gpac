@@ -1866,7 +1866,7 @@ GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
-	u32 i, idx, count, common_idx, nb_tracks, scheme_type, crypt_type;
+	u32 i, idx, count, common_idx, nb_tracks, scheme_type;
 	const char *scheme_URI="", *KMS_URI="";
 	GF_CryptInfo *info;
 	Bool is_oma, is_cenc;
@@ -1892,8 +1892,6 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 	}
 
-	crypt_type = info ? info->crypt_type : 0;
-	
 	nb_tracks = gf_isom_get_track_count(mp4);
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
