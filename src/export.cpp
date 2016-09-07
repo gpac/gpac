@@ -2127,7 +2127,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_max_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_threaded_download) )
-#pragma comment (linker, EXPORT_SYMBOL( gf_dash_group_set_quality_degradation_hint) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_quality_degradation_hint) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_visible_rect) )
 
 #endif
 
