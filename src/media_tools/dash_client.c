@@ -7079,13 +7079,13 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 	for (i=0; i<count; i++) {
 		Bool is_visible = GF_TRUE;
 		GF_DASH_Group *a_group = gf_list_get(group->groups_depending_on, i);
-		if (!a_group->srd_w || !a_group->srd_h) continue;
+		if (!a_group->srd_w || !a_group->srd_h) continue;
 
 		//single rectangle case
 		if (min_x<max_x) {
 			if (a_group->srd_x+a_group->srd_h <min_x) is_visible = GF_FALSE;
 			else if (a_group->srd_x>max_x) is_visible = GF_FALSE;
-		} else {
+		} else {
 			if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = GF_FALSE;
 		}
 		
