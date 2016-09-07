@@ -781,7 +781,8 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		gf_free(in_data);
 	
 	if (ctx->last_error) return ctx->last_error;
-	if (status) return GF_NON_COMPLIANT_BITSTREAM;
+	if (status)
+		return GF_NON_COMPLIANT_BITSTREAM;
 	
 	if (!ctx->frame) {
 		*outBufferLength=0;
