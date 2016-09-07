@@ -1347,7 +1347,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (idx < 0) return GF_BAD_PARAM;
 		com->net_stats.bw_down = 8 * gf_dash_group_get_download_rate(mpdin->dash, idx);
 	}
-	return GF_OK;
+		return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_QUERY:
 	{
@@ -1401,8 +1401,11 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->quality_query.tile_adaptation_mode = (u32) gf_dash_get_tile_adaptation_mode(mpdin->dash);
 		return GF_OK;
 	}
+	case GF_NET_CHAN_VISIBILITY_HINT:
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->base.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
 
-	break;
+		return gf_dash_group_set_visible_rect(mpdin->dash, idx, com->visibility_hint.min_x, com->visibility_hint.max_x, com->visibility_hint.min_y, com->visibility_hint.max_y);
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/

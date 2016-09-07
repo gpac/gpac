@@ -210,7 +210,7 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
-	Bool is_srd;
+	Bool is_srd, is_tiled_srd;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
 
 
@@ -1187,7 +1187,7 @@ struct _mediaobj
 	u32 srd_x, srd_y, srd_w, srd_h;
 	
 	u32 quality_degradation_hint;
-	
+	u32 view_min_x, view_max_x, view_min_y, view_max_y;
 	GF_MediaDecoderFrame *media_frame;
 };
 

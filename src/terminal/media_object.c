@@ -330,14 +330,23 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	}
 
 	com.base.command_type = GF_NET_CHAN_GET_SRD;
-	if ((gf_term_service_command(ch->service, &com) == GF_OK) && com.srd.w && com.srd.h) {
-		mo->srd_x = com.srd.x;
-		mo->srd_y = com.srd.y;
-		mo->srd_w = com.srd.w;
-		mo->srd_h = com.srd.h;
+	if ((gf_term_service_command(ch->service, &com) == GF_OK)) {
+		//regular SRD object
+		if (com.srd.w && com.srd.h) {
+			mo->srd_x = com.srd.x;
+			mo->srd_y = com.srd.y;
+			mo->srd_w = com.srd.w;
+			mo->srd_h = com.srd.h;
 
-		if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
-			mo->odm->parentscene->is_srd = GF_TRUE;
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_srd = GF_TRUE;
+			}
+		}
+		// SRD object with no size but global scene size: HEVC tiled bas object
+		else if (com.srd.width && com.srd.height) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
+			}
 		}
 	}
 }
@@ -1474,6 +1483,8 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_min_y = scene->srd_min_y;
 	vr_info->srd_max_x = scene->srd_max_x;
 	vr_info->srd_max_y = scene->srd_max_y;
+	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	gf_odm_lock(mo->odm, 0);
@@ -1501,5 +1512,34 @@ void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 
 	gf_odm_lock(mo->odm, 0);
 }
+
+void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
+{
+	
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm || !mo->odm->codec) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
+		GF_NetworkCommand com;
+		mo->view_min_x = min_x;
+		mo->view_max_x = max_x;
+		mo->view_min_y = min_y;
+		mo->view_max_y = max_y;
+		
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_CHAN_VISIBILITY_HINT;
+		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
+		com.visibility_hint.min_x = min_x;
+		com.visibility_hint.max_x = max_x;
+		com.visibility_hint.min_y = min_y;
+		com.visibility_hint.max_y = max_y;
+		gf_term_service_command(mo->odm->net_service, &com);
+	}
+	
+	gf_odm_lock(mo->odm, 0);
+}
+
 
 
