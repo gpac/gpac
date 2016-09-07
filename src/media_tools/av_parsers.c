@@ -3866,7 +3866,7 @@ static void shvc_parse_rep_format(HEVC_RepFormat *fmt, GF_BitStream *bs)
 static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 {
 	u8 splitting_flag, vps_nuh_layer_id_present_flag, view_id_len;
-	u32 i, j, num_scalability_types, num_add_olss, num_add_layer_set, num_indepentdent_layers, nb_bits, default_output_layer_idc;
+	u32 i, j, num_scalability_types, num_add_olss, num_add_layer_set, num_indepentdent_layers, nb_bits, default_output_layer_idc=0;
 	u8 dimension_id_len[16], dim_bit_offset[16];
 	u8 /*avc_base_layer_flag, */NumLayerSets, /*default_one_target_output_layer_flag, */rep_format_idx_present_flag, ols_ids_to_ls_idx;
 	u8 layer_set_idx_for_ols_minus1[MAX_SHVC_LAYERS];
