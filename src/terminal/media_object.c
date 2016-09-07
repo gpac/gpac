@@ -1521,7 +1521,7 @@ void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y
 		gf_odm_lock(mo->odm, 0);
 		return;
 	}
-	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
+	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
 		GF_NetworkCommand com;
 		mo->view_min_x = min_x;
 		mo->view_max_x = max_x;

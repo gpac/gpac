@@ -122,7 +122,7 @@ static void build_shape_sphere(GF_Node *n, Drawable3D *stack, GF_TraverseState *
 
 static void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandler *txh, Bool horizontal, u32 *min_coord, u32 *max_coord)
 {
-	GF_Vec target, ref, cross;
+	GF_Vec target, ref;
 	Fixed dot, det, hfov, theta_angle, angle_start, angle_end, min_tx, max_tx;
 	u32 dim;
 	
@@ -138,7 +138,7 @@ static void get_tx_coords_from_angle(GF_TraverseState *tr_state, GF_TextureHandl
 	dot = gf_vec_dot(target, ref);
 	if (horizontal) {
 		det = target.x*ref.z - target.z*ref.x;
-	} else {
+	} else {
 		det = target.y*ref.z - target.z*ref.y;
 	}
 	theta_angle = gf_atan2(det, dot);
@@ -197,7 +197,7 @@ static void TraverseSphere(GF_Node *n, void *rs, Bool is_destroy)
 		
 		if (!txh->stream) return;
 		
-		if (! gf_mo_get_srd_info(txh->stream, &vrinfo) || !vrinfo.is_tiled_srd)
+		if (!gf_mo_get_srd_info(txh->stream, &vrinfo) || !vrinfo.is_tiled_srd)
 			return;
 		
 		//we need to compute min/max tex coords visible for that sphere
