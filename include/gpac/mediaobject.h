@@ -204,7 +204,8 @@ typedef struct
 	
 	u32 scene_width;
 	u32 scene_height;
-	
+
+	Bool is_tiled_srd;
 } GF_MediaObjectVRInfo;
 
 //get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
@@ -213,6 +214,8 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
 /*sets quality degradation hint for this media object  - quality_rank is between 0 (max quality) and 100 (worst quality)*/
 void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation);
 
+/*sets visible rectangle for the object - only used in 360 videos for now*/
+void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
 
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);
