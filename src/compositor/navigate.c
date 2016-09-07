@@ -145,9 +145,21 @@ static void view_pan_x(GF_Compositor *compositor, GF_Camera *cam, Fixed dx)
 static void view_pan_y(GF_Compositor *compositor, GF_Camera *cam, Fixed dy)
 {
 	GF_Matrix mx;
+	GF_Vec prev_target = cam->target;
 	if (!dy) return;
 	gf_mx_rotation_matrix(&mx, cam->position, camera_get_right_dir(cam), dy);
 	gf_mx_apply_vec(&mx, &cam->target);
+	switch (cam->navigate_mode) {
+	case GF_NAVIGATE_WALK:
+	case GF_NAVIGATE_VR:
+	case GF_NAVIGATE_GAME:
+		if (cam->target.z*prev_target.z<0) {
+			cam->target = prev_target;
+			return;
+		}
+	default:
+		break;
+	}
 
 	update_pan_up(compositor, cam);
 }

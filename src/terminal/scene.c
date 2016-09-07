@@ -1171,6 +1171,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
 				gf_scene_get_video_size(odm->mo, &w, &h);
 				if (w && h) {
+					scene->force_size_set = 0;
 					gf_sg_set_scene_size_info(scene->graph, w, h, 1);
 					gf_scene_force_size(scene, w, h);
 				}
@@ -2070,9 +2071,11 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		GF_NetworkCommand com;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
-		gf_term_service_command(scene->root_od->net_service, &com);
-
+		if (!scene->vr_type) {
+			com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
+			gf_term_service_command(scene->root_od->net_service, &com);
+		}
+		
 		if (scene->root_od->term->root_scene == scene) {
 			if (com.par.width && com.par.height) {
 				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
