@@ -290,7 +290,7 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
 
-//hevc_state is optionnal but shall be used for layer extensions since all size info is in VPS and not SPS
+//hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

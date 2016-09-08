@@ -877,7 +877,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 	assert(!gf_list_count(inst->scripts_to_load));
 	gf_list_del(inst->scripts_to_load);
 
-	if (inst->proto_interface) gf_list_del_item(inst->proto_interface->instances, inst);
+	if (inst->proto_interface && inst->proto_interface->instances) gf_list_del_item(inst->proto_interface->instances, inst);
 
 	gf_node_free((GF_Node *)inst);
 	gf_sg_del(sg);

@@ -1252,6 +1252,10 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (sOpt && !stricmp(sOpt, "Never")) compositor->texture_text_mode = GF_TEXTURE_TEXT_NEVER;
 	else compositor->texture_text_mode = GF_TEXTURE_TEXT_DEFAULT;
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Systems", "Output8bit");
+	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Systems", "Output8bit",(compositor->video_out->max_screen_bpp > 8) ? "no" : "yes");
+	if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
+
 	if (compositor->audio_renderer) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "NoResync");
 		compositor->audio_renderer->disable_resync = (sOpt && !stricmp(sOpt, "yes")) ? 1 : 0;
@@ -3624,3 +3628,13 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type)
 		}
 	return GF_TRUE;
 }
+
+Bool gf_sc_use_3d(GF_Compositor *compositor)
+{
+#ifndef GPAC_DISABLE_3D
+	return (compositor->visual->type_3d || compositor->hybrid_opengl) ? 1 : 0;
+#else
+	return 0;
+#endif
+}
+

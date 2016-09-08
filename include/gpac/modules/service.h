@@ -145,6 +145,8 @@ typedef enum
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
 
+	/*indicates visible part of the visual object associated with the channel*/
+	GF_NET_CHAN_VISIBILITY_HINT,
 	/*request current position in TSB - 0 means 'at the live point'*/
 	GF_NET_GET_TIMESHIFT,
 
@@ -378,6 +380,17 @@ typedef struct
 	u32 dependent_group_index;
 } GF_NetComSRDInfo;
 
+/*GF_NET_CHAN_VISIBILITY_HINT*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	//gives min_max coords of the visible rectangle associated with channels.
+	//min_x may be greater than max_x in case of 360 videos
+	u32 min_x, max_x, min_y, max_y;
+} GF_NetComVisibililityHint;
+
+
 /*GF_NET_SERVICE_INFO*/
 typedef struct __netinfocom
 {
@@ -489,6 +502,8 @@ typedef struct
 	const char *ID;
 	//1+tile mode adaptation (doesn't change other selections)
 	u32 set_tile_mode_plus_one;
+	
+	u32 quality_degradation;
 } GF_NetQualitySwitch;
 
 
@@ -639,6 +654,7 @@ typedef union __netcommand
 	GF_NetQualityQuery quality_query;
 	GF_CodecStat codec_stat;
 	GF_NetComSRDInfo srd;
+	GF_NetComVisibililityHint visibility_hint;
 } GF_NetworkCommand;
 
 /*

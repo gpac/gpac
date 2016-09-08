@@ -139,6 +139,29 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
 
+		if (codec->type == GF_STREAM_VISUAL) {
+			cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+			gf_codec_get_capability(codec, &cap);
+			if (cap.cap.valueBool) {
+				cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+				cap.cap.valueInt = gf_sc_use_3d(codec->odm->term->compositor) ? 2 : 1;
+				if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputFrame != NULL))
+					codec->direct_frame_output = GF_TRUE;
+			}
+			if (!codec->direct_frame_output) {
+				//this works but we need at least double buffering of textures on the GPU which we don't have now
+				if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
+					cap.CapCode = GF_CODEC_RAW_MEMORY;
+					gf_codec_get_capability(codec, &cap);
+					if (cap.cap.valueBool) {
+						cap.CapCode = GF_CODEC_RAW_MEMORY;
+						if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
+							codec->direct_vout = GF_TRUE;
+					}
+				}
+			}
+		}
+
 		if (codec->odm->term->bench_mode==2) {
 			e = GF_OK;
 		} else {
@@ -171,17 +194,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		/*get desired amount of units and minimal fullness (used for scheduling)*/
 		switch(codec->type) {
 		case GF_STREAM_VISUAL:
-			//this works but we need at least double buffering of textures on the GPU which we don't have now
-			if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
-				cap.CapCode = GF_CODEC_DIRECT_OUTPUT;
-				gf_codec_get_capability(codec, &cap);
-				if (cap.cap.valueBool) {
-					cap.CapCode = GF_CODEC_DIRECT_OUTPUT;
-					if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
-						codec->direct_vout = GF_TRUE;
-				}
-			}
-
 		case GF_STREAM_AUDIO:
 			cap.CapCode = GF_CODEC_BUFFER_MIN;
 			cap.cap.valueInt = 1;
@@ -211,6 +223,9 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				max = 1;
 				/*create a semaphore in non-notified stage*/
 				codec->odm->raw_frame_sema = gf_sema_new(1, 0);
+				no_alloc = 1;
+			}
+			else if (codec->direct_frame_output) {
 				no_alloc = 1;
 			}
 			else if (codec->direct_vout) {
@@ -986,7 +1001,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	if (codec->CB->Capacity == codec->CB->UnitCount) {
 		//do not stop codec!
 		if (codec->CB->UnitCount > 1) return GF_OK;
-		else if (codec->direct_vout) return GF_OK;
+		else if (codec->direct_frame_output|| codec->direct_vout) return GF_OK;
 	}
 
 	entryTime = gf_sys_clock_high_res();
@@ -1324,7 +1339,26 @@ scalable_retry:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
 
-				if (codec->direct_vout) {
+
+				if (codec->direct_frame_output) {
+					Bool needs_resize = 0;
+					e = mdec->GetOutputFrame(mdec, ch->esd->ESID, &CU->frame, &needs_resize);
+					if (e!=GF_OK) {
+						CU->frame=NULL;
+					}
+					if (!CU->frame)
+						unit_size = 0;
+					else if (needs_resize) {
+						//if dynamic scene, set size
+						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
+							/*update config*/
+							gf_mo_update_caps(codec->odm->mo);
+							gf_scene_force_size_to_video(codec->odm->parentscene, codec->odm->mo);
+						}
+					}
+					
+				}
+				else if (codec->direct_vout) {
 					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
 					if (e==GF_OK) {
 						gf_sc_set_video_pending_frame(codec->odm->term->compositor);

@@ -65,10 +65,6 @@
 #undef GL_MAX_CLIP_PLANES
 #endif
 
-#ifdef GPAC_USE_GLES1X
-#define GL_CLAMP GL_CLAMP_TO_EDGE
-#endif
-
 
 #define CHECK_GL_EXT(name) ((strstr(ext, name) != NULL) ? 1 : 0)
 
@@ -206,6 +202,10 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 	}
 #endif
 
+	if (CHECK_GL_EXT("EXT_unpack_subimage") ) {
+		compositor->gl_caps.gles2_unpack = 1;
+	}
+	
 	if (!has_gl_context) return;
 
 
@@ -1264,8 +1264,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 	glBindTexture(GL_TEXTURE_2D, visual->gl_textures[visual->current_view]);
 
 #ifndef GPAC_USE_GLES2
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP);
-	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
 	glTexParameterf(GL_TEXTURE_2D,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
 	glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_REPLACE);
@@ -1340,8 +1340,8 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 				glActiveTexture(GL_TEXTURE0 + i);
 
 #ifndef GPAC_USE_GLES2
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
-				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 				glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_DECAL);
@@ -1542,6 +1542,15 @@ void visual_3d_enable_antialias(GF_VisualManager *visual, Bool bOn)
 #ifndef GPAC_USE_GLES1X
 		glDisable(GL_POLYGON_SMOOTH);
 #endif
+
+/*		glDisable(GL_DITHER);
+		glDisable(GL_POINT_SMOOTH);
+		glHint(GL_POINT_SMOOTH, GL_DONT_CARE);
+		glHint(GL_LINE_SMOOTH, GL_DONT_CARE);
+		glHint(GL_POLYGON_SMOOTH_HINT, GL_DONT_CARE);
+	
+		glDisable( GL_MULTISAMPLE_ARB);
+*/
 	}
 
 #endif
@@ -2635,6 +2644,18 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			glEnableVertexAttribArray(loc_textcoord_array);
 			GL_CHECK_ERR
 		}
+
+		if (flags & GF_GL_IS_YUV) {
+			loc = gf_glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
+			if (loc>=0) {
+				int yuv_mode = 0;
+				if (visual->yuv_pixelformat_type == GF_PIXEL_NV21) yuv_mode = 1;
+				else if (visual->yuv_pixelformat_type == GF_PIXEL_YPVU) yuv_mode = 2;
+			
+				glUniform1i(loc, yuv_mode);
+			}
+			GL_CHECK_ERR
+		}
 	}
 
 	//
@@ -2759,13 +2780,6 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	if (visual->has_clipper_2d) {
 		glDisable(GL_SCISSOR_TEST);
-	}
-
-	if (flags & GF_GL_IS_YUV) {
-		loc = gf_glGetUniformLocation(visual->glsl_program, "isNV21PixelFormat");
-		if (loc>=0)
-			glUniform1i(loc, visual->yuv_pixelformat_type == GF_PIXEL_NV21 ? 1 : 0);
-		GL_CHECK_ERR
 	}
 
 	visual->has_material_2d = 0;

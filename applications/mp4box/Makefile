@@ -31,6 +31,10 @@ EXE=.exe
 PROG=MP4Box$(EXE)
 LINKFLAGS+=$(UNICODEFLAGS)
 
+ifeq ($(HAS_WMAIN),no)
+CFLAGS+=-DNO_WMAIN
+endif
+
 else
 
 EXT=
