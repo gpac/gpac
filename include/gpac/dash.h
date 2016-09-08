@@ -482,6 +482,9 @@ Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *
 //sets quality hint for the given group. Quality degradation ranges from 0 (no degradation) to 100 (worse quality possible)
 GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, u32 quality_degradation_hint);
 
+//sets visible rectangle of a video object, may be used for adaptation. If min_x==max_x==min_y=max_y==0, disable adaptation
+GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
+
 /*Enables or disables threaded downloads of media files for the dash client
  @use_threads: if true, threads are used to download files*/
 void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads);

@@ -1711,7 +1711,7 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 		if (!strncmp(service_url, "file://", 7)) url = service_url + 7;
 		url_len = (u32) strlen(url);
 		an_url = strchr(url, '#');
-		if (an_url) url_len -= strlen(an_url);
+		if (an_url) url_len -= (u32) strlen(an_url);
 		
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
