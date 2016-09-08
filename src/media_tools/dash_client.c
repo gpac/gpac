@@ -7070,6 +7070,11 @@ GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
 
+	if (!min_x && !max_x && !min_y && !max_y) {
+		group->quality_degradation_hint = 0;
+	}
+	
+
 	//TODO - single video, we may want to switch down quality if not a lot of the video is visible
 	//we will need the zoom factor as well
 	if (!group->groups_depending_on) return GF_OK;
