@@ -261,7 +261,6 @@ RTSPSession *RP_NewSession(RTPClient *rtp, char *session_control)
 	tmp->owner = rtp;
 	tmp->session = rtsp;
 
-
 	szCtrl = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIPEnabled");
 	if (szCtrl && !strcmp(szCtrl, "yes")) {
 		char *ip = (char *)gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(rtp->service), "Network", "MobileIP");
@@ -304,7 +303,7 @@ GF_Err RP_AddStream(RTPClient *rtp, RTPStream *stream, char *session_control)
 	/*setup through SDP with control - assume this is RTSP and try to create a session*/
 	if (stream->control) {
 		/*stream control is relative to main session*/
-		if (strnicmp(stream->control, "rtsp://", 7) && strnicmp(stream->control, "rtspu://", 7)) {
+		if (strnicmp(stream->control, "rtsp://", 7) && strnicmp(stream->control, "rtspu://", 8) && strnicmp(stream->control, "satip://", 8)) {
 			/*locate session by control - if no control was provided for the session, use default
 			session*/
 			if (!in_session) in_session = RP_CheckSession(rtp, session_control ? session_control : "*");
@@ -395,6 +394,7 @@ void RP_DelSession(RTSPSession *sess)
 	gf_rtsp_session_del(sess->session);
 	if (sess->control) gf_free(sess->control);
 	if (sess->session_id) gf_free(sess->session_id);
+	if (sess->satip_server) gf_free(sess->satip_server);
 	gf_free(sess);
 }
 

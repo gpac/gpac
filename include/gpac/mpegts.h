@@ -894,6 +894,7 @@ struct tag_m2ts_demux
 	Bool force_file_refresh;
 	/*net playing*/
 	GF_Socket *sock;
+	Bool sock_is_delegate;
 
 #ifdef GPAC_HAS_LINUX_DVB
 	/*dvb playing*/
