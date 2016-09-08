@@ -62,19 +62,19 @@ GF_Err gf_rmdir(char *DirPathName)
 	res = RemoveDirectory(swzName);
 	if (! res) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
 	int res = rmdir(DirPathName);
 	if (res==-1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 		return GF_IO_ERR;
 	}
 #else
 	int res = rmdir(DirPathName);
 	if (res==-1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, errno  ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, errno  ));
 		return GF_IO_ERR;
 	}
 #endif
@@ -595,7 +595,7 @@ u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
@@ -617,7 +617,7 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) fseeko64(fp, offset, whence);
 #else

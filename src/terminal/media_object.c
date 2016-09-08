@@ -330,14 +330,23 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	}
 
 	com.base.command_type = GF_NET_CHAN_GET_SRD;
-	if ((gf_term_service_command(ch->service, &com) == GF_OK) && com.srd.w && com.srd.h) {
-		mo->srd_x = com.srd.x;
-		mo->srd_y = com.srd.y;
-		mo->srd_w = com.srd.w;
-		mo->srd_h = com.srd.h;
+	if ((gf_term_service_command(ch->service, &com) == GF_OK)) {
+		//regular SRD object
+		if (com.srd.w && com.srd.h) {
+			mo->srd_x = com.srd.x;
+			mo->srd_y = com.srd.y;
+			mo->srd_w = com.srd.w;
+			mo->srd_h = com.srd.h;
 
-		if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
-			mo->odm->parentscene->is_srd = GF_TRUE;
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_srd = GF_TRUE;
+			}
+		}
+		// SRD object with no size but global scene size: HEVC tiled bas object
+		else if (com.srd.width && com.srd.height) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
+			}
 		}
 	}
 }
@@ -385,7 +394,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
 {
 	GF_Codec *codec;
 	u32 force_decode_mode = 0;
@@ -399,7 +408,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
-
+	if (outFrame) *outFrame = NULL;
+	
 	if (!gf_odm_lock_mo(mo)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock MO, returning\n", mo->odm->OD->objectDescriptorID));
 		return NULL;
@@ -582,12 +592,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	mo->framesize = CU->dataLength - CU->RenderedLength;
 	mo->frame = CU->data + CU->RenderedLength;
+	mo->media_frame = CU->frame;
 
 	if (CU->next->dataLength) {
 		diff = (s32) (CU->next->TS) - (s32) obj_time;
 	} else  {
 		diff = mo->odm->codec->min_frame_dur;
 	}
+//	fprintf(stderr, "diff is %d ms\n", diff);
 	mo->ms_until_next = FIX2INT(diff * mo->speed);
 
 	diff = (mo->speed >= 0) ? (s32) (CU->TS) - (s32) obj_time : (s32) obj_time - (s32) (CU->TS);
@@ -643,20 +655,37 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
+	if (outFrame) *outFrame = mo->media_frame;
+
 	gf_term_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
 	gf_odm_lock(mo->odm, 0);
-	if (codec->direct_vout) return (char *) codec->CB->pY;
+	if (mo->media_frame)
+		return (char *) mo->media_frame;
+
+	if (codec->direct_vout)
+		return (char *) codec->CB->pY;
 	return mo->frame;
 }
 
 GF_EXPORT
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV)
+GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma)
 {
+	u32 stride;
 	if (!mo || !mo->odm || !mo->odm->codec) return GF_BAD_PARAM;
-	*pY_or_RGB = mo->odm->codec->CB->pY;
-	*pU = mo->odm->codec->CB->pU;
-	*pV = mo->odm->codec->CB->pV;
+	if (mo->odm->codec->direct_vout) {
+		*pY_or_RGB = mo->odm->codec->CB->pY;
+		*pU = mo->odm->codec->CB->pU;
+		*pV = mo->odm->codec->CB->pV;
+		return GF_OK;
+	}
+	if (!mo->odm->codec->direct_frame_output || !mo->media_frame)
+		return GF_BAD_PARAM;
+
+	mo->media_frame->GetPlane(mo->media_frame, 0, (const char **) pY_or_RGB, stride_luma_rgb);
+	mo->media_frame->GetPlane(mo->media_frame, 1, (const char **) pU, &stride);
+	mo->media_frame->GetPlane(mo->media_frame, 2, (const char **) pV, &stride);
+	*stride_chroma = stride;
 	return GF_OK;
 }
 
@@ -666,7 +695,8 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 #if 0
 	u32 obj_time;
 #endif
-	if (!gf_odm_lock_mo(mo)) return;
+	if (!gf_odm_lock_mo(mo))
+		return;
 
 	if (!mo->nb_fetch || !mo->odm->codec) {
 		gf_odm_lock(mo->odm, 0);
@@ -1286,7 +1316,7 @@ GF_EXPORT
 Bool gf_mo_is_raw_memory(GF_MediaObject *mo)
 {
 	if (!mo->odm || !mo->odm->codec) return GF_FALSE;
-	return mo->odm->codec->direct_vout;
+	return mo->odm->codec->direct_frame_output || mo->odm->codec->direct_vout ;
 }
 
 GF_EXPORT
@@ -1434,4 +1464,82 @@ void gf_mo_del(GF_MediaObject *mo)
 	gf_list_del(mo->evt_targets);
 	gf_free(mo);
 }
+
+
+Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
+{
+	GF_Scene *scene;
+	if (!vr_info) return GF_FALSE;
+	if (!gf_odm_lock_mo(mo)) return GF_FALSE;
+	
+	scene = mo->odm->subscene ? mo->odm->subscene : mo->odm->parentscene;
+	memset(vr_info, 0, sizeof(GF_MediaObjectVRInfo));
+
+	vr_info->srd_x = mo->srd_x;
+	vr_info->srd_y = mo->srd_y;
+	vr_info->srd_w = mo->srd_w;
+	vr_info->srd_h = mo->srd_h;
+	vr_info->srd_min_x = scene->srd_min_x;
+	vr_info->srd_min_y = scene->srd_min_y;
+	vr_info->srd_max_x = scene->srd_max_x;
+	vr_info->srd_max_y = scene->srd_max_y;
+	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	
+	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
+
+	gf_odm_lock(mo->odm, 0);
+	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
+}
+
+/*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
+void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
+{
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm || !mo->odm->codec) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if (mo->quality_degradation_hint != quality_degradation) {
+		GF_NetworkCommand com;
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
+		com.switch_quality.quality_degradation = quality_degradation;
+		gf_term_service_command(mo->odm->net_service, &com);
+		
+		mo->quality_degradation_hint = quality_degradation;
+	}
+
+	gf_odm_lock(mo->odm, 0);
+}
+
+void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
+{
+	
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm || !mo->odm->codec) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
+		GF_NetworkCommand com;
+		mo->view_min_x = min_x;
+		mo->view_max_x = max_x;
+		mo->view_min_y = min_y;
+		mo->view_max_y = max_y;
+		
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_CHAN_VISIBILITY_HINT;
+		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
+		com.visibility_hint.min_x = min_x;
+		com.visibility_hint.max_x = max_x;
+		com.visibility_hint.min_y = min_y;
+		com.visibility_hint.max_y = max_y;
+		gf_term_service_command(mo->odm->net_service, &com);
+	}
+	
+	gf_odm_lock(mo->odm, 0);
+}
+
+
 

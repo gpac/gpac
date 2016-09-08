@@ -394,7 +394,9 @@ extension.view_stats = function () {
 		}
         wnd.srd_select.min = 0;
         wnd.srd_select.max = 8;
-        wnd.srd_selected_mode = srd_obj.gui.qualities[0].tile_mode;
+        wnd.srd_selected_mode = 0;
+		if (srd_obj.gui.qualities != null)
+			srd_obj.gui.qualities[0].tile_mode;
         wnd.srd_current_mode = 0;
 		
 		wnd.srd_set_mode = function(mode) {

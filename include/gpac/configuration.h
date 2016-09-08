@@ -33,7 +33,7 @@
   except for symbian32 which uses .mmp directives ... */
 
 /*Configuration for visual studio, 32/64 bits */
-#if defined(WIN32) && !defined(_WIN32_WCE)
+#if defined(_WIN32) && !defined(_WIN32_WCE)
 
 #ifndef GPAC_MP4BOX_MINI
 

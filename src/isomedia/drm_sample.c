@@ -332,6 +332,8 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	sea = NULL;
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, &sea);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ISMACRYP_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_OMADRM_SCHEME, &sea);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_ADOBE_SCHEME, &sea);
@@ -552,6 +554,8 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
 
 	if (!sinf) return GF_FALSE;
 
@@ -559,6 +563,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 	if (!sinf->info || !sinf->info->tenc)
 		return GF_FALSE;
 
+	//TODO: validate the fields in tenc for each scheme type
 	return GF_TRUE;
 }
 
@@ -571,8 +576,11 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
+
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
 
 	if (!sinf) return GF_BAD_PARAM;
 
@@ -585,7 +593,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 
 	if (outIVLength) {
 		if (sinf->info && sinf->info->tenc)
-			*outIVLength = sinf->info->tenc->IV_size;
+			*outIVLength = sinf->info->tenc->Per_Sample_IV_Size;
 		else
 			*outIVLength = 0;
 	}
@@ -596,7 +604,9 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID)
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID, 
+								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
+								    u8 default_constant_IV_size, bin128 default_constant_IV)
 {
 	GF_Err e;
 	GF_ProtectionInfoBox *sinf;
@@ -606,10 +616,18 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 	if (e) return e;
 
 	sinf->info->tenc = (GF_TrackEncryptionBox *)tenc_New();
-	sinf->info->tenc->IsEncrypted = default_IsEncrypted;
-	sinf->info->tenc->IV_size = default_IV_size;
+	sinf->info->tenc->isProtected = default_IsEncrypted;
+	sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
 	memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
-
+	if ((scheme_type == GF_ISOM_CENS_SCHEME) || (scheme_type == GF_ISOM_CBCS_SCHEME)) {
+		sinf->info->tenc->version = 1;
+		sinf->info->tenc->crypt_byte_block = default_crypt_byte_block;
+		sinf->info->tenc->skip_byte_block = default_skip_byte_block;
+	}
+	if (scheme_type == GF_ISOM_CBCS_SCHEME) {
+		sinf->info->tenc->constant_IV_size = default_constant_IV_size;
+		memcpy(sinf->info->tenc->constant_IV, default_constant_IV, 16*sizeof(char));
+	}
 	return GF_OK;
 }
 
@@ -1153,6 +1171,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	u32 i, type;
 	GF_CENCSampleAuxInfo *a_sai;
 	u8 IV_size;
+	u32 is_Protected;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1180,8 +1199,8 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 		*sai = NULL;
 	}
 
-	gf_isom_get_sample_cenc_info_ex(trak, NULL, sampleNumber, NULL, &IV_size, NULL);
-	if (!IV_size) {
+	gf_isom_get_sample_cenc_info_ex(trak, NULL, sampleNumber, &is_Protected, &IV_size, NULL, NULL, NULL, NULL, NULL);
+	if (!is_Protected) {
 		GF_SAFEALLOC( (*sai),  GF_CENCSampleAuxInfo);
 		return GF_OK;
 	}
@@ -1226,12 +1245,15 @@ void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIn
 	if (default_KID) memset(*default_KID, 0, 16);
 
 
+
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
 
 	if (sinf && sinf->info && sinf->info->tenc) {
-		if (default_IsEncrypted) *default_IsEncrypted = sinf->info->tenc->IsEncrypted;
-		if (default_IV_size) *default_IV_size = sinf->info->tenc->IV_size;
+		if (default_IsEncrypted) *default_IsEncrypted = sinf->info->tenc->isProtected;
+		if (default_IV_size) *default_IV_size = sinf->info->tenc->Per_Sample_IV_Size;
 		if (default_KID) memmove(*default_KID, sinf->info->tenc->KID, 16);
 	}
 }
@@ -1242,6 +1264,32 @@ void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return;
 	gf_isom_cenc_get_default_info_ex(trak, sampleDescriptionIndex, default_IsEncrypted, default_IV_size, default_KID);
+}
+
+void gf_isom_cenc_get_default_pattern_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u8 *default_crypt_byte_block, u8 *default_skip_byte_block)
+{
+	GF_ProtectionInfoBox *sinf;
+
+	if (default_crypt_byte_block) *default_crypt_byte_block = 0;
+	if (default_skip_byte_block) *default_skip_byte_block = 0;
+
+
+	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+
+	if (sinf && sinf->info && sinf->info->tenc) {
+	}
+
+}
+
+GF_EXPORT
+void gf_isom_cenc_get_default_pattern_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u8 *default_crypt_byte_block, u8 *default_skip_byte_block)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return;
+	gf_isom_cenc_get_default_pattern_info_ex(trak, sampleDescriptionIndex, default_crypt_byte_block, default_skip_byte_block);
 }
 
 /*
@@ -1333,6 +1381,26 @@ GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, 
 	if (outSchemeVersion) *outSchemeVersion = sinf->scheme_type->scheme_version;
 
 	return GF_OK;
+}
+
+GF_EXPORT
+Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
+{
+	GF_TrackBox *trak;
+	GF_ProtectionInfoBox *sinf;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_FALSE;
+
+	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENS_SCHEME, NULL);
+	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBCS_SCHEME, NULL);
+
+	if (!sinf) return GF_FALSE;
+
+	if (!sinf->info || !sinf->info->tenc || !sinf->info->tenc->crypt_byte_block || !sinf->info->tenc->skip_byte_block)
+		return GF_FALSE;
+
+	return GF_TRUE;
 }
 
 

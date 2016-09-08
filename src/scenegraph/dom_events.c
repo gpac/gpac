@@ -684,7 +684,7 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 		/*solve*/
 		GF_SAFEALLOC(resolved, SMIL_Time);
 		if (!resolved) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate SMIL timing resolved value\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate SMIL timing resolved value\n"));
 			continue;
 		}
 		resolved->type = GF_SMIL_TIME_EVENT_RESOLVED;

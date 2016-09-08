@@ -26,12 +26,15 @@ do_test "$MP4BOX -languages" "Languages" &
 
 test_end
 
-test_begin "mp4box-base-dump" "create-mp4" "raw-264" "raw-aac" "raw-text" "srt-text" "ttxt-text" "raw-sample" "flat-storage" "interleave-250ms" "frag-1s"
+test_begin "mp4box-base-dump" "create-mp4" "create-dref-mp4" "raw-264" "raw-aac" "raw-text" "srt-text" "ttxt-text" "raw-sample" "flat-storage" "interleave-250ms" "frag-1s"
 if [ $test_skip != 1 ] ; then
 
 mp4file="$TEMP_DIR/test.mp4"
 do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -add $MEDIA_DIR/auxiliary_files/subtitle_fr.srt:lang=fra -new $mp4file" "create-mp4"
 do_hash_test $mp4file "create-mp4"
+
+do_test "$MP4BOX -add $mp4file -dref -new $TEMP_DIR/dref.mp4" "create-dref-mp4"
+do_hash_test $TEMP_DIR/dref.mp4 "create-dref-mp4"
 
 do_test "$MP4BOX  -raw 1 $mp4file -out $TEMP_DIR/test.tmp" "raw-264"
 do_hash_test $TEMP_DIR/test.tmp "raw-264"

@@ -134,7 +134,8 @@ typedef struct
 
 	u32 raw_pix_fmt;
 	Bool flipped;
-	Bool direct_output;
+	u32 direct_output_mode;
+	
 	u32 stride;
 
 	u32 output_cb_size;
@@ -142,6 +143,8 @@ typedef struct
 	u32 frame_start;
 	char audio_buf[192000];
 	Bool check_h264_isma;
+	
+	Bool frame_size_changed;
 
 	u32 base_ES_ID;
 	AVCodecContext *base_ctx;
@@ -164,12 +167,6 @@ typedef struct
 	AVFrame *audio_frame;
 #endif
 
-
-
-	Bool output_as_8bit;
-	u32 display_bpp;
-	Bool conv_to_8bit;
-	char *conv_buffer;
 } FFDec;
 
 void *FFDEC_Load();

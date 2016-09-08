@@ -145,9 +145,21 @@ static void view_pan_x(GF_Compositor *compositor, GF_Camera *cam, Fixed dx)
 static void view_pan_y(GF_Compositor *compositor, GF_Camera *cam, Fixed dy)
 {
 	GF_Matrix mx;
+	GF_Vec prev_target = cam->target;
 	if (!dy) return;
 	gf_mx_rotation_matrix(&mx, cam->position, camera_get_right_dir(cam), dy);
 	gf_mx_apply_vec(&mx, &cam->target);
+	switch (cam->navigate_mode) {
+	case GF_NAVIGATE_WALK:
+	case GF_NAVIGATE_VR:
+	case GF_NAVIGATE_GAME:
+		if (cam->target.z*prev_target.z<0) {
+			cam->target = prev_target;
+			return;
+		}
+	default:
+		break;
+	}
 
 	update_pan_up(compositor, cam);
 }
@@ -597,7 +609,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		break;
 	case GF_EVENT_SENSOR_ORIENTATION:
 	{
-		Fixed x, y, z, w, yaw, pitch, roll;
+		Fixed x, y, z, w, yaw, /*pitch, */roll;
 		GF_Vec target;
 		GF_Matrix mx;
 		x = ev->sensor.x;
@@ -606,9 +618,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		w = ev->sensor.w;
 		
 		
-		yaw = atan2(2*z*w - 2*y*x , 1 - 2*pow(z,2) - 2*pow(x,2));
-		pitch = asin(2*y*z + 2*x*w);
-		roll = atan2(2*y*w - 2*z*x , 1 - 2*pow(y,2) - 2*pow(x,2));
+		yaw = gf_atan2(2*gf_mulfix(z,w) - 2*gf_mulfix(y,x) , 1 - 2*gf_mulfix(z,z) - 2*gf_mulfix(x,x));
+		//pitch = asin(2*y*z + 2*x*w);
+		roll = gf_atan2(2*gf_mulfix(y,w) - 2*gf_mulfix(z,x) , 1 - 2*gf_mulfix(y,y) - 2*gf_mulfix(x,x));
 
 		target.x = 0;
 		target.y = -FIX_ONE;

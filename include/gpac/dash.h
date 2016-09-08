@@ -479,6 +479,9 @@ Bool gf_dash_group_get_srd_max_size_info(GF_DashClient *dash, u32 idx, u32 *max_
 //gets SRD info, in SRD coordinate, of the SRD this group belongs to, if any
 Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height);
 
+//sets quality hint for the given group. Quality degradation ranges from 0 (no degradation) to 100 (worse quality possible)
+GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, u32 quality_degradation_hint);
+
 /*Enables or disables threaded downloads of media files for the dash client
  @use_threads: if true, threads are used to download files*/
 void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads);

@@ -138,7 +138,7 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 
 	GF_SAFEALLOC(cd, CodecEntry);
 	if (!cd) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate decoder entry\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate decoder entry\n"));
 		return;
 	}
 	cd->dec = codec;
@@ -702,10 +702,9 @@ u32 gf_term_process_step(GF_Terminal *term)
 	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return sleep_time;
 
 	assert((s32) sleep_time >= 0);
-	if (sleep_time>50) sleep_time=50;
+	if (sleep_time>33) sleep_time = 33;
 
 	gf_sleep(sleep_time);
-
 	return sleep_time;
 }
 
