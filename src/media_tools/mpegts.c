@@ -2320,7 +2320,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_METADATA_PES:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			if (!pes) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
 			pes->cc = -1;
@@ -2332,7 +2332,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_PRIVATE_DATA:
 			GF_SAFEALLOC(pes, GF_M2TS_PES);
 			if (!pes) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
 			pes->cc = -1;
@@ -2343,7 +2343,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			if (!ses) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
 			es = (GF_M2TS_ES *)ses;
@@ -2368,7 +2368,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_PRIVATE_SECTION:
 			GF_SAFEALLOC(ses, GF_M2TS_SECTION_ES);
 			if (!ses) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG2TS] Failed to allocate ES for pid %d\n", pid));
 				return;
 			}
 			es = (GF_M2TS_ES *)ses;

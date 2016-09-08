@@ -128,6 +128,10 @@ typedef struct
 	char *sai;
 	u8 IV_size;
 	u32 saiz;
+	//for CENC pattern encryption mode
+	u8 crypt_byte_block, skip_byte_block;
+	u8 constant_IV_size;
+	bin128 constant_IV;
 	/*version_number are pushed from m2ts sections to the mpeg4sl layer so as to handle mpeg4 stream dependencies*/
 	u8 m2ts_version_number_plus_one;
 	//0: not mpeg-2 TS PCR, 1: MEPG-2 TS PCR, 2: MPEG-2 TS PCR with discontinuity

@@ -1071,6 +1071,13 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_MDIA:
 		mdia_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_MFRA:
+		mfra_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_TFRA:
+		tfra_del(a);
+		return;
+
 	case GF_ISOM_BOX_TYPE_ELNG:
 		elng_del(a);
 		return;

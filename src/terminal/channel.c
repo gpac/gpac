@@ -1554,6 +1554,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				evt.sai = slh.sai;
 				evt.saiz = slh.saiz;
 				evt.IV_size = slh.IV_size;
+				evt.crypt_byte_block = slh.crypt_byte_block;
+				evt.skip_byte_block = slh.skip_byte_block;
+				if (!evt.IV_size) {
+					evt.constant_IV_size = slh.constant_IV_size;
+					memmove(evt.constant_IV, slh.constant_IV, evt.constant_IV_size);
+				}
 			}
 			evt.channel = ch;
 			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
@@ -1853,7 +1859,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 
 	/*push all cfg data*/
 	/*CommonEncryption*/
-	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1'))) {
+	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1')) || (drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 's')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','s'))) {
 		evt.config_data_code = drm_cfg->scheme_type;
 		memset(&cenc_cfg, 0, sizeof(cenc_cfg));
 		cenc_cfg.scheme_version = drm_cfg->scheme_version;

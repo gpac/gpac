@@ -317,8 +317,14 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Setting up root object for %s\n", odm->net_service->url));
 
-	if (odm->subscene) od_type = GF_MEDIA_OBJECT_SCENE;
-	else if (odm->mo) {
+	if (odm->subscene) {
+		char *sep = strchr(sub_url, '#');
+		if (sep && !strnicmp(sep, "#LIVE360", 8)) {
+			sep[0] = 0;
+			odm->subscene->vr_type = 1;
+		}
+		od_type = GF_MEDIA_OBJECT_SCENE;
+	} else if (odm->mo) {
 		od_type = odm->mo->type;
 		if (!sub_url && odm->mo->URLs.count && odm->mo->URLs.vals[0].url) {
 			sub_url = odm->mo->URLs.vals[0].url;

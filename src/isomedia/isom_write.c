@@ -2705,7 +2705,7 @@ GF_Err gf_isom_clone_movie(GF_ISOFile *orig_file, GF_ISOFile *dest_file, Bool cl
 				GF_TrackBox *trak = (GF_TrackBox*)gf_list_get( orig_file->moov->trackList, i);
 				if (!trak) continue;
 				if (keep_hint_tracks || (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT)) {
-					e = gf_isom_clone_track(orig_file, i+1, dest_file, GF_TRUE, &dstTrack);
+					e = gf_isom_clone_track(orig_file, i+1, dest_file, GF_FALSE, &dstTrack);
 					if (e) return e;
 				}
 			}
@@ -2861,6 +2861,15 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 			u32 dref;
 			Media_CreateDataRef(new_tk->Media->information->dataInformation->dref, NULL, NULL, &dref);
 			entry->dataReferenceIndex = dref;
+		}
+	} else {
+		u32 i;
+		for (i=0; i<gf_list_count(new_tk->Media->information->dataInformation->dref->other_boxes); i++) {
+			GF_DataEntryBox *dref_entry = (GF_DataEntryBox *)gf_list_get(new_tk->Media->information->dataInformation->dref->other_boxes, i);
+			if (dref_entry->flags & 1) {
+				dref_entry->flags &= ~1;
+				dref_entry->location = gf_strdup(orig_file->fileName);
+			}
 		}
 	}
 
@@ -4970,27 +4979,55 @@ void *sg_encryption_create_entry(void *udta)
 	GF_SAFEALLOC(entry, GF_CENCSampleEncryptionGroupEntry);
 	if (!entry) return NULL;
 	bs = gf_bs_new((char *) udta, sizeof(GF_CENCSampleEncryptionGroupEntry), GF_BITSTREAM_READ);
-	entry->IsEncrypted = gf_bs_read_u24(bs);
-	entry->IV_size = gf_bs_read_u8(bs);
+	gf_bs_read_u8(bs); //reserved
+	entry->crypt_byte_block = gf_bs_read_int(bs, 4);
+	entry->skip_byte_block = gf_bs_read_int(bs, 4);
+	entry->IsProtected = gf_bs_read_u8(bs);
+	entry->Per_Sample_IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *)entry->KID, 16);
+	if ((entry->IsProtected == 1) && !entry->Per_Sample_IV_size) {
+		entry->constant_IV_size = gf_bs_read_u8(bs);
+		assert((entry->constant_IV_size == 8) || (entry->constant_IV_size == 16));
+		gf_bs_read_data(bs, (char *)entry->constant_IV, entry->constant_IV_size);
+	}
 	gf_bs_del(bs);
 	return entry;
 }
 
 Bool sg_encryption_compare_entry(void *udta, void *entry)
 {
-	u32 isEncrypted;
+	u8 isEncrypted;
 	u8 IV_size;
 	bin128 KID;
+	u8 constant_IV_size=0;
+	bin128 constant_IV;
+	u8 crypt_byte_block, skip_byte_block;
 	GF_BitStream *bs;
 	GF_CENCSampleEncryptionGroupEntry *seig = (GF_CENCSampleEncryptionGroupEntry *)entry;
+	Bool is_identical;
 	bs = gf_bs_new((char *) udta, sizeof(GF_CENCSampleEncryptionGroupEntry), GF_BITSTREAM_READ);
-	isEncrypted = gf_bs_read_u24(bs);
+	gf_bs_read_u8(bs); //reserved
+	crypt_byte_block = gf_bs_read_int(bs, 4);
+	skip_byte_block = gf_bs_read_int(bs, 4);
+	isEncrypted = gf_bs_read_u8(bs);
 	IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *)KID, 16);
+	if (isEncrypted && !IV_size) {
+		constant_IV_size = gf_bs_read_u8(bs);
+		gf_bs_read_data(bs, (char *)constant_IV, 16);
+	}
 	gf_bs_del(bs);
-	if ((isEncrypted == seig->IsEncrypted) && (IV_size == seig->IV_size) && (!strncmp((const char *)KID, (const char *)seig->KID, 16))) return GF_TRUE;
-	return GF_FALSE;
+
+	is_identical = GF_TRUE;
+	if ((isEncrypted != seig->IsProtected) || (IV_size != seig->Per_Sample_IV_size) || (strncmp((const char *)KID, (const char *)seig->KID, 16))) 
+		is_identical = GF_FALSE;
+	if ((crypt_byte_block != seig->crypt_byte_block) || (skip_byte_block != seig->skip_byte_block))
+		is_identical = GF_FALSE;
+	if ((isEncrypted == 1) && !IV_size) {
+		if ((constant_IV_size != seig->constant_IV_size) || (strncmp((const char *)constant_IV, (const char *)seig->constant_IV, constant_IV_size))) 
+			is_identical = GF_FALSE;
+	}
+	return is_identical;
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -5034,13 +5071,26 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 		}
 		case GF_4CC( 's', 'e', 'i', 'g' ):
 		{
-			char udta[20];
-			bs = gf_bs_new(udta, 20*sizeof(char), GF_BITSTREAM_WRITE);
-			gf_bs_write_u24(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsEncrypted);
-			gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IV_size);
+			char *udta;
+			u32 size;
+			GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			GF_Err e = GF_OK;
+			gf_bs_write_u8(bs, 0x0);
+			gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->crypt_byte_block, 4);
+			gf_bs_write_int(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->skip_byte_block, 4);
+			gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected);
+			gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size);
 			gf_bs_write_data(bs, (char *) ((GF_CENCSampleEncryptionGroupEntry *)entry)->KID, 16);
+			if ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) {
+				gf_bs_write_u8(bs, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
+				gf_bs_write_data(bs,(char *) ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
+			}
+			gf_bs_get_content(bs, &udta, &size);
 			gf_bs_del(bs);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+
+			e = gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+			gf_free(udta);
+			return e;
 		}
 		default:
 			return GF_BAD_PARAM;
@@ -5053,19 +5103,30 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 
 /*sample encryption information group can be in stbl or traf*/
 GF_EXPORT
-GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, Bool isEncrypted, u8 IV_size, bin128 KeyID)
+GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_number, u8 isEncrypted, u8 IV_size, bin128 KeyID,
+									u8 crypt_byte_block, u8 skip_byte_block, u8 constant_IV_size, bin128 constant_IV)
 {
-	char seig[20];
+	char *udta;
+	u32 size;
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	GF_Err e = GF_OK;
 	if ((IV_size!=0) && (IV_size!=8) && (IV_size!=16)) return GF_BAD_PARAM;
+	gf_bs_write_u8(bs, 0x0);
+	gf_bs_write_int(bs, crypt_byte_block, 4);
+	gf_bs_write_int(bs, skip_byte_block, 4);
+	gf_bs_write_u8(bs, isEncrypted);
+	gf_bs_write_u8(bs, IV_size);
+	gf_bs_write_data(bs, (char *) KeyID, 16);
+	if ((isEncrypted == 1) && !IV_size) {
+		gf_bs_write_u8(bs, constant_IV_size);
+		gf_bs_write_data(bs,(char *) constant_IV, constant_IV_size);
+	}
+	gf_bs_get_content(bs, &udta, &size);
+	gf_bs_del(bs);
 
-	memset(seig, 0, sizeof(char)*20);
-	seig[0] = seig[1] = 0;
-	seig[2] = isEncrypted ? 1 : 0;
-	seig[3] = IV_size;
-	if (KeyID && IV_size)
-		memcpy(seig + 4, KeyID, sizeof(bin128));
-
-	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), seig, sg_encryption_create_entry, sg_encryption_compare_entry);
+	e = gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+	gf_free(udta);
+	return e;
 }
 
 static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak)

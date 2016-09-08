@@ -42,6 +42,7 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
+#include "../../src/compositor/gl_inc.h"
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
@@ -51,6 +52,7 @@ typedef struct
 	u32 width, height;
 	u32 pixel_ar, pix_fmt;
 	u32 out_size;
+	Bool raw_frame_dispatch;
 	
 	GF_ESD *esd;
 	GF_Err last_error;
@@ -61,7 +63,8 @@ typedef struct
 	CVPixelBufferRef frame;
 
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
-
+	Bool frame_size_changed;
+	
 	//MPEG-1/2 specific
 	Bool init_mpeg12;
 	
@@ -77,6 +80,13 @@ typedef struct
 	char *cached_annex_b;
 	u32 cached_annex_b_size;
 	u32 nalu_size_length;
+
+	//openGL output
+#ifdef GPAC_IPHONE
+	Bool use_gl_textures;
+	CVOpenGLESTextureCacheRef cache_texture;
+#endif
+	void *gl_context;
 } VTBDec;
 
 
@@ -96,7 +106,7 @@ static void VTBDec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
     ctx->frame = CVPixelBufferRetain(image);
 }
 
-static CFDictionaryRef VTBDec_CreateBufferAttributes(int width, int height, OSType pix_fmt)
+static CFDictionaryRef VTBDec_CreateBufferAttributes(VTBDec *ctx, OSType pix_fmt)
 {
     CFMutableDictionaryRef buffer_attributes;
     CFMutableDictionaryRef surf_props;
@@ -104,19 +114,25 @@ static CFDictionaryRef VTBDec_CreateBufferAttributes(int width, int height, OSTy
     CFNumberRef h;
     CFNumberRef pixel_fmt;
 
-    w = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &width);
-    h = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &height);
+    w = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->width);
+    h = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &ctx->height);
     pixel_fmt = CFNumberCreate(kCFAllocatorDefault, kCFNumberSInt32Type, &pix_fmt);
 
     buffer_attributes = CFDictionaryCreateMutable(kCFAllocatorDefault, 4, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
     surf_props = CFDictionaryCreateMutable(kCFAllocatorDefault, 0, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-
+	
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferWidthKey, w);
     CFRelease(w);
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferHeightKey, h);
     CFRelease(h);
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferPixelFormatTypeKey, pixel_fmt);
     CFRelease(pixel_fmt);
+
+#ifdef GPAC_IPHONE
+	if (ctx->use_gl_textures)
+		CFDictionarySetValue(buffer_attributes, kCVPixelBufferOpenGLESCompatibilityKey, kCFBooleanTrue);
+#endif
+
     CFDictionarySetValue(buffer_attributes, kCVPixelBufferIOSurfacePropertiesKey, surf_props);
     CFRelease(surf_props);
 
@@ -138,8 +154,11 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	
-	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
-	ctx->pix_fmt = GF_PIXEL_YV12;
+//	kColorSpace = kCVPixelFormatType_420YpCbCr8Planar;
+//	ctx->pix_fmt = GF_PIXEL_YV12;
+	
+	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
+	ctx->pix_fmt = GF_PIXEL_YPVU;
 	
 	switch (ctx->esd->decoderConfig->objectTypeIndication) {
     case GPAC_OTI_VIDEO_AVC :
@@ -338,7 +357,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 		if (dec_dsi) CFRelease(dec_dsi);
         return GF_NON_COMPLIANT_BITSTREAM;
     }
-	buffer_attribs = VTBDec_CreateBufferAttributes(ctx->width, ctx->height, kColorSpace);
+	buffer_attribs = VTBDec_CreateBufferAttributes(ctx, kColorSpace);
 	
 	cbacks.decompressionOutputCallback = VTBDec_on_frame;
     cbacks.decompressionOutputRefCon   = ctx;
@@ -347,7 +366,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
     CFDictionarySetValue(dec_type, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
 	ctx->is_hardware = GF_TRUE;
 
-    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, NULL, &cbacks, &ctx->vtb_session);
+    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, buffer_attribs, &cbacks, &ctx->vtb_session);
 	//if HW decoder not available, try soft one
 	if (status) {
 		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, NULL, buffer_attribs, &cbacks, &ctx->vtb_session);
@@ -391,7 +410,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 	if (ctx->luma_bit_depth>8) {
 		ctx->out_size *= 2;
 	}
-	
+	ctx->frame_size_changed = GF_TRUE;
 	return GF_OK;
 }
 
@@ -440,7 +459,6 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
 			ctx->pix_fmt = GF_PIXEL_YV12;
-			//todo, we will have to collect the vosh
 		} else {
 			return VTBDec_InitDecoder(ctx, GF_FALSE);
 		}
@@ -489,17 +507,18 @@ static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *c
 		capability->cap.valueInt = ctx->out_size;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = GF_PIXEL_YV12;
+		capability->cap.valueInt = ctx->pix_fmt;
 		break;
 	case GF_CODEC_BUFFER_MIN:
 		capability->cap.valueInt = 1;
 		break;
 	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 4;
+		//since we do the temporal de-interleaving ask for more CUs to avoid displaying refs before reordered frames
+		capability->cap.valueInt = 6;
 		break;
 	/*by default we use 4 bytes padding (otherwise it happens that XviD crashes on some videos...)*/
 	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = 32;
+		capability->cap.valueInt = 0;
 		break;
 	/*reorder is up to us*/
 	case GF_CODEC_REORDER:
@@ -507,6 +526,9 @@ static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *c
 		break;
 	case GF_CODEC_WANTS_THREAD:
 		capability->cap.valueInt = 0;
+		break;
+	case GF_CODEC_FRAME_OUTPUT:
+		capability->cap.valueInt = 1;
 		break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
@@ -518,6 +540,18 @@ static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *c
 }
 static GF_Err VTBDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
+	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
+	
+	switch (capability.CapCode) {
+	case GF_CODEC_FRAME_OUTPUT:
+		ctx->raw_frame_dispatch = capability.cap.valueInt ? GF_TRUE : GF_FALSE;
+#ifdef GPAC_IPHONE
+		if (ctx->raw_frame_dispatch && (capability.cap.valueInt==2))
+			ctx->use_gl_textures = GF_TRUE;
+#endif
+		return GF_OK;
+	}
+
 	/*return unsupported to avoid confusion by the player (like color space changing ...) */
 	return GF_NOT_SUPPORTED;
 }
@@ -646,7 +680,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 				//enfoce removal for all frames
 				ctx->skip_mpeg4_vosh = GF_TRUE;
 				
-				if (ctx->out_size != *outBufferLength) {
+				if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
 					*outBufferLength = ctx->out_size;
 					return GF_BUFFER_TOO_SMALL;
 				}
@@ -673,7 +707,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			e = VTBDec_InitDecoder(ctx, GF_FALSE);
 			if (e) return e;
 
-			if (ctx->out_size != *outBufferLength) {
+			if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
 				*outBufferLength = ctx->out_size;
 				return GF_BUFFER_TOO_SMALL;
 			}
@@ -695,7 +729,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			if (e) return e;
 		}
 		
-		if (ctx->out_size != *outBufferLength) {
+		if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
 			*outBufferLength = ctx->out_size;
 			ctx->cached_annex_b = in_data;
 			ctx->cached_annex_b_size = in_data_size;
@@ -747,7 +781,8 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		gf_free(in_data);
 	
 	if (ctx->last_error) return ctx->last_error;
-	if (status) return GF_NON_COMPLIANT_BITSTREAM;
+	if (status)
+		return GF_NON_COMPLIANT_BITSTREAM;
 	
 	if (!ctx->frame) {
 		*outBufferLength=0;
@@ -755,99 +790,240 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	}
 	
 	*outBufferLength = ctx->out_size;
-	
+	if (ctx->raw_frame_dispatch) return GF_OK;
+
 	status = CVPixelBufferLockBaseAddress(ctx->frame, kCVPixelBufferLock_ReadOnly);
     if (status != kCVReturnSuccess) {
         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
         return GF_IO_ERR;
     }
+
 	type = CVPixelBufferGetPixelFormatType(ctx->frame);
 	
-    if (CVPixelBufferIsPlanar(ctx->frame)) {
+	if ((type==kCVPixelFormatType_420YpCbCr8Planar)
+		|| (type==kCVPixelFormatType_420YpCbCr8PlanarFullRange)
+		|| (type==kCVPixelFormatType_422YpCbCr8_yuvs)
+		|| (type==kCVPixelFormatType_444YpCbCr8)
+		|| (type=='444v')
+		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange)
+		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
+	) {
         u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(ctx->frame);
 		char *dst = outBuffer;
 		Bool needs_stride=GF_FALSE;
-		if ((type==kCVPixelFormatType_420YpCbCr8Planar)
-			|| (type==kCVPixelFormatType_420YpCbCr8PlanarFullRange)
-			|| (type==kCVPixelFormatType_422YpCbCr8_yuvs)
-			|| (type==kCVPixelFormatType_444YpCbCr8)
-			|| (type=='444v')
-		
-		) {
-			u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 0);
+		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 0);
 			
-			//TOCHECK - for now the 3 planes are consecutive in VideoToolbox
-			if (stride==ctx->width) {
-				char *data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, 0);
-				memcpy(dst, data, sizeof(char)*ctx->out_size);
-			} else {
-				for (i=0; i<nb_planes; i++) {
-					char *data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, i);
-					u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, i);
-					u32 w, h = (u32) CVPixelBufferGetHeightOfPlane(ctx->frame, i);
-					w = ctx->width;
-					if (i) {
-						switch (ctx->pix_fmt) {
-						case GF_PIXEL_YUV444:
-							break;
-						case GF_PIXEL_YUV422:
-						case GF_PIXEL_YV12:
-							w /= 2;
-							break;
-						}
-					}
-					if (stride != w) {
-						needs_stride=GF_TRUE;
-						for (j=0; j<h; j++) {
-							memcpy(dst, data, sizeof(char)*w);
-							dst += w;
-							data += stride;
-						}
-					} else {
-						memcpy(dst, data, sizeof(char)*h*stride);
-						dst += sizeof(char)*h*stride;
-					}
-				}
-			}
-        } else if ((type==kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange) || (type==kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)) {
-			char *dst_v;
+		//TOCHECK - for now the 3 planes are consecutive in VideoToolbox
+		if (stride==ctx->width) {
 			char *data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, 0);
-			u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 0);
-			u32 i, h = (u32) CVPixelBufferGetHeightOfPlane(ctx->frame, 0);
-
-			if (stride==ctx->width) {
-				memcpy(dst, data, sizeof(char)*h*stride);
-				dst += sizeof(char)*h*stride;
-			} else {
-				for (i=0; i<h; i++) {
-					memcpy(dst, data, sizeof(char)*ctx->width);
-					dst += ctx->width;
-					data += stride;
+			memcpy(dst, data, sizeof(char)*ctx->out_size);
+		} else {
+			for (i=0; i<nb_planes; i++) {
+				char *data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, i);
+				u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, i);
+				u32 w, h = (u32) CVPixelBufferGetHeightOfPlane(ctx->frame, i);
+				w = ctx->width;
+				if (i) {
+					switch (ctx->pix_fmt) {
+					case GF_PIXEL_YUV444:
+						break;
+					case GF_PIXEL_YUV422:
+					case GF_PIXEL_YV12:
+						w /= 2;
+						break;
+					}
 				}
-				needs_stride=GF_TRUE;
+				if (stride != w) {
+					needs_stride=GF_TRUE;
+					for (j=0; j<h; j++) {
+						memcpy(dst, data, sizeof(char)*w);
+						dst += w;
+						data += stride;
+					}
+				} else {
+					memcpy(dst, data, sizeof(char)*h*stride);
+					dst += sizeof(char)*h*stride;
+				}
 			}
-			
-			data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, 1);
-			stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 1);
-			h = (u32) CVPixelBufferGetHeightOfPlane(ctx->frame, 1);
-			dst_v = dst+sizeof(char) * h*stride/2;
-
-			for (i=0; i<ctx->width * h / 2; i++) {
-				*dst = data[0];
-				*dst_v = data[1];
-				data += 2;
-				dst_v++;
-				dst++;
-				
-				if (!(i%ctx->width)) data += (stride - ctx->width);
-
-			}
-
 		}
-    }
-
+	}
     CVPixelBufferUnlockBaseAddress(ctx->frame, kCVPixelBufferLock_ReadOnly);
 
+	return GF_OK;
+}
+
+typedef struct
+{
+	Bool locked;
+	CVPixelBufferRef frame;
+	VTBDec *ctx;
+	
+	//openGL mode
+#ifdef GPAC_IPHONE
+	CVOpenGLESTextureRef y, u, v;
+#endif
+} VTB_Frame;
+
+void VTBFrame_Release(GF_MediaDecoderFrame *frame)
+{
+	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	if (f->locked) {
+		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
+	}
+#ifdef GPAC_IPHONE
+	if (f->y) CVBufferRelease(f->y);
+	if (f->u) CVBufferRelease(f->u);
+	if (f->v) CVBufferRelease(f->v);
+	if (f->ctx->cache_texture)
+		CVOpenGLESTextureCacheFlush(f->ctx->cache_texture, 0);
+#endif
+	
+	if (f->frame) {
+        CVPixelBufferRelease(f->frame);
+    }
+	
+	gf_free(f);
+	gf_free(frame);
+}
+
+GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
+{
+    OSStatus status;
+	GF_Err e;
+	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	if (! outPlane || !outStride) return GF_BAD_PARAM;
+	*outPlane = NULL;
+	*outStride = 0;
+
+//	if (!f->locked) {
+		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
+		if (status != kCVReturnSuccess) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
+			return GF_IO_ERR;
+		}
+//		f->locked = GF_TRUE;
+//	}
+	e = GF_OK;
+	
+    if (CVPixelBufferIsPlanar(f->frame)) {
+		*outStride = (u32) CVPixelBufferGetBytesPerRowOfPlane(f->frame, plane_idx);
+		*outPlane = CVPixelBufferGetBaseAddressOfPlane(f->frame, plane_idx);
+	} else if (plane_idx==0) {
+		*outStride = (u32) CVPixelBufferGetBytesPerRow(f->frame);
+		*outPlane = CVPixelBufferGetBaseAddress(f->frame);
+	} else {
+		e = GF_BAD_PARAM;
+	}
+		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
+
+	return e;
+}
+
+#ifdef GPAC_IPHONE
+
+void *myGetGLContext();
+
+GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id)
+{
+    OSStatus status;
+	GLenum target_fmt;
+	u32 w, h;
+	CVOpenGLESTextureRef *outTexture;
+	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	if (! gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
+	*gl_tex_format = 0;
+	*gl_tex_id = 0;
+
+	if (!f->ctx->gl_context) {
+		f->ctx->gl_context = myGetGLContext();
+		if (!f->ctx->gl_context) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locating current GL context\n"));
+			return GF_IO_ERR;
+		}
+	}
+	
+	if (!f->ctx->cache_texture) {
+		status = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, NULL, &f->ctx->cache_texture);
+		if (status != kCVReturnSuccess) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture\n"));
+			return GF_IO_ERR;
+		}
+	}
+	
+	if (!f->locked) {
+		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
+		if (status != kCVReturnSuccess) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
+			return GF_IO_ERR;
+		}
+		f->locked = GF_TRUE;
+	}
+	
+	if (plane_idx >= (u32) CVPixelBufferGetPlaneCount(f->frame)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Wrong plane index\n"));
+		return GF_BAD_PARAM;
+	}
+
+	target_fmt = GL_LUMINANCE;
+	w = f->ctx->width;
+	h = f->ctx->height;
+	if (plane_idx) {
+		w /= 2;
+		h /= 2;
+		target_fmt = GL_LUMINANCE_ALPHA;
+	}
+	if (plane_idx==0) {
+		outTexture = &f->y;
+	}
+	else if (plane_idx==1) {
+		outTexture = &f->u;
+	}
+	status = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, GL_TEXTURE_2D, target_fmt, w, h, target_fmt, GL_UNSIGNED_BYTE, plane_idx, outTexture);
+	
+	if (status != kCVReturnSuccess) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture for plane %d\n", plane_idx));
+		return GF_IO_ERR;
+	}
+	*gl_tex_format = CVOpenGLESTextureGetTarget(*outTexture);
+	*gl_tex_id = CVOpenGLESTextureGetName(*outTexture);
+
+	return GF_OK;
+}
+#endif
+
+GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
+{
+	GF_MediaDecoderFrame *a_frame;
+	VTB_Frame *vtb_frame;
+	VTBDec *ctx = (VTBDec *)dec->privateStack;
+	
+	*needs_resize = GF_FALSE;
+	
+	if (!ctx->frame) return GF_BAD_PARAM;
+	
+	GF_SAFEALLOC(a_frame, GF_MediaDecoderFrame);
+	if (!a_frame) return GF_OUT_OF_MEM;
+	GF_SAFEALLOC(vtb_frame, VTB_Frame);
+	if (!vtb_frame) {
+		gf_free(a_frame);
+		return GF_OUT_OF_MEM;
+	}
+	a_frame->user_data = vtb_frame;
+	vtb_frame->ctx = ctx;
+	vtb_frame->frame = ctx->frame;
+	ctx->frame = NULL;
+	a_frame->Release = VTBFrame_Release;
+	a_frame->GetPlane = VTBFrame_GetPlane;
+#ifdef GPAC_IPHONE
+	if (ctx->use_gl_textures)
+		a_frame->GetGLTexture = VTBFrame_GetGLTexture;
+#endif
+
+	*frame = a_frame;
+	if (ctx->frame_size_changed) {
+		ctx->frame_size_changed = GF_FALSE;
+		*needs_resize = GF_TRUE;
+	}
 	return GF_OK;
 }
 
@@ -955,12 +1131,19 @@ GF_BaseDecoder *NewVTBDec()
 	ifcd->GetName = VTBDec_GetCodecName;
 	ifcd->CanHandleStream = VTBDec_CanHandleStream;
 	ifcd->ProcessData = VTBDec_ProcessData;
+	ifcd->GetOutputFrame = VTBDec_GetOutputFrame;
 	return (GF_BaseDecoder *) ifcd;
 }
 
 void DeleteVTBDec(GF_BaseDecoder *ifcg)
 {
 	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
+
+#ifdef GPAC_IPHONE
+	if (ctx->cache_texture) {
+		CFRelease(ctx->cache_texture);
+    }
+#endif
 	gf_free(ctx);
 	gf_free(ifcg);
 }

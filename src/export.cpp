@@ -545,6 +545,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yv12_10_to_yuv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yuv422_10_to_yuv422) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yuv444_10_to_yuv444) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yuv422_10_to_yuv) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_color_write_yuv444_10_to_yuv) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_init) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_cmx_set_all) )
@@ -2125,6 +2127,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_max_size_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_srd_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_threaded_download) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_quality_degradation_hint) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_visible_rect) )
 
 #endif
 

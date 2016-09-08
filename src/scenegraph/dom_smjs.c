@@ -2067,7 +2067,7 @@ static void gf_dom_full_set_attribute(GF_DOMFullNode *node, char *attribute_name
 	/*create new att*/
 	GF_SAFEALLOC(att, GF_DOMFullAttribute);
 	if (!att) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMJS] Failed to allocate DOM attribute\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[DOMJS] Failed to allocate DOM attribute\n"));
 		return;
 	}
 	att->name = gf_strdup(attribute_name);
@@ -2934,7 +2934,7 @@ static JSBool SMJS_FUNCTION(xml_http_constructor)
 	if (!GF_JS_InstanceOf(c, obj, &dom_rt->xmlHTTPRequestClass, NULL) ) return JS_TRUE;
 	GF_SAFEALLOC(p, XMLHTTPContext);
 	if (!p) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[WHR] Failed to allocate XHR object\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCRIPT, ("[WHR] Failed to allocate XHR object\n"));
 		return JS_FALSE;
 	}
 	p->c = c;

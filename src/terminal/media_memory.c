@@ -90,6 +90,10 @@ static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 			my_large_gf_free(cb->data);
 		}
 		cb->data = NULL;
+		if (cb->frame) {
+			cb->frame->Release(cb->frame);
+			cb->frame=NULL;
+		}
 	}
 	gf_free(cb);
 }
@@ -103,7 +107,7 @@ GF_CompositionMemory *gf_cm_new(u32 UnitSize, u32 capacity, Bool no_allocation)
 
 	GF_SAFEALLOC(tmp, GF_CompositionMemory)
 	if (!tmp) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate composition memory\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate composition memory\n"));
 		return NULL;
 	}
 
@@ -334,6 +338,7 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 		return;
 	}
 	gf_odm_lock(cb->odm, 1);
+//		assert(cu->frame);
 
 	if (codec_reordering) {
 		cb->input = cb->input->next;
@@ -383,12 +388,20 @@ void gf_cm_reset(GF_CompositionMemory *cb)
 	}
 
 	cu->dataLength = 0;
+	if (cu->frame) {
+		cu->frame->Release(cu->frame);
+		cu->frame = NULL;
+	}
 	cu->TS = 0;
 	cu = cu->next;
 	while (cu != cb->input) {
 		cu->RenderedLength = 0;
 		cu->TS = 0;
 		cu->dataLength = 0;
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
+		}
 		cu = cu->next;
 	}
 	cb->UnitCount = 0;
@@ -521,7 +534,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 
 	/*no output*/
-	if (!cb->output->dataLength) {
+	if (!cb->UnitCount || !cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
@@ -610,6 +623,10 @@ void gf_cm_drop_output(GF_CompositionMemory *cb)
 
 	/*reset the output*/
 	cb->output->dataLength = 0;
+	if (cb->output->frame) {
+		cb->output->frame->Release(cb->output->frame);
+		cb->output->frame = NULL;
+	}
 	cb->output->TS = 0;
 	cb->output = cb->output->next;
 	cb->UnitCount -= 1;
