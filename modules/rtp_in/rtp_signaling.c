@@ -399,12 +399,12 @@ void RP_Describe(RTSPSession *sess, char *esd_url, LPNETCHANNEL channel)
 		com->method = gf_strdup(GF_RTSP_DESCRIBE);
 	} else {
 		GF_Err e;
+		GF_RTSPTransport *trans;
 		RTPStream *ch = NULL;
 
 		com->method = gf_strdup(GF_RTSP_SETUP);
 
 		/*setup transport ports*/
-		GF_RTSPTransport *trans;
 		GF_SAFEALLOC(trans, GF_RTSPTransport);
 		trans->IsUnicast = GF_TRUE;
 		trans->client_port_first = GPAC_SATIP_PORT;
