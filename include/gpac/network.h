@@ -300,7 +300,7 @@ GF_Err gf_sk_send(GF_Socket *sock, const char *buffer, u32 length);
  *
  *Fetches data on a socket. The socket must be in a bound or connected state
  *\param sock the socket object
- *\param buffer the recpetion buffer where data is written
+ *\param buffer the reception buffer where data is written
  *\param length the allocated size of the reception buffer
  *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
@@ -317,7 +317,7 @@ GF_Err gf_sk_listen(GF_Socket *sock, u32 max_conn);
 /*!
  *\brief socket accept
  *
- *Accepts an incomming connection on a listening socket
+ *Accepts an incoming connection on a listening socket
  *\param sock the socket object
  *\param new_conn the resulting connection socket object
  */
@@ -407,7 +407,7 @@ u32 gf_sk_is_multicast_address(const char *multi_ip_add);
  *\param buffer the data buffer to send
  *\param length the data length to send
  *\param delay_sec the maximum delay in second to wait before aborting
- *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
+ *\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
 GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 delay_sec);
 /* receive data with a max wait delay of Second - used for http / ftp sockets mainly*/
@@ -416,12 +416,12 @@ GF_Err gf_sk_send_wait(GF_Socket *sock, const char *buffer, u32 length, u32 dela
  *
  *Fetches data with a max wait delay. This is used for http / ftp sockets mainly. The socket must be connected.
  *\param sock the socket object
- *\param buffer the recpetion buffer where data is written
+ *\param buffer the reception buffer where data is written
  *\param length the allocated size of the reception buffer
  *\param start_from the offset in the reception buffer where to start writing
  *\param read the actual number of bytes received
  *\param delay_sec the maximum delay in second to wait before aborting
- *\return If the operation timeed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
+ *\return If the operation timed out, the function will return a GF_IP_SOCK_WOULD_BLOCK error.
  */
 GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 start_from, u32 *read, u32 delay_sec);
 
