@@ -2038,7 +2038,7 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 			if (url->key_url) {
 				u32 idx;
 				fprintf(out, " hls:keyMethod=\"aes-128\" hls:KeyURL=%s hls:KeyIV=\"", url->key_url);
-				for (idx=0; idx<16; i++) {
+				for (idx=0; idx<16; idx++) {
 					fprintf(out, "%02x", url->key_iv[i]);
 				}
 				fprintf(out, "\"");
