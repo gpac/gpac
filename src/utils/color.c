@@ -1487,8 +1487,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 	if (has_alpha && dst->is_hardware_memory)
 		dst_temp_bits = (u8 *) gf_malloc(sizeof(u8) * dst_bpp * dst_w);
 
-	//if (key)
-	{
+	if (key) {
 		ka = key->alpha;
 		kr = key->r;
 		kg = key->g;
