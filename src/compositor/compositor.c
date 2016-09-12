@@ -1167,6 +1167,15 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	}
 	if (lock_ok) gf_sc_lock(compositor, 0);
 
+	//forward scene size event before actual resize in case the user cancels the resize
+	{
+		GF_Event evt;
+		evt.type = GF_EVENT_SCENE_SIZE;
+		evt.size.width = NewWidth;
+		evt.size.height = NewHeight;
+		gf_term_send_event(compositor->term, &evt);
+	}
+
 	return GF_OK;
 }
 
@@ -3046,6 +3055,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			} else {
 				/*remove pending resize notif but not resize requests*/
 				compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
+	
+				if (compositor->new_width || compositor->new_height) {
+					compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
+					compositor->new_width = compositor->new_height = 0;
+				}
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}
