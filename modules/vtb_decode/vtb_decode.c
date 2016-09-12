@@ -61,9 +61,13 @@ typedef struct
 	VTDecompressionSessionRef vtb_session;
     CMFormatDescriptionRef fmt_desc;
 	CVPixelBufferRef frame;
-
+	u32 cts;
+	
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
 	Bool frame_size_changed;
+	
+	u32 decoded_frames_pending;
+	Bool reconfig_needed;
 	
 	//MPEG-1/2 specific
 	Bool init_mpeg12;
@@ -74,12 +78,13 @@ typedef struct
 	u32 vosh_size;
 	
 	//NAL-based specific
-	char *sps, *pps;
-	u32 sps_size, pps_size;
 	Bool is_annex_b;
 	char *cached_annex_b;
 	u32 cached_annex_b_size;
 	u32 nalu_size_length;
+	GF_List *SPSs, *PPSs;
+	s32 active_sps, active_pps;
+	AVCState avc;
 
 	//openGL output
 #ifdef GPAC_IPHONE
@@ -162,26 +167,39 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 	
 	switch (ctx->esd->decoderConfig->objectTypeIndication) {
     case GPAC_OTI_VIDEO_AVC :
-		if (ctx->sps && ctx->pps) {
-			AVCState avc;
+		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 			s32 idx;
-			memset(&avc, 0, sizeof(AVCState));
-			avc.sps_active_idx = -1;
+			u32 i;
+			GF_AVCConfigSlot *sps = NULL;
+			GF_AVCConfigSlot *pps = NULL;
 
-			idx = gf_media_avc_read_sps(ctx->sps, ctx->sps_size, &avc, 0, NULL);
-
-			ctx->vtb_type = kCMVideoCodecType_H264;
-			assert(ctx->sps);
-			ctx->width = avc.sps[idx].width;
-			ctx->height = avc.sps[idx].height;
-			if (avc.sps[idx].vui.par_num && avc.sps[idx].vui.par_den) {
-				ctx->pixel_ar = avc.sps[idx].vui.par_num;
-				ctx->pixel_ar <<= 16;
-				ctx->pixel_ar |= avc.sps[idx].vui.par_den;
+			for (i=0; i<gf_list_count(ctx->SPSs); i++) {
+				sps = gf_list_get(ctx->SPSs, i);
+				if (sps->id==ctx->active_sps) break;
+				sps = NULL;
 			}
-			ctx->chroma_format = avc.sps[idx].chroma_format;
-			ctx->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-			ctx->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+			if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
+			for (i=0; i<gf_list_count(ctx->PPSs); i++) {
+				pps = gf_list_get(ctx->PPSs, i);
+				if (pps->id==ctx->active_pps) break;
+				pps = NULL;
+			}
+			if (!pps) return GF_NON_COMPLIANT_BITSTREAM;
+			ctx->reconfig_needed = GF_FALSE;
+			
+			ctx->vtb_type = kCMVideoCodecType_H264;
+
+			idx = ctx->active_sps;
+			ctx->width = ctx->avc.sps[idx].width;
+			ctx->height = ctx->avc.sps[idx].height;
+			if (ctx->avc.sps[idx].vui.par_num && ctx->avc.sps[idx].vui.par_den) {
+				ctx->pixel_ar = ctx->avc.sps[idx].vui.par_num;
+				ctx->pixel_ar <<= 16;
+				ctx->pixel_ar |= ctx->avc.sps[idx].vui.par_den;
+			}
+			ctx->chroma_format = ctx->avc.sps[idx].chroma_format;
+			ctx->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
+			ctx->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
 		
 			switch (ctx->chroma_format) {
 			case 2:
@@ -211,30 +229,25 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 				break;
 			}
 		
-			if (!ctx->esd->decoderConfig->decoderSpecificInfo || force_dsi_rewrite || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+			//if (!ctx->esd->decoderConfig->decoderSpecificInfo || force_dsi_rewrite || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+			if (1) {
 				GF_AVCConfigSlot *slc_s, *slc_p;
 				GF_AVCConfig *cfg = gf_odf_avc_cfg_new();
 				cfg->configurationVersion = 1;
-				cfg->profile_compatibility = avc.sps[idx].prof_compat;
-				cfg->AVCProfileIndication = avc.sps[idx].profile_idc;
-				cfg->AVCLevelIndication = avc.sps[idx].level_idc;
-				cfg->chroma_format = avc.sps[idx].chroma_format;
-				cfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-				cfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
+				cfg->profile_compatibility = ctx->avc.sps[idx].prof_compat;
+				cfg->AVCProfileIndication = ctx->avc.sps[idx].profile_idc;
+				cfg->AVCLevelIndication = ctx->avc.sps[idx].level_idc;
+				cfg->chroma_format = ctx->avc.sps[idx].chroma_format;
+				cfg->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
+				cfg->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
 				cfg->nal_unit_size = 4;
 				
-				GF_SAFEALLOC(slc_s, GF_AVCConfigSlot);
-				slc_s->data = ctx->sps;
-				slc_s->size = ctx->sps_size;
-				gf_list_add(cfg->sequenceParameterSets, slc_s);
-				
-				GF_SAFEALLOC(slc_p, GF_AVCConfigSlot);
-				slc_p->data = ctx->pps;
-				slc_p->size = ctx->pps_size;
-				gf_list_add(cfg->pictureParameterSets , slc_p);
+				gf_list_add(cfg->sequenceParameterSets, sps);
+				gf_list_add(cfg->pictureParameterSets, pps);
 				
 				gf_odf_avc_cfg_write(cfg, &dsi_data, &dsi_data_size);
-				slc_s->data = slc_p->data = NULL;
+				gf_list_reset(cfg->sequenceParameterSets);
+				gf_list_reset(cfg->pictureParameterSets);
 				gf_odf_avc_cfg_del((cfg));
 			} else {
 				dsi_data = ctx->esd->decoderConfig->decoderSpecificInfo->data;
@@ -251,10 +264,6 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 			CFRelease(dsi);
 		
 			if (!ctx->esd->decoderConfig->decoderSpecificInfo || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-				gf_free(ctx->sps);
-				ctx->sps = NULL;
-				gf_free(ctx->pps);
-				ctx->pps = NULL;
 				gf_free(dsi_data);
 			}
 		}
@@ -414,6 +423,48 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 	return GF_OK;
 }
 
+static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_sps)
+{
+	Bool add = GF_TRUE;
+	u32 i, count;
+	s32 ps_id;
+	GF_List *dest = is_sps ? ctx->SPSs : ctx->PPSs;
+	
+	if (is_sps) {
+		ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
+		if (ps_id<0) return;
+	} else {
+		ps_id = gf_media_avc_read_pps(data, size, &ctx->avc);
+		if (ps_id<0) return;
+	}
+	
+	count = gf_list_count(dest);
+	for (i=0; i<count; i++) {
+		GF_AVCConfigSlot *a_slc = gf_list_get(dest, i);
+		if (a_slc->id != ps_id) continue;
+		if (a_slc->size != size) {
+			break;
+		}
+		if ( memcmp(a_slc->data, data, size) ) {
+			gf_free(a_slc->data);
+			gf_free(a_slc);
+			gf_list_rem(dest, i);
+		} else {
+			add = GF_FALSE;
+		}
+		break;
+	}
+	if (add) {
+		GF_AVCConfigSlot *slc;
+		GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+		slc->data = gf_malloc(size);
+		memcpy(slc->data, data, size);
+		slc->size = size;
+		slc->id = ps_id;
+		gf_list_add(dest, slc);
+	}
+}
+
 static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 {
 	GF_Err e;
@@ -422,6 +473,11 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 	//check AVC config
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+		ctx->SPSs = gf_list_new();
+		ctx->PPSs = gf_list_new();
+
+		ctx->avc.sps_active_idx = -1;
+		
 		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
@@ -429,23 +485,30 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			ctx->pix_fmt = GF_PIXEL_YV12;
 			return GF_OK;
 		} else {
+			u32 i;
 			GF_AVCConfigSlot *slc;
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			slc = gf_list_get(cfg->sequenceParameterSets, 0);
-			if (slc) {
-				ctx->sps = slc->data;
-				ctx->sps_size = slc->size;
+			for (i=0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
+				slc = gf_list_get(cfg->sequenceParameterSets, i);
+				slc->id = -1;
+				VTB_RegisterParameterSet(ctx, slc->data, slc->size, GF_TRUE);
 			}
-			slc = gf_list_get(cfg->pictureParameterSets, 0);
-			if (slc) {
-				ctx->pps = slc->data;
-				ctx->pps_size = slc->size;
+
+			for (i=0; i<gf_list_count(cfg->pictureParameterSets); i++) {
+				slc = gf_list_get(cfg->pictureParameterSets, i);
+				slc->id = -1;
+				VTB_RegisterParameterSet(ctx, slc->data, slc->size, GF_FALSE);
 			}
+
+			slc = gf_list_get(ctx->SPSs, 0);
+			ctx->active_sps = slc->id;
+			slc = gf_list_get(ctx->PPSs, 0);
+			ctx->active_pps = slc->id;
 			
-			if (ctx->sps && ctx->pps) {
+			ctx->nalu_size_length = cfg->nal_unit_size;
+			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
 				e = VTBDec_InitDecoder(ctx, GF_FALSE);
 			} else {
-				ctx->nalu_size_length = cfg->nal_unit_size;
 				e = GF_OK;
 			}
 			gf_odf_avc_cfg_del(cfg);
@@ -467,6 +530,16 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	return VTBDec_InitDecoder(ctx, GF_FALSE);
 }
 
+static void VTB_DelParamList(GF_List *list)
+{
+	while (gf_list_count(list)) {
+		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
+		gf_free(slc->data);
+		gf_free(slc);
+		gf_list_rem(list, 0);
+	}
+	gf_list_del(list);
+}
 static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
@@ -478,6 +551,10 @@ static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 		VTDecompressionSessionInvalidate(ctx->vtb_session);
 		ctx->vtb_session=NULL;
 	}
+	VTB_DelParamList(ctx->SPSs);
+	ctx->SPSs = NULL;
+	VTB_DelParamList(ctx->PPSs);
+	ctx->PPSs = NULL;
 	return GF_OK;
 }
 static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -556,7 +633,8 @@ static GF_Err VTBDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability ca
 	return GF_NOT_SUPPORTED;
 }
 
-static GF_Err VTB_RewriteNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
+
+static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
 {
 	u32 i, sc_size;
 	char *ptr = inBuffer;
@@ -564,10 +642,13 @@ static GF_Err VTB_RewriteNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, c
 	GF_Err e = GF_OK;
 	GF_BitStream *bs = NULL;
 	
-	*out_buffer = NULL;
-	*out_size = 0;
+	if (out_buffer) {
+		*out_buffer = NULL;
+		*out_size = 0;
+	}
 	
 	if (!ctx->nalu_size_length) {
+		sc_size=0;
 		nal_size = gf_media_nalu_next_start_code((u8 *) inBuffer, inBufferLength, &sc_size);
 		if (!sc_size) return GF_NON_COMPLIANT_BITSTREAM;
 		ptr += nal_size + sc_size;
@@ -577,34 +658,30 @@ static GF_Err VTB_RewriteNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, c
 	
 	while (inBufferLength) {
 		Bool add_nal = GF_TRUE;
-		u8 nal_type;
+		u8 nal_type, nal_hdr;
+		s32 res;
+		GF_BitStream *nal_bs=NULL;
 		
 		if (ctx->nalu_size_length) {
+			nal_size = 0;
 			for (i=0; i<ctx->nalu_size_length; i++) {
-				nal_size = (nal_size<<8) + ptr[i];
+				nal_size = (nal_size<<8) + ((u8) ptr[i]);
 			}
 			ptr += ctx->nalu_size_length;
 		} else {
 			nal_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
 		}
-		
-		nal_type = ptr[0] & 0x1F;
+		nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
+		nal_hdr = gf_bs_read_u8(nal_bs);
+		nal_type = nal_hdr & 0x1F;
 		switch (nal_type) {
 		case GF_AVC_NALU_SEQ_PARAM:
-			if (!ctx->vtb_session) {
-				ctx->sps = gf_malloc(sizeof(char)*nal_size);
-				memcpy(ctx->sps, ptr, sizeof(char)*nal_size);
-				ctx->sps_size=nal_size;
-				add_nal = GF_FALSE;
-			}
+			VTB_RegisterParameterSet(ctx, ptr, nal_size, GF_TRUE);
+			add_nal = GF_FALSE;
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			if (!ctx->vtb_session) {
-				ctx->pps = gf_malloc(sizeof(char)*nal_size);
-				memcpy(ctx->pps, ptr, sizeof(char)*nal_size);
-				ctx->pps_size=nal_size;
-				add_nal = GF_FALSE;
-			}
+			VTB_RegisterParameterSet(ctx, ptr, nal_size, GF_FALSE);
+			add_nal = GF_FALSE;
 			break;
 		case GF_AVC_NALU_ACCESS_UNIT:
 		case GF_AVC_NALU_END_OF_SEQ:
@@ -616,13 +693,26 @@ static GF_Err VTB_RewriteNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, c
 			break;
 		}
 		
+		res = gf_media_avc_parse_nalu(nal_bs, nal_hdr, &ctx->avc);
+		gf_bs_del(nal_bs);
+		
+		if (res && ctx->avc.s_info.sps) {
+			if (ctx->avc.sps_active_idx != ctx->active_sps) {
+				ctx->reconfig_needed = 1;
+				ctx->active_sps = ctx->avc.sps_active_idx;
+				ctx->active_pps = ctx->avc.s_info.pps->id;
+				return GF_OK;
+			}
+		}
+		
 		//if sps and pps are ready, init decoder
-		if (!ctx->vtb_session && ctx->sps && ctx->pps) {
+		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
 			e = VTBDec_InitDecoder(ctx, GF_TRUE);
 			if (e) return e;
 		}
 		
-		if (add_nal && !ctx->vtb_session) add_nal = GF_FALSE;
+		if (!out_buffer) add_nal = GF_FALSE;
+		else if (add_nal && !ctx->vtb_session) add_nal = GF_FALSE;
 
 		if (add_nal) {
 			if (!bs) bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -719,13 +809,38 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 
+	if (ctx->vtb_session) {
+		if (!ctx->reconfig_needed)
+			VTB_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
+		
+		if (ctx->reconfig_needed) {
+			if (ctx->raw_frame_dispatch && ctx->decoded_frames_pending) {
+				*outBufferLength = 1;
+				return GF_BUFFER_TOO_SMALL;
+			}
+			if (ctx->fmt_desc) {
+				CFRelease(ctx->fmt_desc);
+				ctx->fmt_desc = NULL;
+			}
+			if (ctx->vtb_session) {
+				VTDecompressionSessionInvalidate(ctx->vtb_session);
+				ctx->vtb_session=NULL;
+			}
+			VTBDec_InitDecoder(ctx, GF_TRUE);			
+			if (ctx->out_size != *outBufferLength) {
+				*outBufferLength = ctx->out_size;
+				return GF_BUFFER_TOO_SMALL;
+			}
+		}
+	}
+
 	if (ctx->is_annex_b || (!ctx->vtb_session && ctx->nalu_size_length) ) {
 		if (ctx->cached_annex_b) {
 			in_data = ctx->cached_annex_b;
 			in_data_size = ctx->cached_annex_b_size;
 			ctx->cached_annex_b = NULL;
 		} else {
-			e = VTB_RewriteNALs(ctx, inBuffer, inBufferLength, &in_data, &in_data_size);
+			e = VTB_ParseNALs(ctx, inBuffer, inBufferLength, &in_data, &in_data_size);
 			if (e) return e;
 		}
 		
@@ -788,7 +903,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		*outBufferLength=0;
 		return ctx->last_error;
 	}
-	
+	ctx->cts = *CTS;
 	*outBufferLength = ctx->out_size;
 	if (ctx->raw_frame_dispatch) return GF_OK;
 
@@ -857,6 +972,7 @@ typedef struct
 	Bool locked;
 	CVPixelBufferRef frame;
 	VTBDec *ctx;
+	u32 cts;
 	
 	//openGL mode
 #ifdef GPAC_IPHONE
@@ -881,7 +997,8 @@ void VTBFrame_Release(GF_MediaDecoderFrame *frame)
 	if (f->frame) {
         CVPixelBufferRelease(f->frame);
     }
-	
+	f->ctx->decoded_frames_pending--;
+
 	gf_free(f);
 	gf_free(frame);
 }
@@ -1024,6 +1141,11 @@ GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFra
 		ctx->frame_size_changed = GF_FALSE;
 		*needs_resize = GF_TRUE;
 	}
+	vtb_frame->cts = ctx->cts;
+	if (ctx->cts==960) {
+		vtb_frame->cts = 960;
+	}
+	ctx->decoded_frames_pending++;
 	return GF_OK;
 }
 
