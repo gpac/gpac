@@ -1044,7 +1044,7 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn
 
 u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
 {
-	if (!term->root_scene) return 1;
+	if (!term->root_scene || !term->root_scene->root_od || !term->root_scene->root_od->net_service) return 1;
 	if (!skip_interactions) {
 		/*if input sensors consider the scene runs forever*/
 		if (gf_list_count(term->input_streams)) return 0;
