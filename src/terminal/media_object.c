@@ -393,6 +393,22 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	}
 }
 
+static Bool gf_odm_check_cb_resize(GF_MediaObject *mo, GF_Codec *codec)
+{
+	/*resize requested - if last frame destroy CB and force a decode*/
+	if (codec->force_cb_resize && (codec->CB->UnitCount<=1)) {
+		GF_CMUnit *CU = gf_cm_get_output(codec->CB);
+		if (!CU || (CU->TS==mo->timestamp)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
+			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
+			codec->force_cb_resize=0;
+			//decode and resize CB
+			return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
+}
+
 GF_EXPORT
 char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
 {
@@ -445,15 +461,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	bench_mode = mo->odm->term->bench_mode;
 
 	/*resize requested - if last frame destroy CB and force a decode*/
-	if (codec->force_cb_resize && (codec->CB->UnitCount<=1)) {
-		CU = gf_cm_get_output(codec->CB);
-		if (!CU || (CU->TS==mo->timestamp)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
-			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
-			codec->force_cb_resize=0;
-			//decode and resize CB
-			force_decode_mode = 1;
-		}
+	if (gf_odm_check_cb_resize(mo, codec)) {
+		force_decode_mode = 1;
 	}
 
 	/*fast forward, bench mode with composition memory: force one decode if no data is available*/
@@ -465,6 +474,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		u32 retry = 100;
 		gf_odm_lock(mo->odm, 0);
 		while (retry) {
+			gf_odm_check_cb_resize(mo, codec);
+			
 			if (gf_term_lock_codec(codec, GF_TRUE, GF_TRUE)) {
 				gf_codec_process(codec, 1);
 				gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
@@ -474,7 +485,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			CU = gf_cm_get_output(codec->CB);
 			if (CU)
 				break;
-
+			
 			retry--;
 			//we will wait max 100 ms for the CB to be re-fill
 			gf_sleep(1);
@@ -740,7 +751,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
 			if (drop_mode) {
 				gf_cm_drop_output(mo->odm->codec->CB);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u drop frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
 			} else {
 				/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
 
