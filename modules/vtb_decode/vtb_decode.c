@@ -144,7 +144,7 @@ static CFDictionaryRef VTBDec_CreateBufferAttributes(VTBDec *ctx, OSType pix_fmt
     return buffer_attributes;
 }
 
-static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
+static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 {
 	CFMutableDictionaryRef dec_dsi, dec_type;
 	CFMutableDictionaryRef dsi;
@@ -170,6 +170,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 			s32 idx;
 			u32 i;
+			GF_AVCConfig *cfg;
 			GF_AVCConfigSlot *sps = NULL;
 			GF_AVCConfigSlot *pps = NULL;
 
@@ -228,31 +229,24 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 				}
 				break;
 			}
-		
-			//if (!ctx->esd->decoderConfig->decoderSpecificInfo || force_dsi_rewrite || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-			if (1) {
-				GF_AVCConfigSlot *slc_s, *slc_p;
-				GF_AVCConfig *cfg = gf_odf_avc_cfg_new();
-				cfg->configurationVersion = 1;
-				cfg->profile_compatibility = ctx->avc.sps[idx].prof_compat;
-				cfg->AVCProfileIndication = ctx->avc.sps[idx].profile_idc;
-				cfg->AVCLevelIndication = ctx->avc.sps[idx].level_idc;
-				cfg->chroma_format = ctx->avc.sps[idx].chroma_format;
-				cfg->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
-				cfg->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
-				cfg->nal_unit_size = 4;
+			//always rewrite with cirrent sps and pps
+			cfg = gf_odf_avc_cfg_new();
+			cfg->configurationVersion = 1;
+			cfg->profile_compatibility = ctx->avc.sps[idx].prof_compat;
+			cfg->AVCProfileIndication = ctx->avc.sps[idx].profile_idc;
+			cfg->AVCLevelIndication = ctx->avc.sps[idx].level_idc;
+			cfg->chroma_format = ctx->avc.sps[idx].chroma_format;
+			cfg->luma_bit_depth = 8 + ctx->avc.sps[idx].luma_bit_depth_m8;
+			cfg->chroma_bit_depth = 8 + ctx->avc.sps[idx].chroma_bit_depth_m8;
+			cfg->nal_unit_size = 4;
 				
-				gf_list_add(cfg->sequenceParameterSets, sps);
-				gf_list_add(cfg->pictureParameterSets, pps);
+			gf_list_add(cfg->sequenceParameterSets, sps);
+			gf_list_add(cfg->pictureParameterSets, pps);
 				
-				gf_odf_avc_cfg_write(cfg, &dsi_data, &dsi_data_size);
-				gf_list_reset(cfg->sequenceParameterSets);
-				gf_list_reset(cfg->pictureParameterSets);
-				gf_odf_avc_cfg_del((cfg));
-			} else {
-				dsi_data = ctx->esd->decoderConfig->decoderSpecificInfo->data;
-				dsi_data_size = ctx->esd->decoderConfig->decoderSpecificInfo->dataLength;
-			}
+			gf_odf_avc_cfg_write(cfg, &dsi_data, &dsi_data_size);
+			gf_list_reset(cfg->sequenceParameterSets);
+			gf_list_reset(cfg->pictureParameterSets);
+			gf_odf_avc_cfg_del((cfg));
 			
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 			data = CFDataCreate(kCFAllocatorDefault, dsi_data, dsi_data_size);
@@ -263,9 +257,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx, Bool force_dsi_rewrite)
 			}
 			CFRelease(dsi);
 		
-			if (!ctx->esd->decoderConfig->decoderSpecificInfo || !ctx->esd->decoderConfig->decoderSpecificInfo->data) {
-				gf_free(dsi_data);
-			}
+			gf_free(dsi_data);
 		}
         break;
 	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
@@ -433,7 +425,7 @@ static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_
 	if (is_sps) {
 		ps_id = gf_media_avc_read_sps(data, size, &ctx->avc, 0, NULL);
 		if (ps_id<0) return;
-	} else {
+	} else {
 		ps_id = gf_media_avc_read_pps(data, size, &ctx->avc);
 		if (ps_id<0) return;
 	}
@@ -507,7 +499,7 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			
 			ctx->nalu_size_length = cfg->nal_unit_size;
 			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
-				e = VTBDec_InitDecoder(ctx, GF_FALSE);
+				e = VTBDec_InitDecoder(ctx);
 			} else {
 				e = GF_OK;
 			}
@@ -523,11 +515,11 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			ctx->out_size = ctx->width*ctx->height*3/2;
 			ctx->pix_fmt = GF_PIXEL_YV12;
 		} else {
-			return VTBDec_InitDecoder(ctx, GF_FALSE);
+			return VTBDec_InitDecoder(ctx);
 		}
 	}
 
-	return VTBDec_InitDecoder(ctx, GF_FALSE);
+	return VTBDec_InitDecoder(ctx);
 }
 
 static void VTB_DelParamList(GF_List *list)
@@ -707,7 +699,7 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 		
 		//if sps and pps are ready, init decoder
 		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
-			e = VTBDec_InitDecoder(ctx, GF_TRUE);
+			e = VTBDec_InitDecoder(ctx);
 			if (e) return e;
 		}
 		
@@ -764,7 +756,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			if (!ctx->vtb_session) {
 				ctx->vosh = inBuffer;
 				ctx->vosh_size = dsi.next_object_start;
-				e = VTBDec_InitDecoder(ctx, GF_FALSE);
+				e = VTBDec_InitDecoder(ctx);
 				if (e) return e;
 
 				//enfoce removal for all frames
@@ -794,7 +786,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			ctx->pixel_ar <<= 16;
 			ctx->pixel_ar |= dsi.par_den;
 			
-			e = VTBDec_InitDecoder(ctx, GF_FALSE);
+			e = VTBDec_InitDecoder(ctx);
 			if (e) return e;
 
 			if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
@@ -826,7 +818,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 				VTDecompressionSessionInvalidate(ctx->vtb_session);
 				ctx->vtb_session=NULL;
 			}
-			VTBDec_InitDecoder(ctx, GF_TRUE);			
+			VTBDec_InitDecoder(ctx);
 			if (ctx->out_size != *outBufferLength) {
 				*outBufferLength = ctx->out_size;
 				return GF_BUFFER_TOO_SMALL;
