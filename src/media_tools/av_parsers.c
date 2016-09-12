@@ -2581,6 +2581,7 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 		goto exit;
 	}
 	pps = &avc->pps[pps_id];
+	pps->id = pps_id;
 
 	if (!pps->status) pps->status = 1;
 	pps->sps_id = bs_get_ue(bs);
@@ -2672,7 +2673,8 @@ static s32 avc_parse_slice(GF_BitStream *bs, AVCState *avc, Bool svc_idr_flag, A
 	if (!si->pps->slice_group_count) return -2;
 	si->sps = &avc->sps[si->pps->sps_id];
 	if (!si->sps->log2_max_frame_num) return -2;
-
+	avc->sps_active_idx = si->pps->sps_id;
+	
 	si->frame_num = gf_bs_read_int(bs, si->sps->log2_max_frame_num);
 
 	si->field_pic_flag = 0;
