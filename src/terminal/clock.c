@@ -258,6 +258,11 @@ u32 gf_clock_media_time(GF_Clock *ck)
 	return t;
 }
 
+u32 gf_clock_ellapsed_time(GF_Clock *ck)
+{
+	if (!ck || ck->Buffering || ck->Paused) return 0;
+	return gf_sys_clock() - ck->StartTime;
+}
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {
