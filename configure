@@ -1378,7 +1378,7 @@ if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libavresample ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libavresample`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
-    ffmpeg_lflags_dashcast=="$ffmpeg_lflags `$pkg_config --libs libavdevice libavresample`"
+    ffmpeg_lflags_dashcast=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice libavresample`
     has_ffmpeg="system"
   fi
 fi
@@ -1436,7 +1436,7 @@ if test "$cross_prefix" = "" ; then
                 has_ffmpeg="system"
                 ffmpeg_cflags="-I$alt_macosx_dir/include"
                 ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
-                ffmpeg_lflags_dashcast="-L$prefix/lib $ffmpeg_lflags_dashcast"
+                ffmpeg_lflags_dashcast="-L$alt_macosx_dir/lib $ffmpeg_lflags_dashcast"
             fi
         fi
     fi
@@ -1446,7 +1446,7 @@ if test "$has_ffmpeg" = "no" ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
-        ffmpeg_lflags_dashcast="-l$local_lib $ffmpeg_lflags_dashcast"
+        ffmpeg_lflags_dashcast="-L$local_lib $ffmpeg_lflags_dashcast"
     fi
 fi
 
@@ -3080,7 +3080,7 @@ echo "DISABLE_DASHCAST=yes" >> config.mak
 else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
-    echo "ffmpeg_lflags_DashCast=$ffmpeg_lflags_DashCast" >> config.mak
+    echo "ffmpeg_lflags_dashcast=$ffmpeg_lflags_dashcast" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
     echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
 fi
