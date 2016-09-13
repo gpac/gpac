@@ -1744,7 +1744,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_framerate) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_time_in_ms) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_ellapsed_time_in_ms) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_term_get_elapsed_time_in_ms) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_viewpoint) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_set_viewpoint) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_term_get_root_object) )

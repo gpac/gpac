@@ -1771,7 +1771,7 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 }
 
 GF_EXPORT
-u32 gf_term_get_ellapsed_time_in_ms(GF_Terminal *term)
+u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term)
 {
 	GF_Clock *ck;
 	if (!term || !term->root_scene) return 0;
@@ -1780,7 +1780,7 @@ u32 gf_term_get_ellapsed_time_in_ms(GF_Terminal *term)
 	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
 	if (!ck) return 0;
 
-	return gf_clock_ellapsed_time(ck);
+	return gf_clock_elapsed_time(ck);
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
