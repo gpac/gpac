@@ -155,6 +155,8 @@ typedef enum
 
 	/*query codec statistic on all channels*/
 	GF_NET_SERVICE_CODEC_STAT_QUERY,
+	/* Used in DASH: submodules can query the DASH module for the computed UTC delay between client and server */
+	GF_NET_SERVICE_QUERY_UTC_DELAY,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -623,6 +625,12 @@ typedef struct
 	Bool decode_only_rap;
 } GF_CodecStat;
 
+/*GF_NET_SERVICE_QUERY_UTC_DELAY*/
+typedef struct
+{
+	s32 delay;
+} GF_UTCDelay;
+
 typedef union __netcommand
 {
 	GF_NET_CHAN_CMD command_type;
@@ -655,6 +663,7 @@ typedef union __netcommand
 	GF_CodecStat codec_stat;
 	GF_NetComSRDInfo srd;
 	GF_NetComVisibililityHint visibility_hint;
+	GF_UTCDelay utc_delay;
 } GF_NetworkCommand;
 
 /*
