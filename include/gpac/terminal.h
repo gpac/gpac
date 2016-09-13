@@ -98,6 +98,9 @@ Double gf_term_get_framerate(GF_Terminal *term, Bool absoluteFPS);
 /*get main scene current time in milliseconds*/
 u32 gf_term_get_time_in_ms(GF_Terminal *term);
 
+/*get ellapsed time in milliseconds since loading of the scene - may be different from scene time when seeking or live content*/
+u32 gf_term_get_ellapsed_time_in_ms(GF_Terminal *term);
+
 /*returns current URL address*/
 const char *gf_term_get_url(GF_Terminal *term);
 
