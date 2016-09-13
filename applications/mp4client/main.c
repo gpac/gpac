@@ -1674,7 +1674,7 @@ int mp4client_main(int argc, char **argv)
 
 			/*sim time*/
 			if (simulation_time_in_ms
-			        && ( (gf_term_get_ellapsed_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
+			        && ( (gf_term_get_elapsed_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
 			   ) {
 				Run = GF_FALSE;
 			}
