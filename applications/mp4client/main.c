@@ -1284,7 +1284,7 @@ int mp4client_main(int argc, char **argv)
 		else if (!stricmp(arg, "-run-for")) {
 			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
 			if (!simulation_time_in_ms)
-			simulation_time_in_ms = 1; /*1ms*/
+				simulation_time_in_ms = 1; /*1ms*/
 			i++;
 		}
 
@@ -1674,7 +1674,7 @@ int mp4client_main(int argc, char **argv)
 
 			/*sim time*/
 			if (simulation_time_in_ms
-			        && ( (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
+			        && ( (gf_term_get_ellapsed_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
 			   ) {
 				Run = GF_FALSE;
 			}
