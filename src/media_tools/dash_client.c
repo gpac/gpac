@@ -7007,6 +7007,11 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
 }
 
 GF_EXPORT
+s32 gf_dash_get_utc_drift_estimate(GF_DashClient *dash) {
+	return dash->utc_drift_estimate;
+}
+
+GF_EXPORT
 GF_DASHTileAdaptationMode gf_dash_get_tile_adaptation_mode(GF_DashClient *dash)
 {
 	return dash->tile_adapt_mode;
