@@ -1281,7 +1281,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			}
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			//DASH-IF and MPEG disagree here:
+			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			} else {
+				gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			}
 			if (_sr>sample_rate) sample_rate = _sr;
 			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
 			gf_isom_get_media_language(input, i+1, &langCode);
