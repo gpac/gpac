@@ -1372,13 +1372,13 @@ fi
 
 ffmpeg_cflags=""
 ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale $ffmpeg_extra_ldflags"
-ffmpeg_lflags_dashcast="$ffmpeg_lflags -lavresample -lavdevice"
+ffmpeg_lflags_dashcast="$ffmpeg_lflags -lavdevice"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
   if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libavresample ; then
     ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libavresample`
     ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
-    ffmpeg_lflags_dashcast=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice libavresample`
+    ffmpeg_lflags_dashcast=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
     has_ffmpeg="system"
   fi
 fi
@@ -1494,6 +1494,7 @@ EOF
 
 if docc $ffmpeg_cflags $ffmpeg_lflags_dashcast -lavresample ; then
     has_libavresample="yes"
+    ffmpeg_lflags_dashcast="$ffmpeg_lflags_dashcast -lavresample"
 else
     has_libavresample="no"
 fi
