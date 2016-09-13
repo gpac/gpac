@@ -436,6 +436,10 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 #endif
 	}
 
+	if (param->command_type == GF_NET_SERVICE_QUERY_UTC_DELAY) {
+		param->utc_delay.delay = gf_dash_get_utc_drift_estimate(mpdin->dash);
+		return GF_OK;
+	}
 
 	return GF_OK;
 }
