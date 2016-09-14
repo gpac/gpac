@@ -767,7 +767,7 @@ check_unit:
 	}
 	now = gf_sys_clock_high_res() - now;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, obj_time, AU->CTS, now));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %u in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, obj_time, AU->CTS, now));
 
 	codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
 	codec->prev_au_size = AU->dataLength;
@@ -1312,7 +1312,7 @@ scalable_retry:
 			}
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %u in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -1337,7 +1337,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %u in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
 
 
 				if (codec->direct_frame_output) {
@@ -1389,7 +1389,7 @@ scalable_retry:
 			}
 #ifndef GPAC_DISABLE_LOGS
 			if (codec->odm->flags & GF_ODM_PREFETCH) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d decoding frame TS %d in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d decoding frame TS %u in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS));
 			}
 #endif
 			break;
@@ -1397,7 +1397,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %d - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %u - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
@@ -1412,9 +1412,9 @@ scalable_retry:
 #ifndef GPAC_DISABLE_LOG
 		if (unit_size) {
 			if (ch->is_pulling) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u decoded frame CTS %u in "LLU" us\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u decoded frame CTS %u in "LLU" us - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
 			}
 		}
 #endif
@@ -1473,7 +1473,7 @@ scalable_retry:
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (unit_size) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u dispatched frame CTS %u in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
 		}
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));
