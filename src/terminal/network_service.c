@@ -682,11 +682,11 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 			//ignore everything
 		} else {
 			u32 i;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: before mapping: seed TS %d - TS offset %d\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: before mapping: seed TS "LLU" - TS offset %u\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
 			ch->seed_ts = com->map_time.timestamp;
 			ch->ts_offset = (u32) (com->map_time.media_time*1000);
 			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: mapping TS "LLD" to media time %f - current time %d\n", ch->esd->ESID, com->map_time.timestamp, com->map_time.media_time, gf_clock_time(ch->clock)));
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: after mapping: seed TS %d - TS offset %d\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: after mapping: seed TS "LLU" - TS offset %u\n", ch->esd->ESID, ch->seed_ts, ch->ts_offset));
 
 			if (com->map_time.reset_buffers) {
 				gf_es_reset_buffers(ch);
