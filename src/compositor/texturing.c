@@ -259,7 +259,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %d)\n", ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %u)\n", ts));
 			if (txh->compositor->ms_until_next_frame > ms_until_next)
 				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
