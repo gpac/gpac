@@ -67,7 +67,6 @@ void gf_rtp_del(GF_RTPChannel *ch)
 }
 
 
-
 GF_EXPORT
 GF_Err gf_rtp_setup_transport(GF_RTPChannel *ch, GF_RTSPTransport *trans_info, const char *remote_address)
 {
@@ -167,7 +166,7 @@ GF_Err gf_rtp_initialize(GF_RTPChannel *ch, u32 UDPBufferSize, Bool IsSource, u3
 	u16 port;
 	GF_Err e;
 
-	if (IsSource && !PathMTU) return GF_BAD_PARAM;
+	if (!ch || (IsSource && !PathMTU)) return GF_BAD_PARAM;
 
 	if (ch->rtp) gf_sk_del(ch->rtp);
 	ch->rtp = NULL;

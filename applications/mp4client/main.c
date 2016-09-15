@@ -1284,7 +1284,7 @@ int mp4client_main(int argc, char **argv)
 		else if (!stricmp(arg, "-run-for")) {
 			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
 			if (!simulation_time_in_ms)
-			simulation_time_in_ms = 1; /*1ms*/
+				simulation_time_in_ms = 1; /*1ms*/
 			i++;
 		}
 
@@ -1489,7 +1489,7 @@ int mp4client_main(int argc, char **argv)
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
-	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
+	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = GF_TRUE;
 
 	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
 	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
@@ -1674,7 +1674,7 @@ int mp4client_main(int argc, char **argv)
 
 			/*sim time*/
 			if (simulation_time_in_ms
-			        && ( (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
+			        && ( (gf_term_get_elapsed_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
 			   ) {
 				Run = GF_FALSE;
 			}

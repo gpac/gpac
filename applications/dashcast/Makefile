@@ -52,7 +52,7 @@ endif
 OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o task.o
 
 
-LINKFLAGS+= $(ffmpeg_lflags)
+LINKFLAGS+= $(ffmpeg_lflags_dashcast)
 
 ifeq ($(CONFIG_DARWIN), yes)
 #fixme - use proper detection of libavdevice dependencies

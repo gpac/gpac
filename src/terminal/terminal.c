@@ -1044,7 +1044,7 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn
 
 u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
 {
-	if (!term->root_scene) return 1;
+	if (!term->root_scene || !term->root_scene->root_od || !term->root_scene->root_od->net_service) return 1;
 	if (!skip_interactions) {
 		/*if input sensors consider the scene runs forever*/
 		if (gf_list_count(term->input_streams)) return 0;
@@ -1766,8 +1766,21 @@ u32 gf_term_get_time_in_ms(GF_Terminal *term)
 	ck = NULL;
 	if (term->root_scene->scene_codec && term->root_scene->scene_codec->ck) ck = term->root_scene->scene_codec->ck;
 	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
-
+	if (!ck) return 0;
 	return gf_clock_media_time(ck);
+}
+
+GF_EXPORT
+u32 gf_term_get_elapsed_time_in_ms(GF_Terminal *term)
+{
+	GF_Clock *ck;
+	if (!term || !term->root_scene) return 0;
+	ck = NULL;
+	if (term->root_scene->scene_codec && term->root_scene->scene_codec->ck) ck = term->root_scene->scene_codec->ck;
+	else if (term->root_scene->dyn_ck) ck = term->root_scene->dyn_ck;
+	if (!ck) return 0;
+
+	return gf_clock_elapsed_time(ck);
 }
 
 GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)

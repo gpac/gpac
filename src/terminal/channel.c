@@ -814,7 +814,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	if (!ch->clock->clock_init) {
 		if (!ch->clock->use_ocr) {
 			gf_es_init_clock(ch, ch->DTS);
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d CTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %u - AU DTS %u CTS %u\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
 		}
 	}
 	/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
@@ -866,7 +866,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 			cu->data = payload;
 			size = payload_size;
 			cu->TS = cts;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %u ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
 
@@ -982,7 +982,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*many TS streams deployed with HLS have broken PCRs - we will check their consistency
 				when receiving the first AU with DTS/CTS on this channel*/
 				ch->clock->probe_ocr = 1;
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d (original TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %u (original TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 
 			}
@@ -1237,11 +1237,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: tuning in\n", ch->esd->ESID));
 					} else {
 						ch->skip_carousel_au = 1;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU (TS %u) - skipping\n", ch->esd->ESID, ch->CTS));
 						return;
 					}
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU (TS %d)\n", ch->esd->ESID, ch->CTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU (TS %u)\n", ch->esd->ESID, ch->CTS));
 					ch->stream_state=0;
 					ch->au_sn = AUSeqNum;
 				}
@@ -1249,7 +1249,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (hdr.randomAccessPointFlag) {
 					/*initial tune-in*/
 					if (ch->stream_state==1) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - tuning in\n", ch->esd->ESID, ch->CTS));
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - tuning in\n", ch->esd->ESID, ch->CTS));
 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
 					}
@@ -1257,19 +1257,19 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					else if (AUSeqNum == ch->au_sn) {
 						/*error recovery*/
 						if (ch->stream_state==2) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - recovering\n", ch->esd->ESID, ch->CTS));
 							ch->stream_state = 0;
 						}
 						else {
 							ch->skip_carousel_au = 1;
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - skipping\n", ch->esd->ESID, ch->CTS));
 							return;
 						}
 					}
 					/*regular RAP*/
 					else {
 						if (ch->stream_state==2) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering from previous errors\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - recovering from previous errors\n", ch->esd->ESID, ch->CTS));
 						}
 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
@@ -1298,7 +1298,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					}
 				} else {
 					ch->au_sn = AUSeqNum;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %d)\n", ch->esd->ESID, ch->DTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %u)\n", ch->esd->ESID, ch->DTS));
 				}
 			}
 		}
@@ -1581,7 +1581,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %d - Dispatch Pull AU DTS %d - CTS %d - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %u - Dispatch Pull AU DTS %u - CTS %u - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
 
 		ch->AU_buffer_pull->flags = 0;
 		if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;

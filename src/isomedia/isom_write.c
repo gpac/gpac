@@ -4999,7 +4999,7 @@ Bool sg_encryption_compare_entry(void *udta, void *entry)
 	u8 isEncrypted;
 	u8 IV_size;
 	bin128 KID;
-	u8 constant_IV_size;
+	u8 constant_IV_size=0;
 	bin128 constant_IV;
 	u8 crypt_byte_block, skip_byte_block;
 	GF_BitStream *bs;

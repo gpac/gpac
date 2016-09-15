@@ -868,8 +868,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				}
 				assert(curr_playlist->element.playlist.elements);
 				assert(fullURL);
-				assert(curr_playlist->url && !curr_playlist->title && !curr_playlist->codecs);
-				curr_playlist->title = NULL;
+				assert(curr_playlist->url && !curr_playlist->codecs);
 				curr_playlist->codecs = NULL;
 				subElement = playlist_element_new(TYPE_UNKNOWN, fullURL, attribs);
 				if (subElement == NULL) {
