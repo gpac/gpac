@@ -414,16 +414,16 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	gf_odm_setup_object(odm, odm->net_service);
 
 	if (redirect_url && !strnicmp(redirect_url, "views://", 8)) {
-
 		gf_scene_generate_views(odm->subscene ? odm->subscene : odm->parentscene , (char *) redirect_url + 8, (char*)odm->parentscene ? odm->parentscene->root_od->net_service->url : NULL);
 	}
 	/*it may happen that this object was inserted in a dynamic scene from a service through a URL redirect. In which case,
 	the scene regeneration might not have been completed since the redirection was not done yet - force a scene regenerate*/
-	else if (odm->parentscene && odm->parentscene->is_dynamic_scene)
+	else if (odm->parentscene && odm->parentscene->is_dynamic_scene) {
 		gf_scene_regenerate(odm->parentscene);
-
+	}
 
 	gf_free(redirect_url);
+
 	return;
 
 err_exit:
@@ -435,7 +435,6 @@ err_exit:
 	}
 	if (redirect_url)
 		gf_free(redirect_url);
-
 }
 
 

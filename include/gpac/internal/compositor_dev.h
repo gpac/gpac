@@ -234,7 +234,7 @@ struct __tag_compositor
 	u32 vp_x, vp_y, vp_width, vp_height;
 	/*backbuffer size - in scalable mode, matches display size, otherwise matches scene size*/
 	u32 output_width, output_height;
-
+	Bool output_as_8bit;
 	/*scene size if any*/
 	u32 scene_width, scene_height;
 	Bool has_size_info;
@@ -647,7 +647,8 @@ typedef struct _gf_sc_texture_handler
 	Bool raw_memory;
 	u8 *pU, *pV;
 	u32 nb_frames, upload_time;
-	
+	Bool conv_to_8bit;
+	char *conv_buffer;
 	GF_MediaDecoderFrame *frame;
 
 #ifndef GPAC_DISABLE_VRML

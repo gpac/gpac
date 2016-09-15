@@ -210,7 +210,7 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
-	Bool is_srd;
+	Bool is_srd, is_tiled_srd;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
 
 
@@ -599,6 +599,10 @@ void gf_clock_stop(GF_Clock *ck);
 u32 gf_clock_time(GF_Clock *ck);
 /*return media time in ms*/
 u32 gf_clock_media_time(GF_Clock *ck);
+
+/*return time in ms since clock started - may be different from clock time when seeking or live*/
+u32 gf_clock_elapsed_time(GF_Clock *ck);
+
 /*sets clock time - FIXME: drift updates for OCRs*/
 void gf_clock_set_time(GF_Clock *ck, u32 TS);
 /*return clock time in ms without drift adjustment - used by audio objects only*/
@@ -1187,7 +1191,7 @@ struct _mediaobj
 	u32 srd_x, srd_y, srd_w, srd_h;
 	
 	u32 quality_degradation_hint;
-	
+	u32 view_min_x, view_max_x, view_min_y, view_max_y;
 	GF_MediaDecoderFrame *media_frame;
 };
 
