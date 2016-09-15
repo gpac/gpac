@@ -145,6 +145,8 @@ typedef enum
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
 
+	/*indicates visible part of the visual object associated with the channel*/
+	GF_NET_CHAN_VISIBILITY_HINT,
 	/*request current position in TSB - 0 means 'at the live point'*/
 	GF_NET_GET_TIMESHIFT,
 
@@ -153,6 +155,8 @@ typedef enum
 
 	/*query codec statistic on all channels*/
 	GF_NET_SERVICE_CODEC_STAT_QUERY,
+	/* Used in DASH: submodules can query the DASH module for the computed UTC delay between client and server */
+	GF_NET_SERVICE_QUERY_UTC_DELAY,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -377,6 +381,17 @@ typedef struct
 	u32 w,h,x,y, width, height;
 	u32 dependent_group_index;
 } GF_NetComSRDInfo;
+
+/*GF_NET_CHAN_VISIBILITY_HINT*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	//gives min_max coords of the visible rectangle associated with channels.
+	//min_x may be greater than max_x in case of 360 videos
+	u32 min_x, max_x, min_y, max_y;
+} GF_NetComVisibililityHint;
+
 
 /*GF_NET_SERVICE_INFO*/
 typedef struct __netinfocom
@@ -610,6 +625,12 @@ typedef struct
 	Bool decode_only_rap;
 } GF_CodecStat;
 
+/*GF_NET_SERVICE_QUERY_UTC_DELAY*/
+typedef struct
+{
+	s32 delay;
+} GF_UTCDelay;
+
 typedef union __netcommand
 {
 	GF_NET_CHAN_CMD command_type;
@@ -641,6 +662,8 @@ typedef union __netcommand
 	GF_NetQualityQuery quality_query;
 	GF_CodecStat codec_stat;
 	GF_NetComSRDInfo srd;
+	GF_NetComVisibililityHint visibility_hint;
+	GF_UTCDelay utc_delay;
 } GF_NetworkCommand;
 
 /*

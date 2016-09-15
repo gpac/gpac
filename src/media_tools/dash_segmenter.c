@@ -728,7 +728,8 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 	return media_time ;
 }
 
-static Bool is_splitable(u32 media_type) {
+static Bool is_splitable(u32 media_type)
+{
 	switch (media_type) {
 	case GF_ISOM_MEDIA_TEXT:
 	case GF_ISOM_MEDIA_SUBT:
@@ -737,6 +738,33 @@ static Bool is_splitable(u32 media_type) {
 	default:
 		return GF_FALSE;
 	}
+}
+
+//DASH-IF IOP 3.3 mandates the SBR/PS info
+static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *SampleRate, u32 *Channels, u8 *bitsPerSample)
+{
+	GF_M4ADecSpecInfo a_cfg;
+	GF_ESD *esd;
+	GF_Err e = gf_isom_get_audio_info(movie, trackNumber, StreamDescriptionIndex, SampleRate, Channels, bitsPerSample);
+	if (e) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info (2), %s\n", gf_error_to_string(e)));
+		return e;
+	}
+	esd = gf_isom_get_esd(movie, trackNumber, 1);
+	if (!esd) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: broken MPEG-4 Track, %s\n", gf_error_to_string(e)));
+		return GF_NOT_SUPPORTED;
+	}
+	e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
+	if (e) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: corrupted AAC Config, %s\n", gf_error_to_string(e)));
+		return GF_NOT_SUPPORTED;
+	}
+	if (a_cfg.has_sbr) {
+		*SampleRate = a_cfg.sbr_sr;
+	}
+
+	return e;
 }
 
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
@@ -1253,8 +1281,13 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			}
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
-			gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
-			if (_sr>sample_rate) sample_rate=_sr;
+			//DASH-IF and MPEG disagree here:
+			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			} else {
+				gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
+			}
+			if (_sr>sample_rate) sample_rate = _sr;
 			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
 			gf_isom_get_media_language(input, i+1, &langCode);
 			break;
@@ -2451,6 +2484,7 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 	u32 i;
 	GF_ISOFile *in;
 	Double dur;
+	GF_Err e;
 
 	in = gf_isom_open(input->file_name, GF_ISOM_OPEN_READ, NULL);
 	input->duration = 0;
@@ -2492,12 +2526,20 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 		/*non-video tracks, get lang*/
 		else if (mtype == GF_ISOM_MEDIA_AUDIO) {
 			u8 bps;
-			gf_isom_get_audio_info(in, i+1, 1, &input->components[input->nb_components].sample_rate, &input->components[input->nb_components].channels, &bps);
+			e = isom_get_audio_info_with_m4a_sbr_ps(in, i+1, 1, &input->components[input->nb_components].sample_rate, &input->components[input->nb_components].channels, &bps);
+			if (e) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info, %s\n", gf_error_to_string(e)));
+				goto error_exit;
+			}
 		}
 
 		input->nb_components++;
 	}
 	return gf_isom_close(in);
+
+error_exit:
+	gf_isom_close(in);
+	return e;
 }
 
 static Bool dasher_inputs_have_same_roles(GF_DashSegInput *d1, GF_DashSegInput *d2)
@@ -2735,7 +2777,7 @@ restart_init:
 		in = gf_isom_open(dash_inputs[i].file_name, GF_ISOM_OPEN_READ, NULL);
 		if (!in) {
 			e = gf_isom_last_error(NULL);
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error while opening %s: %s\n", dash_inputs[i].file_name, gf_error_to_string( e ) ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error while opening %s: %s\n", dash_inputs[i].file_name, gf_error_to_string(e)));
 			return e;
 		}
 
@@ -5150,7 +5192,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 	ms_elapsed -= prev_frac;
 	ms_elapsed /= 0xFFFFFFFF;
 	ms_elapsed *= 1000;
-	ms_elapsed += (ntp_sec - prev_sec)*1000;
+	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
@@ -6411,7 +6453,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					if (comp->height > max_height)
 						max_height = comp->height;
 
-					if (! fps_num || !fps_denum) {
+					if (!fps_num || !fps_denum) {
 						fps_num = comp->fps_num;
 						fps_denum = comp->fps_denum;
 					}

@@ -5011,8 +5011,15 @@ int mp4boxMain(int argc, char **argv)
 		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
-			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
-			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+			e = gf_delete_file(inName);
+			if (e) {
+				fprintf(stderr, "Error removing file %s\n", inName);
+			} else {
+				e = gf_move_file(outfile, inName);
+				if (e) {
+					fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+				}
+			}
 		}
 	} else {
 		gf_isom_delete(file);

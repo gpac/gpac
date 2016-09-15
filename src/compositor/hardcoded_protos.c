@@ -1375,7 +1375,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				visible = GF_TRUE;
 			}
 			
-//			fprintf(stderr, "Angle center-cam is %.02f h %.02f v - visible %d\n", theta_angle, phi_angle, visible);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Texure %d Partial sphere is %s - Angle center-cam is %.02f h %.02f v\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  theta_angle, phi_angle));
 
 			if (visible) {
 				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);

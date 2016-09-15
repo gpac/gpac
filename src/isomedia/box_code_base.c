@@ -3028,8 +3028,6 @@ GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_read_box_list(s, bs, mfra_AddBox);
 }
 
-
-
 void tfra_del(GF_Box *s)
 {
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
