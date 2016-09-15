@@ -188,6 +188,8 @@ enum
 	GF_IMPORT_NO_DURATION = 1<<23,
 	/*! when set IP packets found in MPE sections will be sent to the local network */
 	GF_IMPORT_MPE_DEMUX = 1<<24,
+	/*! when set HEVC VPS is rewritten to remove VPS extensions*/
+	GF_IMPORT_NO_VPS_EXTENSIONS = 1<<25,
 
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
