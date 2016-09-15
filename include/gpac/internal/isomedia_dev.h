@@ -415,6 +415,9 @@ enum
 	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
 
+	/* MPEG Media Transport Boxes */
+	GF_ISOM_BOX_TYPE_MMPU   = GF_4CC( 'm', 'm', 'p', 'u' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
