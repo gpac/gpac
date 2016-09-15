@@ -5944,7 +5944,12 @@ restart_import:
 
 		switch (nal_unit_type) {
 		case GF_HEVC_NALU_VID_PARAM:
-			idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+			if (import->flags & GF_IMPORT_NO_VPS_EXTENSIONS) {
+				//this may modify nal_size, but we don't use it for bitstream reading 
+				idx = gf_media_hevc_read_vps_ex(buffer, &nal_size, &hevc, GF_TRUE);
+			} else {
+				idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+			}
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
 				goto exit;
