@@ -4136,7 +4136,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 }
 
 GF_EXPORT
-s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
+s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remove_extensions)
 {
 	GF_BitStream *bs;
 	u8 vps_sub_layer_ordering_info_present_flag, vps_extension_flag;
@@ -4148,8 +4148,8 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 	u8 layer_id_included_flag[MAX_SHVC_LAYERS][64];
 
 	/*still contains emulation bytes*/
-	data_without_emulation_bytes = gf_malloc(size*sizeof(char));
-	data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, size);
+	data_without_emulation_bytes = gf_malloc((*size) * sizeof(char));
+	data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, (*size) );
 	bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	if (!bs) goto exit;
 
@@ -4214,13 +4214,42 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 			// hevc_parse_hrd_parameters(cprms_present_flag, vps->max_sub_layers - 1);
 		}
 	}
-	vps_extension_flag = gf_bs_read_int(bs, 1);
-	if (vps_extension_flag ) {
-		gf_bs_align(bs);
-		hevc_parse_vps_extension(vps, bs);
-		if (/*vps_extension2_flag*/gf_bs_read_int(bs, 1)) {
-			while (gf_bs_available(bs)) {
-				/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
+	
+	if (remove_extensions) {
+		char *new_vps;
+		u32 new_vps_size, emulation_bytes;
+		u32 bit_pos = gf_bs_get_bit_offset(bs);
+		GF_BitStream *w_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_u8(w_bs, data[0]);
+		gf_bs_write_u8(w_bs, data[1]);
+		gf_bs_write_u8(w_bs, data[2]);
+		gf_bs_write_u8(w_bs, data[3]);
+		gf_bs_write_u16(w_bs, 0xFFFF);
+		gf_bs_seek(bs, 6);
+		bit_pos-=48;
+		while (bit_pos) {
+			u32 v = gf_bs_read_int(bs, 1);
+			gf_bs_write_int(w_bs, v, 1);
+			bit_pos--;
+		}
+		/*vps extension flag*/
+		gf_bs_write_int(w_bs, 0, 1);
+		new_vps=NULL;
+		gf_bs_get_content(w_bs, &new_vps, &new_vps_size);
+		gf_bs_del(w_bs);
+		
+		emulation_bytes = avc_emulation_bytes_add_count(new_vps, new_vps_size);
+		assert(emulation_bytes+new_vps_size <= *size);
+		*size = avc_add_emulation_bytes(new_vps, data, new_vps_size);
+	} else {
+		vps_extension_flag = gf_bs_read_int(bs, 1);
+		if (vps_extension_flag ) {
+			gf_bs_align(bs);
+			hevc_parse_vps_extension(vps, bs);
+			if (/*vps_extension2_flag*/gf_bs_read_int(bs, 1)) {
+				while (gf_bs_available(bs)) {
+					/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
+				}
 			}
 		}
 	}
@@ -4229,6 +4258,12 @@ exit:
 	gf_bs_del(bs);
 	gf_free(data_without_emulation_bytes);
 	return vps_id;
+}
+
+GF_EXPORT
+s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
+{
+	return gf_media_hevc_read_vps_ex(data, &size, hevc, GF_FALSE);
 }
 
 static const struct {
