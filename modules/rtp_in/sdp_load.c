@@ -176,6 +176,10 @@ static GF_ESD *RP_GetChannelESD(RTPStream *ch, u32 ch_idx)
 	GF_ESD *esd;
 
 	if (!ch->ES_ID) ch->ES_ID = ch_idx + 1;
+	if (!ch->depacketizer) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("RTP Stream channel %u has no depacketizer\n", ch_idx));
+		return NULL;
+	}
 
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = gf_rtp_get_clockrate(ch->rtp_ch);
@@ -219,19 +223,16 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	gf_list_add(od->ESDescriptors, esd);
 
 	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
-	if (ch->owner->is_scalable)
-	{
+	if (ch->owner->is_scalable) {
 		u32 i, count;
 
 		count = gf_list_count(ch->owner->channels);
-		for (i = 0; i < count; i++)
-		{
+		for (i = 0; i < count; i++) {
 			RTPStream *the_channel;
 			GF_ESD *the_esd;
 
 			the_channel = (RTPStream *)gf_list_get(ch->owner->channels, i);
-			if (the_channel->base_stream == ch->mid)
-			{
+			if (the_channel->base_stream == ch->mid) {
 				the_esd = RP_GetChannelESD(the_channel, i);
 				the_esd->dependsOnESID = the_channel->prev_stream;
 				gf_list_add(od->ESDescriptors, the_esd);
@@ -319,7 +320,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	if (e == GF_OK) e = RP_SetupSDP(rtp, sdp, stream);
 
 	/*root SDP, attach service*/
-	if (! stream) {
+	if (!stream) {
 		/*look for IOD*/
 		if (e==GF_OK) {
 			i=0;
@@ -350,7 +351,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				Bool needs_iod = GF_FALSE;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
+					if (ch->depacketizer && (ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
 //						|| ((ch->depacketizer->payt==GF_RTP_PAYT_3GPP_DIMS) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE))
 					   ) {
 						needs_iod = GF_TRUE;

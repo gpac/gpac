@@ -132,7 +132,9 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->data = NULL;
 	}
 	txh->is_open = 0;
-
+	if (txh->conv_buffer) gf_free(txh->conv_buffer);
+	txh->conv_buffer = NULL;
+	
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
@@ -155,6 +157,19 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 		if (!txh->tx_io) return;
 
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
+
+		if (txh->compositor->output_as_8bit && txh->stride >= 2*txh->width) {
+			txh->stride /= 2;
+			txh->conv_to_8bit = GF_TRUE;
+			if (txh->pixelformat == GF_PIXEL_YV12_10) {
+				txh->pixelformat = GF_PIXEL_YV12;
+				txh->conv_buffer = (char*) gf_realloc(txh->conv_buffer, 3*sizeof(char)* txh->stride * txh->height /2);
+			}
+			else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
+				txh->pixelformat = GF_PIXEL_YUV422;
+				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 2 * sizeof(char)* txh->stride * txh->height );
+			}			else if (txh->pixelformat == GF_PIXEL_YUV444_10) {				txh->pixelformat = GF_PIXEL_YUV444;				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 3* sizeof(char)* txh->stride * txh->height);			}
+		}
 
 		if (private_media) {
 			txh->transparent = 1;
@@ -244,7 +259,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %d)\n", ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %u)\n", ts));
 			if (txh->compositor->ms_until_next_frame > ms_until_next)
 				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
@@ -273,6 +288,50 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		setup_texture_object(txh, 0);
 	}
 
+	
+	if (txh->conv_to_8bit) {
+		GF_VideoSurface dst;
+		u8  *p_y;
+		u32 src_stride = txh->stride * 2;
+		memset(&dst, 0, sizeof(GF_VideoSurface));
+		dst.width = txh->width;
+		dst.height = txh->height;
+		dst.pitch_y = txh->stride;
+		dst.video_buffer = txh->raw_memory ? txh->conv_buffer : txh->data;
+		p_y = (u8 *)txh->data;
+
+		if (txh->pixelformat == GF_PIXEL_YV12) {
+
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
+			}
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV422) {
+			
+			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
+			}
+
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV444) {
+			
+			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 2 * dst.pitch_y * txh->height ;
+			}
+		}
+	}
 	/*try to push texture on graphics but don't complain if failure*/
 	gf_sc_texture_set_data(txh);
 

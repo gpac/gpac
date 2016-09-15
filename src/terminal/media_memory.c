@@ -201,7 +201,7 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 	cu = cb->input;
 	while (1) {
 		if (!cu->dataLength) {
-			assert(!cu->TS || (cb->Capacity==1));
+//			assert(!cu->TS || (cb->Capacity==1));
 			cu->TS = TS;
 			return cu;
 		}
@@ -439,29 +439,28 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	if (!cb->no_allocation) {
-		my_large_gf_free(cu->data);
-		cu->data = (char*) my_large_alloc(newCapacity);
-		cu->dataLength = 0;
-	} else {
-		cu->data = NULL;
-		if (cu->dataLength && cb->odm->raw_frame_sema) {
-			cu->dataLength = 0;
-			gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	
+	while (1) {
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
 		}
-	}
-	cu = cu->next;
-	while (cu != cb->input) {
 		if (!cb->no_allocation) {
 			my_large_gf_free(cu->data);
 			cu->data = (char*) my_large_alloc(newCapacity);
 		} else {
 			cu->data = NULL;
+			if (cu->dataLength && cb->odm->raw_frame_sema) {
+				gf_sema_notify(cb->odm->raw_frame_sema, 1);
+			}
 		}
 		cu->dataLength = 0;
-		cu = cu->next;
-	}
+		cu->TS = 0;
 
+		cu = cu->next;
+		if (cu == cb->input) break;
+	}
+	
 	cb->UnitCount = 0;
 	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);
@@ -534,7 +533,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 
 	/*no output*/
-	if (!cb->output->dataLength) {
+	if (!cb->UnitCount || !cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 

@@ -59,12 +59,18 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 		for (i=0; i<nb_attributes; i++) {
 			att = (GF_XMLAttribute *) &attributes[i];
 			if (!stricmp(att->name, "type")) {
-				if (!stricmp(att->value, "ISMA"))info->crypt_type = GF_CRYPT_ISMA_CRYPT_TYPE;
-				else if (!stricmp(att->value, "CENC AES-CTR")) info->crypt_type = GF_CRYPT_CENC_CRYPT_TYPE;
-				else if (!stricmp(att->value, "CENC AES-CBC")) info->crypt_type = GF_CRYPT_CBC1_CRYPT_TYPE;
-				else if (!stricmp(att->value, "ADOBE")) info->crypt_type = GF_CRYPT_ADOBE_CRYPT_TYPE;
-				else if (!stricmp(att->value, "Pattern AES-CTR")) info->crypt_type = GF_CRYPT_CENS_CRYPT_TYPE;
-				else if (!stricmp(att->value, "Pattern AES-CBC")) info->crypt_type = GF_CRYPT_CBCS_CRYPT_TYPE;
+				if (!stricmp(att->value, "ISMA") || !stricmp(att->value, "iAEC"))
+					info->crypt_type = GF_CRYPT_ISMA_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CTR") || !stricmp(att->value, "cenc"))
+					info->crypt_type = GF_CRYPT_CENC_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CBC") || !stricmp(att->value, "cbc1"))
+					info->crypt_type = GF_CRYPT_CBC1_CRYPT_TYPE;
+				else if (!stricmp(att->value, "ADOBE") || !stricmp(att->value, "adkm"))
+					info->crypt_type = GF_CRYPT_ADOBE_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CTR Pattern") || !stricmp(att->value, "cens"))
+					info->crypt_type = GF_CRYPT_CENS_CRYPT_TYPE;
+				else if (!stricmp(att->value, "CENC AES-CBC Pattern") || !stricmp(att->value, "cbcs"))
+					info->crypt_type = GF_CRYPT_CBCS_CRYPT_TYPE;
 			}
 		}
 		return;
@@ -75,6 +81,8 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Cannnot allocate crypt track, skipping\n"));
 			return;
 		}
+		//by default track is encrypted
+		tkc->IsEncrypted = 1;
 		gf_list_add(info->tcis, tkc);
 
 		if (!strcmp(node_name, "OMATrack")) {
@@ -233,9 +241,15 @@ void isma_ea_node_start(void *sax_cbck, const char *node_name, const char *name_
 
 		if ((info->crypt_type == GF_CRYPT_CENC_CRYPT_TYPE) || (info->crypt_type == GF_CRYPT_CBC1_CRYPT_TYPE) || (info->crypt_type == GF_CRYPT_CENS_CRYPT_TYPE)) {
 			if (tkc->constant_IV_size) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used \n", gf_4cc_to_str(info->crypt_type)));
-				tkc->constant_IV_size = 0;
-				memset(tkc->constant_IV, 0, 16);
+				if (!tkc->IV_size) {
+					tkc->IV_size = tkc->constant_IV_size;
+					memcpy(tkc->first_IV, tkc->constant_IV, 16);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, using constant IV as first IV\n", gf_4cc_to_str(info->crypt_type)));
+				} else {
+					tkc->constant_IV_size = 0;
+					memset(tkc->constant_IV, 0, 16);
+					GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC] Using scheme type %s, constant IV shall not be used, ignoring\n", gf_4cc_to_str(info->crypt_type)));
+				}
 			}
 		}
 	}
@@ -1852,7 +1866,7 @@ GF_EXPORT
 GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 {
 	GF_Err e;
-	u32 i, idx, count, common_idx, nb_tracks, scheme_type, crypt_type;
+	u32 i, idx, count, common_idx, nb_tracks, scheme_type;
 	const char *scheme_URI="", *KMS_URI="";
 	GF_CryptInfo *info;
 	Bool is_oma, is_cenc;
@@ -1878,8 +1892,6 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		}
 	}
 
-	crypt_type = info ? info->crypt_type : 0;
-	
 	nb_tracks = gf_isom_get_track_count(mp4);
 	e = GF_OK;
 	for (i=0; i<nb_tracks; i++) {
@@ -2082,7 +2094,10 @@ static GF_Err gf_cenc_parse_drm_system_info(GF_ISOFile *mp4, const char *drm_fil
 			KID_count = 0;
 			KIDs = NULL;
 		}
-
+		if (specInfoSize < 16 + (version ? 4 + 16*KID_count : 0)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Invalid PSSH blob in version %d: size %d key count %d - ignoring PSSH\n", version, specInfoSize, KID_count));
+			continue;
+		}
 		len = specInfoSize - 16 - (version ? 4 + 16*KID_count : 0);
 		data = (char *)gf_malloc(len*sizeof(char));
 		gf_bs_read_data(bs, data, len);
@@ -2202,7 +2217,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 #endif
 	}
 
-	if (is_encrypted == GF_FALSE) {
+	if (!e && (is_encrypted == GF_FALSE)) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[CENC/ISMA] Warning: no track was encrypted (but PSSH was written).\n"));
 	}
 

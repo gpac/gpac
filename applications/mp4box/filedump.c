@@ -2109,12 +2109,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 				GF_Err e;
 				u32 oti;
 #endif
-				u32 is_mp2 = 0;
+				Bool is_mp2 = GF_FALSE;
 				switch (esd->decoderConfig->objectTypeIndication) {
 				case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 				case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 				case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-					is_mp2 = 1;
+					is_mp2 = GF_TRUE;
 				case GPAC_OTI_AUDIO_AAC_MPEG4:
 #ifndef GPAC_DISABLE_AV_PARSERS
 					if (!esd->decoderConfig->decoderSpecificInfo)

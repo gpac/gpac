@@ -2406,7 +2406,6 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 
 			if (dl_rate >= arep->bandwidth) {
 				if (force_below_resolution && !dash->disable_speed_adaptation) {
-					if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Speed adaptation\n"));
 					/*try to switch to highest quality below the current one*/
 					if ((arep->quality_ranking < rep->quality_ranking) || (arep->width < rep->width) || (arep->height < rep->height)) {
 						if (!new_rep)
@@ -2417,7 +2416,6 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 					rep->playback.prev_max_available_speed = max_available_speed;
 					go_up_bitrate = GF_FALSE;
 				} else {
-					if (!k) GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Bitrate adaptation\n"));
 					if (!new_rep) new_rep = arep;
 					else if (go_up_bitrate) {
 						if (dash->agressive_switching) {
@@ -2449,7 +2447,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 		}
 
 		if (!new_rep || (new_rep==rep)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d no rep found better matching requested bandwidth %d - not switching !\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), dl_rate));
+			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d no better match for requested bandwidth %d - not switching (AS bitrate %d)!\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), dl_rate, rep->bandwidth));
 			do_switch=GF_FALSE;
 		}
 	}
@@ -3707,6 +3705,7 @@ static u32 gf_dash_get_tiles_quality_rank(GF_DashClient *dash, GF_DASH_Group *ti
 	
 	//no SRD is max quality for now
 	if (!srd) return 0;
+	if (!tile_group->srd_w || !tile_group->srd_h) return 0;
 	
 	if (tile_group->quality_degradation_hint) {
 		u32 v = tile_group->quality_degradation_hint * MAX(srd->srd_nb_rows, srd->srd_nb_cols);
@@ -4094,6 +4093,8 @@ select_active_rep:
 			Bool found = GF_FALSE;
 			GF_DASH_Group *group = gf_list_get(dash->groups, group_i);
 			if (group->srd_desc != srd) continue;
+			
+			if (!group->srd_w || !group->srd_h) continue;
 
 			for (k=0; k<srd->srd_nb_cols; k++) {
 				if (cols[k]==group->srd_x) {
@@ -4734,6 +4735,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 					if (group->selection != GF_DASH_GROUP_SELECTED) continue;
 
 					quality_rank = gf_dash_get_tiles_quality_rank(dash, group);
+					if (quality_rank >= nb_qualities) quality_rank = nb_qualities-1;
 					if (quality_rank != q_idx) continue;
 
 					if (group->target_new_rep + 1 == gf_list_count(group->adaptation_set->representations))
@@ -4808,6 +4810,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash)
 		//decrease by quality level
 		else if (dash->tile_rate_decrease) {
 			quality_rank = gf_dash_get_tiles_quality_rank(dash, group);
+			if (quality_rank >= nb_qualities) quality_rank = nb_qualities-1;
 			assert(groups_per_quality[quality_rank]);
 			group->bytes_per_sec = bandwidths[quality_rank] / groups_per_quality[quality_rank];
 		}
@@ -7004,6 +7007,11 @@ void gf_dash_override_ntp(GF_DashClient *dash, u64 server_ntp)
 }
 
 GF_EXPORT
+s32 gf_dash_get_utc_drift_estimate(GF_DashClient *dash) {
+	return dash->utc_drift_estimate;
+}
+
+GF_EXPORT
 GF_DASHTileAdaptationMode gf_dash_get_tile_adaptation_mode(GF_DashClient *dash)
 {
 	return dash->tile_adapt_mode;
@@ -7025,14 +7033,19 @@ GF_EXPORT
 Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *srd_x, u32 *srd_y, u32 *srd_w, u32 *srd_h, u32 *srd_width, u32 *srd_height)
 {
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
-	if (!group || !group->srd_w) return GF_FALSE;
-	if (srd_id) (*srd_id) = 0;
+	if (!group || !group->srd_desc) return GF_FALSE;
+	
+	if (group->srd_desc) {
+		if (srd_id) (*srd_id) = group->srd_desc->id;
+		if (srd_width) (*srd_width) = group->srd_desc->width;
+		if (srd_height) (*srd_height) = group->srd_desc->height;
+	}
+	
 	if (srd_x) (*srd_x) = group->srd_x;
 	if (srd_y) (*srd_y) = group->srd_y;
 	if (srd_w) (*srd_w) = group->srd_w;
 	if (srd_h) (*srd_h) = group->srd_h;
-	if (srd_width) (*srd_width) = 0;
-	if (srd_height) (*srd_height) = 0;
+
 
 	return GF_TRUE;
 }
@@ -7053,6 +7066,49 @@ GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, 
 	if (group->quality_degradation_hint > 100) group->quality_degradation_hint=100;
 	return GF_OK;
 }
+
+
+GF_EXPORT
+GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
+{
+	u32 i, count;
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_BAD_PARAM;
+
+	if (!min_x && !max_x && !min_y && !max_y) {
+		group->quality_degradation_hint = 0;
+	}
+	
+
+	//TODO - single video, we may want to switch down quality if not a lot of the video is visible
+	//we will need the zoom factor as well
+	if (!group->groups_depending_on) return GF_OK;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group Visible rect %d,%d,%d,%d \n", min_x, max_x, min_y, max_y));
+	count = gf_list_count(group->groups_depending_on);
+	for (i=0; i<count; i++) {
+		Bool is_visible = GF_TRUE;
+		GF_DASH_Group *a_group = gf_list_get(group->groups_depending_on, i);
+		if (!a_group->srd_w || !a_group->srd_h) continue;
+
+		//single rectangle case
+		if (min_x<max_x) {
+			if (a_group->srd_x+a_group->srd_h <min_x) is_visible = GF_FALSE;
+			else if (a_group->srd_x>max_x) is_visible = GF_FALSE;
+		} else {
+			if ( (a_group->srd_x>max_x) && (a_group->srd_x+a_group->srd_w<min_x)) is_visible = GF_FALSE;
+		}
+		
+		if (a_group->srd_y>max_y) is_visible = GF_FALSE;
+		else if (a_group->srd_y+a_group->srd_h < min_y) is_visible = GF_FALSE;
+		
+		a_group->quality_degradation_hint = is_visible ? 0 : 100;
+		
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Group SRD %d,%d,%d,%d is %s\n", a_group->srd_x, a_group->srd_w, a_group->srd_y, a_group->srd_h, is_visible ? "visible" : "hidden"));
+	}
+	return GF_OK;
+}
+
 
 
 #endif //GPAC_DISABLE_DASH_CLIENT

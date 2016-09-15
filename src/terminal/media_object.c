@@ -330,14 +330,23 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	}
 
 	com.base.command_type = GF_NET_CHAN_GET_SRD;
-	if ((gf_term_service_command(ch->service, &com) == GF_OK) && com.srd.w && com.srd.h) {
-		mo->srd_x = com.srd.x;
-		mo->srd_y = com.srd.y;
-		mo->srd_w = com.srd.w;
-		mo->srd_h = com.srd.h;
+	if ((gf_term_service_command(ch->service, &com) == GF_OK)) {
+		//regular SRD object
+		if (com.srd.w && com.srd.h) {
+			mo->srd_x = com.srd.x;
+			mo->srd_y = com.srd.y;
+			mo->srd_w = com.srd.w;
+			mo->srd_h = com.srd.h;
 
-		if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
-			mo->odm->parentscene->is_srd = GF_TRUE;
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_srd = GF_TRUE;
+			}
+		}
+		// SRD object with no size but global scene size: HEVC tiled bas object
+		else if (com.srd.width && com.srd.height) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
+			}
 		}
 	}
 }
@@ -382,6 +391,22 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 	} else if (mo->type == GF_MEDIA_OBJECT_AUDIO) {
 		gf_mo_update_audio_info(mo);
 	}
+}
+
+static Bool gf_odm_check_cb_resize(GF_MediaObject *mo, GF_Codec *codec)
+{
+	/*resize requested - if last frame destroy CB and force a decode*/
+	if (codec->force_cb_resize && (codec->CB->UnitCount<=1)) {
+		GF_CMUnit *CU = gf_cm_get_output(codec->CB);
+		if (!CU || (CU->TS==mo->timestamp)) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
+			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
+			codec->force_cb_resize=0;
+			//decode and resize CB
+			return GF_TRUE;
+		}
+	}
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -436,15 +461,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	bench_mode = mo->odm->term->bench_mode;
 
 	/*resize requested - if last frame destroy CB and force a decode*/
-	if (codec->force_cb_resize && (codec->CB->UnitCount<=1)) {
-		CU = gf_cm_get_output(codec->CB);
-		if (!CU || (CU->TS==mo->timestamp)) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, codec->CB->UnitSize, codec->force_cb_resize));
-			gf_codec_resize_composition_buffer(codec, codec->force_cb_resize);
-			codec->force_cb_resize=0;
-			//decode and resize CB
-			force_decode_mode = 1;
-		}
+	if (gf_odm_check_cb_resize(mo, codec)) {
+		force_decode_mode = 1;
 	}
 
 	/*fast forward, bench mode with composition memory: force one decode if no data is available*/
@@ -456,6 +474,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		u32 retry = 100;
 		gf_odm_lock(mo->odm, 0);
 		while (retry) {
+			gf_odm_check_cb_resize(mo, codec);
+			
 			if (gf_term_lock_codec(codec, GF_TRUE, GF_TRUE)) {
 				gf_codec_process(codec, 1);
 				gf_term_lock_codec(codec, GF_FALSE, GF_TRUE);
@@ -465,13 +485,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			CU = gf_cm_get_output(codec->CB);
 			if (CU)
 				break;
-
+			
 			retry--;
 			//we will wait max 100 ms for the CB to be re-fill
 			gf_sleep(1);
 		}
 		if (!retry && (force_decode_mode==1)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize, decode and fetch next frame in 100 ms - blank frame after TS %d\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not resize, decode and fetch next frame in 100 ms - blank frame after TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(codec->ck), mo->timestamp));
 		}
 		if (!gf_odm_lock_mo(mo)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock ODM\n", mo->odm->OD->objectDescriptorID));
@@ -512,11 +532,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 	if ((codec->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)  && !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY) ) {
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
+//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
 			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %d next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
 			}
 		}
 	}
@@ -525,7 +545,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		resync=GF_MO_FETCH;
 		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
 			gf_cm_drop_output(codec->CB);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %d now %d\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %u now %u\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
 			CU = gf_cm_get_output(codec->CB);
 			if (!CU) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] No next CU available, skipping\n", mo->odm->OD->objectDescriptorID));
@@ -541,7 +561,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time )
 				break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %d next frame TS %d length %d obj time %d\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u length %d obj time %u\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
 
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
@@ -613,7 +633,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 		}
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_MEDIA, GF_LOG_DEBUG)) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %d) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, gf_clock_time(codec->ck), CU->TS, mo->framesize, mo->timestamp, codec->CB->UnitCount, gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 			if (CU->sender_ntp) {
 				s32 ntp_diff = gf_net_get_ntp_diff_ms(CU->sender_ntp);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] Frame TS %u NTP diff with sender %d ms\n", mo->odm->OD->objectDescriptorID, mo->odm->net_service->url, CU->TS, ntp_diff));
@@ -731,7 +751,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		if (mo->odm->codec->CB->output->RenderedLength == mo->odm->codec->CB->output->dataLength) {
 			if (drop_mode) {
 				gf_cm_drop_output(mo->odm->codec->CB);
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u drop frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->OD->objectDescriptorID, gf_clock_time(mo->odm->codec->ck), mo->timestamp));
 			} else {
 				/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
 
@@ -1474,6 +1494,8 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_min_y = scene->srd_min_y;
 	vr_info->srd_max_x = scene->srd_max_x;
 	vr_info->srd_max_y = scene->srd_max_y;
+	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	gf_odm_lock(mo->odm, 0);
@@ -1501,5 +1523,34 @@ void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 
 	gf_odm_lock(mo->odm, 0);
 }
+
+void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
+{
+	
+	if (!gf_odm_lock_mo(mo)) return;
+	if (!mo->odm || !mo->odm->codec) {
+		gf_odm_lock(mo->odm, 0);
+		return;
+	}
+	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
+		GF_NetworkCommand com;
+		mo->view_min_x = min_x;
+		mo->view_max_x = max_x;
+		mo->view_min_y = min_y;
+		mo->view_max_y = max_y;
+		
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.base.command_type = GF_NET_CHAN_VISIBILITY_HINT;
+		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
+		com.visibility_hint.min_x = min_x;
+		com.visibility_hint.max_x = max_x;
+		com.visibility_hint.min_y = min_y;
+		com.visibility_hint.max_y = max_y;
+		gf_term_service_command(mo->odm->net_service, &com);
+	}
+	
+	gf_odm_lock(mo->odm, 0);
+}
+
 
 
