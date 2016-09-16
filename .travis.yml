@@ -18,6 +18,7 @@ env:
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all --enable-debug --disable-all" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --enable-debug --static-mp4box" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--enable-debug --static-modules" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
+  - GPAC_CONFIGURE_OPTIONS="--enable-debug --enable-static-bin" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
   - GPAC_CONFIGURE_OPTIONS="--enable-debug --use-js=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg -disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
 matrix:
   include:
