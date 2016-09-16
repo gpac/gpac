@@ -8856,9 +8856,16 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	case GF_4CC( 't', 'r', 'i', 'f' ):
 	{
 		u32 flags = gf_bs_peek_bits(bs, 24, 0);
-		flags &= 0x0000FF;
-		if (flags & 0x20) entry_size=7;
-		else entry_size=11;
+		if (flags & 0x10000) entry_size=3;
+		else {
+			if (flags & 0x80000) entry_size=7;
+			else entry_size=11;
+			//have dependency list
+			if (flags & 0x200000) {
+				u32 nb_entries = gf_bs_peek_bits(bs, 16, entry_size);
+				entry_size += 2 + 2*nb_entries;
+			}
+		}
 		//fallthrough
 	}
 	default:
