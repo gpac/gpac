@@ -44,7 +44,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	//if so, do not create any new codec
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
 		switch (base_layer->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_VIDEO_SHVC:
+		case GPAC_OTI_VIDEO_LHVC:
 		case GPAC_OTI_VIDEO_SVC:
 			odm->scalable_addon = 1;
 			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;

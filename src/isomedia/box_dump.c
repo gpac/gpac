@@ -1148,7 +1148,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 		if (p->ipod_ext) gf_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_box_dump(p->descr, trace);
 		if (p->svc_config) gf_box_dump(p->svc_config, trace);
-		if (p->shvc_config) gf_box_dump(p->shvc_config, trace);
+		if (p->lhvc_config) gf_box_dump(p->lhvc_config, trace);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_ENCV) {
 		gf_box_array_dump(p->protections, trace);
@@ -4364,12 +4364,10 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-static void oinf_dump(void *entry, FILE * trace)
+static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 {
-	GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
-	GF_BitStream *bs = gf_bs_new((const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, GF_BITSTREAM_READ);
 	u32 i;
-	gf_isom_oinf_read_entry(ptr, bs);
+
 	fprintf(trace, "<OperatingPointsInformation");
 	fprintf(trace, " scalability_mask=\"%d (", ptr->scalability_mask);
 	switch (ptr->scalability_mask) {
@@ -4419,7 +4417,6 @@ static void oinf_dump(void *entry, FILE * trace)
 		fprintf(trace, "\"/>\n");
 	}
 	fprintf(trace, "</OperatingPointsInformation>\n");
-	gf_isom_oinf_del_entry(ptr);
 	return;
 }
 
