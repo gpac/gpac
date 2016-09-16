@@ -1893,6 +1893,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
+	        || (msub_type==GF_ISOM_SUBTYPE_HVC2)
+	        || (msub_type==GF_ISOM_SUBTYPE_HEV2)
 	        || (msub_type==GF_ISOM_SUBTYPE_LHV1)
 	        || (msub_type==GF_ISOM_SUBTYPE_LHE1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
@@ -2033,11 +2035,18 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					} else if (!hevccfg && !shvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					}
+					
+					if (gf_isom_get_reference_count(file, trackNum, GF_4CC('s','a','b','t'))) {
+						fprintf(stderr, "\tHEVC Tile base track\n");
+					}
 
 					if ((msub_type==GF_ISOM_SUBTYPE_HVC1)
-					|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
-					|| (msub_type==GF_ISOM_SUBTYPE_LHV1)
-					|| (msub_type==GF_ISOM_SUBTYPE_LHE1)) {
+						|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
+						|| (msub_type==GF_ISOM_SUBTYPE_HVC2)
+						|| (msub_type==GF_ISOM_SUBTYPE_HEV2)
+						|| (msub_type==GF_ISOM_SUBTYPE_LHV1)
+						|| (msub_type==GF_ISOM_SUBTYPE_LHE1)) {
+						
 						GF_OperatingPointsInformation *oinf;
 						if (gf_isom_get_oinf_info(file, trackNum, &oinf)) {
 							//TODO: need to dump more info ?

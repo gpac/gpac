@@ -451,10 +451,9 @@ GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 /* !
  Split HEVC tiles into different tracks
  \param file the target movie
- \param use_extractors if set, extractors are used in the tile tracks layers.
  \return error if any
  */
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors);
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 
 	
 /* !
