@@ -2000,6 +2000,7 @@ static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
 	HEVCState hevc;
 
 	lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
+	if (!lhvccfg) lhvccfg = gf_isom_hevc_config_get(file, track, 1);
 	if (!lhvccfg) return GF_OK;
 
 	for (i = 0; i < gf_list_count(lhvccfg->param_array); i++) {
@@ -2244,7 +2245,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	//update lhvc config
 	e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
 	if (e) goto exit;
-
+	gf_isom_adjust_visual_info(file, track);
+	
 	nal_alloc_size = 10000;
 	nal_data = gf_malloc(sizeof(char) * nal_alloc_size);
 	//parse all samples
