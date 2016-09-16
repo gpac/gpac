@@ -978,9 +978,9 @@ typedef struct
 	GF_List *param_array;
 
 	//set by libisomedia at import/export time
-	Bool is_shvc;
+	Bool is_lhvc;
 
-	//used in SHVC config
+	//used in LHVC config
 	Bool complete_representation;
 	Bool non_hevc_base_layer;
 	u8 num_layers;
@@ -1263,17 +1263,17 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
 GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize);
 /*! gets GF_HEVCConfig from bitstream MPEG-4 DSI
  \param bs bitstream containing the encoded HEVC decoder specific info
- \param is_shvc if GF_TRUE, indicates if the dsi is SHVC/MV-HEVC
+ \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
  \return the decoded HEVC config
  */
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc);
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
 /*! gets GF_HEVCConfig from MPEG-4 DSI
  \param dsi encoded HEVC decoder specific info
  \param dsi_size encoded HEVC decoder specific info size
- \param is_shvc if GF_TRUE, indicates if the dsi is SHVC/MV-HEVC
+ \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
  \return the decoded HEVC config
  */
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc);
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc);
 
 /*! destroy the descriptors in a list but not the list
  \param descList descriptor list to destroy
