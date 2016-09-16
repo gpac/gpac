@@ -3724,8 +3724,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc1->hevc_config)
 				a = (GF_Box *) avc1->hevc_config;
-			else if (avc1->shvc_config)
-				a = (GF_Box *) avc1->shvc_config;
+			else if (avc1->lhvc_config)
+				a = (GF_Box *) avc1->lhvc_config;
 			else if (avc1->svc_config)
 				a = (GF_Box *) avc1->svc_config;
 			else
@@ -3738,8 +3738,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc2->hevc_config)
 				a = (GF_Box *) avc2->hevc_config;
-			else if (avc2->shvc_config)
-				a = (GF_Box *) avc2->shvc_config;
+			else if (avc2->lhvc_config)
+				a = (GF_Box *) avc2->lhvc_config;
 			else if (avc2->svc_config)
 				a = (GF_Box *) avc2->svc_config;
 			else
@@ -4848,22 +4848,37 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_
 
 	sgdesc = get_sgdp(trak->Media->information->sampleTable, NULL, grouping_type);
 	if (!sgdesc) return GF_OUT_OF_MEM;
-
-	GF_SAFEALLOC(entry, GF_DefaultSampleGroupDescriptionEntry);
-	if (!entry) return GF_OUT_OF_MEM;
-	entry->data = (u8*)gf_malloc(sizeof(char) * data_size);
-	if (!entry->data) {
-		gf_free(entry);
-		return GF_OUT_OF_MEM;
+	
+	if (grouping_type==GF_4CC('o','i','n','f')) {
+		GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
+		GF_BitStream *bs=gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+		e = gf_isom_oinf_read_entry(ptr, bs);
+		gf_bs_del(bs);
+		if (e) {
+			gf_isom_oinf_del_entry(ptr);
+			return e;
+		}
+		e = gf_list_add(sgdesc->group_descriptions, ptr);
+		if (e) return e;
+		entry = (GF_DefaultSampleGroupDescriptionEntry *) ptr;
+	} else {
+		GF_SAFEALLOC(entry, GF_DefaultSampleGroupDescriptionEntry);
+		if (!entry) return GF_OUT_OF_MEM;
+		entry->data = (u8*)gf_malloc(sizeof(char) * data_size);
+		if (!entry->data) {
+			gf_free(entry);
+			return GF_OUT_OF_MEM;
+		}
+		entry->length = data_size;
+		memcpy(entry->data, data, sizeof(char) * data_size);
+		e = gf_list_add(sgdesc->group_descriptions, entry);
+		if (e) {
+			gf_free(entry->data);
+			gf_free(entry);
+			return e;
+		}
 	}
-	entry->length = data_size;
-	memcpy(entry->data, data, sizeof(char) * data_size);
-	e = gf_list_add(sgdesc->group_descriptions, entry);
-	if (e) {
-		gf_free(entry->data);
-		gf_free(entry);
-		return e;
-	}
+	
 
 	if (is_default) {
 		sgdesc->default_description_index = 1 + gf_list_find(sgdesc->group_descriptions, entry);
