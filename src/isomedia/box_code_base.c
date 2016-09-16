@@ -8856,9 +8856,9 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 	case GF_4CC('o','i','n','f'):
 	{
 		GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
-		u32 s = gf_bs_get_position(bs);
+		u32 s = (u32) gf_bs_get_position(bs);
 		gf_isom_oinf_read_entry(ptr, bs);
-		*total_bytes = gf_bs_get_position(bs) - s;
+		*total_bytes = (u32) gf_bs_get_position(bs) - s;
 		return ptr;
 	}
 		

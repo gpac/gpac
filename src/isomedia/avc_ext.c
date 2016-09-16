@@ -94,7 +94,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 
 	switch (extractor_mode) {
 	case 0:
-		last_byte = gf_bs_get_position(src_bs) + nal_size - (is_hevc ? 2 : 1);
+		last_byte = (u32) gf_bs_get_position(src_bs) + nal_size - (is_hevc ? 2 : 1);
 		if (!is_hevc) gf_bs_read_int(src_bs, 24); //1 byte for HEVC , 3 bytes for AVC of NALUHeader in extractor
 		while (gf_bs_get_position(src_bs) < last_byte) {
 			u32 xmode = 0;

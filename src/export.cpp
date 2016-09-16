@@ -794,8 +794,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_svc_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_3gp_config_get) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_hevc_config_get) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_shvc_config_get) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_hevc_shvc_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_lhvc_config_get) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_hevc_lhvc_type) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_by_id) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_item_info) )
@@ -840,7 +840,6 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_tile_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_drop_date_version_info_enabled) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_oinf_info) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_del_oinf_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_udta_type) )
 
@@ -1301,7 +1300,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_merge_svc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_split_hevc_tiles) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_media_split_shvc) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_split_lhvc) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_filter_hevc) )
 
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
