@@ -37,8 +37,7 @@ endif
 ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
-LINKFLAGS+=-lgpac_static
-LINKFLAGS+=$(EXTRALIBS)
+LINKFLAGS=-lgpac_static $(GPAC_SH_FLAGS) $(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
 endif
