@@ -3891,6 +3891,9 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		vps->scalability_mask[i] = gf_bs_read_int(bs, 1);
 		num_scalability_types += vps->scalability_mask[i];
 	}
+	if (num_scalability_types>=16) {
+		num_scalability_types=16;
+	}
 	dimension_id_len[0] = 0;
 	for (i=0; i<(num_scalability_types - splitting_flag); i++) {
 		dimension_id_len[i] = 1 + gf_bs_read_int(bs, 3);
@@ -3946,6 +3949,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 	}
 
+	if (vps->max_layers>MAX_SHVC_LAYERS) vps->max_layers = MAX_SHVC_LAYERS; 
 	// why ????
 	for (i = 0; i < vps->max_layers; i++) {
 		for (j = 0; j < vps->max_layers; j++) {
@@ -4239,8 +4243,11 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 		gf_bs_del(w_bs);
 		
 		emulation_bytes = avc_emulation_bytes_add_count(new_vps, new_vps_size);
-		assert(emulation_bytes+new_vps_size <= *size);
-		*size = avc_add_emulation_bytes(new_vps, data, new_vps_size);
+		if (emulation_bytes+new_vps_size > *size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("Buffer too small to rewrite VPS - skipping rewrite\n"));
+		} else {
+			*size = avc_add_emulation_bytes(new_vps, data, new_vps_size);
+		}
 	} else {
 		vps_extension_flag = gf_bs_read_int(bs, 1);
 		if (vps_extension_flag ) {
