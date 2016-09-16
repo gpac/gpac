@@ -2330,7 +2330,7 @@ void PrintAVInfo(Bool final)
 			GF_ObjectManager *odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &v_odi) == GF_OK) {
-				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1) || v_odi.direct_video_memory) ) {
+				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1) || v_odi.direct_video_memory) || (bench_mode == 3) ) {
 					video_odm = odm;
 				}
 				else if (!audio_odm && (v_odi.od_type == GF_STREAM_AUDIO)) {
