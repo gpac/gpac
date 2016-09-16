@@ -1306,7 +1306,7 @@ GF_EXPORT
 GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *dst_wnd, GF_Window *src_wnd, u8 alpha, Bool flip, GF_ColorKey *key, GF_ColorMatrix *cmat)
 {
 	u8 *tmp, *rows;
-	u8 ka, kr, kg, kb, kl, kh;
+	u8 ka=0, kr=0, kg=0, kb=0, kl=0, kh=0;
 	s32 src_row;
 	u32 i, yuv_planar_type = 0;
 	Bool no_memcpy;
