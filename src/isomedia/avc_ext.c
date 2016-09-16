@@ -1328,6 +1328,7 @@ enum
 	GF_ISOM_HVCC_UPDATE = 0,
 	GF_ISOM_HVCC_SET_INBAND,
 	GF_ISOM_HVCC_SET_TILE,
+	GF_ISOM_HVCC_SET_TILE_BASE_TRACK,
 	GF_ISOM_HVCC_SET_SHVC,
 	GF_ISOM_HVCC_SET_SHVC_REM_HEVC,
 } HevcConfigUpdateType;
@@ -1360,7 +1361,12 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 	}
 
 
-	if (operand_type == GF_ISOM_HVCC_SET_TILE) {
+	if (operand_type == GF_ISOM_HVCC_SET_TILE_BASE_TRACK) {
+		if (entry->type==GF_ISOM_BOX_TYPE_HVC1)
+			entry->type = GF_ISOM_BOX_TYPE_HVC2;
+		else if (entry->type==GF_ISOM_BOX_TYPE_HEV1)
+			entry->type = GF_ISOM_BOX_TYPE_HEV2;
+	} else if (operand_type == GF_ISOM_HVCC_SET_TILE) {
 		if (!entry->hevc_config) entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 		if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
 		entry->hevc_config->config = NULL;
@@ -1448,9 +1454,9 @@ GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32
 }
 
 GF_EXPORT
-GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg)
+GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_base_track)
 {
-	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, GF_ISOM_HVCC_SET_TILE);
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, cfg, is_base_track ? GF_ISOM_HVCC_SET_TILE_BASE_TRACK : GF_ISOM_HVCC_SET_TILE);
 }
 
 GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_additional)

@@ -408,6 +408,8 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 	} else if ((m_stype==GF_ISOM_SUBTYPE_HVC1)
 	           || (m_stype==GF_ISOM_SUBTYPE_HEV1)
+	           || (m_stype==GF_ISOM_SUBTYPE_HVC2)
+	           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
 	          ) {
 		strcpy(szEXT, ".hvc");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);

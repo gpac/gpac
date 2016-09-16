@@ -2553,14 +2553,13 @@ typedef struct
 } HEVCTileImport;
 
 GF_EXPORT
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 {
 #if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
 #else
 	u32 i, j, cur_tile, count, stype, track, nb_tracks, di, nalu_size_length, tx, ty, tw, th;
 	s32 pps_idx=-1, ret;
-	u8 trefidx;
 	GF_Err e = GF_OK;
 	HEVCState hevc;
 	HEVCTileImport *tiles;
@@ -2572,6 +2571,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		switch (stype) {
 		case GF_ISOM_SUBTYPE_HVC1:
 		case GF_ISOM_SUBTYPE_HEV1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
 
 			if (track) return GF_NOT_SUPPORTED;
 			track = i+1;
@@ -2604,6 +2605,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			}
 		}
 	}
+	gf_isom_hevc_set_tile_config(file, track, 1, hvcc, GF_TRUE);
 	gf_odf_hevc_cfg_del(hvcc);
 
 
@@ -2619,14 +2621,11 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 		e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
 		if (e) goto err_exit;
 		tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
-		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL);
+		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL, GF_FALSE);
 	}
 	//then setup track references (done in two pass otherwise we would clone the tref box ...)
 	for (i=0; i<nb_tracks; i++) {
 		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
-		if (use_extractors) {
-			gf_isom_set_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[i].track_id);
-		}
 	}
 
 	count = gf_isom_get_sample_count(file, track);
@@ -2695,33 +2694,10 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 				if (e)
 					goto err_exit;
 
-				if (use_extractors) {
-					//write extractor (12 = 2*nalu_size_length + 4 bytes)
-					gf_bs_write_int(bs, 2*nalu_size_length + 4, 8*nalu_size_length);
-					gf_bs_write_int(bs, 0, 1);
-					gf_bs_write_int(bs, 49, 6); //extractor
-					gf_bs_write_int(bs, layer_id, 6);
-					gf_bs_write_int(bs, temporal_id, 3);
-					//set ref track index
-					trefidx = (u8) gf_isom_has_track_reference(file, track, GF_ISOM_REF_SCAL, tiles[cur_tile].track_id);
-					gf_bs_write_int(bs, trefidx, 8);
-					// no sample offset
-					gf_bs_write_int(bs, 0, 8);
-					// data offset: we start from last NAL written in this sample in this tile track
-					gf_bs_write_int(bs, tiles[cur_tile].data_offset, 8*nalu_size_length);
-
-					//we always write 0 to force complete NAL referencing. This avoids size issues when mixing tile tracks
-					//at different rates :)
-					//gf_bs_write_int(bs, nalu_size + nalu_size_length, 8*nalu_size_length);
-					gf_bs_write_int(bs, 0, 8*nalu_size_length);
-				} else {
-
-					if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
-						gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
-					}
+				if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
+					gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
 				}
 				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
-
 				break;
 			default:
 				gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
@@ -2776,12 +2752,16 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors)
 			gf_isom_remove_track(file, tiles[i].track);
 			continue;
 		}
-
+		//write TRIF sample group description
 		bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
-		gf_bs_write_u16(bs, tiles[i].track);
-		gf_bs_write_int(bs, 1, 2);
-		gf_bs_write_int(bs, 0, 1);//not full frame
-		gf_bs_write_int(bs, 0, 5);
+		gf_bs_write_u16(bs, tiles[i].track);	//groupID
+		gf_bs_write_int(bs, 1, 1); //tile Region flag always true for us
+		gf_bs_write_int(bs, 1, 2); //independentIDC: set to 1 (motion-constrained tiles but not all tiles RAP)
+		gf_bs_write_int(bs, 0, 1);//full picture: false since we don't do L-HEVC tiles
+		gf_bs_write_int(bs, 1, 1); //filtering disabled: set to 1 (always true on our bitstreams for now) - Check xPS to be sure ...
+		gf_bs_write_int(bs, 0, 1);//has dependency list: false since we don't do L-HEVC tiles
+		gf_bs_write_int(bs, 0, 2); //reserved
+		
 		gf_bs_write_u16(bs, tiles[i].tx);
 		gf_bs_write_u16(bs, tiles[i].ty);
 		gf_bs_write_u16(bs, tiles[i].tw);
