@@ -641,7 +641,7 @@ static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 
 	switch (esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_HEVC:
-	case GPAC_OTI_VIDEO_SHVC:
+	case GPAC_OTI_VIDEO_LHVC:
 		return GF_CODEC_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;

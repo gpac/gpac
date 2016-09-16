@@ -1747,16 +1747,16 @@ typedef enum
 {
 	GF_ISOM_HEVCTYPE_NONE=0,
 	GF_ISOM_HEVCTYPE_HEVC_ONLY,
-	GF_ISOM_HEVCTYPE_HEVC_SHVC,
-	GF_ISOM_HEVCTYPE_SHVC_ONLY,
+	GF_ISOM_HEVCTYPE_HEVC_LHVC,
+	GF_ISOM_HEVCTYPE_LHVC_ONLY,
 } GF_ISOMHEVCType;
 
-u32 gf_isom_get_hevc_shvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*gets HEVC config - user is responsible for deleting it*/
 GF_HEVCConfig *gf_isom_hevc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
-/*gets SHVC config - user is responsible for deleting it*/
-GF_HEVCConfig *gf_isom_shvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+/*gets LHVC config - user is responsible for deleting it*/
+GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*return true if track dependencies implying extractors or implicit reconstruction are found*/
 Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file);
@@ -1808,8 +1808,16 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 /*updates HEVC config*/
 GF_Err gf_isom_hevc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg);
 
-/*updates SHVC config*/
-GF_Err gf_isom_shvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_additional);
+/*updates L-HHVC config*/
+typedef enum {
+	//changes track type to LHV1/LHE1: no base nor extractors in track, just enhancement layers
+	GF_ISOM_LEHVC_ONLY = 0,
+	//changes track type to HVC2/HEV2: base and extractors/enh. in track
+	GF_ISOM_LEHVC_WITH_BASE,
+	//changes track type to HVC1/HEV1 with additionnal cfg: base and enh. in track no extractors
+	GF_ISOM_LEHVC_WITH_BASE_BACKWARD,
+} GF_ISOMLHEVCTrackType;
+GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
