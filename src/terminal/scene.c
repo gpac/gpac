@@ -2753,8 +2753,8 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			break;
 		odm_base=NULL;
 		//todo
-		//1- check if we use compatible formats, for now we only do demos with hevc/shvc
-		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/shvc
+		//1- check if we use compatible formats, for now we only do demos with hevc/lhvc
+		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/lhvc
 	}
 	if (!odm_base) return;
 

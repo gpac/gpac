@@ -216,8 +216,11 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
 		break;
 	case GF_M2TS_VIDEO_SHVC:
+	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+	case GF_M2TS_VIDEO_MHVC:
+	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SHVC;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_LHVC;
 		break;
 	case GF_M2TS_AUDIO_MPEG1:
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;

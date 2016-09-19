@@ -82,6 +82,12 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 		return "HEVC Video";
 	case GF_M2TS_VIDEO_SHVC:
 		return "SHVC Video";
+	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		return "SHVC Video Temporal Sublayer";
+	case GF_M2TS_VIDEO_MHVC:
+		return "MHVC Video";
+	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+		return "MHVC Video Temporal Sublayer";
 
 	case GF_M2TS_AUDIO_AC3:
 		return "Dolby AC3 Audio";
@@ -295,7 +301,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					}
 				}
 #endif
-				/*check AU start type - if this is an SHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
+				/*check AU start type - if this is an LHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
 				if ((nal_type==GF_HEVC_NALU_ACCESS_UNIT) || (pes->depends_on_pid && !first_nal_offset_in_pck)) {
 					if (!prev_is_au_delim) {
 						//this was not a one AU per PES config, dispatch
@@ -2309,6 +2315,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_SVC:
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
+		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_MHVC:
+		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 			inherit_pcr = 1;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
@@ -3680,6 +3689,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
+		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_MHVC:
+		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 			pes->reframe = gf_m2ts_reframe_hevc;
 			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
 			break;
