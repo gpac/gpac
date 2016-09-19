@@ -969,7 +969,7 @@ typedef struct
 	GF_AVCConfigurationBox *svc_config;
 	/*hevc extension*/
 	GF_HEVCConfigurationBox *hevc_config;
-	GF_HEVCConfigurationBox *shvc_config;
+	GF_HEVCConfigurationBox *lhvc_config;
 
 	/*ext descriptors*/
 	GF_MPEG4ExtensionDescriptorsBox *descr;
@@ -2319,7 +2319,7 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs);
 GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs);
 u32 gf_isom_oinf_size_entry(void *entry);
 Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPointsInformation **ptr);
-void gf_isom_del_oinf_info(GF_OperatingPointsInformation **ptr);
+
 
 #define MAX_LHEVC_LAYERS	256
 
