@@ -3802,7 +3802,7 @@ void mp4v_del(GF_Box *s)
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
 	if (ptr->svc_config) gf_isom_box_del((GF_Box *) ptr->svc_config);
 	if (ptr->hevc_config) gf_isom_box_del((GF_Box *) ptr->hevc_config);
-	if (ptr->shvc_config) gf_isom_box_del((GF_Box *) ptr->shvc_config);
+	if (ptr->lhvc_config) gf_isom_box_del((GF_Box *) ptr->lhvc_config);
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
 	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
 	/*for publishing*/
@@ -3838,8 +3838,8 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 			ptr->svc_config = (GF_AVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_LHVC:
-		if (ptr->shvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->shvc_config = (GF_HEVCConfigurationBox *)a;
+		if (ptr->lhvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->lhvc_config = (GF_HEVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_M4DS:
 		if (ptr->descr) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -3874,7 +3874,7 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	/*this is an AVC sample desc*/
 	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
 	/*this is an HEVC sample desc*/
-	if (mp4v->hevc_config || mp4v->shvc_config || (mp4v->type==GF_ISOM_BOX_TYPE_HVT1))
+	if (mp4v->hevc_config || mp4v->lhvc_config || (mp4v->type==GF_ISOM_BOX_TYPE_HVT1))
 		HEVC_RewriteESDescriptor(mp4v);
 	return GF_OK;
 }
@@ -3933,8 +3933,8 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
 			if (e) return e;
 		}
-		if (ptr->shvc_config && ptr->shvc_config->config) {
-			e = gf_isom_box_write((GF_Box *) ptr->shvc_config, bs);
+		if (ptr->lhvc_config && ptr->lhvc_config->config) {
+			e = gf_isom_box_write((GF_Box *) ptr->lhvc_config, bs);
 			if (e) return e;
 		}
 	}
@@ -3959,7 +3959,7 @@ GF_Err mp4v_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->esd->size;
 	} else {
-		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->shvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) ) {
+		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) ) {
 			return GF_ISOM_INVALID_FILE;
 		}
 
@@ -3981,10 +3981,10 @@ GF_Err mp4v_Size(GF_Box *s)
 			ptr->size += ptr->svc_config->size;
 		}
 
-		if (ptr->shvc_config && ptr->shvc_config->config) {
-			e = gf_isom_box_size((GF_Box *) ptr->shvc_config);
+		if (ptr->lhvc_config && ptr->lhvc_config->config) {
+			e = gf_isom_box_size((GF_Box *) ptr->lhvc_config);
 			if (e) return e;
-			ptr->size += ptr->shvc_config->size;
+			ptr->size += ptr->lhvc_config->size;
 		}
 
 		if (ptr->ipod_ext) {
@@ -8853,12 +8853,28 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		
 		return ptr;
 	}
+	case GF_4CC('o','i','n','f'):
+	{
+		GF_OperatingPointsInformation *ptr = gf_isom_oinf_new_entry();
+		u32 s = (u32) gf_bs_get_position(bs);
+		gf_isom_oinf_read_entry(ptr, bs);
+		*total_bytes = (u32) gf_bs_get_position(bs) - s;
+		return ptr;
+	}
+		
 	case GF_4CC( 't', 'r', 'i', 'f' ):
 	{
 		u32 flags = gf_bs_peek_bits(bs, 24, 0);
-		flags &= 0x0000FF;
-		if (flags & 0x20) entry_size=7;
-		else entry_size=11;
+		if (flags & 0x10000) entry_size=3;
+		else {
+			if (flags & 0x80000) entry_size=7;
+			else entry_size=11;
+			//have dependency list
+			if (flags & 0x200000) {
+				u32 nb_entries = gf_bs_peek_bits(bs, 16, entry_size);
+				entry_size += 2 + 2*nb_entries;
+			}
+		}
 		//fallthrough
 	}
 	default:
@@ -8884,6 +8900,9 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 	case GF_4CC( 'r', 'a', 'p', ' ' ):
 	case GF_4CC( 's', 'e', 'i', 'g' ):
 		gf_free(entry);
+		return;
+	case GF_4CC( 'o', 'i', 'n', 'f' ):
+		gf_isom_oinf_del_entry(entry);
 		return;
 	default:
 	{
@@ -8917,6 +8936,9 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 			gf_bs_write_data(bs, (char *)((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV, ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size);
 		}
 		return;
+	case GF_4CC( 'o', 'i', 'n', 'f' ):
+		gf_isom_oinf_write_entry(entry, bs);
+		return;
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
@@ -8935,6 +8957,8 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return 1;
 	case GF_4CC( 's', 'e', 'i', 'g' ):
 		return ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) ? 21 + ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size : 20;
+	case GF_4CC( 'o', 'i', 'n', 'f' ):
+		return gf_isom_oinf_size_entry(entry);
 	default:
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}

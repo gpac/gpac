@@ -848,7 +848,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 
 	gf_bs_write_int(bs, cfg->configurationVersion, 8);
 
-	if (!cfg->is_shvc) {
+	if (!cfg->is_lhvc) {
 		gf_bs_write_int(bs, cfg->profile_space, 2);
 		gf_bs_write_int(bs, cfg->tier_flag, 1);
 		gf_bs_write_int(bs, cfg->profile_idc, 5);
@@ -868,7 +868,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	gf_bs_write_int(bs, 0xFF, 6);
 	gf_bs_write_int(bs, cfg->parallelismType, 2);
 
-	if (!cfg->is_shvc) {
+	if (!cfg->is_lhvc) {
 		gf_bs_write_int(bs, 0xFF, 6);
 		gf_bs_write_int(bs, cfg->chromaFormat, 2);
 		gf_bs_write_int(bs, 0xFF, 5);
@@ -878,7 +878,7 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 		gf_bs_write_int(bs, cfg->avgFrameRate, 16);
 	}
 
-	if (!cfg->is_shvc)
+	if (!cfg->is_lhvc)
 		gf_bs_write_int(bs, cfg->constantFrameRate, 2);
 	else
 		gf_bs_write_int(bs, 0xFF, 2);
@@ -922,16 +922,16 @@ GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 {
 	u32 i, count;
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
 
-	cfg->is_shvc = is_shvc;
+	cfg->is_lhvc = is_lhvc;
 
 	cfg->configurationVersion = gf_bs_read_int(bs, 8);
 
-	if (!is_shvc) {
+	if (!is_lhvc) {
 		cfg->profile_space = gf_bs_read_int(bs, 2);
 		cfg->tier_flag = gf_bs_read_int(bs, 1);
 		cfg->profile_idc = gf_bs_read_int(bs, 5);
@@ -952,7 +952,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 	gf_bs_read_int(bs, 6);//reserved
 	cfg->parallelismType = gf_bs_read_int(bs, 2);
 
-	if (!is_shvc) {
+	if (!is_lhvc) {
 		gf_bs_read_int(bs, 6);
 		cfg->chromaFormat = gf_bs_read_int(bs, 2);
 		gf_bs_read_int(bs, 5);
@@ -962,7 +962,7 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 		cfg->avgFrameRate = gf_bs_read_int(bs, 16);
 	}
 
-	if (!is_shvc)
+	if (!is_lhvc)
 		cfg->constantFrameRate = gf_bs_read_int(bs, 2);
 	else
 		gf_bs_read_int(bs, 2); //reserved
@@ -1007,10 +1007,10 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc)
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_shvc);
+	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_lhvc);
 	gf_bs_del(bs);
 	return cfg;
 }
@@ -1125,8 +1125,8 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "MPEG-4 AVC|H264 Parameter Set";
 		case GPAC_OTI_VIDEO_HEVC:
 			return "MPEG-H HEVC Video";
-		case GPAC_OTI_VIDEO_SHVC:
-			return "MPEG-H SHVC Video";
+		case GPAC_OTI_VIDEO_LHVC:
+			return "MPEG-H L-HEVC Video";
 		case GPAC_OTI_MEDIA_FFMPEG:
 			return "GPAC FFMPEG Private Video";
 		case GPAC_OTI_VIDEO_SMPTE_VC1:

@@ -342,7 +342,7 @@ typedef struct
 } HEVC_RateInfo;
 
 
-#define MAX_SHVC_LAYERS	4
+#define MAX_LHVC_LAYERS	4
 #define MAX_NUM_LAYER_SETS 1024
 typedef struct
 {
@@ -359,27 +359,27 @@ typedef struct
 
 
 	u32 scalability_mask[16];
-	u32 dimension_id[MAX_SHVC_LAYERS][16];
-	u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
-	u32 layer_id_in_vps[MAX_SHVC_LAYERS];
+	u32 dimension_id[MAX_LHVC_LAYERS][16];
+	u32 layer_id_in_nuh[MAX_LHVC_LAYERS];
+	u32 layer_id_in_vps[MAX_LHVC_LAYERS];
 
 	u8 num_profile_tier_level, num_output_layer_sets;
-	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
-	HEVC_ProfileTierLevel ext_ptl[MAX_SHVC_LAYERS];
+	u32 profile_level_tier_idx[MAX_LHVC_LAYERS];
+	HEVC_ProfileTierLevel ext_ptl[MAX_LHVC_LAYERS];
 
 	u32 num_rep_formats;
 	HEVC_RepFormat rep_formats[16];
 	u32 rep_format_idx[16];
 	Bool base_layer_internal_flag, base_layer_available_flag;
 	u8 num_layers_in_id_list[MAX_NUM_LAYER_SETS];
-	u8 direct_dependency_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
-	Bool output_layer_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
-	u8 profile_tier_level_idx[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
-	Bool alt_output_layer_flag[MAX_SHVC_LAYERS];
-	u8 num_necessary_layers[MAX_SHVC_LAYERS];
-	Bool necessary_layers_flag[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
-	u8 LayerSetLayerIdList[MAX_SHVC_LAYERS][MAX_SHVC_LAYERS];
-	u8 LayerSetLayerIdListMax[MAX_SHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
+	u8 direct_dependency_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool output_layer_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 profile_tier_level_idx[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool alt_output_layer_flag[MAX_LHVC_LAYERS];
+	u8 num_necessary_layers[MAX_LHVC_LAYERS];
+	Bool necessary_layers_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdList[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdListMax[MAX_LHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
 } HEVC_VPS;
 
 typedef struct
@@ -438,6 +438,9 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
+//parses VPS and rewrites data buffer after removing VPS extension
+s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
+
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 

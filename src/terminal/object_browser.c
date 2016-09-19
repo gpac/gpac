@@ -297,7 +297,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		if (codec->decio && codec->decio->GetName) {
 			info->codec_name = codec->decio->GetName(codec->decio);
 		} else {
-			info->codec_name = codec->decio ? codec->decio->module_name : "internal";
+			info->codec_name = codec->decio ? codec->decio->module_name : "internal decoder";
 		}
 		info->od_type = codec->type;
 

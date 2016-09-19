@@ -509,7 +509,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		}
 		hvcc = gf_isom_hevc_config_get(movie, track, 1);
 		if (!hvcc) {
-			hvcc = gf_isom_shvc_config_get(movie, track, 1);
+			hvcc = gf_isom_lhvc_config_get(movie, track, 1);
 		}
 		if (subtype==GF_ISOM_SUBTYPE_HVT1) {
 			u32 refTrack;
@@ -1093,12 +1093,12 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			gf_isom_set_nalu_extract_mode(input, i+1, GF_ISOM_NALU_EXTRACT_INSPECT);
 		}
 
-		vidtype = gf_isom_get_hevc_shvc_type(input, i+1, 1);
+		vidtype = gf_isom_get_hevc_lhvc_type(input, i+1, 1);
 		if (vidtype == GF_ISOM_HEVCTYPE_HEVC_ONLY) {
 
 			u32 mode = GF_ISOM_NALU_EXTRACT_INSPECT;	//because of tile tracks
 
-			/*concatenate SPS/PPS unless SHVC base*/
+			/*concatenate SPS/PPS unless LHVC base*/
 			if (!dash_input->trackNum && dash_cfg->inband_param_set && !dash_input->disable_inband_param_set)
 				mode |= GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
@@ -2654,6 +2654,8 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 			        || (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
 			        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 			        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
+			        || (msub_type==GF_ISOM_SUBTYPE_HVC2)
+			        || (msub_type==GF_ISOM_SUBTYPE_HEV2)
 			        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 			   ) {
 				GF_DecoderConfig *dcd1 = gf_isom_get_decoder_config(set_file, j+1, 1);
@@ -2847,10 +2849,12 @@ retry_track:
 						merge_mode = 2;
 						break;
 					case GF_ISOM_SUBTYPE_HVC1:
+					case GF_ISOM_SUBTYPE_HVC2:
 						if (use_hevc)
 							merge_mode = 2;
 						break;
 					case GF_ISOM_SUBTYPE_HEV1:
+					case GF_ISOM_SUBTYPE_HEV2:
 						/*we don't want to clone SPS/PPS since they are already inside the samples*/
 						merge_mode = 2;
 						break;
@@ -2971,6 +2975,7 @@ retry_track:
 				case GF_ISOM_SUBTYPE_AVC3_H264:
 				case GF_ISOM_SUBTYPE_AVC4_H264:
 				case GF_ISOM_SUBTYPE_HEV1:
+				case GF_ISOM_SUBTYPE_HEV2:
 					probe_inband_param_set = 0;
 					break;
 				}

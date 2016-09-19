@@ -44,7 +44,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	//if so, do not create any new codec
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
 		switch (base_layer->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_VIDEO_SHVC:
+		case GPAC_OTI_VIDEO_LHVC:
 		case GPAC_OTI_VIDEO_SVC:
 			odm->scalable_addon = 1;
 			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;
@@ -68,9 +68,14 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	*e = Codec_Load(tmp, base_layer, PL);
 
 	if (*e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
-		gf_free(tmp);
-		return NULL;
+		if (odm->term->bench_mode==2) {
+			*e = GF_OK;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s - ignoring as running systems bench mode\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
+			gf_free(tmp);
+			return NULL;
+		}
 	}
 	/*remember codec type*/
 	tmp->type = base_layer->decoderConfig->streamType;
@@ -111,6 +116,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 {
 	GF_Err e;
+	Bool config_decio = GF_FALSE;
 	GF_NetworkCommand com;
 	GF_Channel *a_ch;
 	u32 CUsize, i;
@@ -123,7 +129,13 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
-	if (codec->decio) {
+	if (codec->decio) config_decio = GF_TRUE;
+	else if (codec->odm->term->bench_mode==2) {
+		if (codec->type != GF_STREAM_OCR)
+			config_decio = GF_TRUE;
+	}
+	
+	if (config_decio) {
 		com.get_dsi.dsi = NULL;
 		if (ch->esd->decoderConfig && ch->esd->decoderConfig->upstream) codec->flags |= GF_ESM_CODEC_HAS_UPSTREAM;
 		/*For objects declared in OD stream, override with network DSI if any*/
