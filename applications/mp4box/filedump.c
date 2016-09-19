@@ -1197,7 +1197,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	AVCState avc;
 	HEVCState hevc;
 	GF_AVCConfig *avccfg, *svccfg;
-	GF_HEVCConfig *hevccfg, *shvccfg;
+	GF_HEVCConfig *hevccfg, *lhvccfg;
 	GF_AVCConfigSlot *slc;
 #endif
 
@@ -1209,8 +1209,8 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	svccfg = gf_isom_svc_config_get(file, track, 1);
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
-	shvccfg = gf_isom_shvc_config_get(file, track, 1);
-	if (!avccfg && !svccfg && !hevccfg && !shvccfg) {
+	lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
+	if (!avccfg && !svccfg && !hevccfg && !lhvccfg) {
 		fprintf(stderr, "Error: Track #%d is not NALU-based!\n", trackID);
 		return;
 	}
@@ -1289,13 +1289,13 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		}
 #endif
 	}
-	if (shvccfg) {
+	if (lhvccfg) {
 #ifndef GPAC_DISABLE_HEVC
 		u32 idx;
-		nalh_size = shvccfg->nal_unit_size;
+		nalh_size = lhvccfg->nal_unit_size;
 		is_hevc = 1;
-		for (idx=0; idx<gf_list_count(shvccfg->param_array); idx++) {
-			GF_HEVCParamArray *ar = gf_list_get(shvccfg->param_array, idx);
+		for (idx=0; idx<gf_list_count(lhvccfg->param_array); idx++) {
+			GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
 				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
@@ -1392,7 +1392,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
 #ifndef GPAC_DISABLE_HEVC
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
-	if (shvccfg) gf_odf_hevc_cfg_del(shvccfg);
+	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 #endif
 
 #endif
@@ -1739,12 +1739,12 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
 	u32 k, idx;
-	fprintf(stderr, "\t%s Info:", hevccfg->is_shvc ? "SHVC" : "HEVC");
-	if (!hevccfg->is_shvc)
+	fprintf(stderr, "\t%s Info:", hevccfg->is_lhvc ? "LHVC" : "HEVC");
+	if (!hevccfg->is_lhvc)
 		fprintf(stderr, " Profile %s @ Level %g - Chroma Format %s\n", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, gf_avc_hevc_get_chroma_format_name(hevccfg->chromaFormat));
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\tNAL Unit length bits: %d", 8*hevccfg->nal_unit_size);
-	if (!hevccfg->is_shvc)
+	if (!hevccfg->is_lhvc)
 		fprintf(stderr, " - general profile compatibility 0x%08X\n", hevccfg->general_profile_compatibility_flags);
 	fprintf(stderr, "\n");
 	fprintf(stderr, "\tParameter Sets: ");
@@ -1787,11 +1787,11 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 		}
 
 	}
-	if (!hevccfg->is_shvc)
+	if (!hevccfg->is_lhvc)
 		fprintf(stderr, "\tBit Depth luma %d - Chroma %d - %d temporal layers\n", hevccfg->luma_bit_depth, hevccfg->chroma_bit_depth, hevccfg->numTemporalLayers);
 	else
 		fprintf(stderr, "\t%d temporal layers\n", hevccfg->numTemporalLayers);
-	if (hevccfg->is_shvc) {
+	if (hevccfg->is_lhvc) {
 		fprintf(stderr, "\t%sNum Layers: %d (scalability mask 0x%02X)%s\n", hevccfg->non_hevc_base_layer ? "Non-HEVC base layer - " : "", hevccfg->num_layers, hevccfg->scalability_mask, hevccfg->complete_representation ? "" : " - no VCL data");
 	}
 
@@ -1893,6 +1893,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
+	        || (msub_type==GF_ISOM_SUBTYPE_HVC2)
+	        || (msub_type==GF_ISOM_SUBTYPE_HEV2)
 	        || (msub_type==GF_ISOM_SUBTYPE_LHV1)
 	        || (msub_type==GF_ISOM_SUBTYPE_LHE1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVT1)
@@ -2002,11 +2004,12 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
 				} else if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC)
-				           || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SHVC)
+				           || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)
 				          ) {
+					GF_OperatingPointsInformation *oinf;
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 					HEVCState hevc_state;
-					GF_HEVCConfig *hevccfg, *shvccfg;
+					GF_HEVCConfig *hevccfg, *lhvccfg;
 					memset(&hevc_state, 0, sizeof(HEVCState));
 					hevc_state.sps_active_idx = -1;
 #endif
@@ -2016,7 +2019,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stderr, "HEVC Video - Visual Size %d x %d\n", w, h);
 #if !defined(GPAC_DISABLE_AV_PARSERS) && !defined(GPAC_DISABLE_HEVC)
 					hevccfg = gf_isom_hevc_config_get(file, trackNum, 1);
-					shvccfg = gf_isom_shvc_config_get(file, trackNum, 1);
+					lhvccfg = gf_isom_lhvc_config_get(file, trackNum, 1);
 
 					if (msub_type==GF_ISOM_SUBTYPE_HVT1) {
 						const char *data;
@@ -2030,45 +2033,42 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						} else {
 							fprintf(stderr, "\tHEVC Tile track without tiling info\n");
 						}
-					} else if (!hevccfg && !shvccfg) {
+					} else if (!hevccfg && !lhvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					}
-
-					if ((msub_type==GF_ISOM_SUBTYPE_HVC1)
-					|| (msub_type==GF_ISOM_SUBTYPE_HEV1)
-					|| (msub_type==GF_ISOM_SUBTYPE_LHV1)
-					|| (msub_type==GF_ISOM_SUBTYPE_LHE1)) {
-						GF_OperatingPointsInformation *oinf;
-						if (gf_isom_get_oinf_info(file, trackNum, &oinf)) {
-							//TODO: need to dump more info ?
-							fprintf(stderr, "Operating Points Information -");
-							fprintf(stderr, " scalability_mask %d (", oinf->scalability_mask);
-							switch (oinf->scalability_mask) {
-							case 2:
-								fprintf(stderr, "Multiview");
-								break;
-							case 4:
-								fprintf(stderr, "Spatial scalability");
-								break;
-							case 8:
-								fprintf(stderr, "Auxilary");
-								break;
-							default:
-								fprintf(stderr, "unknown");
-							}
-							fprintf(stderr, ") num_profile_tier_level %d ", oinf->num_profile_tier_level);
-							fprintf(stderr, " num_operating_points %d max_layer_count %d \n", oinf->num_operating_points, oinf->max_layer_count);
-							gf_isom_del_oinf_info(&oinf);
-						}
+					
+					if (gf_isom_get_reference_count(file, trackNum, GF_4CC('s','a','b','t'))) {
+						fprintf(stderr, "\tHEVC Tile base track\n");
 					}
 					if (hevccfg) {
 						dump_hevc_track_info(file, trackNum, hevccfg, &hevc_state);
 						gf_odf_hevc_cfg_del(hevccfg);
 						fprintf(stderr, "\n");
 					}
-					if (shvccfg) {
-						dump_hevc_track_info(file, trackNum, shvccfg, &hevc_state);
-						gf_odf_hevc_cfg_del(shvccfg);
+					if (lhvccfg) {
+						dump_hevc_track_info(file, trackNum, lhvccfg, &hevc_state);
+						gf_odf_hevc_cfg_del(lhvccfg);
+					}
+
+					if (gf_isom_get_oinf_info(file, trackNum, &oinf)) {
+						fprintf(stderr, "\n\tOperating Points Information -");
+						fprintf(stderr, " scalability_mask %d (", oinf->scalability_mask);
+						switch (oinf->scalability_mask) {
+						case 2:
+							fprintf(stderr, "Multiview");
+							break;
+						case 4:
+							fprintf(stderr, "Spatial scalability");
+							break;
+						case 8:
+							fprintf(stderr, "Auxilary");
+							break;
+						default:
+							fprintf(stderr, "unknown");
+						}
+						//TODO: need to dump more info ?
+						fprintf(stderr, ") num_profile_tier_level %d ", oinf->num_profile_tier_level);
+						fprintf(stderr, " num_operating_points %d max_layer_count %d \n", oinf->num_operating_points, oinf->max_layer_count);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/
 				}

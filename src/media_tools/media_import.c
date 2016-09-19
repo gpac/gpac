@@ -5727,7 +5727,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	gf_isom_oinf_del_entry(oinf);
-	gf_isom_add_sample_group_info(file, track, GF_4CC( 'o', 'i', 'n', 'f'), data, data_size, 0, &di);
+	gf_isom_add_sample_group_info(file, track, GF_4CC( 'o', 'i', 'n', 'f'), data, data_size, GF_TRUE, &di);
 	return GF_OK;
 }
 
@@ -5745,7 +5745,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	FILE *mdia;
 	HEVCState hevc;
 	GF_AVCConfigSlot *slc;
-	GF_HEVCConfig *hevc_cfg, *shvc_cfg, *dst_cfg;
+	GF_HEVCConfig *hevc_cfg, *lhvc_cfg, *dst_cfg;
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
@@ -5799,10 +5799,10 @@ restart_import:
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
 	dst_cfg = hevc_cfg = gf_odf_hevc_cfg_new();
-	shvc_cfg = gf_odf_hevc_cfg_new();
-	shvc_cfg->complete_representation = GF_TRUE;
-	shvc_cfg->non_hevc_base_layer = GF_FALSE;
-	shvc_cfg->is_shvc = GF_TRUE;
+	lhvc_cfg = gf_odf_hevc_cfg_new();
+	lhvc_cfg->complete_representation = GF_TRUE;
+	lhvc_cfg->non_hevc_base_layer = GF_FALSE;
+	lhvc_cfg->is_lhvc = GF_TRUE;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
 	first_hevc = GF_TRUE;
@@ -5906,11 +5906,8 @@ restart_import:
 		is_islice = GF_FALSE;
 
 		prev_cfg = dst_cfg;
-		//todo check layer type, for now only scalable (not 3D etc) ...
-		if (import->flags & GF_IMPORT_SVC_EXPLICIT) {
-			dst_cfg = shvc_cfg;
-		} else
-			dst_cfg = layer_id ? shvc_cfg : hevc_cfg;
+
+		dst_cfg = layer_id ? lhvc_cfg : hevc_cfg;
 
 		if (prev_cfg != dst_cfg) {
 			vpss = get_hevc_param_array(dst_cfg, GF_HEVC_NALU_VID_PARAM);
@@ -5944,7 +5941,12 @@ restart_import:
 
 		switch (nal_unit_type) {
 		case GF_HEVC_NALU_VID_PARAM:
-			idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+			if (import->flags & GF_IMPORT_NO_VPS_EXTENSIONS) {
+				//this may modify nal_size, but we don't use it for bitstream reading 
+				idx = gf_media_hevc_read_vps_ex(buffer, &nal_size, &hevc, GF_TRUE);
+			} else {
+				idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+			}
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
 				goto exit;
@@ -6059,8 +6061,8 @@ restart_import:
 					if (sample_data) gf_bs_del(sample_data);
 					gf_odf_hevc_cfg_del(hevc_cfg);
 					hevc_cfg = NULL;
-					gf_odf_hevc_cfg_del(shvc_cfg);
-					shvc_cfg = NULL;
+					gf_odf_hevc_cfg_del(lhvc_cfg);
+					lhvc_cfg = NULL;
 					gf_free(buffer);
 					buffer = NULL;
 					gf_bs_del(bs);
@@ -6085,7 +6087,7 @@ restart_import:
 					first_hevc = GF_FALSE;
 					gf_import_message(import, GF_OK, "HEVC import - frame size %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				} else {
-					gf_import_message(import, GF_OK, "SHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
+					gf_import_message(import, GF_OK, "LHVC detected - %d x %d at %02.3f FPS", hevc.sps[idx].width, hevc.sps[idx].height, FPS);
 				}
 
 				if ((max_w <= hevc.sps[idx].width) && (max_h <= hevc.sps[idx].height)) {
@@ -6328,8 +6330,6 @@ restart_import:
 			}
 			layer_ids[layer_id] = 1;
 
-
-			//fixme with latest SHVC syntax
 			if ((layer_id == min_layer_id) && is_slice) {
 				slice_is_ref = gf_media_hevc_slice_is_IDR(&hevc);
 				if (slice_is_ref)
@@ -6583,12 +6583,12 @@ next_nal:
 	gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp);
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
-	hevc_cfg->nal_unit_size = shvc_cfg->nal_unit_size = size_length/8;
+	hevc_cfg->nal_unit_size = lhvc_cfg->nal_unit_size = size_length/8;
 
-	shvc_cfg->num_layers = 0;
+	lhvc_cfg->num_layers = 0;
 	for (i=1; i<64; i++) {
 		if (layer_ids[i])
-			shvc_cfg->num_layers ++;
+			lhvc_cfg->num_layers ++;
 	}
 
 
@@ -6597,8 +6597,8 @@ next_nal:
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
 		gf_isom_hevc_set_inband_config(import->dest, track, 1);
 	} else if (min_layer_id != 0) {
-		//SHVC bitstream with external base layer
-		//Because layer_id of vps is 0, we need to clone vps from hevc_cfg to shvc_cfg first
+		//LHVC bitstream with external base layer
+		//Because layer_id of vps is 0, we need to clone vps from hevc_cfg to lhvc_cfg first
 		for (i = 0; i < gf_list_count(hevc_cfg->param_array); i++) {
 			u32 j, k, count2;
 			GF_HEVCParamArray *s_ar = NULL;
@@ -6611,8 +6611,8 @@ next_nal:
 				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 				if (layer_id) continue;
 
-				for (k=0; k < gf_list_count(shvc_cfg->param_array); k++) {
-					s_ar = gf_list_get(shvc_cfg->param_array, k);
+				for (k=0; k < gf_list_count(lhvc_cfg->param_array); k++) {
+					s_ar = gf_list_get(lhvc_cfg->param_array, k);
 					if (s_ar->type==GF_HEVC_NALU_VID_PARAM) 
 						break;
 					s_ar = NULL;
@@ -6621,7 +6621,7 @@ next_nal:
 					GF_SAFEALLOC(s_ar, GF_HEVCParamArray);
 					s_ar->nalus = gf_list_new();
 					s_ar->type = GF_HEVC_NALU_VID_PARAM;
-					gf_list_insert(shvc_cfg->param_array, s_ar, 0);
+					gf_list_insert(lhvc_cfg->param_array, s_ar, 0);
 				}
 				s_ar->array_completeness = ar->array_completeness;
 
@@ -6633,24 +6633,25 @@ next_nal:
 				gf_list_add(s_ar->nalus, sl2);
 			}
 		}
-		hevc_set_parall_type(shvc_cfg);
-		gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, GF_FALSE);
-	} else if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(shvc_cfg->param_array) ) {
+		hevc_set_parall_type(lhvc_cfg);
+		//must use LHV1/LHC1 since no base HEVC in the track
+		gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_ONLY);
+	} else if (gf_list_count(hevc_cfg->param_array) || !gf_list_count(lhvc_cfg->param_array) ) {
 		hevc_set_parall_type(hevc_cfg);
 		gf_isom_hevc_config_update(import->dest, track, 1, hevc_cfg);
-		if (gf_list_count(shvc_cfg->param_array)) {
-			hevc_set_parall_type(shvc_cfg);
+		if (gf_list_count(lhvc_cfg->param_array)) {
+			hevc_set_parall_type(lhvc_cfg);
 
-			shvc_cfg->avgFrameRate = hevc_cfg->avgFrameRate;
-			shvc_cfg->constantFrameRate = hevc_cfg->constantFrameRate;
-			shvc_cfg->numTemporalLayers = hevc_cfg->numTemporalLayers;
-			shvc_cfg->temporalIdNested = hevc_cfg->temporalIdNested;
+			lhvc_cfg->avgFrameRate = hevc_cfg->avgFrameRate;
+			lhvc_cfg->constantFrameRate = hevc_cfg->constantFrameRate;
+			lhvc_cfg->numTemporalLayers = hevc_cfg->numTemporalLayers;
+			lhvc_cfg->temporalIdNested = hevc_cfg->temporalIdNested;
 
-			gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, GF_TRUE);
+			gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, (import->flags&GF_IMPORT_SVC_EXPLICIT) ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
 		}
 	} else {
-		hevc_set_parall_type(shvc_cfg);
-		gf_isom_shvc_config_update(import->dest, track, 1, shvc_cfg, GF_FALSE);
+		hevc_set_parall_type(lhvc_cfg);
+		gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_WITH_BASE);
 	}
 
 	gf_media_update_par(import->dest, track);
@@ -6698,7 +6699,7 @@ next_nal:
 	}
 
 	//base layer (i.e layer with layer_id = 0) not found in bitstream
-	//we are importing an SHVC bitstream with external base layer
+	//we are importing an LHVC bitstream with external base layer
 	//find this base layer with the imported tracks. 
 	//if we find more than one HEVC/AVC track, return an warning
 	if (min_layer_id != 0) {
@@ -6717,7 +6718,7 @@ next_nal:
 		}
 
 		if (!avc_base_track) {
-			e = gf_import_message(import, GF_BAD_PARAM, "Using SHVC external base layer, but AVC base layer not found");;
+			e = gf_import_message(import, GF_BAD_PARAM, "Using LHVC external base layer, but AVC base layer not found");;
 			goto exit;
 		}
 		ref_track_id = gf_isom_get_track_id(import->dest, avc_base_track);
@@ -6728,7 +6729,7 @@ next_nal:
 exit:
 	if (sample_data) gf_bs_del(sample_data);
 	gf_odf_hevc_cfg_del(hevc_cfg);
-	gf_odf_hevc_cfg_del(shvc_cfg);
+	gf_odf_hevc_cfg_del(lhvc_cfg);
 	gf_free(buffer);
 	gf_bs_del(bs);
 	gf_fclose(mdia);
@@ -7397,7 +7398,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 					stype = GF_4CC('H','2','6','4');
 					break;
 				case GPAC_OTI_VIDEO_HEVC:
-				case GPAC_OTI_VIDEO_SHVC:
+				case GPAC_OTI_VIDEO_LHVC:
 					name = "HEVC Video";
 					stype = GF_4CC('H','E','V','C');
 					break;
@@ -7909,7 +7910,10 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 					break;
 				case GF_M2TS_VIDEO_HEVC:
 				case GF_M2TS_VIDEO_SHVC:
-					import->tk_info[idx].media_type = (es->stream_type==GF_M2TS_VIDEO_SHVC) ? GF_4CC('S','H','V','C') : GF_4CC('H','E','V','C');
+				case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+				case GF_M2TS_VIDEO_MHVC:
+				case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+					import->tk_info[idx].media_type = (es->stream_type==GF_M2TS_VIDEO_HEVC) ? GF_4CC('H','E','V','C') : GF_4CC('L','H','V','C');
 					import->tk_info[idx].type = GF_ISOM_MEDIA_VISUAL;
 					import->tk_info[idx].lang = pes->lang;
 					import->nb_tracks++;
@@ -8053,6 +8057,9 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				break;
 			case GF_M2TS_VIDEO_HEVC:
 			case GF_M2TS_VIDEO_SHVC:
+			case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+			case GF_M2TS_VIDEO_MHVC:
+			case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 				mtype = GF_ISOM_MEDIA_VISUAL;
 				stype = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_HEVC;
@@ -9582,8 +9589,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	        || !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_avc_h264(importer);
 	/*HEVC video*/
-	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".h265", 5) || !strnicmp(ext, ".shvc", 5)
-	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "H265") )
+	if (!strnicmp(ext, ".hevc", 5) || !strnicmp(ext, ".hvc", 4) || !strnicmp(ext, ".265", 4) || !strnicmp(ext, ".h265", 5)
+		|| !strnicmp(ext, ".shvc", 5) || !strnicmp(ext, ".lhvc", 5) || !strnicmp(ext, ".mhvc", 5)
+	        || !stricmp(fmt, "HEVC") || !stricmp(fmt, "SHVC") || !stricmp(fmt, "MHVC") || !stricmp(fmt, "LHVC") || !stricmp(fmt, "H265") )
 		return gf_import_hevc(importer);
 	/*AC3 and E-AC3*/
 	if (!strnicmp(ext, ".ac3", 4) || !stricmp(fmt, "AC3") )

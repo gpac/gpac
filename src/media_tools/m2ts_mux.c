@@ -2170,7 +2170,8 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 			+ 4 byte start code + first nal header*/
 			stream->min_bytes_copy_from_next = 12;
 			break;
-		case GPAC_OTI_VIDEO_SHVC:
+		case GPAC_OTI_VIDEO_LHVC:
+			//FIXME - we need to check scalability type to see if we have MHVC, for now only use SHVC
 			stream->mpeg2_stream_type = GF_M2TS_VIDEO_SHVC;
 			/*make sure we send AU delim NALU in same PES as first VCL NAL: 7 bytes (4 start code + 2 nal header + 1 AU delim)
 			+ 4 byte start code + first nal header*/

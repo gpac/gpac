@@ -156,9 +156,9 @@ enum
 	GF_IMPORT_USE_COMPACT_SIZE = 1<<8,
 	/*! don't add a final empty sample when importing text tracks from srt*/
 	GF_IMPORT_NO_TEXT_FLUSH = 1<<9,
-	/*! for SVC or SHVC video: forces explicit SVC / SHVC signaling */
+	/*! for SVC or LHVC video: forces explicit SVC / LHVC signaling */
 	GF_IMPORT_SVC_EXPLICIT = 1<<10,
-	/*! for SVC / SHVC video: removes all SVC / SHVC extensions*/
+	/*! for SVC / LHVC video: removes all SVC / LHVC extensions*/
 	GF_IMPORT_SVC_NONE = 1<<11,
 	/*! for AAC audio: forces PS mode with implicit signaling (backward compatible)*/
 	GF_IMPORT_PS_IMPLICIT = 1<<12,
@@ -188,6 +188,8 @@ enum
 	GF_IMPORT_NO_DURATION = 1<<23,
 	/*! when set IP packets found in MPE sections will be sent to the local network */
 	GF_IMPORT_MPE_DEMUX = 1<<24,
+	/*! when set HEVC VPS is rewritten to remove VPS extensions*/
+	GF_IMPORT_NO_VPS_EXTENSIONS = 1<<25,
 
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
@@ -437,22 +439,21 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll);
 GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
 
 /* !
- Split SHVC and MV-HEVC layers
+ Split L-HEVC layers
  \param file the target movie
  \param track the target track
  \param splitAll if set each layers will be in a single track, otherwise all non-base layers will be in the same track
  \param use_extractors if set, extractors are used in the enhancement layers.
  \return error if any
  */
-GF_Err gf_media_split_shvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
+GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
 
 /* !
  Split HEVC tiles into different tracks
  \param file the target movie
- \param use_extractors if set, extractors are used in the tile tracks layers.
  \return error if any
  */
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool use_extractors);
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
 
 	
 /* !

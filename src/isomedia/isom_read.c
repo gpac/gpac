@@ -3533,6 +3533,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	case GF_4CC('r','a','p',' '):
 	case GF_4CC('r','o','l','l'):
 	case GF_4CC( 's', 'e', 'i', 'g' ):
+	case GF_4CC( 'o', 'i', 'n', 'f' ):
 		return GF_TRUE;
 	default:
 		if (sg_entry && data) *data = (char *) sg_entry->data;
@@ -3888,15 +3889,22 @@ void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independe
 	GF_BitStream *bs;
 	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
 	*id = gf_bs_read_u16(bs);
-	*independent = gf_bs_read_int(bs, 2);
-	*full_picture = (Bool)gf_bs_read_int(bs, 1);
-	gf_bs_read_int(bs, 5);
-	*x = *full_picture ? 0 : gf_bs_read_u16(bs);
-	*y = *full_picture ? 0 : gf_bs_read_u16(bs);
-	*w = gf_bs_read_u16(bs);
-	*h = gf_bs_read_u16(bs);
+	if (! gf_bs_read_int(bs, 1)) {
+		*independent=0;
+		*full_picture=0;
+		*x = *y = *w = *h = 0;
+	} else {
+		*independent = gf_bs_read_int(bs, 2);
+		*full_picture = (Bool)gf_bs_read_int(bs, 1);
+		/*filter_disabled*/ gf_bs_read_int(bs, 1);
+		/*has_dependency_list*/ gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 2);
+		*x = *full_picture ? 0 : gf_bs_read_u16(bs);
+		*y = *full_picture ? 0 : gf_bs_read_u16(bs);
+		*w = gf_bs_read_u16(bs);
+		*h = gf_bs_read_u16(bs);
+	}
 	gf_bs_del(bs);
-
 }
 
 GF_EXPORT
@@ -3920,33 +3928,15 @@ Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file)
 GF_EXPORT
 Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPointsInformation **ptr)
 {
-	GF_BitStream *bs;
-	const char *data;
-	u32 size;
+	u32 def_index=0;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(file, trackNumber);
 
 	if (!ptr)
 		return GF_FALSE;
 
-	if (!gf_isom_get_sample_group_info(file, trackNumber, 1, GF_4CC('o','i','n','f'), NULL, &data, &size))
-		return GF_FALSE;
-
-	*ptr = gf_isom_oinf_new_entry();
-	if (!(*ptr))
-		return GF_FALSE;
-	bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
-	if (!bs)
-		return GF_FALSE;
-	gf_isom_oinf_read_entry(*ptr, bs);
-	gf_bs_del(bs);
-	return GF_TRUE;
-}
-
-GF_EXPORT
-void gf_isom_del_oinf_info(GF_OperatingPointsInformation **ptr)
-{
-	if (!(*ptr)) return;
-	gf_isom_oinf_del_entry(*ptr);
-	*ptr = NULL;
+	*ptr = (GF_OperatingPointsInformation *) gf_isom_get_sample_group_info_entry(file, trak, GF_4CC('o','i','n','f'), 1, &def_index, NULL);
+	
+	return *ptr ? GF_TRUE : GF_FALSE;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
