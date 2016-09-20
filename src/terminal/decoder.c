@@ -1354,6 +1354,12 @@ scalable_retry:
 
 				if (codec->direct_frame_output) {
 					Bool needs_resize = 0;
+					//may happen during seek
+					if (CU->frame) {
+						CU->frame->Release(CU->frame);
+						CU->frame = NULL;
+					}
+
 					e = mdec->GetOutputFrame(mdec, ch->esd->ESID, &CU->frame, &needs_resize);
 					if (e!=GF_OK) {
 						CU->frame=NULL;
@@ -1361,6 +1367,7 @@ scalable_retry:
 					if (!CU->frame)
 						unit_size = 0;
 					else if (needs_resize) {
+						assert(unit_size);
 						//if dynamic scene, set size
 						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
 							/*update config*/
