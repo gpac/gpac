@@ -78,6 +78,7 @@ typedef struct
 	u32 vosh_size;
 	
 	//NAL-based specific
+	Bool is_avc;
 	Bool is_annex_b;
 	char *cached_annex_b;
 	u32 cached_annex_b_size;
@@ -467,6 +468,7 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
 		ctx->SPSs = gf_list_new();
 		ctx->PPSs = gf_list_new();
+		ctx->is_avc = GF_TRUE;
 
 		ctx->avc.sps_active_idx = -1;
 		
@@ -801,7 +803,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 
-	if (ctx->vtb_session) {
+	if (ctx->is_avc && ctx->vtb_session) {
 		if (!ctx->reconfig_needed)
 			VTB_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
 		
