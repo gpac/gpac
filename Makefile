@@ -90,7 +90,7 @@ travis_tests:
 
 travis_deploy:
 	@echo "Deploying results"
-	@cd $(SRC_PATH)/tests && ./make_deploy.sh
+	@cd $(SRC_PATH)/tests && ./ghp_deploy.sh
 
 travis: travis_tests lcov travis_deploy
 
