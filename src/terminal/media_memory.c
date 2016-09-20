@@ -84,16 +84,16 @@ static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 	if (!cb)
 		return;
 	if (cb->next) gf_cm_unit_del(cb->next, no_data_allocation);
-	cb->next = NULL;
+
 	if (cb->data) {
 		if (!no_data_allocation) {
 			my_large_gf_free(cb->data);
 		}
 		cb->data = NULL;
-		if (cb->frame) {
-			cb->frame->Release(cb->frame);
-			cb->frame=NULL;
-		}
+	}
+	if (cb->frame) {
+		cb->frame->Release(cb->frame);
+		cb->frame=NULL;
 	}
 	gf_free(cb);
 }
@@ -333,6 +333,10 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 {
 	/*nothing dispatched, ignore*/
 	if (!cu_size) {
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
+		}
 		cu->dataLength = 0;
 		cu->TS = 0;
 		return;
