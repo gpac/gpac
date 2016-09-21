@@ -512,7 +512,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 //browse all channels and update buffering info
 void gf_scene_buffering_info(GF_Scene *scene)
 {
-	u32 i, j, max_buffer, cur_buffer;
+	u32 i, j, max_buffer, cur_buffer, max_buff_val=0;
 	GF_Channel *ch;
 	GF_Event evt;
 	GF_ObjectManager *odm;
@@ -536,6 +536,8 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		if (!odm->codec) continue;
 		j=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &j))) {
+			if (max_buff_val < ch->MaxBuffer) max_buff_val = ch->MaxBuffer;
+			
 			/*count only re-buffering channels*/
 			if (!ch->BufferOn) continue;
 			if (ch->MaxBuffer) {
@@ -549,6 +551,7 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	evt.progress.progress_type = 0;
 	evt.progress.service = scene->root_od->net_service->url;
 	if (!max_buffer || !cur_buffer || (max_buffer <= cur_buffer)) {
+		if (!max_buffer) max_buffer=max_buff_val;
 		evt.progress.done = evt.progress.total = max_buffer;
 	} else {
 		evt.progress.done = cur_buffer;
