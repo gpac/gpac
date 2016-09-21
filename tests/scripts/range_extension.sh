@@ -4,7 +4,10 @@ temp_file=$TEMP_DIR/test.mp4
 
 rext_test() {
 
-test_begin $1 "import" "play"
+test_begin $1
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
 
 do_test "$MP4BOX -add $2 -new $temp_file" "import"
 do_hash_test "$temp_file" "import"
