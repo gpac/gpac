@@ -600,7 +600,7 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 	GF_FieldInfo info;
 	GF_ChildNodeItem *last = NULL;
 
-	if (!node || !node->sgprivate || node->sgprivate->scenegraph) {
+	if (!node || !node->sgprivate || !node->sgprivate->scenegraph) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[DOM Events] Bad target node for listener\n"));
 		return NULL;
 	}
