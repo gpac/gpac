@@ -32,4 +32,4 @@ single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/datase
 
 
 #re-run progressive bifs in http to test the cache
-single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/bifs/bifs-2D-background-background2D-bind.bt" "mp4client-http-bt"
+single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/bifs/bifs-2D-background-background2D-bind.bt" "mp4client-http-bt-cached"

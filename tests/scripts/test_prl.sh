@@ -3,7 +3,7 @@ return
 
 my_test ()
 {
-#test MP4Box RTP streaming and MP4 client
+
 test_begin $2
 
 do_test "$1" $2
