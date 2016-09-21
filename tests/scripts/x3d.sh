@@ -5,7 +5,7 @@ x3d_test ()
  name=$(basename $1)
  name=${name%.*}
 
- test_begin "$name" "play"
+ test_begin "$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi

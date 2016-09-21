@@ -33,6 +33,9 @@ generate_hash=0
 play_all=0
 do_ui=0
 log_after_fail=0
+verbose=0
+
+current_script=""
 
 DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
@@ -99,6 +102,28 @@ if [ ! -e $TEMP_DIR ] ; then
 mkdir $TEMP_DIR
 fi
 
+L_ERR=1
+L_WAR=2
+L_INF=3
+L_DEB=4
+
+log()
+{
+	if [ $1 = $L_ERR ]; then
+		tput setaf 1
+	elif [ $1 = $L_WAR ]; then
+		tput setaf 2
+	elif [ $1 = $L_INF ]; then
+		tput setaf 4
+	elif [ $verbose = 0 ]; then
+		tput sgr0
+		return
+	fi
+
+	echo $2
+
+	tput sgr0
+}
 
 print_usage ()
 {
@@ -122,8 +147,9 @@ echo "  -sync-hash:            syncs all remote reference hashes with local base
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
-echo "  -check-names:          check name of each test is unique"
+echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
+echo "  -v:                    set verbose output"
 echo "  -h:                    print this help"
 }
 
@@ -131,7 +157,7 @@ echo "  -h:                    print this help"
 #performs mirroring of media and references hash & videos
 sync_media ()
 {
- echo "Mirroring $REFERENCE_DIR/media/ to $EXTERNAL_MEDIA_DIR"
+ log $L_INF "- Mirroring $REFERENCE_DIR/media/ to $EXTERNAL_MEDIA_DIR"
  if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
   mkdir $EXTERNAL_MEDIA_DIR
  fi
@@ -143,7 +169,7 @@ sync_media ()
 #performs mirroring of media
 sync_hash ()
 {
-echo "Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
+log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
 wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hashes/"
 cd $main_dir
@@ -152,7 +178,7 @@ cd $main_dir
 #performs mirroring of media and references hash & videos
 sync_refs ()
 {
-echo "Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
+log $L_INF "- Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
 wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
 cd $main_dir
@@ -163,7 +189,7 @@ url_arg=""
 do_clean=0
 keep_avi=0
 do_clean_hash=0
-check_names=0
+check_only=0
 disable_hash=0
 strict_mode=0
 track_stack=0
@@ -199,28 +225,30 @@ for i in $* ; do
   exit
  elif [ "$i" = "-sync-before" ] ; then
   sync_media
- elif [ "$i" = "-check-names" ] ; then
-  check_names=1
+ elif [ "$i" = "-check" ] ; then
+  check_only=1
  elif [ "$i" = "-warn" ] ; then
   log_after_fail=1
  elif [ "$i" = "-track-stack" ] ; then
   track_stack=1
+ elif [ "$i" = "-v" ] ; then
+  verbose=1
  elif [ "$i" = "-h" ] ; then
   print_usage
   exit
  elif [ ${i:0:1} = "-" ] ; then
-  echo "Unknown Option \"$i\" - check usage (-h)"
+  log $L_ERR "Unknown Option \"$i\" - check usage (-h)"
   exit
  else
   if [ -n "$url_arg" ] ; then
-   echo "More than one input specified - check usage (-h)"
+   log $L_ERR "More than one input specified - check usage (-h)"
    exit
   fi
   url_arg=$i
  fi
 done
 
-if [ $check_names != 0 ] ; then
+if [ $check_only != 0 ] ; then
  do_clean_hash=0
  do_clean=0
  do_ui=0
@@ -229,18 +257,18 @@ fi
 #Clean all hashes and reference videos
 if [ $do_clean_hash != 0 ] ; then
 
- read -p "This will remove all referenced videos and hashes. Are you sure (y/n)?" choice
- if [ $choice != "y" ] ; then
-  echo "Canceled"
-  exit
- fi
  #force cleaning as well
  do_clean=1
 
  if [ -n "$url_arg" ] ; then
   do_clean=1
  else
-  echo "Deleting SHA-1 Hashes"
+  read -p "This will remove all referenced videos and hashes. Are you sure (y/n)?" choice
+  if [ $choice != "y" ] ; then
+   log $L_ERR "Canceled"
+   exit
+  fi
+  log $L_INF "Deleting SHA-1 Hashes"
   rm -rf $HASH_DIR/* 2> /dev/null
   rm -rf $VIDEO_DIR_REF/* 2> /dev/null
  fi
@@ -261,13 +289,15 @@ if [ $do_clean != 0 ] ; then
  fi
 fi
 
-echo "Checking test suite config"
+log $L_INF "Checking test suite config"
 
-if [ ! "$(ls -A $HASH_DIR)" ]; then
- disable_hash=1
- echo "** Reference hashes unavailable - you may sync them using -sync-hash  - skippping hash tests **"
-else
- echo "** Reference hashes available - enabling hash tests **"
+if [ $generate_hash = 0 ] ; then
+ if [ ! "$(ls -A $HASH_DIR)" ]; then
+  disable_hash=1
+  log $L_WAR "- Reference hashes unavailable - you may sync them using -sync-hash  - skippping hash tests"
+  else
+  log $L_INF "- Reference hashes available - enabling hash tests"
+ fi
 fi
 
 if [ ! -e $EXTERNAL_MEDIA_DIR ] ; then
@@ -277,16 +307,16 @@ EXTERNAL_MEDIA_AVAILABLE=0
 fi
 
 if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
- echo "** External media dir unavailable - you may sync it using -sync-media **"
+ log $L_WAR "- External media dir unavailable - you may sync it using -sync-media"
 else
- echo "** External media dir available **"
+ log $L_INF "- External media dir available"
 fi
 
 #test for GNU time
 res=`$GNU_TIME ls 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
-echo "GNU time not found (ret $res) - exiting"
+log $L_ERR "GNU time not found (ret $res) - exiting"
 exit 1
 fi
 
@@ -294,7 +324,7 @@ fi
 res=`$GNU_DATE 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
-echo "GNU date not found (ret $res) - exiting"
+log $L_ERR "GNU date not found (ret $res) - exiting"
 exit 1
 fi
 
@@ -303,15 +333,19 @@ do_store_video=1
 
 `$FFMPEG -version > /dev/null 2>&1 `
 if [ $? != 0 ] ; then
-echo "ffmpeg not found - disabling playback video storage"
+log $L_WAR "ffmpeg not found - disabling playback video storage"
 do_store_video=0
+else
+  if [ $generate_hash != 0 ] ; then
+	log $L_INF "- Generating reference videos"
+  fi
 fi
 
 
 #check MP4Box, MP4Client and MP42TS (use default args, not custum ones because of -mem-track)
 `MP4Box -h 2> /dev/null`
 if [ $? != 0 ] ; then
-echo "MP4Box not found (ret $?) - exiting"
+log $L_ERR "MP4Box not found (ret $?) - exiting"
 exit 1
 fi
 
@@ -323,7 +357,7 @@ if [ $do_clean = 0 ] ; then
 res=$?
 if [ $res != 0 ] ; then
 echo ""
-echo "WARNING: MP4Client not found (ret $res) - disabling all playback tests"
+log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests"
 echo ""
 MP4CLIENT_NOT_FOUND=1
 #elif [ $log_after_fail != 0 ] ; then
@@ -337,16 +371,16 @@ fi
 
 `MP42TS -h 2> /dev/null`
 if [ $? != 0 ] ; then
-echo "MP42TS not found (ret $?) - exiting"
+log $L_ERR "MP42TS not found (ret $?) - exiting"
 exit 1
 fi
 
 #check mem tracking is supported
 res=`MP4Box -mem-track -h 2>&1 | grep "WARNING"`
 if [ -n "$res" ]; then
-  echo "** GPAC not compiled with memory tracking **"
+  log $L_WAR "- GPAC not compiled with memory tracking"
 else
- echo "** Enabling memory-tracking **"
+ log $L_INF "- Enabling memory-tracking"
  if [ $track_stack = 1 ]; then
   base_args="$base_args -mem-track-stack"
   log_after_fail=1
@@ -389,25 +423,33 @@ reset_stat ()
 #begin a test with name $1 and using hashes called $1-$2 ... $1-$N
 test_begin ()
 {
+  if [ $# -gt 1 ] ; then
+   log $L_ERR "> in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@single_test takes only two arguments - wrong call (first arg is $1)"
+  fi
 
-if [ $do_clean != 0 ] ; then
- if [ $do_clean_hash != 0 ] ; then
-  rm -rf $HASH_DIR/$1* 2> /dev/null
-  rm -rf $VIDEO_DIR_REF/$1* 2> /dev/null
- fi
- rm -rf $LOGS_DIR/$1* > /dev/null
- rm -rf $VIDEO_DIR/$1* 2> /dev/null
- test_skip=1
- return
-fi
 
  result=""
  TEST_NAME=$1
+ reference_hash_valid="$HASH_DIR/$TEST_NAME-valid-hash"
 
- if [ $check_names != 0 ] ; then
+
+ if [ $do_clean != 0 ] ; then
+  if [ $do_clean_hash != 0 ] ; then
+   rm -rf $HASH_DIR/$TEST_NAME* 2> /dev/null
+   rm -rf $VIDEO_DIR_REF/$TEST_NAME* 2> /dev/null
+   rm -rf $reference_hash_valid 2> /dev/null
+  fi
+  rm -rf $LOGS_DIR/$TEST_NAME* > /dev/null
+  rm -rf $VIDEO_DIR/$TEST_NAME* 2> /dev/null
+  test_skip=1
+  return
+ fi
+
+ if [ $check_only != 0 ] ; then
   report="$TEMP_DIR/$TEST_NAME.test"
   if [ -f $report ] ; then
-   echo "Test name $TEST_NAME already exists - please fix"
+   log $L_ERR "Test $TEST_NAME already exists - please fix ($current_script)"
    rm -rf $TEMP_DIR/* 2> /dev/null
    exit
   fi
@@ -425,7 +467,6 @@ fi
  dump_size=$DEF_DUMP_SIZE
 
 
- hash_skipable=0
  test_skip=0
  single_test=0
 
@@ -433,81 +474,63 @@ fi
  test_nb_args=$#
  skip_play_hash=0
  subtest_idx=0
+ nb_subtests=0
 
- rules_sh=$RULES_DIR/$TEST_NAME.sh
- if [ -f $rules_sh ] ; then
-  source $rules_sh
- fi
+ test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
 
- #we are generating - check all hash are present. If so, skip test
- if [ $generate_hash != 0 ] ; then
-  hash_skipable=1
-  for ((i=1; i < $test_nb_args; i++)) {
-   hash_found=0
-
-   if [ $skip_play_hash = 0 ] ; then
-    hash_file=$HASH_DIR/$TEST_NAME-${test_args[$i]}-avirawvideo.hash
-    if [ -f $hash_file ] ; then
-	 hash_found=1
-    fi
-
-    hash_file=$HASH_DIR/$TEST_NAME-${test_args[$i]}-avirawaudio.hash
-    if [ -f $hash_file ] ; then
-     hash_found=1
-    fi
-   else
-    if [ ${test_args[$i]} = "play" ] ; then
-     hash_found=1
-    fi
-   fi
-
-   hash_file=$HASH_DIR/$TEST_NAME-${test_args[$i]}.hash
-   if [ -f $hash_file ] ; then
-    hash_found=1
-   fi
-
-   if [ $hash_found != 1 ] ; then
- 	hash_skipable=0
-	break
-   fi
-
-  }
-
- if [ $disable_hash = 1 ] ; then
-  hash_skipable=1
- fi
-
-  if [ $hash_skipable = 1 ] ; then
+ if [ $generate_hash = 1 ] ; then
+  #skip test only if reference hash is marked as valid
+  if [ -f "$reference_hash_valid" ] ; then
+   log $L_DEB "Reference hash found for test $TEST_NAME - skipping hash generation"
    test_skip=1
   fi
-
- #we are not generating, skip only if final report is present
- elif [ -f "$final_report" ] ; then
-  test_skip=1
+ else
+  #skip test only if final report is present (whether we generate hashes or not)
+  if [ -f "$final_report" ] ; then
+   if [ -f "$test_stats" ] ; then
+    log $L_DEB "$TEST_NAME already passed - skipping"
+    test_skip=1
+   else
+    log $L_WAR "$TEST_NAME already passed but missing stats.sh - regenerating"
+   fi
+  fi
  fi
 
- #if error in strict mode,mark the test as skippable using value 2
+ #if error in strict mode, mark the test as skippable using value 2
  if [ $strict_mode = 1 ] ; then
   if [ -f $TEST_ERR_FILE ] ; then
    test_skip=2
   fi
  fi
 
-
  if [ $test_skip != 0 ] ; then
-  test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
-  echo "TEST_SKIP=$test_skip" > $test_stats
-  test_skip=1
+   #stas.sh may be missing when generating hashes and that's not an error
+   if [ -f "$test_stats" ] ; then
+    has_skip=`grep -w "TEST_SKIP" $test_stats`
+
+    if [ "$has_skip" = "" ]; then
+		echo "TEST_SKIP=$test_skip" >> $test_stats
+    fi
+   fi
+   test_skip=1
  else
   echo "*** $TEST_NAME logs (GPAC version $VERSION) - test date $(date '+%d/%m/%Y %H:%M:%S') ***" > $LOGS
   echo "" >> $LOGS
  fi
+
+
+ rules_sh=$RULES_DIR/$TEST_NAME.sh
+ if [ -f $rules_sh ] ; then
+  source $rules_sh
+ fi
+
 }
 
 mark_test_error ()
 {
  if [ $strict_mode = 1 ] ; then
   echo "" > $TEST_ERR_FILE
+  log $L_ERR "Error test $TEST_NAME subtest $SUBTEST_NAME - aborting"
  fi
 }
 
@@ -515,15 +538,20 @@ mark_test_error ()
 #ends test - gather all logs/stats produced and generate report
 test_end ()
 {
+ #wait for all sub-tests to complete (some may use subshells)
+ wait
+
+  if [ $# -gt 0 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@test_end takes no argument - wrong call"
+  fi
+
  if [ $test_skip = 1 ] ; then
   return
  fi
 
- #wait for all sub-tests to complete (some may use subshells)
- wait
-
  test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
- echo "TEST_SKIP=0" > $test_stats
+ echo "" > $test_stats
  stat_xml_temp="$TEMP_DIR/$TEST_NAME-statstemp.xml"
  echo "" > $stat_xml_temp
 
@@ -608,6 +636,24 @@ test_end ()
   result="OK"
  fi
 
+ if [ ! -f $TEST_ERR_FILE ] ; then
+  if [ $generate_hash = 1 ] ; then
+    log $L_DEB "Test $TEST_NAME $nb_subtests subtests and $nb_test_hash hashes"
+    nb_hashes=$((nb_test_hash + nb_test_hash))
+	#only allow no hash if only one subtest
+    if [ $subtest_idx -gt 1 ] && [ $nb_hashes -lt $subtest_idx ] ; then
+     log $L_ERR "Test $TEST_NAME has too few hash tests: $nb_hashes for $nb_subtests subtests - please fix"
+     result="NOT ENOUGH HASHES"
+    else
+		echo "ok" > $reference_hash_valid
+	fi
+#    if [ $nb_test_hash -gt 15 ] ; then
+#     log $L_WAR "Test $TEST_NAME has too many subtests with hashes ($nb_test_hash), not efficient for hash generation - consider rewriting $current_script"
+#	fi
+  fi
+ fi
+
+
  echo " <test name=\"$TEST_NAME\" result=\"$result\" date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" > $report
  cat $stat_xml_temp >> $report
  rm -f $stat_xml_temp > /dev/null
@@ -644,6 +690,11 @@ ret=0
 do_test ()
 {
 
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@do_test takes only two arguments - wrong call (first arg $1)"
+  fi
+
  if [ $strict_mode = 1 ] ; then
   if [ -f $TEST_ERR_FILE ] ; then
    return
@@ -659,19 +710,22 @@ do_test ()
 		return
 	esac
  fi
+ log L_DEB "executing $1"
 
 subtest_idx=$((subtest_idx + 1))
 
 log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
 stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
-echo "SUBTEST_NAME=$2" > $stat_subtest
-echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
+SUBTEST_NAME=$2
 
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
 
 $GNU_TIME -o $stat_subtest -f ' EXECUTION_STATUS="OK"\n RETURN_STATUS=%x\n MEM_TOTAL_AVG=%K\n MEM_RESIDENT_AVG=%t\n MEM_RESIDENT_MAX=%M\n CPU_PERCENT=%P\n CPU_ELAPSED_TIME=%E\n CPU_USER_TIME=%U\n CPU_KERNEL_TIME=%S\n PAGE_FAULTS=%F\n FILE_INPUTS=%I\n SOCKET_MSG_REC=%r\n SOCKET_MSG_SENT=%s' $1 >> $log_subtest 2>&1
 rv=$?
+
+echo "SUBTEST_NAME=$2" >> $stat_subtest
+echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 
 if [ $rv -gt 2 ] ; then
  echo " Return Value $rv - re-executing without GNU TIME" >> $log_subtest
@@ -719,6 +773,12 @@ ret=$rv
 
 do_playback_test ()
 {
+
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@do_playback_test takes only two arguments - wrong call (first arg is $1)"
+  fi
+
  if [ $strict_mode = 1 ] ; then
   if [ -f $TEST_ERR_FILE ] ; then
    return
@@ -726,7 +786,7 @@ do_playback_test ()
  fi
 
  if [ $test_skip  = 1 ] ; then
-  return 0
+  return
  fi
 
  if [ $single_test = 1 ] ; then
@@ -790,6 +850,11 @@ fi
 #@do_hash_test: generates a hash for $1 file , compare it to HASH_DIR/$TEST_NAME$2.hash
 do_hash_test ()
 {
+
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@do_hash_test takes only two argument - wrong call (first arg is $1)"
+  fi
  if [ $strict_mode = 1 ] ; then
   if [ -f $TEST_ERR_FILE ] ; then
    return
@@ -799,6 +864,7 @@ do_hash_test ()
  if [ $test_skip  = 1 ] ; then
   return
  fi
+ log L_DEB "Generating hash for $1"
 
  if [ $disable_hash = 1 ] ; then
   return
@@ -843,6 +909,10 @@ do_hash_test ()
 #compare hashes of $1 and $2, return 0 if OK, error otherwise
 do_compare_file_hashes ()
 {
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@do_compare_file_hashes takes only two arguments - wrong call (first arg is $1)"
+  fi
 test_hash_first="$TEMP_DIR/$TEST_NAME-$(basename $1).hash"
 test_hash_second="$TEMP_DIR/$TEST_NAME-$(basename $2).hash"
 
@@ -869,6 +939,10 @@ return $rv
 #@ffmpeg_encode: encode source file $1 to $2 using default ffmpeg settings
 ffmpeg_encode ()
 {
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@ffmpeg_encode takes only two arguments - wrong call (first arg is $1)"
+  fi
  #run ffmpeg in force overwrite mode
  $FFMPEG -y -i $1 -pix_fmt yuv420p -strict -2 $2 2> /dev/null
 }
@@ -877,6 +951,10 @@ ffmpeg_encode ()
 #@single_test: performs a single test without hash with $1 command line and $2 test name
 single_test ()
 {
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@single_test takes only two arguments - wrong call (first arg is $1)"
+  fi
 test_begin "$2"
 if [ $test_skip  = 1 ] ; then
 return
@@ -889,7 +967,11 @@ test_end
 #@single_playback_test: performs a single playback test with hashes with $1 command line and $2 test name
 single_playback_test ()
 {
-test_begin "$2" "play"
+  if [ $# -gt 2 ] ; then
+   log $L_ERR "> in test $TEST_NAME in script $current_script line $BASH_LINENO"
+   log $L_ERR "	@single_playback_test takes only two arguments - wrong call (first arg is $1)"
+  fi
+test_begin "$2"
 if [ $test_skip  = 1 ] ; then
 return
 fi
@@ -956,14 +1038,12 @@ if [ $do_ui != 0 ] ; then
   dump_size=$DEF_DUMP_SIZE
   load_ui_rules $test_name
   if [ $do_ui = 1 ] ; then
-   echo "*** Recording user input for $url_arg into $ui_stream ***"
+   log $L_INF "Recording user input for $url_arg into $ui_stream"
    echo ""
-echo "$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Validator:Mode=Record -opt Validator:Trace=$ui_stream "
-$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Validator:Mode=Record -opt Validator:Trace=$ui_stream >> $ALL_LOGS
+	$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Validator:Mode=Record -opt Validator:Trace=$ui_stream >> $ALL_LOGS
   else
-   echo "*** Playing back $url_arg with user input $ui_stream ***"
+   log $L_INF "Playing back $url_arg with user input $ui_stream"
    echo ""
-echo "$MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Validator:Mode=Play -opt Validator:Trace=$ui_stream"
    $MP4CLIENT -run-for $dump_dur -size $dump_size $url_arg -no-save -opt Validator:Mode=Play -opt Validator:Trace=$ui_stream >> $ALL_LOGS
   fi
   exit
@@ -986,7 +1066,13 @@ start=`$GNU_DATE +%s%N`
 start_date="$(date '+%d/%m/%Y %H:%M:%S')"
 
 if [ $generate_hash = 1 ] ; then
- echo "SHA-1 Hash Generation enabled"
+ log $L_INF "Generating Test Suite SHA-1 Hashes"
+elif [ $do_clean = 1 ] ; then
+ log $L_INF "Cleaning Test Suite"
+elif [ $check_only = 1 ] ; then
+ log $L_INF "Checking Test Suite Names"
+else
+ log $L_INF "Evaluating Test Suite"
 fi
 
 #gather all tests reports and build our final report
@@ -1044,20 +1130,23 @@ source $i
 
 #test not run due to error in strict mode
 if [ $TEST_SKIP = 2 ] ; then
+rm -f $i > /dev/null
 continue;
 fi
 
 TESTS_TOTAL=$((TESTS_TOTAL + 1))
 if [ $TEST_SKIP = 0 ] ; then
  TESTS_DONE=$((TESTS_DONE + 1))
- if [ $TEST_FAIL = 0 ] ; then
-  TESTS_PASSED=$((TESTS_PASSED + 1))
- else
-  TESTS_FAILED=$((TESTS_FAILED + 1))
- fi
+else
+ TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
 fi
 
-TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
+if [ $TEST_FAIL = 0 ] ; then
+ TESTS_PASSED=$((TESTS_PASSED + 1))
+else
+ TESTS_FAILED=$((TESTS_FAILED + 1))
+ rm -f $i > /dev/null
+fi
 
 if [ $SUBTEST_EXEC_NA != 0 ] ; then
   TESTS_EXEC_NA=$((TESTS_EXEC_NA + 1))
@@ -1079,9 +1168,7 @@ fi
 
 done
 
-rm -f $LOGS_DIR/*-stats.sh > /dev/null
-
-echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAILED\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" />" >> $ALL_REPORTS
+echo "<TestSuiteResults NumTests=\"$TESTS_TOTAL\" NumSubtests=\"$SUBTESTS_DONE\" TestsPassed=\"$TESTS_PASSED\" TestsFailed=\"$TESTS_FAILED\" TestsLeaked=\"$TESTS_LEAK\" TestsUnknown=\"$TESTS_EXEC_NA\" HashFailed=\"$SUBTESTS_HASH_FAIL\" HashMissing=\"$SUBTESTS_HASH_MISSING\" />" >> $ALL_REPORTS
 
 #gather all failed reports first
 for i in $LOGS_DIR/*-failed.xml; do
@@ -1119,41 +1206,66 @@ for i in $LOGS_DIR/*-logs.txt-new; do
 done
 
 if [ $TESTS_TOTAL = 0 ] ; then
-echo "No tests executed"
+log $L_INF "No tests executed"
 else
 
-pc=$((100*TESTS_SKIP/TESTS_TOTAL))
-echo "Number of Tests OK cached $TESTS_SKIP ($pc %)"
-pc=$((100*TESTS_DONE/TESTS_TOTAL))
-echo "Number of Tests Run $TESTS_DONE ($pc %)"
+
+pc1=$((100*TESTS_DONE/TESTS_TOTAL))
+pc2=$((100*TESTS_SKIP/TESTS_TOTAL))
+log $L_INF "Number of Tests $TESTS_TOTAL - $SUBTESTS_DONE subtests - Executed: $TESTS_DONE ($pc1 %) - Cached: $TESTS_SKIP ($pc2 %)"
 
 
-if [ $TESTS_DONE != 0 ] ; then
- pc=$((100*TESTS_PASSED/TESTS_DONE))
- echo "Tests passed $TESTS_PASSED ($pc %) - $SUBTESTS_DONE sub-tests"
+if [ $TESTS_DONE = 0 ] ; then
+ TESTS_DONE=$TESTS_TOTAL
+fi
+if [ $SUBTESTS_DONE = 0 ] ; then
+ SUBTESTS_DONE=$TESTS_TOTAL
+fi
+
+ pc=$((100*TESTS_PASSED/TESTS_TOTAL))
+ log $L_INF "Tests passed $TESTS_PASSED ($pc %) - $SUBTESTS_DONE sub-tests"
 
  # the follwing % are in subtests
- pc=$((100*SUBTESTS_FAIL/SUBTESTS_DONE))
- echo "Tests failed $TESTS_FAILED ($pc % of subtests)"
-
- pc=$((100*SUBTESTS_LEAK/SUBTESTS_DONE))
- echo "Tests Leaked $TESTS_LEAK ($pc % of subtests)"
-
- pc=$((100*SUBTESTS_EXEC_NA/SUBTESTS_DONE))
- echo "Tests Unknown $TESTS_EXEC_NA ($pc % of subtests)"
-
- if [ $SUBTESTS_HASH != 0 ] ; then
-  pc=$((100*SUBTESTS_HASH_FAIL/SUBTESTS_DONE))
-  echo "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc % of subtests)"
+ if [ $SUBTESTS_FAIL != 0 ] ; then
+  pc=$((100*SUBTESTS_FAIL/SUBTESTS_DONE))
+  log $L_ERR "Tests failed $TESTS_FAILED ($pc % of subtests)"
  fi
-fi
+
+ if [ $SUBTESTS_LEAK != 0 ] ; then
+  pc=$((100*SUBTESTS_LEAK/SUBTESTS_DONE))
+  log $L_WAR "Tests Leaked $TESTS_LEAK ($pc % of subtests)"
+ fi
+
+ if [ $SUBTESTS_EXEC_NA != 0 ] ; then
+  pc=$((100*SUBTESTS_EXEC_NA/SUBTESTS_DONE))
+  log $L_WAR "Tests Unknown $TESTS_EXEC_NA ($pc % of subtests)"
+ fi
+
+ if [ $SUBTESTS_HASH_FAIL != 0 ] ; then
+  pc=$((100*SUBTESTS_HASH_FAIL/SUBTESTS_DONE))
+  log $L_WAR "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc % of subtests)"
+ fi
+
+ if [ $SUBTESTS_HASH_MISSING != 0 ] ; then
+  pc=$((100*SUBTESTS_HASH_MISSING/$SUBTESTS_HASH))
+  log $L_WAR "Missing hashes $SUBTESTS_HASH_MISSING / $SUBTESTS_HASH ($pc % )"
+ fi
+
 
 fi
 
 end=`$GNU_DATE +%s%N`
 runtime=$((end-start))
-runtime=$(($runtime / 1000000))
-echo "Generation done in $runtime milliseconds"
+
+ms=$(($runtime / 1000000))
+secs=$(($ms / 1000))
+ms=$(($ms - $secs*1000))
+h=$(($secs / 3600))
+secs=$(($secs - $h*3600))
+m=$(($secs / 60))
+secs=$(($secs - $m*60))
+
+printf "Generation done in %02d:%02d:%02d:%03d\n" $h $m $secs $ms
 
 }
 
@@ -1173,9 +1285,14 @@ ctrl_c_trap() {
 
 #run our tests
 if [ -n "$url_arg" ] ; then
+ current_script=$url_arg
  source $url_arg
 else
  for i in $SCRIPTS_DIR/*.sh ; do
+  if [ $verbose = 1 ] ; then
+   log $L_DEB "Source script: $i"
+  fi
+  current_script=$i
   source $i
 
   #break if error and error
@@ -1192,7 +1309,8 @@ fi
 #wait for all tests to be done, since some tests may use subshells
 wait
 
-if [ $check_names != 0 ] ; then
+if [ $check_only != 0 ] ; then
+ rm -rf $TEMP_DIR/* 2> /dev/null
  exit
 fi
 
