@@ -43,7 +43,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private static Sensor accelerometer;    //base sensor
     private static Sensor magnetometer;     //base sensor
-    private static Sensor gyroscope;        //base sensor
     //TODOk implement this
     //private static Sensor rotationVector;   //composite sensor
 
@@ -51,30 +50,22 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private Display displayDev;
 
     private boolean newOrientation = false; //auto-set to true when new Rotation arrives (from acc), auto-set to false when rotation is sent to player
-    private boolean initGyro = true;   //when gyro is initialized it is set to false
 
     private Timer fuseTimer = new Timer();
 
     private float[] acceleration = {0.0f, 0.0f, 0.0f};  //holds acceleration values (g)
     private float[] magnetic = {0.0f, 0.0f, 0.0f};      //holds magnetic field values (μT)
-    private float[] gyro = {0.0f, 0.0f, 0.0f};          //hold gyroscope values (rad/s)
     private float[] orientation = {0.0f, 0.0f, 0.0f};   //from acc+magn
-    private float[] gyroOrientation = {0.0f, 0.0f, 0.0f};
-    private float[] fusedOrientation = {0.0f, 0.0f, 0.0f};  //from acc+magn+gyro
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
-    private float gyroTimestamp = 0;
 
     private float rotationMx[] = new float[9];
     private float rotationMxRaw[] = new float[9];
-    private float[] gyroMx = {1.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f};    //init to identity
 
     private static final String LOG_TAG = "GPAC SensorServices";
     private static final float _PI_ = (float) Math.PI;
 
     private static final float EPSILON = 0.000000001f;
     private static final float NS2S = 1.0f / 1000000000.0f;
-
-    private boolean useGyroscope;   //automatically set to true, if gyroscope sensor is detected
 
 
     /**
@@ -87,19 +78,14 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        gyroscope = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-
-        if (magnetometer == null || accelerometer == null)
-            Log.e(LOG_TAG, "No Accelerometer and/or Magnetic Field sensors found"); //TODOk handle this - rollback to manual navigation
-
-        if (gyroscope != null) {
-            useGyroscope = true;
-        } else {
-            Log.i(LOG_TAG, "No Gyroscope found - using only Accelerometer and Magnetic Field");
-        }
 
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         displayDev = wm.getDefaultDisplay();
+
+
+        if (magnetometer == null || accelerometer == null){
+                Log.e(LOG_TAG, "No Accelerometer and/or Magnetic Field sensors found"); //TODOk handle this - rollback to manual navigation
+        }
 
     }
 
@@ -111,11 +97,11 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      * Register sensors to start receiving data
      */
     public void registerSensors() {
-        sensorManager.registerListener(this, magnetometer, SENSOR_DELAY);
-        sensorManager.registerListener(this, accelerometer, SENSOR_DELAY);
-        if (useGyroscope) {
-            sensorManager.registerListener(this, gyroscope, SENSOR_DELAY);
-            fuseTimer.scheduleAtFixedRate(new calculateFusedOrientationTask(), 1000, TIME_CONSTANT);
+
+
+        if(magnetometer != null && accelerometer != null){
+            sensorManager.registerListener(this, magnetometer, SENSOR_DELAY);
+            sensorManager.registerListener(this, accelerometer, SENSOR_DELAY);
         }
     }
 
@@ -135,24 +121,22 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         switch (event.sensor.getType()) {
             case Sensor.TYPE_ACCELEROMETER:
                 newevent=true;
-                acceleration = event.values;
+                acceleration = event.values.clone();
+                Log.v(LOG_TAG, "Received Acc - x: " + acceleration[0] + " , y: " + acceleration[1] + " , z: " + acceleration[2]);
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 newevent=true;
-                magnetic = event.values;
-                break;
-            case Sensor.TYPE_GYROSCOPE:
-                gyro = event.values;
-                if (newOrientation) updateGyroscope((float) event.timestamp);
+                magnetic = event.values.clone();
+                Log.v(LOG_TAG, "Received Mag - x: " + magnetic[0] + " , y: " + magnetic[1] + " , z: " + magnetic[2]);
                 break;
             default:
                 return;
         }
         if(newevent){
-                newOrientation = calculateRotationMx();
-                if (!newOrientation) return;
-                calculateOrientation();
-                if (!useGyroscope) updateOrientation();
+            newOrientation = calculateRotationMx();
+            if (!newOrientation) return;
+            calculateOrientation();
+            updateOrientation();
         }
     }
 
