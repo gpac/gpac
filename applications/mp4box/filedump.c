@@ -3031,7 +3031,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		}
 	}
 
-
 	gf_fseek(src, 0, SEEK_END);
 	fsize = gf_ftell(src);
 	gf_fseek(src, 0, SEEK_SET);
@@ -3044,7 +3043,7 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		gf_m2ts_process_data(ts, data, size);
 		if (dumper.has_seen_pat) break;
 	}
-	dumper.has_seen_pat = 1;
+	dumper.has_seen_pat = GF_TRUE;
 
 	if (prog_num) {
 		sprintf(dumper.timestamps_info_name, "%s_prog_%d_timestamps.txt", mpeg2ts_file, prog_num/*, mpeg2ts_file*/);
@@ -3060,7 +3059,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	gf_fseek(src, 0, SEEK_SET);
 	fdone = 0;
 
-
 	while (!feof(src)) {
 		size = (u32) fread(data, 1, 188, src);
 		if (size<188) break;
@@ -3070,7 +3068,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 		fdone += size;
 		gf_set_progress("MPEG-2 TS Parsing", fdone, fsize);
 	}
-
 
 	gf_fclose(src);
 	gf_m2ts_demux_del(ts);
@@ -3083,7 +3080,6 @@ void dump_mpeg2_ts(char *mpeg2ts_file, char *out_name, Bool prog_num)
 	}
 #endif
 	if (dumper.timestamps_info_file) gf_fclose(dumper.timestamps_info_file);
-
 }
 
 
