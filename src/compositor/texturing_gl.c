@@ -75,6 +75,8 @@ struct __texture_wrapper
 	//0: not paused, 1: paused, 2: initial pause has been done
 	u32 init_pause_status;
 	Bool conv_to_8bit;
+	char *conv_data;
+
 	/*3D texturing*/
 #ifndef GPAC_DISABLE_3D
 	/*opengl texture id*/
@@ -82,7 +84,6 @@ struct __texture_wrapper
 	u32 blend_mode;
 	u32 rescale_width, rescale_height;
 	char *scale_data;
-	char *conv_data;
 	Fixed conv_wscale, conv_hscale;
 	u32 conv_format, conv_w, conv_h;
 
@@ -127,9 +128,14 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 			
 			if (txh->raw_memory)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 2 * sizeof(char)* txh->stride * txh->height);
-		}		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
 			txh->stride /= 2;
-			txh->tx_io->conv_to_8bit = GF_TRUE;			txh->pixelformat = GF_PIXEL_YUV444;			if (txh->raw_memory)				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);		}
+			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->pixelformat = GF_PIXEL_YUV444;
+			if (txh->raw_memory)
+				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);
+		}
 	}
 	return GF_OK;
 }
@@ -150,8 +156,9 @@ static void release_txio(struct __texture_wrapper *tx_io)
 	if (tx_io->v_pbo_id) glDeleteBuffers(1, &tx_io->v_pbo_id);
 
 	if (tx_io->scale_data) gf_free(tx_io->scale_data);
-	if (tx_io->conv_data) gf_free(tx_io->conv_data);
 #endif
+
+	if (tx_io->conv_data) gf_free(tx_io->conv_data);
 
 #ifdef GF_SR_USE_DEPTH
 	if (tx_io->depth_data) gf_free(tx_io->depth_data);
