@@ -7684,7 +7684,7 @@ static void m2ts_set_track_mpeg4_creation_info(GF_MediaImporter *import, u32 *mt
 
 static void m2ts_create_track(GF_TSImport *tsimp, u32 mtype, u32 stype, u32 oti, u32 mpeg4_es_id, Bool is_in_iod)
 {
-	GF_MediaImporter *import= (GF_MediaImporter *)tsimp->import;
+	GF_MediaImporter *import = (GF_MediaImporter *)tsimp->import;
 	if (mtype != GF_ISOM_MEDIA_ESM) {
 		u32 di;
 		Bool destroy_esd = GF_FALSE;
@@ -8094,6 +8094,11 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 				mtype = GF_ISOM_MEDIA_AUDIO;
 				stype = GF_STREAM_AUDIO;
 				oti = GPAC_OTI_AUDIO_AC3;
+				break;
+			case GF_M2TS_AUDIO_EC3:
+				mtype = GF_ISOM_MEDIA_AUDIO;
+				stype = GF_STREAM_AUDIO;
+				oti = GPAC_OTI_AUDIO_EAC3;
 				break;
 			case GF_M2TS_SYSTEMS_MPEG4_PES:
 			case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
