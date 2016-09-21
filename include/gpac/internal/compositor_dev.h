@@ -647,8 +647,6 @@ typedef struct _gf_sc_texture_handler
 	Bool raw_memory;
 	u8 *pU, *pV;
 	u32 nb_frames, upload_time;
-	Bool conv_to_8bit;
-	char *conv_buffer;
 	GF_MediaDecoderFrame *frame;
 
 #ifndef GPAC_DISABLE_VRML
