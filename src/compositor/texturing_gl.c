@@ -950,10 +950,12 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d)
 {
 #ifndef GPAC_DISABLE_3D
+	u32 ck;
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
 	u32 pixel_format, w, h;
+	u32 push_time;
 #endif
 
 	if (for2d) {
@@ -1023,6 +1025,10 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 #endif
 
+
+	push_time = gf_sys_clock();
+
+
 #ifdef GPAC_USE_TINYGL
 	glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 
@@ -1033,11 +1039,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	/*pow2 texture or hardware support*/
 	if (! (txh->tx_io->flags & TX_MUST_SCALE) ) {
 		if (txh->tx_io->yuv_shader) {
-			u32 push_time;
 			u32 stride_luma = txh->stride;
 			u32 stride_chroma = txh->stride_chroma;
 			u8 *pY, *pU, *pV;
-			u32 ck;
 			
 			if (txh->frame && txh->frame->GetGLTexture) {
 				u32 gl_format;
@@ -1063,7 +1067,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				return 1;
+				
+				goto push_exit;
 			}
 			
 			
@@ -1121,8 +1126,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 #endif
 
-			push_time = gf_sys_clock();
-
 			do_tex_image_2d(txh, tx_mode, first_load, pY, stride_luma, w, h, txh->tx_io->pbo_id);
 			GL_CHECK_ERR
 
@@ -1169,16 +1172,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				GL_CHECK_ERR
 			}
 
-			push_time = gf_sys_clock() - push_time;
-
-/*			if (txh->nb_frames==100) {
-				txh->nb_frames = 0;
-				txh->upload_time = 0;
-			}
-*/
-			txh->nb_frames ++;
-			txh->upload_time += push_time;
-
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -1186,10 +1179,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 #endif
 
-#ifndef GPAC_DISABLE_LOGS
-			gf_mo_get_object_time(txh->stream, &ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed Y,U,V textures in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
-#endif
 			txh->tx_io->pbo_pushed = 0;
 		} else {
 			do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
@@ -1232,6 +1221,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 #endif
 
+push_exit:
+
+	push_time = gf_sys_clock() - push_time;
+
+	txh->nb_frames ++;
+	txh->upload_time += push_time;
+
+#ifndef GPAC_DISABLE_LOGS
+			gf_mo_get_object_time(txh->stream, &ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->yuv_shader ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
+#endif
 	return 1;
 
 #endif

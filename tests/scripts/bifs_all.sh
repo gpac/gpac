@@ -1,5 +1,6 @@
 
 #@bt_test execute tests on BT file: BT<->XMT, BT<->MP4, XMT<->MP4,  conversions BT, XMT and MP4 Playback
+#we have to create the mp4 & co in the source dir for playback, as some files use relative URLs not imported during mp4 encoding ...
 bt_test ()
 {
  btfile=$1
@@ -28,7 +29,7 @@ bt_test ()
  esac
 
  #start our test, specifying all hash names we will check
- test_begin "$name" "bt-to-xmt" "xmt-to-bt" "xmt-to-mp4" "bt-to-mp4" "mp4-to-bt" "mp4-to-xmt" "play"
+ test_begin "$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi
@@ -92,11 +93,11 @@ bt_test ()
  #this will sync everything, we can delete after
  test_end
 
- rm $xmtfile
- rm $mp4file
+ rm $xmtfile 2> /dev/null
+ rm $mp4file 2> /dev/null
 
  if [ "$libfile" != "" ] ; then
-  rm $libfile
+  rm $libfile 2> /dev/null
  fi
 
 }

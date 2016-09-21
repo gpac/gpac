@@ -336,6 +336,7 @@ void iloc_del(GF_Box *s)
 		}
 		gf_list_del(ptr->location_entries);
 	}
+	gf_list_del(ptr->location_entries);
 	gf_free(ptr);
 }
 

@@ -47,19 +47,18 @@ mp4_test ()
   do_hint=0 ;;
  *.qcp )
   do_play=0 ;;
+ #no support for hinting or playback yet
+ *.ismt )
+  do_hint=0 && do_play=0 ;;
  esac
 
  name=$(basename $1)
- name=${name%.*}
+# name=${name%.*}
  mp4file="$TEMP_DIR/$name.mp4"
  tmp1="$TEMP_DIR/$name.1.tmp"
  tmp2="$TEMP_DIR/$name.2.tmp"
 
- if [ $do_hint != 0 ] ; then
-  test_begin "mp4box-io-$name" "add" "diso" "dts" "hint" "drtp" "unhint" "play"
- else
-  test_begin "mp4box-io-$name" "add" "diso" "dts" "play"
- fi
+ test_begin "mp4box-io-$name"
 
  if [ $test_skip  = 1 ] ; then
   return
