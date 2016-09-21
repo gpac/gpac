@@ -425,7 +425,7 @@ test_begin ()
 {
   if [ $# -gt 1 ] ; then
    log $L_ERR "> in script $current_script line $BASH_LINENO"
-   log $L_ERR "	@single_test takes only two arguments - wrong call (first arg is $1)"
+   log $L_ERR "	@test_begin takes only two arguments - wrong call (first arg is $1)"
   fi
 
 
@@ -676,12 +676,15 @@ test_end ()
 
  if [ "$result" == "OK" ] ; then
   mv $report "$LOGS_DIR/$TEST_NAME-passed-new.xml"
+
+  echo "$TEST_NAME: $result"
  else
   mv $report "$LOGS_DIR/$TEST_NAME-failed.xml"
   mark_test_error
+
+  log $L_ERR "$TEST_NAME: $result"
  fi
 
- echo "$TEST_NAME: $result"
 }
 
 
