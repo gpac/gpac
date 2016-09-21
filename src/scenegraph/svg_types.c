@@ -343,7 +343,8 @@ void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 {
 	if (!paint) return;
-	if (paint->type == SVG_PAINT_URI && sg) gf_svg_reset_iri(sg, &paint->iri);
+	//always free since we may allocate the iri to ""
+	if (sg) gf_svg_reset_iri(sg, &paint->iri);
 	gf_free(paint);
 }
 
