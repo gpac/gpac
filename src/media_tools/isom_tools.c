@@ -736,6 +736,24 @@ remove_track:
 }
 
 GF_EXPORT
+GF_Err gf_media_make_mmt(GF_ISOFile *mp4, u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value)
+{
+	switch (gf_isom_get_mode(mp4)) {
+	case GF_ISOM_OPEN_EDIT:
+	case GF_ISOM_OPEN_WRITE:
+	case GF_ISOM_WRITE_EDIT:
+		break;
+	default:
+		return GF_BAD_PARAM;
+	}
+
+	gf_isom_set_brand_info(mp4, GF_4CC('M','P','U','F'), 0);
+	gf_isom_add_mpu(mp4, MPU_Seq_number, mpu_asset_id_scheme, mpu_asset_id_lt, mpu_asset_id_value);
+
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_media_make_psp(GF_ISOFile *mp4)
 {
 	u32 i, count;

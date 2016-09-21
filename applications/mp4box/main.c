@@ -159,6 +159,7 @@ typedef struct {
 	const char *name;
 	const char *comment;
 } itunes_tag;
+
 static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_ALBUM_ARTIST, "album_artist", "usage: album_artist=album artist"},
 	{GF_ISOM_ITUNE_ALBUM, "album", "usage: album=name" },
@@ -1479,7 +1480,8 @@ enum
 	GF_ISOM_CONV_TYPE_ISMA_EX,
 	GF_ISOM_CONV_TYPE_3GPP,
 	GF_ISOM_CONV_TYPE_IPOD,
-	GF_ISOM_CONV_TYPE_PSP
+	GF_ISOM_CONV_TYPE_PSP,
+	GF_ISOM_CONV_TYPE_MMT
 };
 
 
@@ -1850,6 +1852,12 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
+Bool mpu_is_complete=0;
+Bool mpu_is_adcpresent=0;
+u32 mpu_seq_number=0;
+u32 mpu_asset_id_scheme=0;
+u32 mpu_asset_id_length=0;
+u8 mpu_asset_id_value[32]; /*Assuming worst case (ie: 128 bits coded UUID)*/
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3288,6 +3296,29 @@ Bool mp4box_parse_args(int argc, char **argv)
 			dash_profile_extension = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-mmt-seq-num")) {
+			CHECK_NEXT_ARG
+			mpu_seq_number = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-mmt-asset-id-scheme")) {
+			CHECK_NEXT_ARG
+			mpu_asset_id_scheme = atoi(argv[i + 1]);
+			i++;
+		}
+		else if (!stricmp(arg, "-mmt-asset-id-value")) {
+			CHECK_NEXT_ARG
+			mpu_asset_id_length = strlen(argv[i + 1]);
+			if(mpu_asset_id_length>32){
+				fprintf(stderr, "\tWARNING: Warning, MMT Asset id length > 128 bits, unexpected usage \n)");
+				return 2;
+			}
+			int u=0;
+			for(;u<mpu_asset_id_length;u++)
+				mpu_asset_id_value[i]=argv[i+1][u];
+			conv_type=GF_ISOM_CONV_TYPE_MMT;
+			i++;
+		}
 		else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
 			if ((arg[13] == '=') && arg[14]) {
@@ -4518,6 +4549,13 @@ int mp4boxMain(int argc, char **argv)
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 		}
+		if (conv_type == GF_ISOM_CONV_TYPE_MMT) {
+			fprintf(stderr, "Converting to MMT file...\n");
+			e = gf_media_make_mmt(file, mpu_seq_number,mpu_asset_id_scheme, mpu_asset_id_length, mpu_asset_id_value);
+			if (e) goto err_exit;
+			needSave = GF_TRUE;
+		}
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
 			u32 major_brand = 0;

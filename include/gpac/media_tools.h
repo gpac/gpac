@@ -387,6 +387,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *file);
 */
 GF_Err gf_media_make_psp(GF_ISOFile *file);
 
+/*!
+ Make the file MMT compliant
+ \param file the target movie
+ \return error if any
+ */
+GF_Err gf_media_make_mmt(GF_ISOFile *mp4,u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value);
+
 /*! @} */
 
 /*!

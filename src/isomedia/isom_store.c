@@ -1187,12 +1187,19 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 		e = gf_isom_box_write((GF_Box *)movie->brand, bs);
 		if (e) goto exit;
 	}
+	if (movie->mpu) {
+		e = gf_isom_box_size((GF_Box *)movie->mpu);
+		if (e) goto exit;
+		e = gf_isom_box_write((GF_Box *)movie->mpu, bs);
+		if (e) goto exit;
+	}
 	if (movie->pdin) {
 		e = gf_isom_box_size((GF_Box *)movie->pdin);
 		if (e) goto exit;
 		e = gf_isom_box_write((GF_Box *)movie->pdin, bs);
 		if (e) goto exit;
 	}
+
 
 	e = DoInterleave(mw, writers, bs, 1, gf_bs_get_position(bs), drift_inter);
 	if (e) goto exit;
