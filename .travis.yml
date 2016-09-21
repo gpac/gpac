@@ -11,7 +11,6 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install lcov ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /Library/Caches/Homebrew; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install coreutils gnu-time gnu-sed gnu-tar xz lcov; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
