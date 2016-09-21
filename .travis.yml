@@ -10,9 +10,11 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libavdevice-dev libmozjs185-dev ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install lcov ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew update; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install coreutils gnu-time gnu-sed gnu-tar xz lcov; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /Library/Caches/Homebrew; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install coreutils gnu-time gnu-sed gnu-tar xz lcov; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
 env:
   - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/all --enable-debug --disable-all" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
