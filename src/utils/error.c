@@ -85,7 +85,7 @@ static u64 prev_pc = 0;
 static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
-	u32 pos;
+	u32 pos, pc;
 	const char *szT = _title ? (char *)_title : (char *) "";
 	prog = (double) done;
 	prog /= total;
@@ -95,6 +95,13 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 		prev_pos = 0;
 		prev_pc = 0;
 	}
+	pc = (u32) ( 100 * prog);
+	if ((pos!=prev_pos) || (pc!=prev_pc)) {
+		prev_pos = pos;
+		prev_pc = pc;
+		fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
+		fflush(stderr);
+	}
 	if (done==total) {
 		u32 len = (u32) strlen(szT) + 40;
 		while (len) {
@@ -102,15 +109,6 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 			len--;
 		};
 		fprintf(stderr, "\r");
-	}
-	else {
-		u32 pc = (u32) ( 100 * prog);
-		if ((pos!=prev_pos) || (pc!=prev_pc)) {
-			prev_pos = pos;
-			prev_pc = pc;
-			fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
-			fflush(stderr);
-		}
 	}
 }
 

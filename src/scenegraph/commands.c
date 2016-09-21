@@ -225,7 +225,8 @@ GF_Err gf_sg_command_apply(GF_SceneGraph *graph, GF_Command *com, Double time_of
 		if (!gf_list_count(com->command_fields)) return GF_OK;
 		inf = (GF_CommandField*)gf_list_get(com->command_fields, 0);
 		e = gf_node_replace(com->node, inf->new_node, 0);
-		if (inf->new_node) gf_node_register(inf->new_node, NULL);
+		//TOCHECK - this is commented as registering shouldn't happen (already done at command creation) and creates mem leak
+//		if (inf->new_node) gf_node_register(inf->new_node, NULL);
 		break;
 
 	case GF_SG_MULTIPLE_REPLACE:

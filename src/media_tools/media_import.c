@@ -5728,6 +5728,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 	gf_bs_del(bs);
 	gf_isom_oinf_del_entry(oinf);
 	gf_isom_add_sample_group_info(file, track, GF_4CC( 'o', 'i', 'n', 'f'), data, data_size, GF_TRUE, &di);
+	gf_free(data);
 	return GF_OK;
 }
 

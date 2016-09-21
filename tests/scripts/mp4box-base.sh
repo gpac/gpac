@@ -1,33 +1,9 @@
 
-test_begin "mp4box-base-help"
 
-do_test "$MP4BOX -version" "Version" &
-do_test "$MP4BOX -h" "Help" &
-do_test "$MP4BOX -h general" "HelpGeneral" &
-do_test "$MP4BOX -h hint" "HelpHint" &
-do_test "$MP4BOX -h dash" "HelpDash" &
-do_test "$MP4BOX -h import" "HelpImport" &
-do_test "$MP4BOX -h encode" "HelpEncode" &
-do_test "$MP4BOX -h meta" "HelpMeta" &
-do_test "$MP4BOX -h extract" "HelpExtract" &
-do_test "$MP4BOX -h dump" "HelpDump" &
-do_test "$MP4BOX -h swf" "HelpSwf" &
-do_test "$MP4BOX -h crypt" "HelpCrypt" &
-do_test "$MP4BOX -h format" "HelpFormat" &
-do_test "$MP4BOX -h rtp" "HelpRtp" &
-do_test "$MP4BOX -h live" "HelpLive" &
-do_test "$MP4BOX -h all" "HelpAll" &
-do_test "$MP4BOX -nodes" "Nodes" &
-do_test "$MP4BOX -node AnimationStream" "NodeAnimStream" &
-do_test "$MP4BOX -xnodes" "Xnodes" &
-do_test "$MP4BOX -xnode" "ElevationGrid" &
-do_test "$MP4BOX -snodes" "Snodes" &
-do_test "$MP4BOX -languages" "Languages" &
-
-test_end
-
-test_begin "mp4box-base-dump" "create-mp4" "create-dref-mp4" "raw-264" "raw-aac" "raw-text" "srt-text" "ttxt-text" "raw-sample" "flat-storage" "interleave-250ms" "frag-1s"
-if [ $test_skip != 1 ] ; then
+test_begin "mp4box-base-dump"
+if [ $test_skip = 1 ] ; then
+ return
+fi
 
 mp4file="$TEMP_DIR/test.mp4"
 do_test "$MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -add $MEDIA_DIR/auxiliary_files/subtitle_fr.srt:lang=fra -new $mp4file" "create-mp4"
@@ -58,7 +34,7 @@ n=${n#0}
 if [ $n != 173 ] ; then
 result="Wrong sample count $n (expected 173)"
 fi
-rm test_track*
+rm test_track* 2&>/dev/null
 cd $main_dir/
 
 do_test "$MP4BOX -info 1 $mp4file" "InfoTk1"
@@ -77,8 +53,35 @@ do_hash_test $mp4file "interleave-250ms"
 do_test "$MP4BOX -rb iso6 -frag 1000 $mp4file" "frag-1s"
 do_hash_test $mp4file "frag-1s"
 
-fi
-
 test_end
 
+#commented out since not very usefull, always changing and not impacting coverage
+return
+
+test_begin "mp4box-base-help"
+
+do_test "$MP4BOX -version" "Version" &
+do_test "$MP4BOX -h" "Help" &
+do_test "$MP4BOX -h general" "HelpGeneral" &
+do_test "$MP4BOX -h hint" "HelpHint" &
+do_test "$MP4BOX -h dash" "HelpDash" &
+do_test "$MP4BOX -h import" "HelpImport" &
+do_test "$MP4BOX -h encode" "HelpEncode" &
+do_test "$MP4BOX -h meta" "HelpMeta" &
+do_test "$MP4BOX -h extract" "HelpExtract" &
+do_test "$MP4BOX -h dump" "HelpDump" &
+do_test "$MP4BOX -h swf" "HelpSwf" &
+do_test "$MP4BOX -h crypt" "HelpCrypt" &
+do_test "$MP4BOX -h format" "HelpFormat" &
+do_test "$MP4BOX -h rtp" "HelpRtp" &
+do_test "$MP4BOX -h live" "HelpLive" &
+do_test "$MP4BOX -h all" "HelpAll" &
+do_test "$MP4BOX -nodes" "Nodes" &
+do_test "$MP4BOX -node AnimationStream" "NodeAnimStream" &
+do_test "$MP4BOX -xnodes" "Xnodes" &
+do_test "$MP4BOX -xnode" "ElevationGrid" &
+do_test "$MP4BOX -snodes" "Snodes" &
+do_test "$MP4BOX -languages" "Languages" &
+
+test_end
 

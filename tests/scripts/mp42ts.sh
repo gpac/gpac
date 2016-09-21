@@ -11,7 +11,7 @@ tsfile="$TEMP_DIR/test.ts"
 ts_test ()
 {
 
-test_begin "mp42ts-$1" "file" "play"
+test_begin "mp42ts-$1"
 if [ $test_skip  = 1 ] ; then
 return
 fi

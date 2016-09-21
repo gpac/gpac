@@ -969,7 +969,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		f = gf_fopen(file, "rt");
 		if (!f) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot open m3u8 file %s for reading\n", file));
-			return GF_SERVICE_ERROR;
+			return GF_URL_ERROR;
 		}
 	}
 	if (*playlist == NULL) {
