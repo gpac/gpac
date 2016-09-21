@@ -410,7 +410,7 @@ static Bool gf_odm_check_cb_resize(GF_MediaObject *mo, GF_Codec *codec)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
 {
 	GF_Codec *codec;
 	u32 force_decode_mode = 0;
@@ -543,7 +543,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32
 
 	if (skip_resync) {
 		resync=GF_MO_FETCH;
-		if (/*gf_clock_is_started(mo->odm->codec->ck) && */ (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time) ) {
+		//we are in no resync mode, drop current frame once played and object time just matured
+		//do it only if clock is started or if compositor step mode is set
+		//the time threshold for fecthing should is given by the caller
+		if ( (gf_clock_is_started(codec->ck) || mo->odm->term->compositor->step_mode)
+
+			&& (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS + upload_time_ms <= obj_time) ) {
+			
 			gf_cm_drop_output(codec->CB);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %u now %u\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
 			CU = gf_cm_get_output(codec->CB);
@@ -723,7 +729,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 			drop_mode=1;
 		else
 	*/
-	if (mo->odm->codec->CB->no_allocation)
+	if (mo->odm->codec->CB->no_allocation && (mo->odm->codec->CB->Capacity==1) )
 		drop_mode = 1;
 
 

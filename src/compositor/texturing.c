@@ -158,17 +158,26 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
 
-		if (txh->compositor->output_as_8bit && txh->stride >= 2*txh->width) {
-			txh->stride /= 2;
-			txh->conv_to_8bit = GF_TRUE;
+		//fixme this should be moved to txio object (texturing_gl.c)	
+		if (txh->compositor->output_as_8bit) {
 			if (txh->pixelformat == GF_PIXEL_YV12_10) {
+				txh->stride /= 2;
+				txh->conv_to_8bit = GF_TRUE;
 				txh->pixelformat = GF_PIXEL_YV12;
 				txh->conv_buffer = (char*) gf_realloc(txh->conv_buffer, 3*sizeof(char)* txh->stride * txh->height /2);
 			}
 			else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
+				txh->stride /= 2;
+				txh->conv_to_8bit = GF_TRUE;
 				txh->pixelformat = GF_PIXEL_YUV422;
 				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 2 * sizeof(char)* txh->stride * txh->height );
-			}			else if (txh->pixelformat == GF_PIXEL_YUV444_10) {				txh->pixelformat = GF_PIXEL_YUV444;				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 3* sizeof(char)* txh->stride * txh->height);			}
+			}
+			else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
+				txh->stride /= 2;
+				txh->conv_to_8bit = GF_TRUE;
+				txh->pixelformat = GF_PIXEL_YUV444;
+				txh->conv_buffer = (char*)gf_realloc(txh->conv_buffer, 3* sizeof(char)* txh->stride * txh->height);
+			}
 		}
 
 		if (private_media) {
@@ -196,7 +205,7 @@ GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	Bool needs_reload = 0;
-	u32 size, ts;
+	u32 size, ts, push_time;
 	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
@@ -219,14 +228,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
+	//if first frame use 20ms as upload time
+	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
+	
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
 	} else if (size && txh->size && (size != txh->size)) {
 		needs_reload = 1;
 	}
-
+	
 	if (needs_reload) {
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
