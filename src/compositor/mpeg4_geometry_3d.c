@@ -195,7 +195,7 @@ static void TraverseSphere(GF_Node *n, void *rs, Bool is_destroy)
 		u32 min_x, max_x, min_y, max_y;
 		GF_TextureHandler *txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
 		
-		if (!txh->stream) return;
+		if (!txh || !txh->stream) return;
 		
 		if (!gf_mo_get_srd_info(txh->stream, &vrinfo) || !vrinfo.is_tiled_srd)
 			return;

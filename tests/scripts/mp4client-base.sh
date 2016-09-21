@@ -58,7 +58,7 @@ single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=h
 
 # misc MP4Client tests
 outfile=$TEMP_DIR/bifs-od-language-code.mp4
-$MP4Box -mp4 $MEDIA_DIR/bifs/bifs-od-language-code.bt -out $outfile
+$MP4BOX -mp4 $MEDIA_DIR/bifs/bifs-od-language-code.bt -out $outfile 2> /dev/null
 single_playback_test "-opt Systems:Language3CC=fre -opt Systems:Language2CC=fr -no-save $outfile" "mp4client-lang-fr"
 rm $outfile 2> /dev/null
 

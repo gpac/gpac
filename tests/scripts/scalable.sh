@@ -3,13 +3,19 @@
 scalable_test()
 {
 testname=$(basename "$1" | cut -d '.' -f1)
+
+
+test_begin $testname
+ if [ $test_skip  = 1 ] ; then
+  return
+ fi
+
 mp4file="$TEMP_DIR/$testname.mp4"
 splitfile="$TEMP_DIR/$testname-split.mp4"
 mergefile="$TEMP_DIR/$testname-merge.mp4"
 
 $MP4BOX -add $1 -new $mp4file 2> /dev/null
 
-test_begin $testname "split" "merge" "play"
 do_test "$MP4BOX -add "$1:svcmode=split" -new $splitfile" "Split"
 do_hash_test $splitfile "split"
 

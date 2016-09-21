@@ -397,6 +397,7 @@ typedef struct
 	char *buffer;
 	u32 pos;
 	u32 size;
+	png_byte **rows;
 } GFpng;
 
 static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
@@ -422,7 +423,6 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	GFpng udta;
 	png_struct *png_ptr;
 	png_info *info_ptr;
-	png_byte **rows = NULL;
 	u32 i, stride, out_size;
 	png_bytep trans_alpha;
 	int num_trans;
@@ -435,7 +435,8 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	udta.buffer = png;
 	udta.size = png_size;
 	udta.pos = 0;
-
+	udta.rows=NULL;
+	
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
 	info_ptr = png_create_info_struct(png_ptr);
@@ -446,7 +447,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
-		if (rows) gf_free(rows);
+		if (udta.rows) gf_free(udta.rows);
 		return GF_IO_ERR;
 	}
 	png_set_read_fn(png_ptr, &udta, (png_rw_ptr) gf_png_user_read_data);
@@ -501,13 +502,13 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	/*read*/
 	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
-	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
+	udta.rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
-		rows[i] = (png_bytep)dst + i*stride;
+		udta.rows[i] = (png_bytep)dst + i*stride;
 	}
-	png_read_image(png_ptr, rows);
+	png_read_image(png_ptr, udta.rows);
 	png_read_end(png_ptr, NULL);
-	gf_free(rows);
+	gf_free(udta.rows);
 
 	png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 	png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);

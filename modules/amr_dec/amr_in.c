@@ -144,7 +144,7 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 	read->start_offset = 6;
 	read->sample_rate = 8000;
 	read->block_size = 160;
-	i = fread(magic, 1, 20, read->stream);
+	i = (u32) fread(magic, 1, 20, read->stream);
 	if (i != 20) return GF_FALSE;
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
@@ -522,7 +522,7 @@ fetch_next:
 		read->data = (unsigned char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = toc;
 		if (read->data_size>1) {
-			u32 bytes_read = fread(read->data + 1, read->data_size-1, 1, read->stream);
+			u32 bytes_read = (u32) fread(read->data + 1, read->data_size-1, 1, read->stream);
 			if (bytes_read != read->data_size - 1) read->data_size = bytes_read+1; 
 		}
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);

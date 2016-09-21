@@ -78,6 +78,7 @@ typedef struct
 	u32 vosh_size;
 	
 	//NAL-based specific
+	Bool is_avc;
 	Bool is_annex_b;
 	char *cached_annex_b;
 	u32 cached_annex_b_size;
@@ -85,6 +86,7 @@ typedef struct
 	GF_List *SPSs, *PPSs;
 	s32 active_sps, active_pps;
 	AVCState avc;
+	Bool check_h264_isma;
 
 	//openGL output
 #ifdef GPAC_IPHONE
@@ -467,6 +469,8 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
 		ctx->SPSs = gf_list_new();
 		ctx->PPSs = gf_list_new();
+		ctx->is_avc = GF_TRUE;
+		ctx->check_h264_isma = GF_TRUE;
 
 		ctx->avc.sps_active_idx = -1;
 		
@@ -743,6 +747,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	OSType type;
 	char *in_data;
 	u32 in_data_size;
+	Bool do_free=GF_FALSE;
 	
 	GF_Err e;
 	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
@@ -800,8 +805,16 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			return GF_OK;
 		}
 	}
+	
+	if (ctx->check_h264_isma) {
+		if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
+			ctx->check_h264_isma=GF_FALSE;
+			ctx->nalu_size_length=0;
+			ctx->is_annex_b=GF_TRUE;
+		}
+	}
 
-	if (ctx->vtb_session) {
+	if (ctx->is_avc && ctx->vtb_session) {
 		if (!ctx->reconfig_needed)
 			VTB_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
 		
@@ -827,6 +840,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	if (ctx->is_annex_b || (!ctx->vtb_session && ctx->nalu_size_length) ) {
+		do_free=GF_TRUE;
 		if (ctx->cached_annex_b) {
 			in_data = ctx->cached_annex_b;
 			in_data_size = ctx->cached_annex_b_size;
@@ -884,7 +898,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 
 	CFRelease(block_buffer);
 	CFRelease(sample);
-	if (ctx->cached_annex_b)
+	if (do_free)
 		gf_free(in_data);
 	
 	if (ctx->last_error) return ctx->last_error;
