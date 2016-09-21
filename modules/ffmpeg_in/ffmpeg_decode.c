@@ -38,6 +38,7 @@
 #define NO_10bit
 #endif
 
+//#define FFMPEG_DIRECT_DISPATCH
 
 /**
  * Allocates data for FFMPEG decoding
@@ -585,7 +586,7 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 		capability->cap.valueBool = GF_TRUE;
 		return GF_OK;
 	case GF_CODEC_FRAME_OUTPUT:
-#if defined(USE_AVCTX3)
+#if defined(USE_AVCTX3) && defined(FFMPEG_DIRECT_DISPATCH)
 		//deactivated by default until we have more tests (stride, color formats)
 		capability->cap.valueBool = GF_FALSE;
 #endif
@@ -1430,7 +1431,7 @@ static GF_Err FFDEC_GetOutputBuffer(GF_MediaDecoder *ifcg, u16 ES_ID, u8 **pY_or
 	return GF_OK;
 }
 
-#if defined(USE_AVCTX3)
+#if defined(USE_AVCTX3) && defined(FFMPEG_DIRECT_DISPATCH)
 
 typedef struct
 {
@@ -1715,7 +1716,7 @@ void *FFDEC_Load()
 	ptr->GetName = FFDEC_GetCodecName;
 	ptr->ProcessData = FFDEC_ProcessData;
 	ptr->GetOutputBuffer = FFDEC_GetOutputBuffer;
-#if defined(USE_AVCTX3)
+#if defined(USE_AVCTX3) && defined(FFMPEG_DIRECT_DISPATCH)
 	ptr->GetOutputFrame = FFDEC_GetOutputFrame;
 #endif
 	

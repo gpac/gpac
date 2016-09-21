@@ -763,7 +763,7 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 	if (a_cfg.has_sbr) {
 		*SampleRate = a_cfg.sbr_sr;
 	}
-
+	gf_odf_desc_del((GF_Descriptor*)esd);
 	return e;
 }
 
