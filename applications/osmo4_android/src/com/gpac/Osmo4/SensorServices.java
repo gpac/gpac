@@ -207,68 +207,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         newOrientation = false;
     }
 
-    /**
-     * Get Rotation Vector from Gyroscope sample
-     * Output is passed back to deltaRotation
-     *
-     * ref: https://developer.android.com/reference/android/hardware/SensorEvent.html#values
-     */
-    private void getRotationFromGyro(float[] in, float[] deltaRotation, float dT) {
-
-        float[] axes = new float[3];    //0: X, 1: Y, 3: Z
-
-        // Calculate the angular speed of the sample
-        float omega = (float) Math.sqrt(in[0] * in[0] + in[1] * in[1] + in[2] * in[2]);
-
-        // Normalize the rotation vector if it's big enough to get the axis
-        if (omega > EPSILON) {
-            axes[0] = in[0] / omega;
-            axes[1] = in[1] / omega;
-            axes[2] = in[2] / omega;
-        }
-
-        float thetaOverTwo = omega * dT / 2.0f;
-        float sinThetaOverTwo = (float) Math.sin(thetaOverTwo);
-        float cosThetaOverTwo = (float) Math.cos(thetaOverTwo);
-        deltaRotation[0] = sinThetaOverTwo * axes[0];
-        deltaRotation[1] = sinThetaOverTwo * axes[1];
-        deltaRotation[2] = sinThetaOverTwo * axes[2];
-        deltaRotation[3] = cosThetaOverTwo;
-    }
-
-    private void updateGyroscope(float newTime) {
-
-        //check if initialization is needed
-        if (initGyro) {
-            float[] initMatrix = new float[9];
-            initMatrix = getRotationMxFromOrientation(orientation);
-            float[] tmp = new float[3];
-            SensorManager.getOrientation(initMatrix, tmp);
-            gyroMx = multiplyMx(gyroMx, initMatrix);
-            initGyro = false;
-        }
-
-        float[] deltaVector = new float[4];
-
-        if (gyroTimestamp != 0) {
-            float dT = (newTime - gyroTimestamp) * NS2S;
-            getRotationFromGyro(gyro, deltaVector, dT);
-        }
-
-        gyroTimestamp = newTime;
-
-        float[] deltaMatrix = new float[9];
-        SensorManager.getRotationMatrixFromVector(deltaMatrix, deltaVector);
-
-        gyroMx = multiplyMx(gyroMx, deltaMatrix);
-
-        SensorManager.getOrientation(gyroMx, gyroOrientation);
-
-        newOrientation = false;
-
-        rend.getInstance().onOrientationChange(-gyroOrientation[0], gyroOrientation[1], -gyroOrientation[2]);
-    }
-
     private float[] getRotationMxFromOrientation(float[] o) {
         float[] xM = new float[9];
         float[] yM = new float[9];
@@ -414,28 +352,5 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     @Override
     public void disconnect() {
     }
-
-    class calculateFusedOrientationTask extends TimerTask {
-        public void run() {
-            float oneMinusCoeff = 1.0f - FILTER_COEFFICIENT;
-            fusedOrientation[0] =
-                    FILTER_COEFFICIENT * gyroOrientation[0]
-                            + oneMinusCoeff * orientation[0];
-
-            fusedOrientation[1] =
-                    FILTER_COEFFICIENT * gyroOrientation[1]
-                            + oneMinusCoeff * orientation[1];
-
-            fusedOrientation[2] =
-                    FILTER_COEFFICIENT * gyroOrientation[2]
-                            + oneMinusCoeff * orientation[2];
-
-            // overwrite gyro matrix and orientation with fused orientation
-            // to comensate gyro drift
-            gyroMx = getRotationMxFromOrientation(fusedOrientation);
-            System.arraycopy(fusedOrientation, 0, gyroOrientation, 0, 3);
-        }
-    }
-
 
 }
