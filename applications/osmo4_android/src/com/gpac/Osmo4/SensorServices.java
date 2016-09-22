@@ -22,7 +22,11 @@ import android.hardware.SensorManager;
  */
 public class SensorServices implements SensorEventListener, GPACInstanceInterface {
 
-    //Startof Options
+    //automatically set to true, if TYPE_ROTATION_VECTOR sensor is detected
+    //NOTE: this is a composite sensor; does not work with fusion
+    private boolean useRotationVector;
+
+//Startof Options
     private static final int SENSOR_DELAY = SensorManager.SENSOR_DELAY_FASTEST;   // 0: SENSOR_DELAY_FASTEST, 1: SENSOR_DELAY_GAME, 2: SENSOR_DELAY_UI, 3: SENSOR_DELAY_NORMAL
 
     private static final boolean USE_ORIENTATION_FILTER = true;       //if true smoothSensorMeasurement is applied to getOrientation result
@@ -32,19 +36,14 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final float ORIENTATION_FILTER_LVL = 0.04f;
     //threshold to discard orientation x, y, z
     private static final float[] ORIENTATION_THRESHOLD = {0.2f, 0.02f, 0.02f};
-
-    //for sensors fusion filter
-    public static final int TIME_CONSTANT = 30;
-    public static final float FILTER_COEFFICIENT = 0.98f;
-    //Endof Options
+//Endof Options
 
 
     private static SensorManager sensorManager;
 
     private static Sensor accelerometer;    //base sensor
     private static Sensor magnetometer;     //base sensor
-    //TODOk implement this
-    //private static Sensor rotationVector;   //composite sensor
+    private static Sensor rotationSensor;   //composite sensor
 
     protected Osmo4Renderer rend;
     private Display displayDev;
@@ -55,6 +54,7 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
 
     private float[] acceleration = {0.0f, 0.0f, 0.0f};  //holds acceleration values (g)
     private float[] magnetic = {0.0f, 0.0f, 0.0f};      //holds magnetic field values (μT)
+    private float[] rotationValues = {0.0f, 0.0f, 0.0f};//holds rotation vector
     private float[] orientation = {0.0f, 0.0f, 0.0f};   //from acc+magn
     private float[] lastOrient = {0.0f, 0.0f, 0.0f}, prevOrient;
 
@@ -64,9 +64,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private static final String LOG_TAG = "GPAC SensorServices";
     private static final float _PI_ = (float) Math.PI;
 
-    private static final float EPSILON = 0.000000001f;
-    private static final float NS2S = 1.0f / 1000000000.0f;
-
 
     /**
      * Constructor (initialize sensors)
@@ -75,16 +72,26 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      * @return SensorServices object
      */
     public SensorServices(Context context) {
+        //init sensors
         sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
         magnetometer = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        rotationSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
 
+        //init the rest
         WindowManager wm = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
         displayDev = wm.getDefaultDisplay();
 
+        //check sensor availability and select
+        if(rotationSensor!=null){
+            useRotationVector = true;
+            return;
+        }else{
+            Log.w(LOG_TAG, "No Rotation Vector composit sensor found - Switching to Acc+Magn sensors");
+        }
 
         if (magnetometer == null || accelerometer == null){
-                Log.e(LOG_TAG, "No Accelerometer and/or Magnetic Field sensors found"); //TODOk handle this - rollback to manual navigation
+            Log.e(LOG_TAG, "No Accelerometer and/or Magnetic Field sensors found"); //TODOk handle this - rollback to manual navigation
         }
 
     }
@@ -98,10 +105,16 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
      */
     public void registerSensors() {
 
+        if(rotationSensor!=null){
+            sensorManager.registerListener(this, rotationSensor, SENSOR_DELAY);
+            Log.i(LOG_TAG, "Using Rotation Vector sensor for 360navigation");
+            return;
+        }
 
         if(magnetometer != null && accelerometer != null){
             sensorManager.registerListener(this, magnetometer, SENSOR_DELAY);
             sensorManager.registerListener(this, accelerometer, SENSOR_DELAY);
+            Log.i(LOG_TAG, "Using Acceleration & Magnetic Field sensors for 360navigation");
         }
     }
 
@@ -119,15 +132,22 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         boolean newevent = false;
 
         switch (event.sensor.getType()) {
+            case Sensor.TYPE_ROTATION_VECTOR:
+                rotationValues = event.values.clone();
+                newOrientation = calculateRotationMx();
+                if (newOrientation){
+                    float[] tmpOrient = new float[3];
+                    SensorManager.getOrientation(rotationMx, tmpOrient);
+                    rend.getInstance().onOrientationChange(-tmpOrient[0], tmpOrient[1], -tmpOrient[2]);
+                }
+                return;
             case Sensor.TYPE_ACCELEROMETER:
                 newevent=true;
                 acceleration = event.values.clone();
-                Log.v(LOG_TAG, "Received Acc - x: " + acceleration[0] + " , y: " + acceleration[1] + " , z: " + acceleration[2]);
                 break;
             case Sensor.TYPE_MAGNETIC_FIELD:
                 newevent=true;
                 magnetic = event.values.clone();
-                Log.v(LOG_TAG, "Received Mag - x: " + magnetic[0] + " , y: " + magnetic[1] + " , z: " + magnetic[2]);
                 break;
             default:
                 return;
@@ -150,12 +170,23 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
     private boolean calculateRotationMx() {
         boolean gotRotation = false;
 
-        try {
-            gotRotation = SensorManager.getRotationMatrix(rotationMxRaw, null, acceleration, magnetic);
-        } catch (Exception e) {
-            gotRotation = false;
-            Log.e(LOG_TAG, "Error getting rotation matrix" + e.getMessage());
-        }
+
+        if(useRotationVector){
+            try {
+                SensorManager.getRotationMatrixFromVector(rotationMxRaw, rotationValues);
+                gotRotation = true;
+            } catch (Exception e) {
+                gotRotation = false;
+                Log.e(LOG_TAG, "Error getting rotation matrix" + e.getMessage());
+            }
+        }else{
+            try {
+                gotRotation = SensorManager.getRotationMatrix(rotationMxRaw, null, acceleration, magnetic);
+            } catch (Exception e) {
+                gotRotation = false;
+                Log.e(LOG_TAG, "Error getting rotation matrix" + e.getMessage());
+            }
+        }    
 
         if (gotRotation) {
             //NOTE: the rotation considered is according to device natural orientation
@@ -183,7 +214,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         float[] tmpOrient = new float[3];
         SensorManager.getOrientation(rotationMx, tmpOrient);
         orientation = tmpOrient.clone();
-        Log.v(LOG_TAG, "Received Orientation - Yaw: " + orientation[0] + " , Pitch: " + orientation[1] + " , Roll: " + orientation[2]);
     }
 
     private void updateOrientation() {
@@ -196,7 +226,6 @@ public class SensorServices implements SensorEventListener, GPACInstanceInterfac
         if (refreshOrientation) {
             if (USE_ORIENTATION_FILTER) {
                 prevOrient = smoothSensorMeasurement(lastOrient, prevOrient);
-                Log.v(LOG_TAG, "Smoothed Orientation - Yaw: " + prevOrient[0] + " , Pitch: " + prevOrient[1] + " , Roll: " + prevOrient[2]);
             } else {
                 prevOrient = lastOrient;
             }
