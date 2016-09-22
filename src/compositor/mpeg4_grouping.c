@@ -426,6 +426,12 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 	GF_ChildNodeItem *l;
 
 	if (gf_node_dirty_get(node) & GF_SG_CHILD_DIRTY) {
+		//we are drawing 3D object but configured for 2D, force 3D
+		if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
+			tr_state->visual->compositor->root_visual_setup=0;
+			tr_state->visual->compositor->force_type_3d=1;
+		}
+		
 		/*need to recompute bounds*/
 		if (tr_state->traversing_mode!=TRAVERSE_GET_BOUNDS) {
 			/*traverse subtree to recompute bounds*/

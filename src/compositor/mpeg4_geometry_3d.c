@@ -61,6 +61,12 @@ void drawable_3d_base_traverse(GF_Node *n, void *rs, Bool is_destroy, void (*bui
 	case TRAVERSE_PICK:
 		visual_3d_vrml_drawable_pick(n, tr_state, stack->mesh, NULL);
 		return;
+	case TRAVERSE_SORT:
+		//we are drawing 3D object but configured for 2D, force 3D
+		if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
+			tr_state->visual->compositor->root_visual_setup=0;
+			tr_state->visual->compositor->force_type_3d=1;
+		}
 	}
 }
 
