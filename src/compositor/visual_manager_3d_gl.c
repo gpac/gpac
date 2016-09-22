@@ -2401,11 +2401,12 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GF_VisualManager *root_visual = visual->compositor->visual;
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
-
+	u32 num_lights = visual->num_lights;
+	
 	flags = root_visual->glsl_flags;
 
 	if (visual->has_material_2d) {
-		visual->num_lights = 0;
+		num_lights = 0;
 	}
 
 	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
@@ -2420,7 +2421,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	}
 
-	if (visual->num_lights) {
+	if (num_lights) {
 		flags |= GF_GL_HAS_LIGHT;
 	} else {
 		flags &= ~GF_GL_HAS_LIGHT;
@@ -2583,7 +2584,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	//setup mesh normal vertex attribute - only available for some shaders
-	if (!visual->has_material_2d && visual->num_lights && (mesh->mesh_type==MESH_TRIANGLES) ) {
+	if (!visual->has_material_2d && num_lights && (mesh->mesh_type==MESH_TRIANGLES) ) {
 		GF_Matrix normal_mx;
 		assert(flags & GF_GL_HAS_LIGHT);
 
@@ -2610,7 +2611,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)
-			glUniform1i(loc, visual->num_lights);
+			glUniform1i(loc, num_lights);
 		visual_3d_set_lights_shaders(tr_state);
 		GL_CHECK_ERR
 	}
