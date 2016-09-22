@@ -1353,6 +1353,7 @@ int mp4client_main(int argc, char **argv)
 			else if (!strcmp(arg, "-speed")) {
 				playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
 				if (playback_speed <= 0) playback_speed = FIX_ONE;
+				i++;
 			}
 			else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
 			else if (!strcmp(arg, "-no-back")) user.init_flags |= GF_TERM_WINDOW_TRANSPARENT;
