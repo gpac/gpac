@@ -591,6 +591,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
 									gf_odf_desc_del((GF_Descriptor *) cfg);
 									ODS_SetupOD(priv->scene, od);
+								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
+									ODS_SetupOD(priv->scene, od);
 								} else {
 									gf_odf_desc_del((GF_Descriptor *) od);
 								}
