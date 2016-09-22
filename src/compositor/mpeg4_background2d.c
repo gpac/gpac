@@ -191,7 +191,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
-				tr_state->visual->ClearSurface(tr_state->visual, &clip, color, is_offscreen);
+				tr_state->visual->ClearSurface(tr_state->visual, &clip, color, is_offscreen ? 2 : 0);
 			}
 		}
 	}

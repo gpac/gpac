@@ -137,7 +137,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear)
 {
 	SFColor rgb;
 	Fixed alpha = INT2FIX( GF_COL_A(BackColor) )/255;
@@ -151,7 +151,9 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (is_offscreen_clear) {
 		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
 		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
-		if (GF_COL_A(BackColor)) {
+		//if we clear dirty area of the canvas, remember the area to force gl flush 
+		if (GF_COL_A(BackColor) || (is_offscreen_clear==2))
+		{
 			ra_union_rect(&visual->hybgl_drawn, rc);
 		}
 	} else {
@@ -557,7 +559,7 @@ Bool compositor_2d_check_attached(GF_VisualManager *visual)
 	return visual->is_attached;
 }
 
-void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear)
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 offscreen_clear)
 {
 	//visual not attached on main (direct video) visual, use texture bliting
 	if (!visual->is_attached && visual->compositor->video_out->Blit && (visual->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB)) {
