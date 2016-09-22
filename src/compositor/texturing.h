@@ -57,6 +57,9 @@ Bool gf_sc_texture_is_transparent(GF_TextureHandler *txh);
 
 void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh);
 
+/* configures conversion parameters and allocates the conv data buffer*/
+GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh);
+
 /*ALL THE FOLLOWING ARE ONLY AVAILABLE IN 3D AND DEAL WITH OPENGL TEXTURE MANAGEMENT*/
 #ifndef GPAC_DISABLE_3D
 
