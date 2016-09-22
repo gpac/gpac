@@ -155,6 +155,7 @@ typedef struct _JavaEnvTh {
 	jmethodID cbk_onLog;
 	jmethodID cbk_onFmRequest;
 	jmethodID cbk_setLogFile;
+	jmethodID cbk_sensorSwitch;
 } JavaEnvTh;
 
 
@@ -209,6 +210,7 @@ public:
 	void onMouseUp(float x, float y);
 	void onMouseMove(float x, float y);
 	void onKeyPress(int keycode, int rawkeycode, int up, int flag, int unicode);
+	void onOrientationChange(float x, float y, float z);
 	void translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt);
 	void navigate( GF_Event* evt);
 	void setGpacPreference( const char * category, const char * name, const char * value);
