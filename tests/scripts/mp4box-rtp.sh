@@ -30,9 +30,12 @@ mp4file="$TEMP_DIR/test.mp4"
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264:dur=1 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac:dur=1 -new $mp4file 2> /dev/null
 rtp_test "avc-aac" $mp4file
 
+rm $mp4file > /dev/null
+
 
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/count_video.cmp:dur=1 -add $MEDIA_DIR/auxiliary_files/count_english.mp3:dur=1 -new $mp4file 2> /dev/null
 rtp_test "mpeg4p2-mp3" $mp4file
+rm $mp4file > /dev/null
 
 
 if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
@@ -41,4 +44,5 @@ fi
 
 $MP4BOX -add $EXTERNAL_MEDIA_DIR/import/bear_video.263:dur=1 -add $EXTERNAL_MEDIA_DIR/import/bear_audio.amr:dur=1 -new $mp4file 2> /dev/null
 rtp_test "h263-amr" $mp4file
+rm $mp4file > /dev/null
 
