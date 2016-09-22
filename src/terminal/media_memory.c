@@ -332,7 +332,7 @@ static void cb_set_buffer_off(GF_CompositionMemory *cb)
 void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering)
 {
 	/*nothing dispatched, ignore*/
-	if (!cu_size) {
+	if (!cu_size || (!cu->data && !cu->frame) ) {
 		if (cu->frame) {
 			cu->frame->Release(cu->frame);
 			cu->frame = NULL;

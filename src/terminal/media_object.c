@@ -427,7 +427,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (outFrame) *outFrame = NULL;
 	
 	if (!gf_odm_lock_mo(mo)) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock MO, returning\n", mo->odm->OD->objectDescriptorID));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] ODM %d: Failed to lock MO, returning\n", mo->odm ? mo->odm->OD->objectDescriptorID : 0));
 		return NULL;
 	}
 
