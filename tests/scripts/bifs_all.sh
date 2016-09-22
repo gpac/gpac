@@ -38,9 +38,10 @@ bt_test ()
  if [ $test_ui != 0 ] ; then
   has_sensor=`grep Sensor $1 | grep -v TimeSensor | grep -v MediaSensor`
   if [ "$has_sensor" != "" ]; then
-   $MP4BOX -mp4 $btfile -out $TEMP_DIR/test.mp4 2> /dev/null
-   do_ui_test $TEMP_DIR/test.mp4 "play"
-   rm $TEMP_DIR/test.mp4 2> /dev/null
+   #generate in bifs folder because of links in scene
+   $MP4BOX -mp4 $btfile 2> /dev/null
+   do_ui_test $mp4file "play"
+   rm $mp4file 2> /dev/null
   fi
  fi
 
