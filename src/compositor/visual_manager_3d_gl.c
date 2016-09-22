@@ -1393,7 +1393,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_GLES2	//TODOk check for ES2.0
+#ifndef GPAC_USE_GLES2
 
 	if (visual->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -3196,7 +3196,6 @@ static void visual_3d_set_debug_color(u32 col)
 /*note we don't perform any culling for normal drawing...*/
 static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-	//TODOk - allow normal drawing with GLES2 j
 #if !defined( GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 	GF_Vec pt, end;
@@ -3342,7 +3341,6 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	}
 
-	//TODOk - allow normal drawing and wireframe with GLES2 j
 #if !defined(GPAC_USE_GLES2)
 	if (tr_state->visual->compositor->draw_normals) {
 		if (!mesh_drawn) {
@@ -3592,7 +3590,7 @@ void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color)
 {
-	//TODOk - code this for GLES2 j
+	//TODOk - code this for GLES2 ?
 #ifdef GPAC_USE_GLES2
 #else
 
