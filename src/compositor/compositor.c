@@ -2190,7 +2190,10 @@ static void gf_sc_setup_root_visual(GF_Compositor *compositor, GF_Node *top_node
 			compositor->visual->camera.is_3D = 1;
 		}
 		/*request for OpenGL drawing in 2D*/
-		else if (compositor->force_opengl_2d && !compositor->visual->type_3d) {
+		else if ( (compositor->force_opengl_2d && !compositor->visual->type_3d)
+		|| (compositor->hybrid_opengl && compositor->force_type_3d)) {
+
+			compositor->force_type_3d=0;
 			compositor->visual->type_3d = 1;
 			if (compositor->force_opengl_2d==2) force_navigate=1;
 		}

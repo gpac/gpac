@@ -121,6 +121,10 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 			if (tr_state->visual->type_3d)
 				visual_3d_register_context(tr_state, shape->geometry);
+			else if (tr_state->visual->compositor->hybrid_opengl) {
+				tr_state->visual->compositor->root_visual_setup=0;
+				tr_state->visual->compositor->force_type_3d=1;
+			}
 			else
 #endif
 				gf_node_traverse((GF_Node *) shape->geometry, tr_state);
