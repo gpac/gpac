@@ -129,15 +129,75 @@ The error file is named:
 - `$TESTNAME-$SUBTEST-stderr.txt` for subtests run with `do_test` `CMD_LINE``SUBTEST`
 
 ## Customized test 
-To customize a test, a file named `$TESTNAME.sh` can be placed in the gpac/rules directory. It is called before the actual test is run and allows custom variables to be set or overriding a given variable in a batch of tests. Directories variables shall not be modified. Other variables of the test suite documented here are reset at the begining of each test.  
+To customize a test, a file named `$TESTNAME.sh` can be placed in the gpac/rules directory. It is called before the actual test is run and allows custom variables to be set or overriding a given variable in a batch of tests, while still using a single generic test function. Directories variables shall not be modified. Other variables of the test suite documented here are reset at the begining of each test.  
+
+## Testing and caching results
+In order to avoid running all tests again whenever one test fails, the GPAC testing environment caches previous test results. If an XML file corresponding to the test or subtest exists in the results folder, the test or subtest is not run. If you want to ignore previous results, use `make_tests.sh -clean` before running the test suite. If you only want to invalidate tests of a given script, use  `make_tests.sh -clean script.sh` 
+In case a test requires generating files before testing , it is recommended to check the variable `test_skip` to check if the test is being skipped because cached. A typical function looks like:
+
+A typical test with several subtests and hash testing looks like:
+```
+test_begin TESTNAME
+if [ $test_skip = 1 ] ; then
+ return
+fi
+ 
+#create some file or costly operation
+MP4Box -add 4GB.src -new TESTFILE
+do_test CMD_LINE1_USING_TESTFILE "Name1"
+do_test CMD_LINE2 "Name2"
+
+test_end
+```
+In this example, failure to checktest `$test_skip` will make the script import 4GB.src even though all `do_test` calls will be skipped.
+
 
 ## Testing events and interactivity
 The functions `single_playback_test` and `single_playback_test`  may use recorded event traces to test interactivity; the recorded trace file is:
 - $RULES_DIR/${basename $FILE.*}-$SUBTEST-ui.xml
 
-An event trace can be recorded to $SOMEFILE using `MP4Client -opt Validator:Mode=Play -opt Validator:Trace=$SOMEFILE $ARGS`
+The test suite has one UI trace generation mode, and one UI trace playback mode. In these two modes, all subtests are skipped (i.e.  `$test_skip` is  1), and the variable `$test_ui`is set to 1 when recording and 2 when playing. A test may use the `do_ui_test` function to perform UI testing. 
 
-This event trace can be using `MP4Client -opt Validator:Mode=Record -opt Validator:Trace=$SOMEFILE $ARGS`
+### do_ui_test
+Two arguments:
+- `FILE`: the command line to execute
+- `SUBTEST_NAME`: the subtest name as it appears in the logs and in the stats
+
+Performs UI event trace generation on $FILE for the subtest, for a running duration of $dump_dur and an output size $dump_size (see `do_playback_test`). `SUBTEST_NAME` must be the same as one of the playback subtests used in this test. A typicall usage is:
+
+```
+test_begin TESTNAME
+do_ui_test $MEDIA_DIR/somefile "play"
+
+#create some file or costly operation
+do_playback_test $MEDIA_DIR/somefile "play"
+
+test_end
+```
+
+A more complex example with target playback file creation could be
+
+```
+test_begin TESTNAME
+
+if [ $test_ui != 0 ] ; then
+$MP4BOX -mp4 test.bt
+do_ui_test test.mp4 "play"
+rm test.mp4 > /dev/null
+fi
+if [ $test_skip = 1 ] ; then
+ return
+fi
+
+#create some file or costly operation
+do_test "$MP4BOX -mp4 test.bt"
+do_playback_test test.mp4 "play"
+
+test_end
+```
+Note that the file has to be generated
+- before testing cache status since all tests are considered as cached in UI modes
+- manually, since subtests are deactivated when the test is cached
 
 ## Parallel tests with subscripts
 
@@ -160,26 +220,6 @@ function my_test {
 my_test CMD_LINE1 "Name1" &
 my_test CMD_LINE2 "Name2" &
 ```
-
-## Testing and caching results
-In order to avoid running all tests again whenever one test fails, the GPAC testing environment caches previous test results. If an XML file corresponding to the test or subtest exists in the results folder, the test or subtest is not run. If you want to ignore previous results, use `make_tests.sh -clean` before running the test suite. If you only want to invalidate tests of a given script, use  `make_tests.sh -clean script.sh` 
-In case a test requires generating files before testing , it is recommended to check the variable `test_skip`to check if the tests is being skipped because cached. A typical function looks like:
-
-A typical test with several subtests and hash testing looks like:
-```
-test_begin TESTNAME
-if [ $test_skip = 1 ] ; then
- return
-fi
- 
-#create some file or costly operation
-MP4Box -add 4GB.src -new TESTFILE
-do_test CMD_LINE1_USING_TESTFILE "Name1"
-do_test CMD_LINE2 "Name2"
-
-test_end
-```
-In this example, failure to checktest $test_skip will make the script import 4GB.src even though all `do_test` calls will be skipped.
 
 
 ## Testing regressions with hashes
