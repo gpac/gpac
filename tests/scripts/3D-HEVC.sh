@@ -5,7 +5,7 @@ do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/3D-HEVC/stream_bbb.bit:fmt=HEVC -new $
 
 do_hash_test $TEMP_DIR/test.mp4 "import"
 
-do_playback_test "$EXTERNAL_MEDIA_DIR/stream_bbb.mp4" "play"
+do_playback_test "$TEMP_DIR/test.mp4" "play"
 
 test_end
 
