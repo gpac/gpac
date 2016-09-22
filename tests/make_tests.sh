@@ -31,7 +31,7 @@ MP4CLIENT_NOT_FOUND=0
 
 generate_hash=0
 play_all=0
-test_ui=0
+global_test_ui=0
 log_after_fail=0
 verbose=0
 
@@ -150,6 +150,7 @@ echo "  -sync-refs:            syncs all remote reference videos with local base
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
 echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
+echo "  -test=NAME             only executes given test"
 echo "  -v:                    set verbose output"
 echo "  -h:                    print this help"
 }
@@ -195,6 +196,7 @@ disable_hash=0
 strict_mode=0
 track_stack=0
 speed=1
+single_test_name=""
 
 #Parse arguments
 for i in $* ; do
@@ -208,9 +210,9 @@ for i in $* ; do
  "-clean-hash")
    do_clean_hash=1;;
  "-uirec")
-  test_ui=1;;
+  global_test_ui=1;;
  "-uiplay")
-  test_ui=2;;
+  global_test_ui=2;;
  -speed*)
   speed="${i#-speed=}"
   ;;
@@ -236,6 +238,9 @@ for i in $* ; do
   log_after_fail=1;;
  "-track-stack")
   track_stack=1;;
+ -test*)
+  single_test_name="${i#-test=}"
+  ;;
  "-v")
   verbose=1;;
  "-h")
@@ -244,7 +249,7 @@ for i in $* ; do
  -*)
    log $L_ERR "Unknown Option \"$i\" - check usage (-h)"
    exit;;
- default)
+ *)
   if [ -n "$url_arg" ] ; then
    log $L_ERR "More than one input specified - check usage (-h)"
    exit
@@ -258,7 +263,7 @@ done
 if [ $check_only != 0 ] ; then
  do_clean_hash=0
  do_clean=0
- test_ui=0
+ global_test_ui=0
 fi
 
 #Clean all hashes and reference videos
@@ -482,6 +487,7 @@ test_begin ()
  skip_play_hash=0
  subtest_idx=0
  nb_subtests=0
+ test_ui=$global_test_ui
 
  test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
 
@@ -510,6 +516,11 @@ test_begin ()
   if [ -f $TEST_ERR_FILE ] ; then
    test_skip=2
   fi
+ fi
+
+ if [ "$single_test_name" != "" ] && [ "$single_test_name" != "$TEST_NAME" ] ; then
+   test_ui=0
+   test_skip=1
  fi
 
  if [ $test_skip != 0 ] ; then
@@ -1008,6 +1019,11 @@ do_ui_test()
   return
  fi
 
+ if [ "$single_test_name" != "" ] && [ "$single_test_name" != "$TEST_NAME" ] ; then
+   log $L_DEB "skiping ui test $TEST_NAME"
+   return
+ fi
+
  src=$1
  if [ $# -gt 1 ] ; then
   FULL_SUBTEST="$TEST_NAME-$2"
@@ -1020,12 +1036,13 @@ do_ui_test()
 
  if [ $test_ui = 1 ] ; then
   if [ -f $ui_stream ]; then
-   log $L_INF "User input trace present for $FULL_SUBTEST - skipping"
+   log $L_DEB "User input trace present for $FULL_SUBTEST - skipping"
    return
   fi
   echo "Recording user input for $FULL_SUBTEST"
   echo "Recording user input for $FULL_SUBTEST (file $src) into trace $ui_stream" >> $ALL_LOGS
   $MP4CLIENT -run-for $dump_dur -size $dump_size $src -no-save -opt Validator:Mode=Record -opt Validator:Trace=$ui_stream 2>> $ALL_LOGS
+  rv=$?
  else
   if [ ! -f $ui_stream ]; then
    log $L_WAR "User input trace not found for $FULL_SUBTEST - skipping playback"
@@ -1035,6 +1052,14 @@ do_ui_test()
   echo "Playing user input for $FULL_SUBTEST (file $src) from trace $ui_stream" >> $ALL_LOGS
   dur=$(($dump_dur / $speed))
   $MP4CLIENT -run-for $dur -size $dump_size $src -speed $speed -no-save -opt Validator:Mode=Play -opt Validator:Trace=$ui_stream 2>> $ALL_LOGS
+  rv=$?
+ fi
+ #regular error, check if this is a negative test.
+ if [ $rv != 0 ] ; then
+  log $L_ERR "Error executing UI test for $FULL_SUBTEST (source file $src - test name $TEST_NAME)"
+#  if [ $strict_mode = 1 ] ; then
+#   exit
+#  fi
  fi
 }
 #end test_ui_test
@@ -1050,9 +1075,9 @@ elif [ $do_clean = 1 ] ; then
  log $L_INF "Cleaning Test Suite"
 elif [ $check_only = 1 ] ; then
  log $L_INF "Checking Test Suite Names"
-elif [ $test_ui = 1 ] ; then
+elif [ $global_test_ui = 1 ] ; then
  log $L_INF "Generating User Input traces"
-elif [ $test_ui = 2 ] ; then
+elif [ $global_test_ui = 2 ] ; then
  log $L_INF "Playing User Input traces"
 else
  log $L_INF "Evaluating Test Suite"
@@ -1085,7 +1110,7 @@ if [ $do_clean != 0 ] ; then
 fi
 
 #ui tests nothing to do
-if [ $test_ui != 0 ] ; then
+if [ $global_test_ui != 0 ] ; then
  print_end "UI Tests done"
  return
 fi
@@ -1276,7 +1301,6 @@ ctrl_c_trap() {
 	finalize_make_test
 	exit
 }
-
 
 #run our tests
 if [ -n "$url_arg" ] ; then
