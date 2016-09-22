@@ -522,6 +522,7 @@ struct __tag_compositor
 	GF_Mesh *hybgl_mesh;
 	GF_Mesh *hybgl_mesh_background;
 
+	Bool force_type_3d;
 	char *screen_buffer;
 	u32 screen_buffer_alloc_size;
 #endif
