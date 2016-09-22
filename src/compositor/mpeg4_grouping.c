@@ -451,11 +451,9 @@ void group_3d_traverse(GF_Node *node, GroupingNode *group, GF_TraverseState *tr_
 				hsens = compositor_mpeg4_get_sensor_handler_ex(l->node, GF_TRUE);
 				if (hsens) {
 					group->flags |= GROUP_HAS_SENSORS;
-					break;
 				}
 				else if (get_light_type(l->node)) {
 					group->flags |= GROUP_HAS_LIGHTS;
-					break;
 				}
 				l = l->next;
 			}
