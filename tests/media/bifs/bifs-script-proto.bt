@@ -57,6 +57,7 @@ PROTO P0 [
   eventIn SFBool set_active
   field SFNode tim USE TIMER
   field SFNode line USE LP
+  field SFBool is_over FALSE
   eventOut SFFloat frac_changed
   url ["javascript: 
   function set_active(value, timestamp) {
