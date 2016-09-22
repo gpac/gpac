@@ -26,10 +26,24 @@ bt_test ()
  *inline* )
   inline_resource=1
   break ;;
+ *htk* )
+  return ;;
  esac
+
 
  #start our test, specifying all hash names we will check
  test_begin "$name"
+
+ #UI test mode, check for sensor in source
+ if [ $test_ui != 0 ] ; then
+  has_sensor=`grep Sensor $1 | grep -v TimeSensor | grep -v MediaSensor`
+  if [ "$has_sensor" != "" ]; then
+   $MP4BOX -mp4 $btfile -out $TEMP_DIR/test.mp4 2> /dev/null
+   do_ui_test $TEMP_DIR/test.mp4 "play"
+   rm $TEMP_DIR/test.mp4 2> /dev/null
+  fi
+ fi
+
  if [ $test_skip  = 1 ] ; then
   return
  fi
