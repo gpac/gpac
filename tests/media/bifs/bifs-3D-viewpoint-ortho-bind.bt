@@ -31,22 +31,16 @@ OrderedGroup {
 
 	DEF VP1 Viewpoint {description "Front View" position 0 0 200 jump FALSE}
 	DEF VP2 Viewpoint {description "Above View" position 0 300 30 orientation 1 0 0 -1.2 jump FALSE}
-	
-	DEF TR Transform {
-  	translation 50 0 0
-  	children [
-     Shape {
-     	appearance Appearance {
-     		material Material {
-     			diffuseColor 0 1 1
-     		}
-     	}
-      geometry DEF BOX Box {size 50 50 50}
-     }
-     DEF TS2 TouchSensor {}
-  	]
-  }
-	
+
+	Shape {
+		appearance Appearance {
+			material Material2D { emissiveColor 1 1 1 filled TRUE }
+		}
+		geometry DEF RC_WHITE Rectangle { size 200 200 }
+	}
+		
+
+		
   Transform {
   	translation -80 0 20
   	children [
@@ -58,14 +52,6 @@ OrderedGroup {
      }
   	]
   }
-
-	Shape {
-		appearance Appearance {
-			material Material2D { emissiveColor 1 1 1 filled TRUE }
-		}
-		geometry DEF RC_WHITE Rectangle { size 200 200 }
-	}
-		
 
   Transform {
   	translation -30 0 0
@@ -81,6 +67,24 @@ OrderedGroup {
      DEF TOUCH TouchSensor {}
     ]
   }
+
+
+	DEF TR Transform {
+  	translation 50 0 0
+  	children [
+     Shape {
+     	appearance Appearance {
+     		material Material {
+     			diffuseColor 0 1 1
+     		}
+     	}
+      geometry DEF BOX Box {size 50 50 50}
+     }
+     DEF TS2 TouchSensor {}
+  	]
+  }
+
+
   DEF TS TimeSensor { enabled FALSE cycleInterval 2.0 loop TRUE }
   DEF OI OrientationInterpolator  {
   	key [0 0.5 1]
