@@ -2318,7 +2318,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	/*lock compositor for the whole cycle*/
 	gf_sc_lock(compositor, 1);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Entering render_frame \n"));
+//	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Entering render_frame \n"));
 
 	in_time = gf_sys_clock();
 

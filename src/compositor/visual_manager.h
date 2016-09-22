@@ -150,9 +150,10 @@ struct _visual_manager
 		BackColor for background nodes
 		0x00000000 for composite,
 		compositor clear color otherwise
-		offscreen_clear is set to 1 when the clear targets the canvas buffer in hybrid GL mode
+		offscreen_clear is set to 1 when the clear targets the entire canvas buffer in hybrid GL mode (full redraw)
+		                       to 2 when the clear targets a part of the canvas buffer in hybrid GL mode (dirty area clean)
 	*/
-	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear);
+	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 offscreen_clear);
 	/*draws specified texture as flat bitmap*/
 	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx);
 	/*checks if the visual is ready for being drawn on. Returns GF_FALSE if no draw operation can be sent*/
