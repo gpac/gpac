@@ -1739,6 +1739,7 @@ static void print_config_hash(GF_List *xps_array, char *szName)
 void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg, HEVCState *hevc_state)
 {
 	u32 k, idx;
+	Bool non_hevc_base_layer=GF_FALSE;
 	fprintf(stderr, "\t%s Info:", hevccfg->is_lhvc ? "LHVC" : "HEVC");
 	if (!hevccfg->is_lhvc)
 		fprintf(stderr, " Profile %s @ Level %g - Chroma Format %s\n", gf_hevc_get_profile_name(hevccfg->profile_idc), ((Double)hevccfg->level_idc) / 30.0, gf_avc_hevc_get_chroma_format_name(hevccfg->chromaFormat));
@@ -1761,7 +1762,10 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 
 			for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
 				GF_AVCConfigSlot *vps = gf_list_get(ar->nalus, idx);
-				gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
+				s32 idx=gf_media_hevc_read_vps(vps->data, vps->size, hevc_state);
+				if (hevccfg->is_lhvc && (idx>=0)) {
+					non_hevc_base_layer = ! hevc_state->vps[idx].base_layer_internal_flag;
+				}
 			}
 		}
 	}
@@ -1792,7 +1796,7 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 	else
 		fprintf(stderr, "\t%d temporal layers\n", hevccfg->numTemporalLayers);
 	if (hevccfg->is_lhvc) {
-		fprintf(stderr, "\t%sNum Layers: %d (scalability mask 0x%02X)%s\n", hevccfg->non_hevc_base_layer ? "Non-HEVC base layer - " : "", hevccfg->num_layers, hevccfg->scalability_mask, hevccfg->complete_representation ? "" : " - no VCL data");
+		fprintf(stderr, "\t%sHEVC base layer - Complete representation %d\n", non_hevc_base_layer ? "Non-" : "", hevccfg->complete_representation);
 	}
 
 	for (k=0; k<gf_list_count(hevccfg->param_array); k++) {
