@@ -137,7 +137,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear)
 {
 	SFColor rgb;
 	Fixed alpha = INT2FIX( GF_COL_A(BackColor) )/255;
@@ -151,7 +151,9 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (is_offscreen_clear) {
 		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
 		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
-		if (GF_COL_A(BackColor)) {
+		//if we clear dirty area of the canvas, remember the area to force gl flush 
+		if (GF_COL_A(BackColor) || (is_offscreen_clear==2))
+		{
 			ra_union_rect(&visual->hybgl_drawn, rc);
 		}
 	} else {
@@ -557,7 +559,7 @@ Bool compositor_2d_check_attached(GF_VisualManager *visual)
 	return visual->is_attached;
 }
 
-void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear)
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 offscreen_clear)
 {
 	//visual not attached on main (direct video) visual, use texture bliting
 	if (!visual->is_attached && visual->compositor->video_out->Blit && (visual->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB)) {
@@ -635,26 +637,25 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-#ifndef GPAC_DISABLE_LOGS
-static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
+static void store_blit_times(GF_TextureHandler *txh, u32 push_time)
 {
+#ifndef GPAC_DISABLE_LOGS
 	u32 ck;
-	if (!txh->stream) return;
+#endif
+
 	push_time = gf_sys_clock() - push_time;
+	txh->nb_frames ++;
+	txh->upload_time += push_time;
+
+#ifndef GPAC_DISABLE_LOGS
 	gf_mo_get_object_time(txh->stream, &ck);
 	if (ck>txh->last_frame_time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
 	}
-	if (txh->nb_frames==100) {
-		txh->nb_frames = 0;
-		txh->upload_time = 0;
-	}
-	txh->nb_frames ++;
-	txh->upload_time += push_time;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texture (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
-}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %u Blit texture (CTS %u) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
 #endif
+}
 
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale)
 {
@@ -1002,9 +1003,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
 
 		if (!e) {
-#ifndef GPAC_DISABLE_LOG
-			log_blit_times(txh, push_time);
-#endif
+			store_blit_times(txh, push_time);
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = GF_TRUE;
@@ -1039,12 +1038,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual->compositor->root_visual_setup = GF_FALSE;
 				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
+		} else {
+			store_blit_times(txh, push_time);
 		}
-#ifndef GPAC_DISABLE_LOG
-		else {
-			log_blit_times(txh, push_time);
-		}
-#endif
 	}
 
 	//will resume clock if first HW load
@@ -1056,9 +1052,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (!e) {
 			u32 push_time = gf_sys_clock();
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
-#ifndef GPAC_DISABLE_LOG
-			log_blit_times(txh, push_time);
-#endif
+			store_blit_times(txh, push_time);
 			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));

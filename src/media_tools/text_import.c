@@ -99,7 +99,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		const u16 *sptr;
 		char szUTF[1024];
 		u32 read = (u32) fread(szUTF, 1, 1023, test);
-		if ((s32) read) {
+		if ((s32) read < 0) {
 			gf_fclose(test);
 			return GF_IO_ERR;
 		}

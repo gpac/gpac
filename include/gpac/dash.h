@@ -369,6 +369,9 @@ Bool gf_dash_is_dynamic_mpd(GF_DashClient *dash);
 /*returns minimum buffer time indicated in mpd in ms*/
 u32 gf_dash_get_min_buffer_time(GF_DashClient *dash);
 
+// gets the difference between the local UTC clock and the one reported by the server 
+s32 gf_dash_get_utc_drift_estimate(GF_DashClient *dash);
+
 //shifts UTC clock of server by shift_utc_ms so that new UTC in MPD is old + shift_utc_ms
 void gf_dash_set_utc_shift(GF_DashClient *dash, s32 shift_utc_ms);
 
@@ -481,6 +484,9 @@ Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *
 
 //sets quality hint for the given group. Quality degradation ranges from 0 (no degradation) to 100 (worse quality possible)
 GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, u32 quality_degradation_hint);
+
+//sets visible rectangle of a video object, may be used for adaptation. If min_x==max_x==min_y=max_y==0, disable adaptation
+GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
 
 /*Enables or disables threaded downloads of media files for the dash client
  @use_threads: if true, threads are used to download files*/

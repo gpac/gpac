@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 /*for import flags*/
 #include <gpac/media_tools.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_OD_DUMP
 
@@ -1694,10 +1695,23 @@ GF_Err gf_odf_dump_mediatime(GF_MediaTime *mt, FILE *trace, u32 indent, Bool XMT
 
 GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump)
 {
+	char *full_path = NULL;
+
+	if (mi->file_name && mi->src_url) {
+		if (strchr(mi->src_url, '/') || strchr(mi->src_url, '\\')) {
+			full_path = gf_url_concatenate(mi->src_url, mi->file_name);
+		}
+	}
+
 	if (!XMTDump) {
 		StartDescDump(trace, "MuxInfo", indent, GF_FALSE);
 		indent++;
-		if (mi->file_name) DumpString(trace, "fileName", mi->file_name, indent, GF_FALSE);
+		if (full_path) {
+			DumpString(trace, "fileName", full_path, indent, GF_FALSE);
+			gf_free(full_path);
+		} else if (mi->file_name) {
+			DumpString(trace, "fileName", mi->file_name, indent, GF_FALSE);
+		}
 		if (mi->streamFormat) DumpString(trace, "streamFormat", mi->streamFormat, indent, GF_FALSE);
 		if (mi->GroupID) DumpInt(trace, "GroupID", mi->GroupID, indent, GF_FALSE);
 		if (mi->startTime) DumpInt(trace, "startTime", mi->startTime, indent, GF_FALSE);
@@ -1719,7 +1733,12 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 
 	StartDescDump(trace, "StreamSource", indent, GF_TRUE);
 	indent++;
-	if (mi->file_name) DumpString(trace, "url", mi->file_name, indent, GF_TRUE);
+	if (full_path) {
+		DumpString(trace, "url", full_path, indent, GF_TRUE);
+		gf_free(full_path);
+	} else if (mi->file_name) {
+		DumpString(trace, "url", mi->file_name, indent, GF_TRUE);
+	}
 	EndAttributes(trace, indent, GF_TRUE);
 
 	StartDescDump(trace, "MP4MuxHints", indent, GF_TRUE);

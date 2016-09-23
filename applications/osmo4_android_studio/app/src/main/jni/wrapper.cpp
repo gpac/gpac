@@ -157,6 +157,10 @@ static JNINativeMethod sMethods[] = {
 		"(FF)V",
 		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventmousemove
 	},
+	{	"gpaceventorientationchange",
+		"(FFF)V",
+		(void*)Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange
+	},
 	{	"setGpacPreference",
 		"(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)V",
 		(void*)Java_com_gpac_Osmo4_GPACInstance_setGpacPreference
@@ -294,6 +298,8 @@ void CNativeWrapper::setJavaEnv(JavaEnvTh * envToSet, JNIEnv *env, jobject callb
 	    env->GetMethodID(localRef, "showKeyboard", "(Z)V");
 	envToSet->cbk_setLogFile =
 	    env->GetMethodID(localRef, "setLogFile", "(Ljava/lang/String;)V");
+	envToSet->cbk_sensorSwitch =
+	    env->GetMethodID(localRef, "sensorSwitch", "(Z)V");
 	env->DeleteLocalRef(localRef);
 }
 
@@ -606,6 +612,29 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 			break;
 		case GF_EVENT_NAVIGATE:
 			ptr->navigate( evt);
+			break;
+		case GF_EVENT_SENSOR_REQUEST:
+			if(evt->activate_sensor.sensor_type == GF_EVENT_SENSOR_ORIENTATION){
+				if(evt->activate_sensor.activate){
+					LOGV("We received Sensor Request for turning ON location sensors");
+					JavaEnvTh * env = ptr->getEnv();
+					if (!env || !env->cbk_sensorSwitch)
+						return GF_FALSE;
+					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
+				}else{
+					LOGV("We received Sensor Request for turning OFF location sensors");
+					JavaEnvTh * env = ptr->getEnv();
+					if (!env || !env->cbk_sensorSwitch)
+						return GF_FALSE;
+					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
+				}
+			}
+			break;
+		case GF_EVENT_SENSOR_ORIENTATION:
+			/* Ignore this event */
+			/*
+			LOGV("We received Sensor Orientation event (x: %f, y: %f, z: %f)",evt->sensor.x, evt->sensor.y, evt->sensor.z);
+			*/
 			break;
 		default:
 			LOGI("Unknown Message %d", evt->type);
@@ -1027,7 +1056,24 @@ void CNativeWrapper::translate_key(ANDROID_KEYCODE keycode, GF_EventKey *evt) {
 		break;
 	}
 }
+//-----------------------------------------------------
+     /**
+      * x: yaw (azimuth - rotation around the -Z axis) range: [-PI, PI]
+      * y: pitch (rotation around the -X axis) range: [-PI/2, PI/2]
+      * z: roll (rotation around the Y axis) range: [-PI, PI]
+      */
+void CNativeWrapper::onOrientationChange(float x, float y, float z) {
+	if (!m_term)
+		return;
+	GF_Event evt;
+	evt.type = GF_EVENT_SENSOR_ORIENTATION;
+	evt.sensor.x = x;
+	evt.sensor.y = y;
+	evt.sensor.z = z;
+	evt.sensor.w = 0;
 
+	int ret = gf_term_user_event(m_term, &evt);
+}
 //-----------------------------------------------------
 void CNativeWrapper::setGpacLogs(const char *tools_at_level)
 {

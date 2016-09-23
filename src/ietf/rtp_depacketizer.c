@@ -1082,7 +1082,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
-	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_SHVC;
+	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_LHVC;
 	else return 0;
 }
 
@@ -1561,7 +1561,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 	rtp->depacketize = gf_rtp_parse_h264;
 	break;
 	case GF_RTP_PAYT_HEVC:
-	case GF_RTP_PAYT_SHVC:
+	case GF_RTP_PAYT_LHVC:
 #ifndef GPAC_DISABLE_HEVC
 	{
 		GF_SDP_FMTP *fmtp;
@@ -1743,7 +1743,6 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 {
 	memset(slc, 0, sizeof(GF_SLConfig));
 	slc->tag = GF_ODF_SLC_TAG;
-
 
 	slc->AULength = rtp->sl_map.ConstantSize;
 	if (rtp->sl_map.ConstantDuration) {

@@ -144,7 +144,8 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 	read->start_offset = 6;
 	read->sample_rate = 8000;
 	read->block_size = 160;
-	fread(magic, 1, 20, read->stream);
+	i = (u32) fread(magic, 1, 20, read->stream);
+	if (i != 20) return GF_FALSE;
 
 	if (!strnicmp(magic, "#!AMR\n", 6)) {
 		fseek(read->stream, 6, SEEK_SET);
@@ -174,7 +175,7 @@ static Bool AMR_ConfigureFromFile(AMR_Reader *read)
 	read->duration = 0;
 
 	if (!read->is_remote) {
-		u32 size;
+		u32 size=0;
 		while (!feof(read->stream)) {
 			u8 ft = fgetc(read->stream);
 			switch (read->mtype) {
@@ -471,7 +472,7 @@ static GF_Err AMR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 		*is_new_data = GF_TRUE;
 
 fetch_next:
-		/*pos = (u32) */ftell(read->stream);
+		//pos = (u32) ftell(read->stream);
 		if (feof(read->stream)) {
 			read->done = GF_TRUE;
 			*out_reception_status = GF_EOS;
@@ -520,7 +521,10 @@ fetch_next:
 		read->sl_hdr.compositionTimeStamp = read->current_time;
 		read->data = (unsigned char*)gf_malloc(sizeof(char) * (read->data_size+read->pad_bytes));
 		read->data[0] = toc;
-		if (read->data_size>1) fread(read->data + 1, read->data_size-1, 1, read->stream);
+		if (read->data_size>1) {
+			u32 bytes_read = (u32) fread(read->data + 1, read->data_size-1, 1, read->stream);
+			if (bytes_read != read->data_size - 1) read->data_size = bytes_read+1; 
+		}
 		if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 	}
 	*out_sl_hdr = read->sl_hdr;

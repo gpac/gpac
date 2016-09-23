@@ -82,6 +82,12 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 		return "HEVC Video";
 	case GF_M2TS_VIDEO_SHVC:
 		return "SHVC Video";
+	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		return "SHVC Video Temporal Sublayer";
+	case GF_M2TS_VIDEO_MHVC:
+		return "MHVC Video";
+	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
+		return "MHVC Video Temporal Sublayer";
 
 	case GF_M2TS_AUDIO_AC3:
 		return "Dolby AC3 Audio";
@@ -295,7 +301,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					}
 				}
 #endif
-				/*check AU start type - if this is an SHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
+				/*check AU start type - if this is an LHVC PID and the first nal is the first byte of the PES payload, consider this is an AU start*/
 				if ((nal_type==GF_HEVC_NALU_ACCESS_UNIT) || (pes->depends_on_pid && !first_nal_offset_in_pck)) {
 					if (!prev_is_au_delim) {
 						//this was not a one AU per PES config, dispatch
@@ -2309,6 +2315,9 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 		case GF_M2TS_VIDEO_SVC:
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
+		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_MHVC:
+		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 			inherit_pcr = 1;
 		case GF_M2TS_AUDIO_MPEG1:
 		case GF_M2TS_AUDIO_MPEG2:
@@ -2830,25 +2839,26 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 	if (!ts) return;
 	
 	/*we need at least a full, valid start code !!*/
-	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2]==0x1)) {
+	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
 		u32 len;
 		u32 stream_id = pes->pck_data[3] | 0x100;
-		Bool same_pts = 0;
+		Bool same_pts = GF_FALSE;
 
 		if ((stream_id >= 0x1c0 && stream_id <= 0x1df) ||
-		        (stream_id >= 0x1e0 && stream_id <= 0x1ef) ||
-		        (stream_id == 0x1bd) ||
-		        (stream_id == 0x10d) ||
-		        /*SL-packetized*/
-		        ((u8) pes->pck_data[3]==0xfa)
-		   ) {
-		} else {
+			(stream_id >= 0x1e0 && stream_id <= 0x1ef) ||
+			(stream_id == 0x1bd) ||
+			(stream_id == 0x10d) ||
+			/*SL-packetized*/
+			((u8)pes->pck_data[3] == 0xfa)
+			) {
+		}
+		else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PES %d: unknown stream ID %08X\n", pes->pid, stream_id));
 		}
 
 
 		/*OK read header*/
-		gf_m2ts_pes_header(pes, pes->pck_data+3, pes->pck_data_len-3, &pesh);
+		gf_m2ts_pes_header(pes, pes->pck_data + 3, pes->pck_data_len - 3, &pesh);
 
 		/*send PES timing*/
 		if (ts->notify_pes_timing) {
@@ -2864,10 +2874,9 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d Got PES header PTS %d\n", pes->pid, pesh.PTS));
 
 		if (pesh.PTS) {
-
-			if (pesh.PTS==pes->PTS) {
-				same_pts = 1;
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS) );
+			if (pesh.PTS == pes->PTS) {
+				same_pts = GF_TRUE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same PTS "LLU" for two consecutive PES packets \n", pes->pid, pes->PTS));
 			}
 #ifndef GPAC_DISABLE_LOG
 			/*FIXME - this test should only be done for non bi-directionnally coded media
@@ -2880,19 +2889,20 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 			pes->PTS = pesh.PTS;
 #ifndef GPAC_DISABLE_LOG
 			{
-				if (pes->DTS && (pesh.DTS==pes->DTS)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS) );
+				if (pes->DTS && (pesh.DTS == pes->DTS)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - same DTS "LLU" for two consecutive PES packets \n", pes->pid, pes->DTS));
 				}
-				if (pesh.DTS<pes->DTS) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS) );
+				if (pesh.DTS < pes->DTS) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d - DTS "LLU" less than previous DTS "LLU"\n", pes->pid, pesh.DTS, pes->DTS));
 				}
 			}
 #endif
 			pes->DTS = pesh.DTS;
 		}
 		/*no PTSs were coded, same time*/
-		else if (!pesh.hdr_data_len)
-			same_pts = 1;
+		else if (!pesh.hdr_data_len) {
+			same_pts = GF_TRUE;
+		}
 
 
 		/*3-byte start-code + 6 bytes header + hdr extensions*/
@@ -3680,6 +3690,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
+		case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+		case GF_M2TS_VIDEO_MHVC:
+		case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 			pes->reframe = gf_m2ts_reframe_hevc;
 			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
 			break;
@@ -4104,7 +4117,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				gf_rtp_reorderer_del(ch);
 #endif
 
-			if (ts->sock) gf_sk_del(ts->sock);
+			if (ts->sock && !ts->sock_is_delegate) gf_sk_del(ts->sock);
 			ts->sock = NULL;
 		} else if (ts->dnload) {
 			while (ts->run_state) {
@@ -4247,9 +4260,14 @@ GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u
 
 static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 {
-	GF_Err e;
-	e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
-	if (e) return e;
+	if (!strnicmp(url, "mpegts-sk://", 12)) {
+		sscanf(url, "mpegts-sk://%p", &ts->sock);
+		ts->sock_is_delegate = GF_TRUE;
+	} else {
+		GF_Err e;
+		e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		if (e) return e;
+	}
 
 	if (ts->socket_url) gf_free(ts->socket_url);
 	ts->socket_url = gf_strdup(url);
@@ -4532,6 +4550,7 @@ GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop)
 	if (!strnicmp(url, "udp://", 6)
 	        || !strnicmp(url, "mpegts-udp://", 13)
 	        || !strnicmp(url, "mpegts-tcp://", 13)
+	        || !strnicmp(url, "mpegts-sk://", 12)
 	   ) {
 		return gf_m2ts_demuxer_setup_live(ts, (char *) szURL);
 	}

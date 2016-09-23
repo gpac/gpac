@@ -74,6 +74,8 @@ struct __texture_wrapper
 	GF_STENCIL tx_raster;
 	//0: not paused, 1: paused, 2: initial pause has been done
 	u32 init_pause_status;
+	Bool conv_to_8bit;
+	char *conv_data;
 
 	/*3D texturing*/
 #ifndef GPAC_DISABLE_3D
@@ -82,7 +84,6 @@ struct __texture_wrapper
 	u32 blend_mode;
 	u32 rescale_width, rescale_height;
 	char *scale_data;
-	char *conv_data;
 	Fixed conv_wscale, conv_hscale;
 	u32 conv_format, conv_w, conv_h;
 
@@ -109,6 +110,38 @@ GF_Err gf_sc_texture_allocate(GF_TextureHandler *txh)
 	return GF_OK;
 }
 
+GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
+{
+	if (txh->compositor->output_as_8bit) {
+
+		if (txh->pixelformat == GF_PIXEL_YV12_10) {
+			txh->stride /= 2;
+			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->pixelformat = GF_PIXEL_YV12;
+			if(txh->raw_memory)
+				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
+			txh->stride /= 2;
+			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->pixelformat = GF_PIXEL_YUV422;
+			
+			if (txh->raw_memory)
+				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 2 * sizeof(char)* txh->stride * txh->height);
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
+			txh->stride /= 2;
+			txh->tx_io->conv_to_8bit = GF_TRUE;
+			txh->pixelformat = GF_PIXEL_YUV444;
+			if (txh->raw_memory)
+				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);
+		}
+	}
+	return GF_OK;
+}
+
+
+
 static void release_txio(struct __texture_wrapper *tx_io)
 {
 
@@ -123,8 +156,9 @@ static void release_txio(struct __texture_wrapper *tx_io)
 	if (tx_io->v_pbo_id) glDeleteBuffers(1, &tx_io->v_pbo_id);
 
 	if (tx_io->scale_data) gf_free(tx_io->scale_data);
-	if (tx_io->conv_data) gf_free(tx_io->conv_data);
 #endif
+
+	if (tx_io->conv_data) gf_free(tx_io->conv_data);
 
 #ifdef GF_SR_USE_DEPTH
 	if (tx_io->depth_data) gf_free(tx_io->depth_data);
@@ -174,6 +208,50 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
+
+	if (txh->tx_io->conv_to_8bit) {
+		GF_VideoSurface dst;
+		u8  *p_y;
+		u32 src_stride = txh->stride * 2;
+		memset(&dst, 0, sizeof(GF_VideoSurface));
+		dst.width = txh->width;
+		dst.height = txh->height;
+		dst.pitch_y = txh->stride;
+		dst.video_buffer = txh->raw_memory ? txh->tx_io->conv_data : txh->data;
+		p_y = (u8 *)txh->data;
+
+		if (txh->pixelformat == GF_PIXEL_YV12) {
+
+			gf_color_write_yv12_10_to_yuv(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
+			}
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV422) {
+
+			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
+			}
+
+		}
+		else if (txh->pixelformat == GF_PIXEL_YUV444) {
+
+			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+
+			if (txh->raw_memory) {
+				txh->data = dst.video_buffer;
+				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = dst.video_buffer + 2 * dst.pitch_y * txh->height;
+			}
+		}
+	}
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	//PBO mode: start pushing the texture
@@ -330,7 +408,7 @@ void gf_sc_texture_disable(GF_TextureHandler *txh)
 //			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(txh->tx_io->gl_type, 0);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture drawn (CTS %d)\n", txh->last_frame_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture drawn (CTS %u)\n", txh->last_frame_time));
 
 		}
 #endif
@@ -950,10 +1028,12 @@ static void do_tex_image_2d(GF_TextureHandler *txh, GLint tx_mode, Bool first_lo
 Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Bool for2d)
 {
 #ifndef GPAC_DISABLE_3D
+	u32 ck;
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
 	u32 pixel_format, w, h;
+	u32 push_time;
 #endif
 
 	if (for2d) {
@@ -1023,6 +1103,10 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 #endif
 
+
+	push_time = gf_sys_clock();
+
+
 #ifdef GPAC_USE_TINYGL
 	glTexImage2D(txh->tx_io->gl_type, 0, tx_mode, w, h, 0, txh->tx_io->gl_format, txh->tx_io->gl_dtype, (unsigned char *) data);
 
@@ -1033,11 +1117,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	/*pow2 texture or hardware support*/
 	if (! (txh->tx_io->flags & TX_MUST_SCALE) ) {
 		if (txh->tx_io->yuv_shader) {
-			u32 push_time;
 			u32 stride_luma = txh->stride;
 			u32 stride_chroma = txh->stride_chroma;
 			u8 *pY, *pU, *pV;
-			u32 ck;
 			
 			if (txh->frame && txh->frame->GetGLTexture) {
 				u32 gl_format;
@@ -1063,7 +1145,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				return 1;
+				
+				goto push_exit;
 			}
 			
 			
@@ -1121,8 +1204,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 #endif
 
-			push_time = gf_sys_clock();
-
 			do_tex_image_2d(txh, tx_mode, first_load, pY, stride_luma, w, h, txh->tx_io->pbo_id);
 			GL_CHECK_ERR
 
@@ -1169,16 +1250,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				GL_CHECK_ERR
 			}
 
-			push_time = gf_sys_clock() - push_time;
-
-/*			if (txh->nb_frames==100) {
-				txh->nb_frames = 0;
-				txh->upload_time = 0;
-			}
-*/
-			txh->nb_frames ++;
-			txh->upload_time += push_time;
-
 #if !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 			if (txh->pixelformat==GF_PIXEL_YV12_10 || txh->pixelformat==GF_PIXEL_YUV444_10 || txh->pixelformat==GF_PIXEL_YUV422_10 ) {
 				glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -1186,10 +1257,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			}
 #endif
 
-#ifndef GPAC_DISABLE_LOGS
-			gf_mo_get_object_time(txh->stream, &ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %d) %d ms after due date - Pushed Y,U,V textures in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
-#endif
 			txh->tx_io->pbo_pushed = 0;
 		} else {
 			do_tex_image_2d(txh, tx_mode, first_load, (u8 *) data, txh->stride, w, h, txh->tx_io->pbo_id);
@@ -1232,6 +1299,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 #endif
 
+push_exit:
+
+	push_time = gf_sys_clock() - push_time;
+
+	txh->nb_frames ++;
+	txh->upload_time += push_time;
+
+#ifndef GPAC_DISABLE_LOGS
+			gf_mo_get_object_time(txh->stream, &ck);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->yuv_shader ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
+#endif
 	return 1;
 
 #endif

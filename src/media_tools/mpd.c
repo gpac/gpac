@@ -1913,9 +1913,14 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 {
 	time_t gtime;
 	struct tm *t;
+	u32 sec;
+	u32 ms;
 	gtime = time / 1000;
+	sec = (u32)(time / 1000);
+	ms = (u32)(time - ((u64)sec) * 1000);
+
 	t = gmtime(&gtime);
-	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", name, 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", name, 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
 }
 
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
@@ -2038,8 +2043,8 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 			if (url->key_url) {
 				u32 idx;
 				fprintf(out, " hls:keyMethod=\"aes-128\" hls:KeyURL=%s hls:KeyIV=\"", url->key_url);
-				for (idx=0; idx<16; i++) {
-					fprintf(out, "%02x", url->key_iv[i]);
+				for (idx=0; idx<16; idx++) {
+					fprintf(out, "%02x", url->key_iv[idx]);
 				}
 				fprintf(out, "\"");
 			}

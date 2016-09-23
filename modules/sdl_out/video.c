@@ -1001,6 +1001,17 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 			else if (gpac_evt.key.key_code==GF_KEY_ALT) ctx->alt_down = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_TRUE : GF_FALSE;
 			else if (gpac_evt.key.key_code==GF_KEY_META) ctx->meta_down = (sdl_evt.key.type==SDL_KEYDOWN) ? GF_TRUE : GF_FALSE;
 
+#ifdef SDL_TEXTINPUTEVENT_TEXT_SIZE
+			if (sdl_evt.type==SDL_KEYDOWN) {
+				if ((gpac_evt.key.key_code==GF_KEY_ENTER) || (gpac_evt.key.key_code==GF_KEY_BACKSPACE)) {
+					gpac_evt.type = GF_EVENT_TEXTINPUT;
+					gpac_evt.character.unicode_char = (gpac_evt.key.key_code==GF_KEY_ENTER) ? '\r' : '\b';
+					dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
+				}
+			}
+#endif
+
+
 #if (SDL_MAJOR_VERSION>=1) && (SDL_MINOR_VERSION>=3)
 
 			if ((gpac_evt.type==GF_EVENT_KEYUP) && (gpac_evt.key.key_code==GF_KEY_V)
@@ -1043,6 +1054,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 				gpac_evt.type = GF_EVENT_TEXTINPUT;
 				dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			}
+#else
 #endif
 			break;
 

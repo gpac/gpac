@@ -411,7 +411,7 @@ void PrintFormats()
 	        " MPEG-4 Video         .cmp .m4v\n"
 	        " H263 Video           .263 .h263\n"
 	        " AVC/H264 Video       .h264 .h26L .264 .26L .x264 .svc\n"
-	        " HEVC Video           .hevc .h265 .265 .hvc .shvc\n"
+	        " HEVC Video           .hevc .h265 .265 .hvc .shvc .lhvc .mhvc\n"
 	        " JPEG Images          .jpg .jpeg\n"
 	        " JPEG-2000 Images     .jp2\n"
 	        " PNG Images           .png\n"
@@ -484,9 +484,9 @@ void PrintImportUsage()
 	        " \":ps\"                same as -ps option\n"
 	        " \":psx\"               same as -psx option\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
-	        " \":svc\"               import SVC/SHVC with explicit signaling (no AVC base compatibility)\n"
-	        " \":nosvc\"             discard SVC/SHVC data when importing\n"
-	        " \":svcmode=MODE\"      sets SVC/SHVC import mode:\n"
+	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
+	        " \":nosvc\"             discard SVC/LHVC data when importing\n"
+	        " \":svcmode=MODE\"      sets SVC/LHVC import mode:\n"
 	        " \"                       split : each layer is in its own track\n"
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
@@ -497,6 +497,7 @@ void PrintImportUsage()
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
 	        " \":max_lid=N\"         sets HEVC max layer ID to be imported to N. Default imports all.\n"
 	        " \":max_tid=N\"         sets HEVC max temporal ID to be imported to N. Default imports all.\n"
+	        " \":split_tiles\"       splits HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
 	        " \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
 	        " \":stype=4CC\"         forces the sample description type to a different value\n"
 	        "                         !! THIS MAY BREAK THE FILE WRITING !!\n"
@@ -518,6 +519,7 @@ void PrintImportUsage()
 	        " \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
 	        " \":profile=INT\"       overrides AVC profile\n"
 	        " \":level=INT\"         overrides AVC level\n"
+	        " \":novpsext\"          removes VPS extensions from HEVC VPS\n"
 
 	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 	        " \":size=s\"            specifies font size for text import (default 18)\n"
@@ -5011,8 +5013,15 @@ int mp4boxMain(int argc, char **argv)
 		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
-			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
-			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+			e = gf_delete_file(inName);
+			if (e) {
+				fprintf(stderr, "Error removing file %s\n", inName);
+			} else {
+				e = gf_move_file(outfile, inName);
+				if (e) {
+					fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+				}
+			}
 		}
 	} else {
 		gf_isom_delete(file);

@@ -60,6 +60,17 @@ void isor_check_producer_ref_time(ISOMReader *read)
 
 			s32 diff = gf_net_get_ntp_diff_ms(ntp);
 
+			if (read->input->query_proxy) {
+				GF_NetworkCommand param;
+				GF_Err e;
+				memset(&param, 0, sizeof(GF_NetworkCommand));
+				param.command_type = GF_NET_SERVICE_QUERY_UTC_DELAY;
+				e = read->input->query_proxy(read->input, &param);
+				if (e == GF_OK) {
+					diff -= param.utc_delay.delay;
+				}
+			}
+
 			secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 			t = *gmtime(&secs);
 
