@@ -68,6 +68,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	GF_Err e;
 	GF_ESD *esd;
 	u32 track_num = 0;
+	u32 k;
 	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak, *OCRTrack;
 	GF_TrackReferenceTypeBox *dpnd;
@@ -92,15 +93,21 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	esd->ESID = trackID;
 
 	//find stream dependencies
-	e = Track_FindRef(trak, GF_ISOM_BOX_TYPE_DPND , &dpnd);
-	if (e) return e;
-	if (dpnd) {
-		//ONLY ONE STREAM DEPENDENCY IS ALLOWED
-		if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
-		//fix the spec: where is the index located ??
-		esd->dependsOnESID = dpnd->trackIDs[0];
-	} else {
-		esd->dependsOnESID = 0;
+	for (k=0; k<2; k++) {
+		u32 ref = GF_ISOM_BOX_TYPE_DPND;
+		if (k==1) ref = GF_4CC('s', 'b', 'a', 's');
+		
+		e = Track_FindRef(trak, ref , &dpnd);
+		if (e) return e;
+		if (dpnd) {
+			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
+			if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
+			//fix the spec: where is the index located ??
+			esd->dependsOnESID = dpnd->trackIDs[0];
+			break;
+		} else {
+			esd->dependsOnESID = 0;
+		}
 	}
 
 	if (trak->udta) {

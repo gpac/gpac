@@ -2198,7 +2198,6 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 				sti[layer_id].lhvccfg->is_lhvc = 1;
 				sti[layer_id].lhvccfg->complete_representation = 1;
-				sti[layer_id].lhvccfg->num_layers = 1;
 				//TODO - set scalability mask flag
 			}
 

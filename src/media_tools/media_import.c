@@ -5802,7 +5802,6 @@ restart_import:
 	dst_cfg = hevc_cfg = gf_odf_hevc_cfg_new();
 	lhvc_cfg = gf_odf_hevc_cfg_new();
 	lhvc_cfg->complete_representation = GF_TRUE;
-	lhvc_cfg->non_hevc_base_layer = GF_FALSE;
 	lhvc_cfg->is_lhvc = GF_TRUE;
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 	sample_data = NULL;
@@ -6586,12 +6585,6 @@ next_nal:
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
 	hevc_cfg->nal_unit_size = lhvc_cfg->nal_unit_size = size_length/8;
 
-	lhvc_cfg->num_layers = 0;
-	for (i=1; i<64; i++) {
-		if (layer_ids[i])
-			lhvc_cfg->num_layers ++;
-	}
-
 
 	if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 		hevc_set_parall_type(hevc_cfg);
@@ -6724,7 +6717,6 @@ next_nal:
 		}
 		ref_track_id = gf_isom_get_track_id(import->dest, avc_base_track);
 		gf_isom_set_track_reference(import->dest, track, GF_4CC('s','b','a','s'), ref_track_id);
-		gf_isom_set_track_reference(import->dest, track, GF_4CC('s','c','a','l'), ref_track_id);
 	}
 
 exit:

@@ -1454,7 +1454,10 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		}
 		/*LHEVC track without base*/
 		else if (operand_type==GF_ISOM_HVCC_SET_LHVC) {
-			if (entry->hevc_config) return GF_BAD_PARAM;
+			if (entry->hevc_config) {
+				gf_isom_box_del((GF_Box*)entry->hevc_config);
+				entry->hevc_config=NULL;
+			}
 			if (!cfg) return GF_BAD_PARAM;
 
 			if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
@@ -1631,6 +1634,8 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 GF_EXPORT
 GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
 {
+	GF_HEVCConfig *lhvc;
+	GF_OperatingPointsInformation *oinf=NULL;
 	GF_TrackBox *trak;
 	GF_MPEGVisualSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -1640,7 +1645,21 @@ GF_HEVCConfig *gf_isom_lhvc_config_get(GF_ISOFile *the_file, u32 trackNumber, u3
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
 	if (!entry) return NULL;
 	if (!entry->lhvc_config) return NULL;
-	return HEVC_DuplicateConfig(entry->lhvc_config->config);
+	lhvc = HEVC_DuplicateConfig(entry->lhvc_config->config);
+	if (!lhvc) return NULL;
+
+	gf_isom_get_oinf_info(the_file, trackNumber, &oinf);
+	if (oinf) {
+		LHEVC_ProfileTierLevel *ptl = (LHEVC_ProfileTierLevel *)gf_list_last(oinf->profile_tier_levels);
+		if (ptl) {
+			lhvc->profile_space  = ptl->general_profile_space;
+			lhvc->tier_flag = ptl->general_tier_flag;
+			lhvc->profile_idc = ptl->general_profile_idc;
+			lhvc->general_profile_compatibility_flags = ptl->general_profile_compatibility_flags;
+			lhvc->constraint_indicator_flags = ptl->general_constraint_indicator_flags;
+		}
+	}
+	return lhvc;
 }
 
 

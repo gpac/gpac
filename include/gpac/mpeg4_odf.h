@@ -976,15 +976,13 @@ typedef struct
 	u8 nal_unit_size;
 
 	GF_List *param_array;
-
-	//set by libisomedia at import/export time
-	Bool is_lhvc;
-
 	//used in LHVC config
 	Bool complete_representation;
-	Bool non_hevc_base_layer;
-	u8 num_layers;
-	u16 scalability_mask;
+	
+	//following are internal to libgpac and NEVER serialized
+	
+	//set by libisomedia at import/export/parsing time to differentiate between lhcC and hvcC time
+	Bool is_lhvc;
 } GF_HEVCConfig;
 
 /*! Media Segment Descriptor used for Media Control Extensions*/

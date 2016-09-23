@@ -123,7 +123,8 @@ enum
 	GF_ISOM_REF_BASE = GF_4CC( 's', 'b', 'a', 's' ),
 	GF_ISOM_REF_SCAL = GF_4CC( 's', 'c', 'a', 'l' ),
 	GF_ISOM_REF_TBAS = GF_4CC( 't', 'b', 'a', 's' ),
-	GF_ISOM_REF_SABT = GF_4CC( 's', 'a', 'b', 't' )
+	GF_ISOM_REF_SABT = GF_4CC( 's', 'a', 'b', 't' ),
+	GF_ISOM_REF_OREF = GF_4CC( 'o', 'r', 'e', 'f' )
 };
 
 /*Track Edition flag*/
