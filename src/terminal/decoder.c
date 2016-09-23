@@ -44,7 +44,7 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	//if so, do not create any new codec
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
 		switch (base_layer->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_VIDEO_SHVC:
+		case GPAC_OTI_VIDEO_LHVC:
 		case GPAC_OTI_VIDEO_SVC:
 			odm->scalable_addon = 1;
 			odm->parentscene->root_od->addon->addon_type = GF_ADDON_TYPE_SCALABLE;
@@ -68,9 +68,14 @@ GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err
 	*e = Codec_Load(tmp, base_layer, PL);
 
 	if (*e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
-		gf_free(tmp);
-		return NULL;
+		if (odm->term->bench_mode==2) {
+			*e = GF_OK;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s - ignoring as running systems bench mode\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[Codec] ODM%d ES%d: Cannot find decoder for stream type %s\n", odm->OD->objectDescriptorID, base_layer->ESID, gf_esd_get_textual_description(base_layer) ));
+			gf_free(tmp);
+			return NULL;
+		}
 	}
 	/*remember codec type*/
 	tmp->type = base_layer->decoderConfig->streamType;
@@ -111,6 +116,7 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 {
 	GF_Err e;
+	Bool config_decio = GF_FALSE;
 	GF_NetworkCommand com;
 	GF_Channel *a_ch;
 	u32 CUsize, i;
@@ -123,7 +129,13 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
-	if (codec->decio) {
+	if (codec->decio) config_decio = GF_TRUE;
+	else if (codec->odm->term->bench_mode==2) {
+		if (codec->type != GF_STREAM_OCR)
+			config_decio = GF_TRUE;
+	}
+	
+	if (config_decio) {
 		com.get_dsi.dsi = NULL;
 		if (ch->esd->decoderConfig && ch->esd->decoderConfig->upstream) codec->flags |= GF_ESM_CODEC_HAS_UPSTREAM;
 		/*For objects declared in OD stream, override with network DSI if any*/
@@ -767,7 +779,7 @@ check_unit:
 	}
 	now = gf_sys_clock_high_res() - now;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %d in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, obj_time, AU->CTS, now));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d at %d decoded AU TS %u in "LLU" us\n", sdec->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, obj_time, AU->CTS, now));
 
 	codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
 	codec->prev_au_size = AU->dataLength;
@@ -1312,7 +1324,7 @@ scalable_retry:
 			}
 			e = UnlockCompositionUnit(codec, CU, unit_size);
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %d in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded packed frame TS %u in "LLU" us\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now));
 			if (ch->skip_sl) {
 				if (codec->bytes_per_sec) {
 					codec->cur_audio_bytes += unit_size;
@@ -1337,11 +1349,17 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %d in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame TS %u in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
 
 
 				if (codec->direct_frame_output) {
 					Bool needs_resize = 0;
+					//may happen during seek
+					if (CU->frame) {
+						CU->frame->Release(CU->frame);
+						CU->frame = NULL;
+					}
+
 					e = mdec->GetOutputFrame(mdec, ch->esd->ESID, &CU->frame, &needs_resize);
 					if (e!=GF_OK) {
 						CU->frame=NULL;
@@ -1349,6 +1367,7 @@ scalable_retry:
 					if (!CU->frame)
 						unit_size = 0;
 					else if (needs_resize) {
+						assert(unit_size);
 						//if dynamic scene, set size
 						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
 							/*update config*/
@@ -1389,7 +1408,7 @@ scalable_retry:
 			}
 #ifndef GPAC_DISABLE_LOGS
 			if (codec->odm->flags & GF_ODM_PREFETCH) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d decoding frame TS %d in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d decoding frame TS %u in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS));
 			}
 #endif
 			break;
@@ -1397,7 +1416,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %d - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %u - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
@@ -1412,9 +1431,9 @@ scalable_retry:
 #ifndef GPAC_DISABLE_LOG
 		if (unit_size) {
 			if (ch->is_pulling) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u decoded frame CTS %u in "LLU" us\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d decoded frame CTS %d in "LLU" us - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u decoded frame CTS %u in "LLU" us - %d AU in channel\n", codec->decio->module_name, gf_clock_real_time(ch->clock), AU->CTS, now, ch->AU_Count));
 			}
 		}
 #endif
@@ -1473,7 +1492,7 @@ scalable_retry:
 
 		UnlockCompositionUnit(codec, CU, unit_size);
 		if (unit_size) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %d dispatched frame CTS %d in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[%s] at %u dispatched frame CTS %u in CB\n", codec->decio->module_name, gf_clock_real_time(prev_ch->clock), CU->TS));
 		}
 		if (!ch || !AU) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Exit decode loop because no more input data\n", codec->decio->module_name));

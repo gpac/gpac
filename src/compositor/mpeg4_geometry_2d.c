@@ -131,6 +131,10 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 		/*if we're here we passed culler already*/
 		case TRAVERSE_DRAW_3D:
+			if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
+				tr_state->visual->compositor->root_visual_setup=0;
+				tr_state->visual->compositor->force_type_3d=1;
+			}
 			gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 			break;
 		case TRAVERSE_COLLIDE:

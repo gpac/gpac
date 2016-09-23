@@ -203,8 +203,10 @@ void compositor_3d_draw_bitmap(Drawable *stack, DrawAspect2D *asp, GF_TraverseSt
 
 	visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, GF_FALSE);
 	visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
+
+	visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
+	
 	if (alpha && (alpha != 0xFF)) {
-		visual_3d_set_material_2d_argb(tr_state->visual, GF_COL_ARGB(alpha, 0xFF, 0xFF, 0xFF));
 		gf_sc_texture_set_blend_mode(txh, TX_MODULATE);
 	} else if (gf_sc_texture_is_transparent(txh)) {
 		gf_sc_texture_set_blend_mode(txh, TX_REPLACE);

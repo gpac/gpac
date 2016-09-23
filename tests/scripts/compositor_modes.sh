@@ -5,7 +5,7 @@ compositor_test ()
  name=$(basename $2)
  name=${name%.*}
 
- test_begin "compositor-$1-$name" "play"
+ test_begin "compositor-$1-$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi

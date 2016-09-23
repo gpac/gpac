@@ -573,7 +573,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		case GF_ISOM_SUBTYPE_HEV2:
 		case GF_ISOM_SUBTYPE_LHV1:
 		{
-			GF_HEVCConfig *hevcc = NULL, *shvcc = NULL;
+			GF_HEVCConfig *hevcc = NULL, *lhvcc = NULL;
 			hevcc = gf_isom_hevc_config_get(streamer->isom, track->track_num, 1);
 			if (hevcc) {
 				track->avc_nalu_size = hevcc->nal_unit_size;
@@ -581,12 +581,12 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				streamType = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_HEVC;
 			}
-			shvcc = gf_isom_shvc_config_get(streamer->isom, track->track_num, 1);
-			if (shvcc) {
-				track->avc_nalu_size = shvcc->nal_unit_size;
-				gf_odf_hevc_cfg_del(shvcc);
+			lhvcc = gf_isom_lhvc_config_get(streamer->isom, track->track_num, 1);
+			if (lhvcc) {
+				track->avc_nalu_size = lhvcc->nal_unit_size;
+				gf_odf_hevc_cfg_del(lhvcc);
 				streamType = GF_STREAM_VISUAL;
-				oti = GPAC_OTI_VIDEO_SHVC;
+				oti = GPAC_OTI_VIDEO_LHVC;
 			}
 			flags |= GP_RTP_PCK_USE_MULTI;
 			break;

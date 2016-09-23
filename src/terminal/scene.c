@@ -512,7 +512,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 //browse all channels and update buffering info
 void gf_scene_buffering_info(GF_Scene *scene)
 {
-	u32 i, j, max_buffer, cur_buffer;
+	u32 i, j, max_buffer, cur_buffer, max_buff_val=0;
 	GF_Channel *ch;
 	GF_Event evt;
 	GF_ObjectManager *odm;
@@ -536,6 +536,8 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		if (!odm->codec) continue;
 		j=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &j))) {
+			if (max_buff_val < ch->MaxBuffer) max_buff_val = ch->MaxBuffer;
+			
 			/*count only re-buffering channels*/
 			if (!ch->BufferOn) continue;
 			if (ch->MaxBuffer) {
@@ -549,6 +551,7 @@ void gf_scene_buffering_info(GF_Scene *scene)
 	evt.progress.progress_type = 0;
 	evt.progress.service = scene->root_od->net_service->url;
 	if (!max_buffer || !cur_buffer || (max_buffer <= cur_buffer)) {
+		if (!max_buffer) max_buffer=max_buff_val;
 		evt.progress.done = evt.progress.total = max_buffer;
 	} else {
 		evt.progress.done = cur_buffer;
@@ -1170,8 +1173,11 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
 				gf_scene_get_video_size(odm->mo, &w, &h);
-				if (w && h)
+				if (w && h) {
+					scene->force_size_set = 0;
 					gf_sg_set_scene_size_info(scene->graph, w, h, 1);
+					gf_scene_force_size(scene, w, h);
+				}
 			}
 			break;
 		}
@@ -2068,9 +2074,11 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		GF_NetworkCommand com;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
-		gf_term_service_command(scene->root_od->net_service, &com);
-
+		if (!scene->vr_type) {
+			com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
+			gf_term_service_command(scene->root_od->net_service, &com);
+		}
+		
 		if (scene->root_od->term->root_scene == scene) {
 			if (com.par.width && com.par.height) {
 				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
@@ -2748,8 +2756,8 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			break;
 		odm_base=NULL;
 		//todo
-		//1- check if we use compatible formats, for now we only do demos with hevc/shvc
-		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/shvc
+		//1- check if we use compatible formats, for now we only do demos with hevc/lhvc
+		//2- check dependency IDs if any, for now we only do demos with 2 layers hevc/lhvc
 	}
 	if (!odm_base) return;
 

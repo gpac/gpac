@@ -84,16 +84,16 @@ static void gf_cm_unit_del(GF_CMUnit *cb, Bool no_data_allocation)
 	if (!cb)
 		return;
 	if (cb->next) gf_cm_unit_del(cb->next, no_data_allocation);
-	cb->next = NULL;
+
 	if (cb->data) {
 		if (!no_data_allocation) {
 			my_large_gf_free(cb->data);
 		}
 		cb->data = NULL;
-		if (cb->frame) {
-			cb->frame->Release(cb->frame);
-			cb->frame=NULL;
-		}
+	}
+	if (cb->frame) {
+		cb->frame->Release(cb->frame);
+		cb->frame=NULL;
 	}
 	gf_free(cb);
 }
@@ -201,7 +201,7 @@ GF_CMUnit *gf_cm_lock_input(GF_CompositionMemory *cb, u32 TS, Bool codec_reorder
 	cu = cb->input;
 	while (1) {
 		if (!cu->dataLength) {
-			assert(!cu->TS || (cb->Capacity==1));
+//			assert(!cu->TS || (cb->Capacity==1));
 			cu->TS = TS;
 			return cu;
 		}
@@ -332,7 +332,11 @@ static void cb_set_buffer_off(GF_CompositionMemory *cb)
 void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bool codec_reordering)
 {
 	/*nothing dispatched, ignore*/
-	if (!cu_size) {
+	if (!cu_size || (!cu->data && !cu->frame) ) {
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
+		}
 		cu->dataLength = 0;
 		cu->TS = 0;
 		return;
@@ -355,10 +359,13 @@ void gf_cm_unlock_input(GF_CompositionMemory *cb, GF_CMUnit *cu, u32 cu_size, Bo
 
 		/*turn off buffering for audio - this must be done now rather than when fetching first output frame since we're not
 		sure output is fetched (Switch node, ...)*/
-		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) && (cb->odm->codec->type == GF_STREAM_AUDIO)) {
-			/*done with buffering, signal to the clock (ONLY ONCE !)*/
+		if ( (cb->Status == CB_BUFFER) && (cb->UnitCount >= cb->Capacity) ) {
+			/*done with buffering*/
 			cb->Status = CB_BUFFER_DONE;
-			cb_set_buffer_off(cb);
+			
+			//for audio, turn off buffering now. For video, we will wait for the first frame to be drawn
+			if (cb->odm->codec->type == GF_STREAM_AUDIO)
+				cb_set_buffer_off(cb);
 		}
 
 		//new FPS regulation doesn't need this signaling
@@ -439,29 +446,28 @@ void gf_cm_resize(GF_CompositionMemory *cb, u32 newCapacity)
 	cu = cb->input;
 
 	cb->UnitSize = newCapacity;
-	if (!cb->no_allocation) {
-		my_large_gf_free(cu->data);
-		cu->data = (char*) my_large_alloc(newCapacity);
-		cu->dataLength = 0;
-	} else {
-		cu->data = NULL;
-		if (cu->dataLength && cb->odm->raw_frame_sema) {
-			cu->dataLength = 0;
-			gf_sema_notify(cb->odm->raw_frame_sema, 1);
+	
+	while (1) {
+		if (cu->frame) {
+			cu->frame->Release(cu->frame);
+			cu->frame = NULL;
 		}
-	}
-	cu = cu->next;
-	while (cu != cb->input) {
 		if (!cb->no_allocation) {
 			my_large_gf_free(cu->data);
 			cu->data = (char*) my_large_alloc(newCapacity);
 		} else {
 			cu->data = NULL;
+			if (cu->dataLength && cb->odm->raw_frame_sema) {
+				gf_sema_notify(cb->odm->raw_frame_sema, 1);
+			}
 		}
 		cu->dataLength = 0;
-		cu = cu->next;
-	}
+		cu->TS = 0;
 
+		cu = cu->next;
+		if (cu == cb->input) break;
+	}
+	
 	cb->UnitCount = 0;
 	cb->output = cb->input;
 	gf_odm_lock(cb->odm, 0);
@@ -526,7 +532,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		if (cb->odm->codec->type != GF_STREAM_VISUAL) return NULL;
 		break;
 	case CB_BUFFER_DONE:
-		cb->Status = CB_PLAY;
+		//For non-visual output move to play state upon fetch
+		if (cb->odm->codec->type != GF_STREAM_VISUAL)
+			cb->Status = CB_PLAY;
 		break;
 	//we always deliver in pause, up to the caller to decide to consume or not the frame
 	case CB_PAUSE:
@@ -534,7 +542,7 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 	}
 
 	/*no output*/
-	if (!cb->output->dataLength) {
+	if (!cb->UnitCount || !cb->output->dataLength) {
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
@@ -586,7 +594,8 @@ void gf_cm_output_kept(GF_CompositionMemory *cb)
 	cb->output->RenderedLength = 0;
 	cb->LastRenderedTS = cb->output->TS;
 
-	if (cb->Status==CB_BUFFER) {
+	//For visual output move to play state once first frame is drawn
+	if ((cb->Status==CB_BUFFER_DONE) &&  (cb->odm->codec->type == GF_STREAM_VISUAL)) {
 		cb_set_buffer_off(cb);
 		cb->Status=CB_PLAY;
 	}
@@ -595,7 +604,6 @@ void gf_cm_output_kept(GF_CompositionMemory *cb)
 /*drop the output CU*/
 void gf_cm_drop_output(GF_CompositionMemory *cb)
 {
-	//check if clock has to be resumed
 	gf_cm_output_kept(cb);
 
 	/*WARNING: in RAW mode, we (for the moment) only have one unit - setting output->dataLength to 0 means the input is available

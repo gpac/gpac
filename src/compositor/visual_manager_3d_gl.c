@@ -1393,7 +1393,7 @@ void visual_3d_end_auto_stereo_pass(GF_VisualManager *visual)
 
 static void visual_3d_setup_quality(GF_VisualManager *visual)
 {
-#ifndef GPAC_USE_GLES2	//TODOk check for ES2.0
+#ifndef GPAC_USE_GLES2
 
 	if (visual->compositor->high_speed) {
 		glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
@@ -2401,11 +2401,12 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	GF_VisualManager *root_visual = visual->compositor->visual;
 	GLint loc, loc_vertex_array, loc_color_array, loc_normal_array, loc_textcoord_array;
 	u32 flags;
-
+	u32 num_lights = visual->num_lights;
+	
 	flags = root_visual->glsl_flags;
 
 	if (visual->has_material_2d) {
-		visual->num_lights = 0;
+		num_lights = 0;
 	}
 
 	if (!tr_state->mesh_num_textures && (mesh->flags & MESH_HAS_COLOR)) {
@@ -2420,7 +2421,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	}
 
-	if (visual->num_lights) {
+	if (num_lights) {
 		flags |= GF_GL_HAS_LIGHT;
 	} else {
 		flags &= ~GF_GL_HAS_LIGHT;
@@ -2583,7 +2584,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	}
 
 	//setup mesh normal vertex attribute - only available for some shaders
-	if (!visual->has_material_2d && visual->num_lights && (mesh->mesh_type==MESH_TRIANGLES) ) {
+	if (!visual->has_material_2d && num_lights && (mesh->mesh_type==MESH_TRIANGLES) ) {
 		GF_Matrix normal_mx;
 		assert(flags & GF_GL_HAS_LIGHT);
 
@@ -2610,7 +2611,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 		loc = gf_glGetUniformLocation(visual->glsl_program, "gfNumLights");
 		if (loc>=0)
-			glUniform1i(loc, visual->num_lights);
+			glUniform1i(loc, num_lights);
 		visual_3d_set_lights_shaders(tr_state);
 		GL_CHECK_ERR
 	}
@@ -3196,7 +3197,6 @@ static void visual_3d_set_debug_color(u32 col)
 /*note we don't perform any culling for normal drawing...*/
 static void visual_3d_draw_normals(GF_TraverseState *tr_state, GF_Mesh *mesh)
 {
-	//TODOk - allow normal drawing with GLES2 j
 #if !defined( GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES2)
 
 	GF_Vec pt, end;
@@ -3342,7 +3342,6 @@ void visual_3d_mesh_paint(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 	}
 
-	//TODOk - allow normal drawing and wireframe with GLES2 j
 #if !defined(GPAC_USE_GLES2)
 	if (tr_state->visual->compositor->draw_normals) {
 		if (!mesh_drawn) {
@@ -3592,7 +3591,7 @@ void visual_3d_clear(GF_VisualManager *visual, SFColor color, Fixed alpha)
 
 void visual_3d_fill_rect(GF_VisualManager *visual, GF_Rect rc, SFColorRGBA color)
 {
-	//TODOk - code this for GLES2 j
+	//TODOk - code this for GLES2 ?
 #ifdef GPAC_USE_GLES2
 #else
 

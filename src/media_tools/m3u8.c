@@ -868,8 +868,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 				}
 				assert(curr_playlist->element.playlist.elements);
 				assert(fullURL);
-				assert(curr_playlist->url && !curr_playlist->title && !curr_playlist->codecs);
-				curr_playlist->title = NULL;
+				assert(curr_playlist->url && !curr_playlist->codecs);
 				curr_playlist->codecs = NULL;
 				subElement = playlist_element_new(TYPE_UNKNOWN, fullURL, attribs);
 				if (subElement == NULL) {
@@ -970,7 +969,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		f = gf_fopen(file, "rt");
 		if (!f) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH,("[M3U8] Cannot open m3u8 file %s for reading\n", file));
-			return GF_SERVICE_ERROR;
+			return GF_URL_ERROR;
 		}
 	}
 	if (*playlist == NULL) {

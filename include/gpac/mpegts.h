@@ -230,8 +230,10 @@ enum
 	GF_M2TS_VIDEO_H264				= 0x1B,
 	GF_M2TS_VIDEO_SVC				= 0x1F,
 	GF_M2TS_VIDEO_HEVC				= 0x24,
-	//NOT NORMATIVE YET!!!
-	GF_M2TS_VIDEO_SHVC				= 0x27,
+	GF_M2TS_VIDEO_SHVC				= 0x28,
+	GF_M2TS_VIDEO_SHVC_TEMPORAL		= 0x29,
+	GF_M2TS_VIDEO_MHVC				= 0x2A,
+	GF_M2TS_VIDEO_MHVC_TEMPORAL		= 0x2B,
 
 	GF_M2TS_VIDEO_DCII				= 0x80,
 	GF_M2TS_AUDIO_AC3				= 0x81,
@@ -894,6 +896,7 @@ struct tag_m2ts_demux
 	Bool force_file_refresh;
 	/*net playing*/
 	GF_Socket *sock;
+	Bool sock_is_delegate;
 
 #ifdef GPAC_HAS_LINUX_DVB
 	/*dvb playing*/

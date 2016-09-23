@@ -321,7 +321,7 @@ void main()
 
 #ifdef GF_GL_HAS_LIGHT
 		if (gfNumLights>0) {	//RGB texture
-			fragColor = rgba;
+			fragColor *= rgba;
 		}
 		//RGB texture with material 2D [TODO: check]
 		else if(gfNumLights==0)

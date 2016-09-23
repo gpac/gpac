@@ -132,7 +132,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->data = NULL;
 	}
 	txh->is_open = 0;
-
+	
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
@@ -155,6 +155,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 		if (!txh->tx_io) return;
 
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
+		gf_sc_texture_configure_conversion(txh);
 
 		if (private_media) {
 			txh->transparent = 1;
@@ -181,7 +182,7 @@ GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	Bool needs_reload = 0;
-	u32 size, ts;
+	u32 size, ts, push_time;
 	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
@@ -204,14 +205,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
+	//if first frame use 20ms as upload time
+	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
+	
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
 	} else if (size && txh->size && (size != txh->size)) {
 		needs_reload = 1;
 	}
-
+	
 	if (needs_reload) {
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
@@ -244,7 +248,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %d)\n", ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %u)\n", ts));
 			if (txh->compositor->ms_until_next_frame > ms_until_next)
 				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
@@ -273,6 +277,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		setup_texture_object(txh, 0);
 	}
 
+	
+	
 	/*try to push texture on graphics but don't complain if failure*/
 	gf_sc_texture_set_data(txh);
 

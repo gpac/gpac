@@ -1825,12 +1825,16 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		/*this is an extra feature: if material2D.filled is FALSE on 3D objects, switch to TX_REPLACE mode
 		and enable lighting*/
 		if (!mat->filled) {
-			GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-			if (txh) {
-				gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
-				return 1;
+			if (mat->transparency) {
+				emi.red = emi.green = emi.blue = FIX_ONE;
+			} else {
+				GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
+				if (txh) {
+					gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
+					return 1;
+				}
 			}
 		}
 		/*regular mat 2D*/
@@ -1954,6 +1958,7 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
 	visual->has_material_2d = alpha ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
@@ -1967,6 +1972,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
 	visual->has_material_2d = a ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
@@ -2012,6 +2018,7 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 	visual->materials[material_type].alpha = rgba[3];
 
 	visual->has_material = 1;
+	visual->has_material_2d=0;
 }
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)

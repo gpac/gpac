@@ -234,7 +234,7 @@ struct __tag_compositor
 	u32 vp_x, vp_y, vp_width, vp_height;
 	/*backbuffer size - in scalable mode, matches display size, otherwise matches scene size*/
 	u32 output_width, output_height;
-
+	Bool output_as_8bit;
 	/*scene size if any*/
 	u32 scene_width, scene_height;
 	Bool has_size_info;
@@ -522,6 +522,7 @@ struct __tag_compositor
 	GF_Mesh *hybgl_mesh;
 	GF_Mesh *hybgl_mesh_background;
 
+	Bool force_type_3d;
 	char *screen_buffer;
 	u32 screen_buffer_alloc_size;
 #endif
@@ -647,7 +648,6 @@ typedef struct _gf_sc_texture_handler
 	Bool raw_memory;
 	u8 *pU, *pV;
 	u32 nb_frames, upload_time;
-	
 	GF_MediaDecoderFrame *frame;
 
 #ifndef GPAC_DISABLE_VRML
@@ -1205,12 +1205,12 @@ void compositor_2d_release_video_access(GF_VisualManager *surf);
 void compositor_2d_init_callbacks(GF_Compositor *compositor);
 GF_Rect compositor_2d_update_clipper(GF_TraverseState *tr_state, GF_Rect this_clip, Bool *need_restore, GF_Rect *original, Bool for_layer);
 Bool compositor_2d_check_attached(GF_VisualManager *visual);
-void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen);
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen);
 
 #ifndef GPAC_DISABLE_3D
 void compositor_2d_reset_gl_auto(GF_Compositor *compositor);
 void compositor_2d_hybgl_flush_video(GF_Compositor *compositor, GF_IRect *area);
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear);
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear);
 #endif
 
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale);

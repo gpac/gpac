@@ -21,7 +21,7 @@ lsr_test ()
  esac
 
  #start our test, specifying all hash names we will check
- test_begin "laser-$name" "lsr-to-mp4" "lsr-to-saf" "saf-to-lsr" "mp4-to-lsr" "play"
+ test_begin "laser-$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi
@@ -40,10 +40,10 @@ lsr_test ()
  #run all following tests in parallel
 
  #MP4->LSR
- do_test "$MP4BOX -lsr $mp4file -out test1.lsr" "MP42LSR" && do_hash_test "test.lsr" "mp4-to-lsr" && rm test1.lsr 2> /dev/null &
+ do_test "$MP4BOX -lsr $mp4file -out test1.lsr" "MP42LSR" && do_hash_test "test1.lsr" "mp4-to-lsr" && rm test1.lsr 2> /dev/null &
 
  #SAF->LSR
- do_test "$MP4BOX -lsr $saffile -out test2.lsr" "SAF2LSR" && do_hash_test "test.lsr" "saf-to-lsr" && rm test2.lsr 2> /dev/null &
+ do_test "$MP4BOX -lsr $saffile -out test2.lsr" "SAF2LSR" && do_hash_test "test2.lsr" "saf-to-lsr" && rm test2.lsr 2> /dev/null &
 
  if [ $play_all = 1 ] ; then
 
@@ -61,8 +61,8 @@ lsr_test ()
  #this will sync everything, we can delete after
  test_end
 
- rm $saffile
- rm $mp4file
+ rm $saffile 2> /dev/null
+ rm $mp4file 2> /dev/null 
 
 }
 

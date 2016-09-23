@@ -132,6 +132,10 @@ typedef struct _rtp_session
 	u32 command_time;
 	GF_List *rtsp_commands;
 	GF_Err connect_error;
+
+	/*SAT>IP uses a non-conformant version of RTSP*/
+	Bool satip;
+	char *satip_server;
 } RTSPSession;
 
 /*creates new RTSP session handler*/
@@ -262,7 +266,10 @@ typedef struct
 	u32 rtcp_check_start;
 
 	u64 ts_offset;
-
+	
+	/*SAT>IP M2TS demux*/
+	GF_InputService *satip_m2ts_ifce;
+	Bool satip_m2ts_service_connected;
 } RTPStream;
 
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration);
@@ -270,6 +277,8 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 
 /*creates new RTP stream from SDP info*/
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream);
+/*creates new SAT>IP stream*/
+RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip);
 /*destroys RTP stream */
 void RP_DeleteStream(RTPStream *ch);
 /*resets stream state and inits RTP sockets if ResetOnly is false*/
