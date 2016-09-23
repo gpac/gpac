@@ -601,6 +601,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_dump(a, trace);
+
+
 	default:
 		return defa_dump(a, trace);
 	}
@@ -4897,6 +4901,25 @@ GF_Err ipma_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "</AssociationEntry>\n");
 	}
 	gf_box_dump_done("ItemPropertyAssociationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err mmpu_dump(GF_Box *a, FILE * trace)
+{
+	GF_MmtMmpuBox *p = (GF_MmtMmpuBox*)a;
+	u32 u;
+
+	fprintf(trace, "<MMT MPU Box found >\n");
+	DumpBox(a, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+
+	fprintf(trace, "<Complete:%d Adc_present:%d MPU_seq_num:%d Asset_id_scheme:%d  >\n",p->is_complete,p->is_adc_present,p->mpu_sequence_number, p->asset_id_scheme);
+	fprintf(trace, "<Asset_id_length=%d>\n",p->asset_id_length);
+	fprintf(trace, "<Asset_id_value=<");
+	for(u=0;u<p->asset_id_length;u++)
+		fprintf(trace, "%c",p->asset_id_value[u]);
+	fprintf(trace, ">\n");
+	gf_box_dump_done("MMTBox", a, trace);
 	return GF_OK;
 }
 

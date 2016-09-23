@@ -2092,6 +2092,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Read(a, bs);
 
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_Read(a, bs);
+
 	default:
 		return defa_Read(a, bs);
 	}

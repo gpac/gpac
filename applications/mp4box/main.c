@@ -1852,12 +1852,12 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
-Bool mpu_is_complete=0;
-Bool mpu_is_adcpresent=0;
-u32 mpu_seq_number=0;
-u32 mpu_asset_id_scheme=0;
-u32 mpu_asset_id_length=0;
-u8 mpu_asset_id_value[32]; /*Assuming worst case (ie: 128 bits coded UUID)*/
+static Bool mpu_is_complete=0;
+static Bool mpu_is_adcpresent=0;
+static u32 mpu_seq_number=0;
+static u32 mpu_asset_id_scheme=0;
+static u32 mpu_asset_id_length=0;
+static u8 mpu_asset_id_value[32]; /*Assuming worst case (ie: 128 bits coded UUID)*/
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3315,7 +3315,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 			}
 			int u=0;
 			for(;u<mpu_asset_id_length;u++)
-				mpu_asset_id_value[i]=argv[i+1][u];
+				mpu_asset_id_value[u]=argv[i+1][u];
 			conv_type=GF_ISOM_CONV_TYPE_MMT;
 			i++;
 		}

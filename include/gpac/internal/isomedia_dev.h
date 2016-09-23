@@ -4501,6 +4501,7 @@ void mmpu_del(GF_Box *s);
 GF_Err mmpu_Read(GF_Box *s,GF_BitStream *bs);
 GF_Err mmpu_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mmpu_Size(GF_Box *s);
+GF_Err mmpu_dump(GF_Box *s, FILE * trace);
 
 
 #endif /*GPAC_DISABLE_ISOM*/
