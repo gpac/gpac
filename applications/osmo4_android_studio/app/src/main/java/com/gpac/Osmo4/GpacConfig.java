@@ -65,10 +65,7 @@ public class GpacConfig {
         
         //check if GPAC.cfg exists in /sdcard/osmo
         File gpac_cfg = new File(osmo.getAbsolutePath(), "GPAC.cfg");
-        if (gpac_cfg.exists())
-        	gpacConfigDirectory = osmo.getAbsolutePath() + "/";
-        else
-        	gpacConfigDirectory = null;
+        gpacConfigDirectory = osmo.getAbsolutePath() + "/";
     }
 
     /**
