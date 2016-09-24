@@ -75,6 +75,7 @@ JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_setGpacPreference
 
 
 JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_setGpacLogs(JNIEnv * env, jobject obj, jstring tools_at_levels);
+JNIEXPORT void JNICALL Java_com_gpac_Osmo4_GPACInstance_gpaceventorientationchange(JNIEnv * env, jobject obj, jfloat x, jfloat y, jfloat z);
 
 #ifdef __cplusplus
 }
