@@ -13,7 +13,6 @@ LOCAL_LDLIBS    += -llog -lgpac
 
 #LOCAL_CFLAGS +=	-DGPAC_GUI_ONLY
 LOCAL_CFLAGS +=	-DDEBUG_MODE
-
-LOCAL_SRC_FILES := ../../../../applications/osmo4_android/jni/wrapper.cpp
+LOCAL_SRC_FILES :=  ../../../../applications/osmo4_android_studio/app/src/main/jni/wrapper_jni.cpp ../../../../applications/osmo4_android_studio/app/src/main/jni/wrapper.cpp
 
 include $(BUILD_SHARED_LIBRARY)
