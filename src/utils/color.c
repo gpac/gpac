@@ -1394,7 +1394,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 		yuv_planar_type = 7;
 		break;
 	case GF_PIXEL_NV21:
-	case GF_PIXEL_YPVU:
+	case GF_PIXEL_NV12:
 		load_line = load_line_YUV420SP;
 		break;
 	case GF_PIXEL_YUVA:

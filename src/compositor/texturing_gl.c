@@ -546,7 +546,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 	case GF_PIXEL_YUV444:		
 	case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
-	case GF_PIXEL_YPVU:
+	case GF_PIXEL_NV12:
 #ifndef GPAC_USE_GLES1X
 		if (compositor->gl_caps.has_shaders && (is_pow2 || compositor->visual->compositor->shader_only_mode) ) {
 			use_yuv_shaders = 1;
@@ -836,7 +836,7 @@ common:
 	case GF_PIXEL_YUV444:		
     case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
-	case GF_PIXEL_YPVU:
+	case GF_PIXEL_NV12:
 	case GF_PIXEL_I420:
 		if (txh->tx_io->gl_format == compositor->gl_caps.yuv_texture) {
 			txh->tx_io->conv_format = GF_PIXEL_YVYU;
@@ -898,7 +898,7 @@ common:
 	case GF_PIXEL_YUV444:		
     case GF_PIXEL_YUV444_10:
 	case GF_PIXEL_NV21:
-	case GF_PIXEL_YPVU:
+	case GF_PIXEL_NV12:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_BGR_24:
 	case GF_PIXEL_BGR_32:
@@ -1184,7 +1184,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					pV = (u8 *) pU + txh->height * stride_chroma / 2;
 				break;
 			case GF_PIXEL_NV21:
-			case GF_PIXEL_YPVU:
+			case GF_PIXEL_NV12:
 				if (!stride_chroma)
 					stride_chroma = stride_luma/2;
 				break;
@@ -1212,7 +1212,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			 * the following (wxh)/2 bytes is UV plane.
 			 * Reference: http://stackoverflow.com/questions/22456884/how-to-render-androids-yuv-nv21-camera-image-on-the-background-in-libgdx-with-o
 			 */
-			if ((txh->pixelformat == GF_PIXEL_NV21) || (txh->pixelformat == GF_PIXEL_YPVU)) {
+			if ((txh->pixelformat == GF_PIXEL_NV21) || (txh->pixelformat == GF_PIXEL_NV12)) {
 				u32 fmt = txh->tx_io->gl_format;
 				txh->tx_io->gl_format = GL_LUMINANCE_ALPHA;
 				glBindTexture(txh->tx_io->gl_type, txh->tx_io->u_id);

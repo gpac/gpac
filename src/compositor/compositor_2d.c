@@ -1116,7 +1116,7 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_NV21:
-	case GF_PIXEL_YPVU:
+	case GF_PIXEL_NV12:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_RGBS:
 	case GF_PIXEL_RGBAS:
