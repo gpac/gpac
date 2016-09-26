@@ -5627,8 +5627,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 			oinf->scalability_mask |= 1 << i;
 	}
 
-	oinf->num_profile_tier_level = vps->num_profile_tier_level;
-	for (i = 0; i < oinf->num_profile_tier_level; i++) {
+	for (i = 0; i < vps->num_profile_tier_level; i++) {
 		HEVC_ProfileTierLevel ptl = (i == 0) ? vps->ptl : vps->ext_ptl[i-1];
 		LHEVC_ProfileTierLevel *lhevc_ptl;
 		GF_SAFEALLOC(lhevc_ptl, LHEVC_ProfileTierLevel);
@@ -5650,8 +5649,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 		gf_list_add(oinf->profile_tier_levels, lhevc_ptl);
 	}
 	
-	oinf->num_operating_points = vps->num_output_layer_sets;
-	for (i = 0; i < oinf->num_operating_points; i++) {
+	for (i = 0; i < vps->num_output_layer_sets; i++) {
 		LHEVC_OperatingPoint *op;
 		u32 j;
 		u16 minPicWidth, minPicHeight, maxPicWidth, maxPicHeight;
@@ -5699,8 +5697,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 		gf_list_add(oinf->operating_points, op);
 	}
 
-	oinf->max_layer_count = vps->max_layers;
-	for (i = 0; i < oinf->max_layer_count; i++) {
+	for (i = 0; i < vps->max_layers; i++) {
 		LHEVC_DependentLayer *dep;
 		u32 j, k;
 		GF_SAFEALLOC(dep, LHEVC_DependentLayer);

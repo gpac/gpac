@@ -2098,13 +2098,13 @@ void gf_isom_oinf_del_entry(void *entry)
 GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 {
 	GF_OperatingPointsInformation* ptr = (GF_OperatingPointsInformation *)entry;
-	u32 i, j;
+	u32 i, j, count;
 
 	if (!ptr) return GF_BAD_PARAM;
 	ptr->scalability_mask = gf_bs_read_u16(bs);
 	gf_bs_read_int(bs, 2);//reserved
-	ptr->num_profile_tier_level = gf_bs_read_int(bs, 6);
-	for (i = 0; i < ptr->num_profile_tier_level; i++) {
+	count = gf_bs_read_int(bs, 6);
+	for (i = 0; i < count; i++) {
 		LHEVC_ProfileTierLevel *ptl;
 		GF_SAFEALLOC(ptl, LHEVC_ProfileTierLevel);
 		if (!ptl) return GF_OUT_OF_MEM;
@@ -2116,8 +2116,8 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		ptl->general_level_idc = gf_bs_read_u8(bs);
 		gf_list_add(ptr->profile_tier_levels, ptl);
 	}
-	ptr->num_operating_points = gf_bs_read_u16(bs);
-	for (i = 0; i < ptr->num_operating_points; i++) {
+	count = gf_bs_read_u16(bs);
+	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op;
 		GF_SAFEALLOC(op, LHEVC_OperatingPoint);
 		if (!op) return GF_OUT_OF_MEM;
@@ -2150,8 +2150,8 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 		}
 		gf_list_add(ptr->operating_points, op);
 	}
-	ptr->max_layer_count = gf_bs_read_u8(bs);
-	for (i = 0; i < ptr->max_layer_count; i++) {
+	count = gf_bs_read_u8(bs);
+	for (i = 0; i < count; i++) {
 		LHEVC_DependentLayer *dep;
 		GF_SAFEALLOC(dep, LHEVC_DependentLayer);
 		if (!dep) return GF_OUT_OF_MEM;
@@ -2172,13 +2172,14 @@ GF_Err gf_isom_oinf_read_entry(void *entry, GF_BitStream *bs)
 GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 {
 	GF_OperatingPointsInformation* ptr = (GF_OperatingPointsInformation *)entry;
-	u32 i, j;
+	u32 i, j, count;
 	if (!ptr) return GF_OK;
 
 	gf_bs_write_u16(bs, ptr->scalability_mask);
 	gf_bs_write_int(bs, 0xFF, 2);//reserved
-	gf_bs_write_int(bs, ptr->num_profile_tier_level, 6);
-	for (i = 0; i < ptr->num_profile_tier_level; i++) {
+	count=gf_list_count(ptr->profile_tier_levels);
+	gf_bs_write_int(bs, count, 6);
+	for (i = 0; i < count; i++) {
 		LHEVC_ProfileTierLevel *ptl = (LHEVC_ProfileTierLevel *)gf_list_get(ptr->profile_tier_levels, i);
 		gf_bs_write_int(bs, ptl->general_profile_space, 2);
 		gf_bs_write_int(bs, ptl->general_tier_flag, 1);
@@ -2187,8 +2188,9 @@ GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 		gf_bs_write_long_int(bs, ptl->general_constraint_indicator_flags, 48);
 		gf_bs_write_u8(bs, ptl->general_level_idc);
 	}
-	gf_bs_write_u16(bs, ptr->num_operating_points);
-	for (i = 0; i < ptr->num_operating_points; i++) {
+	count=gf_list_count(ptr->operating_points);
+	gf_bs_write_u16(bs, count);
+	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
 		gf_bs_write_u16(bs, op->output_layer_set_idx);
 		gf_bs_write_u8(bs, op->max_temporal_id);
@@ -2218,8 +2220,9 @@ GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 			gf_bs_write_u32(bs, op->avgBitRate);
 		}
 	}
-	gf_bs_write_u8(bs, ptr->max_layer_count);
-	for (i = 0; i < ptr->max_layer_count; i++) {
+	count=gf_list_count(ptr->dependency_layers);
+	gf_bs_write_u8(bs, count);
+	for (i = 0; i < count; i++) {
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
 		gf_bs_write_u8(bs, dep->dependent_layerID);
 		gf_bs_write_u8(bs, dep->num_layers_dependent_on);
@@ -2237,13 +2240,15 @@ GF_Err gf_isom_oinf_write_entry(void *entry, GF_BitStream *bs)
 u32 gf_isom_oinf_size_entry(void *entry)
 {
 	GF_OperatingPointsInformation* ptr = (GF_OperatingPointsInformation *)entry;
-	u32 size = 0, i ,j;
+	u32 size = 0, i ,j, count;
 	if (!ptr) return 0;
 
 	size += 3; //scalability_mask + reserved + num_profile_tier_level
-	size += ptr->num_profile_tier_level * 12; //general_profile_space + general_tier_flag + general_profile_idc + general_profile_compatibility_flags + general_constraint_indicator_flags + general_level_idc
+	count=gf_list_count(ptr->profile_tier_levels);
+	size += count * 12; //general_profile_space + general_tier_flag + general_profile_idc + general_profile_compatibility_flags + general_constraint_indicator_flags + general_level_idc
 	size += 2;//num_operating_points
-	for (i = 0; i < ptr->num_operating_points; i++) {
+	count=gf_list_count(ptr->operating_points);
+	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);;
 		size += 2/*output_layer_set_idx*/ + 1/*max_temporal_id*/ + 1/*layer_count*/;
 		size += op->layer_count * 2;
@@ -2256,7 +2261,8 @@ u32 gf_isom_oinf_size_entry(void *entry)
 		}
 	}
 	size += 1;//max_layer_count
-	for (i = 0; i < ptr->max_layer_count; i++) {
+	count=gf_list_count(ptr->dependency_layers);
+	for (i = 0; i < count; i++) {
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
 		size += 1/*dependent_layerID*/ + 1/*num_layers_dependent_on*/; 
 		size += dep->num_layers_dependent_on * 1;//dependent_on_layerID

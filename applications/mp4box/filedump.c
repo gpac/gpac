@@ -2071,8 +2071,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							fprintf(stderr, "unknown");
 						}
 						//TODO: need to dump more info ?
-						fprintf(stderr, ") num_profile_tier_level %d ", oinf->num_profile_tier_level);
-						fprintf(stderr, " num_operating_points %d max_layer_count %d \n", oinf->num_operating_points, oinf->max_layer_count);
+						fprintf(stderr, ") num_profile_tier_level %d ", gf_list_count(oinf->profile_tier_levels) );
+						fprintf(stderr, " num_operating_points %d dependency layers %d \n", gf_list_count(oinf->operating_points), gf_list_count(oinf->dependency_layers) );
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS  && defined(GPAC_DISABLE_HEVC)*/
 				}
