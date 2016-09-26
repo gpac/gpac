@@ -4366,7 +4366,7 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 
 static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 {
-	u32 i;
+	u32 i, count;
 
 	fprintf(trace, "<OperatingPointsInformation");
 	fprintf(trace, " scalability_mask=\"%d (", ptr->scalability_mask);
@@ -4383,10 +4383,11 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 	default:
 		fprintf(trace, "unknown");
 	}
-	fprintf(trace, ")\" num_profile_tier_level=\"%d\"", ptr->num_profile_tier_level);
-	fprintf(trace, " num_operating_points=\"%d\" max_layer_count=\"%d\"", ptr->num_operating_points, ptr->max_layer_count);
+	fprintf(trace, ")\" num_profile_tier_level=\"%d\"", gf_list_count(ptr->profile_tier_levels) );
+	fprintf(trace, " num_operating_points=\"%d\" dependency_layers=\"%d\"", gf_list_count(ptr->operating_points), gf_list_count(ptr->dependency_layers));
 	fprintf(trace, ">\n");
-	for (i = 0; i < ptr->num_operating_points; i++) {
+	count=gf_list_count(ptr->operating_points);
+	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
 		fprintf(trace, "<OperatingPoint output_layer_set_idx=\"%d\"", op->output_layer_set_idx);
 		fprintf(trace, " max_temporal_id=\"%d\" layer_count=\"%d\"", op->max_temporal_id, op->layer_count);
@@ -4400,7 +4401,8 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 			fprintf(trace, " maxBitRate=\"%d\" avgBitRate=\"%d\"", op->maxBitRate, op->avgBitRate);
 		fprintf(trace, "/>\n");
 	}
-	for (i = 0; i < ptr->max_layer_count; i++) {
+	count=gf_list_count(ptr->dependency_layers);
+	for (i = 0; i < count; i++) {
 		u32 j;
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
 		fprintf(trace, "<Layer dependent_layerID=\"%d\" num_layers_dependent_on=\"%d\"", dep->dependent_layerID, dep->num_layers_dependent_on);

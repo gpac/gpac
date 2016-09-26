@@ -2305,11 +2305,8 @@ typedef struct
 typedef struct
 {
 	u16 scalability_mask;
-	u8 num_profile_tier_level;
 	GF_List* profile_tier_levels;
-	u16 num_operating_points;
 	GF_List* operating_points;
-	u8 max_layer_count;
 	GF_List* dependency_layers;
 } GF_OperatingPointsInformation;
 
