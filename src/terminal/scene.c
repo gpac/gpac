@@ -2746,6 +2746,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_Channel *ch, *base_ch;
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count, mtype;
+	Bool force_attach=GF_FALSE;
 	ch = gf_list_get(odm->channels, 0);
 	if (!ch->esd) return;
 	mtype = ch->esd->decoderConfig->streamType;
@@ -2764,11 +2765,46 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	odm_base->upper_layer_odm = odm;
 	odm->lower_layer_odm = odm_base;
 
-	nalu_annex_b = 1;
 	base_ch = gf_list_get(odm_base->channels, 0);
+	
+	switch (base_ch->esd->decoderConfig->objectTypeIndication) {
+	case GPAC_OTI_VIDEO_AVC:
+	case GPAC_OTI_VIDEO_SVC:
+		switch (ch->esd->decoderConfig->objectTypeIndication) {
+		case GPAC_OTI_VIDEO_LHVC:
+			if (!odm_base->codec->hybrid_layered_coded) {
+				force_attach=GF_TRUE;
+			}
+			odm_base->codec->hybrid_layered_coded=GF_TRUE;
+			break;
+		}
+		break;
+	}
+
+	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
-
+	
+	if (0 && odm_base->codec->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
+		nalu_annex_b = 0;
+		if (force_attach) {
+			odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
+		}
+	} else if (force_attach) {
+		char *dsi = NULL;
+		u32 len = 0;
+		if (ch->esd->decoderConfig->decoderSpecificInfo) {
+			dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
+			ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
+			len = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
+			ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+		}
+		odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
+		if (ch->esd->decoderConfig->decoderSpecificInfo) {
+			ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
+			ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
+		}
+	}
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_NALU_MODE;
 	com.nalu_mode.extract_mode = nalu_annex_b ? 1 : 0;
