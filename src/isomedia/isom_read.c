@@ -3662,6 +3662,13 @@ Bool gf_isom_needs_layer_reconstruction(GF_ISOFile *file)
 		if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_SABT) > 0) {
 			return GF_TRUE;
 		}
+		switch (gf_isom_get_media_subtype(file, i+1, 1)) {
+		case GF_ISOM_SUBTYPE_LHV1:
+		case GF_ISOM_SUBTYPE_LHE1:
+			if (gf_isom_get_reference_count(file, i+1, GF_ISOM_REF_BASE) > 0) {
+				return GF_TRUE;
+			}
+		}
 	}
 	return GF_FALSE;
 }

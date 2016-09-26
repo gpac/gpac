@@ -95,6 +95,7 @@ void isor_declare_objects(ISOMReader *read)
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
+		u32 m_subtype;
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
@@ -110,7 +111,8 @@ void isor_declare_objects(ISOMReader *read)
 			continue;
 		}
 		//some subtypes are not declared as readable objects
-		switch (gf_isom_get_media_subtype(read->mov, i+1, 1)) {
+		m_subtype = gf_isom_get_media_subtype(read->mov, i+1, 1);
+		switch (m_subtype) {
 		case GF_ISOM_SUBTYPE_HVT1:
 			continue;
 		default:
@@ -127,13 +129,46 @@ void isor_declare_objects(ISOMReader *read)
 				break;
 			}
 		}
+		//no SCAL found, check for sbas (lhvc with avc base)
+		for (j = 0; j < count; j++) {
+			if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_BASE, track_id) > 0) {
+				highest_stream = GF_FALSE;
+				break;
+			}
+		}
+		
 		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
+			GF_ESD *base_esd=NULL;
+			Bool external_base=GF_FALSE;
 			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
-			esd->has_ref_base = base_track ? GF_TRUE : GF_FALSE;
-
+			
+			if (base_track) {
+				u32 base_subtype=0;
+				switch (m_subtype) {
+				case GF_ISOM_SUBTYPE_LHV1:
+				case GF_ISOM_SUBTYPE_LHE1:
+					base_subtype = gf_isom_get_media_subtype(read->mov, base_track, 1);
+					switch (m_subtype) {
+					case GF_ISOM_SUBTYPE_HVC1:
+					case GF_ISOM_SUBTYPE_HEV1:
+					case GF_ISOM_SUBTYPE_HVC2:
+					case GF_ISOM_SUBTYPE_HEV2:
+						break;
+					default:
+						external_base=GF_TRUE;
+					}
+				}
+				if (external_base) {
+					base_esd = gf_media_map_esd(read->mov, base_track);
+					if (base_esd) esd->dependsOnESID = base_esd->ESID;
+				} else {
+					esd->has_ref_base = GF_TRUE;
+				}
+			}
+			
 			if (!esd->langDesc) {
 				esd->langDesc = (GF_Language *) gf_odf_desc_new(GF_ODF_LANG_TAG);
 				gf_isom_get_media_language(read->mov, i+1, &esd->langDesc->full_lang_code);
@@ -142,9 +177,16 @@ void isor_declare_objects(ISOMReader *read)
 			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
 			od->service_ifce = read->input;
 			od->objectDescriptorID = 0;
+			
+			if (base_esd) {
+				if (!ocr_es_id) ocr_es_id = base_esd->ESID;
+				base_esd->OCRESID = ocr_es_id;
+				gf_list_add(od->ESDescriptors, base_esd);
+			}
 			if (!ocr_es_id) ocr_es_id = esd->ESID;
 			esd->OCRESID = ocr_es_id;
 			gf_list_add(od->ESDescriptors, esd);
+			
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
 			} else {

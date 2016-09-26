@@ -490,6 +490,16 @@ refetch_AU:
 			curCTS = AU->CTS;
 			now = gf_clock_time(ch->clock);
 		}
+				
+		else if (codec->hybrid_layered_coded) {
+			if (AU->DTS < (*nextAU)->DTS) {
+				*nextAU = AU;
+				*activeChannel = ch;
+				curCTS = AU->CTS;
+				now = gf_clock_time(ch->clock);
+			}
+		}
+
 		//we allow for +/- 1ms drift due to timestamp rounding when converting to milliseconds units
 		else if (cts_diff<=1) {
 			GF_DBUnit *baseAU = *nextAU;
@@ -1003,6 +1013,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 	GF_MediaDecoder *mdec = (GF_MediaDecoder*)codec->decio;
 	GF_Err e = GF_OK;
 	s32 cts_diff;
+	u32 scal_unit_size=0;
 	CU = NULL;
 
 	/*if video codec muted don't decode (try to saves ressources)
@@ -1456,9 +1467,12 @@ scalable_retry:
 		MediaDecoder_GetNextAU(codec, &ch, &AU);
 		/*same CTS: same output, likely scalable stream so don't release the CB*/
 		if (AU && (AU->CTS == cts) && (ch != prev_ch) ) {
+			if (scal_unit_size < unit_size) scal_unit_size = unit_size;
 			unit_size = codec->CB->UnitSize;
 			goto scalable_retry;
 		}
+		if (!unit_size && scal_unit_size)
+			unit_size = scal_unit_size;
 
 		/*in seek don't dispatch any output*/
 		if (mmlevel >= GF_CODEC_LEVEL_DROP) {
@@ -1739,6 +1753,22 @@ void gf_codec_set_status(GF_Codec *codec, u32 Status)
 		return;
 	}
 }
+static u32 get_codec_confidence(GF_Codec *codec, GF_BaseDecoder *ifce, GF_ESD *esd, u32 PL)
+{
+	u32 conf = 0;
+	u32 i_es;
+	for (i_es=0; i_es<gf_list_count(codec->odm->OD->ESDescriptors); i_es++) {
+		GF_ESD *an_esd = gf_list_get(codec->odm->OD->ESDescriptors, i_es);
+		u32 c;
+		if (an_esd->decoderConfig->streamType != esd->decoderConfig->streamType) continue;
+		if (an_esd->dependsOnESID && (an_esd->decoderConfig->objectTypeIndication != esd->decoderConfig->objectTypeIndication)) {
+			codec->hybrid_layered_coded = 1;
+		}
+		c = ifce->CanHandleStream(ifce, an_esd->decoderConfig->streamType, an_esd, PL);
+		if (!conf || (c<conf) ) conf=c;
+	}
+	return conf;
+}
 
 static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
@@ -1803,7 +1833,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
 			if (ifce->CanHandleStream) {
-				dec_confidence = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+				dec_confidence = get_codec_confidence(codec, ifce, esd, PL);
 				if (dec_confidence==GF_CODEC_SUPPORTED) {
 					codec->decio = ifce;
 					return GF_OK;
@@ -1837,7 +1867,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
 			if (ifce->CanHandleStream) {
-				u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+				u32 conf = get_codec_confidence(codec, ifce, esd, PL);
 				if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>=dec_confidence)) {
 					/*switch*/
 					if (dec_ifce) gf_modules_close_interface((GF_BaseInterface *) dec_ifce);
@@ -1860,7 +1890,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
 		if (!ifce) continue;
 		if (ifce->CanHandleStream) {
-			u32 conf = ifce->CanHandleStream(ifce, esd->decoderConfig->streamType, esd, PL);
+			u32 conf = get_codec_confidence(codec, ifce, esd, PL);
 			
 			if (conf==GF_CODEC_PROFILE_NOT_SUPPORTED) do_dec_switch = GF_FALSE;
 

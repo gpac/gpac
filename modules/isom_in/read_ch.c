@@ -276,16 +276,17 @@ next_segment:
 				ISOMChannel *ch = gf_list_get(read->channels, i);
 				ch->wait_for_segment_switch = 0;
 
-				if (scalable_segment) {
-					trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
-					if (trackID) {
-						ch->track_id = trackID;
-						ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+				if (ch->base_track) {
+					if (scalable_segment) {
+						trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
+						if (trackID) {
+							ch->track_id = trackID;
+							ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+						}
+					} else {
+						ch->track = ch->base_track;
+						ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 					}
-				}
-				else if (ch->base_track) {
-					ch->track = ch->base_track;
-					ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
