@@ -3981,11 +3981,6 @@ select_active_rep:
 						//rep->playback.disabled = 1;
 						//continue;
 					}
-					if (!dash->is_m3u8 && rep->segment_list && rep->segment_list->xlink_href) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation SegmentList uses xlink:href to %s - disabling because not supported\n", rep->segment_list->xlink_href));
-						rep->playback.disabled = 1;
-						continue;
-					}
 				}
 			}
 

@@ -790,6 +790,12 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 				gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
 			}
 		}
+		if (odm->codec) {
+			GF_CodecCapability cap;
+			cap.CapCode = GF_CODEC_CAN_INIT;
+			cap.cap.valueInt = odm->term->compositor->video_out->max_screen_bpp;
+			gf_codec_set_capability(odm->codec, cap);
+		}
 		gf_term_lock_net(odm->term, GF_TRUE);
 		odm->state = GF_ODM_STATE_STOP;
 		gf_odm_lock(odm, 0);

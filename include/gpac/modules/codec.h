@@ -151,6 +151,9 @@ enum
 	/*switches up (1), max (2), down (0) or min (-1) media quality for scalable coding. */
 	GF_CODEC_MEDIA_SWITCH_QUALITY,
 
+	//notifies the codec all streams have been attached for the current time and that it may start init
+	//this is require for L-HEVC+AVC
+	GF_CODEC_CAN_INIT,
 	/*special cap indicating the codec should abort processing as soon as possible because it is about to be destroyed*/
 	GF_CODEC_ABORT,
 

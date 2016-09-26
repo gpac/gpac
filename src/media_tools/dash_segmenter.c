@@ -4568,6 +4568,15 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				//special case for HEVC tile, do not dublicate base representation if same res
 				count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SABT);
 				count += gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_SCAL);
+				if (!count) {
+					switch (gf_isom_get_media_subtype(file, j+1, 1)) {
+					case GF_ISOM_SUBTYPE_LHE1:
+					case GF_ISOM_SUBTYPE_LHV1:
+						count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
+						break;
+					}
+				}
+
 				if (!has_tiling || !count) {
 					dash_input->trackNum = j+1;
 					continue;
@@ -4675,7 +4684,19 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 				else dep_type = GF_ISOM_REF_SCAL;
 
 				count = gf_isom_get_reference_count(file, di->trackNum, dep_type);
-				if (!count) continue;
+				if (!count) {
+					if (k==0) {
+						switch (gf_isom_get_media_subtype(file, j+1, 1)) {
+						case GF_ISOM_SUBTYPE_LHE1:
+						case GF_ISOM_SUBTYPE_LHV1:
+							dep_type = GF_ISOM_REF_BASE;
+							count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_BASE);
+							break;
+						}
+					}
+					if (!count)
+						continue;
+				}
 
 				di->lower_layer_track = dash_input->trackNum;
 				depID = (char*)gf_malloc(2);
