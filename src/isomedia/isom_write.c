@@ -3851,7 +3851,7 @@ u64 gf_isom_estimate_size(GF_ISOFile *movie)
 	GF_Box *a;
 	u32 i, count;
 	u64 mdat_size;
-	if (!movie) return 0;
+	if (!movie || !movie->moov) return 0;
 
 	mdat_size = 0;
 	count = gf_list_count(movie->moov->trackList);

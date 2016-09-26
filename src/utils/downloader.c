@@ -1723,7 +1723,6 @@ static void gf_dm_clean_cache(GF_DownloadManager *dm)
 	if (out_size >= dm->max_cache_size) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cache size %d exceeds max allowed %d, deleting entire cache\n", out_size, dm->max_cache_size));
 		gf_cleanup_dir(dm->cache_directory);
-
 	}
 }
 
