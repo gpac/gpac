@@ -165,7 +165,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 //	ctx->pix_fmt = GF_PIXEL_YV12;
 	
 	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
-	ctx->pix_fmt = GF_PIXEL_YPVU;
+	ctx->pix_fmt = GF_PIXEL_NV12;
 	
 	switch (ctx->esd->decoderConfig->objectTypeIndication) {
     case GPAC_OTI_VIDEO_AVC :
