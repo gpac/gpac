@@ -304,7 +304,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         return GF_CODEC_NOT_FOUND;
     }
 
-    ctx->pix_fmt = GF_PIXEL_NV21;
+    ctx->pix_fmt = GF_PIXEL_NV12;
 
     switch (ctx->esd->decoderConfig->objectTypeIndication) {
 
@@ -377,7 +377,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
             ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV21;
+            ctx->pix_fmt = GF_PIXEL_NV12;
             return GF_OK;
         } else {
             GF_AVCConfigSlot *slc;
@@ -408,14 +408,14 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
             ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV21;
+            ctx->pix_fmt = GF_PIXEL_NV12;
         } else {
             GF_M4VDecSpecInfo vcfg;            
             gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
             ctx->width = vcfg.width;
             ctx->height = vcfg.height;
             ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV21;
+            ctx->pix_fmt = GF_PIXEL_NV12;
 
             return MCDec_InitDecoder(ctx);
         }
@@ -426,7 +426,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
             ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
-            ctx->pix_fmt = GF_PIXEL_NV21;
+            ctx->pix_fmt = GF_PIXEL_NV12;
         } else {
             return MCDec_InitDecoder(ctx);
         }
