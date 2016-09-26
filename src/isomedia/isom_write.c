@@ -2286,9 +2286,6 @@ GF_Err gf_isom_add_mpu(GF_ISOFile *movie,u32 MPU_Seq_number,u32 mpu_asset_id_sch
 	for(p=0;p<movie->mpu->asset_id_length;p++)
 		movie->mpu->asset_id_value[p]=mpu_asset_id_value[p];
 
-	/*MMPU is inserted right after ftyp box*/
-	gf_list_insert(movie->TopBoxes, movie->mpu, 1);
-
 	return GF_OK;
 }
 

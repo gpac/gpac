@@ -1855,7 +1855,7 @@ FILE *logfile = NULL;
 static u32 mpu_seq_number=0;
 static u32 mpu_asset_id_scheme=0;
 static u32 mpu_asset_id_length=0;
-static u8 mpu_asset_id_value[32]; /*Assuming worst case (ie: 128 bits coded UUID)*/
+static u8 mpu_asset_id_value[32+1]; /*Assuming worst case (ie: 128 bits coded UUID)*/
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3296,12 +3296,20 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-mmt-seq-num")) {
 			CHECK_NEXT_ARG
-			mpu_seq_number = atoi(argv[i + 1]);
+			if(strlen(argv[i + 1])>10){
+				fprintf(stderr, "\tWARNING: Warning, MMT mpu sequence number is coded on 32 bits, unexpected usage \n)");
+				return 2;
+			}
+			mpu_seq_number=strtoul(argv[i + 1],NULL, 10);
 			i++;
 		}
 		else if (!stricmp(arg, "-mmt-asset-id-scheme")) {
 			CHECK_NEXT_ARG
-			mpu_asset_id_scheme = atoi(argv[i + 1]);
+			if(strlen(argv[i + 1])>10){
+				fprintf(stderr, "\tWARNING: Warning, MMT asset id scheme is coded on 32 bits, unexpected usage \n)");
+				return 2;
+			}
+			mpu_asset_id_scheme=strtoul(argv[i + 1],NULL, 10);
 			i++;
 		}
 		else if (!stricmp(arg, "-mmt-asset-id-value")) {

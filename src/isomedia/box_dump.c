@@ -4913,12 +4913,12 @@ GF_Err mmpu_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 
-	fprintf(trace, "<Complete:%d Adc_present:%d MPU_seq_num:%d Asset_id_scheme:%d  >\n",p->is_complete,p->is_adc_present,p->mpu_sequence_number, p->asset_id_scheme);
-	fprintf(trace, "<Asset_id_length=%d>\n",p->asset_id_length);
-	fprintf(trace, "<Asset_id_value=<");
+	fprintf(trace, "<Complete=\"%d\" Adc_present=\"%d\" MPU_seq_num=\"%u\" Asset_id_scheme=\"%u\">\n",p->is_complete,p->is_adc_present,p->mpu_sequence_number, p->asset_id_scheme);
+	fprintf(trace, "<Asset_id_length=\"%u\">\n",p->asset_id_length);
+	fprintf(trace, "<Asset_id_value=\"");
 	for(u=0;u<p->asset_id_length;u++)
 		fprintf(trace, "%c",p->asset_id_value[u]);
-	fprintf(trace, ">\n");
+	fprintf(trace, "\">\n");
 	gf_box_dump_done("MMTBox", a, trace);
 	return GF_OK;
 }
