@@ -39,7 +39,7 @@ typedef struct
     u16 frame_rate;
 
     Bool inputEOS, outputEOS;
-        
+
     //NAL-based specific
     char *sps, *pps;
     u32 sps_size, pps_size;
@@ -68,14 +68,14 @@ void prependStartCode(char *inBuffer, char *outBuffer, u32 *size)
 {
     *size += 4;
     u32 i;
-                              
+
     for(i = 0; i < *size; i++) {
         if(i < 3)
             outBuffer[i] = 0x00;   
-        
+
         else if (i == 3) 
             outBuffer[i] = 0x01;
-            
+
         else  outBuffer[i] = inBuffer[i-4];
     }
 }
@@ -115,7 +115,6 @@ GF_Err MCDec_InitAvcDecoder(MCDec *ctx)
         ctx->chroma_format = avc.sps[idx].chroma_format;
         ctx->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
         ctx->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
-    
        switch (ctx->chroma_format) {
         case 2:
             if (ctx->luma_bit_depth>8) {
@@ -305,7 +304,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         return GF_CODEC_NOT_FOUND;
     }
 
-    ctx->pix_fmt = GF_PIXEL_YPVU;
+    ctx->pix_fmt = GF_PIXEL_NV21;
 
     switch (ctx->esd->decoderConfig->objectTypeIndication) {
 
