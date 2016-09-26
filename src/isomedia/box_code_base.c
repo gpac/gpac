@@ -9333,15 +9333,12 @@ GF_Err mmpu_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err mmpu_Size(GF_Box *s)
 {
 	GF_Err e;
-	u32 size;
 	GF_MmtMmpuBox *ptr = (GF_MmtMmpuBox*) s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 
 	ptr->size += 13;
-	for (size=0; size<ptr->asset_id_length; size++) {
-		ptr->size++;
-	}
+	ptr->size += ptr->asset_id_length;
 
 	return GF_OK;
 }

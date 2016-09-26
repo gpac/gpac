@@ -2275,6 +2275,8 @@ GF_Err gf_isom_add_mpu(GF_ISOFile *movie,u32 MPU_Seq_number,u32 mpu_asset_id_sch
 #endif
 
 	movie->mpu = (GF_MmtMmpuBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MMPU);
+	movie->mpu->is_complete=GF_TRUE;
+	movie->mpu->is_adc_present=GF_FALSE;
 	movie->mpu->mpu_sequence_number=MPU_Seq_number;
 	movie->mpu->asset_id_length=mpu_asset_id_lt;
 	movie->mpu->asset_id_scheme=mpu_asset_id_scheme;

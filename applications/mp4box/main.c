@@ -1852,8 +1852,6 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
-static Bool mpu_is_complete=0;
-static Bool mpu_is_adcpresent=0;
 static u32 mpu_seq_number=0;
 static u32 mpu_asset_id_scheme=0;
 static u32 mpu_asset_id_length=0;
@@ -3313,9 +3311,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 				fprintf(stderr, "\tWARNING: Warning, MMT Asset id length > 128 bits, unexpected usage \n)");
 				return 2;
 			}
-			int u=0;
-			for(;u<mpu_asset_id_length;u++)
-				mpu_asset_id_value[u]=argv[i+1][u];
+			strcpy(mpu_asset_id_value,argv[i+1]);
 			conv_type=GF_ISOM_CONV_TYPE_MMT;
 			i++;
 		}
