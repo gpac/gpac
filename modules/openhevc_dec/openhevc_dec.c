@@ -54,7 +54,7 @@ typedef struct
 	Bool is_init;
 	Bool had_pic;
 
-	u32 nalu_size_length;
+	u32 hevc_nalu_size_length;
 	u32 threading_type;
 	Bool direct_output, has_pic;
 
@@ -72,11 +72,11 @@ typedef struct
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
+	u32 avc_nalu_size_length;
 #endif
 
 	FILE *raw_out;
 } HEVCDec;
-
 
 static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 {
@@ -86,8 +86,10 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	GF_BitStream *bs;
 	u32 i, j;
 
-	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data)
+	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
+		ctx->nb_layers++;
 		return GF_OK;
+	}
 	
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC) {
 		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_TRUE);
@@ -96,14 +98,15 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	}
 	
 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
-	if (ctx->nalu_size_length != cfg->nal_unit_size)
+	if (!ctx->hevc_nalu_size_length) ctx->hevc_nalu_size_length = cfg->nal_unit_size;
+	else if (ctx->hevc_nalu_size_length != cfg->nal_unit_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
-
+	
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	//LHVC mode with base AVC layer: set extradata for LHVC
 	if (ctx->avc_base_id) {
-		libOpenShvcCopyExtraData(ctx->openHevcHandle, NULL, 0, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+		libOpenShvcCopyExtraData(ctx->openHevcHandle, NULL, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, 0, esd->decoderConfig->decoderSpecificInfo->dataLength);
 	} else
 #endif
 	//LHVC mode with base HEVC layer: decode the LHVC SPS/PPS/VPS
@@ -113,7 +116,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(cfg->param_array, i);
 			for (j=0; j< gf_list_count(ar->nalus); j++) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-				gf_bs_write_int(bs, sl->size, 8*ctx->nalu_size_length);
+				gf_bs_write_int(bs, sl->size, 8*ctx->hevc_nalu_size_length);
 				gf_bs_write_data(bs, sl->data, sl->size);
 			}
 		}
@@ -147,9 +150,13 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 	ctx->nb_layers = 1;
 	
+	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC)
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) ctx->avc_base_id=esd->ESID;
+		ctx->avc_base_id=esd->ESID;
+	else
 #endif
+		return GF_NOT_SUPPORTED;
+		
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
@@ -159,7 +166,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 			avcc = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			if (!avcc) return GF_NON_COMPLIANT_BITSTREAM;
-			ctx->nalu_size_length = avcc->nal_unit_size;
+			ctx->avc_nalu_size_length = avcc->nal_unit_size;
 
 			for (i=0; i< gf_list_count(avcc->sequenceParameterSets); i++) {
 				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(avcc->sequenceParameterSets, i);
@@ -181,7 +188,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 		hvcc = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 		if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
-		ctx->nalu_size_length = hvcc->nal_unit_size;
+		ctx->hevc_nalu_size_length = hvcc->nal_unit_size;
 
 		for (i=0; i< gf_list_count(hvcc->param_array); i++) {
 			GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
@@ -214,7 +221,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	}
 	
 	} else {
-		ctx->nalu_size_length = 0;
+		//setup defaults
+		ctx->chroma_format_idc = 1;
 	}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
@@ -232,7 +240,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	}
 #endif
 
-
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1/*ctx->nb_layers*/);
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
@@ -240,7 +247,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
-			libOpenShvcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, NULL, 0);
+			libOpenShvcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, NULL, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
 		} else
 #endif
 			libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
@@ -277,6 +284,12 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	const char *sOpt;
 	u32 nb_threads = 1;
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
+
+	/*scalable layer, configure enhancement only*/
+	if (esd->dependsOnESID) {
+		HEVC_ConfigurationScalableStream(ctx, esd);
+		return GF_OK;
+	}
 
 	if (gf_sys_get_rti(0, &rti, 0) ) {
 		nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
@@ -316,13 +329,6 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (!ctx->raw_out) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "InputRipFile");
 		if (sOpt) ctx->raw_out = fopen(sOpt, "wb");
-	}
-
-
-	/*RTP case: configure enhancement now*/
-	if (esd->dependsOnESID) {
-		HEVC_ConfigurationScalableStream(ctx, esd);
-		return GF_OK;
 	}
 
 	ctx->esd = esd;
@@ -446,7 +452,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
-	if (ctx->nb_layers==1) return GF_OK;
+		if (ctx->nb_layers==1) return GF_OK;
 		/*switch up*/
 		if (capability.cap.valueInt > 0) {
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
@@ -735,7 +741,11 @@ static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 	case GPAC_OTI_VIDEO_LHVC:
 		return GF_CODEC_SUPPORTED;
 	case GPAC_OTI_VIDEO_AVC:
+#ifdef  OPENHEVC_HAS_AVC_BASE
 		return GF_CODEC_MAYBE_SUPPORTED;
+#else
+		return GF_CODEC_NOT_SUPPORTED;
+#endif
 	}
 	return GF_CODEC_NOT_SUPPORTED;
 }
