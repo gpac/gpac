@@ -96,7 +96,7 @@ enum REQUEST_TYPE
 typedef struct {
 	int32_t stream_id;
 	Bool end_headers;
-	u8 * start_data;
+	const u8 * start_data;
 	size_t datalen;
 } http2_stream_data;
 
@@ -546,35 +546,51 @@ static int on_data_chunk_recv_callback(nghttp2_session *session ,
    stream), if it is closed, we send GOAWAY and tear down the
    session */
 static int on_stream_close_callback(nghttp2_session *session, int32_t stream_id,
-                                    uint32_t error_code, void *user_data) {
-  GF_DownloadSession * sess = (GF_DownloadSession *)user_data;
-
+   
+									uint32_t error_code, void *user_data) {
+	int rv;
+	GF_DownloadSession * sess = (GF_DownloadSession *)user_data;
+  
   if (sess->session_data->stream_data->stream_id == stream_id) {
     fprintf(stderr, "Stream %d closed with error_code=%d\n", stream_id,
             error_code);
-	if (nghttp2_session_terminate_session(session, NGHTTP2_NO_ERROR)) {
-      return NGHTTP2_ERR_CALLBACK_FAILURE;
+	GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] HTTP/2 Stream %d closed with error_code=%d : %s\n",stream_id, error_code, nghttp2_http2_strerror(error_code)));
+	rv = nghttp2_session_terminate_session(session, NGHTTP2_NO_ERROR);
+	if (rv != 0 ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] HTTP/2 on_stream_close_callback error :  %s\n", nghttp2_strerror(rv)));
+		return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
   }
   return 0;
 }
+static int error_callback (nghttp2_session *session, const char *msg, size_t len,
+						   void *user_data) {
+	GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] HTTP/2 error :  %s\n", msg ));
+	return 0;
+}
 static ssize_t send_callback(nghttp2_session *session , const uint8_t *data,
                              size_t length, int flags , void *user_data) {
-	
+	ssize_t rv;
 	GF_DownloadSession * sess = (GF_DownloadSession *)user_data;
-	
-	if (length != SSL_write(sess->ssl, data, (int)length)) {
-		return NGHTTP2_ERR_CALLBACK_FAILURE;
+	rv = SSL_write(sess->ssl, data, (int)length);
+	if (rv <= 0) {
+		int err = SSL_get_error(sess->ssl, rv);
+		if (err == SSL_ERROR_WANT_WRITE || err == SSL_ERROR_WANT_READ) {
+			rv = NGHTTP2_ERR_WOULDBLOCK;
+		} else {
+			rv = NGHTTP2_ERR_CALLBACK_FAILURE;
+		}
 	}
-	return (ssize_t) length;
-	
+	return rv;
 }
 
 static int session_send(GF_DownloadSession *sess) {
-	
-	if (nghttp2_session_send(sess->session_data->session)) 
+	int rv;
+	rv = nghttp2_session_send(sess->session_data->session);
+	if (rv != 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] HTTP/2 session_send error :  %s\n", nghttp2_strerror(rv)));
 		return -1;
-	
+	}
 	return 0;
 }
 static void initialize_nghttp2_session(GF_DownloadSession *sess) {
@@ -599,6 +615,9 @@ static void initialize_nghttp2_session(GF_DownloadSession *sess) {
 
 	nghttp2_session_callbacks_set_on_begin_headers_callback(
 		callbacks, on_begin_headers_callback);
+		
+	nghttp2_session_callbacks_set_error_callback(
+		callbacks,error_callback);
 
 	nghttp2_session_client_new(&sess->session_data->session, callbacks, sess);
 
@@ -1510,7 +1529,10 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 			if(sess->ishttp2){
 #ifdef GPAC_HAS_HTTP2
 				readlen = nghttp2_session_mem_recv(sess->session_data->session, data, size);
-				if(readlen < 0 ) return GF_IO_ERR;
+				if(readlen < 0 ) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] HTTP/2 nghttp2_session_mem_recv:  %s\n", nghttp2_strerror(readlen)));
+					return GF_IO_ERR;
+					}
 				/* send WINDOW_UPDATE */
 				if(session_send(sess))
 					return GF_IO_ERR;
