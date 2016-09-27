@@ -493,10 +493,19 @@ refetch_AU:
 				
 		else if (codec->hybrid_layered_coded) {
 			if (AU->DTS < (*nextAU)->DTS) {
-				*nextAU = AU;
-				*activeChannel = ch;
-				curCTS = AU->CTS;
-				now = gf_clock_time(ch->clock);
+				if (AU->DTS>=codec->last_unit_dts) {
+					*nextAU = AU;
+					*activeChannel = ch;
+					curCTS = AU->CTS;
+					now = gf_clock_time(ch->clock);
+				} else {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
+					gf_es_drop_au(ch);
+					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
+					ch->stream_state = stream_state;
+
+					goto refetch_AU;
+				}
 			}
 		}
 
