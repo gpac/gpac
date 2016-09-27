@@ -73,6 +73,9 @@ typedef struct
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
 	u32 avc_nalu_size_length;
+	char *avc_base;
+	u32 avc_base_size;
+	u32 avc_base_pts;
 #endif
 
 	FILE *raw_out;
@@ -87,6 +90,8 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	u32 i, j;
 
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
 		ctx->nb_layers++;
 		return GF_OK;
 	}
@@ -461,6 +466,8 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
 			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		}
+//			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+//			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 		return GF_OK;
 	case GF_CODEC_RAW_MEMORY:
 		ctx->direct_output = GF_TRUE;
@@ -495,18 +502,17 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	bit_depth = openHevcFrame.frameInfo.nBitDepth;
    chromat_format = openHevcFrame.frameInfo.chromat_format;
 	*CTS = (u32) openHevcFrame.frameInfo.nTimeStamp;
-    
-	if ((ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) ){
+    fprintf(stderr, "cts frame is %d\n", openHevcFrame.frameInfo.nTimeStamp);
+	
+	if (!ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) ){
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
 		if( chromat_format == YUV420 ) {
-		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-		}
-		else if  ( chromat_format == YUV422 ) {
+			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+		} else if  ( chromat_format == YUV422 ) {
 			ctx->out_size = ctx->stride * ctx->height * 2;
-		}
-		else if ( chromat_format == YUV444 ) {
+		} else if ( chromat_format == YUV444 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3;
 		} 
 		ctx->had_pic = GF_TRUE;
@@ -536,10 +542,8 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		
 
 		if (chromat_format == YUV422) {
-
 			pU = (u8*)(outBuffer + 4 * ctx->stride  * ctx->height + idx_w / 2 + idx_h / 2);
 			pV = (u8*)(outBuffer + 4 * (3 * ctx->stride * ctx->height /2)  + idx_w / 2 + idx_h / 2);
-
 		} else if (chromat_format == YUV444) {
 			pU = (u8*)(outBuffer + 4 * ctx->stride * ctx->height + idx_w + idx_h);
 			pV = (u8*)(outBuffer + 4 * ( 2 * ctx->stride * ctx->height) + idx_w + idx_h);
@@ -686,14 +690,24 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	ctx->dec_frames++;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
-		if (ctx->avc_base_id) {
-			if (ctx->avc_base_id == ES_ID)
-				got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8 *) inBuffer, NULL, inBufferLength, 0, *CTS, 0);
-			else {
-				got_pic = libOpenShvcDecode2(ctx->openHevcHandle, NULL, (u8 *) inBuffer, 0, inBufferLength, 0, *CTS);
+	if (ctx->avc_base_id) {
+		if (ctx->avc_base_id == ES_ID) {
+			ctx->avc_base = gf_realloc(ctx->avc_base, inBufferLength);
+			memcpy(ctx->avc_base, inBuffer, inBufferLength);
+			ctx->avc_base_size = inBufferLength;
+			ctx->avc_base_pts = *CTS;
+			//got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8 *) inBuffer, NULL, inBufferLength, 0, *CTS, 0);
+			got_pic = 0;
+		} else {
+			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts, *CTS);
+			if (ctx->avc_base) {
+				gf_free(ctx->avc_base);
+				ctx->avc_base=NULL;
+				ctx->avc_base_size=0;
 			}
 		}
-		else
+	}
+	else
 #endif
 		got_pic = libOpenHevcDecode(ctx->openHevcHandle, (u8 *) inBuffer, inBufferLength, *CTS);
 
