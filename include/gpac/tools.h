@@ -451,6 +451,7 @@ gf_log_cbk gf_log_set_callback(void *usr_cbk, gf_log_cbk cbk);
 /*this is all a bit ugly, but most compilers don't properly handle variadic macros...*/
 void gf_log(const char *fmt, ...);
 void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt);
+void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl);
 
 
 /*!
