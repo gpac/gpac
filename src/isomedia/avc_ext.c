@@ -2302,7 +2302,7 @@ void gf_isom_linf_del_entry(void *entry)
 GF_Err gf_isom_linf_read_entry(void *entry, GF_BitStream *bs)
 {
 	GF_LHVCLayerInformation* ptr = (GF_LHVCLayerInformation *)entry;
-	u32 i, j, count;
+	u32 i, count;
 
 	if (!ptr) return GF_BAD_PARAM;
 	gf_bs_read_int(bs, 2);
@@ -2325,7 +2325,7 @@ GF_Err gf_isom_linf_read_entry(void *entry, GF_BitStream *bs)
 GF_Err gf_isom_linf_write_entry(void *entry, GF_BitStream *bs)
 {
 	GF_LHVCLayerInformation* ptr = (GF_LHVCLayerInformation *)entry;
-	u32 i, j, count;
+	u32 i, count;
 	if (!ptr) return GF_OK;
 
 	gf_bs_write_int(bs, 0, 2);
@@ -2346,7 +2346,7 @@ GF_Err gf_isom_linf_write_entry(void *entry, GF_BitStream *bs)
 u32 gf_isom_linf_size_entry(void *entry)
 {
 	GF_LHVCLayerInformation* ptr = (GF_LHVCLayerInformation *)entry;
-	u32 size = 0, i ,j, count;
+	u32 size = 0, count;
 	if (!ptr) return 0;
 
 	size += 1;

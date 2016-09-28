@@ -4445,7 +4445,7 @@ static void linf_dump(GF_LHVCLayerInformation *ptr, FILE * trace)
 static void trif_dump(FILE * trace, char *data, u32 data_size)
 {
 	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	u32 x,y,w,h, id, independent, filter_disabled;
+	u32 id, independent, filter_disabled;
 	Bool full_picture, has_dep, tile_group;
 
 	id = gf_bs_read_u16(bs);
@@ -4465,7 +4465,7 @@ static void trif_dump(FILE * trace, char *data, u32 data_size)
 		fprintf(trace, "w=\"%d\" h=\"%d\" ", gf_bs_read_u16(bs), gf_bs_read_u16(bs));
 		if (!has_dep) {
 			fprintf(trace, "/>\n");
-		} else {
+		} else {
 			u32 count = gf_bs_read_u16(bs);
 			fprintf(trace, ">\n");
 			while (count) {
