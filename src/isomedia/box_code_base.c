@@ -6480,6 +6480,10 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no media box !\n" ));
 		return;
 	}
+	if (!trak->Media->information->sampleTable) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample table !\n" ));
+		trak->Media->information->sampleTable = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+	}
 
 	if (!trak->Media->information->sampleTable->SampleDescription) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Track with no sample description box !\n" ));
@@ -8860,7 +8864,9 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 			gf_bs_read_data(bs, (char *)ptr->constant_IV, ptr->constant_IV_size);
 			*total_bytes += 1 + ptr->constant_IV_size;
 		}
-		
+		if (!entry_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] seig sample group does not indicate entry size, deprecated in spec\n"));
+		}
 		return ptr;
 	}
 	case GF_4CC('o','i','n','f'):
@@ -8869,6 +8875,9 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		u32 s = (u32) gf_bs_get_position(bs);
 		gf_isom_oinf_read_entry(ptr, bs);
 		*total_bytes = (u32) gf_bs_get_position(bs) - s;
+		if (!entry_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] oinf sample group does not indicate entry size, deprecated in spec\n"));
+		}
 		return ptr;
 	}
 	case GF_4CC('l','i','n','f'):
@@ -8877,46 +8886,53 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		u32 s = (u32) gf_bs_get_position(bs);
 		gf_isom_linf_read_entry(ptr, bs);
 		*total_bytes = (u32) gf_bs_get_position(bs) - s;
+		if (!entry_size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] linf sample group does not indicate entry size, deprecated in spec\n"));
+		}
 		return ptr;
 	}
 		
 	case GF_4CC( 't', 'r', 'i', 'f' ):
-	{
-		u32 flags = gf_bs_peek_bits(bs, 24, 0);
-		if (flags & 0x10000) entry_size=3;
-		else {
-			if (flags & 0x80000) entry_size=7;
-			else entry_size=11;
-			//have dependency list
-			if (flags & 0x200000) {
-				u32 nb_entries = gf_bs_peek_bits(bs, 16, entry_size);
-				entry_size += 2 + 2*nb_entries;
+		if (! entry_size) {
+			u32 flags = gf_bs_peek_bits(bs, 24, 0);
+			if (flags & 0x10000) entry_size=3;
+			else {
+				if (flags & 0x80000) entry_size=7;
+				else entry_size=11;
+				//have dependency list
+				if (flags & 0x200000) {
+					u32 nb_entries = gf_bs_peek_bits(bs, 16, entry_size);
+					entry_size += 2 + 2*nb_entries;
+				}
 			}
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] trif sample group does not indicate entry size, deprecated in spec\n"));
 		}
 		//fallthrough
 		break;
-	}
 	case GF_4CC( 'n', 'a', 'l', 'm' ):
-	{
-		u64 start = gf_bs_get_position(bs);
-		Bool rle, large_size;
-		u32 entry_count;
-		gf_bs_read_int(bs, 6);
-		large_size = gf_bs_read_int(bs, 1);
-		rle = gf_bs_read_int(bs, 1);
-		entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
-		gf_bs_seek(bs, start);
-		entry_size = 1 + large_size ? 2 : 1;
-		entry_size += entry_count * 2;
-		if (rle) entry_size += entry_count * (large_size ? 2 : 1);
-		
+		if (! entry_size) {
+			u64 start = gf_bs_get_position(bs);
+			Bool rle, large_size;
+			u32 entry_count;
+			gf_bs_read_int(bs, 6);
+			large_size = gf_bs_read_int(bs, 1);
+			rle = gf_bs_read_int(bs, 1);
+			entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
+			gf_bs_seek(bs, start);
+			entry_size = 1 + large_size ? 2 : 1;
+			entry_size += entry_count * 2;
+			if (rle) entry_size += entry_count * (large_size ? 2 : 1);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] nalm sample group does not indicate entry size, deprecated in spec\n"));
+		}
 		break;
-	}
 	default:
 		break;
 	}
 
-	if (!entry_size) return NULL;
+	if (!entry_size) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] %s sample group does not indicate entry size, cannot parse!\n", gf_4cc_to_str( grouping_type) ));
+		return NULL;
+	}
 	GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
 	if (!ptr) return NULL;
 	ptr->length = entry_size;
@@ -9037,7 +9053,7 @@ GF_Err sgpd_Read(GF_Box *s, GF_BitStream *bs)
 	p->grouping_type = gf_bs_read_u32(bs);
 	p->size -= 4;
 
-	if (p->version==1) {
+	if (p->version>=1) {
 		p->default_length = gf_bs_read_u32(bs);
 		p->size -= 4;
 	}
@@ -9052,7 +9068,7 @@ GF_Err sgpd_Read(GF_Box *s, GF_BitStream *bs)
 		void *ptr;
 		u32 parsed_bytes;
 		u32 size = p->default_length;
-		if ((p->version==1) && !size) {
+		if ((p->version>=1) && !size) {
 			size = gf_bs_read_u32(bs);
 			p->size -= 4;
 		}
@@ -9076,13 +9092,13 @@ GF_Err sgpd_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_write_u32(bs, p->grouping_type);
-	if (p->version==1) gf_bs_write_u32(bs, p->default_length);
+	if (p->version>=1) gf_bs_write_u32(bs, p->default_length);
 	if (p->version>=2) gf_bs_write_u32(bs, p->default_description_index);
 	gf_bs_write_u32(bs, gf_list_count(p->group_descriptions) );
 
 	for (i=0; i<gf_list_count(p->group_descriptions); i++) {
 		void *ptr = gf_list_get(p->group_descriptions, i);
-		if ((p->version == 1) && !p->default_length) {
+		if ((p->version >= 1) && !p->default_length) {
 			u32 size = sgpd_size_entry(p->grouping_type, ptr);
 			gf_bs_write_u32(bs, size);
 		}
@@ -9099,7 +9115,11 @@ GF_Err sgpd_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	p->size += 8;
-	if (p->version==1) p->size += 4;
+
+	//we force all sample groups to version 1, v0 being deprecated
+	p->version=1;
+	p->size += 4;
+	
 	if (p->version>=2) p->size += 4;
 	p->default_length = 0;
 
@@ -9113,7 +9133,7 @@ GF_Err sgpd_Size(GF_Box *s)
 			p->default_length = 0;
 		}
 	}
-	if (p->version==1) {
+	if (p->version>=1) {
 		if (!p->default_length) p->size += gf_list_count(p->group_descriptions)*4;
 	}
 	return GF_OK;
