@@ -4643,7 +4643,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 /*for now not exported*/
 /*expands sampleGroup table for the given grouping type and sample_number. If sample_number is 0, just appends an entry at the end of the table*/
-static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex)
+static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex)
 {
 	GF_SampleGroupBox *sgroup = NULL;
 	u32 i, count, last_sample_in_entry;
@@ -4657,6 +4657,7 @@ static GF_Err gf_isom_add_sample_group_entry(GF_List *sampleGroups, u32 sample_n
 	if (!sgroup) {
 		sgroup = (GF_SampleGroupBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SBGP);
 		sgroup->grouping_type = grouping_type;
+		sgroup->grouping_type_parameter = grouping_type_parameter;
 		gf_list_add(sampleGroups, sgroup);
 	}
 	/*used in fragments, means we are adding the last sample*/
@@ -4767,9 +4768,9 @@ static GF_SampleGroupDescriptionBox *get_sgdp(GF_SampleTableBox *stbl, void *tra
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, GF_TrackFragmentBox *traf, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
 #else
-static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *traf, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *traf, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 {
 	GF_List *groupList;
@@ -4811,11 +4812,11 @@ static GF_Err gf_isom_set_sample_group_info_ex(GF_SampleTableBox *stbl, void *tr
 		groupList = stbl->sampleGroups;
 	}
 
-	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, entry_idx);
+	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, entry_idx);
 }
 
 /*for now not exported*/
-static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
+static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 grouping_type_parameter, void *udta, void *(*sg_create_entry)(void *udta), Bool (*sg_compare_entry)(void *udta, void *entry))
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -4826,7 +4827,7 @@ static GF_Err gf_isom_set_sample_group_info(GF_ISOFile *movie, u32 track, u32 sa
 	trak = gf_isom_get_track_from_file(movie, track);
 	if (!trak) return GF_BAD_PARAM;
 
-	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, NULL, sample_number, grouping_type, udta, sg_create_entry, sg_compare_entry);
+	return gf_isom_set_sample_group_info_ex(trak->Media->information->sampleTable, NULL, sample_number, grouping_type, grouping_type_parameter, udta, sg_create_entry, sg_compare_entry);
 }
 
 
@@ -4835,7 +4836,7 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_
 {
 	GF_Err e;
 	GF_TrackBox *trak;
-	GF_DefaultSampleGroupDescriptionEntry *entry;
+	GF_DefaultSampleGroupDescriptionEntry *entry=NULL;
 	GF_SampleGroupDescriptionBox *sgdesc = NULL;
 
 	if (sampleGroupDescriptionIndex) *sampleGroupDescriptionIndex = 0;
@@ -4861,21 +4862,44 @@ GF_Err gf_isom_add_sample_group_info(GF_ISOFile *movie, u32 track, u32 grouping_
 		e = gf_list_add(sgdesc->group_descriptions, ptr);
 		if (e) return e;
 		entry = (GF_DefaultSampleGroupDescriptionEntry *) ptr;
-	} else {
-		GF_SAFEALLOC(entry, GF_DefaultSampleGroupDescriptionEntry);
-		if (!entry) return GF_OUT_OF_MEM;
-		entry->data = (u8*)gf_malloc(sizeof(char) * data_size);
-		if (!entry->data) {
-			gf_free(entry);
-			return GF_OUT_OF_MEM;
-		}
-		entry->length = data_size;
-		memcpy(entry->data, data, sizeof(char) * data_size);
-		e = gf_list_add(sgdesc->group_descriptions, entry);
+	} else if (grouping_type==GF_4CC('l','i','n','f')) {
+		GF_LHVCLayerInformation *ptr = gf_isom_linf_new_entry();
+		GF_BitStream *bs=gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+		e = gf_isom_linf_read_entry(ptr, bs);
+		gf_bs_del(bs);
 		if (e) {
-			gf_free(entry->data);
-			gf_free(entry);
+			gf_isom_linf_del_entry(ptr);
 			return e;
+		}
+		e = gf_list_add(sgdesc->group_descriptions, ptr);
+		if (e) return e;
+		entry = (GF_DefaultSampleGroupDescriptionEntry *) ptr;
+	} else {
+		u32 i, count=gf_list_count(sgdesc->group_descriptions);
+		for (i=0; i<count; i++) {
+			GF_DefaultSampleGroupDescriptionEntry *ent = gf_list_get(sgdesc->group_descriptions, i);
+			if ((ent->length == data_size) && !memcmp(ent->data, data, data_size)) {
+				entry = ent;
+				break;
+			}
+			entry=NULL;
+		}
+		if (!entry) {
+			GF_SAFEALLOC(entry, GF_DefaultSampleGroupDescriptionEntry);
+			if (!entry) return GF_OUT_OF_MEM;
+			entry->data = (u8*)gf_malloc(sizeof(char) * data_size);
+			if (!entry->data) {
+				gf_free(entry);
+				return GF_OUT_OF_MEM;
+			}
+			entry->length = data_size;
+			memcpy(entry->data, data, sizeof(char) * data_size);
+			e = gf_list_add(sgdesc->group_descriptions, entry);
+			if (e) {
+				gf_free(entry->data);
+				gf_free(entry);
+				return e;
+			}
 		}
 	}
 	
@@ -4921,7 +4945,7 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_ty
 	return GF_OK;
 }
 
-GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex)
+GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex, u32 grouping_type_parameter)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -4936,7 +4960,7 @@ GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, 
 		trak->Media->information->sampleTable->sampleGroups = gf_list_new();
 
 	groupList = trak->Media->information->sampleTable->sampleGroups;
-	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, sampleGroupDescriptionIndex);
+	return gf_isom_add_sample_group_entry(groupList, sample_number, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex);
 }
 
 void *sg_rap_create_entry(void *udta)
@@ -4960,7 +4984,7 @@ Bool sg_rap_compare_entry(void *udta, void *entry)
 
 GF_Err gf_isom_set_sample_rap_group(GF_ISOFile *movie, u32 track, u32 sample_number, u32 num_leading_samples)
 {
-	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'a', 'p', ' ' ), &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'a', 'p', ' ' ), 0, &num_leading_samples, sg_rap_create_entry, sg_rap_compare_entry);
 }
 
 
@@ -4984,7 +5008,7 @@ Bool sg_roll_compare_entry(void *udta, void *entry)
 
 GF_Err gf_isom_set_sample_roll_group(GF_ISOFile *movie, u32 track, u32 sample_number, s16 roll_distance)
 {
-	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'o', 'l', 'l' ), &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
+	return gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 'r', 'o', 'l', 'l' ), 0, &roll_distance, sg_roll_create_entry, sg_roll_compare_entry);
 }
 
 void *sg_encryption_create_entry(void *udta)
@@ -5046,7 +5070,7 @@ Bool sg_encryption_compare_entry(void *udta, void *entry)
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
+GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf)
 {
 	if (sgpd_in_traf) {
 		void *entry = NULL;
@@ -5075,14 +5099,15 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
 			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples_known);
 			gf_bs_write_u8(bs, ((GF_VisualRandomAccessEntry *)entry)->num_leading_samples);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_rap_create_entry, sg_rap_compare_entry);
+			gf_bs_del(bs);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_rap_create_entry, sg_rap_compare_entry);
 		}
 		case GF_4CC( 'r', 'o', 'l', 'l' ):
 		{
 			char udta[2];
 			bs = gf_bs_new(udta, 2*sizeof(char), GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs, ((GF_RollRecoveryEntry *)entry)->roll_distance);
-			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_roll_create_entry, sg_roll_compare_entry);
+			return gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_roll_create_entry, sg_roll_compare_entry);
 		}
 		case GF_4CC( 's', 'e', 'i', 'g' ):
 		{
@@ -5103,7 +5128,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 			gf_bs_get_content(bs, &udta, &size);
 			gf_bs_del(bs);
 
-			e = gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+			e = gf_isom_set_sample_group_info_ex(NULL, traf, 0, grouping_type, 0, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
 			gf_free(udta);
 			return e;
 		}
@@ -5112,7 +5137,7 @@ GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_Sam
 		}
 	}
 
-	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, sampleGroupDescriptionIndex);
+	return gf_isom_add_sample_group_entry(traf->sampleGroups, 0, grouping_type, grouping_type_parameter, sampleGroupDescriptionIndex);
 }
 #endif /* GPAC_DISABLE_ISOM_FRAGMENTS */
 
@@ -5139,7 +5164,7 @@ GF_Err gf_isom_set_sample_cenc_group(GF_ISOFile *movie, u32 track, u32 sample_nu
 	gf_bs_get_content(bs, &udta, &size);
 	gf_bs_del(bs);
 
-	e = gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), udta, sg_encryption_create_entry, sg_encryption_compare_entry);
+	e = gf_isom_set_sample_group_info(movie, track, sample_number, GF_4CC( 's', 'e', 'i', 'g' ), 0, udta, sg_encryption_create_entry, sg_encryption_compare_entry);
 	gf_free(udta);
 	return e;
 }
@@ -5416,7 +5441,7 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 
 
 				/*found our sample, add it to trak->sampleGroups*/
-				e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, group_desc_index_dst);
+				e = gf_isom_add_sample_group_entry(dst_trak->Media->information->sampleTable->sampleGroups, dst_sample_num, sg->grouping_type, sg->grouping_type_parameter, group_desc_index_dst);
 				if (e) return e;
 				break;
 			}

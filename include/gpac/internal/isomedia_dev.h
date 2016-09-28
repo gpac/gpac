@@ -1343,6 +1343,7 @@ typedef struct
 	GF_ISOM_BOX
 	char *data;
 	u32 dataSize;
+	u32 original_4cc;
 } GF_FreeSpaceBox;
 
 typedef struct
@@ -2318,7 +2319,29 @@ u32 gf_isom_oinf_size_entry(void *entry);
 Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPointsInformation **ptr);
 
 
-#define MAX_LHEVC_LAYERS	256
+/*Operating Points Information - 'oinf' type*/
+typedef struct
+{
+	u8 layer_id;
+	u8 min_TemporalId;
+	u8 max_TemporalId;
+	u8 sub_layer_presence_flags;
+} LHVCLayerInfoItem;
+
+typedef struct
+{
+	GF_List* num_layers_in_track;
+} GF_LHVCLayerInformation;
+
+GF_LHVCLayerInformation *gf_isom_linf_new_entry();
+void gf_isom_linf_del_entry(void *entry);
+GF_Err gf_isom_linf_read_entry(void *entry, GF_BitStream *bs);
+GF_Err gf_isom_linf_write_entry(void *entry, GF_BitStream *bs);
+u32 gf_isom_linf_size_entry(void *entry);
+Bool gf_isom_get_linf_info(GF_ISOFile *file, u32 trackNumber, GF_LHVCLayerInformation **ptr);
+
+
+#define MAX_LHEVC_LAYERS	64
 
 typedef struct
 {
@@ -2922,7 +2945,7 @@ GF_Err stbl_RemoveSampleGroup(GF_SampleTableBox *stbl, u32 SampleNumber);
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie);
-GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
+GF_Err gf_isom_copy_sample_group_entry_to_traf(GF_TrackFragmentBox *traf, GF_SampleTableBox *stbl, u32 grouping_type, u32 grouping_type_parameter, u32 sampleGroupDescriptionIndex, Bool sgpd_in_traf);
 #endif
 
 Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type);

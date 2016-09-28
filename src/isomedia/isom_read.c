@@ -3534,6 +3534,7 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 	case GF_4CC('r','o','l','l'):
 	case GF_4CC( 's', 'e', 'i', 'g' ):
 	case GF_4CC( 'o', 'i', 'n', 'f' ):
+	case GF_4CC( 'l', 'i', 'n', 'f' ):
 		return GF_TRUE;
 	default:
 		if (sg_entry && data) *data = (char *) sg_entry->data;

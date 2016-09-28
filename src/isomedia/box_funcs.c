@@ -171,8 +171,16 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s)\n", gf_4cc_to_str(type), gf_error_to_string(e)));
-		return e;
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s) - skiping\n", gf_4cc_to_str(type), gf_error_to_string(e)));
+		/*let's still try to load the file since no error was notified*/
+		gf_bs_seek(bs, start+hdr_size);
+		newBox = free_New();
+		((GF_FreeSpaceBox*) newBox)->original_4cc = type;
+		newBox->size = size - hdr_size;
+		e = gf_isom_box_read(newBox, bs);
+		newBox->size = size;
+		end = gf_bs_get_position(bs);
+		if (e) return e;
 	}
 
 	if (end-start > size) {
