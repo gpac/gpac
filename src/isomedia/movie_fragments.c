@@ -2021,7 +2021,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 					traf->sampleGroups = gf_list_new();
 
 				/*found our sample, add it to trak->sampleGroups*/
-				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->sample_entries[j].group_description_index, sgpd_in_traf);
+				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  sg->sample_entries[j].group_description_index, sgpd_in_traf);
 				if (e) return e;
 				
 				break;

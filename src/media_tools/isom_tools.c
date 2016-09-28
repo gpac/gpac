@@ -1984,6 +1984,12 @@ static GF_HEVCParamArray *alloc_hevc_param_array(GF_HEVCConfig *hevc_cfg, u8 typ
 	return ar;
 }
 
+typedef struct{
+	u8 layer_id_plus_one;
+	u8 min_temporal_id;
+	u8 max_temporal_id;
+} LInfo;
+
 typedef struct
 {
 	u32 track_num;
@@ -1991,7 +1997,8 @@ typedef struct
 	GF_HEVCConfig *lhvccfg;
 	GF_BitStream *bs;
 	u32 data_offset, data_size;
-	u32 min_temporal_id, max_temporal_id;
+	u32 temporal_id_sample, max_temporal_id_sample;
+	LInfo layers[64];
 } LHVCTrackInfo;
 
 static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
@@ -2245,6 +2252,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
 	if (e) goto exit;
 	gf_isom_adjust_visual_info(file, track);
+	//purge all linf sample groups
+	gf_isom_remove_sample_group(file, track, GF_4CC('l','i','n','f'));
 	
 	nal_alloc_size = 10000;
 	nal_data = gf_malloc(sizeof(char) * nal_alloc_size);
@@ -2291,11 +2300,18 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 			gf_bs_write_int(sti[layer_id].bs, temporal_id, 3);
 			size -= 2;
 
-			if (!sti[layer_id].min_temporal_id || (sti[layer_id].min_temporal_id > temporal_id)) {
-				sti[layer_id].min_temporal_id = temporal_id;
+			sti[layer_id].layers[layer_id].layer_id_plus_one = layer_id+1;
+			sti[layer_id].temporal_id_sample = temporal_id;
+			
+			if (!sti[layer_id].layers[layer_id].min_temporal_id || (sti[layer_id].layers[layer_id].min_temporal_id > temporal_id)) {
+				sti[layer_id].layers[layer_id].min_temporal_id = temporal_id;
 			}
-			if (!sti[layer_id].max_temporal_id || (sti[layer_id].max_temporal_id < temporal_id)) {
-				sti[layer_id].max_temporal_id = temporal_id;
+			if (!sti[layer_id].layers[layer_id].max_temporal_id || (sti[layer_id].layers[layer_id].max_temporal_id < temporal_id)) {
+				sti[layer_id].layers[layer_id].max_temporal_id = temporal_id;
+			}
+			
+			if (!sti[layer_id].max_temporal_id_sample || (sti[layer_id].max_temporal_id_sample < temporal_id)) {
+				sti[layer_id].max_temporal_id_sample = temporal_id;
 			}
 			
 
@@ -2339,6 +2355,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				//for an L-HEVC bitstream: only base track carries the 'oinf' sample group, other track have a track reference of type 'oref' to base track
 				e = gf_isom_remove_sample_group(file, sti[j].track_num, GF_4CC('o','i','n','f'));
 				if (e) goto exit;
+				//purge all linf sample groups
+				gf_isom_remove_sample_group(file, sti[j].track_num, GF_4CC('l','i','n','f'));
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('o','r','e','f'), track_id);
 
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
@@ -2370,7 +2388,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				GF_BitStream *xbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				//get all lower layers
 				for (k=0; k<j; k++) {
-					u8 trefidx;
+					u8 trefidx, tid;
 					if (!sti[k].data_size)
 						continue;
 					//extractor size 5
@@ -2378,7 +2396,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					gf_bs_write_int(xbs, 0, 1);
 					gf_bs_write_int(xbs, 49, 6); //extractor
 					gf_bs_write_int(xbs, k, 6);
-					gf_bs_write_int(xbs, sti[k].max_temporal_id, 3);
+					gf_bs_write_int(xbs, sti[k].max_temporal_id_sample, 3);
 					gf_bs_write_u8(xbs, 0); //constructor type 0
 					//set ref track index
 					trefidx = (u8) gf_isom_has_track_reference(file, sti[j].track_num, GF_ISOM_REF_SCAL, gf_isom_get_track_id(file, sti[k].track_num) );
@@ -2388,6 +2406,16 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					// data offset: we start from beginning of the sample data, not the extractor
 					gf_bs_write_int(xbs, sti[k].data_offset, 8*lhvccfg->nal_unit_size);
 					gf_bs_write_int(xbs, sti[k].data_size, 8*lhvccfg->nal_unit_size);
+					
+					tid = sti[k].temporal_id_sample;
+					sti[j].layers[k].layer_id_plus_one = sti[k].layer_id+1;
+					if (!sti[j].layers[k].min_temporal_id || (sti[j].layers[k].min_temporal_id > tid)) {
+						sti[j].layers[k].min_temporal_id = tid;
+					}
+					if (!sti[j].layers[k].max_temporal_id || (sti[j].layers[k].max_temporal_id < tid)) {
+						sti[j].layers[k].max_temporal_id = tid;
+					}
+
 				}
 
 				gf_bs_get_content(xbs, &sample->data, &sample->dataLength);
@@ -2448,14 +2476,47 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 		//reset all scalable info
 		for (j=0; j<=max_layer_id; j++) {
-			sti[j].max_temporal_id = 0;
+			sti[j].max_temporal_id_sample = 0;
+			sti[j].temporal_id_sample = 0;
 		}
 	}
 	
 exit:
 	//reset all scalable info
 	for (j=0; j<=max_layer_id; j++) {
+		GF_BitStream *bs;
+		u32 count, data_size;
+		char *data=NULL;
 		if (sti[j].lhvccfg) gf_odf_hevc_cfg_del(sti[j].lhvccfg);
+		//set linf group
+		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		gf_bs_write_int(bs, 0, 2);
+		count = 0;
+		for (k=0; k<=max_layer_id; k++) {
+			if (sti[j].layers[k].layer_id_plus_one) count++;
+		}
+		gf_bs_write_int(bs, count, 6);
+		
+		for (k=0; k<=max_layer_id; k++) {
+			if (! sti[j].layers[k].layer_id_plus_one) continue;
+			gf_bs_write_int(bs, 0, 4);
+			gf_bs_write_int(bs, sti[j].layers[k].layer_id_plus_one - 1, 6);
+			gf_bs_write_int(bs, sti[j].layers[k].min_temporal_id, 3);
+			gf_bs_write_int(bs, sti[j].layers[k].max_temporal_id, 3);
+			gf_bs_write_int(bs, 0, 1);
+			//track carries the NALUs
+			if (k==j) {
+				gf_bs_write_int(bs, 0xFF, 7);
+			}
+			//otherwise referenced through extractors, not present natively
+			else {
+				gf_bs_write_int(bs, 0, 7);
+			}
+		}
+		gf_bs_get_content(bs, &data, &data_size);
+		gf_bs_del(bs);
+		gf_isom_add_sample_group_info(file, sti[j].track_num, GF_4CC( 'l', 'i', 'n', 'f'), data, data_size, GF_TRUE, &count);
+		gf_free(data);
 	}
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
@@ -2562,20 +2623,48 @@ typedef struct
 	u32 tx, ty, tw, th;
 	u32 data_offset;
 	GF_BitStream *sample_data;
+	u32 nb_nalus_in_sample;
 } HEVCTileImport;
 
+static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture, u32 independent, Bool filtering_disable, u32 tx, u32 ty, u32 tw, u32 th, Bool is_default)
+{
+	char *data[11];
+	u32 di, data_size=7;
+	GF_BitStream *bs;
+	//write TRIF sample group description
+	bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
+	gf_bs_write_u16(bs, id);	//groupID
+	gf_bs_write_int(bs, 1, 1); //tile Region flag always true for us
+	gf_bs_write_int(bs, independent, 2); //independentIDC: set to 1 (motion-constrained tiles but not all tiles RAP)
+	gf_bs_write_int(bs, full_picture, 1);//full picture: false since we don't do L-HEVC tiles
+	gf_bs_write_int(bs, filtering_disable, 1); //filtering disabled: set to 1 (always true on our bitstreams for now) - Check xPS to be sure ...
+	gf_bs_write_int(bs, 0, 1);//has dependency list: false since we don't do L-HEVC tiles
+	gf_bs_write_int(bs, 0, 2); //reserved
+	if (!full_picture) {
+		gf_bs_write_u16(bs, tx);
+		gf_bs_write_u16(bs, ty);
+		data_size+=4;
+	}
+	gf_bs_write_u16(bs, tw);
+	gf_bs_write_u16(bs, th);
+	gf_bs_del(bs);
+
+	gf_isom_add_sample_group_info(file, track, GF_4CC('t','r','i','f'), data, data_size, is_default, &di);
+}
+
 GF_EXPORT
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 {
 #if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
 #else
-	u32 i, j, cur_tile, count, stype, track, nb_tracks, di, nalu_size_length, tx, ty, tw, th;
-	s32 pps_idx=-1, ret;
+	u32 i, j, cur_tile, count, stype, track, nb_tiles, di, nalu_size_length, tx, ty, tw, th;
+	s32 pps_idx=-1, sps_idx=-1, ret;
 	GF_Err e = GF_OK;
 	HEVCState hevc;
 	HEVCTileImport *tiles;
 	GF_HEVCConfig *hvcc;
+	Bool filter_disabled=GF_TRUE;
 
 	track = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
@@ -2609,10 +2698,10 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 				pps_idx = gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
 				break;
 			case GF_HEVC_NALU_SEQ_PARAM:
-				pps_idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
+				sps_idx = gf_media_hevc_read_sps(sl->data, sl->size, &hevc);
 				break;
 			case GF_HEVC_NALU_VID_PARAM:
-				pps_idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+				gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
 				break;
 			}
 		}
@@ -2622,42 +2711,67 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 
 
 	if (pps_idx==-1) return GF_BAD_PARAM;
-	if (! hevc.pps[pps_idx].tiles_enabled_flag) return GF_OK;
-	nb_tracks = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
-	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tracks);
+	if (sps_idx==-1) return GF_BAD_PARAM;
+	
+	if (hevc.pps[pps_idx].loop_filter_across_tiles_enabled_flag)
+		filter_disabled=GF_FALSE;
+	
+	if (! hevc.pps[pps_idx].tiles_enabled_flag) {
+		hevc_add_trif(file, track, gf_isom_get_track_id(file, track), GF_TRUE, 1, filter_disabled, 0, 0, hevc.sps[pps_idx].width, hevc.sps[pps_idx].width, GF_TRUE);
+		
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[HEVC Tiles] Tiles not enabled, cannot signal them\n"));
+		return GF_OK;
+	}
+	
+	nb_tiles = hevc.pps[pps_idx].num_tile_columns * hevc.pps[pps_idx].num_tile_rows;
+	tiles = gf_malloc(sizeof(HEVCTileImport) * nb_tiles);
 	if (!tiles) return GF_OUT_OF_MEM;
-	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tracks);
+	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tiles);
 
-	//first clone tracks
-	for (i=0; i<nb_tracks; i++) {
-		e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
-		if (e) goto err_exit;
-		tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
-		gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL, GF_FALSE);
-	}
-	//then setup track references (done in two pass otherwise we would clone the tref box ...)
-	for (i=0; i<nb_tracks; i++) {
-		gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
-	}
+	for (i=0; i<nb_tiles; i++) {
+		if (! signal_only) {
+			//first clone tracks
+			e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
+			if (e) goto err_exit;
+			tiles[i].track_id = gf_isom_get_track_id(file, tiles[i].track);
+			gf_isom_hevc_set_tile_config(file, tiles[i].track, 1, NULL, GF_FALSE);
 
+			// setup track references from tile track to base
+			gf_isom_set_track_reference(file, tiles[i].track, GF_ISOM_REF_TBAS, gf_isom_get_track_id(file, track) );
+		} else {
+			tiles[i].track_id = gf_isom_get_track_id(file, track) + i+1;
+		}
+	}
+	
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
 		u8 *data;
-		u32 size;
+		u32 size, nb_nalus=0;
 		GF_BitStream *src_bs;
-		GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		GF_BitStream *bs=NULL;
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
 		data = (u8 *) sample->data;
 		size = sample->dataLength;
-		sample->data = NULL;
-		sample->dataLength = 0;
-
-		for (j=0; j<nb_tracks; j++) {
-			tiles[j].data_offset = 0;
-			tiles[j].sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-			tiles[j].data_offset = 0;
+		if (!signal_only) {
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			sample->data = NULL;
+			sample->dataLength = 0;
+			
+			for (j=0; j<nb_tiles; j++) {
+				tiles[j].data_offset = 0;
+				tiles[j].sample_data = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			}
+		} else {
+			for (j=0; j<nb_tiles; j++) {
+				tiles[j].nb_nalus_in_sample = 0;
+			}
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			//write start of nalm group
+			gf_bs_write_u8(bs, 0);//flags
+			gf_bs_write_u8(bs, 0);//entry_count - will be set at the end
 		}
+		
 
 		sample->data = (char *) data;
 
@@ -2693,57 +2807,91 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 			case GF_HEVC_NALU_SLICE_RASL_N:
 				tx = ty = tw = th = 0;
 				cur_tile = hevc_get_tile_id(&hevc, &tx, &ty, &tw, &th);
-				if (cur_tile>=nb_tracks) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tracks));
+				if (cur_tile>=nb_tiles) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC Tiles] Tile index %d is greater than number of tiles %d in PPS\n", cur_tile, nb_tiles));
 					e = GF_NON_COMPLIANT_BITSTREAM;
-				} else {
-					gf_bs_write_data(tiles[cur_tile].sample_data, (char *) data, nalu_size + nalu_size_length);
-					tiles[cur_tile].tx = tx;
-					tiles[cur_tile].ty = ty;
-					tiles[cur_tile].tw = tw;
-					tiles[cur_tile].th = th;
 				}
 				if (e)
 					goto err_exit;
+				
+				tiles[cur_tile].tx = tx;
+				tiles[cur_tile].ty = ty;
+				tiles[cur_tile].tw = tw;
+				tiles[cur_tile].th = th;
+				
+				if (signal_only) {
+					tiles[cur_tile].nb_nalus_in_sample++;
+					gf_bs_write_u16(bs, tiles[cur_tile].track_id);
+					nb_nalus++;
+				} else {
+					gf_bs_write_data(tiles[cur_tile].sample_data, (char *) data, nalu_size + nalu_size_length);
 
-				if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
-					gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
+					if (! gf_isom_has_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id)) {
+						gf_isom_set_track_reference(file, track, GF_ISOM_REF_SABT, tiles[cur_tile].track_id);
+					}
+					tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 				}
-				tiles[cur_tile].data_offset += nalu_size + nalu_size_length;
 				break;
 			default:
-				gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
+				if (! signal_only) {
+					gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
+				} else {
+					gf_bs_write_u16(bs, 0);
+					nb_nalus++;
+				}
 				break;
 			}
 			data += nalu_size + nalu_size_length;
 			size -= nalu_size + nalu_size_length;
 		}
-		gf_free(sample->data);
-		gf_bs_get_content(bs, &sample->data, &sample->dataLength);
-		gf_bs_del(bs);
+	
+		if (! signal_only) {
+			gf_free(sample->data);
+			gf_bs_get_content(bs, &sample->data, &sample->dataLength);
+			gf_bs_del(bs);
 
-		e = gf_isom_update_sample(file, track, i+1, sample, 1);
-		if (e) goto err_exit;
-
-		gf_free(sample->data);
-		sample->data = NULL;
-
-		for (j=0; j<nb_tracks; j++) {
-			sample->dataLength = 0;
-			gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
-			if (!sample->data)
-				continue;
-
-			e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
+			e = gf_isom_update_sample(file, track, i+1, sample, 1);
 			if (e) goto err_exit;
-			tiles[j].sample_count ++;
 
-			gf_bs_del(tiles[j].sample_data);
-			tiles[j].sample_data = NULL;
 			gf_free(sample->data);
 			sample->data = NULL;
+		
+			for (j=0; j<nb_tiles; j++) {
+				sample->dataLength = 0;
+				gf_bs_get_content(tiles[j].sample_data, &sample->data, &sample->dataLength);
+				if (!sample->data)
+					continue;
 
-			e = gf_isom_copy_sample_info(file, tiles[j].track, file, track, i+1);
+				e = gf_isom_add_sample(file, tiles[j].track, 1, sample);
+				if (e) goto err_exit;
+				tiles[j].sample_count ++;
+
+				gf_bs_del(tiles[j].sample_data);
+				tiles[j].sample_data = NULL;
+				gf_free(sample->data);
+				sample->data = NULL;
+
+				e = gf_isom_copy_sample_info(file, tiles[j].track, file, track, i+1);
+				if (e) goto err_exit;
+			}
+		} else {
+			char *data=NULL;
+			u32 size=0;
+			u32 sdesc;
+			gf_bs_get_content(bs, &data, &size);
+			gf_bs_del(bs);
+			data[1] = nb_nalus;
+
+			e = gf_isom_add_sample_group_info(file, track, GF_4CC('n','a','l','m'), data, size, 0, &sdesc);
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error defining NALM group description entry\n" ));
+			} else {
+				e = gf_isom_add_sample_info(file, track, i+1, GF_4CC('n','a','l','m'), sdesc, GF_4CC('t','r','i','f'));
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[ISOBMF] Error associating NALM group description to sample\n" ));
+				}
+			}
+			gf_free(data);
 			if (e) goto err_exit;
 		}
 
@@ -2752,40 +2900,28 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file)
 	}
 
 
-	for (i=0; i<nb_tracks; i++) {
-		char data[11];
+	for (i=0; i<nb_tiles; i++) {
 		u32 width, height;
 		s32 translation_x, translation_y;
 		s16 layer;
 		GF_BitStream *bs;
 
-		tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
-		if (!tiles[i].sample_count) {
-			gf_isom_remove_track(file, tiles[i].track);
-			continue;
+		if (! signal_only) {
+			tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
+			if (!tiles[i].sample_count) {
+				gf_isom_remove_track(file, tiles[i].track);
+				continue;
+			}
+
+			hevc_add_trif(file, tiles[i].track, tiles[i].track_id, GF_FALSE, 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_TRUE);
+			gf_isom_set_visual_info(file, tiles[i].track, 1, tiles[i].tw, tiles[i].th);
+
+			gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);
+			gf_isom_set_track_layout_info(file, tiles[i].track, width<<16, height<<16, translation_x, translation_y, layer);
+		} else {
+			hevc_add_trif(file, track, tiles[i].track_id, GF_FALSE, 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_FALSE);
 		}
-		//write TRIF sample group description
-		bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
-		gf_bs_write_u16(bs, tiles[i].track);	//groupID
-		gf_bs_write_int(bs, 1, 1); //tile Region flag always true for us
-		gf_bs_write_int(bs, 1, 2); //independentIDC: set to 1 (motion-constrained tiles but not all tiles RAP)
-		gf_bs_write_int(bs, 0, 1);//full picture: false since we don't do L-HEVC tiles
-		gf_bs_write_int(bs, 1, 1); //filtering disabled: set to 1 (always true on our bitstreams for now) - Check xPS to be sure ...
-		gf_bs_write_int(bs, 0, 1);//has dependency list: false since we don't do L-HEVC tiles
-		gf_bs_write_int(bs, 0, 2); //reserved
-		
-		gf_bs_write_u16(bs, tiles[i].tx);
-		gf_bs_write_u16(bs, tiles[i].ty);
-		gf_bs_write_u16(bs, tiles[i].tw);
-		gf_bs_write_u16(bs, tiles[i].th);
-		gf_bs_del(bs);
 
-		gf_isom_add_sample_group_info(file, tiles[i].track, GF_4CC('t','r','i','f'), data, 11, 1, &di);
-
-		gf_isom_set_visual_info(file, tiles[i].track, 1, tiles[i].tw, tiles[i].th);
-
-		gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);
-		gf_isom_set_track_layout_info(file, tiles[i].track, width<<16, height<<16, translation_x, translation_y, layer);
 	}
 
 

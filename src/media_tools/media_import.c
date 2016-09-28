@@ -5729,6 +5729,42 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 tr
 	return GF_OK;
 }
 
+
+typedef struct
+{
+	u32 layer_id_plus_one;
+	u32 min_temporal_id, max_temporal_id;
+} LHVCLayerInfo;
+
+static void gf_lhevc_set_layer_information(GF_ISOFile *file, u32 track, LHVCLayerInfo *linf)
+{
+	u32 i, nb_layers=0, di=0;
+	char *data;
+	u32 data_size;
+
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	
+	for (i=0; i<64; i++) {
+		if (linf[i].layer_id_plus_one) nb_layers++;
+	}
+	gf_bs_write_int(bs, 0, 2);
+	gf_bs_write_int(bs, nb_layers, 6);
+	for (i=0; i<nb_layers; i++) {
+		if (! linf[i].layer_id_plus_one) continue;
+		gf_bs_write_int(bs, 0, 4);
+		gf_bs_write_int(bs, linf[i].layer_id_plus_one - 1, 6);
+		gf_bs_write_int(bs, linf[i].min_temporal_id, 3);
+		gf_bs_write_int(bs, linf[i].max_temporal_id, 3);
+		gf_bs_write_int(bs, 0, 1);
+		gf_bs_write_int(bs, 0xFF, 7);
+
+	}
+	gf_bs_get_content(bs, &data, &data_size);
+	gf_bs_del(bs);
+	gf_isom_add_sample_group_info(file, track, GF_4CC( 'l', 'i', 'n', 'f'), data, data_size, GF_TRUE, &di);
+	gf_free(data);
+}
+
 static GF_Err gf_import_hevc(GF_MediaImporter *import)
 {
 #ifdef GPAC_DISABLE_HEVC
@@ -5757,6 +5793,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	s32 cur_vps_id = -1;
 	u8 max_temporal_id[64];
 	u32 min_layer_id = (u32) -1;
+	LHVCLayerInfo linf[64];
 
 
 	Double FPS;
@@ -5771,6 +5808,8 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 		return GF_OK;
 	}
 
+	memset(linf, 0, sizeof(linf));
+	
 	set_subsamples = (import->flags & GF_IMPORT_SET_SUBSAMPLES) ? GF_TRUE : GF_FALSE;
 
 	mdia = gf_fopen(import->in_name, "rb");
@@ -6219,6 +6258,14 @@ restart_import:
 		}
 
 		if (!nal_size) break;
+		if (copy_size) {
+			linf[layer_id].layer_id_plus_one = layer_id + 1;
+			if (! linf[layer_id].max_temporal_id ) linf[layer_id].max_temporal_id = temporal_id;
+			else if (linf[layer_id].max_temporal_id < temporal_id) linf[layer_id].max_temporal_id = temporal_id;
+
+			if (! linf[layer_id].min_temporal_id ) linf[layer_id].min_temporal_id = temporal_id;
+			else if (linf[layer_id].min_temporal_id > temporal_id) linf[layer_id].min_temporal_id = temporal_id;
+		}
 
 		if (flush_sample && is_empty_sample)
 			flush_sample = GF_FALSE;
@@ -6687,6 +6734,7 @@ next_nal:
 	// This is a L-HEVC bitstream ... 
 	if ((cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1)) {
 		gf_lhevc_set_operating_points_information(import->dest, track, &hevc.vps[cur_vps_id], max_temporal_id);
+		gf_lhevc_set_layer_information(import->dest, track, &linf[0]);
 	}
 
 	//base layer (i.e layer with layer_id = 0) not found in bitstream

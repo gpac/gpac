@@ -1301,7 +1301,14 @@ GF_Err free_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_FreeSpaceBox *ptr = (GF_FreeSpaceBox *)s;
-	e = gf_isom_box_write_header(s, bs);
+	if (ptr->original_4cc) {
+		u32 t = s->type;
+		s->type=ptr->original_4cc;
+		e = gf_isom_box_write_header(s, bs);
+		s->type=t;
+	} else {
+		e = gf_isom_box_write_header(s, bs);
+	}
 	if (e) return e;
 	if (ptr->dataSize)	{
 		if (ptr->data) {
@@ -8803,6 +8810,8 @@ GF_Err sbgp_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	p->size += 8;
+	if (p->grouping_type_parameter) p->version=1;
+	
 	if (p->version==1) p->size += 4;
 	p->size += 8*p->entry_count;
 	return GF_OK;
@@ -8812,6 +8821,7 @@ GF_Err sbgp_Size(GF_Box *s)
 
 static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_size, u32 *total_bytes)
 {
+	GF_DefaultSampleGroupDescriptionEntry *ptr;
 	switch (grouping_type) {
 	case GF_4CC( 'r', 'o', 'l', 'l' ):
 	{
@@ -8861,6 +8871,14 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		*total_bytes = (u32) gf_bs_get_position(bs) - s;
 		return ptr;
 	}
+	case GF_4CC('l','i','n','f'):
+	{
+		GF_LHVCLayerInformation *ptr = gf_isom_linf_new_entry();
+		u32 s = (u32) gf_bs_get_position(bs);
+		gf_isom_linf_read_entry(ptr, bs);
+		*total_bytes = (u32) gf_bs_get_position(bs) - s;
+		return ptr;
+	}
 		
 	case GF_4CC( 't', 'r', 'i', 'f' ):
 	{
@@ -8876,21 +8894,36 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 			}
 		}
 		//fallthrough
+		break;
+	}
+	case GF_4CC( 'n', 'a', 'l', 'm' ):
+	{
+		u64 start = gf_bs_get_position(bs);
+		Bool rle, large_size;
+		u32 entry_count;
+		gf_bs_read_int(bs, 6);
+		large_size = gf_bs_read_int(bs, 1);
+		rle = gf_bs_read_int(bs, 1);
+		entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
+		gf_bs_seek(bs, start);
+		entry_size = 1 + large_size ? 2 : 1;
+		entry_size += entry_count * 2;
+		if (rle) entry_size += entry_count * (large_size ? 2 : 1);
+		
+		break;
 	}
 	default:
-	{
-		GF_DefaultSampleGroupDescriptionEntry *ptr;
-		if (!entry_size) return NULL;
-		GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
-		if (!ptr) return NULL;
-		ptr->length = entry_size;
-		ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
-		gf_bs_read_data(bs, (char *) ptr->data, ptr->length);
-		*total_bytes = entry_size;
-		return ptr;
+		break;
 	}
-	}
-	return NULL;
+
+	if (!entry_size) return NULL;
+	GF_SAFEALLOC(ptr, GF_DefaultSampleGroupDescriptionEntry);
+	if (!ptr) return NULL;
+	ptr->length = entry_size;
+	ptr->data = (u8 *) gf_malloc(sizeof(u8)*ptr->length);
+	gf_bs_read_data(bs, (char *) ptr->data, ptr->length);
+	*total_bytes = entry_size;
+	return ptr;
 }
 
 static void	sgpd_del_entry(u32 grouping_type, void *entry)
@@ -8903,6 +8936,9 @@ static void	sgpd_del_entry(u32 grouping_type, void *entry)
 		return;
 	case GF_4CC( 'o', 'i', 'n', 'f' ):
 		gf_isom_oinf_del_entry(entry);
+		return;
+	case GF_4CC( 'l', 'i', 'n', 'f' ):
+		gf_isom_linf_del_entry(entry);
 		return;
 	default:
 	{
@@ -8939,6 +8975,9 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs)
 	case GF_4CC( 'o', 'i', 'n', 'f' ):
 		gf_isom_oinf_write_entry(entry, bs);
 		return;
+	case GF_4CC( 'l', 'i', 'n', 'f' ):
+		gf_isom_linf_write_entry(entry, bs);
+		return;
 	default:
 	{
 		GF_DefaultSampleGroupDescriptionEntry *ptr = (GF_DefaultSampleGroupDescriptionEntry *)entry;
@@ -8959,6 +8998,8 @@ static u32 sgpd_size_entry(u32 grouping_type, void *entry)
 		return ((((GF_CENCSampleEncryptionGroupEntry *)entry)->IsProtected == 1) && !((GF_CENCSampleEncryptionGroupEntry *)entry)->Per_Sample_IV_size) ? 21 + ((GF_CENCSampleEncryptionGroupEntry *)entry)->constant_IV_size : 20;
 	case GF_4CC( 'o', 'i', 'n', 'f' ):
 		return gf_isom_oinf_size_entry(entry);
+	case GF_4CC( 'l', 'i', 'n', 'f' ):
+		return gf_isom_linf_size_entry(entry);
 	default:
 		return ((GF_DefaultSampleGroupDescriptionEntry *)entry)->length;
 	}

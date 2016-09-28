@@ -4353,7 +4353,13 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	if (!a) return GF_BAD_PARAM;
 
 	fprintf(trace, "<SampleGroupBox grouping_type=\"%s\"", gf_4cc_to_str(ptr->grouping_type) );
-	if (ptr->version==1) fprintf(trace, " grouping_type_parameter=\"%d\"", ptr->grouping_type_parameter);
+	if (ptr->version==1) {
+		if (isalnum(ptr->grouping_type_parameter&0xFF)) {
+			fprintf(trace, " grouping_type_parameter=\"%s\"", gf_4cc_to_str(ptr->grouping_type_parameter) );
+		} else {
+			fprintf(trace, " grouping_type_parameter=\"%d\"", ptr->grouping_type_parameter);
+		}
+	}
 	fprintf(trace, ">\n");
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
@@ -4422,6 +4428,83 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 	return;
 }
 
+static void linf_dump(GF_LHVCLayerInformation *ptr, FILE * trace)
+{
+	u32 i, count;
+
+	count = gf_list_count(ptr->num_layers_in_track);
+	fprintf(trace, "<LayerInformation num_layers=\"%d\">\n", count );
+	for (i = 0; i < count; i++) {
+		LHVCLayerInfoItem *li = (LHVCLayerInfoItem *)gf_list_get(ptr->num_layers_in_track, i);
+		fprintf(trace, "<LayerInfoItem layer_id=\"%d\" min_temporalId=\"%d\" max_temporalId=\"%d\" sub_layer_presence_flags=\"%d\"/>\n", li->layer_id, li->min_TemporalId, li->max_TemporalId, li->sub_layer_presence_flags);
+	}
+	fprintf(trace, "</LayerInformation>\n");
+	return;
+}
+
+static void trif_dump(FILE * trace, char *data, u32 data_size)
+{
+	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	u32 x,y,w,h, id, independent, filter_disabled;
+	Bool full_picture, has_dep, tile_group;
+
+	id = gf_bs_read_u16(bs);
+	tile_group = gf_bs_read_int(bs, 1);
+	fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" tileGroup=\"%d\" ", id, tile_group);
+	if (tile_group) {
+		independent = gf_bs_read_int(bs, 2);
+		full_picture = (Bool)gf_bs_read_int(bs, 1);
+		filter_disabled = gf_bs_read_int(bs, 1);
+		has_dep = gf_bs_read_int(bs, 1);
+		gf_bs_read_int(bs, 2);
+		fprintf(trace, "independent=\"%d\" full_picture=\"%d\" filter_disabled=\"%d\" ", independent, full_picture, filter_disabled);
+
+		if (!full_picture) {
+			fprintf(trace, "x=\"%d\" y=\"%d\" ", gf_bs_read_u16(bs), gf_bs_read_u16(bs));
+		}
+		fprintf(trace, "w=\"%d\" h=\"%d\" ", gf_bs_read_u16(bs), gf_bs_read_u16(bs));
+		if (!has_dep) {
+			fprintf(trace, "/>\n");
+		} else {
+			u32 count = gf_bs_read_u16(bs);
+			fprintf(trace, ">\n");
+			while (count) {
+				count--;
+				fprintf(trace, "<TileRegionDependency tileID=\"%d\"/>\n", gf_bs_read_u16(bs) );
+			}
+			fprintf(trace, "</TileRegionGroupEntry>\n");
+		}
+	}
+	gf_bs_del(bs);
+}
+
+static void nalm_dump(FILE * trace, char *data, u32 data_size)
+{
+	GF_BitStream *bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+	Bool rle, large_size;
+	u32 entry_count;
+	gf_bs_read_int(bs, 6);
+	large_size = gf_bs_read_int(bs, 1);
+	rle = gf_bs_read_int(bs, 1);
+	entry_count = gf_bs_read_int(bs, large_size ? 16 : 8);
+	fprintf(trace, "<NALUMap rle=\"%d\" large_size=\"%d\">\n", rle, large_size);
+	
+	while (entry_count) {
+		u32 ID;
+		fprintf(trace, "<NALUMapEntry ");
+		if (rle) {
+			u32 start_num = gf_bs_read_int(bs, large_size ? 16 : 8);
+			fprintf(trace, "NALU_startNumber=\"%d\" ", start_num);
+		}
+		ID = gf_bs_read_u16(bs);
+		fprintf(trace, "groupID=\"%d\"/>\n", ID);
+		entry_count--;
+	}
+	gf_bs_del(bs);
+	fprintf(trace, "</NALUMap>\n");
+	return;
+}
+
 GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -4457,16 +4540,15 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 		case GF_4CC( 'o', 'i', 'n', 'f'):
 			oinf_dump(entry, trace);
 			break;
+		case GF_4CC( 'l', 'i', 'n', 'f'):
+			linf_dump(entry, trace);
+			break;
 		case GF_4CC( 't', 'r', 'i', 'f' ):
-		{
-			u32 x,y,w,h, id, independent;
-			Bool full_picture;
-
-			gf_isom_parse_trif_info( (const char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data, ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length, &id, &independent, &full_picture, &x, &y, &w, &h);
-			fprintf(trace, "<TileRegionGroupEntry ID=\"%d\" independent=\"%d\"", id, independent);
-			if (!full_picture) fprintf(trace, " horizontal_offset=\"%d\" vertical_offset=\"%d\"", x, y);
-			fprintf(trace, " region_width=\"%d\" region_height=\"%d\"/>\n", w, h);
-		}
+			trif_dump(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
+			break;
+			
+		case GF_4CC( 'n', 'a', 'l', 'm'):
+			nalm_dump(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);

@@ -451,9 +451,10 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 /* !
  Split HEVC tiles into different tracks
  \param file the target movie
+ \param signal_only if set, inserts tile description and NAL->tile mapping but does not create separate tracks
  \return error if any
  */
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file);
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only);
 
 	
 /* !
