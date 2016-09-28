@@ -2463,6 +2463,9 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 /* fill mmpu and add box to already existing ISOBMFF file */
 GF_Err gf_isom_add_mpu(GF_ISOFile *mp4, u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value);
 
+/* Clone mpu box from input ISOBMFF file to output ISOBMFF file */
+GF_Err gf_isom_clone_mpu(GF_ISOFile *input, GF_ISOFile *output);
+
 /*! @} */
 
 

@@ -646,6 +646,14 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 					totSize += movie->brand->size;
 					begin += movie->brand->size;
 				}
+				if (movie->mpu) {
+					e = gf_isom_box_size((GF_Box *)movie->mpu);
+					if (e) goto exit;
+					e = gf_isom_box_write((GF_Box *)movie->mpu, movie->editFileMap->bs);
+					if (e) goto exit;
+					totSize += movie->mpu->size;
+					begin += movie->mpu->size;
+				}
 				if (movie->pdin) {
 					e = gf_isom_box_size((GF_Box *)movie->pdin);
 					if (e) goto exit;

@@ -2873,6 +2873,8 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 	e = gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 1);
 	if (e) goto err_exit;
 
+	gf_isom_clone_mpu(input, output);
+
 	//copy movie desc
 	gf_isom_clone_root_od(input, output);
 	//clone copyright

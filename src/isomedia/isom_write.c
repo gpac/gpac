@@ -5550,6 +5550,16 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 
 }
 
+GF_Err gf_isom_clone_mpu(GF_ISOFile *input, GF_ISOFile *output)
+{
+	if(input->mpu){
+		gf_isom_set_brand_info(output, GF_4CC('M','P','U','F'), 0);
+		gf_isom_add_mpu(output, input->mpu->mpu_sequence_number, input->mpu->asset_id_scheme, input->mpu->asset_id_length, input->mpu->asset_id_value);
+	}
+
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
