@@ -71,6 +71,7 @@
 #ifndef GPAC_DISABLE_LOG
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_tool_level_on) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_log_va_list) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_log_lt) )
 #endif
 
