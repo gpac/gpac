@@ -998,7 +998,7 @@ u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch
 		if (cur_track == ch->base_track)
 			return cur_track;
 		ref_count = gf_isom_get_reference_count(the_file, cur_track, GF_ISOM_REF_SCAL);
-		if (ref_count < 0)
+		if (ref_count <= 0)
 			return cur_track;
 		gf_isom_get_reference(the_file, cur_track, GF_ISOM_REF_SCAL, ref_count, &next_track);
 		if (!next_track)
@@ -1059,7 +1059,7 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		for (i = 0; i < count; i++)
 		{
 			ch = (ISOMChannel *)gf_list_get(read->channels, i);
-			if (gf_isom_needs_layer_reconstruction(read->mov)) {
+			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
 				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
 			}
 		}
