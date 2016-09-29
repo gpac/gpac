@@ -2632,7 +2632,7 @@ static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture
 	u32 di, data_size=7;
 	GF_BitStream *bs;
 	//write TRIF sample group description
-	bs = gf_bs_new(data, 11, GF_BITSTREAM_WRITE);
+	bs = gf_bs_new((const char*)data, 11, GF_BITSTREAM_WRITE);
 	gf_bs_write_u16(bs, id);	//groupID
 	gf_bs_write_int(bs, 1, 1); //tile Region flag always true for us
 	gf_bs_write_int(bs, independent, 2); //independentIDC: set to 1 (motion-constrained tiles but not all tiles RAP)
@@ -2904,7 +2904,6 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 		u32 width, height;
 		s32 translation_x, translation_y;
 		s16 layer;
-		GF_BitStream *bs;
 
 		if (! signal_only) {
 			tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
