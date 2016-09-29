@@ -147,9 +147,9 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	return GF_OK;
 }
 
+#if defined(OPENHEVC_HAS_AVC_BASE) && !defined(GPAC_DISABLE_LOG)
 void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 {
-#ifndef GPAC_DISABLE_LOG
 	u32 level = GF_LOG_DEBUG;
 	if (l <= OHEVC_LOG_ERROR) l = GF_LOG_ERROR;
 	else if (l <= OHEVC_LOG_WARNING) l = GF_LOG_WARNING;
@@ -159,8 +159,8 @@ void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 	if (gf_log_tool_level_on(GF_LOG_CODEC, level)) {
 		gf_log_va_list(level, GF_LOG_CODEC, fmt, vl);
 	}
-#endif
 }
+#endif
 
 
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
@@ -256,9 +256,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->openHevcHandle = libOpenHevcInit(ctx->nb_threads, ctx->threading_type);
 	}
 
-#ifdef OPENHEVC_HAS_AVC_BASE
+#if defined(OPENHEVC_HAS_AVC_BASE) && !defined(GPAC_DISABLE_LOG)
 
-#ifndef GPAC_DISABLE_LOG
 	if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG) ) {
 		libOpenHevcSetDebugMode(ctx->openHevcHandle, OHEVC_LOG_DEBUG);
 	} else if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_INFO) ) {
@@ -269,8 +268,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		libOpenHevcSetDebugMode(ctx->openHevcHandle, OHEVC_LOG_ERROR);
 	}
 	libOpenHevcSetLogCallback(ctx->openHevcHandle, openhevc_log_callback);
-#endif
-
 #endif
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
@@ -732,7 +729,8 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				ctx->avc_base_pts = *CTS;
 				got_pic = 0;
 			}
-		} else {
+		} else if (ctx->cur_layer>1) {
+
 			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts	, *CTS);
 			if (ctx->avc_base) {
 				gf_free(ctx->avc_base);
