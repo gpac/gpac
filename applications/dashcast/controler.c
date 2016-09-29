@@ -135,24 +135,27 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 	FILE *f;
 
 	char name[GF_MAX_PATH];
-	if (!audio_data_conf) return;
-	
+
 	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Write MPD at UTC "LLU" ms - %s : %s\n", gf_net_get_utc(), (cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime", (cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time));
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		audio_data_conf = (const AudioDataConf*)gf_list_get(cmddata->audio_lst, 0);
-		audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
-		audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
-		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
+		if (audio_data_conf) {
+			audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
+			audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
+			optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
+		}
 	}
 
 	if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
 		video_data_conf = (VideoDataConf*)gf_list_get(cmddata->video_lst, 0);
-		video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
-		video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
-		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
+		if (video_data_conf) {
+			video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
+			video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
+			optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
+		}
 	}
 
 	f = gf_fopen(name, "w");
