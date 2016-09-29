@@ -1868,8 +1868,8 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 
 		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
-
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IsEncrypted ? IV_size+2+6*sai->subsample_count : 0);
+		//this assumes that we don't have a cenc sample info with subsamples indicated and subsample_count=0
+		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IsEncrypted ? IV_size + (2+6)*sai->subsample_count : 0);
 	}
 
 	return GF_OK;
