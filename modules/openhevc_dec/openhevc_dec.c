@@ -90,10 +90,10 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	u32 i, j;
 
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
-		libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
 		ctx->nb_layers++;
 		ctx->cur_layer++;
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
 		return GF_OK;
 	}
 	
