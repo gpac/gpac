@@ -278,6 +278,7 @@ static u32 mpd_thread(void *params)
 	main_seg_time.segnum = 0;
 	main_seg_time.utc_time = 0;
 	main_seg_time.ntpts = 0;
+	last_seg_time = main_seg_time;
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
