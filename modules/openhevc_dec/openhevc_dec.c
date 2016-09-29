@@ -93,6 +93,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
 		ctx->nb_layers++;
+		ctx->cur_layer++;
 		return GF_OK;
 	}
 	
@@ -107,6 +108,10 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	else if (ctx->hevc_nalu_size_length != cfg->nal_unit_size)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	
+	ctx->nb_layers++;
+	ctx->cur_layer++;
+	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->nb_layers-1);
+	libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	//LHVC mode with base AVC layer: set extradata for LHVC
@@ -139,11 +144,6 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 
 		gf_free(data);
 	}
-
-
-	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
-	libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
-	ctx->nb_layers++;
 	return GF_OK;
 }
 
@@ -151,9 +151,10 @@ void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 {
 #ifndef GPAC_DISABLE_LOG
 	u32 level = GF_LOG_DEBUG;
-	if (l <= 16) l = GF_LOG_ERROR;
-	else if (l <= 24) l = GF_LOG_WARNING;
-	else if (l <= 32) l = GF_LOG_INFO;
+	if (l <= OHEVC_LOG_ERROR) l = GF_LOG_ERROR;
+	else if (l <= OHEVC_LOG_WARNING) l = GF_LOG_WARNING;
+	else if (l <= OHEVC_LOG_INFO) l = GF_LOG_INFO;
+	else if (l >= OHEVC_LOG_VERBOSE) return;
 
 	if (gf_log_tool_level_on(GF_LOG_CODEC, level)) {
 		gf_log_va_list(level, GF_LOG_CODEC, fmt, vl);
@@ -169,7 +170,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = ctx->chroma_format_idc = 0;
 
 	ctx->nb_layers = 1;
-	
+	ctx->cur_layer = 1;
+
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC)
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		ctx->avc_base_id=esd->ESID;
@@ -272,9 +274,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1/*ctx->nb_layers*/);
-		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->nb_layers-1);
-
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
@@ -282,11 +281,10 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		} else
 #endif
 			libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-	} else {
-		//hardcoded values: 2 layers max, display layer 0
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1/*ctx->nb_layers*/);
-		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0/*ctx->nb_layers-1*/);
 	}
+	//decode and display layer 0 only - will be changed when attaching enhancement layers
+	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
+	libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
 
 	//we start decoder on the first frame
 	
@@ -468,6 +466,7 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	}
 	return GF_OK;
 }
+
 static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
@@ -660,7 +659,6 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	return GF_OK;
 }
 
-
 static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
                                char *inBuffer, u32 inBufferLength,
                                u16 ES_ID, u32 *CTS,
@@ -716,20 +714,30 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 	ctx->dec_frames++;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
+
 	if (ctx->avc_base_id) {
 		if (ctx->avc_base_id == ES_ID) {
-			ctx->avc_base = gf_realloc(ctx->avc_base, inBufferLength);
-			memcpy(ctx->avc_base, inBuffer, inBufferLength);
-			ctx->avc_base_size = inBufferLength;
-			ctx->avc_base_pts = *CTS;
-			//got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8 *) inBuffer, NULL, inBufferLength, 0, *CTS, 0);
-			got_pic = 0;
+			if (ctx->cur_layer<=1) {
+				got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8 *) inBuffer, NULL, inBufferLength, 0, *CTS, 0);
+				if (ctx->avc_base) {
+					gf_free(ctx->avc_base);
+					ctx->avc_base=NULL;
+					ctx->avc_base_size=0;
+					ctx->avc_base_pts=0;
+				}
+			} else {
+				ctx->avc_base = gf_realloc(ctx->avc_base, inBufferLength);
+				memcpy(ctx->avc_base, inBuffer, inBufferLength);
+				ctx->avc_base_size = inBufferLength;
+				ctx->avc_base_pts = *CTS;
+				got_pic = 0;
+			}
 		} else {
-			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts, *CTS);
+			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts	, *CTS);
 			if (ctx->avc_base) {
 				gf_free(ctx->avc_base);
-				ctx->avc_base=NULL;
-				ctx->avc_base_size=0;
+				ctx->avc_base = NULL;
+				ctx->avc_base_size = 0;
 			}
 		}
 	}
@@ -793,7 +801,16 @@ static u32 HEVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 static const char *HEVC_GetCodecName(GF_BaseDecoder *dec)
 {
 	HEVCDec *ctx = (HEVCDec*) dec->privateStack;
+#ifdef  OPENHEVC_HAS_AVC_BASE
+	if (ctx->avc_base_id) {
+		if (ctx->cur_layer==1) return "OpenHEVC v"NV_VERSION" - H264";
+		else return "OpenHEVC v"NV_VERSION" - H264+LHVC";
+	}
+	if (ctx->cur_layer==1) return "OpenHEVC v"NV_VERSION;
+	else return "OpenHEVC v"NV_VERSION" - LHVC";
+#else
 	return libOpenHevcVersion(ctx->openHevcHandle);
+#endif
 }
 
 GF_BaseDecoder *NewHEVCDec()

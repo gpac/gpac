@@ -180,7 +180,35 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
 			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
+
+		//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
+#if 0
+			{
+				char *dsi = NULL;
+				GF_NetworkCommand com;
+				u32 len = 0;
+				if (ch->esd->decoderConfig->decoderSpecificInfo) {
+					dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
+					ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
+					len = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
+					ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+				}
+				e = codec->decio->AttachStream(codec->decio, ch->esd);
+				if (ch->esd->decoderConfig->decoderSpecificInfo) {
+					ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
+					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
+				}
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.command_type = GF_NET_CHAN_NALU_MODE;
+				com.nalu_mode.extract_mode = 1;
+				com.base.on_channel = ch;
+				gf_term_service_command(ch->service, &com);
+
+			}
+#else
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
+#endif
+
 			gf_mx_v(ch->mx);
 		}
 
@@ -1308,7 +1336,7 @@ scalable_retry:
 			unit_size = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: force drop requested in fast playback for AU CTS %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, &CU->TS, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
 		now = gf_sys_clock_high_res() - now;
@@ -1369,7 +1397,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d ES%d at %d decoded frame DTS %u CTS %u in "LLU" us (DTS %d - size %d) - %d in CB\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->DTS, AU->CTS, now, AU->DTS, AU->dataLength, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
 
 
 				if (codec->direct_frame_output) {
@@ -1428,7 +1456,7 @@ scalable_retry:
 			}
 #ifndef GPAC_DISABLE_LOGS
 			if (codec->odm->flags & GF_ODM_PREFETCH) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d decoding frame TS %u in prefetch mode\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d decoding frame TS %u in prefetch mode\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS));
 			}
 #endif
 			break;
@@ -1436,7 +1464,7 @@ scalable_retry:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
 			gf_cm_abort_buffering(codec->CB);
-			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d At %d (frame TS %u - "LLU" us ): decoded error %s\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, gf_clock_real_time(ch->clock), AU->CTS, now, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d (frame TS %u - "LLU" us ): decoded error %s\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->CTS, now, gf_error_to_string(e) ));
 			e = GF_OK;
 			break;
 		}
