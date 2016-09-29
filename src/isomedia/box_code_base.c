@@ -6629,6 +6629,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			bs = gf_bs_new(a->data, a->dataSize, GF_BITSTREAM_READ);
 			gf_bs_read_data(bs, genm->reserved, 6);
 			genm->dataReferenceIndex = gf_bs_read_u16(bs);
+			genm->size -= 8;
 
 			if (gf_bs_available(bs)) {
 				u64 pos = gf_bs_get_position(bs);
