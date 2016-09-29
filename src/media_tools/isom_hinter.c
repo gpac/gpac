@@ -582,6 +582,8 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	max_ptime = (u32) (max_ptime * my_sl.timestampResolution / 1000);
 
 	my_sl.AUSeqNumLength = gf_get_bit_size(gf_isom_get_sample_count(file, TrackNum));
+	if (my_sl.AUSeqNumLength>16) my_sl.AUSeqNumLength=16;
+	
 	my_sl.CUDuration = const_dur;
 
 	if (gf_isom_has_sync_points(file, TrackNum)) {
