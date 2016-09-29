@@ -462,21 +462,23 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 		//we are SVC, don't write NALU delim, only insert VDRD NALU
 		if (insert_vdrd_code) {
-			//todo later ...
 			if (is_hevc) {
+				//spec is not clear here, we insert a NALU AU delimiter before the layer starts
 			} else {
 				gf_bs_write_int(dst_bs, 1, 32);
 				gf_bs_write_int(dst_bs, GF_AVC_NALU_VDRD , 8);
+				insert_nalu_delim=0;
 			}
 		}
+
 		//AVC/HEVC base, insert NALU delim
-		else if (insert_nalu_delim) {
+		if (insert_nalu_delim) {
 			gf_bs_write_int(dst_bs, 1, 32);
 			if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
 				gf_bs_write_int(dst_bs, 0, 1);
 				gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
-				gf_bs_write_int(dst_bs, 0, 6);
+				gf_bs_write_int(dst_bs, insert_vdrd_code ? 1 : 0, 6); //we should pick the layerID of the following nalus ...
 				gf_bs_write_int(dst_bs, 1, 3); //nuh_temporal_id_plus1 - cannot be 0, we use 1 by default, and overwrite it if needed at the end
 
 				/*pic-type - by default we signal all slice types possible*/
