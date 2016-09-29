@@ -231,7 +231,10 @@ static void Satip_GetServerIP(const char *sURL, char *Server)
 
 found:
 	schema[i] = 0;
-	assert(!stricmp(schema, "satip"));
+	if (stricmp(schema, "satip")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Wrong SATIP schema %s - not setting up\n", schema));
+		return;
+	}
 	test = strstr(sURL, "://");
 	test += 3;
 	//check for service

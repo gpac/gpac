@@ -151,7 +151,7 @@ void isor_declare_objects(ISOMReader *read)
 				case GF_ISOM_SUBTYPE_LHV1:
 				case GF_ISOM_SUBTYPE_LHE1:
 					base_subtype = gf_isom_get_media_subtype(read->mov, base_track, 1);
-					switch (m_subtype) {
+					switch (base_subtype) {
 					case GF_ISOM_SUBTYPE_HVC1:
 					case GF_ISOM_SUBTYPE_HEV1:
 					case GF_ISOM_SUBTYPE_HVC2:
@@ -159,6 +159,7 @@ void isor_declare_objects(ISOMReader *read)
 						break;
 					default:
 						external_base=GF_TRUE;
+						break;
 					}
 				}
 				if (external_base) {

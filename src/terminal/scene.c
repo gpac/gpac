@@ -2791,19 +2791,12 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
 		}
 	} else if (force_attach) {
-		char *dsi = NULL;
-		u32 len = 0;
+		//we force annexB mode, delete avcC/hvcC
 		if (ch->esd->decoderConfig->decoderSpecificInfo) {
-			dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
-			ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
-			len = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
-			ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+			gf_odf_desc_del(ch->esd->decoderConfig->decoderSpecificInfo);
+			ch->esd->decoderConfig->decoderSpecificInfo=NULL;
 		}
 		odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
-		if (ch->esd->decoderConfig->decoderSpecificInfo) {
-			ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
-			ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
-		}
 	}
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_NALU_MODE;

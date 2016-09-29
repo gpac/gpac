@@ -143,7 +143,6 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	AVCodecContext **ctx;
 	AVCodec **codec;
 	AVFrame **frame;
-	const char *sOpt;
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_M4VDecSpecInfo dsi;
@@ -379,6 +378,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 	if (ffd->oti == GPAC_OTI_VIDEO_HEVC) {
 		GF_SystemRTInfo rti;
 		u32 nb_threads, detected_nb_threads = 1;
+		const char *sOpt;
 		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "OpenHEVC", "ThreadingType");
 		if (sOpt && !strcmp(sOpt, "wpp")) av_opt_set(*ctx, "thread_type", "slice", 0);
 		else if (sOpt && !strcmp(sOpt, "frame+wpp")) av_opt_set(*ctx, "thread_type", "frameslice", 0);
@@ -953,9 +953,9 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	AVPacket pkt;
 #endif
 	AVPicture pict;
-	u32 pix_out;
+	u32 pix_out=0;
 	s32 w, h, gotpic, stride, ret;
-	u32 outsize, out_pix_fmt;
+	u32 outsize=0, out_pix_fmt;
 	AVCodecContext *ctx;
 	AVCodec **codec;
 	AVFrame *frame;
