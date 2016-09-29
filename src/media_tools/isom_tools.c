@@ -2628,7 +2628,7 @@ typedef struct
 
 static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture, u32 independent, Bool filtering_disable, u32 tx, u32 ty, u32 tw, u32 th, Bool is_default)
 {
-	char *data[11];
+	char data[11];
 	u32 di, data_size=7;
 	GF_BitStream *bs;
 	//write TRIF sample group description
