@@ -175,10 +175,10 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC)
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		ctx->avc_base_id=esd->ESID;
-	else
+#else
+	return GF_NOT_SUPPORTED;
 #endif
-		return GF_NOT_SUPPORTED;
-		
+	
 	if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
