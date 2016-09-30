@@ -1344,7 +1344,7 @@ GF_Err gf_isom_hevc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_HEVCCon
 	return e;
 }
 
-enum
+typedef enum
 {
 	GF_ISOM_HVCC_UPDATE = 0,
 	GF_ISOM_HVCC_SET_INBAND,
@@ -1355,10 +1355,42 @@ enum
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD,
 } HevcConfigUpdateType;
 
+static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand_type)
+{
+	u32 i;
+	Bool array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
+	if (!cfg) return 0;
+
+	for (i=0; i<gf_list_count(cfg->param_array); i++) {
+		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
+
+		/*we want to force hev1*/
+		if (operand_type==GF_ISOM_HVCC_SET_INBAND)
+			ar->array_completeness = 0;
+
+		if (!ar->array_completeness) {
+			array_incomplete = 1;
+
+			while (gf_list_count(ar->nalus)) {
+				GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
+				gf_list_rem(ar->nalus, 0);
+				if (sl->data) gf_free(sl->data);
+				gf_free(sl);
+			}
+			gf_list_del(ar->nalus);
+			gf_free(ar);
+			gf_list_rem(cfg->param_array, i);
+			i--;
+
+		}
+	}
+	return array_incomplete;
+}
+
 static
 GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, u32 operand_type)
 {
-	u32 i, array_incomplete;
+	u32 array_incomplete;
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *entry;
@@ -1394,7 +1426,8 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 		entry->hevc_config->config = NULL;
 		entry->type = GF_ISOM_BOX_TYPE_HVT1;
 	} else if (operand_type < GF_ISOM_HVCC_SET_LHVC) {
-		if (!entry->hevc_config) entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+		if ((operand_type != GF_ISOM_HVCC_SET_INBAND) && !entry->hevc_config)
+			entry->hevc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 
 		if (cfg) {
 			if (entry->hevc_config->config) gf_odf_hevc_cfg_del(entry->hevc_config->config);
@@ -1403,30 +1436,26 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			operand_type=GF_ISOM_HVCC_SET_INBAND;
 		}
 		array_incomplete = (operand_type==GF_ISOM_HVCC_SET_INBAND) ? 1 : 0;
-		for (i=0; i<gf_list_count(entry->hevc_config->config->param_array); i++) {
-			GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(entry->hevc_config->config->param_array, i);
+		if (entry->hevc_config && hevc_cleanup_config(entry->hevc_config->config, operand_type))
+			array_incomplete=1;
 
-			/*we want to force hev1*/
-			if (operand_type==GF_ISOM_HVCC_SET_INBAND)
-				ar->array_completeness = 0;
+		if (entry->lhvc_config && hevc_cleanup_config(entry->lhvc_config->config, operand_type))
+			array_incomplete=1;
 
-			if (!ar->array_completeness) {
-				array_incomplete = 1;
-
-				while (gf_list_count(ar->nalus)) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot*)gf_list_get(ar->nalus, 0);
-					gf_list_rem(ar->nalus, 0);
-					if (sl->data) gf_free(sl->data);
-					gf_free(sl);
-				}
-				gf_list_del(ar->nalus);
-				gf_free(ar);
-				gf_list_rem(entry->hevc_config->config->param_array, i);
-				i--;
-
-			}
+		switch (entry->type) {
+		case GF_ISOM_BOX_TYPE_HEV1:
+		case GF_ISOM_BOX_TYPE_HVC1:
+			entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV1 : GF_ISOM_BOX_TYPE_HVC1;
+			break;
+		case GF_ISOM_BOX_TYPE_HEV2:
+		case GF_ISOM_BOX_TYPE_HVC2:
+			entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV2 : GF_ISOM_BOX_TYPE_HVC2;
+			break;
+		case GF_ISOM_BOX_TYPE_LHE1:
+		case GF_ISOM_BOX_TYPE_LHV1:
+			entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_LHE1 : GF_ISOM_BOX_TYPE_LHV1;
+			break;
 		}
-		entry->type = array_incomplete ? GF_ISOM_BOX_TYPE_HEV1 : GF_ISOM_BOX_TYPE_HVC1;
 	} else {
 
 		/*SVCC replacement/removal with HEVC base, backward compatible signaling*/

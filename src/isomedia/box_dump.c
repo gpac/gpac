@@ -4392,6 +4392,15 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 	fprintf(trace, ")\" num_profile_tier_level=\"%d\"", gf_list_count(ptr->profile_tier_levels) );
 	fprintf(trace, " num_operating_points=\"%d\" dependency_layers=\"%d\"", gf_list_count(ptr->operating_points), gf_list_count(ptr->dependency_layers));
 	fprintf(trace, ">\n");
+
+
+	count=gf_list_count(ptr->profile_tier_levels);
+	for (i = 0; i < count; i++) {
+		LHEVC_ProfileTierLevel *ptl = (LHEVC_ProfileTierLevel *)gf_list_get(ptr->profile_tier_levels, i);
+		fprintf(trace, " <ProfileTierLevel general_profile_space=\"%d\" general_tier_flag=\"%d\" general_profile_idc=\"%d\" general_profile_compatibility_flags=\"%d\" general_constraint_indicator_flags=\""LLU"\" />\n", ptl->general_profile_space, ptl->general_tier_flag, ptl->general_profile_idc, ptl->general_profile_compatibility_flags, ptl->general_constraint_indicator_flags);
+	}
+
+
 	count=gf_list_count(ptr->operating_points);
 	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);

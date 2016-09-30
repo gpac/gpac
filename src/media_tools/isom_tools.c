@@ -2006,8 +2006,9 @@ static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
 	GF_HEVCConfig *lhvccfg;
 	HEVCState hevc;
 
-	lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
-	if (!lhvccfg) lhvccfg = gf_isom_hevc_config_get(file, track, 1);
+	//according to spec visual info is always of the base layer, unless only LHVC data. We might want to change that ...
+	lhvccfg = gf_isom_hevc_config_get(file, track, 1);
+	if (!lhvccfg) lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
 	if (!lhvccfg) return GF_OK;
 
 	for (i = 0; i < gf_list_count(lhvccfg->param_array); i++) {
@@ -2348,7 +2349,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				e = gf_isom_clone_track(file, track, file, GF_FALSE, &sti[j].track_num);
 				if (e) goto exit;
 
-				e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, GF_ISOM_LEHVC_WITH_BASE);
+				e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, use_extractors ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
 				if (e) goto exit;
 
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
