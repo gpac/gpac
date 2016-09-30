@@ -2161,6 +2161,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	char *nal_data=NULL;
 	u32 nal_alloc_size;
 	u32 nb_layers=0;
+	Bool single_layer_per_track=GF_TRUE;
 	GF_Err e = GF_OK;
 
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
@@ -2496,7 +2497,9 @@ exit:
 			if (sti[j].layers[k].layer_id_plus_one) count++;
 		}
 		gf_bs_write_int(bs, count, 6);
-		
+		if (count>1)
+			single_layer_per_track = GF_FALSE;
+
 		for (k=0; k<=max_layer_id; k++) {
 			if (! sti[j].layers[k].layer_id_plus_one) continue;
 			gf_bs_write_int(bs, 0, 4);
@@ -2519,6 +2522,15 @@ exit:
 		gf_free(data);
 	}
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
+	if (use_extractors) {
+		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','e'), 1);
+		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','i'), 0);
+	}
+	//add hvci brand only if single layer per track
+	else if (single_layer_per_track) {
+		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','i'), 1);
+		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','e'), 0);
+	}
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 	if (nal_data) gf_free(nal_data);

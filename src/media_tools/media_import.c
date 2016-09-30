@@ -6685,7 +6685,12 @@ next_nal:
 			lhvc_cfg->numTemporalLayers = hevc_cfg->numTemporalLayers;
 			lhvc_cfg->temporalIdNested = hevc_cfg->temporalIdNested;
 
-			gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, (import->flags&GF_IMPORT_SVC_EXPLICIT) ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
+			if (import->flags&GF_IMPORT_SVC_EXPLICIT) {
+				gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_WITH_BASE);
+				gf_isom_modify_alternate_brand(import->dest, GF_4CC('h','v','c','e'), 1);
+			} else {
+				gf_isom_lhvc_config_update(import->dest, track, 1, lhvc_cfg, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
+			}
 		}
 	} else {
 		hevc_set_parall_type(lhvc_cfg);
@@ -6757,11 +6762,11 @@ next_nal:
 		}
 
 		if (!avc_base_track) {
-			e = gf_import_message(import, GF_BAD_PARAM, "Using LHVC external base layer, but AVC base layer not found");;
-			goto exit;
+			gf_import_message(import, GF_BAD_PARAM, "Using LHVC external base layer, but AVC base layer not found - NOT SETTING SBAS TRACK REFERENCE!");;
+		} else {
+			ref_track_id = gf_isom_get_track_id(import->dest, avc_base_track);
+			gf_isom_set_track_reference(import->dest, track, GF_4CC('s','b','a','s'), ref_track_id);
 		}
-		ref_track_id = gf_isom_get_track_id(import->dest, avc_base_track);
-		gf_isom_set_track_reference(import->dest, track, GF_4CC('s','b','a','s'), ref_track_id);
 	}
 
 exit:
