@@ -229,12 +229,10 @@ enum
 
 	GF_ISOM_BOX_TYPE_HVC2	= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
-	//GF_ISOM_BOX_TYPE_SHCC	= GF_4CC( 's', 'h', 'c', 'C' ),
-	//GF_ISOM_BOX_TYPE_SHC1	= GF_4CC( 's', 'h', 'c', '1' ),
-	//GF_ISOM_BOX_TYPE_SHV1	= GF_4CC( 's', 'h', 'v', '1' ),
-	GF_ISOM_BOX_TYPE_LHVC	= GF_4CC( 'l', 'h', 'v', 'C' ),
 	GF_ISOM_BOX_TYPE_LHV1	= GF_4CC( 'l', 'h', 'v', '1' ),
 	GF_ISOM_BOX_TYPE_LHE1	= GF_4CC( 'l', 'h', 'e', '1' ),
+
+	GF_ISOM_BOX_TYPE_LHVC	= GF_4CC( 'l', 'h', 'v', 'C' ),
 
 	/*LASeR extension*/
 	GF_ISOM_BOX_TYPE_LSRC	= GF_4CC( 'l', 's', 'r', 'C' ),
