@@ -2672,8 +2672,13 @@ void DumpMovieInfo(GF_ISOFile *file)
 	if (gf_isom_moov_first(file))
 		fprintf(stderr, "\tFile suitable for progressive download (moov before mdat)\n");
 
-	if (gf_isom_get_brand_info(file, &brand, &min, NULL) == GF_OK) {
-		fprintf(stderr, "\tFile Brand %s - version %d\n", gf_4cc_to_str(brand), min);
+	if (gf_isom_get_brand_info(file, &brand, &min, &count) == GF_OK) {
+		fprintf(stderr, "\tFile Brand %s - version %d\n\t\tCompatible brands:", gf_4cc_to_str(brand), min);
+		for (i=0; i<count;i++) {
+			if (gf_isom_get_alternate_brand(file, i+1, &brand)==GF_OK) 
+				fprintf(stderr, " %s", gf_4cc_to_str(brand) );
+		}
+		fprintf(stderr, "\n");
 	}
 	gf_isom_get_creation_time(file, &create, &modif);
 	fprintf(stderr, "\tCreated: %s", format_date(create, szDur));
