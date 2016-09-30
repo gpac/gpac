@@ -2793,7 +2793,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	} else if (force_attach) {
 		//we force annexB mode, delete avcC/hvcC
 		if (ch->esd->decoderConfig->decoderSpecificInfo) {
-			gf_odf_desc_del(ch->esd->decoderConfig->decoderSpecificInfo);
+			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->decoderSpecificInfo);
 			ch->esd->decoderConfig->decoderSpecificInfo=NULL;
 		}
 		odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
