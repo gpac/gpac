@@ -188,6 +188,6 @@ echo "[OK] success Shader Folder for Osmo4."
 
 echo "Building osmo4 apk"
 cd $BASEPATH/applications/osmo4_android_studio/
-./gradlew assembleRelease
+./gradlew assembleDebug
 cd -
 echo "[OK] success Building osmo4 apk"
