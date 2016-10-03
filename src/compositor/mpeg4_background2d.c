@@ -173,7 +173,13 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	} else {
 		is_offscreen = GF_TRUE;
 	}
+	if (ctx->flags & CTX_BACKROUND_NO_CLEAR) {
+		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
+		tr_state->visual->has_modif = 1;
+		return;
+	}
 #endif
+
 	/*direct drawing, draw without clippers */
 	if (tr_state->immediate_draw
 	   ) {

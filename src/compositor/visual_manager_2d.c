@@ -477,12 +477,6 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 	/*node is modified*/
 	needs_redraw = (ctx->flags & CTX_REDRAW_MASK) ? 1 : 0;
 
-#ifndef GPAC_DISABLE_3D
-	if (ctx->flags & CTX_HYBOGL_NO_CLEAR) {
-		return 2;
-	}
-#endif
-
 	/*node is not transparent*/
 	if ((ctx->flags & CTX_NO_ANTIALIAS) && !(ctx->flags & CTX_IS_TRANSPARENT) ) {
 #ifdef TRACK_OPAQUE_REGIONS
@@ -490,6 +484,12 @@ static u32 register_context_rect(GF_RectArray *ra, DrawableContext *ctx, u32 ctx
 #endif
 		if ((*first_opaque==NULL) && needs_redraw) *first_opaque = ctx;
 	}
+
+#ifndef GPAC_DISABLE_3D
+	if (ctx->flags & CTX_HYBOGL_NO_CLEAR) {
+		return 2;
+	}
+#endif
 
 	for (i=0; i<ra->count; i++) {
 		if (needs_redraw) {
@@ -580,7 +580,7 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 	GF_IRect refreshRect;
 	Bool redraw_all;
 	Bool hyb_force_redraw=GF_FALSE;
-	Bool hyb_force_background=GF_FALSE;
+	u32 hyb_force_background = 0;
 #ifndef GPAC_DISABLE_VRML
 	M_Background2D *bck = NULL;
 	DrawableContext *bck_ctx = NULL;
@@ -724,13 +724,17 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual2D] No changes found since last frame - skipping redraw\n"));
 			goto exit;
 		}
-		if (hyb_force_redraw)
+
+		//openGL, force redraw of complete scene but signal we shoud only draw the background, not clear the canvas (nothing to redraw except GL textures)
+		if (hyb_force_redraw) { 
+			hyb_force_background = 2;
 			ra_add(&visual->to_redraw, &visual->surf_rect);
+		}
 	}
 	has_changed = 1;
 	tr_state->traversing_mode = TRAVERSE_DRAW_2D;
 
-	//if only one opaque opject has changed and not moved, skip background unless hybgl mode
+	//if only one opaque object has changed and not moved, skip background unless hybgl mode
 	if (!visual->compositor->hybrid_opengl && !hyb_force_redraw && !hyb_force_background && first_opaque && (visual->to_redraw.count==1) && gf_rect_equal(first_opaque->bi->clip, visual->to_redraw.list[0].rect)) {
 		visual->has_modif=0;
 		goto skip_background;
@@ -754,8 +758,15 @@ Bool visual_2d_terminate_draw(GF_VisualManager *visual, GF_TraverseState *tr_sta
 		bck_ctx->bi->unclip = gf_rect_ft(&bck_ctx->bi->clip);
 		bck_ctx->next = visual->context;
 		bck_ctx->flags |= CTX_BACKROUND_NOT_LAYER;
+
+		//for hybrid openGL, only redraw background but do not erase canvas
+		if (hyb_force_background==2)
+			bck_ctx->flags |= CTX_BACKROUND_NO_CLEAR;
+
 		gf_node_traverse(bck_ctx->drawable->node, tr_state);
+
 		bck_ctx->flags &= ~CTX_BACKROUND_NOT_LAYER;
+		bck_ctx->flags &= ~CTX_BACKROUND_NO_CLEAR;
 	} else
 #endif /*GPAC_DISABLE_VRML*/
 	{
