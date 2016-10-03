@@ -499,7 +499,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		ctx->pack_mode = GF_FALSE;
 		return GF_OK;
 	case GF_CODEC_CAN_INIT:
-		if (!ctx->decoder_started) {
+		if (!ctx->decoder_started && ctx->openHevcHandle) {
 			ctx->decoder_started=1;
 			libOpenHevcStartDecoder(ctx->openHevcHandle);
 		}
