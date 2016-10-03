@@ -854,6 +854,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
 
 
+GF_Err gf_media_mmt_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec);
+
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!
  save file as fragmented movie

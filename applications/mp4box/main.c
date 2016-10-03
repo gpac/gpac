@@ -1856,6 +1856,7 @@ static u32 mpu_seq_number=0;
 static u32 mpu_asset_id_scheme=0;
 static u32 mpu_asset_id_length=0;
 static u8 mpu_asset_id_value[32+1]; /*Assuming worst case (ie: 128 bits coded UUID)*/
+static Bool mmt_autogen=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3323,6 +3324,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			conv_type=GF_ISOM_CONV_TYPE_MMT;
 			i++;
 		}
+		else if (!stricmp(arg, "-mmt-autogen")) {
+			mmt_autogen=GF_TRUE;
+		}
 		else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
 			if ((arg[13] == '=') && arg[14]) {
@@ -4554,6 +4558,10 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 		}
 		if (conv_type == GF_ISOM_CONV_TYPE_MMT) {
+			if(gf_isom_get_track_count(file)>1){
+				fprintf(stderr, "Maximum independant tracks in MMT-MPU is 1, try -mmt-autogen \n");
+				goto err_exit;
+			}
 			fprintf(stderr, "Converting to MMT file...\n");
 			e = gf_media_make_mmt(file, mpu_seq_number,mpu_asset_id_scheme, mpu_asset_id_length, mpu_asset_id_value);
 			if (e) goto err_exit;
@@ -4925,6 +4933,22 @@ int mp4boxMain(int argc, char **argv)
 			gf_isom_set_track_creation_time(file, i+1, movie_time);
 		}
 		needSave = GF_TRUE;
+	}
+
+	if (mmt_autogen){
+		if (!interleaving_time) interleaving_time = 0.5;
+		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
+		fprintf(stderr, "Fragmenting & splitting in MPUs file (%.3f seconds fragments)\n", interleaving_time);
+		e = gf_media_mmt_file(file, outfile, interleaving_time);
+		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
+		if (!e && !outName && !force_new) {
+			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
+			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+		}
+		if (e) goto err_exit;
+		gf_isom_delete(file);
+		goto exit;
+		Frag=GF_FALSE;
 	}
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
