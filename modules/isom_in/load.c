@@ -167,6 +167,7 @@ void isor_declare_objects(ISOMReader *read)
 					if (base_esd) esd->dependsOnESID = base_esd->ESID;
 				} else {
 					esd->has_ref_base = GF_TRUE;
+					esd->dependsOnESID=0;
 				}
 			}
 			

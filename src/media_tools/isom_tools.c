@@ -2366,11 +2366,12 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				gf_isom_adjust_visual_info(file, sti[j].track_num);
 
 				//get lower layer
-				for (k=j; k>0; k--) {
-					if (sti[k-1].track_num) {
-						u32 track_id = gf_isom_get_track_id(file, sti[k-1].track_num);
-						gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','c','a','l'), track_id);
-						if (!use_extractors) break;
+				if (use_extractors) {
+					for (k=j; k>0; k--) {
+						if (sti[k-1].track_num) {
+							u32 track_id = gf_isom_get_track_id(file, sti[k-1].track_num);
+							gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','c','a','l'), track_id);
+						}
 					}
 				}
 
