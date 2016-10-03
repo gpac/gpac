@@ -1261,8 +1261,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else if (sOpt && !stricmp(sOpt, "Never")) compositor->texture_text_mode = GF_TEXTURE_TEXT_NEVER;
 	else compositor->texture_text_mode = GF_TEXTURE_TEXT_DEFAULT;
 
-	sOpt = gf_cfg_get_key(compositor->user->config, "Systems", "Output8bit");
-	if (!sOpt) gf_cfg_set_key(compositor->user->config, "Systems", "Output8bit",(compositor->video_out->max_screen_bpp > 8) ? "no" : "yes");
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "Output8bit");
+	if (!sOpt) {
+		sOpt = (compositor->video_out->max_screen_bpp > 8) ? "no" : "yes";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "Output8bit", sOpt);
+	}
 	if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
 
 	if (compositor->audio_renderer) {
