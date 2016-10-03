@@ -89,6 +89,8 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	GF_BitStream *bs;
 	u32 i, j;
 
+	if (!ctx->openHevcHandle) return GF_NOT_SUPPORTED;
+	
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
 		ctx->nb_layers++;
 		ctx->cur_layer++;
@@ -242,9 +244,6 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		gf_odf_hevc_cfg_del(hvcc);
 	}
 	
-	} else {
-		//setup defaults
-		ctx->chroma_format_idc = 1;
 	}
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
@@ -283,8 +282,11 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
 	libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
 
+	//in case we don't have a config record
+	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
+
 	//we start decoder on the first frame
-	
+
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
 		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
@@ -709,9 +711,9 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 	}
 	ctx->dec_frames++;
+	got_pic = 0;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
-
 	if (ctx->avc_base_id) {
 		if (ctx->avc_base_id == ES_ID) {
 			if (ctx->cur_layer<=1) {
@@ -727,10 +729,8 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				memcpy(ctx->avc_base, inBuffer, inBufferLength);
 				ctx->avc_base_size = inBufferLength;
 				ctx->avc_base_pts = *CTS;
-				got_pic = 0;
 			}
 		} else if (ctx->cur_layer>1) {
-
 			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts	, *CTS);
 			if (ctx->avc_base) {
 				gf_free(ctx->avc_base);
