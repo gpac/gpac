@@ -42,6 +42,9 @@ u8 *pU = NULL;
 u8 *pV = NULL;
 u32 width = 0;
 u32 height = 0;
+u32 display_width = 0;
+u32 display_height = 0;
+u32 scale_factor = 1;
 u32 bpp=8;
 u32 Bpp=1;
 u32 yuv_fmt=0;
@@ -166,8 +169,8 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	GLint loc;
 	GF_Matrix mx;
 	
-	width = _width;
-	height = _height;
+	display_width = width = _width;
+	display_height = height = _height;
 	bpp = _bpp;
 
 	SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
@@ -177,16 +180,19 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
 	SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
 
-	flags = SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_BORDERLESS;
-	if (height==2160) flags |= SDL_WINDOW_MAXIMIZED;
+	flags = SDL_WINDOW_OPENGL;
+
+	if (scale_factor>1) {
+		display_width /= scale_factor;
+		display_height /= scale_factor;
+	}
 
 	if (use_vsync) flags |= SDL_RENDERER_PRESENTVSYNC;
-	window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, flags);
+	window = SDL_CreateWindow("", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, display_width, display_height, flags);
 	glctx = SDL_GL_CreateContext(window);
 	SDL_GL_MakeCurrent(window, glctx);
 
 	render = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED);
-
 
 #if (COPY_TYPE==5)
 	y_size = stride*height;
@@ -209,11 +215,11 @@ void sdl_init(u32 _width, u32 _height, u32 _bpp, u32 stride, Bool use_pbo)
 	memset(pV, 0, v_size*sizeof(u8));
 
 	glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
-	glViewport(0, 0, width, height);
+	glViewport(0, 0, display_width, display_height);
 
 	gf_mx_init(mx);
-	hw = ((Float)width)/2;
-	hh = ((Float)height)/2;
+	hw = ((Float)display_width)/2;
+	hh = ((Float)display_height)/2;
 	gf_mx_ortho(&mx, -hw, hw, -hh, hh, 50, -50);
 	glMatrixMode(GL_PROJECTION);
 	glLoadMatrixf(mx.m);
@@ -698,7 +704,7 @@ int main(int argc, char **argv)
 	u64 pause_time = 0;
 	u64 max_time_spent = 0;
 	GF_ISOFile *isom;
-	u32 i, count, track = 0;
+	u32 i, count, track = 0, layer_id = 0;
 	GF_ESD *esd;
 	u32 nb_threads = 0;
 	u32 mode = 1;
@@ -730,6 +736,8 @@ int main(int argc, char **argv)
 		else if (!strcmp(arg, "-no-display")) no_display = 1;
 		else if (!strcmp(arg, "-output-8b")) output_8bit = GF_TRUE;
 		else if (!strcmp(arg, "-mem-track")) enable_mem_tracker = GF_MemTrackerSimple;
+		else if (!strncmp(arg, "-scale=", 7)) scale_factor = atoi(arg+7);
+		else if (!strncmp(arg, "-layer=", 7)) layer_id = atoi(arg+7);
 		else if (!strncmp(arg, "-yuv-fmt=", 9)) {
 			if (!strcmp(arg+9, "444")) yuv_fmt=2;
 			else if (!strcmp(arg+9, "422")) yuv_fmt=1;
@@ -784,7 +792,7 @@ int main(int argc, char **argv)
 	}
 
 	for (i=0; i<gf_isom_get_track_count(isom); i++) {
-		if (gf_isom_get_hevc_shvc_type(isom, i+1, 1)>=GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+		if (gf_isom_get_hevc_lhvc_type(isom, i+1, 1)>=GF_ISOM_HEVCTYPE_HEVC_ONLY) {
 			track = i+1;
 			break;
 		}
@@ -807,11 +815,11 @@ int main(int argc, char **argv)
 	esd = gf_isom_get_esd(isom, track, 1);
 	ohevc = libOpenHevcInit(nb_threads, mode);
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength+8);
+		libOpenHevcCopyExtraData(ohevc, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}
 
-	libOpenHevcSetActiveDecoders(ohevc, 1);
-	libOpenHevcSetViewLayers(ohevc, 1);
+	libOpenHevcSetActiveDecoders(ohevc, layer_id);
+	libOpenHevcSetViewLayers(ohevc, layer_id);
 
 	libOpenHevcStartDecoder(ohevc);
 	gf_odf_desc_del((GF_Descriptor *)esd);
@@ -827,10 +835,12 @@ int main(int argc, char **argv)
 	for (i=0; i<count && run; i++) {
 		u32 di;
 		if (!paused) {
+			int got_pic;
 			u64 time_spent = gf_sys_clock_high_res();
 			GF_ISOSample *sample = gf_isom_get_sample(isom, track, i+1, &di);
 
-			if ( libOpenHevcDecode(ohevc, sample->data, sample->dataLength, sample->DTS+sample->CTS_Offset) ) {
+			got_pic = libOpenHevcDecode(ohevc, sample->data, sample->dataLength, sample->DTS+sample->CTS_Offset);
+			if (got_pic) {
 				if (no_display) {
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
@@ -839,7 +849,6 @@ int main(int argc, char **argv)
 					OpenHevc_Frame HVCFrame_ptr;
 					libOpenHevcGetOutput(ohevc, 1, &HVCFrame_ptr);
 					time_spent = gf_sys_clock_high_res() - time_spent;
-
 
 					if (!sdl_is_init && !no_display) {
 						u64 sdl_init_time = gf_sys_clock_high_res();
