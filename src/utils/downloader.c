@@ -549,8 +549,7 @@ static int on_data_chunk_recv_callback(nghttp2_session *session ,
    stream), if it is closed, we send GOAWAY and tear down the
    session */
 static int on_stream_close_callback(nghttp2_session *session, int32_t stream_id,
-   
-									uint32_t error_code, void *user_data) {
+   				   uint32_t error_code, void *user_data) {
 	int rv;
 	GF_DownloadSession * sess = (GF_DownloadSession *)user_data;
   
@@ -3789,7 +3788,6 @@ exit:
 void http_do_requests(GF_DownloadSession *sess)
 {
 	char sHTTP[GF_DOWNLOAD_BUFFER_SIZE+1];
-	int rv;
 	if (sess->reused_cache_entry) {
 		//main session is done downloading, notify - to do we should send progress events on this session also ...
 		if (!gf_cache_is_in_progress(sess->cache_entry)) {
