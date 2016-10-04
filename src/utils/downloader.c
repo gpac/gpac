@@ -429,23 +429,14 @@ static Bool init_ssl_lib() {
 	return GF_FALSE;
 }
 #ifdef GPAC_HAS_HTTP2
-static void print_header(FILE *f, const uint8_t *name, size_t namelen,
-                         const uint8_t *value, size_t valuelen) {
-	fwrite(name, 1, namelen, f);
-	fprintf(f, ": ");
-	fwrite(value, 1, valuelen, f);
-	fprintf(f, "\n");
-}
-
 /* Print HTTP headers to |f|. Please note that this function does not
    take into account that header name and value are sequence of
    octets, therefore they may contain non-printable characters. */
-static void print_headers(FILE *f, nghttp2_nv *nva, size_t nvlen) {
+static void print_headers(nghttp2_nv *nva, size_t nvlen) {
 	size_t i;
 	for (i = 0; i < nvlen; ++i) {
-		print_header(f, nva[i].name, nva[i].namelen, nva[i].value, nva[i].valuelen);
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("%s : %s\n", nva[i].name, nva[i].value));
 	}
-	fprintf(f, "\n");
 }
 
 /* nghttp2_on_header_callback: Called when nghttp2 library emits
@@ -464,7 +455,7 @@ static int on_header_callback(nghttp2_session *session ,
     if (frame->headers.cat == NGHTTP2_HCAT_RESPONSE &&
         sess->session_data->stream_data->stream_id == frame->hd.stream_id) {
       /* Print response headers for the initiated request. */
-      print_header(stderr, name, namelen, value, valuelen);
+      GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("%s : %s\n", name, value));
 	  if (hdrp) {
 		  hdrp->name = gf_strdup(name);
 		  hdrp->value = gf_strdup(value);
@@ -692,18 +683,17 @@ static void submit_request(GF_DownloadSession *sess)  {
 		MAKE_NV2(":method", "GET"),
 		MAKE_NV(":scheme", "https", 5),
 		MAKE_NV(":authority", hostport, strlen(hostport)),
-	MAKE_NV(":path", sess->remote_path, strlen(sess->remote_path))};
-	fprintf(stderr, "Request headers:\n");
-	print_headers(stderr, hdrs, ARRLEN(hdrs));
-	stream_id = nghttp2_submit_request(sess->session_data->session, NULL, hdrs,
+		MAKE_NV(":path", sess->remote_path, strlen(sess->remote_path))};
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Request headers:\n"));
+		print_headers(hdrs, ARRLEN(hdrs));
+		stream_id = nghttp2_submit_request(sess->session_data->session, NULL, hdrs,
 									   ARRLEN(hdrs), NULL, sess);
-	if (stream_id < 0) {
+		if (stream_id < 0) {
 		return;
-	}
-
-	sess->session_data->stream_data->stream_id = stream_id;
-	gf_free(hostport);
-	hostport=NULL;
+		}
+		sess->session_data->stream_data->stream_id = stream_id;
+		gf_free(hostport);
+		hostport=NULL;
 }
 #endif //GPAC_HAS_HTTP2
 static int ssl_init(GF_DownloadManager *dm, u32 mode)
