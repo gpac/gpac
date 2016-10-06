@@ -3086,10 +3086,10 @@ GF_Err gf_media_mmt_file(GF_ISOFile *input, const char *output_file, Double max_
 	u32 NumTracks,f;
 	u32 OutputStrLength;
 
-	char* uuid[10] = {"228d483ebf694ba4bb7cde958536c787","f73e513fe04c45df9119a8f9aaf31a30","5a44f993721c42fea7665cd79096ea28"
-					  "10e91500af464db8b5f0197efb459392","96754a57f83b453385739c0d2c69941f","78c0f48c138d475c9d6337ddef403a12"
-					  "9a966894dfde4e15a9ca093a738c5863","e55b1af349bb4a438d0f31c3f619bcdb","b3e82ba9ad0149fd95043fa9ddfc5dd9",
-					  "8111430e71d14591ac37384c1bf1a9ff"
+	char* uri[10] = {"https://gpac.wp.mines-telecom.fr/","https://gpac.wp.mines-telecom.com/","https://gpac.wp.mines-telecom.cn/",
+					  "https://gpac.wp.mines-telecom.cz/","https://gpac.wp.mines-telecom.uk/","https://gpac.wp.mines-telecom.sw/",
+					  "https://gpac.wp.mines-telecom.de/","https://gpac.wp.mines-telecom.ak/","https://gpac.wp.mines-telecom.to/",
+					  "https://gpac.wp.mines-telecom.ro/"
 					 };
 
 	NumTracks=gf_isom_get_track_count(input);
@@ -3119,7 +3119,7 @@ GF_Err gf_media_mmt_file(GF_ISOFile *input, const char *output_file, Double max_
 		e = gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 1);
 		if (e) goto err_exit;
 
-		gf_media_make_mmt(output,0,0,strlen(uuid[i]), uuid[i]);
+		gf_media_make_mmt(output,0,GF_4CC('U','R','I',' '),strlen(uri[i]), uri[i]);
 
 		//copy movie desc
 		gf_isom_clone_root_od(input, output);

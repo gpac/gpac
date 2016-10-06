@@ -3298,7 +3298,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-mmt-seq-num")) {
 			CHECK_NEXT_ARG
 			if(strlen(argv[i + 1])>10){
-				fprintf(stderr, "\tWARNING: Warning, MMT mpu sequence number is coded on 32 bits, unexpected usage \n)");
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: MMT mpu sequence number is coded on 32 bits, unexpected usage \n"));
 				return 2;
 			}
 			mpu_seq_number=strtoul(argv[i + 1],NULL, 10);
@@ -3306,18 +3306,19 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-mmt-asset-id-scheme")) {
 			CHECK_NEXT_ARG
-			if(strlen(argv[i + 1])>10){
-				fprintf(stderr, "\tWARNING: Warning, MMT asset id scheme is coded on 32 bits, unexpected usage \n)");
+			if(!stricmp(argv[i+1], "URI"))mpu_asset_id_scheme=GF_4CC('U','R','I',' ');
+			else if(!stricmp(argv[i+1], "UUID"))mpu_asset_id_scheme=GF_4CC('U','U','I','D');
+			else{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: Unsuported asset Id Scheme\n"));
 				return 2;
 			}
-			mpu_asset_id_scheme=strtoul(argv[i + 1],NULL, 10);
 			i++;
 		}
 		else if (!stricmp(arg, "-mmt-asset-id-value")) {
 			CHECK_NEXT_ARG
 			mpu_asset_id_length = strlen(argv[i + 1]);
-			if(mpu_asset_id_length>32){
-				fprintf(stderr, "\tWARNING: Warning, MMT Asset id length > 128 bits, unexpected usage \n)");
+			if(mpu_asset_id_length>200){
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: MMT Asset id length > 200 chars, unexpected usage \n"));
 				return 2;
 			}
 			strcpy(mpu_asset_id_value,argv[i+1]);

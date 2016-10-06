@@ -4913,7 +4913,7 @@ GF_Err mmpu_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 
-	fprintf(trace, "<Complete=\"%d\" Adc_present=\"%d\" MPU_seq_num=\"%u\" Asset_id_scheme=\"%u\">\n",p->is_complete,p->is_adc_present,p->mpu_sequence_number, p->asset_id_scheme);
+	fprintf(trace, "<Complete=\"%d\" Adc_present=\"%d\" MPU_seq_num=\"%u\" Asset_id_scheme=\"%s\">\n",p->is_complete,p->is_adc_present,p->mpu_sequence_number, gf_4cc_to_str(p->asset_id_scheme));
 	fprintf(trace, "<Asset_id_length=\"%u\">\n",p->asset_id_length);
 	fprintf(trace, "<Asset_id_value=\"");
 	for(u=0;u<p->asset_id_length;u++)
