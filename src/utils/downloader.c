@@ -2570,6 +2570,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 {
 	u32 size;
 	GF_Err e;
+	
 	if (/*sess->cache || */ !buffer || !buffer_size) return GF_BAD_PARAM;
 	if (sess->th) return GF_BAD_PARAM;
 	if (sess->status == GF_NETIO_DISCONNECTED) return GF_EOS;
@@ -2607,7 +2608,21 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	if (e) return e;
 	size = *read_size;
 	*read_size = 0;
-	gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size);
+#ifdef GPAC_HAS_HTTP2
+	if(sess->ishttp2) {
+		u32 i;
+		for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
+			http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
+			gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
+			gf_free(frame_data);
+		}
+		gf_list_del(sess->http2_data_frames);
+		sess->http2_data_frames = NULL;
+	} else 
+#endif //GPAC_HAS_HTTP2	
+	{
+		gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size);
+	}
 	return GF_OK;
 }
 
