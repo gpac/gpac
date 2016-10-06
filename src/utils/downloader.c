@@ -1556,8 +1556,6 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		if(session_send(sess))
 			return GF_IO_ERR;
 	}
-	
-	
 #endif //GPAC_HAS_HTTP2
 	gf_mx_v(sess->mx);
 	return e;
@@ -3058,8 +3056,8 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 				u32 len = gf_cache_get_content_length(sess->cache_entry);
 				if (size > 0) {
 
-					if(sess->ishttp2) {
 #ifdef GPAC_HAS_HTTP2
+					if(sess->ishttp2) {
 						for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
 							http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
 							gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
@@ -3067,8 +3065,10 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 						}
 						gf_list_del(sess->http2_data_frames);
 						sess->http2_data_frames = NULL;
-#endif //GPAC_HAS_HTTP2						
-					} else {
+					
+					} else 
+#endif //GPAC_HAS_HTTP2	
+					{
 						gf_dm_data_received(sess, (u8 *) sHTTP, size, GF_FALSE, NULL);
 					}
 					
@@ -3100,9 +3100,8 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			sess->remaining_data_size = 0;
 		}
 		sHTTP[size + remaining_data_size] = 0;
-		
+#ifdef GPAC_HAS_HTTP2		
 		if(sess->ishttp2) {
-#ifdef GPAC_HAS_HTTP2
 			for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
 				http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
 				gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
@@ -3110,8 +3109,9 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 			}
 			gf_list_del(sess->http2_data_frames);
 			sess->http2_data_frames = NULL;
-#endif //GPAC_HAS_HTTP2			
-		} else {
+			} else
+#endif //GPAC_HAS_HTTP2	 
+		{
 			gf_dm_data_received(sess, (u8 *) sHTTP, size + remaining_data_size, GF_FALSE, NULL);
 		}
 	
@@ -3756,8 +3756,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		sess->init_data_size = 0;
 		sess->init_data = NULL;
 		
+#ifdef GPAC_HAS_HTTP2		
 		if(sess->ishttp2) {
-#ifdef GPAC_HAS_HTTP2
 			for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
 			http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
 			gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
@@ -3765,8 +3765,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		gf_list_del(sess->http2_data_frames);
 		sess->http2_data_frames = NULL;
-#endif //GPAC_HAS_HTTP2		
-		} else {
+		} else
+#endif //GPAC_HAS_HTTP2	 
+		{
 			gf_dm_data_received(sess, (u8 *) sHTTP + BodyStart, bytesRead - BodyStart, GF_TRUE, NULL);
 		}
 	}
