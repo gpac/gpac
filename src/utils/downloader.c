@@ -3018,7 +3018,7 @@ static Bool dm_exceeds_cap_rate(GF_DownloadManager * dm)
  */
 static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 {
-	u32 size, i;
+	u32 size;
 	GF_Err e;
 	u32 buf_size = sess->dm ? sess->dm->read_buf_size : GF_DOWNLOAD_BUFFER_SIZE;
 
@@ -3058,6 +3058,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 
 #ifdef GPAC_HAS_HTTP2
 					if(sess->ishttp2) {
+						u32 i;
 						for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
 							http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
 							gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
@@ -3102,6 +3103,7 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 		sHTTP[size + remaining_data_size] = 0;
 #ifdef GPAC_HAS_HTTP2		
 		if(sess->ishttp2) {
+			u32 i;
 			for (i=0; i<gf_list_count(sess->http2_data_frames); i++) {
 				http2_stream_data *frame_data = (http2_stream_data*)gf_list_get(sess->http2_data_frames, i);
 				gf_dm_data_received(sess, (u8 *) frame_data->start_data, frame_data->datalen, GF_TRUE, NULL);
