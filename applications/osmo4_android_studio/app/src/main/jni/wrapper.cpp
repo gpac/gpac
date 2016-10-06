@@ -738,6 +738,18 @@ int CNativeWrapper::init(JNIEnv * env, void * bitmap, jobject * callback, int wi
 	m_user.config = gf_cfg_init(m_cfg_dir ? m_cfg_filename : NULL, NULL);
 	gf_set_progress_callback(this, Osmo4_progress_cbk);
 
+
+    char path[512];
+    strcpy(path, gui_dir);
+    char vertex_path[512], fragment_path[512];
+    strcpy(vertex_path, path);
+    strcpy(fragment_path, path);
+    strcat(vertex_path, "/../shaders/vertex.glsl");
+    strcat(fragment_path, "/../shaders/fragment.glsl");
+
+    gf_cfg_set_key(m_user.config, "Compositor", "VertexShader", vertex_path);
+    gf_cfg_set_key(m_user.config, "Compositor", "FragmentShader", fragment_path);
+	gf_cfg_set_key(m_user.config, "Compositor", "OpenGLMode", "always");
 	opt = gf_cfg_get_key(m_user.config, "General", "ModulesDirectory");
 	LOGI("loading modules in directory %s...", opt);
 	m_user.modules = gf_modules_new(opt, m_user.config);
