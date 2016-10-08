@@ -2221,31 +2221,33 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
 	//we do this because if we split the tracks some info for setting up the enhancement layer
 	//is in the VPS
-	count = gf_list_count(hevccfg->param_array);
-	for (i=0; i<count; i++) {
-		u32 k, count2;
-		GF_HEVCParamArray *s_ar;
-		GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
-		if (ar->type != GF_HEVC_NALU_VID_PARAM) continue;
-		count2 = gf_list_count(ar->nalus);
-		for (j=0; j<count2; j++) {
-			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-			u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
-			if (layer_id) continue;
+	if (!use_extractors) {
+		count = gf_list_count(hevccfg->param_array);
+		for (i=0; i<count; i++) {
+			u32 k, count2;
+			GF_HEVCParamArray *s_ar;
+			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, i);
+			if (ar->type != GF_HEVC_NALU_VID_PARAM) continue;
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
+				if (layer_id) continue;
 
-			for (k=0; k <= max_layer_id; k++) {
-				GF_AVCConfigSlot *sl2;
-				if (!sti[k].lhvccfg) continue;
+				for (k=0; k <= max_layer_id; k++) {
+					GF_AVCConfigSlot *sl2;
+					if (!sti[k].lhvccfg) continue;
 
-				s_ar = alloc_hevc_param_array(sti[k].lhvccfg, ar->type);
-				s_ar->array_completeness = ar->array_completeness;
+					s_ar = alloc_hevc_param_array(sti[k].lhvccfg, ar->type);
+					s_ar->array_completeness = ar->array_completeness;
 
-				GF_SAFEALLOC(sl2, GF_AVCConfigSlot);
-				sl2->data = gf_malloc(sl->size);
-				memcpy(sl2->data, sl->data, sl->size);
-				sl2->id = sl->id;
-				sl2->size = sl->size;
-				gf_list_add(s_ar->nalus, sl2);
+					GF_SAFEALLOC(sl2, GF_AVCConfigSlot);
+					sl2->data = gf_malloc(sl->size);
+					memcpy(sl2->data, sl->data, sl->size);
+					sl2->id = sl->id;
+					sl2->size = sl->size;
+					gf_list_add(s_ar->nalus, sl2);
+				}
 			}
 		}
 	}
@@ -2638,6 +2640,7 @@ typedef struct
 	u32 data_offset;
 	GF_BitStream *sample_data;
 	u32 nb_nalus_in_sample;
+	Bool all_intra;
 } HEVCTileImport;
 
 static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture, u32 independent, Bool filtering_disable, u32 tx, u32 ty, u32 tw, u32 th, Bool is_default)
@@ -2667,7 +2670,7 @@ static void hevc_add_trif(GF_ISOFile *file, u32 track, u32 id, Bool full_picture
 }
 
 GF_EXPORT
-GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
+GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 {
 #if defined(GPAC_DISABLE_HEVC) || defined(GPAC_DISABLE_AV_PARSERS)
 	return GF_NOT_SUPPORTED;
@@ -2731,7 +2734,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 		filter_disabled=GF_FALSE;
 	
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) {
-		hevc_add_trif(file, track, gf_isom_get_track_id(file, track), GF_TRUE, 1, filter_disabled, 0, 0, hevc.sps[pps_idx].width, hevc.sps[pps_idx].width, GF_TRUE);
+		hevc_add_trif(file, track, gf_isom_get_track_id(file, track), GF_TRUE, 1, filter_disabled, 0, 0, hevc.sps[pps_idx].width, hevc.sps[pps_idx].height, GF_TRUE);
 		
 		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[HEVC Tiles] Tiles not enabled, cannot signal them\n"));
 		return GF_OK;
@@ -2743,7 +2746,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 	memset(tiles, 0, sizeof(HEVCTileImport) * nb_tiles);
 
 	for (i=0; i<nb_tiles; i++) {
-		if (! signal_only) {
+		if (! signal_mode) {
 			//first clone tracks
 			e = gf_isom_clone_track(file, track, file, GF_FALSE, &tiles[i].track );
 			if (e) goto err_exit;
@@ -2755,19 +2758,20 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 		} else {
 			tiles[i].track_id = gf_isom_get_track_id(file, track) + i+1;
 		}
+		tiles[i].all_intra = GF_TRUE;
 	}
 	
 	count = gf_isom_get_sample_count(file, track);
 	for (i=0; i<count; i++) {
 		u8 *data;
-		u32 size, nb_nalus=0;
+		u32 size, nb_nalus=0, nb_nal_entries=0, last_tile_group=(u32) -1;
 		GF_BitStream *src_bs;
 		GF_BitStream *bs=NULL;
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
 		data = (u8 *) sample->data;
 		size = sample->dataLength;
-		if (!signal_only) {
+		if (!signal_mode) {
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			sample->data = NULL;
 			sample->dataLength = 0;
@@ -2782,7 +2786,9 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 			}
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			//write start of nalm group
-			gf_bs_write_u8(bs, 0);//flags
+			gf_bs_write_int(bs, 0, 6);//reserved
+			gf_bs_write_int(bs, 0, 1);//large_size
+			gf_bs_write_int(bs, (signal_mode==2) ? 1 : 0, 1);//rle
 			gf_bs_write_u8(bs, 0);//entry_count - will be set at the end
 		}
 		
@@ -2832,11 +2838,22 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 				tiles[cur_tile].ty = ty;
 				tiles[cur_tile].tw = tw;
 				tiles[cur_tile].th = th;
+				if (hevc.s_info.slice_type != GF_HEVC_TYPE_I) {
+					tiles[cur_tile].all_intra = 0;
+				}
 				
-				if (signal_only) {
-					tiles[cur_tile].nb_nalus_in_sample++;
-					gf_bs_write_u16(bs, tiles[cur_tile].track_id);
+				if (signal_mode) {
 					nb_nalus++;
+					tiles[cur_tile].nb_nalus_in_sample++;
+					if (signal_mode==1) {
+						gf_bs_write_u16(bs, tiles[cur_tile].track_id);
+						nb_nal_entries++;
+					} else if (last_tile_group != tiles[cur_tile].track_id) {
+						last_tile_group = tiles[cur_tile].track_id;
+						gf_bs_write_u8(bs, nb_nalus);
+						gf_bs_write_u16(bs, tiles[cur_tile].track_id);
+						nb_nal_entries++;
+					}
 				} else {
 					gf_bs_write_data(tiles[cur_tile].sample_data, (char *) data, nalu_size + nalu_size_length);
 
@@ -2847,11 +2864,19 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 				}
 				break;
 			default:
-				if (! signal_only) {
+				if (! signal_mode) {
 					gf_bs_write_data(bs, (char *) data, nalu_size + nalu_size_length);
 				} else {
-					gf_bs_write_u16(bs, 0);
 					nb_nalus++;
+					if (signal_mode==1) {
+						gf_bs_write_u16(bs, 0);
+						nb_nal_entries++;
+					} else if (last_tile_group != 0) {
+						last_tile_group = 0;
+						gf_bs_write_u8(bs, nb_nalus);
+						gf_bs_write_u16(bs, 0);
+						nb_nal_entries++;
+					}
 				}
 				break;
 			}
@@ -2859,7 +2884,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 			size -= nalu_size + nalu_size_length;
 		}
 	
-		if (! signal_only) {
+		if (! signal_mode) {
 			gf_free(sample->data);
 			gf_bs_get_content(bs, &sample->data, &sample->dataLength);
 			gf_bs_del(bs);
@@ -2894,7 +2919,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 			u32 sdesc;
 			gf_bs_get_content(bs, &data, &size);
 			gf_bs_del(bs);
-			data[1] = nb_nalus;
+			data[1] = nb_nal_entries;
 
 			e = gf_isom_add_sample_group_info(file, track, GF_4CC('n','a','l','m'), data, size, 0, &sdesc);
 			if (e) {
@@ -2919,20 +2944,20 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, Bool signal_only)
 		s32 translation_x, translation_y;
 		s16 layer;
 
-		if (! signal_only) {
+		if (! signal_mode) {
 			tiles[i].track = gf_isom_get_track_by_id(file, tiles[i].track_id);
 			if (!tiles[i].sample_count) {
 				gf_isom_remove_track(file, tiles[i].track);
 				continue;
 			}
 
-			hevc_add_trif(file, tiles[i].track, tiles[i].track_id, GF_FALSE, 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_TRUE);
+			hevc_add_trif(file, tiles[i].track, tiles[i].track_id, GF_FALSE, (tiles[i].all_intra) ? 2 : 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_TRUE);
 			gf_isom_set_visual_info(file, tiles[i].track, 1, tiles[i].tw, tiles[i].th);
 
 			gf_isom_get_track_layout_info(file, track, &width, &height, &translation_x, &translation_y, &layer);
 			gf_isom_set_track_layout_info(file, tiles[i].track, width<<16, height<<16, translation_x, translation_y, layer);
 		} else {
-			hevc_add_trif(file, track, tiles[i].track_id, GF_FALSE, 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_FALSE);
+			hevc_add_trif(file, track, tiles[i].track_id, GF_FALSE, (tiles[i].all_intra) ? 2 : 1, filter_disabled, tiles[i].tx, tiles[i].ty, tiles[i].tw, tiles[i].th, GF_FALSE);
 		}
 
 	}
