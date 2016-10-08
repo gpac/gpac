@@ -2838,7 +2838,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 				tiles[cur_tile].ty = ty;
 				tiles[cur_tile].tw = tw;
 				tiles[cur_tile].th = th;
-				if (hevc.s_info.slice_type != GF_HEVC_TYPE_I) {
+				if (hevc.s_info.slice_type != GF_HEVC_SLICE_TYPE_I) {
 					tiles[cur_tile].all_intra = 0;
 				}
 				

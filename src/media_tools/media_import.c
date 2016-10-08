@@ -6246,14 +6246,14 @@ restart_import:
 				copy_size = nal_size;
 				has_vcl_nal = GF_TRUE;
 				switch (hevc.s_info.slice_type) {
-				case GF_HEVC_TYPE_P:
+				case GF_HEVC_SLICE_TYPE_P:
 					nb_p++;
 					break;
-				case GF_HEVC_TYPE_I:
+				case GF_HEVC_SLICE_TYPE_I:
 					nb_i++;
 					is_islice = GF_TRUE;
 					break;
-				case GF_HEVC_TYPE_B:
+				case GF_HEVC_SLICE_TYPE_B:
 					nb_b++;
 					break;
 				}
