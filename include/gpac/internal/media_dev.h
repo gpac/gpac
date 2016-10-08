@@ -428,9 +428,9 @@ typedef struct _hevc_state
 
 enum
 {
-	GF_HEVC_TYPE_B = 0,
-	GF_HEVC_TYPE_P = 1,
-	GF_HEVC_TYPE_I = 2,
+	GF_HEVC_SLICE_TYPE_B = 0,
+	GF_HEVC_SLICE_TYPE_P = 1,
+	GF_HEVC_SLICE_TYPE_I = 2,
 };
 s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc);

@@ -3639,18 +3639,18 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			slice_sao_chroma_flag = gf_bs_read_int(bs, 1);
 		}
 
-		if (si->slice_type == GF_HEVC_TYPE_P || si->slice_type == GF_HEVC_TYPE_B) {
+		if (si->slice_type == GF_HEVC_SLICE_TYPE_P || si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 			//u32 NumPocTotalCurr;
 			u32 num_ref_idx_l0_active, num_ref_idx_l1_active;
 
 			num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
 			num_ref_idx_l1_active = 0;
-			if (si->slice_type == GF_HEVC_TYPE_B)
+			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 				num_ref_idx_l1_active = pps->num_ref_idx_l1_default_active;
 
 			if ( /*num_ref_idx_active_override_flag =*/gf_bs_read_int(bs, 1) ) {
 				num_ref_idx_l0_active = 1 + bs_get_ue(bs);
-				if (si->slice_type == GF_HEVC_TYPE_B)
+				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 					num_ref_idx_l1_active = 1 + bs_get_ue(bs);
 			}
 
@@ -3660,14 +3660,14 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				return 0;
 			}
 
-			if (si->slice_type == GF_HEVC_TYPE_B)
+			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 				/*mvd_l1_zero_flag=*/gf_bs_read_int(bs, 1);
 			if (pps->cabac_init_present_flag)
 				/*cabac_init_flag=*/gf_bs_read_int(bs, 1);
 
 			if (slice_temporal_mvp_enabled_flag) {
 				Bool collocated_from_l0_flag = 0;
-				if (si->slice_type == GF_HEVC_TYPE_B)
+				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 					collocated_from_l0_flag = gf_bs_read_int(bs, 1);
 
 				if ( (collocated_from_l0_flag && num_ref_idx_l0_active-1 > 0 )
@@ -3677,8 +3677,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				}
 			}
 
-			if ( (pps->weighted_pred_flag && si->slice_type == GF_HEVC_TYPE_P )
-			        || ( pps->weighted_bipred_flag && si->slice_type == GF_HEVC_TYPE_B)
+			if ( (pps->weighted_pred_flag && si->slice_type == GF_HEVC_SLICE_TYPE_P )
+			        || ( pps->weighted_bipred_flag && si->slice_type == GF_HEVC_SLICE_TYPE_B)
 			   ) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] pred_weight_table not implemented\n"));
 				return 0;
