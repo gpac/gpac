@@ -1246,11 +1246,11 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	}
 	fprintf(dump, " <NALUConfig>\n");
 
-#define DUMP_ARRAY(arr, name)\
+#define DUMP_ARRAY(arr, name, loc)\
 	if (arr) {\
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
-			fprintf(dump, "  <%s number=\"%d\" size=\"%d\" ", name, i+1, slc->size);\
+			fprintf(dump, "  <%s location=\"%s\" number=\"%d\" size=\"%d\" ", name, loc, i+1, slc->size);\
 			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);\
 			fprintf(dump, "/>\n");\
 		}\
@@ -1261,14 +1261,14 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	if (avccfg) {
 		nalh_size = avccfg->nal_unit_size;
 
-		DUMP_ARRAY(avccfg->sequenceParameterSets, "AVCSPSArray")
-		DUMP_ARRAY(avccfg->pictureParameterSets, "AVCPPSArray")
-		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray")
+		DUMP_ARRAY(avccfg->sequenceParameterSets, "AVCSPSArray", "avcC")
+		DUMP_ARRAY(avccfg->pictureParameterSets, "AVCPPSArray", "avcC")
+		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray", "avcC")
 	}
 	if (svccfg) {
 		if (!nalh_size) nalh_size = svccfg->nal_unit_size;
-		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray")
-		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray")
+		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray", "svcC")
+		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray", "svcC")
 	}
 	if (hevccfg) {
 #ifndef GPAC_DISABLE_HEVC
@@ -1278,13 +1278,13 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		for (idx=0; idx<gf_list_count(hevccfg->param_array); idx++) {
 			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCSPSArray", "hvcC")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCPPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCPPSArray", "hvcC")
 			} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCVPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCVPSArray", "hvcC")
 			} else {
-				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray", "hvcC")
 			}
 		}
 #endif
@@ -1297,13 +1297,13 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		for (idx=0; idx<gf_list_count(lhvccfg->param_array); idx++) {
 			GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCSPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCSPSArray", "lhcC")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCPPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCPPSArray", "lhcC")
 			} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCVPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCVPSArray", "lhcC")
 			} else {
-				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray")
+				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray", "lhcC")
 			}
 		}
 #endif
