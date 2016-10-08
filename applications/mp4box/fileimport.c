@@ -395,8 +395,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					max_temporal_id_plus_one = 1 + (u8) val;
 			}
 		}
-		else if (!strnicmp(ext+1, "tiles", 1)) split_tile_mode = 2;
-		else if (!strnicmp(ext+1, "split_tiles", 1)) split_tile_mode = 1;
+		else if (!stricmp(ext+1, "tiles")) split_tile_mode = 2;
+		else if (!stricmp(ext+1, "tiles_rle")) split_tile_mode = 3;
+		else if (!stricmp(ext+1, "split_tiles")) split_tile_mode = 1;
 
 		/*force all composition offsets to be positive*/
 		else if (!strnicmp(ext+1, "negctts", 7)) negative_cts_offset = 1;
@@ -909,7 +910,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 	}
 	if (split_tile_mode) {
-		e = gf_media_split_hevc_tiles(import.dest, (split_tile_mode==2) ? GF_TRUE : GF_FALSE );
+		e = gf_media_split_hevc_tiles(import.dest, split_tile_mode - 1);
 	}
 #endif /*GPAC_DISABLE_HEVC*/
 
