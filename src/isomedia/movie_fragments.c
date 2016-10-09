@@ -1608,6 +1608,25 @@ GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_trac
 }
 
 GF_EXPORT
+GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz)
+{
+	u32 i;
+	if (!movie || !movie->moof)
+		return GF_BAD_PARAM;
+	for (i=0; i<gf_list_count(movie->moof->TrackList); i++) {
+		GF_TrackFragmentBox *traf = (GF_TrackFragmentBox*)gf_list_get(movie->moof->TrackList, i);
+		if (!traf)
+			return GF_BAD_PARAM;
+		if (traf->tfxd)
+			gf_isom_box_del(traf->tfxd);
+		traf->tfxd = (GF_MSSTimeExtBox *)gf_isom_box_new(GF_ISOM_BOX_UUID_TFXD);
+		traf->tfxd->absolute_time_in_10mhz = ntp_in_10mhz;
+		traf->tfxd->fragment_duration_in_10mhz = traf_duration_in_10mhz;
+	}
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 {
 	u32 i, count;
@@ -2132,9 +2151,15 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 	return GF_NOT_SUPPORTED;
 }
 
+GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz)
+{
+	return GF_NOT_SUPPORTED;
+}
+
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS)*/
 
 
+GF_EXPORT
 void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value)
 {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -2142,6 +2167,7 @@ void gf_isom_set_next_moof_number(GF_ISOFile *movie, u32 value)
 #endif
 }
 
+GF_EXPORT
 u32 gf_isom_get_next_moof_number(GF_ISOFile *movie)
 {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
