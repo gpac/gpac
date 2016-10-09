@@ -64,6 +64,8 @@ u32 gf_isom_solve_uuid_box(char *UUID)
 	}
 	if (!strnicmp(strUUID, "8974dbce7be74c5184f97148f9882554", 32))
 		return GF_ISOM_BOX_UUID_TENC;
+	if (!strnicmp(strUUID, "A5D40B30E81411DDBA2F0800200C9A66", 32))
+		return GF_ISOM_BOX_UUID_MSSM;
 	if (!strnicmp(strUUID, "D4807EF2CA3946958E5426CB9E46A79F", 32))
 		return GF_ISOM_BOX_UUID_TFRF;
 	if (!strnicmp(strUUID, "6D1D9B0542D544E680E2141DAFF757B2", 32))
@@ -72,6 +74,7 @@ u32 gf_isom_solve_uuid_box(char *UUID)
 		return GF_ISOM_BOX_UUID_PSEC;
 	if (!strnicmp(strUUID, "D08A4F1810F34A82B6C832D8ABA183D3", 32))
 		return GF_ISOM_BOX_UUID_PSSH;
+
 	return 0;
 }
 
@@ -305,8 +308,14 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 		case GF_ISOM_BOX_UUID_PSEC:
 			memcpy(strUUID, "A2394F525A9B4F14A2446C427C648DF4", 32);
 			break;
+		case GF_ISOM_BOX_UUID_MSSM:
+			memcpy(strUUID, "A5D40B30E81411DDBA2F0800200C9A66", 32);
+			break;
 		case GF_ISOM_BOX_UUID_PSSH:
 			memcpy(strUUID, "D08A4F1810F34A82B6C832D8ABA183D3", 32);
+			break;
+		case GF_ISOM_BOX_UUID_TFXD:
+			memcpy(strUUID, "6D1D9B0542D544E680E2141DAFF757B2", 32);
 			break;
 		default:
 			memset(strUUID, 0, 32);
@@ -723,8 +732,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return piff_psec_New();
 	case GF_ISOM_BOX_UUID_PSSH:
 		return piff_pssh_New();
-	case GF_ISOM_BOX_UUID_TFRF:
 	case GF_ISOM_BOX_UUID_TFXD:
+		return tfxd_New();
+	case GF_ISOM_BOX_UUID_MSSM:
+	case GF_ISOM_BOX_UUID_TFRF:
 	case GF_ISOM_BOX_TYPE_UUID:
 		return uuid_New();
 
@@ -1383,8 +1394,11 @@ void gf_isom_box_del(GF_Box *a)
 		case GF_ISOM_BOX_UUID_PSSH:
 			piff_pssh_del(a);
 			return;
-		case GF_ISOM_BOX_UUID_TFRF:
 		case GF_ISOM_BOX_UUID_TFXD:
+			tfxd_del(a);
+			return;
+		case GF_ISOM_BOX_UUID_MSSM:
+		case GF_ISOM_BOX_UUID_TFRF:
 		default:
 			uuid_del(a);
 			return;
@@ -1925,8 +1939,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 			return piff_psec_Read(a, bs);
 		case GF_ISOM_BOX_UUID_PSSH:
 			return piff_pssh_Read(a, bs);
-		case GF_ISOM_BOX_UUID_TFRF:
 		case GF_ISOM_BOX_UUID_TFXD:
+			return tfxd_Read(a, bs);
+		case GF_ISOM_BOX_UUID_MSSM:
+		case GF_ISOM_BOX_UUID_TFRF:
 		default:
 			return uuid_Read(a, bs);
 		}
@@ -2415,8 +2431,10 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 			return piff_psec_Write(a, bs);
 		case GF_ISOM_BOX_UUID_PSSH:
 			return piff_pssh_Write(a, bs);
-		case GF_ISOM_BOX_UUID_TFRF:
 		case GF_ISOM_BOX_UUID_TFXD:
+			return tfxd_Write(a, bs);
+		case GF_ISOM_BOX_UUID_MSSM:
+		case GF_ISOM_BOX_UUID_TFRF:
 		default:
 			return uuid_Write(a, bs);
 		}
@@ -2908,8 +2926,10 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 			return piff_psec_Size(a);
 		case GF_ISOM_BOX_UUID_PSSH:
 			return piff_pssh_Size(a);
-		case GF_ISOM_BOX_UUID_TFRF:
 		case GF_ISOM_BOX_UUID_TFXD:
+			return tfxd_Size(a);
+		case GF_ISOM_BOX_UUID_MSSM:
+		case GF_ISOM_BOX_UUID_TFRF:
 		default:
 			return uuid_Size(a);
 		}
