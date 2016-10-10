@@ -2003,16 +2003,19 @@ static void gf_m2ts_stream_set_default_slconfig(GF_M2TS_Mux_Stream *stream)
 	}
 }
 
-static u32 gf_m2ts_stream_get_pid(GF_M2TS_Mux_Program *program, u32 stream_id)
+static s32 gf_m2ts_stream_index(GF_M2TS_Mux_Program *program, u32 pid, u32 stream_id)
 {
+	s32 i=0;
 	GF_M2TS_Mux_Stream *st = program->streams;
-	while (st)
-	{
-		if (st->ifce->stream_id == stream_id)
-			return st->pid;
+	while (st) {
+		if (pid && (st->pid == pid))
+			return i;
+		if (stream_id && (st->ifce->stream_id == stream_id))
+			return i;
 		st = st->next;
+		i++;
 	}
-	return 0;
+	return -1;
 }
 
 
@@ -2037,13 +2040,13 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	/*reserved*/
 	gf_bs_write_int(bs, 3, 2);
 	/*hierarchy_layer_index*/
-	gf_bs_write_int(bs, stream->pid - stream->program->pmt->pid, 6);
+	gf_bs_write_int(bs, gf_m2ts_stream_index(stream->program, stream->pid, 0), 6);
 	/*tref_present_flag = 1 : NOT PRESENT*/
 	gf_bs_write_int(bs, 1, 1);
 	/*reserved*/
 	gf_bs_write_int(bs, 1, 1);
 	/*hierarchy_embedded_layer_index*/
-	gf_bs_write_int(bs, gf_m2ts_stream_get_pid(stream->program, stream->ifce->depends_on_stream) - stream->program->pmt->pid, 6);
+	gf_bs_write_int(bs, gf_m2ts_stream_index(stream->program, 0, stream->ifce->depends_on_stream), 6);
 	/*reserved*/
 	gf_bs_write_int(bs, 3, 2);
 	/*hierarchy_channel*/

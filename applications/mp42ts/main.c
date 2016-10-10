@@ -491,6 +491,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	GF_ESIMP4 *priv;
 	char *_lan;
 	GF_ESD *esd;
+	Bool is_hevc=GF_FALSE;
 	u64 avg_rate, duration;
 	s32 ref_count;
 	s64 mediaOffset;
@@ -538,6 +539,7 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
 			case GPAC_OTI_VIDEO_LHVC:
+				is_hevc=GF_TRUE;
 			case GPAC_OTI_VIDEO_AVC:
 			case GPAC_OTI_VIDEO_SVC:
 				gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
@@ -612,12 +614,15 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		priv->ts_offset = mediaOffset;
 	}
 
+	ifce->depends_on_stream = 0;
 	ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_SCAL);
 	if (ref_count > 0) {
 		gf_isom_get_reference_ID(mp4, track_num, GF_ISOM_REF_SCAL, (u32) ref_count, &ifce->depends_on_stream);
-	}
-	else {
-		ifce->depends_on_stream = 0;
+	} else if (is_hevc) {
+		ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_BASE);
+		if (ref_count > 0) {
+			gf_isom_get_reference_ID(mp4, track_num, GF_ISOM_REF_BASE, (u32) ref_count, &ifce->depends_on_stream);
+		}
 	}
 
 	if (compute_max_size) {

@@ -2489,8 +2489,24 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					break;
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
 					if (pes) {
-						//u8 hierarchy_layer_idx = (data[3] & 0x3F);
-						pes->depends_on_pid = (data[4] & 0x3F);
+						GF_M2TS_PES *base_pes = NULL;
+						GF_BitStream *hbs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+						u32 skip = gf_bs_read_int(hbs, 16);
+						u8 res1 = gf_bs_read_int(hbs, 1);
+						u8 temp_scal = gf_bs_read_int(hbs, 1);
+						u8 spatial_scal = gf_bs_read_int(hbs, 1);
+						u8 quality_scal = gf_bs_read_int(hbs, 1);
+						u8 hierarchy_type = gf_bs_read_int(hbs, 4);
+						u8 res2 = gf_bs_read_int(hbs, 2);
+						u8 hierarchy_layer_index = gf_bs_read_int(hbs, 6);
+						u8 tref_not_present = gf_bs_read_int(hbs, 1);
+						u8 res3 = gf_bs_read_int(hbs, 1);
+						u8 hierarchy_embedded_layer_index = gf_bs_read_int(hbs, 6);
+						u8 res4 = gf_bs_read_int(hbs, 2);
+						u8 hierarchy_channel = gf_bs_read_int(hbs, 6);
+						gf_bs_del(hbs);
+
+						pes->depends_on_pid = 1+hierarchy_embedded_layer_index;
 					}
 					break;
 				case GF_M2TS_METADATA_DESCRIPTOR:
@@ -2588,8 +2604,11 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			if ( !(es->flags & GF_M2TS_ES_IS_PES)) continue;
 			if (!es->depends_on_pid) continue;
 
+			//fixeme we are not always assured that hierarchy_layer_index matches the stream index...
+			//+1 is because our first stream is the PMT
 			an_es =  (GF_M2TS_PES *)gf_list_get(pmt->program->streams, es->depends_on_pid);
-			if (an_es) es->depends_on_pid = an_es->pid;
+			if (an_es)
+				es->depends_on_pid = an_es->pid;
 		}
 
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
