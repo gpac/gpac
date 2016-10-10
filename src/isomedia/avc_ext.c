@@ -371,26 +371,55 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	char *buffer;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 	GF_TrackReferenceTypeBox *scal = NULL;
-	Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &scal);
 
 	src_bs = ref_bs = dst_bs = ps_bs = NULL;
 	ref_samp = NULL;
 	buffer = NULL;
-	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 
+	Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &scal);
+
+	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
 	insert_vdrd_code = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_VDRD_FLAG) ? GF_TRUE : GF_FALSE;
 	if (!entry->svc_config && !entry->lhvc_config) insert_vdrd_code = GF_FALSE;
 	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
 	if (extractor_mode != GF_ISOM_NALU_EXTRACT_INSPECT) {
+		u32 ref_track, di;
 		//aggregate all sabt samples with the same DTS
 		track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
+
+		if (entry->lhvc_config && !entry->hevc_config) {
+			GF_ISOSample *base_samp;
+			if ( gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SCAL) <= 0) {
+				//FIXME - for now we only support two layers (base + enh) in implicit
+				if ( gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_BASE) >= 1) {
+					gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_BASE, 1, &ref_track);
+					switch (gf_isom_get_media_subtype(mdia->mediaTrack->moov->mov , ref_track, 1)) {
+					case GF_ISOM_SUBTYPE_HVC1:
+					case GF_ISOM_SUBTYPE_HVC2:
+					case GF_ISOM_SUBTYPE_HEV1:
+					case GF_ISOM_SUBTYPE_HEV2:
+
+						base_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
+						if (base_samp && base_samp->data) {
+							sample->data = gf_realloc(sample->data, sample->dataLength+base_samp->dataLength);
+							memmove(sample->data + base_samp->dataLength, sample->data , sample->dataLength);
+							memcpy(sample->data, base_samp->data, base_samp->dataLength);
+							sample->dataLength += base_samp->dataLength;
+						}
+						if (base_samp) gf_isom_sample_del(&base_samp);
+						Track_FindRef(mdia->mediaTrack, GF_4CC('s','b','a','s'), &scal);
+						break;
+					}
+				}
+			}
+		}
+
 		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
-		if ((s32) sabt_ref != -1) {
+		if ((s32) sabt_ref >= 0) {
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
-				u32 ref_track, di;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
 				tile_samp = gf_isom_get_sample(mdia->mediaTrack->moov->mov, ref_track, sampleNumber + mdia->mediaTrack->sample_count_at_seg_start, &di);
 				if (tile_samp  && tile_samp ->data) {
@@ -981,6 +1010,9 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 		if (mdia) merge_all_config(NULL, hcfg, mdia);
 
 		if (hcfg) {
+			if (mdia && ((mdia->mediaTrack->extractor_mode&0x0000FFFF) != GF_ISOM_NALU_EXTRACT_INSPECT)) {
+				hcfg->is_lhvc=GF_FALSE;
+			}
 			gf_odf_hevc_cfg_write(hcfg, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->data, &hevc->emul_esd->decoderConfig->decoderSpecificInfo->dataLength);
 			gf_odf_hevc_cfg_del(hcfg);
 		}
@@ -1467,6 +1499,7 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 					entry->lhvc_config = NULL;
 				}
 				if (entry->type==GF_ISOM_BOX_TYPE_LHE1) entry->type = GF_ISOM_BOX_TYPE_HEV1;
+				else if (entry->type==GF_ISOM_BOX_TYPE_HEV1) entry->type = GF_ISOM_BOX_TYPE_HEV1;
 				else entry->type = GF_ISOM_BOX_TYPE_HVC1;
 			} else {
 				if (!entry->lhvc_config) entry->lhvc_config = (GF_HEVCConfigurationBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_LHVC);
