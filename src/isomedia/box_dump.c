@@ -2740,7 +2740,7 @@ GF_Err tfxd_dump(GF_Box *a, FILE * trace)
 	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox*)a;
 	if (!a) return GF_BAD_PARAM;
 
-	fprintf(trace, "<MSSTimeExtensionBox AbsoluteTime=\""LLU"\" FragmentDuration=\""LLU"\">\n", ptr->absolute_time_in_10mhz, ptr->fragment_duration_in_10mhz);
+	fprintf(trace, "<MSSTimeExtensionBox AbsoluteTime=\""LLU"\" FragmentDuration=\""LLU"\">\n", ptr->absolute_time_in_track_timescale, ptr->fragment_duration_in_track_timescale);
 	DumpBox(a, trace);
 	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
 	gf_box_dump_done("MSSTimeExtensionBox", a, trace);

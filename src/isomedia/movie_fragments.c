@@ -1608,7 +1608,7 @@ GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_trac
 }
 
 GF_EXPORT
-GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz)
+GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_track_timescale, u64 traf_duration_in_track_timescale)
 {
 	u32 i;
 	if (!movie || !movie->moof)
@@ -1618,10 +1618,10 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 		if (!traf)
 			return GF_BAD_PARAM;
 		if (traf->tfxd)
-			gf_isom_box_del(traf->tfxd);
+			gf_isom_box_del((GF_Box*)traf->tfxd);
 		traf->tfxd = (GF_MSSTimeExtBox *)gf_isom_box_new(GF_ISOM_BOX_UUID_TFXD);
-		traf->tfxd->absolute_time_in_10mhz = ntp_in_10mhz;
-		traf->tfxd->fragment_duration_in_10mhz = traf_duration_in_10mhz;
+		traf->tfxd->absolute_time_in_track_timescale = ntp_in_track_timescale;
+		traf->tfxd->fragment_duration_in_track_timescale = traf_duration_in_track_timescale;
 	}
 	return GF_OK;
 }
