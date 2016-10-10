@@ -2477,8 +2477,8 @@ typedef struct __traf_mss_timeext_box
 	u8 version;
 	u32 flags;
 
-	u64 absolute_time_in_10mhz;
-	u64 fragment_duration_in_10mhz;
+	u64 absolute_time_in_track_timescale;
+	u64 fragment_duration_in_track_timescale;
 } GF_MSSTimeExtBox;
 
 GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
