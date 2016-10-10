@@ -1032,9 +1032,11 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
-	u32 pixel_format, w, h;
+	u32 pixel_format, w, h, nb_views;
 	u32 push_time;
 #endif
+
+	gf_mo_get_nb_views(txh->stream, &nb_views);
 
 	if (for2d) {
 		Bool load_tx = 0;
@@ -1087,12 +1089,17 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		first_load = 1;
 	}
 
+	if (txh->compositor->mode_view != txh->compositor->old_mode_view){
+		txh->compositor->old_mode_view = txh->compositor->mode_view;
+		first_load = 1;
+	}
+
 	if (txh->tx_io->flags & TX_EMULE_POW2) {
 		w = txh->tx_io->conv_w;
 		h = txh->tx_io->conv_h;
 	} else {
 		w = txh->width;
-		h = txh->height;
+		h = txh->height * nb_views;
 	}
 #if defined(GPAC_USE_GLES1X) || defined(GPAC_USE_GLES2)
 	tx_mode = txh->tx_io->gl_format;
@@ -1158,7 +1165,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				pU = (u8 *) txh->pU;
 				pV = (u8 *) txh->pV;
 			} else {
-				pU = (u8 *) pY + txh->height*txh->stride;
+				pU = (u8 *) pY + nb_views*txh->height*txh->stride;
 			}
 			
 			switch (txh->pixelformat) {
@@ -1181,7 +1188,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				if (!stride_chroma)
 					stride_chroma = stride_luma/2;
 				if (!pV)
-					pV = (u8 *) pU + txh->height * stride_chroma / 2;
+					pV = (u8 *) pU + txh->height * stride_chroma * nb_views / 2;
 				break;
 			case GF_PIXEL_NV21:
 			case GF_PIXEL_NV12:
@@ -1456,6 +1463,17 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 {
 	Bool ret = 0;
 	gf_mx_init(*mx);
+
+	u32 nb_views;
+	gf_mo_get_nb_views(txh->stream, &nb_views);
+
+	if (nb_views>1){
+		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->mode_view){
+			gf_mx_add_translation(mx, 0, 0.5f, 0);
+		}
+		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
+		ret = 1;
+	}
 
 	/*flip image if requested*/
 	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) && !(txh->tx_io->flags & TX_IS_FLIPPED) && !for_picking) {

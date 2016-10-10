@@ -766,11 +766,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_H:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 1);
+				gf_term_switch_mode(term, 1);
+				gf_term_switch_quality(term, 0);
 			break;
 		case GF_KEY_L:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 0);
+				gf_term_switch_mode(term, 0);
+				gf_term_switch_quality(term, 1);
 			break;
 		case GF_KEY_F5:
 			if (is_connected)

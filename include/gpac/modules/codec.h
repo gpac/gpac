@@ -164,6 +164,7 @@ enum
 	 return GF_NOT_SUPPORTED if your codec does'nt handle this
 	*/
 	GF_CODEC_INTERACT_COORDS,
+	GF_CODEC_NBVIEWS,
 };
 
 

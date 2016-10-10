@@ -2515,6 +2515,12 @@ void gf_term_switch_quality(GF_Terminal *term, Bool up)
 }
 
 GF_EXPORT
+void gf_term_switch_mode(GF_Terminal *term, Bool up)
+{
+	term->compositor->mode_view = (up) ? 0 : 1;
+}
+
+GF_EXPORT
 GF_Err gf_term_get_visual_output_size(GF_Terminal *term, u32 *width, u32 *height)
 {
 	if (!term) return GF_BAD_PARAM;
