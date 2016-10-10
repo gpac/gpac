@@ -278,9 +278,19 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
 			libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 	}
-	//decode and display layer 0 only - will be changed when attaching enhancement layers
-	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 0);
-	libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+
+	//decode and display layer 0 by default - will be changed when attaching enhancement layers
+
+	//has_ref_base is st, the esd describes a set of HEVC stream but we don't know how many - for now only two decoders so easy,
+	//but should be fixed in the future
+	if (esd->has_ref_base) {
+		ctx->nb_layers = 2;
+		ctx->cur_layer = 2;
+	}
+
+	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+	libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+
 
 	//in case we don't have a config record
 	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
