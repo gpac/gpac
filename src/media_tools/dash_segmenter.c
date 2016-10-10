@@ -2521,7 +2521,7 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			input->components[input->nb_components].fps_num = gf_isom_get_media_timescale(in, i+1);
 			/*get duration of track or of 2nd sample otherwise*/
 			if (gf_isom_get_track_duration(in, i + 1)) {
-				input->components[input->nb_components].fps_denum = (u32)(gf_isom_get_track_duration(in, i+1) * gf_isom_get_media_timescale(in, i+1) / (gf_isom_get_sample_count(in, i+1) * gf_isom_get_timescale(in)));
+				input->components[input->nb_components].fps_denum = (u32)(gf_isom_get_track_duration(in, i+1) * gf_isom_get_media_timescale(in, i+1) / ((gf_isom_get_sample_count(in, i+1) - 1) * gf_isom_get_timescale(in)));
 			} else {
 				input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
 			}
