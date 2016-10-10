@@ -2519,8 +2519,12 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			gf_isom_get_visual_info(in, i+1, 1, &input->components[input->nb_components].width, &input->components[input->nb_components].height);
 
 			input->components[input->nb_components].fps_num = gf_isom_get_media_timescale(in, i+1);
-			/*get duration of 2nd sample*/
-			input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
+			/*get duration of track or of 2nd sample otherwise*/
+			if (gf_isom_get_track_duration(in, i + 1)) {
+				input->components[input->nb_components].fps_denum = (u32)(gf_isom_get_track_duration(in, i+1) * gf_isom_get_media_timescale(in, i+1) / (gf_isom_get_sample_count(in, i+1) * gf_isom_get_timescale(in)));
+			} else {
+				input->components[input->nb_components].fps_denum = gf_isom_get_sample_duration(in, i+1, 2);
+			}
 			gf_isom_get_pixel_aspect_ratio(in, i+1, 1, &input->components[input->nb_components].sar_num, &input->components[input->nb_components].sar_denum);
 		}
 		/*non-video tracks, get lang*/
