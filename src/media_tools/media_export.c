@@ -1154,13 +1154,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
 	}
 
-	/* Start writing the stream out */
-	bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
-
-	if (dsi) {
-		gf_bs_write_data(bs, dsi, dsi_size);
-		gf_free(dsi);
-	}
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
 	if (avccfg) {
 		DUMP_AVCPARAM(avccfg->sequenceParameterSets);
@@ -1224,6 +1218,25 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		}
 		if (lhvccfg) {
 			DUMP_HEVCPARAM(lhvccfg);
+		}
+	}
+
+
+	if (avccfg || hevccfg) {
+		gf_bs_get_content(bs, &dsi, &dsi_size);
+		gf_bs_del(bs);
+
+		/* Start writing the stream out */
+		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
+		gf_bs_write_data(bs, dsi, dsi_size);
+	} else {
+		/* Start writing the stream out */
+		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
+
+		if (dsi) {
+			gf_bs_write_data(bs, dsi, dsi_size);
+			gf_free(dsi);
+			dsi=NULL;
 		}
 	}
 
@@ -1355,6 +1368,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			else if (svccfg) nal_unit_size = svccfg->nal_unit_size;
 			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
 			else if (lhvccfg) nal_unit_size = lhvccfg->nal_unit_size;
+
+			if (i && dsi && samp->IsRAP) {
+				gf_bs_write_data(bs, dsi, dsi_size);
+			}
+
 			remain = samp->dataLength;
 			while (remain) {
 				nal_size = 0;
@@ -1417,6 +1435,7 @@ exit:
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	gf_bs_del(bs);
+	if (dsi) gf_free(dsi);
 	if (!is_stdout)
 		gf_fclose(out);
 	return e;
