@@ -1999,35 +1999,9 @@ typedef struct
 	u32 data_offset, data_size;
 	u32 temporal_id_sample, max_temporal_id_sample;
 	LInfo layers[64];
+	u32 width, height;
 } LHVCTrackInfo;
 
-static GF_Err gf_isom_adjust_visual_info(GF_ISOFile *file, u32 track) {
-	u32 width=0, height=0, i, j;
-	GF_HEVCConfig *lhvccfg;
-	HEVCState hevc;
-
-	//according to spec visual info is always of the base layer, unless only LHVC data. We might want to change that ...
-	lhvccfg = gf_isom_hevc_config_get(file, track, 1);
-	if (!lhvccfg) lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
-	if (!lhvccfg) return GF_OK;
-
-	for (i = 0; i < gf_list_count(lhvccfg->param_array); i++) {
-		GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(lhvccfg->param_array, i);
-		for (j = 0; j < gf_list_count(ar->nalus); j++) {
-			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-				gf_hevc_get_sps_info_with_state(&hevc, sl->data, sl->size, NULL, &width, &height, NULL, NULL);
-			}
-			else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
-			}
-		}
-	}
-
-	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
-
-	return gf_isom_set_visual_info(file, track, 1, width, height);
-}
 
 GF_EXPORT
 GF_Err gf_media_filter_hevc(GF_ISOFile *file, u32 track, u8 max_temporal_id_plus_one, u8 max_layer_id_plus_one)
@@ -2164,6 +2138,9 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	u32 nb_layers=0;
 	Bool single_layer_per_track=GF_TRUE;
 	GF_Err e = GF_OK;
+	HEVCState hevc_state;
+
+	memset(&hevc_state, 0, sizeof(HEVCState));
 
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
@@ -2207,7 +2184,6 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 				sti[layer_id].lhvccfg->is_lhvc = 1;
 				sti[layer_id].lhvccfg->complete_representation = 1;
-				//TODO - set scalability mask flag
 			}
 
 			s_ar = alloc_hevc_param_array(sti[layer_id].lhvccfg, ar->type);
@@ -2255,7 +2231,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	//update lhvc config
 	e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
 	if (e) goto exit;
-	gf_isom_adjust_visual_info(file, track);
+
 	//purge all linf sample groups
 	gf_isom_remove_sample_group(file, track, GF_4CC('l','i','n','f'));
 	
@@ -2276,8 +2252,9 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
-			u8 orig_layer_id;
+			u8 orig_layer_id, nal_size;
 			u32 size = gf_bs_read_int(bs, lhvccfg->nal_unit_size*8);
+			u32 offset = (u32) gf_bs_get_position(bs);
 			u8 fzero = gf_bs_read_int(bs, 1);
 			u8 nal_type = gf_bs_read_int(bs, 6);
 			u8 layer_id = orig_layer_id = gf_bs_read_int(bs, 6);
@@ -2293,6 +2270,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 			if (cur_max_layer_id < layer_id) {
 				cur_max_layer_id = layer_id;
 			}
+			nal_size = size;
 
 			if (!sti[layer_id].bs)
 				sti[layer_id].bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
@@ -2317,7 +2295,17 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 			if (!sti[layer_id].max_temporal_id_sample || (sti[layer_id].max_temporal_id_sample < temporal_id)) {
 				sti[layer_id].max_temporal_id_sample = temporal_id;
 			}
-			
+
+			if (nal_type==GF_HEVC_NALU_SEQ_PARAM) {
+				u32 lw, lh;
+				s32 idx = gf_hevc_get_sps_info_with_state(&hevc_state, sample->data + offset, nal_size, NULL, &lw, &lh, NULL, NULL);
+				if (lw > sti[layer_id].width) sti[layer_id].width = lw;
+				if (lh > sti[layer_id].height) sti[layer_id].height = lh;
+			} else if (nal_type==GF_HEVC_NALU_PIC_PARAM) {
+				gf_media_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
+			} else if (nal_type==GF_HEVC_NALU_VID_PARAM) {
+				gf_media_hevc_read_vps(sample->data + offset, nal_size, &hevc_state);
+			}
 
 			if (size>nal_alloc_size) {
 				nal_alloc_size = size;
@@ -2351,6 +2339,18 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				e = gf_isom_clone_track(file, track, file, GF_FALSE, &sti[j].track_num);
 				if (e) goto exit;
 
+				//happens for inband param
+				if (!sti[j].lhvccfg) {
+					GF_List *backup_list;
+					sti[j].lhvccfg = gf_odf_hevc_cfg_new();
+					backup_list = sti[j].lhvccfg->param_array;
+					memcpy(sti[j].lhvccfg , lhvccfg ? lhvccfg : hevccfg, sizeof(GF_HEVCConfig));
+					sti[j].lhvccfg->param_array = backup_list;
+
+					sti[j].lhvccfg->is_lhvc = 1;
+					sti[j].lhvccfg->complete_representation = 1;
+				}
+
 				e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, use_extractors ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
 				if (e) goto exit;
 
@@ -2365,7 +2365,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 
-				gf_isom_adjust_visual_info(file, sti[j].track_num);
+				gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
 
 				//get lower layer
 				if (use_extractors) {
@@ -2387,6 +2387,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					sample->DTS = dts;
 					sample->CTS_Offset = cts;
 				}
+			} else {
+				gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
 			}
 
 			if (j && use_extractors) {
@@ -2735,8 +2737,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	
 	if (! hevc.pps[pps_idx].tiles_enabled_flag) {
 		hevc_add_trif(file, track, gf_isom_get_track_id(file, track), GF_TRUE, 1, filter_disabled, 0, 0, hevc.sps[pps_idx].width, hevc.sps[pps_idx].height, GF_TRUE);
-		
-		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[HEVC Tiles] Tiles not enabled, cannot signal them\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[HEVC Tiles] Tiles not enabled, signal only single tile full picture\n"));
 		return GF_OK;
 	}
 	
