@@ -714,6 +714,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	prev = strrchr(szOutPath, '.');
 	if (prev) prev[0] = 0;
 
+	gf_term_set_simulation_frame_rate(term, (Double) fps);
 
 	fprintf(stderr, "Opening URL %s\n", url);
 	/*connect and pause */
