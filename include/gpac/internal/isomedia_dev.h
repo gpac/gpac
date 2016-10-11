@@ -428,6 +428,7 @@ enum
 
 	/*MS Smooth - these are actually UUID boxes*/
 	GF_ISOM_BOX_UUID_PSSH	= GF_4CC( 'P', 'S', 'S', 'H' ),
+	GF_ISOM_BOX_UUID_MSSM   = GF_4CC( 'M', 'S', 'S', 'M' ), /*Stream Manifest box*/
 	GF_ISOM_BOX_UUID_TENC	= GF_4CC( 'T', 'E', 'N', 'C' ),
 	GF_ISOM_BOX_UUID_TFRF	= GF_4CC( 'T', 'F', 'R', 'F' ),
 	GF_ISOM_BOX_UUID_TFXD	= GF_4CC( 'T', 'F', 'X', 'D' ),
@@ -483,6 +484,8 @@ typedef struct
 	char *data;
 	u32 dataSize;
 } GF_UnknownUUIDBox;
+
+u32 gf_isom_solve_uuid_box(char *UUID);
 
 typedef struct
 {
@@ -1799,6 +1802,7 @@ typedef struct
 
 	struct __piff_sample_enc_box *piff_sample_encryption;
 	struct __sample_encryption_box *sample_encryption;
+	struct __traf_mss_timeext_box *tfxd; /*similar to PRFT but for Smooth Streaming*/
 
 	/*when data caching is on*/
 	u32 DataCache;
@@ -2484,6 +2488,16 @@ typedef struct __sample_encryption_box
 	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
 
 } GF_SampleEncryptionBox;
+
+typedef struct __traf_mss_timeext_box
+{
+	GF_ISOM_UUID_BOX
+	u8 version;
+	u32 flags;
+
+	u64 absolute_time_in_track_timescale;
+	u64 fragment_duration_in_track_timescale;
+} GF_MSSTimeExtBox;
 
 GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
@@ -3673,9 +3687,15 @@ GF_Err styp_Size(GF_Box *s);
 
 GF_Box *mehd_New();
 void mehd_del(GF_Box *s);
-GF_Err mehd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mehd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mehd_Size(GF_Box *s);
+
+/*smooth streaming timing*/
+GF_Box *tfxd_New();
+void tfxd_del(GF_Box *s);
+GF_Err tfxd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tfxd_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err tfxd_Size(GF_Box *s);
 
 #endif
 
@@ -4057,6 +4077,9 @@ GF_Err traf_dump(GF_Box *a, FILE * trace);
 GF_Err tfhd_dump(GF_Box *a, FILE * trace);
 GF_Err trun_dump(GF_Box *a, FILE * trace);
 GF_Err styp_dump(GF_Box *a, FILE * trace);
+
+//Smooth Streaming specific
+GF_Err tfxd_dump(GF_Box *a, FILE * trace);
 #endif
 
 GF_Err avcc_dump(GF_Box *a, FILE * trace);

@@ -534,8 +534,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 			return piff_psec_dump(a, trace);
 		case GF_ISOM_BOX_UUID_PSSH:
 			return piff_pssh_dump(a, trace);
-		case GF_ISOM_BOX_UUID_TFRF:
 		case GF_ISOM_BOX_UUID_TFXD:
+			return tfxd_dump(a, trace);
+		case GF_ISOM_BOX_UUID_MSSM:
+		case GF_ISOM_BOX_UUID_TFRF:
 		default:
 			return defa_dump(a, trace);
 		}
@@ -2730,6 +2732,18 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, trace);
 	gf_full_box_dump(a, trace);
 	gf_box_dump_done("TrackFragmentHeaderBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err tfxd_dump(GF_Box *a, FILE * trace)
+{
+	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox*)a;
+	if (!a) return GF_BAD_PARAM;
+
+	fprintf(trace, "<MSSTimeExtensionBox AbsoluteTime=\""LLU"\" FragmentDuration=\""LLU"\">\n", ptr->absolute_time_in_track_timescale, ptr->fragment_duration_in_track_timescale);
+	DumpBox(a, trace);
+	fprintf(trace, "<FullBoxInfo Version=\"%d\" Flags=\"%d\"/>\n", ptr->version, ptr->flags);
+	gf_box_dump_done("MSSTimeExtensionBox", a, trace);
 	return GF_OK;
 }
 

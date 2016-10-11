@@ -6334,6 +6334,62 @@ GF_Box *traf_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+
+GF_Box *tfxd_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MSSTimeExtBox, GF_ISOM_BOX_TYPE_UUID);
+	tmp->internal_4cc = GF_ISOM_BOX_UUID_TFXD;
+	return (GF_Box *)tmp;
+}
+
+void tfxd_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+
+GF_Err tfxd_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_MSSTimeExtBox *ptr = (GF_MSSTimeExtBox *)s;
+	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	ptr->version = gf_bs_read_u8(bs);
+	ptr->flags = gf_bs_read_u24(bs);
+	ptr->size -= 4;
+
+	if (ptr->version == 0x01) {
+		ptr->absolute_time_in_track_timescale = gf_bs_read_u64(bs);
+		ptr->fragment_duration_in_track_timescale = gf_bs_read_u64(bs);
+	} else {
+		ptr->absolute_time_in_track_timescale = gf_bs_read_u32(bs);
+		ptr->fragment_duration_in_track_timescale = gf_bs_read_u32(bs);
+	}
+
+	return GF_OK;
+}
+
+GF_Err tfxd_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e = GF_OK;
+	GF_MSSTimeExtBox *uuid = (GF_MSSTimeExtBox*)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u8(bs, 1);
+	gf_bs_write_u24(bs, 0);
+	gf_bs_write_u64(bs, uuid->absolute_time_in_track_timescale);
+	gf_bs_write_u64(bs, uuid->fragment_duration_in_track_timescale);
+
+	return GF_OK;
+}
+
+GF_Err tfxd_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 20;
+	return GF_OK;
+}
+
 GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
@@ -6381,6 +6437,10 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 
 	if (ptr->piff_sample_encryption) {
 		e = gf_isom_box_write((GF_Box *) ptr->piff_sample_encryption, bs);
+		if (e) return e;
+	}
+	if (ptr->tfxd) {
+		e = gf_isom_box_write((GF_Box *) ptr->tfxd, bs);
 		if (e) return e;
 	}
 
@@ -6445,10 +6505,13 @@ GF_Err traf_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->sample_encryption->size;
 	}
+	if (ptr->tfxd) {
+		e = gf_isom_box_size((GF_Box *)ptr->tfxd);
+		if (e) return e;
+		s->size += ptr->tfxd->size;
+	}
 	return gf_isom_box_array_size(s, ptr->TrackRuns);
 }
-
-
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

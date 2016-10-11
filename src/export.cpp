@@ -915,6 +915,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_user_data_boxes) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_user_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_user_data_item) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_uuid) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_use_compact_size) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_brand_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_alternate_brand) )
@@ -1053,6 +1054,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_fragment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_flush_fragments) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_reference_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_traf_mss_timeext) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_fragment_option) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_single_moof_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_fragment_add_sample) )
@@ -1062,6 +1064,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_start_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_traf_base_media_decode_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_next_moof_number) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_next_moof_number) )
 #endif
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
