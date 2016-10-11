@@ -70,6 +70,8 @@ typedef struct
 	u32 dec_frames;
 	u8  chroma_format_idc;
 
+	u32 nb_views;
+
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
 	u32 avc_nalu_size_length;
@@ -270,6 +272,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
@@ -277,6 +281,9 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		} else
 #endif
 			libOpenHevcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+	}else {
+		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
 	}
 
 	//decode and display layer 0 by default - will be changed when attaching enhancement layers
@@ -288,8 +295,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 		ctx->cur_layer = 2;
 	}
 
-	libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
-	libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+	//libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+	//libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
 
 
 	//in case we don't have a config record
@@ -299,7 +306,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
-		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+		ctx->out_size = ctx->nb_layers * ctx->stride * ctx->height * 3 / 2;
 	}
 	else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
 		ctx->out_size = ctx->stride * ctx->height * 2 ;
@@ -333,6 +340,8 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		nb_threads = (rti.nb_cores>1) ? rti.nb_cores-1 : 1;
 	}
 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "Compositor", "NumViews");
+	ctx->nb_views = atoi(sOpt);
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "NumThreads");
 	if (!sOpt) {
 		char szO[100];
@@ -443,6 +452,9 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 			capability->cap.valueInt *= 4;
 		}
 		break;
+	case GF_CODEC_NBVIEWS:
+		capability->cap.valueInt = ctx->nb_layers;
+		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		capability->cap.valueInt = HEVC_GetPixelFormat(ctx->luma_bpp, ctx->chroma_format_idc);
 		break;
@@ -491,7 +503,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
-		if (ctx->nb_layers==1) return GF_OK;
+		if (ctx->nb_layers==1 || ctx->nb_views!=1) return GF_OK;
 		if (!ctx->cur_layer) ctx->cur_layer = ctx->nb_layers;
 		/*switch up*/
 		if (capability.cap.valueInt > 0) {
@@ -523,20 +535,23 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLength, u32 *CTS)
 {
 	unsigned int a_w, a_h, a_stride, bit_depth;
-	OpenHevc_Frame_cpy openHevcFrame;
+	OpenHevc_Frame_cpy openHevcFrame_FL, openHevcFrame_SL;
 	int        chromat_format;
 
-	if (ctx->direct_output)
-		libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame.frameInfo);
-	else
-		libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame.frameInfo);
+	if (ctx->direct_output){
+		libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame_FL.frameInfo);
+		if (ctx->nb_layers == 2) libOpenHevcGetPictureInfo(ctx->openHevcHandle, &openHevcFrame_SL.frameInfo);
+	}else{
+		libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame_FL.frameInfo);
+		if (ctx->nb_layers == 2) libOpenHevcGetPictureInfoCpy(ctx->openHevcHandle, &openHevcFrame_SL.frameInfo);
+	}
 
-	a_w      = openHevcFrame.frameInfo.nWidth;
-	a_h      = openHevcFrame.frameInfo.nHeight;
-	a_stride = openHevcFrame.frameInfo.nYPitch;
-	bit_depth = openHevcFrame.frameInfo.nBitDepth;
-   chromat_format = openHevcFrame.frameInfo.chromat_format;
-	*CTS = (u32) openHevcFrame.frameInfo.nTimeStamp;
+	a_w      = openHevcFrame_FL.frameInfo.nWidth;
+	a_h      = openHevcFrame_FL.frameInfo.nHeight;
+	a_stride = openHevcFrame_FL.frameInfo.nYPitch;
+	bit_depth = openHevcFrame_FL.frameInfo.nBitDepth;
+	chromat_format = openHevcFrame_FL.frameInfo.chromat_format;
+	*CTS = (u32) openHevcFrame_FL.frameInfo.nTimeStamp;
 	
 	if (!ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) ){
 		ctx->width = a_w;
@@ -651,19 +666,35 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		return GF_OK;
 	}
 
-
-	openHevcFrame.pvY = (void*) outBuffer;
-	openHevcFrame.pvU = (void*) (outBuffer + ctx->stride * ctx->height);
-	if( chromat_format == YUV420) {
-		openHevcFrame.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
-	} else if (chromat_format == YUV422) {
-		openHevcFrame.pvV = (void*) (outBuffer + 3*ctx->stride * ctx->height/2);
-	} else if ( chromat_format == YUV444) {
-		openHevcFrame.pvV = (void*) (outBuffer + 2*ctx->stride * ctx->height);
+	openHevcFrame_FL.pvY = (void*) outBuffer;
+	if (ctx->nb_layers == 1){
+		openHevcFrame_FL.pvU = (void*) (outBuffer + ctx->stride * ctx->height);
+		if( chromat_format == YUV420) {
+			openHevcFrame_FL.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/4);
+		} else if (chromat_format == YUV422) {
+			openHevcFrame_FL.pvV = (void*) (outBuffer + 3*ctx->stride * ctx->height/2);
+		} else if ( chromat_format == YUV444) {
+			openHevcFrame_FL.pvV = (void*) (outBuffer + 2*ctx->stride * ctx->height);
+		}
+	}else{
+		if( chromat_format == YUV420 ){
+			openHevcFrame_SL.pvY = (void*) (outBuffer +  ctx->stride * ctx->height);
+			openHevcFrame_FL.pvU = (void*) (outBuffer + 2*ctx->stride * ctx->height);
+			openHevcFrame_SL.pvU = (void*) (outBuffer +  9*ctx->stride * ctx->height/4);
+			openHevcFrame_FL.pvV = (void*) (outBuffer + 5*ctx->stride * ctx->height/2);
+			openHevcFrame_SL.pvV = (void*) (outBuffer + 11*ctx->stride * ctx->height/4);
+		}
 	}
 	*outBufferLength = 0;
-	if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame)) {
-		*outBufferLength = ctx->out_size;
+	if (ctx->nb_layers>1 && ctx->nb_views!=1){
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+		int out1 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_FL);
+		libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
+		int out2 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_SL);
+		if (out1 && out2) *outBufferLength = ctx->out_size;
+	}else{
+		if (libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_FL))
+			*outBufferLength = ctx->out_size;
 	}
 	return GF_OK;
 }

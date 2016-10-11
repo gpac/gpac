@@ -70,6 +70,7 @@ URL cannot be handled - note that until the mediaObject.isInit member is true, t
 GF_MediaObject *gf_mo_register(GF_Node *node, MFURL *url, Bool lock_timelines, Bool force_new_res);
 /*unregister the node from the media object*/
 void gf_mo_unregister(GF_Node *node, GF_MediaObject *mo);
+void gf_get_nblayers(GF_MediaObject *mo, int * nb_layers);
 
 /*opens media object*/
 void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_loop);
