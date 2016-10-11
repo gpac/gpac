@@ -4256,8 +4256,8 @@ GF_Err gf_isom_remove_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID)
 	return GF_OK;
 }
 
-
-GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *data, u32 data_size)
+GF_EXPORT
+GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const char *data, u32 data_size)
 {
 	GF_List *list;
 	GF_UnknownUUIDBox *uuid;
@@ -4281,6 +4281,7 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, char *d
 	GF_SAFEALLOC(uuid, GF_UnknownUUIDBox);
 	if (!uuid) return GF_OUT_OF_MEM;
 	uuid->type = GF_ISOM_BOX_TYPE_UUID;
+	uuid->internal_4cc = gf_isom_solve_uuid_box(UUID);
 	memcpy(uuid->uuid, UUID, sizeof(bin128));
 	uuid->dataSize = data_size;
 	uuid->data = (char*)gf_malloc(sizeof(char)*data_size);

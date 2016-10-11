@@ -3179,7 +3179,7 @@ GF_Err gf_media_fragment_file(GF_ISOFile *input, const char *output_file, Double
 
 				//end of track fragment or track
 				if ((tf->SampleNum==tf->SampleCount) ||
-				        /* TODO: should probably test the time position (not only duratino) to avoid drift */
+				        /* TODO: should probably test the time position (not only duration) to avoid drift */
 				        (tf->FragmentLength*1000 >= MaxFragmentDuration*tf->TimeScale)) {
 					gf_isom_sample_del(&next);
 					sample = next = NULL;

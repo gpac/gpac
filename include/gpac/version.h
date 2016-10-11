@@ -49,7 +49,7 @@
  */
 #define GPAC_VERSION          "0.6.2-DEV"
 #define GPAC_VERSION_MAJOR 7
-#define GPAC_VERSION_MINOR 2
+#define GPAC_VERSION_MINOR 3
 #define GPAC_VERSION_MICRO 0
 
 #include <gpac/revision.h>
