@@ -1089,8 +1089,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		first_load = 1;
 	}
 
-	if (txh->compositor->mode_view != txh->compositor->old_mode_view){
-		txh->compositor->old_mode_view = txh->compositor->mode_view;
+	if (txh->compositor->multiview_mode != txh->compositor->old_multiview_mode){
+		txh->compositor->old_multiview_mode = txh->compositor->multiview_mode;
 		first_load = 1;
 	}
 
@@ -1468,7 +1468,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 	gf_mo_get_nb_views(txh->stream, &nb_views);
 
 	if (nb_views>1){
-		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->mode_view){
+		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->multiview_mode){
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);

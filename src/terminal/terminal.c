@@ -1017,6 +1017,8 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_VIDEO_BENCH:
 		term->bench_mode = value;
+	case GF_OPT_MULTIVIEW_MODE:
+		term->compositor->multiview_mode = value;
 	//fallthrough
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
@@ -2512,12 +2514,6 @@ GF_EXPORT
 void gf_term_switch_quality(GF_Terminal *term, Bool up)
 {
 	gf_scene_switch_quality(term->root_scene, up);
-}
-
-GF_EXPORT
-void gf_term_switch_mode(GF_Terminal *term, Bool up)
-{
-	term->compositor->mode_view = (up) ? 0 : 1;
 }
 
 GF_EXPORT
