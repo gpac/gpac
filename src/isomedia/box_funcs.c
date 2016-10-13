@@ -916,6 +916,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return iprp_New();
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_New();
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_New();
 
 	default:
 		a = defa_New();
@@ -1622,7 +1624,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IPMA:
 		ipma_del(a);
 		return;
-
+	case GF_ISOM_BOX_TYPE_MMPU:
+		mmpu_del(a);
+		return;
 	default:
 		defa_del(a);
 		return;
@@ -2112,6 +2116,9 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Read(a, bs);
 
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_Read(a, bs);
+
 	default:
 		return defa_Read(a, bs);
 	}
@@ -2600,6 +2607,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return iprp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -3095,6 +3104,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return iprp_Size(a);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Size(a);
+	case GF_ISOM_BOX_TYPE_MMPU:
+		return mmpu_Size(a);
 
 	default:
 		return defa_Size(a);

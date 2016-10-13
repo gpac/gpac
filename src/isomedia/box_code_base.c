@@ -9418,4 +9418,78 @@ GF_Box *prft_New()
 	return (GF_Box *)tmp;
 }
 
+void mmpu_del(GF_Box *s)
+{
+	GF_MmtMmpuBox *ptr = (GF_MmtMmpuBox*) s;
+	if (ptr == NULL) return;
+	if(ptr->asset_id_value)gf_free(ptr->asset_id_value);
+	gf_free(ptr);
+}
+
+GF_Box *mmpu_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MmtMmpuBox, GF_ISOM_BOX_TYPE_MMPU);
+	return (GF_Box *)tmp;
+}
+
+GF_Err mmpu_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 p;
+
+	GF_MmtMmpuBox *ptr = (GF_MmtMmpuBox*) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	ptr->is_complete=gf_bs_read_int(bs,1);
+	ptr->is_adc_present=gf_bs_read_int(bs, 1);
+	ptr->reserved=gf_bs_read_int(bs,6);
+	ptr->mpu_sequence_number=gf_bs_read_u32(bs);
+	ptr->asset_id_scheme=gf_bs_read_u32(bs);
+	ptr->asset_id_length=gf_bs_read_u32(bs);
+	if(ptr->asset_id_length>0)
+		ptr->asset_id_value=(u8 *)gf_malloc(sizeof(u8)*(ptr->asset_id_length));
+
+	for(p=0;p<ptr->asset_id_length;p++)
+		ptr->asset_id_value[p]=gf_bs_read_u8(bs);
+
+	return GF_OK;
+}
+
+GF_Err mmpu_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_MmtMmpuBox *ptr = (GF_MmtMmpuBox*) s;
+	int p;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, ptr->is_complete, 1);
+	gf_bs_write_int(bs, ptr->is_adc_present, 1);
+	gf_bs_write_int(bs, ptr->reserved, 6);
+
+	gf_bs_write_u32(bs, ptr->mpu_sequence_number);
+	gf_bs_write_u32(bs, ptr->asset_id_scheme);
+	gf_bs_write_u32(bs, ptr->asset_id_length);
+
+	for(p=0;p<ptr->asset_id_length;p++)
+		gf_bs_write_u8(bs, ptr->asset_id_value[p]);
+
+	return GF_OK;
+}
+
+GF_Err mmpu_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_MmtMmpuBox *ptr = (GF_MmtMmpuBox*) s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+
+	ptr->size += 13;
+	ptr->size += ptr->asset_id_length;
+
+	return GF_OK;
+}
+
 #endif /*GPAC_DISABLE_ISOM*/

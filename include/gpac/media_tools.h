@@ -389,6 +389,13 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *file);
 */
 GF_Err gf_media_make_psp(GF_ISOFile *file);
 
+/*!
+ Make the file MMT compliant
+ \param file the target movie
+ \return error if any
+ */
+GF_Err gf_media_make_mmt(GF_ISOFile *mp4,u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value);
+
 /*! @} */
 
 /*!
@@ -848,6 +855,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 */
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
 
+
+GF_Err gf_media_mmt_file(GF_ISOFile *file, const char *output_file, Double max_duration_sec);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!

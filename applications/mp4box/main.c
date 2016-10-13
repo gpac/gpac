@@ -159,6 +159,7 @@ typedef struct {
 	const char *name;
 	const char *comment;
 } itunes_tag;
+
 static const itunes_tag itags[] = {
 	{GF_ISOM_ITUNE_ALBUM_ARTIST, "album_artist", "usage: album_artist=album artist"},
 	{GF_ISOM_ITUNE_ALBUM, "album", "usage: album=name" },
@@ -1482,7 +1483,8 @@ enum
 	GF_ISOM_CONV_TYPE_ISMA_EX,
 	GF_ISOM_CONV_TYPE_3GPP,
 	GF_ISOM_CONV_TYPE_IPOD,
-	GF_ISOM_CONV_TYPE_PSP
+	GF_ISOM_CONV_TYPE_PSP,
+	GF_ISOM_CONV_TYPE_MMT
 };
 
 
@@ -1853,6 +1855,11 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
+static u32 mpu_seq_number=0;
+static u32 mpu_asset_id_scheme=0;
+static u32 mpu_asset_id_length=0;
+static u8 mpu_asset_id_value[32+1]; /*Assuming worst case (ie: 128 bits coded UUID)*/
+static Bool mmt_autogen=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3291,6 +3298,39 @@ Bool mp4box_parse_args(int argc, char **argv)
 			dash_profile_extension = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-mmt-seq-num")) {
+			CHECK_NEXT_ARG
+			if(strlen(argv[i + 1])>10){
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: MMT mpu sequence number is coded on 32 bits, unexpected usage \n"));
+				return 2;
+			}
+			mpu_seq_number=strtoul(argv[i + 1],NULL, 10);
+			i++;
+		}
+		else if (!stricmp(arg, "-mmt-asset-id-scheme")) {
+			CHECK_NEXT_ARG
+			if(!stricmp(argv[i+1], "URI"))mpu_asset_id_scheme=GF_4CC('U','R','I',' ');
+			else if(!stricmp(argv[i+1], "UUID"))mpu_asset_id_scheme=GF_4CC('U','U','I','D');
+			else{
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: Unsuported asset Id Scheme\n"));
+				return 2;
+			}
+			i++;
+		}
+		else if (!stricmp(arg, "-mmt-asset-id-value")) {
+			CHECK_NEXT_ARG
+			mpu_asset_id_length = strlen(argv[i + 1]);
+			if(mpu_asset_id_length>200){
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MMT] Error: MMT Asset id length > 200 chars, unexpected usage \n"));
+				return 2;
+			}
+			strcpy(mpu_asset_id_value,argv[i+1]);
+			conv_type=GF_ISOM_CONV_TYPE_MMT;
+			i++;
+		}
+		else if (!stricmp(arg, "-mmt-autogen")) {
+			mmt_autogen=GF_TRUE;
+		}
 		else if (!strnicmp(arg, "-url-template", 13)) {
 			use_url_template = 1;
 			if ((arg[13] == '=') && arg[14]) {
@@ -4521,6 +4561,17 @@ int mp4boxMain(int argc, char **argv)
 			if (e) goto err_exit;
 			needSave = GF_TRUE;
 		}
+		if (conv_type == GF_ISOM_CONV_TYPE_MMT) {
+			if(gf_isom_get_track_count(file)>1){
+				fprintf(stderr, "Maximum independant tracks in MMT-MPU is 1, try -mmt-autogen \n");
+				goto err_exit;
+			}
+			fprintf(stderr, "Converting to MMT file...\n");
+			e = gf_media_make_mmt(file, mpu_seq_number,mpu_asset_id_scheme, mpu_asset_id_length, mpu_asset_id_value);
+			if (e) goto err_exit;
+			needSave = GF_TRUE;
+		}
+
 #endif /*GPAC_DISABLE_MEDIA_IMPORT*/
 		if (conv_type == GF_ISOM_CONV_TYPE_IPOD) {
 			u32 major_brand = 0;
@@ -4886,6 +4937,22 @@ int mp4boxMain(int argc, char **argv)
 			gf_isom_set_track_creation_time(file, i+1, movie_time);
 		}
 		needSave = GF_TRUE;
+	}
+
+	if (mmt_autogen){
+		if (!interleaving_time) interleaving_time = 0.5;
+		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
+		fprintf(stderr, "Fragmenting & splitting in MPUs file (%.3f seconds fragments)\n", interleaving_time);
+		e = gf_media_mmt_file(file, outfile, interleaving_time);
+		if (e) fprintf(stderr, "Error while fragmenting file: %s\n", gf_error_to_string(e));
+		if (!e && !outName && !force_new) {
+			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
+			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+		}
+		if (e) goto err_exit;
+		gf_isom_delete(file);
+		goto exit;
+		Frag=GF_FALSE;
 	}
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS

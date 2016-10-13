@@ -413,6 +413,9 @@ enum
 	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
 
+	/* MPEG Media Transport  Boxes */
+	GF_ISOM_BOX_TYPE_MMPU   = GF_4CC( 'm', 'm', 'p', 'u' ),
+
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
 	/*generic handlers*/
@@ -2252,6 +2255,17 @@ typedef struct __adobe_fragment_run_table_box
 
 #endif /*GPAC_DISABLE_ISOM_ADOBE*/
 
+typedef struct __mmt_mmpu_box
+{
+	GF_ISOM_FULL_BOX
+	Bool is_complete;
+	Bool is_adc_present;
+	u8 reserved;
+	u32 mpu_sequence_number;
+	u32 asset_id_scheme;
+	u32 asset_id_length;
+	u8 *asset_id_value;
+} GF_MmtMmpuBox;
 
 /***********************************************************
 			Sample Groups
@@ -2807,6 +2821,8 @@ struct __tag_isom {
 	u32 single_moof_state;
 #endif
 	GF_ProducerReferenceTimeBox *last_producer_ref_time;
+
+	GF_MmtMmpuBox *mpu;
 
 	/*this contains ALL the root boxes excepts fragments*/
 	GF_List *TopBoxes;
@@ -4520,6 +4536,13 @@ GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ipma_Size(GF_Box *s);
 GF_Err ipma_dump(GF_Box *a, FILE * trace);
+
+GF_Box *mmpu_New();
+void mmpu_del(GF_Box *s);
+GF_Err mmpu_Read(GF_Box *s,GF_BitStream *bs);
+GF_Err mmpu_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err mmpu_Size(GF_Box *s);
+GF_Err mmpu_dump(GF_Box *s, FILE * trace);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

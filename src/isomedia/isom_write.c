@@ -2260,6 +2260,35 @@ GF_Err gf_isom_set_brand_info(GF_ISOFile *movie, u32 MajorBrand, u32 MinorVersio
 	return GF_OK;
 }
 
+GF_Err gf_isom_add_mpu(GF_ISOFile *movie,u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value)
+{
+
+	int p;
+#ifndef GPAC_DISABLE_ISOM_FRAGMENTS
+	if (! (movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY)) {
+		GF_Err e = CanAccessMovie(movie, GF_ISOM_OPEN_WRITE);
+		if (e) return e;
+
+		e = CheckNoData(movie);
+		if (e) return e;
+	}
+#endif
+
+	movie->mpu = (GF_MmtMmpuBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MMPU);
+	movie->mpu->is_complete=GF_TRUE;
+	movie->mpu->is_adc_present=GF_FALSE;
+	movie->mpu->mpu_sequence_number=MPU_Seq_number;
+	movie->mpu->asset_id_length=mpu_asset_id_lt;
+	movie->mpu->asset_id_scheme=mpu_asset_id_scheme;
+	movie->mpu->asset_id_value=(u8*)gf_malloc(sizeof(u8)*(movie->mpu->asset_id_length));
+
+	if (!movie->mpu->asset_id_value) return GF_OUT_OF_MEM;
+	for(p=0;p<movie->mpu->asset_id_length;p++)
+		movie->mpu->asset_id_value[p]=mpu_asset_id_value[p];
+
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_modify_alternate_brand(GF_ISOFile *movie, u32 Brand, u8 AddIt)
@@ -5560,6 +5589,16 @@ GF_Err gf_isom_update_edit_list_duration(GF_ISOFile *file, u32 track)
 
 	return GF_OK;
 
+}
+
+GF_Err gf_isom_clone_mpu(GF_ISOFile *input, GF_ISOFile *output)
+{
+	if(input->mpu){
+		gf_isom_set_brand_info(output, GF_4CC('M','P','U','F'), 0);
+		gf_isom_add_mpu(output, input->mpu->mpu_sequence_number, input->mpu->asset_id_scheme, input->mpu->asset_id_length, input->mpu->asset_id_value);
+	}
+
+	return GF_OK;
 }
 
 
