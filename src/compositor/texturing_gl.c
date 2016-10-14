@@ -1031,18 +1031,20 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	u32 ck;
 	char *data;
 	Bool first_load = 0;
+	Bool multiviews = GF_FALSE;
 	GLint tx_mode;
 	u32 pixel_format, w, h, nb_views=1, nb_layers=1, nb_frames=1;
 	u32 push_time;
 #endif
 
 	if (txh->stream) {
-		gf_mo_get_nb_views(txh->stream, &nb_views);
 		gf_mo_get_nb_layers(txh->stream, &nb_layers);
+		gf_mo_get_nb_views(txh->stream, &nb_views);
+		gf_mo_get_multiviews(txh->stream, &multiviews);
 	}
-	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
+	if (txh->raw_memory || nb_views == 1 ||!multiviews ) nb_frames = 1;
 	else if (nb_layers) nb_frames = nb_layers;
-
+	
 	if (for2d) {
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
@@ -1463,11 +1465,13 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 {
 	Bool ret = 0;
 	gf_mx_init(*mx);
-
-	u32 nb_views;
-	gf_mo_get_nb_views(txh->stream, &nb_views);
-
-	if (nb_views>1 && !txh->raw_memory){
+	Bool multiviews = GF_FALSE;
+	u32 nb_views = 1;
+	if(txh->stream) {
+		gf_mo_get_nb_views(txh->stream, &nb_views);
+		gf_mo_get_multiviews(txh->stream, &multiviews);
+	}
+	if (nb_views >1 && multiviews && !txh->raw_memory){
 		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->multiview_mode){
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}

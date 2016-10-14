@@ -71,7 +71,7 @@ typedef struct
 	u8  chroma_format_idc;
 
 	u32 nb_views;
-	Bool multiview;
+	Bool multiviews;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
@@ -240,8 +240,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 				else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 					s32 idx;
 					idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
-					ctx->multiview = hevc.vps[idx].scalability_mask[1];
-				}
+					ctx->multiviews = hevc.vps[idx].scalability_mask[1];
+					}
 				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
 				}
@@ -300,7 +300,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	//in case we don't have a config record
 	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
 
-	if (ctx->multiview) stride_mul = ctx->nb_layers;
+	if (ctx->multiviews) stride_mul = ctx->nb_layers;
 
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
@@ -455,6 +455,9 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_NBLAYERS:
 		capability->cap.valueInt = ctx->nb_layers;
+		break;
+	case GF_CODEC_MULTIVIEWS:
+		capability->cap.valueInt = ctx->multiviews;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		capability->cap.valueInt = HEVC_GetPixelFormat(ctx->luma_bpp, ctx->chroma_format_idc);

@@ -156,6 +156,8 @@ void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views);
 
 void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers);
 
+void gf_mo_get_multiviews(GF_MediaObject *mo, int * nb_layers);
+
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
 
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo);

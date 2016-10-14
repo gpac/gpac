@@ -233,11 +233,17 @@ void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views)
 }
 
 GF_EXPORT
-
 void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers)
 {
 	if (mo) *nb_layers = mo->nb_layers;
 }
+
+GF_EXPORT
+void gf_mo_get_multiviews(GF_MediaObject *mo, int * multiviews)
+{
+	 *multiviews = mo->multiviews;
+}
+
 
 GF_EXPORT
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
@@ -293,6 +299,10 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 	cap.CapCode = GF_CODEC_NBLAYERS;
 	gf_codec_get_capability(mo->odm->codec, &cap);
 	mo->nb_layers = cap.cap.valueInt;
+	
+	cap.CapCode = GF_CODEC_MULTIVIEWS;
+	gf_codec_get_capability(mo->odm->codec, &cap);
+	mo->multiviews = cap.cap.valueInt;
 
 	if (mo->odm && mo->odm->parentscene->is_dynamic_scene) {
 #ifndef GPAC_DISABLE_VRML

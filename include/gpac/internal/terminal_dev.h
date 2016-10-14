@@ -1195,6 +1195,7 @@ struct _mediaobj
 	u32 quality_degradation_hint;
 	u32 nb_views;
 	u32 nb_layers;
+	Bool multiviews;
 	u32 view_min_x, view_max_x, view_min_y, view_max_y;
 	GF_MediaDecoderFrame *media_frame;
 };
