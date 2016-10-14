@@ -1036,13 +1036,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	u32 push_time;
 #endif
 
-	if (txh->stream) {
-		gf_mo_get_nb_views(txh->stream, &nb_views);
-		gf_mo_get_nb_layers(txh->stream, &nb_layers);
-	}
-	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
-	else if (nb_layers) nb_frames = nb_layers;
-
 	if (for2d) {
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
@@ -1093,6 +1086,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
 		first_load = 1;
 	}
+	
+	if (txh->stream) {
+		gf_mo_get_nb_views(txh->stream, &nb_views);
+		gf_mo_get_nb_layers(txh->stream, &nb_layers);
+	}
+	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
+	else if (nb_layers) nb_frames = nb_layers;
 
 	if (txh->tx_io->flags & TX_EMULE_POW2) {
 		w = txh->tx_io->conv_w;
