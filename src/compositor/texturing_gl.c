@@ -1463,7 +1463,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 {
 	Bool ret = 0;
 	gf_mx_init(*mx);
-
+#ifndef GPAC_DISABLE_3D
 	u32 nb_views;
 	gf_mo_get_nb_views(txh->stream, &nb_views);
 
@@ -1474,7 +1474,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
 		ret = 1;
 	}
-
+#endif
 	/*flip image if requested*/
 	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) && !(txh->tx_io->flags & TX_IS_FLIPPED) && !for_picking) {
 		/*flip it*/
