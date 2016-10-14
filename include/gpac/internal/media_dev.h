@@ -350,6 +350,7 @@ typedef struct
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
+	Bool vps_extension_found;
 	u32 max_layers, max_sub_layers, max_layer_id, num_layer_sets;
 	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;

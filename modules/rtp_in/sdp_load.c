@@ -189,7 +189,7 @@ static GF_ESD *RP_GetChannelESD(RTPStream *ch, u32 ch_idx)
 	esd->ESID = ch->ES_ID;
 	esd->OCRESID = 0;
 	if (ch->mid)
-		esd->has_ref_base = GF_TRUE;
+		esd->has_scalable_layers = GF_TRUE;
 
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;

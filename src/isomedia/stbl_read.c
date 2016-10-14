@@ -28,7 +28,7 @@
 #ifndef GPAC_DISABLE_ISOM
 
 //Get the sample number
-GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
+GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
 	u32 i, j, curSampNum, count;
 	s32 CTSOffset;

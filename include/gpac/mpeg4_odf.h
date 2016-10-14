@@ -751,8 +751,8 @@ typedef struct
 
 	//GPAC internals
 
-	/*! 1 if this stream is referenced by type GF_ISOM_REF_BASE, 0 otherwise (GPAC internals)*/
-	Bool has_ref_base;
+	/*! 1 if this stream has scalable layers, 0 otherwise (GPAC internals)*/
+	Bool has_scalable_layers;
 	/*! service URL (GPAC internals)*/
 	const char *service_url;
 } GF_ESD;

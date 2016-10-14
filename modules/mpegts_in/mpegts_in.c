@@ -299,7 +299,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	if (!esd) return NULL;
 
 	if (stream->program->is_scalable)
-		esd->has_ref_base = GF_TRUE;
+		esd->has_scalable_layers = GF_TRUE;
 
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -320,9 +320,9 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 			the_esd = MP2TS_GetESD(m2ts, (GF_M2TS_PES *)es, dsi, dsi_size);
 			if (the_esd) {
 				if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) && (the_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)) {
-					esd->has_ref_base = GF_FALSE;
+					esd->has_scalable_layers = GF_FALSE;
 				} else {
-					the_esd->has_ref_base = GF_TRUE;
+					the_esd->has_scalable_layers = GF_TRUE;
 				}
 				the_esd->dependsOnESID = cur_ES;
 				gf_list_add(od->ESDescriptors, the_esd);

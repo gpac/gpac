@@ -4610,7 +4610,7 @@ static GF_Err gf_import_avc_h264(GF_MediaImporter *import)
 	GF_AVCConfig *avccfg, *svccfg, *dstcfg;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, sample_is_rap, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, sample_is_rap, sample_has_islice, sample_has_slice, is_islice, first_nal, slice_is_ref, has_cts_offset, detect_fps, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_avc;
@@ -4700,6 +4700,7 @@ restart_import:
 	sample_data = NULL;
 	sample_is_rap = GF_FALSE;
 	sample_has_islice = GF_FALSE;
+	sample_has_slice = GF_FALSE;
 	cur_samp = 0;
 	is_paff = GF_FALSE;
 	total_size = gf_bs_get_size(bs);
@@ -4755,10 +4756,14 @@ restart_import:
 
 		switch (gf_media_avc_parse_nalu(bs, nal_hdr, &avc)) {
 		case 1:
-			flush_sample = GF_TRUE;
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				if (sample_has_slice) flush_sample = GF_TRUE;
+			} else {
+				flush_sample = GF_TRUE;
+			}
 			break;
 		case -1:
-			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
+			gf_import_message(import, GF_OK, "Warning: Error parsing NAL unit");
 			skip_nal = 1;
 			break;
 		case -2:
@@ -4811,6 +4816,7 @@ restart_import:
 			//always keep NAL
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				if (sample_has_slice) flush_sample = GF_TRUE;
 			}
 
 			//first declaration of SPS,
@@ -4928,6 +4934,7 @@ restart_import:
 			//always keep NAL
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				if (sample_has_slice) flush_sample = GF_TRUE;
 			} else {
 				if (avc.pps[idx].status==1) {
 					avc.pps[idx].status = 2;
@@ -4950,10 +4957,14 @@ restart_import:
 			}
 			break;
 		case GF_AVC_NALU_SEI:
-			if (avc.sps_active_idx != -1) {
-				copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &avc);
-				if (copy_size)
-					nb_sei++;
+			if (import->flags & GF_IMPORT_NO_SEI) {
+				copy_size = 0;
+			} else {
+				if (avc.sps_active_idx != -1) {
+					copy_size = gf_media_avc_reformat_sei(buffer, nal_size, &avc);
+					if (copy_size)
+						nb_sei++;
+				}
 			}
 			break;
 
@@ -5127,6 +5138,7 @@ restart_import:
 			e = gf_isom_add_sample(import->dest, track, di, samp);
 			if (e) goto exit;
 
+			sample_has_slice = GF_FALSE;
 			cur_samp++;
 
 			/*write sampleGroups info*/
@@ -5244,7 +5256,7 @@ restart_import:
 			case GF_AVC_NALU_DP_C_SLICE:
 			case GF_AVC_NALU_IDR_SLICE:
 			case GF_AVC_NALU_SLICE_AUX:
-//			case GF_AVC_NALU_SVC_SLICE:
+				sample_has_slice = GF_TRUE;
 				if (!is_paff && avc.s_info.bottom_field_flag)
 					is_paff = GF_TRUE;
 
@@ -5618,6 +5630,8 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 he
 	u32 data_size;
 	u32 i;
 
+	if (!vps->vps_extension_found) return GF_OK;
+
 	oinf = gf_isom_oinf_new_entry();
 	if (!oinf) return GF_OUT_OF_MEM;
 
@@ -5969,7 +5983,11 @@ restart_import:
 
 		switch (res) {
 		case 1:
-			flush_sample = GF_TRUE;
+			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
+				if (!is_empty_sample) flush_sample = GF_TRUE;
+			} else {
+				flush_sample = GF_TRUE;
+			}
 			break;
 		case -1:
 			gf_import_message(import, GF_OK, "Waring: Error parsing NAL unit");
@@ -6043,6 +6061,7 @@ restart_import:
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				if (!is_empty_sample) flush_sample = GF_TRUE;
 			}
 
 			cur_vps_id = idx;
@@ -6149,6 +6168,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				if (!is_empty_sample) flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6195,25 +6215,36 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				if (!is_empty_sample) flush_sample = GF_TRUE;
 			}
 
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
 			if (!layer_id) flush_next_sample = GF_TRUE;
-			if (hevc.sps_active_idx != -1) {
-				copy_size = nal_size;
-				if (copy_size)
-					nb_sei++;
+			if (import->flags & GF_IMPORT_NO_SEI) {
+					copy_size = 0;
+			} else {
+				if (hevc.sps_active_idx != -1) {
+					copy_size = nal_size;
+					if (copy_size)
+						nb_sei++;
+				}
 			}
 			break;
 		case GF_HEVC_NALU_SEI_PREFIX:
-			if (hevc.sps_active_idx != -1) {
-				copy_size = nal_size;
-				if (copy_size) {
-					nb_sei++;
-					//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
-					if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
+			if (import->flags & GF_IMPORT_NO_SEI) {
+				copy_size = 0;
+			} else {
+				if (hevc.sps_active_idx != -1) {
+					copy_size = nal_size;
+					if (copy_size) {
+						nb_sei++;
+					}
 				}
+			}
+			if (nal_size) {
+				//FIXME should not be minus 1 in layer_ids[layer_id - 1] but the previous layer in the tree
+				if (!layer_id || !layer_ids[layer_id - 1]) flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6313,7 +6344,7 @@ restart_import:
 			cur_samp++;
 
 			/*write sampleGroups info*/
-			if (!samp->IsRAP && ((sei_recovery_frame_count>=0) || sample_has_islice) ) {
+			if (!samp->IsRAP && ((sei_recovery_frame_count>=0) || sample_has_islice || (sample_rap_type && (sample_rap_type<=SAP_TYPE_3)) ) ) {
 				/*generic GDR*/
 				if (sei_recovery_frame_count > 0) {
 					if (!use_opengop_gdr) use_opengop_gdr = 1;
@@ -6321,7 +6352,7 @@ restart_import:
 				}
 				/*open-GOP*/
 				else if (sample_rap_type==SAP_TYPE_3) {
-					if (!use_opengop_gdr) use_opengop_gdr = 2;
+					if (!min_layer_id && !use_opengop_gdr) use_opengop_gdr = 2;
 					e = gf_isom_set_sample_rap_group(import->dest, track, cur_samp, 0);
 				}
 				if (e) goto exit;
@@ -6797,7 +6828,10 @@ next_nal:
 	}
 
 	// This is a L-HEVC bitstream ... 
-	if (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1)) {
+	if ( (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1))
+	// HEVC with several sublayers
+	|| (max_temporal_id[0] > 0)
+	) {
 		gf_lhevc_set_operating_points_information(import->dest, hevc_base_track, track, &hevc.vps[cur_vps_id], max_temporal_id);
 		gf_lhevc_set_layer_information(import->dest, track, &linf[0]);
 	}

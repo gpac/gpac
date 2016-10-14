@@ -190,6 +190,8 @@ enum
 	GF_IMPORT_MPE_DEMUX = 1<<24,
 	/*! when set HEVC VPS is rewritten to remove VPS extensions*/
 	GF_IMPORT_NO_VPS_EXTENSIONS = 1<<25,
+	/*! when set no SEI messages are imported*/
+	GF_IMPORT_NO_SEI = 1<<26,
 
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
@@ -442,11 +444,12 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
  Split L-HEVC layers
  \param file the target movie
  \param track the target track
+ \param for_temporal_sublayers if set only temporal sublayers are split, otherwise layers are split
  \param splitAll if set each layers will be in a single track, otherwise all non-base layers will be in the same track
  \param use_extractors if set, extractors are used in the enhancement layers.
  \return error if any
  */
-GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors);
+GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, Bool use_extractors);
 
 /* !
  Split HEVC tiles into different tracks

@@ -1458,7 +1458,7 @@ u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts)
 
 	stbl = trak->Media->information->sampleTable;
 
-	e = findEntryForTime(stbl, dts, 1, &sampleNumber, &prevSampleNumber);
+	e = stbl_findEntryForTime(stbl, dts, 1, &sampleNumber, &prevSampleNumber);
 	if (e) return 0;
 	return sampleNumber;
 }
@@ -1495,7 +1495,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 #endif
 
-	e = findEntryForTime(stbl, desiredTime, 0, &sampleNumber, &prevSampleNumber);
+	e = stbl_findEntryForTime(stbl, desiredTime, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	//if no shadow table, reset to sync only

@@ -56,7 +56,7 @@ GF_Err Media_GetSampleDescIndex(GF_MediaBox *mdia, u64 DTS, u32 *sampleDescIndex
 	if (sampleDescIndex == NULL) return GF_BAD_PARAM;
 
 	//find the sample for this time
-	e = findEntryForTime(mdia->information->sampleTable, (u32) DTS, 0, &sampleNumber, &prevSampleNumber);
+	e = stbl_findEntryForTime(mdia->information->sampleTable, (u32) DTS, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	if (!sampleNumber && !prevSampleNumber) {
@@ -826,7 +826,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	//and update the chunks
 	e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset);
 	if (e) return e;
-
+	
 	if (!syncShadowNumber) return GF_OK;
 	if (!stbl->ShadowSync) stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSH);
 	return stbl_AddShadow(mdia->information->sampleTable->ShadowSync, sampleNumber, syncShadowNumber);
