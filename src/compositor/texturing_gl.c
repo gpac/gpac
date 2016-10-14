@@ -1032,15 +1032,16 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
-	u32 pixel_format, w, h, nb_views, nb_layers, nb_frames;
+	u32 pixel_format, w, h, nb_views=1, nb_layers=1, nb_frames=1;
 	u32 push_time;
 #endif
 
-	gf_mo_get_nb_views(txh->stream, &nb_views);
-	gf_mo_get_nb_layers(txh->stream, &nb_layers);
-
+	if (txh->stream) {
+		gf_mo_get_nb_views(txh->stream, &nb_views);
+		gf_mo_get_nb_layers(txh->stream, &nb_layers);
+	}
 	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
-	else nb_frames = nb_layers;
+	else if (nb_layers) nb_frames = nb_layers;
 
 	if (for2d) {
 		Bool load_tx = 0;
