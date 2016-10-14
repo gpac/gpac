@@ -239,7 +239,7 @@ void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers)
 }
 
 GF_EXPORT
-void gf_mo_get_multiviews(GF_MediaObject *mo, int * multiviews)
+void gf_mo_get_multiviews(GF_MediaObject *mo, Bool * multiviews)
 {
 	 *multiviews = mo->multiviews;
 }
