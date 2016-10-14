@@ -2345,8 +2345,10 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 				if (nal_type==GF_HEVC_NALU_SEQ_PARAM) {
 					u32 lw, lh;
 					s32 idx = gf_hevc_get_sps_info_with_state(&hevc_state, sample->data + offset, nal_size, NULL, &lw, &lh, NULL, NULL);
-					if (lw > sti[layer_id].width) sti[layer_id].width = lw;
-					if (lh > sti[layer_id].height) sti[layer_id].height = lh;
+					if (idx>=0) {
+						if (lw > sti[layer_id].width) sti[layer_id].width = lw;
+						if (lh > sti[layer_id].height) sti[layer_id].height = lh;
+					}
 				} else if (nal_type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
 				} else if (nal_type==GF_HEVC_NALU_VID_PARAM) {

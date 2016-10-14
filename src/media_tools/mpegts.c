@@ -2489,21 +2489,21 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					break;
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
 					if (pes) {
-						GF_M2TS_PES *base_pes = NULL;
+						u8 hierarchy_embedded_layer_index;
 						GF_BitStream *hbs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-						u32 skip = gf_bs_read_int(hbs, 16);
-						u8 res1 = gf_bs_read_int(hbs, 1);
-						u8 temp_scal = gf_bs_read_int(hbs, 1);
-						u8 spatial_scal = gf_bs_read_int(hbs, 1);
-						u8 quality_scal = gf_bs_read_int(hbs, 1);
-						u8 hierarchy_type = gf_bs_read_int(hbs, 4);
-						u8 res2 = gf_bs_read_int(hbs, 2);
-						u8 hierarchy_layer_index = gf_bs_read_int(hbs, 6);
-						u8 tref_not_present = gf_bs_read_int(hbs, 1);
-						u8 res3 = gf_bs_read_int(hbs, 1);
-						u8 hierarchy_embedded_layer_index = gf_bs_read_int(hbs, 6);
-						u8 res4 = gf_bs_read_int(hbs, 2);
-						u8 hierarchy_channel = gf_bs_read_int(hbs, 6);
+						/*u32 skip = */gf_bs_read_int(hbs, 16);
+						/*u8 res1 = */gf_bs_read_int(hbs, 1);
+						/*u8 temp_scal = */gf_bs_read_int(hbs, 1);
+						/*u8 spatial_scal = */gf_bs_read_int(hbs, 1);
+						/*u8 quality_scal = */gf_bs_read_int(hbs, 1);
+						/*u8 hierarchy_type = */gf_bs_read_int(hbs, 4);
+						/*u8 res2 = */gf_bs_read_int(hbs, 2);
+						/*u8 hierarchy_layer_index = */gf_bs_read_int(hbs, 6);
+						/*u8 tref_not_present = */gf_bs_read_int(hbs, 1);
+						/*u8 res3 = */gf_bs_read_int(hbs, 1);
+						hierarchy_embedded_layer_index = gf_bs_read_int(hbs, 6);
+						/*u8 res4 = */gf_bs_read_int(hbs, 2);
+						/*u8 hierarchy_channel = */gf_bs_read_int(hbs, 6);
 						gf_bs_del(hbs);
 
 						pes->depends_on_pid = 1+hierarchy_embedded_layer_index;

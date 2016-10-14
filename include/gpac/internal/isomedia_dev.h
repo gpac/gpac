@@ -3720,6 +3720,12 @@ GF_Err btrt_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err btrt_Size(GF_Box *s);
 
+GF_Box *mehd_New();
+void mehd_del(GF_Box *s);
+GF_Err mehd_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mehd_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err mehd_Size(GF_Box *s);
+
 
 /*3GPP streaming text*/
 GF_Box *ftab_New();
