@@ -71,6 +71,7 @@ typedef struct
 	u8  chroma_format_idc;
 
 	u32 nb_views;
+	Bool multiview;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
@@ -237,7 +238,9 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 					}
 				}
 				else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-					gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+					s32 idx;
+					idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
+					ctx->multiview = hevc.vps[idx].scalability_mask[1];
 				}
 				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
@@ -297,10 +300,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 	//in case we don't have a config record
 	if (!ctx->chroma_format_idc) ctx->chroma_format_idc = 1;
 
-	//we start decoder on the first frame
-
-	//FIXME - we need to get the views info from the decoder ...
-	if (ctx->nb_views>1) stride_mul = ctx->nb_layers;
+	if (ctx->multiview) stride_mul = ctx->nb_layers;
 
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
