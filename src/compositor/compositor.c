@@ -1434,6 +1434,7 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	else {
 		compositor->visual->autostereo_type = GF_3D_STEREO_NONE;
 		compositor->visual->nb_views = 1;
+		gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "1");
 	}
 	if (compositor->visual->autostereo_type)
 		compositor->force_opengl_2d = 1;

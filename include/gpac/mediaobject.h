@@ -152,6 +152,10 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo);
 
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped);
 
+void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views);
+
+void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers);
+
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
 
 Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
