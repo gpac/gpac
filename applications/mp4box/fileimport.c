@@ -243,11 +243,11 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample)
 {
-	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode;
+	u32 track_id, i, j, timescale, track, stype, profile, level, new_timescale, rescale, svc_mode, txt_flags, split_tile_mode, temporal_mode;
 	s32 par_d, par_n, prog_id, delay;
 	s32 tw, th, tx, ty, txtw, txth, txtx, txty;
 	Bool do_audio, do_video, do_all, disable, track_layout, text_layout, chap_ref, is_chap, is_chap_file, keep_handler, negative_cts_offset, rap_only;
-	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc;
+	u32 group, handler, rvc_predefined, check_track_for_svc, check_track_for_lhvc, check_track_for_hevc;
 	const char *szLan;
 	GF_Err e;
 	GF_MediaImporter import;
@@ -293,6 +293,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	profile = level = 0;
 	negative_cts_offset = 0;
 	split_tile_mode = 0;
+	temporal_mode = 0;
 	rap_only = 0;
 	txt_flags = 0;
 	max_layer_id_plus_one = max_temporal_id_plus_one = 0;
@@ -365,8 +366,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "ps")) import_flags |= GF_IMPORT_PS_IMPLICIT;
 		else if (!stricmp(ext+1, "psx")) import_flags |= GF_IMPORT_PS_EXPLICIT;
 		else if (!stricmp(ext+1, "mpeg4")) import_flags |= GF_IMPORT_FORCE_MPEG4;
+		else if (!stricmp(ext+1, "nosei")) import_flags |= GF_IMPORT_NO_SEI;
 		else if (!stricmp(ext+1, "svc") || !stricmp(ext+1, "lhvc") ) import_flags |= GF_IMPORT_SVC_EXPLICIT;
 		else if (!stricmp(ext+1, "nosvc") || !stricmp(ext+1, "nolhvc")) import_flags |= GF_IMPORT_SVC_NONE;
+
 		/*split SVC layers*/
 		else if (!strnicmp(ext+1, "svcmode=", 8) || !strnicmp(ext+1, "lhvcmode=", 9)) {
 			char *mode = ext+9;
@@ -380,6 +383,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				svc_mode = 1;
 			else if (!stricmp(mode, "merged"))
 				svc_mode = 0;
+		}
+		/*split SVC layers*/
+		else if (!strnicmp(ext+1, "temporal=", 9)) {
+			char *mode = ext+10;
+			if (!stricmp(mode, "split"))
+				temporal_mode = 2;
+			else if (!stricmp(mode, "splitnox"))
+				temporal_mode = 3;
+			else if (!stricmp(mode, "splitbase"))
+				temporal_mode = 1;
+			else {
+				fprintf(stderr, "Unrecognized temporal mode %s, ignoring\n", mode);
+				temporal_mode = 0;
+			}
 		}
 		else if (!stricmp(ext+1, "subsamples")) import_flags |= GF_IMPORT_SET_SUBSAMPLES;
 		else if (!stricmp(ext+1, "forcesync")) import_flags |= GF_IMPORT_FORCE_SYNC;
@@ -590,7 +607,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		import.text_y = txty;
 	}
 
-	check_track_for_svc = check_track_for_lhvc = 0;
+	check_track_for_svc = check_track_for_lhvc = check_track_for_hevc = 0;
 
 	import.dest = dest;
 	import.video_fps = force_fps;
@@ -675,8 +692,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (gf_isom_get_avc_svc_type(import.dest, i+1, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = i+1;
 
-			if (gf_isom_get_hevc_lhvc_type(import.dest, i+1, 1)>=GF_ISOM_HEVCTYPE_HEVC_LHVC)
+			switch (gf_isom_get_hevc_lhvc_type(import.dest, i+1, 1)) {
+			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
+			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
 				check_track_for_lhvc = i+1;
+				break;
+			case GF_ISOM_HEVCTYPE_HEVC_ONLY:
+				check_track_for_hevc=1;
+				break;
+			}
 
 			if (txt_flags) {
 				gf_isom_text_set_display_flags(import.dest, i+1, 0, txt_flags, txt_mode);
@@ -837,8 +861,15 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (gf_isom_get_avc_svc_type(import.dest, track, 1)>=GF_ISOM_AVCTYPE_AVC_SVC)
 				check_track_for_svc = track;
 
-			if (gf_isom_get_hevc_lhvc_type(import.dest, track, 1)>=GF_ISOM_HEVCTYPE_HEVC_LHVC)
-				check_track_for_lhvc = track;
+			switch (gf_isom_get_hevc_lhvc_type(import.dest, track, 1)) {
+			case GF_ISOM_HEVCTYPE_HEVC_LHVC:
+			case GF_ISOM_HEVCTYPE_LHVC_ONLY:
+				check_track_for_lhvc = i+1;
+				break;
+			case GF_ISOM_HEVCTYPE_HEVC_ONLY:
+				check_track_for_hevc=1;
+				break;
+			}
 
 			if (txt_flags) {
 				gf_isom_text_set_display_flags(import.dest, track, 0, txt_flags, txt_mode);
@@ -880,7 +911,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 	}
 
-	if (!max_layer_id_plus_one || !max_temporal_id_plus_one) {
+	if (max_layer_id_plus_one || max_temporal_id_plus_one) {
 		for (i = 1; i <= gf_isom_get_track_count(import.dest); i++)
 		{
 			e = gf_media_filter_hevc(import.dest, i, max_temporal_id_plus_one, max_layer_id_plus_one);
@@ -903,15 +934,23 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 #ifndef GPAC_DISABLE_HEVC
 	if (check_track_for_lhvc) {
 		if (svc_mode) {
-			e = gf_media_split_lhvc(import.dest, check_track_for_lhvc, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? 0 : 1 );
+			e = gf_media_split_lhvc(import.dest, check_track_for_lhvc, GF_FALSE, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? 0 : 1 );
 			if (e) goto exit;
 		} else {
-			//TODO - merge
+			//TODO - merge, temporal sublayers
 		}
 	}
-	if (split_tile_mode) {
-		e = gf_media_split_hevc_tiles(import.dest, split_tile_mode - 1);
+	if (check_track_for_hevc) {
+		if (split_tile_mode) {
+			e = gf_media_split_hevc_tiles(import.dest, split_tile_mode - 1);
+			if (e) goto exit;
+		}
+		if (temporal_mode) {
+			e = gf_media_split_lhvc(import.dest, check_track_for_hevc, GF_TRUE, (temporal_mode==1) ? GF_FALSE : GF_TRUE, (temporal_mode==3) ? GF_FALSE : GF_TRUE );
+			if (e) goto exit;
+		}
 	}
+
 #endif /*GPAC_DISABLE_HEVC*/
 
 exit:

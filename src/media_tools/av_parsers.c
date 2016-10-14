@@ -3885,6 +3885,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	u8 layer_id_in_list_flag[64];
 	Bool OutputLayerFlag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
 
+	vps->vps_extension_found=1;
 	if ((vps->max_layers > 1) && vps->base_layer_internal_flag)
 		profile_tier_level(bs, 0, vps->max_sub_layers-1, &vps->ext_ptl[0]);
 

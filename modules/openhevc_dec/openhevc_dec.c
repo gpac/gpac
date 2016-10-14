@@ -90,7 +90,8 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	u32 i, j;
 
 	if (!ctx->openHevcHandle) return GF_NOT_SUPPORTED;
-	
+	if (! esd->has_scalable_layers) return GF_OK;
+
 	if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
 		ctx->nb_layers++;
 		ctx->cur_layer++;
@@ -100,7 +101,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 	}
 	
 	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC) {
-		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_TRUE);
+		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 	} else {
 		cfg = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
 	}
@@ -281,9 +282,9 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 	//decode and display layer 0 by default - will be changed when attaching enhancement layers
 
-	//has_ref_base is st, the esd describes a set of HEVC stream but we don't know how many - for now only two decoders so easy,
+	//has_scalable_layers is set, the esd describes a set of HEVC stream but we don't know how many - for now only two decoders so easy,
 	//but should be fixed in the future
-	if (esd->has_ref_base) {
+	if (esd->has_scalable_layers) {
 		ctx->nb_layers = 2;
 		ctx->cur_layer = 2;
 	}

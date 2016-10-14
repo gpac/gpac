@@ -484,6 +484,7 @@ void PrintImportUsage()
 	        " \":ps\"                same as -ps option\n"
 	        " \":psx\"               same as -psx option\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
+	        " \":nosei\"             discard all SEI messages during import\n"
 	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
 	        " \":nosvc\"             discard SVC/LHVC data when importing\n"
 	        " \":svcmode=MODE\"      sets SVC/LHVC import mode:\n"

@@ -782,7 +782,7 @@ ent_found:
 	//Sanity check: is the requested time valid ? This is to cope with wrong EditLists
 	//we have the translated time, but we need to make sure we have a sample at this time ...
 	//we have to find a COMPOSITION time
-	e = findEntryForTime(stbl, (u32) *MediaTime, 1, &sampleNumber, &prevSampleNumber);
+	e = stbl_findEntryForTime(stbl, (u32) *MediaTime, 1, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	//first case: our time is after the last sample DTS (it's a broken editList somehow)
@@ -799,7 +799,7 @@ ent_found:
 	if (stbl->CompositionOffset) stbl_GetSampleCTS(stbl->CompositionOffset, sampleNumber, &CTS);
 
 	//now get the entry sample (the entry time gives the CTS, and we need the DTS
-	e = findEntryForTime(stbl, (u32) ent->mediaTime, 0, &sampleNumber, &prevSampleNumber);
+	e = stbl_findEntryForTime(stbl, (u32) ent->mediaTime, 0, &sampleNumber, &prevSampleNumber);
 	if (e) return e;
 
 	//oops, the mediaTime indicates a sample that is not in our media !

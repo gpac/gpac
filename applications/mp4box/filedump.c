@@ -1048,10 +1048,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			break;
 		case 49:
 			fputs("HEVCExtractor", dump);
-			track_ref_index = (u8) ptr[2];
-			sample_offset = (s8) ptr[3];
-			data_offset = read_nal_size_hdr(&ptr[4], nalh_size);
-			data_size = read_nal_size_hdr(&ptr[4+nalh_size], nalh_size);
+			track_ref_index = (u8) ptr[3];
+			sample_offset = (s8) ptr[4];
+			data_offset = read_nal_size_hdr(&ptr[5], nalh_size);
+			data_size = read_nal_size_hdr(&ptr[5+nalh_size], nalh_size);
 			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
 			break;
 		default:

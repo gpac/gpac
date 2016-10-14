@@ -118,6 +118,7 @@ void isor_declare_objects(ISOMReader *read)
 		default:
 			break;
 		}
+
 		/*we declare only the highest video track (i.e the track we play)*/
 		highest_stream = GF_TRUE;
 		track_id = gf_isom_get_track_id(read->mov, i+1);
@@ -136,7 +137,7 @@ void isor_declare_objects(ISOMReader *read)
 				break;
 			}
 		}
-		
+
 		if ((gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_VISUAL) && !highest_stream)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
@@ -165,9 +166,23 @@ void isor_declare_objects(ISOMReader *read)
 				if (external_base) {
 					base_esd = gf_media_map_esd(read->mov, base_track);
 					if (base_esd) esd->dependsOnESID = base_esd->ESID;
+					esd->has_scalable_layers = GF_TRUE;
 				} else {
-					esd->has_ref_base = GF_TRUE;
 					esd->dependsOnESID=0;
+					switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
+					case GF_ISOM_HEVCTYPE_HEVC_LHVC:
+					case GF_ISOM_HEVCTYPE_LHVC_ONLY:
+						esd->has_scalable_layers = GF_TRUE;
+						break;
+					//this is likely temporal sublayer of base
+					case GF_ISOM_HEVCTYPE_HEVC_ONLY:
+						esd->has_scalable_layers = GF_FALSE;
+						if (gf_isom_get_reference_count(read->mov, i+1, GF_ISOM_REF_SCAL)<=0) {
+							base_esd = gf_media_map_esd(read->mov, base_track);
+							if (base_esd) esd->dependsOnESID = base_esd->ESID;
+						}
+						break;
+					}
 				}
 			}
 			

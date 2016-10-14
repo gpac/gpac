@@ -1177,8 +1177,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			cfg = gf_isom_avc_config_get(dumper->file, ref_track, 1);
 			hcfg = gf_isom_hevc_config_get(dumper->file, ref_track, 1);
 			if (cfg) {
-				DUMP_AVCPARAM(cfg->sequenceParameterSets);
-				DUMP_AVCPARAM(cfg->pictureParameterSets);
+				if (!lhvccfg) {
+					DUMP_AVCPARAM(cfg->sequenceParameterSets);
+					DUMP_AVCPARAM(cfg->pictureParameterSets);
+				}
 				gf_odf_avc_cfg_del(cfg);
 				cfg = NULL;
 			}
@@ -1222,7 +1224,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 
 
-	if (avccfg || hevccfg) {
+	if (avccfg || hevccfg || lhvccfg) {
 		gf_bs_get_content(bs, &dsi, &dsi_size);
 		gf_bs_del(bs);
 

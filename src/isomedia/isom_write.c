@@ -723,14 +723,20 @@ GF_Err gf_isom_add_sample(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescript
 	if (trak->Media->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		GF_ISOSample *od_sample = NULL;
 		e = Media_ParseODFrame(trak->Media, sample, &od_sample);
-		if (!e) e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, 0);
-		if (!e) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
+		if (e) return e;
+		e = Media_AddSample(trak->Media, data_offset, od_sample, descIndex, 0);
+		if (e) return e;
+		e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, od_sample->data, od_sample->dataLength);
+		if (e) return e;
 		if (od_sample) gf_isom_sample_del(&od_sample);
 	} else {
 		e = Media_AddSample(trak->Media, data_offset, sample, descIndex, 0);
-		if (!e && sample->dataLength) e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+		if (e) return e;
+		if (sample->dataLength) {
+			e = gf_isom_datamap_add_data(trak->Media->information->dataHandler, sample->data, sample->dataLength);
+			if (e) return e;
+		}
 	}
-	if (e) return e;
 
 	if (!movie->keep_utc)
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
@@ -762,7 +768,7 @@ GF_Err gf_isom_add_sample_shadow(GF_ISOFile *movie, u32 trackNumber, GF_ISOSampl
 	e = unpack_track(trak);
 	if (e) return e;
 
-	e = findEntryForTime(trak->Media->information->sampleTable, sample->DTS, 0, &sampleNum, &prevSampleNum);
+	e = stbl_findEntryForTime(trak->Media->information->sampleTable, sample->DTS, 0, &sampleNum, &prevSampleNum);
 	if (e) return e;
 	/*we need the EXACT match*/
 	if (!sampleNum) return GF_BAD_PARAM;

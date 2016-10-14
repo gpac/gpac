@@ -2863,7 +2863,7 @@ if the entry is not found, return the closest sampleNumber in prevSampleNumber a
 if the DTS required is after all DTSs in the list, set prevSampleNumber and SampleNumber to 0
 useCTS specifies that we're looking for a composition time
 */
-GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber);
+GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber);
 /*Reading of the sample tables*/
 GF_Err stbl_GetSampleSize(GF_SampleSizeBox *stsz, u32 SampleNumber, u32 *Size);
 GF_Err stbl_GetSampleCTS(GF_CompositionOffsetBox *ctts, u32 SampleNumber, s32 *CTSoffset);

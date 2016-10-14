@@ -2000,6 +2000,8 @@ typedef struct
 	u32 temporal_id_sample, max_temporal_id_sample;
 	LInfo layers[64];
 	u32 width, height;
+	Bool has_samples;
+	Bool non_tsa_vcl;
 } LHVCTrackInfo;
 
 
@@ -2128,14 +2130,14 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_extractors)
+GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, Bool use_extractors)
 {
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
-	u32 i, count, cur_extract_mode, j, k, max_layer_id;
+	u32 sample_num, count, cur_extract_mode, j, k, max_layer_id;
 	char *nal_data=NULL;
 	u32 nal_alloc_size;
-	u32 nb_layers=0;
+	u32 nal_unit_size=0;
 	Bool single_layer_per_track=GF_TRUE;
 	GF_Err e = GF_OK;
 	HEVCState hevc_state;
@@ -2144,9 +2146,22 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 	hevccfg = gf_isom_hevc_config_get(file, track, 1);
 	lhvccfg = gf_isom_lhvc_config_get(file, track, 1);
-	if (!lhvccfg) {
+	if (!lhvccfg && !for_temporal_sublayers) {
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		return GF_OK;
+	}
+	else if (for_temporal_sublayers) {
+		if (lhvccfg) {
+			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+			gf_odf_hevc_cfg_del(lhvccfg);
+			return GF_NOT_SUPPORTED;
+		}
+		if (!hevccfg) return GF_NOT_SUPPORTED;
+
+		if (hevccfg->numTemporalLayers<=1) {
+			if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
+			return GF_OK;
+		}
 	}
 
 	cur_extract_mode = gf_isom_get_nalu_extract_mode(file, track);
@@ -2154,50 +2169,60 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 	memset(sti, 0, sizeof(sti));
 	sti[0].track_num = track;
+	sti[0].has_samples=GF_TRUE;
 	max_layer_id = 0;
-	//split all SPS/PPS/VPS from svccfg
-	count = gf_list_count(lhvccfg->param_array);
-	for (i=0; i<count; i++) {
-		u32 count2;
-		GF_HEVCParamArray *s_ar;
-		GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, i);
-		count2 = gf_list_count(ar->nalus);
-		for (j=0; j<count2; j++) {
-			GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
-//			u8 nal_type = (sl->data[0] & 0x7E) >> 1;
-			u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 
-			//this should not happen
-			if (!layer_id) continue;
+	nal_unit_size = lhvccfg ? lhvccfg->nal_unit_size : hevccfg->nal_unit_size;
 
-			if (!splitAll) layer_id = 1;
+	if (!for_temporal_sublayers) {
+		u32 i;
+		//split all SPS/PPS/VPS from lhvccfg
+		count = gf_list_count(lhvccfg->param_array);
+		for (i=0; i<count; i++) {
+			u32 count2;
+			GF_HEVCParamArray *s_ar;
+			GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, i);
+			count2 = gf_list_count(ar->nalus);
+			for (j=0; j<count2; j++) {
+				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
+//				u8 nal_type = (sl->data[0] & 0x7E) >> 1;
+				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 
-			if (max_layer_id < layer_id)
-				max_layer_id = layer_id;
+				//this should not happen
+				if (!layer_id) continue;
 
-			if (!sti[layer_id].lhvccfg) {
-				GF_List *backup_list;
-				sti[layer_id].lhvccfg = gf_odf_hevc_cfg_new();
-				backup_list = sti[layer_id].lhvccfg->param_array;
-				memcpy(sti[layer_id].lhvccfg , lhvccfg ? lhvccfg : hevccfg, sizeof(GF_HEVCConfig));
-				sti[layer_id].lhvccfg->param_array = backup_list;
+				if (!splitAll) layer_id = 1;
 
-				sti[layer_id].lhvccfg->is_lhvc = 1;
-				sti[layer_id].lhvccfg->complete_representation = 1;
+				if (max_layer_id < layer_id)
+					max_layer_id = layer_id;
+
+				if (!sti[layer_id].lhvccfg) {
+					GF_List *backup_list;
+					sti[layer_id].lhvccfg = gf_odf_hevc_cfg_new();
+					backup_list = sti[layer_id].lhvccfg->param_array;
+					memcpy(sti[layer_id].lhvccfg , lhvccfg ? lhvccfg : hevccfg, sizeof(GF_HEVCConfig));
+					sti[layer_id].lhvccfg->param_array = backup_list;
+
+					sti[layer_id].lhvccfg->is_lhvc = 1;
+					sti[layer_id].lhvccfg->complete_representation = 1;
+				}
+
+				s_ar = alloc_hevc_param_array(sti[layer_id].lhvccfg, ar->type);
+				gf_list_add(s_ar->nalus, sl);
+				gf_list_rem(ar->nalus, j);
+				j--;
+				count2--;
 			}
-
-			s_ar = alloc_hevc_param_array(sti[layer_id].lhvccfg, ar->type);
-			gf_list_add(s_ar->nalus, sl);
-			gf_list_rem(ar->nalus, j);
-			j--;
-			count2--;
 		}
+	} else {
+		gf_isom_set_cts_packing(file, track, GF_TRUE);
 	}
 
 	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
 	//we do this because if we split the tracks some info for setting up the enhancement layer
 	//is in the VPS
 	if (!use_extractors) {
+		u32 i;
 		count = gf_list_count(hevccfg->param_array);
 		for (i=0; i<count; i++) {
 			u32 k, count2;
@@ -2229,8 +2254,15 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	}
 
 	//update lhvc config
-	e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
-	if (e) goto exit;
+	if (for_temporal_sublayers) {
+		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
+	} else {
+		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
+	}
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to update HEVC/LHVC config\n"));
+		goto exit;
+	}
 
 	//purge all linf sample groups
 	gf_isom_remove_sample_group(file, track, GF_4CC('l','i','n','f'));
@@ -2239,7 +2271,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 	nal_data = gf_malloc(sizeof(char) * nal_alloc_size);
 	//parse all samples
 	count = gf_isom_get_sample_count(file, track);
-	for (i=0; i<count; i++) {
+	for (sample_num=0; sample_num<count; sample_num++) {
 		GF_BitStream *bs;
 		u32 di;
 		GF_ISOSample *sample;
@@ -2247,35 +2279,47 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		s32 roll_distance;
 		u8 cur_max_layer_id = 0;
 
-		sample = gf_isom_get_sample(file, track, i+1, &di);
-		gf_isom_get_sample_rap_roll_info(file, track, i+1, &is_irap, &has_roll, &roll_distance);
+		sample = gf_isom_get_sample(file, track, sample_num+1, &di);
+		gf_isom_get_sample_rap_roll_info(file, track, sample_num+1, &is_irap, &has_roll, &roll_distance);
 
 		bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
 		while (gf_bs_available(bs)) {
 			u8 orig_layer_id, nal_size;
-			u32 size = gf_bs_read_int(bs, lhvccfg->nal_unit_size*8);
+			u32 size = gf_bs_read_int(bs, nal_unit_size*8);
 			u32 offset = (u32) gf_bs_get_position(bs);
 			u8 fzero = gf_bs_read_int(bs, 1);
 			u8 nal_type = gf_bs_read_int(bs, 6);
 			u8 layer_id = orig_layer_id = gf_bs_read_int(bs, 6);
 			u8 temporal_id = gf_bs_read_int(bs, 3);
 
-			if (layer_id && !sti[layer_id].layer_id) {
-				nb_layers++;
-				sti[layer_id].layer_id=layer_id;
+			if (for_temporal_sublayers) {
+				u32 tid = temporal_id-1;
+				if (tid && !sti[tid].layer_id) {
+					sti[tid].layer_id=tid;
+				}
+				layer_id = tid;
+
+				if ((nal_type <= GF_HEVC_NALU_SLICE_CRA)
+					&& (nal_type != GF_HEVC_NALU_SLICE_TSA_N)
+					&& (nal_type != GF_HEVC_NALU_SLICE_TSA_R))
+						sti[layer_id].non_tsa_vcl = GF_TRUE;
+			} else {
+				if (layer_id && !sti[layer_id].layer_id) {
+					sti[layer_id].layer_id=layer_id;
+				}
 			}
-			
-			if (!splitAll) layer_id = 1;
+			if (!splitAll && layer_id) layer_id = 1;
 
 			if (cur_max_layer_id < layer_id) {
 				cur_max_layer_id = layer_id;
 			}
+
 			nal_size = size;
 
 			if (!sti[layer_id].bs)
 				sti[layer_id].bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 
-			gf_bs_write_int(sti[layer_id].bs, size, lhvccfg->nal_unit_size*8);
+			gf_bs_write_int(sti[layer_id].bs, size, nal_unit_size*8);
 			gf_bs_write_int(sti[layer_id].bs, fzero, 1);
 			gf_bs_write_int(sti[layer_id].bs, nal_type, 6);
 			gf_bs_write_int(sti[layer_id].bs, orig_layer_id, 6);
@@ -2284,27 +2328,30 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 			sti[layer_id].layers[layer_id].layer_id_plus_one = layer_id+1;
 			sti[layer_id].temporal_id_sample = temporal_id;
-			
+
 			if (!sti[layer_id].layers[layer_id].min_temporal_id || (sti[layer_id].layers[layer_id].min_temporal_id > temporal_id)) {
 				sti[layer_id].layers[layer_id].min_temporal_id = temporal_id;
 			}
 			if (!sti[layer_id].layers[layer_id].max_temporal_id || (sti[layer_id].layers[layer_id].max_temporal_id < temporal_id)) {
 				sti[layer_id].layers[layer_id].max_temporal_id = temporal_id;
 			}
-			
+
 			if (!sti[layer_id].max_temporal_id_sample || (sti[layer_id].max_temporal_id_sample < temporal_id)) {
 				sti[layer_id].max_temporal_id_sample = temporal_id;
 			}
 
-			if (nal_type==GF_HEVC_NALU_SEQ_PARAM) {
-				u32 lw, lh;
-				s32 idx = gf_hevc_get_sps_info_with_state(&hevc_state, sample->data + offset, nal_size, NULL, &lw, &lh, NULL, NULL);
-				if (lw > sti[layer_id].width) sti[layer_id].width = lw;
-				if (lh > sti[layer_id].height) sti[layer_id].height = lh;
-			} else if (nal_type==GF_HEVC_NALU_PIC_PARAM) {
-				gf_media_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
-			} else if (nal_type==GF_HEVC_NALU_VID_PARAM) {
-				gf_media_hevc_read_vps(sample->data + offset, nal_size, &hevc_state);
+			if (! for_temporal_sublayers) {
+
+				if (nal_type==GF_HEVC_NALU_SEQ_PARAM) {
+					u32 lw, lh;
+					s32 idx = gf_hevc_get_sps_info_with_state(&hevc_state, sample->data + offset, nal_size, NULL, &lw, &lh, NULL, NULL);
+					if (lw > sti[layer_id].width) sti[layer_id].width = lw;
+					if (lh > sti[layer_id].height) sti[layer_id].height = lh;
+				} else if (nal_type==GF_HEVC_NALU_PIC_PARAM) {
+					gf_media_hevc_read_pps(sample->data + offset, nal_size, &hevc_state);
+				} else if (nal_type==GF_HEVC_NALU_VID_PARAM) {
+					gf_media_hevc_read_vps(sample->data + offset, nal_size, &hevc_state);
+				}
 			}
 
 			if (size>nal_alloc_size) {
@@ -2320,13 +2367,16 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		if (cur_max_layer_id>max_layer_id) {
 			max_layer_id = cur_max_layer_id;
 		}
+		if (for_temporal_sublayers && hevccfg->numTemporalLayers>max_layer_id+1) {
+			max_layer_id = hevccfg->numTemporalLayers-1;
+		}
 
 		gf_free(sample->data);
 		sample->data = NULL;
 		sample->dataLength = 0;
 		//reset all samples on all layers found - we may have layers not present in this sample, we still need to process these layers when extractors are used
 		for (j=0; j<=max_layer_id; j++) {
-			if (! sti[j].bs) {
+			if (!for_temporal_sublayers && ! sti[j].bs) {
 				if (!sti[j].track_num || !use_extractors) {
 					sti[j].data_offset =  sti[j].data_size = 0;
 					continue;
@@ -2339,20 +2389,28 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				e = gf_isom_clone_track(file, track, file, GF_FALSE, &sti[j].track_num);
 				if (e) goto exit;
 
-				//happens for inband param
-				if (!sti[j].lhvccfg) {
-					GF_List *backup_list;
-					sti[j].lhvccfg = gf_odf_hevc_cfg_new();
-					backup_list = sti[j].lhvccfg->param_array;
-					memcpy(sti[j].lhvccfg , lhvccfg ? lhvccfg : hevccfg, sizeof(GF_HEVCConfig));
-					sti[j].lhvccfg->param_array = backup_list;
+				if (! for_temporal_sublayers) {
+					//happens for inband param
+					if (!sti[j].lhvccfg) {
+						GF_List *backup_list;
+						sti[j].lhvccfg = gf_odf_hevc_cfg_new();
+						backup_list = sti[j].lhvccfg->param_array;
+						memcpy(sti[j].lhvccfg , lhvccfg ? lhvccfg : hevccfg, sizeof(GF_HEVCConfig));
+						sti[j].lhvccfg->param_array = backup_list;
 
-					sti[j].lhvccfg->is_lhvc = 1;
-					sti[j].lhvccfg->complete_representation = 1;
+						sti[j].lhvccfg->is_lhvc = 1;
+						sti[j].lhvccfg->complete_representation = 1;
+					}
+					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, use_extractors ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
+					if (e) goto exit;
+				} else {
+					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
+					if (e) goto exit;
 				}
-
-				e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, use_extractors ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
-				if (e) goto exit;
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to update HEVC/LHVC config\n"));
+					goto exit;
+				}
 
 				gf_isom_set_track_reference(file, sti[j].track_num, GF_4CC('s','b','a','s'), track_id);
 
@@ -2365,8 +2423,6 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 
-				gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
-
 				//get lower layer
 				if (use_extractors) {
 					for (k=j; k>0; k--) {
@@ -2376,19 +2432,12 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 						}
 					}
 				}
-
-				//add empty sample at DTS 0
-				if (sample->DTS ) {
-					u64 dts = sample->DTS;
-					s32 cts = sample->CTS_Offset;
-					sample->DTS = 0;
-					sample->CTS_Offset = 0;
-					gf_isom_add_sample(file, sti[j].track_num, 1, sample);
-					sample->DTS = dts;
-					sample->CTS_Offset = cts;
-				}
+				
+				if (!for_temporal_sublayers)
+					gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
 			} else {
-				gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
+				if (!for_temporal_sublayers)
+					gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
 			}
 
 			if (j && use_extractors) {
@@ -2399,7 +2448,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					if (!sti[k].data_size)
 						continue;
 					//extractor size 5
-					gf_bs_write_int(xbs, 2*lhvccfg->nal_unit_size + 5, 8*lhvccfg->nal_unit_size);
+					gf_bs_write_int(xbs, 2*nal_unit_size + 5, 8*nal_unit_size);
 					gf_bs_write_int(xbs, 0, 1);
 					gf_bs_write_int(xbs, 49, 6); //extractor
 					gf_bs_write_int(xbs, k, 6);
@@ -2411,8 +2460,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 					// no sample offset
 					gf_bs_write_int(xbs, 0, 8);
 					// data offset: we start from beginning of the sample data, not the extractor
-					gf_bs_write_int(xbs, sti[k].data_offset, 8*lhvccfg->nal_unit_size);
-					gf_bs_write_int(xbs, sti[k].data_size, 8*lhvccfg->nal_unit_size);
+					gf_bs_write_int(xbs, sti[k].data_offset, 8*nal_unit_size);
+					gf_bs_write_int(xbs, sti[k].data_size, 8*nal_unit_size);
 					
 					tid = sti[k].temporal_id_sample;
 					sti[j].layers[k].layer_id_plus_one = sti[k].layer_id+1;
@@ -2431,8 +2480,10 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				//we wrote all our references, store offset for upper layers
 				sti[j].data_offset = sample->dataLength;
 				e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
-				if (e)
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to add HEVC/LHVC sample to track %d\n", sti[j].track_num));
 					goto exit;
+				}
 				gf_free(sample->data);
 				sample->data = NULL;
 
@@ -2440,36 +2491,65 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 				if (sti[j].bs) {
 					gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
 					e = gf_isom_append_sample_data(file, sti[j].track_num, sample->data, sample->dataLength);
-					if (e)
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to append HEVC/LHVC data to sample (track %d)\n", sti[j].track_num));
 						goto exit;
+					}
 				}
 
-			} else {
-				//get sample content
+			}
+			//get sample content
+			else if (sti[j].bs) {
+				//add empty sample at DTS 0
+				if ( ! sti[j].has_samples) {
+					if (sample->DTS) {
+						GF_ISOSample s;
+						memset(&s, 0, sizeof(GF_ISOSample));
+						gf_isom_add_sample(file, sti[j].track_num, 1, &s);
+					}
+					sti[j].has_samples=GF_TRUE;
+				}
 				gf_bs_get_content(sti[j].bs, &sample->data, &sample->dataLength);
 				sti[j].data_offset = 0;
 				sti[j].data_size = sample->dataLength;
 
-
 				//add sample
 				if (j) {
+					SAPType rap = sample->IsRAP;
+					if (for_temporal_sublayers && !sti[j].non_tsa_vcl)
+						sample->IsRAP = RAP;
+
 					e = gf_isom_add_sample(file, sti[j].track_num, 1, sample);
+					sample->IsRAP = rap;
 				} else {
-					e = gf_isom_update_sample(file, sti[j].track_num, i+1, sample, 1);
+					e = gf_isom_update_sample(file, sti[j].track_num, sample_num+1, sample, 1);
 				}
-				if (e)
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to %s HEVC/LHVC sample (track %d, base sample num %d)\n", j ? "add" : "update", sti[j].track_num, sample_num+1));
 					goto exit;
+				}
+			}
+			//no data left in sample, update
+			else if (!j) {
+				e = gf_isom_remove_sample(file, sti[j].track_num, sample_num+1);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to remove HEVC/LHVC sample (track %d)\n", sti[j].track_num));
+					goto exit;
+				}
+				sample_num--;
+				count--;
 			}
 
 			gf_bs_del(sti[j].bs);
 			sti[j].bs = NULL;
 
 			if (sample->IsRAP>SAP_TYPE_1) {
+				u32 sample_idx = gf_isom_get_sample_count(file, sti[j].track_num);
 				if (is_irap) {
-					gf_isom_set_sample_rap_group(file, sti[j].track_num, i+1, 0);
+					gf_isom_set_sample_rap_group(file, sti[j].track_num, sample_idx, 0);
 				}
 				else if (has_roll) {
-					gf_isom_set_sample_roll_group(file, sti[j].track_num, i+1, (s16) roll_distance);
+					gf_isom_set_sample_roll_group(file, sti[j].track_num, sample_idx, (s16) roll_distance);
 				}
 			}
 
@@ -2485,6 +2565,8 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool splitAll, Bool use_
 		for (j=0; j<=max_layer_id; j++) {
 			sti[j].max_temporal_id_sample = 0;
 			sti[j].temporal_id_sample = 0;
+			sti[j].data_size = 0;
+			sti[j].non_tsa_vcl = GF_FALSE;
 		}
 	}
 	
@@ -2528,6 +2610,7 @@ exit:
 		gf_free(data);
 	}
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
+
 	if (use_extractors) {
 		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','e'), 1);
 		gf_isom_modify_alternate_brand(file, GF_4CC('h','v','c','i'), 0);
