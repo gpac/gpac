@@ -170,7 +170,7 @@ void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 
 static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 {
-	u32 i, j;
+	u32 i, j, stride_mul=1;
 	ctx->ES_ID = esd->ESID;
 	ctx->width = ctx->height = ctx->out_size = ctx->luma_bpp = ctx->chroma_bpp = ctx->chroma_format_idc = 0;
 
@@ -299,15 +299,18 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 	//we start decoder on the first frame
 
+	//FIXME - we need to get the views info from the decoder ...
+	if (ctx->nb_views>1) stride_mul = ctx->nb_layers;
+
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
-		ctx->out_size = ctx->nb_layers * ctx->stride * ctx->height * 3 / 2;
+		ctx->out_size = stride_mul * ctx->stride * ctx->height * 3 / 2;
 	}
 	else if ( ctx->chroma_format_idc  == 2) { // 4:2:2
-		ctx->out_size = ctx->stride * ctx->height * 2 ;
+		ctx->out_size = stride_mul * ctx->stride * ctx->height * 2 ;
 	}
 	else if ( ctx->chroma_format_idc  == 3) { // 4:4:4
-		ctx->out_size = ctx->stride * ctx->height * 3;
+		ctx->out_size = stride_mul * ctx->stride * ctx->height * 3;
 	}
 	else {
 		return GF_NOT_SUPPORTED;
