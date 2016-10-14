@@ -321,9 +321,9 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 			if (the_esd) {
 				if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) && (the_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)) {
 					esd->has_scalable_layers = GF_FALSE;
-				} else {
-					the_esd->has_scalable_layers = GF_TRUE;
 				}
+				the_esd->has_scalable_layers = GF_TRUE;
+
 				the_esd->dependsOnESID = cur_ES;
 				gf_list_add(od->ESDescriptors, the_esd);
 			}

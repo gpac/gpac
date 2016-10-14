@@ -184,6 +184,13 @@ void isor_declare_objects(ISOMReader *read)
 						break;
 					}
 				}
+			} else {
+				switch (gf_isom_get_hevc_lhvc_type(read->mov, i+1, 1)) {
+				case GF_ISOM_HEVCTYPE_HEVC_LHVC:
+				case GF_ISOM_HEVCTYPE_LHVC_ONLY:
+					esd->has_scalable_layers = GF_TRUE;
+					break;
+				}
 			}
 			
 			if (!esd->langDesc) {
