@@ -34,6 +34,7 @@
 #ifndef GPAC_DISABLE_AV_PARSERS
 
 #define OPEN_SHVC
+#define LHVC_VIEW_ORDER_INDEX 1
 
 #if defined(WIN32) && !defined(_WIN32_WCE) && !defined(__GNUC__)
 #  pragma comment(lib, "libLibOpenHevcWrapper")
@@ -240,7 +241,7 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 				else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 					s32 idx;
 					idx = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
-					ctx->multiviews = hevc.vps[idx].scalability_mask[1];
+					ctx->multiviews = hevc.vps[idx].scalability_mask[LHVC_VIEW_ORDER_INDEX];
 					}
 				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
