@@ -104,8 +104,11 @@ static void VTBDec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
         CVPixelBufferRelease(ctx->frame);
         ctx->frame = NULL;
     }
-	if (status) ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
-	
+	if (status != kCVReturnSuccess) {
+		ctx->last_error = GF_NON_COMPLIANT_BITSTREAM;
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Decode error - status %d\n", status));
+	}
+
     if (!image) {
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer - status %d\n", status));
         return;
