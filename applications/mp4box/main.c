@@ -1855,7 +1855,7 @@ FILE *logfile = NULL;
 static u32 mpu_seq_number=0;
 static u32 mpu_asset_id_scheme=0;
 static u32 mpu_asset_id_length=0;
-static u8 mpu_asset_id_value[32+1]; /*Assuming worst case (ie: 128 bits coded UUID)*/
+static u8 mpu_asset_id_value[200+1]; /*Assuming worst case (ie: 128 bits coded UUID)*/
 static Bool mmt_autogen=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
