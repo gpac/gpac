@@ -1001,6 +1001,8 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	av_init_packet(&pkt);
 	pkt.data = (uint8_t *)inBuffer;
 	pkt.size = inBufferLength;
+	pkt.dts=0;
+	pkt.pts = *CTS;
 #endif
 
 	*outBufferLength = 0;
@@ -1369,6 +1371,8 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	}
 	pict.data[3] = 0;
 	pict.linesize[3] = 0;
+	*CTS = frame->pkt_pts;
+
 #ifndef FFMPEG_SWSCALE
 	img_convert(&pict, pix_out, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
 #else
