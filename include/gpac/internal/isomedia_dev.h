@@ -173,6 +173,14 @@ enum
 	GF_ISOM_BOX_TYPE_PSSH	= GF_4CC( 'p', 's', 's', 'h' ),
 	GF_ISOM_BOX_TYPE_TENC	= GF_4CC( 't', 'e', 'n', 'c' ),
 
+	//track group
+	GF_ISOM_BOX_TYPE_TRGR	= GF_4CC( 't', 'r', 'g', 'r' ),
+	//track group types
+	GF_ISOM_BOX_TYPE_TRGT	= GF_4CC( 't', 'r', 'g', 't' ),
+	GF_ISOM_BOX_TYPE_MSRC	= GF_4CC( 'm', 's', 'r', 'g' ),
+	GF_ISOM_BOX_TYPE_CSTG	= GF_4CC( 'c', 's', 't', 'g' ),
+	GF_ISOM_BOX_TYPE_STER	= GF_4CC( 's', 't', 'e', 'r' ),
+
 	/*Adobe's protection boxes*/
 	GF_ISOM_BOX_TYPE_ADKM	= GF_4CC( 'a', 'd', 'k', 'm' ),
 	GF_ISOM_BOX_TYPE_AHDR	= GF_4CC( 'a', 'h', 'd', 'r' ),
@@ -598,6 +606,16 @@ typedef struct
 } GF_TrackReferenceBox;
 
 
+typedef struct {
+	GF_ISOM_BOX
+	GF_List *groups;
+} GF_TrackGroupBox;
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+	u32 group_type;
+	u32 track_group_id;
+} GF_TrackGroupTypeBox;
 
 typedef struct
 {
@@ -609,6 +627,7 @@ typedef struct
 	GF_TrackReferenceBox *References;
 	/*meta box if any*/
 	struct __tag_meta_box *meta;
+	GF_TrackGroupBox *groups;
 
 	GF_MovieBox *moov;
 	/*private for media padding*/
@@ -1683,8 +1702,6 @@ typedef struct __tag_meta_box
 	GF_IPMPControlBox *IPMP_control;
 	GF_ItemPropertiesBox *item_props;
 } GF_MetaBox;
-
-
 
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -4526,6 +4543,20 @@ GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ipma_Size(GF_Box *s);
 GF_Err ipma_dump(GF_Box *a, FILE * trace);
+
+GF_Box *trgr_New();
+void trgr_del(GF_Box *s);
+GF_Err trgr_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trgr_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err trgr_Size(GF_Box *s);
+GF_Err trgr_dump(GF_Box *a, FILE * trace);
+
+GF_Box *trgt_New(u32 boxType);
+void trgt_del(GF_Box *s);
+GF_Err trgt_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err trgt_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err trgt_Size(GF_Box *s);
+GF_Err trgt_dump(GF_Box *a, FILE * trace);
 
 
 #endif /*GPAC_DISABLE_ISOM*/

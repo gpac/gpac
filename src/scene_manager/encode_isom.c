@@ -76,7 +76,7 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 	}
 	/*set track interleaving ID*/
 	if (mux) {
-		if (mux->GroupID) gf_isom_set_track_group(mp4, track, mux->GroupID);
+		if (mux->GroupID) gf_isom_set_track_interleaving_group(mp4, track, mux->GroupID);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (mux->import_flags & GF_IMPORT_USE_COMPACT_SIZE)
 			gf_isom_use_compact_size(mp4, track, 1);

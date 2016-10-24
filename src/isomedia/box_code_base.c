@@ -6758,6 +6758,10 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 			ptr->Media = (GF_MediaBox *)a;
 		((GF_MediaBox *)a)->mediaTrack = ptr;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_TRGR:
+		if (ptr->groups) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->groups = (GF_TrackGroupBox *)a;
+		return GF_OK;
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -6821,6 +6825,10 @@ GF_Err trak_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->meta, bs);
 		if (e) return e;
 	}
+	if (ptr->groups) {
+		e = gf_isom_box_write((GF_Box *) ptr->groups, bs);
+		if (e) return e;
+	}
 	if (ptr->udta) {
 		e = gf_isom_box_write((GF_Box *) ptr->udta, bs);
 		if (e) return e;
@@ -6865,6 +6873,11 @@ GF_Err trak_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) ptr->meta);
 		if (e) return e;
 		ptr->size += ptr->meta->size;
+	}
+	if (ptr->groups) {
+		e = gf_isom_box_size((GF_Box *) ptr->groups);
+		if (e) return e;
+		ptr->size += ptr->groups->size;
 	}
 	return GF_OK;
 }
@@ -9419,3 +9432,115 @@ GF_Box *prft_New()
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+
+GF_Box *trgr_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackGroupBox, GF_ISOM_BOX_TYPE_TRGR);
+	tmp->groups = gf_list_new();
+	if (!tmp->groups) {
+		gf_free(tmp);
+		return NULL;
+	}
+	return (GF_Box *)tmp;
+}
+
+void trgr_del(GF_Box *s)
+{
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *)s;
+	if (ptr == NULL) return;
+	gf_isom_box_array_del(ptr->groups);
+	gf_free(ptr);
+}
+
+
+GF_Err trgr_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *)s;
+	return gf_list_add(ptr->groups, a);
+}
+
+
+GF_Err trgr_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_read_box_list(s, bs, trgr_AddBox);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+
+GF_Err trgr_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	return gf_isom_box_array_write(s, ptr->groups, bs);
+}
+
+GF_Err trgr_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	return gf_isom_box_array_size(s, ptr->groups);
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *trgt_New(u32 boxType)
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackGroupTypeBox, GF_ISOM_BOX_TYPE_TRGT);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	tmp->group_type = boxType;
+	return (GF_Box *)tmp;
+}
+
+void trgt_del(GF_Box *s)
+{
+	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+GF_Err trgt_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *)s;
+	gf_isom_full_box_read(s, bs);
+	ptr->track_group_id = gf_bs_read_u32(bs);
+	ptr->size-=4;
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err trgt_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	s->type = ptr->group_type;
+	e = gf_isom_full_box_write(s, bs);
+	s->type = GF_ISOM_BOX_TYPE_TRGT;
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->track_group_id);
+	return GF_OK;
+}
+
+GF_Err trgt_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size+= 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+

@@ -474,7 +474,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_isom_add_sample(mp4file, odT, 1, samp);
 	gf_isom_sample_del(&samp);
 
-	gf_isom_set_track_group(mp4file, odT, 1);
+	gf_isom_set_track_interleaving_group(mp4file, odT, 1);
 
 	/*create the BIFS track*/
 	bifsT = gf_isom_new_track(mp4file, bifsID, GF_ISOM_MEDIA_SCENE, gf_isom_get_timescale(mp4file));
@@ -539,7 +539,7 @@ GF_Err gf_media_make_isma(GF_ISOFile *mp4file, Bool keepESIDs, Bool keepImage, B
 	gf_isom_add_sample(mp4file, bifsT, 1, samp);
 	samp->data = NULL;
 	gf_isom_sample_del(&samp);
-	gf_isom_set_track_group(mp4file, bifsT, 1);
+	gf_isom_set_track_interleaving_group(mp4file, bifsT, 1);
 
 	gf_isom_set_track_enabled(mp4file, bifsT, 1);
 	gf_isom_set_track_enabled(mp4file, odT, 1);

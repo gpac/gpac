@@ -990,7 +990,7 @@ typedef struct __tag_isom_hinter GF_RTPHinter;
  *	\param hint_flags RTP flags as defined in <gpac/ietf.h>
  *	\param PayloadID RTP payload ID, can be set to 0 for auto compute
  *	\param copy_media if set, media is copied inside the hint samples, otherwise only referenced from the media track
- *	\param InterleaveGroupID sets the group ID of this track for interleaving - same semantics as in gf_isom_set_track_group
+ *	\param InterleaveGroupID sets the group ID of this track for interleaving - same semantics as in gf_isom_set_track_interleaving_group
  *	\param InterleaveGroupPriority sets the group priority of this track for interleaving - same semantics as in gf_isom_set_track_priority_in_group
  *	\param e output error code if any
  *	\return the hinter object

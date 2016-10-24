@@ -1451,7 +1451,7 @@ GF_Err gf_isom_set_sync_shadow(GF_ISOFile *the_file, u32 trackNumber, u32 sample
 /*set the GroupID of a track (only used for optimized interleaving). By setting GroupIDs
 you can specify the storage order for media data of a group of streams. This is useful
 for BIFS presentation so that static resources of the scene can be downloaded before BIFS*/
-GF_Err gf_isom_set_track_group(GF_ISOFile *the_file, u32 trackNumber, u32 GroupID);
+GF_Err gf_isom_set_track_interleaving_group(GF_ISOFile *the_file, u32 trackNumber, u32 GroupID);
 
 /*set the priority of a track within a Group (used for optimized interleaving and hinting).
 This allows tracks to be stored before other within a same group, for instance the
@@ -2460,6 +2460,10 @@ GF_Err gf_isom_remove_sample_group(GF_ISOFile *movie, u32 track, u32 grouping_ty
 
 //tags the sample in the grouping adds the given blob as a sample group description of the given grouping type. If default is set, the sample grouping will be marked as default
 GF_Err gf_isom_add_sample_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 grouping_type, u32 sampleGroupDescriptionIndex, u32 grouping_type_parameter);
+
+
+//sets track in group of type group_type and id track_group_id. If do_add is GF_FALSE, track is removed from that group
+GF_Err gf_isom_set_track_group(GF_ISOFile *file, u32 track_number, u32 track_group_id, u32 group_type, Bool do_add);
 
 #endif
 
