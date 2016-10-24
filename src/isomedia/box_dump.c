@@ -327,6 +327,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return subs_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_RVCC:
 		return rvcc_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRGR:
+		return trgr_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TRGT:
+		return trgt_dump(a, trace);
 
 	case GF_ISOM_BOX_TYPE_VOID:
 		return void_dump(a, trace);
@@ -1096,6 +1100,7 @@ GF_Err trak_dump(GF_Box *a, FILE * trace)
 	if (p->meta) gf_box_dump(p->meta, trace);
 	if (p->editBox) gf_box_dump(p->editBox, trace);
 	if (p->Media) gf_box_dump(p->Media, trace);
+	if (p->groups) gf_box_dump(p->groups, trace);
 	if (p->udta) gf_box_dump(p->udta, trace);
 	gf_box_dump_done("TrackBox", a, trace);
 	return GF_OK;
@@ -5001,6 +5006,30 @@ GF_Err ipma_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "</AssociationEntry>\n");
 	}
 	gf_box_dump_done("ItemPropertyAssociationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err trgr_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrackGroupBox *ptr = (GF_TrackGroupBox *) a;
+	fprintf(trace, "<TrackGroupBox>\n");
+	DumpBox(a, trace);
+	gf_box_array_dump(ptr->groups, trace);
+	gf_box_dump_done("TrackGroupBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err trgt_dump(GF_Box *a, FILE * trace)
+{
+	GF_TrackGroupTypeBox *ptr = (GF_TrackGroupTypeBox *) a;
+	fprintf(trace, "<TrackGroupTypeBox track_group_id=\"%d\">\n", ptr->track_group_id);
+
+	a->type=ptr->group_type;
+	DumpBox(a, trace);
+	a->type=GF_ISOM_BOX_TYPE_TRGT;
+
+	gf_full_box_dump((GF_Box *)a, trace);
+	gf_box_dump_done("TrackGroupTypeBox", a, trace);
 	return GF_OK;
 }
 

@@ -6834,6 +6834,10 @@ next_nal:
 	) {
 		gf_lhevc_set_operating_points_information(import->dest, hevc_base_track, track, &hevc.vps[cur_vps_id], max_temporal_id);
 		gf_lhevc_set_layer_information(import->dest, track, &linf[0]);
+
+		//sets track in group of type group_type and id track_group_id. If do_add is GF_FALSE, track is removed from that group
+		e = gf_isom_set_track_group(import->dest, track, 1000+gf_isom_get_track_id(import->dest, track), GF_ISOM_BOX_TYPE_CSTG, GF_TRUE);
+
 	}
 
 exit:

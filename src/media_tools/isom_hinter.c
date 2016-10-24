@@ -634,12 +634,12 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 	tmp->bandwidth = bandwidth;
 
 	/*set interleaving*/
-	gf_isom_set_track_group(file, TrackNum, InterleaveGroupID);
+	gf_isom_set_track_interleaving_group(file, TrackNum, InterleaveGroupID);
 	if (!copy_media) {
 		/*if we don't copy data set hint track and media track in the same group*/
-		gf_isom_set_track_group(file, tmp->HintTrack, InterleaveGroupID);
+		gf_isom_set_track_interleaving_group(file, tmp->HintTrack, InterleaveGroupID);
 	} else {
-		gf_isom_set_track_group(file, tmp->HintTrack, InterleaveGroupID + OFFSET_HINT_GROUP_ID);
+		gf_isom_set_track_interleaving_group(file, tmp->HintTrack, InterleaveGroupID + OFFSET_HINT_GROUP_ID);
 	}
 	/*use user-secified priority*/
 	InterleaveGroupPriority*=2;

@@ -954,7 +954,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_chapter) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sync_shadows) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_sync_shadow) )
-#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_interleaving_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_priority_in_group) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_max_samples_per_chunk) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_extraction_slc) )
@@ -1024,6 +1024,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_add_sample_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_copy_sample_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample_group) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_group) )
+
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_setup_hint_track) )

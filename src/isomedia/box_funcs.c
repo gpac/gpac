@@ -850,6 +850,13 @@ GF_Box *gf_isom_box_new(u32 boxType)
 
 	case GF_ISOM_BOX_TYPE_PRFT:
 		return prft_New();
+	case GF_ISOM_BOX_TYPE_TRGR:
+		return trgr_New();
+	case GF_ISOM_BOX_TYPE_TRGT:
+	case GF_ISOM_BOX_TYPE_MSRC:
+	case GF_ISOM_BOX_TYPE_CSTG:
+	case GF_ISOM_BOX_TYPE_STER:
+		return trgt_New(boxType);
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
@@ -1538,6 +1545,13 @@ void gf_isom_box_del(GF_Box *a)
 		prft_del(a);
 		return;
 
+	case GF_ISOM_BOX_TYPE_TRGR:
+		trgr_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_TRGT:
+		trgt_del(a);
+		return;
+
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
 		metx_del(a);
@@ -2050,6 +2064,11 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_PRFT:
 		return prft_Read(a, bs);
 
+	case GF_ISOM_BOX_TYPE_TRGR:
+		return trgr_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TRGT:
+		return trgt_Read(a, bs);
+
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
 		return metx_Read(a, bs);
@@ -2539,6 +2558,11 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return subs_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_RVCC:
 		return rvcc_Write(a, bs);
+
+	case GF_ISOM_BOX_TYPE_TRGR:
+		return trgr_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TRGT:
+		return trgt_Write(a, bs);
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
@@ -3034,6 +3058,11 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return subs_Size(a);
 	case GF_ISOM_BOX_TYPE_RVCC:
 		return rvcc_Size(a);
+
+	case GF_ISOM_BOX_TYPE_TRGR:
+		return trgr_Size(a);
+	case GF_ISOM_BOX_TYPE_TRGT:
+		return trgt_Size(a);
 
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
