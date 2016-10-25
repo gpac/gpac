@@ -1036,13 +1036,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	u32 push_time;
 #endif
 
-	if (txh->stream) {
-		gf_mo_get_nb_views(txh->stream, &nb_views);
-		gf_mo_get_nb_layers(txh->stream, &nb_layers);
-	}
-	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
-	else if (nb_layers) nb_frames = nb_layers;
-
 	if (for2d) {
 		Bool load_tx = 0;
 		if (!txh->data) return 0;
@@ -1093,6 +1086,13 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		txh->tx_io->flags &= ~TX_EMULE_FIRST_LOAD;
 		first_load = 1;
 	}
+	
+	if (txh->stream) {
+		gf_mo_get_nb_views(txh->stream, &nb_views);
+		gf_mo_get_nb_layers(txh->stream, &nb_layers);
+	}
+	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
+	else if (nb_layers) nb_frames = nb_layers;
 
 	if (txh->tx_io->flags & TX_EMULE_POW2) {
 		w = txh->tx_io->conv_w;
@@ -1463,7 +1463,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 {
 	Bool ret = 0;
 	gf_mx_init(*mx);
-
+#ifndef GPAC_DISABLE_3D
 	u32 nb_views;
 	gf_mo_get_nb_views(txh->stream, &nb_views);
 
@@ -1474,7 +1474,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
 		ret = 1;
 	}
-
+#endif
 	/*flip image if requested*/
 	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) && !(txh->tx_io->flags & TX_IS_FLIPPED) && !for_picking) {
 		/*flip it*/
