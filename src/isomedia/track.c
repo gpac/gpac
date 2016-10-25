@@ -1137,8 +1137,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				entry = (GF_MPEGSampleEntryBox*) ac3;
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
-				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
 				if (!entry_a) return GF_OUT_OF_MEM;
+				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
 				entry_a->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
 				entry_a->esd->desc = esd;
 				//type cast possible now
