@@ -599,6 +599,9 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 		if (!strcmp(sec_name, "Audio") && !strcmp(key_name, "Filter")) {
 			gf_sc_reload_audio_filters(term->compositor);
 		}
+		if (!strcmp(sec_name, "Compositor") && !strcmp(key_name, "StereoType")) {
+			gf_sc_reload_config(term->compositor);
+		}
 	}
 	SMJS_FREE(c, sec_name);
 	SMJS_FREE(c, key_name);

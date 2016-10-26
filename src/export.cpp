@@ -1895,6 +1895,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_audio_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_audio_stop) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_sc_audio_restart) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_sc_reload_config) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_font_manager_set_font) )

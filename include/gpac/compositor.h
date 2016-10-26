@@ -182,6 +182,8 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor);
 
 Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri);
 
+void gf_sc_reload_config(GF_Compositor *compositor);
+
 /*! @} */
 
 #ifdef __cplusplus
