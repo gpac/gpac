@@ -1179,6 +1179,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 	return GF_OK;
 }
 
+GF_EXPORT
 void gf_sc_reload_config(GF_Compositor *compositor)
 {
 	const char *sOpt;
@@ -1436,6 +1437,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		compositor->visual->nb_views = 1;
 		gf_cfg_set_key(compositor->user->config, "Compositor", "NumViews", "1");
 	}
+
+	if ((compositor->visual->autostereo_type!=GF_3D_STEREO_NONE) && (compositor->visual->autostereo_type <= GF_3D_STEREO_HEADSET)) {
+		compositor->visual->nb_views = 2;
+	}
+
 	if (compositor->visual->autostereo_type)
 		compositor->force_opengl_2d = 1;
 

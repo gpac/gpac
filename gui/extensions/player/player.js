@@ -45,7 +45,8 @@ extension = {
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
-	
+	view_stereo: false,
+
     stats_wnd: null,
     stats_data: [],
     stats_window: 100,
@@ -780,9 +781,10 @@ extension = {
                     full_w += control_icon_size;
 				
 					wnd.navigate.on_click = function () {
-						var sensors_active = gpac.sensors_active;
-						gpac.sensors_active = !sensors_active;
-						this.switch_icon(sensors_active ? 1 : 0);
+//						var sensors_active = gpac.sensors_active;
+//						gpac.sensors_active = !sensors_active;
+//						this.switch_icon(sensors_active ? 1 : 0);
+                        this.extension.select_navigation_vr();
 					}
 				} else if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
                     show_navigate = true;
@@ -1452,6 +1454,32 @@ extension = {
         this.buffer_wnd.txt.set_label('Buffering ' + level + ' %');
     },
 
+    select_navigation_vr: function () {
+        var sensors_active = gpac.sensors_active;
+        var extension = this;
+//                      gpac.sensors_active = !sensors_active;
+//                      this.switch_icon(sensors_active ? 1 : 0);
+  
+        var nb_items = 0;
+        if (this.navigation_wnd) {
+            this.navigation_wnd.close();
+            return;
+        }
+        var wnd = gw_new_popup(this.controler.navigate, 'up');
+        this.navigation_wnd = wnd;
+        wnd.extension = this;
+
+        wnd.on_close = function () {
+            this.extension.navigation_wnd = null;
+        }
+        wnd.add_menu_item(sensors_active ? "Keyboard+mouse" : "Sensors", function () { gpac.sensors_active = !sensors_active; } );
+        wnd.add_menu_item(this.view_stereo ? "Mono" : "Stereo", function () { extension.view_stereo = ! extension.view_stereo; gpac.set_option("Compositor", "StereoType", extension.view_stereo ? "StereoHeadset" : "None");  } );
+        
+        wnd.on_display_size(gw_display_width, gw_display_height);
+        wnd.show();
+
+    },
+
     select_navigation_type: function () {
         var nb_items = 0;
         var type = gpac.navigation;
@@ -1597,10 +1625,11 @@ extension = {
 			this.extension.medialist_wnd = wnd;
 			wnd.extension = this.extension;
 			
-			wnd.on_close = function () {
-				this.extension.medialist_wnd = null;
-			}
-			
+            //todo - cleanup the rest of the code to use closures to pass the extension object
+			wnd.on_close = ( function (e) {
+                return function () { e.medialist_wnd = null; }
+			} ) (extension);
+
 			wnd.make_item = function (text, obj) {
 				wnd.add_menu_item(text, function () {
 								  obj.select()
