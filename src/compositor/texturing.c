@@ -126,6 +126,7 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
 		txh->needs_release = 0;
+		txh->frame = NULL;
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
 	if (gf_mo_stop(txh->stream)) {
@@ -194,8 +195,10 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	/*should never happen!!*/
-	if (txh->needs_release)
+	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+		txh->frame=NULL;
+	}
 
 	/*check init flag*/
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
@@ -232,6 +235,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	/*if no frame or muted don't draw*/
 	if (!txh->data || !size) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Visual Texture] No output frame available \n"));
+		assert(!txh->frame);
+
 		/*TODO - check if this is needed */
 		if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 			//txh->needs_refresh = 1;
@@ -293,6 +298,8 @@ void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 		assert(txh->stream);
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
+		txh->frame = NULL;
+
 	}
 	txh->needs_refresh = 0;
 }

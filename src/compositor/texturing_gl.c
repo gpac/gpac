@@ -1141,20 +1141,21 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					txh->tx_io->use_external_textures = GF_TRUE;
 				}
 					
-				txh->frame->GetGLTexture(txh->frame, 0, &gl_format, &txh->tx_io->id);
-				glBindTexture(GL_TEXTURE_2D, txh->tx_io->id);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				if (txh->frame->GetGLTexture(txh->frame, 0, &gl_format, &txh->tx_io->id) == GF_OK) {
+					glBindTexture(GL_TEXTURE_2D, txh->tx_io->id);
+					GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+					GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+					GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+					GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-				txh->frame->GetGLTexture(txh->frame, 1, &gl_format, &txh->tx_io->u_id);
-				glBindTexture(GL_TEXTURE_2D, txh->tx_io->u_id);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-				
+					if (txh->frame->GetGLTexture(txh->frame, 1, &gl_format, &txh->tx_io->u_id) == GF_OK) {
+						glBindTexture(GL_TEXTURE_2D, txh->tx_io->u_id);
+						GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+						GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+						GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+						GLTEXPARAM(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+					}
+				}
 				goto push_exit;
 			}
 			

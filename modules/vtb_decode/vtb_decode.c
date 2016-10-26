@@ -1067,6 +1067,7 @@ GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl
 			return GF_IO_ERR;
 		}
 	}
+	if (! f->ctx->decoded_frames_pending) return GF_IO_ERR;
 	
 	if (!f->ctx->cache_texture) {
 		status = CVOpenGLESTextureCacheCreate(kCFAllocatorDefault, NULL, f->ctx->gl_context, NULL, &f->ctx->cache_texture);
