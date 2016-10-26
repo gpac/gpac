@@ -9431,8 +9431,6 @@ GF_Box *prft_New()
 	return (GF_Box *)tmp;
 }
 
-#endif /*GPAC_DISABLE_ISOM*/
-
 
 GF_Box *trgr_New()
 {
@@ -9544,3 +9542,4 @@ GF_Err trgt_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM*/
