@@ -1264,6 +1264,8 @@ extension = {
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
             this.root_odm = null;
+            this.stats_resources = [];
+            this.nb_objs_at_last_scan = 0;
 
 			var e = {};
 			e.type = GF_JS_EVENT_PLAYBACK;
@@ -1690,7 +1692,7 @@ extension = {
         var ext = this.ext;
         var wnd = ext.stats_wnd;
         var nb_buff = 0;
-        
+
         if (!ext.root_odm) return;
         
         if (ext.nb_objs_at_last_scan != ext.root_odm.nb_resources) {
