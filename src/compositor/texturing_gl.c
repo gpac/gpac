@@ -1034,7 +1034,6 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	GLint tx_mode;
 	u32 pixel_format, w, h, nb_views=1, nb_layers=1, nb_frames=1;
 	u32 push_time;
-#endif
 
 	if (txh->stream) {
 		gf_mo_get_nb_views(txh->stream, &nb_views);
@@ -1042,6 +1041,9 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	}
 	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
 	else if (nb_layers) nb_frames = nb_layers;
+
+#endif
+
 
 	if (for2d) {
 		Bool load_tx = 0;
@@ -1461,10 +1463,13 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh)
 
 Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx, Bool for_picking)
 {
+#ifndef GPAC_DISABLE_3D
+	u32 nb_views=1;
+#endif
 	Bool ret = 0;
 	gf_mx_init(*mx);
 
-	u32 nb_views;
+#ifndef GPAC_DISABLE_3D
 	gf_mo_get_nb_views(txh->stream, &nb_views);
 
 	if (nb_views>1 && !txh->raw_memory){
@@ -1474,6 +1479,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
 		ret = 1;
 	}
+#endif
 
 	/*flip image if requested*/
 	if (! (txh->flags & GF_SR_TEXTURE_NO_GL_FLIP) && !(txh->tx_io->flags & TX_IS_FLIPPED) && !for_picking) {
