@@ -670,6 +670,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	*outBufferLength = 0;
 	openHevcFrame_FL.pvY = (void*) outBuffer;
 	if (ctx->nb_layers==2 && ctx->nb_views>1 && !ctx->direct_output){
+		int out1, out2;
 		if( chromat_format == YUV420){
 			openHevcFrame_SL.pvY = (void*) (outBuffer +  ctx->stride * ctx->height);
 			openHevcFrame_FL.pvU = (void*) (outBuffer + 2*ctx->stride * ctx->height);
@@ -679,9 +680,10 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 		}
 
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
-		int out1 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_FL);
+		out1 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_FL);
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, 1);
-		int out2 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_SL);
+		out2 = libOpenHevcGetOutputCpy(ctx->openHevcHandle, 1, &openHevcFrame_SL);
+		
 		if (out1 && out2) *outBufferLength = ctx->out_size*2;
 
 	}else{
