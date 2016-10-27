@@ -1780,7 +1780,7 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
@@ -3324,7 +3324,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 
 int mp4boxMain(int argc, char **argv)
 {
-	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
+	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
@@ -4174,7 +4174,7 @@ int mp4boxMain(int argc, char **argv)
 			mdump.in_name = inName;
 			mdump.flags = tka->dump_type;
 			mdump.trackID = tka->trackID;
-			mdump.sample_num = raw_sample_num;
+			mdump.sample_num = tka->sample_num;
 			if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
@@ -4294,7 +4294,7 @@ int mp4boxMain(int argc, char **argv)
 			mdump.file = file;
 			mdump.flags = tka->dump_type;
 			mdump.trackID = tka->trackID;
-			mdump.sample_num = raw_sample_num;
+			mdump.sample_num = tka->sample_num;
 			if (tka->out_name) {
 				mdump.out_name = tka->out_name;
 			} else if (outName) {
