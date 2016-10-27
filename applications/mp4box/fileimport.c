@@ -2368,12 +2368,15 @@ GF_Err EncodeFile(char *in, GF_ISOFile *mp4, GF_SMEncodeOptions *opts, FILE *log
 					qp->position3DQuant = 1;
 					qp->textureCoordinateQuant = 1;
 				}
-				if (0 && stats->count_float && opts->resolution) {
+				//float quantif is disabled since 2008, check if we want to re-enable it
+#if 0
+				if (stats->count_float && opts->resolution) {
 					qp->scaleMin = stats->min_fixed;
 					qp->scaleMax = stats->max_fixed;
 					qp->scaleNbBits = 2*opts->resolution;
 					qp->scaleQuant = 1;
 				}
+#endif
 			}
 #endif
 		}
