@@ -410,6 +410,9 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	           || (m_stype==GF_ISOM_SUBTYPE_HEV1)
 	           || (m_stype==GF_ISOM_SUBTYPE_HVC2)
 	           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
+	           || (m_stype==GF_ISOM_SUBTYPE_LHV1)
+	           || (m_stype==GF_ISOM_SUBTYPE_LHE1)
+	           || (m_stype==GF_ISOM_SUBTYPE_HVT1)
 	          ) {
 		strcpy(szEXT, ".hvc");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-H HEVC Visual sample%s", szNum);
@@ -469,6 +472,31 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 
 	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
 		is_stdout = 1;
+
+	gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_TILE_ONLY | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
+
+	if (dumper->sample_num == (u32) -1) {
+		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
+		if (!samp) return GF_BAD_PARAM;
+		if (ext_start) {
+			ext_start[0]=0;
+			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, ext_start+1);
+			ext_start[0]='.';
+		} else {
+			sprintf(szName, "%s_%d%s", dumper->out_name, dumper->sample_num, szEXT);
+		}
+		out = is_stdout ? stdout : gf_fopen(szName, "wb");
+		bs = gf_bs_from_file(out, GF_BITSTREAM_WRITE);
+		gf_isom_sample_del(&samp);
+		gf_bs_del(bs);
+
+		if (!is_stdout)
+			gf_fclose(out);
+		if (dsi)
+			gf_free(dsi);
+		return GF_OK;
+	}
+
 
 	if (dumper->sample_num) {
 		GF_ISOSample *samp = gf_isom_get_sample(dumper->file, track, dumper->sample_num, &di);
@@ -1006,6 +1034,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		           || (m_stype==GF_ISOM_SUBTYPE_HEV2)
 		           || (m_stype==GF_ISOM_SUBTYPE_LHV1)
 		           || (m_stype==GF_ISOM_SUBTYPE_LHE1)
+		           || (m_stype==GF_ISOM_SUBTYPE_HVT1)
 		          ) {
 			hevccfg = gf_isom_hevc_config_get(dumper->file, track, 1);
 			lhvccfg = gf_isom_lhvc_config_get(dumper->file, track, 1);

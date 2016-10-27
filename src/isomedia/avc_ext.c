@@ -54,6 +54,8 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('l','h','e','1'):
 	case GF_4CC('m','h','v','1'):
 	case GF_4CC('m','h','c','1'):
+	case GF_4CC('h','v','t','1'):
+	case GF_4CC('l','h','t','1'):
 		return GF_TRUE;
 	default:
 		return GF_FALSE;
@@ -386,10 +388,15 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	if (!entry->svc_config && !entry->lhvc_config) insert_vdrd_code = GF_FALSE;
 	extractor_mode = mdia->mediaTrack->extractor_mode&0x0000FFFF;
 
-	if (extractor_mode != GF_ISOM_NALU_EXTRACT_INSPECT) {
+	if (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_TILE_ONLY) {
+		insert_nalu_delim = GF_FALSE;
+	}
+
+	track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
+
+	if ( (extractor_mode != GF_ISOM_NALU_EXTRACT_INSPECT) && !(mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_TILE_ONLY) ) {
 		u32 ref_track, di;
 		//aggregate all sabt samples with the same DTS
-		track_num = 1 + gf_list_find(mdia->mediaTrack->moov->trackList, mdia->mediaTrack);
 
 		if (entry->lhvc_config && !entry->hevc_config) {
 			GF_ISOSample *base_samp;
@@ -432,6 +439,15 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				if (tile_samp) gf_isom_sample_del(&tile_samp);
 			}
 		}
+	}
+
+	if ( gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_TBAS) >= 1) {
+		u32 ref_track;
+		u32 idx = gf_list_find(mdia->information->sampleTable->SampleDescription->other_boxes, entry);
+		GF_TrackBox *tbas;
+		gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_TBAS, 1, &ref_track);
+		tbas = (GF_TrackBox *)gf_list_get(mdia->mediaTrack->moov->trackList, ref_track-1);
+		entry = gf_list_get(tbas->Media->information->sampleTable->SampleDescription->other_boxes, idx);
 	}
 
 

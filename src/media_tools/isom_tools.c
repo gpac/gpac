@@ -2813,6 +2813,42 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	gf_isom_hevc_set_tile_config(file, track, 1, hvcc, GF_TRUE);
 	gf_odf_hevc_cfg_del(hvcc);
 
+	//if params sets are inband, get first sps/pps
+	i=0;
+	while ((pps_idx==-1) || (sps_idx==-1)) {
+		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
+		u8 *data = sample->data;
+		u32 size = sample->dataLength;
+
+		while (size) {
+			u8 temporal_id, layer_id;
+			u8 nal_type = 0;
+			u32 nalu_size = 0;
+			s32 ret;
+			GF_BitStream *bs;
+			for (j=0; j<nalu_size_length; j++) {
+				nalu_size = (nalu_size<<8) + data[j];
+			}
+			bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);
+			ret = gf_media_hevc_parse_nalu(bs, &hevc, &nal_type, &temporal_id, &layer_id);
+			gf_bs_del(bs);
+
+			switch (nal_type) {
+			case GF_HEVC_NALU_PIC_PARAM:
+				pps_idx = gf_media_hevc_read_pps(data+nalu_size_length, nalu_size, &hevc);
+				break;
+			case GF_HEVC_NALU_SEQ_PARAM:
+				sps_idx = gf_media_hevc_read_sps(data+nalu_size_length, nalu_size, &hevc);
+				break;
+			case GF_HEVC_NALU_VID_PARAM:
+				gf_media_hevc_read_vps(data+nalu_size_length, nalu_size, &hevc);
+				break;
+			}
+			data += nalu_size + nalu_size_length;
+			size -= nalu_size + nalu_size_length;
+		}
+		gf_isom_sample_del(&sample);
+	}
 
 	if (pps_idx==-1) return GF_BAD_PARAM;
 	if (sps_idx==-1) return GF_BAD_PARAM;
