@@ -1371,7 +1371,7 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	}
 	pict.data[3] = 0;
 	pict.linesize[3] = 0;
-	*CTS = frame->pkt_pts;
+	*CTS = (u32) frame->pkt_pts;
 
 #ifndef FFMPEG_SWSCALE
 	img_convert(&pict, pix_out, (AVPicture *) frame, ctx->pix_fmt, ctx->width, ctx->height);
