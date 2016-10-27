@@ -63,7 +63,6 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
-	echo "Linkflags are $(LINKFLAGS)"
 	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LDFLAGS) $(LINKFLAGS)
 
 clean: 
