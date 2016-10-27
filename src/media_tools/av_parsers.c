@@ -3953,9 +3953,9 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 		}
 	}
 
-	if (vps->max_layers>MAX_LHVC_LAYERS) vps->max_layers = MAX_LHVC_LAYERS; 
-	// why ????
-	for (i = 0; i < vps->max_layers; i++) {
+	//we do the test on MAX_LHVC_LAYERS and break in the loop to avoid a wrong GCC 4.8 warning on array bounds
+	for (i = 0; i < MAX_LHVC_LAYERS; i++) {
+		if (i >= vps->max_layers) break;
 		for (j = 0; j < vps->max_layers; j++) {
 			dependency_flag[i][j] = vps->direct_dependency_flag[i][j];
 			for (k = 0; k < i; k++)
