@@ -2824,13 +2824,12 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			u8 temporal_id, layer_id;
 			u8 nal_type = 0;
 			u32 nalu_size = 0;
-			s32 ret;
 			GF_BitStream *bs;
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
 			bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);
-			ret = gf_media_hevc_parse_nalu(bs, &hevc, &nal_type, &temporal_id, &layer_id);
+			gf_media_hevc_parse_nalu(bs, &hevc, &nal_type, &temporal_id, &layer_id);
 			gf_bs_del(bs);
 
 			switch (nal_type) {
