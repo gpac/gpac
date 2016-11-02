@@ -371,6 +371,7 @@ void PrintDASHUsage()
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
+		" -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
@@ -1854,6 +1855,8 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
+static u32 dash_run_for;
+static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3144,6 +3147,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-dash-run-for")) {
+			CHECK_NEXT_ARG
+			dash_run_for = atoi(argv[i + 1]);
+			i++;
+		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i + 1];
@@ -3923,7 +3931,13 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 		}
 
+		dash_cumulated_time=0;
+
 		while (1) {
+			if(dash_cumulated_time>dash_run_for)
+				do_abort = 3;
+
+			dash_prev_time=gf_sys_clock();
 			if (do_abort>=2) {
 				e = gf_dasher_set_dynamic_mode(dasher, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, mpd_live_duration);
 			}
@@ -3970,7 +3984,9 @@ int mp4boxMain(int argc, char **argv)
 					gf_sleep(1);
 					sleep_for = gf_dasher_next_update_time(dasher);
 					if (sleep_for<1) {
-						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
+						dash_now_time=gf_sys_clock();
+						fprintf(stderr, "Slept for %d ms before generation\n", dash_now_time - slept);
+						dash_cumulated_time+=(dash_now_time-dash_prev_time);
 						break;
 					}
 				}
