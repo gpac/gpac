@@ -104,8 +104,11 @@ void isor_declare_objects(ISOMReader *read)
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_TEXT:
 		case GF_ISOM_MEDIA_SUBT:
-		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_SUBPIC:
+			break;
+		case GF_ISOM_MEDIA_SCENE:
+		case GF_ISOM_MEDIA_OD:
+			if (read->no_service_desc) continue;
 			break;
 		default:
 			continue;
