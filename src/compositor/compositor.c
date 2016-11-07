@@ -1457,6 +1457,15 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		break;
 	}
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "FramePacking");
+	if (!sOpt) {
+		sOpt = "None";
+		gf_cfg_set_key(compositor->user->config, "Compositor", "FramePacking", "None");
+	}
+	if (!strcmp(sOpt, "Side")) compositor->frame_packing = GF_3D_STEREO_SIDE;
+	else if (!strcmp(sOpt, "Top")) compositor->frame_packing = GF_3D_STEREO_TOP;
+	else compositor->frame_packing = GF_3D_STEREO_NONE;
+
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "CameraLayout");
 	if (!sOpt) {
 		sOpt = "Straight";

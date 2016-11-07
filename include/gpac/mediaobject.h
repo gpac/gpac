@@ -192,7 +192,6 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo);
 GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
 
 
-
 typedef struct
 {
 	u32 vr_type;

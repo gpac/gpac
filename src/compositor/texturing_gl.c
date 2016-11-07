@@ -1480,6 +1480,14 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
 		ret = 1;
 	}
+
+	if (txh->stream && (txh->compositor->frame_packing==GF_3D_STEREO_TOP)) {
+		if ((txh->compositor->visual->current_view % 2 != 0) && !txh->compositor->multiview_mode) {
+			gf_mx_add_translation(mx, 0, 0.5f, 0);
+		}
+		gf_mx_add_scale(mx, FIX_ONE, 0.5f, FIX_ONE);
+		ret = 1;
+	}
 #endif
 
 	/*flip image if requested*/
