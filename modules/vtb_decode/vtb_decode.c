@@ -1161,6 +1161,11 @@ GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFra
 
 static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
 {
+#ifdef GPAC_IPHONE
+	u32 ret_val_OK = GF_CODEC_SUPPORTED * 2;
+#else
+	u32 ret_val_OK = GF_CODEC_MAYBE_SUPPORTED;
+#endif
 	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
 	/*media type query*/
 	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
@@ -1189,10 +1194,10 @@ static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *e
 			gf_odf_avc_cfg_del(cfg);
 			if (!cp_ok) return GF_CODEC_PROFILE_NOT_SUPPORTED;
 		}
-		return GF_CODEC_SUPPORTED * 2;
+		return ret_val_OK;
 
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
-		return GF_CODEC_SUPPORTED * 2;
+		return ret_val_OK;
 
 	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
 	case GPAC_OTI_VIDEO_MPEG2_MAIN:
@@ -1204,7 +1209,7 @@ static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *e
 #ifdef GPAC_IPHONE
 		return GF_CODEC_NOT_SUPPORTED;
 #else
-		return GF_CODEC_SUPPORTED * 2;
+		return ret_val_OK;
 #endif
 
 	//cannot make it work on ios and OSX version seems buggy (wrong frame output order)
@@ -1214,7 +1219,7 @@ static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *e
 	case GPAC_OTI_MEDIA_GENERIC:
 		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->dataLength) {
 			char *dsi = esd->decoderConfig->decoderSpecificInfo->data;
-			if (!strnicmp(dsi, "s263", 4)) return GF_CODEC_SUPPORTED*2;
+			if (!strnicmp(dsi, "s263", 4)) return ret_val_OK;
 		}
 	}
 	return GF_CODEC_NOT_SUPPORTED;
