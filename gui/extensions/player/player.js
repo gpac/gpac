@@ -5,6 +5,10 @@ extension = {
     GF_STATE_STOP: 2,
     GF_STATE_TRICK: 3,
 
+    GF_VIEW_MONO: 0,
+    GF_VIEW_STEREO: 1,
+    GF_VIEW_STEREO_SIDE: 2,
+    GF_VIEW_STEREO_TOP: 3,
 
     movie: null,
     movie_control: null,
@@ -45,7 +49,7 @@ extension = {
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
-	view_stereo: false,
+	view_stereo: 0,
 
     stats_wnd: null,
     stats_data: [],
@@ -320,6 +324,7 @@ extension = {
             e.type = GF_EVENT_SCENE_SIZE;
             e.width = evt.width;
             e.height = evt.height;
+            gwlog(l_err, "scene size is "+evt.width+"x"+evt.height);
             gwlib_filter_event(e);
         }
 
@@ -1475,7 +1480,36 @@ extension = {
             this.extension.navigation_wnd = null;
         }
         wnd.add_menu_item(sensors_active ? "Keyboard+mouse" : "Sensors", function () { gpac.sensors_active = !sensors_active; } );
-        wnd.add_menu_item(this.view_stereo ? "Mono" : "Stereo", function () { extension.view_stereo = ! extension.view_stereo; gpac.set_option("Compositor", "StereoType", extension.view_stereo ? "StereoHeadset" : "None");  } );
+
+        if (this.view_stereo==extension.GF_VIEW_MONO) {
+            wnd.add_menu_item("Stereo", function () {
+                extension.view_stereo = extension.GF_VIEW_STEREO; 
+                gpac.set_option("Compositor", "FramePacking", "None"); 
+                gpac.set_option("Compositor", "StereoType", "StereoHeadset"); 
+              }
+             );
+        } else if (this.view_stereo==extension.GF_VIEW_STEREO) {
+            wnd.add_menu_item("Stereo Side", function () {
+               extension.view_stereo = extension.GF_VIEW_STEREO_SIDE;
+               gpac.set_option("Compositor", "Framepacking", "Side");
+               gpac.set_option("Compositor", "StereoType", "StereoHeadset");
+              }
+             );
+        } else if (this.view_stereo==extension.GF_VIEW_STEREO_SIDE) {
+            wnd.add_menu_item("Stereo Top", function () {
+                 extension.view_stereo = extension.GF_VIEW_STEREO_TOP;
+                 gpac.set_option("Compositor", "FramePacking", "Top");  
+                 gpac.set_option("Compositor", "StereoType", "StereoHeadset");  
+                }
+            );
+        } else {
+            wnd.add_menu_item("Mono", function () {
+                extension.view_stereo = extension.GF_VIEW_MONO;
+                gpac.set_option("Compositor", "FramePacking", "None");  
+                gpac.set_option("Compositor", "StereoType", "None");  
+            }
+            );
+        }
         
         wnd.on_display_size(gw_display_width, gw_display_height);
         wnd.show();

@@ -82,6 +82,31 @@ enum
 };
 
 
+enum
+{
+	GF_3D_STEREO_NONE = 0,
+	GF_3D_STEREO_TOP,
+	GF_3D_STEREO_SIDE,
+	GF_3D_STEREO_HEADSET,
+
+	GF_3D_STEREO_LAST_SINGLE_BUFFER = GF_3D_STEREO_HEADSET,
+
+	/*all modes above GF_3D_STEREO_LAST_SINGLE_BUFFER require shaders and textures for view storage*/
+
+	/*custom interleaving using GLSL shaders*/
+	GF_3D_STEREO_CUSTOM,
+	/*some built-in interleaving modes*/
+	/*each pixel correspond to a different view*/
+	GF_3D_STEREO_COLUMNS,
+	GF_3D_STEREO_ROWS,
+	/*special case of sub-pixel interleaving for 2 views*/
+	GF_3D_STEREO_ANAGLYPH,
+	/*SpatialView 19'' 5views interleaving*/
+	GF_3D_STEREO_5VSP19,
+	/*Alioscopy 8 views interleaving*/
+	GF_3D_STEREO_8VALIO
+};
+
 
 /*forward definition of the visual manager*/
 typedef struct _visual_manager GF_VisualManager;
@@ -506,6 +531,8 @@ struct __tag_compositor
 	Bool shader_only_mode;
 #endif
 
+	//force video frame packing (0=no packing or GF_3D_STEREO_SIDE or GF_3D_STEREO_TOP)
+	u32 frame_packing;
 
 #ifdef GPAC_USE_TINYGL
 	void *tgl_ctx;

@@ -1029,12 +1029,17 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 		d = (pixel_ar) & 0x0000FFFF;
 		*w = (*w * n) / d;
 	}
+	if (mo->odm) {
+		if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_TOP) *h /= 2;
+		else if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_SIDE) *w /= 2;
+	}
 }
 
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
 {
 	u32 w, h;
 	gf_scene_get_video_size(mo, &w, &h);
+
 	if (w && h) gf_scene_force_size(scene, w, h);
 }
 
@@ -2100,7 +2105,11 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				width = com.par.width;
 				height = com.par.height;
 			}
-			gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+			if (scene->vr_type) {
+				gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
+			} else {
+				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+			}
 			scene->force_size_set = 1;
 		} else {
 			u32 w, h;
@@ -2113,6 +2122,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				devt.type = GF_EVENT_SCENE_SIZE;
 				devt.screen_rect.width = INT2FIX(width);
 				devt.screen_rect.height = INT2FIX(height);
+
 				devt.key_flags = scene->is_dynamic_scene ? (scene->vr_type ? 2 : 1) : 0;
 
 				gf_scene_notify_event(scene, GF_EVENT_SCENE_SIZE, NULL, &devt, GF_OK, GF_FALSE);
@@ -2133,8 +2143,12 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			}
 		}
 	}
-	gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
 
+	if (scene->vr_type) {
+		gf_sg_set_scene_size_info(scene->graph, 0, 0, GF_TRUE);
+	} else {
+		gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
+	}
 	if (scene->is_srd)
 		gf_scene_regenerate(scene);
 
