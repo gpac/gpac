@@ -757,6 +757,7 @@ if [ $rv -gt 2 ] ; then
  echo " Return Value $rv - re-executing without GNU TIME" >> $log_subtest
  $1 >> $log_subtest 2>&1
  rv=$?
+ echo " Done re-executing $1 - return value is $rv " >> $log_subtest 
 fi
 
 #regular error, check if this is a negative test.
