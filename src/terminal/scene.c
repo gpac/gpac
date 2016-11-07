@@ -1029,10 +1029,12 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 		d = (pixel_ar) & 0x0000FFFF;
 		*w = (*w * n) / d;
 	}
+#ifndef GPAC_DISABLE_3D
 	if (mo->odm) {
 		if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_TOP) *h /= 2;
 		else if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_SIDE) *w /= 2;
 	}
+#endif
 }
 
 void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo)
