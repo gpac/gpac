@@ -73,6 +73,9 @@ typedef struct
 	Bool needs_clear;
 	Bool needs_bb_flush;
 	Bool needs_bb_grab;
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+	Bool disable_vsync;
+#endif
 
 	SDL_GLContext gl_context;
 	SDL_Renderer *renderer;

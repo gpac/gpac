@@ -703,6 +703,15 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 #endif
 
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+		{
+			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
+			if (opt && !strcmp(opt, "yes")) {
+				ctx->disable_vsync = GF_TRUE;
+			}
+		}
+#endif
+
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", 0, 0, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
@@ -789,8 +798,9 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		if ( !ctx->renderer ) {
 			u32 flags = SDL_RENDERER_ACCELERATED;
 			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-			if (!opt || strcmp(opt, "yes"))
+			if (!opt || strcmp(opt, "yes")) {
 				flags |= SDL_RENDERER_PRESENTVSYNC;
+			}
 
 
 			if (!(ctx->renderer = SDL_CreateRenderer(ctx->screen, -1, flags))) {
@@ -1474,6 +1484,11 @@ static GF_Err SDLVid_LockBackBuffer(GF_VideoOutput *dr, GF_VideoSurface *video_i
 
 #if SDL_VERSION_ATLEAST(2,0,0)
 
+//for CGLSetParameter
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+#include <OpenGL/OpenGL.h>
+#endif
+
 static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	SDLVID();
@@ -1483,6 +1498,15 @@ static GF_Err SDLVid_Flush(GF_VideoOutput *dr, GF_Window *dest)
 	//GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Flush\n"));
 
 	if (ctx->output_3d_type==1) {
+		//with SDL2 we have to disable vsync by overriding swap interval
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+		if (ctx->disable_vsync) {
+			GLint sync = 0;
+			CGLContextObj gl_ctx = CGLGetCurrentContext();
+			CGLSetParameter(gl_ctx, kCGLCPSwapInterval, &sync);
+		}
+#endif
+
 		SDL_GL_SwapWindow(ctx->screen);
 		return GF_OK;
 	}
