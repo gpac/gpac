@@ -15,37 +15,6 @@ then
 	rm ../../applications/osmo4_ios/osmo4ios-Info.plist.new
 fi
 
-echo "*** Clean previous build files ***"
-#xcodebuild -alltargets -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj clean
-#xcodebuild -alltargets -sdk iphoneos -configuration Release -project gpac4ios.xcodeproj clean
-#if [ $? != 0 ] ; then
-#	exit 1
-#fi
-
-echo "*** Compile osmo4ios for iOS (arm) ***"
-#link must occur at debug to avoid optimizing that leads to freezes
-#xcodebuild -target osmo4ios -sdk iphoneos -configuration Debug -project gpac4ios.xcodeproj
-xcodebuild -target osmo4ios -configuration Release -project gpac4ios.xcodeproj
-if [ $? != 0 ] ; then
-	exit 1
-fi
-
-echo "*** Copy the generated libs (arm only) ***"
-mkdir -p ../../bin/iOS/osmo4ios.app/
-cp build/Release-iphoneos/osmo4ios.app/osmo4ios ../../bin/iOS/osmo4ios.app/
-cp build/Release-iphoneos/osmo4ios.app/PkgInfo ../../bin/iOS/osmo4ios.app/
-cp build/Release-iphoneos/osmo4ios.app/Info.plist ../../bin/iOS/osmo4ios.app/
-cp build/Release-iphoneos/osmo4ios.app/ResourceRules.plist ../../bin/iOS/osmo4ios.app/
-
-echo "*** Test the presence of target files ***"
-#if [ `ls ../../bin/iOS/osmo4ios.app/ | wc -l` -ne 5 ]
-#then
-#	echo "Error: target files number not correct (expected 24, got `ls ../../bin/iOS/osmo4ios.app/ | wc -l`)"
-#	exit 1
-#fi
-
-#echo "*** Build archive name ***"
-cd ../..
 if [ "$rev" != "" ]
 then
 	full_version="$version-rev$rev"
@@ -54,27 +23,18 @@ else
 	full_version="$version-$(date +%Y%m%d)"
 fi
 
-echo "*** Generate an archive and clean ***"
-cd bin/iOS
-mkdir osmo4ios.app/gui
-mkdir osmo4ios.app/gui/icons
-mkdir osmo4ios.app/gui/extensions
-cp ../../applications/osmo4_ios/Resources/icon*.png osmo4ios.app/
-cp ../../gui/gui*.bt osmo4ios.app/gui/
-cp ../../gui/gui*.js osmo4ios.app/gui/
-cp ../../gui/gwlib.js osmo4ios.app/gui/
-cp ../../gui/mpegu-core.js osmo4ios.app/gui/
-cp -r ../../gui/icons osmo4ios.app/gui/
-cp -r ../../gui/extensions osmo4ios.app/gui/
-mkdir osmo4ios.app/shaders
-cp -r ../../shaders/*.glsl osmo4ios.app/shaders/
+echo "*** Compile and archive osmo4ios ***"
+xcodebuild archive -project gpac4ios.xcodeproj -scheme osmo4ios -archivePath osmo4ios.xcarchive
+if [ $? != 0 ] ; then
+	exit 1
+fi
 
-find osmo4ios.app | fgrep .git | fgrep -v git/ | xargs rm -rf
-mkdir Payload
-mv osmo4ios.app Payload/
-zip -r "osmo4-$full_version-ios.ipa" Payload
+echo "*** Generate IPA ***"
+mkdir -p Payload
+mv osmo4ios.xcarchive/Products/Applications/osmo4ios.app Payload/
+zip -r "../../bin/iOS/osmo4-$full_version-ios.ipa" Payload
 rm -rf Payload
-git pull
-cd ../../build/xcode/
+rm -rf osmo4ios.xcarchive
+#git pull
 
 echo "*** GPAC generation for iOS completed ($full_version)! ***"

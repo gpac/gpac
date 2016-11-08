@@ -363,7 +363,6 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
-		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; };
 		9212E8031CCA82310036F310 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212E8021CCA82300036F310 /* amr_in.c */; };
 		9214AD341D0181A5009D3CFD /* ac3_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD321D0181A5009D3CFD /* ac3_in.c */; };
 		9214AD351D0181A5009D3CFD /* liba52_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD331D0181A5009D3CFD /* liba52_dec.c */; };
@@ -385,6 +384,7 @@
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
 		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
 		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
+		9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 9236FDEF1DD23F1400B3E86F /* iTunesArtwork */; };
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
 		9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */; };
@@ -940,6 +940,7 @@
 		922EB57D1AAE13C500DF46D0 /* revision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = revision.h; sourceTree = "<group>"; };
 		922EB57E1AAE13C500DF46D0 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
 		922EB57F1AAE13C500DF46D0 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = webvtt.h; sourceTree = "<group>"; };
+		9236FDEF1DD23F1400B3E86F /* iTunesArtwork */ = {isa = PBXFileReference; lastKnownFileType = file; name = iTunesArtwork; path = ../../applications/osmo4_ios/Resources/iTunesArtwork; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
@@ -1293,6 +1294,7 @@
 				929A929816EF8BC200B7C64F /* icon_ipad.png */,
 				929A929916EF8BC200B7C64F /* icon_retina.png */,
 				929A929A16EF8BC200B7C64F /* icon.png */,
+				9236FDEF1DD23F1400B3E86F /* iTunesArtwork */,
 				71EC88E01396273B004DCB6A /* osmo.icns */,
 				71A19B2012796B6F00ACFF58 /* main.c */,
 				71A19B1C12796B5700ACFF58 /* osmo4ios-Info.plist */,
@@ -2223,7 +2225,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9201D1111BD3FE11005E326A /* bifs_tests in Resources */,
+				9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */,
 				92C7F19A1AA8B48E00BA5B4C /* gui in Resources */,
 				92D127FE1BBADC7F00DA003B /* shaders in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
