@@ -527,9 +527,9 @@ static void term_on_command(GF_ClientService *service, GF_NetworkCommand *com, G
 		gf_mx_v(scene->mx_resources);
 		if (com->buffer.occupancy==(u32) -1) com->buffer.occupancy = 0;
 
-		//in bench mode return the 1 if one of the buffer is full (eg sleep until all buffers are not full), 0 otherwise
+		//in bench mode set occupancy to 0 only if we have less data than max buffer, otherwise wait
 		if (term->bench_mode) {
-			com->buffer.occupancy = (max_buffer_time>com->buffer.max) ? 2 : 0;
+			com->buffer.occupancy = (max_buffer_time < com->buffer.max) ? 0 : 2;
 			com->buffer.max = 1;
 			com->buffer.min = 0;
 		}

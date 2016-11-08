@@ -1464,11 +1464,23 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
 	if (!ch->is_pulling) {
+		GF_NetworkCommand com;
+		Bool flush_data = GF_FALSE;
 		gf_mx_p(ch->mx);
 
-		if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) ) {
+		if (ch->odm->term->bench_mode && !ch->AU_buffer_first) {
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_BUFFER_QUERY;
+			com.base.on_channel = NULL;
+			gf_service_command(ch->service, &com, GF_OK);
+			if (!com.buffer.occupancy)
+				flush_data = GF_TRUE;
+		} else {
+			if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) )
+				flush_data = GF_TRUE;
+		}
+		if (flush_data) {
 			/*query buffer level, don't sleep if too low*/
-			GF_NetworkCommand com;
 			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
