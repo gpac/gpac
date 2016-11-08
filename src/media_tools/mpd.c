@@ -1573,7 +1573,7 @@ try_next_segment:
 			}
 			rep->segment_list->segment_URLs = gf_list_new();
 			rep->segment_list->duration = (u64) (pe->duration_info * 1000);
-			if (elt->init_segment_url) {
+			if (elt && elt->init_segment_url) {
 				u32 len = (u32) strlen(base_url);
 				GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
 				
@@ -1779,9 +1779,14 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 
 	assert(mpd_file);
 	assert(mpd);
+
 	e = gf_m3u8_fill_mpd_struct(pl, m3u8_file, base_url, mpd_file, title, update_interval, mimeTypeForM3U8Segments, do_import, use_mpd_templates, is_end,  max_dur, mpd, parse_sub_playlist);
 
 	gf_m3u8_master_playlist_del(&pl);
+
+	//if local file force static
+	if (strstr(base_url, "://")==NULL)
+		mpd->type = GF_MPD_TYPE_STATIC;
 
 	return e;
 }
