@@ -2057,8 +2057,6 @@ void gf_sc_texture_set_stencil(GF_TextureHandler *txh, GF_STENCIL stencil)
 
 void gf_sc_texture_check_pause_on_first_load(GF_TextureHandler *txh)
 {
-	return;
-
 	if (txh->stream && txh->tx_io) {
 		switch (txh->tx_io->init_pause_status) {
 		case 0:
