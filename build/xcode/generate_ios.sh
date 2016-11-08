@@ -67,8 +67,10 @@ cp ../../gui/mpegu-core.js osmo4ios.app/gui/
 cp -r ../../gui/icons osmo4ios.app/gui/
 cp -r ../../gui/extensions osmo4ios.app/gui/
 find osmo4ios.app | fgrep .git | fgrep -v git/ | xargs rm -rf
-tar -czf "osmo4-$full_version-ios.tar.gz" osmo4ios.app/
-rm -rf osmo4ios.app
+mkdir Payload
+mv osmo4ios.app Payload/
+zip -r "osmo4-$full_version-ios.ipa" Payload
+rm -rf Payload
 git pull
 cd ../../build/xcode/
 
