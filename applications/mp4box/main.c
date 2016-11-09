@@ -764,31 +764,39 @@ void PrintDumpUsage()
 void PrintMetaUsage()
 {
 	fprintf(stderr, "Meta handling Options\n"
-	        " -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
-	        "                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
-	        "                       * [:tk=ID]: if not set use root (file) meta\n"
-	        "                                if ID is 0 use moov meta\n"
-	        "                                if ID is not 0 use track meta\n"
-	        " -add-item args       adds resource to meta\n"
-	        "                       * syntax: file_path + options (\':\' separated):\n"
-	        "                        tk=ID: meta addressing (file, moov, track)\n"
-	        "                        name=str: item name\n"
-	        "                        mime=mtype: item mime type\n"
-	        "                        encoding=enctype: item content-encoding type\n"
-	        "                        id=id: item ID\n"
-	        "                       * file_path \"this\" or \"self\": item is the file itself\n"
-	        " -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
-	        " -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
-	        " -set-xml args        sets meta XML data\n"
-	        "                       * syntax: xml_file_path[:tk=ID][:binary]\n"
-	        " -rem-xml [tk=ID]     removes meta XML data\n"
-	        " -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
-	        " -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
-	        " -package             packages input XML file into an ISO container\n"
-	        "                       * all media referenced except hyperlinks are added to file\n"
-	        " -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
-	        "                       * all files contained in the current folder are added to the widget package\n"
-	        "\n");
+		" -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
+		"                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
+		"                       * [:tk=ID]: if not set use root (file) meta\n"
+		"                                if ID is 0 use moov meta\n"
+		"                                if ID is not 0 use track meta\n"
+		" -add-item args       adds resource to meta\n"
+		"                       * syntax: file_path + options (\':\' separated):\n"
+		"                        file_path \"this\" or \"self\": item is the file itself\n"
+		"                        tk=ID:            meta location (file, moov, track)\n"
+		"                        name=str:         item name\n"
+		"                        type=itype:       item 4cc type (not needed if mime is provided)\n"
+		"                        mime=mtype:       item mime type\n"
+		"                        encoding=enctype: item content-encoding type\n"
+		"                        id=id:	           item ID\n"
+		"                        ref=4cc,id:       reference of type 4cc to an other item\n"
+		"                      Image Item options\n"
+		"                        image-size=wxh      sets the width and height of the image.\n"
+		"                        image-pasp=wxh      sets the pixel aspect ratio property of the image.\n"
+		"                        image-rloc=wxh      sets the location of this image within another image item.\n"
+		"                        image-irot=a        sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
+		"                        image-hidden        indicates that this image item should be hidden.\n"
+		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
+		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
+		" -set-xml args        sets meta XML data\n"
+		"                       * syntax: xml_file_path[:tk=ID][:binary]\n"
+		" -rem-xml [tk=ID]     removes meta XML data\n"
+		" -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
+		" -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
+		" -package             packages input XML file into an ISO container\n"
+		"                       * all media referenced except hyperlinks are added to file\n"
+		" -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
+		"                       * all files contained in the current folder are added to the widget package\n"
+		);
 }
 
 void PrintSWFUsage()
@@ -1217,6 +1225,7 @@ typedef enum {
 	META_ACTION_REM_XML				= 6,
 	META_ACTION_DUMP_ITEM			= 7,
 	META_ACTION_DUMP_XML			= 8,
+	META_ACTION_ADD_IMAGE_ITEM		= 9,
 } MetaActionType;
 
 typedef struct
@@ -1228,6 +1237,9 @@ typedef struct
 	char szPath[GF_MAX_PATH];
 	char szName[1024], mime_type[1024], enc_type[1024];
 	u32 item_id;
+	u32 item_type;
+	u32 ref_item_id;
+	u32 ref_type;
 	GF_ImageItemProperties *image_props;
 } MetaAction;
 
@@ -1265,6 +1277,16 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->item_id = atoi(szSlot+3);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "type=", 5)) {
+			meta->item_type = GF_4CC(szSlot[5], szSlot[6], szSlot[7], szSlot[8]);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "ref=", 4)) {
+			char type[10];
+			sscanf(szSlot, "ref=%u,%s", &meta->ref_item_id, type);
+			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
+			ret = 1;
+		}		
 		else if (!strnicmp(szSlot, "name=", 5)) {
 			strcpy(meta->szName, szSlot+5);
 			ret = 1;
@@ -1274,6 +1296,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "mime=", 5)) {
+			meta->item_type = GF_4CC('m','i','m','e');
 			strcpy(meta->mime_type, szSlot+5);
 			ret = 1;
 		}
@@ -1306,10 +1329,30 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
-			if (meta->image_props) {
-				meta->image_props->angle = atoi(szSlot+11);
-			}
+			meta->image_props->angle = atoi(szSlot+11);
 			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "image-hidden", 12)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->hidden = GF_TRUE;
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "tilemode=", 9)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			if (!strnicmp(szSlot + 9, "nobase", 6)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_NO_BASE;
+			} else if (!strnicmp(szSlot + 9, "base", 4)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
+			} else if (!strnicmp(szSlot + 9, "grid", 4)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_GRID;
+			} else {
+				meta->image_props->tile_mode = TILE_ITEM_SINGLE;
+				sscanf(szSlot + 9, "%d", &meta->image_props->single_tile_number);
+			}			
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
 			meta->use_dref = 1;
@@ -1327,6 +1370,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				ret = 1;
 				break;
 			case META_ACTION_ADD_ITEM:
+			case META_ACTION_ADD_IMAGE_ITEM:
 			case META_ACTION_SET_XML:
 			case META_ACTION_DUMP_XML:
 				strcpy(meta->szPath, szSlot);
@@ -2551,6 +2595,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-add-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
 			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-add-image")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_ITEM, argv[i + 1]);
 			nb_meta_act++;
 			open_edit = GF_TRUE;
 			i++;
@@ -4367,11 +4418,41 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 			                          strlen(meta->szName) ? meta->szName : NULL,
 			                          meta->item_id,
+									  meta->item_type,
 			                          strlen(meta->mime_type) ? meta->mime_type : NULL,
 			                          strlen(meta->enc_type) ? meta->enc_type : NULL,
 			                          meta->use_dref ? meta->szPath : NULL,  NULL,
 			                          meta->image_props);
+			if (meta->ref_type) {
+				e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+			}
 			needSave = GF_TRUE;
+			break;
+		case META_ACTION_ADD_IMAGE_ITEM:
+			{
+				e = import_file(file, meta->szPath, 0, 0, 0);
+				if (e == GF_OK) {
+					if (!gf_isom_get_meta_type(file, meta->root_meta, tk)) {
+						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_4CC('p','i','c','t'));
+					}
+					if (e == GF_OK) {
+						if (!meta->item_id) {
+							e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+						}
+						if (e == GF_OK) {
+							gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
+								strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props, NULL);
+							if (meta->ref_type) {
+								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+							}
+						}
+					}
+				}
+				gf_isom_remove_track(file, 1);				
+				needSave = GF_TRUE;
+			}
 			break;
 		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
@@ -4411,6 +4492,10 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		default:
 			break;
+		}
+		if (meta->image_props) {
+			gf_free(meta->image_props);
+			meta->image_props = NULL;
 		}
 		if (e) goto err_exit;
 	}

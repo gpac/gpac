@@ -282,6 +282,7 @@ enum
 	GF_ISOM_BOX_TYPE_IPRO	= GF_4CC( 'i', 'p', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_INFE	= GF_4CC( 'i', 'n', 'f', 'e' ),
 	GF_ISOM_BOX_TYPE_IINF	= GF_4CC( 'i', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_IREF	= GF_4CC( 'i', 'r', 'e', 'f' ),
 	GF_ISOM_BOX_TYPE_ENCA	= GF_4CC( 'e', 'n', 'c', 'a' ),
 	GF_ISOM_BOX_TYPE_ENCV	= GF_4CC( 'e', 'n', 'c', 'v' ),
 	GF_ISOM_BOX_TYPE_ENCT	= GF_4CC( 'e', 'n', 'c', 't' ),
@@ -326,8 +327,9 @@ enum
 	GF_ISOM_BOX_TYPE_SNRO	= GF_4CC( 's', 'n', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_RTPO	= GF_4CC( 'r', 't', 'p', 'o' ),
 
-	/*internal type for track references*/
+	/*internal type for track and item references*/
 	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
+	GF_ISOM_BOX_TYPE_REFI	= GF_4CC( 'R', 'E', 'F', 'I'),
 
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/* Adobe extensions */
@@ -420,6 +422,7 @@ enum
 	GF_ISOM_BOX_TYPE_IPCO   = GF_4CC( 'i', 'p', 'c', 'o' ),
 	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
+	GF_ISOM_BOX_TYPE_GRPL  = GF_4CC('g', 'r', 'p', 'l'),
 
 	/*ALL INTERNAL BOXES - NEVER WRITTEN TO FILE!!*/
 
@@ -1560,6 +1563,7 @@ typedef struct
 {
 	u64 extent_offset;
 	u64 extent_length;
+	u64 extent_index;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	/*for storage only*/
 	u64 original_extent_offset;
@@ -1569,6 +1573,7 @@ typedef struct
 typedef struct
 {
 	u16 item_ID;
+	u16 construction_method;
 	u16 data_reference_index;
 	u64 base_offset;
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1584,6 +1589,7 @@ typedef struct
 	u8 offset_size;
 	u8 length_size;
 	u8 base_offset_size;
+	u8 index_size;
 	GF_List *location_entries;
 } GF_ItemLocationBox;
 
@@ -1604,6 +1610,7 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	u16 item_ID;
 	u16 item_protection_index;
+	u32 item_type;
 	/*zero-terminated strings*/
 	char *item_name;
 	char *content_type;
@@ -1619,6 +1626,21 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	GF_List *item_infos;
 } GF_ItemInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 reference_type;
+	u32 from_item_id;
+	u32 reference_count;
+	u32 *to_item_IDs;
+} GF_ItemReferenceTypeBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_List *references;
+} GF_ItemReferenceBox;
 
 typedef struct
 {
@@ -1692,6 +1714,10 @@ typedef struct {
 	GF_ItemPropertyContainerBox *property_container;
 } GF_ItemPropertiesBox;
 
+typedef struct {
+	GF_ISOM_BOX
+} GF_GroupListBox;
+
 typedef struct __tag_meta_box
 {
 	GF_ISOM_FULL_BOX
@@ -1703,6 +1729,7 @@ typedef struct __tag_meta_box
 	GF_ItemInfoBox *item_infos;
 	GF_IPMPControlBox *IPMP_control;
 	GF_ItemPropertiesBox *item_props;
+	GF_ItemReferenceBox *item_refs;
 } GF_MetaBox;
 
 
@@ -3022,7 +3049,6 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *avc, GF_MediaBox *m
 void HEVC_RewriteESDescriptor(GF_MPEGVisualSampleEntryBox *avc);
 
 GF_Err reftype_AddRefTrack(GF_TrackReferenceTypeBox *ref, u32 trackID, u16 *outRefIndex);
-
 GF_XMLBox *gf_isom_get_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool *is_binary);
 Bool gf_isom_cenc_has_saiz_saio_track(GF_SampleTableBox *stbl);
 
@@ -3231,6 +3257,7 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *
 */
 
 GF_Box *reftype_New();
+GF_Box *ireftype_New();
 GF_Box *free_New();
 GF_Box *mdat_New();
 GF_Box *moov_New();
@@ -3284,6 +3311,7 @@ GF_Box *gnra_New();
 GF_Box *pdin_New();
 
 void reftype_del(GF_Box *);
+void ireftype_del(GF_Box *);
 void free_del(GF_Box *);
 void mdat_del(GF_Box *);
 void moov_del(GF_Box *);
@@ -3338,6 +3366,7 @@ void gnra_del(GF_Box *);
 void pdin_del(GF_Box *);
 
 GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ireftype_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err free_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mdat_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err moov_Write(GF_Box *s, GF_BitStream *bs);
@@ -3390,6 +3419,7 @@ GF_Err gnra_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err pdin_Write(GF_Box *s, GF_BitStream *bs);
 
 GF_Err reftype_Size(GF_Box *);
+GF_Err ireftype_Size(GF_Box *);
 GF_Err free_Size(GF_Box *);
 GF_Err mdat_Size(GF_Box *);
 GF_Err moov_Size(GF_Box *);
@@ -3442,6 +3472,7 @@ GF_Err gnra_Size(GF_Box *);
 GF_Err pdin_Size(GF_Box *);
 
 GF_Err reftype_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ireftype_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err free_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mdat_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err moov_Read(GF_Box *s, GF_BitStream *bs);
@@ -3881,6 +3912,7 @@ GF_Box *pitm_New();
 GF_Box *ipro_New();
 GF_Box *infe_New();
 GF_Box *iinf_New();
+GF_Box *iref_New();
 GF_Box *sinf_New();
 GF_Box *frma_New();
 GF_Box *schm_New();
@@ -3897,6 +3929,7 @@ void pitm_del(GF_Box *s);
 void ipro_del(GF_Box *s);
 void infe_del(GF_Box *s);
 void iinf_del(GF_Box *s);
+void iref_del(GF_Box *s);
 void sinf_del(GF_Box *s);
 void frma_del(GF_Box *s);
 void schm_del(GF_Box *s);
@@ -3910,6 +3943,7 @@ GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err infe_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err iref_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err frma_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err schm_Read(GF_Box *s, GF_BitStream *bs);
@@ -3924,6 +3958,7 @@ GF_Err pitm_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err ipro_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err infe_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err iref_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err sinf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err frma_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err schm_Write(GF_Box *s, GF_BitStream *bs);
@@ -3937,6 +3972,7 @@ GF_Err pitm_Size(GF_Box *s);
 GF_Err ipro_Size(GF_Box *s);
 GF_Err infe_Size(GF_Box *s);
 GF_Err iinf_Size(GF_Box *s);
+GF_Err iref_Size(GF_Box *s);
 GF_Err sinf_Size(GF_Box *s);
 GF_Err frma_Size(GF_Box *s);
 GF_Err schm_Size(GF_Box *s);
@@ -4009,6 +4045,7 @@ GF_Err gf_box_dump(void *ptr, FILE * trace);
 
 GF_Err gb_box_array_dump(GF_List *list, FILE * trace);
 GF_Err reftype_dump(GF_Box *a, FILE * trace);
+GF_Err ireftype_dump(GF_Box *a, FILE * trace);
 GF_Err free_dump(GF_Box *a, FILE * trace);
 GF_Err mdat_dump(GF_Box *a, FILE * trace);
 GF_Err moov_dump(GF_Box *a, FILE * trace);
@@ -4140,6 +4177,7 @@ GF_Err pitm_dump(GF_Box *a, FILE * trace);
 GF_Err ipro_dump(GF_Box *a, FILE * trace);
 GF_Err infe_dump(GF_Box *a, FILE * trace);
 GF_Err iinf_dump(GF_Box *a, FILE * trace);
+GF_Err iref_dump(GF_Box *a, FILE * trace);
 GF_Err sinf_dump(GF_Box *a, FILE * trace);
 GF_Err frma_dump(GF_Box *a, FILE * trace);
 GF_Err schm_dump(GF_Box *a, FILE * trace);
@@ -4562,6 +4600,15 @@ GF_Err trgt_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err trgt_Size(GF_Box *s);
 GF_Err trgt_dump(GF_Box *a, FILE * trace);
 
+GF_Box *grpl_New();
+void grpl_del(GF_Box *s);
+GF_Err grpl_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err grpl_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err grpl_Size(GF_Box *s);
+GF_Err grpl_dump(GF_Box *a, FILE * trace);
+
+Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
+GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

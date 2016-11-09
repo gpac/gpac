@@ -128,6 +128,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_REFI:
+		return ireftype_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 		return free_dump(a, trace);
@@ -432,6 +434,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return infe_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_IINF:
 		return iinf_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_IREF:
+		return iref_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SINF:
 		return sinf_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -607,6 +611,8 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return iprp_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_GRPL:
+		return grpl_dump(a, trace);
 
 	default:
 		return defa_dump(a, trace);
@@ -737,6 +743,27 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 	gf_box_dump_done(boxname, a, trace);
 
 	p->type = GF_ISOM_BOX_TYPE_REFT;
+	return GF_OK;
+}
+
+GF_Err ireftype_dump(GF_Box *a, FILE * trace)
+{
+	const char *s;
+	u32 i;
+	char boxname[256];
+	GF_ItemReferenceTypeBox *p = (GF_ItemReferenceTypeBox *)a;
+	p->type = p->reference_type;
+	
+	s = gf_4cc_to_str(a->type);
+	sprintf(boxname, "%sItemReferenceBox", s);
+	DumpBox(a, boxname, trace);
+	fprintf(trace, "from_item_id=\"%d\" to_item_ids=\"", p->from_item_id);
+	for (i = 0; i<p->reference_count; i++) fprintf(trace, " %d", p->to_item_IDs[i]);
+	fprintf(trace, "\">\n");
+
+	gf_box_dump_done(boxname, a, trace);
+
+	p->type = GF_ISOM_BOX_TYPE_REFI;
 	return GF_OK;
 }
 
@@ -2190,6 +2217,7 @@ GF_Err meta_dump(GF_Box *a, FILE * trace)
 	if (p->protections) gf_box_dump(p->protections, trace);
 	if (p->item_infos) gf_box_dump(p->item_infos, trace);
 	if (p->IPMP_control) gf_box_dump(p->IPMP_control, trace);
+	if (p->item_refs) gf_box_dump(p->item_refs, trace);
 	if (p->item_props) gf_box_dump(p->item_props, trace);
 	gf_box_dump_done("MetaBox", a, trace);
 	return GF_OK;
@@ -2247,7 +2275,7 @@ GF_Err infe_dump(GF_Box *a, FILE * trace)
 	GF_ItemInfoEntryBox *p = (GF_ItemInfoEntryBox *)a;
 	DumpBox(a, "ItemInfoEntryBox", trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "item_ID=\"%d\" item_protection_index=\"%d\" item_name=\"%s\" content_type=\"%s\" content_encoding=\"%s\">\n", p->item_ID, p->item_protection_index, p->item_name, p->content_type, p->content_encoding);
+	fprintf(trace, "item_ID=\"%d\" item_protection_index=\"%d\" item_name=\"%s\" content_type=\"%s\" content_encoding=\"%s\" item_type=\"%s\">\n", p->item_ID, p->item_protection_index, p->item_name, p->content_type, p->content_encoding, gf_4cc_to_str(p->item_type));
 	gf_box_dump_done("ItemInfoEntryBox", a, trace);
 	return GF_OK;
 }
@@ -2269,21 +2297,32 @@ GF_Err iloc_dump(GF_Box *a, FILE * trace)
 	GF_ItemLocationBox *p = (GF_ItemLocationBox*)a;
 	DumpBox(a, "ItemLocationBox", trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "offset_size=\"%d\" length_size=\"%d\" base_offset_size=\"%d\">\n", p->offset_size, p->length_size, p->base_offset_size);
+	fprintf(trace, "offset_size=\"%d\" length_size=\"%d\" base_offset_size=\"%d\" index_size=\"%d\">\n", p->offset_size, p->length_size, p->base_offset_size, p->index_size);
 	count = gf_list_count(p->location_entries);
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *ie = (GF_ItemLocationEntry *)gf_list_get(p->location_entries, i);
 		count2 = gf_list_count(ie->extent_entries);
-		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" />\n", ie->item_ID, ie->data_reference_index, LLD_CAST ie->base_offset);
+		fprintf(trace, "<ItemLocationEntry item_ID=\"%d\" data_reference_index=\"%d\" base_offset=\""LLD"\" construction_method=\"%d\">\n", ie->item_ID, ie->data_reference_index, LLD_CAST ie->base_offset, ie->construction_method);
 		for (j=0; j<count2; j++) {
 			GF_ItemExtentEntry *iee = (GF_ItemExtentEntry *)gf_list_get(ie->extent_entries, j);
-			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" />\n", LLD_CAST iee->extent_offset, LLD_CAST iee->extent_length);
+			fprintf(trace, "<ItemExtentEntry extent_offset=\""LLD"\" extent_length=\""LLD"\" extent_index=\""LLD"\" />\n", LLD_CAST iee->extent_offset, LLD_CAST iee->extent_length, LLD_CAST iee->extent_index);
 		}
+		fprintf(trace, "</ItemLocationEntry>\n");
 	}
 	gf_box_dump_done("ItemLocationBox", a, trace);
 	return GF_OK;
 }
 
+GF_Err iref_dump(GF_Box *a, FILE * trace)
+{
+	GF_ItemReferenceBox *p = (GF_ItemReferenceBox *)a;
+	DumpBox(a, "ItemReferenceBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, ">\n");
+	gf_box_array_dump(p->references, trace);
+	gf_box_dump_done("ItemReferenceBox", a, trace);
+	return GF_OK;
+}
 
 GF_Err hinf_dump(GF_Box *a, FILE * trace)
 {
@@ -4043,7 +4082,7 @@ GF_Err odkm_dump(GF_Box *a, FILE * trace)
 GF_Err pasp_dump(GF_Box *a, FILE * trace)
 {
 	GF_PixelAspectRatioBox *ptr = (GF_PixelAspectRatioBox*)a;
-	DumpBox((GF_Box *)a, "PixelAspectRatioBox", trace);
+	DumpBox(a, "PixelAspectRatioBox", trace);
 	fprintf(trace, "hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
 	gf_box_dump_done("PixelAspectRatioBox", a, trace);
 	return GF_OK;
@@ -4981,6 +5020,14 @@ GF_Err trgt_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "track_group_id=\"%d\">\n", ptr->track_group_id);
 	gf_box_dump_done("TrackGroupTypeBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err grpl_dump(GF_Box *a, FILE * trace)
+{
+	DumpBox(a, "GroupListBox", trace);
+	fprintf(trace, ">\n");
+	gf_box_dump_done("GroupListBox", a, trace);
 	return GF_OK;
 }
 
