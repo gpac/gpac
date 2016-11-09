@@ -54,6 +54,7 @@ import android.os.StrictMode;
 import android.os.Vibrator;
 import android.text.InputType;
 import android.util.Log;
+import android.view.View;
 import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuInflater;
@@ -68,6 +69,12 @@ import android.widget.LinearLayout;
 import android.widget.Toast;
 import android.content.res.AssetManager;
 import android.os.Environment;
+
+
+import android.os.Handler;
+import android.os.Message;
+import android.view.GestureDetector;
+import android.view.MotionEvent;
 
 import com.gpac.Osmo4.Osmo4GLSurfaceView;
 import com.gpac.Osmo4.Preview;
@@ -94,9 +101,11 @@ import com.lge.real3d.Real3DInfo;
 public class Osmo4 extends Activity implements GpacCallback {
 
     // private String[] m_modules_list;
-	
+	private static final int INITIAL_HIDE_DELAY = 300;
+
 	public boolean m3DLibraryLoaded = false;
 	private Real3D mReal3D;	
+	private View mDecorView;
 
     private boolean shouldDeleteGpacConfig = false;
 
@@ -155,10 +164,7 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_PROGRESS);
-        requestWindowFeature(Window.FEATURE_INDETERMINATE_PROGRESS);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-        		WindowManager.LayoutParams.FLAG_FULLSCREEN);
+       
 
         try {
 			Class c = Class.forName("com.lge.real3d.Real3D");
@@ -215,6 +221,29 @@ public class Osmo4 extends Activity implements GpacCallback {
        
         setContentView(R.layout.main);
 		
+		final View contentView = (LinearLayout)findViewById(R.id.surface_gl);
+		mDecorView =  getWindow().getDecorView();
+		contentView.setClickable(true);
+        final GestureDetector clickDetector = new GestureDetector(this,
+		new GestureDetector.SimpleOnGestureListener() {
+			@Override
+			public boolean onSingleTapUp(MotionEvent e) {
+				boolean visible = (mDecorView.getSystemUiVisibility()
+								   & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
+				if (visible) {
+					hideSystemUI();
+				} 
+				return true;
+			}
+		});
+        contentView.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View view, MotionEvent motionEvent) {
+                return clickDetector.onTouchEvent(motionEvent);
+            }
+        });
+
+       showSystemUI();
 		mGLView = new Osmo4GLSurfaceView(this);
 		
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
@@ -1256,6 +1285,19 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
     }
+	@Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+
+        // When the window loses focus (e.g. the action overflow is shown),
+        // cancel any pending hide action. When the window gains focus,
+        // hide the system UI.
+        if (hasFocus) {
+            delayedHide(INITIAL_HIDE_DELAY);
+        } else {
+            mHideHandler.removeMessages(0);
+        }
+    }
     
     public void setLogFile(String logfile) {
 	    logger.setEnableLogOnDisk(true);
@@ -1263,6 +1305,33 @@ public class Osmo4 extends Activity implements GpacCallback {
     	logger.onCreate();
     }
 
+    private void hideSystemUI() {
+        mDecorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+										 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+										 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+										 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+										 | View.SYSTEM_UI_FLAG_FULLSCREEN
+										 | View.SYSTEM_UI_FLAG_LOW_PROFILE
+										 | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
+    private void showSystemUI() {
+        mDecorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+										 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+										 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
+    }
+
+    private final Handler mHideHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            hideSystemUI();
+        }
+    };
+
+    private void delayedHide(int delayMillis) {
+        mHideHandler.removeMessages(0);
+        mHideHandler.sendEmptyMessageDelayed(0, delayMillis);
+    }
     /**
      * @see com.gpac.Osmo4.GpacCallback#sensorSwitch(boolean)
      */
