@@ -16,6 +16,10 @@ endif
 
 LINKFLAGS=-L../../bin/gcc -lgpac $(SDL_LIBS)
 
+ifeq ($(CONFIG_DARWIN), yes)
+LINKFLAGS+=-framework OpenGL
+endif
+
 #common obj
 OBJS=sdl_out.o audio.o video.o
 
