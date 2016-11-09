@@ -5110,13 +5110,13 @@ restart_import:
 
 				if (set_subsamples) {
 					/* determine the number of subsamples */
-					nb_subs = gf_isom_sample_has_subsamples(import->dest, track, cur_samp+1);
+					nb_subs = gf_isom_sample_has_subsamples(import->dest, track, cur_samp+1, 0);
 					if (nb_subs) {
 						/* fetch size, priority, reserved and discardable info for last subsample */
-						gf_isom_sample_get_subsample(import->dest, track, cur_samp+1, nb_subs, &size, &priority, &reserved, &discardable);
+						gf_isom_sample_get_subsample(import->dest, track, cur_samp+1, 0, nb_subs, &size, &priority, &reserved, &discardable);
 
 						/*remove last subsample entry!*/
-						gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0, GF_FALSE);
+						gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, 0, 0, 0, GF_FALSE);
 					}
 				}
 
@@ -5126,7 +5126,7 @@ restart_import:
 
 				if (set_subsamples) {
 					/*add subsample entry to next sample*/
-					gf_isom_add_subsample(import->dest, track, cur_samp+2, size_length/8 + prev_nalu_prefix_size, priority, reserved, discardable);
+					gf_isom_add_subsample(import->dest, track, cur_samp+2, 0, size_length/8 + prev_nalu_prefix_size, priority, reserved, discardable);
 				}
 
 				prev_nalu_prefix_size = 0;
@@ -5225,7 +5225,7 @@ restart_import:
 				prio = (63 - (p[1] & 0x3F)) << 2;
 
 				if (set_subsamples) {
-					gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, prio, res, GF_TRUE);
+					gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, copy_size+size_length/8, prio, res, GF_TRUE);
 				}
 
 				if (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) {
@@ -5235,7 +5235,7 @@ restart_import:
 				}
 			} else if (set_subsamples) {
 				/* use the res and priority value of last prefix NALU */
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, priority_prev_nalu_prefix, res_prev_nalu_prefix, GF_FALSE);
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, copy_size+size_length/8, priority_prev_nalu_prefix, res_prev_nalu_prefix, GF_FALSE);
 			}
 			if (nal_type!=GF_AVC_NALU_SVC_PREFIX_NALU) {
 				res_prev_nalu_prefix = 0;
@@ -6413,7 +6413,7 @@ restart_import:
 
 			if (set_subsamples) {
 				/* use the res and priority value of last prefix NALU */
-				gf_isom_add_subsample(import->dest, track, cur_samp+1, copy_size+size_length/8, 0, 0, GF_FALSE);
+				gf_isom_add_subsample(import->dest, track, cur_samp+1, 0, copy_size+size_length/8, 0, 0, GF_FALSE);
 			}
 
 			if (has_vcl_nal) {

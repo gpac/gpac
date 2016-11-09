@@ -885,8 +885,8 @@ GF_Err stbl_dump(GF_Box *a, FILE * trace)
 	if (p->DegradationPriority) gf_box_dump(p->DegradationPriority, trace);
 	if (p->SampleDep) gf_box_dump(p->SampleDep, trace);
 	if (p->PaddingBits) gf_box_dump(p->PaddingBits, trace);
-	if (p->SubSamples) gf_box_dump(p->SubSamples, trace);
 	if (p->Fragments) gf_box_dump(p->Fragments, trace);
+	if (p->sub_samples) gf_box_array_dump(p->sub_samples, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	if (p->sai_sizes) {
@@ -2686,9 +2686,9 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "<TrackFragmentBox>\n");
 	DumpBox(a, trace);
 	if (p->tfhd) gf_box_dump(p->tfhd, trace);
-	if (p->subs) gf_box_dump(p->subs, trace);
 	if (p->sdtp) gf_box_dump(p->sdtp, trace);
 	if (p->tfdt) gf_box_dump(p->tfdt, trace);
+	if (p->sub_samples) gf_box_array_dump(p->sub_samples, trace);
 	if (p->sampleGroupsDescription) gf_box_array_dump(p->sampleGroupsDescription, trace);
 	if (p->sampleGroups) gf_box_array_dump(p->sampleGroups, trace);
 	gf_box_array_dump(p->TrackRuns, trace);

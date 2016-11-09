@@ -1933,10 +1933,11 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *movie, u32 TrackID, char *data, 
 	return GF_OK;
 }
 
-GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
+GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {
 	u32 i, count, last_sample;
 	GF_TrackFragmentBox *traf;
+	GF_SubSampleInformationBox *subs = NULL;
 	if (!movie->moof || !(movie->FragmentsFlags & GF_ISOM_FRAG_WRITE_READY) ) return GF_BAD_PARAM;
 
 	traf = GetTraf(movie, TrackID);
@@ -1950,16 +1951,26 @@ GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSam
 		last_sample += trun->sample_count;
 	}
 
-	if (!traf->subs) {
-		traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
-		traf->subs->version = (subSampleSize>0xFFFF) ? 1 : 0;
+	if (!traf->sub_samples) {
+		traf->sub_samples = gf_list_new();
 	}
-	return gf_isom_add_subsample_info(traf->subs, last_sample, subSampleSize, priority, reserved, discardable);
+	count = gf_list_count(traf->sub_samples);
+	for (i=0; i<count;i++) {
+		subs = gf_list_get(traf->sub_samples, i);
+		if (subs->flags==flags) break;
+		subs=NULL;
+	}
+	if (!subs) {
+		subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+		subs->version = (subSampleSize>0xFFFF) ? 1 : 0;
+		subs->flags = flags;
+	}
+	return gf_isom_add_subsample_info(subs, last_sample, subSampleSize, priority, reserved, discardable);
 }
 
 GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile *orig, u32 track, u32 sampleNumber, Bool sgpd_in_traf)
 {
-	u32 i, count, last_sample;
+	u32 i, count, last_sample, idx, subs_flags;
 	GF_SubSampleInfoEntry *sub_sample;
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1994,7 +2005,13 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 	}
 
 	/*copy subsample info if any*/
-	if ( gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, &sub_sample)) {
+	idx=1;
+	while (gf_isom_get_subsample_types(orig, track, idx, &subs_flags)) {
+		GF_SubSampleInformationBox *subs_traf=NULL;
+		idx++;
+		if (! gf_isom_sample_get_subsample_entry(orig, track, sampleNumber, subs_flags, &sub_sample))
+			continue;
+
 		if (!traf || !traf->tfhd->sample_desc_index) return GF_BAD_PARAM;
 
 		/*compute last sample number in traf*/
@@ -2006,16 +2023,26 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 		}
 
 		/*create subsample if needed*/
-		if (!traf->subs) {
-			traf->subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
-			traf->subs->version = 0;
+		if (!traf->sub_samples) {
+			traf->sub_samples = gf_list_new();
 		}
-
+		count = gf_list_count(traf->sub_samples);
+		for (i=0; i<count; i++) {
+			subs_traf = gf_list_get(traf->sub_samples, i);
+			if (subs_traf->flags==subs_flags) break;
+			subs_traf = NULL;
+		}
+		if (!subs_traf) {
+			subs_traf = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+			subs_traf->version = 0;
+			subs_traf->flags = subs_flags;
+			gf_list_add(traf->sub_samples, subs_traf);
+		}
 
 		count = gf_list_count(sub_sample->SubSamples);
 		for (i=0; i<count; i++) {
 			GF_SubSampleEntry *entry = (GF_SubSampleEntry*)gf_list_get(sub_sample->SubSamples, i);
-			e = gf_isom_add_subsample_info(traf->subs, last_sample, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
+			e = gf_isom_add_subsample_info(subs_traf, last_sample, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
 			if (e) return e;
 		}
 	}
@@ -2136,7 +2163,7 @@ u32 gf_isom_is_fragmented(GF_ISOFile *the_file)
 	return 0;
 }
 
-GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
+GF_Err gf_isom_fragment_add_subsample(GF_ISOFile *movie, u32 TrackID, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {
 	return GF_NOT_SUPPORTED;
 }

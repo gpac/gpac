@@ -3310,16 +3310,19 @@ u32 gf_isom_get_next_alternate_group_id(GF_ISOFile *movie)
 }
 
 
-u32 gf_isom_sample_has_subsamples(GF_ISOFile *movie, u32 track, u32 sampleNumber)
+u32 gf_isom_sample_has_subsamples(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags)
 {
-	return gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, NULL);
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->Media->information->sampleTable->sub_samples) return 0;
+	return gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, flags, NULL);
 }
 
-GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleNumber, u32 *size, u8 *priority, u32 *reserved, Bool *discardable)
+GF_Err gf_isom_sample_get_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags, u32 subSampleNumber, u32 *size, u8 *priority, u32 *reserved, Bool *discardable)
 {
 	GF_SubSampleEntry *entry;
 	GF_SubSampleInfoEntry *sub_sample;
-	u32 count = gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, &sub_sample);
+	u32 count = gf_isom_sample_get_subsample_entry(movie, track, sampleNumber, flags, &sub_sample);
 	if (!size || !priority || !discardable) return GF_BAD_PARAM;
 
 	if (!subSampleNumber || (subSampleNumber>count)) return GF_BAD_PARAM;

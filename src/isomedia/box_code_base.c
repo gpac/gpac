@@ -4631,7 +4631,7 @@ void stbl_del(GF_Box *s)
 	if (ptr->SampleDep) gf_isom_box_del((GF_Box *) ptr->SampleDep);
 	if (ptr->PaddingBits) gf_isom_box_del((GF_Box *) ptr->PaddingBits);
 	if (ptr->Fragments) gf_isom_box_del((GF_Box *) ptr->Fragments);
-	if (ptr->SubSamples) gf_isom_box_del((GF_Box *) ptr->SubSamples);
+	if (ptr->sub_samples) gf_isom_box_array_del(ptr->sub_samples);
 	if (ptr->sampleGroups) gf_isom_box_array_del(ptr->sampleGroups);
 	if (ptr->sampleGroupsDescription) gf_isom_box_array_del(ptr->sampleGroupsDescription);
 
@@ -4706,8 +4706,8 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 		break;
 
 	case GF_ISOM_BOX_TYPE_SUBS:
-		if (ptr->SubSamples) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->SubSamples = (GF_SubSampleInformationBox *)a;
+		if (!ptr->sub_samples) ptr->sub_samples = gf_list_new();
+		gf_list_add(ptr->sub_samples, a);
 		break;
 
 	case GF_ISOM_BOX_TYPE_SBGP:
@@ -4873,8 +4873,8 @@ GF_Err stbl_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->PaddingBits, bs);
 		if (e) return e;
 	}
-	if (ptr->SubSamples) {
-		e = gf_isom_box_write((GF_Box *) ptr->SubSamples, bs);
+	if (ptr->sub_samples) {
+		e = gf_isom_box_array_write(s, ptr->sub_samples, bs);
 		if (e) return e;
 	}
 	if (ptr->sampleGroupsDescription) {
@@ -4984,10 +4984,9 @@ GF_Err stbl_Size(GF_Box *s)
 	}
 #endif
 
-	if (ptr->SubSamples) {
-		e = gf_isom_box_size((GF_Box *) ptr->SubSamples);
+	if (ptr->sub_samples) {
+		e = gf_isom_box_array_size(s, ptr->sub_samples);
 		if (e) return e;
-		ptr->size += ptr->SubSamples->size;
 	}
 	if (ptr->sampleGroups) {
 		e = gf_isom_box_array_size(s, ptr->sampleGroups);
@@ -6208,7 +6207,7 @@ void traf_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->tfhd) gf_isom_box_del((GF_Box *) ptr->tfhd);
 	if (ptr->sdtp) gf_isom_box_del((GF_Box *) ptr->sdtp);
-	if (ptr->subs) gf_isom_box_del((GF_Box *) ptr->subs);
+	if (ptr->sub_samples) gf_isom_box_array_del(ptr->sub_samples);
 	if (ptr->tfdt) gf_isom_box_del((GF_Box *) ptr->tfdt);
 	if (ptr->piff_sample_encryption) gf_isom_box_del((GF_Box *) ptr->piff_sample_encryption);
 	if (ptr->sample_encryption) gf_isom_box_del((GF_Box *) ptr->sample_encryption);
@@ -6240,9 +6239,8 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 			ptr->tfdt = (GF_TFBaseMediaDecodeTimeBox*) a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SUBS:
-		if (ptr->subs) ERROR_ON_DUPLICATED_BOX(a, ptr)
-			ptr->subs = (GF_SubSampleInformationBox *)a;
-		return GF_OK;
+		if (!ptr->sub_samples) ptr->sub_samples = gf_list_new();
+		return gf_list_add(ptr->sub_samples, a);
 	case GF_ISOM_BOX_TYPE_SBGP:
 		if (!ptr->sampleGroups) ptr->sampleGroups = gf_list_new();
 		gf_list_add(ptr->sampleGroups, a);
@@ -6404,8 +6402,8 @@ GF_Err traf_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->tfhd, bs);
 		if (e) return e;
 	}
-	if (ptr->subs) {
-		e = gf_isom_box_write((GF_Box *) ptr->subs, bs);
+	if (ptr->sub_samples) {
+		e = gf_isom_box_array_write(s, ptr->sub_samples, bs);
 		if (e) return e;
 	}
 	if (ptr->tfdt) {
@@ -6468,10 +6466,9 @@ GF_Err traf_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->piff_sample_encryption->size;
 	}
-	if (ptr->subs) {
-		e = gf_isom_box_size((GF_Box *) ptr->subs);
+	if (ptr->sub_samples) {
+		e = gf_isom_box_array_size(s, ptr->sub_samples);
 		if (e) return e;
-		ptr->size += ptr->subs->size;
 	}
 	if (ptr->sdtp) {
 		e = gf_isom_box_size((GF_Box *) ptr->sdtp);
