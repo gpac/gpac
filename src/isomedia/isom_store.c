@@ -185,6 +185,7 @@ static void ShiftMetaOffset(GF_MetaBox *meta, u64 offset)
 	for (i=0; i<count; i++) {
 		GF_ItemLocationEntry *iloc = (GF_ItemLocationEntry *)gf_list_get(meta->item_locations->location_entries, i);
 		if (iloc->data_reference_index) continue;
+		if (iloc->construction_method == 2) continue;
 		if (!iloc->base_offset) {
 			GF_ItemExtentEntry *entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
 			if (entry && !entry->extent_length && !entry->original_extent_offset && (gf_list_count(iloc->extent_entries)==1) )
@@ -408,7 +409,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 
 		if (!iloc->base_offset && (gf_list_count(iloc->extent_entries)==1)) {
 			entry = (GF_ItemExtentEntry *)gf_list_get(iloc->extent_entries, 0);
-			if (!entry->extent_length && !entry->original_extent_offset) {
+			if (!entry->extent_length && !entry->original_extent_offset && !entry->extent_index) {
 				entry->extent_offset = 0;
 				continue;
 			}
@@ -417,7 +418,9 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 		it_size = 0;
 		/*for self contained only*/
 		if (!iloc->data_reference_index) {
-			iloc->base_offset = baseOffset;
+			if (iloc->construction_method != 2) {
+				iloc->base_offset = baseOffset;
+			}
 
 			/*new resource*/
 			if (iinf && iinf->full_path) {
@@ -464,6 +467,7 @@ GF_Err DoWriteMeta(GF_ISOFile *file, GF_MetaBox *meta, GF_BitStream *bs, Bool Em
 				u32 j;
 				j=0;
 				while ((entry = (GF_ItemExtentEntry *)gf_list_enum(iloc->extent_entries, &j))) {
+					if (entry->extent_index) continue;
 					if (j && (maxExtendOffset<it_size) ) maxExtendOffset = it_size;
 					/*compute new offset*/
 					entry->extent_offset = baseOffset + it_size;
@@ -1314,6 +1318,11 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 
 		if (buffer_size) {
 			gf_bs_set_output_buffering(bs, buffer_size);
+		}
+
+		if (!movie->moov) {
+			/* in case of file with only a meta box, we force a flat storage */
+			movie->storageMode = GF_ISOM_STORE_FLAT;
 		}
 
 		switch (movie->storageMode) {

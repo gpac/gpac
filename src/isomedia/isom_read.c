@@ -241,7 +241,7 @@ GF_EXPORT
 GF_Err gf_isom_close(GF_ISOFile *movie)
 {
 	GF_Err e;
-	if ((movie == NULL) || (movie->moov == NULL)) return GF_ISOM_INVALID_FILE;
+	if ((movie == NULL)) return GF_ISOM_INVALID_FILE;
 	e = GF_OK;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

@@ -303,7 +303,10 @@ enum
 	/* file complying to ISO/IEC 21000-9:2005 (MPEG-21 spec)*/
 	GF_ISOM_BRAND_MP21 = GF_4CC('m', 'p', '2', '1'),
 	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12) + support for version 1*/
-	GF_ISOM_BRAND_ISO4 =  GF_4CC( 'i', 's', 'o', '4' )
+	GF_ISOM_BRAND_ISO4 =  GF_4CC( 'i', 's', 'o', '4' ),
+	/* Image File Format */
+	GF_ISOM_BRAND_MIF1 = GF_4CC('m', 'i', 'f', '1'),
+	GF_ISOM_BRAND_HEIC = GF_4CC('h', 'e', 'i', 'c'),
 };
 
 
@@ -2225,32 +2228,41 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 /*set meta XML data from memory - erase any previously (Binary)XML info*/
 GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, unsigned char *data, u32 data_size, Bool IsBinaryXML);
 
-/*adds item to meta:
-	@self_reference: indicates this item is the file itself
-	@resource_path: file to add - can be NULL when URL/URN is used
-	@item_name: item name - if NULL, use file name. CANNOT BE NULL if resource_path is not set
-	@item_id: item id - if 0, use the last item id + 1.
-	@mime_type: item mime type - if NULL, use "application/octet-stream"
-	@content_encoding: content encoding type - if NULL, none specified
-	@URL, @URN: if set, resource will be remote (same as stream descriptions)
-*/
+typedef enum {
+	TILE_ITEM_NONE = 0,
+	TILE_ITEM_ALL_NO_BASE,
+	TILE_ITEM_ALL_BASE,
+	TILE_ITEM_ALL_GRID,
+	TILE_ITEM_SINGLE
+} GF_TileItemMode;
+
 typedef struct
 {
 	u32 width, height;
 	u32 hSpacing, vSpacing;
 	u32 hOffset, vOffset;
 	u32 angle;
+	Bool hidden;
+	void *config;
+	GF_TileItemMode tile_mode; 
+	u32 single_tile_number;
 } GF_ImageItemProperties;
 
-GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *imgprop);
+GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);
+
+GF_Err gf_isom_add_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, Bool self_reference, char *resource_path, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, const char *URL, const char *URN, GF_ImageItemProperties *imgprop);
 /*same as above excepts take the item directly in memory*/
-GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, const char *mime_type, const char *content_encoding, char *data, u32 data_len);
+GF_Err gf_isom_add_meta_item_memory(GF_ISOFile *file, Bool root_meta, u32 track_num, const char *item_name, u32 item_id, u32 item_type, const char *mime_type, const char *content_encoding, GF_ImageItemProperties *image_props, char *data, u32 data_len, GF_List *item_extent_refs);
+
+GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs);
 
 /*removes item from meta*/
 GF_Err gf_isom_remove_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);
 
 /*sets the given item as the primary one. You SHALL NOT use this if the meta has a valid XML data*/
 GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num);
+
+GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 trackID, u32 from_id, u32 to_id, u32 type, u64 *ref_index);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 

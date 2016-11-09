@@ -1789,6 +1789,12 @@ GF_Err gf_isom_remove_track(GF_ISOFile *movie, u32 trackNumber)
 		if (trak->Header->trackID>movie->moov->mvhd->nextTrackID)
 			movie->moov->mvhd->nextTrackID = trak->Header->trackID;
 	}
+
+	if (!gf_list_count(movie->moov->trackList)) {
+		gf_list_del_item(movie->TopBoxes, movie->moov);
+		gf_isom_box_del((GF_Box *)movie->moov);
+		movie->moov = NULL;
+	}
 	return GF_OK;
 }
 
@@ -3654,18 +3660,48 @@ GF_Err gf_isom_set_media_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 ne
 	return SetTrackDuration(trak);
 }
 
+GF_EXPORT
+Bool gf_isom_box_equal(GF_Box *a, GF_Box *b)
+{
+	Bool ret;
+	char *data1, *data2;
+	u32 data1_size, data2_size;
+	GF_BitStream *bs;
+
+	if (a == b) return GF_TRUE;
+	if (!a || !b) return GF_FALSE;
+
+	data1 = data2 = NULL;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_isom_box_size(a);
+	gf_isom_box_write(a, bs);
+	gf_bs_get_content(bs, &data1, &data1_size);
+	gf_bs_del(bs);
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_isom_box_size(b);
+	gf_isom_box_write(b, bs);
+	gf_bs_get_content(bs, &data2, &data2_size);
+	gf_bs_del(bs);
+
+	ret = GF_FALSE;
+	if (data1_size == data2_size) {
+		ret = (memcmp(data1, data2, sizeof(char)*data1_size) == 0) ? GF_TRUE : GF_FALSE;
+	}
+	gf_free(data1);
+	gf_free(data2);
+	return ret;
+}
 
 GF_EXPORT
 Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index1, GF_ISOFile *f2, u32 tk2, u32 sdesc_index2)
 {
 	u32 i, count;
 	GF_TrackBox *trak1, *trak2;
-	GF_BitStream *bs;
-	char *data1, *data2;
-	u32 data1_size, data2_size;
 	GF_ESD *esd1, *esd2;
-	GF_Box *a;
-	Bool ret, need_memcmp;
+	Bool need_memcmp;
+	GF_Box *a, *b;
 
 	/*get orig sample desc and clone it*/
 	trak1 = gf_isom_get_track_from_file(f1, tk1);
@@ -3725,9 +3761,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		{
 			GF_MPEGVisualSampleEntryBox *avc1 = (GF_MPEGVisualSampleEntryBox *)ent1;
 			GF_MPEGVisualSampleEntryBox *avc2 = (GF_MPEGVisualSampleEntryBox *)ent2;
-			data1 = data2 = NULL;
 
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc1->hevc_config)
 				a = (GF_Box *) avc1->hevc_config;
 			else if (avc1->lhvc_config)
@@ -3736,32 +3770,17 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				a = (GF_Box *) avc1->svc_config;
 			else
 				a = (GF_Box *) avc1->avc_config;
-			gf_isom_box_size(a);
-			gf_isom_box_write(a, bs);
-			gf_bs_get_content(bs, &data1, &data1_size);
-			gf_bs_del(bs);
 
-			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			if (avc2->hevc_config)
-				a = (GF_Box *) avc2->hevc_config;
+				b = (GF_Box *) avc2->hevc_config;
 			else if (avc2->lhvc_config)
-				a = (GF_Box *) avc2->lhvc_config;
+				b = (GF_Box *) avc2->lhvc_config;
 			else if (avc2->svc_config)
-				a = (GF_Box *) avc2->svc_config;
+				b = (GF_Box *) avc2->svc_config;
 			else
-				a = (GF_Box *) avc2->avc_config;
-			gf_isom_box_size(a);
-			gf_isom_box_write(a, bs);
-			gf_bs_get_content(bs, &data2, &data2_size);
-			gf_bs_del(bs);
+				b = (GF_Box *) avc2->avc_config;
 
-			ret = GF_FALSE;
-			if (data1_size == data2_size) {
-				ret = (memcmp(data1, data2, sizeof(char)*data1_size)==0) ? GF_TRUE : GF_FALSE;
-			}
-			gf_free(data1);
-			gf_free(data2);
-			return ret;
+			return gf_isom_box_equal(a,b);
 		}
 		break;
 		case GF_ISOM_BOX_TYPE_LSR1:
@@ -3824,30 +3843,9 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		if (sdesc_index1 && sdesc_index2) break;
 	}
 	if (!need_memcmp) return GF_TRUE;
-	ret = GF_FALSE;
-
-	data1 = data2 = NULL;
-
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	a = (GF_Box *)trak1->Media->information->sampleTable->SampleDescription;
-	gf_isom_box_size(a);
-	gf_isom_box_write(a, bs);
-	gf_bs_get_content(bs, &data1, &data1_size);
-	gf_bs_del(bs);
-
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	a = (GF_Box *)trak2->Media->information->sampleTable->SampleDescription;
-	gf_isom_box_size(a);
-	gf_isom_box_write(a, bs);
-	gf_bs_get_content(bs, &data2, &data2_size);
-	gf_bs_del(bs);
-
-	if (data1_size == data2_size) {
-		ret = (memcmp(data1, data2, sizeof(char)*data1_size)==0) ? GF_TRUE : GF_FALSE;
-	}
-	gf_free(data1);
-	gf_free(data2);
-	return ret;
+	b = (GF_Box *)trak2->Media->information->sampleTable->SampleDescription;
+	return gf_isom_box_equal(a,b);
 }
 
 GF_EXPORT
@@ -4652,7 +4650,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 		e = gf_isom_set_meta_type(movie, GF_FALSE, track, GF_4CC('r','v','c','i'));
 		if (e) return e;
 		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_ISO2, 1);
-		e = gf_isom_add_meta_item_memory(movie, GF_FALSE, track, "rvcconfig.xml", 0, mime, NULL, data, size);
+		e = gf_isom_add_meta_item_memory(movie, GF_FALSE, track, "rvcconfig.xml", 0, GF_4CC('m', 'i', 'm', 'e'), mime, NULL, NULL, data, size, NULL);
 		if (e) return e;
 		entry->rvcc->rvc_meta_idx = gf_isom_get_meta_item_count(movie, GF_FALSE, track);
 	}

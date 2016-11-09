@@ -135,10 +135,14 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	if (parent_type && (parent_type==GF_ISOM_BOX_TYPE_TREF)) {
+	if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_TREF)) {
 		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
 		if (!newBox) return GF_OUT_OF_MEM;
 		((GF_TrackReferenceTypeBox*)newBox)->reference_type = type;
+	} else if (parent_type && (parent_type == GF_ISOM_BOX_TYPE_IREF)) {
+		newBox = gf_isom_box_new(GF_ISOM_BOX_TYPE_REFI);
+		if (!newBox) return GF_OUT_OF_MEM;
+		((GF_ItemReferenceTypeBox*)newBox)->reference_type = type;
 	} else {
 		//OK, create the box based on the type
 		newBox = gf_isom_box_new(uuid_type ? uuid_type : type);
@@ -295,9 +299,11 @@ GF_Err gf_isom_full_box_get_size(GF_Box *ptr)
 GF_EXPORT
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 {
+	u64 start;
 	if (! bs || !ptr) return GF_BAD_PARAM;
 	if (!ptr->size) return GF_ISOM_INVALID_FILE;
 
+	start = gf_bs_get_position(bs);
 	if (ptr->size > 0xFFFFFFFF) {
 		gf_bs_write_u32(bs, 1);
 	} else {
@@ -342,6 +348,9 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	}
 	if (ptr->size > 0xFFFFFFFF)
 		gf_bs_write_u64(bs, ptr->size);
+	
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(ptr->type), LLD_CAST ptr->size, LLD_CAST start));
+
 	return GF_OK;
 }
 
@@ -408,6 +417,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	switch (boxType) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_New();
+	case GF_ISOM_BOX_TYPE_REFI:
+		return ireftype_New();
 	case GF_ISOM_BOX_TYPE_FREE:
 		return free_New();
 	case GF_ISOM_BOX_TYPE_SKIP:
@@ -718,6 +729,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return infe_New();
 	case GF_ISOM_BOX_TYPE_IINF:
 		return iinf_New();
+	case GF_ISOM_BOX_TYPE_IREF:
+		return iref_New();
 	case GF_ISOM_BOX_TYPE_SINF:
 		return sinf_New();
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -923,6 +936,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return iprp_New();
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_New();
+	case GF_ISOM_BOX_TYPE_GRPL:
+		return grpl_New();
 
 	default:
 		a = defa_New();
@@ -952,6 +967,9 @@ void gf_isom_box_del(GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		reftype_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_REFI:
+		ireftype_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
@@ -1373,6 +1391,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IINF:
 		iinf_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_IREF:
+		iref_del(a);
+		return;
 	case GF_ISOM_BOX_TYPE_SINF:
 		sinf_del(a);
 		return;
@@ -1636,6 +1657,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IPMA:
 		ipma_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_GRPL:
+		grpl_del(a);
+		return;
 
 	default:
 		defa_del(a);
@@ -1649,6 +1673,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_REFI:
+		return ireftype_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 		return free_Read(a, bs);
@@ -1937,6 +1963,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return infe_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_IINF:
 		return iinf_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_IREF:
+		return iref_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF:
 		return sinf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -2130,6 +2158,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return iprp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPL:
+		return grpl_Read(a, bs);
 
 	default:
 		return defa_Read(a, bs);
@@ -2143,6 +2173,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_REFI:
+		return ireftype_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 		return free_Write(a, bs);
@@ -2432,6 +2464,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return infe_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_IINF:
 		return iinf_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_IREF:
+		return iref_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF:
 		return sinf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -2624,6 +2658,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return iprp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPL:
+		return grpl_Write(a, bs);
 
 	default:
 		return defa_Write(a, bs);
@@ -2646,6 +2682,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_REFT:
 		return reftype_Size(a);
+	case GF_ISOM_BOX_TYPE_REFI:
+		return ireftype_Size(a);
 	case GF_ISOM_BOX_TYPE_FREE:
 	case GF_ISOM_BOX_TYPE_SKIP:
 		return free_Size(a);
@@ -2934,6 +2972,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return infe_Size(a);
 	case GF_ISOM_BOX_TYPE_IINF:
 		return iinf_Size(a);
+	case GF_ISOM_BOX_TYPE_IREF:
+		return iref_Size(a);
 	case GF_ISOM_BOX_TYPE_SINF:
 		return sinf_Size(a);
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -3124,6 +3164,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return iprp_Size(a);
 	case GF_ISOM_BOX_TYPE_IPMA:
 		return ipma_Size(a);
+	case GF_ISOM_BOX_TYPE_GRPL:
+		return grpl_Size(a);
 
 	default:
 		return defa_Size(a);
