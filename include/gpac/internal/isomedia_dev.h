@@ -1261,7 +1261,8 @@ typedef struct
 	GF_List *Samples;
 } GF_SubSampleInformationBox;
 
-u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, GF_SubSampleInfoEntry **sub_sample);
+Bool gf_isom_get_subsample_types(GF_ISOFile *movie, u32 track, u32 subs_index, u32 *flags);
+u32  gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 entry_index, GF_SubSampleInfoEntry **sub_sample);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable);
 #endif
@@ -1324,7 +1325,8 @@ typedef struct
 	GF_SampleDependencyTypeBox *SampleDep;
 	GF_SampleFragmentBox *Fragments;
 
-	GF_SubSampleInformationBox *SubSamples;
+//	GF_SubSampleInformationBox *SubSamples;
+	GF_List *sub_samples;
 
 	GF_Box *piff_psec;
 	GF_Box *senc;
@@ -1809,7 +1811,9 @@ typedef struct
 	/*keep a pointer to default flags*/
 	GF_TrackExtendsBox *trex;
 	GF_SampleDependencyTypeBox *sdtp;
-	GF_SubSampleInformationBox *subs;
+
+//	GF_SubSampleInformationBox *subs;
+	GF_List *sub_samples;
 
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;

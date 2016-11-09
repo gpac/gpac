@@ -4568,8 +4568,9 @@ GF_Err gf_isom_reset_switch_parameters(GF_ISOFile *movie)
 }
 
 
-GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
+GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags, u32 subSampleSize, u8 priority, u32 reserved, Bool discardable)
 {
+	u32 i, count;
 	GF_SubSampleInformationBox *sub_samples;
 	GF_TrackBox *trak;
 	GF_Err e;
@@ -4581,12 +4582,22 @@ GF_Err gf_isom_add_subsample(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32
 	if (!trak || !trak->Media || !trak->Media->information->sampleTable)
 		return GF_BAD_PARAM;
 
-	if (!trak->Media->information->sampleTable->SubSamples) {
-		trak->Media->information->sampleTable->SubSamples = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
-		sub_samples = trak->Media->information->sampleTable->SubSamples;
+	if (!trak->Media->information->sampleTable->sub_samples) {
+		trak->Media->information->sampleTable->sub_samples=gf_list_new();
+	}
+
+	sub_samples = NULL;
+	count = gf_list_count(trak->Media->information->sampleTable->sub_samples);
+	for (i=0; i<count; i++) {
+		sub_samples = gf_list_get(trak->Media->information->sampleTable->sub_samples, i);
+		if (sub_samples->flags==flags) break;
+		sub_samples = NULL;
+	}
+	if (!sub_samples) {
+		sub_samples = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+		gf_list_add(trak->Media->information->sampleTable->sub_samples, sub_samples);
 		sub_samples->version = (subSampleSize>0xFFFF) ? 1 : 0;
-	} else {
-		sub_samples = trak->Media->information->sampleTable->SubSamples;
+		sub_samples->flags = flags;
 	}
 	return gf_isom_add_subsample_info(sub_samples, sampleNumber, subSampleSize, priority, reserved, discardable);
 }
@@ -5336,7 +5347,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 GF_EXPORT
 GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src, u32 src_track, u32 sampleNumber)
 {
-	u32 i, count, dst_sample_num;
+	u32 i, count, idx, dst_sample_num, subs_flags;
 	GF_SubSampleInfoEntry *sub_sample;
 	GF_Err e;
 	GF_TrackBox *src_trak, *dst_trak;
@@ -5363,18 +5374,35 @@ GF_Err gf_isom_copy_sample_info(GF_ISOFile *dst, u32 dst_track, GF_ISOFile *src,
 	}
 
 	/*copy subsample info if any*/
-	if ( gf_isom_sample_get_subsample_entry(src, src_track, sampleNumber, &sub_sample)) {
+	idx=1;
+	while (gf_isom_get_subsample_types(src, src_track, idx, &subs_flags)) {
+		GF_SubSampleInformationBox *dst_subs=NULL;
+		idx++;
+
+		if ( ! gf_isom_sample_get_subsample_entry(src, src_track, sampleNumber, subs_flags, &sub_sample))
+			continue;
 
 		/*create subsample if needed*/
-		if (!dst_trak->Media->information->sampleTable->SubSamples) {
-			dst_trak->Media->information->sampleTable->SubSamples = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
-			dst_trak->Media->information->sampleTable->SubSamples->version = 0;
+		if (!dst_trak->Media->information->sampleTable->sub_samples) {
+			dst_trak->Media->information->sampleTable->sub_samples = gf_list_new();
+		}
+		count = gf_list_count(dst_trak->Media->information->sampleTable->sub_samples);
+		for (i=0; i<count; i++) {
+			dst_subs = gf_list_get(dst_trak->Media->information->sampleTable->sub_samples, i);
+			if (dst_subs->flags==subs_flags) break;
+			dst_subs=NULL;
+		}
+		if (!dst_subs) {
+			dst_subs = (GF_SubSampleInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SUBS);
+			dst_subs->version=0;
+			dst_subs->flags = subs_flags;
+			gf_list_add(dst_trak->Media->information->sampleTable->sub_samples, dst_subs);
 		}
 
 		count = gf_list_count(sub_sample->SubSamples);
 		for (i=0; i<count; i++) {
 			GF_SubSampleEntry *entry = (GF_SubSampleEntry*)gf_list_get(sub_sample->SubSamples, i);
-			e = gf_isom_add_subsample_info(dst_trak->Media->information->sampleTable->SubSamples, dst_sample_num, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
+			e = gf_isom_add_subsample_info(dst_subs, dst_sample_num, entry->subsample_size, entry->subsample_priority, entry->reserved, entry->discardable);
 			if (e) return e;
 		}
 	}

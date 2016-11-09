@@ -1038,16 +1038,43 @@ GF_Err gf_isom_add_subsample_info(GF_SubSampleInformationBox *sub_samples, u32 s
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, GF_SubSampleInfoEntry **sub_sample)
+u32 gf_isom_sample_get_subsamples_count(GF_ISOFile *movie, u32 track)
+{
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	if (!track) return 0;
+	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;
+	return gf_list_count(trak->Media->information->sampleTable->sub_samples);
+}
+
+Bool gf_isom_get_subsample_types(GF_ISOFile *movie, u32 track, u32 subs_index, u32 *flags)
+{
+	GF_SubSampleInformationBox *sub_samples=NULL;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+
+	if (!track || !subs_index) return GF_FALSE;
+	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return GF_FALSE;
+	sub_samples = gf_list_get(trak->Media->information->sampleTable->sub_samples, subs_index-1);
+	if (!sub_samples) return GF_FALSE;
+	*flags = sub_samples->flags;
+	return GF_TRUE;
+}
+
+u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleNumber, u32 flags, GF_SubSampleInfoEntry **sub_sample)
 {
 	u32 i, count, last_sample;
-	GF_SubSampleInformationBox *sub_samples;
+	GF_SubSampleInformationBox *sub_samples=NULL;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
 	if (sub_sample) *sub_sample = NULL;
 	if (!track) return 0;
-	if (!trak->Media || !trak->Media->information->sampleTable) return 0;
-	sub_samples = trak->Media->information->sampleTable->SubSamples;
+	if (!trak->Media || !trak->Media->information->sampleTable || !trak->Media->information->sampleTable->sub_samples) return 0;
+	count = gf_list_count(trak->Media->information->sampleTable->sub_samples);
+	for (i=0; i<count; i++) {
+		sub_samples = gf_list_get(trak->Media->information->sampleTable->sub_samples, i);
+		if (sub_samples->flags==flags) break;
+		sub_samples = NULL;
+	}
 	if (!sub_samples) return 0;
+	
 	last_sample = 0;
 	count = gf_list_count(sub_samples->Samples);
 	for (i=0; i<count; i++) {
