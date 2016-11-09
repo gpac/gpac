@@ -8678,6 +8678,10 @@ GF_Err subs_Read(GF_Box *s, GF_BitStream *bs)
 		memset(pSamp, 0, sizeof(GF_SubSampleInfoEntry));
 		pSamp->SubSamples = gf_list_new();
 		pSamp->sample_delta = gf_bs_read_u32(bs);
+		if (!i && !pSamp->sample_delta) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] first entry in SubSample has sample_delta of 0, should be one. Fixing\n"));
+			pSamp->sample_delta = 1;
+		}
 		subsample_count = gf_bs_read_u16(bs);
 
 		for (j=0; j<subsample_count; j++) {
