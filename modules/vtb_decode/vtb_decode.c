@@ -443,13 +443,12 @@ static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *a_slc = gf_list_get(dest, i);
 		if (a_slc->id != ps_id) continue;
-		if (a_slc->size != size) {
-			break;
-		}
-		if ( memcmp(a_slc->data, data, size) ) {
+		//not same size or different content but same ID, remove old xPS
+		if ((a_slc->size != size) || memcmp(a_slc->data, data, size) ) {
 			gf_free(a_slc->data);
 			gf_free(a_slc);
 			gf_list_rem(dest, i);
+			break;
 		} else {
 			add = GF_FALSE;
 		}
@@ -463,6 +462,10 @@ static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_
 		slc->size = size;
 		slc->id = ps_id;
 		gf_list_add(dest, slc);
+
+		//force re-activation of sps/pps
+		if (is_sps) ctx->active_sps = -1;
+		else ctx->active_pps = -1;
 	}
 }
 
