@@ -1995,6 +1995,10 @@ void gf_codec_del(GF_Codec *codec)
 		return;
 	if (gf_list_count(codec->inChannels)) return;
 
+	//delete CB first, in case we use pointers to codec data
+	if (codec->CB) gf_cm_del(codec->CB);
+	codec->CB = NULL;
+
 	if (!(codec->flags & GF_ESM_CODEC_IS_USE)) {
 		switch (codec->type) {
 			/*input sensor streams are handled internally for now*/
@@ -2012,8 +2016,6 @@ void gf_codec_del(GF_Codec *codec)
 			break;
 		}
 	}
-	if (codec->CB) gf_cm_del(codec->CB);
-	codec->CB = NULL;
 	if (codec->inChannels) gf_list_del(codec->inChannels);
 	codec->inChannels = NULL;
 	gf_free(codec);
