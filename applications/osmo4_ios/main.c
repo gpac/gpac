@@ -360,8 +360,10 @@ int main (int argc, char *argv[])
 	const char *str;
 	char *ext;
 	u32 i;
+	u32 url_idx_plus_1 = 0;
 	u32 simulation_time = 0;
 	Bool auto_exit = 0;
+	Bool use_gui = 0;
 	Bool use_rtix = 0;
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 
@@ -383,6 +385,7 @@ int main (int argc, char *argv[])
 		char *arg = argv[i];
 		if (arg[0] != '-') {
 			url_arg = arg;
+			url_idx_plus_1 = i+1;
 		}
 		else if (!strcmp(arg, "-logs")) {
 			logs_settings = argv[i+1];
@@ -404,6 +407,7 @@ int main (int argc, char *argv[])
 		else if (!strcmp(arg, "-bench")) bench_mode = 1;
 		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
 		else if (!strcmp(arg, "-sbench")) bench_mode = 3;
+		else if (!strcmp(arg, "-gui") || !strcmp(arg, "-guid")) use_gui = 1;
 	}
 	
 	gf_sys_init(mem_track);
@@ -469,9 +473,11 @@ int main (int argc, char *argv[])
 			if (path) {
 				strcat(the_url, path+1);
 				url_arg = the_url;
+				argv[url_idx_plus_1 - 1] = url_arg;
 			}
 		}
 	}
+	gf_sys_set_args(argc, (const char **) argv);
 	
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
@@ -574,12 +580,13 @@ int main (int argc, char *argv[])
 
 			fprintf(stderr, "Hit 'h' for help\n\n");
 		}
-	} else if (url_arg) {
+	} else if (!use_gui && url_arg) {
 		gf_term_connect(term, url_arg);
 	} else {
 		str = gf_cfg_get_key(cfg_file, "General", "StartupFile");
 		if (str) {
-			strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
+			if (!url_arg)
+				strcpy(the_url, "MP4Client "GPAC_FULL_VERSION);
 			gf_term_connect(term, str);
 			startup_file = 1;
 		}
