@@ -181,12 +181,16 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 
 			for (i=0; i<gf_list_count(ctx->SPSs); i++) {
 				sps = gf_list_get(ctx->SPSs, i);
+				if (ctx->active_sps<0) ctx->active_sps = sps->id;
+
 				if (sps->id==ctx->active_sps) break;
 				sps = NULL;
 			}
 			if (!sps) return GF_NON_COMPLIANT_BITSTREAM;
 			for (i=0; i<gf_list_count(ctx->PPSs); i++) {
 				pps = gf_list_get(ctx->PPSs, i);
+				if (ctx->active_pps<0) ctx->active_pps = pps->id;
+
 				if (pps->id==ctx->active_pps) break;
 				pps = NULL;
 			}
@@ -476,7 +480,8 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->check_h264_isma = GF_TRUE;
 
 		ctx->avc.sps_active_idx = -1;
-		
+		ctx->active_sps = ctx->active_pps = -1;
+
 		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
@@ -500,9 +505,10 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			}
 
 			slc = gf_list_get(ctx->SPSs, 0);
-			ctx->active_sps = slc->id;
+			if (slc) ctx->active_sps = slc->id;
+
 			slc = gf_list_get(ctx->PPSs, 0);
-			ctx->active_pps = slc->id;
+			if (slc) ctx->active_pps = slc->id;
 			
 			ctx->nalu_size_length = cfg->nal_unit_size;
 			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
@@ -539,9 +545,9 @@ static void VTB_DelParamList(GF_List *list)
 	}
 	gf_list_del(list);
 }
-static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
+
+static void VTBDec_DeleteDecoder(VTBDec *ctx)
 {
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
 	if (ctx->fmt_desc) {
 		CFRelease(ctx->fmt_desc);
 		ctx->fmt_desc = NULL;
@@ -554,8 +560,13 @@ static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	ctx->SPSs = NULL;
 	VTB_DelParamList(ctx->PPSs);
 	ctx->PPSs = NULL;
+}
+
+static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
+{
 	return GF_OK;
 }
+
 static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
 	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
@@ -658,7 +669,6 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 	while (inBufferLength) {
 		Bool add_nal = GF_TRUE;
 		u8 nal_type, nal_hdr;
-		s32 res;
 		GF_BitStream *nal_bs=NULL;
 		
 		if (ctx->nalu_size_length) {
@@ -692,10 +702,10 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 			break;
 		}
 		
-		res = gf_media_avc_parse_nalu(nal_bs, nal_hdr, &ctx->avc);
+		gf_media_avc_parse_nalu(nal_bs, nal_hdr, &ctx->avc);
 		gf_bs_del(nal_bs);
 		
-		if (res && ctx->avc.s_info.sps) {
+		if ((nal_type<=GF_AVC_NALU_IDR_SLICE) && ctx->avc.s_info.sps) {
 			if (ctx->avc.sps_active_idx != ctx->active_sps) {
 				ctx->reconfig_needed = 1;
 				ctx->active_sps = ctx->avc.sps_active_idx;
@@ -817,13 +827,23 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 	}
 
-	if (ctx->is_avc && ctx->vtb_session) {
-		if (!ctx->reconfig_needed)
-			VTB_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
-		
+	//Always parse AVC data , remove SPS/PPS/... and reconfig if needed
+	if (ctx->is_annex_b || ctx->nalu_size_length) {
+		do_free=GF_TRUE;
+		if (ctx->vtb_session && ctx->cached_annex_b) {
+			in_data = ctx->cached_annex_b;
+			in_data_size = ctx->cached_annex_b_size;
+			ctx->cached_annex_b = NULL;
+		} else {
+			e = VTB_ParseNALs(ctx, inBuffer, inBufferLength, &in_data, &in_data_size);
+			if (e) return e;
+		}
+
 		if (ctx->reconfig_needed) {
 			if (ctx->raw_frame_dispatch && ctx->decoded_frames_pending) {
 				*outBufferLength = 1;
+				gf_free(in_data);
+				ctx->cached_annex_b = NULL;
 				return GF_BUFFER_TOO_SMALL;
 			}
 			if (ctx->fmt_desc) {
@@ -837,22 +857,13 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			VTBDec_InitDecoder(ctx);
 			if (ctx->out_size != *outBufferLength) {
 				*outBufferLength = ctx->out_size;
+				gf_free(in_data);
+				ctx->cached_annex_b = NULL;
 				return GF_BUFFER_TOO_SMALL;
 			}
 		}
-	}
 
-	if (ctx->is_annex_b || (!ctx->vtb_session && ctx->nalu_size_length) ) {
-		do_free=GF_TRUE;
-		if (ctx->cached_annex_b) {
-			in_data = ctx->cached_annex_b;
-			in_data_size = ctx->cached_annex_b_size;
-			ctx->cached_annex_b = NULL;
-		} else {
-			e = VTB_ParseNALs(ctx, inBuffer, inBufferLength, &in_data, &in_data_size);
-			if (e) return e;
-		}
-		
+
 		if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
 			*outBufferLength = ctx->out_size;
 			ctx->cached_annex_b = in_data;
@@ -1275,6 +1286,7 @@ GF_BaseDecoder *NewVTBDec()
 void DeleteVTBDec(GF_BaseDecoder *ifcg)
 {
 	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
+	VTBDec_DeleteDecoder(ctx);
 
 #ifdef GPAC_IPHONE
 	if (ctx->cache_texture) {
