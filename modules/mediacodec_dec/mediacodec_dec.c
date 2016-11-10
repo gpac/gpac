@@ -755,7 +755,7 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
         LOGE("AMediaFormat_delete failed");
     }
     
-    if(AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
+    if(ctx->codec && AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
         LOGE("AMediaCodec_delete failed");
     }
 
