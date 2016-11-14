@@ -190,4 +190,11 @@ echo "Building osmo4 apk"
 cd $BASEPATH/applications/osmo4_android_studio/
 ./gradlew assembleDebug
 cd -
+if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+	then
+	echo -e "\nOld Osmo4.apk found. Removing it ..." 
+	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
+	fi  
+	
+	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
 echo "[OK] success Building osmo4 apk"
