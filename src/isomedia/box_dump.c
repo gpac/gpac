@@ -1879,7 +1879,7 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 	GF_AVCConfigurationBox *p = (GF_AVCConfigurationBox *) a;
 	const char *name = (p->type==GF_ISOM_BOX_TYPE_SVCC) ? "SVC" : "AVC";
 	char boxname[256];
-	sprintf(boxname, "<%sConfigurationBox>\n", name);
+	sprintf(boxname, "%sConfigurationBox", name);
 	DumpBox(a, boxname, trace);
 	fprintf(trace, ">\n");
 
