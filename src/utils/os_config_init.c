@@ -60,6 +60,7 @@
 #endif
 #ifdef GPAC_ANDROID
 #define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
+#define DEFAULT_ANDROID_PATH_CFG	"/storage/emulated/0/osmo"
 #endif
 #define CFG_FILE_NAME	"GPAC.cfg"
 
@@ -218,7 +219,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
 		return 1;
 	} else if (path_type==GF_PATH_CFG) {
-		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
+		strcpy(file_path, DEFAULT_ANDROID_PATH_CFG);
 		return 1;
 	} else if (path_type==GF_PATH_GUI) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
