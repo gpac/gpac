@@ -129,9 +129,11 @@ u32 send_frag_event(void *params)
 
 static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf, const VideoDataConf *video_data_conf, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum, const int ast_offset)
 {
-	u32 i = 0;
+	u32 i = 0, sec;
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
 	int audio_frame_size = AUDIO_FRAME_SIZE;
+	time_t gtime;
+	struct tm *t;
 	FILE *f;
 
 	char name[GF_MAX_PATH];
@@ -180,6 +182,12 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 		if (cmddata->minimum_update_period > 0)
 			fprintf(f, " minimumUpdatePeriod=\"PT%dS\"", cmddata->minimum_update_period);
+
+		gf_net_get_ntp(&sec, NULL);
+		gtime = sec - GF_NTP_SEC_1900_TO_1970;
+		t = gmtime(&gtime);
+		fprintf(f, " publishTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
 	}
 
 	fprintf(f, ">\n");
