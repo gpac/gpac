@@ -1318,6 +1318,12 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			mesh_reset(stack->mesh);
 
 			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
+			//may happen that we don't have an scene width/height, use hardcoded 100 units radius (size actually doesn't matter
+			//since our VP/camera is at the center of the sphere
+			if (!radius) {
+				radius = 100;
+			}
+
 			if (radius) {
 				mesh_new_sphere(stack->mesh, -1 * INT2FIX(radius), GF_FALSE, &sphere_angles);
 
