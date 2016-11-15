@@ -651,7 +651,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	fprintf(trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(trace, "<!--MP4Box dump trace-->\n");
 
-	fprintf(trace, "<IsoMediaFile Name=\"%s\">\n", mov->fileName);
+	fprintf(trace, "<IsoMediaFile xmlns=\"urn:mpeg:isobmff:schema:file:2016\" Name=\"%s\">\n", mov->fileName);
 
 	i=0;
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
