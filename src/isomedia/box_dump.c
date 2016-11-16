@@ -98,9 +98,9 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 {
 	fprintf(trace, "<%s ", name);
 	if (a->size > 0xFFFFFFFF) {
-		fprintf(trace, "LargeSize=\""LLD"\" ", LLD_CAST a->size);
+		fprintf(trace, "LargeSize=\""LLU"\" ", LLU_CAST a->size);
 	} else {
-		fprintf(trace, "Size=\"%d\" ", (u32) a->size);
+		fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
 		u32 i;
@@ -1461,7 +1461,7 @@ GF_Err stco_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No Chunk Offsets indications-->\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++) {
-			fprintf(trace, "<ChunkEntry offset=\"%d\"/>\n", p->offsets[i]);
+			fprintf(trace, "<ChunkEntry offset=\"%u\"/>\n", p->offsets[i]);
 		}
 	}
 	gf_box_dump_done("ChunkOffsetBox", a, trace);
@@ -1482,7 +1482,7 @@ GF_Err stss_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++) {
-			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%d\"/>\n", p->sampleNumbers[i]);
+			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%u\"/>\n", p->sampleNumbers[i]);
 		}
 	}
 	gf_box_dump_done("SyncSampleBox", a, trace);
@@ -1589,7 +1589,7 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++)
-			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", LLD_CAST p->offsets[i]);
+			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", LLU_CAST p->offsets[i]);
 	}
 	gf_box_dump_done("ChunkLargeOffsetBox", a, trace);
 	return GF_OK;
