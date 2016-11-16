@@ -98,9 +98,9 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 {
 	fprintf(trace, "<%s ", name);
 	if (a->size > 0xFFFFFFFF) {
-		fprintf(trace, "LargeSize=\""LLD"\" ", LLD_CAST a->size);
+		fprintf(trace, "LargeSize=\""LLU"\" ", LLU_CAST a->size);
 	} else {
-		fprintf(trace, "Size=\"%d\" ", (u32) a->size);
+		fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 	}
 	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
 		u32 i;
@@ -1461,7 +1461,7 @@ GF_Err stco_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No Chunk Offsets indications-->\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++) {
-			fprintf(trace, "<ChunkEntry offset=\"%d\"/>\n", p->offsets[i]);
+			fprintf(trace, "<ChunkEntry offset=\"%u\"/>\n", p->offsets[i]);
 		}
 	}
 	gf_box_dump_done("ChunkOffsetBox", a, trace);
@@ -1482,7 +1482,7 @@ GF_Err stss_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<!--Warning: No Key Frames indications-->\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++) {
-			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%d\"/>\n", p->sampleNumbers[i]);
+			fprintf(trace, "<SyncSampleEntry sampleNumber=\"%u\"/>\n", p->sampleNumbers[i]);
 		}
 	}
 	gf_box_dump_done("SyncSampleBox", a, trace);
@@ -1589,7 +1589,7 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++)
-			fprintf(trace, "<ChunkOffsetEntry offset=\""LLD"\"/>\n", LLD_CAST p->offsets[i]);
+			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", LLU_CAST p->offsets[i]);
 	}
 	gf_box_dump_done("ChunkLargeOffsetBox", a, trace);
 	return GF_OK;
@@ -2715,7 +2715,7 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackFragmentHeaderBox *)a;
 	DumpBox(a, "TrackFragmentHeaderBox", trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "TrackID=\"%d\"", p->trackID);
+	fprintf(trace, "TrackID=\"%u\"", p->trackID);
 
 	if (p->flags & GF_ISOM_TRAF_BASE_OFFSET) {
 		fprintf(trace, " BaseDataOffset=\""LLU"\"", p->base_data_offset);
@@ -2724,11 +2724,11 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	}
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DESC)
-		fprintf(trace, " SampleDescriptionIndex=\"%d\"", p->sample_desc_index);
+		fprintf(trace, " SampleDescriptionIndex=\"%u\"", p->sample_desc_index);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DUR)
-		fprintf(trace, " SampleDuration=\"%d\"", p->def_sample_duration);
+		fprintf(trace, " SampleDuration=\"%u\"", p->def_sample_duration);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_SIZE)
-		fprintf(trace, " SampleSize=\"%d\"", p->def_sample_size);
+		fprintf(trace, " SampleSize=\"%u\"", p->def_sample_size);
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) {
 		frag_dump_sample_flags(trace, p->def_sample_flags);
@@ -2777,11 +2777,16 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<TrackRunEntry");
 
 			if (p->flags & GF_ISOM_TRUN_DURATION)
-				fprintf(trace, " Duration=\"%d\"", ent->Duration);
+				fprintf(trace, " Duration=\"%u\"", ent->Duration);
 			if (p->flags & GF_ISOM_TRUN_SIZE)
-				fprintf(trace, " Size=\"%d\"", ent->size);
+				fprintf(trace, " Size=\"%u\"", ent->size);
 			if (p->flags & GF_ISOM_TRUN_CTS_OFFSET)
-				fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+			{
+				if (p->version == 0)
+					fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
+				else
+					fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+			}
 
 			if (p->flags & GF_ISOM_TRUN_FLAGS) {
 				frag_dump_sample_flags(trace, ent->flags);
