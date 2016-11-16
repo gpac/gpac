@@ -1875,7 +1875,7 @@ typedef struct
 	GF_ISOM_FULL_BOX
 	u32 sample_count;
 	/*the following are optional fields */
-	s32 data_offset;
+	s32 data_offset; /* unsigned for version 0 */
 	u32 first_sample_flags;
 	/*can be empty*/
 	GF_List *entries;
