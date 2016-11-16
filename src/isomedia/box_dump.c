@@ -2715,7 +2715,7 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	p = (GF_TrackFragmentHeaderBox *)a;
 	DumpBox(a, "TrackFragmentHeaderBox", trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "TrackID=\"%d\"", p->trackID);
+	fprintf(trace, "TrackID=\"%u\"", p->trackID);
 
 	if (p->flags & GF_ISOM_TRAF_BASE_OFFSET) {
 		fprintf(trace, " BaseDataOffset=\""LLU"\"", p->base_data_offset);
@@ -2724,11 +2724,11 @@ GF_Err tfhd_dump(GF_Box *a, FILE * trace)
 	}
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DESC)
-		fprintf(trace, " SampleDescriptionIndex=\"%d\"", p->sample_desc_index);
+		fprintf(trace, " SampleDescriptionIndex=\"%u\"", p->sample_desc_index);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_DUR)
-		fprintf(trace, " SampleDuration=\"%d\"", p->def_sample_duration);
+		fprintf(trace, " SampleDuration=\"%u\"", p->def_sample_duration);
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_SIZE)
-		fprintf(trace, " SampleSize=\"%d\"", p->def_sample_size);
+		fprintf(trace, " SampleSize=\"%u\"", p->def_sample_size);
 
 	if (p->flags & GF_ISOM_TRAF_SAMPLE_FLAGS) {
 		frag_dump_sample_flags(trace, p->def_sample_flags);
@@ -2777,11 +2777,16 @@ GF_Err trun_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<TrackRunEntry");
 
 			if (p->flags & GF_ISOM_TRUN_DURATION)
-				fprintf(trace, " Duration=\"%d\"", ent->Duration);
+				fprintf(trace, " Duration=\"%u\"", ent->Duration);
 			if (p->flags & GF_ISOM_TRUN_SIZE)
-				fprintf(trace, " Size=\"%d\"", ent->size);
+				fprintf(trace, " Size=\"%u\"", ent->size);
 			if (p->flags & GF_ISOM_TRUN_CTS_OFFSET)
-				fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+			{
+				if (p->version == 0)
+					fprintf(trace, " CTSOffset=\"%u\"", (u32) ent->CTS_Offset);
+				else
+					fprintf(trace, " CTSOffset=\"%d\"", ent->CTS_Offset);
+			}
 
 			if (p->flags & GF_ISOM_TRUN_FLAGS) {
 				frag_dump_sample_flags(trace, ent->flags);
