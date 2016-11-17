@@ -12,6 +12,6 @@ do_test "$MP4BOX -dash 1000 $TEMP_DIR/file.ts -out $TEMP_DIR/file2.mpd" "ts-dash
 
 do_test "$MP4BOX -bs-switching single -mpd-refresh 1000 -dash-ctx $TEMP_DIR/dash_ctx -dash-run-for 20000 -subdur 100 -dynamic -profile live -dash-live 100 $TEMP_DIR/file.mp4 -out $TEMP_DIR/file3.mpd" "dash-live"
 
-do_playback_test "$TEMP_DIR/file.mpd" "play"
+do_playback_test "$TEMP_DIR/file.mpd" "play-basic-dash"
 
 test_end
