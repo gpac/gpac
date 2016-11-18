@@ -1351,6 +1351,7 @@ int mp4client_main(int argc, char **argv)
 			else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 			else if (!strcmp(arg, "-play-from")) {
 				play_from = atof((const char *) argv[i+1]);
+				i++;
 			}
 			else if (!strcmp(arg, "-speed")) {
 				playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
