@@ -60,7 +60,7 @@
 #endif
 #ifdef GPAC_ANDROID
 #define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
-#define DEFAULT_ANDROID_PATH_CFG	"/storage/emulated/0/osmo"
+#define DEFAULT_ANDROID_PATH_CFG	"/sdcard/osmo"
 #endif
 #define CFG_FILE_NAME	"GPAC.cfg"
 
