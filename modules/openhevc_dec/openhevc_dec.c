@@ -499,6 +499,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			ctx->had_pic = GF_FALSE;
 			libOpenHevcClose(ctx->openHevcHandle);
 			ctx->openHevcHandle = NULL;
+			ctx->decoder_started = GF_FALSE;
 			ctx->is_init = GF_FALSE;
 			HEVC_ConfigureStream(ctx, ctx->esd);
 		}
