@@ -17,7 +17,6 @@ $TEMP_DIR/counter_video_180.mp4:id=h264bl_low:Period=P1 \
 $TEMP_DIR/counter_audio.mp4:id=aaclc_p2:Period=P2 $TEMP_DIR/counter_video_360.mp4:id=h264bl_mid:Period=P2 \
 $TEMP_DIR/counter_video_720.mp4:id=h264bl_hd:Period=P2" "dash-multiperiod"
 
-exit
 
 do_playback_test "$TEMP_DIR/file.mpd" "play-dash-live-periods"
 
