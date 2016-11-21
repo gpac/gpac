@@ -6220,12 +6220,15 @@ restart_import:
 
 			break;
 		case GF_HEVC_NALU_SEI_SUFFIX:
-			if (!layer_id) flush_next_sample = GF_TRUE;
 			if (import->flags & GF_IMPORT_NO_SEI) {
 					copy_size = 0;
 			} else {
 				if (hevc.sps_active_idx != -1) {
 					copy_size = nal_size;
+					if (!layer_id) {
+						if (!is_empty_sample) flush_next_sample = GF_TRUE;
+						else copy_size = 0;
+					}
 					if (copy_size)
 						nb_sei++;
 				}
