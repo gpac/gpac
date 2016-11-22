@@ -956,7 +956,9 @@ static GF_Err X11_SetupGLPixmap(GF_VideoOutput *vout, u32 width, u32 height)
 	XWindow *xWin = (XWindow *)vout->opaque;
 
 	if (xWin->glx_context) {
-		glXMakeCurrent(xWin->display, None, NULL);
+		if (xWin->gl_offscreen) glXMakeCurrent(xWin->display, xWin->gl_offscreen, NULL);
+		else glXMakeCurrent(xWin->display, None, NULL);
+
 		glXDestroyContext(xWin->display, xWin->glx_context);
 		xWin->glx_context = NULL;
 	}
