@@ -543,12 +543,9 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
 
 	if ((tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) || (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
-		GF_Rect orig_vp;
-		Fixed vp_width, vp_height;
-		orig_vp = tr_state->camera->vp;
-
-		vp_width = orig_vp.width;
-		vp_height = orig_vp.height;
+		GF_Rect orig_vp = tr_state->camera->vp;
+		Fixed vp_width = orig_vp.width;
+//		Fixed vp_height = orig_vp.height;
 
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
