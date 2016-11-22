@@ -3072,16 +3072,12 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 #endif
 				compositor->new_width = event->size.width;
 				compositor->new_height = event->size.height;
+
 				compositor->msg_type |= GF_SR_CFG_SET_SIZE;
 				if (from_user) compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
 			} else {
 				/*remove pending resize notif but not resize requests*/
 				compositor->msg_type &= ~GF_SR_CFG_WINDOWSIZE_NOTIF;
-	
-				if (compositor->new_width || compositor->new_height) {
-					compositor->msg_type &= ~GF_SR_CFG_SET_SIZE;
-					compositor->new_width = compositor->new_height = 0;
-				}
 			}
 			if (lock_ok) gf_sc_lock(compositor, GF_FALSE);
 		}
