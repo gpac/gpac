@@ -132,7 +132,7 @@ int main (int argc, char **argv)
 						GF_BitStream *bs_tmp = gf_bs_new(buffer, nal_length, GF_BITSTREAM_READ);
 						gf_media_hevc_parse_nalu(bs_tmp, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 						nal_num++;	
-						printf("nal_number: \t%d\t%d\n",nal_num,nal_unit_type);
+						printf("nal_number: \t%d\t%d\n ",nal_num,nal_unit_type);
 						switch(nal_unit_type){
 							case 32:
 								printVPS(buffer,nal_length);
