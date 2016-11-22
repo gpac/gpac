@@ -22,31 +22,31 @@ SVG_DIR="$MEDIA_DIR/svg"
 #we don't check all files for 2D or always mode checking, onnly: backgrounds2D, interactivity (one is enough), material, texturing and bitmap
 test_2d_3d()
 {
-compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-bind.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-image.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-layer2D.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-interactivity-nested-sensors.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-lineproperties.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-material2D.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-cap.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-compositetexture2D.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-imagetexture.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-lineargradient.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-form-align-center.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-layer2d-in-layer2d.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-layout-horiz-ltr-nowrap.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-shapes-all.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-shapes-pointset2D.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-background.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-bitmap.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-transparent.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-gradients-transparent.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-imagetexture-shapes.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-2D-viewport-complete.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-3D-positioning-layer3D.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-meter-metrics.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-pixel-metrics.bt" $opt
-compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" $opt
+compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-bind.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-image.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-background-background2D-layer2D.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-interactivity-nested-sensors.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-lineproperties.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-material2D.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-cap.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-compositetexture2D.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-imagetexture.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-painting-xlineproperties-lineargradient.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-form-align-center.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-layer2d-in-layer2d.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-positioning-layout-horiz-ltr-nowrap.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-shapes-all.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-shapes-pointset2D.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-background.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-bitmap.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-compositetexture2D-transparent.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-gradients-transparent.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-texturing-imagetexture-shapes.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-2D-viewport-complete.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-3D-positioning-layer3D.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-meter-metrics.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-bitmap-image-pixel-metrics.bt" "$opt"
+compositor_test $1 "$BIFS_DIR/bifs-misc-hc-proto-offscreengroup.bt" "$opt"
 }
 
 opt="-opt Compositor:OpenGLMode=disable"
