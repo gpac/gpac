@@ -28,6 +28,7 @@
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
 #include <gpac/constants.h>
+#include <gpac/events.h>
 #include <gpac/media_tools.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
@@ -728,7 +729,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
 		case GF_KEY_O:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
 				if (gf_term_get_option(term, GF_OPT_MAIN_ADDON)) {
 					fprintf(stderr, "Resuming to main content\n");
 					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
@@ -738,7 +739,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			}
 			break;
 		case GF_KEY_P:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
 				u32 pause_state = gf_term_get_option(term, GF_OPT_PLAY_STATE) ;
 				fprintf(stderr, "[Status: %s]\n", pause_state ? "Playing" : "Paused");
 				if ((pause_state == GF_STATE_PAUSED) && (evt->key.flags & GF_KEY_MOD_SHIFT)) {
@@ -783,17 +784,17 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_toggle_addons(term, addon_visible);
 			break;
 		case GF_KEY_UP:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(playback_speed * 2);
 			}
 			break;
 		case GF_KEY_DOWN:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(playback_speed / 2);
 			}
 			break;
 		case GF_KEY_LEFT:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(-1 * playback_speed );
 			}
 			break;
