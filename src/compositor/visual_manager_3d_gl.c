@@ -988,6 +988,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		return GF_TRUE;
 	}
 
+	GL_CHECK_ERR
 	//Creating Program for the shaders
 	for(i=0; i<GF_GL_NB_FRAG_SHADERS; i++) {
 		visual->glsl_programs[i] = glCreateProgram();
@@ -2441,6 +2442,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 		tr_state->visual->needs_projection_matrix_reload = GF_TRUE;
 	}
 
+	GL_CHECK_ERR
 	visual->glsl_program = root_visual->glsl_programs[visual->glsl_flags];
 	glUseProgram(visual->glsl_program);
 	GL_CHECK_ERR
@@ -2792,6 +2794,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	tr_state->mesh_is_transparent = 0;
 	GL_CHECK_ERR
 	glUseProgram(0);
+	GL_CHECK_ERR
 }
 
 #endif // !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
@@ -2816,7 +2819,8 @@ static void visual_3d_draw_mesh(GF_TraverseState *tr_state, GF_Mesh *mesh)
 #endif
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[V3D] Drawing mesh %p\n", mesh));
-
+	//clear error
+	glGetError();
 	GL_CHECK_ERR
 
 #ifdef GPAC_USE_GLES2

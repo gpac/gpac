@@ -252,8 +252,11 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 			st->unsupported = 1;
 			return 0;
 		}
+		visual_3d_reset_graphics(compositor->visual);
 		/*reload openGL ext*/
 		gf_sc_load_opengl_extensions(compositor, 1);
+		/*load openGL shaders*/
+		visual_3d_init_shaders(compositor->visual);
 	}
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
