@@ -586,8 +586,14 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	tmp->msg_type |= GF_SR_CFG_INITIAL_RESIZE;
 	/*set default size if owning output*/
 	if (tmp->user && !tmp->user->os_window_handler) {
+		const char *opt;
 		tmp->new_width = SC_DEF_WIDTH;
 		tmp->new_height = SC_DEF_HEIGHT;
+		opt = gf_cfg_get_key(user->config, "Compositor", "DefaultWidth");
+		if (opt) tmp->new_width = atoi(opt);
+		opt = gf_cfg_get_key(user->config, "Compositor", "DefaultHeight");
+		if (opt) tmp->new_height = atoi(opt);
+
 		tmp->msg_type |= GF_SR_CFG_SET_SIZE;
 	}
 

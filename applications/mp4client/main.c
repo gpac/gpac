@@ -1512,6 +1512,14 @@ int mp4client_main(int argc, char **argv)
 		}
 	}
 
+	{
+		char dim[50];
+		sprintf(dim, "%d", forced_width);
+		gf_cfg_set_key(user.config, "Compositor", "DefaultWidth", forced_width ? dim : NULL);
+		sprintf(dim, "%d", forced_height);
+		gf_cfg_set_key(user.config, "Compositor", "DefaultHeight", forced_height ? dim : NULL);
+	}
+
 	fprintf(stderr, "Loading GPAC Terminal\n");
 	i = gf_sys_clock();
 	term = gf_term_new(&user);
