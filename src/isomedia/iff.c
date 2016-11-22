@@ -625,7 +625,7 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 	GF_ImageItemProperties local_image_props;
 	Bool config_needed = 0;
 	GF_Box *config_box = NULL;
-	u32 media_brand = 0;
+	//u32 media_brand = 0;
 
 	if (image_props && image_props->tile_mode != TILE_ITEM_NONE) {
 		u32 i, count;
@@ -711,7 +711,7 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
 				item_type = GF_4CC('l', 'h', 'v', '1');
 			}
-			media_brand = GF_ISOM_BRAND_HEIC;
+			//media_brand = GF_ISOM_BRAND_HEIC;
 		}
 		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) return GF_BAD_PARAM;
 
