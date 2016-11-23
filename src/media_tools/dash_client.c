@@ -4874,7 +4874,7 @@ restart_period:
 	gf_mx_p(dash->dash_mutex);
 	dash->dash_state = GF_DASH_STATE_SETUP;
 	gf_mx_v(dash->dash_mutex);
-
+fprintf(stderr, "period switch \n");
 	dash->in_period_setup = 1;
 
 	/*setup period*/
@@ -5184,9 +5184,16 @@ static void gf_dash_download_stop(GF_DashClient *dash)
 static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 {
 	Double start_time;
+	/*we have an arch issue here: we may get a seek request in normal multiperiod playback
+	 with a seek time close but before to the active period, typically if the stream is shorter
+	 than the advertised period duration. We will use a safety check of 0.5 seconds, any seek request
+	 at Start(Pn) - 0.5 will resolve in seek at Start(Pn)
+	 * */
+	Bool at_period_boundary=GF_FALSE;
 	u32 i, period_idx;
 	u32 nb_retry = 10;
 	gf_mx_p(dash->dash_mutex);
+	fprintf(stderr, "seek periods to %g\n", seek_time);
 
 	dash->start_range_period = 0;
 	start_time = 0;
@@ -5210,8 +5217,11 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		}
 		dur = (Double)period->duration;
 		dur /= 1000;
-		if (seek_time >= start_time) {
-			if ((i+1==gf_list_count(dash->mpd->periods)) || (seek_time < start_time + dur) ) {
+		if (seek_time + 0.5 >= start_time) {
+			if ((i+1==gf_list_count(dash->mpd->periods)) || (seek_time + 0.5 < start_time + dur) ) {
+				if (seek_time > start_time + dur) {
+					at_period_boundary = GF_TRUE;
+				}
 				period_idx = i;
 				break;
 			}
@@ -5224,9 +5234,12 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 		dash->request_period_switch = 2;
 
 		dash->start_range_period = seek_time;
+	} else if (seek_time < start_time) {
+		at_period_boundary = GF_TRUE;
 	}
-	gf_mx_v(dash->dash_mutex);
 
+	gf_mx_v(dash->dash_mutex);
+	if (at_period_boundary) return GF_TRUE;
 	return dash->request_period_switch ? 1 : 0;
 }
 
