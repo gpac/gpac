@@ -3066,7 +3066,11 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 			compositor may be locked on the video output (flush or whatever)!!
 			*/
 			Bool lock_ok = gf_mx_try_lock(compositor->mx);
-			if ((compositor->display_width!=event->size.width) || (compositor->display_height!=event->size.height)) {
+			if ((compositor->display_width!=event->size.width)
+					|| (compositor->display_height!=event->size.height)
+					|| (compositor->new_width && (compositor->new_width!=event->size.width))
+					|| (compositor->new_width && (compositor->new_height!=event->size.height))
+				) {
 
 				//OSX bug with SDL when requesting 4k window we get max screen height but 4k width ...
 #if defined(GPAC_CONFIG_DARWIN) && !defined(GPAC_IPHONE)
