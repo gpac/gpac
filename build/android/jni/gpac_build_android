@@ -152,7 +152,7 @@ LIBS_DIR="$BASEPATH/applications/osmo4_android_studio/app/src/main/libs"
 mkdir -p $LIBS_DIR
 cd "$BASEPATH/extra_lib/lib/android"
 echo "Copying all extra libs to $LIBS_DIR ..."
-for i in $(find . \( -name '*.so' \) -a \( ! -name "*_stagefright.so" \) )
+for i in $(find . \( -name '*.so' \))
 do
 	echo " Copy $i"
 	TMP_DIR=$(dirname $i)
