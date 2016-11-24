@@ -512,7 +512,7 @@ refetch_AU:
 				//gf_es_drop_au(ch);
 				continue;
 			}
-			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d (size %d) selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->dataLength, AU->CTS));
+			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u (size %d) selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->dataLength, AU->CTS));
 			*nextAU = AU;
 			*activeChannel = ch;
 			curCTS = AU->CTS;
@@ -527,7 +527,7 @@ refetch_AU:
 					curCTS = AU->CTS;
 					now = gf_clock_time(ch->clock);
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %u but base DTS %u: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
 					ch->stream_state = stream_state;
@@ -551,7 +551,7 @@ refetch_AU:
 				memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			}
 			baseAU->dataLength += AU->dataLength;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 			scalable_check = 2;
@@ -590,7 +590,7 @@ refetch_AU:
 				if ((AU->DTS <= codec->last_unit_dts)
 				        //we also prevent detecting temporal scalability until at least one frame from the base has been decoded
 				        || !codec->first_frame_processed) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %d but base DTS %d: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d %s AU DTS %u but base DTS %u: frame too late - re-fetch channel\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*nextAU)->DTS));
 					gf_es_drop_au(ch);
 					//restore stream state in case we got a RAP this time but we discard the AU, we need to wait again for the next RAP with the right timing
 					ch->stream_state = stream_state;
@@ -599,7 +599,7 @@ refetch_AU:
 				}
 				//This is a temporal scalability so we re-aggregate from the enhencement
 				else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %d selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u selected as first layer (CTS %d)\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS));
 					*nextAU = AU;
 					*activeChannel = ch;
 					curCTS = AU->CTS;
@@ -608,7 +608,7 @@ refetch_AU:
 				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED) {
 					scalable_check = 2;
 				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS %d - CTS %d too early for this AU\n", AU->DTS, AU->CTS));
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS %u - CTS %d too early for this AU\n", AU->DTS, AU->CTS));
 				}
 			}
 		}
@@ -632,12 +632,12 @@ refetch_AU:
 	if (*nextAU  && no_au_in_enhancement ) {
 		//do we have time to wait for the enhancement to be filled ?
 		if (now < (*nextAU)->DTS) {
-			//GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Enhancement layer not ready for this AU (DTS %d) at OTB %d- decoding postponed\n", codec->decio->module_name, (*nextAU)->DTS, now));
+			//GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Enhancement layer not ready for this AU (DTS %u) at OTB %d- decoding postponed\n", codec->decio->module_name, (*nextAU)->DTS, now));
 			*nextAU = NULL;
 			*activeChannel = NULL;
 			return;
 		}
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Warning: could not find enhancement layer for this AU (DTS %d) at OTB %d - decoding only base\n", codec->decio->module_name, (*nextAU)->DTS, now));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] Warning: could not find enhancement layer for this AU (DTS %u) at OTB %d - decoding only base\n", codec->decio->module_name, (*nextAU)->DTS, now));
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
@@ -1334,9 +1334,9 @@ scalable_retry:
 			gf_cm_abort_buffering(codec->CB);
 		} else if (force_skip) {
 			unit_size = 0;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: force drop requested in fast playback for AU CTS %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d: force drop requested in fast playback for AU CTS %u\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, AU->CTS));
 		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d decoding frame DTS %d CTS %d size %d (%d in channels)\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoding frame DTS %u CTS %u size %d (%d in channels)\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, ch->AU_Count));
 			e = mdec->ProcessData(mdec, AU->data, AU->dataLength, ch->esd->ESID, &CU->TS, CU->data, &unit_size, AU->PaddingBits, mmlevel);
 		}
 		now = gf_sys_clock_high_res() - now;
@@ -1397,7 +1397,7 @@ scalable_retry:
 		processing a scalable stream*/
 		case GF_OK:
 			if (unit_size) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %d ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
 
 
 				if (codec->direct_frame_output) {
