@@ -616,6 +616,7 @@ typedef struct
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
+	u64 start_tfdt;
 } GF_ISOMTrackFragmenter;
 
 static u64 isom_get_next_sap_time(GF_ISOFile *input, u32 track, u32 sample_count, u32 sample_num)
@@ -1541,18 +1542,17 @@ restart_fragmentation_pass:
 			if (e) goto err_exit;
 
 			for (i=0; i<count; i++) {
-				u64 tfdt;
 				tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 				if (tf->done) continue;
 
 				if (dash_cfg->initial_tfdt && (tf->TimeScale != dash_cfg->dash_scale)) {
 					Double scale = tf->TimeScale;
 					scale /= dash_cfg->dash_scale;
-					tfdt = (u64) (dash_cfg->initial_tfdt*scale) + tf->InitialTSOffset + tf->next_sample_dts;
+					tf->start_tfdt = (u64) (dash_cfg->initial_tfdt*scale) + tf->InitialTSOffset + tf->next_sample_dts;
 				} else {
-					tfdt = tf->InitialTSOffset + tf->next_sample_dts;
+					tf->start_tfdt = tf->InitialTSOffset + tf->next_sample_dts;
 				}
-				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tfdt);
+				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->start_tfdt);
 				if (!SegmentDuration) tf->min_cts_in_segment = (u64)-1;
 
 			}
@@ -1676,7 +1676,9 @@ restart_fragmentation_pass:
 					e = GF_OK;
 				} else {
 					if (tf->is_ref_track && store_utc) {
-						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
+						//frame timestamp is composition time (tfdt + cts_offset) in movie timeline (eg take edit list into account) still in media timescale
+						u64 associated_pts = tf->start_tfdt + sample->CTS_Offset + tf->media_time_to_pres_time_shift;
+						gf_isom_set_fragment_reference_time(output, tf->TrackID, ntpts, associated_pts);
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, storing NTP TS "LLU" at "LLU" us, at UTC "LLU"\n", SegmentName, ntpts, gf_sys_clock_high_res(), gf_net_get_utc()));
 						ntpts = gf_net_get_ntp_ts();
 
