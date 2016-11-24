@@ -468,6 +468,10 @@ Bool gf_prompt_has_input()
 	u8 ch;
 	s32 nread;
 
+	//we are not foreground, can't read stdin
+	if (tcgetpgrp(STDIN_FILENO) != getpgrp()) {
+		return 0;
+	}
 	init_keyboard();
 	if (ch_peek != -1) return 1;
 	t_new.c_cc[VMIN]=0;
