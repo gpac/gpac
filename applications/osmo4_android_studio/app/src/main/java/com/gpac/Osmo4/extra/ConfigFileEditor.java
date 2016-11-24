@@ -45,7 +45,7 @@ public class ConfigFileEditor {
     public ConfigFileEditor(Context context) {
         this.context = context;
         config = new GpacConfig(context);
-        configFile = new File(config.getGpacAppDirectory(), "GPAC.cfg");
+        configFile = new File(config.getGpacConfigDirectory(), "GPAC.cfg");
 
         try {
             xmlFactoryObject = XmlPullParserFactory.newInstance();
@@ -256,7 +256,7 @@ public class ConfigFileEditor {
 
         String line = null;
         try {
-            File tempFile = new File(config.getGpacAppDirectory(), "temp.cfg");
+            File tempFile = new File(config.getGpacConfigDirectory(), "temp.cfg");
             BufferedReader br = new BufferedReader(new FileReader(configFile));
             BufferedWriter bw = new BufferedWriter(new FileWriter(tempFile));
 
