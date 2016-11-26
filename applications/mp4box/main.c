@@ -371,7 +371,7 @@ void PrintDASHUsage()
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
-		" -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
+	        " -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
@@ -400,6 +400,8 @@ void PrintDASHUsage()
 	        "                        as: sets ContentProtection in AdaptationSet element\n"
 	        "                        rep: sets ContentProtection in Representation element\n"
 	        "                        both: sets ContentProtection in both elements\n"
+	        " -start-date          for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now.\n"
+	        "                        !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!\n"
 	        "\n");
 }
 
@@ -1861,6 +1863,7 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
+u64 dash_start_date=0;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
@@ -3230,6 +3233,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-frag-rt")) {
 			frag_real_time = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-start-date")) {
+			dash_start_date = gf_net_parse_date(argv[i+1]);
+			i++;
+		}
 		else if (!strnicmp(arg, "-cp-location=", 13)) {
 			if (strcmp(arg+13, "both")) cp_location_mode = GF_DASH_CPMODE_BOTH;
 			else if (strcmp(arg+13, "as")) cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
@@ -3939,6 +3946,8 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		}
+		if (dash_start_date) gf_dasher_set_start_date(dasher, dash_start_date);
+
 
 		//e = gf_dasher_set_location(dasher, mpd_source);
 		for (i=0; i < nb_mpd_base_urls; i++) {
@@ -3985,7 +3994,7 @@ int mp4boxMain(int argc, char **argv)
 		dash_cumulated_time=0;
 
 		while (1) {
-			if(dash_cumulated_time>dash_run_for)
+			if (dash_run_for && (dash_cumulated_time>dash_run_for))
 				do_abort = 3;
 
 			dash_prev_time=gf_sys_clock();
@@ -4007,9 +4016,10 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
+				u64 ms_in_session=0;
 				u32 slept = gf_sys_clock();
-				u32 sleep_for = gf_dasher_next_update_time(dasher);
-				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
+				u32 sleep_for = gf_dasher_next_update_time(dasher, &ms_in_session);
+				fprintf(stderr, "Next generation scheduled in %u ms (DASH time "LLU" ms)\n", sleep_for, ms_in_session);
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
@@ -4033,7 +4043,7 @@ int mp4boxMain(int argc, char **argv)
 					if (!sleep_for) break;
 
 					gf_sleep(1);
-					sleep_for = gf_dasher_next_update_time(dasher);
+					sleep_for = gf_dasher_next_update_time(dasher, NULL);
 					if (sleep_for<1) {
 						dash_now_time=gf_sys_clock();
 						fprintf(stderr, "Slept for %d ms before generation\n", dash_now_time - slept);
