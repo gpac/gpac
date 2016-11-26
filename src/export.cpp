@@ -2044,6 +2044,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_profile_extension) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_process) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_start_date) )
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 

@@ -847,10 +847,18 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration);
 /*! 
  Returns time to wait until end of currently generated segments
  *	\param dasher the DASH segmenter object
+ *  \param ms_ins_session if set, retrives the number of ms since the start of the dash session
  *	\return time to wait in milliseconds
 */
-u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher);
+u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_ins_session);
 
+
+/*! 
+ Sets dasher start date, rather than use current time. Used for debugging purposes, such as simulating long lasting sessions.
+ *	\param dasher the DASH segmenter object
+ *  \param dash_utc_start_date start date as UTC timstamp. If 0, current time is used
+*/
+void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date);
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 /*!

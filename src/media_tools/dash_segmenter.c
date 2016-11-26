@@ -110,6 +110,8 @@ struct __gf_dash_segmenter
 	Double mpd_live_duration;
 	Bool insert_utc;
 	Bool real_time;
+	u32 start_date_sec_ntp, start_date_sec_ntp_ms_frac;
+	u32 nb_secs_to_discard;
 	const char *dash_profile_extension;
 
 	GF_Config *dash_ctx;
@@ -785,7 +787,6 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	char sOpt[100], sKey[100];
 	char szCodecs[200], szCodec[100];
 	u32 cur_seg, fragment_index, max_sap_type;
-//	u32 first_seg;
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
 	GF_List *fragmenters;
@@ -1401,7 +1402,6 @@ restart_fragmentation_pass:
 
 	if (!seg_rad_name) use_url_template = GF_FALSE;
 
-	//first_seg = 1;
 	cur_seg = 1;
 	fragment_index = 1;
 	if (dash_input->moof_seqnum_increase) {
@@ -1431,8 +1431,8 @@ restart_fragmentation_pass:
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
 		if (opt) {
 			cur_seg = atoi(opt);
-			//first_seg = cur_seg;
 		}
+
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextFragmentIndex");
 		if (opt) fragment_index = atoi(opt);
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "CumulatedDuration");
@@ -1457,6 +1457,30 @@ restart_fragmentation_pass:
 			sprintf(sKey, "TKID_%d_MediaTimeToPresTime", tf->TrackID);
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, sKey);
 			if (opt) tf->media_time_to_pres_time_shift = atoi(opt);
+
+			if (dash_cfg->nb_secs_to_discard) {
+				GF_ISOSample *sample = gf_isom_get_sample_info(input, tf->OriginalTrack, tf->SampleCount, &descIndex, NULL);
+				u32 last_sample_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleCount);
+				u64 track_dur = (u64) ((s64) last_sample_dur + sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
+				u64 pos = dash_cfg->nb_secs_to_discard;
+				u64 period_dur = track_dur * dash_cfg->dash_scale / tf->TimeScale;
+				u32 nb_seg_in_track = period_dur / (dash_cfg->segment_duration * dash_cfg->dash_scale);
+				if (nb_seg_in_track * dash_cfg->segment_duration * dash_cfg->dash_scale < period_dur)
+					nb_seg_in_track++;
+				pos *= tf->TimeScale;
+				while (1) {
+					if (pos < track_dur) break;
+					pos -= track_dur;
+					tf->InitialTSOffset += sample->DTS + last_sample_dur;
+					cur_seg += nb_seg_in_track;
+					period_duration += period_dur;
+				}
+				gf_isom_sample_del(&sample);
+
+				sprintf(sKey, "TKID_%d_NextDecodingTime", tf->TrackID);
+				sprintf(sOpt, LLU, tf->InitialTSOffset);
+				gf_cfg_set_key(dash_cfg->dash_ctx, RepSecName, sKey, sOpt);
+			}
 		}
 	}
 
@@ -1754,15 +1778,12 @@ restart_fragmentation_pass:
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
 								u32 scaler;
-//								u32 SegmentNum;
 								Double SegmentStart;
 								u64 next_sap_dur;
 								if (dash_cfg->segment_duration_strict) {
 									SegmentStart = 0;
-//									SegmentNum = 1;
 								} else {
 									SegmentStart = segment_start_time;
-//									SegmentNum = cur_seg - first_seg;
 								}
 								/*this is the fragment duration from last sample added to next SAP*/
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
@@ -5114,11 +5135,12 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	return GF_OK;
 }
 
-static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *dash_mode, s32 *timeShiftBufferDepth, const char *periodID, s32 ast_shift_ms)
+static GF_Err gf_dasher_init_context(GF_DASHSegmenter *dasher, GF_DashDynamicMode *dash_mode, s32 *timeShiftBufferDepth, const char *periodID, s32 ast_shift_ms)
 {
 	const char *opt;
 	char szVal[100];
 	Bool first_run = GF_FALSE;
+	GF_Config *dash_ctx = dasher->dash_ctx;
 
 	if (!dash_ctx) return GF_BAD_PARAM;
 
@@ -5153,6 +5175,16 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 #endif
 		gf_net_get_ntp(&sec, &frac);
 
+		if (dasher->start_date_sec_ntp) {
+			dasher->nb_secs_to_discard = sec;
+			dasher->nb_secs_to_discard -= dasher->start_date_sec_ntp;
+			dasher->nb_secs_to_discard -= dasher->time_shift_depth;
+
+			sec = dasher->start_date_sec_ntp;
+			frac = dasher->start_date_sec_ntp_ms_frac;
+		}
+
+
 #ifndef _WIN32_WCE
 		gtime = sec - GF_NTP_SEC_1900_TO_1970;
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationTime", asctime(gmtime(&gtime)));
@@ -5180,7 +5212,7 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 }
 
 GF_EXPORT
-u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
+u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 {
 	Double max_dur = 0;
 //	Double safety_dur;
@@ -5231,6 +5263,8 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher)
 	ms_elapsed *= 1000;
 	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
+	if (ms_in_session) *ms_in_session = 1000*max_dur;
+	
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
 		return (u32) (1000*max_dur - ms_elapsed);
@@ -5443,6 +5477,25 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	dasher->dash_ctx = dasher_context_file;
 
 	return dasher;
+}
+
+GF_EXPORT
+void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date)
+{
+	if (dash_utc_start_date) {
+		Double ms;
+		u64 secs = dash_utc_start_date/1000;
+		dasher->start_date_sec_ntp = (u32) secs;
+		dasher->start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
+
+		ms = dash_utc_start_date - secs*1000;
+		ms /= 1000.0;
+		ms *= 0xFFFFFFFF;
+		dasher->start_date_sec_ntp_ms_frac = (u32) ms;
+	} else {
+		dasher->start_date_sec_ntp = 0;
+		dasher->start_date_sec_ntp_ms_frac = 0;
+	}
 }
 
 GF_EXPORT
@@ -5812,7 +5865,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	/*update dash context*/
 	if (dasher->dash_ctx) {
 		Bool regenerate;
-		e = gf_dasher_init_context(dasher->dash_ctx, &dasher->dash_mode, &dasher->time_shift_depth, NULL, dasher->ast_offset_ms);
+		e = gf_dasher_init_context(dasher, &dasher->dash_mode, &dasher->time_shift_depth, NULL, dasher->ast_offset_ms);
 		if (e) return e;
 		opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
 		if (opt) {
@@ -6736,6 +6789,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Done dashing\n"));
+	dasher->nb_secs_to_discard = 0;
 
 exit:
 	if (mpd) {
