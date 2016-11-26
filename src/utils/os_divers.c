@@ -467,9 +467,10 @@ Bool gf_prompt_has_input()
 {
 	u8 ch;
 	s32 nread;
+	pid_t fg = tcgetpgrp(STDIN_FILENO);
 
-	//we are not foreground, can't read stdin
-	if (tcgetpgrp(STDIN_FILENO) != getpgrp()) {
+	//we are not foreground nor piped (used for IDEs), can't read stdin
+	if ((fg!=-1) && (fg != getpgrp())) {
 		return 0;
 	}
 	init_keyboard();
