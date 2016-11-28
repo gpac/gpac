@@ -55,6 +55,7 @@ typedef struct _s_accumulated_attributes {
 	Bool is_master_playlist;
 	Bool is_media_segment;
 	Bool is_playlist_ended;
+	u64 playlist_utc_timestamp;
 	u64 byte_range_start, byte_range_end;
 	u64 init_byte_range_start, init_byte_range_end;
 	PlaylistElementDRMMethod key_method;
@@ -160,6 +161,8 @@ static PlaylistElement* playlist_element_new(PlaylistElementType element_type, c
 	e->init_byte_range_end = attribs->init_byte_range_end;
 	e->key_uri = (attribs->key_url ? gf_strdup(attribs->key_url) : NULL);
 	memcpy(e->key_iv, attribs->key_iv, sizeof(bin128));
+
+	e->utc_start_time = attribs->playlist_utc_timestamp;
 
 	assert(url);
 	e->url = gf_strdup(url);
@@ -444,7 +447,7 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 	ret = extract_attributes("#EXT-X-PROGRAM-DATE-TIME:", line, 1);
 	if (ret) {
 		/* #EXT-X-PROGRAM-DATE-TIME:<YYYY-MM-DDThh:mm:ssZ> */
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH,("[M3U8] EXT-X-PROGRAM-DATE-TIME not supported.\n", line));
+		if (ret[0]) attributes->playlist_utc_timestamp = gf_net_parse_date(ret[0]);
 		M3U8_COMPATIBILITY_VERSION(1);
 		return ret;
 	}
@@ -926,6 +929,7 @@ GF_Err declare_sub_playlist(char *currentLine, const char *baseURL, s_accumulate
 		attribs->title = NULL;
 	}
 	attribs->duration_in_seconds = 0;
+	attribs->playlist_utc_timestamp = 0;
 	attribs->bandwidth = 0;
 	attribs->stream_id = 0;
 	if (attribs->codecs != NULL) {

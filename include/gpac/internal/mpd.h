@@ -154,8 +154,10 @@ typedef struct
 	char *index;
 	GF_MPD_ByteRange *index_range;
 	u64 duration;
+	/*HLS only*/
 	char *key_url;
 	bin128 key_iv;
+	u64 hls_utc_start_time;
 } GF_MPD_SegmentURL;
 
 typedef struct
