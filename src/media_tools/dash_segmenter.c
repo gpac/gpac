@@ -1464,7 +1464,7 @@ restart_fragmentation_pass:
 				u64 track_dur = (u64) ((s64) last_sample_dur + sample->DTS + sample->CTS_Offset + tf->media_time_to_pres_time_shift);
 				u64 pos = dash_cfg->nb_secs_to_discard;
 				u64 period_dur = track_dur * dash_cfg->dash_scale / tf->TimeScale;
-				u32 nb_seg_in_track = period_dur / (dash_cfg->segment_duration * dash_cfg->dash_scale);
+				u32 nb_seg_in_track = (u32) ( period_dur / (dash_cfg->segment_duration * dash_cfg->dash_scale) );
 				if (nb_seg_in_track * dash_cfg->segment_duration * dash_cfg->dash_scale < period_dur)
 					nb_seg_in_track++;
 				pos *= tf->TimeScale;
@@ -5263,7 +5263,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 	ms_elapsed *= 1000;
 	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
-	if (ms_in_session) *ms_in_session = 1000*max_dur;
+	if (ms_in_session) *ms_in_session = (u64) ( 1000*max_dur );
 	
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
@@ -5488,7 +5488,7 @@ void gf_dasher_set_start_date(GF_DASHSegmenter *dasher, u64 dash_utc_start_date)
 		dasher->start_date_sec_ntp = (u32) secs;
 		dasher->start_date_sec_ntp += GF_NTP_SEC_1900_TO_1970;
 
-		ms = dash_utc_start_date - secs*1000;
+		ms = (Double) (dash_utc_start_date - secs*1000);
 		ms /= 1000.0;
 		ms *= 0xFFFFFFFF;
 		dasher->start_date_sec_ntp_ms_frac = (u32) ms;
