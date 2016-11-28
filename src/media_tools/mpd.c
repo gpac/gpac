@@ -1800,6 +1800,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	PlaylistElement *pe;
 	u32 k, count_elements;
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
+
 	if (!getter || !getter->new_session || !getter->del_session || !getter->get_cache_name) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] FileDownloader not found\n"));
 		return GF_BAD_PARAM;
@@ -1877,6 +1879,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		}
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
 		segment_url->media = gf_url_concatenate(pe->url, elt->url);
+		segment_url->hls_utc_start_time = elt->utc_start_time;
+
 		if (elt->drm_method != DRM_NONE) {
 			if (elt->key_uri) {
 				segment_url->key_url = gf_strdup(elt->key_uri);

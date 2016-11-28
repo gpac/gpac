@@ -1869,7 +1869,10 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 						if (e==GF_OK) break;
 						if (e==GF_NON_COMPLIANT_BITSTREAM) break;
 						if (e==GF_OUT_OF_MEM) break;
-						gf_sleep(1);
+						if (group->dash->dash_state != GF_DASH_STATE_RUNNING) 
+							break;
+
+						gf_sleep(100);
 						retry --;
 					}
 
@@ -2080,7 +2083,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		Bool is_static = GF_FALSE;
 		u64 dur = 0;
 		u32 retry=10;
-		GF_Err e;
+		GF_Err e=GF_OK;
 		
 		if (rep->segment_list->consecutive_xlink_count) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Resolving a XLINK pointed from another XLINK (%d consecutive XLINK in segment list)\n", rep->segment_list->consecutive_xlink_count));
@@ -2094,14 +2097,22 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			}
 			if (e==GF_OK) break;
 			if (e==GF_NON_COMPLIANT_BITSTREAM) break;
+			if (group->dash->dash_state != GF_DASH_STATE_RUNNING) 
+				break;
+
 			retry--;
-			gf_sleep(1);
+			gf_sleep(100);
 		}
 		
 		//after resolving xlink: if this represenstation is marked as disabled, we have nothing to do
 		if (rep->playback.disabled)
 			return;
-		if (e) return;
+		
+		if (e) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Could not reslove XLINK %s in time - using old representation\n", rep->segment_list->xlink_href));
+			group->active_rep_index = prev_active_rep_index;
+			return;
+		}
 
 		//we only know this is a static or dynamic MPD after parsing the first subplaylist
 		//if this is static, we need to update infos in mpd and period
@@ -2119,8 +2130,32 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			u32 next_media_seq;
 			GF_MPD_Representation *prev_active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
 			if (group->dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
+				u32 insert_idx=0;
+				u64 hls_start_time=0;
+				GF_MPD_SegmentURL *first_seg_url_in_new = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, 0);
+
 				while (gf_list_count(prev_active_rep->segment_list->segment_URLs)) {
+					Bool discard_old_seg = GF_FALSE;
+					u64 dur = prev_active_rep->segment_list->duration;
+					GF_MPD_SegmentURL *seg_url = (GF_MPD_SegmentURL *) gf_list_get(prev_active_rep->segment_list->segment_URLs, 0);
 					gf_list_rem(prev_active_rep->segment_list->segment_URLs, 0);
+
+					if (!hls_start_time) hls_start_time = seg_url->hls_utc_start_time;
+
+					if (first_seg_url_in_new) {
+						if (seg_url->duration) dur = seg_url->duration;
+						if (hls_start_time + dur >= first_seg_url_in_new->hls_utc_start_time)
+							discard_old_seg = GF_TRUE;
+					}
+					
+					hls_start_time += dur;
+
+					if (discard_old_seg) {
+						gf_mpd_segment_url_free(seg_url);
+					} else {
+						gf_list_insert(rep->segment_list->segment_URLs, seg_url, insert_idx);
+						insert_idx++;
+					}
 				}
 			}
 

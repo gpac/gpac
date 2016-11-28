@@ -80,6 +80,8 @@ struct s_playlistElement {
 	char *url;
 	char *init_segment_url;
 	u64 init_byte_range_start, init_byte_range_end;
+	u64 utc_start_time;
+
 	PlaylistElementDRMMethod drm_method;
 	char *key_uri;
 	bin128 key_iv;
