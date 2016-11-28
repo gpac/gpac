@@ -2061,7 +2061,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 #ifndef GPAC_DISABLE_VRML
 		if (! scene->is_srd) {
 			node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
-			if (node) {
+			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
 				((M_Sphere *)node)->radius = - INT2FIX(radius);
 				gf_node_changed(node, NULL);
 			}
