@@ -2653,6 +2653,10 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 
 		//the data remaining from the last buffer (i.e size for chunk that couldn't be read because the buffer does not contain enough bytes)
 		if (sess->remaining_data && sess->remaining_data_size) {
+			if (sess->remaining_data_size >= buf_size) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] No HTTP chunk header found for %d bytes, assuming broken chunk transfer and aborting\n", sess->remaining_data_size));
+				return GF_NON_COMPLIANT_BITSTREAM;
+			}
 			memcpy(sHTTP, sess->remaining_data, sess->remaining_data_size);
 		}
 
@@ -2664,6 +2668,11 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 				assert(sess->server_name);
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
 				gf_dm_disconnect(sess, (e == GF_IP_CONNECTION_CLOSED) ? GF_TRUE : GF_FALSE);
+			}
+			if ((e == GF_IP_NETWORK_EMPTY) && (gf_sys_clock_high_res() - sess->start_time > 5000000)) {
+				gf_dm_sess_notify_state(sess, GF_NETIO_STATE_ERROR, e);
+				gf_dm_disconnect(sess, GF_TRUE);
+				return e;
 			}
 			return GF_OK;
 		}
@@ -2782,6 +2791,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	//always set start time to the time at last attempt reply parsing
 	sess->start_time = gf_sys_clock_high_res();
 	sess->start_time_utc = gf_net_get_utc();
+	sess->chunked = GF_FALSE;
 
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
