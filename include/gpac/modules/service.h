@@ -611,6 +611,7 @@ typedef struct
 
 	//mode 0: extract in ISOBMF format (nalu size field + nalu)
 	//mode 1: extract in Annex B format (start code + nalu)
+	//mode 2: extract in Annex B format (start code + nalu) and disable sync sample seek mode (only used for scalable hybrid)
 	u32 extract_mode;
 } GF_NALUExtractMode;
 

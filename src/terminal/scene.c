@@ -2816,7 +2816,8 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_NALU_MODE;
-	com.nalu_mode.extract_mode = nalu_annex_b ? 1 : 0;
+	//force AnnexB mode and no sync sample seeking
+	com.nalu_mode.extract_mode = nalu_annex_b ? 2 : 0;
 	count = gf_list_count(odm->channels);
 	for (i=0; i<count; i++) {
 		com.base.on_channel = ch = gf_list_get(odm->channels, i);
