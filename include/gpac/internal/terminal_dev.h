@@ -579,6 +579,8 @@ struct _object_clock
 	Bool has_media_time_shift;
 
 	u16 ocr_on_esid;
+
+	u64 ts_shift;
 };
 
 /*destroys clock*/
@@ -766,6 +768,7 @@ struct _es_channel
 
 	Bool pull_forced_buffer;
 
+	u64 ts_shift;
 };
 
 /*creates a new channel for this stream*/
