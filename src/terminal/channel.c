@@ -750,6 +750,8 @@ static void gf_es_init_clock(GF_Channel *ch, u32 TS)
 	ch->clock->clock_init = 0;
 
 	gf_clock_set_time(ch->clock, TS);
+	ch->clock->ts_shift = ch->ts_shift;
+
 	//once the clock is init, reset any seek request at parent scene level
 	if (ch->odm->parentscene )
 		ch->odm->parentscene->root_od->media_start_time = 0;
@@ -1132,6 +1134,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 		/*Get CTS */
 		if (ch->esd->slConfig->useTimestampsFlag) {
 			if (hdr.compositionTimeStampFlag) {
+				u64 dts;
 				ch->net_dts = ch->net_cts = hdr.compositionTimeStamp;
 				/*get DTS */
 				if (hdr.decodingTimeStampFlag) ch->net_dts = hdr.decodingTimeStamp;
@@ -1154,9 +1157,24 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					ch->net_cts -= ch->seed_ts;
 					ch->CTS_past_offset = 0;
 
+					if (ch->clock) {
+						ch->ts_shift = ch->clock->ts_shift;
+
+						//if we init the clock to something > 32 bits, shift down close to zero
+						//this will allow us 49 days of playback without having to deal with TS loops
+						//TODO: move all our timestamps to 64 bits ...
+						if (!ch->clock->clock_init) {
+							u64 dts= ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res;
+							if (dts>0xFFFFFFFFUL) {
+								//don't reset to zero, in case DTSs are not in order (interleaved transport)
+								ch->ts_shift = dts - 2*ch->ts_res;
+							}
+						}
+					}
+
 					/*TS Wraping not tested*/
-					ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
-					ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+					ch->CTS = (u32) (ch->ts_offset + (u64) (ch->net_cts * 1000 / ch->ts_res - ch->ts_shift) );
+					ch->DTS = (u32) (ch->ts_offset + (u64) (ch->net_dts * 1000 / ch->ts_res - ch->ts_shift) );
 				}
 
 				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
