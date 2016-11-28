@@ -872,7 +872,7 @@ redecode:
 		}
 	} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16) {
 		memcpy(outBuffer, ffd->audio_frame->data[0], sizeof(char) * ffd->audio_frame->nb_samples * ctx->channels*2);
-	} else {
+	} else if (ffd->audio_frame->nb_samples) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFMPEG Decoder] Raw Audio format %d not supported\n", ffd->audio_frame->format ));
 	}
 #else
