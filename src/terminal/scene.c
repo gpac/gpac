@@ -2066,14 +2066,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				gf_node_changed(node, NULL);
 			}
 		}
-
-		node = gf_sg_find_node_by_name(scene->graph, "DYN_VP");
-		if (node) {
-			//((M_Viewpoint*)node)->position.z = INT2FIX(MIN(width, height) ) / 2;
-			((M_Viewpoint*)node)->position.z = 0;
-
-			gf_node_changed(node, NULL);
-		}
 #endif /* GPAC_DISABLE_VRML */
 	}
 
