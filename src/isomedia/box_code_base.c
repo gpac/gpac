@@ -6527,6 +6527,7 @@ void trak_del(GF_Box *s)
 	if (ptr->editBox) gf_isom_box_del((GF_Box *)ptr->editBox);
 	if (ptr->meta) gf_isom_box_del((GF_Box *)ptr->meta);
 	if (ptr->name) gf_free(ptr->name);
+	if (ptr->groups) gf_isom_box_del((GF_Box *)ptr->groups);
 	gf_free(ptr);
 }
 
