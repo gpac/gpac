@@ -366,7 +366,7 @@ enum
 	GF_M2TS_EVT_INT_UPDATE,
 	/*PES packet has been received - assoctiated parameter: PES packet*/
 	GF_M2TS_EVT_PES_PCK,
-	/*PCR has been received - assoctiated parameter: PES packet with no data*/
+	/*PCR has been received - associated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
 	/*PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_TIMING,
