@@ -111,6 +111,9 @@ const char *gf_4cc_to_str(u32 type);
 */
 int gf_asprintf(char **buffer, const char *fmt, ...);
 
+
+size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream);
+
 /*!
  *	\brief file writing helper
  *

@@ -81,6 +81,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_move_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_temp_file_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_modification_time) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_fread) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fwrite) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fopen) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_fclose) )
