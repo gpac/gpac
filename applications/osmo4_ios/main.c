@@ -348,6 +348,48 @@ static void init_rti_logs(char *rti_file, char *url, Bool use_rtix)
 	}
 }
 
+void set_cfg_option(char *opt_string)
+{
+	char *sep, *sep2, szSec[1024], szKey[1024], szVal[1024];
+	sep = strchr(opt_string, ':');
+	if (!sep) {
+		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return;
+	}
+	{
+		const size_t sepIdx = sep - opt_string;
+		strncpy(szSec, opt_string, sepIdx);
+		szSec[sepIdx] = 0;
+	}
+	sep ++;
+	sep2 = strchr(sep, '=');
+	if (!sep2) {
+		fprintf(stderr, "Badly formatted option %s - expected Section:Name=Value\n", opt_string);
+		return;
+	}
+	{
+		const size_t sepIdx = sep2 - sep;
+		strncpy(szKey, sep, sepIdx);
+		szKey[sepIdx] = 0;
+		strcpy(szVal, sep2+1);
+	}
+
+	if (!stricmp(szKey, "*")) {
+		if (stricmp(szVal, "null")) {
+			fprintf(stderr, "Badly formatted option %s - expected Section:*=null\n", opt_string);
+			return;
+		}
+		gf_cfg_del_section(cfg_file, szSec);
+		return;
+	}
+
+	if (!stricmp(szVal, "null")) {
+		szVal[0]=0;
+	}
+	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
+}
+
+
 static void on_progress_null(const void *_ptr, const char *_title, u64 done, u64 total)
 {
 }
@@ -408,6 +450,10 @@ int main (int argc, char *argv[])
 		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
 		else if (!strcmp(arg, "-sbench")) bench_mode = 3;
 		else if (!strcmp(arg, "-gui") || !strcmp(arg, "-guid")) use_gui = 1;
+		else if (!strcmp(arg, "-opt")) {
+			set_cfg_option(argv[i+1]);
+			i++;
+		}
 	}
 	
 	gf_sys_init(mem_track);
