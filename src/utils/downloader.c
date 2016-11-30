@@ -2669,11 +2669,6 @@ static GF_Err http_parse_remaining_body(GF_DownloadSession * sess, char * sHTTP)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] Disconnected from %s: %s\n", sess->server_name, gf_error_to_string(e)));
 				gf_dm_disconnect(sess, (e == GF_IP_CONNECTION_CLOSED) ? GF_TRUE : GF_FALSE);
 			}
-			if ((e == GF_IP_NETWORK_EMPTY) && (gf_sys_clock_high_res() - sess->start_time > 5000000)) {
-				gf_dm_sess_notify_state(sess, GF_NETIO_STATE_ERROR, e);
-				gf_dm_disconnect(sess, GF_TRUE);
-				return e;
-			}
 			return GF_OK;
 		}
 
