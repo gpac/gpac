@@ -290,6 +290,8 @@ void PrintUsage()
 	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
 	        "\t-show:          shows window while dumping (default: no)\n"
 	        "\n"
+	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
+	        "\n"
 	        "\t-help:          shows this screen\n"
 	        "\n"
 	        "MP4Client - GPAC command line player and dumper - version "GPAC_FULL_VERSION"\n"
@@ -1116,6 +1118,60 @@ void set_cfg_option(char *opt_string)
 	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
+Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	const char *url;
+	char *sep;
+	GF_Config *cached;
+	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
+	cached = gf_cfg_new(NULL, item_path);
+	url = gf_cfg_get_key(cached, "cache", "url");
+	if (url) url = strstr(url, "://");
+	if (url) {
+		u32 i, len, dir_len=0, k=0;
+		char *dst_name;
+		sep = strstr(item_path, "gpac_cache_");
+		if (sep) {
+			sep[0] = 0;
+			dir_len = strlen(item_path);
+			sep[0] = 'g';
+		}
+		url+=3;
+		len = strlen(url);
+		dst_name = gf_malloc(len+dir_len+1);
+		memset(dst_name, 0, len+dir_len+1);
+
+		strncpy(dst_name, item_path, dir_len);
+		k=dir_len;
+		for (i=0; i<len; i++) {
+			dst_name[k] = url[i];
+			if (dst_name[k]==':') dst_name[k]='_';
+			else if (dst_name[k]=='/') {
+				if (!gf_dir_exists(dst_name))
+					gf_mkdir(dst_name);
+			}
+			k++;
+		}
+		sep = strrchr(item_path, '.');
+		if (sep) {
+			sep[0]=0;
+			if (gf_file_exists(item_path)) {
+				gf_move_file(item_path, dst_name);
+			}
+			sep[0]='.';
+		}
+		gf_free(dst_name);
+	}
+	gf_cfg_del(cached);
+	gf_delete_file(item_path);
+	return GF_FALSE;
+}
+void do_flatten_cache(const char *cache_dir)
+{
+	gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
+}
+
+
 #ifdef WIN32
 #include <wincon.h>
 #endif
@@ -1143,7 +1199,7 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
-	Bool fill_ar, visible;
+	Bool fill_ar, visible, do_uncache;
 	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com;
 	FILE *logfile = NULL;
 	Float scale = 1;
@@ -1157,7 +1213,7 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	dump_mode = DUMP_NONE;
-	fill_ar = visible = GF_FALSE;
+	fill_ar = visible = do_uncache = GF_FALSE;
 	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
 	nb_times = 0;
 	times[0] = 0;
@@ -1372,6 +1428,8 @@ int mp4client_main(int argc, char **argv)
 				fill_ar = GF_TRUE;
 			} else if (!strcmp(arg, "-show")) {
 				visible = 1;
+			} else if (!strcmp(arg, "-uncache")) {
+				do_uncache = GF_TRUE;
 			}
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
@@ -1393,6 +1451,14 @@ int mp4client_main(int argc, char **argv)
 		fprintf(stderr, "GPAC Config updated\n");
 		return 0;
 	}
+	if (do_uncache) {
+		const char *cache_dir = gf_cfg_get_key(cfg_file, "General", "CacheDirectory");
+		do_flatten_cache(cache_dir);
+		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
+		gf_cfg_del(cfg_file);
+		return 0;
+	}
+
 	if (dump_mode && !url_arg ) {
 		FILE *test;
 		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
