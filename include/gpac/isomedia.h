@@ -302,6 +302,8 @@ enum
 	GF_ISOM_BRAND_AVC1 = GF_4CC('a', 'v', 'c', '1'),
 	/* file complying to ISO/IEC 21000-9:2005 (MPEG-21 spec)*/
 	GF_ISOM_BRAND_MP21 = GF_4CC('m', 'p', '2', '1'),
+	/*file complying to ISO/IEC 23001-4:2015 (MMT spec)*/
+	GF_ISOM_BRAND_MPUF = GF_4CC('m', 'p', 'u', 'f' ),
 	/*file complying to the generic ISO Media File (base specification ISO/IEC 14496-12) + support for version 1*/
 	GF_ISOM_BRAND_ISO4 =  GF_4CC( 'i', 's', 'o', '4' )
 };
@@ -2465,6 +2467,13 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 
 
 #endif /*GPAC_DISABLE_ISOM*/
+
+/* MMT - specifics */
+/* fill mmpu and add box to already existing ISOBMFF file */
+GF_Err gf_isom_add_mpu(GF_ISOFile *mp4, u32 MPU_Seq_number,u32 mpu_asset_id_scheme,u32 mpu_asset_id_lt,u8 *mpu_asset_id_value);
+
+/* Clone mpu box from input ISOBMFF file to output ISOBMFF file */
+GF_Err gf_isom_clone_mpu(GF_ISOFile *input, GF_ISOFile *output);
 
 /*! @} */
 
