@@ -209,6 +209,17 @@ extern char **environ;
 #endif
 
 GF_EXPORT
+Bool gf_file_exists(const char *fileName)
+{
+	FILE *f = gf_fopen(fileName, "r");
+	if (f) {
+		gf_fclose(f);
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
+GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
 {
 #if defined(_WIN32_WCE)

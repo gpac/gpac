@@ -612,6 +612,15 @@ FILE *gf_temp_file_new(char ** const fileName);
 u64 gf_file_modification_time(const char *filename);
 
 /*!
+ *	\brief File existence check
+ *
+ *	Moves or renames a file or directory.
+ *	\param fileName absolute path of the file / directory to move or rename
+ *	\return GF_TRUE if file exists
+ */
+Bool gf_file_exists(const char *fileName);
+
+/*!
  *	\brief Progress formatting
  *
  *	Signals progress in GPAC's operations. Note that progress signaling with this function is not thread-safe, the main purpose is to use it for authoring tools only.
