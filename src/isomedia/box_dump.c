@@ -935,7 +935,7 @@ GF_Err dinf_dump(GF_Box *a, FILE * trace)
 	GF_DataInformationBox *p;
 	p = (GF_DataInformationBox *)a;
 	DumpBox(a, "DataInformationBox", trace);
-	fprintf(trace, ">");
+	fprintf(trace, ">\n");
 	gf_box_dump_ex(p->dref, trace, GF_ISOM_BOX_TYPE_DREF);
 	gf_box_dump_done("DataInformationBox", a, trace);
 	return GF_OK;
@@ -4275,9 +4275,9 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
 	DumpBox(a, "SegmentIndexBox", trace);
-	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\">\n", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
+	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\"", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
 	gf_full_box_dump(a, trace);
-
+	fprintf(trace, ">\n");
 	for (i=0; i<p->nb_refs; i++) {
 		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}

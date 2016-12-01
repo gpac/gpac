@@ -1922,6 +1922,11 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 		sl->size = gf_bs_read_u16(bs);
+		if (gf_bs_available(bs) < sl->size) {
+			gf_free(sl);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("AVCC: Not enough bits to parse. Aborting.\n"));
+			return GF_ISOM_INVALID_FILE;
+		}
 		sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(ptr->config->pictureParameterSets, sl);
@@ -1968,6 +1973,11 @@ GF_Err avcc_Read(GF_Box *s, GF_BitStream *bs)
 				for (i=0; i<count; i++) {
 					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_malloc(sizeof(GF_AVCConfigSlot));
 					sl->size = gf_bs_read_u16(bs);
+					if (gf_bs_available(bs) < sl->size) {
+						gf_free(sl);
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("AVCC: Not enough bits to parse. Aborting.\n"));
+						return GF_ISOM_INVALID_FILE;
+					}
 					sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 					gf_bs_read_data(bs, sl->data, sl->size);
 					gf_list_add(ptr->config->sequenceParameterSetExtensions, sl);
