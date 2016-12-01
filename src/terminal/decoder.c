@@ -962,7 +962,7 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 {
 	if (cu_size && dec->is_reordering) {
 		if (dec->trusted_cts && (CU->prev->dataLength && CU->prev->TS > CU->TS) ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d codec is reordering but CTSs are out of order - forcing CTS recomputing\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d codec is reordering but CTSs are out of order (%u vs %u prev) - forcing CTS recomputing\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, CU->prev->TS));
 
 			dec->trusted_cts = GF_FALSE;
 		}
