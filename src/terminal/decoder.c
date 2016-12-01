@@ -641,23 +641,21 @@ refetch_AU:
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
-		if ((*activeChannel)->esd->slConfig->no_dts_signaling) {
-			u32 CTS = (*nextAU)->CTS;
-			/*reordering !!*/
-			u32 prev_ts_diff;
-			u32 diff = 0;
-			if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
-				diff = codec->recomputed_cts - CTS;
-			}
+		u32 CTS = (*nextAU)->CTS;
+		/*reordering !!*/
+		u32 prev_ts_diff;
+		u32 diff = 0;
+		if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
+			diff = codec->recomputed_cts - CTS;
+		}
+		prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);
+		if (!diff) diff = prev_ts_diff;
+		else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
 
-			prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);
-			if (!diff) diff = prev_ts_diff;
-			else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
+		if (!codec->min_au_duration || (diff < codec->min_au_duration))
+			codec->min_au_duration = diff;
 
-			if (!codec->min_au_duration || (diff < codec->min_au_duration))
-				codec->min_au_duration = diff;
-		} else {
-			codec->min_au_duration = 0;
+		if ((*activeChannel)->esd->slConfig->no_dts_signaling==GF_FALSE) {
 			/*FIXME - we're breaking sync (couple of frames delay)*/
 			(*nextAU)->CTS = (*nextAU)->DTS;
 		}
@@ -962,18 +960,26 @@ static GFINLINE GF_Err LockCompositionUnit(GF_Codec *dec, u32 CU_TS, GF_CMUnit *
 
 static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 cu_size)
 {
-	if (dec->is_reordering && !dec->trusted_cts) {
-		/*first dispatch from decoder, store CTS*/
-		if (!dec->first_frame_dispatched) {
-			dec->recomputed_cts = CU->TS;
-			dec->first_frame_dispatched = 1;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - first frame dispatch - CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, dec->recomputed_cts, dec->min_au_duration));
-		} else if (dec->min_au_duration) {
-			dec->recomputed_cts += dec->min_au_duration;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - original CTS %d recomputed CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, dec->recomputed_cts, dec->min_au_duration));
-			CU->TS = dec->recomputed_cts;
+	if (cu_size && dec->is_reordering) {
+		if (dec->trusted_cts && (CU->prev->dataLength && CU->prev->TS > CU->TS) ) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d codec is reordering but CTSs are out of order - forcing CTS recomputing\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID));
+
+			dec->trusted_cts = GF_FALSE;
+		}
+		if (!dec->trusted_cts) {
+			/*first dispatch from decoder, store CTS*/
+			if (!dec->first_frame_dispatched) {
+				dec->recomputed_cts = CU->TS;
+				dec->first_frame_dispatched = 1;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - first frame dispatch - CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, dec->recomputed_cts, dec->min_au_duration));
+			} else if (dec->min_au_duration) {
+				dec->recomputed_cts += dec->min_au_duration;
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d reordering mode - original CTS %d recomputed CTS %d - min TS diff %d\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, dec->recomputed_cts, dec->min_au_duration));
+				CU->TS = dec->recomputed_cts;
+			}
 		}
 	}
+
 	/*unlock the CB*/
 	gf_cm_unlock_input(dec->CB, CU, cu_size, dec->is_reordering);
 	return GF_OK;

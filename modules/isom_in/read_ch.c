@@ -418,10 +418,12 @@ static void init_reader(ISOMChannel *ch)
 		//store movie time in media timescale in the sample time, eg no edit list is used but we may have a shift (dts_offset) between
 		//movie and media timelines
 
-		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset))	//should not happen
+		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset)) {
 			ch->sample_time = 0;
-		else
+			ch->do_dts_shift_test = GF_TRUE;
+		} else {
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
+		}
 	}
 	ch->to_init = 0;
 
@@ -584,13 +586,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		isor_reader_get_sample(ch);
 		return;
 	}
-	if (ch->sample && ch->dts_offset) {
-		if ( (ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset)) {
-			ch->sample->DTS = 0;
-		} else {
-			ch->sample->DTS += ch->dts_offset;
-		}
-	}
 
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
@@ -678,6 +673,25 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
+
+	//update timestamp when single edit
+	if (ch->sample && ch->dts_offset) {
+		if (ch->do_dts_shift_test) {
+			s64 DTS, CTS;
+			DTS = (s64) ch->sample->DTS + ch->dts_offset;
+			CTS = (s64) ch->sample->DTS + ch->dts_offset + (s32) ch->sample->CTS_Offset;
+			if (DTS<0)
+				DTS=0;
+			else
+				ch->do_dts_shift_test = GF_FALSE;
+
+			if (CTS<0) CTS=0;
+			ch->sample->DTS = (u64) DTS;
+			ch->sample->CTS_Offset = (s32) (CTS - DTS);
+		} else {
+			ch->sample->DTS = ch->sample->DTS + ch->dts_offset;
+		}
+	}
 
 	/*still seeking or not ?
 	 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
