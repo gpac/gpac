@@ -200,7 +200,7 @@ typedef struct
 	void *dsi_and_rap;
 	Bool loop;
 	Bool is_repeat;
-	s64 ts_offset;
+	s64 ts_offset, cts_dts_shift;
 	M2TSSource *source;
 
 	const char *temi_url;
@@ -360,7 +360,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		if (priv->timeline_id) {
 			u64 ntp=0;
-			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
+			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset + priv->cts_dts_shift;
 			if (temi_disable_loop) {
 				tc += priv->ts_offset;
 			}
@@ -386,7 +386,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		pck.dts = pck.cts;
 		if (priv->sample->CTS_Offset) {
-			pck.cts += priv->sample->CTS_Offset;
+			pck.cts += priv->sample->CTS_Offset + priv->cts_dts_shift;
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
 
@@ -612,6 +612,10 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 
 	if (! gf_isom_get_edit_list_type(mp4, track_num, &mediaOffset)) {
 		priv->ts_offset = mediaOffset;
+	}
+
+	if (gf_isom_has_time_offset(mp4, track_num)==2) {
+		priv->cts_dts_shift = gf_isom_get_cts_to_dts_shift(mp4, track_num);
 	}
 
 	ifce->depends_on_stream = 0;
