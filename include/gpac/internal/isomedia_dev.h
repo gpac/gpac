@@ -39,17 +39,18 @@ extern "C" {
 #define GPAC_DISABLE_ISOM_ADOBE
 #endif
 
-/*the default size is 64, cause we need to handle large boxes...
+	/*the default size is 64, cause we need to handle large boxes...
 
-the other_boxes container is by default NOT created. When parsing a box and adding
-a sub-box with gf_isom_box_add_default, the list is created.
-This list is destroyed befaore calling the final box destructor
-This list is automatically taken into account during size() and write() functions
-*/
+	the other_boxes container is by default NOT created. When parsing a box and adding
+	a sub-box with gf_isom_box_add_default, the list is created.
+	This list is destroyed befaore calling the final box destructor
+	This list is automatically taken into account during size() and write() functions
+	*/
 #define GF_ISOM_BOX			\
 	u32 type;			\
 	u64 size;			\
 	GF_List *other_boxes;	\
+	Bool is_unknown;
  
 #define GF_ISOM_FULL_BOX		\
 	GF_ISOM_BOX			\

@@ -3167,7 +3167,7 @@ static void gf_m2ts_get_adaptation_field(GF_M2TS_Demuxer *ts, GF_M2TS_Adaptation
 				char *desc;
 				u8 desc_tag = af_extension[0];
 				u8 desc_len = af_extension[1];
-				if ((u32) desc_len+2 > afext_bytes) {
+				if (!desc_len || (u32) desc_len+2 > afext_bytes) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d: Bad Adaptation Descriptor found (tag %d) size is %d but only %d bytes available\n", pid, desc_tag, desc_len, afext_bytes));
 					break;
 				}

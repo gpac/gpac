@@ -46,6 +46,9 @@ GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
 	if (e) return e;
+	if (ptr->info->type == GF_ISOM_BOX_TYPE_FREE) {
+		return GF_ISOM_INVALID_FILE;
+	}
 	ptr->info->cfg.type = ptr->type;
 	return GF_OK;
 }

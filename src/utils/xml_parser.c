@@ -833,6 +833,9 @@ restart:
 				parser->sax_state = SAX_STATE_TEXT_CONTENT;
 				break;
 			}
+			if (!parser->elt_name_end) {
+				return GF_CORRUPTED_DATA;
+			}
 			sep = parser->buffer[parser->elt_name_end-1];
 			parser->buffer[parser->elt_name_end-1] = 0;
 			elt = parser->buffer + parser->elt_name_start-1;

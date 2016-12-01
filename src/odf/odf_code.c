@@ -35,6 +35,7 @@ static GFINLINE GF_Err OD_ReadUTF8String(GF_BitStream *bs, char **string, Bool i
 	u32 len;
 	*read = 1;
 	len = gf_bs_read_int(bs, 8) + 1;
+	if (gf_bs_available(bs) < len) return GF_BAD_PARAM;
 	if (!isUTF8) len *= 2;
 	(*string) = (char *) gf_malloc(sizeof(char)*len);
 	if (! (*string) ) return GF_OUT_OF_MEM;
@@ -2604,9 +2605,13 @@ GF_Err gf_odf_read_kw(GF_BitStream *bs, GF_KeyWord *kwd, u32 DescSize)
 		if (! tmp) return GF_OUT_OF_MEM;
 		e = OD_ReadUTF8String(bs, & tmp->keyWord, kwd->isUTF8, &len);
 		if (e) return e;
+		nbBytes += len;
+		if (nbBytes > DescSize) {
+			gf_free(tmp);
+			return GF_ODF_INVALID_DESCRIPTOR;
+		}
 		e = gf_list_add(kwd->keyWordsList, tmp);
 		if (e) return e;
-		nbBytes  += len;
 	}
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
