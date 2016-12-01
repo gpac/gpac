@@ -306,7 +306,7 @@ log $L_INF "Checking test suite config"
 if [ $generate_hash = 0 ] ; then
  if [ ! "$(ls -A $HASH_DIR)" ]; then
   disable_hash=1
-  log $L_WAR "- Reference hashes unavailable - you may sync them using -sync-hash  - skippping hash tests"
+  log $L_WAR "- Reference hashes unavailable - you may sync them using -sync-hash  - skipping hash tests"
   else
   log $L_INF "- Reference hashes available - enabling hash tests"
  fi

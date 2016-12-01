@@ -1278,7 +1278,7 @@ GF_Err WriteToFile(GF_ISOFile *movie)
 	memset(&mw, 0, sizeof(mw));
 	mw.movie = movie;
 
-	if (movie->drop_date_version_info) {
+	if (movie->drop_date_version_info && movie->moov) {
 		u32 i;
 		GF_TrackBox *trak;
 		movie->moov->mvhd->creationTime = 0;
