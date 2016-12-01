@@ -899,6 +899,11 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 {
 	u64 pcr_offset;
 
+	if (*dts > *cts) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS Muxer] PID %d: DTS "LLD" is greater than CTS "LLD" (likel ISOBMF CTTSv1 input) - adjusting to CTS\n", stream->pid, *dts, *cts));
+		*dts = *cts;
+	}
+
 	/*Rescale our timestamps and express them in PCR*/
 	if (stream->ts_scale) {
 		*cts = (u64) (stream->ts_scale * (s64) *cts);
