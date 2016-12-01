@@ -81,8 +81,10 @@ Return value:
 */
 u32 gf_term_play_from_time(GF_Terminal *term, u64 from_time, u32 pause_at_first_frame);
 /*connect URL and seek right away - only needed when reloading the complete player (avoids waiting
-for connection and post a seek..)*/
-void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms, Bool pause_at_first_frame);
+for connection and post a seek..)
+pause_at_first_frame: if 1, pauses rendering and streaming when starting, if 2 pauses only rendering
+*/
+void gf_term_connect_from_time(GF_Terminal *term, const char *URL, u64 time_in_ms, u32 pause_at_first_frame);
 
 /*same as gf_term_connect but specifies a parent path*/
 void gf_term_connect_with_path(GF_Terminal *term, const char *URL, const char *parent_URL);
