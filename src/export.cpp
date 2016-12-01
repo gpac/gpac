@@ -746,6 +746,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_watermark) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_sync_points) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_time_offset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_cts_to_dts_shift) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_sync_point_count) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_root_od) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_root_od) )

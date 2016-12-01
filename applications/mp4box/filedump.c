@@ -835,6 +835,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 
 	has_error = 0;
 	for (i=0; i<gf_isom_get_track_count(file); i++) {
+		s64 cts_dts_shift = gf_isom_get_cts_to_dts_shift(file, i+1);
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
 		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1)); 
@@ -858,8 +859,17 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 			cts = dts + (s32) samp->CTS_Offset;
 			fprintf(dump, "Sample %d\tDTS "LLD"\tCTS "LLD"\t%d\t%d\t"LLD"\t%d\t%d\t%d\t%d\t%d\t%d\t%d", j+1, LLD_CAST dts, LLD_CAST cts, samp->dataLength, samp->IsRAP, offset, isLeading, dependsOn, dependedOn, redundant, is_rap, has_roll, roll_distance);
 			if (cts<dts) {
-				fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
-				has_error = 1;
+				if (has_cts_offset==2) {
+					if (cts_dts_shift && (cts+cts_dts_shift<dts)) {
+						fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
+						has_error = 1;
+					} else if (!cts_dts_shift) {
+						fprintf(dump, " #possible negative CTS offset (no cslg in file)");
+					}
+				} else {
+					fprintf(dump, " #NEGATIVE CTS OFFSET!!!");
+					has_error = 1;
+				}
 			}
 
 			gf_isom_sample_del(&samp);
