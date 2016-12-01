@@ -426,7 +426,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size);
 	void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset);
 	void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk);
-	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 CTSOffset);
+	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 CTSOffset);
 	void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap);
 	void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
 	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
