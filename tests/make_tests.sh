@@ -173,7 +173,7 @@ sync_hash ()
 {
 log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hashes/"
+wget -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
 cd $main_dir
 }
 
