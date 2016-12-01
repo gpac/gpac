@@ -672,6 +672,10 @@ returns 0 if the track does not use compositionTime offsets (CTS == DTS)
 */
 u32 gf_isom_has_time_offset(GF_ISOFile *the_file, u32 trackNumber);
 
+/*returns the shift from composition time to decode time for that track if indicated, or 0 if not found
+adding shift to CTS guarantees that the shifted CTS is always greater than the DTS for any sample*/
+s64 gf_isom_get_cts_to_dts_shift(GF_ISOFile *the_file, u32 trackNumber);
+
 /*returns 1 if the track has sync shadow samples*/
 Bool gf_isom_has_sync_shadows(GF_ISOFile *the_file, u32 trackNumber);
 

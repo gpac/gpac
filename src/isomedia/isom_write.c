@@ -5195,7 +5195,7 @@ static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak
 
 	ctts = trak->Media->information->sampleTable->CompositionOffset;
 	shift = ctts->entries[0].decodingOffset;
-	leastCTTS = 0;
+	leastCTTS = GF_INT_MAX;
 	greatestCTTS = 0;
 	for (i=0; i<ctts->nb_entries; i++) {
 		ctts->entries[i].decodingOffset -= shift;
@@ -5205,14 +5205,14 @@ static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak
 			greatestCTTS = ctts->entries[i].decodingOffset;
 	}
 	ctts->version = 1;
-
+	gf_isom_remove_edit_segments(file, track);
 
 	if (!trak->Media->information->sampleTable->CompositionToDecode)
 		trak->Media->information->sampleTable->CompositionToDecode = (GF_CompositionToDecodeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_CSLG);
 
 	cslg = trak->Media->information->sampleTable->CompositionToDecode;
 
-	cslg->compositionToDTSShift = -leastCTTS;
+	cslg->compositionToDTSShift = shift;
 	cslg->leastDecodeToDisplayDelta = leastCTTS;
 	cslg->greatestDecodeToDisplayDelta = greatestCTTS;
 	cslg->compositionStartTime = 0;
@@ -5220,7 +5220,7 @@ static GF_Err gf_isom_set_ctts_v1(GF_ISOFile *file, u32 track, GF_TrackBox *trak
 	duration = gf_isom_get_media_duration(file, track);
 	cslg->compositionEndTime = (duration<0x7FFFFFFF) ? (s32) duration : 0;
 
-	gf_isom_set_brand_info(file, GF_ISOM_BRAND_ISO4, 0);
+	gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO4, GF_TRUE);
 	return GF_OK;
 }
 
@@ -5257,8 +5257,14 @@ static GF_Err gf_isom_set_ctts_v0(GF_ISOFile *file, GF_TrackBox *trak)
 		gf_isom_box_del((GF_Box *)cslg);
 		trak->Media->information->sampleTable->CompositionToDecode = NULL;
 	}
+	if (! trak->editBox && shift>0) {
+		u64 dur = trak->Media->mediaHeader->duration;
+		dur *= file->moov->mvhd->timeScale;
+		dur /= trak->Media->mediaHeader->timeScale;
+		gf_isom_set_edit_segment(file, gf_list_find(file->moov->trackList, trak)+1, 0, dur, shift, GF_ISOM_EDIT_NORMAL);
+	}
 	ctts->version = 0;
-	gf_isom_set_brand_info(file, GF_ISOM_BRAND_ISOM, 1);
+	gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_ISO4, GF_FALSE);
 	return GF_OK;
 }
 

@@ -833,7 +833,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 }
 
 
-GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, u32 CTS, u64 offset, u8 isRap)
+static GF_Err UpdateSample(GF_MediaBox *mdia, u32 sampleNumber, u32 size, s32 CTS, u64 offset, u8 isRap)
 {
 	u32 i;
 	GF_SampleTableBox *stbl = mdia->information->sampleTable;
