@@ -385,8 +385,13 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 
 		pck.dts = pck.cts;
+		if (priv->cts_dts_shift) {
+			pck.cts += + priv->cts_dts_shift;
+			pck.flags |= GF_ESI_DATA_HAS_DTS;
+		}
+		
 		if (priv->sample->CTS_Offset) {
-			pck.cts += priv->sample->CTS_Offset + priv->cts_dts_shift;
+			pck.cts += priv->sample->CTS_Offset;
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
 		}
 
