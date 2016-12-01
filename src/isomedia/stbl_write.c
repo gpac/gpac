@@ -1558,7 +1558,7 @@ void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding)
 	stbl->PaddingBits->SampleCount = stbl->SampleSize->sampleCount;
 }
 
-void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 offset)
+void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 offset)
 {
 	GF_CompositionOffsetBox *ctts;
 
