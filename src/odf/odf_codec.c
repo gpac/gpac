@@ -293,7 +293,6 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 	GF_Err e;
 	u32 size;
 	GF_BitStream *bs;
-
 	if (!raw_desc || !descSize) return GF_BAD_PARAM;
 
 	bs = gf_bs_new(raw_desc, (u64) descSize, GF_BITSTREAM_READ);

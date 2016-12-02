@@ -541,7 +541,7 @@ GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs)
 			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
 			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
 			if (p->flags & 1) {
-				gf_bs_write_u16(bs, (u32)((*ess ? 1 : 0) << 15 | *prop_index & 0x7F));
+				gf_bs_write_u16(bs, (u32)((*ess ? 1 : 0) << 15 | (*prop_index & 0x7F) ));
 			} else {
 				gf_bs_write_u8(bs, (u32)((*ess ? 1 : 0) << 7 | *prop_index));
 			}

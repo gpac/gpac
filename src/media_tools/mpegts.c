@@ -2060,7 +2060,11 @@ static void gf_m2ts_process_tdt_tot(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *tdt
 		if (ts->on_event) ts->on_event(ts, GF_M2TS_EVT_TOT, time_table);
 	}
 #endif
-		/*check CRC32*/
+	/*check CRC32*/
+	if (ts->tdt_tot->length<4) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted %s table (less than 4 bytes but CRC32 should be present\n", table_name));
+		goto error_exit;
+	}
 	if (!gf_m2ts_crc32_check(ts->tdt_tot->section, ts->tdt_tot->length-4)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MPEG-2 TS] corrupted %s table (CRC32 failed)\n", table_name));
 		goto error_exit;

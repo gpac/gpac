@@ -3868,7 +3868,7 @@ static void lhvc_parse_rep_format(HEVC_RepFormat *fmt, GF_BitStream *bs)
 }
 
 
-static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
+static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 {
 	u8 splitting_flag, vps_nuh_layer_id_present_flag, view_id_len;
 	u32 i, j, num_scalability_types, num_add_olss, num_add_layer_set, num_indepentdent_layers, nb_bits, default_output_layer_idc=0;
@@ -4035,6 +4035,11 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	/*default_ref_layers_active_flag*/gf_bs_read_int(bs, 1);
 
 	vps->num_profile_tier_level = 1+bs_get_ue(bs);
+	if (vps->num_profile_tier_level > MAX_LHVC_LAYERS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Wrong number of PTLs in VPS %d\n", vps->num_profile_tier_level));
+		vps->num_profile_tier_level=1;
+		return GF_FALSE;
+	}
 	
 	for (i=vps->base_layer_internal_flag ? 2 : 1; i < vps->num_profile_tier_level; i++) {
 		Bool vps_profile_present_flag = gf_bs_read_int(bs, 1);
@@ -4120,6 +4125,12 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 	
 	vps->num_rep_formats = 1 + bs_get_ue(bs);
+	if (vps->num_rep_formats>16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Wrong number of rep formats in VPS %d\n", vps->num_rep_formats));
+		vps->num_rep_formats=0;
+		return GF_FALSE;
+	}
+
 	for (i=0; i<vps->num_rep_formats; i++) {
 		lhvc_parse_rep_format(&vps->rep_formats[i], bs);
 	}
@@ -4141,6 +4152,7 @@ static void hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	}
 	//TODO - we don't use the rest ...
 
+	return GF_TRUE;
 }
 
 GF_EXPORT
@@ -4176,6 +4188,11 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 	vps->base_layer_internal_flag = gf_bs_read_int(bs, 1);
 	vps->base_layer_available_flag = gf_bs_read_int(bs, 1);
 	vps->max_layers = 1 + gf_bs_read_int(bs, 6);
+	if (vps->max_layers>MAX_LHVC_LAYERS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] sorry, %d layers in VPS but only %d supported\n", vps->max_layers, MAX_LHVC_LAYERS));
+		vps_id = -1;
+		goto exit;
+	}
 	vps->max_sub_layers = gf_bs_read_int(bs, 3) + 1;
 	vps->temporal_id_nesting = gf_bs_read_int(bs, 1);
 	/* vps_reserved_ffff_16bits = */ gf_bs_read_int(bs, 16);
@@ -4189,6 +4206,11 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 	}
 	vps->max_layer_id = gf_bs_read_int(bs, 6);
 	vps->num_layer_sets = bs_get_ue(bs) + 1;
+	if (vps->num_layer_sets > MAX_LHVC_LAYERS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Wrong number of layer sets in VPS %d\n", vps->num_layer_sets));
+		vps_id = -1;
+		goto exit;
+	}
 	for (i=1; i < vps->num_layer_sets; i++) {
 		for (j=0; j <= vps->max_layer_id; j++) {
 			layer_id_included_flag[ i ][ j ] = gf_bs_read_int(bs, 1);
@@ -4255,8 +4277,14 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 	} else {
 		vps_extension_flag = gf_bs_read_int(bs, 1);
 		if (vps_extension_flag ) {
+			Bool res;
 			gf_bs_align(bs);
-			hevc_parse_vps_extension(vps, bs);
+			res = hevc_parse_vps_extension(vps, bs);
+			if (res!=GF_TRUE) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Failed to parse VPS extensions\n"));
+				vps_id=-1;
+				goto exit;
+			}
 			if (/*vps_extension2_flag*/gf_bs_read_int(bs, 1)) {
 				while (gf_bs_available(bs)) {
 					/*vps_extension_data_flag */ gf_bs_read_int(bs, 1);
@@ -4339,7 +4367,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 	}
 
 	sps_id = bs_get_ue(bs);
-	if (sps_id>=16) {
+	if ((sps_id<0) ||(sps_id>=16)) {
 		sps_id = -1;
 		goto exit;
 	}
@@ -4461,6 +4489,12 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 		/*pcm_loop_filter_disable_flag=*/gf_bs_read_int(bs, 1);
 	}
 	sps->num_short_term_ref_pic_sets = bs_get_ue(bs);
+	if (sps->num_short_term_ref_pic_sets>64) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid number of short term reference picture sets %d\n", sps->num_short_term_ref_pic_sets));
+		sps_id=-1;
+		goto exit;
+	}
+	
 	for (i=0; i<sps->num_short_term_ref_pic_sets; i++) {
 		Bool ret = parse_short_term_ref_pic_set(bs, sps, i);
 		/*cannot parse short_term_ref_pic_set, skip VUI parsing*/
@@ -4592,7 +4626,11 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 
 	pps_id = bs_get_ue(bs);
 
-	if (pps_id>=64) goto exit;
+	if ((pps_id<0) || (pps_id>=64)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong PPS ID %d in PPS\n", pps_id));
+		pps_id = -1;
+		goto exit;
+	}
 	pps = &hevc->pps[pps_id];
 
 	if (!pps->state) {
@@ -4600,6 +4638,11 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 		pps->state = 1;
 	}
 	pps->sps_id = bs_get_ue(bs);
+	if (pps->sps_id>16) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] wrong SPS ID %d in PPS\n", pps->sps_id));
+		pps_id = -1;
+		goto exit;
+	}
 	hevc->sps_active_idx = pps->sps_id; /*set active sps*/
 	pps->dependent_slice_segments_enabled_flag = gf_bs_read_int(bs, 1);
 

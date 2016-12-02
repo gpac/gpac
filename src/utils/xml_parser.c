@@ -203,12 +203,13 @@ static GF_XMLSaxAttribute *xml_get_sax_attribute(GF_SAXParser *parser)
 static void xml_sax_swap(GF_SAXParser *parser)
 {
 	if (parser->current_pos && ((parser->sax_state==SAX_STATE_TEXT_CONTENT) || (parser->sax_state==SAX_STATE_COMMENT) ) ) {
-		assert(parser->line_size >= parser->current_pos);
-		parser->line_size -= parser->current_pos;
-		parser->file_pos += parser->current_pos;
-		if (parser->line_size) memmove(parser->buffer, parser->buffer + parser->current_pos, sizeof(char)*parser->line_size);
-		parser->buffer[parser->line_size] = 0;
-		parser->current_pos = 0;
+		if (parser->line_size >= parser->current_pos) {
+			parser->line_size -= parser->current_pos;
+			parser->file_pos += parser->current_pos;
+			if (parser->line_size) memmove(parser->buffer, parser->buffer + parser->current_pos, sizeof(char)*parser->line_size);
+			parser->buffer[parser->line_size] = 0;
+			parser->current_pos = 0;
+		}
 	}
 }
 
