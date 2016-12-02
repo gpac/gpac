@@ -999,14 +999,19 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 		nalucount = gf_bs_read_int(bs, 16);
 		for (j=0; j<nalucount; j++) {
 			GF_AVCConfigSlot *sl;
+			u32 size = gf_bs_read_int(bs, 16);
+			if (size>gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
+				gf_odf_hevc_cfg_del(cfg);
+				return NULL;
+			}
 			GF_SAFEALLOC(sl, GF_AVCConfigSlot );
 			if (!sl) {
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
 
-			sl->size = gf_bs_read_int(bs, 16);
-
+			sl->size = size;
 			sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 			gf_bs_read_data(bs, sl->data, sl->size);
 			gf_list_add(ar->nalus, sl);

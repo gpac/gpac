@@ -547,8 +547,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 			return tfxd_dump(a, trace);
 		case GF_ISOM_BOX_UUID_MSSM:
 		case GF_ISOM_BOX_UUID_TFRF:
+		case GF_ISOM_BOX_TYPE_UNKNOWN:
+			return uuid_dump(a, trace);
 		default:
-			return defa_dump(a, trace);
+			return GF_ISOM_INVALID_FILE;
 		}
 #ifndef GPAC_DISABLE_TTXT
 	case GF_ISOM_BOX_TYPE_STXT:
@@ -614,8 +616,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	case GF_ISOM_BOX_TYPE_GRPL:
 		return grpl_dump(a, trace);
 
+	case GF_ISOM_BOX_TYPE_UNKNOWN:
+		return unkn_dump(a, trace);
 	default:
-		return defa_dump(a, trace);
+		return GF_ISOM_INVALID_FILE;
 	}
 }
 
@@ -1725,9 +1729,17 @@ GF_Err elng_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err defa_dump(GF_Box *a, FILE * trace)
+GF_Err unkn_dump(GF_Box *a, FILE * trace)
 {
 	DumpBox(a, "UnknownBox", trace);
+	fprintf(trace, ">\n");
+	fprintf(trace, "</UnknownBox>\n");
+	return GF_OK;
+}
+
+GF_Err uuid_dump(GF_Box *a, FILE * trace)
+{
+	DumpBox(a, "UnknownUUIDBox", trace);
 	fprintf(trace, ">\n");
 	fprintf(trace, "</UnknownBox>\n");
 	return GF_OK;

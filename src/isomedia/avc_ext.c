@@ -684,6 +684,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				}
 			default:
 				/*rewrite nal*/
+				if (nal_size<2) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid nal size %d in sample %d\n", nal_type, sampleNumber));
+					e = GF_NON_COMPLIANT_BITSTREAM;
+					goto exit;
+				}
 				gf_bs_read_data(src_bs, buffer, nal_size-2);
 				if (rewrite_start_codes)
 					gf_bs_write_u32(dst_bs, 1);
@@ -1292,7 +1297,6 @@ GF_Err gf_isom_svc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 Descrip
 GF_EXPORT
 GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 {
-	static const u8 ipod_ext[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24, 0x4F, 0xC5, 0xBA, 0x39, 0xA5, 0x1B, 0xCF, 0x03, 0x23, 0xF3} };
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *entry;
@@ -1318,7 +1322,7 @@ GF_Err gf_isom_set_ipod_compatible(GF_ISOFile *the_file, u32 trackNumber)
 	}
 
 	if (!entry->ipod_ext) entry->ipod_ext = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
-	memcpy(entry->ipod_ext->uuid, ipod_ext, sizeof(u8)*16);
+	memcpy(entry->ipod_ext->uuid, GF_ISOM_IPOD_EXT, sizeof(u8)*16);
 	entry->ipod_ext->dataSize = 0;
 	return GF_OK;
 }
@@ -1677,6 +1681,8 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_AVCTYPE_NONE;
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_ISOM_AVCTYPE_NONE;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	if (!entry) return GF_ISOM_AVCTYPE_NONE;
+
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
@@ -1710,6 +1716,7 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	if (!trak || !trak->Media || !DescriptionIndex) return GF_ISOM_HEVCTYPE_NONE;
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_ISOM_HEVCTYPE_NONE;
 	entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	if (!entry) return GF_ISOM_AVCTYPE_NONE;
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
@@ -2112,7 +2119,7 @@ GF_Err hvcc_Read(GF_Box *s, GF_BitStream *bs)
 	if (pos < ptr->size)
 		ptr->size -= (u32) pos;
 
-	return GF_OK;
+	return ptr->config ? GF_OK : GF_ISOM_INVALID_FILE;
 }
 GF_Box *hvcc_New()
 {
