@@ -26,7 +26,7 @@
 #include <gpac/internal/odf_dev.h>
 #include <gpac/utf.h>
 
-#define DATE_CODING_BIT_LEN	40
+#define DATE_CODING_LEN 5
 
 #ifndef GPAC_MINIMAL_ODF
 
@@ -1827,8 +1827,8 @@ GF_Err gf_odf_read_cc_date(GF_BitStream *bs, GF_CC_Date *cdd, u32 DescSize)
 	u32 nbBytes = 0;
 	if (!cdd) return GF_BAD_PARAM;
 
-	gf_bs_read_data(bs, cdd->contentCreationDate, DATE_CODING_BIT_LEN/8);
-	nbBytes += DATE_CODING_BIT_LEN / 8;
+	gf_bs_read_data(bs, cdd->contentCreationDate, DATE_CODING_LEN);
+	nbBytes += DATE_CODING_LEN;
 	if (DescSize != nbBytes) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
 }
@@ -1836,7 +1836,7 @@ GF_Err gf_odf_read_cc_date(GF_BitStream *bs, GF_CC_Date *cdd, u32 DescSize)
 GF_Err gf_odf_size_cc_date(GF_CC_Date *cdd, u32 *outSize)
 {
 	if (!cdd) return GF_BAD_PARAM;
-	*outSize = (DATE_CODING_BIT_LEN / 8);
+	*outSize = DATE_CODING_LEN;
 	return GF_OK;
 }
 
@@ -1851,7 +1851,7 @@ GF_Err gf_odf_write_cc_date(GF_BitStream *bs, GF_CC_Date *cdd)
 	e = gf_odf_write_base_descriptor(bs, cdd->tag, size);
 	if (e) return e;
 
-	gf_bs_write_data(bs, cdd->contentCreationDate , DATE_CODING_BIT_LEN);
+	gf_bs_write_data(bs, cdd->contentCreationDate, DATE_CODING_LEN);
 	return GF_OK;
 }
 
@@ -2681,8 +2681,8 @@ GF_Err gf_odf_read_oci_date(GF_BitStream *bs, GF_OCI_Data *ocd, u32 DescSize)
 	u32 nbBytes = 0;
 	if (!ocd) return GF_BAD_PARAM;
 
-	gf_bs_read_data(bs, ocd->OCICreationDate, DATE_CODING_BIT_LEN);
-	nbBytes += DATE_CODING_BIT_LEN / 8;
+	gf_bs_read_data(bs, ocd->OCICreationDate, DATE_CODING_LEN);
+	nbBytes += DATE_CODING_LEN;
 	if (nbBytes != DescSize) return GF_ODF_INVALID_DESCRIPTOR;
 	return GF_OK;
 }
@@ -2690,7 +2690,7 @@ GF_Err gf_odf_read_oci_date(GF_BitStream *bs, GF_OCI_Data *ocd, u32 DescSize)
 GF_Err gf_odf_size_oci_date(GF_OCI_Data *ocd, u32 *outSize)
 {
 	if (!ocd) return GF_BAD_PARAM;
-	*outSize = (DATE_CODING_BIT_LEN / 8);
+	*outSize = DATE_CODING_LEN;
 	return GF_OK;
 }
 
@@ -2704,7 +2704,7 @@ GF_Err gf_odf_write_oci_date(GF_BitStream *bs, GF_OCI_Data *ocd)
 	if (e) return e;
 	e = gf_odf_write_base_descriptor(bs, ocd->tag, size);
 	if (e) return e;
-	gf_bs_write_data(bs, ocd->OCICreationDate , DATE_CODING_BIT_LEN);
+	gf_bs_write_data(bs, ocd->OCICreationDate, DATE_CODING_LEN);
 	return GF_OK;
 }
 

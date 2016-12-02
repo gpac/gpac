@@ -4852,33 +4852,6 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	while (ptr->size) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
-		//we need to read the DegPriority in a different way...
-		if ((a->type == GF_ISOM_BOX_TYPE_STDP) || (a->type == GF_ISOM_BOX_TYPE_SDTP)) {
-			u64 s = a->size;
-			/*
-						if (!ptr->SampleSize) {
-							gf_isom_box_del(a);
-							return GF_ISOM_INVALID_FILE;
-						}
-			*/
-			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
-				if (ptr->SampleSize) ((GF_DegradationPriorityBox *)a)->nb_entries = ptr->SampleSize->sampleCount;
-				e = stdp_Read(a, bs);
-			} else {
-				if (ptr->SampleSize) ((GF_SampleDependencyTypeBox *)a)->sampleCount = ptr->SampleSize->sampleCount;
-				e = sdtp_Read(a, bs);
-			}
-			if (e) {
-				gf_isom_box_del(a);
-				return e;
-			}
-
-			if (a->size>8) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" has %d extra bytes\n", gf_4cc_to_str(a->type), a->size));
-				gf_bs_skip_bytes(bs, a->size-8);
-			}
-			a->size = s;
-		}
 
 		if (ptr->size<a->size) {
 			gf_isom_box_del(a);
@@ -5121,6 +5094,7 @@ GF_Err stco_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->nb_entries = gf_bs_read_u32(bs);
+	if (ptr->size < 4) return GF_ISOM_INVALID_FILE;
 	ptr->size-=4;
 	if (ptr->nb_entries > ptr->size / 4) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stco\n", ptr->nb_entries));
