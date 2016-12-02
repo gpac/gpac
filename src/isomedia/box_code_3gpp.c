@@ -46,7 +46,19 @@ GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
 	if (e) return e;
-	ptr->info->cfg.type = ptr->type;
+
+	switch (ptr->info->type) {
+	case GF_ISOM_BOX_TYPE_DAMR:
+	case GF_ISOM_BOX_TYPE_DEVC:
+	case GF_ISOM_BOX_TYPE_DQCP:
+	case GF_ISOM_BOX_TYPE_DSMV:
+	case GF_ISOM_BOX_TYPE_D263:
+		ptr->info->cfg.type = ptr->type;
+		break;
+	default:
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown 3GPP config box %s\n", gf_4cc_to_str(ptr->info->type) ));
+		return GF_ISOM_INVALID_FILE;
+	}
 	return GF_OK;
 }
 

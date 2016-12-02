@@ -2490,7 +2490,6 @@ found:
 GF_EXPORT
 GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataType, bin128 UUID, char *data, u32 DataLength)
 {
-	GF_UnknownBox *a;
 	GF_Err e;
 	GF_TrackBox *trak;
 	GF_UserDataBox *udta;
@@ -2513,18 +2512,24 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 
 	//create a default box
 	if (UserDataType) {
-		a = (GF_UnknownBox *) gf_isom_box_new(UserDataType);
+		GF_UnknownBox *a = (GF_UnknownBox *) unkn_New(UserDataType);
+		if (DataLength) {
+			a->data = (char*)gf_malloc(sizeof(char)*DataLength);
+			memcpy(a->data, data, DataLength);
+			a->dataSize = DataLength;
+		}
+		return udta_AddBox(udta, (GF_Box *) a);
 	} else {
-		a = (GF_UnknownBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
-		memcpy( ((GF_UUIDBox*)a)->uuid, UUID, 16);
+		GF_UnknownUUIDBox *a = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
+		memcpy(a->uuid, UUID, 16);
+		if (DataLength) {
+			a->data = (char*)gf_malloc(sizeof(char)*DataLength);
+			memcpy(a->data, data, DataLength);
+			a->dataSize = DataLength;
+		}
+		return udta_AddBox(udta, (GF_Box *) a);
 	}
-
-	if (DataLength) {
-		a->data = (char*)gf_malloc(sizeof(char)*DataLength);
-		memcpy(a->data, data, DataLength);
-		a->dataSize = DataLength;
-	}
-	return udta_AddBox(udta, (GF_Box *) a);
+	return GF_OK;
 }
 
 GF_EXPORT

@@ -121,10 +121,19 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	do {
 		val = gf_bs_read_int(bs, 8);
 		sizeHeader++;
+		if (sizeHeader > 5) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Descriptor size on more than 4 bytes\n"));
+			return GF_ODF_INVALID_DESCRIPTOR;
+		}
 		size <<= 7;
 		size |= val & 0x7F;
 	} while ( val & 0x80);
 	*desc_size = size;
+
+	if (gf_bs_available(bs) < size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Not enough bytes (%d) to read descriptor (size=%d)\n", gf_bs_available(bs), size));
+		return GF_ODF_INVALID_DESCRIPTOR;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] Reading descriptor (tag %d size %d)\n", tag, size ));
 
@@ -543,7 +552,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
 		}
-		gf_list_del(cfg->pictureParameterSets);
+		gf_list_del(cfg->sequenceParameterSetExtensions);
 	}
 	gf_free(cfg);
 }
@@ -990,14 +999,19 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 		nalucount = gf_bs_read_int(bs, 16);
 		for (j=0; j<nalucount; j++) {
 			GF_AVCConfigSlot *sl;
+			u32 size = gf_bs_read_int(bs, 16);
+			if (size>gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
+				gf_odf_hevc_cfg_del(cfg);
+				return NULL;
+			}
 			GF_SAFEALLOC(sl, GF_AVCConfigSlot );
 			if (!sl) {
 				gf_odf_hevc_cfg_del(cfg);
 				return NULL;
 			}
 
-			sl->size = gf_bs_read_int(bs, 16);
-
+			sl->size = size;
 			sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 			gf_bs_read_data(bs, sl->data, sl->size);
 			gf_list_add(ar->nalus, sl);

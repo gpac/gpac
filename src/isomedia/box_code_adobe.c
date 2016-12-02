@@ -76,8 +76,8 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 	int i;
-	u32 tmp_strsize = (u32) ptr->size - 8;
-	char *tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+	u32 tmp_strsize;
+	char *tmp_str;
 
 	GF_Err e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
@@ -90,8 +90,12 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->time_scale = gf_bs_read_u32(bs);
 	ptr->current_media_time = gf_bs_read_u64(bs);
 	ptr->smpte_time_code_offset = gf_bs_read_u64(bs);
+
 	i=0;
+	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
 	tmp_strsize=(u32)ptr->size-8;
+	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+
 	while (tmp_strsize) {
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;

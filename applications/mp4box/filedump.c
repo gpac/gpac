@@ -966,6 +966,10 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	u32 data_offset, idx, data_size;
 	GF_BitStream *bs;
 
+	if (!ptr_size) {
+		fprintf(dump, "error=\"invalid nal size 0\"");
+		return;
+	}
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
 		bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
@@ -1348,6 +1352,10 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		u32 size, nal_size, idx;
 		char *ptr;
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, NULL);
+		if (!samp) {
+			fprintf(dump, "<!-- Unable to fetch sample %d -->\n", i+1);
+			continue;
+		}
 		dts = samp->DTS;
 		cts = dts + (s32) samp->CTS_Offset;
 
@@ -1788,16 +1796,21 @@ void dump_hevc_track_info(GF_ISOFile *file, u32 trackNum, GF_HEVCConfig *hevccfg
 
 		if (ar->type !=GF_HEVC_NALU_SEQ_PARAM) continue;
 		for (idx=0; idx<gf_list_count(ar->nalus); idx++) {
+			GF_Err e;
 			GF_AVCConfigSlot *sps = gf_list_get(ar->nalus, idx);
 			par_n = par_d = -1;
-			gf_hevc_get_sps_info_with_state(hevc_state, sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
-			fprintf(stderr, "\tSPS resolution %dx%d", width, height);
-			if ((par_n>0) && (par_d>0)) {
-				u32 tw, th;
-				gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
-				fprintf(stderr, " - Pixel Aspect Ratio %d:%d - Indicated track size %d x %d", par_n, par_d, tw, th);
+			e = gf_hevc_get_sps_info_with_state(hevc_state, sps->data, sps->size, NULL, &width, &height, &par_n, &par_d);
+			if (e==GF_OK) {
+				fprintf(stderr, "\tSPS resolution %dx%d", width, height);
+				if ((par_n>0) && (par_d>0)) {
+					u32 tw, th;
+					gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+					fprintf(stderr, " - Pixel Aspect Ratio %d:%d - Indicated track size %d x %d", par_n, par_d, tw, th);
+				}
+				fprintf(stderr, "\n");
+			} else {
+				fprintf(stderr, "\nFailed to read SPS: %s\n\n", gf_error_to_string((e) ));
 			}
-			fprintf(stderr, "\n");
 		}
 
 	}
@@ -2547,6 +2560,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 			samp = gf_isom_get_sample(file, trackNum, j+1, NULL);
 		} else {
 			samp = gf_isom_get_sample_info(file, trackNum, j+1, NULL, NULL);
+		}
+		if (!samp) {
+			fprintf(stderr, "Failed to fetch sample %d\n", j+1);
+			return;
 		}
 		dur = samp->DTS+samp->CTS_Offset;
 		size += samp->dataLength;

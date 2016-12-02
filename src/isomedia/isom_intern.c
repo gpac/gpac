@@ -207,7 +207,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				return GF_ISOM_INVALID_FILE;
 			}
 			if (mov->is_dump_mode) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete file was reading for dump - aborting parsing\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete file while reading for dump - aborting parsing\n"));
 				break;
 			}
 			return e;
@@ -390,15 +390,18 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			}
 			break;
 #endif
-		case GF_4CC('j','P',' ',' '):
+		case GF_ISOM_BOX_TYPE_UNKNOWN:
 		{
 			GF_UnknownBox *box = (GF_UnknownBox*)a;
-			u8 *c = (u8 *) box->data;
-			if ((box->dataSize==4)
-			        && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
-				mov->is_jp2 = 1;
-
-			gf_isom_box_del(a);
+			if (box->original_4cc == GF_4CC('j','P',' ',' ')) {
+				u8 *c = (u8 *) box->data;
+				if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
+					mov->is_jp2 = 1;
+				gf_isom_box_del(a);
+			} else {
+				e = gf_list_add(mov->TopBoxes, a);
+				if (e) return e;
+			}
 		}
 		break;
 

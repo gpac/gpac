@@ -186,9 +186,17 @@ GF_Err gf_odf_parse_qos(GF_BitStream *bs, GF_QoS_Default **qos_qual, u32 *qual_s
 	do {
 		val = gf_bs_read_int(bs, 8);
 		sizeHeader++;
+		if (sizeHeader > 5) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Descriptor size on more than 4 bytes\n"));
+			return GF_ODF_INVALID_DESCRIPTOR;
+		}
 		qos_size <<= 7;
 		qos_size |= val & 0x7F;
 	} while ( val & 0x80 );
+	if (gf_bs_available(bs) < qos_size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Not enough bytes (%d) to read descriptor (size=%d)\n", gf_bs_available(bs), qos_size));
+		return GF_ODF_INVALID_DESCRIPTOR;
+	}
 	bytesParsed += sizeHeader;
 
 	//Payload

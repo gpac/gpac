@@ -493,14 +493,26 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			else if (subtype==GF_ISOM_SUBTYPE_AVC2_H264)
 				subtype = GF_ISOM_SUBTYPE_AVC4_H264;
 		}
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
-		gf_odf_avc_cfg_del(avcc);
-		return GF_OK;
+		if (avcc) {
+			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			gf_odf_avc_cfg_del(avcc);
+			return GF_OK;
+		}
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find AVC configuration box"));
+			return GF_ISOM_INVALID_FILE;
+		}
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_svc_config_get(movie, track, 1);
-		sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
-		gf_odf_avc_cfg_del(avcc);
-		return GF_OK;
+		if (avcc) {
+			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			gf_odf_avc_cfg_del(avcc);
+			return GF_OK;
+		}
+		else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Cannot find AVC configuration box"));
+			return GF_ISOM_INVALID_FILE;
+		}
 #ifndef GPAC_DISABLE_HEVC
 	case GF_ISOM_SUBTYPE_HVC1:
 	case GF_ISOM_SUBTYPE_HEV1:

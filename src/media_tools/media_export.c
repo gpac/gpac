@@ -2040,6 +2040,9 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	FPS = gf_isom_get_media_timescale(dumper->file, track);
 	FPS *= (count-1);
 	samp = gf_isom_get_sample(dumper->file, track, count, &di);
+	if (!samp) {
+		return gf_export_message(dumper, GF_ISOM_INVALID_FILE, "Error fetching first sample");
+	}
 	FPS /= (s64) samp->DTS;
 	gf_isom_sample_del(&samp);
 
