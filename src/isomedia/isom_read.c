@@ -2060,26 +2060,50 @@ found:
 		if (UserDataIndex > gf_list_count(map->other_boxes) ) return GF_BAD_PARAM;
 		ptr = (GF_UnknownBox*)gf_list_get(map->other_boxes, UserDataIndex-1);
 
-		//ok alloc the data
-		*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
-		if (!*userData) return GF_OUT_OF_MEM;
-		memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
-		*userDataSize = ptr->dataSize;
-		return GF_OK;
+		if (ptr->type == GF_ISOM_BOX_TYPE_UNKNOWN) {
+			*userData = (char *)gf_malloc(sizeof(char)*ptr->dataSize);
+			if (!*userData) return GF_OUT_OF_MEM;
+			memcpy(*userData, ptr->data, sizeof(char)*ptr->dataSize);
+			*userDataSize = ptr->dataSize;
+			return GF_OK;
+		} else if (ptr->type != GF_ISOM_BOX_TYPE_UUID) {
+			GF_UnknownUUIDBox *p_uuid = (GF_UnknownUUIDBox *)ptr;
+			*userData = (char *)gf_malloc(sizeof(char)*p_uuid->dataSize);
+			if (!*userData) return GF_OUT_OF_MEM;
+			memcpy(*userData, p_uuid->data, sizeof(char)*p_uuid->dataSize);
+			*userDataSize = p_uuid->dataSize;
+			return GF_OK;
+		} else {
+			return GF_ISOM_INVALID_FILE;
+		}
 	}
 
 	//serialize all boxes
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	i=0;
 	while ( (ptr = (GF_UnknownBox*)gf_list_enum(map->other_boxes, &i))) {
-		u32 s = ptr->dataSize+8;
+		u32 type, s, data_size;
+		char *data=NULL;
+		if (ptr->type == GF_ISOM_BOX_TYPE_UNKNOWN) {
+			type = ptr->original_4cc;
+			data_size = ptr->dataSize;
+			data = ptr->data;
+		} else if (ptr->type == GF_ISOM_BOX_TYPE_UUID) {
+			GF_UnknownUUIDBox *p_uuid = (GF_UnknownUUIDBox *)ptr;
+			type = p_uuid->type;
+			data_size = p_uuid->dataSize;
+			data = p_uuid->data;
+		} else {
+			continue;
+		}
+		s = data_size+8;
 		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) s += 16;
 
 		gf_bs_write_u32(bs, s);
-		gf_bs_write_u32(bs, ptr->type);
-		if (ptr->type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (char *) map->uuid, 16);
-		if (ptr->data) {
-			gf_bs_write_data(bs, ptr->data, ptr->dataSize);
+		gf_bs_write_u32(bs, type);
+		if (type==GF_ISOM_BOX_TYPE_UUID) gf_bs_write_data(bs, (char *) map->uuid, 16);
+		if (data) {
+			gf_bs_write_data(bs, data, data_size);
 		} else if (ptr->other_boxes) {
 #ifndef GPAC_DISABLE_ISOM_WRITE
 			gf_isom_box_array_write((GF_Box *)ptr, ptr->other_boxes, bs);
@@ -2114,6 +2138,7 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 
 	stsc = trak->Media->information->sampleTable->SampleToChunk;
 	stts = trak->Media->information->sampleTable->TimeToSample;
+	if (!stsc || !stts) return GF_ISOM_INVALID_FILE;
 
 	dmin = smin = (u32) -1;
 	dmax = smax = 0;
@@ -2122,6 +2147,10 @@ GF_Err gf_isom_get_chunks_infos(GF_ISOFile *movie, u32 trackNumber, u32 *dur_min
 	tot_chunks = 0;
 	for (i=0; i<stsc->nb_entries; i++) {
 		u32 nb_chunk = 0;
+		if (stsc->entries[i].samplesPerChunk >  2*trak->Media->information->sampleTable->SampleSize->sampleCount) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] likely broken stco entry (%u samples per chunk but %u samples total)\n", stsc->entries[i].samplesPerChunk, trak->Media->information->sampleTable->SampleSize->sampleCount));
+			return GF_ISOM_INVALID_FILE;
+		}
 		while (1) {
 			u32 chunk_dur = 0;
 			u32 chunk_size = 0;
@@ -2217,8 +2246,10 @@ GF_Err gf_isom_get_fragment_defaults(GF_ISOFile *the_file, u32 trackNumber,
 	}
 #endif
 
-
 	stbl = trak->Media->information->sampleTable;
+	if (!stbl->TimeToSample || !stbl->SampleSize || !stbl->SampleToChunk) return GF_ISOM_INVALID_FILE;
+
+
 	//duration
 	if (defaultDuration) {
 		maxValue = value = 0;

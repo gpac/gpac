@@ -39,18 +39,18 @@ extern "C" {
 #define GPAC_DISABLE_ISOM_ADOBE
 #endif
 
-/*the default size is 64, cause we need to handle large boxes...
+	/*the default size is 64, cause we need to handle large boxes...
 
-the other_boxes container is by default NOT created. When parsing a box and adding
-a sub-box with gf_isom_box_add_default, the list is created.
-This list is destroyed befaore calling the final box destructor
-This list is automatically taken into account during size() and write() functions
-*/
+	the other_boxes container is by default NOT created. When parsing a box and adding
+	a sub-box with gf_isom_box_add_default, the list is created.
+	This list is destroyed befaore calling the final box destructor
+	This list is automatically taken into account during size() and write() functions
+	*/
 #define GF_ISOM_BOX			\
 	u32 type;			\
 	u64 size;			\
-	GF_List *other_boxes;	\
- 
+	GF_List *other_boxes;
+
 #define GF_ISOM_FULL_BOX		\
 	GF_ISOM_BOX			\
 	u8 version;			\
@@ -445,6 +445,7 @@ enum
 	GF_ISOM_BOX_UUID_TFXD	= GF_4CC( 'T', 'F', 'X', 'D' ),
 
 	GF_ISOM_BOX_TYPE_MP3	= GF_4CC( '.', 'm', 'p', '3' ),
+	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
 
 
@@ -487,6 +488,7 @@ typedef struct
 	GF_ISOM_BOX
 	char *data;
 	u32 dataSize;
+	u32 original_4cc;
 } GF_UnknownBox;
 
 typedef struct
@@ -1002,6 +1004,8 @@ typedef struct
 	GF_UnknownUUIDBox *ipod_ext;
 
 } GF_MPEGVisualSampleEntryBox;
+
+static const u8 GF_ISOM_IPOD_EXT[][16] = { { 0x6B, 0x68, 0x40, 0xF2, 0x5F, 0x24, 0x4F, 0xC5, 0xBA, 0x39, 0xA5, 0x1B, 0xCF, 0x03, 0x23, 0xF3} };
 
 Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry);
 GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 sampleNumber, GF_MPEGVisualSampleEntryBox *entry);
@@ -3301,7 +3305,7 @@ GF_Box *tref_New();
 GF_Box *mdia_New();
 GF_Box *mfra_New();
 GF_Box *tfra_New();
-GF_Box *defa_New();
+GF_Box *unkn_New(u32 boxType);
 GF_Box *uuid_New();
 GF_Box *void_New();
 GF_Box *stsf_New();
@@ -3356,7 +3360,7 @@ void tref_del(GF_Box *);
 void mdia_del(GF_Box *);
 void mfra_del(GF_Box *);
 void tfra_del(GF_Box *);
-void defa_del(GF_Box *);
+void unkn_del(GF_Box *);
 void uuid_del(GF_Box *);
 void void_del(GF_Box *);
 void stsf_del(GF_Box *);
@@ -3409,7 +3413,7 @@ GF_Err minf_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tkhd_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err tref_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err mdia_Write(GF_Box *s, GF_BitStream *bs);
-GF_Err defa_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err unkn_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err uuid_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Write(GF_Box *s, GF_BitStream *bs);
@@ -3462,7 +3466,7 @@ GF_Err minf_Size(GF_Box *);
 GF_Err tkhd_Size(GF_Box *);
 GF_Err tref_Size(GF_Box *);
 GF_Err mdia_Size(GF_Box *);
-GF_Err defa_Size(GF_Box *);
+GF_Err unkn_Size(GF_Box *);
 GF_Err uuid_Size(GF_Box *);
 GF_Err void_Size(GF_Box *);
 GF_Err stsf_Size(GF_Box *);
@@ -3517,7 +3521,7 @@ GF_Err tref_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err defa_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err stsf_Read(GF_Box *s, GF_BitStream *bs);
@@ -4089,7 +4093,7 @@ GF_Err tref_dump(GF_Box *a, FILE * trace);
 GF_Err mdia_dump(GF_Box *a, FILE * trace);
 GF_Err mfra_dump(GF_Box *a, FILE * trace);
 GF_Err tfra_dump(GF_Box *a, FILE * trace);
-GF_Err defa_dump(GF_Box *a, FILE * trace);
+GF_Err unkn_dump(GF_Box *a, FILE * trace);
 GF_Err void_dump(GF_Box *a, FILE * trace);
 GF_Err ftyp_dump(GF_Box *a, FILE * trace);
 GF_Err padb_dump(GF_Box *a, FILE * trace);
@@ -4128,6 +4132,7 @@ GF_Err ghnt_dump(GF_Box *a, FILE * trace);
 GF_Err hnti_dump(GF_Box *a, FILE * trace);
 GF_Err sdp_dump(GF_Box *a, FILE * trace);
 GF_Err rtpo_dump(GF_Box *a, FILE * trace);
+GF_Err uuid_dump(GF_Box *a, FILE * trace);
 
 
 
