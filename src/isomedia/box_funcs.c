@@ -110,8 +110,8 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 reading till the end of file\n", gf_4cc_to_str(type), type));
 				size = gf_bs_available(bs) + 8;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Warning Read Box type %s (0x%08X) size 0 - patching to size=8 ...\n", gf_4cc_to_str(type), type));
-				size = 8;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box type %s (0x%08X) size 0\n", gf_4cc_to_str(type), type));
+				return GF_ISOM_INVALID_FILE;
 			}
 		}
 	}
@@ -163,12 +163,6 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		*outBox = newBox;
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
-	//we need a special reading for these boxes...
-	if ((newBox->type == GF_ISOM_BOX_TYPE_STDP) || (newBox->type == GF_ISOM_BOX_TYPE_SDTP)) {
-		newBox->size = size;
-		*outBox = newBox;
-		return GF_OK;
-	}
 
 	newBox->size = size - hdr_size;
 	if (newBox->size) {
@@ -177,26 +171,18 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		end = gf_bs_get_position(bs);
 	}
 	else {
-		e = GF_ISOM_INVALID_FILE;
+		//empty box
+		e = GF_OK;
+		end = gf_bs_get_position(bs);
 	}
 
 	if (e && (e != GF_ISOM_INCOMPLETE_FILE)) {
 		gf_isom_box_del(newBox);
 		*outBox = NULL;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Read Box \"%s\" failed (%s) - skipping\n", gf_4cc_to_str(type), gf_error_to_string(e)));
-#if 0
-		/*let's still try to load the file since no error was notified*/
-		gf_bs_seek(bs, start+hdr_size);
-		newBox = free_New();
-		((GF_FreeSpaceBox*) newBox)->original_4cc = type;
-		newBox->size = size - hdr_size;
-		e = gf_isom_box_read(newBox, bs);
-		newBox->size = size;
-		end = gf_bs_get_position(bs);
-		if (e) return e;
-#else
+
+		//we don't try to reparse known boxes that have been failing (too dangerous)
 		return e;
-#endif
 	}
 
 	if (end-start > size) {
