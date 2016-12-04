@@ -2333,7 +2333,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	if (mpd->profiles)
 		fprintf(out, " profiles=\"%s\"", mpd->profiles);
-	if (mpd->availabilityStartTime)
+	if (mpd->type == GF_MPD_TYPE_DYNAMIC)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
 		gf_mpd_print_date(out, "availabilityEndTime", mpd->availabilityEndTime);
