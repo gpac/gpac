@@ -2307,6 +2307,10 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		sps_id = -1;
 		goto exit;
 	}
+	if (sps_id < 0) {
+		sps_id = -1;
+		goto exit;
+	}
 
 	luma_bd = chroma_bd = 0;
 	chroma_format_idc = ChromaArrayType = 1;

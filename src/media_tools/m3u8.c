@@ -1032,9 +1032,9 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 			if (strncmp("#EXT", currentLine, 4) == 0) {
 				attributes = parse_attributes(currentLine, &attribs);
 				if (attributes == NULL) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Comment at line %d : %s\n", currentLineNumber, currentLine));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8]Comment at line %d : %s\n", currentLineNumber, currentLine));
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("Directive at line %d: \"%s\", attributes=", currentLineNumber, currentLine));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Directive at line %d: \"%s\", attributes=", currentLineNumber, currentLine));
 					i = 0;
 					while (attributes[i] != NULL) {
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, (" [%d]='%s'", i, attributes[i]));
