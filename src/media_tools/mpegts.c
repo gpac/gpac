@@ -271,6 +271,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 			start_code_found = short_start_code ? 2 : 1;
 			sc_pos=1;
 		} else {
+			Bool is_short_start_code = (start_code_found==2) ? GF_TRUE : GF_FALSE;
 
 			if (!full_au_pes_mode && (start_code_found==2)) {
 				pck.data = (char *)data-1;
@@ -280,11 +281,12 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				pck.data = (char *)data;
 				pck.data_len = sc_pos;
 			}
+			//copy start code type for next nal
 			start_code_found = short_start_code ? 2 : 1;
 
 			if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
-				nal_type = (pck.data[4] & 0x7E) >> 1;
+				nal_type = (pck.data[ is_short_start_code ? 3 : 4 ] & 0x7E) >> 1;
 
 				/*check for SPS and update stream info*/
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -311,7 +313,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 							au_start = NULL;
 							full_au_pes_mode = 0;
-							if (start_code_found==2) {
+							if (is_short_start_code) {
 								pck.data = (char *)data-1;
 								pck.data[0]=0;
 								pck.data_len = sc_pos+1;
@@ -358,7 +360,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 					prev_is_au_delim=0;
 				}
 			} else {
-				nal_type = pck.data[4] & 0x1F;
+				nal_type = pck.data[is_short_start_code ? 3 : 4] & 0x1F;
 
 				/*check for SPS and update stream info*/
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -376,7 +378,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 				}
 #endif
 				/*check AU start type*/
-				if ((nal_type==GF_AVC_NALU_ACCESS_UNIT) || (nal_type==GF_AVC_NALU_VDRD)) {
+				if ((nal_type==GF_AVC_NALU_ACCESS_UNIT) /* || (nal_type==GF_AVC_NALU_VDRD) */) {
 					if (!prev_is_au_delim) {
 
 						//this was not a one AU per PES config, dispatch
@@ -386,7 +388,7 @@ static u32 gf_m2ts_reframe_nalu_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 							ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
 							au_start = NULL;
 							full_au_pes_mode = 0;
-							if (start_code_found==2) {
+							if (is_short_start_code) {
 								pck.data = (char *)data-1;
 								pck.data[0]=0;
 								pck.data_len = sc_pos+1;
