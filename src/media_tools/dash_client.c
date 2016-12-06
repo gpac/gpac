@@ -2649,22 +2649,25 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 
 	/* Call a specific adaptation algorithm (see GPAC configuration)
 	Each algorithm should:
-	- return true if a change of quality is requested
-	- set the new_index value to the desired quality
-	- set the go_up_bitrate value to the quality change direction
+	- return the new_index value to the desired quality
+	
 	It can use:
-	- the download_rate (computed on the last segment, and adjusted to the playback speed),
+	- the information about each available representation (group->adaptation_set->representations, e.g. bandwidth required for that representation)
+	- the information of the current representation (rep)
+	- the download_rate dl_rate (computed on the previously downloaded segment, and adjusted to the playback speed),
+	- the buffer levels:
+	    - current: group->buffer_occupancy_ms, 
+		- previous: group->buffer_occupancy_at_last_seg
+		- max: group->buffer_max_ms,
 	- the playback speed,
 	- the maximum achievable speed at the current resolution,
 	- the indicator that the current representation is too demanding CPU-wise (force_lower_complexity)
-	- the buffer level (current and previous: group->buffer_occupancy_ms, group->buffer_occupancy_at_last_seg)
-	- the current representation (rep)	
 	
 	Private algorithm information should be stored in the dash object if global to all AdaptationSets,
 	or in the group if local to an AdaptationSet.
 
 	TODO: document how to access other possible parameters (e.g. segment sizes if available, ...)
-	*/
+	*/	
 	new_index = group->active_rep_index;
 	switch (dash->adaptation_algorithm) {
 	case GF_DASH_ALGO_GPAC_LEGACY_BUFFER:
