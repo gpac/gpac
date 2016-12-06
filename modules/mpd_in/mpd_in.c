@@ -55,7 +55,7 @@ typedef struct __mpd_module
 	MpdInBuffer buffer_mode;
 	u32 nb_playing;
 
-	Bool buffer_adaptation;
+	GF_DASHAdaptationAlgorithm adaptation_algorithm;
 
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -899,12 +899,10 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		gf_service_command(mpdin->service, &com, GF_OK);
 		gf_dash_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
 
-		if (mpdin->buffer_adaptation) {
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.command_type = GF_NET_BUFFER_QUERY;
-			gf_service_command(mpdin->service, &com, GF_OK);
-			gf_dash_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
-		}
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.command_type = GF_NET_BUFFER_QUERY;
+		gf_service_command(mpdin->service, &com, GF_OK);
+		gf_dash_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
 	}
 
 	return GF_OK;
@@ -930,7 +928,6 @@ static GF_Err mpdin_dash_can_reverse_playback(GF_MPD_In *mpdin)
 
 	return e;
 }
-
 
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -991,9 +988,16 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		opt = "buffer";
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "NetworkAdaptation", opt);
 	}
-	if (!strcmp(opt, "disabled")) disable_switching = 2;
-	else if (!strcmp(opt, "bandwidth")) mpdin->buffer_adaptation = GF_FALSE;
-	else mpdin->buffer_adaptation = GF_TRUE;
+	if (!strcmp(opt, "disabled")) {
+		disable_switching = 2;
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_NONE;
+	}
+	else if (!strcmp(opt, "bandwidth")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_RATE;
+	}
+	else if (!strcmp(opt, "buffer")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
+	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
 	if (!opt) {
@@ -1095,6 +1099,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	serv->fn_data_packet = mpdin_data_packet;
 
 	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, (mpdin->buffer_mode == MPDIN_BUFFER_SEGMENTS) ? 1 : 0, init_timeshift);
+	gf_dash_set_algo(mpdin->dash, mpdin->adaptation_algorithm);
 
 	if (!mpdin->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));
