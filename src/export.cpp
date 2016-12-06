@@ -2147,6 +2147,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_quality_degradation_hint) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_set_visible_rect) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_utc_drift_estimate) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_set_algo) )
 
 #endif
 
