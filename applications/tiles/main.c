@@ -31,37 +31,61 @@
 
 
 
-void printVPS(char *buffer, u32 bz){
-	HEVCState hevc; // = {.sps_active_idx=-1};
-	gf_media_hevc_read_vps(buffer,bz, &hevc);
+void printVPS(char *buffer, u32 bz, HEVCState* hevc){
+	gf_media_hevc_read_vps(buffer,bz, hevc);
 	printf("===VPS===\n");
 	int i;
 	for(i=0;i<2;i++){
   		printf("====%d=====\n",i);
-	       	printf("id:	%d\n",hevc.vps[i].id);
-		printf("num_profile_tier_level:	%d\n",hevc.vps[i].num_profile_tier_level);
+	       	printf("id:	%d\n",(*hevc).vps[i].id);
+		printf("num_profile_tier_level:	%d\n",(*hevc).vps[i].num_profile_tier_level);
 		}
 }
 
 
-void printSPS(char *buffer, u32 bz){
-	HEVCState hevc; // = {.sps_active_idx=-1};
-	gf_media_hevc_read_sps(buffer,bz, &hevc);
-	printf("===SPS==%d===\n",hevc.sps_active_idx);
+void printSPS(char *buffer, u32 bz, HEVCState* hevc){
+	gf_media_hevc_read_sps(buffer,bz, hevc);
+	printf("===SPS==%d===\n",(*hevc).sps_active_idx);
 	int i;
 	for(i=0;i<2;i++){
   		printf("====%d=====\n",i);
-		printf("id:	%d\n",hevc.sps[i].id);
-	       	printf("width:	%d\n",hevc.sps[i].width);
-		printf("height:	%d\n",hevc.sps[i].height);
-		printf("cw_flag:	%d\n",hevc.sps[i].cw_flag);
+		printf("id:	%d\n",(*hevc).sps[i].id);
+	       	printf("width:	%d\n",(*hevc).sps[i].width);
+		printf("height:	%d\n",(*hevc).sps[i].height);
+		printf("cw_flag:	%d\n",(*hevc).sps[i].cw_flag);
 		}
 }
 
-void printPPS(char *buffer, u32 bz){
-	HEVCState hevc; // = {.sps_active_idx=-1};
-	gf_media_hevc_read_pps(buffer,bz, &hevc);
+void printPPS(char *buffer, u32 bz, HEVCState* hevc){
+	gf_media_hevc_read_pps(buffer,bz, hevc);
+	int i = 0;
 	printf("===PPS===\n");
+  		printf("id:	%d\n",(*hevc).pps[i].id);
+	     	printf("column_width:	%d\n",(*hevc).pps[i].column_width[i]);
+	     	printf("uniform_spacing_flag:	%d\n",(*hevc).pps[i].uniform_spacing_flag);
+	     	printf("dependent_slice_segments_enabled_flag:	%d\n",(*hevc).pps[i].dependent_slice_segments_enabled_flag);
+		printf("num_tile_columns:	%d\n",(*hevc).pps[i].num_tile_columns);
+		printf("num_tile_rows:	%d\n",(*hevc).pps[i].num_tile_rows);
+		printf("num_profile_tier_level:	%d\n",(*hevc).vps[i].num_profile_tier_level);
+		printf("height:	%d\n",(*hevc).sps[i].height);
+		
+}
+
+void bs_set_ue(GF_BitStream *bs,s32 num) {
+    s32 length = 1;
+    s32 temp = ++num;
+
+    while (temp != 1) {
+        temp >>= 1;
+        length += 2;
+    }
+    
+    gf_bs_write_int(bs, 0, length >> 1);
+    gf_bs_write_int(bs, num, (length+1) >> 1);
+}
+
+/*void printSliceInfo(HEVCState hevc){
+	printf("===SSH===\n");
 	int i;
 	for(i=0;i<2;i++){
   		printf("id:	%d\n",hevc.pps[i].id);
@@ -71,7 +95,8 @@ void printPPS(char *buffer, u32 bz){
 		printf("num_tile_columns:	%d\n",hevc.pps[i].num_tile_columns);
 		printf("num_tile_rows:	%d\n",hevc.pps[i].num_tile_rows);
 		}
-}
+}*/
+
 
 u64 size_of_file(FILE *file)
 {
@@ -124,7 +149,6 @@ int main (int argc, char **argv)
 					{
 						nal_length = gf_media_nalu_next_start_code_bs(bs);
 						printf("\n\n");
-						printf("1\n");
 						if(0==nal_length)
 							nal_length = gf_bs_get_size(bs) - gf_bs_get_position(bs);
 						buffer = malloc(sizeof(char)*nal_length);
@@ -135,13 +159,21 @@ int main (int argc, char **argv)
 						printf("nal_number: \t%d\t%d\n ",nal_num,nal_unit_type);
 						switch(nal_unit_type){
 							case 32:
-								printVPS(buffer,nal_length);
+								printVPS(buffer,nal_length,&hevc);
 								break;
 							case 33:
-								printSPS(buffer,nal_length);
+								printSPS(buffer,nal_length,&hevc);
 								break;
 							case 34:
-								printPPS(buffer,nal_length);
+								printPPS(buffer,nal_length,&hevc);
+								break;
+							case 19:
+							case 20:
+							case 1:
+								printf("===Slice===\n");
+								printf("Slice adresse\t:%d\n",hevc.s_info.slice_segment_address);
+								printf("first_slice_segment_in_pic_flag\t:%d\n",hevc.s_info.first_slice_segment_in_pic_flag);
+								printf("frame_num\t:%d\n",hevc.s_info.frame_num);
 								break;
 							default:
 								printf("nal_unit_type not managed\n\n");
