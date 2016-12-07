@@ -912,15 +912,18 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
+	if(ptr->size<16) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 16;
 	if (ptr->version > 0) {
 		ptr->KID_count = gf_bs_read_u32(bs);
+		if(ptr->size<4) return GF_ISOM_INVALID_FILE;
 		ptr->size -= 4;
 		if (ptr->KID_count) {
 			u32 i;
 			ptr->KIDs = gf_malloc(ptr->KID_count*sizeof(bin128));
 			for (i=0; i<ptr->KID_count; i++) {
 				gf_bs_read_data(bs, (char *) ptr->KIDs[i], 16);
+				if(ptr->size<16) return GF_ISOM_INVALID_FILE;
 				ptr->size -= 16;
 			}
 		}
@@ -930,6 +933,7 @@ GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->private_data_size) {
 		ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 		gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
+		if(ptr->size<ptr->private_data_size) return GF_ISOM_INVALID_FILE;
 		ptr->size -= ptr->private_data_size;
 	}
 	return GF_OK;
@@ -1009,10 +1013,12 @@ GF_Err tenc_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->isProtected = gf_bs_read_u8(bs);
 	ptr->Per_Sample_IV_Size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *) ptr->KID, 16);
+	if(ptr->size<20) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 20;
 	if ((ptr->isProtected == 1) && !ptr->Per_Sample_IV_Size) {
 		ptr->constant_IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *) ptr->constant_IV, ptr->constant_IV_size);
+		if(ptr->size< (1 + ptr->constant_IV_size)) return GF_ISOM_INVALID_FILE;
 		ptr->size -= 1 + ptr->constant_IV_size;
 	}
 	return GF_OK;
@@ -1083,6 +1089,7 @@ GF_Err piff_tenc_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 	ptr->IV_size = gf_bs_read_u8(bs);
 	gf_bs_read_data(bs, (char *) ptr->KID, 16);
+	if(ptr->size<20) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 20;
 	return GF_OK;
 }
@@ -1151,6 +1158,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->AlgorithmID = gf_bs_read_int(bs, 24);
 		ptr->IV_size = gf_bs_read_u8(bs);
 		gf_bs_read_data(bs, (char *) ptr->KID, 16);
+		if(ptr->size<20) return GF_ISOM_INVALID_FILE;
 		ptr->size -= 20;
 	}
 	if (ptr->IV_size == 0)
@@ -1171,6 +1179,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 
 		sai->IV_size = ptr->IV_size;
 		gf_bs_read_data(bs, (char *) sai->IV, ptr->IV_size);
+		if(ptr->size<ptr->IV_size) return GF_ISOM_INVALID_FILE;
 		ptr->size -= ptr->IV_size;
 		if (ptr->flags & 2) {
 			sai->subsample_count = gf_bs_read_u16(bs);
@@ -1300,9 +1309,11 @@ GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
 	ptr->private_data_size = gf_bs_read_u32(bs);
+	if(ptr->size<20) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 20;
 	ptr->private_data = gf_malloc(sizeof(char)*ptr->private_data_size);
 	gf_bs_read_data(bs, (char *) ptr->private_data, ptr->private_data_size);
+	if(ptr->size<ptr->private_data_size) return GF_ISOM_INVALID_FILE;
 	ptr->size -= ptr->private_data_size;
 	return GF_OK;
 }
