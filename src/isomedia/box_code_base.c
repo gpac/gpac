@@ -954,8 +954,8 @@ GF_Err dref_Read(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	//count =
 	gf_bs_read_u32(bs);
-	ptr->size -= 4;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
+	ptr->size -= 4;
 
 	return gf_isom_read_box_list(s, bs, dref_AddDataEntry);
 }
