@@ -2207,6 +2207,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 	u32 data_size;
 	unsigned char *data;
 	GF_M2TS_Section *section;
+	GF_Err e = GF_OK;
 
 	/*wait for the last section */
 	if (!(status&GF_M2TS_TABLE_END)) return;
@@ -2250,7 +2251,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				GF_BitStream *iod_bs;
 				iod_bs = gf_bs_new((char *)data+8, len-2, GF_BITSTREAM_READ);
 				if (pmt->program->pmt_iod) gf_odf_desc_del((GF_Descriptor *)pmt->program->pmt_iod);
-				gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
+				e = gf_odf_parse_descriptor(iod_bs , (GF_Descriptor **) &pmt->program->pmt_iod, &size);
+				if (e) return e;
 				/*remember program number for service/program selection*/
 				if (pmt->program->pmt_iod) pmt->program->pmt_iod->ServiceID = pmt->program->number;
 				gf_bs_del(iod_bs );
