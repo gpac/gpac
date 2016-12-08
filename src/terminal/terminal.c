@@ -1018,9 +1018,11 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_VIDEO_BENCH:
 		term->bench_mode = value;
+		return gf_sc_set_option(term->compositor, type, value);
 	case GF_OPT_MULTIVIEW_MODE:
 		term->compositor->multiview_mode = value;
-	//fallthrough
+		return gf_sc_set_option(term->compositor, type, value);
+
 	default:
 		return gf_sc_set_option(term->compositor, type, value);
 	}
