@@ -264,7 +264,7 @@ enum
 	GF_OPT_PLAY_STATE,
 	/*get only: returns 1 if main addon is playing, 0 if regular scene is playing*/
 	GF_OPT_MAIN_ADDON,
-	/*get/set benvch mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
+	/*get/set bench mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
 	GF_OPT_VIDEO_BENCH,
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
 	GF_OPT_USE_OPENGL,
