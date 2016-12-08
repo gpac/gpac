@@ -454,7 +454,11 @@ int main (int argc, char *argv[])
 			set_cfg_option(argv[i+1]);
 			i++;
 		}
-	}
+		else if (!strcmp(arg, "-run-for")) {
+			simulation_time = atoi(argv[i+1]);
+			i++;
+		}
+ 	}
 	
 	gf_sys_init(mem_track);
 	gf_set_progress_callback(NULL, on_progress_null);
@@ -692,6 +696,10 @@ int main (int argc, char *argv[])
 	gf_term_disconnect(term);
 	if (rti_file) UpdateRTInfo("Disconnected\n");
 
+	if (gyro_dev) {
+		sensor_stop(gyro_dev);
+	}
+
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("Deleting terminal... "));
 	gf_term_del(term);
 	GF_LOG(GF_LOG_INFO, GF_LOG_APP, ("OK\n"));
@@ -701,10 +709,8 @@ int main (int argc, char *argv[])
 	gf_cfg_del(cfg_file);
 
 	if (gyro_dev) {
-		sensor_stop(gyro_dev);
 		sensor_destroy(&gyro_dev);
 	}
-
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
