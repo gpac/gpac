@@ -918,6 +918,8 @@ static void DeleteVideoOutput(void *ifce)
 		FreeLibrary(dd->hDDrawLib);
 	}
 
+	if (dd->caption) gf_free(dd->caption);
+
 	gf_free(dd);
 	gf_free(driv);
 }

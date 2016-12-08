@@ -93,32 +93,25 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 		return result;
 	if (e->title) {
 		gf_free(e->title);
-		e->title = NULL;
 	}
 	if (e->codecs) {
 		gf_free(e->codecs);
-		e->codecs = NULL;
 	}
 	if (e->language) {
 		gf_free(e->language);
-		e->language = NULL;
 	}
 	if (e->audio_group) {
 		gf_free(e->audio_group);
-		e->audio_group = NULL;
 	}
 	if (e->video_group) {
 		gf_free(e->video_group);
-		e->video_group = NULL;
 	}
 	if (e->key_uri) {
 		gf_free(e->key_uri);
-		e->key_uri = NULL;
 	}
 	memset(e->key_iv, 0, sizeof(bin128) );
-	assert(e->url);
-	gf_free(e->url);
-	e->url = NULL;
+	if (e->url) 
+		gf_free(e->url);
 
 	switch (e->element_type) {
 	case TYPE_UNKNOWN:
@@ -127,7 +120,6 @@ GF_Err playlist_element_del(PlaylistElement * e) {
 	case TYPE_PLAYLIST:
 		assert(e->element.playlist.elements);
 		result |= cleanup_list_of_elements(e->element.playlist.elements);
-		e->element.playlist.elements = NULL;
 	default:
 		break;
 	}
