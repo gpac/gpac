@@ -2052,16 +2052,20 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Scene] Forcing scene size to %d x %d\n", width, height));
 
 	if (scene->vr_type) {
-		GF_Node *node;
-		u32 radius;
+		/*for 360 don't set scene size to full-size , only half of it*/
 		width /= 2;
 		height /= 2;
+		/*if we already processed a force size in 360, don't do it again*/
+		if (scene->force_size_set) 
+			return;
 
-		radius = MAX(width, height) / 2;
 #ifndef GPAC_DISABLE_VRML
+		scene->force_size_set = GF_TRUE;
 		if (! scene->is_srd) {
-			node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
+			GF_Node *node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
 			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
+				u32 radius = MAX(width, height) / 2;
+
 				((M_Sphere *)node)->radius = - INT2FIX(radius);
 				gf_node_changed(node, NULL);
 			}
