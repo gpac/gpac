@@ -1068,7 +1068,7 @@ GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl
     OSStatus status;
 	GLenum target_fmt;
 	u32 w, h;
-	CVOpenGLESTextureRef *outTexture;
+	CVOpenGLESTextureRef *outTexture=NULL;
 	VTB_Frame *f = (VTB_Frame *)frame->user_data;
 	if (! gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = 0;
@@ -1119,11 +1119,14 @@ GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl
 	else if (plane_idx==1) {
 		outTexture = &f->u;
 	}
-	status = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, GL_TEXTURE_2D, target_fmt, w, h, target_fmt, GL_UNSIGNED_BYTE, plane_idx, outTexture);
+	//don't create texture if already done !
+	if ( *outTexture == NULL) {
+		status = CVOpenGLESTextureCacheCreateTextureFromImage(kCFAllocatorDefault, f->ctx->cache_texture, f->frame, NULL, GL_TEXTURE_2D, target_fmt, w, h, target_fmt, GL_UNSIGNED_BYTE, plane_idx, outTexture);
 	
-	if (status != kCVReturnSuccess) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture for plane %d\n", plane_idx));
-		return GF_IO_ERR;
+		if (status != kCVReturnSuccess) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error creating cache texture for plane %d\n", plane_idx));
+			return GF_IO_ERR;
+		}
 	}
 	*gl_tex_format = CVOpenGLESTextureGetTarget(*outTexture);
 	*gl_tex_id = CVOpenGLESTextureGetName(*outTexture);
