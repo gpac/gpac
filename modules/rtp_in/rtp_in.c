@@ -697,17 +697,8 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_BUFFER:
 		if (!(ch->rtp_ch || ch->rtsp || !ch->control)) {
 			com->buffer.max = com->buffer.min = 0;
-		} else {
-			const char *opt;
-			/*amount of buffering in ms*/
-			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
-			com->buffer.max = opt ? atoi(opt) : 1000;
-			/*rebuffer low limit in ms - if the amount of buffering is less than this, rebuffering will never occur*/
-			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "RebufferLength");
-			if (opt) com->buffer.min = atoi(opt);
-			else com->buffer.min = 500;
-			if (com->buffer.min >= com->buffer.max ) com->buffer.min = 0;
 		}
+		//otherwise use default player config
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = (ch->flags & RTP_HAS_RANGE) ? (ch->range_end - ch->range_start) : 0;
