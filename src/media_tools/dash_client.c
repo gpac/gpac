@@ -2193,8 +2193,13 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	GET_REP_ATTR(framerate);
 
 	if (width || height) {
-		if (!framerate->den) 
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - Width %d Height %d FPS %d/%d (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1024, width, height, framerate->num, framerate->den ?framerate->den : 1, group->dash->speed));
+		u32 num=25, den=1;
+		if (framerate) {
+			num = framerate->num;
+			if (framerate->den) den = framerate->den;
+		}
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - Width %d Height %d FPS %d/%d (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1024, width, height, num, den, group->dash->speed));
 	}
 	else if (samplerate) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] AS#%d changed quality to bitrate %d kbps - sample rate %u (playback speed %g)\n", 1+gf_list_find(group->period->adaptation_sets, group->adaptation_set), rep->bandwidth/1024, samplerate, group->dash->speed));

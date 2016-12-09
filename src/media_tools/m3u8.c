@@ -1092,7 +1092,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		gf_free(attribs.init_url);
 
 	if (attribs.version < attribs.compatibility_version) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
 	}
 	return GF_OK;
 }
