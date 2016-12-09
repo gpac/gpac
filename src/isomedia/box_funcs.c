@@ -34,20 +34,21 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 {
 	GF_Err ret;
 	u64 start;
-	//first make sure we can at least get the box size and type...
-	//18 = size (int32) + type (int32)
-	if (gf_bs_available(bs) < 8) {
-		*bytesExpected = 8;
-		return GF_ISOM_INCOMPLETE_FILE;
-	}
 	start = gf_bs_get_position(bs);
 	ret = gf_isom_parse_box_ex(outBox, bs, 0, GF_TRUE);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
-		*bytesExpected = (*outBox)->size;
-		GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str( (*outBox)->type) ));
+		if (!*outBox) {
+			// We could not even read the box size, we at least need 8 bytes 
+			*bytesExpected = 8;
+			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box\n"));
+		}
+		else {
+			*bytesExpected = (*outBox)->size;
+			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box %s\n", gf_4cc_to_str((*outBox)->type)));
+			gf_isom_box_del(*outBox);
+			*outBox = NULL;
+		}
 		gf_bs_seek(bs, start);
-		gf_isom_box_del(*outBox);
-		*outBox = NULL;
 	}
 	return ret;
 }
@@ -89,6 +90,9 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
+	if (!gf_bs_available(bs) < 8) {
+		return GF_ISOM_INCOMPLETE_FILE;
+	}
 
 	start = gf_bs_get_position(bs);
 
@@ -118,6 +122,9 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	/*handle uuid*/
 	memset(uuid, 0, 16);
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
+		if (!gf_bs_available(bs) < 16) {
+			return GF_ISOM_INCOMPLETE_FILE;
+		}
 		gf_bs_read_data(bs, uuid, 16);
 		hdr_size += 16;
 		uuid_type = gf_isom_solve_uuid_box(uuid);
@@ -125,6 +132,9 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	//handle large box
 	if (size == 1) {
+		if (!gf_bs_available(bs) < 8) {
+			return GF_ISOM_INCOMPLETE_FILE;
+		}
 		size = gf_bs_read_u64(bs);
 		hdr_size += 8;
 	}
