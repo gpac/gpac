@@ -423,6 +423,25 @@ int main (int argc, char *argv[])
 	fill_ar = visible = 0;
 	url_arg = the_cfg = rti_file = NULL;
 
+#ifdef GPAC_MEMORY_TRACKING
+	for (i=1; i<argc; i++) {
+		char *arg = argv[i];
+		if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
+		}
+	}
+#endif
+
+	gf_sys_init(mem_track);
+	gf_set_progress_callback(NULL, on_progress_null);
+
+	cfg_file = gf_cfg_init(the_cfg, NULL);
+	if (!cfg_file) {
+		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
+		if (logfile) gf_fclose(logfile);
+		return 1;
+	}
+
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
 		if (arg[0] != '-') {
@@ -438,13 +457,11 @@ int main (int argc, char *argv[])
 			gf_log_set_callback(logfile, on_gpac_log);
 			i++;
 		}
+#ifndef GPAC_MEMORY_TRACKING
 		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
-#ifdef GPAC_MEMORY_TRACKING
-            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
-#else
 			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
-#endif
 		}
+#endif
 		else if (!strcmp(arg, "-no-audio")) no_audio = GF_TRUE;
 		else if (!strcmp(arg, "-bench")) bench_mode = 1;
 		else if (!strcmp(arg, "-vbench")) bench_mode = 2;
@@ -459,9 +476,6 @@ int main (int argc, char *argv[])
 			i++;
 		}
  	}
-	
-	gf_sys_init(mem_track);
-	gf_set_progress_callback(NULL, on_progress_null);
 
 	if (logs_settings) {
 		if (gf_log_set_tools_levels(logs_settings) != GF_OK) {
@@ -469,12 +483,7 @@ int main (int argc, char *argv[])
 		}
 		logs_set = GF_TRUE;
 	}
-	cfg_file = gf_cfg_init(the_cfg, NULL);
-	if (!cfg_file) {
-		fprintf(stderr, "Error: Configuration File \"GPAC.cfg\" not found\n");
-		if (logfile) gf_fclose(logfile);
-		return 1;
-	}
+
 	if (!logs_set)
 		gf_log_set_tools_levels( gf_cfg_get_key(cfg_file, "General", "Logs") );
 
