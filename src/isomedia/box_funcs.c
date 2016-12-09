@@ -90,7 +90,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	if ((bs == NULL) || (outBox == NULL) ) return GF_BAD_PARAM;
 	*outBox = NULL;
-	if (!gf_bs_available(bs) < 8) {
+	if (gf_bs_available(bs) < 8) {
 		return GF_ISOM_INCOMPLETE_FILE;
 	}
 
@@ -122,7 +122,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 	/*handle uuid*/
 	memset(uuid, 0, 16);
 	if (type == GF_ISOM_BOX_TYPE_UUID ) {
-		if (!gf_bs_available(bs) < 16) {
+		if (gf_bs_available(bs) < 16) {
 			return GF_ISOM_INCOMPLETE_FILE;
 		}
 		gf_bs_read_data(bs, uuid, 16);
@@ -132,7 +132,7 @@ GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 
 	//handle large box
 	if (size == 1) {
-		if (!gf_bs_available(bs) < 8) {
+		if (gf_bs_available(bs) < 8) {
 			return GF_ISOM_INCOMPLETE_FILE;
 		}
 		size = gf_bs_read_u64(bs);
