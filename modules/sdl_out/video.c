@@ -949,7 +949,12 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 	SDL_Event sdl_evt;
 	GF_Event gpac_evt;
 
+#ifdef GPAC_IPHONE
+	while (SDL_WaitEventTimeout(&sdl_evt, 0)) {
+#else
 	while (SDL_PollEvent(&sdl_evt)) {
+#endif
+
 		switch (sdl_evt.type) {
 #if SDL_VERSION_ATLEAST(2,0,0)
 		case SDL_WINDOWEVENT:
