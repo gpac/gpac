@@ -393,7 +393,8 @@ static char** parse_attributes(const char *line, s_accumulated_attributes *attri
 			if (end_ptr != ret[0]) {
 				attributes->version = int_value;
 			}
-			M3U8_COMPATIBILITY_VERSION(2);
+			//although technically it is mandated for v2 or more, don't complain if set for v1
+			M3U8_COMPATIBILITY_VERSION(1);
 		}
 		return ret;
 	}
@@ -1091,7 +1092,7 @@ GF_Err gf_m3u8_parse_sub_playlist(const char *file, MasterPlaylist **playlist, c
 		gf_free(attribs.init_url);
 
 	if (attribs.version < attribs.compatibility_version) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M3U8] Version %d specified but tags from version %d detected\n", attribs.version, attribs.compatibility_version));
 	}
 	return GF_OK;
 }
