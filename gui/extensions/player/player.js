@@ -324,7 +324,6 @@ extension = {
             e.type = GF_EVENT_SCENE_SIZE;
             e.width = evt.width;
             e.height = evt.height;
-            gwlog(l_err, "scene size is "+evt.width+"x"+evt.height);
             gwlib_filter_event(e);
         }
 
