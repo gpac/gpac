@@ -447,7 +447,7 @@ static void gf_es_update_buffer_time(GF_Channel *ch)
 /*dispatch the AU in the DB*/
 static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 {
-	u32 time;
+	u32 time, max;
 	GF_DBUnit *au;
 
 	if (!ch->buffer || !ch->len) {
@@ -509,9 +509,10 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 
 	gf_es_lock(ch, 1);
 
+	max = 3*ch->MaxBufferOccupancy/2;
+	if (max<300000) max = 300000;
 
-	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 300000)) )
-	        || (ch->AU_Count>10000)
+	if( (ch->MaxBuffer && (ch->BufferTime > (s32) max) ) || (ch->AU_Count > max/100) //eg 100fps seconds
 	  ) {
 		if (ch->AU_Count>10000) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
@@ -1832,6 +1833,10 @@ void gf_es_on_connect(GF_Channel *ch)
 	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "RebufferLength");
 	if (sOpt) com.buffer.min = atoi(sOpt);
 
+	com.buffer.occupancy = com.buffer.max;
+	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "BufferMaxOccupancy");
+	if (sOpt) com.buffer.occupancy = atoi(sOpt);
+
 	//set the buffer command even though the channel is pulling, in order to indicate to the service the prefered values
 	com.command_type = GF_NET_CHAN_BUFFER;
 	com.base.on_channel = ch;
@@ -1840,6 +1845,8 @@ void gf_es_on_connect(GF_Channel *ch)
 		if (can_buffer) {
 			ch->MinBuffer = com.buffer.min;
 			ch->MaxBuffer = com.buffer.max;
+			ch->MaxBufferOccupancy = com.buffer.occupancy;
+			if (ch->MaxBufferOccupancy < ch->MaxBuffer) ch->MaxBufferOccupancy = ch->MaxBuffer;
 		}
 	}
 

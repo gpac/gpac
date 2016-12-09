@@ -598,6 +598,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
+	gf_cfg_set_key(cfg, "Network", "BufferMaxOccupancy", "10000");
 
 
 	/*locate GUI*/

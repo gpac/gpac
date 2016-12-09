@@ -450,7 +450,7 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 		if (ch->service != service) continue;
 		if (ch->es_state != GF_ESM_ES_RUNNING) continue;
 		if (com->base.on_channel && (com->base.on_channel != ch)) continue;
-		if (/*!ch->MaxBuffer || */ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
+		if (ch->dispatch_after_db || ch->bypass_sl_and_db || ch->IsEndOfStream) continue;
 
 		//if not in hybrid mode, perform buffer management only on base layer  -this is because we don't signal which ESs are on/off in the underlying service ...
 		if (ch->esd->dependsOnESID) {
@@ -462,6 +462,7 @@ static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service
 
 		if (ch->MaxBuffer>com->buffer.max) com->buffer.max = ch->MaxBuffer;
 		if (ch->MinBuffer<com->buffer.min) com->buffer.min = ch->MinBuffer;
+		if (ch->MaxBufferOccupancy > com->buffer.max) com->buffer.max = ch->MaxBufferOccupancy;
 
 		if (ch->IsClockInit) {
 			s32 buf_time = (s32) (ch->BufferTime / FIX2FLT(ch->clock->speed) );

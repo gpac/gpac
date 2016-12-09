@@ -669,8 +669,8 @@ struct _es_channel
 	char *pull_reaggregated_buffer;
 	/*channel buffer flag*/
 	Bool BufferOn;
-	/*min level to trigger buffering on, max to trigger it off. */
-	u32 MinBuffer, MaxBuffer;
+	/*min level to trigger buffering on, max to trigger it off for playback resume, and max amount of prefetch buffer*/
+	u32 MinBuffer, MaxBuffer, MaxBufferOccupancy;
 	/*amount of buffered media - this is the DTS of the last received AU minus the onject clock time, to make sure
 	we always have MaxBuffer ms ready for composition when resuming the clock*/
 	s32 BufferTime;
