@@ -322,6 +322,8 @@ enum
 	GF_OPT_NUM_STEREO_VIEWS,
 	/*set the mode of display of HEVC multiview videos, 0 to display the two views/layers and 1 to display just the first view/layer*/
 	GF_OPT_MULTIVIEW_MODE,
+	/*get orientation sensors flag, true if sensors are activated false if not*/
+	GF_OPT_ORIENTATION_SENSORS_ACTIVE,
 };
 
 /*! @} */
