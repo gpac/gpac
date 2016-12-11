@@ -3130,13 +3130,14 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	GF_GenericSampleDescription sdesc;
 	GF_DOMParser *parser;
 	GF_XMLNode *root, *node, *childnode;
-	char *szRootName, *szSampleName, *szImpName;
+	char *szRootName, *szSampleName, *szSubSampleName, *szImpName;
 #ifndef GPAC_DISABLE_ZLIB
 	Bool use_dict = GF_FALSE;
 #endif
 
 	szRootName = dims_doc ? "DIMSStream" : "NHNTStream";
 	szSampleName = dims_doc ? "DIMSUnit" : "NHNTSample";
+	szSubSampleName = dims_doc ? "DIMSSubUnit" : "NHNTSubSample";
 	szImpName = dims_doc ? "DIMS" : "NHML";
 
 	if (import->flags & GF_IMPORT_PROBE_ONLY) {
@@ -3261,7 +3262,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			use_dict = GF_TRUE;
 		}
 #endif
-		/*unknow desc related*/
+		/*unknown desc related*/
 		else if (!stricmp(att->name, "compressorName")) {
 			strcpy(sdesc.compressor_name, att->value);
 		} else if (!stricmp(att->name, "codecVersion")) {
@@ -3590,7 +3591,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		strcpy(szXmlFrom, "");
 		strcpy(szXmlTo, "");
 
-		/*by default handle all samples as contigous*/
+		/*by default handle all samples as contiguous*/
 		offset = 0;
 		samp->dataLength = 0;
 		dims_flags = 0;
@@ -3661,9 +3662,10 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		j=0;
 		while ((childnode = (GF_XMLNode *) gf_list_enum(node->content, &j))) {
 			if (childnode->type) continue;
-			if (stricmp(childnode->name, "BS") ) continue;
-			has_subbs = GF_TRUE;
-			break;
+			if (!stricmp(childnode->name, "BS")) {
+				has_subbs = GF_TRUE;
+				break;
+			}
 		}
 
 
@@ -3805,8 +3807,49 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			e = gf_isom_append_sample_data(import->dest, track, samp->data, samp->dataLength);
 		} else {
 			e = gf_isom_add_sample(import->dest, track, di, samp);
+			if (e) goto exit;
+
+			j = 0;
+			while ((childnode = (GF_XMLNode *)gf_list_enum(node->content, &j))) {
+				if (childnode->type) continue;
+				if (!stricmp(childnode->name, "NHNTSubSample")) {
+					u32 k = 0;
+					while ((att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
+						if (!stricmp(att->name, "mediaFile")) {
+							u32 subsMediaFileSize = 0;
+							char *subsMediaFileData = NULL;
+							FILE *f = gf_fopen(att->value, "rb");
+							if (!f) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: mediaFile \"%s\" not found for subsample. Abort.\n", att->value));
+								e = GF_BAD_PARAM;
+								goto exit;
+							}
+							gf_fseek(f, 0, SEEK_END);
+							assert(gf_ftell(f) < (1 << 31));
+							subsMediaFileSize = (u32)gf_ftell(f);
+							subsMediaFileData = gf_malloc(subsMediaFileSize);
+							gf_fseek(f, 0, SEEK_SET);
+							fread(subsMediaFileData, 1, subsMediaFileSize, f);
+							fclose(f);
+							e = gf_isom_add_subsample(import->dest, track, 0, 0, subsMediaFileSize, 0, 0, GF_FALSE); //Romain: check we support subsamples
+							if (e) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: couldn't add subsample (mediaFile=\"%s\", size=%u. Abort.\n", att->value, subsMediaFileSize));
+								gf_free(subsMediaFileData);
+								goto exit;
+							}
+							e = gf_isom_append_sample_data(import->dest, track, subsMediaFileData, subsMediaFileSize);
+							if (e) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: couldn't append subsample data (mediaFile=\"%s\", size=%u. Abort.\n", att->value, subsMediaFileSize));
+								gf_free(subsMediaFileData);
+								goto exit;
+							}
+							gf_free(subsMediaFileData);
+						}
+					}
+				}
+			}
 		}
-		if (e) goto exit;
+
 		samp->IsRAP = RAP_NO;
 		samp->CTS_Offset = 0;
 		if (sample_duration)
