@@ -1086,7 +1086,7 @@ case GJS_OM_PROP_TYPE:
 	else if (odi.od_type==GF_STREAM_AUDIO) str = "Audio";
 	else if (odi.od_type==GF_STREAM_TEXT) str = "Text";
 	else if (odm->subscene) str = "Subscene";
-	else str = "Unknow";
+	else str = "Unknown";
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, str));
 	break;
 case GJS_OM_PROP_SAMPLERATE:

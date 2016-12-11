@@ -801,7 +801,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 		/*parse the 3DMesh node*/
 		return NULL;
 	}
-	/*unknow node*/
+	/*unknown node*/
 	if (!node_tag && !proto) {
 		codec->LastError = GF_SG_UNKNOWN_NODE;
 		return NULL;
