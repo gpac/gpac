@@ -3124,7 +3124,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 	s64 media_size, media_done, offset;
 	u64 duration, sample_duration;
 	FILE *nhml, *mdia, *info;
-	char *dictionary = NULL;
+	char *dictionary = NULL, *auxiliary_mime_types = NULL;
 	char *ext, szName[1000], szMedia[GF_MAX_PATH], szMediaTemp[GF_MAX_PATH], szInfo[GF_MAX_PATH], szXmlFrom[1000], szXmlTo[1000], szXmlHeaderEnd[1000];
 	char *specInfo;
 	GF_GenericSampleDescription sdesc;
@@ -3240,6 +3240,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			NHML_SCAN_INT("%u", dts_inc)
 		} else if (!stricmp(att->name, "gzipSamples")) {
 			do_compress = (!stricmp(att->value, "yes")) ? GF_TRUE : GF_FALSE;
+		} else if (!stricmp(att->name, "auxiliaryMimeTypes")) {
+			auxiliary_mime_types = gf_strdup(att->name);
 		}
 #ifndef GPAC_DISABLE_ZLIB
 		else if (!stricmp(att->name, "gzipDictionary")) {
@@ -3495,7 +3497,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 		}
 		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
 			e = gf_isom_new_xml_subtitle_description(import->dest, track,
-			        dims.mime_type, dims.xml_schema_loc, NULL,
+			        dims.mime_type, dims.xml_schema_loc, auxiliary_mime_types,
 			        &di);
 		} else if (sdesc.codec_tag == GF_ISOM_SUBTYPE_SBTT) {
 			e = gf_isom_new_stxt_description(import->dest, track, GF_ISOM_SUBTYPE_SBTT,
@@ -3885,6 +3887,7 @@ exit:
 	gf_xml_dom_del(parser);
 	if (specInfo) gf_free(specInfo);
 	if (dictionary) gf_free(dictionary);
+	if (auxiliary_mime_types) gf_free(dictionary);
 	return e;
 }
 
