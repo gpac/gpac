@@ -2272,7 +2272,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 	AVC_SPS *sps;
 	u32 ChromaArrayType = 0;
 	s32 mb_width, mb_height, sps_id = -1;
-	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl, cr, ct, cb, luma_bd, chroma_bd;
+	u32 profile_idc, level_idc, pcomp, i, chroma_format_idc, cl=0, cr=0, ct=0, cb=0, luma_bd, chroma_bd;
 	u8 separate_colour_plane_flag = 0;
 	GF_BitStream *bs;
 	char *sps_data_without_emulation_bytes = NULL;
@@ -2428,7 +2428,15 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 
 		sps->width -= CropUnitX * (cl + cr);
 		sps->height -= CropUnitY * (ct + cb);
-	}
+		cl *= CropUnitX;
+		cr *= CropUnitX;
+		ct *= CropUnitY;
+		cb *= CropUnitY;
+	} 
+	sps->crop.left = cl;
+	sps->crop.right = cr;
+	sps->crop.top = ct;
+	sps->crop.bottom = cb;
 
 	if (vui_flag_pos) {
 		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
