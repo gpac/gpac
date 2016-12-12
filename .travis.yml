@@ -12,7 +12,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install lcov ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install coreutils gnu-time gnu-sed gnu-tar xz lcov; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install gnu-time gnu-sed gnu-tar xz lcov; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
 env:
   - GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
