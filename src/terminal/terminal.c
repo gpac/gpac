@@ -1101,7 +1101,8 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 		return gf_dm_get_data_rate(term->downloader);
 	case GF_OPT_VIDEO_BENCH:
 		return term->bench_mode ? GF_TRUE : GF_FALSE;
-
+	case GF_OPT_ORIENTATION_SENSORS_ACTIVE:
+		return term->orientation_sensors_active;
 	default:
 		return gf_sc_get_option(term->compositor, type);
 	}

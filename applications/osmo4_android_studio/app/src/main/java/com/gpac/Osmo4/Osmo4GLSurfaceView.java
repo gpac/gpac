@@ -59,16 +59,19 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     // ------------------------------------
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-        queueEvent(new Runnable() {
+	if(!Osmo4.isUIvisible()){
+		queueEvent(new Runnable() {
 
-            @Override
-            public void run() {
-                GPACInstance instance = getInstance();
-                if (instance != null)
-                    instance.motionEvent(event);
-            }
-        });
-        return true;
+		    @Override
+		    public void run() {
+		        GPACInstance instance = getInstance();
+		        if (instance != null)
+		            instance.motionEvent(event);
+		    }
+		});
+		return true;
+	}
+    return false;
     }
 
     /**

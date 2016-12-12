@@ -131,6 +131,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private final static int DEFAULT_BUFFER_SIZE = 8192;
 
+    private static boolean uivisible;
+
     private GpacConfig gpacConfig;
 
     /**
@@ -223,14 +225,25 @@ public class Osmo4 extends Activity implements GpacCallback {
 		
 		final View contentView = (LinearLayout)findViewById(R.id.surface_gl);
 		mDecorView =  getWindow().getDecorView();
+
+	mDecorView.setOnSystemUiVisibilityChangeListener
+		(new View.OnSystemUiVisibilityChangeListener() {
+	    @Override
+	    public void onSystemUiVisibilityChange(int visibility) {
+		if ((visibility & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0) {
+			uivisible = true;
+		} else {
+			uivisible = false;
+		}
+	    }
+	});
+
 		contentView.setClickable(true);
         final GestureDetector clickDetector = new GestureDetector(this,
 		new GestureDetector.SimpleOnGestureListener() {
 			@Override
 			public boolean onSingleTapUp(MotionEvent e) {
-				boolean visible = (mDecorView.getSystemUiVisibility()
-								   & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
-				if (visible) {
+				if (uivisible) {
 					hideSystemUI();
 				} 
 				return true;
@@ -243,7 +256,6 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
 
-       showSystemUI();
 		mGLView = new Osmo4GLSurfaceView(this);
 		
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
@@ -462,6 +474,10 @@ public class Osmo4 extends Activity implements GpacCallback {
 		}
 
     // ---------------------------------------
+
+    public static boolean isUIvisible(){
+	return uivisible;
+    }
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -1307,18 +1323,11 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private void hideSystemUI() {
         mDecorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-										 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
 										 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
 										 | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
 										 | View.SYSTEM_UI_FLAG_FULLSCREEN
 										 | View.SYSTEM_UI_FLAG_LOW_PROFILE
 										 | View.SYSTEM_UI_FLAG_IMMERSIVE);
-    }
-
-    private void showSystemUI() {
-        mDecorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-										 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-										 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
     private final Handler mHideHandler = new Handler() {
