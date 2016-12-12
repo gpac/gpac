@@ -4292,7 +4292,7 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_SegmentIndexBox *p = (GF_SegmentIndexBox *)a;
 	DumpBox(a, "SegmentIndexBox", trace);
-	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\"", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
+	fprintf(trace, "reference_ID=\"%d\" timescale=\"%d\" earliest_presentation_time=\""LLD"\" first_offset=\""LLD"\" ", p->reference_ID, p->timescale, p->earliest_presentation_time, p->first_offset);
 	gf_full_box_dump(a, trace);
 	fprintf(trace, ">\n");
 	for (i=0; i<p->nb_refs; i++) {

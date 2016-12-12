@@ -41,7 +41,7 @@ A simple test whose result will be integrated in the test suite report is run us
 
 ### single_test 
 Two arguments:
-- `CMD_LINE`: Executes the given `CMD_LINE`. The command line muste be passed between quotes. 
+- `CMD_LINE`: Executes the given `CMD_LINE`. The command line must be passed between quotes. 
 - `TESTNAME`: specifies the test name
 
 Each call generates:
