@@ -133,6 +133,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private static boolean uivisible;
 
+    public static Context context;
+
     private GpacConfig gpacConfig;
 
     /**
@@ -166,7 +168,8 @@ public class Osmo4 extends Activity implements GpacCallback {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-       
+
+	context = getApplicationContext();
 
         try {
 			Class c = Class.forName("com.lge.real3d.Real3D");
