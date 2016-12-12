@@ -243,9 +243,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 		new GestureDetector.SimpleOnGestureListener() {
 			@Override
 			public boolean onSingleTapUp(MotionEvent e) {
-				boolean visible = (mDecorView.getSystemUiVisibility()
-								   & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0;
-				if (visible) {
+				if (uivisible) {
 					hideSystemUI();
 				} 
 				return true;
