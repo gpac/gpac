@@ -295,7 +295,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			if (!gyro_dev) {
 				gyro_dev = sensor_create(SENSOR_ORIENTATION, ios_sensor_callback);
 				if (!gyro_dev)
-					return 0;
+					return GF_FALSE;
 			}
 			if (evt->activate_sensor.activate) {
 				/*start sensors*/
@@ -303,8 +303,9 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			} else if (gyro_dev) {
 				sensor_stop(gyro_dev);
 			}
+			return GF_TRUE;
 		}
-		break;
+		return GF_FALSE;
 	}
 	return 0;
 }
