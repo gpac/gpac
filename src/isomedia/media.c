@@ -425,6 +425,7 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 	if (out_offset) *out_offset = offset;
 	if (no_data) return GF_OK;
+	if ((*samp)->dataLength == 0) return GF_OK;
 
 	/*and finally get the data, include padding if needed*/
 	(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
