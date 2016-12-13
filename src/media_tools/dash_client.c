@@ -4757,8 +4757,6 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			gf_fclose(ftest);
 		}
 		group->current_base_url_idx = 0;
-
-		dash_store_stats(dash, group, 0, file_size);
 	} else {
 		base_group->max_bitrate = 0;
 		base_group->min_bitrate = (u32)-1;
@@ -4824,9 +4822,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		resource_name = dash->dash_io->get_url(dash->dash_io, base_group->segment_download);
 
 		Bps = dash->dash_io->get_bytes_per_sec(dash->dash_io, base_group->segment_download);
-		dash_store_stats(dash, group, Bps, file_size);
 	}
-
 
 	if (local_file_name && (e == GF_OK || group->segment_must_be_streamed )) {
 		gf_mx_p(group->cache_mutex);
@@ -4862,6 +4858,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 			base_group->nb_cached_segments++;
 			gf_dash_update_buffering(group, dash);
 		}
+		dash_store_stats(dash, group, Bps, file_size);
 
 		/* download enhancement representation of this segment*/
 		if ((representation_index != group->force_max_rep_index) && rep->enhancement_rep_index_plus_one) {
