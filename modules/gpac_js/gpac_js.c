@@ -511,7 +511,9 @@ case GJS_GPAC_PROP_SENSORS_ACTIVE:
 	evt.type = GF_EVENT_SENSOR_REQUEST;
 	evt.activate_sensor.activate = term->orientation_sensors_active;
 	evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
-	gf_term_send_event(term, &evt);
+	if (gf_term_send_event(term, &evt) == GF_FALSE) {
+		term->orientation_sensors_active = GF_FALSE;
+	}
 }
 	break;
 }

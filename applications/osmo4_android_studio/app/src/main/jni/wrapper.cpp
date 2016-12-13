@@ -628,6 +628,7 @@ Bool CNativeWrapper::GPAC_EventProc(void *cbk, GF_Event *evt) {
 						return GF_FALSE;
 					env->env->CallVoidMethod(env->cbk_obj, env->cbk_sensorSwitch, evt->activate_sensor.activate);
 				}
+				return GF_TRUE;
 			}
 			break;
 		case GF_EVENT_SENSOR_ORIENTATION:
