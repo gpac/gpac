@@ -3814,7 +3814,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			j = 0;
 			while ((childnode = (GF_XMLNode *)gf_list_enum(node->content, &j))) {
 				if (childnode->type) continue;
-				if (!stricmp(childnode->name, "NHNTSubSample")) {
+				if (!stricmp(childnode->name, szSubSampleName)) {
 					u32 k = 0;
 					while ((att = (GF_XMLAttribute *)gf_list_enum(childnode->attributes, &k))) {
 						if (!stricmp(att->name, "mediaFile")) {
@@ -3831,8 +3831,8 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 							subsMediaFileSize = (u32)gf_ftell(f);
 							subsMediaFileData = gf_malloc(subsMediaFileSize);
 							gf_fseek(f, 0, SEEK_SET);
-							fread(subsMediaFileData, 1, subsMediaFileSize, f);
-							fclose(f);
+							gf_fread(subsMediaFileData, 1, subsMediaFileSize, f);
+							gf_fclose(f);
 							e = gf_isom_add_subsample(import->dest, track, gf_isom_get_sample_count(import->dest, track)-1, 0, subsMediaFileSize, 0, 0, GF_FALSE);
 							if (e) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: couldn't add subsample (mediaFile=\"%s\", size=%u. Abort.\n", att->value, subsMediaFileSize));
