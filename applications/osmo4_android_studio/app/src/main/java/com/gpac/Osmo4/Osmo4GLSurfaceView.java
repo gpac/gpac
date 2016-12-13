@@ -60,7 +60,7 @@ public class Osmo4GLSurfaceView extends GLSurfaceView implements GPACInstanceInt
     // ------------------------------------
     @Override
     public boolean onTouchEvent(final MotionEvent event) {
-	if(!Osmo4.isUIvisible()){
+	if(!Osmo4.isUIvisible() | Osmo4.IskeyboardVisible()){
 		queueEvent(new Runnable() {
 
 		    @Override

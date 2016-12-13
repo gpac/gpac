@@ -127,7 +127,7 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     private final static String CFG_STARTUP_NAME = "StartupFile"; //$NON-NLS-1$
 
-    private boolean keyboardIsVisible = false;
+    private static boolean keyboardIsVisible = false;
 
     private final static int DEFAULT_BUFFER_SIZE = 8192;
 
@@ -247,6 +247,8 @@ public class Osmo4 extends Activity implements GpacCallback {
 			@Override
 			public boolean onSingleTapUp(MotionEvent e) {
 				if (uivisible) {
+					if (Osmo4.this.keyboardIsVisible)
+						((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE)).hideSoftInputFromWindow(mGLView.getWindowToken(), 0);
 					hideSystemUI();
 				} 
 				return true;
@@ -259,6 +261,7 @@ public class Osmo4 extends Activity implements GpacCallback {
             }
         });
 
+	showSystemUI();
 		mGLView = new Osmo4GLSurfaceView(this);
 		
 		gl_view = (LinearLayout)findViewById(R.id.surface_gl);
@@ -480,6 +483,10 @@ public class Osmo4 extends Activity implements GpacCallback {
 
     public static boolean isUIvisible(){
 	return uivisible;
+    }
+
+    public static boolean IskeyboardVisible(){
+	return keyboardIsVisible;
     }
 
     @Override
@@ -1295,12 +1302,20 @@ public class Osmo4 extends Activity implements GpacCallback {
             @Override
             public void run() {
                 InputMethodManager mgr = ((InputMethodManager) getSystemService(INPUT_METHOD_SERVICE));
-                if ( Osmo4.this.keyboardIsVisible )
+                if ( Osmo4.this.keyboardIsVisible ){
                 	mgr.showSoftInput(mGLView, 0);
-                else
+			getActionBar().hide();
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+			getWindow().addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+		}
+                else{
                 	mgr.hideSoftInputFromWindow(mGLView.getWindowToken(), 0);
+			getActionBar().show();
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+			getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+		}
                 //mgr.toggleSoftInputFromWindow(mGLView.getWindowToken(), 0, 0);
-                mGLView.requestFocus();
+		 mGLView.requestFocus();
             }
         });
     }
@@ -1331,6 +1346,12 @@ public class Osmo4 extends Activity implements GpacCallback {
 										 | View.SYSTEM_UI_FLAG_FULLSCREEN
 										 | View.SYSTEM_UI_FLAG_LOW_PROFILE
 										 | View.SYSTEM_UI_FLAG_IMMERSIVE);
+    }
+
+     private void showSystemUI() {
+        mDecorView.setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+										 | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+										 | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN);
     }
 
     private final Handler mHideHandler = new Handler() {
