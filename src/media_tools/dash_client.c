@@ -297,6 +297,7 @@ struct __dash_group
 	u32 buffer_occupancy_at_last_seg;
 
 	u32 m3u8_start_media_seq;
+	u64 hls_next_start_time;
 
 	GF_List *groups_depending_on;
 	u32 current_dep_idx;
@@ -1938,6 +1939,44 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 				/*swap segment list content*/
 				gf_list_swap(new_segments, segments);
 
+				//HLS live: if a new time is set (active group only), we just switched betwwe qualities
+				//locate the segment with the same start time in the manifest, and purge previous ones
+				//it may happen that the manifest does still not contain the segment we are looking for, force an MPD update
+				if (group->hls_next_start_time && (group->active_rep_index==rep_idx)) {
+					u32 k;
+
+					for (k=0; k<gf_list_count(new_segments); k++) {
+						s64 diff;
+						GF_MPD_SegmentURL *segu = (GF_MPD_SegmentURL *) gf_list_get(new_segments, k);
+						diff = (s64) group->hls_next_start_time;
+						diff -= (s64) segu->hls_utc_start_time;
+						if (abs(diff)<200) {
+							group->download_segment_index = k;
+							group->hls_next_start_time=0;
+							break;
+						}
+						//purge old segments
+						if (segu->hls_utc_start_time < group->hls_next_start_time) {
+							gf_mpd_segment_url_free(segu);
+							gf_list_rem(new_segments, k);
+							k--;
+						}
+						if (segu->hls_utc_start_time > group->hls_next_start_time) {
+							group->download_segment_index = k;
+							GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Waiting for HLS segment start "LLU" but found segment at "LLU" - missing segment ?\n", group->hls_next_start_time, segu->hls_utc_start_time));
+							group->hls_next_start_time=0;
+							break;
+						}
+					}
+					//not yet available
+					if (group->hls_next_start_time) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot find segment for given HLS start time "LLU" - forcing manifest update\n", group->hls_next_start_time));
+						dash->force_mpd_update=GF_TRUE;
+						//force sleep of half sec to avoid updating manifest too often - this will need refinement for low latency !!
+						gf_sleep(500);
+					}
+				}
+
 				/*current representation is the active one in the group - update the number of segments*/
 				if (group->active_rep_index==rep_idx) {
 					group->nb_segments_in_rep = gf_list_count(new_segments);
@@ -2108,7 +2147,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 			retry--;
 			gf_sleep(100);
 		}
-		
+
 		//after resolving xlink: if this represenstation is marked as disabled, we have nothing to do
 		if (rep->playback.disabled)
 			return;
@@ -2133,38 +2172,57 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 		//here we change to another representation: we need to remove all URLs from segment list and adjust the download segment index for this group
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
 			u32 next_media_seq;
+			u32 num_seg_in_new = gf_list_count(rep->segment_list->segment_URLs);
 			GF_MPD_Representation *prev_active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
+
+			next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
 			if (group->dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
-				u32 insert_idx=0;
-				u64 hls_start_time=0;
-				GF_MPD_SegmentURL *first_seg_url_in_new = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, 0);
+				u64 current_start_time = 0;
+				Bool next_found=GF_FALSE;
 
-				while (gf_list_count(prev_active_rep->segment_list->segment_URLs)) {
-					Bool discard_old_seg = GF_FALSE;
-					u64 dur = prev_active_rep->segment_list->duration;
-					GF_MPD_SegmentURL *seg_url = (GF_MPD_SegmentURL *) gf_list_get(prev_active_rep->segment_list->segment_URLs, 0);
-					gf_list_rem(prev_active_rep->segment_list->segment_URLs, 0);
+				//find the start time of the next segment on the old representation
+				GF_MPD_SegmentURL *seg_url = gf_list_get(prev_active_rep->segment_list->segment_URLs, group->download_segment_index);
+				if (!seg_url) {
+					//end of segment list, assume next was last one plus duration
+					seg_url = gf_list_last(prev_active_rep->segment_list->segment_URLs);
+					if (seg_url) current_start_time = seg_url->hls_utc_start_time + (seg_url->duration ? seg_url->duration : prev_active_rep->segment_list->duration);
+				} else {
+					current_start_time = seg_url->hls_utc_start_time;
+				}
+				group->hls_next_start_time = 0;
 
-					if (!hls_start_time) hls_start_time = seg_url->hls_utc_start_time;
+				//check in new list where the start is
+				for (k=0; k<gf_list_count(rep->segment_list->segment_URLs); k++) {
+					s64 start_diff;
+					seg_url = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, k);
+					assert(seg_url->hls_utc_start_time);
 
-					if (first_seg_url_in_new) {
-						if (seg_url->duration) dur = seg_url->duration;
-						if (hls_start_time + dur >= first_seg_url_in_new->hls_utc_start_time)
-							discard_old_seg = GF_TRUE;
+					start_diff = (s64) current_start_time;
+					start_diff -= (s64) seg_url->hls_utc_start_time;
+					//Warning, we may have precision issues in start times, add 200 ms for safety
+					if (ABS(start_diff) <= 200) {
+						group->download_segment_index = k;
+						next_media_seq = rep->m3u8_media_seq_min + group->download_segment_index;
+						next_found = GF_TRUE;
+						break;
 					}
-					
-					hls_start_time += dur;
-
-					if (discard_old_seg) {
-						gf_mpd_segment_url_free(seg_url);
-					} else {
-						gf_list_insert(rep->segment_list->segment_URLs, seg_url, insert_idx);
-						insert_idx++;
+					if (current_start_time < seg_url->hls_utc_start_time) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probabluy lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
+						group->download_segment_index = k;
+						next_media_seq = rep->m3u8_media_seq_min + group->download_segment_index;
+						next_found = GF_TRUE;
+						break;
 					}
+				}
+				//no segment in the new playlist is found for this start time, force an MPD update
+				if (!next_found) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] No segment in new rep for current HLS time "LLU", updating manifest\n", current_start_time));
+					group->hls_next_start_time = current_start_time;
+					//this will force the MPD update below
+					next_media_seq = 1+rep->m3u8_media_seq_max;
 				}
 			}
 
-			next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
 			if (rep->m3u8_media_seq_min > next_media_seq) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Something wrong here: next media segment %d vs min media segment in segment list %d - some segments missing\n", next_media_seq, rep->m3u8_media_seq_min));
 				group->download_segment_index = rep->m3u8_media_seq_min;
@@ -5216,8 +5274,10 @@ restart_period:
 			/*refresh MPD*/
 			if (dash->force_mpd_update || (dash->mpd->minimum_update_period && (timer > dash->mpd->minimum_update_period))) {
 				u32 diff = gf_sys_clock();
+				if (dash->force_mpd_update || dash->mpd->minimum_update_period) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reload rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
+				}
 				dash->force_mpd_update = 0;
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] At %d Time to update the playlist (%u ms elapsed since last refresh and min reload rate is %u)\n", gf_sys_clock() , timer, dash->mpd->minimum_update_period));
 				
 				gf_mx_p(dash->dash_mutex);
 				e = gf_dash_update_manifest(dash);
@@ -5460,7 +5520,6 @@ static Bool gf_dash_seek_periods(GF_DashClient *dash, Double seek_time)
 	u32 i, period_idx;
 	u32 nb_retry = 10;
 	gf_mx_p(dash->dash_mutex);
-	fprintf(stderr, "seek periods to %g\n", seek_time);
 
 	dash->start_range_period = 0;
 	start_time = 0;

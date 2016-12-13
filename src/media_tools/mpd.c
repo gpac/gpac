@@ -1803,6 +1803,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	Stream *stream;
 	PlaylistElement *pe;
 	u32 k, count_elements;
+	u64 start_time=0;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Solving m3u8 variant playlist %s\n", rep->segment_list->xlink_href));
 
@@ -1871,7 +1872,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	for (k=0; k<count_elements; k++) {
 		GF_MPD_SegmentURL *segment_url;
 		PlaylistElement *elt = gf_list_get(pe->element.playlist.elements, k);
-		if (!elt) continue;
+		if (!elt)
+			continue;
 
 		//NOTE: for GPAC now, we disable stream AAC to avoid the problem when switching quality. It should be improved later !
 		if (elt && strstr(elt->url, ".aac")) {
@@ -1885,7 +1887,10 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 		}
 		gf_list_add(rep->segment_list->segment_URLs, segment_url);
 		segment_url->media = gf_url_concatenate(pe->url, elt->url);
+
+		if (! elt->utc_start_time) elt->utc_start_time = start_time;
 		segment_url->hls_utc_start_time = elt->utc_start_time;
+		start_time = elt->utc_start_time + 1000*elt->duration_info;
 
 		if (elt->drm_method != DRM_NONE) {
 			if (elt->key_uri) {
