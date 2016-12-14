@@ -1950,7 +1950,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 						GF_MPD_SegmentURL *segu = (GF_MPD_SegmentURL *) gf_list_get(new_segments, k);
 						diff = (s64) group->hls_next_start_time;
 						diff -= (s64) segu->hls_utc_start_time;
-						if (abs(diff)<200) {
+						if (abs( (s32) diff)<200) {
 							group->download_segment_index = k;
 							group->hls_next_start_time=0;
 							break;
@@ -2171,11 +2171,9 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 	if (group->dash->is_m3u8) {
 		//here we change to another representation: we need to remove all URLs from segment list and adjust the download segment index for this group
 		if (group->dash->dash_state == GF_DASH_STATE_RUNNING) {
-			u32 next_media_seq;
-			u32 num_seg_in_new = gf_list_count(rep->segment_list->segment_URLs);
+			u32 next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
 			GF_MPD_Representation *prev_active_rep = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, prev_active_rep_index);
 
-			next_media_seq = group->m3u8_start_media_seq + group->download_segment_index;
 			if (group->dash->mpd->type == GF_MPD_TYPE_DYNAMIC) {
 				u64 current_start_time = 0;
 				Bool next_found=GF_FALSE;
