@@ -191,8 +191,10 @@ extension = {
                     this.url[0] = url;
                     if (url == '') {
                         ext.controler.show();
+						ext.set_state(ext.GF_STATE_STOP);
                     } else {
-                        this.movie_connected = true;
+                        ext.movie_connected = true;
+						ext.set_state(ext.GF_STATE_PLAY);
                     }
                 }
 				//reset stats objects and data
@@ -207,6 +209,7 @@ extension = {
                 ext.movie.children[0].url[0] = '';
                 ext.movie.children[0] = this;
                 if (evt.error) return;
+
 
                 //success !
                 ext.current_url = this.url[0];
@@ -275,6 +278,10 @@ extension = {
                 //force display size notif on controler to trigger resize of the window
                 ext.controler.on_display_size(ext.controler.width, ext.controler.height);
             }
+
+            ext.root_odm = gpac.get_object_manager(ext.current_url);
+            ext.set_state(ext.GF_STATE_PLAY);
+
             if (!gpac.fullscreen && evt.width && evt.height) {
                 var w, h, r_w, r_h;
                 w = evt.width;
@@ -754,6 +761,7 @@ extension = {
             var control_icon_size = gwskin.default_icon_height;
             var is_over = true;
             var show_navigate = false;
+
             if (arguments.length == 0) {
                 width = this.width;
                 height = this.height;
@@ -800,7 +808,7 @@ extension = {
                 }
  
             }
-			
+
             if (this.extension.movie_connected) {
                 if (this.extension.state == this.extension.GF_STATE_STOP) {
                     this.stats.hide();
@@ -923,6 +931,7 @@ extension = {
 
         wnd.on_display_size = function (width, height) {
 			var h;
+
 			if (!gpac.fullscreen) {
                 if (width < this.extension.def_width) {
                     gpac.set_size(this.extension.def_width, height);
