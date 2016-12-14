@@ -1012,7 +1012,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage", "yes");
-	mpdin->memory_storage = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->memory_storage = (!opt || !strcmp(opt, "yes")) ? 1 : 0;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) {
