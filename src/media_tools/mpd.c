@@ -1890,7 +1890,7 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 
 		if (! elt->utc_start_time) elt->utc_start_time = start_time;
 		segment_url->hls_utc_start_time = elt->utc_start_time;
-		start_time = elt->utc_start_time + 1000*elt->duration_info;
+		start_time = elt->utc_start_time + (u64) (1000*elt->duration_info);
 
 		if (elt->drm_method != DRM_NONE) {
 			if (elt->key_uri) {
