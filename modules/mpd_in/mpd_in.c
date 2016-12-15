@@ -897,7 +897,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_SERVICE_CODEC_STAT_QUERY;
 		gf_service_command(mpdin->service, &com, GF_OK);
-		gf_dash_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
+		gf_dash_group_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_BUFFER_QUERY;
