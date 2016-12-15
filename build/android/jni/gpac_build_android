@@ -68,16 +68,16 @@ fi
 
 if [ -z $JAVA_HOME ]
 then
-  echo "The JAVA_HOME environment variable must be set"
+  echo "The JAVA_HOME environment variable must be set if you build without Android studio"
   echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
-  exit 1
+  
 fi
 
 if [ -z $ANDROID_HOME ]
 then
-  echo "The ANDROID_HOME environment variable must be set"
+  echo "The ANDROID_HOME environment variable must be set if you build without Android studio"
   echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
-  exit 1
+ 
 fi
 
 echo -e "\n $PATH"
@@ -187,15 +187,21 @@ echo "Copying shaders folder to $ASSETS_DIR ..."
 cp -R "$BASEPATH/shaders" $ASSETS_DIR
 echo "[OK] success Shader Folder for Osmo4."
 
-echo "Building osmo4 apk"
-cd $BASEPATH/applications/osmo4_android_studio/
-./gradlew assembleDebug
-cd -
-if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+if [ \( $SDK -eq 1 \) -a \( $JDK -eq 1 \) ]
+then
+	echo "Building osmo4 apk"
+	cd $BASEPATH/applications/osmo4_android_studio/
+	./gradlew assembleDebug
+	cd -
+	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
 	then
 	echo -e "\nOld Osmo4.apk found. Removing it ..." 
 	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
 	fi  
 	
 	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-echo "[OK] success Building osmo4 apk"
+	echo "[OK] success Building osmo4 apk"
+else
+	echo "Run project with Android studio to generate APK"
+fi
+	
