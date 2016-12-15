@@ -1997,7 +1997,7 @@ GF_Err gf_odf_read_ci(GF_BitStream *bs, GF_CIDesc *cid, u32 DescSize)
 	}
 	if (cid->contentIdentifierFlag) {
 		cid->contentIdentifierType = gf_bs_read_int(bs, 8);
-		if (DescSize < 2 + cid->contentTypeFlag) return GF_ODF_INVALID_DESCRIPTOR;
+		if (DescSize < (u32) 2 + cid->contentTypeFlag) return GF_ODF_INVALID_DESCRIPTOR;
 		cid->contentIdentifier = (char*)gf_malloc(DescSize - 2 - cid->contentTypeFlag);
 		if (! cid->contentIdentifier) return GF_OUT_OF_MEM;
 

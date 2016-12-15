@@ -7430,6 +7430,7 @@ GF_Err gf_dash_group_set_max_buffer_playout(GF_DashClient *dash, u32 idx, u32 ma
 	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
 	if (!group) return GF_BAD_PARAM;
 	group->max_buffer_playout_ms = max_buffer_playout_ms;
+	return GF_OK;
 }
 
 GF_EXPORT
