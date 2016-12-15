@@ -4,23 +4,8 @@ echo -e "\n\033[32m If you have problem using this script, read the README in  t
 
 NDK=0
 SDK=0
-ANT=0
+JDK=0
 REBUILD=0
-
-if [ -z $JAVA_HOME ]
-then
-  echo "The JAVA_HOME environment variable must be set"
-  echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
-  exit 1
-fi
-
-if [ -z $ANDROID_HOME ]
-then
-  echo "The ANDROID_HOME environment variable must be set"
-  echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
-  exit 1
-fi
-
 
 for i in $*
 do
@@ -46,14 +31,16 @@ then
   echo -e "\033[31m Usage: $0 Path to Android SDK : Ok \033[0m"
   SDK=1
   export PATH="$(echo $i | cut -d"=" -f2)/tools:$PATH"
+  export ANDROID_HOME="$(echo $i | cut -d"=" -f2)/"
+  
 fi
 
-#! Check for the ANT path
- if [ "${i%=*}" = "-ant" ]
+#! Check for the JDK path
+ if [ "${i%=*}" = "-jdk" ]
 then
-  echo -e "\033[31m Usage: $0 Path to Ant : Ok \033[0m"
-  ANT=1
-  export PATH="$(echo $i | cut -d"=" -f2)/bin:$PATH"
+  echo -e "\033[31m Usage: $0 Path to JDK : Ok \033[0m"
+  JDK=1
+  export JAVA_HOME="$(echo $i | cut -d"=" -f2)"
 fi
 
 done
@@ -69,14 +56,28 @@ then
   echo -e "\n\033[34m Usage: $0 PATH_TO_ANDROID_SDK : You have not give the directory path of SDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -sdk=PATH_TO_SDK\033[0m"
 fi
 
-if [ $ANT -eq 0 ]
+if [ $JDK -eq 0 ]
 then
-  echo -e "\n\033[34m Usage: $0 PATH_TO_ANT : You have not give the directory path of ANT. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -ant=PATH_TO_ANT \033[0m"
+  echo -e "\n\033[34m Usage: $0 PATH_TO_JDK : You have not give the directory path of JDK. Auto build of Osmo4.apk not possible. Build it with Eclipse or add -jdk=PATH_TO_JDK \033[0m"
 fi
 
 if [ $REBUILD -eq 0 ]
 then
   echo -e "\n\033[33m Usage: $0 Force Rebuild : Add -force_rebuild to rebuild the whole solution \033[0m"
+fi
+
+if [ -z $JAVA_HOME ]
+then
+  echo "The JAVA_HOME environment variable must be set if you build without Android studio"
+  echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
+  
+fi
+
+if [ -z $ANDROID_HOME ]
+then
+  echo "The ANDROID_HOME environment variable must be set if you build without Android studio"
+  echo "Please refer to https://github.com/gpac/gpac/commit/705e199c8eadf35774520206d7f7cf1a043c0539"
+ 
 fi
 
 echo -e "\n $PATH"
@@ -186,15 +187,21 @@ echo "Copying shaders folder to $ASSETS_DIR ..."
 cp -R "$BASEPATH/shaders" $ASSETS_DIR
 echo "[OK] success Shader Folder for Osmo4."
 
-echo "Building osmo4 apk"
-cd $BASEPATH/applications/osmo4_android_studio/
-./gradlew assembleDebug
-cd -
-if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
+if [ \( $SDK -eq 1 \) -a \( $JDK -eq 1 \) ]
+then
+	echo "Building osmo4 apk"
+	cd $BASEPATH/applications/osmo4_android_studio/
+	./gradlew assembleDebug
+	cd -
+	if [ -f $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk ]
 	then
 	echo -e "\nOld Osmo4.apk found. Removing it ..." 
 	rm $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
 	fi  
 	
 	cp $BASEPATH/applications/osmo4_android_studio/app/build/outputs/apk/app-debug.apk $BASEPATH/osmo4-$(grep "\#define GPAC_VERSION " $BASEPATH/include/gpac/version.h | cut -d "\"" -f 2 )-rev$version.apk
-echo "[OK] success Building osmo4 apk"
+	echo "[OK] success Building osmo4 apk"
+else
+	echo "Run project with Android studio to generate APK"
+fi
+	
