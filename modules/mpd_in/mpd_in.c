@@ -902,7 +902,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_BUFFER_QUERY;
 		gf_service_command(mpdin->service, &com, GF_OK);
-		gf_dash_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
+		gf_dash_group_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
 	}
 
 	return GF_OK;
@@ -1426,6 +1426,10 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (!com->buffer.min && ! gf_dash_is_dynamic_mpd(mpdin->dash)) {
 				com->buffer.min = 1;
 			}
+		}
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx >= 0) {
+			gf_dash_group_set_max_buffer_playout(mpdin->dash, idx, com->buffer.max);
 		}
 		return GF_OK;
 

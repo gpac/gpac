@@ -262,7 +262,11 @@ Double gf_dash_get_timeshift_buffer_pos(GF_DashClient *dash);
 void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 max_dec_time, u32 irap_avg_dec_time, u32 irap_max_dec_time, Bool codec_reset, Bool decode_only_rap);
 
 /*sets buffer levels*/
-void gf_dash_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms);
+void gf_dash_group_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms);
+
+/*indicates the buffer time in ms after which the player resumes playback. This value is less or equal to the buffer_max_ms 
+indicated in gf_dash_set_buffer_levels */
+GF_Err gf_dash_group_set_max_buffer_playout(GF_DashClient *dash, u32 idx, u32 max_target_buffer_ms);
 
 typedef enum
 {

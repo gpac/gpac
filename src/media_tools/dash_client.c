@@ -292,6 +292,8 @@ struct __dash_group
 	Bool decode_only_rap;
 	/*display statistics*/
 	u32 display_width, display_height;
+	/*sets by user, indicates when the client will decide to play/resume after a buffering period (this is a static value for the entire session)*/
+	u32 max_buffer_playout_ms;
 	/*buffer status*/
 	u32 buffer_min_ms, buffer_max_ms, buffer_occupancy_ms;
 	u32 buffer_occupancy_at_last_seg;
@@ -1970,7 +1972,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 					}
 					//not yet available
 					if (group->hls_next_start_time) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Cannot find segment for given HLS start time "LLU" - forcing manifest update\n", group->hls_next_start_time));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Cannot find segment for given HLS start time "LLU" - forcing manifest update\n", group->hls_next_start_time));
 						dash->force_mpd_update=GF_TRUE;
 						//force sleep of half sec to avoid updating manifest too often - this will need refinement for low latency !!
 						gf_sleep(500);
@@ -7339,12 +7341,16 @@ void gf_dash_set_codec_stat(GF_DashClient *dash, u32 idx, u32 avg_dec_time, u32 
 }
 
 GF_EXPORT
-void gf_dash_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms)
+void gf_dash_group_set_buffer_levels(GF_DashClient *dash, u32 idx, u32 buffer_min_ms, u32 buffer_max_ms, u32 buffer_occupancy_ms)
 {
 	GF_DASH_Group *group = (GF_DASH_Group *)gf_list_get(dash->groups, idx);
 	if (!group) return;
 	group->buffer_min_ms = buffer_min_ms;
 	group->buffer_max_ms = buffer_max_ms;
+	if (group->max_buffer_playout_ms > buffer_max_ms) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Max buffer %d less than max playout buffer %d, overwriting max playout buffer\n", buffer_max_ms, group->max_buffer_playout_ms));
+		group->max_buffer_playout_ms = buffer_max_ms;
+	}
 	group->buffer_occupancy_ms = buffer_occupancy_ms;
 }
 
@@ -7416,6 +7422,14 @@ GF_EXPORT
 void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads)
 {
 	dash->use_threaded_download = use_threads;
+}
+
+GF_EXPORT
+GF_Err gf_dash_group_set_max_buffer_playout(GF_DashClient *dash, u32 idx, u32 max_buffer_playout_ms)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, idx);
+	if (!group) return GF_BAD_PARAM;
+	group->max_buffer_playout_ms = max_buffer_playout_ms;
 }
 
 GF_EXPORT
