@@ -28,7 +28,7 @@ This directory will be reminded as <GPAC_EXTRA_DIR>
  
 	D. Get and install SDK Component for Android:
  
-		i)  If you build without Android Studio, download the basic Android command line tools at https://developer.android.com/studio/index.html (at the bottom of the page), unzip it and launch tools/android. This opens a window. Install Android SDK Build-tools 23.0.3 and Android API 23 at SDK Path (referenced as <ANDROID_SDK_DIR>).
+		i)  If you build without Android Studio, download the basic Android command line tools at https://developer.android.com/studio/index.html (at the bottom of the page), unzip it and launch tools/android. This opens a window. In "Tools" folder select "Android SDK Build-tools 23.0.3" and "Android API 23", in "Extras" folder select "Android Support Repository" and "Google Repository" and then Install packages  at SDK Path (referenced as <ANDROID_SDK_DIR>).
  
 		ii) If you use Android Studio, during installation you should tick the option  Android SDK, so it will be downloaded
 
