@@ -925,7 +925,9 @@ GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *schemeIdUri
 	GF_MPD_Descriptor *mpd_desc;
 	GF_SAFEALLOC(mpd_desc, GF_MPD_Descriptor);
 	if (!mpd_desc) return NULL;
-	mpd_desc->id = gf_strdup(id);
+	if(id!=NULL){
+		mpd_desc->id = gf_strdup(id);
+	}
 	mpd_desc->scheme_id_uri = gf_strdup(schemeIdUri);
 	mpd_desc->value = gf_strdup(value);
 	return mpd_desc;
