@@ -534,8 +534,14 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 		if (!strcmp(att->name, "profiles")) com->profiles = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "width")) com->width = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "height")) com->height = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "sar")) com->sar = gf_mpd_parse_frac(att->value);
-		else if (!strcmp(att->name, "frameRate")) com->framerate = gf_mpd_parse_frac(att->value);
+		else if (!strcmp(att->name, "sar")) {
+			if (com->sar) gf_free(com->sar);
+			com->sar = gf_mpd_parse_frac(att->value);
+		}
+		else if (!strcmp(att->name, "frameRate")) {
+			if (com->framerate) gf_free(com->framerate);
+			com->framerate = gf_mpd_parse_frac(att->value);
+		}
 		else if (!strcmp(att->name, "audioSamplingRate")) com->samplerate = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "mimeType")) com->mime_type = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "segmentProfiles")) com->segmentProfiles = gf_mpd_parse_string(att->value);
@@ -674,7 +680,10 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "group")) set->group = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lang")) set->lang = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "contentType")) set->content_type = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "par")) set->par = gf_mpd_parse_frac(att->value);
+		else if (!strcmp(att->name, "par")) {
+			if (set->par) gf_free(set->par);
+			set->par = gf_mpd_parse_frac(att->value);
+		}
 		else if (!strcmp(att->name, "minBandwidth")) set->min_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxBandwidth")) set->max_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "minWidth")) set->min_width = gf_mpd_parse_int(att->value);
