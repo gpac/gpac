@@ -2192,8 +2192,9 @@ restart_fragmentation_pass:
 	}
 	{
 		char mime[256];
-		sprintf(mime, " mimeType=\"%s/mp4\" codecs=\"%s\"", (!nb_audio && !nb_video) ? "application" : (!nb_video ? "audio" : "video"), szCodecs);
+		sprintf(mime, "%s/mp4", (!nb_audio && !nb_video) ? "application" : (!nb_video ? "audio" : "video"));
 		representation_obj->mime_type = gf_strdup(mime);
+		representation_obj->codecs = gf_strdup(szCodecs);
 	}
 	if (width && height) {
 		representation_obj->width = width;
