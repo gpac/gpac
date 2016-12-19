@@ -4740,7 +4740,7 @@ static u32 cfg_get_key_ms(GF_Config *iniFile, const char *secName, const char *k
 	return (u32)msec;
 }
 
-static GF_Err mpd_set_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg2, Double mpd_duration, Bool use_cenc, Bool use_xlink)
+static GF_Err mpd_set_header(GF_DASHSegmenter *dasher, Bool is_mpeg2, Double mpd_duration, Bool use_cenc, Bool use_xlink)
 {
 	char profiles_string[256];
 	GF_XMLAttribute *att = NULL;
@@ -5339,6 +5339,14 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 
 	dasher->mpd_name = gf_strdup(mpdName);
 	dasher->mpd = gf_mpd_new();
+	dasher->mpd->periods = gf_list_new();
+	dasher->mpd->attributes = gf_list_new();
+	dasher->mpd->children = gf_list_new();
+	dasher->mpd->program_infos = gf_list_new();
+	dasher->mpd->base_URLs = gf_list_new();
+	dasher->mpd->locations = gf_list_new();
+	dasher->mpd->metrics = gf_list_new();
+
 	dasher->dash_scale = dash_timescale ? dash_timescale : 1000;
 	if (tmp_dir) dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
@@ -5693,7 +5701,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	Double presentation_duration = 0;
 	Double active_period_start = 0;
 	u32 last_period_rep_idx_plus_one = 0;
-	FILE *mpd = NULL;
 	PeriodEntry *p;
 	if (!dasher) return GF_BAD_PARAM;
 
@@ -6193,8 +6200,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	strcpy(szTempMPD, dasher->mpd_name);
 	if (dasher->dash_mode) strcat(szTempMPD, ".tmp");
 
-	mpd = gf_fopen(szTempMPD, "wt");
-	if (!mpd) {
+	dasher->mpd_file = gf_fopen(szTempMPD, "wt");
+	if (!dasher->mpd_file) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MPD] Cannot open MPD file %s for writing\n", szTempMPD));
 		return GF_IO_ERR;
 	}
@@ -6576,7 +6583,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 		if (max_adaptation_set) {
 			gf_mpd_print_period(period_obj, GF_TRUE, period_mpd);
+			gf_mpd_period_free(period_obj);
 			gf_fclose(period_mpd);
+			period_obj = NULL;
 		}
 
 		dasher->mpd_file = period_mpd;
@@ -6610,7 +6619,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 
 	/*ready to write the MPD*/
-	dasher->mpd_file = mpd;
 	dasher->mpd->media_presentation_duration = (u64)(presentation_duration*1000); // seconds to milliseconds
 
 	if (dasher->dash_mode && !dasher->mpd->minimum_update_period) {
@@ -6626,21 +6634,21 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	dasher->mpd->media_presentation_duration = (u64)presentation_duration;
-	e = mpd_set_header(dasher, mpd, has_mpeg2, presentation_duration, use_cenc, uses_xlink);
+	e = mpd_set_header(dasher, has_mpeg2, presentation_duration, use_cenc, uses_xlink);
 	if (e) goto exit;
 
 
 	i=0;
 	while ((p = (PeriodEntry *) gf_list_enum(period_links, &i))) {
-		GF_DOMParser *mpd_parser;
-		mpd_parser = gf_xml_dom_new();
-		e = gf_xml_dom_parse(mpd_parser, p->szPeriodXML, NULL, NULL);
-		gf_mpd_parse_period(dasher->mpd, gf_xml_dom_get_root(mpd_parser));
 
 		if (p->is_xlink) {
 			set_period_header(dasher, period_obj, p->id, 0.0, p->period_duration, p->xlink, p->period_idx, GF_FALSE);
 		} else {
-			dash_insert_period_xml(mpd, p->szPeriodXML);
+			GF_DOMParser *mpd_parser;
+			mpd_parser = gf_xml_dom_new();
+			e = gf_xml_dom_parse(mpd_parser, p->szPeriodXML, NULL, NULL);
+			gf_mpd_parse_period(dasher->mpd, gf_xml_dom_get_root(mpd_parser));
+			gf_xml_dom_del(mpd_parser);
 		}
 
 		if (!p->period_idx) {
@@ -6650,7 +6658,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 	}
 
-	gf_mpd_write_file(dasher->mpd, "test.mpd");
+	gf_mpd_write_file(dasher->mpd, szTempMPD);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH MPD done\n"));
 
@@ -6663,15 +6671,19 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	if (dasher->profile == GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
-		if (gf_ftell(mpd) > 100*1024)
-			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[DASH] Manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(mpd)/1024));
+		if (gf_ftell(dasher->mpd_file) > 100*1024)
+			GF_LOG(GF_LOG_WARNING, GF_LOG_AUTHOR, ("[DASH] Manifest MPD is too big for HbbTV 1.5. Limit is 100kB, current size is "LLU"kB\n", gf_ftell(dasher->mpd_file)/1024));
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Done dashing\n"));
 
 exit:
-	if (mpd) {
-		gf_fclose(mpd);
+	if (dasher->mpd) {
+		gf_mpd_del(dasher->mpd);
+		dasher->mpd = NULL;
+	}
+	if (dasher->mpd_file) {
+		gf_fclose(dasher->mpd_file);
 		if (!e && dasher->dash_mode) {
 			gf_delete_file(dasher->mpd_name);
 			e = gf_move_file(szTempMPD, dasher->mpd_name);
