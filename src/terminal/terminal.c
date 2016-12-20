@@ -448,7 +448,7 @@ static GF_Err gf_term_step_clocks_intern(GF_Terminal * term, u32 ms_diff, Bool f
 					ck->Paused++;
 			}
 		}
-		term->compositor->step_mode = 1;
+		term->compositor->step_mode = GF_TRUE;
 		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
 
 		//resume/pause to trigger codecs state change 

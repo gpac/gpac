@@ -883,11 +883,17 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	ret = 0;
 	while (time < dump_dur) {
+		u32 frame_start_time = gf_sys_clock();
 		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 			e = gf_term_process_flush(term);
 			if (e) {
 				ret = 1;
 				break;
+			}
+			//if we can't flush a frame in 30 seconds consider this is an error
+			if (gf_sys_clock() - frame_start_time > 30000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MP4Client] Could not flush frame in 30 seconds for AVI dump, aborting dump\n"));
+				return 1;
 			}
 		}
 		if (ret)

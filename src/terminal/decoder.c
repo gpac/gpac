@@ -813,7 +813,7 @@ check_unit:
 		if (!gf_mx_try_lock(scene_locked->root_od->term->compositor->mx))
 			return GF_OK;
 		/*if terminal is paused, force step-mode: it won't hurt in regular pause/play and ensures proper frame dumping*/
-		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode=1;
+		if (codec->odm->term->play_state) codec->odm->term->compositor->step_mode = GF_TRUE;
 	}
 
 	/*current media time for system objects is the clock time, since the media is likely to have random
@@ -1227,7 +1227,7 @@ static GF_Err MediaCodec_Process(GF_Codec *codec, u32 TimeAvailable)
 				gf_cm_rewind_input(codec->CB);
 				mmlevel = GF_CODEC_LEVEL_NORMAL;
 				/*force staying in step-mode*/
-				codec->odm->term->compositor->step_mode=1;
+				codec->odm->term->compositor->step_mode = GF_TRUE;
 			}
 		}
 		/*only perform drop in normal playback*/
