@@ -271,3 +271,30 @@ do_playback_test FILE1 "Name1"
 
 test_end
 ```
+
+## Test Fuzzing
+The test suite can be used to invoke afl-fuzz on the content (see test suite help). 
+By default all tests are not eligible for fuzzing unless forced by the main script but this can be too heavy, some tests using quite large inputs.
+To make your test eligible for fuzzing in default fuzzing mode, you need to overwrite the `fuzz_test` variable. The `fuzz_test` variable is evaluated at each `do_test` call.
+
+```
+test_begin TESTNAME
+if [ $test_skip = 1 ] ; then
+ return
+fi
+#declare the test is elligible for fuzzing
+fuzz_test=1 
+do_test CMD_LINE1_CREATING_FILE1 "Name1"
+
+#don't fuzz next test
+fuzz_test=0
+
+do_test CMD_LINE1_CREATING_FILE2 "Name2"
+
+#and fuzz next test
+fuzz_test=1 
+do_test CMD_LINE1_CREATING_FILE3 "Name3"
+
+test_end
+```
+

@@ -36,6 +36,7 @@ global_test_ui=0
 log_after_fail=0
 verbose=0
 enable_fuzzing=0
+fuzz_all=0
 fuzz_duration=60
 no_fuzz_cleanup=0
 
@@ -147,6 +148,7 @@ echo ""
 echo "*** Fuzzing options"
 echo "  -do-fuzz:              runs test using afl-fuzz (gpac has to be compiled with afl-gcc first)."
 echo "  -fuzzdur=D:            runs fuzz tests for D (default is $fuzz_duration seconds). D is passed as is to timout program."
+echo "  -fuzzall:              fuzz all tests."
 echo "  -keepfuzz:             keeps all fuzzing data."
 echo ""
 echo "*** General options"
@@ -236,6 +238,8 @@ for i in $* ; do
  -fuzzdur*)
   fuzz_duration="${i#-fuzzdur=}"
   ;;
+ "-fuzzall")
+  fuzz_all=1;;
  "-keepfuzz")
   no_fuzz_cleanup=1;;
  "-sync-hash")
@@ -449,9 +453,9 @@ if [ $enable_fuzzing != 0 ] ; then
   if [ $? != 0 ] ; then
    log $L_WAR "afl-fuzz not properly configure:"
    afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h 
-   enable_fuzzing=0
+   exit
   else
-   log $L_INF "afl-fuzz found and OK - enabling fuzzing"
+   log $L_INF "afl-fuzz found and OK - enabling fuzzing with duration $fuzz_duration"
   fi
   rm -rf tmpaf*
  fi
@@ -498,6 +502,7 @@ test_begin ()
 
  result=""
  TEST_NAME=$1
+ fuzz_test=$fuzz_all
  reference_hash_valid="$HASH_DIR/$TEST_NAME-valid-hash"
 
  log $L_DEB "Starting test $TEST_NAME"
@@ -845,16 +850,20 @@ do_test ()
  fi
  log L_DEB "executing $1"
 
-subtest_idx=$((subtest_idx + 1))
+ subtest_idx=$((subtest_idx + 1))
 
-log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
-stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
-SUBTEST_NAME=$2
+ log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
+ stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
+ SUBTEST_NAME=$2
+
+ if [ $enable_fuzzing = 0 ] ; then
+  fuzz_test=0
+ fi
 
  #fuzzing on: check all args, detect ones matching input files in $maindir and fuzz them
  #note that this is not perfect since the command line may modify an existing MP4
  #so each successfull afl-fuzz test (not call!) will modify the input...
- if [ $enable_fuzzing != 0 ] ; then
+ if [ $fuzz_test != 0 ] ; then
   fuzz_dir="$LOCAL_OUT_DIR/fuzzing/$TEST_NAME_$SUBTEST_NAME/"
   mkdir -p fuzz_dir 
   fuzz_sub_idx=1
