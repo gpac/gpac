@@ -5163,9 +5163,8 @@ exit:
 	mp4box_cleanup(0);
 
 #ifdef GPAC_MEMORY_TRACKING
-//	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-  	if (mem_track) {
-        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
