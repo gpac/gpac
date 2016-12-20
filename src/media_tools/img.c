@@ -138,60 +138,63 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 		*OTI = GPAC_OTI_IMAGE_PNG;
 		*mtype = GF_4CC('p','n','g',' ');
 	}
-	size = gf_bs_read_u8(bs);
-	type = gf_bs_read_u32(bs);
-	if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
+	/*try j2k*/
+	else {
+		size = gf_bs_read_u8(bs);
+		type = gf_bs_read_u32(bs);
+		if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
 	        || (type==GF_4CC('j','p','2','h') ) ) {
 
-		if (type==GF_4CC('j','p','2','h')) {
+			if (type==GF_4CC('j','p','2','h')) {
+				*OTI = GPAC_OTI_IMAGE_JPEG_2000;
+				*mtype = GF_4CC('j','p','2',' ');
+				goto j2k_restart;
+			}
+
+			type = gf_bs_read_u32(bs);
+			if (type!=0x0D0A870A) goto exit;
+
 			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
 			*mtype = GF_4CC('j','p','2',' ');
-			goto j2k_restart;
-		}
 
-		type = gf_bs_read_u32(bs);
-		if (type!=0x0D0A870A) goto exit;
-
-		*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-		*mtype = GF_4CC('j','p','2',' ');
-
-		while (gf_bs_available(bs)) {
+			while (gf_bs_available(bs)) {
 j2k_restart:
-			size = gf_bs_read_u32(bs);
-			type = gf_bs_read_u32(bs);
-			switch (type) {
-			case GF_4CC('j','p','2','h'):
-				goto j2k_restart;
-			case GF_4CC('i','h','d','r'):
-			{
-				u16 nb_comp;
-				u8 BPC, C, UnkC, IPR;
-				*height = gf_bs_read_u32(bs);
-				*width = gf_bs_read_u32(bs);
-				nb_comp = gf_bs_read_u16(bs);
-				BPC = gf_bs_read_u8(bs);
-				C = gf_bs_read_u8(bs);
-				UnkC = gf_bs_read_u8(bs);
-				IPR = gf_bs_read_u8(bs);
+				size = gf_bs_read_u32(bs);
+				type = gf_bs_read_u32(bs);
+				switch (type) {
+				case GF_4CC('j','p','2','h'):
+					goto j2k_restart;
+				case GF_4CC('i','h','d','r'):
+				{
+					u16 nb_comp;
+					u8 BPC, C, UnkC, IPR;
+					*height = gf_bs_read_u32(bs);
+					*width = gf_bs_read_u32(bs);
+					nb_comp = gf_bs_read_u16(bs);
+					BPC = gf_bs_read_u8(bs);
+					C = gf_bs_read_u8(bs);
+					UnkC = gf_bs_read_u8(bs);
+					IPR = gf_bs_read_u8(bs);
 
-				if (dsi) {
-					GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-					gf_bs_write_u32(bs_dsi, *height);
-					gf_bs_write_u32(bs_dsi, *width);
-					gf_bs_write_u16(bs_dsi, nb_comp);
-					gf_bs_write_u8(bs_dsi, BPC);
-					gf_bs_write_u8(bs_dsi, C);
-					gf_bs_write_u8(bs_dsi, UnkC);
-					gf_bs_write_u8(bs_dsi, IPR);
-					gf_bs_get_content(bs_dsi, dsi, dsi_len);
-					gf_bs_del(bs_dsi);
+					if (dsi) {
+						GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+						gf_bs_write_u32(bs_dsi, *height);
+						gf_bs_write_u32(bs_dsi, *width);
+						gf_bs_write_u16(bs_dsi, nb_comp);
+						gf_bs_write_u8(bs_dsi, BPC);
+						gf_bs_write_u8(bs_dsi, C);
+						gf_bs_write_u8(bs_dsi, UnkC);
+						gf_bs_write_u8(bs_dsi, IPR);
+						gf_bs_get_content(bs_dsi, dsi, dsi_len);
+						gf_bs_del(bs_dsi);
+					}
+					goto exit;
 				}
-				goto exit;
-			}
-			break;
-			default:
-				gf_bs_skip_bytes(bs, size-8);
 				break;
+				default:
+					gf_bs_skip_bytes(bs, size-8);
+					break;
+				}
 			}
 		}
 	}
