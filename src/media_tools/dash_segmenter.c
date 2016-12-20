@@ -109,6 +109,7 @@ struct __gf_dash_segmenter
 	Double subduration;
 
 	FILE *mpd_file;
+	FILE *period_mpd_file;
 	Bool segment_alignment_disabled;
 	u32 single_file_mode;
 	const char *bs_switch_segment_file;
@@ -6248,7 +6249,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	// Check all periods and process segments for the active one
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		Bool flush_period = GF_FALSE;
-		FILE *period_mpd;
 		Double period_duration = 0;
 		const char *id=NULL;
 		const char *xlink = NULL;
@@ -6286,22 +6286,22 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			strcat(p->szPeriodXML, ".mpd");
 		}
 
-		period_mpd = NULL;
-
 		//only open file if we are to dash something (max_adaptation_set=0: no source file, only period xlink insertion)
 		if (max_adaptation_set) {
-			period_mpd = gf_fopen(p->szPeriodXML, "wb");
+			dasher->period_mpd_file = gf_fopen(p->szPeriodXML, "wb");
 
-			if (!period_mpd) {
+			if (!dasher->period_mpd_file) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Cannot open period MPD %s for writing, aborting\n", p->szPeriodXML));
 				e = GF_IO_ERR;
 				goto exit;
 			}
 
-			dasher->mpd_file = period_mpd;
 			period_obj = gf_mpd_period_new();
 			e = set_period_header(dasher, period_obj, id, 0.0, period_duration, NULL, cur_period+1, (xlink!=NULL) ? GF_TRUE : GF_FALSE);
 			if (e) goto exit;
+		}
+		else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] MPD uses only xlink periods (no local AdaptationSet)\n"));
 		}
 		//keep track of the last period xlink
 		if (dasher->dash_ctx) {
@@ -6582,13 +6582,11 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 
 		if (max_adaptation_set) {
-			gf_mpd_print_period(period_obj, GF_TRUE, period_mpd);
+			gf_mpd_print_period(period_obj, GF_TRUE, dasher->period_mpd_file);
 			gf_mpd_period_free(period_obj);
-			gf_fclose(period_mpd);
+			gf_fclose(dasher->period_mpd_file);
 			period_obj = NULL;
 		}
-
-		dasher->mpd_file = period_mpd;
 
 		//and add periods done to past periods, storing their start time
 		if (!id) id="";
