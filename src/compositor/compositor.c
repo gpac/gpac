@@ -262,8 +262,12 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
 {
+	Bool was_step_mode=compositor->step_mode;
+	Bool ret = GF_FALSE;
+
 	if (no_flush)
 		compositor->skip_flush=1;
+
 	gf_sc_render_frame(compositor);
 
 	if (ms_till_next) {
@@ -273,10 +277,14 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 			*ms_till_next = compositor->ms_until_next_frame;
 	}
 	//next frame is late, we should redraw
-	if (compositor->ms_until_next_frame < 0) return GF_TRUE;
-	if (compositor->frame_draw_type) return GF_TRUE;
-	if (compositor->fonts_pending) return GF_TRUE;
-	return GF_FALSE;
+	if (compositor->ms_until_next_frame < 0) ret = GF_TRUE;
+	else if (compositor->frame_draw_type) ret = GF_TRUE;
+	else if (compositor->fonts_pending) ret = GF_TRUE;
+
+	//stay in step mode until we are sure frame is drawn, otherwise we may not be able to discard video frames (this will need refinement)
+	if (ret && was_step_mode)
+		compositor->step_mode=GF_TRUE;
+	return ret;
 }
 
 
@@ -772,11 +780,11 @@ static void gf_sc_set_play_state(GF_Compositor *compositor, u32 PlayState)
 
 	/*step mode*/
 	if (PlayState==GF_STATE_STEP_PAUSE) {
-		compositor->step_mode = 1;
+		compositor->step_mode = GF_TRUE;
 		gf_sc_flush_next_audio(compositor);
 		compositor->paused = 1;
 	} else {
-		compositor->step_mode = 0;
+		compositor->step_mode = GF_FALSE;
 		if (compositor->audio_renderer) gf_sc_ar_control(compositor->audio_renderer, (compositor->paused && (PlayState==0xFF)) ? GF_SC_AR_RESET_HW_AND_PLAY : (compositor->paused ? GF_SC_AR_RESUME : GF_SC_AR_PAUSE) );
 		compositor->paused = (PlayState==GF_STATE_PAUSED) ? 1 : 0;
 	}
@@ -2742,7 +2750,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	compositor->video_frame_pending=0;
 	gf_sc_lock(compositor, 0);
 
-	if (frame_drawn) compositor->step_mode = 0;
+	if (frame_drawn) compositor->step_mode = GF_FALSE;
 
 	/*let the owner decide*/
 	if (compositor->no_regulation)
