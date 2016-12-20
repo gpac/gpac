@@ -28,7 +28,6 @@ TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
 TMPL="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.LOG"
 
-
 #default parameters
 DESTDIR=""
 prefix="/usr/local"
@@ -37,8 +36,17 @@ cross_prefix=""
 targetos=""
 dxsdk_path=""
 moz_path="local"
+
+cc_orig=$CC
+if test "$cc_orig" = "" ; then
 cc_orig="gcc"
+fi
+
+cxx_orig=$CXX
+if test "$cxx_orig" = "" ; then
 cxx_orig="g++"
+fi
+
 ar="ar"
 ranlib="ranlib"
 make="make"
