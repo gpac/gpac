@@ -379,9 +379,13 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 {
 	GF_Node *clone;
 	GF_FieldInfo field;
-
+	Bool no_cycle;
 	if (!n) return GF_OK;
+
+	no_cycle = gf_node_set_cyclic_traverse_flag(n, GF_TRUE);
 	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
+
+	if (!no_cycle) return GF_OK;
 
 	if (n->sgprivate->tag != TAG_ProtoNode) {
 		clone = gf_node_new(n->sgprivate->scenegraph, n->sgprivate->tag);
@@ -455,6 +459,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 #endif
 
 	gf_node_unregister(clone, NULL);
+	gf_node_set_cyclic_traverse_flag(n, GF_FALSE);
 	return GF_OK;
 }
 
