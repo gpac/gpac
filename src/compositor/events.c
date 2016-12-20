@@ -1974,9 +1974,9 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
 		GF_Event event;
-		/*emulate doubleclick*/
+		/*emulate doubleclick unless in step mode*/
 		now = gf_sys_clock();
-		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
+		if (!compositor->step_mode && (now - compositor->last_click_time < DOUBLECLICK_TIME_MS)) {
 			event.type = GF_EVENT_DBLCLICK;
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
