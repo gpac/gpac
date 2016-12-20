@@ -39,6 +39,10 @@ test_end
 
 }
 
+if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
+ return
+fi
+
 for i in `ls $EXTERNAL_MEDIA_DIR/scalable/* | grep -v "html"` ; do
 
 scalable_test $i
