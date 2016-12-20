@@ -546,6 +546,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
+			if ((cb->Status==CB_BUFFER_DONE) && (cb->odm->codec->type == GF_STREAM_VISUAL) ){
+				gf_clock_buffer_off(cb->odm->codec->ck);
+			}
 			cb->Status = CB_STOP;
 			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
@@ -568,6 +571,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (cb->odm->codec->type == GF_STREAM_VISUAL) && (!cb->output->next->dataLength || (cb->Capacity==1))) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
+			if (cb->Status==CB_BUFFER_DONE) {
+				gf_clock_buffer_off(cb->odm->codec->ck);
+			}
 			cb->Status = CB_STOP;
 			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
