@@ -1788,10 +1788,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 
 	if (odm->term->root_scene) {
-		if (odm->term->root_scene->first_frame_pause_type==1) {
+		if (odm->term->root_scene->first_frame_pause_type) {
 			media_control_paused = GF_TRUE;
-		} else if (odm->term->root_scene->first_frame_pause_type==2) {
-			media_control_paused = GF_FALSE;
 		}
 	}
 
@@ -2148,8 +2146,17 @@ void gf_odm_pause(GF_ObjectManager *odm)
 
 		if (odm->state != GF_ODM_STATE_PLAY) continue;
 
-		com.base.on_channel = ch;
-		gf_term_service_command(ch->service, &com);
+		//if we are in dump mode, the clocks are paused (step-by-step render), but we don't send the pause commands to
+		//the network !
+		if (odm->term->root_scene->first_frame_pause_type!=2) {
+			com.base.on_channel = ch;
+			gf_term_service_command(ch->service, &com);
+		}
+	}
+
+	//if we are in dump mode, only the clocks are paused (step-by-step render), the media object is still in play state
+	if (odm->term->root_scene->first_frame_pause_type==2) {
+		return;
 	}
 
 #ifndef GPAC_DISABLE_VRML
