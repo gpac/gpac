@@ -10,6 +10,7 @@ GNU_DATE=date
 #GNU_SED=sed
 DIFF=diff
 GCOV=gcov
+TIMEOUT=timeout
 FFMPEG=ffmpeg
 
 EXTERNAL_MEDIA_AVAILABLE=1
@@ -34,6 +35,9 @@ play_all=0
 global_test_ui=0
 log_after_fail=0
 verbose=0
+enable_fuzzing=0
+fuzz_duration=60
+no_fuzz_cleanup=0
 
 current_script=""
 
@@ -138,7 +142,12 @@ echo "  -clean-hash [ARG]:     removes all generated hash, logs, stat cache and 
 echo "  -hash:                 regenerate tests with missing hash files."
 echo "  -uirec:                generates UI event traces."
 echo "  -uiplay:               replays all recorded UI event traces."
-echo "  -speed N:              sets playback speed for -uiplay. Default is 1."
+echo "  -speed=N:              sets playback speed for -uiplay. Default is 1."
+echo ""
+echo "*** Fuzzing options"
+echo "  -do-fuzz:              runs test using afl-fuzz (gpac has to be compiled with afl-gcc first)."
+echo "  -fuzzdur=D:            runs fuzz tests for D (default is $fuzz_duration seconds). D is passed as is to timout program."
+echo "  -keepfuzz:             keeps all fuzzing data."
 echo ""
 echo "*** General options"
 echo "  -strict:               stops at the first failed test"
@@ -222,6 +231,13 @@ for i in $* ; do
   disable_hash=1;;
  "-strict")
   strict_mode=1;;
+ "-do-fuzz")
+  enable_fuzzing=1;;
+ -fuzzdur*)
+  fuzz_duration="${i#-fuzzdur=}"
+  ;;
+ "-keepfuzz")
+  no_fuzz_cleanup=1;;
  "-sync-hash")
   sync_hash
   exit;;
@@ -340,12 +356,25 @@ log $L_ERR "GNU date not found (ret $res) - exiting"
 exit 1
 fi
 
+#test for timeout
+if [ $enable_fuzzing != 0 ] ; then
+res=`$TIMEOUT --help 2> /dev/null`
+res=$?
+if [ $res != 0 ] ; then
+log $L_ERR "timeout() not found (ret $res) - disabling fuzzing"
+enable_fuzzing=0
+fi
+fi
+
 #test for ffmpeg - if not present, disable video storing
 do_store_video=1
 
+if [ $check_only = 0 ] ; then
+
+
 `$FFMPEG -version > /dev/null 2>&1 `
 if [ $? != 0 ] ; then
-log $L_WAR "ffmpeg not found - disabling playback video storage"
+log $L_WAR "- FFMPEG not found - disabling playback video storage"
 do_store_video=0
 else
   if [ $generate_hash != 0 ] ; then
@@ -401,8 +430,34 @@ else
  fi
 fi
 
-echo ""
+#end check_only
+fi 
 
+#check for afl-fuzz
+if [ $enable_fuzzing != 0 ] ; then
+ log $L_INF "Checking for afl-fuzz"
+ `command -v afl-fuzz >/dev/null 2>&1`
+ if [ $? != 0 ] ; then
+  log $L_WAR "afl-fuzz not found - disabling fuzzing"
+  enable_fuzzing=0
+ else
+  mkdir tmpafi
+  mkdir tmpafo
+
+  echo "void" > tmpafi/void.mp4
+  $TIMEOUT --preserve-status 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
+  if [ $? != 0 ] ; then
+   log $L_WAR "afl-fuzz not properly configure:"
+   afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h 
+   enable_fuzzing=0
+  else
+   log $L_INF "afl-fuzz found and OK - enabling fuzzing"
+  fi
+  rm -rf tmpaf*
+ fi
+fi
+
+echo ""
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
@@ -445,6 +500,8 @@ test_begin ()
  TEST_NAME=$1
  reference_hash_valid="$HASH_DIR/$TEST_NAME-valid-hash"
 
+ log $L_DEB "Starting test $TEST_NAME"
+
 
  if [ $do_clean != 0 ] ; then
   if [ $do_clean_hash != 0 ] ; then
@@ -459,6 +516,7 @@ test_begin ()
  fi
 
  if [ $check_only != 0 ] ; then
+  test_ui=0
   report="$TEMP_DIR/$TEST_NAME.test"
   if [ -f $report ] ; then
    log $L_ERR "Test $TEST_NAME already exists - please fix ($current_script)"
@@ -710,6 +768,55 @@ test_end ()
 
 }
 
+do_fuzz()
+{
+  cmd="$2"
+  fuzz="@@"
+  fuzz_cmd=${cmd/$1/$fuzz}
+  file_ext="${1##*.}"
+  orig_path=`pwd`
+  tests_gen=0
+  log $L_DEB "Fuzzing file $1 with command line $fuzz_cmd"
+
+  fuzz_res_dir="$LOCAL_OUT_DIR/fuzzing/$TEST_NAME_$SUBTEST_NAME/$fuzz_sub_idx"
+  fuzz_temp_dir="$LOCAL_OUT_DIR/fuzzing/$TEST_NAME_$SUBTEST_NAME/$fuzz_sub_idx/temp"
+  mkdir -p "$fuzz_res_dir"
+  mkdir -p "$fuzz_temp_dir/in/"
+  mkdir -p "$fuzz_temp_dir/out/"
+
+  cp $1 "$fuzz_temp_dir/in/"
+  cd $fuzz_temp_dir
+
+  $TIMEOUT --preserve-status $fuzz_duration afl-fuzz -d -i "in/" -o "out/" $fuzz_cmd 
+  if [ $? = 0 ] ; then
+   if [ $no_fuzz_cleanup = 0 ] ; then
+    #rename all crashes and hangs
+    cd out/crashes
+    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/crash_$n.$file_ext"; done 
+    cd ../hangs
+    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/hang_$n.$file_ext"; done 
+    cd ../..
+    rm -f "$fuzz_res_dir/readme.txt"
+   fi
+  fi
+
+  cd $orig_path
+ 
+  if [ $no_fuzz_cleanup = 0 ] ; then
+   rm -rf $fuzz_temp_dir
+
+   tests_gen=`ls $fuzz_res_dir | wc -w`
+   if [ $no_fuzz_cleanup != 0 ] ; then
+    tests_gen=1
+   fi
+
+   if [ $tests_gen = 0 ] ; then
+    rm -rf $fuzz_res_dir
+   else
+    echo "Generated with afl-fuzz -d $fuzz_cmd" > "$fuzz_res_dir/readme.txt"
+   fi
+  fi
+}
 
 #@do_test execute the command line given $1 using GNU time and store stats with return value, command line ($1) and subtest name ($2)
 ret=0
@@ -743,6 +850,39 @@ subtest_idx=$((subtest_idx + 1))
 log_subtest="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
 stat_subtest="$TEMP_DIR/$TEST_NAME-stats-$subtest_idx-$2.sh"
 SUBTEST_NAME=$2
+
+ #fuzzing on: check all args, detect ones matching input files in $maindir and fuzz them
+ #note that this is not perfect since the command line may modify an existing MP4
+ #so each successfull afl-fuzz test (not call!) will modify the input...
+ if [ $enable_fuzzing != 0 ] ; then
+  fuzz_dir="$LOCAL_OUT_DIR/fuzzing/$TEST_NAME_$SUBTEST_NAME/"
+  mkdir -p fuzz_dir 
+  fuzz_sub_idx=1
+  for word in $1 ; do
+   is_file_arg=0
+   case "$word" in 
+     $main_dir/*)
+      is_file_arg=1;;
+   esac
+
+   if [ $is_file_arg != 0 ] ; then
+    fuzz_src=${word%:*}
+    if [ -f $fuzz_src ] ; then
+      do_fuzz "$fuzz_src" "$1"
+      fuzz_sub_idx=$((fuzz_sub_idx + 1))
+    fi
+   fi
+  done
+  
+  if [ $no_fuzz_cleanup = 0 ] ; then
+   crashes=`ls $fuzz_dir | wc -w`
+   if [ $crashes = 0 ] ; then
+    rm -rf $fuzz_dir
+   fi
+  fi
+
+  #we still run the subtest in fuzz mode, since further subtests may use the output of this test
+ fi
 
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
