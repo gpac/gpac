@@ -96,7 +96,7 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 
 	//copy over pause_at_first_frame flag so that new subscene is not paused right away
 	if (parentScene)
-		tmp->pause_at_first_frame = parentScene->pause_at_first_frame;
+		tmp->first_frame_pause_type = parentScene->first_frame_pause_type;
 
 #ifndef GPAC_DISABLE_VRML
 	tmp->extern_protos = gf_list_new();
