@@ -117,6 +117,7 @@ static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_traverse(path_ext.geometry, tr_state);
 		tr_state->traversing_mode = mode;
 
+		gf_node_dirty_clear(node, 0);
 
 		switch (gf_node_get_tag(path_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
@@ -234,6 +235,7 @@ static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_traverse(plane_ext.geometry, tr_state);
 		gf_node_traverse(plane_ext.spine, tr_state);
 		tr_state->traversing_mode = mode;
+		gf_node_dirty_clear(node, 0);
 
 		switch (gf_node_get_tag(plane_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
@@ -422,6 +424,7 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		PlaneClipper_GetNode(node, &stack->pc);
+		gf_node_dirty_clear(node, 0);
 	}
 
 	if (tr_state->num_clip_planes==MAX_USER_CLIP_PLANES) {
@@ -813,6 +816,7 @@ static void TraverseIndexedCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		if (!IndexedCurve2D_GetNode(node, &ic2d)) return;
+		//clears dirty flag
 		curve2d_check_changes((GF_Node*) &ic2d, stack, tr_state, &ic2d.index);
 	}
 
