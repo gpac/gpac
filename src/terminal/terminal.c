@@ -520,8 +520,8 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
-	if (term->root_scene->pause_at_first_frame && (PlayState == GF_STATE_PLAYING))
-		term->root_scene->pause_at_first_frame = GF_FALSE;
+	if (term->root_scene->first_frame_pause_type && (PlayState == GF_STATE_PLAYING))
+		term->root_scene->first_frame_pause_type = 0;
 
 	if (!pause_clocks) return;
 
@@ -572,8 +572,7 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame) {
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
-		if (pause_at_first_frame==1)
-			scene->pause_at_first_frame = GF_TRUE;
+		scene->first_frame_pause_type = pause_at_first_frame;
 	}
 
 	if (!strnicmp(URL, "views://", 8)) {

@@ -244,7 +244,8 @@ struct _scene
 	Bool main_addon_selected;
 	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
 
-	Bool pause_at_first_frame;
+	//0: no pause - 1: paused and trigger pause command to net, 2: only clocks are paused but commands not sent
+	u32 first_frame_pause_type;
 	u32 vr_type;
 };
 
