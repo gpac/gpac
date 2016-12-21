@@ -499,7 +499,7 @@ test_begin ()
    log $L_ERR "	@test_begin takes only two arguments - wrong call (first arg is $1)"
   fi
 
-
+ test_skip=0
  result=""
  TEST_NAME=$1
  fuzz_test=$fuzz_all
@@ -554,6 +554,13 @@ test_begin ()
 
  test_stats="$LOGS_DIR/$TEST_NAME-stats.sh"
 
+ #if error in strict mode, mark the test as skippable using value 2
+ if [ $strict_mode = 1 ] ; then
+  if [ -f $TEST_ERR_FILE ] ; then
+   test_skip=2
+  fi
+ fi
+
  if [ $generate_hash = 1 ] ; then
   #skip test only if reference hash is marked as valid
   if [ -f "$reference_hash_valid" ] ; then
@@ -562,7 +569,7 @@ test_begin ()
   fi
  elif [ $test_ui != 0 ] ; then
    test_skip=0
- else
+ elif [ $test_skip = 0 ] ; then
   #skip test only if final report is present (whether we generate hashes or not)
   if [ -f "$final_report" ] ; then
    if [ -f "$test_stats" ] ; then
@@ -574,20 +581,13 @@ test_begin ()
   fi
  fi
 
- #if error in strict mode, mark the test as skippable using value 2
- if [ $strict_mode = 1 ] ; then
-  if [ -f $TEST_ERR_FILE ] ; then
-   test_skip=2
-  fi
- fi
-
  if [ "$single_test_name" != "" ] && [ "$single_test_name" != "$TEST_NAME" ] ; then
    test_ui=0
    test_skip=1
  fi
 
  if [ $test_skip != 0 ] ; then
-   #stas.sh may be missing when generating hashes and that's not an error
+   #stats.sh may be missing when generating hashes and that's not an error
    if [ -f "$test_stats" ] ; then
     has_skip=`grep -w "TEST_SKIP" $test_stats`
 
