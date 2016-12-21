@@ -1741,7 +1741,7 @@ GF_Err uuid_dump(GF_Box *a, FILE * trace)
 {
 	DumpBox(a, "UnknownUUIDBox", trace);
 	fprintf(trace, ">\n");
-	fprintf(trace, "</UnknownBox>\n");
+	fprintf(trace, "</UnknownUUIDBox>\n");
 	return GF_OK;
 }
 
