@@ -3495,7 +3495,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 			e = gf_isom_last_error(import->dest);
 			goto exit;
 		}
-		if(sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
+		if (sdesc.codec_tag == GF_ISOM_SUBTYPE_STPP) {
 			e = gf_isom_new_xml_subtitle_description(import->dest, track,
 			        dims.mime_type, dims.xml_schema_loc, auxiliary_mime_types,
 			        &di);
@@ -3728,11 +3728,13 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				if (!offset) offset = media_done;
 			}
 			if (!f) {
-				e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
-				goto exit;
+				if (sdesc.codec_tag != GF_ISOM_SUBTYPE_STPP) { /*ttml in mp4 may contain subsamples-only*/
+					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
+					goto exit;
+				}
 			}
 
-			if (!samp->dataLength) {
+			if (f && !samp->dataLength) {
 				u64 cur_pos = gf_ftell(f);
 				gf_fseek(f, 0, SEEK_END);
 				assert(gf_ftell(f) < 1<<31);
@@ -3740,7 +3742,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				gf_fseek(f, cur_pos, SEEK_SET);
 			}
 
-			gf_fseek(f, offset, SEEK_SET);
+			if (f) gf_fseek(f, offset, SEEK_SET);
 			if (is_dims) {
 				u32 read;
 				GF_BitStream *bs;
@@ -3761,7 +3763,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				/*same DIMS unit*/
 				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 					append = GF_TRUE;
-			} else {
+			} else if (f) {
 				u32 read;
 				if (samp->dataLength>max_size) {
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
@@ -3772,7 +3774,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}
 			}
-			if (close) gf_fclose(f);
+			if (f && close) gf_fclose(f);
 		}
 		if (e) goto exit;
 
@@ -3833,7 +3835,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 							gf_fseek(f, 0, SEEK_SET);
 							gf_fread(subsMediaFileData, 1, subsMediaFileSize, f);
 							gf_fclose(f);
-							e = gf_isom_add_subsample(import->dest, track, gf_isom_get_sample_count(import->dest, track)-1, 0, subsMediaFileSize, 0, 0, GF_FALSE);
+							e = gf_isom_add_subsample(import->dest, track, gf_isom_get_sample_count(import->dest, track), 0, subsMediaFileSize, 0, 0, GF_FALSE);
 							if (e) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: couldn't add subsample (mediaFile=\"%s\", size=%u. Abort.\n", att->value, subsMediaFileSize));
 								gf_free(subsMediaFileData);
