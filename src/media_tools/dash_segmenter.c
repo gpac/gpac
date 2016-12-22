@@ -2181,7 +2181,7 @@ restart_fragmentation_pass:
 		seg_tl = NULL;
 	}
 
-	GF_SAFEALLOC(representation_obj, GF_MPD_Representation);
+	representation_obj = gf_mpd_representation_new();
 	gf_list_add(adaptation_set_obj->representations, representation_obj);
 	if (strlen(dash_input->representationID)) {
 		representation_obj->id = gf_strdup(dash_input->representationID);

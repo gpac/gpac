@@ -476,6 +476,7 @@ void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent);
 void gf_mpd_base_url_free(void *_item);
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
 
+GF_MPD_Representation *gf_mpd_representation_new();
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 
