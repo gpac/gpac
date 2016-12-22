@@ -955,7 +955,9 @@ void gf_mpd_descriptor_free(void *item)
 
 void gf_mpd_content_component_free(void *item)
 {
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] content component not implemented\n"));
+	GF_MPD_ContentComponent *component_descriptor=(GF_MPD_ContentComponent*) item;
+	if (component_descriptor->type) gf_free(component_descriptor->type);
+	if (component_descriptor->lang) gf_free(component_descriptor->lang);
 	gf_free(item);
 }
 
