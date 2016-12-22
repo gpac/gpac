@@ -588,6 +588,18 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 	com->supplemental_properties = gf_list_new();
 	com->frame_packing = gf_list_new();
 }
+
+GF_MPD_Representation *gf_mpd_representation_new()
+{
+	GF_MPD_Representation *rep;
+	GF_SAFEALLOC(rep, GF_MPD_Representation);
+	if (!rep) return NULL;
+	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
+	rep->base_URLs = gf_list_new();
+	rep->sub_representations = gf_list_new();
+	return rep;
+}
+
 static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
@@ -596,11 +608,7 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 	GF_XMLNode *child;
 	GF_Err e;
 
-	GF_SAFEALLOC(rep, GF_MPD_Representation);
-	if (!rep) return GF_OUT_OF_MEM;
-	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
-	rep->base_URLs = gf_list_new();
-	rep->sub_representations = gf_list_new();
+	rep = gf_mpd_representation_new();
 	e = gf_list_add(container, rep);
 	if (e) return e;
 
