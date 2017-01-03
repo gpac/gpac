@@ -877,11 +877,7 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 
 
         case GPAC_OTI_VIDEO_HEVC:
-
-            if(sdkInt() >= 21){
-                return GF_CODEC_SUPPORTED;
-            }
-            return GF_CODEC_NOT_SUPPORTED;
+	    return GF_CODEC_NOT_SUPPORTED;
 
 
         case GPAC_OTI_VIDEO_MPEG4_PART2:
