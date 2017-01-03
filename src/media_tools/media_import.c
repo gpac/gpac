@@ -3718,23 +3718,35 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				samp->dataLength = gf_base64_decode(start, len, samp->data, len);
 			}
 		} else {
-			Bool close = GF_FALSE;
+			Bool close = GF_FALSE, has_subsamples = GF_FALSE;
 			FILE *f = mdia;
+
+			j = 0;
+			while ((childnode = (GF_XMLNode *)gf_list_enum(node->content, &j))) {
+				if (childnode->type) continue;
+				if (!stricmp(childnode->name, szSubSampleName)) {
+					has_subsamples = GF_TRUE;
+					break;
+				}
+			}
+			if (~(has_subsamples ^ (mdia != NULL))) {
+				e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: you shall have either mediaFile (sample) or subsamples. Aborting.", szImpName);
+				goto exit;
+			}
+
 			if (strlen(szMediaTemp)) {
 				f = gf_fopen(szMediaTemp, "rb");
+				if (!f) {
+					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
+					goto exit;
+				}
 				close = GF_TRUE;
 				if (offset) gf_fseek(f, offset, SEEK_SET);
 			} else {
 				if (!offset) offset = media_done;
 			}
-			if (!f) {
-				if (sdesc.codec_tag != GF_ISOM_SUBTYPE_STPP) { /*ttml in mp4 may contain subsamples-only*/
-					e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: file %s not found", szImpName, close ? szMediaTemp : szMedia);
-					goto exit;
-				}
-			}
 
-			if (f && !samp->dataLength) {
+			if (!samp->dataLength) {
 				u64 cur_pos = gf_ftell(f);
 				gf_fseek(f, 0, SEEK_END);
 				assert(gf_ftell(f) < 1<<31);
@@ -3742,7 +3754,7 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				gf_fseek(f, cur_pos, SEEK_SET);
 			}
 
-			if (f) gf_fseek(f, offset, SEEK_SET);
+			gf_fseek(f, offset, SEEK_SET);
 			if (is_dims) {
 				u32 read;
 				GF_BitStream *bs;
@@ -3763,18 +3775,18 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				/*same DIMS unit*/
 				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
 					append = GF_TRUE;
-			} else if (f) {
+			} else {
 				u32 read;
 				if (samp->dataLength>max_size) {
 					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
 					max_size = samp->dataLength;
 				}
-				read = (u32) fread( samp->data, sizeof(char), samp->dataLength, f);
+				read = (u32) fread(samp->data, sizeof(char), samp->dataLength, f);
 				if (samp->dataLength != read) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
 				}
 			}
-			if (f && close) gf_fclose(f);
+			if (close) gf_fclose(f);
 		}
 		if (e) goto exit;
 
