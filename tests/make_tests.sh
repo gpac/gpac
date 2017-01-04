@@ -175,7 +175,7 @@ sync_media ()
   mkdir $EXTERNAL_MEDIA_DIR
  fi
  cd $EXTERNAL_MEDIA_DIR
- wget -q --show-progress -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
+ wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
  cd $main_dir
 }
 
@@ -184,7 +184,7 @@ sync_hash ()
 {
 log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -q --show-progress -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
+wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
 cd $main_dir
 }
 
@@ -193,7 +193,7 @@ sync_refs ()
 {
 log $L_INF "- Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
-wget -q --show-progress -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
+wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
 cd $main_dir
 }
 
