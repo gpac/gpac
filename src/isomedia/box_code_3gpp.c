@@ -276,7 +276,8 @@ GF_Err ftab_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
 	ptr->entry_count = gf_bs_read_u16(bs);
-	ptr->size -= 2;
+	ISOM_DECREASE_SIZE(ptr, 2);
+
 	if (ptr->size<ptr->entry_count*3) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Corrupted ftap box, skipping\n"));
 		ptr->entry_count = 0;
@@ -423,7 +424,8 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->back_color = gpp_read_rgba(bs);
 	gpp_read_box(bs, &ptr->default_box);
 	gpp_read_style(bs, &ptr->default_style);
-	ptr->size -= 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE;
+
+	ISOM_DECREASE_SIZE(ptr, (18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) );
 
 	while (ptr->size>=8) {
 		e = gf_isom_parse_box(&a, bs);
@@ -434,8 +436,8 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 			gf_isom_box_del(a);
 			return GF_OK;
 		}
+		ISOM_DECREASE_SIZE(ptr, a->size);
 
-		ptr->size -= a->size;
 		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
 			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);
 			ptr->font_table = (GF_FontTableBox *)a;
@@ -465,14 +467,14 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->reserved2  = gf_bs_read_u8(bs);			/*Reserved*/
 	ptr->reserved3  = gf_bs_read_u16(bs);			/*Reserved*/
 	gf_bs_read_data(bs, ptr->foreground_color, 6);	/*Foreground color*/
-	if (ptr->size < 51)
-		return GF_ISOM_INVALID_FILE;
-	ptr->size -= 51;
+	ISOM_DECREASE_SIZE(ptr, 51);
+
 	if (!ptr->size)
 		return GF_OK; /*ffmpeg compatibility with iPod streams: no pascal string*/
 
 	pSize = gf_bs_read_u8(bs); /*a Pascal string begins with its size: get textName size*/
-	ptr->size -= 1;
+	ISOM_DECREASE_SIZE(ptr, 1);
+
 	if (ptr->size < pSize) {
 		u32 s = pSize;
 		size_t i = 0;
@@ -510,7 +512,7 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 		}
 		ptr->textName[pSize] = '\0';				/*Font name*/
 	}
-	ptr->size -= pSize;
+	ISOM_DECREASE_SIZE(ptr, pSize);
 
 	return GF_OK;
 }
@@ -1066,7 +1068,8 @@ GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->switchGroup = gf_bs_read_u32(bs);
-	ptr->size -= 4;
+	ISOM_DECREASE_SIZE(ptr, 4);
+
 	if (ptr->size % 4) return GF_ISOM_INVALID_FILE;
 	ptr->attributeListCount = (u32)ptr->size/4;
 	ptr->attributeList = gf_malloc(ptr->attributeListCount*sizeof(u32));
@@ -1146,7 +1149,8 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 	p->fullRequestHost = gf_bs_read_int(bs, 1);
 	p->streamType = gf_bs_read_int(bs, 1);
 	p->containsRedundant = gf_bs_read_int(bs, 2);
-	s->size -= 3;
+
+	ISOM_DECREASE_SIZE(p, 3);
 
 	i=0;
 	str[0]=0;
@@ -1155,8 +1159,8 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 		if (!str[i]) break;
 		i++;
 	}
-	if (s->size < i) return GF_ISOM_INVALID_FILE;
-	s->size -= i;
+	ISOM_DECREASE_SIZE(p, i);
+
 	p->textEncoding = gf_strdup(str);
 
 	i=0;
@@ -1166,8 +1170,8 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 		if (!str[i]) break;
 		i++;
 	}
-	if (s->size < i) return GF_ISOM_INVALID_FILE;
-	s->size -= i;
+	ISOM_DECREASE_SIZE(p, i);
+
 	p->contentEncoding = gf_strdup(str);
 	return GF_OK;
 }
@@ -1225,8 +1229,8 @@ GF_Err diST_Read(GF_Box *s, GF_BitStream *bs)
 		if (!str[i]) break;
 		i++;
 	}
-	if (s->size < i) return GF_ISOM_INVALID_FILE;
-	s->size -= i;
+	ISOM_DECREASE_SIZE(p, i);
+
 	p->content_script_types = gf_strdup(str);
 	return GF_OK;
 }
@@ -1294,7 +1298,7 @@ GF_Err dims_Read(GF_Box *s, GF_BitStream *bs)
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
 	gf_bs_read_data(bs, p->reserved, 6);
 	p->dataReferenceIndex = gf_bs_read_u16(bs);
-	p->size -= 8;
+	ISOM_DECREASE_SIZE(p, 8);
 	return gf_isom_read_box_list(s, bs, dims_AddBox);
 }
 

@@ -661,10 +661,10 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->item_ID = gf_bs_read_u16(bs);
 	ptr->item_protection_index = gf_bs_read_u16(bs);
-	ptr->size -= 4;
+	ISOM_DECREASE_SIZE(ptr, 4);
 	if (ptr->version == 2) {
 		ptr->item_type = gf_bs_read_u32(bs);
-		ptr->size -= 4;
+		ISOM_DECREASE_SIZE(ptr, 4);
 	}
 	buf_len = (u32) (ptr->size);
 	buf = (char*)gf_malloc(buf_len);
