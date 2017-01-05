@@ -1655,12 +1655,9 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	}
 	fprintf(trace, ">\n");
 	if (p->width || p->height) {
-		fprintf(trace, "<Matrix m11=\"0x%.8x\" m12=\"0x%.8x\" m13=\"0x%.8x\" \
-								m21=\"0x%.8x\" m22=\"0x%.8x\" m23=\"0x%.8x\" \
-								m31=\"0x%.8x\" m32=\"0x%.8x\" m33=\"0x%.8x\"/>\n",
-		        p->matrix[0], p->matrix[1], p->matrix[2],
-		        p->matrix[3], p->matrix[4], p->matrix[5],
-		        p->matrix[6], p->matrix[7], p->matrix[8]);
+		fprintf(trace, "<Matrix m11=\"0x%.8x\" m12=\"0x%.8x\" m13=\"0x%.8x\"", p->matrix[0], p->matrix[1], p->matrix[2]);
+		fprintf(trace, "m21=\"0x%.8x\" m22=\"0x%.8x\" m23=\"0x%.8x\" ", p->matrix[3], p->matrix[4], p->matrix[5]);
+		fprintf(trace, "m31=\"0x%.8x\" m32=\"0x%.8x\" m33=\"0x%.8x\"/>\n", p->matrix[6], p->matrix[7], p->matrix[8]);
 	}
 
 	gf_box_dump_done("TrackHeaderBox", a, trace);

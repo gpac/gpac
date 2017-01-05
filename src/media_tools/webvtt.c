@@ -355,23 +355,22 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err DumpBox(GF_Box *a, FILE * trace);
+GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace);
 void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
 
 GF_Err boxstring_dump(GF_Box *a, FILE * trace)
 {
 	GF_StringBox *sbox = (GF_StringBox *)a;
-	fprintf(trace, "<StringBox string=\"%s\">\n", sbox->string);
-	DumpBox(a, trace);
-	gf_box_dump_done("StringBox", a, trace);
+	DumpBox(a, "StringBox", trace);
+	fprintf(trace, " string=\"%s\"/>\n", sbox->string);
 	return GF_OK;
 }
 
 GF_Err vtcu_dump(GF_Box *a, FILE * trace)
 {
 	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)a;
-	fprintf(trace, "<WebVTTCueBox>\n");
-	DumpBox(a, trace);
+	DumpBox(a, "WebVTTCueBox", trace);
+	fprintf(trace, ">\n");
 	if (cuebox->id) boxstring_dump((GF_Box *)cuebox->id, trace);
 	if (cuebox->settings) boxstring_dump((GF_Box *)cuebox->settings, trace);
 	if (cuebox->payload) boxstring_dump((GF_Box *)cuebox->payload, trace);
@@ -382,17 +381,16 @@ GF_Err vtcu_dump(GF_Box *a, FILE * trace)
 
 GF_Err vtte_dump(GF_Box *a, FILE * trace)
 {
-	fprintf(trace, "<WebVTTEmptyCueBox>\n");
-	DumpBox(a, trace);
-	gf_box_dump_done("WebVTTEmptyCueBox", a, trace);
+	DumpBox(a, "WebVTTEmptyCueBox", trace);
+	fprintf(trace, "/>\n");
 	return GF_OK;
 }
 
 GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 {
 	GF_WebVTTSampleEntryBox *cuebox = (GF_WebVTTSampleEntryBox *)a;
-	fprintf(trace, "<WebVTTSampleEntryBox>\n");
-	DumpBox(a, trace);
+	DumpBox(a, "WebVTTSampleEntryBox", trace);
+	fprintf(trace, ">\n");
 	if (cuebox->config) boxstring_dump((GF_Box *)cuebox->config, trace);
 	gf_box_dump_done("WebVTTSampleEntryBox", a, trace);
 	return GF_OK;
