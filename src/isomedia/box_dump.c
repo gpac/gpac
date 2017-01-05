@@ -1657,7 +1657,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	if (p->width || p->height) {
 		fprintf(trace, "<Matrix m11=\"0x%.8x\" m12=\"0x%.8x\" m13=\"0x%.8x\" \
 								m21=\"0x%.8x\" m22=\"0x%.8x\" m23=\"0x%.8x\" \
-								m31=\"0x%.8x\" m32=\"0x%.8x\" m33=\"0x%.8x\"/>",
+								m31=\"0x%.8x\" m32=\"0x%.8x\" m33=\"0x%.8x\"/>\n",
 		        p->matrix[0], p->matrix[1], p->matrix[2],
 		        p->matrix[3], p->matrix[4], p->matrix[5],
 		        p->matrix[6], p->matrix[7], p->matrix[8]);
