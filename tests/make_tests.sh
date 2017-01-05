@@ -7,10 +7,10 @@ base_args=""
 
 GNU_TIME=time
 GNU_DATE=date
+GNU_TIMEOUT=timeout
 #GNU_SED=sed
 DIFF=diff
 GCOV=gcov
-TIMEOUT=timeout
 FFMPEG=ffmpeg
 
 EXTERNAL_MEDIA_AVAILABLE=1
@@ -26,6 +26,7 @@ main_dir=`pwd`
 if [ $platform = "Darwin" ] ; then
 GNU_TIME=gtime
 GNU_DATE=gdate
+GNU_TIMEOUT=gtimeout
 fi
 
 MP4CLIENT_NOT_FOUND=0
@@ -45,7 +46,7 @@ current_script=""
 
 DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
-DEF_TIMEOUT=30
+DEF_TIMEOUT=20
 
 #remote location of resource files: all media files, hash files and generated videos
 REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
@@ -363,7 +364,7 @@ exit 1
 fi
 
 #test for timeout
-res=`$TIMEOUT 1.0 ls 2> /dev/null`
+res=`$GNU_TIMEOUT --preserve-status 1.0 ls 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
  enable_timeout=0
@@ -454,7 +455,7 @@ if [ $enable_fuzzing != 0 ] ; then
   mkdir tmpafo
 
   echo "void" > tmpafi/void.mp4
-  $TIMEOUT 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
+  $GNU_TIMEOUT --preserve-status 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
   if [ $? != 0 ] ; then
    log $L_WAR "afl-fuzz not properly configure:"
    afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h 
@@ -797,7 +798,7 @@ do_fuzz()
   cp $1 "$fuzz_temp_dir/in/"
   cd $fuzz_temp_dir
 
-  $TIMEOUT $fuzz_duration afl-fuzz -d -i "in/" -o "out/" $fuzz_cmd
+  $GNU_TIMEOUT --preserve-status $fuzz_duration afl-fuzz -d -i "in/" -o "out/" $fuzz_cmd
   if [ $? = 0 ] ; then
    if [ $no_fuzz_cleanup = 0 ] ; then
     #rename all crashes and hangs
@@ -903,7 +904,7 @@ echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
 
 timeout_args=""
 if [ $enable_timeout != 0 ] ; then
-timeout_args="$TIMEOUT $test_timeout"
+timeout_args="$GNU_TIMEOUT --preserve-status $test_timeout"
 fi
 
 $timeout_args $GNU_TIME -o $stat_subtest -f ' EXECUTION_STATUS="OK"\n RETURN_STATUS=%x\n MEM_TOTAL_AVG=%K\n MEM_RESIDENT_AVG=%t\n MEM_RESIDENT_MAX=%M\n CPU_PERCENT=%P\n CPU_ELAPSED_TIME=%E\n CPU_USER_TIME=%U\n CPU_KERNEL_TIME=%S\n PAGE_FAULTS=%F\n FILE_INPUTS=%I\n SOCKET_MSG_REC=%r\n SOCKET_MSG_SENT=%s' $1 >> $log_subtest 2>&1
@@ -911,13 +912,6 @@ rv=$?
 
 echo "SUBTEST_NAME=$2" >> $stat_subtest
 echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
-
-if [ $rv -gt 2 ] ; then
- echo " Return Value $rv - re-executing without GNU TIME" >> $log_subtest
- $timeout_args $1 >> $log_subtest 2>&1
- rv=$?
- echo " Done re-executing $1 - return value is $rv " >> $log_subtest 
-fi
 
 #regular error, check if this is a negative test.
 if [ $rv -eq 1 ] ; then
