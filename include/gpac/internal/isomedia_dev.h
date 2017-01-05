@@ -82,6 +82,11 @@ typedef struct
 	if (tmp==NULL) return NULL;	\
 	tmp->type = __4cc;
 
+#define ISOM_DECREASE_SIZE(__ptr, bytes)	if (__ptr->size < bytes) {\
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d\n", gf_4cc_to_str(__ptr->type), __ptr->size, bytes)); \
+			return GF_ISOM_INVALID_FILE; \
+		}\
+		__ptr->size -= bytes; \
 
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
