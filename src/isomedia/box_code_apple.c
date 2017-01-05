@@ -46,12 +46,11 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 		if (sub_type) {
 			e = gf_isom_parse_box(&a, bs);
 			if (e) return e;
-			if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-			ptr->size -= a->size;
+			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->other_boxes, a);
 		} else {
 			gf_bs_read_u32(bs);
-			ptr->size -= 4;
+			ISOM_DECREASE_SIZE(ptr, 4);
 		}
 	}
 	return GF_OK;
@@ -114,8 +113,7 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
 		e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-		ptr->size -= a->size;
+		ISOM_DECREASE_SIZE(ptr, a->size);
 
 		if (a && ptr->data) gf_isom_box_del((GF_Box *) ptr->data);
 		ptr->data = (GF_DataBox *)a;
@@ -128,7 +126,7 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 		ptr->data->data = (char *) gf_malloc(sizeof(char)*(ptr->data->dataSize + 1));
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
 		ptr->data->data[ptr->data->dataSize] = 0;
-		ptr->size -= ptr->data->dataSize;
+		ISOM_DECREASE_SIZE(ptr, ptr->data->dataSize);
 	}
 	return GF_OK;
 }
@@ -207,8 +205,8 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->reserved = gf_bs_read_int(bs, 32);
-	if (ptr->size < 4) return GF_ISOM_INVALID_FILE;
-	ptr->size -= 4;
+	ISOM_DECREASE_SIZE(ptr, 4);
+
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
 		ptr->data = (char*)gf_malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
