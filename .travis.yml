@@ -1,5 +1,7 @@
 language: c
 compiler: gcc
+dist: trusty
+sudo: required
 os:
   - linux
   - osx
