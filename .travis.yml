@@ -1,7 +1,5 @@
 language: c
 compiler: gcc
-dist: trusty
-sudo: required
 os:
   - linux
   - osx
@@ -9,8 +7,8 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y update -qq ; fi
 install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ ; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libmozjs185-dev ; fi
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-x86-64-dev mingw-w64-i686-dev ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y zlib1g-dev libfreetype6-dev libjpeg62-dev libpng12-dev libopenjpeg-dev libmad0-dev libfaad-dev libogg-dev libvorbis-dev libtheora-dev liba52-0.7.4-dev libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libavdevice-dev libxv-dev x11proto-video-dev libgl1-mesa-dev x11proto-gl-dev linux-sound-base libxvidcore-dev libssl-dev libjack-dev libasound2-dev libpulse-dev libsdl1.2-dev dvb-apps libavcodec-extra-53 libmozjs185-dev ; fi
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install -y gcc-mingw-w64-i686 g++-mingw-w64-i686 binutils-mingw-w64-i686 gcc-mingw-w64-x86-64 g++-mingw-w64-x86-64 binutils-mingw-w64-x86-64 mingw-w64-dev ; fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install lcov ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
@@ -23,7 +21,7 @@ env:
 matrix:
   include:
     - os: linux
-      env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
+      env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track --enable-gcov --enable-static-bin" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="make travis" AUDIODEV=null
     - os: linux
       env: GPAC_CONFIGURE_OPTIONS="--prefix=build/x86_64-w64-mingw32 --enable-debug --static-mp4box --use-zlib=no --target-os=mingw32 --cross-prefix=i686-w64-mingw32- --extra-ldflags=-Lbuild/x86_64-w64-mingw32/lib" GPAC_CONFIGURE_ECFLAGS="-Ibuild/x86_64-w64-mingw32/include -w -fPIC" DOINSTALL="" DOTRAVIS=""
     - os: linux
