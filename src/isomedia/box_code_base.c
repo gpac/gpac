@@ -3116,24 +3116,27 @@ GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
+	if (ptr->size<12) return GF_ISOM_INVALID_FILE;
 
 	ptr->track_id = gf_bs_read_u32(bs);
+	ptr->size -= 4;
 
 	if (gf_bs_read_int(bs, 26) !=0) return GF_ISOM_INVALID_FILE;
 	ptr->traf_bits = (gf_bs_read_int(bs, 2)+1)*8;
 	ptr->trun_bits = (gf_bs_read_int(bs, 2)+1)*8;
 	ptr->sample_bits = (gf_bs_read_int(bs, 2)+1)*8;
+	ptr->size -= 4;
+
 	ptr->nb_entries = gf_bs_read_u32(bs);
-	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 4;
 
 	if (ptr->version==1) {
-		if (ptr->nb_entries > ptr->size / (16+ptr->traf_bits+ptr->trun_bits+ptr->sample_bits)) {
+		if (ptr->nb_entries > ptr->size / (16+(ptr->traf_bits+ptr->trun_bits+ptr->sample_bits)/8)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in traf\n", ptr->nb_entries));
 			return GF_ISOM_INVALID_FILE;
 		}
 	} else {
-		if (ptr->nb_entries > ptr->size / (8+ptr->traf_bits+ptr->trun_bits+ptr->sample_bits)) {
+		if (ptr->nb_entries > ptr->size / (8+(ptr->traf_bits+ptr->trun_bits+ptr->sample_bits)/8)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in traf\n", ptr->nb_entries));
 			return GF_ISOM_INVALID_FILE;
 		}
@@ -6418,29 +6421,6 @@ GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 	while (ptr->size) {
 		GF_Err e = gf_isom_parse_box(&a, bs);
 		if (e) return e;
-
-
-		//we need to read the DegPriority in a different way...
-		if ((a->type == GF_ISOM_BOX_TYPE_STDP) || (a->type == GF_ISOM_BOX_TYPE_SDTP)) {
-			u32 nb_samples=0, i=0;
-			u64 s = a->size;
-			for (i=0; i<gf_list_count(ptr->TrackRuns); i++) {
-				GF_TrackFragmentRunBox *trun = gf_list_get(ptr->TrackRuns, i);
-				nb_samples+=trun->sample_count;
-			}
-			if (a->type == GF_ISOM_BOX_TYPE_STDP) {
-				if (nb_samples) ((GF_DegradationPriorityBox *)a)->nb_entries = nb_samples;
-				e = stdp_Read(a, bs);
-			} else {
-				if (nb_samples) ((GF_SampleDependencyTypeBox *)a)->sampleCount = nb_samples;
-				e = sdtp_Read(a, bs);
-			}
-			if (e) {
-				gf_isom_box_del(a);
-				return e;
-			}
-			a->size = s;
-		}
 		if (ptr->size<a->size) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
 			ptr->size = 0;
