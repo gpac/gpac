@@ -692,7 +692,11 @@ test_end ()
    test_ok=0
    test_leak=$((test_leak + 1))
   elif [ $RETURN_VALUE != 0 ] ; then
-   result="$SUBTEST_NAME:UnknownFailure($RETURN_VALUE) $result"
+   if [ $enable_timeout != 0 ] && [ $RETURN_VALUE = 124 ] ; then
+    result="$SUBTEST_NAME:Timeout $result"
+   else
+    result="$SUBTEST_NAME:Fail(ret code $RETURN_VALUE) $result"
+   fi
    test_ok=0
    test_exec_na=$((test_exec_na + 1))
   fi
@@ -944,12 +948,6 @@ if [ $rv != 0 ] ; then
 echo "SUBTEST_NAME=$2" > $stat_subtest
 echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 mark_test_error
-fi
-
-if [ $enable_timeout != 0 ] ; then
-if [ $rv = 124 ] ; then
-rv="Timeout"
-fi
 fi
 
 echo "RETURN_VALUE=$rv" >> $stat_subtest

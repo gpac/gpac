@@ -1,4 +1,9 @@
 #!/bin/sh
+ if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
+  return
+ fi
+
+
 test_begin "3D-HEVC"
 
 do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/3D-HEVC/stream_bbb.bit:fmt=HEVC -new $TEMP_DIR/test.mp4" "import"
