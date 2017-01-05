@@ -35,6 +35,7 @@ play_all=0
 global_test_ui=0
 log_after_fail=0
 verbose=0
+enable_timeout=0
 enable_fuzzing=0
 fuzz_all=0
 fuzz_duration=60
@@ -44,6 +45,7 @@ current_script=""
 
 DEF_DUMP_DUR=10
 DEF_DUMP_SIZE="200x200"
+DEF_TIMEOUT=30
 
 #remote location of resource files: all media files, hash files and generated videos
 REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
@@ -361,14 +363,18 @@ exit 1
 fi
 
 #test for timeout
-if [ $enable_fuzzing != 0 ] ; then
-res=`$TIMEOUT --help 2> /dev/null`
+res=`$TIMEOUT 1.0 ls 2> /dev/null`
 res=$?
 if [ $res != 0 ] ; then
-log $L_ERR "timeout() not found (ret $res) - disabling fuzzing"
-enable_fuzzing=0
+ enable_timeout=0
+ if [ $enable_fuzzing != 0 ] ; then
+  log $L_ERR "timeout() not found (ret $res) - disabling fuzzing"
+  enable_fuzzing=0
+ fi
+else
+enable_timeout=1
 fi
-fi
+
 
 #test for ffmpeg - if not present, disable video storing
 do_store_video=1
@@ -399,13 +405,12 @@ MP4CLIENT="MP4Client"
 if [ $do_clean = 0 ] ; then
 
 `MP4Client -run-for 0 2> /dev/null`
-res=$?
-if [ $res != 0 ] ; then
+if [ $? != 0 ] ; then
+MP4CLIENT_NOT_FOUND=1
 echo ""
-log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
+log $L_WAR "WARNING: MP4Client not found (ret $?) - disabling all playback tests - launch results:"
 `MP4Client -run-for 0`
 echo ""
-MP4CLIENT_NOT_FOUND=1
 echo "** Dumping GPAC config file **"
 cat $HOME/.gpac/GPAC.cfg
 echo "** End of dump **"
@@ -449,7 +454,7 @@ if [ $enable_fuzzing != 0 ] ; then
   mkdir tmpafo
 
   echo "void" > tmpafi/void.mp4
-  $TIMEOUT --preserve-status 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
+  $TIMEOUT 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
   if [ $? != 0 ] ; then
    log $L_WAR "afl-fuzz not properly configure:"
    afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h 
@@ -540,7 +545,7 @@ test_begin ()
  #reset defaults
  dump_dur=$DEF_DUMP_DUR
  dump_size=$DEF_DUMP_SIZE
-
+ test_timeout=$DEF_TIMEOUT
 
  test_skip=0
  single_test=0
@@ -792,7 +797,7 @@ do_fuzz()
   cp $1 "$fuzz_temp_dir/in/"
   cd $fuzz_temp_dir
 
-  $TIMEOUT --preserve-status $fuzz_duration afl-fuzz -d -i "in/" -o "out/" $fuzz_cmd 
+  $TIMEOUT $fuzz_duration afl-fuzz -d -i "in/" -o "out/" $fuzz_cmd
   if [ $? = 0 ] ; then
    if [ $no_fuzz_cleanup = 0 ] ; then
     #rename all crashes and hangs
@@ -896,7 +901,12 @@ do_test ()
 echo "" > $log_subtest
 echo "*** Subtest \"$2\": executing \"$1\" ***" >> $log_subtest
 
-$GNU_TIME -o $stat_subtest -f ' EXECUTION_STATUS="OK"\n RETURN_STATUS=%x\n MEM_TOTAL_AVG=%K\n MEM_RESIDENT_AVG=%t\n MEM_RESIDENT_MAX=%M\n CPU_PERCENT=%P\n CPU_ELAPSED_TIME=%E\n CPU_USER_TIME=%U\n CPU_KERNEL_TIME=%S\n PAGE_FAULTS=%F\n FILE_INPUTS=%I\n SOCKET_MSG_REC=%r\n SOCKET_MSG_SENT=%s' $1 >> $log_subtest 2>&1
+timeout_args=""
+if [ $enable_timeout != 0 ] ; then
+timeout_args="$TIMEOUT $test_timeout"
+fi
+
+$timeout_args $GNU_TIME -o $stat_subtest -f ' EXECUTION_STATUS="OK"\n RETURN_STATUS=%x\n MEM_TOTAL_AVG=%K\n MEM_RESIDENT_AVG=%t\n MEM_RESIDENT_MAX=%M\n CPU_PERCENT=%P\n CPU_ELAPSED_TIME=%E\n CPU_USER_TIME=%U\n CPU_KERNEL_TIME=%S\n PAGE_FAULTS=%F\n FILE_INPUTS=%I\n SOCKET_MSG_REC=%r\n SOCKET_MSG_SENT=%s' $1 >> $log_subtest 2>&1
 rv=$?
 
 echo "SUBTEST_NAME=$2" >> $stat_subtest
@@ -904,7 +914,7 @@ echo "SUBTEST_IDX=$subtest_idx" >> $stat_subtest
 
 if [ $rv -gt 2 ] ; then
  echo " Return Value $rv - re-executing without GNU TIME" >> $log_subtest
- $1 >> $log_subtest 2>&1
+ $timeout_args $1 >> $log_subtest 2>&1
  rv=$?
  echo " Done re-executing $1 - return value is $rv " >> $log_subtest 
 fi
