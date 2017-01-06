@@ -1737,7 +1737,10 @@ GF_Err elng_dump(GF_Box *a, FILE * trace)
 
 GF_Err unkn_dump(GF_Box *a, FILE * trace)
 {
+	GF_UnknownBox *u = (GF_UnknownBox *)a;
+	u->type = u->original_4cc;
 	DumpBox(a, "UnknownBox", trace);
+	u->type = GF_ISOM_BOX_TYPE_UNKNOWN;
 	fprintf(trace, ">\n");
 	fprintf(trace, "</UnknownBox>\n");
 	return GF_OK;
@@ -2467,8 +2470,8 @@ GF_Err tmax_dump(GF_Box *a, FILE * trace)
 {
 	GF_TMAXBox *p;
 	p = (GF_TMAXBox *)a;
-	fprintf(trace, "MaximumTransmitTime=\"%d\">\n", p->maxTime);
 	DumpBox(a, "MaxTransmissionTimeBox", trace);
+	fprintf(trace, "MaximumTransmitTime=\"%d\">\n", p->maxTime);
 	gf_box_dump_done("MaxTransmissionTimeBox", a, trace);
 	return GF_OK;
 }
