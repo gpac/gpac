@@ -1547,8 +1547,8 @@ GF_Err co64_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "EntryCount=\"%d\">\n", p->nb_entries);
 
-	if (!p->offsets) {
-		fprintf(trace, "<Warning: No Chunk Offsets indications/>\n");
+	if (!p->offsets && p->size) {
+		fprintf(trace, "<!-- Warning: No Chunk Offsets indications/>\n");
 	} else {
 		for (i=0; i<p->nb_entries; i++)
 			fprintf(trace, "<ChunkOffsetEntry offset=\""LLU"\"/>\n", LLU_CAST p->offsets[i]);
@@ -1921,6 +1921,7 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<SequenceParameterSetExtensions size=\"\" content=\"\"/>\n");
 		}
 		fprintf(trace, "</%sDecoderConfigurationRecord>\n", name);
+		gf_box_dump_done(boxname, a, trace);
 		return GF_OK;
 	}
 
@@ -2218,7 +2219,7 @@ GF_Err href_dump(GF_Box *a, FILE * trace)
 {
 	GF_TextHyperTextBox*p = (GF_TextHyperTextBox*)a;
 	DumpBox(a, "TextHyperTextBox", trace);
-	fprintf(trace, "startcharoffset=\"%d\" startcharoffset=\"%d\" URL=\"%s\" altString=\"%s\">\n", p->startcharoffset, p->endcharoffset, p->URL ? p->URL : "NULL", p->URL_hint ? p->URL_hint : "NULL");
+	fprintf(trace, "startcharoffset=\"%d\" endcharoffset=\"%d\" URL=\"%s\" altString=\"%s\">\n", p->startcharoffset, p->endcharoffset, p->URL ? p->URL : "NULL", p->URL_hint ? p->URL_hint : "NULL");
 	gf_box_dump_done("TextHyperTextBox", a, trace);
 	return GF_OK;
 }
@@ -2278,7 +2279,8 @@ GF_Err xml_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	fprintf(trace, ">\n");
 	fprintf(trace, "<![CDATA[\n");
-	gf_fwrite(p->xml, p->xml_length, 1, trace);
+	if (p->xml_length)
+		gf_fwrite(p->xml, p->xml_length, 1, trace);
 	fprintf(trace, "]]>\n");
 	gf_box_dump_done("XMLBox", a, trace);
 	return GF_OK;
@@ -4096,8 +4098,9 @@ GF_Err grpi_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, "OMADRMGroupIDBox", trace);
 	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "GroupID=\"%s\" EncryptionMethod=\"%d\" GroupKey=\" ", ptr->GroupID, ptr->GKEncryptionMethod);
-	DumpData(trace, ptr->GroupKey, ptr->GKLength);
-	fprintf(trace, ">\n");
+	if (ptr->GroupKey)
+		DumpData(trace, ptr->GroupKey, ptr->GKLength);
+	fprintf(trace, "\">\n");
 	gf_box_dump_done("OMADRMGroupIDBox", a, trace);
 	return GF_OK;
 }
@@ -4135,6 +4138,7 @@ GF_Err odkm_dump(GF_Box *a, FILE * trace)
 {
 	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox*)a;
 	DumpBox(a, "OMADRMKMSBox", trace);
+	fprintf(trace, ">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
 	if (ptr->hdr) gf_box_dump((GF_Box *)ptr->hdr, trace);
 	if (ptr->fmt) gf_box_dump((GF_Box *)ptr->fmt, trace);
