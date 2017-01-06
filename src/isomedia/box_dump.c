@@ -4318,8 +4318,9 @@ GF_Err ssix_dump(GF_Box *a, FILE * trace)
 	for (i = 0; i < p->subsegment_count; i++) {
 		fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
 		for (j = 0; j < p->subsegments[i].range_count; j++) {
-			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\">\n", p->subsegments[i].levels[j], p->subsegments[i].range_sizes[j]);
+			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\"/>\n", p->subsegments[i].levels[j], p->subsegments[i].range_sizes[j]);
 		}
+		fprintf(trace, "</Subsegment>\n");
 	}
 	gf_box_dump_done("SubsegmentIndexBox", a, trace);
 	return GF_OK;
@@ -4334,7 +4335,7 @@ GF_Err leva_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "level_count=\"%d\" >\n", p->level_count);
 	for (i = 0; i < p->level_count; i++) {
-		fprintf(trace, "<Assignement track_id=\"%d\" padding_flag=\"%d\" assignement_type=\"%d\" grouping_type=\"%d\" grouping_type_parameter=\"%d\" sub_track_id=\"%d\" >\n", p->levels[i].track_id, p->levels[i].padding_flag, p->levels[i].type, p->levels[i].grouping_type, p->levels[i].grouping_type_parameter, p->levels[i].sub_track_id);
+		fprintf(trace, "<Assignement track_id=\"%d\" padding_flag=\"%d\" assignement_type=\"%d\" grouping_type=\"%d\" grouping_type_parameter=\"%d\" sub_track_id=\"%d\" />\n", p->levels[i].track_id, p->levels[i].padding_flag, p->levels[i].type, p->levels[i].grouping_type, p->levels[i].grouping_type_parameter, p->levels[i].sub_track_id);
 	}
 	gf_box_dump_done("LevelAssignmentBox", a, trace);
 	return GF_OK;
@@ -4358,10 +4359,10 @@ GF_Err stri_dump(GF_Box *a, FILE * trace)
 	GF_SubTrackInformationBox *p = (GF_SubTrackInformationBox *)a;
 	DumpBox(a, "SubTrackInformationBox", trace);
 	gf_full_box_dump(a, trace);
-	fprintf(trace, "switch_group=\"%d\" alternate_group=\"%d\" sub_track_id=\"%d\"", p->switch_group, p->alternate_group, p->sub_track_id);
+	fprintf(trace, "switch_group=\"%d\" alternate_group=\"%d\" sub_track_id=\"%d\" ", p->switch_group, p->alternate_group, p->sub_track_id);
 	fprintf(trace, "attribute_list=\"");
 	for (i = 0; i < p->attribute_count; i++) {
-		fprintf(trace, "%d ", p->attribute_list[i]);
+		fprintf(trace, "%s ", gf_4cc_to_str(p->attribute_list[i]));
 	}
 	fprintf(trace, "\" ");
 	fprintf(trace, "/>\n");
