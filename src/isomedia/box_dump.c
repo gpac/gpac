@@ -506,6 +506,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STRK:
+		return strk_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_STRI:
+		return stri_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_METX:
 		return metx_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_METT:
@@ -529,6 +533,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return lsrc_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_SSIX:
+		return ssix_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_LEVA:
+		return leva_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_PCRB:
 		return pcrb_dump(a, trace);
 
@@ -676,6 +684,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_MOOF:
 		case GF_ISOM_BOX_TYPE_STYP:
 		case GF_ISOM_BOX_TYPE_SIDX:
+		case GF_ISOM_BOX_TYPE_SSIX:
 		case GF_ISOM_BOX_TYPE_PCRB:
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 		/*Adobe specific*/
@@ -1655,7 +1664,7 @@ GF_Err tkhd_dump(GF_Box *a, FILE * trace)
 	}
 	fprintf(trace, ">\n");
 	if (p->width || p->height) {
-		fprintf(trace, "<Matrix m11=\"0x%.8x\" m12=\"0x%.8x\" m13=\"0x%.8x\"", p->matrix[0], p->matrix[1], p->matrix[2]);
+		fprintf(trace, "<Matrix m11=\"0x%.8x\" m12=\"0x%.8x\" m13=\"0x%.8x\" ", p->matrix[0], p->matrix[1], p->matrix[2]);
 		fprintf(trace, "m21=\"0x%.8x\" m22=\"0x%.8x\" m23=\"0x%.8x\" ", p->matrix[3], p->matrix[4], p->matrix[5]);
 		fprintf(trace, "m31=\"0x%.8x\" m32=\"0x%.8x\" m33=\"0x%.8x\"/>\n", p->matrix[6], p->matrix[7], p->matrix[8]);
 	}
@@ -4296,6 +4305,66 @@ GF_Err sidx_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<Reference type=\"%d\" size=\"%d\" duration=\"%d\" startsWithSAP=\"%d\" SAP_type=\"%d\" SAPDeltaTime=\"%d\"/>\n", p->refs[i].reference_type, p->refs[i].reference_size, p->refs[i].subsegment_duration, p->refs[i].starts_with_SAP, p->refs[i].SAP_type, p->refs[i].SAP_delta_time);
 	}
 	gf_box_dump_done("SegmentIndexBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err ssix_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, j;
+	GF_SubsegmentIndexBox *p = (GF_SubsegmentIndexBox *)a;
+	DumpBox(a, "SubsegmentIndexBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "subsegment_count=\"%d\" >\n", p->subsegment_count);
+	for (i = 0; i < p->subsegment_count; i++) {
+		fprintf(trace, "<Subsegment range_count=\"%d\">\n", p->subsegments[i].range_count);
+		for (j = 0; j < p->subsegments[i].range_count; j++) {
+			fprintf(trace, "<Range level=\"%d\" range_size=\"%d\">\n", p->subsegments[i].levels[j], p->subsegments[i].range_sizes[j]);
+		}
+	}
+	gf_box_dump_done("SubsegmentIndexBox", a, trace);
+	return GF_OK;
+}
+
+
+GF_Err leva_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_LevelAssignmentBox *p = (GF_LevelAssignmentBox *)a;
+	DumpBox(a, "LevelAssignmentBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "level_count=\"%d\" >\n", p->level_count);
+	for (i = 0; i < p->level_count; i++) {
+		fprintf(trace, "<Assignement track_id=\"%d\" padding_flag=\"%d\" assignement_type=\"%d\" grouping_type=\"%d\" grouping_type_parameter=\"%d\" sub_track_id=\"%d\" >\n", p->levels[i].track_id, p->levels[i].padding_flag, p->levels[i].type, p->levels[i].grouping_type, p->levels[i].grouping_type_parameter, p->levels[i].sub_track_id);
+	}
+	gf_box_dump_done("LevelAssignmentBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err strk_dump(GF_Box *a, FILE * trace)
+{
+	GF_SubTrackBox *p = (GF_SubTrackBox *)a;
+	DumpBox(a, "SubTrackBox", trace);
+	fprintf(trace, ">\n");
+	if (p->info) {
+		gf_box_dump(p->info, trace);
+	}
+	gf_box_dump_done("SubTrackBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err stri_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_SubTrackInformationBox *p = (GF_SubTrackInformationBox *)a;
+	DumpBox(a, "SubTrackInformationBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "switch_group=\"%d\" alternate_group=\"%d\" sub_track_id=\"%d\"", p->switch_group, p->alternate_group, p->sub_track_id);
+	fprintf(trace, "attribute_list=\"");
+	for (i = 0; i < p->attribute_count; i++) {
+		fprintf(trace, "%d ", p->attribute_list[i]);
+	}
+	fprintf(trace, "\" ");
+	fprintf(trace, "/>\n");
 	return GF_OK;
 }
 

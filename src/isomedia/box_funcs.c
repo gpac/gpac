@@ -829,6 +829,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return pasp_New();
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_New();
+	case GF_ISOM_BOX_TYPE_STRK:
+		return strk_New();
+	case GF_ISOM_BOX_TYPE_STRI:
+		return stri_New();
 
 	case GF_ISOM_BOX_TYPE_DIMS:
 		return dims_New();
@@ -856,6 +860,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_New();
+	case GF_ISOM_BOX_TYPE_SSIX:
+		return ssix_New();
+	case GF_ISOM_BOX_TYPE_LEVA:
+		return leva_New();
 	case GF_ISOM_BOX_TYPE_SUBS:
 		return subs_New();
 	case GF_ISOM_BOX_TYPE_TFDT:
@@ -1543,6 +1551,12 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_TSEL:
 		tsel_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_STRK:
+		strk_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_STRI:
+		stri_del(a);
+		return;
 
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
@@ -1575,6 +1589,12 @@ void gf_isom_box_del(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_SIDX:
 		sidx_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_SSIX:
+		ssix_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_LEVA:
+		leva_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_PCRB:
 		pcrb_del(a);
@@ -2085,6 +2105,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return pasp_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STRK:
+		return strk_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_STRI:
+		return stri_Read(a, bs);
 
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
@@ -2109,6 +2133,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_SSIX:
+		return ssix_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_LEVA:
+		return leva_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SUBS:
 		return subs_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_RVCC:
@@ -2590,6 +2618,10 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return pasp_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_STRK:
+		return strk_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_STRI:
+		return stri_Write(a, bs);
 
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
@@ -2614,6 +2646,10 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_SSIX:
+		return ssix_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_LEVA:
+		return leva_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_PCRB:
 		return pcrb_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SUBS:
@@ -3098,6 +3134,10 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return pasp_Size(a);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Size(a);
+	case GF_ISOM_BOX_TYPE_STRK:
+		return strk_Size(a);
+	case GF_ISOM_BOX_TYPE_STRI:
+		return stri_Size(a);
 
 	case GF_ISOM_BOX_TYPE_METX:
 	case GF_ISOM_BOX_TYPE_METT:
@@ -3122,6 +3162,10 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_SIDX:
 		return sidx_Size(a);
+	case GF_ISOM_BOX_TYPE_SSIX:
+		return ssix_Size(a);
+	case GF_ISOM_BOX_TYPE_LEVA:
+		return leva_Size(a);
 	case GF_ISOM_BOX_TYPE_PCRB:
 		return pcrb_Size(a);
 	case GF_ISOM_BOX_TYPE_SUBS:

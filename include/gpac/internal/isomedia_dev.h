@@ -159,6 +159,8 @@ enum
 	GF_ISOM_BOX_TYPE_TRAK	= GF_4CC( 't', 'r', 'a', 'k' ),
 	GF_ISOM_BOX_TYPE_TKHD	= GF_4CC( 't', 'k', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_TREF	= GF_4CC( 't', 'r', 'e', 'f' ),
+	GF_ISOM_BOX_TYPE_STRK	= GF_4CC( 's', 't', 'r', 'k' ),
+	GF_ISOM_BOX_TYPE_STRI	= GF_4CC( 's', 't', 'r', 'i' ),
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_FTYP	= GF_4CC( 'f', 't', 'y', 'p' ),
@@ -263,6 +265,8 @@ enum
 	GF_ISOM_BOX_TYPE_STYP	= GF_4CC( 's', 't', 'y', 'p' ),
 	GF_ISOM_BOX_TYPE_TFDT	= GF_4CC( 't', 'f', 'd', 't' ),
 	GF_ISOM_BOX_TYPE_SIDX	= GF_4CC( 's', 'i', 'd', 'x' ),
+	GF_ISOM_BOX_TYPE_SSIX	= GF_4CC( 's', 's', 'i', 'x' ),
+	GF_ISOM_BOX_TYPE_LEVA   = GF_4CC( 'l', 'e', 'v', 'a' ),
 	GF_ISOM_BOX_TYPE_PCRB	= GF_4CC( 'p', 'c', 'r', 'b' ),
 
 	/*3GPP text / MPEG-4 StreamingText*/
@@ -1432,6 +1436,21 @@ typedef struct
 	u32 count;
 } GF_ProgressiveDownloadBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 switch_group;
+	u32 alternate_group;
+	u32 sub_track_id;
+	u64 attribute_count;
+	u32 *attribute_list;
+} GF_SubTrackInformationBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	GF_SubTrackInformationBox *info;
+} GF_SubTrackBox;
 
 /*
 	3GPP streaming text boxes
@@ -2210,6 +2229,39 @@ typedef struct __sidx_box
 	u32 nb_refs;
 	GF_SIDXReference *refs;
 } GF_SegmentIndexBox;
+
+typedef struct
+{
+	u32 range_count;
+	u8 *levels;
+	u32 *range_sizes;
+} GF_Subsegment;
+
+typedef struct __ssix_box
+{
+	GF_ISOM_FULL_BOX
+
+	u32 subsegment_count;
+	GF_Subsegment *subsegments;
+} GF_SubsegmentIndexBox;
+
+typedef struct
+{
+	u32 track_id;
+	Bool padding_flag;
+	u8 type;
+	u32 grouping_type;
+	u32 grouping_type_parameter;
+	u32 sub_track_id;
+} GF_LevelAssignment; 
+
+typedef struct __leva_box
+{
+	GF_ISOM_FULL_BOX
+
+	u32 level_count;
+	GF_LevelAssignment *levels;
+} GF_LevelAssignmentBox;
 
 typedef struct __pcrInfo_box
 {
@@ -4341,6 +4393,20 @@ GF_Err sidx_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err sidx_Size(GF_Box *s);
 GF_Err sidx_dump(GF_Box *a, FILE * trace);
 
+GF_Box *ssix_New();
+void ssix_del(GF_Box *s);
+GF_Err ssix_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err ssix_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err ssix_Size(GF_Box *s);
+GF_Err ssix_dump(GF_Box *a, FILE * trace);
+
+GF_Box *leva_New();
+void leva_del(GF_Box *s);
+GF_Err leva_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err leva_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err leva_Size(GF_Box *s);
+GF_Err leva_dump(GF_Box *a, FILE * trace);
+
 GF_Box *pcrb_New();
 void pcrb_del(GF_Box *s);
 GF_Err pcrb_Read(GF_Box *s, GF_BitStream *bs);
@@ -4616,6 +4682,20 @@ GF_Err grpl_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err grpl_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err grpl_Size(GF_Box *s);
 GF_Err grpl_dump(GF_Box *a, FILE * trace);
+
+GF_Box *strk_New();
+void strk_del(GF_Box *s);
+GF_Err strk_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err strk_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err strk_Size(GF_Box *s);
+GF_Err strk_dump(GF_Box *a, FILE * trace);
+
+GF_Box *stri_New();
+void stri_del(GF_Box *s);
+GF_Err stri_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err stri_Write(GF_Box *s, GF_BitStream *bs);
+GF_Err stri_Size(GF_Box *s);
+GF_Err stri_dump(GF_Box *a, FILE * trace);
 
 Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
 GF_Box *gf_isom_clone_config_box(GF_Box *box);
