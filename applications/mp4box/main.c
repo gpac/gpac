@@ -99,6 +99,7 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 #endif
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
+void PrintBuiltInBoxes();
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name);
@@ -849,6 +850,7 @@ void PrintUsage()
 	         " -xnode NodeName      gets X3D node syntax\n"
 	         " -snodes              lists supported SVG nodes\n"
 	         " -languages           lists supported ISO 639 languages\n"
+	         " -boxes               lists all supported ISOBMF boxes and their syntax\n"
 	         "\n"
 	         " -quiet                quiet mode\n"
 	         " -noprog               disables progress\n"
@@ -2969,6 +2971,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 			return 1;
 		}
 #endif
+		else if (!stricmp(arg, "-boxes")) {
+			PrintBuiltInBoxes();
+			return 1;
+		}
 		else if (!stricmp(arg, "-std")) dump_std = 2;
 		else if (!stricmp(arg, "-stdb")) dump_std = 1;
 

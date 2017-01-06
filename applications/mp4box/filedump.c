@@ -746,6 +746,17 @@ void PrintBuiltInNodes(u32 graph_type)
 #endif
 }
 
+
+void PrintBuiltInBoxes()
+{
+	u32 i, count=gf_isom_get_num_supported_boxes();
+	//index 0 is our internal unknown box handler
+	for (i=1; i<count; i++) {
+		gf_isom_dump_supported_box(i, stdout);
+	}
+}
+
+
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
 void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name)
@@ -813,6 +824,7 @@ void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
 	if (inName) gf_fclose(dump);
 }
 #endif
+
 
 void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 {

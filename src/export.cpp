@@ -856,6 +856,10 @@
 
 # ifndef GPAC_DISABLE_ISOM_DUMP
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_num_supported_boxes) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_supported_box_type) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_supported_box) )
+
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_text_dump) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_protection) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_dump_ismacryp_sample) )
