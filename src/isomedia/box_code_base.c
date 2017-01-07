@@ -5806,7 +5806,7 @@ GF_Err stsz_Read(GF_Box *s, GF_BitStream *bs)
 				return GF_ISOM_INVALID_FILE;
 			}
 		} else {
-			if (ptr->sampleCount > ptr->size / ptr->sampleSize) {
+			if (ptr->sampleCount > ptr->size / (ptr->sampleSize/8)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Invalid number of entries %d in stsz\n", ptr->sampleCount));
 				return GF_ISOM_INVALID_FILE;
 			}
