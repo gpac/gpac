@@ -3872,6 +3872,8 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		break;
 	}
 	DumpBox(a, name, trace);
+	if (strcmp(name, "UnknownBox") && itune->data)
+		gf_full_box_dump((GF_Box *)itune->data, trace);
 	if (!no_dump) {
 		switch (itune->type) {
 		case GF_ISOM_BOX_TYPE_DISK:
@@ -3911,8 +3913,6 @@ static GF_Err apple_tag_dump(GF_Box *a, FILE * trace)
 		}
 	}
 	fprintf(trace, ">\n");
-	if (strcmp(name, "UnknownBox") && itune->data)
-		gf_full_box_dump((GF_Box *)itune->data, trace);
 	gf_box_dump_done(name, a, trace);
 	return GF_OK;
 }
@@ -4138,8 +4138,8 @@ GF_Err odkm_dump(GF_Box *a, FILE * trace)
 {
 	GF_OMADRMKMSBox *ptr = (GF_OMADRMKMSBox*)a;
 	DumpBox(a, "OMADRMKMSBox", trace);
-	fprintf(trace, ">\n");
 	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
 	if (ptr->hdr) gf_box_dump((GF_Box *)ptr->hdr, trace);
 	if (ptr->fmt) gf_box_dump((GF_Box *)ptr->fmt, trace);
 	gf_box_dump_done("OMADRMKMSBox", a, trace);
@@ -4233,7 +4233,7 @@ GF_Err txtc_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, name, trace);
 	fprintf(trace, ">\n");
 
-	if (ptr->config) fprintf(trace, "%s", ptr->config);
+	if (ptr->config) fprintf(trace, "<![CDATA[%s]]>", ptr->config);
 
 	gf_box_dump_done((char *)name, a, trace);
 	return GF_OK;
@@ -5036,8 +5036,14 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 {
 	Double fracs;
 	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) a;
-	time_t secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
-	struct tm t = *gmtime(&secs);
+	time_t secs;
+	struct tm t;
+	secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
+	if (secs < 0) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0"));
+		secs = 0;
+	}
+	t = *gmtime(&secs);
 	fracs = (Double) (ptr->ntp & 0xFFFFFFFFULL);
 	fracs /= 0xFFFFFFFF;
 	fracs *= 1000;
