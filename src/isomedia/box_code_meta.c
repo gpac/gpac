@@ -688,6 +688,9 @@ GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 			}
 			string_start += string_len;
 			string_len = 0;
+			if (ptr->content_encoding && ptr->version == 1) {
+				break;
+			}
 		}
 		string_len++;
 	}
