@@ -750,10 +750,12 @@ void PrintBuiltInNodes(u32 graph_type)
 void PrintBuiltInBoxes()
 {
 	u32 i, count=gf_isom_get_num_supported_boxes();
+	fprintf(stdout, "<Boxes>\n");
 	//index 0 is our internal unknown box handler
 	for (i=1; i<count; i++) {
 		gf_isom_dump_supported_box(i, stdout);
 	}
+	fprintf(stdout, "</Boxes>\n");
 }
 
 
