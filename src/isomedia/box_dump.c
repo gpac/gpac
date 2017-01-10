@@ -93,6 +93,7 @@ static void DumpDataString(FILE *trace, char *data, u32 dataLength)
 	}
 }
 
+static const char *box_spec = NULL;
 
 GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 {
@@ -113,6 +114,8 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 	} else {
 		fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(a->type));
 	}
+	if (box_spec)
+		fprintf(trace, "Specification=\"%s\" ", box_spec);
 	return GF_OK;
 }
 
@@ -136,13 +139,15 @@ static GF_Err uuid_ex_dump(GF_Box *a, FILE *trace)
 	}
 }
 
-#define BOX_DUMP_DEF(__type, __fun) { __type, __fun, 0, 0, 0 }
+#define BOX_DUMP_DEF(__type, __fun) { __type, __fun, 0, 0, 0, "p12" }
+#define BOX_DUMP_DEF_S(__type, __fun, __spec) { __type, __fun, 0, 0, 0, __spec }
 
-#define FBOX_DUMP_DEF(__type, __fun, __max_v) { __type, __fun, 0, __max_v, 0 }
+#define FBOX_DUMP_DEF(__type, __fun, __max_v) { __type, __fun, 0, __max_v, 0, "p12" }
+#define FBOX_DUMP_DEF_S(__type, __fun, __max_v, __spec) { __type, __fun, 0, __max_v, 0, __spec }
 
-#define TREF_DUMP_DEF(__type, __fun, __4cc) { __type, __fun, __4cc, 0, 0 }
+#define TREF_DUMP_DEF(__type, __fun, __4cc, __spec) { __type, __fun, __4cc, 0, 0, __spec }
 
-#define TRGT_DUMP_DEF(__type, __fun, __4cc, max_version) { __type, __fun, 0, max_version, 0 }
+#define TRGT_DUMP_DEF(__type, __fun, __4cc, max_version, __spec) { __type, __fun, __4cc, max_version, 0, __spec }
 
 static const struct box_def {
 	u32 box_4cc;
@@ -150,29 +155,30 @@ static const struct box_def {
 	u32 alt_4cc;//used for sample grouping type and track / item reference types
 	u8 max_version;
 	u32 flags;
+	const char *spec;
 } defined_box_types [] =
 {
 	BOX_DUMP_DEF(GF_ISOM_BOX_TYPE_UNKNOWN, unkn_dump),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OD),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_DECODE),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OCR),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_IPI),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_META),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_HINT),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_CHAP),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_BASE),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SCAL),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_TBAS),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SABT),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OREF),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_FONT),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_HIND),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_VDEP),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_VPLX),
-	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SUBT),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OD, "p14"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_DECODE, "p14"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OCR, "p14"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_IPI, "p14"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_META, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_HINT, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_CHAP, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_BASE, "p15"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SCAL, "p15"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_TBAS, "p15"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SABT, "p15"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_OREF, "p15"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_FONT, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_HIND, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_VDEP, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_VPLX, "p12"),
+	TREF_DUMP_DEF(GF_ISOM_BOX_TYPE_REFT, reftype_dump, GF_ISOM_REF_SUBT, "p12"),
 
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_REFI, ireftype_dump, GF_ISOM_REF_TBAS),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_REFI, ireftype_dump, GF_4CC('i','l','o','c') ),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_REFI, ireftype_dump, GF_ISOM_REF_TBAS, "p12"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_REFI, ireftype_dump, GF_4CC('i','l','o','c'), "p12" ),
 
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FREE, free_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SKIP, free_dump),
@@ -196,14 +202,14 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CPRT, cprt_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_KIND, kind_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HDLR, hdlr_dump, 0),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IODS, iods_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IODS, iods_dump, "p14"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRAK, trak_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MP4S, mp4s_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MP4V, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MP4A, mp4a_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GNRM, gnrm_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GNRV, gnrv_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GNRA, gnra_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4S, mp4s_dump, "p14"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4V, mp4v_dump, "p14"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4A, mp4a_dump, "p14"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRM, gnrm_dump, "gpac"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRV, gnrv_dump, "gpac"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRA, gnra_dump, "gpac"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_EDTS, edts_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_UDTA, udta_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DREF, dref_dump, 0),
@@ -234,12 +240,13 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SBGP, sbgp_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, 2),
 
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_ROLL),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_SEIG),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_OINF),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_LINF),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_TRIF),
-	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_NALM),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_RAP, "p12"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_ROLL, "p12"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_SEIG, "p15"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_OINF, "p15"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_LINF, "p15"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_TRIF, "p15"),
+	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_NALM, "p15"),
 
 
 	{ GF_ISOM_BOX_TYPE_SAIZ, saiz_dump, 0, 0, 0 },
@@ -293,65 +300,65 @@ static const struct box_def {
 #endif
 
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SUBS, subs_dump, 1),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_RVCC, rvcc_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_RVCC, rvcc_dump, "rvc"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGR, trgr_dump),
 
-	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_4CC('m','s','r','c'), 0 ),
+	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_4CC('m','s','r','c'), 0, "p12" ),
+	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_ISOM_BOX_TYPE_CSTG, 0, "p15" ),
 
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VOID, void_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STSF, stsf_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_AMR, gppa_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_AMR_WB, gppa_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_QCELP, gppa_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_EVRC, gppa_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_SMV, gppa_dump),
-	BOX_DUMP_DEF( GF_ISOM_SUBTYPE_3GP_H263, gppv_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DAMR, gppc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DEVC, gppc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DQCP, gppc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DSMV, gppc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_D263, gppc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AVCC, avcc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SVCC, avcc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HVCC, hvcc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LHVC, hvcc_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_STSF, stsf_dump, "gpac"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_AMR, gppa_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_AMR_WB, gppa_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_QCELP, gppa_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_EVRC, gppa_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_SMV, gppa_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_H263, gppv_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DAMR, gppc_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DEVC, gppc_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DQCP, gppc_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DSMV, gppc_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_D263, gppc_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVCC, avcc_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_SVCC, avcc_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVCC, hvcc_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHVC, hvcc_dump, "p15"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_BTRT, btrt_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_M4DS, m4ds_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AVC1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AVC2, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AVC3, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AVC4, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SVC1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HVC1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HEV1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HVC2, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HEV2, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LHV1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LHE1, mp4v_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HVT1, mp4v_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_M4DS, m4ds_dump, "p14"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC2, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC3, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC4, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_SVC1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC2, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV2, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHV1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHE1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVT1, mp4v_dump, "p15"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PASP, pasp_dump),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FTAB, ftab_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TX3G, tx3g_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TEXT, text_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STYL, styl_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HLIT, hlit_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HCLR, hclr_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_KROK, krok_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DLAY, dlay_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HREF, href_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TBOX, tbox_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_BLNK, blnk_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TWRP, twrp_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_FTAB, ftab_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TX3G, tx3g_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TEXT, text_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_STYL, styl_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HLIT, hlit_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HCLR, hclr_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_KROK, krok_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DLAY, dlay_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HREF, href_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TBOX, tbox_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_BLNK, blnk_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TWRP, twrp_dump, "3gpp"),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PSSH, pssh_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TENC, tenc_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_PSSH, pssh_dump, "cenc"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TENC, tenc_dump, "cenc"),
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IKMS, iKMS_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ISFM, iSFM_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IKMS, iKMS_dump, "isma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ISFM, iSFM_dump, "isma"),
 
-	/*MPEG-21 extensions*/
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_META, meta_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_XML, xml_dump, 0),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_BXML, bxml_dump),
@@ -360,7 +367,6 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IPRO, ipro_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_INFE, infe_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_INFE, infe_dump, 2),
-
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IINF, iinf_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IREF, iref_dump, 1),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SINF, sinf_dump),
@@ -374,43 +380,43 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCS, mp4s_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PRFT, prft_dump, 1),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9NAM, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9CMT, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9DAY, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9ART, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9TRK, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9ALB, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9COM, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9WRT, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9TOO, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9CPY, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9DES, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9GEN, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_0xA9GRP, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GNRE, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DISK, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRKN, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TMPO, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CPIL, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_COVR, apple_tag_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, apple_tag_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9NAM, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9CMT, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9DAY, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9ART, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9TRK, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9ALB, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9COM, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9WRT, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9TOO, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9CPY, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9DES, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9GEN, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_0xA9GRP, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRE, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DISK, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TRKN, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TMPO, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CPIL, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_COVR, apple_tag_dump, "apple"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_iTunesSpecificInfo, apple_tag_dump, "apple"),
 #ifndef GPAC_DISABLE_ISOM_ADOBE
 	/*Adobe extensions*/
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ABST, abst_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AFRA, afra_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ASRT, asrt_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AFRT, afrt_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ABST, abst_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AFRA, afra_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ASRT, asrt_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AFRT, afrt_dump, "adobe"),
 #endif
 	/*Apple extensions*/
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ILST, ilst_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ILST, ilst_dump, "apple"),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_OHDR, ohdr_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GRPI, grpi_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MDRI, mdri_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ODTT, odtt_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ODRB, odrb_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ODKM, odkm_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ODAF, iSFM_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_OHDR, ohdr_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GRPI, grpi_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MDRI, mdri_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ODTT, odtt_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ODRB, odrb_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ODKM, odkm_dump, "oma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ODAF, iSFM_dump, "oma"),
 
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TSEL, tsel_dump, 0),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STRK, strk_dump),
@@ -418,15 +424,16 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_METX, metx_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_METT, metx_dump),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DIMS, dims_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DIMC, dimC_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DIST, diST_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DIMS, dims_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DIMC, dimC_dump, "3gpp"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DIST, diST_dump, "3gpp"),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AC3, ac3_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DAC3, dac3_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AC3, ac3_dump, "dolby"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_DAC3, dac3_dump, "dolby"),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LSR1, lsr1_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LSRC, lsrc_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LSR1, lsr1_dump, "p20"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LSRC, lsrc_dump, "p20"),
+
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SIDX, sidx_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SSIX, ssix_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_LEVA, leva_dump, 0),
@@ -438,39 +445,39 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STXT, metx_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TXTC, txtc_dump, 0),
 #ifndef GPAC_DISABLE_VTT
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VTTC, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CTIM, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IDEN, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STTG, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PAYL, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VTTA, boxstring_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VTCU, vtcu_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VTTE, vtte_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_WVTT, wvtt_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VTTC, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CTIM, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IDEN, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_STTG, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_PAYL, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VTTA, boxstring_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VTCU, vtcu_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VTTE, vtte_dump, "p30"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_WVTT, wvtt_dump, "p30"),
 #endif
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STPP, metx_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SBTT, metx_dump),
 #endif
 
 	/*Adobe's protection boxes*/
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ADKM, adkm_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AHDR, ahdr_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ADAF, adaf_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_APRM, aprm_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AEIB, aeib_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_AKEY, akey_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FLXS, flxs_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ADKM, adkm_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AHDR, ahdr_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ADAF, adaf_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_APRM, aprm_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AEIB, aeib_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AKEY, akey_dump, "adobe"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_FLXS, flxs_dump, "adobe"),
 
 	/* Image File Format */
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ISPE, ispe_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_COLR, colr_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PIXI, pixi_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_RLOC, rloc_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IROT, irot_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IPCO, ipco_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IPRP, iprp_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IPMA, ipma_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_GRPL, grpl_dump)
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ISPE, ispe_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_COLR, colr_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_PIXI, pixi_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_RLOC, rloc_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IROT, irot_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPCO, ipco_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPRP, iprp_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPMA, ipma_dump, "iff"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GRPL, grpl_dump, "iff")
 
 	//full boxes todo
 	//FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFRO, mfro_dump, 0),
@@ -506,9 +513,12 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 	GF_Err e;
 	GF_Box *a = gf_isom_box_new( defined_box_types[idx].box_4cc);
 	if (defined_box_types[idx].alt_4cc) {
-		if (a->type==GF_ISOM_BOX_TYPE_REFT) ((GF_TrackReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
-		else if (a->type==GF_ISOM_BOX_TYPE_REFI) ((GF_ItemReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
-		else if (a->type==GF_ISOM_BOX_TYPE_TRGT) ((GF_TrackGroupTypeBox*)a)->group_type = defined_box_types[idx].alt_4cc;
+		if (a->type==GF_ISOM_BOX_TYPE_REFT)
+			((GF_TrackReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
+		else if (a->type==GF_ISOM_BOX_TYPE_REFI)
+			((GF_ItemReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
+		else if (a->type==GF_ISOM_BOX_TYPE_TRGT)
+			((GF_TrackGroupTypeBox*)a)->group_type = defined_box_types[idx].alt_4cc;
 		else if (a->type==GF_ISOM_BOX_TYPE_SGPD)
 			((GF_SampleGroupDescriptionBox*)a)->grouping_type = defined_box_types[idx].alt_4cc;
 	}
@@ -518,7 +528,9 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 	if (defined_box_types[idx].flags) {
 		((GF_FullBox *)a)->flags = defined_box_types[idx].flags;
 	}
+	box_spec = defined_box_types[idx].spec;
 	e = gf_box_dump(a, trace);
+	box_spec = NULL;
 	gf_isom_box_del(a);
 	return e;
 }
