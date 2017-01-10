@@ -510,28 +510,32 @@ u32 gf_isom_get_num_supported_boxes()
 GF_EXPORT
 GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 {
+	u32 i;
 	GF_Err e;
-	GF_Box *a = gf_isom_box_new( defined_box_types[idx].box_4cc);
-	if (defined_box_types[idx].alt_4cc) {
-		if (a->type==GF_ISOM_BOX_TYPE_REFT)
-			((GF_TrackReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
-		else if (a->type==GF_ISOM_BOX_TYPE_REFI)
-			((GF_ItemReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
-		else if (a->type==GF_ISOM_BOX_TYPE_TRGT)
-			((GF_TrackGroupTypeBox*)a)->group_type = defined_box_types[idx].alt_4cc;
-		else if (a->type==GF_ISOM_BOX_TYPE_SGPD)
-			((GF_SampleGroupDescriptionBox*)a)->grouping_type = defined_box_types[idx].alt_4cc;
+	GF_Box *a;
+	for (i = 0; i <= defined_box_types[idx].max_version; i++) {
+		a = gf_isom_box_new(defined_box_types[idx].box_4cc);
+		if (defined_box_types[idx].alt_4cc) {
+			if (a->type==GF_ISOM_BOX_TYPE_REFT)
+				((GF_TrackReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
+			else if (a->type==GF_ISOM_BOX_TYPE_REFI)
+				((GF_ItemReferenceTypeBox*)a)->reference_type = defined_box_types[idx].alt_4cc;
+			else if (a->type==GF_ISOM_BOX_TYPE_TRGT)
+				((GF_TrackGroupTypeBox*)a)->group_type = defined_box_types[idx].alt_4cc;
+			else if (a->type==GF_ISOM_BOX_TYPE_SGPD)
+				((GF_SampleGroupDescriptionBox*)a)->grouping_type = defined_box_types[idx].alt_4cc;
+		}
+		if (defined_box_types[idx].max_version) {
+			((GF_FullBox *)a)->version = i;
+		}
+		if (defined_box_types[idx].flags) {
+			((GF_FullBox *)a)->flags = defined_box_types[idx].flags;
+		}
+		box_spec = defined_box_types[idx].spec;
+		e = gf_box_dump(a, trace);
+		box_spec = NULL;
+		gf_isom_box_del(a);
 	}
-	if (defined_box_types[idx].max_version) {
-		((GF_FullBox *)a)->version = defined_box_types[idx].max_version;
-	}
-	if (defined_box_types[idx].flags) {
-		((GF_FullBox *)a)->flags = defined_box_types[idx].flags;
-	}
-	box_spec = defined_box_types[idx].spec;
-	e = gf_box_dump(a, trace);
-	box_spec = NULL;
-	gf_isom_box_del(a);
 	return e;
 }
 
@@ -666,22 +670,19 @@ GF_Err reftype_dump(GF_Box *a, FILE * trace)
 
 GF_Err ireftype_dump(GF_Box *a, FILE * trace)
 {
-	const char *s;
 	u32 i;
-	char boxname[256];
 	GF_ItemReferenceTypeBox *p = (GF_ItemReferenceTypeBox *)a;
 	if (!p->reference_type) return GF_OK;
 
 	p->type = p->reference_type;
-	
-	s = a->type ? gf_4cc_to_str(a->type) : "";
-	sprintf(boxname, "%sItemReferenceBox", s);
-	DumpBox(a, boxname, trace);
+	DumpBox(a, "ItemReferenceBox", trace);
 	fprintf(trace, "from_item_id=\"%d\" to_item_ids=\"", p->from_item_id);
-	for (i = 0; i<p->reference_count; i++) fprintf(trace, " %d", p->to_item_IDs[i]);
+	for (i = 0; i < p->reference_count; i++) {
+		fprintf(trace, " %d", p->to_item_IDs[i]);
+	}
 	fprintf(trace, "\">\n");
 
-	gf_box_dump_done(boxname, a, trace);
+	gf_box_dump_done("ItemReferenceBox", a, trace);
 
 	p->type = GF_ISOM_BOX_TYPE_REFI;
 	return GF_OK;
@@ -5052,7 +5053,7 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 	struct tm t;
 	secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
 	if (secs < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0\n"));
 		secs = 0;
 	}
 	t = *gmtime(&secs);
