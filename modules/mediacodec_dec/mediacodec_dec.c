@@ -557,8 +557,7 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         capability->cap.valueInt = ctx->pixel_ar;
         break;
     case GF_CODEC_OUTPUT_SIZE:
-
-        capability->cap.valueInt = ctx->out_size;
+	capability->cap.valueInt = ctx->out_size;
         break;
     case GF_CODEC_PIXEL_FORMAT:
         capability->cap.valueInt = ctx->pix_fmt;    
@@ -840,9 +839,9 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                         ctx->outputEOS = true;
                     }
 					 
-					size_t outSize;
+		    size_t outSize;
                     uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
-					ctx->frame = buffer + ctx->info.offset;
+		    ctx->frame = buffer + ctx->info.offset;
 					
                     if(!ctx->frame) {
                         LOGI("AMediaCodec_getOutputBuffer failed");
