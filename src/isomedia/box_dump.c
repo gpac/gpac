@@ -199,7 +199,7 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_DINF, dinf_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_URL, url_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_URN, urn_dump, 0),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CPRT, cprt_dump, 1),
+	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CPRT, cprt_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_KIND, kind_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HDLR, hdlr_dump, 0),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IODS, iods_dump, "p14"),
@@ -235,7 +235,7 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFRA, mfra_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TFRA, tfra_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ELNG, elng_dump, 0),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CHPL, chpl_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CHPL, chpl_dump, "apple"),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PDIN, dpin_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SBGP, sbgp_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, 2),
@@ -249,10 +249,10 @@ static const struct box_def {
 	TREF_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, GF_ISOM_SAMPLE_GROUP_NALM, "p15"),
 
 
-	{ GF_ISOM_BOX_TYPE_SAIZ, saiz_dump, 0, 0, 0 },
-	{ GF_ISOM_BOX_TYPE_SAIZ, saiz_dump, 0, 0, 1 },
-	{ GF_ISOM_BOX_TYPE_SAIO, saio_dump, 0, 0, 0 },
-	{ GF_ISOM_BOX_TYPE_SAIO, saio_dump, 0, 0, 1 },
+	{ GF_ISOM_BOX_TYPE_SAIZ, saiz_dump, 0, 0, 0, "p12" },
+	{ GF_ISOM_BOX_TYPE_SAIZ, saiz_dump, 0, 0, 1, "p12" },
+	{ GF_ISOM_BOX_TYPE_SAIO, saio_dump, 0, 1, 0, "p12" },
+	{ GF_ISOM_BOX_TYPE_SAIO, saio_dump, 0, 1, 1, "p12" },
 
 
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_RTP_STSD, ghnt_dump),
@@ -293,8 +293,8 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFHD, mfhd_dump, 0),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRAF, traf_dump),
 	//we only dump with all flags on
-	{ GF_ISOM_BOX_TYPE_TFHD, tfhd_dump, 0, 0, 0x000001|0x000002|0x000008|0x000010|0x000020|0x010000|0x020000},
-	{  GF_ISOM_BOX_TYPE_TRUN, trun_dump, 0, 0, 0x000001|0x000004|0x000100|0x000200|0x000400|0x000800 },
+	{ GF_ISOM_BOX_TYPE_TFHD, tfhd_dump, 0, 0, 0x000001|0x000002|0x000008|0x000010|0x000020|0x010000|0x020000, "p12" },
+	{  GF_ISOM_BOX_TYPE_TRUN, trun_dump, 0, 0, 0x000001|0x000004|0x000100|0x000200|0x000400|0x000800, "p12" },
 
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TFDT, tfdt_dump, 1),
 #endif
@@ -306,7 +306,7 @@ static const struct box_def {
 	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_4CC('m','s','r','c'), 0, "p12" ),
 	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_ISOM_BOX_TYPE_CSTG, 0, "p15" ),
 
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VOID, void_dump),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VOID, void_dump , "dss"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_STSF, stsf_dump, "gpac"),
 	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_AMR, gppa_dump, "3gpp"),
 	BOX_DUMP_DEF_S( GF_ISOM_SUBTYPE_3GP_AMR_WB, gppa_dump, "3gpp"),
@@ -365,14 +365,13 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ILOC, iloc_dump, 2),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PITM, pitm_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IPRO, ipro_dump, 0),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_INFE, infe_dump, 1),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_INFE, infe_dump, 2),
+	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_INFE, infe_dump, 3),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IINF, iinf_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IREF, iref_dump, 1),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SINF, sinf_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FRMA, frma_dump),
 
-	{ GF_ISOM_BOX_TYPE_SCHM, schm_dump, 0, 0, 1 },
+	{ GF_ISOM_BOX_TYPE_SCHM, schm_dump, 0, 0, 1, "p12" },
 
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SCHI, schi_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCA, mp4a_dump),
@@ -5169,7 +5168,6 @@ GF_Err colr_dump(GF_Box *a, FILE * trace)
 	GF_ColourInformationBox *ptr = (GF_ColourInformationBox *)a;
 	if (!a) return GF_BAD_PARAM;
 	DumpBox(a, "ColourInformationBox", trace);
-	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "colour_type=\"%s\" colour_primaries=\"%d\" transfer_characteristics=\"%d\" matrix_coefficients=\"%d\" full_range_flag=\"%d\">\n", gf_4cc_to_str(ptr->colour_type), ptr->colour_primaries, ptr->transfer_characteristics, ptr->matrix_coefficients, ptr->full_range_flag);
 	gf_box_dump_done("ColourInformationBox", a, trace);
 	return GF_OK;
@@ -5208,7 +5206,6 @@ GF_Err irot_dump(GF_Box *a, FILE * trace)
 	GF_ImageRotationBox *ptr = (GF_ImageRotationBox *)a;
 	if (!a) return GF_BAD_PARAM;
 	DumpBox(a, "ImageRotationBox", trace);
-	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "angle=\"%d\">\n", (ptr->angle*90));
 	gf_box_dump_done("ImageRotationBox", a, trace);
 	return GF_OK;
