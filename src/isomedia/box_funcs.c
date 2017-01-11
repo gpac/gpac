@@ -965,8 +965,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return grpl_New();
 	case GF_ISOM_BOX_TYPE_GRPT:
 	case GF_ISOM_BOX_TYPE_ALTR:
-		a = grptype_New();
-		if (a) a->type = boxType;
+		a = grptype_New(boxType);
 		return a;
 
 	default:

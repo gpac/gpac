@@ -4796,7 +4796,7 @@ GF_Err stri_Write(GF_Box *s, GF_BitStream *bs);
 GF_Err stri_Size(GF_Box *s);
 GF_Err stri_dump(GF_Box *a, FILE * trace);
 
-GF_Box *grptype_New();
+GF_Box *grptype_New(u32 code);
 void grptype_del(GF_Box *s);
 GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs);
