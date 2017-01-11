@@ -1288,6 +1288,10 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
+	case GF_ISOM_BOX_TYPE_RINF:
+		if (ptr->rinf) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->rinf = (GF_RestrictedSchemeInfoBox *) a;
+		break;
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -1318,6 +1322,10 @@ GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *)p->scripts, bs);
 		if (e) return e;
 	}
+	if (p->rinf) {
+		e = gf_isom_box_write((GF_Box *)p->rinf, bs);
+		if (e) return e;
+	}
 	return gf_isom_box_array_write(s, p->protections, bs);
 }
 
@@ -1337,6 +1345,11 @@ GF_Err dims_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) p->scripts);
 		if (e) return e;
 		p->size += p->scripts->size;
+	}
+	if (p->rinf) {
+		e = gf_isom_box_size((GF_Box *) p->rinf);
+		if (e) return e;
+		p->size += p->rinf->size;
 	}
 	return gf_isom_box_array_size(s, p->protections);
 }

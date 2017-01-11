@@ -40,6 +40,7 @@ void gf_isom_sample_entry_init(GF_SampleEntryBox *ent)
 void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
 {
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)ent);
+	ent->internal_type = GF_ISOM_SAMPLE_ENTRY_VIDEO;
 	ent->horiz_res = ent->vert_res = 0x00480000;
 	ent->frames_per_sample = 1;
 	ent->bit_depth = 0x18;
@@ -104,6 +105,7 @@ void gf_isom_video_sample_entry_size(GF_VisualSampleEntryBox *ent)
 void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr)
 {
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)ptr);
+	ptr->internal_type = GF_ISOM_SAMPLE_ENTRY_AUDIO;
 
 	ptr->channel_count = 2;
 	ptr->bitspersample = 16;

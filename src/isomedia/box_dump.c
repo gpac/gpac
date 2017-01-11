@@ -233,6 +233,7 @@ static const struct box_def {
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TREF, tref_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MDIA, mdia_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFRA, mfra_dump),
+	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFRO, mfro_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TFRA, tfra_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ELNG, elng_dump, 0),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CHPL, chpl_dump, "apple"),
@@ -338,6 +339,7 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHE1, mp4v_dump, "p15"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVT1, mp4v_dump, "p15"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PASP, pasp_dump),
+	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CLAP, clap_dump),
 
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_FTAB, ftab_dump, "3gpp"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TX3G, tx3g_dump, "3gpp"),
@@ -356,8 +358,9 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_TENC, tenc_dump, "cenc"),
 
 	/* ISMA 1.0 Encryption and Authentication V 1.0 */
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IKMS, iKMS_dump, "isma"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ISFM, iSFM_dump, "isma"),
+	FBOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IKMS, iKMS_dump, 0, "isma"),
+	FBOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ISFM, iSFM_dump, 0, "isma"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_ISLT, iSLT_dump, "isma"),
 
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_META, meta_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_XML, xml_dump, 0),
@@ -369,6 +372,7 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IINF, iinf_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_IREF, iref_dump, 1),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SINF, sinf_dump),
+	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_RINF, sinf_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FRMA, frma_dump),
 
 	{ GF_ISOM_BOX_TYPE_SCHM, schm_dump, 0, 0, 1, "p12" },
@@ -476,10 +480,12 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPCO, ipco_dump, "iff"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPRP, iprp_dump, "iff"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IPMA, ipma_dump, "iff"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GRPL, grpl_dump, "iff")
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GRPL, grpl_dump, "iff"),
+	FBOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CCST, ccst_dump, 0, "iff"),
+	TRGT_DUMP_DEF(GF_ISOM_BOX_TYPE_GRPT, grptype_dump, GF_4CC('a','l','t','r'), 0, "iff")
+
 
 	//full boxes todo
-	//FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MFRO, mfro_dump, 0),
 	//FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ASSP, assp_dump, 1),
 	//FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_MERE, assp_dump, 0),
 	//FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_FIIN, fiin_dump, 0),
@@ -523,6 +529,8 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 				((GF_TrackGroupTypeBox*)a)->group_type = defined_box_types[idx].alt_4cc;
 			else if (a->type==GF_ISOM_BOX_TYPE_SGPD)
 				((GF_SampleGroupDescriptionBox*)a)->grouping_type = defined_box_types[idx].alt_4cc;
+			else if (a->type==GF_ISOM_BOX_TYPE_GRPT)
+				((GF_EntityToGroupTypeBox*)a)->grouping_type = defined_box_types[idx].alt_4cc;
 		}
 		if (defined_box_types[idx].max_version) {
 			((GF_FullBox *)a)->version = i;
@@ -1298,6 +1306,16 @@ GF_Err cslg_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ccst_dump(GF_Box *a, FILE * trace)
+{
+	GF_CodingConstraintsBox *p = (GF_CodingConstraintsBox *)a;
+	DumpBox(a, "CodingConstraintsBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "all_ref_pics_intra=\"%d\" intra_pred_used=\"%d\" max_ref_per_pic=\"%d\" reserved=\"%d\">\n", p->all_ref_pics_intra, p->intra_pred_used, p->max_ref_per_pic, p->reserved);
+	gf_box_dump_done("CodingConstraintsBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err stsh_dump(GF_Box *a, FILE * trace)
 {
 	GF_ShadowSyncBox *p;
@@ -1687,6 +1705,7 @@ GF_Err tfra_dump(GF_Box *a, FILE * trace)
 	u32 i;
 	GF_TrackFragmentRandomAccessBox *p = (GF_TrackFragmentRandomAccessBox *)a;
 	DumpBox(a, "TrackFragmentRandomAccessBox", trace);
+	gf_full_box_dump(a, trace);
 	fprintf(trace, "TrackId=\"%u\" number_of_entries=\"%u\">\n", p->track_id, p->nb_entries);
 	for (i=0; i<p->nb_entries; i++) {
 		fprintf(trace, "<RandomAccessEntry time=\""LLU"\" moof_offset=\""LLU"\" traf=\"%u\" trun=\"%u\" sample=\"%u\"/>\n",
@@ -1699,6 +1718,19 @@ GF_Err tfra_dump(GF_Box *a, FILE * trace)
 	gf_box_dump_done("TrackFragmentRandomAccessBox", a, trace);
 	return GF_OK;
 }
+
+GF_Err mfro_dump(GF_Box *a, FILE * trace)
+{
+	GF_MovieFragmentRandomAccessOffsetBox *p = (GF_MovieFragmentRandomAccessOffsetBox *)a;
+
+	DumpBox(a, "MovieFragmentRandomAccessOffsetBox", trace);
+	gf_full_box_dump(a, trace);
+
+	fprintf(trace, "container_size=\"%d\" >\n", p->container_size);
+	gf_box_dump_done("MovieFragmentRandomAccessOffsetBox", a, trace);
+	return GF_OK;
+}
+
 
 GF_Err elng_dump(GF_Box *a, FILE * trace)
 {
@@ -3697,6 +3729,7 @@ GF_Err schi_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, ">\n");
 	if (p->ikms) gf_box_dump(p->ikms, trace);
 	if (p->isfm) gf_box_dump(p->isfm, trace);
+	if (p->islt) gf_box_dump(p->islt, trace);
 	if (p->okms) gf_box_dump(p->okms, trace);
 	if (p->tenc) gf_box_dump(p->tenc, trace);
 	if (p->adkm) gf_box_dump(p->adkm, trace);
@@ -3725,6 +3758,16 @@ GF_Err iSFM_dump(GF_Box *a, FILE * trace)
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "selective_encryption=\"%d\" key_indicator_length=\"%d\" IV_length=\"%d\">\n", p->selective_encryption, p->key_indicator_length, p->IV_length);
 	gf_box_dump_done((char *)name, a, trace);
+	return GF_OK;
+}
+
+GF_Err iSLT_dump(GF_Box *a, FILE * trace)
+{
+	GF_ISMACrypSaltBox *p = (GF_ISMASampleFormatBox *)a;
+	DumpBox(a, "ISMACrypSaltBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "salt=\""LLU"\">\n", p->salt);
+	gf_box_dump_done("ISMACrypSaltBox", a, trace);
 	return GF_OK;
 }
 
@@ -4165,6 +4208,19 @@ GF_Err pasp_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, "PixelAspectRatioBox", trace);
 	fprintf(trace, "hSpacing=\"%d\" vSpacing=\"%d\" >\n", ptr->hSpacing, ptr->vSpacing);
 	gf_box_dump_done("PixelAspectRatioBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err clap_dump(GF_Box *a, FILE * trace)
+{
+	GF_CleanAppertureBox *ptr = (GF_CleanAppertureBox*)a;
+	DumpBox(a, "CleanAppertureBox", trace);
+	fprintf(trace, "cleanApertureWidthN=\"%d\" cleanApertureWidthD=\"%d\" ", ptr->cleanApertureWidthN, ptr->cleanApertureWidthD);
+	fprintf(trace, "cleanApertureHeightN=\"%d\" cleanApertureHeightD=\"%d\" ", ptr->cleanApertureHeightN, ptr->cleanApertureHeightD);
+	fprintf(trace, "horizOffN=\"%d\" horizOffD=\"%d\" ", ptr->horizOffN, ptr->horizOffD);
+	fprintf(trace, "vertOffN=\"%d\" vertOffD=\"%d\"", ptr->vertOffN, ptr->vertOffD);
+	fprintf(trace, ">\n");
+	gf_box_dump_done("CleanAppertureBox", a, trace);
 	return GF_OK;
 }
 
@@ -5051,7 +5107,7 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 	time_t secs;
 	struct tm t;
 	secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
-	if (secs < 0) {
+	if (ptr->size && (secs < 0)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0\n"));
 		secs = 0;
 	}
@@ -5285,6 +5341,24 @@ GF_Err grpl_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, "GroupListBox", trace);
 	fprintf(trace, ">\n");
 	gf_box_dump_done("GroupListBox", a, trace);
+	return GF_OK;
+}
+
+
+GF_Err grptype_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *) a;
+	a->type = ptr->grouping_type;
+	DumpBox(a, "EntityToGroupTypeBox", trace);
+	a->type = GF_ISOM_BOX_TYPE_GRPT;
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, "group_id=\"%d\" ", ptr->group_id);
+
+	fprintf(trace, "EntityIDs=\"");
+	for (i=0; i<ptr->entity_id_count ; i++) fprintf(trace, " %d", ptr->entity_ids[i]);
+	fprintf(trace, "\">\n");
+	gf_box_dump_done("EntityToGroupTypeBox", a, trace);
 	return GF_OK;
 }
 

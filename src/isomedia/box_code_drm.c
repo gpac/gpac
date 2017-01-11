@@ -250,6 +250,10 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->isfm) return GF_ISOM_INVALID_FILE;
 		ptr->isfm = (GF_ISMASampleFormatBox*)a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_ISLT:
+		if (ptr->islt) return GF_ISOM_INVALID_FILE;
+		ptr->islt = (GF_ISMACrypSaltBox*)a;
+		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ODKM:
 		if (ptr->okms) return GF_ISOM_INVALID_FILE;
 		ptr->okms = (GF_OMADRMKMSBox*)a;
@@ -297,6 +301,10 @@ GF_Err schi_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->isfm, bs);
 		if (e) return e;
 	}
+	if (ptr->islt) {
+		e = gf_isom_box_write((GF_Box *) ptr->islt, bs);
+		if (e) return e;
+	}
 	if (ptr->okms) {
 		e = gf_isom_box_write((GF_Box *) ptr->okms, bs);
 		if (e) return e;
@@ -331,6 +339,11 @@ GF_Err schi_Size(GF_Box *s)
 	}
 	if (ptr->isfm) {
 		e = gf_isom_box_size((GF_Box *) ptr->isfm);
+		if (e) return e;
+		ptr->size += ptr->isfm->size;
+	}
+	if (ptr->islt) {
+		e = gf_isom_box_size((GF_Box *) ptr->islt);
 		if (e) return e;
 		ptr->size += ptr->isfm->size;
 	}
@@ -467,6 +480,50 @@ GF_Err iSFM_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 3;
+	return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+/* ISMASampleFormat Box */
+GF_Box *iSLT_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ISMACrypSaltBox, GF_ISOM_BOX_TYPE_ISLT);
+	return (GF_Box *)tmp;
+}
+
+void iSLT_del(GF_Box *s)
+{
+	GF_ISMACrypSaltBox *ptr = (GF_ISMACrypSaltBox *)s;
+	if (ptr == NULL) return;
+	gf_free(ptr);
+}
+
+
+GF_Err iSLT_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ISMACrypSaltBox *ptr = (GF_ISMACrypSaltBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	ISOM_DECREASE_SIZE(ptr, 8);
+	ptr->salt = gf_bs_read_u64(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err iSLT_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ISMACrypSaltBox *ptr = (GF_ISMACrypSaltBox *)s;
+	if (!s) return GF_BAD_PARAM;
+	gf_bs_write_u64(bs, ptr->salt);
+	return GF_OK;
+}
+
+GF_Err iSLT_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 8;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

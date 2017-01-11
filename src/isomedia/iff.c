@@ -613,6 +613,78 @@ GF_Err grpl_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+void grptype_del(GF_Box *s)
+{
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	if (!ptr) return;
+	if (ptr->entity_ids) gf_free(ptr->entity_ids);
+	gf_free(ptr);
+}
+
+
+GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 bytesToRead;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+
+	bytesToRead = (u32) (ptr->size);
+	if (!bytesToRead) return GF_OK;
+	ptr->group_id = gf_bs_read_u32(bs);
+	ptr->entity_id_count = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 8)
+	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
+
+	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
+	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
+
+	for (i = 0; i < ptr->entity_ids; i++) {
+		ptr->entity_ids[i] = gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *grptype_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	ptr->type = ptr->grouping_type;
+	e = gf_isom_box_write_header(s, bs);
+	ptr->type = GF_ISOM_BOX_TYPE_GRPT;
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->group_id);
+	gf_bs_write_u32(bs, ptr->entity_id_count);
+
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		gf_bs_write_u32(bs, ptr->entity_ids[i]);
+	}
+	return GF_OK;
+}
+
+
+GF_Err grptype_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e;
