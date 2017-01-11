@@ -3290,8 +3290,8 @@ GF_Err tfra_Write(GF_Box *s, GF_BitStream *bs)
 			gf_bs_write_u64(bs, p->time);
 			gf_bs_write_u64(bs, p->moof_offset);
 		} else {
-			gf_bs_write_u32(bs, p->time);
-			gf_bs_write_u32(bs, p->moof_offset);
+			gf_bs_write_u32(bs, (u32) p->time);
+			gf_bs_write_u32(bs, (u32) p->moof_offset);
 		}
 		gf_bs_write_int(bs, p->traf_number, ptr->traf_bits);
 		gf_bs_write_int(bs, p->trun_number, ptr->trun_bits);
@@ -3302,7 +3302,6 @@ GF_Err tfra_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tfra_Size(GF_Box *s)
 {
-	u32 i;
 	GF_Err e;
 	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
 	e = gf_isom_full_box_get_size(s);
@@ -3349,7 +3348,6 @@ GF_Err mfro_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err mfro_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
 	GF_MovieFragmentRandomAccessOffsetBox *ptr = (GF_MovieFragmentRandomAccessOffsetBox *)s;
 
 	e = gf_isom_full_box_write(s, bs);
@@ -3361,7 +3359,6 @@ GF_Err mfro_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err mfro_Size(GF_Box *s)
 {
-	u32 i;
 	GF_Err e;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;

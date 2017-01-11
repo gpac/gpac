@@ -501,7 +501,6 @@ void iSLT_del(GF_Box *s)
 
 GF_Err iSLT_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ISMACrypSaltBox *ptr = (GF_ISMACrypSaltBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 	ISOM_DECREASE_SIZE(ptr, 8);
@@ -512,7 +511,6 @@ GF_Err iSLT_Read(GF_Box *s, GF_BitStream *bs)
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err iSLT_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ISMACrypSaltBox *ptr = (GF_ISMACrypSaltBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	gf_bs_write_u64(bs, ptr->salt);
