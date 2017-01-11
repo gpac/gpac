@@ -200,11 +200,15 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
 				}
 #endif
-				memset(&com, 0, sizeof(GF_NetworkCommand));
-				com.command_type = GF_NET_CHAN_NALU_MODE;
-				com.nalu_mode.extract_mode = 1;
-				com.base.on_channel = ch;
-				gf_term_service_command(ch->service, &com);
+				cap.CapCode = GF_CODEC_FORCE_ANNEXB;
+				gf_codec_get_capability(codec, &cap);
+				if (cap.cap.valueBool) {
+					memset(&com, 0, sizeof(GF_NetworkCommand));
+					com.command_type = GF_NET_CHAN_NALU_MODE;
+					com.nalu_mode.extract_mode = 1;
+					com.base.on_channel = ch;
+					gf_term_service_command(ch->service, &com);
+				}
 
 			}
 
