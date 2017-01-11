@@ -496,6 +496,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return ctts_New();
 	case GF_ISOM_BOX_TYPE_CSLG:
 		return cslg_New();
+	case GF_ISOM_BOX_TYPE_CCST:
+		return ccst_New();
 	case GF_ISOM_BOX_TYPE_STSH:
 		return stsh_New();
 	case GF_ISOM_BOX_TYPE_ELST:
@@ -529,6 +531,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return mdia_New();
 	case GF_ISOM_BOX_TYPE_MFRA:
 		return mfra_New();
+	case GF_ISOM_BOX_TYPE_MFRO:
+		return mfro_New();
 	case GF_ISOM_BOX_TYPE_TFRA:
 		return tfra_New();
 	case GF_ISOM_BOX_TYPE_ELNG:
@@ -716,6 +720,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return iKMS_New();
 	case GF_ISOM_BOX_TYPE_ISFM:
 		return iSFM_New();
+	case GF_ISOM_BOX_TYPE_ISLT:
+		return iSLT_New();
 
 	/* ISO FF extensions for MPEG-21 */
 	case GF_ISOM_BOX_TYPE_META:
@@ -737,7 +743,11 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_IREF:
 		return iref_New();
 	case GF_ISOM_BOX_TYPE_SINF:
-		return sinf_New();
+	case GF_ISOM_BOX_TYPE_RINF:
+		a = sinf_New();
+		if (a) a->type = boxType;
+		return a;
+
 	case GF_ISOM_BOX_TYPE_FRMA:
 		return frma_New();
 	case GF_ISOM_BOX_TYPE_SCHM:
@@ -827,6 +837,8 @@ GF_Box *gf_isom_box_new(u32 boxType)
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_New();
+	case GF_ISOM_BOX_TYPE_CLAP:
+		return clap_New();
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_New();
 	case GF_ISOM_BOX_TYPE_STRK:
@@ -951,6 +963,11 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return ipma_New();
 	case GF_ISOM_BOX_TYPE_GRPL:
 		return grpl_New();
+	case GF_ISOM_BOX_TYPE_GRPT:
+	case GF_ISOM_BOX_TYPE_ALTR:
+		a = grptype_New();
+		if (a) a->type = boxType;
+		return a;
 
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType) ));
@@ -1085,6 +1102,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_CSLG:
 		cslg_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_CCST:
+		ccst_del(a);
+		return;
 	case GF_ISOM_BOX_TYPE_STSH:
 		stsh_del(a);
 		return;
@@ -1133,6 +1153,9 @@ void gf_isom_box_del(GF_Box *a)
 		return;
 	case GF_ISOM_BOX_TYPE_TFRA:
 		tfra_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_MFRO:
+		mfro_del(a);
 		return;
 
 	case GF_ISOM_BOX_TYPE_ELNG:
@@ -1378,6 +1401,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ISFM:
 		iSFM_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_ISLT:
+		iSLT_del(a);
+		return;
 
 	/* ISO FF extensions for MPEG-21 */
 	case GF_ISOM_BOX_TYPE_META:
@@ -1408,6 +1434,7 @@ void gf_isom_box_del(GF_Box *a)
 		iref_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_SINF:
+	case GF_ISOM_BOX_TYPE_RINF:
 		sinf_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_FRMA:
@@ -1547,6 +1574,9 @@ void gf_isom_box_del(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		pasp_del(a);
+		return;
+	case GF_ISOM_BOX_TYPE_CLAP:
+		clap_del(a);
 		return;
 	case GF_ISOM_BOX_TYPE_TSEL:
 		tsel_del(a);
@@ -1704,6 +1734,9 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_GRPL:
 		grpl_del(a);
 		return;
+	case GF_ISOM_BOX_TYPE_GRPT:
+		grptype_del(a);
+		return;
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		unkn_del(a);
@@ -1782,6 +1815,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return ctts_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CSLG:
 		return cslg_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CCST:
+		return ccst_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STSH:
 		return stsh_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ELST:
@@ -1815,6 +1850,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return mfra_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TFRA:
 		return tfra_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MFRO:
+		return mfro_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CHPL:
@@ -1991,6 +2028,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return iKMS_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ISFM:
 		return iSFM_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_ISLT:
+		return iSLT_Read(a, bs);
 
 	/* ISO FF extensions for MPEG-21 */
 	case GF_ISOM_BOX_TYPE_META:
@@ -2012,6 +2051,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IREF:
 		return iref_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF:
+	case GF_ISOM_BOX_TYPE_RINF:
 		return sinf_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA:
 		return frma_Read(a, bs);
@@ -2103,6 +2143,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_CLAP:
+		return clap_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_STRK:
@@ -2214,6 +2256,8 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return ipma_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_GRPL:
 		return grpl_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPT:
+		return grptype_Read(a, bs);
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		return unkn_Read(a, bs);
@@ -2300,6 +2344,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return ctts_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_CSLG:
 		return cslg_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_CCST:
+		return ccst_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STSH:
 		return stsh_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ELST:
@@ -2329,6 +2375,12 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return tref_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_MFRO:
+		return mfro_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FTYP:
@@ -2502,6 +2554,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return iKMS_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ISFM:
 		return iSFM_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_ISLT:
+		return iSLT_Write(a, bs);
 
 	/* ISO FF extensions for MPEG-21 */
 	case GF_ISOM_BOX_TYPE_META:
@@ -2523,6 +2577,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_IREF:
 		return iref_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_SINF:
+	case GF_ISOM_BOX_TYPE_RINF:
 		return sinf_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_FRMA:
 		return frma_Write(a, bs);
@@ -2616,6 +2671,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_CLAP:
+		return clap_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_STRK:
@@ -2724,6 +2781,8 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return ipma_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_GRPL:
 		return grpl_Write(a, bs);
+	case GF_ISOM_BOX_TYPE_GRPT:
+		return grptype_Write(a, bs);
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		return unkn_Write(a, bs);
@@ -2819,6 +2878,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return ctts_Size(a);
 	case GF_ISOM_BOX_TYPE_CSLG:
 		return cslg_Size(a);
+	case GF_ISOM_BOX_TYPE_CCST:
+		return ccst_Size(a);
 	case GF_ISOM_BOX_TYPE_STSH:
 		return stsh_Size(a);
 	case GF_ISOM_BOX_TYPE_ELST:
@@ -2846,6 +2907,14 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return tref_Size(a);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Size(a);
+
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_Size(a);
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_Size(a);
+	case GF_ISOM_BOX_TYPE_MFRO:
+		return mfro_Size(a);
+
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_Size(a);
 	case GF_ISOM_BOX_TYPE_FTYP:
@@ -3020,6 +3089,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return iKMS_Size(a);
 	case GF_ISOM_BOX_TYPE_ISFM:
 		return iSFM_Size(a);
+	case GF_ISOM_BOX_TYPE_ISLT:
+		return iSLT_Size(a);
 
 	/* ISO FF extensions for MPEG-21 */
 	case GF_ISOM_BOX_TYPE_META:
@@ -3041,6 +3112,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_IREF:
 		return iref_Size(a);
 	case GF_ISOM_BOX_TYPE_SINF:
+	case GF_ISOM_BOX_TYPE_RINF:
 		return sinf_Size(a);
 	case GF_ISOM_BOX_TYPE_FRMA:
 		return frma_Size(a);
@@ -3132,6 +3204,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_PASP:
 		return pasp_Size(a);
+	case GF_ISOM_BOX_TYPE_CLAP:
+		return clap_Size(a);
 	case GF_ISOM_BOX_TYPE_TSEL:
 		return tsel_Size(a);
 	case GF_ISOM_BOX_TYPE_STRK:
@@ -3240,6 +3314,8 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return ipma_Size(a);
 	case GF_ISOM_BOX_TYPE_GRPL:
 		return grpl_Size(a);
+	case GF_ISOM_BOX_TYPE_GRPT:
+		return grptype_Size(a);
 
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		return unkn_Size(a);

@@ -2836,34 +2836,16 @@ GF_Err gf_isom_get_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 	if (entry == NULL) return GF_BAD_PARAM;
 
 	//valid for MPEG visual, JPG and 3GPP H263
-	switch (entry->type) {
-	case GF_ISOM_BOX_TYPE_ENCV:
-	case GF_ISOM_BOX_TYPE_MP4V:
-	case GF_ISOM_SUBTYPE_3GP_H263:
-	case GF_ISOM_BOX_TYPE_AVC1:
-	case GF_ISOM_BOX_TYPE_AVC2:
-	case GF_ISOM_BOX_TYPE_AVC3:
-	case GF_ISOM_BOX_TYPE_AVC4:
-	case GF_ISOM_BOX_TYPE_SVC1:
-	case GF_ISOM_BOX_TYPE_GNRV:
-	case GF_ISOM_BOX_TYPE_HVC1:
-	case GF_ISOM_BOX_TYPE_HEV1:
-	case GF_ISOM_BOX_TYPE_HVC2:
-	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_LHE1:
-	case GF_ISOM_BOX_TYPE_LHV1:
-	case GF_ISOM_BOX_TYPE_HVT1:
+	if (entry->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		*Width = ((GF_VisualSampleEntryBox*)entry)->Width;
 		*Height = ((GF_VisualSampleEntryBox*)entry)->Height;
-		return GF_OK;
-	default:
-		if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_SCENE) {
-			*Width = trak->Header->width>>16;
-			*Height = trak->Header->height>>16;
-			return GF_OK;
-		}
+	} else if (trak->Media->handler->handlerType==GF_ISOM_MEDIA_SCENE) {
+		*Width = trak->Header->width>>16;
+		*Height = trak->Header->height>>16;
+	} else {
 		return GF_BAD_PARAM;
 	}
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2884,23 +2866,13 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	//no support for generic sample entries (eg, no MPEG4 descriptor)
 	if (entry == NULL) return GF_BAD_PARAM;
 
-	switch (entry->type) {
-	case GF_ISOM_BOX_TYPE_ENCA:
-	case GF_ISOM_BOX_TYPE_MP4A:
-	case GF_ISOM_SUBTYPE_3GP_AMR:
-	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
-	case GF_ISOM_SUBTYPE_3GP_EVRC:
-	case GF_ISOM_SUBTYPE_3GP_QCELP:
-	case GF_ISOM_SUBTYPE_3GP_SMV:
-	case GF_ISOM_BOX_TYPE_AC3:
-	case GF_ISOM_BOX_TYPE_GNRA:
-		if (SampleRate) (*SampleRate) = ((GF_AudioSampleEntryBox*)entry)->samplerate_hi;
-		if (Channels) (*Channels) = ((GF_AudioSampleEntryBox*)entry)->channel_count;
-		if (bitsPerSample) (*bitsPerSample) = (u8) ((GF_AudioSampleEntryBox*)entry)->bitspersample;
-		return GF_OK;
-	default:
-		return GF_BAD_PARAM;
-	}
+	if (entry->type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
+
+	if (SampleRate) (*SampleRate) = ((GF_AudioSampleEntryBox*)entry)->samplerate_hi;
+	if (Channels) (*Channels) = ((GF_AudioSampleEntryBox*)entry)->channel_count;
+	if (bitsPerSample) (*bitsPerSample) = (u8) ((GF_AudioSampleEntryBox*)entry)->bitspersample;
+
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -2924,30 +2896,14 @@ GF_Err gf_isom_get_pixel_aspect_ratio(GF_ISOFile *movie, u32 trackNumber, u32 St
 	if (entry == NULL) return GF_OK;
 
 	//valid for MPEG visual, JPG and 3GPP H263
-	switch (entry->type) {
-	case GF_ISOM_BOX_TYPE_ENCV:
-	case GF_ISOM_BOX_TYPE_MP4V:
-	case GF_ISOM_SUBTYPE_3GP_H263:
-	case GF_ISOM_BOX_TYPE_AVC1:
-	case GF_ISOM_BOX_TYPE_AVC2:
-	case GF_ISOM_BOX_TYPE_AVC3:
-	case GF_ISOM_BOX_TYPE_AVC4:
-	case GF_ISOM_BOX_TYPE_SVC1:
-	case GF_ISOM_BOX_TYPE_GNRV:
-	case GF_ISOM_BOX_TYPE_HVC1:
-	case GF_ISOM_BOX_TYPE_HEV1:
-	case GF_ISOM_BOX_TYPE_HVC2:
-	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_LHE1:
-	case GF_ISOM_BOX_TYPE_LHV1:
-	case GF_ISOM_BOX_TYPE_HVT1:
+	if (entry->internal_type==GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		if (entry->pasp) {
 			*hSpacing = entry->pasp->hSpacing;
 			*vSpacing = entry->pasp->vSpacing;
 		}
 		return GF_OK;
-	default:
-		return GF_OK;
+	} else {
+		return GF_BAD_PARAM;
 	}
 }
 
@@ -3389,25 +3345,8 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex-1);
 	if (!entry ) return GF_BAD_PARAM;
-	switch (entry->type) {
-	case GF_ISOM_BOX_TYPE_MP4V:
-	case GF_ISOM_BOX_TYPE_AVC1:
-	case GF_ISOM_BOX_TYPE_AVC2:
-	case GF_ISOM_BOX_TYPE_AVC3:
-	case GF_ISOM_BOX_TYPE_AVC4:
-	case GF_ISOM_BOX_TYPE_SVC1:
-	case GF_ISOM_BOX_TYPE_ENCV:
-	case GF_ISOM_BOX_TYPE_HVC1:
-	case GF_ISOM_BOX_TYPE_HEV1:
-	case GF_ISOM_BOX_TYPE_HVC2:
-	case GF_ISOM_BOX_TYPE_HEV2:
-	case GF_ISOM_BOX_TYPE_LHE1:
-	case GF_ISOM_BOX_TYPE_LHV1:
-	case GF_ISOM_BOX_TYPE_HVT1:
-		break;
-	default:
-		return GF_BAD_PARAM;
-	}
+	if (entry->type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+
 	if (!entry->rvcc) return GF_BAD_PARAM;
 
 	*rvc_predefined = entry->rvcc->predefined_rvc_config;
