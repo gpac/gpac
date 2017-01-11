@@ -457,9 +457,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				}
 #endif
 
-				sprintf(szCodec, "mp4a.%02x.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
+				sprintf(szCodec, "mp4a.%02X.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
 			} else {
-				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
+				sprintf(szCodec, "mp4a.%02X", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		case GF_STREAM_VISUAL:
@@ -467,15 +467,15 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				sprintf(szCodec, "mp4v.%02x.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
+				sprintf(szCodec, "mp4v.%02X.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
 			} else
 #endif
 			{
-				sprintf(szCodec, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
+				sprintf(szCodec, "mp4v.%02X", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		default:
-			sprintf(szCodec, "mp4s.%02x", esd->decoderConfig->objectTypeIndication);
+			sprintf(szCodec, "mp4s.%02X", esd->decoderConfig->objectTypeIndication);
 			break;
 		}
 		gf_odf_desc_del((GF_Descriptor *)esd);
@@ -494,7 +494,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				subtype = GF_ISOM_SUBTYPE_AVC4_H264;
 		}
 		if (avcc) {
-			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			sprintf(szCodec, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -505,7 +505,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_svc_config_get(movie, track, 1);
 		if (avcc) {
-			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			sprintf(szCodec, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -555,7 +555,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 					res <<= 1;
 					val >>=1;
 				}
-				sprintf(szTemp, ".%x", res);
+				sprintf(szTemp, ".%X", res);
 				strcat(szCodec, szTemp);
 			}
 
@@ -569,26 +569,26 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			c |= hvcc->non_packed_constraint_flag << 5;
 			c |= hvcc->frame_only_constraint_flag << 4;
 			c |= (hvcc->constraint_indicator_flags >> 40);
-			sprintf(szTemp, ".%x", c);
+			sprintf(szTemp, ".%X", c);
 			strcat(szCodec, szTemp);
 			if (hvcc->constraint_indicator_flags & 0xFFFFFFFF) {
 				c = (hvcc->constraint_indicator_flags >> 32) & 0xFF;
-				sprintf(szTemp, ".%x", c);
+				sprintf(szTemp, ".%X", c);
 				strcat(szCodec, szTemp);
 				if (hvcc->constraint_indicator_flags & 0x00FFFFFF) {
 					c = (hvcc->constraint_indicator_flags >> 24) & 0xFF;
-					sprintf(szTemp, ".%x", c);
+					sprintf(szTemp, ".%X", c);
 					strcat(szCodec, szTemp);
 					if (hvcc->constraint_indicator_flags & 0x0000FFFF) {
 						c = (hvcc->constraint_indicator_flags >> 16) & 0xFF;
-						sprintf(szTemp, ".%x", c);
+						sprintf(szTemp, ".%X", c);
 						strcat(szCodec, szTemp);
 						if (hvcc->constraint_indicator_flags & 0x000000FF) {
 							c = (hvcc->constraint_indicator_flags >> 8) & 0xFF;
-							sprintf(szTemp, ".%x", c);
+							sprintf(szTemp, ".%X", c);
 							strcat(szCodec, szTemp);
 							c = (hvcc->constraint_indicator_flags ) & 0xFF;
-							sprintf(szTemp, ".%x", c);
+							sprintf(szTemp, ".%X", c);
 							strcat(szCodec, szTemp);
 						}
 					}
