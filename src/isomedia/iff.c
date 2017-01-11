@@ -624,9 +624,13 @@ void grptype_del(GF_Box *s)
 
 GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	u32 bytesToRead;
 	u32 i;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
 
 	bytesToRead = (u32) (ptr->size);
 	if (!bytesToRead) return GF_OK;
@@ -638,15 +642,16 @@ GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
 	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
 
-	for (i = 0; i<ptr->entity_id_count; i++) {
+	for (i = 0; i < ptr->entity_id_count; i++) {
 		ptr->entity_ids[i] = gf_bs_read_u32(bs);
 	}
 	return GF_OK;
 }
 
-GF_Box *grptype_New()
+GF_Box *grptype_New(u32 code)
 {
 	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
+	tmp->grouping_type = code;
 	return (GF_Box *)tmp;
 }
 
@@ -658,9 +663,9 @@ GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
 	ptr->type = ptr->grouping_type;
-	e = gf_isom_box_write_header(s, bs);
-	ptr->type = GF_ISOM_BOX_TYPE_GRPT;
+	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
+	ptr->type = GF_ISOM_BOX_TYPE_GRPT;
 
 	gf_bs_write_u32(bs, ptr->group_id);
 	gf_bs_write_u32(bs, ptr->entity_id_count);
@@ -676,7 +681,7 @@ GF_Err grptype_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
-	e = gf_isom_box_get_size(s);
+	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
 	return GF_OK;

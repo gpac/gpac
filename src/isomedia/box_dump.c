@@ -5107,7 +5107,7 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 	time_t secs;
 	struct tm t;
 	secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
-	if (ptr->size && (secs < 0)) {
+	if (secs < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0\n"));
 		secs = 0;
 	}
