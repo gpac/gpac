@@ -557,8 +557,7 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         capability->cap.valueInt = ctx->pixel_ar;
         break;
     case GF_CODEC_OUTPUT_SIZE:
-
-        capability->cap.valueInt = ctx->out_size;
+	capability->cap.valueInt = ctx->out_size;
         break;
     case GF_CODEC_PIXEL_FORMAT:
         capability->cap.valueInt = ctx->pix_fmt;    
@@ -583,6 +582,9 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
     case GF_CODEC_FRAME_OUTPUT:
         capability->cap.valueInt = 1;                   
         break;
+	case GF_CODEC_FORCE_ANNEXB:
+		capability->cap.valueInt = 1;
+		break;
 	/*not known at our level...*/
     case GF_CODEC_CU_DURATION:                             
     default:
@@ -836,10 +838,10 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                         LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
                         ctx->outputEOS = true;
                     }
-					 LOGI("OutputIndex: %d", ctx->outIndex);
-                    size_t outSize;
+					 
+		    size_t outSize;
                     uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
-					ctx->frame = buffer + ctx->info.offset;
+		    ctx->frame = buffer + ctx->info.offset;
 					
                     if(!ctx->frame) {
                         LOGI("AMediaCodec_getOutputBuffer failed");
@@ -877,11 +879,7 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 
 
         case GPAC_OTI_VIDEO_HEVC:
-
-            if(sdkInt() >= 21){
-                return GF_CODEC_SUPPORTED;
-            }
-            return GF_CODEC_NOT_SUPPORTED;
+	    return GF_CODEC_NOT_SUPPORTED;
 
 
         case GPAC_OTI_VIDEO_MPEG4_PART2:
