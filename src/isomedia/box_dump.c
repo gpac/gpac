@@ -3763,7 +3763,7 @@ GF_Err iSFM_dump(GF_Box *a, FILE * trace)
 
 GF_Err iSLT_dump(GF_Box *a, FILE * trace)
 {
-	GF_ISMACrypSaltBox *p = (GF_ISMASampleFormatBox *)a;
+	GF_ISMACrypSaltBox *p = (GF_ISMACrypSaltBox *)a;
 	DumpBox(a, "ISMACrypSaltBox", trace);
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "salt=\""LLU"\">\n", p->salt);

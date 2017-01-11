@@ -638,7 +638,7 @@ GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
 	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
 
-	for (i = 0; i < ptr->entity_ids; i++) {
+	for (i = 0; i<ptr->entity_id_count; i++) {
 		ptr->entity_ids[i] = gf_bs_read_u32(bs);
 	}
 	return GF_OK;
