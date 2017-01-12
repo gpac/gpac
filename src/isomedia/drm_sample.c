@@ -120,17 +120,17 @@ GF_Err gf_isom_ismacryp_sample_to_sample(GF_ISMASample *s, GF_ISOSample *dest)
 	return GF_OK;
 }
 
-static GF_ProtectionInfoBox *isom_get_sinf_entry(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 scheme_type, GF_SampleEntryBox **out_sea)
+static GF_ProtectionSchemeInfoBox *isom_get_sinf_entry(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 scheme_type, GF_SampleEntryBox **out_sea)
 {
 	u32 i=0;
 	GF_SampleEntryBox *sea=NULL;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
 	if (!sea) return NULL;
 
 	i = 0;
-	while ((sinf = (GF_ProtectionInfoBox*)gf_list_enum(sea->protections, &i))) {
+	while ((sinf = (GF_ProtectionSchemeInfoBox*)gf_list_enum(sea->protections, &i))) {
 		if (sinf->original_format && sinf->scheme_type && sinf->info) {
 			if (!scheme_type || (sinf->scheme_type->scheme_type == scheme_type)) {
 				if (out_sea)
@@ -147,7 +147,7 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber
 {
 	GF_TrackBox *trak;
 	GF_ISMASampleFormatBox *fmt;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return NULL;
@@ -180,7 +180,7 @@ GF_EXPORT
 u32 gf_isom_is_media_encrypted(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return 0;
@@ -197,7 +197,7 @@ GF_EXPORT
 Bool gf_isom_is_ismacryp_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
@@ -216,7 +216,7 @@ GF_EXPORT
 Bool gf_isom_is_omadrm_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
@@ -236,7 +236,7 @@ GF_EXPORT
 GF_Err gf_isom_get_ismacryp_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, const char **outSchemeURI, const char **outKMS_URI, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -277,7 +277,7 @@ GF_Err gf_isom_get_omadrm_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample
                                const char **outContentID, const char **outRightsIssuerURL, const char **outTextualHeaders, u32 *outTextualHeadersLen, u64 *outPlaintextLength, u32 *outEncryptionType, Bool *outSelectiveEncryption, u32 *outIVLength, u32 *outKeyIndicationLength)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -321,7 +321,7 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_SampleEntryBox *sea;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -353,7 +353,7 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_SampleEntryBox *sea;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -378,12 +378,12 @@ GF_Err gf_isom_change_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber,
 
 
 static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u8 version, u32 flags,
-        u32 scheme_type, u32 scheme_version, char *scheme_uri, Bool is_isma, GF_ProtectionInfoBox **out_sinf)
+        u32 scheme_type, u32 scheme_version, char *scheme_uri, Bool is_isma, GF_ProtectionSchemeInfoBox **out_sinf)
 {
 	u32 original_format;
 	GF_Err e;
 	GF_SampleEntryBox *sea;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
@@ -440,7 +440,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		return GF_BAD_PARAM;
 	}
 
-	sinf = (GF_ProtectionInfoBox *)sinf_New();
+	sinf = (GF_ProtectionSchemeInfoBox *)sinf_New();
 	gf_list_add(sea->protections, sinf);
 
 	sinf->scheme_type = (GF_SchemeTypeBox *)schm_New();
@@ -468,7 +468,7 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
                                        Bool selective_encryption, u32 KI_length, u32 IV_length)
 {
 	GF_Err e;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	//setup generic protection
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_TRUE, &sinf);
@@ -493,7 +493,7 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
                                   char *contentID, char *kms_URI, u32 encryption_type, u64 plainTextLength, char *textual_headers, u32 textual_headers_len,
                                   Bool selective_encryption, u32 KI_length, u32 IV_length)
 {
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 	GF_Err e;
 
 	//setup generic protection
@@ -526,7 +526,7 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 {
 	GF_TrackBox *trak;
 	GF_SampleEntryBox *sea;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -534,7 +534,7 @@ GF_Err gf_isom_get_original_format_type(GF_ISOFile *the_file, u32 trackNumber, u
 	Media_GetSampleDesc(trak->Media, sampleDescriptionIndex, &sea, NULL);
 	if (!sea) return GF_BAD_PARAM;
 
-	sinf = (GF_ProtectionInfoBox*)gf_list_get(sea->protections, 0);
+	sinf = (GF_ProtectionSchemeInfoBox*)gf_list_get(sea->protections, 0);
 	if (outOriginalFormat && sinf->original_format) {
 		*outOriginalFormat = sinf->original_format->data_format;
 	}
@@ -547,7 +547,7 @@ GF_EXPORT
 Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
@@ -571,7 +571,7 @@ GF_EXPORT
 GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion, u32 *outIVLength)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -609,7 +609,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 								    u8 default_constant_IV_size, bin128 default_constant_IV)
 {
 	GF_Err e;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	//setup generic protection
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
@@ -1238,7 +1238,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 
 void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID)
 {
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	if (default_IsEncrypted) *default_IsEncrypted = 0;
 	if (default_IV_size) *default_IV_size = 0;
@@ -1268,7 +1268,7 @@ void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 
 void gf_isom_cenc_get_default_pattern_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u8 *default_crypt_byte_block, u8 *default_skip_byte_block)
 {
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	if (default_crypt_byte_block) *default_crypt_byte_block = 0;
 	if (default_skip_byte_block) *default_skip_byte_block = 0;
@@ -1297,7 +1297,7 @@ void gf_isom_cenc_get_default_pattern_info(GF_ISOFile *the_file, u32 trackNumber
 */
 GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type, u32 scheme_version, Bool is_selective_enc, char *metadata, u32 len)
 {
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	//setup generic protection
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1344,7 +1344,7 @@ GF_EXPORT
 Bool gf_isom_is_adobe_protection_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
@@ -1364,7 +1364,7 @@ GF_EXPORT
 GF_Err gf_isom_get_adobe_protection_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *outOriginalFormat, u32 *outSchemeType, u32 *outSchemeVersion)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
@@ -1387,7 +1387,7 @@ GF_EXPORT
 Bool gf_isom_cenc_is_pattern_mode(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
 {
 	GF_TrackBox *trak;
-	GF_ProtectionInfoBox *sinf;
+	GF_ProtectionSchemeInfoBox *sinf;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;

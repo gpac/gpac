@@ -1686,7 +1686,7 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionInfoBox *sinf = (GF_ProtectionInfoBox *) gf_list_get(entry->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 
@@ -1720,7 +1720,7 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	type = entry->type;
 
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
-		GF_ProtectionInfoBox *sinf = (GF_ProtectionInfoBox *) gf_list_get(entry->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
 
