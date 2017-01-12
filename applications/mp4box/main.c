@@ -102,7 +102,7 @@ void PrintBuiltInNodes(u32 graph_type);
 void PrintBuiltInBoxes();
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name);
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name);
 #endif
 
 
@@ -4298,7 +4298,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_isom) {
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+		if (e) goto err_exit;
+	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if ((dump_ttxt || dump_srt) && trackID)
 		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
