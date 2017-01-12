@@ -761,8 +761,9 @@ void PrintBuiltInBoxes()
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
 
-void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name)
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name)
 {
+	GF_Err e;
 	FILE *dump;
 	char szBuf[1024];
 
@@ -773,14 +774,19 @@ void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name)
 		}
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
+			e = GF_IO_ERR;
 			fprintf(stderr, "Failed to open %s\n", szBuf);
 		} else {
-			gf_isom_dump(file, dump);
+			e = gf_isom_dump(file, dump);
+			if (e) {
+				fprintf(stderr, "Error dumping ISO structure\n");
+			}
 			gf_fclose(dump);
 		}
 	} else {
-		gf_isom_dump(file, stdout);
+		e = gf_isom_dump(file, stdout);
 	}
+	return e;
 }
 #endif
 
