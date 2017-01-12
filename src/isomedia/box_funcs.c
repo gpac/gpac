@@ -300,7 +300,6 @@ GF_Err gf_isom_full_box_get_size(GF_Box *ptr)
 	return GF_OK;
 }
 
-
 GF_EXPORT
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 {
@@ -391,6 +390,7 @@ GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs)
 	return GF_OK;
 }
 
+
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 {
 	GF_Err e;
@@ -414,6 +414,8 @@ GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 
 GF_EXPORT
 GF_Box *gf_isom_box_new(u32 boxType)
@@ -444,9 +446,6 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return smhd_New();
 	case GF_ISOM_BOX_TYPE_HMHD:
 		return hmhd_New();
-	case GF_ISOM_BOX_TYPE_ODHD:
-	case GF_ISOM_BOX_TYPE_CRHD:
-	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 	case GF_ISOM_BOX_TYPE_STHD:
 		a = nmhd_New();
@@ -675,6 +674,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
 	case GF_ISOM_BOX_TYPE_AVC3:
@@ -687,7 +687,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_LHE1:
 	case GF_ISOM_BOX_TYPE_HVT1:
-		return mp4v_encv_avc_hevc_new(boxType);
+		return mpeg_video_New(boxType);
 
 	/*3GPP streaming text*/
 	case GF_ISOM_BOX_TYPE_FTAB:
@@ -965,8 +965,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return grpl_New();
 	case GF_ISOM_BOX_TYPE_GRPT:
 	case GF_ISOM_BOX_TYPE_ALTR:
-		a = grptype_New(boxType);
-		return a;
+		return grptype_New(boxType);
 
 	default:
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown box type %s\n", gf_4cc_to_str(boxType) ));
@@ -1024,9 +1023,6 @@ void gf_isom_box_del(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_HMHD:
 		hmhd_del(a);
 		return;
-	case GF_ISOM_BOX_TYPE_ODHD:
-	case GF_ISOM_BOX_TYPE_CRHD:
-	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 	case GF_ISOM_BOX_TYPE_STHD:
 		nmhd_del(a);
@@ -1448,7 +1444,7 @@ void gf_isom_box_del(GF_Box *a)
 
 	case GF_ISOM_BOX_TYPE_ENCA:
 	{
-		GF_ProtectionInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
 		if (sinf) {
 			a->type = sinf->original_format->data_format;
 		}
@@ -1456,8 +1452,9 @@ void gf_isom_box_del(GF_Box *a)
 		return;
 	}
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 	{
-		GF_ProtectionInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
 		if (sinf) {
 			a->type = sinf->original_format->data_format;
 		}
@@ -1466,7 +1463,7 @@ void gf_isom_box_del(GF_Box *a)
 	}
 	case GF_ISOM_BOX_TYPE_ENCS:
 	{
-		GF_ProtectionInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
+		GF_ProtectionSchemeInfoBox *sinf = gf_list_get(((GF_SampleEntryBox *)a)->protections, 0);
 		if (sinf) {
 			a->type = sinf->original_format->data_format;
 		}
@@ -1770,9 +1767,6 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return smhd_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_HMHD:
 		return hmhd_Read(a, bs);
-	case GF_ISOM_BOX_TYPE_ODHD:
-	case GF_ISOM_BOX_TYPE_CRHD:
-	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Read(a, bs);
@@ -2061,6 +2055,7 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA:
 		return mp4a_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 		return mp4v_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS:
 		return mp4s_Read(a, bs);
@@ -2291,9 +2286,6 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 		return smhd_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_HMHD:
 		return hmhd_Write(a, bs);
-	case GF_ISOM_BOX_TYPE_ODHD:
-	case GF_ISOM_BOX_TYPE_CRHD:
-	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Write(a, bs);
@@ -2587,6 +2579,7 @@ GF_Err gf_isom_box_write_listing(GF_Box *a, GF_BitStream *bs)
 	case GF_ISOM_BOX_TYPE_ENCA:
 		return mp4a_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 		return mp4v_Write(a, bs);
 	case GF_ISOM_BOX_TYPE_ENCS:
 		return mp4s_Write(a, bs);
@@ -2825,9 +2818,6 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 		return smhd_Size(a);
 	case GF_ISOM_BOX_TYPE_HMHD:
 		return hmhd_Size(a);
-	case GF_ISOM_BOX_TYPE_ODHD:
-	case GF_ISOM_BOX_TYPE_CRHD:
-	case GF_ISOM_BOX_TYPE_SDHD:
 	case GF_ISOM_BOX_TYPE_NMHD:
 	case GF_ISOM_BOX_TYPE_STHD:
 		return nmhd_Size(a);
@@ -3122,6 +3112,7 @@ static GF_Err gf_isom_box_size_listing(GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCA:
 		return mp4a_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 		return mp4v_Size(a);
 	case GF_ISOM_BOX_TYPE_ENCS:
 		return mp4s_Size(a);

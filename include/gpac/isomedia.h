@@ -532,7 +532,7 @@ u32 gf_isom_get_media_type(GF_ISOFile *the_file, u32 trackNumber);
 /*return the media type FOUR CHAR code type of the media*/
 u32 gf_isom_get_media_subtype(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-/*return the media type FOUR CHAR code type of an MPEG4 media (eg, mp4a, mp4v, enca, encv, etc...)
+/*return the media type FOUR CHAR code type of an MPEG4 media (eg, mp4a, mp4v, enca, encv, resv, etc...)
 returns 0 if not MPEG-4 subtype*/
 u32 gf_isom_get_mpeg4_subtype(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 

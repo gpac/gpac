@@ -783,7 +783,9 @@ void unkn_del(GF_Box *s)
 
 GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 bytesToRead;
+	GF_Err e;
+	u32 bytesToRead, sub_size, sub_a, is_ok;
+	GF_BitStream *sub_bs;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
 	bytesToRead = (u32) (ptr->size);
@@ -799,6 +801,34 @@ GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr->data == NULL ) return GF_OUT_OF_MEM;
 	ptr->dataSize = bytesToRead;
 	gf_bs_read_data(bs, ptr->data, ptr->dataSize);
+
+	//try to parse container boxes, check if next 8 bytes match a subbox
+	sub_bs = gf_bs_new(ptr->data, ptr->dataSize, GF_BITSTREAM_READ);
+	sub_size = gf_bs_read_u32(sub_bs);
+	sub_a = gf_bs_read_u8(sub_bs);
+	e = (sub_size <= ptr->dataSize) ? GF_OK : GF_NOT_SUPPORTED;
+	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
+	sub_a = gf_bs_read_u8(sub_bs);
+	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
+	sub_a = gf_bs_read_u8(sub_bs);
+	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
+	sub_a = gf_bs_read_u8(sub_bs);
+	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
+
+	if (e == GF_OK) {
+		gf_bs_seek(sub_bs, 0);
+		e = gf_isom_read_box_list(s, sub_bs, gf_isom_box_add_default);
+	}
+	gf_bs_del(sub_bs);
+	if (e==GF_OK) {
+		gf_free(ptr->data);
+		ptr->data = NULL;
+		ptr->dataSize = 0;
+	} else if (s->other_boxes) {
+		gf_isom_box_array_del(s->other_boxes);
+		s->other_boxes=NULL;
+	}
+
 	return GF_OK;
 }
 
@@ -3896,10 +3926,6 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
-	case GF_ISOM_BOX_TYPE_RINF:
-		if (ptr->rinf) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->rinf = (GF_RestrictedSchemeInfoBox *) a;
-		break;
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			/*HACK for QT files: get the esds box from the track*/
@@ -3994,10 +4020,6 @@ GF_Err mp4a_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
 	if (e) return e;
 
-	if (ptr->rinf) {
-		e = gf_isom_box_write((GF_Box *)ptr->rinf, bs);
-		if (e) return e;
-	}
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
@@ -4013,11 +4035,6 @@ GF_Err mp4a_Size(GF_Box *s)
 	e = gf_isom_box_size((GF_Box *)ptr->esd);
 	if (e) return e;
 	ptr->size += ptr->esd->size;
-	if (ptr->rinf) {
-		e = gf_isom_box_size((GF_Box *)ptr->rinf);
-		if (e) return e;
-		ptr->size += ptr->rinf->size;
-	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }
 
@@ -4045,10 +4062,6 @@ GF_Err mp4s_AddBox(GF_Box *s, GF_Box *a)
 		break;
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
-		break;
-	case GF_ISOM_BOX_TYPE_RINF:
-		if (ptr->rinf) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->rinf = (GF_RestrictedSchemeInfoBox *) a;
 		break;
 	default:
 		return gf_isom_box_add_default(s, a);
@@ -4093,10 +4106,6 @@ GF_Err mp4s_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->dataReferenceIndex);
 	e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
 	if (e) return e;
-	if (ptr->rinf) {
-		e = gf_isom_box_write((GF_Box *)ptr->rinf, bs);
-		if (e) return e;
-	}
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
@@ -4111,11 +4120,6 @@ GF_Err mp4s_Size(GF_Box *s)
 	e = gf_isom_box_size((GF_Box *)ptr->esd);
 	if (e) return e;
 	ptr->size += ptr->esd->size;
-	if (ptr->rinf) {
-		e = gf_isom_box_size((GF_Box *)ptr->rinf);
-		if (e) return e;
-		ptr->size += ptr->rinf->size;
-	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }
 
@@ -4221,7 +4225,7 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *mp4v_encv_avc_hevc_new(u32 type)
+GF_Box *mpeg_video_New(u32 type)
 {
 	GF_MPEGVisualSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_MPEGVisualSampleEntryBox);
@@ -5594,6 +5598,7 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_ENCA:
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 	case GF_ISOM_BOX_TYPE_GHNT:
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
 	case GF_ISOM_BOX_TYPE_AVC1:
@@ -6927,6 +6932,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_MP4V:
 		case GF_ISOM_BOX_TYPE_ENCV:
+		case GF_ISOM_BOX_TYPE_RESV:
 		case GF_ISOM_SUBTYPE_3GP_AMR:
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
@@ -8394,10 +8400,6 @@ GF_Err metx_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
-	case GF_ISOM_BOX_TYPE_RINF:
-		if (ptr->rinf) ERROR_ON_DUPLICATED_BOX(a, ptr)
-		ptr->rinf = (GF_RestrictedSchemeInfoBox *) a;
-		break;
 	case GF_ISOM_BOX_TYPE_TXTC:
 		//we allow the config box on metx
 		if (ptr->config) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -8526,10 +8528,6 @@ GF_Err metx_Write(GF_Box *s, GF_BitStream *bs)
 			gf_isom_box_write((GF_Box *)ptr->config, bs);
 		}
 	}
-	if (ptr->rinf) {
-		e = gf_isom_box_write((GF_Box *)ptr->rinf, bs);
-		if (e) return e;
-	}
 
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
@@ -8575,12 +8573,6 @@ GF_Err metx_Size(GF_Box *s)
 			if (e) return e;
 			ptr->size += ptr->config->size;
 		}
-	}
-
-	if (ptr->rinf) {
-		e = gf_isom_box_size((GF_Box *)ptr->rinf);
-		if (e) return e;
-		ptr->size += ptr->rinf->size;
 	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }

@@ -189,10 +189,6 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_VMHD, vmhd_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SMHD, smhd_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_HMHD, hmhd_dump, 0),
-	//the same box is used for all MPEG4 systems streams
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ODHD, nmhd_dump, 0),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CRHD, nmhd_dump, 0),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SDHD, nmhd_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_NMHD, nmhd_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STHD, nmhd_dump, 0),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_STBL, stbl_dump),
@@ -205,7 +201,7 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_IODS, iods_dump, "p14"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRAK, trak_dump),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4S, mp4s_dump, "p14"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4V, mp4v_dump, "p14"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4V, mpeg_video_dump, "p14"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_MP4A, mp4a_dump, "p14"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRM, gnrm_dump, "gpac"),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_GNRV, gnrv_dump, "gpac"),
@@ -237,7 +233,7 @@ static const struct box_def {
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TFRA, tfra_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ELNG, elng_dump, 0),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_CHPL, chpl_dump, "apple"),
-	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PDIN, dpin_dump, 0),
+	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PDIN, pdin_dump, 0),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SBGP, sbgp_dump, 1),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SGPD, sgpd_dump, 2),
 
@@ -304,7 +300,7 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_RVCC, rvcc_dump, "rvc"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGR, trgr_dump),
 
-	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_4CC('m','s','r','c'), 0, "p12" ),
+	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_ISOM_BOX_TYPE_MSRC, 0, "p12" ),
 	TRGT_DUMP_DEF( GF_ISOM_BOX_TYPE_TRGT, trgt_dump, GF_ISOM_BOX_TYPE_CSTG, 0, "p15" ),
 
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_VOID, void_dump , "dss"),
@@ -326,18 +322,18 @@ static const struct box_def {
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHVC, hvcc_dump, "p15"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_BTRT, btrt_dump),
 	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_M4DS, m4ds_dump, "p14"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC2, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC3, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC4, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_SVC1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC2, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV2, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHV1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHE1, mp4v_dump, "p15"),
-	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVT1, mp4v_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC2, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC3, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_AVC4, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_SVC1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVC2, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HEV2, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHV1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_LHE1, mpeg_video_dump, "p15"),
+	BOX_DUMP_DEF_S( GF_ISOM_BOX_TYPE_HVT1, mpeg_video_dump, "p15"),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PASP, pasp_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_CLAP, clap_dump),
 
@@ -379,7 +375,8 @@ static const struct box_def {
 
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_SCHI, schi_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCA, mp4a_dump),
-	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCV, mp4v_dump),
+	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCV, mpeg_video_dump),
+	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_RESV, mpeg_video_dump),
 	BOX_DUMP_DEF( GF_ISOM_BOX_TYPE_ENCS, mp4s_dump),
 	FBOX_DUMP_DEF( GF_ISOM_BOX_TYPE_PRFT, prft_dump, 1),
 
@@ -991,7 +988,7 @@ GF_Err chpl_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-GF_Err dpin_dump(GF_Box *a, FILE * trace)
+GF_Err pdin_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
 	GF_ProgressiveDownloadBox *p = (GF_ProgressiveDownloadBox *)a;
@@ -1104,7 +1101,7 @@ void base_visual_entry_dump(GF_VisualSampleEntryBox *p, FILE * trace)
 
 }
 
-GF_Err mp4v_dump(GF_Box *a, FILE * trace)
+GF_Err mpeg_video_dump(GF_Box *a, FILE * trace)
 {
 	GF_MPEGVisualSampleEntryBox *p = (GF_MPEGVisualSampleEntryBox *)a;
 	const char *name = p->avc_config ? "AVCSampleEntryBox" : "MPEGVisualSampleDescriptionBox";
@@ -1128,6 +1125,7 @@ GF_Err mp4v_dump(GF_Box *a, FILE * trace)
 	}
 	if (p->pasp) gf_box_dump(p->pasp, trace);
 	if (p->rvcc) gf_box_dump(p->rvcc, trace);
+	if (p->rinf) gf_box_dump(p->rinf, trace);
 
 	gf_box_dump_done((char *)name, a, trace);
 	return GF_OK;
@@ -1154,6 +1152,7 @@ GF_Err mp4a_dump(GF_Box *a, FILE * trace)
 	} else if (p->size) {
 		fprintf(trace, "<!--INVALID MP4 FILE: ESDBox not present in MPEG Sample Description or corrupted-->\n");
 	}
+
 	if (a->type == GF_ISOM_BOX_TYPE_ENCA) {
 		gf_box_array_dump(p->protections, trace);
 	}
@@ -3683,9 +3682,9 @@ GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDum
 /* ISMA 1.0 Encryption and Authentication V 1.0  dump */
 GF_Err sinf_dump(GF_Box *a, FILE * trace)
 {
-	GF_ProtectionInfoBox *p;
-	p = (GF_ProtectionInfoBox *)a;
-	DumpBox(a, "ProtectionInfoBox", trace);
+	GF_ProtectionSchemeInfoBox *p;
+	p = (GF_ProtectionSchemeInfoBox *)a;
+	DumpBox(a, "ProtectionSchemeInfoBox", trace);
 	fprintf(trace, ">\n");
 	if (p->size)
 		gf_box_dump_ex(p->original_format, trace, GF_ISOM_BOX_TYPE_FRMA);
@@ -3693,7 +3692,7 @@ GF_Err sinf_dump(GF_Box *a, FILE * trace)
 		gf_box_dump_ex(p->scheme_type, trace, GF_ISOM_BOX_TYPE_SCHM);
 	if (p->size)
 		gf_box_dump_ex(p->info, trace, GF_ISOM_BOX_TYPE_SCHI);
-	gf_box_dump_done("ProtectionInfoBox", a, trace);
+	gf_box_dump_done("ProtectionSchemeInfoBox", a, trace);
 	return GF_OK;
 }
 
@@ -5108,7 +5107,9 @@ GF_Err prft_dump(GF_Box *a, FILE * trace)
 	struct tm t;
 	secs = (ptr->ntp >> 32) - GF_NTP_SEC_1900_TO_1970;
 	if (secs < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0\n"));
+		if (ptr->size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("NTP time is not valid, using value 0\n"));
+		}
 		secs = 0;
 	}
 	t = *gmtime(&secs);

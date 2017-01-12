@@ -30,13 +30,13 @@
 /* ProtectionInfo Box */
 GF_Box *sinf_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_ProtectionInfoBox, GF_ISOM_BOX_TYPE_SINF);
+	ISOM_DECL_BOX_ALLOC(GF_ProtectionSchemeInfoBox, GF_ISOM_BOX_TYPE_SINF);
 	return (GF_Box *)tmp;
 }
 
 void sinf_del(GF_Box *s)
 {
-	GF_ProtectionInfoBox *ptr = (GF_ProtectionInfoBox *)s;
+	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
 	if (ptr == NULL) return;
 	if (ptr->original_format) gf_isom_box_del((GF_Box *)ptr->original_format);
 	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
@@ -46,7 +46,7 @@ void sinf_del(GF_Box *s)
 
 GF_Err sinf_AddBox(GF_Box *s, GF_Box *a)
 {
-	GF_ProtectionInfoBox *ptr = (GF_ProtectionInfoBox *)s;
+	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_FRMA:
 		if (ptr->original_format) return GF_ISOM_INVALID_FILE;
@@ -75,7 +75,7 @@ GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err sinf_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_ProtectionInfoBox *ptr = (GF_ProtectionInfoBox *)s;
+	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
@@ -94,7 +94,7 @@ GF_Err sinf_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err sinf_Size(GF_Box *s)
 {
 	GF_Err e;
-	GF_ProtectionInfoBox *ptr = (GF_ProtectionInfoBox *)s;
+	GF_ProtectionSchemeInfoBox *ptr = (GF_ProtectionSchemeInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
