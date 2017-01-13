@@ -648,10 +648,10 @@ GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *grptype_New(u32 code)
+GF_Box *grptype_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
-	tmp->grouping_type = code;
+	//the group type code is assign in gf_isom_parse_box_ex
 	return (GF_Box *)tmp;
 }
 

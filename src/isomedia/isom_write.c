@@ -286,7 +286,7 @@ GF_Err gf_isom_set_media_language(GF_ISOFile *movie, u32 trackNumber, char *code
 			}
 		}
 		if (!elng && (strlen(code) != 3)) {
-			elng = (GF_ExtendedLanguageBox *)elng_New();
+			elng = (GF_ExtendedLanguageBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ELNG);
 			if (!count) {
 				trak->Media->other_boxes = gf_list_new();
 			}
@@ -1281,7 +1281,7 @@ GF_Err gf_isom_set_visual_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDes
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	//valid for MPEG visual, JPG and 3GPP H263
-	if (entry->type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
+	if (entry->internal_type == GF_ISOM_SAMPLE_ENTRY_VIDEO) {
 		((GF_VisualSampleEntryBox*)entry)->Width = Width;
 		((GF_VisualSampleEntryBox*)entry)->Height = Height;
 		trak->Header->width = Width<<16;
@@ -2508,7 +2508,8 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 
 	//create a default box
 	if (UserDataType) {
-		GF_UnknownBox *a = (GF_UnknownBox *) unkn_New(UserDataType);
+		GF_UnknownBox *a = (GF_UnknownBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UNKNOWN);
+		a->original_4cc = UserDataType;
 		if (DataLength) {
 			a->data = (char*)gf_malloc(sizeof(char)*DataLength);
 			memcpy(a->data, data, DataLength);
@@ -3735,6 +3736,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_MP4V:
 		case GF_ISOM_BOX_TYPE_ENCA:
 		case GF_ISOM_BOX_TYPE_ENCV:
+		case GF_ISOM_BOX_TYPE_RESV:
 		case GF_ISOM_BOX_TYPE_ENCS:
 			Media_GetESD(trak1->Media, sdesc_index1 ? sdesc_index1 : i+1, &esd1, GF_TRUE);
 			Media_GetESD(trak2->Media, sdesc_index2 ? sdesc_index2 : i+1, &esd2, GF_TRUE);
@@ -4619,7 +4621,7 @@ GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex-1);
 	if (!entry ) return GF_BAD_PARAM;
-	if (entry->type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	if (entry->rvcc && entry->rvcc->rvc_meta_idx) {
 		gf_isom_remove_meta_item(movie, GF_FALSE, track, entry->rvcc->rvc_meta_idx);
@@ -5308,7 +5310,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr1, bs1);
 	} else {
-		sgpd_Write((GF_Box *)ptr1, bs1);
+		gf_isom_box_write((GF_Box *)ptr1, bs1);
 	}
 	gf_bs_get_content(bs1, &buf1, &len1);
 	gf_bs_del(bs1);
@@ -5317,7 +5319,7 @@ Bool gf_isom_is_identical_sgpd(void *ptr1, void *ptr2, u32 grouping_type)
 	if (grouping_type) {
 		sgpd_write_entry(grouping_type, ptr2, bs2);
 	} else {
-		sgpd_Write((GF_Box *)ptr2, bs2);
+		gf_isom_box_write((GF_Box *)ptr2, bs2);
 	}
 	gf_bs_get_content(bs2, &buf2, &len2);
 	gf_bs_del(bs2);
@@ -5593,7 +5595,7 @@ GF_Err gf_isom_clone_pssh(GF_ISOFile *output, GF_ISOFile *input, Bool in_moof) {
 
 	while ((a = (GF_Box *)gf_list_enum(input->moov->other_boxes, &i))) {
 		if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
-			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
+			GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
 			memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
 			pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
 			pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));

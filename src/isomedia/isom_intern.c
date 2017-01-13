@@ -95,7 +95,7 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		i = 0;
 		while ((a = (GF_Box *)gf_list_enum(moof->other_boxes, &i))) {
 			if (a->type == GF_ISOM_BOX_TYPE_PSSH) {
-				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
+				GF_ProtectionSystemHeaderBox *pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
 				memmove(pssh->SystemID, ((GF_ProtectionSystemHeaderBox *)a)->SystemID, 16);
 				pssh->KID_count = ((GF_ProtectionSystemHeaderBox *)a)->KID_count;
 				pssh->KIDs = (bin128 *)gf_malloc(pssh->KID_count*sizeof(bin128));
@@ -891,11 +891,11 @@ void gf_isom_insert_moov(GF_ISOFile *file)
 	if (file->moov) return;
 
 	//OK, create our boxes (mvhd, iods, ...)
-	file->moov = (GF_MovieBox *) moov_New();
+	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
 	file->moov->mov = file;
 	//Header SetUp
 	now = gf_isom_get_mp4time();
-	mvhd = (GF_MovieHeaderBox *) mvhd_New();
+	mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);
 	mvhd->creationTime = now;
 	if (!file->keep_utc)
 		mvhd->modificationTime = now;
@@ -946,7 +946,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 	}
 
 	//create an MDAT
-	mov->mdat = (GF_MediaDataBox *) mdat_New();
+	mov->mdat = (GF_MediaDataBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDAT);
 	gf_list_add(mov->TopBoxes, mov->mdat);
 
 	//default behaviour is capture mode, no interleaving (eg, no rewrite of mdat)
