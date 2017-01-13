@@ -1689,6 +1689,9 @@ u32 gf_isom_get_avc_svc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descript
 		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
 	}
+	else if (type == GF_ISOM_BOX_TYPE_RESV) {
+		if (entry->rinf && entry->rinf->original_format) type = entry->rinf->original_format->data_format;
+	}
 
 	switch (type) {
 	case GF_ISOM_BOX_TYPE_AVC1:
@@ -1722,6 +1725,9 @@ u32 gf_isom_get_hevc_lhvc_type(GF_ISOFile *the_file, u32 trackNumber, u32 Descri
 	if (type == GF_ISOM_BOX_TYPE_ENCV) {
 		GF_ProtectionSchemeInfoBox *sinf = (GF_ProtectionSchemeInfoBox *) gf_list_get(entry->protections, 0);
 		if (sinf && sinf->original_format) type = sinf->original_format->data_format;
+	}
+	else if (type == GF_ISOM_BOX_TYPE_RESV) {
+		if (entry->rinf && entry->rinf->original_format) type = entry->rinf->original_format->data_format;
 	}
 
 	switch (type) {

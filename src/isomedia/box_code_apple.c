@@ -90,7 +90,7 @@ GF_Err ilst_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void ListItem_del(GF_Box *s)
+void ilst_item_del(GF_Box *s)
 {
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
 	if (ptr == NULL) return;
@@ -101,7 +101,7 @@ void ListItem_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
@@ -131,7 +131,7 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ListItem_New(u32 type)
+GF_Box *ilst_item_New(u32 type)
 {
 	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, type);
 
@@ -147,7 +147,7 @@ GF_Box *ListItem_New(u32 type)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
@@ -164,7 +164,7 @@ GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err ListItem_Size(GF_Box *s)
+GF_Err ilst_item_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;

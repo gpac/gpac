@@ -1089,6 +1089,7 @@ Bool IsMP4Description(u32 entryType)
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_ENCA:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 	case GF_ISOM_BOX_TYPE_ENCS:
 		return GF_TRUE;
 	default:
@@ -2866,7 +2867,7 @@ GF_Err gf_isom_get_audio_info(GF_ISOFile *movie, u32 trackNumber, u32 StreamDesc
 	//no support for generic sample entries (eg, no MPEG4 descriptor)
 	if (entry == NULL) return GF_BAD_PARAM;
 
-	if (entry->type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_AUDIO) return GF_BAD_PARAM;
 
 	if (SampleRate) (*SampleRate) = ((GF_AudioSampleEntryBox*)entry)->samplerate_hi;
 	if (Channels) (*Channels) = ((GF_AudioSampleEntryBox*)entry)->channel_count;
@@ -3345,7 +3346,7 @@ GF_Err gf_isom_get_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptio
 
 	entry = (GF_MPEGVisualSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, sampleDescriptionIndex-1);
 	if (!entry ) return GF_BAD_PARAM;
-	if (entry->type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
+	if (entry->internal_type != GF_ISOM_SAMPLE_ENTRY_VIDEO) return GF_BAD_PARAM;
 
 	if (!entry->rvcc) return GF_BAD_PARAM;
 

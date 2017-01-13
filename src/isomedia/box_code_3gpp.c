@@ -62,9 +62,10 @@ GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *gppa_New(u32 type)
+GF_Box *gppa_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_3GPPAudioSampleEntryBox, type);
+	//default type is AMR but overwritten by box constructor
+	ISOM_DECL_BOX_ALLOC(GF_3GPPAudioSampleEntryBox, GF_ISOM_SUBTYPE_3GP_AMR);
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
 	return (GF_Box *)tmp;
 }
@@ -98,9 +99,10 @@ GF_Err gppa_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-GF_Box *gppv_New(u32 type)
+GF_Box *gppv_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_3GPPVisualSampleEntryBox, type);
+	//default type is H263 but overwritten by box constructor
+	ISOM_DECL_BOX_ALLOC(GF_3GPPVisualSampleEntryBox, GF_ISOM_SUBTYPE_3GP_H263);
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
 	return (GF_Box *)tmp;
 }
@@ -154,9 +156,10 @@ GF_Err gppv_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-GF_Box *gppc_New(u32 type)
+GF_Box *gppc_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_3GPPConfigBox, type);
+	//default type is amr but overwritten by box constructor
+	ISOM_DECL_BOX_ALLOC(GF_3GPPConfigBox, GF_ISOM_BOX_TYPE_DAMR);
 	return (GF_Box *)tmp;
 }
 

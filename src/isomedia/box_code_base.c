@@ -784,7 +784,7 @@ void unkn_del(GF_Box *s)
 GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 bytesToRead, sub_size, sub_a, is_ok;
+	u32 bytesToRead, sub_size, sub_a;
 	GF_BitStream *sub_bs;
 	GF_UnknownBox *ptr = (GF_UnknownBox *)s;
 	if (ptr->size > 0xFFFFFFFF) return GF_ISOM_INVALID_FILE;
@@ -1550,6 +1550,11 @@ GF_Box *gnrm_New()
 	return (GF_Box *)tmp;
 }
 
+//dummy
+GF_Err gnrm_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return GF_OK;
+}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -1597,6 +1602,11 @@ GF_Box *gnrv_New()
 	ISOM_DECL_BOX_ALLOC(GF_GenericVisualSampleEntryBox, GF_ISOM_BOX_TYPE_GNRV);
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox*) tmp);
 	return (GF_Box *)tmp;
+}
+//dummy
+GF_Err gnrv_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return GF_OK;
 }
 
 
@@ -1649,8 +1659,11 @@ GF_Box *gnra_New()
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*) tmp);
 	return (GF_Box *)tmp;
 }
-
-
+//dummy
+GF_Err gnra_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return GF_OK;
+}
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
@@ -3150,6 +3163,7 @@ void mfra_del(GF_Box *s)
 {
 	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
 	if (ptr == NULL) return;
+	if (ptr->mfro) gf_isom_box_del((GF_Box*)ptr->mfro);
 	gf_isom_box_array_del(ptr->tfra_list);
 	gf_free(ptr);
 }
@@ -4125,7 +4139,7 @@ GF_Err mp4s_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void mp4v_del(GF_Box *s)
+void mpeg_video_del(GF_Box *s)
 {
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	if (ptr == NULL) return;
@@ -4148,7 +4162,7 @@ void mp4v_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
+GF_Err mpeg_video_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	switch (a->type) {
@@ -4209,13 +4223,13 @@ GF_Err mp4v_AddBox(GF_Box *s, GF_Box *a)
 	return GF_OK;
 }
 
-GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err mpeg_video_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGVisualSampleEntryBox *mp4v = (GF_MPEGVisualSampleEntryBox*)s;
 	GF_Err e;
 	e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)s, bs);
 	if (e) return e;
-	e = gf_isom_read_box_list(s, bs, mp4v_AddBox);
+	e = gf_isom_read_box_list(s, bs, mpeg_video_AddBox);
 	if (e) return e;
 	/*this is an AVC sample desc*/
 	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
@@ -4225,21 +4239,20 @@ GF_Err mp4v_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *mpeg_video_New(u32 type)
+GF_Box *mpeg_video_New()
 {
 	GF_MPEGVisualSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_MPEGVisualSampleEntryBox);
 	if (tmp == NULL) return NULL;
 
 	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
-	tmp->type = type;
 	return (GF_Box *)tmp;
 }
 
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err mpeg_video_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
@@ -4298,7 +4311,7 @@ GF_Err mp4v_Write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
-GF_Err mp4v_Size(GF_Box *s)
+GF_Err mpeg_video_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
@@ -8370,9 +8383,10 @@ GF_Err clap_Size(GF_Box *s)
 
 
 
-GF_Box *metx_New(u32 type)
+GF_Box *metx_New()
 {
-	ISOM_DECL_BOX_ALLOC(GF_MetaDataSampleEntryBox, type);
+	//type is overridden by the box constructor
+	ISOM_DECL_BOX_ALLOC(GF_MetaDataSampleEntryBox, GF_ISOM_BOX_TYPE_METX);
 	gf_isom_sample_entry_init((GF_SampleEntryBox*)tmp);
 	return (GF_Box *)tmp;
 }
@@ -8654,11 +8668,16 @@ GF_Err txtc_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_Box *dac3_New(u32 boxType)
+GF_Box *dac3_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AC3ConfigBox, GF_ISOM_BOX_TYPE_DAC3);
-	if (boxType==GF_ISOM_BOX_TYPE_DEC3)
-		tmp->cfg.is_ec3 = 1;
+	return (GF_Box *)tmp;
+}
+
+GF_Box *dec3_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AC3ConfigBox, GF_ISOM_BOX_TYPE_DAC3);
+	tmp->cfg.is_ec3 = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -8795,12 +8814,18 @@ GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *ac3_New(u32 boxType)
+GF_Box *ac3_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_AC3SampleEntryBox, GF_ISOM_BOX_TYPE_AC3);
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
-	if (boxType==GF_ISOM_BOX_TYPE_EC3)
-		tmp->is_ec3 = 1;
+	return (GF_Box *)tmp;
+}
+
+GF_Box *ec3_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AC3SampleEntryBox, GF_ISOM_BOX_TYPE_AC3);
+	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
+	tmp->is_ec3 = 1;
 	return (GF_Box *)tmp;
 }
 
@@ -10234,6 +10259,38 @@ GF_Box *prft_New()
 	return (GF_Box *)tmp;
 }
 
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err prft_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->refTrackID);
+	gf_bs_write_u64(bs, ptr->ntp);
+	if (ptr->version==0) {
+		gf_bs_write_u32(bs, (u32) ptr->timestamp);
+	} else {
+		gf_bs_write_u64(bs, ptr->timestamp);
+	}
+
+	return GF_OK;
+}
+
+GF_Err prft_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_ProducerReferenceTimeBox *ptr = (GF_ProducerReferenceTimeBox*)s;
+
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+
+	ptr->size += 4+8+ (ptr->version ? 8 : 4);
+	return GF_OK;
+}
+#endif //GPAC_DISABLE_ISOM_WRITE
 
 GF_Box *trgr_New()
 {
@@ -10293,11 +10350,10 @@ GF_Err trgr_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
-GF_Box *trgt_New(u32 boxType)
+GF_Box *trgt_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TrackGroupTypeBox, GF_ISOM_BOX_TYPE_TRGT);
 	gf_isom_full_box_init((GF_Box *)tmp);
-	tmp->group_type = boxType;
 	return (GF_Box *)tmp;
 }
 

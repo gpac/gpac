@@ -50,15 +50,32 @@ typedef struct
 	GF_StringBox *payload;
 } GF_VTTCueBox;
 
-GF_Box *boxstring_New(u32 type) {
-	ISOM_DECL_BOX_ALLOC(GF_StringBox, type);
+GF_Box *boxstring_New() {
+	//type is assigned by caller
+	ISOM_DECL_BOX_ALLOC(GF_StringBox, 0);
 	return (GF_Box *)tmp;
 }
 
-GF_Box *boxstring_new_with_data(u32 type, const char *string) {
-	ISOM_DECL_BOX_ALLOC(GF_StringBox, type);
-	if (string) tmp->string = gf_strdup(string);
-	return (GF_Box *)tmp;
+GF_Box *boxstring_new_with_data(u32 type, const char *string)
+{
+	GF_Box *a=NULL;
+
+	switch (type) {
+	case GF_ISOM_BOX_TYPE_VTTC:
+	case GF_ISOM_BOX_TYPE_CTIM:
+	case GF_ISOM_BOX_TYPE_IDEN:
+	case GF_ISOM_BOX_TYPE_STTG:
+	case GF_ISOM_BOX_TYPE_PAYL:
+	case GF_ISOM_BOX_TYPE_VTTA:
+		a = gf_isom_box_new(type);
+		if (a && string) ((GF_StringBox *)a)->string = gf_strdup(string);
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box type %s is not a boxstring, cannot initialize with data\n", gf_4cc_to_str(type) ));
+
+		break;
+	}
+	return a;
 }
 
 GF_Box *vtcu_New()
@@ -292,7 +309,7 @@ static GF_Err webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)
 	GF_VTTCueBox *cuebox;
 	if (!cue) return GF_OK;
 
-	cuebox = (GF_VTTCueBox *)vtcu_New();
+	cuebox = (GF_VTTCueBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VTCU);
 	if (cue->id) {
 		cuebox->id = (GF_StringBox *)boxstring_new_with_data(GF_ISOM_BOX_TYPE_IDEN, cue->id);
 	}
@@ -333,7 +350,7 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 			return NULL;
 		}
 	} else {
-		GF_Box *cuebox = (GF_Box *)vtte_New();
+		GF_Box *cuebox = (GF_Box *)gf_isom_box_new(GF_ISOM_BOX_TYPE_VTTE);
 		e = gf_isom_box_size((GF_Box *)cuebox);
 		if (!e) e = gf_isom_box_write((GF_Box *)cuebox, bs);
 		gf_isom_box_del((GF_Box *)cuebox);
@@ -355,8 +372,6 @@ GF_ISOSample *gf_isom_webvtt_to_sample(void *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace);
-void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
 
 GF_Err boxstring_dump(GF_Box *a, FILE * trace)
 {

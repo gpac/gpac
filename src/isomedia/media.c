@@ -166,6 +166,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_MP4V:
 	case GF_ISOM_BOX_TYPE_ENCV:
+	case GF_ISOM_BOX_TYPE_RESV:
 		ESDa = ((GF_MPEGVisualSampleEntryBox*)entry)->esd;
 		if (ESDa) esd = (GF_ESD *) ESDa->desc;
 		/*avc1 encrypted*/
@@ -228,7 +229,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_VTT_MP4;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
-		boxstring_Write((GF_Box *)((GF_WebVTTSampleEntryBox*)entry)->config, bs);
+		gf_isom_box_write((GF_Box *)((GF_WebVTTSampleEntryBox*)entry)->config, bs);
 		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}
@@ -252,7 +253,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_SIMPLE_TEXT_MP4;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, entry->type);
-		boxstring_Write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
+		gf_isom_box_write((GF_Box *)((GF_MetaDataSampleEntryBox*)entry)->config, bs);
 		gf_bs_get_content(bs, & esd->decoderConfig->decoderSpecificInfo->data, & esd->decoderConfig->decoderSpecificInfo->dataLength);
 		gf_bs_del(bs);
 	}

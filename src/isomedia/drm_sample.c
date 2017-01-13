@@ -440,10 +440,10 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		return GF_BAD_PARAM;
 	}
 
-	sinf = (GF_ProtectionSchemeInfoBox *)sinf_New();
+	sinf = (GF_ProtectionSchemeInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SINF);
 	gf_list_add(sea->protections, sinf);
 
-	sinf->scheme_type = (GF_SchemeTypeBox *)schm_New();
+	sinf->scheme_type = (GF_SchemeTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SCHM);
 	sinf->scheme_type->version = version;
 	sinf->scheme_type->flags = flags;
 	sinf->scheme_type->scheme_type = scheme_type;
@@ -453,11 +453,11 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 		memmove(sinf->scheme_type->URI, scheme_uri, strlen(scheme_uri));
 	}
 
-	sinf->original_format = (GF_OriginalFormatBox *)frma_New();
+	sinf->original_format = (GF_OriginalFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FRMA);
 	sinf->original_format->data_format = original_format;
 
 	//common to isma, cenc and oma
-	sinf->info = (GF_SchemeInformationBox *)schi_New();
+	sinf->info = (GF_SchemeInformationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SCHI);
 
 	*out_sinf = sinf;
 	return GF_OK;
@@ -479,10 +479,10 @@ GF_Err gf_isom_set_ismacryp_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 		sinf->scheme_type->URI = gf_strdup(scheme_uri);
 	}
 
-	sinf->info->ikms = (GF_ISMAKMSBox *)iKMS_New();
+	sinf->info->ikms = (GF_ISMAKMSBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IKMS);
 	sinf->info->ikms->URI = gf_strdup(kms_URI);
 
-	sinf->info->isfm = (GF_ISMASampleFormatBox *)iSFM_New();
+	sinf->info->isfm = (GF_ISMASampleFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ISFM);
 	sinf->info->isfm->selective_encryption = selective_encryption;
 	sinf->info->isfm->key_indicator_length = KI_length;
 	sinf->info->isfm->IV_length = IV_length;
@@ -500,13 +500,13 @@ GF_Err gf_isom_set_oma_protection(GF_ISOFile *the_file, u32 trackNumber, u32 des
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, GF_ISOM_OMADRM_SCHEME, 0x00000200, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
-	sinf->info->okms = (GF_OMADRMKMSBox *)odkm_New();
+	sinf->info->okms = (GF_OMADRMKMSBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ODKM);
 	sinf->info->okms->fmt = (GF_OMADRMAUFormatBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_ODAF);
 	sinf->info->okms->fmt->selective_encryption = selective_encryption;
 	sinf->info->okms->fmt->key_indicator_length = KI_length;
 	sinf->info->okms->fmt->IV_length = IV_length;
 
-	sinf->info->okms->hdr = (GF_OMADRMCommonHeaderBox*)ohdr_New();
+	sinf->info->okms->hdr = (GF_OMADRMCommonHeaderBox*)gf_isom_box_new(GF_ISOM_BOX_TYPE_OHDR);
 	sinf->info->okms->hdr->EncryptionMethod = encryption_type;
 	sinf->info->okms->hdr->PaddingScheme = (encryption_type==0x01) ? 1 : 0;
 	sinf->info->okms->hdr->PlaintextLength = plainTextLength;
@@ -615,7 +615,7 @@ GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 de
 	e = isom_set_protected_entry(the_file, trackNumber, desc_index, 0, 0, scheme_type, scheme_version, NULL, GF_FALSE, &sinf);
 	if (e) return e;
 
-	sinf->info->tenc = (GF_TrackEncryptionBox *)tenc_New();
+	sinf->info->tenc = (GF_TrackEncryptionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TENC);
 	sinf->info->tenc->isProtected = default_IsEncrypted;
 	sinf->info->tenc->Per_Sample_IV_Size = default_IV_size;
 	memcpy(sinf->info->tenc->KID, default_KID, 16*sizeof(char));
@@ -644,7 +644,7 @@ GF_Err gf_isom_set_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 	if (!stbl)
 		return GF_BAD_PARAM;
 
-	saio = (GF_SampleAuxiliaryInfoOffsetBox *)saio_New();
+	saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
 	saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
 	saio->aux_info_type_parameter = 0;
 
@@ -670,7 +670,7 @@ GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber)
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(stbl->sai_sizes, i);
 		if (saiz->aux_info_type != GF_4CC('c', 'e', 'n', 'c'))
 			continue;
-		saiz_del((GF_Box *)saiz);
+		gf_isom_box_del((GF_Box *)saiz);
 		gf_list_rem(stbl->sai_sizes, i);
 		i--;
 	}
@@ -698,7 +698,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(stbl->sai_offsets, i);
 		if (saio->aux_info_type != GF_4CC('c', 'e', 'n', 'c'))
 			continue;
-		saio_del((GF_Box *)saio);
+		gf_isom_box_del((GF_Box *)saio);
 		gf_list_rem(stbl->sai_offsets, i);
 		i--;
 	}
@@ -714,7 +714,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KIDs, char *data, u32 len) {
 	GF_ProtectionSystemHeaderBox *pssh;
 
-	pssh = (GF_ProtectionSystemHeaderBox *)pssh_New();
+	pssh = (GF_ProtectionSystemHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_PSSH);
 	if (!pssh)
 		return GF_IO_ERR;
 	memmove((char *)pssh->SystemID, systemID, 16);
@@ -752,12 +752,12 @@ GF_Err gf_isom_remove_samp_enc_box(GF_ISOFile *the_file, u32 trackNumber)
 	for (i = 0; i < gf_list_count(stbl->other_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(stbl->other_boxes, i);
 		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
-			piff_psec_del(a);
+			gf_isom_box_del(a);
 			gf_list_rem(stbl->other_boxes, i);
 			i--;
 		}
 		else if (a->type == GF_ISOM_BOX_TYPE_SENC) {
-			senc_del(a);
+			gf_isom_box_del(a);
 			gf_list_rem(stbl->other_boxes, i);
 			i--;
 		}
@@ -785,7 +785,7 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 		GF_SampleGroupDescriptionBox *a = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, i);
 		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
 			gf_list_rem(stbl->sampleGroupsDescription, i);
-			sgpd_del((GF_Box *) a);
+			gf_isom_box_del((GF_Box *) a);
 			i--;
 		}
 	}
@@ -798,7 +798,7 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 		GF_SampleGroupBox *a = (GF_SampleGroupBox *)gf_list_get(stbl->sampleGroups, i);
 		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
 			gf_list_rem(stbl->sampleGroups, i);
-			sbgp_del((GF_Box *) a);
+			gf_isom_box_del((GF_Box *) a);
 			i--;
 		}
 	}
@@ -817,7 +817,7 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->other_boxes, i);
 		if (a->type == GF_4CC('p', 's', 's', 'h')) {
 			gf_list_rem(the_file->moov->other_boxes, i);
-			pssh_del(a);
+			gf_isom_box_del(a);
 			i--;
 		}
 	}
@@ -836,7 +836,7 @@ GF_PIFFSampleEncryptionBox * gf_isom_create_piff_psec_box(u8 version, u32 flags,
 {
 	GF_PIFFSampleEncryptionBox *psec;
 
-	psec = (GF_PIFFSampleEncryptionBox *) piff_psec_New();
+	psec = (GF_PIFFSampleEncryptionBox *) gf_isom_box_new(GF_ISOM_BOX_UUID_PSEC);
 	if (!psec)
 		return NULL;
 	psec->version = version;
@@ -855,7 +855,7 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags)
 {
 	GF_SampleEncryptionBox *senc;
 
-	senc = (GF_SampleEncryptionBox *) senc_New();
+	senc = (GF_SampleEncryptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SENC);
 	if (!senc)
 		return NULL;
 	senc->version = version;
@@ -1308,13 +1308,13 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 	return GF_NOT_SUPPORTED;
 #endif
 
-	sinf->info->adkm = (GF_AdobeDRMKeyManagementSystemBox *)adkm_New();
+	sinf->info->adkm = (GF_AdobeDRMKeyManagementSystemBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ADKM);
 
-	sinf->info->adkm->header = (GF_AdobeDRMHeaderBox *)ahdr_New();
+	sinf->info->adkm->header = (GF_AdobeDRMHeaderBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AHDR);
 
-	sinf->info->adkm->header->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)aprm_New();
+	sinf->info->adkm->header->std_enc_params = (GF_AdobeStdEncryptionParamsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_APRM);
 
-	sinf->info->adkm->header->std_enc_params->enc_info = (GF_AdobeEncryptionInfoBox *)aeib_New();
+	sinf->info->adkm->header->std_enc_params->enc_info = (GF_AdobeEncryptionInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AEIB);
 	if (sinf->info->adkm->header->std_enc_params->enc_info->enc_algo)
 		gf_free(sinf->info->adkm->header->std_enc_params->enc_info->enc_algo);
 	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo = (char *)gf_malloc(8*sizeof(char));
@@ -1322,9 +1322,9 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 	sinf->info->adkm->header->std_enc_params->enc_info->enc_algo[7] = 0;
 	sinf->info->adkm->header->std_enc_params->enc_info->key_length = 16;
 
-	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)akey_New();
+	sinf->info->adkm->header->std_enc_params->key_info = (GF_AdobeKeyInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_AKEY);
 
-	sinf->info->adkm->header->std_enc_params->key_info->params = (GF_AdobeFlashAccessParamsBox *)flxs_New();
+	sinf->info->adkm->header->std_enc_params->key_info->params = (GF_AdobeFlashAccessParamsBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_FLXS);
 	if (metadata && len) {
 		if (sinf->info->adkm->header->std_enc_params->key_info->params->metadata)
 			gf_free(sinf->info->adkm->header->std_enc_params->key_info->params->metadata);
@@ -1333,7 +1333,7 @@ GF_Err gf_isom_set_adobe_protection(GF_ISOFile *the_file, u32 trackNumber, u32 d
 		sinf->info->adkm->header->std_enc_params->key_info->params->metadata[len] = 0;
 	}
 
-	sinf->info->adkm->au_format = (GF_AdobeDRMAUFormatBox *)adaf_New();
+	sinf->info->adkm->au_format = (GF_AdobeDRMAUFormatBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_ADAF);
 	sinf->info->adkm->au_format->selective_enc = is_selective_enc ? 0x10 : 0x00;
 	sinf->info->adkm->au_format->IV_length = 16;
 
