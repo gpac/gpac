@@ -1789,7 +1789,6 @@ GF_Box *hdlr_New()
 
 GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 len;
 	GF_Err e;
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 	e = gf_isom_full_box_write(s, bs);
@@ -7351,7 +7350,7 @@ void stri_del(GF_Box *s)
 GF_Err stri_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
+	size_t i;
 	GF_SubTrackInformationBox *ptr = (GF_SubTrackInformationBox *)s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
@@ -7360,7 +7359,7 @@ GF_Err stri_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->sub_track_id = gf_bs_read_u32(bs);
 	ptr->size -= 8;
 	ptr->attribute_count = ptr->size / 4;
-	GF_SAFE_ALLOC_N(ptr->attribute_list, ptr->attribute_count, u32);
+	GF_SAFE_ALLOC_N(ptr->attribute_list, (size_t)ptr->attribute_count, u32);
 	for (i = 0; i < ptr->attribute_count; i++) {
 		ptr->attribute_list[i] = gf_bs_read_u32(bs);
 	}
