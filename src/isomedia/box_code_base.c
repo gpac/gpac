@@ -1754,6 +1754,7 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 20);
 
 	if (ptr->size) {
+		u32 len;
 		ptr->nameUTF8 = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
@@ -1764,6 +1765,13 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 			str[ptr->size] = 0;
 			gf_free(ptr->nameUTF8);
 			ptr->nameUTF8 = str;
+		}
+		//patch for old QT files
+		if (ptr->nameUTF8[0] == ptr->size-1) {
+			len = strlen(ptr->nameUTF8 + 1);
+			memmove(ptr->nameUTF8, ptr->nameUTF8+1, len );
+			ptr->nameUTF8[len] = 0;
+			ptr->store_counted_string = GF_TRUE;
 		}
 	}
 	return GF_OK;
@@ -1781,6 +1789,7 @@ GF_Box *hdlr_New()
 
 GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 {
+	u32 len;
 	GF_Err e;
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 	e = gf_isom_full_box_write(s, bs);
@@ -1788,9 +1797,19 @@ GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u32(bs, ptr->reserved1);
 	gf_bs_write_u32(bs, ptr->handlerType);
 	gf_bs_write_data(bs, (char*)ptr->reserved2, 12);
-	if (ptr->nameUTF8) gf_bs_write_data(bs, ptr->nameUTF8, (u32) strlen(ptr->nameUTF8));
-	/*NULL-terminated string is written*/
-	gf_bs_write_u8(bs, 0);
+
+	if (ptr->nameUTF8) {
+		u32 len = strlen(ptr->nameUTF8);
+		if (ptr->store_counted_string) {
+			gf_bs_write_u8(bs, len);
+			gf_bs_write_data(bs, ptr->nameUTF8, len);
+		} else {
+			gf_bs_write_data(bs, ptr->nameUTF8, len);
+			gf_bs_write_u8(bs, 0);
+		}
+	} else {
+		gf_bs_write_u8(bs, 0);
+	}
 	return GF_OK;
 }
 
@@ -1800,8 +1819,10 @@ GF_Err hdlr_Size(GF_Box *s)
 	GF_HandlerBox *ptr = (GF_HandlerBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += 20 + 1;
-	if (ptr->nameUTF8) ptr->size += strlen(ptr->nameUTF8);
+	ptr->size += 20 + 1; //null term or counted string
+	if (ptr->nameUTF8) {
+		ptr->size += strlen(ptr->nameUTF8);
+	}
 	return GF_OK;
 }
 
