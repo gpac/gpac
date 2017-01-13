@@ -5029,7 +5029,7 @@ GF_Err fpar_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, "itemID=\"%d\" FEC_encoding_ID=\"%d\" FEC_instance_ID=\"%d\" max_source_block_length=\"%d\" encoding_symbol_length=\"%d\" max_number_of_encoding_symbols=\"%d\" ", ptr->itemID, ptr->FEC_encoding_ID, ptr->FEC_instance_ID, ptr->max_source_block_length, ptr->encoding_symbol_length, ptr->max_number_of_encoding_symbols);
 
 	if (ptr->scheme_specific_info)
-		dump_data(trace, "scheme_specific_info", (char*)ptr->scheme_specific_info, strlen(ptr->scheme_specific_info) );
+		dump_data(trace, "scheme_specific_info", (char*)ptr->scheme_specific_info, (u32)strlen(ptr->scheme_specific_info) );
 
 	fprintf(trace, ">\n");
 

@@ -1754,7 +1754,7 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 	ISOM_DECREASE_SIZE(ptr, 20);
 
 	if (ptr->size) {
-		u32 len;
+		size_t len;
 		ptr->nameUTF8 = (char*)gf_malloc((u32) ptr->size);
 		if (ptr->nameUTF8 == NULL) return GF_OUT_OF_MEM;
 		gf_bs_read_data(bs, ptr->nameUTF8, (u32) ptr->size);
@@ -1798,7 +1798,7 @@ GF_Err hdlr_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_data(bs, (char*)ptr->reserved2, 12);
 
 	if (ptr->nameUTF8) {
-		u32 len = strlen(ptr->nameUTF8);
+		u32 len = (u32)strlen(ptr->nameUTF8);
 		if (ptr->store_counted_string) {
 			gf_bs_write_u8(bs, len);
 			gf_bs_write_data(bs, ptr->nameUTF8, len);
@@ -10866,7 +10866,7 @@ GF_Err fpar_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->encoding_symbol_length);
 	gf_bs_write_u16(bs, ptr->max_number_of_encoding_symbols);
 	if (ptr->scheme_specific_info) {
-		gf_bs_write_data(bs, ptr->scheme_specific_info, strlen(ptr->scheme_specific_info) );
+		gf_bs_write_data(bs, ptr->scheme_specific_info, (u32)strlen(ptr->scheme_specific_info) );
 	}
 	//null terminated string
 	gf_bs_write_u8(bs, 0);
@@ -11111,7 +11111,7 @@ GF_Err gitn_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->nb_entries);
 	for (i=0; i<ptr->nb_entries; i++) {
 		gf_bs_write_u32(bs, ptr->entries[i].group_id);
-		if (ptr->entries[i].name) gf_bs_write_data(bs, ptr->entries[i].name, strlen(ptr->entries[i].name) );
+		if (ptr->entries[i].name) gf_bs_write_data(bs, ptr->entries[i].name, (u32)strlen(ptr->entries[i].name) );
 		gf_bs_write_u8(bs, 0);
 	}
 	return GF_OK;
