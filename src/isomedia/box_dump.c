@@ -677,9 +677,9 @@ GF_Err mp4a_dump(GF_Box *a, FILE * trace)
 GF_Err gnrm_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericSampleEntryBox *p = (GF_GenericSampleEntryBox *)a;
+	a->type = p->EntryType;
 	DumpBox(a, "SampleDescriptionBox", trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" ExtensionDataSize=\"%d\">\n", p->dataReferenceIndex, p->data_size);
-	a->type = p->EntryType;
 	a->type = GF_ISOM_BOX_TYPE_GNRM;
 	gf_box_dump_done("SampleDescriptionBox", a, trace);
 	return GF_OK;
@@ -688,10 +688,10 @@ GF_Err gnrm_dump(GF_Box *a, FILE * trace)
 GF_Err gnrv_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericVisualSampleEntryBox *p = (GF_GenericVisualSampleEntryBox *)a;
+	a->type = p->EntryType;
 	DumpBox(a, "VisualSampleDescriptionBox", trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" TemporalQuality=\"%d\" SpacialQuality=\"%d\" Width=\"%d\" Height=\"%d\" HorizontalResolution=\"%d\" VerticalResolution=\"%d\" CompressorName=\"%s\" BitDepth=\"%d\">\n",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->temporal_quality, p->spatial_quality, p->Width, p->Height, p->horiz_res, p->vert_res, p->compressor_name+1, p->bit_depth);
-	a->type = p->EntryType;
 	a->type = GF_ISOM_BOX_TYPE_GNRV;
 	gf_box_dump_done("VisualSampleDescriptionBox", a, trace);
 	return GF_OK;
@@ -700,10 +700,10 @@ GF_Err gnrv_dump(GF_Box *a, FILE * trace)
 GF_Err gnra_dump(GF_Box *a, FILE * trace)
 {
 	GF_GenericAudioSampleEntryBox *p = (GF_GenericAudioSampleEntryBox *)a;
+	a->type = p->EntryType;
 	DumpBox(a, "AudioSampleDescriptionBox", trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" Version=\"%d\" Revision=\"%d\" Vendor=\"%d\" ChannelCount=\"%d\" BitsPerSample=\"%d\" Samplerate=\"%d\">\n",
 	        p->dataReferenceIndex, p->version, p->revision, p->vendor, p->channel_count, p->bitspersample, p->samplerate_hi);
-	a->type = p->EntryType;
 	a->type = GF_ISOM_BOX_TYPE_GNRA;
 	gf_box_dump_done("AudioSampleDescriptionBox", a, trace);
 	return GF_OK;

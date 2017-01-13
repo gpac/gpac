@@ -2773,7 +2773,7 @@ GF_Err payt_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, ptr->payloadString, length);
 	ptr->payloadString[length] = 0;
 
-	ISOM_DECREASE_SIZE(ptr, 4+length+1);
+	ISOM_DECREASE_SIZE(ptr, (4+length+1) );
 	return GF_OK;
 }
 GF_Box *payt_New()
@@ -10823,7 +10823,7 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	FilePartitionBox *ptr = (FilePartitionBox *)s;
 	gf_isom_full_box_read(s, bs);
-	ISOM_DECREASE_SIZE(ptr, ((ptr->version ? 4 : 2) + 12) );
+	ISOM_DECREASE_SIZE(ptr, ((ptr->version ? 4 : 2) + 10) );
 	ptr->itemID = gf_bs_read_int(bs, ptr->version ? 32 : 16);
 	gf_bs_read_u8(bs);
 	ptr->FEC_encoding_ID = gf_bs_read_u8(bs);
@@ -10917,7 +10917,7 @@ GF_Err fecr_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	FECReservoirBox *ptr = (FECReservoirBox *)s;
 	gf_isom_full_box_read(s, bs);
-	ISOM_DECREASE_SIZE(ptr, ptr->version ? 4 : 2);
+	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
 	ptr->nb_entries = gf_bs_read_int(bs, ptr->version ? 32 : 16);
 
 	ISOM_DECREASE_SIZE(ptr, ptr->nb_entries * (ptr->version ? 8 : 6) );
