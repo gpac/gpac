@@ -384,12 +384,19 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
+If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
 tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.*/
 GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
-/*close the file, write it if new/edited*/
+/*close the file, write it if new/edited - equivalent to gf_isom_write()+gf_isom_delete()*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
+
+/*write the file without deleting (gf_isom_delete())*/
+GF_Err gf_isom_write(GF_ISOFile *movie);
+
+/*get access to the data bitstream  - see gf_isom_open()*/
+GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs);
 
 /*delete the movie without saving it.*/
 void gf_isom_delete(GF_ISOFile *the_file);

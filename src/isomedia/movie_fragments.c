@@ -125,7 +125,6 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 			}
 
 			if (trex->track->Media->information->sampleTable->CompositionToDecode) {
-
 				if (!trex->track->Media->information->sampleTable->SampleSize || ! trex->track->Media->information->sampleTable->SampleSize->sampleCount) {
 					gf_list_add(trep->other_boxes, trex->track->Media->information->sampleTable->CompositionToDecode);
 					trex->track->Media->information->sampleTable->CompositionToDecode = NULL;
@@ -1575,7 +1574,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 	movie->segment_bs = NULL;
 	movie->append_segment = GF_FALSE;
 	/*update segment file*/
-	if (SegName) {
+	if (SegName || !gf_isom_get_filename(movie)) {
 		gf_isom_datamap_del(movie->editFileMap);
 		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
 		movie->segment_start = 0;
@@ -1682,6 +1681,7 @@ GF_Err gf_isom_start_fragment(GF_ISOFile *movie, Bool moof_first)
 	return GF_OK;
 }
 
+static
 u32 GetRunSize(GF_TrackFragmentRunBox *trun)
 {
 	u32 i, size;

@@ -674,6 +674,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_probe_file) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_open) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_close) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_delete) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_mode) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_file_size) )
