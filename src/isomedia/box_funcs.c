@@ -786,9 +786,9 @@ static const struct box_registry_entry {
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, GF_ISOM_SAMPLE_GROUP_NALM, "p15"),
 
 	//internal boxes
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRM, gnrm, "gpac"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRV, gnrv, "gpac"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRA, gnra, "gpac"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRM, gnrm, "unknown"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRV, gnrv, "unknown"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRA, gnra, "unknown"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_STSF, stsf, "gpac"),
 
 	//all track group types
