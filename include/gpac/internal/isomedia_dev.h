@@ -3397,6 +3397,7 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *
 	}
 
 
+#ifndef GPAC_DISABLE_VTT 
 
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);
@@ -3442,6 +3443,8 @@ void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
 #endif
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
+
+#endif //GPAC_DISABLE_ISOM
 
 #ifdef __cplusplus
 }
