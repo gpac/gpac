@@ -1267,9 +1267,9 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace)
 
 GF_Err uuid_dump(GF_Box *a, FILE * trace)
 {
-	DumpBox(a, "UnknownUUIDBox", trace);
+	DumpBox(a, "UUIDBox", trace);
 	fprintf(trace, ">\n");
-	fprintf(trace, "</UnknownUUIDBox>\n");
+	fprintf(trace, "</UUIDBox>\n");
 	return GF_OK;
 }
 
@@ -3287,6 +3287,10 @@ GF_Err iSLT_dump(GF_Box *a, FILE * trace)
 static void dump_data(FILE *trace, char *name, char *data, u32 data_size)
 {
 	u32 i;
+	if (!data || !data_size) {
+		fprintf(trace, "%s=\"\"", name);
+		return;
+	}
 	fprintf(trace, "%s=\"0x", name);
 	for (i=0; i<data_size; i++) fprintf(trace, "%02X", (unsigned char) data[i]);
 	fprintf(trace, "\" ");
@@ -4859,7 +4863,6 @@ GF_Err grpl_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-
 GF_Err grptype_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -4874,6 +4877,20 @@ GF_Err grptype_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<ptr->entity_id_count ; i++) fprintf(trace, " %d", ptr->entity_ids[i]);
 	fprintf(trace, "\">\n");
 	gf_box_dump_done("EntityToGroupTypeBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err stvi_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *) a;
+	DumpBox(a, "StereoVideoBox", trace);
+	a->type = GF_ISOM_BOX_TYPE_GRPT;
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, "single_view_allowed=\"%d\" stereo_scheme=\"%d\" ", ptr->single_view_allowed, ptr->stereo_scheme);
+	dump_data(trace, "stereo_indication_type", ptr->stereo_indication_type, ptr->sit_len);
+	fprintf(trace, ">\n");
+	gf_box_dump_done("StereoVideoBox", a, trace);
 	return GF_OK;
 }
 

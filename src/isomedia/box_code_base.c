@@ -10321,7 +10321,7 @@ GF_Err trgr_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err trgr_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, trgr_AddBox);
+	return gf_isom_read_box_list_ex(s, bs, trgr_AddBox, s->type);
 }
 
 
@@ -10396,6 +10396,71 @@ GF_Err trgt_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size+= 4;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+GF_Box *stvi_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_StereoVideoBox, GF_ISOM_BOX_TYPE_STVI);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+void stvi_del(GF_Box *s)
+{
+	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *)s;
+	if (ptr == NULL) return;
+	if (ptr->stereo_indication_type) gf_free(ptr->stereo_indication_type);
+	gf_free(ptr);
+}
+
+GF_Err stvi_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 len;
+	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *)s;
+	gf_isom_full_box_read(s, bs);
+	ISOM_DECREASE_SIZE(ptr, 12);
+	gf_bs_read_int(bs, 30);
+	ptr->single_view_allowed = gf_bs_read_int(bs, 2);
+	ptr->stereo_scheme = gf_bs_read_u32(bs);
+	ptr->sit_len = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, ptr->sit_len);
+	ptr->stereo_indication_type = gf_malloc(sizeof(char)*ptr->sit_len);
+	gf_bs_read_data(bs, ptr->stereo_indication_type, ptr->sit_len);
+	return GF_OK;
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err stvi_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *) s;
+	if (!s) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_int(bs, 0, 30);
+	gf_bs_write_int(bs, ptr->single_view_allowed, 2);
+	gf_bs_write_u32(bs, ptr->stereo_scheme);
+	gf_bs_write_u32(bs, ptr->sit_len);
+	gf_bs_write_data(bs, ptr->stereo_indication_type, ptr->sit_len);
+
+	return GF_OK;
+}
+
+GF_Err stvi_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size+= 12 + ptr->sit_len;
 	return GF_OK;
 }
 

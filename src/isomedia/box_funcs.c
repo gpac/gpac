@@ -707,6 +707,7 @@ ISOM_BOX_IMPL_DECL(grpl)
 ISOM_BOX_IMPL_DECL(strk)
 ISOM_BOX_IMPL_DECL(stri)
 ISOM_BOX_IMPL_DECL(elng)
+ISOM_BOX_IMPL_DECL(stvi)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -868,6 +869,7 @@ static const struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STRI, stri, 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METX, metx),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METT, metx),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STVI, stvi, 0),
 
 	//full boxes todo
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_ASSP, assp, 1),
@@ -878,7 +880,6 @@ static const struct box_registry_entry {
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_GITN, gitn, 0),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_FIRE, fire, 1),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_STSG, stsg, 0),
-	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_STVI, stvi, 0),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_SRPP, srpp, 0),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_SRAT, srat, 0),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_CHNL, chnl, 0),
