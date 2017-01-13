@@ -68,8 +68,17 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ptr->HintTrackVersion = gf_bs_read_u16(bs);
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
-	ptr->MaxPacketSize = gf_bs_read_u32(bs);
-	ptr->size -= 16;
+
+	ptr->size -= 12;
+	if (s->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
+		ptr->MaxPacketSize = gf_bs_read_u32(bs);
+		ptr->size -= 4;
+	} else if (s->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
+		ptr->partition_entry_ID = gf_bs_read_u16(bs);
+		ptr->FEC_overhead = gf_bs_read_u16(bs);
+		ptr->size -= 4;
+
+	}
 
 	while (ptr->size) {
 		e = gf_isom_parse_box(&a, bs);

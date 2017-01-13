@@ -161,6 +161,8 @@ enum
 	GF_ISOM_BOX_TYPE_TREF	= GF_4CC( 't', 'r', 'e', 'f' ),
 	GF_ISOM_BOX_TYPE_STRK	= GF_4CC( 's', 't', 'r', 'k' ),
 	GF_ISOM_BOX_TYPE_STRI	= GF_4CC( 's', 't', 'r', 'i' ),
+	GF_ISOM_BOX_TYPE_STRD	= GF_4CC( 's', 't', 'r', 'd' ),
+	GF_ISOM_BOX_TYPE_STSG	= GF_4CC( 's', 't', 's', 'g' ),
 
 	GF_ISOM_BOX_TYPE_UDTA	= GF_4CC( 'u', 'd', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_VMHD	= GF_4CC( 'v', 'm', 'h', 'd' ),
@@ -312,6 +314,7 @@ enum
 
 	GF_ISOM_BOX_TYPE_STVI	= GF_4CC( 's', 't', 'v', 'i' ),
 
+
 	GF_ISOM_BOX_TYPE_METX	= GF_4CC( 'm', 'e', 't', 'x' ),
 	GF_ISOM_BOX_TYPE_METT	= GF_4CC( 'm', 'e', 't', 't' ),
 
@@ -322,6 +325,7 @@ enum
 
 	/* Hinting boxes */
 	GF_ISOM_BOX_TYPE_RTP_STSD	= GF_4CC( 'r', 't', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_FDP_STSD	= GF_4CC( 'f', 'd', 'p', ' ' ),
 	GF_ISOM_BOX_TYPE_HNTI	= GF_4CC( 'h', 'n', 't', 'i' ),
 	GF_ISOM_BOX_TYPE_RTP	= GF_4CC( 'r', 't', 'p', ' ' ),
 	GF_ISOM_BOX_TYPE_SDP	= GF_4CC( 's', 'd', 'p', ' ' ),
@@ -347,6 +351,15 @@ enum
 	GF_ISOM_BOX_TYPE_TSRO	= GF_4CC( 't', 's', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_SNRO	= GF_4CC( 's', 'n', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_RTPO	= GF_4CC( 'r', 't', 'p', 'o' ),
+
+	//FEC boxes
+	GF_ISOM_BOX_TYPE_FIIN	= GF_4CC( 'f', 'i', 'i', 'n' ),
+	GF_ISOM_BOX_TYPE_PAEN	= GF_4CC( 'p', 'a', 'e', 'n' ),
+	GF_ISOM_BOX_TYPE_FPAR	= GF_4CC( 'f', 'p', 'a', 'r' ),
+	GF_ISOM_BOX_TYPE_FECR	= GF_4CC( 'f', 'e', 'c', 'r' ),
+	GF_ISOM_BOX_TYPE_SEGR	= GF_4CC( 's', 'e', 'g', 'r' ),
+	GF_ISOM_BOX_TYPE_GITN	= GF_4CC( 'g', 'i', 't', 'n' ),
+	GF_ISOM_BOX_TYPE_FIRE	= GF_4CC( 'f', 'i', 'r', 'e' ),
 
 	/*internal type for track and item references*/
 	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
@@ -1512,8 +1525,17 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_FULL_BOX
+	u32 grouping_type;
+	u16 nb_groups;
+	u32 *group_description_index;
+} GF_SubTrackSampleGroupBox;
+
+typedef struct
+{
 	GF_ISOM_BOX
 	GF_SubTrackInformationBox *info;
+	GF_Box *strd;
 } GF_SubTrackBox;
 
 /*
@@ -2033,6 +2055,9 @@ typedef struct
 	u32 cur_sample;
 	u32 pck_sn, ts_offset, ssrc;
 	GF_TrackReferenceTypeBox *hint_ref;
+
+	//for FEC
+	u16 partition_entry_ID, FEC_overhead;
 } GF_HintSampleEntryBox;
 
 
@@ -2811,6 +2836,102 @@ typedef struct {
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 } GF_ItemPropertyAssociationBox;
+
+
+/*flute hint track boxes*/
+typedef struct
+{
+	u16 block_count;
+	u32 block_size;
+} FilePartitionEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 itemID;
+	u16 packet_payload_size;
+	u8 FEC_encoding_ID;
+	u16 FEC_instance_ID;
+	u16 max_source_block_length;
+	u16 encoding_symbol_length;
+	u16 max_number_of_encoding_symbols;
+	char *scheme_specific_info;
+	u32 nb_entries;
+	FilePartitionEntry *entries;
+} FilePartitionBox;
+
+typedef struct
+{
+	u32 item_id;
+	u32 symbol_count;
+} FECReservoirEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 nb_entries;
+	FECReservoirEntry *entries;
+} FECReservoirBox;
+
+typedef struct
+{
+	u32 nb_groups;
+	u32 *group_ids;
+	u32 nb_channels;
+	u32 *channels;
+} SessionGroupEntry;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u16 num_session_groups;
+	SessionGroupEntry *session_groups;
+} FDSessionGroupBox;
+
+typedef struct
+{
+	u32 group_id;
+	char *name;
+} GroupIdNameEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u16 nb_entries;
+	GroupIdNameEntry *entries;
+} GroupIdToNameBox;
+
+
+typedef struct
+{
+	u32 item_id;
+	u32 symbol_count;
+} FileReservoirEntry;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 nb_entries;
+	FileReservoirEntry *entries;
+} FileReservoirBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	FilePartitionBox *blocks_and_symbols;
+	FECReservoirBox *FEC_symbol_locations;
+	FileReservoirBox *File_symbol_locations;
+} FDPartitionEntryBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	GF_List *partition_entries;
+	FDSessionGroupBox *session_info;
+	GroupIdToNameBox *group_id_to_name;
+} FDItemInformationBox;
+
 
 /*
 		Data Map (media storage) stuff
