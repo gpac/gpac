@@ -15,7 +15,7 @@ single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_t
 single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/regression_tests/auxiliary_files/enst_audio.aac" "mp4client-http-aac"
 
 #progressive ac3
-single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources/media/counter/counter-30s_audio.ac3" "mp4client-http-ac3"
+single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources/media/counter/counter_30s_audio.ac3" "mp4client-http-ac3"
 
 #progressive amr
 single_playback_test "-guid http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources/media/import/bear_audio.amr" "mp4client-http-amr"

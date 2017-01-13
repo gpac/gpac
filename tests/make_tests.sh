@@ -164,6 +164,7 @@ echo "  -sync-refs:            syncs all remote reference videos with local base
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
 echo "  -check:                check test suites (names of each test is unique)"
 echo "  -track-stack:          track stack in malloc and turns on -warn option"
+echo "  -noplay:               disables MP4Client tests"
 echo "  -test=NAME             only executes given test"
 echo "  -v:                    set verbose output"
 echo "  -h:                    print this help"
@@ -261,6 +262,8 @@ for i in $* ; do
   log_after_fail=1;;
  "-track-stack")
   track_stack=1;;
+ "-noplay")
+	MP4CLIENT_NOT_FOUND=1;;
  -test*)
   single_test_name="${i#-test=}"
   ;;
@@ -405,7 +408,7 @@ fi
 
 MP4CLIENT="MP4Client"
 
-if [ $do_clean = 0 ] ; then
+if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
 
 `MP4Client -run-for 0 2> /dev/null`
 res=$?
