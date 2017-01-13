@@ -721,6 +721,7 @@ typedef struct
 	u32 handlerType;
 	u8 reserved2[12];
 	char *nameUTF8;
+	Bool store_counted_string;
 } GF_HandlerBox;
 
 typedef struct __tag_media_box
