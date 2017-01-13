@@ -3729,7 +3729,9 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 					break;
 				}
 			}
-			if (~(has_subsamples ^ (mdia != NULL))) {
+			//JLF: not sure why this test is here, it could be usefull to describe subsamples but using data source
+			//from sample or baseMediaFile ...
+			if (has_subsamples && (mdia != NULL) ) {
 				e = gf_import_message(import, GF_BAD_PARAM, "%s import failure: you shall have either mediaFile (sample) or subsamples. Aborting.", szImpName);
 				goto exit;
 			}
@@ -3746,47 +3748,49 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 				if (!offset) offset = media_done;
 			}
 
-			if (!samp->dataLength) {
-				u64 cur_pos = gf_ftell(f);
-				gf_fseek(f, 0, SEEK_END);
-				assert(gf_ftell(f) < 1<<31);
-				samp->dataLength = (u32) gf_ftell(f);
-				gf_fseek(f, cur_pos, SEEK_SET);
-			}
+			if (f) {
+				if (!samp->dataLength) {
+					//u64 cur_pos = gf_ftell(f);
+					gf_fseek(f, 0, SEEK_END);
+					assert(gf_ftell(f) < 1<<31);
+					samp->dataLength = (u32) gf_ftell(f);
+					//not needed, seek override below : gf_fseek(f, cur_pos, SEEK_SET);
+				}
+				gf_fseek(f, offset, SEEK_SET);
 
-			gf_fseek(f, offset, SEEK_SET);
-			if (is_dims) {
-				u32 read;
-				GF_BitStream *bs;
-				if (samp->dataLength+3>max_size) {
-					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * (samp->dataLength+3));
-					max_size = samp->dataLength+3;
-				}
-				bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
-				gf_bs_write_u16(bs, samp->dataLength+1);
-				gf_bs_write_u8(bs, (u8) dims_flags);
-				read = (u32) fread( samp->data+3, sizeof(char), samp->dataLength, f);
-				if (samp->dataLength != read) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
-				}
-				gf_bs_del(bs);
-				samp->dataLength+=3;
+				if (is_dims) {
+					u32 read;
+					GF_BitStream *bs;
+					if (samp->dataLength+3>max_size) {
+						samp->data = (char*)gf_realloc(samp->data, sizeof(char) * (samp->dataLength+3));
+						max_size = samp->dataLength+3;
+					}
+					bs = gf_bs_new(samp->data, samp->dataLength+3, GF_BITSTREAM_WRITE);
+					gf_bs_write_u16(bs, samp->dataLength+1);
+					gf_bs_write_u8(bs, (u8) dims_flags);
+					read = (u32) fread( samp->data+3, sizeof(char), samp->dataLength, f);
+					if (samp->dataLength != read) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import dims] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
+					}
+					gf_bs_del(bs);
+					samp->dataLength+=3;
 
-				/*same DIMS unit*/
-				if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
-					append = GF_TRUE;
-			} else {
-				u32 read;
-				if (samp->dataLength>max_size) {
-					samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
-					max_size = samp->dataLength;
+					/*same DIMS unit*/
+					if (gf_isom_get_sample_from_dts(import->dest, track, samp->DTS))
+						append = GF_TRUE;
+				} else {
+					u32 read;
+					if (samp->dataLength>max_size) {
+						samp->data = (char*)gf_realloc(samp->data, sizeof(char) * samp->dataLength);
+						max_size = samp->dataLength;
+					}
+					read = (u32) fread(samp->data, sizeof(char), samp->dataLength, f);
+					if (samp->dataLength != read) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
+					}
 				}
-				read = (u32) fread(samp->data, sizeof(char), samp->dataLength, f);
-				if (samp->dataLength != read) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[NHML import] Failed to fully read sample: dataLength %d read %d\n", samp->dataLength, read));
-				}
+				if (close) gf_fclose(f);
 			}
-			if (close) gf_fclose(f);
 		}
 		if (e) goto exit;
 
@@ -3834,7 +3838,10 @@ GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 						if (!stricmp(att->name, "mediaFile")) {
 							u32 subsMediaFileSize = 0;
 							char *subsMediaFileData = NULL;
-							FILE *f = gf_fopen(att->value, "rb");
+							char *sub_file_url = gf_url_concatenate(import->in_name, att->value);
+							FILE *f = sub_file_url ? gf_fopen(sub_file_url, "rb") : NULL;
+							if (sub_file_url) gf_free(sub_file_url);
+
 							if (!f) {
 								GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: mediaFile \"%s\" not found for subsample. Abort.\n", att->value));
 								e = GF_BAD_PARAM;
@@ -3901,7 +3908,7 @@ exit:
 	gf_xml_dom_del(parser);
 	if (specInfo) gf_free(specInfo);
 	if (dictionary) gf_free(dictionary);
-	if (auxiliary_mime_types) gf_free(dictionary);
+	if (auxiliary_mime_types) gf_free(auxiliary_mime_types);
 	return e;
 }
 
