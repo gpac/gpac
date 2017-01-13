@@ -238,8 +238,16 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 }
 
 GF_EXPORT
-GF_Err gf_isom_close(GF_ISOFile *movie)
+GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 {
+	if (movie->openMode != GF_ISOM_OPEN_WRITE || movie->fileName || movie->segment_bs) //memory mode
+		return GF_NOT_SUPPORTED;
+	*out_bs = movie->editFileMap->bs;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_write(GF_ISOFile *movie) {
 	GF_Err e;
 	if (movie == NULL) return GF_ISOM_INVALID_FILE;
 	e = GF_OK;
@@ -262,7 +270,6 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (movie->moov) {
 		u32 i;
-
 		for (i=0; i<gf_list_count(movie->moov->trackList); i++) {
 			GF_TrackBox *trak = (GF_TrackBox*)gf_list_get(movie->moov->trackList, i);
 			/*delete any pending dataHandler of scalable enhancements*/
@@ -272,9 +279,20 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	}
 #endif
 
-	//free and return;
-	gf_isom_delete_movie(movie);
 	return e;
+}
+
+GF_EXPORT
+GF_Err gf_isom_close(GF_ISOFile *movie)
+{
+	GF_Err e;
+	if (movie == NULL) return GF_ISOM_INVALID_FILE;
+	e = gf_isom_write(movie);
+	if (e) return e;
+
+	//free and return;
+	gf_isom_delete_movie(movie); //Romain: it is going to delete 
+	return GF_OK;
 }
 
 

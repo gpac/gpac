@@ -55,13 +55,15 @@ void gf_isom_datamap_del(GF_DataMap *ptr)
 	switch (ptr->type) {
 	//file-based
 	case GF_ISOM_DATA_FILE:
+	case GF_ISOM_DATA_MEM:
 		gf_isom_fdm_del((GF_FileDataMap *)ptr);
 		break;
 	case GF_ISOM_DATA_FILE_MAPPING:
 		gf_isom_fmo_del((GF_FileMappingDataMap *)ptr);
 		break;
-	//not implemented
 	default:
+		if (ptr->bs) gf_bs_del(ptr->bs);
+		gf_free(ptr);
 		break;
 	}
 }
@@ -122,8 +124,11 @@ GF_Err gf_isom_datamap_new(const char *location, const char *parentPath, u8 mode
 
 	//if nothing specified, this is a MEMORY data map
 	if (!location) {
-		//not supported yet
-		return GF_NOT_SUPPORTED;
+		*outDataMap = gf_isom_fdm_new(location, GF_ISOM_DATA_MAP_WRITE);
+		if (!(*outDataMap)) {
+			return GF_IO_ERR;
+		}
+		return GF_OK;
 	}
 	//we need a temp file ...
 	if (!strcmp(location, "mp4_tmp_edit")) {
@@ -271,6 +276,7 @@ u32 gf_isom_datamap_get_data(GF_DataMap *map, char *buffer, u32 bufferLength, u6
 
 	switch (map->type) {
 	case GF_ISOM_DATA_FILE:
+	case GF_ISOM_DATA_MEM:
 		return gf_isom_fdm_get_data((GF_FileDataMap *)map, buffer, bufferLength, Offset);
 
 	case GF_ISOM_DATA_FILE_MAPPING:
@@ -285,7 +291,7 @@ void gf_isom_datamap_flush(GF_DataMap *map)
 {
 	if (!map) return;
 
-	if (map->type==GF_ISOM_DATA_FILE) {
+	if (map->type == GF_ISOM_DATA_FILE || map->type == GF_ISOM_DATA_MEM) {
 		GF_FileDataMap *fdm = (GF_FileDataMap *)map;
 		gf_bs_flush(fdm->bs);
 	}
@@ -303,7 +309,8 @@ u64 gf_isom_datamap_get_offset(GF_DataMap *map)
 	switch (map->type) {
 	case GF_ISOM_DATA_FILE:
 		return FDM_GetTotalOffset((GF_FileDataMap *)map);
-
+	case GF_ISOM_DATA_MEM:
+		return gf_bs_get_position(map->bs);
 	default:
 		return 0;
 	}
@@ -316,6 +323,7 @@ GF_Err gf_isom_datamap_add_data(GF_DataMap *ptr, char *data, u32 dataSize)
 
 	switch (ptr->type) {
 	case GF_ISOM_DATA_FILE:
+	case GF_ISOM_DATA_MEM:
 		return FDM_AddData((GF_FileDataMap *)ptr, data, dataSize);
 	default:
 		return GF_NOT_SUPPORTED;
@@ -373,9 +381,19 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	GF_SAFEALLOC(tmp, GF_FileDataMap);
 	if (!tmp) return NULL;
 
-	tmp->type = GF_ISOM_DATA_FILE;
 	tmp->mode = mode;
 
+	if (sPath == NULL) {
+		tmp->type = GF_ISOM_DATA_MEM;
+		tmp->bs = gf_bs_new (NULL, 0, GF_BITSTREAM_WRITE);
+		if (!tmp->bs) {
+			gf_free(tmp);
+			return NULL;
+		}
+		return (GF_DataMap *)tmp;
+	}
+
+	tmp->type = GF_ISOM_DATA_FILE;
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	//open a temp file
 	if (!strcmp(sPath, "mp4_tmp_edit")) {
@@ -446,7 +464,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 
 void gf_isom_fdm_del(GF_FileDataMap *ptr)
 {
-	if (!ptr || (ptr->type != GF_ISOM_DATA_FILE)) return;
+	if (!ptr || (ptr->type != GF_ISOM_DATA_FILE && ptr->type != GF_ISOM_DATA_MEM)) return;
 	if (ptr->bs) gf_bs_del(ptr->bs);
 	if (ptr->stream && !ptr->is_stdout)
 		gf_fclose(ptr->stream);
@@ -459,8 +477,6 @@ void gf_isom_fdm_del(GF_FileDataMap *ptr)
 #endif
 	gf_free(ptr);
 }
-
-
 
 u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset)
 {
@@ -497,7 +513,6 @@ u32 gf_isom_fdm_get_data(GF_FileDataMap *ptr, char *buffer, u32 bufferLength, u6
 }
 
 
-
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 
@@ -509,8 +524,6 @@ u64 FDM_GetTotalOffset(GF_FileDataMap *ptr)
 	//so we need the next WRITE offset
 	return gf_bs_get_size(ptr->bs);
 }
-
-
 
 GF_Err FDM_AddData(GF_FileDataMap *ptr, char *data, u32 dataSize)
 {
@@ -645,12 +658,16 @@ u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLen
 
 #else
 
-GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode) {
+GF_DataMap *gf_isom_fmo_new(const char *sPath, u8 mode)
+{
 	return gf_isom_fdm_new(sPath, mode);
 }
-void gf_isom_fmo_del(GF_FileMappingDataMap *ptr) {
+
+void gf_isom_fmo_del(GF_FileMappingDataMap *ptr)
+{
 	gf_isom_fdm_del((GF_FileDataMap *)ptr);
 }
+
 u32 gf_isom_fmo_get_data(GF_FileMappingDataMap *ptr, char *buffer, u32 bufferLength, u64 fileOffset)
 {
 	return gf_isom_fdm_get_data((GF_FileDataMap *)ptr, buffer, bufferLength, fileOffset);
