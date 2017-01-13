@@ -10807,7 +10807,7 @@ static GF_Err read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **ou
 	while (1) {
 		ISOM_DECREASE_SIZE(s, 1 );
 		(*out_str)[i] = gf_bs_read_u8(bs);
-		if (! *out_str[i]) break;
+		if (! (*out_str)[i]) break;
 		if (i==len) {
 			len += 10;
 			*out_str = gf_realloc(*out_str, sizeof(char)*len);
@@ -10823,8 +10823,9 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	FilePartitionBox *ptr = (FilePartitionBox *)s;
 	gf_isom_full_box_read(s, bs);
-	ISOM_DECREASE_SIZE(ptr, ((ptr->version ? 4 : 2) + 10) );
+	ISOM_DECREASE_SIZE(ptr, ((ptr->version ? 4 : 2) + 12) );
 	ptr->itemID = gf_bs_read_int(bs, ptr->version ? 32 : 16);
+	ptr->packet_payload_size = gf_bs_read_u16(bs);
 	gf_bs_read_u8(bs);
 	ptr->FEC_encoding_ID = gf_bs_read_u8(bs);
 	ptr->FEC_instance_ID = gf_bs_read_u16(bs);
@@ -10859,6 +10860,7 @@ GF_Err fpar_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 
 	gf_bs_write_int(bs, ptr->itemID, ptr->version ? 32 : 16);
+	gf_bs_write_u16(bs, ptr->packet_payload_size);
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, ptr->FEC_encoding_ID);
 	gf_bs_write_u16(bs, ptr->FEC_instance_ID);
@@ -10886,7 +10888,7 @@ GF_Err fpar_Size(GF_Box *s)
 	FilePartitionBox *ptr = (FilePartitionBox *)s;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size+= 11 + ptr->version ? 8 : 4;
+	ptr->size+= 13 + ptr->version ? 8 : 4;
 	if (ptr->scheme_specific_info)
 		ptr->size += strlen(ptr->scheme_specific_info);
 
