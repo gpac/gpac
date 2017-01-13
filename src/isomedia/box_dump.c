@@ -2149,14 +2149,28 @@ GF_Err tsro_dump(GF_Box *a, FILE * trace)
 
 GF_Err ghnt_dump(GF_Box *a, FILE * trace)
 {
+	char *name;
 	GF_HintSampleEntryBox *p;
 	p = (GF_HintSampleEntryBox *)a;
-	DumpBox(a, "GenericHintSampleEntryBox", trace);
-	fprintf(trace, "EntrySubType=\"%s\" DataReferenceIndex=\"%d\" HintTrackVersion=\"%d\" LastCompatibleVersion=\"%d\" MaxPacketSize=\"%d\">\n",
-	        gf_4cc_to_str(p->type), p->dataReferenceIndex, p->HintTrackVersion, p->LastCompatibleVersion, p->MaxPacketSize);
+
+	if (a->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
+		name = "RTPHintSampleEntryBox";
+	} else if (a->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
+		name = "FDPHintSampleEntryBox";
+	} else {
+		name = "GenericHintSampleEntryBox";
+	}
+	DumpBox(a, name, trace);
+	fprintf(trace, "DataReferenceIndex=\"%d\" HintTrackVersion=\"%d\" LastCompatibleVersion=\"%d\"", p->dataReferenceIndex, p->HintTrackVersion, p->LastCompatibleVersion);
+	if (a->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
+		fprintf(trace, " MaxPacketSize=\"%d\"", p->MaxPacketSize);
+	} else if (a->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
+		fprintf(trace, " partition_entry_ID=\"%d\" FEC_overhead=\"%d\"", p->partition_entry_ID, p->FEC_overhead);
+	}
+	fprintf(trace, ">\n");
 
 	gf_box_array_dump(p->HintDataTable, trace);
-	gf_box_dump_done("GenericHintSampleEntryBox", a, trace);
+	gf_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -4006,7 +4020,25 @@ GF_Err stri_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "%s ", gf_4cc_to_str(p->attribute_list[i]));
 	}
 	fprintf(trace, "\" ");
-	fprintf(trace, "/>\n");
+	fprintf(trace, ">\n");
+	gf_box_dump_done("SubTrackInformationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err stsg_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_SubTrackSampleGroupBox *p = (GF_SubTrackSampleGroupBox *)a;
+	DumpBox(a, "SubTrackSampleGroupBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "grouping_type=\"%s\" ", gf_4cc_to_str(p->grouping_type) );
+	fprintf(trace, "group_description_index=\"");
+	for (i = 0; i < p->nb_groups; i++) {
+		fprintf(trace, "%d ", p->group_description_index[i]);
+	}
+	fprintf(trace, "\" ");
+	fprintf(trace, ">\n");
+	gf_box_dump_done("SubTrackSampleGroupBox", a, trace);
 	return GF_OK;
 }
 
@@ -4882,10 +4914,9 @@ GF_Err grptype_dump(GF_Box *a, FILE * trace)
 
 GF_Err stvi_dump(GF_Box *a, FILE * trace)
 {
-	u32 i;
 	GF_StereoVideoBox *ptr = (GF_StereoVideoBox *) a;
 	DumpBox(a, "StereoVideoBox", trace);
-	a->type = GF_ISOM_BOX_TYPE_GRPT;
+
 	gf_full_box_dump((GF_Box *)a, trace);
 	fprintf(trace, "single_view_allowed=\"%d\" stereo_scheme=\"%d\" ", ptr->single_view_allowed, ptr->stereo_scheme);
 	dump_data(trace, "stereo_indication_type", ptr->stereo_indication_type, ptr->sit_len);
@@ -4893,5 +4924,151 @@ GF_Err stvi_dump(GF_Box *a, FILE * trace)
 	gf_box_dump_done("StereoVideoBox", a, trace);
 	return GF_OK;
 }
+
+GF_Err def_cont_box_dump(GF_Box *a, FILE *trace)
+{
+	char *name = "SubTrackDefinitionBox"; //only one using generic box container for now
+	DumpBox(a, name, trace);
+	fprintf(trace, ">\n");
+	gf_box_dump_done(name, a, trace);
+	return GF_OK;
+}
+
+GF_Err fiin_dump(GF_Box *a, FILE * trace)
+{
+	FDItemInformationBox *ptr = (FDItemInformationBox *) a;
+	DumpBox(a, "FDItemInformationBox", trace);
+
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
+	if (ptr->partition_entries)
+		gf_box_array_dump(ptr->partition_entries, trace);
+
+	if (ptr->session_info)
+		gf_box_dump(ptr->session_info, trace);
+
+	if (ptr->group_id_to_name)
+		gf_box_dump(ptr->group_id_to_name, trace);
+
+	gf_box_dump_done("FDItemInformationBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fecr_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	char *box_name;
+	FECReservoirBox *ptr = (FECReservoirBox *) a;
+	if (a->type==GF_ISOM_BOX_TYPE_FIRE) {
+		box_name = "FILEReservoirBox";
+	} else {
+		box_name = "FECReservoirBox";
+	}
+	DumpBox(a, box_name, trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
+
+	for (i=0; i<ptr->nb_entries; i++) {
+		fprintf(trace, "<%sEntry itemID=\"%d\" symbol_count=\"%d\"/>\n", box_name, ptr->entries[i].item_id, ptr->entries[i].symbol_count);
+	}
+	if (!ptr->size) {
+		fprintf(trace, "<%sEntry itemID=\"\" symbol_count=\"\"/>\n", box_name);
+	}
+	gf_box_dump_done(box_name, a, trace);
+	return GF_OK;
+}
+
+GF_Err gitn_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GroupIdToNameBox *ptr = (GroupIdToNameBox *) a;
+	DumpBox(a, "GroupIdToNameBox", trace);
+
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
+
+	for (i=0; i<ptr->nb_entries; i++) {
+		fprintf(trace, "<GroupIdToNameBoxEntry groupID=\"%d\" name=\"%s\"/>\n", ptr->entries[i].group_id, ptr->entries[i].name);
+	}
+	if (!ptr->size) {
+		fprintf(trace, "<GroupIdToNameBoxEntryEntry groupID=\"\" name=\"\"/>\n");
+	}
+
+	gf_box_dump_done("GroupIdToNameBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err paen_dump(GF_Box *a, FILE * trace)
+{
+	FDPartitionEntryBox *ptr = (FDPartitionEntryBox *) a;
+	DumpBox(a, "FDPartitionEntryBox", trace);
+
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
+	if (ptr->blocks_and_symbols)
+		gf_box_dump(ptr->blocks_and_symbols, trace);
+
+	if (ptr->FEC_symbol_locations)
+		gf_box_dump(ptr->FEC_symbol_locations, trace);
+
+	if (ptr->FEC_symbol_locations)
+		gf_box_dump(ptr->FEC_symbol_locations, trace);
+
+	gf_box_dump_done("FDPartitionEntryBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fpar_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	FilePartitionBox *ptr = (FilePartitionBox *) a;
+	DumpBox(a, "FilePartitionBox", trace);
+
+	gf_full_box_dump((GF_Box *)a, trace);
+
+	fprintf(trace, "itemID=\"%d\" FEC_encoding_ID=\"%d\" FEC_instance_ID=\"%d\" max_source_block_length=\"%d\" encoding_symbol_length=\"%d\" max_number_of_encoding_symbols=\"%d\" ", ptr->itemID, ptr->FEC_encoding_ID, ptr->FEC_instance_ID, ptr->max_source_block_length, ptr->encoding_symbol_length, ptr->max_number_of_encoding_symbols);
+
+	if (ptr->scheme_specific_info)
+		dump_data(trace, "scheme_specific_info", (char*)ptr->scheme_specific_info, strlen(ptr->scheme_specific_info) );
+
+	fprintf(trace, ">\n");
+
+	for (i=0; i<ptr->nb_entries; i++) {
+		fprintf(trace, "<FilePartitionBoxEntry block_count=\"%d\" block_size=\"%d\"/>\n", ptr->entries[i].block_count, ptr->entries[i].block_size);
+	}
+	if (!ptr->size) {
+		fprintf(trace, "<FilePartitionBoxEntry block_count=\"\" block_size=\"\"/>\n");
+	}
+
+	gf_box_dump_done("FilePartitionBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err segr_dump(GF_Box *a, FILE * trace)
+{
+	u32 i, k;
+	FDSessionGroupBox *ptr = (FDSessionGroupBox *) a;
+	DumpBox(a, "FDSessionGroupBox", trace);
+	fprintf(trace, ">\n");
+
+	for (i=0; i<ptr->num_session_groups; i++) {
+		fprintf(trace, "<FDSessionGroupBoxEntry groupIDs=\"");
+		for (k=0; k<ptr->session_groups[i].nb_groups; k++) {
+			fprintf(trace, "%d ", ptr->session_groups[i].group_ids[k]);
+		}
+		fprintf(trace, "\" channels=\"");
+		for (k=0; k<ptr->session_groups[i].nb_channels; k++) {
+			fprintf(trace, "%d ", ptr->session_groups[i].channels[k]);
+		}
+		fprintf(trace, "\"/>\n");
+	}
+	if (!ptr->size) {
+		fprintf(trace, "<FDSessionGroupBoxEntry groupIDs=\"\" channels=\"\"/>\n");
+	}
+
+	gf_box_dump_done("FDSessionGroupBox", a, trace);
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
