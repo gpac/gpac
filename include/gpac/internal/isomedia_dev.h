@@ -1841,6 +1841,7 @@ typedef struct
 
 	u32 single_view_allowed;
 	u32 stereo_scheme;
+	u32 sit_len;
 	char *stereo_indication_type;
 } GF_StereoVideoBox;
 

@@ -595,7 +595,7 @@ void grpl_del(GF_Box *s)
 
 GF_Err grpl_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_read_box_list_ex(s, bs, gf_isom_box_add_default, s->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
