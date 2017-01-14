@@ -501,6 +501,8 @@ GF_ISOFile *gf_isom_new_movie()
 	return mov;
 }
 
+extern Bool use_dump_mode;
+
 //Create and parse the movie for READ - EDIT only
 GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tmp_dir)
 {
@@ -530,9 +532,12 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 			return NULL;
 		}
 
+		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) {
+			use_dump_mode = GF_TRUE;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
+			mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
 #endif
+		}
 
 	} else {
 
@@ -621,6 +626,7 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 	if (mov->last_producer_ref_time)
 		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);
 	if (mov->fileName) gf_free(mov->fileName);
+	use_dump_mode = GF_FALSE;
 	gf_free(mov);
 }
 

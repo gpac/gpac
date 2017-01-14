@@ -27,6 +27,11 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+//only used in dump mode
+static Bool skip_box_dump_del = GF_FALSE;
+Bool use_dump_mode = GF_FALSE;
+
+
 //Add this funct to handle incomplete files...
 //bytesExpected is 0 most of the time. If the file is incomplete, bytesExpected
 //is the number of bytes missing to parse the box...
@@ -277,6 +282,10 @@ GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_b
 		if (e) {
 			gf_isom_box_del(a);
 			return e;
+		}
+		//in dump mode store all boxes in other_boxes if not done, so that we can dump the original order
+		if (use_dump_mode && (!parent->other_boxes || (gf_list_find(parent->other_boxes, a)<0) ) ) {
+			gf_isom_box_add_default(parent, a);
 		}
 	}
 	return GF_OK;
@@ -1190,6 +1199,8 @@ GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
 	if (!a) return;
+	if (skip_box_dump_del) return;
+
 	if (a->other_boxes) {
 		gf_isom_box_array_del(a->other_boxes);
 		a->other_boxes = NULL;
@@ -1198,7 +1209,13 @@ void gf_isom_box_del(GF_Box *a)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
 		return;
 	}
-	a->registry->del_fn(a);
+	if (use_dump_mode) {
+		skip_box_dump_del = GF_TRUE;
+		a->registry->del_fn(a);
+		skip_box_dump_del = GF_FALSE;
+	 } else {
+		a->registry->del_fn(a);
+	 }
 }
 
 
@@ -1319,6 +1336,8 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 		fprintf(trace, "}\" ");
 	}
 	fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
+	//disable all box dumping until end of this box
+	skip_box_dump_del = GF_TRUE;
 	return GF_OK;
 }
 
@@ -1327,6 +1346,8 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 {
 	GF_Box *a = (GF_Box *) ptr;
+
+	if (skip_box_dump_del) return GF_OK;
 
 	if (!a) {
 		if (box_4cc) {
@@ -1342,6 +1363,17 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	}
 	a->registry->dump_fn(a, trace);
 	return GF_OK;
+}
+
+void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
+{
+	//enable box dumping and dump other_boxes which contains all source boxes in order
+	skip_box_dump_del = GF_FALSE;
+	if (ptr && ptr->other_boxes) {
+		gf_box_array_dump(ptr->other_boxes, trace);
+	}
+	if (name)
+		fprintf(trace, "</%s>\n", name);
 }
 
 #endif

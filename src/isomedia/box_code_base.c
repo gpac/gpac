@@ -5350,18 +5350,9 @@ GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 	//we need to parse DegPrior in a special way
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
 
-	while (ptr->size) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
+	e = gf_isom_read_box_list(s, bs, stbl_AddBox);
+	if (e) return e;
 
-		if (ptr->size<a->size) {
-			gf_isom_box_del(a);
-			return GF_ISOM_INVALID_FILE;
-		}
-		ISOM_DECREASE_SIZE(ptr, a->size);
-		e = stbl_AddBox(ptr, a);
-		if (e) return e;
-	}
 	if (!ptr->SyncSample)
 		ptr->no_sync_found = 1;
 
@@ -5906,13 +5897,9 @@ GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	nb_entries = gf_bs_read_u32(bs);
-	for (i = 0; i < nb_entries; i++) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		e = stsd_AddBox(ptr, a);
-		if (e) return e;
-	}
-	return GF_OK;
+	ISOM_DECREASE_SIZE(s, 4)
+	
+	return gf_isom_read_box_list(s, bs, stsd_AddBox);
 }
 
 GF_Box *stsd_New()
@@ -6904,21 +6891,12 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Box *a;
-
+	GF_Err e;
 	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *)s;
 
-	while (ptr->size) {
-		GF_Err e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		if (ptr->size<a->size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" is larger than container box\n", gf_4cc_to_str(a->type)));
-			ptr->size = 0;
-		} else {
-			ISOM_DECREASE_SIZE(ptr, a->size);
-		}
-		e = traf_AddBox((GF_Box*)ptr, a);
-		if (e) return e;
-	}
+	e = gf_isom_read_box_list(s, bs, traf_AddBox);
+	if (e) return e;
+
 	if (!ptr->tfhd) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing TrackFragmentHeaderBox \n"));
 		return GF_ISOM_INVALID_FILE;
@@ -8271,21 +8249,7 @@ GF_Err udta_Read(GF_Box *s, GF_BitStream *bs)
 	u32 sub_type;
 	GF_Box *a;
 	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
-	while (ptr->size) {
-		/*if no udta type coded, break*/
-		sub_type = gf_bs_peek_bits(bs, 32, 0);
-		if (sub_type) {
-			e = gf_isom_parse_box(&a, bs);
-			if (e) return e;
-			e = udta_AddBox(ptr, a);
-			if (e) return e;
-			ISOM_DECREASE_SIZE(ptr, a->size);
-		} else {
-			gf_bs_read_u32(bs);
-			ISOM_DECREASE_SIZE(ptr, 4);
-		}
-	}
-	return GF_OK;
+	return gf_isom_read_box_list(s, bs, udta_AddBox);
 }
 
 GF_Box *udta_New()
