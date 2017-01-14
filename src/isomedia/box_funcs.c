@@ -527,6 +527,9 @@ ISOM_BOX_IMPL_DECL(ghnt)
 ISOM_BOX_IMPL_DECL(hnti)
 ISOM_BOX_IMPL_DECL(sdp)
 ISOM_BOX_IMPL_DECL(rtpo)
+ISOM_BOX_IMPL_DECL(tssy)
+ISOM_BOX_IMPL_DECL(rssr)
+ISOM_BOX_IMPL_DECL(srpp)
 
 
 #endif
@@ -908,7 +911,10 @@ static const struct box_registry_entry {
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RTP_STSD, ghnt),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_SRTP_STSD, ghnt),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FDP_STSD, ghnt),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_RRTP_STSD, ghnt),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_RTCP_STSD, ghnt),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RTPO, rtpo),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_HNTI, hnti),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SDP, sdp),
@@ -933,6 +939,10 @@ static const struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_DMAX, dmax),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_PAYT, payt),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_NAME, name),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_TSSY, tssy),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_RSSR, rssr),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_SRPP, srpp),
+
 #endif
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1158,7 +1168,9 @@ GF_Box *gf_isom_box_new(u32 boxType)
 	a = box_registry[idx].new_fn();
 
 	if (a) {
-		a->type = boxType;
+		if (a->type!=GF_ISOM_BOX_TYPE_UUID)
+			a->type = boxType;
+
 		a->registry = &box_registry[idx];
 	}
 	return a;
@@ -1296,6 +1308,7 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 	} else {
 		fprintf(trace, "Size=\"%u\" ", (u32) a->size);
 	}
+	fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(a->type));
 	if (a->type == GF_ISOM_BOX_TYPE_UUID) {
 		u32 i;
 		fprintf(trace, "UUID=\"{");
@@ -1304,8 +1317,6 @@ GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace)
 			if ((i<15) && (i%4)==3) fprintf(trace, "-");
 		}
 		fprintf(trace, "}\" ");
-	} else {
-		fprintf(trace, "Type=\"%s\" ", gf_4cc_to_str(a->type));
 	}
 	fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
 	return GF_OK;

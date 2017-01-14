@@ -2861,6 +2861,171 @@ GF_Err name_Size(GF_Box *s)
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+void tssy_del(GF_Box *s)
+{
+	gf_free(s);
+}
+GF_Err tssy_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TimeStampSynchronyBox *ptr = (GF_TimeStampSynchronyBox *)s;
+	gf_bs_read_int(bs, 6);
+	ptr->timestamp_sync = gf_bs_read_int(bs, 2);
+	return GF_OK;
+}
+GF_Box *tssy_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TimeStampSynchronyBox, GF_ISOM_BOX_TYPE_TSSY);
+	return (GF_Box *)tmp;
+}
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err tssy_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TimeStampSynchronyBox *ptr = (GF_TimeStampSynchronyBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_int(bs, 0, 6);
+	gf_bs_write_int(bs, ptr->timestamp_sync, 2);
+	return GF_OK;
+}
+GF_Err tssy_Size(GF_Box *s)
+{
+	GF_Err e;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 1;
+	return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void srpp_del(GF_Box *s)
+{
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
+	if (ptr->info) gf_isom_box_del((GF_Box*)ptr->info);
+	if (ptr->scheme_type) gf_isom_box_del((GF_Box*)ptr->scheme_type);
+	gf_free(s);
+}
+
+GF_Err srpp_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
+	switch(a->type) {
+	case GF_ISOM_BOX_TYPE_SCHI:
+		if (ptr->info) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->info = (GF_SchemeInformationBox *)a;
+		return GF_OK;
+	case GF_ISOM_BOX_TYPE_SCHM:
+		if (ptr->scheme_type) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->scheme_type = (GF_SchemeTypeBox *)a;
+		return GF_OK;
+	}
+	return gf_isom_box_add_default(s, a);
+}
+
+GF_Err srpp_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(s, 16)
+	ptr->encryption_algorithm_rtp = gf_bs_read_u32(bs);
+	ptr->encryption_algorithm_rtcp = gf_bs_read_u32(bs);
+	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
+	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
+	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+}
+GF_Box *srpp_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_SRTPProcessBox, GF_ISOM_BOX_TYPE_SRPP);
+	return (GF_Box *)tmp;
+}
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err srpp_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	gf_bs_write_u32(bs, ptr->encryption_algorithm_rtp);
+	gf_bs_write_u32(bs, ptr->encryption_algorithm_rtcp);
+	gf_bs_write_u32(bs, ptr->integrity_algorithm_rtp);
+	gf_bs_write_u32(bs, ptr->integrity_algorithm_rtcp);
+	if (ptr->info) {
+		e = gf_isom_box_write((GF_Box*)ptr->info, bs);
+		if (e) return e;
+	}
+	if (ptr->scheme_type) {
+		e = gf_isom_box_write((GF_Box*)ptr->scheme_type, bs);
+		if (e) return e;
+	}
+	return GF_OK;
+}
+GF_Err srpp_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += 16;
+	if (ptr->info) {
+		e = gf_isom_box_size((GF_Box*)ptr->info);
+		if (e) return e;
+		ptr->size += ptr->info->size;
+	}
+	if (ptr->scheme_type) {
+		e = gf_isom_box_size((GF_Box*)ptr->scheme_type);
+		if (e) return e;
+		ptr->size += ptr->scheme_type->size;
+	}
+	return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+void rssr_del(GF_Box *s)
+{
+	gf_free(s);
+}
+GF_Err rssr_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_ReceivedSsrcBox *ptr = (GF_ReceivedSsrcBox *)s;
+	ptr->ssrc = gf_bs_read_u32(bs);
+	return GF_OK;
+}
+GF_Box *rssr_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_ReceivedSsrcBox, GF_ISOM_BOX_TYPE_RSSR);
+	return (GF_Box *)tmp;
+}
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err rssr_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_ReceivedSsrcBox *ptr = (GF_ReceivedSsrcBox *)s;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->ssrc);
+	return GF_OK;
+}
+GF_Err rssr_Size(GF_Box *s)
+{
+	GF_Err e;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	s->size += 4;
+	return GF_OK;
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+
 void iods_del(GF_Box *s)
 {
 	GF_ObjectDescriptorBox *ptr = (GF_ObjectDescriptorBox *)s;
@@ -5665,7 +5830,10 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_RESV:
 	case GF_ISOM_BOX_TYPE_GHNT:
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
 	case GF_ISOM_BOX_TYPE_FDP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
 	case GF_ISOM_BOX_TYPE_AVC1:
 	case GF_ISOM_BOX_TYPE_AVC2:
 	case GF_ISOM_BOX_TYPE_AVC3:
@@ -7006,7 +7174,10 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_SUBTYPE_3GP_H263:
 		case GF_ISOM_BOX_TYPE_GHNT:
 		case GF_ISOM_BOX_TYPE_RTP_STSD:
+		case GF_ISOM_BOX_TYPE_SRTP_STSD:
 		case GF_ISOM_BOX_TYPE_FDP_STSD:
+		case GF_ISOM_BOX_TYPE_RRTP_STSD:
+		case GF_ISOM_BOX_TYPE_RTCP_STSD:
 		case GF_ISOM_BOX_TYPE_METX:
 		case GF_ISOM_BOX_TYPE_METT:
 		case GF_ISOM_BOX_TYPE_STXT:

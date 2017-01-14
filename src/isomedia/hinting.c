@@ -70,7 +70,7 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
 
 	ptr->size -= 12;
-	if (s->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
+	if ((s->type == GF_ISOM_BOX_TYPE_RTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_SRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RTCP_STSD)) {
 		ptr->MaxPacketSize = gf_bs_read_u32(bs);
 		ptr->size -= 4;
 	} else if (s->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
@@ -131,6 +131,9 @@ GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType)
 
 	switch (ProtocolType) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
 		type = GF_ISMO_HINT_RTP;
 		break;
 	default:
@@ -468,12 +471,18 @@ GF_Err Read_ImmediateDTE(GF_ImmediateDTE *dte, GF_BitStream *bs)
 
 GF_Err Read_SampleDTE(GF_SampleDTE *dte, GF_BitStream *bs)
 {
-	dte->trackRefIndex = gf_bs_read_u8(bs);
+	dte->trackRefIndex = (s8) gf_bs_read_u8(bs);
 	dte->dataLength = gf_bs_read_u16(bs);
 	dte->sampleNumber = gf_bs_read_u32(bs);
 	dte->byteOffset = gf_bs_read_u32(bs);
 	dte->bytesPerComp = gf_bs_read_u16(bs);
 	dte->samplesPerComp = gf_bs_read_u16(bs);
+	if (dte->bytesPerComp != 1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with bytesperblock %d, not 1\n", dte->bytesPerComp));
+	}
+	if (dte->samplesPerComp != 1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with samplesperblock %d, not 1\n", dte->bytesPerComp));
+	}
 	return GF_OK;
 }
 
@@ -658,6 +667,10 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		Bool add_it = 0;
 		type = gf_bs_read_u8(bs);
 		dte = NewDTE(type);
+		if (!dte) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] invalid DTE code %d in hint sample\n", type));
+			return GF_ISOM_INVALID_FILE;
+		}
 		e = ReadDTE(dte, bs);
 		if (e) return e;
 		/*little opt, remove empty dte*/
@@ -815,6 +828,8 @@ GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (e) return e;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -907,6 +922,8 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	if (e) return e;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

@@ -2046,6 +2046,24 @@ GF_Err drep_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err tssy_dump(GF_Box *a, FILE * trace)
+{
+	GF_TimeStampSynchronyBox *p = (GF_TimeStampSynchronyBox *)a;
+	DumpBox(a, "TimeStampSynchronyBox", trace);
+	fprintf(trace, "timestamp_sync=\"%d\">\n", p->timestamp_sync);
+	gf_box_dump_done("TimeStampSynchronyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err rssr_dump(GF_Box *a, FILE * trace)
+{
+	GF_ReceivedSsrcBox *p = (GF_ReceivedSsrcBox *)a;
+	DumpBox(a, "ReceivedSsrcBox", trace);
+	fprintf(trace, "SSRC=\"%d\">\n", p->ssrc);
+	gf_box_dump_done("ReceivedSsrcBox", a, trace);
+	return GF_OK;
+}
+
 GF_Err tmin_dump(GF_Box *a, FILE * trace)
 {
 	GF_TMINBox *p;
@@ -2155,14 +2173,20 @@ GF_Err ghnt_dump(GF_Box *a, FILE * trace)
 
 	if (a->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
 		name = "RTPHintSampleEntryBox";
+	} else if (a->type == GF_ISOM_BOX_TYPE_SRTP_STSD) {
+		name = "SRTPHintSampleEntryBox";
 	} else if (a->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
 		name = "FDPHintSampleEntryBox";
+	} else if (a->type == GF_ISOM_BOX_TYPE_RRTP_STSD) {
+		name = "RTPReceptionHintSampleEntryBox";
+	} else if (a->type == GF_ISOM_BOX_TYPE_RTCP_STSD) {
+		name = "RTCPReceptionHintSampleEntryBox";
 	} else {
 		name = "GenericHintSampleEntryBox";
 	}
 	DumpBox(a, name, trace);
 	fprintf(trace, "DataReferenceIndex=\"%d\" HintTrackVersion=\"%d\" LastCompatibleVersion=\"%d\"", p->dataReferenceIndex, p->HintTrackVersion, p->LastCompatibleVersion);
-	if (a->type == GF_ISOM_BOX_TYPE_RTP_STSD) {
+	if ((a->type == GF_ISOM_BOX_TYPE_RTP_STSD) || (a->type == GF_ISOM_BOX_TYPE_SRTP_STSD) || (a->type == GF_ISOM_BOX_TYPE_RRTP_STSD) || (a->type == GF_ISOM_BOX_TYPE_RTCP_STSD)) {
 		fprintf(trace, " MaxPacketSize=\"%d\"", p->MaxPacketSize);
 	} else if (a->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
 		fprintf(trace, " partition_entry_ID=\"%d\" FEC_overhead=\"%d\"", p->partition_entry_ID, p->FEC_overhead);
@@ -2500,7 +2524,13 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	//check we can read the sample
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		break;
+	//TODO
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		gf_isom_sample_del(&tmp);
+		return GF_NOT_SUPPORTED;
 	default:
 		gf_isom_sample_del(&tmp);
 		return GF_NOT_SUPPORTED;
@@ -5070,5 +5100,20 @@ GF_Err segr_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err srpp_dump(GF_Box *a, FILE * trace)
+{
+	GF_SRTPProcessBox *ptr = (GF_SRTPProcessBox *) a;
+	DumpBox(a, "SRTPProcessBox", trace);
+
+	gf_full_box_dump((GF_Box *)a, trace);
+
+	fprintf(trace, "encryption_algorithm_rtp=\"%d\" encryption_algorithm_rtcp=\"%d\" integrity_algorithm_rtp=\"%d\" integrity_algorithm_rtcp=\"%d\">\n", ptr->encryption_algorithm_rtp, ptr->encryption_algorithm_rtcp, ptr->integrity_algorithm_rtp, ptr->integrity_algorithm_rtcp);
+
+	if (ptr->info) gf_box_dump(ptr->info, trace);
+	if (ptr->scheme_type) gf_box_dump(ptr->scheme_type, trace);
+
+	gf_box_dump_done("SRTPProcessBox", a, trace);
+	return GF_OK;
+}
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/
