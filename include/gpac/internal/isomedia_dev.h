@@ -3580,7 +3580,7 @@ Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
 GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
 GF_Err gf_box_dump(void *ptr, FILE * trace);
-GF_Err gb_box_array_dump(GF_List *list, FILE * trace);
+GF_Err gf_box_array_dump(GF_List *list, FILE * trace);
 
 /*Apple extensions*/
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);

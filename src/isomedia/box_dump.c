@@ -100,15 +100,6 @@ GF_Err gf_box_array_dump(GF_List *list, FILE * trace)
 	return GF_OK;
 }
 
-void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
-{
-	if (ptr && ptr->other_boxes) {
-		gf_box_array_dump(ptr->other_boxes, trace);
-	}
-	if (name)
-		fprintf(trace, "</%s>\n", name);
-}
-
 
 GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
@@ -210,8 +201,8 @@ GF_Err free_dump(GF_Box *a, FILE * trace)
 {
 	GF_FreeSpaceBox *p = (GF_FreeSpaceBox *)a;
 	DumpBox(a, (a->type==GF_ISOM_BOX_TYPE_FREE) ? "FreeSpaceBox" : "SkipBox", trace);
-	fprintf(trace, "dataSize=\"%d\"/>\n", p->dataSize);
-	//gf_box_dump_done("FreeSpaceBox", a, trace);
+	fprintf(trace, "dataSize=\"%d\">\n", p->dataSize);
+	gf_box_dump_done( (a->type==GF_ISOM_BOX_TYPE_FREE) ? "FreeSpaceBox" : "SkipBox", a, trace);
 	return GF_OK;
 }
 
@@ -221,8 +212,8 @@ GF_Err mdat_dump(GF_Box *a, FILE * trace)
 
 	p = (GF_MediaDataBox *)a;
 	DumpBox(a, "MediaDataBox", trace);
-	fprintf(trace, "dataSize=\""LLD"\"/>\n", LLD_CAST p->dataSize);
-	//gf_box_dump_done("MediaDataBox", a, trace);
+	fprintf(trace, "dataSize=\""LLD"\">\n", LLD_CAST p->dataSize);
+	gf_box_dump_done("MediaDataBox", a, trace);
 	return GF_OK;
 }
 
@@ -1261,7 +1252,7 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace)
 	DumpBox(a, "UnknownBox", trace);
 	u->type = GF_ISOM_BOX_TYPE_UNKNOWN;
 	fprintf(trace, ">\n");
-	fprintf(trace, "</UnknownBox>\n");
+	gf_box_dump_done("UnknownBox", a, trace);
 	return GF_OK;
 }
 
@@ -1269,7 +1260,7 @@ GF_Err uuid_dump(GF_Box *a, FILE * trace)
 {
 	DumpBox(a, "UUIDBox", trace);
 	fprintf(trace, ">\n");
-	fprintf(trace, "</UUIDBox>\n");
+	gf_box_dump_done("UUIDBox", a, trace);
 	return GF_OK;
 }
 
@@ -1277,7 +1268,7 @@ GF_Err void_dump(GF_Box *a, FILE * trace)
 {
 	DumpBox(a, "VoidBox", trace);
 	fprintf(trace, ">\n");
-	fprintf(trace, "</VoidBox>\n");
+	gf_box_dump_done("VoidBox", a, trace);
 	return GF_OK;
 }
 
