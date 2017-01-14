@@ -325,7 +325,10 @@ enum
 
 	/* Hinting boxes */
 	GF_ISOM_BOX_TYPE_RTP_STSD	= GF_4CC( 'r', 't', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_SRTP_STSD	= GF_4CC( 's', 'r', 't', 'p' ),
 	GF_ISOM_BOX_TYPE_FDP_STSD	= GF_4CC( 'f', 'd', 'p', ' ' ),
+	GF_ISOM_BOX_TYPE_RRTP_STSD	= GF_4CC( 'r', 'r', 't', 'p' ),
+	GF_ISOM_BOX_TYPE_RTCP_STSD	= GF_4CC( 'r', 't', 'c', 'p' ),
 	GF_ISOM_BOX_TYPE_HNTI	= GF_4CC( 'h', 'n', 't', 'i' ),
 	GF_ISOM_BOX_TYPE_RTP	= GF_4CC( 'r', 't', 'p', ' ' ),
 	GF_ISOM_BOX_TYPE_SDP	= GF_4CC( 's', 'd', 'p', ' ' ),
@@ -351,6 +354,9 @@ enum
 	GF_ISOM_BOX_TYPE_TSRO	= GF_4CC( 't', 's', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_SNRO	= GF_4CC( 's', 'n', 'r', 'o' ),
 	GF_ISOM_BOX_TYPE_RTPO	= GF_4CC( 'r', 't', 'p', 'o' ),
+	GF_ISOM_BOX_TYPE_TSSY	= GF_4CC( 't', 's', 's', 'y' ),
+	GF_ISOM_BOX_TYPE_RSSR	= GF_4CC( 'r', 's', 's', 'r' ),
+	GF_ISOM_BOX_TYPE_SRPP	= GF_4CC( 's', 'r', 'p', 'p' ),
 
 	//FEC boxes
 	GF_ISOM_BOX_TYPE_FIIN	= GF_4CC( 'f', 'i', 'i', 'n' ),
@@ -2245,6 +2251,31 @@ typedef struct
 {
 	GF_ISOM_BOX
 } GF_HintInfoBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u8 timestamp_sync;
+} GF_TimeStampSynchronyBox;
+
+typedef struct
+{
+	GF_ISOM_BOX
+	u32 ssrc;
+} GF_ReceivedSsrcBox;
+
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 encryption_algorithm_rtp;
+	u32 encryption_algorithm_rtcp;
+	u32 integrity_algorithm_rtp;
+	u32 integrity_algorithm_rtcp;
+
+	GF_SchemeTypeBox *scheme_type;
+	GF_SchemeInformationBox *info;
+} GF_SRTPProcessBox;
 
 /*Apple extension*/
 
