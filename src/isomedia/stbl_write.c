@@ -1272,7 +1272,7 @@ GF_Err stbl_AddSampleFragment(GF_SampleTableBox *stbl, u32 sampleNumber, u16 siz
 		//create table if any
 		stsf = (GF_SampleFragmentBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSF);
 		if (!stsf) return GF_OUT_OF_MEM;
-		e = stbl_AddBox(stbl, (GF_Box *) stsf);
+		e = stbl_AddBox((GF_Box*)stbl, (GF_Box *) stsf);
 		if (e) return e;
 	}
 

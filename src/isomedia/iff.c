@@ -353,7 +353,7 @@ void ipco_del(GF_Box *s)
 
 GF_Err ipco_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -402,7 +402,7 @@ static GF_Err iprp_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err iprp_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, iprp_AddBox);
+	return gf_isom_box_array_read(s, bs, iprp_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -651,7 +651,7 @@ GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 GF_Box *grptype_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
-	//the group type code is assign in gf_isom_parse_box_ex
+	//the group type code is assign in gf_isom_box_parse_ex
 	return (GF_Box *)tmp;
 }
 
@@ -684,6 +684,64 @@ GF_Err grptype_Size(GF_Box *s)
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
 	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *auxc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryTypePropertyBox, GF_ISOM_BOX_TYPE_AUXC);
+	return (GF_Box *)tmp;
+}
+
+void auxc_del(GF_Box *a)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)a;
+	if (p->aux_urn) gf_free(p->aux_urn);
+	if (p->data) gf_free(p->data);
+	gf_free(p);
+}
+
+GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)s;
+	GF_Err e;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	e = gf_isom_read_null_terminated_string(s, bs, &p->aux_urn);
+	if (e) return e;
+	p->data_size = p->size;
+	p->data = gf_malloc(sizeof(char) * p->data_size);
+	gf_bs_read_data(bs, p->data, p->data_size);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//with terminating 0
+	gf_bs_write_data(bs, p->aux_urn, strlen(p->aux_urn) + 1 );
+	gf_bs_write_data(bs, p->data, p->data_size);
+
+	return GF_OK;
+}
+
+GF_Err auxc_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	p->size += 1;
 	return GF_OK;
 }
 

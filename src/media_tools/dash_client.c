@@ -3602,7 +3602,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	if (seperate_index)
 		anchor_position = 0;
 
-	e = gf_isom_parse_box((GF_Box **) &sidx, bs);
+	e = gf_isom_box_parse((GF_Box **) &sidx, bs);
 	if (e) return e;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Loading SIDX - %d entries - Earliest Presentation Time "LLD"\n", sidx->nb_refs, sidx->earliest_presentation_time));

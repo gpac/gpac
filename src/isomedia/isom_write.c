@@ -1835,7 +1835,7 @@ GF_Err gf_isom_set_copyright(GF_ISOFile *movie, const char *threeCharCode, char 
 	memcpy(ptr->packedLanguageCode, threeCharCode, 4);
 	ptr->notice = (char*)gf_malloc(sizeof(char) * (strlen(notice)+1));
 	strcpy(ptr->notice, notice);
-	return udta_AddBox(movie->moov->udta, (GF_Box *) ptr);
+	return udta_AddBox((GF_Box *)movie->moov->udta, (GF_Box *) ptr);
 }
 
 GF_EXPORT
@@ -1885,7 +1885,7 @@ GF_Err gf_isom_add_track_kind(GF_ISOFile *movie, u32 trackNumber, const char *sc
 
 	ptr->schemeURI = gf_strdup(schemeURI);
 	if (value) ptr->value = gf_strdup(value);
-	return udta_AddBox(udta, (GF_Box *) ptr);
+	return udta_AddBox((GF_Box *)udta, (GF_Box *) ptr);
 }
 
 GF_EXPORT
@@ -1965,7 +1965,7 @@ GF_Err gf_isom_add_chapter(GF_ISOFile *movie, u32 trackNumber, u64 timestamp, ch
 	map = udta_getEntry(udta, GF_ISOM_BOX_TYPE_CHPL, NULL);
 	if (!map) {
 		ptr = (GF_ChapterListBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_CHPL);
-		e = udta_AddBox(udta, (GF_Box *) ptr);
+		e = udta_AddBox((GF_Box *)udta, (GF_Box *) ptr);
 		if (e) return e;
 		map = udta_getEntry(udta, GF_ISOM_BOX_TYPE_CHPL, NULL);
 	} else {
@@ -2127,7 +2127,7 @@ GF_Err gf_isom_set_watermark(GF_ISOFile *movie, bin128 UUID, u8* data, u32 lengt
 	ptr->data = (char*)gf_malloc(length);
 	memcpy(ptr->data, data, length);
 	ptr->dataSize = length;
-	return udta_AddBox(movie->moov->udta, (GF_Box *) ptr);
+	return udta_AddBox((GF_Box *)movie->moov->udta, (GF_Box *) ptr);
 }
 
 //set the interleaving time of media data (INTERLEAVED mode only)
@@ -2515,7 +2515,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 			memcpy(a->data, data, DataLength);
 			a->dataSize = DataLength;
 		}
-		return udta_AddBox(udta, (GF_Box *) a);
+		return udta_AddBox((GF_Box *)udta, (GF_Box *) a);
 	} else {
 		GF_UnknownUUIDBox *a = (GF_UnknownUUIDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_UUID);
 		memcpy(a->uuid, UUID, 16);
@@ -2524,7 +2524,7 @@ GF_Err gf_isom_add_user_data(GF_ISOFile *movie, u32 trackNumber, u32 UserDataTyp
 			memcpy(a->data, data, DataLength);
 			a->dataSize = DataLength;
 		}
-		return udta_AddBox(udta, (GF_Box *) a);
+		return udta_AddBox((GF_Box *)udta, (GF_Box *) a);
 	}
 	return GF_OK;
 }
@@ -2554,9 +2554,9 @@ GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *dat
 	bs = gf_bs_new(data, DataLength, GF_BITSTREAM_READ);
 	while (gf_bs_available(bs)) {
 		GF_Box *a;
-		e = gf_isom_parse_box(&a, bs);
+		e = gf_isom_box_parse(&a, bs);
 		if (e) break;
-		e = udta_AddBox(udta, a);
+		e = udta_AddBox((GF_Box *)udta, a);
 		if (e) break;
 	}
 	gf_bs_del(bs);
@@ -2657,7 +2657,7 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst)
 	if (e) return e;
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
 	if (!bs) return GF_OUT_OF_MEM;
-	e = gf_isom_parse_box(dst, bs);
+	e = gf_isom_box_parse(dst, bs);
 	gf_bs_del(bs);
 	gf_free(data);
 	return e;
@@ -2817,7 +2817,7 @@ GF_Err gf_isom_clone_track(GF_ISOFile *orig_file, u32 orig_track, GF_ISOFile *de
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	e = gf_isom_parse_box((GF_Box **) &new_tk, bs);
+	e = gf_isom_box_parse((GF_Box **) &new_tk, bs);
 	gf_bs_del(bs);
 	gf_free(data);
 	trak->Media->information->sampleTable = stbl;
@@ -2950,7 +2950,7 @@ GF_Err gf_isom_clone_sample_description(GF_ISOFile *the_file, u32 trackNumber, G
 	gf_bs_get_content(bs, &data, &data_size);
 	gf_bs_del(bs);
 	bs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
-	e = gf_isom_parse_box(&entry, bs);
+	e = gf_isom_box_parse(&entry, bs);
 	gf_bs_del(bs);
 	gf_free(data);
 	if (e) return e;
@@ -4504,7 +4504,7 @@ GF_Err gf_isom_set_track_switch_parameter(GF_ISOFile *movie, u32 trackNumber, u3
 		}
 		if (!tsel) {
 			tsel = (GF_TrackSelectionBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_TSEL);
-			e = udta_AddBox(trak->udta, (GF_Box *) tsel);
+			e = udta_AddBox((GF_Box *)trak->udta, (GF_Box *) tsel);
 			if (e) return e;
 		}
 

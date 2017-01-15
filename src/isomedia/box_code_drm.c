@@ -68,7 +68,7 @@ GF_Err sinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err sinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, sinf_AddBox);
+	return gf_isom_box_array_read(s, bs, sinf_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -231,7 +231,7 @@ void schi_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->ikms) gf_isom_box_del((GF_Box *)ptr->ikms);
 	if (ptr->isfm) gf_isom_box_del((GF_Box *)ptr->isfm);
-	if (ptr->okms) gf_isom_box_del((GF_Box *)ptr->okms);
+	if (ptr->odkm) gf_isom_box_del((GF_Box *)ptr->odkm);
 	if (ptr->tenc) gf_isom_box_del((GF_Box *)ptr->tenc);
 	if (ptr->piff_tenc) gf_isom_box_del((GF_Box *)ptr->piff_tenc);
 	if (ptr->adkm) gf_isom_box_del((GF_Box *)ptr->adkm);
@@ -255,8 +255,8 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 		ptr->islt = (GF_ISMACrypSaltBox*)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_ODKM:
-		if (ptr->okms) return GF_ISOM_INVALID_FILE;
-		ptr->okms = (GF_OMADRMKMSBox*)a;
+		if (ptr->odkm) return GF_ISOM_INVALID_FILE;
+		ptr->odkm = (GF_OMADRMKMSBox*)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_TENC:
 		if (ptr->tenc) return GF_ISOM_INVALID_FILE;
@@ -281,7 +281,7 @@ GF_Err schi_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err schi_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, schi_AddBox);
+	return gf_isom_box_array_read(s, bs, schi_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -305,8 +305,8 @@ GF_Err schi_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) ptr->islt, bs);
 		if (e) return e;
 	}
-	if (ptr->okms) {
-		e = gf_isom_box_write((GF_Box *) ptr->okms, bs);
+	if (ptr->odkm) {
+		e = gf_isom_box_write((GF_Box *) ptr->odkm, bs);
 		if (e) return e;
 	}
 	if (ptr->tenc) {
@@ -347,10 +347,10 @@ GF_Err schi_Size(GF_Box *s)
 		if (e) return e;
 		ptr->size += ptr->isfm->size;
 	}
-	if (ptr->okms) {
-		e = gf_isom_box_size((GF_Box *) ptr->okms);
+	if (ptr->odkm) {
+		e = gf_isom_box_size((GF_Box *) ptr->odkm);
 		if (e) return e;
-		ptr->size += ptr->okms->size;
+		ptr->size += ptr->odkm->size;
 	}
 	if (ptr->tenc) {
 		e = gf_isom_box_size((GF_Box *) ptr->tenc);
@@ -590,7 +590,7 @@ GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (cid_len+ri_len+ptr->TextualHeadersLen) );
 
-	return gf_isom_read_box_list(s, bs, ohdr_AddBox);
+	return gf_isom_box_array_read(s, bs, ohdr_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -729,7 +729,7 @@ void mdri_del(GF_Box *s)
 
 GF_Err mdri_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -901,7 +901,7 @@ GF_Err odkm_Read(GF_Box *s, GF_BitStream *bs)
 	if (s == NULL) return GF_BAD_PARAM;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list(s, bs, odkm_Add);
+	return gf_isom_box_array_read(s, bs, odkm_Add);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1587,7 +1587,7 @@ GF_Err adkm_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list(s, bs, adkm_AddBox);
+	return gf_isom_box_array_read(s, bs, adkm_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1662,7 +1662,7 @@ GF_Err ahdr_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list(s, bs, ahdr_AddBox);
+	return gf_isom_box_array_read(s, bs, ahdr_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1734,7 +1734,7 @@ GF_Err aprm_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list(s, bs, aprm_AddBox);
+	return gf_isom_box_array_read(s, bs, aprm_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1874,7 +1874,7 @@ GF_Err akey_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 
-	return gf_isom_read_box_list(s, bs, akey_AddBox);
+	return gf_isom_box_array_read(s, bs, akey_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

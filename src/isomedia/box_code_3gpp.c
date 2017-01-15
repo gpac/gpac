@@ -27,133 +27,6 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
-void gppa_del(GF_Box *s)
-{
-	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
-	if (ptr == NULL) return;
-	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
-
-	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
-	gf_free(ptr);
-}
-
-
-GF_Err gppa_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
-	e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox*)s, bs);
-	if (e) return e;
-	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
-	if (e) return e;
-
-	switch (ptr->info->type) {
-	case GF_ISOM_BOX_TYPE_DAMR:
-	case GF_ISOM_BOX_TYPE_DEVC:
-	case GF_ISOM_BOX_TYPE_DQCP:
-	case GF_ISOM_BOX_TYPE_DSMV:
-	case GF_ISOM_BOX_TYPE_D263:
-		ptr->info->cfg.type = ptr->type;
-		break;
-	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Unknown 3GPP config box %s\n", gf_4cc_to_str(ptr->info->type) ));
-		return GF_ISOM_INVALID_FILE;
-	}
-	return GF_OK;
-}
-
-GF_Box *gppa_New()
-{
-	//default type is AMR but overwritten by box constructor
-	ISOM_DECL_BOX_ALLOC(GF_3GPPAudioSampleEntryBox, GF_ISOM_SUBTYPE_3GP_AMR);
-	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
-	return (GF_Box *)tmp;
-}
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err gppa_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
-	return gf_isom_box_write((GF_Box *)ptr->info, bs);
-}
-
-GF_Err gppa_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_3GPPAudioSampleEntryBox *ptr = (GF_3GPPAudioSampleEntryBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
-	e = gf_isom_box_size((GF_Box *)ptr->info);
-	if (e) return e;
-	ptr->size += ptr->info->size;
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
-
-
-GF_Box *gppv_New()
-{
-	//default type is H263 but overwritten by box constructor
-	ISOM_DECL_BOX_ALLOC(GF_3GPPVisualSampleEntryBox, GF_ISOM_SUBTYPE_3GP_H263);
-	gf_isom_video_sample_entry_init((GF_VisualSampleEntryBox *)tmp);
-	return (GF_Box *)tmp;
-}
-void gppv_del(GF_Box *s)
-{
-	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox *)s;
-	if (ptr == NULL) return;
-	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
-	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
-	gf_free(ptr);
-}
-
-GF_Err gppv_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox *)s;
-	e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)ptr, bs);
-	if (e) return e;
-	/*FIXME - check for any other boxes...*/
-	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
-	return e;
-}
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err gppv_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox*)s;
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-	gf_isom_video_sample_entry_write((GF_VisualSampleEntryBox *)s, bs);
-	e = gf_isom_box_write((GF_Box *)ptr->info, bs);
-	if (e) return e;
-	return GF_OK;
-}
-
-GF_Err gppv_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_3GPPVisualSampleEntryBox *ptr = (GF_3GPPVisualSampleEntryBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	gf_isom_video_sample_entry_size((GF_VisualSampleEntryBox *)s);
-	e = gf_isom_box_size((GF_Box *)ptr->info);
-	if (e) return e;
-	ptr->size += ptr->info->size;
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
 GF_Box *gppc_New()
@@ -411,10 +284,22 @@ static void gpp_read_style(GF_BitStream *bs, GF_StyleRecord *rec)
 	rec->text_color = gpp_read_rgba(bs);
 }
 
+GF_Err tx3g_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
+	switch (a->type) {
+	case GF_ISOM_BOX_TYPE_FTAB:
+		if (ptr->font_table) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->font_table = (GF_FontTableBox *)a;
+		break;
+	default:
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
 GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	GF_Box *a;
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
 	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
@@ -430,26 +315,7 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, (18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) );
 
-	while (ptr->size>=8) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		if (ptr->size<a->size) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Box \"%s\" larger than remaining bytes in tx3g - ignoring box\n", gf_4cc_to_str(a->type)));
-			ptr->size = 0;
-			gf_isom_box_del(a);
-			return GF_OK;
-		}
-		ISOM_DECREASE_SIZE(ptr, a->size);
-
-		if (a->type==GF_ISOM_BOX_TYPE_FTAB) {
-			if (ptr->font_table) gf_isom_box_del((GF_Box *) ptr->font_table);
-			ptr->font_table = (GF_FontTableBox *)a;
-		} else {
-			e = gf_isom_box_add_default(s, a);
-			if (e) return e;
-		}
-	}
-	return GF_OK;
+	return gf_isom_box_array_read(s, bs, tx3g_AddBox);
 }
 
 /*this is a quicktime specific box - see apple documentation*/
@@ -1302,7 +1168,7 @@ GF_Err dims_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, p->reserved, 6);
 	p->dataReferenceIndex = gf_bs_read_u16(bs);
 	ISOM_DECREASE_SIZE(p, 8);
-	return gf_isom_read_box_list(s, bs, dims_AddBox);
+	return gf_isom_box_array_read(s, bs, dims_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE

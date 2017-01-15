@@ -1131,9 +1131,9 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AC3) {
-				GF_AC3SampleEntryBox *ac3 = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
+				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
-				ac3->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
+				ac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
 				entry = (GF_MPEGSampleEntryBox*) ac3;
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
@@ -1161,7 +1161,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		entry->dataReferenceIndex = DataReferenceIndex;
 
 		//and add the entry to our table...
-		e = stsd_AddBox(trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
+		e = stsd_AddBox((GF_Box*)trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
 		if (e) return e;
 		if(outStreamIndex) *outStreamIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}

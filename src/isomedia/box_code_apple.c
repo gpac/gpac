@@ -44,7 +44,7 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 		/*if no ilst type coded, break*/
 		sub_type = gf_bs_peek_bits(bs, 32, 0);
 		if (sub_type) {
-			e = gf_isom_parse_box(&a, bs);
+			e = gf_isom_box_parse(&a, bs);
 			if (e) return e;
 			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->other_boxes, a);
@@ -111,7 +111,7 @@ GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 	/*iTunes way: there's a data atom containing the data*/
 	sub_type = gf_bs_peek_bits(bs, 32, 4);
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
-		e = gf_isom_parse_box(&a, bs);
+		e = gf_isom_box_parse(&a, bs);
 		if (e) return e;
 		ISOM_DECREASE_SIZE(ptr, a->size);
 
@@ -187,7 +187,7 @@ GF_Err ilst_item_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void data_del(GF_Box *s)
+void databox_del(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *) s;
 	if (ptr == NULL) return;
@@ -197,7 +197,7 @@ void data_del(GF_Box *s)
 
 }
 
-GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
@@ -218,7 +218,7 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *data_New()
+GF_Box *databox_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DataBox, GF_ISOM_BOX_TYPE_DATA);
 
@@ -229,7 +229,7 @@ GF_Box *data_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err databox_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *) s;
@@ -243,7 +243,7 @@ GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err data_Size(GF_Box *s)
+GF_Err databox_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
@@ -314,7 +314,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
 		if (!meta->other_boxes) meta->other_boxes = gf_list_new();
 		gf_list_add(meta->other_boxes, gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST));
-		udta_AddBox(mov->moov->udta, (GF_Box *)meta);
+		udta_AddBox((GF_Box *)mov->moov->udta, (GF_Box *)meta);
 	}
 
 	return meta;
