@@ -1767,7 +1767,7 @@ GF_Err hdlr_Read(GF_Box *s, GF_BitStream *bs)
 			ptr->nameUTF8 = str;
 		}
 		//patch for old QT files
-		if (ptr->nameUTF8[0] == ptr->size-1) {
+		if (ptr->size > 1 && ptr->nameUTF8[0] == ptr->size-1) {
 			len = strlen(ptr->nameUTF8 + 1);
 			memmove(ptr->nameUTF8, ptr->nameUTF8+1, len );
 			ptr->nameUTF8[len] = 0;
