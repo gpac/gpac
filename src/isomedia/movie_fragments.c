@@ -1859,7 +1859,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		switch (boxType) {
 		case GF_ISOM_BOX_UUID_PSEC:
 			if (!traf->piff_sample_encryption) {
-				GF_PIFFSampleEncryptionBox *psec = (GF_PIFFSampleEncryptionBox *) src_trak->Media->information->sampleTable->piff_psec;
+				GF_PIFFSampleEncryptionBox *psec = (GF_PIFFSampleEncryptionBox *) src_trak->piff_psec;
 				if (!psec) return GF_ISOM_INVALID_FILE;
 				traf->piff_sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
 				traf->piff_sample_encryption->traf = traf;
