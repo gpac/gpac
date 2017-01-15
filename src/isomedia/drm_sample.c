@@ -867,25 +867,21 @@ GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags)
 
 GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 container_type, u32 AlgorithmID, u8 IV_size, bin128 KID)
 {
-	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
-	stbl = trak->Media->information->sampleTable;
-	if (!stbl) return GF_BAD_PARAM;
-	if (!stbl) return GF_BAD_PARAM;
 
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
-		if (stbl->piff_psec) return GF_OK;
-		stbl->piff_psec = (GF_Box *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
+		if (trak->piff_psec) return GF_OK;
+		trak->piff_psec = (GF_Box *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
 		//senc will be written and destroyed with the other boxes
-		return gf_isom_box_add_default((GF_Box *) stbl, stbl->piff_psec);
+		return gf_isom_box_add_default((GF_Box *) trak, trak->piff_psec);
 
 	case GF_ISOM_BOX_TYPE_SENC:
-		if (stbl->senc) return GF_OK;
-		stbl->senc = (GF_Box *)gf_isom_create_samp_enc_box(0, 0);
+		if (trak->senc) return GF_OK;
+		trak->senc = (GF_Box *)gf_isom_create_samp_enc_box(0, 0);
 		//senc will be written and destroyed with the other boxes
-		return gf_isom_box_add_default((GF_Box *) stbl, stbl->senc);
+		return gf_isom_box_add_default((GF_Box *) trak, trak->senc);
 	}
 	return GF_NOT_SUPPORTED;
 }
@@ -992,10 +988,10 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
-		senc = (GF_SampleEncryptionBox *) stbl->piff_psec;
+		senc = (GF_SampleEncryptionBox *) trak->piff_psec;
 		break;
 	case GF_ISOM_BOX_TYPE_SENC:
-		senc = (GF_SampleEncryptionBox *)stbl->senc;
+		senc = (GF_SampleEncryptionBox *) trak->senc;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

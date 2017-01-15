@@ -5316,18 +5316,6 @@ GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 		gf_list_add(ptr->sai_offsets, a);
 		break;
 
-	case GF_ISOM_BOX_TYPE_SENC:
-		ptr->senc = a;
-		return gf_isom_box_add_default((GF_Box *)ptr, a);
-	case GF_ISOM_BOX_UUID_PSEC:
-		ptr->piff_psec = a;
-		return gf_isom_box_add_default((GF_Box *)ptr, a);
-	case GF_ISOM_BOX_TYPE_UUID:
-		if (((GF_UnknownUUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC) {
-			ptr->piff_psec = a;
-			return gf_isom_box_add_default((GF_Box *)ptr, a);
-		}
-
 	default:
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
 	}
@@ -7333,6 +7321,18 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		if (ptr->groups) ERROR_ON_DUPLICATED_BOX(a, ptr)
 		ptr->groups = (GF_TrackGroupBox *)a;
 		return GF_OK;
+	case GF_ISOM_BOX_TYPE_SENC:
+		ptr->senc = a;
+		return gf_isom_box_add_default((GF_Box *)ptr, a);
+	case GF_ISOM_BOX_UUID_PSEC:
+		ptr->piff_psec = a;
+		return gf_isom_box_add_default((GF_Box *)ptr, a);
+	case GF_ISOM_BOX_TYPE_UUID:
+		if (((GF_UnknownUUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC) {
+			ptr->piff_psec = a;
+			return gf_isom_box_add_default((GF_Box *)ptr, a);
+		}
+
 	default:
 		return gf_isom_box_add_default(s, a);
 	}
@@ -7359,11 +7359,11 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 
 	//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
 	if (ptr->Media && ptr->Media->information && ptr->Media->information->sampleTable /*&& !ptr->Media->information->sampleTable->sai_sizes*/) {
-		if (ptr->Media->information->sampleTable->senc) {
-			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *)ptr->Media->information->sampleTable->senc);
+		if (ptr->senc) {
+			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *)ptr->senc);
 		}
-		else if (ptr->Media->information->sampleTable->piff_psec) {
-			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *) ptr->Media->information->sampleTable->piff_psec);
+		else if (ptr->piff_psec) {
+			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *) ptr->piff_psec);
 		}
 	}
 	return e;

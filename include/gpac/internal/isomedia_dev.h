@@ -699,6 +699,10 @@ typedef struct
 	u32 originalFile;
 	u32 originalID;
 
+	//not sure about piff (not supposed to be stored in moov), but senc is in track according to CENC
+	GF_Box *piff_psec;
+	GF_Box *senc;
+
 	/*private for SVC/MVC extractors resolution*/
 	s32 extractor_mode;
 	Bool has_base_layer;
@@ -1411,9 +1415,6 @@ typedef struct
 
 //	GF_SubSampleInformationBox *SubSamples;
 	GF_List *sub_samples;
-
-	GF_Box *piff_psec;
-	GF_Box *senc;
 
 	GF_List *sampleGroups;
 	GF_List *sampleGroupsDescription;
