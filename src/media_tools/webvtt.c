@@ -378,6 +378,7 @@ GF_Err boxstring_dump(GF_Box *a, FILE * trace)
 	GF_StringBox *sbox = (GF_StringBox *)a;
 	gf_isom_box_dump_start(a, "StringBox", trace);
 	fprintf(trace, " string=\"%s\"\n", sbox->string);
+	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("StringBox", a, trace);
 	return GF_OK;
 }
