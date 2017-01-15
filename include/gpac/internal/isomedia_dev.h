@@ -91,6 +91,8 @@ typedef struct
 
 /*constructor*/
 GF_Box *gf_isom_box_new(u32 boxType);
+//some boxes may have different syntax based on container. Use this constructor for this case
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType);
 
 GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
 GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
@@ -99,11 +101,11 @@ GF_Err gf_isom_box_size(GF_Box *ptr);
 
 GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
 
-GF_Err gf_isom_parse_box(GF_Box **outBox, GF_BitStream *bs);
-GF_Err gf_isom_read_box_list(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
+GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
+GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
 GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
-GF_Err gf_isom_parse_box_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
+GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
 #define gf_isom_full_box_init(__pre)
 
@@ -465,6 +467,7 @@ enum
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
 	GF_ISOM_BOX_TYPE_GRPL  = GF_4CC('g', 'r', 'p', 'l'),
 	GF_ISOM_BOX_TYPE_CCST	= GF_4CC( 'c', 'c', 's', 't' ),
+	GF_ISOM_BOX_TYPE_AUXC	= GF_4CC( 'a', 'u', 'x', 'C' ),
 
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
@@ -1068,6 +1071,12 @@ typedef struct
 
 typedef struct
 {
+	GF_ISOM_BOX
+	GF_3GPConfig cfg;
+} GF_3GPPConfigBox;
+
+typedef struct
+{
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
 	GF_ESDBox *esd;
 	/*used for Publishing*/
@@ -1084,6 +1093,10 @@ typedef struct
 	GF_MPEG4ExtensionDescriptorsBox *descr;
 	/*internally emulated esd*/
 	GF_ESD *emul_esd;
+
+	//3GPP
+	GF_3GPPConfigBox *cfg_3gpp;
+
 	/*iPod's hack*/
 	GF_UnknownUUIDBox *ipod_ext;
 
@@ -1132,31 +1145,24 @@ void gf_isom_audio_sample_entry_write(GF_AudioSampleEntryBox *ptr, GF_BitStream 
 void gf_isom_audio_sample_entry_size(GF_AudioSampleEntryBox *ptr);
 #endif
 
-
-typedef struct
-{
-	GF_ISOM_AUDIO_SAMPLE_ENTRY
-	GF_ESDBox *esd;
-	GF_SLConfig *slc;
-} GF_MPEGAudioSampleEntryBox;
-
 typedef struct
 {
 	GF_ISOM_BOX
-	GF_3GPConfig cfg;
-} GF_3GPPConfigBox;
+	GF_AC3Config cfg;
+} GF_AC3ConfigBox;
 
 typedef struct
 {
 	GF_ISOM_AUDIO_SAMPLE_ENTRY
-	GF_3GPPConfigBox *info;
-} GF_3GPPAudioSampleEntryBox;
+	//for MPEG4 audio
+	GF_ESDBox *esd;
+	GF_SLConfig *slc;
+	//for 3GPP audio
+	GF_3GPPConfigBox *cfg_3gpp;
 
-typedef struct
-{
-	GF_ISOM_VISUAL_SAMPLE_ENTRY
-	GF_3GPPConfigBox *info;
-} GF_3GPPVisualSampleEntryBox;
+	//for AC3/EC3 audio
+	GF_AC3ConfigBox *cfg_ac3;
+} GF_MPEGAudioSampleEntryBox;
 
 /*this is the default visual sdst (to handle unknown media)*/
 typedef struct
@@ -1168,19 +1174,6 @@ typedef struct
 	char *data;
 	u32 data_size;
 } GF_GenericAudioSampleEntryBox;
-
-typedef struct
-{
-	GF_ISOM_BOX
-	GF_AC3Config cfg;
-} GF_AC3ConfigBox;
-
-typedef struct
-{
-	GF_ISOM_AUDIO_SAMPLE_ENTRY
-	Bool is_ec3;
-	GF_AC3ConfigBox *info;
-} GF_AC3SampleEntryBox;
 
 
 typedef struct
@@ -1809,7 +1802,7 @@ typedef struct
 	GF_ISMAKMSBox *ikms;
 	GF_ISMASampleFormatBox *isfm;
 	GF_ISMACrypSaltBox *islt;
-	struct __oma_kms_box *okms;
+	struct __oma_kms_box *odkm;
 	struct __cenc_tenc_box *tenc;
 	struct __piff_tenc_box *piff_tenc;
 	struct __adobe_drm_key_management_system_box *adkm;
@@ -2055,7 +2048,7 @@ typedef struct
 	u16 HintTrackVersion;
 	u16 LastCompatibleVersion;
 	u32 MaxPacketSize;
-	GF_List *HintDataTable;
+//	GF_List *HintDataTable;
 	/*this is where we store the current RTP sample in read/write mode*/
 	struct __tag_hint_sample *hint_sample;
 	/*current hint sample in read mode, 1-based (0 is reset)*/
@@ -2090,7 +2083,6 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_BOX
-	GF_List *hints;
 	/*contains GF_SDPBox if in track, GF_RTPBox if in movie*/
 	GF_Box *SDP;
 } GF_HintTrackInfoBox;
@@ -2870,6 +2862,14 @@ typedef struct {
 } GF_ItemPropertyAssociationBox;
 
 
+typedef struct {
+	GF_ISOM_FULL_BOX
+	char *aux_urn;
+	u32 data_size;
+	char *data;
+} GF_AuxiliaryTypePropertyBox;
+
+
 /*flute hint track boxes*/
 typedef struct
 {
@@ -3128,6 +3128,8 @@ struct __tag_isom {
 	/*meta box if any*/
 	GF_MetaBox *meta;
 
+	Bool dump_mode_alloc;
+
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;
 	/*active fragment*/
@@ -3327,12 +3329,12 @@ GF_Err moov_AddBox(GF_Box *ptr, GF_Box *a);
 GF_Err tref_AddBox(GF_Box *ptr, GF_Box *a);
 GF_Err trak_AddBox(GF_Box *ptr, GF_Box *a);
 GF_Err mvex_AddBox(GF_Box *ptr, GF_Box *a);
-GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a);
-GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a);
-GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a);
+GF_Err stsd_AddBox(GF_Box *ptr, GF_Box *a);
+GF_Err hnti_AddBox(GF_Box *hnti, GF_Box *a);
+GF_Err udta_AddBox(GF_Box *ptr, GF_Box *a);
 GF_Err edts_AddBox(GF_Box *s, GF_Box *a);
 GF_Err stdp_Read(GF_Box *s, GF_BitStream *bs);
-GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a);
+GF_Err stbl_AddBox(GF_Box *ptr, GF_Box *a);
 GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err dinf_AddBox(GF_Box *s, GF_Box *a);
 GF_Err minf_AddBox(GF_Box *s, GF_Box *a);
@@ -3579,8 +3581,8 @@ void sgpd_write_entry(u32 grouping_type, void *entry, GF_BitStream *bs);
 Bool gf_isom_box_equal(GF_Box *a, GF_Box *b);
 GF_Box *gf_isom_clone_config_box(GF_Box *box);
 
-GF_Err gf_box_dump(void *ptr, FILE * trace);
-GF_Err gf_box_array_dump(GF_List *list, FILE * trace);
+GF_Err gf_isom_box_dump(void *ptr, FILE * trace);
+GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace);
 
 /*Apple extensions*/
 GF_MetaBox *gf_isom_apple_get_meta_extensions(GF_ISOFile *mov);
@@ -3591,12 +3593,14 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
 
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
-GF_Err DumpBox(GF_Box *a, const char *name, FILE * trace);
-void gf_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
+GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
+GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace);
+void gf_isom_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
 #endif
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
+
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str);
 
 #endif //GPAC_DISABLE_ISOM
 

@@ -533,12 +533,11 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 		}
 
 		if (OpenMode == GF_ISOM_OPEN_READ_DUMP) {
-			use_dump_mode = GF_TRUE;
+			mov->dump_mode_alloc = GF_TRUE;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 			mov->FragmentsFlags |= GF_ISOM_FRAG_READ_DEBUG;
 #endif
 		}
-
 	} else {
 
 #ifdef GPAC_DISABLE_ISOM_WRITE
@@ -580,6 +579,8 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 #endif
 	}
 
+	use_dump_mode = mov->dump_mode_alloc;
+
 	//OK, let's parse the movie...
 	mov->LastError = gf_isom_parse_movie_boxes(mov, &bytes, 0);
 
@@ -593,6 +594,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 		gf_isom_delete_movie(mov);
 		return NULL;
 	}
+	use_dump_mode = GF_FALSE;
 	return mov;
 }
 
@@ -609,6 +611,8 @@ u64 gf_isom_get_mp4time()
 
 void gf_isom_delete_movie(GF_ISOFile *mov)
 {
+	use_dump_mode = mov->dump_mode_alloc;
+
 	//these are our two main files
 	if (mov->movieFileMap) gf_isom_datamap_del(mov->movieFileMap);
 

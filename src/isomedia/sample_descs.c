@@ -196,12 +196,12 @@ GF_3GPConfig *gf_isom_3gp_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-		if (! ((GF_3GPPAudioSampleEntryBox*)entry)->info) return NULL;
-		config = & ((GF_3GPPAudioSampleEntryBox*)entry)->info->cfg;
+		if (! ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_3gpp) return NULL;
+		config = & ((GF_MPEGAudioSampleEntryBox*)entry)->cfg_3gpp->cfg;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
-		if (! ((GF_3GPPVisualSampleEntryBox*)entry)->info) return NULL;
-		config = & ((GF_3GPPVisualSampleEntryBox*)entry)->info->cfg;
+		if (! ((GF_MPEGVisualSampleEntryBox*)entry)->cfg_3gpp) return NULL;
+		config = & ((GF_MPEGVisualSampleEntryBox*)entry)->cfg_3gpp->cfg;
 		break;
 	default:
 		return NULL;
@@ -218,15 +218,15 @@ GF_AC3Config *gf_isom_ac3_config_get(GF_ISOFile *the_file, u32 trackNumber, u32 
 {
 	GF_AC3Config *res;
 	GF_TrackBox *trak;
-	GF_AC3SampleEntryBox *entry;
+	GF_MPEGAudioSampleEntryBox *entry;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return NULL;
 
-	entry = (GF_AC3SampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
-	if (!entry || !entry->info || (entry->type!=GF_ISOM_BOX_TYPE_AC3) || (entry->info->type!=GF_ISOM_BOX_TYPE_DAC3) ) return NULL;
+	entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
+	if (!entry || !entry->cfg_ac3 || (entry->type!=GF_ISOM_BOX_TYPE_AC3) || (entry->cfg_ac3->type!=GF_ISOM_BOX_TYPE_DAC3) ) return NULL;
 
 	res = (GF_AC3Config*)gf_malloc(sizeof(GF_AC3Config));
-	memcpy(res, &entry->info->cfg, sizeof(GF_AC3Config));
+	memcpy(res, &entry->cfg_ac3->cfg, sizeof(GF_AC3Config));
 	return res;
 }
 
@@ -291,14 +291,14 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
 	{
-		GF_3GPPAudioSampleEntryBox *entry = (GF_3GPPAudioSampleEntryBox *) gf_isom_box_new(cfg->type);
+		GF_MPEGAudioSampleEntryBox *entry = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(cfg->type);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->info = (GF_3GPPConfigBox *) gf_isom_box_new(cfg_type);
-		if (!entry->info) {
+		entry->cfg_3gpp = (GF_3GPPConfigBox *) gf_isom_box_new(cfg_type);
+		if (!entry->cfg_3gpp) {
 			gf_isom_box_del((GF_Box *) entry);
 			return GF_OUT_OF_MEM;
 		}
-		memcpy(&entry->info->cfg, cfg, sizeof(GF_3GPConfig));
+		memcpy(&entry->cfg_3gpp->cfg, cfg, sizeof(GF_3GPConfig));
 		entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
 		entry->dataReferenceIndex = dataRefIndex;
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
@@ -307,14 +307,14 @@ GF_Err gf_isom_3gp_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_3GPConfi
 	break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
 	{
-		GF_3GPPVisualSampleEntryBox *entry = (GF_3GPPVisualSampleEntryBox *) gf_isom_box_new(cfg->type);
+		GF_MPEGVisualSampleEntryBox *entry = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(cfg->type);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->info = (GF_3GPPConfigBox *) gf_isom_box_new(cfg_type);
-		if (!entry->info) {
+		entry->cfg_3gpp = (GF_3GPPConfigBox *) gf_isom_box_new(cfg_type);
+		if (!entry->cfg_3gpp) {
 			gf_isom_box_del((GF_Box *) entry);
 			return GF_OUT_OF_MEM;
 		}
-		memcpy(&entry->info->cfg, cfg, sizeof(GF_3GPConfig));
+		memcpy(&entry->cfg_3gpp->cfg, cfg, sizeof(GF_3GPConfig));
 		entry->dataReferenceIndex = dataRefIndex;
 		e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);
 		*outDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
@@ -329,7 +329,8 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 	GF_TrackBox *trak;
 	GF_Err e;
 	GF_3GPConfig *cfg;
-	GF_3GPPAudioSampleEntryBox *entry;
+	GF_MPEGAudioSampleEntryBox *a_entry;
+	GF_MPEGVisualSampleEntryBox *v_entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -338,18 +339,20 @@ GF_Err gf_isom_3gp_config_update(GF_ISOFile *the_file, u32 trackNumber, GF_3GPCo
 	if (!trak || !trak->Media || !param || !DescriptionIndex) return GF_BAD_PARAM;
 
 	cfg = NULL;
-	entry = (GF_3GPPAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
-	if (!entry) return GF_BAD_PARAM;
-	switch (entry->type) {
+	a_entry = (GF_MPEGAudioSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, DescriptionIndex-1);
+	if (!a_entry) return GF_BAD_PARAM;
+	v_entry = (GF_MPEGVisualSampleEntryBox *) a_entry;
+
+	switch (a_entry->type) {
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-		cfg = &entry->info->cfg;
+		cfg = &a_entry->cfg_3gpp->cfg;
 		break;
 	case GF_ISOM_SUBTYPE_3GP_H263:
-		cfg = & ((GF_3GPPVisualSampleEntryBox *)entry)->info->cfg;
+		cfg = & v_entry->cfg_3gpp->cfg;
 		break;
 	default:
 		break;
@@ -365,7 +368,7 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 	GF_TrackBox *trak;
 	GF_Err e;
 	u32 dataRefIndex;
-	GF_AC3SampleEntryBox *entry;
+	GF_MPEGAudioSampleEntryBox *entry;
 
 	e = CanAccessMovie(the_file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -384,19 +387,19 @@ GF_Err gf_isom_ac3_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AC3Confi
 		trak->Media->mediaHeader->modificationTime = gf_isom_get_mp4time();
 
 	if (cfg->is_ec3) {
-		entry = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EC3);
+		entry = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EC3);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DEC3);
+		entry->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DEC3);
 	} else {
-		entry = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
+		entry = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 		if (!entry) return GF_OUT_OF_MEM;
-		entry->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
+		entry->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
 	}
-	if (!entry->info) {
+	if (!entry->cfg_ac3) {
 		gf_isom_box_del((GF_Box *) entry);
 		return GF_OUT_OF_MEM;
 	}
-	memcpy(&entry->info->cfg, cfg, sizeof(GF_AC3Config));
+	memcpy(&entry->cfg_ac3->cfg, cfg, sizeof(GF_AC3Config));
 	entry->samplerate_hi = trak->Media->mediaHeader->timeScale;
 	entry->dataReferenceIndex = dataRefIndex;
 	e = gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, entry);

@@ -161,7 +161,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_AdobeSegmentRunTableBox *asrt;
-		e = gf_isom_parse_box((GF_Box **)&asrt, bs);
+		e = gf_isom_box_parse((GF_Box **)&asrt, bs);
 		if (e) return e;
 		gf_list_insert(ptr->segment_run_table_entries, asrt, i);
 	}
@@ -169,7 +169,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_AdobeFragmentRunTableBox *afrt;
-		e = gf_isom_parse_box((GF_Box **)&afrt, bs);
+		e = gf_isom_box_parse((GF_Box **)&afrt, bs);
 		if (e) return e;
 		gf_list_insert(ptr->fragment_run_table_entries, afrt, i);
 	}

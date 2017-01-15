@@ -150,15 +150,15 @@ GF_Err gf_isom_setup_hint_track(GF_ISOFile *movie, u32 trackNumber, u32 HintType
 	udta = trak->udta;
 
 	//HNTI
-	e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+	e = udta_AddBox((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
 	if (e) return e;
 
 	/*
 		//NAME
-		e = udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
+		e = udta_AddBox((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_NAME));
 		if (e) return e;
 		//HINF
-		return udta_AddBox(udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
+		return udta_AddBox((GF_Box *)udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HINF));
 	*/
 	return GF_OK;
 }
@@ -191,7 +191,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	hdesc->dataReferenceIndex = drefIndex;
 
 	//add the entry to our table...
-	e = stsd_AddBox(trak->Media->information->sampleTable->SampleDescription, (GF_Box *) hdesc);
+	e = stsd_AddBox((GF_Box*)trak->Media->information->sampleTable->SampleDescription, (GF_Box *) hdesc);
 	if (e) return e;
 	*HintDescriptionIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 
@@ -209,7 +209,7 @@ GF_Err gf_isom_new_hint_description(GF_ISOFile *the_file, u32 trackNumber, s32 H
 	} else {
 		relyA->required = 1;
 	}
-	return gf_list_add(hdesc->HintDataTable, relyA);
+	return gf_isom_box_add_default((GF_Box*)hdesc, (GF_Box*)relyA);
 }
 
 
@@ -230,10 +230,10 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, HintDescriptionIndex - 1);
-	count = gf_list_count(hdesc->HintDataTable);
+	count = gf_list_count(hdesc->other_boxes);
 
 	for (i=0; i< count; i++) {
-		ent = (GF_TSHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_TSHintEntryBox *)gf_list_get(hdesc->other_boxes, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_TIMS) {
 			ent->timeScale = TimeScale;
 			return GF_OK;
@@ -242,7 +242,7 @@ GF_Err gf_isom_rtp_set_timescale(GF_ISOFile *the_file, u32 trackNumber, u32 Hint
 	//we have to create a new entry...
 	ent = (GF_TSHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TIMS);
 	ent->timeScale = TimeScale;
-	return gf_list_add(hdesc->HintDataTable, ent);
+	return gf_isom_box_add_default((GF_Box*) hdesc, (GF_Box*) ent);
 }
 
 //sets the RTP TimeOffset that the server will add to the packets
@@ -259,10 +259,10 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *) gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, HintDescriptionIndex - 1);
-	count = gf_list_count(hdesc->HintDataTable);
+	count = gf_list_count(hdesc->other_boxes);
 
 	for (i=0; i< count; i++) {
-		ent = (GF_TimeOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_TimeOffHintEntryBox *)gf_list_get(hdesc->other_boxes, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_TSRO) {
 			ent->TimeOffset = TimeOffset;
 			return GF_OK;
@@ -271,7 +271,8 @@ GF_Err gf_isom_rtp_set_time_offset(GF_ISOFile *the_file, u32 trackNumber, u32 Hi
 	//we have to create a new entry...
 	ent = (GF_TimeOffHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TSRO);
 	ent->TimeOffset = TimeOffset;
-	return gf_list_add(hdesc->HintDataTable, ent);
+
+	return gf_isom_box_add_default((GF_Box *)hdesc->other_boxes, (GF_Box *)ent);
 }
 
 //sets the RTP SequenceNumber Offset that the server will add to the packets
@@ -288,10 +289,10 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 
 	//OK, create a new HintSampleDesc
 	hdesc = (GF_HintSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, HintDescriptionIndex - 1);
-	count = gf_list_count(hdesc->HintDataTable);
+	count = gf_list_count(hdesc->other_boxes);
 
 	for (i=0; i< count; i++) {
-		ent = (GF_SeqOffHintEntryBox *)gf_list_get(hdesc->HintDataTable, i);
+		ent = (GF_SeqOffHintEntryBox *)gf_list_get(hdesc->other_boxes, i);
 		if (ent->type == GF_ISOM_BOX_TYPE_SNRO) {
 			ent->SeqOffset = SequenceNumberOffset;
 			return GF_OK;
@@ -300,7 +301,7 @@ GF_Err gf_isom_rtp_set_time_sequence_offset(GF_ISOFile *the_file, u32 trackNumbe
 	//we have to create a new entry...
 	ent = (GF_SeqOffHintEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SNRO);
 	ent->SeqOffset = SequenceNumberOffset;
-	return gf_list_add(hdesc->HintDataTable, ent);
+	return gf_isom_box_add_default((GF_Box *)hdesc->other_boxes, (GF_Box *)ent);
 }
 
 //Starts a new sample for the hint track. A sample is just a collection of packets
@@ -735,7 +736,7 @@ GF_Err gf_isom_sdp_add_track_line(GF_ISOFile *the_file, u32 trackNumber, const c
 
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->other_boxes, 0);
 	if (!hnti->SDP) {
-		e = hnti_AddBox(hnti, gf_isom_box_new(GF_ISOM_BOX_TYPE_SDP));
+		e = hnti_AddBox((GF_Box*)hnti, gf_isom_box_new(GF_ISOM_BOX_TYPE_SDP));
 		if (e) return e;
 	}
 	sdp = (GF_SDPBox *) hnti->SDP;
@@ -805,14 +806,14 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	//find a hnti in the udta
 	map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	if (!map) {
-		e = udta_AddBox(movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		e = udta_AddBox((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
 		if (e) return e;
 		map = udta_getEntry(movie->moov->udta, GF_ISOM_BOX_TYPE_HNTI, NULL);
 	}
 
 	//there should be one and only one hnti
 	if (!gf_list_count(map->other_boxes) ) {
-		e = udta_AddBox(movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
+		e = udta_AddBox((GF_Box *)movie->moov->udta, gf_isom_box_new(GF_ISOM_BOX_TYPE_HNTI));
 		if (e) return e;
 	}
 	else if (gf_list_count(map->other_boxes) < 1) return GF_ISOM_INVALID_FILE;
@@ -820,13 +821,8 @@ GF_Err gf_isom_sdp_add_line(GF_ISOFile *movie, const char *text)
 	hnti = (GF_HintTrackInfoBox *)gf_list_get(map->other_boxes, 0);
 
 	if (!hnti->SDP) {
-		//we have to create it by hand, as we have a duplication of box type
-		//(GF_RTPSampleEntryBox and GF_RTPBox have the same type...)
-		rtp = (GF_RTPBox *) gf_malloc(sizeof(GF_RTPBox));
-		rtp->subType = GF_ISOM_BOX_TYPE_SDP;
-		rtp->type = GF_ISOM_BOX_TYPE_RTP;
-		rtp->sdpText = NULL;
-		hnti_AddBox(hnti, (GF_Box *)rtp);
+		GF_Box *a = gf_isom_box_new_ex(GF_ISOM_BOX_TYPE_RTP, GF_ISOM_BOX_TYPE_HNTI);
+		hnti_AddBox((GF_Box*)hnti, a);
 	}
 	rtp = (GF_RTPBox *) hnti->SDP;
 

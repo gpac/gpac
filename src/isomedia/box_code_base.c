@@ -806,7 +806,7 @@ GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 	sub_bs = gf_bs_new(ptr->data, ptr->dataSize, GF_BITSTREAM_READ);
 	sub_size = gf_bs_read_u32(sub_bs);
 	sub_a = gf_bs_read_u8(sub_bs);
-	e = (sub_size <= ptr->dataSize) ? GF_OK : GF_NOT_SUPPORTED;
+	e = (sub_size && (sub_size <= ptr->dataSize)) ? GF_OK : GF_NOT_SUPPORTED;
 	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
 	sub_a = gf_bs_read_u8(sub_bs);
 	if (! isalnum(sub_a)) e = GF_NOT_SUPPORTED;
@@ -817,7 +817,7 @@ GF_Err unkn_Read(GF_Box *s, GF_BitStream *bs)
 
 	if (e == GF_OK) {
 		gf_bs_seek(sub_bs, 0);
-		e = gf_isom_read_box_list(s, sub_bs, gf_isom_box_add_default);
+		e = gf_isom_box_array_read(s, sub_bs, gf_isom_box_add_default);
 	}
 	gf_bs_del(sub_bs);
 	if (e==GF_OK) {
@@ -882,7 +882,7 @@ void def_cont_box_del(GF_Box *s)
 
 GF_Err def_cont_box_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 GF_Box *def_cont_box_New()
@@ -991,7 +991,7 @@ GF_Err dinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err dinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_read_box_list(s, bs, dinf_AddBox);
+	GF_Err e = gf_isom_box_array_read(s, bs, dinf_AddBox);
 	if (e) {
 		return e;
 	}
@@ -1075,7 +1075,7 @@ GF_Err dref_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	return gf_isom_read_box_list(s, bs, dref_AddDataEntry);
+	return gf_isom_box_array_read(s, bs, dref_AddDataEntry);
 }
 
 GF_Box *dref_New()
@@ -1140,7 +1140,7 @@ GF_Err edts_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err edts_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, edts_AddBox);
+	return gf_isom_box_array_read(s, bs, edts_AddBox);
 }
 
 GF_Box *edts_New()
@@ -1862,7 +1862,7 @@ GF_Err hinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err hinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, hinf_AddBox);
+	return gf_isom_box_array_read(s, bs, hinf_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -1945,37 +1945,17 @@ GF_Err hmhd_Size(GF_Box *s)
 GF_Box *hnti_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_HintTrackInfoBox, GF_ISOM_BOX_TYPE_HNTI);
-
-	tmp->hints = gf_list_new();
-	if (!tmp->hints) {
-		gf_free(tmp);
-		return NULL;
-	}
 	return (GF_Box *)tmp;
 }
 
 void hnti_del(GF_Box *a)
 {
-	GF_Box *t;
-	GF_RTPBox *rtp;
-	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)a;
-	while (gf_list_count(ptr->hints)) {
-		t = (GF_Box*)gf_list_get(ptr->hints, 0);
-		if (t->type != GF_ISOM_BOX_TYPE_RTP) {
-			gf_isom_box_del(t);
-		} else {
-			rtp = (GF_RTPBox *)t;
-			if (rtp->sdpText) gf_free(rtp->sdpText);
-			gf_free(rtp);
-		}
-		gf_list_rem(ptr->hints, 0);
-	}
-	gf_list_del(ptr->hints);
-	gf_free(ptr);
+	gf_free(a);
 }
 
-GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a)
+GF_Err hnti_AddBox(GF_Box *s, GF_Box *a)
 {
+	GF_HintTrackInfoBox *hnti = (GF_HintTrackInfoBox *)s;
 	if (!hnti || !a) return GF_BAD_PARAM;
 
 	switch (a->type) {
@@ -1988,129 +1968,24 @@ GF_Err hnti_AddBox(GF_HintTrackInfoBox *hnti, GF_Box *a)
 	default:
 		break;
 	}
-	return gf_list_add(hnti->hints, a);
+	return gf_isom_box_add_default(s, a);
 }
 
 GF_Err hnti_Read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 type;
-	u32 length;
-	GF_Err e;
-	GF_Box *a;
-	GF_RTPBox *rtp;
-
-	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)s;
-	if (ptr == NULL) return GF_BAD_PARAM;
-
-	//WARNING: because of the HNTI at movie level, we cannot use the generic parsing scheme!
-	//this because the child SDP box at the movie level has a type of RTP, used for
-	//the HintSampleEntry !
-	while (ptr->size) {
-		//get the type of the box (4 bytes after our current position in the bitstream)
-		//before parsing...
-		type = gf_bs_peek_bits(bs, 32, 4);
-		if (type != GF_ISOM_BOX_TYPE_RTP) {
-			e = gf_isom_parse_box(&a, bs);
-			if (e) return e;
-			e = hnti_AddBox(ptr, a);
-			if (e) return e;
-			ISOM_DECREASE_SIZE(ptr, a->size);
-		} else {
-			u32 sr;
-			rtp = (GF_RTPBox*)gf_malloc(sizeof(GF_RTPBox));
-			if (!rtp) return GF_OUT_OF_MEM;
-			rtp->size = gf_bs_read_u32(bs);
-			rtp->type = gf_bs_read_u32(bs);
-			sr = 8;
-			//"ITS LENGTH IS CALCULATED BY SUBSTRACTING 8 (or 12) from the box size" - QT specs
-			//this means that we don't have any NULL char as a delimiter in QT ...
-			if (rtp->size == 1) return GF_BAD_PARAM;
-			rtp->subType = gf_bs_read_u32(bs);
-			sr += 4;
-			if (rtp->subType != GF_ISOM_BOX_TYPE_SDP) return GF_NOT_SUPPORTED;
-			if (rtp->size < sr) return GF_ISOM_INVALID_FILE;
-			length = (u32) (rtp->size - sr);
-			rtp->sdpText = (char*)gf_malloc(sizeof(char) * (length + 1));
-			if (!rtp->sdpText) {
-				gf_free(rtp);
-				return GF_OUT_OF_MEM;
-			}
-			gf_bs_read_data(bs, rtp->sdpText, length);
-			rtp->sdpText[length] = 0;
-//			sr += length;
-			e = hnti_AddBox(ptr, (GF_Box *)rtp);
-			if (e) return e;
-
-			ISOM_DECREASE_SIZE(ptr, rtp->size);
-		}
-	}
-	return GF_OK;
+	return gf_isom_read_box_list_ex(s, bs, hnti_AddBox, s->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err hnti_Write(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 i, count;
-	GF_Box *a;
-	GF_RTPBox *rtp;
-
-	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)s;
-	if (ptr == NULL) return GF_BAD_PARAM;
-
-	e = gf_isom_box_write_header(s, bs);
-	if (e) return e;
-
-	count = gf_list_count(ptr->hints);
-	for (i = 0; i < count; i ++) {
-		a = (GF_Box*)gf_list_get(ptr->hints, i);
-		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
-			e = gf_isom_box_write(a, bs);
-			if (e) return e;
-		} else {
-			//write the GF_RTPBox by hand
-			rtp = (GF_RTPBox *)a;
-			e = gf_isom_box_write_header(a, bs);
-			if (e) return e;
-			gf_bs_write_u32(bs, rtp->subType);
-			//don't write the NULL char
-			gf_bs_write_data(bs, rtp->sdpText, (u32) strlen(rtp->sdpText));
-		}
-	}
-	return GF_OK;
+	return gf_isom_box_write_header(s, bs);
 }
 
 
 GF_Err hnti_Size(GF_Box *s)
 {
-	GF_Err e;
-	u32 i, count;
-	GF_Box *a;
-	GF_RTPBox *rtp;
-
-	GF_HintTrackInfoBox *ptr = (GF_HintTrackInfoBox *)s;
-	if (ptr == NULL) return GF_BAD_PARAM;
-
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-
-	count = gf_list_count(ptr->hints);
-	for (i = 0; i < count; i ++) {
-		a = (GF_Box*)gf_list_get(ptr->hints, i);
-		if (a->type != GF_ISOM_BOX_TYPE_RTP) {
-			e = gf_isom_box_size(a);
-			if (e) return e;
-		} else {
-			//get the GF_RTPBox size by hand
-			rtp = (GF_RTPBox *)a;
-			e = gf_isom_box_get_size(a);
-			if (e) return e;
-			//don't count the NULL char...
-			rtp->size += 4 + strlen(rtp->sdpText);
-		}
-		ptr->size += a->size;
-	}
-	return GF_OK;
+	return gf_isom_box_get_size(s);
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -2165,6 +2040,67 @@ GF_Err sdp_Size(GF_Box *s)
 	if (e) return e;
 	//don't count the NULL char!!!
 	ptr->size += strlen(ptr->sdpText);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+
+void rtp_hnti_del(GF_Box *s)
+{
+	GF_RTPBox *ptr = (GF_RTPBox *)s;
+	if (ptr->sdpText) gf_free(ptr->sdpText);
+	gf_free(ptr);
+
+}
+GF_Err rtp_hnti_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 length;
+	GF_RTPBox *ptr = (GF_RTPBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+
+	ISOM_DECREASE_SIZE(ptr, 4)
+	ptr->subType = gf_bs_read_u32(bs);
+
+	length = (u32) (ptr->size);
+	//sdp text has no delimiter !!!
+	ptr->sdpText = (char*)gf_malloc(sizeof(char) * (length+1));
+	if (!ptr->sdpText) return GF_OUT_OF_MEM;
+
+	gf_bs_read_data(bs, ptr->sdpText, length);
+	ptr->sdpText[length] = 0;
+	return GF_OK;
+}
+
+GF_Box *rtp_hnti_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_RTPBox, GF_ISOM_BOX_TYPE_RTP);
+	tmp->subType = GF_ISOM_BOX_TYPE_SDP;
+	return (GF_Box *)tmp;
+}
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err rtp_hnti_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_RTPBox *ptr = (GF_RTPBox *)s;
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_box_write_header(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->subType);
+	//don't write the NULL char!!!
+	gf_bs_write_data(bs, ptr->sdpText, (u32) strlen(ptr->sdpText));
+	return GF_OK;
+}
+
+GF_Err rtp_hnti_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_RTPBox *ptr = (GF_RTPBox *)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	ptr->size += 4 + strlen(ptr->sdpText);
 	return GF_OK;
 }
 
@@ -2935,7 +2871,7 @@ GF_Err srpp_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->encryption_algorithm_rtcp = gf_bs_read_u32(bs);
 	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
 	ptr->integrity_algorithm_rtp = gf_bs_read_u32(bs);
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 GF_Box *srpp_New()
 {
@@ -3177,7 +3113,7 @@ GF_Err mdhd_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->duration = gf_bs_read_u32(bs);
 	}
 	if (!ptr->timeScale) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Media header timescale is invalid (0) - defaulting to 90000\n" ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Media header timescale is 0 - defaulting to 90000\n" ));
 		ptr->timeScale = 90000;
 	}
 
@@ -3300,7 +3236,7 @@ GF_Err mdia_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e = gf_isom_read_box_list(s, bs, mdia_AddBox);
+	GF_Err e = gf_isom_box_array_read(s, bs, mdia_AddBox);
 	if (e) return e;
 	if (!((GF_MediaBox *)s)->information) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaInformationBox\n"));
@@ -3409,7 +3345,7 @@ GF_Err mfra_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, mfra_AddBox);
+	return gf_isom_box_array_read(s, bs, mfra_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -3804,7 +3740,7 @@ GF_Err minf_AddBox(GF_Box *s, GF_Box *a)
 GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	e = gf_isom_read_box_list(s, bs, minf_AddBox);
+	e = gf_isom_box_array_read(s, bs, minf_AddBox);
 	if (!((GF_MediaInformationBox *)s)->dataInformation) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing DataInformationBox\n"));
 		e = GF_ISOM_INVALID_FILE;
@@ -3907,7 +3843,7 @@ GF_Err moof_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err moof_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, moof_AddBox);
+	return gf_isom_box_array_read(s, bs, moof_AddBox);
 }
 
 GF_Box *moof_New()
@@ -4028,7 +3964,7 @@ GF_Err moov_AddBox(GF_Box *s, GF_Box *a)
 GF_Err moov_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	e = gf_isom_read_box_list(s, bs, moov_AddBox);
+	e = gf_isom_box_array_read(s, bs, moov_AddBox);
 	if (e) {
 		return e;
 	}
@@ -4134,7 +4070,7 @@ GF_Err moov_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void mp4a_del(GF_Box *s)
+void audio_sample_entry_del(GF_Box *s)
 {
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	if (ptr == NULL) return;
@@ -4142,10 +4078,12 @@ void mp4a_del(GF_Box *s)
 
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
+	if (ptr->cfg_ac3) gf_isom_box_del((GF_Box *)ptr->cfg_ac3);
+	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
 	gf_free(ptr);
 }
 
-GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
+GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	switch (a->type) {
@@ -4156,6 +4094,22 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SINF:
 		gf_list_add(ptr->protections, a);
 		break;
+	case GF_ISOM_BOX_TYPE_DAMR:
+	case GF_ISOM_BOX_TYPE_DEVC:
+	case GF_ISOM_BOX_TYPE_DQCP:
+	case GF_ISOM_BOX_TYPE_DSMV:
+		ptr->cfg_3gpp = (GF_3GPPConfigBox *) a;
+		/*for 3GP config, remember sample entry type in config*/
+		ptr->cfg_3gpp->cfg.type = ptr->type;
+		break;
+
+	case GF_ISOM_BOX_TYPE_DAC3:
+		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		break;
+	case GF_ISOM_BOX_TYPE_DEC3:
+		ptr->cfg_ac3 = (GF_AC3ConfigBox *) a;
+		break;
+
 	case GF_ISOM_BOX_TYPE_UNKNOWN:
 		if (ptr->esd) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			/*HACK for QT files: get the esds box from the track*/
@@ -4171,7 +4125,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 					GF_Box *a;
 					GF_Err e;
 					GF_BitStream *bs = gf_bs_new(wave->data + offset, wave->dataSize - offset, GF_BITSTREAM_READ);
-					e = gf_isom_parse_box(&a, bs);
+					e = gf_isom_box_parse(&a, bs);
 					gf_bs_del(bs);
 					if (e) return e;
 					ptr->esd = (GF_ESDBox *)a;
@@ -4189,7 +4143,7 @@ GF_Err mp4a_AddBox(GF_Box *s, GF_Box *a)
 	}
 	return GF_OK;
 }
-GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err audio_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGAudioSampleEntryBox *ptr;
 	char *data;
@@ -4202,7 +4156,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 	pos = gf_bs_get_position(bs);
 	size = (u32) s->size;
 
-	e = gf_isom_read_box_list(s, bs, mp4a_AddBox);
+	e = gf_isom_box_array_read(s, bs, audio_sample_entry_AddBox);
 	if (!e) return GF_OK;
 	if (size<8) return GF_ISOM_INVALID_FILE;
 
@@ -4214,7 +4168,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 	for (i=0; i<size-8; i++) {
 		if (GF_4CC(data[i+4], data[i+5], data[i+6], data[i+7]) == GF_ISOM_BOX_TYPE_ESDS) {
 			GF_BitStream *mybs = gf_bs_new(data + i, size - i, GF_BITSTREAM_READ);
-			e = gf_isom_parse_box((GF_Box **)&ptr->esd, mybs);
+			e = gf_isom_box_parse((GF_Box **)&ptr->esd, mybs);
 			gf_bs_del(mybs);
 			break;
 		}
@@ -4223,7 +4177,7 @@ GF_Err mp4a_Read(GF_Box *s, GF_BitStream *bs)
 	return e;
 }
 
-GF_Box *mp4a_New()
+GF_Box *audio_sample_entry_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_MPEGAudioSampleEntryBox, GF_ISOM_BOX_TYPE_MP4A);
 	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
@@ -4240,20 +4194,29 @@ GF_Box *enca_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err mp4a_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err audio_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
-	e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
-	if (e) return e;
-
+	if (ptr->esd) {
+		e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
+		if (e) return e;
+	}
+	if (ptr->cfg_3gpp) {
+		e = gf_isom_box_write((GF_Box *)ptr->cfg_3gpp, bs);
+		if (e) return e;
+	}
+	if (ptr->cfg_ac3) {
+		e = gf_isom_box_write((GF_Box *)ptr->cfg_ac3, bs);
+		if (e) return e;
+	}
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
-GF_Err mp4a_Size(GF_Box *s)
+GF_Err audio_sample_entry_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_MPEGAudioSampleEntryBox *ptr = (GF_MPEGAudioSampleEntryBox *)s;
@@ -4261,10 +4224,21 @@ GF_Err mp4a_Size(GF_Box *s)
 	if (e) return e;
 
 	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
-
-	e = gf_isom_box_size((GF_Box *)ptr->esd);
-	if (e) return e;
-	ptr->size += ptr->esd->size;
+	if (ptr->esd) {
+		e = gf_isom_box_size((GF_Box *)ptr->esd);
+		if (e) return e;
+		ptr->size += ptr->esd->size;
+	}
+	if (ptr->cfg_3gpp) {
+		e = gf_isom_box_size((GF_Box *)ptr->cfg_3gpp);
+		if (e) return e;
+		ptr->size += ptr->cfg_3gpp->size;
+	}
+	if (ptr->cfg_ac3) {
+		e = gf_isom_box_size((GF_Box *)ptr->cfg_ac3);
+		if (e) return e;
+		ptr->size += ptr->cfg_ac3->size;
+	}
 	return gf_isom_box_array_size(s, ptr->protections);
 }
 
@@ -4305,7 +4279,7 @@ GF_Err mp4s_Read(GF_Box *s, GF_BitStream *bs)
 	gf_bs_read_data(bs, ptr->reserved, 6);
 	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
 	ISOM_DECREASE_SIZE(ptr, 8);
-	return gf_isom_read_box_list(s, bs, mp4s_AddBox);
+	return gf_isom_box_array_read(s, bs, mp4s_AddBox);
 }
 
 GF_Box *mp4s_New()
@@ -4355,7 +4329,7 @@ GF_Err mp4s_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void mpeg_video_del(GF_Box *s)
+void video_sample_entry_del(GF_Box *s)
 {
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	if (ptr == NULL) return;
@@ -4363,14 +4337,17 @@ void mpeg_video_del(GF_Box *s)
 
 	if (ptr->esd) gf_isom_box_del((GF_Box *)ptr->esd);
 	if (ptr->slc) gf_odf_desc_del((GF_Descriptor *)ptr->slc);
+	/*for publishing*/
+	if (ptr->emul_esd) gf_odf_desc_del((GF_Descriptor *)ptr->emul_esd);
+
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
 	if (ptr->svc_config) gf_isom_box_del((GF_Box *) ptr->svc_config);
 	if (ptr->hevc_config) gf_isom_box_del((GF_Box *) ptr->hevc_config);
 	if (ptr->lhvc_config) gf_isom_box_del((GF_Box *) ptr->lhvc_config);
+	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
+
 	if (ptr->descr) gf_isom_box_del((GF_Box *) ptr->descr);
 	if (ptr->ipod_ext) gf_isom_box_del((GF_Box *)ptr->ipod_ext);
-	/*for publishing*/
-	if (ptr->emul_esd) gf_odf_desc_del((GF_Descriptor *)ptr->emul_esd);
 
 	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
 	if (ptr->rvcc) gf_isom_box_del((GF_Box *)ptr->rvcc);
@@ -4378,7 +4355,7 @@ void mpeg_video_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err mpeg_video_AddBox(GF_Box *s, GF_Box *a)
+GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
 	switch (a->type) {
@@ -4421,6 +4398,13 @@ GF_Err mpeg_video_AddBox(GF_Box *s, GF_Box *a)
 			return gf_isom_box_add_default(s, a);
 		}
 		break;
+	case GF_ISOM_BOX_TYPE_D263:
+		ptr->cfg_3gpp = (GF_3GPPConfigBox *)a;
+		/*for 3GP config, remember sample entry type in config*/
+		ptr->cfg_3gpp->cfg.type = ptr->type;
+		break;
+		break;
+
 	case GF_ISOM_BOX_TYPE_PASP:
 		if (ptr->pasp) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->pasp = (GF_PixelAspectRatioBox *)a;
@@ -4439,13 +4423,13 @@ GF_Err mpeg_video_AddBox(GF_Box *s, GF_Box *a)
 	return GF_OK;
 }
 
-GF_Err mpeg_video_Read(GF_Box *s, GF_BitStream *bs)
+GF_Err video_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_MPEGVisualSampleEntryBox *mp4v = (GF_MPEGVisualSampleEntryBox*)s;
 	GF_Err e;
 	e = gf_isom_video_sample_entry_read((GF_VisualSampleEntryBox *)s, bs);
 	if (e) return e;
-	e = gf_isom_read_box_list(s, bs, mpeg_video_AddBox);
+	e = gf_isom_box_array_read(s, bs, video_sample_entry_AddBox);
 	if (e) return e;
 	/*this is an AVC sample desc*/
 	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
@@ -4455,7 +4439,7 @@ GF_Err mpeg_video_Read(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *mpeg_video_New()
+GF_Box *video_sample_entry_New()
 {
 	GF_MPEGVisualSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_MPEGVisualSampleEntryBox);
@@ -4468,7 +4452,7 @@ GF_Box *mpeg_video_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err mpeg_video_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
@@ -4479,6 +4463,11 @@ GF_Err mpeg_video_Write(GF_Box *s, GF_BitStream *bs)
 	/*mp4v*/
 	if (ptr->esd) {
 		e = gf_isom_box_write((GF_Box *)ptr->esd, bs);
+		if (e) return e;
+	}
+	/*mp4v*/
+	else if (ptr->cfg_3gpp) {
+		e = gf_isom_box_write((GF_Box *)ptr->cfg_3gpp, bs);
 		if (e) return e;
 	}
 	/*avc or hevc*/
@@ -4527,7 +4516,7 @@ GF_Err mpeg_video_Write(GF_Box *s, GF_BitStream *bs)
 	return gf_isom_box_array_write(s, ptr->protections, bs);
 }
 
-GF_Err mpeg_video_Size(GF_Box *s)
+GF_Err video_sample_entry_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_MPEGVisualSampleEntryBox *ptr = (GF_MPEGVisualSampleEntryBox *)s;
@@ -4540,6 +4529,10 @@ GF_Err mpeg_video_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *)ptr->esd);
 		if (e) return e;
 		ptr->size += ptr->esd->size;
+	} else if (ptr->cfg_3gpp) {
+		e = gf_isom_box_size((GF_Box *)ptr->cfg_3gpp);
+		if (e) return e;
+		ptr->size += ptr->cfg_3gpp->size;
 	} else {
 		if (!ptr->avc_config && !ptr->svc_config && !ptr->hevc_config && !ptr->lhvc_config && (ptr->type!=GF_ISOM_BOX_TYPE_HVT1) ) {
 			return GF_ISOM_INVALID_FILE;
@@ -4643,7 +4636,7 @@ GF_Err mvex_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err mvex_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, mvex_AddBox);
+	return gf_isom_box_array_read(s, bs, mvex_AddBox);
 }
 
 GF_Box *mvex_New()
@@ -5226,8 +5219,9 @@ void stbl_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
+GF_Err stbl_AddBox(GF_Box *s, GF_Box *a)
 {
+	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
 	if (!a) return GF_OK;
 	switch (a->type) {
 	case GF_ISOM_BOX_TYPE_STTS:
@@ -5346,11 +5340,10 @@ GF_Err stbl_AddBox(GF_SampleTableBox *ptr, GF_Box *a)
 GF_Err stbl_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_Box *a;
 	//we need to parse DegPrior in a special way
 	GF_SampleTableBox *ptr = (GF_SampleTableBox *)s;
 
-	e = gf_isom_read_box_list(s, bs, stbl_AddBox);
+	e = gf_isom_box_array_read(s, bs, stbl_AddBox);
 	if (e) return e;
 
 	if (!ptr->SyncSample)
@@ -5806,9 +5799,10 @@ void stsd_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
+GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_UnknownBox *def;
+	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
 	if (!a) return GF_OK;
 
 	switch (a->type) {
@@ -5851,22 +5845,13 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SBTT:
 	case GF_ISOM_BOX_TYPE_ELNG:
 	case GF_ISOM_BOX_TYPE_MP3:
-		return gf_isom_box_add_default((GF_Box*)ptr, a);
-	/*for 3GP config, we must set the type*/
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-	{
-		((GF_3GPPAudioSampleEntryBox *)a)->info->cfg.type = a->type;
-		return gf_isom_box_add_default((GF_Box*)ptr, a);
-	}
 	case GF_ISOM_SUBTYPE_3GP_H263:
-	{
-		((GF_3GPPVisualSampleEntryBox *)a)->info->cfg.type = a->type;
 		return gf_isom_box_add_default((GF_Box*)ptr, a);
-	}
 
 	//unknown sample description: we need a specific box to handle the data ref index
 	//rather than a default box ...
@@ -5888,18 +5873,12 @@ GF_Err stsd_AddBox(GF_SampleDescriptionBox *ptr, GF_Box *a)
 
 GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 nb_entries;
-	u32 i;
-	GF_Box *a;
-	GF_SampleDescriptionBox *ptr = (GF_SampleDescriptionBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
+	GF_Err e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	nb_entries = gf_bs_read_u32(bs);
+	gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(s, 4)
 	
-	return gf_isom_read_box_list(s, bs, stsd_AddBox);
+	return gf_isom_box_array_read(s, bs, stsd_AddBox);
 }
 
 GF_Box *stsd_New()
@@ -6890,11 +6869,8 @@ GF_Err traf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err traf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Box *a;
-	GF_Err e;
 	GF_TrackFragmentBox *ptr = (GF_TrackFragmentBox *)s;
-
-	e = gf_isom_read_box_list(s, bs, traf_AddBox);
+	GF_Err e = gf_isom_box_array_read(s, bs, traf_AddBox);
 	if (e) return e;
 
 	if (!ptr->tfhd) {
@@ -7214,7 +7190,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			if (gf_bs_available(bs)) {
 				u64 pos = gf_bs_get_position(bs);
 				//try to parse as boxes
-				GF_Err e = gf_isom_read_box_list((GF_Box *) genv, bs, gf_isom_box_add_default);
+				GF_Err e = gf_isom_box_array_read((GF_Box *) genv, bs, gf_isom_box_add_default);
 				if (e) {
 					gf_bs_seek(bs, pos);
 					genv->data_size = (u32) gf_bs_available(bs);
@@ -7252,7 +7228,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			if (gf_bs_available(bs)) {
 				u64 pos = gf_bs_get_position(bs);
 				//try to parse as boxes
-				GF_Err e = gf_isom_read_box_list((GF_Box *) gena, bs, gf_isom_box_add_default);
+				GF_Err e = gf_isom_box_array_read((GF_Box *) gena, bs, gf_isom_box_add_default);
 				if (e) {
 					gf_bs_seek(bs, pos);
 					gena->data_size = (u32) gf_bs_available(bs);
@@ -7292,7 +7268,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 			if (gf_bs_available(bs)) {
 				u64 pos = gf_bs_get_position(bs);
 				//try to parse as boxes
-				GF_Err e = gf_isom_read_box_list((GF_Box *) genm, bs, gf_isom_box_add_default);
+				GF_Err e = gf_isom_box_array_read((GF_Box *) genm, bs, gf_isom_box_add_default);
 				if (e) {
 					gf_bs_seek(bs, pos);
 					genm->data_size = (u32) gf_bs_available(bs);
@@ -7368,7 +7344,7 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
-	e = gf_isom_read_box_list(s, bs, trak_AddBox);
+	e = gf_isom_box_array_read(s, bs, trak_AddBox);
 	if (e) return e;
 	gf_isom_check_sample_desc(ptr);
 
@@ -7650,7 +7626,7 @@ GF_Err strk_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_SubTrackBox *ptr = (GF_SubTrackBox *)s;
-	e = gf_isom_read_box_list(s, bs, strk_AddBox);
+	e = gf_isom_box_array_read(s, bs, strk_AddBox);
 	if (e) return e;
 
 	if (!ptr->info) {
@@ -7925,7 +7901,7 @@ GF_Err trep_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->trackID = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 GF_Box *trep_New()
@@ -8215,10 +8191,11 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 	return NULL;
 }
 
-GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a)
+GF_Err udta_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_Err e;
 	GF_UserDataMap *map;
+	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
 	if (!ptr) return GF_BAD_PARAM;
 	if (!a) return GF_OK;
 
@@ -8245,11 +8222,7 @@ GF_Err udta_AddBox(GF_UserDataBox *ptr, GF_Box *a)
 
 GF_Err udta_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
-	u32 sub_type;
-	GF_Box *a;
-	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
-	return gf_isom_read_box_list(s, bs, udta_AddBox);
+	return gf_isom_box_array_read(s, bs, udta_AddBox);
 }
 
 GF_Box *udta_New()
@@ -8750,7 +8723,7 @@ GF_Err metx_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	ptr->size = size;
 	gf_free(str);
-	return gf_isom_read_box_list(s, bs, metx_AddBox);
+	return gf_isom_box_array_read(s, bs, metx_AddBox);
 }
 
 
@@ -9049,74 +9022,6 @@ GF_Err dac3_Size(GF_Box *s)
 
 
 
-void ac3_del(GF_Box *s)
-{
-	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
-	if (ptr == NULL) return;
-	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)s);
-
-	if (ptr->info) gf_isom_box_del((GF_Box *)ptr->info);
-	gf_free(ptr);
-}
-
-
-GF_Err ac3_Read(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
-	e = gf_isom_audio_sample_entry_read((GF_AudioSampleEntryBox*)s, bs);
-	if (e) return e;
-	e = gf_isom_parse_box((GF_Box **)&ptr->info, bs);
-	if (e) return e;
-	return GF_OK;
-}
-
-GF_Box *ac3_New()
-{
-	ISOM_DECL_BOX_ALLOC(GF_AC3SampleEntryBox, GF_ISOM_BOX_TYPE_AC3);
-	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
-	return (GF_Box *)tmp;
-}
-
-GF_Box *ec3_New()
-{
-	ISOM_DECL_BOX_ALLOC(GF_AC3SampleEntryBox, GF_ISOM_BOX_TYPE_AC3);
-	gf_isom_audio_sample_entry_init((GF_AudioSampleEntryBox*)tmp);
-	tmp->is_ec3 = 1;
-	return (GF_Box *)tmp;
-}
-
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-
-GF_Err ac3_Write(GF_Box *s, GF_BitStream *bs)
-{
-	GF_Err e;
-	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
-	if (ptr->is_ec3) s->type = GF_ISOM_BOX_TYPE_EC3;
-	e = gf_isom_box_write_header(s, bs);
-	if (ptr->is_ec3) s->type = GF_ISOM_BOX_TYPE_AC3;
-	if (e) return e;
-	gf_isom_audio_sample_entry_write((GF_AudioSampleEntryBox*)s, bs);
-	return gf_isom_box_write((GF_Box *)ptr->info, bs);
-}
-
-GF_Err ac3_Size(GF_Box *s)
-{
-	GF_Err e;
-	GF_AC3SampleEntryBox *ptr = (GF_AC3SampleEntryBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	gf_isom_audio_sample_entry_size((GF_AudioSampleEntryBox*)s);
-	e = gf_isom_box_size((GF_Box *)ptr->info);
-	if (e) return e;
-	ptr->size += ptr->info->size;
-	return GF_OK;
-}
-
-#endif /*GPAC_DISABLE_ISOM_WRITE*/
-
-
 void lsrc_del(GF_Box *s)
 {
 	GF_LASERConfigurationBox *ptr = (GF_LASERConfigurationBox *)s;
@@ -9205,7 +9110,7 @@ GF_Err lsr1_Read(GF_Box *s, GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(ptr, 8);
 
-	return gf_isom_read_box_list(s, bs, lsr1_AddBox);
+	return gf_isom_box_array_read(s, bs, lsr1_AddBox);
 }
 
 GF_Box *lsr1_New()
@@ -10769,7 +10674,7 @@ GF_Err fiin_Read(GF_Box *s, GF_BitStream *bs)
 	gf_isom_full_box_read(s, bs);
 	ISOM_DECREASE_SIZE(ptr, 2);
 	gf_bs_read_u16(bs);
-	return gf_isom_read_box_list(s, bs, fiin_AddBox);
+	return gf_isom_box_array_read(s, bs, fiin_AddBox);
 }
 
 
@@ -10860,7 +10765,7 @@ GF_Err paen_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err paen_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, fiin_AddBox);
+	return gf_isom_box_array_read(s, bs, fiin_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -10933,7 +10838,7 @@ void fpar_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-static GF_Err read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str)
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str)
 {
 	u32 len=10;
 	u32 i=0;
@@ -10968,7 +10873,7 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->encoding_symbol_length = gf_bs_read_u16(bs);
 	ptr->max_number_of_encoding_symbols = gf_bs_read_u16(bs);
 
-	e = read_null_terminated_string(s, bs, &ptr->scheme_specific_info);
+	e = gf_isom_read_null_terminated_string(s, bs, &ptr->scheme_specific_info);
 	if (e) return e;
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
@@ -11227,7 +11132,7 @@ GF_Err gitn_Read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		ptr->entries[i].group_id = gf_bs_read_u32(bs);
 
-		e = read_null_terminated_string(s, bs, &ptr->entries[i].name);
+		e = gf_isom_read_null_terminated_string(s, bs, &ptr->entries[i].name);
 		if (e) return e;
 	}
 	return GF_OK;

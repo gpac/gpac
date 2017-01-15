@@ -32,11 +32,7 @@ GF_Box *ghnt_New()
 	GF_HintSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_HintSampleEntryBox);
 	if (tmp == NULL) return NULL;
-	tmp->HintDataTable = gf_list_new();
-	if (!tmp->HintDataTable) {
-		gf_free(tmp);
-		return NULL;
-	}
+
 	//this type is used internally for protocols that share the same base entry
 	//currently only RTP uses this, but a flexMux could use this entry too...
 	tmp->type = GF_ISOM_BOX_TYPE_GHNT;
@@ -50,15 +46,12 @@ void ghnt_del(GF_Box *s)
 	GF_HintSampleEntryBox *ptr;
 
 	ptr = (GF_HintSampleEntryBox *)s;
-	gf_isom_box_array_del(ptr->HintDataTable);
 	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
 	gf_free(ptr);
 }
 
 GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Box *a;
-	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
@@ -79,15 +72,7 @@ GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->size -= 4;
 
 	}
-
-	while (ptr->size) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		e = gf_list_add(ptr->HintDataTable, a);
-		if (e) return e;
-		ptr->size -= a->size;
-	}
-	return GF_OK;
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -104,7 +89,7 @@ GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->HintTrackVersion);
 	gf_bs_write_u16(bs, ptr->LastCompatibleVersion);
 	gf_bs_write_u32(bs, ptr->MaxPacketSize);
-	return gf_isom_box_array_write(s, ptr->HintDataTable, bs);
+	return GF_OK;
 }
 
 GF_Err ghnt_Size(GF_Box *s)
@@ -115,8 +100,6 @@ GF_Err ghnt_Size(GF_Box *s)
 	e = gf_isom_box_get_size(s);
 	if (e) return e;
 	ptr->size += 16;
-	e = gf_isom_box_array_size(s, ptr->HintDataTable);
-	if (e) return e;
 	return GF_OK;
 }
 
@@ -654,7 +637,7 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		tempSize = 4;	//TLVsize includes its field length
 		TLVsize = gf_bs_read_u32(bs);
 		while (tempSize < TLVsize) {
-			e = gf_isom_parse_box(&a, bs);
+			e = gf_isom_box_parse(&a, bs);
 			if (e) return e;
 			gf_list_add(ptr->TLV, a);
 			tempSize += (u32) a->size;

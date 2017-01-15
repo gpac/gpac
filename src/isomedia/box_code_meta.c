@@ -106,7 +106,7 @@ GF_Err meta_Read(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_full_box_read(s, bs);
 		if (e) return e;
 	}
-	return gf_isom_read_box_list(s, bs, meta_AddBox);
+	return gf_isom_box_array_read(s, bs, meta_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -586,7 +586,7 @@ GF_Err ipro_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list(s, bs, ipro_AddBox);
+	return gf_isom_box_array_read(s, bs, ipro_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -804,40 +804,38 @@ void iinf_del(GF_Box *s)
 	gf_free(ptr);
 }
 
+GF_Err iinf_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
+
+	if (a->type == GF_ISOM_BOX_TYPE_INFE) {
+		return gf_list_add(ptr->item_infos, a);
+	} else {
+		return gf_isom_box_add_default(s, a);
+	}
+}
+
 GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_Box *a;
-	u32 count;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	if (ptr->version == 0) {
-		count = gf_bs_read_u16(bs);
+		ISOM_DECREASE_SIZE(s, 2)
+		gf_bs_read_u16(bs);
+	} else {
+		ISOM_DECREASE_SIZE(s, 4)
+		gf_bs_read_u32(bs);
 	}
-	else {
-		count = gf_bs_read_u32(bs);
-	}
-
-	while (count) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-
-		if (a->type == GF_ISOM_BOX_TYPE_INFE)
-			gf_list_add(ptr->item_infos, a);
-		else
-			gf_isom_box_del(a);
-		count --;
-	}
-	return GF_OK;
+	return gf_isom_box_array_read(s, bs, iinf_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 {
-	u32 count, i;
+	u32 count;
 	GF_Err e;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -845,19 +843,16 @@ GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 	if (e) return e;
 	count = gf_list_count(ptr->item_infos);
 	gf_bs_write_u16(bs, count);
+
 	if (count) {
-		for (i = 0; i < count; i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(ptr->item_infos, i);
-			e = gf_isom_box_write(a, bs);
-			if (e) return e;
-		}
+		gf_isom_box_array_write(s, ptr->item_infos, bs);
 	}
 	return GF_OK;
 }
 
 GF_Err iinf_Size(GF_Box *s)
 {
-	u32 i, count;
+	u32 count;
 	GF_Err e;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -865,12 +860,7 @@ GF_Err iinf_Size(GF_Box *s)
 	if (e) return e;
 	ptr->size += 2;
 	if ((count = gf_list_count(ptr->item_infos))) {
-		for (i = 0; i < count; i++) {
-			GF_Box *a = (GF_Box *)gf_list_get(ptr->item_infos, i);
-			e = gf_isom_box_size(a);
-			if (e) return e;
-			ptr->size += a->size;
-		}
+		gf_isom_box_array_size(s, ptr->item_infos);
 	}
 	return GF_OK;
 }
