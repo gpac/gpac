@@ -1579,24 +1579,24 @@ GF_Err hvcc_dump(GF_Box *a, FILE * trace)
 	}
 
 	fprintf(trace, "<%sDecoderConfigurationRecord nal_unit_size=\"%d\" ", name, p->config->nal_unit_size);
-	fprintf(trace, "configurationVersion=\"%d\" ", p->config->configurationVersion);
+	fprintf(trace, "configurationVersion=\"%u\" ", p->config->configurationVersion);
 	if (a->type==GF_ISOM_BOX_TYPE_HVCC) {
-		fprintf(trace, "profile_space=\"%d\" ", p->config->profile_space);
-		fprintf(trace, "tier_flag=\"%d\" ", p->config->tier_flag);
-		fprintf(trace, "profile_idc=\"%d\" ", p->config->profile_idc);
-		fprintf(trace, "general_profile_compatibility_flags=\"%d\" ", p->config->general_profile_compatibility_flags);
-		fprintf(trace, "progressive_source_flag=\"%d\" ", p->config->progressive_source_flag);
-		fprintf(trace, "interlaced_source_flag=\"%d\" ", p->config->interlaced_source_flag);
-		fprintf(trace, "non_packed_constraint_flag=\"%d\" ", p->config->non_packed_constraint_flag);
-		fprintf(trace, "frame_only_constraint_flag=\"%d\" ", p->config->frame_only_constraint_flag);
-		fprintf(trace, "constraint_indicator_flags=\""LLD"\" ", p->config->constraint_indicator_flags);
+		fprintf(trace, "profile_space=\"%u\" ", p->config->profile_space);
+		fprintf(trace, "tier_flag=\"%u\" ", p->config->tier_flag);
+		fprintf(trace, "profile_idc=\"%u\" ", p->config->profile_idc);
+		fprintf(trace, "general_profile_compatibility_flags=\"%X\" ", p->config->general_profile_compatibility_flags);
+		fprintf(trace, "progressive_source_flag=\"%u\" ", p->config->progressive_source_flag);
+		fprintf(trace, "interlaced_source_flag=\"%u\" ", p->config->interlaced_source_flag);
+		fprintf(trace, "non_packed_constraint_flag=\"%u\" ", p->config->non_packed_constraint_flag);
+		fprintf(trace, "frame_only_constraint_flag=\"%u\" ", p->config->frame_only_constraint_flag);
+		fprintf(trace, "constraint_indicator_flags=\""LLX"\" ", p->config->constraint_indicator_flags);
 		fprintf(trace, "level_idc=\"%d\" ", p->config->level_idc);
 	}
-	fprintf(trace, "min_spatial_segmentation_idc=\"%d\" ", p->config->min_spatial_segmentation_idc);
-	fprintf(trace, "parallelismType=\"%d\" ", p->config->parallelismType);
+	fprintf(trace, "min_spatial_segmentation_idc=\"%u\" ", p->config->min_spatial_segmentation_idc);
+	fprintf(trace, "parallelismType=\"%u\" ", p->config->parallelismType);
 
 	if (a->type==GF_ISOM_BOX_TYPE_HVCC)
-		fprintf(trace, "chroma_format=\"%s\" luma_bit_depth=\"%d\" chroma_bit_depth=\"%d\" avgFrameRate=\"%d\" constantFrameRate=\"%d\" numTemporalLayers=\"%d\" temporalIdNested=\"%d\"",
+		fprintf(trace, "chroma_format=\"%s\" luma_bit_depth=\"%u\" chroma_bit_depth=\"%u\" avgFrameRate=\"%u\" constantFrameRate=\"%u\" numTemporalLayers=\"%u\" temporalIdNested=\"%u\"",
 	        gf_avc_hevc_get_chroma_format_name(p->config->chromaFormat), p->config->luma_bit_depth, p->config->chroma_bit_depth, p->config->avgFrameRate, p->config->constantFrameRate, p->config->numTemporalLayers, p->config->temporalIdNested);
 
 	fprintf(trace, ">\n");
@@ -2546,6 +2546,9 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	bs = gf_bs_new(tmp->data, tmp->dataLength, GF_BITSTREAM_READ);
 	s = gf_isom_hint_sample_new(entry->type);
+	s->trackID = trak->Header->trackID;
+	s->sampleNumber = SampleNum;
+
 	gf_isom_hint_sample_read(s, bs, tmp->dataLength);
 	gf_bs_del(bs);
 
@@ -4148,7 +4151,7 @@ GF_Err sbgp_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
-static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
+static void oinf_entry_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 {
 	u32 i, count;
 
@@ -4166,7 +4169,7 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 
 
 	fprintf(trace, "<OperatingPointsInformation");
-	fprintf(trace, " scalability_mask=\"%d (", ptr->scalability_mask);
+	fprintf(trace, " scalability_mask=\"%u (", ptr->scalability_mask);
 	switch (ptr->scalability_mask) {
 	case 2:
 		fprintf(trace, "Multiview");
@@ -4180,38 +4183,38 @@ static void oinf_dump(GF_OperatingPointsInformation *ptr, FILE * trace)
 	default:
 		fprintf(trace, "unknown");
 	}
-	fprintf(trace, ")\" num_profile_tier_level=\"%d\"", gf_list_count(ptr->profile_tier_levels) );
-	fprintf(trace, " num_operating_points=\"%d\" dependency_layers=\"%d\"", gf_list_count(ptr->operating_points), gf_list_count(ptr->dependency_layers));
+	fprintf(trace, ")\" num_profile_tier_level=\"%u\"", gf_list_count(ptr->profile_tier_levels) );
+	fprintf(trace, " num_operating_points=\"%u\" dependency_layers=\"%u\"", gf_list_count(ptr->operating_points), gf_list_count(ptr->dependency_layers));
 	fprintf(trace, ">\n");
 
 
 	count=gf_list_count(ptr->profile_tier_levels);
 	for (i = 0; i < count; i++) {
 		LHEVC_ProfileTierLevel *ptl = (LHEVC_ProfileTierLevel *)gf_list_get(ptr->profile_tier_levels, i);
-		fprintf(trace, " <ProfileTierLevel general_profile_space=\"%d\" general_tier_flag=\"%d\" general_profile_idc=\"%d\" general_profile_compatibility_flags=\"%d\" general_constraint_indicator_flags=\""LLU"\" />\n", ptl->general_profile_space, ptl->general_tier_flag, ptl->general_profile_idc, ptl->general_profile_compatibility_flags, ptl->general_constraint_indicator_flags);
+		fprintf(trace, " <ProfileTierLevel general_profile_space=\"%u\" general_tier_flag=\"%u\" general_profile_idc=\"%u\" general_profile_compatibility_flags=\"%X\" general_constraint_indicator_flags=\""LLX"\" />\n", ptl->general_profile_space, ptl->general_tier_flag, ptl->general_profile_idc, ptl->general_profile_compatibility_flags, ptl->general_constraint_indicator_flags);
 	}
 
 
 	count=gf_list_count(ptr->operating_points);
 	for (i = 0; i < count; i++) {
 		LHEVC_OperatingPoint *op = (LHEVC_OperatingPoint *)gf_list_get(ptr->operating_points, i);
-		fprintf(trace, "<OperatingPoint output_layer_set_idx=\"%d\"", op->output_layer_set_idx);
-		fprintf(trace, " max_temporal_id=\"%d\" layer_count=\"%d\"", op->max_temporal_id, op->layer_count);
-		fprintf(trace, " minPicWidth=\"%d\" minPicHeight=\"%d\"", op->minPicWidth, op->minPicHeight);
-		fprintf(trace, " maxPicWidth=\"%d\" maxPicHeight=\"%d\"", op->maxPicWidth, op->maxPicHeight);
-		fprintf(trace, " maxChromaFormat=\"%d\" maxBitDepth=\"%d\"", op->maxChromaFormat, op->maxBitDepth);
-		fprintf(trace, " frame_rate_info_flag=\"%d\" bit_rate_info_flag=\"%d\"", op->frame_rate_info_flag, op->bit_rate_info_flag);
+		fprintf(trace, "<OperatingPoint output_layer_set_idx=\"%u\"", op->output_layer_set_idx);
+		fprintf(trace, " max_temporal_id=\"%u\" layer_count=\"%u\"", op->max_temporal_id, op->layer_count);
+		fprintf(trace, " minPicWidth=\"%u\" minPicHeight=\"%u\"", op->minPicWidth, op->minPicHeight);
+		fprintf(trace, " maxPicWidth=\"%u\" maxPicHeight=\"%u\"", op->maxPicWidth, op->maxPicHeight);
+		fprintf(trace, " maxChromaFormat=\"%u\" maxBitDepth=\"%u\"", op->maxChromaFormat, op->maxBitDepth);
+		fprintf(trace, " frame_rate_info_flag=\"%u\" bit_rate_info_flag=\"%u\"", op->frame_rate_info_flag, op->bit_rate_info_flag);
 		if (op->frame_rate_info_flag) 
-			fprintf(trace, " avgFrameRate=\"%d\" constantFrameRate=\"%d\"", op->avgFrameRate, op->constantFrameRate);
+			fprintf(trace, " avgFrameRate=\"%u\" constantFrameRate=\"%u\"", op->avgFrameRate, op->constantFrameRate);
 		if (op->bit_rate_info_flag) 
-			fprintf(trace, " maxBitRate=\"%d\" avgBitRate=\"%d\"", op->maxBitRate, op->avgBitRate);
+			fprintf(trace, " maxBitRate=\"%u\" avgBitRate=\"%u\"", op->maxBitRate, op->avgBitRate);
 		fprintf(trace, "/>\n");
 	}
 	count=gf_list_count(ptr->dependency_layers);
 	for (i = 0; i < count; i++) {
 		u32 j;
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
-		fprintf(trace, "<Layer dependent_layerID=\"%d\" num_layers_dependent_on=\"%d\"", dep->dependent_layerID, dep->num_layers_dependent_on);
+		fprintf(trace, "<Layer dependent_layerID=\"%u\" num_layers_dependent_on=\"%u\"", dep->dependent_layerID, dep->num_layers_dependent_on);
 		if (dep->num_layers_dependent_on) {
 			fprintf(trace, " dependent_on_layerID=\"");
 			for (j = 0; j < dep->num_layers_dependent_on; j++)
@@ -4364,7 +4367,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "\"/>\n");
 			break;
 		case GF_ISOM_SAMPLE_GROUP_OINF:
-			oinf_dump(entry, trace);
+			oinf_entry_dump(entry, trace);
 			break;
 		case GF_ISOM_SAMPLE_GROUP_LINF:
 			linf_dump(entry, trace);
@@ -4394,7 +4397,7 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			fprintf(trace, "<CENCSampleEncryptionGroupEntry IsEncrypted=\"\" IV_size=\"\" KID=\"\" constant_IV_size=\"\"  constant_IV=\"\"/>\n");
 			break;
 		case GF_ISOM_SAMPLE_GROUP_OINF:
-			oinf_dump(NULL, trace);
+			oinf_entry_dump(NULL, trace);
 			break;
 		case GF_ISOM_SAMPLE_GROUP_LINF:
 			linf_dump(NULL, trace);
@@ -4875,6 +4878,29 @@ GF_Err auxc_dump(GF_Box *a, FILE * trace)
 	dump_data_attribute(trace, "aux_subtype", ptr->data, ptr->data_size);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("AuxiliaryTypePropertyBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err oinf_dump(GF_Box *a, FILE * trace)
+{
+	GF_OINFPropertyBox *ptr = (GF_OINFPropertyBox *)a;
+	gf_isom_box_dump_start(a, "OperatingPointsInformationPropertyBox", trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, ">\n");
+
+	oinf_entry_dump(ptr->oinf, trace);
+
+	gf_isom_box_dump_done("OperatingPointsInformationPropertyBox", a, trace);
+	return GF_OK;
+}
+GF_Err tols_dump(GF_Box *a, FILE * trace)
+{
+	GF_TargetOLSPropertyBox *ptr = (GF_TargetOLSPropertyBox *)a;
+	gf_isom_box_dump_start(a, "TargetOLSPropertyBox", trace);
+	gf_full_box_dump((GF_Box *)a, trace);
+	fprintf(trace, "target_ols_index=\"%d\">\n", ptr->target_ols_index);
+
+	gf_isom_box_dump_done("TargetOLSPropertyBox", a, trace);
 	return GF_OK;
 }
 

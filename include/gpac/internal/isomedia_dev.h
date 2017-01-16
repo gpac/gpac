@@ -468,6 +468,8 @@ enum
 	GF_ISOM_BOX_TYPE_GRPL  = GF_4CC('g', 'r', 'p', 'l'),
 	GF_ISOM_BOX_TYPE_CCST	= GF_4CC( 'c', 'c', 's', 't' ),
 	GF_ISOM_BOX_TYPE_AUXC	= GF_4CC( 'a', 'u', 'x', 'C' ),
+	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
+	GF_ISOM_BOX_TYPE_TOLS	= GF_4CC( 't', 'o', 'l', 's' ),
 
 	GF_ISOM_BOX_TYPE_ALTR	= GF_4CC( 'a', 'l', 't', 'r' ),
 
@@ -2870,6 +2872,18 @@ typedef struct {
 	char *data;
 } GF_AuxiliaryTypePropertyBox;
 
+typedef struct {
+	GF_ISOM_FULL_BOX
+
+	GF_OperatingPointsInformation *oinf;
+} GF_OINFPropertyBox;
+
+
+typedef struct {
+	GF_ISOM_FULL_BOX
+
+	u16 target_ols_index;
+} GF_TargetOLSPropertyBox;
 
 /*flute hint track boxes*/
 typedef struct
@@ -3452,6 +3466,9 @@ typedef struct __tag_hint_sample
 	u64 TransmissionTime;
 	/*for read only, used to store samples fetched while building packets*/
 	GF_List *sample_cache;
+
+	//for dump
+	u32 trackID, sampleNumber;
 } GF_HintSample;
 
 GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType);
@@ -3465,6 +3482,7 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr);
 		Hint Packets (generic packet for future protocol support)
 *****************************************************/
 #define GF_ISOM_BASE_PACKET			\
+	u32 trackID, sampleNumber;	\
 	s32 relativeTransTime;
 
 
