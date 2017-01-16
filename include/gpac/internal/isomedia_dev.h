@@ -2846,7 +2846,7 @@ struct __tag_isom {
 	u64 segment_start;
 
 	GF_List *moof_list;
-	Bool use_segments, moof_first, append_segment, styp_written;
+	Bool use_segments, moof_first, append_segment, styp_written, force_moof_base_offset;
 
 	/*used when building single-indexed self initializing media segments*/
 	GF_SegmentIndexBox *root_sidx;
