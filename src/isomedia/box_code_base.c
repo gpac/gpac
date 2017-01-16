@@ -10848,11 +10848,11 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **o
 		ISOM_DECREASE_SIZE(s, 1 );
 		(*out_str)[i] = gf_bs_read_u8(bs);
 		if (! (*out_str)[i]) break;
+		i++;
 		if (i==len) {
 			len += 10;
 			*out_str = gf_realloc(*out_str, sizeof(char)*len);
 		}
-		i++;
 	}
 	return GF_OK;
 }
