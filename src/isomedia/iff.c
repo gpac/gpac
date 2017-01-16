@@ -748,6 +748,98 @@ GF_Err auxc_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+GF_Box *oinf_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_OINFPropertyBox, GF_ISOM_BOX_TYPE_OINF);
+	tmp->oinf = gf_isom_oinf_new_entry();
+	return (GF_Box *)tmp;
+}
+
+void oinf_del(GF_Box *a)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)a;
+	if (p->oinf) gf_isom_oinf_del_entry(p->oinf);
+	gf_free(p);
+}
+
+GF_Err oinf_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_oinf_read_entry(p->oinf, bs);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err oinf_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	return gf_isom_oinf_write_entry(p->oinf, bs);
+}
+
+GF_Err oinf_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+	if (!p->oinf) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += gf_isom_oinf_size_entry(p->oinf);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *tols_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TargetOLSPropertyBox, GF_ISOM_BOX_TYPE_TOLS);
+	return (GF_Box *)tmp;
+}
+
+void tols_del(GF_Box *a)
+{
+	gf_free(a);
+}
+
+GF_Err tols_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(p, 2)
+	p->target_ols_index = gf_bs_read_u16(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err tols_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u16(bs, p->target_ols_index);
+	return GF_OK;
+}
+
+GF_Err tols_Size(GF_Box *s)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += 2;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
 GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e;

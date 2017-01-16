@@ -699,6 +699,8 @@ ISOM_BOX_IMPL_DECL(stsg)
 ISOM_BOX_IMPL_DECL(elng)
 ISOM_BOX_IMPL_DECL(stvi)
 ISOM_BOX_IMPL_DECL(auxc)
+ISOM_BOX_IMPL_DECL(oinf)
+ISOM_BOX_IMPL_DECL(tols)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -1009,6 +1011,8 @@ static const struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CCST, ccst, "sample_entry", 0, "iff"),
 	TRGT_DEFINE(GF_ISOM_BOX_TYPE_GRPT, grptype, "grpl", GF_ISOM_BOX_TYPE_ALTR, 0, "iff"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_AUXC, auxc, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_OINF, oinf, "ipco", 0, "iff"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TOLS, tols, "ipco", 0, "iff"),
 
 	//other MPEG boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_RVCC, rvcc, "avc1 avc2 avc3 avc4 svc1 svc2 hvc1 hev1 hvc2 hev2 lhv1 lhe1 encv resv", "rvc"),

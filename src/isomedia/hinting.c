@@ -167,6 +167,9 @@ GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sample
 
 	for (i = 0; i < entryCount; i++) {
 		pck = gf_isom_hint_pck_new(ptr->HintType);
+		pck->trackID = ptr->trackID;
+		pck->sampleNumber = ptr->sampleNumber;
+
 		e = gf_isom_hint_pck_read(ptr->HintType, pck, bs);
 		if (e) return e;
 		gf_list_add(ptr->packetTable, pck);
@@ -651,7 +654,7 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		type = gf_bs_read_u8(bs);
 		dte = NewDTE(type);
 		if (!dte) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] invalid DTE code %d in hint sample\n", type));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] invalid DTE code %d in hint sample %d of trackID %d\n", type, ptr->sampleNumber, ptr->trackID));
 			return GF_ISOM_INVALID_FILE;
 		}
 		e = ReadDTE(dte, bs);
