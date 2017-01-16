@@ -1401,7 +1401,10 @@ enum
 	media from a live source (typically audio-video), and greatly reduces file size
 	param: Number of samples (> 1) to cache before disk flushing. You shouldn't try
 	to cache too many samples since this will load your memory. base that on FPS/SR*/
-	GF_ISOM_TRAF_DATA_CACHE
+	GF_ISOM_TRAF_DATA_CACHE,
+	/*forces moof base offsets when traf based offsets would be chosen
+	param: on/off (0/1)*/
+	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET
 };
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the

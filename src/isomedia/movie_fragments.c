@@ -394,6 +394,9 @@ GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32
 		//don't cache only one sample ...
 		traf->DataCache = Param > 1 ? Param : 0;
 		break;
+	case GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET:
+		movie->force_moof_base_offset = Param;
+		break;
 	}
 	return GF_OK;
 }
@@ -422,6 +425,7 @@ void update_trun_offsets(GF_ISOFile *movie, s32 offset)
 #endif
 }
 
+static
 u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 {
 	u32 sampleCount, i, j, RunSize, RunDur, RunFlags, NeedFlags, UseCTS, count;
@@ -441,7 +445,11 @@ u32 UpdateRuns(GF_ISOFile *movie, GF_TrackFragmentBox *traf)
 	} else
 #endif
 	{
-		traf->tfhd->flags = GF_ISOM_TRAF_BASE_OFFSET;
+		if (movie->force_moof_base_offset) {
+			traf->tfhd->flags = GF_ISOM_MOOF_BASE_OFFSET;
+		} else {
+			traf->tfhd->flags = GF_ISOM_TRAF_BASE_OFFSET;
+		}
 	}
 
 	//empty runs

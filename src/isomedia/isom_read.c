@@ -291,7 +291,7 @@ GF_Err gf_isom_close(GF_ISOFile *movie)
 	if (e) return e;
 
 	//free and return;
-	gf_isom_delete_movie(movie); //Romain: it is going to delete 
+	gf_isom_delete_movie(movie);
 	return GF_OK;
 }
 
