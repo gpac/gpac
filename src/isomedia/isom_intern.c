@@ -924,7 +924,7 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 	if (OpenMode == GF_ISOM_OPEN_WRITE) {
 		//THIS IS NOT A TEMP FILE, WRITE mode is used for "live capture"
 		//this file will be the final file...
-		mov->fileName = gf_strdup(fileName);
+		mov->fileName = fileName ? gf_strdup(fileName) : NULL;
 		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
 		if (e) goto err_exit;
 
