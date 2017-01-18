@@ -745,7 +745,7 @@ static const struct box_registry_entry {
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_IPI, "p14"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_META, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_HINT, "p12"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_CHAP, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_CHAP, "apple"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_BASE, "p15"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SCAL, "p15"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_TBAS, "p15"),
@@ -760,6 +760,7 @@ static const struct box_registry_entry {
 	//all item reference types
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_ISOM_REF_TBAS, "p12"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_4CC('i','l','o','c'), "p12" ),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_4CC('f','d','e','l'), "p12"),
 
 	//all sample group descriptions
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_RAP, "p12"),

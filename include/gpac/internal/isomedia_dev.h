@@ -1665,7 +1665,6 @@ typedef struct
 typedef struct
 {
 	GF_ISOM_FULL_BOX
-	u32 xml_length;
 	char *xml;
 } GF_XMLBox;
 

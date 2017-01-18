@@ -223,7 +223,7 @@ void xml_del(GF_Box *s)
 {
 	GF_XMLBox *ptr = (GF_XMLBox *)s;
 	if (ptr == NULL) return;
-	if (ptr->xml_length && ptr->xml) gf_free(ptr->xml);
+	if (ptr->xml) gf_free(ptr->xml);
 	gf_free(ptr);
 }
 
@@ -234,11 +234,7 @@ GF_Err xml_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr == NULL) return GF_BAD_PARAM;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->xml_length = (u32)(ptr->size);
-	ptr->xml = (char *)gf_malloc(sizeof(char)*ptr->xml_length);
-	if (!ptr->xml) return GF_OUT_OF_MEM;
-	gf_bs_read_data(bs, ptr->xml, ptr->xml_length);
-	return GF_OK;
+	return gf_isom_read_null_terminated_string(s, bs, &ptr->xml);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -249,7 +245,8 @@ GF_Err xml_Write(GF_Box *s, GF_BitStream *bs)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
-	if (ptr->xml_length) gf_bs_write_data(bs, ptr->xml, ptr->xml_length);
+	if (ptr->xml) gf_bs_write_data(bs, ptr->xml, strlen(ptr->xml));
+	gf_bs_write_u8(bs, 0);
 	return GF_OK;
 }
 
@@ -260,7 +257,7 @@ GF_Err xml_Size(GF_Box *s)
 	if (!s) return GF_BAD_PARAM;
 	e = gf_isom_full_box_get_size(s);
 	if (e) return e;
-	ptr->size += ptr->xml_length;
+	ptr->size += strlen(ptr->xml)+1;
 	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/

@@ -82,11 +82,11 @@ GF_Err gf_isom_extract_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num,
 			break;
 		}
 	}
-	if (!xml || !xml->xml || !xml->xml_length) return GF_BAD_PARAM;
+	if (!xml || !xml->xml) return GF_BAD_PARAM;
 
 	didfile = gf_fopen(outName, "wb");
 	if (!didfile) return GF_IO_ERR;
-	gf_fwrite(xml->xml, xml->xml_length, 1, didfile);
+	gf_fwrite(xml->xml, strlen(xml->xml), 1, didfile);
 	gf_fclose(didfile);
 
 	if (is_binary) *is_binary = (xml->type==GF_ISOM_BOX_TYPE_BXML) ? 1 : 0;
@@ -395,6 +395,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	FILE *xmlfile;
 	GF_XMLBox *xml;
 	GF_MetaBox *meta;
+	u32 length;
 
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -416,10 +417,10 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	if (!xmlfile) return GF_URL_ERROR;
 	gf_fseek(xmlfile, 0, SEEK_END);
 	assert(gf_ftell(xmlfile) < 1<<31);
-	xml->xml_length = (u32) gf_ftell(xmlfile);
+	length = (u32) gf_ftell(xmlfile);
 	gf_fseek(xmlfile, 0, SEEK_SET);
-	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
-	xml->xml_length = (u32) fread(xml->xml, 1, sizeof(unsigned char)*xml->xml_length, xmlfile);
+	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*length);
+	fread(xml->xml, 1, sizeof(unsigned char)*length, xmlfile);
 	if (ferror(xmlfile)) {
 		gf_free(xml->xml);
 		xml->xml = NULL;
@@ -451,9 +452,8 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 
 
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
-	xml->xml_length = data_size;
-	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*xml->xml_length);
-	memcpy(xml->xml, data, sizeof(unsigned char)*xml->xml_length);
+	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*data_size);
+	memcpy(xml->xml, data, sizeof(unsigned char)*data_size);
 	return GF_OK;
 }
 
