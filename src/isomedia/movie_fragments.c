@@ -836,7 +836,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	/*estimate moof size and shift trun offsets*/
 #ifndef USE_BASE_DATA_OFFSET
 	offset = 0;
-	if (movie->use_segments) {
+	if (movie->use_segments || movie->force_moof_base_offset) {
 		e = gf_isom_box_size((GF_Box *) movie->moof);
 		if (e) return e;
 		offset = (s32) movie->moof->size;
@@ -880,7 +880,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	DECIDE NOT TO USE THE DATA-OFFSET FLAG*/
 	if (movie->moof_first
 #ifndef USE_BASE_DATA_OFFSET
-	        && !movie->use_segments
+	        && !(movie->use_segments || movie->force_moof_base_offset)
 #endif
 	   ) {
 		i=0;
@@ -891,7 +891,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 		}
 	}
 #ifndef USE_BASE_DATA_OFFSET
-	else if (movie->use_segments) {
+	else if (movie->use_segments || movie->force_moof_base_offset) {
 		if (offset != (movie->moof->size+8)) {
 			offset = (s32) (movie->moof->size + 8 - offset);
 			update_trun_offsets(movie, offset);
