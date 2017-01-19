@@ -11469,4 +11469,70 @@ GF_Err fdsa_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+
+void trik_del(GF_Box *s)
+{
+	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
+	if (ptr == NULL) return;
+	if (ptr->entries) gf_free(ptr->entries);
+	gf_free(ptr);
+}
+
+GF_Err trik_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ptr->entry_count = ptr->size;
+	ptr->entries = (u64 *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
+	if (ptr->entries == NULL) return GF_OUT_OF_MEM;
+
+	for (i=0; i< ptr->entry_count; i++) {
+		ptr->entries[i].pic_type = gf_bs_read_int(bs, 2);
+		ptr->entries[i].dependency_level = gf_bs_read_int(bs, 6);
+	}
+	return GF_OK;
+}
+
+GF_Box *trik_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrickPlayBox, GF_ISOM_BOX_TYPE_TRIK);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err trik_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+
+	for (i=0; i < ptr->entry_count; i++ ) {
+		gf_bs_write_int(bs, ptr->entries[i].pic_type, 2);
+		gf_bs_write_int(bs, ptr->entries[i].dependency_level, 6);
+	}
+	return GF_OK;
+}
+
+GF_Err trik_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8 * ptr->entry_count;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 #endif /*GPAC_DISABLE_ISOM*/

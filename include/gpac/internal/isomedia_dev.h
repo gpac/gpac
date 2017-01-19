@@ -144,6 +144,7 @@ enum
 	GF_ISOM_BOX_TYPE_MDIA	= GF_4CC( 'm', 'd', 'i', 'a' ),
 	GF_ISOM_BOX_TYPE_ELNG	= GF_4CC( 'e', 'l', 'n', 'g' ),
 	GF_ISOM_BOX_TYPE_MDAT	= GF_4CC( 'm', 'd', 'a', 't' ),
+	GF_ISOM_BOX_TYPE_IDAT	= GF_4CC( 'i', 'd', 'a', 't' ),
 	GF_ISOM_BOX_TYPE_MDHD	= GF_4CC( 'm', 'd', 'h', 'd' ),
 	GF_ISOM_BOX_TYPE_MINF	= GF_4CC( 'm', 'i', 'n', 'f' ),
 	GF_ISOM_BOX_TYPE_MOOV	= GF_4CC( 'm', 'o', 'o', 'v' ),
@@ -497,6 +498,9 @@ enum
 	GF_ISOM_BOX_UUID_TFXD	= GF_4CC( 'T', 'F', 'X', 'D' ),
 
 	GF_ISOM_BOX_TYPE_MP3	= GF_4CC( '.', 'm', 'p', '3' ),
+
+	GF_ISOM_BOX_TYPE_TRIK	= GF_4CC( 't', 'r', 'i', 'k' ),
+
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
 
@@ -2294,6 +2298,20 @@ typedef struct
 {
 	GF_ISOM_BOX
 } GF_ItemListBox;
+
+/*DECE*/
+typedef struct
+{
+	u8 pic_type;
+	u8 dependency_level;
+} GF_TrickPlayBoxEntry;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 entry_count;
+	GF_TrickPlayBoxEntry *entries;
+} GF_TrickPlayBox;
 
 /*OMA (P)DCF extensions*/
 typedef struct
