@@ -54,6 +54,7 @@
 #endif
 #include <gpac/internal/media_dev.h>
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/media_tools.h>
 
 extern u32 swf_flags;
 extern Float swf_flatten_angle;
@@ -758,39 +759,6 @@ void PrintBuiltInBoxes()
 	fprintf(stdout, "</Boxes>\n");
 }
 
-
-#ifndef GPAC_DISABLE_ISOM_DUMP
-
-GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name)
-{
-	GF_Err e;
-	FILE *dump;
-	char szBuf[1024];
-
-	if (inName) {
-		strcpy(szBuf, inName);
-		if (!is_final_name) {
-			strcat(szBuf, "_info.xml");
-		}
-		dump = gf_fopen(szBuf, "wt");
-		if (!dump) {
-			e = GF_IO_ERR;
-			fprintf(stderr, "Failed to open %s\n", szBuf);
-		} else {
-			e = gf_isom_dump(file, dump);
-			if (e) {
-				fprintf(stderr, "Error dumping ISO structure\n");
-			}
-			gf_fclose(dump);
-		}
-	} else {
-		e = gf_isom_dump(file, stdout);
-	}
-	return e;
-}
-#endif
-
-
 #if !defined(GPAC_DISABLE_ISOM_HINTING) && !defined(GPAC_DISABLE_ISOM_DUMP)
 
 void dump_isom_rtp(GF_ISOFile *file, char *inName, Bool is_final_name)
@@ -1107,6 +1075,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 
 		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
 
+		gf_bs_del(bs);
+
 #endif //GPAC_DISABLE_HEVC
 		return;
 	}
@@ -1220,10 +1190,9 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 }
 #endif
 
-void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name)
+void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 {
 	u32 i, count, track, nalh_size, timescale, cur_extract_mode;
-	FILE *dump;
 	s32 countRef;
 	Bool is_adobe_protection = GF_FALSE;
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -1249,19 +1218,6 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 		return;
 	}
 #endif
-
-	if (inName) {
-		char szBuf[GF_MAX_PATH];
-		strcpy(szBuf, inName);
-		if (!is_final_name) sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
-		dump = gf_fopen(szBuf, "wt");
-		if (!dump) {
-			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
-			return;
-		}
-	} else {
-		dump = stdout;
-	}
 
 	count = gf_isom_get_sample_count(file, track);
 
@@ -1424,7 +1380,6 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	fprintf(dump, " </NALUSamples>\n");
 	fprintf(dump, "</NALUTrack>\n");
 
-	if (inName) gf_fclose(dump);
 #ifndef GPAC_DISABLE_AV_PARSERS
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
@@ -1435,6 +1390,26 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 
 #endif
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
+}
+
+void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_name)
+{
+	FILE *dump;
+	if (inName) {
+		char szBuf[GF_MAX_PATH];
+		strcpy(szBuf, inName);
+		if (!is_final_name) sprintf(szBuf, "%s_%d_nalu.xml", inName, trackID);
+		dump = gf_fopen(szBuf, "wt");
+		if (!dump) {
+			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
+			return;
+		}
+	} else {
+		dump = stdout;
+	}
+	dump_isom_nal_ex(file, gf_isom_get_track_id(file, trackID), dump);
+
+	if (inName) gf_fclose(dump);
 }
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
@@ -1569,6 +1544,104 @@ void dump_isom_sdp(GF_ISOFile *file, char *inName, Bool is_final_name)
 }
 
 #endif
+
+
+#ifndef GPAC_DISABLE_ISOM_DUMP
+
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump)
+{
+	GF_Err e;
+	FILE *dump = stdout;
+	Bool do_close=GF_FALSE;
+	char szBuf[1024];
+	if (!file) return GF_ISOM_INVALID_FILE;
+	
+	if (inName) {
+		strcpy(szBuf, inName);
+		if (!is_final_name) {
+			strcat(szBuf, do_track_dump ? "_dump.xml" : "_info.xml");
+		}
+		dump = gf_fopen(szBuf, "wt");
+		if (!dump) {
+			fprintf(stderr, "Failed to open %s\n", szBuf);
+			return GF_IO_ERR;
+		}
+		do_close=GF_TRUE;
+	}
+
+	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+	if (do_track_dump) {
+		fprintf(dump, "<ISOBaseMediaFileTrace>\n");
+	}
+	e = gf_isom_dump(file, dump);
+	if (e) {
+		fprintf(stderr, "Error dumping ISO structure\n");
+	}
+	if (do_track_dump) {
+		u32 i, j;
+		//because of dump mode we need to reopen in regular read mode to avoid mem leaks
+		GF_ISOFile *the_file = gf_isom_open(gf_isom_get_filename(file), GF_ISOM_OPEN_READ, NULL);
+		u32 tcount = gf_isom_get_track_count(the_file);
+		fprintf(dump, "<Tracks>\n");
+		for (i=0; i<tcount; i++) {
+			GF_MediaExporter dumper;
+			u32 trackID = gf_isom_get_track_id(the_file, i+1);
+			u32 mtype = gf_isom_get_media_type(the_file, i+1);
+			u32 msubtype = gf_isom_get_media_subtype(the_file, i+1, 1);
+			Bool fmt_handled = GF_FALSE;
+			memset(&dumper, 0, sizeof(GF_MediaExporter));
+			dumper.file = the_file;
+			dumper.trackID = trackID;
+			dumper.dump_file = dump;
+
+			if (mtype == GF_ISOM_MEDIA_HINT) {
+				char *name=NULL;
+				u32 scount;
+				if (msubtype==GF_ISOM_SUBTYPE_RTP) name = "RTPHintTrack";
+				else if (msubtype==GF_ISOM_SUBTYPE_SRTP) name = "SRTPHintTrack";
+				else if (msubtype==GF_ISOM_SUBTYPE_RRTP) name = "RTPReceptionHintTrack";
+				else if (msubtype==GF_ISOM_SUBTYPE_RTCP) name = "RTCPReceptionHintTrack";
+				else if (msubtype==GF_ISOM_SUBTYPE_FLUTE) name = "FLUTEReceptionHintTrack";
+				else name = "UnknownHintTrack";
+
+				fprintf(dump, "<%s trackID=\"%d\">\n", name, trackID);
+
+				scount=gf_isom_get_sample_count(the_file, i+1);
+				for (j=0; j<scount; j++) {
+					gf_isom_dump_hint_sample(the_file, i+1, j+1, dump);
+				}
+				fprintf(dump, "</%s>\n", name);
+				fmt_handled = GF_TRUE;
+			}
+			else if (gf_isom_get_avc_svc_type(the_file, i+1, 1) || gf_isom_get_hevc_lhvc_type(the_file, i+1, 1)) {
+				dump_isom_nal_ex(the_file, trackID, dump);
+				fmt_handled = GF_TRUE;
+			} else if ((mtype==GF_ISOM_MEDIA_TEXT) || (mtype==GF_ISOM_MEDIA_SUBT) ) {
+
+				if (msubtype==GF_ISOM_SUBTYPE_WVTT) {
+					gf_webvtt_dump_iso_track(&dumper, NULL, i+1, GF_FALSE, GF_TRUE);
+					fmt_handled = GF_TRUE;
+				} else if ((msubtype==GF_ISOM_SUBTYPE_TX3G) || (msubtype==GF_ISOM_SUBTYPE_TEXT)) {
+					gf_isom_text_dump(the_file, i+1, dump, GF_TEXTDUMPTYPE_TTXT_BOXES);
+					fmt_handled = GF_TRUE;
+				}
+			}
+
+			if (!fmt_handled) {
+				dumper.nhml_only = GF_TRUE;
+				dumper.flags = GF_EXPORT_NATIVE | GF_EXPORT_NHML | GF_EXPORT_NHML_FULL;
+				gf_media_export_nhml(&dumper, GF_FALSE);
+			}
+		}
+		gf_isom_delete(the_file);
+		fprintf(dump, "</Tracks>\n");
+		fprintf(dump, "</ISOBaseMediaFileTrace>\n");
+	}
+	if (do_close) gf_fclose(dump);
+	return e;
+}
+#endif
+
 
 static char *format_duration(u64 dur, u32 timescale, char *szDur)
 {

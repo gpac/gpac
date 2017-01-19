@@ -116,7 +116,6 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	GF_Box *box;
 	if (!mov || !trace) return GF_BAD_PARAM;
 
-	fprintf(trace, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 	fprintf(trace, "<!--MP4Box dump trace-->\n");
 
 	fprintf(trace, "<IsoMediaFile xmlns=\"urn:mpeg:isobmff:schema:file:2016\" Name=\"%s\">\n", mov->fileName);
@@ -130,6 +129,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_FREE:
 		case GF_ISOM_BOX_TYPE_META:
 		case GF_ISOM_BOX_TYPE_SKIP:
+		case GF_ISOM_BOX_TYPE_PDIN:
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 		case GF_ISOM_BOX_TYPE_MOOF:
 		case GF_ISOM_BOX_TYPE_STYP:
@@ -1340,6 +1340,8 @@ GF_Err unkn_dump(GF_Box *a, FILE * trace)
 	u->type = u->original_4cc;
 	gf_isom_box_dump_start(a, "UnknownBox", trace);
 	u->type = GF_ISOM_BOX_TYPE_UNKNOWN;
+	if (u->dataSize<100)
+		dump_data_attribute(trace, "data", u->data, u->dataSize);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("UnknownBox", a, trace);
 	return GF_OK;
@@ -2511,11 +2513,12 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	GF_ISOSample *tmp;
 	GF_HintSampleEntryBox *entry;
 	u32 descIndex, count, count2, i;
-	GF_Err e;
+	GF_Err e=GF_OK;
 	GF_BitStream *bs;
 	GF_HintSample *s;
 	GF_TrackBox *trak;
 	GF_RTPPacket *pck;
+	char *szName;
 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !IsHintTrack(trak)) return GF_BAD_PARAM;
@@ -2534,11 +2537,14 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
 	case GF_ISOM_BOX_TYPE_SRTP_STSD:
 	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+		szName = "RTP";
 		break;
-	//TODO
 	case GF_ISOM_BOX_TYPE_RTCP_STSD:
-		gf_isom_sample_del(&tmp);
-		return GF_NOT_SUPPORTED;
+		szName = "RCTP";
+		break;
+	case GF_ISOM_BOX_TYPE_FDP_STSD:
+		szName = "FDP";
+		break;
 	default:
 		gf_isom_sample_del(&tmp);
 		return GF_NOT_SUPPORTED;
@@ -2554,39 +2560,61 @@ GF_Err gf_isom_dump_hint_sample(GF_ISOFile *the_file, u32 trackNumber, u32 Sampl
 
 	count = gf_list_count(s->packetTable);
 
-	fprintf(trace, "<RTPHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%u\">\n", SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, count);
+	fprintf(trace, "<%sHintSample SampleNumber=\"%d\" DecodingTime=\""LLD"\" RandomAccessPoint=\"%d\" PacketCount=\"%u\" reserved=\"%u\">\n", szName, SampleNum, LLD_CAST tmp->DTS, tmp->IsRAP, s->packetCount, s->reserved);
+
+	if (s->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
+		e = gf_isom_box_dump((GF_Box*) s, trace);
+		goto err_exit;
+	}
+
+	if (s->packetCount != count) {
+		fprintf(trace, "<!-- WARNING: Broken %s hint sample, %d entries indicated but only %d parsed -->\n", szName, s->packetCount, count);
+	}
+
 
 	for (i=0; i<count; i++) {
 		pck = (GF_RTPPacket *)gf_list_get(s->packetTable, i);
 
-		fprintf(trace, "<RTPHintPacket PacketNumber=\"%d\" P=\"%d\" X=\"%d\" M=\"%d\" PayloadType=\"%d\"",
+		if (pck->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) {
+			GF_RTCPPacket *rtcp_pck = (GF_RTCPPacket *) pck;
+			fprintf(trace, "<RTCPHintPacket PacketNumber=\"%d\" V=\"%d\" P=\"%d\" Count=\"%d\" PayloadType=\"%d\" ",
+		        i+1,  rtcp_pck->Version, rtcp_pck->Padding, rtcp_pck->Count, rtcp_pck->PayloadType);
+
+			if (rtcp_pck->data) dump_data_attribute(trace, "payload", (char*)rtcp_pck->data, rtcp_pck->length);
+			fprintf(trace, ">\n");
+			fprintf(trace, "</RTCPHintPacket>\n");
+
+		} else {
+			fprintf(trace, "<RTPHintPacket PacketNumber=\"%d\" P=\"%d\" X=\"%d\" M=\"%d\" PayloadType=\"%d\"",
 		        i+1,  pck->P_bit, pck->X_bit, pck->M_bit, pck->payloadType);
 
-		fprintf(trace, " SequenceNumber=\"%d\" RepeatedPacket=\"%d\" DropablePacket=\"%d\" RelativeTransmissionTime=\"%d\" FullPacketSize=\"%d\">\n",
+			fprintf(trace, " SequenceNumber=\"%d\" RepeatedPacket=\"%d\" DropablePacket=\"%d\" RelativeTransmissionTime=\"%d\" FullPacketSize=\"%d\">\n",
 		        pck->SequenceNumber, pck->R_bit, pck->B_bit, pck->relativeTransTime, gf_isom_hint_rtp_length(pck));
 
 
-		//TLV is made of Boxes
-		count2 = gf_list_count(pck->TLV);
-		if (count2) {
-			fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
-			gf_isom_box_array_dump(pck->TLV, trace);
-			fprintf(trace, "</PrivateExtensionTable>\n");
+			//TLV is made of Boxes
+			count2 = gf_list_count(pck->TLV);
+			if (count2) {
+				fprintf(trace, "<PrivateExtensionTable EntryCount=\"%d\">\n", count2);
+				gf_isom_box_array_dump(pck->TLV, trace);
+				fprintf(trace, "</PrivateExtensionTable>\n");
+			}
+			//DTE is made of NON boxes
+			count2 = gf_list_count(pck->DataTable);
+			if (count2) {
+				fprintf(trace, "<PacketDataTable EntryCount=\"%d\">\n", count2);
+				DTE_Dump(pck->DataTable, trace);
+				fprintf(trace, "</PacketDataTable>\n");
+			}
+			fprintf(trace, "</RTPHintPacket>\n");
 		}
-		//DTE is made of NON boxes
-		count2 = gf_list_count(pck->DataTable);
-		if (count2) {
-			fprintf(trace, "<PacketDataTable EntryCount=\"%d\">\n", count2);
-			DTE_Dump(pck->DataTable, trace);
-			fprintf(trace, "</PacketDataTable>\n");
-		}
-		fprintf(trace, "</RTPHintPacket>\n");
 	}
 
-	fprintf(trace, "</RTPHintSample>\n");
+err_exit:
+	fprintf(trace, "</%sHintSample>\n", szName);
 	gf_isom_sample_del(&tmp);
 	gf_isom_hint_sample_del(s);
-	return GF_OK;
+	return e;
 }
 
 #endif /*GPAC_DISABLE_ISOM_HINTING*/
@@ -2651,9 +2679,7 @@ static char *tx3g_format_time(u64 ts, u32 timescale, char *szDur, Bool is_srt)
 	return szDur;
 }
 
-//#define DUMP_OLD_TEXT
-
-static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump)
+static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dump, Bool box_dump)
 {
 	u32 i, j, count, di, nb_descs, shift_offset[20], so_count;
 	u64 last_DTS;
@@ -2684,21 +2710,23 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		return GF_BAD_PARAM;
 	}
 
-	fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
-	fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");
+	if (box_dump) {
+		fprintf(dump, "<TextTrack trackID=\"%d\" version=\"1.1\">\n", gf_isom_get_track_id(the_file, track) );
+	} else {
+		fprintf(dump, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
+		fprintf(dump, "<!-- GPAC 3GPP Text Stream -->\n");
 
-#ifdef DUMP_OLD_TEXT
-	fprintf(dump, "<TextStream version=\"1.0\">\n");
-#else
-	fprintf(dump, "<TextStream version=\"1.1\">\n");
-#endif
+		fprintf(dump, "<TextStream version=\"1.1\">\n");
+	}
 	fprintf(dump, "<TextStreamHeader width=\"%d\" height=\"%d\" layer=\"%d\" translation_x=\"%d\" translation_y=\"%d\">\n", trak->Header->width >> 16 , trak->Header->height >> 16, trak->Header->layer, trak->Header->matrix[6] >> 16, trak->Header->matrix[7] >> 16);
 
 	nb_descs = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	for (i=0; i<nb_descs; i++) {
 		GF_Tx3gSampleEntryBox *txt = (GF_Tx3gSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, i);
 
-		if (txt->type==GF_ISOM_BOX_TYPE_TX3G) {
+		if (box_dump) {
+			gf_isom_box_dump((GF_Box*) txt, dump);
+		} else if  (txt->type==GF_ISOM_BOX_TYPE_TX3G) {
 			fprintf(dump, "<TextSampleDescription horizontalJustification=\"");
 			switch (txt->horizontal_justification) {
 			case 1:
@@ -2824,34 +2852,28 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		GF_ISOSample *s = gf_isom_get_sample(the_file, track, i+1, &di);
 		if (!s) continue;
 
-		fprintf(dump, "<TextSample sampleTime=\"%s\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE));
-		if (nb_descs>1) fprintf(dump, " sampleDescriptionIndex=\"%d\"", di);
-
+		fprintf(dump, "<TextSample sampleTime=\"%s\" sampleDescriptionIndex=\"%d\"", tx3g_format_time(s->DTS, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE), di);
 		bs = gf_bs_new(s->data, s->dataLength, GF_BITSTREAM_READ);
 		txt = gf_isom_parse_texte_sample(bs);
 		gf_bs_del(bs);
 
-
-		if (txt->highlight_color) {
-			fprintf(dump, " ");
-			tx3g_dump_rgba8(dump, "highlightColor", txt->highlight_color->hil_color);
+		if (!box_dump) {
+			if (txt->highlight_color) {
+				fprintf(dump, " ");
+				tx3g_dump_rgba8(dump, "highlightColor", txt->highlight_color->hil_color);
+			}
+			if (txt->scroll_delay) {
+				Double delay = txt->scroll_delay->scroll_delay;
+				delay /= trak->Media->mediaHeader->timeScale;
+				fprintf(dump, " scrollDelay=\"%g\"", delay);
+			}
+			if (txt->wrap) fprintf(dump, " wrap=\"%s\"", (txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
 		}
-		if (txt->scroll_delay) {
-			Double delay = txt->scroll_delay->scroll_delay;
-			delay /= trak->Media->mediaHeader->timeScale;
-			fprintf(dump, " scrollDelay=\"%g\"", delay);
-		}
-		if (txt->wrap) fprintf(dump, " wrap=\"%s\"", (txt->wrap->wrap_flag==0x01) ? "Automatic" : "None");
 
 		so_count = 0;
 
-#ifndef DUMP_OLD_TEXT
 		fprintf(dump, " xml:space=\"preserve\">");
-#endif
 		if (!txt->len) {
-#ifdef DUMP_OLD_TEXT
-			fprintf(dump, " text=\"\"");
-#endif
 			last_DTS = (u32) trak->Media->mediaHeader->duration;
 		} else {
 			unsigned short utf16Line[10000];
@@ -2868,16 +2890,9 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 			}
 			if (len != (size_t) -1) {
 				utf16Line[len] = 0;
-#ifdef DUMP_OLD_TEXT
-				fprintf(dump, " text=\"\'");
-#endif
 				for (j=0; j<len; j++) {
 					if ((utf16Line[j]=='\n') || (utf16Line[j]=='\r') || (utf16Line[j]==0x85) || (utf16Line[j]==0x2028) || (utf16Line[j]==0x2029) ) {
-#ifndef DUMP_OLD_TEXT
 						fprintf(dump, "\n");
-#else
-						fprintf(dump, "\'\'");
-#endif
 						if ((utf16Line[j]=='\r') && (utf16Line[j+1]=='\n')) {
 							shift_offset[so_count] = j;
 							so_count++;
@@ -2911,28 +2926,37 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 						}
 					}
 				}
-#ifdef DUMP_OLD_TEXT
-				fprintf(dump, "\'\"");
-#endif
-			} else {
-#ifdef DUMP_OLD_TEXT
-				fprintf(dump, "text=\"%s\"", txt->text);
-#endif
 			}
 		}
 
-#ifdef DUMP_OLD_TEXT
-		fprintf(dump, ">\n");
-#endif
+		if (box_dump) {
 
-		if (txt->box) tx3g_dump_box_nobox(dump, &txt->box->box);
-		if (txt->styles) {
-			for (j=0; j<txt->styles->entry_count; j++) {
-				tx3g_dump_style_nobox(dump, &txt->styles->styles[j], shift_offset, so_count);
+			if (txt->highlight_color)
+				gf_isom_box_dump((GF_Box*) txt->highlight_color, dump);
+			if (txt->scroll_delay)
+				gf_isom_box_dump((GF_Box*) txt->scroll_delay, dump);
+			if (txt->wrap)
+				gf_isom_box_dump((GF_Box*) txt->wrap, dump);
+			if (txt->box)
+				gf_isom_box_dump((GF_Box*) txt->box, dump);
+			if (txt->styles)
+				gf_isom_box_dump((GF_Box*) txt->styles, dump);
+		} else {
+
+			if (txt->box) tx3g_dump_box_nobox(dump, &txt->box->box);
+			if (txt->styles) {
+				for (j=0; j<txt->styles->entry_count; j++) {
+					tx3g_dump_style_nobox(dump, &txt->styles->styles[j], shift_offset, so_count);
+				}
 			}
 		}
 		j=0;
 		while ((a = (GF_Box *)gf_list_enum(txt->others, &j))) {
+			if (box_dump) {
+				gf_isom_box_dump((GF_Box*) a, dump);
+				continue;
+			}
+
 			switch (a->type) {
 			case GF_ISOM_BOX_TYPE_HLIT:
 				fprintf(dump, "<Highlight ");
@@ -2969,7 +2993,7 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 				}
 				fprintf(dump, "</Karaoke>\n");
 			}
-			break;
+				break;
 			}
 		}
 
@@ -2982,7 +3006,11 @@ static GF_Err gf_isom_dump_ttxt_track(GF_ISOFile *the_file, u32 track, FILE *dum
 		fprintf(dump, "<TextSample sampleTime=\"%s\" text=\"\" />\n", tx3g_format_time(trak->Media->mediaHeader->duration, trak->Media->mediaHeader->timeScale, szDur, GF_FALSE));
 	}
 
-	fprintf(dump, "</TextStream>\n");
+	if (box_dump) {
+		fprintf(dump, "</TextTrack>\n");
+	} else {
+		fprintf(dump, "</TextStream>\n");
+	}
 	if (count) gf_set_progress("TTXT Extract", count, count);
 	return GF_OK;
 }
@@ -3242,8 +3270,10 @@ GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDum
 	case GF_TEXTDUMPTYPE_SRT:
 		return gf_isom_dump_srt_track(the_file, track, dump);
 	case GF_TEXTDUMPTYPE_TTXT:
+	case GF_TEXTDUMPTYPE_TTXT_BOXES:
+		return gf_isom_dump_ttxt_track(the_file, track, dump, (dump_type==GF_TEXTDUMPTYPE_TTXT_BOXES) ? GF_TRUE : GF_FALSE);
 	default:
-		return gf_isom_dump_ttxt_track(the_file, track, dump);
+		return GF_BAD_PARAM;
 	}
 }
 
@@ -4351,6 +4381,12 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			fprintf(trace, "<RollRecoveryEntry roll_distance=\"%d\" />\n", ((GF_RollRecoveryEntry*)entry)->roll_distance );
 			break;
+		case GF_ISOM_SAMPLE_GROUP_PROL:
+			fprintf(trace, "<AudioPreRollEntry roll_distance=\"%d\" />\n", ((GF_RollRecoveryEntry*)entry)->roll_distance );
+			break;
+		case GF_ISOM_SAMPLE_GROUP_TELE:
+			fprintf(trace, "<TemporalLevelEntry level_independently_decodable=\"%d\"/>\n", ((GF_TemporalLevelEntry*)entry)->level_independently_decodable);
+			break;
 		case GF_ISOM_SAMPLE_GROUP_RAP:
 			fprintf(trace, "<VisualRandomAccessEntry num_leading_samples_known=\"%s\"", ((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known ? "yes" : "no");
 			if (((GF_VisualRandomAccessEntry*)entry)->num_leading_samples_known)
@@ -4379,6 +4415,9 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 		case GF_ISOM_SAMPLE_GROUP_NALM:
 			nalm_dump(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			break;
+		case GF_ISOM_SAMPLE_GROUP_SAP:
+			fprintf(trace, "<SAPEntry dependent_flag=\"%d\" SAP_type=\"%d\" />\n", ((GF_SAPEntry*)entry)->dependent_flag, ((GF_SAPEntry*)entry)->SAP_type);
+			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"%d\" data=\"", ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
 			dump_data(trace, (char *) ((GF_DefaultSampleGroupDescriptionEntry*)entry)->data,  ((GF_DefaultSampleGroupDescriptionEntry*)entry)->length);
@@ -4389,6 +4428,12 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 		switch (ptr->grouping_type) {
 		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			fprintf(trace, "<RollRecoveryEntry roll_distance=\"\"/>\n");
+			break;
+		case GF_ISOM_SAMPLE_GROUP_PROL:
+			fprintf(trace, "<AudioPreRollEntry roll_distance=\"\"/>\n");
+			break;
+		case GF_ISOM_SAMPLE_GROUP_TELE:
+			fprintf(trace, "<TemporalLevelEntry level_independently_decodable=\"\"/>\n");
 			break;
 		case GF_ISOM_SAMPLE_GROUP_RAP:
 			fprintf(trace, "<VisualRandomAccessEntry num_leading_samples_known=\"yes|no\" num_leading_samples=\"\" />\n");
@@ -4407,6 +4452,9 @@ GF_Err sgpd_dump(GF_Box *a, FILE * trace)
 			break;
 		case GF_ISOM_SAMPLE_GROUP_NALM:
 			nalm_dump(trace, NULL, 0);
+			break;
+		case GF_ISOM_SAMPLE_GROUP_SAP:
+			fprintf(trace, "<SAPEntry dependent_flag=\"\" SAP_type=\"\" />\n");
 			break;
 		default:
 			fprintf(trace, "<DefaultSampleGroupDescriptionEntry size=\"\" data=\"\"/>\n");
@@ -5125,6 +5173,64 @@ GF_Err srpp_dump(GF_Box *a, FILE * trace)
 	if (ptr->scheme_type) gf_isom_box_dump(ptr->scheme_type, trace);
 
 	gf_isom_box_dump_done("SRTPProcessBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fdpa_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_FDpacketBox *ptr = (GF_FDpacketBox *) a;
+	if (!a) return GF_BAD_PARAM;
+
+	gf_isom_box_dump_start(a, "FDpacketBox", trace);
+	fprintf(trace, "sender_current_time_present=\"%d\" expected_residual_time_present=\"%d\" session_close_bit=\"%d\" object_close_bit=\"%d\" transport_object_identifier=\"%d\">\n", ptr->info.sender_current_time_present, ptr->info.expected_residual_time_present, ptr->info.session_close_bit, ptr->info.object_close_bit, ptr->info.transport_object_identifier);
+
+	for (i=0; i<ptr->header_ext_count; i++) {
+		fprintf(trace, "<FDHeaderExt type=\"%d\"", ptr->headers[i].header_extension_type);
+		if (ptr->headers[i].header_extension_type > 127) {
+			dump_data_attribute(trace, "content", ptr->headers[i].content, 3);
+		} else if (ptr->headers[i].data_length) {
+			dump_data_attribute(trace, "data", ptr->headers[i].data, ptr->headers[i].data_length);
+		}
+		fprintf(trace, "/>\n");
+	}
+	if (!ptr->size) {
+		fprintf(trace, "<FDHeaderExt type=\"\" content=\"\" data=\"\"/>\n");
+	}
+	gf_isom_box_dump_done("FDpacketBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err extr_dump(GF_Box *a, FILE * trace)
+{
+	GF_ExtraDataBox *ptr = (GF_ExtraDataBox *) a;
+	if (!a) return GF_BAD_PARAM;
+	gf_isom_box_dump_start(a, "ExtraDataBox", trace);
+	dump_data_attribute(trace, "data", ptr->data, ptr->data_length);
+	fprintf(trace, ">\n");
+	if (ptr->feci) {
+		gf_isom_box_dump((GF_Box *)ptr->feci, trace);
+	}
+	gf_isom_box_dump_done("ExtraDataBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err fdsa_dump(GF_Box *a, FILE * trace)
+{
+	GF_Err e;
+	GF_HintSample *ptr = (GF_HintSample *) a;
+	if (!a) return GF_BAD_PARAM;
+
+	gf_isom_box_dump_start(a, "FDSampleBox", trace);
+	fprintf(trace, ">\n");
+
+	e = gf_isom_box_array_dump(ptr->packetTable, trace);
+	if (e) return e;
+	if (ptr->extra_data) {
+		e = gf_isom_box_dump((GF_Box *)ptr->extra_data, trace);
+		if (e) return e;
+	}
+	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
 }
 

@@ -32,7 +32,9 @@ Bool IsHintTrack(GF_TrackBox *trak)
 	if (trak->Media->handler->handlerType != GF_ISOM_MEDIA_HINT) return GF_FALSE;
 	//QT doesn't specify any InfoHeader on HintTracks
 	if (trak->Media->information->InfoHeader
-	        && trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD)
+	        && (trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_HMHD)
+	        && (trak->Media->information->InfoHeader->type != GF_ISOM_BOX_TYPE_NMHD)
+		)
 		return GF_FALSE;
 
 	return GF_TRUE;
@@ -70,11 +72,11 @@ GF_Err AdjustHintInfo(GF_HintSampleEntryBox *entry, u32 HintSampleNumber)
 		pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, i);
 		if (offset && entry->hint_sample->dataLength) {
 			//adjust any offset in this packet
-			e = gf_isom_hint_pck_offset(entry->hint_sample->HintType, pck, offset, HintSampleNumber);
+			e = gf_isom_hint_pck_offset(pck, offset, HintSampleNumber);
 			if (e) return e;
 		}
 		//adjust the max packet size for this sample entry...
-		size = gf_isom_hint_pck_length(entry->hint_sample->HintType, pck);
+		size = gf_isom_hint_pck_length(pck);
 		if (entry->MaxPacketSize < size) entry->MaxPacketSize = size;
 	}
 	return GF_OK;
@@ -414,7 +416,7 @@ GF_Err gf_isom_hint_blank_data(GF_ISOFile *the_file, u32 trackNumber, u8 AtBegin
 	pck = (GF_HintPacket *)gf_list_get(entry->hint_sample->packetTable, count - 1);
 
 	dte = (GF_EmptyDTE *) NewDTE(0);
-	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
 
@@ -444,7 +446,7 @@ GF_Err gf_isom_hint_direct_data(GF_ISOFile *the_file, u32 trackNumber, char *dat
 	dte = (GF_ImmediateDTE *) NewDTE(1);
 	memcpy(dte->data, data + offset, dataLength);
 	dte->dataLength = dataLength;
-	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
 GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 SampleNumber, u16 DataLength, u32 offsetInSample, char *extra_data, u8 AtBegin)
@@ -503,7 +505,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 					memmove(entry->hint_sample->AdditionalData + DataLength, entry->hint_sample->AdditionalData, entry->hint_sample->dataLength);
 				memcpy(entry->hint_sample->AdditionalData, extra_data, DataLength);
 				/*offset existing DTE*/
-				gf_isom_hint_pck_offset(entry->hint_sample->HintType, pck, DataLength, SampleNumber);
+				gf_isom_hint_pck_offset(pck, DataLength, SampleNumber);
 			} else {
 				memcpy(entry->hint_sample->AdditionalData + entry->hint_sample->dataLength, extra_data, DataLength);
 			}
@@ -513,7 +515,7 @@ GF_Err gf_isom_hint_sample_data(GF_ISOFile *the_file, u32 trackNumber, u32 Sourc
 		}
 	}
 	//OK, add the entry
-	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
 GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumber, u32 SourceTrackID, u32 StreamDescriptionIndex, u16 DataLength, u32 offsetInDescription, u8 AtBegin)
@@ -552,7 +554,7 @@ GF_Err gf_isom_hint_sample_description_data(GF_ISOFile *the_file, u32 trackNumbe
 		//WARNING: IN QT, MUST BE 0-based !!!
 		dte->trackRefIndex = (u8) (refIndex - 1);
 	}
-	return gf_isom_hint_pck_add_dte(entry->hint_sample->HintType, pck, (GF_GenericDTE *)dte, AtBegin);
+	return gf_isom_hint_pck_add_dte(pck, (GF_GenericDTE *)dte, AtBegin);
 }
 
 
@@ -611,7 +613,7 @@ GF_Err gf_isom_rtp_packet_begin(GF_ISOFile *the_file, u32 trackNumber,
 	if (e) return e;
 	if (!entry->hint_sample) return GF_BAD_PARAM;
 
-	pck = (GF_RTPPacket *) gf_isom_hint_pck_new(entry->hint_sample->HintType);
+	pck = (GF_RTPPacket *) gf_isom_hint_pck_new(entry->type);
 
 	pck->P_bit = PackingBit ? 1 : 0;
 	pck->X_bit = eXtensionBit ? 1 : 0;

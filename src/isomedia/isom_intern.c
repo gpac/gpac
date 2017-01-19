@@ -611,6 +611,7 @@ u64 gf_isom_get_mp4time()
 
 void gf_isom_delete_movie(GF_ISOFile *mov)
 {
+	if (!mov) return;
 	use_dump_mode = mov->dump_mode_alloc;
 
 	//these are our two main files

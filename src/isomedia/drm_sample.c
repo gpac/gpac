@@ -400,6 +400,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_DQCP:
 	case GF_ISOM_BOX_TYPE_DSMV:
 	case GF_ISOM_BOX_TYPE_AC3:
+	case GF_ISOM_BOX_TYPE_EC3:
 		sea->type = GF_ISOM_BOX_TYPE_ENCA;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4V:

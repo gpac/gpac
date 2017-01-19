@@ -958,6 +958,10 @@ typedef struct __track_exporter
 	u32 flags;
 	/*! non-ISOBMF source file (AVI, TS)*/
 	char *in_name;
+	/*! set to TRUE if no additionnal files are to be created*/
+	Bool nhml_only;
+	/*! optionnal FILE for output*/
+	FILE *dump_file;
 } GF_MediaExporter;
 
 /*!
@@ -966,6 +970,12 @@ typedef struct __track_exporter
  \return  error if any
  */
 GF_Err gf_media_export(GF_MediaExporter *dump);
+
+GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
+
+#ifndef GPAC_DISABLE_VTT
+GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump);
+#endif
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 

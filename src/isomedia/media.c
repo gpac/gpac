@@ -359,9 +359,13 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	//OK, here we go....
 	if (sampleNumber > mdia->information->sampleTable->SampleSize->sampleCount) return GF_BAD_PARAM;
 
-	//get the DTS
-	e = stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber, &(*samp)->DTS);
-	if (e) return e;
+	if (mdia->information->sampleTable->TimeToSample) {
+		//get the DTS
+		e = stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber, &(*samp)->DTS);
+		if (e) return e;
+	} else {
+		(*samp)->DTS=0;
+	}
 	//the CTS offset
 	if (mdia->information->sampleTable->CompositionOffset) {
 		e = stbl_GetSampleCTS(mdia->information->sampleTable->CompositionOffset , sampleNumber, &(*samp)->CTS_Offset);

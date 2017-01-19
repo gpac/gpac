@@ -263,7 +263,7 @@ void gf_isom_box_array_del(GF_List *other_boxes)
 
 GF_Err gf_isom_box_array_read(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b))
 {
-	return gf_isom_read_box_list_ex(parent, bs, add_box, 0);
+	return gf_isom_box_array_read_ex(parent, bs, add_box, 0);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -666,6 +666,9 @@ ISOM_BOX_IMPL_DECL(fpar)
 ISOM_BOX_IMPL_DECL(fecr)
 ISOM_BOX_IMPL_DECL(segr)
 ISOM_BOX_IMPL_DECL(gitn)
+ISOM_BOX_IMPL_DECL(fdsa)
+ISOM_BOX_IMPL_DECL(fdpa)
+ISOM_BOX_IMPL_DECL(extr)
 
 
 /*
@@ -739,23 +742,37 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_UUID, uuid, "unknown", "unknown"),
 
 	//all track reference types
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OD, "p14"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_DECODE, "p14"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OCR, "p14"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_IPI, "p14"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_META, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_HINT, "p12"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_CHAP, "apple"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_BASE, "p15"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SCAL, "p15"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_TBAS, "p15"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SABT, "p15"),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OREF, "p15"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_FONT, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_HIND, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_VDEP, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_VPLX, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SUBT, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OD, "p14"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_DECODE, "p14"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OCR, "p14"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_IPI, "p14"),
+
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_BASE, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SCAL, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_TBAS, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SABT, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OREF, "p15"),
+
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_ADDA, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_ADRC, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_ILOC, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_AVCP, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SWTO, "p15"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SWFR, "p15"),
+
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_CHAP, "apple"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_TMCD, "apple"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_CDEP, "apple"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SCPT, "apple"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SSRC, "apple"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_LYRA, "apple"),
 
 	//all item reference types
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_ISOM_REF_TBAS, "p12"),
@@ -765,11 +782,46 @@ static const struct box_registry_entry {
 	//all sample group descriptions
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_RAP, "p12"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_ROLL, "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_PROL, "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TELE, "p12"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SEIG, "p15"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_OINF, "p15"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_LINF, "p15"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TRIF, "p15"),
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_NALM, "p15"),
+
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVLL, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVSS, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_DTRT, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_MVIF, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SCIF, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SCNM, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_STSA, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TSAS, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SYNC, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TSCL, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_VIPR, "p15"),
+
+	TREF_DEFINE( GF_ISOM_SAMPLE_GROUP_3GAG, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_VIPR, "3gpp"),
+	TREF_DEFINE( GF_ISOM_SAMPLE_GROUP_AVCB, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_VIPR, "3gpp"),
+
+
+	//listed but not supported in parsing
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_RASH, "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_ALST, "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVLL, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVSS, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_DTRT, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_MVIF, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SCIF, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SCNM, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_STSA, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TSAS, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_SYNC, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_TSCL, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_VIPR, "p15"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_3GAG, "3gpp"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_AVCB, "3gpp"),
 
 	//internal boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRM, gnrm, "stsd", "unknown"),
@@ -879,6 +931,10 @@ static const struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SEGR, segr, "fiin"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_GITN, gitn, "fiin", 0),
 
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_FDSA, fdsa, "fdp_sample"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_FDPA, fdpa, "fdsa"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_EXTR, extr, "fdsa"),
+
 	//full boxes todo
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_ASSP, assp, 1),
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_MERE, assp, 0),
@@ -986,14 +1042,14 @@ static const struct box_registry_entry {
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TXTC, txtc, "stxt", 0),
 #ifndef GPAC_DISABLE_VTT
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_WVTT, wvtt, "stsd", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTTC, boxstring, "wvtt", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_CTIM, boxstring, "vtt_sample", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IDEN, boxstring, "vtt_sample", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_STTG, boxstring, "vtt_sample", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PAYL, boxstring, "vtt_sample", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTTA, boxstring, "vtt_sample", "p30"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTCU, vtcu, "vtt_sample", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTCC_CUE, vtcu, "vtt_sample", "p30"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTTE, vtte, "vtt_sample", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTTC_CONFIG, boxstring, "wvtt", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_CTIM, boxstring, "vttc", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_IDEN, boxstring, "vttc", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_STTG, boxstring, "vttc", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PAYL, boxstring, "vttc", "p30"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTTA, boxstring, "vttc", "p30"),
 #endif
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STPP, metx, "stsd"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SBTT, metx, "stsd"),
@@ -1097,8 +1153,8 @@ static const struct box_registry_entry {
 	//dolby boxes
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AC3, audio_sample_entry, "stsd", "dolby"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_EC3, audio_sample_entry, "stsd", "dolby"),
-	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac3", "dolby"),
-	{GF_ISOM_BOX_TYPE_EC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec3", "dolby" },
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DAC3, dac3, "ac-3", "dolby"),
+	{GF_ISOM_BOX_TYPE_DEC3, dec3_New, dac3_del, dac3_Read, dac3_Write, dac3_Size, dac3_dump, 0, 0, 0, "ec-3", "dolby" },
 
 	//Adobe boxes
 #ifndef GPAC_DISABLE_ISOM_ADOBE
@@ -1175,7 +1231,7 @@ GF_Box *gf_isom_box_new(u32 boxType)
 }
 
 
-GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type)
 {
 	GF_Err e;
 	GF_Box *a = NULL;
@@ -1250,24 +1306,28 @@ GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox)
 GF_EXPORT
 void gf_isom_box_del(GF_Box *a)
 {
+	GF_List *other_boxes;
 	if (!a) return;
 	if (skip_box_dump_del) return;
 
-	if (a->other_boxes) {
-		gf_isom_box_array_del(a->other_boxes);
-		a->other_boxes = NULL;
-	}
+	other_boxes	= a->other_boxes;
+	a->other_boxes = NULL;
+
 	if (!a->registry) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Delete invalid box type %s without registry\n", gf_4cc_to_str(a->type) ));
-		return;
+	} else {
+		if (use_dump_mode) {
+			skip_box_dump_del = GF_TRUE;
+			a->registry->del_fn(a);
+			skip_box_dump_del = GF_FALSE;
+		} else {
+			a->registry->del_fn(a);
+		}
 	}
-	if (use_dump_mode) {
-		skip_box_dump_del = GF_TRUE;
-		a->registry->del_fn(a);
-		skip_box_dump_del = GF_FALSE;
-	 } else {
-		a->registry->del_fn(a);
-	 }
+	//delet the other boxes after deleting the box for dumper case where all child boxes are stored in otherbox
+	if (other_boxes) {
+		gf_isom_box_array_del(other_boxes);
+	}
 }
 
 
@@ -1337,6 +1397,8 @@ GF_Err gf_isom_dump_supported_box(u32 idx, FILE * trace)
 	GF_Box *a;
 	for (i = 0; i <= box_registry[idx].max_version; i++) {
 		a = gf_isom_box_new(box_registry[idx].box_4cc);
+		a->registry = &box_registry[idx];
+
 		if (box_registry[idx].alt_4cc) {
 			if (a->type==GF_ISOM_BOX_TYPE_REFT)
 				((GF_TrackReferenceTypeBox*)a)->reference_type = box_registry[idx].alt_4cc;
@@ -1390,7 +1452,9 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
 	fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
 	//disable all box dumping until end of this box
-	skip_box_dump_del = GF_TRUE;
+	if (use_dump_mode) {
+		skip_box_dump_del = GF_TRUE;
+	}
 	return GF_OK;
 }
 

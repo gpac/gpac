@@ -103,7 +103,7 @@ GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
 
 GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
 GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
-GF_Err gf_isom_read_box_list_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
@@ -368,6 +368,9 @@ enum
 	GF_ISOM_BOX_TYPE_SEGR	= GF_4CC( 's', 'e', 'g', 'r' ),
 	GF_ISOM_BOX_TYPE_GITN	= GF_4CC( 'g', 'i', 't', 'n' ),
 	GF_ISOM_BOX_TYPE_FIRE	= GF_4CC( 'f', 'i', 'r', 'e' ),
+	GF_ISOM_BOX_TYPE_FDSA	= GF_4CC( 'f', 'd', 's', 'a' ),
+	GF_ISOM_BOX_TYPE_FDPA	= GF_4CC( 'f', 'd', 'p', 'a' ),
+	GF_ISOM_BOX_TYPE_EXTR	= GF_4CC( 'e', 'x', 't', 'r' ),
 
 	/*internal type for track and item references*/
 	GF_ISOM_BOX_TYPE_REFT	= GF_4CC( 'R', 'E', 'F', 'T' ),
@@ -438,8 +441,8 @@ enum
 
 	GF_ISOM_BOX_TYPE_RVCC	= GF_4CC( 'r', 'v', 'c', 'c' ),
 
-	GF_ISOM_BOX_TYPE_VTTC	= GF_4CC( 'v', 't', 't', 'C' ),
-	GF_ISOM_BOX_TYPE_VTCU	= GF_4CC( 'v', 't', 't', 'c' ),
+	GF_ISOM_BOX_TYPE_VTTC_CONFIG	= GF_4CC( 'v', 't', 't', 'C' ),
+	GF_ISOM_BOX_TYPE_VTCC_CUE	= GF_4CC( 'v', 't', 't', 'c' ),
 	GF_ISOM_BOX_TYPE_VTTE	= GF_4CC( 'v', 't', 't', 'e' ),
 	GF_ISOM_BOX_TYPE_VTTA	= GF_4CC( 'v', 't', 't', 'a' ),
 	GF_ISOM_BOX_TYPE_CTIM	= GF_4CC( 'c', 't', 'i', 'm' ),
@@ -2541,11 +2544,24 @@ typedef struct
 	u8 num_leading_samples;
 } GF_VisualRandomAccessEntry;
 
-/*RollRecoveryEntry - 'roll' type*/
+/*RollRecoveryEntry - 'roll' and prol type*/
 typedef struct
 {
 	s16 roll_distance;
 } GF_RollRecoveryEntry;
+
+/*TemporalLevelEntry - 'tele' type*/
+typedef struct
+{
+	Bool level_independently_decodable;
+} GF_TemporalLevelEntry;
+
+/*SAPEntry - 'sap ' type*/
+typedef struct
+{
+	Bool dependent_flag;
+	u8 SAP_type;
+} GF_SAPEntry;
 
 
 /*Operating Points Information - 'oinf' type*/
@@ -3380,17 +3396,59 @@ void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independe
 		Hinting stuff
 */
 
-/*the HintType for each protocol*/
-enum
-{
-	GF_ISMO_HINT_RTP	= 1,
-	/*not supported yet*/
-	GF_ISMO_MPEG2_TS	= 2
-};
-
 /*****************************************************
 		RTP Data Entries
 *****************************************************/
+
+typedef struct
+{
+	u8 sender_current_time_present;
+	u8 expected_residual_time_present;
+	u8 session_close_bit;
+	u8 object_close_bit;
+	u16 transport_object_identifier;
+} GF_LCTheaderTemplate;
+
+typedef struct
+{
+	u8 header_extension_type;
+	u8 content[3];
+	u32 data_length;
+	char *data;
+} GF_LCTheaderExtension;
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+	GF_LCTheaderTemplate info;
+	u16 header_ext_count;
+	GF_LCTheaderExtension *headers;
+
+	GF_List *constructors;
+} GF_FDpacketBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+	u8 FEC_encoding_ID;
+	u16 FEC_instance_ID;
+	u16 source_block_number;
+	u16 encoding_symbol_ID;
+} GF_FECInformationBox;
+
+
+typedef struct
+{
+	GF_ISOM_BOX
+
+	GF_FECInformationBox *feci;
+	u32 data_length;
+	char *data;
+} GF_ExtraDataBox;
+
 
 #define GF_ISMO_BASE_DTE_ENTRY	\
 	u8 source;
@@ -3451,12 +3509,14 @@ typedef struct __tag_hint_data_cache
 	u32 sample_num;
 } GF_HintDataCache;
 
-
 typedef struct __tag_hint_sample
 {
-	/*used internally for future protocol support (write only)*/
-	u8 HintType;
-	/*QT packets*/
+	//for samples deriving from box
+	GF_ISOM_BOX
+
+	/*contains 4cc of hint track sample entry*/
+	u32 hint_subtype;
+	u16 packetCount;
 	u16 reserved;
 	GF_List *packetTable;
 	char *AdditionalData;
@@ -3468,6 +3528,8 @@ typedef struct __tag_hint_sample
 
 	//for dump
 	u32 trackID, sampleNumber;
+
+	GF_ExtraDataBox *extra_data;
 } GF_HintSample;
 
 GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType);
@@ -3481,7 +3543,7 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr);
 		Hint Packets (generic packet for future protocol support)
 *****************************************************/
 #define GF_ISOM_BASE_PACKET			\
-	u32 trackID, sampleNumber;	\
+	u32 hint_subtype, trackID, sampleNumber;	\
 	s32 relativeTransTime;
 
 
@@ -3490,15 +3552,15 @@ typedef struct
 	GF_ISOM_BASE_PACKET
 } GF_HintPacket;
 
-GF_HintPacket *gf_isom_hint_pck_new(u8 HintType);
-void gf_isom_hint_pck_del(u8 HintType, GF_HintPacket *ptr);
-GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
-GF_Err gf_isom_hint_pck_write(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs);
-u32 gf_isom_hint_pck_size(u8 HintType, GF_HintPacket *ptr);
-GF_Err gf_isom_hint_pck_offset(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber);
-GF_Err gf_isom_hint_pck_add_dte(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin);
+GF_HintPacket *gf_isom_hint_pck_new(u32 HintType);
+void gf_isom_hint_pck_del(GF_HintPacket *ptr);
+GF_Err gf_isom_hint_pck_read(GF_HintPacket *ptr, GF_BitStream *bs);
+GF_Err gf_isom_hint_pck_write(GF_HintPacket *ptr, GF_BitStream *bs);
+u32 gf_isom_hint_pck_size(GF_HintPacket *ptr);
+GF_Err gf_isom_hint_pck_offset(GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber);
+GF_Err gf_isom_hint_pck_add_dte(GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin);
 /*get the size of the packet AS RECONSTRUCTED BY THE SERVER (without CSRC)*/
-u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr);
+u32 gf_isom_hint_pck_length(GF_HintPacket *ptr);
 
 /*the RTP packet*/
 typedef struct
@@ -3528,6 +3590,25 @@ GF_Err gf_isom_hint_rtp_write(GF_RTPPacket *ptr, GF_BitStream *bs);
 u32 gf_isom_hint_rtp_size(GF_RTPPacket *ptr);
 GF_Err gf_isom_hint_rtp_offset(GF_RTPPacket *ptr, u32 offset, u32 HintSampleNumber);
 u32 gf_isom_hint_rtp_length(GF_RTPPacket *ptr);
+
+
+/*the RTP packet*/
+typedef struct
+{
+	GF_ISOM_BASE_PACKET
+
+	//RTCP report
+	u8 Version, Padding, Count, PayloadType;
+	u32 length;
+	char *data;
+} GF_RTCPPacket;
+
+GF_RTCPPacket *gf_isom_hint_rtcp_new();
+void gf_isom_hint_rtcp_del(GF_RTCPPacket *ptr);
+GF_Err gf_isom_hint_rtcp_read(GF_RTCPPacket *ptr, GF_BitStream *bs);
+GF_Err gf_isom_hint_rtcp_write(GF_RTCPPacket *ptr, GF_BitStream *bs);
+u32 gf_isom_hint_rtcp_size(GF_RTCPPacket *ptr);
+u32 gf_isom_hint_rtcp_length(GF_RTCPPacket *ptr);
 
 
 #endif

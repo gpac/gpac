@@ -889,7 +889,7 @@ GF_Err iref_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	return gf_isom_read_box_list_ex(s, bs, iref_AddBox, s->type);
+	return gf_isom_box_array_read_ex(s, bs, iref_AddBox, s->type);
 }
 
 GF_Box *iref_New()
