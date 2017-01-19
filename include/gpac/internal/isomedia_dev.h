@@ -500,6 +500,7 @@ enum
 	GF_ISOM_BOX_TYPE_MP3	= GF_4CC( '.', 'm', 'p', '3' ),
 
 	GF_ISOM_BOX_TYPE_TRIK	= GF_4CC( 't', 'r', 'i', 'k' ),
+	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
 
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
@@ -2313,6 +2314,13 @@ typedef struct
 	GF_TrickPlayBoxEntry *entries;
 } GF_TrickPlayBox;
 
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u8  baseLocation[256];
+	u8 basePurlLocation[256];
+} GF_BaseLocationBox;
+
 /*OMA (P)DCF extensions*/
 typedef struct
 {
@@ -3713,6 +3721,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
 GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
 GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace);
 void gf_isom_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
+Bool gf_isom_box_is_file_level(GF_Box *s);
 #endif
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);

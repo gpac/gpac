@@ -11535,4 +11535,61 @@ GF_Err trik_Size(GF_Box *s)
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
+void bloc_del(GF_Box *s)
+{
+	gf_free(s);
+}
+
+GF_Err bloc_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_BaseLocationBox *ptr = (GF_BaseLocationBox *) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(s, 256)
+	gf_bs_read_data(bs, ptr->baseLocation, 256);
+	ISOM_DECREASE_SIZE(s, 256)
+	gf_bs_read_data(bs, ptr->basePurlLocation, 256);
+	ISOM_DECREASE_SIZE(s, 512)
+	gf_bs_skip_bytes(bs, 512);
+	return GF_OK;
+}
+
+GF_Box *bloc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_BaseLocationBox, GF_ISOM_BOX_TYPE_TRIK);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err bloc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_BaseLocationBox *ptr = (GF_BaseLocationBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_data(bs, ptr->baseLocation, 256);
+	gf_bs_write_data(bs, ptr->basePurlLocation, 256);
+	for (i=0; i < 64; i++ ) {
+		gf_bs_write_u64(bs, 0);
+	}
+	return GF_OK;
+}
+
+GF_Err bloc_Size(GF_Box *s)
+{
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += 1024;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
 #endif /*GPAC_DISABLE_ISOM*/
