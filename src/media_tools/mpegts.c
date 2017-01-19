@@ -3309,7 +3309,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		pos += 1+af_size;
 		payload_size = 183 - af_size;
 		break;
-	/*adaptation only - still process in cas of PCR*/
+	/*adaptation only - still process in case of PCR*/
 	case 2:
 		af_size = data[4];
 		if (af_size != 183) {
@@ -3321,7 +3321,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		payload_size = 0;
 		/*no payload and no PCR, return*/
-		if (! paf->PCR_flag)
+		if (!paf->PCR_flag)
 			return GF_OK;
 		break;
 	/*reserved*/
