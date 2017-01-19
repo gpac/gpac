@@ -11487,7 +11487,7 @@ GF_Err trik_Read(GF_Box *s,GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->entry_count = ptr->size;
-	ptr->entries = (u64 *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
+	ptr->entries = (GF_TrickPlayBoxEntry *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
 	if (ptr->entries == NULL) return GF_OUT_OF_MEM;
 
 	for (i=0; i< ptr->entry_count; i++) {
@@ -11543,7 +11543,6 @@ void bloc_del(GF_Box *s)
 GF_Err bloc_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
 	GF_BaseLocationBox *ptr = (GF_BaseLocationBox *) s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
@@ -11601,7 +11600,6 @@ void ainf_del(GF_Box *s)
 GF_Err ainf_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
@@ -11622,7 +11620,6 @@ GF_Box *ainf_New()
 GF_Err ainf_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
-	u32 i;
 	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
 
 	e = gf_isom_full_box_write(s, bs);

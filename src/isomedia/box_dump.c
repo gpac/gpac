@@ -648,7 +648,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	if (p->rvcc) gf_isom_box_dump(p->rvcc, trace);
 	if (p->rinf) gf_isom_box_dump(p->rinf, trace);
 
-	gf_isom_box_dump_done((char *)name, a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -3334,7 +3334,7 @@ GF_Err iSFM_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, name, trace);
 	gf_full_box_dump(a, trace);
 	fprintf(trace, "selective_encryption=\"%d\" key_indicator_length=\"%d\" IV_length=\"%d\">\n", p->selective_encryption, p->key_indicator_length, p->IV_length);
-	gf_isom_box_dump_done((char *)name, a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -3850,7 +3850,7 @@ GF_Err metx_dump(GF_Box *a, FILE * trace)
 	}
 	gf_isom_box_array_dump(ptr->protections, trace);
 
-	gf_isom_box_dump_done((char *)name, a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -3864,7 +3864,7 @@ GF_Err txtc_dump(GF_Box *a, FILE * trace)
 
 	if (ptr->config) fprintf(trace, "<![CDATA[%s]]>", ptr->config);
 
-	gf_isom_box_dump_done((char *)name, a, trace);
+	gf_isom_box_dump_done(name, a, trace);
 	return GF_OK;
 }
 
@@ -5233,7 +5233,6 @@ GF_Err trik_dump(GF_Box *a, FILE * trace)
 
 GF_Err bloc_dump(GF_Box *a, FILE * trace)
 {
-	u32 i;
 	GF_BaseLocationBox *p = (GF_BaseLocationBox *) a;
 
 	gf_isom_box_dump_start(a, "BaseLocationBox", trace);
@@ -5245,7 +5244,6 @@ GF_Err bloc_dump(GF_Box *a, FILE * trace)
 
 GF_Err ainf_dump(GF_Box *a, FILE * trace)
 {
-	u32 i;
 	GF_AssetInformationBox *p = (GF_AssetInformationBox *) a;
 
 	gf_isom_box_dump_start(a, "AssetInformationBox", trace);

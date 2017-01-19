@@ -3728,7 +3728,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov);
 #ifndef GPAC_DISABLE_ISOM_DUMP
 GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc);
 GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace);
-void gf_isom_box_dump_done(char *name, GF_Box *ptr, FILE *trace);
+void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace);
 Bool gf_isom_box_is_file_level(GF_Box *s);
 #endif
 
