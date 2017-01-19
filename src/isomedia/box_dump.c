@@ -108,6 +108,7 @@ GF_Err gf_isom_box_array_dump(GF_List *list, FILE * trace)
 	return GF_OK;
 }
 
+extern Bool use_dump_mode;
 
 GF_EXPORT
 GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
@@ -116,6 +117,7 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 	GF_Box *box;
 	if (!mov || !trace) return GF_BAD_PARAM;
 
+	use_dump_mode = mov->dump_mode_alloc;
 	fprintf(trace, "<!--MP4Box dump trace-->\n");
 
 	fprintf(trace, "<IsoMediaFile xmlns=\"urn:mpeg:isobmff:schema:file:2016\" Name=\"%s\">\n", mov->fileName);
