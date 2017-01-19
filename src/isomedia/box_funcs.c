@@ -1493,7 +1493,7 @@ GF_Err gf_isom_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 	return GF_OK;
 }
 
-void gf_isom_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
+void gf_isom_box_dump_done(const char *name, GF_Box *ptr, FILE *trace)
 {
 	//enable box dumping and dump other_boxes which contains all source boxes in order
 	skip_box_dump_del = GF_FALSE;
