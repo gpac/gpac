@@ -1475,6 +1475,7 @@ GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 	return gf_webvtt_dump_cues(dump, samp->cues);
 }
 
+GF_EXPORT
 GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump)
 {
 #ifdef GPAC_DISABLE_MEDIA_IMPORT
