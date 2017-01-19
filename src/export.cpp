@@ -1356,6 +1356,7 @@
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_export) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_export_nhml) )
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
 /*mcrypt exports*/
@@ -2163,6 +2164,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_cues_from_data) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_parse_iso_cues) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_cue_del) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_webvtt_dump_iso_track) )
 #endif
 
 #ifndef GPAC_DISABLE_MSE

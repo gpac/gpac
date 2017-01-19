@@ -2127,6 +2127,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 #include <gpac/base_coding.h>
 
+GF_EXPORT
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 {
 	GF_ESD *esd;
