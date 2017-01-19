@@ -135,18 +135,62 @@ enum
 	GF_ISOM_REF_VPLX = GF_4CC( 'v', 'p', 'l', 'x' ),
 	//this track contains subtitle, timed text or overlay graphical information for the referenced track or any track in the alternate group to which the track belongs, if any
 	GF_ISOM_REF_SUBT = GF_4CC( 's', 'u', 'b', 't' ),
+	/*DRC*/
+	//additionnal audio track
+	GF_ISOM_REF_ADDA			= GF_4CC( 'a', 'd', 'd', 'a' ),
+	//DRC metadata
+	GF_ISOM_REF_ADRC			= GF_4CC( 'a', 'd', 'r', 'c' ),
+	//item->track location
+	GF_ISOM_REF_ILOC			= GF_4CC( 'i', 'l', 'o', 'c' ),
+	//AVC dep stream
+	GF_ISOM_REF_AVCP			= GF_4CC( 'a', 'v', 'c', 'p' ),
+	//AVC switch to
+	GF_ISOM_REF_SWTO			= GF_4CC( 's', 'w', 't', 'o' ),
+	//AVC switch from
+	GF_ISOM_REF_SWFR			= GF_4CC( 's', 'w', 'f', 'r' ),
+
+	//Time code
+	GF_ISOM_REF_TMCD			= GF_4CC( 't', 'm', 'c', 'd' ),
+	//Structural dependency
+	GF_ISOM_REF_CDEP			= GF_4CC( 'c', 'd', 'e', 'p' ),
+	//transcript
+	GF_ISOM_REF_SCPT			= GF_4CC( 's', 'c', 'p', 't' ),
+	//nonprimary source description
+	GF_ISOM_REF_SSRC			= GF_4CC( 's', 's', 'r', 'c' ),
+	//layer audio track dependency 
+	GF_ISOM_REF_LYRA			= GF_4CC( 'l', 'y', 'r', 'a' ),
 
 };
 
 //defined sample groups in GPAC
 enum {
 	GF_ISOM_SAMPLE_GROUP_ROLL = GF_4CC( 'r', 'o', 'l', 'l'),
+	GF_ISOM_SAMPLE_GROUP_PROL = GF_4CC( 'p', 'r', 'o', 'l'),
 	GF_ISOM_SAMPLE_GROUP_RAP = GF_4CC( 'r', 'a', 'p', ' ' ),
 	GF_ISOM_SAMPLE_GROUP_SEIG = GF_4CC( 's', 'e', 'i', 'g' ),
 	GF_ISOM_SAMPLE_GROUP_OINF = GF_4CC( 'o', 'i', 'n', 'f'),
 	GF_ISOM_SAMPLE_GROUP_LINF = GF_4CC( 'l', 'i', 'n', 'f'),
 	GF_ISOM_SAMPLE_GROUP_TRIF = GF_4CC( 't', 'r', 'i', 'f' ),
 	GF_ISOM_SAMPLE_GROUP_NALM = GF_4CC( 'n', 'a', 'l', 'm'),
+	GF_ISOM_SAMPLE_GROUP_TELE = GF_4CC( 't', 'e', 'l', 'e'),
+	GF_ISOM_SAMPLE_GROUP_SAP = GF_4CC( 's', 'a', 'p', ' '),
+	GF_ISOM_SAMPLE_GROUP_ALST = GF_4CC( 'a', 'l', 's', 't'),
+	GF_ISOM_SAMPLE_GROUP_RASH = GF_4CC( 'r', 'a', 's', 'h'),
+
+	GF_ISOM_SAMPLE_GROUP_AVLL = GF_4CC( 'a', 'v', 'l', 'l'), //p15
+	GF_ISOM_SAMPLE_GROUP_AVSS = GF_4CC( 'a', 'v', 's', 's'), //p15
+	GF_ISOM_SAMPLE_GROUP_DTRT = GF_4CC( 'd', 't', 'r', 't'), //p15
+	GF_ISOM_SAMPLE_GROUP_MVIF = GF_4CC( 'm', 'v', 'i', 'f'), //p15
+	GF_ISOM_SAMPLE_GROUP_SCIF = GF_4CC( 's', 'c', 'i', 'f'), //p15
+	GF_ISOM_SAMPLE_GROUP_SCNM = GF_4CC( 's', 'c', 'n', 'm'), //p15
+	GF_ISOM_SAMPLE_GROUP_STSA = GF_4CC( 's', 't', 's', 'a'), //p15
+	GF_ISOM_SAMPLE_GROUP_TSAS = GF_4CC( 't', 's', 'a', 's'), //p15
+	GF_ISOM_SAMPLE_GROUP_SYNC = GF_4CC( 's', 'y', 'n', 'c'), //p15
+	GF_ISOM_SAMPLE_GROUP_TSCL = GF_4CC( 't', 's', 'c', 'l'), //p15
+	GF_ISOM_SAMPLE_GROUP_VIPR = GF_4CC( 'v', 'i', 'p', 'r'), //p15
+
+	GF_ISOM_SAMPLE_GROUP_3GAG = GF_4CC( '3', 'g', 'a', 'g'), //3gpp
+	GF_ISOM_SAMPLE_GROUP_AVCB = GF_4CC( 'a', 'v', 'c', 'b'), //3gpp
 };
 
 /*Track Edition flag*/
@@ -239,8 +283,6 @@ enum
 	GF_ISOM_SUBTYPE_HEV1			= GF_4CC( 'h', 'e', 'v', '1' ),
 	GF_ISOM_SUBTYPE_HVC2			= GF_4CC( 'h', 'v', 'c', '2' ),
 	GF_ISOM_SUBTYPE_HEV2			= GF_4CC( 'h', 'e', 'v', '2' ),
-	//GF_ISOM_SUBTYPE_SHC1			= GF_4CC( 's', 'h', 'c', '1' ),
-	//GF_ISOM_SUBTYPE_SHV1			= GF_4CC( 's', 'h', 'v', '1' ),
 	GF_ISOM_SUBTYPE_LHV1			= GF_4CC( 'l', 'h', 'v', '1' ),
 	GF_ISOM_SUBTYPE_LHE1			= GF_4CC( 'l', 'h', 'e', '1' ),
 	GF_ISOM_SUBTYPE_HVT1			= GF_4CC( 'h', 'v', 't', '1' ),
@@ -266,6 +308,15 @@ enum
 	GF_ISOM_SUBTYPE_SBTT		= GF_4CC( 's', 'b', 't', 't' ),
 	GF_ISOM_SUBTYPE_METT		= GF_4CC( 'm', 'e', 't', 't' ),
 	GF_ISOM_SUBTYPE_METX		= GF_4CC( 'm', 'e', 't', 'x' ),
+	GF_ISOM_SUBTYPE_TX3G		= GF_4CC( 't', 'x', '3', 'g' ),
+	GF_ISOM_SUBTYPE_TEXT		= GF_4CC( 't', 'e', 'x', 't' ),
+
+
+	GF_ISOM_SUBTYPE_RTP			= GF_4CC( 'r', 't', 'p', ' ' ),
+	GF_ISOM_SUBTYPE_SRTP		= GF_4CC( 's', 'r', 't', 'p' ),
+	GF_ISOM_SUBTYPE_RRTP		= GF_4CC( 'r', 'r', 't', 'p' ),
+	GF_ISOM_SUBTYPE_RTCP		= GF_4CC( 'r', 't', 'c', 'p' ),
+	GF_ISOM_SUBTYPE_FLUTE		= GF_4CC( 'f', 'd', 'p', ' ' ),
 };
 
 
@@ -1883,8 +1934,9 @@ GF_Err gf_isom_text_set_streaming_mode(GF_ISOFile *the_file, Bool do_convert);
 */
 typedef enum {
 	GF_TEXTDUMPTYPE_TTXT = 0,
-	GF_TEXTDUMPTYPE_SRT  = 1,
-	GF_TEXTDUMPTYPE_SVG  = 2,
+	GF_TEXTDUMPTYPE_TTXT_BOXES = 1,
+	GF_TEXTDUMPTYPE_SRT  = 2,
+	GF_TEXTDUMPTYPE_SVG  = 3,
 } GF_TextDumpType;
 GF_Err gf_isom_text_dump(GF_ISOFile *the_file, u32 track, FILE *dump, GF_TextDumpType dump_type);
 #endif

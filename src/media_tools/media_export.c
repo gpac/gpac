@@ -516,7 +516,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 #ifndef GPAC_DISABLE_VTT
 			if (is_wvtt) {
 				GF_Err e;
-				e = gf_webvtt_dump_header(out, dumper->file, track, 1);
+				e = gf_webvtt_dump_header(out, dumper->file, track, GF_FALSE, 1);
 				if (e == GF_OK) {
 					GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
 					u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
@@ -568,7 +568,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 #ifndef GPAC_DISABLE_VTT
 			if (is_wvtt) {
 				GF_Err e;
-				e = gf_webvtt_dump_header(out, dumper->file, track, 1);
+				e = gf_webvtt_dump_header(out, dumper->file, track, GF_FALSE, 1);
 				if (e == GF_OK) {
 					GF_Err gf_webvtt_dump_iso_sample(FILE *dump, u32 timescale, GF_ISOSample *iso_sample);
 					u32 timescale = gf_isom_get_media_timescale(dumper->file, track);
@@ -1159,8 +1159,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	}
 	if (is_webvtt) {
 #ifndef GPAC_DISABLE_VTT
-		GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge);
-		return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE? GF_FALSE : GF_TRUE));
+		return gf_webvtt_dump_iso_track(dumper, szName, track, (dumper->flags & GF_EXPORT_WEBVTT_NOMERGE ? GF_FALSE : GF_TRUE), GF_FALSE);
 #else
 		return GF_NOT_SUPPORTED;
 #endif
@@ -2150,11 +2149,14 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	}
 	esd = gf_isom_get_esd(dumper->file, track, 1);
 	full_dump = (dumper->flags & GF_EXPORT_NHML_FULL) ? 1 : 0;
+	szRootName = "NHNTStream";
 	med = NULL;
+	szMedia[0]=0;
+
 	if (dims_doc) {
 		sprintf(szName, "%s.dml", dumper->out_name);
 		szRootName = "DIMSStream";
-	} else {
+	} else if (!dumper->nhml_only) {
 		sprintf(szMedia, "%s.media", dumper->out_name);
 		med = gf_fopen(szMedia, "wb");
 		if (!med) {
@@ -2163,13 +2165,17 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		}
 
 		sprintf(szName, "%s.nhml", dumper->out_name);
-		szRootName = "NHNTStream";
 	}
-	nhml = gf_fopen(szName, "wt");
-	if (!nhml) {
-		gf_fclose(med);
-		if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
-		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+	if (dumper->dump_file) {
+		nhml = dumper->dump_file;
+	} else {
+		nhml = gf_fopen(szName, "wt");
+		if (!nhml) {
+			gf_fclose(med);
+			if (esd) gf_odf_desc_del((GF_Descriptor *) esd);
+			return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
+		}
+		fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	}
 
 	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
@@ -2177,11 +2183,10 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
 
 	/*write header*/
-	fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	fprintf(nhml, "<%s version=\"1.0\" timeScale=\"%d\" ", szRootName, gf_isom_get_media_timescale(dumper->file, track) );
 	if (esd) {
 		fprintf(nhml, "streamType=\"%d\" objectTypeIndication=\"%d\" ", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
-		if (esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
+		if (!dumper->nhml_only && esd->decoderConfig->decoderSpecificInfo  && esd->decoderConfig->decoderSpecificInfo->data) {
 			sprintf(szName, "%s.info", dumper->out_name);
 			inf = gf_fopen(szName, "wb");
 			if (inf) gf_fwrite(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, 1, inf);
@@ -2278,7 +2283,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			if (!strcmp(dims.contentEncoding, "deflate")) uncompress = 1;
 		}
 		if (dims.content_script_types) fprintf(nhml, "content_script_types=\"%s\" ", dims.content_script_types);
-	} else {
+	} else if (szMedia[0]) {
 		fprintf(nhml, "baseMediaFile=\"%s\" ", szMedia);
 	}
 
@@ -2383,7 +2388,9 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	}
 	fprintf(nhml, "</%s>\n", szRootName);
 	if (med) gf_fclose(med);
-	gf_fclose(nhml);
+	if (!dumper->dump_file) {
+		gf_fclose(nhml);
+	}
 	return GF_OK;
 }
 

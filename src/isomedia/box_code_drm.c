@@ -231,6 +231,7 @@ void schi_del(GF_Box *s)
 	if (ptr == NULL) return;
 	if (ptr->ikms) gf_isom_box_del((GF_Box *)ptr->ikms);
 	if (ptr->isfm) gf_isom_box_del((GF_Box *)ptr->isfm);
+	if (ptr->islt) gf_isom_box_del((GF_Box *)ptr->islt);
 	if (ptr->odkm) gf_isom_box_del((GF_Box *)ptr->odkm);
 	if (ptr->tenc) gf_isom_box_del((GF_Box *)ptr->tenc);
 	if (ptr->piff_tenc) gf_isom_box_del((GF_Box *)ptr->piff_tenc);

@@ -517,7 +517,7 @@ void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
 
 #ifndef GPAC_DISABLE_ISOM
-GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index);
+GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);
 GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp);
 GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 #endif /* GPAC_DISABLE_ISOM */
