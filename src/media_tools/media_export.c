@@ -2125,6 +2125,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 }
 #endif /*GPAC_DISABLE_AVILIB*/
 
+#include <gpac/base_coding.h>
 
 GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 {
@@ -2135,6 +2136,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 	u32 w, h;
 	Bool uncompress;
 	u32 track, i, di, count, pos, mstype;
+	Bool is_stpp;
 	const char *szRootName;
 
 	if (!(track = gf_isom_get_track_by_id(dumper->file, dumper->trackID))) {
@@ -2178,7 +2180,10 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		fprintf(nhml, "<?xml version=\"1.0\" encoding=\"UTF-8\" ?>\n");
 	}
 
-	mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
+	mstype = gf_isom_get_mpeg4_subtype(dumper->file, track, 1);
+	if (!mstype) mstype = gf_isom_get_media_subtype(dumper->file, track, 1);
+
+	is_stpp = (mstype==GF_ISOM_SUBTYPE_STPP) ? GF_TRUE : GF_FALSE;
 
 	gf_export_message(dumper, GF_OK, "Exporting NHML for track %s", gf_4cc_to_str(mstype) );
 
@@ -2378,7 +2383,44 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 			else if (samp->IsRAP==RAP_REDUNDANT) fprintf(nhml, "isSyncShadow=\"yes\" ");
 			else if (full_dump) fprintf(nhml, "isRAP=\"no\" ");
 			if (full_dump) fprintf(nhml, "mediaOffset=\"%d\" ", pos);
-			fprintf(nhml, "/>\n");
+
+			fprintf(nhml, ">\n");
+			if (is_stpp && dumper->nhml_only) {
+				u32 n, k, scount = gf_isom_sample_has_subsamples(dumper->file, track, i+1, 0);
+				u32 offset=0;
+				if (scount) {
+					for (k=0; k<scount;k++) {
+						u32 ssize;
+						char last;
+						gf_isom_sample_get_subsample(dumper->file, track, i+1, 0, k+1, &ssize, NULL, NULL, NULL);
+						if (offset+ssize>samp->dataLength) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("Wrong subsample info for sample %d on track %d: sample size %d vs subsample offset+size %dn", i+1, dumper->trackID, samp->dataLength, offset+ssize));
+							break;
+						}
+						last = samp->data[offset+ssize];
+						samp->data[offset+ssize]=0;
+
+						if (!k) {
+							fprintf(nhml, "<NHNTSubSample>\n");
+							for (n=0; n<samp->dataLength;n++) fputc(samp->data[n], nhml);
+							fprintf(nhml, "</NHNTSubSample>\n");
+						} else {
+							char *buf = gf_malloc(sizeof(char)*2*samp->dataLength);
+							u32 size = gf_base64_encode(samp->data, samp->dataLength, buf, 2*samp->dataLength);
+							buf[size] = 0;
+							fprintf(nhml, "<NHNTSubSample data=\"data:application/octet-string;base64,%s\">\n", buf);
+							gf_free(buf);
+						}
+						samp->data[offset+ssize]=last;
+						offset += ssize;
+					}
+				} else {
+					fprintf(nhml, "<NHNTSubSample><![CDATA[\n");
+					for (n=0; n<samp->dataLength;n++) fputc(samp->data[n], nhml);
+					fprintf(nhml, "]]></NHNTSubSample>\n");
+				}
+			}
+			fprintf(nhml, "</NHNTSample>\n");
 		}
 
 		pos += samp->dataLength;
