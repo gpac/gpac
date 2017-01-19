@@ -147,6 +147,10 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 		case GF_ISOM_BOX_TYPE_UUID:
 			break;
 
+		case GF_ISOM_BOX_TYPE_UNKNOWN:
+			fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
+			break;
+
 		default:
 			fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
 			break;
