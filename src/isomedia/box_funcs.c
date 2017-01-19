@@ -705,6 +705,8 @@ ISOM_BOX_IMPL_DECL(auxc)
 ISOM_BOX_IMPL_DECL(oinf)
 ISOM_BOX_IMPL_DECL(tols)
 
+ISOM_BOX_IMPL_DECL(trik)
+
 ISOM_BOX_IMPL_DECL(grptype)
 
 
@@ -838,6 +840,7 @@ static const struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FREE, free, ""),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SKIP, free, ""),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MDAT, mdat, "file"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_IDAT, mdat, "meta"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MOOV, moov, "file"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MVHD, mvhd, "moov", 1),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_MDHD, mdhd, "mdia", 1),
@@ -1171,6 +1174,8 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AEIB, aeib, "aprm", "adobe"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_AKEY, akey, "aprm", "adobe"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FLXS, flxs, "akey", "adobe"),
+
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TRIK, trik, "traf", 0, "dece"),
 
 
 	//internally handled UUID for smooth - the code points are only used during creation and assigned to UUIDBox->internal4CC
