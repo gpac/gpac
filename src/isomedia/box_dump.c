@@ -122,38 +122,11 @@ GF_Err gf_isom_dump(GF_ISOFile *mov, FILE * trace)
 
 	i=0;
 	while ((box = (GF_Box *)gf_list_enum(mov->TopBoxes, &i))) {
-		switch (box->type) {
-		case GF_ISOM_BOX_TYPE_FTYP:
-		case GF_ISOM_BOX_TYPE_MOOV:
-		case GF_ISOM_BOX_TYPE_MDAT:
-		case GF_ISOM_BOX_TYPE_FREE:
-		case GF_ISOM_BOX_TYPE_META:
-		case GF_ISOM_BOX_TYPE_SKIP:
-		case GF_ISOM_BOX_TYPE_PDIN:
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-		case GF_ISOM_BOX_TYPE_MOOF:
-		case GF_ISOM_BOX_TYPE_STYP:
-		case GF_ISOM_BOX_TYPE_SIDX:
-		case GF_ISOM_BOX_TYPE_SSIX:
-		case GF_ISOM_BOX_TYPE_PCRB:
-#ifndef GPAC_DISABLE_ISOM_ADOBE
-		/*Adobe specific*/
-		case GF_ISOM_BOX_TYPE_AFRA:
-		case GF_ISOM_BOX_TYPE_ABST:
-#endif
-#endif
-		case GF_ISOM_BOX_TYPE_MFRA:
-		case GF_ISOM_BOX_TYPE_PRFT:
-		case GF_ISOM_BOX_TYPE_UUID:
-			break;
-
-		case GF_ISOM_BOX_TYPE_UNKNOWN:
+		if (box->type==GF_ISOM_BOX_TYPE_UNKNOWN) {
 			fprintf(trace, "<!--WARNING: Unknown Top-level Box Found -->\n");
-			break;
-
-		default:
+		} else if (box->type==GF_ISOM_BOX_TYPE_UUID) {
+		} else if (!gf_isom_box_is_file_level(box)) {
 			fprintf(trace, "<!--ERROR: Invalid Top-level Box Found (\"%s\")-->\n", gf_4cc_to_str(box->type));
-			break;
 		}
 		gf_isom_box_dump(box, trace);
 	}
@@ -5253,6 +5226,18 @@ GF_Err trik_dump(GF_Box *a, FILE * trace)
 		fprintf(trace, "<TrickPlayBoxEntry pic_type=\"\" dependency_level=\"\"/>\n");
 
 	gf_isom_box_dump_done("TrickPlayBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err bloc_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_BaseLocationBox *p = (GF_BaseLocationBox *) a;
+
+	gf_isom_box_dump_start(a, "BaseLocationBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "baseLocation=\"%s\" basePurlLocation=\"%s\">\n", p->baseLocation, p->basePurlLocation);
+	gf_isom_box_dump_done("BaseLocationBox", a, trace);
 	return GF_OK;
 }
 

@@ -706,6 +706,7 @@ ISOM_BOX_IMPL_DECL(oinf)
 ISOM_BOX_IMPL_DECL(tols)
 
 ISOM_BOX_IMPL_DECL(trik)
+ISOM_BOX_IMPL_DECL(bloc)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -1176,6 +1177,7 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_FLXS, flxs, "akey", "adobe"),
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TRIK, trik, "traf", 0, "dece"),
+	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_BLOC, bloc, "file", 0, "dece"),
 
 
 	//internally handled UUID for smooth - the code points are only used during creation and assigned to UUIDBox->internal4CC
@@ -1498,6 +1500,12 @@ void gf_isom_box_dump_done(char *name, GF_Box *ptr, FILE *trace)
 		fprintf(trace, "</%s>\n", name);
 }
 
+Bool gf_isom_box_is_file_level(GF_Box *s)
+{
+	if (!s || !s->registry) return GF_FALSE;
+	if (strstr(s->registry->parents_4cc, "file")!= NULL) return GF_TRUE;
+	return GF_FALSE;
+}
 #endif
 
 
