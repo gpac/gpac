@@ -707,6 +707,7 @@ ISOM_BOX_IMPL_DECL(tols)
 
 ISOM_BOX_IMPL_DECL(trik)
 ISOM_BOX_IMPL_DECL(bloc)
+ISOM_BOX_IMPL_DECL(ainf)
 
 ISOM_BOX_IMPL_DECL(grptype)
 
@@ -718,6 +719,8 @@ ISOM_BOX_IMPL_DECL(grptype)
 #define FBOX_DEFINE(__type, b_rad, __par, __max_v) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, __max_v, 0, __par, "p12" }
 
 #define FBOX_DEFINE_FLAGS(__type, b_rad, __par, __max_v, flags) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, __max_v, flags, __par, "p12" }
+
+#define FBOX_DEFINE_FLAGS_S(__type, b_rad, __par, __max_v, flags, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, __max_v, flags, __par, __spec }
 
 #define FBOX_DEFINE_S(__type, b_rad, __par, __max_v, __spec) { __type, b_rad##_New, b_rad##_del, b_rad##_Read, b_rad##_Write, b_rad##_Size, b_rad##_dump, 0, __max_v, 0, __par, __spec }
 
@@ -1178,6 +1181,7 @@ static const struct box_registry_entry {
 
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_TRIK, trik, "traf", 0, "dece"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_BLOC, bloc, "file", 0, "dece"),
+	FBOX_DEFINE_FLAGS_S(GF_ISOM_BOX_TYPE_AINF, ainf, "moov", 0, 0x000001, "dece"),
 
 
 	//internally handled UUID for smooth - the code points are only used during creation and assigned to UUIDBox->internal4CC

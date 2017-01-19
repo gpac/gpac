@@ -5243,5 +5243,17 @@ GF_Err bloc_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+GF_Err ainf_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_AssetInformationBox *p = (GF_AssetInformationBox *) a;
+
+	gf_isom_box_dump_start(a, "AssetInformationBox", trace);
+	gf_full_box_dump(a, trace);
+	fprintf(trace, "profile_version=\"%d\" APID=\"%s\">\n", p->profile_version, p->APID);
+	gf_isom_box_dump_done("AssetInformationBox", a, trace);
+	return GF_OK;
+}
+
 
 #endif /*GPAC_DISABLE_ISOM_DUMP*/

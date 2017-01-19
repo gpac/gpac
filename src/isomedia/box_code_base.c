@@ -11591,5 +11591,57 @@ GF_Err bloc_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+void ainf_del(GF_Box *s)
+{
+	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
+	if (ptr->APID) gf_free(ptr->APID);
+	gf_free(s);
+}
+
+GF_Err ainf_Read(GF_Box *s,GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(s, 4)
+	ptr->profile_version = gf_bs_read_u32(bs);
+	return gf_isom_read_null_terminated_string(s, bs, &ptr->APID);
+}
+
+GF_Box *ainf_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AssetInformationBox, GF_ISOM_BOX_TYPE_AINF);
+	gf_isom_full_box_init((GF_Box *)tmp);
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err ainf_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u32(bs, ptr->profile_version);
+	gf_bs_write_data(bs, ptr->APID, strlen(ptr->APID) + 1);
+	return GF_OK;
+}
+
+GF_Err ainf_Size(GF_Box *s)
+{
+	GF_AssetInformationBox *ptr = (GF_AssetInformationBox *) s;
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	s->size += 4 +  strlen(ptr->APID) + 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 #endif /*GPAC_DISABLE_ISOM*/

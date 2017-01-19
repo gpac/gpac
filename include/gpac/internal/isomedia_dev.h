@@ -501,6 +501,7 @@ enum
 
 	GF_ISOM_BOX_TYPE_TRIK	= GF_4CC( 't', 'r', 'i', 'k' ),
 	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
+	GF_ISOM_BOX_TYPE_AINF	= GF_4CC( 'a', 'i', 'n', 'f' ),
 
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
@@ -2320,6 +2321,13 @@ typedef struct
 	u8  baseLocation[256];
 	u8 basePurlLocation[256];
 } GF_BaseLocationBox;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+	u32 profile_version;
+	char *APID;
+} GF_AssetInformationBox;
 
 /*OMA (P)DCF extensions*/
 typedef struct
