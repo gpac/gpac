@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<tt xmlns:ttp="http://www.w3.org/ns/ttml#parameter"
+<ttxxx xmlns:ttp="http://www.w3.org/ns/ttml#parameter"
     xmlns:tts="http://www.w3.org/ns/ttml#styling"
     ttp:timeBase="media"
     ttp:cellResolution="50 30"
-    xml:lang="de" xmlns="http://www.w3.org/ns/invalidttml">
+    xml:lang="de" xmlns="http://www.w3.org/ns/ttml">
 	  <head>
 		    <styling>
 			      <style xml:id="defaultStyle" tts:fontFamily="Verdana, Arial, Tiresias"
@@ -24,5 +24,5 @@
 			      <p begin="00:00:02.120" end="00:00:03.800" region="bottom" xml:id="sub2">00:00:02.120<br/>00:00:03.800</p>
 		    </div>
 	  </body>
-</tt>
+</ttxxx>
 
