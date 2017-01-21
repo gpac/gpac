@@ -3,7 +3,7 @@
     xmlns:tts="http://www.w3.org/ns/ttml#styling"
     ttp:timeBase="media"
     ttp:cellResolution="50 30"
-    xml:lang="de" xmlns="http://www.w3.org/ns/invalidttml">
+    xml:lang="de" xmlns="http://www.w3.org/ns/ttml" xmlns:tt="http://www.w3.org/ns/invalidttml">
 	  <head>
 		    <styling>
 			      <style xml:id="defaultStyle" tts:fontFamily="Verdana, Arial, Tiresias"
@@ -20,8 +20,8 @@
 	  </head>
 	  <body>
 		    <div style="defaultStyle">
-			      <p begin="00:00:00.000" end="00:00:01.400" region="bottom" xml:id="sub1">00:00:00.000<br/>00:00:01.400</p>
-			      <p begin="00:00:02.120" end="00:00:03.800" region="bottom" xml:id="sub2">00:00:02.120<br/>00:00:03.800</p>
+			      <tt:p begin="00:00:00.000" end="00:00:01.400" region="bottom" xml:id="sub1">00:00:00.000<br/>00:00:01.400</tt:p>
+			      <tt:p begin="00:00:02.120" end="00:00:03.800" region="bottom" xml:id="sub2">00:00:02.120<br/>00:00:03.800</tt:p>
 		    </div>
 	  </body>
 </tt>
