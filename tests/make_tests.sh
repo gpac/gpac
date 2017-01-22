@@ -5,7 +5,7 @@
 
 base_args=""
 
-GNU_TIME=time
+GNU_TIME=/usr/bin/time
 GNU_DATE=date
 GNU_TIMEOUT=timeout
 #GNU_SED=sed
@@ -351,7 +351,7 @@ else
 fi
 
 #test for GNU time
-res=`$GNU_TIME ls 2> /dev/null`
+$GNU_TIME ls 2> /dev/null  
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "GNU time not found (ret $res) - exiting"
@@ -359,7 +359,7 @@ exit 1
 fi
 
 #test for GNU date
-res=`$GNU_DATE 2> /dev/null`
+$GNU_DATE 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "GNU date not found (ret $res) - exiting"
@@ -367,7 +367,7 @@ exit 1
 fi
 
 #test for timeout
-res=`$GNU_TIMEOUT 1.0 ls 2> /dev/null`
+$GNU_TIMEOUT 1.0 ls 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
  log $L_ERR "GNU timeout not found (ret $res) - some tests may hang forever ..."
@@ -387,7 +387,7 @@ do_store_video=1
 if [ $check_only = 0 ] ; then
 
 
-`$FFMPEG -version > /dev/null 2>&1 `
+$FFMPEG -version > /dev/null 2>&1
 if [ $? != 0 ] ; then
 log $L_WAR "- FFMPEG not found - disabling playback video storage"
 do_store_video=0
@@ -399,7 +399,7 @@ fi
 
 
 #check MP4Box, MP4Client and MP42TS (use default args, not custum ones because of -mem-track)
-`MP4Box -h 2> /dev/null`
+MP4Box -h 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "MP4Box not found (ret $res) - exiting"
@@ -410,13 +410,13 @@ MP4CLIENT="MP4Client"
 
 if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
 
-`MP4Client -run-for 0 2> /dev/null`
+MP4Client -run-for 0 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 MP4CLIENT_NOT_FOUND=1
 echo ""
 log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
-`MP4Client -run-for 0`
+MP4Client -run-for 0
 res=$?
 echo ""
 echo "** MP4Client returned $res - dumping GPAC config file **"
@@ -427,7 +427,7 @@ fi
 fi
 
 
-`MP42TS -h 2> /dev/null`
+MP42TS -h 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "MP42TS not found (ret $res) - exiting"
@@ -435,7 +435,8 @@ exit 1
 fi
 
 #check mem tracking is supported
-res=`MP4Box -mem-track -h 2>&1 | grep "WARNING"`
+MP4Box -mem-track -h 2>&1 | grep "WARNING"
+res=$?
 if [ -n "$res" ]; then
   log $L_WAR "- GPAC not compiled with memory tracking"
 else
@@ -454,7 +455,7 @@ fi
 #check for afl-fuzz
 if [ $enable_fuzzing != 0 ] ; then
  log $L_INF "Checking for afl-fuzz"
- `command -v afl-fuzz >/dev/null 2>&1`
+ command -v afl-fuzz >/dev/null 2>&1
  if [ $? != 0 ] ; then
   log $L_WAR "afl-fuzz not found - disabling fuzzing"
   enable_fuzzing=0
