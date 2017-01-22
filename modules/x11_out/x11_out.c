@@ -30,7 +30,7 @@
 #include <sys/time.h>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
-
+#include <errno.h>
 
 void X11_SetupWindow (GF_VideoOutput * vout);
 
@@ -1353,6 +1353,10 @@ X11_SetupWindow (GF_VideoOutput * vout)
 	XInitThreads();
 
 	xWindow->display = XOpenDisplay (NULL);
+	if (!xWindow->display) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[X11] Failed to open X11 display %d\n", errno));
+		return;
+	}
 	xWindow->screennum = DefaultScreen (xWindow->display);
 	xWindow->screenptr = DefaultScreenOfDisplay (xWindow->display);
 	xWindow->visual = DefaultVisualOfScreen (xWindow->screenptr);
