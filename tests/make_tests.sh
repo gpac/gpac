@@ -416,7 +416,7 @@ if [ $res != 0 ] ; then
 MP4CLIENT_NOT_FOUND=1
 echo ""
 log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
-MP4Client -run-for 0
+MP4Client -run-for 0 -logs all@debug
 res=$?
 echo ""
 echo "** MP4Client returned $res - dumping GPAC config file **"
@@ -435,8 +435,7 @@ exit 1
 fi
 
 #check mem tracking is supported
-MP4Box -mem-track -h 2>&1 | grep "WARNING"
-res=$?
+res=`MP4Box -mem-track -h 2>&1 | grep "WARNING"`
 if [ -n "$res" ]; then
   log $L_WAR "- GPAC not compiled with memory tracking"
 else
