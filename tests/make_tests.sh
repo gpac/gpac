@@ -416,7 +416,7 @@ if [ $res != 0 ] ; then
 MP4CLIENT_NOT_FOUND=1
 echo ""
 log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
-MP4Client -run-for 0 -logs all@debug
+MP4Client -run-for 0 
 res=$?
 echo ""
 echo "** MP4Client returned $res - dumping GPAC config file **"
