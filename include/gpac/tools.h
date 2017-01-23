@@ -43,7 +43,7 @@ extern "C" {
 
 /*! \defgroup utils_grp Core Tools
  *	\brief Core definitions and tools of GPAC.
- *	
+ *
  * You will find in this module the documentation of the core tools used in GPAC.
 */
 
@@ -164,6 +164,15 @@ u64 gf_ftell(FILE *f);
  *	\note You only need to call this function if you're suspecting the file to be a large one (usually only media files), otherwise use regular stdio.
 */
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
+
+/*!
+ *	\brief get extension from filename
+ *
+ *	Returns a pointer to the start of a filepath extension or null
+ *	\param filename Path of the file, can be an absolute path
+*/
+char* gf_file_ext_start(const char* filename);
+
 
 /*! @} */
 
