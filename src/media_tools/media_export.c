@@ -468,10 +468,12 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	}
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
-	ext_start = strrchr(dumper->out_name, '.');
-
-	if (dumper->out_name && !strcmp(dumper->out_name, "std"))
+	if (!strcmp(dumper->out_name, "std"))
 		is_stdout = 1;
+	else
+		ext_start = gf_file_ext_start(dumper->out_name);
+
+
 
 	gf_isom_set_nalu_extract_mode(dumper->file, track, GF_ISOM_NALU_EXTRACT_TILE_ONLY | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG);
 
@@ -731,7 +733,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 			gf_bs_write_u32(bs, 1); \
 			gf_bs_write_data(bs, sl->data, sl->size); \
 		} \
- 
+
 #define DUMP_HEVCPARAM(_params) \
 	count = gf_list_count(_params->param_array); \
 	for (i=0;i<count;i++) { \
@@ -743,7 +745,7 @@ static const char *QCP_SMV_GUID = "\x75\x2B\x7C\x8D\x97\xA7\x46\xED\x98\x5E\xD5\
 			gf_bs_write_data(bs, sl->data, sl->size); \
 		} \
 	} \
- 
+
 
 GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 {
@@ -3146,4 +3148,3 @@ GF_Err gf_media_export(GF_MediaExporter *dumper)
 }
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
-
