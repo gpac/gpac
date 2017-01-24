@@ -18,7 +18,7 @@ EXTERNAL_MEDIA_AVAILABLE=1
 platform=`uname -s`
 main_dir=`pwd`
 # May be needed in some particular mingw cases
-#case $platform in MINGW*) 
+#case $platform in MINGW*)
 #  main_dir=`pwd -W | sed 's|/|\\\\|g'`
 #  echo $main_dir
 #esac
@@ -351,7 +351,7 @@ else
 fi
 
 #test for GNU time
-$GNU_TIME ls 2> /dev/null  
+$GNU_TIME ls 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "GNU time not found (ret $res) - exiting"
@@ -416,7 +416,7 @@ if [ $res != 0 ] ; then
 MP4CLIENT_NOT_FOUND=1
 echo ""
 log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
-MP4Client -run-for 0 
+MP4Client -run-for 0
 res=$?
 echo ""
 echo "** MP4Client returned $res - dumping GPAC config file **"
@@ -449,7 +449,7 @@ else
 fi
 
 #end check_only
-fi 
+fi
 
 #check for afl-fuzz
 if [ $enable_fuzzing != 0 ] ; then
@@ -466,7 +466,7 @@ if [ $enable_fuzzing != 0 ] ; then
   $GNU_TIMEOUT 3.0 afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h > /dev/null
   if [ $? != 0 ] ; then
    log $L_WAR "afl-fuzz not properly configure:"
-   afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h 
+   afl-fuzz -d -i tmpafi -o tmpafo MP4Box -h
    exit
   else
    log $L_INF "afl-fuzz found and OK - enabling fuzzing with duration $fuzz_duration"
@@ -815,16 +815,16 @@ do_fuzz()
    if [ $no_fuzz_cleanup = 0 ] ; then
     #rename all crashes and hangs
     cd out/crashes
-    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/crash_$n.$file_ext"; done 
+    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/crash_$n.$file_ext"; done
     cd ../hangs
-    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/hang_$n.$file_ext"; done 
+    ls | cat -n | while read n f; do mv "$f" "$fuzz_res_dir/hang_$n.$file_ext"; done
     cd ../..
     rm -f "$fuzz_res_dir/readme.txt"
    fi
   fi
 
   cd $orig_path
- 
+
   if [ $no_fuzz_cleanup = 0 ] ; then
    rm -rf $fuzz_temp_dir
 
@@ -883,11 +883,11 @@ do_test ()
  #so each successfull afl-fuzz test (not call!) will modify the input...
  if [ $fuzz_test != 0 ] ; then
   fuzz_dir="$LOCAL_OUT_DIR/fuzzing/$TEST_NAME_$SUBTEST_NAME/"
-  mkdir -p fuzz_dir 
+  mkdir -p fuzz_dir
   fuzz_sub_idx=1
   for word in $1 ; do
    is_file_arg=0
-   case "$word" in 
+   case "$word" in
      $main_dir/*)
       is_file_arg=1;;
    esac
@@ -900,7 +900,7 @@ do_test ()
     fi
    fi
   done
-  
+
   if [ $no_fuzz_cleanup = 0 ] ; then
    crashes=`ls $fuzz_dir | wc -w`
    if [ $crashes = 0 ] ; then

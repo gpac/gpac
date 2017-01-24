@@ -88,6 +88,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_fseek) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_ftell) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_file_exists) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_file_ext_start) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_has_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_get_char) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_prompt_set_echo_off) )

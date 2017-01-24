@@ -4211,19 +4211,22 @@ int mp4boxMain(int argc, char **argv)
 
 
 	strcpy(outfile, outName ? outName : inName);
-	if (strrchr(outfile, '.')) {
-		char *szExt = strrchr(outfile, '.');
+	if (outfile) {
 
-		/*turn on 3GP saving*/
-		if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2"))
-			conv_type = GF_ISOM_CONV_TYPE_3GPP;
-		else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
-			conv_type = GF_ISOM_CONV_TYPE_IPOD;
-		else if (!stricmp(szExt, ".psp"))
-			conv_type = GF_ISOM_CONV_TYPE_PSP;
+		char *szExt = gf_file_ext_start(outfile);
 
-		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
-		outfile[strlen(outfile)-1] = 0;
+		if (szExt)
+		{
+			/*turn on 3GP saving*/
+			if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2"))
+				conv_type = GF_ISOM_CONV_TYPE_3GPP;
+			else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
+				conv_type = GF_ISOM_CONV_TYPE_IPOD;
+			else if (!stricmp(szExt, ".psp"))
+				conv_type = GF_ISOM_CONV_TYPE_PSP;
+
+			*szExt = 0;
+		}
 	}
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
