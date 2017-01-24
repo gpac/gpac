@@ -780,6 +780,17 @@ char* gf_file_ext_start(const char* filename)
 	if (filename) {
 
 		const char* lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
+		if (GF_PATH_SEPARATOR != '/')
+		{
+			// windows paths can mix slashes and backslashes
+			// so we search for the last slash that occurs after the last backslash
+			// if it occurs before it's not relevant
+			// if there's no backslashes we search in the whole file path
+
+			const char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+			if (trailingSlash)
+				lastPathPart = trailingSlash;
+		}
 		if (!lastPathPart)
 			lastPathPart = filename;
 		else
