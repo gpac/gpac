@@ -703,16 +703,16 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	if (!prev) prev = url;
 	strcpy(szPath, prev);
-	prev = strrchr(szPath, '.');
-	if (prev) prev[0] = 0;
+	prev = gf_file_ext_start(szPath);
+	if (prev) *prev = 0;
 
 	if (out_url) {
 		strcpy(szOutPath, out_url);
 	} else {
 		strcpy(szOutPath, szPath);
 	}
-	prev = strrchr(szOutPath, '.');
-	if (prev) prev[0] = 0;
+	prev = gf_file_ext_start(szOutPath);
+	if (prev) *prev = 0;
 
 	gf_term_set_simulation_frame_rate(term, (Double) fps);
 
@@ -962,7 +962,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			ret = 1;
 		}
 	}
-	
+
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
 	}
