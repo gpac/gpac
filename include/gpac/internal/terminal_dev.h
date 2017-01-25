@@ -477,6 +477,8 @@ struct _tag_terminal
 	u32 disconnect_request_status;
 	
 	Bool orientation_sensors_active;
+	//set when compositor uses step mode, in order to drop frames even when the clock is paused
+	Bool use_step_mode;
 };
 
 
