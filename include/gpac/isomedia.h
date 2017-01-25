@@ -135,6 +135,8 @@ enum
 	GF_ISOM_REF_VPLX = GF_4CC( 'v', 'p', 'l', 'x' ),
 	//this track contains subtitle, timed text or overlay graphical information for the referenced track or any track in the alternate group to which the track belongs, if any
 	GF_ISOM_REF_SUBT = GF_4CC( 's', 'u', 'b', 't' ),
+	//thumbail track
+	GF_ISOM_REF_THUMB = GF_4CC( 't', 'h', 'm', 'b' ),
 	/*DRC*/
 	//additionnal audio track
 	GF_ISOM_REF_ADDA			= GF_4CC( 'a', 'd', 'd', 'a' ),
