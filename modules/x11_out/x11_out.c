@@ -41,7 +41,7 @@ static void X11_DestroyOverlay(XWindow *xwin)
 	if (xwin->overlay) XFree(xwin->overlay);
 	xwin->overlay = NULL;
 	xwin->xv_pf_format = 0;
-	if (xwin->xvport>=0) {
+	if (xwin->display && (xwin->xvport>=0)) {
 		XvUngrabPort(xwin->display, xwin->xvport, CurrentTime );
 		xwin->xvport = -1;
 	}
@@ -729,6 +729,7 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 	X11VID();
 	unsigned char keybuf[32];
 	XEvent xevent;
+	if (!xWindow->display) return;
 	the_window = xWindow->fullscreen ? xWindow->full_wnd : xWindow->wnd;
 	XSync(xWindow->display, False);
 
@@ -1150,6 +1151,7 @@ GF_Err X11_ProcessEvent (struct _video_out * vout, GF_Event * evt)
 	X11VID ();
 
 	X11_SetupWindow(vout);
+	if (!xWindow->display) return GF_IO_ERR;
 
 	if (evt) {
 		switch (evt->type) {
