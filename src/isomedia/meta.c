@@ -395,7 +395,7 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	FILE *xmlfile;
 	GF_XMLBox *xml;
 	GF_MetaBox *meta;
-	u32 length;
+	u32 length, bread;
 
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
@@ -420,8 +420,8 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	length = (u32) gf_ftell(xmlfile);
 	gf_fseek(xmlfile, 0, SEEK_SET);
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*length);
-	fread(xml->xml, 1, sizeof(unsigned char)*length, xmlfile);
-	if (ferror(xmlfile)) {
+	bread = fread(xml->xml, 1, sizeof(unsigned char)*length, xmlfile);
+	if (ferror(xmlfile) || (bread != length)) {
 		gf_free(xml->xml);
 		xml->xml = NULL;
 		return GF_BAD_PARAM;

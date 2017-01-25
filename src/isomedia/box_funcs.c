@@ -755,6 +755,8 @@ static const struct box_registry_entry {
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_VDEP, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_VPLX, "p12"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_SUBT, "p12"),
+	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_THUMB, "p12"),
+
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OD, "p14"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_DECODE, "p14"),
 	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFT, reftype, "tref", GF_ISOM_REF_OCR, "p14"),
@@ -917,12 +919,17 @@ static const struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCA, audio_sample_entry, "stsd"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCV, video_sample_entry, "stsd"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_RESV, video_sample_entry, "stsd"),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCS, mp4s, "stsd"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TSEL, tsel, "udta", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STRK, strk, "udta"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STRI, stri, "strk", 0),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STRD, def_cont_box, "strk"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_STSG, stsg, "strd", 0),
+
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCS, mp4s, "stsd"),
+	//THIS HAS TO BE FIXED, not extensible
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCT, mp4s, "stsd"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCM, mp4s, "stsd"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_ENCF, mp4s, "stsd"),
 
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METX, metx, "stsd"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_METT, metx, "stsd"),
