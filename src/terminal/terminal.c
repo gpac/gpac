@@ -449,6 +449,7 @@ static GF_Err gf_term_step_clocks_intern(GF_Terminal * term, u32 ms_diff, Bool f
 			}
 		}
 		term->compositor->step_mode = GF_TRUE;
+		term->use_step_mode = GF_TRUE;
 		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
 
 		//resume/pause to trigger codecs state change 
@@ -483,6 +484,7 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (!term || !term->root_scene) return;
 
 	prev_state = term->play_state;
+	term->use_step_mode = GF_FALSE;
 
 	if (PlayState==GF_STATE_PLAY_LIVE) {
 		PlayState = GF_STATE_PLAYING;
