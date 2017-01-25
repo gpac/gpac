@@ -262,7 +262,6 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 GF_EXPORT
 Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_next)
 {
-	Bool was_step_mode=compositor->step_mode;
 	Bool ret = GF_FALSE;
 
 	if (no_flush)
@@ -281,9 +280,6 @@ Bool gf_sc_draw_frame(GF_Compositor *compositor, Bool no_flush, s32 *ms_till_nex
 	else if (compositor->frame_draw_type) ret = GF_TRUE;
 	else if (compositor->fonts_pending) ret = GF_TRUE;
 
-	//stay in step mode until we are sure frame is drawn, otherwise we may not be able to discard video frames (this will need refinement)
-	if (ret && was_step_mode)
-		compositor->step_mode=GF_TRUE;
 	return ret;
 }
 

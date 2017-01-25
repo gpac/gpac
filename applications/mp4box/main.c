@@ -248,7 +248,7 @@ void PrintGeneralUsage()
 	        " -name tkID=NAME      sets track handler name\n"
 	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 	        " -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list\n"
-	        " -split time_sec      splits in files of time_sec max duration\n"
+	        " -split time_sec      splits in files of time_sec max duration, starting each file at RAP.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-size size     splits in files of max filesize kB. same as -splits.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"

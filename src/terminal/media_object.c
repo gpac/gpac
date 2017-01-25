@@ -565,12 +565,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (skip_resync) {
 		resync=GF_MO_FETCH;
+		if (mo->odm->term->use_step_mode) upload_time_ms=0;
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
-		//the time threshold for fecthing should is given by the caller
-		if ( (gf_clock_is_started(codec->ck) || mo->odm->term->compositor->step_mode)
+		//the time threshold for fecthing is given by the caller
+		if ( (gf_clock_is_started(codec->ck) || mo->odm->term->use_step_mode)
 
-			&& (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS + upload_time_ms <= obj_time) ) {
+			&& (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time + upload_time_ms) ) {
 			
 			gf_cm_drop_output(codec->CB);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %u now %u\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
