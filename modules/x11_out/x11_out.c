@@ -1726,6 +1726,8 @@ GF_Err X11_Setup(struct _video_out *vout, void *os_handle, void *os_display, u32
 void X11_Shutdown (struct _video_out *vout)
 {
 	X11VID ();
+	if (! xWindow->display) return;
+
 	X11_ReleaseBackBuffer (vout);
 
 #ifdef GPAC_HAS_OPENGL
