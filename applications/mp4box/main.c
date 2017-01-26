@@ -4211,7 +4211,7 @@ int mp4boxMain(int argc, char **argv)
 
 
 	strcpy(outfile, outName ? outName : inName);
-	if (outfile) {
+	{
 
 		char *szExt = gf_file_ext_start(outfile);
 
@@ -4224,8 +4224,6 @@ int mp4boxMain(int argc, char **argv)
 				conv_type = GF_ISOM_CONV_TYPE_IPOD;
 			else if (!stricmp(szExt, ".psp"))
 				conv_type = GF_ISOM_CONV_TYPE_PSP;
-
-			*szExt = 0;
 		}
 	}
 
