@@ -351,7 +351,7 @@ else
 fi
 
 #test for GNU time
-$GNU_TIME ls 2> /dev/null
+$GNU_TIME ls > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "GNU time not found (ret $res) - exiting"
@@ -359,7 +359,7 @@ exit 1
 fi
 
 #test for GNU date
-$GNU_DATE 2> /dev/null
+$GNU_DATE > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "GNU date not found (ret $res) - exiting"
@@ -367,7 +367,7 @@ exit 1
 fi
 
 #test for timeout
-$GNU_TIMEOUT 1.0 ls 2> /dev/null
+$GNU_TIMEOUT 1.0 ls > /dev/null 2>&1 
 res=$?
 if [ $res != 0 ] ; then
  log $L_ERR "GNU timeout not found (ret $res) - some tests may hang forever ..."
@@ -415,13 +415,17 @@ res=$?
 if [ $res != 0 ] ; then
 MP4CLIENT_NOT_FOUND=1
 echo ""
-log $L_WAR "WARNING: MP4Client not found (ret $res) - disabling all playback tests - launch results:"
+log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
 MP4Client -run-for 0
 res=$?
-echo ""
-echo "** MP4Client returned $res - dumping GPAC config file **"
+if [ $res = 0 ] ; then
+log $L_INF "MP4Client returned $res on second run - enabling all playback tests"
+else
+echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
 cat $HOME/.gpac/GPAC.cfg
 echo "** End of dump **"
+fi
+
 fi
 
 fi
