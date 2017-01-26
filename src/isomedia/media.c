@@ -430,31 +430,34 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 
 	if (out_offset) *out_offset = offset;
 	if (no_data) return GF_OK;
-	if ((*samp)->dataLength == 0) return GF_OK;
+	if ((*samp)->dataLength != 0) {
 
-	/*and finally get the data, include padding if needed*/
-	(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
-	if (mdia->mediaTrack->padding_bytes)
-		memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
+		/*and finally get the data, include padding if needed*/
+		(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+		if (mdia->mediaTrack->padding_bytes)
+			memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
 
-	//check if we can get the sample (make sure we have enougth data...)
-	new_size = gf_bs_get_size(mdia->information->dataHandler->bs);
-	if (offset + (*samp)->dataLength > new_size) {
-		//always refresh the size to avoid wrong info on http/ftp
-		new_size = gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
+		//check if we can get the sample (make sure we have enougth data...)
+		new_size = gf_bs_get_size(mdia->information->dataHandler->bs);
 		if (offset + (*samp)->dataLength > new_size) {
-			mdia->BytesMissing = offset + (*samp)->dataLength - new_size;
-			return GF_ISOM_INCOMPLETE_FILE;
+			//always refresh the size to avoid wrong info on http/ftp
+			new_size = gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
+			if (offset + (*samp)->dataLength > new_size) {
+				mdia->BytesMissing = offset + (*samp)->dataLength - new_size;
+				return GF_ISOM_INCOMPLETE_FILE;
+			}
 		}
+
+		bytesRead = gf_isom_datamap_get_data(mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset);
+		//if bytesRead != sampleSize, we have an IO err
+		if (bytesRead < (*samp)->dataLength) {
+			return GF_IO_ERR;
+		}
+		mdia->BytesMissing = 0;
 	}
 
-	bytesRead = gf_isom_datamap_get_data(mdia->information->dataHandler, (*samp)->data, (*samp)->dataLength, offset);
-	//if bytesRead != sampleSize, we have an IO err
-	if (bytesRead < (*samp)->dataLength) {
-		return GF_IO_ERR;
-	}
-	mdia->BytesMissing = 0;
-	//finally rewrite the sample if this is an OD Access Unit
+	//finally rewrite the sample if this is an OD Access Unit or NAL-based one
+	//we do this even if sample size is zero because of sample implicit reconstruction rules (especially tile tracks)
 	if (mdia->handler->handlerType == GF_ISOM_MEDIA_OD) {
 		e = Media_RewriteODFrame(mdia, *samp);
 		if (e) return e;
