@@ -2570,6 +2570,11 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	/*setup display before updating composite textures (some may require a valid openGL context)*/
 	gf_sc_recompute_ar(compositor, gf_sg_get_root_node(compositor->scene) );
 
+	if (compositor->video_setup_failed)	{
+		gf_sc_lock(compositor, 0);
+		return;
+	}
+
 #ifndef GPAC_DISABLE_LOG
 	txtime = gf_sys_clock();
 #endif
