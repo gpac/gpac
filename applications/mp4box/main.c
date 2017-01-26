@@ -4225,6 +4225,8 @@ int mp4boxMain(int argc, char **argv)
 			else if (!stricmp(szExt, ".psp"))
 				conv_type = GF_ISOM_CONV_TYPE_PSP;
 		}
+		//remove extension from outfile
+		*szExt = 0;
 	}
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
