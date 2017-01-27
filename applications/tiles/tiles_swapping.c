@@ -91,9 +91,6 @@ void bs_set_ue(GF_BitStream *bs,s32 num)
     	gf_bs_write_int(bs, num, (length+1) >> 1);
 }
 
-
-	int flag_1=0;
-	int flag_2=0;
 void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, HEVCState* hevc) 
 {
 	u64 length_no_use = 0;
@@ -103,12 +100,6 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 	u32 dependent_slice_segment_flag;
 	int address_ori;	
 
-	/*HEVCState hevc;
-	HEVCSliceInfo si;
-	u8 nal_unit_type, temporal_id, layer_id;
-	gf_media_hevc_parse_nalu(bs_rw, &hevc, &nal_unit_type, &temporal_id, &layer_id);*/
-
-
 	u32 F = gf_bs_read_int(bs_ori, 1);			 //nal_unit_header
 	gf_bs_write_int(bs_rw, F, 1);
 
@@ -116,7 +107,6 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 	gf_bs_write_int(bs_rw, nal_unit_type, 6);
 	u32 rest_nalu_header = gf_bs_read_int(bs_ori, 9);
 	gf_bs_write_int(bs_rw, rest_nalu_header, 9);
-
 
 	first_slice_segment_in_pic_flag = gf_bs_read_int(bs_ori, 1);    //first_slice_segment_in_pic_flag
 	if (new_address == 0)  					
@@ -163,34 +153,7 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 		}						    
 		gf_bs_write_int(bs_rw, new_address, sps->bitsSliceSegmentAddress);	    //slice_segment_address WRITE
 	}
-	else //new_address = 0
-	{
-		//gf_bs_write_int(bs_rw, new_address, 1);
-	}
-
-	/*PicSizeInCtbsY = PicWidthInCtbsY * PicHeightInCtbsY;
-	gf_bs_read_int(bs_ori, ceil(Log2( PicSizeInCtbsY))	*/
-	
-	//******
-	
-	//testing
-	/*int slice_reserved_flag = gf_bs_read_int(bs_ori, pps->num_extra_slice_header_bits);
-	int slice_type = bs_get_ue(bs_ori);
-	int pic_output_flag = 999;
-	int colour_plane_id = 999;
-	if(pps->output_flag_present_flag)
-		pic_output_flag = gf_bs_read_int(bs_ori, 1);
-	if (sps->separate_colour_plane_flag == 1)
-		colour_plane_id = gf_bs_read_int(bs_ori, 2);
-	printf("===================\n");
-	printf("new address: %d\n", new_address);
-	printf("slice_reserved_flag: %d\n", slice_reserved_flag);
-	printf("slice_type: %d %d\n", slice_type);
-	printf("pic_output_flag: %d\n", pic_output_flag);
-	printf("colour_plane_id: %d\n", colour_plane_id);
-	printf("slice_pic_order_cnt_lsb: %d\n", hevc->s_info.poc_lsb);
-	printf("===================\n");*/
-	//
+	else; //new_address = 0
 
 	while (gf_bs_get_size(bs_ori)*8 != gf_bs_get_position(bs_ori)*8+gf_bs_get_bit_position(bs_ori)) //Rest contents copying
 	{
@@ -199,13 +162,12 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 	}
 	
 
-	gf_bs_align(bs_rw);						//align
+	//gf_bs_align(bs_rw);						//align
 
 	*out_slice_length = 0;
 	*out_slice = NULL;
 	gf_bs_get_content(bs_rw, out_slice, out_slice_length);
 
-//http://what-when-how.com/Tutorial/topic-397pct9eq3/High-Efficiency-Video-Coding-HEVC-44.html
 } 
 
 void parse_and_print_VPS(char *buffer, u32 nal_length, HEVCState* hevc)
@@ -243,20 +205,6 @@ void parse_and_print_PPS(char *buffer, u32 nal_length, HEVCState* hevc)
 		
 }
 
-/*void printSliceInfo(HEVCState hevc){
-	printf("===SSH===\n");
-	int i;
-	for(i=0;i<2;i++){
-  		printf("id:	%d\n",hevc.pps[i].id);
-		printf("tiles_enabled_flag:	%d\n",hevc.pps[i].tiles_enabled_flag);
-	     	printf("uniform_spacing_flag:	%d\n",hevc.pps[i].uniform_spacing_flag);
-		printf("dependent_slice_segments_enabled_flag:	%d\n",hevc.pps[i].dependent_slice_segments_enabled_flag);
-		printf("num_tile_columns:	%d\n",hevc.pps[i].num_tile_columns);
-		printf("num_tile_rows:	%d\n",hevc.pps[i].num_tile_rows);
-		}
-}*/
-
-
 u64 size_of_file(FILE *file)
 {
 	long cur = ftell(file);
@@ -274,11 +222,12 @@ int main (int argc, char **argv)
 	FILE* file_output = NULL;
 	int tile_1 = atoi(argv[2])-1;
 	int tile_2 = atoi(argv[3])-1;
-	if(4 == argc){
+	if(4 == argc)
+	{
 		file = fopen(argv[1], "rb");
 		file_output = fopen("/home/ubuntu/gpac/applications/tiles/output_film.hvc", "wb");
-                if(file != NULL){
-			//print_nalu(file);
+                if(file != NULL)
+		{
 			u64 length_no_use = 0;
 			GF_BitStream *bs = gf_bs_from_file(file, GF_BITSTREAM_READ);; //==The whole bitstream
 			GF_BitStream *bs_swap = gf_bs_from_file(file_output, GF_BITSTREAM_WRITE);
@@ -406,7 +355,6 @@ int main (int argc, char **argv)
 					if(is_nal)
 					{
 						nal_length = gf_media_nalu_next_start_code_bs(bs);
-						//printf("\n\n");
 						if(nal_length == 0)
 						{
 							nal_length = gf_bs_get_size(bs) - gf_bs_get_position(bs);
@@ -416,7 +364,6 @@ int main (int argc, char **argv)
 						GF_BitStream *bs_tmp = gf_bs_new(buffer, nal_length+1, GF_BITSTREAM_READ);
 						gf_media_hevc_parse_nalu(bs_tmp, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 						nal_num++;	
-						//printf("nal_number: \t%d\t%d\n ",nal_num,nal_unit_type);
 						switch (nal_unit_type)
 						{
 							case 32:
@@ -456,7 +403,6 @@ int main (int argc, char **argv)
 										buffer_reorder_length[tile_2] = sizeof(char)*nal_length_swap;										
 										buffer_reorder[tile_2] = malloc(sizeof(char)*nal_length_swap);										
 										memcpy(buffer_reorder[tile_2], buffer_swap, sizeof(char)*nal_length_swap);
-										//printf("I/O nal length: %d %d\n", nal_length, nal_length_swap);
 										free(buffer_swap);
 									}	
 									else if (hevc.s_info.slice_segment_address == slice_address[tile_2])
@@ -521,7 +467,6 @@ int main (int argc, char **argv)
 										first_slice_num++;
 									else;
 									slice_num++;
-									//gf_bs_write_data(bs_swap, buffer, nal_length);
 									//printf("input pos: %d\n", gf_bs_get_position(bs)*8+gf_bs_get_bit_position(bs));
 									//printf("output pos: %d\n", gf_bs_get_position(bs_swap)*8+gf_bs_get_bit_position(bs_swap));	
 								} 
@@ -531,23 +476,12 @@ int main (int argc, char **argv)
 									gf_bs_write_data(bs_swap, buffer, nal_length);
 								}
 								break;
-							//default:
-								//printf("nal_unit_type not managed\n\n");
-								//gf_bs_write_data(bs_swap, buffer, nal_length);
-								//break;
-
 						}
 						free(buffer);
 						//free(*buffer_swap);
 						
 					}
-					else{
-						//printf("6\n");
-						//printf("==%lu==\n",(gf_bs_get_size(bs) - gf_bs_get_position(bs)));
-						//printf("s==%lu==\n",gf_bs_get_size(bs));
-						//printf("p==%lu==\n", gf_bs_get_position(bs));
-						//gf_bs_skip_bytes(bs, gf_bs_get_size(bs) - gf_bs_get_position(bs));	
-					}
+					else;
 				}
 				printf("======Log======\n");
 				printf("input bs size: %llu\n", gf_bs_get_size(bs));
