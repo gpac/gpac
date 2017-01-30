@@ -317,9 +317,16 @@ int main (int argc, char **argv)
 			char *buffer_reorder[slice_count];
 			u32 buffer_reorder_length[slice_count];
 			u32 buffer_reorder_sc[slice_count][2];
+			int tile_num_check = 1;
+			if (tile_1+1 > tiles_num || tile_2+1 > tiles_num)
+			{
+				tile_num_check = 0;
+				printf("Requested tile number doesn't exist!\n");
+			}
+			else;
 
 			//Start parsing and swapping
-			if (bs != NULL)
+			if (bs != NULL && tile_num_check)
 			{
 				HEVCState hevc;
 				u8 nal_unit_type =1, temporal_id, layer_id;
@@ -419,26 +426,13 @@ int main (int argc, char **argv)
 									else //no swap
 									{
 										int slice_num;
-										if (hevc.s_info.slice_segment_address == slice_address[0])
-											slice_num = 0;
-										else if (hevc.s_info.slice_segment_address == slice_address[1])
-											slice_num = 1;
-										else if (hevc.s_info.slice_segment_address == slice_address[2])
-											slice_num = 2;
-										else if (hevc.s_info.slice_segment_address == slice_address[3])
-											slice_num = 3;
-										else if (hevc.s_info.slice_segment_address == slice_address[4])
-											slice_num = 4;
-										else if (hevc.s_info.slice_segment_address == slice_address[5])
-											slice_num = 5;
-										else if (hevc.s_info.slice_segment_address == slice_address[6])
-											slice_num = 6;
-										else if (hevc.s_info.slice_segment_address == slice_address[7])
-											slice_num = 7;
-										else if (hevc.s_info.slice_segment_address == slice_address[8])
-											slice_num = 8;
-										else
-											printf("slice address doesn't match!\n");
+										int i=0;
+										for (i; i<slice_count; i++)
+										{
+											if (hevc.s_info.slice_segment_address == slice_address[i])
+												slice_num = i;
+											else;
+										}
 										buffer_reorder_sc[slice_num][0] = nal_start_code;
 										buffer_reorder_sc[slice_num][1] = nal_start_code_length;
 										buffer_reorder_length[slice_num] = sizeof(char)*nal_length;
@@ -446,17 +440,17 @@ int main (int argc, char **argv)
 										memcpy(buffer_reorder[slice_num], buffer, sizeof(char)*nal_length);
 									}
 
-									if (hevc.s_info.slice_segment_address == slice_address[8])  //re-ordering
+									if (hevc.s_info.slice_segment_address == slice_address[slice_count-1])  //re-ordering
 									{
 										int i=0;
-										for (i; i<9; i++)
+										for (i; i<slice_count; i++)
 										{
 											gf_bs_write_int(bs_swap, buffer_reorder_sc[i][0], buffer_reorder_sc[i][1]);
 											gf_bs_write_data(bs_swap, buffer_reorder[i], buffer_reorder_length[i]);
 										}
 										
 										int j=0;										
-										for (j; j<9; j++)
+										for (j; j<slice_count; j++)
 										{
 											free(buffer_reorder[j]);
 										}
@@ -492,9 +486,10 @@ int main (int argc, char **argv)
 
 				fclose(file_output);
 			}
-
+			else;
                 }
+		else
+			printf("File reading fail!\n");
 	}
 	return 0;	
 }
-
