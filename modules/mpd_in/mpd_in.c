@@ -998,6 +998,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	else if (!strcmp(opt, "buffer")) {
 		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
 	}
+	else if (!strcmp(opt, "test")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_TEST;
+	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
 	if (!opt) {

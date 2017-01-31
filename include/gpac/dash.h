@@ -500,6 +500,8 @@ typedef enum {
 	GF_DASH_ALGO_NONE = 0,
 	GF_DASH_ALGO_GPAC_LEGACY_RATE = 1,
 	GF_DASH_ALGO_GPAC_LEGACY_BUFFER = 2,
+
+	GF_DASH_ALGO_GPAC_TEST = 20,
 } GF_DASHAdaptationAlgorithm;
 void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
 
