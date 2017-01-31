@@ -222,10 +222,10 @@ int main (int argc, char **argv)
 	FILE* file_output = NULL;
 	int tile_1 = atoi(argv[2])-1;
 	int tile_2 = atoi(argv[3])-1;
-	if(4 == argc)
+	if(5 == argc)
 	{
 		file = fopen(argv[1], "rb");
-		file_output = fopen("/home/ubuntu/gpac/applications/tiles/output_film.hvc", "wb");
+		file_output = fopen(argv[4], "wb");
                 if(file != NULL)
 		{
 			u64 length_no_use = 0;
