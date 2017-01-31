@@ -803,9 +803,13 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 		}
 
 		if (group->nb_segments_in_rep && (group->download_segment_index + nb_segs_in_update > group->nb_segments_in_rep)) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Not enough segments (%d needed vs %d indicated) to reach period endTime indicated in MPD - ignoring MPD duration\n", nb_segs_in_update, group->nb_segments_in_rep - group->download_segment_index ));
-			group->nb_segments_in_rep = shift + nb_segs_in_update;
-			group->dash->ignore_mpd_duration = GF_TRUE;
+			if (group->download_segment_index < group->nb_segments_in_rep) {
+
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Not enough segments (%d needed vs %d indicated) to reach period endTime indicated in MPD - ignoring MPD duration\n", nb_segs_in_update, group->nb_segments_in_rep - group->download_segment_index ));
+				group->nb_segments_in_rep = shift + nb_segs_in_update;
+				group->dash->ignore_mpd_duration = GF_TRUE;
+			}
 		}
 		group->prev_segment_ok = GF_TRUE;
 	} else {
@@ -1525,8 +1529,9 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		if (local_url) {
 			gf_delete_file(local_url);
 		}
-		//use the redirected url
-		purl = gf_strdup( dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload) );
+		//use the redirected url stored in base URL - DO NOT USE the redirected URL of the session since
+		//the session may have been reused for period XLINK dowload.
+		purl = gf_strdup( dash->base_url );
 	}
 
 	/*if update location is specified, update - spec does not say whether location is a relative or absoute URL*/
@@ -1648,16 +1653,22 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 
 	assert(new_mpd);
 
-	/*TODO - check periods are the same !!*/
 	period = gf_list_get(dash->mpd->periods, dash->active_period_index);
 	if (fetch_only  && !period) goto exit;
 
-	new_period = gf_list_get(new_mpd->periods, dash->active_period_index);
+	new_period = NULL;
+	for (i=0; i<gf_list_count(new_mpd->periods); i++) {
+		new_period = gf_list_get(new_mpd->periods, i);
+		if (new_period->start==period->start) break;
+		new_period=NULL;
+	}
+
 	if (!new_period) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing period\n"));
 		gf_mpd_del(new_mpd);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
+	dash->active_period_index = gf_list_find(new_mpd->periods, new_period);
 
 	if (gf_list_count(period->adaptation_sets) != gf_list_count(new_period->adaptation_sets)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: missing AdaptationSet\n"));
@@ -4809,8 +4820,12 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	e = gf_dash_resolve_url(dash->mpd, rep, group, dash->base_url, GF_MPD_RESOLVE_URL_MEDIA, group->download_segment_index, &new_base_seg_url, &start_range, &end_range, &group->current_downloaded_segment_duration, NULL, &key_url, &key_iv, NULL);
 
 	if (e || !new_base_seg_url) {
-		/*do something!!*/
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error resolving URL of next segment: %s\n", gf_error_to_string(e) ));
+		if (e==GF_EOS) {
+			group->done = GF_TRUE;
+		} else {
+			/*do something!!*/
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error resolving URL of next segment: %s\n", gf_error_to_string(e) ));
+		}
 		return GF_DASH_DownloadCancel;
 	}
 	use_byterange = (start_range || end_range) ? 1 : 0;
@@ -5505,14 +5520,30 @@ exit:
 	return ret;
 }
 
-static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u32 time)
+static u32 gf_dash_period_index_from_time(GF_DashClient *dash, u64 time)
 {
 	u32 i, count;
 	u64 cumul_start = 0;
 	GF_MPD_Period *period;
 
+	if (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+		u64 now, availabilityStartTime;
+		availabilityStartTime = dash->mpd->availabilityStartTime + dash->utc_shift;
+		availabilityStartTime += dash->utc_drift_estimate;
+
+		now = dash->mpd_fetch_time + (gf_sys_clock() - dash->last_update_time) - availabilityStartTime;
+		if (dash->initial_time_shift_value<=100) {
+			now -= dash->mpd->time_shift_buffer_depth * dash->initial_time_shift_value / 100;
+		} else {
+			now -= dash->initial_time_shift_value;
+		}
+		time += now;
+	}
+
+
 restart:
 	count = gf_list_count(dash->mpd->periods);
+	cumul_start = 0;
 	for (i = 0; i<count; i++) {
 		period = gf_list_get(dash->mpd->periods, i);
 
@@ -6517,9 +6548,15 @@ void gf_dash_request_period_switch(GF_DashClient *dash)
 	dash->request_period_switch = 1;
 }
 GF_EXPORT
-Bool gf_dash_in_last_period(GF_DashClient *dash)
+Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos)
 {
-	return (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
+	Bool res = (dash->active_period_index+1 < gf_list_count(dash->mpd->periods)) ? 0 : 1;
+	if (res && dash->mpd->type==GF_MPD_TYPE_DYNAMIC) {
+		GF_MPD_Period*period = gf_list_last(dash->mpd->periods);
+		//consider we are
+		if (!period->duration || dash->mpd->media_presentation_duration) res = GF_FALSE;
+	}
+	return res;
 }
 GF_EXPORT
 Bool gf_dash_in_period_setup(GF_DashClient *dash)

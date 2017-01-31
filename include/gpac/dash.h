@@ -320,8 +320,10 @@ void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done);
 /*gets presentationTimeOffset and timescale for the active representation*/
 GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, u64 *presentation_time_offset, u32 *timescale);
 
-/*returns 1 if the playback position is in the last period of the presentation*/
-Bool gf_dash_in_last_period(GF_DashClient *dash);
+/*returns 1 if the playback position is in the last period of the presentation
+if check_eos is set, return one only if the last period is known to be the last one (eg not an open period in live)
+*/
+Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos);
 /*return value:
 	1 if the period switching has been requested (due to seeking),
 	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stopped and restarted)
