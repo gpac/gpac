@@ -649,17 +649,25 @@ refetch_AU:
 	}
 
 	if (codec->is_reordering && *nextAU && codec->first_frame_dispatched) {
-		u32 CTS = (*nextAU)->CTS;
-		/*reordering !!*/
-		u32 prev_ts_diff;
 		u32 diff = 0;
-		if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
-			diff = codec->recomputed_cts - CTS;
-		}
-		prev_ts_diff = (CTS > codec->last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);
-		if (!diff) diff = prev_ts_diff;
-		else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
 
+		//if DTS is signalled, used min DTS diff to compute AU duration
+		if ((*activeChannel)->esd->slConfig->no_dts_signaling==GF_FALSE) {
+			u32 DTS = (*nextAU)->DTS;
+			diff = (DTS > codec-> last_unit_dts) ? (DTS - codec->last_unit_dts) : (codec->last_unit_dts - DTS);
+		} else {
+			//otherwise use CTS diff to compute AU duration
+			u32 prev_ts_diff;
+			u32 CTS = (*nextAU)->CTS;
+			if (codec->recomputed_cts && (codec->recomputed_cts > (*nextAU)->CTS)) {
+				diff = codec->recomputed_cts - CTS;
+				//happens when AU duration not yet initialized
+				if (diff<2) diff=0;
+			}
+			prev_ts_diff = (CTS > codec-> last_unit_cts) ? (CTS - codec->last_unit_cts) : (codec->last_unit_cts - CTS);
+			if (!diff) diff = prev_ts_diff;
+			else if (prev_ts_diff && (prev_ts_diff < diff) ) diff = prev_ts_diff;
+		}
 		if (!codec->min_au_duration || (diff < codec->min_au_duration))
 			codec->min_au_duration = diff;
 
