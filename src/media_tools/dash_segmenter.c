@@ -2957,6 +2957,7 @@ retry_track:
 
 						switch (gf_isom_get_media_subtype(init_seg, first_track, 1)) {
 						case GF_ISOM_SUBTYPE_HVC1:
+						case GF_ISOM_SUBTYPE_HVC2:
 							gf_isom_hevc_set_inband_config(init_seg, track, 1);
 							use_hevc = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
@@ -3007,6 +3008,7 @@ retry_track:
 					}
 					break;
 				case GF_ISOM_SUBTYPE_HVC1:
+				case GF_ISOM_SUBTYPE_HVC2:
 					//todo enble comparison of hevc xPS
 					probe_inband_param_set=0;
 
