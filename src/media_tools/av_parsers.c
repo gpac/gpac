@@ -4387,6 +4387,29 @@ s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc)
 	return gf_media_hevc_read_vps_ex(data, &size, hevc, GF_FALSE);
 }
 
+static void hevc_scaling_list_data(GF_BitStream *bs)
+{
+	u32 i, sizeId, matrixId;
+	for (sizeId = 0; sizeId < 4; sizeId++) {
+		for (matrixId=0; matrixId<6; matrixId += (sizeId == 3) ? 3:1 ) {
+			u32 scaling_list_pred_mode_flag_sizeId_matrixId = gf_bs_read_int(bs, 1);
+			if( ! scaling_list_pred_mode_flag_sizeId_matrixId ) {
+				/*scaling_list_pred_matrix_id_delta[ sizeId ][ matrixId ] =*/ bs_get_ue(bs);
+			} else {
+				//u32 nextCoef = 8;
+				u32 coefNum = MIN(64, (1 << (4+(sizeId << 1))));
+				if ( sizeId > 1 ) {
+					/*scaling_list_dc_coef_minus8[ sizeId − 2 ][ matrixId ] = */bs_get_se(bs);
+				}
+				for (i = 0; i<coefNum; i++) {
+					/*scaling_list_delta_coef = */bs_get_se(bs);
+				}
+			}
+		}
+	}
+}
+
+
 static const struct {
 	u32 w, h;
 } hevc_sar[17] =
@@ -4557,7 +4580,7 @@ static s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 
 			/*sps_scaling_list_ref_layer_id = */gf_bs_read_int(bs, 6);
 		} else {
 			if (/*sps_scaling_list_data_present_flag=*/gf_bs_read_int(bs, 1) ) {
-				//scaling_list_data( )
+				hevc_scaling_list_data(bs);
 			}
 		}
 	}
@@ -4771,9 +4794,7 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc)
 		}
 	}
 	if (/*pic_scaling_list_data_present_flag	= */gf_bs_read_int(bs, 1) ) {
-		//scaling_list_data( )
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[HEVC] Parsing of scaling_list_data is not yet supported, stopping scaning of PPS (slice_segment_header_extension_present won't be checked ...\n"));
-		goto exit;
+		hevc_scaling_list_data(bs);
 	}
 	pps->lists_modification_present_flag = gf_bs_read_int(bs, 1);
 	/*log2_parallel_merge_level_minus2 = */bs_get_ue(bs);
