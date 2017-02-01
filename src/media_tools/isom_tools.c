@@ -2717,6 +2717,11 @@ static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile
 	*tile_width = *tile_width * si->sps->max_CU_width;
 	*tile_height = *tile_height * si->sps->max_CU_width;
 
+	if (*tile_x + *tile_width > si->sps->width)
+		*tile_width = si->sps->width - *tile_x;
+	if (*tile_y + *tile_height > si->sps->height)
+		*tile_height = si->sps->height - *tile_y;
+
 	return tileX + tileY * si->pps->num_tile_columns;
 }
 
