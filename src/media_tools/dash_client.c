@@ -160,7 +160,7 @@ struct __dash_client
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 												  GF_MPD_Representation *rep, Bool go_up_bitrate);
 
-	u32 (*rate_adaptation_download_monitor)(GF_DashClient *dash, GF_DASH_Group *group);
+	GF_Err (*rate_adaptation_download_monitor)(GF_DashClient *dash, GF_DASH_Group *group);
 };
 
 static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double seek_to, Bool is_dynamic);
