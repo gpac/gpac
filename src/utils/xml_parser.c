@@ -1373,7 +1373,7 @@ char *gf_xml_sax_peek_node(GF_SAXParser *parser, char *att_name, char *att_value
 								if (!__is_copy) alloc_size += (u32) strlen(szLine); \
 								szLine = gf_realloc(szLine, alloc_size);	\
 							}\
-							if (__is_copy) { memcpy(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
+							if (__is_copy) { memmove(szLine, __str, sizeof(char)*_len); szLine[_len] = 0; }\
 							else strcat(szLine, __str); \
  
 	from_buffer=GF_FALSE;
