@@ -390,6 +390,7 @@ void gf_mpd_reset_periods(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
+void gf_mpd_segment_url_list_free(GF_List *list);
 
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
