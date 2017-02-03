@@ -1318,6 +1318,7 @@ GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox)
 		a->other_boxes = gf_list_new();
 		if (!a->other_boxes) return GF_OUT_OF_MEM;
 	}
+	assert(subbox->type);
 	return gf_list_add(a->other_boxes, subbox);
 }
 
@@ -1327,7 +1328,7 @@ void gf_isom_box_del(GF_Box *a)
 	GF_List *other_boxes;
 	if (!a) return;
 	if (skip_box_dump_del) return;
-
+assert(a->type);
 	other_boxes	= a->other_boxes;
 	a->other_boxes = NULL;
 

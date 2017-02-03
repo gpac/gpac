@@ -350,7 +350,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 
 			/*some smooth streaming streams contain a SDTP under the TRAF: this is incorrect, convert it*/
 			FixTrackID(mov);
-			FixSDTPInTRAF(mov->moof);
+			if (! (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG)) {
+				FixSDTPInTRAF(mov->moof);
+			}
 
 			/*read & debug: store at root level*/
 			if (mov->FragmentsFlags & GF_ISOM_FRAG_READ_DEBUG) {
