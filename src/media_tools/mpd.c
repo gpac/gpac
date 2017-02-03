@@ -1065,6 +1065,14 @@ void gf_mpd_del(GF_MPD *mpd)
 	gf_free(mpd);
 }
 
+GF_EXPORT
+void gf_mpd_reset_periods(GF_MPD *mpd)
+{
+	if (!mpd) return;
+	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, 0);
+	mpd->periods = gf_list_new();
+}
+
 
 GF_EXPORT
 GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url)

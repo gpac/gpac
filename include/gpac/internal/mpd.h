@@ -385,6 +385,8 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
+/*resets the periods of an initialized MPD*/
+void gf_mpd_reset_periods(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
