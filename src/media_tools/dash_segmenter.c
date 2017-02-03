@@ -6577,6 +6577,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					goto exit;
 				}
 				is_first_rep = GF_FALSE;
+				//gf_mpd_period_free(period_obj);
 			}
 			/*close adaptation set*/
 		}
@@ -6677,8 +6678,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 exit:
 	if (dasher->mpd) {
-		gf_mpd_del(dasher->mpd);
-		dasher->mpd = NULL;
+//		gf_mpd_reset_periods(dasher->mpd);
 	}
 	if (dasher->mpd_file) {
 		gf_fclose(dasher->mpd_file);
