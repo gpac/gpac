@@ -1482,6 +1482,13 @@ scalable_retry:
 			}
 #endif
 			break;
+
+		case GF_PROFILE_NOT_SUPPORTED:
+			/*release but no dispatch*/
+			UnlockCompositionUnit(codec, CU, 0);
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Unsupported profile detected, blacklisting decoder for this stream and changing decoder\n", codec->decio->module_name ));
+			return gf_codec_change_decoder(codec);
+
 		default:
 			unit_size = 0;
 			/*error - if the object is in intitial buffering resume it!!*/
@@ -1829,6 +1836,18 @@ static u32 get_codec_confidence(GF_Codec *codec, GF_BaseDecoder *ifce, GF_ESD *e
 	return conf;
 }
 
+Bool decio_blacklisted(GF_Codec *codec, const char *ifce_name)
+{
+	u32 i, count;
+	if (!codec->blacklisted) return GF_FALSE;
+	count = gf_list_count(codec->blacklisted);
+	for (i=0; i<count; i++) {
+		const char *name = gf_list_get(codec->blacklisted, i);
+		if (!stricmp(name, ifce_name)) return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 {
 	char szPrefDec[500];
@@ -1840,6 +1859,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	u32 dec_confidence;
 	GF_Terminal *term = codec->odm->term;
 
+	codec->profile_level = PL;
 	switch (esd->decoderConfig->streamType) {
 	case GF_STREAM_AUDIO:
 	case GF_STREAM_VISUAL:
@@ -1888,6 +1908,9 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	dec_confidence = 0;
 	ifce = NULL;
 
+	if (sOpt && decio_blacklisted(codec, sOpt))
+		sOpt = NULL;
+
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
@@ -1925,7 +1948,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	if (sOpt) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface_by_name(term->user->modules, sOpt, ifce_type);
 		if (ifce) {
-			if (ifce->CanHandleStream) {
+			if (ifce->CanHandleStream && !decio_blacklisted(codec, ifce->module_name)) {
 				u32 conf = get_codec_confidence(codec, ifce, esd, PL);
 				if ((conf!=GF_CODEC_NOT_SUPPORTED) && (conf>=dec_confidence)) {
 					/*switch*/
@@ -1948,7 +1971,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	for (i = 0; i < plugCount ; i++) {
 		ifce = (GF_BaseDecoder *) gf_modules_load_interface(term->user->modules, i, ifce_type);
 		if (!ifce) continue;
-		if (ifce->CanHandleStream) {
+		if (ifce->CanHandleStream && !decio_blacklisted(codec, ifce->module_name)) {
 			u32 conf = get_codec_confidence(codec, ifce, esd, PL);
 			
 			if (conf==GF_CODEC_PROFILE_NOT_SUPPORTED) do_dec_switch = GF_FALSE;
@@ -1967,7 +1990,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 
 	if (dec_ifce) {
 		codec->decio = dec_ifce;
-		if (do_dec_switch) {
+		if (do_dec_switch && !codec->blacklisted) {
 			sprintf(szPrefDec, "codec_%02X_%02X", esd->decoderConfig->streamType, esd->decoderConfig->objectTypeIndication);
 			gf_cfg_set_key(term->user->config, "Systems", szPrefDec, dec_ifce->module_name);
 		}
@@ -1975,6 +1998,39 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	}
 
 	return GF_CODEC_NOT_FOUND;
+}
+
+GF_Err gf_codec_change_decoder(GF_Codec *codec)
+{
+	GF_Err e;
+	u32 i, count;
+	GF_ESD *esd=NULL;
+	if (!codec || !codec->decio) return GF_CODEC_NOT_FOUND;
+	if (!codec->blacklisted) codec->blacklisted = gf_list_new();
+	gf_list_add(codec->blacklisted, gf_strdup(codec->decio->module_name) );
+
+	count = gf_list_count(codec->inChannels);
+	for (i=0; i<count; i++) {
+		GF_Channel *ch = gf_list_get(codec->inChannels, i);
+		if (ch && ch->esd) {
+			codec->decio->DetachStream(codec->decio, ch->esd->ESID);
+			if (!esd) esd = ch->esd;
+		}
+	}
+	gf_modules_close_interface((GF_BaseInterface *) codec->decio);
+	codec->decio = NULL;
+	if (!esd) return GF_CODEC_NOT_FOUND;
+	e = Codec_LoadModule(codec, esd, codec->profile_level);
+	if (e) return e;
+	if (!codec->decio) return GF_CODEC_NOT_FOUND;
+
+	for (i=0; i<count; i++) {
+		GF_Channel *ch = gf_list_get(codec->inChannels, i);
+		if (ch && ch->esd) {
+			codec->decio->AttachStream(codec->decio, ch->esd);
+		}
+	}
+	return GF_OK;
 }
 
 GF_Err Codec_Load(GF_Codec *codec, GF_ESD *esd, u32 PL)
@@ -2040,6 +2096,13 @@ void gf_codec_del(GF_Codec *codec)
 	}
 	if (codec->inChannels) gf_list_del(codec->inChannels);
 	codec->inChannels = NULL;
+	if (codec->blacklisted) {
+		while (gf_list_count(codec->blacklisted)) {
+			char *name = gf_list_pop_back(codec->blacklisted);
+			gf_free(name);
+		}
+		gf_list_del(codec->blacklisted);
+	}
 	gf_free(codec);
 }
 

@@ -280,10 +280,8 @@ typedef enum
 	GF_INVALID_CONFIGURATION				= -52,
 	/*! The element has not been found */
 	GF_NOT_FOUND							= -53,
-	/*! The filter is missing at least one requirement */
-	GF_MISSING_REQUIREMENTS					= -54,
 	/*! Unexpected format of data */
-	GF_WRONG_DATAFORMAT						= -55
+	GF_PROFILE_NOT_SUPPORTED				= -54,
 } GF_Err;
 
 /*!
