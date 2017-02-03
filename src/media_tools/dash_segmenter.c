@@ -1415,15 +1415,6 @@ restart_fragmentation_pass:
 		const char *opt;
 		char sKey[100];
 		GF_BitStream *mpd_bs = NULL;
-		mpd_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		count = gf_cfg_get_key_count(dash_cfg->dash_ctx, RepURLsSecName);
-		for (i=0; i<count; i++) {
-			char szMPDTempLine[2048];
-			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
-			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
-			sprintf(szMPDTempLine, "     %s\n", opt);
-			gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
-		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
 		if (opt) {
@@ -2354,6 +2345,7 @@ restart_fragmentation_pass:
 			seg_list->timescale = mpd_timescale;
 			seg_list->duration = (u32)(max_segment_duration * mpd_timescale);
 			seg_list->segment_URLs = segment_urls;
+			segment_urls = NULL;
 		}
 		if (presentationTimeOffset) {
 			seg_list->presentation_time_offset = presentationTimeOffset;
@@ -2443,6 +2435,10 @@ err_exit:
 		}
 		gf_list_del(fragmenters);
 	}
+	if (segment_urls) {
+		gf_mpd_segment_url_list_free(segment_urls);
+	}
+
 	if (output) {
 		if (e) gf_isom_delete(output);
 		else gf_isom_close(output);

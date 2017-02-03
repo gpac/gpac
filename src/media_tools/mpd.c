@@ -891,6 +891,11 @@ void gf_mpd_segment_timeline_free(void *_item)
 	gf_free(ptr);
 }
 
+void gf_mpd_segment_url_list_free(GF_List *list)
+{
+	gf_mpd_del_list(list, gf_mpd_segment_url_free, 0);
+}
+
 void gf_mpd_segment_list_free(void *_item)
 {
 	GF_MPD_SegmentList *ptr = (GF_MPD_SegmentList *)_item;
