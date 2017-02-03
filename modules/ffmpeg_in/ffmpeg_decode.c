@@ -975,7 +975,6 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		return GF_BAD_PARAM;
 	}
 
-
 	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
 #if 0
 	if (!ctx->hurry_up) {
