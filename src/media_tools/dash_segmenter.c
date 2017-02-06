@@ -118,6 +118,7 @@ struct __gf_dash_segmenter
 
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
+	Bool mpd_header_is_init;
 
 	GF_DASH_ContentLocationMode cp_location_mode;
 };
@@ -5348,6 +5349,7 @@ GF_DASHSegmenter *gf_dasher_new(const char *mpdName, GF_DashProfile dash_profile
 	if (tmp_dir) dasher->tmpdir = gf_strdup(tmp_dir);
 	dasher->profile = dash_profile;
 	dasher->dash_ctx = dasher_context_file;
+	dasher->mpd_header_is_init = GF_FALSE;
 
 	return dasher;
 }
@@ -6629,8 +6631,11 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	dasher->mpd->media_presentation_duration = (u64)presentation_duration;
-	e = mpd_set_header(dasher, has_mpeg2, presentation_duration, use_cenc, uses_xlink);
-	if (e) goto exit;
+	if(!dasher->mpd_header_is_init){
+		e = mpd_set_header(dasher, has_mpeg2, presentation_duration, use_cenc, uses_xlink);
+		if (e) goto exit;
+		dasher->mpd_header_is_init=GF_TRUE;
+	}
 
 
 	i=0;
@@ -6674,7 +6679,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 exit:
 	if (dasher->mpd) {
-//		gf_mpd_reset_periods(dasher->mpd);
+		gf_mpd_reset_periods(dasher->mpd);
 	}
 	if (dasher->mpd_file) {
 		gf_fclose(dasher->mpd_file);
