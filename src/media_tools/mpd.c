@@ -1999,7 +1999,7 @@ void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list)
 	gf_mpd_segment_list_free(segment_list);
 }
 
-
+/*time is given in ms*/
 void gf_mpd_print_date(FILE *out, char *name, u64 time)
 {
 	time_t gtime;
@@ -2007,11 +2007,19 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	u32 sec;
 	u32 ms;
 	gtime = time / 1000;
+	gtime -= GF_NTP_SEC_1900_TO_1970;
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
 
+#ifdef _WIN32_WCE
+	*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
+	FileTimeToSystemTime(&filet, &syst);
+	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
+#else
 	t = gmtime(&gtime);
 	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", name, 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+#endif
+
 }
 
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
