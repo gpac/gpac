@@ -27,15 +27,14 @@ do_hash_test $TEMP_DIR/test.tmp "srt-text"
 do_test "$MP4BOX  -ttxt 3 $mp4file -out $TEMP_DIR/test.tmp" "ttxt-text"
 do_hash_test $TEMP_DIR/test.tmp "ttxt-text"
 
-cd $TEMP_DIR
-do_test "$MP4BOX -raws 1 test.mp4" "raw-samples"
-n=`ls test_track* | wc -l`
+
+do_test "$MP4BOX -raws 1 $mp4file" "raw-samples"
+n=`ls $TEMP_DIR/test_track* | wc -l`
 n=${n#0}
 if [ $n != 173 ] ; then
 result="Wrong sample count $n (expected 173)"
 fi
-rm test_track* 2&>/dev/null
-cd "$main_dir/"
+rm $TEMP_DIR/test_track* 2&>/dev/null
 
 do_test "$MP4BOX -info 1 $mp4file" "InfoTk1"
 do_test "$MP4BOX -info 2 $mp4file" "InfoTk2"
