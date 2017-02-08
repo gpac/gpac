@@ -4726,16 +4726,22 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 	return GF_NOT_SUPPORTED;
 }
 
-static u32 cfg_get_key_ms(GF_Config *iniFile, const char *secName, const char *keyName) {
+static u64 cfg_get_key_ms(GF_Config *iniFile, const char *secName, const char *keyName) {
 	u32 sec, frac;
-	Double msec;
+	Double time_ms,msec;
 	//we only support profiles for which AST has to be the same
 	const char *opt = gf_cfg_get_key(iniFile, secName, keyName);
 	sscanf(opt, "%u:%u", &sec, &frac);
 
+	time_ms = sec;
+	time_ms *= 1000;
 	msec = frac*1000.0;
 	msec /= 0xFFFFFFFF;
-	return (u32)msec;
+
+	time_ms += (u32)msec;
+
+	return (u64)time_ms;
+
 }
 
 static GF_Err mpd_set_header(GF_DASHSegmenter *dasher, Bool is_mpeg2, Double mpd_duration, Bool use_cenc, Bool use_xlink)
@@ -5054,7 +5060,7 @@ static GF_Err gf_dasher_init_context(GF_Config *dash_ctx, GF_DashDynamicMode *da
 		gf_net_get_ntp(&sec, &frac);
 
 #ifndef _WIN32_WCE
-		gtime = sec - GF_NTP_SEC_1900_TO_1970;
+		gtime = sec;
 		gf_cfg_set_key(dash_ctx, "DASH", "GenerationTime", asctime(gmtime(&gtime)));
 #endif
 		sprintf(szVal, "%u:%u", sec, frac);
