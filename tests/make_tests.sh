@@ -16,7 +16,7 @@ FFMPEG=ffmpeg
 EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
-main_dir=`pwd`
+main_dir="`pwd`"
 rel_main_dir="."
 # May be needed in some particular mingw cases
 #case $platform in MINGW*)
@@ -181,7 +181,7 @@ sync_media ()
  fi
  cd $EXTERNAL_MEDIA_DIR
  wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
- cd $main_dir
+ cd "$main_dir"
 }
 
 #performs mirroring of media
@@ -190,7 +190,7 @@ sync_hash ()
 log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
 wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
-cd $main_dir
+cd "$main_dir"
 }
 
 #performs mirroring of media and references hash & videos
@@ -199,7 +199,7 @@ sync_refs ()
 log $L_INF "- Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
 wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
-cd $main_dir
+cd "$main_dir"
 }
 
 
@@ -828,7 +828,7 @@ do_fuzz()
    fi
   fi
 
-  cd $orig_path
+  cd "$orig_path"
 
   if [ $no_fuzz_cleanup = 0 ] ; then
    rm -rf $fuzz_temp_dir
