@@ -32,65 +32,119 @@
 enum
 {
 	/*absolute path to file*/
-	GF_URL_TYPE_FILE = 0,
-	/*relative URL*/
+	GF_URL_TYPE_FILE_PATH = 0,
+
+	/*absolute file:// URI */
+	GF_URL_TYPE_FILE_URI,
+
+	/*relative path or URL*/
 	GF_URL_TYPE_RELATIVE ,
-	/*any other URL*/
-	GF_URL_TYPE_ANY
+
+	/*any other absolute URI*/
+	GF_URL_TYPE_ANY_URI,
+
+	/*invalid input */
+	GF_URL_TYPE_INVALID,
 };
 
 /*resolve the protocol type, for a std URL: http:// or ftp:// ...*/
 static u32 URL_GetProtocolType(const char *pathName)
 {
 	char *begin;
-	if (!pathName) return GF_URL_TYPE_ANY;
+	if (!pathName) return GF_URL_TYPE_INVALID;
 
 	/* URL with the data scheme are not relative to avoid concatenation */
-	if (!strnicmp(pathName, "data:", 5)) return GF_URL_TYPE_ANY;
+	if (!strnicmp(pathName, "data:", 5)) return GF_URL_TYPE_ANY_URI;
 
-	if ((pathName[0] == '/') || (pathName[0] == '\\')
-	        || (pathName[1] == ':')
-	        || ((pathName[0] == ':') && (pathName[1] == ':'))
-	   ) return GF_URL_TYPE_FILE;
+
+	//conditions for a file path to be absolute:
+	// - on posix: absolute iif starts with '/'
+	// - on windows: absolute if
+	// 		* starts with \ or / (current drive)
+	//		* OR starts with <LETTER>: and then \ or /
+	//		* OR starts with \\host\share\<path> [NOT HANDLED HERE]
+#ifndef WIN32
+	if (pathName[0] == '/')
+#else
+	if ( (pathName[0] == '/') || (pathName[0] == '\\')
+			|| ( strlen(pathName)>2 && pathName[1]==':'
+					&& ((pathName[2] == '/') || (pathName[2] == '\\'))
+				)
+		)
+#endif
+		return GF_URL_TYPE_FILE_PATH;
+
 
 	begin = strstr(pathName, "://");
-	if (!begin) begin = strstr(pathName, "|//");
-	if (!begin) return GF_URL_TYPE_RELATIVE;
-	if (!strnicmp(pathName, "file", 4)) return GF_URL_TYPE_FILE;
-	return GF_URL_TYPE_ANY;
+	if (!begin)
+		return GF_URL_TYPE_RELATIVE;
+
+	else if (!strnicmp(pathName, "file://", 7))
+		return (strlen(pathName)>7 ? GF_URL_TYPE_FILE_URI : GF_URL_TYPE_INVALID);
+
+	return GF_URL_TYPE_ANY_URI;
 }
 
 /*gets protocol type*/
 Bool gf_url_is_local(const char *pathName)
 {
 	u32 mode = URL_GetProtocolType(pathName);
-	return (mode==GF_URL_TYPE_ANY) ? GF_FALSE : GF_TRUE;
+	return (mode!=GF_URL_TYPE_INVALID && mode!=GF_URL_TYPE_ANY_URI) ? GF_TRUE : GF_FALSE;
 }
+
 
 char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 {
+	char* sep;
+	u32 parent_type;
+	char* res = NULL;
+
 	u32 prot_type = URL_GetProtocolType(pathName);
 
-	/*abs path name*/
-	if (prot_type == GF_URL_TYPE_FILE) {
-		/*abs path*/
-		if (!strstr(pathName, "://") && !strstr(pathName, "|//")) return gf_strdup(pathName);
-		pathName += 6;
-		/*not sure if "file:///C:\..." is std, but let's handle it anyway*/
-		if ((pathName[0]=='/') && (pathName[2]==':')) pathName += 1;
-		return gf_strdup(pathName);
-	}
-	if (prot_type==GF_URL_TYPE_ANY) return NULL;
-	if (!parentPath) return gf_strdup(pathName);
+	switch (prot_type) {
 
-	/*try with the parent URL*/
-	prot_type = URL_GetProtocolType(parentPath);
-	/*if abs parent path concatenate*/
-	if (prot_type == GF_URL_TYPE_FILE) return gf_url_concatenate(parentPath, pathName);
-	if (prot_type != GF_URL_TYPE_RELATIVE) return NULL;
-	/*if we are here, parentPath is also relative... return the original PathName*/
-	return gf_strdup(pathName);
+		// if it's already absolute, do nothing
+		case GF_URL_TYPE_FILE_PATH:
+		case GF_URL_TYPE_ANY_URI:
+			res = gf_strdup(pathName);
+			break;
+
+		// if file URI, remove the scheme part
+		case GF_URL_TYPE_FILE_URI:
+
+			pathName += 6; // keep a slash in case it's forgotten
+
+			/* Windows file URIs SHOULD BE in the form "file:///C:\..."
+			/* Unix file URIs SHOULD BE in the form "file:///home..."
+			 * anything before the 3rd '/' is a hostname
+			*/
+			sep = strchr(pathName+1, '/');
+			if (sep) {
+				pathName = sep;
+				if (strlen(pathName) > 2 && pathName[2]==':')	// dirty way to say if windows
+					pathName++;									// consume the third / in that case
+			}
+			res = gf_strdup(pathName);
+			break;
+
+		// if it's relative, it depends on the parent
+		case GF_URL_TYPE_RELATIVE:
+			parent_type = URL_GetProtocolType(parentPath);
+
+			// in this case the parent is of no help to find an absolute path so we do nothing
+			if (parent_type == GF_URL_TYPE_RELATIVE || parent_type == GF_URL_TYPE_INVALID )
+				res = gf_strdup(pathName);
+			else
+				res = gf_url_concatenate(parentPath, pathName);
+
+			break;
+
+	}
+
+	return res;
+
 }
+
 
 GF_EXPORT
 char *gf_url_concatenate(const char *parentName, const char *pathName)
