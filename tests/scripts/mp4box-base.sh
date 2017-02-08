@@ -35,7 +35,7 @@ if [ $n != 173 ] ; then
 result="Wrong sample count $n (expected 173)"
 fi
 rm test_track* 2&>/dev/null
-cd $main_dir/
+cd "$main_dir/"
 
 do_test "$MP4BOX -info 1 $mp4file" "InfoTk1"
 do_test "$MP4BOX -info 2 $mp4file" "InfoTk2"
