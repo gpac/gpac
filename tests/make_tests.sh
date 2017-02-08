@@ -180,7 +180,7 @@ sync_media ()
   mkdir $EXTERNAL_MEDIA_DIR
  fi
  cd $EXTERNAL_MEDIA_DIR
- wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
+ wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/media/"
  cd "$main_dir"
 }
 
@@ -189,7 +189,7 @@ sync_hash ()
 {
 log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
+wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
 cd "$main_dir"
 }
 
@@ -198,7 +198,7 @@ sync_refs ()
 {
 log $L_INF "- Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
-wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
+wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/video_refs/"
 cd "$main_dir"
 }
 
@@ -681,6 +681,10 @@ test_end ()
  if [ "$result" != "" ] ; then
   test_fail=1
  fi
+
+# makes glob on non existing files to expand to null
+# enabling loops on nonexisting* to be empty
+shopt -s nullglob
 
  #gather all stats per subtests
  for i in $TEMP_DIR/$TEST_NAME-stats-*.sh ; do
@@ -1485,6 +1489,9 @@ ctrl_c_trap() {
 	finalize_make_test
 	exit
 }
+
+# disable nullglobing in case sub-scripts aren't made for it
+shopt -u nullglob
 
 #run our tests
 if [ -n "$url_arg" ] ; then
