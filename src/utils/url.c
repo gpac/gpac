@@ -60,17 +60,17 @@ static u32 URL_GetProtocolType(const char *pathName)
 	//conditions for a file path to be absolute:
 	// - on posix: absolute iif starts with '/'
 	// - on windows: absolute if
-	// 		* starts with \ or / (current drive)
-	//		* OR starts with <LETTER>: and then \ or /
-	//		* OR starts with \\host\share\<path> [NOT HANDLED HERE]
+	//	* starts with \ or / (current drive)
+	//	* OR starts with <LETTER>: and then \ or /
+	//	* OR starts with \\host\share\<path> [NOT HANDLED HERE]
 #ifndef WIN32
 	if (pathName[0] == '/')
 #else
 	if ( (pathName[0] == '/') || (pathName[0] == '\\')
-			|| ( strlen(pathName)>2 && pathName[1]==':'
-					&& ((pathName[2] == '/') || (pathName[2] == '\\'))
-				)
-		)
+		|| ( strlen(pathName)>2 && pathName[1]==':'
+			&& ((pathName[2] == '/') || (pathName[2] == '\\'))
+		   )
+	   )
 #endif
 		return GF_URL_TYPE_FILE_PATH;
 
@@ -115,14 +115,17 @@ char *gf_url_get_absolute_path(const char *pathName, const char *parentPath)
 			pathName += 6; // keep a slash in case it's forgotten
 
 			/* Windows file URIs SHOULD BE in the form "file:///C:\..."
-			/* Unix file URIs SHOULD BE in the form "file:///home..."
+			 * Unix file URIs SHOULD BE in the form "file:///home..."
 			 * anything before the 3rd '/' is a hostname
 			*/
 			sep = strchr(pathName+1, '/');
 			if (sep) {
 				pathName = sep;
-				if (strlen(pathName) > 2 && pathName[2]==':')	// dirty way to say if windows
-					pathName++;									// consume the third / in that case
+
+				// dirty way to say if windows
+				// consume the third / in that case
+				if (strlen(pathName) > 2 && pathName[2]==':')
+					pathName++;
 			}
 			res = gf_strdup(pathName);
 			break;
