@@ -17,6 +17,7 @@ EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
 main_dir=`pwd`
+rel_main_dir="."
 # May be needed in some particular mingw cases
 #case $platform in MINGW*)
 #  main_dir=`pwd -W | sed 's|/|\\\\|g'`
@@ -51,20 +52,20 @@ DEF_TIMEOUT=20
 #remote location of resource files: all media files, hash files and generated videos
 REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
 #dir where all external media are stored
-EXTERNAL_MEDIA_DIR="$main_dir/external_media"
+EXTERNAL_MEDIA_DIR="$rel_main_dir/external_media"
 #dir where all hashes are stored
-HASH_DIR="$main_dir/hash_refs"
+HASH_DIR="$rel_main_dir/hash_refs"
 #dir where all specific test rules (override of defaults, positive tests, ...) are stored
-RULES_DIR="$main_dir/rules"
+RULES_DIR="$rel_main_dir/rules"
 #dir where all referenced videos are stored
-SCRIPTS_DIR="$main_dir/scripts"
+SCRIPTS_DIR="$rel_main_dir/scripts"
 #dir where all referenced videos are stored
-VIDEO_DIR_REF="$main_dir/external_videos_refs"
+VIDEO_DIR_REF="$rel_main_dir/external_videos_refs"
 
 #dir where all local media data (ie from git repo) is stored
-MEDIA_DIR="$main_dir/media"
+MEDIA_DIR="$rel_main_dir/media"
 #local dir where all data will be generated (except hashes and referenced videos)
-LOCAL_OUT_DIR="$main_dir/results"
+LOCAL_OUT_DIR="$rel_main_dir/results"
 
 #dir where all test videos are generated
 VIDEO_DIR="$LOCAL_OUT_DIR/videos"
@@ -367,7 +368,7 @@ exit 1
 fi
 
 #test for timeout
-$GNU_TIMEOUT 1.0 ls > /dev/null 2>&1 
+$GNU_TIMEOUT 1.0 ls > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
  log $L_ERR "GNU timeout not found (ret $res) - some tests may hang forever ..."
