@@ -944,14 +944,16 @@ if [ $rv -eq 1 ] ; then
  if [ -f $negative_test_stderr ] ; then
   #look for all lines in -stderr file, if one found consider this a success
   while read line ; do
-   res_err=`grep -w "$line" $log_subtest`
+   res_err=`grep -o "$line" $log_subtest`
    if [ -n "$res_err" ]; then
     echo "Negative test detected, reverting to success (found \"$res_err\" in stderr)" >> $log_subtest
     rv=0
     echo "" > $stat_subtest
     break
    fi
-  done < $negative_test_stderr
+  #remove windows style endlines as they may cause some problems
+  #also remove empty lines otherwise grep always matches
+  done < <(tr -d '\r' <$negative_test_stderr | sed '/^$/d' )
  fi
 fi
 
