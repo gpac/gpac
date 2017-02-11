@@ -36,7 +36,7 @@
 	single step memory array
 	#define GF_LIST_ARRAY
 
-	multi-step memory array withou gf_realloc on remove, using the GF_LIST_REALLOC macro
+	multi-step memory array without gf_realloc on remove, using the GF_LIST_REALLOC macro
 	GF_LIST_ARRAY_GROW
 */
 

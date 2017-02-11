@@ -166,9 +166,9 @@ static struct log_tool_info {
 	{ GF_LOG_MUTEX, "mutex", GF_LOG_WARNING },
 	{ GF_LOG_CONDITION, "condition", GF_LOG_WARNING },
 	{ GF_LOG_DASH, "dash", GF_LOG_WARNING },
+	{ GF_LOG_FILTER, "filter", GF_LOG_WARNING },
 	{ GF_LOG_CONSOLE, "console", GF_LOG_INFO },
 	{ GF_LOG_APP, "app", GF_LOG_INFO },
-	{ GF_LOG_SCHEDULER, "scheduler", GF_LOG_INFO },
 };
 
 GF_EXPORT
