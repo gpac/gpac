@@ -395,12 +395,12 @@ typedef enum
 	GF_LOG_CONDITION,
 	/*! Log for all HTTP streaming */
 	GF_LOG_DASH,
+	/*! Log for all messages coming from filters */
+	GF_LOG_FILTER,
 	/*! Log for all messages coming from GF_Terminal or script alert()*/
 	GF_LOG_CONSOLE,
 	/*! Log for all messages coming the application, not used by libgpac or the modules*/
 	GF_LOG_APP,
-	/*! Log for all messages coming from the scheduler */
-	GF_LOG_SCHEDULER,
 
 	/*! special value used to set a level for all tools*/
 	GF_LOG_ALL,
@@ -574,7 +574,7 @@ typedef Bool (*gf_enum_dir_item)(void *cbck, char *item_name, char *item_path, G
  *	Enumerates a directory content. Feedback is provided by the enum_dir_item function
  *	\param dir Directory to enumerate
  *	\param enum_directory If set, only directories will be enumerated, otherwise only files are.
- *	\param enum_dir \ref gf_enum_dir_item callback function for enumeration.
+ *	\param enum_dir gf_enum_dir_item callback function for enumeration.
  *	\param cbck Opaque user data passed to callback function.
  *	\param filter optional filter for file extensions. If a file extension without the dot '.' character is not found in the
  *	filter the file will be skipped.

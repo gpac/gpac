@@ -472,7 +472,8 @@ void gf_mx_del(GF_Mutex *mx)
 #ifndef WIN32
 	int err;
 #endif
-	
+	if (!mx) return;
+
 	if (mx->Holder) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Mutex %s] Destroying mutex from thread %s but hold by thread %s\n", mx->log_name, log_th_name(gf_th_id() ), log_th_name(mx->Holder) ));
 	}
@@ -534,12 +535,12 @@ u32 gf_mx_p(GF_Mutex *mx)
 #ifndef WIN32
 	int retCode;
 #endif
-#ifndef GPAC_DISABLE_LOG
-	const char *mx_holder_name = log_th_name(mx->Holder);
-#endif
 	u32 caller;
-	assert(mx);
-	if (!mx) return 0;
+#ifndef GPAC_DISABLE_LOG
+	const char *mx_holder_name;
+#endif
+
+	if (!mx) return 1;
 	caller = gf_th_id();
 	if (caller == mx->Holder) {
 		mx->HolderCount += 1;
@@ -547,6 +548,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 	}
 
 #ifndef GPAC_DISABLE_LOG
+	mx_holder_name = log_th_name(mx->Holder);
 	if (mx->Holder)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), mx_holder_name ));
 #endif
@@ -693,6 +695,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 GF_EXPORT
 void gf_sema_del(GF_Semaphore *sm)
 {
+	if (!sm) return;
 #if defined(WIN32)
 	if (!CloseHandle(sm->hSemaphore)) {
 		DWORD err = GetLastError();
@@ -744,6 +747,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 GF_EXPORT
 void gf_sema_wait(GF_Semaphore *sm)
 {
+	if (!sm) return;
 #ifdef WIN32
 	WaitForSingleObject(sm->hSemaphore, INFINITE);
 #elif defined (__DARWIN__) || defined(__APPLE__)
@@ -761,15 +765,14 @@ GF_EXPORT
 Bool gf_sema_wait_for(GF_Semaphore *sm, u32 TimeOut)
 {
 #ifdef WIN32
+	if (!sm) return;
 	if (WaitForSingleObject(sm->hSemaphore, TimeOut) == WAIT_TIMEOUT) return GF_FALSE;
 	return GF_TRUE;
 #else
 	sem_t *hSem;
-#if defined(__DARWIN__) || defined(__APPLE__)
+	if (!sm) return GF_FALSE;
 	hSem = sm->hSemaphore;
-#else
-	hSem = sm->hSemaphore;
-#endif
+
 	if (!TimeOut) {
 		if (!sem_trywait(hSem)) return GF_TRUE;
 		return GF_FALSE;
