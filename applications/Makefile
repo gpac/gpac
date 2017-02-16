@@ -1,6 +1,6 @@
 include ../config.mak
 
-APPDIRS=
+APPDIRS=gpac
 
 ifeq ($(MP4BOX_STATIC),yes)
 APPDIRS+=mp4box 

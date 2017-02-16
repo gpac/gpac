@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / Elementary Stream Interface sub-project
+ *  This file is part of GPAC 
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -94,5 +94,5 @@ int main(int argc, char **argv) {\
 }
 #endif
 
-#endif	//_GF_ESI_H_
+#endif	//_GF_MAIN_H_
 
