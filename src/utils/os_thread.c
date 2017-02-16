@@ -675,6 +675,7 @@ GF_Semaphore *gf_sema_new(u32 MaxCount, u32 InitCount)
 		sprintf(semaName,"GPAC_SEM%ld", (unsigned long) tmp);
 		tmp->SemName = gf_strdup(semaName);
 	}
+	sem_unlink(tmp->SemName);
 	tmp->hSemaphore = sem_open(tmp->SemName, O_CREAT, S_IRUSR|S_IWUSR, InitCount);
 	if (tmp->hSemaphore==SEM_FAILED) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("Couldn't init semaphore: error %d\n", errno));
@@ -730,11 +731,7 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 	ReleaseSemaphore(sm->hSemaphore, NbRelease, (LPLONG) &prevCount);
 #else
 
-#if defined(__DARWIN__) || defined(__APPLE__)
 	hSem = sm->hSemaphore;
-#else
-	hSem = sm->hSemaphore;
-#endif
 
 	while (NbRelease) {
 		if (sem_post(hSem) < 0) return GF_FALSE;
@@ -750,12 +747,13 @@ void gf_sema_wait(GF_Semaphore *sm)
 	if (!sm) return;
 #ifdef WIN32
 	WaitForSingleObject(sm->hSemaphore, INFINITE);
+
 #elif defined (__DARWIN__) || defined(__APPLE__)
-	if (sem_wait(sm->hSemaphore)) {
+	if (sem_wait(sm->hSemaphore) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: %d\n", sm->SemName, errno));
 	}
 #else
-	if (sem_wait(sm->hSemaphore)) {
+	if (sem_wait(sm->hSemaphore) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore: %d\n", errno));
 	}
 #endif

@@ -100,6 +100,7 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/gpac$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no)
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin"
 ifneq ($(MP4BOX_STATIC), yes)
@@ -160,6 +161,7 @@ lninstall:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
+	ln -sf $(BUILD_PATH)/bin/gcc/gpac$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/gpac$(EXE_SUFFIX)
 ifeq ($(DISABLE_ISOFF), no)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP4Box$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP4Box$(EXE_SUFFIX)
 	ln -sf $(BUILD_PATH)/bin/gcc/MP42TS$(EXE_SUFFIX) $(DESTDIR)$(prefix)/bin/MP42TS$(EXE_SUFFIX)

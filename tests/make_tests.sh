@@ -398,13 +398,22 @@ else
 fi
 
 
-#check MP4Box, MP4Client and MP42TS (use default args, not custum ones because of -mem-track)
+#check MP4Box, gpac, MP4Client and MP42TS (use default args, not custum ones because of -mem-track)
 MP4Box -h 2> /dev/null
 res=$?
 if [ $res != 0 ] ; then
 log $L_ERR "MP4Box not found (ret $res) - exiting"
 exit 1
 fi
+
+
+gpac -h 2> /dev/null
+res=$?
+if [ $res != 0 ] ; then
+log $L_ERR "gpac not found (ret $res) - exiting"
+exit 1
+fi
+
 
 MP4CLIENT="MP4Client"
 
@@ -483,6 +492,7 @@ echo ""
 
 #reassign our default programs
 MP4BOX="MP4Box -noprog -for-test $base_args"
+GPAC="gpac $base_args"
 MP4CLIENT="MP4Client -noprog -strict-error $base_args"
 MP42TS="MP42TS $base_args"
 DASHCAST="DashCast $base_args"
@@ -1156,7 +1166,7 @@ if [ $test_skip  = 1 ] ; then
 return
 fi
 single_test=1
-do_test $1 "single"
+do_test "$1" "single"
 test_end
 }
 
