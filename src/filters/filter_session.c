@@ -35,17 +35,22 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
 		} else {
-			gf_sema_wait(fsess->semaphore);
-			assert(fsess->sema_count);
-			ref_count_dec(&fsess->sema_count);
+			if (gf_sema_wait(fsess->semaphore)) {
+				assert(fsess->sema_count);
+				ref_count_dec(&fsess->sema_count);
+			}
 		}
 	}
 }
 
 static void add_filter_reg(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
-	if (!freg->configure_pid) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing configure_pid function - ignoring\n", freg->name));
+	if (!freg->name) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
+		return;
+	}
+	if (!freg->description) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s missing description - ignoring\n", freg->name));
 		return;
 	}
 	if (!freg->process) {
@@ -133,8 +138,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 		//first pass: disconnect all filters, since some may have references to property maps or packets 
 		for (i=0; i<count; i++) {
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
-			if (filter->freg->destruct) {
-				filter->freg->destruct(filter);
+			if (filter->freg->finalize) {
+				filter->freg->finalize(filter);
 			}
 		}
 
@@ -187,9 +192,8 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 }
 
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name)
+void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
 {
-	Bool notify = GF_FALSE;
 	GF_FSTask *task;
 	assert(fsess);
 	assert(filter);
@@ -208,18 +212,25 @@ void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter 
 	task->pid = pid;
 	task->run_task = task_fun;
 	task->log_name = log_name;
+	task->udta = udta;
 
-	gf_mx_p(filter->tasks_mx);
-	if (gf_fq_count(filter->tasks) == 0) {
-		notify = GF_TRUE;
+	if (filter) {
+	
+		gf_mx_p(filter->tasks_mx);
+		if (! filter->scheduled_for_next_task && (gf_fq_count(filter->tasks) == 0)) {
+			task->notified = GF_TRUE;
+		}
+		gf_fq_add(filter->tasks, task);
+		gf_mx_v(filter->tasks_mx);
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted task Filter %s::%s (%d pending)\n", filter->name, task->log_name, fsess->tasks_pending));
+	} else {
+		task->notified = GF_TRUE;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted filter-less task %s (%d pending)\n", task->log_name, fsess->tasks_pending));
 	}
-	gf_fq_add(filter->tasks, task);
-	gf_mx_v(filter->tasks_mx);
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted task Filter %s::%s (%d pending)\n", filter->name, task->log_name, fsess->tasks_pending));
 
 
-	if (notify) {
+	if (task->notified) {
 		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
 		ref_count_inc(&fsess->tasks_pending);
 		gf_fq_add(fsess->tasks, task);
@@ -248,8 +259,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			filter = gf_filter_new(fsess, f_reg);
-			gf_filter_parse_args(filter, args);
+			filter = gf_filter_new(fsess, f_reg, args);
 			return filter;
 		}
 	}
@@ -264,6 +274,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	u64 enter_time = gf_sys_clock_high_res();
 	GF_Filter *current_filter = NULL;
 	while (1) {
+		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start;
 		GF_FSTask *task=NULL;
@@ -309,6 +320,10 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				sess_thread->has_seen_eot = GF_TRUE;
 				gf_fs_sema_io(fsess, GF_TRUE);
 			}
+			if (fsess->tasks_pending) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Thread %d: no task available but still %d pending tasks, renotifying main semaphore\n", thid, fsess->tasks_pending));
+				gf_fs_sema_io(fsess, GF_TRUE);
+			}
 
 			continue;
 		}
@@ -330,40 +345,55 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
+			gf_mx_p(current_filter->tasks_mx);
 
 			gf_fq_pop(current_filter->tasks);
 
 			//no more pending tasks for this filter
 			if (gf_fq_count(current_filter->tasks) == 0) {
-				current_filter->scheduled_for_next_task = GF_FALSE;
-				assert (gf_fq_count(current_filter->tasks) == 0);
+				//no task for filter but pending packets, requeue
+				if (task->filter->pending_packets) {
+					requeue = GF_TRUE;
+					gf_mx_v(current_filter->tasks_mx);
+				} else {
+					current_filter->scheduled_for_next_task = GF_FALSE;
+					assert (gf_fq_count(current_filter->tasks) == 0);
 
-				current_filter->in_process=GF_FALSE;
-				current_filter = NULL;
+					current_filter->in_process=GF_FALSE;
+					gf_mx_v(current_filter->tasks_mx);
+					current_filter = NULL;
+				}
+			} else {
+				gf_mx_v(current_filter->tasks_mx);
 			}
 		}
 
+		notified = task->notified;
 		if (requeue) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Re-posted task Filter %s::%s (%d pending)\n", task->filter->name, task->log_name, fsess->tasks_pending));
 
 			if (current_filter) {
+				task->notified=GF_FALSE;
 				gf_fq_add(current_filter->tasks, task);
+				//keep this thread running on the current filter no signaling of semaphore
 			} else {
+				task->notified=GF_TRUE;
 				ref_count_inc(&fsess->tasks_pending);
 				gf_fq_add(fsess->tasks, task);
+
+				gf_fs_sema_io(fsess, GF_TRUE);
 			}
-			gf_fs_sema_io(fsess, GF_TRUE);
 		} else {
 			memset(task, 0, sizeof(GF_FSTask));
 			gf_fq_add(fsess->tasks_reservoir, task);
 		}
 
-		//decrement task counter once we have dequeued the task from the main task list (this means no current filter).
-		//This ensures that the main thread will properly detect last posted task and exit then
-		if (!current_filter) {
+		//decrement task counter
+		if (notified) {
 			assert(fsess->tasks_pending);
 			ref_count_dec(&fsess->tasks_pending);
-		} else {
+		}
+		if (current_filter) {
 			current_filter->in_process=GF_FALSE;
 		}
 

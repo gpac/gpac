@@ -37,8 +37,9 @@ void gf_filterpacket_del(void *p)
 	gf_free(p);
 }
 
+void gf_filter_parse_args(GF_Filter *filter, const char *args);
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args)
 {
 	char szName[200];
 	GF_Filter *filter;
@@ -51,14 +52,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	}
 	filter->freg = registry;
 	filter->session = fsess;
-	if (filter->freg->construct) {
-		GF_Err e = filter->freg->construct(filter);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e), registry->name));
-			gf_free(filter);
-			return NULL;
-		}
-	}
 
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
@@ -86,14 +79,28 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	gf_list_add(fsess->filters, filter);
 
 	gf_filter_set_name(filter, NULL);
+
+	gf_filter_parse_args(filter, args);
+
+	if (filter->freg->initialize) {
+		GF_Err e = filter->freg->initialize(filter);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e), registry->name));
+			gf_free(filter);
+			return NULL;
+		}
+	}
+
 	return filter;
 }
+
+static void reset_filter_args(GF_Filter *filter);
 
 void gf_filter_del(GF_Filter *filter)
 {
 	assert(filter);
 
-	//delete output pids the packet reservoir
+	//delete output pids before the packet reservoir
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
 		gf_filter_pid_del(pid);
@@ -104,8 +111,7 @@ void gf_filter_del(GF_Filter *filter)
 
 	gf_fq_del(filter->tasks, gf_void_del);
 
-	//delete filter params before the props reservoir
-	if (filter->params) gf_props_del(filter->params);
+	reset_filter_args(filter);
 
 	gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
@@ -122,23 +128,22 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->name) gf_free(filter->name);
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
+	if (filter->filter_udta) gf_free(filter->filter_udta);
 	gf_free(filter);
 }
 
-
-
-void gf_filter_set_udta(GF_Filter *filter, void *udta)
-{
-	assert(filter);
-
-	filter->filter_udta = udta;
-}
 
 void *gf_filter_get_udta(GF_Filter *filter)
 {
 	assert(filter);
 
 	return filter->filter_udta;
+}
+
+const char * gf_filter_get_name(GF_Filter *filter)
+{
+	assert(filter);
+	return (const char *)filter->name;
 }
 
 void gf_filter_set_name(GF_Filter *filter, const char *name)
@@ -163,29 +168,125 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	filter->source_ids = sources_ID ? gf_strdup(sources_ID) : NULL;
 }
 
-static Bool gf_filter_set_args(GF_FSTask *task)
+void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
 {
-	assert(task->filter);
-	assert(task->filter->freg);
-	assert(task->filter->freg->update_args);
+	void *ptr = filter->filter_udta + a->offset_in_private;
+	Bool res = GF_FALSE;
 
-	task->filter->freg->update_args(task->filter);
-	return GF_FALSE;
+	switch (argv->type) {
+	case GF_PROP_BOOL:
+		if (a->offset_in_private + sizeof(Bool) <= filter->freg->private_size) {
+			*(Bool *)ptr = argv->value.boolean;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_SINT:
+		if (a->offset_in_private + sizeof(s32) <= filter->freg->private_size) {
+			*(s32 *)ptr = argv->value.sint;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_UINT:
+		if (a->offset_in_private + sizeof(u32) <= filter->freg->private_size) {
+			*(u32 *)ptr = argv->value.uint;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_LONGSINT:
+		if (a->offset_in_private + sizeof(s64) <= filter->freg->private_size) {
+			*(s64 *)ptr = argv->value.longsint;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_LONGUINT:
+		if (a->offset_in_private + sizeof(u64) <= filter->freg->private_size) {
+			*(u64 *)ptr = argv->value.longuint;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_FLOAT:
+		if (a->offset_in_private + sizeof(Fixed) <= filter->freg->private_size) {
+			*(Fixed *)ptr = argv->value.fnumber;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_DOUBLE:
+		if (a->offset_in_private + sizeof(Double) <= filter->freg->private_size) {
+			*(Double *)ptr = argv->value.number;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_FRACTION:
+		if (a->offset_in_private + sizeof(GF_Fraction) <= filter->freg->private_size) {
+			*(GF_Fraction *)ptr = argv->value.frac;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_NAME:
+	case GF_PROP_STRING:
+		if (a->offset_in_private + sizeof(char *) <= filter->freg->private_size) {
+			if (*(char **)ptr) gf_free( * (char **)ptr);
+			*(char **)ptr = argv->value.string ? gf_strdup(argv->value.string) : NULL;
+			res = GF_TRUE;
+		}
+		break;
+	case GF_PROP_POINTER:
+		if (a->offset_in_private + sizeof(void *) <= filter->freg->private_size) {
+			*(void **)ptr = argv->value.ptr;
+			res = GF_TRUE;
+		}
+		break;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property type %s not supported for filter argument\n", gf_props_get_type_name(argv->type) ));
+		return;
+		break;
+	}
+	if (!res) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to set argument %s: memory offset %d overwrite structure size %f\n", a->arg_name, a->offset_in_private, filter->freg->private_size));
+	}
 }
-
 
 void gf_filter_parse_args(GF_Filter *filter, const char *args)
 {
 	u32 i=0;
-	char *szArg;
+	char *szArg=NULL;
 	u32 alloc_len=1024;
 	if (!filter) return;
-	if (!args && filter->freg->update_args) {
-		gf_fs_post_task(filter->session, gf_filter_set_args, filter, NULL, "set_args");
+
+	if (!filter->freg->private_size) {
+		if (filter->freg->args && filter->freg->args[0].arg_name) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter with arguments but no private stack size, no arg passing\n"));
+		}
 		return;
 	}
 
-	szArg = gf_malloc(sizeof(char)*1024);
+	filter->filter_udta = gf_malloc(filter->freg->private_size);
+	if (!filter->filter_udta) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to allocate private data stack\n"));
+		return;
+	}
+	memset(filter->filter_udta, 0, filter->freg->private_size);
+
+	//instantiate all others with defauts value
+	i=0;
+	while (filter->freg->args) {
+		GF_PropertyValue argv;
+		const GF_FilterArgs *a = &filter->freg->args[i];
+		i++;
+		if (!a || !a->arg_name) break;
+		if (!a->arg_default_val) continue;
+
+		argv = gf_props_parse_value(a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
+
+		if (argv.type != GF_PROP_FORBIDEN) {
+			filter_set_arg(filter, a, &argv);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
+		}
+	}
+
+	if (args)
+		szArg = gf_malloc(sizeof(char)*1024);
 
 	//parse each arg
 	while (args) {
@@ -224,11 +325,10 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
-				argv = gf_props_parse_value(a->arg_type, a->arg_name, value);
+				argv = gf_props_parse_value(a->arg_type, a->arg_name, value, a->min_max_enum);
 
 				if (argv.type != GF_PROP_FORBIDEN) {
-					if (!filter->params) filter->params = gf_props_new(filter);
-					gf_props_set_property(filter->params, 0, a->arg_name, NULL, &argv);
+					filter_set_arg(filter, a, &argv);
 				}
 			}
 		}
@@ -253,8 +353,12 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 			args=NULL;
 		}
 	}
-	gf_free(szArg);
+	if (szArg) gf_free(szArg);
+}
 
+static void reset_filter_args(GF_Filter *filter)
+{
+	u32 i;
 	//instantiate all others with defauts value
 	i=0;
 	while (filter->freg->args) {
@@ -262,49 +366,32 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 		const GF_FilterArgs *a = &filter->freg->args[i];
 		i++;
 		if (!a || !a->arg_name) break;
-		if (!a->arg_default_val) continue;
 
-		if (gf_filter_get_property(filter, a->arg_name) != NULL) continue;
-
-		argv = gf_props_parse_value(a->arg_type, a->arg_name, a->arg_default_val);
-
-		if (argv.type != GF_PROP_FORBIDEN) {
-			if (!filter->params) filter->params = gf_props_new(filter);
-			gf_props_set_property(filter->params, 0, a->arg_name, NULL, &argv);
+		if (a->arg_type != GF_PROP_FORBIDEN) {
+			memset(&argv, 0, sizeof(GF_PropertyValue));
+			argv.type = a->arg_type;
+			filter_set_arg(filter, a, &argv);
 		}
 	}
-
-
-	if (filter->freg->update_args) {
-		gf_fs_post_task(filter->session, gf_filter_set_args, filter, NULL, "set_args");
-	}
-
 }
 
-Bool gf_filter_process(GF_FSTask *task)
+
+Bool gf_filter_process_task(GF_FSTask *task)
 {
 	GF_Err e;
 	assert(task->filter);
 	assert(task->filter->freg);
 	assert(task->filter->freg->process);
 
+	if (task->filter->pid_connection_pending) {
+		return GF_FALSE;
+	}
 	e = task->filter->freg->process(task->filter);
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS))
 		return GF_TRUE;
 
-	//non-source filter, re-post task if input not empty
-	if ( (gf_fq_count(task->filter->tasks)==0) && task->filter->pending_packets)
-		return GF_TRUE;
-
 	return GF_FALSE;
 }
-
-const GF_PropertyValue *gf_filter_get_property(GF_Filter *filter, const char *prop_name)
-{
-	if (!filter || !filter->params) return NULL;
-	return gf_props_get_property(filter->params, 0, prop_name);
-}
-
 

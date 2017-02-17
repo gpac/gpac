@@ -166,7 +166,7 @@ int gpac_main(int argc, char **argv)
 				logfile = gf_fopen(arg_val, "wt");
 				gf_log_set_callback(logfile, on_gpac_log);
 			}
-		} else if (!strcmp(arg, "-logs=") ) {
+		} else if (!strcmp(arg, "-logs") ) {
 			if (gf_log_set_tools_levels(arg_val) != GF_OK) {
 				return 1;
 			}
@@ -214,7 +214,7 @@ int gpac_main(int argc, char **argv)
 
 	if (list_filters || print_filter_info) {
 		u32 count = gf_fs_filters_registry_count(ms);
-		fprintf(stderr, "Listing %d supported filters:\n", count);
+		if (list_filters) fprintf(stderr, "Listing %d supported filters:\n", count);
 		for (i=0; i<count; i++) {
 			const GF_FilterRegister *reg = gf_fs_get_filter_registry(ms, i);
 			if (print_filter_info) {
@@ -238,7 +238,9 @@ int gpac_main(int argc, char **argv)
 
 								fprintf(stderr, "\t%s (%s): %s. Default is %s.", a->arg_name, gf_props_get_type_name(a->arg_type)
 , a->arg_desc, a->arg_default_val);
-								if (a->min_max_enum) fprintf(stderr, " Min/Max/Enum: %s", a->min_max_enum);
+								if (a->min_max_enum) {
+									fprintf(stderr, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
+								}
 								if (a->updatable) fprintf(stderr, " Updatable attribute.");
 								fprintf(stderr, "\n");
 							}

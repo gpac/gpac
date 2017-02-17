@@ -34,8 +34,18 @@
 const GF_FilterRegister *ut_filter_register();
 
 
-void ref_count_inc(volatile u32 *ref_count);
-void ref_count_dec(volatile u32 *ref_count);
+//atomic ref_count++ / ref_count--
+#if defined(WIN32) || defined(_WIN32_WCE)
+
+#define ref_count_inc(__v) InterlockedIncrement((int *) (__v))
+#define ref_count_dec(__v) InterlockedDecrement((int *) (__v))
+
+#else
+
+#define ref_count_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
+#define ref_count_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
+
+#endif
 
 #define PID_IS_INPUT(__pid) ((__pid->pid==__pid) ? GF_FALSE : GF_TRUE)
 #define PID_IS_OUTPUT(__pid) ((__pid->pid==__pid) ? GF_TRUE : GF_FALSE)
@@ -80,9 +90,9 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
 
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value);
-
 GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props);
+
+const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
 
 
@@ -146,6 +156,10 @@ typedef Bool (*task_callback)(GF_FSTask *task);
 
 struct __gf_fs_task
 {
+	//flag set for tasks registered with main task list, eg having incremented the task_pending counter.
+	//some tasks may not increment that counter (eg when requeued to a filer), so this simplifies
+	//decrementing the counter
+	Bool notified;
 	task_callback run_task;
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -153,7 +167,7 @@ struct __gf_fs_task
 	void *udta;
 };
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name);
+void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
 typedef struct __gf_fs_thread
 {
@@ -219,8 +233,6 @@ struct __gf_filter
 	//list of pids created by this filter
 	GF_List *output_pids;
 
-	GF_PropertyMap *params;
-
 	//reservoir for packets with allocated memory
 	GF_FilterQueue *pcks_alloc_reservoir;
 	//reservoir for packets with shared memory
@@ -243,10 +255,9 @@ struct __gf_filter
 	volatile u32 pending_packets;
 };
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry);
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
 void gf_filter_del(GF_Filter *filter);
-void gf_filter_parse_args(GF_Filter *filter, const char *args);
-Bool gf_filter_process(GF_FSTask *task);
+Bool gf_filter_process_task(GF_FSTask *task);
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
@@ -262,6 +273,8 @@ struct __gf_filter_pid_inst
 	GF_List *pck_reassembly;
 	Bool requires_full_data_block;
 	Bool last_block_ended;
+
+	void *udta;
 };
 
 struct __gf_filter_pid
@@ -273,9 +286,10 @@ struct __gf_filter_pid
 	GF_List *destinations;
 	GF_List *properties;
 	Bool request_property_map;
-	Bool requires_full_blocks_dispatch;
 
 	u32 nb_pck_sent;
+
+	void *udta;
 };
 
 
@@ -284,8 +298,8 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
 
-Bool gf_filter_pid_connect(GF_FSTask *task);
-Bool gf_filter_pid_reconfigure(GF_FSTask *task);
+Bool gf_filter_pid_connect_task(GF_FSTask *task);
+Bool gf_filter_pid_reconfigure_task(GF_FSTask *task);
 
 #endif //_GF_FILTER_SESSION_H_
 

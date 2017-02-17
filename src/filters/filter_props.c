@@ -25,7 +25,7 @@
 
 #include "filter_session.h"
 
-GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value)
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values)
 {
 	GF_PropertyValue p;
 	memset(&p, 0, sizeof(GF_PropertyValue));
@@ -56,6 +56,20 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		if (!value) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
+		} else if (enum_values && strchr(enum_values, '|')) {
+			char *str_start = strstr(enum_values, value);
+			if (!str_start) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s enum %s - using 0\n", value, name, enum_values));
+				p.value.uint = 0;
+			} else {
+				char *pos = (char *)enum_values;
+				u32 val=0;
+				while (pos != str_start) {
+					if (pos[0]=='|') val++;
+					pos++;
+				}
+				p.value.uint = val;
+			}
 		} else {
 			p.value.uint = (u32) atoi(value);
 		}
@@ -123,12 +137,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("DATA argument not yet supported for arg %s - ignoring\n", name));
-		p.type=GF_PROP_FORBIDEN;
+		if (!value || (sscanf(value, "%p:%d", &p.value.ptr, &p.data_len)!=2) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for data arg %s - using 0\n", value, name));
+		}
 		break;
 	case GF_PROP_POINTER:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("POINTER argument not supported for arg %s - ignoring\n", name));
-		p.type=GF_PROP_FORBIDEN;
+		if (!value || (sscanf(value, "%p", &p.value.ptr) != 1) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for pointer arg %s - using 0\n", value, name));
+		}
 		break;
 	case GF_PROP_FORBIDEN:
 	default:
@@ -176,8 +192,7 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 {
 	assert(it->reference_count);
-	ref_count_dec(&it->reference_count);
-	if (!it->reference_count) {
+	if (ref_count_dec(&it->reference_count) == 0 ) {
 		if (it->pname && it->name_alloc) gf_free(it->pname);
 
 		if (it->prop.type==GF_PROP_STRING) {
@@ -287,8 +302,8 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 
 GF_Err gf_props_set_property(GF_PropertyMap *map, u32 p4cc, const char *name, char *dyn_name, const GF_PropertyValue *value)
 {
-	u32 hash = gf_props_hash_djb2(p4cc, name);
-	gf_props_remove_property(map, hash, p4cc, name);
+	u32 hash = gf_props_hash_djb2(p4cc, name ? name : dyn_name);
+	gf_props_remove_property(map, hash, p4cc, name ? name : dyn_name);
 	return gf_props_insert_property(map, hash, p4cc, name, dyn_name, value);
 }
 
@@ -330,6 +345,37 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 		}
 	}
 	return GF_OK;
+}
+
+const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name)
+{
+	u32 i, count, idx;
+	if (!io_idx) return NULL;
+
+	idx = *io_idx;
+	if (idx== 0xFFFFFFFF) return NULL;
+
+	for (i=0; i<HASH_TABLE_SIZE; i++) {
+		if (props->hash_table[i]) {
+			const GF_PropertyEntry *pe;
+			count = gf_list_count(props->hash_table[i]);
+			if (idx >= count) {
+				idx -= count;
+				continue;
+			}
+			pe = gf_list_get(props->hash_table[i], idx);
+			if (!pe) {
+				*io_idx = 0xFFFFFFFF;
+				return NULL;
+			}
+			if (prop_4cc) *prop_4cc = pe->p4cc;
+			if (prop_name) *prop_name = pe->pname;
+			*io_idx = (*io_idx) + 1;
+			return &pe->prop;
+		}
+	}
+	*io_idx = 0xFFFFFFFF;
+	return NULL;
 }
 
 GF_EXPORT

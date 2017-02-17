@@ -25,34 +25,6 @@
 
 #include "filter_session.h"
 
-
-#if defined(WIN32) || defined(_WIN32_WCE)
-
-void ref_count_inc(volatile u32 *ref_count)
-{
-	InterlockedExchangeAdd((int *)ref_count, 1);
-}
-
-void ref_count_dec(volatile u32 *ref_count)
-{
-	InterlockedExchangeAdd((int *)ref_count, -1);
-}
-
-#else
-
-void ref_count_inc(volatile u32 *ref_count)
-{
-	__sync_add_and_fetch((int *)ref_count, 1);
-}
-
-void ref_count_dec(volatile u32 *ref_count)
-{
-	__sync_sub_and_fetch((int *)ref_count, 1);
-}
-
-#endif
-
-
 typedef struct __lf_item
 {
 	struct __lf_item *next;
