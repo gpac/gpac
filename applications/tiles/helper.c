@@ -155,6 +155,18 @@ void bs_set_se(GF_BitStream *bs,s32 num)
 	bs_set_ue(bs,v);
 }
 
+
+u32 new_address(int x,int y,int num_CTU_height[],int num_CTU_width[],int num_CTU_width_tot)
+{ int sum_height=0,sum_width=0,adress=0;
+  int i,j;
+  for(i=1;i<x;i++) sum_height+=num_CTU_height[i];
+  for(j=1;j<y;j++) sum_width+=num_CTU_width[j];
+  adress=sum_height*num_CTU_width_tot+sum_width;
+    
+//adress= sum_height;
+return adress;
+}
+
 //Transform slice 1d address into 2D address
 void get_2D_cordinates_of_slices(u32 *x, u32 *y, HEVCState *hevc)
 {
@@ -442,3 +454,242 @@ void rewrite_PPS(char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_l
 	gf_bs_del(bs_in);
 	gf_bs_del(bs_out);
 }
+
+
+void rewrite_SPS_cb(u32 pic_width, u32 pic_height,char *in_SPS, u32 in_SPS_length, char **out_SPS, u32 *out_SPS_length, HEVCState *hevc)
+{
+    GF_BitStream *bs_in, *bs_out;
+    u64 length_no_use = 0;
+    char *data_without_emulation_bytes = NULL;
+    u32 data_without_emulation_bytes_size = 0, sps_ext_or_max_sub_layers_minus1;
+    u8 max_sub_layers_minus1, layer_id;
+    Bool conformance_window_flag, multiLayerExtSpsFlag;;
+    u32 chroma_format_idc, width, height;
+    
+    data_without_emulation_bytes = gf_malloc(in_SPS_length*sizeof(char));
+    data_without_emulation_bytes_size = avc_remove_emulation_bytes(in_SPS, data_without_emulation_bytes, in_SPS_length);
+    bs_in = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
+    bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
+    if (!bs_in) goto exit;
+    
+    //copy NAL Header
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 7), 7); 
+    layer_id = gf_bs_read_int(bs_in, 6);
+    gf_bs_write_int(bs_out, layer_id, 6);
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 3), 3);
+    
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4); //copy vps_id
+    
+    if (layer_id == 0)
+    {
+        max_sub_layers_minus1 = gf_bs_read_int(bs_in, 3);
+        gf_bs_write_int(bs_out, max_sub_layers_minus1, 3);
+    }  
+    else
+    {
+        sps_ext_or_max_sub_layers_minus1 = gf_bs_read_int(bs_in, 3);
+        gf_bs_write_int(bs_out, sps_ext_or_max_sub_layers_minus1, 3);
+    }
+    multiLayerExtSpsFlag = (layer_id != 0) && (sps_ext_or_max_sub_layers_minus1 == 7);
+    if (!multiLayerExtSpsFlag) {		
+        gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);
+        write_profile_tier_level(bs_in, bs_out, 1, max_sub_layers_minus1);
+    }
+    
+    bs_set_ue(bs_out,bs_get_ue(bs_in)); //copy sps_id
+    
+    if (multiLayerExtSpsFlag) {
+        u8 update_rep_format_flag = gf_bs_read_int(bs_in, 1);
+        gf_bs_write_int(bs_out, update_rep_format_flag, 1);
+        if (update_rep_format_flag) {
+            gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);
+        }
+    }else {
+        chroma_format_idc = bs_get_ue(bs_in);
+        bs_set_ue(bs_out,chroma_format_idc);
+        if(chroma_format_idc==3)
+            gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1); // copy separate_colour_plane_flag
+        bs_get_ue(bs_in);
+	bs_get_ue(bs_in);
+        //get_wh_of_slice(&width, &height, pps_id, hevc);   
+        width=pic_width; 
+        height=pic_height;
+        bs_set_ue(bs_out,width);   
+        bs_set_ue(bs_out,height);
+        
+        conformance_window_flag = gf_bs_read_int(bs_in, 1);
+        gf_bs_write_int(bs_out, 0, 1);
+        if(conformance_window_flag)
+        {
+            bs_get_ue(bs_in);
+            bs_get_ue(bs_in);
+            bs_get_ue(bs_in);
+            bs_get_ue(bs_in);
+        }
+    }
+    
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8-gf_bs_get_bit_position(bs_in)), 8-gf_bs_get_bit_position(bs_in));
+    while (gf_bs_get_size(bs_in) != gf_bs_get_position(bs_in)) //Rest contents copying
+    {
+        gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);      
+    }
+
+
+    gf_bs_align(bs_out);						//align
+
+    *out_SPS_length = 0;
+    *out_SPS = NULL;
+    gf_bs_get_content(bs_out, out_SPS, out_SPS_length);
+
+exit:
+	gf_bs_del(bs_in);
+	gf_bs_del(bs_out);
+	gf_free(data_without_emulation_bytes);
+}
+///////////
+
+void rewrite_PPS_cb(u32 num_tile_columns_minus1,u32 num_tile_rows_minus1,u32 uniform_spacing_flag,u32 column_width_minus1[],u32 row_height_minus1[],char *in_PPS, u32 in_PPS_length, char **out_PPS, u32 *out_PPS_length)
+{
+    u64 length_no_use = 0;
+    u8 cu_qp_delta_enabled_flag, tiles_enabled_flag;
+    
+    GF_BitStream *bs_in = gf_bs_new(in_PPS, in_PPS_length, GF_BITSTREAM_READ);
+    GF_BitStream *bs_out = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
+    if (!bs_in) goto exit;
+    
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 16), 16);
+    bs_set_ue(bs_out, bs_get_ue(bs_in));//pps_id
+    bs_set_ue(bs_out, bs_get_ue(bs_in));//sps_id
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 7), 7);
+    bs_set_ue(bs_out, bs_get_ue(bs_in));//num_ref_idx_l0_default_active_minus1
+    bs_set_ue(bs_out, bs_get_ue(bs_in));//num_ref_idx_l1_default_active_minus1
+    bs_set_se(bs_out, bs_get_se(bs_in));//init_qp_minus26
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 2), 2);//constrained_intra_pred_flag,transform_skip_enabled_flag
+    cu_qp_delta_enabled_flag = gf_bs_read_int(bs_in, 1);
+    gf_bs_write_int(bs_out, cu_qp_delta_enabled_flag, 1);//cu_qp_delta_enabled_flag
+    if(cu_qp_delta_enabled_flag)
+    bs_set_ue(bs_out, bs_get_ue(bs_in));//diff_cu_qp_delta_depth
+    bs_set_se(bs_out, bs_get_se(bs_in));//pps_cb_qp_offset
+    bs_set_se(bs_out, bs_get_se(bs_in));//pps_cr_qp_offset
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 4), 4);//pps_slice_chroma_qp_offsets_present_flag-----transquant_bypass_enabled_flag
+    
+    
+    //tile//////////////////////
+    
+    gf_bs_read_int(bs_in, 1);
+    gf_bs_write_int(bs_out, 1, 1);//tiles_enable_flag ----from 0 to 1
+    tiles_enabled_flag =1;//always enable
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 1), 1);//entropy_coding_sync_enabled_flag    
+    bs_set_ue(bs_out, num_tile_columns_minus1);//write num_tile_columns_minus1 
+    bs_set_ue(bs_out, num_tile_rows_minus1);//num_tile_rows_minus1
+    gf_bs_write_int(bs_out, uniform_spacing_flag, 1);  //uniform_spacing_flag
+       
+        if(!uniform_spacing_flag)
+        {
+            u32 i;
+            for(i=0;i<num_tile_columns_minus1;i++)
+                bs_set_ue(bs_out,column_width_minus1[i]-1);//column_width_minus1[i]
+            for(i=0;i<num_tile_rows_minus1;i++)
+                bs_set_ue(bs_out,row_height_minus1[i]-1);//row_height_minus1[i]
+        } 
+     u32 loop_filter_across_tiles_enabled_flag=1;//loop_filter_across_tiles_enabled_flag
+     gf_bs_write_int(bs_out, loop_filter_across_tiles_enabled_flag, 1); 
+    
+    gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8-gf_bs_get_bit_position(bs_in)), 8-gf_bs_get_bit_position(bs_in));
+    while (gf_bs_get_size(bs_in) != gf_bs_get_position(bs_in)) //Rest contents copying
+    {
+        gf_bs_write_int(bs_out, gf_bs_read_int(bs_in, 8), 8);      
+    }
+    
+    gf_bs_align(bs_out);						//align
+
+    *out_PPS_length = 0;
+    *out_PPS = NULL;
+    gf_bs_get_content(bs_out, out_PPS, out_PPS_length);
+    
+    exit:
+	gf_bs_del(bs_in);
+	gf_bs_del(bs_out);
+}
+
+
+void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, HEVCState* hevc) 
+{
+	u64 length_no_use = 0;
+	GF_BitStream *bs_ori = gf_bs_new(in_slice, in_slice_length+1, GF_BITSTREAM_READ);
+	GF_BitStream *bs_rw = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
+	u32 first_slice_segment_in_pic_flag;
+	u32 dependent_slice_segment_flag;
+	int address_ori;	
+
+	u32 F = gf_bs_read_int(bs_ori, 1);			 //nal_unit_header
+	gf_bs_write_int(bs_rw, F, 1);
+
+	u32 nal_unit_type = gf_bs_read_int(bs_ori, 6);
+	gf_bs_write_int(bs_rw, nal_unit_type, 6);
+	u32 rest_nalu_header = gf_bs_read_int(bs_ori, 9);
+	gf_bs_write_int(bs_rw, rest_nalu_header, 9);
+
+	first_slice_segment_in_pic_flag = gf_bs_read_int(bs_ori, 1);    //first_slice_segment_in_pic_flag
+	if (new_address == 0)  					
+	{	
+		gf_bs_write_int(bs_rw, 1, 1);
+	}
+	else
+	{
+		gf_bs_write_int(bs_rw, 0, 1);	
+	}
+	
+ 
+	if (nal_unit_type >= 16 && nal_unit_type <= 23)                 //no_output_of_prior_pics_flag
+	{
+		u32 no_output_of_prior_pics_flag = gf_bs_read_int(bs_ori, 1);    
+		gf_bs_write_int(bs_rw, no_output_of_prior_pics_flag, 1);
+	}
+	else;
+
+	u32 pps_id = bs_get_ue(bs_ori);					 //pps_id
+	bs_set_ue(bs_rw, pps_id);
+
+	HEVC_PPS *pps;
+	HEVC_SPS *sps;
+	pps = &hevc->pps[pps_id];
+	sps = &hevc->sps[pps->sps_id];
+
+	if (!first_slice_segment_in_pic_flag && pps->dependent_slice_segments_enabled_flag) //dependent_slice_segment_flag READ
+	{ 
+		dependent_slice_segment_flag = gf_bs_read_int(bs_ori, 1);
+	}
+	else;
+	if (!first_slice_segment_in_pic_flag) 						    //slice_segment_address READ
+	{
+		address_ori = gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
+	}
+	else; 	//original slice segment address = 0
+
+	if (new_address != 0) //new address != 0  						    
+	{
+		if (pps->dependent_slice_segments_enabled_flag)				    //dependent_slice_segment_flag WRITE
+		{
+			gf_bs_write_int(bs_rw, 0, 1);
+		}						    
+		gf_bs_write_int(bs_rw, new_address, sps->bitsSliceSegmentAddress);	    //slice_segment_address WRITE
+	}
+	else; //new_address = 0
+
+	while (gf_bs_get_size(bs_ori)*8 != gf_bs_get_position(bs_ori)*8+gf_bs_get_bit_position(bs_ori)) //Rest contents copying
+	{
+		u32 rest_contents = gf_bs_read_int(bs_ori, 1);
+		gf_bs_write_int(bs_rw, rest_contents, 1);
+	}
+	
+
+	//gf_bs_align(bs_rw);						//align
+
+	*out_slice_length = 0;
+	*out_slice = NULL;
+	gf_bs_get_content(bs_rw, out_slice, out_slice_length);
+
+} 
+
+
