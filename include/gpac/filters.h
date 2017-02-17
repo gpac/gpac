@@ -32,6 +32,8 @@ extern "C" {
 
 #include <gpac/tools.h>
 #include <gpac/events.h>
+//for offsetof()
+#include <stddef.h>
 
 typedef struct __gf_media_session GF_FilterSession;
 
@@ -106,10 +108,13 @@ typedef struct
 } GF_PropertyValue;
 
 const char *gf_props_get_type_name(u32 type);
+GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
 
 typedef struct
 {
 	const char *arg_name;
+	//offset of the argument in the structure
+	s32 offset_in_private;
 	const char *arg_desc;
 	u8 arg_type;
 	const char *arg_default_val;
@@ -126,48 +131,62 @@ typedef enum
 
 typedef struct
 {
+	//mandatory - name of the filter as used when setting up filters
 	const char *name;
+	//optional - author of the filter
 	const char *author;
+	//mandatory - description of the filter
 	const char *description;
+	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling this
+	u32 private_size;
 
+	//optional - filter arguments if any
 	const GF_FilterArgs *args;
 
-	//optional - callback for filter construction (for private stack of filter)
-	GF_Err (*construct)(GF_Filter *filter);
-	//optional - callback for filter desctruction (for private stack of filter)
-	void (*destruct)(GF_Filter *filter);
 	//mandatory - callback for filter processing
 	GF_Err (*process)(GF_Filter *filter);
+
+	//optional for sources, mandatory for filters and sinks - callback for PID update
+	//may be called several times on the same pid if pid config is changed
+	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state);
+
+	//optional - callback for filter init -  private stack of filter is allocated by framework)
+	GF_Err (*initialize)(GF_Filter *filter);
+
+	//optional - callback for filter desctruction -  private stack of filter is freed by framework
+	void (*finalize)(GF_Filter *filter);
+
 	//optional - callback for arguments update
 	GF_Err (*update_args)(GF_Filter *filter);
-	//mandatory - callback for PID update - may be called several times on the same pid if
-	//pid config is changed
-	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state);
 } GF_FilterRegister;
 
 u32 gf_fs_filters_registry_count(GF_FilterSession *fsess);
 const GF_FilterRegister *gf_fs_get_filter_registry(GF_FilterSession *fsess, u32 idx);
 
 
-void gf_filter_set_udta(GF_Filter *filter, void *udta);
 void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
-
-const GF_PropertyValue *gf_filter_get_property(GF_Filter *filter, const char *prop_name);
+const char *gf_filter_get_name(GF_Filter *filter);
 
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 
 //set a new property to the pid. previous properties (ones set before last packet dispatch)
-//will still be valid. You need to remove one by one using set_property with NULL property, or reset the
+//will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
 //properties with gf_filter_pid_reset_properties
 GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
 GF_Err gf_filter_pid_set_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value);
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
 
+void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta);
+void *gf_filter_pid_get_udta(GF_FilterPid *pid);
+
 //resets current properties of the pid
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
+//push a new set of properties for dst_pid using all properties from src_pid
+GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid);
 
-const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name);
+const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name);
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks);
 
@@ -193,13 +212,22 @@ GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF
 //by defaults packet do not share properties with each-other, this functions enable passing the properties of
 //one packet to another
 GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst);
-const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name);
+const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *pck, const char *prop_name);
+
+const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 *idx, u32 *prop_4cc, const char **prop_name);
 
 
 GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_end);
 GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_end);
 
 
+
+enum
+{
+	//property indicating PID name, as used when resolving connections
+	GF_FILTER_PID_NAME = GF_4CC('g','f','p','N')
+};
 
 #ifdef __cplusplus
 }

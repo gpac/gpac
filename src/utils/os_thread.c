@@ -742,21 +742,28 @@ Bool gf_sema_notify(GF_Semaphore *sm, u32 NbRelease)
 }
 
 GF_EXPORT
-void gf_sema_wait(GF_Semaphore *sm)
+Bool gf_sema_wait(GF_Semaphore *sm)
 {
-	if (!sm) return;
+	if (!sm) return GF_FALSE;
 #ifdef WIN32
-	WaitForSingleObject(sm->hSemaphore, INFINITE);
-
-#elif defined (__DARWIN__) || defined(__APPLE__)
-	if (sem_wait(sm->hSemaphore) < 0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: %d\n", sm->SemName, errno));
+	switch ( )WaitForSingleObject(sm->hSemaphore, INFINITE) ) {
+	case WAIT_FAILED:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: %d\n", sm->SemName, GetLastError() ));
+		return GF_FALSE;
+	case WAIT_ABANDONED:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore %s: owner thread exit\n", sm->SemName));
+		return GF_FALSE;
+	default:
+		break;
 	}
+
 #else
 	if (sem_wait(sm->hSemaphore) < 0) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Semaphore] failed to wait for semaphore: %d\n", errno));
+		return GF_FALSE;
 	}
 #endif
+	return GF_TRUE;
 }
 
 GF_EXPORT
