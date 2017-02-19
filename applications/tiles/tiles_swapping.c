@@ -91,39 +91,46 @@ void bs_set_ue(GF_BitStream *bs,s32 num)
     	gf_bs_write_int(bs, num, (length+1) >> 1);
 }
 
+/*u32 get_slice_segment_header_length(GF_BitStream *bs, HEVCState *hevc)
+{
+	HEVCSliceInfo si;
+	u32 header_length = hevc_parse_slice_segment(bs, hevc, &si)
+	
+}*/
+
+
+
 void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length, char **out_slice, u32 *out_slice_length, HEVCState* hevc) 
 {
-	u64 length_no_use = 0;
-	GF_BitStream *bs_ori = gf_bs_new(in_slice, in_slice_length+1, GF_BITSTREAM_READ);
-	GF_BitStream *bs_rw = gf_bs_new(NULL, length_no_use, GF_BITSTREAM_WRITE);
+	GF_BitStream *bs_ori = gf_bs_new(in_slice, in_slice_length, GF_BITSTREAM_READ);
+	GF_BitStream *bs_rw = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	u32 first_slice_segment_in_pic_flag;
 	u32 dependent_slice_segment_flag;
-	int address_ori;	
+	int address_ori;
 
-	u32 F = gf_bs_read_int(bs_ori, 1);			 //nal_unit_header
-	gf_bs_write_int(bs_rw, F, 1);
+	gf_bs_skip_bytes(bs_ori, 2);
+	HEVCSliceInfo si;
+	hevc_parse_slice_segment(bs_ori, hevc, &si);
+	u32 header_end = (gf_bs_get_position(bs_ori)-1)*8+gf_bs_get_bit_position(bs_ori);
 
+	gf_bs_seek(bs_ori, 0);
+
+	//nal_unit_header			 
+	gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
 	u32 nal_unit_type = gf_bs_read_int(bs_ori, 6);
 	gf_bs_write_int(bs_rw, nal_unit_type, 6);
-	u32 rest_nalu_header = gf_bs_read_int(bs_ori, 9);
-	gf_bs_write_int(bs_rw, rest_nalu_header, 9);
+	gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 9), 9);
+	
 
 	first_slice_segment_in_pic_flag = gf_bs_read_int(bs_ori, 1);    //first_slice_segment_in_pic_flag
-	if (new_address == 0)  					
-	{	
+	if (new_address == 0)  						
 		gf_bs_write_int(bs_rw, 1, 1);
-	}
 	else
-	{
-		gf_bs_write_int(bs_rw, 0, 1);	
-	}
+		gf_bs_write_int(bs_rw, 0, 1);
 	
- 
-	if (nal_unit_type >= 16 && nal_unit_type <= 23)                 //no_output_of_prior_pics_flag
-	{
-		u32 no_output_of_prior_pics_flag = gf_bs_read_int(bs_ori, 1);    
-		gf_bs_write_int(bs_rw, no_output_of_prior_pics_flag, 1);
-	}
+
+	if (nal_unit_type >= 16 && nal_unit_type <= 23)                 //no_output_of_prior_pics_flag  
+		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
 	else;
 
 	u32 pps_id = bs_get_ue(bs_ori);					 //pps_id
@@ -138,7 +145,10 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 	{ 
 		dependent_slice_segment_flag = gf_bs_read_int(bs_ori, 1);
 	}
-	else;
+	else
+	{
+		dependent_slice_segment_flag = GF_FALSE;
+	}
 	if (!first_slice_segment_in_pic_flag) 						    //slice_segment_address READ
 	{
 		address_ori = gf_bs_read_int(bs_ori, sps->bitsSliceSegmentAddress);
@@ -154,19 +164,38 @@ void rewrite_slice_address(u32 new_address, char *in_slice, u32 in_slice_length,
 		gf_bs_write_int(bs_rw, new_address, sps->bitsSliceSegmentAddress);	    //slice_segment_address WRITE
 	}
 	else; //new_address = 0
+	
+	printf("ori_pos:%llu   rw_pos:%llu\n", gf_bs_get_position(bs_ori)*8+gf_bs_get_bit_position(bs_ori), gf_bs_get_position(bs_rw)*8+gf_bs_get_bit_position(bs_rw));
+	
 
-	while (gf_bs_get_size(bs_ori)*8 != gf_bs_get_position(bs_ori)*8+gf_bs_get_bit_position(bs_ori)) //Rest contents copying
+	while (header_end != (gf_bs_get_position(bs_ori)-1)*8+gf_bs_get_bit_position(bs_ori)) //Copy till the end of the header
 	{
-		u32 rest_contents = gf_bs_read_int(bs_ori, 1);
-		gf_bs_write_int(bs_rw, rest_contents, 1);
+		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
+	}	
+	//if (nal_unit_type == 1)
+	//	printf("address pos:%llu\n", gf_bs_get_position(bs_rw)*8+gf_bs_get_bit_position(bs_rw));
+	gf_bs_align(bs_rw);					//align
+	gf_bs_align(bs_ori);     				//skip the padding 0s in original bitstream
+	//printf("in_type:%d add:%d hd:%d\n",nal_unit_type,new_address,header_end);
+
+	while (gf_bs_get_size(bs_ori)*8 != (gf_bs_get_position(bs_ori)-1)*8+gf_bs_get_bit_position(bs_ori)) //Rest contents copying
+	{
+		//printf("size: %llu %llu\n", gf_bs_get_size(bs_ori)*8, (gf_bs_get_position(bs_ori)-1)*8+gf_bs_get_bit_position(bs_ori));
+		gf_bs_write_int(bs_rw, gf_bs_read_int(bs_ori, 1), 1);
 	}
+	
 	
 
 	//gf_bs_align(bs_rw);						//align
-
+	gf_bs_truncate(bs_rw);
+	//printf("input bs size: %llu\n", gf_bs_get_size(bs_ori));
+	//printf("output bs size: %llu\n", gf_bs_get_size(bs_rw));
+	//printf("input pos:%lld\n", (gf_bs_get_position(bs_ori)-1)*8+gf_bs_get_bit_position(bs_ori));
+	//printf("output pos:%lld\n", (gf_bs_get_position(bs_rw)-1)*8+gf_bs_get_bit_position(bs_rw));
 	*out_slice_length = 0;
 	*out_slice = NULL;
 	gf_bs_get_content(bs_rw, out_slice, out_slice_length);
+	//printf("output buffer size: %d\n", *out_slice_length);
 
 } 
 
@@ -367,6 +396,7 @@ int main (int argc, char **argv)
 						buffer = malloc(sizeof(char)*nal_length);
 						gf_bs_read_data(bs,buffer,nal_length);
 						GF_BitStream *bs_tmp = gf_bs_new(buffer, nal_length, GF_BITSTREAM_READ);
+						//printf("size bs buf bstmp:%d %lld %lld\n",sizeof(char)*nal_length, gf_bs_get_position(bs), gf_bs_get_size(bs_tmp));
 						gf_media_hevc_parse_nalu(bs_tmp, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 						nal_num++;
 						//printf("%d ", nal_unit_type);	
@@ -438,6 +468,7 @@ int main (int argc, char **argv)
 											buffer_reorder_sc[tile_2][0] = nal_start_code;
 											buffer_reorder_sc[tile_2][1] = nal_start_code_length;
 											rewrite_slice_address(slice_address[tile_2], buffer, nal_length, &buffer_swap, &nal_length_swap, &hevc);
+											//printf("output bs size2: %d\n", nal_length_swap);
 											//if(nal_length_swap!=nal_length) fprintf(stderr, "ERROR in size\n");
 											buffer_reorder_length[tile_2] = sizeof(char)*nal_length_swap;										
 											buffer_reorder[tile_2] = malloc(sizeof(char)*nal_length_swap);										
@@ -449,6 +480,7 @@ int main (int argc, char **argv)
 											buffer_reorder_sc[tile_1][0] = nal_start_code;
 											buffer_reorder_sc[tile_1][1] = nal_start_code_length;		
 											rewrite_slice_address(slice_address[tile_1], buffer, nal_length, &buffer_swap, &nal_length_swap, &hevc);
+											//printf("output bs size2: %d\n", nal_length_swap);
 											//if(nal_length_swap!=nal_length) fprintf(stderr, "ERROR in size\n");
 											buffer_reorder_length[tile_1] = sizeof(char)*nal_length_swap;										
 											buffer_reorder[tile_1] = malloc(sizeof(char)*nal_length_swap);										
@@ -536,7 +568,7 @@ int main (int argc, char **argv)
 					if (tile_num == 0)
 						printf("This file has no tile!\n");
 					else
-						printf("This file has only %d tile(s)!\n", tile_num);
+						printf("This file has only %d tile(s)\n", tile_num);
 				}
 				else if (tile_info_check == 2)
 				{
