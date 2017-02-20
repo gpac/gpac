@@ -2,7 +2,6 @@
 
 #for user doc, check scripts/00-template
 
-
 base_args=""
 
 GNU_TIME=/usr/bin/time
@@ -16,9 +15,18 @@ FFMPEG=ffmpeg
 EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
-main_dir="`pwd`"
+
+#if the script in launched from elsewhere, main_dir still needs to be the script directory
+main_dir="$(dirname $(realpath $0))"
+cd $main_dir
+
+#if launched from an absolute path, set all paths as absolute (will break on cygwin)
 rel_main_dir="."
-# May be needed in some particular mingw cases
+if [[ "$0" = /* ]]; then
+  rel_main_dir=$main_dir
+fi
+
+  # May be needed in some particular mingw cases
 #case $platform in MINGW*)
 #  main_dir=`pwd -W | sed 's|/|\\\\|g'`
 #  echo $main_dir
@@ -1506,7 +1514,7 @@ else
   fi
   current_script=$i
   source $i
-
+  cd $main_dir
   #break if error and error
   if [ $strict_mode = 1 ] ; then
    #wait for all tests to be done before checking error marker
