@@ -47,6 +47,7 @@ typedef struct
 	u32 nb_pids;
 	u32 fwd;
 	u32 framing;
+	Bool opt_dump;
 	Bool norecfg;
 
 	u64 dummy1;
@@ -394,6 +395,16 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 
 	data = gf_filter_pck_get_data(pck, &size);
 
+	if (stack->opt_dump && !pidctx->nb_packets) {
+		GF_PropertyValue p;
+		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
+		gf_filter_pck_send(pck);
+		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','t'), &p);
+		gf_filter_pck_merge_properties(pck, pck);
+		gf_filter_pck_set_framing(pck, GF_TRUE, GF_FALSE);
+		gf_log_set_strict_error(old_strict);
+	}
+
 	gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
 
 	pidctx->nb_packets++;
@@ -480,12 +491,33 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PI
 	if (!format || !format->value.string || strcmp(format->value.string, stack->pid_att)) {
 		return GF_NOT_SUPPORTED;
 	}
+	if (stack->opt_dump) {
+		char *data;
+		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
+		gf_filter_pid_set_property(pidctx->src_pid, GF_4CC('s','h','a','1'), format);
+		gf_filter_pid_reset_properties(pidctx->src_pid);
+		gf_filter_pck_new_alloc(pidctx->src_pid, 20, &data);
+		gf_filter_pck_new_shared(pidctx->src_pid, "foo", 3, NULL);
+		gf_filter_pck_new_ref(pidctx->src_pid, "foo", 3, NULL);
+		gf_log_set_strict_error(old_strict);
+	}
+
 	//filter mode, setup output
 	if (stack->mode==2) {
 		pidctx->dst_pid = gf_filter_pid_new(filter);
 		p.type=GF_PROP_NAME;
 		p.value.string = (char *) stack->pid_att;
 		gf_filter_pid_copy_properties(pidctx->dst_pid, pidctx->src_pid);
+
+		if (stack->opt_dump) {
+			Bool old_strict = gf_log_set_strict_error(GF_FALSE);
+			gf_filter_pid_copy_properties(pidctx->src_pid, pidctx->dst_pid);
+			gf_filter_pid_get_packet(pidctx->dst_pid);
+			gf_filter_pid_drop_packet(pidctx->dst_pid);
+			gf_filter_pid_drop_packet(pidctx->src_pid);
+			gf_log_set_strict_error(old_strict);
+		}
+
 		gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('c','u','s','t'), &p);
 
 		gf_filter_pid_set_udta(pidctx->dst_pid, pidctx);
@@ -534,6 +566,11 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	p.value.string = szName;
 	gf_filter_pid_set_property(pidctx->dst_pid, GF_FILTER_PID_NAME, &p);
 
+	if (stack->opt_dump) {
+		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
+		gf_filter_pid_set_framing_mode(pidctx->dst_pid, GF_TRUE);
+		gf_log_set_strict_error(old_strict);
+	}
 
 	pidctx->sha_ctx = gf_sha1_starts();
 
@@ -548,8 +585,6 @@ static GF_Err ut_filter_update_args(GF_Filter *filter)
 	return GF_NOT_SUPPORTED;
 }
 
-static int first_load = 1;
-
 GF_Err utfilter_initialize(GF_Filter *filter)
 {
 	GF_PropertyValue p;
@@ -557,10 +592,10 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 
 	stack->pids = gf_list_new();
 
-	if (first_load) {
+	if (stack->opt_dump) {
+		Bool old_strict;
 		char szFmt[40];
 		s64 val;
-		first_load=0;
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "true", NULL);
 		if (p.value.boolean != GF_TRUE) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing boolean value"));
@@ -629,6 +664,40 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
 
+		old_strict = gf_log_set_strict_error(GF_FALSE);
+
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_SINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LONGSINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LONGUINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_DATA, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_POINTER, "prop", "", NULL);
+
+		p = gf_props_parse_value(GF_PROP_BOOL, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_SINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LONGSINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LONGUINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_STRING, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_DATA, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_POINTER, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_UINT, "prop", "test", "foo|bar");
+		p = gf_props_parse_value(100, "prop", "test", NULL);
+
+		gf_log_set_strict_error(old_strict);
+
 		gf_props_get_type_name(GF_PROP_BOOL);
 		gf_props_get_type_name(GF_PROP_SINT);
 		gf_props_get_type_name(GF_PROP_UINT);
@@ -673,6 +742,7 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ OFFS(alloc), "Uses allocated memory packets in source mode", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(fwd), "Indicates packet forward mode for filter.\n\t\tshared: uses shared memory (dangerous)\n\t\tcopy: uses copy\n\t\tref: uses references to source packet\n\t\tmix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_FALSE},
 	{ OFFS(framing), "Divides packets in 3 for filter mode, or allows partial blocks for sink mode", GF_PROP_UINT, "none", "none|default|nostart|noend", GF_TRUE},
+	{ OFFS(opt_dump), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LONGSINT, "0", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LONGUINT, "0", NULL, GF_TRUE},

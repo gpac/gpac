@@ -277,6 +277,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start;
+		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
 
 		if (current_filter==NULL) {
@@ -332,6 +333,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			current_filter->scheduled_for_next_task = GF_TRUE;
 			assert(!current_filter->in_process);
 			current_filter->in_process=GF_TRUE;
+			pending_packets = current_filter->pending_packets;
 		}
 
 		sess_thread->nb_tasks++;
@@ -352,7 +354,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			//no more pending tasks for this filter
 			if (gf_fq_count(current_filter->tasks) == 0) {
 				//no task for filter but pending packets, requeue
-				if (task->filter->pending_packets) {
+				if (task->filter->pending_packets != pending_packets) {
 					requeue = GF_TRUE;
 					gf_mx_v(current_filter->tasks_mx);
 				} else {
