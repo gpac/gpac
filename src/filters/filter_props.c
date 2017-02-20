@@ -45,11 +45,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		}
 		break;
 	case GF_PROP_SINT:
-		if (!value) {
+		if (!value || (sscanf(value, "%d", &p.value.sint)!=1)) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for int arg %s - using 0\n", value, name));
 			p.value.sint = 0;
-		} else {
-			p.value.sint = atoi(value);
 		}
 		break;
 	case GF_PROP_UINT:
@@ -70,24 +68,20 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 				}
 				p.value.uint = val;
 			}
-		} else {
-			p.value.uint = (u32) atoi(value);
+		} else if (sscanf(value, "%d", &p.value.uint)!=1) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for unsigned int arg %s - using 0\n", value, name));
 		}
 		break;
 	case GF_PROP_LONGSINT:
-		if (!value) {
+		if (!value || (sscanf(value, ""LLD, &p.value.longsint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
-		} else {
-			sscanf(value, ""LLD, &p.value.longsint);
 		}
 		break;
 	case GF_PROP_LONGUINT:
-		if (!value) {
+		if (!value || (sscanf(value, ""LLU, &p.value.longuint)!=1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for long unsigned int arg %s - using 0\n", value, name));
 			p.value.uint = 0;
-		} else {
-			sscanf(value, ""LLU, &p.value.longuint);
 		}
 		break;
 	case GF_PROP_FRACTION:
@@ -112,16 +106,18 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.fnumber = 0;
 		} else {
 			Float f;
-			sscanf(value, "%f", &f);
-			p.value.fnumber = FLT2FIX(f);
+			if (sscanf(value, "%f", &f) != 1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for float arg %s - using 0\n", value, name));
+			p.value.fnumber = 0;
+			} else {
+				p.value.fnumber = FLT2FIX(f);
+			}
 		}
 		break;
 	case GF_PROP_DOUBLE:
-		if (!value) {
+		if (!value || (sscanf(value, "%lg", &p.value.number) != 1) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for double arg %s - using 0\n", value, name));
 			p.value.number = 0;
-		} else {
-			p.value.number = atof(value);
 		}
 		break;
 	case GF_PROP_NAME:
@@ -148,7 +144,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_FORBIDEN:
 	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", name, type));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Forbidden property type %d for arg %s - ignoring\n", type, name));
 		p.type=GF_PROP_FORBIDEN;
 		break;
 	}

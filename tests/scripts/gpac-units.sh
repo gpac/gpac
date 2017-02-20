@@ -24,6 +24,7 @@ single_test "$cmd -threads=4 -sched=lock" "$name-locksched"
 single_test "$GPAC -list" "gpac-filter-unit-list"
 single_test "$GPAC -info UTFilter" "gpac-filter-unit-info"
 
+single_test "$GPAC UTFilter:opt_dump UTFilter:mode=filter:opt_dump UTFilter:mode=sink:opt_dump" "gpac-filter-dump_props"
 
 sched_test "UTFilter UTFilter:mode=sink" "gpac-filter-1source-1sink-shared"
 
