@@ -74,6 +74,11 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type)
 	fsess->filters = gf_list_new();
 	fsess->main_th.fsess = fsess;
 
+	if (sched_type==GF_FS_SCHEDULER_DIRECT) {
+		fsess->direct_mode = GF_TRUE;
+		nb_threads=0;
+	}
+
 	//regardless of scheduler type, we don't use lock on the main task list
 	fsess->tasks = gf_fq_new(NULL);
 	fsess->tasks_reservoir = gf_fq_new(NULL);
@@ -199,6 +204,20 @@ void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter 
 	assert(filter);
 	assert(task_fun);
 
+	if (fsess->direct_mode && fsess->task_in_process) {
+		Bool requeue=GF_FALSE;
+		GF_FSTask atask;
+		memset(&atask, 0, sizeof(GF_FSTask));
+		atask.filter = filter;
+		atask.pid = pid;
+		atask.run_task = task_fun;
+		atask.log_name = log_name;
+		atask.udta = udta;
+		requeue = task_fun(&atask);
+		if (!requeue)
+			return;
+		//asked to requeue the task, post it
+	}
 	task = gf_fq_pop(fsess->tasks_reservoir);
 
 	if (!task) {
@@ -342,8 +361,10 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Thread %d task#%d executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task->filter->name, task->log_name, fsess->tasks_pending));
 
 
+		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
 		requeue = task->run_task(task);
+		fsess->task_in_process = GF_FALSE;
 
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
@@ -462,3 +483,24 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU" us\n", run_time, active_time, nb_tasks);
 }
 
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val)
+{
+	GF_FilterUpdate *upd;
+	GF_Filter *filter=NULL;
+	u32 i, count;
+	if (!fid || !name) return;
+
+	count = gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		filter = gf_list_get(fsess->filters, i);
+		if (filter->id && !strcmp(filter->id, fid)) {
+			break;
+		}
+	}
+	if (!filter) return;
+
+	GF_SAFEALLOC(upd, GF_FilterUpdate);
+	upd->name = gf_strdup(name);
+	upd->val = gf_strdup(val);
+	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
+}

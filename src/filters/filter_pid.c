@@ -118,6 +118,12 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 		gf_filter_pid_inst_del(pidinst);
 	}
 
+	//flush all pending pid init requests following the call to init
+	while (gf_fq_count(filter->pending_pids)) {
+		GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+		gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+	}
+
 	if (state==GF_PID_CONFIG_CONNECT) {
 		assert(pid->filter->pid_connection_pending);
 		if ( (ref_count_dec(&pid->filter->pid_connection_pending)==0) ) {
@@ -287,7 +293,8 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	if (!filter->output_pids) filter->output_pids = gf_list_new();
 	gf_list_add(filter->output_pids, pid);
 	pid->pid = pid;
-	gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+
+	gf_fq_add(filter->pending_pids, pid);
 
 	return pid;
 }

@@ -49,6 +49,7 @@ typedef struct
 	u32 framing;
 	Bool opt_dump;
 	Bool norecfg;
+	const char *update;
 
 	u64 dummy1;
 } GF_UnitTestFilter;
@@ -156,6 +157,33 @@ static void ut_filter_finalize(GF_Filter *filter)
 	gf_list_del(stack->pids);
 }
 
+static void ut_filter_send_update(GF_Filter *filter, u32 nb_pck)
+{
+	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
+
+	if (stack->update && (nb_pck==stack->max_pck/2) ) {
+		char *sep, *fid, *name, *val;
+		char *cmd = gf_strdup(stack->update);
+		fid = cmd;
+		sep = strchr(cmd, ',');
+		if (sep) {
+			sep[0]=0;
+			sep+=1;
+			name=sep;
+			sep = strchr(name, ',');
+			if (sep) {
+				sep[0]=0;
+				val = sep+1;
+			} else {
+				val=NULL;
+			}
+			gf_filter_send_update(filter, fid, name, val);
+		}
+		gf_free(cmd);
+	}
+}
+
+
 static GF_Err ut_filter_process_filter(GF_Filter *filter)
 {
 	const char *data;
@@ -185,10 +213,6 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(pidctx->src_pid);
 	assert (pck);
 	assert(pidctx == gf_filter_pid_get_udta(pidctx->src_pid));
-
-	//just for coverage
-	gf_filter_pck_ref(pck);
-	gf_filter_pck_unref(pck);
 
 	data = gf_filter_pck_get_data(pck, &size);
 	gf_sha1_update(pidctx->sha_ctx, (u8*)data, size);
@@ -242,6 +266,7 @@ static GF_Err ut_filter_process_filter(GF_Filter *filter)
 		gf_filter_pck_set_framing(pck_dst, is_start, is_end);
 		
 		pidctx->nb_packets++;
+		//copy over src props to dst
 		gf_filter_pck_merge_properties(pck, pck_dst);
 		gf_filter_pck_send(pck_dst);
 	}
@@ -356,6 +381,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		gf_filter_pck_set_property_dyn(pck, "cuse", &p);
 	}
 
+	ut_filter_send_update(filter, pidctx->nb_packets);
 
 	if (pidctx->nb_packets==stack->max_pck) {
 		if (pidctx->sha_ctx) {
@@ -371,7 +397,13 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_filter_pid_set_property(pidctx->dst_pid, GF_4CC('s','h','a','1'), &p);
 		}
 	}
+	//just for coverage: check keeping a reference to the packet
+	gf_filter_pck_ref(pck);
+
 	gf_filter_pck_send(pck);
+
+	//and destroy the reference it
+	gf_filter_pck_unref(pck);
 
 	} //end PID loop
 
@@ -579,10 +611,9 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 }
 
 
-static GF_Err ut_filter_update_args(GF_Filter *filter)
+static GF_Err ut_filter_update_arg(GF_Filter *filter, const char *arg_name, GF_PropertyValue *arg_val)
 {
-	//TODO
-	return GF_NOT_SUPPORTED;
+	return GF_OK;
 }
 
 GF_Err utfilter_initialize(GF_Filter *filter)
@@ -740,8 +771,9 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ OFFS(nb_pids), "Number of PIDs in source mode", GF_PROP_UINT, "1", "1-+I", GF_FALSE},
 	{ OFFS(max_out), "Maximum number of shared packets not yet released in source/filter mode, no limit if -1", GF_PROP_SINT, "-1", NULL, GF_TRUE},
 	{ OFFS(alloc), "Uses allocated memory packets in source mode", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(fwd), "Indicates packet forward mode for filter.\n\t\tshared: uses shared memory (dangerous)\n\t\tcopy: uses copy\n\t\tref: uses references to source packet\n\t\tmix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_FALSE},
+	{ OFFS(fwd), "Indicates packet forward mode for filter.\n\t\tshared: uses shared memory (dangerous)\n\t\tcopy: uses copy\n\t\tref: uses references to source packet\n\t\tmix: change mode at each packet sent", GF_PROP_UINT, "shared", "shared|copy|ref|mix", GF_TRUE},
 	{ OFFS(framing), "Divides packets in 3 for filter mode, or allows partial blocks for sink mode", GF_PROP_UINT, "none", "none|default|nostart|noend", GF_TRUE},
+	{ OFFS(update), "sends update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_TRUE},
 	{ OFFS(opt_dump), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LONGSINT, "0", NULL, GF_TRUE},
@@ -762,7 +794,7 @@ const GF_FilterRegister UTFilterRegister = {
 	.finalize = ut_filter_finalize,
 	.process = ut_filter_process,
 	.configure_pid = ut_filter_config_input,
-	.update_args = ut_filter_update_args
+	.update_arg = ut_filter_update_arg
 };
 
 
