@@ -326,9 +326,10 @@ typedef enum
  *
  * When GF_LOG_ERROR happens, program leaves with instruction exit(1);
  *	\param strict strict behaviour when encoutering a serious error.
+ *	\return old value before the call.
  *
  */
-void gf_log_set_strict_error(Bool strict);
+Bool gf_log_set_strict_error(Bool strict);
 
 /*!
  *	\brief gets string-formated log tools

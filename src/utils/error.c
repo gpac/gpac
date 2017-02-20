@@ -428,9 +428,11 @@ void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_li
 }
 
 GF_EXPORT
-void gf_log_set_strict_error(Bool strict)
+Bool gf_log_set_strict_error(Bool strict)
 {
+	Bool old = log_exit_on_error;
 	log_exit_on_error = strict;
+	return old;
 }
 
 GF_EXPORT
@@ -473,7 +475,7 @@ void gf_log_lt(GF_LOG_Level ll, GF_LOG_Tool lt)
 {
 }
 GF_EXPORT
-void gf_log_set_strict_error(Bool strict)
+Bool gf_log_set_strict_error(Bool strict)
 {
 }
 
