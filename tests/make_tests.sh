@@ -11,13 +11,23 @@ GNU_TIMEOUT=timeout
 DIFF=diff
 GCOV=gcov
 FFMPEG=ffmpeg
+READLINK=readlink
 
 EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
 
+
+if [ $platform = "Darwin" ] ; then
+GNU_TIME=gtime
+GNU_DATE=gdate
+GNU_TIMEOUT=gtimeout
+READLINK=greadlink
+fi
+
+
 #if the script in launched from elsewhere, main_dir still needs to be the script directory
-main_dir="$(dirname $(realpath $0))"
+main_dir="$(dirname $($READLINK -f $0))"
 cd $main_dir
 
 #if launched from an absolute path, set all paths as absolute (will break on cygwin)
@@ -26,17 +36,6 @@ if [[ "$0" = /* ]]; then
   rel_main_dir=$main_dir
 fi
 
-  # May be needed in some particular mingw cases
-#case $platform in MINGW*)
-#  main_dir=`pwd -W | sed 's|/|\\\\|g'`
-#  echo $main_dir
-#esac
-
-if [ $platform = "Darwin" ] ; then
-GNU_TIME=gtime
-GNU_DATE=gdate
-GNU_TIMEOUT=gtimeout
-fi
 
 MP4CLIENT_NOT_FOUND=0
 
