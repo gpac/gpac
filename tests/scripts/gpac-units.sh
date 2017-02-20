@@ -4,6 +4,7 @@ sched_test()
 name="$2-single"
 cmd="$GPAC -stats $1"
 single_test "$cmd" "$name"
+single_test "$cmd -sched=direct" "$name-directsched"
 single_test "$cmd -sched=flock" "$name-locksched"
 
 name="$2-1th"
@@ -59,4 +60,7 @@ single_test "$GPAC -stats UTFilter:FID=1:mode=source:max_pck=2 UTFilter:FID=2:mo
 single_test "$GPAC -stats UTFilter:FID=1:mode=source:max_pck=2 UTFilter:FID=2:mode=filter:fwd=mix:framing=nostart UTFilter:SID=2:mode=sink" "gpac-filter-framing-agg-nostart"
 
 single_test "$GPAC -stats UTFilter:FID=1:mode=source:max_pck=2 UTFilter:FID=2:mode=filter:fwd=mix:framing=noend UTFilter:SID=2:mode=sink" "gpac-filter-framing-agg-noend"
+
+#test argument update
+sched_test "UTFilter:mode=source:max_pck=1000:update=1,fwd,copy UTFilter:FID=1:mode=filter:fwd=shared UTFilter:SID=1:mode=sink" "gpac-filter-1source-1filter-1sink-update"
 

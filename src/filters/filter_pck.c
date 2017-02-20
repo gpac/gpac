@@ -122,9 +122,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
 	GF_FilterPid *pid = pck->pid;
-	if (!pck->pid) {
-		assert(pck->pid);
-	}
+	assert(pck->pid);
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 
 	if (pck->pid_props) {

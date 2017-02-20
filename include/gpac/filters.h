@@ -54,6 +54,8 @@ typedef enum
 	GF_FS_SCHEDULER_LOCK,
 	//the scheduler uses locks for packet and property queues even if single-threaded (test mode)
 	GF_FS_SCHEDULER_FORCE_LOCK,
+	//the scheduler uses direct dispatch and no threads, trying to nest task calls within task calls
+	GF_FS_SCHEDULER_DIRECT,
 } GF_FilterSchedulerType;
 
 GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type);
@@ -156,8 +158,9 @@ typedef struct
 	//optional - callback for filter desctruction -  private stack of filter is freed by framework
 	void (*finalize)(GF_Filter *filter);
 
-	//optional - callback for arguments update
-	GF_Err (*update_args)(GF_Filter *filter);
+	//optional - callback for arguments update. If GF_OK is returned, the stack is updated accordingly
+	//if function is NULL, all updatable arguments will be changed in the stack without the filter being notified
+	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 } GF_FilterRegister;
 
 u32 gf_fs_filters_registry_count(GF_FilterSession *fsess);
@@ -193,6 +196,7 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
 
+void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
 
 void gf_filter_pck_ref(GF_FilterPacket *pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);

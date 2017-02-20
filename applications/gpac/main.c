@@ -74,6 +74,7 @@ void gpac_usage()
 	        "\t             free: uses lock-free queues (default)\n"
 	        "\t             lock: uses mutexes for queues when several threads\n"
 	        "\t             flock: uses mutexes for queues even when no thread (debug mode)\n"
+	        "\t             direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
 	        "\t-log-file=file: sets output log file. Also works with -lf\n"
@@ -180,6 +181,8 @@ int gpac_main(int argc, char **argv)
 		} else if (arg_val && !strcmp(arg, "-sched")) {
 			if (!strcmp(arg_val, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
 			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_FORCE_LOCK;
+			else if (!strcmp(arg_val, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
+
 		} else if (!strcmp(arg, "-list")) {
 			list_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-stats")) {

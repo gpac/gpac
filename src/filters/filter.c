@@ -76,6 +76,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	filter->prop_maps_reservoir = gf_fq_new(filter->props_mx);
 	filter->prop_maps_entry_reservoir = gf_fq_new(filter->props_mx);
 
+	filter->pending_pids = gf_fq_new(NULL);
+
 	gf_list_add(fsess->filters, filter);
 
 	gf_filter_set_name(filter, NULL);
@@ -89,6 +91,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 			gf_free(filter);
 			return NULL;
 		}
+	}
+	//flush all pending pid init requests
+	while (gf_fq_count(filter->pending_pids)) {
+		GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+		gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 	}
 
 	return filter;
@@ -110,6 +117,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->input_pids);
 
 	gf_fq_del(filter->tasks, gf_void_del);
+	gf_fq_del(filter->pending_pids, NULL);
 
 	reset_filter_args(filter);
 
@@ -245,6 +253,47 @@ void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to set argument %s: memory offset %d overwrite structure size %f\n", a->arg_name, a->offset_in_private, filter->freg->private_size));
 	}
 }
+
+Bool gf_filter_update_arg_task(GF_FSTask *task)
+{
+	u32 i=0;
+	GF_FilterUpdate *arg=task->udta;
+	//find arg
+	i=0;
+	while (task->filter->freg->args) {
+		GF_PropertyValue argv;
+		const GF_FilterArgs *a = &task->filter->freg->args[i];
+		i++;
+		if (!a || !a->arg_name) break;
+
+		if (strcmp(a->arg_name, arg->name))
+			continue;
+
+		if (!a->updatable) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument %s of filter %s is not updatable - ignoring\n", a->arg_name, task->filter->name));
+			break;
+		}
+
+		argv = gf_props_parse_value(a->arg_type, a->arg_name, arg->val, a->min_max_enum);
+
+		if (argv.type != GF_PROP_FORBIDEN) {
+			GF_Err e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			if (e==GF_OK) {
+				filter_set_arg(task->filter, a, &argv);
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept opdate of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
+			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
+		}
+		break;
+	}
+	gf_free(arg->name);
+	gf_free(arg->val);
+	gf_free(arg);
+	return GF_FALSE;
+}
+
 
 void gf_filter_parse_args(GF_Filter *filter, const char *args)
 {
@@ -393,5 +442,10 @@ Bool gf_filter_process_task(GF_FSTask *task)
 		return GF_TRUE;
 
 	return GF_FALSE;
+}
+
+void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val)
+{
+	gf_fs_send_update(filter->session, fid, name, val);
 }
 

@@ -169,6 +169,9 @@ struct __gf_fs_task
 
 void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
+void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
+
+
 typedef struct __gf_fs_thread
 {
 	//NULL for main thread
@@ -185,6 +188,8 @@ typedef struct __gf_fs_thread
 struct __gf_media_session
 {
 	Bool use_locks;
+	Bool direct_mode;
+	Bool task_in_process;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -251,6 +256,9 @@ struct __gf_filter
 	GF_Mutex *props_mx;
 	GF_Mutex *tasks_mx;
 
+	//reservoir for property entries  - properties may be inherited between packets
+	GF_FilterQueue *pending_pids;
+
 	volatile u32 pid_connection_pending;
 	volatile u32 pending_packets;
 };
@@ -258,6 +266,14 @@ struct __gf_filter
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
 void gf_filter_del(GF_Filter *filter);
 Bool gf_filter_process_task(GF_FSTask *task);
+
+typedef struct
+{
+	char *name;
+	char *val;
+} GF_FilterUpdate;
+
+Bool gf_filter_update_arg_task(GF_FSTask *task);
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
@@ -297,6 +313,7 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
+Bool gf_filter_pid_init_task(GF_FSTask *task);
 
 Bool gf_filter_pid_connect_task(GF_FSTask *task);
 Bool gf_filter_pid_reconfigure_task(GF_FSTask *task);
