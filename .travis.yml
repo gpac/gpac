@@ -3,7 +3,7 @@ compiler: gcc
 os:
   - linux
   - osx
-before_install: 
+before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y update -qq ; fi
 install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -y install build-essential fakeroot dpkg-dev devscripts ccache debhelper pkg-config g++ mesa-utils ; fi
@@ -12,7 +12,7 @@ install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then sudo apt-get -qq -y install lcov time; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then sudo chown -R "$USER":admin /usr/local; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew update; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install gnu-time gnu-sed gnu-tar xz lcov; fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install gnu-time gnu-sed gnu-tar xz lcov ; fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then brew install faad2 sdl freetype libvorbis theora openjpeg libmad xvid libogg spidermonkey ffmpeg ; fi
 env:
   - GPAC_CONFIGURE_OPTIONS="--prefix=build/mp4box --enable-debug --static-mp4box" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="make install" DOTRAVIS=""
@@ -37,10 +37,10 @@ matrix:
       env: GPAC_CONFIGURE_OPTIONS="--enable-debug --use-js=no --use-mad=no --use-xvid=no --use-ogg=no --use-vorbis=no --use-theora=no --use-openjpeg=no --disable-streaming --disable-isoff-frag --disable-isoff-hint --disable-isoff-write --disable-loader-xmt --disable-loader-bt --disable-loader-isoff --disable-scene-encode --disable-mcrypt --disable-od-dump --disable-scene-dump --disable-scene-stats --disable-swf --disable-export --disable-import --disable-m2ps --disable-ogg -disable-avi --disable-qtvr --disable-seng --disable-smgr --disable-x3d --disable-3d --disable-ssl --disable-jack --disable-pulse --use-a52=no --disable-odf --disable-isoff --disable-m2ts-mux --disable-dvbx --disable-saf --disable-vobsub --disable-ttxt --disable-od-parse" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="" DOTRAVIS=""
     - os: osx
       env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="" AUDIODEV=null
-script: 
+script:
   - ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make && $DOINSTALL && $DOTRAVIS
 after_success:
-  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash) ; fi 
+  - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash) ; fi
 
 notifications:
   email:
