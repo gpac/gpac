@@ -2,7 +2,6 @@
 
 #for user doc, check scripts/00-template
 
-
 base_args=""
 
 GNU_TIME=/usr/bin/time
@@ -12,22 +11,31 @@ GNU_TIMEOUT=timeout
 DIFF=diff
 GCOV=gcov
 FFMPEG=ffmpeg
+READLINK=readlink
 
 EXTERNAL_MEDIA_AVAILABLE=1
 
 platform=`uname -s`
-main_dir=`pwd`
-# May be needed in some particular mingw cases
-#case $platform in MINGW*)
-#  main_dir=`pwd -W | sed 's|/|\\\\|g'`
-#  echo $main_dir
-#esac
+
 
 if [ $platform = "Darwin" ] ; then
 GNU_TIME=gtime
 GNU_DATE=gdate
 GNU_TIMEOUT=gtimeout
+READLINK=greadlink
 fi
+
+
+#if the script in launched from elsewhere, main_dir still needs to be the script directory
+main_dir="$(dirname $($READLINK -f $0))"
+cd $main_dir
+
+#if launched from an absolute path, set all paths as absolute (will break on cygwin)
+rel_main_dir="."
+if [[ "$0" = /* ]]; then
+  rel_main_dir=$main_dir
+fi
+
 
 MP4CLIENT_NOT_FOUND=0
 
@@ -51,20 +59,20 @@ DEF_TIMEOUT=20
 #remote location of resource files: all media files, hash files and generated videos
 REFERENCE_DIR="http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/resources"
 #dir where all external media are stored
-EXTERNAL_MEDIA_DIR="$main_dir/external_media"
+EXTERNAL_MEDIA_DIR="$rel_main_dir/external_media"
 #dir where all hashes are stored
-HASH_DIR="$main_dir/hash_refs"
+HASH_DIR="$rel_main_dir/hash_refs"
 #dir where all specific test rules (override of defaults, positive tests, ...) are stored
-RULES_DIR="$main_dir/rules"
+RULES_DIR="$rel_main_dir/rules"
 #dir where all referenced videos are stored
-SCRIPTS_DIR="$main_dir/scripts"
+SCRIPTS_DIR="$rel_main_dir/scripts"
 #dir where all referenced videos are stored
-VIDEO_DIR_REF="$main_dir/external_videos_refs"
+VIDEO_DIR_REF="$rel_main_dir/external_videos_refs"
 
 #dir where all local media data (ie from git repo) is stored
-MEDIA_DIR="$main_dir/media"
+MEDIA_DIR="$rel_main_dir/media"
 #local dir where all data will be generated (except hashes and referenced videos)
-LOCAL_OUT_DIR="$main_dir/results"
+LOCAL_OUT_DIR="$rel_main_dir/results"
 
 #dir where all test videos are generated
 VIDEO_DIR="$LOCAL_OUT_DIR/videos"
@@ -179,8 +187,8 @@ sync_media ()
   mkdir $EXTERNAL_MEDIA_DIR
  fi
  cd $EXTERNAL_MEDIA_DIR
- wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/media/"
- cd $main_dir
+ wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/media/"
+ cd "$main_dir"
 }
 
 #performs mirroring of media
@@ -188,8 +196,8 @@ sync_hash ()
 {
 log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
 cd $HASH_DIR
-wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/hash_refs/"
-cd $main_dir
+wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
+cd "$main_dir"
 }
 
 #performs mirroring of media and references hash & videos
@@ -197,8 +205,8 @@ sync_refs ()
 {
 log $L_INF "- Mirroring reference videos from $REFERENCE_DIR to $VIDEO_DIR_REF"
 cd $VIDEO_DIR_REF
-wget -q -m -nH --no-parent --cut-dirs=4 --reject *.gif "$REFERENCE_DIR/video_refs/"
-cd $main_dir
+wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/video_refs/"
+cd "$main_dir"
 }
 
 
@@ -367,7 +375,7 @@ exit 1
 fi
 
 #test for timeout
-$GNU_TIMEOUT 1.0 ls > /dev/null 2>&1 
+$GNU_TIMEOUT 1.0 ls > /dev/null 2>&1
 res=$?
 if [ $res != 0 ] ; then
  log $L_ERR "GNU timeout not found (ret $res) - some tests may hang forever ..."
@@ -671,6 +679,10 @@ test_end ()
   test_fail=1
  fi
 
+# makes glob on non existing files to expand to null
+# enabling loops on nonexisting* to be empty
+shopt -s nullglob
+
  #gather all stats per subtests
  for i in $TEMP_DIR/$TEST_NAME-stats-*.sh ; do
   reset_stat
@@ -827,7 +839,7 @@ do_fuzz()
    fi
   fi
 
-  cd $orig_path
+  cd "$orig_path"
 
   if [ $no_fuzz_cleanup = 0 ] ; then
    rm -rf $fuzz_temp_dir
@@ -939,14 +951,16 @@ if [ $rv -eq 1 ] ; then
  if [ -f $negative_test_stderr ] ; then
   #look for all lines in -stderr file, if one found consider this a success
   while read line ; do
-   res_err=`grep -w "$line" $log_subtest`
+   res_err=`grep -o "$line" $log_subtest`
    if [ -n "$res_err" ]; then
     echo "Negative test detected, reverting to success (found \"$res_err\" in stderr)" >> $log_subtest
     rv=0
     echo "" > $stat_subtest
     break
    fi
-  done < $negative_test_stderr
+  #remove windows style endlines as they may cause some problems
+  #also remove empty lines otherwise grep always matches
+  done < <(tr -d '\r' <$negative_test_stderr | sed '/^$/d' )
  fi
 fi
 
@@ -1475,6 +1489,9 @@ ctrl_c_trap() {
 	exit
 }
 
+# disable nullglobing in case sub-scripts aren't made for it
+shopt -u nullglob
+
 #run our tests
 if [ -n "$url_arg" ] ; then
  current_script=$url_arg
@@ -1486,7 +1503,7 @@ else
   fi
   current_script=$i
   source $i
-
+  cd $main_dir
   #break if error and error
   if [ $strict_mode = 1 ] ; then
    #wait for all tests to be done before checking error marker
