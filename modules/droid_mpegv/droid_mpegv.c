@@ -386,7 +386,7 @@ u32 ThreadRun(void* param)
 	loadSensorControler(rc);
 
 	if (!rc->env || !rc->sensCtrlObj)
-		return;
+		return GF_OK;
 
 	(*rc->env)->CallNonvirtualVoidMethod(rc->env, rc->sensCtrlObj, rc->sensCtrlClass, rc->startSensor, (s32)dr, rc->sensorAndroidType);
 
@@ -396,7 +396,7 @@ u32 ThreadRun(void* param)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[MPEG-V_IN] Stop: %d\n", gf_th_id()));
 
 	if (!rc->env)
-		return;
+		return GF_OK;
 
 	if ( rc->sensCtrlObj )
 	{
@@ -406,6 +406,7 @@ u32 ThreadRun(void* param)
 	}
 
 	unloadSensorController(rc);
+	return GF_OK;
 }
 
 void MPEGVS_Start(struct __input_device * dr)
