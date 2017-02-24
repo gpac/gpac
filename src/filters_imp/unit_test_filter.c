@@ -61,53 +61,6 @@ static void test_pck_del(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("%s: Packet deleted - %d out there\n", gf_filter_get_name(filter), stack->nb_packets - stack->pck_del));
 }
 
-static void dump_property(GF_FilterPacket *pck, u32 nb_recv, u32 p4cc, const char *pname, const GF_PropertyValue *att)
-{
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\tPacket %d Prop %s: ", nb_recv, pname ? pname : gf_4cc_to_str(p4cc)));
-	switch (att->type) {
-	case GF_PROP_SINT:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(sint) %d", att->value.sint));
-		break;
-	case GF_PROP_UINT:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(uint) %u", att->value.uint));
-		break;
-	case GF_PROP_LONGSINT:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(slongint) "LLD, att->value.longsint));
-		break;
-	case GF_PROP_LONGUINT:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(ulongint) "LLU, att->value.longuint));
-		break;
-	case GF_PROP_FRACTION:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(frac) %d/%d", att->value.frac.num, att->value.frac.den));
-		break;
-	case GF_PROP_BOOL:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(bool) %s", att->value.boolean ? "true" : "fale"));
-		break;
-	case GF_PROP_FLOAT:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(float) %f", FIX2FLT(att->value.fnumber) ));
-		break;
-	case GF_PROP_DOUBLE:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(double) %g", att->value.number));
-		break;
-	case GF_PROP_NAME:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(const) %s", att->value.string));
-		break;
-	case GF_PROP_STRING:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(string) %s", att->value.string));
-		break;
-	case GF_PROP_DATA:
-	case GF_PROP_CONST_DATA:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(data) %d bytes", att->data_len));
-		break;
-	case GF_PROP_POINTER:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(pointer) %p", att->value.ptr));
-		break;
-	case GF_PROP_FORBIDEN:
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("(forbiden)"));
-		break;
-	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\n"));
-}
 
 void dump_properties(GF_FilterPacket *pck, u32 nb_pck)
 {
@@ -117,7 +70,7 @@ void dump_properties(GF_FilterPacket *pck, u32 nb_pck)
 		const char *pname;
 		const GF_PropertyValue *p = gf_filter_pck_enum_properties(pck, &idx, &p4cc, &pname);
 		if (!p) break;
-		dump_property(pck, nb_pck, p4cc, pname, p);
+		//dump_property(pck, nb_pck, p4cc, pname, p);
 	}
 	if (nb_pck==1) {
 		gf_filter_pck_get_property(pck, GF_4CC('c','u','s','t'));
@@ -451,24 +404,6 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 }
 
 
-static GF_Err ut_filter_process(GF_Filter *filter)
-{
-	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
-
-	if (stack->mode==0) {
-		return ut_filter_process_source(filter);
-	}
-	else if (stack->mode==1) {
-		return ut_filter_process_sink(filter);
-	}
-	else if (stack->mode==2) {
-		return ut_filter_process_filter(filter);
-	} else {
-		return GF_BAD_PARAM;
-	}
-
-}
-
 static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
 {
 	const GF_PropertyValue *format;
@@ -504,25 +439,26 @@ static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PI
 
 	}
 
-	//new PID
-	GF_SAFEALLOC(pidctx, PIDCtx);
-	pidctx->src_pid = pid;
-	gf_list_add(stack->pids, pidctx);
-
 	//check our functions
-	format = gf_filter_pid_get_property_str(pidctx->src_pid, "custom1");
+	format = gf_filter_pid_get_property_str(pid, "custom1");
 	if (!format) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("%s: expecting property string custom1 on PID\n", gf_filter_get_name(filter) ));
 	}
-	format = gf_filter_pid_get_property_str(pidctx->src_pid, "custom2");
+	format = gf_filter_pid_get_property_str(pid, "custom2");
 	if (!format) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("%s: expecting property string custom2 on PID\n", gf_filter_get_name(filter) ));
 	}
 
-	format = gf_filter_pid_get_property(pidctx->src_pid, GF_4CC('c','u','s','t') );
+	format = gf_filter_pid_get_property(pid, GF_4CC('c','u','s','t') );
 	if (!format || !format->value.string || strcmp(format->value.string, stack->pid_att)) {
 		return GF_NOT_SUPPORTED;
 	}
+
+	//new PID
+	GF_SAFEALLOC(pidctx, PIDCtx);
+	pidctx->src_pid = pid;
+	gf_list_add(stack->pids, pidctx);
+	
 	if (stack->opt_dump) {
 		char *data;
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
@@ -593,11 +529,6 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	gf_filter_pid_set_property_str(pidctx->dst_pid, "custom1", &p);
 	gf_filter_pid_set_property_dyn(pidctx->dst_pid, "custom2", &p);
 
-	sprintf(szName, "PID%d", i+1);
-	p.type = GF_PROP_STRING;
-	p.value.string = szName;
-	gf_filter_pid_set_property(pidctx->dst_pid, GF_FILTER_PID_NAME, &p);
-
 	if (stack->opt_dump) {
 		Bool old_strict = gf_log_set_strict_error(GF_FALSE);
 		gf_filter_pid_set_framing_mode(pidctx->dst_pid, GF_TRUE);
@@ -611,7 +542,7 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 }
 
 
-static GF_Err ut_filter_update_arg(GF_Filter *filter, const char *arg_name, GF_PropertyValue *arg_val)
+static GF_Err ut_filter_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	return GF_OK;
 }
@@ -744,20 +675,11 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_get_type_name(GF_PROP_POINTER);
 	}
 
-
-	switch (stack->mode) {
-	case 1:// "sink"
-		gf_filter_set_name(filter, "UTSink");
-		return GF_OK;
-	case 2:// "filter"
-		gf_filter_set_name(filter, "UTFilter");
-		return GF_OK;
-	case 0: // "source"
-		gf_filter_set_name(filter, "UTSource");
+	if (! strcmp( "UTSink", gf_filter_get_name(filter))) stack->mode=1;
+	else if (! strcmp( "UTFilter", gf_filter_get_name(filter))) stack->mode=2;
+	else {
+		stack->mode=0;
 		return ut_filter_config_source(filter);
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Unrecognized filter mode %d\n", stack->mode));
-		return GF_BAD_PARAM;
 	}
 	return GF_OK;
 }
@@ -765,7 +687,6 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 #define OFFS(_n)	#_n, offsetof(GF_UnitTestFilter, _n)
 static const GF_FilterArgs UTFilterArgs[] =
 {
-	{ OFFS(mode), "Set filter operation mode", GF_PROP_UINT, "source", "source|sink|filter", GF_FALSE},
 	{ OFFS(pid_att), "Sets default value for PID \"cust\" attribute", GF_PROP_NAME, "UTSourceData", NULL, GF_FALSE},
 	{ OFFS(max_pck), "Maximum number of packets to send in source mode", GF_PROP_UINT, "1000", NULL, GF_FALSE},
 	{ OFFS(nb_pids), "Number of PIDs in source mode", GF_PROP_UINT, "1", "1-+I", GF_FALSE},
@@ -785,22 +706,109 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ NULL }
 };
 
+static const GF_FilterCapability UTFilterInputs[] =
+{
+	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
+	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
+	{ NULL }
+};
+
+static const GF_FilterCapability UTFilterOutputs[] =
+{
+	{"cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
+	{"cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE},
+	{ NULL }
+};
+
+
+static const GF_FilterCapability UTSinkInputs[] =
+{
+	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
+	{ NULL }
+};
+
+static const GF_FilterCapability UTSink2Inputs[] =
+{
+	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
+	{ NULL }
+};
+
+static const GF_FilterCapability UTSourceOutputs[] =
+{
+	{"cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
+	{ NULL }
+};
+
+
 const GF_FilterRegister UTFilterRegister = {
 	.name = "UTFilter",
 	.description = "Unit Test Filter, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
+	.input_caps = UTFilterInputs,
+	.output_caps = UTFilterOutputs,
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
-	.process = ut_filter_process,
+	.process = ut_filter_process_filter,
 	.configure_pid = ut_filter_config_input,
 	.update_arg = ut_filter_update_arg
 };
 
 
-const GF_FilterRegister *ut_filter_register()
+const GF_FilterRegister UTSinkRegister = {
+	.name = "UTSink",
+	.description = "Unit Test Sink, only used for unit testing of filter framework",
+	.private_size = sizeof(GF_UnitTestFilter),
+	.input_caps = UTSinkInputs,
+	.args = UTFilterArgs,
+	.initialize = utfilter_initialize,
+	.finalize = ut_filter_finalize,
+	.process = ut_filter_process_sink,
+	.configure_pid = ut_filter_config_input,
+	.update_arg = ut_filter_update_arg
+};
+
+const GF_FilterRegister UTSink2Register = {
+	.name = "UTSink2",
+	.description = "Unit Test Sink, only used for unit testing of filter framework",
+	.private_size = sizeof(GF_UnitTestFilter),
+	.input_caps = UTSink2Inputs,
+	.args = UTFilterArgs,
+	.initialize = utfilter_initialize,
+	.finalize = ut_filter_finalize,
+	.process = ut_filter_process_sink,
+	.configure_pid = ut_filter_config_input,
+	.update_arg = ut_filter_update_arg
+};
+
+const GF_FilterRegister UTSourceRegister = {
+	.name = "UTSource",
+	.description = "Unit Test Source, only used for unit testing of filter framework",
+	.private_size = sizeof(GF_UnitTestFilter),
+	.output_caps = UTSourceOutputs,
+	.args = UTFilterArgs,
+	.initialize = utfilter_initialize,
+	.finalize = ut_filter_finalize,
+	.process = ut_filter_process_source,
+	.update_arg = ut_filter_update_arg
+};
+
+
+const GF_FilterRegister *ut_filter_register(GF_FilterSession *session, Bool load_meta_filters)
 {
 	return &UTFilterRegister;
+}
+const GF_FilterRegister *ut_source_register(GF_FilterSession *session, Bool load_meta_filters)
+{
+	return &UTSourceRegister;
+}
+const GF_FilterRegister *ut_sink_register(GF_FilterSession *session, Bool load_meta_filters)
+{
+	return &UTSinkRegister;
+}
+const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_meta_filters)
+{
+	return &UTSink2Register;
 }
 
 

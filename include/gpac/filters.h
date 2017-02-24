@@ -58,7 +58,7 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT,
 } GF_FilterSchedulerType;
 
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type);
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, Bool load_meta_filters);
 void gf_fs_del(GF_FilterSession *ms);
 GF_Filter *gf_fs_load_filter(GF_FilterSession *ms, const char *name);
 GF_Err gf_fs_run(GF_FilterSession *ms);
@@ -112,17 +112,52 @@ typedef struct
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
 
+//helper macros to pass properties in gf_*_set_property
+#define PROP_SINT(_val) &(GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
+#define PROP_UINT(_val) &(GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
+#define PROP_LONGSINT(_val) &(GF_PropertyValue){.type=GF_PROP_LONGSINT, .value.longsint = _val}
+#define PROP_LONGUINT(_val) &(GF_PropertyValue){.type=GF_PROP_LONGUINT, .value.longuint = _val}
+#define PROP_BOOL(_val) &(GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
+#define PROP_FIXED(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
+#define PROP_FLOAT(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
+#define PROP_FRAC(_num, _den) &(GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
+#define PROP_DOUBLE(_val) &(GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
+#define PROP_STRING(_val) &(GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
+#define PROP_NAME(_val) &(GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
+#define PROP_DATA(_val, _len) &(GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
+#define PROP_CONST_DATA(_val, _len) &(GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data = _val, .data_len=_len}
+
+#define PROP_POINTER(_val) &(GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
+
+
+
 typedef struct
 {
 	const char *arg_name;
-	//offset of the argument in the structure
+	//offset of the argument in the structure, -1 means not stored in structure, in which case it is notified
+	//through the update_arg function
 	s32 offset_in_private;
 	const char *arg_desc;
 	u8 arg_type;
 	const char *arg_default_val;
 	const char *min_max_enum;
 	Bool updatable;
+	//used by meta filters (ffmpeg & co) to indicate the parsing is handled by the filter
+	//in which case the type is overloaded to string
+	Bool meta_arg;
 } GF_FilterArgs;
+
+typedef struct
+{
+	//name of the capability listed. the special value * is used to indicate that the capability is
+	//solved at run time (the filter must be loaded)
+	const char *cap_name;
+	GF_PropertyValue p;	//default type and value of the capability listed
+	//if set to true the cap has to be present, and with this value.
+	//you may sepcify several times the same cap name with different values (accept variations of the format),
+	//but you must not assign the mandatory flag in that case
+	Bool mandatory;
+} GF_FilterCapability;
 
 typedef enum
 {
@@ -131,7 +166,7 @@ typedef enum
 	GF_PID_CONFIG_DISCONNECT
 } GF_PID_ConfigState;
 
-typedef struct
+typedef struct __gf_filter_register
 {
 	//mandatory - name of the filter as used when setting up filters
 	const char *name;
@@ -141,6 +176,11 @@ typedef struct
 	const char *description;
 	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling this
 	u32 private_size;
+
+	//list of input capabilities
+	const GF_FilterCapability *input_caps;
+	//list of output capabilities
+	const GF_FilterCapability *output_caps;
 
 	//optional - filter arguments if any
 	const GF_FilterArgs *args;
@@ -161,10 +201,17 @@ typedef struct
 	//optional - callback for arguments update. If GF_OK is returned, the stack is updated accordingly
 	//if function is NULL, all updatable arguments will be changed in the stack without the filter being notified
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
+
+	//optional for dynamic filter registries. Dynamic registries won't be used as filter registries
+	//but may declare any number of registries. The registry_free function will be called to cleanup
+	//any allocated memory
+	GF_Err (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
+	void *udta;
 } GF_FilterRegister;
 
-u32 gf_fs_filters_registry_count(GF_FilterSession *fsess);
-const GF_FilterRegister *gf_fs_get_filter_registry(GF_FilterSession *fsess, u32 idx);
+u32 gf_fs_filters_registry_count(GF_FilterSession *session);
+const GF_FilterRegister *gf_fs_get_filter_registry(GF_FilterSession *session, u32 idx);
+void gf_fs_register_test_filters(GF_FilterSession *fsess);
 
 
 void *gf_filter_get_udta(GF_Filter *filter);
@@ -182,6 +229,8 @@ GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_Pr
 
 void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta);
 void *gf_filter_pid_get_udta(GF_FilterPid *pid);
+void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
+const char *gf_filter_pid_get_name(GF_FilterPid *pid);
 
 //resets current properties of the pid
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
@@ -190,6 +239,8 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc);
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name);
+
+const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name);
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks);
 
@@ -227,11 +278,55 @@ GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_
 
 
 
+void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
+void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
+
+
 enum
 {
-	//property indicating PID name, as used when resolving connections
-	GF_FILTER_PID_NAME = GF_4CC('g','f','p','N')
+	//(uint) PID ID
+	GF_PROP_PID_ID = GF_4CC('g','f','I','D'),
+
+	//(u32) stream type, matching gpac stream types
+	GF_PROP_PID_STREAM_TYPE = GF_4CC('g','f','S','T'),
+	//(u32) object type indication , matching gpac OTI types
+	GF_PROP_PID_OTI = GF_4CC('g','f','O','T'),
+	//(uint) timescale of pid
+	GF_PROP_PID_TIMESCALE = GF_4CC('g','f','T','S'),
+	//(data) decoder config
+	GF_PROP_PID_DECODER_CONFIG = GF_4CC('g','f','D','C'),
+	//(uint) sample rate
+	GF_PROP_PID_SAMPLE_RATE = GF_4CC('g','f','S','R'),
+	//(uint) nb samples per audio frame
+	GF_PROP_PID_SAMPLES_PER_FRAME = GF_4CC('g','f','S','F'),
+	//(uint) number of audio channels
+	GF_PROP_PID_NUM_CHANNELS = GF_4CC('g','f','C','H'),
+	//(uint) bits per sample
+	GF_PROP_PID_BIT_PER_SAMPLE = GF_4CC('g','f','B','S'),
+	//(uint) frame width
+	GF_PROP_PID_WIDTH = GF_4CC('g','f','V','W'),
+	//(uint) frame height
+	GF_PROP_PID_HEIGHT = GF_4CC('g','f','V','H'),
+	//(rational) video FPS
+	GF_PROP_PID_FPS = GF_4CC('g','f','V','F'),
+	//(uint) average bitrate
+	GF_PROP_PID_BITRATE = GF_4CC('g','f','B','R'),
+	//(fraction) sample (ie pixel) aspect ratio
+	GF_PROP_PID_SAR = GF_4CC('g','f','S','A'),
+	//(fraction) picture aspect ratio
+	GF_PROP_PID_PAR = GF_4CC('g','f','P','A'),
+
+
+	//(longuint) decoding time stamp
+	GF_PROP_PCK_DTS = GF_4CC('g','p','D','T'),
+	//(longuint) composition time stamp
+	GF_PROP_PCK_CTS = GF_4CC('g','p','C','T'),
+	//(uint) stream access type
+	GF_PROP_PCK_SAP = GF_4CC('g','p','S','A'),
+	GF_PROP_PCK_CORRUPTED = GF_4CC('g','p','C','O'),
 };
+
+const char *gf_props_4cc_get_name(u32 prop_4cc);
 
 #ifdef __cplusplus
 }

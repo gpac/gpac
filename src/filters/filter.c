@@ -78,6 +78,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	filter->pending_pids = gf_fq_new(NULL);
 
+	filter->blacklisted = gf_list_new();
+
 	gf_list_add(fsess->filters, filter);
 
 	gf_filter_set_name(filter, NULL);
@@ -114,6 +116,7 @@ void gf_filter_del(GF_Filter *filter)
 	}
 	gf_list_del(filter->output_pids);
 
+	gf_list_del(filter->blacklisted);
 	gf_list_del(filter->input_pids);
 
 	gf_fq_del(filter->tasks, gf_void_del);
@@ -176,7 +179,7 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	filter->source_ids = sources_ID ? gf_strdup(sources_ID) : NULL;
 }
 
-void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
+static void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
 {
 	void *ptr = filter->filter_udta + a->offset_in_private;
 	Bool res = GF_FALSE;
@@ -234,7 +237,8 @@ void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue 
 	case GF_PROP_STRING:
 		if (a->offset_in_private + sizeof(char *) <= filter->freg->private_size) {
 			if (*(char **)ptr) gf_free( * (char **)ptr);
-			*(char **)ptr = argv->value.string ? gf_strdup(argv->value.string) : NULL;
+			//we don't strdup since we don't free the string at the caller site
+			*(char **)ptr = argv->value.string;
 			res = GF_TRUE;
 		}
 		break;
@@ -298,6 +302,7 @@ Bool gf_filter_update_arg_task(GF_FSTask *task)
 void gf_filter_parse_args(GF_Filter *filter, const char *args)
 {
 	u32 i=0;
+	Bool has_meta_args = GF_FALSE;
 	char *szArg=NULL;
 	u32 alloc_len=1024;
 	if (!filter) return;
@@ -324,11 +329,19 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 		i++;
 		if (!a || !a->arg_name) break;
 		if (!a->arg_default_val) continue;
+		if (a->meta_arg) {
+			has_meta_args = GF_TRUE;
+			continue;
+		}
 
 		argv = gf_props_parse_value(a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
-			filter_set_arg(filter, a, &argv);
+			if (a->offset_in_private>=0) {
+				filter_set_arg(filter, a, &argv);
+			} else if (filter->freg->update_arg) {
+				filter->freg->update_arg(filter, a->arg_name, &argv);
+			}
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to parse argument %s value %s\n", a->arg_name, a->arg_default_val));
 		}
@@ -374,11 +387,19 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 				GF_PropertyValue argv;
 				found=GF_TRUE;
 
-				argv = gf_props_parse_value(a->arg_type, a->arg_name, value, a->min_max_enum);
+				argv = gf_props_parse_value(a->meta_arg ? GF_PROP_STRING : a->arg_type, a->arg_name, value, a->min_max_enum);
 
 				if (argv.type != GF_PROP_FORBIDEN) {
-					filter_set_arg(filter, a, &argv);
+					if (a->offset_in_private>=0) {
+						filter_set_arg(filter, a, &argv);
+					} else if (filter->freg->update_arg) {
+						filter->freg->update_arg(filter, a->arg_name, &argv);
+
+						if ((argv.type==GF_PROP_STRING) && argv.value.string)
+							gf_free(argv.value.string);
+					}
 				}
+				break;
 			}
 		}
 		if (!found) {
@@ -388,6 +409,12 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 			}
 			else if (!strcmp("SID", szArg)) {
 				gf_filter_set_sources(filter, value);
+				found = GF_TRUE;
+			}
+			else if (has_meta_args && filter->freg->update_arg) {
+				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL);
+				filter->freg->update_arg(filter, szArg, &argv);
+				if (argv.value.string) gf_free(argv.value.string);
 				found = GF_TRUE;
 			}
 		}

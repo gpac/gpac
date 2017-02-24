@@ -384,6 +384,8 @@ enum
 	 */
 	GPAC_OTI_MEDIA_FFMPEG = 0x81,
 
+	GPAC_OTI_VIDEO_H263 = 0x82,
+
 	/*!OTI for EVRC Voice streams*/
 	GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
 	/*!OTI for SMV Voice streams*/
