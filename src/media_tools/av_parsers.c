@@ -1986,7 +1986,7 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 
 static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
 {
-	u32 v, bpos;
+	u32 v, bpos, nb_cons_zeros=0;;
 	char avc_cache[AVC_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	u64 start = gf_bs_get_position(bs);
@@ -2008,9 +2008,11 @@ static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trai
 			gf_bs_read_data(bs, avc_cache, (u32) load_size);
 		}
 		v = ( (v<<8) & 0xFFFFFF00) | ((u32) avc_cache[bpos]);
+
 		bpos++;
 		if (locate_trailing) {
-			if ( (v & 0x00FFFFFF) == 0x00000000) end = cache_start+bpos-3;
+			if ( (v & 0x000000FF) == 0) nb_cons_zeros++;
+			else nb_cons_zeros = 0;
 		}
 
 		if (v == 0x00000001) end = cache_start+bpos-4;
@@ -2018,6 +2020,10 @@ static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trai
 	}
 	gf_bs_seek(bs, start);
 	if (!end) end = gf_bs_get_size(bs);
+	if (locate_trailing) {
+		if (nb_cons_zeros>=3)
+			return (u32) (end - start - nb_cons_zeros);
+	}
 	return (u32) (end-start);
 }
 
