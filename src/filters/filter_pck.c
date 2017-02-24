@@ -335,7 +335,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	//unprotect the packet now that it is safely dispatched
 	if (ref_count_dec(&pck->reference_count) == 0) {
 		if (!nb_dispatch) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No PID destination on filter %s for packet - discarding\n", pid->filter->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("No PID destination on filter %s for packet - discarding\n", pid->filter->name));
 		}
 		gf_filter_packet_destroy(pck);
 	}

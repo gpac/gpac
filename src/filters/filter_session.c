@@ -25,6 +25,12 @@
 
 #include "filter_session.h"
 
+const GF_FilterRegister *ut_filter_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ut_source_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ut_sink_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 {
@@ -43,7 +49,7 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 	}
 }
 
-static void add_filter_reg(GF_FilterSession *fsess, const GF_FilterRegister *freg)
+void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
 	if (!freg->name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
@@ -60,11 +66,15 @@ static void add_filter_reg(GF_FilterSession *fsess, const GF_FilterRegister *fre
 	gf_list_add(fsess->registry, (void *) freg);
 }
 
+
 GF_EXPORT
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type)
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, Bool load_meta_filters)
 {
 	u32 i;
 	GF_FilterSession *fsess;
+
+	if ( ! gf_props_4cc_check_props())
+		return NULL;
 
 	GF_SAFEALLOC(fsess, GF_FilterSession);
 	if (!fsess) {
@@ -125,10 +135,25 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type)
 
 	fsess->registry = gf_list_new();
 
-	add_filter_reg(fsess, ut_filter_register() );
+	gf_fs_add_filter_registry(fsess, inspect_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, ffdmx_register(fsess, load_meta_filters) );
+
 
 	fsess->done=GF_TRUE;
 	return fsess;
+}
+
+void gf_fs_register_test_filters(GF_FilterSession *fsess)
+{
+	gf_fs_add_filter_registry(fsess, ut_source_register(fsess, GF_FALSE) );
+	gf_fs_add_filter_registry(fsess, ut_filter_register(fsess, GF_FALSE) );
+	gf_fs_add_filter_registry(fsess, ut_sink_register(fsess, GF_FALSE) );
+	gf_fs_add_filter_registry(fsess, ut_sink2_register(fsess, GF_FALSE) );
+}
+
+void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
+{
+	gf_list_del_item(session->registry, freg);
 }
 
 GF_EXPORT
@@ -157,8 +182,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
-			/*GF_FilterRegister *freg = */gf_list_pop_back(fsess->registry);
-			//gf_filter_del(freg);
+			GF_FilterRegister *freg = gf_list_pop_back(fsess->registry);
+			if (freg->registry_free) freg->registry_free(fsess, freg);
 		}
 		gf_list_del(fsess->registry);
 	}
@@ -465,7 +490,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	u32 i, count=gf_list_count(fsess->threads);
 	fprintf(stderr, "Session threads %d\n", 1+count);
 
-	fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU" us\n", 1, fsess->main_th.run_time, fsess->main_th.active_time, fsess->main_th.nb_tasks);
+	fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", 1, fsess->main_th.run_time, fsess->main_th.active_time, fsess->main_th.nb_tasks);
 
 	run_time+=fsess->main_th.run_time;
 	active_time+=fsess->main_th.active_time;
@@ -474,13 +499,13 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		GF_SessionThread *s = gf_list_get(fsess->threads, i);
 
-		fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU" us\n", i+1, s->run_time, s->active_time, s->nb_tasks);
+		fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", i+1, s->run_time, s->active_time, s->nb_tasks);
 
 		run_time+=s->run_time;
 		active_time+=s->active_time;
 		nb_tasks+=s->nb_tasks;
 	}
-	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU" us\n", run_time, active_time, nb_tasks);
+	fprintf(stderr, "\nTotal: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", run_time, active_time, nb_tasks);
 }
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val)

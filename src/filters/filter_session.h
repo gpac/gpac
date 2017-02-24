@@ -31,9 +31,6 @@
 #include <gpac/filters.h>
 
 
-const GF_FilterRegister *ut_filter_register();
-
-
 //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
 
@@ -94,6 +91,8 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
+Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2);
+Bool gf_props_4cc_check_props();
 
 
 typedef struct __gf_filter_queue GF_FilterQueue;
@@ -261,6 +260,12 @@ struct __gf_filter
 
 	volatile u32 pid_connection_pending;
 	volatile u32 pending_packets;
+
+	//list of blacklisted filtered registries
+	GF_List *blacklisted;
+
+	//set when creating a filter chain not defined by the user, eg loading a filter to perform needed PID adaptation
+	GF_Filter *forced_dst_filter;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
@@ -299,6 +304,7 @@ struct __gf_filter_pid
 	struct __gf_filter_pid *pid; //self if output pid, or source pid if output
 	GF_Filter *filter;
 
+	char *name;
 	GF_List *destinations;
 	GF_List *properties;
 	Bool request_property_map;

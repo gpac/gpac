@@ -33,10 +33,10 @@ static Bool logs_set = GF_FALSE;
 static FILE *logfile = NULL;
 static s32 nb_threads=0;
 static GF_SystemRTInfo rti;
-static Bool list_filters = GF_FALSE;
+static u32 list_filters = 0;
 static Bool dump_stats = GF_FALSE;
 static Bool print_filter_info = GF_FALSE;
-
+static Bool load_test_filters = GF_FALSE;
 static u64 last_log_time=0;
 static void on_gpac_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *fmt, va_list list)
 {
@@ -67,6 +67,7 @@ void gpac_usage()
             "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
 			"\t-list           : lists all supported filters.\n"
+			"\t-list-meta      : lists all supported filters including meta-filters (ffmpeg & co).\n"
 			"\t-info           : print info on each FILTER_ARGS.\n"
 			"\t-stats          : print stats after execution.\n"
 	        "\t-threads=N      : sets N extra thread for the session. -1 means use all available cores\n"
@@ -76,6 +77,7 @@ void gpac_usage()
 	        "\t             flock: uses mutexes for queues even when no thread (debug mode)\n"
 	        "\t             direct: uses no threads and direct dispatch of tasks whenever possible (debug mode)\n"
 			"\n"
+			"\t-ltf            : loads test filters for unit tests.\n"
 	        "\t-strict-error:  exit when the player reports its first error\n"
 	        "\t-log-file=file: sets output log file. Also works with -lf\n"
 	        "\t-logs=log_args: sets log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
@@ -134,7 +136,7 @@ int gpac_main(int argc, char **argv)
 	u32 nb_filters=0;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
 	GF_MemTrackerType mem_track=GF_MemTrackerNone;
-	GF_FilterSession *ms;
+	GF_FilterSession *session;
 
 	for (i=1; i<argc; i++) {
 		char *arg = argv[i];
@@ -182,9 +184,12 @@ int gpac_main(int argc, char **argv)
 			if (!strcmp(arg_val, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
 			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_FORCE_LOCK;
 			else if (!strcmp(arg_val, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
-
+		} else if (!strcmp(arg, "-ltf")) {
+			load_test_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-list")) {
-			list_filters = GF_TRUE;
+			list_filters = 1;
+		} else if (!strcmp(arg, "-list-meta")) {
+			list_filters = 2;
 		} else if (!strcmp(arg, "-stats")) {
 			dump_stats = GF_TRUE;
 		} else if (!strcmp(arg, "-info")) {
@@ -210,16 +215,18 @@ int gpac_main(int argc, char **argv)
 		}
 	}
 
-	ms = gf_fs_new(nb_threads, sched_type);
-	if (!ms) {
+	session = gf_fs_new(nb_threads, sched_type, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE);
+	if (!session) {
 		return 1;
 	}
+	if (load_test_filters) gf_fs_register_test_filters(session);
+
 
 	if (list_filters || print_filter_info) {
-		u32 count = gf_fs_filters_registry_count(ms);
-		if (list_filters) fprintf(stderr, "Listing %d supported filters:\n", count);
+		u32 count = gf_fs_filters_registry_count(session);
+		if (list_filters) fprintf(stderr, "Listing %d supported filters%s:\n", count, (list_filters==2) ? " including meta-filters" : "");
 		for (i=0; i<count; i++) {
-			const GF_FilterRegister *reg = gf_fs_get_filter_registry(ms, i);
+			const GF_FilterRegister *reg = gf_fs_get_filter_registry(session, i);
 			if (print_filter_info) {
 				u32 k;
 				//all good to go, load filters
@@ -239,17 +246,22 @@ int gpac_main(int argc, char **argv)
 								if (!a || !a->arg_name) break;
 								idx++;
 
-								fprintf(stderr, "\t%s (%s): %s. Default is %s.", a->arg_name, gf_props_get_type_name(a->arg_type)
-, a->arg_desc, a->arg_default_val);
+								fprintf(stderr, "\t%s (%s): %s.", a->arg_name, gf_props_get_type_name(a->arg_type)
+, a->arg_desc);
+								if (a->arg_default_val) {
+									fprintf(stderr, " Default %s.", a->arg_default_val);
+								} else {
+									fprintf(stderr, " No default.");
+								}
 								if (a->min_max_enum) {
 									fprintf(stderr, " %s: %s", strchr(a->min_max_enum, '|') ? "Enum" : "minmax", a->min_max_enum);
 								}
 								if (a->updatable) fprintf(stderr, " Updatable attribute.");
 								fprintf(stderr, "\n");
 							}
+						} else {
+							fprintf(stderr, "No arguments\n");
 						}
-					} else {
-						fprintf(stderr, "No arguments\n");
 					}
 					break;
 				}
@@ -266,7 +278,7 @@ int gpac_main(int argc, char **argv)
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
-		gf_fs_load_filter(ms, arg);
+		gf_fs_load_filter(session, arg);
 		nb_filters++;
 	}
 	if (!nb_filters) {
@@ -274,13 +286,13 @@ int gpac_main(int argc, char **argv)
 		goto exit;
 	}
 
-	gf_fs_run(ms);
+	gf_fs_run(session);
 
 	if (dump_stats)
-		gf_fs_print_stats(ms);
+		gf_fs_print_stats(session);
 
 exit:
-	gf_fs_del(ms);
+	gf_fs_del(session);
 	gf_sys_close();
 	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);

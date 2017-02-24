@@ -325,9 +325,12 @@
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
 		9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
+		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
+		9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		9299BDDD1E5DA57100D6289D /* ff_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 9299BDDC1E5DA57100D6289D /* ff_dmx.c */; };
 		92A9D3C91CCA7AAA006FF303 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A9D3C61CCA79B4006FF303 /* amr_in.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
@@ -515,7 +518,6 @@
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
-		92DB14881E4F040E00382A81 /* utfilter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92DB14851E4F040E00382A81 /* utfilter.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
@@ -1237,9 +1239,12 @@
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
+		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
+		9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters_imp/unit_test_filter.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		927AACFF1E44EEDC008C8E69 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
+		9299BDDC1E5DA57100D6289D /* ff_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dmx.c; path = filters_imp/ff_dmx.c; sourceTree = "<group>"; };
 		92A9D3C61CCA79B4006FF303 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
@@ -1429,7 +1434,6 @@
 		92BE511018D6DA6300AA59D8 /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
-		92DB14851E4F040E00382A81 /* utfilter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = utfilter.c; path = filters/utfilter.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
@@ -1855,6 +1859,7 @@
 		9201FE7E18D5A444003D1ACA /* libgpac */ = {
 			isa = PBXGroup;
 			children = (
+				9299BDDB1E5DA56500D6289D /* filters_imp */,
 				92DB147A1E4F033400382A81 /* filters */,
 				92BBFC471A71228A006A7735 /* include */,
 				9201FE8018D5A444003D1ACA /* .deps */,
@@ -2421,6 +2426,16 @@
 			path = gpac;
 			sourceTree = "<group>";
 		};
+		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
+			isa = PBXGroup;
+			children = (
+				9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */,
+				9279D49D1E5EDF40004E53F4 /* inspect.c */,
+				9299BDDC1E5DA57100D6289D /* ff_dmx.c */,
+			);
+			name = filters_imp;
+			sourceTree = "<group>";
+		};
 		92A9D3C81CCA79BD006FF303 /* amr_in */ = {
 			isa = PBXGroup;
 			children = (
@@ -2957,7 +2972,6 @@
 				921D1BE71E55B1AE00B9B23A /* filter_session.c */,
 				921D1BE81E55B1AE00B9B23A /* filter_session.h */,
 				921D1BE91E55B1AE00B9B23A /* filter.c */,
-				92DB14851E4F040E00382A81 /* utfilter.c */,
 			);
 			name = filters;
 			sourceTree = "<group>";
@@ -3574,6 +3588,7 @@
 				920100BB18D5A444003D1ACA /* quantize.c in Sources */,
 				920100BD18D5A444003D1ACA /* script_dec.c in Sources */,
 				920100BE18D5A444003D1ACA /* script_enc.c in Sources */,
+				9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */,
 				920100BF18D5A444003D1ACA /* unquantize.c in Sources */,
 				920100C018D5A444003D1ACA /* audio_input.c in Sources */,
 				920100C118D5A444003D1ACA /* audio_mixer.c in Sources */,
@@ -3732,6 +3747,7 @@
 				9201016318D5A445003D1ACA /* oci_codec.c in Sources */,
 				9201016418D5A445003D1ACA /* odf_code.c in Sources */,
 				9201016518D5A445003D1ACA /* odf_codec.c in Sources */,
+				9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */,
 				9201016618D5A445003D1ACA /* odf_command.c in Sources */,
 				9201016718D5A445003D1ACA /* odf_dump.c in Sources */,
 				9201016818D5A445003D1ACA /* odf_parse.c in Sources */,
@@ -3822,6 +3838,7 @@
 				920101C318D5A445003D1ACA /* url.c in Sources */,
 				920101C418D5A445003D1ACA /* utf.c in Sources */,
 				920101C518D5A445003D1ACA /* xml_parser.c in Sources */,
+				9299BDDD1E5DA57100D6289D /* ff_dmx.c in Sources */,
 				92AAF0EA18D6E3A300E2FF12 /* raw_video.c in Sources */,
 				92AAF0EB18D6E5AA00E2FF12 /* ftgrays.c in Sources */,
 				92AAF0ED18D6E5AA00E2FF12 /* raster_565.c in Sources */,
@@ -3870,7 +3887,6 @@
 				92AAF15818D6E87500E2FF12 /* widget.c in Sources */,
 				92AAF15918D6E87500E2FF12 /* widgetman.c in Sources */,
 				92AAF1D918D710A000E2FF12 /* vtt_dec.c in Sources */,
-				92DB14881E4F040E00382A81 /* utfilter.c in Sources */,
 				92AAF1DA18D710A000E2FF12 /* vtt_in.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -4343,8 +4359,10 @@
 					/opt/local/include/mozjs185,
 					/opt/local/include/nspr,
 					../../include,
+					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
 					/opt/local/lib,
 					/opt/local/lib/nspr,
 				);
@@ -4361,6 +4379,28 @@
 					"-lplds4",
 					"-lplc4",
 					"-lnspr4",
+					"-lz",
+					"-lavcodec",
+					"-lavformat",
+					"-lavutil",
+					"-lswscale",
+					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-lavdevice",
+					"-lavfilter",
+					"-lavresample",
+					"-lpostproc",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -4397,8 +4437,10 @@
 					/opt/local/include/mozjs185,
 					/opt/local/include/nspr,
 					../../include,
+					/usr/local/include,
 				);
 				LIBRARY_SEARCH_PATHS = (
+					/usr/local/lib,
 					/opt/local/lib,
 					/opt/local/lib/nspr,
 				);
@@ -4414,6 +4456,28 @@
 					"-lplds4",
 					"-lplc4",
 					"-lnspr4",
+					"-lz",
+					"-lavcodec",
+					"-lavformat",
+					"-lavutil",
+					"-lswscale",
+					"-lbz2",
+					"-lswresample",
+					"-lx264",
+					"-lx265",
+					"-lavdevice",
+					"-lavfilter",
+					"-lavresample",
+					"-lpostproc",
+					"-liconv",
+					"-weak_framework",
+					VideoDecodeAcceleration,
+					"-weak_framework",
+					CoreFoundation,
+					"-weak_framework",
+					QuartzCore,
+					"-weak_framework",
+					CoreGraphics,
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

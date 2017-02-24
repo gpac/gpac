@@ -122,14 +122,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
-		if (!value) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for string arg %s - ignoring\n", value, name));
-
-			p.type=GF_PROP_FORBIDEN;
-		} else {
-			p.type=GF_PROP_STRING;
-			p.value.string = strdup(value);
-		}
+		p.type=GF_PROP_STRING;
+		p.value.string = value ? gf_strdup(value) : NULL;
 		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
@@ -151,6 +145,41 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 	return p;
 }
 
+Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
+{
+	if (p1->type!=p2->type) return GF_FALSE;
+	switch (p1->type) {
+	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_UINT: return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_LONGSINT: return (p1->value.longsint==p2->value.longsint) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_LONGUINT: return (p1->value.longuint==p2->value.longuint) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_BOOL: return (p1->value.boolean==p2->value.boolean) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_FRACTION:
+		return ( (s64) p1->value.frac.num * (s64) p2->value.frac.den == (s64) p2->value.frac.num * (s64) p1->value.frac.den) ? GF_TRUE : GF_FALSE;
+
+	case GF_PROP_FLOAT: return (p1->value.fnumber==p2->value.fnumber) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_DOUBLE: return (p1->value.number==p2->value.number) ? GF_TRUE : GF_FALSE;
+	case GF_PROP_STRING:
+	case GF_PROP_NAME:
+		if (!p1->value.string) return p2->value.string ? GF_FALSE : GF_TRUE;
+		if (!p2->value.string) return GF_FALSE;
+		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
+
+	case GF_PROP_DATA:
+	case GF_PROP_CONST_DATA:
+		if (!p1->value.data) return p2->value.data ? GF_FALSE : GF_TRUE;
+		if (!p2->value.data) return GF_FALSE;
+		if (p1->data_len != p2->data_len) return GF_FALSE;
+		return !memcmp(p1->value.data, p2->value.data, p1->data_len) ? GF_TRUE : GF_FALSE;
+
+	//user-managed pointer
+	case GF_PROP_POINTER: return (p1->value.ptr==p2->value.ptr) ? GF_TRUE : GF_FALSE;
+	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Comparing forbidden property type %d\n", p1->type));
+		break;
+	}
+	return GF_FALSE;
+}
 
 GFINLINE u32 gf_props_hash_djb2(u32 p4cc, const char *str)
 {
@@ -396,4 +425,60 @@ const char *gf_props_get_type_name(u32 type)
 	return "Undefined";
 }
 
+
+struct _gf_prop_typedef {
+	u32 type;
+	const char *name;
+	const char *description;
+	u8 prop_type;
+} GF_BuiltInProps [] = {
+
+	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
+	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
+	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as register for MPEG-4", GF_PROP_UINT},
+	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
+	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "data property containing the decoder config", GF_PROP_DATA},
+	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "audio sample rate", GF_PROP_UINT},
+	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "number of audio sample in one coded frame", GF_PROP_UINT},
+	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
+	{ GF_PROP_PID_BIT_PER_SAMPLE, "BitsPerSample", "number of audio channels", GF_PROP_UINT},
+	{ GF_PROP_PID_WIDTH, "Width", "Visual width (video / text / graphics)", GF_PROP_UINT},
+	{ GF_PROP_PID_HEIGHT, "Height", "Visualheight (video / text / graphics)", GF_PROP_UINT},
+	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
+	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
+	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
+
+	{ GF_PROP_PCK_DTS, "DTS", "Decoding time of packet, in timebase units", GF_PROP_LONGUINT},
+	{ GF_PROP_PCK_CTS, "CTS", "Composition time of packet, in timebase units", GF_PROP_LONGUINT},
+	{ GF_PROP_PCK_SAP, "SAP", "Stream access point type of packet", GF_PROP_LONGUINT},
+	{ GF_PROP_PCK_CORRUPTED, "Corrupted", "Indicate packet is corrupted", GF_PROP_BOOL},
+
+	{ NULL }
+
+};
+
+const char *gf_props_4cc_get_name(u32 prop_4cc)
+{
+	u32 i, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	for (i=0; i<nb_props; i++) {
+		if (GF_BuiltInProps[i].type==prop_4cc) return GF_BuiltInProps[i].name;
+	}
+	return NULL;
+}
+
+Bool gf_props_4cc_check_props()
+{
+	Bool res = GF_TRUE;
+	u32 i, j, nb_props = sizeof(GF_BuiltInProps) / sizeof(struct _gf_prop_typedef);
+	for (i=0; i<nb_props; i++) {
+		for (j=i+1; j<nb_props; j++) {
+			if (GF_BuiltInProps[i].type==GF_BuiltInProps[j].type) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Property %s and %s have the same code type %s\n", GF_BuiltInProps[i].name, GF_BuiltInProps[j].name, gf_4cc_to_str(GF_BuiltInProps[i].type) ));
+				res = GF_FALSE;
+			}
+		}
+	}
+	return res;
+}
 

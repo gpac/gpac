@@ -24,6 +24,7 @@
  */
 
 #include "filter_session.h"
+#include <gpac/constants.h>
 
 void pcki_del(GF_FilterPacketInstance *pcki)
 {
@@ -72,6 +73,8 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 	return pidinst;
 }
 
+Bool gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_FilterRegister *dst);
+
 Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
 {
 	u32 i, count;
@@ -101,7 +104,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Connected filter %s PID to filter %s\n", pid->filter->name, filter->name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Connected filter %s PID %s to filter %s\n", pid->filter->name,  pid->name, filter->name));
 			gf_list_add(pid->destinations, pidinst);
 
 			if (!filter->input_pids) filter->input_pids = gf_list_new();
@@ -109,13 +112,22 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 			gf_list_add(filter->input_pids, pid);
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID to filter %s\n", pid->filter->name, filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s\n", pid->filter->name, pid->name, filter->name));
 		//error, if old pid remove from input
 		if (!new_pid_inst) {
 			gf_list_del_item(pid->destinations, pidinst);
 			gf_list_del_item(filter->input_pids, pid);
 		}
 		gf_filter_pid_inst_del(pidinst);
+
+		if (filter->freg->output_caps) {
+			//todo - try to load another filter to handle that connection
+			gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
+			//gf_filter_pid_resolve_link(pid, filter->freg);
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
+		}
+		return GF_FALSE;
 	}
 
 	//flush all pending pid init requests following the call to init
@@ -169,6 +181,21 @@ Bool gf_filter_pid_disconnect(GF_FSTask *task)
 }
 */
 
+void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Attempt to assign name %s to input PID %s in filter %s - ignoring\n", name, pid->pid->name, pid->pid->filter->name));
+	} else if (name) {
+		if (pid->name) gf_free(pid->name);
+		pid->name = gf_strdup(name);
+	}
+}
+const char *gf_filter_pid_get_name(GF_FilterPid *pid)
+{
+	return pid->pid->name;
+}
+
+
 void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta)
 {
 	if (PID_IS_INPUT(pid)) {
@@ -217,8 +244,49 @@ static Bool filter_source_id_match(GF_FilterPid *src_pid, const char *id, const 
 			if (!pid_name) return GF_TRUE;
 
 			//match pid name
-			name = gf_filter_pid_get_property(src_pid, GF_FILTER_PID_NAME);
-			if (name && !strcmp(name->value.string, pid_name)) return GF_TRUE;
+			if (!strcmp(src_pid->name, pid_name)) return GF_TRUE;
+
+			//special case for stream types filters
+			name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+			if (name) {
+				u32 matched=0;
+				u32 type=0;
+				if (!strnicmp(pid_name, "audio", 5) && (name->value.uint==GF_STREAM_AUDIO)) {
+					matched=5;
+					type=GF_STREAM_AUDIO;
+				} else if (!strnicmp(pid_name, "video", 5) && (name->value.uint==GF_STREAM_VISUAL)) {
+					matched=5;
+					type=GF_STREAM_VISUAL;
+				} else if (!strnicmp(pid_name, "scene", 5) && (name->value.uint==GF_STREAM_SCENE)) {
+					matched=5;
+					type=GF_STREAM_SCENE;
+				} else if (!strnicmp(pid_name, "font", 4) && (name->value.uint==GF_STREAM_FONT)) {
+					matched=5;
+					type=GF_STREAM_FONT;
+				} else if (!strnicmp(pid_name, "text", 4) && (name->value.uint==GF_STREAM_TEXT)) {
+					matched=5;
+					type=GF_STREAM_TEXT;
+				}
+
+				if (matched) {
+					u32 idx=0;
+					u32 k, count_pid;
+					if (strlen(pid_name)==matched) return GF_TRUE;
+					idx = atoi(pid_name+matched);
+					count_pid = gf_list_count(src_pid->filter->output_pids);
+					for (k=0; k<count_pid; k++) {
+						GF_FilterPid *p = gf_list_get(src_pid->filter->output_pids, k);
+						name = gf_filter_pid_get_property(src_pid, GF_PROP_PID_STREAM_TYPE);
+						if (name && name->value.uint==type) {
+							idx--;
+							if (!idx) {
+								if (p==src_pid) return GF_TRUE;
+								break;
+							}
+						}
+					}
+				}
+			}
 
 			//TODO: match by PID type #audioX, #videoX
 			if (!name) {
@@ -246,27 +314,246 @@ static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
+static u32 filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg)
+{
+	u32 i=0;
+	u32 nb_matched=0;
+
+	//filters with no explicit input cap accept anything 
+	if (!freg->input_caps) return 1;
+
+	//check all input caps of dst filter
+	while (freg->input_caps) {
+		const GF_PropertyValue *pid_cap=NULL;
+		const GF_FilterCapability *cap = &freg->input_caps[i];
+		i++;
+		if (!cap || !cap->cap_name) break;
+		if (strlen(cap->cap_name)==4) {
+			u32 capcode = GF_4CC(cap->cap_name[0], cap->cap_name[1], cap->cap_name[2], cap->cap_name[3]);
+			pid_cap = gf_filter_pid_get_property(src_pid, capcode);
+		}
+		if (!pid_cap) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->cap_name);
+
+		//we found a property of that type and it is equal
+		if (pid_cap) {
+			if (gf_props_equal(pid_cap, &cap->p)) {
+				nb_matched++;
+			} else if (cap->mandatory) {
+				return GF_FALSE;
+			}
+		}
+
+	}
+	return nb_matched;
+}
+#if 0
+const GF_FilterCapability *filter_find_input_cap(GF_FilterRegister *freg, char *name)
+{
+	u32 i=0;
+	Bool matched=GF_FALSE;
+	//check all output caps of dst filter
+	while (freg->output_caps) {
+		GF_PropertyValue capv, *pid_cap=NULL;
+		const GF_FilterCapability *cap = &freg->output_caps[i];
+		i++;
+		if (!cap || !cap->cap_name) break;
+		if (!strcmp(name, cap->cap_name)) return cap;
+	}
+	return NULL;
+}
+
+static u32 filter_caps_match(const GF_FilterRegister *src, const GF_FilterRegister *dst)
+{
+	u32 i=0;
+	u32 nb_matched=0;
+	u32 nb_mandatory=0;
+
+	//count all mandatory input caps of dst filter
+	while (dst->input_caps) {
+		const GF_FilterCapability *in_cap = &src->input_caps[i];
+		i++;
+		if (!in_cap || !in_cap->cap_name) break;
+		if (in_cap->mandatory) nb_mandatory++;
+	}
+
+	//check all output caps of src filter
+	i=0;
+	while (src->output_caps) {
+		u32 j=0;
+		Bool matched=GF_FALSE;
+		GF_PropertyValue capv, *pid_cap=NULL;
+		const GF_FilterCapability *out_cap = &src->output_caps[i];
+		i++;
+		if (!out_cap || !out_cap->cap_name) break;
+
+		//check all input caps of dst filter, count ones that are matched
+		while (dst->input_caps) {
+			const GF_FilterCapability *in_cap = &dst->input_caps[j];
+			j++;
+			if (!in_cap || !in_cap->cap_name) break;
+			if (strcmp(out_cap->cap_name, in_cap->cap_name)) continue;
+
+			//we found a property of that type and it is equal
+			if (gf_props_equal(&in_cap->p, &out_cap->p)) {
+				matched = GF_TRUE;
+				if (in_cap->mandatory) nb_mandatory--;
+			}
+		}
+		//output cap matching this input cap, increment counter
+		if (matched) nb_matched++;
+	}
+	//some mandatory input caps not provided by the input filter, don't use
+	if (nb_mandatory) return 0;
+	return nb_matched;
+}
+
+u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, GF_FilterRegister *filter, GF_List *black_list, GF_List *filter_chain, GF_FilterRegister *dst_filter)
+{
+	u32 nb_matched = 0;
+	const GF_FilterRegister *candidate = NULL;
+	//browse all our registered filters
+	u32 i, count=gf_list_count(fsess->registry);
+	u32 count_at_input = gf_list_count(filter_chain);
+
+	for (i=0; i<count; i++) {
+		u32 path_weight=0;
+		GF_Filter *filter_dst;
+		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
+		if (freg==filter) continue;
+
+		//source filter, can't add pid
+		if (!freg->configure_pid) continue;
+		
+		//blacklisted filter, can't add pid
+		if (gf_list_find(black_list, freg)>=0)
+			continue;
+
+		path_weight = filter_caps_match(filter, freg);
+		if (!path_weight) continue;
+
+		//we found our target filter
+		if (freg==dst_filter) {
+			return path_weight;
+		}
+		//check this filter
+		else {
+			path_weight += gf_filter_check_dst_caps(fsess, freg, black_list, filter_chain, dst_filter);
+		}
+		if (path_weight>nb_matched) {
+			//remove all entries added in recursive gf_filter_check_dst_caps
+			while (gf_list_count(filter_chain)>count_at_input) {
+				gf_list_rem_last(filter_chain);
+			}
+			nb_matched = path_weight;
+			candidate = freg;
+		}
+	}
+	if (candidate) gf_list_add(filter_chain, candidate);
+	return nb_matched;
+}
+
+Bool gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_FilterRegister *dst_filter)
+{
+	GF_FilterSession *fsess = pid->filter->session;
+	GF_List *filter_chain = gf_list_new();
+	u32 max_weight=0;
+	//browse all our registered filters
+	u32 i, count=gf_list_count(fsess->registry);
+	for (i=0; i<count; i++) {
+		u32 freg_weight=0;
+		u32 path_weight=0;
+		u32 path_len=0;
+		GF_Filter *filter_dst;
+		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
+
+		//source filter, can't add pid
+		if (!freg->configure_pid) continue;
+
+		//blacklisted filter, can't add pid
+		if (gf_list_find(pid->filter->blacklisted, freg)>=0)
+			continue;
+
+		//no match of pid caps for this filter
+		freg_weight = filter_pid_caps_match(pid, freg);
+		if (!freg_weight) continue;
+
+		//we have a target destination filter match, keep solving filter until done
+		path_len = gf_list_count(filter_chain);
+
+		gf_list_add(filter_chain, freg);
+		path_weight = gf_filter_check_dst_caps(fsess, freg, pid->filter->blacklisted, filter_chain, dst_filter);
+
+		//not our candidate, remove all added entries
+		if (!path_weight) {
+			while (gf_list_count(filter_chain) > path_len) {
+				gf_list_rem_last(filter_chain);
+			}
+			continue;
+		}
+		//
+		if (path_weight+freg_weight > max_weight) {
+			max_weight = path_weight+freg_weight;
+			//remove initial entries
+			while (path_len) {
+				gf_list_rem(filter_chain, 0);
+				path_len--;
+			}
+		} else {
+			//remove all added entries
+			while (gf_list_count(filter_chain) > path_len) {
+				gf_list_rem_last(filter_chain);
+			}
+		}
+	}
+
+	if (gf_list_count(filter_chain)==0) {
+		//no filter found for this pid !
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for PID in filter %s - NOT CONNECTED\n", pid->filter->name));
+	} else {
+
+	}
+	gf_list_del(filter_chain);
+}
+
+#endif
+
 Bool gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
+	Bool found_dest=GF_FALSE;
 
-	//try to connect pid
-	count = gf_list_count(task->filter->session->filters);
-	for (i=0; i<count; i++) {
-		GF_Filter *filter_dst = gf_list_get(task->filter->session->filters, i);
-		//source filter
-		if (!filter_dst->freg->configure_pid) continue;
-		//walk up through the parent graph and check if this filter is already in. If so don't connect
-		//since we don't allow re-entrant PIDs
-		if (filter_in_parent_chain(task->filter, filter_dst) ) continue;
+	//try to connect pid to all running filters
+	if (!task->filter->forced_dst_filter) {
+		count = gf_list_count(task->filter->session->filters);
+		for (i=0; i<count; i++) {
+			GF_Filter *filter_dst = gf_list_get(task->filter->session->filters, i);
+			//source filter
+			if (!filter_dst->freg->configure_pid) continue;
+			//walk up through the parent graph and check if this filter is already in. If so don't connect
+			//since we don't allow re-entrant PIDs
+			if (filter_in_parent_chain(task->filter, filter_dst) ) continue;
 
-		if (!filter_source_id_match(task->pid, task->filter->id, filter_dst->source_ids)) continue;
+			if (!filter_source_id_match(task->pid, task->filter->id, filter_dst->source_ids)) continue;
 
-		ref_count_inc(&task->filter->pid_connection_pending);
-		//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
-		//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
-		gf_fs_post_task(filter_dst->session, gf_filter_pid_connect_task, task->filter, task->pid, "pid_connect", filter_dst);
+			//we have a match, check if caps are OK
+			if (!filter_pid_caps_match(task->pid, filter_dst->freg)) continue;
+
+			ref_count_inc(&task->filter->pid_connection_pending);
+			//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
+			//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
+			gf_fs_post_task(filter_dst->session, gf_filter_pid_connect_task, task->filter, task->pid, "pid_connect", filter_dst);
+
+			found_dest = GF_TRUE;
+		}
 	}
+	//connection in proces, do nothing
+	if (found_dest) return GF_FALSE;
+
+	//try to load filters ? for now disabled
+//	gf_filter_pid_resolve_link(task->pid, GF_TRUE);
+
+	//no filter found for this pid !
+	GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", task->pid->name, task->pid->filter->name));
 	return GF_FALSE;
 }
 
@@ -284,6 +571,7 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 {
+	char szName[30];
 	GF_FilterPid *pid;
 	GF_SAFEALLOC(pid, GF_FilterPid);
 	pid->filter = filter;
@@ -293,6 +581,9 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	if (!filter->output_pids) filter->output_pids = gf_list_new();
 	gf_list_add(filter->output_pids, pid);
 	pid->pid = pid;
+
+	sprintf(szName, "PID%d", gf_list_count(filter->output_pids) );
+	pid->name = gf_strdup(szName);
 
 	gf_fq_add(filter->pending_pids, pid);
 
@@ -310,6 +601,7 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 		gf_props_del( gf_list_pop_back(pid->properties) );
 	}
 	gf_list_del(pid->properties);
+	if (pid->name) gf_free(pid->name);
 	gf_free(pid);
 }
 
@@ -493,4 +785,21 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	ref_count_dec(&pidinst->filter->pending_packets);
 }
 
+
+const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
+{
+	GF_PropertyMap *props;
+
+	if (PID_IS_INPUT(pid)) {
+		props = gf_list_last(pid->pid->properties);
+	} else {
+		props = check_new_pid_props(pid, GF_FALSE);
+	}
+	if (!props) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for pid in filter %s, ignoring enum\n", pid->filter->name));
+		*idx = 0xFFFFFFFF;
+		return NULL;
+	}
+	return gf_props_enum_property(props, idx, prop_4cc, prop_name);
+}
 
