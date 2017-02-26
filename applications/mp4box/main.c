@@ -3438,7 +3438,7 @@ int mp4boxMain(int argc, char **argv)
 	trackID = stat_level = hint_flags = 0;
 	program_number = 0;
 	info_track_id = 0;
-	do_flat = 0;
+	do_flat = GF_FALSE;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -3489,7 +3489,7 @@ int mp4boxMain(int argc, char **argv)
 		if (dash_duration)
 			interleaving_time = dash_duration;
 		else
-			interleaving_time = 0.5;
+			do_flat = GF_TRUE;
 	}
 
 	if (dump_std)
