@@ -1927,7 +1927,7 @@ restart_fragmentation_pass:
 				period_duration += tick_adjust;
 			}
 			if (dash_cfg->mpd->max_segment_duration * dash_cfg->dash_scale < SegmentDuration) {
-				dash_cfg->mpd->max_segment_duration = (u32)SegmentDuration;
+				dash_cfg->mpd->max_segment_duration = (u32)(SegmentDuration*1000);
 				dash_cfg->mpd->max_segment_duration /= dash_cfg->dash_scale;
 			}
 
@@ -4840,7 +4840,7 @@ static GF_Err set_period_header(GF_DASHSegmenter *dasher, GF_MPD_Period *period,
 		period->start = (u64)period_start;
 	}
 	if (!dasher->dash_mode && period_duration) {
-		period->duration = (u64)period_duration;
+		period->duration = (u64)(period_duration*1000);
 	}
 	if (xlink) {
 		period->xlink_href = gf_strdup(xlink);
@@ -6636,7 +6636,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 	}
 
-	dasher->mpd->media_presentation_duration = (u64)presentation_duration;
+	dasher->mpd->media_presentation_duration = (u64)(presentation_duration*1000);
 	if(!dasher->mpd_header_is_init){
 		e = mpd_set_header(dasher, has_mpeg2, presentation_duration, use_cenc, uses_xlink);
 		if (e) goto exit;
