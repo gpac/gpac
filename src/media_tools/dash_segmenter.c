@@ -5544,7 +5544,7 @@ GF_EXPORT
 GF_Err gf_dasher_set_min_buffer(GF_DASHSegmenter *dasher, Double min_buffer)
 {
 	if (!dasher) return GF_BAD_PARAM;
-	dasher->mpd->min_buffer_time = (u32)min_buffer;
+	dasher->mpd->min_buffer_time = (u32)(min_buffer*1000);
 	return GF_OK;
 }
 
