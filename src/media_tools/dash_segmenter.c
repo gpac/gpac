@@ -2199,7 +2199,7 @@ restart_fragmentation_pass:
 			if (!dash_cfg->use_segment_timeline) {
 				if (!max_segment_duration)
 					max_segment_duration = dash_cfg->segment_duration;
-				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
+				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
 			/*in BS switching we share the same IS for all reps*/
 			if (is_bs_switching) {
@@ -2349,7 +2349,7 @@ restart_fragmentation_pass:
 
 			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
-				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale));
+				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
 			//don't write init if scalable rep
 			if (!is_bs_switching && !dash_input->idx_representations) {
@@ -2403,7 +2403,7 @@ restart_fragmentation_pass:
 		}
 		fprintf(dash_cfg->mpd, "    <SegmentList");
 		if (!mpd_timeline_bs) {
-			fprintf(dash_cfg->mpd, " timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale));
+			fprintf(dash_cfg->mpd, " timescale=\"%d\" duration=\"%d\"", mpd_timescale, (u32) (max_segment_duration * mpd_timescale + 0.5));
 		}
 		if (presentationTimeOffset) {
 			fprintf(dash_cfg->mpd, " presentationTimeOffset=\""LLD"\"", presentationTimeOffset);
