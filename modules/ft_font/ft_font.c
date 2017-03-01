@@ -254,7 +254,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
 	ftpriv->font_serif = NULL;
 
-	/* let's check we have fonts that match our default Bol/Italic/BoldItalic conventions*/
+	/* let's check we have fonts that match our default Bold/Italic/BoldItalic conventions*/
 	count = gf_cfg_get_key_count(cfg, "FontEngine");
 	for (i=0; i<count; i++) {
 		const char *opt;

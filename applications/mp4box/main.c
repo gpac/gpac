@@ -5201,7 +5201,7 @@ int wmain( int argc, wchar_t** wargv )
 		wchar_t *src_str = wargv[i];
 		len = UTF8_MAX_BYTES_PER_CHAR*gf_utf8_wcslen(wargv[i]);
 		argv[i] = (char *)malloc(len + 1);
-		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
+		res_len = gf_utf8_wcstombs(argv[i], len, (const unsigned short**)&src_str);
 		argv[i][res_len] = 0;
 		if (res_len > len) {
 			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
