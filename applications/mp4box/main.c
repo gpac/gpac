@@ -61,6 +61,7 @@
 #include <time.h>
 
 #define BUFFSIZE	8192
+#define DEFAULT_INTERLEAVING_IN_SEC 0.5
 
 /*in fileimport.c*/
 
@@ -3402,7 +3403,7 @@ int mp4boxMain(int argc, char **argv)
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	interleaving_time = 0.0;
+	interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 	dash_duration = dash_subduration = 0.0;
 	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
@@ -5018,7 +5019,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (Frag) {
-		if (!interleaving_time) interleaving_time = 0.5;
+		if (!interleaving_time) interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", interleaving_time);
 		e = gf_media_fragment_file(file, outfile, interleaving_time);
