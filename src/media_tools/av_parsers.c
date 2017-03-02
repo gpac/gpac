@@ -1986,7 +1986,7 @@ u32 gf_media_nalu_is_start_code(GF_BitStream *bs)
 
 static u32 gf_media_nalu_locate_start_code_bs(GF_BitStream *bs, Bool locate_trailing)
 {
-	u32 v, bpos, nb_cons_zeros=0;;
+	u32 v, bpos, nb_cons_zeros=0;
 	char avc_cache[AVC_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	u64 start = gf_bs_get_position(bs);
