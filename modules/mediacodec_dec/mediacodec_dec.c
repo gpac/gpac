@@ -9,24 +9,15 @@
 #include "media/NdkMediaCodec.h"
 #include "media/NdkMediaExtractor.h"
 #include "media/NdkMediaFormat.h"
-
-#include <android/log.h>
-
-#define TAG "mediacodec_dec"
-
-#define LOGV(...)  __android_log_print(ANDROID_LOG_VERBOSE, TAG,  __VA_ARGS__)
-#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
-#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, TAG,  __VA_ARGS__)
-#define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
-#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
-
+#include "mediacodec_dec.h"
 
 typedef struct 
 {
     AMediaCodec *codec;
     AMediaFormat *format;
+    ANativeWindow * window;
 	char * frame;
-	
+	Bool use_gl_textures;
     u32 dequeue_timeout;
 
     u32 width, height, stride, out_size;
@@ -39,6 +30,7 @@ typedef struct
     u8 chroma_format, luma_bit_depth, chroma_bit_depth;
     GF_ESD *esd;
 	u16 frame_rate;
+	Bool surface_rendering;
 	Bool frame_size_changed;
     Bool inputEOS, outputEOS;
 	Bool raw_frame_dispatch;
@@ -60,6 +52,7 @@ typedef struct
     u32 vps_size;
 	AMediaCodecBufferInfo info;
 	ssize_t outIndex;
+	u32 gl_tex_id;
 
 } MCDec;
 typedef struct {
@@ -365,11 +358,14 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         LOGE("AMediaCodec_createDecoderByType failed");
         return GF_CODEC_NOT_FOUND;
     }
+    
+    if(!ctx->window) 
+		MCDec_CreateSurface(&ctx->window,&ctx->gl_tex_id, &ctx->surface_rendering);
 
     if( AMediaCodec_configure(
         ctx->codec, // codec   
         ctx->format, // format
-        NULL,  //surface 
+        (ctx->surface_rendering) ? ctx->window : NULL,  //surface 
         NULL, // crypto 
         0 // flags 
         )     != AMEDIA_OK) 
@@ -701,6 +697,8 @@ static GF_Err MCDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 	switch (capability.CapCode) {
 		case GF_CODEC_FRAME_OUTPUT:
 			ctx->raw_frame_dispatch = capability.cap.valueInt ? GF_TRUE : GF_FALSE;
+			if (ctx->raw_frame_dispatch && (capability.cap.valueInt==2))
+				ctx->use_gl_textures = GF_TRUE;
 
 			return GF_OK;
 	}
@@ -814,11 +812,10 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 		
        
         ctx->outIndex = AMediaCodec_dequeueOutputBuffer(ctx->codec, &ctx->info, ctx->dequeue_timeout);
-      
-		
-		switch(ctx->outIndex) {
-
-            case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+        *outBufferLength=0;
+        
+        switch(ctx->outIndex) {
+			case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
                 LOGI("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED");
                 ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
                 break;
@@ -839,25 +836,26 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                         ctx->outputEOS = true;
                     }
 					 
-		    size_t outSize;
-                    uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
-		    ctx->frame = buffer + ctx->info.offset;
-					
-                    if(!ctx->frame) {
-                        LOGI("AMediaCodec_getOutputBuffer failed");
-                        *outBufferLength = 0;
-                    } else {
+					if(!ctx->surface_rendering) {
+						size_t outSize;
+						uint8_t * buffer = AMediaCodec_getOutputBuffer(ctx->codec, ctx->outIndex, &outSize);
+						ctx->frame = buffer + ctx->info.offset;
 						
-                        if(ctx->info.size < ctx->out_size)
-                            *outBufferLength = ctx->info.size;
-
-                        else *outBufferLength = ctx->out_size;
-                    }
-			}
+						if(!ctx->frame) {
+							LOGI("AMediaCodec_getOutputBuffer failed");
+							*outBufferLength = 0;
+						}
+					}
 					
+					if(ctx->surface_rendering || ctx->frame) {
+						if(ctx->info.size < ctx->out_size)
+						*outBufferLength = ctx->info.size;
+						else *outBufferLength = ctx->out_size;
+					}
+				}
 			break;
-					
-        }
+			
+			}
 
     }
 	
@@ -873,16 +871,11 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
     if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
 
     switch (esd->decoderConfig->objectTypeIndication) {
-        
         case GPAC_OTI_VIDEO_AVC:
             return GF_CODEC_SUPPORTED;
-
-
         case GPAC_OTI_VIDEO_HEVC:
-	    return GF_CODEC_NOT_SUPPORTED;
-
-
-        case GPAC_OTI_VIDEO_MPEG4_PART2:
+			return GF_CODEC_NOT_SUPPORTED;
+		case GPAC_OTI_VIDEO_MPEG4_PART2:
             return GF_CODEC_SUPPORTED;
     }
 
@@ -891,8 +884,8 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
 void MCFrame_Release(GF_MediaDecoderFrame *frame)
 {	
 	MC_Frame *f = (MC_Frame *)frame->user_data;
-	if(f->ctx->codec )  {
-		if ( AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, false) != AMEDIA_OK) {
+	if(f->ctx->codec)  {
+		if ( AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, (f->ctx->surface_rendering) ? GF_TRUE : GF_FALSE) != AMEDIA_OK) {
 			LOGI(" NOT Release Output Buffer Index: %d", f->outIndex);
 	}
 	f->ctx->decoded_frames_pending--;
@@ -929,6 +922,18 @@ GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char *
 	
 	return GF_OK;
 }
+
+GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix * texcoordmatrix)
+{		
+	MC_Frame *f = (MC_Frame *)frame->user_data;
+    int i = 0;
+	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
+	*gl_tex_id = f->ctx->gl_tex_id;
+	MCFrame_UpdateTexImage();
+	MCFrame_GetTransformMatrix(texcoordmatrix);
+	return GF_OK;
+}
+
 GF_Err MCDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
 {
 	GF_MediaDecoderFrame *a_frame;
@@ -938,8 +943,7 @@ GF_Err MCDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFram
 
 	*needs_resize = GF_FALSE;
 	
-	
-	if (!ctx->frame) return GF_BAD_PARAM;
+	if(ctx->outIndex < 0 || (!ctx->frame && !ctx->surface_rendering))  return GF_BAD_PARAM;
 	GF_SAFEALLOC(a_frame, GF_MediaDecoderFrame);
 	if (!a_frame) return GF_OUT_OF_MEM;
 	GF_SAFEALLOC(mc_frame, MC_Frame);
@@ -954,6 +958,9 @@ GF_Err MCDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFram
 	ctx->frame = NULL;
 	a_frame->Release = MCFrame_Release;
 	a_frame->GetPlane = MCFrame_GetPlane;
+	if (ctx->use_gl_textures)
+		a_frame->GetGLTexture = MCFrame_GetGLTexture;
+	
 	*frame = a_frame;
 	if (ctx->frame_size_changed) {
 		ctx->frame_size_changed = GF_FALSE;
@@ -1031,6 +1038,12 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
     if(ctx->codec && AMediaCodec_delete(ctx->codec) != AMEDIA_OK) {
         LOGE("AMediaCodec_delete failed");
     }
+    
+    if(ctx->window) {
+		ANativeWindow_release(ctx->window);
+		ctx->window = NULL;
+    }
+
 	
     gf_free(ctx);
     gf_free(ifcg);
