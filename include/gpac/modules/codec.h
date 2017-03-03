@@ -236,7 +236,7 @@ typedef struct _mediadecoderframe
 	// @outStride: stride in bytes of target color plane
 	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
 
-	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id);
+	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix * texcoordmatrix);
 
 	//allocated space by the decoder
 	void *user_data;
