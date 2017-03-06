@@ -71,9 +71,15 @@ JavaVM* GetJavaVM()
 }
 GF_Err MCDec_CreateSurface (ANativeWindow ** window, u32 *gl_tex_id, Bool * surface_rendering)
 {
-	JNIEnv* env = GetEnv();
+	JNIEnv* env = NULL;
 	jobject tmp;
-	LOGI("MDecJNI_Setup");
+	jint res = 0;
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
+	if (!env) return GF_BAD_PARAM;
+	
 	if (!cSurfaceTexture) {
 		cSurfaceTexture = (*env)->FindClass(env, "android/graphics/SurfaceTexture");
 		if (!cSurfaceTexture) {
@@ -119,12 +125,14 @@ GF_Err MCFrame_UpdateTexImage()
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
+	if (!env) return GF_BAD_PARAM;
 	
 	if(oSurfaceTex) {
-		res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
-		if ( res == JNI_EDETACHED ) {
-			(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
-		}
+		
 		(*env)->CallVoidMethod(env, oSurfaceTex, mUpdateTexImage);
 	}
 	return GF_OK;
@@ -136,11 +144,13 @@ GF_Err MCFrame_GetTransformMatrix(GF_Matrix * mx)
 	int i =0;
 	jfloatArray texMx;
 	
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
+	if (!env) return GF_BAD_PARAM;
+	
 	if(oSurfaceTex) {
-		res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
-		if ( res == JNI_EDETACHED ) {
-			(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
-		}
 		texMx = (*env)->NewFloatArray(env,16);
 		if (texMx == NULL) {
 			return GF_BAD_PARAM; /* out of memory error thrown */
