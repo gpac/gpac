@@ -93,7 +93,7 @@ GF_Err MCDec_CreateSurface (ANativeWindow ** window, u32 *gl_tex_id, Bool * surf
 		}
 	}
 	/* TOFIX : here we call glGenTextures without creating or getting opengl context*/
-	glGenTextures(1, gl_tex_id);
+	//glGenTextures(1, gl_tex_id); The texture is created by the HW
 	
 	if(!mSurfaceTexConstructor)
 		mSurfaceTexConstructor = (*env)->GetMethodID(env, cSurfaceTexture, "<init>", "(I)V");
