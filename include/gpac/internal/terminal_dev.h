@@ -709,7 +709,7 @@ struct _mediaobj
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config, bytes_per_sec;
-	u32 srd_x, srd_y, srd_w, srd_h;
+	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
 	
 	u32 quality_degradation_hint;
 	u32 nb_views;
