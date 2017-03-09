@@ -25,7 +25,6 @@
  
 #include <gpac/tools.h>
 #include <gpac/constants.h>
-#include <gpac/maths.h>
 // for native window JNI
 #include <android/native_window_jni.h>
 #include <android/asset_manager.h>
@@ -137,7 +136,7 @@ GF_Err MCFrame_UpdateTexImage()
 	}
 	return GF_OK;
 }
-GF_Err MCFrame_GetTransformMatrix(GF_Matrix * mx)
+GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx)
 {
 	JNIEnv* env = NULL;
 	jint res = 0;
