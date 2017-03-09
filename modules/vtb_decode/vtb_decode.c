@@ -1063,7 +1063,7 @@ GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char 
 
 void *myGetGLContext();
 
-GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, void * texcoordmatrix)
+GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
     OSStatus status;
 	GLenum target_fmt;

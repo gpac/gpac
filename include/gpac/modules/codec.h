@@ -62,6 +62,8 @@ enum
 	GF_CODEC_RESILIENT_AFTER_FIRST_RAP=2
 };
 
+/*Define codec matrix*/ 
+typedef struct __matrix GF_CodecMatrix;
 
 /*the structure for capabilities*/
 typedef struct
@@ -236,7 +238,7 @@ typedef struct _mediadecoderframe
 	// @outStride: stride in bytes of target color plane
 	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
 
-	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, void * texcoordmatrix);
+	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix);
 
 	//allocated space by the decoder
 	void *user_data;

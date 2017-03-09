@@ -1,4 +1,3 @@
-#include <gpac/modules/codec.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
@@ -923,14 +922,14 @@ GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char *
 	return GF_OK;
 }
 
-GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, void * texcoordmatrix)
+GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {		
 	MC_Frame *f = (MC_Frame *)frame->user_data;
     int i = 0;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
 	*gl_tex_id = f->ctx->gl_tex_id;
 	MCFrame_UpdateTexImage();
-	MCFrame_GetTransformMatrix((GF_Matrix *)texcoordmatrix);
+	MCFrame_GetTransformMatrix(texcoordmatrix);
 	return GF_OK;
 }
 
