@@ -358,6 +358,8 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 			mo->srd_y = com.srd.y;
 			mo->srd_w = com.srd.w;
 			mo->srd_h = com.srd.h;
+			mo->srd_full_w = com.srd.width;
+			mo->srd_full_h = com.srd.height;
 
 			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
 				mo->odm->parentscene->is_srd = GF_TRUE;
