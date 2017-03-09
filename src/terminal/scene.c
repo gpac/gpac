@@ -1627,6 +1627,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		s32 min_x, max_x, min_y, max_y;
 		i=0;
 
+		//we use 0 (and not INT_MAX) to always display the same thing regardless of holes in the srd description
 		min_x = min_y = INT_MAX;
 		max_x = max_y = 0;
 
@@ -1638,8 +1639,17 @@ void gf_scene_regenerate(GF_Scene *scene)
 			if ((s32) a_odm->mo->srd_x < min_x) min_x = (s32) a_odm->mo->srd_x;
 			if ((s32) a_odm->mo->srd_y < min_y) min_y = (s32) a_odm->mo->srd_y;
 
-			if ((s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w > min_x + max_x) max_x = (s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w - min_x;
-			if ((s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h > min_y + max_y) max_y = (s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h - min_y;
+			if (!max_x)
+				max_x = a_odm->mo->srd_full_w;
+			if ((s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w > min_x + max_x)
+				max_x = (s32) a_odm->mo->srd_x + (s32) a_odm->mo->srd_w - min_x;
+
+			if (!max_y)
+				max_y = a_odm->mo->srd_full_h;
+
+			if ((s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h > min_y + max_y)
+				max_y = (s32) a_odm->mo->srd_y + (s32) a_odm->mo->srd_h - min_y;
+
 			nb_srd++;
 		}
 
@@ -1653,6 +1663,8 @@ void gf_scene_regenerate(GF_Scene *scene)
 				create_movie(scene, n1, szName, szTex, szGeom);
 			}
 		}
+		assert(max_x>min_x);
+		assert(max_y>min_y);
 
 		scene->srd_min_x = min_x;
 		scene->srd_min_y = min_y;

@@ -278,6 +278,8 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAR);
 		if (v) mo->pixel_ar = (v->value.frac.num) << 16 | (v->value.frac.den);
 
+		//TODO SRD
+
 	} else if (mo->odm->type==GF_STREAM_AUDIO) {
 		v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_SAMPLE_RATE);
 		if (v) mo->sample_rate = v->value.uint;

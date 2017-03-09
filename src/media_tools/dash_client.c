@@ -332,7 +332,7 @@ struct __dash_group
 struct _dash_srd_desc
 {
 	u32 srd_nb_rows, srd_nb_cols;
-	u32 id, width, height;
+	u32 id, width, height, srd_fw, srd_fh;
 };
 
 void drm_decrypt(unsigned char * data, unsigned long dataSize, const char * decryptMethod, const char * keyfileURL, const unsigned char * keyIV);
@@ -4297,12 +4297,16 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			GF_MPD_Descriptor *mpd_desc = gf_list_get(group->adaptation_set->essential_properties, j);
 			if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014")) {
 				u32 id, w, h, res;
+				w = h = 0;
 				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
 				if (res != 7) {
 					res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
+					if (res!=5) res=0;
 				}
 				if (res) {
 					group->srd_desc = gf_dash_get_srd_desc(dash, id, GF_TRUE);
+					group->srd_desc->srd_fw = w;
+					group->srd_desc->srd_fh = h;
 				}
 
 			} else {
@@ -4337,12 +4341,16 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			GF_MPD_Descriptor *mpd_desc = gf_list_get(group->adaptation_set->supplemental_properties, j);
 			if (!strcmp(mpd_desc->scheme_id_uri, "urn:mpeg:dash:srd:2014")) {
 				u32 id, w, h, res;
+				w = h = 0;
 				res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h, &w, &h);
 				if (res != 7) {
 					res = sscanf(mpd_desc->value, "%d,%d,%d,%d,%d", &id, &group->srd_x, &group->srd_y, &group->srd_w, &group->srd_h);
+					if (res != 5) res=0;
 				}
 				if (res) {
 					group->srd_desc = gf_dash_get_srd_desc(dash, id, GF_TRUE);
+					group->srd_desc->srd_fw = w;
+					group->srd_desc->srd_fh = h;
 				}
 			}
 		}
@@ -7587,8 +7595,8 @@ Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *
 	
 	if (group->srd_desc) {
 		if (srd_id) (*srd_id) = group->srd_desc->id;
-		if (srd_width) (*srd_width) = group->srd_desc->width;
-		if (srd_height) (*srd_height) = group->srd_desc->height;
+		if (srd_width) (*srd_width) = group->srd_desc->srd_fw;
+		if (srd_height) (*srd_height) = group->srd_desc->srd_fw;
 	}
 	
 	if (srd_x) (*srd_x) = group->srd_x;
