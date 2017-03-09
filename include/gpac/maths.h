@@ -591,7 +591,7 @@ typedef struct __vec4f
  the translation part at the end of the coefficients list.
  \note Unless specified otherwise, the matrix object is always expected to represent an affine transformation.
  */
-typedef struct
+typedef struct __matrix
 {
 	Fixed m[16];
 } GF_Matrix;
