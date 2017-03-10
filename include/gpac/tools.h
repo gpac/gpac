@@ -166,6 +166,14 @@ u64 gf_ftell(FILE *f);
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
 
 /*!
+ *	\brief get basename from filename/path
+ *
+ *	Returns a pointer to the start of a filepath basename or null
+ *	\param filename Path of the file, can be an absolute path
+*/
+char* gf_file_basename(const char* filename);
+
+/*!
  *	\brief get extension from filename
  *
  *	Returns a pointer to the start of a filepath extension or null
