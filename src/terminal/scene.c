@@ -1373,6 +1373,15 @@ void gf_scene_regenerate(GF_Scene *scene)
 		if (scene->vr_type) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
+			{
+				const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
+				if (!opt) {
+					gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", "0.785398006");
+				} else {
+					((M_Viewpoint *)n2)->position.z = FLT2FIX( atof(opt) );
+				}
+			}
+			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
 
@@ -1475,7 +1484,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		i=0;
 
 		//we use 0 (and not INT_MAX) to always display the same thing regardless of holes in the srd description
-		min_x = min_y = INT_MAX;
+		min_x = min_y = 0;
 		max_x = max_y = 0;
 
 		while ((a_odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {

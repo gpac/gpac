@@ -7535,7 +7535,7 @@ Bool gf_dash_group_get_srd_info(GF_DashClient *dash, u32 idx, u32 *srd_id, u32 *
 	if (group->srd_desc) {
 		if (srd_id) (*srd_id) = group->srd_desc->id;
 		if (srd_width) (*srd_width) = group->srd_desc->srd_fw;
-		if (srd_height) (*srd_height) = group->srd_desc->srd_fw;
+		if (srd_height) (*srd_height) = group->srd_desc->srd_fh;
 	}
 	
 	if (srd_x) (*srd_x) = group->srd_x;
