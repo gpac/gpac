@@ -1311,11 +1311,11 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
-		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
-		sphere_angles.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
+		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_y / vrinfo.srd_max_y;
+		sphere_angles.max_phi = -GF_PI2 + GF_PI * (vrinfo.srd_h +  vrinfo.srd_y) / vrinfo.srd_max_y;
 
-		sphere_angles.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
-		sphere_angles.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
+		sphere_angles.min_theta = GF_2PI * vrinfo.srd_x / vrinfo.srd_max_x;
+		sphere_angles.max_theta = GF_2PI * ( vrinfo.srd_w + vrinfo.srd_x ) / vrinfo.srd_max_x;
 
 		if (gf_node_dirty_get(node)) {
 			u32 radius;
@@ -1345,10 +1345,14 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			Bool visible = GF_FALSE;
 			Fixed center_phi = sphere_angles.min_phi + (sphere_angles.max_phi - sphere_angles.min_phi) / 2;
 			Fixed center_theta = sphere_angles.min_theta + (sphere_angles.max_theta - sphere_angles.min_theta) / 2;
-			
+
+			visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+
 			visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
 			visual_3d_draw(tr_state, stack->mesh);
-	
+
+			visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
+
 			/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
 			memset(&asp, 0, sizeof(DrawAspect2D));
 			drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
