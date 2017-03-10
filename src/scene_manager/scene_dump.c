@@ -153,7 +153,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 				ext_name = ".bt";
 				break;
 			}
-			
+
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			if (!is_final_name) strcat(tmp->filename, ext_name);
@@ -589,20 +589,20 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
 		len = (u32)strlen(str);
-		uniLine = (u16*)gf_malloc(sizeof(short) * (len+1));
-		_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-		if (_len != (size_t) -1) {
-			len = (u32) _len;
-			if (!sdump->XMLDump) fputc('\"', sdump->trace);
 
-			for (i=0; i<len; i++) {
-				if (!sdump->XMLDump) {
-#ifndef __SYMBIAN32__
-					fputwc(uniLine[i], sdump->trace);
-#else
-					fputc(uniLine[i], sdump->trace);
-#endif
-				} else {
+		if (!sdump->XMLDump) {
+			fprintf(sdump->trace, "\"%s\"", str);
+		}
+		else {
+
+			uniLine = (u16*)gf_malloc(sizeof(short) * (len + 1));
+			_len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
+
+			if (_len != (size_t)-1) {
+				len = (u32)_len;
+
+				for (i = 0; i<len; i++) {
+
 					switch (uniLine[i]) {
 					case '&':
 						fprintf(sdump->trace, "&amp;");
@@ -619,21 +619,21 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 						break;
 					case 0:
 						break;
-					/*FIXME: how the heck can we preserve newlines and spaces of JavaScript in
-					an XML attribute in any viewer ? */
+						/*FIXME: how the heck can we preserve newlines and spaces of JavaScript in
+						an XML attribute in any viewer ? */
 					default:
 						if (uniLine[i]<128) {
-							fprintf(sdump->trace, "%c", (u8) uniLine[i]);
-						} else {
+							fprintf(sdump->trace, "%c", (u8)uniLine[i]);
+						}
+						else {
 							fprintf(sdump->trace, "&#%d;", uniLine[i]);
 						}
 						break;
 					}
-				}
 			}
-			if (!sdump->XMLDump) fprintf(sdump->trace, "\"\n");
 		}
-		gf_free(uniLine);
+			gf_free(uniLine);
+	}
 		DUMP_IND(sdump);
 	}
 	break;
