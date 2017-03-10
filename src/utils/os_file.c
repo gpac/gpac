@@ -787,12 +787,12 @@ char* gf_file_basename(const char* filename)
 			// if it occurs before it's not relevant
 			// if there's no backslashes we search in the whole file path
 
-			const char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+			char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
 			if (trailingSlash)
 				lastPathPart = trailingSlash;
 		}
 		if (!lastPathPart)
-			lastPathPart = filename;
+			lastPathPart = (char *)filename;
 		else
 			lastPathPart++;
 
