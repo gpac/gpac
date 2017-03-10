@@ -735,12 +735,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			}
 		}
 		//let the player decide which group to play: we declare everything
-
-		//however select the default languague
-		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "LanguageName");
-		if (opt)
-			gf_dash_groups_set_language(mpdin->dash, opt);
-
 		return GF_OK;
 	}
 
