@@ -682,7 +682,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch AU DTS %u - CTS %u - RAP %d - Seek %d - size %d time %u Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags & GF_DB_AU_RAP, (au->flags & GF_DB_AU_IS_SEEK) ? 1 :0, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM %d ES%d (%s) - Dispatch AU DTS %u - CTS %u - RAP %d - Seek %d - size %d time %u Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags & GF_DB_AU_RAP, (au->flags & GF_DB_AU_IS_SEEK) ? 1 :0, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or
