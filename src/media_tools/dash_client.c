@@ -2876,7 +2876,7 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 {
 	GF_Err e;
 	char *base_init_url;
-	char *init_segment_local_url;
+	char *init_segment_local_url=NULL;
 	GF_MPD_Representation *rep;
 	u64 start_range, end_range;
 	char mime[128];
@@ -5526,7 +5526,7 @@ restart_period:
 		for (i=0; i<group_count; i++) {
 			GF_DASH_Group *group = gf_list_get(dash->groups, i);
 			if (group->selection != GF_DASH_GROUP_SELECTED) {
-				if (group->nb_cached_segments) {
+				if (group->nb_cached_segments && !group->dont_delete_first_segment) {
 					gf_dash_group_reset(dash, group);
 				}
 				continue;
