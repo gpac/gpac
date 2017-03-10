@@ -3530,10 +3530,61 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 }
 
 #define PARSE_FULL_HEADER	0
+
+#if PARSE_FULL_HEADER
+void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si, HEVC_PPS *pps, HEVC_SPS *sps, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active)
+{
+	u32 i, j, num_ref_idx;
+	Bool first_pass=GF_TRUE;
+	u8 luma_weights[20], chroma_weights[20];
+	u32 ChromaArrayType = sps->separate_colour_plane_flag ? 0 : sps->chroma_format_idc;
+
+	num_ref_idx = num_ref_idx_l0_active;
+
+	/*luma_log2_weight_denom=*/i=bs_get_ue(bs);
+	if (ChromaArrayType != 0)
+		/*delta_chroma_log2_weight_denom=*/i=bs_get_se(bs);
+
+parse_weights:
+	for (i=0; i<num_ref_idx; i++) {
+		luma_weights[i] = gf_bs_read_int(bs, 1);
+		//infered to be 0 if not present
+		chroma_weights[i] = 0;
+	}
+	if (ChromaArrayType != 0) {
+		for (i=0; i<num_ref_idx; i++) {
+			chroma_weights[i] = gf_bs_read_int(bs, 1);
+		}
+	}
+	for (i=0; i<num_ref_idx; i++) {
+		if (luma_weights[i]) {
+			/*delta_luma_weight_l0[ i ]=*/bs_get_se(bs);
+			/*luma_offset_l0[ i ]=*/bs_get_se(bs);
+		}
+		if (chroma_weights[i]) {
+			/*delta_chroma_weight_l0[ i ][ 0 ]=*/bs_get_se(bs);
+			/*delta_chroma_offset_l0[ i ][ 0 ]=*/bs_get_se(bs);
+
+			/*delta_chroma_weight_l0[ i ][ 1 ]=*/bs_get_se(bs);
+			/*delta_chroma_offset_l0[ i ][ 1 ]=*/bs_get_se(bs);
+		}
+	}
+
+	if (si->slice_type==GF_HEVC_SLICE_TYPE_B) {
+		if (!first_pass) return;
+		first_pass=GF_FALSE;
+		num_ref_idx = num_ref_idx_l1_active;
+		goto parse_weights;
+	}
+}
+
+#endif
+
 s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si)
 {
 #if PARSE_FULL_HEADER
 	u32 i, j;
+	u32 num_ref_idx_l0_active=0, num_ref_idx_l1_active=0;
 #endif
 	HEVC_PPS *pps;
 	HEVC_SPS *sps;
@@ -3562,7 +3613,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 
 	pps_id = bs_get_ue(bs);
-	if (pps_id>=64) return -1;
+	if (pps_id>=64)
+		return -1;
 
 	pps = &hevc->pps[pps_id];
 	sps = &hevc->sps[pps->sps_id];
@@ -3653,13 +3705,14 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				slice_temporal_mvp_enabled_flag = gf_bs_read_int(bs, 1);
 		}
 		if (sps->sample_adaptive_offset_enabled_flag) {
+			u32 ChromaArrayType = sps->separate_colour_plane_flag ? 0 : sps->chroma_format_idc;
 			slice_sao_luma_flag = gf_bs_read_int(bs, 1);
-			slice_sao_chroma_flag = gf_bs_read_int(bs, 1);
+			if (ChromaArrayType!=0)
+				slice_sao_chroma_flag = gf_bs_read_int(bs, 1);
 		}
 
 		if (si->slice_type == GF_HEVC_SLICE_TYPE_P || si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 			//u32 NumPocTotalCurr;
-			u32 num_ref_idx_l0_active, num_ref_idx_l1_active;
 
 			num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
 			num_ref_idx_l1_active = 0;
@@ -3688,8 +3741,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 					collocated_from_l0_flag = gf_bs_read_int(bs, 1);
 
-				if ( (collocated_from_l0_flag && num_ref_idx_l0_active-1 > 0 )
-				        || ( !collocated_from_l0_flag && num_ref_idx_l1_active-1 > 0 )
+				if ( (collocated_from_l0_flag && (num_ref_idx_l0_active>1) )
+				        || ( !collocated_from_l0_flag && (num_ref_idx_l1_active>1) )
 				   ) {
 					/*collocated_ref_idx=*/bs_get_ue(bs);
 				}
@@ -3698,8 +3751,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			if ( (pps->weighted_pred_flag && si->slice_type == GF_HEVC_SLICE_TYPE_P )
 			        || ( pps->weighted_bipred_flag && si->slice_type == GF_HEVC_SLICE_TYPE_B)
 			   ) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[hehv] pred_weight_table not implemented\n"));
-				return 0;
+				hevc_pred_weight_table(bs, hevc, si, pps, sps, num_ref_idx_l0_active, num_ref_idx_l1_active);
 			}
 			/*five_minus_max_num_merge_cand=*/bs_get_ue(bs);
 		}
@@ -3748,6 +3800,16 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			}
 		}
 	}
+
+	if (pps->slice_segment_header_extension_present_flag) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Slice header extension parsing not implemented !\n"));
+	}
+
+	si->header_size_bits = (gf_bs_get_position(bs)-1)*8 + gf_bs_get_bit_position(bs);
+	if (gf_bs_read_int(bs, 1) == 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Error parsing slice header: byte_align not found at end of header !\n"));
+	}
+
 #endif //PARSE_FULL_HEADER
 	return 0;
 }
