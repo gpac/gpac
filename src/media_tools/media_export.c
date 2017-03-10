@@ -2308,7 +2308,7 @@ GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc)
 		}
 		if (dims.content_script_types) fprintf(nhml, "content_script_types=\"%s\" ", dims.content_script_types);
 	} else if (szMedia[0]) {
-		fprintf(nhml, "baseMediaFile=\"%s\" ", szMedia);
+		fprintf(nhml, "baseMediaFile=\"%s\" ", gf_file_basename(szMedia));
 	}
 
 
@@ -2530,7 +2530,7 @@ GF_Err gf_media_export_webvtt_metadata(GF_MediaExporter *dumper)
 	if (gf_isom_is_track_in_root_od(dumper->file, track)) fprintf(vtt, "inRootOD: yes\n");
 	fprintf(vtt, "trackID: %d\n", dumper->trackID);
 	if (med) {
-		fprintf(vtt, "baseMediaFile: %s\n", szMedia);
+		fprintf(vtt, "baseMediaFile: %s\n", gf_file_basename(szMedia));
 	}
 	if (esd) {
 		/* TODO: export the MPEG-4 Stream type only if it is not a GPAC internal value */
