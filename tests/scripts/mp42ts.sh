@@ -30,15 +30,15 @@ mp4file="$TEMP_DIR/test.mp4"
 $MP4BOX -add $MEDIA_DIR/auxiliary_files/enst_video.h264 -add $MEDIA_DIR/auxiliary_files/enst_audio.aac -new $mp4file 2> /dev/null
 
 
-ts_test "simple" "-src $mp4file -dst-file=$tsfile"
+ts_test "simple" "-src $mp4file -dst-file=$tsfile -pcr-init 0"
 
-ts_test "rate" "-src $mp4file -dst-file=$tsfile -rate 10000"
+ts_test "rate" "-src $mp4file -dst-file=$tsfile -rate 10000 -pcr-init 0"
 
-ts_test "singleau" "-src $mp4file -dst-file=$tsfile -single-au"
+ts_test "singleau" "-src $mp4file -dst-file=$tsfile -single-au -pcr-init 0"
 
-ts_test "multiau" "-src $mp4file -dst-file=$tsfile -multi-au"
+ts_test "multiau" "-src $mp4file -dst-file=$tsfile -multi-au -pcr-init 0"
 
-ts_test "temi" "-src $mp4file -dst-file=$tsfile -temi -insert-ntp"
+ts_test "temi" "-src $mp4file -dst-file=$tsfile -temi -pcr-init 0"
 
 ts_test "pcr" "-src $mp4file -dst-file=$tsfile -pcr-ms 40 -force-pcr-only -pcr-init 0 -pcr-offset 30000 -rap"
 
