@@ -95,6 +95,7 @@ enum
 static void swf_init_decompress(SWFReader *read)
 {
 	u32 size, dst_size;
+	uLongf destLen;
 	char *src, *dst;
 
 	assert(gf_bs_get_size(read->bs)-8 < 1<<31); /*must fit within 32 bits*/
@@ -105,7 +106,8 @@ static void swf_init_decompress(SWFReader *read)
 	memset(dst, 0, sizeof(char)*8);
 	gf_bs_read_data(read->bs, src, size);
 	dst_size -= 8;
-	uncompress((Bytef *) dst+8, (uLongf *)&dst_size, (Bytef *) src, size);
+	destLen = (uLongf)dst_size;
+	uncompress((Bytef *) dst+8, &destLen, (Bytef *) src, size);
 	dst_size += 8;
 	gf_free(src);
 	read->mem = dst;
