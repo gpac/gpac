@@ -239,6 +239,7 @@ strict_mode=0
 track_stack=0
 speed=1
 single_test_name=""
+erase_temp_dir=1
 
 #Parse arguments
 for i in $* ; do
@@ -260,6 +261,8 @@ for i in $* ; do
   ;;
  "-keep-avi")
   keep_avi=1;;
+ "-keep-tmp")
+  erase_temp_dir=0;;
  "-no-hash")
   disable_hash=1;;
  "-strict")
@@ -1336,8 +1339,9 @@ echo '<?xml-stylesheet href="stylesheet.xsl" type="text/xsl"?>' >> $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"$start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
 
-
-rm -rf $TEMP_DIR/* 2> /dev/null
+if [ $erase_temp_dir != 0 ] ; then
+   rm -rf $TEMP_DIR/* 2> /dev/null
+fi
 
 #count all tests using generated -stats.sh
 TESTS_SKIP=0
