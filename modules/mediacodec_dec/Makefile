@@ -23,7 +23,7 @@ CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
 endif
 
 #common obj
-OBJS= mediacodec_dec.o
+OBJS= mediacodec_dec.o mediacodec_dec_jni.o
 
 SRCS := $(OBJS:.o=.c) 
 

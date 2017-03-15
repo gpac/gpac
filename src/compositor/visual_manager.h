@@ -38,9 +38,13 @@
 //startof GL3/ES2.0 specifics
 
 /* number of preprocessor flags for GL3/ES2.0 */
-#define GF_GL_NUM_OF_FLAGS			5
+#define GF_GL_NUM_OF_FLAGS			6
+#ifdef GPAC_ANDROID
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
-#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 (YUV ignored in vertex shader)
+#else
+#define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 ( ExternalOES ignored in fragment shader when the platform is not Android)
+#endif // GPAC_ANDROID
+#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-2) )	//=2^GF_GL_NUM_OF_FLAGS-2 (YUV and ExternalOES ignored in vertex shader)
 
 /* setting preprocessor flags for GL3/ES2.0 shaders */
 enum {
@@ -49,7 +53,8 @@ enum {
 	GF_GL_HAS_COLOR = (1<<2),
 	GF_GL_HAS_CLIP = (1<<3),
 	//only for fragment shaders
-	GF_GL_IS_YUV = 1<<4,
+	GF_GL_IS_YUV = (1<<4),
+	GF_GL_IS_ExternalOES = (1<<5),
 };
 //endof
 
