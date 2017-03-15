@@ -1255,7 +1255,7 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 #endif
 
 	//copy over CTS of packet passed in decode()
-	*CTS = frame->pkt_pts;
+	*CTS = (u32) frame->pkt_pts;
 
 	if (ffd->direct_output_mode) {
 		*outBufferLength = ffd->out_size;
