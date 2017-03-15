@@ -716,7 +716,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
-		const char *opt;
 		//configure buffer in dynamic mode without low latency: we indicate how much the player will buffer
 		if (gf_dash_is_dynamic_mpd(mpdin->dash) && !mpdin->use_low_latency) {
 			u32 buffer_ms = 0;

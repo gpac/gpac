@@ -714,7 +714,7 @@ GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
 
 	e = gf_isom_read_null_terminated_string(s, bs, &p->aux_urn);
 	if (e) return e;
-	p->data_size = p->size;
+	p->data_size = (u32) p->size;
 	p->data = gf_malloc(sizeof(char) * p->data_size);
 	gf_bs_read_data(bs, p->data, p->data_size);
 	return GF_OK;
@@ -729,7 +729,7 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	//with terminating 0
-	gf_bs_write_data(bs, p->aux_urn, strlen(p->aux_urn) + 1 );
+	gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) + 1 );
 	gf_bs_write_data(bs, p->data, p->data_size);
 
 	return GF_OK;

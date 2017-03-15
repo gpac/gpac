@@ -266,7 +266,7 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 
 	if (ptr->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
 		gf_isom_box_size((GF_Box*)ptr);
-		size = ptr->size;
+		size = (u32) ptr->size;
 	} else {
 		size = 4;
 		count = gf_list_count(ptr->packetTable);

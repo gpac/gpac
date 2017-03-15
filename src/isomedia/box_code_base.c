@@ -11356,7 +11356,7 @@ GF_Err extr_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_parse((GF_Box**) &ptr->feci, bs);
 	if (e) return e;
 	if (ptr->feci->size>ptr->size) return GF_ISOM_INVALID_MEDIA;
-	ptr->data_length = ptr->size - ptr->feci->size;
+	ptr->data_length = (u32) (ptr->size - ptr->feci->size);
 	ptr->data = gf_malloc(sizeof(char)*ptr->data_length);
 	gf_bs_read_data(bs, ptr->data, ptr->data_length);
 
@@ -11486,7 +11486,7 @@ GF_Err trik_Read(GF_Box *s,GF_BitStream *bs)
 	GF_TrickPlayBox *ptr = (GF_TrickPlayBox *) s;
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
-	ptr->entry_count = ptr->size;
+	ptr->entry_count = (u32) ptr->size;
 	ptr->entries = (GF_TrickPlayBoxEntry *) gf_malloc(ptr->entry_count * sizeof(GF_TrickPlayBoxEntry) );
 	if (ptr->entries == NULL) return GF_OUT_OF_MEM;
 
@@ -11625,7 +11625,7 @@ GF_Err ainf_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_full_box_write(s, bs);
 	if (e) return e;
 	gf_bs_write_u32(bs, ptr->profile_version);
-	gf_bs_write_data(bs, ptr->APID, strlen(ptr->APID) + 1);
+	gf_bs_write_data(bs, ptr->APID, (u32) strlen(ptr->APID) + 1);
 	return GF_OK;
 }
 
