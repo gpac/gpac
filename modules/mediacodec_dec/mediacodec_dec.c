@@ -818,7 +818,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
         *outBufferLength=0;
         
         switch(ctx->outIndex) {
-			case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+	    case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
                 LOGI("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED");
                 ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
                 break;
@@ -835,9 +835,9 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 				if (ctx->outIndex >= 0) {
 					*CTS = ctx->info.presentationTimeUs;
 					if(ctx->info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
-                        LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
-                        ctx->outputEOS = true;
-                    }
+						LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
+						ctx->outputEOS = true;
+					}
 					 
 					if(!ctx->surface_rendering) {
 						size_t outSize;
@@ -936,6 +936,7 @@ GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_
 	if(!f->flushed) {
 		MCFrame_UpdateTexImage();
 		MCFrame_GetTransformMatrix(texcoordmatrix);
+		f->flushed = GF_TRUE;
 	}
 	return GF_OK;
 }
