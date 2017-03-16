@@ -409,6 +409,8 @@
 		92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF1D918D710A000E2FF12 /* vtt_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D518D7109A00E2FF12 /* vtt_dec.c */; };
 		92AAF1DA18D710A000E2FF12 /* vtt_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF1D618D7109A00E2FF12 /* vtt_in.c */; };
+		92AE971A1E797323005D3411 /* ff_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AE97191E797323005D3411 /* ff_dec.c */; };
+		92AE971C1E7AD268005D3411 /* ff_common.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AE971B1E7AD268005D3411 /* ff_common.c */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
@@ -1315,6 +1317,8 @@
 		92AAF1D018D70D4B00E2FF12 /* opensvc_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = opensvc_dec.c; path = ../../modules/opensvc_dec/opensvc_dec.c; sourceTree = "<group>"; };
 		92AAF1D518D7109A00E2FF12 /* vtt_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_dec.c; path = ../../modules/vtt_in/vtt_dec.c; sourceTree = "<group>"; };
 		92AAF1D618D7109A00E2FF12 /* vtt_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtt_in.c; path = ../../modules/vtt_in/vtt_in.c; sourceTree = "<group>"; };
+		92AE97191E797323005D3411 /* ff_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dec.c; path = filters_imp/ff_dec.c; sourceTree = "<group>"; };
+		92AE971B1E7AD268005D3411 /* ff_common.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_common.c; path = filters_imp/ff_common.c; sourceTree = "<group>"; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
@@ -2429,6 +2433,8 @@
 		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
 			isa = PBXGroup;
 			children = (
+				92AE971B1E7AD268005D3411 /* ff_common.c */,
+				92AE97191E797323005D3411 /* ff_dec.c */,
 				9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */,
 				9279D49D1E5EDF40004E53F4 /* inspect.c */,
 				9299BDDC1E5DA57100D6289D /* ff_dmx.c */,
@@ -3680,6 +3686,7 @@
 				9201012018D5A444003D1ACA /* hint_track.c in Sources */,
 				9201012118D5A444003D1ACA /* hinting.c in Sources */,
 				9201012218D5A444003D1ACA /* isom_intern.c in Sources */,
+				92AE971C1E7AD268005D3411 /* ff_common.c in Sources */,
 				9201012318D5A444003D1ACA /* isom_read.c in Sources */,
 				9201012418D5A444003D1ACA /* isom_store.c in Sources */,
 				9201012518D5A444003D1ACA /* isom_write.c in Sources */,
@@ -3789,6 +3796,7 @@
 				9201018B18D5A445003D1ACA /* vrml_script.c in Sources */,
 				9201018C18D5A445003D1ACA /* vrml_smjs.c in Sources */,
 				9201018D18D5A445003D1ACA /* vrml_tools.c in Sources */,
+				92AE971A1E797323005D3411 /* ff_dec.c in Sources */,
 				9201018E18D5A445003D1ACA /* webvtt_smjs.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				9201019018D5A445003D1ACA /* xbl_process.c in Sources */,

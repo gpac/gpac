@@ -30,6 +30,7 @@ const GF_FilterRegister *ut_source_register(GF_FilterSession *session, Bool load
 const GF_FilterRegister *ut_sink_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
@@ -137,6 +138,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 
 	gf_fs_add_filter_registry(fsess, inspect_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, ffdmx_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
 
 
 	fsess->done=GF_TRUE;

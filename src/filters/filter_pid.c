@@ -112,7 +112,6 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 			gf_list_add(filter->input_pids, pid);
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s\n", pid->filter->name, pid->name, filter->name));
 		//error, if old pid remove from input
 		if (!new_pid_inst) {
 			gf_list_del_item(pid->destinations, pidinst);
@@ -120,12 +119,25 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 		}
 		gf_filter_pid_inst_del(pidinst);
 
-		if (filter->freg->output_caps) {
-			//todo - try to load another filter to handle that connection
-			gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
-			//gf_filter_pid_resolve_link(pid, filter->freg);
+		if (e==GF_REQUIRES_NEW_INSTANCE) {
+			//TODO: copy over args from current filter
+			GF_Filter *new_filter = gf_filter_new(pid->filter->session, filter->freg, NULL);
+			if (new_filter) {
+				//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
+				//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
+				gf_fs_post_task(pid->filter->session, gf_filter_pid_connect_task, pid->filter, pid, "pid_connect", new_filter);
+			} else {
+			}
 		} else {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s\n", pid->filter->name, pid->name, filter->name));
+
+			if (filter->freg->output_caps) {
+				//todo - try to load another filter to handle that connection
+				gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
+				//gf_filter_pid_resolve_link(pid, filter->freg);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
+			}
 		}
 		return GF_FALSE;
 	}
@@ -305,11 +317,14 @@ static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 {
 	u32 i, count;
 	if (parent == filter) return GF_TRUE;
+	//browse all parent PIDs
 	count = gf_list_count(parent->input_pids);
 	if (!count) return GF_FALSE;
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pid = gf_list_get(parent->input_pids, i);
 		if (filter_in_parent_chain(pid->filter, filter)) return GF_TRUE;
+		//we also want to make sure this parent is not in the filter chain of this filter
+		if (filter_in_parent_chain(filter, pid->filter)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -327,12 +342,11 @@ static u32 filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister 
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &freg->input_caps[i];
 		i++;
-		if (!cap || !cap->cap_name) break;
-		if (strlen(cap->cap_name)==4) {
-			u32 capcode = GF_4CC(cap->cap_name[0], cap->cap_name[1], cap->cap_name[2], cap->cap_name[3]);
-			pid_cap = gf_filter_pid_get_property(src_pid, capcode);
+		if (!cap || (!cap->cap_code && !cap->cap_string) ) break;
+		if (cap->cap_code) {
+			pid_cap = gf_filter_pid_get_property(src_pid, cap->cap_code);
 		}
-		if (!pid_cap) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->cap_name);
+		if (!pid_cap) pid_cap = gf_filter_pid_get_property_str(src_pid, cap->cap_string);
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {

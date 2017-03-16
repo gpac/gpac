@@ -69,8 +69,8 @@ typedef enum
 	GF_PROP_FORBIDEN=0,
 	GF_PROP_SINT,
 	GF_PROP_UINT,
-	GF_PROP_LONGSINT,
-	GF_PROP_LONGUINT,
+	GF_PROP_LSINT,
+	GF_PROP_LUINT,
 	GF_PROP_BOOL,
 	GF_PROP_FRACTION,
 	GF_PROP_FLOAT,
@@ -115,8 +115,8 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 //helper macros to pass properties in gf_*_set_property
 #define PROP_SINT(_val) &(GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
 #define PROP_UINT(_val) &(GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
-#define PROP_LONGSINT(_val) &(GF_PropertyValue){.type=GF_PROP_LONGSINT, .value.longsint = _val}
-#define PROP_LONGUINT(_val) &(GF_PropertyValue){.type=GF_PROP_LONGUINT, .value.longuint = _val}
+#define PROP_LONGSINT(_val) &(GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
+#define PROP_LONGUINT(_val) &(GF_PropertyValue){.type=GF_PROP_LUINT, .value.longuint = _val}
 #define PROP_BOOL(_val) &(GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
 #define PROP_FIXED(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
 #define PROP_FLOAT(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
@@ -151,7 +151,9 @@ typedef struct
 {
 	//name of the capability listed. the special value * is used to indicate that the capability is
 	//solved at run time (the filter must be loaded)
-	const char *cap_name;
+	u32 cap_code;
+	const char *cap_string;
+	
 	GF_PropertyValue p;	//default type and value of the capability listed
 	//if set to true the cap has to be present, and with this value.
 	//you may sepcify several times the same cap name with different values (accept variations of the format),
@@ -174,7 +176,7 @@ typedef struct __gf_filter_register
 	const char *author;
 	//mandatory - description of the filter
 	const char *description;
-	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling this
+	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions
 	u32 private_size;
 
 	//list of input capabilities
@@ -202,9 +204,7 @@ typedef struct __gf_filter_register
 	//if function is NULL, all updatable arguments will be changed in the stack without the filter being notified
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
-	//optional for dynamic filter registries. Dynamic registries won't be used as filter registries
-	//but may declare any number of registries. The registry_free function will be called to cleanup
-	//any allocated memory
+	//optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
 	GF_Err (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	void *udta;
 } GF_FilterRegister;
@@ -301,26 +301,37 @@ enum
 	GF_PROP_PID_SAMPLES_PER_FRAME = GF_4CC('g','f','S','F'),
 	//(uint) number of audio channels
 	GF_PROP_PID_NUM_CHANNELS = GF_4CC('g','f','C','H'),
-	//(uint) bits per sample
-	GF_PROP_PID_BIT_PER_SAMPLE = GF_4CC('g','f','B','S'),
+	//(uint) channel layout
+	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('g','f','C','L'),
+	//(uint) audio format: u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp
+	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('g','f','A','F'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('g','f','V','W'),
 	//(uint) frame height
 	GF_PROP_PID_HEIGHT = GF_4CC('g','f','V','H'),
+	//(uint) pixel format
+	GF_PROP_PID_PIXFMT = GF_4CC('g','f','V','P'),
+	//(uint) image or Y/alpha plane stride
+	GF_PROP_PID_STRIDE = GF_4CC('g','f','S','Y'),
+	//(uint) U/V plane stride
+	GF_PROP_PID_STRIDE_UV = GF_4CC('g','f','S','c'),
+
 	//(rational) video FPS
 	GF_PROP_PID_FPS = GF_4CC('g','f','V','F'),
-	//(uint) average bitrate
-	GF_PROP_PID_BITRATE = GF_4CC('g','f','B','R'),
 	//(fraction) sample (ie pixel) aspect ratio
 	GF_PROP_PID_SAR = GF_4CC('g','f','S','A'),
 	//(fraction) picture aspect ratio
 	GF_PROP_PID_PAR = GF_4CC('g','f','P','A'),
+	//(uint) average bitrate
+	GF_PROP_PID_BITRATE = GF_4CC('g','f','B','R'),
 
 
 	//(longuint) decoding time stamp
 	GF_PROP_PCK_DTS = GF_4CC('g','p','D','T'),
 	//(longuint) composition time stamp
 	GF_PROP_PCK_CTS = GF_4CC('g','p','C','T'),
+	//(bool) interlace type: 0 or absent: progressive, 1: interlaced
+	GF_PROP_PCK_INTERLACED = GF_4CC('g','p','I','L'),
 	//(uint) stream access type
 	GF_PROP_PCK_SAP = GF_4CC('g','p','S','A'),
 	GF_PROP_PCK_CORRUPTED = GF_4CC('g','p','C','O'),

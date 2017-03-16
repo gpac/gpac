@@ -286,11 +286,11 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		p.value.uint = 1;
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','3'), &p);
 
-		p.type = GF_PROP_LONGSINT;
+		p.type = GF_PROP_LSINT;
 		p.value.longsint = -1;
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','4'), &p);
 
-		p.type = GF_PROP_LONGUINT;
+		p.type = GF_PROP_LUINT;
 		p.value.longuint = 1;
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','5'), &p);
 
@@ -585,12 +585,12 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		val = 0xFFFFFFFF;
 		val *= 2;
 		sprintf(szFmt, ""LLD, -val);
-		p = gf_props_parse_value(GF_PROP_LONGSINT, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", szFmt, NULL);
 		if (p.value.longsint != -val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longsint value"));
 		}
 		sprintf(szFmt, ""LLU, val);
-		p = gf_props_parse_value(GF_PROP_LONGUINT, "prop", szFmt, NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", szFmt, NULL);
 		if (p.value.longuint != val) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing longuint value"));
 		}
@@ -631,8 +631,8 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", "", NULL);
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", "", NULL);
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", "", NULL);
-		p = gf_props_parse_value(GF_PROP_LONGSINT, "prop", "", NULL);
-		p = gf_props_parse_value(GF_PROP_LONGUINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", "", NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", "", NULL);
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", "", NULL);
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", "", NULL);
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", "", NULL);
@@ -645,8 +645,8 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		p = gf_props_parse_value(GF_PROP_BOOL, "prop", NULL, NULL);
 		p = gf_props_parse_value(GF_PROP_SINT, "prop", NULL, NULL);
 		p = gf_props_parse_value(GF_PROP_UINT, "prop", NULL, NULL);
-		p = gf_props_parse_value(GF_PROP_LONGSINT, "prop", NULL, NULL);
-		p = gf_props_parse_value(GF_PROP_LONGUINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LSINT, "prop", NULL, NULL);
+		p = gf_props_parse_value(GF_PROP_LUINT, "prop", NULL, NULL);
 		p = gf_props_parse_value(GF_PROP_FLOAT, "prop", NULL, NULL);
 		p = gf_props_parse_value(GF_PROP_DOUBLE, "prop", NULL, NULL);
 		p = gf_props_parse_value(GF_PROP_FRACTION, "prop", NULL, NULL);
@@ -663,8 +663,8 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		gf_props_get_type_name(GF_PROP_BOOL);
 		gf_props_get_type_name(GF_PROP_SINT);
 		gf_props_get_type_name(GF_PROP_UINT);
-		gf_props_get_type_name(GF_PROP_LONGSINT);
-		gf_props_get_type_name(GF_PROP_LONGUINT);
+		gf_props_get_type_name(GF_PROP_LSINT);
+		gf_props_get_type_name(GF_PROP_LUINT);
 		gf_props_get_type_name(GF_PROP_FRACTION);
 		gf_props_get_type_name(GF_PROP_FLOAT);
 		gf_props_get_type_name(GF_PROP_DOUBLE);
@@ -697,8 +697,8 @@ static const GF_FilterArgs UTFilterArgs[] =
 	{ OFFS(update), "sends update message after half packet send. Update format is FID,argname,argval", GF_PROP_STRING, NULL, NULL, GF_TRUE},
 	{ OFFS(opt_dump), "Dumps options and exercise error cases for code coverage", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(norecfg), "Disabled reconfig on input pid in filter/sink mode", GF_PROP_BOOL, "false", NULL, GF_TRUE},
-	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LONGSINT, "0", NULL, GF_TRUE},
-	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LONGUINT, "0", NULL, GF_TRUE},
+	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LSINT, "0", NULL, GF_TRUE},
+	{ OFFS(dummy1), "dummy for coverage", GF_PROP_LUINT, "0", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_FLOAT, "0", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_DOUBLE, "0", NULL, GF_TRUE},
 	{ OFFS(dummy1), "dummy for coverage", GF_PROP_FRACTION, "0", NULL, GF_TRUE},
@@ -708,34 +708,34 @@ static const GF_FilterArgs UTFilterArgs[] =
 
 static const GF_FilterCapability UTFilterInputs[] =
 {
-	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
-	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
+	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
+	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
 	{ NULL }
 };
 
 static const GF_FilterCapability UTFilterOutputs[] =
 {
-	{"cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
-	{"cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE},
+	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
+	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE},
 	{ NULL }
 };
 
 
 static const GF_FilterCapability UTSinkInputs[] =
 {
-	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
+	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
 	{ NULL }
 };
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ "cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
+	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
 	{ NULL }
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{"cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
+	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
 	{ NULL }
 };
 

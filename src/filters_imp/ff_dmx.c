@@ -28,6 +28,7 @@
 #include <gpac/constants.h>
 #include <libavformat/avformat.h>
 #include <libavutil/opt.h>
+#include <libavutil/pixdesc.h>
 #include <libavutil/dict.h>
 
 
@@ -336,7 +337,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 static const GF_FilterCapability FFDemuxOutputs[] =
 {
-	{"cus2", {.type=GF_PROP_UINT, .value.uint = 10 }, GF_FALSE},
+	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
+	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
+	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
 	{ NULL }
 };
 
@@ -353,103 +356,22 @@ GF_FilterRegister FFDemuxRegister = {
 	.update_arg = ffdmx_update_arg
 };
 
+
+void ffmpeg_initialize();
+void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type);
+void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32 nb_skip_begin);
+GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt);
+
+
 void ffdmx_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 {
-	u32 i;
-	GF_List *all_filters = reg->udta;
-	if (all_filters) {
-		while (gf_list_count(all_filters)) {
-			i=0;
-			GF_FilterRegister *f = gf_list_pop_back(all_filters);
-			gf_free(f->name);
-
-			while (f->args) {
-				GF_FilterArgs *arg = &f->args[i];
-				if (!arg || !arg->arg_name) break;
-				i++;
-				if (arg->arg_default_val) gf_free(arg->arg_default_val);
-				if (arg->min_max_enum) gf_free(arg->min_max_enum);
-			}
-			gf_free(f->args);
-			gf_fs_remove_filter_registry(session, f);
-			gf_free(f);
-		}
-		gf_list_del(all_filters);
-	}
-	i=1;
-	while (reg->args) {
-		GF_FilterArgs *arg = &reg->args[i];
-		if (!arg || !arg->arg_name) break;
-		i++;
-		if (arg->arg_default_val) gf_free(arg->arg_default_val);
-		if (arg->min_max_enum) gf_free(arg->min_max_enum);
-	}
-	if (reg->args) gf_free(reg->args);
-
-}
-
-
-GF_FilterArgs ff_arg_translate(const struct AVOption *opt)
-{
-	char szDef[100];
-	GF_FilterArgs arg;
-	memset(&arg, 0, sizeof(GF_FilterArgs));
-	arg.arg_name = opt->name;
-	arg.arg_desc = opt->help;
-	arg.offset_in_private=-1;
-	arg.meta_arg = GF_TRUE;
-
-	switch (opt->type) {
-	case AV_OPT_TYPE_INT64:
-	case AV_OPT_TYPE_INT:
-		arg.arg_type = (opt->type==AV_OPT_TYPE_INT64) ? GF_PROP_LONGSINT : GF_PROP_SINT;
-		sprintf(szDef, ""LLD, opt->default_val.i64);
-		arg.arg_default_val = gf_strdup(szDef);
-		sprintf(szDef, "%d-%d", (s32) opt->min, (s32) opt->max);
-		arg.min_max_enum = gf_strdup(szDef);
-		break;
-	case AV_OPT_TYPE_DOUBLE:
-		arg.arg_type = GF_PROP_DOUBLE;
-		sprintf(szDef, "%g", opt->default_val.dbl);
-		arg.arg_default_val = gf_strdup(szDef);
-		break;
-	case AV_OPT_TYPE_VIDEO_RATE:
-	case AV_OPT_TYPE_RATIONAL:
-		arg.arg_type = GF_PROP_FRACTION;
-		sprintf(szDef, "%d/%d", opt->default_val.q.num, opt->default_val.q.den);
-		arg.arg_default_val = gf_strdup(szDef);
-		break;
-	case AV_OPT_TYPE_STRING:
-		arg.arg_type = GF_PROP_STRING;
-		if (opt->default_val.str)
-			arg.arg_default_val = gf_strdup(opt->default_val.str);
-		break;
-	case AV_OPT_TYPE_IMAGE_SIZE:
-		arg.arg_type = GF_PROP_STRING;
-		break;
-	case AV_OPT_TYPE_CONST:
-		arg.arg_type = GF_PROP_BOOL;
-		arg.arg_default_val = gf_strdup("false");
-		break;
-	case AV_OPT_TYPE_FLAGS:
-		arg.arg_type = GF_PROP_UINT;
-		sprintf(szDef, ""LLD, opt->default_val.i64);
-		arg.arg_default_val = gf_strdup(szDef);
-		break;
-	case AV_OPT_TYPE_BINARY:
-	case AV_OPT_TYPE_DURATION:
-		arg.arg_type = GF_PROP_UINT;
-		break;
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Unhandled option type %d\n", opt->type));
-	}
-	return arg;
+	ffmpeg_registry_free(session, reg, 1);
 }
 
 static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, "1000", NULL, GF_FALSE, GF_TRUE},
+	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
 	{ NULL }
 };
 
@@ -460,7 +382,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_met
 	const struct AVOption *opt;
 	AVFormatContext *ctx;
 
-	av_register_all();
+	ffmpeg_initialize();
 
 	if (!load_meta_filters) {
 		FFDemuxRegister.args = FFDemuxArgs;
@@ -485,66 +407,14 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_met
 	while (ctx->av_class->option) {
 		opt = &ctx->av_class->option[i];
 		if (!opt || !opt->name) break;
-		args[i+1] = ff_arg_translate(opt);
+		args[i+1] = ffmpeg_arg_translate(opt);
 		i++;
 	}
 	args[i+1] = (GF_FilterArgs) { "*", -1, "Options depend on input type, check individual filter syntax", GF_PROP_STRING, NULL, NULL, GF_FALSE};
 
+	avformat_free_context(ctx);
 
-	if (load_meta_filters) {
-		GF_List *all_filters = gf_list_new();
-		AVInputFormat  *fmt = NULL;
-
-		FFDemuxRegister.registry_free = ffdmx_regfree;
-		FFDemuxRegister.udta = all_filters;
-
-		while (1) {
-			char szDef[100];
-			GF_FilterRegister *freg;
-			i=0;
-			fmt = av_iformat_next(fmt);
-			if (!fmt) break;
-
-			GF_SAFEALLOC(freg, GF_FilterRegister);
-			if (!freg) continue;
-			gf_list_add(all_filters, freg);
-
-
-			sprintf(szDef, "ffdmx:%s", fmt->name);
-			freg->name = gf_strdup(szDef);
-			freg->description = fmt->long_name;
-
-			freg->output_caps = FFDemuxOutputs;
-
-			freg->initialize = ffdmx_initialize;
-			freg->finalize = ffdmx_finalize;
-			freg->process = ffdmx_process;
-			freg->configure_pid = NULL;
-			freg->update_arg = ffdmx_update_arg;
-
-
-			while (fmt->priv_class) {
-				opt = &fmt->priv_class->option[i];
-				if (!opt || !opt->name) break;
-				i++;
-			}
-			if (i) {
-				GF_FilterArgs *args = gf_malloc(sizeof(GF_FilterArgs)*(i+1));
-				memset(args, 0, sizeof(GF_FilterArgs)*(i+1));
-				freg->args = args;
-
-				i=0;
-				while (fmt->priv_class) {
-					opt = &fmt->priv_class->option[i];
-					if (!opt || !opt->name) break;
-
-					args[i] = ff_arg_translate(opt);
-					i++;
-				}
-			}
-			gf_fs_add_filter_registry(session, freg);
-		}
-	}
+	ffmpeg_expand_registry(session, &FFDemuxRegister, 0);
 
 	return &FFDemuxRegister;
 }
