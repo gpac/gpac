@@ -58,6 +58,7 @@ typedef struct {
 	char * frame;
 	MCDec * ctx;
 	ssize_t outIndex;
+	Bool flushed;
 	
 } MC_Frame;
 u8 sdkInt() 
@@ -580,6 +581,9 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
 	case GF_CODEC_FORCE_ANNEXB:
 		capability->cap.valueInt = 1;
 		break;
+	case GF_CODEC_TRUSTED_CTS:
+		capability->cap.valueInt = 1;
+		break;
 	/*not known at our level...*/
     case GF_CODEC_CU_DURATION:                             
     default:
@@ -793,7 +797,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
                                     inIndex,
                                     0, 
                                     inBufferLength,
-                                    0,
+                                    *CTS,
                                     inBuffer ? 0 : AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM
                 ) != AMEDIA_OK)
                 {
@@ -829,8 +833,8 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 
             default:
 				if (ctx->outIndex >= 0) {
-
-                    if(ctx->info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
+					*CTS = ctx->info.presentationTimeUs;
+					if(ctx->info.flags & AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM) {
                         LOGI("AMEDIACODEC_BUFFER_FLAG_END_OF_STREAM output");
                         ctx->outputEOS = true;
                     }
@@ -928,8 +932,11 @@ GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_
     int i = 0;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
 	*gl_tex_id = f->ctx->gl_tex_id;
-	MCFrame_UpdateTexImage();
-	MCFrame_GetTransformMatrix(texcoordmatrix);
+	
+	if(!f->flushed) {
+		MCFrame_UpdateTexImage();
+		MCFrame_GetTransformMatrix(texcoordmatrix);
+	}
 	return GF_OK;
 }
 
@@ -954,6 +961,7 @@ GF_Err MCDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFram
 	mc_frame->ctx = ctx;
 	mc_frame->frame = ctx->frame;
 	mc_frame->outIndex = ctx->outIndex;
+	mc_frame->flushed = GF_FALSE;
 	ctx->frame = NULL;
 	a_frame->Release = MCFrame_Release;
 	a_frame->GetPlane = MCFrame_GetPlane;
