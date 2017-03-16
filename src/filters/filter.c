@@ -203,13 +203,13 @@ static void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_Propert
 			res = GF_TRUE;
 		}
 		break;
-	case GF_PROP_LONGSINT:
+	case GF_PROP_LSINT:
 		if (a->offset_in_private + sizeof(s64) <= filter->freg->private_size) {
 			*(s64 *)ptr = argv->value.longsint;
 			res = GF_TRUE;
 		}
 		break;
-	case GF_PROP_LONGUINT:
+	case GF_PROP_LUINT:
 		if (a->offset_in_private + sizeof(u64) <= filter->freg->private_size) {
 			*(u64 *)ptr = argv->value.longuint;
 			res = GF_TRUE;

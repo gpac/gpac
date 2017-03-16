@@ -584,6 +584,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "At least one required element has not been found";
 	case GF_PROFILE_NOT_SUPPORTED:
 		return "Unsupported codec profile";
+	case GF_REQUIRES_NEW_INSTANCE:
+		return "Requires a new instance of the filter to be supported";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;

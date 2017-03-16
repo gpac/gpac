@@ -87,10 +87,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_UINT:
 		fprintf(dump, "%u", att->value.uint);
 		break;
-	case GF_PROP_LONGSINT:
+	case GF_PROP_LSINT:
 		fprintf(dump, ""LLD, att->value.longsint);
 		break;
-	case GF_PROP_LONGUINT:
+	case GF_PROP_LUINT:
 		fprintf(dump, ""LLU, att->value.longuint);
 		break;
 	case GF_PROP_FRACTION:

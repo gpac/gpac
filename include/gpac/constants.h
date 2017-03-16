@@ -549,6 +549,36 @@ enum
 };
 
 
+/*!
+ * \brief Audio Sample format
+ *
+ *	Audio sample bit format.
+ */
+enum
+{
+	/*! sample = unsigned byte, interleaved channels*/
+	GF_AUDIO_FMT_U8 = 0,
+	/*! sample = signed short, interleaved channels*/
+	GF_AUDIO_FMT_S16,
+	/*! sample = signed integer, interleaved channels*/
+	GF_AUDIO_FMT_S32,
+	/*! sample = 1 float, interleaved channels*/
+	GF_AUDIO_FMT_FLT,
+	/*! sample = 1 double, interleaved channels*/
+	GF_AUDIO_FMT_DBL,
+	/*! sample = unsigned byte, planar channels*/
+	GF_AUDIO_FMT_U8P,
+	/*! sample = signed short, planar channels*/
+	GF_AUDIO_FMT_S16P,
+	/*! sample = signed integer, planar channels*/
+	GF_AUDIO_FMT_S32P,
+	/*! sample = 1 float, planar channels*/
+	GF_AUDIO_FMT_FLTP,
+	/*! sample = 1 double, planar channels*/
+	GF_AUDIO_FMT_DBLP,
+};
+
+
 
 /*DIMS unit flags */
 /*!
