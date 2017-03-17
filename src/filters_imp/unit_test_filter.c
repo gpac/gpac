@@ -512,7 +512,6 @@ static GF_Err ut_filter_config_source(GF_Filter *filter)
 	GF_UnitTestFilter *stack = (GF_UnitTestFilter *) gf_filter_get_udta(filter);
 
 	for (i=0; i<stack->nb_pids; i++) {
-	char szName[10];
 
 	//create a pid
 	GF_SAFEALLOC(pidctx, PIDCtx);
@@ -708,35 +707,35 @@ static const GF_FilterArgs UTFilterArgs[] =
 
 static const GF_FilterCapability UTFilterInputs[] =
 {
-	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
-	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
-	{ NULL }
+	{ .cap_string="cust", .p=PROP_NAME("UTSourceData") },
+	{ .cap_string="cust", .p=PROP_NAME("UTFilterData") },
+	{}
 };
 
 static const GF_FilterCapability UTFilterOutputs[] =
 {
-	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
-	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE},
-	{ NULL }
+	{.cap_string="cust", .p=PROP_NAME("UTSourceData") },
+	{.cap_string="cust", .p=PROP_NAME("UTFilterData") },
+	{}
 };
 
 
 static const GF_FilterCapability UTSinkInputs[] =
 {
-	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE },
-	{ NULL }
+	{ .cap_string="cust", .p=PROP_NAME("UTSourceData") },
+	{}
 };
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ .cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTFilterData" }, GF_FALSE },
-	{ NULL }
+	{ .cap_string="cust", .p=PROP_NAME("UTFilterData") },
+	{}
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{.cap_string="cust", {.type=GF_PROP_NAME, .value.string = "UTSourceData" }, GF_FALSE},
-	{ NULL }
+	{.cap_string="cust", .p=PROP_NAME("UTSourceData") },
+	{}
 };
 
 

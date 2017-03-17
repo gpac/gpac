@@ -112,22 +112,22 @@ typedef struct
 const char *gf_props_get_type_name(u32 type);
 GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *value, const char *enum_values);
 
-//helper macros to pass properties in gf_*_set_property
-#define PROP_SINT(_val) &(GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
-#define PROP_UINT(_val) &(GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
-#define PROP_LONGSINT(_val) &(GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
-#define PROP_LONGUINT(_val) &(GF_PropertyValue){.type=GF_PROP_LUINT, .value.longuint = _val}
-#define PROP_BOOL(_val) &(GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
-#define PROP_FIXED(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
-#define PROP_FLOAT(_val) &(GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
-#define PROP_FRAC(_num, _den) &(GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
-#define PROP_DOUBLE(_val) &(GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
-#define PROP_STRING(_val) &(GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
-#define PROP_NAME(_val) &(GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
-#define PROP_DATA(_val, _len) &(GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
-#define PROP_CONST_DATA(_val, _len) &(GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data = _val, .data_len=_len}
+//helper macros to set properties
+#define PROP_SINT(_val) (GF_PropertyValue){.type=GF_PROP_SINT, .value.sint = _val}
+#define PROP_UINT(_val) (GF_PropertyValue){.type=GF_PROP_UINT, .value.uint = _val}
+#define PROP_LONGSINT(_val) (GF_PropertyValue){.type=GF_PROP_LSINT, .value.longsint = _val}
+#define PROP_LONGUINT(_val) (GF_PropertyValue){.type=GF_PROP_LUINT, .value.longuint = _val}
+#define PROP_BOOL(_val) (GF_PropertyValue){.type=GF_PROP_BOOL, .value.boolean = _val}
+#define PROP_FIXED(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = _val}
+#define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
+#define PROP_FRAC(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
+#define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
+#define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
+#define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
+#define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
+#define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data = _val, .data_len=_len}
 
-#define PROP_POINTER(_val) &(GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
+#define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
 
 
 
@@ -152,13 +152,15 @@ typedef struct
 	//name of the capability listed. the special value * is used to indicate that the capability is
 	//solved at run time (the filter must be loaded)
 	u32 cap_code;
-	const char *cap_string;
-	
+
 	GF_PropertyValue p;	//default type and value of the capability listed
 	//if set to true the cap has to be present, and with this value.
 	//you may sepcify several times the same cap name with different values (accept variations of the format),
 	//but you must not assign the mandatory flag in that case
 	Bool mandatory;
+
+
+	const char *cap_string;
 } GF_FilterCapability;
 
 typedef struct __gf_filter_register
@@ -201,7 +203,7 @@ typedef struct __gf_filter_register
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
 	//optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
-	GF_Err (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
+	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	void *udta;
 } GF_FilterRegister;
 

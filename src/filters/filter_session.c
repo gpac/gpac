@@ -145,6 +145,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 	return fsess;
 }
 
+GF_EXPORT
 void gf_fs_register_test_filters(GF_FilterSession *fsess)
 {
 	gf_fs_add_filter_registry(fsess, ut_source_register(fsess, GF_FALSE) );

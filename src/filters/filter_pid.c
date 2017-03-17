@@ -819,7 +819,7 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		return;
 	}
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
-	gf_filter_pck_set_property(pck, GF_PROP_PCK_EOS, PROP_BOOL(GF_TRUE) );
+	gf_filter_pck_set_property(pck, GF_PROP_PCK_EOS, &PROP_BOOL(GF_TRUE) );
 	gf_filter_pck_send(pck);
 }
 
