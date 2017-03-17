@@ -476,3 +476,12 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 	gf_fs_send_update(filter->session, fid, name, val);
 }
 
+GF_Filter *gf_filter_clone(GF_Filter *filter)
+{
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args);
+	if (!new_filter) return NULL;
+	new_filter->cloned_from = filter;
+
+	return new_filter;
+}
+

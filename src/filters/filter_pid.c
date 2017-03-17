@@ -75,7 +75,7 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 
 Bool gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_FilterRegister *dst);
 
-Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
+static Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove)
 {
 	u32 i, count;
 	GF_Err e;
@@ -99,7 +99,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 		new_pid_inst=GF_TRUE;
 	}
 
-	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, state);
+	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, is_remove);
 
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
@@ -121,7 +121,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 
 		if (e==GF_REQUIRES_NEW_INSTANCE) {
 			//TODO: copy over args from current filter
-			GF_Filter *new_filter = gf_filter_new(pid->filter->session, filter->freg, NULL);
+			GF_Filter *new_filter = gf_filter_clone(filter);
 			if (new_filter) {
 				//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
 				//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
@@ -148,7 +148,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, GF_PID_Config
 		gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 	}
 
-	if (state==GF_PID_CONFIG_CONNECT) {
+	if (is_connect) {
 		assert(pid->filter->pid_connection_pending);
 		if ( (ref_count_dec(&pid->filter->pid_connection_pending)==0) ) {
 
@@ -172,7 +172,7 @@ Bool gf_filter_pid_connect_task(GF_FSTask *task)
 	GF_FilterPid *pid = task->pid->pid;
 	GF_Filter *filter = (GF_Filter *) task->udta;
 
-	return gf_filter_pid_configure(filter, pid, GF_PID_CONFIG_CONNECT);
+	return gf_filter_pid_configure(filter, pid, GF_TRUE, GF_FALSE);
 }
 
 Bool gf_filter_pid_reconfigure_task(GF_FSTask *task)
@@ -180,7 +180,7 @@ Bool gf_filter_pid_reconfigure_task(GF_FSTask *task)
 	//destination filter
 	GF_FilterPid *pid = task->pid->pid;
 	GF_Filter *filter = task->filter;
-	return gf_filter_pid_configure(filter, pid, GF_PID_CONFIG_UPDATE);
+	return gf_filter_pid_configure(filter, pid, GF_FALSE, GF_FALSE);
 }
 
 /*
@@ -189,7 +189,7 @@ Bool gf_filter_pid_disconnect(GF_FSTask *task)
 	//destination filter
 	GF_FilterPid *pid = task->pid->pid;
 	GF_Filter *filter = task->filter;
-	return gf_filter_pid_configure(filter, pid, GF_PID_CONFIG_DISCONNECT);
+	return gf_filter_pid_configure(filter, pid, GF_FALSE, GF_TRUE);
 }
 */
 
@@ -323,8 +323,6 @@ static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *pid = gf_list_get(parent->input_pids, i);
 		if (filter_in_parent_chain(pid->filter, filter)) return GF_TRUE;
-		//we also want to make sure this parent is not in the filter chain of this filter
-		if (filter_in_parent_chain(filter, pid->filter)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -537,29 +535,37 @@ Bool gf_filter_pid_init_task(GF_FSTask *task)
 	Bool found_dest=GF_FALSE;
 
 	//try to connect pid to all running filters
-	if (!task->filter->forced_dst_filter) {
-		count = gf_list_count(task->filter->session->filters);
-		for (i=0; i<count; i++) {
-			GF_Filter *filter_dst = gf_list_get(task->filter->session->filters, i);
-			//source filter
-			if (!filter_dst->freg->configure_pid) continue;
-			//walk up through the parent graph and check if this filter is already in. If so don't connect
-			//since we don't allow re-entrant PIDs
-			if (filter_in_parent_chain(task->filter, filter_dst) ) continue;
+	count = gf_list_count(task->filter->session->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *filter_dst = gf_list_get(task->filter->session->filters, i);
+		//source filter
+		if (!filter_dst->freg->configure_pid) continue;
+		//walk up through the parent graph and check if this filter is already in. If so don't connect
+		//since we don't allow re-entrant PIDs
+		if (filter_in_parent_chain(task->filter, filter_dst) ) continue;
 
-			if (!filter_source_id_match(task->pid, task->filter->id, filter_dst->source_ids)) continue;
-
-			//we have a match, check if caps are OK
-			if (!filter_pid_caps_match(task->pid, filter_dst->freg)) continue;
-
-			ref_count_inc(&task->filter->pid_connection_pending);
-			//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
-			//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
-			gf_fs_post_task(filter_dst->session, gf_filter_pid_connect_task, task->filter, task->pid, "pid_connect", filter_dst);
-
-			found_dest = GF_TRUE;
+		//if the original filter is in the parent chain of this PID's filter, don't connect (equivalent to re-entrant)
+		if (filter_dst->cloned_from) {
+			if (filter_in_parent_chain(task->filter, filter_dst->cloned_from) ) continue;
 		}
+		//if the filter is in the parent chain of this PID's original filter, don't connect (equivalent to re-entrant)
+		if (task->filter->cloned_from) {
+			if (filter_in_parent_chain(task->filter->cloned_from, filter_dst) ) continue;
+		}
+		//if we have sourceID info on the pid, check them
+		if (!filter_source_id_match(task->pid, task->filter->id, filter_dst->source_ids)) continue;
+
+		//we have a match, check if caps are OK
+		if (!filter_pid_caps_match(task->pid, filter_dst->freg)) continue;
+
+		ref_count_inc(&task->filter->pid_connection_pending);
+		//watchout, we must post the tesk on the source filter, otherwise we may have concurrency
+		//issues setting up the pid destinations if done in parallel. We therefore set udat to the target filter
+		gf_fs_post_task(filter_dst->session, gf_filter_pid_connect_task, task->filter, task->pid, "pid_connect", filter_dst);
+
+		found_dest = GF_TRUE;
 	}
+	
 	//connection in proces, do nothing
 	if (found_dest) return GF_FALSE;
 
@@ -785,6 +791,11 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//move to source pid
 	pid = pid->pid;
 
+	if (pck->data_length) {
+		pidinst->filter->nb_pck_processed++;
+		pidinst->filter->nb_bytes_processed += pck->data_length;
+	}
+
 	//destroy pcki
 	pcki->pck = NULL;
 	pcki->pid = NULL;
@@ -799,6 +810,18 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	ref_count_dec(&pidinst->filter->pending_packets);
 }
 
+
+void gf_filter_pid_set_eos(GF_FilterPid *pid)
+{
+	GF_FilterPacket *pck;
+	if (PID_IS_INPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on inpt PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return;
+	}
+	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	gf_filter_pck_set_property(pck, GF_PROP_PCK_EOS, PROP_BOOL(GF_TRUE) );
+	gf_filter_pck_send(pck);
+}
 
 const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)
 {

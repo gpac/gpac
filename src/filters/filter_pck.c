@@ -228,8 +228,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	//we have seen packets and a new property map was created, post a config update
-	if (pid->nb_pck_sent && !pid->request_property_map) {
+	//a new property map was created, post a config update
+	if (!pid->request_property_map) {
 		count = gf_list_count(pck->pid->destinations);
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
@@ -241,6 +241,11 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	
 	assert(pck->pid);
 	pid->nb_pck_sent++;
+	if (pck->data_length) {
+		pid->filter->nb_pck_sent++;
+		pid->filter->nb_bytes_sent += pck->data_length;
+	}
+
 	//we have dispatched a packet, any new pid_set_property after this packet will trigger a new property map
 	pid->request_property_map = GF_TRUE;
 

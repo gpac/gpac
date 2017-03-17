@@ -442,6 +442,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp)", GF_PROP_UINT},
+	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visualheight (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
@@ -459,7 +460,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PCK_INTERLACED, "Interlaced", "0 or absent: progressive, 1: binterlaced", GF_PROP_BOOL},
 	{ GF_PROP_PCK_SAP, "SAP", "Stream access point type of packet", GF_PROP_LUINT},
 	{ GF_PROP_PCK_CORRUPTED, "Corrupted", "Indicate packet is corrupted", GF_PROP_BOOL},
-
+	{ GF_PROP_PCK_EOS, "EndOfStream", "Last packet for this PID, set on packet with NULL data", GF_PROP_BOOL},
 	{ NULL }
 
 };

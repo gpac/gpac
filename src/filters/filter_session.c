@@ -306,6 +306,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
 			filter = gf_filter_new(fsess, f_reg, args);
+			filter->orig_args = args;
 			return filter;
 		}
 	}
@@ -322,7 +323,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	while (1) {
 		Bool notified;
 		Bool requeue = GF_FALSE;
-		u64 active_start;
+		u64 active_start, task_time;
 		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
 
@@ -390,11 +391,15 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
+		task_time = gf_sys_clock_high_res();
 		requeue = task->run_task(task);
+		task_time = gf_sys_clock_high_res() - task_time;
 		fsess->task_in_process = GF_FALSE;
 
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
+			current_filter->nb_tasks_done++;
+			current_filter->time_process += task_time;
 			gf_mx_p(current_filter->tasks_mx);
 
 			gf_fq_pop(current_filter->tasks);
@@ -402,7 +407,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			//no more pending tasks for this filter
 			if (gf_fq_count(current_filter->tasks) == 0) {
 				//no task for filter but pending packets, requeue
-				if (task->filter->pending_packets != pending_packets) {
+				if (task->filter->pending_packets && (task->filter->pending_packets != pending_packets)) {
 					requeue = GF_TRUE;
 					gf_mx_v(current_filter->tasks_mx);
 				} else {
@@ -489,8 +494,45 @@ GF_EXPORT
 void gf_fs_print_stats(GF_FilterSession *fsess)
 {
 	u64 run_time=0, active_time=0, nb_tasks=0;
-	u32 i, count=gf_list_count(fsess->threads);
-	fprintf(stderr, "Session threads %d\n", 1+count);
+	u32 i, count;
+
+	fprintf(stderr, "\n");
+	count=gf_list_count(fsess->filters);
+	fprintf(stderr, "Filter stats - %d filters\n", 1+count);
+	for (i=0; i<count; i++) {
+		u32 k, ipids, opids;
+		GF_Filter *f = gf_list_get(fsess->filters, i);
+		ipids = gf_list_count(f->input_pids);
+		opids = gf_list_count(f->output_pids);
+		fprintf(stderr, "\tFilter %s: %d input pids %d output pids "LLU" tasks "LLU" us process time\n", f->name, ipids, opids, f->nb_tasks_done, f->time_process);
+
+		if (ipids) {
+			fprintf(stderr, "\t\t"LLU" packets processed "LLU" bytes processed", f->nb_pck_processed, f->nb_bytes_processed);
+			if (f->time_process) {
+				fprintf(stderr, " (%g pck/sec %g kbps)", (Double) f->nb_pck_processed*1000000/f->time_process, (Double) f->nb_bytes_processed*8000/f->time_process);
+			}
+			fprintf(stderr, "\n");
+		}
+		if (opids) {
+			fprintf(stderr, "\t\t"LLU" packets sent "LLU" bytes sent", f->nb_pck_sent, f->nb_bytes_sent);
+			if (f->time_process) {
+				fprintf(stderr, " (%g pck/sec %g kbps)", (Double) f->nb_pck_sent*1000000/f->time_process, (Double) f->nb_bytes_sent*8000/f->time_process);
+			}
+			fprintf(stderr, "\n");
+		}
+
+		for (k=0; k<ipids; k++) {
+			GF_FilterPid *pid = gf_list_get(f->input_pids, k);
+			fprintf(stderr, "\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->nb_pck_sent);
+		}
+		for (k=0; k<opids; k++) {
+			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
+			fprintf(stderr, "\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent);
+		}
+	}
+
+	count=gf_list_count(fsess->threads);
+	fprintf(stderr, "Session stats - threads %d\n", 1+count);
 
 	fprintf(stderr, "\tThread %d: run_time "LLU" us active_time "LLU" us nb_tasks "LLU"\n", 1, fsess->main_th.run_time, fsess->main_th.active_time, fsess->main_th.nb_tasks);
 

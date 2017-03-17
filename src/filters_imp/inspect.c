@@ -39,6 +39,7 @@ typedef struct
 	Bool framing;
 	Bool interleave;
 	Bool dump_data;
+	Bool pid_only;
 	const char *logfile;
 
 
@@ -139,6 +140,8 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	Bool start, end;
 	const char *data;
 
+	if (ctx->pid_only) return;
+
 	data = gf_filter_pck_get_data(pck, &size);
 	gf_filter_pck_get_framing(pck, &start, &end);
 
@@ -167,18 +170,15 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 	}
 }
 
-static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, GF_PID_ConfigState state)
+static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, u32 pid_idx, Bool is_connect, Bool is_remove)
 {
 	u32 idx=0;
 
-	if (state==GF_PID_CONFIG_UPDATE) {
-		fprintf(dump, "PID %d name %s Reconfigure - props:\n", pid_idx, gf_filter_pid_get_name(pid) );
-	}
 	//disconnect of src pid (not yet supported)
-	else if (state==GF_PID_CONFIG_DISCONNECT) {
+	if (is_remove) {
 		fprintf(dump, "PID %d name %s delete\n", pid_idx, gf_filter_pid_get_name(pid) );
 	} else {
-		fprintf(dump, "PID %d name %s Configure - properties:\n", pid_idx, gf_filter_pid_get_name(pid) );
+		fprintf(dump, "PID %d name %s %sonfigure - properties:\n", pid_idx, gf_filter_pid_get_name(pid), is_connect ? "C" : "Rec" );
 	}
 	while (1) {
 		u32 prop_4cc;
@@ -210,7 +210,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
+static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	PidCtx *pctx;
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
@@ -220,14 +220,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
 		assert(pctx->src_pid == pid);
-		//update of caps, check everything is fine
-		if (state==GF_PID_CONFIG_UPDATE) {
-			inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, state);
-		}
-		//disconnect of src pid (not yet supported)
-		else if (state==GF_PID_CONFIG_DISCONNECT) {
-			inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, state);
-		}
+		inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_FALSE, is_remove);
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
@@ -243,7 +236,7 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_
 
 	gf_filter_pid_set_framing_mode(pid, ctx->framing);
 
-	inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, state);
+	inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_TRUE, GF_FALSE);
 
 	return GF_OK;
 }
@@ -274,6 +267,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(logfile), "Sets inspect log filename", GF_PROP_STRING, "stderr", "file/stderr/stdout", GF_FALSE},
 	{ OFFS(framing), "Enables full frame/block reconstruction before inspection", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
+	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dump_data), "Enables full data dump - heavy !", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ NULL }
 };

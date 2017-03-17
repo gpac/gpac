@@ -161,13 +161,6 @@ typedef struct
 	Bool mandatory;
 } GF_FilterCapability;
 
-typedef enum
-{
-	GF_PID_CONFIG_CONNECT,
-	GF_PID_CONFIG_UPDATE,
-	GF_PID_CONFIG_DISCONNECT
-} GF_PID_ConfigState;
-
 typedef struct __gf_filter_register
 {
 	//mandatory - name of the filter as used when setting up filters
@@ -192,7 +185,10 @@ typedef struct __gf_filter_register
 
 	//optional for sources, mandatory for filters and sinks - callback for PID update
 	//may be called several times on the same pid if pid config is changed
-	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state);
+	//may return GF_REQUIRES_NEW_INSTANCE to indicate the PID cannot be processed in this instance
+	//but could be in a clone of the filter
+	//is_remove: indicates the input PID is removed (not yet implemented)
+	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
 	//optional - callback for filter init -  private stack of filter is allocated by framework)
 	GF_Err (*initialize)(GF_Filter *filter);
@@ -243,6 +239,10 @@ const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const 
 const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name);
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks);
+
+//signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
+//since there is no explicit link between input PIDs and output PIDs
+void gf_filter_pid_set_eos(GF_FilterPid *pid);
 
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
@@ -335,6 +335,8 @@ enum
 	//(uint) stream access type
 	GF_PROP_PCK_SAP = GF_4CC('g','p','S','A'),
 	GF_PROP_PCK_CORRUPTED = GF_4CC('g','p','C','O'),
+	//(bool) end of stream flag, set on packet with NULL data
+	GF_PROP_PCK_EOS = GF_4CC('g','p','E','S'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);

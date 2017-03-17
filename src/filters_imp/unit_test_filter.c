@@ -404,7 +404,7 @@ static GF_Err ut_filter_process_sink(GF_Filter *filter)
 }
 
 
-static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
+static GF_Err ut_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *format;
 	GF_PropertyValue p;
