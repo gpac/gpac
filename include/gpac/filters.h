@@ -153,7 +153,7 @@ typedef struct
 	//solved at run time (the filter must be loaded)
 	u32 cap_code;
 
-	GF_PropertyValue p;	//default type and value of the capability listed
+	GF_PropertyValue val;	//default type and value of the capability listed
 	//if set to true the cap has to be present, and with this value.
 	//you may sepcify several times the same cap name with different values (accept variations of the format),
 	//but you must not assign the mandatory flag in that case

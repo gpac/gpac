@@ -71,18 +71,18 @@ static GF_Err example_filter_process(GF_Filter *filter)
 
 }
 
-static GF_Err example_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, GF_PID_ConfigState state)
+static GF_Err example_filter_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *format;
 	GF_PropertyValue p;
 	GF_BaseFilterExample  *stack = (GF_BaseFilterExample *) gf_filter_get_udta(filter);
 
 	if (stack->src_pid==pid) {
-		//update of caps, check everything is fine
-		if (state==GF_PID_CONFIG_UPDATE) {
-		}
 		//disconnect of src pid (not yet supported)
-		else if (state==GF_PID_CONFIG_DISCONNECT) {
+		if (is_remove) {
+		}
+		//update of caps, check everything is fine
+		else {
 		}
 		return GF_OK;
 	}
@@ -133,13 +133,13 @@ static const GF_FilterArgs ExampleFilterArgs[] =
 
 static const GF_FilterCapability ExampleFilterInputs[] =
 {
-	{ "cust", {.type=GF_PROP_NAME, .value.string = "myformat" }, GF_FALSE },
+	{ .cap_string="cust", .val=PROP_NAME("myformat")  },
 	{ NULL }
 };
 
 static const GF_FilterCapability ExampleFilterOutputs[] =
 {
-	{"cus2", {.type=GF_PROP_UINT, .value.uint = 10 }, GF_FALSE},
+	{GF_4CC('c','u','s','t'), PROP_UINT(10) },
 	{ NULL }
 };
 
