@@ -125,20 +125,39 @@ L_DEB=4
 
 log()
 {
-	if [ $1 = $L_ERR ]; then
-		tput setaf 1
-	elif [ $1 = $L_WAR ]; then
-		tput setaf 2
-	elif [ $1 = $L_INF ]; then
-		tput setaf 4
-	elif [ $verbose = 0 ]; then
-		tput sgr0
-		return
-	fi
+ if [ $TERM = "cygwin" ]; then
 
-	echo $2
+  if [ $1 = $L_ERR ]; then
+    echo -ne "\033[31m"
+  elif [ $1 = $L_WAR ]; then
+    echo -ne "\033[32m"
+  elif [ $1 = $L_INF ]; then
+    echo -ne "\033[34m"
+  elif [ $verbose = 0 ]; then
+    echo -ne "\033[0m"
+    return
+  fi
 
-	tput sgr0
+  echo $2
+  echo -ne "\033[0m"
+
+ else
+
+  if [ $1 = $L_ERR ]; then
+    tput setaf 1
+  elif [ $1 = $L_WAR ]; then
+    tput setaf 2
+  elif [ $1 = $L_INF ]; then
+    tput setaf 4
+  elif [ $verbose = 0 ]; then
+    tput sgr0
+    return
+  fi
+
+  echo $2
+  tput sgr0
+
+ fi
 }
 
 print_usage ()
