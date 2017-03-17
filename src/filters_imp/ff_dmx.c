@@ -74,7 +74,13 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	pkt.stream_index = -1;
 	/*EOF*/
-	if (av_read_frame(ffd->ctx, &pkt) <0) return GF_EOS;
+	if (av_read_frame(ffd->ctx, &pkt) <0) {
+		u32 i;
+		for (i=0; i<ffd->ctx->nb_streams; i++) {
+			gf_filter_pid_set_eos(ffd->pids[i]);
+		}
+		return GF_EOS;
+	}
 
 	assert(pkt.stream_index>=0);
 	assert(pkt.stream_index<ffd->ctx->nb_streams);

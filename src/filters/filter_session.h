@@ -224,6 +224,9 @@ struct __gf_filter
 	//parent media session
 	GF_FilterSession *session;
 
+	//const pointer to the argument string
+	const char *orig_args;
+
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
 	GF_FilterQueue *tasks;
@@ -264,11 +267,27 @@ struct __gf_filter
 	//list of blacklisted filtered registries
 	GF_List *blacklisted;
 
-	//set when creating a filter chain not defined by the user, eg loading a filter to perform needed PID adaptation
-	GF_Filter *forced_dst_filter;
+	//pointer to the original filter being cloned - only used for graph setup, reset after
+	GF_Filter *cloned_from;
+
+	//statistics
+	//number of tasks executed by this filter
+	u64 nb_tasks_done;
+	//number of packets processed by this filter
+	u64 nb_pck_processed;
+	//number of bytes processed by this filter
+	u64 nb_bytes_processed;
+	//number of packets sent by this filter
+	u64 nb_pck_sent;
+	//number of bytes sent by this filter
+	u64 nb_bytes_sent;
+	//number of microseconds this filter was active
+	u64 time_process;
+
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
+GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 Bool gf_filter_process_task(GF_FSTask *task);
 
