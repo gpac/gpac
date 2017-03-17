@@ -348,7 +348,7 @@ static u32 filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister 
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {
-			if (gf_props_equal(pid_cap, &cap->p)) {
+			if (gf_props_equal(pid_cap, &cap->val)) {
 				nb_matched++;
 			} else if (cap->mandatory) {
 				return GF_FALSE;
