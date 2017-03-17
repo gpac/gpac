@@ -32,12 +32,12 @@
 #include <libswscale/swscale.h>
 
 #define FF_CHECK_PROP(_name, _ffname, _type)	if (ffdec->_name != ffdec->codec_ctx->_ffname) { \
-		gf_filter_pid_set_property(ffdec->out_pid, _type, PROP_UINT( ffdec->codec_ctx->_ffname ) );	\
+		gf_filter_pid_set_property(ffdec->out_pid, _type, &PROP_UINT( ffdec->codec_ctx->_ffname ) );	\
 		ffdec->_name = ffdec->codec_ctx->_ffname;	\
 	} \
 
 #define FF_CHECK_PROP_VAL(_name, _val, _type)	if (ffdec->_name != _val) { \
-		gf_filter_pid_set_property(ffdec->out_pid, _type, PROP_UINT( _val ) );	\
+		gf_filter_pid_set_property(ffdec->out_pid, _type, &PROP_UINT( _val ) );	\
 		ffdec->_name = _val;	\
 	} \
 
@@ -188,7 +188,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 		ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
 
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
+		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
 	}
 
 	memset(&pict, 0, sizeof(pict));
@@ -269,13 +269,13 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		sws_scale(ffdec->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ffdec->height, pict.data, pict.linesize);
 	}
 
-	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, PROP_LONGUINT(frame->pkt_pts) );
+	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, &PROP_LONGUINT(frame->pkt_pts) );
 	//copy over SAP indication
-	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SAP, PROP_UINT(frame->pkt_dts) );
+	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SAP, &PROP_UINT(frame->pkt_dts) );
 
 
 	if (frame->interlaced_frame)
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_INTERLACED, PROP_UINT(frame->top_field_first ? 2 : 1) );
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_INTERLACED, &PROP_UINT(frame->top_field_first ? 2 : 1) );
 
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
@@ -289,7 +289,6 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	s32 gotpic;
 	s32 len, in_size;
 	u32 output_size;
-	u64 cts;
 	Bool is_eos=GF_FALSE;
 	char *data;
 	AVFrame *frame;
@@ -402,7 +401,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	}
 
 	if (p)
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, PROP_LONGUINT(frame->pkt_pts) );
+		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, &PROP_LONGUINT(frame->pkt_pts) );
 	gf_filter_pck_send(dst_pck);
 
 	frame->nb_samples = 0;
@@ -458,7 +457,6 @@ enum {
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 type=0;
-	u32 extra_data_crc=0;
 	const GF_PropertyValue *prop;
 	GF_FFDecodeCtx  *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
@@ -567,7 +565,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	if (ffdec->out_pid) {
 		gf_filter_pid_reset_properties(ffdec->out_pid);
 		gf_filter_pid_copy_properties(ffdec->out_pid, ffdec->in_pid);
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 
 		gf_filter_pid_set_name(ffdec->out_pid, gf_filter_pid_get_name(ffdec->in_pid) );
 	}
@@ -591,14 +589,14 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (ffdec->codec_ctx->sample_aspect_ratio.num && ffdec->codec_ctx->sample_aspect_ratio.den) {
 			ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 			ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
-			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
+			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
 		}
 
 	} else {
 		ffdec->process = ffdec_process_audio;
 		//for now we convert everything to s16, to be updated later on
 		ffdec->sample_fmt = GF_AUDIO_FMT_S16;
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_AUDIO_FORMAT, PROP_UINT(GF_AUDIO_FMT_S16) );
+		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
 
 		//override PID props with what decoder gives us
 		if (ffdec->codec_ctx->channels) {
@@ -641,21 +639,21 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
-
+/*
 static const GF_FilterCapability FFDecodeInputs[] =
 {
 	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
 	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
 	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
-	{ NULL }
+	{}
 };
-
+*/
 static const GF_FilterCapability FFDecodeOutputs[] =
 {
 	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ), GF_FALSE},
 	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
 	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
-	{ NULL }
+	{}
 };
 
 GF_FilterRegister FFDecodeRegister = {
@@ -674,7 +672,7 @@ GF_FilterRegister FFDecodeRegister = {
 static const GF_FilterArgs FFDecodeArgs[] =
 {
 	{ "*", -1, "Any possible args defined for AVCodecContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{ NULL }
+	{}
 };
 
 void ffmpeg_initialize();

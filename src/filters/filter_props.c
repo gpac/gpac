@@ -460,9 +460,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PCK_INTERLACED, "Interlaced", "0 or absent: progressive, 1: binterlaced", GF_PROP_BOOL},
 	{ GF_PROP_PCK_SAP, "SAP", "Stream access point type of packet", GF_PROP_LUINT},
 	{ GF_PROP_PCK_CORRUPTED, "Corrupted", "Indicate packet is corrupted", GF_PROP_BOOL},
-	{ GF_PROP_PCK_EOS, "EndOfStream", "Last packet for this PID, set on packet with NULL data", GF_PROP_BOOL},
-	{ NULL }
-
+	{ GF_PROP_PCK_EOS, "EndOfStream", "Last packet for this PID, set on packet with NULL data", GF_PROP_BOOL}
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

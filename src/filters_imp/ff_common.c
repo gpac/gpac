@@ -49,16 +49,16 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 		while (gf_list_count(all_filters)) {
 			i=0;
 			GF_FilterRegister *f = gf_list_pop_back(all_filters);
-			gf_free(f->name);
+			gf_free((char*) f->name);
 
 			while (f->args) {
-				GF_FilterArgs *arg = &f->args[i];
+				GF_FilterArgs *arg = (GF_FilterArgs *) &f->args[i];
 				if (!arg || !arg->arg_name) break;
 				i++;
-				if (arg->arg_default_val) gf_free(arg->arg_default_val);
-				if (arg->min_max_enum) gf_free(arg->min_max_enum);
+				if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
+				if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
 			}
-			gf_free(f->args);
+			gf_free((void *) f->args);
 			gf_fs_remove_filter_registry(session, f);
 			gf_free(f);
 		}
@@ -66,13 +66,13 @@ void ffmpeg_registry_free(GF_FilterSession *session, GF_FilterRegister *reg, u32
 	}
 	i=nb_skip_begin;
 	while (reg->args) {
-		GF_FilterArgs *arg = &reg->args[i];
+		GF_FilterArgs *arg = (GF_FilterArgs *) &reg->args[i];
 		if (!arg || !arg->arg_name) break;
 		i++;
-		if (arg->arg_default_val) gf_free(arg->arg_default_val);
-		if (arg->min_max_enum) gf_free(arg->min_max_enum);
+		if (arg->arg_default_val) gf_free((void *) arg->arg_default_val);
+		if (arg->min_max_enum) gf_free((void *) arg->min_max_enum);
 	}
-	if (reg->args) gf_free(reg->args);
+	if (reg->args) gf_free((void *) reg->args);
 
 }
 
@@ -146,7 +146,7 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 		enum_val[0] = 0;
 		for (i=0; i<AV_PIX_FMT_NB; i++) {
 			u32 len;
-			char *n = av_get_pix_fmt_name(i);
+			const char *n = av_get_pix_fmt_name(i);
 			if (!n) continue;
 
 			len = strlen(n)+ i ? 2 : 1;
@@ -169,7 +169,6 @@ GF_FilterArgs ffmpeg_arg_translate(const struct AVOption *opt)
 
 void ffmpeg_expand_registry(GF_FilterSession *session, GF_FilterRegister *orig_reg, u32 type)
 {
-	GF_FilterArgs *args;
 	u32 i=0, idx=0, flags=0;
 	const struct AVOption *opt;
 	GF_List *all_filters = gf_list_new();

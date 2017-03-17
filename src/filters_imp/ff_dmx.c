@@ -104,20 +104,20 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		AVStream *stream = ffd->ctx->streams[pkt.stream_index];
 		u64 ts = pkt.pts * stream->time_base.num;
 
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CTS, PROP_LONGUINT(ts) );
+		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CTS, &PROP_LONGUINT(ts) );
 
 		if (!pkt.dts) pkt.dts = pkt.pts;
 
 		if (pkt.dts != AV_NOPTS_VALUE) {
 			ts = pkt.dts * stream->time_base.num;
-			gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_DTS, PROP_LONGUINT(ts) );
+			gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_DTS, &PROP_LONGUINT(ts) );
 		}
 	}
 	if (pkt.flags & AV_PKT_FLAG_KEY) 
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_SAP, PROP_UINT(1) );
+		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_SAP, &PROP_UINT(1) );
 
 	if (pkt.flags & AV_PKT_FLAG_CORRUPT)
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CORRUPTED, PROP_BOOL(GF_TRUE) );
+		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CORRUPTED, &PROP_BOOL(GF_TRUE) );
 
 	//TODO - check we are not blocking
 	e = gf_filter_pck_send(pck_dst);
@@ -162,13 +162,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
 	GF_Err e;
-	s64 last_aud_pts;
 	u32 i;
 	u32 nb_a, nb_v;
 	s32 res;
-	GF_PropertyValue p;
 	Bool is_local;
-	const char *sOpt;
 	char *ext;
 	AVInputFormat *av_in = NULL;
 	char szName[50];
@@ -235,7 +232,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		case AVMEDIA_TYPE_AUDIO:
 			pid = gf_filter_pid_new(filter);
 			if (!pid) return GF_OUT_OF_MEM;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
 			nb_a++;
 			sprintf(szName, "audio%d", nb_a);
 			gf_filter_pid_set_name(pid, szName);
@@ -244,7 +241,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		case AVMEDIA_TYPE_VIDEO:
 			pid = gf_filter_pid_new(filter);
 			if (!pid) return GF_OUT_OF_MEM;
-			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
 			nb_v++;
 			sprintf(szName, "video%d", nb_v);
 			gf_filter_pid_set_name(pid, szName);
@@ -256,12 +253,12 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		ffd->pids[i] = pid;
 		gf_filter_pid_set_udta(pid, stream);
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, PROP_UINT(stream->id) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id) );
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, PROP_UINT(stream->time_base.den) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(stream->time_base.den) );
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, PROP_FRAC( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
 
 		if (stream->metadata) {
 			AVDictionaryEntry *ent=NULL;
@@ -270,68 +267,68 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 				if (!ent) break;
 
 				//we use the same syntax as ffmpeg here
-				gf_filter_pid_set_property_str(pid, ent->key, PROP_STRING(ent->value) );
+				gf_filter_pid_set_property_str(pid, ent->key, &PROP_STRING(ent->value) );
 			}
 		}
 
 		switch (codec->codec_id) {
 		case CODEC_ID_MP2:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG1) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG1) );
 			break;
 		case CODEC_ID_MP3:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3) );
 			break;
 		case CODEC_ID_AAC:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_AAC_MPEG4) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AAC_MPEG4) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_MPEG4:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_H264:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_AVC) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_AVC) );
 			expose_ffdec=GF_TRUE;
 			break;
 		case CODEC_ID_MPEG1VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG1) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG1) );
 			break;
 		case CODEC_ID_MPEG2VIDEO:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN) );
 			break;
 		case CODEC_ID_H263:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_H263) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_H263) );
 			break;
 		//todo - map all possible MPEG and common types to internal GPAC OTI
 		default:
-			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_MEDIA_FFMPEG) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_MEDIA_FFMPEG) );
 			expose_ffdec=GF_TRUE;
 			break;
 		}
 
 		if (codec->extradata_size) {
 			//expose as const data
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, PROP_CONST_DATA(codec->extradata, codec->extradata_size) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA(codec->extradata, codec->extradata_size) );
 		} else if (expose_ffdec) {
-			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, PROP_POINTER( (void*)codec ) );
+			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
 		}
 
 		if (codec->sample_rate)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, PROP_UINT( codec->sample_rate ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT( codec->sample_rate ) );
 		if (codec->frame_size)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLES_PER_FRAME, PROP_UINT( codec->frame_size ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT( codec->frame_size ) );
 		if (codec->channels)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, PROP_UINT( codec->channels ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT( codec->channels ) );
 
 		if (codec->width)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, PROP_UINT( codec->width ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT( codec->width ) );
 		if (codec->height)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, PROP_UINT( codec->height ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT( codec->height ) );
 		if (codec->framerate.num && codec->framerate.den)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, PROP_FRAC( codec->framerate.num, codec->framerate.den ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC( codec->framerate.num, codec->framerate.den ) );
 
 		if (codec->bit_rate)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, PROP_UINT( codec->bit_rate ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT( codec->bit_rate ) );
 	}
 
 
@@ -343,10 +340,10 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 static const GF_FilterCapability FFDemuxOutputs[] =
 {
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
-	{ NULL }
+	{.cap_code=GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
+	{.cap_code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
+	{.cap_code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
+	{}
 };
 
 GF_FilterRegister FFDemuxRegister = {
@@ -378,7 +375,7 @@ static const GF_FilterArgs FFDemuxArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ "*", -1, "Any possible args defined for AVFormatContext and sub-classes", GF_PROP_UINT, NULL, NULL, GF_FALSE, GF_TRUE},
-	{ NULL }
+	{}
 };
 
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters)

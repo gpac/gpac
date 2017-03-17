@@ -156,7 +156,7 @@ static void inspect_dump_packet(GF_InspectCtx *ctx, FILE *dump, GF_FilterPacket 
 		for (i=0; i<size; i++) {
 			fprintf(dump, "%02X", (unsigned char) data[i]);
 		}
-		fprintf(dump, "\props:\n");
+		fprintf(dump, "\nproperties:\n");
 	} else {
 		fprintf(dump, " size %d CRC32 0x%08X - properties:\n", size, gf_crc_32(data, size) );
 	}
@@ -191,10 +191,6 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 static GF_Err inspect_process(GF_Filter *filter)
 {
-	char *data_dst;
-	const char *data_src;
-	u32 size;
-	GF_FilterPacket *pck_dst;
 	u32 i, count;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
@@ -269,7 +265,7 @@ static const GF_FilterArgs InspectArgs[] =
 	{ OFFS(interleave), "Dumps packets as they are received on each pid. If false, report per pid is generated", GF_PROP_BOOL, "true", NULL, GF_FALSE},
 	{ OFFS(pid_only), "Only dumps PID state change, not packets", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dump_data), "Enables full data dump - heavy !", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ NULL }
+	{}
 };
 
 
