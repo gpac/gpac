@@ -166,6 +166,7 @@ echo "*** General options"
 echo "  -strict:               stops at the first failed test"
 echo "  -warn:                 dump logs after each failed test (used for travisCI)"
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
+echo "  -keep-tmp:             keeps tmp folder used in tests (erased by default)"
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
@@ -220,6 +221,7 @@ strict_mode=0
 track_stack=0
 speed=1
 single_test_name=""
+erase_temp_dir=1
 
 #Parse arguments
 for i in $* ; do
@@ -241,6 +243,8 @@ for i in $* ; do
   ;;
  "-keep-avi")
   keep_avi=1;;
+ "-keep-tmp")
+  erase_temp_dir=0;;
  "-no-hash")
   disable_hash=1;;
  "-strict")
@@ -1307,8 +1311,9 @@ echo '<?xml-stylesheet href="stylesheet.xsl" type="text/xsl"?>' >> $ALL_REPORTS
 echo "<GPACTestSuite version=\"$VERSION\" platform=\"$platform\" start_date=\"$start_date\" end_date=\"$(date '+%d/%m/%Y %H:%M:%S')\">" >> $ALL_REPORTS
 
 
-
-rm -rf $TEMP_DIR/* 2> /dev/null
+if [ $erase_temp_dir != 0 ] ; then
+   rm -rf $TEMP_DIR/* 2> /dev/null
+fi
 
 #count all tests using generated -stats.sh
 TESTS_SKIP=0
