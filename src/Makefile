@@ -144,7 +144,7 @@ endif
 
 LIBGPAC_MEDIATOOLS+=media_tools/webvtt.o
 
-LIBGPAC_FILTERS=filters/filter_pck.o filters/filter_pid.o filters/filter_props.o filters/filter_queue.o filters/filter_session.o filters/filter.o filters/utfilter.o
+LIBGPAC_FILTERS=filters/filter_pck.o filters/filter_pid.o filters/filter_props.o filters/filter_queue.o filters/filter_session.o filters/filter.o
 
 
 ## libgpac objects gathering: src/scene_manager
@@ -214,6 +214,9 @@ MEDIATOOLS_CFLAGS=$(JS_FLAGS)
 ##include static modules and other deps for libgpac
 include ../static.mak
 
+LIBGPAC_FILTERS+=filters_imp/ff_common.o filters_imp/ff_dmx.o filters_imp/ff_dec.o filters_imp/inspect.o filters_imp/unit_test_filter.o  
+FILTERS_CFLAGS=$(ffmpeg_cflags)
+EXTRALIBS+=$(ffmpeg_lflags)
 
 
 ##libgpac library output
@@ -261,6 +264,11 @@ compositor: CFLAGS+=$(COMPOSITOR_CFLAGS)
 compositor: $(LIBGPAC_COMPOSITOR)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
 .deps/compositor/%: CFLAGS += $(COMPOSITOR_CFLAGS)
+
+filters: CFLAGS+=$(COMPOSITOR_CFLAGS)
+filters: $(LIBGPAC_FILTERS)
+.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
+.deps/filters/%: CFLAGS += $(FILTERS_CFLAGS)
 
 
 ../bin/gcc/$(LIB): $(LIBGPAC_UTILS) $(LIBGPAC_IETF) $(LIBGPAC_BIFS) $(LIBGPAC_ODF) $(LIBGPAC_LASER) $(LIBGPAC_ISOM) $(LIBGPAC_SCENEMANAGER) $(LIBGPAC_TERMINAL) compositor scenegraph media_tools mcrypt $(OBJS)
