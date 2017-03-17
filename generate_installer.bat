@@ -1,4 +1,4 @@
-@echo off 
+@echo off
 set OLDDIR=%CD%
 cd /d %~dp0
 REM ============================================
@@ -17,11 +17,17 @@ echo:
 REM ============================================
 echo Check NSIS is in your PATH
 REM ============================================
-if "%PROCESSOR_ARCHITECTURE%" == "AMD64" ( 
-    SET "PRGROOT=%programfiles(x86)%" 
-) 
-if "%PROCESSOR_ARCHITECTURE%" == "x86" ( 
-    SET PRGROOT=%programfiles% 
+
+
+if "%PROCESSOR_ARCHITECTURE%" == "AMD64" (
+    setlocal enabledelayedexpansion
+    SET PRGROOT=!programfiles(x86^)!
+    setlocal disabledelayedexpansion
+)
+if "%PROCESSOR_ARCHITECTURE%" == "x86" (
+    setlocal enabledelayedexpansion
+    SET PRGROOT=!programfiles!
+    setlocal disabledelayedexpansion
 )
 
 set NSIS_EXEC="%PRGROOT%\NSIS\makensis.exe"
@@ -38,9 +44,9 @@ if not exist include/gpac/revision.h echo   version couldn't be found - check in
 if not exist include/gpac/revision.h goto Abort
 
 REM check if found a local commit which has not been pushed
-for /f "delims=" %%a in ('git diff  master..origin/master') do @set diff=%%a
+for /f "delims=" %%a in ('git diff FETCH_HEAD') do @set diff=%%a
 echo diff = %diff%
-if "%diff"=="" goto RevisionAbort
+if not "%diff%"=="" goto RevisionAbort
 
 REM execute git and check if the result if found within revision.h
 for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
@@ -94,7 +100,7 @@ echo Please consider pushing your commit before generating an installer
 echo:
 echo  *** ABORTING: CHECK ERROR MESSAGES ABOVE ***
 
-REM LeaveBatchError 
+REM LeaveBatchError
 set VarRevisionBuild=
 cd /d %OLDDIR%
 exit/b 1
