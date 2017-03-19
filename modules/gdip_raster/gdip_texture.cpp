@@ -197,52 +197,6 @@ GF_Err gdip_set_texture(GF_STENCIL _this, char *pixels, u32 width, u32 height, u
 	return GF_OK;
 }
 
-
-static
-GF_Err gdip_create_texture(GF_STENCIL _this, u32 width, u32 height, GF_PixelFormat pixelFormat)
-{
-	u32 pFormat;
-	GPSTEN();
-	CHECK_RET(GF_STENCIL_TEXTURE);
-
-	gdip_cmat_reset(&_sten->cmat);
-	/*is pixel format supported ?*/
-	switch (pixelFormat) {
-	case GF_PIXEL_BGR_24:
-	case GF_PIXEL_GREYSCALE:
-	case GF_PIXEL_RGB_24:
-		pFormat = PixelFormat24bppRGB;
-		break;
-	case GF_PIXEL_ALPHAGREY:
-		pFormat = PixelFormat32bppARGB;
-		break;
-	case GF_PIXEL_RGB_555:
-		pFormat = PixelFormat16bppRGB555;
-		break;
-	case GF_PIXEL_RGB_565:
-		pFormat = PixelFormat16bppRGB565;
-		break;
-	case GF_PIXEL_RGB_32:
-		pFormat = PixelFormat32bppRGB;
-		break;
-	case GF_PIXEL_ARGB:
-		pFormat = PixelFormat32bppARGB;
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
-
-	if (_sten->pBitmap) GdipDisposeImage(_sten->pBitmap);
-	_sten->pBitmap = NULL;
-	_sten->width = width;
-	_sten->height = height;
-	_sten->is_converted = GF_TRUE;
-	_sten->format = pFormat;
-	GdipCreateBitmapFromScan0(_sten->width, _sten->height, 0, pFormat, NULL, &_sten->pBitmap);
-	return GF_OK;
-}
-
-
 static
 GF_Err gdip_set_texture_repeat_mode(GF_STENCIL _this, GF_TextureTiling mode)
 {
@@ -398,7 +352,6 @@ void gdip_init_driver_texture(GF_Raster2D *driver)
 	driver->stencil_set_filter = gdip_set_sr_texture_filter;
 	driver->stencil_set_color_matrix = gdip_set_color_matrix;
 	driver->stencil_set_alpha = gdip_set_alpha;
-	driver->stencil_create_texture = gdip_create_texture;
 	driver->stencil_texture_modified = gdip_texture_modified;
 }
 

@@ -25,6 +25,7 @@
 
 #include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
+#include <gpac/media_tools.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -352,7 +353,7 @@ void ipco_del(GF_Box *s)
 
 GF_Err ipco_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -401,7 +402,7 @@ static GF_Err iprp_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err iprp_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, iprp_AddBox);
+	return gf_isom_box_array_read(s, bs, iprp_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -486,6 +487,7 @@ GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs)
 	for (i = 0; i < entry_count; i++) {
 		GF_ItemPropertyAssociationEntry *entry;
 		GF_SAFEALLOC(entry, GF_ItemPropertyAssociationEntry);
+		if (!entry) return GF_OUT_OF_MEM;
 		entry->essential = gf_list_new();
 		entry->property_index = gf_list_new();
 		gf_list_add(p->entries, entry);
@@ -539,9 +541,9 @@ GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs)
 			Bool *ess = (Bool *)gf_list_get(entry->essential, j);
 			u32 *prop_index = (u32 *)gf_list_get(entry->property_index, j);
 			if (p->flags & 1) {
-				gf_bs_write_u16(bs, *ess << 15 | *prop_index);
+				gf_bs_write_u16(bs, (u16)( ( (*ess ? 1 : 0) << 15) | (*prop_index & 0x7F) ) );
 			} else {
-				gf_bs_write_u8(bs, *ess << 7 | *prop_index);
+				gf_bs_write_u8(bs, (u32)(( (*ess ? 1 : 0) << 7) | *prop_index));
 			}
 		}
 	}
@@ -577,5 +579,410 @@ GF_Err ipma_Size(GF_Box *s)
 }
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *grpl_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_GroupListBox, GF_ISOM_BOX_TYPE_GRPL);
+	tmp->other_boxes = gf_list_new();
+	return (GF_Box *)tmp;
+}
+
+void grpl_del(GF_Box *s)
+{
+	GF_GroupListBox *p = (GF_GroupListBox *)s;
+	gf_free(p);
+}
+
+GF_Err grpl_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_box_array_read_ex(s, bs, gf_isom_box_add_default, s->type);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err grpl_Write(GF_Box *s, GF_BitStream *bs)
+{
+	if (!s) return GF_BAD_PARAM;
+	return gf_isom_box_write_header(s, bs);
+}
+
+GF_Err grpl_Size(GF_Box *s)
+{
+	return gf_isom_box_get_size(s);
+}
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void grptype_del(GF_Box *s)
+{
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	if (!ptr) return;
+	if (ptr->entity_ids) gf_free(ptr->entity_ids);
+	gf_free(ptr);
+}
+
+
+GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 bytesToRead;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	bytesToRead = (u32) (ptr->size);
+	if (!bytesToRead) return GF_OK;
+	ptr->group_id = gf_bs_read_u32(bs);
+	ptr->entity_id_count = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 8)
+	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
+
+	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
+	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
+
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		ptr->entity_ids[i] = gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *grptype_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
+	//the group type code is assign in gf_isom_box_parse_ex
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	ptr->type = ptr->grouping_type;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	ptr->type = GF_ISOM_BOX_TYPE_GRPT;
+
+	gf_bs_write_u32(bs, ptr->group_id);
+	gf_bs_write_u32(bs, ptr->entity_id_count);
+
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		gf_bs_write_u32(bs, ptr->entity_ids[i]);
+	}
+	return GF_OK;
+}
+
+
+GF_Err grptype_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *auxc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryTypePropertyBox, GF_ISOM_BOX_TYPE_AUXC);
+	return (GF_Box *)tmp;
+}
+
+void auxc_del(GF_Box *a)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)a;
+	if (p->aux_urn) gf_free(p->aux_urn);
+	if (p->data) gf_free(p->data);
+	gf_free(p);
+}
+
+GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)s;
+	GF_Err e;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	e = gf_isom_read_null_terminated_string(s, bs, &p->aux_urn);
+	if (e) return e;
+	p->data_size = (u32) p->size;
+	p->data = gf_malloc(sizeof(char) * p->data_size);
+	gf_bs_read_data(bs, p->data, p->data_size);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//with terminating 0
+	gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) + 1 );
+	gf_bs_write_data(bs, p->data, p->data_size);
+
+	return GF_OK;
+}
+
+GF_Err auxc_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+	e = gf_isom_box_get_size(s);
+	if (e) return e;
+	p->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *oinf_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_OINFPropertyBox, GF_ISOM_BOX_TYPE_OINF);
+	tmp->oinf = gf_isom_oinf_new_entry();
+	return (GF_Box *)tmp;
+}
+
+void oinf_del(GF_Box *a)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)a;
+	if (p->oinf) gf_isom_oinf_del_entry(p->oinf);
+	gf_free(p);
+}
+
+GF_Err oinf_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_oinf_read_entry(p->oinf, bs);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err oinf_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	return gf_isom_oinf_write_entry(p->oinf, bs);
+}
+
+GF_Err oinf_Size(GF_Box *s)
+{
+	GF_Err e;
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+	if (!p->oinf) return GF_BAD_PARAM;
+	e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += gf_isom_oinf_size_entry(p->oinf);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *tols_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TargetOLSPropertyBox, GF_ISOM_BOX_TYPE_TOLS);
+	return (GF_Box *)tmp;
+}
+
+void tols_del(GF_Box *a)
+{
+	gf_free(a);
+}
+
+GF_Err tols_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox *)s;
+	GF_Err e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	ISOM_DECREASE_SIZE(p, 2)
+	p->target_ols_index = gf_bs_read_u16(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err tols_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u16(bs, p->target_ols_index);
+	return GF_OK;
+}
+
+GF_Err tols_Size(GF_Box *s)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+	GF_Err e = gf_isom_full_box_get_size(s);
+	if (e) return e;
+	p->size += 2;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+
+GF_EXPORT
+GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
+	GF_Err e;
+	u32 imported_sample_desc_index = 1;
+	u32 sample_index = 1;
+	u32 w, h, hSpacing, vSpacing;
+	u32 subtype;
+	GF_ISOSample *sample;
+	u32 item_type = 0;
+	GF_ImageItemProperties local_image_props;
+	Bool config_needed = 0;
+	GF_Box *config_box = NULL;
+	//u32 media_brand = 0;
+
+	if (image_props && image_props->tile_mode != TILE_ITEM_NONE) {
+		u32 i, count;
+		u32 tile_track;
+		GF_List *tile_item_ids;
+		char sz_item_name[256];
+		GF_TileItemMode orig_tile_mode;
+		e = gf_media_split_hevc_tiles(movie, 0);
+		if (e) return e;
+		tile_item_ids = gf_list_new();
+		orig_tile_mode = image_props->tile_mode;
+		image_props->tile_mode = TILE_ITEM_NONE;
+		count = gf_isom_get_reference_count(movie, imported_track, GF_ISOM_REF_SABT);
+		for (i = 0; i < count; i++) {
+			u32 *tile_item_id = gf_malloc(sizeof(u32));
+			*tile_item_id = item_id + i+1;
+			gf_list_add(tile_item_ids, tile_item_id);
+			e = gf_isom_get_reference(movie, imported_track, GF_ISOM_REF_SABT, 1, &tile_track);
+			if (e) return e;
+			sprintf(sz_item_name, "%s-Tile%d", (item_name ? item_name : "Image"), i + 1);
+			if (orig_tile_mode != TILE_ITEM_SINGLE || image_props->single_tile_number == i + 1) {
+				e = gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, tile_track, sz_item_name, *tile_item_id, NULL, NULL);
+			}
+			if (e) return e;
+			gf_isom_remove_track(movie, tile_track);
+			if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
+				e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, *tile_item_id, item_id, GF_4CC('t', 'b', 'a', 's'), NULL);
+			}
+			if (e) return e;
+		}
+		sprintf(sz_item_name, "%s-TileBase", (item_name ? item_name : "Image"));
+		if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
+			gf_isom_iff_create_image_item_from_track(movie, root_meta, meta_track_number, imported_track, sz_item_name, item_id, image_props, tile_item_ids);
+		}
+		else if (orig_tile_mode == TILE_ITEM_ALL_GRID) {
+			// TODO
+		}
+		for (i = 0; i < count; i++) {
+			u32 *tile_item_id = gf_list_get(tile_item_ids, i);
+			gf_free(tile_item_id);
+		}
+		gf_list_del(tile_item_ids);
+		return GF_OK;
+	}
+	else {
+		/* Check if the track type is supported as item type */
+		/* Get the config box if needed */
+		subtype = gf_isom_get_media_subtype(movie, imported_track, imported_sample_desc_index);
+		switch (subtype) {
+		case GF_ISOM_SUBTYPE_AVC_H264:
+		case GF_ISOM_SUBTYPE_AVC2_H264:
+		case GF_ISOM_SUBTYPE_AVC3_H264:
+		case GF_ISOM_SUBTYPE_AVC4_H264:
+			//FIXME: in avc1 with multiple descriptor, we should take the right description index
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_4CC('a', 'v', 'c', '1');
+			config_needed = 1;
+			break;
+		case GF_ISOM_SUBTYPE_SVC_H264:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
+			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_4CC('s', 'v', 'c', '1');
+			config_needed = 1;
+			break;
+		case GF_ISOM_SUBTYPE_HVC1:
+		case GF_ISOM_SUBTYPE_HEV1:
+		case GF_ISOM_SUBTYPE_HVC2:
+		case GF_ISOM_SUBTYPE_HEV2:
+		case GF_ISOM_SUBTYPE_HVT1:
+		case GF_ISOM_SUBTYPE_LHV1:
+		case GF_ISOM_SUBTYPE_LHE1:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
+			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
+			if (subtype == GF_ISOM_SUBTYPE_HVT1) {
+				item_type = GF_4CC('h', 'v', 't', '1');
+			}
+			else {
+				item_type = GF_4CC('h', 'v', 'c', '1');
+			}
+			config_needed = 1;
+			if (!((GF_HEVCConfigurationBox *)config_box)->config) {
+				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
+				item_type = GF_4CC('l', 'h', 'v', '1');
+			}
+			//media_brand = GF_ISOM_BRAND_HEIC;
+		}
+		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) return GF_BAD_PARAM;
+
+		/* Get some images properties from the track data */
+		e = gf_isom_get_visual_info(movie, imported_track, imported_sample_desc_index, &w, &h);
+		if (e) {
+			if (config_box) gf_isom_box_del(config_box);
+			return e;
+		}
+		e = gf_isom_get_pixel_aspect_ratio(movie, imported_track, imported_sample_desc_index, &hSpacing, &vSpacing);
+		if (e) {
+			if (config_box) gf_isom_box_del(config_box);
+			return e;
+		}
+		if (!image_props) {
+			image_props = &local_image_props;
+			memset(image_props, 0, sizeof(GF_ImageItemProperties));
+		}
+		if (!image_props->width && !image_props->height) {
+			image_props->width = w;
+			image_props->height = h;
+		}
+		if (!image_props->hSpacing && !image_props->vSpacing) {
+			image_props->hSpacing = hSpacing;
+			image_props->vSpacing = vSpacing;
+		}
+		image_props->config = config_box;
+
+		sample = gf_isom_get_sample(movie, imported_track, sample_index, NULL);
+		if (!sample) {
+			if (config_box) gf_isom_box_del(config_box);
+			return GF_BAD_PARAM;
+		}
+		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
+
+		gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
+		gf_isom_reset_alt_brands(movie);
+		//if (media_brand) {
+		//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
+		//}
+		gf_isom_sample_del(&sample);
+		if (config_box) gf_isom_box_del(config_box);
+		return e;
+	}
+}
 
 #endif /*GPAC_DISABLE_ISOM*/

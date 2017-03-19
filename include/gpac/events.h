@@ -32,6 +32,19 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/events.h>
+ *	\brief Event system used by GPAC playback.
+ */
+	
+/*!
+ *	\addtogroup evt_grp Event System
+ *	\ingroup playback_grp
+ *	\brief Event system used by GPAC playback.
+ *
+ *This section documents the event structures used by the terminal, the compositor, input modules and output rendering modules for communication.
+ *	@{
+ */
 
 #include <gpac/maths.h>
 #include <gpac/tools.h>
@@ -291,12 +304,35 @@ typedef struct {
 	void *param;
 } GF_EventFromService;
 
+
+
+/*event proc return value: ignored*/
+typedef struct
+{
+	/*GF_EVENT_SENSOR_ORIENTATION*/
+	u8 type;
+	/*device orientation as quaternion*/
+	Float x, y, z, w;
+} GF_EventSensor;
+
+
+/*event proc return value: ignored*/
+typedef struct
+{
+	/*GF_EVENT_SENSOR_REQUEST*/
+	u8 type;
+	/*device evt type to activate (eg GF_EVENT_SENSOR_ORIENTATION)*/
+	u32 sensor_type;
+	Bool activate;
+} GF_EventSensorRequest;
+
 typedef union
 {
 	u8 type;
 	GF_EventMouse mouse;
 	GF_EventKey key;
 	GF_EventChar character;
+	GF_EventSensor sensor;
 	GF_EventSize size;
 	GF_EventShow show;
 	GF_EventDuration duration;
@@ -314,8 +350,10 @@ typedef union
 	GF_EventOpenFile open_file;
 	GF_EventAddonConnect addon_connect;
 	GF_EventFromService from_service;
+	GF_EventSensorRequest activate_sensor;
 } GF_Event;
 
+/*! @} */
 
 #ifdef __cplusplus
 }

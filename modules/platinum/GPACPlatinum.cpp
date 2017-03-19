@@ -1655,7 +1655,7 @@ static Bool upnp_process(GF_TermExt *termext, u32 action, void *param)
 	case GF_TERM_EXT_START:
 		opt = gf_modules_get_option((GF_BaseInterface*)termext, "UPnP", "Enabled");
 		if (!opt) {
-			//UPnP is disabkled by default on all platforms until we have a more stable state on load and exit
+			//UPnP is disabled by default on all platforms until we have a more stable state on load and exit
 			opt = "no";
 			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[UPnP] Disabling UPnP - to enable it, modify section [UPnP] key \"Enabled\" in GPAC config file\n"));
 			gf_modules_set_option((GF_BaseInterface*)termext, "UPnP", "Enabled", opt);

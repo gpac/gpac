@@ -210,7 +210,9 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
-	Bool is_srd;
+	Bool is_srd, is_tiled_srd;
+	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
+
 
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
@@ -242,8 +244,9 @@ struct _scene
 	Bool main_addon_selected;
 	u32 sys_clock_at_main_activation, obj_clock_at_main_activation;
 
-	Bool pause_at_first_frame;
-	Bool is_live360;
+	//0: no pause - 1: paused and trigger pause command to net, 2: only clocks are paused but commands not sent
+	u32 first_frame_pause_type;
+	u32 vr_type;
 };
 
 GF_Scene *gf_scene_new(GF_Scene *parentScene);
@@ -472,6 +475,10 @@ struct _tag_terminal
 
 	u32 nb_calls_in_event_proc;
 	u32 disconnect_request_status;
+	
+	Bool orientation_sensors_active;
+	//set when compositor uses step mode, in order to drop frames even when the clock is paused
+	Bool use_step_mode;
 };
 
 
@@ -575,6 +582,8 @@ struct _object_clock
 	Bool has_media_time_shift;
 
 	u16 ocr_on_esid;
+
+	u64 ts_shift;
 };
 
 /*destroys clock*/
@@ -595,6 +604,10 @@ void gf_clock_stop(GF_Clock *ck);
 u32 gf_clock_time(GF_Clock *ck);
 /*return media time in ms*/
 u32 gf_clock_media_time(GF_Clock *ck);
+
+/*return time in ms since clock started - may be different from clock time when seeking or live*/
+u32 gf_clock_elapsed_time(GF_Clock *ck);
+
 /*sets clock time - FIXME: drift updates for OCRs*/
 void gf_clock_set_time(GF_Clock *ck, u32 TS);
 /*return clock time in ms without drift adjustment - used by audio objects only*/
@@ -659,8 +672,8 @@ struct _es_channel
 	char *pull_reaggregated_buffer;
 	/*channel buffer flag*/
 	Bool BufferOn;
-	/*min level to trigger buffering on, max to trigger it off. */
-	u32 MinBuffer, MaxBuffer;
+	/*min level to trigger buffering on, max to trigger it off for playback resume, and max amount of prefetch buffer*/
+	u32 MinBuffer, MaxBuffer, MaxBufferOccupancy;
 	/*amount of buffered media - this is the DTS of the last received AU minus the onject clock time, to make sure
 	we always have MaxBuffer ms ready for composition when resuming the clock*/
 	s32 BufferTime;
@@ -715,8 +728,10 @@ struct _es_channel
 	Double ocr_scale;
 	/*clock driving this stream - currently only CTS is supported (no OCR)*/
 	struct _object_clock *clock;
-	/*flag for clock init. Only a channel owning the clock will set this flag on clock init*/
+	/*flag for clock init*/
 	Bool IsClockInit;
+	/*flag for clock init*/
+	Bool clock_inherited;
 	/*indicates that no DTS is signaled and that they should be recomputed if needed (video only)*/
 	Bool recompute_dts;
 	u32 min_ts_inc, min_computed_cts;
@@ -756,6 +771,7 @@ struct _es_channel
 
 	Bool pull_forced_buffer;
 
+	u64 ts_shift;
 };
 
 /*creates a new channel for this stream*/
@@ -854,6 +870,8 @@ struct _generic_codec
 	/*base process routine*/
 	GF_Err (*process)(GF_Codec *codec, u32 TimeAvailable);
 
+	GF_List *blacklisted;
+
 	/*composition memory for media streams*/
 	struct _composition_memory *CB;
 	/*input media channles*/
@@ -886,7 +904,7 @@ struct _generic_codec
 	u32 bytes_per_sec;
 	Double fps;
 	u32 nb_dispatch_skipped;
-	Bool direct_vout;
+	Bool direct_vout, direct_frame_output;
 
 	/*statistics*/
 	u32 last_stat_start, cur_bit_size, stat_start;
@@ -917,6 +935,8 @@ struct _generic_codec
 
 	/*signals that CB should be resized to this value once all units in CB has been consumed (codec config change)*/
 	u32 force_cb_resize;
+	u32 profile_level;
+	Bool hybrid_layered_coded;
 };
 
 GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e);
@@ -933,6 +953,7 @@ instance when loading a BT with an animation stream*/
 GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
 GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize);
+GF_Err gf_codec_change_decoder(GF_Codec *codec);
 
 /*OD manager*/
 
@@ -1178,7 +1199,13 @@ struct _mediaobj
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
 	u32 sample_rate, num_channels, bits_per_sample, channel_config;
-	u32 srd_x, srd_y, srd_w, srd_h;
+	u32 srd_x, srd_y, srd_w, srd_h, srd_full_w, srd_full_h;
+	
+	u32 quality_degradation_hint;
+	u32 nb_views;
+	u32 nb_layers;
+	u32 view_min_x, view_max_x, view_min_y, view_max_y;
+	GF_MediaDecoderFrame *media_frame;
 };
 
 GF_MediaObject *gf_mo_new();

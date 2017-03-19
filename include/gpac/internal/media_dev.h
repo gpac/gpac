@@ -106,6 +106,16 @@ typedef struct
 	/*to be eventually completed by other vui members*/
 } AVC_VUI;
 
+typedef struct 
+{
+	u32 left;
+	u32 right;
+	u32 top;
+	u32 bottom;
+	
+} AVC_CROP;
+
+
 typedef struct
 {
 	s32 profile_idc;
@@ -126,6 +136,7 @@ typedef struct
 	u32 width, height;
 
 	AVC_VUI vui;
+	AVC_CROP crop;
 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
@@ -342,13 +353,15 @@ typedef struct
 } HEVC_RateInfo;
 
 
-#define MAX_SHVC_LAYERS	4
+#define MAX_LHVC_LAYERS	4
+#define MAX_NUM_LAYER_SETS 1024
 typedef struct
 {
 	s32 id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
 	u32 crc;
+	Bool vps_extension_found;
 	u32 max_layers, max_sub_layers, max_layer_id, num_layer_sets;
 	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;
@@ -358,17 +371,27 @@ typedef struct
 
 
 	u32 scalability_mask[16];
-	u32 dimension_id[MAX_SHVC_LAYERS][16];
-	u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
-	u32 layer_id_in_vps[MAX_SHVC_LAYERS];
+	u32 dimension_id[MAX_LHVC_LAYERS][16];
+	u32 layer_id_in_nuh[MAX_LHVC_LAYERS];
+	u32 layer_id_in_vps[MAX_LHVC_LAYERS];
 
-
-	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
-	HEVC_ProfileTierLevel ext_ptl[MAX_SHVC_LAYERS];
+	u8 num_profile_tier_level, num_output_layer_sets;
+	u32 profile_level_tier_idx[MAX_LHVC_LAYERS];
+	HEVC_ProfileTierLevel ext_ptl[MAX_LHVC_LAYERS];
 
 	u32 num_rep_formats;
 	HEVC_RepFormat rep_formats[16];
 	u32 rep_format_idx[16];
+	Bool base_layer_internal_flag, base_layer_available_flag;
+	u8 num_layers_in_id_list[MAX_NUM_LAYER_SETS];
+	u8 direct_dependency_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool output_layer_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 profile_tier_level_idx[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool alt_output_layer_flag[MAX_LHVC_LAYERS];
+	u8 num_necessary_layers[MAX_LHVC_LAYERS];
+	Bool necessary_layers_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdList[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdListMax[MAX_LHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
 } HEVC_VPS;
 
 typedef struct
@@ -394,6 +417,7 @@ typedef struct
 	Bool dependent_slice_segment_flag;
 	Bool first_slice_segment_in_pic_flag;
 	u32 slice_segment_address;
+	u8 prev_layer_id_plus1;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
@@ -416,9 +440,9 @@ typedef struct _hevc_state
 
 enum
 {
-	GF_HEVC_TYPE_B = 0,
-	GF_HEVC_TYPE_P = 1,
-	GF_HEVC_TYPE_I = 2,
+	GF_HEVC_SLICE_TYPE_B = 0,
+	GF_HEVC_SLICE_TYPE_P = 1,
+	GF_HEVC_SLICE_TYPE_I = 2,
 };
 s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc);
@@ -426,6 +450,9 @@ s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
+//parses VPS and rewrites data buffer after removing VPS extension
+s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
+
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
@@ -490,7 +517,7 @@ void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
 
 #ifndef GPAC_DISABLE_ISOM
-GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index);
+GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);
 GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp);
 GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 #endif /* GPAC_DISABLE_ISOM */

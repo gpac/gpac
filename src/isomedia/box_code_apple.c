@@ -44,14 +44,13 @@ GF_Err ilst_Read(GF_Box *s, GF_BitStream *bs)
 		/*if no ilst type coded, break*/
 		sub_type = gf_bs_peek_bits(bs, 32, 0);
 		if (sub_type) {
-			e = gf_isom_parse_box(&a, bs);
+			e = gf_isom_box_parse(&a, bs);
 			if (e) return e;
-			if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-			ptr->size -= a->size;
+			ISOM_DECREASE_SIZE(ptr, a->size);
 			gf_list_add(ptr->other_boxes, a);
 		} else {
 			gf_bs_read_u32(bs);
-			ptr->size -= 4;
+			ISOM_DECREASE_SIZE(ptr, 4);
 		}
 	}
 	return GF_OK;
@@ -91,7 +90,7 @@ GF_Err ilst_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void ListItem_del(GF_Box *s)
+void ilst_item_del(GF_Box *s)
 {
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
 	if (ptr == NULL) return;
@@ -102,7 +101,7 @@ void ListItem_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err ilst_item_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
 	u32 sub_type;
@@ -112,10 +111,9 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 	/*iTunes way: there's a data atom containing the data*/
 	sub_type = gf_bs_peek_bits(bs, 32, 4);
 	if (sub_type == GF_ISOM_BOX_TYPE_DATA ) {
-		e = gf_isom_parse_box(&a, bs);
+		e = gf_isom_box_parse(&a, bs);
 		if (e) return e;
-		if (ptr->size<a->size) return GF_ISOM_INVALID_FILE;
-		ptr->size -= a->size;
+		ISOM_DECREASE_SIZE(ptr, a->size);
 
 		if (a && ptr->data) gf_isom_box_del((GF_Box *) ptr->data);
 		ptr->data = (GF_DataBox *)a;
@@ -128,12 +126,12 @@ GF_Err ListItem_Read(GF_Box *s,GF_BitStream *bs)
 		ptr->data->data = (char *) gf_malloc(sizeof(char)*(ptr->data->dataSize + 1));
 		gf_bs_read_data(bs, ptr->data->data, ptr->data->dataSize);
 		ptr->data->data[ptr->data->dataSize] = 0;
-		ptr->size -= ptr->data->dataSize;
+		ISOM_DECREASE_SIZE(ptr, ptr->data->dataSize);
 	}
 	return GF_OK;
 }
 
-GF_Box *ListItem_New(u32 type)
+GF_Box *ilst_item_New(u32 type)
 {
 	ISOM_DECL_BOX_ALLOC(GF_ListItemBox, type);
 
@@ -149,7 +147,7 @@ GF_Box *ListItem_New(u32 type)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err ilst_item_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *) s;
@@ -166,7 +164,7 @@ GF_Err ListItem_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err ListItem_Size(GF_Box *s)
+GF_Err ilst_item_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
@@ -181,7 +179,7 @@ GF_Err ListItem_Size(GF_Box *s)
 		ptr->size += ptr->data->size;
 	}
 	/*QT way*/
-	else {
+	else if (ptr->data) {
 		ptr->size += ptr->data->dataSize + 4;
 	}
 	return GF_OK;
@@ -189,7 +187,7 @@ GF_Err ListItem_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-void data_del(GF_Box *s)
+void databox_del(GF_Box *s)
 {
 	GF_DataBox *ptr = (GF_DataBox *) s;
 	if (ptr == NULL) return;
@@ -199,7 +197,7 @@ void data_del(GF_Box *s)
 
 }
 
-GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
+GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
@@ -207,7 +205,8 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 	e = gf_isom_full_box_read(s, bs);
 	if (e) return e;
 	ptr->reserved = gf_bs_read_int(bs, 32);
-	ptr->size -= 4;
+	ISOM_DECREASE_SIZE(ptr, 4);
+
 	if (ptr->size) {
 		ptr->dataSize = (u32) ptr->size;
 		ptr->data = (char*)gf_malloc(ptr->dataSize * sizeof(ptr->data[0]) + 1);
@@ -219,7 +218,7 @@ GF_Err data_Read(GF_Box *s,GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Box *data_New()
+GF_Box *databox_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DataBox, GF_ISOM_BOX_TYPE_DATA);
 
@@ -230,7 +229,7 @@ GF_Box *data_New()
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
+GF_Err databox_Write(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *) s;
@@ -244,7 +243,7 @@ GF_Err data_Write(GF_Box *s, GF_BitStream *bs)
 	return GF_OK;
 }
 
-GF_Err data_Size(GF_Box *s)
+GF_Err databox_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
@@ -315,7 +314,7 @@ GF_MetaBox *gf_isom_apple_create_meta_extensions(GF_ISOFile *mov)
 		meta->handler->handlerType = GF_ISOM_HANDLER_TYPE_MDIR;
 		if (!meta->other_boxes) meta->other_boxes = gf_list_new();
 		gf_list_add(meta->other_boxes, gf_isom_box_new(GF_ISOM_BOX_TYPE_ILST));
-		udta_AddBox(mov->moov->udta, (GF_Box *)meta);
+		udta_AddBox((GF_Box *)mov->moov->udta, (GF_Box *)meta);
 	}
 
 	return meta;

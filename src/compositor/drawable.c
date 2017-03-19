@@ -119,11 +119,25 @@ Drawable *drawable_new()
 {
 	Drawable *tmp;
 	GF_SAFEALLOC(tmp, Drawable)
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable object\n"));
+		return NULL;
+	}
 	tmp->path = gf_path_new();
 	/*allocate a default visual container*/
 	GF_SAFEALLOC(tmp->dri, DRInfo);
-	/*allocate a default bounds container*/
-	GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
+	if (tmp->dri) {
+		/*allocate a default bounds container*/
+		GF_SAFEALLOC(tmp->dri->current_bounds, BoundInfo);
+	}
+	
+	if (!tmp->dri || !tmp->dri->current_bounds) {
+		if (tmp->dri) gf_free(tmp->dri);
+		gf_path_del(tmp->path);
+		gf_free(tmp);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable object bounds\n"));
+		return NULL;
+	}
 	return tmp;
 }
 
@@ -256,6 +270,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	}
 	if (!dri) {
 		GF_SAFEALLOC(dri, DRInfo);
+		if (!dri) return NULL;
 		dri->visual = visual;
 		if (prev) prev->next = dri;
 		else ctx->drawable->dri = dri;
@@ -272,6 +287,7 @@ static BoundInfo *drawable_check_alloc_bounds(struct _drawable_context *ctx, GF_
 	}
 	if (!bi) {
 		GF_SAFEALLOC(bi, BoundInfo);
+		if (!bi) return NULL;
 		if (_prev) {
 //			assert(!_prev->next);
 			_prev->next = bi;
@@ -645,7 +661,7 @@ static Bool check_transparent_skip(DrawableContext *ctx, Bool skipFill)
 }
 
 
-static void check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
+void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state)
 {
 #ifndef GPAC_DISABLE_3D
 	Bool texture_ready=0;
@@ -762,7 +778,7 @@ DrawableContext *drawable_init_context_mpeg4(Drawable *drawable, GF_TraverseStat
 
 	ctx->flags |= drawable_get_aspect_2d_mpeg4(drawable->node, &ctx->aspect, tr_state);
 
-	check_texture_dirty(ctx, drawable, tr_state);
+	drawable_check_texture_dirty(ctx, drawable, tr_state);
 
 	/*not clear in the spec: what happens when a transparent node is in form/layout ?? this may
 	completely break layout of children. We consider the node should be drawn*/
@@ -807,6 +823,9 @@ static Bool drawable_finalize_end(struct _drawable_context *ctx, GF_TraverseStat
 	if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {
 		struct _drawable_store *it;
 		GF_SAFEALLOC(it, struct _drawable_store);
+		if (!it) {
+			return 0;
+		}
 		it->drawable = ctx->drawable;
 		if (tr_state->visual->last_prev_entry) {
 			tr_state->visual->last_prev_entry->next = it;
@@ -1097,6 +1116,9 @@ StrikeInfo2D *drawable_get_strikeinfo(GF_Compositor *compositor, Drawable *drawa
 	/*not found, add*/
 	if (!si) {
 		GF_SAFEALLOC(si, StrikeInfo2D);
+		if (!si) {
+			return NULL;
+		}
 		si->lineProps = lp;
 		si->drawable = drawable;
 
@@ -1246,6 +1268,10 @@ void compositor_init_lineprops(GF_Compositor *compositor, GF_Node *node)
 {
 	LinePropStack *st;
 	GF_SAFEALLOC(st, LinePropStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate line properties stack\n"));
+		return;
+	}
 	st->compositor = compositor;
 	st->last_mod_time = 0;
 	gf_node_set_private(node, st);
@@ -1358,7 +1384,7 @@ Bool drawable_get_aspect_2d_svg(GF_Node *node, DrawAspect2D *asp, GF_TraverseSta
 			}
 		}
 		/* Paint server not found, stroke is equivalent to none */
-		if (props->stroke->iri.type == XMLRI_ELEMENTID) {
+		if ((props->stroke->iri.type == XMLRI_ELEMENTID) && props->stroke->iri.target) {
 			switch (gf_node_get_tag((GF_Node *)props->stroke->iri.target)) {
 			case TAG_SVG_solidColor:
 			{
@@ -1518,7 +1544,7 @@ DrawableContext *drawable_init_context_svg(Drawable *drawable, GF_TraverseState 
 		}
 	}
 
-	check_texture_dirty(ctx, drawable, tr_state);
+	drawable_check_texture_dirty(ctx, drawable, tr_state);
 
 	/*we are drawing on a centered coord surface, remember to flip the texture*/
 	if (tr_state->fliped_coords)

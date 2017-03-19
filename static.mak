@@ -125,6 +125,9 @@ CFLAGS+=-DGPAC_HAS_LIBA52
 EXTRALIBS+= -la52
 endif
 
+OBJS+=../modules/amr_dec/amr_in.o
+CFLAGS+=-DGPAC_AMR_IN_STANDALONE
+
 ifeq ($(CONFIG_ALSA), yes)
 OBJS+=../modules/alsa/alsa.o
 CFLAGS+=-DGPAC_HAS_ALSA
@@ -181,13 +184,13 @@ CFLAGS+=-DGPAC_HAS_JP2
 endif
 
 ifneq ($(CONFIG_FT), no)
-OBJS+=../modules/ft_font/ft_font.o 
+OBJS+=../modules/ft_font/ft_font.o
 EXTRALIBS+= $(FT_LIBS)
 CFLAGS+=-DGPAC_HAS_FREETYPE $(FT_CFLAGS)
 endif
 
 ifeq ($(DISABLE_MEDIA_IMPORT), no)
-OBJS+=../modules/mpegts_in/mpegts_in.o 
+OBJS+=../modules/mpegts_in/mpegts_in.o
 endif
 
 ifeq ($(DISABLE_LOADER_BT), no)
@@ -200,13 +203,13 @@ OBJS+=../modules/ffmpeg_in/ffmpeg_decode.o ../modules/ffmpeg_in/ffmpeg_demux.o .
 CFLAGS+=-DGPAC_HAS_FFMPEG -Wno-deprecated-declarations -I"$(SRC_PATH)/include" $(ffmpeg_cflags)
 EXTRALIBS+= $(ffmpeg_lflags)
 #fix it first
-#OBJS+=../modules/redirect_av/redirect_av.o  
+#OBJS+=../modules/redirect_av/redirect_av.o
 endif
 
 ifneq ($(CONFIG_XVID), no)
 OBJS+=../modules/xvid_dec/xvid_dec.o
 CFLAGS+=-DGPAC_HAS_XVID
-EXTRALIBS+= -lxvidcore 
+EXTRALIBS+= -lxvidcore
 endif
 
 ifneq ($(CONFIG_OGG), no)
@@ -327,7 +330,7 @@ EXTRALIBS+=-DGPAC_HAS_WAVEOUT -DDISABLE_WAVE_EX
 endif
 
 ifeq ($(CONFIG_DIRECTX),yes)
-OBJS+= ../dx_hw/dx_hw/dx_audio.o  ../dx_hw/dx_hw/dx_video.o  ../dx_hw/dx_hw/dx_window.o  ../dx_hw/dx_hw/dx_2d.o  ../dx_hw/dx_hw/copy_pixels.o
+OBJS+= ../modules/dx_hw/dx_audio.o ../modules/dx_hw/dx_video.o ../modules/dx_hw/dx_window.o ../modules/dx_hw/dx_2d.o ../modules/dx_hw/copy_pixels.o
 CFLAGS+=-DGPAC_HAS_DIRECTX -DDIRECTSOUND_VERSION=0x0500
 ifneq ($(DX_PATH), system)
 EXTRALIBS+=-L$(DX_PATH)/lib
@@ -345,6 +348,12 @@ CFLAGS+= -I"$(LOCAL_INC_PATH)"
 EXTRALIBS+=-L../../extra_lib/lib/gcc
 endif
 EXTRALIBS+=-lfreenect
+endif
+
+
+ifeq ($(CONFIG_DARWIN),yes)
+OBJS+=../modules/vtb_decode/vtb_decode.o
+EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
 endif
 
 #end of static modules

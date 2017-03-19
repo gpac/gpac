@@ -78,6 +78,7 @@ GF_SAFMuxer *gf_saf_mux_new()
 {
 	GF_SAFMuxer *mux;
 	GF_SAFEALLOC(mux, GF_SAFMuxer);
+	if (!mux) return NULL;
 	mux->mx = gf_mx_new("SAF");
 	mux->streams = gf_list_new();
 	return mux;
@@ -131,6 +132,7 @@ GF_Err gf_saf_mux_stream_add(GF_SAFMuxer *mux, u32 stream_id, u32 ts_res, u32 bu
 	gf_mx_p(mux->mx);
 
 	GF_SAFEALLOC(str, GF_SAFStream);
+	if (!str) return GF_OUT_OF_MEM;
 	str->stream_id = stream_id;
 	str->ts_resolution = ts_res;
 	str->buffersize_db = buffersize_db;
@@ -176,6 +178,7 @@ GF_Err gf_saf_mux_add_au(GF_SAFMuxer *mux, u32 stream_id, u32 CTS, char *data, u
 	gf_mx_p(mux->mx);
 
 	GF_SAFEALLOC(au, GF_SAFSample);
+	if (!au) return GF_OUT_OF_MEM;
 	au->data = data;
 	au->data_size = data_len;
 	au->is_rap = is_rap;

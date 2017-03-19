@@ -176,6 +176,10 @@ void compositor_init_movietexture(GF_Compositor *compositor, GF_Node *node)
 {
 	MovieTextureStack *st;
 	GF_SAFEALLOC(st, MovieTextureStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate movie texture stack\n"));
+		return;
+	}
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->txh.update_texture_fcnt = movietexture_update;
 	st->time_handle.UpdateTimeNode = movietexture_update_time;
@@ -416,6 +420,10 @@ void compositor_init_imagetexture(GF_Compositor *compositor, GF_Node *node)
 {
 	GF_TextureHandler *txh;
 	GF_SAFEALLOC(txh, GF_TextureHandler);
+	if (!txh) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate image texture stack\n"));
+		return;
+	}
 	gf_sc_texture_setup(txh, compositor, node);
 	txh->update_texture_fcnt = imagetexture_update;
 	gf_node_set_private(node, txh);
@@ -575,6 +583,10 @@ void compositor_init_pixeltexture(GF_Compositor *compositor, GF_Node *node)
 {
 	PixelTextureStack *st;
 	GF_SAFEALLOC(st, PixelTextureStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate pixel texture stack\n"));
+		return;
+	}
 	gf_sc_texture_setup(&st->txh, compositor, node);
 	st->pixels = NULL;
 	st->txh.update_texture_fcnt = pixeltexture_update;
@@ -601,6 +613,10 @@ void compositor_init_mattetexture(GF_Compositor *compositor, GF_Node *node)
 {
 	GF_TextureHandler *txh;
 	GF_SAFEALLOC(txh, GF_TextureHandler);
+	if (!txh) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate matte texture stack\n"));
+		return;
+	}
 	gf_sc_texture_setup(txh, compositor, node);
 	txh->flags = GF_SR_TEXTURE_MATTE;
 	txh->update_texture_fcnt = matte_update;

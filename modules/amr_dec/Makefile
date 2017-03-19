@@ -17,7 +17,12 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=amr_in.o amr_dec.o \
+OBJS=amr_in.o
+NAME=amr_in
+
+ifeq ($(CONFIG_AMR_NB), yes)
+NAME=amr_dec
+OBJS+= amr_dec.o \
 	./amr_nb/agc.o ./amr_nb/autocorr.o ./amr_nb/az_lsp.o ./amr_nb/bits2prm.o ./amr_nb/cl_ltp.o \
 	./amr_nb/convolve.o ./amr_nb/c1035pf.o ./amr_nb/d_plsf.o ./amr_nb/d_plsf_5.o ./amr_nb/d_gain_c.o \
 	./amr_nb/d_gain_p.o ./amr_nb/dec_lag6.o ./amr_nb/d1035pf.o ./amr_nb/cor_h.o ./amr_nb/enc_lag3.o \
@@ -42,19 +47,22 @@ OBJS=amr_in.o amr_dec.o \
 	./amr_nb/count.o ./amr_nb/oper_32b.o ./amr_nb/copy.o ./amr_nb/log2.o \
 	./amr_nb/set_zero.o ./amr_nb/strfunc.o ./amr_nb/n_proc.o ./amr_nb/sid_sync.o
 
+else
+
+CFLAGS+=-DGPAC_AMR_IN_STANDALONE
+
+endif
+
 
 SRCS := $(OBJS:.o=.c) 
 
-LIB=gm_amr_dec$(DYN_LIB_SUFFIX)
-ifeq ($(CONFIG_WIN32),yes)
-#LDFLAGS+=-export-symbols amr_dec.def 
-endif
+LIB=gm_$(NAME)$(DYN_LIB_SUFFIX)
 
 all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) $(CFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(LDFLAGS)
 
 
 clean: 

@@ -31,6 +31,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/ismacryp.h>
+ *	\brief Utility tools for ISMA and Common Encryption.
+ */
+	
+/*!
+ *	\addtogroup crypt_grp
+ *	\ingroup media_grp
+ *	\brief Utility tools for ISMA and Common Encryption.
+ *
+ *This section documents the encryption and decryption of ISOBMF files according to ISMA and CENC specifications.
+ *	@{
+ */
+
 #include <gpac/isomedia.h>
 
 /*loads key and salt from a LOCAL gpac-DRM file (cf MP4Box doc)*/
@@ -38,6 +52,23 @@ GF_Err gf_ismacryp_gpac_get_info(u32 stream_id, char *drm_file, char *key, char 
 
 /*loads key and salt for MPEG4IP protected files*/
 Bool gf_ismacryp_mpeg4ip_get_info(char *kms_uri, char *key, char *salt);
+
+
+enum
+{
+	/*ISMA E&A encryption*/
+	GF_CRYPT_ISMA_CRYPT_TYPE	= GF_4CC( 'i', 'A', 'E', 'C' ),
+	/*CENC CTR-128 encryption*/
+	GF_CRYPT_CENC_CRYPT_TYPE	= GF_4CC('c','e','n','c'),
+	/*CENC CBC-128 encryption*/
+	GF_CRYPT_CBC1_CRYPT_TYPE	= GF_4CC('c','b','c','1'),
+	/*Adobe CBC-128 encryption*/
+	GF_CRYPT_ADOBE_CRYPT_TYPE	= GF_4CC('a','d','k','m'),
+	/*CENC CTR-128 pattern encryption*/
+	GF_CRYPT_CENS_CRYPT_TYPE	= GF_4CC('c','e','n','s'),
+	/*CENC CBC-128 pattern encryption*/
+	GF_CRYPT_CBCS_CRYPT_TYPE	= GF_4CC('c','b','c','s'),
+};
 
 enum
 {
@@ -55,12 +86,14 @@ enum
 	GF_CRYPT_SELENC_RANGE = 5,
 	/*encryption of all samples but the preview range*/
 	GF_CRYPT_SELENC_PREVIEW = 6,
+	/*encryption of no samples*/
+	GF_CRYPT_SELENC_CLEAR = 7,
 };
 
 typedef struct
 {
-	/*0: ISMACryp - 1: OMA DRM - 2: CENC CTR - 3: CENC CBC - 4: ADOBE*/
-	u32 enc_type;
+	/*0: ISMACryp - 1: OMA DRM*/
+	u32 enc_type;//for now only used for ISMACrypt
 	u32 trackID;
 	unsigned char key[16];
 	unsigned char salt[16];
@@ -98,6 +131,12 @@ typedef struct
 	unsigned char first_IV[16];
 	u32 defaultKeyIdx;
 	u32 keyRoll;
+	u8 crypt_byte_block, skip_byte_block;
+	u8 constant_IV_size;
+	unsigned char constant_IV[16];
+	//true if using AES-CTR mode, false if using AES-CBC mode
+	Bool ctr_mode;
+	u32 cenc_scheme_type;
 
 	char metadata[5000];
 	u32 metadata_len;
@@ -124,8 +163,6 @@ GF_Err gf_cbc_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*prog
 GF_Err gf_adobe_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 GF_Err gf_adobe_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
-GF_Err (*gf_encrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
-GF_Err (*gf_decrypt_track)(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*progress)(void *cbk, u64 done, u64 total), void *cbk);
 
 /*decrypt a file
 @drm_file: location of DRM data (cf MP4Box doc).
@@ -141,6 +178,7 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4file, const char *drm_file);
 
 #endif /*!defined(GPAC_DISABLE_MCRYPT) && !defined(GPAC_DISABLE_ISOM_WRITE)*/
 
+/*! @} */
 
 #ifdef __cplusplus
 }

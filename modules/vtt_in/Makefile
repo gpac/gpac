@@ -31,9 +31,9 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) $(LINKLIBS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) $(LINKLIBS) $(LDFLAGS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_vtt_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) -lgpac_static
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_vtt_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) $(LOCAL_LIB) -lgpac_static $(LDFLAGS)
 endif
 
 clean: 

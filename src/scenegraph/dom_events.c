@@ -141,8 +141,11 @@ GF_Err gf_node_dom_listener_add(GF_Node *node, GF_Node *listener)
 	if (listener->sgprivate->tag!=TAG_SVG_listener)
 		return GF_BAD_PARAM;
 
-	if (!node->sgprivate->interact)
+	if (!node->sgprivate->interact) {
 		GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+		if (!node->sgprivate->interact)
+			return GF_OUT_OF_MEM;
+	}
 
 	if (!node->sgprivate->interact->dom_evt) {
 		node->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, node);
@@ -597,6 +600,10 @@ GF_DOMHandler *gf_dom_listener_build_ex(GF_Node *node, u32 event_type, u32 event
 	GF_FieldInfo info;
 	GF_ChildNodeItem *last = NULL;
 
+	if (!node || !node->sgprivate || !node->sgprivate->scenegraph) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[DOM Events] Bad target node for listener\n"));
+		return NULL;
+	}
 	listener = (SVG_Element *) gf_node_new(node->sgprivate->scenegraph, TAG_SVG_listener);
 	/*don't register the listener, this will be done when adding to the node events list*/
 
@@ -676,6 +683,10 @@ static void gf_smil_handle_event(GF_Node *timed_elt, GF_FieldInfo *info, GF_DOM_
 
 		/*solve*/
 		GF_SAFEALLOC(resolved, SMIL_Time);
+		if (!resolved) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate SMIL timing resolved value\n"));
+			continue;
+		}
 		resolved->type = GF_SMIL_TIME_EVENT_RESOLVED;
 
 		if (proto->is_absolute_event) {
@@ -794,6 +805,7 @@ GF_DOMText *gf_dom_add_text_node(GF_Node *parent, char *text_data)
 {
 	GF_DOMText *text;
 	GF_SAFEALLOC(text, GF_DOMText);
+	if (!text) return NULL;
 
 	gf_node_setup((GF_Node *)text, TAG_DOMText);
 	text->sgprivate->scenegraph = parent->sgprivate->scenegraph;
@@ -807,6 +819,8 @@ GF_DOMText *gf_dom_new_text_node(GF_SceneGraph *sg)
 {
 	GF_DOMText *text;
 	GF_SAFEALLOC(text, GF_DOMText);
+	if (!text) return NULL;
+	
 	gf_node_setup((GF_Node *)text, TAG_DOMText);
 	text->sgprivate->scenegraph = sg;
 	return text;
@@ -846,6 +860,7 @@ GF_DOMUpdates *gf_dom_add_updates_node(GF_Node *parent)
 {
 	GF_DOMUpdates *text;
 	GF_SAFEALLOC(text, GF_DOMUpdates);
+	if (!text) return NULL;
 
 	gf_node_setup((GF_Node *)text, TAG_DOMUpdates);
 	text->sgprivate->scenegraph = parent->sgprivate->scenegraph;
@@ -859,7 +874,8 @@ GF_DOMUpdates *gf_dom_add_update_node(GF_Node *parent)
 {
 	GF_DOMUpdates *update;
 	GF_SAFEALLOC(update, GF_DOMUpdates);
-
+	if (!update) return NULL;
+	
 	gf_node_setup((GF_Node *)update, TAG_DOMUpdates);
 	update->sgprivate->scenegraph = parent->sgprivate->scenegraph;
 	update->updates = gf_list_new();
@@ -908,6 +924,7 @@ GF_DOMEventTarget *gf_dom_event_target_new(GF_DOMEventTargetType type, void *obj
 {
 	GF_DOMEventTarget *target;
 	GF_SAFEALLOC(target, GF_DOMEventTarget);
+	if (!target) return NULL;
 	target->ptr_type = type;
 	target->listeners = gf_list_new();
 	target->ptr = obj;
@@ -929,6 +946,7 @@ GF_DOMEventTarget *gf_dom_event_get_target_from_node(GF_Node *n)
 
 	if (!n->sgprivate->interact) {
 		GF_SAFEALLOC(n->sgprivate->interact, struct _node_interactive_ext);
+		if (!n->sgprivate->interact) return NULL;
 	}
 	if (!n->sgprivate->interact->dom_evt) {
 		n->sgprivate->interact->dom_evt = gf_dom_event_target_new(GF_DOM_EVENT_TARGET_NODE, n);

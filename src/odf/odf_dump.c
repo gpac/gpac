@@ -27,6 +27,7 @@
 #include <gpac/constants.h>
 /*for import flags*/
 #include <gpac/media_tools.h>
+#include <gpac/network.h>
 
 #ifndef GPAC_DISABLE_OD_DUMP
 
@@ -41,10 +42,8 @@
 	} \
  
 GF_EXPORT
-GF_Err gf_odf_dump_com(void *p, FILE *trace, u32 indent, Bool XMTDump)
+GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump)
 {
-	GF_ODCom *com = (GF_ODCom *)p;
-
 	switch (com->tag) {
 	case GF_ODF_OD_UPDATE_TAG:
 		return gf_odf_dump_od_update((GF_ODUpdate *)com, trace, indent, XMTDump);
@@ -99,10 +98,8 @@ GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool 
 
 
 GF_EXPORT
-GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump)
+GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDump)
 {
-	GF_Descriptor *desc = (GF_Descriptor *)ptr;
-
 	switch (desc->tag) {
 	case GF_ODF_IOD_TAG :
 		return gf_odf_dump_iod((GF_InitialObjectDescriptor *)desc, trace, indent, XMTDump);
@@ -475,7 +472,7 @@ GF_Err gf_odf_dump_iod(GF_InitialObjectDescriptor *iod, FILE *trace, u32 indent,
 
 	if (iod->IPMPToolList) {
 		StartElement(trace, "toolListDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "toolListDescr" , indent, XMTDump, GF_FALSE);
 	}
 
@@ -532,12 +529,12 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 	}
 	if (esd->decoderConfig) {
 		StartElement(trace, "decConfigDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->decoderConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->decoderConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "decConfigDescr" , indent, XMTDump, GF_FALSE);
 	}
 	if (esd->slConfig) {
 		StartElement(trace, "slConfigDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->slConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->slConfig, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "slConfigDescr" , indent, XMTDump, GF_FALSE);
 	} else {
 		StartElement(trace, "slConfigDescr" , indent, XMTDump, GF_FALSE);
@@ -548,7 +545,7 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 	}
 	if (esd->ipiPtr) {
 		StartElement(trace, "ipiPtr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->ipiPtr, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->ipiPtr, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "ipiPtr" , indent, XMTDump, GF_FALSE);
 	}
 
@@ -557,18 +554,18 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 
 	if (esd->qos) {
 		StartElement(trace, "qosDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->qos, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->qos, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "qosDescr" , indent, XMTDump, GF_FALSE);
 	}
 	if (esd->langDesc) {
 		StartElement(trace, "langDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->langDesc, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->langDesc, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "langDescr" , indent, XMTDump, GF_FALSE);
 	}
 
 	if (esd->RegDescriptor) {
 		StartElement(trace, "regDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(esd->RegDescriptor, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)esd->RegDescriptor, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "regDescr" , indent, XMTDump, GF_FALSE);
 	}
 
@@ -587,10 +584,10 @@ GF_Err gf_odf_dump_esd(GF_ESD *esd, FILE *trace, u32 indent, Bool XMTDump)
 	if (mi) {
 		gf_list_insert(esd->extensionDescriptors, mi, i);
 		if (XMTDump) {
-			gf_odf_dump_desc(mi, trace, indent, GF_TRUE);
+			gf_odf_dump_desc((GF_Descriptor*)mi, trace, indent, GF_TRUE);
 		} else {
 			StartElement(trace, "muxInfo", indent, GF_FALSE, GF_FALSE);
-			gf_odf_dump_desc(mi, trace, indent, GF_FALSE);
+			gf_odf_dump_desc((GF_Descriptor*)mi, trace, indent, GF_FALSE);
 			EndElement(trace, "muxInfo", indent, GF_FALSE, GF_FALSE);
 		}
 	}
@@ -821,7 +818,7 @@ GF_Err DumpRawTextConfig(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Boo
 {
 	GF_TextConfig *cfg = (GF_TextConfig *) gf_odf_desc_new(GF_ODF_TEXT_CFG_TAG);
 	GF_Err e = gf_odf_get_text_config(dsi, (u8) oti, cfg);
-	if (!e) gf_odf_dump_desc(cfg, trace, indent, XMTDump);
+	if (!e) gf_odf_dump_desc((GF_Descriptor*)cfg, trace, indent, XMTDump);
 	gf_odf_desc_del((GF_Descriptor *) cfg);
 	return e;
 }
@@ -955,7 +952,7 @@ GF_Err OD_DumpDSI(GF_DefaultDescriptor *dsi, FILE *trace, u32 indent, Bool XMTDu
 	default:
 		break;
 	}
-	return gf_odf_dump_desc(dsi, trace, indent, XMTDump);
+	return gf_odf_dump_desc((GF_Descriptor*)dsi, trace, indent, XMTDump);
 }
 
 GF_Err gf_odf_dump_dcd(GF_DecoderConfig *dcd, FILE *trace, u32 indent, Bool XMTDump)
@@ -980,7 +977,7 @@ GF_Err gf_odf_dump_dcd(GF_DecoderConfig *dcd, FILE *trace, u32 indent, Bool XMTD
 			}
 		} else {
 			StartElement(trace, "decSpecificInfo" , indent, XMTDump, GF_FALSE);
-			gf_odf_dump_desc(dcd->decoderSpecificInfo, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+			gf_odf_dump_desc((GF_Descriptor*)dcd->decoderSpecificInfo, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 			EndElement(trace, "decSpecificInfo" , indent, XMTDump, GF_FALSE);
 		}
 	}
@@ -1391,7 +1388,7 @@ GF_Err gf_odf_dump_isom_iod(GF_IsomInitialObjectDescriptor *iod, FILE *trace, u3
 
 	if (iod->IPMPToolList) {
 		StartElement(trace, "toolListDescr" , indent, XMTDump, GF_FALSE);
-		gf_odf_dump_desc(iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
+		gf_odf_dump_desc((GF_Descriptor*)iod->IPMPToolList, trace, indent + (XMTDump ? 1 : 0), XMTDump);
 		EndElement(trace, "toolListDescr" , indent, XMTDump, GF_FALSE);
 	}
 
@@ -1698,10 +1695,19 @@ GF_Err gf_odf_dump_mediatime(GF_MediaTime *mt, FILE *trace, u32 indent, Bool XMT
 
 GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump)
 {
+	char *full_path = NULL;
+
+	full_path = gf_url_get_absolute_path( mi->file_name, mi->src_url );
+
 	if (!XMTDump) {
 		StartDescDump(trace, "MuxInfo", indent, GF_FALSE);
 		indent++;
-		if (mi->file_name) DumpString(trace, "fileName", mi->file_name, indent, GF_FALSE);
+		if (full_path) {
+			DumpString(trace, "fileName", full_path, indent, GF_FALSE);
+			gf_free(full_path);
+		} else if (mi->file_name) {
+			DumpString(trace, "fileName", mi->file_name, indent, GF_FALSE);
+		}
 		if (mi->streamFormat) DumpString(trace, "streamFormat", mi->streamFormat, indent, GF_FALSE);
 		if (mi->GroupID) DumpInt(trace, "GroupID", mi->GroupID, indent, GF_FALSE);
 		if (mi->startTime) DumpInt(trace, "startTime", mi->startTime, indent, GF_FALSE);
@@ -1723,7 +1729,12 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 
 	StartDescDump(trace, "StreamSource", indent, GF_TRUE);
 	indent++;
-	if (mi->file_name) DumpString(trace, "url", mi->file_name, indent, GF_TRUE);
+	if (full_path) {
+		DumpString(trace, "url", full_path, indent, GF_TRUE);
+		gf_free(full_path);
+	} else if (mi->file_name) {
+		DumpString(trace, "url", mi->file_name, indent, GF_TRUE);
+	}
 	EndAttributes(trace, indent, GF_TRUE);
 
 	StartDescDump(trace, "MP4MuxHints", indent, GF_TRUE);

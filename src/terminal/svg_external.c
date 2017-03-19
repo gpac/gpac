@@ -99,6 +99,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 	mfurl->count = 1;
 	GF_SAFEALLOC(mfurl->vals, SFURL)
 	sfurl = mfurl->vals;
+	if (!sfurl) return GF_BAD_PARAM;
 	sfurl->OD_ID = stream_id;
 	if (stream_id) return GF_OK;
 

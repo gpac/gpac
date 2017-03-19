@@ -32,13 +32,13 @@ extern "C" {
 
 /*!
  *	\file <gpac/base_coding.h>
- *	\brief Base coding functions.
+ *	\brief Base 16 and 64 coding.
  */
 
 /*!
- *	\addtogroup bascod_grp base coding
+ *	\addtogroup bascod_grp Base coding
  *	\ingroup utils_grp
- *	\brief Base Coding functions
+ *	\brief Base 16 and 64 coding
  *
  *	This section documents the base encoding and decoding functions of the GPAC framework.
  *	@{
@@ -59,7 +59,7 @@ extern "C" {
  *\return size of the encoded Base64 buffer
  *\note the encoded data buffer is not NULL-terminated.
  */
-u32 gf_base64_encode(char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
+u32 gf_base64_encode(const char *in_buffer, u32 in_buffer_size, char *out_buffer, u32 out_buffer_size);
 /*!
  *\brief base64 decoder
  *

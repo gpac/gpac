@@ -76,7 +76,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 #ifdef DC_AUDIO_RESAMPLER
 	audio_output_file->aresampler = NULL;
 #endif
-	if (audio_data_conf->custom) {
+	if (strcmp(audio_data_conf->custom, "")) {
 		build_dict(audio_output_file->codec_ctx->priv_data, audio_data_conf->custom);
 	}
 	audio_output_file->astream_idx = 0;
@@ -241,8 +241,8 @@ int dc_audio_encoder_encode(AudioOutputFile *audio_output_file, AudioInputData *
 
 	while (av_fifo_size(audio_output_file->fifo) >= audio_output_file->frame_bytes) {
 #ifdef DC_AUDIO_RESAMPLER
-		uint8_t **data; //mirror AVFrame::data
-		int num_planes_out;
+		uint8_t **data = NULL; //mirror AVFrame::data
+		int num_planes_out = 0;
 #endif
 		Bool resample;
 

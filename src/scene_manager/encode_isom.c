@@ -76,7 +76,7 @@ static void gf_sm_finalize_mux(GF_ISOFile *mp4, GF_ESD *src, u32 offset_ts)
 	}
 	/*set track interleaving ID*/
 	if (mux) {
-		if (mux->GroupID) gf_isom_set_track_group(mp4, track, mux->GroupID);
+		if (mux->GroupID) gf_isom_set_track_interleaving_group(mp4, track, mux->GroupID);
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 		if (mux->import_flags & GF_IMPORT_USE_COMPACT_SIZE)
 			gf_isom_use_compact_size(mp4, track, 1);
@@ -592,7 +592,7 @@ static GF_Err gf_sm_encode_scene(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_SMEnc
 		}
 #endif
 
-		if (!au && !esd->URLString) {
+		if (!au && esd && !esd->URLString) {
 			/*if not in IOD, the stream will be imported when encoding the OD stream*/
 			if (!is_in_iod) continue;
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
@@ -840,11 +840,13 @@ force_scene_rap:
 #ifndef GPAC_DISABLE_BIFS_ENC
 					if (bifs_enc)
 						e = gf_bifs_encoder_get_rap(bifs_enc, &car_samp->data, &car_samp->dataLength);
+						if (e) goto exit;
 #endif
 
 #ifndef GPAC_DISABLE_LASER
 					if (lsr_enc)
 						e = gf_laser_encoder_get_rap(lsr_enc, &car_samp->data, &car_samp->dataLength);
+						if (e) goto exit;
 #endif
 					car_samp->IsRAP = RAP_REDUNDANT;
 					while (1) {
@@ -856,8 +858,12 @@ force_scene_rap:
 						if (last_rap + rap_delay >= r_dts) break;
 					}
 					gf_isom_sample_del(&car_samp);
+					if (e) goto exit;
 				}
-				if (!e && samp->dataLength) e = gf_isom_add_sample(mp4, track, di, samp);
+				if (samp->dataLength) {
+					e = gf_isom_add_sample(mp4, track, di, samp);
+					if (e) goto exit;
+				}
 				/*accumulate commmands*/
 				e = gf_sg_command_apply_list(ctx->scene_graph, au->commands, 0);
 			} else {
@@ -978,7 +984,6 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 
 	rap_inband = rap_shadow = 0;
-	rap_delay = 0;
 	if (opts && opts->rap_freq) {
 		if (opts->flags & GF_SM_ENCODE_RAP_INBAND) {
 			rap_inband = 1;
@@ -1040,7 +1045,6 @@ static GF_Err gf_sm_encode_od(GF_SceneManager *ctx, GF_ISOFile *mp4, char *media
 
 		if (rap_inband || rap_shadow) {
 			rap_codec = gf_odf_codec_new();
-			rap_delay = opts->rap_freq * esd->slConfig->timestampResolution / 1000;
 		}
 
 

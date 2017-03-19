@@ -428,7 +428,15 @@ void *NewTTReader()
 	TTIn *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC TimedText Reader", "gpac distribution")
+
+	GF_SAFEALLOC(priv, TTIn);
+	if (!priv) {
+		gf_free(plug);
+		return NULL;
+	}
+	plug->priv = priv;
 
 	plug->RegisterMimeTypes = TTIN_RegisterMimeTypes;
 	plug->CanHandleURL = TTIn_CanHandleURL;
@@ -441,9 +449,6 @@ void *NewTTReader()
 	plug->ChannelGetSLP = TTIn_ChannelGetSLP;
 	plug->ChannelReleaseSLP = TTIn_ChannelReleaseSLP;
 	plug->ServiceCommand = TTIn_ServiceCommand;
-
-	GF_SAFEALLOC(priv, TTIn);
-	plug->priv = priv;
 	return plug;
 }
 

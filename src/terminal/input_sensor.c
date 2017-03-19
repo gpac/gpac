@@ -491,6 +491,10 @@ void InitInputSensor(GF_Scene *scene, GF_Node *node)
 {
 	ISStack *stack;
 	GF_SAFEALLOC(stack, ISStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate input sensor stack\n"));
+		return;
+	}
 	stack->is = (M_InputSensor *) node;
 	gf_node_set_private(node, stack);
 	gf_node_set_callback_function(node, TraverseInputSensor);
@@ -959,6 +963,10 @@ void InitStringSensor(GF_Scene *scene, GF_Node *node)
 {
 	StringSensorStack*st;
 	GF_SAFEALLOC(st, StringSensorStack)
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate string sensor stack\n"));
+		return;
+	}
 	st->term = scene->root_od->term;
 	gf_node_set_private(node, st);
 	gf_node_set_callback_function(node, DestroyStringSensor);

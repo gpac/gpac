@@ -55,7 +55,7 @@ typedef struct __mpd_module
 	MpdInBuffer buffer_mode;
 	u32 nb_playing;
 
-	Bool buffer_adaptation;
+	GF_DASHAdaptationAlgorithm adaptation_algorithm;
 
 	/*max width & height in all active representations*/
 	u32 width, height;
@@ -375,7 +375,7 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				break;
 
 			if (group_done) {
-				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash)) {
+				if (!gf_dash_get_period_switch_status(mpdin->dash) && !gf_dash_in_last_period(mpdin->dash, GF_TRUE)) {
 					GF_NetworkCommand com;
 					param->url_query.in_end_of_period = 1;
 					memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -441,15 +441,19 @@ static GF_Err MPD_ClientQuery(GF_InputService *ifce, GF_NetworkCommand *param)
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waiting for download to end took a long time : %u ms\n", timer2));
 			}
 			if (param->url_query.end_range) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s bytes "LLD"-"LLD"\n", src_url, param->url_query.start_range, param->url_query.end_range));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s bytes "LLD"-"LLD"\n", src_url, param->url_query.start_range, param->url_query.end_range));
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s\n", src_url));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Next Segment is %s\n", src_url));
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Waited %d ms - Elements in cache: %u/%u\n\tCache file name %s\n\tsegment start time %g sec\n", timer2, gf_dash_group_get_num_segments_ready(mpdin->dash, group_idx, &group_done), gf_dash_group_get_max_segments_in_cache(mpdin->dash, group_idx), param->url_query.next_url, gf_dash_group_current_segment_start_time(mpdin->dash, group_idx)));
 		}
 #endif
 	}
 
+	if (param->command_type == GF_NET_SERVICE_QUERY_UTC_DELAY) {
+		param->utc_delay.delay = gf_dash_get_utc_drift_estimate(mpdin->dash);
+		return GF_OK;
+	}
 
 	return GF_OK;
 }
@@ -470,6 +474,8 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 			if (segment_ifce) {
 				GF_MPDGroup *group;
 				GF_SAFEALLOC(group, GF_MPDGroup);
+				if (!group) return GF_OUT_OF_MEM;
+				
 				group->segment_ifce = segment_ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
@@ -488,6 +494,7 @@ static GF_Err MPD_LoadMediaService(GF_MPD_In *mpdin, u32 group_index, const char
 			if (ifce->CanHandleURL && ifce->CanHandleURL(ifce, init_segment_name)) {
 				GF_MPDGroup *group;
 				GF_SAFEALLOC(group, GF_MPDGroup);
+				if (!group) return GF_OUT_OF_MEM;
 				group->segment_ifce = ifce;
 				group->segment_ifce->proxy_udta = mpdin;
 				group->segment_ifce->query_proxy = MPD_ClientQuery;
@@ -683,7 +690,13 @@ u32 mpdin_dash_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 {
 	u32 bps=0;
 //	GF_DownloadSession *sess = (GF_DownloadSession *)session;
-	gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
+	if (session) {
+		gf_dm_sess_get_stats((GF_DownloadSession *)session, NULL, NULL, NULL, NULL, &bps, NULL);
+	} else {
+		GF_MPD_In *mpdin = (GF_MPD_In *)dashio->udta;
+		bps = gf_dm_get_data_rate(mpdin->service->term->downloader);
+		bps/=8;
+	}
 	return bps;
 }
 u32 mpdin_dash_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
@@ -717,7 +730,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	}
 
 	if (dash_evt==GF_DASH_EVENT_SELECT_GROUPS) {
-		const char *opt;
 		//configure buffer in dynamic mode without low latency: we indicate how much the player will buffer
 		if (gf_dash_is_dynamic_mpd(mpdin->dash) && !mpdin->use_low_latency) {
 			u32 buffer_ms = 0;
@@ -736,12 +748,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 			}
 		}
 		//let the player decide which group to play: we declare everything
-
-		//however select the default languague
-		opt = gf_modules_get_option((GF_BaseInterface *)mpdin->plug, "Systems", "LanguageName");
-		if (opt)
-			gf_dash_groups_set_language(mpdin->dash, opt);
-
 		return GF_OK;
 	}
 
@@ -773,7 +779,7 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 				continue;
 			}
 
-			if (gf_dash_group_has_dependent_group(mpdin->dash, i)) {
+			if (gf_dash_group_has_dependent_group(mpdin->dash, i) >=0 ) {
 				gf_dash_group_select(mpdin->dash, i, GF_TRUE);
 				continue;
 			}
@@ -853,7 +859,6 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	if (dash_evt==GF_DASH_EVENT_BUFFERING) {
 		u32 tot, done;
 		gf_dash_get_buffer_info(mpdin->dash, &tot, &done);
-		fprintf(stderr, "DASH: Buffering %g%% out of %d ms\n", (100.0*done)/tot, tot);
 		return GF_OK;
 	}
 	if (dash_evt==GF_DASH_EVENT_SEGMENT_AVAILABLE) {
@@ -866,6 +871,10 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 	if (dash_evt==GF_DASH_EVENT_QUALITY_SWITCH) {
 		if (group_idx>=0) {
 			GF_MPDGroup *group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+			if (!group) {
+				group_idx = gf_dash_group_has_dependent_group(mpdin->dash, group_idx);
+				group = gf_dash_get_group_udta(mpdin->dash, group_idx);
+			}
 			if (group) {
 				GF_NetworkCommand com;
 				memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -895,14 +904,12 @@ GF_Err mpdin_dash_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.command_type = GF_NET_SERVICE_CODEC_STAT_QUERY;
 		gf_service_command(mpdin->service, &com, GF_OK);
-		gf_dash_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
+		gf_dash_group_set_codec_stat(mpdin->dash, group_idx, com.codec_stat.avg_dec_time, com.codec_stat.max_dec_time, com.codec_stat.irap_avg_dec_time, com.codec_stat.irap_max_dec_time, com.codec_stat.codec_reset, com.codec_stat.decode_only_rap);
 
-		if (mpdin->buffer_adaptation) {
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.command_type = GF_NET_BUFFER_QUERY;
-			gf_service_command(mpdin->service, &com, GF_OK);
-			gf_dash_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
-		}
+		memset(&com, 0, sizeof(GF_NetworkCommand));
+		com.command_type = GF_NET_BUFFER_QUERY;
+		gf_service_command(mpdin->service, &com, GF_OK);
+		gf_dash_group_set_buffer_levels(mpdin->dash, group_idx, com.buffer.min, com.buffer.max, com.buffer.occupancy);
 	}
 
 	return GF_OK;
@@ -928,7 +935,6 @@ static GF_Err mpdin_dash_can_reverse_playback(GF_MPD_In *mpdin)
 
 	return e;
 }
-
 
 GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
@@ -989,11 +995,20 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		opt = "buffer";
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "NetworkAdaptation", opt);
 	}
-	if (!strcmp(opt, "disabled")) disable_switching = 2;
-	else if (!strcmp(opt, "bandwidth")) mpdin->buffer_adaptation = GF_FALSE;
-	else mpdin->buffer_adaptation = GF_TRUE;
+	if (!strcmp(opt, "disabled")) {
+		disable_switching = 2;
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_NONE;
+	}
+	else if (!strcmp(opt, "bandwidth")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_RATE;
+	}
+	else if (!strcmp(opt, "buffer")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
+	}
+	else if (!strcmp(opt, "test")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_TEST;
+	}
 
-	first_select_mode = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "StartRepresentation", "minBandwidth");
@@ -1007,7 +1022,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage", "yes");
-	mpdin->memory_storage = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
+	mpdin->memory_storage = (!opt || !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) {
@@ -1061,8 +1076,6 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "InitialTimeshift", "0");
 	if (opt) init_timeshift = atoi(opt);
 
-
-	tile_adapt_mode = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "TileAdaptation", "none");
@@ -1096,6 +1109,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	serv->fn_data_packet = mpdin_data_packet;
 
 	mpdin->dash = gf_dash_new(&mpdin->dash_io, max_cache_duration, auto_switch_count, keep_files, disable_switching, first_select_mode, (mpdin->buffer_mode == MPDIN_BUFFER_SEGMENTS) ? 1 : 0, init_timeshift);
+	gf_dash_set_algo(mpdin->dash, mpdin->adaptation_algorithm);
 
 	if (!mpdin->dash) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD_IN] Error - cannot create DASH Client for %s\n", url));
@@ -1139,6 +1153,9 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "SwitchProbeCount", "1");
 	}
 
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AgressiveSwitching");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AgressiveSwitching", "no");
+	gf_dash_set_agressive_adaptation(mpdin->dash,  (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "DebugAdaptationSet", "-1");
@@ -1152,6 +1169,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_FALSE);
 	else
 		gf_dash_disable_speed_adaptation(mpdin->dash, GF_TRUE);
+
 
 	/*dash thread starts at the end of gf_dash_open */
 	e = gf_dash_open(mpdin->dash, url);
@@ -1259,16 +1277,46 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_SWITCH:
-		if (com->switch_quality.set_auto) {
+		if (com->switch_quality.set_tile_mode_plus_one) {
+			GF_BaseInterface *pl = (GF_BaseInterface *)plug;
+			GF_DASHTileAdaptationMode tile_mode = com->switch_quality.set_tile_mode_plus_one - 1;
+			gf_dash_set_tile_adaptation_mode(mpdin->dash, tile_mode, 100);
+			
+			switch (tile_mode) {
+			case GF_DASH_ADAPT_TILE_ROWS: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "rows"); break;
+			case GF_DASH_ADAPT_TILE_ROWS_REVERSE: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "reverseRows"); break;
+			case GF_DASH_ADAPT_TILE_ROWS_MIDDLE: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "middleRows"); break;
+			case GF_DASH_ADAPT_TILE_COLUMNS: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "columns"); break;
+			case GF_DASH_ADAPT_TILE_COLUMNS_REVERSE: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "reverseColumns"); break;
+			case GF_DASH_ADAPT_TILE_COLUMNS_MIDDLE: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "middleColumns"); break;
+			case GF_DASH_ADAPT_TILE_CENTER: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "center"); break;
+			case GF_DASH_ADAPT_TILE_EDGES: gf_modules_set_option(pl,  "DASH", "TileAdaptation", "edges"); break;
+			case GF_DASH_ADAPT_TILE_NONE:
+			default:
+				gf_modules_set_option(pl,  "DASH", "TileAdaptation", "none");
+				break;
+			}
+		} else if (com->switch_quality.set_auto) {
 			gf_dash_set_automatic_switching(mpdin->dash, 1);
 		} else if (com->base.on_channel) {
-			segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
-			if (!segment_ifce) return GF_NOT_SUPPORTED;
-			idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
-			if (idx < 0) return GF_BAD_PARAM;
+				segment_ifce = MPD_GetInputServiceForChannel(mpdin, com->base.on_channel);
+				if (!segment_ifce) return GF_NOT_SUPPORTED;
+				idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+				if (idx < 0) return GF_BAD_PARAM;
+			
+				gf_dash_group_set_quality_degradation_hint(mpdin->dash, idx, com->switch_quality.quality_degradation);
+				if (! com->switch_quality.ID) return GF_OK;
+			
+				if (com->switch_quality.dependent_group_index) {
+					if (com->switch_quality.dependent_group_index > gf_dash_group_get_num_groups_depending_on(mpdin->dash, idx))
+						return GF_BAD_PARAM;
+			
+					idx = gf_dash_get_dependent_group_index(mpdin->dash, idx, com->switch_quality.dependent_group_index-1);
+					if (idx==-1) return GF_BAD_PARAM;
+				}
 
-			gf_dash_set_automatic_switching(mpdin->dash, 0);
-			gf_dash_group_select_quality(mpdin->dash, idx, com->switch_quality.ID);
+				gf_dash_set_automatic_switching(mpdin->dash, 0);
+				gf_dash_group_select_quality(mpdin->dash, idx, com->switch_quality.ID);
 		} else {
 			gf_dash_switch_quality(mpdin->dash, com->switch_quality.up, mpdin->immediate_switch);
 		}
@@ -1302,6 +1350,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		Bool res;
 		idx = MPD_GetGroupIndexForChannel(mpdin, com->base.on_channel);
 		if (idx < 0) return GF_BAD_PARAM;
+		if (com->srd.dependent_group_index) {
+			if (com->srd.dependent_group_index > gf_dash_group_get_num_groups_depending_on(mpdin->dash, idx))
+				return GF_BAD_PARAM;
+			
+			idx = gf_dash_get_dependent_group_index(mpdin->dash, idx, com->srd.dependent_group_index-1);
+		}		
 		res = gf_dash_group_get_srd_info(mpdin->dash, idx, NULL, &com->srd.x, &com->srd.y, &com->srd.w, &com->srd.h, &com->srd.width, &com->srd.height);
 		return res ? GF_OK : GF_NOT_SUPPORTED;
 	}
@@ -1312,25 +1366,37 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (idx < 0) return GF_BAD_PARAM;
 		com->net_stats.bw_down = 8 * gf_dash_group_get_download_rate(mpdin->dash, idx);
 	}
-	return GF_OK;
+		return GF_OK;
 
 	case GF_NET_SERVICE_QUALITY_QUERY:
 	{
 		GF_DASHQualityInfo qinfo;
 		GF_Err e;
-		u32 count;
+		u32 count, g_idx;
 		idx = MPD_GetGroupIndexForChannel(mpdin, com->quality_query.on_channel);
 		if (idx < 0) return GF_BAD_PARAM;
 		count = gf_dash_group_get_num_qualities(mpdin->dash, idx);
-		if (!com->quality_query.index) {
+		if (!com->quality_query.index && !com->quality_query.dependent_group_index) {
 			com->quality_query.index = count;
+			com->quality_query.dependent_group_index = gf_dash_group_get_num_groups_depending_on(mpdin->dash, idx);
 			return GF_OK;
 		}
-		if (com->quality_query.index>count) return GF_BAD_PARAM;
+		if (com->quality_query.dependent_group_index) {
+			if (com->quality_query.dependent_group_index > gf_dash_group_get_num_groups_depending_on(mpdin->dash, idx))
+				return GF_BAD_PARAM;
+			
+			g_idx = gf_dash_get_dependent_group_index(mpdin->dash, idx, com->quality_query.dependent_group_index-1);
+			if (g_idx==(u32)-1) return GF_BAD_PARAM;
+			count = gf_dash_group_get_num_qualities(mpdin->dash, g_idx);
+			if (com->quality_query.index>count) return GF_BAD_PARAM;
+		} else {
+			if (com->quality_query.index>count) return GF_BAD_PARAM;
+			g_idx = idx;
+		}
 
-		e = gf_dash_group_get_quality_info(mpdin->dash, idx, com->quality_query.index-1, &qinfo);
+		e = gf_dash_group_get_quality_info(mpdin->dash, g_idx, com->quality_query.index-1, &qinfo);
 		if (e) return e;
-
+		
 		com->quality_query.bandwidth = qinfo.bandwidth;
 		com->quality_query.ID = qinfo.ID;
 		com->quality_query.mime = qinfo.mime;
@@ -1341,6 +1407,8 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		if (qinfo.fps_den) {
 			com->quality_query.fps = qinfo.fps_num;
 			com->quality_query.fps /= qinfo.fps_den;
+		} else {
+			com->quality_query.fps = qinfo.fps_num;
 		}
 		com->quality_query.par_num = qinfo.par_num;
 		com->quality_query.par_den = qinfo.par_den;
@@ -1349,10 +1417,14 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		com->quality_query.disabled = qinfo.disabled;
 		com->quality_query.is_selected = qinfo.is_selected;
 		com->quality_query.automatic = gf_dash_get_automatic_switching(mpdin->dash);
+		com->quality_query.tile_adaptation_mode = (u32) gf_dash_get_tile_adaptation_mode(mpdin->dash);
 		return GF_OK;
 	}
+	case GF_NET_CHAN_VISIBILITY_HINT:
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->base.on_channel);
+		if (idx < 0) return GF_BAD_PARAM;
 
-	break;
+		return gf_dash_group_set_visible_rect(mpdin->dash, idx, com->visibility_hint.min_x, com->visibility_hint.max_x, com->visibility_hint.min_y, com->visibility_hint.max_y);
 
 	case GF_NET_CHAN_BUFFER:
 		/*get it from MPD minBufferTime - if not in low latency mode, indicate the value given in MPD (not possible to fetch segments earlier) - to be more precise we should get the min segment duration for this group*/
@@ -1361,9 +1433,13 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			if (max>com->buffer.max)
 				com->buffer.max = max;
 
-			if (! gf_dash_is_dynamic_mpd(mpdin->dash)) {
+			if (!com->buffer.min && ! gf_dash_is_dynamic_mpd(mpdin->dash)) {
 				com->buffer.min = 1;
 			}
+		}
+		idx = MPD_GetGroupIndexForChannel(mpdin, com->play.on_channel);
+		if (idx >= 0) {
+			gf_dash_group_set_max_buffer_playout(mpdin->dash, idx, com->buffer.max);
 		}
 		return GF_OK;
 
@@ -1542,7 +1618,17 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MPD Loader", "gpac distribution")
+	
+	GF_SAFEALLOC(mpdin, GF_MPD_In);
+	if (!mpdin) {
+		gf_free(plug);
+		return NULL;
+	}
+	plug->priv = mpdin;
+	mpdin->plug = plug;
+	
 	plug->RegisterMimeTypes = MPD_RegisterMimeTypes;
 	plug->CanHandleURL = MPD_CanHandleURL;
 	plug->ConnectService = MPD_ConnectService;
@@ -1554,9 +1640,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = MPD_CanHandleURLInService;
 	plug->ChannelGetSLP = MPD_ChannelGetSLP;
 	plug->ChannelReleaseSLP = MPD_ChannelReleaseSLP;
-	GF_SAFEALLOC(mpdin, GF_MPD_In);
-	plug->priv = mpdin;
-	mpdin->plug = plug;
+
 	return (GF_BaseInterface *)plug;
 }
 

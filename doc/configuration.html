@@ -50,6 +50,7 @@ The config file is ordered by sections and keys.
 <b><a href="#DirectFB" style="text-decoration: underline;">DirectFB</a></b>
 <b><a href="#DektecVideo" style="text-decoration: underline;">DektecVideo</a></b>
 <b><a href="#M2TS" style="text-decoration: underline;">M2TS</a></b>
+<b><a href="#RAW" style="text-decoration: underline;">RAWVideo</a></b>
 
 </p>
 <br/><br/>
@@ -413,6 +414,10 @@ Specifies the camera layout. The default value is OffAxis in (auto-)stereo modes
 <p style="text-indent: 5%">
 Specifies the distance in cm between the camera and the zero-disparity plane. There is currently no automatic calibration of depth in GPAC.</p>
 
+<b>Output8bit</b> [value: <i>"yes" "no"</i>]
+<p style="text-indent: 5%">
+Specifies whether 10 bit textures should be converted to 8 bit before GPU upload or use as is. Default is no if screen supports 10 bpp, yes otherwise.</p>
+
 
 <br/><br/>
 
@@ -512,6 +517,11 @@ Specifies the length of the decoding buffer in milliseconds. The client will wai
 Specifies rebuffering length of the decoding buffer in milliseconds. Whenever the decoding buffer fullness is less than this value, the object clock is paused and 
 the stream rebuffered till BufferLength. Therefore a value of 0 means no rebuffering. A module may decide to use a different value based on protocol and network jitters.
 </p>
+<b>BufferMaxOccupancy</b> [value: <i>positive integer</i>]
+<p style="text-indent: 5%">
+Specifies maximum buffer occupancy for buffer regulation. Corresponds to the max amount of data to be prefetch. Any value less than BufferLength will be forced to BufferLength.
+</p>
+
 <b>LowLatencyBufferMax</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies the maximum buffer level for low latency mode, in ms. If media buffer max is above this value, full buffering will be done (clock resume at first frame displayed). Default value is 500 ms.</p>
@@ -582,6 +592,9 @@ Specifies an alternate user agent (default one is "GPAC $VERSION").</p>
 <b>HTTPHeadTimeout</b> [value: <i>positive integer</i>]
 <p style="text-indent: 5%">
 Specifies timeout in milliseconds before considering HEAD request failed. 0 means no HEAD request is issued, only GET.</p>
+<b>AllowBrokenCertificate</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+If set to yes, ignores invalid certificates and process anyway. Default is no.</p>
 
 <br/><br/>
 <a name="HTTPProxy"></a>
@@ -809,6 +822,10 @@ Enables adaptation based on playback speed. Default is no.
 Sets how many segments the client shall wait before switching up bandwidth. If 0, switch will happen as soon as the bandwidth is enough, but this is more prone to network variations. 
 Default value is 1.
 </p>
+<b>AgressiveSwitching</b> [value: <i>yes no</i>]
+<p style="text-indent: 5%">
+If yes, switching targets to the closest bandwidth fitting the available download rate. If no, switching targets the lowest bitrate representation that is above the currently played (eg does not try to switch to max bandwidth). Default value is no.
+</p>
 <b>TileAdaptation</b> [value: <i>none, rows, reverseRows, middleRows, columns, reverseColumns, middleColumns, center</i>]
 <p style="text-indent: 5%">
 Selects how bitrate is shared across tiles of a video:
@@ -961,6 +978,18 @@ Overrides the URL in TEMI location descriptor with the specified value.</p>
 <b>RecordTo</b> [value: <i>file path</i>]
 <p style="text-indent: 5%">
 Records the TS content to the specified file.</p>
+
+<a name="RAW"></a>
+<span style="text-decoration: underline;"><b>Section "RAWVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
+<p>
+The "RAWVideo" section of the config file holds configuration options for Raw video and audio output module.</a>
+</p>
+<b>RawOutput</b> [value: <i>"null" or any string</i>]
+<p style="text-indent: 5%">
+If set to <i>null</i> string, the raw output does nothing (no bliting calls, no backbuffer) - used for bench mode only.</p>
+<b>PixelFormat</b> [value: <i>555, 565, rgb, bgr, rgb32, bgr32, rgba, argb</i>]
+<p style="text-indent: 5%">
+Sets the output video format of the raw module, mostly used for testing. The default format is rgb.</p>
 
 </body>
 </html>

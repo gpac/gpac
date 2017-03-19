@@ -30,6 +30,24 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/mpeg4_odf.h>
+ *	\brief MPEG-4 Object Descriptor Framework.
+ */
+	
+/*! \defgroup mpeg4sys_grp MPEG-4 Systems
+ *	\brief MPEG-4 Systems.
+ */
+	
+/*!
+ *	\addtogroup odf_grp MPEG-4 OD
+ *	\ingroup mpeg4sys_grp
+ *	\brief MPEG-4 Object Descriptor Framework
+ *
+ *This section documents the MPEG-4 OD, OCI and IPMPX functions of the GPAC framework.
+ *	@{
+ */
+
 #include <gpac/list.h>
 #include <gpac/bitstream.h>
 #include <gpac/sync_layer.h>
@@ -90,19 +108,21 @@ enum
 
 	GF_ODF_USER_BEGIN_TAG	= 0xC0,
 
-	/*internal descriptor for mux input description*/
+	/*! internal descriptor for mux input description*/
 	GF_ODF_MUXINFO_TAG		= GF_ODF_USER_BEGIN_TAG,
-	/*internal descriptor for bifs config input description*/
+	/*! internal descriptor for bifs config input description*/
 	GF_ODF_BIFS_CFG_TAG		= GF_ODF_USER_BEGIN_TAG + 1,
-	/*internal descriptor for UI config input description*/
+	/*! internal descriptor for UI config input description*/
 	GF_ODF_UI_CFG_TAG		= GF_ODF_USER_BEGIN_TAG + 2,
-	/*internal descriptor for TextConfig description*/
+	/*! internal descriptor for TextConfig description*/
 	GF_ODF_TEXT_CFG_TAG		= GF_ODF_USER_BEGIN_TAG + 3,
+	/*! internal descriptor for Text/TX3G description*/
 	GF_ODF_TX3G_TAG			= GF_ODF_USER_BEGIN_TAG + 4,
+	/*! internal descriptor for BIFS_anim input description*/
 	GF_ODF_ELEM_MASK_TAG	= GF_ODF_USER_BEGIN_TAG + 5,
-	/*internal descriptor for LASeR config input description*/
+	/*! internal descriptor for LASeR config input description*/
 	GF_ODF_LASER_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 6,
-
+	/*! internal descriptor for subtitle stream description*/
 	GF_ODF_GEN_SUB_CFG_TAG	= GF_ODF_USER_BEGIN_TAG + 7,
 
 	GF_ODF_USER_END_TAG		= 0xFE,
@@ -126,13 +146,15 @@ enum
 #define BASE_DESCRIPTOR \
 		u8 tag;
 
+
+/*!	base descriptor used as base type in many function.*/
 typedef struct
 {
 	BASE_DESCRIPTOR
 } GF_Descriptor;
 
 
-/*	default descriptor.
+/*!	default descriptor.
 	NOTE: The decoderSpecificInfo is used as a default desc with tag 0x05 */
 typedef struct
 {
@@ -141,14 +163,14 @@ typedef struct
 	char *data;
 } GF_DefaultDescriptor;
 
-/*Object Descriptor*/
+/*! Object Descriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
 	GF_List *ipmp_tools;
 } GF_IPMP_ToolList;
 
-/*ObjectDescriptor*/
+/*! ObjectDescriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -166,7 +188,7 @@ typedef struct
 	void *service_ifce;
 } GF_ObjectDescriptor;
 
-/*GF_InitialObjectDescriptor - WARNING: even though the bitstream IOD is not
+/*! GF_InitialObjectDescriptor - WARNING: even though the bitstream IOD is not
 a bit extension of OD, internally it is a real overclass of OD
 we usually typecast IOD to OD when flags are not needed !!!*/
 typedef struct
@@ -196,7 +218,7 @@ typedef struct
 	GF_IPMP_ToolList *IPMPToolList;
 } GF_InitialObjectDescriptor;
 
-/*File Format Object Descriptor*/
+/*! File Format Object Descriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -209,7 +231,7 @@ typedef struct
 	GF_List *ES_ID_IncDescriptors;
 } GF_IsomObjectDescriptor;
 
-/*File Format Initial Object Descriptor - same remark as IOD*/
+/*! File Format Initial Object Descriptor - same remark as IOD*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -232,19 +254,19 @@ typedef struct
 } GF_IsomInitialObjectDescriptor;
 
 
-/*File Format ES Descriptor for IOD*/
+/*! File Format ES Descriptor for IOD*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 trackID;
 } GF_ES_ID_Inc;
 
-/*File Format ES Descriptor for OD*/
+/*! File Format ES Descriptor for OD*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u16 trackRef;
 } GF_ES_ID_Ref;
 
-/*Decoder config Descriptor*/
+/*! Decoder config Descriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -267,7 +289,7 @@ typedef struct
 } GF_DecoderConfig;
 
 
-/*Content Identification Descriptor*/
+/*! Content Identification Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 compatibility;
@@ -280,7 +302,7 @@ typedef struct {
 	char *contentIdentifier;
 } GF_CIDesc;
 
-/*Supplementary Content Identification Descriptor)*/
+/*! Supplementary Content Identification Descriptor)*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 languageCode;
@@ -288,13 +310,13 @@ typedef struct {
 	char *supplContentIdentifierValue;
 } GF_SCIDesc;
 
-/*IPI (Intelectual Property Identification) Descriptor Pointer*/
+/*! IPI (Intelectual Property Identification) Descriptor Pointer*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u16 IPI_ES_Id;
 } GF_IPIPtr;
 
-/*IPMP Descriptor Pointer*/
+/*! IPMP Descriptor Pointer*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 IPMP_DescriptorID;
@@ -302,7 +324,7 @@ typedef struct {
 	u16 IPMP_ES_ID;
 } GF_IPMPPtr;
 
-/*IPMPX control points*/
+/*! IPMPX control points*/
 enum
 {
 	/*no control point*/
@@ -318,18 +340,19 @@ enum
 	               /*the rest is reserved or forbidden(0xFF)*/
 };
 
-/*IPMPX base classe*/
+/*! IPMPX base classe*/
 #define GF_IPMPX_BASE	\
 	u8 tag;	\
 	u8 version;	\
 	u32 dataID;	\
  
+/*! IPMPX base object used for type casting in many function*/
 typedef struct
 {
 	GF_IPMPX_BASE
 } GF_GF_IPMPX_Base;
 
-/*IPMP descriptor*/
+/*! IPMP descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 IPMP_DescriptorID;
@@ -348,8 +371,10 @@ typedef struct {
 } GF_IPMP_Descriptor;
 
 
-/*IPMPTool*/
+/*! IPMPX max number of tools*/
 #define MAX_IPMP_ALT_TOOLS	20
+
+/*! IPMPX Tool*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -363,14 +388,14 @@ typedef struct
 } GF_IPMP_Tool;
 
 
-/* Elementary Mask of Bifs Config - parsing only */
+/*! Elementary Mask of Bifs Config - parsing only */
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 node_id;			/* referenced nodeID */
 	char *node_name;		/* referenced node name */
 } GF_ElementaryMask;
 
-/*BIFSConfig - parsing only, STORED IN ESD:DCD:DSI*/
+/*! BIFSConfig - parsing only, STORED IN ESD:DCD:DSI*/
 typedef struct __tag_bifs_config
 {
 	BASE_DESCRIPTOR
@@ -387,7 +412,7 @@ typedef struct __tag_bifs_config
 	Bool useNames;
 } GF_BIFSConfig;
 
-/*flags for style*/
+/*! flags for text style*/
 enum
 {
 	GF_TXT_STYLE_NORMAL = 0,
@@ -396,6 +421,7 @@ enum
 	GF_TXT_STYLE_UNDERLINED = 4
 };
 
+/*! text style record*/
 typedef struct
 {
 	u16 startCharOffset;
@@ -407,18 +433,20 @@ typedef struct
 	u32 text_color;
 } GF_StyleRecord;
 
+/*! font record for text*/
 typedef struct
 {
 	u16 fontID;
 	char *fontName;
 } GF_FontRecord;
 
+/*! positioning record for text*/
 typedef struct
 {
 	s16 top, left, bottom, right;
 } GF_BoxRecord;
 
-/*scroll flags*/
+/*scroll flags for text*/
 enum
 {
 	GF_TXT_SCROLL_CREDITS = 0,
@@ -427,7 +455,7 @@ enum
 	GF_TXT_SCROLL_RIGHT = 3
 };
 
-/* display flags*/
+/* display flags for text*/
 enum
 {
 	GF_TXT_SCROLL_IN = 0x00000020,
@@ -447,6 +475,7 @@ enum
 	GF_TXT_ALL_SAMPLES_FORCED = 0x80000000,
 };
 
+/*! Text sample description descriptor (eg mostly a copy of ISOBMF sample entry)*/
 typedef struct
 {
 	/*this is defined as a descriptor for parsing*/
@@ -467,6 +496,7 @@ typedef struct
 	u8 sample_index;
 } GF_TextSampleDescriptor;
 
+/*! Text stream descriptor, internal only*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -498,6 +528,7 @@ typedef struct
 	s16 vert_offset;
 } GF_TextConfig;
 
+/*! generic subtitle sample description descriptor*/
 typedef struct
 {
 	/*this is defined as a descriptor for parsing*/
@@ -507,6 +538,7 @@ typedef struct
 	u8 sample_index;
 } GF_GenericSubtitleSampleDescriptor;
 
+/*! generic subtitle descriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -528,7 +560,7 @@ typedef struct
 } GF_GenericSubtitleConfig;
 
 
-/*MuxInfo descriptor - parsing only, stored in ESD:extDescr*/
+/*! MuxInfo descriptor - parsing only, stored in ESD:extDescr*/
 typedef struct {
 	BASE_DESCRIPTOR
 	/*input location*/
@@ -564,6 +596,7 @@ typedef struct {
 	char *src_url;
 } GF_MuxInfo;
 
+/*! UI config descriptor for InputSensor streams*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -578,7 +611,7 @@ typedef struct
 	u32 ui_data_length;
 } GF_UIConfig;
 
-/*LASERConfig - parsing only, STORED IN ESD:DCD:DSI*/
+/*! LASERConfig - parsing only, STORED IN ESD:DCD:DSI*/
 typedef struct __tag_laser_config
 {
 	BASE_DESCRIPTOR
@@ -600,9 +633,7 @@ typedef struct __tag_laser_config
 } GF_LASERConfig;
 
 
-/***************************************
-			QoS Tags
-***************************************/
+/*! QoS Tags */
 enum
 {
 	QoSMaxDelayTag = 0x01,
@@ -614,9 +645,7 @@ enum
 	QoSMaxAURateTag = 0x43
 };
 
-/***************************************
-			QoS Qualifiers
-***************************************/
+/*! QoS Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 predefined;
@@ -628,53 +657,63 @@ typedef struct {
 	u8 tag;	\
 	u32 size;
 
+/*! QoS Default Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 } GF_QoS_Default;
 
+/*! QoS Max Delay Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 MaxDelay;
 } GF_QoS_MaxDelay;
 
+/*! QoS Prefered Max Delay Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 PrefMaxDelay;
 } GF_QoS_PrefMaxDelay;
 
+/*! QoS loss probability Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	Float LossProb;
 } GF_QoS_LossProb;
 
+/*! QoS Max Gap Loss Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 MaxGapLoss;
 } GF_QoS_MaxGapLoss;
 
+/*! QoS Max AU Size Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 MaxAUSize;
 } GF_QoS_MaxAUSize;
 
+/*! QoS Average AU Size Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 AvgAUSize;
 } GF_QoS_AvgAUSize;
 
+/*! QoS AU rate Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
 	u32 MaxAURate;
 } GF_QoS_MaxAURate;
 
+/*! QoS private  Qualifier*/
 typedef struct {
 	QOS_BASE_QUALIFIER
-	u32 DataLength;		/*max size class : 2^28 - 1*/
+	/*! max size class is  2^28 - 1*/
+	u32 DataLength;
 	char *Data;
 } GF_QoS_Private;
 
 
-/*Registration Descriptor*/
+/*! Registration Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 formatIdentifier;
@@ -682,14 +721,14 @@ typedef struct {
 	char *additionalIdentificationInfo;
 } GF_Registration;
 
-/*Language Descriptor*/
+/*! Language Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 langCode;
 	char *full_lang_code;
 } GF_Language;
 
-/*Elementary Stream Descriptor*/
+/*! Elementary Stream Descriptor*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -703,7 +742,7 @@ typedef struct
 	GF_IPIPtr *ipiPtr;
 	GF_QoS_Descriptor *qos;
 	GF_Registration *RegDescriptor;
-	/*0 or 1 lang desc*/
+	/*! 0 or 1 lang desc*/
 	GF_Language *langDesc;
 
 	GF_List *IPIDataSet;
@@ -712,14 +751,14 @@ typedef struct
 
 	//GPAC internals
 
-	/* 1 if this stream is referenced by type GF_ISOM_REF_BASE, 0 otherwise*/
-	Bool has_ref_base;
-
+	/*! 1 if this stream has scalable layers, 0 otherwise (GPAC internals)*/
+	Bool has_scalable_layers;
+	/*! service URL (GPAC internals)*/
 	const char *service_url;
 } GF_ESD;
 
 
-/*Auxiliary Video Data Descriptor*/
+/*! Auxiliary Video Data Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 aux_video_type;
@@ -733,7 +772,7 @@ typedef struct {
 	u32 wref;
 } GF_AuxVideoDescriptor;
 
-/*Content Classification Descriptor*/
+/*! Content Classification Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 classificationEntity;
@@ -743,12 +782,12 @@ typedef struct {
 } GF_CCDescriptor;
 
 
-/*this structure is used in GF_KeyWord*/
+/*! this structure is used in GF_KeyWord*/
 typedef struct {
 	char *keyWord;
 } GF_KeyWordItem;
 
-/*Key Word Descriptor*/
+/*! Key Word Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 languageCode;
@@ -756,7 +795,7 @@ typedef struct {
 	GF_List *keyWordsList;
 } GF_KeyWord;
 
-/*Rating Descriptor*/
+/*! Rating Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 ratingEntity;
@@ -766,7 +805,7 @@ typedef struct {
 } GF_Rating;
 
 
-/*Short Textual Descriptor*/
+/*! Short Textual Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 langCode;
@@ -776,12 +815,12 @@ typedef struct {
 } GF_ShortTextual;
 
 
-/*this structure is used in GF_ExpandedTextual*/
+/*! this structure is used in GF_ExpandedTextual*/
 typedef struct {
 	char *text;
 } GF_ETD_ItemText;
 
-/*Expanded Textual Descriptor*/
+/*! Expanded Textual Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u32 langCode;
@@ -791,14 +830,14 @@ typedef struct {
 	char *NonItemText;
 } GF_ExpandedTextual;
 
-/*this structure is used in GF_CC_Name*/
+/*! this structure is used in GF_CC_Name*/
 typedef struct {
 	u32 langCode;
 	u8 isUTF8;
 	char *contentCreatorName;
 } GF_ContentCreatorInfo;
 
-/*Content Creator Name GF_Descriptor
+/*! Content Creator Name GF_Descriptor
 NOTE: the desctructor will delete all the items in the list
 (GF_ContentCreatorInfo items) */
 typedef struct {
@@ -806,40 +845,40 @@ typedef struct {
 	GF_List *ContentCreators;
 } GF_CC_Name;
 
-/*Content Creation Date Descriptor*/
+/*! Content Creation Date Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	char contentCreationDate[5];
 } GF_CC_Date;
 
 
-/*this structure is used in GF_OCICreators*/
+/*! this structure is used in GF_OCICreators*/
 typedef struct {
 	u32 langCode;
 	u8 isUTF8;
 	char *OCICreatorName;
 } GF_OCICreator_item;
 
-/*OCI Creator Name Descriptor*/
+/*! OCI Creator Name Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	GF_List *OCICreators;
 } GF_OCICreators;
 
-/*OCI Creation Date Descriptor*/
+/*! OCI Creation Date Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	char OCICreationDate[5];
 } GF_OCI_Data;
 
 
-/*this structure is used in GF_SMPTECamera*/
+/*! this structure is used in GF_SMPTECamera*/
 typedef struct {
 	u8 paramID;
 	u32 param;
 } GF_SmpteParam;
 
-/*Smpte Camera Position Descriptor*/
+/*! Smpte Camera Position Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 cameraID;
@@ -847,7 +886,7 @@ typedef struct {
 } GF_SMPTECamera;
 
 
-/*Extension Profile Level Descriptor*/
+/*! Extension Profile Level Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 profileLevelIndicationIndex;
@@ -859,15 +898,13 @@ typedef struct {
 	u8 MPEGJProfileLevelIndication;
 } GF_PLExt;
 
-/*Profile Level Indication Index Descriptor*/
+/*! Profile Level Indication Index Descriptor*/
 typedef struct {
 	BASE_DESCRIPTOR
 	u8 profileLevelIndicationIndex;
 } GF_PL_IDX;
 
-
-/*AVC config descriptor - not a real MPEG-4 descriptor */
-/*used for sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
+/*! used for storing AVC sequenceParameterSetNALUnit and pictureParameterSetNALUnit*/
 typedef struct
 {
 	u16 size;
@@ -876,6 +913,8 @@ typedef struct
 	s32 id;
 } GF_AVCConfigSlot;
 
+/*! AVC config record - not a real MPEG-4 descriptor
+*/
 typedef struct
 {
 	u8 configurationVersion;
@@ -900,7 +939,7 @@ typedef struct
 
 
 
-/*used for SPS/PPS/VPS/SEI*/
+/*! used for storing HEVC SPS/PPS/VPS/SEI*/
 typedef struct
 {
 	u8 type;
@@ -908,7 +947,7 @@ typedef struct
 	GF_List *nalus;
 } GF_HEVCParamArray;
 
-
+/*! HEVC config record - not a real MPEG-4 descriptor*/
 typedef struct
 {
 	u8 configurationVersion;
@@ -937,20 +976,16 @@ typedef struct
 	u8 nal_unit_size;
 
 	GF_List *param_array;
-
-	//set by libisomedia at import/export time
-	Bool is_shvc;
-
-	//used in SHVC config
+	//used in LHVC config
 	Bool complete_representation;
-	Bool non_hevc_base_layer;
-	u8 num_layers;
-	u16 scalability_mask;
+	
+	//following are internal to libgpac and NEVER serialized
+	
+	//set by libisomedia at import/export/parsing time to differentiate between lhcC and hvcC time
+	Bool is_lhvc;
 } GF_HEVCConfig;
 
-/************************************************************
-				Media Control Extensions
-************************************************************/
+/*! Media Segment Descriptor used for Media Control Extensions*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -959,6 +994,7 @@ typedef struct
 	char *SegmentName;
 } GF_Segment;
 
+/*! Media Time Descriptor used for Media Control Extensions*/
 typedef struct
 {
 	BASE_DESCRIPTOR
@@ -966,16 +1002,7 @@ typedef struct
 } GF_MediaTime;
 
 
-/****************************************************************************
-
-			MPEG-4 SYSTEM - OBJECT DESCRIPTORS COMMANDS DECLARATION
-
-****************************************************************************/
-
-
-/***************************************
-			Commands Tags
-***************************************/
+/*! MPEG-4 SYSTEMS OD Commands Tags */
 enum
 {
 	GF_ODF_OD_UPDATE_TAG					= 0x01,
@@ -995,25 +1022,22 @@ enum
 	GF_ODF_COM_USER_END_TAG		= 0xFE
 };
 
-/***************************************
-			OD commands
-***************************************/
 #define BASE_OD_COMMAND \
 	u8 tag;
 
-/*the (abstract) base command. */
+/*! MPEG-4 SYSTEMS OD - (abstract) base command. */
 typedef struct {
 	BASE_OD_COMMAND
 } GF_ODCom;
 
-/*the default bcommand*/
+/*! MPEG-4 SYSTEMS OD - default command*/
 typedef struct {
 	BASE_OD_COMMAND
 	u32 dataSize;
 	char *data;
 } GF_BaseODCom;
 
-/*Object Descriptor Update
+/*! MPEG-4 SYSTEMS OD - Object Descriptor Update
 NB: the list can contain OD or IOD, except internally in the File Format (only MP4_OD)*/
 typedef struct
 {
@@ -1021,7 +1045,7 @@ typedef struct
 	GF_List *objectDescriptors;
 } GF_ODUpdate;
 
-/*Object Descriptor Remove*/
+/*! MPEG-4 SYSTEMS OD - Object Descriptor Remove*/
 typedef struct
 {
 	BASE_OD_COMMAND
@@ -1029,7 +1053,7 @@ typedef struct
 	u16 *OD_ID;
 } GF_ODRemove;
 
-/*Elementary Stream Descriptor Update*/
+/*! MPEG-4 SYSTEMS OD - Elementary Stream Descriptor Update*/
 typedef struct
 {
 	BASE_OD_COMMAND
@@ -1037,7 +1061,7 @@ typedef struct
 	GF_List *ESDescriptors;
 } GF_ESDUpdate;
 
-/*Elementary Stream Descriptor Remove*/
+/*! MPEG-4 SYSTEMS OD - Elementary Stream Descriptor Remove*/
 typedef struct {
 	BASE_OD_COMMAND
 	u16 ODID;
@@ -1045,13 +1069,13 @@ typedef struct {
 	u16 *ES_ID;
 } GF_ESDRemove;
 
-/*IPMP Descriptor Update*/
+/*! MPEG-4 SYSTEMS OD - IPMP Descriptor Update*/
 typedef struct {
 	BASE_OD_COMMAND
 	GF_List *IPMPDescList;
 } GF_IPMPUpdate;
 
-/*IPMP Descriptor Remove*/
+/*! MPEG-4 SYSTEMS OD - IPMP Descriptor Remove*/
 typedef struct {
 	BASE_OD_COMMAND
 	u32 NbIPMPDs;
@@ -1064,11 +1088,9 @@ typedef struct {
 
 
 
-/********************************************************************
-	OD Exports
-********************************************************************/
+/*! MPEG-4 SYSTEMS OD - OD API */
 
-/*OD CODEC object - just a simple reader/writer*/
+/*! OD CODEC object - just a simple reader/writer*/
 typedef struct tagODCoDec
 {
 	GF_BitStream *bs;
@@ -1076,37 +1098,71 @@ typedef struct tagODCoDec
 } GF_ODCodec;
 
 
-/*construction / destruction*/
+/*! OD codec construction
+ \return new codec object*/
 GF_ODCodec *gf_odf_codec_new();
+/*! OD codec destruction
+ \param codec OD codec to destroy
+ */
 void gf_odf_codec_del(GF_ODCodec *codec);
-/* add a command to the codec command list. */
+/*! add a command to the codec command list. 
+ \param codec target codec
+ \param command command to add
+ \return error if any
+ */
 GF_Err gf_odf_codec_add_com(GF_ODCodec *codec, GF_ODCom *command);
-/*encode the current command list - once called the commands are removed or destroyed depending on @cleanup_type:
+/*! encode the current command list.
+ \param codec target codec
+ \param cleanup_type specifies what to do with the command after encoding. The following values are accepted:
 	0: commands are removed from the list but not destroyed
 	1: commands are removed from the list and destroyed
 	2: commands are kept in the list and not destroyed
-if delete_content is set*/
+ \return error if any
+*/
 GF_Err gf_odf_codec_encode(GF_ODCodec *codec, u32 cleanup_type);
-/*get the encoded AU. user is responsible of allocated space*/
+/*! get the encoded AU.
+ \param codec target codec
+ \param outAU output buffer allocated by the codec, user is responsible of freeing the allocated space
+ \param au_length size of the AU (allocated buffer)
+ \return error if any
+ */
 GF_Err gf_odf_codec_get_au(GF_ODCodec *codec, char **outAU, u32 *au_length);
-/* set the encoded AU to the codec*/
+/* !set the encoded AU to the codec
+ \param codec target codec
+ \param au target AU to decode
+ \param au_length size in bytes of the AU to decode
+ \return error if any
+ */
 GF_Err gf_odf_codec_set_au(GF_ODCodec *codec, const char *au, u32 au_length);
-/*decode the previously set-up AU*/
+/*! decode the previously set-up AU
+ \param codec target codec
+ \return error if any
+ */
 GF_Err gf_odf_codec_decode(GF_ODCodec *codec);
-/*get the first OD command in the list. Once called, the command is removed
-from the command list. Return NULL when commandList is empty*/
+/*! get the first OD command in the list. Once called, the command is removed
+from the command list. Return NULL when commandList is empty
+ \param codec target codec
+ \return deocded command or NULL
+ */
 GF_ODCom *gf_odf_codec_get_com(GF_ODCodec *codec);
 
-/*apply a command to the codec command list. Command is duplicated if needed
-This is used for state maintenance and RAP generation.*/
+/*! apply a command to the codec command list. Command is duplicated if needed
+This is used for state maintenance and RAP generation.
+ \param codec target codec
+ \param command the command to apply
+ \return error if any
+ */
 GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command);
 
-/************************************************************
-		GF_ODCom Functions
-************************************************************/
 
-/*Commands Creation / Destruction*/
+/*! MPEG-4 SYSTEMS OD Command Creation
+ \param tag type of command to create
+ \return the created command or NULL
+ */
 GF_ODCom *gf_odf_com_new(u8 tag);
+/*! MPEG-4 SYSTEMS OD Command Destruction
+ \param com the command to delete. Pointer is set back to NULL
+ */
 GF_Err gf_odf_com_del(GF_ODCom **com);
 
 
@@ -1114,92 +1170,220 @@ GF_Err gf_odf_com_del(GF_ODCom **com);
 		Descriptors Functions
 ************************************************************/
 
-/*Descriptors Creation / Destruction*/
+/*! Descriptors Creation
+ \param tag type of descriptor to create
+ \return created descriptor or NULL
+ */
 GF_Descriptor *gf_odf_desc_new(u8 tag);
+/*! Descriptors Destruction
+ \param desc the descriptor to destroy
+ */
 void gf_odf_desc_del(GF_Descriptor *desc);
 
-/*this is a helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and
-SLConfig descriptor with predefined*/
+/*! helper for building a preformatted GF_ESD with decoderConfig, decoderSpecificInfo with no data and
+SLConfig descriptor with predefined
+ \param sl_predefined type of predefined sl config
+ \return the ESD created
+*/
 GF_ESD *gf_odf_desc_esd_new(u32 sl_predefined);
 
-/*special function for authoring - convert DSI to BIFSConfig*/
+/*! special function for authoring - convert DSI to BIFSConfig
+ \param dsi BIFS decoder specific info
+ \param oti BIFS object type indication
+ \return decoded BIFS Config descriptor - It is the caller responsability of freeing it
+ */
 GF_BIFSConfig *gf_odf_get_bifs_config(GF_DefaultDescriptor *dsi, u8 oti);
-/*special function for authoring - convert DSI to LASERConfig*/
+/*! special function for authoring - convert DSI to LASERConfig
+ \param dsi LASER decoder specific info
+ \param cfg the LASER config object to be filled
+ \return error if any
+ */
 GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg);
-/*sepcial function for authoring - convert DSI to TextConfig*/
+/*! sepcial function for authoring - convert DSI to TextConfig
+ \param dsi TEXT decoder specific info
+ \param oti TEXT object type indication
+ \param cfg the text config object to be filled
+ \return error if any
+ */
 GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *cfg);
-/*special function for authoring - convert DSI to UIConfig*/
+/*! special function for authoring - convert DSI to UIConfig
+ \param dsi text decoder specific info
+ \param cfg the text config object to be filled
+ \return error if any
+ */
 GF_Err gf_odf_get_ui_config(GF_DefaultDescriptor *dsi, GF_UIConfig *cfg);
-/*converts UIConfig to dsi - does not destroy input descr but does create output one*/
+/*! converts UIConfig to dsi - does not destroy input descr but does create output one
+ \param cfg the UI config object
+ \param out_dsi the decoder specific info created. It is the caller responsability of freeing it
+ \return error if any
+ */
 GF_Err gf_odf_encode_ui_config(GF_UIConfig *cfg, GF_DefaultDescriptor **out_dsi);
 
-/*simple constructor/destructor*/
+/*! AVC config constructor
+ \return the created AVC config*/
 GF_AVCConfig *gf_odf_avc_cfg_new();
+/*! AVC config destructor
+ \param cfg the AVC config to destroy*/
 void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
-/*gets GF_AVCConfig from MPEG-4 DSI*/
+/*! gets GF_AVCConfig from MPEG-4 DSI
+ \param dsi encoded AVC decoder specific info
+ \param dsi_size encoded AVC decoder specific info size
+ \return the decoded AVC config
+ */
 GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size);
-/*writes GF_AVCConfig as MPEG-4 DSI*/
+/*! writes GF_AVCConfig as MPEG-4 DSI
+ \param cfg the AVC config to encode
+ \param outData encoded dsi buffer - it is the caller responsability to free this
+ \param outSize  encoded dsi buffer size
+ \return error if any
+ */
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize);
 
 
+/*! HEVC config constructor
+\return the created HEVC config*/
 GF_HEVCConfig *gf_odf_hevc_cfg_new();
+/*! HEVC config destructor
+ \param cfg the HEVC config to destroy*/
 void gf_odf_hevc_cfg_del(GF_HEVCConfig *cfg);
+/*! writes GF_HEVCConfig as MPEG-4 DSI in a bitstream object
+ \param cfg the HEVC config to encode
+ \param bs output bitstream object in which the config is written
+ \return error if any
+ */
 GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs);
+/*! writes GF_HEVCConfig as MPEG-4 DSI
+ \param cfg the HEVC config to encode
+ \param outData encoded dsi buffer - it is the caller responsability to free this
+ \param outSize  encoded dsi buffer size
+ \return error if any
+ */
 GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize);
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc);
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc);
+/*! gets GF_HEVCConfig from bitstream MPEG-4 DSI
+ \param bs bitstream containing the encoded HEVC decoder specific info
+ \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
+ \return the decoded HEVC config
+ */
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc);
+/*! gets GF_HEVCConfig from MPEG-4 DSI
+ \param dsi encoded HEVC decoder specific info
+ \param dsi_size encoded HEVC decoder specific info size
+ \param is_lhvc if GF_TRUE, indicates if the dsi is LHVC
+ \return the decoded HEVC config
+ */
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc);
 
-/*destroy the descriptors in a list but not the list*/
+/*! destroy the descriptors in a list but not the list
+ \param descList descriptor list to destroy
+ \return error if any
+ */
 GF_Err gf_odf_desc_list_del(GF_List *descList);
 
-/*use this function to decode a standalone descriptor
+/*! use this function to decode a standalone descriptor
 the raw descriptor MUST be formatted with tag and size field!!!
-a new desc is created and you must delete it when done*/
+a new desc is created and you must delete it when done
+ \param raw_desc encoded descriptor to decode
+ \param descSize size of descriptor to decode
+ \param outDesc output decoded descriptor - it is the caller responsability to free this
+ \return error if any
+*/
 GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc);
 
-/*use this function to encode a standalone descriptor
+/*! use this function to encode a standalone descriptor
 the desc will be formatted with tag and size field
-the output buffer is allocated and you must delete it when done*/
+the output buffer is allocated and you must delete it when done
+ \param desc descriptor to encode
+ \param outEncDesc output encoded descriptor - it is the caller responsability to free this
+ \param outSize size of encoded descriptor
+ \return error if any
+ */
 GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize);
 
-/*use this function to get the size of a standalone descriptor (including tag and size fields)
-return 0 if error*/
+/*! use this function to encode a standalone descriptor in a bitstream object
+the desc will be formatted with tag and size field
+ \param desc descriptor to encode
+ \param bs the bitstream object in write mode
+ \return error if any
+ */
+GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs);
+
+/*! use this function to get the size of a standalone descriptor (including tag and size fields)
+ \param desc descriptor to encode
+ \return 0 if error or encoded desc size otherwise*/
 u32 gf_odf_desc_size(GF_Descriptor *desc);
 
-/*this is usefull to duplicate on the fly a descriptor*/
+/*! duplicate descriptors
+ \param inDesc descriptor to copy
+ \param outDesc copied descriptor - it is the caller responsability to free this
+ \return error if any
+ */
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc);
 
-/*This functions handles internally what desc can be added to another desc
+/*! Adds a descriptor to a parent one. Handles internally what desc can be added to another desc
 and adds it. NO DUPLICATION of the descriptor, so
 once a desc is added to its parent, destroying the parent WILL DESTROY
-this descriptor*/
+this descriptor
+ \param parentDesc parent descriptor
+ \param newDesc descriptor to add to parent
+ \return error if any
+ */
 GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc);
 
-/*returns complete textual description of stream*/
+/*! Gets a textual description of a stream
+ \param esd target descriptor
+ \return textural description of the descriptor
+ */
 const char *gf_esd_get_textual_description(GF_ESD *esd);
 
+/*! Gets a textual description of an AFX stream type
+ \param afx_code target stream type descriptor
+ \return textural description of the AFX stream
+*/
 const char *gf_afx_get_type_description(u8 afx_code);
 
+/*! Gets the stream type name based on stream type
+ \param streamType stream type GF_STREAM_XXX as defined in constants.h
+ \return NULL if unknown, otherwise value
+ */
+const char *gf_odf_stream_type_name(u32 streamType);
+	
+/*! Gets the stream type based on stream type name
+ \param streamType name of the stream type
+ \return stream type GF_STREAM_XXX as defined in constants.h, 0 if unknown
+ */
+u32 gf_odf_stream_type_by_name(const char *streamType);
 
-/*Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
+/*! Since IPMP V2, we introduce a new set of functions to read / write a list of descriptors
 that have no containers (a bit like an OD command, but for descriptors)
-This is usefull for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
+This is useful for IPMPv2 DecoderSpecificInfo which contains a set of IPMP_Declarators
 As it could be used for other purposes we keep it generic
 you must create the list yourself, the functions just encode/decode from/to the list*/
 
-/*uncompress an encoded list of descriptors. You must pass an empty GF_List structure
-to know exactly what was in the buffer*/
+/*! uncompress an encoded list of descriptors. You must pass an empty GF_List structure
+to know exactly what was in the buffer
+ \param raw_list encoded list of descriptors
+ \param raw_size size of the encoded list of descriptors
+ \param descList list in which the decoded descriptors will be placed
+ \return error if any
+*/
 GF_Err gf_odf_desc_list_read(char *raw_list, u32 raw_size, GF_List *descList);
-/*compress all descriptors in the list into a single buffer. The buffer is allocated
-by the lib and must be destroyed by your app
-you must pass (outEncList != NULL  && *outEncList == NULL)*/
-GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize);
-/*returns size of encoded desc list*/
-GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
-/*retuns NULL if unknown, otherwise value*/
-const char *gf_odf_stream_type_name(u32 streamType);
-u32 gf_odf_stream_type_by_name(const char *streamType);
+/*! compress all descriptors in the list into a single buffer. The buffer is allocated
+by the lib and must be destroyed by your app
+you must pass (outEncList != NULL  && *outEncList == NULL)
+ \param descList list of descriptors to be encoded
+ \param outEncList buffer of encoded descriptors
+ \param outSize size of buffer of encoded descriptors
+ \return error if any
+ */
+GF_Err gf_odf_desc_list_write(GF_List *descList, char **outEncList, u32 *outSize);
+
+/*! returns size of encoded desc list
+ \param descList list of descriptors to be encoded
+ \param outSize size of buffer of encoded descriptors
+ \return error if any
+ */
+GF_Err gf_odf_desc_list_size(GF_List *descList, u32 *outSize);
 
 
 #ifndef GPAC_MINIMAL_ODF
@@ -1209,14 +1393,25 @@ u32 gf_odf_stream_type_by_name(const char *streamType);
 		QoS Qualifiers Functions
 ************************************************************/
 
-/*QoS Qualifiers Creation / Destruction*/
+/*! QoS Qualifiers constructor
+ \param tag tag of QoS descriptor to create
+ \return created QoS descriptor
+ */
 GF_QoS_Default *gf_odf_qos_new(u8 tag);
+/*! QoS Qualifiers destructor
+ \param qos descriptor to destroy. The pointer is set back to NULL upon destruction
+ \return error if any
+ */
 GF_Err gf_odf_qos_del(GF_QoS_Default **qos);
 
-/*READ/WRITE functions: QoS qualifiers are special descriptors but follow the same rules as descriptors.
+/*! READ/WRITE functions: QoS qualifiers are special descriptors but follow the same rules as descriptors.
 therefore, use gf_odf_desc_read and gf_odf_desc_write for QoS*/
 
-/*same function, but for QoS, as a Qualifier IS NOT a descriptor*/
+/*! Adds a QoS qualificator to a parent QoS descriptor
+ \param desc parent QoS descriptor
+ \param qualif  QoS qualificator
+ \return error if any
+ */
 GF_Err gf_odf_qos_add_qualif(GF_QoS_Descriptor *desc, GF_QoS_Default *qualif);
 
 
@@ -1276,14 +1471,51 @@ OCIEvent *gf_oci_codec_get_event(OCICodec *codec);
 
 #ifndef GPAC_DISABLE_OD_DUMP
 
-/*OD dump tools*/
+/*! Dumps an OD AU
+ \param data encoded OD AU
+ \param dataLength encoded OD AU size
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump
+ */
 GF_Err gf_odf_dump_au(char *data, u32 dataLength, FILE *trace, u32 indent, Bool XMTDump);
-GF_Err gf_odf_dump_com(void *p, FILE *trace, u32 indent, Bool XMTDump);
-GF_Err gf_odf_dump_desc(void *ptr, FILE *trace, u32 indent, Bool XMTDump);
+/*! Dumps an OD AU
+ \param com OD command to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
+GF_Err gf_odf_dump_com(GF_ODCom *com, FILE *trace, u32 indent, Bool XMTDump);
+/*! Dumps an OD Descriptor
+ \param desc descriptor to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
+GF_Err gf_odf_dump_desc(GF_Descriptor *desc, FILE *trace, u32 indent, Bool XMTDump);
+/*! Dumps an OD Descriptor
+ \param commandList descriptor list to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
 GF_Err gf_odf_dump_com_list(GF_List *commandList, FILE *trace, u32 indent, Bool XMTDump);
 
-/*OCI dump tools*/
+/*! Dumps an OCI event
+ \param ev OCI event to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
 GF_Err gf_oci_dump_event(OCIEvent *ev, FILE *trace, u32 indent, Bool XMTDump);
+/*! Dumps an OCI AU
+ \param version version of the OCI stream
+ \param au OCI AU to dump
+ \param au_length size of the OCI AU to dump
+ \param trace destination file for dumping
+ \param indent number of spaces to use as base index
+ \param XMTDump if GF_TRUE dumpos as XMT, otherwise as BT
+ */
 GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 indent, Bool XMTDump);
 
 #endif /*GPAC_DISABLE_OD_DUMP*/
@@ -1291,31 +1523,43 @@ GF_Err gf_oci_dump_au(u8 version, char *au, u32 au_length, FILE *trace, u32 inde
 
 #endif /*GPAC_MINIMAL_ODF*/
 
-/*OD parsing tools (XMT/BT)*/
-/*returns desc tag based on name*/
+/*! Gets descriptor tag by name
+ \param descName target descriptor name
+ \return descriptor tag or 0 if error
+ */
 u32 gf_odf_get_tag_by_name(char *descName);
 
-/*field type for OD/QoS/IPMPX/etc*/
-enum
+/*! field type for OD/QoS/IPMPX/etc*/
+typedef enum
 {
-	/*regular type*/
+	/*! regular type*/
 	GF_ODF_FT_DEFAULT = 0,
-	/*single descriptor type*/
+	/*! single descriptor type*/
 	GF_ODF_FT_OD = 1,
-	/*descriptor list type*/
+	/*! descriptor list type*/
 	GF_ODF_FT_OD_LIST = 2,
-	/*IPMP Data type*/
+	/*! IPMP Data type*/
 	GF_ODF_FT_IPMPX = 3,
-	/*IPMP Data list type*/
+	/*! IPMP Data list type*/
 	GF_ODF_FT_IPMPX_LIST = 4,
-	/*IPMP ByteArray type*/
+	/*! IPMP ByteArray type*/
 	GF_ODF_FT_IPMPX_BA = 5,
-	/*IPMP ByteArray list type*/
+	/*! IPMP ByteArray list type*/
 	GF_ODF_FT_IPMPX_BA_LIST = 6
-};
-u32 gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
+} GF_ODF_FieldType;
+/*! Gets ODF field type by name
+ \param desc target descriptor
+ \param fieldName  descriptor field name
+ \return the descriptor field type
+*/
+GF_ODF_FieldType gf_odf_get_field_type(GF_Descriptor *desc, char *fieldName);
 
-/*set non-descriptor field value - value string shall be presented without ' or " characters*/
+/*! Set non-descriptor field value - value string shall be presented without ' or " characters
+ \param desc target descriptor
+ \param fieldName descriptor field name
+ \param val field value to parse
+ \return error if any
+ */
 GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 
 #ifndef GPAC_MINIMAL_ODF
@@ -1326,16 +1570,17 @@ GF_Err gf_odf_set_field(GF_Descriptor *desc, char *fieldName, char *val);
 	IPMPX extensions - IPMP Data only (messages are not supported yet)
 */
 
+/*! IPMPX base buffer object*/
 typedef struct
 {
 	u32 length;
 	char *data;
 } GF_IPMPX_ByteArray;
 
-/*IPMPX authentication descriptors*/
 #define GF_IPMPX_AUTH_DESC	\
 	u8 tag;	\
  
+/*! IPMPX authentication descriptor*/
 typedef struct
 {
 	GF_IPMPX_AUTH_DESC
@@ -1348,6 +1593,7 @@ enum
 	GF_IPMPX_AUTH_KeyDescr_Tag = 0x02
 };
 
+/*! IPMPX authentication key descriptor*/
 typedef struct
 {
 	GF_IPMPX_AUTH_DESC
@@ -1355,6 +1601,7 @@ typedef struct
 	u32 keyBodyLength;
 } GF_IPMPX_AUTH_KeyDescriptor;
 
+/*! IPMPX authentication algorithm descriptor*/
 typedef struct
 {
 	GF_IPMPX_AUTH_DESC
@@ -1365,7 +1612,7 @@ typedef struct
 } GF_IPMPX_AUTH_AlgorithmDescriptor;
 
 
-/*IPMP data messages*/
+/*! IPMPX data message types*/
 enum
 {
 	GF_IPMPX_OPAQUE_DATA_TAG = 0x01,
@@ -1419,12 +1666,14 @@ typedef char GF_IPMPX_Date[5];
 	u8 tag;	\
 	u8 Version;	\
 	u8 dataID;	\
- 
+
+/*! Base IPMPX data*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 } GF_IPMPX_Data;
 
+/*! IPMPX Init Authentiactaion data*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1432,7 +1681,9 @@ typedef struct
 	u8 AuthType;
 } GF_IPMPX_InitAuthentication;
 
-/*NOT a real DATA, only used as data for parsing*/
+/*! IPMPX Trust Specification data
+NOT a real DATA, only used as data for parsing
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1442,7 +1693,9 @@ typedef struct
 	GF_IPMPX_ByteArray	*CCTrustMetadata;
 } GF_IPMPX_TrustSpecification;
 
-/*NOT a real DATA, only used as data for parsing*/
+/*! IPMPX Trusted Tool data
+ NOT a real DATA, only used as data for parsing
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1451,6 +1704,8 @@ typedef struct
 	GF_List *trustSpecifications;
 } GF_IPMPX_TrustedTool;
 
+/*! IPMPX Trust Security Metadata data
+*/
 typedef struct _ipmpx_TrustSecurityMetadata
 {
 	GF_IPMPX_DATA_BASE
@@ -1458,6 +1713,8 @@ typedef struct _ipmpx_TrustSecurityMetadata
 } GF_IPMPX_TrustSecurityMetadata;
 
 
+/*! IPMPX Mutual Authentication data
+*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1477,6 +1734,8 @@ typedef struct
 	GF_IPMPX_ByteArray *authCodes;
 } GF_IPMPX_MutualAuthentication;
 
+/*! IPMPX Secure Container data
+*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1488,11 +1747,15 @@ typedef struct
 	GF_IPMPX_ByteArray *MAC;
 } GF_IPMPX_SecureContainer;
 
+/*! IPMPX Tool Response container
+*/
 typedef struct
 {
 	GF_List *ipmp_tools;
 } GF_IPMPX_GetToolsResponse;
 
+/*! IPMPX Parametric Description Item data
+*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1503,6 +1766,8 @@ typedef struct
 	GF_IPMPX_ByteArray	*addedData;
 } GF_IPMPX_ParametricDescriptionItem;
 
+/*! IPMPX Parametric Description data
+ */
 typedef struct _tagIPMPXParamDesc
 {
 	GF_IPMPX_DATA_BASE
@@ -1513,12 +1778,16 @@ typedef struct _tagIPMPXParamDesc
 	GF_List *descriptions;
 } GF_IPMPX_ParametricDescription;
 
+/*! IPMPX Tool Capability Query data
+*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 	GF_IPMPX_ParametricDescription *description;
 } GF_IPMPX_ToolParamCapabilitiesQuery;
 
+/*! IPMPX Tool Capability Response data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1526,12 +1795,16 @@ typedef struct
 } GF_IPMPX_ToolParamCapabilitiesResponse;
 
 
+/*! IPMPX Connected Tool data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 	GF_IPMP_Descriptor *toolDescriptor;
 } GF_IPMPX_ConnectTool;
 
+/*! IPMPX Disconnected Tool data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1539,6 +1812,8 @@ typedef struct
 } GF_IPMPX_DisconnectTool;
 
 
+/*! IPMPX Tool Context ID query data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1547,6 +1822,8 @@ typedef struct
 } GF_IPMPX_GetToolContext;
 
 
+/*! IPMPX Get Tool response data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1555,32 +1832,38 @@ typedef struct
 	u32 IPMP_ToolContextID;
 } GF_IPMPX_GetToolContextResponse;
 
-/*GF_IPMPX_LISTEN_Types*/
-enum
+/*! GF_IPMPX_LISTEN_Types*/
+typedef enum
 {
 	GF_IPMPX_LISTEN_CONNECTED = 0x00,
 	GF_IPMPX_LISTEN_CONNECTIONFAILED = 0x01,
 	GF_IPMPX_LISTEN_DISCONNECTED = 0x02,
 	GF_IPMPX_LISTEN_DISCONNECTIONFAILED = 0x03,
 	GF_IPMPX_LISTEN_WATERMARKDETECTED = 0x04
-};
+} GF_IPMPX_ListenType;
 
+/*! IPMPX Add Tool Listener data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 	u8 scope;
 	/*events to listen to*/
 	u8 eventTypeCount;
-	u8 eventType[10];
+	GF_IPMPX_ListenType eventType[10];
 } GF_IPMPX_AddToolNotificationListener;
 
+/*! IPMPX Remove Tool Listener data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 	u8 eventTypeCount;
-	u8 eventType[10];
+	GF_IPMPX_ListenType eventType[10];
 } GF_IPMPX_RemoveToolNotificationListener;
 
+/*! IPMPX Tool Notify Event data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1590,12 +1873,16 @@ typedef struct
 	u32 IPMP_ToolContextID;
 } GF_IPMPX_NotifyToolEvent;
 
+/*! IPMPX Can Process data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
 	Bool canProcess;
 } GF_IPMPX_CanProcess;
 
+/*! IPMPX Opaque Data container data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1603,6 +1890,8 @@ typedef struct
 } GF_IPMPX_OpaqueData;
 
 
+/*! IPMPX Key data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1622,6 +1911,8 @@ typedef struct
 	GF_IPMPX_ByteArray *OpaqueData;
 } GF_IPMPX_KeyData;
 
+/*! IPMPX Rights data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1629,7 +1920,9 @@ typedef struct
 } GF_IPMPX_RightsData;
 
 
-/*not a real GF_IPMPX_Data in spec, but emulated as if for parsing*/
+/*! IPMPX Selective Encryption Buffer data
+	 not a real GF_IPMPX_Data in spec, but emulated as if for parsing
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1642,7 +1935,9 @@ typedef struct
 	GF_IPMPX_ByteArray *Stream_Cipher_Specific_Init_Info;
 } GF_IPMPX_SelEncBuffer;
 
-/*not a real GF_IPMPX_Data in spec, but emulated as if for parsing*/
+/*! IPMPX Selective Encryption Field data
+not a real GF_IPMPX_Data in spec, but emulated as if for parsing
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1656,7 +1951,7 @@ typedef struct
 } GF_IPMPX_SelEncField;
 
 
-/*mediaTypeExtension*/
+/*! IPMPX mediaTypeExtension*/
 enum
 {
 	GF_IPMPX_SE_MT_ISO_IEC = 0x00,
@@ -1664,7 +1959,7 @@ enum
 	                     /*the rest is reserved or forbidden*/
 };
 
-/*compliance*/
+/*! IPMPX compliance*/
 enum
 {
 	GF_IPMPX_SE_COMP_FULLY = 0x00,
@@ -1683,7 +1978,7 @@ enum
 	                            */
 };
 
-/*syncBoundary*/
+/*! IPMPX syncBoundary*/
 enum
 {
 	GF_IPMPX_SE_SYNC_VID7EO_PACKETS = 0x00,
@@ -1698,7 +1993,7 @@ enum
 	                          */
 };
 
-/*field_Id*/
+/*! IPMPX field_Id for selective encryption*/
 enum
 {
 	GF_IPMPX_SE_FID_VIDEO_MV = 0x00,
@@ -1718,6 +2013,8 @@ enum
 };
 
 
+/*! IPMPX Selective Encryption Init data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1735,7 +2032,7 @@ typedef struct
 } GF_IPMPX_SelectiveDecryptionInit;
 
 
-/*watermark init ops*/
+/*! IPMPX watermark init ops*/
 enum
 {
 	GF_IPMPX_WM_INSERT = 0,
@@ -1744,7 +2041,9 @@ enum
 	GF_IPMPX_WM_DETECT_COMPRESSION = 3
 };
 
-/*used for both audio and video WM init*/
+/*! IPMPX Watermark Init data
+used for both audio and video WM init
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1776,7 +2075,7 @@ typedef struct
 
 
 
-/*WM status*/
+/*! IPMPX Watermark status*/
 enum
 {
 	GF_IPMPX_WM_PAYLOAD = 0,
@@ -1785,7 +2084,7 @@ enum
 	GF_IPMPX_WM_UNKNOWN = 3
 };
 
-/*compression status*/
+/*! IPMPX compression status*/
 enum
 {
 	GF_IPMPX_WM_COMPRESSION = 0,
@@ -1793,6 +2092,8 @@ enum
 	GF_IPMPX_WM_COMPRESSION_UNKNOWN = 2
 };
 
+/*! IPMPX Send Watermark data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1804,6 +2105,8 @@ typedef struct
 } GF_IPMPX_SendWatermark;
 
 
+/*! IPMPX Tool API config data
+ */
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1813,6 +2116,8 @@ typedef struct
 	GF_IPMPX_ByteArray *opaqueData;
 } GF_IPMPX_ToolAPI_Config;
 
+/*! IPMPX ISMACryp data
+*/
 typedef struct
 {
 	GF_IPMPX_DATA_BASE
@@ -1823,34 +2128,37 @@ typedef struct
 } GF_IPMPX_ISMACryp;
 
 
-/*constructor/destructor*/
+/* constructor */
 GF_IPMPX_Data *gf_ipmpx_data_new(u8 tag);
+/* destructor */
 void gf_ipmpx_data_del(GF_IPMPX_Data *p);
 
-/*parse from bitstream*/
+/* parse from bitstream */
 GF_Err gf_ipmpx_data_parse(GF_BitStream *bs, GF_IPMPX_Data **out_data);
-/*get IPMP_Data contained size (eg without tag & sizeofinstance)*/
+/*! get IPMP_Data contained size (eg without tag & sizeofinstance)*/
 u32 gf_ipmpx_data_size(GF_IPMPX_Data *p);
-/*get fulml IPMP_Data encoded size (eg with tag & sizeofinstance)*/
+/*! get fulml IPMP_Data encoded size (eg with tag & sizeofinstance)*/
 u32 gf_ipmpx_data_full_size(GF_IPMPX_Data *p);
-/*writes IPMP_Data to buffer*/
+/*! writes IPMP_Data to buffer*/
 GF_Err gf_ipmpx_data_write(GF_BitStream *bs, GF_IPMPX_Data *_p);
 
-/*returns GF_IPMPX_Tag based on name*/
+/*! returns GF_IPMPX_Tag based on name*/
 u8 gf_ipmpx_get_tag(char *dataName);
-/*return values: cf above */
+/*! return values: cf above */
 u32 gf_ipmpx_get_field_type(GF_IPMPX_Data *p, char *fieldName);
 GF_Err gf_ipmpx_set_field(GF_IPMPX_Data *desc, char *fieldName, char *val);
-/*assign subdata*/
+/*! assign subdata*/
 GF_Err gf_ipmpx_set_sub_data(GF_IPMPX_Data *desc, char *fieldName, GF_IPMPX_Data *subdesc);
-/*assign bytearray*/
+/*! assign bytearray*/
 GF_Err gf_ipmpx_set_byte_array(GF_IPMPX_Data *p, char *field, char *str);
 
-/*ipmpx dumper*/
+/*! ipmpx dumper*/
 GF_Err gf_ipmpx_dump_data(GF_IPMPX_Data *_p, FILE *trace, u32 indent, Bool XMTDump);
 
 
 #endif /*GPAC_MINIMAL_ODF*/
+
+/*! @} */
 
 #ifdef __cplusplus
 }

@@ -61,6 +61,7 @@
 #include <time.h>
 
 #define BUFFSIZE	8192
+#define DEFAULT_INTERLEAVING_IN_SEC 0.5
 
 /*in fileimport.c*/
 
@@ -99,9 +100,10 @@ void dump_isom_scene_stats(char *file, char *inName, Bool is_final_name, u32 sta
 #endif
 void PrintNode(const char *name, u32 graph_type);
 void PrintBuiltInNodes(u32 graph_type);
+void PrintBuiltInBoxes();
 
 #ifndef GPAC_DISABLE_ISOM_DUMP
-void dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name);
+GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do_track_dump);
 #endif
 
 
@@ -247,7 +249,7 @@ void PrintGeneralUsage()
 	        " -name tkID=NAME      sets track handler name\n"
 	        "                       * NAME can indicate a UTF-8 file (\"file://file name\"\n"
 	        " -itags tag1[:tag2]   sets iTunes tags to file - more info: MP4Box -tag-list\n"
-	        " -split time_sec      splits in files of time_sec max duration\n"
+	        " -split time_sec      splits in files of time_sec max duration, starting each file at RAP.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-size size     splits in files of max filesize kB. same as -splits.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
@@ -323,7 +325,7 @@ void PrintDASHUsage()
 	        "Input media files to dash can use the following modifiers\n"
 	        " \"#trackID=N\"       only uses the track ID N from the source file\n"
 	        " \"#video\"           only uses the first video track from the source file\n"
-	        " \"#audio\"           only uses the first video track from the source file\n"
+	        " \"#audio\"           only uses the first audio track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
 	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
@@ -371,12 +373,13 @@ void PrintDASHUsage()
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
+	        " -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
-	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf) rather than in moof. By default sample group descriptions are stored in movie box.\n"
+	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -399,6 +402,8 @@ void PrintDASHUsage()
 	        "                        as: sets ContentProtection in AdaptationSet element\n"
 	        "                        rep: sets ContentProtection in Representation element\n"
 	        "                        both: sets ContentProtection in both elements\n"
+	        " -start-date          for live mode, sets start date (as xs:date, eg YYYY-MM-DDTHH:MM:SSZ. Default is now.\n"
+	        "                        !! Do not use with multiple periods, nor when DASH duration is not a multiple of GOP size !!\n"
 	        "\n");
 }
 
@@ -411,11 +416,13 @@ void PrintFormats()
 	        " MPEG-4 Video         .cmp .m4v\n"
 	        " H263 Video           .263 .h263\n"
 	        " AVC/H264 Video       .h264 .h26L .264 .26L .x264 .svc\n"
-	        " HEVC Video          .hevc .h265 .265 .hvc .shvc\n"
+	        " HEVC Video           .hevc .h265 .265 .hvc .shvc .lhvc .mhvc\n"
 	        " JPEG Images          .jpg .jpeg\n"
+	        " JPEG-2000 Images     .jp2\n"
 	        " PNG Images           .png\n"
-	        " MPEG 1-2 Audio       .mp3, .m1a, .m2a\n"
+	        " MPEG 1-2 Audio       .mp3, .mp2, .m1a, .m2a\n"
 	        " ADTS-AAC Audio       .aac\n"
+	        " Dolby (e)AC-3 Audio  .ac3 .ec3\n"
 	        " AMR(WB) Audio        .amr .awb\n"
 	        " EVRC Audio           .evc\n"
 	        " SMV Audio            .smv\n"
@@ -431,16 +438,23 @@ void PrintFormats()
 	        "Supported text formats:\n"
 	        " SRT Subtitles        .srt\n"
 	        " SUB Subtitles        .sub\n"
+	        " VobSub               .idx\n"
 	        " GPAC Timed Text      .ttxt\n"
+	        " VTT                  .vtt\n"
+	        " TTML                 .ttml\n"
 	        " QuickTime TeXML Text .xml  (cf QT documentation)\n"
 	        "\n"
 	        "Supported Scene formats:\n"
 	        " MPEG-4 XMT-A         .xmt .xmta .xmt.gz .xmta.gz\n"
 	        " MPEG-4 BT            .bt .bt.gz\n"
+	        " MPEG-4 SAF           .saf .lsr\n"
 	        " VRML                 .wrl .wrl.gz\n"
 	        " X3D-XML              .x3d .x3d.gz\n"
 	        " X3D-VRML             .x3dv .x3dv.gz\n"
 	        " MacroMedia Flash     .swf (very limited import support only)\n"
+	        "\n"
+	        "Supported chapter formats:\n"
+	        " Nero chapters        .txt .chap\n"
 	        "\n"
 	       );
 }
@@ -475,9 +489,10 @@ void PrintImportUsage()
 	        " \":ps\"                same as -ps option\n"
 	        " \":psx\"               same as -psx option\n"
 	        " \":mpeg4\"             same as -mpeg4 option\n"
-	        " \":svc\"               import SVC/SHVC with explicit signaling (no AVC base compatibility)\n"
-	        " \":nosvc\"             discard SVC/SHVC data when importing\n"
-	        " \":svcmode=MODE\"      sets SVC/SHVC import mode:\n"
+	        " \":nosei\"             discard all SEI messages during import\n"
+	        " \":svc\"               import SVC/LHVC with explicit signaling (no AVC base compatibility)\n"
+	        " \":nosvc\"             discard SVC/LHVC data when importing\n"
+	        " \":svcmode=MODE\"      sets SVC/LHVC import mode:\n"
 	        " \"                       split : each layer is in its own track\n"
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
@@ -488,6 +503,8 @@ void PrintImportUsage()
 	        " \":xps_inband\"        Sets xPS inband for AVC/H264 and HEVC (for reverse operation, re-import from raw media)\n"
 	        " \":max_lid=N\"         sets HEVC max layer ID to be imported to N. Default imports all.\n"
 	        " \":max_tid=N\"         sets HEVC max temporal ID to be imported to N. Default imports all.\n"
+	        " \":tiles\"             adds HEVC tiles signaling and NALU maps without splitting the tiles into different tile tracks.\n"
+	        " \":split_tiles\"       splits HEVC tiles into different tile tracks, one tile (or all tiles of one slice) per track.\n"
 	        " \":negctts\"           uses negative CTS-DTS offsets (ISO4 brand)\n"
 	        " \":stype=4CC\"         forces the sample description type to a different value\n"
 	        "                         !! THIS MAY BREAK THE FILE WRITING !!\n"
@@ -509,6 +526,7 @@ void PrintImportUsage()
 	        " \":fmt=FORMAT\"        overrides format detection with given format (cf BT/XMTA doc)\n"
 	        " \":profile=INT\"       overrides AVC profile\n"
 	        " \":level=INT\"         overrides AVC level\n"
+	        " \":novpsext\"          removes VPS extensions from HEVC VPS\n"
 
 	        " \":font=name\"         specifies font name for text import (default \"Serif\")\n"
 	        " \":size=s\"            specifies font size for text import (default 18)\n"
@@ -533,7 +551,7 @@ void PrintImportUsage()
 	        " \":swf-same-app\"      appearance nodes are reused\n"
 	        " \":swf-flatten=ang\"   complementary angle below which 2 lines are merged\n"
 	        "                         * Note: angle \'0\' means no flattening\n"
-	        " \":kind=schemeURI:value\"  sets kind for the track\n"
+	        " \":kind=schemeURI=value\"  sets kind for the track\n"
 	        " \":txtflags=flags\"    sets display flags (hexa number) of text track\n"
 	        " \":txtflags+=flags\"   adds display flags (hexa number) to text track\n"
 	        " \":txtflags-=flags\"   removes display flags (hexa number) from text track\n"
@@ -627,6 +645,7 @@ void PrintEncryptUsage()
 	        "                       * Note: \'self\' writes key and salt in the file\n"
 	        " selectiveType        selective encryption type - understood values are:\n"
 	        "   \"None\"             all samples encrypted (default)\n"
+	        "   \"Clear\"            all samples clean (not encrypted)\n"
 	        "   \"RAP\"              only encrypts random access units\n"
 	        "   \"Non-RAP\"          only encrypts non-random access units\n"
 	        "   \"Rand\"             random selection is performed\n"
@@ -715,7 +734,8 @@ void PrintDumpUsage()
 	        " -x3d                 scene to X3D/XML format - removes unknown X3D nodes\n"
 	        " -x3dv                scene to X3D/VRML format - removes unknown X3D nodes\n"
 	        " -lsr                 scene to LASeR format\n"
-	        " -diso                scene IsoMedia file boxes in XML output\n"
+	        " -diso                dumps IsoMedia file boxes in XML output\n"
+	        " -dxml                dumps IsoMedia file boxes and known track samples in XML output\n"
 	        " -drtp                rtp hint samples structure to XML output\n"
 	        " -dts                 prints sample timing to text output\n"
 	        " -dnal trackID        prints NAL sample info of given track\n"
@@ -749,31 +769,39 @@ void PrintDumpUsage()
 void PrintMetaUsage()
 {
 	fprintf(stderr, "Meta handling Options\n"
-	        " -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
-	        "                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
-	        "                       * [:tk=ID]: if not set use root (file) meta\n"
-	        "                                if ID is 0 use moov meta\n"
-	        "                                if ID is not 0 use track meta\n"
-	        " -add-item args       adds resource to meta\n"
-	        "                       * syntax: file_path + options (\':\' separated):\n"
-	        "                        tk=ID: meta addressing (file, moov, track)\n"
-	        "                        name=str: item name\n"
-	        "                        mime=mtype: item mime type\n"
-	        "                        encoding=enctype: item content-encoding type\n"
-	        "                        id=id: item ID\n"
-	        "                       * file_path \"this\" or \"self\": item is the file itself\n"
-	        " -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
-	        " -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
-	        " -set-xml args        sets meta XML data\n"
-	        "                       * syntax: xml_file_path[:tk=ID][:binary]\n"
-	        " -rem-xml [tk=ID]     removes meta XML data\n"
-	        " -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
-	        " -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
-	        " -package             packages input XML file into an ISO container\n"
-	        "                       * all media referenced except hyperlinks are added to file\n"
-	        " -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
-	        "                       * all files contained in the current folder are added to the widget package\n"
-	        "\n");
+		" -set-meta args       sets given meta type - syntax: \"ABCD[:tk=ID]\"\n"
+		"                       * ABCD: four char meta type (NULL or 0 to remove meta)\n"
+		"                       * [:tk=ID]: if not set use root (file) meta\n"
+		"                                if ID is 0 use moov meta\n"
+		"                                if ID is not 0 use track meta\n"
+		" -add-item args       adds resource to meta\n"
+		"                       * syntax: file_path + options (\':\' separated):\n"
+		"                        file_path \"this\" or \"self\": item is the file itself\n"
+		"                        tk=ID:            meta location (file, moov, track)\n"
+		"                        name=str:         item name\n"
+		"                        type=itype:       item 4cc type (not needed if mime is provided)\n"
+		"                        mime=mtype:       item mime type\n"
+		"                        encoding=enctype: item content-encoding type\n"
+		"                        id=id:	           item ID\n"
+		"                        ref=4cc,id:       reference of type 4cc to an other item\n"
+		"                      Image Item options\n"
+		"                        image-size=wxh      sets the width and height of the image.\n"
+		"                        image-pasp=wxh      sets the pixel aspect ratio property of the image.\n"
+		"                        image-rloc=wxh      sets the location of this image within another image item.\n"
+		"                        image-irot=a        sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
+		"                        image-hidden        indicates that this image item should be hidden.\n"
+		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
+		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
+		" -set-xml args        sets meta XML data\n"
+		"                       * syntax: xml_file_path[:tk=ID][:binary]\n"
+		" -rem-xml [tk=ID]     removes meta XML data\n"
+		" -dump-xml args       dumps meta XML to file - syntax file_path[:tk=ID]\n"
+		" -dump-item args      dumps item to file - syntax item_ID[:tk=ID][:path=fileName]\n"
+		" -package             packages input XML file into an ISO container\n"
+		"                       * all media referenced except hyperlinks are added to file\n"
+		" -mgt                 packages input XML file into an MPEG-U widget with ISO container.\n"
+		"                       * all files contained in the current folder are added to the widget package\n"
+		);
 }
 
 void PrintSWFUsage()
@@ -824,6 +852,7 @@ void PrintUsage()
 	         " -xnode NodeName      gets X3D node syntax\n"
 	         " -snodes              lists supported SVG nodes\n"
 	         " -languages           lists supported ISO 639 languages\n"
+	         " -boxes               lists all supported ISOBMF boxes and their syntax\n"
 	         "\n"
 	         " -quiet                quiet mode\n"
 	         " -noprog               disables progress\n"
@@ -890,7 +919,8 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 	GF_RTPHinter *hinter;
 	Bool copy, has_iod, single_av;
 	u8 init_payt = BASE_PAYT;
-	u32 iod_mode, mtype;
+	u32 mtype;
+	GF_SDP_IODProfile iod_mode = GF_SDP_IOD_NONE;
 	u32 media_group = 0;
 	u8 media_prio = 0;
 
@@ -1201,6 +1231,7 @@ typedef enum {
 	META_ACTION_REM_XML				= 6,
 	META_ACTION_DUMP_ITEM			= 7,
 	META_ACTION_DUMP_XML			= 8,
+	META_ACTION_ADD_IMAGE_ITEM		= 9,
 } MetaActionType;
 
 typedef struct
@@ -1212,6 +1243,9 @@ typedef struct
 	char szPath[GF_MAX_PATH];
 	char szName[1024], mime_type[1024], enc_type[1024];
 	u32 item_id;
+	u32 item_type;
+	u32 ref_item_id;
+	u32 ref_type;
 	GF_ImageItemProperties *image_props;
 } MetaAction;
 
@@ -1249,6 +1283,16 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->item_id = atoi(szSlot+3);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "type=", 5)) {
+			meta->item_type = GF_4CC(szSlot[5], szSlot[6], szSlot[7], szSlot[8]);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "ref=", 4)) {
+			char type[10];
+			sscanf(szSlot, "ref=%u,%s", &meta->ref_item_id, type);
+			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
+			ret = 1;
+		}		
 		else if (!strnicmp(szSlot, "name=", 5)) {
 			strcpy(meta->szName, szSlot+5);
 			ret = 1;
@@ -1258,6 +1302,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "mime=", 5)) {
+			meta->item_type = GF_4CC('m','i','m','e');
 			strcpy(meta->mime_type, szSlot+5);
 			ret = 1;
 		}
@@ -1293,6 +1338,28 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			meta->image_props->angle = atoi(szSlot+11);
 			ret = 1;
 		}
+		else if (!strnicmp(szSlot, "image-hidden", 12)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->hidden = GF_TRUE;
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "tilemode=", 9)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			if (!strnicmp(szSlot + 9, "nobase", 6)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_NO_BASE;
+			} else if (!strnicmp(szSlot + 9, "base", 4)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
+			} else if (!strnicmp(szSlot + 9, "grid", 4)) {
+				meta->image_props->tile_mode = TILE_ITEM_ALL_GRID;
+			} else {
+				meta->image_props->tile_mode = TILE_ITEM_SINGLE;
+				sscanf(szSlot + 9, "%d", &meta->image_props->single_tile_number);
+			}			
+		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
 			meta->use_dref = 1;
 			ret = 1;
@@ -1309,6 +1376,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 				ret = 1;
 				break;
 			case META_ACTION_ADD_ITEM:
+			case META_ACTION_ADD_IMAGE_ITEM:
 			case META_ACTION_SET_XML:
 			case META_ACTION_DUMP_XML:
 				strcpy(meta->szPath, szSlot);
@@ -1358,7 +1426,7 @@ static Bool parse_tsel_args(TSELAction **__tsel_list, char *opts, u32 *nb_tsel_a
 	u32 nb_criteria = 0;
 	TSELAction *tsel_act;
 	char szSlot[1024], *next;
-	TSELAction *tsel_list = *__tsel_list;
+	TSELAction *tsel_list;
 
 	has_switch_id = 0;
 
@@ -1447,7 +1515,7 @@ typedef struct
 {
 	TrackActionType act_type;
 	u32 trackID;
-	char *lang;
+	char lang[10];
 	s32 delay_ms;
 	const char *kms;
 	const char *hdl_name;
@@ -1537,8 +1605,11 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 				di->baseURL[di->nb_baseURL] = gf_strdup(opts+8);
 				di->nb_baseURL++;
 			} else if (!strnicmp(opts, "bandwidth=", 10)) di->bandwidth = atoi(opts+10);
-			else if (!strnicmp(opts, "role=", 5)) di->role = gf_strdup(opts+5);
-			else if (!strnicmp(opts, "desc", 4)) {
+			else if (!strnicmp(opts, "role=", 5)) {
+				di->roles = gf_realloc(di->roles, sizeof (char *) * (di->nb_roles+1));
+				di->roles[di->nb_roles] = gf_strdup(opts+5);
+				di->nb_roles++;
+			} else if (!strnicmp(opts, "desc", 4)) {
 				u32 *nb_descs=NULL;
 				char ***descs=NULL;
 				u32 opt_offset=0;
@@ -1597,6 +1668,8 @@ GF_DashSegmenterInput *set_dash_input(GF_DashSegmenterInput *dash_inputs, char *
 static GF_Err parse_track_action_params(char *string, TrackAction *action)
 {
 	char *param = string;
+	if (!action || !string) return GF_BAD_PARAM;
+	
 	while (param) {
 		param = strchr(param, ':');
 		if (param) {
@@ -1758,16 +1831,16 @@ s32 subsegs_per_sidx;
 u32 *brand_add = NULL;
 u32 *brand_rem = NULL;
 GF_DashSwitchingMode bitstream_switching_mode = GF_DASH_BSMODE_DEFAULT;
-u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, raw_sample_num, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
+u32 i, stat_level, hint_flags, info_track_id, import_flags, nb_add, nb_cat, crypt, agg_samples, nb_sdp_ex, max_ptime, split_size, nb_meta_act, nb_track_act, rtp_rate, major_brand, nb_alt_brand_add, nb_alt_brand_rem, old_interleave, car_dur, minor_version, conv_type, nb_tsel_acts, program_number, dump_nal, time_shift_depth, initial_moof_sn, dump_std, import_subtitle;
 GF_DashDynamicMode dash_mode=GF_DASH_STATIC;
 #ifndef GPAC_DISABLE_SCENE_DUMP
 GF_SceneDumpFormat dump_mode;
 #endif
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
-Bool print_sdp, print_info, open_edit, dump_isom, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof;
+Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof;
 char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
-u32 track_dump_type;
+u32 track_dump_type, dump_isom;
 u32 trackID;
 Double min_buffer = 1.5;
 s32 ast_offset_ms = 0;
@@ -1794,6 +1867,7 @@ Bool do_bin_nhml = GF_FALSE;
 #endif
 GF_ISOFile *file;
 Bool frag_real_time = GF_FALSE;
+u64 dash_start_date=0;
 GF_DASH_ContentLocationMode cp_location_mode = GF_DASH_CPMODE_ADAPTATION_SET;
 Double mpd_update_time = GF_FALSE;
 Bool stream_rtp = GF_FALSE;
@@ -1832,6 +1906,8 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
+static u32 dash_run_for;
+static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -1909,11 +1985,18 @@ u32 mp4box_cleanup(u32 ret_code) {
 			if (di->representationID) gf_free(di->representationID);
 			if (di->periodID) gf_free(di->periodID);
 			if (di->xlink) gf_free(di->xlink);
-			if (di->role) gf_free(di->role);
+
+			if (di->roles) {
+				for (j = 0; j<di->nb_roles; j++) {
+					gf_free(di->roles[j]);
+				}
+				gf_free(di->roles);
+			}
 		}
 		gf_free(dash_inputs);
 		dash_inputs = NULL;
 	}
+	if (logfile) gf_fclose(logfile);
 	gf_sys_close();
 	return ret_code;
 }
@@ -2174,13 +2257,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 			strcpy(szTK, argv[i + 1]);
 			ext = strchr(szTK, '=');
 			if (!strnicmp(argv[i + 1], "all=", 4)) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i + 1] + 4);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1] + 4, 10);
 			}
 			else if (!ext) {
-				tracks[nb_track_act].lang = gf_strdup(argv[i + 1]);
+				strncpy(tracks[nb_track_act].lang, argv[i + 1], 10);
 			}
 			else {
-				tracks[nb_track_act].lang = gf_strdup(ext + 1);
+				strncpy(tracks[nb_track_act].lang, ext + 1, 10);
 				ext[0] = 0;
 				tracks[nb_track_act].trackID = atoi(szTK);
 				ext[0] = '=';
@@ -2286,7 +2369,7 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			ext[0] = 0;
-			tracks[nb_track_act].lang = gf_strdup(szTK);
+			strncpy(tracks[nb_track_act].lang, szTK, 10);
 			ext[0] = ':';
 			tracks[nb_track_act].delay_ms = (s32)atoi(ext + 1);
 			open_edit = GF_TRUE;
@@ -2519,6 +2602,13 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 		else if (!stricmp(arg, "-add-item")) {
 			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
 			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_ITEM, argv[i + 1]);
+			nb_meta_act++;
+			open_edit = GF_TRUE;
+			i++;
+		}
+		else if (!stricmp(arg, "-add-image")) {
+			metas = gf_realloc(metas, sizeof(MetaAction) * (nb_meta_act + 1));
+			parse_meta_args(&metas[nb_meta_act], META_ACTION_ADD_IMAGE_ITEM, argv[i + 1]);
 			nb_meta_act++;
 			open_edit = GF_TRUE;
 			i++;
@@ -2883,6 +2973,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 			return 1;
 		}
 #endif
+		else if (!stricmp(arg, "-boxes")) {
+			PrintBuiltInBoxes();
+			return 1;
+		}
 		else if (!stricmp(arg, "-std")) dump_std = 2;
 		else if (!stricmp(arg, "-stdb")) dump_std = 1;
 
@@ -2900,6 +2994,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-stats")) stat_level = 2;
 		else if (!stricmp(arg, "-statx")) stat_level = 3;
 		else if (!stricmp(arg, "-diso")) dump_isom = 1;
+		else if (!stricmp(arg, "-dxml")) dump_isom = 2;
 		else if (!stricmp(arg, "-dump-cover")) dump_cart = 1;
 		else if (!stricmp(arg, "-dump-chap")) dump_chap = 1;
 		else if (!stricmp(arg, "-dump-chap-ogg")) dump_chap = 2;
@@ -3115,6 +3210,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
+		else if (!stricmp(arg, "-dash-run-for")) {
+			CHECK_NEXT_ARG
+			dash_run_for = atoi(argv[i + 1]);
+			i++;
+		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i + 1];
@@ -3141,6 +3241,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
 		else if (!stricmp(arg, "-frag-rt")) {
 			frag_real_time = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-start-date")) {
+			dash_start_date = gf_net_parse_date(argv[i+1]);
+			i++;
 		}
 		else if (!strnicmp(arg, "-cp-location=", 13)) {
 			if (strcmp(arg+13, "both")) cp_location_mode = GF_DASH_CPMODE_BOTH;
@@ -3295,11 +3399,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 
 int mp4boxMain(int argc, char **argv)
 {
-	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = raw_sample_num = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
+	nb_tsel_acts = nb_add = nb_cat = nb_track_act = nb_sdp_ex = max_ptime = nb_meta_act = rtp_rate = major_brand = nb_alt_brand_add = nb_alt_brand_rem = car_dur = minor_version = 0;
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	interleaving_time = 0.0;
+	interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 	dash_duration = dash_subduration = 0.0;
 	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
@@ -3312,9 +3416,10 @@ int mp4boxMain(int argc, char **argv)
 	dump_mode = GF_SM_DUMP_NONE;
 #endif
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
-	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_isom = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
+	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
 	single_traf_per_moof = GF_FALSE,
+	dump_isom = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = GF_TRUE;
 	subsegs_per_sidx = 0;
@@ -3334,7 +3439,7 @@ int mp4boxMain(int argc, char **argv)
 	trackID = stat_level = hint_flags = 0;
 	program_number = 0;
 	info_track_id = 0;
-	do_flat = 0;
+	do_flat = GF_FALSE;
 	inName = outName = mediaSource = input_ctx = output_ctx = drm_file = avi2raw = cprt = chap_file = pack_file = raw_cat = NULL;
 
 #ifndef GPAC_DISABLE_SWF_IMPORT
@@ -3385,7 +3490,7 @@ int mp4boxMain(int argc, char **argv)
 		if (dash_duration)
 			interleaving_time = dash_duration;
 		else
-			interleaving_time = 0.5;
+			do_flat = GF_TRUE;
 	}
 
 	if (dump_std)
@@ -3851,6 +3956,8 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
 		}
+		if (dash_start_date) gf_dasher_set_start_date(dasher, dash_start_date);
+
 
 		//e = gf_dasher_set_location(dasher, mpd_source);
 		for (i=0; i < nb_mpd_base_urls; i++) {
@@ -3860,6 +3967,12 @@ int mp4boxMain(int argc, char **argv)
 				return mp4box_cleanup(1);
 			}
 		}
+
+		if (segment_timeline && !use_url_template) {
+			fprintf(stderr, "DASH Warning: using -segment-timeline with no -url-template. Forcing URL template.\n");
+			use_url_template = GF_TRUE;
+		}
+		
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
@@ -3888,7 +4001,13 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 		}
 
+		dash_cumulated_time=0;
+
 		while (1) {
+			if (dash_run_for && (dash_cumulated_time>dash_run_for))
+				do_abort = 3;
+
+			dash_prev_time=gf_sys_clock();
 			if (do_abort>=2) {
 				e = gf_dasher_set_dynamic_mode(dasher, GF_DASH_DYNAMIC_LAST, 0, time_shift_depth, mpd_live_duration);
 			}
@@ -3907,9 +4026,10 @@ int mp4boxMain(int argc, char **argv)
 			if (e) break;
 
 			if (dash_live) {
+				u64 ms_in_session=0;
 				u32 slept = gf_sys_clock();
-				u32 sleep_for = gf_dasher_next_update_time(dasher);
-				fprintf(stderr, "Next generation scheduled in %d ms\n", sleep_for);
+				u32 sleep_for = gf_dasher_next_update_time(dasher, &ms_in_session);
+				fprintf(stderr, "Next generation scheduled in %u ms (DASH time "LLU" ms)\n", sleep_for, ms_in_session);
 				while (1) {
 					if (gf_prompt_has_input()) {
 						char c = (char) gf_prompt_get_char();
@@ -3933,9 +4053,11 @@ int mp4boxMain(int argc, char **argv)
 					if (!sleep_for) break;
 
 					gf_sleep(1);
-					sleep_for = gf_dasher_next_update_time(dasher);
+					sleep_for = gf_dasher_next_update_time(dasher, NULL);
 					if (sleep_for<1) {
-						fprintf(stderr, "Slept for %d ms before generation\n", gf_sys_clock() - slept);
+						dash_now_time=gf_sys_clock();
+						fprintf(stderr, "Slept for %d ms before generation\n", dash_now_time - slept);
+						dash_cumulated_time+=(dash_now_time-dash_prev_time);
 						break;
 					}
 				}
@@ -4090,19 +4212,23 @@ int mp4boxMain(int argc, char **argv)
 
 
 	strcpy(outfile, outName ? outName : inName);
-	if (strrchr(outfile, '.')) {
-		char *szExt = strrchr(outfile, '.');
+	{
 
-		/*turn on 3GP saving*/
-		if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2"))
-			conv_type = GF_ISOM_CONV_TYPE_3GPP;
-		else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
-			conv_type = GF_ISOM_CONV_TYPE_IPOD;
-		else if (!stricmp(szExt, ".psp"))
-			conv_type = GF_ISOM_CONV_TYPE_PSP;
+		char *szExt = gf_file_ext_start(outfile);
 
-		while (outfile[strlen(outfile)-1] != '.') outfile[strlen(outfile)-1] = 0;
-		outfile[strlen(outfile)-1] = 0;
+		if (szExt)
+		{
+			/*turn on 3GP saving*/
+			if (!stricmp(szExt, ".3gp") || !stricmp(szExt, ".3gpp") || !stricmp(szExt, ".3g2"))
+				conv_type = GF_ISOM_CONV_TYPE_3GPP;
+			else if (!stricmp(szExt, ".m4a") || !stricmp(szExt, ".m4v"))
+				conv_type = GF_ISOM_CONV_TYPE_IPOD;
+			else if (!stricmp(szExt, ".psp"))
+				conv_type = GF_ISOM_CONV_TYPE_PSP;
+
+			//remove extension from outfile
+			*szExt = 0;
+		}
 	}
 
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
@@ -4139,7 +4265,7 @@ int mp4boxMain(int argc, char **argv)
 			mdump.in_name = inName;
 			mdump.flags = tka->dump_type;
 			mdump.trackID = tka->trackID;
-			mdump.sample_num = raw_sample_num;
+			mdump.sample_num = tka->sample_num;
 			if (outName) {
 				mdump.out_name = outName;
 				mdump.flags |= GF_EXPORT_MERGE;
@@ -4180,7 +4306,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 #ifndef GPAC_DISABLE_ISOM_DUMP
-	if (dump_isom) dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
+	if (dump_isom) {
+		e = dump_isom_xml(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE, (dump_isom==2) ? GF_TRUE : GF_FALSE);
+		if (e) goto err_exit;
+	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
 	if ((dump_ttxt || dump_srt) && trackID)
 		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
@@ -4259,7 +4388,7 @@ int mp4boxMain(int argc, char **argv)
 			mdump.file = file;
 			mdump.flags = tka->dump_type;
 			mdump.trackID = tka->trackID;
-			mdump.sample_num = raw_sample_num;
+			mdump.sample_num = tka->sample_num;
 			if (tka->out_name) {
 				mdump.out_name = tka->out_name;
 			} else if (outName) {
@@ -4316,11 +4445,41 @@ int mp4boxMain(int argc, char **argv)
 			e = gf_isom_add_meta_item(file, meta->root_meta, tk, self_ref, self_ref ? NULL : meta->szPath,
 			                          strlen(meta->szName) ? meta->szName : NULL,
 			                          meta->item_id,
+									  meta->item_type,
 			                          strlen(meta->mime_type) ? meta->mime_type : NULL,
 			                          strlen(meta->enc_type) ? meta->enc_type : NULL,
 			                          meta->use_dref ? meta->szPath : NULL,  NULL,
 			                          meta->image_props);
+			if (meta->ref_type) {
+				e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+			}
 			needSave = GF_TRUE;
+			break;
+		case META_ACTION_ADD_IMAGE_ITEM:
+			{
+				e = import_file(file, meta->szPath, 0, 0, 0);
+				if (e == GF_OK) {
+					if (!gf_isom_get_meta_type(file, meta->root_meta, tk)) {
+						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_4CC('p','i','c','t'));
+					}
+					if (e == GF_OK) {
+						if (!meta->item_id) {
+							e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
+						}
+						if (e == GF_OK) {
+							gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
+								strlen(meta->szName) ? meta->szName : NULL,
+								meta->item_id,
+								meta->image_props, NULL);
+							if (meta->ref_type) {
+								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
+							}
+						}
+					}
+				}
+				gf_isom_remove_track(file, 1);				
+				needSave = GF_TRUE;
+			}
 			break;
 		case META_ACTION_REM_ITEM:
 			e = gf_isom_remove_meta_item(file, meta->root_meta, tk, meta->item_id);
@@ -4360,6 +4519,10 @@ int mp4boxMain(int argc, char **argv)
 			break;
 		default:
 			break;
+		}
+		if (meta->image_props) {
+			gf_free(meta->image_props);
+			meta->image_props = NULL;
 		}
 		if (e) goto err_exit;
 	}
@@ -4652,6 +4815,10 @@ int mp4boxMain(int argc, char **argv)
 			}
 			break;
 		case TRAC_ACTION_SET_ID:
+			if (!tka->trackID && (gf_isom_get_track_count(file) == 1)) {
+				fprintf(stderr, "Warning: track id is not specified, but file has only one track - assume that you want to change id for this track\n");
+				track = 1;
+			}
 			if (track) {
 				u32 newTrack;
 				newTrack = gf_isom_get_track_by_id(file, tka->newTrackID);
@@ -4852,7 +5019,7 @@ int mp4boxMain(int argc, char **argv)
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (Frag) {
-		if (!interleaving_time) interleaving_time = 0.5;
+		if (!interleaving_time) interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
 		if (HintIt) fprintf(stderr, "Warning: cannot hint and fragment - ignoring hint\n");
 		fprintf(stderr, "Fragmenting file (%.3f seconds fragments)\n", interleaving_time);
 		e = gf_media_fragment_file(file, outfile, interleaving_time);
@@ -4976,8 +5143,15 @@ int mp4boxMain(int argc, char **argv)
 		file = NULL;
 
 		if (!e && !outName && !encode && !force_new && !pack_file) {
-			if (gf_delete_file(inName)) fprintf(stderr, "Error removing file %s\n", inName);
-			else if (gf_move_file(outfile, inName)) fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+			e = gf_delete_file(inName);
+			if (e) {
+				fprintf(stderr, "Error removing file %s\n", inName);
+			} else {
+				e = gf_move_file(outfile, inName);
+				if (e) {
+					fprintf(stderr, "Error renaming file %s to %s\n", outfile, inName);
+				}
+			}
 		}
 	} else {
 		gf_isom_delete(file);
@@ -5007,7 +5181,7 @@ exit:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
@@ -5015,7 +5189,7 @@ exit:
 	return 0;
 }
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(NO_WMAIN)
 int wmain( int argc, wchar_t** wargv )
 {
 	int i;
@@ -5028,7 +5202,7 @@ int wmain( int argc, wchar_t** wargv )
 		wchar_t *src_str = wargv[i];
 		len = UTF8_MAX_BYTES_PER_CHAR*gf_utf8_wcslen(wargv[i]);
 		argv[i] = (char *)malloc(len + 1);
-		res_len = gf_utf8_wcstombs(argv[i], len, &src_str);
+		res_len = gf_utf8_wcstombs(argv[i], len, (const unsigned short**)&src_str);
 		argv[i][res_len] = 0;
 		if (res_len > len) {
 			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");

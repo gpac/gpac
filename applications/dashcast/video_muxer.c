@@ -224,19 +224,25 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 
 				if (!vpss) {
 					GF_SAFEALLOC(vpss, GF_HEVCParamArray);
-					vpss->nalus = gf_list_new();
-					gf_list_add(dst_cfg->param_array, vpss);
-					vpss->array_completeness = 1;
-					vpss->type = GF_HEVC_NALU_VID_PARAM;
+					if (vpss) {
+						vpss->nalus = gf_list_new();
+						gf_list_add(dst_cfg->param_array, vpss);
+						vpss->array_completeness = 1;
+						vpss->type = GF_HEVC_NALU_VID_PARAM;
+					}
 				}
 
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (slc) {
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					if (slc->data)
+						memcpy(slc->data, buffer, sizeof(char)*slc->size);
 
-				gf_list_add(vpss->nalus, slc);
+					if (vpss)
+						gf_list_add(vpss->nalus, slc);
+				}
 			}
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
@@ -272,18 +278,24 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 
 			if (!spss) {
 				GF_SAFEALLOC(spss, GF_HEVCParamArray);
-				spss->nalus = gf_list_new();
-				gf_list_add(dst_cfg->param_array, spss);
-				spss->array_completeness = 1;
-				spss->type = GF_HEVC_NALU_SEQ_PARAM;
+				if (spss) {
+					spss->nalus = gf_list_new();
+					gf_list_add(dst_cfg->param_array, spss);
+					spss->array_completeness = 1;
+					spss->type = GF_HEVC_NALU_SEQ_PARAM;
+				}
 			}
 
 			slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-			slc->size = nal_size;
-			slc->id = idx;
-			slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-			memcpy(slc->data, buffer, sizeof(char)*slc->size);
-			gf_list_add(spss->nalus, slc);
+			if (slc) {
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				if (slc->data)
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (spss)
+					gf_list_add(spss->nalus, slc);
+			}
 			break;
 		case GF_HEVC_NALU_PIC_PARAM:
 			idx = gf_media_hevc_read_pps(buffer, nal_size, &hevc);
@@ -300,34 +312,45 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 
 				if (!ppss) {
 					GF_SAFEALLOC(ppss, GF_HEVCParamArray);
-					ppss->nalus = gf_list_new();
-					gf_list_add(dst_cfg->param_array, ppss);
-					ppss->array_completeness = 1;
-					ppss->type = GF_HEVC_NALU_PIC_PARAM;
+					if (ppss) {
+						ppss->nalus = gf_list_new();
+						gf_list_add(dst_cfg->param_array, ppss);
+						ppss->array_completeness = 1;
+						ppss->type = GF_HEVC_NALU_PIC_PARAM;
+					}
 				}
 
 				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-				slc->size = nal_size;
-				slc->id = idx;
-				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (slc) {
+					slc->size = nal_size;
+					slc->id = idx;
+					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+					if (slc->data)
+						memcpy(slc->data, buffer, sizeof(char)*slc->size);
 
-				gf_list_add(ppss->nalus, slc);
+					if (ppss)
+						gf_list_add(ppss->nalus, slc);
+				}
 			}
 			break;
 		case GF_HEVC_NALU_SEI_PREFIX:
 			if (!seis) {
 				GF_SAFEALLOC(seis, GF_HEVCParamArray);
-				seis->nalus = gf_list_new();
-				seis->array_completeness = 0;
-				seis->type = GF_HEVC_NALU_SEI_PREFIX;
+				if (seis) {
+					seis->nalus = gf_list_new();
+					seis->array_completeness = 0;
+					seis->type = GF_HEVC_NALU_SEI_PREFIX;
+				}
 			}
 			slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-			slc->size = nal_size;
-			slc->id = idx;
-			slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-			memcpy(slc->data, buffer, sizeof(char)*slc->size);
-			gf_list_add(seis->nalus, slc);
+			if (slc) {
+				slc->size = nal_size;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				if (slc->data)
+					memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				if (seis)
+					gf_list_add(seis->nalus, slc);
+			}
 			break;
 		default:
 			break;
@@ -420,7 +443,7 @@ int dc_gpac_video_moov_create(VideoOutputFile *video_output_file, char *filename
 {
 	GF_Err ret;
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
-	u32 di, track;
+	u32 di=1, track;
 
 	//TODO: For the moment it is fixed
 	//u32 sample_dur = video_output_file->codec_ctx->time_base.den;

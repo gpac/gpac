@@ -137,6 +137,10 @@ void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec)
 	if (cd) goto exit;
 
 	GF_SAFEALLOC(cd, CodecEntry);
+	if (!cd) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate decoder entry\n"));
+		return;
+	}
 	cd->dec = codec;
 	if (!cd->dec->Priority)
 		cd->dec->Priority = 1;
@@ -675,31 +679,33 @@ GF_EXPORT
 u32 gf_term_process_step(GF_Terminal *term)
 {
 	u32 nb_decs=0;
-	u32 time_taken = gf_sys_clock();
+	u32 sleep_time=0;
+	u32 dec_time = 0, step_start_time = gf_sys_clock();
 
 	if (term->flags & GF_TERM_NO_DECODER_THREAD) {
 		MM_SimulationStep_Decoder(term, &nb_decs);
+		dec_time = gf_sys_clock() - step_start_time;
 	}
 
 	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD) {
 		s32 ms_until_next;
 		gf_sc_draw_frame(term->compositor, 0, &ms_until_next);
-		if (ms_until_next < (s32) term->compositor->frame_duration/2) {
-			time_taken=0;
+		if ((ms_until_next>=0) && ((u32) ms_until_next > dec_time)) {
+			sleep_time = ms_until_next - dec_time;
+		}
+	} else {
+		if (dec_time < term->frame_duration) {
+			sleep_time = term->frame_duration - dec_time;
 		}
 	}
-	time_taken = gf_sys_clock() - time_taken;
-	if (time_taken > term->compositor->frame_duration) {
-		time_taken = 0;
-	} else {
-		time_taken = term->compositor->frame_duration - time_taken;
-	}
-	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return time_taken;
 
-	if (2*time_taken >= term->compositor->frame_duration) {
-		gf_sleep(nb_decs ? 1 : time_taken);
-	}
-	return time_taken;
+	if (term->bench_mode || (term->user->init_flags & GF_TERM_NO_REGULATION)) return sleep_time;
+
+	assert((s32) sleep_time >= 0);
+	if (sleep_time>33) sleep_time = 33;
+
+	gf_sleep(sleep_time);
+	return sleep_time;
 }
 
 GF_EXPORT
@@ -737,7 +743,7 @@ GF_Err gf_term_process_flush(GF_Terminal *term)
 			//force end of buffer
 			if (gf_scene_check_clocks(term->root_scene->root_od->net_service, term->root_scene, 1))
 				break;
-			
+
 			//consider timeout after 30 s
 			diff = gf_sys_clock() - now;
 			if (diff>30000) {

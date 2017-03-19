@@ -32,7 +32,7 @@ extern "C" {
 
 /*!
  *	\file <gpac/maths.h>
- *	\brief math and trigo functions.
+ *	\brief Mathematics and Trigonometric.
  */
 
 #include <gpac/setup.h>
@@ -41,9 +41,9 @@ extern "C" {
 
 
 /*!
- *\addtogroup math_grp math
+ *\addtogroup math_grp Math
  *\ingroup utils_grp
- *\brief Mathematics and Trigonometric functions
+ *\brief Mathematics and Trigonometric
  *
  *This section documents the math and trigo functions used in the GPAC framework. GPAC can be compiled with
  *fixed-point support, representing float values on a 16.16 signed integer, which implies a developer
@@ -224,9 +224,9 @@ u32 gf_get_bit_size(u32 MaxVal);
 u32 gf_get_next_pow2(u32 val);
 
 /*!
- *\addtogroup math2d_grp math2d
+ *\addtogroup math2d_grp Math 2d
  *\ingroup math_grp
- *\brief 2D Mathematics functions
+ *\brief 2D Mathematics
  *
  *This section documents mathematic tools for 2D geometry and color matrices operations
  *	@{
@@ -496,9 +496,9 @@ Bool gf_mx2d_decompose(GF_Matrix2D *_this, GF_Point2D *scale, Fixed *rotate, GF_
 
 
 /*!
- *\addtogroup math3d_grp math3d
+ *\addtogroup math3d_grp Math 3d
  *\ingroup math_grp
- *\brief 3D Mathematics functions
+ *\brief 3D Mathematics
  *
  *This section documents mathematic tools for 3D geometry operations
  *	@{
@@ -591,7 +591,7 @@ typedef struct __vec4f
  the translation part at the end of the coefficients list.
  \note Unless specified otherwise, the matrix object is always expected to represent an affine transformation.
  */
-typedef struct
+typedef struct __matrix
 {
 	Fixed m[16];
 } GF_Matrix;

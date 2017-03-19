@@ -342,7 +342,15 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC MSE Loader", "gpac distribution")
+
+	GF_SAFEALLOC(msein, GF_MSE_In);
+	if (!msein) {
+		gf_free(plug);
+		return NULL;
+	}
+
 	plug->RegisterMimeTypes = MSE_RegisterMimeTypes;
 	plug->CanHandleURL = MSE_CanHandleURL;
 	plug->ConnectService = MSE_ConnectService;
@@ -354,7 +362,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = MSE_CanHandleURLInService;
 	plug->ChannelGetSLP = MSE_ChannelGetSLP;
 	plug->ChannelReleaseSLP = MSE_ChannelReleaseSLP;
-	GF_SAFEALLOC(msein, GF_MSE_In);
+
 	plug->priv = msein;
 	msein->plug = plug;
 	return (GF_BaseInterface *)plug;

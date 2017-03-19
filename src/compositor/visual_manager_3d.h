@@ -30,8 +30,8 @@
 
 #ifndef GPAC_DISABLE_3D
 
-
-#define GF_MAX_GL_CLIPS	8
+//lowering down number of glClips, only used for non window-aligned clip planes, otherwise scisor test used
+#define GF_MAX_GL_CLIPS	2
 #define GF_MAX_GL_LIGHTS 4
 
 /*

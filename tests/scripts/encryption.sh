@@ -10,7 +10,8 @@ crypto_test()
 cryptfile="$TEMP_DIR/$1-crypted.mp4"
 decryptfile="$TEMP_DIR/$1-decrypted.mp4"
 
-test_begin "encryption-$1" "crypt" "decrypt"
+test_begin "encryption-$1"
+
 if [ $test_skip  = 1 ] ; then
  return
 fi
@@ -29,6 +30,10 @@ if [ $rv != 0 ] ; then
 result="Hash is not the same between source content and decrypted content"
 fi
 
+if [ $1 != "adobe" ] ; then
+do_playback_test "$cryptfile" "play"
+fi
+
 test_end
 
 }
@@ -45,6 +50,11 @@ crypto_test "cenc-ctr" $MEDIA_DIR/encryption/drm_ctr.xml &
 #test cenc CBC
 crypto_test "cenc-cbc" $MEDIA_DIR/encryption/drm_cbc.xml &
 
+#test cenc CBC
+crypto_test "cenc-cens" $MEDIA_DIR/encryption/drm_cens.xml &
+
+#test cenc CBC
+crypto_test "cenc-cbcs" $MEDIA_DIR/encryption/drm_cbcs.xml &
 
 
 wait

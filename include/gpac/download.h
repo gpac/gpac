@@ -28,11 +28,11 @@
 
 /*!
  *	\file <gpac/download.h>
- *	\brief Downloader functions.
+ *	\brief HTTP(S) Downloader.
  */
 
 /*!
- *	\addtogroup dld_grp downloader
+ *	\addtogroup dld_grp Downloader
  *	\ingroup utils_grp
  *	\brief File Downloader objects
  *
@@ -439,7 +439,7 @@ const char *gf_dm_sess_get_original_resource_name(GF_DownloadSession *sess);
  * \param filename The filename to download
  * \param start_range start position of a byte range
  * \param end_range end position of a byte range
- * \param redirected_url If not NULL, @redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
+ * \param redirected_url If not NULL, \p redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);
@@ -451,7 +451,7 @@ GF_Err gf_dm_wget_with_cache(GF_DownloadManager * dm, const char *url, const cha
  * \param filename The filename to download
  * \param start_range start position of a byte range
  * \param end_range end position of a byte range
- * \param redirected_url If not NULL, @redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
+ * \param redirected_url If not NULL, \p redirected_url will be allocated and filled with the URL after redirection. Caller takes ownership
  * \return GF_OK if everything went fine, an error otherwise
  */
 GF_Err gf_dm_wget(const char *url, const char *filename, u64 start_range, u64 end_range, char **redirected_url);

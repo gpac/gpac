@@ -428,7 +428,17 @@ opaque_audio:
 			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG1;
 			break;
 		case CODEC_ID_MPEG2VIDEO:
-			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_422;
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_MPEG2_MAIN;
+			break;
+
+		case CODEC_ID_H263:
+			esd->decoderConfig->objectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
+			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			gf_bs_write_u32(bs, GF_4CC('s', '2', '6', '3') );
+			gf_bs_write_u16(bs, dec->width);
+			gf_bs_write_u16(bs, dec->height);
+			gf_bs_get_content(bs, (char **) &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
+			gf_bs_del(bs);
 			break;
 		default:
 opaque_video:
@@ -566,7 +576,6 @@ static GF_Err FFD_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	strcpy(szName, url);
 	ext = strrchr(szName, '#');
 	ffd->service_type = 0;
-	e = GF_NOT_SUPPORTED;
 	ffd->service = serv;
 
 	if (ext) {
@@ -757,7 +766,7 @@ err_exit:
 #endif
 	ffd->ctx = NULL;
 	gf_service_connect_ack(serv, NULL, e);
-	return GF_OK;
+	return e;
 }
 
 
@@ -980,15 +989,19 @@ static Bool FFD_CanHandleURLInService(GF_InputService *plug, const char *url)
 
 void *New_FFMPEG_Demux()
 {
+	GF_InputService *ffd;
 	FFDemux *priv;
-	GF_InputService *ffd = (GF_InputService*)gf_malloc(sizeof(GF_InputService));
-	memset(ffd, 0, sizeof(GF_InputService));
-
+	GF_SAFEALLOC(ffd, GF_InputService);
+	if (!ffd) return NULL;
 	GF_SAFEALLOC(priv, FFDemux);
-
+	if (!priv) {
+		gf_free(ffd);
+		return NULL;
+	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins...\n") );
 	/* register all codecs, demux and protocols */
 	av_register_all();
+	avformat_network_init();
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[FFMPEG Demuxer] Registering all ffmpeg plugins DONE.\n") );
 
 	ffd->RegisterMimeTypes = FFD_RegisterMimeTypes;
@@ -1004,6 +1017,12 @@ void *New_FFMPEG_Demux()
 
 	priv->thread = gf_th_new("FFMPEG Demux");
 	priv->mx = gf_mx_new("FFMPEG Demux");
+	if (!priv->thread || !priv->mx) {
+		if (priv->thread) gf_th_del(priv->thread);
+		if (priv->mx) gf_mx_del(priv->mx);
+		gf_free(priv);
+		return NULL;
+	}
 
 	GF_REGISTER_MODULE_INTERFACE(ffd, GF_NET_CLIENT_INTERFACE, "FFMPEG Demuxer", "gpac distribution");
 	ffd->priv = priv;

@@ -293,7 +293,6 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 	GF_Err e;
 	u32 size;
 	GF_BitStream *bs;
-
 	if (!raw_desc || !descSize) return GF_BAD_PARAM;
 
 	bs = gf_bs_new(raw_desc, (u64) descSize, GF_BITSTREAM_READ);
@@ -318,29 +317,40 @@ GF_Err gf_odf_desc_read(char *raw_desc, u32 descSize, GF_Descriptor **outDesc)
 //use this function to encode a standalone descriptor
 //the desc will be formatted with tag and size field
 GF_EXPORT
-GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+GF_Err gf_odf_desc_write_bs(GF_Descriptor *desc, GF_BitStream *bs)
 {
 	GF_Err e;
-	GF_BitStream *bs;
+	if (!desc || !bs) return GF_BAD_PARAM;
 
-	if (!desc || !outEncDesc || !outSize) return GF_BAD_PARAM;
-
-	*outEncDesc = NULL;
-	*outSize = 0;
-
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	if (!bs) return GF_OUT_OF_MEM;
 	//then encode our desc...
 	e = gf_odf_write_descriptor(bs, desc);
 	if (e) {
 		gf_bs_del(bs);
 		return e;
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_desc_write(GF_Descriptor *desc, char **outEncDesc, u32 *outSize)
+{
+	GF_Err e;
+	GF_BitStream *bs;
+	if (!desc || !outEncDesc || !outSize) return GF_BAD_PARAM;
+	*outEncDesc = NULL;
+	*outSize = 0;
+
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	if (!bs) return GF_OUT_OF_MEM;
+
+	e = gf_odf_desc_write_bs(desc, bs);
+	
 	//then get the content from our bitstream
 	gf_bs_get_content(bs, outEncDesc, outSize);
 	gf_bs_del(bs);
-	return GF_OK;
+	return e;
 }
+
 
 //use this function to get the size of a standalone descriptor
 GF_EXPORT
@@ -359,7 +369,7 @@ u32 gf_odf_desc_size(GF_Descriptor *desc)
 
 }
 
-//this is usefull to duplicate on the fly a descriptor (mainly for authoring purposes)
+//this is useful to duplicate on the fly a descriptor (mainly for authoring purposes)
 GF_EXPORT
 GF_Err gf_odf_desc_copy(GF_Descriptor *inDesc, GF_Descriptor **outDesc)
 {
@@ -453,7 +463,7 @@ GF_Err gf_odf_desc_add_desc(GF_Descriptor *parentDesc, GF_Descriptor *newDesc)
 /*****************************************************************************************
 		Since IPMP V2, we introduce a new set of functions to read / write a list of
 	descriptors that have no containers (a bit like an OD command, but for descriptors)
-		This is usefull for IPMPv2 DecoderSpecificInfo which contains a set of
+		This is useful for IPMPv2 DecoderSpecificInfo which contains a set of
 	IPMP_Declarators.
 		As it could be used for other purposes we keep it generic
 	You must create the list yourself, the functions just encode/decode from/to the list
@@ -600,8 +610,9 @@ GF_Err gf_odf_codec_apply_com(GF_ODCodec *codec, GF_ODCom *command)
 			}
 			if (!found) {
 				GF_ObjectDescriptor *od_new;
-				gf_odf_desc_copy((GF_Descriptor*)od, (GF_Descriptor**)&od_new);
-				gf_list_add(odU_o->objectDescriptors, od_new);
+				GF_Err e = gf_odf_desc_copy((GF_Descriptor*)od, (GF_Descriptor**)&od_new);
+				if (e==GF_OK)
+					gf_list_add(odU_o->objectDescriptors, od_new);
 			}
 
 		}

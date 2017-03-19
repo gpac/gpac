@@ -215,10 +215,15 @@ static u8 BS_ReadByte(GF_BitStream *bs)
 
 	/*we are in FILE mode, test for end of file*/
 	if (!feof(bs->stream)) {
+		assert(bs->position<=bs->size);
 		bs->position++;
 		return (u32) fgetc(bs->stream);
 	}
 	if (bs->EndOfStream) bs->EndOfStream(bs->par);
+	else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[BS] Attempt to overread bitstream\n"));
+	}
+	assert(bs->position <= 1+bs->size);
 	return 0;
 }
 
@@ -280,7 +285,7 @@ u32 gf_bs_read_u8(GF_BitStream *bs)
 GF_EXPORT
 u32 gf_bs_read_u8_until_delimiter(GF_BitStream *bs, u8 delimiter, u8* out, u32 max_length) {
 	u32 i = 0;
-	char token;
+	char token=0;
 	u64 cur_pos = gf_bs_get_position(bs);
 
 	if (!max_length) out = NULL;
@@ -402,6 +407,7 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 	if (bs->position+nbBytes > bs->size) return 0;
 
 	if (BS_IsAlign(bs)) {
+		s32 bytes_read;
 		switch (bs->bsmode) {
 		case GF_BITSTREAM_READ:
 		case GF_BITSTREAM_WRITE:
@@ -413,9 +419,10 @@ u32 gf_bs_read_data(GF_BitStream *bs, char *data, u32 nbBytes)
 		case GF_BITSTREAM_FILE_WRITE:
 			if (bs->buffer_io)
 				bs_flush_cache(bs);
-			nbBytes = (u32) fread(data, 1, nbBytes, bs->stream);
-			bs->position += nbBytes;
-			return nbBytes;
+			bytes_read = (s32) fread(data, 1, nbBytes, bs->stream);
+			if (bytes_read<0) return 0;
+			bs->position += bytes_read;
+			return bytes_read;
 		default:
 			return 0;
 		}
@@ -447,7 +454,8 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (!bs->original) return;
 			bs->size *= 2;
 		}
-		bs->original[bs->position] = val;
+		if (bs->original)
+			bs->original[bs->position] = val;
 		bs->position++;
 		return;
 	}
@@ -726,14 +734,16 @@ u64 gf_bs_available(GF_BitStream *bs)
 
 	/*we are in MEM mode*/
 	if (bs->bsmode == GF_BITSTREAM_READ) {
-		if ((s64)bs->size - (s64)bs->position < 0)
+		if (bs->size < bs->position)
 			return 0;
 		else
 			return (bs->size - bs->position);
 	}
 	/*FILE READ: assume size hasn't changed, otherwise the user shall call gf_bs_get_refreshed_size*/
-	if (bs->bsmode==GF_BITSTREAM_FILE_READ) return (bs->size - bs->position);
-
+	if (bs->bsmode==GF_BITSTREAM_FILE_READ) {
+		if (bs->position>bs->size) return 0;
+		return (bs->size - bs->position);
+	}
 	if (bs->buffer_io)
 		bs_flush_cache(bs);
 

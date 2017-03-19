@@ -150,7 +150,7 @@ GF_Err gf_rtp_decode_rtcp(GF_RTPChannel *ch, char *pck, u32 pck_size, Bool *has_
 
 		case 201:
 			//sender ssrc
-			sender_ssrc = gf_bs_read_u32(bs);
+			/*sender_ssrc = */gf_bs_read_u32(bs);
 			rtcp_hdr.Length -= 1;
 
 process_reports:
@@ -183,7 +183,7 @@ process_reports:
 		//SDES
 		case 202:
 			for (i=0; i<rtcp_hdr.Count; i++) {
-				cur_ssrc = gf_bs_read_u32(bs);
+				/*cur_ssrc = */gf_bs_read_u32(bs);
 				rtcp_hdr.Length -= 1;
 
 				val = 0;

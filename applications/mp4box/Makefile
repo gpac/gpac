@@ -20,6 +20,7 @@ ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
 LINKFLAGS+=-lgpac_static
+LINKFLAGS+= $(GPAC_SH_FLAGS)
 LINKFLAGS+=$(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
@@ -30,6 +31,10 @@ ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=MP4Box$(EXE)
 LINKFLAGS+=$(UNICODEFLAGS)
+
+ifeq ($(HAS_WMAIN),no)
+CFLAGS+=-DNO_WMAIN
+endif
 
 else
 
@@ -56,7 +61,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
+	$(CC) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)

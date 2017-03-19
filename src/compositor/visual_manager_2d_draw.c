@@ -52,7 +52,7 @@ void visual_2d_release_raster(GF_VisualManager *visual)
 }
 
 
-void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen)
+void visual_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen)
 {
 #ifdef SKIP_DRAW
 	return;
@@ -393,14 +393,18 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 					had_flush = 1;
 				}
 				//if object was not completely in the flush region we will need to flush the canvas
-				if (gf_irect_inside(&rc, &visual->hybgl_drawn.list[i].rect)) {
-					assert(nb_obj_left_on_canvas);
-					nb_obj_left_on_canvas--;
+				if ( gf_irect_inside(&rc, &visual->hybgl_drawn.list[i].rect)) {
+					//it may happen that we had no object on the canvas but syil have their bounds (we only drew textures)
+					if (nb_obj_left_on_canvas)
+						nb_obj_left_on_canvas--;
 				}
 			}
-
-			//erase all part of the canvas below us
-			if (txh) {
+			//immediate mode flush, erase all canvas (we just completely flusged it)
+			if (tr_state->immediate_draw && had_flush && !tr_state->immediate_for_defer) {
+				visual->compositor->rasterizer->surface_clear(visual->raster_surface, NULL, 0);
+			}
+			//defer mode, erase all part of the canvas below us
+			else if (txh) {
 				visual_2d_draw_path_extended(visual, ctx->drawable->path, ctx, NULL, NULL, tr_state, NULL, NULL, GF_TRUE);
 			} else {
 				visual->compositor->rasterizer->surface_clear(visual->raster_surface, &ctx->bi->clip, 0);
@@ -424,6 +428,7 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path, GF_TextureHandler *txh, struct _drawable_context *ctx, GF_Rect *orig_bounds, GF_Matrix2D *ext_mx, GF_TraverseState *tr_state)
 {
 	GF_Rect clipper;
+	GF_Matrix mx;
 	u32 prev_mode = tr_state->traversing_mode;
 	u32 prev_type_3d = tr_state->visual->type_3d;
 
@@ -434,8 +439,17 @@ void visual_2d_texture_path_opengl_auto(GF_VisualManager *visual, GF_Path *path,
 	if (ctx->col_mat) gf_cmx_copy(&tr_state->color_mat, ctx->col_mat);//
 
 	tr_state->traversing_mode=TRAVERSE_DRAW_3D;
-	gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);
+	//in hybridGL the 2D camera is always setup as centered-coords, we have to insert flip+translation in case of top-left origin 
+	if (tr_state->visual->center_coords) {
+		gf_mx_from_mx2d(&tr_state->model_matrix, &ctx->transform);
+	} else {
+		gf_mx_init(tr_state->model_matrix);
+		gf_mx_add_scale(&tr_state->model_matrix, FIX_ONE, -FIX_ONE, FIX_ONE);
+		gf_mx_add_translation(&tr_state->model_matrix, -tr_state->camera->width/2, -tr_state->camera->height/2, 0);
 
+		gf_mx_from_mx2d(&mx, &ctx->transform);
+		gf_mx_add_matrix(&tr_state->model_matrix, &mx);
+	}
 
 	clipper.x = INT2FIX(ctx->bi->clip.x);
 	clipper.y = INT2FIX(ctx->bi->clip.y);

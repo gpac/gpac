@@ -571,8 +571,8 @@ gwskin.default_label_font_size = 18;
 gwskin.default_text_font_size = 18;
 gwskin.default_font_family = 'SANS';
 gwskin.default_icon_text_spacing = 8;
-gwskin.default_control_height = 64;
-gwskin.default_icon_height = 48;
+gwskin.default_control_height = 48;
+gwskin.default_icon_height = 32;
 
 
 //create styles
@@ -826,6 +826,8 @@ gwskin.images.channels = 'icons/tv.svg';
 gwskin.labels.channels = 'TV Channels';
 gwskin.images.view360 = 'icons/image.svg';
 gwskin.labels.view360 = '360°';
+gwskin.images.sensors = 'icons/compass.svg';
+gwskin.labels.sensors = 'Orientation';
 
 
 gwskin.mime_video_default_ext = " mp4 mp4s m4s 3gp 3gpp m2ts ts trp m3u8 mpd avi mov ";

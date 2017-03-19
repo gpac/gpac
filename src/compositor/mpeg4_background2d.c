@@ -67,6 +67,10 @@ static void b2D_new_status(Background2DStack *bck, M_Background2D*back)
 	BackgroundStatus *status;
 
 	GF_SAFEALLOC(status, BackgroundStatus);
+	if (!status) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate background2D status\n"));
+		return;
+	}
 	gf_mx2d_init(status->ctx.transform);
 	status->ctx.drawable = bck->drawable;
 	status->ctx.flags = CTX_IS_BACKGROUND;
@@ -169,7 +173,13 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 	} else {
 		is_offscreen = GF_TRUE;
 	}
+	if (ctx->flags & CTX_BACKROUND_NO_CLEAR) {
+		stack->flags &= ~(CTX_APP_DIRTY | CTX_TEXTURE_DIRTY);
+		tr_state->visual->has_modif = 1;
+		return;
+	}
 #endif
+
 	/*direct drawing, draw without clippers */
 	if (tr_state->immediate_draw
 	   ) {
@@ -187,7 +197,7 @@ static void DrawBackground2D_2D(DrawableContext *ctx, GF_TraverseState *tr_state
 			clip = ctx->bi->clip;
 			gf_irect_intersect(&clip, &tr_state->visual->to_redraw.list[i].rect);
 			if (clip.width && clip.height) {
-				tr_state->visual->ClearSurface(tr_state->visual, &clip, color, is_offscreen);
+				tr_state->visual->ClearSurface(tr_state->visual, &clip, color, is_offscreen ? 2 : 0);
 			}
 		}
 	}
@@ -443,6 +453,10 @@ void compositor_init_background2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Background2DStack *ptr;
 	GF_SAFEALLOC(ptr, Background2DStack);
+	if (!ptr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate background2D stack\n"));
+		return;
+	}
 
 	ptr->status_stack = gf_list_new();
 	ptr->reg_stacks = gf_list_new();

@@ -38,7 +38,7 @@ void gf_es_buffer_off(GF_Channel *ch)
 	if (ch->BufferOn) {
 		ch->BufferOn = GF_FALSE;
 		gf_clock_buffer_off(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at STB %d (OTB %d) (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), gf_clock_time(ch->clock), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) : buffering off at OTB %u (STB %d) (nb wait on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_time(ch->clock), gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 		//if one of the stream is done buffering, force data timeout for the clock to be the buffer time
 		//at the end of the buffering period
 		if ((ch->clock->data_timeout==ch->odm->term->net_data_timeout) && (ch->BufferTime>=(s32) ch->MaxBuffer))
@@ -56,8 +56,9 @@ void gf_es_buffer_on(GF_Channel *ch)
 	/*just in case*/
 	if (!ch->BufferOn) {
 		ch->BufferOn = 1;
+		ch->last_au_time = gf_term_get_time(ch->odm->term);
 		gf_clock_buffer_on(ch->clock);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at %d (nb buffering on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_term_get_time(ch->odm->term), ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_time(ch->clock), gf_term_get_time(ch->odm->term), ch->clock->Buffering));
 	}
 }
 
@@ -197,6 +198,10 @@ void gf_es_del(GF_Channel *ch)
 
 Bool gf_es_owns_clock(GF_Channel *ch)
 {
+	//if we share the clock with a clock from the same clock namespace but the clock was inherited
+	//don't trust ESIDs (typically happen in DASH where all streams may end up with the same ID...)
+	if (ch->clock_inherited) return GF_FALSE;
+	
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
 	/*It occurs in TS stream when PCR is provided in a dedicated stream. Suppose that the channel owns a clock*/
@@ -430,9 +435,7 @@ static void gf_es_update_buffer_time(GF_Channel *ch)
 		}
 
 		if (bt>0) {
-			if (bt>1000000)
-				bt=1000000;
-			ch->BufferTime = (u32) bt;
+				ch->BufferTime = (u32) bt;
 		} else {
 			ch->BufferTime = 0;
 		}
@@ -444,7 +447,7 @@ static void gf_es_update_buffer_time(GF_Channel *ch)
 /*dispatch the AU in the DB*/
 static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 {
-	u32 time;
+	u32 time, max;
 	GF_DBUnit *au;
 
 	if (!ch->buffer || !ch->len) {
@@ -506,9 +509,10 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 
 	gf_es_lock(ch, 1);
 
+	max = 3*ch->MaxBufferOccupancy/2;
+	if (max<300000) max = 300000;
 
-	if( (ch->MaxBuffer && (ch->BufferTime > (s32) ( 300000)) )
-	        || (ch->AU_Count>10000)
+	if( (ch->MaxBuffer && (ch->BufferTime > (s32) max) ) || (ch->AU_Count > max/100) //eg 100fps seconds
 	  ) {
 		if (ch->AU_Count>10000) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
@@ -678,7 +682,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	ch->au_duration = 0;
 	if (duration) ch->au_duration = (u32) ((u64)1000 * duration / ch->ts_res);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) - Dispatch AU DTS %d - CTS %d - RAP %d - Seek %d - size %d time %d Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags & GF_DB_AU_RAP, (au->flags & GF_DB_AU_IS_SEEK) ? 1 :0, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ODM %d ES%d (%s) - Dispatch AU DTS %u - CTS %u - RAP %d - Seek %d - size %d time %u Buffer %d Nb AUs %d - First AU relative timing %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, au->DTS, au->CTS, au->flags & GF_DB_AU_RAP, (au->flags & GF_DB_AU_IS_SEEK) ? 1 :0, au->dataLength, gf_clock_real_time(ch->clock), ch->BufferTime, ch->AU_Count, ch->AU_buffer_first ? ch->AU_buffer_first->DTS - gf_clock_time(ch->clock) : 0 ));
 
 	/*little optimisation: if direct dispatching is possible, try to decode the AU
 	we must lock the media scheduler to avoid deadlocks with other codecs accessing the scene or
@@ -747,6 +751,8 @@ static void gf_es_init_clock(GF_Channel *ch, u32 TS)
 	ch->clock->clock_init = 0;
 
 	gf_clock_set_time(ch->clock, TS);
+	ch->clock->ts_shift = ch->ts_shift;
+
 	//once the clock is init, reset any seek request at parent scene level
 	if (ch->odm->parentscene )
 		ch->odm->parentscene->root_od->media_start_time = 0;
@@ -811,7 +817,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	if (!ch->clock->clock_init) {
 		if (!ch->clock->use_ocr) {
 			gf_es_init_clock(ch, ch->DTS);
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %d - AU DTS %d CTS %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: Forcing clock initialization at STB %u - AU DTS %u CTS %u\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->CTS));
 		}
 	}
 	/*channel is the OCR, force a re-init of the clock since we cannot assume the AU used to init the clock was
@@ -819,7 +825,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	else if (gf_es_owns_clock(ch)) {
 		if (!ch->clock->use_ocr) {
 			gf_es_init_clock(ch, ch->DTS);
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %d - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d - AU DTS %u - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 		}
 	}
 	else if (!ch->IsClockInit ) {
@@ -830,7 +836,7 @@ static void gf_es_check_timing(GF_Channel *ch)
 	so that video can play back correctly*/
 	else if (gf_clock_time(ch->clock) * 1000 < ch->DTS) {
 		gf_es_init_clock(ch, ch->DTS);
-		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %d - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
+		GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: re-initializing clock at STB %d - AU DTS %u - %d buffering\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), ch->DTS, ch->clock->Buffering));
 	}
 }
 
@@ -863,7 +869,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 			cu->data = payload;
 			size = payload_size;
 			cu->TS = cts;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %d ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %u ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
 
@@ -979,7 +985,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				/*many TS streams deployed with HLS have broken PCRs - we will check their consistency
 				when receiving the first AU with DTS/CTS on this channel*/
 				ch->clock->probe_ocr = 1;
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %d (original TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: initializing clock at STB %d from OCR TS %u (original TS "LLD") - %d buffering - OTB %d\n", ch->esd->ESID, gf_term_get_time(ch->odm->term), OCR_TS, hdr.objectClockReference, ch->clock->Buffering, gf_clock_time(ch->clock) ));
 				if (ch->clock->clock_init) ch->IsClockInit = 1;
 
 			}
@@ -1008,12 +1014,16 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: At OTB %u got OCR %u (original TS "LLU") - diff %d%s (diff with prev OCR %d)\n", ch->esd->ESID, gf_clock_real_time(ch->clock), OCR_TS, hdr.objectClockReference, pcr_diff, discontinuity ? " - PCR Discontinuity flag" : "", pcr_pcrprev_diff));
 
-			//PCR loop or disc - use 10 sec as a threshold - it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems
-			//1- check the PCR diff is greater than 10 seconds
-			//2- check the diff between this PCR diff and last PCR diff is greater than 10 seconds
+			//PCR loop or disc - use 60 sec as a threshold to cope with HLS where TS are sent in burst - it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems
+			//1- check the PCR diff is greater than 60 seconds
+			//2- check the diff between this PCR diff and last PCR diff is greater than 60 seconds
 			//the first test is used to avoid disc detecting when the TS is sent in burst (eg DASH):
-			if (ch->IsClockInit && (ABS(pcr_diff) > 10000)  && (ABS(pcr_pcrprev_diff) > 10000) ) {
+			if (ch->IsClockInit && (ABS(pcr_diff) > 60000)  && (ABS(pcr_pcrprev_diff) > 60000) ) {
 				discontinuity = GF_TRUE;
+			}
+			//try to ignore PCR disc signaling if our PCR diff seems to be reasonnable 
+			if ((hdr.m2ts_pcr==2) && (ABS(pcr_diff) <= 60000)) {
+				discontinuity = GF_FALSE;
 			}
 
 			if (discontinuity) {
@@ -1110,7 +1120,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	/*if we had a previous buffer, add or discard it, depending on codec resilience*/
 	if (hdr.accessUnitStartFlag && ch->buffer) {
 		if (ch->esd->slConfig->useAccessUnitEndFlag) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %d)\n", ch->esd->ESID, ch->DTS));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: missed end of AU (DTS %u)\n", ch->esd->ESID, ch->DTS));
 		}
 		if (ch->codec_resilient) {
 			if (!ch->IsClockInit && !ch->skip_time_check_for_pending) gf_es_check_timing(ch);
@@ -1124,7 +1134,8 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 	}
 
 	if (init_ts) {
-		if (hdr.sender_ntp) ch->sender_ntp = hdr.sender_ntp;
+		if (hdr.sender_ntp)
+			ch->sender_ntp = hdr.sender_ntp;
 		/*Get CTS */
 		if (ch->esd->slConfig->useTimestampsFlag) {
 			if (hdr.compositionTimeStampFlag) {
@@ -1150,9 +1161,24 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					ch->net_cts -= ch->seed_ts;
 					ch->CTS_past_offset = 0;
 
+					if (ch->clock) {
+						ch->ts_shift = ch->clock->ts_shift;
+
+						//if we init the clock to something > 32 bits, shift down close to zero
+						//this will allow us 49 days of playback without having to deal with TS loops
+						//TODO: move all our timestamps to 64 bits ...
+						if (!ch->clock->clock_init) {
+							u64 dts= ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res;
+							if (dts>0xFFFFFFFFUL) {
+								//don't reset to zero, in case DTSs are not in order (interleaved transport)
+								ch->ts_shift = dts - 2*ch->ts_res;
+							}
+						}
+					}
+
 					/*TS Wraping not tested*/
-					ch->CTS = (u32) (ch->ts_offset + (s64) (ch->net_cts) * 1000 / ch->ts_res);
-					ch->DTS = (u32) (ch->ts_offset + (s64) (ch->net_dts) * 1000 / ch->ts_res);
+					ch->CTS = (u32) (ch->ts_offset + (u64) (ch->net_cts * 1000 / ch->ts_res - ch->ts_shift) );
+					ch->DTS = (u32) (ch->ts_offset + (u64) (ch->net_dts * 1000 / ch->ts_res - ch->ts_shift) );
 				}
 
 				if (ch->odm->parentscene && ch->odm->parentscene->root_od->addon) {
@@ -1170,7 +1196,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					s32 diff_ts = ch->DTS;
 					diff_ts -= ch->clock->init_time;
 					if (ABS(diff_ts) > 10000) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %d but OCR %d - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] ES%d: invalid clock reference detected - DTS %u but OCR %u - using DTS as OCR\n", ch->esd->ESID, ch->DTS, ch->clock->init_time));
 						gf_es_init_clock(ch, ch->DTS-1000);
 						ch->clock->broken_pcr = 1;
 					}
@@ -1234,11 +1260,11 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: tuning in\n", ch->esd->ESID));
 					} else {
 						ch->skip_carousel_au = 1;
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: repeated AU (TS %u) - skipping\n", ch->esd->ESID, ch->CTS));
 						return;
 					}
 				} else {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU (TS %d)\n", ch->esd->ESID, ch->CTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: MPEG-2 Carousel: updated AU (TS %u)\n", ch->esd->ESID, ch->CTS));
 					ch->stream_state=0;
 					ch->au_sn = AUSeqNum;
 				}
@@ -1246,7 +1272,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				if (hdr.randomAccessPointFlag) {
 					/*initial tune-in*/
 					if (ch->stream_state==1) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - tuning in\n", ch->esd->ESID, ch->CTS));
+						GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - tuning in\n", ch->esd->ESID, ch->CTS));
 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
 					}
@@ -1254,19 +1280,19 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					else if (AUSeqNum == ch->au_sn) {
 						/*error recovery*/
 						if (ch->stream_state==2) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - recovering\n", ch->esd->ESID, ch->CTS));
 							ch->stream_state = 0;
 						}
 						else {
 							ch->skip_carousel_au = 1;
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - skipping\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - skipping\n", ch->esd->ESID, ch->CTS));
 							return;
 						}
 					}
 					/*regular RAP*/
 					else {
 						if (ch->stream_state==2) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %d) - recovering from previous errors\n", ch->esd->ESID, ch->CTS));
+							GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d: RAP Carousel found (TS %u) - recovering from previous errors\n", ch->esd->ESID, ch->CTS));
 						}
 						ch->au_sn = AUSeqNum;
 						ch->stream_state = 0;
@@ -1295,7 +1321,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 					}
 				} else {
 					ch->au_sn = AUSeqNum;
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %d)\n", ch->esd->ESID, ch->DTS));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d: NON-RAP AU received (TS %u)\n", ch->esd->ESID, ch->DTS));
 				}
 			}
 		}
@@ -1313,7 +1339,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Considering AU is RAP on enhancement layer\n", ch->esd->ESID, ch->odm->net_service->url));
 				ch->stream_state = 0;
 			} else {
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Waiting for RAP - skipping AU (DTS %d)\n", ch->esd->ESID, ch->odm->net_service->url, ch->DTS));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Waiting for RAP - skipping AU (DTS %u)\n", ch->esd->ESID, ch->odm->net_service->url, ch->DTS));
 				return;
 			}
 		}
@@ -1461,11 +1487,23 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
 	if (!ch->is_pulling) {
+		GF_NetworkCommand com;
+		Bool flush_data = GF_FALSE;
 		gf_mx_p(ch->mx);
 
-		if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) ) {
+		if (ch->odm->term->bench_mode && !ch->AU_buffer_first) {
+			memset(&com, 0, sizeof(GF_NetworkCommand));
+			com.command_type = GF_NET_BUFFER_QUERY;
+			com.base.on_channel = NULL;
+			gf_service_command(ch->service, &com, GF_OK);
+			if (!com.buffer.occupancy)
+				flush_data = GF_TRUE;
+		} else {
+			if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) )
+				flush_data = GF_TRUE;
+		}
+		if (flush_data) {
 			/*query buffer level, don't sleep if too low*/
-			GF_NetworkCommand com;
 			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
@@ -1551,6 +1589,12 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				evt.sai = slh.sai;
 				evt.saiz = slh.saiz;
 				evt.IV_size = slh.IV_size;
+				evt.crypt_byte_block = slh.crypt_byte_block;
+				evt.skip_byte_block = slh.skip_byte_block;
+				if (!evt.IV_size) {
+					evt.constant_IV_size = slh.constant_IV_size;
+					memmove(evt.constant_IV, slh.constant_IV, evt.constant_IV_size);
+				}
 			}
 			evt.channel = ch;
 			e = ch->ipmp_tool->process(ch->ipmp_tool, &evt);
@@ -1572,7 +1616,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %d - Dispatch Pull AU DTS %d - CTS %d - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %u - Dispatch Pull AU DTS %u - CTS %u - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
 
 		ch->AU_buffer_pull->flags = 0;
 		if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
@@ -1789,6 +1833,10 @@ void gf_es_on_connect(GF_Channel *ch)
 	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "RebufferLength");
 	if (sOpt) com.buffer.min = atoi(sOpt);
 
+	com.buffer.occupancy = com.buffer.max;
+	sOpt = gf_cfg_get_key(ch->odm->term->user->config, "Network", "BufferMaxOccupancy");
+	if (sOpt) com.buffer.occupancy = atoi(sOpt);
+
 	//set the buffer command even though the channel is pulling, in order to indicate to the service the prefered values
 	com.command_type = GF_NET_CHAN_BUFFER;
 	com.base.on_channel = ch;
@@ -1797,6 +1845,8 @@ void gf_es_on_connect(GF_Channel *ch)
 		if (can_buffer) {
 			ch->MinBuffer = com.buffer.min;
 			ch->MaxBuffer = com.buffer.max;
+			ch->MaxBufferOccupancy = com.buffer.occupancy;
+			if (ch->MaxBufferOccupancy < ch->MaxBuffer) ch->MaxBufferOccupancy = ch->MaxBuffer;
 		}
 	}
 
@@ -1850,7 +1900,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 
 	/*push all cfg data*/
 	/*CommonEncryption*/
-	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1'))) {
+	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1')) || (drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 's')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','s'))) {
 		evt.config_data_code = drm_cfg->scheme_type;
 		memset(&cenc_cfg, 0, sizeof(cenc_cfg));
 		cenc_cfg.scheme_version = drm_cfg->scheme_version;

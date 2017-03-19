@@ -112,7 +112,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 				if (err<0) break;
 				if (err>0)
 					if (gf_fwrite(buf,err,1,fout)!=1) {
-						err=UNZ_ERRNO;
+						//err=UNZ_ERRNO;
 						break;
 					}
 			} while (err>0);
@@ -261,6 +261,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	}
 
 	GF_SAFEALLOC(wzip, GF_WidgetPackage);
+	if (!wzip) return NULL;
 
 	wzip->wm = wm;
 	wzip->relocate_uri = widget_package_relocate_uri;
@@ -286,6 +287,12 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 	wzip->package_path = gf_strdup(path);
 
 	GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
+	if (!pack_res) {
+		gf_list_del(wzip->resources);
+		gf_free(wzip);
+		gf_isom_close(isom);
+		return NULL;
+	}
 	pack_res->extracted_path = gf_strdup(szPath);
 	pack_res->inner_path = gf_strdup("config.xml");
 	pack_res->extracted = GF_TRUE;
@@ -313,6 +320,10 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 			strcat(szPath, item_name);
 		}
 		GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
+		if (!pack_res) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[WidgetMan] Failed to allocate widget resource\n"));
+			continue;
+		}
 		pack_res->extracted_path = gf_strdup(szPath);
 		pack_res->inner_path = gf_strdup(item_name);
 		pack_res->extracted = GF_FALSE;
@@ -339,6 +350,7 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 	if (!uf) return NULL;
 
 	GF_SAFEALLOC(wzip, GF_WidgetPackage);
+	if (!wzip) return NULL;
 
 	wzip->wm = wm;
 	wzip->is_zip = GF_TRUE;
@@ -396,6 +408,11 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 			if (fout) gf_fclose(fout);
 			if (err==0) {
 				GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
+				if (!pack_res) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[WidgetMan] Failed to allocate widget resource\n"));
+					continue;
+				}
+				
 				pack_res->extracted_path = gf_strdup(szPath);
 				pack_res->inner_path = gf_strdup(filename_inzip);
 				pack_res->extracted = GF_TRUE;
@@ -403,6 +420,10 @@ static GF_WidgetPackage *widget_zip_new(GF_WidgetManager *wm, const char *path)
 			}
 		} else {
 			GF_SAFEALLOC(pack_res, GF_WidgetPackageResource);
+			if (!pack_res) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[WidgetMan] Failed to allocate widget resource\n"));
+				continue;
+			}
 			pack_res->extracted_path = gf_strdup(szPath);
 			pack_res->inner_path = gf_strdup(filename_inzip);
 			pack_res->extracted = GF_FALSE;
@@ -2175,6 +2196,7 @@ GF_WidgetComponentInstance *wm_activate_component(JSContext *c, GF_WidgetInstanc
 		fun_name = "on_widget_add";
 
 	GF_SAFEALLOC(comp_inst, GF_WidgetComponentInstance);
+	if (!comp_inst) return NULL;
 	comp_inst->comp = comp;
 	comp_inst->wid = comp_wid;
 	comp_wid->parent = wid;
@@ -2471,6 +2493,8 @@ static GF_WidgetPin *wm_parse_pin(const char *value, u16 type, const char *pin_n
 	if (!value && !scriptType && !default_value) return NULL;
 
 	GF_SAFEALLOC(pin, GF_WidgetPin);
+	if (!pin) return NULL;
+	
 	pin->type = type;
 	if (pin_name) pin->name = gf_strdup(pin_name);
 
@@ -2685,6 +2709,11 @@ static void wm_parse_mpegu_content_element(GF_WidgetContent *content, GF_XMLNode
 
 			if (!pref) {
 				GF_SAFEALLOC(pref, GF_WidgetPreference);
+				if (!pref) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[WidgetMan] Failed to allocate widget preference\n"));
+					continue;
+				}
+
 				pref->name = gf_strdup(att);
 				gf_list_add(content->preferences, pref);
 			}
@@ -2917,14 +2946,19 @@ static GF_WidgetContent *wm_add_icon(GF_Widget *widget, const char *icon_relocat
 	if (already_in) return NULL;
 
 	GF_SAFEALLOC(icon, GF_WidgetContent);
+	if (!icon) return NULL;
+	
 	if (uri_fragment) {
 		icon->src = gf_malloc(strlen(icon_localized_path) + strlen(uri_fragment) + 1);
-		strcpy(icon->src, icon_localized_path);
-		strcat(icon->src, uri_fragment);
-
+		if (icon->src) {
+			strcpy(icon->src, icon_localized_path);
+			strcat(icon->src, uri_fragment);
+		}
 		icon->relocated_src = gf_malloc(strlen(icon_relocated_path) + strlen(uri_fragment) + 1);
-		strcpy(icon->relocated_src, icon_relocated_path);
-		strcat(icon->relocated_src, uri_fragment);
+		if (icon->relocated_src) {
+			strcpy(icon->relocated_src, icon_relocated_path);
+			strcat(icon->relocated_src, uri_fragment);
+		}
 	} else {
 		icon->src = gf_strdup(icon_localized_path);
 		icon->relocated_src = gf_strdup(icon_relocated_path);
@@ -3118,6 +3152,10 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 
 		/* get the content element from the XML Config document */
 		GF_SAFEALLOC(content, GF_WidgetContent);
+		if (!content) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		content->interfaces = gf_list_new();
 		content->components = gf_list_new();
 		content->preferences = gf_list_new();
@@ -3172,6 +3210,10 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		wm_parse_mpegu_content_element(content, nmain, mpegu_ns_prefix, global_prefs);
 
 		GF_SAFEALLOC(widget, GF_Widget);
+		if (!widget) {
+			e = GF_OUT_OF_MEM;
+			goto exit;
+		}
 		widget->url = gf_strdup(path);
 		widget->manifest_path = gf_strdup(szManifestPath);
 		if (isDownloadedPackage) widget->local_path = gf_strdup(szLocalPath);
@@ -3233,7 +3275,7 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 		}
 		gf_list_del(global_prefs);
 
-		/*check for optionnal meta data*/
+		/*check for optional meta data*/
 		name = wm_xml_find(root, widget_ns_prefix, "name", user_locale);
 		if (name) {
 			const char *shortname = wm_xml_get_attr(name, "short");
@@ -3329,6 +3371,10 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 				if (already_in) continue;
 
 				GF_SAFEALLOC(feat, GF_WidgetFeature);
+				if (!feat) {
+					e = GF_OUT_OF_MEM;
+					goto exit;
+				}
 				feat->name = nfname;
 				feat->required = required;
 				feat->params = gf_list_new();
@@ -3355,6 +3401,11 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 						}
 
 						GF_SAFEALLOC(wfp, GF_WidgetFeatureParam);
+						if (!wfp) {
+							e = GF_OUT_OF_MEM;
+							goto exit;
+						}
+
 						wfp->name = npname;
 						wfp->value = npvalue;
 						gf_list_add(feat->params, wfp);
@@ -3369,6 +3420,11 @@ GF_WidgetInstance *wm_load_widget(GF_WidgetManager *wm, const char *path, u32 In
 	}
 
 	GF_SAFEALLOC(wi, GF_WidgetInstance);
+	if (!wi) {
+		e = GF_OUT_OF_MEM;
+		goto exit;
+	}
+	
 	wi->widget = widget;
 	wi->bound_ifces = gf_list_new();
 	wi->output_triggers = gf_list_new();
@@ -3602,11 +3658,15 @@ static GF_JSUserExtension *gwm_new()
 {
 	GF_JSUserExtension *dr;
 	GF_WidgetManager *wm;
-	dr = gf_malloc(sizeof(GF_JSUserExtension));
-	memset(dr, 0, sizeof(GF_JSUserExtension));
+	GF_SAFEALLOC(dr, GF_JSUserExtension);
+	if (!dr) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_JS_USER_EXT_INTERFACE, "WidgetManager JavaScript Bindings", "gpac distribution");
 
 	GF_SAFEALLOC(wm, GF_WidgetManager);
+	if (!wm) {
+		gf_free(dr);
+		return NULL;
+	}
 	wm->widget_instances = gf_list_new();
 	wm->widgets = gf_list_new();
 	dr->load = widgetmanager_load;
