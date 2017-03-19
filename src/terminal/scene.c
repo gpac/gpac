@@ -1528,9 +1528,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
 			{
-				const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
+				const char *opt = gf_cfg_get_key(scene->compositor->user->config, "Compositor", "VRDefaultFOV");
 				if (!opt) {
-					gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", "0.785398006");
+					gf_cfg_set_key(scene->compositor->user->config, "Compositor", "VRDefaultFOV", "0.785398006");
 				} else {
 					((M_Viewpoint *)n2)->position.z = FLT2FIX( atof(opt) );
 				}
