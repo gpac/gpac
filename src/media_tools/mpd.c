@@ -2817,13 +2817,6 @@ GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_Adapta
 							start_time += ent->duration * (1 + ent->repeat_count);
 							continue;
 						} else {
-							second_sep[0] = '$';
-							/*look for next keyword - copy over remaining text if any*/
-							first_sep = strchr(second_sep + 1, '$');
-							if (first_sep) first_sep[0] = 0;
-							if (strlen(second_sep + 1))
-								strcat(solved_template, second_sep + 1);
-							if (first_sep) first_sep[0] = '$';
 							gf_free(url);
 							gf_free(solved_template);
 							second_sep[0] = '$';
