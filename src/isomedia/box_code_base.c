@@ -2994,6 +2994,81 @@ GF_Err mdia_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+GF_Box *mfra_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_MovieFragmentRandomAccessBox, GF_ISOM_BOX_TYPE_MFRA);
+	return (GF_Box *)tmp;
+}
+
+GF_Err mfra_AddBox(GF_Box *s, GF_Box *a)
+{
+	GF_MovieFragmentRandomAccessBox *ptr = (GF_MovieFragmentRandomAccessBox *)s;
+	switch(a->type) {
+	case GF_ISOM_BOX_TYPE_TFRA:
+		if (ptr->tfra) ERROR_ON_DUPLICATED_BOX(a, ptr)
+		ptr->tfra = (GF_TrackFragmentRandomAccessBox*)a;
+		return GF_OK;
+	default:
+		return gf_isom_box_add_default(s, a);
+	}
+	return GF_OK;
+}
+
+GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs)
+{
+	return gf_isom_read_box_list(s, bs, mfra_AddBox);
+}
+
+GF_Box *tfra_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TrackFragmentRandomAccessBox, GF_ISOM_BOX_TYPE_TFRA);
+	return (GF_Box *)tmp;
+}
+
+
+
+GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_RandomAccessEntry *p;
+	GF_TrackFragmentRandomAccessBox *ptr = (GF_TrackFragmentRandomAccessBox *)s;
+
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+
+	ptr->track_id = gf_bs_read_u32(bs);
+
+	if (gf_bs_read_int(bs, 26) !=0) return GF_ISOM_INVALID_FILE;
+	ptr->traf_bits = (gf_bs_read_int(bs, 2)+1)*8;
+	ptr->trun_bits = (gf_bs_read_int(bs, 2)+1)*8;
+	ptr->sample_bits = (gf_bs_read_int(bs, 2)+1)*8;
+	ptr->nb_entries = gf_bs_read_u32(bs);
+
+	ptr->entries = p = (GF_RandomAccessEntry *) gf_malloc(sizeof(GF_RandomAccessEntry) * ptr->nb_entries);
+	if (!p) return GF_OUT_OF_MEM;
+
+	for (i=0; i<ptr->nb_entries; i++) {
+		memset(p, 0, sizeof(GF_RandomAccessEntry));
+
+		if (ptr->version==1) {
+			p->time = gf_bs_read_u64(bs);
+			p->moof_offset = gf_bs_read_u64(bs);
+		}
+		else
+		{
+			p->time = gf_bs_read_u32(bs);
+			p->moof_offset = gf_bs_read_u32(bs);
+		}
+		p->traf_number = gf_bs_read_int(bs, ptr->traf_bits);
+		p->trun_number = gf_bs_read_int(bs, ptr->trun_bits);
+		p->sample_number = gf_bs_read_int(bs, ptr->sample_bits);
+
+		++p;
+	}
+	return GF_OK;
+}
+
 void elng_del(GF_Box *s)
 {
 	GF_ExtendedLanguageBox *ptr = (GF_ExtendedLanguageBox *)s;
@@ -7848,6 +7923,7 @@ GF_Err txtc_Read(GF_Box *s, GF_BitStream *bs)
 		i++;
 	}
 	if (i) ptr->config = gf_strdup(str);
+	gf_free(str);
 
 	return GF_OK;
 }

@@ -2395,6 +2395,9 @@ Bool gf_isom_get_sample_group_info(GF_ISOFile *the_file, u32 trackNumber, u32 sa
 /*returns tile info */
 Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_description_index, u32 *default_sample_group_index, u32 *id, u32 *independent, Bool *full_frame, u32 *x, u32 *y, u32 *w, u32 *h);
 
+/*returns true if date/version info droping is enabled */
+Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file);
+
 /*sample groups information*/
 #ifndef GPAC_DISABLE_ISOM_WRITE
 /*sets rap flag for sample_number - this is used by non-IDR RAPs in AVC (also in USAC) were SYNC flag (stss table) cannot be used

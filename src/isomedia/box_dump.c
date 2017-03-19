@@ -223,6 +223,10 @@ GF_Err gf_box_dump_ex(void *ptr, FILE * trace, u32 box_4cc)
 		return tref_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_dump(a, trace);
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_dump(a, trace);
 	case GF_ISOM_BOX_TYPE_CHPL:
@@ -1650,6 +1654,31 @@ GF_Err mdia_dump(GF_Box *a, FILE * trace)
 	gf_box_dump_ex(p->handler, trace,GF_ISOM_BOX_TYPE_HDLR);
 	gf_box_dump_ex(p->information, trace, GF_ISOM_BOX_TYPE_MINF);
 	gf_box_dump_done("MediaBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err mfra_dump(GF_Box *a, FILE * trace)
+{
+	GF_MovieFragmentRandomAccessBox *p = (GF_MovieFragmentRandomAccessBox *)a;
+	fprintf(trace, "<MovieFragmentRandomAccessBox>\n");
+	DumpBox(a, trace);
+	gf_box_dump_ex(p->tfra, trace, GF_ISOM_BOX_TYPE_TFRA);
+	gf_box_dump_done("MovieFragmentRandomAccessBox", a, trace);
+	return GF_OK;
+}
+
+GF_Err tfra_dump(GF_Box *a, FILE * trace)
+{
+	u32 i;
+	GF_TrackFragmentRandomAccessBox *p = (GF_TrackFragmentRandomAccessBox *)a;
+	fprintf(trace, "<TrackFragmentRandomAccessBox TrackId=\"%u\" number_of_entries=\"%u\">\n", p->track_id, p->nb_entries);
+	DumpBox(a, trace);
+	for (i=0; i<p->nb_entries; i++)
+		fprintf(trace, "<RandomAccessEntry time=\""LLU"\" moof_offset=\""LLU"\" traf=\"%u\" trun=\"%u\" sample=\"%u\"/>\n",
+			p->entries[i].time, p->entries[i].moof_offset,
+			p->entries[i].traf_number, p->entries[i].trun_number, p->entries[i].sample_number);
+
+	gf_box_dump_done("TrackFragmentRandomAccessBox", a, trace);
 	return GF_OK;
 }
 

@@ -134,9 +134,9 @@ typedef Float Fixed;
 /*!\hideinitializer _a*_b, expressed as fixed number*/
 #define gf_mulfix(_a, _b)		((_a)*(_b))
 /*!\hideinitializer _a*_b/_c, expressed as fixed number*/
-#define gf_muldiv(_a, _b, _c)	((_c) ? (_a)*(_b)/(_c) : GF_MAX_FLOAT)
+#define gf_muldiv(_a, _b, _c)	(((_c != 0)) ? (_a)*(_b)/(_c) : GF_MAX_FLOAT)
 /*!\hideinitializer _a/_b, expressed as fixed number*/
-#define gf_divfix(_a, _b)		((_b) ? (_a)/(_b) : GF_MAX_FLOAT)
+#define gf_divfix(_a, _b)		(((_b != 0)) ? (_a)/(_b) : GF_MAX_FLOAT)
 /*!\hideinitializer sqrt(_a), expressed as fixed number*/
 #define gf_sqrt(_a) ((Float) sqrt(_a))
 /*!\hideinitializer ceil(_a), expressed as fixed number*/

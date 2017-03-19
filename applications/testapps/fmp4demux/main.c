@@ -190,11 +190,11 @@ int main(int argc, char **argv)
 	/* Initializing GPAC framework */
 	/* Enables GPAC memory tracking in debug mode only */
 #if defined(DEBUG) || defined(_DEBUG)
-	gf_sys_init(GF_TRUE);
+	gf_sys_init(GF_MemTrackerSimple);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #else
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 #endif
 

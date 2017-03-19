@@ -31,6 +31,7 @@
 
 #include <gpac/modules/hardcoded_proto.h>
 #include <gpac/internal/terminal_dev.h>
+#include "texturing.h"
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -1139,8 +1140,124 @@ void compositor_init_test_sensor(GF_Compositor *compositor, GF_Node *node)
 }
 
 
+/*CustomTexture: tests defining new (openGL) textures*/
+typedef struct
+{
+    BASE_NODE
+    
+    Fixed intensity;
+} CustomTexture;
+
+typedef struct
+{
+    CustomTexture tx;
+    GF_TextureHandler txh;
+    u32 gl_id;
+} CustomTextureStack;
+
+static Bool CustomTexture_GetNode(GF_Node *node, CustomTexture *tx)
+{
+    GF_FieldInfo field;
+    memset(tx, 0, sizeof(CustomTexture));
+    tx->sgprivate = node->sgprivate;
+    
+    if (gf_node_get_field(node, 0, &field) != GF_OK) return GF_FALSE;
+    if (field.fieldType != GF_SG_VRML_SFFLOAT) return GF_FALSE;
+    if (field.eventType != GF_SG_EVENT_EXPOSED_FIELD) return GF_FALSE;
+    tx->intensity = *(SFFloat *)field.far_ptr;
+    
+    return GF_TRUE;
+}
+
+static void TraverseCustomTexture(GF_Node *node, void *rs, Bool is_destroy)
+{
+    CustomTextureStack *stack = (CustomTextureStack *)gf_node_get_private(node);
+    
+    if (is_destroy) {
+        //release texture object
+        gf_sc_texture_destroy(&stack->txh);
+        gf_free(stack);
+        return;
+    }
+}
+
+#ifndef GPAC_DISABLE_3D
+#include "gl_inc.h"
+#endif
+
+static void CustomTexture_update(GF_TextureHandler *txh)
+{
+#ifndef GPAC_DISABLE_3D
+    char data[12];
+#endif
+    CustomTextureStack *stack = gf_node_get_private(txh->owner);
+    //alloc texture
+    if (!txh->tx_io) {
+        //allocate texture
+        gf_sc_texture_allocate(txh);
+        if (!txh->tx_io) return;
+    }
+#ifndef GPAC_DISABLE_3D
+    //texture not setup, do it
+    if (! gf_sc_texture_get_gl_id(txh)) {
+        
+        //setup some defaults (these two vars are used to setup internal texture format)
+        //in our case we only want to test openGL so no need to fill in the texture width/height stride
+        //since we will upload ourselves the texture
+        txh->transparent = 0;
+        txh->pixelformat = GF_PIXEL_RGB_24;
+
+        //signaling we modified associated data (even if no data in our case) to mark texture as dirty
+        gf_sc_texture_set_data(txh);
+        
+        //trigger HW setup of the texture
+        gf_sc_texture_push_image(txh, GF_FALSE, GF_FALSE);
+        
+        //OK we have a valid textureID
+        stack->gl_id = gf_sc_texture_get_gl_id(txh);
+    }
+#endif
+
+
+    //get current value of node->value
+    CustomTexture_GetNode(txh->owner, &stack->tx);
+
+#ifndef GPAC_DISABLE_3D
+    //setup our texture data
+    memset(data, 0, sizeof(char)*12);
+    data[0] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //first pixel red modulated by intensity
+    data[4] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //second pixel green
+    data[8] = (char) (0xFF * FIX2FLT(stack->tx.intensity)); //third pixel blue
+    //last pixel black
+    
+    glBindTexture( GL_TEXTURE_2D, stack->gl_id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 2, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    
+#endif
+ 
+}
+
+void compositor_init_custom_texture(GF_Compositor *compositor, GF_Node *node)
+{
+    CustomTexture tx;
+    if (CustomTexture_GetNode(node, &tx)) {
+        CustomTextureStack *stack;
+        GF_SAFEALLOC(stack, CustomTextureStack);
+        gf_node_set_private(node, stack);
+        gf_node_set_callback_function(node, TraverseCustomTexture);
+        stack->tx = tx;
+
+        //register texture object
+        gf_sc_texture_setup(&stack->txh, compositor, node);
+        stack->txh.update_texture_fcnt = CustomTexture_update;
+    
+    } else {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Unable to initialize custom texture\n"));
+    }
+}
+
 /*hardcoded proto loading - this is mainly used for module development and testing...*/
-void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
+void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 {
 	MFURL *proto_url;
 	GF_Proto *proto;
@@ -1153,6 +1270,8 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 
 	for (i=0; i<proto_url->count; i++) {
 		const char *url = proto_url->vals[0].url;
+        if (!url) continue;
+        
 #ifndef GPAC_DISABLE_3D
 		if (!strcmp(url, "urn:inet:gpac:builtin:PathExtrusion")) {
 			compositor_init_path_extrusion(compositor, node);
@@ -1203,6 +1322,11 @@ void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node)
 			compositor_init_test_sensor(compositor, node);
 			return;
 		}
+        if (!strcmp(url, "urn:inet:gpac:builtin:CustomTexture")) {
+            compositor_init_custom_texture(compositor, node);
+            return;
+        }
+        
 
 		/*check proto modules*/
 		if (compositor->proto_modules) {
@@ -1230,6 +1354,27 @@ Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri)
 		}
 	}
 	return GF_FALSE;
+}
+
+GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n)
+{
+    
+    MFURL *proto_url;
+    GF_Proto *proto;
+    u32 i;
+    
+    proto = gf_node_get_proto(n);
+    if (!proto) return NULL;
+    proto_url = gf_sg_proto_get_extern_url(proto);
+    
+    for (i=0; i<proto_url->count; i++) {
+        const char *url = proto_url->vals[0].url;
+        if (!strcmp(url, "urn:inet:gpac:builtin:CustomTexture")) {
+            CustomTextureStack *stack = gf_node_get_private(n);
+            if (stack) return &stack->txh;
+        }
+    }
+    return NULL;
 }
 
 #endif /*GPAC_DISABLE_VRML*/

@@ -167,6 +167,8 @@ enum
 	GF_ISOM_BOX_TYPE_SAIZ	= GF_4CC( 's', 'a', 'i', 'z' ),
 	GF_ISOM_BOX_TYPE_SAIO	= GF_4CC( 's', 'a', 'i', 'o' ),
 	GF_ISOM_BOX_TYPE_MFRA	= GF_4CC( 'm', 'f', 'r', 'a' ),
+	GF_ISOM_BOX_TYPE_MFRO	= GF_4CC( 'm', 'f', 'r', 'o' ),
+	GF_ISOM_BOX_TYPE_TFRA	= GF_4CC( 't', 'f', 'r', 'a' ),
 
 	GF_ISOM_BOX_TYPE_PSSH	= GF_4CC( 'p', 's', 's', 'h' ),
 	GF_ISOM_BOX_TYPE_TENC	= GF_4CC( 't', 'e', 'n', 'c' ),
@@ -440,6 +442,32 @@ typedef struct
 	u64 dataSize;
 	char *data;
 } GF_MediaDataBox;
+
+typedef struct
+{
+  u64 time;
+  u64 moof_offset;
+  u32 traf_number;
+  u32 trun_number;
+  u32 sample_number;
+} GF_RandomAccessEntry;
+
+typedef struct
+{
+  GF_ISOM_FULL_BOX
+  u32 track_id;
+  u8 traf_bits;
+  u8 trun_bits;
+  u8 sample_bits;
+  u32 nb_entries;
+  GF_RandomAccessEntry *entries;
+} GF_TrackFragmentRandomAccessBox;
+
+typedef struct
+{
+  GF_ISOM_BOX
+  GF_TrackFragmentRandomAccessBox* tfra;
+} GF_MovieFragmentRandomAccessBox;
 
 typedef struct
 {
@@ -3120,6 +3148,8 @@ GF_Box *minf_New();
 GF_Box *tkhd_New();
 GF_Box *tref_New();
 GF_Box *mdia_New();
+GF_Box *mfra_New();
+GF_Box *tfra_New();
 GF_Box *defa_New();
 GF_Box *uuid_New();
 GF_Box *void_New();
@@ -3328,6 +3358,8 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tkhd_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err tref_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err mfra_Read(GF_Box *s, GF_BitStream *bs);
+GF_Err tfra_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err defa_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err uuid_Read(GF_Box *s, GF_BitStream *bs);
 GF_Err void_Read(GF_Box *s, GF_BitStream *bs);
@@ -3880,6 +3912,8 @@ GF_Err minf_dump(GF_Box *a, FILE * trace);
 GF_Err tkhd_dump(GF_Box *a, FILE * trace);
 GF_Err tref_dump(GF_Box *a, FILE * trace);
 GF_Err mdia_dump(GF_Box *a, FILE * trace);
+GF_Err mfra_dump(GF_Box *a, FILE * trace);
+GF_Err tfra_dump(GF_Box *a, FILE * trace);
 GF_Err defa_dump(GF_Box *a, FILE * trace);
 GF_Err void_dump(GF_Box *a, FILE * trace);
 GF_Err ftyp_dump(GF_Box *a, FILE * trace);

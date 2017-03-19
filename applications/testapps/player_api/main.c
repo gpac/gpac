@@ -95,9 +95,9 @@ int main(int argc, char **argv)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	gf_sys_init(GF_TRUE);
+	gf_sys_init(GF_MemTrackerSimple);
 #else
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 #endif
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 

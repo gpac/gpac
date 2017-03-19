@@ -491,6 +491,10 @@ GF_Box *gf_isom_box_new(u32 boxType)
 		return tref_New();
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_New();
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_New();
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_New();
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_New();
 
@@ -1689,6 +1693,10 @@ GF_Err gf_isom_box_read(GF_Box *a, GF_BitStream *bs)
 		return tref_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_MDIA:
 		return mdia_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_MFRA:
+		return mfra_Read(a, bs);
+	case GF_ISOM_BOX_TYPE_TFRA:
+		return tfra_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_ELNG:
 		return elng_Read(a, bs);
 	case GF_ISOM_BOX_TYPE_CHPL:

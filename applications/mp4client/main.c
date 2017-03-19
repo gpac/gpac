@@ -180,7 +180,8 @@ void PrintUsage()
 	fprintf(stderr, "Usage MP4Client [options] [filename]\n"
 	        "\t-c fileName:    user-defined configuration file. Also works with -cfg\n"
 #ifdef GPAC_MEMORY_TRACKING
-	        "\t-mem-track:  enables memory tracker\n"
+            "\t-mem-track:  enables memory tracker\n"
+            "\t-mem-track-stack:  enables memory tracker with stack dumping\n"
 #endif
 	        "\t-rti fileName:  logs run-time info (FPS, CPU, Mem usage) to file\n"
 	        "\t-rtix fileName: same as -rti but driven by GPAC logs\n"
@@ -1122,6 +1123,7 @@ int mp4client_main(int argc, char **argv)
 {
 	char c;
 	const char *str;
+	int ret_val = 0;
 	u32 i, times[100], nb_times, dump_mode;
 	u32 simulation_time_in_ms = 0;
 	u32 initial_service_id = 0;
@@ -1135,7 +1137,7 @@ int mp4client_main(int argc, char **argv)
 
 	Double play_from = 0;
 #ifdef GPAC_MEMORY_TRACKING
-	Bool enable_mem_tracker = GF_FALSE;
+    GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible;
@@ -1164,11 +1166,11 @@ int mp4client_main(int argc, char **argv)
 			the_cfg = argv[i+1];
 			i++;
 		}
-		else if (!strcmp(arg, "-mem-track")) {
+		else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
-			enable_mem_tracker = GF_TRUE;
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		} else if (!strcmp(arg, "-gui")) {
 			gui_mode = 1;
@@ -1181,9 +1183,9 @@ int mp4client_main(int argc, char **argv)
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	gf_sys_init(enable_mem_tracker);
+	gf_sys_init(mem_track);
 #else
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 #endif
 	gf_sys_set_args(argc, (const char **) argv);
 
@@ -1279,48 +1281,58 @@ int mp4client_main(int argc, char **argv)
 			i++;
 			gf_net_set_ntp_shift(shift);
 		}
+		else if (!stricmp(arg, "-run-for")) {
+			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
+			if (!simulation_time_in_ms)
+			simulation_time_in_ms = 1; /*1ms*/
+			i++;
+		}
 
+		else if (!strcmp(arg, "-out")) {
+			out_arg = argv[i+1];
+			i++;
+		}
+		else if (!stricmp(arg, "-fps")) {
+			fps = atof(argv[i+1]);
+			i++;
+		} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
+			dump_mode &= 0xFFFF0000;
 
-		/*arguments only used in non-gui mode*/
-		else if (!gui_mode) {
-			if (arg[0] != '-') {
-				url_arg = arg;
-			}
-			else if (!strcmp(arg, "-out")) {
-				out_arg = argv[i+1];
-				i++;
-			}
-			else if (!stricmp(arg, "-fps")) {
-				fps = atof(argv[i+1]);
-				i++;
-			} else if (!strcmp(arg, "-avi") || !strcmp(arg, "-sha")) {
-				dump_mode &= 0xFFFF0000;
+			if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
+			else dump_mode |= DUMP_AVI;
 
-				if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
-				else dump_mode |= DUMP_AVI;
-
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
 				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
-			} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
+		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
 				dump_mode |= DUMP_RGB_DEPTH;
-			} else if (!strcmp(arg, "-depth")) {
+		} else if (!strcmp(arg, "-depth")) {
 				dump_mode |= DUMP_DEPTH_ONLY;
-			} else if (!strcmp(arg, "-bmp")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_BMP;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-png")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_PNG;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!strcmp(arg, "-raw")) {
-				dump_mode &= 0xFFFF0000;
-				dump_mode |= DUMP_RAW;
-				if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
-			} else if (!stricmp(arg, "-scale")) {
-				sscanf(argv[i+1], "%f", &scale);
-				i++;
+		} else if (!strcmp(arg, "-bmp")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_BMP;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-png")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_PNG;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!strcmp(arg, "-raw")) {
+			dump_mode &= 0xFFFF0000;
+			dump_mode |= DUMP_RAW;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+		} else if (!stricmp(arg, "-scale")) {
+			sscanf(argv[i+1], "%f", &scale);
+			i++;
+		}
+		
+		/*arguments only used in non-gui mode*/
+		if (!gui_mode) {
+			if (arg[0] != '-') {
+				if (url_arg) {
+					fprintf(stderr, "Several input URLs provided (\"%s\", \"%s\"). Check your command-line.\n", url_arg, arg);
+					return 1;
+				}
+				url_arg = arg;
 			}
 			else if (!strcmp(arg, "-loop")) loop_at_end = 1;
 			else if (!strcmp(arg, "-bench")) bench_mode = 1;
@@ -1355,12 +1367,6 @@ int mp4client_main(int argc, char **argv)
 				views = argv[i+1];
 				i++;
 			}
-			else if (!stricmp(arg, "-run-for")) {
-				simulation_time_in_ms = atoi(argv[i+1]) * 1000;
-				if (!simulation_time_in_ms)
-					simulation_time_in_ms = 1; /*1ms*/
-				i++;
-			}
 			else if (!stricmp(arg, "-com")) {
 				default_com = argv[i+1];
 				i++;
@@ -1368,10 +1374,6 @@ int mp4client_main(int argc, char **argv)
 			else if (!stricmp(arg, "-service")) {
 				initial_service_id = atoi(argv[i+1]);
 				i++;
-			} else if (!strcmp(arg, "-mem-track")) {
-
-			} else {
-				fprintf(stderr, "Unrecognized option %s - skipping\n", arg);
 			}
 		}
 	}
@@ -1381,10 +1383,18 @@ int mp4client_main(int argc, char **argv)
 		return 0;
 	}
 	if (dump_mode && !url_arg ) {
-		fprintf(stderr, "Missing argument for dump\n");
-		PrintUsage();
-		if (logfile) gf_fclose(logfile);
-		return 1;
+		FILE *test;
+		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
+		test = url_arg ? gf_fopen(url_arg, "rt") : NULL;
+		if (!test) url_arg = NULL;
+		else gf_fclose(test);
+		
+		if (!url_arg) {
+			fprintf(stderr, "Missing argument for dump\n");
+			PrintUsage();
+			if (logfile) gf_fclose(logfile);
+			return 1;
+		}
 	}
 
 	if (!gui_mode && !url_arg && (gf_cfg_get_key(cfg_file, "General", "StartupFile") != NULL)) {
@@ -1546,7 +1556,7 @@ int mp4client_main(int argc, char **argv)
 			times[0] = 0;
 			nb_times++;
 		}
-		dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
+		ret_val = dump_file(url_arg, out_arg, dump_mode, fps, forced_width, forced_height, scale, times, nb_times);
 		Run = 0;
 	}
 	else if (views) {
@@ -2232,13 +2242,14 @@ force_input:
 	}
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
 #endif
 
-	return 0;
+	return ret_val;
 }
 
 #ifdef WIN32

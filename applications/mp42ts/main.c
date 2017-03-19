@@ -140,7 +140,8 @@ static GFINLINE void usage()
 	        "\n"
 	        "Misc options\n"
 #ifdef GPAC_MEMORY_TRACKING
-	        "-mem-track             enables memory tracker\n"
+            "-mem-track             enables memory tracker\n"
+            "-mem-track-stack       enables memory tracker stack dumping\n"
 #endif
 	        "-logs                  set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 	        "-h or -help            print this screen\n"
@@ -1816,7 +1817,7 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 }
 
 #ifdef GPAC_MEMORY_TRACKING
-static Bool enable_mem_tracker = GF_FALSE;
+GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 
 /*macro to keep retro compatibility with '=' and spaces in parse_args*/
@@ -1930,14 +1931,14 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 			mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_FULL;
 		} else if (!stricmp(arg, "-4over2")) {
 			mpeg4_signaling = GF_M2TS_MPEG4_SIGNALING_SCENE;
-		} else if (!strcmp(arg, "-mem-track")) {
+		} else if (!strcmp(arg, "-mem-track") || !strcmp(arg, "-mem-track-stack")) {
 #ifdef GPAC_MEMORY_TRACKING
 			gf_sys_close();
-			enable_mem_tracker = GF_TRUE;
-			gf_sys_init(GF_TRUE);
+            mem_track = !strcmp(arg, "-mem-track-stack") ? GF_MemTrackerBackTrace : GF_MemTrackerSimple;
+			gf_sys_init(mem_track);
 			gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #else
-			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n");
+			fprintf(stderr, "WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", arg);
 #endif
 		} else if (CHECK_PARAM("-rate")) {
 			if (rate_found) {
@@ -2296,7 +2297,7 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   gpac init   */
 	/*****************/
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 
 	/***********************/
@@ -2817,7 +2818,8 @@ exit:
 	gf_sys_close();
 
 #ifdef GPAC_MEMORY_TRACKING
-	if (enable_mem_tracker && (gf_memory_size() || gf_file_handles_count() )) {
+	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
+        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}

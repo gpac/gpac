@@ -308,7 +308,7 @@ int main (const int argc, const char** argv)
 	tcp_thread = NULL;
 
 	/* init gpac lib */
-	gf_sys_init();
+	gf_sys_init(GF_MemTrackerNone);
 
 	GF_SAFEALLOC(conf, CONF_Data);
 

@@ -1126,6 +1126,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 		}
 	}
 	gf_bs_del(bs);
+	gf_free(buffer);
 
 	return e;
 }

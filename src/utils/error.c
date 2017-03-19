@@ -416,8 +416,9 @@ void gf_log(const char *fmt, ...)
 	va_start(vl, fmt);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	va_end(vl);
-	if (log_exit_on_error && call_lev==GF_LOG_ERROR)
+	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
+	}
 }
 
 GF_EXPORT

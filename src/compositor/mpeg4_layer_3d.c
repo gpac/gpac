@@ -387,6 +387,7 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	old_visual = tr_state->visual;
 	prev_layer = tr_state->is_layer;
 	prev_cam = tr_state->camera;
+	bbox_backup = tr_state->bbox;
 
 
 	switch (tr_state->traversing_mode) {
@@ -436,7 +437,6 @@ static void TraverseLayer3D(GF_Node *node, void *rs, Bool is_destroy)
 	tr_state->is_layer = 1;
 	tr_state->camera = &st->visual->camera;
 
-	bbox_backup = tr_state->bbox;
 	gf_mx_copy(model_backup, tr_state->model_matrix);
 	gf_mx2d_copy(mx2d_backup, tr_state->transform);
 

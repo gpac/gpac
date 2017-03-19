@@ -753,7 +753,7 @@ int main (int argc, char **argv)
 		PrintUsage();
 		return 0;
 	}
-	gf_sys_init();
+	gf_sys_init(GF_MemTrackerNone);
 
 	file = gf_isom_open(inName, GF_ISOM_OPEN_READ, NULL);
 	if (!file) {

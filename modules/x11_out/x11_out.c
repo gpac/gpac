@@ -1022,6 +1022,11 @@ static void X11_ReleaseGL(XWindow *xWin)
 static void X11_ReleaseBackBuffer (GF_VideoOutput * vout)
 {
 	X11VID ();
+	if (xWindow->x_data) {
+		gf_free(xWindow->x_data);
+		xWindow->x_data = NULL;
+		if (xWindow->surface) xWindow->surface->data = NULL;
+	}
 #ifdef GPAC_HAS_X11_SHM
 	if (xWindow->shmseginfo) XShmDetach (xWindow->display, xWindow->shmseginfo);
 	if (xWindow->pixmap) {
@@ -1109,15 +1114,14 @@ GF_Err X11_InitBackBuffer (GF_VideoOutput * vout, u32 VideoWidth, u32 VideoHeigh
 	} else
 #endif
 	{
-		char *data = (char *) gf_malloc(sizeof(char)*size);
+		xWindow->x_data = (char *) gf_malloc(sizeof(char)*size);
 		xWindow->surface = XCreateImage (xWindow->display, xWindow->visual,
 		                                 xWindow->depth, ZPixmap,
 		                                 0,
-		                                 data,
+		                                 xWindow->x_data,
 		                                 VideoWidth, VideoHeight,
 		                                 xWindow->bpp*8, xWindow->bpp*VideoWidth);
 		if (!xWindow->surface) {
-			gf_free(data);
 			return GF_IO_ERR;
 		}
 

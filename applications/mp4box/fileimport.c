@@ -1192,7 +1192,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 			}
 			/*use non-packet CTS offsets (faster add/remove)*/
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
-				gf_isom_set_cts_packing(dest, tki->dst_tk, 1);
+				gf_isom_set_cts_packing(dest, tki->dst_tk, GF_TRUE);
 			}
 			gf_isom_remove_edit_segments(dest, tki->dst_tk);
 		}
@@ -1496,7 +1496,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u32 split_size_kb,
 				continue;
 			}
 			if (gf_isom_has_time_offset(mp4, tki->tk)) {
-				gf_isom_set_cts_packing(dest, tki->dst_tk, 0);
+				gf_isom_set_cts_packing(dest, tki->dst_tk, GF_FALSE);
 			}
 			if (is_last_rap && tki->can_duplicate) {
 				gf_isom_set_last_sample_duration(dest, tki->dst_tk, gf_isom_get_sample_duration(mp4, tki->tk, tki->sample_count));

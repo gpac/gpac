@@ -311,7 +311,7 @@ LRESULT CGPAXPlugin::OnCreate(UINT uMsg, WPARAM wParam, LPARAM lParam, BOOL& bHa
 
 	if (m_hWnd==NULL) return 0;
 
-	gf_sys_init(GF_FALSE);
+	gf_sys_init(GF_MemTrackerNone);
 
 	//Create a structure m_user for initialize the terminal. the parameters to set:
 	//1)config file path

@@ -33,6 +33,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 {
 	AVDictionary *opts = NULL;
 
+	audio_output_file->audio_data_conf = audio_data_conf;
 	audio_output_file->fifo = av_fifo_alloc(2 * MAX_AUDIO_PACKET_SIZE);
 	audio_output_file->aframe = FF_ALLOC_FRAME();
 	audio_output_file->adata_buf = (uint8_t*) av_malloc(2 * MAX_AUDIO_PACKET_SIZE);
@@ -46,7 +47,7 @@ int dc_audio_encoder_open(AudioOutputFile *audio_output_file, AudioDataConf *aud
 	audio_output_file->aframe->format = -1;
 	audio_output_file->codec = avcodec_find_encoder_by_name(audio_data_conf->codec);
 	if (audio_output_file->codec == NULL) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output audio codec not found\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Output audio codec %s not found\n", audio_data_conf->codec));
 		return -1;
 	}
 

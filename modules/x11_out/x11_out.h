@@ -101,6 +101,8 @@ typedef struct
 	XvImage *overlay;
 #endif
 
+	char *x_data;
+
 	Bool is_init, fullscreen, has_focus;
 	Bool ctrl_down, alt_down, meta_down;
 

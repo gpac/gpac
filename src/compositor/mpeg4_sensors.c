@@ -84,6 +84,7 @@ static void TraverseAnchor(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		mpeg4_sensor_deleted(node, &st->hdl);
 		gf_sc_check_focus_upon_destroy(node);
+		if (st->sensors) gf_list_del(st->sensors);
 		gf_free(st);
 		return;
 	}

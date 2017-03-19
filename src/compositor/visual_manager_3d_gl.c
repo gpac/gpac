@@ -330,20 +330,20 @@ void gf_sc_load_opengl_extensions(GF_Compositor *compositor, Bool has_gl_context
 #if !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X)
 	if (compositor->shader_only_mode) {
 		const char *shader = gf_cfg_get_key(compositor->user->config, "Compositor", "VertexShader");
-		FILE *t = shader ? fopen(shader, "rt") : NULL;
+		FILE *t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Vertex shader not found, disabling shaders\n"));
 			compositor->shader_only_mode = GF_FALSE;
 		}
-		if (t) fclose(t);
+		if (t) gf_fclose(t);
 
 		shader = gf_cfg_get_key(compositor->user->config, "Compositor", "FragmentShader");
-		t = shader ? fopen(shader, "rt") : NULL;
+		t = shader ? gf_fopen(shader, "rt") : NULL;
 		if (!t) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] GLES Fragment shader not found, disabling shaders\n"));
 			compositor->shader_only_mode = GF_FALSE;
 		}
-		if (t) fclose(t);
+		if (t) gf_fclose(t);
 	}
 #endif
 }
@@ -635,7 +635,7 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 		tmp = (char *) gf_malloc(sizeof(char)*(size+str_size+2));
 		strcpy(tmp, defs);
 		strncat(tmp, shader_src, (size));
-		fclose(src);
+		gf_fclose(src);
 		if (size != (size_t) -1) {
 			tmp[size+str_size]=0;
 			shader = glCreateShader(shader_type);

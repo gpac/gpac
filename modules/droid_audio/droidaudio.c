@@ -70,14 +70,11 @@ static jmethodID mFlush;
 
 #include <android/log.h>
 #define TAG "GPAC Android Audio"
-#define LOGV(X, Y)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y)
-#define LOGV3(X, Y, Z, K)  __android_log_print(ANDROID_LOG_VERBOSE, TAG, X, Y, Z, K)
-#define LOGD(X, Y)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y)
-#define LOGD2(X, Y, Z)  __android_log_print(ANDROID_LOG_DEBUG, TAG, X, Y, Z)
-#define LOGE(X, Y)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y)
-#define LOGE3(X, Y, Z, W)  __android_log_print(ANDROID_LOG_ERROR, TAG, X, Y, Z, W)
-#define LOGW(X, Y)  __android_log_print(ANDROID_LOG_WARN, TAG, X, Y)
-#define LOGI(X, Y)  __android_log_print(ANDROID_LOG_INFO, TAG, X, Y)
+#define LOGV(...) __android_log_print(ANDROID_LOG_VERBOSE, TAG,  __VA_ARGS__)
+#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
+#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, TAG,  __VA_ARGS__)
+#define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
+#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
 
 /* Uncomment the next line if you want to debug */
@@ -153,7 +150,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 	JNIEnv* env = NULL;
 	jint res = 0;
 
-	LOGV("[Android Audio] Shutdown START.", 0);
+	LOGV("[Android Audio] Shutdown START.");
 
 	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
 	if ( res == JNI_EDETACHED ) {
@@ -173,7 +170,7 @@ static void WAV_Shutdown(GF_AudioOutput *dr)
 	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
 	//}
 
-	LOGV("[Android Audio] Shutdown DONE.", 0);
+	LOGV("[Android Audio] Shutdown DONE.");
 }
 
 
@@ -245,7 +242,7 @@ static GF_Err WAV_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCh
 		return GF_NOT_SUPPORTED;
 	}
 
-	LOGV("[Android Audio] ConfigureOutput DONE.", *nbBitsPerSample);
+	LOGV("[Android Audio] ConfigureOutput DONE.");
 	return GF_OK;
 }
 
@@ -330,9 +327,9 @@ static void WAV_UpdateVolume(DroidContext *ctx) {
 	if (env && setStereoVolume && mtrack && cAudioTrack) {
 		int success;
 		if (0!= (success=((*env)->CallNonvirtualIntMethod(env, mtrack, cAudioTrack, setStereoVolume, lV, rV))))
-			LOGE3("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
+			LOGE("SetVolume(%f,%f) returned Error code %d", lV, rV, success );
 	} else {
-		LOGD2("SetVolume(%f,%f)", lV, rV );
+		LOGD("SetVolume(%f,%f)", lV, rV );
 	}
 }
 

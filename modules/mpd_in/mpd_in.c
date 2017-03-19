@@ -940,7 +940,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	Bool use_server_utc;
 	GF_DASHInitialSelectionMode first_select_mode;
 	GF_DASHTileAdaptationMode tile_adapt_mode;
-	Bool keep_files, disable_switching;
+	Bool keep_files, disable_switching, use_threads;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] Received Service Connection request (%p) from terminal for %s\n", serv, url));
 
@@ -1026,7 +1026,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (opt && !strcmp(opt, "segments")) mpdin->buffer_mode = MPDIN_BUFFER_SEGMENTS;
 	else if (opt && !strcmp(opt, "none")) mpdin->buffer_mode = MPDIN_BUFFER_NONE;
 	else mpdin->buffer_mode = MPDIN_BUFFER_MIN;
-
+	
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "LowLatency");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "LowLatency", "no");
 
@@ -1034,6 +1034,14 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	else if (opt && !strcmp(opt, "always")) mpdin->use_low_latency = 2;
 	else mpdin->use_low_latency = 0;
 
+	
+	use_threads = GF_FALSE;
+	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ThreadedDownload");
+	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ThreadedDownload", "no");
+	if (opt && !strcmp(opt, "yes")) use_threads = GF_TRUE;
+
+	if (mpdin->use_low_latency) use_threads = GF_TRUE;
+	
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "AllowAbort");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AllowAbort", "no");
 	mpdin->allow_http_abort = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
@@ -1098,6 +1106,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	gf_dash_set_utc_shift(mpdin->dash, shift_utc_ms);
 	gf_dash_enable_utc_drift_compensation(mpdin->dash, use_server_utc);
 	gf_dash_set_tile_adaptation_mode(mpdin->dash, tile_adapt_mode, tiles_rate_decrease);
+	gf_dash_set_threaded_download(mpdin->dash, use_threads);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseScreenResolution");
 	//default mode is no for the time being
