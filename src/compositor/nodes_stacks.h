@@ -262,7 +262,8 @@ void compositor_init_indexed_triangle_fan_set(GF_Compositor *compositor, GF_Node
 GF_TextureHandler *compositor_mpeg4_get_gradient_texture(GF_Node *node);
 
 /*hardcoded protos*/
-void compositor_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node);
+void gf_sc_init_hardcoded_proto(GF_Compositor *compositor, GF_Node *node);
+GF_TextureHandler *gf_sc_hardcoded_proto_get_texture_handler(GF_Node *n);
 
 #ifndef GPAC_DISABLE_3D
 void compositor_extrude_text(GF_Node *node, GF_TraverseState *tr_state, GF_Mesh *mesh, MFVec3f *thespine, Fixed creaseAngle, Bool begin_cap, Bool end_cap, MFRotation *spine_ori, MFVec2f *spine_scale, Bool txAlongSpine);

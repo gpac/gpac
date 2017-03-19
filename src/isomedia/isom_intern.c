@@ -144,7 +144,6 @@ static void FixSDTPInTRAF(GF_MovieFragmentBox *moof)
 	for (k = 0; k < gf_list_count(moof->TrackList); k++) {
 		GF_TrackFragmentBox *traf = gf_list_get(moof->TrackList, k);
 		if (traf->sdtp) {
-			GF_TrackBox *trak = (GF_TrackBox*)traf;
 			GF_TrackFragmentRunBox *trun;
 			u32 j = 0, sample_index = 0;
 
@@ -612,7 +611,8 @@ void gf_isom_delete_movie(GF_ISOFile *mov)
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	gf_isom_box_array_del(mov->moof_list);
 #endif
-
+	if (mov->last_producer_ref_time)
+		gf_isom_box_del((GF_Box *) mov->last_producer_ref_time);
 	if (mov->fileName) gf_free(mov->fileName);
 	gf_free(mov);
 }

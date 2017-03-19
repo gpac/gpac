@@ -339,6 +339,8 @@ GF_TextureHandler *gf_sc_texture_get_handler(GF_Node *n)
 		return compositor_svg_get_image_texture(n);
 #endif
 
+    case TAG_ProtoNode:
+        return gf_sc_hardcoded_proto_get_texture_handler(n);
 	default:
 		return NULL;
 	}

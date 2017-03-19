@@ -434,7 +434,7 @@ GF_EXPORT
 GF_Err gf_isom_close(GF_ISOFile *movie)
 {
 	GF_Err e;
-	if (movie == NULL) return GF_ISOM_INVALID_FILE;
+	if ((movie == NULL) || (movie->moov == NULL)) return GF_ISOM_INVALID_FILE;
 	e = GF_OK;
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -2543,10 +2543,10 @@ GF_EXPORT
 GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
 {
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if (!movie || !movie->moov || !movie->moov->mvex) return GF_BAD_PARAM;
+	if (!movie || !movie->moov) return GF_BAD_PARAM;
 	*top_box_start = movie->current_top_box_start;
 	movie->current_top_box_start = 0;
-	if (movie->single_moof_mode) {
+	if (movie->moov->mvex && movie->single_moof_mode) {
 		movie->single_moof_state = 0;
 	}
 #endif
@@ -4079,6 +4079,12 @@ Bool gf_isom_get_tile_info(GF_ISOFile *file, u32 trackNumber, u32 sample_descrip
 		return GF_FALSE;
 	gf_isom_parse_trif_info(data, size, id, independent, full_frame, x, y, w, h);
 	return GF_TRUE;
+}
+
+GF_EXPORT
+Bool gf_isom_drop_date_version_info_enabled(GF_ISOFile *file)
+{
+    return file->drop_date_version_info;
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

@@ -105,6 +105,10 @@ ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(CONFIG_LIBAV), new) #we don't support libav newest APIs
 ifeq ($(CONFIG_OPENHEVC),no)
 PLUGDIRS+=ffmpeg_in
+else
+ifneq ($(STATIC_MODULES), yes)
+PLUGDIRS+=ffmpeg_in
+endif
 endif
 endif
 endif

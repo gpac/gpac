@@ -2493,6 +2493,7 @@ void gf_swf_reader_del(SWFReader *read)
 	if (read->jpeg_hdr) gf_free(read->jpeg_hdr);
 	if (read->localPath) gf_free(read->localPath);
 	gf_fclose(read->input);
+	gf_free(read->inputName);
 	gf_free(read);
 }
 

@@ -679,7 +679,7 @@ static void TraverseLayout(GF_Node *node, void *rs, Bool is_destroy)
 		}
 	}
 	if (recompute_layout) {
-		GF_LOG(GF_LOG_COMPOSE, GF_LOG_DEBUG, ("[Layout] recomputing positions\n"));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layout] recomputing positions\n"));
 
 		parent_node_reset((ParentNode2D*)st);
 

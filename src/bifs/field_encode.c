@@ -117,6 +117,7 @@ GF_Err gf_bifs_enc_sf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 				gf_bs_write_data(bs, buf, read);
 				size -= read;
 			}
+			gf_fclose(f);
 		} else {
 			u32 i, val, len;
 			char *str = (char *) ((SFString*)field->far_ptr)->buffer;

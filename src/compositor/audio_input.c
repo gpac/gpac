@@ -82,8 +82,10 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 	ai->need_release = GF_TRUE;
 
 	//step mode, return the frame without sync check
-	if (ai->compositor->audio_renderer->step_mode)
+	if (ai->compositor->audio_renderer->step_mode) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[Audio Input] audio frame CTS %u %d bytes fetched\n", ts, *size));
 		return frame;
+	}
 
 	speed = gf_mo_get_current_speed(ai->stream);
 

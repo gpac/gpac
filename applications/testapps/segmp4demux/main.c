@@ -90,7 +90,7 @@ int main(int argc, char **argv)
 
 #if defined(DEBUG) || defined(_DEBUG)
 	/* Enables GPAC memory tracking in debug mode only */
-	gf_sys_init(GF_TRUE);
+	gf_sys_init(GF_MemTrackerSimple);
 	gf_log_set_tool_level(GF_LOG_CONTAINER, GF_LOG_INFO);
 	gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 #endif

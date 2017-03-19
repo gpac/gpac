@@ -156,7 +156,7 @@ GF_Err TTIn_LoadFile(GF_InputService *plug, const char *url, Bool is_cache)
 		tmp_txt = gf_fopen(szFILE, "w");
 		if (!tmp_txt) return GF_IO_ERR;
 		fwrite(mem_address, size, 1, tmp_txt);
-		fclose(tmp_txt);
+		gf_fclose(tmp_txt);
 
 		import.in_name = szFILE;
 		e = gf_media_import(&import);

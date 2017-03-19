@@ -333,7 +333,7 @@ AT 0 {
   UPDATE OD [
    ObjectDescriptor {
     objectDescriptorID 8
-    URLstring "rtsp://a1749.q.kamai.net/7/1749/1416/3c964c64/neo.qtv.apple.com/secure/may/preview/civ3_700.mp4"
+    URLstring ""http://download.tsi.telecom-paristech.fr/gpac/gpac_test_suite/mp4/counter_video_360.mp4"
    }
   ]
 }

@@ -174,7 +174,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	//PBO mode: start pushing the texture
-	if (txh->tx_io->pbo_id) {
+	if (txh->data && txh->tx_io->pbo_id) {
 		u8 *ptr;
 		u32 size = txh->stride*txh->height;
 
@@ -1140,6 +1140,12 @@ static Bool tx_set_image(GF_TextureHandler *txh, Bool generate_mipmaps)
 {
 	return gf_sc_texture_push_image(txh, generate_mipmaps, 0);
 }
+
+u32 gf_sc_texture_get_gl_id(GF_TextureHandler *txh)
+{
+    return txh->tx_io ? txh->tx_io->id : 0;
+}
+
 
 #ifndef GPAC_USE_TINYGL
 void gf_sc_copy_to_texture(GF_TextureHandler *txh)

@@ -172,6 +172,23 @@ char *gf_strdup(const char *str)
 
 #else /*GPAC_MEMORY_TRACKING**/
 
+
+static void gf_memory_log(unsigned int level, const char *fmt, ...);
+enum
+{
+	/*! Disable all Log message*/
+	GF_MEMORY_QUIET = 0,
+	/*! Log message describes an error*/
+	GF_MEMORY_ERROR = 1,
+	/*! Log message describes a warning*/
+	GF_MEMORY_WARNING,
+	/*! Log message is informational (state, etc..)*/
+	GF_MEMORY_INFO,
+	/*! Log message is a debug info*/
+	GF_MEMORY_DEBUG,
+};
+
+
 size_t gpac_allocated_memory = 0;
 size_t gpac_nb_alloc_blocs = 0;
 
@@ -179,27 +196,25 @@ size_t gpac_nb_alloc_blocs = 0;
 #define assert(p)
 #endif
 
-
-//#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+//backtrace not supported on these platforms
+#if defined(GPAC_IPHONE) || defined(GPAC_ANDROID)
+#define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+#endif
 
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-
-#define BACKTRACE_PRINT(prefix)  "file %s at line %d\n%s\n", prefix filename, prefix line, prefix backtrace
-#define BACKTRACE_PRINT0         BACKTRACE_PRINT((char*))
-#define BACKTRACE_ARGS           char *backtrace
-#define BACKTRACE_CALL           backtrace
+static int gf_mem_backtrace_enabled = 0;
 
 /*malloc dynamic storage needed for each alloc is STACK_PRINT_SIZE*SYMBOL_MAX_SIZE+1, keep them small!*/
 #define STACK_FIRST_IDX  5 //remove the gpac memory allocator self trace
 #define STACK_PRINT_SIZE 10
-#define SYMBOL_MAX_SIZE  50
 
 #ifdef WIN32
+#define SYMBOL_MAX_SIZE  50
 #include <windows.h>
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 /*memory ownership to the caller*/
-static void print_backtrace(char *backtrace)
+static void store_backtrace(char *s_backtrace)
 {
 	void *stack[STACK_PRINT_SIZE];
 	size_t i, frames, bt_idx = 0;
@@ -217,49 +232,62 @@ static void print_backtrace(char *backtrace)
 
 	for (i=0; i<frames; i++) {
 		int len;
+		int bt_len;
 		char *symbol_name = "unresolved";
 		SymFromAddr(process, (DWORD64)(stack[i]), 0, symbol);
 		if (symbol->Name) symbol_name = (char*)symbol->Name;
-		len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
-		if (len<0)  len = SYMBOL_MAX_SIZE-1;
-		backtrace[bt_idx+len]='\n';
+
+		bt_len = strlen(symbol_name) + 10;
+		if (bt_idx + bt_len > STACK_PRINT_SIZE*SYMBOL_MAX_SIZE) {
+			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
+			break;
+		}
+		
+		len = _snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u 0x%I64X %s", (unsigned int) (frames-i-1), symbol->Address, symbol_name);
+		if (len<0) len = SYMBOL_MAX_SIZE-1;
+		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
-	backtrace[bt_idx-1] = '\0';
+	s_backtrace[bt_idx-1] = '\0';
 }
+
 #else /*WIN32*/
+
+#define SYMBOL_MAX_SIZE  100
 #include <execinfo.h>
+
 /*memory ownership to the caller*/
-static char* backtrace()
+static void store_backtrace(char *s_backtrace)
 {
 	size_t i, size, bt_idx=0;
-	void *stack[STACK_PRINT_SIZE];
+	void *stack[STACK_PRINT_SIZE+STACK_FIRST_IDX];
 	char **messages;
 
-	size = backtrace(stack, STACK_PRINT_SIZE);
+	size = backtrace(stack, STACK_PRINT_SIZE+STACK_FIRST_IDX);
 	messages = backtrace_symbols(stack, size);
 
-	for (i=1; i<size && messages!=NULL; ++i) {
-		int len = _snprintf(backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02u %s", i, messages[i]);
-		if (len<0)  len = SYMBOL_MAX_SIZE-1;
-		backtrace[bt_idx+len]='\n';
+	for (i=STACK_FIRST_IDX; i<size && messages!=NULL; ++i) {
+		int bt_len = strlen(messages[i]) + 10;
+		int len;
+
+		if (bt_idx + bt_len > STACK_PRINT_SIZE*SYMBOL_MAX_SIZE) {
+			gf_memory_log(GF_MEMORY_WARNING, "[MemoryInfo] Not enough space to hold backtrace - truncating\n");
+			break;
+		}
+		
+		len = snprintf(s_backtrace+bt_idx, SYMBOL_MAX_SIZE-1, "\t%02zu %s", i, messages[i]);
+		if (len<0) len = SYMBOL_MAX_SIZE-1;
+		s_backtrace[bt_idx+len]='\n';
 		bt_idx += (len+1);
+		
 	}
 	assert(bt_idx < STACK_PRINT_SIZE*SYMBOL_MAX_SIZE);
-	backtrace[bt_idx-1] = '\0';
+	s_backtrace[bt_idx-1] = '\0';
 	free(messages);
 }
 #endif /*WIN32*/
 
-#else /*GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE*/
-
-#define BACKTRACE_PRINT1(prefix)           BACKTRACE_PRINT2(prefix, prefix)
-#define BACKTRACE_PRINT0                   BACKTRACE_PRINT2((char*), (int))
-#define BACKTRACE_PRINT(prefix)            BACKTRACE_PRINT1(prefix)
-#define BACKTRACE_PRINT2(prefix1, prefix2) "             file %s at line %d\n", prefix1 filename, prefix2 line
-#define BACKTRACE_ARGS                     const char *filename, int line
-#define BACKTRACE_CALL                     filename, line
 
 #endif /*GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE*/
 
@@ -267,20 +295,6 @@ static char* backtrace()
 static void register_address(void *ptr, size_t size, const char *filename, int line);
 static int unregister_address(void *ptr, const char *filename, int line);
 
-static void gf_memory_log(unsigned int level, const char *fmt, ...);
-enum
-{
-	/*! Disable all Log message*/
-	GF_MEMORY_QUIET = 0,
-	/*! Log message describes an error*/
-	GF_MEMORY_ERROR = 1,
-	/*! Log message describes a warning*/
-	GF_MEMORY_WARNING,
-	/*! Log message is informational (state, etc..)*/
-	GF_MEMORY_INFO,
-	/*! Log message is a debug info*/
-	GF_MEMORY_DEBUG,
-};
 
 static void *gf_mem_malloc_basic(size_t size, const char *filename, int line)
 {
@@ -423,9 +437,12 @@ char *gf_mem_strdup(const char *str, const char *filename, int line)
 }
 
 MY_GF_EXPORT
-void gf_mem_enable_tracker()
+void gf_mem_enable_tracker(unsigned int enable_backtrace)
 {
-	gf_mem_malloc_proto = gf_mem_malloc_tracker;
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+    gf_mem_backtrace_enabled = enable_backtrace ? 1 : 0;
+#endif
+    gf_mem_malloc_proto = gf_mem_malloc_tracker;
 	gf_mem_calloc_proto = gf_mem_calloc_tracker;
 	gf_mem_realloc_proto = gf_mem_realloc_tracker;
 	gf_mem_free_proto = gf_mem_free_tracker;
@@ -433,25 +450,27 @@ void gf_mem_enable_tracker()
 }
 
 
-#define GPAC_MEMORY_TRACKING_HASH_TABLE 1
-#if GPAC_MEMORY_TRACKING_HASH_TABLE
-
-#define HASH_ENTRIES 4096
-
 typedef struct s_memory_element
 {
-	void *ptr;
-	int size;
-	struct s_memory_element *next;
+    void *ptr;
+    int size;
+    struct s_memory_element *next;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-	char backtrace[STACK_PRINT_SIZE*SYMBOL_MAX_SIZE];
+    char *backtrace_stack;
 #endif
-	int line;
-	char *filename;
+    int line;
+    char *filename;
 } memory_element;
 
 /*pointer to the first element of the list*/
 typedef memory_element** memory_list;
+
+
+#define GPAC_MEMORY_TRACKING_HASH_TABLE 1
+
+#if GPAC_MEMORY_TRACKING_HASH_TABLE
+
+#define HASH_ENTRIES 4096
 
 static unsigned int gf_memory_hash(void *ptr)
 {
@@ -461,24 +480,6 @@ static unsigned int gf_memory_hash(void *ptr)
 	return (((unsigned int)ptr >> 4) + (unsigned int)ptr) % HASH_ENTRIES;
 #endif
 }
-
-#else
-
-typedef struct s_memory_element
-{
-	void *ptr;
-	int size;
-	struct s_memory_element *next;
-#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-	char *backtrace;
-#else
-	int line;
-	char *filename;
-#endif
-} memory_element;
-
-/*pointer to the first element of the list*/
-typedef memory_element* memory_list;
 
 #endif
 
@@ -490,7 +491,12 @@ static void gf_memory_add_stack(memory_element **p, void *ptr, int size, const c
 	element->ptr = ptr;
 	element->size = size;
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
-	print_backtrace(element->backtrace);
+    if (gf_mem_backtrace_enabled) {
+        element->backtrace_stack = MALLOC(sizeof(char) * STACK_PRINT_SIZE * SYMBOL_MAX_SIZE);
+        store_backtrace(element->backtrace_stack);
+    } else {
+        element->backtrace_stack = NULL;
+    }
 #endif
 	element->line = line;
 	element->filename = (char*)&(element->filename)+sizeof(element->filename);
@@ -524,7 +530,12 @@ static int gf_memory_del_item_stack(memory_element **p, void *ptr)
 			if (prev_element) prev_element->next = curr_element->next;
 			else *p = curr_element->next;
 			size = curr_element->size;
-			FREE(curr_element);
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+            if (curr_element->backtrace_stack) {
+                FREE(curr_element->backtrace_stack);
+            }
+#endif
+            FREE(curr_element);
 			return size;
 		}
 		prev_element = curr_element;
@@ -538,6 +549,11 @@ static void gf_memory_del_stack(memory_element **p)
 	memory_element *curr_element=*p, *next_element;
 	while (curr_element) {
 		next_element = curr_element->next;
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+        if (curr_element->backtrace_stack) {
+            FREE(curr_element->backtrace_stack);
+        }
+#endif
 		FREE(curr_element);
 		curr_element = next_element;
 	}
@@ -656,6 +672,19 @@ static void register_address(void *ptr, size_t size, const char *filename, int l
 	gf_mx_v(gpac_allocations_lock);
 }
 
+void log_backtrace(unsigned int log_level, memory_element *element)
+{
+#ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
+    if (gf_mem_backtrace_enabled) {
+        gf_memory_log(log_level, "file %s at line %d\n%s\n", element->filename, element->line, element->backtrace_stack);
+    } else
+#endif
+    {
+        gf_memory_log(log_level, "file %s at line %d\n", element->filename, element->line);
+    }
+}
+
+
 #if 0
 void gf_check_address(void *ptr)
 {
@@ -673,7 +702,7 @@ void gf_check_address(void *ptr)
 			element = element->next;
 		assert(element);
 		gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p was already freed in:\n", ptr);
-		gf_memory_log(GF_MEMORY_ERROR, BACKTRACE_PRINT(element->));
+        log_backtrace(GF_MEMORY_ERROR, element);
 		assert(0);
 	}
 	/*unlock*/
@@ -718,7 +747,7 @@ static int unregister_address(void *ptr, const char *filename, int line)
 				gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] the block %p trying to be deleted in:\n", ptr);
 				gf_memory_log(GF_MEMORY_ERROR, "             file %s at line %d\n", filename, line);
 				gf_memory_log(GF_MEMORY_ERROR, "             was already freed in:\n");
-				gf_memory_log(GF_MEMORY_ERROR, BACKTRACE_PRINT(element->));
+				log_backtrace(GF_MEMORY_ERROR, element);
 				assert(0);
 			}
 		} else {
@@ -771,7 +800,7 @@ static void gf_memory_log(unsigned int level, const char *fmt, ...)
 static void print_memory_size()
 {
 	unsigned int level = gpac_nb_alloc_blocs ? GF_MEMORY_ERROR : GF_MEMORY_INFO;
-	gf_memory_log(level, "[MemTracker] Total: %d bytes allocated in %d blocks\n", gpac_allocated_memory, gpac_nb_alloc_blocs);
+	GF_LOG(level, GF_LOG_MEMORY, ("[MemTracker] Total: %d bytes allocated in %d blocks\n", (u32) gpac_allocated_memory,  (u32) gpac_nb_alloc_blocs ));
 }
 
 GF_EXPORT
@@ -807,12 +836,12 @@ void gf_memory_print()
 				char szVal[51];
 				u32 size;
 				next_element = curr_element->next;
-				size = curr_element->size>=50 ? 49 : curr_element->size;
-				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
-				szVal[size+1] = 0;
+//				size = curr_element->size>=50 ? 50 : curr_element->size;
+//				memcpy(szVal, curr_element->ptr, sizeof(char)*size);
+//				szVal[size] = 0;
 				gf_memory_log(GF_MEMORY_INFO, "[MemTracker] Memory Block %p (size %d) allocated in:\n", curr_element->ptr, curr_element->size);
-				gf_memory_log(GF_MEMORY_INFO, BACKTRACE_PRINT(curr_element->));
-				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
+				log_backtrace(GF_MEMORY_INFO, curr_element);
+//				gf_memory_log(GF_MEMORY_INFO, "             string dump: %s\n", szVal);
 				curr_element = next_element;
 			}
 		}

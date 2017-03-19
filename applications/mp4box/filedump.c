@@ -573,10 +573,7 @@ void PrintNode(const char *name, u32 graph_type)
 	}
 
 	tag = 0;
-	if (graph_type==2) {
-		fprintf(stderr, "SVG node printing is not supported\n");
-		return;
-	} else if (graph_type==1) {
+	if (graph_type==1) {
 #ifndef GPAC_DISABLE_X3D
 		tag = gf_node_x3d_type_by_class_name(name);
 		std_name = "X3D";

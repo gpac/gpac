@@ -186,7 +186,6 @@ void isor_check_buffer_level(ISOMReader *read)
 			//we only send buffer on/off based on remainging playback time in channel
 			time_remain_ch -= (samp->DTS + samp->CTS_Offset);
 			if (time_remain_ch<0) time_remain_ch=0;
-			gf_isom_sample_del(&samp);
 
 			time_remain_ch /= ch->time_scale;
 			if (time_remain_ch && (time_remain_ch < dld_time_remaining)) {
@@ -201,6 +200,8 @@ void isor_check_buffer_level(ISOMReader *read)
 				do_buffer = GF_FALSE;
 			}
 #endif
+
+			gf_isom_sample_del(&samp);
 		}
 
 		if (do_buffer != ch->buffering) {

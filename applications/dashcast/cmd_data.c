@@ -153,8 +153,12 @@ static void dc_create_configuration(CmdData *cmd_data)
 				gf_cfg_set_key(conf, section_name, "channels", value);
 			}
 
-			if (!gf_cfg_get_key(conf, section_name, "codec"))
-				gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
+			if (!gf_cfg_get_key(conf, section_name, "codec")) {
+				if (strlen(cmd_data->audio_data_conf.codec))
+					gf_cfg_set_key(conf, section_name, "codec", cmd_data->audio_data_conf.codec);
+				else
+					gf_cfg_set_key(conf, section_name, "codec", DEFAULT_AUDIO_CODEC);
+			}
 		}
 	}
 }
@@ -401,7 +405,7 @@ static void on_dc_log(void *cbk, GF_LOG_Level ll, GF_LOG_Tool lm, const char *av
 
 int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 {
-	Bool use_mem_track = GF_FALSE;
+	GF_MemTrackerType mem_track = GF_MemTrackerNone;
 	int i;
 
 	const char *command_usage =
@@ -413,6 +417,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -logs LOGS               set log tools and levels, formatted as a ':'-separated list of toolX[:toolZ]@levelX\n"
 #ifdef GPAC_MEMORY_TRACKING
 	    "    -mem-track               enable the memory tracker\n"
+        "    -mem-track-stack         enable the memory tracker with stack dumping\n"
 #endif
 	    "    -conf filename           set the configuration file name (default: dashcast.conf)\n"
 	    "    -switch-source filename  set the configuration file name for source switching\n"
@@ -422,7 +427,8 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 	    "    -live-media              system is live and input is a media file\n"
 	    "    -no-loop                 system does not loop on the input media file when live\n"
 	    "    -dynamic-ast             changes segment availability start time at each MPD generation (old behaviour but not allowed in most profiles)\n"
-	    "    -insert-utc              inserts UTC clock at the start of each segment\n"
+    	"    -insert-utc              inserts UTC clock at the start of each segment\n"
+	    "    -no-rewrite              Do not rewrite the MPD as a static one at the end of the live session\n"
 	    "\n"
 	    "Source options:\n"
 	    "    -npts                    use frame counting for timestamps (not error-free) instead of source timing (default)\n"
@@ -514,24 +520,28 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 #ifdef GPAC_MEMORY_TRACKING
 	i = 1;
 	while (i < argc) {
-		if (strcmp(argv[i], "-mem-track") == 0) {
-			use_mem_track = GF_TRUE;
-			break;
-		}
+        if (strcmp(argv[i], "-mem-track") == 0) {
+            mem_track = GF_MemTrackerSimple;
+            break;
+        }
+        else if (strcmp(argv[i], "-mem-track-stack") == 0) {
+            mem_track = GF_MemTrackerBackTrace;
+            break;
+        }
 		i++;
 	}
 #endif
 
-	gf_sys_init(use_mem_track);
+	gf_sys_init(mem_track);
 
 	gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
-	if (use_mem_track) {
+	if (mem_track) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 	}
 
 	/* Initialize command data */
 	dc_cmd_data_init(cmd_data);
-	cmd_data->use_mem_track = use_mem_track;
+	cmd_data->mem_track = mem_track;
 
 	i = 1;
 	while (i < argc) {
@@ -783,6 +793,9 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 		} else if (strcmp(argv[i], "-insert-utc") == 0) {
 			cmd_data->insert_utc = 1;
 			i++;
+		} else if (strcmp(argv[i], "-no-rewrite") == 0) {
+			cmd_data->no_mpd_rewrite = 1;
+			i++;
 		} else if (strcmp(argv[i], "-dynamic-ast") == 0) {
 			cmd_data->use_dynamic_ast = 1;
 			i++;
@@ -797,10 +810,10 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 				return 1;
 			}
 			i++;
-		} else if (strcmp(argv[i], "-mem-track") == 0) {
+		} else if (!strcmp(argv[i], "-mem-track") || !strcmp(argv[i], "-mem-track-stack") ) {
 			i++;
 #ifndef GPAC_MEMORY_TRACKING
-			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"-mem-track\"\n"));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("WARNING - GPAC not compiled with Memory Tracker - ignoring \"%s\"\n", argv[i]));
 #endif
 		} else if (!strcmp(argv[i], "-lf") || !strcmp(argv[i], "-log-file")) {
 			DASHCAST_CHECK_NEXT_ARG
@@ -868,7 +881,7 @@ int dc_parse_command(int argc, char **argv, CmdData *cmd_data)
 
 	if ((cmd_data->minimum_update_period == -1) && (cmd_data->mode == LIVE_CAMERA)) {
 		fprintf(stderr, "MPD refresh time not set in live - defaulting to segment duration\n");
-		cmd_data->minimum_update_period = cmd_data->seg_dur;
+		cmd_data->minimum_update_period = cmd_data->seg_dur / 1000;
 	}
 
 	//safety checks

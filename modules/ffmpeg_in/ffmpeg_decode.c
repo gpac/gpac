@@ -64,21 +64,27 @@ static AVCodec *ffmpeg_get_codec(u32 codec_4cc)
 	AVCodec *codec;
 	strcpy(name, gf_4cc_to_str(codec_4cc));
 
+    codec = avcodec_find_decoder(codec_4cc);
+    if (codec) return codec;
+    
 	codec = avcodec_find_decoder_by_name(name);
-	if (!codec) {
-		strupr(name);
-		codec = avcodec_find_decoder_by_name(name);
-		if (!codec) {
-			strlwr(name);
-			codec = avcodec_find_decoder_by_name(name);
-		}
-	}
+    if (codec) return codec;
+    strupr(name);
+    codec = avcodec_find_decoder_by_name(name);
+    if (codec) return codec;
+    strlwr(name);
+    codec = avcodec_find_decoder_by_name(name);
+    if (codec) return codec;
 	/*custom mapings*/
-	if (!codec) {
-		if (!stricmp(name, "s263")) codec = avcodec_find_decoder_by_name("h263");
-		else if (!stricmp(name, "samr") || !stricmp(name, "amr ")) codec = avcodec_find_decoder_by_name("amr_nb");
-		else if (!stricmp(name, "sawb")) codec = avcodec_find_decoder_by_name("amr_wb");
+    if (!stricmp(name, "s263")) codec = avcodec_find_decoder(CODEC_ID_H263);
+	else if (!stricmp(name, "mjp2")) {
+		codec = avcodec_find_decoder_by_name("jpeg2000");
+		if (!codec) codec = avcodec_find_decoder_by_name("libopenjpeg");
 	}
+    else if (!stricmp(name, "samr") || !stricmp(name, "amr ")) codec = avcodec_find_decoder(CODEC_ID_AMR_NB);
+    else if (!stricmp(name, "sawb")) codec = avcodec_find_decoder(CODEC_ID_AMR_WB);
+
+	
 	return codec;
 }
 
@@ -230,6 +236,7 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			(*ctx)->height = gf_bs_read_u16(bs);
 		}
 		(*codec) = ffmpeg_get_codec(codec_id);
+        codec_id = (*codec)->id;
 		FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
 		gf_bs_del(bs);
 	}
@@ -285,12 +292,25 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			case GPAC_OTI_AUDIO_EAC3:
 				codec_id = CODEC_ID_EAC3;
 				break;
+            case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+            case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+            case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+            case GPAC_OTI_AUDIO_AAC_MPEG4:
+                codec_id = CODEC_ID_AAC;
+                break;
 			}
 		}
 		else if ((ffd->st==GF_STREAM_ND_SUBPIC) && (ffd->oti==0xe0)) {
 			codec_id = CODEC_ID_DVD_SUBTITLE;
 		}
 		*codec = avcodec_find_decoder(codec_id);
+
+        if (*codec && (codec_id == CODEC_ID_AAC)) {
+            bs = gf_bs_new(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_BITSTREAM_READ);
+            FFDEC_LoadDSI(ffd, bs, *codec, *ctx, GF_FALSE);
+            gf_bs_del(bs);
+        }
+
 	}
 	/*should never happen*/
 	if (! (*codec)) return GF_OUT_OF_MEM;
@@ -362,9 +382,9 @@ static GF_Err FFDEC_AttachStream(GF_BaseDecoder *plug, GF_ESD *esd)
 			nb_threads = atoi(sOpt);
 		}
 		if (nb_threads > detected_nb_threads) {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_WARNING, ("[HEVC@ffmpeg] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[HEVC@ffmpeg] Initializing with %d threads but only %d available cores detected on the system\n", nb_threads, rti.nb_cores));
 		} else {
-			GF_LOG(GF_LOG_CODEC, GF_LOG_INFO, ("[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads));
 		}
 		fprintf(stderr, "[HEVC@ffmpeg] Initializing with %d threads\n", nb_threads);
 		av_opt_set_int(*ctx, "threads", nb_threads, 0);
@@ -809,25 +829,45 @@ redecode:
 					output[i*ctx->channels + j] = (int16_t) (sample * GF_SHORT_MAX );
 				}
 			}
+        } else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16P) {
+                s32 i, j;
+                s16 *output = (s16 *) outBuffer;
+                for (j=0; j<ctx->channels; j++) {
+                    s16* inputChannel = (s16*)ffd->audio_frame->extended_data[j];
+                    for (i=0 ; i<ffd->audio_frame->nb_samples ; i++) {
+                        Float sample = inputChannel[i];
+                        output[i*ctx->channels + j] = (int16_t) (sample );
+                    }
+                }
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_U8) {
 			u32 i, size = ffd->audio_frame->nb_samples * ctx->channels;
 			s16 *output = (s16 *) outBuffer;
-			s8 *input = (s8 *) ffd->audio_frame->data;
+			s8 *input = (s8 *) ffd->audio_frame->data[0];
 			for (i=0; i<size; i++) {
 				output [i] = input[i] * 128;
 			}
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S32) {
 			u32 i, shift, size = ffd->audio_frame->nb_samples * ctx->channels;
 			s16 *output = (s16 *) outBuffer;
-			s32 *input = (s32*) ffd->audio_frame->data;
+			s32 *input = (s32*) ffd->audio_frame->data[0];
 			shift = 1<<31;
 			for (i=0; i<size; i++) {
 				output [i] = input[i] * shift;
 			}
+        } else if (ffd->audio_frame->format==AV_SAMPLE_FMT_FLT) {
+            u32 i, size = ffd->audio_frame->nb_samples * ctx->channels;
+            s16 *output = (s16 *) outBuffer;
+            Float *input = (Float *) ffd->audio_frame->data[0];
+            for (i=0; i<size; i++) {
+                Float sample = input[i];
+                if (sample<-1.0f) sample=-1.0f;
+                else if (sample>1.0f) sample=1.0f;
+                output [i] = (int16_t) (sample * GF_SHORT_MAX);
+            }
 		} else if (ffd->audio_frame->format==AV_SAMPLE_FMT_S16) {
-			memcpy(outBuffer, ffd->audio_frame->data, sizeof(char) * ffd->audio_frame->nb_samples * ctx->channels*2);
+			memcpy(outBuffer, ffd->audio_frame->data[0], sizeof(char) * ffd->audio_frame->nb_samples * ctx->channels*2);
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FFMPEG Decoder] Raw Audio format %d not supoorted\n", ffd->audio_frame->format ));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFMPEG Decoder] Raw Audio format %d not supported\n", ffd->audio_frame->format ));
 		}
 #else
 		/*we're sure to have at least gotpic bytes available in output*/
@@ -1282,6 +1322,13 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		codec_id = gf_bs_read_u32(bs);
 		check_4cc = GF_TRUE;
 		gf_bs_del(bs);
+        
+        if (codec_id == GF_4CC('s','a','m','r')) {
+            codec_id = CODEC_ID_AMR_NB;
+        }
+        else if (codec_id == GF_4CC('s','a','w','b')) {
+            codec_id = CODEC_ID_AMR_WB;
+        }
 	}
 	else if (StreamType==GF_STREAM_AUDIO) {
 		/*std MPEG-2 audio*/
@@ -1296,6 +1343,14 @@ static u32 FFDEC_CanHandleStream(GF_BaseDecoder *plug, u32 StreamType, GF_ESD *e
 		case GPAC_OTI_AUDIO_EAC3:
 			codec_id = CODEC_ID_EAC3;
 			break;
+        case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
+        case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
+        case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
+        case GPAC_OTI_AUDIO_AAC_MPEG4:
+            codec_id = CODEC_ID_AAC;
+            if (avcodec_find_decoder(codec_id) != NULL)
+                return GF_CODEC_MAYBE_SUPPORTED;
+            break;
 		}
 	}
 

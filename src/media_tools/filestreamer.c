@@ -76,7 +76,7 @@ struct __isom_rtp_streamer
 	Bool loop;
 	Bool force_mpeg4_generic;
 	/*timeline origin of our session (all tracks) in microseconds*/
-	u32 timelineOrigin;
+	u64 timelineOrigin;
 	/*list of streams in session*/
 	GF_RTPTrack *stream;
 
@@ -87,6 +87,7 @@ struct __isom_rtp_streamer
 	u32 base_track;
 
 	Bool first_RTCP_sent;
+    u64 last_min_dts;
 };
 
 
@@ -121,7 +122,7 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		fprintf(sdp_out, "%s\n", sdpLine);
 		sprintf(sdpLine, "t=0 0");
 		fprintf(sdp_out, "%s\n", sdpLine);
-		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-200X - http://gpac.sourceforge.net");
+		sprintf(sdpLine, "a=x-copyright: Streamed with GPAC (C)2000-2016 - http://gpac.io");
 		fprintf(sdp_out, "%s\n", sdpLine);
 		if (streamer->base_track)
 		{
@@ -187,7 +188,8 @@ static GF_Err gf_isom_streamer_setup_sdp(GF_ISOMRTPStreamer *streamer, char*sdpf
 		track = track->next;
 	}
 	fprintf(sdp_out, "\n");
-
+    GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] SDP file generated\n"));
+    
 	gf_fclose(sdp_out);
 	if (out_sdp_buffer) {
 		u64 size;
@@ -227,7 +229,7 @@ void gf_isom_streamer_reset(GF_ISOMRTPStreamer *streamer, Bool is_loop)
 		if (is_loop) {
 			Double scale = track->timescale/1000.0;
 			track->ts_offset += (u32) (streamer->duration_ms * scale);
-			track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale)) + streamer->timelineOrigin;
+			track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale) + streamer->timelineOrigin);
 		} else {
 			track->ts_offset += 0;
 			track->microsec_ts_offset = 0;
@@ -243,9 +245,9 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 {
 	GF_Err e = GF_OK;
 	GF_RTPTrack *track, *to_send;
-	u32 time, duration;
+	u32 duration;
 	s32 diff;
-	u64 min_ts, dts, cts;
+	u64 min_ts, dts, cts, clock;
 
 	if (!streamer) return GF_BAD_PARAM;
 
@@ -253,12 +255,12 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	to_send = NULL;
 	min_ts = (u64) -1;
 
-	time = gf_sys_clock();
+	clock = gf_sys_clock_high_res();
 
 	/*init session timeline - all sessions are sync'ed for packet scheduling purposes*/
 	if (!streamer->timelineOrigin) {
-		streamer->timelineOrigin = time*1000;
-		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] RTP session %s initialized - time origin set to %d\n", gf_isom_get_filename(streamer->isom), time));
+		streamer->timelineOrigin = clock;
+		GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] RTP session %s initialized - time origin set to "LLU"\n", gf_isom_get_filename(streamer->isom), clock));
 	}
 
 	track = streamer->stream;
@@ -275,14 +277,14 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 				/*increment ts offset*/
 				scale = track->timescale/1000.0;
 				track->ts_offset += (u32) (streamer->duration_ms * scale);
-				track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale)) + streamer->timelineOrigin;
+				track->microsec_ts_offset = (u32) (track->ts_offset*(1000000.0/track->timescale) + streamer->timelineOrigin);
 				track->current_au = 0;
 			}
 
 			track->au = gf_isom_get_sample(streamer->isom, track->track_num, track->current_au + 1, &track->sample_desc_index);
 			track->current_au ++;
 			if (track->au) {
-				track->microsec_dts = (u64) (track->microsec_ts_scale * (s64) (track->au->DTS)) + track->microsec_ts_offset + streamer->timelineOrigin;
+				track->microsec_dts = (u64) (track->microsec_ts_scale * (s64) (track->au->DTS) + track->microsec_ts_offset + streamer->timelineOrigin);
 			}
 		}
 
@@ -300,6 +302,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	/*no input data ...*/
 	if( !to_send) return GF_EOS;
 
+    streamer->last_min_dts = min_ts;
 
 	/*we are about to send scalable base: trigger RTCP reports with the same NTP. This avoids
 	NTP drift due to system clock precision which could break sync decoding*/
@@ -346,7 +349,7 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 	cts = to_send->au->DTS + to_send->au->CTS_Offset + to_send->ts_offset;
 	duration = gf_isom_get_sample_duration(streamer->isom, to_send->track_num, to_send->current_au);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_RTP, ("[FileStreamer] Sending RTP packets for track %d AU %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - RAP %d\n", to_send->track_num, to_send->current_au, to_send->nb_aus, to_send->au->DTS, to_send->au->DTS+to_send->au->CTS_Offset, cts, to_send->au->dataLength, to_send->au->IsRAP ) );
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[FileStreamer] Sending RTP packets for track %d AU %d/%d DTS "LLU" - CTS "LLU" - RTP TS "LLU" - size %d - RAP %d\n", to_send->track_num, to_send->current_au, to_send->nb_aus, to_send->au->DTS, to_send->au->DTS+to_send->au->CTS_Offset, cts, to_send->au->dataLength, to_send->au->IsRAP ) );
 
 	/*unpack nal units*/
 	if (to_send->avc_nalu_size) {
@@ -386,6 +389,15 @@ GF_Err gf_isom_streamer_send_next_packet(GF_ISOMRTPStreamer *streamer, s32 send_
 
 	return e;
 }
+
+GF_EXPORT
+Double gf_isom_streamer_get_current_time(GF_ISOMRTPStreamer *streamer)
+{
+    Double res = (Double) (streamer->last_min_dts - streamer->timelineOrigin);
+    res /= 1000000;
+    return res;
+}
+
 
 static u16 check_next_port(GF_ISOMRTPStreamer *streamer, u16 first_port)
 {

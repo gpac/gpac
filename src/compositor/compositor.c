@@ -291,6 +291,9 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	GF_SAFEALLOC(compositor->traverse_state, GF_TraverseState);
 	compositor->traverse_state->vrml_sensors = gf_list_new();
 	compositor->traverse_state->use_stack = gf_list_new();
+#ifndef GPAC_DISABLE_3D
+	compositor->traverse_state->local_lights = gf_list_new();
+#endif
 	compositor->sensors = gf_list_new();
 	compositor->previous_sensors = gf_list_new();
 	compositor->hit_use_stack = gf_list_new();
@@ -333,7 +336,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 	/*default collision mode*/
 	compositor->collide_mode = GF_COLLISION_DISPLACEMENT; //GF_COLLISION_NORMAL
 	compositor->gravity_on = GF_TRUE;
-
+	
 	/*create default unit sphere and box for bounds*/
 	compositor->unit_bbox = new_mesh();
 	mesh_new_unit_bbox(compositor->unit_bbox);
@@ -643,6 +646,9 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->traverse_state) {
 		gf_list_del(compositor->traverse_state->vrml_sensors);
 		gf_list_del(compositor->traverse_state->use_stack);
+#ifndef GPAC_DISABLE_3D
+		gf_list_del(compositor->traverse_state->local_lights);
+#endif
 		gf_free(compositor->traverse_state);
 	}
 
@@ -850,9 +856,18 @@ static void gf_sc_reset(GF_Compositor *compositor, Bool has_scene)
 	draw_mode = compositor->traverse_state->immediate_draw;
 	gf_list_del(compositor->traverse_state->vrml_sensors);
 	gf_list_del(compositor->traverse_state->use_stack);
+#ifndef GPAC_DISABLE_3D
+	gf_list_del(compositor->traverse_state->local_lights);
+#endif
+	
 	memset(compositor->traverse_state, 0, sizeof(GF_TraverseState));
+	
 	compositor->traverse_state->vrml_sensors = gf_list_new();
 	compositor->traverse_state->use_stack = gf_list_new();
+#ifndef GPAC_DISABLE_3D
+	compositor->traverse_state->local_lights = gf_list_new();
+#endif
+	
 	gf_mx2d_init(compositor->traverse_state->transform);
 	gf_cmx_init(&compositor->traverse_state->color_mat);
 	compositor->traverse_state->immediate_draw = draw_mode;

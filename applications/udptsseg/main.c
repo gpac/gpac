@@ -131,7 +131,7 @@ int main(int argc, char **argv)
 	/*****************/
 	/*   gpac init   */
 	/*****************/
-	gf_sys_init(0);
+	gf_sys_init(GF_MemTrackerNone);
 
 	/*****************/
 	/*   parsing of the arguments */

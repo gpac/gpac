@@ -845,9 +845,10 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 	if (!new_node) {
 		if (proto) {
-			skip_init = GF_TRUE;
 			/*create proto interface*/
 			new_node = gf_sg_proto_create_instance(codec->current_graph, proto);
+            //don't init protos unless externProto (in which case we want init for hardcoded protos)
+            if (! proto->ExternProto.count) skip_init = GF_TRUE;
 		} else {
 			new_node = gf_node_new(codec->current_graph, node_tag);
 		}
@@ -872,7 +873,7 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 
 	/*update default time fields except in proto parsing*/
 	if (!codec->pCurrentProto) UpdateTimeNode(codec, new_node);
-	/*nodes are only init outside protos */
+	/*nodes are only init outside protos, nodes internal to protos are never intialized */
 	else skip_init = GF_TRUE;
 
 	/*if coords were not stored for QP14 before coding this node, reset QP14 it when leaving*/

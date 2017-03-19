@@ -1012,7 +1012,7 @@ int main(int argc, char **argv)
 	GF_SceneDumper *dump;
 	char *tmp;
 
-	gf_sys_init(0);
+	gf_sys_init(GF_MemTrackerNone);
 
 	GF_SAFEALLOC(converter, SVG2BIFS_Converter);
 

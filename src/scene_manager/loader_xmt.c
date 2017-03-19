@@ -1631,35 +1631,42 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 	tag = 0;
 
 	if (!strcmp(name, "ProtoInstance")) {
+		char *proto_name = NULL;
+		char *proto_use = NULL;
+		node = NULL;
 		for (i=0; i<nb_attributes; i++) {
 			GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 			if (!att->value || !strlen(att->value)) continue;
 			if (!strcmp(att->name, "name")) {
-				GF_SceneGraph *sg = parser->load->scene_graph;
-				while (1) {
-					proto = gf_sg_find_proto(sg, 0, att->value);
-					if (proto) break;
-					sg = sg->parent_scene;
-					if (!sg) break;
-				}
-				if (!proto) {
-					xmt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported proto", att->value);
-					return NULL;
-				}
-				node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
+				proto_name = att->value;
 				att->value = NULL;
+			} else if (!strcmp(att->name, "USE")) {
+				proto_use = att->value;
 			}
-			else if (!strcmp(att->name, "USE")) {
-				node = xmt_find_node(parser, att->value);
-				e = GF_OK;
-				if (!node)
-					e = xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", att->value);
-
-				if (e) return NULL;
-				ID = 0;
-				register_def = 0;
-				tag = 0;
+		}
+		if (proto_use) {
+			node = xmt_find_node(parser, proto_use);
+			e = GF_OK;
+			if (!node)
+				e = xmt_report(parser, GF_BAD_PARAM, "Warning: Cannot find node %s referenced in USE - skipping", proto_use);
+			
+			if (e) return NULL;
+			ID = 0;
+			register_def = 0;
+			tag = 0;
+		} else if (proto_name) {
+			GF_SceneGraph *sg = parser->load->scene_graph;
+			while (1) {
+				proto = gf_sg_find_proto(sg, 0, proto_name);
+				if (proto) break;
+				sg = sg->parent_scene;
+				if (!sg) break;
 			}
+			if (!proto) {
+				xmt_report(parser, GF_BAD_PARAM, "%s: not a valid/supported proto", proto_name);
+				return NULL;
+			}
+			node = gf_sg_proto_create_instance(parser->load->scene_graph, proto);
 		}
 	} else {
 		tag = xmt_get_node_tag(parser, name);

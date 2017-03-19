@@ -683,25 +683,27 @@ GF_Err gf_isom_xml_subtitle_get_description(GF_ISOFile *the_file, u32 trackNumbe
 {
 	GF_TrackBox *trak;
 	GF_MetaDataSampleEntryBox *entry;
-	*xmlnamespace = NULL;
-	*xml_schema_loc = NULL;
-	*mimes = NULL;
+	if (xmlnamespace) *xmlnamespace = NULL;
+	if (xml_schema_loc) *xml_schema_loc = NULL;
+	if (mimes) *mimes = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
 	entry = (GF_MetaDataSampleEntryBox *)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, StreamDescriptionIndex-1);
-	if (!entry ||
-	        (entry->type!=GF_ISOM_BOX_TYPE_STPP)) {
+	if (!entry) return GF_BAD_PARAM;
+ 
+	if ((entry->type!=GF_ISOM_BOX_TYPE_STPP) && (entry->type!=GF_ISOM_BOX_TYPE_METX)) {
 		return GF_BAD_PARAM;
 	}
 
 	if (entry->mime_type) {
-		*mimes = entry->mime_type;
+		if (mimes) *mimes = entry->mime_type;
 	}
 	if (entry->xml_schema_loc) {
-		*xml_schema_loc = entry->xml_schema_loc;
+		if (xml_schema_loc) *xml_schema_loc = entry->xml_schema_loc;
 	}
-	*xmlnamespace = entry->xml_namespace;
+	if (xmlnamespace)
+		*xmlnamespace = entry->xml_namespace;
 	return GF_OK;
 }
 
@@ -795,9 +797,9 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 {
 	GF_TrackBox *trak;
 	GF_MetaDataSampleEntryBox *entry;
-	*mime = NULL;
-	*config = NULL;
-	*encoding = NULL;
+	if (mime) *mime = NULL;
+	if (config) *config = NULL;
+	if (encoding) *encoding = NULL;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak || !StreamDescriptionIndex) return GF_BAD_PARAM;
 
@@ -810,13 +812,13 @@ GF_Err gf_isom_stxt_get_description(GF_ISOFile *the_file, u32 trackNumber, u32 S
 	}
 
 	if (entry->config) {
-		*config = entry->config->config;
+		if (config) *config = entry->config->config;
 	}
 	if (entry->mime_type) {
-		*mime = entry->mime_type;
+		if (mime) *mime = entry->mime_type;
 	}
 	if (entry->content_encoding) {
-		*encoding = entry->content_encoding;
+		if (encoding) *encoding = entry->content_encoding;
 	}
 	return GF_OK;
 }

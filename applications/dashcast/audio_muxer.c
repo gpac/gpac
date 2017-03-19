@@ -152,6 +152,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 		return -1;
 	}
 
+	ret = gf_media_get_rfc_6381_codec_name(audio_output_file->isof, track, audio_output_file->audio_data_conf->codec6381, GF_FALSE, GF_FALSE);
 	return 0;
 }
 
@@ -163,6 +164,8 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filena
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_start_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment %s started at "LLU"\n", filename, gf_net_get_utc() ));
 
 	audio_output_file->dts = 0;
 
@@ -177,7 +180,6 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 
 	audio_output_file->sample->DTS = audio_output_file->dts; //audio_output_file->aframe->pts;
 	audio_output_file->sample->IsRAP = RAP; //audio_output_file->aframe->key_frame;//audio_codec_ctx->coded_frame->key_frame;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("RAP %d , DTS %ld \n", audio_output_file->sample->IsRAP, audio_output_file->sample->DTS));
 
 	ret = gf_isom_fragment_add_sample(audio_output_file->isof, 1, audio_output_file->sample, 1, audio_output_file->codec_ctx->frame_size, 0, 0, 0);
 	audio_output_file->dts += audio_output_file->codec_ctx->frame_size;
@@ -185,13 +187,6 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_fragment_add_sample\n", gf_error_to_string(ret)));
 		return -1;
 	}
-
-//	ret = gf_isom_flush_fragments(video_output_file->isof, 1);
-//	if (ret != GF_OK) {
-//		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_flush_fragments\n", gf_error_to_string(ret)));
-//		return -1;
-//	}
-
 	return 0;
 }
 
@@ -203,6 +198,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment closed at "LLU"\n", gf_net_get_utc() ));
 
 	//audio_output_file->acc_samples = 0;
 
@@ -411,7 +407,7 @@ GF_Err dc_audio_muxer_open(AudioOutputFile *audio_output_file, char *directory, 
 	return ret;
 }
 
-int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
+int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool insert_ntp)
 {
 	switch (audio_output_file->muxer_type) {
 	case FFMPEG_AUDIO_MUXER:
@@ -421,12 +417,19 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb)
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
 			gf_isom_start_fragment(audio_output_file->isof, 1);
+			
+			if (insert_ntp) {
+				gf_isom_set_fragment_reference_time(audio_output_file->isof, 1, audio_output_file->frame_ntp, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
+			}
+
 			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			audio_output_file->first_dts += audio_output_file->frame_per_frag;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio start fragment first DTS %d at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
 		}
 		dc_gpac_audio_isom_write(audio_output_file);
 		if (frame_nb % audio_output_file->frame_per_frag == audio_output_file->frame_per_frag - 1) {
 			gf_isom_flush_fragments(audio_output_file->isof, 1);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio flush fragment first DTS %d at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
 		}
 		//TODO - do same as video, flush based on time in case of losses
 		if (frame_nb + 1 == audio_output_file->frame_per_seg) {
