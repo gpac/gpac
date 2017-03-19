@@ -88,6 +88,10 @@ void dc_video_scaler_list_init(VideoScaledDataList *video_scaled_data_list, GF_L
 		if (!found) {
 			VideoScaledData *video_scaled_data;
 			GF_SAFEALLOC(video_scaled_data, VideoScaledData);
+			if (!video_scaled_data) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Cannot allocate video rescaler\n"));
+				return;
+			}
 			video_scaled_data->out_width  = video_data_conf->width;
 			video_scaled_data->out_height = video_data_conf->height;
 			video_scaled_data->num_consumers = 1;

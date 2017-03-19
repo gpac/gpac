@@ -129,28 +129,35 @@ u32 send_frag_event(void *params)
 
 static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf, const VideoDataConf *video_data_conf, const char *presentation_duration, const char *availability_start_time, const char *time_shift, const int segnum, const int ast_offset)
 {
-	u32 i = 0;
+	u32 i = 0, sec;
 	int audio_seg_dur = 0, video_seg_dur = 0, audio_frag_dur = 0,	video_frag_dur = 0;
 	int audio_frame_size = AUDIO_FRAME_SIZE;
+	time_t gtime;
+	struct tm *t;
 	FILE *f;
 
 	char name[GF_MAX_PATH];
+
 	snprintf(name, sizeof(name), "%s/%s", cmddata->out_dir, cmddata->mpd_filename);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Write MPD at UTC "LLU" ms - %s : %s\n", gf_net_get_utc(), (cmddata->mode == ON_DEMAND) ? "mediaPresentationDuration" : "availabilityStartTime", (cmddata->mode == ON_DEMAND) ? presentation_duration : availability_start_time));
 
 	if (strcmp(cmddata->audio_data_conf.filename, "") != 0) {
 		audio_data_conf = (const AudioDataConf*)gf_list_get(cmddata->audio_lst, 0);
-		audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
-		audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
-		optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
+		if (audio_data_conf) {
+			audio_seg_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->seg_dur / 1000.0));
+			audio_frag_dur = (int)((audio_data_conf->samplerate / (double) audio_frame_size) * (cmddata->frag_dur / 1000.0));
+			optimize_seg_frag_dur(&audio_seg_dur, &audio_frag_dur);
+		}
 	}
 
 	if (strcmp(cmddata->video_data_conf.filename, "") != 0) {
 		video_data_conf = (VideoDataConf*)gf_list_get(cmddata->video_lst, 0);
-		video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
-		video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
-		optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
+		if (video_data_conf) {
+			video_seg_dur = (int)(video_data_conf->framerate * (cmddata->seg_dur / 1000.0));
+			video_frag_dur = (int)(video_data_conf->framerate * (cmddata->frag_dur / 1000.0));
+			optimize_seg_frag_dur(&video_seg_dur, &video_frag_dur);
+		}
 	}
 
 	f = gf_fopen(name, "w");
@@ -175,12 +182,18 @@ static void dc_write_mpd(CmdData *cmddata, const AudioDataConf *audio_data_conf,
 
 		if (cmddata->minimum_update_period > 0)
 			fprintf(f, " minimumUpdatePeriod=\"PT%dS\"", cmddata->minimum_update_period);
+
+		gf_net_get_ntp(&sec, NULL);
+		gtime = sec - GF_NTP_SEC_1900_TO_1970;
+		t = gmtime(&gtime);
+		fprintf(f, " publishTime=\"%d-%02d-%02dT%02d:%02d:%02dZ\"", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec);
+
 	}
 
 	fprintf(f, ">\n");
 
 	fprintf(f,
-	        " <ProgramInformation moreInformationURL=\"http://gpac.sourceforge.net\">\n"
+	        " <ProgramInformation moreInformationURL=\"http://gpac.io\">\n"
 	        "  <Title>%s</Title>\n"
 	        " </ProgramInformation>\n", cmddata->mpd_filename);
 
@@ -273,6 +286,7 @@ static u32 mpd_thread(void *params)
 	main_seg_time.segnum = 0;
 	main_seg_time.utc_time = 0;
 	main_seg_time.ntpts = 0;
+	last_seg_time = main_seg_time;
 
 	if (cmddata->mode == LIVE_CAMERA || cmddata->mode == LIVE_MEDIA) {
 		while (1) {
@@ -281,6 +295,7 @@ static u32 mpd_thread(void *params)
 			segtime seg_time;
 			seg_time.segnum = 0;
 			seg_time.utc_time = 0;
+			seg_time.ntpts = 0;
 
 			if (cmddata->exit_signal) {
 				break;
@@ -351,7 +366,7 @@ static u32 mpd_thread(void *params)
 			if (dur > cmddata->time_shift * 1000) {
 				u32 nb_seg = cmddata->time_shift*1000 / cmddata->seg_dur;
 				main_seg_time.segnum = last_seg_time.segnum - nb_seg;
-				dur = cmddata->time_shift;
+				//dur = cmddata->time_shift;
 			}
 			dur = cmddata->seg_dur * (last_seg_time.segnum - main_seg_time.segnum);
 		}
@@ -417,7 +432,7 @@ u32 delete_seg_thread(void *params)
 
 Bool fragmenter_thread(void *params)
 {
-	int ret;
+//	int ret;
 	ThreadParam *th_param = (ThreadParam*)params;
 	CmdData *cmd_data = th_param->in_data;
 	MessageQueue *mq = th_param->mq;
@@ -425,7 +440,7 @@ Bool fragmenter_thread(void *params)
 	char buff[GF_MAX_PATH];
 
 	while (1) {
-		ret = dc_message_queue_get(mq, (void*) buff);
+		/*ret = */dc_message_queue_get(mq, (void*) buff);
 		if (cmd_data->exit_signal) {
 			break;
 		}
@@ -491,9 +506,9 @@ u32 video_decoder_thread(void *params)
 
 		//fprintf(stdout, "sourcenumber: %d\n", source_number);
 
-		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
+//		if (video_input_file[source_number]->mode == LIVE_MEDIA) {
 			gf_gettimeofday(&time_start, NULL);
-		}
+//		}
 
 		ret = dc_video_decoder_read(video_input_file[source_number], video_input_data, source_number, in_data->use_source_timing, (in_data->mode == LIVE_CAMERA) ? 1 : 0, (const int *) &in_data->exit_signal);
 #ifdef DASHCAST_PRINT
@@ -561,9 +576,9 @@ u32 audio_decoder_thread(void *params)
 		return 0;
 
 	while (1) {
-		if (audio_input_file->mode == LIVE_MEDIA) {
+//		if (audio_input_file->mode == LIVE_MEDIA) {
 			gf_gettimeofday(&time_start, NULL);
-		}
+//		}
 
 		ret = dc_audio_decoder_read(audio_input_file, audio_input_data);
 		if (ret == -2) {
@@ -679,7 +694,7 @@ u32 video_encoder_thread(void *params)
 
 	time_at_segment_start.ntpts = 0;
 	start_utc = gf_net_get_utc();
-	seg_utc = 0;
+
 	while (1) {
 		frame_nb = 0;
 		//log time at segment start, because segment availabilityStartTime is computed from AST anchor + segment duration
@@ -908,7 +923,6 @@ u32 audio_encoder_thread(void *params)
 
 	start_utc = gf_net_get_utc();
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[audio_encoder] start_utc="LLU"\n", start_utc));
-	seg_utc = 0;
 
 	while (1) {
 		//logging at the end of the segment production will induce one segment delay
@@ -1097,7 +1111,7 @@ int dc_run_controler(CmdData *in_data)
 	MessageQueue delete_seg_mq;
 	MessageQueue send_frag_mq;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Controler init at UTC "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Controler init at UTC "LLU"\n", gf_net_get_utc() ));
 	dc_register_libav();
 
 	for (i = 0; i < MAX_SOURCE_NUMBER; i++)

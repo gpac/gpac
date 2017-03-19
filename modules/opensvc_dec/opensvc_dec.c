@@ -365,7 +365,7 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
 			if (!cfg) return GF_CODEC_NOT_SUPPORTED;
 
-			if (esd->has_ref_base)
+			if (esd->has_scalable_layers)
 				is_svc = GF_TRUE;
 
 			/*decode all NALUs*/
@@ -382,7 +382,7 @@ static u32 OSVC_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd
 			gf_odf_avc_cfg_del(cfg);
 			return is_svc ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
 		}
-		return esd->has_ref_base ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
+		return esd->has_scalable_layers ? GF_CODEC_SUPPORTED : GF_CODEC_MAYBE_SUPPORTED;
 	}
 	return GF_CODEC_NOT_SUPPORTED;
 }

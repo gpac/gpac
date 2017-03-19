@@ -29,7 +29,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CXX) -w $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS)
+	$(CXX) -w $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKLIBS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

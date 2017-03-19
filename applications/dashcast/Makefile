@@ -24,12 +24,6 @@ ifneq ($(CONFIG_LIBAV),no)
 CFLAGS+=-DGPAC_USE_LIBAV
 endif
 
-ifneq ($(CONFIG_LIBAVRESAMPLE),no)
-CFLAGS+=-DDC_AUDIO_RESAMPLER
-LINKFLAGS+=-lavresample
-endif
-
-
 ifeq ($(CONFIG_WIN32),yes)
 EXE=.exe
 PROG=DashCast$(EXE)
@@ -43,6 +37,7 @@ ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
 LINKFLAGS+=-lgpac_static
+LINKFLAGS+= $(GPAC_SH_FLAGS)
 LINKFLAGS+=$(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
@@ -51,21 +46,24 @@ endif
 #common obj
 OBJS= dashcast.o audio_data.o audio_decoder.o audio_encoder.o audio_muxer.o circular_buffer.o cmd_data.o controler.o message_queue.o register.o video_data.o video_decoder.o video_encoder.o video_muxer.o video_scaler.o task.o
 
+LINKFLAGS+= $(ffmpeg_lflags_dashcast)
 
-LINKFLAGS+= $(ffmpeg_lflags)
+ifneq ($(CONFIG_LIBAVRESAMPLE),no)
+CFLAGS+=-DDC_AUDIO_RESAMPLER
+LINKFLAGS+=-lavresample
+endif
 
 ifeq ($(CONFIG_DARWIN), yes)
 #fixme - use proper detection of libavdevice dependencies
-LINKFLAGS+=-lavfilter -lswresample -lbz2 
+#LINKFLAGS+=-lavfilter -lswresample -lbz2 
 endif
-
 
 SRCS := $(OBJS:.o=.c) 
 
 all: $(PROG)
 
 DashCast$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS)
+	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LDFLAGS) $(LINKFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)

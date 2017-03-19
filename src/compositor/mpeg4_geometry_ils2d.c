@@ -140,9 +140,8 @@ static void ILS2D_Draw(GF_Node *node, GF_TraverseState *tr_state)
 	raster = NULL;
 	end_at = ils2D->coordIndex.count;
 	if (!end_at) end_at = coord->point.count;
-	count = 0;
+
 	col_ind = 0;
-	ind = 0;
 	i=0;
 	path = gf_path_new();
 	while (1) {

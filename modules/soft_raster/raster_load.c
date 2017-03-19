@@ -31,6 +31,7 @@ GF_Raster2D *EVG_LoadRenderer()
 {
 	GF_Raster2D *dr;
 	GF_SAFEALLOC(dr, GF_Raster2D);
+	if (!dr) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(dr, GF_RASTER_2D_INTERFACE, "GPAC 2D Raster", "gpac distribution")
 
 
@@ -47,7 +48,6 @@ GF_Raster2D *EVG_LoadRenderer()
 	dr->stencil_set_tiling = evg_stencil_set_tiling;
 	dr->stencil_set_filter = evg_stencil_set_filter;
 	dr->stencil_set_color_matrix = evg_stencil_set_color_matrix;
-	dr->stencil_create_texture = evg_stencil_create_texture;
 	dr->stencil_texture_modified = NULL;
 
 	dr->surface_new = evg_surface_new;

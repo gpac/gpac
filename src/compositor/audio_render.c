@@ -57,10 +57,14 @@ GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
 		if (filter) {
 			struct _audiofilterentry *entry;
 			GF_SAFEALLOC(entry, struct _audiofilterentry);
-			entry->filter = filter;
-			if (prev_filter) prev_filter->next = entry;
-			else afc->filters = entry;
-			prev_filter = entry;
+			if (!entry) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate audio filter entry\n"));
+			} else {
+				entry->filter = filter;
+				if (prev_filter) prev_filter->next = entry;
+				else afc->filters = entry;
+				prev_filter = entry;
+			}
 		}
 		if (sep) {
 			sep[0] = ';';
@@ -84,6 +88,7 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 	if (afc->tmp_block2) gf_free(afc->tmp_block2);
 	afc->tmp_block2 = NULL;
 
+	*ch_out = *ch_cfg_out = 0;
 	in_ch = chan;
 	afc->min_block_size = 0;
 	afc->max_block_size = 0;
@@ -358,7 +363,7 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				if (ar->nb_used==ar->nb_filled) ar->nb_used = 0;
 			}
 		} else {
-			written = gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
+			/*written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 
@@ -469,8 +474,11 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 	ar->mixer = gf_mixer_new(ar);
 	ar->user = user;
 
+	ar->volume = 100;
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Volume");
-	ar->volume = sOpt ? atoi(sOpt) : 75;
+	if (!sOpt) gf_cfg_set_key(user->config, "Audio", "Volume", "100");
+	else ar->volume = atoi(sOpt);
+	
 	sOpt = gf_cfg_get_key(user->config, "Audio", "Pan");
 	ar->pan = sOpt ? atoi(sOpt) : 50;
 

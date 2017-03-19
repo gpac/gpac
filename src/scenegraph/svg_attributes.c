@@ -1289,7 +1289,6 @@ static GF_Err svg_parse_transform(SVG_Transform *t, char *attribute_content)
 	char *str;
 	u32 i;
 	u32 read_chars;
-	str = attribute_content;
 	i = 0;
 
 	if ((str = strstr(attribute_content, "ref"))) {
@@ -1984,7 +1983,8 @@ static u32 svg_parse_length(SVG_Number *number, char *value_string, Bool clamp0t
 	u32 unit_pos = 0;
 	u32 unit_len = 0;
 	u32 read_chars;
-
+	if (!number || !value_string) return 0;
+	
 	if (!strcmp(value_string, "inherit")) {
 		number->type = SVG_NUMBER_INHERIT;
 		return 7;
@@ -2460,6 +2460,11 @@ err:
 	}
 
 	GF_SAFEALLOC(value, SMIL_Time)
+	if (!value) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Fail to allocate SMIL time\n"));
+		return;
+	}
+	
 	gf_list_add(values, value);
 
 	switch (e->sgprivate->tag) {
@@ -2613,7 +2618,7 @@ static void svg_parse_viewbox(SVG_ViewBox *value, char *value_string)
 		i += read_chars;
 		read_chars = svg_parse_number(&(str[i]), &(value->height), 0);
 		if (!read_chars) return;
-		i += read_chars;
+//		i += read_chars;
 	}
 }
 
@@ -3005,7 +3010,7 @@ GF_Err laser_parse_size(LASeR_Size *size, char *attribute_content)
 	char *str = attribute_content;
 	u32 i = 0;
 	i+=svg_parse_number(&(str[i]), &(size->width), 0);
-	i+=svg_parse_number(&(str[i]), &(size->height), 0);
+	/*i+=*/ svg_parse_number(&(str[i]), &(size->height), 0);
 	return GF_OK;
 }
 
@@ -3251,7 +3256,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		if (attribute_content[i] == 0) {
 			p->y = 0;
 		} else {
-			i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
+			/*i+=*/svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 		}
 	}
 	break;
@@ -3263,7 +3268,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 		if (attribute_content[i] == 0) {
 			p->y = p->x;
 		} else {
-			i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
+			/*i+=*/svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 		}
 	}
 	break;
@@ -3283,7 +3288,7 @@ GF_Err gf_svg_parse_attribute(GF_Node *n, GF_FieldInfo *info, char *attribute_co
 			p->y = p->x = 0;
 		} else {
 			i+=svg_parse_number(&(attribute_content[i]), &(p->x), 0);
-			i+=svg_parse_number(&(attribute_content[i]), &(p->y), 0);
+			/*i+=*/svg_parse_number(&(attribute_content[i]), &(p->y), 0);
 		}
 	}
 	break;
@@ -3593,7 +3598,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	{
 		ListOfXXX *list;
 		GF_SAFEALLOC(list, ListOfXXX)
-		*list = gf_list_new();
+		if (list) *list = gf_list_new();
 		return list;
 	}
 	break;
@@ -3608,6 +3613,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	{
 		SVG_PathData *path;
 		GF_SAFEALLOC(path, SVG_PathData);
+		if (!path) return NULL;
 #if USE_GF_PATH
 		gf_path_reset(path);
 		path->fineness = FIX_ONE;
@@ -3659,6 +3665,7 @@ void *gf_svg_create_attribute_value(u32 attribute_type)
 	{
 		SMIL_AnimateValues *av;
 		GF_SAFEALLOC(av, SMIL_AnimateValues)
+		if (!av) return NULL;
 		av->values = gf_list_new();
 		return av;
 	}
@@ -4441,6 +4448,7 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 				attVal = gf_realloc(attVal, sizeof(char)*(strlen(szT)+strlen(attVal)+ (i ? 2 : 1) ));
 				if (i) strcat(attVal, " ");
 				strcat(attVal, szT);
+				gf_free(szT);
 			}
 			return attVal;
 		}
@@ -4619,8 +4627,14 @@ char *gf_svg_dump_attribute(GF_Node *elt, GF_FieldInfo *info)
 		if (att_name->name)
 			return gf_strdup(att_name->name);
 
-		if (att_name->tag)
-			return gf_strdup( gf_svg_get_attribute_name(elt, att_name->tag) );
+		if (att_name->tag) {
+			char *att_name_val = (char *)gf_svg_get_attribute_name(elt, att_name->tag);
+			if (!att_name_val) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[SVG] unknown attribute name for tag %d\n", att_name->tag));
+				return NULL;
+			}
+			return gf_strdup(att_name_val );
+		}
 	}
 	break;
 
@@ -4971,6 +4985,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 	case SVG_VectorEffect_datatype:
 	case SVG_PlaybackOrder_datatype:
 	case SVG_TimelineBegin_datatype:
+	case SVG_Focusable_datatype:
 	case SVG_FocusHighlight_datatype:
 	case SVG_TransformType_datatype:
 	case SVG_Overlay_datatype:
@@ -5297,7 +5312,7 @@ Bool gf_svg_attributes_equal(GF_FieldInfo *f1, GF_FieldInfo *f2)
 		return 1;
 	}
 	default:
-		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] comparaison for field %s of type %s not supported\n", f1->name, gf_svg_attribute_type_to_string(f1->fieldType)));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_INTERACT, ("[SVG Attributes] comparaison for field %s of type %s not supported\n", f1->name ? f1->name : "unknown", gf_svg_attribute_type_to_string(f1->fieldType)));
 		return 0;
 	}
 }
@@ -5325,6 +5340,7 @@ static GF_Err svg_color_muladd(Fixed alpha, SVG_Color *a, Fixed beta, SVG_Color 
 
 static GF_Err svg_number_muladd(Fixed alpha, SVG_Number *a, Fixed beta, SVG_Number *b, SVG_Number *c)
 {
+	if (!a || !b || !c) return GF_BAD_PARAM;
 	if (a->type != b->type) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[SVG Attributes] cannot add lengths of mismatching types\n"));
 		return GF_BAD_PARAM;
@@ -5349,6 +5365,8 @@ static GF_Err svg_viewbox_muladd(Fixed alpha, SVG_ViewBox *a, Fixed beta, SVG_Vi
 
 static GF_Err svg_point_muladd(Fixed alpha, SVG_Point *pta, Fixed beta, SVG_Point *ptb, SVG_Point *ptc)
 {
+	if (!pta || !ptb || !ptc) return GF_BAD_PARAM;
+	
 	ptc->x = gf_mulfix(alpha, pta->x) + gf_mulfix(beta, ptb->x);
 	ptc->y = gf_mulfix(alpha, pta->y) + gf_mulfix(beta, ptb->y);
 	return GF_OK;
@@ -5402,6 +5420,10 @@ static GF_Err svg_points_copy(SVG_Points *a, SVG_Points *b)
 		SVG_Point *ptb = (SVG_Point *)gf_list_get(*b, i);
 		SVG_Point *pta;
 		GF_SAFEALLOC(pta, SVG_Point)
+		if (!pta) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG point\n"));
+			continue;
+		}
 		*pta = *ptb;
 		gf_list_add(*a, pta);
 	}
@@ -5443,6 +5465,10 @@ static GF_Err svg_numbers_copy(SVG_Numbers *a, SVG_Numbers *b)
 	for (i = 0; i < count; i ++) {
 		SVG_Number *na;
 		GF_SAFEALLOC(na, SVG_Number)
+		if (!na) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("[SVG Parsing] Cannot allocate SVG number\n"));
+			continue;
+		}
 		*na = *(SVG_Number *)gf_list_get(*b, i);
 		gf_list_add(*a, na);
 	}

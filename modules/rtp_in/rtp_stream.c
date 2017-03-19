@@ -25,6 +25,7 @@
 
 #include "rtp_in.h"
 #include <gpac/internal/ietf_dev.h>
+#include <gpac/internal/terminal_dev.h> //for SAT>IP: we need to instantiate the M2TS demuxer
 
 #ifndef GPAC_DISABLE_STREAMING
 
@@ -74,7 +75,6 @@ GF_Err RP_InitStream(RTPStream *ch, Bool ResetOnly)
 			if (sOpt) reorder_size = atoi(sOpt);
 			else reorder_size = 10;
 
-
 			ip_ifce = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "DefaultMCastInterface");
 			if (!ip_ifce) {
 				const char *mob_on = gf_modules_get_option((GF_BaseInterface *) gf_service_get_interface(ch->owner->service), "Network", "MobileIPEnabled");
@@ -108,6 +108,12 @@ void RP_DeleteStream(RTPStream *ch)
 	if (ch->rtp_ch) gf_rtp_del(ch->rtp_ch);
 	if (ch->control) gf_free(ch->control);
 	if (ch->session_id) gf_free(ch->session_id);
+	if (ch->satip_m2ts_ifce) {
+		if (ch->satip_m2ts_service_connected) {
+			ch->satip_m2ts_ifce->CloseService(ch->satip_m2ts_ifce);
+		}
+		gf_modules_close_interface((GF_BaseInterface *)ch->satip_m2ts_ifce);
+	}
 	gf_free(ch);
 }
 
@@ -156,6 +162,64 @@ static void rtp_sl_packet_cbk(void *udta, char *payload, u32 size, GF_SLHeader *
 	hdr->decodingTimeStamp = dts;
 }
 
+RTPStream *RP_NewSatipStream(RTPClient *rtp, const char *server_ip)
+{
+	char *ctrl;
+	GF_RTPMap map;
+	GF_RTSPTransport trans;
+	RTPStream *tmp;
+	GF_SAFEALLOC(tmp, RTPStream);
+	if (!tmp) return NULL;
+	tmp->owner = rtp;
+
+	/*create an RTP channel*/
+	tmp->rtp_ch = gf_rtp_new();
+	tmp->control = gf_strdup("*");
+
+	memset(&trans, 0, sizeof(GF_RTSPTransport));
+	trans.Profile = "RTP/AVP";
+	trans.source = gf_strdup(server_ip);
+	trans.IsUnicast = GF_TRUE;
+	trans.client_port_first = 0;
+	trans.client_port_last = 0;
+	trans.port_first = 0;
+	trans.port_last = 0;
+
+	if (gf_rtp_setup_transport(tmp->rtp_ch, &trans, NULL) != GF_OK) {
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
+
+	/*setup channel*/
+	memset(&map, 0, sizeof(GF_RTPMap));
+	map.PayloadType = 33;
+	map.ClockRate = 90000;
+	gf_rtp_setup_payload(tmp->rtp_ch, &map);
+
+	ctrl = (char *)gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(rtp->service), "Streaming", "DisableRTCP");
+	if (!ctrl || stricmp(ctrl, "yes")) tmp->flags |= RTP_ENABLE_RTCP;
+
+	/*setup NAT keep-alive*/
+	ctrl = (char *)gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(rtp->service), "Streaming", "NATKeepAlive");
+	if (ctrl) {
+		gf_rtp_enable_nat_keepalive(tmp->rtp_ch, atoi(ctrl));
+	} else {
+		gf_rtp_enable_nat_keepalive(tmp->rtp_ch, 30000); /*keep-alive every 30s, SAT>IP max is 60s*/
+	}
+
+	tmp->range_start = 0;
+	tmp->range_end = 0;
+
+	tmp->satip_m2ts_ifce = (GF_InputService*)gf_modules_load_interface_by_name(rtp->service->term->user->modules, "GPAC MPEG-2 TS Reader", GF_NET_CLIENT_INTERFACE);
+	if (!tmp->satip_m2ts_ifce) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[SAT>IP] Couldn't load the M2TS demuxer.\n"));
+		RP_DeleteStream(tmp);
+		return NULL;
+	}
+	tmp->satip_m2ts_ifce->proxy_udta = rtp;
+
+	return tmp;
+}
 
 RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTPStream *input_stream)
 {
@@ -260,6 +324,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 		if (tmp) return NULL;
 
 		GF_SAFEALLOC(tmp, RTPStream);
+		if (!tmp) return NULL;
 		tmp->owner = rtp;
 	}
 
@@ -363,9 +428,7 @@ RTPStream *RP_NewStream(RTPClient *rtp, GF_SDPMedia *media, GF_SDPInfo *sdp, RTP
 }
 
 
-
-
-void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
+static void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 {
 	GF_NetworkCommand com;
 	GF_Err e;

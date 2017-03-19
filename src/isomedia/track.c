@@ -68,6 +68,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	GF_Err e;
 	GF_ESD *esd;
 	u32 track_num = 0;
+	u32 k;
 	GF_SampleTableBox *stbl;
 	GF_TrackBox *trak, *OCRTrack;
 	GF_TrackReferenceTypeBox *dpnd;
@@ -92,15 +93,21 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	esd->ESID = trackID;
 
 	//find stream dependencies
-	e = Track_FindRef(trak, GF_ISOM_BOX_TYPE_DPND , &dpnd);
-	if (e) return e;
-	if (dpnd) {
-		//ONLY ONE STREAM DEPENDENCY IS ALLOWED
-		if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
-		//fix the spec: where is the index located ??
-		esd->dependsOnESID = dpnd->trackIDs[0];
-	} else {
-		esd->dependsOnESID = 0;
+	for (k=0; k<2; k++) {
+		u32 ref = GF_ISOM_BOX_TYPE_DPND;
+		if (k==1) ref = GF_4CC('s', 'b', 'a', 's');
+		
+		e = Track_FindRef(trak, ref , &dpnd);
+		if (e) return e;
+		if (dpnd) {
+			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
+			if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
+			//fix the spec: where is the index located ??
+			esd->dependsOnESID = dpnd->trackIDs[0];
+			break;
+		} else {
+			esd->dependsOnESID = 0;
+		}
 	}
 
 	if (trak->udta) {
@@ -263,7 +270,8 @@ default_sync:
 		    (esd->decoderConfig->streamType==GF_STREAM_VISUAL)) {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 0;
 			esd->slConfig->useRandomAccessPointFlag = 1;
-			stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+			if (trak->moov->mov->openMode!=GF_ISOM_OPEN_READ)
+				stbl->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
 		} else {
 			esd->slConfig->hasRandomAccessUnitsOnlyFlag = 1;
 			esd->slConfig->useRandomAccessPointFlag = 0;
@@ -419,7 +427,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 	void stbl_AppendSize(GF_SampleTableBox *stbl, u32 size);
 	void stbl_AppendChunk(GF_SampleTableBox *stbl, u64 offset);
 	void stbl_AppendSampleToChunk(GF_SampleTableBox *stbl, u32 DescIndex, u32 samplesInChunk);
-	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, u32 CTSOffset);
+	void stbl_AppendCTSOffset(GF_SampleTableBox *stbl, s32 CTSOffset);
 	void stbl_AppendRAP(GF_SampleTableBox *stbl, u8 isRap);
 	void stbl_AppendPadding(GF_SampleTableBox *stbl, u8 padding);
 	void stbl_AppendDegradation(GF_SampleTableBox *stbl, u16 DegradationPriority);
@@ -698,7 +706,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 					break;
 				}
 			}
-			if (saiz) {
+			if (saiz && saio) {
 				for (i = 0; i < saiz->sample_count; i++) {
 					GF_CENCSampleAuxInfo *sai;
 					char *buffer;
@@ -809,7 +817,6 @@ GF_Err NewMedia(GF_MediaBox **mdia, u32 MediaType, u32 TimeScale)
 
 	if (*mdia || !mdia) return GF_BAD_PARAM;
 
-	e = GF_OK;
 	minf = NULL;
 	mdhd = NULL;
 	hdlr = NULL;
@@ -1073,8 +1080,8 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		case GF_ISOM_BOX_TYPE_HEV1:
 		case GF_ISOM_BOX_TYPE_HVC2:
 		case GF_ISOM_BOX_TYPE_HEV2:
-		case GF_ISOM_BOX_TYPE_SHC1:
-		case GF_ISOM_BOX_TYPE_SHV1:
+		case GF_ISOM_BOX_TYPE_LHE1:
+		case GF_ISOM_BOX_TYPE_LHV1:
 		case GF_ISOM_BOX_TYPE_HVT1:
 			e = AVC_HEVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry, esd);
 			if (e) return e;
@@ -1110,11 +1117,12 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
 				if (!entry_v) return GF_OUT_OF_MEM;
 				e = AVC_HEVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry_v, esd);
+				if (e) return  e;
 			} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_HEVC) {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HVC1);
 				if (!entry_v) return GF_OUT_OF_MEM;
 				e = AVC_HEVC_UpdateESD((GF_MPEGVisualSampleEntryBox*)entry_v, esd);
-
+				if (e) return  e;
 			} else {
 				entry_v = (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4V);
 				if (!entry_v) return GF_OUT_OF_MEM;
@@ -1127,14 +1135,19 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_AC3) {
-				GF_AC3SampleEntryBox *ac3 = (GF_AC3SampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
+				GF_MPEGAudioSampleEntryBox *ac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AC3);
 				if (!ac3) return GF_OUT_OF_MEM;
-				ac3->info = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
+				ac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DAC3);
 				entry = (GF_MPEGSampleEntryBox*) ac3;
+			} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_AUDIO_EAC3) {
+				GF_MPEGAudioSampleEntryBox *eac3 = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_EC3);
+				if (!eac3) return GF_OUT_OF_MEM;
+				eac3->cfg_ac3 = (GF_AC3ConfigBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_DEC3);
+				entry = (GF_MPEGSampleEntryBox*) eac3;
 			} else {
 				entry_a = (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
-				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
 				if (!entry_a) return GF_OUT_OF_MEM;
+				entry_a->samplerate_hi = trak->Media->mediaHeader->timeScale;
 				entry_a->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
 				entry_a->esd->desc = esd;
 				//type cast possible now
@@ -1146,6 +1159,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 				entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_LSR1);
 				if (!entry) return GF_OUT_OF_MEM;
 				e = LSR_UpdateESD((GF_LASeRSampleEntryBox*)entry, esd);
+				if (e) return  e;
 			} else {
 				entry = (GF_MPEGSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4S);
 				entry->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
@@ -1156,7 +1170,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 		entry->dataReferenceIndex = DataReferenceIndex;
 
 		//and add the entry to our table...
-		e = stsd_AddBox(trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
+		e = stsd_AddBox((GF_Box*)trak->Media->information->sampleTable->SampleDescription, (GF_Box *) entry);
 		if (e) return e;
 		if(outStreamIndex) *outStreamIndex = gf_list_count(trak->Media->information->sampleTable->SampleDescription->other_boxes);
 	}

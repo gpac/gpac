@@ -32,13 +32,12 @@ extern "C" {
 
 /*!
  *	\file <gpac/module.h>
- *	\brief plugable module functions.
+ *	\brief plugable dynamic module.
  */
 
 /*!
- *	\addtogroup mods_grp plugable modules
- *	\ingroup utils_grp
- *	\brief Plugable Module functions
+ *	\ingroup mods_grp
+ *	\brief Plugable Dynamic Modules
  *
  *This section documents the plugable module functions of the GPAC framework.
  *A module is a dynamic/shared library providing one or several interfaces to the GPAC framework.
@@ -154,6 +153,7 @@ typedef struct
 	GF_InterfaceRegister *gf_register_module_##__name()	{	\
 		GF_InterfaceRegister *reg;	\
 		GF_SAFEALLOC(reg, GF_InterfaceRegister);	\
+		if (!reg) return NULL;\
 		reg->name = "gsm_" #__name;	\
 		reg->QueryInterfaces = QueryInterfaces;	\
 		reg->LoadInterface = LoadInterface;	\

@@ -44,7 +44,10 @@ u32 time_spent_in_anim = 0;
 GF_Err gf_node_animation_add(GF_Node *node, void *animation)
 {
 	if (!node || !animation) return GF_BAD_PARAM;
-	if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+	if (!node->sgprivate->interact) {
+		GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+		if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+	}
 	if (!node->sgprivate->interact->animations) node->sgprivate->interact->animations = gf_list_new();
 	return gf_list_add(node->sgprivate->interact->animations, animation);
 }
@@ -1154,6 +1157,10 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 
 	/* Creation and setup of the runtime structure for animation */
 	GF_SAFEALLOC(rai, SMIL_Anim_RTI)
+	if (!rai) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Animation] Failed to allocated SMIL anim RTI\n"));
+		return;
+	}
 
 	rai->anim_elt = e;
 	rai->animp = animp;
@@ -1294,6 +1301,10 @@ void gf_smil_anim_init_runtime_info(GF_Node *e)
 	}
 	if (!aa) {
 		GF_SAFEALLOC(aa, SMIL_AttributeAnimations)
+		if (!aa) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Animation] Failed to allocated SMIL attribue ani\n"));
+			return;
+		}
 
 		/* We determine if the animated attribute is a property since this changes quite a lot the animation model */
 		aa->is_property = gf_svg_is_property(target, &target_attribute);
@@ -1411,6 +1422,10 @@ void gf_smil_anim_init_discard(GF_Node *node)
 
 	gf_svg_flatten_attributes((SVG_Element *)e, &all_atts);
 	GF_SAFEALLOC(e->xlinkp, XLinkAttributesPointers);
+	if (!e->xlinkp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL,("[SMIL] Error creating anim xlink attrib\n"));
+		return;
+	}
 	xlinkp = e->xlinkp;
 	xlinkp->href = all_atts.xlink_href;
 	xlinkp->type = all_atts.xlink_type;

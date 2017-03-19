@@ -121,10 +121,19 @@ GF_Err gf_odf_parse_descriptor(GF_BitStream *bs, GF_Descriptor **desc, u32 *desc
 	do {
 		val = gf_bs_read_int(bs, 8);
 		sizeHeader++;
+		if (sizeHeader > 5) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Descriptor size on more than 4 bytes\n"));
+			return GF_ODF_INVALID_DESCRIPTOR;
+		}
 		size <<= 7;
 		size |= val & 0x7F;
 	} while ( val & 0x80);
 	*desc_size = size;
+
+	if (gf_bs_available(bs) < size) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[ODF] Not enough bytes (%d) to read descriptor (size=%d)\n", gf_bs_available(bs), size));
+		return GF_ODF_INVALID_DESCRIPTOR;
+	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODF] Reading descriptor (tag %d size %d)\n", tag, size ));
 
@@ -404,6 +413,10 @@ GF_Err gf_odf_get_laser_config(GF_DefaultDescriptor *dsi, GF_LASERConfig *cfg)
 {
 	u32 to_skip;
 	GF_BitStream *bs;
+	
+	if (!cfg) return GF_BAD_PARAM;
+	memset(cfg, 0, sizeof(GF_LASERConfig));
+	
 	if (!dsi || !dsi->data || !dsi->dataLength || !cfg) return GF_BAD_PARAM;
 	bs = gf_bs_new(dsi->data, dsi->dataLength, GF_BITSTREAM_READ);
 	memset(cfg, 0, sizeof(GF_LASERConfig));
@@ -506,6 +519,10 @@ GF_AVCConfig *gf_odf_avc_cfg_new()
 	if (!cfg) return NULL;
 	cfg->sequenceParameterSets = gf_list_new();
 	cfg->pictureParameterSets = gf_list_new();
+	cfg->AVCLevelIndication = 1;
+	cfg->chroma_format = 1;
+	cfg->chroma_bit_depth = 8;
+	cfg->luma_bit_depth = 8;
 	return cfg;
 }
 
@@ -535,7 +552,7 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 			if (sl->data) gf_free(sl->data);
 			gf_free(sl);
 		}
-		gf_list_del(cfg->pictureParameterSets);
+		gf_list_del(cfg->sequenceParameterSetExtensions);
 	}
 	gf_free(cfg);
 }
@@ -566,11 +583,7 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 		gf_bs_write_int(bs, sl->size, 16);
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
-	switch (cfg->AVCProfileIndication) {
-	case 100:
-	case 110:
-	case 122:
-	case 144:
+	if (gf_avc_is_rext_profile(cfg->AVCProfileIndication)) {
 		gf_bs_write_int(bs, 0xFF, 6);
 		gf_bs_write_int(bs, cfg->chroma_format, 2);
 		gf_bs_write_int(bs, 0xFF, 5);
@@ -585,7 +598,6 @@ GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
 			gf_bs_write_u16(bs, sl->size);
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
-		break;
 	}
 	*outSize = 0;
 	*outData = NULL;
@@ -623,11 +635,7 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 		gf_bs_read_data(bs, sl->data, sl->size);
 		gf_list_add(avcc->pictureParameterSets, sl);
 	}
-	switch (avcc->AVCProfileIndication) {
-	case 100:
-	case 110:
-	case 122:
-	case 144:
+	if (gf_avc_is_rext_profile(avcc->AVCProfileIndication)) {
 		gf_bs_read_int(bs, 6);
 		avcc->chroma_format = gf_bs_read_int(bs, 2);
 		gf_bs_read_int(bs, 5);
@@ -646,7 +654,6 @@ GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size)
 				gf_list_add(avcc->sequenceParameterSetExtensions, sl);
 			}
 		}
-		break;
 	}
 
 
@@ -764,7 +771,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		for (i=0; i<nb_desc; i++) {
 			sample_index = gf_bs_read_int(bs, 8);
 			avail -= 1;
-			e = gf_isom_parse_box((GF_Box **) &a, bs);
+			e = gf_isom_box_parse((GF_Box **) &a, bs);
 			if (e) goto exit;
 			avail -= (s32) a->size;
 
@@ -849,42 +856,45 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 	u32 i, count;
 
 	gf_bs_write_int(bs, cfg->configurationVersion, 8);
-	gf_bs_write_int(bs, cfg->profile_space, 2);
-	gf_bs_write_int(bs, cfg->tier_flag, 1);
-	gf_bs_write_int(bs, cfg->profile_idc, 5);
-	gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
 
-	gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
-	gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
-	gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
-	gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
-	/*only lowest 44 bits used*/
-	gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
-	gf_bs_write_int(bs, cfg->level_idc, 8);
+	if (!cfg->is_lhvc) {
+		gf_bs_write_int(bs, cfg->profile_space, 2);
+		gf_bs_write_int(bs, cfg->tier_flag, 1);
+		gf_bs_write_int(bs, cfg->profile_idc, 5);
+		gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
+		gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
+		gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
+		gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
+		gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
+		/*only lowest 44 bits used*/
+		gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
+		gf_bs_write_int(bs, cfg->level_idc, 8);
+	}
+
 	gf_bs_write_int(bs, 0xFF, 4);
 	gf_bs_write_int(bs, cfg->min_spatial_segmentation_idc, 12);
 
 	gf_bs_write_int(bs, 0xFF, 6);
 	gf_bs_write_int(bs, cfg->parallelismType, 2);
 
-	gf_bs_write_int(bs, 0xFF, 6);
-	gf_bs_write_int(bs, cfg->chromaFormat, 2);
-	gf_bs_write_int(bs, 0xFF, 5);
-	gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
-	gf_bs_write_int(bs, 0xFF, 5);
-	gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
-	gf_bs_write_int(bs, cfg->avgFrameRate, 16);
-	gf_bs_write_int(bs, cfg->constantFrameRate, 2);
+	if (!cfg->is_lhvc) {
+		gf_bs_write_int(bs, 0xFF, 6);
+		gf_bs_write_int(bs, cfg->chromaFormat, 2);
+		gf_bs_write_int(bs, 0xFF, 5);
+		gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
+		gf_bs_write_int(bs, 0xFF, 5);
+		gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
+		gf_bs_write_int(bs, cfg->avgFrameRate, 16);
+	}
+
+	if (!cfg->is_lhvc)
+		gf_bs_write_int(bs, cfg->constantFrameRate, 2);
+	else
+		gf_bs_write_int(bs, 0xFF, 2);
+
 	gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
 	gf_bs_write_int(bs, cfg->temporalIdNested, 1);
 	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
-
-	if (cfg->is_shvc) {
-		gf_bs_write_int(bs, cfg->complete_representation, 1);
-		gf_bs_write_int(bs, cfg->non_hevc_base_layer, 1);
-		gf_bs_write_int(bs, cfg->num_layers ? cfg->num_layers - 1 : 0, 6);
-		gf_bs_write_int(bs, cfg->scalability_mask, 16);
-	}
 
 	count = gf_list_count(cfg->param_array);
 	gf_bs_write_int(bs, count, 8);
@@ -921,55 +931,65 @@ GF_Err gf_odf_hevc_cfg_write(GF_HEVCConfig *cfg, char **outData, u32 *outSize)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
+GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_lhvc)
 {
 	u32 i, count;
 	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_new();
 
-	cfg->configurationVersion = gf_bs_read_int(bs, 8);
-	cfg->profile_space = gf_bs_read_int(bs, 2);
-	cfg->tier_flag = gf_bs_read_int(bs, 1);
-	cfg->profile_idc = gf_bs_read_int(bs, 5);
-	cfg->general_profile_compatibility_flags = gf_bs_read_int(bs, 32);
+	cfg->is_lhvc = is_lhvc;
 
-	cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
-	cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);
-	cfg->non_packed_constraint_flag = gf_bs_read_int(bs, 1);
-	cfg->frame_only_constraint_flag = gf_bs_read_int(bs, 1);
-	/*only lowest 44 bits used*/
-	cfg->constraint_indicator_flags = gf_bs_read_long_int(bs, 44);
-	cfg->level_idc = gf_bs_read_int(bs, 8);
-	gf_bs_read_int(bs, 4);
+	cfg->configurationVersion = gf_bs_read_int(bs, 8);
+
+	if (!is_lhvc) {
+		cfg->profile_space = gf_bs_read_int(bs, 2);
+		cfg->tier_flag = gf_bs_read_int(bs, 1);
+		cfg->profile_idc = gf_bs_read_int(bs, 5);
+		cfg->general_profile_compatibility_flags = gf_bs_read_int(bs, 32);
+
+		cfg->progressive_source_flag = gf_bs_read_int(bs, 1);
+		cfg->interlaced_source_flag = gf_bs_read_int(bs, 1);
+		cfg->non_packed_constraint_flag = gf_bs_read_int(bs, 1);
+		cfg->frame_only_constraint_flag = gf_bs_read_int(bs, 1);
+		/*only lowest 44 bits used*/
+		cfg->constraint_indicator_flags = gf_bs_read_long_int(bs, 44);
+		cfg->level_idc = gf_bs_read_int(bs, 8);
+	}
+
+	gf_bs_read_int(bs, 4); //reserved
 	cfg->min_spatial_segmentation_idc = gf_bs_read_int(bs, 12);
 
-	gf_bs_read_int(bs, 6);
+	gf_bs_read_int(bs, 6);//reserved
 	cfg->parallelismType = gf_bs_read_int(bs, 2);
 
-	gf_bs_read_int(bs, 6);
-	cfg->chromaFormat = gf_bs_read_int(bs, 2);
-	gf_bs_read_int(bs, 5);
-	cfg->luma_bit_depth = gf_bs_read_int(bs, 3) + 8;
-	gf_bs_read_int(bs, 5);
-	cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
-	cfg->avgFrameRate = gf_bs_read_int(bs, 16);
-	cfg->constantFrameRate = gf_bs_read_int(bs, 2);
+	if (!is_lhvc) {
+		gf_bs_read_int(bs, 6);
+		cfg->chromaFormat = gf_bs_read_int(bs, 2);
+		gf_bs_read_int(bs, 5);
+		cfg->luma_bit_depth = gf_bs_read_int(bs, 3) + 8;
+		gf_bs_read_int(bs, 5);
+		cfg->chroma_bit_depth = gf_bs_read_int(bs, 3) + 8;
+		cfg->avgFrameRate = gf_bs_read_int(bs, 16);
+	}
+
+	if (!is_lhvc)
+		cfg->constantFrameRate = gf_bs_read_int(bs, 2);
+	else
+		gf_bs_read_int(bs, 2); //reserved
+
 	cfg->numTemporalLayers = gf_bs_read_int(bs, 3);
 	cfg->temporalIdNested = gf_bs_read_int(bs, 1);
 
 	cfg->nal_unit_size = 1 + gf_bs_read_int(bs, 2);
 
-	if (is_shvc) {
-		cfg->is_shvc = GF_TRUE;
-		cfg->complete_representation = (Bool)gf_bs_read_int(bs, 1);
-		cfg->non_hevc_base_layer = (Bool)gf_bs_read_int(bs, 1);
-		cfg->num_layers = 1 + gf_bs_read_int(bs, 6);
-		cfg->scalability_mask = gf_bs_read_int(bs, 16);
-	}
 	count = gf_bs_read_int(bs, 8);
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
 		GF_HEVCParamArray *ar;
 		GF_SAFEALLOC(ar, GF_HEVCParamArray);
+		if (!ar) {
+			gf_odf_hevc_cfg_del(cfg);
+			return NULL;
+		}
 		ar->nalus = gf_list_new();
 		gf_list_add(cfg->param_array, ar);
 
@@ -979,10 +999,19 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 		nalucount = gf_bs_read_int(bs, 16);
 		for (j=0; j<nalucount; j++) {
 			GF_AVCConfigSlot *sl;
+			u32 size = gf_bs_read_int(bs, 16);
+			if (size>gf_bs_available(bs)) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Wrong param set size %d\n", size));
+				gf_odf_hevc_cfg_del(cfg);
+				return NULL;
+			}
 			GF_SAFEALLOC(sl, GF_AVCConfigSlot );
+			if (!sl) {
+				gf_odf_hevc_cfg_del(cfg);
+				return NULL;
+			}
 
-			sl->size = gf_bs_read_int(bs, 16);
-
+			sl->size = size;
 			sl->data = (char *)gf_malloc(sizeof(char) * sl->size);
 			gf_bs_read_data(bs, sl->data, sl->size);
 			gf_list_add(ar->nalus, sl);
@@ -992,10 +1021,10 @@ GF_HEVCConfig *gf_odf_hevc_cfg_read_bs(GF_BitStream *bs, Bool is_shvc)
 }
 
 GF_EXPORT
-GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_shvc)
+GF_HEVCConfig *gf_odf_hevc_cfg_read(char *dsi, u32 dsi_size, Bool is_lhvc)
 {
 	GF_BitStream *bs = gf_bs_new(dsi, dsi_size, GF_BITSTREAM_READ);
-	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_shvc);
+	GF_HEVCConfig *cfg = gf_odf_hevc_cfg_read_bs(bs, is_lhvc);
 	gf_bs_del(bs);
 	return cfg;
 }
@@ -1110,8 +1139,8 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 			return "MPEG-4 AVC|H264 Parameter Set";
 		case GPAC_OTI_VIDEO_HEVC:
 			return "MPEG-H HEVC Video";
-		case GPAC_OTI_VIDEO_SHVC:
-			return "MPEG-H SHVC Video";
+		case GPAC_OTI_VIDEO_LHVC:
+			return "MPEG-H L-HEVC Video";
 		case GPAC_OTI_MEDIA_FFMPEG:
 			return "GPAC FFMPEG Private Video";
 		case GPAC_OTI_VIDEO_SMPTE_VC1:

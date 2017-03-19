@@ -301,6 +301,10 @@ void compositor_init_viewport(GF_Compositor *compositor, GF_Node *node)
 {
 	ViewStack *ptr;
 	GF_SAFEALLOC(ptr, ViewStack);
+	if (!ptr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate viewport stack\n"));
+		return;
+	}
 
 	ptr->reg_stacks = gf_list_new();
 
@@ -401,6 +405,10 @@ void compositor_init_viewpoint(GF_Compositor *compositor, GF_Node *node)
 {
 	ViewStack *st;
 	GF_SAFEALLOC(st, ViewStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate viewpoint stack\n"));
+		return;
+	}
 
 	st->reg_stacks = gf_list_new();
 	gf_mx_init(st->world_view_mx);
@@ -527,6 +535,10 @@ void compositor_init_navigation_info(GF_Compositor *compositor, GF_Node *node)
 {
 	ViewStack *st;
 	GF_SAFEALLOC(st, ViewStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate navigation stack\n"));
+		return;
+	}
 
 	st->reg_stacks = gf_list_new();
 	gf_node_set_private(node, st);
@@ -609,6 +621,10 @@ void compositor_init_fog(GF_Compositor *compositor, GF_Node *node)
 {
 	ViewStack *st;
 	GF_SAFEALLOC(st, ViewStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate fog stack\n"));
+		return;
+	}
 
 	st->reg_stacks = gf_list_new();
 	gf_node_set_private(node, st);

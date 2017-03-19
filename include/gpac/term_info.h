@@ -33,6 +33,21 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/term_info.h>
+ *	\brief GPAC media object browsing of the player.
+ */
+	
+/*!
+ *\addtogroup terminfo_grp Terminal Info
+ *\ingroup playback_grp
+ *\brief GPAC media object browsing of the player.
+ *
+ *This section documents how a user can get information on running media object in the player.
+ *	@{
+ */
+	
+
 /*
 	OD Browsing API - YOU MUST INCLUDE <gpac/terminal.h> before
 	(this has been separated from terminal.h to limit dependency of core to mpeg4_odf.h header)
@@ -173,6 +188,7 @@ If @odm is NULL the main scene is dumped
 */
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
 
+/*! @} */
 
 #ifdef __cplusplus
 }

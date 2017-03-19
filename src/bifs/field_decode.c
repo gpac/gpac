@@ -197,6 +197,7 @@ GF_Err gf_bifs_dec_sf_field(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *n
 	case GF_SG_VRML_SFCOMMANDBUFFER:
 	{
 		SFCommandBuffer *sfcb = (SFCommandBuffer *)field->far_ptr;
+		if (!node) return GF_BAD_PARAM;
 		if (sfcb->buffer) {
 			gf_free(sfcb->buffer);
 			sfcb->buffer = NULL;
@@ -293,10 +294,11 @@ GF_Err BD_DecMFFieldList(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node
 
 	endFlag = gf_bs_read_int(bs, 1);
 	while (!endFlag  && (codec->LastError>=0)) {
-		e = GF_OK;;
 		if (field->fieldType != GF_SG_VRML_MFNODE) {
 			e = gf_sg_vrml_mf_append(field->far_ptr, field->fieldType, & sffield.far_ptr);
+			if (e) return e;
 			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, GF_FALSE);
+			if (e) return e;
 		} else {
 			new_node = gf_bifs_dec_node(codec, bs, field->NDTtype);
 			//append
@@ -396,6 +398,7 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 			e = gf_sg_vrml_mf_get_item(field->far_ptr, field->fieldType, & sffield.far_ptr, i);
 			if (e) return e;
 			e = gf_bifs_dec_sf_field(codec, bs, node, &sffield, GF_FALSE);
+			if (e) return e;
 		}
 	} else {
 		last = NULL;
@@ -420,18 +423,21 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 						if (qp_local) qp_local = 2;
 						if (codec->force_keep_qp) {
 							e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+							if (e) return e;
 						} else {
 							gf_node_register(new_node, NULL);
 							gf_node_unregister(new_node, node);
 						}
 					} else {
 						e = gf_node_list_add_child_last(field->far_ptr, new_node, &last);
+						if (e) return e;
 					}
 				}
 				/*proto coding*/
 				else if (codec->pCurrentProto) {
 					/*TO DO: what happens if this is a QP node on the interface ?*/
 					e = gf_node_list_add_child_last( (GF_ChildNodeItem **)field->far_ptr, new_node, &last);
+					if (e) return e;
 				}
 			} else {
 				return codec->LastError ? codec->LastError : GF_NON_COMPLIANT_BITSTREAM;
@@ -441,11 +447,11 @@ GF_Err BD_DecMFFieldVec(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *node,
 		If IsLocal is TRUE remove the node*/
 		if (qp_on && qp_local) {
 			if (qp_local == 2) {
-				qp_local = 1;
+//				qp_local = 1;
 			} else {
 				//ask to get rid of QP and reactivate if we had a QP when entering the node
 				gf_bifs_dec_qp_remove(codec, initial_qp);
-				qp_local = 0;
+//				qp_local = 0;
 			}
 		}
 	}
@@ -549,8 +555,6 @@ GF_Err gf_bifs_dec_node_list(GF_BifsDecoder * codec, GF_BitStream *bs, GF_Node *
 	GF_Err e;
 	u32 numBitsALL, numBitsDEF, field_all, field_ref, numProtoBits;
 	GF_FieldInfo field;
-
-	e = GF_OK;
 
 	numProtoBits = numBitsALL = 0;
 	if (codec->pCurrentProto) {
@@ -791,13 +795,13 @@ GF_Node *gf_bifs_dec_node(GF_BifsDecoder * codec, GF_BitStream *bs, u32 NDT_Tag)
 	/*special handling of 3D mesh*/
 	if ((node_tag == TAG_MPEG4_IndexedFaceSet) && codec->info->config.Use3DMeshCoding) {
 		if (gf_bs_read_int(bs, 1)) {
-			nodeID = 1 + gf_bs_read_int(bs, codec->info->config.NodeIDBits);
+			/*nodeID = 1 + */gf_bs_read_int(bs, codec->info->config.NodeIDBits);
 			if (codec->UseName) gf_bifs_dec_name(bs, name);
 		}
 		/*parse the 3DMesh node*/
 		return NULL;
 	}
-	/*unknow node*/
+	/*unknown node*/
 	if (!node_tag && !proto) {
 		codec->LastError = GF_SG_UNKNOWN_NODE;
 		return NULL;

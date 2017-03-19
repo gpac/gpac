@@ -5,6 +5,10 @@ extension = {
     GF_STATE_STOP: 2,
     GF_STATE_TRICK: 3,
 
+    GF_VIEW_MONO: 0,
+    GF_VIEW_STEREO: 1,
+    GF_VIEW_STEREO_SIDE: 2,
+    GF_VIEW_STEREO_TOP: 3,
 
     movie: null,
     movie_control: null,
@@ -45,11 +49,13 @@ extension = {
     channels_wnd: null,
 	medialist_wnd: null,
     reverse_playback_supported: false,
+	view_stereo: 0,
 
     stats_wnd: null,
     stats_data: [],
     stats_window: 100,
     stats_resources: [],
+    nb_objs_at_last_scan: 0,
     stats_timer: null,
 
     do_show_controler: function () {
@@ -185,18 +191,25 @@ extension = {
                     this.url[0] = url;
                     if (url == '') {
                         ext.controler.show();
+						ext.set_state(ext.GF_STATE_STOP);
                     } else {
-                        this.movie_connected = true;
+                        ext.movie_connected = true;
+						ext.set_state(ext.GF_STATE_PLAY);
                     }
                 }
+				//reset stats objects and data
+				ext.root_odm=null;
+				ext.nb_objs_at_last_scan = 0;
+				ext.stats_resources = [];
+				ext.stats_data = [];
 
                 //switch back inline nodes and remove from dictionary
                 gw_detach_child(this);
                 //force detach, we don't know when GC will be done
                 ext.movie.children[0].url[0] = '';
                 ext.movie.children[0] = this;
-
                 if (evt.error) return;
+
 
                 //success !
                 ext.current_url = this.url[0];
@@ -265,6 +278,10 @@ extension = {
                 //force display size notif on controler to trigger resize of the window
                 ext.controler.on_display_size(ext.controler.width, ext.controler.height);
             }
+
+            ext.root_odm = gpac.get_object_manager(ext.current_url);
+            ext.set_state(ext.GF_STATE_PLAY);
+
             if (!gpac.fullscreen && evt.width && evt.height) {
                 var w, h, r_w, r_h;
                 w = evt.width;
@@ -606,6 +623,7 @@ extension = {
 
 
         wnd.navigate = gw_new_icon(wnd.infobar, 'navigation');
+        wnd.navigate.add_icon('sensors');
         wnd.navigate.extension = this;
         wnd.navigate.on_click = function () {
             this.extension.select_navigation_type();
@@ -743,6 +761,7 @@ extension = {
             var control_icon_size = gwskin.default_icon_height;
             var is_over = true;
             var show_navigate = false;
+
             if (arguments.length == 0) {
                 width = this.width;
                 height = this.height;
@@ -768,10 +787,26 @@ extension = {
 
             if (this.navigate) {
                 this.navigate.hide();
-                if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+
+				if (this.extension.root_odm && this.extension.root_odm.vr_scene) {
                     show_navigate = true;
                     full_w += control_icon_size;
+				
+					wnd.navigate.on_click = function () {
+//						var sensors_active = gpac.sensors_active;
+//						gpac.sensors_active = !sensors_active;
+//						this.switch_icon(sensors_active ? 1 : 0);
+                        this.extension.select_navigation_vr();
+					}
+				} else if ( (this.extension.dynamic_scene != 1) && this.extension.movie_connected && (gpac.navigation_type != GF_NAVIGATE_TYPE_NONE)) {
+                    show_navigate = true;
+                    full_w += control_icon_size;
+
+					wnd.navigate.on_click = function () {
+						this.extension.select_navigation_type();
+					}
                 }
+ 
             }
 
             if (this.extension.movie_connected) {
@@ -896,6 +931,7 @@ extension = {
 
         wnd.on_display_size = function (width, height) {
 			var h;
+
 			if (!gpac.fullscreen) {
                 if (width < this.extension.def_width) {
                     gpac.set_size(this.extension.def_width, height);
@@ -972,7 +1008,7 @@ extension = {
 
                 //MP4Client options taking 2 args
                 else if ((arg == '-rti') || (arg == '-rtix') || (arg == '-c') || (arg == '-cfg') || (arg == '-size') || (arg == '-lf') || (arg == '-log-file') || (arg == '-logs')
-                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift') || (arg == '-fps') || (arg == '-scale')
+                    || (arg == '-opt') || (arg == '-ifce') || (arg == '-views') || (arg == '-avi') || (arg == '-out') || (arg == '-ntp-shift') || (arg == '-fps') || (arg == '-scale') || (arg == '-run-for')
                 ) {
 			i++;
                 } else if (arg == '-service') {
@@ -1241,6 +1277,8 @@ extension = {
             this.state = this.GF_STATE_STOP;
             this.set_speed(1);
             this.root_odm = null;
+            this.stats_resources = [];
+            this.nb_objs_at_last_scan = 0;
 
 			var e = {};
 			e.type = GF_JS_EVENT_PLAYBACK;
@@ -1431,6 +1469,61 @@ extension = {
         this.buffer_wnd.txt.set_label('Buffering ' + level + ' %');
     },
 
+    select_navigation_vr: function () {
+        var sensors_active = gpac.sensors_active;
+        var extension = this;
+//                      gpac.sensors_active = !sensors_active;
+//                      this.switch_icon(sensors_active ? 1 : 0);
+  
+        var nb_items = 0;
+        if (this.navigation_wnd) {
+            this.navigation_wnd.close();
+            return;
+        }
+        var wnd = gw_new_popup(this.controler.navigate, 'up');
+        this.navigation_wnd = wnd;
+        wnd.extension = this;
+
+        wnd.on_close = function () {
+            this.extension.navigation_wnd = null;
+        }
+        wnd.add_menu_item(sensors_active ? "Keyboard+mouse" : "Sensors", function () { gpac.sensors_active = !sensors_active; } );
+
+        if (this.view_stereo==extension.GF_VIEW_MONO) {
+            wnd.add_menu_item("Stereo", function () {
+                extension.view_stereo = extension.GF_VIEW_STEREO; 
+                gpac.set_option("Compositor", "FramePacking", "None"); 
+                gpac.set_option("Compositor", "StereoType", "StereoHeadset"); 
+              }
+             );
+        } else if (this.view_stereo==extension.GF_VIEW_STEREO) {
+            wnd.add_menu_item("Stereo Side", function () {
+               extension.view_stereo = extension.GF_VIEW_STEREO_SIDE;
+               gpac.set_option("Compositor", "Framepacking", "Side");
+               gpac.set_option("Compositor", "StereoType", "StereoHeadset");
+              }
+             );
+        } else if (this.view_stereo==extension.GF_VIEW_STEREO_SIDE) {
+            wnd.add_menu_item("Stereo Top", function () {
+                 extension.view_stereo = extension.GF_VIEW_STEREO_TOP;
+                 gpac.set_option("Compositor", "FramePacking", "Top");  
+                 gpac.set_option("Compositor", "StereoType", "StereoHeadset");  
+                }
+            );
+        } else {
+            wnd.add_menu_item("Mono", function () {
+                extension.view_stereo = extension.GF_VIEW_MONO;
+                gpac.set_option("Compositor", "FramePacking", "None");  
+                gpac.set_option("Compositor", "StereoType", "None");  
+            }
+            );
+        }
+        
+        wnd.on_display_size(gw_display_width, gw_display_height);
+        wnd.show();
+
+    },
+
     select_navigation_type: function () {
         var nb_items = 0;
         var type = gpac.navigation;
@@ -1551,6 +1644,7 @@ extension = {
 			for (var res_i = 0; res_i < root_odm.nb_resources; res_i++) {
 				var m = root_odm.get_resource(res_i);
 				if (root_odm.selected_service != m.service_id) continue;
+				if (m.get_srd() != null) continue;
 				
 				if (m.type == 'Video') nb_video++;
 				else if (m.type == 'Audio') nb_audio++;
@@ -1575,10 +1669,11 @@ extension = {
 			this.extension.medialist_wnd = wnd;
 			wnd.extension = this.extension;
 			
-			wnd.on_close = function () {
-				this.extension.medialist_wnd = null;
-			}
-			
+            //todo - cleanup the rest of the code to use closures to pass the extension object
+			wnd.on_close = ( function (e) {
+                return function () { e.medialist_wnd = null; }
+			} ) (extension);
+
 			wnd.make_item = function (text, obj) {
 				wnd.add_menu_item(text, function () {
 								  obj.select()
@@ -1608,22 +1703,31 @@ extension = {
 
     gather_stats_resources: function (root, selected_service) {
         //if not dynamic scene, add main OD to stats
-        if (!root.dynamic_scene)
+        if (!root.dynamic_scene) {
             this.stats_resources.push(root);
+		}
 
+	
         for (var res_i = 0; res_i < root.nb_resources; res_i++) {
             var m = root.get_resource(res_i);
             if (!m) continue;
             if (m.service_id && (m.service_id != selected_service)) continue;
 
-            if (!m.dynamic_scene) {
-                this.stats_resources.push(m);
-            }
+			m.dependent_group_id=0;
+			this.stats_resources.push(m);
+			
+			var nb_deps = m.dependent_groups;
+			for (var dep_j=0; dep_j < nb_deps; dep_j++) {
+				var copy_m = root.get_resource(res_i);
+				copy_m.dependent_group_id = dep_j + 1;
+				this.stats_resources.push(copy_m);
+			}
 
             if (m.type == 'Scene' || m.type == 'Subscene') {
                 this.gather_stats_resources(m);
-            }
+			}
         }
+        this.nb_objs_at_last_scan = root.nb_resources;
     },
 
     stats_timer_on_event: function (val) {
@@ -1631,6 +1735,14 @@ extension = {
         var wnd = ext.stats_wnd;
         var nb_buff = 0;
 
+        if (!ext.root_odm) return;
+        
+        if (ext.nb_objs_at_last_scan != ext.root_odm.nb_resources) {
+          ext.stats_resources = [];
+          ext.gather_stats_resources(ext.root_odm, ext.root_odm.selected_service);
+          ext.reload_stats();
+        }
+                
         if (ext.stats_data.length >= ext.stats_window) {
             ext.stats_data.splice(0, 1);
         }
@@ -1666,13 +1778,27 @@ extension = {
                     }
                 }
             }
-            else bl = 100;            
-            for (var j = 0; j < m.nb_qualities; j++) {
-                var q = m.get_quality(j);                
-                if (q.is_selected) {
-                    stat_obj.quality += Math.round(q.bandwidth / 1000);
-                }
-            }
+            else bl = 100;
+			
+			if (m.dependent_group_id) {
+				var dq_idx=0;
+				while (1) {
+					var q = m.get_quality(dq_idx, m.dependent_group_id);
+					if (!q) break;
+					if (q.is_selected) {
+						stat_obj.quality += Math.round(q.bandwidth / 1000);
+					}
+					dq_idx++;
+				}
+			} else {
+				var nb_qual = m.nb_qualities;
+				for (var j = 0; j < nb_qual; j++) {
+					var q = m.get_quality(j);
+					if (q && q.is_selected) {
+						stat_obj.quality += Math.round(q.bandwidth / 1000);
+					}
+				}
+			}
 
             if (stat_obj) {
                 if (m.ntp_diff > stat_obj.ntp_diff) {
@@ -1694,5 +1820,6 @@ extension = {
             wnd.update_series();
         }
     }
+	
 };
 

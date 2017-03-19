@@ -333,7 +333,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	if (horizontal) {
 		if ((maxExtent > 0) && (tot_width>maxExtent)) {
 			max_scale = gf_divfix(maxExtent, tot_width);
-			tot_width = maxExtent;
 		}
 		tot_height = (txt->string.count-1) * line_spacing + (st->ascent + st->descent);
 		st->bounds.height = tot_height;
@@ -349,7 +348,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 		}
 		else if (!strcmp(FSMINOR, "BEGIN")) {
 			if (FSTTB) {
-				start_y = st->descent;
 				start_y = 0;
 				st->bounds.y = start_y;
 			} else {
@@ -373,7 +371,6 @@ static void build_text(TextStack *st, M_Text *txt, GF_TraverseState *tr_state)
 	} else {
 		if ((maxExtent > 0) && (tot_height>maxExtent) ) {
 			max_scale = gf_divfix(maxExtent, tot_height);
-			tot_height = maxExtent;
 		}
 		tot_width = txt->string.count * line_spacing;
 		st->bounds.width = tot_width;
@@ -499,7 +496,7 @@ static void text_get_draw_opt(GF_Node *node, TextStack *st, Bool *force_texture,
 	*force_texture = st->texture_text_flag;
 	if (strstr(fs_style, "TEXTURED")) *force_texture = GF_TRUE;
 	if (strstr(fs_style, "OUTLINED")) {
-		if (!asp->pen_props.width) {
+		if (asp && !asp->pen_props.width) {
 			asp->pen_props.width = FIX_ONE/2;
 			asp->pen_props.align = GF_PATH_LINE_OUTSIDE;
 			asp->line_scale=FIX_ONE;
@@ -683,6 +680,10 @@ void compositor_init_text(GF_Compositor *compositor, GF_Node *node)
 {
 	TextStack *stack;
 	GF_SAFEALLOC(stack, TextStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate text stack\n"));
+		return;
+	}
 	stack->graph = drawable_new();
 	stack->graph->node = node;
 	stack->graph->flags = DRAWABLE_USE_TRAVERSE_DRAW;

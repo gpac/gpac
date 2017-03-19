@@ -39,6 +39,8 @@ static GF_SceneStatistics *NewSceneStats()
 {
 	GF_SceneStatistics *tmp;
 	GF_SAFEALLOC(tmp, GF_SceneStatistics);
+	if (!tmp) return NULL;
+
 	tmp->node_stats = gf_list_new();
 	tmp->proto_stats = gf_list_new();
 
@@ -100,13 +102,17 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 		GF_ProtoInstance *pr = (GF_ProtoInstance *)n;
 		i=0;
 		while ((ptr = (GF_NodeStats *)gf_list_enum(stat->proto_stats, &i))) {
-			if (pr->proto_interface->ID == ptr->tag) break;
+			if (pr->proto_interface && (pr->proto_interface->ID == ptr->tag)) break;
 			ptr = NULL;
 		}
 		if (!ptr) {
 			GF_SAFEALLOC(ptr, GF_NodeStats);
-			ptr->tag = pr->proto_interface->ID;
-			ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
+			if (!ptr) return;
+
+			if (pr->proto_interface) {
+				ptr->tag = pr->proto_interface->ID;
+				ptr->name = gf_sg_proto_get_class_name(pr->proto_interface);
+			}
 			gf_list_add(stat->proto_stats, ptr);
 		}
 #endif
@@ -118,6 +124,7 @@ static void StatNode(GF_SceneStatistics *stat, GF_Node *n, Bool isUsed, Bool isD
 		}
 		if (!ptr) {
 			GF_SAFEALLOC(ptr, GF_NodeStats);
+			if (!ptr) return;
 			ptr->tag = n->sgprivate->tag;
 			ptr->name = gf_node_get_class_name(n);
 			gf_list_add(stat->node_stats, ptr);
@@ -372,9 +379,13 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 {
 	GF_Node *clone;
 	GF_FieldInfo field;
-
+	Bool no_cycle;
 	if (!n) return GF_OK;
+
+	no_cycle = gf_node_set_cyclic_traverse_flag(n, GF_TRUE);
 	StatNode(st->stats, n, StatIsUSE(st, n), 0, NULL);
+
+	if (!no_cycle) return GF_OK;
 
 	if (n->sgprivate->tag != TAG_ProtoNode) {
 		clone = gf_node_new(n->sgprivate->scenegraph, n->sgprivate->tag);
@@ -448,6 +459,7 @@ static GF_Err StatNodeGraph(GF_StatManager *st, GF_Node *n)
 #endif
 
 	gf_node_unregister(clone, NULL);
+	gf_node_set_cyclic_traverse_flag(n, GF_FALSE);
 	return GF_OK;
 }
 

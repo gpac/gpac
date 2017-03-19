@@ -208,7 +208,9 @@ void mesh_set_vertex(GF_Mesh *mesh, Fixed x, Fixed y, Fixed z, Fixed nx, Fixed n
 
 void mesh_set_vertex_v(GF_Mesh *mesh, SFVec3f pt, SFVec3f nor, SFVec2f tx, SFColorRGBA col)
 {
+	if (!mesh) return;
 	MESH_CHECK_VERTEX(mesh);
+	if (!mesh->vertices) return;
 	mesh->vertices[mesh->v_count].pos = pt;
 	mesh->vertices[mesh->v_count].texcoords = tx;
 	mesh->vertices[mesh->v_count].color = MESH_MAKE_COL(col);
@@ -586,47 +588,69 @@ void mesh_new_cone(GF_Mesh *mesh, Fixed height, Fixed radius, Bool bottom, Bool 
 
 }
 
-void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps)
+void compute_sphere(Fixed radius, SFVec3f *coords, SFVec2f *texcoords, u32 num_steps, GF_MeshSphereAngles *sphere_angles)
 {
 	Fixed r, angle, x, y, z;
 	u32 i, j;
 
 	for (i=0; i<num_steps; i++) {
-		angle = (i * GF_PI / (num_steps-1) ) - GF_PI2;
+		if (!sphere_angles) {
+			angle = (i * GF_PI / (num_steps-1) ) - GF_PI2;
+		} else {
+			angle = (i * (sphere_angles->max_phi - sphere_angles->min_phi) / (num_steps-1) ) + sphere_angles->min_phi;
+		}
 		y = gf_sin(angle);
 		r = gf_sqrt(FIX_ONE - gf_mulfix(y, y));
-		for (j = 0; j < num_steps; j++) {
-			angle = GF_2PI * j / num_steps - GF_PI2;
+		for (j = 0; j<num_steps; j++) {
+			if (!sphere_angles) {
+				angle = GF_2PI * j / num_steps - GF_PI2;
+			} else {
+				angle = (j * (sphere_angles->max_theta - sphere_angles->min_theta) / (num_steps-1) ) + sphere_angles->min_theta;
+			}
 			x = gf_mulfix(gf_cos(angle), r);
 			z = gf_mulfix(gf_sin(angle), r);
 			coords[i * num_steps + j].x = gf_mulfix(radius, x);
 			coords[i * num_steps + j].y = gf_mulfix(radius, y);
 			coords[i * num_steps + j].z = gf_mulfix(radius, z);
 			if (radius>0) {
-				texcoords[i * num_steps + j].x = FIX_ONE - (j+1)*FIX_ONE/num_steps;
-				texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
-			} else {
-				texcoords[i * num_steps + j].x = j*FIX_ONE/num_steps;
-				texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/num_steps;
+				if (!sphere_angles){
+					texcoords[i * num_steps + j].x = FIX_ONE - j*FIX_ONE/num_steps;
+					texcoords[i * num_steps + j].y = i*FIX_ONE/num_steps;
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+
+				}
+			}else {
+				if (!sphere_angles){
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps);
+				}else{
+					texcoords[i * num_steps + j].x = j*FIX_ONE/(num_steps-1);
+					texcoords[i * num_steps + j].y = FIX_ONE - i*FIX_ONE/(num_steps-1);
+				}
 			}
 		}
 	}
+
 }
 
-#define SPHERE_SUBDIV	24
-void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
+void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAngles *sphere_angles)
 {
 	u32 i, j, num_steps, npts;
 	SFVec3f *coords;
 	SFVec2f *texcoords;
 
-	num_steps = SPHERE_SUBDIV;
+	num_steps = 48;
+	//this is 360 VR, use a large number of subdivisions (1 seg for 5 degrees should be enough )
+	if (radius<0) num_steps = 72;
+
 	if (low_res) num_steps /= 2;
 	npts = num_steps * num_steps;
 
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
 	texcoords = (SFVec2f*)gf_malloc(sizeof(SFVec2f)*npts);
-	compute_sphere(radius, coords, texcoords, num_steps);
+	compute_sphere(radius, coords, texcoords, num_steps, sphere_angles);
 
 	for (i=0; i<num_steps-1; i++) {
 		u32 n = i * num_steps;
@@ -644,23 +668,27 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 				mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
 				mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
 			}
-
+		
 		}
+		if (!sphere_angles) {
+			last_tx_coord = (radius>0) ? 0 : FIX_ONE;
+			mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
+					coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
+					last_tx_coord, texcoords[n + num_steps].y);
+			mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z,
+					coords[n].x, coords[n].y, coords[n].z,
+					last_tx_coord, texcoords[n].y);
 
-		last_tx_coord = (radius>0) ? 0 : FIX_ONE;
-		mesh_set_vertex(mesh, coords[n + num_steps].x, coords[n + num_steps].y, coords[n + num_steps].z,
-		                coords[n + num_steps].x, coords[n + num_steps].y, coords[n  + num_steps].z,
-		                last_tx_coord, texcoords[n + num_steps].y);
-		mesh_set_vertex(mesh, coords[n].x, coords[n].y, coords[n].z,
-		                coords[n].x, coords[n].y, coords[n].z,
-		                last_tx_coord, texcoords[n].y);
-		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
-		mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
+			mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-4, mesh->v_count-2);
+			mesh_set_triangle(mesh, mesh->v_count-3, mesh->v_count-2, mesh->v_count-1);
+		}
 	}
 
 	gf_free(coords);
 	gf_free(texcoords);
-	mesh->flags |= MESH_IS_SOLID;
+	if (!sphere_angles) {
+		mesh->flags |= MESH_IS_SOLID;
+	}
 
 	mesh->bounds.min_edge.x = mesh->bounds.min_edge.y = mesh->bounds.min_edge.z = -radius;
 	mesh->bounds.max_edge.x = mesh->bounds.max_edge.y = mesh->bounds.max_edge.z = radius;
@@ -668,7 +696,6 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res)
 
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);
 }
-
 
 void mesh_new_rectangle(GF_Mesh *mesh, SFVec2f size, SFVec2f *orig, Bool flip)
 {
@@ -1372,6 +1399,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 		} else {
 			for (i=0; i<face_count; i++) {
 				SFVec3f v1, v2, n;
+				if (! faces[i] || ! faces[i]->vertices) continue;
 				gf_vec_diff(v1, faces[i]->vertices[1].pos, faces[i]->vertices[0].pos);
 				gf_vec_diff(v2, faces[i]->vertices[2].pos, faces[i]->vertices[0].pos);
 				n = gf_vec_cross(v1, v2);
@@ -1388,6 +1416,7 @@ void mesh_new_ifs_intern(GF_Mesh *mesh, GF_Node *__coord, MFInt32 *coordIndex,
 	if (has_color) mesh->flags |= MESH_HAS_COLOR;
 
 	for (i=0; i<face_count; i++) {
+		if (! faces[i]) continue;
 		if (faces[i]->v_count) TesselateFaceMesh(mesh, faces[i]);
 		mesh_free(faces[i]);
 	}
@@ -1849,7 +1878,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				else alpha = gf_asin(spine_vec.x);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.x;
-				sin_g = 0;
+
 				if (NEAR_ZERO(cos_a)) gamma = 0;
 				else {
 					Fixed __abs;
@@ -1878,7 +1907,7 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 				else alpha = gf_asin(spine_vec.z);
 				cos_a = gf_cos(alpha);
 				sin_a = spine_vec.z;
-				sin_g = 0;
+
 				if (NEAR_ZERO(cos_a) ) gamma = 0;
 				else {
 					Fixed __abs;
@@ -1953,9 +1982,6 @@ static void mesh_extrude_path_intern(GF_Mesh *mesh, GF_Path *path, MFVec3f *thes
 		}
 	}
 	gf_free(SCPi);
-
-	SCPbegin = SCPs[0];
-	SCPend = SCPs[nb_spine-1];
 
 	r.x = r.q = r.z = 0;
 	r.y = FIX_ONE;

@@ -37,9 +37,9 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
+	$(CXX) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(LDFLAGS)
 ifeq ($(STATICBUILD),yes)
-	$(CXX) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_dektec_out-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static
+	$(CXX) $(SHFLAGS) -o ../../bin/gcc/gm_dektec_out-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac_static $(LDFLAGS)
 endif
 
 

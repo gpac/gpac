@@ -683,7 +683,7 @@ GF_Err gf_sk_bind(GF_Socket *sock, const char *local_ip, u16 port, const char *p
 		if (gf_net_mobileip_ctrl(GF_TRUE)==GF_OK) {
 			sock->flags |= GF_SOCK_IS_MIP;
 		} else {
-			res = gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
+			/*res = */gf_sk_get_ipv6_addr(NULL, port, af, AI_PASSIVE, type);
 			local_ip = NULL;
 		}
 	}
@@ -1066,9 +1066,15 @@ GF_Err gf_sk_setup_multicast(GF_Socket *sock, const char *multi_IPAdd, u16 Multi
 	/*enable address reuse*/
 	optval = 1;
 	ret = setsockopt(sock->socket, SOL_SOCKET, SO_REUSEADDR, SSO_CAST &optval, sizeof(optval));
+	if (ret == SOCKET_ERROR) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[core] Failed to set SO_REUSEADDR: error %d\n", LASTSOCKERROR));
+	}
 #ifdef SO_REUSEPORT
 	optval = 1;
-	setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
+	ret = setsockopt(sock->socket, SOL_SOCKET, SO_REUSEPORT, SSO_CAST &optval, sizeof(optval));
+	if (ret == SOCKET_ERROR) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[core] Failed to set SO_REUSEPORT: error %d\n", LASTSOCKERROR));
+	}
 #endif
 
 	if (local_interface_ip) local_add_id = inet_addr(local_interface_ip);
@@ -1159,22 +1165,20 @@ GF_Err gf_sk_receive(GF_Socket *sock, char *buffer, u32 length, u32 startFrom, u
 	timeout.tv_sec = 0;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	res = 0;
-	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {
 		case EBADF:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select, BAD descriptor\n"));
 			return GF_IP_CONNECTION_CLOSED;
 		case EAGAIN:
 			return GF_IP_SOCK_WOULD_BLOCK;
 		case EINTR:
 			/* Interrupted system call, not really important... */
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] network is lost\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] network is lost\n"));
 			return GF_IP_NETWORK_EMPTY;
 		default:
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[socket] cannot select (error %d)\n", LASTSOCKERROR));
 			return GF_IP_NETWORK_FAILURE;
 		}
 	}
@@ -1484,8 +1488,6 @@ GF_Err gf_sk_receive_wait(GF_Socket *sock, char *buffer, u32 length, u32 startFr
 	timeout.tv_sec = Second;
 	timeout.tv_usec = SOCK_MICROSEC_WAIT;
 
-	res = 0;
-	//TODO - check if this is correct
 	ready = select((int) sock->socket+1, &Group, NULL, NULL, &timeout);
 	if (ready == SOCKET_ERROR) {
 		switch (LASTSOCKERROR) {

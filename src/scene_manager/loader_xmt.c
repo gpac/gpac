@@ -228,6 +228,8 @@ static void xmt_new_od_link(GF_XMTParser *parser, GF_ObjectDescriptor *od, char 
 		}
 	}
 	GF_SAFEALLOC(odl, XMT_ODLink);
+	if (!odl) return;
+	
 	odl->mf_urls = gf_list_new();
 	odl->od = od;
 	if (ID) od->objectDescriptorID = ID;
@@ -273,6 +275,8 @@ static void xmt_new_od_link_from_node(GF_XMTParser *parser, char *name, MFURL *u
 		}
 	}
 	GF_SAFEALLOC(odl, XMT_ODLink);
+	if (!odl) return;
+	
 	odl->mf_urls = gf_list_new();
 	if (url) gf_list_add(odl->mf_urls, url);
 	if (ID) odl->ID = ID;
@@ -312,6 +316,8 @@ static void xmt_new_esd_link(GF_XMTParser *parser, GF_ESD *esd, char *desc_name,
 		return;
 	}
 	GF_SAFEALLOC(esdl, XMT_ESDLink);
+	if (!esdl) return;
+	
 	esdl->esd = esd;
 	esd->ESID = esdl->ESID = binID;
 	if (desc_name) {
@@ -612,7 +618,7 @@ static u32 xmt_get_node_id(GF_XMTParser *parser, char *name)
 	u32 ID = 0;
 	if (sscanf(name, "N%u", &ID) == 1) {
 		u32 k=1;
-		while (name[k]) {
+		while (name && name[k]) {
 			if (strchr("0123456789", name[k])==0) {
 				ID = 0;
 				break;
@@ -660,7 +666,9 @@ static GF_Node *xmt_find_node(GF_XMTParser *parser, char *ID)
 	u32 i, count, tag;
 	Bool is_proto;
 	char *node_class;
-	GF_Node *n = gf_sg_find_node_by_name(parser->load->scene_graph, ID);
+	GF_Node *n;
+	if (!ID) return NULL;
+	n = gf_sg_find_node_by_name(parser->load->scene_graph, ID);
 	if (n) return n;
 
 	count = gf_list_count(parser->peeked_nodes);
@@ -1146,7 +1154,7 @@ static void xmt_parse_route(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 		return;
 	}
 	e = gf_node_get_field_by_name(dest, toNF, &dest_field);
-	if ((e != GF_OK) && !strnicmp(toNF, "set_", 4)) e = gf_node_get_field_by_name(dest, &toNF[4], &dest_field);
+	if ((e != GF_OK) && toNF && !strnicmp(toNF, "set_", 4)) e = gf_node_get_field_by_name(dest, &toNF[4], &dest_field);
 	if (e != GF_OK) {
 		xmt_report(parser, GF_BAD_PARAM, "%s is not an attribute of node %s", toNF, toN);
 		return;
@@ -1349,13 +1357,12 @@ static void xmt_parse_proto(GF_XMTParser *parser, const GF_XMLAttribute *attribu
 	char *szName, *extURL;
 	u32 ID, i;
 
-	ID = 0;
 	szName = extURL = NULL;
 	for (i=0; i<nb_attributes; i++) {
 		GF_XMLAttribute *att = (GF_XMLAttribute *)&attributes[i];
 		if (!att->value || !strlen(att->value)) continue;
 		if (!strcmp(att->name, "name")) szName = att->value;
-		else if (!strcmp(att->name, "protoID")) ID = atoi(att->value);
+//		else if (!strcmp(att->name, "protoID")) ID = atoi(att->value);
 		else if (!strcmp(att->name, "locations")) extURL = att->value;
 		else if (!strcmp(att->name, "url")) extURL = att->value;
 	}
@@ -1747,7 +1754,6 @@ static GF_Node *xmt_parse_element(GF_XMTParser *parser, char *name, const char *
 			register_def = 1;
 			if (undef_node) {
 				gf_list_del_item(parser->peeked_nodes, undef_node);
-				ID = gf_node_get_id(undef_node);
 				/*if we see twice a DEF N1 then force creation of a new node*/
 				if (xmt_has_been_def(parser, att->value)) {
 					ID = xmt_get_node_id(parser, att->value);
@@ -1984,7 +1990,7 @@ GF_Descriptor *xmt_parse_descriptor(GF_XMTParser *parser, char *name, const GF_X
 						else if (!parser->base_od_id && (esd->decoderConfig->streamType==GF_STREAM_OD)) parser->base_od_id = esd->ESID;
 
 						name = xmt_get_es_name(parser, esd->ESID);
-						if (name && !sc->name) sc->name = gf_strdup(name);
+						if (sc && name && !sc->name) sc->name = gf_strdup(name);
 					}
 					break;
 				}
@@ -2492,7 +2498,7 @@ static void xmt_parse_command(GF_XMTParser *parser, const char *name, const GF_X
 				}
 				if (!sep) break;
 				sep[0] = ' ';
-				es_ids = sep+1;
+				od_ids = sep+1;
 			}
 		}
 	}
@@ -2595,6 +2601,8 @@ static void xmt_node_start(void *sax_cbck, const char *name, const char *name_sp
 	elt = xmt_parse_element(parser, (char *) name, name_space, attributes, nb_attributes, top);
 	if (!elt) return;
 	GF_SAFEALLOC(new_top, XMTNodeStack);
+	if (!new_top) return;
+	
 	new_top->node = elt;
 	gf_list_add(parser->nodes, new_top);
 
@@ -2667,6 +2675,10 @@ static void xmt_node_end(void *sax_cbck, const char *name, const char *name_spac
 
 				/*create a default top for X3D*/
 				GF_SAFEALLOC(parser->x3d_root, XMTNodeStack);
+				if (!parser->x3d_root) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Failed to allocate X3D root\n"));
+					return;
+				}
 				parser->x3d_root->node = node;
 			}
 			/*XMT-O header*/
@@ -2982,6 +2994,8 @@ static GF_XMTParser *xmt_new_parser(GF_SceneLoader *load)
 	GF_XMTParser *parser;
 	if ((load->type==GF_SM_LOAD_XSR) && !load->ctx) return NULL;
 	GF_SAFEALLOC(parser, GF_XMTParser);
+	if (!parser) return NULL;
+	
 	parser->nodes = gf_list_new();
 	parser->descriptors = gf_list_new();
 	parser->od_links = gf_list_new();
@@ -3090,6 +3104,8 @@ static GF_Err load_xmt_run(GF_SceneLoader *load)
 	if (!parser) {
 		e = load_xmt_initialize(load, NULL);
 		if (e) return e;
+		parser = (GF_XMTParser *)load->loader_priv;
+		if (!parser) return GF_OUT_OF_MEM;
 	}
 
 	e = gf_xml_sax_parse_file(parser->sax_parser, (const char *)load->fileName, xmt_progress);

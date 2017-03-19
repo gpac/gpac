@@ -26,6 +26,21 @@
 #ifndef _GF_MPEG_TS_H_
 #define _GF_MPEG_TS_H_
 
+/*!
+ *	\file <gpac/mpegts.h>
+ *	\brief MPEG-TS demultiplexer and multiplexer APIs
+ */
+
+/*!
+ *	\addtogroup m2ts_grp MPEG-2 TS
+ *	\ingroup media_grp
+ *	\brief MPEG-TS demultiplexer and multiplexer APIs.
+ *
+ *This section documents the MPEG-TS demultiplexer and multiplexer APIs.
+ *	@{
+ */
+
+
 #include <gpac/list.h>
 #include <gpac/network.h>
 #include <gpac/thread.h>
@@ -215,8 +230,10 @@ enum
 	GF_M2TS_VIDEO_H264				= 0x1B,
 	GF_M2TS_VIDEO_SVC				= 0x1F,
 	GF_M2TS_VIDEO_HEVC				= 0x24,
-	//NOT NORMATIVE YET!!!
-	GF_M2TS_VIDEO_SHVC				= 0x27,
+	GF_M2TS_VIDEO_SHVC				= 0x28,
+	GF_M2TS_VIDEO_SHVC_TEMPORAL		= 0x29,
+	GF_M2TS_VIDEO_MHVC				= 0x2A,
+	GF_M2TS_VIDEO_MHVC_TEMPORAL		= 0x2B,
 
 	GF_M2TS_VIDEO_DCII				= 0x80,
 	GF_M2TS_AUDIO_AC3				= 0x81,
@@ -349,7 +366,7 @@ enum
 	GF_M2TS_EVT_INT_UPDATE,
 	/*PES packet has been received - assoctiated parameter: PES packet*/
 	GF_M2TS_EVT_PES_PCK,
-	/*PCR has been received - assoctiated parameter: PES packet with no data*/
+	/*PCR has been received - associated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_PCR,
 	/*PTS/DTS/PCR info - assoctiated parameter: PES packet with no data*/
 	GF_M2TS_EVT_PES_TIMING,
@@ -879,6 +896,7 @@ struct tag_m2ts_demux
 	Bool force_file_refresh;
 	/*net playing*/
 	GF_Socket *sock;
+	Bool sock_is_delegate;
 
 #ifdef GPAC_HAS_LINUX_DVB
 	/*dvb playing*/
@@ -1387,5 +1405,6 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts);
 /*quick hack to get M2TS over IP or UDP socket*/
 GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket);
 
+/*! @} */
 
 #endif	//_GF_MPEG_TS_H_

@@ -589,7 +589,9 @@ void gf_sg_set_root_node(GF_SceneGraph *sg, GF_Node *node)
 void remove_node_id(GF_SceneGraph *sg, GF_Node *node)
 {
 	NodeIDedItem *reg_node = sg->id_node;
-	if (reg_node && (reg_node->node==node)) {
+	if (!reg_node) return;
+	
+	if (reg_node->node==node) {
 		sg->id_node = reg_node->next;
 		if (sg->id_node_last==reg_node)
 			sg->id_node_last = reg_node->next;
@@ -676,7 +678,7 @@ GF_Err gf_node_unregister(GF_Node *pNode, GF_Node *parentNode)
 	if (pNode->sgprivate->num_instances) {
 #ifdef GPAC_HAS_SPIDERMONKEY
 		if (pNode->sgprivate->num_instances==1) detach=1;
-		if (pNode->sgprivate->scenegraph->on_node_modified && detach && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
+		if (pSG && pNode->sgprivate->scenegraph->on_node_modified && detach && pNode->sgprivate->interact && pNode->sgprivate->interact->js_binding) {
 			pNode->sgprivate->scenegraph->on_node_modified(pNode->sgprivate->scenegraph, pNode, NULL, NULL);
 		}
 #endif
@@ -1200,10 +1202,17 @@ u32 gf_sg_get_max_node_id(GF_SceneGraph *sg)
 
 void gf_node_setup(GF_Node *p, u32 tag)
 {
+	if (!p) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneGraph] Failed to setup NULL node\n"));
+		return;
+	}
 	GF_SAFEALLOC(p->sgprivate, NodePriv);
+	if (!p->sgprivate) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[SceneGraph] Failed to allocate node scenegraph private handler\n"));
+		return;
+	}
 	p->sgprivate->tag = tag;
 	p->sgprivate->flags = GF_SG_NODE_DIRTY;
-	//GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
 }
 
 GF_Node *gf_sg_new_base_node()
@@ -1561,7 +1570,7 @@ void gf_node_free(GF_Node *node)
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 		if (node->sgprivate->interact->js_binding) {
-			if (node->sgprivate->scenegraph->on_node_modified)
+			if (node->sgprivate->scenegraph && node->sgprivate->scenegraph->on_node_modified)
 				node->sgprivate->scenegraph->on_node_modified(node->sgprivate->scenegraph, node, NULL, NULL);
 			gf_list_del(node->sgprivate->interact->js_binding->fields);
 			gf_free(node->sgprivate->interact->js_binding);
@@ -2184,7 +2193,7 @@ GF_NamespaceType gf_xml_get_namespace_id(char *name)
 	else if (!strcmp(name, "http://www.w3.org/2000/svg")) return GF_XMLNS_SVG;
 	else if (!strcmp(name, "urn:mpeg:mpeg4:laser:2005")) return GF_XMLNS_LASER;
 	else if (!strcmp(name, "http://www.w3.org/ns/xbl")) return GF_XMLNS_XBL;
-	else if (!strcmp(name, "http://gpac.sourceforge.net/svg-extensions")) return GF_XMLNS_SVG_GPAC_EXTENSION;
+	else if (!strcmp(name, "http://gpac.io/svg-extensions")) return GF_XMLNS_SVG_GPAC_EXTENSION;
 	return GF_XMLNS_UNDEFINED;
 }
 
@@ -2200,6 +2209,8 @@ GF_Err gf_sg_add_namespace(GF_SceneGraph *sg, char *name, char *qname)
 	if (!sg->ns) sg->ns = gf_list_new();
 
 	GF_SAFEALLOC(ns, GF_XMLNS);
+	if (!ns) return GF_OUT_OF_MEM;
+	
 	ns->xmlns_id = id ? id : gf_crc_32(name, (u32) strlen(name));
 	ns->name = gf_strdup(name);
 

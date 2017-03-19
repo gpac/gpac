@@ -137,7 +137,7 @@ static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_
 
 
 #ifndef GPAC_DISABLE_3D
-void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool is_offscreen_clear)
+void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 is_offscreen_clear)
 {
 	SFColor rgb;
 	Fixed alpha = INT2FIX( GF_COL_A(BackColor) )/255;
@@ -151,7 +151,9 @@ void compositor_2d_hybgl_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u
 	if (is_offscreen_clear) {
 		visual->compositor->rasterizer->surface_clear(visual->raster_surface, rc, BackColor);
 		//if we clear the canvas with non-0 alpha, remember the area cleared in case we have to erase it later (overlapping bitmap)
-		if (GF_COL_A(BackColor)) {
+		//if we clear dirty area of the canvas, remember the area to force gl flush 
+		if (GF_COL_A(BackColor) || (is_offscreen_clear==2))
+		{
 			ra_union_rect(&visual->hybgl_drawn, rc);
 		}
 	} else {
@@ -475,7 +477,6 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 	GF_Compositor *compositor = visual->compositor;
 
 	compositor->hw_locked = GF_FALSE;
-	e = GF_IO_ERR;
 
 	/*try from video memory handle (WIN32) if supported*/
 	if ((compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_HWND_HDC)
@@ -504,8 +505,6 @@ static GF_Err c2d_get_video_access_normal(GF_VisualManager *visual)
 		}
 		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Failed to attach video surface callbacks to raster\n"));
 	}
-
-	e = GF_NOT_SUPPORTED;
 
 	e = compositor->video_out->LockBackBuffer(compositor->video_out, &compositor->hw_surface, GF_TRUE);
 	if (e==GF_OK) {
@@ -560,7 +559,7 @@ Bool compositor_2d_check_attached(GF_VisualManager *visual)
 	return visual->is_attached;
 }
 
-void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear)
+void compositor_2d_clear_surface(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 offscreen_clear)
 {
 	//visual not attached on main (direct video) visual, use texture bliting
 	if (!visual->is_attached && visual->compositor->video_out->Blit && (visual->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB)) {
@@ -638,26 +637,25 @@ void compositor_2d_release_video_access(GF_VisualManager *visual)
 	}
 }
 
-#ifndef GPAC_DISABLE_LOGS
-static void log_blit_times(GF_TextureHandler *txh, u32 push_time)
+static void store_blit_times(GF_TextureHandler *txh, u32 push_time)
 {
+#ifndef GPAC_DISABLE_LOGS
 	u32 ck;
-	if (!txh->stream) return;
+#endif
+
 	push_time = gf_sys_clock() - push_time;
+	txh->nb_frames ++;
+	txh->upload_time += push_time;
+
+#ifndef GPAC_DISABLE_LOGS
 	gf_mo_get_object_time(txh->stream, &ck);
 	if (ck>txh->last_frame_time) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor2D] Bliting frame (CTS %d) %d ms too late\n", txh->last_frame_time, ck - txh->last_frame_time ));
 	}
-	if (txh->nb_frames==100) {
-		txh->nb_frames = 0;
-		txh->upload_time = 0;
-	}
-	txh->nb_frames ++;
-	txh->upload_time += push_time;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %d Blit texture (CTS %d) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
-}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[2D Blitter] At %u Blit texture (CTS %u) %d ms after due date - blit in %d ms - average push time %d ms\n", ck, txh->last_frame_time, ck - txh->last_frame_time, push_time, txh->upload_time / txh->nb_frames));
 #endif
+}
 
 Bool compositor_texture_rectangles(GF_VisualManager *visual, GF_TextureHandler *txh, GF_IRect *clip, GF_Rect *unclip, GF_Window *src, GF_Window *dst, Bool *disable_blit, Bool *has_scale)
 {
@@ -867,7 +865,13 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		case GF_PIXEL_YVYU:
 		case GF_PIXEL_YUY2:
 		case GF_PIXEL_YUVD:
+		case GF_PIXEL_YUV422:
+		case GF_PIXEL_YUV444:
+		case GF_PIXEL_YUV444_10:
+		case GF_PIXEL_YUV422_10:
 		case GF_PIXEL_YV12_10:
+		case GF_PIXEL_NV12:
+		case GF_PIXEL_NV21:
 			if (hw_caps & GF_VIDEO_HW_HAS_YUV) use_soft_stretch = GF_FALSE;
 			else if (hw_caps & GF_VIDEO_HW_HAS_YUV_OVERLAY) overlay_type = 1;
 			break;
@@ -915,7 +919,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 	}
 
 	if (has_scale && !(hw_caps & GF_VIDEO_HW_HAS_STRETCH) && !overlay_type) {
-		force_soft_blt = use_soft_stretch = GF_TRUE;
+		use_soft_stretch = GF_TRUE;
 	}
 
 	memset(&video_src, 0, sizeof(GF_VideoSurface));
@@ -941,6 +945,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 
 		/*queue overlay in order*/
 		GF_SAFEALLOC(ol, GF_OverlayStack);
+		if (!ol) {
+			return GF_FALSE;
+		}
 		ol->ctx = ctx;
 		ol->dst = dst_wnd;
 		ol->src = src_wnd;
@@ -998,9 +1005,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		e = visual->compositor->video_out->Blit(visual->compositor->video_out, &video_src, &src_wnd, &dst_wnd, 1);
 
 		if (!e) {
-#ifndef GPAC_DISABLE_LOG
-			log_blit_times(txh, push_time);
-#endif
+			store_blit_times(txh, push_time);
 			/*mark drawable as overlay*/
 			ctx->drawable->flags |= DRAWABLE_IS_OVERLAY;
 			visual->has_overlays = GF_TRUE;
@@ -1025,7 +1030,7 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (e) {
 			use_soft_stretch = GF_TRUE;
 			if (visual->compositor->video_memory==1) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - will use soft one\n"));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_COMPOSE, ("[Compositor2D] Error during hardware blit - will use soft one\n"));
 				visual->compositor->video_memory = 2;
 			}
 			/*force a reconfigure of video output*/
@@ -1035,12 +1040,9 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 				visual->compositor->root_visual_setup = GF_FALSE;
 				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
 			}
+		} else {
+			store_blit_times(txh, push_time);
 		}
-#ifndef GPAC_DISABLE_LOG
-		else {
-			log_blit_times(txh, push_time);
-		}
-#endif
 	}
 
 	//will resume clock if first HW load
@@ -1052,10 +1054,8 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		if (!e) {
 			u32 push_time = gf_sys_clock();
 			gf_stretch_bits(&backbuffer, &video_src, &dst_wnd, &src_wnd, alpha, GF_FALSE, tr_state->col_key, ctx->col_mat);
-#ifndef GPAC_DISABLE_LOG
-			log_blit_times(txh, push_time);
-#endif
-			e = visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
+			store_blit_times(txh, push_time);
+			visual->compositor->video_out->LockBackBuffer(visual->compositor->video_out, &backbuffer, GF_FALSE);
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor2D] Cannot lock back buffer - Error %s\n", gf_error_to_string(e) ));
 			if (is_attached) visual_2d_init_raster(visual);
@@ -1118,9 +1118,14 @@ Bool compositor_2d_draw_bitmap(GF_VisualManager *visual, GF_TraverseState *tr_st
 	case GF_PIXEL_YUY2:
 	case GF_PIXEL_I420:
 	case GF_PIXEL_NV21:
+	case GF_PIXEL_NV12:
 	case GF_PIXEL_YUVA:
 	case GF_PIXEL_RGBS:
 	case GF_PIXEL_RGBAS:
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
+	case GF_PIXEL_YUV422_10:
 	case GF_PIXEL_YV12_10:
 		break;
 	case GF_PIXEL_YUVD:
@@ -1431,7 +1436,7 @@ void compositor_2d_set_user_transform(GF_Compositor *compositor, Fixed zoom, Fix
 		if (!compositor->visual->center_coords) {
 			Fixed c_x, c_y, nc_x, nc_y;
 			c_x = INT2FIX(compositor->display_width/2);
-			nc_y = c_y = INT2FIX(compositor->display_height/2);
+			c_y = INT2FIX(compositor->display_height/2);
 			nc_x = gf_mulfix(c_x, ratio);
 			nc_y = gf_mulfix(c_y, ratio);
 			compositor->trans_x -= (nc_x-c_x);

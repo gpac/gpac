@@ -28,6 +28,7 @@
 #include <gpac/terminal.h>
 #include <gpac/term_info.h>
 #include <gpac/constants.h>
+#include <gpac/events.h>
 #include <gpac/media_tools.h>
 #include <gpac/options.h>
 #include <gpac/modules/service.h>
@@ -288,6 +289,8 @@ void PrintUsage()
 	        "\t-scale s:       scales the visual size (default: 1)\n"
 	        "\t-fill:          uses fill aspect ratio for dumping (default: none)\n"
 	        "\t-show:          shows window while dumping (default: no)\n"
+	        "\n"
+	        "\t-uncache:       Revert all cached items to their original name and location. Does not start player.\n"
 	        "\n"
 	        "\t-help:          shows this screen\n"
 	        "\n"
@@ -728,7 +731,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
 		case GF_KEY_O:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
 				if (gf_term_get_option(term, GF_OPT_MAIN_ADDON)) {
 					fprintf(stderr, "Resuming to main content\n");
 					gf_term_set_option(term, GF_OPT_PLAY_STATE, GF_STATE_PLAY_LIVE);
@@ -738,7 +741,7 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			}
 			break;
 		case GF_KEY_P:
-			if (evt->key.flags & GF_KEY_MOD_CTRL && is_connected) {
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
 				u32 pause_state = gf_term_get_option(term, GF_OPT_PLAY_STATE) ;
 				fprintf(stderr, "[Status: %s]\n", pause_state ? "Playing" : "Paused");
 				if ((pause_state == GF_STATE_PAUSED) && (evt->key.flags & GF_KEY_MOD_SHIFT)) {
@@ -766,11 +769,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			break;
 		case GF_KEY_H:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 1);
+				gf_term_switch_quality(term, 0);
+				gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 0);
 			break;
 		case GF_KEY_L:
 			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 0);
+				gf_term_switch_quality(term, 1);
+				gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 1);
 			break;
 		case GF_KEY_F5:
 			if (is_connected)
@@ -781,17 +786,17 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 			gf_term_toggle_addons(term, addon_visible);
 			break;
 		case GF_KEY_UP:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(playback_speed * 2);
 			}
 			break;
 		case GF_KEY_DOWN:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(playback_speed / 2);
 			}
 			break;
 		case GF_KEY_LEFT:
-			if (evt->key.flags & VK_MOD && is_connected) {
+			if ((evt->key.flags & VK_MOD) && is_connected) {
 				do_set_speed(-1 * playback_speed );
 			}
 			break;
@@ -1005,7 +1010,7 @@ static Bool get_time_list(char *arg, u32 *times, u32 *nb_times)
 		str = strchr(arg, '-');
 		if (str) str[0] = 0;
 		/*HH:MM:SS:MS time code*/
-		if (strchr(arg, ':') && (sscanf(arg, "%02ud:%02ud:%02ud:%02ud", &h, &m, &s, &ms)==4)) {
+		if (strchr(arg, ':') && (sscanf(arg, "%u:%u:%u:%u", &h, &m, &s, &ms)==4)) {
 			sec = ms;
 			sec /= 1000;
 			sec += 3600*h + 60*m + s;
@@ -1113,6 +1118,60 @@ void set_cfg_option(char *opt_string)
 	gf_cfg_set_key(cfg_file, szSec, szKey, szVal[0] ? szVal : NULL);
 }
 
+Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
+{
+	const char *url;
+	char *sep;
+	GF_Config *cached;
+	if (strncmp(item_name, "gpac_cache_", 11)) return GF_FALSE;
+	cached = gf_cfg_new(NULL, item_path);
+	url = gf_cfg_get_key(cached, "cache", "url");
+	if (url) url = strstr(url, "://");
+	if (url) {
+		u32 i, len, dir_len=0, k=0;
+		char *dst_name;
+		sep = strstr(item_path, "gpac_cache_");
+		if (sep) {
+			sep[0] = 0;
+			dir_len = strlen(item_path);
+			sep[0] = 'g';
+		}
+		url+=3;
+		len = strlen(url);
+		dst_name = gf_malloc(len+dir_len+1);
+		memset(dst_name, 0, len+dir_len+1);
+
+		strncpy(dst_name, item_path, dir_len);
+		k=dir_len;
+		for (i=0; i<len; i++) {
+			dst_name[k] = url[i];
+			if (dst_name[k]==':') dst_name[k]='_';
+			else if (dst_name[k]=='/') {
+				if (!gf_dir_exists(dst_name))
+					gf_mkdir(dst_name);
+			}
+			k++;
+		}
+		sep = strrchr(item_path, '.');
+		if (sep) {
+			sep[0]=0;
+			if (gf_file_exists(item_path)) {
+				gf_move_file(item_path, dst_name);
+			}
+			sep[0]='.';
+		}
+		gf_free(dst_name);
+	}
+	gf_cfg_del(cached);
+	gf_delete_file(item_path);
+	return GF_FALSE;
+}
+void do_flatten_cache(const char *cache_dir)
+{
+	gf_enum_directory(cache_dir, GF_FALSE, revert_cache_file, NULL, "*.txt");
+}
+
+
 #ifdef WIN32
 #include <wincon.h>
 #endif
@@ -1140,7 +1199,7 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
-	Bool fill_ar, visible;
+	Bool fill_ar, visible, do_uncache;
 	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com;
 	FILE *logfile = NULL;
 	Float scale = 1;
@@ -1154,7 +1213,7 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	dump_mode = DUMP_NONE;
-	fill_ar = visible = GF_FALSE;
+	fill_ar = visible = do_uncache = GF_FALSE;
 	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
 	nb_times = 0;
 	times[0] = 0;
@@ -1284,7 +1343,7 @@ int mp4client_main(int argc, char **argv)
 		else if (!stricmp(arg, "-run-for")) {
 			simulation_time_in_ms = atoi(argv[i+1]) * 1000;
 			if (!simulation_time_in_ms)
-			simulation_time_in_ms = 1; /*1ms*/
+				simulation_time_in_ms = 1; /*1ms*/
 			i++;
 		}
 
@@ -1301,7 +1360,13 @@ int mp4client_main(int argc, char **argv)
 			if (!strcmp(arg, "-sha")) dump_mode |= DUMP_SHA1;
 			else dump_mode |= DUMP_AVI;
 
-			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) i++;
+			if ((url_arg || (i+2<(u32)argc)) && get_time_list(argv[i+1], times, &nb_times)) {
+				if (!strcmp(arg, "-avi") && (nb_times!=2) ) {
+					fprintf(stderr, "Only one time arg found for -avi - check usage\n");
+					return 1;
+				}
+				i++;
+			}
 		} else if (!strcmp(arg, "-rgbds")) { /*get dump in rgbds pixel format*/
 				dump_mode |= DUMP_RGB_DEPTH_SHAPE;
 		} else if (!strcmp(arg, "-rgbd")) { /*get dump in rgbd pixel format*/
@@ -1343,10 +1408,12 @@ int mp4client_main(int argc, char **argv)
 			else if (!strcmp(arg, "-pause")) pause_at_first = 1;
 			else if (!strcmp(arg, "-play-from")) {
 				play_from = atof((const char *) argv[i+1]);
+				i++;
 			}
 			else if (!strcmp(arg, "-speed")) {
 				playback_speed = FLT2FIX( atof((const char *) argv[i+1]) );
 				if (playback_speed <= 0) playback_speed = FIX_ONE;
+				i++;
 			}
 			else if (!strcmp(arg, "-no-wnd")) user.init_flags |= GF_TERM_WINDOWLESS;
 			else if (!strcmp(arg, "-no-back")) user.init_flags |= GF_TERM_WINDOW_TRANSPARENT;
@@ -1361,6 +1428,8 @@ int mp4client_main(int argc, char **argv)
 				fill_ar = GF_TRUE;
 			} else if (!strcmp(arg, "-show")) {
 				visible = 1;
+			} else if (!strcmp(arg, "-uncache")) {
+				do_uncache = GF_TRUE;
 			}
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
@@ -1382,6 +1451,14 @@ int mp4client_main(int argc, char **argv)
 		fprintf(stderr, "GPAC Config updated\n");
 		return 0;
 	}
+	if (do_uncache) {
+		const char *cache_dir = gf_cfg_get_key(cfg_file, "General", "CacheDirectory");
+		do_flatten_cache(cache_dir);
+		fprintf(stderr, "GPAC Cache dir %s flattened\n", cache_dir);
+		gf_cfg_del(cfg_file);
+		return 0;
+	}
+
 	if (dump_mode && !url_arg ) {
 		FILE *test;
 		url_arg = (char *)gf_cfg_get_key(cfg_file, "General", "StartupFile");
@@ -1419,6 +1496,10 @@ int mp4client_main(int argc, char **argv)
 	if (gui_mode==1) {
 		hide_shell(1);
 	}
+	if (gui_mode) {
+		no_prog=1;
+		gf_set_progress_callback(NULL, progress_quiet);
+	}
 
 	if (!url_arg && simulation_time_in_ms)
 		simulation_time_in_ms += gf_sys_clock();
@@ -1431,7 +1512,7 @@ int mp4client_main(int argc, char **argv)
 	if (dump_mode) rti_file = NULL;
 
 	if (!logs_set) {
-		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_ERROR);
+		gf_log_set_tool_level(GF_LOG_ALL, GF_LOG_WARNING);
 	}
 	//only override default log callback when needed
 	if (rti_file || logfile || log_utc_time || log_time_start)
@@ -1479,7 +1560,7 @@ int mp4client_main(int argc, char **argv)
 	if (no_audio) user.init_flags |= GF_TERM_NO_AUDIO;
 	if (no_regulation) user.init_flags |= GF_TERM_NO_REGULATION;
 
-	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = 1;
+	if (threading_flags & (GF_TERM_NO_DECODER_THREAD|GF_TERM_NO_COMPOSITOR_THREAD) ) term_step = GF_TRUE;
 
 	//in dump mode we don't want to rely on system clock but on the number of samples being consumed
 	if (dump_mode) user.init_flags |= GF_TERM_USE_AUDIO_HW_CLOCK;
@@ -1495,6 +1576,14 @@ int mp4client_main(int argc, char **argv)
 		} else {
 			gf_cfg_set_key(user.config, "Video", "DisableVSync", "yes");
 		}
+	}
+
+	{
+		char dim[50];
+		sprintf(dim, "%d", forced_width);
+		gf_cfg_set_key(user.config, "Compositor", "DefaultWidth", forced_width ? dim : NULL);
+		sprintf(dim, "%d", forced_height);
+		gf_cfg_set_key(user.config, "Compositor", "DefaultHeight", forced_height ? dim : NULL);
 	}
 
 	fprintf(stderr, "Loading GPAC Terminal\n");
@@ -1664,7 +1753,7 @@ int mp4client_main(int argc, char **argv)
 
 			/*sim time*/
 			if (simulation_time_in_ms
-			        && ( (gf_term_get_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
+			        && ( (gf_term_get_elapsed_time_in_ms(term)>simulation_time_in_ms) || (!url_arg && gf_sys_clock()>simulation_time_in_ms))
 			   ) {
 				Run = GF_FALSE;
 			}
@@ -2243,7 +2332,7 @@ force_input:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}
@@ -2252,7 +2341,7 @@ force_input:
 	return ret_val;
 }
 
-#ifdef WIN32
+#if defined(WIN32) && !defined(NO_WMAIN)
 int wmain(int argc, wchar_t** wargv)
 {
 	int i;
@@ -2320,7 +2409,7 @@ void PrintAVInfo(Bool final)
 			GF_ObjectManager *odm = gf_term_get_object(term, root_odm, i);
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &v_odi) == GF_OK) {
-				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1) || v_odi.direct_video_memory) ) {
+				if (!video_odm && (v_odi.od_type == GF_STREAM_VISUAL) && (v_odi.raw_media || (v_odi.cb_max_count>1) || v_odi.direct_video_memory || (bench_mode == 3) )) {
 					video_odm = odm;
 				}
 				else if (!audio_odm && (v_odi.od_type == GF_STREAM_AUDIO)) {
@@ -2343,17 +2432,18 @@ void PrintAVInfo(Bool final)
 			video_odm = NULL;
 			return;
 		}
-		avg_dec_time = 0;
-		if (v_odi.nb_dec_frames && v_odi.total_dec_time) {
-			avg_dec_time = (Float) 1000000 * v_odi.nb_dec_frames;
-			avg_dec_time /= v_odi.total_dec_time;
-		}
+	} else {
+		memset(&v_odi, 0, sizeof(v_odi));
 	}
 	if (print_codecs && audio_odm) {
 		gf_term_get_object_info(term, audio_odm, &a_odi);
+	} else {
+		memset(&a_odi, 0, sizeof(a_odi));
 	}
 	if ((print_codecs || !video_odm) && scene_odm) {
 		gf_term_get_object_info(term, scene_odm, &s_odi);
+	} else {
+		memset(&s_odi, 0, sizeof(s_odi));
 	}
 
 	if (final) {
@@ -2398,7 +2488,7 @@ void PrintAVInfo(Bool final)
 		if (scene_odm) {
 			u32 w, h;
 			gf_term_get_visual_output_size(term, &w, &h);
-			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name, s_odi.width, s_odi.height, w, h, s_odi.duration);
+			fprintf(stderr, "%s scene size %dx%d rastered to %dx%d duration %.2fs\n", s_odi.codec_name ? s_odi.codec_name : "", s_odi.width, s_odi.height, w, h, s_odi.duration);
 			if (final) {
 				if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
 					u32 dec_run_time = s_odi.last_frame_time - s_odi.first_frame_time;
@@ -2407,7 +2497,8 @@ void PrintAVInfo(Bool final)
 					fprintf(stderr, "\n");
 				} else {
 					u32 nb_frames_drawn;
-					Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+					Double FPS;
+					gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 					tot_time = gf_sys_clock() - bench_mode_start;
 					FPS = gf_term_get_framerate(term, 0);
 					fprintf(stderr, "%d frames FPS %.2f (abs %.2f)\n", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);
@@ -2428,7 +2519,6 @@ void PrintAVInfo(Bool final)
 	}
 	else if (scene_odm) {
 
-		avg_dec_time = 0;
 		if (s_odi.nb_dec_frames>2 && s_odi.total_dec_time) {
 			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames;
 			avg_dec_time /= s_odi.total_dec_time;
@@ -2436,7 +2526,8 @@ void PrintAVInfo(Bool final)
 			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
 		} else {
 			u32 nb_frames_drawn;
-			Double FPS = gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
+			Double FPS;
+			gf_term_get_simulation_frame_rate(term, &nb_frames_drawn);
 			tot_time = gf_sys_clock() - bench_mode_start;
 			FPS = gf_term_get_framerate(term, 1);
 			fprintf(stderr, "%d f FPS %.2f (abs %.2f) ", nb_frames_drawn, (1000.0*nb_frames_drawn / tot_time), FPS);

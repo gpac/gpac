@@ -33,6 +33,20 @@ extern "C" {
 #endif
 
 
+/*!
+ *	\file <gpac/options.h>
+ *	\brief Compositor and terminal options.
+ */
+	
+/*!
+ *\addtogroup compose_grp Compositor
+ *\ingroup playback_grp
+ *\brief GPAC A/V/2D/3D compositor/rendering.
+ *
+ *This section documents the compositor of GPAC? in charge of assembling audio, images, video, text, 2D and 3D graphics with in a timed way
+ *	@{
+ */
+	
 /*AspectRatio Type */
 enum
 {
@@ -250,7 +264,7 @@ enum
 	GF_OPT_PLAY_STATE,
 	/*get only: returns 1 if main addon is playing, 0 if regular scene is playing*/
 	GF_OPT_MAIN_ADDON,
-	/*get/set benvch mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
+	/*get/set bench mode - if enabled, video frames are drawn as soon as possible witthout checking synchronisation*/
 	GF_OPT_VIDEO_BENCH,
 	/*get/set OpenGL force mode - returns error if OpenGL is not supported*/
 	GF_OPT_USE_OPENGL,
@@ -306,7 +320,13 @@ enum
 
 	/*get the number of offscreen views in stereo mode, or 1 if no offscreen stereo views are available*/
 	GF_OPT_NUM_STEREO_VIEWS,
+	/*set the mode of display of HEVC multiview videos, 0 to display the two views/layers and 1 to display just the first view/layer*/
+	GF_OPT_MULTIVIEW_MODE,
+	/*get orientation sensors flag, true if sensors are activated false if not*/
+	GF_OPT_ORIENTATION_SENSORS_ACTIVE,
 };
+
+/*! @} */
 
 #ifdef __cplusplus
 }

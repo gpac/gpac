@@ -30,6 +30,22 @@
 extern "C" {
 #endif
 
+
+/*! \file "gpac/setup.h"
+ *	\brief base data types of GPAC.
+ *
+ * This file contains the base data types of GPAC, depending on the platform.
+*/
+
+/*! \addtogroup setup_grp base data types
+ *	\ingroup utils_grp
+ *	\brief Base data types of GPAC.
+ *
+ *	This section documents the base data types of GPAC.
+ *	@{
+ */
+
+
 /*This is to handle cases where config.h is generated at the root of the gpac build tree (./configure)
 This is only needed when building libgpac and modules when libgpac is not installed*/
 #ifdef GPAC_HAVE_CONFIG_H
@@ -423,9 +439,8 @@ char* gf_strdup(const char *str);
 #define PTR_TO_U_CAST
 #endif
 
-
-#ifndef GF_EXPORT
-#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(TARGET_OS_IPHONE) && !defined(TARGET_IPHONE_SIMULATOR)
+#if !defined(GF_EXPORT)
+#if defined(__GNUC__) && __GNUC__ >= 4 && !defined(GPAC_IPHONE)
 #define GF_EXPORT __attribute__((visibility("default")))
 #else
 /*use def files for windows or let compiler decide*/
@@ -433,10 +448,9 @@ char* gf_strdup(const char *str);
 #endif
 #endif
 
-#if defined(TARGET_OS_IPHONE) || defined(TARGET_IPHONE_SIMULATOR)
+#if defined(GPAC_IPHONE)
 #define GPAC_STATIC_MODULES
 #endif
-
 
 /*safety checks on macros*/
 
@@ -550,6 +564,8 @@ char* gf_strdup(const char *str);
 # define GPAC_DISABLE_MSE
 # endif
 #endif
+
+/*! @} */
 
 #ifdef __cplusplus
 }

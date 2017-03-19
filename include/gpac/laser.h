@@ -30,6 +30,21 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/laser.h>
+ *	\brief MPEG-4 LASeR encoding and decoding.
+ */
+	
+/*!
+ *	\addtogroup laser_grp MPEG-4 LASER
+ *	\ingroup mpeg4sys_grp
+ *	\brief MPEG-4 LASeR encoding and decoding
+ *
+ *This section documents the LASeR encoding and decoding functions of the GPAC framework. For scene graph documentation, check scenegraph.h
+ *	@{
+ */
+	
 #include <gpac/nodes_svg.h>
 
 #ifndef GPAC_DISABLE_LASER
@@ -79,6 +94,8 @@ GF_Err gf_laser_encoder_get_rap(GF_LASeRCodec *codec, char **out_data, u32 *out_
 
 
 #endif /*GPAC_DISABLE_LASER*/
+
+/*! @} */
 
 #ifdef __cplusplus
 }

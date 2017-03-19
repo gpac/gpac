@@ -375,28 +375,29 @@ GF_Err gf_sm_load_init_isom(GF_SceneLoader *load)
 				continue;
 			}
 		}
-		if (esd->decoderConfig->objectTypeIndication==0x09) scene_msg = "MPEG-4 LASeR Scene Parsing";
+		if (esd && esd->decoderConfig && esd->decoderConfig->objectTypeIndication==0x09) scene_msg = "MPEG-4 LASeR Scene Parsing";
 		break;
 	}
 	if (!esd) return GF_OK;
 
-	e = GF_OK;
 	GF_LOG(GF_LOG_INFO, GF_LOG_PARSER, ("%s\n", scene_msg));
 
 	/*BIFS: update size & pixel metrics info*/
-	if (esd->decoderConfig->objectTypeIndication<=2) {
-		bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
-		if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {
-			load->ctx->scene_width = bc->pixelWidth;
-			load->ctx->scene_height = bc->pixelHeight;
-			load->ctx->is_pixel_metrics = bc->pixelMetrics;
+	if (esd && esd->decoderConfig) {
+		if (esd->decoderConfig->objectTypeIndication<=2) {
+			bc = gf_odf_get_bifs_config(esd->decoderConfig->decoderSpecificInfo, esd->decoderConfig->objectTypeIndication);
+			if (!bc->elementaryMasks && bc->pixelWidth && bc->pixelHeight) {
+				load->ctx->scene_width = bc->pixelWidth;
+				load->ctx->scene_height = bc->pixelHeight;
+				load->ctx->is_pixel_metrics = bc->pixelMetrics;
+			}
+			gf_odf_desc_del((GF_Descriptor *) bc);
+			/*note we don't load the first BIFS AU to avoid storing the BIFS decoder, needed to properly handle quantization*/
 		}
-		gf_odf_desc_del((GF_Descriptor *) bc);
-		/*note we don't load the first BIFS AU to avoid storing the BIFS decoder, needed to properly handle quantization*/
-	}
-	/*LASeR*/
-	else if (esd->decoderConfig->objectTypeIndication==0x09) {
-		load->ctx->is_pixel_metrics = 1;
+		/*LASeR*/
+		else if (esd->decoderConfig->objectTypeIndication==0x09) {
+			load->ctx->is_pixel_metrics = 1;
+		}
 	}
 	gf_odf_desc_del((GF_Descriptor *) esd);
 	esd = NULL;

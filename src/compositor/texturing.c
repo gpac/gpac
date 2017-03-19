@@ -126,13 +126,14 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 	if (txh->needs_release) {
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, -1);
 		txh->needs_release = 0;
+		txh->frame = NULL;
 	}
 	gf_sc_invalidate(txh->compositor, NULL);
 	if (gf_mo_stop(txh->stream)) {
 		txh->data = NULL;
 	}
 	txh->is_open = 0;
-
+	
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
@@ -155,6 +156,7 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 		if (!txh->tx_io) return;
 
 		gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
+		gf_sc_texture_configure_conversion(txh);
 
 		if (private_media) {
 			txh->transparent = 1;
@@ -181,7 +183,7 @@ GF_EXPORT
 void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 {
 	Bool needs_reload = 0;
-	u32 size, ts;
+	u32 size, ts, push_time;
 	s32 ms_until_pres, ms_until_next;
 
 	/*already refreshed*/
@@ -193,7 +195,10 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	/*should never happen!!*/
-	if (txh->needs_release) gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+	if (txh->needs_release) {
+		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
+		txh->frame=NULL;
+	}
 
 	/*check init flag*/
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
@@ -203,14 +208,17 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 			gf_sc_texture_release(txh);
 		}
 	}
-	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next);
+	//if first frame use 20ms as upload time
+	push_time = txh->nb_frames ? txh->upload_time/txh->nb_frames : 20;
+	
+	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
 
 	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
 		needs_reload = 1;
 	} else if (size && txh->size && (size != txh->size)) {
 		needs_reload = 1;
 	}
-
+	
 	if (needs_reload) {
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
@@ -227,6 +235,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	/*if no frame or muted don't draw*/
 	if (!txh->data || !size) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Visual Texture] No output frame available \n"));
+		assert(!txh->frame);
+
 		/*TODO - check if this is needed */
 		if (txh->flags & GF_SR_TEXTURE_PRIVATE_MEDIA) {
 			//txh->needs_refresh = 1;
@@ -243,7 +253,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
 		if (!txh->stream_finished) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %d)\n", ts));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Visual Texture] Same frame fetched (TS %u)\n", ts));
 			if (txh->compositor->ms_until_next_frame > ms_until_next)
 				txh->compositor->ms_until_next_frame = ms_until_next;
 		}
@@ -253,8 +263,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	txh->needs_release = 1;
 	txh->last_frame_time = ts;
 	txh->size = size;
-	if (txh->raw_memory) {
-		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV);
+	if (txh->raw_memory && (!txh->frame || !txh->frame->GetGLTexture) ) {
+		gf_mo_get_raw_image_planes(txh->stream, (u8 **) &txh->data, (u8 **) &txh->pU, (u8 **) &txh->pV, &txh->stride, &txh->stride_chroma);
 	}
 	if (gf_mo_is_muted(txh->stream)) return;
 
@@ -272,6 +282,8 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		setup_texture_object(txh, 0);
 	}
 
+	
+	
 	/*try to push texture on graphics but don't complain if failure*/
 	gf_sc_texture_set_data(txh);
 
@@ -286,6 +298,8 @@ void gf_sc_texture_release_stream(GF_TextureHandler *txh)
 		assert(txh->stream);
 		gf_mo_release_data(txh->stream, 0xFFFFFFFF, 0);
 		txh->needs_release = 0;
+		txh->frame = NULL;
+
 	}
 	txh->needs_refresh = 0;
 }

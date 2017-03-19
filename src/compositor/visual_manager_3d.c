@@ -39,6 +39,10 @@ Drawable3D *drawable_3d_new(GF_Node *node)
 {
 	Drawable3D *tmp;
 	GF_SAFEALLOC(tmp, Drawable3D);
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D stack\n"));
+		return NULL;
+	}
 	tmp->mesh = new_mesh();
 	gf_node_set_private(node, tmp);
 	return tmp;
@@ -539,25 +543,30 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
 
 	if ((tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) || (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
-		GF_Rect orig_vp;
-		Fixed vp_width, vp_height;
-		orig_vp = tr_state->camera->vp;
-
-		vp_width = orig_vp.width;
-		vp_height = orig_vp.height;
+		GF_Rect orig_vp = tr_state->camera->vp;
+		Fixed vp_width = orig_vp.width;
+//		Fixed vp_height = orig_vp.height;
 
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
-			Fixed ratio = gf_divfix(vp_width, vp_height);
 			Fixed max_width = INT2FIX(tr_state->visual->compositor->display_width) / tr_state->visual->nb_views;
 			Fixed max_height = INT2FIX(tr_state->visual->compositor->display_height);
 
-			if (max_width < gf_mulfix(ratio, max_height) ) {
+#if 0
+				Fixed ratio = gf_divfix(vp_width, vp_height);
+
+				if (max_width < gf_mulfix(ratio, max_height) ) {
+					tr_state->camera->vp.width = max_width;
+				} else {
+					tr_state->camera->vp.width = gf_mulfix(ratio, max_height);
+				}
+				tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
+#else
+				//fill max of screen
 				tr_state->camera->vp.width = max_width;
-			} else {
-				tr_state->camera->vp.width = gf_mulfix(ratio, max_height);
-			}
-			tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
+				tr_state->camera->vp.height = max_height;
+#endif
+
 			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
 			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
 
@@ -677,7 +686,7 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 	}
 
 	/*check alpha texture in3D or with bitmap*/
-	if (is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap)) {
+	if (tr_state->appear && ( is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap))) {
 		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 		if (txh && txh->transparent) return 1;
 	}
@@ -727,8 +736,12 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		return;
 	}
 
-
 	GF_SAFEALLOC(ctx, Drawable3DContext);
+	if (!ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D context\n"));
+		return;
+	}
+	
 	ctx->directional_lights = gf_list_new();
 	ctx->geometry = geometry;
 	ctx->appearance = tr_state->appear;
@@ -1331,7 +1344,6 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 	count = gf_list_count(tr_state->vrml_sensors);
 	compositor = tr_state->visual->compositor;
 
-	node_is_over = 0;
 	if (mesh) {
 		if (mesh->mesh_type!=MESH_TRIANGLES)
 			return;
@@ -1818,12 +1830,16 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		/*this is an extra feature: if material2D.filled is FALSE on 3D objects, switch to TX_REPLACE mode
 		and enable lighting*/
 		if (!mat->filled) {
-			GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-			if (txh) {
-				gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
-				return 1;
+			if (mat->transparency) {
+				emi.red = emi.green = emi.blue = FIX_ONE;
+			} else {
+				GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
+				if (txh) {
+					gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
+					return 1;
+				}
 			}
 		}
 		/*regular mat 2D*/
@@ -1947,6 +1963,7 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
 	visual->has_material_2d = alpha ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
@@ -1960,6 +1977,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
 	visual->has_material_2d = a ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
@@ -2005,6 +2023,7 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 	visual->materials[material_type].alpha = rgba[3];
 
 	visual->has_material = 1;
+	visual->has_material_2d=0;
 }
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)

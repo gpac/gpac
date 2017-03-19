@@ -124,7 +124,7 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	/*layers can only be used in a 2D context*/
 #ifndef GPAC_DISABLE_3D
-	if (tr_state->visual->type_3d && tr_state->camera->is_3D) return;
+	if (tr_state->visual->type_3d && tr_state->camera && tr_state->camera->is_3D) return;
 #endif
 
 	/*layer2D maintains its own stacks*/
@@ -278,15 +278,19 @@ static void TraverseLayer2D(GF_Node *node, void *rs, Bool is_destroy)
 					if (!(ctx->drawable->flags & DRAWABLE_REGISTERED_WITH_VISUAL) ) {
 						struct _drawable_store *it;
 						GF_SAFEALLOC(it, struct _drawable_store);
-						it->drawable = ctx->drawable;
-						if (tr_state->visual->last_prev_entry) {
-							tr_state->visual->last_prev_entry->next = it;
-							tr_state->visual->last_prev_entry = it;
+						if (!it) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Layer2D] Failed to allocate drawable store\n"));
 						} else {
-							tr_state->visual->prev_nodes = tr_state->visual->last_prev_entry = it;
+							it->drawable = ctx->drawable;
+							if (tr_state->visual->last_prev_entry) {
+								tr_state->visual->last_prev_entry->next = it;
+								tr_state->visual->last_prev_entry = it;
+							} else {
+								tr_state->visual->prev_nodes = tr_state->visual->last_prev_entry = it;
+							}
+							GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
+							ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
 						}
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Layer2D] Registering new drawn node %s on visual\n", gf_node_get_class_name(it->drawable->node)));
-						ctx->drawable->flags |= DRAWABLE_REGISTERED_WITH_VISUAL;
 					}
 				}
 
@@ -376,6 +380,10 @@ void compositor_init_layer2d(GF_Compositor *compositor, GF_Node *node)
 {
 	Layer2DStack *stack;
 	GF_SAFEALLOC(stack, Layer2DStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layer2d stack\n"));
+		return;
+	}
 
 	stack->backs = gf_list_new();
 	stack->views = gf_list_new();

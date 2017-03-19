@@ -7,8 +7,13 @@ vtt_test ()
  name=$(basename $1)
  name=${name%.*}
 
+ case $1 in
+ *.srt )
+  name="$name-srt" ;;
+ esac
+
  #start our test, specifying all hash names we will check
- test_begin "vtt-$name" "vtt-to-mp4" "play"
+ test_begin "vtt-$name"
  if [ $test_skip  = 1 ] ; then
   return
  fi
@@ -21,7 +26,7 @@ vtt_test ()
  #MP4 playback - dump 10 sec of AVI and hash it. This should be enough for most of our sequences ...
  do_playback_test $mp4file "play"
 
- rm $mp4file
+ rm $mp4file 2> /dev/null
 
  test_end
 }

@@ -70,6 +70,7 @@ static FSItem *new_fs_item(FSStack *st, u32 line_col, u32 fill_col, Fixed width)
 {
 	FSItem *item;
 	GF_SAFEALLOC(item, FSItem);
+	if (!item) return NULL;
 	gf_list_add(st->items, item);
 	item->fill_col = fill_col;
 	item->width = width;
@@ -460,6 +461,10 @@ void compositor_init_hc_flashshape(GF_Compositor *compositor, GF_Node *node)
 	FSStack *stack;
 
 	GF_SAFEALLOC(stack, FSStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate flashshape proto stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->node = node;
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;

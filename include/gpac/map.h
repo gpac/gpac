@@ -31,13 +31,13 @@ extern "C" {
 
 /*!
  *	\file <map.h>
- *	\brief map functions.
+ *	\brief Hash Map.
  */
 
 /*!
- *	\addtogroup  map_grp map
+ *	\addtogroup  map_grp Hash map
  *	\ingroup utils_grp
- *	\brief
+ *	\brief Hash Map
  *
  *	This section documents the map object of the GPAC framework
  *	\note The map use a random function for hashing. Collisions are resolved by using a GF_List on each slot.

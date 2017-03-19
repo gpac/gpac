@@ -28,7 +28,6 @@ TMPO="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.o"
 TMPS="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.S"
 TMPL="${TMPDIR1}/gpac-conf-${RANDOM}-$$-${RANDOM}.LOG"
 
-
 #default parameters
 DESTDIR=""
 prefix="/usr/local"
@@ -37,8 +36,17 @@ cross_prefix=""
 targetos=""
 dxsdk_path=""
 moz_path="local"
+
+cc_orig=$CC
+if test "$cc_orig" = "" ; then
 cc_orig="gcc"
+fi
+
+cxx_orig=$CXX
+if test "$cxx_orig" = "" ; then
 cxx_orig="g++"
+fi
+
 ar="ar"
 ranlib="ranlib"
 make="make"
@@ -440,9 +448,7 @@ cc="${cross_prefix}${cc}"
 cc="${cc}"
 cxx="${cross_prefix}${cxx}"
 ar="${cross_prefix}${ar}"
-if [ -e "${cross_prefix}${ranlib}" ] ; then
-    ranlib="${cross_prefix}${ranlib}"
-fi
+ranlib="${cross_prefix}${ranlib}"
 strip="${cross_prefix}${strip}"
 pkg_config="${pkg_config}"
 windres="${cross_prefix}${windres}"
@@ -579,13 +585,24 @@ EOF
         esac
         ;;
 
-    MINGW32*|mingw32|MINGW64*|mingw64)
+    MINGW32*|mingw32|MINGW64*|mingw64|msys*|MSYS*)
         js_flags="-DXP_PC -D_declspec=__declspec"
         mingw32="yes"
         win32="yes"
         want_pic="no"
-        extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
-        CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+        #ugly patch for msys2 mingw32/mingw64 where toolchain is not properly setup
+        if [ x"$MSYSTEM" = x"MSYS" ] && [ -e /mingw64 ]; then
+          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -I/mingw64/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          LDFLAGS="$LDFLAGS -L/mingw64/lib"
+        elif [ x"$MSYSTEM" = x"MSYS" ] && [ -e /mingw32 ]; then
+          extralibs="-L/mingw32/lib $extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -I/mingw32/include -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+          LDFLAGS="$LDFLAGS -L/mingw32/lib"
+        else
+          extralibs="$extralibs -lws2_32 -lwinmm -limagehlp"
+          CFLAGS="$CFLAGS -D_LARGEFILE_SOURCE -D_FILE_OFFSET_BITS=64"
+        fi
 		LDFLAGS="$LDFLAGS"
         if test "$cross_prefix" != "" ; then
             GPAC_SH_FLAGS=""
@@ -1068,8 +1085,8 @@ if test "$darwin" = "yes" ; then
   ohevc_cflags="-I/usr/include -I/usr/local/include"
   ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread "
 elif test "$cross_prefix" = "" ; then
-  ohevc_cflags=""
-  ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
+  ohevc_cflags="-I/usr/include -I/usr/local/include"
+  ohevc_ldflags="-L/usr/lib -L/usr/local/lib -lLibOpenHevcWrapper -lm -lpthread"
 else
   ohevc_cflags="-I${prefix}include"
   ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
@@ -1136,13 +1153,15 @@ cat > $TMPC << EOF
 int main( void ) { return 0; }
 EOF
 
-if test "$win32" = "yes" ; then
+if test "$mingw32" = "yes" ; then
+    LINK_SSL="-lssl -lcrypto"
+elif test "$win32" = "yes" ; then
     LINK_SSL="-lssleay32 -leay32"
 else
     LINK_SSL="-lssl -lcrypto"
 fi
 
-if docc $LINK_SSL $LDFLAGS ; then
+if docc $CFLAGS_DIR $LINK_SSL $LDFLAGS ; then
     has_ssl="yes"
 fi
 
@@ -1360,12 +1379,14 @@ fi
 #look for FFMPEG support
 
 ffmpeg_cflags=""
-ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale -lavdevice $ffmpeg_extra_ldflags"
+ffmpeg_lflags="-lz -lavcodec -lavformat -lavutil -lswscale $ffmpeg_extra_ldflags"
+ffmpeg_lflags_dashcast="$ffmpeg_lflags -lavdevice"
 
 if test "$cross_prefix" = "" -a "$pkg_config" != "no"; then
-  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil ; then
-    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice`
-    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
+  if $pkg_config --exists libavcodec libavformat libswscale libavdevice libavutil libavresample ; then
+    ffmpeg_cflags=`$pkg_config --cflags libavcodec libavformat libswscale libavutil libavdevice libavresample`
+    ffmpeg_lflags=`$pkg_config --libs libavcodec libavformat libswscale libavutil`
+    ffmpeg_lflags_dashcast=`$pkg_config --libs libavcodec libavformat libswscale libavutil libavdevice`
     has_ffmpeg="system"
   fi
 fi
@@ -1412,6 +1433,7 @@ if docc -I$prefix/include -L$prefix/lib $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
     ffmpeg_cflags="-I$prefix/include"
     ffmpeg_lflags="-L$prefix/lib $ffmpeg_lflags"
+    ffmpeg_lflags_dashcast="-L$prefix/lib $ffmpeg_lflags_dashcast"
 elif docc $ffmpeg_lflags $LDFLAGS ; then
     has_ffmpeg="system"
 fi
@@ -1422,6 +1444,7 @@ if test "$cross_prefix" = "" ; then
                 has_ffmpeg="system"
                 ffmpeg_cflags="-I$alt_macosx_dir/include"
                 ffmpeg_lflags="-L$alt_macosx_dir/lib $ffmpeg_lflags"
+                ffmpeg_lflags_dashcast="-L$alt_macosx_dir/lib $ffmpeg_lflags_dashcast"
             fi
         fi
     fi
@@ -1431,6 +1454,7 @@ if test "$has_ffmpeg" = "no" ; then
         has_ffmpeg="local"
         ffmpeg_cflags="-I$local_inc"
         ffmpeg_lflags="-L$local_lib $ffmpeg_lflags"
+        ffmpeg_lflags_dashcast="-L$local_lib $ffmpeg_lflags_dashcast"
     fi
 fi
 
@@ -1476,8 +1500,9 @@ int main(void) {
 }
 EOF
 
-if docc $ffmpeg_cflags $ffmpeg_lflags -lavresample ; then
+if docc $ffmpeg_cflags $ffmpeg_lflags_dashcast -lavresample ; then
     has_libavresample="yes"
+    ffmpeg_lflags_dashcast="$ffmpeg_lflags_dashcast -lavresample"
 else
     has_libavresample="no"
 fi
@@ -2392,8 +2417,8 @@ fi
 #look at endianess
 if test -z "$cross_prefix" ; then
 
-    # big/little endian test
-    cat > $TMPC << EOF
+# big/little endian test
+cat > $TMPC << EOF
 #include <inttypes.h>
 int main(int argc, char ** argv){
 volatile uint32_t i=0x01234567;
@@ -2963,7 +2988,26 @@ if test "$win32" = "yes" ; then
         echo "#define fseeko64 fseek" >> $TMPH
     fi
     if test "$mingw32" = "yes" ; then
+    
+# -municode test
+cat > $TMPC << EOF
+#include <inttypes.h>
+int wmain(int argc, char ** argv){
+return 0;
+}
+EOF
+
+      if docc -municode ; then
         echo "UNICODEFLAGS=-municode" >> config.mak
+        echo "HAS_WMAIN=yes" >> config.mak
+      else
+        echo "UNICODEFLAGS=" >> config.mak
+        if docc ; then
+          echo "HAS_WMAIN=yes" >> config.mak
+        else
+          echo "HAS_WMAIN=no" >> config.mak
+        fi
+      fi
     fi
 elif test "$linux" = "yes" ; then
     echo "CONFIG_LINUX=yes" >> config.mak
@@ -3045,6 +3089,7 @@ echo "DISABLE_DASHCAST=yes" >> config.mak
 else
     echo "ffmpeg_cflags=$ffmpeg_cflags" >> config.mak
     echo "ffmpeg_lflags=$ffmpeg_lflags" >> config.mak
+    echo "ffmpeg_lflags_dashcast=$ffmpeg_lflags_dashcast" >> config.mak
     echo "CONFIG_LIBAV=$is_libav" >> config.mak
     echo "CONFIG_LIBAVRESAMPLE=$has_libavresample" >> config.mak
 fi

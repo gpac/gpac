@@ -31,7 +31,44 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/avparse.h>
+ *	\brief Utility tools for audio and video raw media parsing.
+ */
+	
+/*! \defgroup media_grp Media Tools
+ *	You will find in this module the documentation of all media tools in GPAC.
+*/
+
+
+/*!
+ *	\addtogroup avp_grp AV Parsing
+ *	\ingroup media_grp
+ *	\brief Utility tools for audio and video raw media parsing.
+ *
+ *This section documents the audio and video parsing functions of the GPAC framework.
+ *	@{
+ */
+	
+	
 #include <gpac/bitstream.h>
+
+
+
+/*!
+  Reduces input width/height to common aspect ration num/denum values
+ \param width width of the aspect ratio
+ \param height height of the aspect ratio
+ */
+void gf_media_reduce_aspect_ratio(u32 *width, u32 *height);
+
+/*! 
+ Reduces input FPS to a more compact value (eg 25000/1000 -> 25/1)
+ \param timescale timescale of the aspect ratio
+ \param sample_dur sample duration of the aspect ratio in the given timescale
+ */
+void gf_media_get_reduced_frame_rate(u32 *timescale, u32 *sample_dur);
+
 
 /*basic MPEG (1,2,4) visual object parser (DSI extraction and timing/framing)*/
 typedef struct
@@ -49,6 +86,8 @@ typedef struct
 	u32 time_increment;
 	/*for MPEG 1/2*/
 	Double fps;
+	
+	u32 next_object_start;
 } GF_M4VDecSpecInfo;
 
 
@@ -68,8 +107,11 @@ GF_Err gf_m4v_parse_frame(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi, u8 *frame_ty
 u64 gf_m4v_get_object_start(GF_M4VParser *m4v);
 /*returns 1 if current object is a valid MPEG-4 Visual object*/
 Bool gf_m4v_is_valid_object_type(GF_M4VParser *m4v);
-/*decodes DSI*/
+/*decodes DSI/VOSHeader for MPEG4*/
 GF_Err gf_m4v_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+/*decodes DSI/VOSHeader for MPEG12*/
+GF_Err gf_mpegv12_get_config(char *rawdsi, u32 rawdsi_size, GF_M4VDecSpecInfo *dsi);
+
 /*rewrites PL code in DSI*/
 void gf_m4v_rewrite_pl(char **io_dsi, u32 *io_dsi_len, u8 PL);
 /*rewrites PAR code in DSI. Negative values will remove the par*/
@@ -247,13 +289,19 @@ u32 gf_ac3_get_bitrate(u32 brcode);
 
 GF_Err gf_avc_get_sps_info(char *sps, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 GF_Err gf_avc_get_pps_info(char *pps, u32 pps_size, u32 *pps_id, u32 *sps_id);
-const char *gf_avc_get_profile_name(u8 video_prof);
 
-//hevc_state is optionnal but shall be used for layer extensions since all size info is in VPS and not SPS
+//hevc_state is optional but shall be used for layer extensions since all size info is in VPS and not SPS
 GF_Err gf_hevc_get_sps_info(char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
-const char *gf_hevc_get_profile_name(u8 video_prof);
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
+//get chroma format name from chroma format (1: 420, 2: 422, 3: 444
+const char * gf_avc_hevc_get_chroma_format_name(u8 chroma_format);
+/*get AVC profile name from profile indication*/
+const char *gf_avc_get_profile_name(u8 profile_idc);
+/*returns true if given profile is in range extensions*/
+Bool gf_avc_is_rext_profile(u8 profile_idc);
+/*get HEVC profile name from profile indication*/
+const char *gf_hevc_get_profile_name(u8 profile_idc);
 
 
 /*gets image size (bs must contain the whole image)
@@ -267,6 +315,8 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 GF_Err gf_img_file_dec(char *png_file, u32 *oti, u32 *width, u32 *height, u32 *pixel_format, char **dst, u32 *dst_size);
 GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst, u32 *dst_size);
 GF_Err gf_img_png_enc_file(char *data, u32 width, u32 height, s32 stride, u32 pixel_format, char *dst_file);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

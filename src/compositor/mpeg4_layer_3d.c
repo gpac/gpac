@@ -252,8 +252,11 @@ u32 layer3d_setup_offscreen(GF_Node *node, Layer3DStack *st, GF_TraverseState *t
 			st->unsupported = 1;
 			return 0;
 		}
+		visual_3d_reset_graphics(compositor->visual);
 		/*reload openGL ext*/
 		gf_sc_load_opengl_extensions(compositor, 1);
+		/*load openGL shaders*/
+		visual_3d_init_shaders(compositor->visual);
 	}
 #endif
 	st->txh.data = (char*)gf_malloc(sizeof(unsigned char) * st->txh.stride * st->txh.height);
@@ -707,6 +710,10 @@ void compositor_init_layer3d(GF_Compositor *compositor, GF_Node *node)
 {
 	Layer3DStack *stack;
 	GF_SAFEALLOC(stack, Layer3DStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate layer 3d stack\n"));
+		return;
+	}
 
 	stack->visual = visual_new(compositor);
 	stack->visual->type_3d = 2;

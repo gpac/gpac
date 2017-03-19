@@ -59,8 +59,7 @@ distclean:
 	rm -f config.mak config.h
 	@find . -type f -name '*.gcno*' -delete
 	@find . -type f -name '*.gcda*' -delete
-	@rm -f all.info 2> /dev/null
-	@rm -f cover.info 2> /dev/null
+	@rm -f coverage.info 2> /dev/null
 
 docs:
 	@cd $(SRC_PATH)/doc && doxygen
@@ -71,17 +70,29 @@ test_suite:
 lcov_clean:
 	lcov --directory . --zerocounters
 
-lcov:
-	lcov --capture --directory . --output-file all.info
-	rm -rf coverage/
-	lcov  --remove all.info /usr/pkg/include/gtest/* /usr/pkg/include/gtest/internal/gtest-* \
- /usr/pkg/gcc44/include/c++/4.4.1/backward/binders.h /usr/pkg/gcc44/include/c++/4.4.1/bits/* \
- /usr/pkg/gcc44/include/c++/4.4.1/ext/*.h \
- /usr/pkg/gcc44/include/c++/4.4.1/x86_64-unknown-netbsd4.99.62/bits/gthr-default.h \
- /usr/include/machine/byte_swap.h /usr/pkg/gcc44/include/c++/4.4.1/* \
- /opt/local/include/mozjs185/*.h /usr/include/libkern/i386/*.h /usr/include/sys/_types/*.h /usr/include/*.h \
- --output cover.info
-	genhtml -o coverage cover.info 
+lcov_only:
+	@echo "Generating lcov info in coverage.info"
+	@rm -f ./gpac-conf-* > /dev/null
+	@lcov -q -capture --directory . --output-file all.info 
+	@lcov --remove all.info /usr/* /usr/include/* /usr/local/include/* /usr/include/libkern/i386/* /usr/include/sys/_types/* /opt/* /opt/local/include/* /opt/local/include/mozjs185/* --output coverage.info
+	@rm all.info
+	@echo "Purging lcov info"
+	@cd src ; for dir in * ; do cd .. ; sed -i -- "s/$$dir\/$$dir\//$$dir\//g" coverage.info; cd src; done ; cd ..
+	@echo "Done - coverage.info ready"
+
+lcov:	lcov_only
+	@rm -rf coverage/
+	@genhtml -q -o coverage coverage.info
+
+travis_tests:
+	@echo "Running tests"
+	@cd $(SRC_PATH)/tests && ./make_tests.sh -warn -sync-before
+
+travis_deploy:
+	@echo "Deploying results"
+	@cd $(SRC_PATH)/tests && ./ghp_deploy.sh
+
+travis: travis_tests lcov travis_deploy
 
 dep:	depend
 
@@ -131,6 +142,7 @@ endif
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gui.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/gwlib.js "$(DESTDIR)$(prefix)/share/gpac/gui/" 
 	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/mpegu-core.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
+	$(INSTALL) $(INSTFLAGS) -m 644 $(SRC_PATH)/gui/webvtt-renderer.js "$(DESTDIR)$(prefix)/share/gpac/gui/"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
@@ -139,9 +151,9 @@ ifeq ($(CONFIG_DARWIN),yes)
 	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
 	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
 else
-	cp -v --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" | true
-	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" | true 
-	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" | true
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
+	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
 endif
 
 lninstall:
@@ -243,7 +255,7 @@ uninstall-lib:
 
 ifeq ($(CONFIG_DARWIN),yes)
 dmg:
-	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
 		echo "Local revision and remote revision are not congruent; you may have local commit."; \
 		echo "Please consider pushing your commit before generating an installer"; \
 		exit 1; \
@@ -255,7 +267,7 @@ endif
 
 ifeq ($(CONFIG_LINUX),yes)
 deb:
-	@if [ ! -z "$(shell git diff  master..origin/master)" ]; then \
+	@if [ ! -z "$(shell git diff FETCH_HEAD)" ]; then \
 		echo "Local revision and remote revision are not congruent; you may have local commit."; \
 		echo "Please consider pushing your commit before generating an installer"; \
 		exit 1; \

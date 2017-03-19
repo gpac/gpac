@@ -36,6 +36,8 @@
 #include <gpac/modules/service.h>
 #include <gpac/constants.h>
 
+#ifdef GPAC_HAS_AMR_NB_3GPP
+
 /*default size in CU of composition memory for audio*/
 #define DEFAULT_AUDIO_CM_SIZE			12
 /*default critical size in CU of composition memory for audio*/
@@ -291,6 +293,8 @@ void DeleteAMRDecoder(GF_BaseDecoder *ifcg)
 	gf_free(ifcg);
 }
 
+#endif // GPAC_HAS_AMR_NB_3GPP
+
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
@@ -309,8 +313,10 @@ GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
 	switch (InterfaceType) {
+#ifdef GPAC_HAS_AMR_NB_3GPP
 	case GF_MEDIA_DECODER_INTERFACE:
 		return (GF_BaseInterface *) NewAMRDecoder();
+#endif
 	case GF_NET_CLIENT_INTERFACE:
 		return (GF_BaseInterface *) NewAESReader();
 	default:
@@ -322,9 +328,11 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
+#ifdef GPAC_HAS_AMR_NB_3GPP
 	case GF_MEDIA_DECODER_INTERFACE:
 		DeleteAMRDecoder((GF_BaseDecoder *)ifce);
 		break;
+#endif
 	case GF_NET_CLIENT_INTERFACE:
 		DeleteAESReader(ifce);
 		break;

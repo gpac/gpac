@@ -60,6 +60,17 @@ void isor_check_producer_ref_time(ISOMReader *read)
 
 			s32 diff = gf_net_get_ntp_diff_ms(ntp);
 
+			if (read->input->query_proxy) {
+				GF_NetworkCommand param;
+				GF_Err e;
+				memset(&param, 0, sizeof(GF_NetworkCommand));
+				param.command_type = GF_NET_SERVICE_QUERY_UTC_DELAY;
+				e = read->input->query_proxy(read->input, &param);
+				if (e == GF_OK) {
+					diff -= param.utc_delay.delay;
+				}
+			}
+
 			secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 			t = *gmtime(&secs);
 
@@ -173,8 +184,11 @@ next_segment:
 					u64 bytesMissing=0;
 					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
 
-					GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
-
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to reparse segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
+					} else {
+						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+					}
 #ifndef GPAC_DISABLE_LOG
 					if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
 						for (i=0; i<count; i++) {
@@ -265,21 +279,21 @@ next_segment:
 
 			isor_check_producer_ref_time(read);
 
-			trackID = 0;
 			for (i=0; i<count; i++) {
 				ISOMChannel *ch = gf_list_get(read->channels, i);
 				ch->wait_for_segment_switch = 0;
 
-				if (scalable_segment) {
-					trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
-					if (trackID) {
-						ch->track_id = trackID;
-						ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+				if (ch->base_track) {
+					if (scalable_segment) {
+						trackID = gf_isom_get_highest_track_in_scalable_segment(read->mov, ch->base_track);
+						if (trackID) {
+							ch->track_id = trackID;
+							ch->track = gf_isom_get_track_by_id(read->mov, ch->track_id);
+						}
+					} else {
+						ch->track = ch->base_track;
+						ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 					}
-				}
-				else if (ch->base_track) {
-					ch->track = ch->base_track;
-					ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track %d - cur sample %d - new sample count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
@@ -347,7 +361,7 @@ next_segment:
 
 static void init_reader(ISOMChannel *ch)
 {
-	u32 sample_desc_index;
+	u32 sample_desc_index=0;
 	if (ch->is_pulling && ch->wait_for_segment_switch) {
 		isor_segment_switch_or_refresh(ch->owner, 0);
 		if (ch->wait_for_segment_switch)
@@ -411,10 +425,12 @@ static void init_reader(ISOMChannel *ch)
 		//store movie time in media timescale in the sample time, eg no edit list is used but we may have a shift (dts_offset) between
 		//movie and media timelines
 
-		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset))	//should not happen
+		if ((ch->dts_offset<0) && (ch->sample->DTS  < (u64) -ch->dts_offset)) {
 			ch->sample_time = 0;
-		else
+			ch->do_dts_shift_test = GF_TRUE;
+		} else {
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
+		}
 	}
 	ch->to_init = GF_FALSE;
 
@@ -521,9 +537,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						if (s2 && s1) {
 							assert(s2->DTS >= s1->DTS);
 							time_diff = (u32) (s2->DTS - s1->DTS);
-							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+							/*e = */gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
 						} else if (s1 && !s2) {
-							e = GF_EOS;
+							/*e = GF_EOS;*/
 						}
 						gf_isom_sample_del(&s1);
 						gf_isom_sample_del(&s2);
@@ -576,13 +592,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		gf_isom_sample_del(&ch->sample);
 		isor_reader_get_sample(ch);
 		return;
-	}
-	if (ch->sample && ch->dts_offset) {
-		if ( (ch->dts_offset<0) && (ch->sample->DTS < (u64) -ch->dts_offset)) {
-			ch->sample->DTS = 0;
-		} else {
-			ch->sample->DTS += ch->dts_offset;
-		}
 	}
 
 	if (!ch->sample) {
@@ -672,6 +681,25 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->current_slh.accessUnitLength = ch->sample->dataLength;
 	ch->current_slh.au_duration = gf_isom_get_sample_duration(ch->owner->mov, ch->track, ch->sample_num);
 
+	//update timestamp when single edit
+	if (ch->sample && ch->dts_offset) {
+		if (ch->do_dts_shift_test) {
+			s64 DTS, CTS;
+			DTS = (s64) ch->sample->DTS + ch->dts_offset;
+			CTS = (s64) ch->sample->DTS + ch->dts_offset + (s32) ch->sample->CTS_Offset;
+			if (DTS<0)
+				DTS=0;
+			else
+				ch->do_dts_shift_test = GF_FALSE;
+
+			if (CTS<0) CTS=0;
+			ch->sample->DTS = (u64) DTS;
+			ch->sample->CTS_Offset = (s32) (CTS - DTS);
+		} else {
+			ch->sample->DTS = ch->sample->DTS + ch->dts_offset;
+		}
+	}
+
 	/*still seeking or not ?
 	 1- when speed is negative, the RAP found is "after" the seek point in playback order since we used backward RAP search: nothing to do
 	 2- otherwise set DTS+CTS to start value
@@ -688,6 +716,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
 	ch->current_slh.OCRflag = ch->owner->clock_discontinuity ? 2 : 0;
 	ch->owner->clock_discontinuity = 0;
+
+	//handle negative ctts
+	if (ch->current_slh.decodingTimeStamp > ch->current_slh.compositionTimeStamp)
+		ch->current_slh.decodingTimeStamp = ch->current_slh.compositionTimeStamp;
 
 	if (ch->end && (ch->end < ch->sample->DTS + ch->sample->CTS_Offset)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] End of Channel "LLD" (CTS "LLD")\n", ch->end, ch->sample->DTS + ch->sample->CTS_Offset));
@@ -719,9 +751,18 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				u32 Is_Encrypted;
 				u8 IV_size;
 				bin128 KID;
+				u8 crypt_bytr_block, skip_byte_block;
+				u8 constant_IV_size;
+				bin128 constant_IV;
 
-				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID);
+				gf_isom_get_sample_cenc_info(ch->owner->mov, ch->track, ch->sample_num, &Is_Encrypted, &IV_size, &KID, &crypt_bytr_block, &skip_byte_block, &constant_IV_size, &constant_IV);
 				ch->current_slh.IV_size = IV_size;
+				ch->current_slh.crypt_byte_block = crypt_bytr_block;
+				ch->current_slh.skip_byte_block = skip_byte_block;
+				if (Is_Encrypted && !ch->current_slh.IV_size) {
+					ch->current_slh.constant_IV_size = constant_IV_size;
+					memmove(ch->current_slh.constant_IV, constant_IV, ch->current_slh.constant_IV_size);
+				}
 				if (Is_Encrypted) {
 					ch->current_slh.cenc_encrypted = 1;
 					sai = NULL;
@@ -816,7 +857,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 			read->in_data_flush = 0;
 			gf_mx_v(read->segment_mutex);
 			if (count) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Buffer level %d ms higher than max allowed %d ms - skipping dispatch\n", com.buffer.occupancy,  com.buffer.max));
 			}
 			return;
 		}

@@ -204,11 +204,10 @@ next_line:
 				else if (is_ret && wchar!='\n') {
 					u32 fpos = (u32) gztell(parser->gz_in);
 					gzseek(parser->gz_in, fpos-2, SEEK_SET);
-					is_ret = 1;
 					break;
 				}
 				if (wchar==' ') {
-					last_space_pos_stream = (u32) gztell(parser->gz_in);
+					//last_space_pos_stream = (u32) gztell(parser->gz_in);
 					last_space_pos = (u32) (dst - l);
 				}
 				dst++;
@@ -319,6 +318,10 @@ next_line:
 				if (sep && (sep[1]!='\n') ) {
 					BTDefSymbol *def;
 					GF_SAFEALLOC(def, BTDefSymbol);
+					if (!def) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_PARSER, ("Fail to allocate DEF node\n"));
+						return;
+					}
 					sep[0] = 0;
 					def->name = gf_strdup(buf);
 					sep[0] = ' ';
@@ -1154,7 +1157,7 @@ Bool gf_bt_set_field_is(GF_BTParser *parser, GF_FieldInfo *info, GF_Node *n)
 	while ((parser->line_buffer[parser->line_pos + i] == ' ') || (parser->line_buffer[parser->line_pos + i] == '\t')) i++;
 	if (strnicmp(&parser->line_buffer[parser->line_pos + i] , "IS", 2)) return 0;
 
-	str = gf_bt_get_next(parser, 0);
+	gf_bt_get_next(parser, 0);
 	str = gf_bt_get_next(parser, 0);
 
 	/*that's an ISed field*/
@@ -1427,7 +1430,7 @@ GF_Node *gf_bt_sf_node(GF_BTParser *parser, char *node_name, GF_Node *parent, ch
 
 			if (is_script && parser->last_error) {
 				u32 eType, fType;
-				eType = 0;
+
 				if (!strcmp(str, "eventIn") || !strcmp(str, "inputOnly")) eType = GF_SG_SCRIPT_TYPE_EVENT_IN;
 				else if (!strcmp(str, "eventOut") || !strcmp(str, "outputOnly")) eType = GF_SG_SCRIPT_TYPE_EVENT_OUT;
 				else if (!strcmp(str, "field") || !strcmp(str, "initializeOnly")) eType = GF_SG_SCRIPT_TYPE_FIELD;
@@ -1689,7 +1692,7 @@ static u32 get_evt_type(char *eventName)
 GF_Err gf_bt_parse_proto(GF_BTParser *parser, char *proto_code, GF_List *proto_list)
 {
 	GF_FieldInfo info;
-	u32 fType, eType, QPType, pID;
+	u32 fType, eType, QPType=0, pID;
 	Bool externProto;
 	GF_Proto *proto, *prevproto;
 	GF_ProtoFieldInterface *pfield;
@@ -3071,7 +3074,7 @@ GF_Descriptor *gf_bt_parse_descriptor(GF_BTParser *parser, char *name)
 
 void gf_bt_parse_od_command(GF_BTParser *parser, char *name)
 {
-	u32 val;
+	u32 val=0;
 	char *str;
 	GF_Descriptor *desc;
 
@@ -3707,6 +3710,7 @@ GF_Err gf_sm_load_init_bt(GF_SceneLoader *load)
 	if (!load->scene_graph) load->scene_graph = load->ctx->scene_graph;
 
 	GF_SAFEALLOC(parser, GF_BTParser);
+	if (!parser) return GF_OUT_OF_MEM;
 	parser->load = load;
 	load->loader_priv = parser;
 	parser->def_symbols = gf_list_new();

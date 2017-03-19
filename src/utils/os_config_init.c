@@ -60,9 +60,16 @@
 #endif
 #ifdef GPAC_ANDROID
 #define DEFAULT_ANDROID_PATH_APP	"/data/data/com.gpac.Osmo4"
+#define DEFAULT_ANDROID_PATH_CFG	"/sdcard/osmo"
 #endif
 #define CFG_FILE_NAME	"GPAC.cfg"
+
+#if defined(GPAC_CONFIG_WIN32)
+#define TEST_MODULE		"gm_dummy_in.dll"
+#else
 #define TEST_MODULE		"gm_dummy_in.so"
+#endif
+
 #endif
 
 
@@ -212,7 +219,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
 		return 1;
 	} else if (path_type==GF_PATH_CFG) {
-		strcpy(file_path, DEFAULT_ANDROID_PATH_APP);
+		strcpy(file_path, DEFAULT_ANDROID_PATH_CFG);
 		return 1;
 	} else if (path_type==GF_PATH_GUI) {
 		if (!get_default_install_path(file_path, GF_PATH_APP))
@@ -266,7 +273,10 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 		char buf[PATH_MAX];
 		char *res;
 #endif
-		if (!user_home) return 0;
+		if (!user_home) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find HOME directory\n"));
+			return 0;
+		}
 #ifdef GPAC_IPHONE
 		res = realpath(user_home, buf);
 		if (res) {
@@ -308,13 +318,38 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (sep) sep[0] = 0;
 			return 1;
 		}
+
+#elif defined(GPAC_CONFIG_WIN32)
+		GetModuleFileNameA(NULL, file_path, GF_MAX_PATH);
+		if (strstr(file_path, ".exe")) {
+			sep = strrchr(file_path, '\\');
+			if (sep) sep[0] = 0;
+			if ((file_path[1]==':') && (file_path[2]=='\\')) {
+				strcpy(file_path, &file_path[2]);
+			}
+			sep = file_path;
+			while ( sep[0] ) {
+				if (sep[0]=='\\') sep[0]='/';
+				sep++;
+			}
+			//get rid of /mingw32 or /mingw64
+			sep = strstr(file_path, "/usr/");
+			if (sep) {
+				strcpy(file_path, sep);
+			}
+			return 1;
+		}
 #endif
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Unknown arch, cannot find executable path\n"));
 		return 0;
 	}
 
 
 	/*locate the app*/
-	if (!get_default_install_path(app_path, GF_PATH_APP)) return 0;
+	if (!get_default_install_path(app_path, GF_PATH_APP)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Couldn't find GPAC binaries install directory\n"));
+		return 0;
+	}
 
 	/*installed or symlink on system, user user home directory*/
 	if (!strnicmp(app_path, "/usr/", 5) || !strnicmp(app_path, "/opt/", 5)) {
@@ -345,8 +380,13 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 
 		/*GUI not found, look in gpac distribution if any */
 		if (get_default_install_path(app_path, GF_PATH_APP)) {
-			char *sep = strstr(app_path, "/bin/gcc");
-			if (!sep) sep = strstr(app_path, "/bin/osx");
+			char *sep = strstr(app_path, "/bin/");
+			if (sep) {
+				sep[0] = 0;
+				strcat(app_path, "/gui");
+				if (check_file_exists("gui.bt", app_path, file_path)) return 1;
+			}
+			sep = strstr(app_path, "/build/");
 			if (sep) {
 				sep[0] = 0;
 				strcat(app_path, "/gui");
@@ -363,6 +403,8 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			/*on OSX check modules subdirectory */
 			strcat(app_path, "/modules");
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
+			/*modules not found*/
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in standard path (app path %s)\n", app_path));
 		}
 		/*modules not found, look in ~/.gpac/modules/ */
 		if (get_default_install_path(app_path, GF_PATH_CFG)) {
@@ -371,6 +413,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 			if (check_file_exists(TEST_MODULE, app_path, file_path)) return 1;
 		}
 		/*modules not found, failure*/
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Couldn't find any modules in HOME path (app path %s)\n", app_path));
 		return 0;
 	}
 
@@ -405,7 +448,7 @@ static Bool get_default_install_path(char *file_path, u32 path_type)
 #ifdef GPAC_IPHONE
 static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 {
-	char *cache_dir;
+	char *cache_dir, *old_cache_dir;
 	char buf[GF_MAX_PATH], *res, *sep;
 	res = realpath(file_path, buf);
 	if (!res) return;
@@ -416,12 +459,16 @@ static void gf_ios_refresh_cache_directory( GF_Config *cfg, char *file_path)
 	gf_cfg_set_key(cfg, "General", "LastWorkingDir", res);
 	gf_cfg_set_key(cfg, "General", "iOSDocumentsDir", res);
 
-	sep = strstr(res, "Documents");
-	assert(sep);
-	sep[0]=0;
-	strcat(res, "tmp/");
+	strcat(res, "cache/");
 	cache_dir = res;
-	if (!gf_dir_exists(cache_dir)) gf_mkdir(cache_dir);
+	old_cache_dir = (char*) gf_cfg_get_key(cfg, "General", "CacheDirectory");
+
+	if (!gf_dir_exists(cache_dir)) {
+		if (old_cache_dir && strcmp(old_cache_dir, cache_dir)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("Cache dir changed: old %d -> new %s\n\n", old_cache_dir, cache_dir ));
+		}
+		gf_mkdir(cache_dir);
+	}
 	gf_cfg_set_key(cfg, "General", "CacheDirectory", cache_dir);
 }
 
@@ -522,7 +569,7 @@ static GF_Config *create_default_config(char *file_path)
 #endif
 	gf_cfg_set_key(cfg, "FontEngine", "FontDirectory", szPath);
 
-	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "yes");
+	gf_cfg_set_key(cfg, "Downloader", "CleanCache", "200M");
 	gf_cfg_set_key(cfg, "Compositor", "AntiAlias", "All");
 	gf_cfg_set_key(cfg, "Compositor", "FrameRate", "30.0");
 	/*use power-of-2 emulation in OpenGL if no rectangular texture extension*/
@@ -551,6 +598,7 @@ static GF_Config *create_default_config(char *file_path)
 	gf_cfg_set_key(cfg, "Network", "AutoReconfigUDP", "yes");
 	gf_cfg_set_key(cfg, "Network", "UDPTimeout", "10000");
 	gf_cfg_set_key(cfg, "Network", "BufferLength", "3000");
+	gf_cfg_set_key(cfg, "Network", "BufferMaxOccupancy", "10000");
 
 
 	/*locate GUI*/

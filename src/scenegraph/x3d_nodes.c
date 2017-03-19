@@ -1492,6 +1492,7 @@ static GF_Node *ColorInterpolator_Create()
 static void ColorRGBA_Del(GF_Node *node)
 {
 	X_ColorRGBA *p = (X_ColorRGBA *) node;
+	gf_sg_mfcolorrgba_del(p->color);
 	gf_node_unregister((GF_Node *) p->metadata, node);
 	gf_node_free((GF_Node *)p);
 }
@@ -16295,7 +16296,6 @@ Bool gf_x3d_get_node_type(u32 NDT_Tag, u32 NodeTag)
 	u32 count, i;
 	if (!NodeTag) return 0;
 	types = NULL;
-	count = 0;
 	switch (NDT_Tag) {
 	case NDT_SFWorldNode:
 		types = SFWorldNode_X3D_TypeToTag;

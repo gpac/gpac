@@ -302,7 +302,7 @@ void MC_GetRange(MediaControlStack *ctrl, Double *start_range, Double *end_range
 			prev_seg = last_seg;
 			duration += last_seg->Duration;
 		}
-		if (!last_seg) last_seg = desc;
+//		if (!last_seg) last_seg = desc;
 
 		*start_range = desc->startTime;
 		if (ctrl->control->mediaStartTime>=0) *start_range += ctrl->control->mediaStartTime;
@@ -396,7 +396,9 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			}
 			/*control has been removed and we were paused, resume*/
 			else if (stack->paused) {
-				mediacontrol_resume((GF_ObjectManager *) prev->odm, 0);
+				if (prev)
+					mediacontrol_resume((GF_ObjectManager *) prev->odm, 0);
+				
 				stack->paused = 0;
 			}
 			/*MediaControl has been detached*/
@@ -523,7 +525,10 @@ void InitMediaControl(GF_Scene *scene, GF_Node *node)
 {
 	MediaControlStack *stack;
 	GF_SAFEALLOC(stack, MediaControlStack);
-
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[Terminal] Failed to allocate media control stack\n"));
+		return;
+	}
 	stack->changed = 1;
 	stack->parent = scene;
 	stack->control = (M_MediaControl *)node;

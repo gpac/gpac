@@ -343,7 +343,8 @@ void gf_svg_reset_iri(GF_SceneGraph *sg, XMLRI *iri)
 void gf_svg_delete_paint(GF_SceneGraph *sg, SVG_Paint *paint)
 {
 	if (!paint) return;
-	if (paint->type == SVG_PAINT_URI && sg) gf_svg_reset_iri(sg, &paint->iri);
+	//always free since we may allocate the iri to ""
+	if (sg) gf_svg_reset_iri(sg, &paint->iri);
 	gf_free(paint);
 }
 
@@ -403,8 +404,12 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 		break;
 	case SVG_StrokeDashArray_datatype:
 		if (((SVG_StrokeDashArray*)value)->array.vals) gf_free(((SVG_StrokeDashArray*)value)->array.vals);
+		if (((SVG_StrokeDashArray*)value)->array.units) gf_free(((SVG_StrokeDashArray*)value)->array.units);
 		gf_free(value);
 		break;
+	case SMIL_KeyTimes_datatype:
+	case SMIL_KeyPoints_datatype:
+	case SMIL_KeySplines_datatype:
 	case SVG_Numbers_datatype:
 	case SVG_Coordinates_datatype:
 	case SVG_Points_datatype:
@@ -460,17 +465,6 @@ void gf_svg_delete_attribute_value(u32 type, void *value, GF_SceneGraph *sg)
 			gf_list_rem_last(l);
 			if (r->string) gf_free(r->string);
 			gf_free(r);
-		}
-		gf_list_del(l);
-		gf_free(value);
-		break;
-	case SMIL_KeyTimes_datatype:
-	case SMIL_KeySplines_datatype:
-		l = *(GF_List**)value;
-		while (gf_list_count(l)) {
-			Fixed *f = gf_list_last(l);
-			gf_list_rem_last(l);
-			gf_free(f);
 		}
 		gf_list_del(l);
 		gf_free(value);
