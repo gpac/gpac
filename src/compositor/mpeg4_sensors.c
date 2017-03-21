@@ -147,10 +147,10 @@ static void anchor_activation(GF_Node *node, AnchorStack *st, GF_Compositor *com
 				Bindable_SetSetBind(bindable, 1);
 				break;
 			}
-		} else if (compositor->term) {
+		} else if (compositor->user->EventProc) {
 			if (gf_scene_process_anchor(node, &evt))
 				break;
-		} else if (gf_term_send_event(compositor->term, &evt)) {
+		} else if (gf_sc_send_event(compositor, &evt)) {
 			break;
 		}
 		i++;
@@ -187,7 +187,7 @@ static Bool OnAnchor(GF_SensorHandler *sh, Bool is_over, Bool is_cancel, GF_Even
 #endif
 			}
 			if (url && (!evt.navigate.to_url || !strlen(evt.navigate.to_url))) evt.navigate.to_url = url->vals[0].url;
-			gf_term_send_event(compositor->term, &evt);
+			gf_sc_send_event(compositor, &evt);
 		}
 	} else if (!is_over) {
 		st->over = 0;

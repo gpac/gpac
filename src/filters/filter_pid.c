@@ -748,6 +748,19 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 	return gf_props_merge_property(dst_props, src_props);
 }
 
+u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
+{
+	GF_FilterPacket *pck;
+	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+	if (PID_IS_OUTPUT(pid)) {
+		pidinst = gf_list_get(pid->destinations, 0);
+		if (! pidinst) return 0;
+		return gf_fq_count(pidinst->packets);
+
+	} else {
+		return gf_fq_count(pidinst->packets);
+	}
+}
 
 GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 {

@@ -347,11 +347,12 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	return GF_OK;
 }
 
-void gf_filter_pck_ref(GF_FilterPacket *pck)
+GF_FilterPacket *gf_filter_pck_ref(GF_FilterPacket *pck)
 {
 	assert(pck);
 	pck=pck->pck;
 	ref_count_inc(&pck->reference_count);
+	return pck;
 }
 
 void gf_filter_pck_unref(GF_FilterPacket *pck)

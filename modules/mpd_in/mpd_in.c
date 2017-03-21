@@ -157,9 +157,13 @@ void mpdin_data_packet(GF_ClientService *service, LPNETCHANNEL ns, char *data, u
 	}
 
 	ch = (GF_Channel *) ns;
-	assert(ch->odm && ch->odm->OD);
+	assert(ch->odm && ch->odm->ID);
 
+#if FILTER_FIXME
 	i = gf_dash_get_group_idx_from_service(mpdin,  (GF_InputService *) ch->odm->OD->service_ifce);
+#else
+	i=-1;
+#endif
 	if (i<0) {
 		mpdin->fn_data_packet(service, ns, data, data_size, hdr, reception_status);
 		return;
@@ -513,8 +517,12 @@ GF_InputService *MPD_GetInputServiceForChannel(GF_MPD_In *mpdin, LPNETCHANNEL ch
 	}
 
 	ch = (GF_Channel *) channel;
-	assert(ch->odm && ch->odm->OD);
+	assert(ch->odm && ch->odm->ID);
+#if FILTER_FIXME
 	return (GF_InputService *) ch->odm->OD->service_ifce;
+#else
+	return NULL;
+#endif
 }
 
 s32 MPD_GetGroupIndexForChannel(GF_MPD_In *mpdin, LPNETCHANNEL channel)

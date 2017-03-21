@@ -55,11 +55,8 @@ extern "C" {
 typedef struct __tag_compositor GF_Compositor;
 
 /*creates default compositor
-if self_threaded, video compositor uses a dedicated thread, otherwise visual rendering is done by the user
-audio compositor always runs in its own thread if enabled
-term may be NULL, in which case InputSensors won't be enabled
 */
-GF_Compositor *gf_sc_new(GF_User *user_interface, Bool self_threaded, GF_Terminal *term);
+GF_Compositor *gf_sc_new(GF_User *user_interface);
 void gf_sc_del(GF_Compositor *sr);
 
 /*sets simulation frame rate*/

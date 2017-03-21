@@ -64,8 +64,10 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
 				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
 
+#if FILTER_FIXME
 				if (sb->parser && sb->parser_connected)
 					sb->parser->CloseService(sb->parser);
+#endif
 
 				gf_mse_source_buffer_del(sb);
 			}
@@ -304,6 +306,7 @@ void gf_mse_source_buffer_set_update(GF_HTML_SourceBuffer *sb, Bool update)
 /*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
 GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime)
 {
+#if FILTER_FIXME
 	GF_InputService *parser = NULL;
 
 	const char *sPlug;
@@ -336,6 +339,9 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MSE] Error locating plugin for source - mime type %s\n", mime));
 		return GF_BAD_PARAM;
 	}
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 /* create a track based on the ESD and adds it to the source buffer */
@@ -371,6 +377,7 @@ static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, G
    Needs the parser to be setup and the initialization segment passed */
 static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 {
+#if FILTER_FIXME
 	if (!sb || !sb->parser || !sb->parser_connected) return GF_BAD_PARAM;
 	sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, GF_MEDIA_OBJECT_UNDEF, NULL);
 	if (sb->service_desc) {
@@ -387,6 +394,8 @@ static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 	} else {
 		return GF_BAD_PARAM;
 	}
+#endif
+	return GF_BAD_PARAM;
 }
 
 /* Adds the ObjectDescriptor to the associated track (creating a new track if needed)
@@ -759,6 +768,7 @@ u32 gf_mse_parse_segment(void *par)
 	u32                     i;
 	u32                     track_count;
 
+#if FILTER_FIXME
 	if (!sb->parser_connected) {
 		GF_HTML_ArrayBuffer *buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
 		gf_list_rem(sb->input_buffer, 0);
@@ -822,6 +832,9 @@ u32 gf_mse_parse_segment(void *par)
 exit:
 	gf_mse_source_buffer_set_update(sb, GF_FALSE);
 	return 0;
+#else
+	return 0;
+#endif
 }
 
 
@@ -900,8 +913,9 @@ void gf_mse_remove(GF_HTML_SourceBuffer *sb, double start, double end)
 }
 
 /* Callback functions used by a media parser when parsing events happens */
-GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
+GF_Err gf_mse_proxy(void *parser, void *command)
 {
+#if FILTER_FIXME
 	if (!parser || !command || !parser->proxy_udta) {
 		return GF_BAD_PARAM;
 	} else {
@@ -1000,6 +1014,9 @@ GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command)
 		}
 		return GF_OK;
 	}
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 /* Track Buffer Managment:

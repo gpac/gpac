@@ -57,17 +57,17 @@ void TraverseKeyNavigator(GF_Node *node, void *rs, Bool is_destroy)
 	if (is_destroy) {
 		GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
 		gf_list_del_item(scene->keynavigators, node);
-		gf_sc_key_navigator_del(scene->root_od->term->compositor, node);
+		gf_sc_key_navigator_del(scene->compositor, node);
 	}
 }
 
 void on_kn_set_focus(GF_Node*node, GF_Route *_route)
 {
 	GF_Scene *scene = (GF_Scene *)gf_node_get_private(node);
-	gf_sc_change_key_navigator(scene->root_od->term->compositor, node);
+	gf_sc_change_key_navigator(scene->compositor, node);
 }
 
-void evaluate_term_cap(GF_Node *node, GF_Route *route)
+void evaluate_scene_cap(GF_Node *node, GF_Route *route)
 {
 	GF_SystemRTInfo rti;
 	Double fps;
@@ -80,7 +80,7 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 	tc->value = 0;
 	switch (tc->capability) {
 	case 0:	/*framerate*/
-		fps = gf_sc_get_fps(scene->root_od->term->compositor, 1);
+		fps = gf_sc_get_fps(scene->compositor, 1);
 		if (fps<=5.0) tc->value = 1;
 		else if (fps<=10.0) tc->value = 2;
 		else if (fps<=20.0) tc->value = 3;
@@ -90,7 +90,7 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 	case 1:	/*colordepth*/
 		return;
 	case 2:	/*screensize*/
-		height = scene->root_od->term->compositor->display_height;
+		height = scene->compositor->display_height;
 		if (height<200) tc->value = 1;
 		else if (height<400) tc->value = 2;
 		else if (height<800) tc->value = 3;
@@ -127,13 +127,13 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 
 	/*GPAC extensions*/
 	case 100: /*display width*/
-		tc->value = scene->root_od->term->compositor->display_width;
+		tc->value = scene->compositor->display_width;
 		break;
 	case 101: /*display height*/
-		tc->value = scene->root_od->term->compositor->display_height;
+		tc->value = scene->compositor->display_height;
 		break;
 	case 102: /*frame rate*/
-		tc->value = (u32) gf_sc_get_fps(scene->root_od->term->compositor, 1);
+		tc->value = (u32) gf_sc_get_fps(scene->compositor, 1);
 		break;
 	case 103: /*total CPU*/
 		if (!gf_sys_get_rti(200, &rti, 0) ) return;
@@ -169,10 +169,10 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 		break;
 
 	case 112: /*audio vol*/
-		tc->value = gf_sc_get_option(scene->root_od->term->compositor, GF_OPT_AUDIO_VOLUME);
+		tc->value = gf_sc_get_option(scene->compositor, GF_OPT_AUDIO_VOLUME);
 		break;
 	case 113: /*audio pan*/
-		tc->value = gf_sc_get_option(scene->root_od->term->compositor, GF_OPT_AUDIO_PAN);
+		tc->value = gf_sc_get_option(scene->compositor, GF_OPT_AUDIO_PAN);
 		break;
 	default:
 		return;
@@ -183,10 +183,10 @@ void evaluate_term_cap(GF_Node *node, GF_Route *route)
 static void InitTermCap(GF_Scene *scene, GF_Node *node)
 {
 	M_TermCap *tc = (M_TermCap *)node;
-	tc->on_evaluate = evaluate_term_cap;
+	tc->on_evaluate = evaluate_scene_cap;
 	gf_node_set_private(node, scene);
 	/*evaluate upon init (cf BIFS spec)*/
-	evaluate_term_cap(node, NULL);
+	evaluate_scene_cap(node, NULL);
 }
 
 #endif /*GPAC_DISABLE_VRML*/
@@ -201,7 +201,7 @@ static void svg_traverse_title(GF_Node *node, void *rs, Bool is_destroy)
 #endif
 
 
-void gf_term_on_node_init(void *_scene, GF_Node *node)
+void gf_scene_on_node_init(void *_scene, GF_Node *node)
 {
 	GF_Scene *scene = (GF_Scene *)_scene;
 	if (!node || !scene) return;
@@ -224,8 +224,9 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 		InitMediaSensor(scene, node);
 		break;
 	case TAG_MPEG4_InputSensor:
+#ifdef FILTER_FIXME
 		InitInputSensor(scene, node);
-		break;
+#endif		break;
 
 	/*BIFS nodes, get back to codec, but filter externProtos*/
 	case TAG_MPEG4_Conditional:
@@ -243,10 +244,14 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_KeySensor:
+#ifdef FILTER_FIXME
 		InitKeySensor(scene, node);
+#endif
 		break;
 	case TAG_X3D_StringSensor:
+#ifdef FILTER_FIXME
 		InitStringSensor(scene, node);
+#endif
 		break;
 #endif
 
@@ -276,17 +281,17 @@ void gf_term_on_node_init(void *_scene, GF_Node *node)
 #endif
 
 	default:
-		gf_sc_on_node_init(scene->root_od->term->compositor, node);
+		gf_sc_on_node_init(scene->compositor, node);
 		break;
 	}
 }
 
-void gf_term_on_node_modified(void *_is, GF_Node *node)
+void gf_scene_on_node_modified(void *_is, GF_Node *node)
 {
 	GF_Scene *scene = (GF_Scene *)_is;
 	if (!scene) return;
 	if (!node) {
-		gf_sc_invalidate(scene->root_od->term->compositor, NULL);
+		gf_sc_invalidate(scene->compositor, NULL);
 		return;
 	}
 
@@ -307,7 +312,9 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 		MS_Modified(node);
 		break;
 	case TAG_MPEG4_InputSensor:
+#ifdef FILTER_FIXME
 		InputSensorModified(node);
+#endif
 		break;
 	case TAG_MPEG4_Conditional:
 		break;
@@ -315,30 +322,30 @@ void gf_term_on_node_modified(void *_is, GF_Node *node)
 		break;
 #endif
 	default:
-		gf_sc_invalidate(scene->root_od->term->compositor, node);
+		gf_sc_invalidate(scene->compositor, node);
 		break;
 	}
 }
 
-static void gf_term_on_node_destroyed(void *_is, GF_Node *node)
+static void gf_scene_on_node_destroyed(void *_is, GF_Node *node)
 {
 	GF_Scene *scene = (GF_Scene *)_is;
 	if (!scene) return;
-	gf_sc_node_destroy(scene->root_od->term->compositor, node, NULL);
+	gf_sc_node_destroy(scene->compositor, node, NULL);
 }
 
 GF_EXPORT
-void gf_term_node_callback(void *_is, u32 type, GF_Node *n, void *param)
+void gf_scene_node_callback(void *_is, u32 type, GF_Node *n, void *param)
 {
 	switch (type) {
 	case GF_SG_CALLBACK_MODIFIED:
-		gf_term_on_node_modified(_is, n);
+		gf_scene_on_node_modified(_is, n);
 		break;
 	case GF_SG_CALLBACK_NODE_DESTROY:
-		gf_term_on_node_destroyed(_is, n);
+		gf_scene_on_node_destroyed(_is, n);
 		break;
 	case GF_SG_CALLBACK_INIT:
-		gf_term_on_node_init(_is, n);
+		gf_scene_on_node_init(_is, n);
 		break;
 	/*get all inline nodes using this subscene and bubble up...*/
 	case GF_SG_CALLBACK_GRAPH_DIRTY:

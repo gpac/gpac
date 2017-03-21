@@ -1257,7 +1257,7 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 	} else if (scene->main_addon_selected) {
 		GF_Clock *ck;
 		ck = scene->dyn_ck;
-		if (scene->scene_codec) ck = scene->scene_codec->ck;
+		if (!scene->is_dynamic_scene) ck = scene->root_od->ck;
 		if (ck) {
 			u32 now = gf_clock_time(scene->dyn_ck) ;
 			u32 live = scene->obj_clock_at_main_activation + gf_sys_clock() - scene->sys_clock_at_main_activation;

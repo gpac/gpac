@@ -32,6 +32,7 @@ const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *compose_filter_register(GF_FilterSession *session, Bool load_meta_filters);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 {
@@ -52,6 +53,8 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg)
 {
+	if (!freg) return;
+
 	if (!freg->name) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter missing name - ignoring\n"));
 		return;
@@ -139,6 +142,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 	gf_fs_add_filter_registry(fsess, inspect_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, ffdmx_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, compose_filter_register(fsess, load_meta_filters) );
 
 
 	fsess->done=GF_TRUE;
@@ -408,7 +412,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			//no more pending tasks for this filter
 			if (gf_fq_count(current_filter->tasks) == 0) {
 				//no task for filter but pending packets, requeue
-				if (task->filter->pending_packets && (task->filter->pending_packets != pending_packets)) {
+				if (task->filter->pending_packets /*&& (task->filter->pending_packets != pending_packets)*/) {
 					requeue = GF_TRUE;
 					gf_mx_v(current_filter->tasks_mx);
 				} else {

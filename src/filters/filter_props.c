@@ -434,6 +434,8 @@ struct _gf_prop_typedef {
 } GF_BuiltInProps [] = {
 
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
+	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
+
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
 	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as register for MPEG-4", GF_PROP_UINT},
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
@@ -460,6 +462,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PCK_INTERLACED, "Interlaced", "0 or absent: progressive, 1: binterlaced", GF_PROP_BOOL},
 	{ GF_PROP_PCK_SAP, "SAP", "Stream access point type of packet", GF_PROP_LUINT},
 	{ GF_PROP_PCK_CORRUPTED, "Corrupted", "Indicate packet is corrupted", GF_PROP_BOOL},
+	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Indicate sender NTP time if known", GF_PROP_LUINT},
 	{ GF_PROP_PCK_EOS, "EndOfStream", "Last packet for this PID, set on packet with NULL data", GF_PROP_BOOL}
 };
 

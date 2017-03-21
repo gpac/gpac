@@ -48,6 +48,8 @@ extern "C" {
 #include <gpac/scenegraph_svg.h>
 #endif
 
+Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt);
+Bool gf_sc_forward_event(GF_Compositor *compositor, GF_Event *evt, Bool consumed, Bool forward_only);
 
 /*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
 //#define GF_SR_EVENT_QUEUE
@@ -177,8 +179,6 @@ struct __tag_compositor
 {
 	/*the main user*/
 	GF_User *user;
-	/*terminal - only used for InputSensor*/
-	GF_Terminal *term;
 
 	/*audio renderer*/
 	struct _audio_render *audio_renderer;
@@ -189,12 +189,6 @@ struct __tag_compositor
 
 	/*all textures (texture handlers)*/
 	GF_List *video_listeners;
-
-	/*visual rendering thread if used*/
-	GF_Thread *VisualThread;
-	/*0: not init, 1: running, 2: exit requested, 3: done*/
-	u32 video_th_state;
-
 	u32 video_th_id;
 
 	/*compositor exclusive access to the scene and display*/
@@ -555,6 +549,8 @@ struct __tag_compositor
 	u32 screen_buffer_alloc_size;
 #endif
 
+	Bool orientation_sensors_active;
+	
 	Bool texture_from_decoder_memory;
 
 	u32 networks_time;

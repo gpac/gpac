@@ -58,7 +58,9 @@ GF_Err BIFS_AttachScene(GF_SceneDecoder *plug, GF_Scene *scene, Bool is_scene_de
 	priv->app = scene->root_od->term;
 
 	priv->codec = gf_bifs_decoder_new(scene->graph, GF_FALSE);
+#if FILTER_FIXME
 	gf_bifs_decoder_set_extraction_path(priv->codec, (char *) gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory"), scene->root_od->net_service->url);
+#endif
 	/*ignore all size info on anim streams*/
 	if (!is_scene_decoder) gf_bifs_decoder_ignore_size_info(priv->codec);
 	return GF_OK;

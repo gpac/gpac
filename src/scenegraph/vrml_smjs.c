@@ -247,6 +247,7 @@ Bool gf_js_remove_root(JSContext *cx, void *rp, u32 type)
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj, Bool unload)
 {
+#if FILTER_FIXME
 	u32 i, count;
 	count = gf_list_count(js_rt->extensions);
 	for (i=0; i<count; i++) {
@@ -278,11 +279,13 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 			}
 		}
 	}
+#endif
 }
 
 
 static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 {
+#if FILTER_FIXME
 	GF_Terminal *term;
 	u32 i, count;
 	GF_JSAPIParam par;
@@ -302,6 +305,7 @@ static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 		gf_list_add(js_rt->extensions, ext);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[ECMAScript] found %d JS extensions for %d modules\n", gf_list_count(js_rt->extensions), count));
+#endif
 }
 
 static void gf_sg_unload_script_modules()

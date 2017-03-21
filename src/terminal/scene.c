@@ -51,7 +51,9 @@ Double gf_scene_get_time(void *_is)
 	u32 ret;
 	GF_Clock *ck;
 	assert(scene);
-	ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+	assert(scene->root_od);
+	assert(scene->root_od->ck);
+	ck = scene->root_od->ck;
 	if (!ck) return 0.0;
 	ret = gf_clock_time(ck);
 	if (scene->root_od->media_stop_time && (scene->root_od->media_stop_time<ret)) ret = (u32) scene->root_od->media_stop_time;
@@ -68,17 +70,20 @@ void gf_storage_save(M_Storage *storage);
 
 static void inline_on_media_event(GF_Scene *scene, u32 type)
 {
-	gf_term_service_media_event(scene->scene_codec->odm, type);
+#if FILTER_FIXME
+	gf_term_service_media_event(scene->root_od, type);
+#endif
 }
 
 GF_EXPORT
-GF_Scene *gf_scene_new(GF_Scene *parentScene)
+GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 {
 	GF_Scene *tmp;
+	if (!compositor && !parentScene) return NULL;
+
 	GF_SAFEALLOC(tmp, GF_Scene);
 	if (! tmp) return NULL;
 
-	tmp->mx_resources = gf_mx_new("SceneResources");
 	tmp->resources = gf_list_new();
 	tmp->scene_objects = gf_list_new();
 	tmp->extra_scenes = gf_list_new();
@@ -86,12 +91,17 @@ GF_Scene *gf_scene_new(GF_Scene *parentScene)
 	/*init inline scene*/
 	if (parentScene) {
 		tmp->graph = gf_sg_new_subscene(parentScene->graph);
+		assert(!compositor || (compositor==parentScene->compositor));
+		tmp->compositor = parentScene->compositor;
 	} else {
 		tmp->graph = gf_sg_new();
+		tmp->compositor = compositor;
+		//only for the top scene
+		tmp->namespaces = gf_list_new();
 	}
 
 	gf_sg_set_private(tmp->graph, tmp);
-	gf_sg_set_node_callback(tmp->graph, gf_term_node_callback);
+	gf_sg_set_node_callback(tmp->graph, gf_scene_node_callback);
 	gf_sg_set_scene_time_callback(tmp->graph, gf_scene_get_time);
 
 	//copy over pause_at_first_frame flag so that new subscene is not paused right away
@@ -123,8 +133,6 @@ static void gf_scene_reset_urls(GF_Scene *scene)
 
 void gf_scene_del(GF_Scene *scene)
 {
-	gf_mx_p(scene->root_od->term->net_mx);
-
 	gf_list_del(scene->resources);
 	assert(!gf_list_count(scene->extra_scenes) );
 	gf_list_del(scene->extra_scenes);
@@ -138,26 +146,9 @@ void gf_scene_del(GF_Scene *scene)
 	gf_list_del(scene->extern_protos);
 #endif
 
-	/*delete scene decoder */
-	if (scene->scene_codec) {
-		GF_SceneDecoder *dec = (GF_SceneDecoder *)scene->scene_codec->decio;
-		/*make sure the scene codec doesn't have anything left in the scene graph*/
-		if (dec->ReleaseScene) dec->ReleaseScene(dec);
-
-		gf_term_remove_codec(scene->root_od->term, scene->scene_codec);
-		gf_codec_del(scene->scene_codec);
-		/*reset pointer to NULL in case nodes try to access scene time*/
-		scene->scene_codec = NULL;
-	}
-
 	/*delete the scene graph*/
 	gf_sg_del(scene->graph);
 
-	if (scene->od_codec) {
-		gf_term_remove_codec(scene->root_od->term, scene->od_codec);
-		gf_codec_del(scene->od_codec);
-		scene->od_codec = NULL;
-	}
 	/*don't touch the root_od, will be deleted by the parent scene*/
 
 	/*clean all remaining associations*/
@@ -181,8 +172,14 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->fragment_uri) gf_free(scene->fragment_uri);
 	if (scene->redirect_xml_base) gf_free(scene->redirect_xml_base);
 
-	gf_mx_v(scene->root_od->term->net_mx);
-	gf_mx_del(scene->mx_resources);
+	if (scene->namespaces) {
+		while (gf_list_count(scene->namespaces)) {
+			GF_SceneNamespace *sns = gf_list_pop_back(scene->namespaces);
+			gf_scene_ns_del(sns);
+		}
+		gf_list_del(scene->namespaces);
+	}
+
 	gf_free(scene);
 }
 
@@ -192,7 +189,7 @@ GF_ObjectManager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID)
 	GF_ObjectManager *odm;
 	u32 i=0;
 	while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
-		if (odm->OD && odm->OD->objectDescriptorID == OD_ID) return odm;
+		if (odm->ID == OD_ID) return odm;
 	}
 	return NULL;
 }
@@ -203,12 +200,9 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	u32 i;
 	GF_MediaObject *obj;
 	GF_ObjectManager *odm;
-	GF_SceneDecoder *dec = NULL;
-	if (scene->scene_codec) dec = (GF_SceneDecoder *)scene->scene_codec->decio;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] disconnecting\n"));
 
-	gf_term_lock_compositor(scene->root_od->term, GF_TRUE);
 
 	/*force unregistering of inline nodes (for safety)*/
 	if (for_shutdown && scene->root_od->mo) {
@@ -244,7 +238,9 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 						{
 							M_InputSensor* is = (M_InputSensor*)n;
 							is->enabled = 0;
+#if FILTER_FIXME
 							InputSensorModified(n);
+#endif
 							break;
 						}
 						}
@@ -270,15 +266,15 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	}
 #endif
 
-	if (scene->root_od->term->root_scene == scene) {
-		gf_sc_set_scene(scene->root_od->term->compositor, NULL);
+	if (!scene->parent_scene) {
+		gf_sc_set_scene(scene->compositor, NULL);
 	}
 
 	gf_scene_reset_addons(scene);
 
 	/*release the scene - at this stage, we no longer have any node stack refering to our media objects */
-	if (dec && dec->ReleaseScene) dec->ReleaseScene(dec);
-	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
+
+	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
 
@@ -326,11 +322,11 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	gf_scene_reset_urls(scene);
 
 	scene->object_attached = 0;
-	gf_term_lock_compositor(scene->root_od->term, GF_FALSE);
 }
 
 static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
 {
+#if FILTER_FIXME
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
 	char *url;
@@ -341,8 +337,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	odm->mo = mo;
 	mo->odm = odm;
 	odm->parentscene = scene;
-	odm->OD = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-	odm->OD->objectDescriptorID = GF_MEDIA_EXTERNAL_ID;
+	odm->ID = GF_MEDIA_EXTERNAL_ID;
 	odm->parentscene = scene;
 	odm->term = scene->root_od->term;
 	root_od = scene->root_od;
@@ -394,7 +389,7 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	}
 
 	/*HACK - temp storage of sync ref*/
-	if (sync_ref) odm->ocr_codec = (struct _generic_codec *)sync_ref;
+	if (sync_ref) odm->sync_ref = (struct _generic_codec *)sync_ref;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
 	gf_mx_p(scene->mx_resources);
@@ -405,6 +400,9 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	} else {
 		gf_odm_setup_object(odm, root_od->net_service);
 	}
+#else
+	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("OBJECT INSERTION NOT IMPLEMENTED IN FILTERS"));
+#endif
 }
 
 static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
@@ -425,11 +423,9 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 	u32 i;
 	GF_MediaObject *obj;
 
-	gf_term_lock_net(odm->term, GF_TRUE);
 	gf_list_del_item(scene->resources, odm);
-	gf_term_lock_net(odm->term, GF_FALSE);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] removing ODM %d\n", odm->OD ? odm->OD->objectDescriptorID : GF_MEDIA_EXTERNAL_ID));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] removing ODM %d\n", odm->ID ));
 
 
 	i=0;
@@ -438,9 +434,11 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 		    /*assigned object*/
 		    (obj->odm==odm) ||
 		    /*remote OD*/
-		    ((obj->OD_ID!=GF_MEDIA_EXTERNAL_ID) && odm->OD && (obj->OD_ID == odm->OD->objectDescriptorID) ) ||
+		    ((obj->OD_ID!=GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID == odm->ID) )
+#if FILTER_FIXME
 		    /*dynamic OD*/
-		    (obj->URLs.count && odm->OD && odm->OD->URLString && !stricmp(obj->URLs.vals[0].url, odm->OD->URLString))
+		 ||   (obj->URLs.count && odm->OD && odm->OD->URLString && !stricmp(obj->URLs.vals[0].url, odm->OD->URLString))
+#endif
 		) {
 			u32 discard_obj = 0;
 			gf_odm_lock(odm, 1);
@@ -512,6 +510,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 //browse all channels and update buffering info
 void gf_scene_buffering_info(GF_Scene *scene)
 {
+#if FILTER_FIXME
 	u32 i, j, max_buffer, cur_buffer, max_buff_val=0;
 	GF_Channel *ch;
 	GF_Event evt;
@@ -557,7 +556,8 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		evt.progress.done = cur_buffer;
 		evt.progress.total = max_buffer;
 	}
-	gf_term_send_event(scene->root_od->term, &evt);
+	gf_sc_send_event(scene->compositor, &evt);
+#endif
 }
 
 
@@ -606,14 +606,14 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 		if (no_queueing) {
 			gf_dom_event_fire(n, dom_event);
 		} else {
-			gf_sc_queue_dom_event(scene->root_od->term->compositor, n, dom_event);
+			gf_sc_queue_dom_event(scene->compositor, n, dom_event);
 		}
 	} else {
 		if (root) {
 			if (no_queueing) {
 				gf_dom_event_fire(root, dom_event);
 			} else {
-				gf_sc_queue_dom_event(scene->root_od->term->compositor, root, dom_event);
+				gf_sc_queue_dom_event(scene->compositor, root, dom_event);
 			}
 		}
 
@@ -623,7 +623,7 @@ void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *_e
 			if (no_queueing) {
 				gf_dom_event_fire(an, dom_event);
 			} else {
-				gf_sc_queue_dom_event(scene->root_od->term->compositor, an, dom_event);
+				gf_sc_queue_dom_event(scene->compositor, an, dom_event);
 			}
 		}
 	}
@@ -638,12 +638,13 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 	if (!scene->root_od) return;
 
 	if ((scene->graph_attached==1) || (gf_sg_get_root_node(scene->graph)==NULL) ) {
-		gf_term_invalidate_compositor(scene->root_od->term);
+		gf_sc_invalidate(scene->compositor, NULL);
 		return;
 	}
 	scene->graph_attached = 1;
 
 	/*locate fragment IRI*/
+#if FILTER_FIXME
 	if (scene->root_od->net_service && scene->root_od->net_service->url) {
 		if (scene->fragment_uri) {
 			gf_free(scene->fragment_uri);
@@ -652,10 +653,11 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 		url = strchr(scene->root_od->net_service->url, '#');
 		if (url) scene->fragment_uri = gf_strdup(url+1);
 	}
+#endif
 
 	/*main display scene, setup compositor*/
-	if (scene->root_od->term->root_scene == scene) {
-		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	if (!scene->parent_scene) {
+		gf_sc_set_scene(scene->compositor, scene->graph);
 	}
 	else {
 		u32 i, count;
@@ -663,12 +665,12 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 		for (i=0; i<count; i++) {
 			gf_node_dirty_parents( gf_event_target_get_node(gf_mo_event_target_get(scene->root_od->mo, i)));
 		}
-		gf_term_invalidate_compositor(scene->root_od->term);
+		gf_sc_invalidate(scene->compositor, NULL);
 
 		if (scene->root_od->parentscene->is_dynamic_scene) {
 			u32 w, h;
 			gf_sg_get_scene_size_info(scene->graph, &w, &h);
-			gf_sc_set_size(scene->root_od->term->compositor, w, h);
+			gf_sc_set_size(scene->compositor, w, h);
 		}
 		/*trigger a scene attach event*/
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
@@ -706,8 +708,6 @@ GF_MediaObject *gf_scene_get_media_object_ex(GF_Scene *scene, MFURL *url, u32 ob
 
 	OD_ID = gf_mo_get_od_id(url);
 	if (!OD_ID) return NULL;
-
-	gf_mx_p(scene->mx_resources);
 
 	/*we may have overriden the time lines in parent scene, thus all objects in this scene have the same clock*/
 	if (scene->root_od->parentscene && scene->root_od->parentscene->force_single_timeline)
@@ -751,6 +751,7 @@ restart:
 			if (timeline_locked != lock_timelines)
 				continue;
 
+#if FILTER_FIXME
 			gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 			if (obj->odm->flags & GF_ODM_DESTROYED) can_reuse = GF_FALSE;
 			else if (obj->odm->action_type == GF_ODM_ACTION_DELETE) {
@@ -764,6 +765,7 @@ restart:
 				}
 			}
 			gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
+#endif
 			if (!can_reuse) continue;
 
 		}
@@ -771,12 +773,10 @@ restart:
 		if (!first_pass && !force_new_if_not_attached) {
 			if (node && (gf_mo_event_target_find_by_node(obj, node)<0))
 				gf_mo_event_target_add_node(obj, node);
-			gf_mx_v(scene->mx_resources);
 			return obj;
 		}
 		/*special case where the URL is requested twice for the same node: use the existing resource*/
 		else if (node && (gf_mo_event_target_find_by_node(obj, node)>=0)) {
-			gf_mx_v(scene->mx_resources);
 			return obj;
 		}
 	}
@@ -787,7 +787,6 @@ restart:
 
 	/*we cannot create an OD manager at this point*/
 	if (obj_type_hint==GF_MEDIA_OBJECT_UNDEF) {
-		gf_mx_v(scene->mx_resources);
 		return NULL;
 	}
 
@@ -815,19 +814,15 @@ restart:
 		gf_scene_insert_object(scene, obj, lock_timelines, sync_ref, keep_fragment, original_parent_scene);
 		/*safety check!!!*/
 		if (gf_list_find(scene->scene_objects, obj)<0) {
-			gf_mx_v(scene->mx_resources);
 			return NULL;
 		}
 
 		if (obj->odm==NULL) {
 			gf_list_del_item(scene->scene_objects, obj);
 			gf_mo_del(obj);
-			gf_mx_v(scene->mx_resources);
 			return NULL;
 		}
 	}
-
-	gf_mx_v(scene->mx_resources);
 	return obj;
 }
 
@@ -842,7 +837,7 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 	GF_MediaObject *obj;
 	u32 i;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %p)\n", odm->OD->objectDescriptorID, odm->mo));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Setup object manager %d (MO %p)\n", odm->ID, odm->mo));
 
 	/*an object may already be assigned (when using ESD URLs, setup is performed twice)*/
 	if (odm->mo != NULL) goto existing;
@@ -850,7 +845,7 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 	i=0;
 	while ((obj = (GF_MediaObject*)gf_list_enum(scene->scene_objects, &i))) {
 		/*make sure services are different*/
-		if (obj->odm && (odm->net_service != obj->odm->net_service)) continue;
+		if (obj->odm && (odm->source_id != obj->odm->source_id)) continue;
 
 		if (obj->OD_ID==GF_MEDIA_EXTERNAL_ID) {
 			//assert(obj->odm);
@@ -861,7 +856,7 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 				goto existing;
 			}
 		}
-		else if (obj->OD_ID == odm->OD->objectDescriptorID) {
+		else if (obj->OD_ID == odm->ID) {
 			assert(obj->odm==NULL);
 			obj->odm = odm;
 			odm->mo = obj;
@@ -872,15 +867,15 @@ void gf_scene_setup_object(GF_Scene *scene, GF_ObjectManager *odm)
 	odm->mo = gf_mo_new();
 	gf_list_add(scene->scene_objects, odm->mo);
 	odm->mo->odm = odm;
-	odm->mo->OD_ID = odm->OD->objectDescriptorID;
+	odm->mo->OD_ID = odm->ID;
 
 existing:
 	/*setup object type*/
-	if (!odm->codec) odm->mo->type = GF_MEDIA_OBJECT_SCENE;
-	else if (odm->codec->type == GF_STREAM_VISUAL) odm->mo->type = GF_MEDIA_OBJECT_VIDEO;
-	else if (odm->codec->type == GF_STREAM_AUDIO) odm->mo->type = GF_MEDIA_OBJECT_AUDIO;
-	else if (odm->codec->type == GF_STREAM_TEXT) odm->mo->type = GF_MEDIA_OBJECT_TEXT;
-	else if (odm->codec->type == GF_STREAM_SCENE) odm->mo->type = GF_MEDIA_OBJECT_UPDATES;
+	if (!odm->type) odm->type = GF_MEDIA_OBJECT_SCENE;
+	else if (odm->type == GF_STREAM_VISUAL) odm->mo->type = GF_MEDIA_OBJECT_VIDEO;
+	else if (odm->type == GF_STREAM_AUDIO) odm->mo->type = GF_MEDIA_OBJECT_AUDIO;
+	else if (odm->type == GF_STREAM_TEXT) odm->mo->type = GF_MEDIA_OBJECT_TEXT;
+	else if (odm->type == GF_STREAM_SCENE) odm->mo->type = GF_MEDIA_OBJECT_UPDATES;
 
 	/*update info*/
 	gf_mo_update_caps(odm->mo);
@@ -893,7 +888,7 @@ existing:
 		gf_scene_force_size_to_video(scene, odm->mo);
 	}
 	/*invalidate scene for all nodes using the OD*/
-	gf_term_invalidate_compositor(odm->term);
+	gf_sc_invalidate(odm->parentscene->compositor, NULL);
 }
 
 GF_EXPORT
@@ -914,7 +909,6 @@ void gf_scene_set_duration(GF_Scene *scene)
 	max_dur = scene->root_od->duration;
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->codec) continue;
 		if (!ck || gf_odm_shares_clock(odm, ck)) {
 			if (odm->duration>max_dur) max_dur = odm->duration;
 		}
@@ -937,14 +931,16 @@ void gf_scene_set_duration(GF_Scene *scene)
 	}
 #endif
 
-	if ((scene == scene->root_od->term->root_scene) && scene->root_od->term->user->EventProc) {
+#if FILTER_FIXME
+	if (!scene->parent_scene && scene->root_od->term->user->EventProc) {
 		GF_Event evt;
 		evt.type = GF_EVENT_DURATION;
 		evt.duration.duration = dur;
 		evt.duration.can_seek = (scene->root_od->flags & GF_ODM_NO_TIME_CTRL) ? GF_FALSE : GF_TRUE;
 		if (dur<1.0) evt.duration.can_seek = 0;
-		gf_term_send_event(scene->root_od->term,&evt);
+		gf_sc_send_event(scene->compositor, &evt);
 	}
+#endif
 
 }
 
@@ -960,7 +956,6 @@ void gf_scene_set_timeshift_depth(GF_Scene *scene)
 	max_timeshift = scene->root_od->timeshift_depth;
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (!odm->codec) continue;
 		if (!ck || gf_odm_shares_clock(odm, ck)) {
 			if (odm->timeshift_depth > max_timeshift) max_timeshift = odm->timeshift_depth;
 		}
@@ -1005,15 +1000,15 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 		if (gf_list_find(scene->extra_scenes, extra_scene)<0) return;
 		gf_list_del_item(scene->extra_scenes, extra_scene);
 		/*for root scene*/
-		if (scene->root_od->term->root_scene == scene) {
-			gf_sc_register_extra_graph(scene->root_od->term->compositor, extra_scene, 1);
+		if (! scene->parent_scene) {
+			gf_sc_register_extra_graph(scene->compositor, extra_scene, 1);
 		}
 	} else {
 		if (gf_list_find(scene->extra_scenes, extra_scene)>=0) return;
 		gf_list_add(scene->extra_scenes, extra_scene);
 		/*for root scene*/
-		if (scene->root_od->term->root_scene == scene) {
-			gf_sc_register_extra_graph(scene->root_od->term->compositor, extra_scene, 0);
+		if (!scene->parent_scene) {
+			gf_sc_register_extra_graph(scene->compositor, extra_scene, 0);
 		}
 	}
 }
@@ -1031,8 +1026,8 @@ static void gf_scene_get_video_size(GF_MediaObject *mo, u32 *w, u32 *h)
 	}
 #ifndef GPAC_DISABLE_3D
 	if (mo->odm) {
-		if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_TOP) *h /= 2;
-		else if (mo->odm->term->compositor->frame_packing==GF_3D_STEREO_SIDE) *w /= 2;
+		if (mo->odm->parentscene->compositor->frame_packing==GF_3D_STEREO_TOP) *h /= 2;
+		else if (mo->odm->parentscene->compositor->frame_packing==GF_3D_STEREO_SIDE) *w /= 2;
 	}
 #endif
 }
@@ -1084,7 +1079,7 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 
 	gf_scene_set_addon_layout_info(scene, scene->addon_position, scene->addon_size_factor);
 
-	if (scene->root_od->term->root_scene == scene) {
+	if (! scene->parent_scene) {
 		//if (scene->graph_attached) gf_sc_set_scene(scene->root_od->term->compositor, NULL);
 		//gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 	}
@@ -1103,9 +1098,13 @@ static GF_Node *is_create_node(GF_SceneGraph *sg, u32 tag, const char *def_name)
 static Bool is_odm_url(SFURL *url, GF_ObjectManager *odm)
 {
 	if (!url->OD_ID && !url->url) return 0;
-	if (odm->OD->objectDescriptorID != GF_MEDIA_EXTERNAL_ID) return (url->OD_ID==odm->OD->objectDescriptorID) ? 1 : 0;
+	if (odm->ID != GF_MEDIA_EXTERNAL_ID) return (url->OD_ID==odm->ID) ? 1 : 0;
+#if FILTER_FIXME
 	if (!url->url || !odm->OD->URLString) return 0;
 	return !stricmp(url->url, odm->OD->URLString);
+#else
+	return 0;
+#endif
 }
 
 static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFURL *node_url, u32 type)
@@ -1121,38 +1120,28 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = (GF_ObjectManager*)gf_list_get(scene->resources, i);
-			if (odm->scalable_addon || !odm->OD)
+			if (odm->scalable_addon || !odm->ID)
 				continue;
 
 			if (type==GF_STREAM_TEXT) {
-				if (!odm->codec || ((odm->codec->type!=type) && (odm->codec->type!=GF_STREAM_ND_SUBPIC))) continue;
+				if ((odm->type!=type) && (odm->type!=GF_STREAM_ND_SUBPIC)) continue;
 			}
 			else if (type==GF_STREAM_SCENE) {
-				if (!odm->subscene || (!odm->subscene->scene_codec && !odm->subscene->is_dynamic_scene) ) continue;
+				if (!odm->subscene || !odm->subscene->is_dynamic_scene) continue;
 
 				if (odm->subscene->root_od->addon)
 					continue;
 			}
 			else {
-				if (!odm->codec || (odm->codec->type!=type)) continue;
-
-				//browse from this ODM on untill we find an object with the desired OTI (if any)
-				if ((type==GF_STREAM_AUDIO) && odm->term->prefered_audio_codec_oti) {
-					u32 j;
-					for (j=i; j<count; j++) {
-						GF_ObjectManager*an_odm = (GF_ObjectManager*)gf_list_get(scene->resources, j);
-						if (an_odm->codec && (an_odm->codec->oti==odm->term->prefered_audio_codec_oti)) {
-							odm = an_odm;
-							break;
-						}
-					}
-				}
+				if (odm->type!=type) continue;
+				//todo: select prefered media format ?
 			}
 
-			if (scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID)) {
+			if (scene->selected_service_id && (scene->selected_service_id != odm->ServiceID)) {
 				//objects inserted from broadcast may have been played but not yet registered with the scene, we need to force a stop
 				if ((odm->mo && !odm->mo->num_open) || !odm->mo) {
 					if (odm->state==GF_ODM_STATE_PLAY) {
+#if FILTER_FIXME
 						/*do not stop directly*/
 						gf_term_lock_media_queue(odm->term, GF_TRUE);
 						/*if object not in media queue, add it*/
@@ -1161,21 +1150,21 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 						}
 						odm->action_type = GF_ODM_ACTION_STOP;
 						gf_term_lock_media_queue(odm->term, GF_FALSE);
+#endif
 					}
 				}
 				continue;
 			}
 
 
-			media_url->OD_ID = odm->OD->objectDescriptorID;
+			media_url->OD_ID = odm->ID;
+#if FILTER_FIXME
 			if (media_url->OD_ID==GF_MEDIA_EXTERNAL_ID) media_url->url = gf_strdup(odm->net_service->url);
+#endif
 
-			if (!scene->dyn_ck) {
-				if (odm->subscene && odm->subscene->scene_codec) {
-					scene->dyn_ck = odm->subscene->scene_codec->ck;
-				} else if (odm->codec) {
-					scene->dyn_ck = odm->codec->ck;
-				}
+			//happens when switching service in a TS multiplex
+			if (!scene->root_od->ck) {
+				scene->root_od->ck = odm->ck;
 			}
 
 			if (odm->mo && (type==GF_STREAM_VISUAL)) {
@@ -1221,6 +1210,7 @@ static void set_media_url(GF_Scene *scene, SFURL *media_url, GF_Node *node,  MFU
 
 static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 {
+#if FILTER_FIXME
 	u32 i, count;
 	GF_Scene *scene = (GF_Scene *) param;
 	SFVec2f tx_coord = * ((SFVec2f *) field->far_ptr);
@@ -1249,6 +1239,7 @@ static void scene_video_mouse_move(void *param, GF_FieldInfo *field)
 			return;
 		}
 	}
+#endif
 }
 
 static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
@@ -1348,9 +1339,9 @@ void gf_scene_regenerate(GF_Scene *scene)
 	M_Inline *addon_scene;
 	if (scene->is_dynamic_scene != 1) return;
 
+#if FILTER_FIXME
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Inline] Regenerating scene graph for service %s\n", scene->root_od->net_service->url));
-
-	gf_sc_lock(scene->root_od->term->compositor, 1);
+#endif
 
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 
@@ -1363,7 +1354,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
-		if (! scene->root_od->parentscene) {
+		if (! scene->parent_scene) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
@@ -1448,16 +1439,15 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
 		}
 		
-
 		//send activation for sensors
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SENSOR_REQUEST;
 		evt.activate_sensor.activate = scene->vr_type;
 		evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
-		if (gf_term_send_event(scene->root_od->term, &evt)==GF_TRUE) {
-			scene->root_od->term->orientation_sensors_active = scene->vr_type;
+		if (gf_sc_send_event(scene->compositor, &evt)==GF_TRUE) {
+			scene->compositor->orientation_sensors_active = scene->vr_type;
 		} else {
-			scene->root_od->term->orientation_sensors_active = GF_FALSE;
+			scene->compositor->orientation_sensors_active = GF_FALSE;
 		}
 	}
 
@@ -1516,15 +1506,15 @@ void gf_scene_regenerate(GF_Scene *scene)
 				sprintf(szName, "TR%d", i);
 				sprintf(szTex, "DYN_VIDEO%d", i);
 				sprintf(szGeom, "DYN_GEOM%d", i);
-				url.OD_ID = a_odm->OD->objectDescriptorID;
+				url.OD_ID = a_odm->ID;
 
 				mt = (M_MovieTexture *) gf_sg_find_node_by_name(scene->graph, szTex);
 				if (!mt) continue;
 
 				set_media_url(scene, &url, (GF_Node*)mt, &mt->url, GF_STREAM_VISUAL);
 
-				if (!scene->dyn_ck && a_odm->codec) {
-					scene->dyn_ck = a_odm->codec->ck;
+				if (!scene->root_od->ck && a_odm->ck) {
+					scene->root_od->ck = a_odm->ck;
 				}
 				
 				if (scene->vr_type) {
@@ -1569,19 +1559,19 @@ void gf_scene_regenerate(GF_Scene *scene)
 		((M_TouchSensor *)n2)->enabled = GF_FALSE;
 	}
 
-	gf_sc_lock(scene->root_od->term->compositor, 0);
-
 	/*disconnect to force resize*/
-	if (scene->root_od->term->root_scene == scene) {
-		gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	if (!scene->parent_scene) {
+		gf_sc_set_scene(scene->compositor, scene->graph);
 		scene->graph_attached = 1;
+
 		evt.type = GF_EVENT_STREAMLIST;
-		gf_term_send_event(scene->root_od->term, &evt);
+		gf_sc_send_event(scene->compositor, &evt);
+
 		IS_UpdateVideoPos(scene);
 	} else {
 		gf_scene_notify_event(scene, scene->graph_attached ? GF_EVENT_STREAMLIST : GF_EVENT_SCENE_ATTACHED, NULL, NULL, GF_OK, GF_FALSE);
 		scene->graph_attached = 1;
-		gf_term_invalidate_compositor(scene->root_od->term);
+		gf_sc_invalidate(scene->compositor, NULL);
 	}
 }
 
@@ -1590,10 +1580,12 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 
 	if (show_addons) {
+#if FILTER_FIXME
 		GF_AssociatedContentLocation addon_info;
 		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 		addon_info.timeline_id = -100;
 		gf_scene_register_associated_media(scene, &addon_info);
+#endif
 	} else {
 		gf_sg_vrml_mf_reset(&dscene->url, GF_SG_VRML_MFURL);
 	}
@@ -1674,7 +1666,7 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 {
 	if (!scene->is_dynamic_scene) return;
 
-	gf_sc_lock(scene->root_od->term->compositor, 1);
+	gf_sc_lock(scene->compositor, 1);
 	if (scene->selected_service_id != service_id) {
 		scene->selected_service_id = service_id;
 		scene->audio_url.OD_ID = 0;
@@ -1683,14 +1675,17 @@ void gf_scene_set_service_id(GF_Scene *scene, u32 service_id)
 		scene->dims_url.OD_ID = 0;
 		scene->force_size_set = 0;
 		//reset clock since we change service IDs, but request a PLAY from the current time
-		if (scene->dyn_ck) {
-			scene->root_od->media_start_time = gf_clock_media_time(scene->dyn_ck);
-			scene->dyn_ck = NULL;
+		if (scene->root_od->ck) {
+			scene->root_od->media_start_time = gf_clock_media_time(scene->root_od->ck);
+			scene->root_od->ck = NULL;
 		}
+#if FILTER_FIXME
 		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[Scene] Switching %s from service %d to service %d (media time %g)\n", scene->root_od->net_service->url, scene->selected_service_id, service_id, (Double)scene->root_od->media_start_time/1000.0));
+#endif
+
 		gf_scene_regenerate(scene);
 	}
-	gf_sc_lock(scene->root_od->term->compositor, 0);
+	gf_sc_lock(scene->compositor, 0);
 }
 
 GF_EXPORT
@@ -1699,12 +1694,12 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	char *url;
 	if (!scene->is_dynamic_scene || !scene->graph_attached || !odm) return;
 
-	if (!odm->codec) {
+	if (!odm->ID) {
 		if (!odm->addon) return;
 	}
 
-	if (odm->OD->ServiceID && scene->selected_service_id && (scene->selected_service_id != odm->OD->ServiceID)) {
-		gf_scene_set_service_id(scene, odm->OD->ServiceID);
+	if (odm->ServiceID && scene->selected_service_id && (scene->selected_service_id != odm->ServiceID)) {
+		gf_scene_set_service_id(scene, odm->ServiceID);
 		return;
 	}
 
@@ -1716,7 +1711,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 
 
-	if (!odm->codec && odm->subscene) {
+	if (!odm->ID && odm->subscene) {
 		M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 
 		if (odm->addon && odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
@@ -1729,14 +1724,14 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		return;
 	}
 
-	if (odm->codec->type == GF_STREAM_AUDIO) {
+	if (odm->type == GF_STREAM_AUDIO) {
 		M_AudioClip *ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 		if (!ac) return;
 		if (scene->audio_url.url) gf_free(scene->audio_url.url);
 		scene->audio_url.url = NULL;
-		scene->audio_url.OD_ID = odm->OD->objectDescriptorID;
+		scene->audio_url.OD_ID = odm->ID;
 		if (!ac->url.count) gf_sg_vrml_mf_alloc(&ac->url, GF_SG_VRML_MFURL, 1);
-		ac->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
+		ac->url.vals[0].OD_ID = odm->ID;
 		if (ac->url.vals[0].url) {
 			gf_free(ac->url.vals[0].url);
 			ac->url.vals[0].url = NULL;
@@ -1751,14 +1746,14 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		return;
 	}
 
-	if (odm->codec->type == GF_STREAM_VISUAL) {
+	if (odm->type == GF_STREAM_VISUAL) {
 		M_MovieTexture *mt = (M_MovieTexture*) gf_sg_find_node_by_name(scene->graph, "DYN_VIDEO1");
 		if (!mt) return;
 		if (scene->visual_url.url) gf_free(scene->visual_url.url);
 		scene->visual_url.url = NULL;
-		scene->visual_url.OD_ID = odm->OD->objectDescriptorID;
+		scene->visual_url.OD_ID = odm->ID;
 		if (!mt->url.count) gf_sg_vrml_mf_alloc(&mt->url, GF_SG_VRML_MFURL, 1);
-		mt->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
+		mt->url.vals[0].OD_ID = odm->ID;
 		if (mt->url.vals[0].url) gf_free(mt->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
@@ -1768,19 +1763,19 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 		mt->startTime = gf_scene_get_time(scene);
 		gf_node_changed((GF_Node *)mt, NULL);
 		if (odm->mo) gf_scene_force_size_to_video(scene, odm->mo);
-		scene->selected_service_id = odm->OD->ServiceID;
+		scene->selected_service_id = odm->ServiceID;
 		return;
 	}
 
 
-	if (odm->codec->type == GF_STREAM_TEXT) {
+	if (odm->type == GF_STREAM_TEXT) {
 		M_AnimationStream *as = (M_AnimationStream*) gf_sg_find_node_by_name(scene->graph, "DYN_TEXT");
 		if (!as) return;
 		if (scene->text_url.url) gf_free(scene->text_url.url);
 		scene->text_url.url = NULL;
-		scene->text_url.OD_ID = odm->OD->objectDescriptorID;
+		scene->text_url.OD_ID = odm->ID;
 		if (!as->url.count) gf_sg_vrml_mf_alloc(&as->url, GF_SG_VRML_MFURL, 1);
-		as->url.vals[0].OD_ID = odm->OD->objectDescriptorID;
+		as->url.vals[0].OD_ID = odm->ID;
 		if (as->url.vals[0].url) gf_free(as->url.vals[0].url);
 		url = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 		if (url) {
@@ -1796,7 +1791,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm)
 void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time)
 {
 	GF_DOM_Event devt;
-	const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Systems", "DebugPVRScene");
+	const char *opt = gf_cfg_get_key(scene->compositor->user->config, "Systems", "DebugPVRScene");
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, (opt && !strcmp(opt, "yes")) ? "ADDON_SCENE" : "PVR_SCENE");
 
 	if (scene->main_addon_selected==set_on) return;
@@ -1825,7 +1820,7 @@ void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set
 		gf_sg_vrml_field_copy(&dscene->url, &odm->mo->URLs, GF_SG_VRML_MFURL);
 		gf_node_changed((GF_Node *)dscene, NULL);
 	} else {
-		GF_Clock *ck = scene->scene_codec ? scene->scene_codec->ck : scene->dyn_ck;
+		GF_Clock *ck = scene->root_od->ck;
 		//reactivating the main content will trigger a reset on the clock - remember where we are and resume from this point
 		scene->root_od->media_start_time = gf_clock_media_time(ck);
 
@@ -1930,8 +1925,8 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 		from_time = 0;
 	}
 
-	ck = scene->dyn_ck;
-	if (scene->scene_codec) ck = scene->scene_codec->ck;
+	ck = scene->root_od->ck;
+	if (!scene->is_dynamic_scene) ck = scene->root_od->ck;
 	if (!ck) return;
 
 	//first pass to check if we need to enable the addon acting as time shifting
@@ -1941,8 +1936,8 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 
 			if (odm->addon && (odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 				//assign clock if not yet available
-				if (odm->addon->root_od->subscene && !odm->addon->root_od->subscene->dyn_ck)
-					odm->addon->root_od->subscene->dyn_ck = scene->dyn_ck;
+				if (odm->addon->root_od->subscene && !odm->addon->root_od->ck)
+					odm->addon->root_od->ck = scene->root_od->ck;
 
 				//we're timeshifting through the main addon, activate it
 				if (from_time < -1) {
@@ -1981,7 +1976,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 					} else {
 						gf_list_add(to_restart, odm);
 					}
-				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->OD->ServiceID)) {
+				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->ServiceID)) {
 					gf_list_add(to_restart, odm);
 				}
 
@@ -2077,6 +2072,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	}
 
 	if (scene->is_dynamic_scene) {
+#if FILTER_FIXME
 		GF_NetworkCommand com;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -2084,21 +2080,21 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 			gf_term_service_command(scene->root_od->net_service, &com);
 		}
-		
-		if (scene->root_od->term->root_scene == scene) {
+
+		if (!scene->parent_scene) {
 			if (com.par.width && com.par.height) {
-				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
+				gf_sc_set_scene_size(scene->compositor, width, height, 1);
 				if (!scene->force_size_set) {
-					gf_sc_set_size(scene->root_od->term->compositor, com.par.width, com.par.height);
+					gf_sc_set_size(scene->compositor, com.par.width, com.par.height);
 					scene->force_size_set = 1;
 				} else {
-					gf_sc_set_size(scene->root_od->term->compositor, 0, 0);
+					gf_sc_set_size(scene->compositor, 0, 0);
 				}
 			} else {
 				/*need output resize*/
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-				gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-				gf_sc_set_size(scene->root_od->term->compositor, width, height);
+				gf_sc_set_scene(scene->compositor, scene->graph);
+				gf_sc_set_size(scene->compositor, width, height);
 			}
 
 		} else if (!scene->force_size_set) {
@@ -2134,13 +2130,14 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				height = h;
 			}
 		}
+#endif
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
-		if (scene->root_od->term->root_scene == scene->root_od->parentscene) {
+		if (!scene->parent_scene) {
 			if (width && height) {
-				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, GF_TRUE);
-				gf_sc_set_size(scene->root_od->term->compositor, width, height);
+				gf_sc_set_scene_size(scene->compositor, width, height, GF_TRUE);
+				gf_sc_set_size(scene->compositor, width, height);
 			}
 		}
 	}
@@ -2166,7 +2163,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 GF_EXPORT
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 {
-	GF_Terminal *term;
 #ifndef GPAC_DISABLE_VRML
 	u32 i;
 	M_Inline *inl;
@@ -2176,11 +2172,11 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 	if (!sg) return 1;
 	scene = (GF_Scene *)gf_sg_get_private(sg);
 	if (!scene) return 1;
-	term = scene->root_od->term;
 
 	/*if main scene forward to user. If no params or first one not "self" forward to user*/
-	if ((term->root_scene==scene) || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
-		if (term->user->EventProc) return gf_term_send_event(term, evt);
+	if (! scene->parent_scene || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
+
+		if (scene->compositor->user->EventProc) return gf_sc_send_event(scene->compositor, evt);
 		return 1;
 	}
 
@@ -2217,7 +2213,7 @@ GF_Compositor *gf_sc_get_compositor(GF_Node *node)
 	if (!sg) return NULL;
 	scene = (GF_Scene *)gf_sg_get_private(sg);
 	if (!scene) return NULL;
-	return scene->root_od->term->compositor;
+	return scene->compositor;
 }
 
 const char *gf_scene_get_fragment_uri(GF_Node *node)
@@ -2262,8 +2258,9 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 }
 
 /*returns 0 if any of the clock still hasn't seen EOS*/
-Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering)
+Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering)
 {
+#if FILTER_FIXME
 	GF_Clock *ck;
 	Bool initialized = GF_FALSE;
 	u32 i;
@@ -2276,20 +2273,23 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
 			if (odm->net_service && (odm->net_service != ns)) {
 				if (!gf_scene_check_clocks(odm->net_service, NULL, check_buffering)) return 0;
-			} else if (odm->codec && odm->codec->CB) {
+			} else if (odm->ck) {
 				initialized = GF_TRUE;
 				if (!check_buffering) {
+#if FILTER_FIXME
 					if (!gf_cm_is_eos(odm->codec->CB) ) {
 						return 0;
 					}
+#endif
 				} else {
-					if (odm->codec->ck->Buffering) {
+					if (odm->ck->Buffering) {
 						return 0;
 					}
 				}
 			}
 		}
 	}
+#if FILTER_FIXME
 	i=0;
 	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
 		initialized = GF_TRUE;
@@ -2300,27 +2300,32 @@ Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buf
 		}
 
 	}
+#endif
 
 	if (!check_buffering && scene) {
-		if (scene->scene_codec) {
+		if (scene->root_od->ID) {
 			initialized = GF_TRUE;
-			if (scene->scene_codec->Status != GF_ESM_CODEC_STOP) return 0;
+			if (scene->root_od->state != GF_ODM_STATE_STOP) return 0;
 		}
-		if (scene->od_codec && (scene->od_codec->Status != GF_ESM_CODEC_STOP)) return 0;
 	}
 	if (!initialized) return 0;
+#endif
+
 	return 1;
 }
 
 const char *gf_scene_get_service_url(GF_SceneGraph *sg)
 {
 	GF_Scene *scene = gf_sg_get_private(sg);
+#if FILTER_FIXME
 	if (scene) return scene->root_od->net_service->url;
+#endif
 	return NULL;
 }
 
 Bool gf_scene_is_over(GF_SceneGraph *sg)
 {
+#if FILTER_FIXME
 	u32 i, count;
 	GF_Scene *scene = gf_sg_get_private(sg);
 	if (!scene) return 0;
@@ -2334,6 +2339,9 @@ Bool gf_scene_is_over(GF_SceneGraph *sg)
 		if (odm->subscene && !gf_scene_is_over(odm->subscene->graph) ) return 0;
 	}
 	return 1;
+#else
+	return 0;
+#endif
 }
 
 GF_SceneGraph *gf_scene_enum_extra_scene(GF_SceneGraph *sg, u32 *i)
@@ -2365,7 +2373,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 	M_Inline *inl;
 #endif
 	GF_Event evt;
-	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
+	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);
 
 	scene->force_single_timeline = 1;
@@ -2439,16 +2447,16 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 		url_search = url;
 	}
 
-	gf_sc_set_option(scene->root_od->term->compositor, GF_OPT_USE_OPENGL, 1);
+	gf_sc_set_option(scene->compositor, GF_OPT_USE_OPENGL, 1);
 
 	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
-	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	gf_sc_set_scene(scene->compositor, scene->graph);
 	scene->graph_attached = 1;
 	scene->is_dynamic_scene = 2;
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
-	gf_term_send_event(scene->root_od->term, &evt);
+	gf_sc_send_event(scene->compositor, &evt);
 #endif
 }
 
@@ -2498,6 +2506,8 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	addon->root_od = mo->odm;
 	mo->odm->addon = addon;
 }
+
+#if FILTER_FIXME
 
 GF_EXPORT
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
@@ -2583,7 +2593,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	if (! scene->root_od->parentscene) {
 		evt.type = GF_EVENT_ADDON_DETECTED;
 		evt.addon_connect.addon_url = addon->url;
-		addon->enabled = gf_term_send_event(scene->root_od->term,&evt);
+		addon->enabled = gf_sc_send_event(scene->compositor, &evt);
 
 		if (addon->timeline_ready)
 			load_associated_media(scene, addon);
@@ -2666,6 +2676,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		gf_scene_set_timeshift_depth(scene);
 	}
 
+#if FILTER_FIXME
 	//and forward ntp if any to underlying service
 	if (addon_time->ntp && addon->root_od && addon->root_od->net_service) {
 		GF_NetworkCommand com;
@@ -2673,7 +2684,10 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		com.addon_time = *addon_time;
 		gf_term_service_command(addon->root_od->net_service, &com);
 	}
+#endif
 }
+
+#endif
 
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 {
@@ -2690,8 +2704,6 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 		return GF_FALSE;
 	}
 
-	gf_mx_p(addon->root_od->mx);
-
 	addon->loop_detected = 0;
 	addon->media_pts = addon->past_media_pts;
 	addon->media_timestamp = addon->past_media_timestamp;
@@ -2704,8 +2716,6 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 	subscene = addon->root_od->subscene;
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Looping addon - CTS "LLD" - addon media TS "LLD" (CTS "LLD") addon media time "LLD"\n", cts, addon->media_pts, addon->media_pts/90, addon->media_timestamp));
-
-	gf_mx_v(addon->root_od->mx);
 
 	to_restart = gf_list_new();
 
@@ -2755,20 +2765,16 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 {
-	GF_NetworkCommand com;
 	GF_CodecCapability caps;
 	Bool nalu_annex_b;
-	GF_Channel *ch, *base_ch;
 	GF_ObjectManager *odm_base = NULL;
-	u32 i, count, mtype;
+	u32 i, count;
 	Bool force_attach=GF_FALSE;
-	ch = gf_list_get(odm->channels, 0);
-	if (!ch->esd) return;
-	mtype = ch->esd->decoderConfig->streamType;
+
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
 		odm_base = gf_list_get(scene->resources, i);
-		if ((mtype==odm_base->codec->type) && odm_base->codec)
+		if ((odm->type==odm_base->type) && odm_base->ID)
 			break;
 		odm_base=NULL;
 		//todo
@@ -2780,27 +2786,27 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	odm_base->upper_layer_odm = odm;
 	odm->lower_layer_odm = odm_base;
 
-	base_ch = gf_list_get(odm_base->channels, 0);
-	
-	switch (base_ch->esd->decoderConfig->objectTypeIndication) {
+	switch (odm_base->original_oti) {
 	case GPAC_OTI_VIDEO_AVC:
 	case GPAC_OTI_VIDEO_SVC:
-		switch (ch->esd->decoderConfig->objectTypeIndication) {
+		switch (odm->original_oti) {
 		case GPAC_OTI_VIDEO_LHVC:
-			if (!odm_base->codec->hybrid_layered_coded) {
+			if (!odm_base->hybrid_layered_coded) {
 				force_attach=GF_TRUE;
 			}
-			odm_base->codec->hybrid_layered_coded=GF_TRUE;
+			odm_base->hybrid_layered_coded=GF_TRUE;
 			break;
 		}
 		break;
 	}
 
+#if FILTER_FIXME
+	GF_NetworkCommand com;
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
 	
-	if (0 && odm_base->codec->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
+	if (0 && odm_base->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
 		nalu_annex_b = 0;
 		if (force_attach) {
 			odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
@@ -2813,6 +2819,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		}
 		odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
 	}
+
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.command_type = GF_NET_CHAN_NALU_MODE;
 	//force AnnexB mode and no sync sample seeking
@@ -2824,11 +2831,11 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		ch->stream_state = 1;
 		ch->media_padding_bytes = base_ch->media_padding_bytes;
 		gf_term_service_command(ch->service, &com);
-
 	}
 
 	//signal to the base decoder that we will want full quality
 	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 	caps.cap.valueInt = 2;
 	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
+#endif
 }

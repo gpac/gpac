@@ -110,8 +110,7 @@ static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_H
 	SMJS_SET_PRIVATE(c, sb->buffered->_this, sb->buffered);
 }
 
-#include <gpac/internal/terminal_dev.h>
-Bool gf_term_is_type_supported(GF_Terminal *term, const char* mime);
+//#include <gpac/internal/terminal_dev.h>
 
 static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
@@ -129,8 +128,12 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 	if (!strlen(mime)) {
 		isSupported = GF_FALSE;
 	} else {
+#if FILTER_FIXME
 		sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
 		isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
+#else
+	isSupported = GF_FALSE;
+#endif
 	}
 	SMJS_SET_RVAL(BOOLEAN_TO_JSVAL(isSupported ? JS_TRUE : JS_FALSE));
 	SMJS_FREE(c, mime);

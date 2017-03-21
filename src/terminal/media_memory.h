@@ -33,6 +33,8 @@ extern "C" {
 
 #include <gpac/thread.h>
 
+#if FILTER_FIXME
+
 enum
 {
 	/*AU is RAP*/
@@ -181,6 +183,10 @@ void gf_cm_set_eos(GF_CompositionMemory *cb);
 Bool gf_cm_is_eos(GF_CompositionMemory *cb);
 /*aborts buffering if any*/
 void gf_cm_abort_buffering(GF_CompositionMemory *cb);
+
+
+#endif
+
 
 #ifdef __cplusplus
 }

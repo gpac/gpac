@@ -38,6 +38,43 @@
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
 
+
+Bool gf_sc_forward_event(GF_Compositor *compositor, GF_Event *evt, Bool consumed, Bool forward_only)
+{
+	if (!compositor) return GF_FALSE;
+
+#if FILTER_FIXME
+	if (term->event_filters) {
+		GF_TermEventFilter *ef;
+		u32 i=0;
+
+		gf_mx_p(term->evt_mx);
+		term->in_event_filter ++;
+		gf_mx_v(term->evt_mx);
+		while ((ef=gf_list_enum(term->event_filters, &i))) {
+			if (ef->on_event(ef->udta, evt, consumed)) {
+				term->in_event_filter --;
+				return GF_TRUE;
+			}
+		}
+		term->in_event_filter --;
+	}
+#endif
+
+	if (!forward_only && !consumed && compositor->user->EventProc) {
+		Bool res = compositor->user->EventProc(compositor->user->opaque, evt);
+		return res;
+	}
+
+	return GF_FALSE;
+}
+
+Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt)
+{
+	return gf_sc_forward_event(compositor, evt, 0, 0);
+}
+
+
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state)
 {
 //	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Forcing frame redraw state: %d\n", state));
@@ -93,7 +130,7 @@ static void gf_sc_set_fullscreen(GF_Compositor *compositor)
 		evt.type = GF_EVENT_MESSAGE;
 		evt.message.message = "Cannot switch to fullscreen";
 		evt.message.error = e;
-		gf_term_send_event(compositor->term, &evt);
+		gf_sc_send_event(compositor, &evt);
 		compositor->fullscreen = 0;
 		compositor->video_out->SetFullScreen(compositor->video_out, 0, &compositor->display_width, &compositor->display_height);
 	}
@@ -165,7 +202,7 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			evt.type = GF_EVENT_SIZE;
 			evt.size.width = width;
 			evt.size.height = height;
-			gf_term_send_event(compositor->term, &evt);
+			gf_sc_send_event(compositor, &evt);
 		}
 		/*size changed from scene cfg: resize window first*/
 		if (compositor->msg_type & GF_SR_CFG_SET_SIZE) {
@@ -526,43 +563,8 @@ enum
 	GF_COMPOSITOR_THREAD_INIT_FAILED,
 };
 
-static u32 gf_sc_proc(void *par)
-{
-	GF_Err e;
-	GF_Compositor *compositor = (GF_Compositor *) par;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Compositor] Entering thread ID %d\n", gf_th_id() ));
-
-	compositor->video_th_state = GF_COMPOSITOR_THREAD_START;
-	e = gf_sc_create(compositor);
-	if (e != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[Compositor] Failed to initialize compositor: %s\n", gf_error_to_string(e) ));
-		compositor->video_th_state = GF_COMPOSITOR_THREAD_INIT_FAILED;
-		return 1;
-	}
-
-	compositor->video_th_state = GF_COMPOSITOR_THREAD_RUN;
-	while (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
-		//simulation tick is self-regulating. Call it regardless of the visibility status
-		gf_sc_render_frame(compositor);
-	}
-
-#ifndef GPAC_DISABLE_3D
-	visual_3d_reset_graphics(compositor->visual);
-	compositor_2d_reset_gl_auto(compositor);
-#endif
-	gf_sc_texture_cleanup_hw(compositor);
-
-
-	/*destroy video out here if we're using openGL, to avoid threading issues*/
-	compositor->video_out->Shutdown(compositor->video_out);
-	gf_modules_close_interface((GF_BaseInterface *)compositor->video_out);
-	compositor->video_out = NULL;
-	compositor->video_th_state = GF_COMPOSITOR_THREAD_DONE;
-	return 0;
-}
-
-GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
+GF_Compositor *gf_sc_new(GF_User *user)
 {
 	GF_Err e;
 	GF_Compositor *tmp;
@@ -573,7 +575,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 		return NULL;
 	}
 	tmp->user = user;
-	tmp->term = term;
 	tmp->mx = gf_mx_new("Compositor");
 
 	/*load proto modules*/
@@ -602,31 +603,14 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	}
 
 
-	if (self_threaded) {
-
-		tmp->VisualThread = gf_th_new("Compositor");
-		gf_th_run(tmp->VisualThread, gf_sc_proc, tmp);
-
-		/*wait until init is done*/
-		while (tmp->video_th_state < GF_COMPOSITOR_THREAD_RUN) {
-			gf_sleep(1);
-		}
-		/*init failure*/
-		if (tmp->video_th_state == GF_COMPOSITOR_THREAD_INIT_FAILED) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("GF_COMPOSITOR_THREAD_INIT_FAILED : Deleting compositor.\n"));
-			gf_sc_del(tmp);
-			return NULL;
-		}
-	} else {
-		e = gf_sc_create(tmp);
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error while calling gf_sc_create() : %s, deleting compositor.\n", gf_error_to_string(e)));
-			gf_sc_del(tmp);
-			return NULL;
-		}
+	e = gf_sc_create(tmp);
+	if (e) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Error while calling gf_sc_create() : %s, deleting compositor.\n", gf_error_to_string(e)));
+		gf_sc_del(tmp);
+		return NULL;
 	}
 
-	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
+	if (tmp->user->init_flags & GF_TERM_NO_REGULATION )
 		tmp->no_regulation = GF_TRUE;
 	
 	/*try to load GL extensions*/
@@ -646,22 +630,10 @@ void gf_sc_del(GF_Compositor *compositor)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroying\n"));
 	gf_sc_lock(compositor, GF_TRUE);
 
-	if (compositor->VisualThread) {
-		if (compositor->video_th_state == GF_COMPOSITOR_THREAD_RUN) {
-			compositor->video_th_state = GF_COMPOSITOR_THREAD_ABORTING;
-			while (compositor->video_th_state != GF_COMPOSITOR_THREAD_DONE) {
-				gf_sc_lock(compositor, GF_FALSE);
-				gf_sleep(1);
-				gf_sc_lock(compositor, GF_TRUE);
-			}
-		}
-		gf_th_del(compositor->VisualThread);
-	} else {
 #ifndef GPAC_DISABLE_3D
-		compositor_2d_reset_gl_auto(compositor);
+	compositor_2d_reset_gl_auto(compositor);
 #endif
-		gf_sc_texture_cleanup_hw(compositor);
-	}
+	gf_sc_texture_cleanup_hw(compositor);
 
 	if (compositor->video_out) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Closing video output\n"));
@@ -1122,7 +1094,7 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = width;
 		evt.size.height = height;
-		gf_term_send_event(compositor->term, &evt);
+		gf_sc_send_event(compositor, &evt);
 	}
 	return GF_OK;
 }
@@ -1183,7 +1155,7 @@ GF_Err gf_sc_set_size(GF_Compositor *compositor, u32 NewWidth, u32 NewHeight)
 		evt.type = GF_EVENT_SCENE_SIZE;
 		evt.size.width = NewWidth;
 		evt.size.height = NewHeight;
-		gf_term_send_event(compositor->term, &evt);
+		gf_sc_send_event(compositor, &evt);
 	}
 
 	return GF_OK;
@@ -2988,9 +2960,11 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 {
 	Bool ret;
 
-	if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
+	if ( (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
+#ifdef FILTER_FIXME
 		GF_Event evt = *event;
 		gf_term_mouse_input(compositor->term, &evt.mouse);
+#endif
 	}
 
 	/*	if (!compositor->interaction_level || (compositor->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
@@ -3066,7 +3040,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 	break;
 	case GF_EVENT_SIZE:
 		/*user consummed the resize event, do nothing*/
-		if ( gf_term_send_event(compositor->term, event) )
+		if ( gf_sc_send_event(compositor, event) )
 			return GF_TRUE;
 
 		/*not consummed and compositor "owns" the output window (created by the output module), resize*/
@@ -3134,16 +3108,20 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		ret = GF_FALSE;
 		event->key.flags |= compositor->key_states;
 		/*key sensor*/
-		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
+		if ((compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
+#if FILTER_FIXME
 			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? GF_TRUE : GF_FALSE);
+#endif
 		}
 		ret += gf_sc_handle_event_intern(compositor, event, from_user);
 		return ret;
 	}
 
 	case GF_EVENT_TEXTINPUT:
+#ifdef FILTER_FIXME
 		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) )
 			gf_term_string_input(compositor->term , event->character.unicode_char);
+#endif
 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
@@ -3172,7 +3150,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		break;
 	/*when we process events we don't forward them to the user*/
 	default:
-		return gf_term_send_event(compositor->term, event);
+		return gf_sc_send_event(compositor, event);
 	}
 	/*if we get here, event has been consumed*/
 	return GF_TRUE;

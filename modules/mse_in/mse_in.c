@@ -64,8 +64,12 @@ static GF_HTML_SourceBuffer *MSE_GetSourceBufferForChannel(GF_HTML_MediaSource *
 		u32 i;
 		GF_InputService *parser;
 		ch = (GF_Channel *) channel;
-		assert(ch->odm && ch->odm->OD);
+		assert(ch->odm && ch->odm->ID);
+#if FILTER_FIXME
 		parser = (GF_InputService *) ch->odm->OD->service_ifce;
+#else
+		parser=NULL;
+#endif
 		if (!parser) return NULL;
 		for (i = 0; i < gf_list_count(mediasource->sourceBuffers.list); i++) {
 			GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(mediasource->sourceBuffers.list, i);

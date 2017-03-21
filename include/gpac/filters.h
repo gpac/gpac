@@ -248,10 +248,12 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid);
 
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
+u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid);
 
 void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
 
-void gf_filter_pck_ref(GF_FilterPacket *pck);
+//pck structure may be destroyed in this call, use the packet passed as return value 
+GF_FilterPacket *gf_filter_pck_ref(GF_FilterPacket *pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);
 
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data);
@@ -288,6 +290,9 @@ enum
 {
 	//(uint) PID ID
 	GF_PROP_PID_ID = GF_4CC('g','f','I','D'),
+
+	//(uint) ID of originating service
+	GF_PROP_PID_SERVICE_ID = GF_4CC('g','f','S','I'),
 
 	//(u32) stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('g','f','S','T'),
@@ -337,6 +342,8 @@ enum
 	//(uint) stream access type
 	GF_PROP_PCK_SAP = GF_4CC('g','p','S','A'),
 	GF_PROP_PCK_CORRUPTED = GF_4CC('g','p','C','O'),
+	//(longuint) NTP time stamp from sender
+	GF_PROP_PCK_SENDER_NTP = GF_4CC('g','p','T','S'),
 	//(bool) end of stream flag, set on packet with NULL data
 	GF_PROP_PCK_EOS = GF_4CC('g','p','E','S'),
 };

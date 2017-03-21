@@ -551,9 +551,7 @@ static void toggle_keyboard(GF_Compositor * compositor, Bool do_show)
 		GF_Err e = compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 		if (e == GF_OK) return;
 	}
-	if (compositor->term) {
-		gf_term_user_event(compositor->term, &evt);
-	}
+	gf_sc_user_event(compositor, &evt);
 }
 
 static Bool hit_node_editable(GF_Compositor *compositor, Bool check_focus_node)
@@ -1968,7 +1966,11 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 
 static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
+#if FILTER_FIXME
 	Bool ret = gf_term_forward_event(compositor->term, ev, consumed, GF_FALSE);
+#else
+	Bool ret = GF_FALSE;
+#endif
 	if (consumed) return GF_FALSE;
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
@@ -1981,7 +1983,7 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
 			event.mouse.y = ev->mouse.y;
-			ret += gf_term_send_event(compositor->term, &event);
+			ret += gf_sc_send_event(compositor, &event);
 		}
 		compositor->last_click_time = now;
 	}

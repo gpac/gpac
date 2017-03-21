@@ -595,7 +595,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 				}
 
 
-				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID));
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Media deinterleaving OD %d ch %d\n", ch->odm->ID, ch->esd->ESID));
 
 				dts_shift = 0;
 				DTS = au->DTS;
@@ -650,7 +650,7 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 				au->DTS = 0;
 			}
 		} else {
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Audio deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->OD->objectDescriptorID));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[SyncLayer] Audio deinterleaving OD %d ch %d\n", ch->esd->ESID, ch->odm->ID));
 			/*de-interleaving of AUs*/
 			if (ch->AU_buffer_first->DTS > au->DTS) {
 				au->next = ch->AU_buffer_first;
@@ -853,9 +853,9 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 	if (cts + ch->MinBuffer < now) {
 		if (ch->MinBuffer && (ch->is_raw_channel==2)) {
 			gf_es_init_clock(ch, cts);
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - adjusting clock\n", ch->odm->OD->objectDescriptorID, now, cts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - adjusting clock\n", ch->odm->ID, now, cts));
 		} else {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - DROPPING\n", ch->odm->OD->objectDescriptorID, now, cts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched at OTB %u but frame TS is %u ms - DROPPING\n", ch->odm->ID, now, cts));
 		}
 		return;
 	}
@@ -869,7 +869,7 @@ void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size
 			cu->data = payload;
 			size = payload_size;
 			cu->TS = cts;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %u ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->OD->objectDescriptorID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Raw Frame dispatched to CB - TS %u ms - OTB %d ms - OTB_drift %d ms\n", ch->odm->ID, cu->TS, gf_clock_real_time(ch->clock), gf_clock_time(ch->clock) ));
 		}
 		gf_cm_unlock_input(cb, cu, size, 1);
 
@@ -1470,7 +1470,7 @@ void gf_es_on_eos(GF_Channel *ch)
 	if (ch->len)
 		gf_es_dispatch_au(ch, 0);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Channel %d is end of stream\n", ch->odm->OD->objectDescriptorID, (u32) ch->esd->ESID));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Channel %d is end of stream\n", ch->odm->ID, (u32) ch->esd->ESID));
 	gf_odm_on_eos(ch->odm, ch);
 }
 
@@ -1704,7 +1704,7 @@ void gf_es_drop_au(GF_Channel *ch)
 	ch->AU_buffer_first = au->next;
 
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM%d] ES%d Droping AU CTS %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, au->CTS));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM%d] ES%d Droping AU CTS %d\n", ch->odm->ID, ch->esd->ESID, au->CTS));
 
 	au->next = NULL;
 	gf_db_unit_del(au);

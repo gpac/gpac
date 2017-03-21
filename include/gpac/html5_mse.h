@@ -121,7 +121,7 @@ typedef struct
 	void                    *prev_buffer;
 
 	/* Media parser */
-	GF_InputService         *parser;
+	void         *parser;
 
 	/* MPEG-4 Object descriptor as returned by the media parser */
 	GF_ObjectDescriptor     *service_desc;
@@ -187,7 +187,7 @@ typedef struct _html_mediasource
 	   should be NULL when the MediaSource is not open
 	   we use only one service object for all sourceBuffers
 	   */
-	GF_ClientService *service;
+	void *service;
 
 	/* SceneGraph to be used before the node is actually attached */
 	GF_SceneGraph *sg;
@@ -229,7 +229,7 @@ typedef struct
 	GF_Err      status;
 } GF_MSE_Packet;
 
-GF_Err gf_mse_proxy(GF_InputService *parser, GF_NetworkCommand *command);
+GF_Err gf_mse_proxy(void *parser, void *command);
 void gf_mse_packet_del(GF_MSE_Packet *packet);
 
 GF_Err gf_mse_track_buffer_get_next_packet(GF_HTML_Track *track,

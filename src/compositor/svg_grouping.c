@@ -907,7 +907,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 			if (!evt.navigate.to_url) evt.navigate.to_url = "document internal link";
 		}
 
-		gf_term_send_event(compositor->term, &evt);
+		gf_sc_send_event(compositor, &evt);
 		return;
 	}
 
@@ -925,10 +925,10 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 			}
 
 			if (evt.navigate.to_url[0] != '#') {
-				if (compositor->term) {
+				if (compositor->user->EventProc) {
 					gf_scene_process_anchor(handler, &evt);
 				} else {
-					gf_term_send_event(compositor->term, &evt);
+					gf_sc_send_event(compositor, &evt);
 				}
 				gf_free((char *)evt.navigate.to_url);
 				return;

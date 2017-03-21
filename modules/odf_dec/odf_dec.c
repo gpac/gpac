@@ -58,7 +58,6 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
-	odm->OD = od;
 	odm->term = scene->root_od->term;
 	odm->parentscene = scene;
 	gf_mx_p(scene->mx_resources);
@@ -101,6 +100,7 @@ static GF_Err ODS_RemoveOD(ODPriv *priv, GF_ODRemove *odR)
 
 static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 {
+#if FILTER_FIXME
 	GF_ESD *esd, *prev;
 	GF_ObjectManager *odm;
 	u32 count, i;
@@ -135,6 +135,9 @@ static GF_Err ODS_UpdateESD(ODPriv *priv, GF_ESDUpdate *ESDs)
 	(typically an empty object first sent, then a stream added - cf how ogg demuxer works)*/
 	gf_scene_setup_object(priv->scene, odm);
 	return GF_OK;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 }
 
 
