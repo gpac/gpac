@@ -110,10 +110,12 @@ GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url)
 {
 	Double offset = 0;
 	Bool loop = 0;
+#if FILTER_FIXME
 	if (txh->compositor->term && (txh->compositor->term->play_state!=GF_STATE_PLAYING)) {
 		offset = gf_node_get_scene_time(txh->owner);
 		loop = /*gf_mo_get_loop(gf_mo_register(txh->owner, url, 0, 0), 0)*/ 1;
 	}
+#endif
 	return gf_sc_texture_play_from_to(txh, url, offset, -1, loop, 0);
 }
 

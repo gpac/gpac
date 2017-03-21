@@ -578,7 +578,6 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	}
 
 	if (!strnicmp(URL, "views://", 8)) {
-		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
 		gf_scene_generate_views(term->root_scene, (char *) URL+8, (char*)parent_path);
 		return;
 	}
@@ -1172,7 +1171,7 @@ void gf_term_handle_services(GF_Terminal *term)
 				if (odm->addon) odm->flags |= GF_ODM_REGENERATE_SCENE;
 
 				else if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
-				else if (odm->OD && (odm->OD->objectDescriptorID==GF_MEDIA_EXTERNAL_ID)) destroy = 1;
+				else if (odm->ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
 			}
 			if (destroy) {
 				gf_odm_disconnect(odm, 2);
@@ -1542,6 +1541,8 @@ void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char 
 /*connects given OD manager to its URL*/
 static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
+#if FILTER_FIXME
+
 	GF_ClientService *ns;
 	u32 i, count;
 	GF_Err e;
@@ -1627,7 +1628,7 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 			}
 			if (odm->flags & GF_ODM_DESTROYED) {
 				gf_mx_v(term->net_mx);
-				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
 				return;
 			}
 			odm->net_service = ns;
@@ -1656,6 +1657,7 @@ static void gf_term_connect_object(GF_Terminal *term, GF_ObjectManager *odm, cha
 
 	/*remove pending download session if any*/
 	gf_term_cleanup_pending_session(term, ns);
+#endif
 }
 
 GF_ClientService *gf_term_get_service_from_url(GF_Terminal *term, const char *url)
@@ -1904,6 +1906,8 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl)
 GF_EXPORT
 GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 {
+#if FILTER_FIXME
+
 #ifndef GPAC_DISABLE_SMGR
 	GF_Err e;
 	GF_StreamContext *sc;
@@ -2035,6 +2039,9 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 	}
 	gf_sm_del(load.ctx);
 	return e;
+#else
+	return GF_NOT_SUPPORTED;
+#endif
 #else
 	return GF_NOT_SUPPORTED;
 #endif
@@ -2497,6 +2504,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	if (scene->scene_codec) {
 		scene->scene_codec->decio->SetCapabilities(scene->scene_codec->decio, caps);
 	}
+#if FILTER_FIXME
 	i=0;
 	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
 		if (odm->codec)
@@ -2513,6 +2521,7 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 				gf_odm_stop(odm, GF_FALSE);
 		}
 	}
+#endif
 }
 
 GF_EXPORT

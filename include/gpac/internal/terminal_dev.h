@@ -31,89 +31,25 @@ extern "C" {
 #endif
 
 
+#include <gpac/thread.h>
+#include <gpac/filters.h>
+
 #include <gpac/terminal.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/mpeg4_odf.h>
 
-#include <gpac/modules/service.h>
-#include <gpac/modules/codec.h>
-#include <gpac/modules/ipmp.h>
 #include <gpac/mediaobject.h>
-#include <gpac/thread.h>
-#include <gpac/modules/term_ext.h>
 
 typedef struct _scene GF_Scene;
-typedef struct _media_manager GF_MediaManager;
+typedef struct _gf_addon_media GF_AddonMedia;
 typedef struct _object_clock GF_Clock;
+
+#ifdef FILTER_FIXME
+
+typedef struct _media_manager GF_MediaManager;
 typedef struct _es_channel GF_Channel;
 typedef struct _generic_codec GF_Codec;
 typedef struct _composition_memory GF_CompositionMemory;
-typedef struct _gf_addon_media GF_AddonMedia;
-
-
-struct _net_service
-{
-	/*the module handling this service - must be declared first to typecast with GF_DownloadSession upon deletion*/
-	GF_InputService *ifce;
-
-	//function table of service
-	void (*fn_connect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
-	void (*fn_disconnect_ack) (GF_ClientService *service, LPNETCHANNEL ns, GF_Err response);
-	void (*fn_command) (GF_ClientService *service, GF_NetworkCommand *com, GF_Err response);
-	void (*fn_data_packet) (GF_ClientService *service, LPNETCHANNEL ns, char *data, u32 data_size, GF_SLHeader *hdr, GF_Err reception_status);
-	void (*fn_add_media) (GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check);
-
-
-
-	/*the terminal*/
-	struct _tag_terminal *term;
-	/*service url*/
-	char *url;
-	/*service mime type*/
-	char *mime;
-	/*od_manager owning service, NULL for services created for remote channels*/
-	struct _od_manager *owner;
-	/*number of attached remote channels ODM (ESD URLs)*/
-	u32 nb_ch_users;
-	/*number of attached remote ODM (OD URLs)*/
-	u32 nb_odm_users;
-
-	/*clock objects. Kept at service level since ESID namespace is the service one*/
-	GF_List *Clocks;
-	/*all downloaders objects used in this service*/
-	GF_List *dnloads;
-	/*cache asscoiated with service, if any*/
-	GF_StreamingCache *cache;
-
-	/*quick hack for avoiding double session creation*/
-	GF_DownloadSession *pending_service_session;
-
-	Bool is_paused;
-	//used when term_set_speed is called before
-	Fixed set_speed;
-
-	/*used by DASH until we rewrite the input module API:
-	if set to 1 during a disconnect() call, the root scene of the service and all sub-objects will be disconnected
-	if set to 2 during a disconnect() call, the call will be skiped
-	*/
-	u32 subservice_disconnect;
-};
-
-
-/*opens service - performs URL concatenation if parent service specified*/
-GF_ClientService *gf_term_service_new(GF_Terminal *term, GF_ObjectManager *owner, const char *url, const char *parent_url, GF_Err *ret_code);
-/*destroy service*/
-void gf_term_service_del(GF_ClientService *nets);
-
-/*access to the module interfaces - cf net_api.h GF_InputService for details*/
-GF_Err gf_term_service_command(GF_ClientService *ns, GF_NetworkCommand *com);
-Bool gf_term_service_can_handle_url(GF_ClientService *ns, char *url);
-
-GF_Err gf_term_channel_get_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *is_compressed, GF_Err *out_reception_status, Bool *is_new_data);
-GF_Err gf_term_channel_release_sl_packet(GF_ClientService *ns, LPNETCHANNEL channel);
-
-/*cache open/close*/
-GF_Err gf_term_service_cache_load(GF_ClientService *ns);
-GF_Err gf_term_service_cache_close(GF_ClientService *ns, Bool no_save);
 
 /*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
 this is mainly designed for movie dumping in MP4Client*/
@@ -122,6 +58,35 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 u32 gf_term_sample_clocks(GF_Terminal *term);
 
 u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions);
+
+#endif
+
+typedef struct
+{
+	/*od_manager owning service, NULL for services created for remote channels*/
+	struct _od_manager *owner;
+
+	/*service url*/
+	char *url;
+
+	/*number of attached remote channels ODM (ESD URLs)*/
+	u32 nb_ch_users;
+	/*number of attached remote ODM (OD URLs)*/
+	u32 nb_odm_users;
+
+	/*clock objects. Kept at service level since ESID namespace is the service one*/
+	GF_List *Clocks;
+} GF_SceneNamespace;
+
+
+
+/*opens service - performs URL concatenation if parent service specified*/
+GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, const char *url, const char *parent_url);
+/*destroy service*/
+void gf_scene_ns_del(GF_SceneNamespace *ns);
+
+
+
 
 /*
 		GF_Scene object. This is the structure handling all scene management, mainly:
@@ -137,12 +102,7 @@ struct _scene
 {
 	/*root OD of the subscene, ALWAYS namespace of the parent scene*/
 	struct _od_manager *root_od;
-	/*scene codec: top level decoder decoding/generating the scene - can be BIFS, VRML parser, etc*/
-	struct _generic_codec *scene_codec;
-	/*OD codec - specific to MPEG-4*/
-	struct _generic_codec *od_codec;
 
-	GF_Mutex *mx_resources;
 	/*all sub resources of this scene (eg, list of GF_ObjectManager), namespace of this scene. This includes
 	both external resources (urls) and ODs sent in MPEG-4 systems*/
 	GF_List *resources;
@@ -205,8 +165,7 @@ struct _scene
 	Bool is_dynamic_scene;
 	/*for MPEG-2 TS, indicates the current serviceID played from mux*/
 	u32 selected_service_id;
-	/*clock for dynamic scene - current assumption is that all selected streams are synchronized in the dyn scene*/
-	GF_Clock *dyn_ck;
+
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
@@ -247,9 +206,15 @@ struct _scene
 	//0: no pause - 1: paused and trigger pause command to net, 2: only clocks are paused but commands not sent
 	u32 first_frame_pause_type;
 	u32 vr_type;
+
+	GF_Scene *parent_scene;
+	GF_Compositor *compositor;
+
+	//only for root scene
+	GF_List *namespaces;
 };
 
-GF_Scene *gf_scene_new(GF_Scene *parentScene);
+GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene);
 void gf_scene_del(GF_Scene *scene);
 struct _od_manager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID);
 void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown);
@@ -288,7 +253,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 //check clock status.
 //If @check_buffering is 0, returns 1 if all clocks have seen eos, 0 otherwise
 //If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
-Bool gf_scene_check_clocks(GF_ClientService *ns, GF_Scene *scene, Bool check_buffering);
+Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering);
 
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 
@@ -329,6 +294,9 @@ void gf_mo_update_caps(GF_MediaObject *mo);
 
 const char *gf_scene_get_fragment_uri(GF_Node *node);
 void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
+
+
+#if FILTER_FIXME
 
 enum
 {
@@ -531,9 +499,6 @@ u32 gf_term_get_time(GF_Terminal *term);
 /*forces scene composition*/
 void gf_term_invalidate_compositor(GF_Terminal *term);
 
-/*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
-void gf_term_node_callback(void *_is, u32 type, GF_Node *node, void *param);
-
 /*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).
 For these nodes, the traverse effect passed will be NULL.*/
 void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
@@ -552,12 +517,14 @@ typedef struct
 GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
 GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
 
+#endif
+
 
 /*clock*/
 struct _object_clock
 {
 	u16 clockID;
-	GF_Terminal *term;
+	GF_Compositor *compositor;
 	GF_Mutex *mx;
 	/*no_time_ctrl : set if ANY stream running on this clock has no time control capabilities - this avoids applying
 	mediaControl and others that would break stream dependencies*/
@@ -626,6 +593,9 @@ void gf_clock_buffer_off(GF_Clock *ck);
 void gf_clock_set_speed(GF_Clock *ck, Fixed speed);
 /*set clock drift - used to resync audio*/
 void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift);
+
+
+#if FILTER_FIXME
 
 enum
 {
@@ -955,6 +925,8 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize);
 GF_Err gf_codec_change_decoder(GF_Codec *codec);
 
+#endif
+
 /*OD manager*/
 
 enum
@@ -1017,33 +989,36 @@ enum
 
 struct _od_manager
 {
-	/*pointer to terminal*/
-	struct _tag_terminal *term;
-	/*the service used by this ODM. If the service private data is this ODM, then the service was created for this ODM*/
-	GF_ClientService *net_service;
 	/*parent scene or NULL for root scene*/
 	GF_Scene *parentscene;
-	/*channels associated with this object (media channels, OCR, IPMP, OCI, etc)*/
-	GF_List *channels;
 	/*sub scene for inline or NULL */
 	GF_Scene *subscene;
-	/*object codec (media or BIFS for AnimationStream) attached if any*/
-	struct _generic_codec *codec;
-#ifndef GPAC_MINIMAL_ODF
-	/*OCI codec attached if any*/
-	struct _generic_codec *oci_codec;
-#endif
-	/*OCR codec attached if any*/
-	struct _generic_codec *ocr_codec;
 
-	/*MPEG-4 object descriptor*/
-	GF_ObjectDescriptor *OD;
+	/*namespace for clocks*/
+	GF_SceneNamespace *scene_ns;
 
-	/*exclusive access is required since rendering and media management don't always take place in the same thread*/
-	GF_Mutex *mx;
+	/*clock for this object*/
+	GF_Clock *ck;
 
+	GF_FilterPid *pid;
+	//object ID for linking with mediaobjects
+	u32 ID;
+	//parent service ID as defined from input
+	u32 ServiceID;
+	Bool hybrid_layered_coded;
+
+	Bool clock_inherited;
+
+	//internal hash for source allowing to distinguish input PIDs sources
+	u32 source_id;
+
+	//media type for this object
+	u32 type, original_oti;
+	Bool config_update;
+	
 	u32 flags;
 
+	GF_MediaObject *sync_ref;
 	/*PLs*/
 	u8 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;
 
@@ -1101,13 +1076,16 @@ void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt);
 /*setup service entry point*/
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
 /*setup OD*/
-void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *parent_serv);
+void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url);
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
-/*setup an ESD*/
-GF_Err gf_odm_setup_es(GF_ObjectManager *odm, GF_ESD *esd, GF_ClientService *service, GF_MediaObject *sync_ref);
+/*setup PID attached to this object*/
+GF_Err gf_odm_setup_pid(GF_ObjectManager *odm);
+
 /*removes an ESD (this destroys associated channel if any)*/
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
+
+#if FILTER_FIXME
 /*set stream duration - updates object duration accordingly*/
 void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duration);
 
@@ -1116,6 +1094,8 @@ void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *, u32 time_sh
 
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
+#endif
+
 /*start Object streams and queue object for network PLAY
 media_queue_state: 0: object was not in media queue and must be queued
                    1: object is already in media queue
@@ -1174,6 +1154,11 @@ struct _mediaobj
 	u32 num_to_restart, num_restart;
 	Fixed speed;
 
+	//current packet
+	GF_FilterPacket *pck;
+	//number of bytes read in the current packet
+	u32 RenderedLength;
+
 	/*shared object info: if 0 a new frame will be checked, otherwise current is returned*/
 	u32 nb_fetch;
 	/*frame presentation time*/
@@ -1182,7 +1167,7 @@ struct _mediaobj
 	s32 ms_until_next;
 	s32 ms_until_pres;
 	/*data frame size*/
-	u32 framesize;
+	u32 size, framesize;
 	/*pointer to data frame */
 	char *frame;
 	/* Objects implementing the DOM Event Target interface
@@ -1198,7 +1183,7 @@ struct _mediaobj
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat;
 	Bool is_flipped;
-	u32 sample_rate, num_channels, bits_per_sample, channel_config;
+	u32 sample_rate, num_channels, bits_per_sample, channel_config, bytes_per_sec;
 	u32 srd_x, srd_y, srd_w, srd_h;
 	
 	u32 quality_degradation_hint;
@@ -1210,6 +1195,7 @@ struct _mediaobj
 
 GF_MediaObject *gf_mo_new();
 
+#if FILTER_FIXME
 
 /*used for delayed channel setup*/
 typedef struct
@@ -1231,6 +1217,8 @@ void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
 void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
 void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
 
+#endif
+
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);
 
@@ -1240,14 +1228,21 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 //	pos is bottom-left(0), top-left (1) bottom-right (2) or top-right (3)
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor);
 
+#if FILTER_FIXME
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
+#endif
+
+
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
 Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);
 s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/
 Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
+
+/*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
+void gf_scene_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
 
 //exported for gpac.js, resumes to main content
@@ -1295,11 +1290,14 @@ struct _gf_addon_media
 void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 
 
+#if FILTER_FIXME
 
 GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
 
 
 Bool gf_codec_is_scene_or_image(GF_Codec *codec);
+
+#endif
 
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
 

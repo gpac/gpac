@@ -323,7 +323,7 @@ static u32 MM_SimulationStep_Decoder(GF_Terminal *term, u32 *nb_active_decs)
 		/*avoid signaling errors too often...*/
 #ifndef GPAC_DISABLE_LOG
 		if (e) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->OD->objectDescriptorID, gf_error_to_string(e) ));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[ODM%d] Decoding Error %s\n", ce->dec->odm->ID, gf_error_to_string(e) ));
 		} else {
 			//GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] Decode time slice %d ms out of %d ms\n", ce->dec->decio ? ce->dec->decio->module_name : "RAW", time_taken, time_left ));
 		}
@@ -407,7 +407,7 @@ u32 RunSingleDec(void *ptr)
 	u64 time_taken;
 	CodecEntry *ce = (CodecEntry *) ptr;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaDecoder %d] Entering thread ID %d\n", ce->dec->odm->OD->objectDescriptorID, gf_th_id() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[MediaDecoder %d] Entering thread ID %d\n", ce->dec->odm->ID, gf_th_id() ));
 
 	while (ce->flags & GF_MM_CE_RUNNING) {
 		time_taken = gf_sys_clock_high_res();

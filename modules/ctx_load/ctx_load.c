@@ -73,7 +73,7 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	/*remove the old OD*/
 	if (odm) gf_odm_disconnect(odm, 1);
 	odm = gf_odm_new();
-	odm->OD = od;
+	odm->ID = od->objectDescriptorID;
 	odm->term = scene->root_od->term;
 	odm->parentscene = scene;
 	gf_mx_p(scene->mx_resources);
@@ -143,7 +143,7 @@ void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
 		c->on_reverseActivate = CTXLoad_OnReverseActivate;
 		gf_node_set_private(node, cbk);
 	} else {
-		gf_term_node_callback(cbk, type, node, param);
+		gf_scene_node_callback(cbk, type, node, param);
 	}
 }
 
@@ -355,10 +355,12 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			gf_sm_load_done(&priv->load);
 			priv->file_pos = 0;
 			/*queue scene for detach*/
+#if FILTER_FIXME
 			gf_term_lock_media_queue(priv->scene->root_od->term, GF_TRUE);
 			priv->scene->root_od->action_type = GF_ODM_ACTION_SCENE_RECONNECT;
 			gf_list_add(priv->scene->root_od->term->media_queue, priv->scene->root_od);
 			gf_term_lock_media_queue(priv->scene->root_od->term, GF_FALSE);
+#endif
 
 			return CTXLoad_Setup((GF_BaseDecoder *)plug);
 		}

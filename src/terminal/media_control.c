@@ -369,7 +369,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 				if (!stack->stream->odm) return;
 				/*MediaControl on inline: if dynamic scene, make sure it is connected before attaching...*/
 				if (stack->stream->odm->subscene) {
-					if (stack->stream->odm->subscene->is_dynamic_scene && !stack->stream->odm->subscene->dyn_ck) return;
+					if (stack->stream->odm->subscene->is_dynamic_scene && !stack->stream->odm->ck) return;
 				}
 				gf_sg_vrml_field_copy(&stack->url, &stack->control->url, GF_SG_VRML_MFURL);
 
@@ -411,7 +411,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 	} else {
 		stack->stream = gf_scene_get_media_object(stack->parent, &stack->control->url, GF_MEDIA_OBJECT_UNDEF, 0);
 		if (!stack->stream || !stack->stream->odm) {
-			if (stack->control->url.count) gf_term_invalidate_compositor(stack->parent->root_od->term);
+			if (stack->control->url.count) gf_sc_invalidate(stack->parent->compositor, NULL);
 			stack->stream = NULL;
 			stack->changed = 0;
 			return;
@@ -422,7 +422,7 @@ void RenderMediaControl(GF_Node *node, void *rs, Bool is_destroy)
 			stack->stream = NULL;
 			if (stack->control->url.count) {
 				stack->is_init = 0;
-				gf_term_invalidate_compositor(stack->parent->root_od->term);
+				gf_sc_invalidate(stack->parent->compositor, NULL);
 			}
 			return;
 		}
@@ -566,41 +566,37 @@ void MC_Modified(GF_Node *node)
 
 	gf_node_dirty_set( gf_sg_get_root_node(gf_node_get_graph(node)), 0, 1);
 	/*invalidate scene, we recompute MC state in render*/
-	gf_term_invalidate_compositor(stack->parent->root_od->term);
+	gf_sc_invalidate(stack->parent->compositor, NULL);
 }
 
 
 void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 {
 	u32 i;
-	GF_Channel *ch;
 
 	/*keep track of it*/
 	if (ctrl && (gf_list_find(odm->mc_stack, ctrl) < 0)) gf_list_add(odm->mc_stack, ctrl);
 	if (ctrl && !ctrl->control->enabled) return;
 
 	if (odm->subscene && odm->subscene->is_dynamic_scene) {
-		if (odm->subscene->dyn_ck) {
+		if (odm->ck) {
 			/*deactivate current control*/
-			if (ctrl && odm->subscene->dyn_ck->mc) {
-				odm->subscene->dyn_ck->mc->control->enabled = 0;
-				gf_node_event_out((GF_Node *)odm->subscene->dyn_ck->mc->control, 7/*"enabled"*/);
+			if (ctrl && odm->ck->mc) {
+				odm->ck->mc->control->enabled = 0;
+				gf_node_event_out((GF_Node *)odm->ck->mc->control, 7/*"enabled"*/);
 			}
-			odm->subscene->dyn_ck->mc = ctrl;
+			odm->ck->mc = ctrl;
 		}
 	} else {
 		/*for each clock in the controled OD*/
-		i=0;
-		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
-			if (ch->clock->mc != ctrl) {
-				/*deactivate current control*/
-				if (ctrl && ch->clock->mc) {
-					ch->clock->mc->control->enabled = 0;
-					gf_node_event_out((GF_Node *)ch->clock->mc->control, 7/*"enabled"*/);
-				}
-				/*and attach this control to the clock*/
-				ch->clock->mc = ctrl;
+		if (odm->ck && (odm->ck->mc != ctrl)) {
+			/*deactivate current control*/
+			if (ctrl && odm->ck->mc) {
+				odm->ck->mc->control->enabled = 0;
+				gf_node_event_out((GF_Node *)odm->ck->mc->control, 7/*"enabled"*/);
 			}
+			/*and attach this control to the clock*/
+			odm->ck->mc = ctrl;
 		}
 	}
 	/*store active control on media*/
@@ -665,7 +661,7 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 	if (ctrl->current_seg>=count) return 0;
 
 	/*synth media, trigger if end of segment run-time*/
-	if (!odm->codec || ((odm->codec->type!=GF_STREAM_VISUAL) && (odm->codec->type!=GF_STREAM_AUDIO))) {
+	if (!odm->type || ((odm->type!=GF_STREAM_VISUAL) && (odm->type!=GF_STREAM_AUDIO))) {
 		GF_Clock *ck = gf_odm_get_media_clock(odm);
 		u32 now = gf_clock_time(ck);
 		u64 dur = odm->subscene ? odm->subscene->duration : odm->duration;
@@ -673,7 +669,7 @@ Bool gf_odm_check_segment_switch(GF_ObjectManager *odm)
 		if (odm->subscene && odm->subscene->needs_restart) return 0;
 		if (cur) dur = (u32) ((cur->Duration+cur->startTime)*1000);
 		//if next frame is after current segment trigger switch now
-		if (now + odm->term->compositor->frame_duration < dur)
+		if (now + odm->parentscene->compositor->frame_duration < dur)
 			return 0;
 	} else {
 		/*FIXME - for natural media with scalability, we should only process when all streams of the object are done*/

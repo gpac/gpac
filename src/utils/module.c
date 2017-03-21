@@ -44,6 +44,13 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_STATIC_MODULES
 	GF_InterfaceRegister *pr;
 
+#ifdef GPAC_HAS_SDL
+	LOAD_PLUGIN(sdl_out);
+#endif
+	LOAD_PLUGIN(soft_raster);
+
+#if FILTER_FIXME
+
 #ifdef GPAC_HAS_FAAD
 	LOAD_PLUGIN(aac_in);
 #endif
@@ -123,10 +130,6 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #endif
 	LOAD_PLUGIN(rtp_in);
 	LOAD_PLUGIN(saf_in);
-#ifdef GPAC_HAS_SDL
-	LOAD_PLUGIN(sdl_out);
-#endif
-	LOAD_PLUGIN(soft_raster);
 #if !defined(GPAC_DISABLE_SMGR) && !defined(GPAC_DISABLE_SVG)
 	LOAD_PLUGIN(svg_in);
 #endif
@@ -159,6 +162,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 //    LOAD_PLUGIN(ios_mpegv);
 #endif
 
+#endif
 
 #endif //GPAC_STATIC_MODULES
 

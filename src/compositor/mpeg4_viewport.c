@@ -112,7 +112,7 @@ GF_Err gf_sc_set_viewpoint(GF_Compositor *compositor, u32 viewpoint_idx, const c
 #ifndef GPAC_DISABLE_VRML
 
 
-#define VPCHANGED(__rend) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; gf_term_send_event(__rend->term, &evt); }
+#define VPCHANGED(__comp) { GF_Event evt; evt.type = GF_EVENT_VIEWPOINTS; gf_sc_send_event(__comp, &evt); }
 
 
 static void DestroyViewStack(GF_Node *node)

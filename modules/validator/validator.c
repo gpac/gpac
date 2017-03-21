@@ -251,9 +251,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
 			}
 
-			validator->ck = validator->term->root_scene->scene_codec ?
-			                validator->term->root_scene->scene_codec->ck :
-			                validator->term->root_scene->dyn_ck;
+			validator->ck = validator->term->root_scene->is_dynamic_scene ?  validator->term->root_scene->dyn_ck : validator->term->root_scene->root_od->ck;
 		}
 		break;
 	case GF_EVENT_CLICK:
@@ -491,7 +489,7 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 			if (!validator->trace_mode) {
 				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
 			}
-			validator->ck = validator->term->root_scene->scene_codec ? validator->term->root_scene->scene_codec->ck : validator->term->root_scene->dyn_ck;
+			validator->ck = validator->term->root_scene->is_dynamic_scene ? validator->term->root_scene->dyn_ck : validator->term->root_scene->root_od->ck;
 		}
 		break;
 	case GF_EVENT_KEYDOWN:

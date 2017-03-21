@@ -1338,7 +1338,7 @@ GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *compositor)
 			evt.type = GF_EVENT_QUIT;
 			evt.message.error = e;
 			evt.message.message = "Cannot setup video output";
-			gf_term_send_event(compositor->term, &evt);
+			gf_sc_send_event(compositor, &evt);
 			return e;
 		}
 

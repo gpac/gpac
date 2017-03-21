@@ -297,7 +297,7 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 {
 	GF_HTML_Track *track;
 	GF_MediaObject *mo;
-	GF_ClientService *service;
+	u32 source_id=0;
 	GF_Scene *scene;
 	u32 i, count;
 
@@ -305,55 +305,47 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 		return;
 	}
 	mo = gf_html_media_object(me->node);
-	if (!mo || !mo->odm || !mo->odm->net_service || !mo->odm->parentscene) {
+	if (!mo || !mo->odm || !mo->odm->parentscene) {
 		return;
 	}
-	service = mo->odm->net_service;
+	source_id = mo->odm->source_id;
 	scene = mo->odm->parentscene;
 
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
 		u32 j;
+		char id[256];
+		char *lang = "";
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
-		if (odm->net_service != service) continue;
-		if (!odm->mo || !odm->OD) continue;
-		for (j = 0; j < gf_list_count(odm->OD->ESDescriptors); j++)
-		{
-			char id[256];
-			char *lang = "";
-			GF_ESD *esd = (GF_ESD *)gf_list_get(odm->OD->ESDescriptors, j);
-			sprintf(id, "track%d", esd->ESID);
-			if (esd->langDesc)
-			{
-				lang  = "";
-			}
-			switch(odm->mo->type)
-			{
-			case GF_MEDIA_OBJECT_VIDEO:
-				if (!html_media_tracklist_has_track(&me->videoTracks, id))
-				{
-					track = html_media_add_new_track_to_list(&me->videoTracks, HTML_MEDIA_TRACK_TYPE_VIDEO,
+		if (odm->source_id != source_id) continue;
+		if (!odm->mo) continue;
+
+		sprintf(id, "track%d", odm->ID);
+#if FILTER_FIXME
+#error "set track ID and lang"
+#endif
+		switch(odm->mo->type) {
+		case GF_MEDIA_OBJECT_VIDEO:
+			if (!html_media_tracklist_has_track(&me->videoTracks, id)) {
+				track = html_media_add_new_track_to_list(&me->videoTracks, HTML_MEDIA_TRACK_TYPE_VIDEO,
 					        "video/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
-					gf_html_track_init_js(track, c, &me->videoTracks);
-				}
-				break;
-			case GF_MEDIA_OBJECT_AUDIO:
-				if (!html_media_tracklist_has_track(&me->audioTracks, id))
-				{
-					track = html_media_add_new_track_to_list(&me->audioTracks, HTML_MEDIA_TRACK_TYPE_AUDIO,
-					        "audio/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
-					gf_html_track_init_js(track, c, &me->audioTracks);
-				}
-				break;
-			case GF_MEDIA_OBJECT_TEXT:
-				if (!html_media_tracklist_has_track(&me->textTracks, id))
-				{
-					track = html_media_add_new_track_to_list(&me->textTracks, HTML_MEDIA_TRACK_TYPE_TEXT,
-					        "text/plain", GF_TRUE, id, "myKind", "myLabel", lang);
-					gf_html_track_init_js(track, c, &me->textTracks);
-				}
-				break;
+				gf_html_track_init_js(track, c, &me->videoTracks);
 			}
+			break;
+		case GF_MEDIA_OBJECT_AUDIO:
+			if (!html_media_tracklist_has_track(&me->audioTracks, id)) {
+				track = html_media_add_new_track_to_list(&me->audioTracks, HTML_MEDIA_TRACK_TYPE_AUDIO,
+					        "audio/mp4", GF_TRUE, id, "myKind", "myLabel", lang);
+				gf_html_track_init_js(track, c, &me->audioTracks);
+			}
+			break;
+		case GF_MEDIA_OBJECT_TEXT:
+			if (!html_media_tracklist_has_track(&me->textTracks, id)) {
+				track = html_media_add_new_track_to_list(&me->textTracks, HTML_MEDIA_TRACK_TYPE_TEXT,
+					        "text/plain", GF_TRUE, id, "myKind", "myLabel", lang);
+				gf_html_track_init_js(track, c, &me->textTracks);
+			}
+			break;
 		}
 	}
 }
@@ -593,13 +585,13 @@ if (JSVAL_CHECK_STRING(*vp)) {
 }
 }
 
-void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer);
+void media_event_collect_info(void *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer);
 
 static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *readyState, GF_HTML_NetworkState *networkState)
 {
 	GF_DOMMediaEvent media_event;
-	u32 min_time;
-	u32 min_buffer;
+	u32 min_time=0;
+	u32 min_buffer=0;
 	if (!mo) return;
 
 	if (!mo->odm) {
@@ -609,7 +601,9 @@ static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *r
 	}
 
 	memset(&media_event, 0, sizeof(GF_DOMMediaEvent));
+#ifdef FILTER_FIXME
 	media_event_collect_info(mo->odm->net_service, mo->odm, &media_event, &min_time, &min_buffer);
+#endif
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] min_time: %d, min_buffer: %d loaded: "LLD"/"LLD"\n",
 	//                                                    min_time, min_buffer, media_event.loaded_size, media_event.total_size));
 	if (min_buffer == 0)

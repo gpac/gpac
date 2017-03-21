@@ -62,7 +62,7 @@ extern "C" {
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-#include <gpac/modules/service.h>
+//#include <gpac/modules/service.h>
 #include <gpac/xml.h>
 #include <gpac/internal/terminal_dev.h>
 
@@ -177,7 +177,7 @@ typedef enum {
     JSObject                *_this;\
     /* GPAC-specific properties */\
     u32                     bin_id;    /* track id */\
-    LPNETCHANNEL            channel;   /* channel object used by the terminal */\
+    void *            channel;   /* channel object used by the terminal */\
     GF_ObjectDescriptor     *od;       /* MPEG-4 Object descriptor for this track */\
     GF_List                 *buffer;   /* List of MSE Packets */\
     u32						packet_index;   /* index of MSE Packets*/\

@@ -142,13 +142,13 @@ u32 gf_term_get_current_service_id(GF_Terminal *term)
 	SFURL *the_url;
 	GF_MediaObject *mo;
 	if (!term || !term->root_scene) return 0;
-	if (! term->root_scene->is_dynamic_scene) return term->root_scene->root_od->OD->ServiceID;
+	if (! term->root_scene->is_dynamic_scene) return term->root_scene->root_od->ServiceID;
 
 	if (term->root_scene->visual_url.OD_ID || term->root_scene->visual_url.url) the_url = &term->root_scene->visual_url;
 	else the_url = &term->root_scene->audio_url;
 
 	mo = gf_scene_find_object(term->root_scene, the_url->OD_ID, the_url->url);
-	if (mo && mo->odm && mo->odm->OD) return mo->odm->OD->ServiceID;
+	if (mo && mo->odm) return mo->odm->ServiceID;
 	return 0;
 }
 
@@ -184,18 +184,19 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	if (!term || !odm || !info) return GF_BAD_PARAM;
 	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
-	info->od = odm->OD;
-
 	info->duration = (Double) (s64)odm->duration;
 	info->duration /= 1000;
 
-	codec = odm->codec;
+	codec = NULL;
+#if FILTER_FIXME
+	odm->codec;
 	an_odm = odm;
 	while (!codec) {
 		if (!an_odm->lower_layer_odm) break;
 		an_odm = an_odm->lower_layer_odm;
 		codec = an_odm->codec;
 	}
+#endif
 
 	if (codec) {
 		/*since we don't remove ODs that failed setup, check for clock*/
@@ -287,7 +288,7 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		info->service_handler = odm->net_service->ifce->module_name;
 		info->service_url = odm->net_service->url;
 		if (odm->net_service->owner == odm) info->owns_service = 1;
-	} else if ((odm->subscene && odm->subscene->graph_attached) || (odm->codec)) {
+	} else if ((odm->subscene && odm->subscene->graph_attached) || (odm->ID)) {
 		info->service_url = "No associated network Service";
 	} else {
 		info->service_url = "Service not found or error";

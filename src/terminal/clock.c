@@ -25,15 +25,17 @@
 
 #include <gpac/internal/terminal_dev.h>
 
-GF_Clock *NewClock(GF_Terminal *term)
+GF_Clock *NewClock(GF_Compositor *compositor)
 {
 	GF_Clock *tmp;
 	GF_SAFEALLOC(tmp, GF_Clock);
 	if (!tmp) return NULL;
 	tmp->mx = gf_mx_new("Clock");
-	tmp->term = term;
+	tmp->compositor = compositor;
 	tmp->speed = FIX_ONE;
+#if FILTER_FIXME
 	tmp->data_timeout = term->net_data_timeout;
+#endif
 	return tmp;
 }
 
@@ -61,10 +63,10 @@ GF_Clock *gf_clock_find(GF_List *Clocks, u16 clockID, u16 ES_ID)
 static GF_Clock *gf_ck_look_for_clock_dep(GF_Scene *scene, u16 clockID)
 {
 	u32 i, j;
-	GF_Channel *ch;
 	GF_ObjectManager *odm;
 
 	/*check in top OD*/
+#if FILTER_FIXME
 	i=0;
 	while ((ch = (GF_Channel*)gf_list_enum(scene->root_od->channels, &i))) {
 		if (ch->esd->ESID == clockID) return ch->clock;
@@ -77,17 +79,20 @@ static GF_Clock *gf_ck_look_for_clock_dep(GF_Scene *scene, u16 clockID)
 			if (ch->esd->ESID == clockID) return ch->clock;
 		}
 	}
+#endif
 	return NULL;
 }
 
 /*remove clocks created due to out-of-order OCR dependencies*/
 static void gf_ck_resolve_clock_dep(GF_List *clocks, GF_Scene *scene, GF_Clock *ck, u16 Clock_ESID)
 {
+#if FILTER_FIXME
 	u32 i, j;
 	GF_Clock *clock;
 	GF_Channel *ch;
 	GF_ObjectManager *odm;
 
+#if FILTER_FIXME
 	/*check all channels - if any scene using a clock which ID == the clock_ESID then
 	this clock shall be removed*/
 	i=0;
@@ -107,7 +112,7 @@ static void gf_ck_resolve_clock_dep(GF_List *clocks, GF_Scene *scene, GF_Clock *
 		i=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
 			if (ch->clock->clockID == Clock_ESID) {
-				if (odm->codec && (odm->codec->ck==ch->clock)) odm->codec->ck = ck;
+				if (odm->ck==ch->clock) odm->ck = ck;
 #ifndef GPAC_MINIMAL_ODF
 				if (odm->oci_codec && (odm->oci_codec->ck==ch->clock)) odm->oci_codec->ck = ck;
 #endif
@@ -125,18 +130,26 @@ static void gf_ck_resolve_clock_dep(GF_List *clocks, GF_Scene *scene, GF_Clock *
 			return;
 		}
 	}
+#endif
+
+#endif
+
 }
 
 GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 clockID, u16 ES_ID, s32 hasOCR)
 {
 	Bool check_dep;
 	GF_Clock *tmp = gf_clock_find(clocks, clockID, ES_ID);
+#if FILTER_FIXME
 	/*ck dep can only be solved if in the main service*/
 	check_dep = (scene->root_od->net_service && scene->root_od->net_service->Clocks==clocks) ? GF_TRUE : GF_FALSE;
+#else
+	check_dep=GF_FALSE;
+#endif
 	/*this partly solves a->b->c*/
 	if (!tmp && check_dep) tmp = gf_ck_look_for_clock_dep(scene, clockID);
 	if (!tmp) {
-		tmp = NewClock(scene->root_od->term);
+		tmp = NewClock(scene->compositor);
 		tmp->clockID = clockID;
 		gf_list_add(clocks, tmp);
 	} else {
@@ -177,7 +190,7 @@ void gf_clock_set_time(GF_Clock *ck, u32 TS)
 		ck->broken_pcr = 0;
 		ck->drift = 0;
 		/*update starttime and pausetime even in pause mode*/
-		ck->PauseTime = ck->StartTime = gf_term_get_time(ck->term);
+		ck->PauseTime = ck->StartTime = gf_sc_get_clock(ck->compositor);
 	}
 }
 
@@ -187,7 +200,7 @@ void gf_clock_pause(GF_Clock *ck)
 {
 	gf_mx_p(ck->mx);
 	if (!ck->Paused)
-		ck->PauseTime = gf_term_get_time(ck->term);
+		ck->PauseTime = gf_sc_get_clock(ck->compositor);
 	ck->Paused += 1;
 	gf_mx_v(ck->mx);
 }
@@ -201,7 +214,7 @@ void gf_clock_resume(GF_Clock *ck)
 	}
 	ck->Paused -= 1;
 	if (!ck->Paused)
-		ck->StartTime += gf_term_get_time(ck->term) - ck->PauseTime;
+		ck->StartTime += gf_sc_get_clock(ck->compositor) - ck->PauseTime;
 	gf_mx_v(ck->mx);
 }
 
@@ -211,7 +224,7 @@ u32 gf_clock_real_time(GF_Clock *ck)
 	u32 time;
 	assert(ck);
 	if (!ck->clock_init) return ck->StartTime;
-	time = ck->Paused > 0 ? ck->PauseTime : gf_term_get_time(ck->term);
+	time = ck->Paused > 0 ? ck->PauseTime : gf_sc_get_clock(ck->compositor);
 
 #ifdef GPAC_FIXED_POINT
 
@@ -268,7 +281,7 @@ u32 gf_clock_elapsed_time(GF_Clock *ck)
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {
-	if (!ck || ck->Buffering || ck->Paused) return 0;
+	if (!ck || !ck->clock_init || ck->Buffering || ck->Paused) return 0;
 	return 1;
 }
 
@@ -297,7 +310,7 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed)
 {
 	u32 time;
 	if (speed==ck->speed) return;
-	time = gf_term_get_time(ck->term);
+	time = gf_sc_get_clock(ck->compositor);
 	/*adjust start time*/
 	ck->discontinuity_time = gf_clock_time(ck) - ck->init_time;
 	ck->PauseTime = ck->StartTime = time;
@@ -313,6 +326,7 @@ void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift)
 /*handle clock discontinuity - for now we only reset timing of all received data and reinit the clock*/
 void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity)
 {
+#if FILTER_FIXME
 	u32 i, j;
 	GF_Channel *ch;
 	GF_ObjectManager *odm;
@@ -336,9 +350,6 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 
 				ch->CTS = ch->DTS = 0;
 				GF_LOG(GF_LOG_WARNING, GF_LOG_SYNC, ("[SyncLayer] Reinitializing timing for ES%d\n", ch->esd->ESID));
-
-				if (ch->odm->codec && ch->odm->codec->CB)
-					gf_cm_reset_timing(ch->odm->codec->CB);
 			}
 		}
 	}
@@ -355,4 +366,6 @@ void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontin
 	} else {
 		gf_clock_reset(ck);
 	}
+#endif
+
 }

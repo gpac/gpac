@@ -36,9 +36,6 @@ extern "C" {
 #include <gpac/download.h>
 #include <gpac/module.h>
 
-/*handle to service*/
-typedef struct _net_service GF_ClientService;
-
 /*handle to channel*/
 typedef void *LPNETCHANNEL;
 

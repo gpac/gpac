@@ -55,8 +55,6 @@ static u32 htk_num_users = 0;
 GF_Err gf_isdec_configure(GF_BaseDecoder *plug, GF_Scene *scene, Bool is_remote)
 {
 	ISPriv *is = (ISPriv *)plug->privateStack;
-	/*we can only deal with encoded content (for now)*/
-	if (!scene->scene_codec) return GF_NOT_SUPPORTED;
 	is->scene = scene;
 	is->is_local = !is_remote;
 	return GF_OK;
@@ -414,8 +412,9 @@ static void IS_Unregister(GF_Node *node, ISStack *st)
 	odm = st->mo->odm;
 	if (!odm) return;
 
-	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
+	assert(odm->type == GF_STREAM_INTERACT);
 
+#if FILTER_FIXME
 	/*get IS dec*/
 	is_dec = (ISPriv*)odm->codec->decio->privateStack;
 	for (i=0; i<gf_list_count(is_dec->is_nodes); i++) {
@@ -432,6 +431,7 @@ static void IS_Unregister(GF_Node *node, ISStack *st)
 		st->registered = 0;
 		if (is_dec->io_dev && is_dec->io_dev->Stop) is_dec->io_dev->Stop(is_dec->io_dev);
 	}
+#endif
 }
 
 static void IS_Register(GF_Node *n)
@@ -443,6 +443,7 @@ static void IS_Register(GF_Node *n)
 	odm = st->mo->odm;
 	if (!odm) return;
 
+#if FILTER_FIXME
 	assert(odm->codec && (odm->codec->type == GF_STREAM_INTERACT));
 
 	/*get IS dec*/
@@ -464,7 +465,7 @@ static void IS_Register(GF_Node *n)
 			break;
 		}
 	}
-
+#endif
 }
 
 static void TraverseInputSensor(GF_Node *node, void *rs, Bool is_destroy)
