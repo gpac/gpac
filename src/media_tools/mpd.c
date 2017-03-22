@@ -278,8 +278,8 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 	GF_XMLNode *child;
 	u32 i = 0;
 
-	/*infinite by default*/
-	seg->time_shift_buffer_depth = (u32) -1;
+	/*0 by default*/
+	seg->time_shift_buffer_depth = 0;
 
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (!strcmp(att->name, "timescale")) seg->timescale = gf_mpd_parse_int(att->value);
@@ -289,9 +289,6 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 		else if (!strcmp(att->name, "availabilityTimeOffset")) seg->availability_time_offset = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "timeShiftBufferDepth")) seg->time_shift_buffer_depth = gf_mpd_parse_duration_u32(att->value);
 	}
-
-	if (mpd->type == GF_MPD_TYPE_STATIC)
-		seg->time_shift_buffer_depth = 0;
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
