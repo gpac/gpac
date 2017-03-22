@@ -2142,8 +2142,6 @@ restart_fragmentation_pass:
 		}
 		/*in BS switching we share the same IS for all reps, write the SegmentTemplate for the init segment*/
 		else if ((is_bs_switching || seg_tl) && first_in_set && !dash_cfg->segment_alignment_disabled) {
-			GF_MPD_SegmentTemplate *seg_template;
-			GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
 			if (is_bs_switching) {
 				seg_template->initialization = gf_strdup(bs_switching_segment_name);
 				if (presentationTimeOffset) {
