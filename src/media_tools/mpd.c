@@ -2032,7 +2032,7 @@ void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
 
 void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent)
 {
-	fprintf(out, "%s<BaseURL", indent);
+	fprintf(out, "   %s<BaseURL", indent);
 	if (base_URL->service_location)
 		fprintf(out, " serviceLocation=\"%s\"", base_URL->service_location);
 	if (base_URL->byte_range)
@@ -2045,6 +2045,7 @@ static void gf_mpd_print_base_urls(FILE *out, GF_List *base_URLs, char *indent)
 	GF_MPD_BaseURL *url;
 	u32 i;
 	i=0;
+
 	while ((url = (GF_MPD_BaseURL *)gf_list_enum(base_URLs, &i))) {
 		gf_mpd_print_base_url(out, url, indent);
 	}
@@ -2052,7 +2053,7 @@ static void gf_mpd_print_base_urls(FILE *out, GF_List *base_URLs, char *indent)
 
 static void gf_mpd_print_url(FILE *out, GF_MPD_URL *url, char *name, char *indent)
 {
-	fprintf(out, "%s<%s", indent, name);
+	fprintf(out, "   %s<%s", indent, name);
 	if (url->byte_range) fprintf(out, " range=\""LLD"-"LLD"\"", url->byte_range->start_range, url->byte_range->end_range);
 	if (url->sourceURL) fprintf(out, " sourceURL=\"%s\"", url->sourceURL);
 	fprintf(out, "/>\n");
@@ -2071,14 +2072,14 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
 {
-	fprintf(out, "%s<SegmentBase", indent);
+	fprintf(out, " %s<SegmentBase", indent);
 	gf_mpd_print_segment_base_attr(out, s);
 	fprintf(out, ">\n");
 
 	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", indent);
 	if (s->representation_index) gf_mpd_print_url(out, s->representation_index, "RepresentationIndex", indent);
 
-	fprintf(out, "%s</SegmentBase>\n", indent);
+	fprintf(out, " %s</SegmentBase>\n", indent);
 }
 
 static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, char *indent)
