@@ -2316,11 +2316,13 @@ restart_fragmentation_pass:
 				GF_MPD_SegmentBase *segmentbase;
 				GF_SAFEALLOC(segmentbase, GF_MPD_SegmentBase);
 				representation_obj->segment_base = segmentbase;
+				GF_SAFEALLOC(segmentbase->index_range, GF_MPD_ByteRange);
 				segmentbase->index_range->start_range = index_start_range;
 				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
 				if (!is_bs_switching) {
 					GF_SAFEALLOC(segmentbase->initialization_segment, GF_MPD_URL);
+					GF_SAFEALLOC(segmentbase->initialization_segment->byte_range, GF_MPD_ByteRange);
 					segmentbase->initialization_segment->byte_range->start_range = 0;
 					segmentbase->initialization_segment->byte_range->start_range = index_start_range - 1;
 				}
