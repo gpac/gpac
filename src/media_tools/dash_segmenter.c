@@ -2321,10 +2321,14 @@ restart_fragmentation_pass:
 				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
 				if (!is_bs_switching) {
-					GF_SAFEALLOC(segmentbase->initialization_segment, GF_MPD_URL);
-					GF_SAFEALLOC(segmentbase->initialization_segment->byte_range, GF_MPD_ByteRange);
-					segmentbase->initialization_segment->byte_range->start_range = 0;
-					segmentbase->initialization_segment->byte_range->start_range = index_start_range - 1;
+					GF_MPD_URL *URL;
+					GF_SAFEALLOC(URL, GF_MPD_URL);
+					segmentbase->initialization_segment=URL;
+					GF_MPD_ByteRange *ByteRange;
+					GF_SAFEALLOC(ByteRange, GF_MPD_ByteRange);
+					URL->byte_range=ByteRange;
+					ByteRange->start_range = 0;
+					ByteRange->end_range = index_start_range - 1;
 				}
 			}
 		}

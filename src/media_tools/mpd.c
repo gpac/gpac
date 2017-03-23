@@ -2032,7 +2032,7 @@ void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
 
 void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent)
 {
-	fprintf(out, "%s<BaseURL ", indent);
+	fprintf(out, "%s<BaseURL", indent);
 	if (base_URL->service_location)
 		fprintf(out, " serviceLocation=\"%s\"", base_URL->service_location);
 	if (base_URL->byte_range)
