@@ -291,7 +291,7 @@ void gf_scene_insert_object(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPi
 		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
 		keep track of declared objects*/
 		if (mo->odm->ID) {
-			if (odm->ID && (mo->odm->type==mtype) && (mo->odm->original_oti == moti)) {
+			if (pid_odid && (mo->odm->type==mtype) && (mo->odm->original_oti == moti)) {
 				assert(mo->odm->pid);
 				return;
 			}

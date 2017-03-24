@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
+#include <gpac/internal/terminal_dev.h>
 
 #define ENABLE_EARLY_FRAME_DETECTION
 
@@ -168,7 +169,7 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 	GF_AudioInput *ai = (GF_AudioInput *) aifc->callback;
 	if (!ai->stream) return GF_FALSE;
 	/*watchout for object reuse*/
-	if (aifc->samplerate && (gf_mo_get_flags(ai->stream) & GF_MO_IS_INIT)) return GF_TRUE;
+	if (aifc->samplerate &&  !ai->stream->config_changed) return GF_TRUE;
 
 	gf_mo_get_audio_info(ai->stream, &aifc->samplerate, &aifc->bps , &aifc->chan, &aifc->ch_cfg);
 
@@ -176,10 +177,10 @@ static Bool gf_audio_input_get_config(GF_AudioInterface *aifc, Bool for_recf)
 		return aifc->samplerate ? GF_TRUE : GF_FALSE;
 
 	if (aifc->samplerate * aifc->chan * aifc->bps && ((aifc->chan<=2) || aifc->ch_cfg))  {
-		gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_TRUE);
 		return GF_TRUE;
 	}
-	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_FALSE);
+	//still not ready !
+	ai->stream->config_changed=GF_TRUE;
 	return GF_FALSE;
 }
 
@@ -228,7 +229,8 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 
 	ai->stream_finished = GF_FALSE;
 	ai->is_open = 1;
-	gf_mo_set_flag(ai->stream, GF_MO_IS_INIT, GF_FALSE);
+	//force reload of audio props
+	ai->stream->config_changed = GF_TRUE;
 
 	if (ai->filter) gf_af_del(ai->filter);
 	ai->filter = NULL;

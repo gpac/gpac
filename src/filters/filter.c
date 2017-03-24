@@ -95,9 +95,12 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		}
 	}
 	//flush all pending pid init requests
-	while (gf_fq_count(filter->pending_pids)) {
-		GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
-		gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+	if (filter->has_pending_pids) {
+		filter->has_pending_pids=GF_FALSE;
+		while (gf_fq_count(filter->pending_pids)) {
+			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init");
+		}
 	}
 
 	return filter;
@@ -451,7 +454,6 @@ static void reset_filter_args(GF_Filter *filter)
 	}
 }
 
-
 Bool gf_filter_process_task(GF_FSTask *task)
 {
 	GF_Err e;
@@ -462,11 +464,36 @@ Bool gf_filter_process_task(GF_FSTask *task)
 	if (task->filter->pid_connection_pending) {
 		return GF_FALSE;
 	}
+	if (task->filter->would_block) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", task->filter->name));
+		task->filter->nb_tasks_done--;
+		return GF_FALSE;
+	}
 	e = task->filter->freg->process(task->filter);
+
+	//flush all pending pid init requests following the call to init
+	if (task->filter->has_pending_pids) {
+		task->filter->has_pending_pids=GF_FALSE;
+		while (gf_fq_count(task->filter->pending_pids)) {
+			GF_FilterPid *pid=gf_fq_pop(task->filter->pending_pids);
+			gf_fs_post_task(task->filter->session, gf_filter_pid_init_task, task->filter, pid, "pid_init");
+		}
+	}
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS))
 		return GF_TRUE;
+
+	//last task for filter but pending packets and not blocking, requeue in main scheduler
+	if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1))
+		return GF_TRUE;
+
+	if (!strcmp(task->filter->name, "compositor")) {
+		if (gf_fq_count(task->filter->tasks)<=1) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Last task in compositor queue, pending packets %d\n", task->filter->pending_packets));
+		}
+		return GF_FALSE;
+	}
 
 	return GF_FALSE;
 }

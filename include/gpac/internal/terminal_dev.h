@@ -999,7 +999,8 @@ struct _od_manager
 
 	/*clock for this object*/
 	GF_Clock *ck;
-
+	u32 nb_dropped;
+	
 	GF_FilterPid *pid;
 	//object ID for linking with mediaobjects
 	u32 ID;
@@ -1008,13 +1009,13 @@ struct _od_manager
 	Bool hybrid_layered_coded;
 
 	Bool clock_inherited;
+	Bool buffering;
 
 	//internal hash for source allowing to distinguish input PIDs sources
 	u32 source_id;
 
 	//media type for this object
 	u32 type, original_oti;
-	Bool config_update;
 	
 	u32 flags;
 
@@ -1071,7 +1072,6 @@ struct _od_manager
 
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
-void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt);
 
 /*setup service entry point*/
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
@@ -1122,8 +1122,7 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url);
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
-/*locks ODM with destruction check - returns 0 if object manager is not attached to object*/
-Bool gf_odm_lock_mo(struct _mediaobj *mo);
+
 
 void gf_odm_signal_eos(GF_ObjectManager *odm);
 
@@ -1156,6 +1155,9 @@ struct _mediaobj
 
 	//current packet
 	GF_FilterPacket *pck;
+
+	u32 frame_dur;
+	
 	//number of bytes read in the current packet
 	u32 RenderedLength;
 
@@ -1179,6 +1181,8 @@ struct _mediaobj
 	*/
 	void *node_ptr;
 
+	Bool is_eos;
+	Bool config_changed;
 
 	/*currently valid properties of the object*/
 	u32 width, height, stride, pixel_ar, pixelformat;

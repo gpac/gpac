@@ -34,13 +34,19 @@
 //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
 
-#define ref_count_inc(__v) InterlockedIncrement((int *) (__v))
-#define ref_count_dec(__v) InterlockedDecrement((int *) (__v))
+#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
+#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
+
+#define safe_int_add(__v, inc_val) InterlockedAdd((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) InterlockedAdd((int *) (__v), -dec_val)
 
 #else
 
-#define ref_count_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
-#define ref_count_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
+#define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
+#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
+
+#define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
 
 #endif
 
@@ -71,6 +77,8 @@ typedef struct
 	GF_List *hash_table[HASH_TABLE_SIZE];
 	volatile u32 reference_count;
 	GF_Filter *filter;
+	//current timescale, cached for duration/buffer compute
+	u32 timescale;
 } GF_PropertyMap;
 
 GF_PropertyMap * gf_props_new(GF_Filter *filter);
@@ -118,6 +126,7 @@ typedef struct __gf_filter_pck_inst
 {
 	struct __gf_filter_pck *pck; //source packet
 	GF_FilterPidInst *pid;
+	Bool pid_props_change_done;
 } GF_FilterPacketInstance;
 
 struct __gf_filter_pck
@@ -130,6 +139,18 @@ struct __gf_filter_pck
 	//framing info is not set as a property but directly in packet
 	Bool data_block_start;
 	Bool data_block_end;
+	
+	Bool pid_props_changed;
+
+	//packet timing in pid_props->timescale units
+	u64 dts, cts;
+	u32 duration;
+
+	u8 sap_type;
+	u8 interlaced;
+	u8 corrupted;
+	u8 eos;
+	u8 clock_discontinuity;
 
 	char *data;
 	u32 data_length;
@@ -159,6 +180,7 @@ struct __gf_fs_task
 	//some tasks may not increment that counter (eg when requeued to a filer), so this simplifies
 	//decrementing the counter
 	Bool notified;
+
 	task_callback run_task;
 	GF_Filter *filter;
 	GF_FilterPid *pid;
@@ -166,7 +188,9 @@ struct __gf_fs_task
 	void *udta;
 };
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
+void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name);
+
+void gf_fs_post_task_ex(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, GF_Filter *dst_filter, void *udta);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
 
@@ -176,7 +200,8 @@ typedef struct __gf_fs_thread
 	//NULL for main thread
 	GF_Thread *th;
 	struct __gf_media_session *fsess;
-
+	u32 th_id;
+	
 	Bool has_seen_eot; //set when no more tasks in global queue
 
 	u64 nb_tasks;
@@ -194,6 +219,7 @@ struct __gf_media_session
 	GF_List *filters;
 
 	GF_FilterQueue *tasks;
+	GF_FilterQueue *main_thread_tasks;
 	GF_FilterQueue *tasks_reservoir;
 
 	GF_List *threads;
@@ -206,6 +232,7 @@ struct __gf_media_session
 	volatile u32 tasks_pending;
 
 	Bool done;
+	Bool disable_blocking;
 };
 
 
@@ -230,8 +257,12 @@ struct __gf_filter
 	//tasks pending for this filter. The first task in this list is also present in the filter session
 	//task list in order to avoid locking the main task list with a mutex
 	GF_FilterQueue *tasks;
+	//set to true when the filter is present or to be added in the main task list
+	//this variable is unset in a zone protected by task_mx
 	volatile Bool scheduled_for_next_task;
+	//set to true when the filter is being processed by a thread
 	volatile Bool in_process;
+	u32 process_th_id;
 	//user data for the filter implementation
 	void *filter_udta;
 
@@ -258,7 +289,8 @@ struct __gf_filter
 	GF_Mutex *props_mx;
 	GF_Mutex *tasks_mx;
 
-	//reservoir for property entries  - properties may be inherited between packets
+	//list of output pids to be configured
+	Bool has_pending_pids;
 	GF_FilterQueue *pending_pids;
 
 	volatile u32 pid_connection_pending;
@@ -284,6 +316,7 @@ struct __gf_filter
 	//number of microseconds this filter was active
 	u64 time_process;
 
+	volatile u32 would_block; //concurrent inc/dec
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
@@ -313,6 +346,10 @@ struct __gf_filter_pid_inst
 	GF_List *pck_reassembly;
 	Bool requires_full_data_block;
 	Bool last_block_ended;
+	Bool first_block_started;
+
+	//amount of media data in us in the packet queue - concurrent inc/dec
+	volatile u32 buffer_duration;
 
 	void *udta;
 };
@@ -328,6 +365,20 @@ struct __gf_filter_pid
 	GF_List *properties;
 	Bool request_property_map;
 
+	u32 max_buffer_unit;
+	//max number of packets in each of the destination pids - concurrent inc/dec
+	volatile u32 nb_buffer_unit;
+	//times in us
+	u32 max_buffer_time;
+	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
+	u32 buffer_duration;
+
+	volatile Bool would_block; // concurrent set
+
+	Bool duration_init;
+	u64 last_pck_dts, last_pck_cts;
+	u32 min_pck_duration;
+
 	u32 nb_pck_sent;
 
 	void *udta;
@@ -342,6 +393,7 @@ Bool gf_filter_pid_init_task(GF_FSTask *task);
 
 Bool gf_filter_pid_connect_task(GF_FSTask *task);
 Bool gf_filter_pid_reconfigure_task(GF_FSTask *task);
+Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
 
 #endif //_GF_FILTER_SESSION_H_
 

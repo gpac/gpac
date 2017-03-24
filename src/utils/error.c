@@ -344,7 +344,7 @@ Bool gf_log_tool_level_on(GF_LOG_Tool log_tool, GF_LOG_Level log_level)
 #define WHITE  "\x1b[37m"
 #define RESET  "\x1b[0m"
 
-void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+void default_log_callback_color(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
 {
 #if defined(WIN32) && !defined(GPAC_CONFIG_WIN32)
 	if (console == NULL) {
@@ -400,6 +400,12 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 #else /*_WIN32_WCE*/
 	/*no log*/
 #endif
+}
+
+
+void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vlist)
+{
+	vfprintf(stderr, fmt, vlist);
 }
 
 static void *user_log_cbk = NULL;

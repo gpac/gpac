@@ -173,6 +173,7 @@ typedef struct __gf_filter_register
 	const char *description;
 	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions
 	u32 private_size;
+	Bool requires_main_thread;
 
 	//list of input capabilities
 	const GF_FilterCapability *input_caps;
@@ -189,6 +190,9 @@ typedef struct __gf_filter_register
 	//may be called several times on the same pid if pid config is changed
 	//may return GF_REQUIRES_NEW_INSTANCE to indicate the PID cannot be processed in this instance
 	//but could be in a clone of the filter
+	//since discontinuities may happen at any time, and a filter may fetch packets in burst,
+	// this function may be called while the filter is calling gf_filter_pid_get_packet
+	//
 	//is_remove: indicates the input PID is removed (not yet implemented)
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
@@ -242,6 +246,8 @@ const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *id
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks);
 
+u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid);
+
 //signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
 //since there is no explicit link between input PIDs and output PIDs
 void gf_filter_pid_set_eos(GF_FilterPid *pid);
@@ -249,6 +255,8 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid);
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid);
+
+Bool gf_filter_pid_would_block(GF_FilterPid *pid);
 
 void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
 
@@ -280,6 +288,25 @@ const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 
 GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_end);
 GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_end);
 
+GF_Err gf_filter_pck_set_dts(GF_FilterPacket *pck, u64 dts);
+u64 gf_filter_pck_get_dts(GF_FilterPacket *pck);
+GF_Err gf_filter_pck_set_cts(GF_FilterPacket *pck, u64 cts);
+u64 gf_filter_pck_get_cts(GF_FilterPacket *pck);
+GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration);
+u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
+
+GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, u32 sap_type);
+u32 gf_filter_pck_get_sap(GF_FilterPacket *pck);
+GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
+u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck);
+GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
+Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
+GF_Err gf_filter_pck_set_eos(GF_FilterPacket *pck, Bool eos);
+Bool gf_filter_pck_get_eos(GF_FilterPacket *pck);
+
+void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
+void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
+
 
 
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
@@ -289,63 +316,52 @@ void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *
 enum
 {
 	//(uint) PID ID
-	GF_PROP_PID_ID = GF_4CC('g','f','I','D'),
+	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
 
 	//(uint) ID of originating service
-	GF_PROP_PID_SERVICE_ID = GF_4CC('g','f','S','I'),
+	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 
-	//(u32) stream type, matching gpac stream types
-	GF_PROP_PID_STREAM_TYPE = GF_4CC('g','f','S','T'),
+	//(u32) media stream type, matching gpac stream types
+	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
 	//(u32) object type indication , matching gpac OTI types
-	GF_PROP_PID_OTI = GF_4CC('g','f','O','T'),
+	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
 	//(uint) timescale of pid
-	GF_PROP_PID_TIMESCALE = GF_4CC('g','f','T','S'),
+	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
 	//(data) decoder config
-	GF_PROP_PID_DECODER_CONFIG = GF_4CC('g','f','D','C'),
+	GF_PROP_PID_DECODER_CONFIG = GF_4CC('D','C','F','G'),
 	//(uint) sample rate
-	GF_PROP_PID_SAMPLE_RATE = GF_4CC('g','f','S','R'),
+	GF_PROP_PID_SAMPLE_RATE = GF_4CC('A','U','S','R'),
 	//(uint) nb samples per audio frame
-	GF_PROP_PID_SAMPLES_PER_FRAME = GF_4CC('g','f','S','F'),
+	GF_PROP_PID_SAMPLES_PER_FRAME = GF_4CC('F','R','M','S'),
 	//(uint) number of audio channels
-	GF_PROP_PID_NUM_CHANNELS = GF_4CC('g','f','C','H'),
+	GF_PROP_PID_NUM_CHANNELS = GF_4CC('C','H','N','B'),
 	//(uint) channel layout
-	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('g','f','C','L'),
+	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('C','H','L','O'),
 	//(uint) audio format: u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp
-	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('g','f','A','F'),
+	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
 	//(uint) frame width
-	GF_PROP_PID_WIDTH = GF_4CC('g','f','V','W'),
+	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	//(uint) frame height
-	GF_PROP_PID_HEIGHT = GF_4CC('g','f','V','H'),
+	GF_PROP_PID_HEIGHT = GF_4CC('H','E','I','G'),
 	//(uint) pixel format
-	GF_PROP_PID_PIXFMT = GF_4CC('g','f','V','P'),
+	GF_PROP_PID_PIXFMT = GF_4CC('P','F','M','T'),
 	//(uint) image or Y/alpha plane stride
-	GF_PROP_PID_STRIDE = GF_4CC('g','f','S','Y'),
+	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	//(uint) U/V plane stride
-	GF_PROP_PID_STRIDE_UV = GF_4CC('g','f','S','c'),
+	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
 
 	//(rational) video FPS
-	GF_PROP_PID_FPS = GF_4CC('g','f','V','F'),
+	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
 	//(fraction) sample (ie pixel) aspect ratio
-	GF_PROP_PID_SAR = GF_4CC('g','f','S','A'),
+	GF_PROP_PID_SAR = GF_4CC('P','S','A','R'),
 	//(fraction) picture aspect ratio
-	GF_PROP_PID_PAR = GF_4CC('g','f','P','A'),
+	GF_PROP_PID_PAR = GF_4CC('V','P','A','R'),
 	//(uint) average bitrate
-	GF_PROP_PID_BITRATE = GF_4CC('g','f','B','R'),
+	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 
 
-	//(longuint) decoding time stamp
-	GF_PROP_PCK_DTS = GF_4CC('g','p','D','T'),
-	//(longuint) composition time stamp
-	GF_PROP_PCK_CTS = GF_4CC('g','p','C','T'),
-	//(bool) interlace type: 0 or absent: progressive, 1: interlaced
-	GF_PROP_PCK_INTERLACED = GF_4CC('g','p','I','L'),
-	//(uint) stream access type
-	GF_PROP_PCK_SAP = GF_4CC('g','p','S','A'),
-	GF_PROP_PCK_CORRUPTED = GF_4CC('g','p','C','O'),
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('g','p','T','S'),
-	//(bool) end of stream flag, set on packet with NULL data
-	GF_PROP_PCK_EOS = GF_4CC('g','p','E','S'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);

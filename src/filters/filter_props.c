@@ -217,7 +217,7 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 {
 	assert(it->reference_count);
-	if (ref_count_dec(&it->reference_count) == 0 ) {
+	if (safe_int_dec(&it->reference_count) == 0 ) {
 		if (it->pname && it->name_alloc) gf_free(it->pname);
 
 		if (it->prop.type==GF_PROP_STRING) {
@@ -292,7 +292,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		map->hash_table[hash] = gf_props_get_list(map);
 		if (!map->hash_table[hash]) return GF_OUT_OF_MEM;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision - %d enries\n", 1+gf_list_count(map->hash_table[hash]) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
 	}
 
 	prop = gf_fq_pop(map->filter->prop_maps_entry_reservoir);
@@ -352,6 +352,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 {
 	GF_Err e;
 	u32 i, count, idx;
+	dst_props->timescale = src_props->timescale;
 	for (idx=0; idx<HASH_TABLE_SIZE; idx++) {
 		if (src_props->hash_table[idx]) {
 			count = gf_list_count(src_props->hash_table[idx] );
@@ -363,7 +364,7 @@ GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_pr
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop = gf_list_get(src_props->hash_table[idx], i);
 				assert(prop->reference_count);
-				ref_count_inc(&prop->reference_count);
+				safe_int_inc(&prop->reference_count);
 				e = gf_list_add(dst_props->hash_table[idx], prop);
 				if (e) return e;
 			}
@@ -457,13 +458,7 @@ struct _gf_prop_typedef {
 
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
 
-	{ GF_PROP_PCK_DTS, "DTS", "Decoding time of packet, in timebase units", GF_PROP_LUINT},
-	{ GF_PROP_PCK_CTS, "CTS", "Composition time of packet, in timebase units", GF_PROP_LUINT},
-	{ GF_PROP_PCK_INTERLACED, "Interlaced", "0 or absent: progressive, 1: binterlaced", GF_PROP_BOOL},
-	{ GF_PROP_PCK_SAP, "SAP", "Stream access point type of packet", GF_PROP_LUINT},
-	{ GF_PROP_PCK_CORRUPTED, "Corrupted", "Indicate packet is corrupted", GF_PROP_BOOL},
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Indicate sender NTP time if known", GF_PROP_LUINT},
-	{ GF_PROP_PCK_EOS, "EndOfStream", "Last packet for this PID, set on packet with NULL data", GF_PROP_BOOL}
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

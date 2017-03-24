@@ -114,20 +114,6 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_free(odm);
 }
 
-
-void gf_odm_lock(GF_ObjectManager *odm, u32 LockIt)
-{
-}
-
-Bool gf_odm_lock_mo(GF_MediaObject *mo)
-{
-	if (!mo || !mo->odm) return GF_FALSE;
-	gf_odm_lock(mo->odm, 1);
-	/*the ODM may have been destroyed here !!*/
-	if (!mo->odm) return GF_FALSE;
-	return GF_TRUE;
-}
-
 GF_EXPORT
 void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 {
@@ -140,8 +126,6 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 
 	/*no destroy*/
 	if (!do_remove) return;
-
-	gf_odm_lock(odm, 1);
 
 	/*unload the decoders before deleting the channels to prevent any access fault*/
 #if FILTER_FIXME
@@ -168,8 +152,6 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 		gf_term_remove_codec(odm->term, odm->codec);
 	}
 #endif
-
-	gf_odm_lock(odm, 0);
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
@@ -897,14 +879,18 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm)
 	ck->service_id = odm->ServiceID;
 	clock_inherited = GF_FALSE;
 
-	odm->ck = ck;
-	
 	if (scene->root_od->subscene && scene->root_od->subscene->is_dynamic_scene && !scene->root_od->ck)
 		scene->root_od->ck = ck;
 
 clock_setup:
-	/*create a channel for this stream*/
+	assert(ck);
+	odm->ck = ck;
 	odm->clock_inherited = clock_inherited;
+	odm->buffering = GF_TRUE;
+	//start buffering
+	gf_clock_buffer_on(ck);
+
+
 
 #ifdef FILTER_FIXME
 	/*setup scene decoder*/
