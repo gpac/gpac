@@ -89,6 +89,9 @@ struct __gf_dash_segmenter
 
 	Bool fragments_start_with_rap;
 	char *tmpdir;
+	Double mpd_update_time;
+	s32 time_shift_depth;
+	Double min_buffer;
 	s32 ast_offset_ms;
 	u32 dash_scale;
 	Bool fragments_in_memory;
