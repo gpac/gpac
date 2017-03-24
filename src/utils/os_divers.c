@@ -1722,6 +1722,24 @@ s32 gf_net_get_ntp_diff_ms(u64 ntp)
 	return (s32) (local - remote);
 }
 
+GF_EXPORT
+u64 gf_net_get_ntp_ms()
+{
+	u32 sec, frac;
+	u64 time_ms;
+	Double msec;
+
+	gf_net_get_ntp(&sec, &frac);
+	time_ms = sec;
+	time_ms *= 1000;
+	msec = frac*1000.0;
+	msec /= 0xFFFFFFFF;
+
+	time_ms += (u32)msec;
+
+	return time_ms;
+}
+
 
 
 GF_EXPORT
