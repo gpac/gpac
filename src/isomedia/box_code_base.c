@@ -6150,10 +6150,10 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 
 		if (!ptr->entries[i].sampleDelta) {
 			if ((i+1<ptr->nb_entries) ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stss entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stts entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
 				ptr->entries[i].sampleDelta = 1;
 			} else if (ptr->entries[i].sampleCount>1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one sample at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one stts entry at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
 				ptr->entries[i].sampleDelta = 1;
 			}
 		} else if ((s32) ptr->entries[i].sampleDelta < 0) {
@@ -10386,7 +10386,7 @@ void fpar_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str)
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u32 size, char **out_str)
 {
 	u32 len=10;
 	u32 i=0;
@@ -10395,11 +10395,19 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **o
 	while (1) {
 		ISOM_DECREASE_SIZE(s, 1 );
 		(*out_str)[i] = gf_bs_read_u8(bs);
-		if (! (*out_str)[i]) break;
+		if (gf_bs_available(bs) == 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
+			return GF_BAD_PARAM;
+		}
+		if (!(*out_str)[i]) break;
 		i++;
 		if (i==len) {
 			len += 10;
 			*out_str = gf_realloc(*out_str, sizeof(char)*len);
+		}
+		if (len > size) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] string bigger than container, probably missing null character\n"));
+			return GF_BAD_PARAM;
 		}
 	}
 	return GF_OK;
@@ -10421,7 +10429,7 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->encoding_symbol_length = gf_bs_read_u16(bs);
 	ptr->max_number_of_encoding_symbols = gf_bs_read_u16(bs);
 
-	e = gf_isom_read_null_terminated_string(s, bs, &ptr->scheme_specific_info);
+	e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->scheme_specific_info);
 	if (e) return e;
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
@@ -10671,7 +10679,7 @@ GF_Err gitn_Read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		ptr->entries[i].group_id = gf_bs_read_u32(bs);
 
-		e = gf_isom_read_null_terminated_string(s, bs, &ptr->entries[i].name);
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->entries[i].name);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -11084,7 +11092,7 @@ GF_Err ainf_Read(GF_Box *s,GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(s, 4)
 	ptr->profile_version = gf_bs_read_u32(bs);
-	return gf_isom_read_null_terminated_string(s, bs, &ptr->APID);
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->APID);
 }
 
 GF_Box *ainf_New()
