@@ -278,8 +278,8 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 	GF_XMLNode *child;
 	u32 i = 0;
 
-	/*infinite by default*/
-	seg->time_shift_buffer_depth = (u32) -1;
+	/*0 by default*/
+	seg->time_shift_buffer_depth = 0;
 
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
 		if (!strcmp(att->name, "timescale")) seg->timescale = gf_mpd_parse_int(att->value);
@@ -289,9 +289,6 @@ static void gf_mpd_parse_segment_base_generic(GF_MPD *mpd, GF_MPD_SegmentBase *s
 		else if (!strcmp(att->name, "availabilityTimeOffset")) seg->availability_time_offset = gf_mpd_parse_double(att->value);
 		else if (!strcmp(att->name, "timeShiftBufferDepth")) seg->time_shift_buffer_depth = gf_mpd_parse_duration_u32(att->value);
 	}
-
-	if (mpd->type == GF_MPD_TYPE_STATIC)
-		seg->time_shift_buffer_depth = 0;
 
 	i = 0;
 	while ( (child = gf_list_enum(root->content, &i))) {
@@ -367,6 +364,21 @@ void gf_mpd_parse_multiple_segment_base(GF_MPD *mpd, GF_MPD_MultipleSegmentBase 
 		if (!strcmp(child->name, "SegmentTimeline")) seg->segment_timeline = gf_mpd_parse_segment_timeline(mpd, child);
 		else if (!strcmp(child->name, "BitstreamSwitching")) seg->bitstream_switching_url = gf_mpd_parse_url(child);
 	}
+}
+
+GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range)
+{
+	GF_MPD_SegmentURL *seg_url;
+	GF_SAFEALLOC(seg_url, GF_MPD_SegmentURL);
+	GF_SAFEALLOC(seg_url->media_range, GF_MPD_ByteRange);
+	seg_url->media_range->start_range = start_range;
+	seg_url->media_range->end_range = end_range;
+	if (idx_start_range || idx_end_range) {
+		GF_SAFEALLOC(seg_url->index_range, GF_MPD_ByteRange);
+		seg_url->index_range->start_range = idx_start_range;
+		seg_url->index_range->end_range = idx_end_range;
+	}
+	return seg_url;
 }
 
 static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
@@ -446,8 +458,20 @@ static GF_MPD_SegmentTemplate *gf_mpd_parse_segment_template(GF_MPD *mpd, GF_XML
 	return seg;
 }
 
-static GF_Err gf_mpd_parse_content_component(GF_List *container, GF_XMLNode *root)
+static GF_Err gf_mpd_parse_content_component(GF_List *comps, GF_XMLNode *root)
 {
+	u32 i;
+	GF_XMLAttribute *att;
+	GF_MPD_ContentComponent *comp;
+	GF_SAFEALLOC(comp, GF_MPD_ContentComponent);
+	if (!comp) return GF_OUT_OF_MEM;
+	i = 0;
+	while ((att = gf_list_enum(root->attributes, &i))) {
+		if (!strcmp(att->name, "id")) comp->id = atoi(att->value);
+		else if (!strcmp(att->name, "contentType")) comp->type = gf_strdup(att->value);
+		else if (!strcmp(att->name, "lang")) comp->lang = gf_strdup(att->value);
+	}
+	gf_list_add(comps, comp);
 	return GF_OK;
 }
 
@@ -507,8 +531,14 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 		if (!strcmp(att->name, "profiles")) com->profiles = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "width")) com->width = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "height")) com->height = gf_mpd_parse_int(att->value);
-		else if (!strcmp(att->name, "sar")) com->sar = gf_mpd_parse_frac(att->value);
-		else if (!strcmp(att->name, "frameRate")) com->framerate = gf_mpd_parse_frac(att->value);
+		else if (!strcmp(att->name, "sar")) {
+			if (com->sar) gf_free(com->sar);
+			com->sar = gf_mpd_parse_frac(att->value);
+		}
+		else if (!strcmp(att->name, "frameRate")) {
+			if (com->framerate) gf_free(com->framerate);
+			com->framerate = gf_mpd_parse_frac(att->value);
+		}
 		else if (!strcmp(att->name, "audioSamplingRate")) com->samplerate = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "mimeType")) com->mime_type = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "segmentProfiles")) com->segmentProfiles = gf_mpd_parse_string(att->value);
@@ -555,6 +585,18 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 	com->supplemental_properties = gf_list_new();
 	com->frame_packing = gf_list_new();
 }
+
+GF_MPD_Representation *gf_mpd_representation_new()
+{
+	GF_MPD_Representation *rep;
+	GF_SAFEALLOC(rep, GF_MPD_Representation);
+	if (!rep) return NULL;
+	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
+	rep->base_URLs = gf_list_new();
+	rep->sub_representations = gf_list_new();
+	return rep;
+}
+
 static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
@@ -563,11 +605,7 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 	GF_XMLNode *child;
 	GF_Err e;
 
-	GF_SAFEALLOC(rep, GF_MPD_Representation);
-	if (!rep) return GF_OUT_OF_MEM;
-	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
-	rep->base_URLs = gf_list_new();
-	rep->sub_representations = gf_list_new();
+	rep = gf_mpd_representation_new();
 	e = gf_list_add(container, rep);
 	if (e) return e;
 
@@ -607,16 +645,10 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
-{
-	u32 i;
+GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new() {
 	GF_MPD_AdaptationSet *set;
-	GF_XMLAttribute *att;
-	GF_XMLNode *child;
-	GF_Err e;
-
 	GF_SAFEALLOC(set, GF_MPD_AdaptationSet);
-	if (!set) return GF_OUT_OF_MEM;
+	if (!set) return NULL;
 	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)set);
 	set->accessibility = gf_list_new();
 	set->role = gf_list_new();
@@ -625,8 +657,22 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 	set->content_component = gf_list_new();
 	set->base_URLs = gf_list_new();
 	set->representations = gf_list_new();
+	GF_SAFEALLOC(set->par, GF_MPD_Fractional);
 	/*assign default ID and group*/
 	set->group = -1;
+	return set;
+}
+
+static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XMLNode *root)
+{
+	u32 i;
+	GF_MPD_AdaptationSet *set;
+	GF_XMLAttribute *att;
+	GF_XMLNode *child;
+	GF_Err e;
+
+	set = gf_mpd_adaptation_set_new();
+	if (!set) return GF_OUT_OF_MEM;
 
 	e = gf_list_add(container, set);
 	if (e) return e;
@@ -639,7 +685,10 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "group")) set->group = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "lang")) set->lang = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "contentType")) set->content_type = gf_mpd_parse_string(att->value);
-		else if (!strcmp(att->name, "par")) set->par = gf_mpd_parse_frac(att->value);
+		else if (!strcmp(att->name, "par")) {
+			if (set->par) gf_free(set->par);
+			set->par = gf_mpd_parse_frac(att->value);
+		}
 		else if (!strcmp(att->name, "minBandwidth")) set->min_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxBandwidth")) set->max_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "minWidth")) set->min_width = gf_mpd_parse_int(att->value);
@@ -702,7 +751,17 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
+GF_MPD_Period *gf_mpd_period_new() {
+	GF_MPD_Period *period;
+	GF_SAFEALLOC(period, GF_MPD_Period);
+	if (!period) return NULL;
+	period->adaptation_sets = gf_list_new();
+	period->base_URLs = gf_list_new();
+	period->subsets = gf_list_new();
+	return period;
+}
+
+GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_Period *period;
@@ -710,11 +769,8 @@ static GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 	GF_XMLNode *child;
 	GF_Err e;
 
-	GF_SAFEALLOC(period, GF_MPD_Period);
+	period = gf_mpd_period_new();
 	if (!period) return GF_OUT_OF_MEM;
-	period->adaptation_sets = gf_list_new();
-	period->base_URLs = gf_list_new();
-	period->subsets = gf_list_new();
 	e = gf_list_add(mpd->periods, period);
 	if (e) return e;
 
@@ -832,6 +888,11 @@ void gf_mpd_segment_timeline_free(void *_item)
 	gf_free(ptr);
 }
 
+void gf_mpd_segment_url_list_free(GF_List *list)
+{
+	gf_mpd_del_list(list, gf_mpd_segment_url_free, 0);
+}
+
 void gf_mpd_segment_list_free(void *_item)
 {
 	GF_MPD_SegmentList *ptr = (GF_MPD_SegmentList *)_item;
@@ -879,6 +940,18 @@ void gf_mpd_extensible_free(GF_MPD_ExtensibleVirtual *item)
 	}
 }
 
+GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *schemeIdUri, const char *value) {
+	GF_MPD_Descriptor *mpd_desc;
+	GF_SAFEALLOC(mpd_desc, GF_MPD_Descriptor);
+	if (!mpd_desc) return NULL;
+	if(id!=NULL){
+		mpd_desc->id = gf_strdup(id);
+	}
+	mpd_desc->scheme_id_uri = gf_strdup(schemeIdUri);
+	mpd_desc->value = gf_strdup(value);
+	return mpd_desc;
+}
+
 void gf_mpd_descriptor_free(void *item)
 {
 	GF_MPD_Descriptor *mpd_desc = (GF_MPD_Descriptor*) item;
@@ -892,7 +965,9 @@ void gf_mpd_descriptor_free(void *item)
 
 void gf_mpd_content_component_free(void *item)
 {
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] content component not implemented\n"));
+	GF_MPD_ContentComponent *component_descriptor=(GF_MPD_ContentComponent*) item;
+	if (component_descriptor->type) gf_free(component_descriptor->type);
+	if (component_descriptor->lang) gf_free(component_descriptor->lang);
 	gf_free(item);
 }
 
@@ -990,6 +1065,14 @@ void gf_mpd_del(GF_MPD *mpd)
 	if (mpd->ID) gf_free(mpd->ID);
 	gf_mpd_extensible_free((GF_MPD_ExtensibleVirtual*) mpd);
 	gf_free(mpd);
+}
+
+GF_EXPORT
+void gf_mpd_reset_periods(GF_MPD *mpd)
+{
+	if (!mpd) return;
+	gf_mpd_del_list(mpd->periods, gf_mpd_period_free, 0);
+	mpd->periods = gf_list_new();
 }
 
 
@@ -1931,7 +2014,7 @@ void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list)
 	gf_mpd_segment_list_free(segment_list);
 }
 
-
+/*time is given in ms*/
 void gf_mpd_print_date(FILE *out, char *name, u64 time)
 {
 	time_t gtime;
@@ -1939,11 +2022,19 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 	u32 sec;
 	u32 ms;
 	gtime = time / 1000;
+	gtime -= GF_NTP_SEC_1900_TO_1970;
 	sec = (u32)(time / 1000);
 	ms = (u32)(time - ((u64)sec) * 1000);
 
+#ifdef _WIN32_WCE
+	*(LONGLONG *) &filet = (sec - GF_NTP_SEC_1900_TO_1970) * 10000000 + TIMESPEC_TO_FILETIME_OFFSET;
+	FileTimeToSystemTime(&filet, &syst);
+	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond, (u32) ms);
+#else
 	t = gmtime(&gtime);
 	fprintf(out, " %s=\"%d-%02d-%02dT%02d:%02d:%02d.%03dZ\"", name, 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, ms);
+#endif
+
 }
 
 void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
@@ -1954,27 +2045,33 @@ void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
 	m = (u32) (duration_in_ms/ 60000) - h*60;
 	s = ((Double) duration_in_ms/1000.0) - h*3600 - m*60;
 
-	fprintf(out, " %s=\"PT%02dH%02dM%02.2fS\"", name, h, m, s);
+	fprintf(out, " %s=\"PT%dH%02dM%02.2fS\"", name, h, m, s);
 }
 
-static void gf_mpd_print_base_url(FILE *out, GF_List *base_URLs, char *indent)
+void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent)
+{
+	fprintf(out, "   %s<BaseURL", indent);
+	if (base_URL->service_location)
+		fprintf(out, " serviceLocation=\"%s\"", base_URL->service_location);
+	if (base_URL->byte_range)
+		fprintf(out, " byteRange=\""LLD"-"LLD"\"", base_URL->byte_range->start_range, base_URL->byte_range->end_range);
+	fprintf(out, ">%s</BaseURL>\n", base_URL->URL);
+}
+
+static void gf_mpd_print_base_urls(FILE *out, GF_List *base_URLs, char *indent)
 {
 	GF_MPD_BaseURL *url;
 	u32 i;
 	i=0;
+
 	while ((url = (GF_MPD_BaseURL *)gf_list_enum(base_URLs, &i))) {
-		fprintf(out, "%s<BaseURL", indent);
-		if (url->service_location)
-			fprintf(out, " serviceLocation=\"%s\"", url->service_location);
-		if (url->byte_range)
-			fprintf(out, " byteRange=\""LLD"-"LLD"\"", url->byte_range->start_range, url->byte_range->end_range);
-		fprintf(out, ">%s</BaseURL>\n", url->URL);
+		gf_mpd_print_base_url(out, url, indent);
 	}
 }
 
 static void gf_mpd_print_url(FILE *out, GF_MPD_URL *url, char *name, char *indent)
 {
-	fprintf(out, "%s<%s", indent, name);
+	fprintf(out, "   %s<%s", indent, name);
 	if (url->byte_range) fprintf(out, " range=\""LLD"-"LLD"\"", url->byte_range->start_range, url->byte_range->end_range);
 	if (url->sourceURL) fprintf(out, " sourceURL=\"%s\"", url->sourceURL);
 	fprintf(out, "/>\n");
@@ -1991,16 +2088,16 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", s->time_shift_buffer_depth);
 }
 
-static void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
+void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
 {
-	fprintf(out, "%s<SegmentBase", indent);
+	fprintf(out, " %s<SegmentBase", indent);
 	gf_mpd_print_segment_base_attr(out, s);
 	fprintf(out, ">\n");
 
 	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", indent);
 	if (s->representation_index) gf_mpd_print_url(out, s->representation_index, "RepresentationIndex", indent);
 
-	fprintf(out, "%s</SegmentBase>\n", indent);
+	fprintf(out, " %s</SegmentBase>\n", indent);
 }
 
 static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, char *indent)
@@ -2202,7 +2299,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	if (gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)rep, "    ", can_close))
 		return;
 
-	gf_mpd_print_base_url(out, rep->base_URLs, " ");
+	gf_mpd_print_base_urls(out, rep->base_URLs, " ");
 	if (rep->segment_base) {
 		gf_mpd_print_segment_base(out, rep->segment_base, "   ");
 	}
@@ -2251,7 +2348,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 	gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)as, "   ", 0);
 
-	gf_mpd_print_base_url(out, as->base_URLs, " ");
+	gf_mpd_print_base_urls(out, as->base_URLs, " ");
 
 	gf_mpd_print_descriptors(out, as->accessibility, "Accessibility", "   ");
 	gf_mpd_print_descriptors(out, as->role, "Role", "   ");
@@ -2279,7 +2376,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 
 }
 
-static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
+void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
 	u32 i;
@@ -2300,7 +2397,7 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 
 	fprintf(out, ">\n");
 
-	gf_mpd_print_base_url(out, period->base_URLs, " ");
+	gf_mpd_print_base_urls(out, period->base_URLs, " ");
 
 	if (period->segment_base) {
 		gf_mpd_print_segment_base(out, period->segment_base, " ");
@@ -2320,6 +2417,27 @@ static void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dyna
 
 }
 
+static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
+{
+	u64 time_ms;
+	time_t gtime;
+	struct tm *t;
+	u32 sec;
+
+	time_ms = mpd->publishTime;
+	sec = (u32)(time_ms / 1000);
+	time_ms -= ((u64)sec) * 1000;
+	assert(time_ms<1000);
+
+	gtime = sec - GF_NTP_SEC_1900_TO_1970;
+	t = gmtime(&gtime);
+	fprintf(out, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
+	fprintf(out, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms);
+	fprintf(out, "-->\n");
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms));
+	return GF_OK;
+}
+
 static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
 	u32 i;
@@ -2331,7 +2449,9 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] No namespace found while writing. Setting to default.\n"));
 	}
 
-	fprintf(out, "<?xml version=\"1.0\"?>\n<MPD xmlns=\"%s\" type=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
+	fprintf(out, "<?xml version=\"1.0\"?>\n");
+	mpd_write_generation_comment(mpd, out);
+	fprintf(out, "<MPD xmlns=\"%s\" type=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
 
 	if (mpd->ID)
 		fprintf(out, " ID=\"%s\"", mpd->ID);
@@ -2342,7 +2462,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
 		gf_mpd_print_date(out, "availabilityEndTime", mpd->availabilityEndTime);
-	if (mpd->publishTime)
+	if (mpd->publishTime && mpd->type != GF_MPD_TYPE_STATIC)
 		gf_mpd_print_date(out, "publishTime", mpd->publishTime);
 	if (mpd->media_presentation_duration)
 		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration);
@@ -2389,7 +2509,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		fprintf(out, " </ProgramInformation>\n");
 	}
 
-	gf_mpd_print_base_url(out, mpd->base_URLs, " ");
+	gf_mpd_print_base_urls(out, mpd->base_URLs, " ");
 
 	i=0;
 	while ((text = (char *)gf_list_enum(mpd->locations, &i))) {
