@@ -247,7 +247,10 @@ void xml_del(GF_Box *s)
 GF_Err xml_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_XMLBox *ptr = (GF_XMLBox *)s;
-	return gf_isom_read_null_terminated_string(s, bs, &ptr->xml);
+	if (ptr == NULL) return GF_BAD_PARAM;
+	e = gf_isom_full_box_read(s, bs);
+	if (e) return e;
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->xml);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
