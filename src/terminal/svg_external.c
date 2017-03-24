@@ -210,9 +210,8 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 {
 	if (!mo) return;
-	if (!gf_odm_lock_mo(mo)) return;
+
 	if (!mo->odm->subscene) {
-		gf_odm_lock(mo->odm, 0);
 		return;
 	}
 	if (mo->num_open) {
@@ -224,9 +223,6 @@ void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo)
 			return;
 		}
 	}
-
-	/*ODM may be destroyed at this point !!*/
-	if (mo->odm) gf_odm_lock(mo->odm, 0);
 }
 
 #endif //GPAC_DISABLE_SVG

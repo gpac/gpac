@@ -38,14 +38,14 @@ static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 {
 	if (fsess->semaphore) {
 		if (notify) {
-			ref_count_inc(&fsess->sema_count);
+			safe_int_inc(&fsess->sema_count);
 			if ( ! gf_sema_notify(fsess->semaphore, 1)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
 		} else {
 			if (gf_sema_wait(fsess->semaphore)) {
 				assert(fsess->sema_count);
-				ref_count_dec(&fsess->sema_count);
+				safe_int_dec(&fsess->sema_count);
 			}
 		}
 	}
@@ -95,6 +95,13 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 
 	//regardless of scheduler type, we don't use lock on the main task list
 	fsess->tasks = gf_fq_new(NULL);
+
+	if (nb_threads>0)
+		fsess->main_thread_tasks = gf_fq_new(NULL);
+	else
+		//otherwise use the same as the global task list
+		fsess->main_thread_tasks = fsess->tasks;
+
 	fsess->tasks_reservoir = gf_fq_new(NULL);
 
 	if (nb_threads || (sched_type==GF_FS_SCHEDULER_FORCE_LOCK) ) {
@@ -144,7 +151,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, compose_filter_register(fsess, load_meta_filters) );
 
-
+	fsess->disable_blocking=GF_TRUE;
 	fsess->done=GF_TRUE;
 	return fsess;
 }
@@ -202,6 +209,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 		gf_fq_del(fsess->tasks_reservoir, gf_void_del);
 
 	if (fsess->threads) {
+		if (fsess->main_thread_tasks)
+			gf_fq_del(fsess->main_thread_tasks, gf_void_del);
+
 		while (gf_list_count(fsess->threads)) {
 			GF_SessionThread *sess_th = gf_list_pop_back(fsess->threads);
 			gf_th_del(sess_th->th);
@@ -228,24 +238,37 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 	return gf_list_get(fsess->registry, idx);
 }
 
+void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name)
+{
+	gf_fs_post_task_ex(fsess, task_fun, filter, pid, log_name, NULL, NULL);
+}
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
+void gf_fs_post_task_ex(GF_FilterSession *fsess, task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, GF_Filter *dst_filter, void *udta)
 {
 	GF_FSTask *task;
+
 	assert(fsess);
 	assert(filter);
 	assert(task_fun);
 
-	if (fsess->direct_mode && fsess->task_in_process) {
+	//only flatten calls if in main thread (we still have some broken filters using threading
+	//that could trigger tasks
+	if (fsess->direct_mode && fsess->task_in_process && gf_th_id()==fsess->main_th.th_id) {
 		Bool requeue=GF_FALSE;
 		GF_FSTask atask;
+		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));
 		atask.filter = filter;
 		atask.pid = pid;
 		atask.run_task = task_fun;
 		atask.log_name = log_name;
 		atask.udta = udta;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter->name, log_name, fsess->tasks_pending));
 		requeue = task_fun(&atask);
+		if (filter) {
+			filter->time_process += gf_sys_clock_high_res() - task_time;
+			filter->nb_tasks_done++;
+		}
 		if (!requeue)
 			return;
 		//asked to requeue the task, post it
@@ -274,7 +297,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter 
 		gf_fq_add(filter->tasks, task);
 		gf_mx_v(filter->tasks_mx);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted task Filter %s::%s (%d pending)\n", filter->name, task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted task %p Filter %s::%s (%d pending) on %s\n", task, filter->name, task->log_name, fsess->tasks_pending, task->notified ? "main task list" : "filter task list"));
 	} else {
 		task->notified = GF_TRUE;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Posted filter-less task %s (%d pending)\n", task->log_name, fsess->tasks_pending));
@@ -283,9 +306,14 @@ void gf_fs_post_task(GF_FilterSession *fsess, task_callback task_fun, GF_Filter 
 
 	if (task->notified) {
 		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
-		ref_count_inc(&fsess->tasks_pending);
-		gf_fq_add(fsess->tasks, task);
-
+		safe_int_inc(&fsess->tasks_pending);
+		if (dst_filter && dst_filter->freg->requires_main_thread) {
+			gf_fq_add(fsess->main_thread_tasks, task);
+		} else if (filter && filter->freg->requires_main_thread) {
+			gf_fq_add(fsess->main_thread_tasks, task);
+		} else {
+			gf_fq_add(fsess->tasks, task);
+		}
 		gf_fs_sema_io(fsess, GF_TRUE);
 
 	}
@@ -325,12 +353,15 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	u32 thid =  1 + gf_list_find(fsess->threads, sess_thread);
 	u64 enter_time = gf_sys_clock_high_res();
 	GF_Filter *current_filter = NULL;
+	sess_thread->th_id = gf_th_id();
+
 	while (1) {
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		u64 active_start, task_time;
 		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
+		GF_Filter *prev_current_filter = NULL;
 
 		if (current_filter==NULL) {
 			//wait for something to be done
@@ -342,7 +373,13 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		active_start = gf_sys_clock_high_res();
 
 		if (current_filter==NULL) {
-			task = gf_fq_pop(fsess->tasks);
+			//main thread
+			if (thid==0) {
+				task = gf_fq_pop(fsess->main_thread_tasks);
+				if (!task) task = gf_fq_pop(fsess->tasks);
+			} else {
+				task = gf_fq_pop(fsess->tasks);
+			}
 		} else {
 			//keep task in filter list task until done
 			task = gf_fq_head(current_filter->tasks);
@@ -362,44 +399,62 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				if (all_done)
 					break;
 			}
-			if (current_filter) current_filter->scheduled_for_next_task = GF_FALSE;
+			if (current_filter) {
+				current_filter->scheduled_for_next_task = GF_FALSE;
+				current_filter->process_th_id = 0;
+				assert(current_filter->in_process);
+				current_filter->in_process = GF_FALSE;
+			}
 			current_filter = NULL;
 			sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 			//no pending tasks and first time main task queue is empty, flush to detect if we
 			//are indeed done
-			if (!fsess->tasks_pending && !sess_thread->has_seen_eot && (gf_fq_count(fsess->tasks)==0)) {
-				//maybe last task, force a notify to check if we are truly done
-				sess_thread->has_seen_eot = GF_TRUE;
+			if (!fsess->tasks_pending && !sess_thread->has_seen_eot && !gf_fq_count(fsess->tasks)) {
+
+				if (thid || !gf_fq_count(fsess->main_thread_tasks)) {
+					//maybe last task, force a notify to check if we are truly done
+					sess_thread->has_seen_eot = GF_TRUE;
+					gf_fs_sema_io(fsess, GF_TRUE);
+				}
+			}
+			//this thread maye have got the slot used to notify a task in the main thread specific list, re-post
+			if (thid && gf_fq_count(fsess->main_thread_tasks)) {
 				gf_fs_sema_io(fsess, GF_TRUE);
 			}
-			if (fsess->tasks_pending) {
+			if (0 && fsess->tasks_pending) {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Thread %d: no task available but still %d pending tasks, renotifying main semaphore\n", thid, fsess->tasks_pending));
 				gf_fs_sema_io(fsess, GF_TRUE);
 			}
 
 			continue;
 		}
+		if (current_filter) {
+			assert(current_filter==task->filter);
+		}
 		current_filter = task->filter;
 		if (current_filter) {
 			current_filter->scheduled_for_next_task = GF_TRUE;
 			assert(!current_filter->in_process);
-			current_filter->in_process=GF_TRUE;
+			current_filter->in_process = GF_TRUE;
+			current_filter->process_th_id = gf_th_id();
 			pending_packets = current_filter->pending_packets;
 		}
 
 		sess_thread->nb_tasks++;
 		sess_thread->has_seen_eot = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Thread %d task#%d executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task->filter->name, task->log_name, fsess->tasks_pending));
-
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter->name, task->log_name, fsess->tasks_pending));
 
 		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
+
 		requeue = task->run_task(task);
+
 		task_time = gf_sys_clock_high_res() - task_time;
 		fsess->task_in_process = GF_FALSE;
+		prev_current_filter = task->filter;
 
 		//source task was current filter, pop the filter task list
 		if (current_filter) {
@@ -411,18 +466,20 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 			//no more pending tasks for this filter
 			if (gf_fq_count(current_filter->tasks) == 0) {
-				//no task for filter but pending packets, requeue
-				if (task->filter->pending_packets /*&& (task->filter->pending_packets != pending_packets)*/) {
-					requeue = GF_TRUE;
-					gf_mx_v(current_filter->tasks_mx);
-				} else {
-					current_filter->scheduled_for_next_task = GF_FALSE;
-					assert (gf_fq_count(current_filter->tasks) == 0);
+				assert (gf_fq_count(current_filter->tasks) == 0);
 
-					current_filter->in_process=GF_FALSE;
-					gf_mx_v(current_filter->tasks_mx);
-					current_filter = NULL;
+				current_filter->in_process = GF_FALSE;
+
+				if (requeue) {
+					current_filter->process_th_id = 0;
+				} else {
+					//don't reset the flag if requeued to make sure no other task posted from
+					//another thread will also post to main sched
+					current_filter->scheduled_for_next_task = GF_FALSE;
 				}
+
+				gf_mx_v(current_filter->tasks_mx);
+				current_filter = NULL;
 			} else {
 				gf_mx_v(current_filter->tasks_mx);
 			}
@@ -430,7 +487,7 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		notified = task->notified;
 		if (requeue) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Re-posted task Filter %s::%s (%d pending)\n", task->filter->name, task->log_name, fsess->tasks_pending));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Thread %d re-posted task Filter %s::%s (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
 
 			if (current_filter) {
 				task->notified=GF_FALSE;
@@ -438,9 +495,14 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
 				task->notified=GF_TRUE;
-				ref_count_inc(&fsess->tasks_pending);
-				gf_fq_add(fsess->tasks, task);
+				safe_int_inc(&fsess->tasks_pending);
 
+				//main thread
+				if (task->filter && task->filter->freg->requires_main_thread) {
+					gf_fq_add(fsess->main_thread_tasks, task);
+				} else {
+					gf_fq_add(fsess->tasks, task);
+				}
 				gf_fs_sema_io(fsess, GF_TRUE);
 			}
 		} else {
@@ -451,18 +513,20 @@ u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		//decrement task counter
 		if (notified) {
 			assert(fsess->tasks_pending);
-			ref_count_dec(&fsess->tasks_pending);
+			safe_int_dec(&fsess->tasks_pending);
 		}
 		if (current_filter) {
-			current_filter->in_process=GF_FALSE;
+			current_filter->in_process = GF_FALSE;
 		}
 
 		//not requeuing, no pending tasks and first time main task queue is empty, flush to detect if we
 		//are indeed done
-		if (!requeue && !fsess->tasks_pending && !sess_thread->has_seen_eot && (gf_fq_count(fsess->tasks)==0)) {
-			//maybe last task, force a notify to check if we are truly done
-			sess_thread->has_seen_eot = GF_TRUE;
-			gf_fs_sema_io(fsess, GF_TRUE);
+		if (!current_filter && !fsess->tasks_pending && !sess_thread->has_seen_eot && !gf_fq_count(fsess->tasks)) {
+			if (thid || !gf_fq_count(fsess->main_thread_tasks) ) {
+				//maybe last task, force a notify to check if we are truly done
+				sess_thread->has_seen_eot = GF_TRUE;
+				gf_fs_sema_io(fsess, GF_TRUE);
+			}
 		}
 
 		sess_thread->active_time += gf_sys_clock_high_res() - active_start;
@@ -527,8 +591,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 		}
 
 		for (k=0; k<ipids; k++) {
-			GF_FilterPid *pid = gf_list_get(f->input_pids, k);
-			fprintf(stderr, "\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->nb_pck_sent);
+			GF_FilterPidInst *pid = gf_list_get(f->input_pids, k);
+			fprintf(stderr, "\t\t* input PID %s: %d packets received\n", pid->pid->name, pid->pid->nb_pck_sent);
 		}
 		for (k=0; k<opids; k++) {
 			GF_FilterPid *pid = gf_list_get(f->output_pids, k);
@@ -576,5 +640,5 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	upd->name = gf_strdup(name);
 	upd->val = gf_strdup(val);
-	gf_fs_post_task(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", upd);
+	gf_fs_post_task_ex(fsess, gf_filter_update_arg_task, filter, NULL, "update_arg", NULL, upd);
 }

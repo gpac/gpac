@@ -174,11 +174,8 @@ s32 gf_mo_get_clock_drift(GF_MediaObject *mo);
 
 enum
 {
-	/*this is set to 0 by the OD manager whenever a change occur in the media (w/h change, SR change, etc)
-	as a hint for the compositor*/
-	GF_MO_IS_INIT = (1<<1),
 	/*used by animation stream to remove TEXT from display upon delete and URL change*/
-	GF_MO_DISPLAY_REMOVE = (1<<2),
+	GF_MO_DISPLAY_REMOVE = (1<<1),
 };
 
 u32 gf_mo_get_flags(GF_MediaObject *mo);

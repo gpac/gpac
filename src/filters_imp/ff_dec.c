@@ -137,18 +137,17 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &pkt.size);
 
 	if (!pkt.data) {
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EOS);
-		if (p && p->value.boolean) is_eos = GF_TRUE;
+		is_eos = gf_filter_pck_get_eos(pck);
 	}
 
 	if (!is_eos) {
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CTS);
-		if (p) pkt.pts = p->value.longuint;
-
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_SAP);
-		pkt.dts=0;
-		if (p)
-			pkt.dts = p->value.uint;
+		u64 dts;
+		pkt.pts = gf_filter_pck_get_cts(pck);
+		//copy over SAP and duration in dts
+		dts = gf_filter_pck_get_sap(pck);
+		dts <<= 32;
+		dts |= gf_filter_pck_get_duration(pck);
+		pkt.dts = dts;
 	}
 
 	/*TOCHECK: for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
@@ -159,6 +158,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	gotpic=0;
 	res = avcodec_decode_video2(ffdec->codec_ctx, frame, &gotpic, &pkt);
 
+	//not end of stream, or no more data to flush
 	if (!is_eos || !gotpic) {
 		gf_filter_pid_drop_packet(ffdec->in_pid);
 		if (is_eos) {
@@ -269,13 +269,16 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		sws_scale(ffdec->sws_ctx, (const uint8_t * const*)frame->data, frame->linesize, 0, ffdec->height, pict.data, pict.linesize);
 	}
 
-	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, &PROP_LONGUINT(frame->pkt_pts) );
-	//copy over SAP indication
-	gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_SAP, &PROP_UINT(frame->pkt_dts) );
-
+	gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+	//copy over SAP and duration indication
+	if (frame->pkt_dts) {
+		u32 sap = frame->pkt_dts>>32;
+		gf_filter_pck_set_duration(dst_pck, frame->pkt_dts & 0xFFFFFFFFUL);
+		gf_filter_pck_set_sap(dst_pck, sap);
+	}
 
 	if (frame->interlaced_frame)
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_INTERLACED, &PROP_UINT(frame->top_field_first ? 2 : 1) );
+		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
 
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
@@ -305,12 +308,17 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (!pkt.data) {
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_EOS);
-		if (p && p->value.boolean) is_eos = GF_TRUE;
+		is_eos = gf_filter_pck_get_eos(pck);
 	}
 	if (!is_eos) {
-		p = gf_filter_pck_get_property(pck, GF_PROP_PCK_CTS);
-		if (p) pkt.pts = p->value.longuint;
+		u64 dts;
+		pkt.pts = gf_filter_pck_get_cts(pck);
+
+		//copy over SAP and duration in dts
+		dts = gf_filter_pck_get_sap(pck);
+		dts <<= 32;
+		dts |= gf_filter_pck_get_duration(pck);
+		pkt.dts = dts;
 
 		pkt.size = in_size;
 		if (ffdec->frame_start > pkt.size) ffdec->frame_start = 0;
@@ -319,6 +327,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 			pkt.data += ffdec->frame_start;
 			pkt.size -= ffdec->frame_start;
 		}
+	} else {
+		pkt.size = 0;
 	}
 
 	frame = ffdec->frame;
@@ -400,8 +410,16 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Raw Audio format %d not supported\n", frame->format ));
 	}
 
-	if (p)
-		gf_filter_pck_set_property(dst_pck, GF_PROP_PCK_CTS, &PROP_LONGUINT(frame->pkt_pts) );
+	if (frame->pkt_pts != AV_NOPTS_VALUE)
+		gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+
+	//copy over SAP and duration indication
+	if (frame->pkt_dts) {
+		u32 sap = frame->pkt_dts>>32;
+		gf_filter_pck_set_duration(dst_pck, frame->pkt_dts & 0xFFFFFFFFUL);
+		gf_filter_pck_set_sap(dst_pck, sap);
+	}
+
 	gf_filter_pck_send(dst_pck);
 
 	frame->nb_samples = 0;
@@ -423,6 +441,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 static GF_Err ffdec_process(GF_Filter *filter)
 {
 	GF_FFDecodeCtx *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
+	if (gf_filter_pid_would_block(ffdec->out_pid))
+		return GF_OK;
 	return ffdec->process(filter, ffdec);
 }
 
@@ -610,7 +630,8 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 		}
 	}
-	ffdec->frame = av_frame_alloc();
+	if (!ffdec->frame)
+		ffdec->frame = av_frame_alloc();
 	return GF_OK;
 }
 

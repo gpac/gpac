@@ -282,7 +282,7 @@ typedef enum
 	GF_NOT_FOUND							= -53,
 	/*! Unexpected format of data */
 	GF_PROFILE_NOT_SUPPORTED				= -54,
-	/*! filter PID config requies new instance of filter */
+	/*! filter PID config requires new instance of filter */
 	GF_REQUIRES_NEW_INSTANCE				= -55
 } GF_Err;
 

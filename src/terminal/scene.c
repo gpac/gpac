@@ -441,7 +441,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 #endif
 		) {
 			u32 discard_obj = 0;
-			gf_odm_lock(odm, 1);
+
 			obj->flags = 0;
 			if (obj->odm) obj->odm->mo = NULL;
 			odm->mo = NULL;
@@ -450,7 +450,6 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 			obj->frame = NULL;
 			obj->framesize = obj->timestamp = 0;
 
-			gf_odm_lock(odm, 0);
 
 			/*if graph not attached we can remove the link (this is likely scene shutdown for some error)*/
 			if (!scene->graph_attached) {

@@ -44,6 +44,7 @@ typedef struct
 
 static GF_Err compose_process(GF_Filter *filter)
 {
+	u32 i, count;
 	s32 ms_until_next=0;
 	GF_FilterPacket *pck_dst;
 	GF_CompositorFilter *stack = (GF_CompositorFilter *) gf_filter_get_udta(filter);
@@ -75,7 +76,10 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	odm = gf_filter_pid_get_udta(pid);
 	if (odm) {
-		odm->config_update = GF_TRUE;
+		//change of stream type for a given object, no use case yet
+		if (odm->type != mtype)
+			return GF_NOT_SUPPORTED;
+		if (odm->mo) odm->mo->config_changed = GF_TRUE;
 		return GF_OK;
 	}
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
@@ -91,11 +95,6 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->scene->root_od->subscene = ctx->scene;
 		}
 		gf_scene_insert_object(ctx->scene, ctx->scene->root_od->scene_ns, pid);
-		if (!gf_clock_is_started(ctx->scene->root_od->ck)) {
-			gf_clock_set_time(ctx->scene->root_od->ck, 0);
-			gf_clock_set_speed(ctx->scene->root_od->ck, 10.0f);
-		}
-
 		gf_scene_regenerate(ctx->scene);
 
 	}
@@ -144,7 +143,7 @@ GF_Err compose_initialize(GF_Filter *filter)
 		return GF_SERVICE_ERROR;
 	}
 	ctx->user.EventProc = compose_EventProc;
-	ctx->user.init_flags = GF_TERM_NO_REGULATION;
+//	ctx->user.init_flags = GF_TERM_NO_REGULATION;
 	
 	ctx->compositor = gf_sc_new(&ctx->user);
 	if (!ctx->compositor) return GF_SERVICE_ERROR;
@@ -171,6 +170,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.name = "compositor",
 	.description = "Compositor Filter running the GPAC interactive media compositor. Sink filter for now",
 	.private_size = sizeof(GF_CompositorFilter),
+	.requires_main_thread = GF_TRUE,
 	.input_caps = CompositorFilterInputs,
 	.args = CompositorFilterArgs,
 	.initialize = compose_initialize,

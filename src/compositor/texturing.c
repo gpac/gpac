@@ -176,7 +176,6 @@ static void setup_texture_object(GF_TextureHandler *txh, Bool private_media)
 				break;
 			}
 		}
-		gf_mo_set_flag(txh->stream, GF_MO_IS_INIT, GF_TRUE);
 	}
 }
 
@@ -203,7 +202,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 
 	/*check init flag*/
-	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
+	if (txh->stream->config_changed) {
 		needs_reload = 1;
 		txh->data = NULL;
 		if (txh->tx_io) {
@@ -215,10 +214,12 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	
 	txh->data = gf_mo_fetch_data(txh->stream, disable_resync ? GF_MO_FETCH : GF_MO_FETCH_RESYNC, push_time, &txh->stream_finished, &ts, &size, &ms_until_pres, &ms_until_next, &txh->frame);
 
-	if (!(gf_mo_get_flags(txh->stream) & GF_MO_IS_INIT)) {
+	if (txh->stream->config_changed) {
 		needs_reload = 1;
 	} else if (size && txh->size && (size != txh->size)) {
-		needs_reload = 1;
+		//we should never get here
+//		needs_reload = 1;
+		assert(0);
 	}
 	
 	if (needs_reload) {

@@ -167,7 +167,7 @@ void gf_lfq_add(GF_FilterQueue *q, void *item)
 	}
 	it->data=item;
 	gf_fq_lockfree_enqueue(it, &q->tail);
-	ref_count_inc(&q->nb_items);
+	safe_int_inc(&q->nb_items);
 }
 
 void *gf_lfq_pop(GF_FilterQueue *q)
@@ -180,7 +180,7 @@ void *gf_lfq_pop(GF_FilterQueue *q)
 	slot->data = NULL;
 	slot->next = NULL;
 	gf_fq_lockfree_enqueue(slot, &q->res_tail);
-	ref_count_dec(&q->nb_items);
+	safe_int_dec(&q->nb_items);
 
 	return data;
 }

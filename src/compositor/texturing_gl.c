@@ -584,6 +584,7 @@ static Bool tx_setup_format(GF_TextureHandler *txh)
 		txh->tx_io->nb_comp = 3;
 		break;
 	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[V3D:GLSL] Unknown pixel format %s\n", gf_4cc_to_str(txh->pixelformat) ));
 		return 0;
 	}
 
@@ -1317,8 +1318,10 @@ push_exit:
 	txh->upload_time += push_time;
 
 #ifndef GPAC_DISABLE_LOGS
-			gf_mo_get_object_time(txh->stream, &ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->yuv_shader ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
+	if (txh->stream) {
+		gf_mo_get_object_time(txh->stream, &ck);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[GL Texture] Texture (CTS %u) %d ms after due date - Pushed %s in %d ms - average push time %d ms (PBO enabled %s)\n", txh->last_frame_time, ck - txh->last_frame_time, txh->tx_io->yuv_shader ? "YUV textures" : "texture", push_time, txh->upload_time / txh->nb_frames, txh->tx_io->pbo_pushed ? "yes" : "no"));
+	}
 #endif
 	return 1;
 
@@ -1960,7 +1963,8 @@ u32 gf_sc_texture_enable_ex(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Re
 	if (txh->compute_gradient_matrix && gf_sc_texture_needs_reload(txh) ) {
 		compositor_gradient_update(txh);
 	}
-
+	if (!txh->pixelformat)
+		return 0;
 	if (! tx_set_image(txh, 0) ) {
 		return 0;
 	}

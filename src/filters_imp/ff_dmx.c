@@ -62,6 +62,7 @@ static void ffdmx_finalize(GF_Filter *filter)
 static GF_Err ffdmx_process(GF_Filter *filter)
 {
 	GF_Err e;
+	u32 i;
 	AVPacket pkt;
 	char *data_dst;
 	GF_FilterPacket *pck_dst;
@@ -72,10 +73,16 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		av_seek_frame(ffd->ctx, -1, seek_to, AVSEEK_FLAG_BACKWARD);
 #endif
 
+	for (i=0; i<ffd->ctx->nb_streams; i++) {
+		if (gf_filter_pid_would_block(ffd->pids[i])) {
+			return GF_OK;
+		}
+	}
+
+
 	pkt.stream_index = -1;
 	/*EOF*/
 	if (av_read_frame(ffd->ctx, &pkt) <0) {
-		u32 i;
 		for (i=0; i<ffd->ctx->nb_streams; i++) {
 			gf_filter_pid_set_eos(ffd->pids[i]);
 		}
@@ -104,20 +111,23 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		AVStream *stream = ffd->ctx->streams[pkt.stream_index];
 		u64 ts = pkt.pts * stream->time_base.num;
 
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CTS, &PROP_LONGUINT(ts) );
+		gf_filter_pck_set_cts(pck_dst, ts );
 
 		if (!pkt.dts) pkt.dts = pkt.pts;
 
 		if (pkt.dts != AV_NOPTS_VALUE) {
 			ts = pkt.dts * stream->time_base.num;
-			gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_DTS, &PROP_LONGUINT(ts) );
+			gf_filter_pck_set_dts(pck_dst, ts);
 		}
 	}
+	gf_filter_pck_set_duration(pck_dst, pkt.duration);
+	
+	//fixme: try to identify SAP type 2 and more
 	if (pkt.flags & AV_PKT_FLAG_KEY) 
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_SAP, &PROP_UINT(1) );
+		gf_filter_pck_set_sap(pck_dst, 1);
 
 	if (pkt.flags & AV_PKT_FLAG_CORRUPT)
-		gf_filter_pck_set_property(pck_dst, GF_PROP_PCK_CORRUPTED, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pck_set_corrupted(pck_dst, GF_TRUE);
 
 	//TODO - check we are not blocking
 	e = gf_filter_pck_send(pck_dst);
