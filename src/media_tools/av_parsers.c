@@ -2392,8 +2392,8 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		sps_id = -1;
 		goto exit;
 	}
-	bs_get_ue(bs); /*ref_frame_count*/
-	gf_bs_read_int(bs, 1); /*gaps_in_frame_num_allowed_flag*/
+	sps->max_num_ref_frames = bs_get_ue(bs); 
+	sps->gaps_in_frame_num_value_allowed_flag = gf_bs_read_int(bs, 1); 
 	mb_width = bs_get_ue(bs) + 1;
 	mb_height= bs_get_ue(bs) + 1;
 
@@ -2401,9 +2401,8 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 
 	sps->width = mb_width * 16;
 	sps->height = (2-sps->frame_mbs_only_flag) * mb_height * 16;
-
-	/*mb_adaptive_frame_field_flag*/
-	if (!sps->frame_mbs_only_flag) gf_bs_read_int(bs, 1);
+	
+	if (!sps->frame_mbs_only_flag) sps->mb_adaptive_frame_field_flag = gf_bs_read_int(bs, 1);
 	gf_bs_read_int(bs, 1); /*direct_8x8_inference_flag*/
 	
 	if (gf_bs_read_int(bs, 1)) { /*crop*/
@@ -2447,9 +2446,10 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		*vui_flag_pos = (u32) gf_bs_get_bit_offset(bs);
 	}
 	/*vui_parameters_present_flag*/
-	if (gf_bs_read_int(bs, 1)) {
-		/*aspect_ratio_info_present_flag*/
-		if (gf_bs_read_int(bs, 1)) {
+	sps->vui_parameters_present_flag = gf_bs_read_int(bs, 1);
+	if (sps->vui_parameters_present_flag) {
+		sps->vui.aspect_ratio_info_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui.aspect_ratio_info_present_flag) {
 			s32 aspect_ratio_idc = gf_bs_read_int(bs, 8);
 			if (aspect_ratio_idc == 255) {
 				sps->vui.par_num = gf_bs_read_int(bs, 16); /*AR num*/
@@ -2459,16 +2459,25 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 				sps->vui.par_den = avc_sar[aspect_ratio_idc].h;
 			}
 		}
-		if(gf_bs_read_int(bs, 1))		/* overscan_info_present_flag */
+		sps->vui.overscan_info_present_flag = gf_bs_read_int(bs, 1);
+		if(sps->vui.overscan_info_present_flag)		
 			gf_bs_read_int(bs, 1);		/* overscan_appropriate_flag */
 
-		if (gf_bs_read_int(bs, 1)) {		/* video_signal_type_present_flag */
-			gf_bs_read_int(bs, 3);		/* video_format */
-			gf_bs_read_int(bs, 1);		/* video_full_range_flag */
-			if (gf_bs_read_int(bs, 1)) { /* colour_description_present_flag */
-				gf_bs_read_int(bs, 8);  /* colour_primaries */
-				gf_bs_read_int(bs, 8);  /* transfer_characteristics */
-				gf_bs_read_int(bs, 8);  /* matrix_coefficients */
+		/* default values */
+		sps->vui.video_format = 5;
+		sps->vui.colour_primaries = 2;
+		sps->vui.transfer_characteristics = 2;
+		sps->vui.matrix_coefficients = 2;
+		/* now read values if possible */
+		sps->vui.video_signal_type_present_flag = gf_bs_read_int(bs, 1);
+		if (sps->vui.video_signal_type_present_flag) {
+			sps->vui.video_format = gf_bs_read_int(bs, 3);
+			sps->vui.video_full_range_flag = gf_bs_read_int(bs, 1);
+			sps->vui.colour_description_present_flag = gf_bs_read_int(bs, 1);
+			if (sps->vui.colour_description_present_flag) { 
+				sps->vui.colour_primaries = gf_bs_read_int(bs, 8);  
+				sps->vui.transfer_characteristics = gf_bs_read_int(bs, 8);  
+				sps->vui.matrix_coefficients = gf_bs_read_int(bs, 8);  
 			}
 		}
 
@@ -2493,7 +2502,7 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 			avc_parse_hrd_parameters(bs, &sps->vui.hrd);
 
 		if (sps->vui.nal_hrd_parameters_present_flag || sps->vui.vcl_hrd_parameters_present_flag)
-			gf_bs_read_int(bs, 1); /*low_delay_hrd_flag*/
+			sps->vui.low_delay_hrd_flag = gf_bs_read_int(bs, 1); 
 
 		sps->vui.pic_struct_present_flag = gf_bs_read_int(bs, 1);
 	}
@@ -2616,7 +2625,7 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 		goto exit;
 	}
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
-	/*pps->cabac = */gf_bs_read_int(bs, 1);
+	pps->entropy_coding_mode_flag = gf_bs_read_int(bs, 1);
 	pps->pic_order_present= gf_bs_read_int(bs, 1);
 	pps->slice_group_count= bs_get_ue(bs) + 1;
 	if (pps->slice_group_count > 1 ) /*pps->mb_slice_group_map_type = */bs_get_ue(bs);
