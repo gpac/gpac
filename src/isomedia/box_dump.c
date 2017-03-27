@@ -598,6 +598,9 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 	case GF_ISOM_SUBTYPE_AVC4_H264:
 		name = "AVCSampleEntryBox";
 		break;
+	case GF_ISOM_SUBTYPE_MVC_H264:
+		name = "MVCSampleEntryBox";
+		break;
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		name = "SVCSampleEntryBox";
 		break;
@@ -638,6 +641,7 @@ GF_Err video_sample_entry_dump(GF_Box *a, FILE * trace)
 		if (p->ipod_ext) gf_isom_box_dump(p->ipod_ext, trace);
 		if (p->descr) gf_isom_box_dump(p->descr, trace);
 		if (p->svc_config) gf_isom_box_dump(p->svc_config, trace);
+		if (p->mvc_config) gf_isom_box_dump(p->mvc_config, trace);
 		if (p->lhvc_config) gf_isom_box_dump(p->lhvc_config, trace);
 		if (p->cfg_3gpp) gf_isom_box_dump(p->cfg_3gpp, trace);
 	}
@@ -1452,7 +1456,7 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, count;
 	GF_AVCConfigurationBox *p = (GF_AVCConfigurationBox *) a;
-	const char *name = (p->type==GF_ISOM_BOX_TYPE_SVCC) ? "SVC" : "AVC";
+	const char *name = (p->type==GF_ISOM_BOX_TYPE_MVCC) ? "MVC" : (p->type==GF_ISOM_BOX_TYPE_SVCC) ? "SVC" : "AVC";
 	char boxname[256];
 	sprintf(boxname, "%sConfigurationBox", name);
 	gf_isom_box_dump_start(a, boxname, trace);
@@ -1483,7 +1487,7 @@ GF_Err avcc_dump(GF_Box *a, FILE * trace)
 	fprintf(trace, " configurationVersion=\"%d\" AVCProfileIndication=\"%d\" profile_compatibility=\"%d\" AVCLevelIndication=\"%d\" nal_unit_size=\"%d\"", p->config->configurationVersion, p->config->AVCProfileIndication, p->config->profile_compatibility, p->config->AVCLevelIndication, p->config->nal_unit_size);
 
 
-	if (p->type==GF_ISOM_BOX_TYPE_SVCC)
+	if ((p->type==GF_ISOM_BOX_TYPE_SVCC) || (p->type==GF_ISOM_BOX_TYPE_MVCC) )
 		fprintf(trace, " complete_representation=\"%d\"", p->config->complete_representation);
 
 	if (p->type==GF_ISOM_BOX_TYPE_AVCC) {
