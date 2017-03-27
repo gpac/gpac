@@ -918,6 +918,12 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			item_type = GF_4CC('s', 'v', 'c', '1');
 			config_needed = 1;
 			break;
+		case GF_ISOM_SUBTYPE_MVC_H264:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_4CC('m', 'v', 'c', '1');
+			config_needed = 1;
+			break;
 		case GF_ISOM_SUBTYPE_HVC1:
 		case GF_ISOM_SUBTYPE_HEV1:
 		case GF_ISOM_SUBTYPE_HVC2:

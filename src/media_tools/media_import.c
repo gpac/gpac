@@ -7578,6 +7578,7 @@ GF_Err gf_import_saf(GF_MediaImporter *import)
 				switch (oti) {
 				case GPAC_OTI_VIDEO_AVC:
 				case GPAC_OTI_VIDEO_SVC:
+				case GPAC_OTI_VIDEO_MVC:
 					name = "AVC/H264 Video";
 					stype = GF_4CC('H','2','6','4');
 					break;

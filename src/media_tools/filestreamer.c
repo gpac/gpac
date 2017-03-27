@@ -546,8 +546,9 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		case GF_ISOM_SUBTYPE_AVC3_H264:
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
+		case GF_ISOM_SUBTYPE_MVC_H264:
 		{
-			GF_AVCConfig *avcc, *svcc;
+			GF_AVCConfig *avcc, *svcc, *mvcc;
 			avcc = gf_isom_avc_config_get(streamer->isom, track->track_num, 1);
 			if (avcc)
 			{
@@ -563,6 +564,14 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 				gf_odf_avc_cfg_del(svcc);
 				streamType = GF_STREAM_VISUAL;
 				oti = GPAC_OTI_VIDEO_SVC;
+			}
+			mvcc = gf_isom_mvc_config_get(streamer->isom, track->track_num, 1);
+			if (mvcc)
+			{
+				track->avc_nalu_size = mvcc->nal_unit_size;
+				gf_odf_avc_cfg_del(mvcc);
+				streamType = GF_STREAM_VISUAL;
+				oti = GPAC_OTI_VIDEO_MVC;
 			}
 			break;
 		}
