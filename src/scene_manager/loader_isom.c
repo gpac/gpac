@@ -172,7 +172,6 @@ static GF_Err gf_sm_load_run_isom(GF_SceneLoader *load)
 	e = GF_OK;
 #ifndef GPAC_DISABLE_BIFS
 	bifs_dec = gf_bifs_decoder_new(load->scene_graph, 1);
-	gf_bifs_decoder_set_extraction_path(bifs_dec, load->localPath, load->fileName);
 #endif
 	od_dec = gf_odf_codec_new();
 	logs = NULL;

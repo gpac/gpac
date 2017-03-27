@@ -28,12 +28,12 @@
 #define _ISMO_IN_H_
 
 #include <gpac/constants.h>
-#include <gpac/modules/service.h>
+#include <gpac/isomedia.h>
+#include <gpac/filters.h>
 #include <gpac/thread.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
-#include <gpac/media_tools.h>
 /*
 			reader module
 
@@ -43,9 +43,13 @@
 
 typedef struct
 {
-	GF_InputService *input;
-	/*the service we're responsible for*/
-	GF_ClientService *service;
+	//arguments
+	char *src;
+
+
+	//internal
+
+	GF_Filter *filter;
 
 	/*current channels*/
 	GF_List *channels;
@@ -56,7 +60,9 @@ typedef struct
 	u32 nb_playing;
 
 	/*remote file handling*/
+#ifdef FILTER_FIXME
 	GF_DownloadSession * dnload;
+#endif
 	u64 missing_bytes, last_size;
 	Bool no_service_desc;
 	u32 play_only_track_id;
@@ -91,7 +97,8 @@ typedef struct
 	/*base track if scalable media, 0 otherwise*/
 	u32 base_track;
 	u32 next_track;
-	LPNETCHANNEL channel;
+	GF_FilterPid *pid;
+
 	ISOMReader *owner;
 	u64 duration;
 
@@ -137,10 +144,7 @@ void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
 
-ISOMChannel *isor_get_channel(ISOMReader *reader, LPNETCHANNEL channel);
-
-GF_InputService *isor_client_load();
-void isor_client_del(GF_BaseInterface *bi);
+//ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
 
 GF_Descriptor *isor_emulate_iod(ISOMReader *read);
 /*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
@@ -148,17 +152,9 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 
 void isor_declare_objects(ISOMReader *read);
 
-
-void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media, GF_Err e, GF_Descriptor *desc, LPNETCHANNEL channel);
-
 void isor_send_cenc_config(ISOMChannel *ch);
 
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush);
-
-#ifndef GPAC_DISABLE_ISOM_WRITE
-GF_BaseInterface *isow_load_cache();
-void isow_delete_cache(GF_BaseInterface *bi);
-#endif
 
 #endif /*GPAC_DISABLE_ISOM*/
 

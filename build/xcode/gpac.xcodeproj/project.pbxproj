@@ -283,6 +283,11 @@
 		921D1BF01E55B1AE00B9B23A /* filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D1BE91E55B1AE00B9B23A /* filter.c */; };
 		921D1BF21E55F02300B9B23A /* filter_queue.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D1BF11E55F02300B9B23A /* filter_queue.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		922990DB1E857368001FAC7F /* bifs_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DA1E857368001FAC7F /* bifs_dec.c */; };
+		922990DF1E858198001FAC7F /* isoffin_read_ch.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DC1E858198001FAC7F /* isoffin_read_ch.c */; };
+		922990E01E858198001FAC7F /* isoffin_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DD1E858198001FAC7F /* isoffin_read.c */; };
+		922990E11E858198001FAC7F /* isoffin.h in Headers */ = {isa = PBXBuildFile; fileRef = 922990DE1E858198001FAC7F /* isoffin.h */; };
+		922990E31E858383001FAC7F /* isoffin_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990E21E858383001FAC7F /* isoffin_load.c */; };
 		9235E04E1CFECD300051D8A1 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2839E2C41A163711002D73E1 /* CoreMedia.framework */; };
 		9235E0501CFECD370051D8A1 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E04F1CFECD370051D8A1 /* CoreVideo.framework */; };
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
@@ -1093,6 +1098,11 @@
 		921D1BE91E55B1AE00B9B23A /* filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter.c; path = filters/filter.c; sourceTree = "<group>"; };
 		921D1BF11E55F02300B9B23A /* filter_queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_queue.c; path = filters/filter_queue.c; sourceTree = "<group>"; };
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		922990DA1E857368001FAC7F /* bifs_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = bifs_dec.c; path = filters_imp/bifs_dec.c; sourceTree = "<group>"; };
+		922990DC1E858198001FAC7F /* isoffin_read_ch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read_ch.c; path = filters_imp/isoffin_read_ch.c; sourceTree = "<group>"; };
+		922990DD1E858198001FAC7F /* isoffin_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read.c; path = filters_imp/isoffin_read.c; sourceTree = "<group>"; };
+		922990DE1E858198001FAC7F /* isoffin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = isoffin.h; path = filters_imp/isoffin.h; sourceTree = "<group>"; };
+		922990E21E858383001FAC7F /* isoffin_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_load.c; path = filters_imp/isoffin_load.c; sourceTree = "<group>"; };
 		922B48781A5ADAB3006CBBBA /* os_module.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_module.c; sourceTree = "<group>"; };
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
@@ -2165,6 +2175,11 @@
 		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
 			isa = PBXGroup;
 			children = (
+				922990E21E858383001FAC7F /* isoffin_load.c */,
+				922990DC1E858198001FAC7F /* isoffin_read_ch.c */,
+				922990DD1E858198001FAC7F /* isoffin_read.c */,
+				922990DE1E858198001FAC7F /* isoffin.h */,
+				922990DA1E857368001FAC7F /* bifs_dec.c */,
 				92C1FF341E7BEDF30093B61E /* compose.c */,
 				92AE971B1E7AD268005D3411 /* ff_common.c */,
 				92AE97191E797323005D3411 /* ff_dec.c */,
@@ -2558,6 +2573,7 @@
 				92BBFCCF1A7122AD006A7735 /* mpd.h in Headers */,
 				92BBFCBE1A7122AD006A7735 /* filestreamer.h in Headers */,
 				92BBFCD01A7122AD006A7735 /* odf_dev.h in Headers */,
+				922990E11E858198001FAC7F /* isoffin.h in Headers */,
 				92BBFCCD1A7122AD006A7735 /* media_dev.h in Headers */,
 				92BBFCEC1A7122AD006A7735 /* video_out.h in Headers */,
 			);
@@ -3071,6 +3087,7 @@
 				924FEE821BA6C63A003F77A6 /* iff.c in Sources */,
 				9201011418D5A444003D1ACA /* avc_ext.c in Sources */,
 				9201011518D5A444003D1ACA /* box_code_3gpp.c in Sources */,
+				922990DF1E858198001FAC7F /* isoffin_read_ch.c in Sources */,
 				9201011618D5A444003D1ACA /* box_code_adobe.c in Sources */,
 				9201011718D5A444003D1ACA /* box_code_apple.c in Sources */,
 				9201011818D5A444003D1ACA /* box_code_base.c in Sources */,
@@ -3118,6 +3135,7 @@
 				9201014218D5A445003D1ACA /* ait.c in Sources */,
 				9201014318D5A445003D1ACA /* av_parsers.c in Sources */,
 				9201014418D5A445003D1ACA /* avilib.c in Sources */,
+				922990E01E858198001FAC7F /* isoffin_read.c in Sources */,
 				9201014518D5A445003D1ACA /* dash_client.c in Sources */,
 				92C1FF351E7BEDF30093B61E /* compose.c in Sources */,
 				9201014618D5A445003D1ACA /* dash_segmenter.c in Sources */,
@@ -3182,6 +3200,7 @@
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
+				922990E31E858383001FAC7F /* isoffin_load.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
 				9201017F18D5A445003D1ACA /* mpeg4_animators.c in Sources */,
 				9201018018D5A445003D1ACA /* mpeg4_nodes.c in Sources */,
@@ -3227,6 +3246,7 @@
 				920101B818D5A445003D1ACA /* os_net.c in Sources */,
 				920101B918D5A445003D1ACA /* os_thread.c in Sources */,
 				920101BA18D5A445003D1ACA /* path2d.c in Sources */,
+				922990DB1E857368001FAC7F /* bifs_dec.c in Sources */,
 				920101BB18D5A445003D1ACA /* path2d_stroker.c in Sources */,
 				920101BC18D5A445003D1ACA /* ringbuffer.c in Sources */,
 				920101BD18D5A445003D1ACA /* sha1.c in Sources */,
