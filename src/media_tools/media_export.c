@@ -293,6 +293,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 				break;
 			case GPAC_OTI_VIDEO_AVC:
 			case GPAC_OTI_VIDEO_SVC:
+			case GPAC_OTI_VIDEO_MVC:
 				strcpy(szEXT, ".264");
 				gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
 				break;
@@ -403,6 +404,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	           || (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
 	           || (m_stype==GF_ISOM_SUBTYPE_AVC4_H264)
 	           || (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
+	           || (m_stype==GF_ISOM_SUBTYPE_MVC_H264)
 	          ) {
 		strcpy(szEXT, ".h264");
 		gf_export_message(dumper, GF_OK, "Dumping MPEG-4 AVC-H264 Visual sample%s", szNum);
@@ -759,7 +761,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	char szName[1000], szEXT[5], GUID[16];
 	FILE *out;
 	unsigned int *qcp_rates, rt_cnt;	/*contains constants*/
-	GF_AVCConfig *avccfg, *svccfg;
+	GF_AVCConfig *avccfg, *svccfg, *mvccfg;
 	GF_HEVCConfig *hevccfg, *lhvccfg;
 	GF_M4ADecSpecInfo a_cfg;
 	const char *stxtcfg;
@@ -777,6 +779,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 	hevccfg = NULL;
 	avccfg = NULL;
 	svccfg = NULL;
+	mvccfg = NULL;
 	lhvccfg = NULL;
 	stxtcfg = NULL;
 
@@ -842,8 +845,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				break;
 			case GPAC_OTI_VIDEO_AVC:
 			case GPAC_OTI_VIDEO_SVC:
+			case GPAC_OTI_VIDEO_MVC:
 				avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 				svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
+				mvccfg = gf_isom_mvc_config_get(dumper->file, track, 1);
 				if (add_ext)
 					strcat(szName, ".h264");
 				gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
@@ -1024,9 +1029,11 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		           || (m_stype==GF_ISOM_SUBTYPE_AVC3_H264)
 		           || (m_stype==GF_ISOM_SUBTYPE_AVC4_H264)
 		           || (m_stype==GF_ISOM_SUBTYPE_SVC_H264)
+		           || (m_stype==GF_ISOM_SUBTYPE_MVC_H264)
 		          ) {
 			avccfg = gf_isom_avc_config_get(dumper->file, track, 1);
 			svccfg = gf_isom_svc_config_get(dumper->file, track, 1);
+			mvccfg = gf_isom_mvc_config_get(dumper->file, track, 1);
 			if (add_ext)
 				strcat(szName, ".h264");
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-4 AVC-H264 stream to h264");
@@ -1148,6 +1155,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 		return GF_OK;
@@ -1179,6 +1187,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (dsi) gf_free(dsi);
 		if (avccfg) gf_odf_avc_cfg_del(avccfg);
 		if (svccfg) gf_odf_avc_cfg_del(svccfg);
+		if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
 		if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 		if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 		return gf_export_message(dumper, GF_IO_ERR, "Error opening %s for writing - check disk access & permissions", szName);
@@ -1195,7 +1204,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		DUMP_HEVCPARAM(hevccfg);
 	}
 
-	if (svccfg || lhvccfg) {
+	if (svccfg || mvccfg || mvccfg || lhvccfg) {
 		if (!(dumper->flags & GF_EXPORT_SVC_LAYER)) {
 			GF_AVCConfig *cfg;
 			GF_HEVCConfig *hcfg;
@@ -1247,6 +1256,10 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 		if (svccfg) {
 			DUMP_AVCPARAM(svccfg->sequenceParameterSets);
 			DUMP_AVCPARAM(svccfg->pictureParameterSets);
+		}
+		if (mvccfg) {
+			DUMP_AVCPARAM(mvccfg->sequenceParameterSets);
+			DUMP_AVCPARAM(mvccfg->pictureParameterSets);
 		}
 		if (lhvccfg) {
 			DUMP_HEVCPARAM(lhvccfg);
@@ -1393,12 +1406,13 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			break;
 		}
 		/*AVC sample to NALU*/
-		if (avccfg || svccfg || hevccfg || lhvccfg) {
+		if (avccfg || svccfg || mvccfg || hevccfg || lhvccfg) {
 			u32 j, nal_size, remain, nal_unit_size;
 			char *ptr = samp->data;
 			nal_unit_size = 0;
 			if (avccfg) nal_unit_size= avccfg->nal_unit_size;
 			else if (svccfg) nal_unit_size = svccfg->nal_unit_size;
+			else if (mvccfg) nal_unit_size = mvccfg->nal_unit_size;
 			else if (hevccfg) nal_unit_size = hevccfg->nal_unit_size;
 			else if (lhvccfg) nal_unit_size = lhvccfg->nal_unit_size;
 
@@ -1454,7 +1468,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				}
 			}
 		}
-		if (!avccfg && !svccfg && !hevccfg && !lhvccfg &!is_webvtt) {
+		if (!avccfg && !svccfg && !mvccfg && !hevccfg && !lhvccfg &!is_webvtt) {
 			gf_bs_write_data(bs, samp->data, samp->dataLength);
 		}
 		gf_isom_sample_del(&samp);
@@ -1465,6 +1479,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 exit:
 	if (avccfg) gf_odf_avc_cfg_del(avccfg);
 	if (svccfg) gf_odf_avc_cfg_del(svccfg);
+	if (mvccfg) gf_odf_avc_cfg_del(mvccfg);
 	if (hevccfg) gf_odf_hevc_cfg_del(hevccfg);
 	if (lhvccfg) gf_odf_hevc_cfg_del(lhvccfg);
 	gf_bs_del(bs);
@@ -2014,6 +2029,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 	        ( (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MPEG4_PART2)
 	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_AVC)
 	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_SVC)
+	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_MVC)
 	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_HEVC)
 	          && (esd->decoderConfig->objectTypeIndication!=GPAC_OTI_VIDEO_LHVC)
 	        ) ) {
@@ -2050,7 +2066,7 @@ GF_Err gf_media_export_avi(GF_MediaExporter *dumper)
 
 	frame_d = 0;
 	/*AVC - FIXME dump format is probably wrong...*/
-	if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC)) {
+	if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_SVC) || (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MVC)) {
 		gf_isom_get_visual_info(dumper->file, track, 1, &w, &h);
 		v4CC = "h264";
 	}

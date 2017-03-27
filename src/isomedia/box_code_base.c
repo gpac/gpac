@@ -4342,6 +4342,7 @@ void video_sample_entry_del(GF_Box *s)
 
 	if (ptr->avc_config) gf_isom_box_del((GF_Box *) ptr->avc_config);
 	if (ptr->svc_config) gf_isom_box_del((GF_Box *) ptr->svc_config);
+	if (ptr->mvc_config) gf_isom_box_del((GF_Box *) ptr->mvc_config);
 	if (ptr->hevc_config) gf_isom_box_del((GF_Box *) ptr->hevc_config);
 	if (ptr->lhvc_config) gf_isom_box_del((GF_Box *) ptr->lhvc_config);
 	if (ptr->cfg_3gpp) gf_isom_box_del((GF_Box *)ptr->cfg_3gpp);
@@ -4384,6 +4385,10 @@ GF_Err video_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SVCC:
 		if (ptr->svc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
 			ptr->svc_config = (GF_AVCConfigurationBox *)a;
+		break;
+	case GF_ISOM_BOX_TYPE_MVCC:
+		if (ptr->mvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
+			ptr->mvc_config = (GF_AVCConfigurationBox *)a;
 		break;
 	case GF_ISOM_BOX_TYPE_LHVC:
 		if (ptr->lhvc_config) ERROR_ON_DUPLICATED_BOX(a, ptr)
@@ -4435,7 +4440,7 @@ GF_Err video_sample_entry_Read(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_array_read(s, bs, video_sample_entry_AddBox);
 	if (e) return e;
 	/*this is an AVC sample desc*/
-	if (mp4v->avc_config || mp4v->svc_config) AVC_RewriteESDescriptor(mp4v);
+	if (mp4v->avc_config || mp4v->svc_config || mp4v->mvc_config) AVC_RewriteESDescriptor(mp4v);
 	/*this is an HEVC sample desc*/
 	if (mp4v->hevc_config || mp4v->lhvc_config || (mp4v->type==GF_ISOM_BOX_TYPE_HVT1))
 		HEVC_RewriteESDescriptor(mp4v);
@@ -4493,6 +4498,10 @@ GF_Err video_sample_entry_Write(GF_Box *s, GF_BitStream *bs)
 		}
 		if (ptr->svc_config && ptr->svc_config->config) {
 			e = gf_isom_box_write((GF_Box *) ptr->svc_config, bs);
+			if (e) return e;
+		}
+		if (ptr->mvc_config && ptr->mvc_config->config) {
+			e = gf_isom_box_write((GF_Box *) ptr->mvc_config, bs);
 			if (e) return e;
 		}
 		if (ptr->lhvc_config && ptr->lhvc_config->config) {
@@ -4557,6 +4566,12 @@ GF_Err video_sample_entry_Size(GF_Box *s)
 			e = gf_isom_box_size((GF_Box *) ptr->svc_config);
 			if (e) return e;
 			ptr->size += ptr->svc_config->size;
+		}
+
+		if (ptr->mvc_config && ptr->mvc_config->config) {
+			e = gf_isom_box_size((GF_Box *) ptr->mvc_config);
+			if (e) return e;
+			ptr->size += ptr->mvc_config->size;
 		}
 
 		if (ptr->lhvc_config && ptr->lhvc_config->config) {
@@ -5815,6 +5830,7 @@ GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_AVC3:
 	case GF_ISOM_BOX_TYPE_AVC4:
 	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_MVC1:
 	case GF_ISOM_BOX_TYPE_HVC1:
 	case GF_ISOM_BOX_TYPE_HEV1:
 	case GF_ISOM_BOX_TYPE_HVC2:
@@ -7132,6 +7148,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_AVC3:
 		case GF_ISOM_BOX_TYPE_AVC4:
 		case GF_ISOM_BOX_TYPE_SVC1:
+		case GF_ISOM_BOX_TYPE_MVC1:
 		case GF_ISOM_BOX_TYPE_HVC1:
 		case GF_ISOM_BOX_TYPE_HEV1:
 		case GF_ISOM_BOX_TYPE_HVC2:

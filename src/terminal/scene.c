@@ -2955,6 +2955,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	switch (odm_base->original_oti) {
 	case GPAC_OTI_VIDEO_AVC:
 	case GPAC_OTI_VIDEO_SVC:
+	case GPAC_OTI_VIDEO_MVC:
 		switch (odm->original_oti) {
 		case GPAC_OTI_VIDEO_LHVC:
 			if (!odm_base->hybrid_layered_coded) {
