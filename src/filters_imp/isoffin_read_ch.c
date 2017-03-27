@@ -24,8 +24,8 @@
  */
 
 
-#include "isom_in.h"
-#include <gpac/network.h>
+#include "isoffin.h"
+
 #include <time.h>
 
 #ifndef GPAC_DISABLE_ISOM
@@ -58,6 +58,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 			time_t secs;
 			struct tm t;
 
+#ifdef FILTER_FIXME
 			s32 diff = gf_net_get_ntp_diff_ms(ntp);
 
 			if (read->input->query_proxy) {
@@ -74,7 +75,10 @@ void isor_check_producer_ref_time(ISOMReader *read)
 			secs = (ntp>>32) - GF_NTP_SEC_1900_TO_1970;
 			t = *gmtime(&secs);
 
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] TrackID %d: Timestamp "LLU" matches sender NTP time %d-%02d-%02dT%02d:%02d:%02dZ - NTP clock diff (local - remote): %d ms\n", trackID, timestamp, 1900+t.tm_year, t.tm_mon+1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, diff));
+
+#endif
 		}
 #endif
 
@@ -91,6 +95,7 @@ void isor_check_producer_ref_time(ISOMReader *read)
 */
 void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 {
+#ifdef FILTER_FIXME
 	GF_NetworkCommand param;
 	u32 i, count;
 	Bool scalable_segment = 0;
@@ -350,6 +355,7 @@ next_segment:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error fetching next DASH segment: no more segments\n"));
 	}
 	gf_mx_v(read->segment_mutex);
+#endif
 }
 
 static void init_reader(ISOMChannel *ch)
@@ -398,12 +404,14 @@ static void init_reader(ISOMChannel *ch)
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
+#ifdef FILTER_FIXME
 			GF_NetIOStatus net_status;
 			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
 			if (net_status == GF_NETIO_DATA_EXCHANGE) {
 				ch->last_state = GF_OK;
 				return;
 			}
+#endif
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 		} else if (ch->sample_num) {
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
@@ -591,6 +599,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
+#ifdef FILTER_FIXME
 			if (ch->owner->dnload) {
 				GF_NetIOStatus net_status;
 				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
@@ -605,6 +614,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				if (!ch->has_edit_list && ch->sample_num)
 					ch->sample_num--;
 			}
+#endif
+
 		}
 		else if (!ch->sample_num
 		         || ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))
@@ -612,11 +623,13 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		        ) {
 
 			if (ch->owner->frag_type==1) {
+#ifdef FILTER_FIXME
 				//if segment is fully opened and no more data, this track is done, wait for next segment
 				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy && (ch->owner->seg_opened==2) ) {
 					ch->wait_for_segment_switch = 1;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
+#endif
 				/*if sample cannot be found and file is fragmented, rewind sample*/
 				if (ch->sample_num) ch->sample_num--;
 				ch->last_state = GF_OK;
@@ -797,9 +810,9 @@ void isor_reader_release_sample(ISOMChannel *ch)
 	ch->current_slh.packetSequenceNumber++;
 }
 
-
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush)
 {
+#ifdef FILTER_FIXME
 	u32 i, count;
 	GF_Err e = GF_OK;
 	Bool do_refresh;
@@ -934,6 +947,7 @@ void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_fl
 		read->nb_force_flush ++;
 	}
 	gf_mx_v(read->segment_mutex);
+#endif
 }
 
 #endif /*GPAC_DISABLE_ISOM*/

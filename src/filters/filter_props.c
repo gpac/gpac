@@ -435,10 +435,17 @@ struct _gf_prop_typedef {
 } GF_BuiltInProps [] = {
 
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
+	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
+
 	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
+
 
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
 	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as register for MPEG-4", GF_PROP_UINT},
+	{ GF_PROP_PID_IN_IOD, "InInitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},
+
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "data property containing the decoder config", GF_PROP_DATA},
 	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "audio sample rate", GF_PROP_UINT},

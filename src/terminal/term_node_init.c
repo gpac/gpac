@@ -226,7 +226,8 @@ void gf_scene_on_node_init(void *_scene, GF_Node *node)
 	case TAG_MPEG4_InputSensor:
 #ifdef FILTER_FIXME
 		InitInputSensor(scene, node);
-#endif		break;
+#endif
+		break;
 
 	/*BIFS nodes, get back to codec, but filter externProtos*/
 	case TAG_MPEG4_Conditional:

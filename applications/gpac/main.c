@@ -132,6 +132,7 @@ void gpac_usage()
 
 int gpac_main(int argc, char **argv)
 {
+	GF_Err e=GF_OK;
 	int i;
 	u32 nb_filters=0;
 	GF_FilterSchedulerType sched_type = GF_FS_SCHEDULER_LOCK_FREE;
@@ -275,14 +276,21 @@ int gpac_main(int argc, char **argv)
 
 	//all good to go, load filters
 	for (i=1; i<argc; i++) {
+		GF_Filter *filter;
 		char *arg = argv[i];
 		if (arg[0]=='-') continue;
 
-		gf_fs_load_filter(session, arg);
+		filter = gf_fs_load_filter(session, arg);
+		if (!filter) {
+			fprintf(stderr, "Failed to load filter %s\n", arg);
+			e = GF_NOT_SUPPORTED;
+			goto exit;
+		}
 		nb_filters++;
 	}
 	if (!nb_filters) {
 		gpac_usage();
+		e = GF_BAD_PARAM;
 		goto exit;
 	}
 
@@ -294,6 +302,8 @@ int gpac_main(int argc, char **argv)
 exit:
 	gf_fs_del(session);
 	gf_sys_close();
+	if (e) return 1;
+
 	if (gf_memory_size() || gf_file_handles_count() ) {
 		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();

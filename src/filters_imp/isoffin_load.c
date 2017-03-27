@@ -23,8 +23,9 @@
  *
  */
 
-#include "isom_in.h"
+#include "isoffin.h"
 #include <gpac/iso639.h>
+#include <gpac/media_tools.h>
 
 #ifndef GPAC_DISABLE_ISOM
 
@@ -84,7 +85,6 @@ GF_Descriptor *isor_emulate_iod(ISOMReader *read)
 
 void isor_declare_objects(ISOMReader *read)
 {
-	GF_ObjectDescriptor *od;
 	GF_ESD *esd;
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
@@ -95,6 +95,7 @@ void isor_declare_objects(ISOMReader *read)
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
 	for (i=0; i<count; i++) {
+		GF_FilterPid *pid;
 		u32 m_subtype;
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
@@ -145,6 +146,7 @@ void isor_declare_objects(ISOMReader *read)
 			continue;
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (esd) {
+			u32 w, h, sr, ch;
 			GF_ESD *base_esd=NULL;
 			Bool external_base=GF_FALSE;
 			gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
@@ -201,26 +203,60 @@ void isor_declare_objects(ISOMReader *read)
 				gf_isom_get_media_language(read->mov, i+1, &esd->langDesc->full_lang_code);
 			}
 
-			od = (GF_ObjectDescriptor *) gf_odf_desc_new(GF_ODF_OD_TAG);
-			od->service_ifce = read->input;
-			od->objectDescriptorID = 0;
-			
 			if (base_esd) {
 				if (!ocr_es_id) ocr_es_id = base_esd->ESID;
 				base_esd->OCRESID = ocr_es_id;
-				gf_list_add(od->ESDescriptors, base_esd);
 			}
 			if (!ocr_es_id) ocr_es_id = esd->ESID;
 			esd->OCRESID = ocr_es_id;
-			gf_list_add(od->ESDescriptors, esd);
-			
-			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-				send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
-			} else {
-				gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+
+			//OK declare PID
+			pid = gf_filter_pid_new(read->filter);
+			gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(esd->ESID));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
+
+			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
+			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(esd->slConfig->timestampResolution));
+			if (esd->decoderConfig->decoderSpecificInfo) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
+
+				esd->decoderConfig->decoderSpecificInfo->data=NULL;
+				esd->decoderConfig->decoderSpecificInfo->dataLength=0;
 			}
+			if (esd->langDesc) {
+				char *lang=NULL;
+				s32 idx;
+				gf_isom_get_media_language(read->mov, i+1, &lang);
+				idx = gf_lang_find(lang);
+				if (idx>=0) {
+					gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_NAME( gf_lang_get_name(idx) ));
+					gf_free(lang);
+				} else {
+					gf_filter_pid_set_property(pid, GF_PROP_PID_LANGUAGE, &PROP_STRING( lang ));
+				}
+			}
+			if (esd->decoderConfig->avgBitrate) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT(esd->decoderConfig->avgBitrate));
+			}
+
+			gf_isom_get_visual_info(read->mov, i+1, 1, &w, &h);
+			if (w && h) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_WIDTH, &PROP_UINT(w));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(h));
+			}
+			gf_isom_get_audio_info(read->mov, i+1, 1, &sr, &ch, NULL);
+			if (sr && ch) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(sr));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ch));
+			}
+
+			//todo: map other ESD params if needed
 		}
 	}
+
+#ifdef FILTER_FIXME
 	/*if cover art, extract it in cache*/
 	if (gf_isom_apple_get_tag(read->mov, GF_ISOM_ITUNE_COVER_ART, &tag, &tlen)==GF_OK) {
 		const char *cdir = gf_modules_get_option((GF_BaseInterface *)gf_service_get_interface(read->service), "General", "CacheDirectory");
@@ -277,55 +313,11 @@ void isor_declare_objects(ISOMReader *read)
 	} else {
 		gf_service_declare_media(read->service, NULL, GF_FALSE);
 	}
+#endif
+
 }
 
 #endif /*GPAC_DISABLE_ISOM*/
 
 
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces()
-{
-	static u32 si [] = {
-#ifndef GPAC_DISABLE_ISOM
-		GF_NET_CLIENT_INTERFACE,
-#endif
-#ifndef GPAC_DISABLE_ISOM_WRITE
-		GF_STREAMING_MEDIA_CACHE,
-#endif
-		0
-	};
-	return si;
-}
 
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
-{
-#ifndef GPAC_DISABLE_ISOM
-	if (InterfaceType == GF_NET_CLIENT_INTERFACE)
-		return (GF_BaseInterface *)isor_client_load();
-#endif
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	if (InterfaceType == GF_STREAMING_MEDIA_CACHE)
-		return (GF_BaseInterface *)isow_load_cache();
-#endif
-	return NULL;
-}
-
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_ISOM
-	case GF_NET_CLIENT_INTERFACE:
-		isor_client_del(ifce);
-		break;
-#endif
-#ifndef GPAC_DISABLE_ISOM_WRITE
-	case GF_STREAMING_MEDIA_CACHE:
-		isow_delete_cache(ifce);
-		break;
-#endif
-	}
-}
-
-GPAC_MODULE_STATIC_DECLARATION( isom )

@@ -220,6 +220,9 @@ void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
 const char *gf_filter_get_name(GF_Filter *filter);
 
+u32 gf_filter_get_ipid_count(GF_Filter *filter);
+GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
+
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 
 //set a new property to the pid. previous properties (ones set before last packet dispatch)
@@ -292,6 +295,8 @@ GF_Err gf_filter_pck_set_dts(GF_FilterPacket *pck, u64 dts);
 u64 gf_filter_pck_get_dts(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_cts(GF_FilterPacket *pck, u64 cts);
 u64 gf_filter_pck_get_cts(GF_FilterPacket *pck);
+u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck);
+
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration);
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 
@@ -320,11 +325,18 @@ enum
 
 	//(uint) ID of originating service
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
+	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
+	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
+	GF_PROP_PID_LANGUAGE = GF_4CC('P','L','A','N'),
 
-	//(u32) media stream type, matching gpac stream types
+
+	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
-	//(u32) object type indication , matching gpac OTI types
+	//(uint) object type indication , matching gpac OTI types
 	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
+	//(bool) object type indication , matching gpac OTI types
+	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
+
 	//(uint) timescale of pid
 	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
 	//(data) decoder config

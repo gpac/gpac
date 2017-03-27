@@ -334,6 +334,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			u64 time;
 			GF_FilterPacket *pck = gf_filter_pid_get_packet(mo->odm->pid);
 			if (!pck) return NULL;
+			timescale = gf_filter_pck_get_timescale(pck);
+
+
 			time = gf_filter_pck_get_cts(pck);
 			if (!time) time = gf_filter_pck_get_dts(pck);
 			time *= 1000;
@@ -357,6 +360,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		gf_filter_pid_drop_packet(mo->odm->pid);
 	}
 	data = gf_filter_pck_get_data(mo->pck, size);
+	timescale = gf_filter_pck_get_timescale(mo->pck);
 
 	mo->is_eos = GF_FALSE;
 

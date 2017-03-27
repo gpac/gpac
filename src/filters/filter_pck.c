@@ -255,7 +255,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		return GF_BAD_PARAM;
 	}
 
-	//a new property map was created - we cannt post a task now since we have pending packets in the old context
+	//a new property map was created - we cannot post a task now since we have pending packets in the old context
 	//fust flag the packet
 	if (!pid->request_property_map) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
@@ -603,6 +603,12 @@ u64 gf_filter_pck_get_cts(GF_FilterPacket *pck)
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->cts;
+}
+u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
+{
+	assert(pck);
+	//get true packet pointer
+	return pck->pck->pid_props->timescale ? pck->pck->pid_props->timescale : 1000;
 }
 GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, u32 sap_type)
 {

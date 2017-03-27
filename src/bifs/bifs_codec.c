@@ -225,10 +225,6 @@ void gf_bifs_decoder_del(GF_BifsDecoder *codec)
 		gf_list_rem(codec->command_buffers, 0);
 	}
 	gf_list_del(codec->command_buffers);
-
-	if (codec->extraction_path) gf_free(codec->extraction_path);
-	if (codec->service_url) gf_free(codec->service_url);
-//	gf_mx_del(codec->mx);
 	gf_free(codec);
 }
 
@@ -525,17 +521,6 @@ Bool gf_bifs_get_aq_info(GF_Node *Node, u32 FieldIndex, u8 *QType, u8 *AType, Fi
 	default:
 		return gf_sg_mpeg4_node_get_aq_info(Node, FieldIndex, QType, AType, b_min, b_max, QT13_bits);
 	}
-}
-
-GF_EXPORT
-void gf_bifs_decoder_set_extraction_path(GF_BifsDecoder *codec, const char *path, const char *service_url)
-{
-	if (!codec) return;
-	if (codec->extraction_path) gf_free(codec->extraction_path);
-	codec->extraction_path = path ? gf_strdup(path) : NULL;
-	if (codec->service_url) gf_free(codec->service_url);
-	codec->service_url = service_url ? gf_strdup(service_url) : NULL;
-
 }
 
 #endif /*GPAC_DISABLE_BIFS*/

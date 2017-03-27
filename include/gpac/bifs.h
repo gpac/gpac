@@ -60,9 +60,6 @@ typedef struct __tag_bifs_dec GF_BifsDecoder;
 GF_BifsDecoder *gf_bifs_decoder_new(GF_SceneGraph *scenegraph, Bool command_dec);
 void gf_bifs_decoder_del(GF_BifsDecoder *codec);
 
-/*assigns extraction path for BIFS decoder - default is current directory*/
-void gf_bifs_decoder_set_extraction_path(GF_BifsDecoder *codec, const char *path, const char *serviceURL);
-
 /*sets the scene time. Scene time is the real clock of the bifs stream in secs*/
 void gf_bifs_decoder_set_time_offset(GF_BifsDecoder *codec, Double ts);
 

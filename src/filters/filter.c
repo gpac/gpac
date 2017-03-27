@@ -512,3 +512,14 @@ GF_Filter *gf_filter_clone(GF_Filter *filter)
 	return new_filter;
 }
 
+u32 gf_filter_get_ipid_count(GF_Filter *filter)
+{
+	return gf_list_count(filter->input_pids);
+}
+
+GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx)
+{
+	return gf_list_get(filter->input_pids, idx);
+}
+
+
