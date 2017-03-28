@@ -2661,7 +2661,7 @@ if test "$disable_import" = "yes" ; then
     echo "#define GPAC_DISABLE_MEDIA_IMPORT" >> $TMPH
 fi
 if test "$disable_export" = "yes" ; then
-    echo "Media exmporters disabled"
+    echo "Media exporters disabled"
     echo "#define GPAC_DISABLE_MEDIA_EXPORT" >> $TMPH
 fi
 if test "$disable_swf" = "yes" ; then
