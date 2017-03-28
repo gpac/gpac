@@ -5806,7 +5806,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	/*update dash context*/
 	if (dasher->dash_ctx) {
 		Bool regenerate;
-		e = gf_dasher_init_context(dasher->dash_ctx, &dasher->dash_mode, &dasher->mpd->time_shift_buffer_depth, NULL, dasher->ast_offset_ms);
+		e = gf_dasher_init_context(dasher, &dasher->dash_mode, &dasher->mpd->time_shift_buffer_depth, NULL, dasher->ast_offset_ms);
 		if (e) return e;
 		opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "MaxSegmentDuration");
 		if (opt) {
