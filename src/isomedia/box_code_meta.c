@@ -265,7 +265,6 @@ GF_Err xml_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err xml_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_XMLBox *ptr = (GF_XMLBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	ptr->size += strlen(ptr->xml)+1;
@@ -289,7 +288,6 @@ void bxml_del(GF_Box *s)
 
 GF_Err bxml_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_BinaryXMLBox *ptr = (GF_BinaryXMLBox *)s;
 
 	ptr->data_length = (u32)(ptr->size);
@@ -313,7 +311,6 @@ GF_Err bxml_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err bxml_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_BinaryXMLBox *ptr = (GF_BinaryXMLBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	ptr->size += ptr->data_length;
@@ -356,7 +353,6 @@ void iloc_del(GF_Box *s)
 
 GF_Err iloc_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	u32 item_count, extent_count, i, j;
 	GF_ItemLocationBox *ptr = (GF_ItemLocationBox *)s;
 
@@ -466,7 +462,6 @@ GF_Err iloc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err iloc_Size(GF_Box *s)
 {
-	GF_Err e;
 	u32 i, item_count, extent_count;
 	GF_ItemLocationBox *ptr = (GF_ItemLocationBox *)s;
 	if (!s) return GF_BAD_PARAM;
@@ -518,7 +513,6 @@ void pitm_del(GF_Box *s)
 
 GF_Err pitm_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_PrimaryItemBox *ptr = (GF_PrimaryItemBox *)s;
 
 	ptr->item_ID = gf_bs_read_u16(bs);
@@ -539,7 +533,6 @@ GF_Err pitm_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err pitm_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ItemLocationBox *ptr = (GF_ItemLocationBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	ptr->size += 2;
@@ -640,7 +633,6 @@ void infe_del(GF_Box *s)
 
 GF_Err infe_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	char *buf;
 	u32 buf_len, i, string_len, string_start;
 	GF_ItemInfoEntryBox *ptr = (GF_ItemInfoEntryBox *)s;
@@ -799,7 +791,6 @@ GF_Err iinf_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err iinf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 
 	if (ptr->version == 0) {
@@ -833,7 +824,6 @@ GF_Err iinf_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err iinf_Size(GF_Box *s)
 {
 	u32 count;
-	GF_Err e;
 	GF_ItemInfoBox *ptr = (GF_ItemInfoBox *)s;
 	if (!s) return GF_BAD_PARAM;
 	ptr->size += 2;

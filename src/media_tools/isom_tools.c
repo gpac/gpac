@@ -2841,13 +2841,13 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 
 			switch (nal_type) {
 			case GF_HEVC_NALU_PIC_PARAM:
-				pps_idx = gf_media_hevc_read_pps(data+nalu_size_length, nalu_size, &hevc);
+				pps_idx = gf_media_hevc_read_pps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			case GF_HEVC_NALU_SEQ_PARAM:
-				sps_idx = gf_media_hevc_read_sps(data+nalu_size_length, nalu_size, &hevc);
+				sps_idx = gf_media_hevc_read_sps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			case GF_HEVC_NALU_VID_PARAM:
-				gf_media_hevc_read_vps(data+nalu_size_length, nalu_size, &hevc);
+				gf_media_hevc_read_vps((char *) data+nalu_size_length, nalu_size, &hevc);
 				break;
 			}
 			data += nalu_size + nalu_size_length;

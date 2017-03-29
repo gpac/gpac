@@ -5090,7 +5090,7 @@ GF_Err fdpa_dump(GF_Box *a, FILE * trace)
 	for (i=0; i<ptr->header_ext_count; i++) {
 		fprintf(trace, "<FDHeaderExt type=\"%d\"", ptr->headers[i].header_extension_type);
 		if (ptr->headers[i].header_extension_type > 127) {
-			dump_data_attribute(trace, "content", ptr->headers[i].content, 3);
+			dump_data_attribute(trace, "content", (char *) ptr->headers[i].content, 3);
 		} else if (ptr->headers[i].data_length) {
 			dump_data_attribute(trace, "data", ptr->headers[i].data, ptr->headers[i].data_length);
 		}

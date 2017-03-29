@@ -909,7 +909,6 @@ void tsel_del(GF_Box *s)
 
 GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 {
-	GF_Err e;
 	u32 i;
 	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
 

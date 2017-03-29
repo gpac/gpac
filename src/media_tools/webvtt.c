@@ -293,7 +293,7 @@ GF_Err wvtt_Size(GF_Box *s)
 		if (e) return e;
 		wvtt->size += wvtt->config->size;
 	}
-	return e;
+	return GF_OK;
 }
 
 static GF_Err webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)

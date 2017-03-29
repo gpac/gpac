@@ -429,7 +429,6 @@ GF_Err afra_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err afra_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;
 
 	s->size += 9
@@ -532,7 +531,6 @@ GF_Err asrt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err asrt_Size(GF_Box *s)
 {
 	int i;
-	GF_Err e;
 	GF_AdobeSegmentRunTableBox *ptr = (GF_AdobeSegmentRunTableBox *)s;
 
 	s->size += 5;
@@ -647,7 +645,6 @@ GF_Err afrt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err afrt_Size(GF_Box *s)
 {
 	u32 i;
-	GF_Err e;
 	GF_AdobeFragmentRunTableBox *ptr = (GF_AdobeFragmentRunTableBox *)s;
 
 	s->size += 5;

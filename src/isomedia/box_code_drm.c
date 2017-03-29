@@ -168,7 +168,6 @@ void schm_del(GF_Box *s)
 
 GF_Err schm_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_SchemeTypeBox *ptr = (GF_SchemeTypeBox *)s;
 
 	ptr->scheme_type = gf_bs_read_u32(bs);
@@ -378,7 +377,6 @@ void iKMS_del(GF_Box *s)
 
 GF_Err iKMS_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	u32 len;
 	GF_ISMAKMSBox *ptr = (GF_ISMAKMSBox *)s;
 
@@ -426,7 +424,6 @@ void iSFM_del(GF_Box *s)
 
 GF_Err iSFM_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ISMASampleFormatBox *ptr = (GF_ISMASampleFormatBox *)s;
 
 	ptr->selective_encryption = gf_bs_read_int(bs, 1);
@@ -527,7 +524,6 @@ GF_Err ohdr_AddBox(GF_Box *s, GF_Box *a)
 GF_Err ohdr_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u16 cid_len, ri_len;
-	GF_Err e;
 	GF_OMADRMCommonHeaderBox *ptr = (GF_OMADRMCommonHeaderBox*)s;
 
 	ptr->EncryptionMethod = gf_bs_read_u8(bs);
@@ -621,7 +617,6 @@ void grpi_del(GF_Box *s)
 GF_Err grpi_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u16 gid_len;
-	GF_Err e;
 	GF_OMADRMGroupIDBox *ptr = (GF_OMADRMGroupIDBox*)s;
 
 	gid_len = gf_bs_read_u16(bs);
@@ -722,7 +717,6 @@ void odtt_del(GF_Box *s)
 
 GF_Err odtt_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_OMADRMTransactionTrackingBox *ptr = (GF_OMADRMTransactionTrackingBox *)s;
 
 	gf_bs_read_data(bs, ptr->TransactionID, 16);
@@ -767,7 +761,6 @@ void odrb_del(GF_Box *s)
 
 GF_Err odrb_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_OMADRMRightsObjectBox *ptr = (GF_OMADRMRightsObjectBox *)s;
 
 	ptr->oma_ro_size = (u32) ptr->size;
@@ -895,7 +888,6 @@ void pssh_del(GF_Box *s)
 
 GF_Err pssh_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ProtectionSystemHeaderBox *ptr = (GF_ProtectionSystemHeaderBox *)s;
 
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
@@ -976,7 +968,6 @@ void tenc_del(GF_Box *s)
 
 GF_Err tenc_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_TrackEncryptionBox *ptr = (GF_TrackEncryptionBox*)s;
 
 	gf_bs_read_u8(bs); //reserved
@@ -1295,7 +1286,6 @@ void piff_pssh_del(GF_Box *s)
 
 GF_Err piff_pssh_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
 	gf_bs_read_data(bs, (char *) ptr->SystemID, 16);
@@ -1325,7 +1315,6 @@ GF_Err piff_pssh_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err piff_pssh_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_PIFFProtectionSystemHeaderBox *ptr = (GF_PIFFProtectionSystemHeaderBox*)s;
 
 	ptr->size += 24 + ptr->private_data_size;
@@ -1459,7 +1448,6 @@ GF_Err senc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err senc_Size(GF_Box *s)
 {
-	GF_Err e;
 	u32 sample_count;
 	u32 i;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox*)s;
@@ -1710,7 +1698,6 @@ void aeib_del(GF_Box *s)
 
 GF_Err aeib_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
 	u32 len;
 
@@ -1744,7 +1731,6 @@ GF_Err aeib_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err aeib_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_AdobeEncryptionInfoBox *ptr = (GF_AdobeEncryptionInfoBox*)s;
 	if (ptr->enc_algo)
 		ptr->size += strlen(ptr->enc_algo) + 1;
@@ -1882,7 +1868,6 @@ void adaf_del(GF_Box *s)
 
 GF_Err adaf_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox*)s;
 
 	ptr->selective_enc = gf_bs_read_u8(bs);
@@ -1910,7 +1895,6 @@ GF_Err adaf_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err adaf_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_AdobeDRMAUFormatBox *ptr = (GF_AdobeDRMAUFormatBox*)s;
 	ptr->size += 3;
 	return GF_OK;
