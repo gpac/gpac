@@ -73,15 +73,6 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod)
 	}
 }
 
-/*emulate a default IOD for all other files (3GP, weird MP4, QT )*/
-GF_Descriptor *isor_emulate_iod(ISOMReader *read)
-{
-	/*generate an IOD with our private dynamic OD stream*/
-	GF_InitialObjectDescriptor *fake_iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-	isor_emulate_chapters(read->mov, fake_iod);
-	read->no_service_desc = GF_TRUE;
-	return (GF_Descriptor *)fake_iod;
-}
 
 void isor_declare_objects(ISOMReader *read)
 {
@@ -109,7 +100,6 @@ void isor_declare_objects(ISOMReader *read)
 			break;
 		case GF_ISOM_MEDIA_SCENE:
 		case GF_ISOM_MEDIA_OD:
-			if (read->no_service_desc) continue;
 			break;
 		default:
 			continue;
@@ -216,11 +206,15 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
+			if (gf_isom_is_track_in_root_od(read->mov, i+1)) {
+				gf_filter_pid_set_property(pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
+			}
+
 			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig->streamType));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig->objectTypeIndication));
 			gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(esd->slConfig->timestampResolution));
 			if (esd->decoderConfig->decoderSpecificInfo) {
-				gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
+				gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength));
 
 				esd->decoderConfig->decoderSpecificInfo->data=NULL;
 				esd->decoderConfig->decoderSpecificInfo->dataLength=0;
@@ -253,6 +247,8 @@ void isor_declare_objects(ISOMReader *read)
 			}
 
 			//todo: map other ESD params if needed
+
+			ISOR_CreateChannel(read, pid, i+1);
 		}
 	}
 

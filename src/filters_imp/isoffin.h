@@ -64,13 +64,13 @@ typedef struct
 	GF_DownloadSession * dnload;
 #endif
 	u64 missing_bytes, last_size;
-	Bool no_service_desc;
+
 	u32 play_only_track_id;
 
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
 	Bool waiting_for_data, reset_frag_state;
-	GF_Mutex *segment_mutex;
+
 
 	u32 pending_scalable_enhancement_segment_index;
 
@@ -145,8 +145,8 @@ void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
 
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
+GF_Err ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track);
 
-GF_Descriptor *isor_emulate_iod(ISOMReader *read);
 /*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 

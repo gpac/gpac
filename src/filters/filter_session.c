@@ -33,6 +33,7 @@ const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_met
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *compose_filter_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *isoffin_register(GF_FilterSession *session, Bool load_meta_filters);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 {
@@ -150,6 +151,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, B
 	gf_fs_add_filter_registry(fsess, ffdmx_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, compose_filter_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, isoffin_register(fsess, load_meta_filters) );
 
 	fsess->disable_blocking=GF_TRUE;
 	fsess->done=GF_TRUE;
@@ -339,7 +341,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
 			filter = gf_filter_new(fsess, f_reg, args);
-			filter->orig_args = args;
+			if (filter) filter->orig_args = args;
 			return filter;
 		}
 	}
