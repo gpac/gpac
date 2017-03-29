@@ -46,9 +46,6 @@ GF_Err ispe_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_ImageSpatialExtentsPropertyBox *p = (GF_ImageSpatialExtentsPropertyBox *)s;
 
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
-
 	if (p->version == 0 && p->flags == 0) {
 		p->image_width = gf_bs_read_u32(bs);
 		p->image_height = gf_bs_read_u32(bs);
@@ -77,10 +74,7 @@ GF_Err ispe_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ispe_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ImageSpatialExtentsPropertyBox *p = (GF_ImageSpatialExtentsPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 8;
 		return GF_OK;
@@ -148,10 +142,8 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err colr_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	if (p->colour_type != GF_4CC('n','c','l','x')) {
 		p->size += 4 + p->opaque_size;
 	} else {
@@ -180,9 +172,6 @@ GF_Err pixi_Read(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_Err e;
 	GF_PixelInformationPropertyBox *p = (GF_PixelInformationPropertyBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	if (p->version == 0 && p->flags == 0) {
 		p->num_channels = gf_bs_read_u8(bs);
@@ -218,10 +207,7 @@ GF_Err pixi_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err pixi_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_PixelInformationPropertyBox *p = (GF_PixelInformationPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 1 + p->num_channels;
 		return GF_OK;
@@ -249,9 +235,6 @@ GF_Err rloc_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
 	GF_RelativeLocationPropertyBox *p = (GF_RelativeLocationPropertyBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	if (p->version == 0 && p->flags == 0) {
 		p->horizontal_offset = gf_bs_read_u32(bs);
@@ -281,10 +264,7 @@ GF_Err rloc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err rloc_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_RelativeLocationPropertyBox *p = (GF_RelativeLocationPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 8;
 		return GF_OK;
@@ -328,10 +308,7 @@ GF_Err irot_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err irot_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ImageRotationBox *p = (GF_ImageRotationBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	p->size += 1;
 	return GF_OK;
 }
@@ -366,7 +343,7 @@ GF_Err ipco_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ipco_Size(GF_Box *s)
 {
-	return gf_isom_box_get_size(s);
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -426,8 +403,6 @@ GF_Err iprp_Size(GF_Box *s)
 	GF_Err e;
 	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	if (p->property_container) {
 		e = gf_isom_box_size((GF_Box *) p->property_container);
 		if (e) return e;
@@ -479,9 +454,6 @@ GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox *)s;
 	u32 entry_count, association_count;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	entry_count = gf_bs_read_u32(bs);
 	for (i = 0; i < entry_count; i++) {
@@ -553,11 +525,9 @@ GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err ipma_Size(GF_Box *s)
 {
 	u32 i;
-	GF_Err e;
 	u32 entry_count, association_count;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
+
 	entry_count = gf_list_count(p->entries);
 	p->size += 4;
 	if (p->version == 0) {
@@ -608,7 +578,7 @@ GF_Err grpl_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err grpl_Size(GF_Box *s)
 {
-	return gf_isom_box_get_size(s);
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -628,9 +598,6 @@ GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
 	u32 bytesToRead;
 	u32 i;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	bytesToRead = (u32) (ptr->size);
 	if (!bytesToRead) return GF_OK;
@@ -679,10 +646,7 @@ GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err grptype_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
 	return GF_OK;
 }
@@ -709,9 +673,6 @@ GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)s;
 	GF_Err e;
 
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
-
 	e = gf_isom_read_null_terminated_string(s, bs, &p->aux_urn);
 	if (e) return e;
 	p->data_size = (u32) p->size;
@@ -737,10 +698,7 @@ GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err auxc_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	p->size += 1;
 	return GF_OK;
 }
@@ -765,8 +723,6 @@ void oinf_del(GF_Box *a)
 GF_Err oinf_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)s;
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 	return gf_isom_oinf_read_entry(p->oinf, bs);
 }
 
@@ -783,11 +739,8 @@ GF_Err oinf_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err oinf_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
 	if (!p->oinf) return GF_BAD_PARAM;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	p->size += gf_isom_oinf_size_entry(p->oinf);
 	return GF_OK;
 }
@@ -808,8 +761,7 @@ void tols_del(GF_Box *a)
 GF_Err tols_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox *)s;
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
+
 	ISOM_DECREASE_SIZE(p, 2)
 	p->target_ols_index = gf_bs_read_u16(bs);
 	return GF_OK;
@@ -830,8 +782,6 @@ GF_Err tols_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err tols_Size(GF_Box *s)
 {
 	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
-	GF_Err e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	p->size += 2;
 	return GF_OK;
 }
