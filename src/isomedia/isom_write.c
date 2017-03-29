@@ -4292,9 +4292,9 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const c
 		list = movie->moov->other_boxes;
 	}
 
-	box = gf_isom_box_new(gf_isom_solve_uuid_box(UUID));
+	box = gf_isom_box_new(gf_isom_solve_uuid_box((char *) UUID));
 	uuid = (GF_UnknownUUIDBox*)box;
-	uuid->internal_4cc = gf_isom_solve_uuid_box(UUID);
+	uuid->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
 	memcpy(uuid->uuid, UUID, sizeof(bin128));
 	uuid->dataSize = data_size;
 	uuid->data = (char*)gf_malloc(sizeof(char)*data_size);
