@@ -1577,6 +1577,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	if (e) {
 		fprintf(stderr, "Error dumping ISO structure\n");
 	}
+	if ( gf_isom_get_track_count(file) == 0 )
+		do_track_dump = GF_FALSE;
+
 	if (do_track_dump) {
 		u32 i, j;
 		//because of dump mode we need to reopen in regular read mode to avoid mem leaks
