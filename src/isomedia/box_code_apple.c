@@ -79,12 +79,6 @@ GF_Err ilst_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ilst_Size(GF_Box *s)
 {
-	GF_Err e;
-//	GF_ItemListBox *ptr = (GF_ItemListBox *)s;
-
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-
 	return GF_OK;
 }
 
@@ -169,9 +163,6 @@ GF_Err ilst_item_Size(GF_Box *s)
 	GF_Err e;
 	GF_ListItemBox *ptr = (GF_ListItemBox *)s;
 
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-
 	/*iTune way*/
 	if (ptr->data && ptr->data->type) {
 		e = gf_isom_box_size((GF_Box *)ptr->data);
@@ -202,8 +193,6 @@ GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 	ptr->reserved = gf_bs_read_int(bs, 32);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
@@ -221,8 +210,6 @@ GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 GF_Box *databox_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DataBox, GF_ISOM_BOX_TYPE_DATA);
-
-	gf_isom_full_box_init((GF_Box *)tmp);
 
 	return (GF_Box *)tmp;
 }
@@ -245,10 +232,8 @@ GF_Err databox_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err databox_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
+
 	ptr->size += 4;
 	if(ptr->data != NULL && ptr->dataSize > 0) {
 		ptr->size += ptr->dataSize;

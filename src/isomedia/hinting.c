@@ -94,11 +94,7 @@ GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ghnt_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
-
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	ptr->size += 16;
 	return GF_OK;
 }
