@@ -190,7 +190,6 @@ void databox_del(GF_Box *s)
 
 GF_Err databox_Read(GF_Box *s,GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_DataBox *ptr = (GF_DataBox *)s;
 
 	ptr->reserved = gf_bs_read_int(bs, 32);

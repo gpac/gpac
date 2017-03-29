@@ -58,7 +58,7 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('l','h','t','1'):
 		return GF_TRUE;
 	default:
-		return GF_FALSE;
+		break;
 	}
 	entry = (GF_MPEGVisualSampleEntryBox*)_entry;
 	if (!entry) return GF_FALSE;
@@ -2182,13 +2182,12 @@ GF_Err avcc_Write(GF_Box *s, GF_BitStream *bs)
 }
 GF_Err avcc_Size(GF_Box *s)
 {
-	GF_Err e;
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
 
 	if (!ptr->config) {
 		ptr->size = 0;
-		return e;
+		return GF_OK;
 	}
 	ptr->size += 7;
 	count = gf_list_count(ptr->config->sequenceParameterSets);
@@ -2258,13 +2257,12 @@ GF_Err hvcc_Write(GF_Box *s, GF_BitStream *bs)
 }
 GF_Err hvcc_Size(GF_Box *s)
 {
-	GF_Err e;
 	u32 i, count, j, subcount;
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox *)s;
 
 	if (!ptr->config) {
 		ptr->size = 0;
-		return e;
+		return GF_OK;
 	}
 	
 	if (!ptr->config->is_lhvc)

@@ -3498,10 +3498,13 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 			for (k=0; k<gf_list_count(rep->essential_properties); k++) {
 				GF_MPD_Descriptor *mpd_desc = gf_list_get(rep->essential_properties, k);
+
 				//we don't know any defined scheme for now
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
-				rep->playback.disabled = 1;
-				break;
+				if (1) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Representation with unrecognized EssentialProperty %s - ignoring because not supported\n", mpd_desc->scheme_id_uri));
+					rep->playback.disabled = 1;
+					break;
+				}
 			}
 			if (rep->playback.disabled) {
 				continue;
