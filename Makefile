@@ -101,18 +101,18 @@ install:
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/$(libdir)"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/bin"
 ifeq ($(DISABLE_ISOFF), no)
-	if [ -d bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
+	if [ -f bin/gcc/MP4Box$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Box$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 ifneq ($(MP4BOX_STATIC), yes)
-	if [ -d bin/gcc/MP42TS$(EXE_SUFFIX) ] ; then \
+	if [ -f bin/gcc/MP42TS$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP42TS$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 ifneq ($(CONFIG_WIN32), yes)
 ifneq ($(CONFIG_FFMPEG), no)
 ifneq ($(DISABLE_CORE_TOOLS), yes)
 ifneq ($(DISABLE_AV_PARSERS), yes)
-	if [ -d bin/gcc/DashCast$(EXE_SUFFIX)g ] ; then \
+	if [ -f bin/gcc/DashCast$(EXE_SUFFIX)g ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/DashCast$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 endif
@@ -123,7 +123,7 @@ endif
 endif
 ifneq ($(MP4BOX_STATIC), yes)
 ifeq ($(DISABLE_PLAYER), no)
-	if [ -d bin/gcc/MP4Client$(EXE_SUFFIX) ] ; then \
+	if [ -f bin/gcc/MP4Client$(EXE_SUFFIX) ] ; then \
 	$(INSTALL) $(INSTFLAGS) -m 755 bin/gcc/MP4Client$(EXE_SUFFIX) "$(DESTDIR)$(prefix)/bin" ; \
 	fi
 endif
