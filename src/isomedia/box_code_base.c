@@ -10395,19 +10395,21 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u32 size
 	while (1) {
 		ISOM_DECREASE_SIZE(s, 1 );
 		(*out_str)[i] = gf_bs_read_u8(bs);
-		if (gf_bs_available(bs) == 0) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
-			return GF_BAD_PARAM;
-		}
 		if (!(*out_str)[i]) break;
 		i++;
 		if (i==len) {
 			len += 10;
 			*out_str = gf_realloc(*out_str, sizeof(char)*len);
 		}
-		if (len > size) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] string bigger than container, probably missing null character\n"));
-			return GF_BAD_PARAM;
+		if (gf_bs_available(bs) == 0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
+			(*out_str)[i] = 0;
+			return GF_OK;
+		}
+		if (i >= size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] string bigger than container, probably missing null character\n"));
+			(*out_str)[i] = 0;
+			return GF_OK;
 		}
 	}
 	return GF_OK;
