@@ -642,7 +642,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, ch
 		/*avoid channels PLAY request when confirming connection (sync network service)*/
 		odm->state = GF_ODM_STATE_IN_SETUP;
 
-		e = gf_odm_setup_pid(odm);
+		e = gf_odm_setup_pid(odm, NULL);
 		if (e) {
 #if FILTER_FIXME
 			gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
@@ -799,7 +799,7 @@ void ODM_CheckChannelService(GF_Channel *ch)
 
 /*setup channel, clock and query caps*/
 GF_EXPORT
-GF_Err gf_odm_setup_pid(GF_ObjectManager *odm)
+GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
 	GF_Clock *ck;
 	GF_List *ck_namespace;
@@ -809,11 +809,13 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm)
 	GF_Err e;
 	GF_Scene *scene;
 	Bool clock_inherited = GF_TRUE;
+	const GF_PropertyValue *prop;
 	u32 OD_OCR_ID=0;
 
 	/*find the clock for this new channel*/
 	ck = NULL;
 	flag = (s8) -1;
+	if (!pid) pid = odm->pid;
 
 	/*sync reference*/
 	if (odm->sync_ref && odm->sync_ref->odm) {
@@ -843,6 +845,9 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm)
 	/*get clocks namespace (eg, parent scene)*/
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
 	if (!scene) return GF_BAD_PARAM;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CLOCK_ID);
+	if (prop) OD_OCR_ID = prop->value.uint;
 
 	ck_namespace = odm->scene_ns->Clocks;
 #ifdef FILTER_FIXME

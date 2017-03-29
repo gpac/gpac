@@ -362,10 +362,8 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	if (!read || !read->src) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) gf_filter_get_udta(filter);
 
-
+	read->filter = filter;
 	read->channels = gf_list_new();
-	read->segment_mutex = gf_mx_new("ISO Segment");
-
 
 	strcpy(szURL, read->src);
 	tmp = strrchr(szURL, '.');
@@ -419,7 +417,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 			gf_service_connect_ack(read->service, NULL, GF_OK);
 		}
 #endif
-		if (read->no_service_desc) isor_declare_objects(read);
+		isor_declare_objects(read);
 
 	} else {
 		/*setup downloader*/
@@ -575,76 +573,23 @@ void isor_send_cenc_config(ISOMChannel *ch)
 }
 
 
-#ifdef FILTER_FIXME
-
-GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
+GF_Err ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track)
 {
-	u32 ESID;
 	ISOMChannel *ch;
-	GF_NetworkCommand com;
-	u32 track;
 	Bool is_esd_url;
 	GF_Err e;
-	ISOMReader *read;
-	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
-	read = (ISOMReader *) plug->priv;
 
-	track = 0;
-	ch = NULL;
-	is_esd_url = GF_FALSE;
-	e = GF_OK;
-	if (upstream) {
-		e = GF_ISOM_INVALID_FILE;
-		goto exit;
-	}
+
 	if (!read->mov) return GF_SERVICE_ERROR;
-
-	if (strstr(url, "ES_ID")) {
-		sscanf(url, "ES_ID=%ud", &ESID);
-	} else {
-		/*handle url like mypath/myfile.mp4#trackID*/
-		char *track_id = (char *)strrchr(url, '.');
-		if (track_id) {
-			track_id = (char *)strchr(url, '#');
-			if (track_id) track_id ++;
-		}
-		is_esd_url = GF_TRUE;
-
-		ESID = 0;
-		/*if only one track ok*/
-		if (gf_isom_get_track_count(read->mov)==1) ESID = gf_isom_get_track_id(read->mov, 1);
-		else if (track_id) {
-			ESID = atoi(track_id);
-			track = gf_isom_get_track_by_id(read->mov, (u32) ESID);
-			if (!track) ESID = 0;
-		}
-
-	}
-	if (!ESID) {
-		e = GF_NOT_SUPPORTED;
-		goto exit;
-	}
-
-	/*a channel cannot be open twice, it has to be closed before - NOTE a track is NOT a channel and the user can open
-	several times the same track as long as a dedicated channel is used*/
-	ch = isor_get_channel(read, channel);
-	if (ch) {
-		e = GF_SERVICE_ERROR;
-		goto exit;
-	}
-	track = gf_isom_get_track_by_id(read->mov, (u32) ESID);
-	if (!track) {
-		e = GF_STREAM_NOT_FOUND;
-		goto exit;
-	}
 
 	GF_SAFEALLOC(ch, ISOMChannel);
 	if (!ch) {
-		e = GF_OUT_OF_MEM;
-		goto exit;
+		return GF_OUT_OF_MEM;
 	}
 	ch->owner = read;
-	ch->channel = channel;
+	ch->pid = pid;
+	ch->is_playing = GF_TRUE;
+	ch->to_init = GF_TRUE;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
 	ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
@@ -674,6 +619,10 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->dts_offset) ? GF_TRUE : GF_FALSE;
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
+
+	return GF_OK;
+
+#ifdef FILTER_FIXME
 
 exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
@@ -730,7 +679,11 @@ exit:
 		}
 	}
 	return e;
+#endif
+
 }
+
+#ifdef FILTER_FIXME
 
 GF_Err ISOR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
@@ -1097,27 +1050,50 @@ static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
 #endif
 
 
-static GF_Err isoffin_initialize(GF_Filter *filter)
-{
-	ISOMReader *reader = gf_filter_get_udta(filter);
-
-	reader->channels = gf_list_new();
-	reader->segment_mutex = gf_mx_new("ISO Segment");
-
-	return GF_OK;
-}
-
 static void isoffin_finalize(GF_Filter *filter)
 {
 	ISOMReader *read = gf_filter_get_udta(filter);
 
+	ISOR_CloseService(filter);
 	if (read->mov) gf_isom_close(read->mov);
-	if (read->segment_mutex) gf_mx_del(read->segment_mutex);
+
 	gf_list_del(read->channels);
 }
 
 static GF_Err isoffin_process(GF_Filter *filter)
 {
+	ISOMReader *read = gf_filter_get_udta(filter);
+	u32 i, count = gf_list_count(read->channels);
+	Bool is_active = GF_FALSE;
+	for (i=0; i<count; i++) {
+		char *data;
+		ISOMChannel *ch;
+		ch = gf_list_get(read->channels, i);
+		if (!ch->is_playing) continue;
+		is_active = GF_TRUE;
+
+		if (gf_filter_pid_would_block(ch->pid)) continue;
+
+		isor_reader_get_sample(ch);
+		if (ch->sample) {
+			u32 sample_dur;
+			GF_FilterPacket *pck;
+			pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+			memcpy(data, ch->sample->data, ch->sample->dataLength);
+
+			gf_filter_pck_set_dts(pck, ch->sample->DTS);
+			gf_filter_pck_set_cts(pck, ch->sample->DTS+ch->sample->CTS_Offset);
+			gf_filter_pck_set_sap(pck, ch->sample->IsRAP);
+			sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
+			gf_filter_pck_set_duration(pck, sample_dur);
+			gf_filter_pck_send(pck);
+			isor_reader_release_sample(ch);
+		} else if (ch->last_state==GF_EOS) {
+			gf_filter_pid_set_eos(ch->pid);
+			ch->is_playing=0;
+		}
+	}
+	return is_active ? GF_OK : GF_EOS;
 }
 
 
@@ -1133,7 +1109,7 @@ GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4in",
 	.description = "ISOFF Demuxer",
 	.private_size = sizeof(ISOMReader),
-	.args = NULL,
+	.args = ISOFFInArgs,
 	.initialize = isoffin_initialize,
 	.finalize = isoffin_finalize,
 	.process = isoffin_process,

@@ -39,6 +39,7 @@ extern "C" {
 #include <gpac/mpeg4_odf.h>
 
 #include <gpac/mediaobject.h>
+#include <gpac/bifs.h>
 
 typedef struct _scene GF_Scene;
 typedef struct _gf_addon_media GF_AddonMedia;
@@ -210,6 +211,8 @@ struct _scene
 	GF_Scene *parent_scene;
 	GF_Compositor *compositor;
 
+	GF_BifsDecoder *bifs_dec;
+	
 	//only for root scene
 	GF_List *namespaces;
 };
@@ -1080,7 +1083,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, ch
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
 /*setup PID attached to this object*/
-GF_Err gf_odm_setup_pid(GF_ObjectManager *odm);
+GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid);
 
 /*removes an ESD (this destroys associated channel if any)*/
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
