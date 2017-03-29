@@ -107,15 +107,13 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
-#define gf_isom_full_box_init(__pre)
-
-//void gf_isom_full_box_init(GF_Box *ptr);
-
-GF_Err gf_isom_box_get_size(GF_Box *ptr);
-GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
+//writes box header - shall be called at the begining of each xxxx_Write function
+//this function is not factorized in order to let box serializer modify box type before writing
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
+
+//writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
+
 void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
