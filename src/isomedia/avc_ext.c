@@ -1930,11 +1930,9 @@ GF_Err btrt_Write(GF_Box *s, GF_BitStream *bs)
 }
 GF_Err btrt_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_BitRateBox *ptr = (GF_BitRateBox *)s;
-	e = gf_isom_box_get_size(s);
 	ptr->size += 12;
-	return e;
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -1995,8 +1993,6 @@ GF_Err m4ds_Size(GF_Box *s)
 	GF_Err e;
 	u32 descSize = 0;
 	GF_MPEG4ExtensionDescriptorsBox *ptr = (GF_MPEG4ExtensionDescriptorsBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	e = gf_odf_desc_list_size(ptr->descriptors, &descSize);
 	ptr->size += descSize;
 	return e;
@@ -2189,8 +2185,7 @@ GF_Err avcc_Size(GF_Box *s)
 	GF_Err e;
 	u32 i, count;
 	GF_AVCConfigurationBox *ptr = (GF_AVCConfigurationBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	if (!ptr->config) {
 		ptr->size = 0;
 		return e;
@@ -2266,8 +2261,7 @@ GF_Err hvcc_Size(GF_Box *s)
 	GF_Err e;
 	u32 i, count, j, subcount;
 	GF_HEVCConfigurationBox *ptr = (GF_HEVCConfigurationBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	if (!ptr->config) {
 		ptr->size = 0;
 		return e;
