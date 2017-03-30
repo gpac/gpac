@@ -4204,7 +4204,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	}
 
 	char mime[256];
-	sprintf(mime, "video/mp2t\"");
+	sprintf(mime, "video/mp2t");
 	representation_obj->mime_type = gf_strdup(mime);
 
 	//fprintf(dash_cfg->mpd_file, "   <Representation id=\"%s\" mimeType=\"video/mp2t\"", dash_input->representationID);
@@ -4379,12 +4379,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			for (i=0; i<ts_seg.sidx->nb_refs; i++) {
 				GF_SIDXReference *ref = &ts_seg.sidx->refs[i];
 				GF_MPD_SegmentURL *seg_url;
+				GF_MPD_SegmentList *seg_list=representation_obj->segment_list;
+				gf_list_add(seg_list->segment_URLs, seg_url);
 				seg_url = gf_mpd_segmenturl_new(NULL, start, start + ref->reference_size - 1, NULL, 0, 0);
-				gf_list_add(segment_urls, seg_url);
+
 
 				//fprintf(dash_cfg->mpd_file, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_size-1);
 				//seg_url->media_range=ByteRange;
-				seg_url = gf_mpd_segmenturl_new(NULL, start, start + ref->reference_size - 1, NULL, 0, 0);
+				//seg_url = gf_mpd_segmenturl_new(NULL, start, start + ref->reference_size - 1, NULL, 0, 0);
 				start += ref->reference_size;
 			}
 			rewrite_input = GF_TRUE;
@@ -4446,8 +4448,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				if (!dash_cfg->use_url_template) {
 					gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_SEGMENT, GF_TRUE, SegName, basename, dash_input->representationID, NULL, dash_cfg->seg_rad_name, "ts", 0, bandwidth, segment_index, dash_cfg->use_segment_timeline);
 					GF_MPD_SegmentURL *seg_url;
+					GF_MPD_SegmentList *seg_list=representation_obj->segment_list;
 					seg_url = gf_mpd_segmenturl_new(SegName, 0, 0, NULL, 0, 0);
-					gf_list_add(segment_urls, seg_url);
+					gf_list_add(seg_list->segment_URLs, seg_url);
 
 					if (dash_cfg->dash_ctx) {
 						char szKey[100], szVal[4046];
@@ -6816,9 +6819,12 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			set_period_header(dasher, period_obj, p->id, 0.0, p->period_duration, p->xlink, p->period_idx, GF_FALSE);
 		} else {
 			GF_DOMParser *mpd_parser;
+			GF_XMLNode *Xml_node;
 			mpd_parser = gf_xml_dom_new();
 			e = gf_xml_dom_parse(mpd_parser, p->szPeriodXML, NULL, NULL);
-			gf_mpd_parse_period(dasher->mpd, gf_xml_dom_get_root(mpd_parser));
+			Xml_node=gf_xml_dom_get_root(mpd_parser);
+			if(!Xml_node)goto exit;
+			gf_mpd_parse_period(dasher->mpd, Xml_node);
 			gf_xml_dom_del(mpd_parser);
 		}
 
