@@ -4380,9 +4380,11 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 				GF_SIDXReference *ref = &ts_seg.sidx->refs[i];
 				GF_MPD_SegmentURL *seg_url;
 				GF_MPD_SegmentList *seg_list=representation_obj->segment_list;
-				gf_list_add(seg_list->segment_URLs, seg_url);
-				seg_url = gf_mpd_segmenturl_new(NULL, start, start + ref->reference_size - 1, NULL, 0, 0);
 
+				seg_url = gf_mpd_segmenturl_new(NULL, start, start + ref->reference_size - 1, NULL, 0, 0);
+				if(!seg_list->segment_URLs)
+					seg_list->segment_URLs=gf_list_new();
+				gf_list_add(seg_list->segment_URLs, seg_url);
 
 				//fprintf(dash_cfg->mpd_file, "     <SegmentURL mediaRange=\""LLD"-"LLD"\"/>\n", start, start+ref->reference_size-1);
 				//seg_url->media_range=ByteRange;
@@ -4450,6 +4452,8 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 					GF_MPD_SegmentURL *seg_url;
 					GF_MPD_SegmentList *seg_list=representation_obj->segment_list;
 					seg_url = gf_mpd_segmenturl_new(SegName, 0, 0, NULL, 0, 0);
+					if(!seg_list->segment_URLs)
+						seg_list->segment_URLs=gf_list_new();
 					gf_list_add(seg_list->segment_URLs, seg_url);
 
 					if (dash_cfg->dash_ctx) {
@@ -4466,7 +4470,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 			gf_fclose(src);
 		}
 		if (!dash_cfg->seg_rad_name || !dash_cfg->use_url_template) {
-			fprintf(dash_cfg->mpd_file, "    </SegmentList>\n");
+			//fprintf(dash_cfg->mpd_file, "    </SegmentList>\n");
 		}
 	}
 
@@ -4502,7 +4506,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		gf_fclose(out);
 	}
 
-	fprintf(dash_cfg->mpd_file, "   </Representation>\n");
+	//fprintf(dash_cfg->mpd_file, "   </Representation>\n");
 
 	if (dash_cfg->dash_ctx) {
 		sprintf(szOpt, "%u", bandwidth);
