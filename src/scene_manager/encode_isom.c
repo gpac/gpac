@@ -838,15 +838,17 @@ force_scene_rap:
 
 					/*then get RAP*/
 #ifndef GPAC_DISABLE_BIFS_ENC
-					if (bifs_enc)
+					if (bifs_enc) {
 						e = gf_bifs_encoder_get_rap(bifs_enc, &car_samp->data, &car_samp->dataLength);
 						if (e) goto exit;
+					}
 #endif
 
 #ifndef GPAC_DISABLE_LASER
-					if (lsr_enc)
+					if (lsr_enc) {
 						e = gf_laser_encoder_get_rap(lsr_enc, &car_samp->data, &car_samp->dataLength);
 						if (e) goto exit;
+					}
 #endif
 					car_samp->IsRAP = RAP_REDUNDANT;
 					while (1) {
