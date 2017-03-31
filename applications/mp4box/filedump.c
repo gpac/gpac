@@ -1577,6 +1577,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	if (e) {
 		fprintf(stderr, "Error dumping ISO structure\n");
 	}
+	if ( gf_isom_get_track_count(file) == 0 )
+		do_track_dump = GF_FALSE;
+
 	if (do_track_dump) {
 		u32 i, j;
 		//because of dump mode we need to reopen in regular read mode to avoid mem leaks
@@ -2010,6 +2013,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_AVC4_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
+	        || (msub_type==GF_ISOM_SUBTYPE_MVC_H264)
 	        || (msub_type==GF_ISOM_SUBTYPE_LSR1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 	        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
@@ -2061,9 +2065,9 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						}
 					}
 #endif
-				} else if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+				} else if (gf_isom_get_avc_svc_type(file, trackNum, 1) != GF_ISOM_AVCTYPE_NONE) {
 #ifndef GPAC_DISABLE_AV_PARSERS
-					GF_AVCConfig *avccfg, *svccfg;
+					GF_AVCConfig *avccfg, *svccfg, *mvccfg;
 					GF_AVCConfigSlot *slc;
 					s32 par_n, par_d;
 #endif
@@ -2074,7 +2078,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 #ifndef GPAC_DISABLE_AV_PARSERS
 					avccfg = gf_isom_avc_config_get(file, trackNum, 1);
 					svccfg = gf_isom_svc_config_get(file, trackNum, 1);
-					if (!avccfg && !svccfg) {
+					mvccfg = gf_isom_mvc_config_get(file, trackNum, 1);
+					if (!avccfg && !svccfg && !mvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant AVC track: SPS/PPS not found in sample description\n");
 					} else if (avccfg) {
 						fprintf(stderr, "\tAVC Info: %d SPS - %d PPS", gf_list_count(avccfg->sequenceParameterSets) , gf_list_count(avccfg->pictureParameterSets) );
@@ -2107,7 +2112,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 							if (slc) {
 								u32 s_w, s_h, sps_id;
 								gf_avc_get_sps_info(slc->data, slc->size, &sps_id, &s_w, &s_h, &par_n, &par_d);
-								fprintf(stderr, "\t\tSSPS ID %d - Visual Size %d x %d\n", sps_id, s_w, s_h);
+								fprintf(stderr, "\t\tSPS ID %d - Visual Size %d x %d\n", sps_id, s_w, s_h);
 								if ((par_n>0) && (par_d>0)) {
 									u32 tw, th;
 									gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
@@ -2120,6 +2125,27 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						print_config_hash(svccfg->sequenceParameterSetExtensions, "SPSEx");
 
 						gf_odf_avc_cfg_del(svccfg);
+					}
+
+					if (mvccfg) {
+						fprintf(stderr, "\n\tMVC Info: %d SPS - %d PPS - Profile %s @ Level %g\n", gf_list_count(mvccfg->sequenceParameterSets) , gf_list_count(mvccfg->pictureParameterSets), gf_avc_get_profile_name(mvccfg->AVCProfileIndication), ((Double)mvccfg->AVCLevelIndication)/10.0 );
+						fprintf(stderr, "\tMVC NAL Unit length bits: %d\n", 8*mvccfg->nal_unit_size);
+						for (i=0; i<gf_list_count(mvccfg->sequenceParameterSets); i++) {
+							slc = gf_list_get(mvccfg->sequenceParameterSets, i);
+							if (slc) {
+								u32 s_w, s_h, sps_id;
+								gf_avc_get_sps_info(slc->data, slc->size, &sps_id, &s_w, &s_h, &par_n, &par_d);
+								fprintf(stderr, "\t\tSPS ID %d - Visual Size %d x %d\n", sps_id, s_w, s_h);
+								if ((par_n>0) && (par_d>0)) {
+									u32 tw, th;
+									gf_isom_get_track_layout_info(file, trackNum, &tw, &th, NULL, NULL, NULL);
+									fprintf(stderr, "\tPixel Aspect Ratio %d:%d - Indicated track size %d x %d\n", par_n, par_d, tw, th);
+								}
+							}
+						}
+						print_config_hash(mvccfg->sequenceParameterSets, "SPS");
+						print_config_hash(mvccfg->pictureParameterSets, "PPS");
+						gf_odf_avc_cfg_del(mvccfg);
 					}
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 

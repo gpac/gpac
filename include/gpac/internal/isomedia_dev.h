@@ -107,15 +107,13 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
-#define gf_isom_full_box_init(__pre)
-
-//void gf_isom_full_box_init(GF_Box *ptr);
-
-GF_Err gf_isom_box_get_size(GF_Box *ptr);
-GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
+//writes box header - shall be called at the begining of each xxxx_Write function
+//this function is not factorized in order to let box serializer modify box type before writing
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
+
+//writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
+
 void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
@@ -249,6 +247,9 @@ enum
 	GF_ISOM_BOX_TYPE_AVC4	= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_BOX_TYPE_SVCC	= GF_4CC( 's', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_SVC1	= GF_4CC( 's', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_MVCC	= GF_4CC( 'm', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_MVC1	= GF_4CC( 'm', 'v', 'c', '1' ),
+
 	GF_ISOM_BOX_TYPE_HVCC	= GF_4CC( 'h', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
@@ -1102,6 +1103,7 @@ typedef struct
 	/*avc extensions - we merged with regular 'mp4v' box to handle isma E&A signaling of AVC*/
 	GF_AVCConfigurationBox *avc_config;
 	GF_AVCConfigurationBox *svc_config;
+	GF_AVCConfigurationBox *mvc_config;
 	/*hevc extension*/
 	GF_HEVCConfigurationBox *hevc_config;
 	GF_HEVCConfigurationBox *lhvc_config;

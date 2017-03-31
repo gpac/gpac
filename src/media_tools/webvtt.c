@@ -245,11 +245,7 @@ GF_Err wvtt_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err boxstring_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_StringBox *box = (GF_StringBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-
 	box->size += strlen(box->string);
 	return GF_OK;
 }
@@ -258,8 +254,6 @@ GF_Err vtcu_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_VTTCueBox *cuebox = (GF_VTTCueBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	if (cuebox->id) {
 		e = gf_isom_box_size((GF_Box *)cuebox->id);
 		if (e) return e;
@@ -285,22 +279,21 @@ GF_Err vtcu_Size(GF_Box *s)
 
 GF_Err vtte_Size(GF_Box *s)
 {
-	return gf_isom_box_get_size(s);
+	return GF_OK;
 }
 
 GF_Err wvtt_Size(GF_Box *s)
 {
 	GF_Err e;
 	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	s->size += 8; // reserved and dataReferenceIndex
 	if (wvtt->config) {
 		e = gf_isom_box_size((GF_Box *)wvtt->config);
 		if (e) return e;
 		wvtt->size += wvtt->config->size;
 	}
-	return e;
+	return GF_OK;
 }
 
 static GF_Err webvtt_write_cue(GF_BitStream *bs, GF_WebVTTCue *cue)

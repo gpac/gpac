@@ -41,6 +41,7 @@ const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
 	char *ptr, *name = (char *)szTYPE;
+	if (!type) return "";
 	ptr = name;
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;

@@ -2499,7 +2499,7 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				case GF_M2TS_HIERARCHY_DESCRIPTOR:
 					if (pes) {
 						u8 hierarchy_embedded_layer_index;
-						GF_BitStream *hbs = gf_bs_new(data, data_size, GF_BITSTREAM_READ);
+						GF_BitStream *hbs = gf_bs_new((const char *)data, data_size, GF_BITSTREAM_READ);
 						/*u32 skip = */gf_bs_read_int(hbs, 16);
 						/*u8 res1 = */gf_bs_read_int(hbs, 1);
 						/*u8 temp_scal = */gf_bs_read_int(hbs, 1);

@@ -227,8 +227,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			if (txh->raw_memory) {
 				txh->data = dst.video_buffer;
-				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
+				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
 			}
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV422) {
@@ -237,8 +237,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			if (txh->raw_memory) {
 				txh->data = dst.video_buffer;
-				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
+				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
 			}
 
 		}
