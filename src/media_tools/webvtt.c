@@ -180,9 +180,11 @@ static GF_Err wvtt_Add(GF_Box *s, GF_Box *box)
 
 GF_Err wvtt_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_WebVTTSampleEntryBox *wvtt = (GF_WebVTTSampleEntryBox *)s;
-	gf_bs_read_data(bs, wvtt->reserved, 6);
-	wvtt->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)wvtt, bs);
+	if (e) return e;
+
 	wvtt->size -= 8;
 	return gf_isom_box_array_read(s, bs, wvtt_Add);
 }

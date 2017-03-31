@@ -1858,17 +1858,17 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 
 		switch (boxType) {
 		case GF_ISOM_BOX_UUID_PSEC:
-			if (!traf->piff_sample_encryption) {
-				GF_PIFFSampleEncryptionBox *psec = (GF_PIFFSampleEncryptionBox *) src_trak->piff_psec;
+			//have we seen cases where the psec box is in trak but not in traf ? to check
+			if (!traf->sample_encryption) {
+				GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) src_trak->piff_psec;
 				if (!psec) return GF_ISOM_INVALID_FILE;
-				traf->piff_sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
-				traf->piff_sample_encryption->traf = traf;
+				traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
+				if (!traf->sample_encryption)
+					return GF_OUT_OF_MEM;
+				traf->sample_encryption->traf = traf;
 			}
 
-			if (!traf->piff_sample_encryption) {
-				return GF_IO_ERR;
-			}
-			senc = (GF_SampleEncryptionBox *) traf->piff_sample_encryption;
+			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 			break;
 		case GF_ISOM_BOX_TYPE_SENC:
 			if (!traf->sample_encryption) {

@@ -296,12 +296,14 @@ GF_Err tx3g_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
 	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->displayFlags = gf_bs_read_u32(bs);
 	ptr->horizontal_justification = gf_bs_read_u8(bs);
 	ptr->vertical_justification = gf_bs_read_u8(bs);
@@ -317,10 +319,12 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 /*this is a quicktime specific box - see apple documentation*/
 GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	u16 pSize;
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
 
 	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
 	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
@@ -1129,9 +1133,12 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 }
 GF_Err dims_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
-	gf_bs_read_data(bs, p->reserved, 6);
-	p->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)p, bs);
+	if (e) return e;
+
 	ISOM_DECREASE_SIZE(p, 8);
 	return gf_isom_box_array_read(s, bs, dims_AddBox);
 }
