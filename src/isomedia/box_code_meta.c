@@ -117,7 +117,7 @@ GF_Err meta_AddBox(GF_Box *s, GF_Box *a)
 GF_Err meta_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u64 pos = gf_bs_get_position(bs);
-	u32 size = s->size;
+	u64 size = s->size;
 	GF_Err e = gf_isom_box_array_read(s, bs, meta_AddBox);
 	/*try to hack around QT files which don't use a full box for meta, rewind 4 bytes*/
 	if (e && (pos>4) ) {
