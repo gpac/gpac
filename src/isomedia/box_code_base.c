@@ -11218,6 +11218,7 @@ GF_Err gitn_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 
 GF_Box *fdpa_New()
 {
@@ -11278,7 +11279,6 @@ GF_Err fdpa_Read(GF_Box *s, GF_BitStream *bs)
 	}
 	return GF_OK;
 }
-
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
@@ -11469,6 +11469,7 @@ GF_Err fdsa_Size(GF_Box *s)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 
 void trik_del(GF_Box *s)
