@@ -31,6 +31,12 @@
 #define BUFFER_BLOCK_SIZE 1000
 #define MAX_BUFFER_SIZE 200000
 
+typedef enum {
+	ERROR,
+	RUNNING,
+	EOS
+} state_t;
+
 typedef struct iso_progressive_reader {
 
 	/* data buffer to be read by the parser */
@@ -48,8 +54,8 @@ typedef struct iso_progressive_reader {
 	/* Mutex to protect the reading from concurrent adding of media data */
 	GF_Mutex *mutex;
 
-	/* state: 1 : running, 2: eos, 0: error */
-	volatile u32 state;
+	/* state */
+	volatile state_t state;
 
 	/* id of the track in the ISO to be read */
 	u32 track_id;
@@ -72,7 +78,7 @@ static u32 iso_progressive_read_thread(void *param)
 	/* samples are numbered starting from 1 */
 	sample_index = 1;
 
-	while (reader->state) {
+	while (reader->state != ERROR) {
 
 		/* we can only parse if there is a movie */
 		if (reader->movie) {
@@ -124,8 +130,8 @@ static u32 iso_progressive_read_thread(void *param)
 							u64 new_buffer_start;
 							u64 missing_bytes;
 
-							if (reader->state==2) {
-								reader->state=0;
+							if (reader->state == EOS) {
+								reader->state = ERROR;
 							}
 
 
@@ -219,7 +225,7 @@ int main(int argc, char **argv)
 	memset(&reader, 0, sizeof(ISOProgressiveReader));
 	reading_thread = gf_th_new("ISO reading thread");
 	reader.mutex = gf_mx_new("ISO Segment");
-	reader.state = 1;
+	reader.state = RUNNING;
 	/* we want to parse the first track */
 	reader.track_id = 1;
 	/* start the async parsing */
@@ -296,7 +302,7 @@ int main(int argc, char **argv)
 
 exit:
 	/* stop the parser */
-	reader.state = ret ? 0 : 2;
+	reader.state = ret ? ERROR : EOS;
 	gf_th_stop(reading_thread);
 
 	/* clean structures */
