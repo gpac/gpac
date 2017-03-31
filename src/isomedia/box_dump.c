@@ -2282,7 +2282,6 @@ GF_Err traf_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_array_dump(p->TrackRuns, trace);
 	if (p->sai_sizes) gf_isom_box_array_dump(p->sai_sizes, trace);
 	if (p->sai_offsets) gf_isom_box_array_dump(p->sai_offsets, trace);
-	if (p->piff_sample_encryption) gf_isom_box_dump(p->piff_sample_encryption, trace);
 	if (p->sample_encryption) gf_isom_box_dump(p->sample_encryption, trace);
 	gf_isom_box_dump_done("TrackFragmentBox", a, trace);
 	return GF_OK;
@@ -4541,7 +4540,7 @@ GF_Err piff_tenc_dump(GF_Box *a, FILE * trace)
 GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 {
 	u32 i, j, sample_count;
-	GF_PIFFSampleEncryptionBox *ptr = (GF_PIFFSampleEncryptionBox *) a;
+	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *) a;
 	if (!a) return GF_BAD_PARAM;
 
 	gf_isom_box_dump_start(a, "PIFFSampleEncryptionBox", trace);

@@ -642,39 +642,38 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 	/*content is encrypted*/
 	if (gf_isom_is_cenc_media(trak->moov->mov, gf_isom_get_tracknum_from_id(trak->moov, trak->Header->trackID), 1)
-		|| traf->piff_sample_encryption || traf->sample_encryption) {
+		|| traf->sample_encryption) {
 		/*Merge sample auxiliary encryption information*/
 		GF_SampleEncryptionBox *senc = NULL;
 		GF_List *sais = NULL;
 
-		if (traf->piff_sample_encryption) {
+		if (traf->sample_encryption) {
 			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
 				GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
+				if (a->type != traf->sample_encryption->type) continue;
+
 				if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
 					senc = (GF_SampleEncryptionBox *)a;
 					break;
 				}
-			}
-			if (!senc) {
-				senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
-				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
-				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
-			}
-
-			sais = traf->piff_sample_encryption->samp_aux_info;
-		}
-		else if (traf->sample_encryption) {
-			for (i = 0; i < gf_list_count(trak->Media->information->sampleTable->other_boxes); i++) {
-				GF_Box *a = (GF_Box *)gf_list_get(trak->Media->information->sampleTable->other_boxes, i);
-				if (a->type ==GF_ISOM_BOX_TYPE_SENC) {
+				else if (a->type ==GF_ISOM_BOX_TYPE_SENC) {
 					senc = (GF_SampleEncryptionBox *)a;
 					break;
 				}
 			}
 			if (!senc) {
-				senc = gf_isom_create_samp_enc_box(1, 0x2);
+				if (traf->sample_encryption->is_piff) {
+					senc = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0x2, 0, 0, NULL);
+				} else {
+					senc = gf_isom_create_samp_enc_box(1, 0x2);
+				}
+
 				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
+
+				assert(trak->Media->information->sampleTable->senc == NULL);
+
 				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
+				trak->Media->information->sampleTable->senc = senc;
 			}
 
 			sais = traf->sample_encryption->samp_aux_info;
@@ -708,8 +707,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			if (saiz && saio) {
 				for (i = 0; i < saiz->sample_count; i++) {
 					GF_CENCSampleAuxInfo *sai;
-					char *buffer;
-					GF_BitStream *bs;
+
 					u64 cur_position;
 					if (nb_saio != 1)
 						offset = (saio->version ? saio->offsets_large[i] : saio->offsets[i]) + moof_offset;
@@ -717,22 +715,21 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
-					buffer = (char *)gf_malloc(size);
-					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, buffer, size);
-					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
 
 					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
-					bs = gf_bs_new(buffer, size, GF_BITSTREAM_READ);
-					gf_bs_read_data(bs, (char *)sai->IV, 16);
+
+					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, (char *)sai->IV, 16);
 					if (size > 16) {
-						sai->subsample_count = gf_bs_read_u16(bs);
+						sai->subsample_count = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
 						sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
 						for (j = 0; j < sai->subsample_count; j++) {
-							sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(bs);
-							sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(bs);
+							sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
+							sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(trak->moov->mov->movieFileMap->bs);
 						}
-						gf_bs_del(bs);
 					}
+
+					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);
+
 					gf_list_add(senc->samp_aux_info, sai);
 					if (sai->subsample_count) senc->flags = 0x00000002;
 					gf_isom_cenc_merge_saiz_saio(senc, trak->Media->information->sampleTable, offset, size);

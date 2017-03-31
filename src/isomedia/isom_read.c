@@ -177,10 +177,13 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 			char szH[3], *data = val+5;
 			u32 i, len = (u32) strlen(data);
 			for (i=0; i<len; i+=2) {
+				u32 v;
+				//init is hex-encoded so 2 input bytes for one output char
 				szH[0] = data[i];
 				szH[1] = data[i+1];
 				szH[2] = 0;
-				sscanf(szH, "%X", &CodecParams[CodecParamLen]);
+				sscanf(szH, "%X", &v);
+				CodecParams[CodecParamLen] = (char) v;
 				CodecParamLen++;
 			}
 		}
@@ -1303,7 +1306,7 @@ Bool IsMP4EncryptedDescription(u32 entryType)
 }
 
 GF_EXPORT
-u8 gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
+Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	GF_Box *entry;
@@ -1311,7 +1314,12 @@ u8 gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak) return 2;
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	if (!entry) return 2;
-	return IsMP4EncryptedDescription(entry->type);
+	if (IsMP4EncryptedDescription(entry->type)) return GF_TRUE;
+
+	if (gf_isom_is_cenc_media(the_file, trackNumber, 1))
+		return GF_TRUE;
+
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -3902,9 +3910,9 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 
 GF_EXPORT
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #endif
 {
 	GF_SampleGroupBox *sample_group;
@@ -3924,6 +3932,8 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (skip_byte_block) *skip_byte_block = 0;
 	if (constant_IV_size) *constant_IV_size = 0;
 	if (constant_IV) memset(*constant_IV, 0, 16);
+
+	if (!senc) return GF_BAD_PARAM;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
@@ -3989,7 +3999,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	}
 #endif
 	/*no sampleGroup info associated*/
-	if (!group_desc_index) return GF_OK;
+	if (!group_desc_index) goto exit;
 
 	sgdesc = NULL;
 
@@ -4023,6 +4033,19 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (constant_IV_size) *constant_IV_size = entry->constant_IV_size;
 	if (constant_IV) memmove(*constant_IV, entry->constant_IV, 16);
 
+exit:
+
+	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
+	if ((senc->is_piff || trak->moov->mov->is_smooth) && !(*IV_size) ) {
+		if (!senc->is_piff) {
+			senc->is_piff = GF_TRUE;
+			senc->IV_size=8;
+		}
+		assert(senc->IV_size);
+		*IV_size = senc->IV_size;
+		*IsEncrypted = GF_TRUE;
+	}
+
 	return GF_OK;
 }
 
@@ -4030,9 +4053,10 @@ GF_EXPORT
 GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
 									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 {
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(movie, track);
-	return gf_isom_get_sample_cenc_info_ex(trak, NULL, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	GF_SampleEncryptionBox *senc = trak->Media->information->sampleTable->senc;
+
+	return gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 }
 
 GF_EXPORT

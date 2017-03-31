@@ -27,6 +27,18 @@
 
 #ifndef GPAC_DISABLE_ISOM
 
+
+GF_Err gf_isom_base_sample_entry_read(GF_SampleEntryBox *ptr, GF_BitStream *bs)
+{
+	gf_bs_read_data(bs, ptr->reserved, 6);
+	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	if (!ptr->dataReferenceIndex) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[ISO file] dataReferenceIndex set to 0 in sample entry, overriding to 1\n"));
+		ptr->dataReferenceIndex = 1;
+	}
+	return GF_OK;
+}
+
 void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr)
 {
 	if (ptr->protections) gf_isom_box_array_del(ptr->protections);
@@ -49,10 +61,12 @@ void gf_isom_video_sample_entry_init(GF_VisualSampleEntryBox *ent)
 
 GF_Err gf_isom_video_sample_entry_read(GF_VisualSampleEntryBox *ptr, GF_BitStream *bs)
 {
+	GF_Err e;
 	if (ptr->size < 78) return GF_ISOM_INVALID_FILE;
 	ptr->size -= 78;
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->version = gf_bs_read_u16(bs);
 	ptr->revision = gf_bs_read_u16(bs);
 	ptr->vendor = gf_bs_read_u32(bs);
@@ -113,10 +127,12 @@ void gf_isom_audio_sample_entry_init(GF_AudioSampleEntryBox *ptr)
 
 GF_Err gf_isom_audio_sample_entry_read(GF_AudioSampleEntryBox *ptr, GF_BitStream *bs)
 {
+	GF_Err e;
 	if (ptr->size<28) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->version = gf_bs_read_u16(bs);
 	ptr->revision = gf_bs_read_u16(bs);
 	ptr->vendor = gf_bs_read_u32(bs);
