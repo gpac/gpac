@@ -6989,14 +6989,11 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 		ptr->groups = (GF_TrackGroupBox *)a;
 		return GF_OK;
 	case GF_ISOM_BOX_TYPE_SENC:
-		ptr->senc = a;
-		return gf_isom_box_add_default((GF_Box *)ptr, a);
-	case GF_ISOM_BOX_UUID_PSEC:
-		ptr->piff_psec = a;
+		ptr->sample_encryption = (GF_SampleEncryptionBox*)a;
 		return gf_isom_box_add_default((GF_Box *)ptr, a);
 	case GF_ISOM_BOX_TYPE_UUID:
 		if (((GF_UnknownUUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC) {
-			ptr->piff_psec = a;
+			ptr->sample_encryption = (GF_SampleEncryptionBox*) a;
 			return gf_isom_box_add_default((GF_Box *)ptr, a);
 		}
 
@@ -7026,13 +7023,9 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 
 	//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
 	if (ptr->Media && ptr->Media->information && ptr->Media->information->sampleTable /*&& !ptr->Media->information->sampleTable->sai_sizes*/) {
-		if (ptr->senc) {
-			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *)ptr->senc);
+		if (ptr->sample_encryption) {
+			e = senc_Parse(bs, ptr, NULL, ptr->sample_encryption);
 		}
-		else if (ptr->piff_psec) {
-			e = senc_Parse(bs, ptr, NULL, (GF_SampleEncryptionBox *) ptr->piff_psec);
-		}
-
 	}
 	return e;
 }

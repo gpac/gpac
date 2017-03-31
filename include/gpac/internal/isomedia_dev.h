@@ -714,8 +714,7 @@ typedef struct
 	u32 originalID;
 
 	//not sure about piff (not supposed to be stored in moov), but senc is in track according to CENC
-	GF_Box *piff_psec;
-	GF_Box *senc;
+	struct __sample_encryption_box *sample_encryption;
 
 	/*private for SVC/MVC extractors resolution*/
 	s32 extractor_mode;
@@ -1445,8 +1444,6 @@ typedef struct
 	u16 trackPriority;
 	u32 currentEntryIndex;
 
-	//stored in other boxes, no need to delete it
-	struct __sample_encryption_box *senc;
 	Bool no_sync_found;
 } GF_SampleTableBox;
 

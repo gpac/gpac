@@ -670,10 +670,10 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 				if (!trak->Media->information->sampleTable->other_boxes) trak->Media->information->sampleTable->other_boxes = gf_list_new();
 
-				assert(trak->Media->information->sampleTable->senc == NULL);
+				assert(trak->sample_encryption == NULL);
 
-				gf_list_add(trak->Media->information->sampleTable->other_boxes, senc);
-				trak->Media->information->sampleTable->senc = senc;
+				trak->sample_encryption = senc;
+				gf_isom_box_add_default((GF_Box *)trak, (GF_Box *)senc);
 			}
 
 			sais = traf->sample_encryption->samp_aux_info;
