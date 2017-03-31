@@ -4036,7 +4036,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleE
 exit:
 
 	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
-	if ((senc->is_piff || trak->moov->mov->is_smooth) && !(*IV_size) ) {
+	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
 		if (!senc->is_piff) {
 			senc->is_piff = GF_TRUE;
 			senc->IV_size=8;
@@ -4054,7 +4054,7 @@ GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_num
 									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 {
 	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
-	GF_SampleEncryptionBox *senc = trak->Media->information->sampleTable->senc;
+	GF_SampleEncryptionBox *senc = trak->sample_encryption;
 
 	return gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 }

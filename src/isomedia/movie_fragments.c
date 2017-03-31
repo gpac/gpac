@@ -1860,7 +1860,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 		case GF_ISOM_BOX_UUID_PSEC:
 			//have we seen cases where the psec box is in trak but not in traf ? to check
 			if (!traf->sample_encryption) {
-				GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) src_trak->piff_psec;
+				GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) src_trak->sample_encryption;
 				if (!psec) return GF_ISOM_INVALID_FILE;
 				traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
 				if (!traf->sample_encryption)

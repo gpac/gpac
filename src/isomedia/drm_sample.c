@@ -554,7 +554,7 @@ Bool gf_isom_is_cenc_media(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDesc
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_FALSE;
 
-	if (trak->Media->information->sampleTable->senc) return GF_TRUE;
+	if (trak->sample_encryption) return GF_TRUE;
 
 	sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CENC_SCHEME, NULL);
 	if (!sinf) sinf = isom_get_sinf_entry(trak, sampleDescriptionIndex, GF_ISOM_CBC_SCHEME, NULL);
@@ -875,20 +875,19 @@ GF_Err gf_isom_cenc_allocate_storage(GF_ISOFile *the_file, u32 trackNumber, u32 
 	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
+	if (trak->sample_encryption) return GF_OK;
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
-		if (trak->piff_psec) return GF_OK;
-		trak->piff_psec = (GF_Box *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
-		//senc will be written and destroyed with the other boxes
-		return gf_isom_box_add_default((GF_Box *) trak, trak->piff_psec);
-
+		trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_piff_psec_box(1, 0, AlgorithmID, IV_size, KID);
+		break;
 	case GF_ISOM_BOX_TYPE_SENC:
-		if (trak->senc) return GF_OK;
-		trak->senc = (GF_Box *)gf_isom_create_samp_enc_box(0, 0);
-		//senc will be written and destroyed with the other boxes
-		return gf_isom_box_add_default((GF_Box *) trak, trak->senc);
+		trak->sample_encryption = (GF_SampleEncryptionBox *)gf_isom_create_samp_enc_box(0, 0);
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
 	}
-	return GF_NOT_SUPPORTED;
+	//senc will be written and destroyed with the other boxes
+	return gf_isom_box_add_default((GF_Box *) trak, (GF_Box *) trak->sample_encryption);
 }
 
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -993,10 +992,8 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 	switch (container_type) {
 	case GF_ISOM_BOX_UUID_PSEC:
-		senc = (GF_SampleEncryptionBox *) trak->piff_psec;
-		break;
 	case GF_ISOM_BOX_TYPE_SENC:
-		senc = (GF_SampleEncryptionBox *) trak->senc;
+		senc = trak->sample_encryption;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -1168,7 +1165,7 @@ GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u
 	if (!stbl)
 		return GF_BAD_PARAM;
 
-	senc = trak->Media->information->sampleTable->senc;
+	senc = trak->sample_encryption;
 	if (!senc)
 		return GF_BAD_PARAM;
 
