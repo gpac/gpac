@@ -282,8 +282,10 @@ typedef enum
 	GF_NOT_FOUND							= -53,
 	/*! Unexpected format of data */
 	GF_PROFILE_NOT_SUPPORTED				= -54,
+	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
+	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 	/*! filter PID config requires new instance of filter */
-	GF_REQUIRES_NEW_INSTANCE				= -55
+	GF_REQUIRES_NEW_INSTANCE				= -56
 } GF_Err;
 
 /*!
