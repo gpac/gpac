@@ -1488,6 +1488,48 @@ scalable_retry:
 			UnlockCompositionUnit(codec, CU, 0);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Unsupported profile detected, blacklisting decoder for this stream and changing decoder\n", codec->decio->module_name ));
 			return gf_codec_change_decoder(codec);
+		case GF_CODEC_BUFFER_UNAVAILABLE:
+			if (unit_size) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
+				
+				if (codec->direct_frame_output) {
+					Bool needs_resize = 0;
+					//may happen during seek
+					if (CU->frame) {
+						CU->frame->Release(CU->frame);
+						CU->frame = NULL;
+					}
+
+					e = mdec->GetOutputFrame(mdec, ch->esd->ESID, &CU->frame, &needs_resize);
+					if (e!=GF_OK) {
+						CU->frame=NULL;
+					}
+					if (!CU->frame)
+						unit_size = 0;
+					else if (needs_resize) {
+						assert(unit_size);
+						//if dynamic scene, set size
+						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
+							/*update config*/
+							gf_mo_update_caps(codec->odm->mo);
+							gf_scene_force_size_to_video(codec->odm->parentscene, codec->odm->mo);
+						}
+					}
+					
+				}
+				else if (codec->direct_vout) {
+					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
+					if (e==GF_OK) {
+						gf_sc_set_video_pending_frame(codec->odm->term->compositor);
+					}
+				}
+				CU->sender_ntp = AU->sender_ntp;
+			}
+
+			codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
+			UnlockCompositionUnit(codec, CU, unit_size);
+			
+			continue;
 
 		default:
 			unit_size = 0;
