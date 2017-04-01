@@ -143,6 +143,194 @@ u32 gf_isom_probe_file(const char *fileName)
 	}
 }
 
+#ifndef GPAC_DISABLE_AV_PARSERS
+#include <gpac/internal/media_dev.h>
+#endif
+
+static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
+{
+	u32 sample_rate=0;
+	u32 nb_channels=0;
+	u32 bps=0;
+	u32 atag=0;
+	u32 nal_len=4;
+	u32 width = 0;
+	u32 height = 0;
+	u32 timescale = 10000000;
+	u64 tfdt = 0;
+	char sz4cc[5];
+	char CodecParams[2048];
+	u32 CodecParamLen=0;
+	char *sep, *val;
+	GF_TrackBox *trak;
+	GF_TrackExtendsBox *trex;
+
+	sz4cc[0] = 0;
+
+	val = (char*) ( fileName + strlen("isobmff://") );
+	while (1)  {
+		sep = strchr(val, ' ');
+		if (sep) sep[0] = 0;
+		
+		if (!strncmp(val, "4cc=", 4)) strcpy(sz4cc, val+4);
+		else if (!strncmp(val, "init=", 5)) {
+			char szH[3], *data = val+5;
+			u32 i, len = (u32) strlen(data);
+			for (i=0; i<len; i+=2) {
+				u32 v;
+				//init is hex-encoded so 2 input bytes for one output char
+				szH[0] = data[i];
+				szH[1] = data[i+1];
+				szH[2] = 0;
+				sscanf(szH, "%X", &v);
+				CodecParams[CodecParamLen] = (char) v;
+				CodecParamLen++;
+			}
+		}
+		else if (!strncmp(val, "nal=", 4)) nal_len = atoi(val+4);
+		else if (!strncmp(val, "bps=", 4)) bps = atoi(val+4);
+		else if (!strncmp(val, "atag=", 5)) atag = atoi(val+5);
+		else if (!strncmp(val, "ch=", 3)) nb_channels = atoi(val+3);
+		else if (!strncmp(val, "srate=", 6)) sample_rate = atoi(val+6);
+		else if (!strncmp(val, "w=", 2)) width = atoi(val+2);
+		else if (!strncmp(val, "h=", 2)) height = atoi(val+2);
+		else if (!strncmp(val, "scale=", 6)) timescale = atoi(val+6);
+		else if (!strncmp(val, "tfdt=", 5)) tfdt = atoi(val+5);
+
+		if (!sep) break;
+		sep[0] = ' ';
+		val = sep+1;
+	}
+	if (!stricmp(sz4cc, "H264")) {
+	}
+	else if (!stricmp(sz4cc, "AACL")) {
+	} 
+	else {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot convert smooth media type %s to ISO init segment\n", sz4cc));
+		return GF_NOT_SUPPORTED;
+	}
+
+	file->moov = (GF_MovieBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MOOV);
+	file->moov->mov = file;
+	file->is_smooth = GF_TRUE;
+	file->moov->mvhd = (GF_MovieHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVHD);
+	file->moov->mvhd->timeScale = timescale;
+	file->moov->mvex = (GF_MovieExtendsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MVEX);
+	trex = (GF_TrackExtendsBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREX);
+	trex->def_sample_desc_index = 1;
+	trex->trackID = 1;
+	gf_list_add(file->moov->mvex->TrackExList, trex);
+
+	trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
+	trak->moov = file->moov;
+	gf_list_add(file->moov->trackList, trak);
+	
+	trak->Header = (GF_TrackHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TKHD);
+	trak->Header->trackID = 1;
+	trak->Header->flags |= 1;
+	trak->Header->width = width;
+	trak->Header->height = height;
+
+	trak->Media = (GF_MediaBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDIA);
+	trak->Media->mediaTrack = trak;
+	trak->Media->mediaHeader = (GF_MediaHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MDHD);
+	trak->Media->mediaHeader->timeScale = timescale;
+
+	trak->Media->handler = (GF_HandlerBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_HDLR);
+	trak->Media->handler->handlerType = width ? GF_ISOM_MEDIA_VISUAL : GF_ISOM_MEDIA_AUDIO;
+
+	trak->Media->information = (GF_MediaInformationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MINF);
+	trak->Media->information->sampleTable = (GF_SampleTableBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STBL);
+	trak->Media->information->sampleTable->SampleSize = (GF_SampleSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSZ);
+	trak->Media->information->sampleTable->TimeToSample = (GF_TimeToSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STTS);
+	trak->Media->information->sampleTable->ChunkOffset = (GF_Box *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STCO);
+	trak->Media->information->sampleTable->SampleToChunk = (GF_SampleToChunkBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSC);
+	trak->Media->information->sampleTable->SyncSample = (GF_SyncSampleBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSS);
+
+	trak->Media->information->sampleTable->SampleDescription = (GF_SampleDescriptionBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSD);
+
+	trak->dts_at_seg_start = tfdt;
+
+	
+	if (!stricmp(sz4cc, "H264")) {
+		u32 pos = 0;
+		u32 end, sc_size=0;
+		GF_MPEGVisualSampleEntryBox *avc =  (GF_MPEGVisualSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVC1);
+		avc->avc_config =  (GF_AVCConfigurationBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
+
+		avc->Width = width;
+		avc->Height = height;
+
+		avc->avc_config->config = gf_odf_avc_cfg_new();
+		avc->avc_config->config->nal_unit_size = nal_len;
+		avc->avc_config->config->configurationVersion = 1;
+
+#ifndef GPAC_DISABLE_AV_PARSERS
+		//locate pps and sps
+		end = gf_media_nalu_next_start_code((u8 *) CodecParams, CodecParamLen, &sc_size);
+		pos += sc_size;
+		while (pos<CodecParamLen) {
+			GF_AVCConfigSlot *slc;
+			u8 nal_type;
+			char *nal = &CodecParams[pos];
+			end = gf_media_nalu_next_start_code(nal, CodecParamLen-pos, &sc_size);
+			if (!end) end = CodecParamLen;
+
+			GF_SAFEALLOC(slc, GF_AVCConfigSlot);
+			slc->size = end;
+			slc->data = gf_malloc(sizeof(char)*slc->size);
+			memcpy(slc->data, nal, sizeof(char)*slc->size);
+
+			nal_type = nal[0] & 0x1F;
+			if (nal_type == GF_AVC_NALU_SEQ_PARAM) {
+/*				AVCState avcc;
+				u32 idx = gf_media_avc_read_sps(slc->data, slc->size, &avcc, 0, NULL);
+				avc->avc_config->config->profile_compatibility = avcc.sps[idx].prof_compat;
+				avc->avc_config->config->AVCProfileIndication = avcc.sps[idx].profile_idc;
+				avc->avc_config->config->AVCLevelIndication = avcc.sps[idx].level_idc;
+				avc->avc_config->config->chroma_format = avcc.sps[idx].chroma_format;
+				avc->avc_config->config->luma_bit_depth = 8 + avcc.sps[idx].luma_bit_depth_m8;
+				avc->avc_config->config->chroma_bit_depth = 8 + avcc.sps[idx].chroma_bit_depth_m8;
+*/
+
+				gf_list_add(avc->avc_config->config->sequenceParameterSets, slc);
+			} else {
+				gf_list_add(avc->avc_config->config->pictureParameterSets, slc);
+			}
+			pos += slc->size + sc_size;
+		}
+#endif
+
+		AVC_RewriteESDescriptor(avc);
+		gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, avc);
+	}
+	else if (!stricmp(sz4cc, "AACL")) {
+#ifndef GPAC_DISABLE_AV_PARSERS
+		GF_M4ADecSpecInfo aacinfo;
+#endif
+
+		GF_MPEGAudioSampleEntryBox *aac =  (GF_MPEGAudioSampleEntryBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_MP4A);
+		aac->esd = (GF_ESDBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_ESDS);
+		aac->esd->desc = gf_odf_desc_esd_new(2);
+#ifndef GPAC_DISABLE_AV_PARSERS
+		memset(&aacinfo, 0, sizeof(GF_M4ADecSpecInfo));
+		aacinfo.nb_chan = nb_channels;
+		aacinfo.base_object_type = GF_M4A_AAC_LC;
+		aacinfo.base_sr = sample_rate;
+		gf_m4a_write_config(&aacinfo, &aac->esd->desc->decoderConfig->decoderSpecificInfo->data, &aac->esd->desc->decoderConfig->decoderSpecificInfo->dataLength);
+#endif
+		aac->esd->desc->decoderConfig->streamType = GF_STREAM_AUDIO;
+		aac->esd->desc->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_AAC_MPEG4;
+		aac->bitspersample = bps;
+		aac->samplerate_hi = sample_rate;
+		aac->channel_count = nb_channels;
+
+		gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, aac);
+	}
+	
+	return GF_OK;
+}
+
 /**************************************************************
 					File Opening in streaming mode
 			the file map is regular (through FILE handles)
@@ -163,24 +351,31 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 
 	movie->fileName = gf_strdup(fileName);
 	movie->openMode = GF_ISOM_OPEN_READ;
-	//do NOT use FileMapping on incomplete files
-	e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ, &movie->movieFileMap);
-	if (e) {
-		gf_isom_delete_movie(movie);
-		return e;
-	}
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 	movie->editFileMap = NULL;
 	movie->finalName = NULL;
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-	if (end_range>start_range) {
-		gf_bs_seek(movie->movieFileMap->bs, end_range+1);
-		gf_bs_truncate(movie->movieFileMap->bs);
-		gf_bs_seek(movie->movieFileMap->bs, start_range);
+	if (!strncmp(fileName, "isobmff://", 10)) {
+		movie->movieFileMap = NULL;
+		e = isom_create_init_from_mem(fileName, movie);
+	} else {
+		//do NOT use FileMapping on incomplete files
+		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_READ, &movie->movieFileMap);
+		if (e) {
+			gf_isom_delete_movie(movie);
+			return e;
+		}
+
+		if (end_range>start_range) {
+			gf_bs_seek(movie->movieFileMap->bs, end_range+1);
+			gf_bs_truncate(movie->movieFileMap->bs);
+			gf_bs_seek(movie->movieFileMap->bs, start_range);
+		}
+		e = gf_isom_parse_movie_boxes(movie, BytesMissing, GF_TRUE);
+
 	}
-	e = gf_isom_parse_movie_boxes(movie, BytesMissing, GF_TRUE);
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
 		//if we have a moov, we're fine
 		if (movie->moov) {
@@ -195,6 +390,7 @@ GF_Err gf_isom_open_progressive(const char *fileName, u64 start_range, u64 end_r
 		gf_isom_delete_movie(movie);
 		return e;
 	}
+
 	//OK, let's return
 	*the_file = (GF_ISOFile *)movie;
 	return GF_OK;
@@ -1110,7 +1306,7 @@ Bool IsMP4EncryptedDescription(u32 entryType)
 }
 
 GF_EXPORT
-u8 gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
+Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 {
 	GF_TrackBox *trak;
 	GF_Box *entry;
@@ -1118,7 +1314,12 @@ u8 gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber)
 	if (!trak) return 2;
 	entry = (GF_Box*)gf_list_get(trak->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 	if (!entry) return 2;
-	return IsMP4EncryptedDescription(entry->type);
+	if (IsMP4EncryptedDescription(entry->type)) return GF_TRUE;
+
+	if (gf_isom_is_cenc_media(the_file, trackNumber, 1))
+		return GF_TRUE;
+
+	return GF_FALSE;
 }
 
 GF_EXPORT
@@ -3709,9 +3910,9 @@ GF_Err gf_isom_get_pssh_info(GF_ISOFile *file, u32 pssh_index, bin128 SystemID, 
 
 GF_EXPORT
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *senc, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID, u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 #endif
 {
 	GF_SampleGroupBox *sample_group;
@@ -3731,6 +3932,8 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (skip_byte_block) *skip_byte_block = 0;
 	if (constant_IV_size) *constant_IV_size = 0;
 	if (constant_IV) memset(*constant_IV, 0, 16);
+
+	if (!senc) return GF_BAD_PARAM;
 
 #ifdef	GPAC_DISABLE_ISOM_FRAGMENTS
 	if (traf)
@@ -3796,7 +3999,7 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	}
 #endif
 	/*no sampleGroup info associated*/
-	if (!group_desc_index) return GF_OK;
+	if (!group_desc_index) goto exit;
 
 	sgdesc = NULL;
 
@@ -3830,6 +4033,19 @@ GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample
 	if (constant_IV_size) *constant_IV_size = entry->constant_IV_size;
 	if (constant_IV) memmove(*constant_IV, entry->constant_IV, 16);
 
+exit:
+
+	//in PIFF we may have default values if no TENC is present: 8 bytes for IV size
+	if ((senc->is_piff || (trak->moov && trak->moov->mov->is_smooth) ) && !(*IV_size) ) {
+		if (!senc->is_piff) {
+			senc->is_piff = GF_TRUE;
+			senc->IV_size=8;
+		}
+		assert(senc->IV_size);
+		*IV_size = senc->IV_size;
+		*IsEncrypted = GF_TRUE;
+	}
+
 	return GF_OK;
 }
 
@@ -3837,9 +4053,10 @@ GF_EXPORT
 GF_Err gf_isom_get_sample_cenc_info(GF_ISOFile *movie, u32 track, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
 									u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV)
 {
-	GF_TrackBox *trak;
-	trak = gf_isom_get_track_from_file(movie, track);
-	return gf_isom_get_sample_cenc_info_ex(trak, NULL, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
+	GF_TrackBox *trak = gf_isom_get_track_from_file(movie, track);
+	GF_SampleEncryptionBox *senc = trak->sample_encryption;
+
+	return gf_isom_get_sample_cenc_info_ex(trak, NULL, senc, sample_number, IsEncrypted, IV_size, KID, crypt_byte_block, skip_byte_block, constant_IV_size, constant_IV);
 }
 
 GF_EXPORT
