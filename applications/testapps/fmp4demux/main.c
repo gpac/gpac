@@ -31,6 +31,12 @@
 #define BUFFER_BLOCK_SIZE 1000
 #define MAX_BUFFER_SIZE 200000
 
+typedef enum {
+	ERROR,
+	RUNNING,
+	EOS
+} state_t;
+
 typedef struct iso_progressive_reader {
 
 	/* data buffer to be read by the parser */
@@ -48,8 +54,8 @@ typedef struct iso_progressive_reader {
 	/* Mutex to protect the reading from concurrent adding of media data */
 	GF_Mutex *mutex;
 
-	/* Boolean indicating if the thread should stop */
-	volatile Bool do_run;
+	/* state */
+	volatile state_t state;
 
 	/* id of the track in the ISO to be read */
 	u32 track_id;
@@ -72,7 +78,7 @@ static u32 iso_progressive_read_thread(void *param)
 	/* samples are numbered starting from 1 */
 	sample_index = 1;
 
-	while (reader->do_run == GF_TRUE) {
+	while (reader->state != ERROR) {
 
 		/* we can only parse if there is a movie */
 		if (reader->movie) {
@@ -113,7 +119,7 @@ static u32 iso_progressive_read_thread(void *param)
 
 						samples_processed++;
 						/*here we dump some sample info: samp->data, samp->dataLength, samp->isRAP, samp->DTS, samp->CTS_Offset */
-						fprintf(stdout, "Found sample #%5d (#%5d) of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\r", sample_index, samples_processed, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
+						fprintf(stdout, "Found sample #%5d (#%5d) of length %8d, RAP: %d, DTS: "LLD", CTS: "LLD"\n", sample_index, samples_processed, iso_sample->dataLength, iso_sample->IsRAP, iso_sample->DTS, iso_sample->DTS+iso_sample->CTS_Offset);
 						sample_index++;
 
 						/*release the sample data, once you're done with it*/
@@ -123,6 +129,11 @@ static u32 iso_progressive_read_thread(void *param)
 						if (sample_index > sample_count) {
 							u64 new_buffer_start;
 							u64 missing_bytes;
+
+							if (reader->state == EOS) {
+								reader->state = ERROR;
+							}
+
 
 							fprintf(stdout, "\nReleasing unnecessary buffers\n");
 							/* release internal structures associated with the samples read so far */
@@ -147,7 +158,7 @@ static u32 iso_progressive_read_thread(void *param)
 						}
 					} else {
 						GF_Err e = gf_isom_last_error(reader->movie);
-						fprintf(stdout, "Could not get sample %s\r", gf_error_to_string(e));
+						fprintf(stdout, "Could not get sample %s\n", gf_error_to_string(e));
 					}
 					/* and finally, let the data reader push more data */
 					gf_mx_v(reader->mutex);
@@ -214,7 +225,7 @@ int main(int argc, char **argv)
 	memset(&reader, 0, sizeof(ISOProgressiveReader));
 	reading_thread = gf_th_new("ISO reading thread");
 	reader.mutex = gf_mx_new("ISO Segment");
-	reader.do_run = GF_TRUE;
+	reader.state = RUNNING;
 	/* we want to parse the first track */
 	reader.track_id = 1;
 	/* start the async parsing */
@@ -291,7 +302,7 @@ int main(int argc, char **argv)
 
 exit:
 	/* stop the parser */
-	reader.do_run = GF_FALSE;
+	reader.state = ret ? ERROR : EOS;
 	gf_th_stop(reading_thread);
 
 	/* clean structures */

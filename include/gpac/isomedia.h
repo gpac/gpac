@@ -575,7 +575,7 @@ u32 gf_isom_get_track_original_id(GF_ISOFile *movie, u32 trackNumber);
 u8 gf_isom_is_track_enabled(GF_ISOFile *the_file, u32 trackNumber);
 
 /* determines if the track is encrypted 0: NO, 1: yes, 2: error*/
-u8 gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber);
+Bool gf_isom_is_track_encrypted(GF_ISOFile *the_file, u32 trackNumber);
 
 /*get the track duration return 0 if bad param*/
 u64 gf_isom_get_track_duration(GF_ISOFile *the_file, u32 trackNumber);

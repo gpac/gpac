@@ -110,7 +110,7 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 		p->matrix_coefficients = gf_bs_read_u16(bs);
 		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
 	} else {
-		p->opaque = gf_malloc(sizeof(u8)* (u32) p->size);
+		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
 		p->opaque_size = (u32) p->size;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
 		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);

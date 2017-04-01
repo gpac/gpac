@@ -1158,9 +1158,9 @@ static const struct box_registry_entry {
 
 	//internally handled UUID for smooth - the code points are only used during creation and assigned to UUIDBox->internal4CC
 	//the box type is still "uuid", and the factory is used to read/write/size/dump the code
-	FBOX_DEFINE_S(GF_ISOM_BOX_UUID_TENC, piff_tenc, "schi", 0, "smooth"),
-	FBOX_DEFINE_S(GF_ISOM_BOX_UUID_PSEC, piff_psec, "trak traf", 0, "smooth"),
-	FBOX_DEFINE_S(GF_ISOM_BOX_UUID_PSSH, piff_pssh, "moov moof", 0, "smooth"),
+	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TENC, piff_tenc, "schi", "smooth"),
+	BOX_DEFINE_S(GF_ISOM_BOX_UUID_PSEC, piff_psec, "trak traf", "smooth"),
+	BOX_DEFINE_S(GF_ISOM_BOX_UUID_PSSH, piff_pssh, "moov moof", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFXD, tfxd, "traf", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_MSSM, uuid, "file", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, uuid, "traf", "smooth")

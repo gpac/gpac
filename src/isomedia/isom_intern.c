@@ -63,6 +63,11 @@ GF_Err MergeFragment(GF_MovieFragmentBox *moof, GF_ISOFile *mov)
 		if (!traf->tfhd) {
 			trak = NULL;
 			traf->trex = NULL;
+		} else if (mov->is_smooth) {
+			trak = gf_list_get(mov->moov->trackList, 0);
+			traf->trex = (GF_TrackExtendsBox*)gf_list_get(mov->moov->mvex->TrackExList, 0);
+			assert(traf->trex);
+			traf->trex->trackID = trak->Header->trackID = traf->tfhd->trackID;
 		} else {
 			trak = gf_isom_get_track_from_id(mov->moov, traf->tfhd->trackID);
 			j=0;
@@ -374,9 +379,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 							}
 						}
 						//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
-						if (traf->trex && traf->trex->track && (traf->piff_sample_encryption || traf->sample_encryption)) {
+						if (traf->trex && traf->trex->track && traf->sample_encryption) {
 							GF_TrackBox *trak = GetTrackbyID(mov->moov, traf->tfhd->trackID);
-							e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->piff_sample_encryption ? (GF_SampleEncryptionBox *) traf->piff_sample_encryption : traf->sample_encryption);
+							e = senc_Parse(mov->movieFileMap->bs, trak, traf, traf->sample_encryption);
 							if (e) return e;
 						}
 					}
