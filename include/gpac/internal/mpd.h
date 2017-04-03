@@ -128,7 +128,7 @@ typedef struct
 typedef struct
 {
 	char *xml_desc;
-} GF_MPD_AdaptionSetDescriptor;
+} GF_MPD_AdaptationSetLevelDescriptor;
 
 typedef struct
 {
