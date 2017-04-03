@@ -327,6 +327,8 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+	GF_List *adaptation_set_level_descriptor_c;
+	GF_List *adaptation_set_level_descriptor;
 } GF_MPD_AdaptationSet;
 
 

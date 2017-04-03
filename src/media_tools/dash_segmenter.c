@@ -5006,9 +5006,10 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
                                       GF_DashSegInput *dash_inputs, u32 nb_dash_inputs, u32 period_num, u32 adaptation_set_num, u32 first_rep_in_set,
                                       Bool bitstream_switching_mode, u32 max_width, u32 max_height, u32 dar_num, u32 dar_den, char *szMaxFPS, char *szLang, const char *szInitSegment, Bool segment_alignment_disabled, const char *mpd_name)
 {
-	u32 i;// , j;
+	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
+	GF_MPD_AdaptionSetDescriptor Desc;
 
 	//force segmentAlignment in onDemand
 	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled);
@@ -5042,14 +5043,17 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	}
 	
 	/* writing AdaptationSet level descriptors specified only on one input (non discriminating during classification)*/
-	/*
 	for (i=0; i< nb_dash_inputs; i++) {
 		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
-				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+				GF_MPD_AdaptionSetDescriptor *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_AdaptionSetDescriptor);
+				Desc->xml_desc=gf_strdup(dash_inputs[i].as_c_descs[j]);
+				gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor_c,Desc);
+				//fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
 			}
 		}
-	}*/
+	}
 
 	//check SRD
 	for (i=0; i< nb_dash_inputs; i++) {
@@ -5081,11 +5085,15 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	if (first_rep) {
 
 		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
-		/*
+
 		for (i=0; i<first_rep->nb_as_descs; i++) {
-			fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+			GF_MPD_AdaptionSetDescriptor *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_AdaptionSetDescriptor);
+			Desc->xml_desc=gf_strdup(first_rep->as_descs[i]);
+			gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor,Desc);
+			//fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
 		}
-		*/
+
 
 		if (bitstream_switching_mode) {
 			for (i=0; i<first_rep->nb_components; i++) {
