@@ -184,6 +184,7 @@ GF_Err Media_GetESD(GF_MediaBox *mdia, u32 sampleDescIndex, GF_ESD **out_esd, Bo
 		esd = ((GF_MPEGVisualSampleEntryBox*) entry)->emul_esd;
 		break;
 	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_MVC1:
 		if ((mdia->mediaTrack->extractor_mode & 0x0000FFFF) != GF_ISOM_NALU_EXTRACT_INSPECT)
 			AVC_RewriteESDescriptorEx((GF_MPEGVisualSampleEntryBox*) entry, mdia);
 		else
@@ -463,8 +464,10 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (e) return e;
 	}
 	/*FIXME: we do NOT rewrite sample if we have a encrypted track*/
-	else if (gf_isom_is_nalu_based_entry(mdia, entry) &&
-	         !gf_isom_is_track_encrypted(mdia->mediaTrack->moov->mov, gf_isom_get_tracknum_from_id(mdia->mediaTrack->moov, mdia->mediaTrack->Header->trackID))
+	else if (gf_isom_is_nalu_based_entry(mdia, entry)
+	//we rewrite sample even if track is encrypted since CENC keeps nal unit in clear, which is all we need to rewrite the sample and insert SPS/PPS/VPS
+//	&& !gf_isom_is_track_encrypted(mdia->mediaTrack->moov->mov, gf_isom_get_tracknum_from_id(mdia->mediaTrack->moov, mdia->mediaTrack->Header->trackID))
+
 	        ) {
 		e = gf_isom_nalu_sample_rewrite(mdia, *samp, sampleNumber, (GF_MPEGVisualSampleEntryBox *)entry);
 		if (e) return e;

@@ -3756,6 +3756,7 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 		case GF_ISOM_BOX_TYPE_AVC3:
 		case GF_ISOM_BOX_TYPE_AVC4:
 		case GF_ISOM_BOX_TYPE_SVC1:
+		case GF_ISOM_BOX_TYPE_MVC1:
 		case GF_ISOM_BOX_TYPE_HVC1:
 		case GF_ISOM_BOX_TYPE_HEV1:
 		case GF_ISOM_BOX_TYPE_HVC2:
@@ -3772,6 +3773,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				a = (GF_Box *) avc1->lhvc_config;
 			else if (avc1->svc_config)
 				a = (GF_Box *) avc1->svc_config;
+			else if (avc1->mvc_config)
+				a = (GF_Box *) avc1->mvc_config;
 			else
 				a = (GF_Box *) avc1->avc_config;
 
@@ -3781,6 +3784,8 @@ Bool gf_isom_is_same_sample_description(GF_ISOFile *f1, u32 tk1, u32 sdesc_index
 				b = (GF_Box *) avc2->lhvc_config;
 			else if (avc2->svc_config)
 				b = (GF_Box *) avc2->svc_config;
+			else if (avc2->mvc_config)
+				b = (GF_Box *) avc2->mvc_config;
 			else
 				b = (GF_Box *) avc2->avc_config;
 
@@ -4287,9 +4292,9 @@ GF_Err gf_isom_add_uuid(GF_ISOFile *movie, u32 trackNumber, bin128 UUID, const c
 		list = movie->moov->other_boxes;
 	}
 
-	box = gf_isom_box_new(gf_isom_solve_uuid_box(UUID));
+	box = gf_isom_box_new(gf_isom_solve_uuid_box((char *) UUID));
 	uuid = (GF_UnknownUUIDBox*)box;
-	uuid->internal_4cc = gf_isom_solve_uuid_box(UUID);
+	uuid->internal_4cc = gf_isom_solve_uuid_box((char *) UUID);
 	memcpy(uuid->uuid, UUID, sizeof(bin128));
 	uuid->dataSize = data_size;
 	uuid->data = (char*)gf_malloc(sizeof(char)*data_size);

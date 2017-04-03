@@ -442,6 +442,8 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 
 GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root);
 
+GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
+
 void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
 void gf_mpd_getter_del_session(GF_FileDownload *getter);
@@ -500,6 +502,12 @@ void gf_mpd_base_url_free(void *_item);
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
 
 GF_MPD_Representation *gf_mpd_representation_new();
+
+/*get duration of the presentation*/
+Double gf_mpd_get_duration(GF_MPD *mpd);
+
+/*get the duration of media segments in seconds*/
+void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 

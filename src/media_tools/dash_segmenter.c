@@ -494,7 +494,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			return GF_ISOM_INVALID_FILE;
 		}
 	case GF_ISOM_SUBTYPE_SVC_H264:
-		avcc = gf_isom_svc_config_get(movie, track, 1);
+	case GF_ISOM_SUBTYPE_MVC_H264:
+		avcc = gf_isom_mvc_config_get(movie, track, 1);
+		if (!avcc) avcc = gf_isom_svc_config_get(movie, track, 1);
 		if (avcc) {
 			sprintf(szCodec, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
@@ -2670,6 +2672,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 			        || (msub_type==GF_ISOM_SUBTYPE_AVC3_H264)
 			        || (msub_type==GF_ISOM_SUBTYPE_AVC4_H264)
 			        || (msub_type==GF_ISOM_SUBTYPE_SVC_H264)
+			        || (msub_type==GF_ISOM_SUBTYPE_MVC_H264)
 			        || (msub_type==GF_ISOM_SUBTYPE_HVC1)
 			        || (msub_type==GF_ISOM_SUBTYPE_HEV1)
 			        || (msub_type==GF_ISOM_SUBTYPE_HVC2)
@@ -2860,6 +2863,7 @@ retry_track:
 							merge_mode = 2;
 						break;
 					case GF_ISOM_SUBTYPE_SVC_H264:
+					case GF_ISOM_SUBTYPE_MVC_H264:
 						break;
 					case GF_ISOM_SUBTYPE_AVC3_H264:
 					case GF_ISOM_SUBTYPE_AVC4_H264:
@@ -2940,6 +2944,7 @@ retry_track:
 						case GF_ISOM_SUBTYPE_AVC_H264:
 						case GF_ISOM_SUBTYPE_AVC2_H264:
 						case GF_ISOM_SUBTYPE_SVC_H264:
+						case GF_ISOM_SUBTYPE_MVC_H264:
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
 							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
@@ -2972,6 +2977,7 @@ retry_track:
 				case GF_ISOM_SUBTYPE_AVC_H264:
 				case GF_ISOM_SUBTYPE_AVC2_H264:
 				case GF_ISOM_SUBTYPE_SVC_H264:
+				case GF_ISOM_SUBTYPE_MVC_H264:
 					if (!probe_inband_param_set) {
 						if (use_inband_param_set) {
 							gf_isom_avc_set_inband_config(init_seg, track, 1);

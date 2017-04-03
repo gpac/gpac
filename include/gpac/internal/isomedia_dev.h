@@ -84,7 +84,7 @@ typedef struct
 	tmp->type = __4cc;
 
 #define ISOM_DECREASE_SIZE(__ptr, bytes)	if (__ptr->size < (bytes) ) {\
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d\n", gf_4cc_to_str(__ptr->type), __ptr->size, (bytes) )); \
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(__ptr->type), __ptr->size, (bytes), __FILE__, __LINE__ )); \
 			return GF_ISOM_INVALID_FILE; \
 		}\
 		__ptr->size -= bytes; \
@@ -107,15 +107,13 @@ GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_
 GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
 GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
 
-#define gf_isom_full_box_init(__pre)
-
-//void gf_isom_full_box_init(GF_Box *ptr);
-
-GF_Err gf_isom_box_get_size(GF_Box *ptr);
-GF_Err gf_isom_full_box_get_size(GF_Box *ptr);
+//writes box header - shall be called at the begining of each xxxx_Write function
+//this function is not factorized in order to let box serializer modify box type before writing
 GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_full_box_read(GF_Box *ptr, GF_BitStream *bs);
+
+//writes box header then version+flags
 GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
+
 void gf_isom_box_array_del(GF_List *other_boxes);
 GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
 GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
@@ -249,6 +247,9 @@ enum
 	GF_ISOM_BOX_TYPE_AVC4	= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_BOX_TYPE_SVCC	= GF_4CC( 's', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_SVC1	= GF_4CC( 's', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_MVCC	= GF_4CC( 'm', 'v', 'c', 'C' ),
+	GF_ISOM_BOX_TYPE_MVC1	= GF_4CC( 'm', 'v', 'c', '1' ),
+
 	GF_ISOM_BOX_TYPE_HVCC	= GF_4CC( 'h', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
 	GF_ISOM_BOX_TYPE_HEV1	= GF_4CC( 'h', 'e', 'v', '1' ),
@@ -713,8 +714,7 @@ typedef struct
 	u32 originalID;
 
 	//not sure about piff (not supposed to be stored in moov), but senc is in track according to CENC
-	GF_Box *piff_psec;
-	GF_Box *senc;
+	struct __sample_encryption_box *sample_encryption;
 
 	/*private for SVC/MVC extractors resolution*/
 	s32 extractor_mode;
@@ -934,6 +934,7 @@ typedef struct
 
 void gf_isom_sample_entry_init(GF_SampleEntryBox *ptr);
 void gf_isom_sample_entry_predestroy(GF_SampleEntryBox *ptr);
+GF_Err gf_isom_base_sample_entry_read(GF_SampleEntryBox *ptr, GF_BitStream *bs);
 
 typedef struct
 {
@@ -1102,6 +1103,7 @@ typedef struct
 	/*avc extensions - we merged with regular 'mp4v' box to handle isma E&A signaling of AVC*/
 	GF_AVCConfigurationBox *avc_config;
 	GF_AVCConfigurationBox *svc_config;
+	GF_AVCConfigurationBox *mvc_config;
 	/*hevc extension*/
 	GF_HEVCConfigurationBox *hevc_config;
 	GF_HEVCConfigurationBox *lhvc_config;
@@ -1995,7 +1997,7 @@ typedef struct
 	GF_List *sai_sizes;
 	GF_List *sai_offsets;
 
-	struct __piff_sample_enc_box *piff_sample_encryption;
+	//can be senc or PIFF psec
 	struct __sample_encryption_box *sample_encryption;
 	struct __traf_mss_timeext_box *tfxd; /*similar to PRFT but for Smooth Streaming*/
 
@@ -2740,38 +2742,14 @@ typedef struct
 } GF_PIFFProtectionSystemHeaderBox;
 
 
-typedef struct __piff_sample_enc_box
-{
-	GF_ISOM_UUID_BOX
-	u8 version;
-	u32 flags;
-
-	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
-	u64 bs_offset;
-
-#ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	/*pointer to container traf*/
-	GF_TrackFragmentBox *traf;
-#endif
-	/*pointer to associated saio*/
-	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
-	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
-
-	//do NOT change order above this point or insert anything, since we cast GF_PIFFSampleEncryptionBox into GF_SampleEncryptionBox
-
-
-	u32 AlgorithmID;
-	u8 IV_size;
-	bin128 KID;
-
-} GF_PIFFSampleEncryptionBox;
-
 typedef struct __sample_encryption_box
 {
 	GF_ISOM_UUID_BOX
 	u8 version;
 	u32 flags;
 
+	Bool is_piff;
+
 	GF_List *samp_aux_info; /*GF_CENCSampleAuxInfo*/
 	u64 bs_offset;
 
@@ -2782,6 +2760,11 @@ typedef struct __sample_encryption_box
 	/*pointer to associated saio*/
 	GF_SampleAuxiliaryInfoSizeBox *cenc_saiz;
 	GF_SampleAuxiliaryInfoOffsetBox *cenc_saio;
+
+
+	u32 AlgorithmID;
+	u8 IV_size;
+	bin128 KID;
 
 } GF_SampleEncryptionBox;
 
@@ -2795,17 +2778,17 @@ typedef struct __traf_mss_timeext_box
 	u64 fragment_duration_in_track_timescale;
 } GF_MSSTimeExtBox;
 
-GF_PIFFSampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
+GF_SampleEncryptionBox *gf_isom_create_piff_psec_box(u8 version, u32 flags, u32 AlgorithmID, u8 IV_size, bin128 KID);
 GF_SampleEncryptionBox * gf_isom_create_samp_enc_box(u8 version, u32 flags);
 
 void gf_isom_cenc_get_default_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
 void gf_isom_cenc_get_default_pattern_info_ex(GF_TrackBox *trak, u32 sampleDescriptionIndex, u8 *default_crypt_byte_block, u8 *default_skip_byte_block);
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *senc, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
 										u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, GF_TrackFragmentBox *traf, GF_SampleEncryptionBox *ptr);
 #else
-GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, u32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
+GF_Err gf_isom_get_sample_cenc_info_ex(GF_TrackBox *trak, void *traf, uGF_SampleEncryptionBox *senc, 32 sample_number, u32 *IsEncrypted, u8 *IV_size, bin128 *KID,
 										u8 *crypt_byte_block, u8 *skip_byte_block, u8 *constant_IV_size, bin128 *constant_IV);
 GF_Err senc_Parse(GF_BitStream *bs, GF_TrackBox *trak, void *traf, GF_SampleEncryptionBox *ptr);
 #endif
@@ -3228,6 +3211,7 @@ struct __tag_isom {
 	/*default track for sync of MPEG4 streams - this is the first accessed stream without OCR info - only set in READ mode*/
 	s32 es_id_default_sync;
 
+	Bool is_smooth;
 };
 
 /*time function*/
