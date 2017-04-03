@@ -120,6 +120,21 @@ typedef struct
 	s64 mediaOffset;
 } GF_MPD_ISOBMFInfo;
 
+typedef struct
+{
+	char *xml_desc;
+} GF_MPD_PeriodLevelDescriptor;
+
+typedef struct
+{
+	char *xml_desc;
+} GF_MPD_AdaptionSetDescriptor;
+
+typedef struct
+{
+	char *xml_desc;
+} GF_MPD_RepresentationSetDescriptor;
+
 #define GF_MPD_SEGMENT_BASE	\
 	u32 timescale;	\
 	u64 presentation_time_offset;	\
@@ -331,6 +346,7 @@ typedef struct
 	GF_List *subsets;
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+	GF_List *period_levels_descriptors;
 } GF_MPD_Period;
 
 typedef struct
