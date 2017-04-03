@@ -657,6 +657,8 @@ GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new() {
 	set->content_component = gf_list_new();
 	set->base_URLs = gf_list_new();
 	set->representations = gf_list_new();
+	set->adaptation_set_level_descriptor = gf_list_new();
+	set->adaptation_set_level_descriptor_c = gf_list_new();
 	GF_SAFEALLOC(set->par, GF_MPD_Fractional);
 	/*assign default ID and group*/
 	set->group = -1;
@@ -1017,6 +1019,13 @@ void gf_mpd_representation_free(void *_item)
 	gf_free(ptr);
 }
 
+void gf_mpd_adaption_set_desc_free(void *_item)
+{
+	GF_MPD_AdaptionSetDescriptor *ptr = (GF_MPD_AdaptionSetDescriptor *)_item;
+	if(ptr->xml_desc)gf_free(ptr->xml_desc);
+	gf_free(ptr);
+}
+
 void gf_mpd_adaptation_set_free(void *_item)
 {
 	GF_MPD_AdaptationSet *ptr = (GF_MPD_AdaptationSet *)_item;
@@ -1035,6 +1044,8 @@ void gf_mpd_adaptation_set_free(void *_item)
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->representations, gf_mpd_representation_free, 0);
+	gf_mpd_del_list(ptr->adaptation_set_level_descriptor, gf_mpd_adaption_set_desc_free, 0);
+	gf_mpd_del_list(ptr->adaptation_set_level_descriptor_c, gf_mpd_adaption_set_desc_free, 0);
 	gf_free(ptr);
 }
 
@@ -1044,6 +1055,8 @@ void gf_mpd_period_desc_free(void *_item)
 	if(ptr->xml_desc)gf_free(ptr->xml_desc);
 	gf_free(ptr);
 }
+
+
 
 
 void gf_mpd_period_free(void *_item)
