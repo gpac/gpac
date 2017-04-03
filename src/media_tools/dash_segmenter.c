@@ -4967,7 +4967,7 @@ static GF_Err mpd_set_header(GF_DASHSegmenter *dasher, Bool is_mpeg2, Double mpd
 static GF_Err set_period_header(GF_DASHSegmenter *dasher, GF_MPD_Period *period, const char *szID, Double period_start, Double period_duration,
                                   const char *xlink, u32 period_num, Bool insert_xmlns)
 {
-//	u32 i,j;
+	u32 i,j;
 	
 	//if (insert_xmlns) {
 		//fprintf(mpd, " xmlns=\"urn:mpeg:dash:schema:mpd:2011\" ");
@@ -4987,14 +4987,18 @@ static GF_Err set_period_header(GF_DASHSegmenter *dasher, GF_MPD_Period *period,
 	}
 
 	/* writing Period level descriptors */
-/*	for (i=0; i< dasher->nb_inputs; i++) {
+	for (i=0; i< dasher->nb_inputs; i++) {
 		if (dasher->inputs[i].adaptation_set && (dasher->inputs[i].period==period_num)) {
 			for (j = 0; j < dasher->inputs[i].nb_p_descs; j++) {
-				fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
+				GF_MPD_PeriodLevelDescriptor *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_PeriodLevelDescriptor);
+				Desc->xml_desc=gf_strdup(dasher->inputs[i].p_descs[j]);
+				gf_list_add(period->period_levels_descriptors,Desc);
+				//fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
 			}
 		}
 	}
-	*/
+
 	return GF_OK;
 }
 

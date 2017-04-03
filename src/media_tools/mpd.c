@@ -758,6 +758,7 @@ GF_MPD_Period *gf_mpd_period_new() {
 	period->adaptation_sets = gf_list_new();
 	period->base_URLs = gf_list_new();
 	period->subsets = gf_list_new();
+	period->period_levels_descriptors = gf_list_new();
 	return period;
 }
 
@@ -1037,6 +1038,14 @@ void gf_mpd_adaptation_set_free(void *_item)
 	gf_free(ptr);
 }
 
+void gf_mpd_period_desc_free(void *_item)
+{
+	GF_MPD_PeriodLevelDescriptor *ptr = (GF_MPD_PeriodLevelDescriptor *)_item;
+	if(ptr->xml_desc)gf_free(ptr->xml_desc);
+	gf_free(ptr);
+}
+
+
 void gf_mpd_period_free(void *_item)
 {
 	GF_MPD_Period *ptr = (GF_MPD_Period *)_item;
@@ -1048,6 +1057,7 @@ void gf_mpd_period_free(void *_item)
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->adaptation_sets, gf_mpd_adaptation_set_free, 0);
+	gf_mpd_del_list(ptr->period_levels_descriptors,gf_mpd_period_desc_free,0);
 	gf_mpd_del_list(ptr->subsets, NULL/*TODO*/, 0);
 	gf_free(ptr);
 }
@@ -2379,6 +2389,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
+	GF_MPD_PeriodLevelDescriptor *pld;
 	u32 i;
 	fprintf(out, " <Period");
 	if (period->xlink_href) {
@@ -2407,6 +2418,12 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 	}
 	if (period->segment_template) {
 		gf_mpd_print_segment_template(out, period->segment_template, " ");
+	}
+
+	i=0;
+	while ( (pld = (GF_MPD_PeriodLevelDescriptor*) gf_list_enum(period->period_levels_descriptors, &i))) {
+		//gf_mpd_print_adaptation_set(as, out);
+		fprintf(out, "  %s\n",pld->xml_desc);
 	}
 
 	i=0;
