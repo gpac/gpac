@@ -1021,7 +1021,7 @@ void gf_mpd_representation_free(void *_item)
 
 void gf_mpd_adaption_set_desc_free(void *_item)
 {
-	GF_MPD_AdaptionSetDescriptor *ptr = (GF_MPD_AdaptionSetDescriptor *)_item;
+	GF_MPD_AdaptationSetLevelDescriptor *ptr = (GF_MPD_AdaptationSetLevelDescriptor *)_item;
 	if(ptr->xml_desc)gf_free(ptr->xml_desc);
 	gf_free(ptr);
 }
@@ -2344,6 +2344,9 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 {
 	u32 i;
 	GF_MPD_Representation *rep;
+	GF_MPD_AdaptationSetLevelDescriptor *Asld;
+	GF_MPD_Descriptor *desc;
+
 	fprintf(out, "  <AdaptationSet");
 
 	if (as->xlink_href) {
@@ -2391,6 +2394,18 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	}
 
 	i=0;
+	while ( (Asld = (GF_MPD_AdaptationSetLevelDescriptor*) gf_list_enum(as->adaptation_set_level_descriptor_c, &i))) {
+		fprintf(out, "  %s\n",Asld->xml_desc);
+	}
+
+	/*SRD needs to be written here*/
+
+	i=0;
+	while ( (Asld = (GF_MPD_AdaptationSetLevelDescriptor*) gf_list_enum(as->adaptation_set_level_descriptor, &i))) {
+		fprintf(out, "  %s\n",Asld->xml_desc);
+	}
+
+	i=0;
 	while ((rep = (GF_MPD_Representation *)gf_list_enum(as->representations, &i))) {
 		gf_mpd_print_representation(rep, out);
 	}
@@ -2435,7 +2450,6 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 	i=0;
 	while ( (pld = (GF_MPD_PeriodLevelDescriptor*) gf_list_enum(period->period_levels_descriptors, &i))) {
-		//gf_mpd_print_adaptation_set(as, out);
 		fprintf(out, "  %s\n",pld->xml_desc);
 	}
 

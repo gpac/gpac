@@ -5009,7 +5009,7 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
-	GF_MPD_AdaptionSetDescriptor Desc;
+	GF_MPD_AdaptationSetLevelDescriptor Desc;
 
 	//force segmentAlignment in onDemand
 	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled);
@@ -5046,8 +5046,8 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	for (i=0; i< nb_dash_inputs; i++) {
 		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
-				GF_MPD_AdaptionSetDescriptor *Desc;
-				GF_SAFEALLOC(Desc,GF_MPD_AdaptionSetDescriptor);
+				GF_MPD_AdaptationSetLevelDescriptor *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
 				Desc->xml_desc=gf_strdup(dash_inputs[i].as_c_descs[j]);
 				gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor_c,Desc);
 				//fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
@@ -5087,8 +5087,8 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
 
 		for (i=0; i<first_rep->nb_as_descs; i++) {
-			GF_MPD_AdaptionSetDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_AdaptionSetDescriptor);
+			GF_MPD_AdaptationSetLevelDescriptor *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
 			Desc->xml_desc=gf_strdup(first_rep->as_descs[i]);
 			gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor,Desc);
 			//fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
