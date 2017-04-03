@@ -89,15 +89,24 @@ const char * MPD_MPD_EXT = "3gm mpd";
 const char * MPD_M3U8_DESC = "Apple HLS Streaming";
 const char * MPD_M3U8_EXT = "m3u8 m3u";
 
+const char * MPD_SMOOTH_DESC = "Microsoft Smooth Streaming";
+const char * MPD_SMOOTH_EXT = "ism";
+
 static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 {
-	u32 i, c;
+	u32 i, c=0;
 	for (i=0; GF_DASH_MPD_MIME_TYPES[i]; i++)
 		gf_service_register_mime (plug, GF_DASH_MPD_MIME_TYPES[i], MPD_MPD_EXT, MPD_MPD_DESC);
-	c = i;
+	c += i;
+
 	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++)
 		gf_service_register_mime(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC);
-	return c+i;
+	c += i;
+
+	for (i=0; GF_DASH_SMOOTH_MIME_TYPES[i]; i++)
+		gf_service_register_mime(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_SMOOTH_DESC);
+	c += i;
+	return c;
 }
 
 Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
@@ -114,6 +123,11 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 	}
 	for (i=0; GF_DASH_M3U8_MIME_TYPES[i]; i++) {
 		if (gf_service_check_mime_register(plug, GF_DASH_M3U8_MIME_TYPES[i], MPD_M3U8_EXT, MPD_M3U8_DESC, sExt))
+			return GF_TRUE;
+	}
+
+	for (i=0; GF_DASH_SMOOTH_MIME_TYPES[i]; i++) {
+		if (gf_service_check_mime_register(plug, GF_DASH_SMOOTH_MIME_TYPES[i], MPD_SMOOTH_EXT, MPD_SMOOTH_DESC, sExt))
 			return GF_TRUE;
 	}
 
@@ -970,10 +984,10 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "AutoSwitchCount", "0");
 	if (opt) auto_switch_count = atoi(opt);
 
-	keep_files = 0;
+	keep_files = GF_FALSE;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "KeepFiles");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "KeepFiles", "no");
-	if (opt && !strcmp(opt, "yes")) keep_files = 1;
+	if (opt && !strcmp(opt, "yes")) keep_files = GF_TRUE;
 
 	disable_switching = 0;
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "NetworkAdaptation");
@@ -1008,18 +1022,18 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "MemoryStorage", "yes");
-	mpdin->memory_storage = (!opt || !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->memory_storage = (!opt || !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution");
 	if (!opt) {
 		opt = "yes";
 		gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseMaxResolution", opt);
 	}
-	mpdin->use_max_res = !strcmp(opt, "yes") ? 1 : 0;
+	mpdin->use_max_res = !strcmp(opt, "yes") ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "ImmediateSwitching", "no");
-	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	mpdin->immediate_switch = (opt && !strcmp(opt, "yes")) ? GF_TRUE : GF_FALSE;
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "BufferingMode");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "BufferingMode", "minBuffer");

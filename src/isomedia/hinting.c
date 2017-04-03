@@ -52,13 +52,15 @@ void ghnt_del(GF_Box *s)
 
 GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
 	if (ptr->size < 16) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->HintTrackVersion = gf_bs_read_u16(bs);
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
 
@@ -94,11 +96,7 @@ GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ghnt_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
-
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	ptr->size += 16;
 	return GF_OK;
 }

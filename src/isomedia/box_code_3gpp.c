@@ -105,11 +105,8 @@ GF_Err gppc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err gppc_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_3GPPConfigBox *ptr = (GF_3GPPConfigBox *)s;
 
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 5;
 	switch (ptr->cfg.type) {
 	case GF_ISOM_SUBTYPE_3GP_H263:
@@ -199,8 +196,7 @@ GF_Err ftab_Size(GF_Box *s)
 {
 	u32 i;
 	GF_FontTableBox *ptr = (GF_FontTableBox *)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	s->size += 2;
 	for (i=0; i<ptr->entry_count; i++) {
 		s->size += 3;
@@ -300,12 +296,14 @@ GF_Err tx3g_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
 
 	if (ptr->size < 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->displayFlags = gf_bs_read_u32(bs);
 	ptr->horizontal_justification = gf_bs_read_u8(bs);
 	ptr->vertical_justification = gf_bs_read_u8(bs);
@@ -321,10 +319,12 @@ GF_Err tx3g_Read(GF_Box *s, GF_BitStream *bs)
 /*this is a quicktime specific box - see apple documentation*/
 GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	u16 pSize;
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
 
 	ptr->displayFlags = gf_bs_read_u32(bs);			/*Display flags*/
 	ptr->textJustification = gf_bs_read_u32(bs);	/*Text justification*/
@@ -348,7 +348,7 @@ GF_Err text_Read(GF_Box *s, GF_BitStream *bs)
 		u32 s = pSize;
 		size_t i = 0;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] text box doesn't use a Pascal string: trying to decode anyway.\n"));
-		ptr->textName = (char*)gf_malloc((u32) ptr->size + 1 + 1);
+		ptr->textName = (char*)gf_malloc((size_t)ptr->size + 1 + 1);
 		do {
 			char c = (char)s;
 			if (c == '\0') {
@@ -465,9 +465,9 @@ GF_Err text_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tx3g_Size(GF_Box *s)
 {
+	GF_Err e;
 	GF_Tx3gSampleEntryBox *ptr = (GF_Tx3gSampleEntryBox*)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	/*base + this  + box + style*/
 	s->size += 18 + GPP_BOX_SIZE + GPP_STYLE_SIZE;
 	if (ptr->font_table) {
@@ -481,8 +481,7 @@ GF_Err tx3g_Size(GF_Box *s)
 GF_Err text_Size(GF_Box *s)
 {
 	GF_TextSampleEntryBox *ptr = (GF_TextSampleEntryBox*)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	/*base + this + string length*/
 	s->size += 51 + 1;
 	if (ptr->textName)
@@ -536,8 +535,7 @@ GF_Err styl_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err styl_Size(GF_Box *s)
 {
 	GF_TextStyleBox*ptr = (GF_TextStyleBox*)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
+
 	s->size += 2 + ptr->entry_count * GPP_STYLE_SIZE;
 	return GF_OK;
 }
@@ -577,8 +575,6 @@ GF_Err hlit_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err hlit_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 4;
 	return GF_OK;
 }
@@ -616,8 +612,6 @@ GF_Err hclr_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err hclr_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 4;
 	return GF_OK;
 }
@@ -677,8 +671,6 @@ GF_Err krok_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err krok_Size(GF_Box *s)
 {
 	GF_TextKaraokeBox*ptr = (GF_TextKaraokeBox*)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 6 * 8*ptr->nb_entries;
 	return GF_OK;
 }
@@ -716,8 +708,6 @@ GF_Err dlay_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err dlay_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 4;
 	return GF_OK;
 }
@@ -790,8 +780,6 @@ GF_Err href_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err href_Size(GF_Box *s)
 {
 	GF_TextHyperTextBox*ptr = (GF_TextHyperTextBox*)s;
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 6;
 	if (ptr->URL) s->size += strlen(ptr->URL);
 	if (ptr->URL_hint) s->size += strlen(ptr->URL_hint);
@@ -832,8 +820,6 @@ GF_Err tbox_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tbox_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 8;
 	return GF_OK;
 }
@@ -874,8 +860,6 @@ GF_Err blnk_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err blnk_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 4;
 	return GF_OK;
 }
@@ -912,8 +896,6 @@ GF_Err twrp_Write(GF_Box *s, GF_BitStream *bs)
 }
 GF_Err twrp_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
-	if (e) return e;
 	s->size += 1;
 	return GF_OK;
 }
@@ -931,11 +913,9 @@ void tsel_del(GF_Box *s)
 
 GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 {
-	GF_Err e;
 	u32 i;
 	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
+
 	ptr->switchGroup = gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 
@@ -953,7 +933,6 @@ GF_Err tsel_Read(GF_Box *s,GF_BitStream *bs)
 GF_Box *tsel_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_TrackSelectionBox, GF_ISOM_BOX_TYPE_TSEL);
-	gf_isom_full_box_init((GF_Box *)tmp);
 	return (GF_Box *)tmp;
 }
 
@@ -979,10 +958,7 @@ GF_Err tsel_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err tsel_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_TrackSelectionBox *ptr = (GF_TrackSelectionBox *) s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	ptr->size += 4 + (4*ptr->attributeListCount);
 	return GF_OK;
 }
@@ -993,7 +969,6 @@ GF_Err tsel_Size(GF_Box *s)
 GF_Box *dimC_New()
 {
 	ISOM_DECL_BOX_ALLOC(GF_DIMSSceneConfigBox, GF_ISOM_BOX_TYPE_DIMC);
-	gf_isom_full_box_init((GF_Box *)tmp);
 	return (GF_Box *)tmp;
 }
 void dimC_del(GF_Box *s)
@@ -1009,8 +984,6 @@ GF_Err dimC_Read(GF_Box *s, GF_BitStream *bs)
 	char str[1024];
 	u32 i;
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	p->profile = gf_bs_read_u8(bs);
 	p->level = gf_bs_read_u8(bs);
@@ -1064,8 +1037,6 @@ GF_Err dimC_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err dimC_Size(GF_Box *s)
 {
 	GF_DIMSSceneConfigBox *p = (GF_DIMSSceneConfigBox *)s;
-	GF_Err e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	s->size += 3 + 1 + strlen(p->textEncoding) + 1 + strlen(p->contentEncoding);
 	return GF_OK;
 }
@@ -1118,9 +1089,7 @@ GF_Err diST_Write(GF_Box *s, GF_BitStream *bs)
 }
 GF_Err diST_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
 	GF_DIMSScriptTypesBox *p = (GF_DIMSScriptTypesBox *)s;
-	if (e) return e;
 	s->size += p->content_script_types ? (strlen(p->content_script_types)+1) : 1;
 	return GF_OK;
 }
@@ -1164,9 +1133,12 @@ static GF_Err dims_AddBox(GF_Box *s, GF_Box *a)
 }
 GF_Err dims_Read(GF_Box *s, GF_BitStream *bs)
 {
+	GF_Err e;
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
-	gf_bs_read_data(bs, p->reserved, 6);
-	p->dataReferenceIndex = gf_bs_read_u16(bs);
+
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)p, bs);
+	if (e) return e;
+
 	ISOM_DECREASE_SIZE(p, 8);
 	return gf_isom_box_array_read(s, bs, dims_AddBox);
 }
@@ -1192,9 +1164,9 @@ GF_Err dims_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err dims_Size(GF_Box *s)
 {
-	GF_Err e = gf_isom_box_get_size(s);
+	GF_Err e;
 	GF_DIMSSampleEntryBox *p = (GF_DIMSSampleEntryBox *)s;
-	if (e) return e;
+
 	s->size += 8;
 
 	if (p->config) {

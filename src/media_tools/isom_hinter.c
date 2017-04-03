@@ -447,15 +447,19 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_AVC3_H264:
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
+		case GF_ISOM_SUBTYPE_MVC_H264:
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			GF_AVCConfig *svcc = gf_isom_svc_config_get(file, TrackNum, 1);
+			GF_AVCConfig *mvcc = gf_isom_mvc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_H264_AVC;
 			if (TrackMediaSubType==GF_ISOM_SUBTYPE_SVC_H264)
 				hintType = GF_RTP_PAYT_H264_SVC;
+			else if (TrackMediaSubType==GF_ISOM_SUBTYPE_MVC_H264)
+				hintType = GF_RTP_PAYT_H264_SVC;
 			streamType = GF_STREAM_VISUAL;
-			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
+			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc ? svcc->nal_unit_size : mvcc->nal_unit_size;
 			oti = GPAC_OTI_VIDEO_AVC;
 			PL_ID = 0x0F;
 			gf_odf_avc_cfg_del(avcc);

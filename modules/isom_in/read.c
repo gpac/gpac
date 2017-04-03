@@ -57,6 +57,7 @@ static GFINLINE Bool isor_is_local(const char *url)
 {
 	if (!strnicmp(url, "file://", 7)) return GF_TRUE;
 	if (!strnicmp(url, "gmem://", 7)) return GF_TRUE;
+	if (!strnicmp(url, "isobmff://", 10)) return GF_TRUE;
 	if (strstr(url, "://")) return GF_FALSE;
 	/*the rest is local (mounted on FS)*/
 	return GF_TRUE;
@@ -406,7 +407,7 @@ GF_Err ISOR_ConnectService(GF_InputService *plug, GF_ClientService *serv, const 
 		}
 		e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
 		if (e != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
 			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 				send_proxy_command(read, 0, 0, e, NULL, NULL);
 			} else {
