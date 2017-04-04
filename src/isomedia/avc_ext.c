@@ -57,6 +57,10 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('h','v','t','1'):
 	case GF_4CC('l','h','t','1'):
 		return GF_TRUE;
+	case GF_ISOM_BOX_TYPE_GNRV:
+	case GF_ISOM_BOX_TYPE_GNRA:
+	case GF_ISOM_BOX_TYPE_GNRM:
+		return GF_FALSE;
 	default:
 		break;
 	}
