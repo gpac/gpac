@@ -1874,14 +1874,22 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 			switch (txh->pixelformat) {
 			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGB_24:
-				v[0] = v[1] = v[2] = FIX_ONE;
-				v[3] = diffuse_alpha;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (tr_state->visual->has_material_2d) {
+					SFColor c;
+					c.red = c.green = c.blue = FIX_ONE;
+					visual_3d_set_material_2d(tr_state->visual, c, diffuse_alpha);
+				} else {
+					v[0] = v[1] = v[2] = FIX_ONE;
+					v[3] = diffuse_alpha;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				break;
 			/*override diffuse color AND material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGBA:
-				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (!tr_state->visual->has_material_2d) {
+					v[0] = v[1] = v[2] = v[3] = FIX_ONE;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				tr_state->mesh_is_transparent = 1;
 				break;
 				/*			case GF_PIXEL_GREYSCALE:

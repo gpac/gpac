@@ -212,12 +212,16 @@ void jp_download_file(GF_InputService *plug, const char *url)
 
 static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	char *sExt;
+	char *sExt, *frag;
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	read->service = serv;
 	if (!url)
 		return GF_BAD_PARAM;
+
+	frag = strrchr(url, '#');
+	if (frag) frag[0] = 0;
+
 	sExt = strrchr(url, '.');
 	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
@@ -232,6 +236,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*remote fetch*/
 	if (!jp_is_local(url)) {
 		jp_download_file(plug, url);
+		if (frag) frag[0] = '#';
 		return GF_OK;
 	}
 
@@ -241,6 +246,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->data_size = (u32) gf_ftell(read->stream);
 		gf_fseek(read->stream, 0, SEEK_SET);
 	}
+	if (frag) frag[0] = '#';
 	gf_service_connect_ack(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
 	if (read->stream && read->is_inline) IMG_SetupObject(read);
 	return GF_OK;

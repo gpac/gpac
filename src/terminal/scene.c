@@ -1371,17 +1371,18 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		//create VP info regardless of VR type
 		if (scene->vr_type) {
+			const char *opt;
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
-			{
-				const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
-				if (!opt) {
-					gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", "0.785398006");
-				} else {
-					((M_Viewpoint *)n2)->position.z = FLT2FIX( atof(opt) );
-				}
-			}
 			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
+
+			opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
+			if (!opt) {
+				opt="0.78539800";
+				gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", opt);
+			}
+			((M_Viewpoint *)n2)->fieldOfView = FLT2FIX( atof(opt) );
+
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
 
