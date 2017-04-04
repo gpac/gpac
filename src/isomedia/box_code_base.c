@@ -3502,7 +3502,7 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 	GF_Err e;
 	e = gf_isom_box_array_read(s, bs, minf_AddBox);
 	if (! ptr->dataInformation) {
-		GF_Box *dinf, *dref;
+		GF_Box *dinf, *dref, *url;
 		Bool dump_mode = GF_FALSE;
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing DataInformationBox\n"));
 		//commented on purpose, we are still able to handle the file, we only throw an error but keep processing
@@ -3519,6 +3519,11 @@ GF_Err minf_Read(GF_Box *s, GF_BitStream *bs)
 		dref = gf_isom_box_new(GF_ISOM_BOX_TYPE_DREF);
 		if (!dref) return GF_OUT_OF_MEM;
 		e = dinf_AddBox(dinf, dref);
+
+		url = gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
+		if (!url) return GF_OUT_OF_MEM;
+		((GF_FullBox*)url)->flags = 1;
+		e = gf_isom_box_add_default(dref, url);
 
 		if (dump_mode) {
 			gf_list_add(ptr->other_boxes, ptr->dataInformation);
@@ -7021,12 +7026,6 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 		return GF_ISOM_INVALID_FILE;
 	}
 
-	//we should only parse senc/psec when no saiz/saio is present, otherwise we fetch the info directly
-	if (ptr->Media && ptr->Media->information && ptr->Media->information->sampleTable /*&& !ptr->Media->information->sampleTable->sai_sizes*/) {
-		if (ptr->sample_encryption) {
-			e = senc_Parse(bs, ptr, NULL, ptr->sample_encryption);
-		}
-	}
 	return e;
 }
 
@@ -9904,6 +9903,8 @@ GF_Err saio_Write(GF_Box *s, GF_BitStream *bs)
 		gf_bs_write_u32(bs, ptr->aux_info_type);
 		gf_bs_write_u32(bs, ptr->aux_info_type_parameter);
 	}
+
+
 	gf_bs_write_u32(bs, ptr->entry_count);
 	if (ptr->entry_count) {
 		u32 i;
@@ -9941,6 +9942,15 @@ GF_Err saio_Size(GF_Box *s)
 
 	if (ptr->flags & 1) ptr->size += 8;
 	ptr->size += 4;
+	//a little optim here: in cenc, the saio always points to a single data block, only one entry is needed
+	if (ptr->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+		if (ptr->offsets_large) gf_free(ptr->offsets_large);
+		if (ptr->offsets) gf_free(ptr->offsets);
+		ptr->offsets_large = NULL;
+		ptr->offsets = NULL;
+		ptr->entry_count = 1;
+	}
+
 	ptr->size += ((ptr->version==1) ? 8 : 4) * ptr->entry_count;
 	return GF_OK;
 }

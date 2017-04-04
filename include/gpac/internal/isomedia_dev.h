@@ -3162,7 +3162,6 @@ struct __tag_isom {
 	u8 convert_streaming_text;
 	u8 is_jp2;
 	u8 force_co64;
-	u8 is_dump_mode;
 
 	Bool keep_utc, drop_date_version_info;
 	/*main boxes for fast access*/
