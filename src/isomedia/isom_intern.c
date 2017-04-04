@@ -211,7 +211,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete MDAT while file is not read-only\n"));
 				return GF_ISOM_INVALID_FILE;
 			}
-			if (mov->is_dump_mode) {
+			if (mov->openMode == GF_ISOM_OPEN_READ) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete file while reading for dump - aborting parsing\n"));
 				break;
 			}
@@ -237,6 +237,19 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 			if (e) return e;
 			
 			totSize += a->size;
+
+			//dump senc info in dump mode
+			if (mov->dump_mode_alloc) {
+				u32 k;
+				for (k=0; k<gf_list_count(mov->moov->trackList); k++) {
+					GF_TrackBox *trak = (GF_TrackBox *)gf_list_get(mov->moov->trackList, k);
+
+					if (trak->sample_encryption) {
+						e = senc_Parse(mov->movieFileMap->bs, trak, NULL, trak->sample_encryption);
+						if (e) return e;
+					}
+				}
+			}
 			break;
 
 		/*META box*/
@@ -525,7 +538,6 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 		//always in read ...
 		mov->openMode = GF_ISOM_OPEN_READ;
 		mov->es_id_default_sync = -1;
-		mov->is_dump_mode = 1;
 		//for open, we do it the regular way and let the GF_DataMap assign the appropriate struct
 		//this can be FILE (the only one supported...) as well as remote
 		//(HTTP, ...),not suported yet
