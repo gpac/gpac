@@ -762,7 +762,6 @@ static Bool is_splitable(u32 media_type)
 	}
 }
 
-//DASH-IF IOP 3.3 mandates the SBR/PS info
 static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNumber, u32 StreamDescriptionIndex, u32 *SampleRate, u32 *Channels, u8 *bitsPerSample)
 {
 	GF_M4ADecSpecInfo a_cfg;
@@ -2574,8 +2573,11 @@ static GF_Err dasher_isom_get_input_components_info(GF_DashSegInput *input, GF_D
 			u8 bps;
 			e = isom_get_audio_info_with_m4a_sbr_ps(in, i+1, 1, &input->components[input->nb_components].sample_rate, &input->components[input->nb_components].channels, &bps);
 			if (e) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info, %s\n", gf_error_to_string(e)));
-				goto error_exit;
+				if (opts->profile == GF_DASH_PROFILE_AVC264_LIVE || opts->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+					//DASH-IF IOP 3.3 mandates the SBR/PS info
+					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info, %s\n", gf_error_to_string(e)));
+					goto error_exit;
+				}
 			}
 		}
 
