@@ -2268,7 +2268,7 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->height) fprintf(out, " height=\"%d\"", ca->height);
 	if (ca->framerate){
 		fprintf(out, " frameRate=\"%d",ca->framerate->num);
-		if(ca->framerate->den)fprintf(out, "/\"%d",ca->framerate->den);
+		if(ca->framerate->den>1)fprintf(out, "/%d",ca->framerate->den);
 		fprintf(out, "\"");
 	}
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
