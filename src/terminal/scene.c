@@ -1739,9 +1739,6 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
 		set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
-
-		n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
-		((M_TouchSensor *)n2)->enabled = GF_FALSE;
 	}
 
 	/*disconnect to force resize*/
