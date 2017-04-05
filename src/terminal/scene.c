@@ -2966,6 +2966,9 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			break;
 		}
 		break;
+	case GPAC_OTI_VIDEO_HEVC:
+		force_attach=GF_TRUE;
+		break;
 	}
 
 #ifdef FILTER_FIXME
@@ -2981,7 +2984,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		}
 	} else if (force_attach) {
 		//we force annexB mode, delete avcC/hvcC
-		if (ch->esd->decoderConfig->decoderSpecificInfo) {
+		if (nalu_annex_b && ch->esd->decoderConfig->decoderSpecificInfo) {
 			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->decoderSpecificInfo);
 			ch->esd->decoderConfig->decoderSpecificInfo=NULL;
 		}
