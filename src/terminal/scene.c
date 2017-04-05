@@ -1378,7 +1378,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 			opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
 			if (!opt) {
-				opt="0.78539800";
+				opt="1.570796326794897";
 				gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", opt);
 			}
 			((M_Viewpoint *)n2)->fieldOfView = FLT2FIX( atof(opt) );
