@@ -2262,14 +2262,18 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes *ca, char *indent, Bool can_close)
 {
 	if (ca->profiles) fprintf(out, " profiles=\"%s\"", ca->profiles);
+	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
+	if (ca->codecs) fprintf(out, " codecs=\"%s\"", ca->codecs);
 	if (ca->width) fprintf(out, " width=\"%d\"", ca->width);
 	if (ca->height) fprintf(out, " height=\"%d\"", ca->height);
+	if (ca->framerate){
+		fprintf(out, " frameRate=\"%d",ca->framerate->num);
+		if(ca->framerate->den)fprintf(out, "/\"%d",ca->framerate->den);
+		fprintf(out, "\"");
+	}
 	if (ca->sar) fprintf(out, " sar=\"%d:%d\"", ca->sar->num, ca->sar->den);
-	if (ca->framerate) fprintf(out, " frameRate=\"%d/%d\"", ca->framerate->num, ca->framerate->den);
 	if (ca->samplerate) fprintf(out, " audioSamplingRate=\"%d\"", ca->samplerate);
-	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
 	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);
-	if (ca->codecs) fprintf(out, " codecs=\"%s\"", ca->codecs);
 	if (ca->maximum_sap_period) fprintf(out, " maximumSAPPeriod=\"%d\"", ca->maximum_sap_period);
 	if (ca->starts_with_sap) fprintf(out, " startWithSAP=\"%d\"", ca->starts_with_sap);
 	if (ca->max_playout_rate) fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
@@ -2310,6 +2314,10 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	Bool can_close = GF_FALSE;
 	fprintf(out, "   <Representation");
 	if (rep->id) fprintf(out, " id=\"%s\"", rep->id);
+
+	if (gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)rep, "    ", can_close))
+		return;
+
 	if (rep->bandwidth) fprintf(out, " bandwidth=\"%d\"", rep->bandwidth);
 	if (rep->quality_ranking) fprintf(out, " qualityRanking=\"%d\"", rep->quality_ranking);
 	if (rep->dependency_id) fprintf(out, " dependencyId=\"%s\"", rep->dependency_id);
@@ -2320,8 +2328,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 		can_close = 1;
 	}
 
-	if (gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)rep, "    ", can_close))
-		return;
+
 
 	gf_mpd_print_base_urls(out, rep->base_URLs, " ");
 	if (rep->segment_base) {
@@ -2496,13 +2503,18 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	fprintf(out, "<?xml version=\"1.0\"?>\n");
 	mpd_write_generation_comment(mpd, out);
-	fprintf(out, "<MPD xmlns=\"%s\" type=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
+	fprintf(out, "<MPD xmlns=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"));
 
 	if (mpd->ID)
 		fprintf(out, " ID=\"%s\"", mpd->ID);
 
 	if (mpd->profiles)
 		fprintf(out, " profiles=\"%s\"", mpd->profiles);
+	if (mpd->min_buffer_time)
+		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time);
+
+	fprintf(out," type=\"%s\"",(mpd->type == GF_MPD_TYPE_STATIC ? "static" : "dynamic"));
+
 	if (mpd->type == GF_MPD_TYPE_DYNAMIC)
 		gf_mpd_print_date(out, "availabilityStartTime", mpd->availabilityStartTime);
 	if (mpd->availabilityEndTime)
@@ -2513,8 +2525,6 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration);
 	if (mpd->minimum_update_period)
 		gf_mpd_print_duration(out, "minimumUpdatePeriod", mpd->minimum_update_period);
-	if (mpd->min_buffer_time)
-		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time);
 	if (mpd->time_shift_buffer_depth)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth);
 	if (mpd->suggested_presentation_delay)
@@ -2526,7 +2536,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
 
-	fprintf(out, ">\n");
+	//fprintf(out, ">\n");
 
 	if (mpd->children) {
 		gf_mpd_extensible_print_nodes(out, (GF_MPD_ExtensibleVirtual*)mpd);
