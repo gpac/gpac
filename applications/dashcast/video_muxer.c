@@ -194,9 +194,8 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 			buffer_size = nal_size;
 		}
 		gf_bs_read_data(bs, buffer, nal_size);
-		gf_bs_seek(bs, nal_start);
 
-		gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+		gf_media_hevc_parse_nalu(buffer, nal_size, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 		if (layer_id) {
 			gf_bs_del(bs);
 			gf_free(buffer);
@@ -353,11 +352,6 @@ static GF_Err hevc_import_ffextradata(const u8 *extradata, const u64 extradata_s
 			}
 			break;
 		default:
-			break;
-		}
-
-		if (gf_bs_seek(bs, nal_start+nal_size)) {
-			assert(nal_start+nal_size <= gf_bs_get_size(bs));
 			break;
 		}
 	}
