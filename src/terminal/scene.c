@@ -2796,9 +2796,6 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 	if (!odm_base) return;
 
-	odm_base->upper_layer_odm = odm;
-	odm->lower_layer_odm = odm_base;
-
 	base_ch = gf_list_get(odm_base->channels, 0);
 	
 	switch (base_ch->esd->decoderConfig->objectTypeIndication) {
@@ -2818,6 +2815,13 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		force_attach=GF_TRUE;
 		break;
 	}
+
+	if (odm_base->upper_layer_odm) {
+		force_attach=GF_FALSE;
+	} else {
+		odm_base->upper_layer_odm = odm;
+	}
+	odm->lower_layer_odm = odm_base;
 
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
