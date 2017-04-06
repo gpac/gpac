@@ -2259,7 +2259,7 @@ static void gf_mpd_print_descriptors(FILE *out, GF_List *desc_list, char *desc_n
 	}
 }
 
-static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes *ca, char *indent, Bool can_close)
+static u32 gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *ca, char *indent, Bool can_close)
 {
 	if (ca->profiles) fprintf(out, " profiles=\"%s\"", ca->profiles);
 	if (ca->mime_type) fprintf(out, " mimeType=\"%s\"", ca->mime_type);
@@ -2281,11 +2281,8 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 	if (ca->scan_type!=GF_MPD_SCANTYPE_UNKNWON) fprintf(out, " scanType=\"%s\"", ca->scan_type==GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
 
 	if (can_close && !gf_list_count(ca->frame_packing) && !gf_list_count(ca->audio_channels) && !gf_list_count(ca->content_protection) && !gf_list_count(ca->essential_properties) && !gf_list_count(ca->supplemental_properties) && !ca->isobmf_tracks) {
-		fprintf(out, "/>\n");
 		return 1;
 	}
-
-	fprintf(out, ">\n");
 
 	if (ca->isobmf_tracks) {
 		u32 k=0;
@@ -2301,11 +2298,17 @@ static u32 gf_mpd_print_common_representation(FILE *out, GF_MPD_CommonAttributes
 		fprintf(out, "%s</ISOBMFInfo>\n", indent);
 	}
 
+	return 0;
+}
+
+static u32 gf_mpd_print_common_children(FILE *out, GF_MPD_CommonAttributes *ca, char *indent)
+{
 	gf_mpd_print_descriptors(out, ca->frame_packing, "Framepacking", indent);
 	gf_mpd_print_descriptors(out, ca->audio_channels, "AudioChannelConfiguration", indent);
 	gf_mpd_print_descriptors(out, ca->content_protection, "ContentProtection", indent);
 	gf_mpd_print_descriptors(out, ca->essential_properties, "EssentialProperty", indent);
 	gf_mpd_print_descriptors(out, ca->supplemental_properties, "SupplementalProperty", indent);
+
 	return 0;
 }
 
@@ -2315,20 +2318,24 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	fprintf(out, "   <Representation");
 	if (rep->id) fprintf(out, " id=\"%s\"", rep->id);
 
-	if (gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)rep, "    ", can_close))
-		return;
+	if (!gf_list_count(rep->base_URLs) && !rep->segment_base && !rep->segment_template && !rep->segment_list && !gf_list_count(rep->sub_representations)) {
+		can_close = 1;
+	}
+
+	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)rep, "    ", can_close);
 
 	if (rep->bandwidth) fprintf(out, " bandwidth=\"%d\"", rep->bandwidth);
 	if (rep->quality_ranking) fprintf(out, " qualityRanking=\"%d\"", rep->quality_ranking);
 	if (rep->dependency_id) fprintf(out, " dependencyId=\"%s\"", rep->dependency_id);
 	if (rep->media_stream_structure_id) fprintf(out, " mediaStreamStructureId=\"%s\"", rep->media_stream_structure_id);
 
-
-	if (!gf_list_count(rep->base_URLs) && !rep->segment_base && !rep->segment_template && !rep->segment_list && !gf_list_count(rep->sub_representations)) {
-		can_close = 1;
+	if(can_close){
+		fprintf(out, "/>\n");
+		return;
 	}
+	fprintf(out, ">\n");
 
-
+	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)rep, "    ");
 
 	gf_mpd_print_base_urls(out, rep->base_URLs, " ");
 	if (rep->segment_base) {
@@ -2380,7 +2387,11 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	if (as->subsegment_starts_with_sap) fprintf(out, " subsegmentStartsWithSAP=\"%d\"", as->subsegment_starts_with_sap);
 
 
-	gf_mpd_print_common_representation(out, (GF_MPD_CommonAttributes*)as, "   ", 0);
+	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)as, "   ", 0);
+
+	fprintf(out, ">\n");
+
+	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)as, "   ");
 
 	gf_mpd_print_base_urls(out, as->base_URLs, " ");
 
