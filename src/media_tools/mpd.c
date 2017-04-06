@@ -524,7 +524,6 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 	GF_XMLNode *child;
 	u32 i = 0;
 
-	/*setup some default*/
 	com->max_playout_rate = 1.0;
 
 	while ( (att = gf_list_enum(root->attributes, &i)) ) {
@@ -584,6 +583,7 @@ static void gf_mpd_init_common_attributes(GF_MPD_CommonAttributes *com)
 	com->essential_properties = gf_list_new();
 	com->supplemental_properties = gf_list_new();
 	com->frame_packing = gf_list_new();
+	com->max_playout_rate = 1.0;
 }
 
 GF_MPD_Representation *gf_mpd_representation_new()
@@ -2276,7 +2276,7 @@ static u32 gf_mpd_print_common_attributes(FILE *out, GF_MPD_CommonAttributes *ca
 	if (ca->segmentProfiles) fprintf(out, " segmentProfiles=\"%s\"", ca->segmentProfiles);
 	if (ca->maximum_sap_period) fprintf(out, " maximumSAPPeriod=\"%d\"", ca->maximum_sap_period);
 	if (ca->starts_with_sap) fprintf(out, " startWithSAP=\"%d\"", ca->starts_with_sap);
-	if (ca->max_playout_rate) fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
+	if ((ca->max_playout_rate!=1.0)) fprintf(out, " maxPlayoutRate=\"%g\"", ca->max_playout_rate);
 	if (ca->coding_dependency) fprintf(out, " codingDependency=\"true\"");
 	if (ca->scan_type!=GF_MPD_SCANTYPE_UNKNWON) fprintf(out, " scanType=\"%s\"", ca->scan_type==GF_MPD_SCANTYPE_PROGRESSIVE ? "progressive" : "interlaced");
 
@@ -2372,7 +2372,8 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	if (as->id) fprintf(out, " id=\"%d\"", as->id);
 	if (as->group !=  (u32) -1) fprintf(out, " group=\"%d\"", as->group);
 	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);
-	if (as->par) fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
+	if (as->par && (as->par->num !=0 ) && (as->par->num != 0))
+		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
 	if (as->min_bandwidth) fprintf(out, " minBandwidth=\"%d\"", as->min_bandwidth);
 	if (as->max_bandwidth) fprintf(out, " maxBandwidth=\"%d\"", as->max_bandwidth);
 	if (as->min_width) fprintf(out, " minWidth=\"%d\"", as->min_width);
