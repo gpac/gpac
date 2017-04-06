@@ -2970,6 +2970,14 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 
 #ifdef FILTER_FIXME
 	GF_NetworkCommand com;
+
+	if (odm_base->upper_layer_odm) {
+		force_attach=GF_FALSE;
+	} else {
+		odm_base->upper_layer_odm = odm;
+	}
+	odm->lower_layer_odm = odm_base;
+
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;

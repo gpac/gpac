@@ -558,8 +558,12 @@ refetch_AU:
 				baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 				memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u CTS %u size %d reaggregated on base layer %d - base DTS %d size %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS, AU->dataLength, (*activeChannel)->esd->ESID, baseAU->DTS, baseAU->dataLength));
+
 			baseAU->dataLength += AU->dataLength;
+
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->ID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
+
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 			scalable_check = 2;
