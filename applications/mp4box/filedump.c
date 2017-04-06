@@ -960,8 +960,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	}
 	if (hevc) {
 #ifndef GPAC_DISABLE_HEVC
-		bs = gf_bs_new(ptr, ptr_size, GF_BITSTREAM_READ);
-		res = gf_media_hevc_parse_nalu(bs, hevc, &type, &temporal_id, &quality_id);
+		res = gf_media_hevc_parse_nalu(ptr, ptr_size, hevc, &type, &temporal_id, &quality_id);
 
 		fprintf(dump, "code=\"%d\" type=\"", type);
 		switch (type) {
@@ -1028,7 +1027,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			break;
 		case GF_HEVC_NALU_ACCESS_UNIT:
 			fputs("AU Delimiter", dump);
-			fprintf(dump, "\" primary_pic_type=\"%d", gf_bs_read_u8(bs) >> 5);
+			fprintf(dump, "\" primary_pic_type=\"%d", ptr[2] >> 5);
 			break;
 		case GF_HEVC_NALU_END_OF_SEQ:
 			fputs("End of Sequence", dump);
@@ -1074,8 +1073,6 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		}
 
 		fprintf(dump, " layer_id=\"%d\" temporal_id=\"%d\"", quality_id, temporal_id);
-
-		gf_bs_del(bs);
 
 #endif //GPAC_DISABLE_HEVC
 		return;

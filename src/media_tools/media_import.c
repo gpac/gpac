@@ -6013,9 +6013,9 @@ restart_import:
 		/*read the file, and work on a memory buffer*/
 		gf_bs_read_data(bs, buffer, nal_size);
 
-		gf_bs_seek(bs, nal_start);
+//		gf_bs_seek(bs, nal_start);
 
-		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+		res = gf_media_hevc_parse_nalu(buffer, nal_size, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 
 		if (max_temporal_id[layer_id] < temporal_id)
 			max_temporal_id[layer_id] = temporal_id;
@@ -6078,7 +6078,7 @@ restart_import:
 				//this may modify nal_size, but we don't use it for bitstream reading 
 				idx = gf_media_hevc_read_vps_ex(buffer, &nal_size, &hevc, GF_TRUE);
 			} else {
-				idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+				idx = hevc.last_parsed_vps_id;
 			}
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
@@ -6134,7 +6134,7 @@ restart_import:
 			cur_vps_id = idx;
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
+			idx = hevc.last_parsed_sps_id;
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
 				break;
@@ -6240,7 +6240,7 @@ restart_import:
 			break;
 
 		case GF_HEVC_NALU_PIC_PARAM:
-			idx = gf_media_hevc_read_pps(buffer, nal_size, &hevc);
+			idx = hevc.last_parsed_pps_id;
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
