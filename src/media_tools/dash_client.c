@@ -5890,7 +5890,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 	char *sep_frag = NULL;
 	GF_Err e;
 	GF_MPD_Period *period;
-	GF_DOMParser *mpd_parser;
+	GF_DOMParser *mpd_parser=NULL;
 	Bool is_local = GF_FALSE;
 
 	if (!dash || !manifest_url) return GF_BAD_PARAM;
