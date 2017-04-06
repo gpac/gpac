@@ -3530,7 +3530,7 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 
 void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si, HEVC_PPS *pps, HEVC_SPS *sps, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active)
 {
-	u32 i, j, num_ref_idx;
+	u32 i, num_ref_idx;
 	Bool first_pass=GF_TRUE;
 	u8 luma_weights[20], chroma_weights[20];
 	u32 ChromaArrayType = sps->separate_colour_plane_flag ? 0 : sps->chroma_format_idc;
@@ -4431,9 +4431,9 @@ s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remov
 	s32 vps_id = -1;
 
 	/*still contains emulation bytes*/
-	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, *size);
+	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, (*size));
 	if (!data_without_emulation_bytes_size) {
-		bs = gf_bs_new(data, size, GF_BITSTREAM_READ);
+		bs = gf_bs_new(data, (*size), GF_BITSTREAM_READ);
 	} else {
 		data_without_emulation_bytes = gf_malloc((*size) * sizeof(char));
 		data_without_emulation_bytes_size = avc_remove_emulation_bytes(data, data_without_emulation_bytes, (*size) );
@@ -4523,11 +4523,10 @@ static const struct {
 	{ 64, 33 }, { 160,99 }, { 4,3}, { 3,2}, { 2,1}
 };
 
-static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u32 *vui_flag_pos)
+static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u8 layer_id, u32 *vui_flag_pos)
 {
 	s32 vps_id, sps_id = -1;
 	u8 max_sub_layers_minus1, flag;
-	u8 layer_id/*, temporal_id, sps_rep_format_idx*/;
 	Bool scaling_list_enable_flag;
 	u32 i, nb_CTUs, depth;
 	u32 log2_diff_max_min_luma_coding_block_size;
@@ -4791,6 +4790,7 @@ s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 *vui_fl
 	char *data_without_emulation_bytes = NULL;
 	u32 data_without_emulation_bytes_size = 0;
 	s32 sps_id= -1;
+	u8 layer_id;
 
 	if (vui_flag_pos) *vui_flag_pos = 0;
 
@@ -4804,8 +4804,8 @@ s32 gf_media_hevc_read_sps_ex(char *data, u32 size, HEVCState *hevc, u32 *vui_fl
 		bs = gf_bs_new(data_without_emulation_bytes, data_without_emulation_bytes_size, GF_BITSTREAM_READ);
 	}
 	if (!bs) goto exit;
-	if (! hevc_parse_nal_header(bs, NULL, NULL, NULL)) goto exit;
-	sps_id = gf_media_hevc_read_sps_bs(bs, hevc, vui_flag_pos);
+	if (! hevc_parse_nal_header(bs, NULL, NULL, &layer_id)) goto exit;
+	sps_id = gf_media_hevc_read_sps_bs(bs, hevc, layer_id, vui_flag_pos);
 
 exit:
 	if (bs) gf_bs_del(bs);
@@ -5008,7 +5008,7 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 		}
 		break;
 	case GF_HEVC_NALU_SEQ_PARAM:
-		hevc->last_parsed_sps_id = gf_media_hevc_read_sps_bs(bs, hevc, NULL);
+		hevc->last_parsed_sps_id = gf_media_hevc_read_sps_bs(bs, hevc, *layer_id, NULL);
 		ret = 0;
 		break;
 	case GF_HEVC_NALU_PIC_PARAM:
@@ -5016,7 +5016,7 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 		ret = 0;
 		break;
 	case GF_HEVC_NALU_VID_PARAM:
-		hevc->last_parsed_vps_id = gf_media_hevc_read_vps_bs(bs, hevc, NULL);
+		hevc->last_parsed_vps_id = gf_media_hevc_read_vps_bs(bs, hevc, GF_FALSE);
 		ret = 0;
 		break;
 	default:
