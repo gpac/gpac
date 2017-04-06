@@ -360,6 +360,7 @@ typedef struct
 	s32 id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
+	s32 bit_pos_vps_extensions;
 	u32 crc;
 	Bool vps_extension_found;
 	u32 max_layers, max_sub_layers, max_layer_id, num_layer_sets;
@@ -404,8 +405,6 @@ typedef struct
 typedef struct
 {
 	u8 nal_unit_type;
-	s8 temporal_id;
-
 	u32 frame_num, poc_lsb, slice_type;
 
 	s32 redundant_pic_cnt;
@@ -418,6 +417,11 @@ typedef struct
 	Bool first_slice_segment_in_pic_flag;
 	u32 slice_segment_address;
 	u8 prev_layer_id_plus1;
+
+	//bit offset of the num_entry_point (if present) field
+	s32 entry_point_start_bits;
+	//byte offset of the payload start (after byte alignment)
+	s32 payload_start_offset;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
@@ -434,8 +438,10 @@ typedef struct _hevc_state
 
 	HEVCSliceInfo s_info;
 	HEVC_SEI sei;
-
-	Bool is_svc;
+	//-1 or the value of the vps/sps/pps ID of the nal just parsed
+	s32 last_parsed_vps_id;
+	s32 last_parsed_sps_id;
+	s32 last_parsed_pps_id;
 } HEVCState;
 
 enum
@@ -447,7 +453,7 @@ enum
 s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc);
-s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
 //parses VPS and rewrites data buffer after removing VPS extension
