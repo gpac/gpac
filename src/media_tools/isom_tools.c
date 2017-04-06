@@ -2832,7 +2832,7 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			u8 temporal_id, layer_id;
 			u8 nal_type = 0;
 			u32 nalu_size = 0;
-			GF_BitStream *bs;
+
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
@@ -2892,7 +2892,6 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	for (i=0; i<count; i++) {
 		u8 *data;
 		u32 size, nb_nalus=0, nb_nal_entries=0, last_tile_group=(u32) -1;
-		GF_BitStream *src_bs;
 		GF_BitStream *bs=NULL;
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
