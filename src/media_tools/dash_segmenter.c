@@ -2287,6 +2287,15 @@ restart_fragmentation_pass:
 	//	}
 	//}
 
+	if (dash_input->nb_rep_descs) {
+		for (i=0; i<dash_input->nb_rep_descs; i++) {
+			GF_MPD_RepresentationSetDescriptor *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
+			Desc->xml_desc=gf_strdup(dash_input->rep_descs[i]);
+			gf_list_add(representation_obj->representation_set_level_descriptor,Desc);
+		}
+	}
+
 	if (nb_channels && !is_bs_switching) {
 		GF_MPD_Descriptor *desc;
 		char value[256];
@@ -4250,6 +4259,14 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 //			fprintf(dash_cfg->mpd_file, "    %s\n", dash_input->rep_descs[i]);
 //		}
 //	}
+	if (dash_input->nb_rep_descs) {
+		for (i=0; i<dash_input->nb_rep_descs; i++) {
+			GF_MPD_RepresentationSetDescriptor *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
+			Desc->xml_desc=gf_strdup(dash_input->rep_descs[i]);
+			gf_list_add(representation_obj->representation_set_level_descriptor,Desc);
+		}
+	}
 
 
 	for (i=0; i<ts_seg.sidx->nb_refs; i++) {
@@ -5055,7 +5072,7 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 				GF_MPD_AdaptationSetLevelDescriptor *Desc;
 				GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
 				Desc->xml_desc=gf_strdup(dash_inputs[i].as_c_descs[j]);
-				gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor_c,Desc);
+				gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor,Desc);
 				//fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
 			}
 		}
