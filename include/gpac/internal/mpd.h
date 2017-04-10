@@ -285,6 +285,7 @@ typedef struct {
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
+	GF_List *representation_set_level_descriptor;
 } GF_MPD_Representation;
 
 
@@ -327,7 +328,6 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
-	GF_List *adaptation_set_level_descriptor_c;
 	GF_List *adaptation_set_level_descriptor;
 } GF_MPD_AdaptationSet;
 
