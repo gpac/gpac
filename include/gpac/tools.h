@@ -282,6 +282,8 @@ typedef enum
 	GF_NOT_FOUND							= -53,
 	/*! Unexpected format of data */
 	GF_PROFILE_NOT_SUPPORTED				= -54,
+	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
+	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 } GF_Err;
 
 /*!
