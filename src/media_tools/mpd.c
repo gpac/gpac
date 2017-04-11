@@ -649,7 +649,7 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 			GF_MPD_RepresentationSetDescriptor *Desc;
 			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
 			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)free(descriptors);
+			if(descriptors)gf_free(descriptors);
 			gf_list_add(rep->representation_set_level_descriptor, Desc);
 		}
 	}
@@ -766,7 +766,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 			GF_MPD_AdaptationSetLevelDescriptor *Desc;
 			GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
 			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)free(descriptors);
+			if(descriptors)gf_free(descriptors);
 			gf_list_add(set->adaptation_set_level_descriptor, Desc);
 		}
 	}
@@ -836,7 +836,7 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 			GF_MPD_PeriodLevelDescriptor *Desc;
 			GF_SAFEALLOC(Desc,GF_MPD_PeriodLevelDescriptor);
 			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)free(descriptors);
+			if(descriptors)gf_free(descriptors);
 			gf_list_add(period->period_levels_descriptors, Desc);
 		}
 
