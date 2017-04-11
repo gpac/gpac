@@ -162,7 +162,7 @@ static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Er
 	if ( (ch->odm->mo && ch->odm->mo->num_open)
 	        || !ch->odm->parentscene
 	   ) {
-		gf_odm_start(ch->odm, 0);
+		gf_odm_start(ch->odm);
 	}
 #if 0
 	else if (ch->odm->codec && ch->odm->codec->ck && ch->odm->codec->ck->no_time_ctrl) {
@@ -231,7 +231,7 @@ static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
 	return 1;
 }
 
-void gf_scene_insert_object(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid)
+void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid)
 {
 	u32 i, min_od_id;
 	GF_MediaObject *the_mo;
@@ -244,7 +244,7 @@ void gf_scene_insert_object(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPi
 
 	root = sns->owner;
 	if (!root) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] has not root, aborting !\n", sns->url));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Service %s] has no root, aborting !\n", sns->url));
 		return;
 	}
 	if (root->flags & GF_ODM_DESTROYED) {
@@ -381,19 +381,30 @@ void gf_scene_insert_object(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPi
 	}
 	odm->ID = pid_odid;
 	odm->mo = the_mo;
-	odm->pid = pid;
 	odm->type = mtype;
-	odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
+	//register PID with ODM, but don't call setup object
+	gf_odm_register_pid(odm, pid, GF_TRUE);
+
 	gf_filter_pid_set_udta(pid, odm);
 
 	if (the_mo) the_mo->OD_ID = odm->ID;
 	if (!scene->selected_service_id)
 		scene->selected_service_id = ServiceID;
 
+	//we insert right away the PID as a new object if the scene is dynamic
+	//if the scene is not dynamic, we wait for the corresponding OD update
+	//FILTER_FIXME: needs rework to enable attaching subtitle to a non-dynamic scene
+	//otherwise if subscene, this is an IOD
+	if (odm->subscene || odm->parentscene->is_dynamic_scene) {
+		if (odm->parentscene->is_dynamic_scene)
+			odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->ID, odm->mo));
-	gf_odm_setup_object(odm, sns, NULL);
-
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->ID, odm->mo));
+		gf_odm_setup_object(odm, sns, pid);
+	} else {
+		//cannot setup until we get the associated OD_Update
+		odm->ID = 0;
+	}
 }
 
 GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, const char *url, const char *parent_url)

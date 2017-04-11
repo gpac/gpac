@@ -180,6 +180,8 @@ void gf_scene_del(GF_Scene *scene)
 		gf_list_del(scene->namespaces);
 	}
 
+	if (scene->bifs_dec) gf_bifs_decoder_del(scene->bifs_dec);
+
 	gf_free(scene);
 }
 
@@ -396,9 +398,9 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	gf_list_add(scene->resources, odm);
 	gf_mx_v(scene->mx_resources);
 	if (original_parent_scene) {
-		gf_odm_setup_object(odm, original_parent_scene->root_od->net_service);
+		gf_odm_setup_remote_object(odm, original_parent_scene->root_od->net_service);
 	} else {
-		gf_odm_setup_object(odm, root_od->net_service);
+		gf_odm_setup_remote_object(odm, root_od->net_service, NULL);
 	}
 #else
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("OBJECT INSERTION NOT IMPLEMENTED IN FILTERS"));
@@ -880,7 +882,7 @@ existing:
 	gf_mo_update_caps(odm->mo);
 	/*media object playback has already been requested by the scene, trigger media start*/
 	if (odm->mo->num_open && !odm->state) {
-		gf_odm_start(odm, 0);
+		gf_odm_start(odm);
 		if (odm->mo->speed != FIX_ONE) gf_odm_set_speed(odm, odm->mo->speed, GF_TRUE);
 	}
 	if ((odm->mo->type==GF_MEDIA_OBJECT_VIDEO) && scene->is_dynamic_scene && !odm->parentscene->root_od->addon) {
@@ -1961,27 +1963,24 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
 		if (gf_odm_shares_clock(odm, ck)) {
-			if (odm->state != GF_ODM_STATE_BLOCKED) {
-
-				//object is not an addon and main addon is selected, do not add
-				if (!odm->addon && scene->main_addon_selected) {
-				}
-				//object is an addon and enabled, restart if main and main is enabled, or if not main
-				else if (odm->addon && odm->addon->enabled) {
-					if (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
-						if (scene->main_addon_selected) {
-							gf_list_add(to_restart, odm);
-						}
-					} else {
+			//object is not an addon and main addon is selected, do not add
+			if (!odm->addon && scene->main_addon_selected) {
+			}
+			//object is an addon and enabled, restart if main and main is enabled, or if not main
+			else if (odm->addon && odm->addon->enabled) {
+				if (odm->addon->addon_type==GF_ADDON_TYPE_MAIN) {
+					if (scene->main_addon_selected) {
 						gf_list_add(to_restart, odm);
 					}
-				} else if (!scene->selected_service_id || (scene->selected_service_id==odm->ServiceID)) {
+				} else {
 					gf_list_add(to_restart, odm);
 				}
+			} else if (!scene->selected_service_id || (scene->selected_service_id==odm->ServiceID)) {
+				gf_list_add(to_restart, odm);
+			}
 
-				if (odm->state == GF_ODM_STATE_PLAY) {
-					gf_odm_stop(odm, 1);
-				}
+			if (odm->state == GF_ODM_STATE_PLAY) {
+				gf_odm_stop(odm, 1);
 			}
 		}
 	}
@@ -2010,7 +2009,7 @@ void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only,
 		if (odm->subscene && odm->subscene->is_dynamic_scene) {
 			gf_scene_restart_dynamic(odm->subscene, from_time, 0, 0);
 		} else {
-			gf_odm_start(odm, 0);
+			gf_odm_start(odm);
 		}
 	}
 	gf_list_del(to_restart);
@@ -2728,7 +2727,7 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 
 	i=0;
 	while ((odm = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
-		gf_odm_start(odm, 2);
+		gf_odm_start(odm);
 	}
 	gf_list_del(to_restart);
 	return GF_TRUE;

@@ -180,6 +180,8 @@ struct __gf_fs_task
 	//some tasks may not increment that counter (eg when requeued to a filer), so this simplifies
 	//decrementing the counter
 	Bool notified;
+	//set for tasks that have been requeued (i.e. no longer present in filter task list)
+	Bool requeued;
 
 	task_callback run_task;
 	GF_Filter *filter;
@@ -188,11 +190,10 @@ struct __gf_fs_task
 	void *udta;
 };
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name);
-
-void gf_fs_post_task_ex(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, GF_Filter *dst_filter, void *udta);
+void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
+Bool gf_filter_pid_send_event_downstream(GF_FSTask *task);
 
 
 typedef struct __gf_fs_thread
@@ -214,6 +215,7 @@ struct __gf_media_session
 	Bool use_locks;
 	Bool direct_mode;
 	Bool task_in_process;
+	Bool requires_solved_graph;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -231,7 +233,7 @@ struct __gf_media_session
 
 	volatile u32 tasks_pending;
 
-	Bool done;
+	GF_Err run_status;
 	Bool disable_blocking;
 };
 
@@ -317,6 +319,12 @@ struct __gf_filter
 	u64 time_process;
 
 	volatile u32 would_block; //concurrent inc/dec
+
+	Bool finalized;
+	Bool source_process_queued;
+
+	u32 next_time_schedule;
+	u64 reschedule_start_time;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
@@ -364,6 +372,8 @@ struct __gf_filter_pid
 	GF_List *destinations;
 	GF_List *properties;
 	Bool request_property_map;
+	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
+	Bool has_seen_eos;
 
 	u32 max_buffer_unit;
 	//max number of packets in each of the destination pids - concurrent inc/dec

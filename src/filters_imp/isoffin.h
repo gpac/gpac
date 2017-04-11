@@ -145,7 +145,7 @@ void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
 
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
-GF_Err ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track);
+ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track);
 
 /*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);

@@ -246,7 +246,7 @@ void gf_scene_mpeg4_inline_restart(GF_Scene *scene)
 		gf_scene_disconnect(scene, GF_FALSE);
 		if (scene->root_od->media_ctrl) scene->root_od->media_ctrl->current_seg = current_seg;
 		/*3- restart the scene*/
-		gf_odm_start(scene->root_od, 0);
+		gf_odm_start(scene->root_od);
 	}
 }
 

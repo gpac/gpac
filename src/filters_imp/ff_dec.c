@@ -107,6 +107,10 @@ static u32 ffdec_gpac_convert_pix_fmt(u32 pix_fmt)
 	case PIX_FMT_RGBA: return GF_PIXEL_RGBA;
 	case PIX_FMT_RGB24: return GF_PIXEL_RGB_24;
 	case PIX_FMT_BGR24: return GF_PIXEL_BGR_24;
+	//force output in RGB24
+	case PIX_FMT_YUVJ420P: return GF_PIXEL_RGB_24;
+	case PIX_FMT_YUVJ422P: return GF_PIXEL_RGB_24;
+	case PIX_FMT_YUVJ444P: return GF_PIXEL_RGB_24;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDec] Unsupported pixel format %d\n", pix_fmt));
 	}
@@ -122,7 +126,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
-	u32 pix_fmt, outsize, pix_out;
+	u32 pix_fmt, outsize, pix_out, stride;
 	char *out_buffer;
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
@@ -183,7 +187,42 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	FF_CHECK_PROP_VAL(pixel_fmt, pix_fmt, GF_PROP_PID_PIXFMT)
 	FF_CHECK_PROP(width, width, GF_PROP_PID_WIDTH)
 	FF_CHECK_PROP(height, height, GF_PROP_PID_HEIGHT)
-	FF_CHECK_PROP_VAL(stride, frame->linesize[0], GF_PROP_PID_STRIDE)
+
+	switch (pix_fmt) {
+	case GF_PIXEL_RGB_32:
+	case GF_PIXEL_BGR_32:
+	case GF_PIXEL_ARGB:
+	case GF_PIXEL_RGBA:
+		outsize = ffdec->width * ffdec->height * 4;
+		stride = ffdec->width * 4;
+		break;
+	case GF_PIXEL_RGB_24:
+	case GF_PIXEL_BGR_24:
+		outsize = ffdec->width * ffdec->height * 3;
+		stride = ffdec->width * 3;
+		break;
+	case GF_PIXEL_YV12:
+	case GF_PIXEL_YV12_10:
+		outsize = 3*ffdec->stride * ffdec->height / 2;
+		stride = ffdec->width;
+		break;
+
+	case GF_PIXEL_YUV422:
+	case GF_PIXEL_YUV422_10:
+		outsize = ffdec->stride * ffdec->height * 2;
+		stride = ffdec->width;
+		break;
+
+	case GF_PIXEL_YUV444:
+	case GF_PIXEL_YUV444_10:
+		outsize = ffdec->stride * ffdec->height * 3;
+		stride = ffdec->width;
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
+	}
+
+	FF_CHECK_PROP_VAL(stride, stride, GF_PROP_PID_STRIDE)
 	if (ffdec->sar.num * ffdec->codec_ctx->sample_aspect_ratio.den != ffdec->sar.den * ffdec->codec_ctx->sample_aspect_ratio.num) {
 		ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 		ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
@@ -193,34 +232,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	memset(&pict, 0, sizeof(pict));
 
-	switch (ffdec->pixel_fmt) {
-	case GF_PIXEL_RGB_32:
-	case GF_PIXEL_BGR_32:
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-		outsize = ffdec->width * ffdec->height * 4;
-		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-		outsize = ffdec->width * ffdec->height * 3;
-		break;
-	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
-		outsize = 3*ffdec->stride * ffdec->height / 2;
-		break;
 
-	case GF_PIXEL_YUV422:
-	case GF_PIXEL_YUV422_10:
-		outsize = ffdec->stride * ffdec->height * 2;
-		break;
-
-	case GF_PIXEL_YUV444:
-	case GF_PIXEL_YUV444_10:
-		outsize = ffdec->stride * ffdec->height * 3;
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
 	dst_pck = gf_filter_pck_new_alloc(ffdec->out_pid, outsize, &out_buffer);
 	if (!dst_pck) return GF_OUT_OF_MEM;
 
@@ -455,6 +467,7 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 		return CODEC_ID_MP3;
 	case GPAC_OTI_AUDIO_AAC_MPEG4:
 		return CODEC_ID_AAC;
+
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
 		return CODEC_ID_MPEG4;
 	case GPAC_OTI_VIDEO_AVC:
@@ -465,6 +478,14 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 		return CODEC_ID_MPEG2VIDEO;
 	case GPAC_OTI_VIDEO_H263:
 		return CODEC_ID_H263;
+
+	case GPAC_OTI_IMAGE_JPEG:
+		return CODEC_ID_MJPEG;
+	case GPAC_OTI_IMAGE_PNG:
+		return CODEC_ID_PNG;
+	case GPAC_OTI_IMAGE_JPEG_2000:
+		return CODEC_ID_JPEG2000;
+
 	default:
 		return 0;
 	}
@@ -660,20 +681,22 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 	return GF_NOT_SUPPORTED;
 }
 
-/*
 static const GF_FilterCapability FFDecodeInputs[] =
 {
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
 	{}
 };
-*/
+
 static const GF_FilterCapability FFDecodeOutputs[] =
 {
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
+	
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
 	{}
 };
 

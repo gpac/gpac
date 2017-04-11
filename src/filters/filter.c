@@ -99,7 +99,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		filter->has_pending_pids=GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
-			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init");
+			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 		}
 	}
 
@@ -107,6 +107,13 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 }
 
 static void reset_filter_args(GF_Filter *filter);
+
+//when destroying the filter queue we have to skip tasks marked as notified, since they are also present in the
+//session task list
+void task_del(void *task)
+{
+	if (!((GF_FSTask*)task)->notified) gf_free(task);
+}
 
 void gf_filter_del(GF_Filter *filter)
 {
@@ -122,7 +129,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_list_del(filter->blacklisted);
 	gf_list_del(filter->input_pids);
 
-	gf_fq_del(filter->tasks, gf_void_del);
+	gf_fq_del(filter->tasks, task_del);
 	gf_fq_del(filter->pending_pids, NULL);
 
 	reset_filter_args(filter);
@@ -461,6 +468,7 @@ Bool gf_filter_process_task(GF_FSTask *task)
 	assert(task->filter->freg);
 	assert(task->filter->freg->process);
 
+	task->filter->next_time_schedule = 0;
 	if (task->filter->pid_connection_pending) {
 		return GF_FALSE;
 	}
@@ -476,24 +484,23 @@ Bool gf_filter_process_task(GF_FSTask *task)
 		task->filter->has_pending_pids=GF_FALSE;
 		while (gf_fq_count(task->filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(task->filter->pending_pids);
-			gf_fs_post_task(task->filter->session, gf_filter_pid_init_task, task->filter, pid, "pid_init");
+			gf_fs_post_task(task->filter->session, gf_filter_pid_init_task, task->filter, pid, "pid_init", NULL);
 		}
 	}
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS))
+	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS)) {
+		task->filter->source_process_queued = GF_FALSE;
 		return GF_TRUE;
+	}
 
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
 	if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1))
 		return GF_TRUE;
 
-	if (!strcmp(task->filter->name, "compositor")) {
-		if (gf_fq_count(task->filter->tasks)<=1) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Last task in compositor queue, pending packets %d\n", task->filter->pending_packets));
-		}
-		return GF_FALSE;
-	}
+	//last task and filter requested a requeue, requeue the task
+	if (task->filter->next_time_schedule)
+		return GF_TRUE;
 
 	return GF_FALSE;
 }
@@ -522,4 +529,24 @@ GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx)
 	return gf_list_get(filter->input_pids, idx);
 }
 
+GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
+{
+	if (filter) return filter->session;
+	return NULL;
+}
+void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code)
+{
+	fsess->run_status = error_code ? error_code : GF_EOS;
+}
+
+void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
+{
+	if (!filter->in_process) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s request for real-time reschedule but filter is not in process\n", filter->name));
+		return;
+	}
+	if (!us_until_next) return;
+	filter->next_time_schedule = 1+us_until_next;
+	filter->reschedule_start_time = gf_sys_clock_high_res();
+}
 

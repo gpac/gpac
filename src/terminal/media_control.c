@@ -106,7 +106,7 @@ void mediacontrol_restart(GF_ObjectManager *odm)
 	i=0;
 	while ((ctrl_od = (GF_ObjectManager*)gf_list_enum(to_restart, &i))) {
 		//we want to make sure restart is clled right away with the current media control settings
-		gf_odm_start(ctrl_od, 2);
+		gf_odm_start(ctrl_od);
 	}
 	gf_list_del(to_restart);
 }

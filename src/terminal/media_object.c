@@ -289,8 +289,10 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		mo->bits_per_sample = 16;
 
 		mo->bytes_per_sec = mo->bits_per_sample * mo->num_channels * mo->sample_rate / 8;
+	} else if (mo->odm->type==GF_STREAM_SCENE) {
+		//nothing to do
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
 	}
 }
 
@@ -328,30 +330,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (v) timescale = v->value.uint;
 	if (!timescale) timescale=1;
 
-	if (mo->odm->buffering) {
-		u64 buffer_duration = gf_filter_pid_query_buffer_duration(mo->odm->pid);
-		if ( ! mo->odm->ck->clock_init) {
-			u64 time;
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(mo->odm->pid);
-			if (!pck) return NULL;
-			timescale = gf_filter_pck_get_timescale(pck);
-
-
-			time = gf_filter_pck_get_cts(pck);
-			if (!time) time = gf_filter_pck_get_dts(pck);
-			time *= 1000;
-			time /= timescale;
-			gf_clock_set_time(mo->odm->ck, time);
-			gf_clock_set_speed(mo->odm->ck, 4.0);
-		}
-		if (buffer_duration>200000) {
-			mo->odm->buffering = GF_FALSE;
-			gf_clock_buffer_off(mo->odm->ck);
-		}
-		//if first frame fetched and still buffering return
-		if (mo->pck && mo->odm->buffering)
+	if ( gf_odm_check_buffering(mo->odm, NULL) ) {
+		//if buffering, first frame fetched and still buffering return
+		if (mo->pck && mo->odm->nb_buffering)
 			return NULL;
 	}
+
 	if (!mo->pck) {
 		mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 		if (!mo->pck)
@@ -625,7 +609,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 	/*discard frame*/
 	if (mo->RenderedLength >= mo->size) {
 		mo->RenderedLength = 0;
-		if (mo->is_eos || drop_mode) {
+		if (/*mo->is_eos ||*/ drop_mode) {
 			gf_filter_pck_unref(mo->pck);
 			mo->pck=NULL;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u released frame TS %u\n", mo->odm->ID,gf_clock_time(mo->odm->ck), mo->timestamp));
@@ -711,7 +695,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 		if (is_restart) {
 			mediacontrol_restart(mo->odm);
 		} else {
-			gf_odm_start(mo->odm, (res>=0) ? 1 : 0);
+			gf_odm_start(mo->odm);
 		}
 	} else if (mo->odm) {
 		if (mo->num_to_restart) mo->num_restart--;
@@ -1010,7 +994,7 @@ GF_EXPORT
 Fixed gf_mo_get_speed(GF_MediaObject *mo, Fixed in_speed)
 {
 	Fixed res = in_speed;
-	if (!mo) return in_speed;
+	if (!mo || !mo->odm) return in_speed;
 
 #ifndef GPAC_DISABLE_VRML
 	MediaControlStack *ctrl;
@@ -1102,24 +1086,25 @@ Bool gf_mo_is_muted(GF_MediaObject *mo)
 GF_EXPORT
 Bool gf_mo_is_done(GF_MediaObject *mo)
 {
-	Bool res = GF_FALSE;
+	GF_Clock *ck;
 	u64 dur;
-	if (!mo) return GF_FALSE;
+	if (!mo || !mo->odm) return GF_FALSE;
+
+	if (! mo->odm->has_seen_eos) return GF_FALSE;
 
 	if ((mo->odm->type==GF_STREAM_AUDIO) || (mo->odm->type==GF_STREAM_VISUAL)) {
-		res = ((mo->odm->state==GF_ODM_STATE_STOP)/* && mo->odm->is_eos*/) ? GF_TRUE : GF_FALSE;
-	} else {
-		res = GF_FALSE;
-		/*check EOS and time*/
-		if (mo->odm->state==GF_ODM_STATE_STOP) {
-			GF_Clock *ck;
-			dur = mo->odm->subscene->duration ? mo->odm->subscene->duration : mo->odm->duration;
-			/*codec is done, check by duration*/
-			ck = gf_odm_get_media_clock(mo->odm);
-			if (gf_clock_time(ck) > dur) res = GF_TRUE;
-		}
+		return GF_TRUE;
 	}
-	return res;
+
+	/*check time - technically this should also apply to video streams since we could extend the duration
+	of the last frame - to further test*/
+	dur = (mo->odm->subscene && mo->odm->subscene->duration) ? mo->odm->subscene->duration : mo->odm->duration;
+	/*codec is done, check by duration*/
+	ck = gf_odm_get_media_clock(mo->odm);
+	if (gf_clock_time(ck) > dur)
+		return GF_TRUE;
+
+	return GF_FALSE;
 }
 
 /*resyncs clock - only audio objects are allowed to use this*/

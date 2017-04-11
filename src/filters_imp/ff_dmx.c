@@ -350,9 +350,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 static const GF_FilterCapability FFDemuxOutputs[] =
 {
-	{.cap_code=GF_PROP_PID_OTI, PROP_UINT( 0 ), GF_FALSE},
-	{.cap_code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
-	{.cap_code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
 	{}
 };
 
