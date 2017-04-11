@@ -707,34 +707,34 @@ static const GF_FilterArgs UTFilterArgs[] =
 
 static const GF_FilterCapability UTFilterInputs[] =
 {
-	{ .cap_string="cust", .val=PROP_NAME("UTSourceData") },
-	{ .cap_string="cust", .val=PROP_NAME("UTFilterData") },
+	{ .name="cust", .val=PROP_NAME("UTSourceData") },
+	{ .name="cust", .val=PROP_NAME("UTFilterData"), .start=GF_TRUE },
 	{}
 };
 
 static const GF_FilterCapability UTFilterOutputs[] =
 {
-	{.cap_string="cust", .val=PROP_NAME("UTSourceData") },
-	{.cap_string="cust", .val=PROP_NAME("UTFilterData") },
+	{.name="cust", .val=PROP_NAME("UTSourceData") },
+	{.name="cust", .val=PROP_NAME("UTFilterData"), .start=GF_TRUE },
 	{}
 };
 
 
 static const GF_FilterCapability UTSinkInputs[] =
 {
-	{ .cap_string="cust", .val=PROP_NAME("UTSourceData") },
+	{ .name="cust", .val=PROP_NAME("UTSourceData") },
 	{}
 };
 
 static const GF_FilterCapability UTSink2Inputs[] =
 {
-	{ .cap_string="cust", .val=PROP_NAME("UTFilterData") },
+	{ .name="cust", .val=PROP_NAME("UTFilterData") },
 	{}
 };
 
 static const GF_FilterCapability UTSourceOutputs[] =
 {
-	{.cap_string="cust", .val=PROP_NAME("UTSourceData") },
+	{.name="cust", .val=PROP_NAME("UTSourceData") },
 	{}
 };
 

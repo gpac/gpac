@@ -30,9 +30,14 @@
 #include <gpac/user.h>
 
 
+GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
+GF_Err compose_bifs_dec_process(GF_Scene *scene, GF_FilterPid *pid);
+
+GF_Err compose_odf_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
+GF_Err compose_odf_dec_process(GF_Scene *scene, GF_FilterPid *pid);
+
 typedef struct
 {
-
 	//FIXME, we need to get rid of this one!
 	GF_User user;
 
@@ -45,66 +50,75 @@ typedef struct
 static GF_Err compose_process(GF_Filter *filter)
 {
 	u32 i, count;
+	u32 ms_sys_wait = 0;
 	s32 ms_until_next=0;
-	const GF_PropertyValue *prop;
-	GF_FilterPacket *pck_dst;
-	GF_CompositorFilter *stack = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
 
-	count = gf_filter_get_ipid_count(filter);
+	ctx->compositor->ms_until_next_frame = 0;
+
+	count = gf_list_count(ctx->compositor->systems_pids);
 	for (i=0; i<count; i++) {
-		Double ts_offset;
-		GF_Err e;
-		GF_FilterPid *pid = gf_filter_get_ipid(filter, i);
+		GF_Err e = GF_EOS;
+		u32 oti=0, mtype=0;
+		const GF_PropertyValue *prop;
+		GF_FilterPid *pid = gf_list_get(ctx->compositor->systems_pids, i);
 		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
+		GF_Scene *scene;
+		assert (odm);
+		
+		scene = odm->subscene ? odm->subscene : odm->parentscene;
+
+		//TODO clean that by getting rid of OTI
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+		assert(prop);
+		mtype = prop->value.uint;
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+		assert(prop);
+		oti = prop->value.uint;
 
 		//that's a main PID
-		if (odm->subscene && (odm->subscene->root_od==odm)) {
-			char *data;
-			u32 size, ESID=0;
-			GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
-			if (!pck) continue;
-			data = gf_filter_pck_get_data(pck, &size);
-			if (!data) {
-				if (gf_filter_pck_get_eos(pck)) {
-					continue;
-				}
+		if (mtype==GF_STREAM_SCENE) {
+			if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
+
+				e = compose_bifs_dec_process(scene, pid);
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Unknwon OTI %d for BIFS stream type\n", oti));
 			}
-			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-			if (prop) ESID = prop->value.uint;
+		} else if (mtype==GF_STREAM_OD) {
+			e = compose_odf_dec_process(scene, pid);
+		}
 
-			ts_offset = (Double) gf_filter_pck_get_cts( pck );
-			ts_offset /= gf_filter_pck_get_timescale(pck);
-
-			e = gf_bifs_decode_au(odm->subscene->bifs_dec, ESID, data, size, ts_offset);
-
-			gf_filter_pid_drop_packet(pid);
-
-			if (e) return e;
-			gf_scene_attach_to_compositor(odm->subscene);
-
+		if (e==GF_EOS) {
+			gf_list_rem(ctx->compositor->systems_pids, i);
+			i--;
+			count--;
+			gf_odm_on_eos(odm, pid);
 		}
 	}
+	ms_sys_wait = ctx->compositor->ms_until_next_frame;
+	ctx->compositor->ms_until_next_frame = 0;
 
-	gf_sc_draw_frame(stack->compositor, GF_FALSE, &ms_until_next);
+	gf_sc_draw_frame(ctx->compositor, GF_FALSE, &ms_until_next);
+	if (ms_sys_wait && (ms_until_next>ms_sys_wait))
+		ms_until_next = ms_sys_wait;
+
+	//ask for real-time reschedule
+	gf_filter_ask_rt_reschedule(filter, ms_until_next*1000);
 
 	return GF_OK;
 }
-
-void gf_scene_insert_object(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid);
 
 static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_ObjectManager *odm;
 	const GF_PropertyValue *prop;
-	u32 mtype, oti, es_id=0;
+	u32 mtype, oti;
 	GF_Err e;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
 
 	if (is_remove)
 		return GF_NOT_SUPPORTED;
-
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
-	if (prop) es_id = prop->value.uint;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!prop) return GF_NOT_SUPPORTED;
@@ -138,46 +152,24 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		//todo for inline
 		scene = ctx->scene;
 
-
-		if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
-			Bool in_iod = GF_FALSE;
-			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-			if (prop && prop->value.boolean) in_iod = GF_TRUE;
-
-			if (in_iod) {
-				//IOD stream (BIFS/OD/OCR)
-				if (!scene->bifs_dec) scene->bifs_dec = gf_bifs_decoder_new(scene->graph, GF_FALSE);
-				gf_filter_pid_set_udta(pid, scene->root_od);
-
-				if (!scene->root_od->pid) {
-					scene->root_od->pid = pid;
-				}
-				//setup clock
-				gf_odm_setup_pid(scene->root_od, pid);
+		if  (mtype==GF_STREAM_SCENE) {
+			if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
+				e = compose_bifs_dec_config_input(scene, pid, oti, GF_FALSE);
+				if (e) return e;
+			} else {
+				return GF_NOT_SUPPORTED;
 			}
-			//animation stream object
-			else {
-				if (!scene->bifs_dec) {
-					return GF_NON_COMPLIANT_BITSTREAM;
-				}
-				gf_scene_insert_object(scene, scene->root_od->scene_ns, pid);
-			}
-
-			//we must have a dsi
-			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-			if (!prop || !prop->value.data || !prop->data_len) {
-				return GF_NON_COMPLIANT_BITSTREAM;
-			}
-			e = gf_bifs_decoder_configure_stream(scene->bifs_dec, es_id, prop->value.data, prop->data_len, oti);
+		} else if (mtype==GF_STREAM_OD) {
+			e = compose_odf_dec_config_input(scene, pid, oti, GF_FALSE);
 			if (e) return e;
-
 		} else {
 			return GF_NOT_SUPPORTED;
 		}
 		//TODO
 		return GF_OK;
 	} else {
-		if (oti != GPAC_OTI_RAW_MEDIA_STREAM) return GF_NOT_SUPPORTED;
+		if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
+			return GF_NOT_SUPPORTED;
 		//create a default scene
 		if (!ctx->scene) {
 			ctx->scene = gf_scene_new(ctx->compositor, NULL);
@@ -186,7 +178,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->scene->root_od->scene_ns = gf_scene_ns_new(ctx->scene, ctx->scene->root_od, "test", NULL);
 			ctx->scene->root_od->subscene = ctx->scene;
 		}
-		gf_scene_insert_object(ctx->scene, ctx->scene->root_od->scene_ns, pid);
+		gf_scene_insert_pid(ctx->scene, ctx->scene->root_od->scene_ns, pid);
 		gf_scene_regenerate(ctx->scene);
 
 	}
@@ -216,6 +208,9 @@ static void compose_finalize(GF_Filter *filter)
 
 Bool compose_EventProc(void *ptr, GF_Event *evt)
 {
+	if (evt->type==GF_EVENT_QUIT) {
+		gf_filter_session_abort(gf_filter_get_session( (GF_Filter *)ptr ), GF_EOS);
+	}
 	return 0;
 }
 
@@ -235,11 +230,11 @@ GF_Err compose_initialize(GF_Filter *filter)
 		return GF_SERVICE_ERROR;
 	}
 	ctx->user.EventProc = compose_EventProc;
-//	ctx->user.init_flags = GF_TERM_NO_REGULATION;
+	ctx->user.opaque = filter;
+	ctx->user.init_flags = GF_TERM_NO_REGULATION;
 	
 	ctx->compositor = gf_sc_new(&ctx->user);
 	if (!ctx->compositor) return GF_SERVICE_ERROR;
-
 	return GF_OK;
 }
 
@@ -252,12 +247,24 @@ static const GF_FilterArgs CompositorFilterArgs[] =
 
 static const GF_FilterCapability CompositorFilterInputs[] =
 {
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_SCENE_BIFS ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_SCENE_BIFS_V2 ), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), GF_FALSE},
-	{.cap_code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), GF_FALSE},
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_SCENE_BIFS ), GF_FALSE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_SCENE_BIFS_V2 ), GF_FALSE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_OD_V1 ), GF_FALSE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_OD_V2 ), GF_FALSE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ) },
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ) },
+
 	{ NULL }
 };
 

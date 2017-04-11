@@ -248,6 +248,8 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
 void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check);
 
+void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid);
+
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/
 Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt);
@@ -976,8 +978,6 @@ enum
 {
 	GF_ODM_STATE_STOP,
 	GF_ODM_STATE_PLAY,
-	GF_ODM_STATE_IN_SETUP,
-	GF_ODM_STATE_BLOCKED,
 };
 
 enum
@@ -989,6 +989,15 @@ enum
 	GF_ODM_ACTION_SCENE_RECONNECT,
 	GF_ODM_ACTION_SCENE_INLINE_RESTART,
 };
+
+typedef struct
+{
+	u32 pid_id; //esid for clock solving
+	u32 state;
+	Bool has_seen_eos;
+	GF_FilterPid *pid;
+} GF_ODMExtraPid;
+
 
 struct _od_manager
 {
@@ -1007,12 +1016,18 @@ struct _od_manager
 	GF_FilterPid *pid;
 	//object ID for linking with mediaobjects
 	u32 ID;
+	u32 pid_id; //esid for clock solving
+	
 	//parent service ID as defined from input
 	u32 ServiceID;
 	Bool hybrid_layered_coded;
 
+	Bool has_seen_eos;
+	GF_List *extra_pids;
+
 	Bool clock_inherited;
-	Bool buffering;
+	//0 or 1, except for IOD where we may have several BIFS/OD streams
+	u32 nb_buffering;
 
 	//internal hash for source allowing to distinguish input PIDs sources
 	u32 source_id;
@@ -1023,8 +1038,6 @@ struct _od_manager
 	u32 flags;
 
 	GF_MediaObject *sync_ref;
-	/*PLs*/
-	u8 Audio_PL, Graphics_PL, OD_PL, Scene_PL, Visual_PL;
 
 	/*interface with scene rendering*/
 	struct _mediaobj *mo;
@@ -1078,33 +1091,36 @@ void gf_odm_del(GF_ObjectManager *ODMan);
 
 /*setup service entry point*/
 void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
+
 /*setup OD*/
-void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url);
+void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid);
+
+void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, char *remote_url);
+
 /*disctonnect OD and removes it if desired (otherwise only STOP is propagated)*/
 void gf_odm_disconnect(GF_ObjectManager *odman, u32 do_remove);
 /*setup PID attached to this object*/
 GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid);
 
+//if register_only is false, calls gf_odm_setup_object on the given PID
+void gf_odm_register_pid(GF_ObjectManager *odm, GF_FilterPid *pid, Bool register_only);
+
 /*removes an ESD (this destroys associated channel if any)*/
 void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 
+Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid);
+
+/*signals end of stream on channels*/
+void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid);
+
 #if FILTER_FIXME
-/*set stream duration - updates object duration accordingly*/
-void gf_odm_set_duration(GF_ObjectManager *odm, GF_Channel *, u64 stream_duration);
 
 /*set time shift buffer duration */
 void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *, u32 time_shift_ms);
-
-/*signals end of stream on channels*/
-void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *);
 #endif
 
-/*start Object streams and queue object for network PLAY
-media_queue_state: 0: object was not in media queue and must be queued
-                   1: object is already in media queue
-                   2: object shall not be queued bu started directly
-*/
-void gf_odm_start(GF_ObjectManager *odm, u32 media_queue_state);
+/*send PLAY request on associated PID*/
+void gf_odm_start(GF_ObjectManager *odm);
 /*stop OD streams*/
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close);
 /*send PLAY request to network - needed to properly handle multiplexed inputs

@@ -127,6 +127,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
+	case GF_PROP_DATA_NO_COPY:
 		if (!value || (sscanf(value, "%p:%d", &p.value.ptr, &p.data_len)!=2) ) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for data arg %s - using 0\n", value, name));
 		}
@@ -318,6 +319,8 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	if (prop->prop.type == GF_PROP_DATA) {
 		prop->prop.value.data = gf_malloc(sizeof(char) * value->data_len);
 		memcpy(prop->prop.value.data, value->value.data, value->data_len);
+	} else if (prop->prop.type == GF_PROP_DATA_NO_COPY) {
+		prop->prop.type = GF_PROP_DATA;
 	} else if (prop->prop.type != GF_PROP_CONST_DATA) {
 		prop->prop.data_len = 0;
 	}
@@ -435,6 +438,7 @@ struct _gf_prop_typedef {
 } GF_BuiltInProps [] = {
 
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
+	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID, if different from ID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
 
@@ -445,6 +449,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
 	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as register for MPEG-4", GF_PROP_UINT},
 	{ GF_PROP_PID_IN_IOD, "InInitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},
+	{ GF_PROP_PID_DURATION, "Duration", "indicates the PID duration", GF_PROP_FRACTION},
 
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "data property containing the decoder config", GF_PROP_DATA},

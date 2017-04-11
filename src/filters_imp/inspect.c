@@ -114,6 +114,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		break;
 	case GF_PROP_DATA:
 	case GF_PROP_CONST_DATA:
+	case GF_PROP_DATA_NO_COPY:
 		if (ctx->dump_data) {
 			u32 i;
 			fprintf(dump, "%d bytes 0x", att->data_len);

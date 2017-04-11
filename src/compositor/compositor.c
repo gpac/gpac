@@ -525,6 +525,7 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		return GF_IO_ERR;
 	}
 
+	compositor->systems_pids = gf_list_new();
 	compositor->textures = gf_list_new();
 	compositor->textures_gc = gf_list_new();
 	compositor->frame_rate = 30.0;
@@ -661,6 +662,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->focus_ancestors) gf_list_del(compositor->focus_ancestors);
 	if (compositor->focus_use_stack) gf_list_del(compositor->focus_use_stack);
 	if (compositor->env_tests) gf_list_del(compositor->env_tests);
+	if (compositor->systems_pids) gf_list_del(compositor->systems_pids);
 
 	if (compositor->traverse_state) {
 		gf_list_del(compositor->traverse_state->vrml_sensors);

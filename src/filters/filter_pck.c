@@ -254,6 +254,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
+	pid->has_seen_eos = GF_FALSE;
 
 	//a new property map was created - we cannot post a task now since we have pending packets in the old context
 	//fust flag the packet
@@ -411,7 +412,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
 				if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
 
-				gf_fs_post_task(pid->filter->session, gf_filter_process_task, dst->filter, pid, "process");
+				gf_fs_post_task(pid->filter->session, gf_filter_process_task, dst->filter, pid, "process", NULL);
 			}
 		}
 	}

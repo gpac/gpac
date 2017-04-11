@@ -45,6 +45,7 @@ typedef struct __gf_filter_pid GF_FilterPid;
 typedef struct __gf_filter_pck GF_FilterPacket;
 typedef void (*packet_destructor)(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck);
 
+typedef union __gf_filter_event GF_FilterEvent;
 
 typedef enum
 {
@@ -81,6 +82,9 @@ typedef enum
 	GF_PROP_DATA,
 	//const string property, memory is NOT duplicated when setting the property, stays user-managed
 	GF_PROP_NAME,
+	//data property, memory is NOT duplicated when setting the property but is then managed (and free) internally
+	//only used when setting a property, the type then defaults to GF_PROP_DATA
+	GF_PROP_DATA_NO_COPY,
 	//const data property, memory is NOT duplicated when setting the property, stays user-managed
 	GF_PROP_CONST_DATA,
 	//user-managed pointer
@@ -125,6 +129,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
 #define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
 #define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
+#define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data = _val, .data_len=_len}
 #define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data = _val, .data_len=_len}
 
 #define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
@@ -149,18 +154,18 @@ typedef struct
 
 typedef struct
 {
-	//name of the capability listed. the special value * is used to indicate that the capability is
-	//solved at run time (the filter must be loaded)
-	u32 cap_code;
+	//set to true to indicate the start of a new set of cap. The first cap is treated as cap_start=TRUE
+	Bool start;
+	//4cc of the capability listed.
+	u32 code;
 
 	GF_PropertyValue val;	//default type and value of the capability listed
-	//if set to true the cap has to be present, and with this value.
-	//you may sepcify several times the same cap name with different values (accept variations of the format),
-	//but you must not assign the mandatory flag in that case
-	Bool mandatory;
 
-
-	const char *cap_string;
+	//when set to true the cap is valid if the value does not match
+	Bool exclude;
+	//name of the capability listed. the special value * is used to indicate that the capability is
+	//solved at run time (the filter must be loaded)
+	const char *name;
 } GF_FilterCapability;
 
 typedef struct __gf_filter_register
@@ -206,6 +211,9 @@ typedef struct __gf_filter_register
 	//if function is NULL, all updatable arguments will be changed in the stack without the filter being notified
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
+	//optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
+	Bool (*process_event)(GF_Filter *filter, GF_FilterEvent *evt);
+
 	//optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
 	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	void *udta;
@@ -219,6 +227,12 @@ void gf_fs_register_test_filters(GF_FilterSession *fsess);
 void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
 const char *gf_filter_get_name(GF_Filter *filter);
+
+void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
+
+
+GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
+void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
@@ -254,6 +268,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid);
 //signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
 //since there is no explicit link between input PIDs and output PIDs
 void gf_filter_pid_set_eos(GF_FilterPid *pid);
+Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
 
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
@@ -322,6 +337,7 @@ enum
 {
 	//(uint) PID ID
 	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
+	GF_PROP_PID_ESID = GF_4CC('E','S','I','D'),
 
 	//(uint) ID of originating service
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
@@ -336,6 +352,9 @@ enum
 	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
 	//(bool) object type indication , matching gpac OTI types
 	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
+
+	//(rational) PID duration
+	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
 
 	//(uint) timescale of pid
 	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
@@ -377,6 +396,69 @@ enum
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
+
+
+//PID messaging: PIDs may receive commands and may emit messages using this system
+//event may flow
+// downwards (towards the source, in whcih case they are commands,
+// upwards (towards the sink) in which case they are informative event.
+//A filter not implementing a process_event will result in the event being forwarded (down/up) to all PIDs (input/output)
+//A filter may decide to cancel an event, in which case the event is no longer forwarded
+
+typedef enum
+{
+	/*channel control, app->module. Note that most modules don't need to handle pause/resume/set_speed*/
+	GF_FEVT_PLAY = 1,
+	GF_FEVT_SET_SPEED,
+	GF_FEVT_STOP,
+} GF_FEventType;
+
+/*command type: the type of the event*/
+/*on_pid: PID to which the event is targeted. If NULL the event is targeted at the whole filter */
+#define FILTER_EVENT_BASE \
+	GF_FEventType type; \
+	GF_FilterPid *on_pid; \
+
+
+#define GF_FEVT_INIT(_a, _type, _on_pid)	{ memset(&_a, 0, sizeof(GF_FilterEvent)); _a.base.type = _type; _a.base.on_pid = _on_pid; }
+
+
+typedef struct
+{
+	FILTER_EVENT_BASE
+} GF_FEVT_Base;
+
+
+/*GF_NET_CHAN_PLAY, GF_NET_CHAN_SET_SPEED*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	/*params for GF_NET_CHAN_PLAY only: ranges in sec - if range is <0, then it is ignored (eg [2, -1] with speed>0 means 2 +oo) */
+	Double start_range, end_range;
+	/*params for GF_NET_CHAN_PLAY and GF_NET_CHAN_SPEED*/
+	Double speed;
+
+	/*params for GF_NET_CHAN_PLAY only: indicates this is the first PLAY on an element inserted from bcast*/
+	u8 initial_broadcast_play;
+	/*params for GF_NET_CHAN_PLAY only
+		0: range is in media time
+		1: range is in timesatmps
+		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
+	*/
+	u8 timestamp_based;
+} GF_FEVT_Play;
+
+
+union __gf_filter_event
+{
+	GF_FEVT_Base base;
+	GF_FEVT_Play play;
+};
+
+
+
+void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
 #ifdef __cplusplus
 }

@@ -194,6 +194,9 @@ struct __tag_compositor
 	/*compositor exclusive access to the scene and display*/
 	GF_Mutex *mx;
 
+	//list of pids we need to monitor at each render pass. For now BIFS and OD only
+	GF_List *systems_pids;
+
 	/*list of modules containing hardcoded proto implementations*/
 	GF_List *proto_modules;
 
