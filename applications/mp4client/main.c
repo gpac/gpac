@@ -1135,11 +1135,11 @@ Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnum
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {
 			sep[0] = 0;
-			dir_len = strlen(item_path);
+			dir_len = (u32) strlen(item_path);
 			sep[0] = 'g';
 		}
 		url+=3;
-		len = strlen(url);
+		len = (u32) strlen(url);
 		dst_name = gf_malloc(len+dir_len+1);
 		memset(dst_name, 0, len+dir_len+1);
 
