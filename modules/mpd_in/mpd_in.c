@@ -91,6 +91,7 @@ const char * MPD_M3U8_EXT = "m3u8 m3u";
 
 const char * MPD_SMOOTH_DESC = "Microsoft Smooth Streaming";
 const char * MPD_SMOOTH_EXT = "ism";
+const char * MPD_SMOOTH_URL_EXT = ".ism/Manifest";
 
 static u32 MPD_RegisterMimeTypes(const GF_InputService *plug)
 {
@@ -131,7 +132,7 @@ Bool MPD_CanHandleURL(GF_InputService *plug, const char *url)
 			return GF_TRUE;
 	}
 
-	return gf_dash_check_mpd_root_type(url);
+	return gf_dash_check_mpd_root_type(url) || strstr(url, MPD_SMOOTH_URL_EXT);
 }
 
 
