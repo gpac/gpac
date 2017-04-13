@@ -721,7 +721,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 
 					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 
-					e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, i+1, &is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
+					e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, i+1, (u32*)&is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
 					if (e) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", i+1, gf_error_to_string(e) ));
 						return e;
