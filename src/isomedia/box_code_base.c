@@ -7427,6 +7427,8 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 	u32 i;
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
 	ptr->type = ptr->reference_type;
+	if (!ptr->trackIDCount) return GF_OK;
+	
 	e = gf_isom_box_write_header(s, bs);
 	ptr->type = GF_ISOM_BOX_TYPE_REFT;
 	if (e) return e;
@@ -7440,7 +7442,10 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err reftype_Size(GF_Box *s)
 {
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
-	ptr->size += (ptr->trackIDCount * sizeof(u32));
+	if (!ptr->trackIDCount)
+		ptr->size=0;
+	else
+		ptr->size += (ptr->trackIDCount * sizeof(u32));
 	return GF_OK;
 }
 
