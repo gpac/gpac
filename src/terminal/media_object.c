@@ -376,24 +376,23 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	obj_time = gf_clock_time(mo->odm->ck);
 
 	skip_resync = GF_FALSE;
-#if FILTER_FIXME
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
-	if ((odm->ck->speed == FIX_ONE) && (mo->type==GF_MEDIA_OBJECT_VIDEO)
-		&& !(codec->flags & GF_ESM_CODEC_IS_LOW_LATENCY)
+	if ((mo->odm->ck->speed == FIX_ONE)
+		&& (mo->type==GF_MEDIA_OBJECT_VIDEO)
+		&& ! mo->odm->low_latency_mode
 	) {
+		assert(mo->odm->parentscene);
 
-
-		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
+		if (! mo->odm->parentscene->compositor->drop_late_frames) {
 			//if the next AU is at most 1 sec from the current clock use no drop mode
 //			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d next data length %d (%d in CB)\n", mo->odm->ID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
-			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
+			if (next_pck && (next_ts + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, CU->TS, CU->next->TS, resync));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
 			}
 		}
 	}
-#endif
 
 	if (skip_resync) {
 		resync=GF_MO_FETCH; //prevent resync code below
@@ -529,7 +528,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	/*also adjust CU time based on consummed bytes in input, since some codecs output very large audio chunks*/
 	if (mo->bytes_per_sec) mo->timestamp += mo->RenderedLength * 1000 / mo->bytes_per_sec;
 
-	if (bench_mode) {
+	if (mo->odm->parentscene->compositor->bench_mode) {
 		mo->ms_until_pres = -1;
 		mo->ms_until_next = 1;
 	}
@@ -1320,6 +1319,8 @@ void gf_mo_del(GF_MediaObject *mo)
 	assert(gf_list_count(mo->evt_targets) == 0);
 	gf_list_del(mo->evt_targets);
 	if (mo->pck) gf_filter_pck_unref(mo->pck);
+
+	gf_sg_mfurl_del(mo->URLs);
 	gf_free(mo);
 }
 

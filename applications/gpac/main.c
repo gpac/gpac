@@ -216,7 +216,7 @@ int gpac_main(int argc, char **argv)
 		}
 	}
 
-	session = gf_fs_new(nb_threads, sched_type, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE);
+	session = gf_fs_new(nb_threads, sched_type, NULL, ((list_filters==2) || print_filter_info) ? GF_TRUE : GF_FALSE);
 	if (!session) {
 		return 1;
 	}

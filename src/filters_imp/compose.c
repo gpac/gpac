@@ -27,7 +27,6 @@
 #include <gpac/config_file.h>
 #include <gpac/compositor.h>
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/user.h>
 
 
 GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
@@ -38,14 +37,25 @@ GF_Err compose_odf_dec_process(GF_Scene *scene, GF_FilterPid *pid);
 
 typedef struct
 {
+	u32 magic;	//must be "comp"
+	void *magic_ptr; //must point to this structure
+
 	//FIXME, we need to get rid of this one!
 	GF_User user;
 
 	//compositor
 	GF_Compositor *compositor;
-	GF_Scene *scene;
 } GF_CompositorFilter;
 
+//a bit ugly, used by terminal (old APIs)
+GF_Compositor *gf_sc_from_filter(GF_Filter *filter)
+{
+	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+	if (ctx->magic != GF_4CC('c','o','m','p')) return NULL;
+	if (ctx->magic_ptr != ctx) return NULL;
+
+	return ctx->compositor;
+}
 
 static GF_Err compose_process(GF_Filter *filter)
 {
@@ -53,8 +63,6 @@ static GF_Err compose_process(GF_Filter *filter)
 	u32 ms_sys_wait = 0;
 	s32 ms_until_next=0;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
-
-	ctx->compositor->ms_until_next_frame = 0;
 
 	count = gf_list_count(ctx->compositor->systems_pids);
 	for (i=0; i<count; i++) {
@@ -103,6 +111,10 @@ static GF_Err compose_process(GF_Filter *filter)
 	if (ms_sys_wait && (ms_until_next>ms_sys_wait))
 		ms_until_next = ms_sys_wait;
 
+	//to clean up,depending on whether we use a thread to poll user inputs, etc...
+	if (ms_until_next > 100)
+		ms_until_next = 100;
+
 	//ask for real-time reschedule
 	gf_filter_ask_rt_reschedule(filter, ms_until_next*1000);
 
@@ -142,15 +154,15 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
 		GF_Scene *scene = NULL;
 		//create a default scene
-		if (!ctx->scene) {
-			ctx->scene = gf_scene_new(ctx->compositor, NULL);
-			ctx->scene->is_dynamic_scene = GF_FALSE;
-			ctx->scene->root_od = gf_odm_new();
-			ctx->scene->root_od->scene_ns = gf_scene_ns_new(ctx->scene, ctx->scene->root_od, "test", NULL);
-			ctx->scene->root_od->subscene = ctx->scene;
+		if (!ctx->compositor->root_scene) {
+			ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
+			ctx->compositor->root_scene->is_dynamic_scene = GF_FALSE;
+			ctx->compositor->root_scene->root_od = gf_odm_new();
+			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
+			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
 		}
 		//todo for inline
-		scene = ctx->scene;
+		scene = ctx->compositor->root_scene;
 
 		if  (mtype==GF_STREAM_SCENE) {
 			if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
@@ -171,15 +183,15 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
 			return GF_NOT_SUPPORTED;
 		//create a default scene
-		if (!ctx->scene) {
-			ctx->scene = gf_scene_new(ctx->compositor, NULL);
-			ctx->scene->is_dynamic_scene = GF_TRUE;
-			ctx->scene->root_od = gf_odm_new();
-			ctx->scene->root_od->scene_ns = gf_scene_ns_new(ctx->scene, ctx->scene->root_od, "test", NULL);
-			ctx->scene->root_od->subscene = ctx->scene;
+		if (!ctx->compositor->root_scene) {
+			ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
+			ctx->compositor->root_scene->is_dynamic_scene = GF_TRUE;
+			ctx->compositor->root_scene->root_od = gf_odm_new();
+			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
+			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
 		}
-		gf_scene_insert_pid(ctx->scene, ctx->scene->root_od->scene_ns, pid);
-		gf_scene_regenerate(ctx->scene);
+		gf_scene_insert_pid(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od->scene_ns, pid);
+		gf_scene_regenerate(ctx->compositor->root_scene);
 
 	}
 
@@ -197,8 +209,8 @@ static void compose_finalize(GF_Filter *filter)
 
 	if (ctx->compositor) {
 		gf_sc_set_scene(ctx->compositor, NULL);
-		if (ctx->scene) {
-			gf_odm_disconnect(ctx->scene->root_od, GF_TRUE);
+		if (ctx->compositor->root_scene) {
+			gf_odm_disconnect(ctx->compositor->root_scene->root_od, GF_TRUE);
 		}
 		gf_sc_del(ctx->compositor);
 	}
@@ -206,35 +218,18 @@ static void compose_finalize(GF_Filter *filter)
 	if (ctx->user.config) gf_cfg_del(ctx->user.config);
 }
 
-Bool compose_EventProc(void *ptr, GF_Event *evt)
-{
-	if (evt->type==GF_EVENT_QUIT) {
-		gf_filter_session_abort(gf_filter_get_session( (GF_Filter *)ptr ), GF_EOS);
-	}
-	return 0;
-}
-
 GF_Err compose_initialize(GF_Filter *filter)
 {
-	u32 count=0;
-	GF_PropertyValue p;
 	GF_CompositorFilter *ctx = gf_filter_get_udta(filter);
 
+	ctx->magic = GF_4CC('c','o','m','p');
+	ctx->magic_ptr = ctx;
 
-	ctx->user.config = gf_cfg_init(NULL, NULL);
-	if (!ctx->user.config) return GF_SERVICE_ERROR;
-	ctx->user.modules = gf_modules_new(NULL, ctx->user.config);
-	if (ctx->user.modules) count = gf_modules_get_count(ctx->user.modules);
-	if (!count || !ctx->user.modules) {
-		fprintf(stderr, "Error: no modules found - cannot load compositor\n");
-		return GF_SERVICE_ERROR;
-	}
-	ctx->user.EventProc = compose_EventProc;
-	ctx->user.opaque = filter;
-	ctx->user.init_flags = GF_TERM_NO_REGULATION;
-	
-	ctx->compositor = gf_sc_new(&ctx->user);
+	ctx->compositor = gf_sc_new( gf_fs_get_user( gf_filter_get_session(filter) ) );
 	if (!ctx->compositor) return GF_SERVICE_ERROR;
+	ctx->compositor->no_regulation = GF_TRUE;
+	ctx->compositor->filter = filter;
+	ctx->compositor->fsess = gf_filter_get_session(filter);
 	return GF_OK;
 }
 

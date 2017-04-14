@@ -41,7 +41,7 @@ extern "C" {
 #include <gpac/mediaobject.h>
 #include <gpac/bifs.h>
 
-typedef struct _scene GF_Scene;
+typedef struct _gf_scene GF_Scene;
 typedef struct _gf_addon_media GF_AddonMedia;
 typedef struct _object_clock GF_Clock;
 
@@ -52,6 +52,8 @@ typedef struct _es_channel GF_Channel;
 typedef struct _generic_codec GF_Codec;
 typedef struct _composition_memory GF_CompositionMemory;
 
+#endif
+
 /*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
 this is mainly designed for movie dumping in MP4Client*/
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
@@ -60,7 +62,14 @@ u32 gf_term_sample_clocks(GF_Terminal *term);
 
 u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions);
 
-#endif
+
+struct _tag_terminal
+{
+	GF_User *user;
+	GF_Compositor *compositor;
+	GF_FilterSession *fsess;
+};
+
 
 typedef struct
 {
@@ -69,14 +78,17 @@ typedef struct
 
 	/*service url*/
 	char *url;
+	GF_Filter *source_filter;
 
 	/*number of attached remote channels ODM (ESD URLs)*/
-	u32 nb_ch_users;
+//	u32 nb_ch_users;
 	/*number of attached remote ODM (OD URLs)*/
 	u32 nb_odm_users;
 
 	/*clock objects. Kept at service level since ESID namespace is the service one*/
 	GF_List *Clocks;
+
+	Fixed set_speed;
 } GF_SceneNamespace;
 
 
@@ -86,6 +98,7 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 /*destroy service*/
 void gf_scene_ns_del(GF_SceneNamespace *ns);
 
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
 
 
 
@@ -99,7 +112,7 @@ void gf_scene_ns_del(GF_SceneNamespace *ns);
 
 		The scene object is also used by Inline nodes and all media resources of type "scene", eg <foreignObject>, <animation>
 */
-struct _scene
+struct _gf_scene
 {
 	/*root OD of the subscene, ALWAYS namespace of the parent scene*/
 	struct _od_manager *root_od;
@@ -258,7 +271,7 @@ void gf_scene_force_size_to_video(GF_Scene *scene, GF_MediaObject *mo);
 //check clock status.
 //If @check_buffering is 0, returns 1 if all clocks have seen eos, 0 otherwise
 //If @check_buffering is 1, returns 1 if no clock is buffering, 0 otheriwse
-Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering);
+Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_buffering);
 
 void gf_scene_notify_event(GF_Scene *scene, u32 event_type, GF_Node *n, void *dom_evt, GF_Err code, Bool no_queueing);
 
@@ -319,8 +332,6 @@ enum
 	GF_TERM_DEAD = 1<<21,
 	GF_TERM_SINGLE_THREAD = 1<<22,
 	GF_TERM_MULTI_THREAD = 1<<23,
-	GF_TERM_DROP_LATE_FRAMES = 1<<24,
-	GF_TERM_SINGLE_CLOCK = 1<<25
 };
 
 /*URI relocators are used for containers like zip or ISO FF with file items. The relocator
@@ -410,8 +421,6 @@ struct _tag_terminal
 	the initial buffering aborts. */
 	u32 net_data_timeout;
 
-	u32 play_state;
-
 	u32 reload_state;
 	char *reload_url;
 
@@ -470,11 +479,6 @@ void gf_term_stop_codec(GF_Codec *codec, u32 reason);
 void gf_term_set_threading(GF_Terminal *term, u32 mode);
 void gf_term_set_priority(GF_Terminal *term, s32 Priority);
 
-
-Bool gf_term_forward_event(GF_Terminal *term, GF_Event *evt, Bool consumed, Bool forward_only);
-
-/*error report function*/
-void gf_term_message(GF_Terminal *app, const char *service, const char *message, GF_Err error);
 /*posts a request to connect a given object*/
 void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
 /*creates service for given channel / URL*/
@@ -499,10 +503,8 @@ void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *o
 
 /*locks scene compositor*/
 void gf_term_lock_compositor(GF_Terminal *app, Bool LockIt);
-/*get scene compositor time - FIXME this is not flexible enough for SMIL/Multiple time containers*/
-u32 gf_term_get_time(GF_Terminal *term);
-/*forces scene composition*/
-void gf_term_invalidate_compositor(GF_Terminal *term);
+
+
 
 /*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).
 For these nodes, the traverse effect passed will be NULL.*/
@@ -1012,6 +1014,7 @@ struct _od_manager
 	/*clock for this object*/
 	GF_Clock *ck;
 	u32 nb_dropped;
+	Bool low_latency_mode;
 	
 	GF_FilterPid *pid;
 	//object ID for linking with mediaobjects
@@ -1084,6 +1087,8 @@ struct _od_manager
 	struct _od_manager *upper_layer_odm;
 	//for a scalable ODM, this indicates the lower layer odm associated
 	struct _od_manager *lower_layer_odm;
+
+	s32 last_drawn_frame_ntp_diff;
 };
 
 GF_ObjectManager *gf_odm_new();
@@ -1230,11 +1235,6 @@ typedef struct
 /*post-poned channel connect*/
 GF_Err gf_odm_post_es_setup(struct _es_channel *ch, struct _generic_codec *dec, GF_Err err);
 
-/*
-	special entry point: specify directly a service interface for service input
-*/
-void gf_term_attach_service(GF_Terminal *term, GF_InputService *service_hdl);
-
 
 /*media access events */
 void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
@@ -1256,6 +1256,9 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 #endif
 
+
+void gf_scene_message(GF_Scene *scene, const char *service, const char *message, GF_Err error);
+void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *message, GF_Err error, Bool no_filtering);
 
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
 Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);

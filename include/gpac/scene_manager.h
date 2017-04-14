@@ -253,7 +253,7 @@ struct __scene_loader
 	/*scene graph worked on - may be NULL if ctx is present*/
 	GF_SceneGraph *scene_graph;
 
-	struct _scene  *is;
+	struct _gf_scene  *is;
 
 	/*context manager to load (MUST BE RESETED BEFORE if needed) - may be NULL for loaders not using commands,
 	in which case the graph will be directly updated*/

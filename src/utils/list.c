@@ -662,6 +662,8 @@ GF_Err gf_list_rem(GF_List *ptr, u32 itemNumber)
 {
 	u32 i;
 	if ( !ptr || !ptr->slots || !ptr->entryCount) return GF_BAD_PARAM;
+	if (ptr->entryCount < itemNumber) return GF_BAD_PARAM;
+	
 	i = ptr->entryCount - itemNumber - 1;
 	if (i) memmove(&ptr->slots[itemNumber], & ptr->slots[itemNumber +1], sizeof(void *)*i);
 	ptr->slots[ptr->entryCount-1] = NULL;

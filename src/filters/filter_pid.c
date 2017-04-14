@@ -201,11 +201,11 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 			//source filters, start flushing data
 			//commented for now, we may want an auto-start
 			if (0 && !pid->filter->input_pids) {
-				gf_fs_post_task(filter->session, gf_filter_process_task, pid->filter, NULL, "process", NULL);
+				gf_filter_post_process_task(pid->filter);
 			}
 			//other filters with packets ready in inputs, start processing
 			else if (pid->filter->pending_packets) {
-				gf_fs_post_task(filter->session, gf_filter_process_task, pid->filter, NULL, "process", NULL);
+				gf_filter_post_process_task(pid->filter);
 			}
 		}
 	}
@@ -926,7 +926,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 		if (!pid->filter->would_block) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s unblocked, requesting process task\n", pid->filter->name));
 			//requeue task
-			gf_fs_post_task(pid->filter->session, gf_filter_process_task, pid->filter, pid, "process", NULL);
+			gf_filter_post_process_task(pid->filter);
 		}
 	}
 
@@ -1046,6 +1046,16 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 	return pid->pid->has_seen_eos;
 }
 
+static const char *get_fevt_name(u32 type)
+{
+	switch (type) {
+	case GF_FEVT_PLAY: return "PLAY";
+	case GF_FEVT_SET_SPEED: return "SET_SPEED";
+	case GF_FEVT_STOP: return "STOP";
+	default: return "UNKNOWN";
+	}
+}
+
 
 Bool gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
@@ -1056,16 +1066,12 @@ Bool gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 	if (f->freg->process_event) {
 		canceled = f->freg->process_event(f, evt);
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
 
 		//source filters and play command, request a process task
 		if (!f->input_pids) {
 			if (evt->base.type==GF_FEVT_PLAY) {
-				if (!f->source_process_queued)
-					gf_fs_post_task(f->session, gf_filter_process_task, f, NULL, "process", NULL);
-				f->source_process_queued = GF_TRUE;
-			}
-			else if (evt->base.type==GF_FEVT_STOP) {
-				f->source_process_queued = GF_FALSE;
+				gf_filter_post_process_task(f);
 			}
 		}
 	}
@@ -1112,6 +1118,13 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	dup_evt->base.on_pid = pid->pid;
 
 	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, pid->pid, "downstream_event", dup_evt);
-
-
 }
+
+
+Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter)
+{
+	if (!pid || !filter) return GF_FALSE;
+	pid = pid->pid;
+	return filter_in_parent_chain(pid->pid->filter, filter);
+}
+

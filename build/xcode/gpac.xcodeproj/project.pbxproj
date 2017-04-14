@@ -292,6 +292,8 @@
 		9235E0521CFECD450051D8A1 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9235E0511CFECD450051D8A1 /* VideoToolbox.framework */; };
 		9235E0531CFECD520051D8A1 /* CoreFoundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 28C5AA661A152BB700372C59 /* CoreFoundation.framework */; };
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
+		9251CA8A1E9D3E960089DDC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA881E9D3E2B0089DDC6 /* main.c */; };
+		9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA8B1E9D3F880089DDC6 /* terminal.c */; };
 		9252708E1E97D3E80075727A /* compose_bifs_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9252708D1E97D3E80075727A /* compose_bifs_dec.c */; };
 		925270901E97EABC0075727A /* compose_odf_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9252708F1E97EABC0075727A /* compose_odf_dec.c */; };
 		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
@@ -436,6 +438,8 @@
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
+		92F4CE0F1E9E7202006A9845 /* object_browser.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F4CE0E1E9E7202006A9845 /* object_browser.c */; };
+		92F4CE121E9E7737006A9845 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F4CE101E9E7708006A9845 /* extract.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 /* End PBXBuildFile section */
@@ -1107,6 +1111,8 @@
 		9235E04F1CFECD370051D8A1 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
 		9235E0511CFECD450051D8A1 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
+		9251CA881E9D3E2B0089DDC6 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4client/main.c; sourceTree = "<group>"; };
+		9251CA8B1E9D3F880089DDC6 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
 		9252708D1E97D3E80075727A /* compose_bifs_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = compose_bifs_dec.c; path = filters_imp/compose_bifs_dec.c; sourceTree = "<group>"; };
 		9252708F1E97EABC0075727A /* compose_odf_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = compose_odf_dec.c; path = filters_imp/compose_odf_dec.c; sourceTree = "<group>"; };
 		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
@@ -1252,6 +1258,8 @@
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
+		92F4CE0E1E9E7202006A9845 /* object_browser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = object_browser.c; sourceTree = "<group>"; };
+		92F4CE101E9E7708006A9845 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/mp4client/extract.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -1536,6 +1544,8 @@
 		9201007718D5A444003D1ACA /* terminal */ = {
 			isa = PBXGroup;
 			children = (
+				92F4CE0E1E9E7202006A9845 /* object_browser.c */,
+				9251CA8B1E9D3F880089DDC6 /* terminal.c */,
 				92C1FF5C1E7C4AC90093B61E /* network_service.c */,
 				92C1FF481E7C2B950093B61E /* object_manager.c */,
 				92C1FF401E7C18870093B61E /* media_control.c */,
@@ -2158,6 +2168,15 @@
 			path = isomedia;
 			sourceTree = "<group>";
 		};
+		9251CA871E9D3DFE0089DDC6 /* MP4Client */ = {
+			isa = PBXGroup;
+			children = (
+				92F4CE101E9E7708006A9845 /* extract.c */,
+				9251CA881E9D3E2B0089DDC6 /* main.c */,
+			);
+			name = MP4Client;
+			sourceTree = "<group>";
+		};
 		927AACF81E44ED5C008C8E69 /* gpac */ = {
 			isa = PBXGroup;
 			children = (
@@ -2350,6 +2369,7 @@
 		92BE50AC18D6375100AA59D8 /* applications */ = {
 			isa = PBXGroup;
 			children = (
+				9251CA871E9D3DFE0089DDC6 /* MP4Client */,
 				927AACF81E44ED5C008C8E69 /* gpac */,
 				92D5356F1A5C0CF700F2442A /* carbon_events.c */,
 				92BE50B518D6D53000AA59D8 /* MP42TS */,
@@ -3044,6 +3064,7 @@
 				920100E418D5A444003D1ACA /* mpeg4_layer_3d.c in Sources */,
 				920100E518D5A444003D1ACA /* mpeg4_layout.c in Sources */,
 				920100E618D5A444003D1ACA /* mpeg4_lighting.c in Sources */,
+				9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */,
 				920100E718D5A444003D1ACA /* mpeg4_path_layout.c in Sources */,
 				920100E818D5A444003D1ACA /* mpeg4_sensors.c in Sources */,
 				920100E918D5A444003D1ACA /* mpeg4_sound.c in Sources */,
@@ -3236,6 +3257,7 @@
 				920101A418D5A445003D1ACA /* term_node_init.c in Sources */,
 				920101A618D5A445003D1ACA /* alloc.c in Sources */,
 				920101A718D5A445003D1ACA /* base_encoding.c in Sources */,
+				92F4CE0F1E9E7202006A9845 /* object_browser.c in Sources */,
 				920101A818D5A445003D1ACA /* bitstream.c in Sources */,
 				920101A918D5A445003D1ACA /* cache.c in Sources */,
 				920101AA18D5A445003D1ACA /* color.c in Sources */,
@@ -3357,6 +3379,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92F4CE121E9E7737006A9845 /* extract.c in Sources */,
+				9251CA8A1E9D3E960089DDC6 /* main.c in Sources */,
 				92D535711A5C0D1400F2442A /* carbon_events.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

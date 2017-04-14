@@ -89,8 +89,10 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	if (filter->freg->initialize) {
 		GF_Err e = filter->freg->initialize(filter);
 		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e), registry->name));
-			gf_free(filter);
+			if (!filter->finalized) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e), registry->name));
+				gf_filter_setup_failure(filter, e);
+			}
 			return NULL;
 		}
 	}
@@ -189,7 +191,7 @@ void gf_filter_set_sources(GF_Filter *filter, const char *sources_ID)
 	filter->source_ids = sources_ID ? gf_strdup(sources_ID) : NULL;
 }
 
-static void filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
+void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv)
 {
 	void *ptr = filter->filter_udta + a->offset_in_private;
 	Bool res = GF_FALSE;
@@ -293,7 +295,7 @@ Bool gf_filter_update_arg_task(GF_FSTask *task)
 		if (argv.type != GF_PROP_FORBIDEN) {
 			GF_Err e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
 			if (e==GF_OK) {
-				filter_set_arg(task->filter, a, &argv);
+				gf_filter_set_arg(task->filter, a, &argv);
 			} else {
 				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s did not accept opdate of arg %s to value %s: %s\n", task->filter->name, arg->name, arg->val, gf_error_to_string(e) ));
 			}
@@ -348,7 +350,7 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 
 		if (argv.type != GF_PROP_FORBIDEN) {
 			if (a->offset_in_private>=0) {
-				filter_set_arg(filter, a, &argv);
+				gf_filter_set_arg(filter, a, &argv);
 			} else if (filter->freg->update_arg) {
 				filter->freg->update_arg(filter, a->arg_name, &argv);
 			}
@@ -401,7 +403,7 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 
 				if (argv.type != GF_PROP_FORBIDEN) {
 					if (a->offset_in_private>=0) {
-						filter_set_arg(filter, a, &argv);
+						gf_filter_set_arg(filter, a, &argv);
 					} else if (filter->freg->update_arg) {
 						filter->freg->update_arg(filter, a->arg_name, &argv);
 
@@ -456,7 +458,7 @@ static void reset_filter_args(GF_Filter *filter)
 		if (a->arg_type != GF_PROP_FORBIDEN) {
 			memset(&argv, 0, sizeof(GF_PropertyValue));
 			argv.type = a->arg_type;
-			filter_set_arg(filter, a, &argv);
+			gf_filter_set_arg(filter, a, &argv);
 		}
 	}
 }
@@ -488,9 +490,16 @@ Bool gf_filter_process_task(GF_FSTask *task)
 		}
 	}
 
+	assert(task->filter->nb_process_queued);
+
+
+	if (task->filter->nb_process_queued>1) {
+		safe_int_dec(&task->filter->nb_process_queued);
+		return GF_TRUE;
+	}
+
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS)) {
-		task->filter->source_process_queued = GF_FALSE;
 		return GF_TRUE;
 	}
 
@@ -498,9 +507,13 @@ Bool gf_filter_process_task(GF_FSTask *task)
 	if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1))
 		return GF_TRUE;
 
-	//last task and filter requested a requeue, requeue the task
+	//filter requested a requeue
 	if (task->filter->next_time_schedule)
 		return GF_TRUE;
+
+	assert(task->filter->nb_process_queued==1);
+
+	safe_int_dec(&task->filter->nb_process_queued);
 
 	return GF_FALSE;
 }
@@ -534,9 +547,13 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 	if (filter) return filter->session;
 	return NULL;
 }
-void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code)
+
+void gf_filter_post_process_task(GF_Filter *filter)
 {
-	fsess->run_status = error_code ? error_code : GF_EOS;
+	safe_int_inc(&filter->nb_process_queued);
+	if (filter->nb_process_queued<=1)
+		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+
 }
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
@@ -549,4 +566,58 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	filter->next_time_schedule = 1+us_until_next;
 	filter->reschedule_start_time = gf_sys_clock_high_res();
 }
+
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
+{
+	assert(filter);
+	filter->on_setup_error = on_setup_error;
+	filter->on_setup_error_udta = udta;
+}
+
+struct _gf_filter_setup_failure
+{
+	GF_Err e;
+	GF_Filter *filter;
+} filter_setup_failure;
+
+Bool gf_filter_setup_failure_task(GF_FSTask *task)
+{
+	s32 res;
+	GF_Err e = ((struct _gf_filter_setup_failure *)task->udta)->e;
+	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
+	gf_free(task->udta);
+
+	if (f->on_setup_error)
+		f->on_setup_error(f, f->on_setup_error_udta, e);
+
+	if (f->freg->finalize)
+		f->freg->finalize(f);
+
+	res = gf_list_del_item(f->session->filters, f);
+	assert (res >=0 );
+
+	gf_filter_del(f);
+	return GF_FALSE;
+}
+
+void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
+{
+	struct _gf_filter_setup_failure *stack;
+	//don't accept twice a notif
+	if (filter->finalized) return;
+	filter->finalized = GF_TRUE;
+
+	stack = gf_malloc(sizeof(struct _gf_filter_setup_failure));
+	stack->e = reason;
+	stack->filter = filter;
+
+	//setup failure may happen after an initialize, potentially in another thread - post a task
+	gf_fs_post_task(filter->session, gf_filter_setup_failure_task, NULL, NULL, "process", stack);
+}
+
+void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
+{
+	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
+}
+
 

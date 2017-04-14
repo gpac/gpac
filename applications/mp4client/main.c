@@ -31,7 +31,7 @@
 #include <gpac/events.h>
 #include <gpac/media_tools.h>
 #include <gpac/options.h>
-#include <gpac/modules/service.h>
+
 #include <gpac/avparse.h>
 #include <gpac/network.h>
 #include <gpac/utf.h>
@@ -39,9 +39,6 @@
 
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
-
-//FIXME we need a plugin for playlists
-#include <gpac/internal/terminal_dev.h>
 
 
 #ifndef WIN32
@@ -77,13 +74,14 @@ static Bool reload = GF_FALSE;
 Bool no_prog = 0;
 
 #if defined(__DARWIN__) || defined(__APPLE__)
-//we keep no decoder thread because of JS_GC deadlocks between threads ...
-static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_NO_DECODER_THREAD;
 #define VK_MOD  GF_KEY_MOD_ALT
 #else
-static u32 threading_flags = 0;
 #define VK_MOD  GF_KEY_MOD_CTRL
 #endif
+
+//with the new API threading flags is always  set to GF_TERM_NO_COMPOSITOR_THREAD to flusg the prompt
+static u32 threading_flags = GF_TERM_NO_COMPOSITOR_THREAD;
+
 static Bool no_audio = GF_FALSE;
 static Bool term_step = GF_FALSE;
 static Bool no_regulation = GF_FALSE;
@@ -234,11 +232,7 @@ void PrintUsage()
 	        "\t-log-utc or -lu        : logs UTC time in ms before each log line.\n"
 	        "\t-ifce IPIFCE           : Sets default Multicast interface\n"
 	        "\t-size WxH:      specifies visual size (default: scene size)\n"
-#if defined(__DARWIN__) || defined(__APPLE__)
-	        "\t-thread:        enables thread usage for terminal and compositor \n"
-#else
-	        "\t-no-thread:     disables thread usage (except for audio)\n"
-#endif
+	        "\t-no-thread:     disables thread usage (except for depending on driver audio)\n"
 	        "\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
@@ -437,11 +431,13 @@ static void ResetCaption()
 	GF_Event event;
 	if (display_rti) return;
 	event.type = GF_EVENT_SET_CAPTION;
+	event.caption.caption = NULL;
+
 	if (is_connected) {
+#ifdef FILTER_FIXME
 		char szName[1024];
 		NetInfoCommand com;
 
-		event.caption.caption = NULL;
 		/*get any service info*/
 		if (!startup_file && gf_term_get_service_info(term, gf_term_get_root_object(term), &com) == GF_OK) {
 			strcpy(szName, "");
@@ -468,9 +464,9 @@ static void ResetCaption()
 				strcat(szName, com.provider);
 				strcat(szName, ")");
 			}
-
 			if (strlen(szName)) event.caption.caption = szName;
 		}
+#endif
 		if (!event.caption.caption) {
 			char *str = strrchr(the_url, '\\');
 			if (!str) str = strrchr(the_url, '/');
@@ -682,7 +678,6 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		}
 		break;
 	case GF_EVENT_KEYDOWN:
-		gf_term_process_shortcut(term, evt);
 		switch (evt->key.key_code) {
 		case GF_KEY_SPACE:
 			if (evt->key.flags & GF_KEY_MOD_CTRL) {
@@ -1302,11 +1297,8 @@ int mp4client_main(int argc, char **argv)
 		} else if (!strcmp(arg, "-log-utc") || !strcmp(arg, "-lu")) {
 			log_utc_time = 1;
 		}
-#if defined(__DARWIN__) || defined(__APPLE__)
-		else if (!strcmp(arg, "-thread")) threading_flags = 0;
-#else
-		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
-#endif
+		else if (!strcmp(arg, "-no-thread"))
+			threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
@@ -1663,12 +1655,14 @@ int mp4client_main(int argc, char **argv)
 			strcpy(pl_path, the_url);
 			/*this is not clean, we need to have a plugin handle playlist for ourselves*/
 			if (!strncmp("http:", the_url, 5)) {
+#ifdef FILTER_FIXME
 				GF_DownloadSession *sess = gf_dm_sess_new(term->downloader, the_url, GF_NETIO_SESSION_NOT_THREADED, NULL, NULL, &e);
 				if (sess) {
 					e = gf_dm_sess_process(sess);
 					if (!e) strcpy(the_url, gf_dm_sess_get_cache_name(sess));
 					gf_dm_sess_del(sess);
 				}
+#endif
 			}
 
 			playlist = e ? NULL : gf_fopen(the_url, "rt");
@@ -2051,39 +2045,6 @@ force_input:
 			gf_term_set_option(term, GF_OPT_ASPECT_RATIO, GF_ASPECT_RATIO_KEEP);
 			break;
 
-		case 'C':
-			switch (gf_term_get_option(term, GF_OPT_MEDIA_CACHE)) {
-			case GF_MEDIA_CACHE_DISABLED:
-				gf_term_set_option(term, GF_OPT_MEDIA_CACHE, GF_MEDIA_CACHE_ENABLED);
-				break;
-			case GF_MEDIA_CACHE_ENABLED:
-				gf_term_set_option(term, GF_OPT_MEDIA_CACHE, GF_MEDIA_CACHE_DISABLED);
-				break;
-			case GF_MEDIA_CACHE_RUNNING:
-				fprintf(stderr, "Streaming Cache is running - please stop it first\n");
-				continue;
-			}
-			switch (gf_term_get_option(term, GF_OPT_MEDIA_CACHE)) {
-			case GF_MEDIA_CACHE_ENABLED:
-				fprintf(stderr, "Streaming Cache Enabled\n");
-				break;
-			case GF_MEDIA_CACHE_DISABLED:
-				fprintf(stderr, "Streaming Cache Disabled\n");
-				break;
-			case GF_MEDIA_CACHE_RUNNING:
-				fprintf(stderr, "Streaming Cache Running\n");
-				break;
-			}
-			break;
-		case 'S':
-		case 'A':
-			if (gf_term_get_option(term, GF_OPT_MEDIA_CACHE)==GF_MEDIA_CACHE_RUNNING) {
-				gf_term_set_option(term, GF_OPT_MEDIA_CACHE, (c=='S') ? GF_MEDIA_CACHE_DISABLED : GF_MEDIA_CACHE_DISCARD);
-				fprintf(stderr, "Streaming Cache stopped\n");
-			} else {
-				fprintf(stderr, "Streaming Cache not running\n");
-			}
-			break;
 		case 'R':
 			display_rti = !display_rti;
 			ResetCaption();
@@ -2642,7 +2603,6 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 	GF_MediaInfo odi;
 	u32 i, j, count, d_enum,id;
 	GF_Err e;
-	NetStatCommand com;
 	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
 
@@ -2889,6 +2849,9 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		if (!d_enum) fprintf(stderr, "No Downloads in service\n");
 		fprintf(stderr, "\n");
 	}
+#ifdef FILTER_FIXME
+	{
+	NetStatCommand com;
 	d_enum = 0;
 	while (gf_term_get_channel_net_info(term, odm, &d_enum, &id, &com, &e)) {
 		if (e) continue;
@@ -2914,6 +2877,8 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		}
 		fprintf(stderr, "\n");
 	}
+	}
+#endif
 }
 
 void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)

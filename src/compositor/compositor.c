@@ -39,39 +39,9 @@
 #define SC_DEF_HEIGHT	240
 
 
-Bool gf_sc_forward_event(GF_Compositor *compositor, GF_Event *evt, Bool consumed, Bool forward_only)
-{
-	if (!compositor) return GF_FALSE;
-
-#if FILTER_FIXME
-	if (term->event_filters) {
-		GF_TermEventFilter *ef;
-		u32 i=0;
-
-		gf_mx_p(term->evt_mx);
-		term->in_event_filter ++;
-		gf_mx_v(term->evt_mx);
-		while ((ef=gf_list_enum(term->event_filters, &i))) {
-			if (ef->on_event(ef->udta, evt, consumed)) {
-				term->in_event_filter --;
-				return GF_TRUE;
-			}
-		}
-		term->in_event_filter --;
-	}
-#endif
-
-	if (!forward_only && !consumed && compositor->user->EventProc) {
-		Bool res = compositor->user->EventProc(compositor->user->opaque, evt);
-		return res;
-	}
-
-	return GF_FALSE;
-}
-
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt)
 {
-	return gf_sc_forward_event(compositor, evt, 0, 0);
+	return gf_fs_forward_event(compositor->fsess, evt, 0, 0);
 }
 
 
@@ -1522,6 +1492,23 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 #endif
 
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "DrawLateFrames");
+	if (sOpt && !stricmp(sOpt, "no"))
+		compositor->drop_late_frames = GF_TRUE;
+	else
+		compositor->drop_late_frames = GF_FALSE;
+
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ForceSingleClock");
+	if (sOpt && !stricmp(sOpt, "yes"))
+		compositor->force_single_clock = GF_TRUE;
+	else
+		compositor->force_single_clock = GF_FALSE;
+
+
+	/*default data timeout is 20 sec*/
+	compositor->net_data_timeout = 20000;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Network", "DataTimeout");
+	if (sOpt) compositor->net_data_timeout = atoi(sOpt);
 
 	gf_sc_reset_graphics(compositor);
 	gf_sc_next_frame_state(compositor, GF_SC_DRAW_FRAME);
@@ -1739,6 +1726,10 @@ GF_Err gf_sc_set_option(GF_Compositor *compositor, u32 type, u32 value)
 		e = GF_NOT_SUPPORTED;
 #endif
 		break;
+	case GF_OPT_MULTIVIEW_MODE:
+		compositor->multiview_mode = value;
+		break;
+
 
 	default:
 		e = GF_BAD_PARAM;
@@ -2359,6 +2350,8 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		}
 		compositor->force_bench_frame=0;
 		compositor->frame_draw_type = 0;
+		compositor->recompute_ar = 0;
+		compositor->ms_until_next_frame = compositor->frame_duration;
 		return;
 	}
 

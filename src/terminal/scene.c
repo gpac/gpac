@@ -75,6 +75,220 @@ static void inline_on_media_event(GF_Scene *scene, u32 type)
 #endif
 }
 
+
+void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *message, GF_Err error, Bool no_filtering)
+{
+	GF_Event evt;
+	if (!scene || !scene->compositor) return;
+	memset(&evt, 0, sizeof(GF_Event));
+	evt.type = GF_EVENT_MESSAGE;
+	evt.message.service = service;
+	evt.message.message = message;
+	evt.message.error = error;
+
+	if (no_filtering) {
+		if (scene->compositor->user->EventProc) {
+//			term->nb_calls_in_event_proc++;
+			scene->compositor->user->EventProc(scene->compositor->user->opaque, &evt);
+//			term->nb_calls_in_event_proc--;
+		}
+	} else {
+		gf_fs_send_event(scene->compositor->fsess, &evt);
+	}
+}
+
+void gf_scene_message(GF_Scene *scene, const char *service, const char *message, GF_Err error)
+{
+	gf_scene_message_ex(scene, service, message, error, 0);
+}
+
+
+char *gf_scene_resolve_xlink(GF_Node *node, char *the_url)
+{
+	char *url;
+	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
+	if (!scene) return NULL;
+
+	url = gf_strdup(the_url);
+	/*apply XML:base*/
+	while (node) {
+		GF_FieldInfo info;
+		if (gf_node_get_attribute_by_tag(node, TAG_XML_ATT_base, 0, 0, &info)==GF_OK) {
+			char *new_url = gf_url_concatenate( ((XMLRI*)info.far_ptr)->string, url);
+			if (new_url) {
+				gf_free(url);
+				url = new_url;
+			}
+		}
+		node = gf_node_get_parent(node, 0);
+	}
+
+	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
+	if (url[0]=='#') return url;
+
+	if (scene) {
+		char *the_url;
+		if (scene->redirect_xml_base) {
+			the_url = gf_url_concatenate(scene->redirect_xml_base, url);
+		} else {
+//			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
+			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
+			at the service level*/
+			the_url = gf_strdup(url);
+		}
+		gf_free(url);
+		return the_url;
+	}
+	return url;
+}
+
+static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIParam *param)
+{
+	Bool ret;
+	GF_Scene *scene = (GF_Scene *) opaque;
+	GF_Scene *root_scene = scene;
+	if (!scene) return GF_FALSE;
+
+	while (root_scene->parent_scene)
+		root_scene = root_scene->parent_scene;
+
+	if (type==GF_JSAPI_OP_MESSAGE) {
+#ifdef FILTER_FIXME
+		gf_term_message_ex(term, term->root_scene->root_od->net_service->url, param->info.msg, param->info.e, 1);
+#endif
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_GET_TERM) {
+#ifdef FILTER_FIXME
+		param->term = term;
+		return 1;
+#else
+		return 0;
+#endif
+	}
+	if (type==GF_JSAPI_OP_RESOLVE_XLINK) {
+#ifndef GPAC_DISABLE_SVG
+		param->uri.url = (char *) gf_scene_resolve_xlink(n, (char *) param->uri.url);
+		return 1;
+#else
+		return 0;
+#endif
+	}
+	if (type==GF_JSAPI_OP_GET_OPT) {
+		param->gpac_cfg.key_val = gf_cfg_get_key(scene->compositor->user->config, param->gpac_cfg.section, param->gpac_cfg.key);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_SET_OPT) {
+		gf_cfg_set_key(scene->compositor->user->config, param->gpac_cfg.section, param->gpac_cfg.key, param->gpac_cfg.key_val);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_GET_DOWNLOAD_MANAGER) {
+#ifdef FILTER_FIXME
+		param->dnld_man = term->downloader;
+		return 1;
+#else
+		return 0;
+#endif
+	}
+	if (type==GF_JSAPI_OP_SET_TITLE) {
+		GF_Event evt;
+		evt.type = GF_EVENT_SET_CAPTION;
+		evt.caption.caption = param->uri.url;
+		gf_fs_send_event(scene->compositor->fsess, &evt);
+		return 1;
+	}
+	if (type==GF_JSAPI_OP_GET_SUBSCENE) {
+		GF_Scene *scene = (GF_Scene *)gf_node_get_private(n);
+		param->scene = scene->graph;
+		return 1;
+	}
+
+	if (type==GF_JSAPI_OP_RESOLVE_URI) {
+		char *url;
+		char new_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
+		Bool result=GF_FALSE;
+		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
+		url = (char *)param->uri.url;
+		if (!url) {
+			param->uri.url = gf_strdup(scene->root_od->scene_ns->url);
+			param->uri.nb_params = 0;
+			return 1;
+		}
+
+#ifdef FILTER_FIXME
+		result = gf_term_relocate_url(term, url, scene->root_od->net_service->url, new_url, localized_url);
+#endif
+		if (result) param->uri.url = gf_strdup(new_url);
+		else param->uri.url = gf_url_concatenate(scene->root_od->scene_ns->url, url);
+		return 1;
+	}
+
+	/*special case for pause/stop/resume*/
+	if (type==GF_JSAPI_OP_PAUSE_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			if (scene->root_od->ck) gf_clock_pause(scene->root_od->ck);
+			return 1;
+		}
+	}
+	if (type==GF_JSAPI_OP_RESUME_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			if (scene->root_od->ck) gf_clock_resume(scene->root_od->ck);
+			return 1;
+		}
+	}
+	if (type==GF_JSAPI_OP_RESTART_SVG) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->root_od->ck;
+			if (ck) {
+				Bool is_paused = ck->Paused;
+				if (is_paused) gf_clock_resume(ck);
+				gf_scene_restart_dynamic(scene, 0, 0, 0);
+				if (is_paused) gf_clock_pause(ck);
+			}
+			return 1;
+		}
+		return 0;
+	}
+	if (type==GF_JSAPI_OP_SET_SCENE_SPEED) {
+		GF_SceneGraph *graph = gf_node_get_graph(n);
+		if (n == gf_sg_get_root_node(graph)) {
+			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
+			GF_Clock *ck = scene->root_od->ck;
+			if (ck) {
+				gf_clock_set_speed(ck, param->val);
+			}
+			return 1;
+		}
+		return 0;
+	}
+
+
+	ret = gf_sc_script_action(scene->compositor, type, n, param);
+	if (ret) return ret;
+
+	if (type==GF_JSAPI_OP_LOAD_URL) {
+		if (gf_sg_get_private(gf_node_get_graph(n)) == root_scene) {
+			GF_Event evt;
+			evt.type = GF_EVENT_NAVIGATE;
+			evt.navigate.to_url = param->uri.url;
+			evt.navigate.parameters = param->uri.params;
+			evt.navigate.param_count = param->uri.nb_params;
+			return gf_fs_send_event(scene->compositor->fsess, &evt);
+		} else {
+			/*TODO*/
+			return 0;
+		}
+	}
+	return 0;
+}
+
+
 GF_EXPORT
 GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 {
@@ -103,6 +317,7 @@ GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene)
 	gf_sg_set_private(tmp->graph, tmp);
 	gf_sg_set_node_callback(tmp->graph, gf_scene_node_callback);
 	gf_sg_set_scene_time_callback(tmp->graph, gf_scene_get_time);
+	gf_sg_set_script_action(tmp->graph, gf_scene_script_action, tmp);
 
 	//copy over pause_at_first_frame flag so that new subscene is not paused right away
 	if (parentScene)
@@ -181,6 +396,8 @@ void gf_scene_del(GF_Scene *scene)
 	}
 
 	if (scene->bifs_dec) gf_bifs_decoder_del(scene->bifs_dec);
+	if (scene->compositor->root_scene == scene)
+		scene->compositor->root_scene = NULL;
 
 	gf_free(scene);
 }
@@ -328,10 +545,9 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 
 static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool lock_timelines, GF_MediaObject *sync_ref, Bool keep_fragment, GF_Scene *original_parent_scene)
 {
-#if FILTER_FIXME
 	GF_ObjectManager *root_od;
 	GF_ObjectManager *odm;
-	char *url;
+	char *url, *final_url;
 	if (!mo || !scene) return;
 
 	odm = gf_odm_new();
@@ -341,70 +557,31 @@ static void gf_scene_insert_object(GF_Scene *scene, GF_MediaObject *mo, Bool loc
 	odm->parentscene = scene;
 	odm->ID = GF_MEDIA_EXTERNAL_ID;
 	odm->parentscene = scene;
-	odm->term = scene->root_od->term;
 	root_od = scene->root_od;
 	if (scene->force_single_timeline) lock_timelines = GF_TRUE;
 
 	url = mo->URLs.vals[0].url;
-	if (url) {
-		if (!stricmp(url, "KeySensor")) {
-			GF_ESD *esd = gf_odf_desc_esd_new(0);
-			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-			esd->decoderConfig->objectTypeIndication = 1;
-			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" KeySensor");
-			esd->decoderConfig->decoderSpecificInfo->data[0] = 9;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = 10;
-			esd->ESID = esd->OCRESID = 65534;
-			gf_list_add(odm->OD->ESDescriptors, esd);
-		} else if (!stricmp(url, "StringSensor")) {
-			GF_ESD *esd = gf_odf_desc_esd_new(0);
-			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-			esd->decoderConfig->objectTypeIndication = 1;
-			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" StringSensor");
-			esd->decoderConfig->decoderSpecificInfo->data[0] = 12;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = 13;
-			esd->ESID = esd->OCRESID = 65534;
-			gf_list_add(odm->OD->ESDescriptors, esd);
-		} else if (!stricmp(url, "Mouse")) {
-			GF_ESD *esd = gf_odf_desc_esd_new(0);
-			esd->decoderConfig->streamType = GF_STREAM_INTERACT;
-			esd->decoderConfig->objectTypeIndication = 1;
-			gf_free(esd->decoderConfig->decoderSpecificInfo->data);
-			esd->decoderConfig->decoderSpecificInfo->data = gf_strdup(" Mouse");
-			esd->decoderConfig->decoderSpecificInfo->data[0] = 5;
-			esd->decoderConfig->decoderSpecificInfo->dataLength = 6;
-			esd->ESID = esd->OCRESID = 65534;
-			gf_list_add(odm->OD->ESDescriptors, esd);
-		} else {
-			if (!keep_fragment) {
-				char *frag = strrchr(mo->URLs.vals[0].url, '#');
-				if (frag) frag[0] = 0;
-				odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
-				if (frag) frag[0] = '#';
-			} else {
-				odm->OD->URLString = gf_strdup(mo->URLs.vals[0].url);
-			}
-			if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
-		}
+
+	if (!url) return;
+
+	if (!stricmp(url, "KeySensor")) {
+		final_url = "gpac://KeySensor";
+	} else if (!stricmp(url, "StringSensor")) {
+		final_url = "gpac://StringSensor";
+	} else if (!stricmp(url, "Mouse")) {
+		final_url = "gpac://Mouse";
+	} else {
+		final_url = mo->URLs.vals[0].url;
+		if (lock_timelines) odm->flags |= GF_ODM_INHERIT_TIMELINE;
 	}
 
 	/*HACK - temp storage of sync ref*/
-	if (sync_ref) odm->sync_ref = (struct _generic_codec *)sync_ref;
+	if (sync_ref) odm->sync_ref = sync_ref;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Scene] Inserting new MediaObject %08x for resource %s\n", odm->mo, url));
-	gf_mx_p(scene->mx_resources);
 	gf_list_add(scene->resources, odm);
-	gf_mx_v(scene->mx_resources);
-	if (original_parent_scene) {
-		gf_odm_setup_remote_object(odm, original_parent_scene->root_od->net_service);
-	} else {
-		gf_odm_setup_remote_object(odm, root_od->net_service, NULL);
-	}
-#else
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("OBJECT INSERTION NOT IMPLEMENTED IN FILTERS"));
-#endif
+
+	gf_odm_setup_remote_object(odm, original_parent_scene ? original_parent_scene->root_od->scene_ns : NULL, final_url);
 }
 
 static void gf_scene_reinsert_object(GF_Scene *scene, GF_MediaObject *mo)
@@ -820,6 +997,7 @@ restart:
 
 		if (obj->odm==NULL) {
 			gf_list_del_item(scene->scene_objects, obj);
+			gf_mo_event_target_reset(obj);
 			gf_mo_del(obj);
 			return NULL;
 		}
@@ -2256,29 +2434,26 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *node)
 }
 
 /*returns 0 if any of the clock still hasn't seen EOS*/
-Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering)
+Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_buffering)
 {
-#if FILTER_FIXME
 	GF_Clock *ck;
 	Bool initialized = GF_FALSE;
 	u32 i;
 	if (scene) {
 		GF_ObjectManager *odm;
-		if (scene->root_od->net_service != ns) {
-			if (!gf_scene_check_clocks(scene->root_od->net_service, scene, check_buffering)) return 0;
+		if (scene->root_od->scene_ns != ns) {
+			if (!gf_scene_check_clocks(scene->root_od->scene_ns, scene, check_buffering)) return 0;
 		}
 		i=0;
 		while ( (odm = (GF_ObjectManager*)gf_list_enum(scene->resources, &i)) ) {
-			if (odm->net_service && (odm->net_service != ns)) {
-				if (!gf_scene_check_clocks(odm->net_service, NULL, check_buffering)) return 0;
+			if (odm->scene_ns && (odm->scene_ns != ns)) {
+				if (!gf_scene_check_clocks(odm->scene_ns, NULL, check_buffering)) return 0;
 			} else if (odm->ck) {
 				initialized = GF_TRUE;
 				if (!check_buffering) {
-#if FILTER_FIXME
-					if (!gf_cm_is_eos(odm->codec->CB) ) {
+					if (! odm->has_seen_eos) {
 						return 0;
 					}
-#endif
 				} else {
 					if (odm->ck->Buffering) {
 						return 0;
@@ -2287,7 +2462,7 @@ Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering)
 			}
 		}
 	}
-#if FILTER_FIXME
+
 	i=0;
 	while ( (ck = (GF_Clock *)gf_list_enum(ns->Clocks, &i) ) ) {
 		initialized = GF_TRUE;
@@ -2298,7 +2473,6 @@ Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering)
 		}
 
 	}
-#endif
 
 	if (!check_buffering && scene) {
 		if (scene->root_od->ID) {
@@ -2307,7 +2481,6 @@ Bool gf_scene_check_clocks(void *ns, GF_Scene *scene, Bool check_buffering)
 		}
 	}
 	if (!initialized) return 0;
-#endif
 
 	return 1;
 }

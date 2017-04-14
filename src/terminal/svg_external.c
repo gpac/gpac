@@ -35,44 +35,6 @@
 #include <gpac/network.h>
 
 
-char *gf_term_resolve_xlink(GF_Node *node, char *the_url)
-{
-	char *url;
-	GF_Scene *scene = gf_sg_get_private(gf_node_get_graph(node));
-	if (!scene) return NULL;
-
-	url = gf_strdup(the_url);
-	/*apply XML:base*/
-	while (node) {
-		GF_FieldInfo info;
-		if (gf_node_get_attribute_by_tag(node, TAG_XML_ATT_base, 0, 0, &info)==GF_OK) {
-			char *new_url = gf_url_concatenate( ((XMLRI*)info.far_ptr)->string, url);
-			if (new_url) {
-				gf_free(url);
-				url = new_url;
-			}
-		}
-		node = gf_node_get_parent(node, 0);
-	}
-
-	/*if this is a fragment and no XML:BASE was found, this is a fragment of the current document*/
-	if (url[0]=='#') return url;
-
-	if (scene) {
-		char *the_url;
-		if (scene->redirect_xml_base) {
-			the_url = gf_url_concatenate(scene->redirect_xml_base, url);
-		} else {
-//			the_url = gf_url_concatenate(is->root_od->net_service->url, url);
-			/*the root url of a document should be "." if not specified, so that the final URL resolve happens only once
-			at the service level*/
-			the_url = gf_strdup(url);
-		}
-		gf_free(url);
-		return the_url;
-	}
-	return url;
-}
 
 GF_EXPORT
 GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
@@ -112,7 +74,7 @@ GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl)
 		return GF_OK;
 	}
 #endif
-	sfurl->url = gf_term_resolve_xlink(node, iri->string);
+	sfurl->url = gf_scene_resolve_xlink(node, iri->string);
 	return e;
 }
 

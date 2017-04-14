@@ -35,23 +35,6 @@ since the drift may be high on TS for example, where PTS-PCR>500ms is quite comm
 //introduce oscillations in the clock and non-smooth playback
 #define MIN_DRIFT_ADJUST	75
 
-struct __audiofilteritem
-{
-	GF_AudioInterface input;
-	GF_AudioInterface *src;
-
-	u32 out_chan, out_ch_cfg;
-
-	u32 nb_used, nb_filled;
-
-	GF_AudioFilterChain filter_chain;
-};
-
-
-GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name);
-void gf_af_del(GF_AudioFilterItem *af);
-void gf_af_reset(GF_AudioFilterItem *af);
-
 
 static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
@@ -210,7 +193,9 @@ void gf_sc_audio_predestroy(GF_AudioInput *ai)
 	gf_sc_audio_stop(ai);
 	gf_sc_audio_unregister(ai);
 
+#ifdef FILTER_FIXME
 	if (ai->filter) gf_af_del(ai->filter);
+#endif
 }
 
 GF_EXPORT
@@ -232,6 +217,7 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 	//force reload of audio props
 	ai->stream->config_changed = GF_TRUE;
 
+#ifdef FILTER_FIXME
 	if (ai->filter) gf_af_del(ai->filter);
 	ai->filter = NULL;
 
@@ -242,6 +228,8 @@ GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double 
 				break;
 		}
 	}
+#endif
+
 	return GF_OK;
 }
 
@@ -260,8 +248,10 @@ void gf_sc_audio_stop(GF_AudioInput *ai)
 	gf_mo_unregister(ai->owner, ai->stream);
 	ai->stream = NULL;
 
+#ifdef FILTER_FIXME
 	if (ai->filter) gf_af_del(ai->filter);
 	ai->filter = NULL;
+#endif
 
 	gf_mixer_lock(ai->compositor->audio_renderer->mixer, GF_FALSE);
 
@@ -274,7 +264,9 @@ void gf_sc_audio_restart(GF_AudioInput *ai)
 	if (ai->need_release) gf_mo_release_data(ai->stream, 0xFFFFFFFF, 2);
 	ai->need_release = GF_FALSE;
 	ai->stream_finished = GF_FALSE;
+#ifdef FILTER_FIXME
 	if (ai->filter) gf_af_reset(ai->filter);
+#endif
 	gf_mo_restart(ai->stream);
 }
 
@@ -289,7 +281,6 @@ GF_EXPORT
 void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 {
 	GF_AudioInterface *aifce;
-
 	/*check interface is valid*/
 	if (!ai->input_ifce.FetchFrame
 	        || !ai->input_ifce.GetChannelVolume
@@ -300,7 +291,9 @@ void gf_sc_audio_register(GF_AudioInput *ai, GF_TraverseState *tr_state)
 	   ) return;
 
 	aifce = &ai->input_ifce;
+#ifdef FILTER_FIXME
 	if (ai->filter) aifce = &ai->filter->input;
+#endif
 
 	if (tr_state->audio_parent) {
 		/*this assume only one parent may use an audio node*/
@@ -330,7 +323,9 @@ GF_EXPORT
 void gf_sc_audio_unregister(GF_AudioInput *ai)
 {
 	GF_AudioInterface *aifce = &ai->input_ifce;
+#ifdef FILTER_FIXME
 	if (ai->filter) aifce = &ai->filter->input;
+#endif
 
 	if (ai->register_with_renderer) {
 		ai->register_with_renderer = GF_FALSE;
@@ -341,6 +336,24 @@ void gf_sc_audio_unregister(GF_AudioInput *ai)
 	}
 }
 
+#ifdef FILTER_FIXME
+
+struct __audiofilteritem
+{
+	GF_AudioInterface input;
+	GF_AudioInterface *src;
+
+	u32 out_chan, out_ch_cfg;
+
+	u32 nb_used, nb_filled;
+
+	GF_AudioFilterChain filter_chain;
+};
+
+
+GF_AudioFilterItem *gf_af_new(GF_Compositor *compositor, GF_AudioInterface *src, char *filter_name);
+void gf_af_del(GF_AudioFilterItem *af);
+void gf_af_reset(GF_AudioFilterItem *af);
 
 static char *gf_af_fetch_frame(void *callback, u32 *size, u32 audio_delay_ms)
 {
@@ -452,3 +465,6 @@ void gf_af_reset(GF_AudioFilterItem *af)
 
 	af->nb_filled = af->nb_used = 0;
 }
+
+#endif
+
