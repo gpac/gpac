@@ -77,8 +77,8 @@ static Bool scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 			if (scene_ns->owner && scene_ns->nb_odm_users) scene_ns->nb_odm_users--;
 			scene_ns->owner = NULL;
 
-			top_scene = scene;
-			while (top_scene->parent_scene) top_scene = top_scene->parent_scene;
+			top_scene = gf_scene_get_root_scene(scene);
+
 			gf_list_del_item(top_scene->namespaces, scene_ns);
 			gf_scene_ns_del(scene_ns);
 
@@ -176,7 +176,7 @@ static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
 	return 1;
 }
 
-void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid)
+void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod)
 {
 	u32 i, min_od_id;
 	GF_MediaObject *the_mo;
@@ -313,6 +313,13 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			min_od_id = an_odm->ID;
 	}
 
+	if (is_in_iod) {
+		odm = scene->root_od;
+		//for inline cases, the media object may already be setup
+		the_mo = odm->mo;
+		if (the_mo) pid_odid = the_mo->OD_ID;
+	}
+
 	if (!odm) {
 		odm = gf_odm_new();
 		odm->parentscene = scene;
@@ -334,7 +341,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	if (!scene->selected_service_id)
 		scene->selected_service_id = ServiceID;
 
-	if (odm->parentscene->is_dynamic_scene)
+	if (odm->parentscene && odm->parentscene->is_dynamic_scene)
 		odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 
 	//we insert right away the PID as a new object if the scene is dynamic
@@ -353,8 +360,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, const char *url, const char *parent_url)
 {
-	GF_Scene *top_scene = scene;
-	char *sURL;
 	GF_SceneNamespace *sns;
 
 	GF_SAFEALLOC(sns, GF_SceneNamespace);
@@ -366,8 +371,9 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 	sns->url = gf_url_concatenate(parent_url, url);
 	sns->Clocks = gf_list_new();
 
-	while (top_scene->parent_scene) top_scene = top_scene->parent_scene;
-	gf_list_add(top_scene->namespaces, sns);
+	//move to top scene
+	scene = gf_scene_get_root_scene(scene);
+	gf_list_add(scene->namespaces, sns);
 
 	return sns;
 }

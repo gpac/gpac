@@ -268,9 +268,6 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		if (mo->num_open) {
 			mo->num_open --;
 			if (!mo->num_open) {
-#if FILTER_FIXME
-				gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
-
 				/*this is unspecified in the spec: whenever an inline not using the
 				OD framework is destroyed, destroy the associated resource*/
 				if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID) {
@@ -285,14 +282,11 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 						}
 						gf_mo_del(mo);
 					}
-					scene->root_od->action_type = GF_ODM_ACTION_DELETE;
-					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
+					gf_odm_disconnect(scene->root_od, 2);
 				} else {
-					scene->root_od->action_type = GF_ODM_ACTION_SCENE_DISCONNECT;
-					gf_list_add(scene->root_od->term->media_queue, scene->root_od);
+					gf_odm_stop(scene->root_od, 1);
+					gf_scene_disconnect(scene->root_od->subscene, 1);
 				}
-				gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
-#endif
 			}
 		}
 		return;
@@ -410,14 +404,14 @@ GF_SceneGraph *gf_inline_get_proto_lib(void *_is, MFURL *lib_url)
 				/*not the same url*/
 				if (!gf_mo_is_same_url(pl->mo, lib_url, NULL, 0)) continue;
 				ok = GF_FALSE;
-#if FILTER_FIXME
+
 				/*check the url path is the same*/
-				url1 = gf_url_concatenate(pl->mo->odm->net_service->url, lib_url->vals[0].url);
-				url2 = gf_url_concatenate(scene->root_od->net_service->url, lib_url->vals[0].url);
+				url1 = gf_url_concatenate(pl->mo->odm->scene_ns->url, lib_url->vals[0].url);
+				url2 = gf_url_concatenate(scene->root_od->scene_ns->url, lib_url->vals[0].url);
 				if (url1 && url2 && !strcmp(url1, url2)) ok=GF_TRUE;
 				if (url1) gf_free(url1);
 				if (url2) gf_free(url2);
-#endif
+
 				if (!ok) continue;
 				if (!pl->mo->odm || !pl->mo->odm->subscene) return NULL;
 				return pl->mo->odm->subscene->graph;
@@ -472,9 +466,8 @@ Bool gf_inline_is_default_viewpoint(GF_Node *node)
 	nname = gf_node_get_name(node);
 	if (!nname) return GF_FALSE;
 
-#if FILTER_FIXME
 	/*check any viewpoint*/
-	seg_name = strrchr(scene->root_od->net_service->url, '#');
+	seg_name = strrchr(scene->root_od->scene_ns->url, '#');
 
 	/*check the URL of the parent*/
 	if (!seg_name && scene->current_url) {
@@ -489,9 +482,6 @@ Bool gf_inline_is_default_viewpoint(GF_Node *node)
 	if (gf_odm_find_segment(scene->root_od, (char *) seg_name) != NULL) return GF_FALSE;
 
 	return (!strcmp(nname, seg_name) ? GF_TRUE : GF_FALSE);
-#else
-	return GF_FALSE;
-#endif
 }
 
 
@@ -502,16 +492,13 @@ void gf_init_inline(GF_Scene *scene, GF_Node *node)
 
 static GF_Config *storage_get_cfg(M_Storage *storage)
 {
-#if FILTER_FIXME
 	GF_Scene *scene;
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
-	return scene->root_od->term->user->config;
-#endif
+	return scene->compositor->user->config;
 }
 
 static char *storage_get_section(M_Storage *storage)
 {
-#if FILTER_FIXME
 	GF_Scene *scene;
 	char *szPath;
 	u8 hash[20];
@@ -521,9 +508,9 @@ static char *storage_get_section(M_Storage *storage)
 
 	scene = (GF_Scene *)gf_node_get_private((GF_Node*)storage);
 
-	len = strlen(scene->root_od->net_service->url)+strlen(storage->name.buffer)+2;
+	len = strlen(scene->root_od->scene_ns->url)+strlen(storage->name.buffer)+2;
 	szPath = (char *)gf_malloc(sizeof(char)* len);
-	strcpy(szPath, scene->root_od->net_service->url);
+	strcpy(szPath, scene->root_od->scene_ns->url);
 	strcat(szPath, "@");
 	strcat(szPath, storage->name.buffer);
 	gf_sha1_csum((u8*)szPath, (u32) strlen(szPath), hash);
@@ -537,9 +524,6 @@ static char *storage_get_section(M_Storage *storage)
 		strcat(name, t);
 	}
 	return gf_strdup(name);
-#else
-	return NULL;
-#endif
 }
 
 static void storage_parse_sf(void *ptr, u32 fieldType, char *opt)
@@ -737,14 +721,12 @@ static void gf_storage_traverse(GF_Node *n, void *rs, Bool is_destroy)
 {
 	if (is_destroy) {
 		GF_Scene *scene = (GF_Scene *)gf_node_get_private(n);
-#if FILTER_FIXME
-		GF_ClientService *net_service = scene->root_od->net_service;
+		GF_SceneNamespace *scene_ns = scene->root_od->scene_ns;
 		while (scene->root_od->parentscene) {
-			if (scene->root_od->parentscene->root_od->net_service != net_service)
+			if (scene->root_od->parentscene->root_od->scene_ns != scene_ns)
 				break;
 			scene = scene->root_od->parentscene;
 		}
-#endif
 		gf_list_del_item(scene->storages, n);
 	}
 }
@@ -760,6 +742,7 @@ static void on_force_save(GF_Node *n, struct _route *_route)
 
 void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 {
+	GF_SceneNamespace *scene_ns;
 	M_Storage *storage = (M_Storage *) node;
 
 	if (!storage->name.buffer || !strlen(storage->name.buffer) ) return;
@@ -770,20 +753,18 @@ void gf_scene_init_storage(GF_Scene *scene, GF_Node *node)
 	gf_node_set_callback_function(node, gf_storage_traverse);
 	gf_node_set_private(node, scene);
 
-#if FILTER_FIXME
-	GF_ClientService *net_service;
-	net_service = scene->root_od->net_service;
+	scene_ns = scene->root_od->scene_ns;
 	while (scene->root_od->parentscene) {
-		if (scene->root_od->parentscene->root_od->net_service != net_service)
+		if (scene->root_od->parentscene->root_od->scene_ns != scene_ns)
 			break;
 		scene = scene->root_od->parentscene;
 	}
-#endif
+
 	gf_list_add(scene->storages, node);
 	if (storage->_auto) gf_storage_load(storage);
 }
 
-#endif
+#endif // GPAC_DISABLE_VRML
 
 GF_Node *gf_scene_get_keynav(GF_SceneGraph *sg, GF_Node *sensor)
 {

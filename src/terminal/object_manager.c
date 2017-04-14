@@ -619,7 +619,7 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 		parent_url = NULL;
 
 	//make sure we don't have an ID before attempting to connect
-	odm->ID = 0;
+	if (odm->ID == GF_MEDIA_EXTERNAL_ID) odm->ID = 0;
 	odm->ServiceID = 0;
 	gf_scene_ns_connect_object(odm->subscene ? odm->subscene : odm->parentscene, odm, remote_url, parent_url);
 }
@@ -906,9 +906,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 	/*override clock dependencies if specified*/
 	if (scene->compositor->force_single_clock) {
-		GF_Scene *parent = scene;
-		while (parent->parent_scene) parent = parent->parent_scene;
-
+		GF_Scene *parent = gf_scene_get_root_scene(scene);
 		clockID = scene->root_od->ck->clockID;
 		ck_namespace = parent->root_od->scene_ns->Clocks;
 	}
@@ -1827,14 +1825,14 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url)
 Bool gf_scene_is_root(GF_Scene *scene)
 {
 	GF_Scene *s = scene;
-	while (s->parent_scene) s=s->parent_scene;
+	while (s->root_od->parentscene) s = s->root_od->parentscene;
 	return (s==scene) ? GF_TRUE : GF_FALSE;
 }
 
-GF_Scene *gf_scene_get_root(GF_Scene *scene)
+GF_Scene *gf_scene_get_root_scene(GF_Scene *scene)
 {
 	GF_Scene *s = scene;
-	while (scene->parent_scene) scene = scene->parent_scene;
+	while (scene->root_od->parentscene) scene = scene->root_od->parentscene;
 	return scene;
 }
 

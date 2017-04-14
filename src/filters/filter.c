@@ -495,7 +495,7 @@ Bool gf_filter_process_task(GF_FSTask *task)
 
 	if (task->filter->nb_process_queued>1) {
 		safe_int_dec(&task->filter->nb_process_queued);
-		return GF_TRUE;
+		return GF_FALSE;
 	}
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
@@ -551,8 +551,7 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 void gf_filter_post_process_task(GF_Filter *filter)
 {
 	safe_int_inc(&filter->nb_process_queued);
-	if (filter->nb_process_queued<=1)
-		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+	gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 
 }
 

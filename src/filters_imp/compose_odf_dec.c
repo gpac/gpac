@@ -41,11 +41,8 @@ GF_Err compose_odf_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti,
 		return GF_NOT_SUPPORTED;
 	}
 
-	//setup clock
-	gf_filter_pid_set_udta(pid, scene->root_od);
 	//setup object (clock) and playback requests
-	gf_odm_register_pid(scene->root_od, pid, GF_FALSE);
-
+	gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, GF_TRUE);
 	return GF_OK;
 }
 
@@ -59,6 +56,11 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	if (odm) gf_odm_disconnect(odm, 1);
 
 	if (od->URLString) {
+		odm = gf_odm_new();
+		odm->ID = od->objectDescriptorID;
+		odm->parentscene = scene;
+		odm->scene_ns = scene->root_od->scene_ns;
+		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
 	}

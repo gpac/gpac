@@ -572,8 +572,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					current_filter->scheduled_for_next_task = GF_FALSE;
 				}
 
-				assert(requeue || (task->run_task!=gf_filter_process_task) || !current_filter->nb_process_queued);
-
 				gf_mx_v(current_filter->tasks_mx);
 				current_filter = NULL;
 			} else {
