@@ -196,6 +196,7 @@ GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, 
 		newBox->size = size;
 		end = gf_bs_get_position(bs);
 	} else {
+		newBox->size = size;
 		//empty box
 		e = GF_OK;
 		end = gf_bs_get_position(bs);
