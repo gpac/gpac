@@ -20,6 +20,7 @@ nhml_test  ()
 
  do_test "$MP4BOX -raw 1 $mp4file -out $TEMP_DIR/test.xml " "export-track"
  do_hash_test $TEMP_DIR/test.xml "export-track"
+ rm -f $TEMP_DIR/test.xml
 
  do_test "$MP4BOX -raws 1 $mp4file" "export-samples"
 
@@ -74,6 +75,7 @@ do_hash_test $TEMP_DIR/text-stxt-svg.mp4 "import"
 
 do_test "$MP4BOX -raw 1 $TEMP_DIR/text-stxt-svg.mp4 -out $TEMP_DIR/test.svg" "export-track"
 do_hash_test $TEMP_DIR/test.svg "export-track"
+rm -f $TEMP_DIR/test.svg
 
 do_test "$MP4BOX -raws 1 $TEMP_DIR/text-stxt-svg.mp4" "export-samples"
 
@@ -87,6 +89,7 @@ do_hash_test $TEMP_DIR/subt-stpp-ttml.mp4 "import"
 
 do_test "$MP4BOX -raw 1 $TEMP_DIR/subt-stpp-ttml.mp4 -out $TEMP_DIR/test.ttml" "export-track"
 do_hash_test $TEMP_DIR/test.ttml "export-track"
+rm -f $TEMP_DIR/test.ttml
 
 do_test "$MP4BOX -raws 1 $TEMP_DIR/subt-stpp-ttml.mp4" "export-samples"
 
