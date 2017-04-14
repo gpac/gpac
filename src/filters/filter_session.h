@@ -29,6 +29,7 @@
 #include <gpac/list.h>
 #include <gpac/thread.h>
 #include <gpac/filters.h>
+#include <gpac/user.h>
 
 
 //atomic ref_count++ / ref_count--
@@ -170,10 +171,6 @@ struct __gf_filter_pck
 };
 
 
-typedef struct __gf_fs_task GF_FSTask;
-
-typedef Bool (*task_callback)(GF_FSTask *task);
-
 struct __gf_fs_task
 {
 	//flag set for tasks registered with main task list, eg having incremented the task_pending counter.
@@ -183,14 +180,14 @@ struct __gf_fs_task
 	//set for tasks that have been requeued (i.e. no longer present in filter task list)
 	Bool requeued;
 
-	task_callback run_task;
+	gf_fs_task_callback run_task;
 	GF_Filter *filter;
 	GF_FilterPid *pid;
 	const char *log_name;
 	void *udta;
 };
 
-void gf_fs_post_task(GF_FilterSession *fsess, task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
+void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
 Bool gf_filter_pid_send_event_downstream(GF_FSTask *task);
@@ -216,6 +213,7 @@ struct __gf_media_session
 	Bool direct_mode;
 	Bool task_in_process;
 	Bool requires_solved_graph;
+	Bool no_main_thread;
 
 	GF_List *registry;
 	GF_List *filters;
@@ -233,8 +231,19 @@ struct __gf_media_session
 
 	volatile u32 tasks_pending;
 
+	u32 nb_threads_stopped;
 	GF_Err run_status;
 	Bool disable_blocking;
+
+	//FIXME, we should get rid of GF_User
+	Bool user_init;
+	GF_User static_user, *user;
+
+
+	GF_List *event_listeners;
+	GF_Mutex *evt_mx;
+	u32 in_event_listener;
+
 };
 
 
@@ -252,6 +261,9 @@ struct __gf_filter
 
 	//parent media session
 	GF_FilterSession *session;
+
+	void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e);
+	void *on_setup_error_udta;
 
 	//const pointer to the argument string
 	const char *orig_args;
@@ -321,7 +333,8 @@ struct __gf_filter
 	volatile u32 would_block; //concurrent inc/dec
 
 	Bool finalized;
-	Bool source_process_queued;
+
+	u32 nb_process_queued;
 
 	u32 next_time_schedule;
 	u64 reschedule_start_time;
@@ -331,6 +344,8 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 Bool gf_filter_process_task(GF_FSTask *task);
+
+void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv);
 
 typedef struct
 {

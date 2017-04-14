@@ -579,8 +579,6 @@ enum
 	GF_JSAPI_OP_GET_FPS,
 	/*!set current title*/
 	GF_JSAPI_OP_SET_TITLE,
-	/*!gets DCCI scenegraph if any*/
-	GF_JSAPI_OP_GET_DCCI,
 	/*!gets subscene for current node if any*/
 	GF_JSAPI_OP_GET_SUBSCENE,
 	/*!resolves relative Xlink based on xml:base*/

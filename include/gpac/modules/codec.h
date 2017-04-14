@@ -275,7 +275,7 @@ typedef struct _mediadecoder
 				WARNING - DO NOT MODIFY THE POSITION OF ProcessData IN SCENE OR NODE DECODER, AS THE BOTH STRUCTURES
 		ARE TYPE_CASTED BY THE TERMINAL WHEN CALLING ProcessData
 */
-typedef struct _scene *LPSCENE;
+typedef struct _gf_scene *LPSCENE;
 
 /*interface name and version for scene decoder */
 #define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '3')

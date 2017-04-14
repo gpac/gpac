@@ -25,6 +25,8 @@
 
 #include <gpac/internal/compositor_dev.h>
 
+#ifdef FILTER_FIXME
+
 GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
 {
 	struct _audiofilterentry *prev_filter = NULL;
@@ -224,6 +226,7 @@ void gf_afc_reset(GF_AudioFilterChain *afc)
 		filter = filter->next;
 	}
 }
+#endif
 
 
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
@@ -242,6 +245,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	in_bps = nb_bits;
 	in_freq = freq;
 
+#ifdef FILTER_FIXME
 	if (ar->filter_chain.filters) {
 		u32 osr, obps, och, ocfg;
 
@@ -262,7 +266,9 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 			ar->filter_chain.enable_filters = GF_FALSE;
 			e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 		}
-	} else {
+	} else
+#endif
+	{
 		e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 	}
 
@@ -332,6 +338,7 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 		gf_mixer_lock(ar->mixer, GF_TRUE);
 
+#ifdef FILTER_FIXME
 		if (ar->filter_chain.enable_filters) {
 			char *ptr = buffer;
 			written = 0;
@@ -362,7 +369,9 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 				ar->nb_used += to_copy;
 				if (ar->nb_used==ar->nb_filled) ar->nb_used = 0;
 			}
-		} else {
+		} else
+#endif
+		{
 			/*written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 		}
 		gf_mixer_lock(ar->mixer, GF_FALSE);
@@ -530,8 +539,10 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
 
 
+#ifdef FILTER_FIXME
 			/*load main audio filter*/
 			gf_afc_load(&ar->filter_chain, user, (char*)gf_cfg_get_key(user->config, "Audio", "Filter"));
+#endif
 
 
 			if (e != GF_OK) {
@@ -592,7 +603,9 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	gf_mixer_del(ar->mixer);
 
 	if (ar->audio_listeners) gf_list_del(ar->audio_listeners);
+#ifdef FILTER_FIXME
 	gf_afc_unload(&ar->filter_chain);
+#endif
 	gf_free(ar);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Renderer destroyed\n"));
 }
@@ -719,8 +732,10 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 
 	gf_mixer_lock(ar->mixer, GF_TRUE);
 
+#ifdef FILTER_FIXME
 	gf_afc_unload(&ar->filter_chain);
 	gf_afc_load(&ar->filter_chain, ar->user, (char*)gf_cfg_get_key(ar->user->config, "Audio", "Filter"));
+#endif
 
 	gf_ar_pause(ar, GF_TRUE, GF_TRUE, GF_FALSE);
 	ar->need_reconfig = GF_FALSE;

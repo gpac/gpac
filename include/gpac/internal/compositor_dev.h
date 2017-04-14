@@ -34,6 +34,7 @@ extern "C" {
 #include <gpac/thread.h>
 /*bridge between the rendering engine and the systems media engine*/
 #include <gpac/mediaobject.h>
+#include <gpac/filters.h>
 
 /*raster2D API*/
 #include <gpac/modules/raster2d.h>
@@ -49,7 +50,6 @@ extern "C" {
 #endif
 
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt);
-Bool gf_sc_forward_event(GF_Compositor *compositor, GF_Event *evt, Bool consumed, Bool forward_only);
 
 /*if defined, events are queued before being processed, otherwise they are handled whenever triggered*/
 //#define GF_SR_EVENT_QUEUE
@@ -564,6 +564,7 @@ struct __tag_compositor
 	u32 traverse_and_direct_draw_time;
 	u32 indirect_draw_time;
 
+
 #ifdef GF_SR_USE_VIDEO_CACHE
 	/*video cache size / max size in kbytes*/
 	u32 video_cache_current_size, video_cache_max_size;
@@ -579,6 +580,18 @@ struct __tag_compositor
 	/*display depth in pixels - if -1, it is the height of the display area*/
 	s32 display_depth;
 #endif
+
+
+	//moved from old GF_Terminal
+	struct _gf_scene *root_scene;
+	Bool drop_late_frames;
+	Bool force_single_clock;
+	u32 net_data_timeout;
+	u32 play_state;
+	Bool use_step_mode;
+	//associated filter, used to load input filters
+	GF_Filter *filter;
+	GF_FilterSession *fsess;
 };
 
 typedef struct
@@ -1048,6 +1061,7 @@ Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
 
 
+#ifdef FILTER_FIXME
 struct _audiofilterentry
 {
 	struct _audiofilterentry *next;
@@ -1075,6 +1089,7 @@ GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_
 u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes);
 void gf_afc_unload(GF_AudioFilterChain *afc);
 void gf_afc_reset(GF_AudioFilterChain *afc);
+#endif
 
 
 /*the audio renderer*/
@@ -1113,8 +1128,10 @@ typedef struct _audio_render
 
 	u32 audio_delay, volume, pan, mute;
 
+#ifdef FILTER_FIXME
 	GF_AudioFilterChain filter_chain;
 	u32 nb_filled, nb_used;
+#endif
 
 	Bool step_mode;
 
@@ -1221,8 +1238,7 @@ void gf_sc_audio_unregister(GF_AudioInput *ai);
 #ifndef GPAC_DISABLE_SVG
 GF_Err gf_term_get_mfurl_from_xlink(GF_Node *node, MFURL *mfurl);
 Fixed gf_sc_svg_convert_length_to_display(GF_Compositor *sr, SVG_Length *length);
-
-char *gf_term_resolve_xlink(GF_Node *node, char *the_url);
+char *gf_scene_resolve_xlink(GF_Node *node, char *the_url);
 #endif
 
 GF_Err compositor_2d_set_aspect_ratio(GF_Compositor *sr);

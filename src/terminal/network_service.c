@@ -27,150 +27,95 @@
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/network.h>
 
-#if FILTER_FIXME
-//we will need to get events from the filter session to signal connection failure - TODO
-
-static void term_on_connect(GF_ClientService *service, LPNETCHANNEL netch, GF_Err err)
+struct on_setup_task
 {
-	GF_Channel *ch;
-	GF_ObjectManager *root;
-	GF_Terminal *term = service->term;
+	GF_ObjectManager *odm;
+	GF_Err reason;
+};
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] %s connection ACK received from %s - %s\n", netch ? "Channel" : "Service", service->url, gf_error_to_string(err) ));
+static Bool scene_ns_on_setup_error_task(GF_FSTask *filter_task)
+{
+	GF_SceneNamespace *scene_ns;
+	GF_Scene *scene, *top_scene;
+	struct on_setup_task *task = gf_fs_task_get_udta(filter_task);
+	GF_Err err = task->reason;
+	GF_ObjectManager *root = (GF_ObjectManager *)task->odm;
+	assert(root);
+	scene_ns = root->scene_ns;
+	assert(scene_ns);
+	scene = root->subscene ? root->subscene : root->parentscene;
+	assert(scene);
 
-	root = service->owner;
-	if (root && (root->net_service != service)) {
-		gf_term_message(term, service->url, "Incompatible module type", GF_SERVICE_ERROR);
-		return;
+	gf_free(task);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Service connection failure received from %s - %s\n", scene_ns->url, gf_error_to_string(err) ));
+
+	if (root->scene_ns->owner != root) {
+		gf_scene_message(scene, scene_ns->url, "Incompatible module type", GF_SERVICE_ERROR);
+		return GF_FALSE;
 	}
 	/*this is service connection*/
-	if (!netch) {
-		gf_term_service_media_event(service->owner, GF_EVENT_MEDIA_SETUP_DONE);
-		if (err) {
-			char msg[5000];
-			snprintf(msg, sizeof(msg), "Cannot open %s", service->url);
-			gf_term_message(term, service->url, msg, err);
+#ifdef FILTER_FIXME
+	gf_term_service_media_event(service->owner, GF_EVENT_MEDIA_SETUP_DONE);
+#endif
 
-			gf_term_service_media_event(service->owner, GF_EVENT_ERROR);
+	if (err) {
+		char msg[5000];
+		snprintf(msg, sizeof(msg), "Cannot open %s", scene_ns->url);
+		gf_scene_message(scene, scene_ns->url, msg, err);
 
-			/*destroy service only if attached*/
-			if (root) {
-				gf_term_lock_media_queue(term, 1);
-				//notify before disconnecting
-				if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
+#ifdef FILTER_FIXME
+		gf_term_service_media_event(service->owner, GF_EVENT_ERROR);
+#endif
 
-				service->ifce->CloseService(service->ifce);
-				root->net_service = NULL;
-				if (service->owner && service->nb_odm_users) service->nb_odm_users--;
-				service->owner = NULL;
-				/*depends on module: some module could forget to call gf_service_disconnect_ack */
-				if ( gf_list_del_item(term->net_services, service) >= 0) {
-					/*and queue for destroy*/
-					gf_list_add(term->net_services_to_remove, service);
-				}
+		/*destroy service only if attached*/
+		if (root) {
+			//notify before disconnecting
+			if (root->subscene) gf_scene_notify_event(root->subscene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, err, GF_FALSE);
 
-				gf_term_lock_media_queue(term, 0);
+			root->scene_ns = NULL;
+			if (scene_ns->owner && scene_ns->nb_odm_users) scene_ns->nb_odm_users--;
+			scene_ns->owner = NULL;
 
-				if (!root->parentscene) {
-					GF_Event evt;
-					evt.type = GF_EVENT_CONNECT;
-					evt.connect.is_connected = 0;
-					gf_term_send_event(term, &evt);
-				} else {
-					/*try to reinsert OD for VRML/X3D with multiple URLs:
-					1- first remove from parent scene without destroying object, this will trigger a re-setup
+			top_scene = scene;
+			while (top_scene->parent_scene) top_scene = top_scene->parent_scene;
+			gf_list_del_item(top_scene->namespaces, scene_ns);
+			gf_scene_ns_del(scene_ns);
+
+			if (!root->parentscene) {
+				GF_Event evt;
+				evt.type = GF_EVENT_CONNECT;
+				evt.connect.is_connected = 0;
+				gf_fs_send_event(scene->compositor->fsess, &evt);
+			} else {
+				/*try to reinsert OD for VRML/X3D with multiple URLs:
+				1- first remove from parent scene without destroying object, this will trigger a re-setup
 					if other URLs are present
 					2- then destroy object*/
-					gf_scene_remove_object(root->parentscene, root, 0);
-					gf_odm_disconnect(root, 1);
-				}
-				return;
+				gf_scene_remove_object(root->parentscene, root, 0);
+				gf_odm_disconnect(root, 1);
 			}
+			return GF_FALSE;
 		}
-
-		if (!root) {
-			/*channel service connect*/
-			u32 i;
-			GF_ChannelSetup *cs;
-			GF_List *ODs;
-
-			if (!gf_list_count(term->channels_pending)) {
-				return;
-			}
-			ODs = gf_list_new();
-			gf_term_lock_net(term, 1);
-			i=0;
-			while ((cs = (GF_ChannelSetup*)gf_list_enum(term->channels_pending, &i))) {
-				if (cs->ch->service != service) continue;
-				gf_list_rem(term->channels_pending, i-1);
-				i--;
-				/*even if error do setup (channel needs to be deleted)*/
-				if (gf_odm_post_es_setup(cs->ch, cs->dec, err) == GF_OK) {
-					if (cs->ch->odm && (gf_list_find(ODs, cs->ch->odm)==-1) ) gf_list_add(ODs, cs->ch->odm);
-				}
-				gf_free(cs);
-			}
-			gf_term_lock_net(term, 0);
-			/*finally setup all ODs concerned (we do this later in case of scalability)*/
-			while (gf_list_count(ODs)) {
-				GF_ObjectManager *odm = (GF_ObjectManager*)gf_list_get(ODs, 0);
-				gf_list_rem(ODs, 0);
-				/*force re-setup*/
-				gf_scene_setup_object(odm->parentscene, odm);
-			}
-			gf_list_del(ODs);
-		} else {
-			/*setup od*/
-			gf_odm_setup_entry_point(root, service->url);
-		}
-		/*load cache if requested*/
-		if (!err && term->enable_cache) {
-			err = gf_term_service_cache_load(service);
-			/*not a fatal error*/
-			if (err) gf_term_message(term, "GPAC Cache", "Cannot load cache", err);
-		}
-		return;
 	}
-
-	/*this is channel connection*/
-	ch = gf_term_get_channel(service, netch);
-	if (!ch) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Channel connection ACK error: channel not found\n"));
-		return;
-	}
-
-	/*confirm channel connection even if error - this allow playback of objects even if not all streams are setup*/
-	gf_term_lock_net(term, 1);
-	gf_es_on_connect(ch);
-	gf_term_lock_net(term, 0);
-
-	if (err && ((err!=GF_STREAM_NOT_FOUND) || (ch->esd->decoderConfig->streamType!=GF_STREAM_INTERACT))) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Channel %d connection error: %s\n", ch->esd->ESID, gf_error_to_string(err) ));
-		ch->es_state = GF_ESM_ES_UNAVAILABLE;
-		/*		return;*/
-	}
-
-	if (ch->odm->mo) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Channel %d connected - %d objects opened\n", ch->esd->ESID, ch->odm->mo->num_open ));
-	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Channel %d connected - not attached to the scene\n", ch->esd->ESID));
-	}
-	/*Plays request are skiped until all channels are connected. We send a PLAY on the objecy in case
-		1-OD user has requested a play
-		2-this is a channel of the root OD
-	*/
-	if ( (ch->odm->mo && ch->odm->mo->num_open)
-	        || !ch->odm->parentscene
-	   ) {
-		gf_odm_start(ch->odm);
-	}
-#if 0
-	else if (ch->odm->codec && ch->odm->codec->ck && ch->odm->codec->ck->no_time_ctrl) {
-		gf_odm_play(ch->odm);
-	}
-#endif
+	return GF_FALSE;
 }
 
+static void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
+{
+	GF_Scene *scene;
+	struct on_setup_task*t = gf_malloc(sizeof(struct on_setup_task));
+	t->reason = err;
+	t->odm = (GF_ObjectManager *)udta;
+	assert(t->odm);
+	scene = t->odm->subscene ? t->odm->subscene : t->odm->parentscene;
+	assert(scene);
+	gf_filter_post_task(scene->compositor->filter, scene_ns_on_setup_error_task, t, "compositor_on_connect");
+}
+
+
+
+#ifdef FILTER_FIXME
 static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF_Err response)
 {
 	GF_ObjectManager *root;
@@ -240,6 +185,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	u32 mtype=0;
 	u32 moti=0;
 	u32 pid_odid=0;
+	u32 pid_id=0;
 	u32 ServiceID=0;
 
 	root = sns->owner;
@@ -261,8 +207,10 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	mtype = v->value.uint;
 
 	v = gf_filter_pid_get_property(pid, GF_PROP_PID_SERVICE_ID);
-	if (v)
-		ServiceID = v->value.uint;
+	if (v) ServiceID = v->value.uint;
+
+	v = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	if (v) pid_id = v->value.uint;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Service %s] Adding new media\n", sns->url));
 
@@ -275,7 +223,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	min_od_id = 0;
 	for (i=0; i<gf_list_count(scene->scene_objects); i++) {
 		char *frag, *ext;
-		GF_ESD *esd;
 		char *url;
 		u32 match_esid = 0;
 		GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
@@ -285,24 +232,17 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 
 		if (!mo->odm) continue;
 		/*if object is attached to a service, don't bother looking in a different one*/
-		if (mo->odm->scene_ns && (mo->odm->scene_ns != sns)) continue;
-
-		/*already assigned object - this may happen since the compositor has no control on when objects are declared by the service,
-		therefore opening file#video and file#audio may result in the objects being declared twice if the service doesn't
-		keep track of declared objects*/
-		if (mo->odm->ID) {
-			if (pid_odid && (mo->odm->type==mtype) && (mo->odm->original_oti == moti)) {
-				assert(mo->odm->pid);
-				return;
-			}
-			continue;
+		if (mo->odm->scene_ns && (mo->odm->scene_ns != sns)) {
+			Bool in_parent = gf_filter_pid_is_filter_in_parents(pid, mo->odm->scene_ns->source_filter);
+			if (!in_parent) continue;
+			//got it !
 		}
+
+		/*already assigned object*/
+		if (mo->odm->ID) continue;
+
+		/*we cannot match yet the object, we need the OD command for that*/
 		if (mo->OD_ID != GF_MEDIA_EXTERNAL_ID) {
-			if (mo->OD_ID == pid_odid) {
-				the_mo = mo;
-				odm = mo->odm;
-				break;
-			}
 			continue;
 		}
 		if (!mo->URLs.count || !mo->URLs.vals[0].url) continue;
@@ -319,18 +259,17 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		else if (!strnicmp(url, "gpac://", 7)) url += 7;
 		else if (!strnicmp(url, "pid://", 6)) match_esid = atoi(url+6);
 
-		if (!match_esid && !strstr(sns->url, url)) {
+		if (!match_esid && !strstr(mo->odm->scene_ns->url, url)) {
 			if (ext) ext[0] = '#';
 			continue;
 		}
 		if (ext) ext[0] = '#';
 
-#if FILTER_FIXME
-		esd = gf_list_get(od->ESDescriptors, 0);
-		if (match_esid && (esd->ESID != match_esid))
+		if (match_esid && (pid_id != match_esid))
 			continue;
+
 		/*match type*/
-		switch (esd->decoderConfig->streamType) {
+		switch (mtype) {
 		case GF_STREAM_VISUAL:
 			if (mo->type != GF_MEDIA_OBJECT_VIDEO) continue;
 			break;
@@ -346,6 +285,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		default:
 			continue;
 		}
+#if FILTER_FIXME
 		if (frag) {
 			u32 frag_id = 0;
 			u32 ID = od->objectDescriptorID;
@@ -354,10 +294,13 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			frag_id = atoi(frag);
 			if (ID!=frag_id) continue;
 		}
+#endif
 		the_mo = mo;
 		odm = mo->odm;
+		pid_odid = odm->ID = mo->OD_ID;
+		if (mo->OD_ID == GF_MEDIA_EXTERNAL_ID)
+			odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
 		break;
-#endif
 	}
 
 	/*add a pass on scene->resource to check for min_od_id,
@@ -391,13 +334,14 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	if (!scene->selected_service_id)
 		scene->selected_service_id = ServiceID;
 
+	if (odm->parentscene->is_dynamic_scene)
+		odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
+
 	//we insert right away the PID as a new object if the scene is dynamic
 	//if the scene is not dynamic, we wait for the corresponding OD update
 	//FILTER_FIXME: needs rework to enable attaching subtitle to a non-dynamic scene
 	//otherwise if subscene, this is an IOD
-	if (odm->subscene || odm->parentscene->is_dynamic_scene) {
-		if (odm->parentscene->is_dynamic_scene)
-			odm->flags |= GF_ODM_NOT_IN_OD_STREAM;
+	if (odm->subscene || (odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->ID, odm->mo));
 		gf_odm_setup_object(odm, sns, pid);
@@ -439,5 +383,165 @@ void gf_scene_ns_del(GF_SceneNamespace *sns)
 	gf_list_del(sns->Clocks);
 	if (sns->url) gf_free(sns->url);
 	gf_free(sns);
+}
+
+
+/*connects given OD manager to its URL*/
+void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
+{
+	GF_SceneNamespace *ns;
+	u32 i, count;
+	GF_Err e;
+	Bool reloc_result=GF_FALSE;
+	GF_Filter *filter;
+	GF_FilterSession *fsess = gf_filter_get_session(scene->compositor->filter);
+
+	
+#if FILTER_FIXME
+	Bool net_locked;
+	char relocated_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
+
+	/*try to relocate the url*/
+	reloc_result = gf_term_relocate_url(term, serviceURL, parent_url, relocated_url, localized_url);
+	if (reloc_result) serviceURL = (char *) relocated_url;
+
+	/*check cache*/
+	if (parent_url) {
+		count = gf_cfg_get_section_count(term->user->config);
+		for (i=0; i<count; i++) {
+			u32 exp, sec, frac;
+			const char *opt, *service_cache;
+			const char *name = gf_cfg_get_section_name(term->user->config, i);
+			if (strncmp(name, "@cache=", 7)) continue;
+			opt = gf_cfg_get_key(term->user->config, name, "serviceURL");
+			if (!opt || stricmp(opt, parent_url)) continue;
+			opt = gf_cfg_get_key(term->user->config, name, "cacheName");
+			if (!opt || stricmp(opt, serviceURL)) continue;
+
+			service_cache = (char*)gf_cfg_get_key(term->user->config, name, "cacheFile");
+			opt = gf_cfg_get_key(term->user->config, name, "expireAfterNTP");
+			if (opt) {
+				sscanf(opt, "%u", &exp);
+				gf_net_get_ntp(&sec, &frac);
+				if (exp && (exp<sec)) {
+					opt = gf_cfg_get_key(term->user->config, name, "cacheFile");
+					if (opt) gf_delete_file((char*) opt);
+					gf_cfg_del_section(term->user->config, name);
+					i--;
+					count--;
+					service_cache = NULL;
+				}
+			}
+			if (service_cache) serviceURL = (char *)service_cache;
+			break;
+		}
+	}
+
+	/*for remoteODs/dynamic ODs, check if one of the running service cannot be used
+	net mutex may be locked at this time (if another service sends a connect OK)*/
+	net_locked = gf_mx_try_lock(term->net_mx);
+	i=0;
+	while ( (ns = (GF_ClientService*)gf_list_enum(term->net_services, &i)) ) {
+		/*we shall not have a service scheduled for destruction here*/
+		if (ns->owner && ( (ns->owner->flags & GF_ODM_DESTROYED) || (ns->owner->action_type == GF_ODM_ACTION_DELETE)) )
+			continue;
+
+		/*if service has timeline locked to its parent scene, only reuse it if new object does as well*/
+		if (ns->owner->flags & GF_ODM_INHERIT_TIMELINE) {
+			if (!(odm->flags & GF_ODM_INHERIT_TIMELINE)) continue;
+		}
+
+		if (gf_term_service_can_handle_url(ns, serviceURL)) {
+			if (net_locked) {
+				gf_term_lock_net(term, 0);
+			}
+
+			/*wait for service to setup - service may become destroyed if not available*/
+			while (1) {
+				net_locked = gf_mx_try_lock(term->net_mx);
+				if (!ns->owner) {
+					if (net_locked) {
+						gf_term_lock_net(term, 0);
+					}
+					return;
+				}
+				if (net_locked) {
+					gf_term_lock_net(term, 0);
+				}
+
+				if (ns->owner->OD) break;
+				gf_sleep(5);
+			}
+
+			gf_mx_p(term->net_mx);
+			if (odm->net_service) {
+				gf_mx_v(term->net_mx);
+				return;
+			}
+			if (odm->flags & GF_ODM_DESTROYED) {
+				gf_mx_v(term->net_mx);
+				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
+				return;
+			}
+			odm->net_service = ns;
+			odm->net_service->nb_odm_users ++;
+			gf_odm_setup_entry_point(odm, serviceURL);
+			gf_mx_v(term->net_mx);
+			return;
+		}
+	}
+	if (net_locked)
+		gf_term_lock_net(term, 0);
+
+#endif
+
+
+	odm->scene_ns = gf_scene_ns_new(scene->compositor->root_scene, odm, serviceURL, (odm->addon || reloc_result) ? NULL : parent_url);
+
+	if (!odm->scene_ns) {
+		gf_scene_message(scene, serviceURL, "Cannot create scene service", GF_OUT_OF_MEM);
+		gf_odm_disconnect(odm, 1);
+		return;
+	}
+	odm->scene_ns->nb_odm_users++;
+	assert(odm->scene_ns->owner == odm);
+
+	odm->scene_ns->source_filter = gf_fs_load_source(fsess, serviceURL, parent_url);
+	if (!odm->scene_ns->source_filter) {
+		gf_scene_message(scene, serviceURL, "Cannot find filter for service", GF_NOT_SUPPORTED);
+		gf_odm_disconnect(odm, 1);
+		return;
+	}
+
+	gf_filter_set_setup_failure_callback(odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
+
+	/*OK connect*/
+#if FILTER_FIXME
+	gf_term_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
+
+	/*remove pending download session if any*/
+	gf_term_cleanup_pending_session(term, ns);
+#endif
+}
+
+
+GF_EXPORT
+Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_parent_url, Bool no_mime_check)
+{
+#ifdef FILTER_FIXME
+	GF_InputService *ifce;
+	GF_Err e;
+	char *sURL;
+	char *mime=NULL;
+	char *parent_url = NULL;
+	if (use_parent_url && term->root_scene) parent_url = term->root_scene->root_od->net_service->url;
+
+	ifce = gf_term_can_handle_service(term, fileName, parent_url, no_mime_check, &sURL, &e, NULL, &mime);
+	if (!ifce) return 0;
+	gf_modules_close_interface((GF_BaseInterface *) ifce);
+	gf_free(sURL);
+	if (mime) gf_free(mime);
+#endif
+	return 1;
 }
 

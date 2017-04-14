@@ -396,13 +396,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
 		if (e != GF_OK) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] : error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
-#ifdef FILTER_FIXME
-			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-				send_proxy_command(read, 0, 0, e, NULL, NULL);
-			} else {
-				gf_service_connect_ack(read->service, NULL, e);
-			}
-#endif
+			gf_filter_setup_failure(filter, e);
 			return e;
 		}
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
@@ -1060,6 +1054,17 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	return is_active ? GF_OK : GF_EOS;
 }
 
+GF_FilterProbeScore isoffin_probe_url(const char *url, const char *mime_type)
+{
+	char *ext;
+	if (!strnicmp(url, "rtsp://", 7)) return GF_FPROBE_NOT_SUPPORTED;
+
+	if (gf_isom_probe_file(url)) {
+		return GF_FPROBE_SUPPORTED;
+	}
+	return GF_FPROBE_NOT_SUPPORTED;
+}
+
 
 #define OFFS(_n)	#_n, offsetof(ISOMReader, _n)
 
@@ -1079,7 +1084,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.process = isoffin_process,
 	.configure_pid = NULL,
 	.update_arg = NULL,
-	.process_event = isoffin_process_event
+	.process_event = isoffin_process_event,
+	.probe_url = isoffin_probe_url
 };
 
 

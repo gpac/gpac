@@ -78,6 +78,9 @@ GF_Err gf_sc_texture_open(GF_TextureHandler *txh, MFURL *url, Bool lock_scene_ti
 
 	/*get media object*/
 	txh->stream = gf_mo_register(txh->owner, url, lock_scene_timeline, 0);
+	//consider the texture open to avoid repeatingly calling for open on bad URLs/OD
+	txh->is_open = 1;
+
 	/*bad/Empty URL*/
 	if (!txh->stream) return GF_NOT_SUPPORTED;
 
@@ -97,8 +100,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 	gf_mo_play(txh->stream, start_offset, end_offset, can_loop);
 
 	txh->last_frame_time = (u32) (-1);
-	//gf_sc_invalidate(txh->compositor, NULL);
-	txh->is_open = 1;
+
 
 	/*request play*/
 	txh->raw_memory = gf_mo_is_raw_memory(txh->stream);

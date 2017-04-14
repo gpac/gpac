@@ -32,6 +32,7 @@ extern "C" {
 
 #include <gpac/tools.h>
 #include <gpac/events.h>
+#include <gpac/user.h>
 //for offsetof()
 #include <stddef.h>
 
@@ -47,6 +48,11 @@ typedef void (*packet_destructor)(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 
 typedef union __gf_filter_event GF_FilterEvent;
 
+typedef struct __gf_fs_task GF_FSTask;
+typedef Bool (*gf_fs_task_callback)(GF_FSTask *task);
+
+void *gf_fs_task_get_udta(GF_FSTask *task);
+
 typedef enum
 {
 	//the scheduler does not use locks for packet and property queues
@@ -59,11 +65,15 @@ typedef enum
 	GF_FS_SCHEDULER_DIRECT,
 } GF_FilterSchedulerType;
 
-GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, Bool load_meta_filters);
+GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType type, GF_User *user, Bool load_meta_filters);
 void gf_fs_del(GF_FilterSession *ms);
 GF_Filter *gf_fs_load_filter(GF_FilterSession *ms, const char *name);
 GF_Err gf_fs_run(GF_FilterSession *ms);
 void gf_fs_print_stats(GF_FilterSession *ms);
+
+u32 gf_fs_run_step(GF_FilterSession *fsess);
+
+GF_Err gf_fs_stop(GF_FilterSession *fsess);
 
 typedef enum
 {
@@ -168,6 +178,16 @@ typedef struct
 	const char *name;
 } GF_FilterCapability;
 
+typedef enum
+{
+	//input is not supported
+	GF_FPROBE_NOT_SUPPORTED = 0,
+	//input is supported with potentially missing features
+	GF_FPROBE_MAYBE_SUPPORTED,
+	//input is supported
+	GF_FPROBE_SUPPORTED
+} GF_FilterProbeScore;
+
 typedef struct __gf_filter_register
 {
 	//mandatory - name of the filter as used when setting up filters
@@ -214,6 +234,9 @@ typedef struct __gf_filter_register
 	//optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
 	Bool (*process_event)(GF_Filter *filter, GF_FilterEvent *evt);
 
+	//required for source filters - probe the given URL, returning a score
+	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
+
 	//optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
 	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
 	void *udta;
@@ -230,9 +253,20 @@ const char *gf_filter_get_name(GF_Filter *filter);
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
 
+void gf_filter_post_process_task(GF_Filter *filter);
+
+void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name);
+
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta);
+
+void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason);
 
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
+
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url);
+
+GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
@@ -250,6 +284,8 @@ void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta);
 void *gf_filter_pid_get_udta(GF_FilterPid *pid);
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
 const char *gf_filter_pid_get_name(GF_FilterPid *pid);
+
+Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 
 //resets current properties of the pid
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
@@ -459,6 +495,23 @@ union __gf_filter_event
 
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
+
+
+
+
+typedef struct
+{
+	void *udta;
+	/*called when an event should be filtered
+	*/
+	Bool (*on_event)(void *udta, GF_Event *evt, Bool consumed_by_compositor);
+} GF_FilterSessionEventListener;
+
+GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el);
+GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el);
+
+Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool forward_only);
+Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt);
 
 #ifdef __cplusplus
 }

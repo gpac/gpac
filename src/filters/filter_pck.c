@@ -412,7 +412,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
 				if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
 
-				gf_fs_post_task(pid->filter->session, gf_filter_process_task, dst->filter, pid, "process", NULL);
+				gf_filter_post_process_task(dst->filter);
 			}
 		}
 	}

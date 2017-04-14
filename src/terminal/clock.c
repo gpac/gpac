@@ -33,9 +33,7 @@ GF_Clock *NewClock(GF_Compositor *compositor)
 	tmp->mx = gf_mx_new("Clock");
 	tmp->compositor = compositor;
 	tmp->speed = FIX_ONE;
-#if FILTER_FIXME
-	tmp->data_timeout = term->net_data_timeout;
-#endif
+	tmp->data_timeout = compositor->net_data_timeout;
 	return tmp;
 }
 

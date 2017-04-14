@@ -914,7 +914,7 @@ static void svg_a_handle_event(GF_Node *handler, GF_DOM_Event *event, GF_Node *o
 	evt.type = GF_EVENT_NAVIGATE;
 
 	if (all_atts.xlink_href->type == XMLRI_STRING) {
-		evt.navigate.to_url = gf_term_resolve_xlink(handler, all_atts.xlink_href->string);
+		evt.navigate.to_url = gf_scene_resolve_xlink(handler, all_atts.xlink_href->string);
 		if (evt.navigate.to_url) {
 			if (all_atts.target) {
 				evt.navigate.parameters = (const char **) &all_atts.target;

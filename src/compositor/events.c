@@ -1966,11 +1966,8 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 
 static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed)
 {
-#if FILTER_FIXME
-	Bool ret = gf_term_forward_event(compositor->term, ev, consumed, GF_FALSE);
-#else
-	Bool ret = GF_FALSE;
-#endif
+	Bool ret = gf_fs_forward_event(compositor->fsess, ev, consumed, GF_FALSE);
+
 	if (consumed) return GF_FALSE;
 
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {

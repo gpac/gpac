@@ -48,6 +48,7 @@ typedef struct
 
 	GF_FilterPid **pids;
 
+	u32 nb_playing;
 } GF_FFDemuxCtx;
 
 static void ffdmx_finalize(GF_Filter *filter)
@@ -263,7 +264,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		ffd->pids[i] = pid;
 		gf_filter_pid_set_udta(pid, stream);
 
-		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id) );
+		gf_filter_pid_set_property(pid, GF_PROP_PID_ID, &PROP_UINT(stream->id ? stream->id : 1) );
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(stream->time_base.den) );
 
@@ -345,6 +346,40 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+static Bool ffdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
+{
+	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
+
+	switch (com->base.type) {
+	case GF_FEVT_PLAY:
+		if (!ffd->nb_playing) {
+			av_seek_frame(ffd->ctx, -1, (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
+		}
+		ffd->nb_playing++;
+
+		//cancel event
+		return GF_TRUE;
+
+	case GF_FEVT_STOP:
+		if (ffd->nb_playing) ffd->nb_playing--;
+		//cancel event
+		return GF_TRUE;
+
+	case GF_FEVT_SET_SPEED:
+		//cancel event
+		return GF_TRUE;
+	default:
+		break;
+	}
+	//by default don't cancel event - to rework once we have downloading in place
+	return GF_FALSE;
+}
+
+static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
+{
+	return GF_FPROBE_MAYBE_SUPPORTED;
+}
+
 #define OFFS(_n)	#_n, offsetof(GF_FFDemuxCtx, _n)
 
 
@@ -366,7 +401,9 @@ GF_FilterRegister FFDemuxRegister = {
 	.finalize = ffdmx_finalize,
 	.process = ffdmx_process,
 	.configure_pid = NULL,
-	.update_arg = ffdmx_update_arg
+	.update_arg = ffdmx_update_arg,
+	.probe_url = ffdmx_probe_url,
+	.process_event = ffdmx_process_event
 };
 
 

@@ -258,8 +258,6 @@ enum
 	/*get current navigation mode - set navigation mode if allowed by content - this is not a resident
 	option (eg not stored in cfg)*/
 	GF_OPT_NAVIGATION,
-	/*get/set GF_StreamingCache state - cf above states for set*/
-	GF_OPT_MEDIA_CACHE,
 	/*get/set Play state - cf above states for set*/
 	GF_OPT_PLAY_STATE,
 	/*get only: returns 1 if main addon is playing, 0 if regular scene is playing*/

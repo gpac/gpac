@@ -125,7 +125,6 @@ typedef struct
 	GF_JSClass domEventClass;
 
 	GF_JSClass xmlHTTPRequestClass;
-	GF_JSClass DCCIClass;
 
 	GF_JSClass storageClass;
 
@@ -457,9 +456,7 @@ static jsval dom_node_construct(JSContext *c, GF_Node *n)
 	GF_JSClass *__class = NULL;
 
 	if (!n) return JSVAL_NULL;
-	if (n->sgprivate->scenegraph->dcci_doc)
-		__class = &dom_rt->DCCIClass;
-	else if (dom_rt->get_element_class)
+	if (dom_rt->get_element_class)
 		__class = (GF_JSClass *) dom_rt->get_element_class(n);
 
 	if (!__class ) __class  = &dom_rt->domElementClass;
@@ -473,9 +470,7 @@ jsval dom_element_construct(JSContext *c, GF_Node *n)
 	GF_JSClass *__class = NULL;
 
 	if (!n) return JSVAL_NULL;
-	if (n->sgprivate->scenegraph->dcci_doc)
-		__class = &dom_rt->DCCIClass;
-	else if (dom_rt->get_element_class)
+	if (dom_rt->get_element_class)
 		__class = (GF_JSClass *) dom_rt->get_element_class(n);
 
 	if (!__class) __class = &dom_rt->domElementClass;
@@ -3883,263 +3878,6 @@ return JS_TRUE;
 }
 
 
-static SMJS_FUNC_PROP_GET(dcci_getProperty)
-
-GF_DOMFullAttribute *att;
-GF_ChildNodeItem *child;
-GF_DOMFullNode *n;
-char *value;
-JSString *s;
-if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-n = (GF_DOMFullNode*) dom_get_node(c, obj);
-if (!n) return JS_TRUE;
-
-if (SMJS_ID_IS_INT(id)) {
-	switch (SMJS_ID_TO_INT(id)) {
-	case DCCI_JSPROPERTY_VALUE:
-		child = n->children;
-		while (child) {
-			if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
-				GF_DOMText *txt = (GF_DOMText *)child->node;
-				if (txt->type==GF_DOM_TEXT_REGULAR) {
-					s = JS_NewStringCopyZ(c, txt->textContent);
-					*vp = STRING_TO_JSVAL( s );
-					return JS_TRUE;
-				}
-			}
-			child = child->next;
-		}
-		*vp = JSVAL_NULL;
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_VALUETYPE:
-		value = "DOMString";
-		att = (GF_DOMFullAttribute*) n->attributes;
-		while (att) {
-			if (att->name && !strcmp(att->name, "valueType") && att->data) {
-				value = (char *)att->data;
-				break;
-			}
-			att = (GF_DOMFullAttribute*) att->next;
-		}
-		s = JS_NewStringCopyZ(c, value);
-		*vp = STRING_TO_JSVAL( s );
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_PROPERTYTYPE:
-		value = "DOMString";
-		att = (GF_DOMFullAttribute*) n->attributes;
-		while (att) {
-			if (att->name && !strcmp(att->name, "propertyType") && att->data) {
-				value = (char *)att->data;
-				break;
-			}
-			att = (GF_DOMFullAttribute*) att->next;
-		}
-		s = JS_NewStringCopyZ(c, value);
-		*vp = STRING_TO_JSVAL( s );
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_READONLY:
-		att = (GF_DOMFullAttribute*) n->attributes;
-		while (att) {
-			if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
-				*vp = BOOLEAN_TO_JSVAL(JS_TRUE);
-				return JS_TRUE;
-			}
-			att = (GF_DOMFullAttribute*) att->next;
-		}
-		*vp = BOOLEAN_TO_JSVAL(JS_FALSE);
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE:
-		*vp = JSVAL_NULL;
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_DCCIMETADATAINTERFACE:
-		*vp = JSVAL_NULL;
-		return JS_TRUE;
-	case DCCI_JSPROPERTY_VERSION:
-		s = JS_NewStringCopyZ(c, "1.0");
-		*vp = STRING_TO_JSVAL( s );
-		return JS_TRUE;
-	default:
-		return JS_TRUE;
-	}
-}
-return SMJS_CALL_PROP_STUB();
-}
-
-static SMJS_FUNC_PROP_SET( dcci_setProperty)
-
-GF_ChildNodeItem *child;
-GF_DOMFullNode *n;
-GF_DOMFullAttribute*att;
-GF_DOM_Event evt;
-char *str;
-Bool readonly;
-if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-n = (GF_DOMFullNode*) dom_get_node(c, obj);
-if (!n) return JS_TRUE;
-
-str = SMJS_CHARS(c, *vp);
-if (!str) return JS_TRUE;
-
-if (SMJS_ID_IS_INT(id)) {
-	switch (SMJS_ID_TO_INT(id)) {
-	case DCCI_JSPROPERTY_VALUE:
-		readonly = GF_FALSE;
-		att = (GF_DOMFullAttribute*) n->attributes;
-		while (att) {
-			if (att->name && !strcmp(att->name, "readOnly") && att->data && !strcmp((const char *)att->data, "true")) {
-				readonly = GF_TRUE;
-				break;
-			}
-			att = (GF_DOMFullAttribute*) att->next;
-		}
-		if (readonly) break;
-		child = n->children;
-		while (child) {
-			if (child->node && (child->node->sgprivate->tag==TAG_DOMText)) {
-				GF_DOMText *txt = (GF_DOMText *)child->node;
-				if (txt->type==GF_DOM_TEXT_REGULAR) {
-					if (txt->textContent) gf_free(txt->textContent);
-					txt->textContent = gf_strdup(str);
-					break;
-
-				}
-			}
-			child = child->next;
-		}
-		if (!child)
-			gf_dom_add_text_node((GF_Node*)n, gf_strdup(str) );
-
-		memset(&evt, 0, sizeof(GF_DOM_Event));
-		evt.type = GF_EVENT_DCCI_PROP_CHANGE;
-		evt.bubbles = 1;
-		evt.relatedNode = (GF_Node*)n;
-		gf_dom_event_fire((GF_Node*)n, &evt);
-		n->sgprivate->scenegraph->modified = GF_TRUE;
-		break;
-	case DCCI_JSPROPERTY_PROPERTYTYPE:
-		break;
-
-	/*all other properties are read-only*/
-	default:
-		break;
-	}
-}
-SMJS_FREE(c, str);
-return JS_TRUE;
-}
-
-Bool dcci_prop_lookup(GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool first)
-{
-	Bool ok = GF_TRUE;
-	GF_ChildNodeItem *child = n->children;
-	/*ns mismatch*/
-	if (strcmp(ns, "*") && n->ns && strcmp(ns, gf_sg_get_namespace(n->sgprivate->scenegraph, n->ns) ))
-		ok = GF_FALSE;
-	/*name mismatch*/
-	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
-		ok = GF_FALSE;
-
-	/*"Some DCCIProperty nodes may not have a value"*/
-	if (ok) return GF_TRUE;
-
-	/*not found*/
-	if (!first && !deep) return GF_FALSE;
-
-	while (child) {
-		if (child->node && (child->node->sgprivate->tag==TAG_DOMFullNode)) {
-			ok = dcci_prop_lookup((GF_DOMFullNode *)child->node, ns, name, deep, GF_FALSE);
-			if (ok) return GF_TRUE;
-		}
-		child = child->next;
-	}
-	return GF_FALSE;
-}
-
-static JSBool SMJS_FUNCTION(dcci_has_property)
-{
-	GF_DOMFullNode *n;
-	Bool deep;
-	char *ns, *name;
-	SMJS_OBJ
-	SMJS_ARGS
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_TRUE;
-	if (argc!=3) return JS_TRUE;
-	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-	ns = SMJS_CHARS(c, argv[0]);
-	name = SMJS_CHARS(c, argv[1]);
-
-	deep = JSVAL_TO_BOOLEAN(argv[2]) ? GF_TRUE : GF_FALSE;
-	deep = dcci_prop_lookup(n, ns, name, deep, GF_TRUE);
-	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL(deep ? JS_TRUE : JS_FALSE) );
-	SMJS_FREE(c, ns);
-	SMJS_FREE(c, name);
-	return JS_TRUE;
-}
-
-void dcci_prop_collect(DOMNodeList *nl, GF_DOMFullNode *n, char *ns, char *name, Bool deep, Bool first)
-{
-	Bool ok = GF_TRUE;
-	GF_ChildNodeItem *child = n->children;
-	/*ns mismatch*/
-	if (strcmp(ns, "*") && n->ns && strcmp(ns, gf_sg_get_namespace(n->sgprivate->scenegraph, n->ns) ))
-		ok = GF_FALSE;
-	/*name mismatch*/
-	if (strcmp(name, "*") && n->name && strcmp(name, n->name))
-		ok = GF_FALSE;
-
-	/*"Some DCCIProperty nodes may not have a value"*/
-	if (ok) {
-		gf_node_register((GF_Node*)n, NULL);
-		if (n->sgprivate->scenegraph->reference_count)
-			n->sgprivate->scenegraph->reference_count++;
-		gf_node_list_add_child(&nl->child, (GF_Node*)n);
-	}
-
-	/*not found*/
-	if (!first && !deep) return;
-
-	while (child) {
-		if (child->node && (child->node->sgprivate->tag==TAG_DOMFullNode)) {
-			dcci_prop_collect(nl, (GF_DOMFullNode *)child->node, ns, name, GF_TRUE, GF_FALSE);
-		}
-		child = child->next;
-	}
-}
-
-static JSBool SMJS_FUNCTION(dcci_search_property)
-{
-	JSObject *new_obj;
-	DOMNodeList *nl;
-	GF_DOMFullNode *n;
-	Bool deep;
-	char *ns, *name;
-	SMJS_OBJ
-	SMJS_ARGS
-
-	if (!GF_JS_InstanceOf(c, obj, &dom_rt->DCCIClass, NULL) ) return JS_TRUE;
-	n = (GF_DOMFullNode*) dom_get_node(c, obj);
-	if (!n) return JS_TRUE;
-	if (argc!=4) return JS_TRUE;
-	if (!JSVAL_CHECK_STRING(argv[0])) return JS_TRUE;
-	if (!JSVAL_CHECK_STRING(argv[1])) return JS_TRUE;
-	ns = SMJS_CHARS(c, argv[0]);
-	name = SMJS_CHARS(c, argv[1]);
-	/*todo - DCCI prop filter*/
-	deep = JSVAL_TO_BOOLEAN(argv[3]) ? GF_TRUE : GF_FALSE;
-
-	GF_SAFEALLOC(nl, DOMNodeList);
-	dcci_prop_collect(nl, n, ns, name, deep, GF_TRUE);
-	new_obj = JS_NewObject(c, &dom_rt->domNodeListClass._class, 0, 0);
-	SMJS_SET_PRIVATE(c, new_obj, nl);
-	SMJS_SET_RVAL( OBJECT_TO_JSVAL(new_obj) );
-	SMJS_FREE(c, ns);
-	SMJS_FREE(c, name);
-	return JS_TRUE;
-}
-
 static SMJS_FUNC_PROP_GET( storage_getProperty)
 
 /*avoids gcc warning*/
@@ -4198,7 +3936,6 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		JS_SETUP_CLASS(dom_rt->xmlHTTPRequestClass, "XMLHttpRequest", JSCLASS_HAS_PRIVATE, xml_http_getProperty, xml_http_setProperty, xml_http_finalize);
 		JS_SETUP_CLASS(dom_rt->storageClass, "Storage", JSCLASS_HAS_PRIVATE, storage_getProperty, storage_setProperty, storage_finalize);
 
-		JS_SETUP_CLASS(dom_rt->DCCIClass, "DCCI", JSCLASS_HAS_PRIVATE, dcci_getProperty, dcci_setProperty, dom_node_finalize);
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] dom run-time allocated\n"));
 	}
@@ -4526,43 +4263,6 @@ void dom_js_load(GF_SceneGraph *scene, JSContext *c, JSObject *global)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] Storage class initialized\n"));
 	}
 
-	{
-		GF_SceneGraph *dcci;
-		jsval dcci_root;
-
-		dcci = NULL;
-		if (scene->script_action) {
-			GF_JSAPIParam par;
-			par.node = NULL;
-			scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_DCCI, NULL, &par);
-			dcci = par.scene;
-		}
-		if (dcci && dcci->RootNode) {
-
-			JSPropertySpec DCCIClassProps[] = {
-				SMJS_PROPERTY_SPEC("value",						DCCI_JSPROPERTY_VALUE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-				SMJS_PROPERTY_SPEC("valueType",					DCCI_JSPROPERTY_VALUETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("propertyType",				DCCI_JSPROPERTY_PROPERTYTYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED, 0, 0),
-				SMJS_PROPERTY_SPEC("readOnly",					DCCI_JSPROPERTY_READONLY,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("DCCIMetadataInterfaceType",	DCCI_JSPROPERTY_DCCIMETADATAINTERFACETYPE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("DCCIMetadataInterface",		DCCI_JSPROPERTY_DCCIMETADATAINTERFACE,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC("version",					DCCI_JSPROPERTY_VERSION,       JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-				SMJS_PROPERTY_SPEC(0, 0, 0, 0, 0)
-			};
-			JSFunctionSpec DCCIClassFuncs[] = {
-				SMJS_FUNCTION_SPEC("hasProperty",			dcci_has_property, 3),
-				SMJS_FUNCTION_SPEC("searchProperty",		dcci_search_property, 4),
-				SMJS_FUNCTION_SPEC(0, 0, 0)
-			};
-
-			GF_JS_InitClass(c, global, dom_rt->domElementClass._proto, &dom_rt->DCCIClass, 0, 0, DCCIClassProps, DCCIClassFuncs, 0, 0);
-			dcci_root = dom_base_node_construct(c, &dom_rt->DCCIClass, dcci->RootNode);
-			JS_DefineProperty(c, global, "DCCIRoot", dcci_root, 0, 0, JSPROP_READONLY | JSPROP_PERMANENT );
-
-			dcci->dcci_doc = GF_TRUE;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[DOMCore] DCCI class initialized\n"));
-		}
-	}
 }
 
 void html_media_element_js_finalize(JSContext *c, GF_Node *n);

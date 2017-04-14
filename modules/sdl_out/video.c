@@ -1663,8 +1663,12 @@ static GF_Err SDLVid_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 #if SDL_VERSION_ATLEAST(2,0,0)
 	{
 		SDLVID();
-		strncpy(ctx->szCaption, evt->caption.caption, 99);
-		ctx->szCaption[99]=0;
+		if (evt->caption.caption) {
+			strncpy(ctx->szCaption, evt->caption.caption, 99);
+			ctx->szCaption[99]=0;
+		} else {
+			ctx->szCaption[0]=0;
+		}
 	}
 #else
 	SDL_WM_SetCaption(evt->caption.caption, NULL);

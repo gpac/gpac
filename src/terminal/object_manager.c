@@ -181,13 +181,10 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
-#if FILTER_FIXME
 		GF_Event evt;
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
-		gf_term_forward_event(odm->term, &evt, GF_FALSE, GF_TRUE);
-#endif
-
+		gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
 
 		gf_scene_remove_object(odm->parentscene, odm, do_remove);
 		if (odm->subscene) gf_scene_del(odm->subscene);
@@ -621,9 +618,10 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 	if (parent_url && !strnicmp(parent_url, "views://", 8))
 		parent_url = NULL;
 
-#if FILTER_FIXME
-	gf_term_post_connect_object(odm->term, odm, remote_url, parent_url);
-#endif
+	//make sure we don't have an ID before attempting to connect
+	odm->ID = 0;
+	odm->ServiceID = 0;
+	gf_scene_ns_connect_object(odm->subscene ? odm->subscene : odm->parentscene, odm, remote_url, parent_url);
 }
 
 GF_EXPORT
@@ -661,9 +659,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		e = gf_odm_setup_pid(odm, for_pid);
 		if (e) {
-#if FILTER_FIXME
-			gf_term_message(odm->term, odm->net_service->url, "Stream Setup Failure", e);
-#endif
+			GF_LOG(GF_LOG_MEDIA, GF_LOG_ERROR, ("Service %s PID %s Setup Failure: %s", odm->scene_ns->url, gf_filter_pid_get_name(for_pid ? for_pid : odm->pid), gf_error_to_string(e) ));
 		}
 	}
 	/*setup mediaobject info except for top-level OD*/
@@ -689,7 +685,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		if (odm->pid==for_pid) {
 			evt.type = GF_EVENT_CONNECT;
 			evt.connect.is_connected = GF_TRUE;
-			gf_sc_forward_event(odm->parentscene->compositor, &evt, GF_FALSE, GF_TRUE);
+			gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
 		}
 	} else if (odm->pid==for_pid) {
 		/*othewise send a connect ack for top level*/
@@ -705,6 +701,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	/* start object*/
 	/*object is already started (new PID was inserted for this object)*/
 	if (odm->state==GF_ODM_STATE_PLAY) {
+		if (odm->pid==for_pid)
+			odm->state = GF_ODM_STATE_STOP;
 		gf_odm_start(odm);
 	}
 	/*object is the root, always start*/
@@ -898,7 +896,22 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	clockID = OD_OCR_ID;
 	/*if OCR stream force self-synchro !!*/
 	if (odm->type == GF_STREAM_OCR) clockID = odm->ID;
-	if (!clockID) clockID = odm->ID;
+	if (!clockID) {
+		if (odm->ID == GF_MEDIA_EXTERNAL_ID) {
+			clockID = (u32) odm->scene_ns;
+		} else {
+			clockID = odm->ID;
+		}
+	}
+
+	/*override clock dependencies if specified*/
+	if (scene->compositor->force_single_clock) {
+		GF_Scene *parent = scene;
+		while (parent->parent_scene) parent = parent->parent_scene;
+
+		clockID = scene->root_od->ck->clockID;
+		ck_namespace = parent->root_od->scene_ns->Clocks;
+	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
 	if (!prop) prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
@@ -1189,6 +1202,12 @@ void gf_odm_play(GF_ObjectManager *odm)
 		if (!gf_odm_shares_clock(odm, parent_ck)) parent_ck = NULL;
 	}
 
+	//PID not yet attached, mark as state_play and wait for error or OK
+	if (!odm->pid ) {
+		odm->state = GF_ODM_STATE_PLAY;
+		return;
+	}
+
 	skip_od_st = (odm->subscene && odm->subscene->static_media_ressources) ? 1 : 0;
 	range_end = odm->media_stop_time;
 //	odm->media_stop_time = 0;
@@ -1432,6 +1451,13 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 
 	//root ODs of dynamic scene may not have seen play/pause request
 	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
+
+	//PID not yet attached, mark as state_stop and wait for error or OK
+	if (!odm->pid ) {
+		odm->state = GF_ODM_STATE_STOP;
+		return;
+	}
+
 
 	if (force_close && odm->mo) odm->mo->flags |= GF_MO_DISPLAY_REMOVE;
 	/*stop codecs*/

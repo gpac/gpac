@@ -497,6 +497,7 @@ enum {
 
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	s32 res;
 	u32 type=0;
 	const GF_PropertyValue *prop;
 	GF_FFDecodeCtx  *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
@@ -536,13 +537,21 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 
 	if (prop->value.uint == GPAC_OTI_MEDIA_FFMPEG) {
+		AVCodec *codec=NULL;
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
 			return GF_NON_COMPLIANT_BITSTREAM;
 		}
 		ffdec->codec_ctx = prop->value.ptr;
+		codec = avcodec_find_decoder(ffdec->codec_ctx->codec_id);
+		if (!codec) return GF_NOT_SUPPORTED;
 
+		res = avcodec_open2(ffdec->codec_ctx, codec, NULL );
+		if (res < 0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s failed to open codec context: %s\n", gf_filter_pid_get_name(pid), av_err2str(res) ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
 	}
 	//we reconfigure the stream
 	else if (ffdec->codec_ctx) {
@@ -564,7 +573,6 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 	} else {
 		AVCodec *codec=NULL;
-		s32 res;
 		u32 codec_id = ff_gpac_oti_to_codec_id(prop->value.uint);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
