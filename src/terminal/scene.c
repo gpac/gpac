@@ -146,11 +146,8 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 {
 	Bool ret;
 	GF_Scene *scene = (GF_Scene *) opaque;
-	GF_Scene *root_scene = scene;
+	GF_Scene *root_scene = gf_scene_get_root_scene(scene);
 	if (!scene) return GF_FALSE;
-
-	while (root_scene->parent_scene)
-		root_scene = root_scene->parent_scene;
 
 	if (type==GF_JSAPI_OP_MESSAGE) {
 #ifdef FILTER_FIXME
@@ -485,7 +482,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	}
 #endif
 
-	if (!scene->parent_scene) {
+	if (!scene->root_od->parentscene) {
 		gf_sc_set_scene(scene->compositor, NULL);
 	}
 
@@ -834,7 +831,7 @@ void gf_scene_attach_to_compositor(GF_Scene *scene)
 #endif
 
 	/*main display scene, setup compositor*/
-	if (!scene->parent_scene) {
+	if (!scene->root_od->parentscene) {
 		gf_sc_set_scene(scene->compositor, scene->graph);
 	}
 	else {
@@ -1179,14 +1176,14 @@ void gf_scene_register_extra_graph(GF_Scene *scene, GF_SceneGraph *extra_scene, 
 		if (gf_list_find(scene->extra_scenes, extra_scene)<0) return;
 		gf_list_del_item(scene->extra_scenes, extra_scene);
 		/*for root scene*/
-		if (! scene->parent_scene) {
+		if (! scene->root_od->parentscene) {
 			gf_sc_register_extra_graph(scene->compositor, extra_scene, 1);
 		}
 	} else {
 		if (gf_list_find(scene->extra_scenes, extra_scene)>=0) return;
 		gf_list_add(scene->extra_scenes, extra_scene);
 		/*for root scene*/
-		if (!scene->parent_scene) {
+		if (!scene->root_od->parentscene) {
 			gf_sc_register_extra_graph(scene->compositor, extra_scene, 0);
 		}
 	}
@@ -1255,13 +1252,8 @@ static void IS_UpdateVideoPos(GF_Scene *scene)
 	}
 	gf_node_dirty_set((GF_Node *)tr, 0, 0);
 
-
 	gf_scene_set_addon_layout_info(scene, scene->addon_position, scene->addon_size_factor);
 
-	if (! scene->parent_scene) {
-		//if (scene->graph_attached) gf_sc_set_scene(scene->root_od->term->compositor, NULL);
-		//gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-	}
 }
 
 static GF_Node *is_create_node(GF_SceneGraph *sg, u32 tag, const char *def_name)
@@ -1533,7 +1525,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		gf_sg_set_root_node(scene->graph, n1);
 		gf_node_register(n1, NULL);
 
-		if (! scene->parent_scene) {
+		if (! scene->root_od->parentscene) {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Background2D, "DYN_BACK");
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
@@ -1739,7 +1731,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	}
 
 	/*disconnect to force resize*/
-	if (!scene->parent_scene) {
+	if (!scene->root_od->parentscene) {
 		gf_sc_set_scene(scene->compositor, scene->graph);
 		scene->graph_attached = 1;
 
@@ -2310,7 +2302,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));
-		if (!scene->parent_scene) {
+		if (!scene->root_od->parentscene) {
 			if (width && height) {
 				gf_sc_set_scene_size(scene->compositor, width, height, GF_TRUE);
 				gf_sc_set_size(scene->compositor, width, height);
@@ -2350,7 +2342,7 @@ Bool gf_scene_process_anchor(GF_Node *caller, GF_Event *evt)
 	if (!scene) return 1;
 
 	/*if main scene forward to user. If no params or first one not "self" forward to user*/
-	if (! scene->parent_scene || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
+	if (! scene->root_od->parentscene || !evt->navigate.parameters || !evt->navigate.param_count || (stricmp(evt->navigate.parameters[0], "self") && stricmp(evt->navigate.parameters[0], "_self"))) {
 
 		if (scene->compositor->user->EventProc) return gf_sc_send_event(scene->compositor, evt);
 		return 1;

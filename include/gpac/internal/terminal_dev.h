@@ -221,7 +221,7 @@ struct _gf_scene
 	u32 first_frame_pause_type;
 	u32 vr_type;
 
-	GF_Scene *parent_scene;
+//	GF_Scene *parent_scene;
 	GF_Compositor *compositor;
 
 	GF_BifsDecoder *bifs_dec;
@@ -232,8 +232,12 @@ struct _gf_scene
 
 GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene);
 void gf_scene_del(GF_Scene *scene);
+
 struct _od_manager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID);
 void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown);
+
+GF_Scene *gf_scene_get_root_scene(GF_Scene *scene);
+
 void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
 void gf_scene_buffering_info(GF_Scene *scene);
@@ -261,7 +265,7 @@ void gf_scene_select_object(GF_Scene *scene, GF_ObjectManager *odm);
 instead of closed and reopened. If a media control is present on inline, from_time is overriden by MC range*/
 void gf_scene_restart_dynamic(GF_Scene *scene, s64 from_time, Bool restart_only, Bool disable_addon_check);
 
-void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid);
+void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod);
 
 /*exported for compositor: handles filtering of "self" parameter indicating anchor only acts on container inline scene
 not root one. Returns 1 if handled (cf user.h, navigate event)*/

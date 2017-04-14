@@ -56,19 +56,12 @@ GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti
 	e = gf_bifs_decoder_configure_stream(scene->bifs_dec, es_id, prop->value.data, prop->data_len, oti);
 	if (e) return e;
 
-	if (in_iod) {
-		gf_filter_pid_set_udta(pid, scene->root_od);
+	if (! in_iod && ! scene->bifs_dec) {
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
+	//setup object (clock) and playback requests
+	gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, in_iod);
 
-		//setup object (clock) and playback requests
-		gf_odm_register_pid(scene->root_od, pid, GF_FALSE);
-	}
-	//animation stream object
-	else {
-		if (!scene->bifs_dec) {
-			return GF_NON_COMPLIANT_BITSTREAM;
-		}
-		gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid);
-	}
 	return e;
 }
 

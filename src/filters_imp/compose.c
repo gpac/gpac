@@ -152,7 +152,9 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	}
 
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
+		u32 i, count;
 		GF_Scene *scene = NULL;
+		GF_Scene *top_scene = NULL;
 		//create a default scene
 		if (!ctx->compositor->root_scene) {
 			ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
@@ -161,8 +163,29 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
 			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
 		}
-		//todo for inline
+		//default scene is root one
 		scene = ctx->compositor->root_scene;
+
+		//todo for inline
+		top_scene = ctx->compositor->root_scene;
+
+		//browse all scene namespaces and figure out our parent scene
+		count = gf_list_count(top_scene->namespaces);
+		for (i=0; i<count; i++) {
+			GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
+			if (!sns->source_filter) continue;
+			assert(sns->owner);
+			if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+				//we are attaching an inline, create the subscene if not done already
+				if (!sns->owner->subscene) {
+					assert(sns->owner->parentscene);
+					sns->owner->subscene = gf_scene_new(ctx->compositor, sns->owner->parentscene);
+					sns->owner->subscene->root_od = sns->owner;
+				}
+				scene = sns->owner->subscene;
+				break;
+			}
+		}
 
 		if  (mtype==GF_STREAM_SCENE) {
 			if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
@@ -190,7 +213,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
 			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
 		}
-		gf_scene_insert_pid(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od->scene_ns, pid);
+		gf_scene_insert_pid(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od->scene_ns, pid, GF_FALSE);
 		gf_scene_regenerate(ctx->compositor->root_scene);
 
 	}
