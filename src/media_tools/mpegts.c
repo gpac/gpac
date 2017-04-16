@@ -4030,6 +4030,8 @@ GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_b
 		gf_bs_del(bs);
 		gf_fclose(f);
 		ts->abort_parsing = GF_FALSE;
+	} else {
+		ts->pos_in_stream = 0;
 	}
 
 	if (signal_end_of_stream && !ts->pos_in_stream) {
