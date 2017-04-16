@@ -2700,10 +2700,14 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts)
 	GF_ObjectManager*odm;
 	GF_Scene *subscene;
 	GF_List *to_restart = NULL;
+	s32 cts_diff;
 
 	if (!addon || !addon->loop_detected) return GF_FALSE;
 	//warning, we need to compare to media PTS/90 since we already rounded the media_ts to milliseconds (otherwise we would get rounding errors).
-	if ((cts == addon->past_media_pts_scaled) || (dts >= addon->past_media_pts_scaled) ) {
+	//we allow for +/- 1ms drift due to timestamp rounding when converting to milliseconds units
+	cts_diff = (s32) (cts - addon->past_media_pts_scaled);
+	if (cts_diff < 0) cts_diff = cts_diff;
+	if ((cts_diff <= 1) || (dts >= addon->past_media_pts_scaled) ) {
 	} else {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("Loop not yet active - CTS "LLD" DTS "LLD" media TS "LLD" \n", cts, dts, addon->past_media_pts_scaled));
 		return GF_FALSE;
