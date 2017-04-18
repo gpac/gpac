@@ -2289,10 +2289,10 @@ restart_fragmentation_pass:
 
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			GF_MPD_RepresentationSetDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
 			Desc->xml_desc=gf_strdup(dash_input->rep_descs[i]);
-			gf_list_add(representation_obj->representation_set_level_descriptor,Desc);
+			gf_list_add(representation_obj->other_descriptors,Desc);
 		}
 	}
 
@@ -4261,10 +4261,10 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 //	}
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			GF_MPD_RepresentationSetDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
 			Desc->xml_desc=gf_strdup(dash_input->rep_descs[i]);
-			gf_list_add(representation_obj->representation_set_level_descriptor,Desc);
+			gf_list_add(representation_obj->other_descriptors,Desc);
 		}
 	}
 
@@ -5013,10 +5013,10 @@ static GF_Err set_period_header(GF_DASHSegmenter *dasher, GF_MPD_Period *period,
 	for (i=0; i< dasher->nb_inputs; i++) {
 		if (dasher->inputs[i].adaptation_set && (dasher->inputs[i].period==period_num)) {
 			for (j = 0; j < dasher->inputs[i].nb_p_descs; j++) {
-				GF_MPD_PeriodLevelDescriptor *Desc;
-				GF_SAFEALLOC(Desc,GF_MPD_PeriodLevelDescriptor);
+				GF_MPD_other_descriptors *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
 				Desc->xml_desc=gf_strdup(dasher->inputs[i].p_descs[j]);
-				gf_list_add(period->period_levels_descriptors,Desc);
+				gf_list_add(period->other_descriptors,Desc);
 				//fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
 			}
 		}
@@ -5032,7 +5032,7 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
-	GF_MPD_AdaptationSetLevelDescriptor Desc;
+	GF_MPD_other_descriptors Desc;
 
 	//force segmentAlignment in onDemand
 	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled);
@@ -5069,10 +5069,10 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	for (i=0; i< nb_dash_inputs; i++) {
 		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
-				GF_MPD_AdaptationSetLevelDescriptor *Desc;
-				GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
+				GF_MPD_other_descriptors *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
 				Desc->xml_desc=gf_strdup(dash_inputs[i].as_c_descs[j]);
-				gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor,Desc);
+				gf_list_add(adaptation_set_obj->other_descriptors,Desc);
 				//fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
 			}
 		}
@@ -5110,10 +5110,10 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
 
 		for (i=0; i<first_rep->nb_as_descs; i++) {
-			GF_MPD_AdaptationSetLevelDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
 			Desc->xml_desc=gf_strdup(first_rep->as_descs[i]);
-			gf_list_add(adaptation_set_obj->adaptation_set_level_descriptor,Desc);
+			gf_list_add(adaptation_set_obj->other_descriptors,Desc);
 			//fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
 		}
 
