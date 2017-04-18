@@ -193,30 +193,30 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	case GF_PIXEL_BGR_32:
 	case GF_PIXEL_ARGB:
 	case GF_PIXEL_RGBA:
-		outsize = ffdec->width * ffdec->height * 4;
 		stride = ffdec->width * 4;
+		outsize = stride * ffdec->height;
 		break;
 	case GF_PIXEL_RGB_24:
 	case GF_PIXEL_BGR_24:
-		outsize = ffdec->width * ffdec->height * 3;
 		stride = ffdec->width * 3;
+		outsize = stride * ffdec->height;
 		break;
 	case GF_PIXEL_YV12:
 	case GF_PIXEL_YV12_10:
-		outsize = 3*ffdec->stride * ffdec->height / 2;
 		stride = ffdec->width;
+		outsize = 3*stride * ffdec->height / 2;
 		break;
 
 	case GF_PIXEL_YUV422:
 	case GF_PIXEL_YUV422_10:
-		outsize = ffdec->stride * ffdec->height * 2;
 		stride = ffdec->width;
+		outsize = stride * ffdec->height * 2;
 		break;
 
 	case GF_PIXEL_YUV444:
 	case GF_PIXEL_YUV444_10:
-		outsize = ffdec->stride * ffdec->height * 3;
 		stride = ffdec->width;
+		outsize = stride * ffdec->height * 3;
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

@@ -1885,7 +1885,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			gf_clock_set_time(odm->ck, time);
 //			gf_clock_set_speed(odm->ck, 4.0);
 		}
-		if (buffer_duration>200000) {
+		if (buffer_duration>1000000) {
 			odm->nb_buffering --;
 			gf_clock_buffer_off(odm->ck);
 		} else if (gf_filter_pid_has_seen_eos(pid) ) {
@@ -1894,5 +1894,5 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		}
 
 	}
-	return odm->nb_buffering ? GF_TRUE : GF_FALSE;
+	return odm->ck->Buffering ? GF_TRUE : GF_FALSE;
 }

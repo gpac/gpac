@@ -332,7 +332,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			safe_int_inc(&pck->reference_count);
 			nb_dispatch++;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s\n", pid->filter->name, dst->filter->name));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID buffer\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets) ));
 
 			if (dst->requires_full_data_block) {
 
@@ -412,7 +412,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
 				if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
 
-				gf_filter_post_process_task(dst->filter);
+				if (!dst->filter->skip_process_trigger_on_tasks)
+					gf_filter_post_process_task(dst->filter);
 			}
 		}
 	}

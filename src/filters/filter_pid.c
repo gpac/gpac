@@ -115,7 +115,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 }
 
 
-Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove)
+void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove)
 {
 	u32 i, count;
 	GF_Err e;
@@ -164,6 +164,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 			if (new_filter) {
 				gf_fs_post_task(filter->session, gf_filter_pid_connect_task, new_filter, pid, "pid_connect", NULL);
 				e = GF_OK;
+				return;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
 				e = GF_OUT_OF_MEM;
@@ -182,7 +183,7 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 		}
 		//try to run filter no matter what
 		if (filter->session->requires_solved_graph )
-			return GF_FALSE;
+			return;
 	}
 
 	//flush all pending pid init requests following the call to init
@@ -211,17 +212,16 @@ Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid, filter);
-	return GF_FALSE;
 }
 
-Bool gf_filter_pid_connect_task(GF_FSTask *task)
+void gf_filter_pid_connect_task(GF_FSTask *task)
 {
-	return gf_filter_pid_configure(task->filter, task->pid->pid, GF_TRUE, GF_FALSE);
+	gf_filter_pid_configure(task->filter, task->pid->pid, GF_TRUE, GF_FALSE);
 }
 
-Bool gf_filter_pid_reconfigure_task(GF_FSTask *task)
+void gf_filter_pid_reconfigure_task(GF_FSTask *task)
 {
-	return gf_filter_pid_configure(task->filter, task->pid->pid, GF_FALSE, GF_FALSE);
+	gf_filter_pid_configure(task->filter, task->pid->pid, GF_FALSE, GF_FALSE);
 }
 
 /*
@@ -592,6 +592,7 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
 			//remember the first load one
 			if (!i) chain_input = af;
 			//the other filters shouldn't need any specific init
+			af->dynamic_filter = GF_TRUE;
 		}
 	}
 
@@ -600,17 +601,24 @@ exit:
 	return chain_input;
 }
 
-Bool gf_filter_pid_init_task(GF_FSTask *task)
+void gf_filter_pid_init_task(GF_FSTask *task)
 {
 	u32 i, count;
 	Bool found_dest=GF_FALSE;
+	Bool first_pass=GF_TRUE;
 
+restart:
 	//try to connect pid to all running filters
 	count = gf_list_count(task->filter->session->filters);
 	for (i=0; i<count; i++) {
 		GF_Filter *filter_dst = gf_list_get(task->filter->session->filters, i);
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
+
+		//second pass, we try to load a filter chain, so don't test against filters
+		//loaded for another chain
+		if (!first_pass && filter_dst->dynamic_filter) continue;
+
 		//walk up through the parent graph and check if this filter is already in. If so don't connect
 		//since we don't allow re-entrant PIDs
 		if (filter_in_parent_chain(task->filter, filter_dst) ) continue;
@@ -628,6 +636,8 @@ Bool gf_filter_pid_init_task(GF_FSTask *task)
 
 		//we have a match, check if caps are OK
 		if (!filter_pid_caps_match(task->pid, filter_dst->freg)) {
+			if (first_pass) continue;
+
 			GF_Filter *new_f = gf_filter_pid_resolve_link(task->pid, filter_dst);
 			//try to load filters
 			if (! new_f) {
@@ -641,13 +651,19 @@ Bool gf_filter_pid_init_task(GF_FSTask *task)
 
 		found_dest = GF_TRUE;
 	}
-	
+
 	//connection in proces, do nothing
-	if (found_dest) return GF_FALSE;
+	if (found_dest) return;
+
+	//nothing found, redo a pass, this time allowing for link resolve
+	if (first_pass) {
+		first_pass = GF_FALSE;
+		goto restart;
+	}
 
 	//no filter found for this pid !
 	GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No filter found for PID %s in filter %s - NOT CONNECTED\n", task->pid->name, task->pid->filter->name));
-	return GF_FALSE;
+	return;
 }
 
 GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_blocks)
@@ -845,10 +861,16 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		return NULL;
 	}
 
-	pcki = (GF_FilterPacket *)gf_fq_head(pidinst->packets);
+	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 
-	if (!pcki)
+	if (!pcki) {
+		//it may happen that no task is currently scheduled for the source pid (bug to investigate)
+		//we force a task if not EOS to force flushing the parent
+		if (!pidinst->pid->has_seen_eos && !pidinst->pid->filter->would_block) {
+			gf_filter_post_process_task(pidinst->pid->filter);
+		}
 		return NULL;
+	}
 	
 	if (pidinst->requires_full_data_block && !pcki->pck->data_block_end)
 		return NULL;
@@ -860,7 +882,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		assert(pidinst->filter->freg->configure_pid);
 		gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_FALSE, GF_FALSE);
 	}
-	return pcki;
+	return (GF_FilterPacket *)pcki;
 }
 
 void gf_filter_pid_drop_packet(GF_FilterPid *pid)
@@ -886,7 +908,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//move to source pid
 	pid = pid->pid;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s droped packet DTS "LLU" CTS "LLU" SAP %d\n", pidinst->filter->name, pid->name, pck->dts, pck->cts, pck->sap_type));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d - %d packets remaining\n", pidinst->filter->name, pid->name, pid->filter->name, pck->dts, pck->cts, pck->sap_type, gf_fq_count(pidinst->packets) ));
 
 	if (pck->data_length) {
 		pidinst->filter->nb_pck_processed++;
@@ -919,14 +941,15 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	if (pid->would_block && unblock) {
 		//todo needs Compare&Swap
-		pid->would_block = GF_FALSE;
+		safe_int_dec(&pid->would_block);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
 		assert(pid->filter->would_block);
 		safe_int_dec(&pid->filter->would_block);
 		if (!pid->filter->would_block) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s unblocked, requesting process task\n", pid->filter->name));
 			//requeue task
-			gf_filter_post_process_task(pid->filter);
+			if (!pid->filter->skip_process_trigger_on_tasks)
+				gf_filter_post_process_task(pid->filter);
 		}
 	}
 
@@ -993,8 +1016,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 		would_block = GF_TRUE;
 	}
 	if (would_block && !pid->would_block) {
-		//todo needs Compare&Swap
-		pid->would_block = GF_TRUE;
+		safe_int_inc(&pid->would_block);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s blocked\n", pid->pid->filter->name, pid->pid->name));
 		safe_int_inc(&pid->filter->would_block);
 	}

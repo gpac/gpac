@@ -108,6 +108,7 @@ static GF_Err compose_process(GF_Filter *filter)
 	ctx->compositor->ms_until_next_frame = 0;
 
 	gf_sc_draw_frame(ctx->compositor, GF_FALSE, &ms_until_next);
+
 	if (ms_sys_wait && (ms_until_next>ms_sys_wait))
 		ms_until_next = ms_sys_wait;
 
@@ -115,8 +116,9 @@ static GF_Err compose_process(GF_Filter *filter)
 	if (ms_until_next > 100)
 		ms_until_next = 100;
 
+
 	//ask for real-time reschedule
-	gf_filter_ask_rt_reschedule(filter, ms_until_next*1000);
+	gf_filter_ask_rt_reschedule(filter, ms_until_next ? ms_until_next*1000 : 1);
 
 	return GF_OK;
 }
@@ -186,6 +188,8 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 				break;
 			}
 		}
+		assert(scene);
+		scene->is_dynamic_scene = GF_FALSE;
 
 		if  (mtype==GF_STREAM_SCENE) {
 			if ((oti==GPAC_OTI_SCENE_BIFS) || (oti==GPAC_OTI_SCENE_BIFS_V2)) {
