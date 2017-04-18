@@ -467,60 +467,48 @@ static void reset_filter_args(GF_Filter *filter)
 
 void gf_filter_process_task(GF_FSTask *task)
 {
-	Bool requeue=GF_FALSE;
 	GF_Err e;
+	GF_Filter *filter = task->filter;
 	assert(task->filter);
-	assert(task->filter->freg);
-	assert(task->filter->freg->process);
+	assert(filter->freg);
+	assert(filter->freg->process);
 
-	task->filter->schedule_next_time = 0;
-	if (task->filter->pid_connection_pending) {
+	filter->schedule_next_time = 0;
+	if (filter->pid_connection_pending) {
 		return;
 	}
-	if (task->filter->would_block == gf_list_count(task->filter->output_pids) ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", task->filter->name));
-		task->filter->nb_tasks_done--;
+	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", filter->name));
+		filter->nb_tasks_done--;
 		return;
 	}
-	e = task->filter->freg->process(task->filter);
+	e = filter->freg->process(filter);
 
 	//flush all pending pid init requests following the call to init
-	if (task->filter->has_pending_pids) {
-		task->filter->has_pending_pids=GF_FALSE;
-		while (gf_fq_count(task->filter->pending_pids)) {
-			GF_FilterPid *pid=gf_fq_pop(task->filter->pending_pids);
-			gf_fs_post_task(task->filter->session, gf_filter_pid_init_task, task->filter, pid, "pid_init", NULL);
+	if (filter->has_pending_pids) {
+		filter->has_pending_pids=GF_FALSE;
+		while (gf_fq_count(filter->pending_pids)) {
+			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
+			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 		}
 	}
 
-	assert(task->filter->nb_process_queued);
-
-	//no recurrent task if we still have pending process()
-	if (0 && task->filter->nb_process_queued>1) {
-		safe_int_dec(&task->filter->nb_process_queued);
-		return;
-	}
-
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS)) {
-		requeue = GF_TRUE;
+	if ( !filter->input_pids && filter->output_pids && (e!=GF_EOS)) {
+		task->requeue_request = GF_TRUE;
 	}
 
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
-	else if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1) && !task->filter->skip_process_trigger_on_tasks)
-		requeue = GF_TRUE;
+	else if ((filter->would_block < filter->num_output_pids)
+			&& filter->pending_packets
+			&& (gf_fq_count(filter->tasks)<=1)
+			&& !filter->skip_process_trigger_on_tasks)
+		task->requeue_request = GF_TRUE;
 
 	//filter requested a requeue
-	else if (task->filter->schedule_next_time) {
-		task->schedule_next_time = task->filter->schedule_next_time;
-		requeue = GF_TRUE;
-	}
-
-	if (requeue) {
+	else if (filter->schedule_next_time) {
+		task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
-	} else {
-		//assert(task->filter->nb_process_queued==1);
-		safe_int_dec(&task->filter->nb_process_queued);
 	}
 }
 
@@ -556,9 +544,7 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 
 void gf_filter_post_process_task(GF_Filter *filter)
 {
-	safe_int_inc(&filter->nb_process_queued);
 	gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
-
 }
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
