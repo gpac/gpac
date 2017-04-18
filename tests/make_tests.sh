@@ -1117,7 +1117,7 @@ do_hash_test ()
 
  # for text files, we remove potential CR chars
  # to prevent having different hashes on different platforms
- if [ -n "$(file -b $1 | grep text)" ] ; then
+ if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ; then
   file_to_hash="to_hash_$(basename $1)"
   tr -d '\r' <  "$1" > "$file_to_hash"
  fi
