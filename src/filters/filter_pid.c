@@ -689,6 +689,7 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	pid->request_property_map = GF_TRUE;
 	if (!filter->output_pids) filter->output_pids = gf_list_new();
 	gf_list_add(filter->output_pids, pid);
+	filter->num_output_pids = gf_list_count(filter->output_pids);
 	pid->pid = pid;
 
 	sprintf(szName, "PID%d", gf_list_count(filter->output_pids) );

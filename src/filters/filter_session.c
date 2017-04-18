@@ -516,16 +516,16 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		//this is a crude way of scheduling the next task, we should
 		//1- have a way to make sure we will not repost after a time-consuming task
 		//2- have a wait to wait for the given amount of time rather than just do a sema_wait/notify in loop
-		if (0&&task->schedule_next_time) {
+		if (task->schedule_next_time) {
 			s64 now = gf_sys_clock_high_res();
 			s64 diff = task->schedule_next_time;
 			diff -= now;
 			diff /= 1000;
 
-			fprintf(stderr, "estimating time for task - deadline %d ms\n", (s32) diff);
+
 			if (diff > 4) {
 				GF_FSTask *next;
-				u32 count=0;
+
 				if (diff>50) diff = 50;
 
 				//no filter, just reschedule the task
@@ -575,20 +575,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				task->notified = GF_TRUE;
 				task->in_main_task_list_only = GF_TRUE;
 
-				if (current_filter->freg->requires_main_thread) {
-					count=gf_fq_count(fsess->main_thread_tasks);
-				} else {
-					count=gf_fq_count(fsess->tasks);
-				}
 				sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, count ? 0 : (s32) diff));
 
-				if (!count) {
-					fprintf(stderr, "seeping for %d ms\n", (s32) diff);
-					gf_sleep(diff);
-				}
-
+				gf_sleep(diff);
 				active_start = gf_sys_clock_high_res();
 			}
 		}

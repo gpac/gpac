@@ -291,7 +291,8 @@ struct __gf_filter
 	GF_List *input_pids;
 	//list of pids created by this filter
 	GF_List *output_pids;
-
+	u32 num_output_pids;
+	
 	//reservoir for packets with allocated memory
 	GF_FilterQueue *pcks_alloc_reservoir;
 	//reservoir for packets with shared memory
@@ -342,8 +343,6 @@ struct __gf_filter
 	Bool finalized;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
-
-	u32 nb_process_queued;
 
 	Bool skip_process_trigger_on_tasks;
 
