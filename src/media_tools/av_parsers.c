@@ -3728,7 +3728,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 				/*cabac_init_flag=*/gf_bs_read_int(bs, 1);
 
 			if (slice_temporal_mvp_enabled_flag) {
-				Bool collocated_from_l0_flag = 0;
+				// When collocated_from_l0_flag is not present, it is inferred to be equal to 1.
+				Bool collocated_from_l0_flag = 1;
 				if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
 					collocated_from_l0_flag = gf_bs_read_int(bs, 1);
 
