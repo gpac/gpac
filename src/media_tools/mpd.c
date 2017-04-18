@@ -59,6 +59,20 @@ static Bool gf_mpd_valid_child(GF_MPD *mpd, GF_XMLNode *child)
 	return 0;
 }
 
+static Bool gf_mpd_is_known_descriptor(GF_XMLNode *child)
+{
+	if (!strcmp(child->name, "FramePacking")  ||
+	!strcmp(child->name, "AudioChannelConfiguration") ||
+	!strcmp(child->name, "ContentProtection") ||
+	!strcmp(child->name, "EssentialProperty") ||
+	!strcmp(child->name, "SupplementalProperty")){
+		return GF_TRUE;
+	}
+	else{
+		return GF_FALSE;
+	}
+}
+
 static char *gf_mpd_parse_text_content(GF_XMLNode *child)
 {
 	u32 child_index = 0;
@@ -645,11 +659,13 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 		else{
 			/*We'll be assuming here that any unrecognized element is a representation level
 			  *descriptor*/
-			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_other_descriptors *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
-			Desc->xml_desc=descriptors;
-			gf_list_add(rep->other_descriptors, Desc);
+			if(!gf_mpd_is_known_descriptor(child)){
+				char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
+				GF_MPD_other_descriptors *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+				Desc->xml_desc=descriptors;
+				gf_list_add(rep->other_descriptors, Desc);
+			}
 		}
 	}
 	return GF_OK;
@@ -761,11 +777,13 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else{
 			/*We'll be assuming here that any unrecognized element is a adaptation level
 			  *descriptor*/
-			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_other_descriptors *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
-			Desc->xml_desc= descriptors;
-			gf_list_add(set->other_descriptors, Desc);
+			if(!gf_mpd_is_known_descriptor(child)){
+				char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
+				GF_MPD_other_descriptors *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+				Desc->xml_desc= descriptors;
+				gf_list_add(set->other_descriptors, Desc);
+			}
 		}
 	}
 	return GF_OK;
@@ -830,11 +848,13 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 		else{
 			/*We'll be assuming here that any unrecognized element is a period level
 			  *descriptor*/
-			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_other_descriptors *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
-			Desc->xml_desc=descriptors;
-			gf_list_add(period->other_descriptors, Desc);
+			if(!gf_mpd_is_known_descriptor(child)){
+				char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
+				GF_MPD_other_descriptors *Desc;
+				GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+				Desc->xml_desc=descriptors;
+				gf_list_add(period->other_descriptors, Desc);
+			}
 		}
 
 	}
