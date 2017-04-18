@@ -194,6 +194,15 @@ u32 gf_fq_count(GF_FilterQueue *q)
 void gf_fq_add(GF_FilterQueue *fq, void *item)
 {
 	GF_LFQItem *it;
+
+#if 1
+	u32 k, c = gf_fq_count(fq);
+	for (k=0; k<c; k++) {
+		void *a = gf_fq_get(fq, k);
+		assert(a != item);
+	}
+#endif
+
 	if (! fq->mx) {
 		gf_lfq_add(fq, item);
 	} else {
@@ -295,5 +304,5 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 		data = it ? it->data : NULL;
 	}
 
-	return it->data;
+	return data;
 }

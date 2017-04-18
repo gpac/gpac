@@ -33,7 +33,7 @@ struct on_setup_task
 	GF_Err reason;
 };
 
-static Bool scene_ns_on_setup_error_task(GF_FSTask *filter_task)
+static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 {
 	GF_SceneNamespace *scene_ns;
 	GF_Scene *scene, *top_scene;
@@ -52,7 +52,7 @@ static Bool scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 
 	if (root->scene_ns->owner != root) {
 		gf_scene_message(scene, scene_ns->url, "Incompatible module type", GF_SERVICE_ERROR);
-		return GF_FALSE;
+		return;
 	}
 	/*this is service connection*/
 #ifdef FILTER_FIXME
@@ -95,10 +95,9 @@ static Bool scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 				gf_scene_remove_object(root->parentscene, root, 0);
 				gf_odm_disconnect(root, 1);
 			}
-			return GF_FALSE;
+			return;
 		}
 	}
-	return GF_FALSE;
 }
 
 static void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)

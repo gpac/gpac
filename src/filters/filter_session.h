@@ -108,11 +108,11 @@ typedef struct __gf_filter_queue GF_FilterQueue;
 //constructs a new fifo queue. If mx is set all pop/add/head operations are protected by the mutex
 //otherwise, a lock-free version of the fifo is used
 GF_FilterQueue *gf_fq_new(const GF_Mutex *mx);
-void gf_fq_del(GF_FilterQueue *q, void (*item_delete)(void *) );
-void gf_fq_add(GF_FilterQueue *q, void *item);
-void *gf_fq_pop(GF_FilterQueue *q);
-void *gf_fq_head(GF_FilterQueue *q);
-u32 gf_fq_count(GF_FilterQueue *q);
+void gf_fq_del(GF_FilterQueue *fq, void (*item_delete)(void *) );
+void gf_fq_add(GF_FilterQueue *fq, void *item);
+void *gf_fq_pop(GF_FilterQueue *fq);
+void *gf_fq_head(GF_FilterQueue *fq);
+u32 gf_fq_count(GF_FilterQueue *fq);
 void *gf_fq_get(GF_FilterQueue *fq, u32 idx);
 
 
@@ -178,7 +178,11 @@ struct __gf_fs_task
 	//decrementing the counter
 	Bool notified;
 	//set for tasks that have been requeued (i.e. no longer present in filter task list)
-	Bool requeued;
+	Bool in_main_task_list_only;
+	Bool requeue_request;
+
+	u32 schedule_next_time;
+
 
 	gf_fs_task_callback run_task;
 	GF_Filter *filter;
@@ -224,6 +228,9 @@ struct __gf_media_session
 
 	GF_List *threads;
 	GF_SessionThread main_th;
+
+	//only used in forced lock mode
+	GF_Mutex *tasks_mx;
 
 	GF_Semaphore *semaphore;
 
@@ -333,17 +340,19 @@ struct __gf_filter
 	volatile u32 would_block; //concurrent inc/dec
 
 	Bool finalized;
+	//filter loaded to solve a filter chain
+	Bool dynamic_filter;
 
 	u32 nb_process_queued;
 
-	u32 next_time_schedule;
-	u64 reschedule_start_time;
+	Bool skip_process_trigger_on_tasks;
+
+	u64 schedule_next_time;
 };
 
 GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
-Bool gf_filter_process_task(GF_FSTask *task);
 
 void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv);
 
@@ -352,8 +361,6 @@ typedef struct
 	char *name;
 	char *val;
 } GF_FilterUpdate;
-
-Bool gf_filter_update_arg_task(GF_FSTask *task);
 
 //structure for input pids, in order to handle fan-outs of a pid into several filters
 struct __gf_filter_pid_inst
@@ -398,7 +405,7 @@ struct __gf_filter_pid
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u32 buffer_duration;
 
-	volatile Bool would_block; // concurrent set
+	volatile u32 would_block; // concurrent set
 
 	Bool duration_init;
 	u64 last_pck_dts, last_pck_cts;
@@ -414,11 +421,13 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
-Bool gf_filter_pid_init_task(GF_FSTask *task);
-
-Bool gf_filter_pid_connect_task(GF_FSTask *task);
-Bool gf_filter_pid_reconfigure_task(GF_FSTask *task);
-Bool gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
+/*internal tasks definitions*/
+void gf_filter_pid_init_task(GF_FSTask *task);
+void gf_filter_pid_connect_task(GF_FSTask *task);
+void gf_filter_pid_reconfigure_task(GF_FSTask *task);
+void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
+void gf_filter_update_arg_task(GF_FSTask *task);
+void gf_filter_process_task(GF_FSTask *task);
 
 #endif //_GF_FILTER_SESSION_H_
 

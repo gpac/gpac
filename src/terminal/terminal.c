@@ -208,6 +208,8 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	odm = gf_odm_new();
 	scene->root_od =  odm;
 	odm->subscene = scene;
+	//by default all scenes are dynamic, until we get a BIFS attached
+	scene->is_dynamic_scene = GF_TRUE;
 
 	odm->media_start_time = startTime;
 	/*render first visual frame and pause*/

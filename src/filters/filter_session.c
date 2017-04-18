@@ -105,17 +105,20 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		fsess->direct_mode = GF_TRUE;
 		nb_threads=0;
 	}
+	if (sched_type==GF_FS_SCHEDULER_FORCE_LOCK) {
+		fsess->tasks_mx = gf_mx_new("Main Tasks");
+	}
 
 	//regardless of scheduler type, we don't use lock on the main task list
-	fsess->tasks = gf_fq_new(NULL);
+	fsess->tasks = gf_fq_new(fsess->tasks_mx);
 
 	if (nb_threads>0)
-		fsess->main_thread_tasks = gf_fq_new(NULL);
+		fsess->main_thread_tasks = gf_fq_new(fsess->tasks_mx);
 	else
 		//otherwise use the same as the global task list
 		fsess->main_thread_tasks = fsess->tasks;
 
-	fsess->tasks_reservoir = gf_fq_new(NULL);
+	fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
 
 	if (nb_threads || (sched_type==GF_FS_SCHEDULER_FORCE_LOCK) ) {
 		fsess->semaphore = gf_sema_new(GF_UINT_MAX, 0);
@@ -179,7 +182,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	//fixme - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
 
-	fsess->disable_blocking=GF_TRUE;
+	fsess->disable_blocking = GF_FALSE;
 	fsess->run_status = GF_EOS;
 	return fsess;
 }
@@ -254,6 +257,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->semaphore)
 		gf_sema_del(fsess->semaphore);
 
+	if (fsess->tasks_mx)
+		gf_mx_del(fsess->tasks_mx);
+
 	if (fsess->static_user.modules) gf_modules_del(fsess->static_user.modules);
 	if (fsess->static_user.config) gf_cfg_del(fsess->static_user.config);
 
@@ -274,6 +280,16 @@ const GF_FilterRegister * gf_fs_get_filter_registry(GF_FilterSession *fsess, u32
 	return gf_list_get(fsess->registry, idx);
 }
 
+static void check_task_list(GF_FilterQueue *fq, GF_FSTask *task)
+{
+	u32 k, c = gf_fq_count(fq);
+	for (k=0; k<c; k++) {
+		GF_FSTask *a = gf_fq_get(fq, k);
+		assert(a != task);
+	}
+}
+
+
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta)
 {
 	GF_FSTask *task;
@@ -284,7 +300,6 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 	//only flatten calls if in main thread (we still have some broken filters using threading
 	//that could trigger tasks
 	if (fsess->direct_mode && fsess->task_in_process && gf_th_id()==fsess->main_th.th_id) {
-		Bool requeue=GF_FALSE;
 		GF_FSTask atask;
 		u64 task_time = gf_sys_clock_high_res();
 		memset(&atask, 0, sizeof(GF_FSTask));
@@ -294,12 +309,14 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		atask.log_name = log_name;
 		atask.udta = udta;
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "", log_name, fsess->tasks_pending));
-		requeue = task_fun(&atask);
+
+		task_fun(&atask);
+
 		if (filter) {
 			filter->time_process += gf_sys_clock_high_res() - task_time;
 			filter->nb_tasks_done++;
 		}
-		if (!requeue)
+		if (!atask.requeue_request)
 			return;
 		//asked to requeue the task, post it
 	}
@@ -317,7 +334,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 	task->run_task = task_fun;
 	task->log_name = log_name;
 	task->udta = udta;
-	task->requeued = GF_FALSE;
+	task->in_main_task_list_only = GF_FALSE;
 	task->notified = GF_FALSE;
 
 	if (filter) {
@@ -337,6 +354,8 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 
 
 	if (task->notified) {
+		check_task_list(fsess->main_thread_tasks, task);
+
 		//only notify/count tasks posted on the main task lists, the other ones don't use sema_wait
 		safe_int_inc(&fsess->tasks_pending);
 		if (filter && filter->freg->requires_main_thread) {
@@ -397,6 +416,8 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	while (1) {
 		Bool notified;
 		Bool requeue = GF_FALSE;
+		Bool task_from_filter = GF_FALSE;
+		Bool skip_and_requeue = GF_FALSE;
 		u64 active_start, task_time;
 		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
@@ -420,9 +441,19 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			} else {
 				task = gf_fq_pop(fsess->tasks);
 			}
+			if (task) {
+				assert( task->run_task );
+				assert( task->notified );
+			}
 		} else {
 			//keep task in filter list task until done
 			task = gf_fq_head(current_filter->tasks);
+			if (task) {
+				assert( task->run_task );
+				assert( ! task->in_main_task_list_only );
+				assert( ! task->notified );
+			}
+			task_from_filter = GF_TRUE;
 		}
 
 		if (!task) {
@@ -480,57 +511,94 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			assert(current_filter==task->filter);
 		}
 		current_filter = task->filter;
+
+
+		//this is a crude way of scheduling the next task, we should
+		//1- have a way to make sure we will not repost after a time-consuming task
+		//2- have a wait to wait for the given amount of time rather than just do a sema_wait/notify in loop
+		if (0&&task->schedule_next_time) {
+			s64 now = gf_sys_clock_high_res();
+			s64 diff = task->schedule_next_time;
+			diff -= now;
+			diff /= 1000;
+
+			fprintf(stderr, "estimating time for task - deadline %d ms\n", (s32) diff);
+			if (diff > 4) {
+				GF_FSTask *next;
+				u32 count=0;
+				if (diff>50) diff = 50;
+
+				//no filter, just reschedule the task
+				if (!current_filter) {
+					next = gf_fq_head(fsess->tasks);
+					gf_fq_add(fsess->tasks, task);
+					if (next) {
+						s64 ndiff;
+						if (next->schedule_next_time <= now) {
+							continue;
+						}
+						ndiff = next->schedule_next_time - now;
+						if (ndiff<diff) diff = ndiff;
+						gf_sleep(diff);
+					}
+					if (do_use_sema) {
+						gf_fs_sema_io(fsess, GF_TRUE);
+					}
+
+					continue;
+				}
+
+
+				//task was in the filter queue, drop it
+				if (!task->in_main_task_list_only) {
+					next = gf_fq_head(current_filter->tasks);
+					assert(next == task);
+
+					gf_fq_pop(current_filter->tasks);
+					task->in_main_task_list_only = GF_TRUE;
+				}
+
+				check_task_list(current_filter->tasks, task);
+				check_task_list(fsess->main_thread_tasks, task);
+
+				//next in filter should be handled before this task, move task at the end of the filter task
+				next = gf_fq_head(current_filter->tasks);
+				if (next && next->schedule_next_time < task->schedule_next_time) {
+					task->notified = GF_FALSE;
+					task->in_main_task_list_only = GF_FALSE;
+					gf_fq_add(current_filter->tasks, task);
+					continue;
+				}
+				assert(task->in_main_task_list_only);
+
+				//move task to main list
+				task->notified = GF_TRUE;
+				task->in_main_task_list_only = GF_TRUE;
+
+				if (current_filter->freg->requires_main_thread) {
+					count=gf_fq_count(fsess->main_thread_tasks);
+				} else {
+					count=gf_fq_count(fsess->tasks);
+				}
+				sess_thread->active_time += gf_sys_clock_high_res() - active_start;
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, count ? 0 : (s32) diff));
+
+				if (!count) {
+					fprintf(stderr, "seeping for %d ms\n", (s32) diff);
+					gf_sleep(diff);
+				}
+
+				active_start = gf_sys_clock_high_res();
+			}
+		}
+
 		if (current_filter) {
 			current_filter->scheduled_for_next_task = GF_TRUE;
 			assert(!current_filter->in_process);
 			current_filter->in_process = GF_TRUE;
 			current_filter->process_th_id = gf_th_id();
 			pending_packets = current_filter->pending_packets;
-
-			//this is a crude way of scheduling the next task, we should
-			//1- have a way to make sure we will not repost after a time-consuming task
-			//2- have a wait to wait for the given amount of time rather than just do a sema_wait/notify in loop
-			if (current_filter->next_time_schedule) {
-				s64 diff = current_filter->next_time_schedule + current_filter->reschedule_start_time;
-				diff -= (s64) gf_sys_clock_high_res() ;
-				if (diff>0) {
-					u32 count=0;
-					if (diff>50) diff=50;
-					
-					current_filter->scheduled_for_next_task = GF_FALSE;
-					current_filter->process_th_id = 0;
-					assert(current_filter->in_process);
-					current_filter->in_process = GF_FALSE;
-					//task was in the filter queue, drop it
-					if (!task->requeued)
-						gf_fq_pop(current_filter->tasks);
-
-					//mark task as queued in the main scheduler
-					task->requeued = GF_TRUE;
-
-					if (current_filter->freg->requires_main_thread) {
-						count=gf_fq_count(fsess->main_thread_tasks);
-						gf_fq_add(fsess->main_thread_tasks, task);
-					} else {
-						count=gf_fq_count(fsess->tasks);
-						gf_fq_add(fsess->tasks, task);
-					}
-					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
-
-					current_filter = NULL;
-
-					if (do_use_sema)
-						gf_fs_sema_io(fsess, GF_TRUE);
-
-					gf_sleep(count ? 1 : diff);
-
-					//no main thread, return
-					if (!thid && fsess->no_main_thread) {
-						return 0;
-					}
-					continue;
-				}
-			}
 		}
 
 		sess_thread->nb_tasks++;
@@ -542,7 +610,9 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		assert( task->run_task );
 		task_time = gf_sys_clock_high_res();
 
-		requeue = task->run_task(task);
+		task->requeue_request = GF_FALSE;
+		task->run_task(task);
+		requeue = task->requeue_request;
 
 		task_time = gf_sys_clock_high_res() - task_time;
 		fsess->task_in_process = GF_FALSE;
@@ -555,7 +625,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			gf_mx_p(current_filter->tasks_mx);
 
 			//drop task from filter task list if this was not a requeued task
-			if (!task->requeued)
+			if (!task->in_main_task_list_only)
 				gf_fq_pop(current_filter->tasks);
 
 			//no more pending tasks for this filter
@@ -581,19 +651,22 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		notified = task->notified;
 		if (requeue) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
-
-			//if requeue on a filter active, use filter queue
+			//if requeue on a filter active, use filter queue to avoid another thread grabing the task (we would have concurrent access to the filter)
 			if (current_filter) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in filter tasks (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
 				task->notified = GF_FALSE;
-				task->requeued = GF_FALSE;
+				task->in_main_task_list_only = GF_FALSE;
+				check_task_list(fsess->main_thread_tasks, task);
 				gf_fq_add(current_filter->tasks, task);
 				//keep this thread running on the current filter no signaling of semaphore
 			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d re-posted task Filter %s::%s in main tasks (%d pending)\n", thid, task->filter->name, task->log_name, fsess->tasks_pending));
+
 				task->notified = GF_TRUE;
 				safe_int_inc(&fsess->tasks_pending);
 
-				task->requeued = GF_TRUE;
+				if (prev_current_filter) check_task_list(prev_current_filter->tasks, task);
+				task->in_main_task_list_only = GF_TRUE;
 				//main thread
 				if (task->filter && task->filter->freg->requires_main_thread) {
 					gf_fq_add(fsess->main_thread_tasks, task);
@@ -604,6 +677,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					gf_fs_sema_io(fsess, GF_TRUE);
 			}
 		} else {
+			check_task_list(fsess->main_thread_tasks, task);
+			if (prev_current_filter)
+				check_task_list(prev_current_filter->tasks, task);
+
 			memset(task, 0, sizeof(GF_FSTask));
 			gf_fq_add(fsess->tasks_reservoir, task);
 		}

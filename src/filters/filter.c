@@ -86,6 +86,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	gf_filter_parse_args(filter, args);
 
+	if (!strcmp(registry->name, "compositor"))
+		filter->skip_process_trigger_on_tasks = GF_TRUE;
+
 	if (filter->freg->initialize) {
 		GF_Err e = filter->freg->initialize(filter);
 		if (e) {
@@ -270,7 +273,7 @@ void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyVal
 	}
 }
 
-Bool gf_filter_update_arg_task(GF_FSTask *task)
+void gf_filter_update_arg_task(GF_FSTask *task)
 {
 	u32 i=0;
 	GF_FilterUpdate *arg=task->udta;
@@ -307,7 +310,6 @@ Bool gf_filter_update_arg_task(GF_FSTask *task)
 	gf_free(arg->name);
 	gf_free(arg->val);
 	gf_free(arg);
-	return GF_FALSE;
 }
 
 
@@ -463,21 +465,22 @@ static void reset_filter_args(GF_Filter *filter)
 	}
 }
 
-Bool gf_filter_process_task(GF_FSTask *task)
+void gf_filter_process_task(GF_FSTask *task)
 {
+	Bool requeue=GF_FALSE;
 	GF_Err e;
 	assert(task->filter);
 	assert(task->filter->freg);
 	assert(task->filter->freg->process);
 
-	task->filter->next_time_schedule = 0;
+	task->filter->schedule_next_time = 0;
 	if (task->filter->pid_connection_pending) {
-		return GF_FALSE;
+		return;
 	}
-	if (task->filter->would_block) {
+	if (task->filter->would_block == gf_list_count(task->filter->output_pids) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", task->filter->name));
 		task->filter->nb_tasks_done--;
-		return GF_FALSE;
+		return;
 	}
 	e = task->filter->freg->process(task->filter);
 
@@ -492,30 +495,33 @@ Bool gf_filter_process_task(GF_FSTask *task)
 
 	assert(task->filter->nb_process_queued);
 
-
-	if (task->filter->nb_process_queued>1) {
+	//no recurrent task if we still have pending process()
+	if (0 && task->filter->nb_process_queued>1) {
 		safe_int_dec(&task->filter->nb_process_queued);
-		return GF_FALSE;
+		return;
 	}
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if ( !task->filter->input_pids && task->filter->output_pids && (e!=GF_EOS)) {
-		return GF_TRUE;
+		requeue = GF_TRUE;
 	}
 
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
-	if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1))
-		return GF_TRUE;
+	else if (!task->filter->would_block && task->filter->pending_packets && (gf_fq_count(task->filter->tasks)<=1) && !task->filter->skip_process_trigger_on_tasks)
+		requeue = GF_TRUE;
 
 	//filter requested a requeue
-	if (task->filter->next_time_schedule)
-		return GF_TRUE;
+	else if (task->filter->schedule_next_time) {
+		task->schedule_next_time = task->filter->schedule_next_time;
+		requeue = GF_TRUE;
+	}
 
-	assert(task->filter->nb_process_queued==1);
-
-	safe_int_dec(&task->filter->nb_process_queued);
-
-	return GF_FALSE;
+	if (requeue) {
+		task->requeue_request = GF_TRUE;
+	} else {
+		//assert(task->filter->nb_process_queued==1);
+		safe_int_dec(&task->filter->nb_process_queued);
+	}
 }
 
 void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name, const char *val)
@@ -562,8 +568,7 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 		return;
 	}
 	if (!us_until_next) return;
-	filter->next_time_schedule = 1+us_until_next;
-	filter->reschedule_start_time = gf_sys_clock_high_res();
+	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
 }
 
 void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
@@ -579,7 +584,7 @@ struct _gf_filter_setup_failure
 	GF_Filter *filter;
 } filter_setup_failure;
 
-Bool gf_filter_setup_failure_task(GF_FSTask *task)
+void gf_filter_setup_failure_task(GF_FSTask *task)
 {
 	s32 res;
 	GF_Err e = ((struct _gf_filter_setup_failure *)task->udta)->e;
@@ -596,7 +601,6 @@ Bool gf_filter_setup_failure_task(GF_FSTask *task)
 	assert (res >=0 );
 
 	gf_filter_del(f);
-	return GF_FALSE;
 }
 
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)

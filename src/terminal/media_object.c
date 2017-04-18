@@ -478,11 +478,15 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (next_ts) {
 		diff = (s32) (next_ts) - (s32) obj_time;
 	} else  {
-		diff = gf_filter_pck_get_duration(mo->pck);
+		diff = 1000*gf_filter_pck_get_duration(mo->pck)  / timescale;
 	}
 
 //	fprintf(stderr, "diff is %d ms\n", diff);
-	mo->ms_until_next = 1000 * FIX2INT(diff * mo->speed) / timescale;
+	mo->ms_until_next = FIX2INT(diff * mo->speed);
+
+	//do't allow too crazy refresh rates
+	if (mo->ms_until_next>500)
+		mo->ms_until_next=500;
 
 	diff = (mo->speed >= 0) ? (s32) (pck_ts) - (s32) obj_time : (s32) obj_time - (s32) (pck_ts);
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);

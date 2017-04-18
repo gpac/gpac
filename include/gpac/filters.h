@@ -49,7 +49,7 @@ typedef void (*packet_destructor)(GF_Filter *filter, GF_FilterPid *pid, GF_Filte
 typedef union __gf_filter_event GF_FilterEvent;
 
 typedef struct __gf_fs_task GF_FSTask;
-typedef Bool (*gf_fs_task_callback)(GF_FSTask *task);
+typedef void (*gf_fs_task_callback)(GF_FSTask *task);
 
 void *gf_fs_task_get_udta(GF_FSTask *task);
 
