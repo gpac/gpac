@@ -21,9 +21,10 @@ do_test "$MP4BOX -inter 1000 $1 -out $mp4file" "Unfrag"
 do_hash_test $mp4file "unfrag"
 
 #test extracting from the fragmented source
+rm -f $TEMP_DIR/test.tmp
 do_test "$MP4BOX -raw 1 $1 -out $TEMP_DIR/test.tmp" "raw"
 do_hash_test $TEMP_DIR/test.tmp "raw"
-
+rm -f $TEMP_DIR/test.tmp
 
 #no playback test for now since we only have encrypted files without the keys
 #do_playback_test "$TEMP_DIR/$testname.mpd" "dash-playback"
