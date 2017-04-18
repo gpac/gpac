@@ -1129,7 +1129,7 @@ do_hash_test ()
  # to prevent having different hashes on different platforms
  if [ -n "$(file -b $1 | grep text)" ] ; then
   file_to_hash="to_hash_$(basename $1)"
-  sed $'s/\r//' "$1" > "$file_to_hash"
+  tr -d '\r' <  "$1" > "$file_to_hash"
  fi
 
  $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subtest
