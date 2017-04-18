@@ -594,7 +594,7 @@ GF_MPD_Representation *gf_mpd_representation_new()
 	gf_mpd_init_common_attributes((GF_MPD_CommonAttributes *)rep);
 	rep->base_URLs = gf_list_new();
 	rep->sub_representations = gf_list_new();
-	rep->representation_set_level_descriptor = gf_list_new();
+	rep->other_descriptors = gf_list_new();
 	return rep;
 }
 
@@ -646,11 +646,10 @@ static GF_Err gf_mpd_parse_representation(GF_MPD *mpd, GF_List *container, GF_XM
 			/*We'll be assuming here that any unrecognized element is a representation level
 			  *descriptor*/
 			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_RepresentationSetDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_RepresentationSetDescriptor);
-			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)gf_free(descriptors);
-			gf_list_add(rep->representation_set_level_descriptor, Desc);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+			Desc->xml_desc=descriptors;
+			gf_list_add(rep->other_descriptors, Desc);
 		}
 	}
 	return GF_OK;
@@ -668,7 +667,7 @@ GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new() {
 	set->content_component = gf_list_new();
 	set->base_URLs = gf_list_new();
 	set->representations = gf_list_new();
-	set->adaptation_set_level_descriptor = gf_list_new();
+	set->other_descriptors = gf_list_new();
 	GF_SAFEALLOC(set->par, GF_MPD_Fractional);
 	/*assign default ID and group*/
 	set->group = -1;
@@ -763,11 +762,10 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 			/*We'll be assuming here that any unrecognized element is a adaptation level
 			  *descriptor*/
 			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_AdaptationSetLevelDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_AdaptationSetLevelDescriptor);
-			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)gf_free(descriptors);
-			gf_list_add(set->adaptation_set_level_descriptor, Desc);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+			Desc->xml_desc= descriptors;
+			gf_list_add(set->other_descriptors, Desc);
 		}
 	}
 	return GF_OK;
@@ -780,7 +778,7 @@ GF_MPD_Period *gf_mpd_period_new() {
 	period->adaptation_sets = gf_list_new();
 	period->base_URLs = gf_list_new();
 	period->subsets = gf_list_new();
-	period->period_levels_descriptors = gf_list_new();
+	period->other_descriptors = gf_list_new();
 	return period;
 }
 
@@ -833,11 +831,10 @@ GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root)
 			/*We'll be assuming here that any unrecognized element is a period level
 			  *descriptor*/
 			char *descriptors=gf_xml_dom_serialize(child,GF_FALSE);
-			GF_MPD_PeriodLevelDescriptor *Desc;
-			GF_SAFEALLOC(Desc,GF_MPD_PeriodLevelDescriptor);
-			Desc->xml_desc=gf_strdup(descriptors);
-			if(descriptors)gf_free(descriptors);
-			gf_list_add(period->period_levels_descriptors, Desc);
+			GF_MPD_other_descriptors *Desc;
+			GF_SAFEALLOC(Desc,GF_MPD_other_descriptors);
+			Desc->xml_desc=descriptors;
+			gf_list_add(period->other_descriptors, Desc);
 		}
 
 	}
@@ -998,6 +995,13 @@ void gf_mpd_descriptor_free(void *item)
 	gf_free(mpd_desc);
 }
 
+void gf_mpd_other_descriptor_free(void *_item)
+{
+	GF_MPD_other_descriptors *ptr = (GF_MPD_other_descriptors *)_item;
+	if(ptr->xml_desc)gf_free(ptr->xml_desc);
+	gf_free(ptr);
+}
+
 void gf_mpd_content_component_free(void *item)
 {
 	GF_MPD_ContentComponent *component_descriptor=(GF_MPD_ContentComponent*) item;
@@ -1019,13 +1023,6 @@ void gf_mpd_common_attributes_free(GF_MPD_CommonAttributes *ptr)
 	gf_mpd_del_list(ptr->content_protection, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->essential_properties, gf_mpd_descriptor_free, 0);
 	gf_mpd_del_list(ptr->supplemental_properties, gf_mpd_descriptor_free, 0);
-}
-
-void gf_mpd_representation_set_desc_free(void *_item)
-{
-	GF_MPD_RepresentationSetDescriptor *ptr = (GF_MPD_RepresentationSetDescriptor *)_item;
-	if(ptr->xml_desc)gf_free(ptr->xml_desc);
-	gf_free(ptr);
 }
 
 void gf_mpd_representation_free(void *_item)
@@ -1055,14 +1052,7 @@ void gf_mpd_representation_free(void *_item)
 	if (ptr->segment_base) gf_mpd_segment_base_free(ptr->segment_base);
 	if (ptr->segment_list) gf_mpd_segment_list_free(ptr->segment_list);
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
-	if (ptr->representation_set_level_descriptor)gf_mpd_del_list(ptr->representation_set_level_descriptor, gf_mpd_representation_set_desc_free, 0);
-	gf_free(ptr);
-}
-
-void gf_mpd_adaption_set_desc_free(void *_item)
-{
-	GF_MPD_AdaptationSetLevelDescriptor *ptr = (GF_MPD_AdaptationSetLevelDescriptor *)_item;
-	if(ptr->xml_desc)gf_free(ptr->xml_desc);
+	if (ptr->other_descriptors)gf_mpd_del_list(ptr->other_descriptors, gf_mpd_other_descriptor_free, 0);
 	gf_free(ptr);
 }
 
@@ -1084,19 +1074,9 @@ void gf_mpd_adaptation_set_free(void *_item)
 	if (ptr->segment_template) gf_mpd_segment_template_free(ptr->segment_template);
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->representations, gf_mpd_representation_free, 0);
-	gf_mpd_del_list(ptr->adaptation_set_level_descriptor, gf_mpd_adaption_set_desc_free, 0);
+	gf_mpd_del_list(ptr->other_descriptors, gf_mpd_other_descriptor_free, 0);
 	gf_free(ptr);
 }
-
-void gf_mpd_period_desc_free(void *_item)
-{
-	GF_MPD_PeriodLevelDescriptor *ptr = (GF_MPD_PeriodLevelDescriptor *)_item;
-	if(ptr->xml_desc)gf_free(ptr->xml_desc);
-	gf_free(ptr);
-}
-
-
-
 
 void gf_mpd_period_free(void *_item)
 {
@@ -1109,7 +1089,7 @@ void gf_mpd_period_free(void *_item)
 
 	gf_mpd_del_list(ptr->base_URLs, gf_mpd_base_url_free, 0);
 	gf_mpd_del_list(ptr->adaptation_sets, gf_mpd_adaptation_set_free, 0);
-	gf_mpd_del_list(ptr->period_levels_descriptors,gf_mpd_period_desc_free,0);
+	gf_mpd_del_list(ptr->other_descriptors,gf_mpd_other_descriptor_free,0);
 	gf_mpd_del_list(ptr->subsets, NULL/*TODO*/, 0);
 	gf_free(ptr);
 }
@@ -2354,7 +2334,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 {
 	Bool can_close = GF_FALSE;
 	u32 i;
-	GF_MPD_RepresentationSetDescriptor *rsld;
+	GF_MPD_other_descriptors *rsld;
 
 	fprintf(out, "   <Representation");
 	if (rep->id) fprintf(out, " id=\"%s\"", rep->id);
@@ -2392,9 +2372,9 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 				e = gf_mpd_parse_subrepresentation(rep->sub_representations, child);
 				if (e) return e;
 	*/
-	if (rep->representation_set_level_descriptor){
+	if (rep->other_descriptors){
 		i=0;
-		while ( (rsld = (GF_MPD_RepresentationSetDescriptor*) gf_list_enum(rep->representation_set_level_descriptor, &i))) {
+		while ( (rsld = (GF_MPD_other_descriptors*) gf_list_enum(rep->other_descriptors, &i))) {
 			fprintf(out, "  %s\n",rsld->xml_desc);
 		}
 	}
@@ -2407,7 +2387,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 {
 	u32 i;
 	GF_MPD_Representation *rep;
-	GF_MPD_AdaptationSetLevelDescriptor *Asld;
+	GF_MPD_other_descriptors *Asld;
 	GF_MPD_Descriptor *desc;
 
 	fprintf(out, "  <AdaptationSet");
@@ -2462,7 +2442,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	}
 
 	i=0;
-	while ( (Asld = (GF_MPD_AdaptationSetLevelDescriptor*) gf_list_enum(as->adaptation_set_level_descriptor, &i))) {
+	while ( (Asld = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
 		fprintf(out, "  %s\n",Asld->xml_desc);
 	}
 
@@ -2479,7 +2459,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out)
 {
 	GF_MPD_AdaptationSet *as;
-	GF_MPD_PeriodLevelDescriptor *pld;
+	GF_MPD_other_descriptors *pld;
 	u32 i;
 	fprintf(out, " <Period");
 	if (period->xlink_href) {
@@ -2511,7 +2491,7 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 	}
 
 	i=0;
-	while ( (pld = (GF_MPD_PeriodLevelDescriptor*) gf_list_enum(period->period_levels_descriptors, &i))) {
+	while ( (pld = (GF_MPD_other_descriptors*) gf_list_enum(period->other_descriptors, &i))) {
 		fprintf(out, "  %s\n",pld->xml_desc);
 	}
 

@@ -120,20 +120,13 @@ typedef struct
 	s64 mediaOffset;
 } GF_MPD_ISOBMFInfo;
 
-typedef struct
-{
-	char *xml_desc;
-} GF_MPD_PeriodLevelDescriptor;
 
 typedef struct
 {
 	char *xml_desc;
-} GF_MPD_AdaptationSetLevelDescriptor;
+} GF_MPD_other_descriptors;
 
-typedef struct
-{
-	char *xml_desc;
-} GF_MPD_RepresentationSetDescriptor;
+
 
 #define GF_MPD_SEGMENT_BASE	\
 	u32 timescale;	\
@@ -285,7 +278,7 @@ typedef struct {
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
-	GF_List *representation_set_level_descriptor;
+	GF_List *other_descriptors;
 } GF_MPD_Representation;
 
 
@@ -328,7 +321,7 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
-	GF_List *adaptation_set_level_descriptor;
+	GF_List *other_descriptors;
 } GF_MPD_AdaptationSet;
 
 
@@ -348,7 +341,7 @@ typedef struct
 	GF_List *subsets;
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
-	GF_List *period_levels_descriptors;
+	GF_List *other_descriptors;
 } GF_MPD_Period;
 
 typedef struct
