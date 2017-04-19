@@ -290,6 +290,7 @@ struct __gf_filter
 
 	//list of pids connected to this filter
 	GF_List *input_pids;
+	u32 num_input_pids;
 	//list of pids created by this filter
 	GF_List *output_pids;
 	u32 num_output_pids;
@@ -387,6 +388,16 @@ struct __gf_filter_pid_inst
 	volatile u32 buffer_duration;
 
 	void *udta;
+
+	//statistics per pid instance
+	u64 last_pck_fetch_time;
+	u64 stats_start_ts, stats_start_us;
+	u32 cur_bit_size, avg_bit_rate, max_bit_rate, avg_process_rate, max_process_rate;
+	u32 nb_processed, nb_sap_processed;
+	//all times in us
+	u64 total_process_time, total_sap_process_time;
+	u64 max_process_time, max_sap_process_time;
+	u64 first_frame_time;
 };
 
 struct __gf_filter_pid

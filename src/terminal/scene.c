@@ -502,16 +502,15 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 	gf_sg_reset(scene->graph);
 	scene->graph_attached = 0;
 
-	/*reset statc ressource flag since we destroyed scene objects*/
-	scene->static_media_ressources = GF_FALSE;
 
-
-	/*disconnect and kill all objects*/
-	if (!for_shutdown && scene->static_media_ressources) {
+	/*disconnect all objects*/
+	if (!for_shutdown) {
 		i=0;
 		/*stop all objects but DON'T DESTROY THEM*/
 		while ((odm = (GF_ObjectManager *)gf_list_enum(scene->resources, &i))) {
 			if (odm->state) gf_odm_disconnect(odm, GF_FALSE);
+			//reset OD ID until we get a new OD re-attaching this object
+			odm->ID = 0;
 		}
 		/*reset all stream associations*/
 		i=0;
@@ -519,10 +518,12 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 			gf_sg_vrml_mf_reset(&obj->URLs, GF_SG_VRML_MFURL);
 			gf_mo_event_target_reset(obj);
 		}
-	} else {
+	}
+	/*disconnect and remove all objects*/
+	else {
 		while (gf_list_count(scene->resources)) {
 			odm = (GF_ObjectManager *)gf_list_get(scene->resources, 0);
-			gf_odm_disconnect(odm, (for_shutdown || !scene->static_media_ressources) ? 2 : 0);
+			gf_odm_disconnect(odm, for_shutdown ? 2 : 0);
 		}
 #ifndef GPAC_DISABLE_VRML
 		while (gf_list_count(scene->extern_protos)) {

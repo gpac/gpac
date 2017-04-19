@@ -500,6 +500,7 @@ GF_ISOFile *gf_isom_new_movie()
 
 	/*default storage mode is flat*/
 	mov->storageMode = GF_ISOM_STORE_FLAT;
+	mov->es_id_default_sync = -1;
 	return mov;
 }
 

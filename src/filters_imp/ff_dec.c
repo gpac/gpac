@@ -61,6 +61,7 @@ typedef struct _gf_ffdec_ctx
 
 	GF_Err (*process)(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec);
 
+	u32 flush_done;
 
 	//for now we don't share the data
 	AVFrame *frame;
@@ -134,11 +135,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
 
-	//no input, this should not happen
-	if (!pck) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] No input data on PID %s\n", gf_filter_pid_get_name(ffdec->in_pid)));
-		return GF_OK;
-	}
+	if (!pck) return GF_OK;
 
 	frame = ffdec->frame;
 
@@ -155,25 +152,24 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		seek_flag = gf_filter_pck_get_seek_flag(pck);
 		//copy over SAP and duration in dts - alternatively we could ref_inc the packet and pass its adress here
 		flags = gf_filter_pck_get_sap(pck);
-		//SAP and seeking, flush the decoder
-		while (flags && seek_flag) {
-			gotpic=0;
-			pkt.data = NULL;
-			pkt.size = 0;
-			res = avcodec_decode_video2(ffdec->codec_ctx, frame, &gotpic, &pkt);
-			if (res<0 || !gotpic) break;
+
+		//seems ffmpeg is not properly handling the decoding after a flush, we close and reopen the codec
+		if (ffdec->flush_done) {
+			const AVCodec *codec = ffdec->codec_ctx->codec;
+			avcodec_close(ffdec->codec_ctx);
+			avcodec_open2(ffdec->codec_ctx, codec, NULL );
+			ffdec->flush_done = GF_FALSE;
 		}
+
 		flags <<= 16;
 		flags |= seek_flag;
 		flags <<= 32;
 		flags |= gf_filter_pck_get_duration(pck);
 		pkt.dts = flags;
 		pkt.pts = gf_filter_pck_get_cts(pck);
-		pkt.data = (uint8_t*)data;
-		pkt.size = size;
 	}
-
-
+	pkt.data = (uint8_t*)data;
+	pkt.size = size;
 
 	/*TOCHECK: for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
 	doesn't put back nalu size, we have to do it ourselves, but we can't modify input data...*/
@@ -185,6 +181,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	if (!is_eos || !gotpic) {
 		gf_filter_pid_drop_packet(ffdec->in_pid);
 		if (is_eos) {
+			ffdec->flush_done = GF_TRUE;
 			gf_filter_pid_set_eos(ffdec->out_pid);
 			return GF_EOS;
 		}
@@ -328,7 +325,6 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec)
 {
-	const GF_PropertyValue *p;
 	AVPacket pkt;
 	s32 gotpic;
 	s32 len, in_size;
@@ -339,11 +335,8 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	GF_FilterPacket *dst_pck;
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
-	//no input, this should not happen
-	if (!pck) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDecode] No input data on PID %s\n", gf_filter_pid_get_name(ffdec->in_pid)));
-		return GF_OK;
-	}
+
+	if (!pck) return GF_OK;
 
 	av_init_packet(&pkt);
 	pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);

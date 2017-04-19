@@ -496,9 +496,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	} else  {
 		diff = 1000*gf_filter_pck_get_duration(mo->pck)  / timescale;
 	}
-
-//	fprintf(stderr, "diff is %d ms\n", diff);
-	mo->ms_until_next = FIX2INT(diff * mo->speed);
+	if (mo->speed)
+		mo->ms_until_next = FIX2INT(diff * mo->speed);
+	else
+		mo->ms_until_next = diff;
 
 	//do't allow too crazy refresh rates
 	if (mo->ms_until_next>500)
@@ -509,23 +510,23 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (mo->timestamp != pck_ts) {
 		mo->frame_dur = gf_filter_pck_get_duration(mo->pck);
-		mo->odm->media_current_time = mo->timestamp;
 
-#ifndef GPAC_DISABLE_VRML
-		if (! *eos )
-			mediasensor_update_timing(mo->odm, GF_FALSE);
-#endif
+		if (mo->odm->media_current_time <= mo->timestamp)
+			mo->odm->media_current_time = mo->timestamp;
 
 		if (mo->odm->parentscene->is_dynamic_scene) {
 			GF_Scene *s = mo->odm->parentscene;
 			while (s && s->root_od->addon) {
 				s = s->root_od->parentscene;
 			}
-			if (s && s->root_od)
+			if (s && (s->root_od->media_current_time < mo->odm->media_current_time) )
 				s->root_od->media_current_time = mo->odm->media_current_time;
 		}
 
-		gf_filter_pid_get_packet_count(mo->odm->pid);
+#ifndef GPAC_DISABLE_VRML
+		if (! *eos )
+			mediasensor_update_timing(mo->odm, GF_FALSE);
+#endif
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d (%s)] At OTB %u fetch frame TS %u size %d (previous TS %u) - %d unit in CB - UTC "LLU" ms - %d ms until CTS is due - %d ms until next frame\n", mo->odm->ID, mo->odm->scene_ns->url, gf_clock_time(mo->odm->ck), pck_ts, mo->framesize, mo->timestamp, gf_filter_pid_get_packet_count(mo->odm->pid), gf_net_get_utc(), mo->ms_until_pres, mo->ms_until_next ));
 

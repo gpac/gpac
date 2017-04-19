@@ -161,8 +161,6 @@ default_sync:
 				trak->moov->mov->es_id_default_sync = esd->ESID;
 		}
 		if (trak->moov->mov->es_id_default_sync) esd->OCRESID = (u16) trak->moov->mov->es_id_default_sync;
-		/*cf ESD writer*/
-		if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 	}
 
 

@@ -143,30 +143,27 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	if (!do_remove) return;
 
 	/*unload the decoders before deleting the channels to prevent any access fault*/
-#if FILTER_FIXME
-	if (odm->codec) {
-		if (odm->codec->type==GF_STREAM_INTERACT) {
-			u32 i, count;
-			// Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
-			GF_MediaObject *obj = odm->mo;
-			count = gf_mo_event_target_count(obj);
-			for (i=0; i<count; i++) {
-				GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, i));
-				switch (gf_node_get_tag(n)) {
+	if (odm->type==GF_STREAM_INTERACT) {
+		u32 i, count;
+		// Remove all Registered InputSensor nodes -> shut down the InputSensor threads -> prevent illegal access on deleted pointers
+		GF_MediaObject *obj = odm->mo;
+		count = gf_mo_event_target_count(obj);
+		for (i=0; i<count; i++) {
+			GF_Node *n = (GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(obj, i));
+			switch (gf_node_get_tag(n)) {
 #ifndef GPAC_DISABLE_VRML
-				case TAG_MPEG4_InputSensor:
-					((M_InputSensor*)n)->enabled = 0;
-					InputSensorModified(n);
-					break;
+			case TAG_MPEG4_InputSensor:
+				((M_InputSensor*)n)->enabled = 0;
+#ifdef FILTER_FIXME
+				InputSensorModified(n);
 #endif
-				default:
-					break;
-				}
+				break;
+#endif
+			default:
+				break;
 			}
 		}
-		gf_term_remove_codec(odm->term, odm->codec);
 	}
-#endif
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
@@ -560,6 +557,9 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	ck->service_id = odm->ServiceID;
 	clock_inherited = GF_FALSE;
 
+	if (es_id==ck->clockID)
+		odm->owns_clock = GF_TRUE;
+
 	if (scene->root_od->subscene && scene->root_od->subscene->is_dynamic_scene && !scene->root_od->ck)
 		scene->root_od->ck = ck;
 
@@ -613,7 +613,6 @@ void gf_odm_start(GF_ObjectManager *odm)
 void gf_odm_play(GF_ObjectManager *odm)
 {
 	u64 range_end;
-	Bool skip_od_st;
 	Bool media_control_paused = 0;
 	Bool start_range_is_clock = 0;
 	Double ck_time;
@@ -643,7 +642,10 @@ void gf_odm_play(GF_ObjectManager *odm)
 		return;
 	}
 
-	skip_od_st = (odm->subscene && odm->subscene->static_media_ressources) ? 1 : 0;
+	if ( !(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->owns_clock ) {
+		gf_clock_reset(clock);
+	}
+
 	range_end = odm->media_stop_time;
 //	odm->media_stop_time = 0;
 
@@ -844,12 +846,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 }
 
-Bool gf_odm_owns_clock(GF_ObjectManager *odm, GF_Clock *ck)
-{
-//	if (odm == odm->owns_clock) return GF_TRUE;
-	return GF_FALSE;
-}
-
 void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 {
 	u32 i;
@@ -918,8 +914,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	gf_odm_service_media_event(odm, GF_EVENT_ABORT);
 
 	/*stops clock if this is a scene stop*/
-	if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene && gf_odm_owns_clock(odm, odm->ck) ) {
-		gf_clock_stop(odm->ck);
+	if (!(odm->flags & GF_ODM_INHERIT_TIMELINE) && odm->subscene && odm->owns_clock ) {
+		gf_clock_reset(odm->ck);
 	}
 	odm->media_current_time = 0;
 
@@ -1275,6 +1271,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	Bool signal_eob = GF_FALSE;
 	GF_Scene *scene;
 	assert(odm);
+
 	if (!pid)
 		pid = odm->pid;
 

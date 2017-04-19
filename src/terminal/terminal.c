@@ -206,7 +206,7 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	/*create a new scene*/
 	scene = gf_scene_new(compositor, NULL);
 	odm = gf_odm_new();
-	scene->root_od =  odm;
+	scene->root_od = odm;
 	odm->subscene = scene;
 	//by default all scenes are dynamic, until we get a BIFS attached
 	scene->is_dynamic_scene = GF_TRUE;

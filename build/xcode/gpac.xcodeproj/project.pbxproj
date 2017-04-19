@@ -294,6 +294,8 @@
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
 		9251CA8A1E9D3E960089DDC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA881E9D3E2B0089DDC6 /* main.c */; };
 		9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA8B1E9D3F880089DDC6 /* terminal.c */; };
+		92586A721EA7665D00A0838A /* ft_font.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A701EA7665D00A0838A /* ft_font.h */; };
+		92586A731EA7669200A0838A /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A6F1EA7665D00A0838A /* ft_font.c */; };
 		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
 		9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
@@ -1113,6 +1115,8 @@
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		9251CA881E9D3E2B0089DDC6 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4client/main.c; sourceTree = "<group>"; };
 		9251CA8B1E9D3F880089DDC6 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
+		92586A6F1EA7665D00A0838A /* ft_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ft_font.c; path = ../../modules/ft_font/ft_font.c; sourceTree = "<group>"; };
+		92586A701EA7665D00A0838A /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
 		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
 		9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters_imp/unit_test_filter.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
@@ -2177,6 +2181,15 @@
 			name = MP4Client;
 			sourceTree = "<group>";
 		};
+		92586A6E1EA7663A00A0838A /* ft_font */ = {
+			isa = PBXGroup;
+			children = (
+				92586A6F1EA7665D00A0838A /* ft_font.c */,
+				92586A701EA7665D00A0838A /* ft_font.h */,
+			);
+			name = ft_font;
+			sourceTree = "<group>";
+		};
 		927AACF81E44ED5C008C8E69 /* gpac */ = {
 			isa = PBXGroup;
 			children = (
@@ -2381,6 +2394,7 @@
 		92BE50AD18D6376A00AA59D8 /* modules */ = {
 			isa = PBXGroup;
 			children = (
+				92586A6E1EA7663A00A0838A /* ft_font */,
 				92AAF0D718D6DB3400E2FF12 /* sdl_out */,
 			);
 			name = modules;
@@ -2506,6 +2520,7 @@
 				92BBFCDB1A7122AD006A7735 /* isomedia.h in Headers */,
 				92BBFCC11A7122AD006A7735 /* ietf.h in Headers */,
 				92BBFCB61A7122AD006A7735 /* crypt.h in Headers */,
+				92586A721EA7665D00A0838A /* ft_font.h in Headers */,
 				92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */,
 				92BBFCEE1A7122AD006A7735 /* mpegts.h in Headers */,
 				92BBFCDE1A7122AD006A7735 /* map.h in Headers */,
@@ -3318,6 +3333,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				92586A731EA7669200A0838A /* ft_font.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

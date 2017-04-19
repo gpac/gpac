@@ -86,9 +86,6 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	u32 i, j, count, nb_scene, nb_od, nb_esd;
 	GF_ESD *esd;
 	GF_ObjectManager *odm;
-	odm = gf_scene_find_odm(scene, od->objectDescriptorID);
-	/*remove the old OD*/
-	if (odm) gf_odm_disconnect(odm, 1);
 
 	if (od->URLString) {
 		odm = gf_odm_new();

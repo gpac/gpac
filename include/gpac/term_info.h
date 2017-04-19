@@ -81,19 +81,14 @@ void gf_term_toggle_addons(GF_Terminal *term, Bool show_addons);
 
 typedef struct
 {
-	GF_ObjectDescriptor *od;
+	u32 ODID;
+	u32 ServiceID;
+	u32 pid_id, ocr_id;
 	Double duration;
 	Double current_time;
 	/*0: stopped, 1: playing, 2: paused, 3: not setup, 4; setup failed.*/
 	u32 status;
-	/*if set, the PL flags are valid*/
-	Bool has_profiles;
-	Bool inline_pl;
-	u8 OD_pl;
-	u8 scene_pl;
-	u8 audio_pl;
-	u8 visual_pl;
-	u8 graphics_pl;
+
 	Bool raw_media;
 	Bool generated_scene;
 
@@ -114,7 +109,7 @@ typedef struct
 	/*number of AUs in DB (cumulated on all input channels)*/
 	u32 db_unit_count;
 	/*number of CUs in composition memory (if any) and CM capacity*/
-	u16 cb_unit_count, cb_max_count;
+	u32 cb_unit_count, cb_max_count;
 	/*inidciate that thye composition memory is bypassed for this decoder (video only) */
 	Bool direct_video_memory;
 	/*clock drift in ms of object clock: this is the delay set by the audio renderer to keep AV in sync*/
@@ -128,8 +123,10 @@ typedef struct
 	/*video properties (w & h also used for scene codecs)*/
 	u32 width, height, pixelFormat, par;
 
-	/*average birate over last second and max bitrate over one second at decoder input - expressed in bits per sec*/
-	u32 avg_bitrate, instant_bitrate, max_bitrate;
+	/*average birate over last second and max bitrate over one second at decoder input according to media timeline - expressed in bits per sec*/
+	u32 avg_bitrate, max_bitrate;
+	/*average birate over last second and max bitrate over one second at decoder input according to processing time - expressed in bits per sec*/
+	u32 avg_process_bitrate, max_process_bitrate;
 	u32 nb_dec_frames, nb_dropped;
 	u32 first_frame_time, last_frame_time;
 	u64 total_dec_time, irap_total_dec_time;

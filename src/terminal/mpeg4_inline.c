@@ -131,20 +131,23 @@ void gf_inline_on_modified(GF_Node *node)
 							}
 						}
 					} else {
-#if FILTER_FIXME
-						gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
 
 						/*external media are completely unloaded, except addons which are only declared once */
 						if (!scene->root_od->addon && (scene->root_od->ID==GF_MEDIA_EXTERNAL_ID)) {
-							scene->root_od->action_type = GF_ODM_ACTION_DELETE;
+							gf_odm_disconnect(scene->root_od, 2);
 						} else {
-							scene->root_od->action_type = GF_ODM_ACTION_STOP;
+							Bool destroy = GF_FALSE;
+							if (scene->root_od->mo ) {
+								if (scene->root_od->addon) scene->root_od->flags |= GF_ODM_REGENERATE_SCENE;
+								else if (scene->root_od->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
+								else if (scene->root_od->ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
+							}
+							if (destroy) {
+								gf_odm_disconnect(scene->root_od, 2);
+							} else {
+								gf_odm_stop(scene->root_od, 0);
+							}
 						}
-						if (gf_list_find(scene->root_od->term->media_queue, scene->root_od)<0)
-							gf_list_add(scene->root_od->term->media_queue, scene->root_od);
-
-						gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
-#endif
 					}
 				}
 			}
@@ -177,7 +180,7 @@ static void gf_inline_check_restart(GF_Scene *scene)
 
 	if (scene->root_od->media_ctrl && scene->root_od->media_ctrl->control->loop) {
 		GF_Clock *ck = gf_odm_get_media_clock(scene->root_od);
-		if (ck->has_seen_eos) {
+		if (ck->has_seen_eos && !ck->Paused) {
 			u32 now = gf_clock_time(ck);
 			u64 dur = scene->duration;
 			if (scene->root_od->media_ctrl->current_seg) {
@@ -341,13 +344,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 		}
 
 		scene->needs_restart = 0;
-#ifdef FILTER_FIXME
-		gf_term_lock_media_queue(scene->root_od->term, GF_TRUE);
-		scene->root_od->action_type = GF_ODM_ACTION_SCENE_INLINE_RESTART;
-		gf_list_add(scene->root_od->term->media_queue, scene->root_od);
-		gf_term_lock_media_queue(scene->root_od->term, GF_FALSE);
-#endif
-
+		gf_scene_mpeg4_inline_restart(scene);
 		gf_node_dirty_set(n, 0, GF_TRUE);
 		return;
 	}
