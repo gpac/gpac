@@ -457,7 +457,7 @@ static void MCDec_RegisterHEVCParameterSet(MCDec *ctx, char *data, u32 size, u8 
 		slc->id = ps_id;
 		gf_list_add(dest, slc);
 		
-		//force re-activation of sps/pps/vps
+		//force re-activation of sps/pp/vps
 		if (xps == SPS) ctx->active_sps = -1;
 		else if (xps == PPS) ctx->active_pps = -1;
 		else  ctx->active_vps = -1;
@@ -829,7 +829,7 @@ static GF_Err MCDec_ParseHEVCNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength
 			}
 		}
 
-		//if sps, pps and vps are ready, init decoder
+		//if sps and pps are ready, init decoder
 		if (!ctx->codec && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
 			e = MCDec_InitDecoder(ctx);
 			if (e) return e;
@@ -999,9 +999,8 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
             return GF_CODEC_SUPPORTED;
         case GPAC_OTI_VIDEO_HEVC:
 			if(sdkInt() >= 21){
-				return GF_CODEC_SUPPORTED;
-			}
-			break;
+                return GF_CODEC_SUPPORTED;
+            }
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
             return GF_CODEC_SUPPORTED;
     }
@@ -1055,6 +1054,7 @@ GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char *
 GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {		
 	MC_Frame *f = (MC_Frame *)frame->user_data;
+    int i = 0;
 	if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
 	*gl_tex_id = f->ctx->gl_tex_id;
