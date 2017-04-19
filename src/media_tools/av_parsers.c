@@ -3510,6 +3510,10 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 		s32 prev = 0, poc = 0;
 		sps->rps[idx_rps].num_negative_pics = bs_get_ue(bs);
 		sps->rps[idx_rps].num_positive_pics = bs_get_ue(bs);
+		if (sps->rps[idx_rps].num_negative_pics>16)
+			return GF_FALSE;
+		if (sps->rps[idx_rps].num_positive_pics>16)
+			return GF_FALSE;
 		for (i=0; i<sps->rps[idx_rps].num_negative_pics; i++) {
 			u32 delta_poc_s0_minus1 = bs_get_ue(bs);
 			poc = prev - delta_poc_s0_minus1 - 1;
@@ -3525,7 +3529,7 @@ static Bool parse_short_term_ref_pic_set(GF_BitStream *bs, HEVC_SPS *sps, u32 id
 			/*used_by_curr_pic_s1_flag[ i ] = */gf_bs_read_int(bs, 1);
 		}
 	}
-	return 1;
+	return GF_TRUE;
 }
 
 void hevc_pred_weight_table(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si, HEVC_PPS *pps, HEVC_SPS *sps, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active)
@@ -4690,7 +4694,10 @@ static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u8 layer
 	for (i=0; i<sps->num_short_term_ref_pic_sets; i++) {
 		Bool ret = parse_short_term_ref_pic_set(bs, sps, i);
 		/*cannot parse short_term_ref_pic_set, skip VUI parsing*/
-		if (!ret) return -1;
+		if (!ret) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODING, ("[HEVC] Invalid short_term_ref_pic_set\n"));
+			return -1;
+		}
 	}
 	sps->long_term_ref_pics_present_flag = gf_bs_read_int(bs, 1);
 	if (sps->long_term_ref_pics_present_flag) {
@@ -5080,6 +5087,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(spss->nalus, &i))) {
 		char *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
+		u32 off;
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = gf_malloc((slc->size - nal_hdr_size)*sizeof(char));
@@ -5098,11 +5106,14 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 		/*copy over till vui flag*/
 		assert(bit_offset >= 0);
+		off = bit_offset;
 		while (bit_offset) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);
 			bit_offset--;
 		}
+		assert(off == gf_bs_get_bit_offset(orig));
+
 		/*check VUI*/
 		flag = gf_bs_read_int(orig, 1);
 		gf_bs_write_int(mod, 1, 1); /*vui_parameters_present_flag*/
@@ -5159,7 +5170,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 		if (no_emulation_buf_size + emulation_bytes + nal_hdr_size > slc->size)
 			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes + nal_hdr_size);
 
-		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data + nal_hdr_size, no_emulation_buf_size) + nal_hdr_size;
+		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size) + nal_hdr_size;
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
