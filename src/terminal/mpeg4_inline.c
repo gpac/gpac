@@ -285,7 +285,7 @@ static void gf_inline_traverse(GF_Node *n, void *rs, Bool is_destroy)
 					gf_odm_disconnect(scene->root_od, 2);
 				} else {
 					gf_odm_stop(scene->root_od, 1);
-					gf_scene_disconnect(scene->root_od->subscene, 1);
+					gf_scene_disconnect(scene->root_od->subscene, GF_TRUE);
 				}
 			}
 		}

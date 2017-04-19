@@ -55,18 +55,14 @@ static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 		return;
 	}
 	/*this is service connection*/
-#ifdef FILTER_FIXME
-	gf_term_service_media_event(service->owner, GF_EVENT_MEDIA_SETUP_DONE);
-#endif
+	gf_odm_service_media_event(root, GF_EVENT_MEDIA_SETUP_DONE);
 
 	if (err) {
 		char msg[5000];
 		snprintf(msg, sizeof(msg), "Cannot open %s", scene_ns->url);
 		gf_scene_message(scene, scene_ns->url, msg, err);
 
-#ifdef FILTER_FIXME
-		gf_term_service_media_event(service->owner, GF_EVENT_ERROR);
-#endif
+		gf_odm_service_media_event(root, GF_EVENT_ERROR);
 
 		/*destroy service only if attached*/
 		if (root) {
@@ -137,7 +133,7 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 			if (service->owner && service->subservice_disconnect==1) {
 				GF_Scene *scene = service->owner->subscene ? service->owner->subscene : service->owner->parentscene;
 				/*destroy all media*/
-				gf_scene_disconnect(scene, 1);
+				gf_scene_disconnect(scene, GF_TRUE);
 			}
 			return;
 		}
@@ -521,12 +517,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	gf_filter_set_setup_failure_callback(odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
 
 	/*OK connect*/
-#if FILTER_FIXME
-	gf_term_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
-
-	/*remove pending download session if any*/
-	gf_term_cleanup_pending_session(term, ns);
-#endif
+	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);
 }
 
 
@@ -549,4 +540,3 @@ Bool gf_term_is_supported_url(GF_Terminal *term, const char *fileName, Bool use_
 #endif
 	return 1;
 }
-

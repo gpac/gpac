@@ -438,7 +438,7 @@ struct _gf_prop_typedef {
 } GF_BuiltInProps [] = {
 
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
-	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID, if different from ID", GF_PROP_UINT},
+	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID - mandatory if MPEG-4 Systems used", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
 

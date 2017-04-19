@@ -298,7 +298,7 @@ void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift)
 /*handle clock discontinuity - for now we only reset timing of all received data and reinit the clock*/
 void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity)
 {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 	u32 i, j;
 	GF_Channel *ch;
 	GF_ObjectManager *odm;

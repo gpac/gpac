@@ -119,14 +119,17 @@ static u32 ffdec_gpac_convert_pix_fmt(u32 pix_fmt)
 
 static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec)
 {
-	const GF_PropertyValue *p;
 	AVPacket pkt;
 	AVFrame *frame;
 	AVPicture pict;
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
-	u32 pix_fmt, outsize, pix_out, stride;
+	const char *data;
+	Bool seek_flag = GF_FALSE;
+	u8 sap_type = 0;
+	u32 pck_duration = 0;
+	u32 size, pix_fmt, outsize, pix_out, stride;
 	char *out_buffer;
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
@@ -137,27 +140,43 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		return GF_OK;
 	}
 
-	av_init_packet(&pkt);
-	pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &pkt.size);
+	frame = ffdec->frame;
 
-	if (!pkt.data) {
+	av_init_packet(&pkt);
+
+	data = gf_filter_pck_get_data(pck, &size);
+
+	if (!data) {
 		is_eos = gf_filter_pck_get_eos(pck);
 	}
 
 	if (!is_eos) {
-		u64 dts;
+		u64 flags;
+		seek_flag = gf_filter_pck_get_seek_flag(pck);
+		//copy over SAP and duration in dts - alternatively we could ref_inc the packet and pass its adress here
+		flags = gf_filter_pck_get_sap(pck);
+		//SAP and seeking, flush the decoder
+		while (flags && seek_flag) {
+			gotpic=0;
+			pkt.data = NULL;
+			pkt.size = 0;
+			res = avcodec_decode_video2(ffdec->codec_ctx, frame, &gotpic, &pkt);
+			if (res<0 || !gotpic) break;
+		}
+		flags <<= 16;
+		flags |= seek_flag;
+		flags <<= 32;
+		flags |= gf_filter_pck_get_duration(pck);
+		pkt.dts = flags;
 		pkt.pts = gf_filter_pck_get_cts(pck);
-		//copy over SAP and duration in dts
-		dts = gf_filter_pck_get_sap(pck);
-		dts <<= 32;
-		dts |= gf_filter_pck_get_duration(pck);
-		pkt.dts = dts;
+		pkt.data = (uint8_t*)data;
+		pkt.size = size;
 	}
+
+
 
 	/*TOCHECK: for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
 	doesn't put back nalu size, we have to do it ourselves, but we can't modify input data...*/
-
-	frame = ffdec->frame;
 
 	gotpic=0;
 	res = avcodec_decode_video2(ffdec->codec_ctx, frame, &gotpic, &pkt);
@@ -232,6 +251,18 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	memset(&pict, 0, sizeof(pict));
 
+	//copy over SAP and duration indication
+	seek_flag = GF_FALSE;
+	sap_type = 0;
+	if (frame->pkt_dts) {
+		u32 flags = frame->pkt_dts>>32;
+		seek_flag = flags & 0xFFFF;
+		sap_type = (flags>>16) & 0xFFFF;
+		pck_duration = (frame->pkt_dts & 0xFFFFFFFFUL);
+	}
+	//this was a seek frame, do not dispatch
+	if (seek_flag)
+		return GF_OK;
 
 	dst_pck = gf_filter_pck_new_alloc(ffdec->out_pid, outsize, &out_buffer);
 	if (!dst_pck) return GF_OUT_OF_MEM;
@@ -283,11 +314,9 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
 	//copy over SAP and duration indication
-	if (frame->pkt_dts) {
-		u32 sap = frame->pkt_dts>>32;
-		gf_filter_pck_set_duration(dst_pck, frame->pkt_dts & 0xFFFFFFFFUL);
-		gf_filter_pck_set_sap(dst_pck, sap);
-	}
+	gf_filter_pck_set_duration(dst_pck, pck_duration);
+	gf_filter_pck_set_sap(dst_pck, sap_type);
+
 
 	if (frame->interlaced_frame)
 		gf_filter_pck_set_interlaced(dst_pck, frame->top_field_first ? 2 : 1);
@@ -712,6 +741,7 @@ GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.description = "FFMPEG decoder "LIBAVCODEC_IDENT,
 	.private_size = sizeof(GF_FFDecodeCtx),
+	.input_caps = FFDecodeInputs,
 	.output_caps = FFDecodeOutputs,
 	.initialize = ffdec_initialize,
 	.finalize = ffdec_finalize,

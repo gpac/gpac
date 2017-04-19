@@ -127,6 +127,7 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 {
 	GF_BitStream *bs;
 	BIFSStreamInfo *pInfo;
+	Bool new_cfg = GF_FALSE;
 	GF_Err e;
 
 	if (!DecoderSpecificInfo) {
@@ -140,15 +141,16 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 		assert( codec->streamInfo );
 		return gf_list_add(codec->streamInfo, pInfo);
 	}
-//	gf_mx_p(codec->mx);
+
 	assert( codec );
-	if (gf_bifs_dec_get_stream(codec, ESID) != NULL) {
-//		gf_mx_v(codec->mx);
-		return GF_BAD_PARAM;
+	pInfo = gf_bifs_dec_get_stream(codec, ESID);
+	//we allow reconfigure of the BIFS stream
+	if (pInfo == NULL) {
+		GF_SAFEALLOC(pInfo, BIFSStreamInfo);
+		if (!pInfo) return GF_OUT_OF_MEM;
+		new_cfg = GF_TRUE;
 	}
 	bs = gf_bs_new(DecoderSpecificInfo, DecoderSpecificInfoLength, GF_BITSTREAM_READ);
-	GF_SAFEALLOC(pInfo, BIFSStreamInfo);
-	if (!pInfo) return GF_OUT_OF_MEM;
 	pInfo->ESID = ESID;
 
 	pInfo->config.version = objectTypeIndication;
@@ -176,8 +178,8 @@ GF_Err gf_bifs_decoder_configure_stream(GF_BifsDecoder * codec, u16 ESID, char *
 		gf_sg_set_scene_size_info(codec->scenegraph, pInfo->config.Width, pInfo->config.Height, pInfo->config.PixelMetrics);
 	}
 
-	gf_list_add(codec->streamInfo, pInfo);
-//	gf_mx_v(codec->mx);
+	if (new_cfg)
+		gf_list_add(codec->streamInfo, pInfo);
 	return GF_OK;
 }
 
@@ -244,10 +246,8 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 
 
 	if (!codec || !data || codec->dec_memory_mode) return GF_BAD_PARAM;
 
-//	gf_mx_p(codec->mx);
 	codec->info = gf_bifs_dec_get_stream(codec, ESID);
 	if (!codec->info) {
-//		gf_mx_v(codec->mx);
 		return GF_BAD_PARAM;
 	}
 	/*setup current scene graph*/
@@ -266,7 +266,6 @@ GF_Err gf_bifs_decode_au(GF_BifsDecoder *codec, u16 ESID, const char *data, u32 
 	/*reset current config*/
 	codec->info = NULL;
 	codec->current_graph = NULL;
-//	gf_mx_v(codec->mx);
 	return e;
 }
 

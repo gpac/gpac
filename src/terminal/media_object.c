@@ -347,6 +347,18 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	timescale = gf_filter_pck_get_timescale(mo->pck);
 
 	mo->is_eos = GF_FALSE;
+	if (!data) {
+		Bool is_eos = gf_filter_pck_get_eos(mo->pck);
+		if (!mo->is_eos && is_eos) {
+			mo->is_eos = GF_TRUE;
+			mediasensor_update_timing(mo->odm, GF_TRUE);
+			gf_odm_signal_eos_reached(mo->odm);
+			*eos = GF_TRUE;
+		}
+		gf_filter_pid_drop_packet(mo->odm->pid);
+		mo->pck = NULL;
+		return NULL;
+	}
 
 	pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
 
@@ -364,8 +376,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (next_pck) {
 		next_ts = (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale);
 
-		mo->is_eos = gf_filter_pck_get_eos(next_pck);
-		if (mo->is_eos) {
+		if (gf_filter_pck_get_eos(next_pck)) {
+			if (!mo->is_eos) {
+				mo->is_eos = GF_TRUE;
+				mediasensor_update_timing(mo->odm, GF_TRUE);
+				gf_odm_signal_eos_reached(mo->odm);
+			}
 			gf_filter_pid_drop_packet(mo->odm->pid);
 			next_pck=NULL;
 		}
@@ -493,10 +509,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (mo->timestamp != pck_ts) {
 		mo->frame_dur = gf_filter_pck_get_duration(mo->pck);
-		
+		mo->odm->media_current_time = mo->timestamp;
+
 #ifndef GPAC_DISABLE_VRML
 		if (! *eos )
-			mediasensor_update_timing(mo->odm, 0);
+			mediasensor_update_timing(mo->odm, GF_FALSE);
 #endif
 
 		if (mo->odm->parentscene->is_dynamic_scene) {
@@ -539,15 +556,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 
 	mo->nb_fetch ++;
+	assert(mo->frame);
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = mo->media_frame;
 
-#if FILTER_FIXME
-	gf_term_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
-#endif
+	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
 	if (mo->media_frame)
 		return (char *) mo->media_frame;

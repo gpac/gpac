@@ -80,6 +80,12 @@ void isor_declare_objects(ISOMReader *read)
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
 	Bool highest_stream;
+	Bool use_iod = GF_FALSE;
+	GF_Descriptor *od = gf_isom_get_root_od(read->mov);
+	if (od && gf_list_count(((GF_ObjectDescriptor*)od)->ESDescriptors)) {
+		use_iod = GF_TRUE;
+	}
+	if (od) gf_odf_desc_del(od);
 
 	/*TODO check for alternate tracks*/
 	count = gf_isom_get_track_count(read->mov);
@@ -208,6 +214,10 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID));
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID));
 
+		//MPEG-4 systems present
+		if (use_iod)
+			gf_filter_pid_set_property(pid, GF_PROP_PID_ESID, &PROP_UINT(esd->ESID));
+
 		if (gf_isom_is_track_in_root_od(read->mov, i+1)) {
 			gf_filter_pid_set_property(pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
 		}
@@ -259,6 +269,11 @@ void isor_declare_objects(ISOMReader *read)
 		//move channel diuration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
 
+		if (read->is_local) {
+			gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(0));
+			gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
+			gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(300000));
+		}
 
 		//todo: map other ESD params if needed
 

@@ -81,7 +81,7 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 	if (ck && ck->clock_init ) {
 		if (do_update_clock)
 			st->stream->odm->media_current_time = gf_clock_media_time(ck);
-		mediasensor_update_timing(st->stream->odm, 0);
+		mediasensor_update_timing(st->stream->odm, GF_FALSE);
 	}
 	//if main addon is VoD , fire a timeshift update
 	else if (st->stream->odm->subscene && st->stream->odm->subscene->sys_clock_at_main_activation) {
