@@ -148,12 +148,6 @@ void gf_clock_reset(GF_Clock *ck)
 	ck->has_media_time_shift = 0;
 }
 
-void gf_clock_stop(GF_Clock *ck)
-{
-	ck->clock_init = 0;
-	ck->StartTime = 0;
-}
-
 void gf_clock_set_time(GF_Clock *ck, u32 TS)
 {
 	if (!ck->clock_init) {

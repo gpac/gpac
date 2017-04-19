@@ -57,6 +57,7 @@ static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 	/*this is service connection*/
 	gf_odm_service_media_event(root, GF_EVENT_MEDIA_SETUP_DONE);
 
+	scene_ns->connect_ack = GF_TRUE;
 	if (err) {
 		char msg[5000];
 		snprintf(msg, sizeof(msg), "Cannot open %s", scene_ns->url);
@@ -197,6 +198,23 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 		scene->root_od->flags |= GF_ODM_REGENERATE_SCENE;
 	}
 
+	if (scene->is_dynamic_scene) {
+		if (!root->ID)
+			root->ID = 1;
+			
+		if (!root->scene_ns->connect_ack) {
+			/*othewise send a connect ack for top level*/
+			GF_Event evt;
+			root->scene_ns->connect_ack = GF_TRUE;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", root->scene_ns->url));
+
+			evt.type = GF_EVENT_CONNECT;
+			evt.connect.is_connected = GF_TRUE;
+			gf_sc_send_event(scene->compositor, &evt);
+		}
+	}
+
 	v = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!v) return;
 	mtype = v->value.uint;
@@ -326,7 +344,9 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	}
 	odm->ID = pid_odid;
 	odm->mo = the_mo;
-	odm->type = mtype;
+	if (!odm->pid)
+		odm->type = mtype;
+
 	//register PID with ODM, but don't call setup object
 	gf_odm_register_pid(odm, pid, GF_TRUE);
 

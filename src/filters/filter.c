@@ -482,6 +482,11 @@ void gf_filter_process_task(GF_FSTask *task)
 		filter->nb_tasks_done--;
 		return;
 	}
+	//empty input for this filter, don't call process
+	else if (filter->num_input_pids==1 && !filter->pending_packets && !filter->skip_process_trigger_on_tasks) {
+		filter->nb_tasks_done--;
+		return;
+	}
 	e = filter->freg->process(filter);
 
 	//flush all pending pid init requests following the call to init
@@ -528,7 +533,7 @@ GF_Filter *gf_filter_clone(GF_Filter *filter)
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter)
 {
-	return gf_list_count(filter->input_pids);
+	return filter->num_input_pids;
 }
 
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx)

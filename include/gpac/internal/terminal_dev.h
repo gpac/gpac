@@ -87,6 +87,7 @@ typedef struct
 	GF_List *Clocks;
 
 	Fixed set_speed;
+	Bool connect_ack;
 } GF_SceneNamespace;
 
 
@@ -137,10 +138,6 @@ struct _gf_scene
 
 	//indicates a valid object is attached to the scene
 	Bool object_attached;
-	
-	/*set to 1 when single time-line presentation with only static resources (ONE OD AU is detected or no media removal/adding possible)
-	This allows preventing OD/BIFS streams shutdown/startup when seeking.*/
-	Bool static_media_ressources;
 
 	/*set to 1 to force all sub-resources to share the timeline of this scene*/
 	Bool force_single_timeline;
@@ -576,8 +573,6 @@ hasOCR indicates whether the stream being attached carries object clock referenc
 GF_Clock *gf_clock_attach(GF_List *clocks, GF_Scene *scene, u16 OCR_ES_ID, u16 ES_ID, s32 hasOCR);
 /*reset clock (only called by channel owning clock)*/
 void gf_clock_reset(GF_Clock *ck);
-/*stops clock (only called for scene clock)*/
-void gf_clock_stop(GF_Clock *ck);
 /*return clock time in ms*/
 u32 gf_clock_time(GF_Clock *ck);
 /*return media time in ms*/
@@ -1017,6 +1012,10 @@ struct _od_manager
 
 	/*clock for this object*/
 	GF_Clock *ck;
+	//one of the pid contributing to this object acts as the clock reference
+	Bool owns_clock;
+
+
 	u32 nb_dropped;
 	Bool low_latency_mode;
 	

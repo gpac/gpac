@@ -202,10 +202,10 @@ void isor_declare_objects(ISOMReader *read)
 		}
 
 		if (base_esd) {
-			if (!ocr_es_id) ocr_es_id = base_esd->ESID;
+			if (!ocr_es_id) ocr_es_id = base_esd->OCRESID;
 			base_esd->OCRESID = ocr_es_id;
 		}
-		if (!ocr_es_id) ocr_es_id = esd->ESID;
+		if (!ocr_es_id) ocr_es_id = esd->OCRESID ? esd->OCRESID : esd->ESID;
 		esd->OCRESID = ocr_es_id;
 
 		//OK declare PID
@@ -261,7 +261,9 @@ void isor_declare_objects(ISOMReader *read)
 		ch = ISOR_CreateChannel(read, pid, i+1);
 
 		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
-
+		if (!ch->duration) {
+			ch->duration = gf_isom_get_duration(read->mov);
+		}
 		gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC(ch->duration, read->time_scale));
 
 		track_dur = (Double) (s64) ch->duration;
@@ -270,9 +272,9 @@ void isor_declare_objects(ISOMReader *read)
 		ch->duration = (u32) (track_dur * ch->time_scale);
 
 		if (read->is_local) {
-			gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(0));
+			gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
 			gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
-			gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(300000));
+			gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
 		}
 
 		//todo: map other ESD params if needed

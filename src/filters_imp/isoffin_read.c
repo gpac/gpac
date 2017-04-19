@@ -1031,27 +1031,31 @@ static GF_Err isoffin_process(GF_Filter *filter)
 		if (!ch->is_playing) continue;
 		is_active = GF_TRUE;
 
-		if (gf_filter_pid_would_block(ch->pid)) continue;
+		while (! gf_filter_pid_would_block(ch->pid) ) {
 
-		isor_reader_get_sample(ch);
-		if (ch->sample) {
-			u32 sample_dur;
-			GF_FilterPacket *pck;
-			pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
-			memcpy(data, ch->sample->data, ch->sample->dataLength);
+			isor_reader_get_sample(ch);
+			if (ch->sample) {
+				u32 sample_dur;
+				GF_FilterPacket *pck;
+				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+				memcpy(data, ch->sample->data, ch->sample->dataLength);
 
-			gf_filter_pck_set_dts(pck, ch->sample->DTS);
-			gf_filter_pck_set_cts(pck, ch->sample->DTS+ch->sample->CTS_Offset);
-			gf_filter_pck_set_sap(pck, ch->sample->IsRAP);
-			sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
-			gf_filter_pck_set_duration(pck, sample_dur);
-			gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
+				gf_filter_pck_set_dts(pck, ch->current_slh.decodingTimeStamp);
+				gf_filter_pck_set_cts(pck, ch->current_slh.compositionTimeStamp);
+				gf_filter_pck_set_sap(pck, ch->sample->IsRAP);
+				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
+				gf_filter_pck_set_duration(pck, sample_dur);
+				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
 
-			gf_filter_pck_send(pck);
-			isor_reader_release_sample(ch);
-		} else if (ch->last_state==GF_EOS) {
-			gf_filter_pid_set_eos(ch->pid);
-			ch->is_playing=0;
+				gf_filter_pck_send(pck);
+				isor_reader_release_sample(ch);
+			} else if (ch->last_state==GF_EOS) {
+				gf_filter_pid_set_eos(ch->pid);
+				ch->is_playing=0;
+				break;
+			} else {
+				break;
+			}
 		}
 	}
 	return is_active ? GF_OK : GF_EOS;

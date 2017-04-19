@@ -1992,7 +1992,7 @@ force_input:
 						GF_MediaInfo info;
 						odm = gf_term_get_object(term, root_odm, i);
 						if (gf_term_get_object_info(term, odm, &info) == GF_OK) {
-							if (info.od->objectDescriptorID==odid) break;
+							if (info.ODID==odid) break;
 						}
 						odm = NULL;
 					}
@@ -2478,7 +2478,7 @@ void PrintAVInfo(Bool final)
 		tot_time = v_odi.last_frame_time - v_odi.first_frame_time;
 		if (!tot_time) tot_time=1;
 		if (v_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*v_odi.current_time / v_odi.duration ) );
-		fprintf(stderr, "%d f FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.instant_bitrate/1000);
+		fprintf(stderr, "%d f FPS %.2f (%.2f ms max) rate %d ", v_odi.nb_dec_frames, ((Float)v_odi.nb_dec_frames*1000) / tot_time, v_odi.max_dec_time/1000.0, (u32) v_odi.avg_bitrate/1000);
 	}
 	else if (scene_odm) {
 
@@ -2486,7 +2486,7 @@ void PrintAVInfo(Bool final)
 			avg_dec_time = (Float) 1000000 * s_odi.nb_dec_frames;
 			avg_dec_time /= s_odi.total_dec_time;
 			if (s_odi.duration) fprintf(stderr, "%d%% ", (u32) (100*s_odi.current_time / s_odi.duration ) );
-			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.instant_bitrate/1000);
+			fprintf(stderr, "%d f %.2f (%d us max) - rate %d ", s_odi.nb_dec_frames, avg_dec_time, s_odi.max_dec_time, (u32) s_odi.avg_bitrate/1000);
 		} else {
 			u32 nb_frames_drawn;
 			Double FPS;
@@ -2544,7 +2544,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 		fprintf(stderr, "Current service ID %d\n", count);
 
 	if (gf_term_get_object_info(term, root_odm, &odi) != GF_OK) return;
-	if (!odi.od) {
+	if (!odi.ODID) {
 		fprintf(stderr, "Service not attached\n");
 		return;
 	}
@@ -2554,11 +2554,11 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 
 	fprintf(stderr, "%s", szIndent);
 	fprintf(stderr, "#%d %s - ", num, root_name);
-	if (odi.od->ServiceID) fprintf(stderr, "Service ID %d ", odi.od->ServiceID);
+	if (odi.ServiceID) fprintf(stderr, "Service ID %d ", odi.ServiceID);
 	if (odi.media_url) {
 		fprintf(stderr, "%s\n", odi.media_url);
 	} else {
-		fprintf(stderr, "OD ID %d\n", odi.od->objectDescriptorID);
+		fprintf(stderr, "OD ID %d\n", odi.ODID);
 	}
 
 	szIndent[indent]=' ';
@@ -2587,10 +2587,10 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 				if (odi.media_url) {
 					fprintf(stderr, "%s", odi.media_url);
 				} else {
-					fprintf(stderr, "ID %d", odi.od->objectDescriptorID);
+					fprintf(stderr, "ID %d", odi.ODID);
 				}
 				fprintf(stderr, " - %s", (odi.od_type==GF_STREAM_VISUAL) ? "Video" : (odi.od_type==GF_STREAM_AUDIO) ? "Audio" : "Systems");
-				if (odi.od && odi.od->ServiceID) fprintf(stderr, " - Service ID %d", odi.od->ServiceID);
+				if (odi.ServiceID) fprintf(stderr, " - Service ID %d", odi.ServiceID);
 				fprintf(stderr, "\n");
 				break;
 			}
@@ -2616,7 +2616,7 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 			if (!odm) break;
 			if (gf_term_get_object_info(term, odm, &odi) == GF_OK) {
 				if (szURL && strstr(odi.service_url, szURL)) break;
-				if ((number == (u32)(-1)) && (odi.od->objectDescriptorID == OD_ID)) break;
+				if ((number == (u32)(-1)) && (odi.ODID == OD_ID)) break;
 				else if (i == (u32)(number-1)) break;
 			}
 			odm = NULL;
@@ -2628,24 +2628,10 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 		else fprintf(stderr, "cannot find OD with number %d\n", number);
 		return;
 	}
-	if (!odi.od) {
+	if (!odi.ODID) {
 		if (number == (u32)-1) fprintf(stderr, "Object %d not attached yet\n", OD_ID);
 		else fprintf(stderr, "Object #%d not attached yet\n", number);
 		return;
-	}
-
-	if (!odi.od) {
-		fprintf(stderr, "Service not attached\n");
-		return;
-	}
-
-	if (odi.od->tag==GF_ODF_IOD_TAG) {
-		fprintf(stderr, "InitialObjectDescriptor %d\n", odi.od->objectDescriptorID);
-		fprintf(stderr, "Profiles and Levels: Scene %x - Graphics %x - Visual %x - Audio %x - OD %x\n",
-		        odi.scene_pl, odi.graphics_pl, odi.visual_pl, odi.audio_pl, odi.OD_pl);
-		fprintf(stderr, "Inline Profile Flag %d\n", odi.inline_pl);
-	} else {
-		fprintf(stderr, "ObjectDescriptor %d\n", odi.od->objectDescriptorID);
 	}
 
 	fprintf(stderr, "Object Duration: ");
@@ -2700,114 +2686,13 @@ void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 	}
 	if (odi.protection) fprintf(stderr, "Encrypted Media%s\n", (odi.protection==2) ? " NOT UNLOCKED" : "");
 
-	count = gf_list_count(odi.od->ESDescriptors);
-	fprintf(stderr, "%d streams in OD\n", count);
-	for (i=0; i<count; i++) {
-		GF_ESD *esd = (GF_ESD *) gf_list_get(odi.od->ESDescriptors, i);
+	fprintf(stderr, "\nStream ID %d - %s - Clock ID %d\n", odi.pid_id, gf_odf_stream_type_name(odi.od_type), odi.ocr_id);
+//	if (esd->dependsOnESID) fprintf(stderr, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);
 
-		fprintf(stderr, "\nStream ID %d - Clock ID %d\n", esd->ESID, esd->OCRESID);
-		if (esd->dependsOnESID) fprintf(stderr, "\tDepends on Stream ID %d for decoding\n", esd->dependsOnESID);
+	if (odi.lang_code)
+		fprintf(stderr, "\tStream Language: %s\n", odi.lang_code);
 
-		switch (esd->decoderConfig->streamType) {
-		case GF_STREAM_OD:
-			fprintf(stderr, "\tOD Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_OCR:
-			fprintf(stderr, "\tOCR Stream\n");
-			break;
-		case GF_STREAM_SCENE:
-			fprintf(stderr, "\tScene Description Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_VISUAL:
-			fprintf(stderr, "\tVisual Stream - media type: %s", gf_esd_get_textual_description(esd));
-			break;
-		case GF_STREAM_AUDIO:
-			fprintf(stderr, "\tAudio Stream - media type: %s", gf_esd_get_textual_description(esd));
-			break;
-		case GF_STREAM_MPEG7:
-			fprintf(stderr, "\tMPEG-7 Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_IPMP:
-			fprintf(stderr, "\tIPMP Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_OCI:
-			fprintf(stderr, "\tOCI Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_MPEGJ:
-			fprintf(stderr, "\tMPEGJ Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_INTERACT:
-			fprintf(stderr, "\tUser Interaction Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		case GF_STREAM_TEXT:
-			fprintf(stderr, "\tStreaming Text Stream - version %d\n", esd->decoderConfig->objectTypeIndication);
-			break;
-		default:
-			fprintf(stderr, "\tUnknown Stream\n");
-			break;
-		}
-
-		fprintf(stderr, "\tBuffer Size %d\n\tAverage Bitrate %d bps\n\tMaximum Bitrate %d bps\n", esd->decoderConfig->bufferSizeDB, esd->decoderConfig->avgBitrate, esd->decoderConfig->maxBitrate);
-		if (esd->slConfig->predefined==SLPredef_SkipSL) {
-			fprintf(stderr, "\tNot using MPEG-4 Synchronization Layer\n");
-		} else {
-			fprintf(stderr, "\tStream Clock Resolution %d\n", esd->slConfig->timestampResolution);
-		}
-		if (esd->URLString) fprintf(stderr, "\tStream Location: %s\n", esd->URLString);
-
-		/*check language*/
-		if (esd->langDesc) {
-			s32 lang_idx;
-			char lan[4];
-			lan[0] = esd->langDesc->langCode>>16;
-			lan[1] = (esd->langDesc->langCode>>8)&0xFF;
-			lan[2] = (esd->langDesc->langCode)&0xFF;
-			lan[3] = 0;
-
-			lang_idx = gf_lang_find(lan);
-			if (lang_idx>=0) {
-				fprintf(stderr, "\tStream Language: %s\n", gf_lang_get_name(lang_idx));
-			}
-		}
-	}
 	fprintf(stderr, "\n");
-	/*check OCI (not everything interests us) - FIXME: support for unicode*/
-	count = gf_list_count(odi.od->OCIDescriptors);
-	if (count) {
-		fprintf(stderr, "%d Object Content Information descriptors in OD\n", count);
-		for (i=0; i<count; i++) {
-			GF_Descriptor *desc = (GF_Descriptor *) gf_list_get(odi.od->OCIDescriptors, i);
-			switch (desc->tag) {
-			case GF_ODF_SEGMENT_TAG:
-			{
-				GF_Segment *sd = (GF_Segment *) desc;
-				fprintf(stderr, "Segment Descriptor: Name: %s - start time %g sec - duration %g sec\n", sd->SegmentName, sd->startTime, sd->Duration);
-			}
-			break;
-			case GF_ODF_CC_NAME_TAG:
-			{
-				GF_CC_Name *ccn = (GF_CC_Name *)desc;
-				fprintf(stderr, "Content Creators:\n");
-				for (j=0; j<gf_list_count(ccn->ContentCreators); j++) {
-					GF_ContentCreatorInfo *ci = (GF_ContentCreatorInfo *) gf_list_get(ccn->ContentCreators, j);
-					if (!ci->isUTF8) continue;
-					fprintf(stderr, "\t%s\n", ci->contentCreatorName);
-				}
-			}
-			break;
-
-			case GF_ODF_SHORT_TEXT_TAG:
-			{
-				GF_ShortTextual *std = (GF_ShortTextual *)desc;
-				fprintf(stderr, "Description:\n\tEvent: %s\n\t%s\n", std->eventName, std->eventText);
-			}
-			break;
-			default:
-				break;
-			}
-		}
-		fprintf(stderr, "\n");
-	}
 
 	switch (odi.status) {
 	case 0:
@@ -2888,7 +2773,7 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	if (!odi.od) {
+	if (!odi.ODID) {
 		fprintf(stderr, "Service not attached\n");
 		return;
 	}
@@ -2899,7 +2784,7 @@ void PrintODTiming(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 
 	if (! odi.generated_scene) {
 
-		fprintf(stderr, "- OD %d: ", odi.od->objectDescriptorID);
+		fprintf(stderr, "- OD %d: ", odi.ODID);
 		switch (odi.status) {
 		case 1:
 			fprintf(stderr, "Playing - ");
@@ -2939,7 +2824,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 	if (!odm) return;
 
 	if (gf_term_get_object_info(term, odm, &odi) != GF_OK) return;
-	if (!odi.od) {
+	if (!odi.ODID) {
 		fprintf(stderr, "Service not attached\n");
 		return;
 	}
@@ -2953,7 +2838,7 @@ void PrintODBuffer(GF_Terminal *term, GF_ObjectManager *odm, u32 indent)
 	if (odi.generated_scene) {
 		fprintf(stderr, "+ Service %s:\n", odi.service_url);
 	} else {
-		fprintf(stderr, "- OD %d: ", odi.od->objectDescriptorID);
+		fprintf(stderr, "- OD %d: ", odi.ODID);
 		switch (odi.status) {
 		case 1:
 			fprintf(stderr, "Playing");

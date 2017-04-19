@@ -107,8 +107,12 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_ObjectManager *odm;
 	const GF_PropertyValue *prop;
 	u32 mtype, oti;
-	GF_Err e;
+	u32 i, count;
+	GF_Scene *scene = NULL;
+	GF_Scene *top_scene = NULL;
 	GF_CompositorFilter *ctx = (GF_CompositorFilter *) gf_filter_get_udta(filter);
+	GF_FilterEvent evt;
+	Bool in_iod = GF_FALSE;
 
 	if (is_remove)
 		return GF_NOT_SUPPORTED;
@@ -132,114 +136,63 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_OK;
 	}
 
+	//create a default scene
+	if (!ctx->compositor->root_scene) {
+		ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
+		ctx->compositor->root_scene->is_dynamic_scene = GF_TRUE;
+		ctx->compositor->root_scene->root_od = gf_odm_new();
+		ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
+		ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
+	}
+
+	//default scene is root one
+	scene = ctx->compositor->root_scene;
+	top_scene = ctx->compositor->root_scene;
+
+	//browse all scene namespaces and figure out our parent scene
+	count = gf_list_count(top_scene->namespaces);
+	for (i=0; i<count; i++) {
+		GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
+		if (!sns->source_filter) continue;
+		assert(sns->owner);
+		if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
+			//we are attaching an inline, create the subscene if not done already
+			if (!sns->owner->subscene) {
+				assert(sns->owner->parentscene);
+				sns->owner->subscene = gf_scene_new(ctx->compositor, sns->owner->parentscene);
+				sns->owner->subscene->root_od = sns->owner;
+			}
+			scene = sns->owner->subscene;
+			break;
+		}
+	}
+	assert(scene);
+
+	//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+	if (prop && scene->is_dynamic_scene) {
+		scene->is_dynamic_scene = GF_FALSE;
+	}
+
+	//TODO: pure OCR streams
+	if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
+		return GF_NOT_SUPPORTED;
+
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
+	if (prop && prop->value.boolean) in_iod = GF_TRUE;
+
+	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
+
+	//setup object (clock) and playback requests
+	gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, in_iod);
+
+	//attach scene to input filters
 	if ((mtype==GF_STREAM_OD) || (mtype==GF_STREAM_SCENE) ) {
-		GF_FilterEvent evt;
-		u32 i, count;
-		Bool in_iod = GF_FALSE;
-		GF_Scene *scene = NULL;
-		GF_Scene *top_scene = NULL;
-
-		if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
-			return GF_NOT_SUPPORTED;
-
-		//create a default scene
-		if (!ctx->compositor->root_scene) {
-			ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
-			ctx->compositor->root_scene->is_dynamic_scene = GF_FALSE;
-			ctx->compositor->root_scene->root_od = gf_odm_new();
-			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
-			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
-		}
-		//default scene is root one
-		scene = ctx->compositor->root_scene;
-
-		//todo for inline
-		top_scene = ctx->compositor->root_scene;
-
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-		if (prop && prop->value.boolean) in_iod = GF_TRUE;
-
-		//browse all scene namespaces and figure out our parent scene
-		count = gf_list_count(top_scene->namespaces);
-		for (i=0; i<count; i++) {
-			GF_SceneNamespace *sns = gf_list_get(top_scene->namespaces, i);
-			if (!sns->source_filter) continue;
-			assert(sns->owner);
-			if (gf_filter_pid_is_filter_in_parents(pid, sns->source_filter)) {
-				//we are attaching an inline, create the subscene if not done already
-				if (!sns->owner->subscene) {
-					assert(sns->owner->parentscene);
-					sns->owner->subscene = gf_scene_new(ctx->compositor, sns->owner->parentscene);
-					sns->owner->subscene->root_od = sns->owner;
-				}
-				scene = sns->owner->subscene;
-				break;
-			}
-		}
-		assert(scene);
-		//scene was declared as dynamic but we have BIFS/OD: reset the scene graph
-		//and destroy all media objects
-		if (scene->is_dynamic_scene) {
-			scene->is_dynamic_scene = GF_FALSE;
-			scene->graph_attached = GF_FALSE;
-			gf_sg_reset(scene->graph);
-
-			for (i=0; i<gf_list_count(scene->scene_objects); i++) {
-				GF_MediaObject *mo = gf_list_get(scene->scene_objects, i);
-				gf_mo_event_target_reset(mo);
-
-				if (mo->odm) {
-					mo->odm->mo = NULL;
-					mo->odm->ID = 0;
-					mo->odm->ck = 0;
-					mo->odm = NULL;
-				}
-				gf_mo_del(mo);
-			}
-			gf_list_reset(scene->scene_objects);
-		}
-		if (mtype==GF_STREAM_SCENE) {
-			//setup object (clock) and playback requests
-			gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, in_iod);
-
-		} else if (mtype==GF_STREAM_OD) {
-			if (!in_iod) return GF_NOT_SUPPORTED;
-
-			//setup object (clock) and playback requests
-			gf_scene_insert_pid(scene, scene->root_od->scene_ns, pid, in_iod);
-		} else {
-			return GF_NOT_SUPPORTED;
-		}
-		//attach scene to input
 		GF_FEVT_INIT(evt, GF_FEVT_ATTACH_SCENE, pid);
 		evt.attach_scene.object_manager = gf_filter_pid_get_udta(pid);
 		gf_filter_pid_send_event(pid, &evt);
-
-
-		return GF_OK;
-	} else {
-		const GF_PropertyValue *prop;
-
-		if (oti != GPAC_OTI_RAW_MEDIA_STREAM)
-			return GF_NOT_SUPPORTED;
-		//create a default scene
-		if (!ctx->compositor->root_scene) {
-			ctx->compositor->root_scene = gf_scene_new(ctx->compositor, NULL);
-			ctx->compositor->root_scene->is_dynamic_scene = GF_TRUE;
-			ctx->compositor->root_scene->root_od = gf_odm_new();
-			ctx->compositor->root_scene->root_od->scene_ns = gf_scene_ns_new(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od, "test", NULL);
-			ctx->compositor->root_scene->root_od->subscene = ctx->compositor->root_scene;
-		}
-
-		//we have an MPEG-4 ESID defined for the PID, this is MPEG-4 systems
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
-		if (prop && ctx->compositor->root_scene->is_dynamic_scene) {
-			ctx->compositor->root_scene->is_dynamic_scene = GF_FALSE;
-		}
-
-		gf_scene_insert_pid(ctx->compositor->root_scene, ctx->compositor->root_scene->root_od->scene_ns, pid, GF_FALSE);
-		gf_scene_regenerate(ctx->compositor->root_scene);
-
+	} else if (scene->is_dynamic_scene) {
+		gf_scene_regenerate(scene);
 	}
 
 	return GF_OK;

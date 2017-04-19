@@ -142,6 +142,9 @@ static Bool gf_audio_input_is_muted(void *callback)
 {
 	GF_AudioInput *ai = (GF_AudioInput *) callback;
 	if (!ai->stream) return GF_TRUE;
+
+	if (ai->stream->odm->nb_buffering)
+		gf_odm_check_buffering(ai->stream->odm, NULL);
 	if (ai->is_muted)
 		return GF_TRUE;
 	return gf_mo_is_muted(ai->stream);

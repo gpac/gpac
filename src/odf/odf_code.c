@@ -269,8 +269,6 @@ GF_Err gf_odf_read_esd(GF_BitStream *bs, GF_ESD *esd, u32 DescSize)
 		esd->OCRESID = gf_bs_read_int(bs, 16);
 		nbBytes += 2;
 	}
-	/*fix broken sync*/
-//	if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 
 	while (nbBytes < DescSize) {
 		GF_Descriptor *tmp = NULL;
@@ -305,10 +303,6 @@ GF_Err gf_odf_size_esd(GF_ESD *esd, u32 *outSize)
 
 	*outSize = 0;
 	*outSize += 3;
-
-	/*this helps keeping proper sync: some people argue that OCR_ES_ID == ES_ID is a circular reference
-	of streams. Since this is equivalent to no OCR_ES_ID, keep it that way*/
-//	if (esd->OCRESID == esd->ESID) esd->OCRESID = 0;
 
 	if (esd->dependsOnESID) *outSize += 2;
 	if (esd->URLString) *outSize += gf_odf_size_url_string(esd->URLString);

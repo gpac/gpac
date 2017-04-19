@@ -631,10 +631,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				gf_fq_pop(current_filter->tasks);
 
 			//no more pending tasks for this filter
-			if (gf_fq_count(current_filter->tasks) == 0) {
+			if ((gf_fq_count(current_filter->tasks) == 0) || (requeue && current_filter->stream_reset_pending) ) {
 //				assert (gf_fq_count(current_filter->tasks) == 0);
 
 				current_filter->in_process = GF_FALSE;
+				if (current_filter->stream_reset_pending)
+					current_filter->in_process = GF_FALSE;
 
 				if (requeue) {
 					current_filter->process_th_id = 0;
@@ -823,8 +825,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	for (i=0; i<count; i++) {
 		u32 k, ipids, opids;
 		GF_Filter *f = gf_list_get(fsess->filters, i);
-		ipids = gf_list_count(f->input_pids);
-		opids = gf_list_count(f->output_pids);
+		ipids = f->num_input_pids;
+		opids = f->num_output_pids;
 		fprintf(stderr, "\tFilter %s: %d input pids %d output pids "LLU" tasks "LLU" us process time\n", f->name, ipids, opids, f->nb_tasks_done, f->time_process);
 
 		if (ipids) {

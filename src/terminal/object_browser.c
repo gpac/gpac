@@ -158,27 +158,28 @@ u32 gf_term_get_current_service_id(GF_Terminal *term)
 
 static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 {
-#ifdef FILTER_FIXME
-	info->instant_bitrate = dec->avg_bit_rate;
-	info->avg_bitrate = dec->avg_bit_rate;
-	info->max_bitrate = dec->max_bit_rate;
-	info->nb_dec_frames = dec->nb_dec_frames;
-	info->max_dec_time = dec->max_dec_time;
-	info->total_dec_time = dec->total_dec_time;
-	info->first_frame_time = dec->first_frame_time;
-	info->last_frame_time = dec->last_frame_time;
-	info->raw_media = dec->flags & GF_ESM_CODEC_IS_RAW_MEDIA;
-	info->au_duration = dec->min_frame_dur;
-	info->nb_iraps = dec->nb_iframes;
-	info->irap_max_dec_time = dec->max_iframes_time;
-	info->irap_total_dec_time = dec->total_iframes_time;
-#endif
+	GF_FilterPidStatistics stats;
+	gf_filter_pid_get_statistics(pid, &stats);
 
+	info->avg_bitrate = stats.avgerage_bitrate;
+	info->max_bitrate = stats.max_bitrate;
+	info->nb_dec_frames = stats.nb_processed;
+	info->max_dec_time = stats.max_process_time;
+	info->total_dec_time = stats.total_process_time;
+	info->first_frame_time = stats.first_process_time;
+	info->last_frame_time = stats.last_process_time;
+	info->au_duration = stats.min_frame_dur;
+	info->nb_iraps = stats.nb_saps;
+	info->irap_max_dec_time = stats.max_sap_process_time;
+	info->irap_total_dec_time = stats.total_sap_process_time;
+	info->avg_process_bitrate = stats.average_process_rate;
+	info->max_process_bitrate = stats.max_process_rate;
 }
 
 GF_EXPORT
 GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
 {
+	const GF_PropertyValue *prop;
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
 
@@ -187,13 +188,18 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	if (!term || !odm || !info) return GF_BAD_PARAM;
 	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
+	info->ODID = odm->ID;
+	info->ServiceID = odm->ServiceID;
+	info->pid_id = odm->pid_id;
+	info->ocr_id = odm->ck ? odm->ck->clockID : 0;
+	info->od_type = odm->type;
+
 	info->duration = (Double) (s64)odm->duration;
 	info->duration /= 1000;
 
-	pid = NULL;
+	pid = odm->pid;
 	an_odm = odm;
-	while (!pid) {
-		if (!an_odm->lower_layer_odm) break;
+	while (an_odm->lower_layer_odm) {
 		an_odm = an_odm->lower_layer_odm;
 		pid = an_odm->pid;
 	}
@@ -225,7 +231,6 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	info->db_unit_count = 0;
 
 	if (odm->state) {
-		u32 i, buf;
 		GF_Clock *ck;
 
 		ck = gf_odm_get_media_clock(odm);
@@ -239,33 +244,20 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 			info->buffer = -1;
 			info->min_buffer = -1;
 			info->max_buffer = 0;
-			buf = 0;
-			i=0;
+
+			info->buffer = gf_filter_pid_query_buffer_duration(pid) / 1000;
+			info->max_buffer = odm->buffer_max_us / 1000;
+			info->min_buffer = odm->buffer_min_us / 1000;
+
 #ifdef FILTER_FIXME
-			while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
-				info->db_unit_count += ch->AU_Count;
-				if (!ch->is_pulling || ch->MaxBuffer) {
-					if (ch->MaxBuffer) info->buffer = 0;
-					buf += ch->BufferTime;
-
-					if (ch->MaxBuffer> info->max_buffer) info->max_buffer = ch->MaxBuffer;
-					if (ch->MinBuffer < info->min_buffer) info->min_buffer = ch->MinBuffer;
-
-				}
-				if (ch->is_protected) info->protection = ch->ipmp_tool ? 1 : 2;
-			}
+			info->protection = ch->ipmp_tool ? 1 : 2;
 #endif
-			if (buf) info->buffer = (s32) buf;
 		}
 	}
 
-	info->has_profiles = (odm->flags & GF_ODM_HAS_PROFILES) ? 1 : 0;
-	//we no longer use PLs from IOD, should check with each PID
-
 	if (odm->scene_ns) {
-#ifdef FILTER_FIXME
-		info->service_handler = odm->net_service->ifce->module_name;
-#endif
+		info->service_handler = gf_filter_get_name(odm->scene_ns->source_filter);
+
 		info->service_url = odm->scene_ns->url;
 		if (odm->scene_ns->owner == odm) info->owns_service = 1;
 	} else if ((odm->subscene && odm->subscene->graph_attached) || (odm->ID)) {
@@ -275,23 +267,15 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 	}
 
 	if (pid) {
-#ifdef FILTER_FIXME
-		if (codec->decio && codec->decio->GetName) {
-			info->codec_name = codec->decio->GetName(codec->decio);
-		} else {
-			info->codec_name = codec->decio ? codec->decio->module_name : "internal decoder";
-		}
-#endif
+		info->codec_name = gf_filter_pid_get_filter_name(pid);
 		info->od_type = odm->type;
 
-#ifdef FILTER_FIXME
-		info->cb_max_count = codec->CB->Capacity;
-		info->cb_unit_count = codec->CB->UnitCount;
-		if (codec->direct_vout) {
-			info->direct_video_memory = 1;
-		}
-#endif
+		gf_filter_pid_get_buffer_occupancy(pid, &info->cb_max_count, &info->cb_unit_count, NULL, NULL);
+
 		get_codec_stats(pid, info);
+
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_LANGUAGE);
+		if (prop) info->lang_code = prop->value.string;
 	}
 
 	if (odm->subscene) {
@@ -311,14 +295,6 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		}
 	}
 
-#ifdef FILTER_FIXME
-	ch = (GF_Channel*)gf_list_get(odm->channels, 0);
-	if (ch && ch->esd->langDesc) {
-		info->lang = ch->esd->langDesc->langCode;
-		info->lang_code = ch->esd->langDesc->full_lang_code;
-	}
-#endif
-
 	if (odm->mo && odm->mo->URLs.count)
 		info->media_url = odm->mo->URLs.vals[0].url;
 	return GF_OK;
@@ -337,8 +313,9 @@ Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_
 	if (!sess) return 0;
 	(*d_enum) ++;
 	gf_dm_sess_get_stats(sess, server, path, bytes_done, total_bytes, bytes_per_sec, NULL);
-#endif
 	return 1;
+#endif
+	return 0;
 }
 
 GF_EXPORT

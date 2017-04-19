@@ -284,8 +284,31 @@ void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta);
 void *gf_filter_pid_get_udta(GF_FilterPid *pid);
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
 const char *gf_filter_pid_get_name(GF_FilterPid *pid);
+const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
 
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
+
+
+void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration);
+
+typedef struct
+{
+	u32 average_process_rate;
+	u32 max_process_rate;
+	u32 avgerage_bitrate;
+	u32 max_bitrate;
+	u32 nb_processed;
+	u32 max_process_time;
+	u64 total_process_time;
+	u64 first_process_time;
+	u64 last_process_time;
+	u32 min_frame_dur;
+	u32 nb_saps;
+	u32 max_sap_process_time;
+	u64 total_sap_process_time;
+} GF_FilterPidStatistics;
+
+GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *stats);
 
 //resets current properties of the pid
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
