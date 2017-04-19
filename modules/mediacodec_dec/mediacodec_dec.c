@@ -12,53 +12,47 @@
 
 typedef struct 
 {
-    AMediaCodec *codec;
-    AMediaFormat *format;
-    ANativeWindow * window;
+	AMediaCodec *codec;
+	AMediaFormat *format;
+	ANativeWindow * window;
 	char * frame;
 	Bool use_gl_textures;
-    u32 dequeue_timeout;
-
-    u32 width, height, stride, out_size;
-    u32 pixel_ar, pix_fmt;
+	u32 dequeue_timeout;
+	u32 width, height, stride, out_size;
+	u32 pixel_ar, pix_fmt;
 	u32 crop_left, crop_right, crop_top, crop_bottom;
 	int crop_unitX, crop_unitY;
-
-    const char *mime;
-
-    u8 chroma_format, luma_bit_depth, chroma_bit_depth;
-    GF_ESD *esd;
+	const char *mime;
+	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
+	GF_ESD *esd;
 	Float frame_rate;
 	Bool surface_rendering;
 	Bool frame_size_changed;
-    Bool inputEOS, outputEOS;
+	Bool inputEOS, outputEOS;
 	Bool raw_frame_dispatch;
-    //NAL-based specific
+	//NAL-based specific
 	GF_List *SPSs, *PPSs, *VPSs;
 	s32 active_sps, active_pps, active_vps;
 	AVCState avc;
 	HEVCState hevc;
 	u32 decoded_frames_pending;
 	Bool reconfig_needed;
-    u32 nalu_size_length;
-
-    //hevc
-    char *vps;
-    u32 luma_bpp, chroma_bpp, dec_frames;
-    u8 chroma_format_idc;
-    u16 ES_ID;
-    u32 vps_size;
+	u32 nalu_size_length;
+	//hevc
+	char *vps;
+	u32 luma_bpp, chroma_bpp, dec_frames;
+	u8 chroma_format_idc;
+	u16 ES_ID;
 	AMediaCodecBufferInfo info;
 	ssize_t outIndex;
 	u32 gl_tex_id;
-
 } MCDec;
+
 typedef struct {
 	char * frame;
 	MCDec * ctx;
 	ssize_t outIndex;
 	Bool flushed;
-	
 } MC_Frame;
 
 enum {
@@ -457,7 +451,7 @@ static void MCDec_RegisterHEVCParameterSet(MCDec *ctx, char *data, u32 size, u8 
 		slc->id = ps_id;
 		gf_list_add(dest, slc);
 		
-		//force re-activation of sps/pp/vps
+		//force re-activation of sps/pps/vps
 		if (xps == SPS) ctx->active_sps = -1;
 		else if (xps == PPS) ctx->active_pps = -1;
 		else  ctx->active_vps = -1;
@@ -829,7 +823,7 @@ static GF_Err MCDec_ParseHEVCNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength
 			}
 		}
 
-		//if sps and pps are ready, init decoder
+		//if sps, pps and vps are ready, init decoder
 		if (!ctx->codec && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
 			e = MCDec_InitDecoder(ctx);
 			if (e) return e;
@@ -998,9 +992,10 @@ static u32 MCDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *es
         case GPAC_OTI_VIDEO_AVC:
             return GF_CODEC_SUPPORTED;
         case GPAC_OTI_VIDEO_HEVC:
-			if(sdkInt() >= 21){
-                return GF_CODEC_SUPPORTED;
-            }
+			if(sdkInt() >= 21) {
+				return GF_CODEC_SUPPORTED;
+			}
+			break;
 		case GPAC_OTI_VIDEO_MPEG4_PART2:
             return GF_CODEC_SUPPORTED;
     }
@@ -1054,8 +1049,7 @@ GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char *
 GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {		
 	MC_Frame *f = (MC_Frame *)frame->user_data;
-    int i = 0;
-	if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
+   if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
 	*gl_tex_id = f->ctx->gl_tex_id;
 	
