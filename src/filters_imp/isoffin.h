@@ -58,6 +58,8 @@ typedef struct
 	GF_ISOFile *mov;
 	u32 time_scale;
 	u32 nb_playing;
+	Bool is_local;
+
 
 	/*remote file handling*/
 #ifdef FILTER_FIXME

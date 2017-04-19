@@ -360,6 +360,9 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_eos(GF_FilterPacket *pck, Bool eos);
 Bool gf_filter_pck_get_eos(GF_FilterPacket *pck);
 
+GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek);
+Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
+
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
 
@@ -428,7 +431,9 @@ enum
 
 
 	//(longuint) NTP time stamp from sender
-	GF_PROP_PCK_SENDER_NTP = GF_4CC('g','p','T','S'),
+	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
+	//(longuint) NTP time stamp from sender
+	GF_PROP_PCK_SEEK_STATE = GF_4CC('S','E','E','K'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -447,6 +452,10 @@ typedef enum
 	GF_FEVT_PLAY = 1,
 	GF_FEVT_SET_SPEED,
 	GF_FEVT_STOP,
+	GF_FEVT_PAUSE,
+	GF_FEVT_RESUME,
+	GF_FEVT_ATTACH_SCENE,
+	GF_FEVT_MOUSE,
 } GF_FEventType;
 
 /*command type: the type of the event*/
@@ -485,11 +494,24 @@ typedef struct
 	u8 timestamp_based;
 } GF_FEVT_Play;
 
+typedef struct
+{
+	FILTER_EVENT_BASE
+	void *object_manager;
+} GF_FEVT_AttachScene;
+
+typedef struct
+{
+	FILTER_EVENT_BASE
+	GF_Event event;
+} GF_FEVT_Event;
 
 union __gf_filter_event
 {
 	GF_FEVT_Base base;
 	GF_FEVT_Play play;
+	GF_FEVT_AttachScene attach_scene;
+	GF_FEVT_Event user_event;
 };
 
 

@@ -629,25 +629,6 @@ Double gf_term_get_simulation_frame_rate(GF_Terminal *term, u32 *nb_frames_drawn
 
 
 
-u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions)
-{
-	GF_Compositor *compositor = term ? term->compositor : NULL;
-	if (!compositor->root_scene || !compositor->root_scene->root_od || !compositor->root_scene->root_od->scene_ns) return 1;
-#ifdef FILTER_FIXME
-	if (!skip_interactions) {
-		/*if input sensors consider the scene runs forever*/
-		if (gf_list_count(term->input_streams)) return 0;
-		if (gf_list_count(term->x3d_sensors)) return 0;
-	}
-#endif
-	/*check no clocks are still running*/
-	if (!gf_scene_check_clocks(compositor->root_scene->root_od->scene_ns, compositor->root_scene, 0)) return 0;
-	if (compositor->root_scene->is_dynamic_scene) return 1;
-
-	/*ask compositor if there are sensors*/
-	return gf_sc_get_option(compositor, skip_interactions ? GF_OPT_IS_OVER : GF_OPT_IS_FINISHED);
-}
-
 /*get rendering option*/
 GF_EXPORT
 u32 gf_term_get_option(GF_Terminal * term, u32 type)
@@ -658,9 +639,9 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	case GF_OPT_HAS_JAVASCRIPT:
 		return gf_sg_has_scripting();
 	case GF_OPT_IS_FINISHED:
-		return gf_term_check_end_of_scene(term, 0);
+		return gf_sc_check_end_of_scene(term->compositor, 0);
 	case GF_OPT_IS_OVER:
-		return gf_term_check_end_of_scene(term, 1);
+		return gf_sc_check_end_of_scene(term->compositor, 1);
 	case GF_OPT_MAIN_ADDON:
 		return compositor->root_scene ? compositor->root_scene->main_addon_selected : 0;
 
@@ -978,118 +959,6 @@ void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
 	}
 }
 
-
-
-#ifndef GPAC_DISABLE_SVG
-void media_event_collect_info(GF_ClientService *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer)
-{
-	u32 i=0;
-	GF_Channel *ch;
-
-	while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &i))) {
-		u32 val;
-		if (ch->service != net) continue;
-
-		if (ch->BufferOn)
-			media_event->bufferValid = GF_TRUE;
-
-		if (ch->BufferTime>0) {
-			if (ch->MaxBuffer) {
-				val = (ch->BufferTime * 100) / ch->MaxBuffer;
-				if (*min_buffer > val) *min_buffer = val;
-			} else {
-				if (*min_buffer > 100) *min_buffer = 100;
-			}
-			if (*min_time > (u32) ch->BufferTime)
-				*min_time = ch->BufferTime;
-		} else {
-			*min_time = 0;
-			*min_buffer = 0;
-		}
-	}
-}
-#endif
-
-void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec)
-{
-#ifndef GPAC_DISABLE_SVG
-	u32 i, count, min_buffer, min_time;
-	GF_DOM_Event evt;
-	GF_ObjectManager *an_od;
-	GF_Scene *scene;
-
-	if (!odm || !odm->net_service) return;
-	if (odm->mo) {
-		count = gf_mo_event_target_count(odm->mo);
-
-		//for dynamic scenes, check if we have listeners on the root object of the scene containing this media
-		if (odm->parentscene
-		        && odm->parentscene->is_dynamic_scene
-		        && odm->parentscene->root_od->mo
-		        && (odm->parentscene->root_od->net_service==odm->net_service)
-		   ) {
-			odm = odm->parentscene->root_od;
-			count = gf_mo_event_target_count(odm->mo);
-		}
-		if (!count) return;
-
-		if (0 && !(gf_node_get_dom_event_filter((GF_Node *)gf_event_target_get_node(gf_mo_event_target_get(odm->mo, 0))) & GF_DOM_EVENT_MEDIA))
-			return;
-	} else {
-		count = 0;
-	}
-
-
-	memset(&evt, 0, sizeof(GF_DOM_Event));
-
-	evt.media_event.bufferValid = GF_FALSE;
-	evt.media_event.session_name = odm->net_service->url;
-
-	min_time = min_buffer = (u32) -1;
-	scene = odm->subscene ? odm->subscene : odm->parentscene;
-	if (!scene) return;
-	
-	/*get buffering on root OD*/
-	media_event_collect_info(odm->net_service, scene->root_od, &evt.media_event, &min_time, &min_buffer);
-	gf_mx_p(scene->mx_resources);
-	/*get buffering on all ODs*/
-	i=0;
-	while ((an_od = (GF_ObjectManager*)gf_list_enum(scene->resources, &i))) {
-		if (odm->net_service == an_od->net_service)
-			media_event_collect_info(odm->net_service, an_od, &evt.media_event, &min_time, &min_buffer);
-	}
-	gf_mx_v(scene->mx_resources);
-
-	if (min_buffer != (u32) -1)
-		evt.media_event.level = min_buffer;
-	if (min_time != (u32) -1)
-		evt.media_event.remaining_time = INT2FIX(min_time) / 60;
-	evt.media_event.status = 0;
-	evt.media_event.loaded_size = loaded_size;
-	evt.media_event.total_size = total_size;
-
-	evt.type = event_type;
-	evt.bubbles = 0;	/*the spec says yes but we force it to NO*/
-
-	//these events may be triggered from any input or decoding threads. Sync processing cannot be
-	//achieved in most cases, because we may run into deadlocks, especially if the event
-	//was triggered by a service opened by JS
-	for (i=0; i<count; i++) {
-		GF_DOMEventTarget *target = (GF_DOMEventTarget *)gf_list_get(odm->mo->evt_targets, i);
-		if (target)
-			gf_sc_queue_dom_event_on_target(scene->root_od->term->compositor, &evt, target, scene->graph);
-	}
-	if (!count) {
-		GF_Node *root = gf_sg_get_root_node(scene->graph);
-		if (root) gf_sc_queue_dom_event(scene->root_od->term->compositor, root, &evt);
-	}
-#endif
-}
-
-void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type)
-{
-	gf_term_service_media_event_with_download(odm, event_type, 0, 0, 0);
-}
 
 
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */

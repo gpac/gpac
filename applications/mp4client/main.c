@@ -2601,8 +2601,7 @@ void PrintODList(GF_Terminal *term, GF_ObjectManager *root_odm, u32 num, u32 ind
 void ViewOD(GF_Terminal *term, u32 OD_ID, u32 number, const char *szURL)
 {
 	GF_MediaInfo odi;
-	u32 i, j, count, d_enum,id;
-	GF_Err e;
+	u32 i, j, count, d_enum;
 	GF_ObjectManager *odm, *root_odm = gf_term_get_root_object(term);
 	if (!root_odm) return;
 

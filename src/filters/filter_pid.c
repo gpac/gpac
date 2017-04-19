@@ -849,6 +849,7 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 		return gf_fq_count(pidinst->packets);
 
 	} else {
+		if (pidinst->discard_input_packets) return 0;
 		return gf_fq_count(pidinst->packets);
 	}
 }
@@ -861,6 +862,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
+	if (pidinst->discard_input_packets) return NULL;
 
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 
@@ -909,7 +911,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//move to source pid
 	pid = pid->pid;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d - %d packets remaining\n", pidinst->filter->name, pid->name, pid->filter->name, pck->dts, pck->cts, pck->sap_type, gf_fq_count(pidinst->packets) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s (%s) drop packet DTS "LLU" CTS "LLU" SAP %d Seek %d - %d packets remaining\n", pidinst->filter->name, pid->name, pid->filter->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag, gf_fq_count(pidinst->packets) ));
 
 	if (pck->data_length) {
 		pidinst->filter->nb_pck_processed++;
@@ -926,7 +928,7 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	}
 
 	if (pck->duration && pck->pid_props->timescale) {
-		s64 d = pck->duration * 1000000;
+		s64 d = ((u64)pck->duration) * 1000000;
 		d /= pck->pid_props->timescale;
 		assert(d <= pidinst->buffer_duration);
 		safe_int_sub(&pidinst->buffer_duration, d);
@@ -1075,17 +1077,42 @@ static const char *get_fevt_name(u32 type)
 	case GF_FEVT_PLAY: return "PLAY";
 	case GF_FEVT_SET_SPEED: return "SET_SPEED";
 	case GF_FEVT_STOP: return "STOP";
+	case GF_FEVT_ATTACH_SCENE: return "ATTACH_SCENE";
+	case GF_FEVT_PAUSE: return "PAUSE";
+	case GF_FEVT_RESUME: return "RESUME";
 	default: return "UNKNOWN";
 	}
 }
 
+static void gf_filter_pid_reset(GF_FSTask *task)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s input PID %s (%s) reseting buffer\n", task->filter->name, pidi->pid->name, pidi->pid->filter->name ));
 
-Bool gf_filter_pid_send_event_downstream(GF_FSTask *task)
+	while (gf_fq_count(pidi->packets)) {
+		gf_filter_pid_drop_packet((GF_FilterPid *) pidi);
+	}
+	while (gf_list_count(pidi->pck_reassembly)) {
+		GF_FilterPacket *pck = gf_list_pop_back(pidi->pck_reassembly);
+		gf_filter_pck_unref(pck);
+	}
+	pidi->discard_input_packets = GF_FALSE;
+	pidi->last_block_ended = GF_TRUE;
+	pidi->first_block_started = GF_FALSE;
+	safe_int_dec(& pidi->pid->filter->stream_reset_pending );
+}
+
+void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 {
 	u32 i, count;
 	Bool canceled = GF_FALSE;
 	GF_FilterEvent *evt = task->udta;
 	GF_Filter *f = task->filter;
+
+	if (f->stream_reset_pending) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 
 	if (f->freg->process_event) {
 		canceled = f->freg->process_event(f, evt);
@@ -1098,13 +1125,25 @@ Bool gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			}
 		}
 	}
+	if (evt->base.type == GF_FEVT_STOP) {
+		u32 i;
+		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
+		GF_FilterPid *pid = p->pid;
+		for (i=0; i<gf_list_count(pid->destinations); i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			pidi->discard_input_packets = GF_TRUE;
+			safe_int_inc(& pid->filter->stream_reset_pending );
+			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset, pidi->filter, NULL, "reset_pid", pidi);
+		}
+	}
+
 	//no more input pids
 	count = gf_list_count(f->input_pids);
 	if (count==0) canceled = GF_TRUE;
 
 	if (canceled) {
 		gf_free(evt);
-		return GF_FALSE;
+		return;
 	}
 	//otherwise forward event to each input PID
 	for (i=0; i<count; i++) {
@@ -1121,7 +1160,7 @@ Bool gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		an_evt->base.on_pid = pid;
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_send_event_downstream, pid->filter, pid, "downstream_event", an_evt);
 	}
-	return GF_FALSE;
+	return;
 }
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)

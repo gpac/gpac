@@ -1514,6 +1514,8 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type);
 /*returns true if 3D acceleration is enabled*/
 Bool gf_sc_use_3d(GF_Compositor *compositor);
 
+u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions);
+
 #ifdef __cplusplus
 }
 #endif

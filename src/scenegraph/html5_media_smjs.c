@@ -321,7 +321,7 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 		if (!odm->mo) continue;
 
 		sprintf(id, "track%d", odm->ID);
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 #error "set track ID and lang"
 #endif
 		switch(odm->mo->type) {
@@ -585,7 +585,7 @@ if (JSVAL_CHECK_STRING(*vp)) {
 }
 }
 
-void media_event_collect_info(void *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer);
+void gf_odm_collect_buffer_info(void *net, GF_ObjectManager *odm, GF_DOMMediaEvent *media_event, u32 *min_time, u32 *min_buffer);
 
 static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *readyState, GF_HTML_NetworkState *networkState)
 {
@@ -602,7 +602,7 @@ static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *r
 
 	memset(&media_event, 0, sizeof(GF_DOMMediaEvent));
 #ifdef FILTER_FIXME
-	media_event_collect_info(mo->odm->net_service, mo->odm, &media_event, &min_time, &min_buffer);
+	gf_odm_collect_buffer_info(mo->odm->net_service, mo->odm, &media_event, &min_time, &min_buffer);
 #endif
 	//GF_LOG(GF_LOG_DEBUG, GF_LOG_SCRIPT, ("[HTMLMediaAPI] min_time: %d, min_buffer: %d loaded: "LLD"/"LLD"\n",
 	//                                                    min_time, min_buffer, media_event.loaded_size, media_event.total_size));

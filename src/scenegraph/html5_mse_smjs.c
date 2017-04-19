@@ -128,7 +128,7 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 	if (!strlen(mime)) {
 		isSupported = GF_FALSE;
 	} else {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 		sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, NULL, &par);
 		isSupported = gf_term_is_type_supported((GF_Terminal *)par.term, mime);
 #else

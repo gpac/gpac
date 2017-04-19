@@ -3106,7 +3106,7 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		event->key.flags |= compositor->key_states;
 		/*key sensor*/
 		if ((compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? GF_TRUE : GF_FALSE);
 #endif
 		}
@@ -3662,5 +3662,25 @@ Bool gf_sc_use_3d(GF_Compositor *compositor)
 #else
 	return 0;
 #endif
+}
+
+
+
+u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions)
+{
+	if (!compositor->root_scene || !compositor->root_scene->root_od || !compositor->root_scene->root_od->scene_ns) return 1;
+#ifdef FILTER_FIXME
+	if (!skip_interactions) {
+		/*if input sensors consider the scene runs forever*/
+		if (gf_list_count(term->input_streams)) return 0;
+		if (gf_list_count(term->x3d_sensors)) return 0;
+	}
+#endif
+	/*check no clocks are still running*/
+	if (!gf_scene_check_clocks(compositor->root_scene->root_od->scene_ns, compositor->root_scene, 0)) return 0;
+	if (compositor->root_scene->is_dynamic_scene) return 1;
+
+	/*ask compositor if there are sensors*/
+	return gf_sc_get_option(compositor, skip_interactions ? GF_OPT_IS_OVER : GF_OPT_IS_FINISHED);
 }
 

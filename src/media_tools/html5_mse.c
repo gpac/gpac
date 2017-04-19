@@ -64,7 +64,7 @@ void gf_mse_mediasource_del(GF_HTML_MediaSource *ms, Bool del_js)
 			for (i = 0; i < gf_list_count(ms->sourceBuffers.list); i++) {
 				GF_HTML_SourceBuffer *sb = (GF_HTML_SourceBuffer *)gf_list_get(ms->sourceBuffers.list, i);
 
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 				if (sb->parser && sb->parser_connected)
 					sb->parser->CloseService(sb->parser);
 #endif
@@ -306,7 +306,7 @@ void gf_mse_source_buffer_set_update(GF_HTML_SourceBuffer *sb, Bool update)
 /*locates and loads an input service (demuxer, parser) for this source buffer based on mime type or segment name*/
 GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, const char *mime)
 {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 	GF_InputService *parser = NULL;
 
 	const char *sPlug;
@@ -377,7 +377,7 @@ static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, G
    Needs the parser to be setup and the initialization segment passed */
 static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 	if (!sb || !sb->parser || !sb->parser_connected) return GF_BAD_PARAM;
 	sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, GF_MEDIA_OBJECT_UNDEF, NULL);
 	if (sb->service_desc) {
@@ -768,7 +768,7 @@ u32 gf_mse_parse_segment(void *par)
 	u32                     i;
 	u32                     track_count;
 
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 	if (!sb->parser_connected) {
 		GF_HTML_ArrayBuffer *buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
 		gf_list_rem(sb->input_buffer, 0);

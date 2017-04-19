@@ -400,7 +400,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 			return e;
 		}
 		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-		read->seg_opened = 2;
+		read->is_local = GF_TRUE;
 
 		read->time_scale = gf_isom_get_timescale(read->mov);
 #ifdef FILTER_FIXME
@@ -411,6 +411,7 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 			gf_service_connect_ack(read->service, NULL, GF_OK);
 		}
 #endif
+	
 		isor_declare_objects(read);
 
 	} else {
@@ -1044,6 +1045,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 			gf_filter_pck_set_sap(pck, ch->sample->IsRAP);
 			sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
 			gf_filter_pck_set_duration(pck, sample_dur);
+			gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
+
 			gf_filter_pck_send(pck);
 			isor_reader_release_sample(ch);
 		} else if (ch->last_state==GF_EOS) {

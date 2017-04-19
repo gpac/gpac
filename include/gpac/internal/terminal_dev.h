@@ -60,8 +60,6 @@ GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
 
 u32 gf_term_sample_clocks(GF_Terminal *term);
 
-u32 gf_term_check_end_of_scene(GF_Terminal *term, Bool skip_interactions);
-
 
 struct _tag_terminal
 {
@@ -157,6 +155,9 @@ struct _gf_scene
 	/*duration of inline scene*/
 	u64 duration;
 
+
+	u32 nb_buffering;
+
 	/*max timeshift of all objects*/
 	u32 timeshift_depth;
 
@@ -223,8 +224,6 @@ struct _gf_scene
 
 //	GF_Scene *parent_scene;
 	GF_Compositor *compositor;
-
-	GF_BifsDecoder *bifs_dec;
 	
 	//only for root scene
 	GF_List *namespaces;
@@ -237,6 +236,7 @@ struct _od_manager *gf_scene_find_odm(GF_Scene *scene, u16 OD_ID);
 void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown);
 
 GF_Scene *gf_scene_get_root_scene(GF_Scene *scene);
+Bool gf_scene_is_root(GF_Scene *scene);
 
 void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shutdown);
 /*browse all (media) channels and send buffering info to the app*/
@@ -1035,6 +1035,7 @@ struct _od_manager
 	Bool clock_inherited;
 	//0 or 1, except for IOD where we may have several BIFS/OD streams
 	u32 nb_buffering;
+	u32 buffer_max_us, buffer_min_us, buffer_playout_us;
 
 	//internal hash for source allowing to distinguish input PIDs sources
 	u32 source_id;
@@ -1098,9 +1099,6 @@ struct _od_manager
 GF_ObjectManager *gf_odm_new();
 void gf_odm_del(GF_ObjectManager *ODMan);
 
-/*setup service entry point*/
-void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *sub_url);
-
 /*setup OD*/
 void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF_FilterPid *for_pid);
 
@@ -1113,9 +1111,6 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid);
 
 //if register_only is false, calls gf_odm_setup_object on the given PID
 void gf_odm_register_pid(GF_ObjectManager *odm, GF_FilterPid *pid, Bool register_only);
-
-/*removes an ESD (this destroys associated channel if any)*/
-void gf_odm_remove_es(GF_ObjectManager *odm, u16 ES_ID);
 
 Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid);
 
@@ -1152,7 +1147,7 @@ Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 
 
-void gf_odm_signal_eos(GF_ObjectManager *odm);
+void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
 
@@ -1227,24 +1222,10 @@ struct _mediaobj
 
 GF_MediaObject *gf_mo_new();
 
-#if FILTER_FIXME
-
-/*used for delayed channel setup*/
-typedef struct
-{
-	struct _generic_codec *dec;
-	struct _es_channel *ch;
-} GF_ChannelSetup;
-
-/*post-poned channel connect*/
-GF_Err gf_odm_post_es_setup(struct _es_channel *ch, struct _generic_codec *dec, GF_Err err);
-
 
 /*media access events */
-void gf_term_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
-void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
-
-#endif
+void gf_odm_service_media_event(GF_ObjectManager *odm, GF_EventType event_type);
+void gf_odm_service_media_event_with_download(GF_ObjectManager *odm, GF_EventType event_type, u64 loaded_size, u64 total_size, u32 bytes_per_sec);
 
 /*checks the URL and returns the ODID (MPEG-4 od://) or GF_MEDIA_EXTERNAL_ID for all regular URLs*/
 u32 gf_mo_get_od_id(MFURL *url);
@@ -1265,7 +1246,7 @@ void gf_scene_message(GF_Scene *scene, const char *service, const char *message,
 void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *message, GF_Err error, Bool no_filtering);
 
 //returns media time in sec for the addon - timestamp_based is set to 1 if no timeline has been found (eg sync is based on direct timestamp comp)
-Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u32 *timestamp_based);
+Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u8 *timestamp_based);
 s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts);
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm);
 /*check if the associated addon has to be restarted, based on the timestamp of the main media (used for scalable addons only). Returns 1 if the addon has been restarted*/

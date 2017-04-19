@@ -152,6 +152,7 @@ struct __gf_filter_pck
 	u8 corrupted;
 	u8 eos;
 	u8 clock_discontinuity;
+	u8 seek_flag;
 
 	char *data;
 	u32 data_length;
@@ -194,7 +195,7 @@ struct __gf_fs_task
 void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback fun, GF_Filter *filter, GF_FilterPid *pid, const char *log_name, void *udta);
 
 void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *name, const char *val);
-Bool gf_filter_pid_send_event_downstream(GF_FSTask *task);
+void gf_filter_pid_send_event_downstream(GF_FSTask *task);
 
 
 typedef struct __gf_fs_thread
@@ -318,6 +319,9 @@ struct __gf_filter
 	volatile u32 pid_connection_pending;
 	volatile u32 pending_packets;
 
+	volatile u32 stream_reset_pending;
+
+
 	//list of blacklisted filtered registries
 	GF_List *blacklisted;
 
@@ -377,6 +381,8 @@ struct __gf_filter_pid_inst
 	Bool last_block_ended;
 	Bool first_block_started;
 
+	Bool discard_input_packets;
+
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile u32 buffer_duration;
 
@@ -405,7 +411,7 @@ struct __gf_filter_pid
 	u32 buffer_duration;
 
 	volatile u32 would_block; // concurrent set
-
+	
 	Bool duration_init;
 	u64 last_pck_dts, last_pck_cts;
 	u32 min_pck_duration;

@@ -36,6 +36,8 @@ const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_met
 const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *compose_filter_register(GF_FilterSession *session, Bool load_meta_filters);
 const GF_FilterRegister *isoffin_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *odf_dec_register(GF_FilterSession *session, Bool load_meta_filters);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
 {
@@ -178,6 +180,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, compose_filter_register(fsess, load_meta_filters) );
 	gf_fs_add_filter_registry(fsess, isoffin_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, bifs_dec_register(fsess, load_meta_filters) );
+	gf_fs_add_filter_registry(fsess, odf_dec_register(fsess, load_meta_filters) );
 
 	//fixme - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -564,7 +568,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				//next in filter should be handled before this task, move task at the end of the filter task
 				next = gf_fq_head(current_filter->tasks);
 				if (next && next->schedule_next_time < task->schedule_next_time) {
-					task->notified = GF_FALSE;
+					if (task->notified) {
+						assert(fsess->tasks_pending);
+						safe_int_dec(&fsess->tasks_pending);
+						task->notified = GF_FALSE;
+					}
 					task->in_main_task_list_only = GF_FALSE;
 					gf_fq_add(current_filter->tasks, task);
 					continue;
@@ -572,7 +580,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				assert(task->in_main_task_list_only);
 
 				//move task to main list
-				task->notified = GF_TRUE;
+				if (!task->notified) {
+					task->notified = GF_TRUE;
+					safe_int_inc(&fsess->tasks_pending);
+				}
 				task->in_main_task_list_only = GF_TRUE;
 
 				sess_thread->active_time += gf_sys_clock_high_res() - active_start;

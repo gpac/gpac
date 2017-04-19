@@ -82,6 +82,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 	pck->eos = GF_FALSE;
 	pck->corrupted = 0;
 	pck->sap_type = GF_FALSE;
+	pck->seek_flag = GF_FALSE;
 
 	assert(pck->pid);
 	return pck;
@@ -218,7 +219,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			safe_int_inc(&dst->filter->pending_packets);
 
 			if (pck->duration && pck->pid_props->timescale) {
-				s64 duration = pck->duration*1000000;
+				s64 duration = ((u64)pck->duration) * 1000000;
 				duration /= pck->pid_props->timescale;
 				safe_int_add(&dst->buffer_duration, duration);
 			}
@@ -304,7 +305,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		timescale = pck->pid_props->timescale;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag));
 
 
 	//protect packet from destruction - this could happen
@@ -332,7 +333,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			safe_int_inc(&pck->reference_count);
 			nb_dispatch++;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID buffer\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), dst->buffer_duration ));
 
 			if (dst->requires_full_data_block) {
 
@@ -361,7 +362,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 						assert(dst->last_block_ended);
 
 						if (pck->duration && timescale) {
-							duration = pck->duration*1000000;
+							duration = ((u64)pck->duration) * 1000000;
 							duration /= timescale;
 							safe_int_add(&dst->buffer_duration, duration);
 						}
@@ -671,4 +672,16 @@ u32 gf_filter_pck_get_duration(GF_FilterPacket *pck)
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->duration;
+}
+GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek)
+{
+	PCK_SETTER_CHECK("eos")
+	pck->seek_flag = is_seek;
+	return GF_OK;
+}
+Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
+{
+	assert(pck);
+	//get true packet pointer
+	return pck->pck->seek_flag;
 }
