@@ -225,7 +225,7 @@ GF_Err MCDec_InitHevcDecoder(MCDec *ctx)
 	char *dsi_data = NULL;
 	u32 dsi_data_size = 0;
 	
-	if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
+	if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs)) {
 		u32 i;
 		GF_HEVCConfig *cfg ;
 		GF_AVCConfigSlot *sps = NULL;
