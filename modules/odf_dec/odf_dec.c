@@ -51,15 +51,6 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (!prop || ( (prop->value.uint != GPAC_OTI_OD_V1) && (prop->value.uint != GPAC_OTI_OD_V2)) ) {
 		return GF_NOT_SUPPORTED;
 	}
-	//check our namespace
-	if (ctx->scene && ! gf_filter_pid_is_filter_in_parents(pid, ctx->scene->root_od->scene_ns->source_filter)) {
-		return GF_REQUIRES_NEW_INSTANCE;
-	}
-
-	//not yet implemented
-	if (is_remove) {
-		return GF_NOT_SUPPORTED;
-	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
 	if (prop && prop->value.boolean) in_iod = GF_TRUE;
@@ -67,10 +58,22 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		return GF_NOT_SUPPORTED;
 	}
 
+	if (is_remove) {
+		out_pid = gf_filter_pid_get_udta(pid);
+		gf_filter_pid_remove(out_pid);
+		return GF_OK;
+	}
+
 	//this is a reconfigure
 	if (gf_filter_pid_get_udta(pid)) {
 		return GF_OK;
 	}
+
+	//check our namespace
+	if (ctx->scene && ! gf_filter_pid_is_filter_in_parents(pid, ctx->scene->root_od->scene_ns->source_filter)) {
+		return GF_REQUIRES_NEW_INSTANCE;
+	}
+
 	//declare a new output PID of type STREAM, OTI RAW
 	out_pid = gf_filter_pid_new(filter);
 
@@ -91,7 +94,6 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 		odm = gf_odm_new();
 		odm->ID = od->objectDescriptorID;
 		odm->parentscene = scene;
-		odm->scene_ns = scene->root_od->scene_ns;
 		gf_list_add(scene->resources, odm);
 		gf_odm_setup_remote_object(odm, scene->root_od->scene_ns, od->URLString);
 		return;
@@ -109,6 +111,7 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 	for (j=0; j<nb_esd; j++) {
 		GF_FilterPid *pid = NULL;
 		esd = gf_list_get(od->ESDescriptors, j);
+
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			u32 k=0;
@@ -129,7 +132,27 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 			if (pid) break;
 			odm = NULL;
 		}
-		if (!odm || !pid ) {
+
+		//input sensors don't have PIDs associated for now (only local sensors supported)
+		if (esd->decoderConfig->streamType == GF_STREAM_INTERACT) {
+#ifndef GPAC_DISABLE_VRML
+			//first time we setup this stream, create an ODM
+			if (!odm) {
+				odm = gf_odm_new();
+				odm->type = GF_STREAM_INTERACT;
+				odm->parentscene = scene;
+				odm->pid_id = esd->ESID;
+				odm->ck = scene->root_od->ck;
+				odm->scene_ns = scene->root_od->scene_ns;
+				odm->scene_ns->nb_odm_users++;
+				gf_list_add(scene->resources, odm);
+			}
+			gf_input_sensor_setup_object(odm, esd);
+#else
+			return;
+#endif
+		}
+		else if (!odm || !pid ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Cannot match OD ID %d to any PID in the service, ignoring OD\n", od->objectDescriptorID));
 			return;
 		}
@@ -146,6 +169,7 @@ static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 
 		/*setup PID for this object */
 		gf_odm_setup_object(odm, scene->root_od->scene_ns, pid);
+
 	}
 }
 

@@ -35,6 +35,7 @@ typedef struct
 	GF_BifsDecoder *bifs_dec;
 	GF_ObjectManager *odm;
 	GF_Scene *scene;
+
 } GF_BIFSDecCtx;
 
 #ifndef GPAC_DISABLE_BIFS
@@ -107,19 +108,22 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
-	//check our namespace
-	if (ctx->scene && ! gf_filter_pid_is_filter_in_parents(pid, ctx->scene->root_od->scene_ns->source_filter)) {
-		return GF_REQUIRES_NEW_INSTANCE;
-	}
-
-	//not yet implemented
 	if (is_remove) {
-		return GF_NOT_SUPPORTED;
+		out_pid = gf_filter_pid_get_udta(pid);
+		gf_filter_pid_remove(out_pid);
+		return GF_OK;
 	}
 	//this is a reconfigure
 	if (gf_filter_pid_get_udta(pid)) {
 		return bifs_dec_configure_bifs_dec(ctx, pid);
 	}
+
+	//check our namespace
+	if (ctx->scene && ! gf_filter_pid_is_filter_in_parents(pid, ctx->scene->root_od->scene_ns->source_filter)) {
+		return GF_REQUIRES_NEW_INSTANCE;
+	}
+
+
 	//declare a new output PID of type STREAM, OTI RAW
 	out_pid = gf_filter_pid_new(filter);
 

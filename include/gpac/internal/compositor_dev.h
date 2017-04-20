@@ -592,6 +592,20 @@ struct __tag_compositor
 	//associated filter, used to load input filters
 	GF_Filter *filter;
 	GF_FilterSession *fsess;
+
+	/*all X3D key/mouse/string sensors*/
+	GF_List *x3d_sensors;
+	/*all input stream decoders*/
+	GF_List *input_streams;
+
+
+	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph
+	 (VRML/MPEG-4 protos only). 
+	 For such nodes the traverse state will be NULL
+	 This is only used by InputSensor node at the moment
+	 */
+	GF_List *nodes_pending;
+	GF_List *extensions, *unthreaded_extensions;
 };
 
 typedef struct
@@ -1061,37 +1075,6 @@ Bool gf_mixer_must_reconfig(GF_AudioMixer *am);
 Bool gf_mixer_empty(GF_AudioMixer *am);
 
 
-#ifdef FILTER_FIXME
-struct _audiofilterentry
-{
-	struct _audiofilterentry *next;
-	u32 in_block_size;
-	char *in_block;
-	u32 nb_bytes;
-	u32 delay_ms;
-	Bool enable, in_place;
-	GF_AudioFilter *filter;
-};
-
-typedef struct
-{
-	Bool enable_filters;
-	struct _audiofilterentry *filters;
-	/*filter processing takes place in a temp buffer since we don't know how many
-	samples a filter will output, and may ned to cache the output between 2 fill_buffer calls*/
-	char *tmp_block1, *tmp_block2;
-	u32 min_block_size, max_block_size, delay_ms;
-
-} GF_AudioFilterChain;
-
-GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring);
-GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_cfg, u32 *ch_out, u32 *ch_cfg_out);
-u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes);
-void gf_afc_unload(GF_AudioFilterChain *afc);
-void gf_afc_reset(GF_AudioFilterChain *afc);
-#endif
-
-
 /*the audio renderer*/
 typedef struct _audio_render
 {
@@ -1127,11 +1110,6 @@ typedef struct _audio_render
 	u32 audio_th_state;
 
 	u32 audio_delay, volume, pan, mute;
-
-#ifdef FILTER_FIXME
-	GF_AudioFilterChain filter_chain;
-	u32 nb_filled, nb_used;
-#endif
 
 	Bool step_mode;
 
@@ -1515,6 +1493,12 @@ Bool gf_sc_navigation_supported(GF_Compositor *compositor, u32 type);
 Bool gf_sc_use_3d(GF_Compositor *compositor);
 
 u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions);
+
+
+/*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).
+For these nodes, the traverse effect passed will be NULL.*/
+void gf_sc_queue_node_traverse(GF_Compositor *compositor, GF_Node *node);
+void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node);
 
 #ifdef __cplusplus
 }

@@ -93,10 +93,16 @@ void gf_odm_del(GF_ObjectManager *odm)
 	gf_list_del(odm->mc_stack);
 #endif
 
+	if (odm->type == GF_STREAM_INTERACT)
+		gf_input_sensor_delete(odm);
+
 	if (odm->raw_frame_sema) gf_sema_del(odm->raw_frame_sema);
+
+	if (odm->pid) gf_filter_pid_set_udta(odm->pid, NULL);
 	if (odm->extra_pids) {
 		while (gf_list_count(odm->extra_pids)) {
 			GF_ODMExtraPid *xpid = gf_list_pop_back(odm->extra_pids);
+			if (xpid->pid) gf_filter_pid_set_udta(xpid->pid, NULL);
 			gf_free(xpid);
 		}
 		gf_list_del(odm->extra_pids);
@@ -154,9 +160,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 #ifndef GPAC_DISABLE_VRML
 			case TAG_MPEG4_InputSensor:
 				((M_InputSensor*)n)->enabled = 0;
-#ifdef FILTER_FIXME
 				InputSensorModified(n);
-#endif
 				break;
 #endif
 			default:
@@ -164,6 +168,35 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 			}
 		}
 	}
+
+	/*detach from network service */
+	if (odm->scene_ns) {
+		GF_Scene *scene = odm->parentscene;
+		GF_SceneNamespace *ns = odm->scene_ns;
+		if (ns->nb_odm_users) ns->nb_odm_users--;
+		if (ns->owner == odm) {
+			/*detach it!!*/
+			ns->owner = NULL;
+			/*try to assign a new root in case this is not scene shutdown*/
+			if (ns->nb_odm_users && odm->parentscene) {
+				GF_ObjectManager *new_root;
+				u32 i = 0;
+				while ((new_root = (GF_ObjectManager *)gf_list_enum(odm->parentscene->resources, &i)) ) {
+					if (new_root == odm) continue;
+					if (new_root->scene_ns != ns) continue;
+
+					ns->owner = new_root;
+					break;
+				}
+			}
+		} else {
+			assert(ns->nb_odm_users);
+		}
+		scene = scene ? gf_scene_get_root_scene(scene) : NULL;
+		odm->scene_ns = NULL;
+		if (!ns->nb_odm_users && scene) gf_scene_ns_del(ns, scene);
+	}
+
 
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
@@ -273,6 +306,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			return;
 		}
 		odm->scene_ns = parent_ns;
+		odm->scene_ns->nb_odm_users++;
 	}
 		/*restore OD ID */
 	if (odm->media_current_time) {
@@ -291,7 +325,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 	if (! odm->pid && odm->subscene) {
 		assert(odm->subscene->root_od==odm);
 		odm->subscene->is_dynamic_scene = GF_TRUE;
-	} else {
+	} else if (odm->pid) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Setting up object streams\n"));
 
 		e = gf_odm_setup_pid(odm, for_pid);
@@ -300,7 +334,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		}
 	}
 
-	if (!odm->buffer_playout_us) {
+	if (odm->pid && !odm->buffer_playout_us) {
 		const GF_PropertyValue *prop;
 		GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 		const char *opt;
@@ -347,7 +381,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			gf_odm_start(odm);
 		}
 #endif
-		if (odm->pid==for_pid) {
+		if (odm->pid && (odm->pid==for_pid)) {
 			evt.type = GF_EVENT_CONNECT;
 			evt.connect.is_connected = GF_TRUE;
 			gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
@@ -1075,7 +1109,7 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	}
 
 	//if we are in dump mode, only the clocks are paused (step-by-step render), the media object is still in play state
-	if (odm->parentscene->first_frame_pause_type==2) {
+	if (scene->first_frame_pause_type==2) {
 		return;
 	}
 
@@ -1433,3 +1467,17 @@ void gf_odm_service_media_event(GF_ObjectManager *odm, GF_EventType event_type)
 	gf_odm_service_media_event_with_download(odm, event_type, 0, 0, 0);
 }
 
+void gf_odm_stop_or_destroy(GF_ObjectManager *odm)
+{
+	Bool destroy = GF_FALSE;
+	if (odm->mo ) {
+		if (odm->addon) odm->flags |= GF_ODM_REGENERATE_SCENE;
+		else if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
+		else if (odm->ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
+	}
+	if (destroy) {
+		gf_odm_disconnect(odm, 2);
+	} else {
+		gf_odm_stop(odm, 0);
+	}
+}

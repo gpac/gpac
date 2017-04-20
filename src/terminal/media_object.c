@@ -412,16 +412,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (skip_resync) {
 		resync=GF_MO_FETCH; //prevent resync code below
-#if FILTER_FIXME
-		if (mo->odm->term->use_step_mode) upload_time_ms=0;
-#endif
+		if (mo->odm->parentscene->compositor->use_step_mode) upload_time_ms=0;
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fecthing is given by the caller
-		if ( (gf_clock_is_started(mo->odm->ck)
-#if FILTER_FIXME
-		 || mo->odm->term->use_step_mode
-#endif
+		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode
 		)
 
 			&& (mo->timestamp==pck_ts) && next_pck && (next_ts <= obj_time + upload_time_ms) ) {
@@ -673,21 +668,12 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 	if (!mo) return;
 
 	if (!mo->num_open && mo->odm) {
-		s32 res;
 		Bool is_restart = GF_FALSE;
 
-#if FILTER_FIXME
-		/*remove object from media queue*/
-		gf_term_lock_media_queue(mo->odm->term, GF_TRUE);
-		res = gf_list_del_item(mo->odm->term->media_queue, mo->odm);
-		gf_term_lock_media_queue(mo->odm->term, GF_FALSE);
-
-		if (mo->odm->action_type!=GF_ODM_ACTION_PLAY) {
-			mo->odm->action_type = GF_ODM_ACTION_PLAY;
-			is_restart = GF_FALSE;
-			res = -1;
+		if (mo->odm->state == GF_ODM_STATE_PLAY) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
+//			is_restart = GF_TRUE;
 		}
-#endif
 
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
 			mo->odm->media_start_time = 0;
@@ -737,26 +723,13 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 	if (!mo->num_open && mo->odm) {
 		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
 
-#if FILTER_FIXME
-		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
-		gf_term_lock_media_queue(mo->odm->term, GF_TRUE);
-		/*if object not in media queue, add it*/
-		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
-			gf_list_add(mo->odm->term->media_queue, mo->odm);
-		}
-#endif
-
 		/*signal STOP request*/
 		if ((mo->OD_ID==GF_MEDIA_EXTERNAL_ID) || (mo->odm && mo->odm->ID && (mo->odm->ID==GF_MEDIA_EXTERNAL_ID))) {
-			mo->odm->action_type = GF_ODM_ACTION_DELETE;
+			gf_odm_disconnect(mo->odm, 2);
 			ret = GF_TRUE;
+		} else {
+			gf_odm_stop_or_destroy(mo->odm);
 		}
-		else
-			mo->odm->action_type = GF_ODM_ACTION_STOP;
-
-#if FILTER_FIXME
-		gf_term_lock_media_queue(mo->odm->term, GF_FALSE);
-#endif
 	} else {
 		if (!mo->num_to_restart) {
 			mo->num_restart = mo->num_to_restart = mo->num_open + 1;
@@ -849,9 +822,7 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 
 	if (!obj->URLs.count) {
 		if (!obj->odm) return GF_FALSE;
-#if FILTER_FIXME
-		strcpy(szURL1, obj->odm->net_service->url);
-#endif
+		strcpy(szURL1, obj->odm->scene_ns->url);
 	} else {
 		strcpy(szURL1, obj->URLs.vals[0].url);
 	}
@@ -864,6 +835,8 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 		u32 j;
 		/*for remoteODs/dynamic ODs, check if one of the running service cannot be used*/
 		for (i=0; i<an_url->count; i++) {
+			GF_Scene *scene;
+			GF_SceneNamespace *sns;
 			char *frag = strrchr(an_url->vals[i].url, '#');
 			j=0;
 			/*this is the same object (may need some refinement)*/
@@ -888,19 +861,16 @@ Bool gf_mo_is_same_url(GF_MediaObject *obj, MFURL *an_url, Bool *keep_fragment, 
 				}
 			}
 
-#if FILTER_FIXME
-			gf_term_lock_media_queue(obj->odm->term, 1);
-			while ( (GF_ClientService *ns = (GF_ClientService*)gf_list_enum(obj->odm->term->net_services, &j)) ) {
+			scene = gf_scene_get_root_scene(obj->odm->parentscene ? obj->odm->parentscene : obj->odm->subscene);
+			while ( (sns = (GF_SceneNamespace*) gf_list_enum(scene->namespaces, &j) ) ) {
 				/*sub-service of an existing service - don't touch any fragment*/
-				if (gf_term_service_can_handle_url(ns, an_url->vals[i].url)) {
+#ifdef FILTER_FIXME
+				if (gf_term_service_can_handle_url(sns, an_url->vals[i].url)) {
 					*keep_fragment = GF_TRUE;
-					gf_term_lock_media_queue(obj->odm->term, 0);
 					return GF_FALSE;
 				}
-			}
-			gf_term_lock_media_queue(obj->odm->term, 0);
 #endif
-
+			}
 		}
 	}
 
@@ -939,10 +909,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url)
 	}
 	/*special case for 3GPP text: if not playing and user node changed, force removing it*/
 	if (ret && mo->odm && !mo->num_open && (mo->type == GF_MEDIA_OBJECT_TEXT)) {
-#if FILTER_FIXME
 		mo->flags |= GF_MO_DISPLAY_REMOVE;
-		gf_term_stop_codec(mo->odm->codec, GF_FALSE);
-#endif
 	}
 	return ret;
 }
@@ -988,10 +955,8 @@ void gf_mo_set_speed(GF_MediaObject *mo, Fixed speed)
 	if (ctrl) return;
 #endif
 
-#if FILTER_FIXME
-	if (mo->odm->net_service && mo->odm->net_service->owner && (mo->odm->net_service->owner->flags & GF_ODM_INHERIT_TIMELINE))
+	if (mo->odm->scene_ns && mo->odm->scene_ns->owner && (mo->odm->scene_ns->owner->flags & GF_ODM_INHERIT_TIMELINE))
 		return;
-#endif
 
 	gf_odm_set_speed(mo->odm, speed, GF_TRUE);
 }
@@ -1160,75 +1125,33 @@ u32 gf_mo_get_last_frame_time(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-Bool gf_mo_is_private_media(GF_MediaObject *mo)
-{
-#if FILTER_FIXME
-	if (mo && mo->odm && mo->odm->codec && mo->odm->codec->decio && (mo->odm->codec->decio->InterfaceType==GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return GF_TRUE;
-#endif
-	return GF_FALSE;
-}
-
-GF_EXPORT
-Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst)
-{
-#if FILTER_FIXME
-	GF_Err e;
-	GF_PrivateMediaDecoder *dec;
-	if (!mo->odm || !mo->odm->codec || !mo->odm->codec->decio || (mo->odm->codec->decio->InterfaceType!=GF_PRIVATE_MEDIA_DECODER_INTERFACE)) return GF_FALSE;
-
-	dec = (GF_PrivateMediaDecoder*)mo->odm->codec->decio;
-	e = dec->Control(dec, GF_FALSE, src, dst);
-	if (e==GF_BUFFER_TOO_SMALL) return GF_TRUE;
-#endif
-	return GF_FALSE;
-}
-
-GF_EXPORT
-Bool gf_mo_is_raw_memory(GF_MediaObject *mo)
-{
-#if FILTER_FIXME
-	if (!mo->odm || !mo->odm->codec) return GF_FALSE;
-	return mo->odm->codec->direct_frame_output || mo->odm->codec->direct_vout ;
-#else
-	return GF_FALSE;
-#endif
-}
-
-GF_EXPORT
 u32 gf_mo_has_audio(GF_MediaObject *mo)
 {
-#if FILTER_FIXME
 	char *sub_url, *ext;
 	u32 i;
-	GF_NetworkCommand com;
-	GF_ClientService *ns;
+	GF_SceneNamespace *ns;
 	GF_Scene *scene;
 	if (!mo || !mo->odm) return 0;
 	if (mo->type != GF_MEDIA_OBJECT_VIDEO) return 0;
-	if (!mo->odm->net_service) return 2;
+	if (!mo->odm->scene_ns) return 2;
 
-	ns = mo->odm->net_service;
+	ns = mo->odm->scene_ns;
 	scene = mo->odm->parentscene;
 	sub_url = strchr(ns->url, '#');
 	for (i=0; i<gf_list_count(scene->resources); i++) {
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
-		if (odm->net_service != ns) continue;
-		if (!odm->mo) continue;
+		if (odm->scene_ns != ns) continue;
+		//object already associated
+		if (odm->mo) continue;
 
 		if (sub_url) {
 			ext = odm->mo->URLs.count ? odm->mo->URLs.vals[0].url : NULL;
 			if (ext) ext = strchr(ext, '#');
 			if (!ext || strcmp(sub_url, ext)) continue;
 		}
-		/*there is already an audio object in this service, do not recreate one*/
-		if (odm->mo->type == GF_MEDIA_OBJECT_AUDIO) return 0;
+		/*we have one audio object not bound with the scene from the same service, let's use it*/
+		if (odm->mo->type == GF_MEDIA_OBJECT_AUDIO) return 1;
 	}
-	memset(&com, 0, sizeof(GF_NetworkCommand) );
-	com.command_type = GF_NET_SERVICE_HAS_AUDIO;
-	com.audio.base_url = mo->URLs.count ? mo->URLs.vals[0].url : NULL;
-	if (!com.audio.base_url) com.audio.base_url = ns->url;
-	if (gf_term_service_command(ns, &com) == GF_OK) return 1;
-#endif
 	return 0;
 }
 
@@ -1372,46 +1295,40 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
 void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation)
 {
-	if (!mo->odm || !mo->odm) {
+	if (!mo->odm || !mo->odm || !mo->odm->pid) {
 		return;
 	}
-#if FILTER_FIXME
 	if (mo->quality_degradation_hint != quality_degradation) {
-		GF_NetworkCommand com;
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
-		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
-		com.switch_quality.quality_degradation = quality_degradation;
-		gf_term_service_command(mo->odm->net_service, &com);
-		
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, mo->odm->pid);
+		evt.quality_switch.quality_degradation = quality_degradation;
+		gf_filter_pid_send_event(mo->odm->pid, &evt);
+
 		mo->quality_degradation_hint = quality_degradation;
 	}
-#endif
 }
 
 void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y)
 {
-	if (!mo->odm || !mo->odm) {
+	if (!mo->odm || !mo->odm || !mo->odm->pid) {
 		return;
 	}
-#if FILTER_FIXME
+
 	if ((mo->view_min_x!=min_x) || (mo->view_max_x!=max_x) || (mo->view_min_y!=min_y) || (mo->view_max_y!=max_y)) {
-		GF_NetworkCommand com;
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, mo->odm->pid);
 		mo->view_min_x = min_x;
 		mo->view_max_x = max_x;
 		mo->view_min_y = min_y;
 		mo->view_max_y = max_y;
 		
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.command_type = GF_NET_CHAN_VISIBILITY_HINT;
-		com.base.on_channel = gf_list_get(mo->odm->codec->inChannels, 0);
-		com.visibility_hint.min_x = min_x;
-		com.visibility_hint.max_x = max_x;
-		com.visibility_hint.min_y = min_y;
-		com.visibility_hint.max_y = max_y;
-		gf_term_service_command(mo->odm->net_service, &com);
+		evt.visibility_hint.min_x = min_x;
+		evt.visibility_hint.max_x = max_x;
+		evt.visibility_hint.min_y = min_y;
+		evt.visibility_hint.max_y = max_y;
+
+		gf_filter_pid_send_event(mo->odm->pid, &evt);
 	}
-#endif
 }
 
 

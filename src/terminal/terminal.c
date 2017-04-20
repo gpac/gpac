@@ -351,35 +351,8 @@ GF_Terminal *gf_term_new(GF_User *user)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] downloader loaded\n"));
 
 
-	/*load extensions*/
-	tmp->extensions = gf_list_new();
-	for (i=0; i< gf_modules_get_count(user->modules); i++) {
-		GF_TermExt *ifce = (GF_TermExt *) gf_modules_load_interface(user->modules, i, GF_TERM_EXT_INTERFACE);
-		if (ifce) gf_list_add(tmp->extensions, ifce);
-	}
-
 	tmp->unthreaded_extensions = gf_list_new();
 	tmp->evt_mx = gf_mx_new("Event Filter");
-
-	for (i=0; i< gf_list_count(tmp->extensions); i++) {
-		GF_TermExt *ifce = gf_list_get(tmp->extensions, i);
-		if (!ifce->process(ifce, GF_TERM_EXT_START, tmp)) {
-			gf_modules_close_interface((GF_BaseInterface *) ifce);
-			gf_list_rem(tmp->extensions, i);
-			i--;
-			continue;
-		}
-
-		if (ifce->caps & GF_TERM_EXTENSION_NOT_THREADED)
-			gf_list_add(tmp->unthreaded_extensions, ifce);
-	}
-
-	gf_mx_p(tmp->mm_mx);
-	if (!gf_list_count(tmp->unthreaded_extensions)) {
-		gf_list_del(tmp->unthreaded_extensions);
-		tmp->unthreaded_extensions = NULL;
-	}
-	gf_mx_v(tmp->mm_mx);
 
 
 	if (0 == gf_cfg_get_key_count(user->config, "MimeTypes")) {
@@ -420,9 +393,6 @@ GF_Terminal *gf_term_new(GF_User *user)
 GF_EXPORT
 GF_Err gf_term_del(GF_Terminal * term)
 {
-	GF_Err e;
-	u32 timeout, i;
-
 	if (!term) return GF_BAD_PARAM;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Destroying terminal\n"));
@@ -430,81 +400,13 @@ GF_Err gf_term_del(GF_Terminal * term)
 	gf_term_disconnect(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] main service disconnected\n"));
 
-#ifdef FILTER_FIXME
-	/*signal we are being destroyed*/
-	term->reload_state = 3;
-
-	/*wait for destroy*/
-	e = GF_IO_ERR;
-	timeout = 1000;
-	while (term->root_scene || gf_list_count(term->net_services) || gf_list_count(term->net_services_to_remove)) {
-		gf_sleep(30);
-		/*this shouldn't be needed but unfortunately there's a bug hanging around there...*/
-		timeout--;
-		if (!timeout) break;
-	}
-	if (timeout) {
-		assert(!gf_list_count(term->net_services));
-		assert(!gf_list_count(term->net_services_to_remove));
-		e = GF_OK;
-	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] All network services deleted\n"));
-
-	/*unload extensions*/
-	for (i=0; i< gf_list_count(term->extensions); i++) {
-		GF_TermExt *ifce = gf_list_get(term->extensions, i);
-		ifce->process(ifce, GF_TERM_EXT_STOP, NULL);
-	}
-
-	/*remove all event filters*/
-	gf_list_reset(term->event_filters);
-
-	/*unload extensions*/
-	for (i=0; i< gf_list_count(term->extensions); i++) {
-		GF_TermExt *ifce = gf_list_get(term->extensions, i);
-		gf_modules_close_interface((GF_BaseInterface *) ifce);
-	}
-	gf_list_del(term->extensions);
-	if (term->unthreaded_extensions) gf_list_del(term->unthreaded_extensions);
-
-	while (term->in_event_filter) gf_sleep(1);
-	gf_mx_p(term->evt_mx);
-	if (term->event_filters) {
-		gf_list_del(term->event_filters);
-		term->event_filters = NULL;
-	}
-	gf_mx_v(term->evt_mx);
-	gf_mx_del(term->evt_mx);
-
-	gf_list_del(term->net_services);
-	gf_list_del(term->net_services_to_remove);
-	gf_list_del(term->connection_tasks);
-	gf_list_del(term->input_streams);
-	gf_list_del(term->x3d_sensors);
-	assert(!gf_list_count(term->channels_pending));
-	gf_list_del(term->channels_pending);
-	assert(!gf_list_count(term->media_queue));
-	assert(!term->nodes_pending);
-	gf_list_del(term->media_queue);
-	if (term->downloader) gf_dm_del(term->downloader);
-
-	gf_mx_del(term->media_queue_mx);
-
-	if (term->locales.szAbsRelocatedPath) gf_free(term->locales.szAbsRelocatedPath);
-	gf_list_del(term->uri_relocators);
-
-	gf_mx_del(term->net_mx);
-
-#endif
-
-
 	/*stop the media manager */
 	gf_fs_del(term->fsess);
 
 	gf_sys_close();
 	gf_free(term);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Terminal destroyed\n"));
-	return e;
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -534,54 +436,19 @@ void gf_term_connect_with_path(GF_Terminal * term, const char *URL, const char *
 GF_EXPORT
 void gf_term_disconnect(GF_Terminal *term)
 {
-	Bool handle_services;
 	GF_Compositor *compositor = term ? term->compositor : NULL;
 	if (!compositor || !compositor->root_scene) return;
-
-#ifdef FILTER_FIXME
-	if (term->nb_calls_in_event_proc) {
-		if (!term->disconnect_request_status)
-			term->disconnect_request_status = 1;
-
-		return;
-	}
-#endif
-
 
 	/*resume*/
 	if (compositor->play_state != GF_STATE_PLAYING) gf_term_set_play_state(term, GF_STATE_PLAYING, 1, 1);
 
-#ifdef FILTER_FIXME
-
 	if (compositor->root_scene->root_od) {
-
-		gf_term_lock_media_queue(term, 1);
-
-		term->root_scene->root_od->action_type = GF_ODM_ACTION_DELETE;
-		if (gf_list_find(term->media_queue, term->root_scene->root_od)<0)
-			gf_list_add(term->media_queue, term->root_scene->root_od);
-
-		gf_term_lock_media_queue(term, 0);
-	} else {
-		gf_scene_del(term->root_scene);
-		term->root_scene = NULL;
+		GF_ObjectManager *root = compositor->root_scene->root_od;
+		gf_sc_lock(compositor, GF_TRUE);
+		compositor->root_scene = NULL;
+		gf_odm_disconnect(root, 2);
+		gf_sc_lock(compositor, GF_FALSE);
 	}
-	handle_services = 0;
-	if (term->flags & GF_TERM_NO_DECODER_THREAD)
-		handle_services = 1;
-	/*if an unthreaded term extension decides to disconnect the scene (validator does so), we must flush services now
-	because we are called from gf_term_handle_services*/
-	if (term->thread_id_handling_services == gf_th_id())
-		handle_services = 1;
-
-	while (term->root_scene || gf_list_count(term->net_services_to_remove) || gf_list_count(term->connection_tasks)  || gf_list_count(term->media_queue) ) {
-		if (handle_services) {
-			gf_term_handle_services(term);
-		}
-		gf_sleep(10);
-	}
-#endif
-
 }
 
 GF_EXPORT
@@ -672,18 +539,6 @@ u32 gf_term_get_option(GF_Terminal * term, u32 type)
 	}
 }
 
-#if FILTER_FIXME
-static void gf_term_cleanup_pending_session(GF_Terminal *term, GF_ClientService *ns)
-{
-	if (gf_list_find(term->net_services, ns)<0) return;
-
-	if (ns && ns->pending_service_session) {
-		gf_dm_sess_del(ns->pending_service_session);
-		ns->pending_service_session = NULL;
-	}
-}
-#endif
-
 
 GF_EXPORT
 GF_Err gf_term_set_size(GF_Terminal * term, u32 NewWidth, u32 NewHeight)
@@ -701,266 +556,6 @@ typedef struct
 
 #ifdef FILTER_FIXME
 
-void gf_term_handle_services(GF_Terminal *term)
-{
-	GF_ClientService *ns;
-
-
-	if (term->disconnect_request_status == 1) {
-		term->disconnect_request_status = 2;
-		term->thread_id_handling_services = gf_th_id();
-		gf_term_disconnect(term);
-		return;
-	}
-
-
-	/*we could run into a deadlock if some thread has requested opening of a URL. If we cannot
-	grab the media queue now, we'll do our management at the next cycle*/
-	if (!gf_mx_try_lock(term->media_queue_mx))
-		return;
-
-	term->thread_id_handling_services = gf_th_id();
-
-	/*play ODs that need it*/
-	while (gf_list_count(term->media_queue)) {
-		Bool destroy = 0;
-		u32 act_type;
-		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(term->media_queue, 0);
-		gf_list_rem(term->media_queue, 0);
-		/*unlock media queue before sending play/pause*/
-		gf_term_lock_media_queue(term, 0);
-
-		act_type = odm->action_type;
-		odm->action_type = GF_ODM_ACTION_PLAY;
-		switch (act_type) {
-		case GF_ODM_ACTION_STOP:
-			if (odm->mo /*&& odm->codec && odm->codec->CB  && (odm->codec->CB->Capacity==1)*/)
-			{
-				if (odm->addon) odm->flags |= GF_ODM_REGENERATE_SCENE;
-
-				else if (odm->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
-				else if (odm->ID==GF_MEDIA_EXTERNAL_ID) destroy = 1;
-			}
-			if (destroy) {
-				gf_odm_disconnect(odm, 2);
-			} else {
-				gf_odm_stop(odm, 0);
-			}
-			break;
-		case GF_ODM_ACTION_PLAY:
-			gf_odm_play(odm);
-			break;
-		case GF_ODM_ACTION_DELETE:
-			gf_odm_disconnect(odm, 2);
-			break;
-		case GF_ODM_ACTION_SCENE_DISCONNECT:
-			assert(odm->subscene);
-			gf_odm_stop(odm, 1);
-			gf_scene_disconnect(odm->subscene, 1);
-			break;
-		case GF_ODM_ACTION_SCENE_RECONNECT:
-			assert(odm->subscene);
-			gf_scene_disconnect(odm->subscene, 0);
-			break;
-		case GF_ODM_ACTION_SCENE_INLINE_RESTART:
-#ifndef GPAC_DISABLE_VRML
-			gf_scene_mpeg4_inline_restart(odm->subscene);
-#endif
-			break;
-		}
-
-		/*relock before sending play/pause*/
-		gf_term_lock_media_queue(term, 1);
-	}
-
-	/*finally process all connection tasks - we MUST do that after processing ODM tasks, as an ODM might have just destroyed
-	a service we could query during the connection step*/
-	while (gf_list_count(term->connection_tasks)) {
-		GF_TermConnectObject *connect = gf_list_get(term->connection_tasks, 0);
-		gf_list_rem(term->connection_tasks, 0);
-
-		/*unlock media queue before sending connect*/
-		gf_term_lock_media_queue(term, 0);
-
-//		gf_mx_p(term->net_mx);
-
-		/*if object has already been attached to its service (eg, task was posted but media_add occured inbetween), ignore*/
-		if (!connect->odm->net_service && !(connect->odm->flags & GF_ODM_DESTROYED) ) {
-			gf_scene_ns_connect_object(term, connect->odm, connect->service_url, connect->parent_url);
-		}
-
-//		gf_mx_v(term->net_mx);
-
-		gf_free(connect->service_url);
-		if (connect->parent_url) gf_free(connect->parent_url);
-		gf_free(connect);
-
-		/*relock media queue after sending connect*/
-		gf_term_lock_media_queue(term, 1);
-	}
-
-	gf_term_lock_media_queue(term, 0);
-
-	/*lock to avoid any start attemps from compositor*/
-	if (gf_mx_try_lock(term->compositor->mx)) {
-		while (gf_list_count(term->net_services_to_remove)) {
-			gf_mx_p(term->net_mx);
-			ns = (GF_ClientService*)gf_list_get(term->net_services_to_remove, 0);
-			if (ns) gf_list_rem(term->net_services_to_remove, 0);
-			gf_mx_v(term->net_mx);
-			if (!ns) break;
-			gf_term_service_del(ns);
-		}
-
-		if (term->nodes_pending) {
-			u32 i, count, n_count;
-			i=0;
-			count = gf_list_count(term->nodes_pending);
-			while (i<count) {
-				GF_Node *n = (GF_Node *)gf_list_get(term->nodes_pending, i);
-				gf_node_traverse(n, NULL);
-				if (!term->nodes_pending) break;
-				n_count = gf_list_count(term->nodes_pending);
-				if (n_count==count) i++;
-				else count=n_count;
-			}
-		}
-		gf_sc_lock(term->compositor, 0);
-	}
-
-	/*extensions*/
-	gf_mx_p(term->mm_mx);
-	if (!term->reload_state && term->unthreaded_extensions) {
-		u32 i, count;
-		count = gf_list_count(term->unthreaded_extensions);
-		for (i=0; i<count; i++) {
-			GF_TermExt *ifce = gf_list_get(term->unthreaded_extensions, i);
-			ifce->process(ifce, GF_TERM_EXT_PROCESS, NULL);
-		}
-	}
-	gf_mx_v(term->mm_mx);
-
-
-	/*need to reload*/
-	if (term->reload_state == 1) {
-		term->reload_state = 0;
-		gf_term_disconnect(term);
-		term->reload_state = 2;
-	}
-	if (term->reload_state == 2) {
-		if (! gf_list_count(term->net_services)) {
-			term->reload_state = 0;
-			if (term->reload_url) {
-				gf_term_connect(term, term->reload_url);
-				gf_free(term->reload_url);
-			}
-			term->reload_url = NULL;
-		}
-	}
-	term->thread_id_handling_services = 0;
-}
-
-void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node)
-{
-	gf_sc_lock(term->compositor, 1);
-	if (!term->nodes_pending) term->nodes_pending = gf_list_new();
-	gf_list_add(term->nodes_pending, node);
-	gf_sc_lock(term->compositor, 0);
-}
-void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node)
-{
-	gf_sc_lock(term->compositor, 1);
-	if (term->nodes_pending) {
-		gf_list_del_item(term->nodes_pending, node);
-		if (!gf_list_count(term->nodes_pending)) {
-			gf_list_del(term->nodes_pending);
-			term->nodes_pending = NULL;
-		}
-	}
-	gf_sc_lock(term->compositor, 0);
-}
-
-void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *odm)
-{
-	GF_TermConnectObject *ct;
-	u32 i = 0;
-	while (NULL != (ct = (gf_list_enum(term->connection_tasks, &i)))) {
-		if (ct->odm == odm) {
-			i--;
-			gf_list_rem(term->connection_tasks, i);
-			if (ct->parent_url) gf_free(ct->parent_url);
-			gf_free(ct->service_url);
-			gf_free(ct);
-		}
-	}
-}
-
-void gf_term_close_service(GF_Terminal *term, GF_ClientService *ns)
-{
-	GF_Err e;
-
-	/*prevent the media manager / term to access the list of services to destroy, otherwise
-	we could unload the module while poping its CloseService() call stack which can lead to
-	random crashes (return addresses no longer valid) - cf any "stress mode" playback of a playlist*/
-	gf_term_lock_media_queue(term, 1);
-
-#if 0
-	{
-		GF_ObjectManager *odm;
-		u32 i = 0;
-		while (odm = gf_list_enum(term->media_queue, &i)) {
-			assert(odm->net_service != ns);
-		}
-	}
-
-	{
-		GF_TermConnectObject *ct;
-		u32 i = 0;
-		while (ct = gf_list_enum(term->connection_tasks, &i)) {
-			assert(ct->odm->net_service != ns);
-		}
-	}
-#endif
-
-	ns->owner = NULL;
-	e = ns->ifce->CloseService(ns->ifce);
-
-	/*if error don't wait for ACK to remove from main list*/
-	if (e) {
-		gf_list_del_item(term->net_services, ns);
-		if (gf_list_find(term->net_services_to_remove, ns)<0)
-			gf_list_add(term->net_services_to_remove, ns);
-	}
-	gf_term_lock_media_queue(term, 0);
-}
-
-void gf_term_lock_compositor(GF_Terminal *term, Bool LockIt)
-{
-	gf_sc_lock(term->compositor, LockIt);
-}
-
-/*locks media quaue*/
-GF_EXPORT
-void gf_term_lock_media_queue(GF_Terminal *term, Bool LockIt)
-{
-	if (LockIt) {
-		gf_mx_p(term->media_queue_mx);
-	} else {
-		gf_mx_v(term->media_queue_mx);
-	}
-}
-
-void gf_term_lock_net(GF_Terminal *term, Bool LockIt)
-{
-	if (LockIt) {
-		gf_mx_p(term->net_mx);
-	} else {
-		gf_mx_v(term->net_mx);
-	}
-}
-
-
-
 /* Browses all registered relocators (ZIP-based, ISOFF-based or file-system-based to relocate a URI based on the locale */
 GF_EXPORT
 Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char *parent_url, char *out_relocated_url, char *out_localized_url)
@@ -976,27 +571,6 @@ Bool gf_term_relocate_url(GF_Terminal *term, const char *service_url, const char
 	}
 	return 0;
 }
-
-/*in most cases we cannot directly connect an object, as the request may come from a different thread than the one handling
-ODM disconnection. We could therefore end up attaching an object to a service currently being destroyed because of a concurrent
-odm_disconnect*/
-void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
-{
-	GF_TermConnectObject *connect;
-	GF_SAFEALLOC(connect, GF_TermConnectObject);
-	if (!connect) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[Terminal] Failed to allocate media connection task\n"));
-		return;
-	}
-	connect->odm = odm;
-	connect->service_url = gf_strdup(serviceURL);
-	connect->parent_url = parent_url ? gf_strdup(parent_url) : NULL;
-
-	gf_term_lock_media_queue(term, 1);
-	gf_list_add(term->connection_tasks, connect);
-	gf_term_lock_media_queue(term, 0);
-}
-
 #endif
 
 GF_EXPORT

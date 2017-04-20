@@ -193,27 +193,6 @@ Bool gf_term_user_event(GF_Terminal *term, GF_Event *event);
 /*post event to terminal*/
 Bool gf_term_send_event(GF_Terminal *term, GF_Event *evt);
 
-/*post extended user mouse interaction to terminal
-	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
-	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
-	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
-*/
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_mouse_input(GF_Terminal *term, GF_EventMouse *event);
-
-/*post extended user key interaction to terminal
-	@key_code: GPAC DOM code of input key
-	@hw_code: hardware code of input key
-	@isKeyUp: set if key is released
-*/
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-Bool gf_term_keyboard_input(GF_Terminal *term, u32 key_code, u32 hw_code, Bool isKeyUp);
-
-/*post extended user character interaction to terminal
-	@character: unicode character input
-*/
-/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
-void gf_term_string_input(GF_Terminal *term, u32 character);
 
 
 

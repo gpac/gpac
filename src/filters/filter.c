@@ -56,8 +56,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	if (fsess->use_locks) {
 		snprintf(szName, 200, "Filter%sPackets", filter->freg->name);
 		filter->pcks_mx = gf_mx_new(szName);
-		snprintf(szName, 200, "Filter%sProps", filter->freg->name);
-		filter->props_mx = gf_mx_new(szName);
 	}
 	//for now we always use a lock on the filter task lists
 	//TODO: this is our only lock in lock-free mode, we need to find a way to avoid this lock
@@ -71,10 +69,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	filter->pcks_shared_reservoir = gf_fq_new(filter->pcks_mx);
 	filter->pcks_alloc_reservoir = gf_fq_new(filter->pcks_mx);
 	filter->pcks_inst_reservoir = gf_fq_new(filter->pcks_mx);
-
-	filter->prop_maps_list_reservoir = gf_fq_new(filter->props_mx);
-	filter->prop_maps_reservoir = gf_fq_new(filter->props_mx);
-	filter->prop_maps_entry_reservoir = gf_fq_new(filter->props_mx);
 
 	filter->pending_pids = gf_fq_new(NULL);
 
@@ -143,12 +137,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_alloc_reservoir, gf_filterpacket_del);
 
-	gf_fq_del(filter->prop_maps_reservoir, gf_void_del);
-	gf_fq_del(filter->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
-	gf_fq_del(filter->prop_maps_entry_reservoir, gf_void_del);
-
 	gf_mx_del(filter->pcks_mx);
-	gf_mx_del(filter->props_mx);
 	gf_mx_del(filter->tasks_mx);
 
 	if (filter->name) gf_free(filter->name);
@@ -474,7 +463,7 @@ void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 
 	filter->schedule_next_time = 0;
-	if (filter->pid_connection_pending) {
+	if (filter->pid_connection_pending || filter->removed) {
 		return;
 	}
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
@@ -497,6 +486,9 @@ void gf_filter_process_task(GF_FSTask *task)
 			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 		}
 	}
+	//no requeue if end of session
+	if (filter->session->run_status != GF_OK)
+		return;
 
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if (!filter->would_block && !filter->input_pids && filter->output_pids && (e!=GF_EOS)) {
@@ -612,6 +604,89 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
 {
 	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
+}
+
+void gf_filter_remove_task(GF_FSTask *task)
+{
+	s32 res;
+	GF_Filter *f = task->filter;
+	u32 count = gf_fq_count(f->tasks);
+
+	if (task->in_main_task_list_only) count++;
+	if (count!=1) {
+		task->requeue_request = GF_TRUE;
+		return;
+	}
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
+
+	//avoid destruction of the task
+	if (!task->in_main_task_list_only) {
+		gf_fq_pop(f->tasks);
+	}
+
+	if (f->freg->finalize)
+		f->freg->finalize(f);
+
+	res = gf_list_del_item(f->session->filters, f);
+	assert (res >=0 );
+
+	//detach all input pids
+	while (gf_list_count(f->input_pids)) {
+		GF_FilterPidInst *pidinst = gf_list_pop_back(f->input_pids);
+		pidinst->filter = NULL;
+	}
+
+	gf_filter_del(f);
+	task->filter = NULL;
+	task->requeue_request = GF_FALSE;
+}
+
+static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF_Filter *until_filter)
+{
+	u32 i, count, j, nb_inst;
+	u32 nb_rem_inst=0;
+	if (filter==until_filter) return;
+
+	count = gf_list_count(filter->input_pids);
+	for (i=0; i<count; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		if (pidi->pid->filter==source_filter) nb_rem_inst++;
+	}
+	if (nb_rem_inst != count) return;
+	//filter will be removed, propagate on all output pids
+	filter->removed = GF_TRUE;
+	count = gf_list_count(filter->output_pids);
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		nb_inst = gf_list_count(pid->destinations);
+		for (j=0; j<nb_inst; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			gf_filter_tag_remove(pidi->filter, filter, until_filter);
+		}
+	}
+}
+
+void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
+{
+	u32 i, j, count, opids;
+
+	//walk all dest pids and mark filters as removed
+
+	opids = gf_list_count(filter->output_pids);
+	filter->removed = GF_TRUE;
+	for (i=0; i<opids; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		count = gf_list_count(pid->destinations);
+		for (j=0; j<count; j++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			gf_filter_tag_remove(pidi->filter, filter, until_filter);
+			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
+		}
+	}
+
+	if (gf_list_count(filter->input_pids) ) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Disconnecting a filter in the middle of a chain not yet implemented\n"));
+	}
 }
 
 

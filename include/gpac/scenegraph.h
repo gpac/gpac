@@ -525,7 +525,7 @@ typedef union
 	GF_Node *node;
 	struct __gf_download_manager *dnld_man;
 	GF_SceneGraph *scene;
-	void *term;
+	void *compositor;
 	GF_JSAPIINFO info;
 } GF_JSAPIParam;
 
@@ -584,8 +584,8 @@ enum
 	/*!resolves relative Xlink based on xml:base*/
 	GF_JSAPI_OP_RESOLVE_XLINK,
 
-	/*!gets GPAC terminal*/
-	GF_JSAPI_OP_GET_TERM,
+	/*!gets parent filter*/
+	GF_JSAPI_OP_GET_COMPOSITOR,
 
 	/*!pauses an SVG element*/
 	GF_JSAPI_OP_PAUSE_SVG,

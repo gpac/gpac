@@ -101,9 +101,11 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 
 	txh->last_frame_time = (u32) (-1);
 
-
+	//we need to rework the raw memory stuff to be transparent
+#ifdef FILTER_FIXME
+	txh->raw_memory = GF_FALSE;
+#endif
 	/*request play*/
-	txh->raw_memory = gf_mo_is_raw_memory(txh->stream);
 	return GF_OK;
 }
 
@@ -112,12 +114,12 @@ GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url)
 {
 	Double offset = 0;
 	Bool loop = 0;
-#if FILTER_FIXME
-	if (txh->compositor->term && (txh->compositor->term->play_state!=GF_STATE_PLAYING)) {
+
+	if (txh->compositor->play_state != GF_STATE_PLAYING) {
 		offset = gf_node_get_scene_time(txh->owner);
 		loop = /*gf_mo_get_loop(gf_mo_register(txh->owner, url, 0, 0), 0)*/ 1;
 	}
-#endif
+
 	return gf_sc_texture_play_from_to(txh, url, offset, -1, loop, 0);
 }
 
@@ -230,10 +232,6 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 		if (txh->tx_io) {
 			gf_sc_texture_release(txh);
 			txh->needs_refresh = 1;
-		}
-		if (gf_mo_is_private_media(txh->stream)) {
-			setup_texture_object(txh, 1);
-			gf_node_dirty_set(txh->owner, 0, 0);
 		}
 	}
 

@@ -261,6 +261,8 @@ void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_err
 
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason);
 
+void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
+
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
@@ -272,6 +274,8 @@ u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
 
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
+void gf_filter_pid_remove(GF_FilterPid *pid);
+
 
 //set a new property to the pid. previous properties (ones set before last packet dispatch)
 //will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
@@ -474,10 +478,12 @@ typedef enum
 	/*channel control, app->module. Note that most modules don't need to handle pause/resume/set_speed*/
 	GF_FEVT_PLAY = 1,
 	GF_FEVT_SET_SPEED,
-	GF_FEVT_STOP,
-	GF_FEVT_PAUSE,
-	GF_FEVT_RESUME,
+	GF_FEVT_STOP,	//no associated event structure
+	GF_FEVT_PAUSE,	//no associated event structure
+	GF_FEVT_RESUME,	//no associated event structure
 	GF_FEVT_ATTACH_SCENE,
+	GF_FEVT_QUALITY_SWITCH,
+	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_MOUSE,
 } GF_FEventType;
 
@@ -497,7 +503,7 @@ typedef struct
 } GF_FEVT_Base;
 
 
-/*GF_NET_CHAN_PLAY, GF_NET_CHAN_SET_SPEED*/
+/*GF_FEVT_PLAY, GF_FEVT_SET_SPEED*/
 typedef struct
 {
 	FILTER_EVENT_BASE
@@ -517,17 +523,49 @@ typedef struct
 	u8 timestamp_based;
 } GF_FEVT_Play;
 
+/*GF_FEVT_ATTACH_SCENE*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 	void *object_manager;
 } GF_FEVT_AttachScene;
 
+/*GF_FEVT_QUALITY_SWITCH*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+
+	//switch quality up or down
+	Bool up;
+
+	Bool set_auto;
+	//0: current group, otherwise index of the depending_on group
+	u32 dependent_group_index;
+	//or ID of the quality to switch, as indicated in query quality
+	const char *ID;
+	//1+tile mode adaptation (doesn't change other selections)
+	u32 set_tile_mode_plus_one;
+	
+	u32 quality_degradation;
+} GF_FEVT_QualitySwitch;
+
+/*GF_FEVT_MOUSE*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 	GF_Event event;
 } GF_FEVT_Event;
+
+
+/*GF_FEVT_VISIBILITY_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	//gives min_max coords of the visible rectangle associated with channels.
+	//min_x may be greater than max_x in case of 360 videos
+	u32 min_x, max_x, min_y, max_y;
+} GF_FEVT_VisibililityHint;
+
 
 union __gf_filter_event
 {
@@ -535,6 +573,8 @@ union __gf_filter_event
 	GF_FEVT_Play play;
 	GF_FEVT_AttachScene attach_scene;
 	GF_FEVT_Event user_event;
+	GF_FEVT_QualitySwitch quality_switch;
+	GF_FEVT_VisibililityHint visibility_hint;
 };
 
 

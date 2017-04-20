@@ -106,7 +106,6 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo);
 Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
-Bool gf_mo_is_raw_memory(GF_MediaObject *mo);
 GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma);
 
 
@@ -163,12 +162,6 @@ Fixed gf_mo_get_current_speed(GF_MediaObject *mo);
 /*checks if the service associated withthis object has an audio stream
 returns 0 if no audio is associated, 1 if there is an audio object associated, 2 if the service is not yet ready (not connected)*/
 u32 gf_mo_has_audio(GF_MediaObject *mo);
-
-/*checks if the service associated withthis object has an audio stream*/
-Bool gf_mo_is_private_media(GF_MediaObject *mo);
-
-/*set destination window for harware codecs directly outputing to video out - returns 1 if video size has changed*/
-Bool gf_mo_set_position(GF_MediaObject *mo, GF_Window *src, GF_Window *dst);
 
 s32 gf_mo_get_clock_drift(GF_MediaObject *mo);
 

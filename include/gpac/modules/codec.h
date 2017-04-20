@@ -346,15 +346,15 @@ typedef struct __input_device
 	/* interface declaration*/
 	GF_DECL_MODULE_INTERFACE
 
-	Bool (*RegisterDevice)(struct __input_device *, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
+	Bool (*RegisterDevice)(struct __input_device *, const char *urn, const char *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name));
 	void (*Start)(struct __input_device *);
 	void (*Stop)(struct __input_device *);
 
 	void *udta;
 
 	/*this is set upon loading and shall not be modified*/
-	GF_BaseDecoder *input_decoder;
-	void (*DispatchFrame)(struct __input_device *, u8 *data, u32 data_len);
+	void *input_stream_context;
+	void (*DispatchFrame)(struct __input_device *, const char *data, u32 data_len);
 } GF_InputSensorDevice;
 
 

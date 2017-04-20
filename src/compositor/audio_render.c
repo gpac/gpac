@@ -25,210 +25,6 @@
 
 #include <gpac/internal/compositor_dev.h>
 
-#ifdef FILTER_FIXME
-
-GF_Err gf_afc_load(GF_AudioFilterChain *afc, GF_User *user, char *filterstring)
-{
-	struct _audiofilterentry *prev_filter = NULL;
-
-	while (filterstring) {
-		u32 i, count;
-		GF_AudioFilter *filter;
-		char *sep = strstr(filterstring, ";;");
-		if (sep) sep[0] = 0;
-
-		count = gf_modules_get_count(user->modules);
-		filter = NULL;
-		for (i=0; i<count; i++) {
-			filter = (GF_AudioFilter *)gf_modules_load_interface(user->modules, i, GF_AUDIO_FILTER_INTERFACE);
-			if (filter) {
-				if (filter->SetFilter
-				        && filter->Configure
-				        && filter->Process
-				        && filter->Reset
-				        && filter->SetOption
-				        && filter->GetOption
-				        && filter->SetFilter(filter, filterstring)
-				   )
-					break;
-
-				gf_modules_close_interface((GF_BaseInterface *)filter);
-			}
-			filter = NULL;
-		}
-		if (filter) {
-			struct _audiofilterentry *entry;
-			GF_SAFEALLOC(entry, struct _audiofilterentry);
-			if (!entry) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate audio filter entry\n"));
-			} else {
-				entry->filter = filter;
-				if (prev_filter) prev_filter->next = entry;
-				else afc->filters = entry;
-				prev_filter = entry;
-			}
-		}
-		if (sep) {
-			sep[0] = ';';
-			filterstring = sep + 2;
-		} else {
-			break;
-		}
-	}
-	return GF_OK;
-}
-
-GF_Err gf_afc_setup(GF_AudioFilterChain *afc, u32 bps, u32 sr, u32 chan, u32 ch_cfg, u32 *ch_out, u32 *ch_cfg_out)
-{
-	struct _audiofilterentry *entry;
-	u32 block_len;
-	u32 och, ocfg, in_ch;
-	Bool not_in_place;
-
-	if (afc->tmp_block1) gf_free(afc->tmp_block1);
-	afc->tmp_block1 = NULL;
-	if (afc->tmp_block2) gf_free(afc->tmp_block2);
-	afc->tmp_block2 = NULL;
-
-	*ch_out = *ch_cfg_out = 0;
-	in_ch = chan;
-	afc->min_block_size = 0;
-	afc->max_block_size = 0;
-	afc->delay_ms = 0;
-
-	not_in_place = GF_FALSE;
-
-	entry = afc->filters;
-	while (entry) {
-		if (entry->in_block) {
-			gf_free(entry->in_block);
-			entry->in_block = NULL;
-		}
-
-		if (entry->filter->Configure(entry->filter, sr, bps, chan, ch_cfg, &och, &ocfg, &block_len, &entry->delay_ms, &entry->in_place)==GF_OK) {
-			u32 out_block_size;
-			entry->in_block_size = chan * bps * block_len / 8;
-			if (!afc->min_block_size || (afc->min_block_size > entry->in_block_size))
-				afc->min_block_size = entry->in_block_size;
-
-			out_block_size = och * bps * block_len / 8;
-			if (afc->max_block_size < out_block_size) afc->max_block_size = out_block_size;
-
-			entry->enable = GF_TRUE;
-			chan = och;
-			ch_cfg = ocfg;
-
-			if (!entry->in_place) not_in_place = GF_TRUE;
-
-			afc->delay_ms += entry->delay_ms;
-		} else {
-			entry->enable = GF_FALSE;
-		}
-		entry = entry->next;
-	}
-
-	if (!afc->max_block_size) afc->max_block_size = 1000;
-	if (!afc->min_block_size) afc->min_block_size = afc->max_block_size * in_ch / chan;
-	afc->tmp_block1 = (char*)gf_malloc(sizeof(char) * afc->max_block_size * 2);
-	if (!afc->tmp_block1) return GF_OUT_OF_MEM;
-	if (not_in_place) {
-		afc->tmp_block2 = (char*)gf_malloc(sizeof(char) * afc->max_block_size * 2);
-		if (!afc->tmp_block2) return GF_OUT_OF_MEM;
-	}
-
-	/*alloc buffers*/
-	entry = afc->filters;
-	while (entry) {
-		if (entry->enable && entry->in_block_size) {
-			entry->in_block = (char*)gf_malloc(sizeof(char) * (entry->in_block_size + afc->max_block_size) );
-			if (!entry->in_block) return GF_OUT_OF_MEM;
-		}
-		entry = entry->next;
-	}
-	*ch_out = chan;
-	*ch_cfg_out = ch_cfg;
-	afc->enable_filters = GF_TRUE;
-	return GF_OK;
-}
-
-u32 gf_afc_process(GF_AudioFilterChain *afc, u32 nb_bytes)
-{
-	struct _audiofilterentry *entry = afc->filters;
-
-	while (entry) {
-		char *inptr, *outptr;
-		if (!nb_bytes || !entry->enable) {
-			entry = entry->next;
-			continue;
-		}
-		inptr = afc->tmp_block1;
-		outptr = entry->in_place ? afc->tmp_block1 : afc->tmp_block2;
-
-		/*sample-based input, process directly the data*/
-		if (!entry->in_block) {
-			entry->filter->Process(entry->filter, inptr, nb_bytes, outptr, &nb_bytes);
-		} else {
-			u32 processed = 0;
-			u32 nb_bytes_out = 0;
-
-			assert(nb_bytes + entry->nb_bytes <= entry->in_block_size + afc->max_block_size);
-			/*copy bytes in input*/
-			memcpy(entry->in_block + entry->nb_bytes, inptr, nb_bytes);
-			entry->nb_bytes += nb_bytes;
-
-			/*and process*/
-			while (entry->nb_bytes >= entry->in_block_size) {
-				u32 done;
-				entry->filter->Process(entry->filter, entry->in_block + processed, entry->in_block_size, outptr + nb_bytes_out, &done);
-				done = entry->in_block_size;
-				nb_bytes_out += done;
-				entry->nb_bytes -= entry->in_block_size;
-				processed += entry->in_block_size;
-			}
-			/*move remaining data at the beginning of the buffer*/
-			if (processed && entry->nb_bytes)
-				memmove(entry->in_block, entry->in_block+processed, entry->nb_bytes);
-
-			nb_bytes = nb_bytes_out;
-		}
-
-		/*swap ptr so that input data of next step (filter, output write) is always in tmp_block1*/
-		if (inptr != outptr) {
-			afc->tmp_block1 = outptr;
-			afc->tmp_block2 = inptr;
-		}
-		entry = entry->next;
-	}
-	return nb_bytes;
-}
-
-void gf_afc_unload(GF_AudioFilterChain *afc)
-{
-	while (afc->filters) {
-		struct _audiofilterentry *tmp = afc->filters;
-		afc->filters = tmp->next;
-		gf_modules_close_interface((GF_BaseInterface *)tmp->filter);
-		if (tmp->in_block) gf_free(tmp->in_block);
-		gf_free(tmp);
-	}
-	if (afc->tmp_block1) gf_free(afc->tmp_block1);
-	if (afc->tmp_block2) gf_free(afc->tmp_block2);
-	memset(afc, 0, sizeof(GF_AudioFilterChain));
-}
-
-void gf_afc_reset(GF_AudioFilterChain *afc)
-{
-	struct _audiofilterentry *filter = afc->filters;
-	while (filter) {
-		filter->filter->Reset(filter->filter);
-		filter->nb_bytes = 0;
-
-		filter = filter->next;
-	}
-}
-#endif
-
-
 static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 {
 	GF_Err e;
@@ -245,32 +41,7 @@ static GF_Err gf_ar_setup_output_format(GF_AudioRenderer *ar)
 	in_bps = nb_bits;
 	in_freq = freq;
 
-#ifdef FILTER_FIXME
-	if (ar->filter_chain.filters) {
-		u32 osr, obps, och, ocfg;
-
-		e = gf_afc_setup(&ar->filter_chain, nb_bits, freq, nb_chan, ch_cfg, &och, &ocfg);
-		osr = freq;
-		obps = nb_bits;
-		nb_chan = och;
-
-		/*try to reconfigure audio output*/
-		if (!e)
-			e = ar->audio_out->ConfigureOutput(ar->audio_out, &osr, &och, &obps, ocfg);
-
-		/*output module cannot support filter output, disable it ...*/
-		if (e || (osr != freq) || (och != nb_chan) || (obps != nb_bits)) {
-			nb_bits = in_bps;
-			freq = in_freq;
-			nb_chan = in_ch;
-			ar->filter_chain.enable_filters = GF_FALSE;
-			e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
-		}
-	} else
-#endif
-	{
-		e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
-	}
+	e = ar->audio_out->ConfigureOutput(ar->audio_out, &freq, &nb_chan, &nb_bits, ch_cfg);
 
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[AudioRender] reconfigure error %d\n", e));
@@ -338,42 +109,8 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 		gf_mixer_lock(ar->mixer, GF_TRUE);
 
-#ifdef FILTER_FIXME
-		if (ar->filter_chain.enable_filters) {
-			char *ptr = buffer;
-			written = 0;
-			delay_ms += ar->filter_chain.delay_ms;
+		/*written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 
-			while (buffer_size) {
-				u32 to_copy;
-				if (!ar->nb_used) {
-					u32 nb_bytes;
-
-					/*fill input block*/
-					nb_bytes = gf_mixer_get_output(ar->mixer, ar->filter_chain.tmp_block1, ar->filter_chain.min_block_size, delay_ms);
-					if (!nb_bytes)
-						return written;
-
-					/*delay used to check for late frames - we only use it on the first call to gf_mixer_get_output()*/
-					delay_ms = 0;
-
-					ar->nb_filled = gf_afc_process(&ar->filter_chain, nb_bytes);
-					if (!ar->nb_filled) continue;
-				}
-				to_copy = ar->nb_filled - ar->nb_used;
-				if (to_copy>buffer_size) to_copy = buffer_size;
-				memcpy(ptr, ar->filter_chain.tmp_block1 + ar->nb_used, to_copy);
-				ptr += to_copy;
-				buffer_size -= to_copy;
-				written += to_copy;
-				ar->nb_used += to_copy;
-				if (ar->nb_used==ar->nb_filled) ar->nb_used = 0;
-			}
-		} else
-#endif
-		{
-			/*written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
-		}
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 
 		//done with one sim step, go back in pause
@@ -538,13 +275,6 @@ GF_AudioRenderer *gf_sc_ar_load(GF_User *user)
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Setting up audio module %s\n", ar->audio_out->module_name));
 			e = ar->audio_out->Setup(ar->audio_out, ar->user->os_window_handler, num_buffers, total_duration);
 
-
-#ifdef FILTER_FIXME
-			/*load main audio filter*/
-			gf_afc_load(&ar->filter_chain, user, (char*)gf_cfg_get_key(user->config, "Audio", "Filter"));
-#endif
-
-
 			if (e != GF_OK) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("Could not setup audio out %s\n", ar->audio_out->module_name));
 				gf_modules_close_interface((GF_BaseInterface *)ar->audio_out);
@@ -603,9 +333,7 @@ void gf_sc_ar_del(GF_AudioRenderer *ar)
 	gf_mixer_del(ar->mixer);
 
 	if (ar->audio_listeners) gf_list_del(ar->audio_listeners);
-#ifdef FILTER_FIXME
-	gf_afc_unload(&ar->filter_chain);
-#endif
+
 	gf_free(ar);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_AUDIO, ("[AudioRender] Renderer destroyed\n"));
 }
@@ -731,11 +459,6 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor)
 	if (!ar) return;
 
 	gf_mixer_lock(ar->mixer, GF_TRUE);
-
-#ifdef FILTER_FIXME
-	gf_afc_unload(&ar->filter_chain);
-	gf_afc_load(&ar->filter_chain, ar->user, (char*)gf_cfg_get_key(ar->user->config, "Audio", "Filter"));
-#endif
 
 	gf_ar_pause(ar, GF_TRUE, GF_TRUE, GF_FALSE);
 	ar->need_reconfig = GF_FALSE;

@@ -383,11 +383,9 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		}
 		break;
 
-	/* note: shortcuts are mostly the same as blaxxun contact, I don't feel like remembering 2 sets...*/
 	case GF_EVENT_MOUSEMOVE:
-#if FILTER_FIXME
-		if (gf_term_get_option(compositor->term, GF_OPT_ORIENTATION_SENSORS_ACTIVE)) return 0;
-#endif
+		if (compositor->orientation_sensors_active) return 0;
+
 		if (!compositor->navigation_state) {
 			if (cam->navigate_mode==GF_NAVIGATE_GAME) {
 				/*init mode*/

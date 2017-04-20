@@ -76,8 +76,9 @@ static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 
 			top_scene = gf_scene_get_root_scene(scene);
 
-			gf_list_del_item(top_scene->namespaces, scene_ns);
-			gf_scene_ns_del(scene_ns);
+			//source filter no longer exists
+			scene_ns->source_filter = NULL;
+			gf_scene_ns_del(scene_ns, top_scene);
 
 			if (!root->parentscene) {
 				GF_Event evt;
@@ -138,13 +139,11 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 			}
 			return;
 		}
-		gf_term_lock_media_queue(term, 1);
 		/*unregister from valid services*/
 		if (gf_list_del_item(term->net_services, service)>=0) {
 			/*and queue for destroy*/
 			gf_list_add(term->net_services_to_remove, service);
 		}
-		gf_term_lock_media_queue(term, 0);
 		return;
 	}
 	/*this is channel disconnect*/
@@ -395,8 +394,14 @@ GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, con
 
 
 
-void gf_scene_ns_del(GF_SceneNamespace *sns)
+void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 {
+	gf_list_del_item(root_scene->namespaces, sns);
+
+	if (sns->source_filter) {
+		gf_filter_remove(sns->source_filter, root_scene->compositor->filter);
+	}
+
 	while (gf_list_count(sns->Clocks)) {
 		GF_Clock *ck = gf_list_pop_back(sns->Clocks);
 		gf_clock_del(ck);
@@ -473,46 +478,29 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		}
 
 		if (gf_term_service_can_handle_url(ns, serviceURL)) {
-			if (net_locked) {
-				gf_term_lock_net(term, 0);
-			}
 
 			/*wait for service to setup - service may become destroyed if not available*/
 			while (1) {
-				net_locked = gf_mx_try_lock(term->net_mx);
 				if (!ns->owner) {
-					if (net_locked) {
-						gf_term_lock_net(term, 0);
-					}
 					return;
 				}
-				if (net_locked) {
-					gf_term_lock_net(term, 0);
-				}
-
 				if (ns->owner->OD) break;
 				gf_sleep(5);
 			}
 
-			gf_mx_p(term->net_mx);
 			if (odm->net_service) {
-				gf_mx_v(term->net_mx);
 				return;
 			}
 			if (odm->flags & GF_ODM_DESTROYED) {
-				gf_mx_v(term->net_mx);
 				GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->ID));
 				return;
 			}
 			odm->net_service = ns;
 			odm->net_service->nb_odm_users ++;
 			gf_odm_setup_entry_point(odm, serviceURL);
-			gf_mx_v(term->net_mx);
 			return;
 		}
 	}
-	if (net_locked)
-		gf_term_lock_net(term, 0);
 
 #endif
 
