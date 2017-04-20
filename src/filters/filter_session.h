@@ -58,10 +58,8 @@
 
 typedef struct
 {
-	//filter for which the property was allocated. Since properties may be passed down the filter chain
-	//this ensures that we put the property in the source filter reservoir, otherwise we would accumulate
-	//in the reservoir of the filter releasing the property last
-	GF_Filter *filter;
+	//parent filter session for property reservoir
+	GF_FilterSession *session;
 	volatile u32 reference_count;
 	u32 p4cc;
 	Bool name_alloc;
@@ -77,7 +75,7 @@ typedef struct
 {
 	GF_List *hash_table[HASH_TABLE_SIZE];
 	volatile u32 reference_count;
-	GF_Filter *filter;
+	GF_FilterSession *session;
 	//current timescale, cached for duration/buffer compute
 	u32 timescale;
 } GF_PropertyMap;
@@ -227,6 +225,15 @@ struct __gf_media_session
 	GF_FilterQueue *main_thread_tasks;
 	GF_FilterQueue *tasks_reservoir;
 
+	//reservoir for property maps for PID and packets properties
+	GF_FilterQueue *prop_maps_reservoir;
+	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
+	GF_FilterQueue *prop_maps_list_reservoir;
+	//reservoir for property entries  - properties may be inherited between packets
+	GF_FilterQueue *prop_maps_entry_reservoir;
+
+	GF_Mutex *props_mx;
+
 	GF_List *threads;
 	GF_SessionThread main_th;
 
@@ -302,15 +309,7 @@ struct __gf_filter
 	//reservoir for packets instances - the ones stored in the pid destination(s) with shared memory
 	GF_FilterQueue *pcks_inst_reservoir;
 
-	//reservoir for property maps for PID and packets properties
-	GF_FilterQueue *prop_maps_reservoir;
-	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties
-	GF_FilterQueue *prop_maps_list_reservoir;
-	//reservoir for property entries  - properties may be inherited between packets
-	GF_FilterQueue *prop_maps_entry_reservoir;
-
 	GF_Mutex *pcks_mx;
-	GF_Mutex *props_mx;
 	GF_Mutex *tasks_mx;
 
 	//list of output pids to be configured
@@ -345,7 +344,11 @@ struct __gf_filter
 
 	volatile u32 would_block; //concurrent inc/dec
 
+	//finalized has been called
 	Bool finalized;
+	//filter is scheduled for removal: any filter connected to this filter will
+	//not be checked for graph resolution
+	Bool removed;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
 
@@ -444,6 +447,8 @@ void gf_filter_pid_reconfigure_task(GF_FSTask *task);
 void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
 void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_process_task(GF_FSTask *task);
+void gf_filter_pid_disconnect_task(GF_FSTask *task);
+void gf_filter_remove_task(GF_FSTask *task);
 
 #endif //_GF_FILTER_SESSION_H_
 

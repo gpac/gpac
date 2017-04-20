@@ -146,6 +146,11 @@ void isor_declare_objects(ISOMReader *read)
 		esd = gf_media_map_esd(read->mov, i+1);
 		if (!esd) continue;
 
+		if (esd->decoderConfig->streamType==GF_STREAM_INTERACT) {
+			gf_odf_desc_del((GF_Descriptor *)esd);
+			continue;
+		}
+
 		ocr_es_id = 0;
 		gf_isom_get_reference(read->mov, i+1, GF_ISOM_REF_BASE, 1, &base_track);
 			

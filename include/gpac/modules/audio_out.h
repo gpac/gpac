@@ -124,63 +124,6 @@ typedef struct _audiooutput
 } GF_AudioOutput;
 
 
-/*
-	Audio hardware output module
-*/
-
-/*interface name and version for audio output*/
-#define GF_AUDIO_FILTER_INTERFACE		GF_4CC('G','A','F', '1')
-
-/*interface returned on query interface*/
-typedef struct _tag_audio_filter GF_AudioFilter;
-
-struct _tag_audio_filter
-{
-	/* interface declaration*/
-	GF_DECL_MODULE_INTERFACE
-
-	/*sets the current filter. The filterstring is opaque to libgpac and is taken as given
-	in the GPAC configuration file, where filters are listed as a ';;' separated list in the "Filter" key of
-	the [Audio] section.
-		@returns: 1 is this module can handle the filterstring, 0 otherwise.
-	*/
-	Bool (*SetFilter)(GF_AudioFilter *af, char *filterstring);
-	/*configures the filter:
-		@samplerate: samplerate of data - this cannot be modified by a filter
-		@bits_per_sample: sample format (8 or 16 bit signed PCM data) of data - this cannot be modified by a filter
-		@input_channel_number: number of input channels
-		@input_channel_layout: channel layout of input data - cf <gpac/constants.h>
-		@output_channel_number: number of ouput channels
-		@output_channel_layout: channel layout of output data - cf <gpac/constants.h>
-		&output_block_size_in_samples: size in blocks of the data to be sent to this filter.
-				If 0, data will not be reframed and blocks of any number of samples will be processed
-		@delay_ms: delay in ms introduced by this filter
-		@inplace_processing_capable: if set to 1, this filter is capable of processing data inplace, in which case
-			the same buffer is passed for in_data and out_data in the process call
-	*/
-	GF_Err (*Configure)(GF_AudioFilter *af, u32 samplerate, u32 bits_per_sample, u32 input_channel_number, u32 input_channel_layout, u32 *output_channel_number, u32 *output_channel_layout, u32 *output_block_size_in_samples, u32 *delay_ms, Bool *inplace_processing_capable);
-	/*process a chunk of audio data.
-		@in_data: input sample buffer
-		@in_data_size: input sample buffer size. If block len was set in the configure stage, there will be block len sample
-		@out_data: output sample buffer - if inplace was set in the configure stage, same as in_data.
-				NOTE: Outputing more samples that input ones may crash the system, the buffer only contains space for
-			the same amount of samples (including channels added/removed by the filter)
-		@out_data_size: data size written to output. Usually 0 or in_data_size.
-	*/
-	GF_Err (*Process)(GF_AudioFilter *af, void *in_data, u32 in_data_size, void *out_data, u32 *out_data_size);
-
-	/*gets an option from the filter - currently not implemented */
-	const char *(*GetOption)(GF_AudioFilter *af, char *option);
-	/*sets an option to the filter - currently not implemented */
-	Bool (*SetOption)(GF_AudioFilter *af, char *option, char *value);
-
-	/*Indicates the filter should be reset (audio stop or seek )*/
-	void (*Reset)(GF_AudioFilter *af);
-
-	/*private user data for the module*/
-	void *udta;
-};
-
 #ifdef __cplusplus
 }
 #endif

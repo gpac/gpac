@@ -206,7 +206,7 @@ void loadSensorControler(MPEGVSensorContext *rc)
 	}
 }
 
-Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, GF_BitStream *dsi, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name))
+Bool MPEGVS_RegisterDevice(struct __input_device *dr, const char *urn, const char *dsi, u32 dsi_size, void (*AddField)(struct __input_device *_this, u32 fieldType, const char *name))
 {
 	MPEGVSCTX;
 

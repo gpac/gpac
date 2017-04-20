@@ -153,6 +153,14 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		fsess->use_locks = (sched_type==GF_FS_SCHEDULER_LOCK) ? GF_TRUE : GF_FALSE;
 	}
 
+	if (fsess->use_locks)
+		fsess->props_mx = gf_mx_new("FilterSessionProps");
+
+	fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
+	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
+	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
+
+
 	if (!fsess->filters || !fsess->tasks || !fsess->tasks_reservoir) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to alloc media session\n"));
 		fsess->run_status = GF_OUT_OF_MEM;
@@ -257,6 +265,12 @@ void gf_fs_del(GF_FilterSession *fsess)
 		}
 		gf_list_del(fsess->threads);
 	}
+
+	gf_fq_del(fsess->prop_maps_reservoir, gf_void_del);
+	gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
+	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
+	if (fsess->props_mx)
+		gf_mx_del(fsess->props_mx);
 
 	if (fsess->semaphore)
 		gf_sema_del(fsess->semaphore);
@@ -432,9 +446,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			gf_fs_sema_io(fsess, GF_FALSE);
 		}
 
-		if (fsess->run_status != GF_OK)
-			break;
-
 		active_start = gf_sys_clock_high_res();
 
 		if (current_filter==NULL) {
@@ -464,6 +475,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			if (!fsess->tasks_pending && fsess->main_th.has_seen_eot) {
 				//check all threads
 				Bool all_done = GF_TRUE;
+				//no more task and EOS signal
+				if (fsess->run_status != GF_OK)
+					break;
+
 				for (i=0; i<count; i++) {
 					GF_SessionThread *st = gf_list_get(fsess->threads, i);
 					if (!st->has_seen_eot) {
@@ -618,6 +633,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		task_time = gf_sys_clock_high_res() - task_time;
 		fsess->task_in_process = GF_FALSE;
+
+		//may now be NULL if task was a filter destruction task
+		current_filter = task->filter;
+
 		prev_current_filter = task->filter;
 
 		//source task was current filter, pop the filter task list
@@ -804,10 +823,17 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	for (i=0; i < count; i++) {
 		gf_fs_sema_io(fsess, GF_TRUE);
 	}
+
+	//wait for all threads to be done, we might still need flushing the main thread queue
+	while (fsess->no_main_thread) {
+		gf_fs_thread_proc(&fsess->main_th);
+		if (! gf_fq_count(fsess->main_thread_tasks))
+			break;
+	}
 	if (fsess->no_main_thread) {
 		safe_int_inc(&fsess->nb_threads_stopped);
 	}
-	//wait for all threads to be done
+
 	while (count+1 != fsess->nb_threads_stopped) {
 	}
 	return GF_OK;

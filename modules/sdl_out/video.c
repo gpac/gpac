@@ -1116,7 +1116,7 @@ Bool SDLVid_ProcessMessageQueue(SDLVidCtx *ctx, GF_VideoOutput *dr)
 		case SDL_MOUSEWHEEL:
 			/*SDL handling is not perfect there, it just says up/down but no info on how much
 			the wheel was rotated...*/
-			gpac_evt.mouse.wheel_pos = INT2FIX(sdl_evt.wheel.x);
+			gpac_evt.mouse.wheel_pos = INT2FIX(sdl_evt.wheel.y);
 			gpac_evt.type = GF_EVENT_MOUSEWHEEL;
 			dr->on_event(dr->evt_cbk_hdl, &gpac_evt);
 			break;

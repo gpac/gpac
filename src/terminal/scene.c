@@ -151,8 +151,8 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 		gf_scene_message_ex(scene, scene->root_od->scene_ns->url, param->info.msg, param->info.e, 1);
 		return 1;
 	}
-	if (type==GF_JSAPI_OP_GET_TERM) {
-		assert(0);
+	if (type==GF_JSAPI_OP_GET_COMPOSITOR) {
+		param->compositor = scene->compositor;
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_RESOLVE_XLINK) {
@@ -396,7 +396,7 @@ void gf_scene_del(GF_Scene *scene)
 	if (scene->namespaces) {
 		while (gf_list_count(scene->namespaces)) {
 			GF_SceneNamespace *sns = gf_list_pop_back(scene->namespaces);
-			gf_scene_ns_del(sns);
+			gf_scene_ns_del(sns, scene);
 		}
 		gf_list_del(scene->namespaces);
 	}
@@ -462,9 +462,7 @@ void gf_scene_disconnect(GF_Scene *scene, Bool for_shutdown)
 						{
 							M_InputSensor* is = (M_InputSensor*)n;
 							is->enabled = 0;
-#if FILTER_FIXME
 							InputSensorModified(n);
-#endif
 							break;
 						}
 						}
@@ -1745,7 +1743,7 @@ void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons)
 	M_Inline *dscene = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "ADDON_SCENE");
 
 	if (show_addons) {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 		GF_AssociatedContentLocation addon_info;
 		memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 		addon_info.timeline_id = -100;
@@ -2232,7 +2230,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	}
 
 	if (scene->is_dynamic_scene) {
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 		GF_NetworkCommand com;
 
 		memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -2656,7 +2654,7 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	mo->odm->addon = addon;
 }
 
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 
 GF_EXPORT
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
@@ -2947,7 +2945,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		break;
 	}
 
-#if FILTER_FIXME
+#ifdef FILTER_FIXME
 	GF_NetworkCommand com;
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)

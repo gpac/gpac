@@ -136,17 +136,7 @@ void gf_inline_on_modified(GF_Node *node)
 						if (!scene->root_od->addon && (scene->root_od->ID==GF_MEDIA_EXTERNAL_ID)) {
 							gf_odm_disconnect(scene->root_od, 2);
 						} else {
-							Bool destroy = GF_FALSE;
-							if (scene->root_od->mo ) {
-								if (scene->root_od->addon) scene->root_od->flags |= GF_ODM_REGENERATE_SCENE;
-								else if (scene->root_od->mo->OD_ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
-								else if (scene->root_od->ID==GF_MEDIA_EXTERNAL_ID) destroy = GF_TRUE;
-							}
-							if (destroy) {
-								gf_odm_disconnect(scene->root_od, 2);
-							} else {
-								gf_odm_stop(scene->root_od, 0);
-							}
+							gf_odm_stop_or_destroy(scene->root_od);
 						}
 					}
 				}

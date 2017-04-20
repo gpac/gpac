@@ -519,17 +519,7 @@ void visual_2d_texture_path_extended(GF_VisualManager *visual, GF_Path *path, GF
 			gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
 		}
 
-		if (compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL)) {
-			if (txh->stream && gf_mo_set_position(txh->stream, &src, &dst)) {
-				gf_mo_get_visual_info(txh->stream, &txh->width, &txh->height, &txh->stride, &txh->pixel_ar, &txh->pixelformat, &txh->is_flipped);
-				/*force dirty flag to get called again*/
-				gf_node_dirty_set(ctx->drawable->node, GF_SG_NODE_DIRTY, 1);
-				gf_sc_next_frame_state(visual->compositor, GF_SC_DRAW_FRAME);
-			}
-		}
-
-
-
+		compositor_texture_rectangles(visual, txh, &ctx->bi->clip, &ctx->bi->unclip, &src, &dst, NULL, NULL);
 		return;
 	}
 

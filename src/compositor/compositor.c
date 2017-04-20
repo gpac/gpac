@@ -29,6 +29,7 @@
 #include <gpac/options.h>
 #include <gpac/utf.h>
 #include <gpac/modules/hardcoded_proto.h>
+#include <gpac/modules/compositor_ext.h>
 
 #include "nodes_stacks.h"
 
@@ -394,6 +395,7 @@ static GF_Err gf_sc_load(GF_Compositor *compositor)
 
 static GF_Err gf_sc_create(GF_Compositor *compositor)
 {
+	u32 i;
 	const char *sOpt;
 
 	/*load video out*/
@@ -522,6 +524,30 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 
 	compositor->scene_sampled_clock = 0;
 	compositor->video_th_id = gf_th_id();
+
+
+	/*load extensions*/
+	compositor->extensions = gf_list_new();
+	compositor->unthreaded_extensions = gf_list_new();
+	for (i=0; i< gf_modules_get_count(compositor->user->modules); i++) {
+		GF_CompositorExt *ifce = (GF_CompositorExt *) gf_modules_load_interface(compositor->user->modules, i, GF_COMPOSITOR_EXT_INTERFACE);
+		if (ifce) {
+
+			if (!ifce->process(ifce, GF_COMPOSITOR_EXT_START, compositor)) {
+				gf_modules_close_interface((GF_BaseInterface *) ifce);
+				continue;
+			}
+			gf_list_add(compositor->extensions, ifce);
+			if (ifce->caps & GF_COMPOSITOR_EXTENSION_NOT_THREADED)
+				gf_list_add(compositor->unthreaded_extensions, ifce);
+		}
+	}
+
+	if (!gf_list_count(compositor->unthreaded_extensions)) {
+		gf_list_del(compositor->unthreaded_extensions);
+		compositor->unthreaded_extensions = NULL;
+	}
+
 	return GF_OK;
 }
 
@@ -598,6 +624,7 @@ GF_Compositor *gf_sc_new(GF_User *user)
 
 void gf_sc_del(GF_Compositor *compositor)
 {
+	u32 i;
 	if (!compositor) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroying\n"));
@@ -691,6 +718,27 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (compositor->time_nodes) gf_list_del(compositor->time_nodes);
 	if (compositor->extra_scenes) gf_list_del(compositor->extra_scenes);
 	if (compositor->video_listeners) gf_list_del(compositor->video_listeners);
+
+	if (compositor->input_streams) gf_list_del(compositor->input_streams);
+	if (compositor->x3d_sensors) gf_list_del(compositor->x3d_sensors);
+
+
+	/*unload extensions*/
+	for (i=0; i< gf_list_count(compositor->extensions); i++) {
+		GF_CompositorExt *ifce = gf_list_get(compositor->extensions, i);
+		ifce->process(ifce, GF_COMPOSITOR_EXT_STOP, NULL);
+	}
+
+	/*remove all event filters*/
+//	gf_list_reset(term->event_filters);
+
+	/*unload extensions*/
+	for (i=0; i< gf_list_count(compositor->extensions); i++) {
+		GF_CompositorExt *ifce = gf_list_get(compositor->extensions, i);
+		gf_modules_close_interface((GF_BaseInterface *) ifce);
+	}
+	gf_list_del(compositor->extensions);
+	gf_list_del(compositor->unthreaded_extensions);
 
 	gf_sc_lock(compositor, GF_FALSE);
 	gf_mx_del(compositor->mx);
@@ -2242,15 +2290,30 @@ static void gf_sc_draw_scene(GF_Compositor *compositor)
 	if (compositor->video_setup_failed) {
 		compositor->skip_flush = 1;
 	}
-	else if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
-		/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
+	else {
+		if (compositor->nodes_pending) {
+			u32 i, count, n_count;
+			i=0;
+			count = gf_list_count(compositor->nodes_pending);
+			while (i<count) {
+				GF_Node *n = (GF_Node *)gf_list_get(compositor->nodes_pending, i);
+				gf_node_traverse(n, NULL);
+				if (!compositor->nodes_pending) break;
+				n_count = gf_list_count(compositor->nodes_pending);
+				if (n_count==count) i++;
+				else count=n_count;
+			}
+		}
+		if (! visual_draw_frame(compositor->visual, top_node, compositor->traverse_state, 1)) {
+			/*android backend uses opengl without telling it to us, we need an ugly hack here ...*/
 #ifdef GPAC_ANDROID
-		compositor->skip_flush = 0;
-#else
-		if (compositor->skip_flush==2) {
 			compositor->skip_flush = 0;
-		} else {
-			compositor->skip_flush = 1;
+#else
+			if (compositor->skip_flush==2) {
+				compositor->skip_flush = 0;
+			} else {
+				compositor->skip_flush = 1;
+			}
 		}
 #endif
 	}
@@ -2325,6 +2388,16 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 
 	/*first thing to do, let the video output handle user event if it is not threaded*/
 	compositor->video_out->ProcessEvent(compositor->video_out, NULL);
+
+	//handle all unthreaded extensions
+	if (compositor->unthreaded_extensions) {
+		u32 i, count;
+		count = gf_list_count(compositor->unthreaded_extensions);
+		for (i=0; i<count; i++) {
+			GF_CompositorExt *ifce = gf_list_get(compositor->unthreaded_extensions, i);
+			ifce->process(ifce, GF_COMPOSITOR_EXT_PROCESS, NULL);
+		}
+	}
 
 	if (compositor->freeze_display) {
 		gf_sc_lock(compositor, 0);
@@ -2958,10 +3031,8 @@ static Bool gf_sc_handle_event_intern(GF_Compositor *compositor, GF_Event *event
 	Bool ret;
 
 	if ( (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) && (event->type<=GF_EVENT_MOUSEWHEEL)) {
-#ifdef FILTER_FIXME
 		GF_Event evt = *event;
-		gf_term_mouse_input(compositor->term, &evt.mouse);
-#endif
+		gf_sc_input_sensor_mouse_input(compositor, &evt.mouse);
 	}
 
 	/*	if (!compositor->interaction_level || (compositor->interaction_level==GF_INTERACT_INPUT_SENSOR) ) {
@@ -3106,19 +3177,15 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		event->key.flags |= compositor->key_states;
 		/*key sensor*/
 		if ((compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) ) {
-#ifdef FILTER_FIXME
-			ret = gf_term_keyboard_input(compositor->term, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? GF_TRUE : GF_FALSE);
-#endif
+			ret = gf_sc_input_sensor_keyboard_input(compositor, event->key.key_code, event->key.hw_code, (event->type==GF_EVENT_KEYUP) ? GF_TRUE : GF_FALSE);
 		}
 		ret += gf_sc_handle_event_intern(compositor, event, from_user);
 		return ret;
 	}
 
 	case GF_EVENT_TEXTINPUT:
-#ifdef FILTER_FIXME
-		if (compositor->term && (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR) )
-			gf_term_string_input(compositor->term , event->character.unicode_char);
-#endif
+		if (compositor->interaction_level & GF_INTERACT_INPUT_SENSOR)
+			gf_sc_input_sensor_string_input(compositor , event->character.unicode_char);
 
 		return gf_sc_handle_event_intern(compositor, event, from_user);
 	/*switch fullscreen off!!!*/
@@ -3669,13 +3736,13 @@ Bool gf_sc_use_3d(GF_Compositor *compositor)
 u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions)
 {
 	if (!compositor->root_scene || !compositor->root_scene->root_od || !compositor->root_scene->root_od->scene_ns) return 1;
-#ifdef FILTER_FIXME
+
 	if (!skip_interactions) {
 		/*if input sensors consider the scene runs forever*/
-		if (gf_list_count(term->input_streams)) return 0;
-		if (gf_list_count(term->x3d_sensors)) return 0;
+		if (gf_list_count(compositor->input_streams)) return 0;
+		if (gf_list_count(compositor->x3d_sensors)) return 0;
 	}
-#endif
+
 	/*check no clocks are still running*/
 	if (!gf_scene_check_clocks(compositor->root_scene->root_od->scene_ns, compositor->root_scene, 0)) return 0;
 	if (compositor->root_scene->is_dynamic_scene) return 1;
@@ -3684,3 +3751,22 @@ u32 gf_sc_check_end_of_scene(GF_Compositor *compositor, Bool skip_interactions)
 	return gf_sc_get_option(compositor, skip_interactions ? GF_OPT_IS_OVER : GF_OPT_IS_FINISHED);
 }
 
+void gf_sc_queue_node_traverse(GF_Compositor *compositor, GF_Node *node)
+{
+	gf_sc_lock(compositor, GF_TRUE);
+	if (!compositor->nodes_pending) compositor->nodes_pending = gf_list_new();
+	gf_list_add(compositor->nodes_pending, node);
+	gf_sc_lock(compositor, GF_FALSE);
+}
+void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node)
+{
+	gf_sc_lock(compositor, GF_TRUE);
+	if (compositor->nodes_pending) {
+		gf_list_del_item(compositor->nodes_pending, node);
+		if (!gf_list_count(compositor->nodes_pending)) {
+			gf_list_del(compositor->nodes_pending);
+			compositor->nodes_pending = NULL;
+		}
+	}
+	gf_sc_lock(compositor, GF_FALSE);
+}

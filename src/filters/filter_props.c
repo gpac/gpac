@@ -204,11 +204,11 @@ GF_PropertyMap * gf_props_new(GF_Filter *filter)
 {
 	GF_PropertyMap *map;
 
-	map = gf_fq_pop(filter->prop_maps_reservoir);
+	map = gf_fq_pop(filter->session->prop_maps_reservoir);
 
 	if (!map) {
 		GF_SAFEALLOC(map, GF_PropertyMap);
-		map->filter = filter;
+		map->session = filter->session;
 	}
 	assert(!map->reference_count);
 	map->reference_count = 1;
@@ -231,7 +231,7 @@ void gf_props_del_property(GF_PropertyMap *prop, GF_PropertyEntry *it)
 		}
 		it->prop.data_len = 0;
 
-		gf_fq_add(it->filter->prop_maps_entry_reservoir, it);
+		gf_fq_add(it->session->prop_maps_entry_reservoir, it);
 	}
 }
 
@@ -245,7 +245,7 @@ void gf_props_reset(GF_PropertyMap *prop)
 				gf_props_del_property(prop, (GF_PropertyEntry *) gf_list_pop_back(l) );
 			}
 			prop->hash_table[i] = NULL;
-			gf_fq_add(prop->filter->prop_maps_list_reservoir, l);
+			gf_fq_add(prop->session->prop_maps_list_reservoir, l);
 		}
 	}
 }
@@ -254,7 +254,7 @@ void gf_props_del(GF_PropertyMap *prop)
 {
 	gf_props_reset(prop);
 	prop->reference_count = 0;
-	gf_fq_add(prop->filter->prop_maps_reservoir, prop);
+	gf_fq_add(prop->session->prop_maps_reservoir, prop);
 }
 
 
@@ -279,7 +279,7 @@ GF_List *gf_props_get_list(GF_PropertyMap *map)
 {
 	GF_List *l;
 
-	l = gf_fq_pop(map->filter->prop_maps_list_reservoir);
+	l = gf_fq_pop(map->session->prop_maps_list_reservoir);
 
 	if (!l) l = gf_list_new();
 	return l;
@@ -296,12 +296,12 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
 	}
 
-	prop = gf_fq_pop(map->filter->prop_maps_entry_reservoir);
+	prop = gf_fq_pop(map->session->prop_maps_entry_reservoir);
 
 	if (!prop) {
 		GF_SAFEALLOC(prop, GF_PropertyEntry);
 		if (!prop) return GF_OUT_OF_MEM;
-		prop->filter = map->filter;
+		prop->session = map->session;
 	}
 
 	prop->reference_count = 1;

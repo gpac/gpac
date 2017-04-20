@@ -45,15 +45,6 @@ typedef struct _gf_scene GF_Scene;
 typedef struct _gf_addon_media GF_AddonMedia;
 typedef struct _object_clock GF_Clock;
 
-#ifdef FILTER_FIXME
-
-typedef struct _media_manager GF_MediaManager;
-typedef struct _es_channel GF_Channel;
-typedef struct _generic_codec GF_Codec;
-typedef struct _composition_memory GF_CompositionMemory;
-
-#endif
-
 /*forwards all clocks of the given amount of time. Can only be used when terminal is in paused mode
 this is mainly designed for movie dumping in MP4Client*/
 GF_Err gf_term_step_clocks(GF_Terminal * term, u32 ms_diff);
@@ -95,7 +86,7 @@ typedef struct
 /*opens service - performs URL concatenation if parent service specified*/
 GF_SceneNamespace *gf_scene_ns_new(GF_Scene *scene, GF_ObjectManager *owner, const char *url, const char *parent_url);
 /*destroy service*/
-void gf_scene_ns_del(GF_SceneNamespace *ns);
+void gf_scene_ns_del(GF_SceneNamespace *ns, GF_Scene *scene);
 
 void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
 
@@ -317,23 +308,6 @@ void gf_scene_set_fragment_uri(GF_Node *node, const char *uri);
 
 #if FILTER_FIXME
 
-enum
-{
-	/*threading up to decoder*/
-	GF_TERM_THREAD_FREE,
-	/*single thread for all decoders*/
-	GF_TERM_THREAD_SINGLE,
-	/*all media (image, video, audio) decoders are threaded*/
-	GF_TERM_THREAD_MULTI,
-};
-
-enum
-{
-	GF_TERM_RUNNING = 1<<20,
-	GF_TERM_DEAD = 1<<21,
-	GF_TERM_SINGLE_THREAD = 1<<22,
-	GF_TERM_MULTI_THREAD = 1<<23,
-};
 
 /*URI relocators are used for containers like zip or ISO FF with file items. The relocator
 is in charge of translating the URI, potentially extracting the associated resource and sending
@@ -369,151 +343,6 @@ typedef struct
 	u8 action;
 } GF_Shortcut;
 
-
-struct _tag_terminal
-{
-	u32 flags;
-
-	/*callback to user application*/
-	GF_User *user;
-	/*scene compositor*/
-	struct __tag_compositor *compositor;
-	/*file downloader*/
-	GF_DownloadManager *downloader;
-	/*top level scene*/
-	GF_Scene *root_scene;
-
-	/*Media manager*/
-	GF_List *codecs;
-	/*mutex for decoder access*/
-	GF_Mutex *mm_mx;
-	/*decoding thread*/
-	GF_Thread *mm_thread;
-	/*last codec used in mm loop*/
-	u32 last_codec;
-	/*thread priority*/
-	s32 priority;
-	u32 cumulated_priority;
-	/*frame duration*/
-	u32 frame_duration;
-
-	/*net services*/
-	GF_List *net_services;
-	/*net services to be destroyed*/
-	GF_List *net_services_to_remove;
-	/*connection tasks pending*/
-	GF_List *connection_tasks;
-	/*channels waiting for service CONNECT ack to be setup*/
-	GF_List *channels_pending;
-	/*media objects pending for stop/play*/
-	GF_List *media_queue;
-	/*media_queue lock*/
-	GF_Mutex *media_queue_mx;
-	/*network lock*/
-	GF_Mutex *net_mx;
-	/*all X3D key/mouse/string sensors*/
-	GF_List *x3d_sensors;
-	/*all input stream decoders*/
-	GF_List *input_streams;
-
-	/*options (cf config doc)*/
-	Bool enable_cache;
-	/*data timeout for network buffering in ms - if no data is received within this timeout
-	the initial buffering aborts. */
-	u32 net_data_timeout;
-
-	u32 reload_state;
-	char *reload_url;
-
-	/*special list used by nodes needing a call to RenderNode but not in the traverese scene graph (VRML/MPEG-4 protos only).
-	For these nodes, the traverse effect passed will be NULL. This is only used by InputSensor node at the moment*/
-	GF_List *nodes_pending;
-
-	/*root node of the user prefs*/
-	GF_SceneGraph *dcci_doc;
-
-	GF_List *extensions;	/*list of all extensions*/
-	GF_List *unthreaded_extensions;	/*list of extensions to call at each frame*/
-	GF_List *event_filters;	/*list of extensions filtering events*/
-	GF_Mutex *evt_mx;
-	u32 in_event_filter;
-
-	/*ID of the thread currently in handle_services routine, 0 if none*/
-	u32 thread_id_handling_services;
-
-	/*static URI relocator for locales*/
-	GF_TermLocales locales;
-
-	GF_List *uri_relocators;	/*list of GF_URIRelocator*/
-
-	GF_Shortcut shortcuts[MAX_SHORTCUTS];
-	Fixed speed_ratio;
-
-	/*bench mode type: 0-none 1: regular 2- systems layers only: all decoders inputs are discarded*/
-	u32 bench_mode;
-
-	u32 prefered_audio_codec_oti;
-
-	u32 low_latency_buffer_max;
-
-	u32 nb_calls_in_event_proc;
-	u32 disconnect_request_status;
-	
-	Bool orientation_sensors_active;
-	//set when compositor uses step mode, in order to drop frames even when the clock is paused
-	Bool use_step_mode;
-};
-
-
-
-GF_Err gf_term_init_scheduler(GF_Terminal *term, u32 threading_mode);
-void gf_term_stop_scheduler(GF_Terminal *term);
-void gf_term_add_codec(GF_Terminal *term, GF_Codec *codec);
-void gf_term_remove_codec(GF_Terminal *term, GF_Codec *codec);
-void gf_term_start_codec(GF_Codec *codec, Bool is_resume);
-/*stops codec, reason if
- -0: regular stop
- -1: pause
- -2: stop codec because end of stream : doesn't reset composition memory
- */
-void gf_term_stop_codec(GF_Codec *codec, u32 reason);
-void gf_term_set_threading(GF_Terminal *term, u32 mode);
-void gf_term_set_priority(GF_Terminal *term, s32 Priority);
-
-/*posts a request to connect a given object*/
-void gf_term_post_connect_object(GF_Terminal *term, GF_ObjectManager *odm, char *serviceURL, char *parent_url);
-/*creates service for given channel / URL*/
-GF_Err gf_term_connect_remote_channel(GF_Terminal *app, GF_Channel *ch, char *URL);
-
-/*called by media manager to perform service maintenance:
-servive shutdown: this is needed because service handler may be asynchronous
-object Play: this is needed to properly handle multiplexed sources (all channels must be connected before play)
-service restart
-*/
-void gf_term_handle_services(GF_Terminal *app);
-/*close service and queue for delete*/
-void gf_term_close_service(GF_Terminal *app, GF_ClientService *service);
-
-/*locks media quaue*/
-void gf_term_lock_media_queue(GF_Terminal *app, Bool LockIt);
-/*locks net manager*/
-void gf_term_lock_net(GF_Terminal *app, Bool LockIt);
-
-/*checks no connection on the ODM are pending - of so, remove them*/
-void gf_term_check_connections_for_delete(GF_Terminal *term, GF_ObjectManager *odm);
-
-/*locks scene compositor*/
-void gf_term_lock_compositor(GF_Terminal *app, Bool LockIt);
-
-
-
-/*add/rem node requiring a call to render without being present in traversed graph (VRML/MPEG-4 protos).
-For these nodes, the traverse effect passed will be NULL.*/
-void gf_term_queue_node_traverse(GF_Terminal *term, GF_Node *node);
-void gf_term_unqueue_node_traverse(GF_Terminal *term, GF_Node *node);
-
-Bool gf_term_lock_codec(GF_Codec *codec, Bool lock, Bool try_lock);
-
 typedef struct
 {
 	void *udta;
@@ -524,6 +353,9 @@ typedef struct
 
 GF_Err gf_term_add_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
 GF_Err gf_term_remove_event_filter(GF_Terminal *terminal, GF_TermEventFilter *ef);
+
+void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
+void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
 
 #endif
 
@@ -601,337 +433,6 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed);
 void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift);
 
 
-#if FILTER_FIXME
-
-enum
-{
-	/*channel is setup and waits for connection request*/
-	GF_ESM_ES_SETUP = 0,
-	/*waiting for server reply*/
-	GF_ESM_ES_WAIT_FOR_ACK,
-	/*connection OK*/
-	GF_ESM_ES_CONNECTED,
-	/*data exchange on this service/channel*/
-	GF_ESM_ES_RUNNING,
-	/*deconnection OK - a download channel can automatically disconnect when download is done*/
-	GF_ESM_ES_DISCONNECTED,
-	/*service/channel is not (no longer) available/found and should be removed*/
-	GF_ESM_ES_UNAVAILABLE
-};
-
-enum
-{
-	GF_ESM_CAROUSEL_NONE = 0,
-	GF_ESM_CAROUSEL_MPEG4,
-	GF_ESM_CAROUSEL_MPEG2,
-};
-
-/*data channel (elementary stream)*/
-struct _es_channel
-{
-	/*service this channel belongs to*/
-	GF_ClientService *service;
-	/*stream descriptor*/
-	GF_ESD *esd;
-	/*parent OD for this stream*/
-	struct _od_manager *odm;
-	u32 es_state;
-	Bool is_pulling;
-	u32 media_padding_bytes;
-	/*IO mutex*/
-	GF_Mutex *mx;
-	u32 AU_Count;
-	/*decoding buffers for push mode*/
-	struct _decoding_buffer * AU_buffer_first, * AU_buffer_last;
-	/*static decoding buffer for pull mode*/
-	struct _decoding_buffer * AU_buffer_pull;
-	char *pull_reaggregated_buffer;
-	/*channel buffer flag*/
-	Bool BufferOn;
-	/*min level to trigger buffering on, max to trigger it off for playback resume, and max amount of prefetch buffer*/
-	u32 MinBuffer, MaxBuffer, MaxBufferOccupancy;
-	/*amount of buffered media - this is the DTS of the last received AU minus the onject clock time, to make sure
-	we always have MaxBuffer ms ready for composition when resuming the clock*/
-	s32 BufferTime;
-	/*last received AU time - if exceeding a certain time and buffering is on, buffering is turned off.
-	This is needed for streams with very short duration (less than buffer time) and stream with only one AU (BIFS/OD)*/
-	u32 last_au_time;
-	/*Current reassembling buffer - currently packets are NOT reordered, only AUs are*/
-	char *buffer;
-	u32 len, allocSize;
-	/*only for last packet of an AU*/
-	u8 padingBits;
-	Bool IsEndOfStream;
-	/*	SL reassembler	*/
-	/*current AU TSs*/
-	u32 DTS, CTS;
-	/*special case for carousels in the past*/
-	u32 CTS_past_offset;
-	/*AU and Packet seq num info*/
-	u32 au_sn, pck_sn;
-	u32 max_au_sn, max_pck_sn;
-	/*the AU length indicated in the SL Header. */
-	u32 AULength;
-	/*state indicator: 0 OK, 1: not tuned in, 2: has error and needs RAP*/
-	u32 stream_state;
-	/*the AU in reception is RAP*/
-	Bool IsRap;
-	/*the AU in reception is only need for seeking*/
-	Bool SeekFlag;
-	/*signal that next AU is an AU start*/
-	Bool NextIsAUStart;
-	/*if codec resilient, packet drops are not considered as fatal for AU reconstruction (eg no wait for RAP)*/
-	u32 codec_resilient;
-	/*when starting a channel, the first AU is ALWAYS fetched when buffering - this forces
-	BIFS and OD to be decoded and first frame render, in order to detect media objects that would also need
-	buffering - note this doesn't affect the clock, it is still paused if buffering*/
-	Bool first_au_fetched;
-
-	/* used in Carousel, to skip packets until the end of AU */
-	u8 carousel_type;
-	Bool skip_carousel_au;
-
-	/*discard clock initialization when dispatching pending AU - this is used when TS discontinuities / MPA_TIME happen*/
-	Bool skip_time_check_for_pending;
-
-	/* TimeStamp to Media Time mapping*/
-	/*TS (in TSResolution) corresponding to the SeedTime of the decoder. Delivered by net, otherwise 0*/
-	u64 seed_ts;
-	/*media time offset corresponding to SeedTS. This is needed when the channel doesn't own the clock*/
-	u32 ts_offset;
-	/*scaling factors to remap to timestamps in milliseconds*/
-	u64 ts_res;
-	Double ocr_scale;
-	/*clock driving this stream - currently only CTS is supported (no OCR)*/
-	struct _object_clock *clock;
-	/*flag for clock init*/
-	Bool IsClockInit;
-	/*flag for clock init*/
-	Bool clock_inherited;
-	/*indicates that no DTS is signaled and that they should be recomputed if needed (video only)*/
-	Bool recompute_dts;
-	u32 min_ts_inc, min_computed_cts;
-
-	/*duration of last received AU if any, 0 if not known (most of the time)*/
-	u32 au_duration;
-	/*A channel with this flag set considers each incoming packet as a complete AU and assigns timestamps
-	upon reception matching the reception time, then dispatching it into the decoding buffer (only tested
-	with audi video). This flag is turned on by setting esd->slconfig->predefined to 'SLPredef_SkipSL' */
-	Bool skip_sl;
-
-	/*indicates that decoding can be called directly when receiving a complete AU on this channel
-	This is used by systems streams in non-seekable (eg broadcast/multicast, MPEG-2 TS multiplexes) to
-	make sure resources are setup as fast as possible. If the AU is too early, it will be kept in the
-	decoding buffer*/
-	Bool dispatch_after_db;
-
-	/*indicates that decoding is called directly when receiving a packet on this channel
-	This is used to bypass SL defragmenting and decoding buffer for EIT internal streams*/
-	Bool bypass_sl_and_db;
-
-	GF_IPMPTool *ipmp_tool;
-	Bool is_protected;
-
-	/*indicates that AU received will be copied to the composition memory*/
-	u32 is_raw_channel;
-
-	u32 resync_drift;
-	s32 prev_pcr_diff;
-	u64 last_pcr;
-
-	/*TSs as received from network - these are used for cache storage*/
-	u64 net_dts, net_cts, sender_ntp;
-
-	Bool last_au_was_seek;
-	Bool no_timestamps;
-
-	Bool pull_forced_buffer;
-
-	u64 ts_shift;
-};
-
-/*creates a new channel for this stream*/
-GF_Channel *gf_es_new(GF_ESD *esd);
-/*destroys channel*/
-void gf_es_del(GF_Channel *ch);
-/*(un)locks channel*/
-void gf_es_lock(GF_Channel *ch, u32 LockIt);
-/*setup channel for reception of data*/
-GF_Err gf_es_start(GF_Channel *ch);
-/*stop channel from receiving data*/
-GF_Err gf_es_stop(GF_Channel *ch);
-/*handles reception of an SL PDU*/
-void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *StreamBuf, u32 StreamLength, GF_SLHeader *header, GF_Err reception_status);
-/*signals end of stream on the channel*/
-void gf_es_on_eos(GF_Channel *ch);
-/*fetches first AU available for decoding on this channel*/
-struct _decoding_buffer *gf_es_get_au(GF_Channel *ch);
-/*drops first AU on this channel*/
-void gf_es_drop_au(GF_Channel *ch);
-/*performs final setup upon connection confirm*/
-void gf_es_on_connect(GF_Channel *ch);
-/*reconfigure SL for this channel*/
-void gf_es_reconfig_sl(GF_Channel *ch, GF_SLConfig *slc, Bool use_m2ts_sections);
-/*hack for streaming: whenever a time map (media time <-> TS time) event is received on the channel reset decoding buffer
-this is needed because all server tested resend packets on already running channel*/
-void gf_es_reset_buffers(GF_Channel *ch);
-/*dummy channels are used by scene decoders which don't use ESM but load directly the scene graph themselves
-these channels are ALWAYS pulling ones, and this function will init the channel clock if needed*/
-void gf_es_init_dummy(GF_Channel *ch);
-/*setup DRM info*/
-void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *isma_cryp);
-/*dispatch raw media AU to the composition buffer and BLOCKS until the AU is consumed by the decoder*/
-void gf_es_dispatch_raw_media_au(GF_Channel *ch, char *payload, u32 payload_size, u32 cts);
-/*returns true if this stream owns its clock, false if it simply refers to it*/
-Bool gf_es_owns_clock(GF_Channel *ch);
-/*reset all timestamps in decoder buffer to 0*/
-void gf_es_reset_timing(GF_Channel *ch, Bool reset_buffer);
-/*reset all timestamps in CB to 0*/
-void gf_cm_reset_timing(GF_CompositionMemory *cb);
-/*reset timing of all objects associated with this clock*/
-void gf_clock_discontinuity(GF_Clock *ck, GF_Scene *scene, Bool is_pcr_discontinuity);
-//turns on buffering on the stream
-void gf_es_buffer_on(GF_Channel *ch);
-//turns off buffering on the stream
-void gf_es_buffer_off(GF_Channel *ch);
-//updates buffer info on the stream
-void gf_es_update_buffering(GF_Channel *ch, Bool update_info);
-
-/*
-		decoder stuff
-*/
-enum
-{
-	/*stop: the decoder is not playing*/
-	GF_ESM_CODEC_STOP	=	0,
-	/*stop: the decoder is playing*/
-	GF_ESM_CODEC_PLAY	=	1,
-	/*End Of Stream: when the base layer signals it's done, this triggers media-specific
-	handling of the CB.
-	For video, the output is kept alive, For audio, the output is reseted (don't want audio loop ;)*/
-	GF_ESM_CODEC_EOS	=	2,
-	/*pause: the decoder is stopped but the CB is kept intact
-	The decoder will be in PAUSE mode until its CB is full, and it will then move to STOP mode.
-	If no CB, this is equivalent to STOP mode*/
-	GF_ESM_CODEC_PAUSE	=	3,
-	/*Buffer: transition state: the decoder runs (fetch data/decode) but the clock
-	is not running (no composition). This is used for rebuffering channels (rtp...)*/
-	GF_ESM_CODEC_BUFFER =	4
-};
-
-enum
-{
-	GF_ESM_CODEC_HAS_UPSTREAM = 1,
-	/*the codec uses the interface from another codec (only used by private scene streams to handle
-	any intern sprite/animation streams)*/
-	GF_ESM_CODEC_IS_USE = 1<<1,
-	/*set for OD codec when static (ressources are declared in OD stream esd a la ISMA*/
-	GF_ESM_CODEC_IS_STATIC_OD = 1<<2,
-	/*set when codec is identified as RAW, meaning all AU comming from the network are directly
-	dispatched to the composition memory*/
-	GF_ESM_CODEC_IS_RAW_MEDIA = 1<<3,
-
-	/*set when input channels have very low buffering requirement, in which case the codec has to discard all possible late data*/
-	GF_ESM_CODEC_IS_LOW_LATENCY = 1<<4,
-};
-
-struct _generic_codec
-{
-	/*codec type (streamType and OTI from base layer)*/
-	u32 type, oti;
-	u32 flags;
-	/*decoder module interface */
-	GF_BaseDecoder *decio;
-
-	/*base process routine*/
-	GF_Err (*process)(GF_Codec *codec, u32 TimeAvailable);
-
-	GF_List *blacklisted;
-
-	/*composition memory for media streams*/
-	struct _composition_memory *CB;
-	/*input media channles*/
-	GF_List *inChannels;
-	/*a pointer to the OD that owns the decoder.*/
-	struct _od_manager *odm;
-	u32 Status;
-	Bool Muted;
-	struct _object_clock *ck;
-	/*priority of this media object. This is ALWAYS the base layer priority
-	PriorityBoost is set when the CB is under critical limit (for now only audio uses the feature)
-	and results in a bigger time slice for the codec. Only on/off value for now*/
-	u32 Priority, PriorityBoost;
-	/*last processed DTS - sanity check for scalability*/
-	u32 last_unit_dts;
-	/*last processed CTS on base layer - seeking detection*/
-	u32 last_unit_cts;
-	/*minimum non-0 CTS(k) - CTS(j) used to reconstruct CTS timing when codec handles reordering internally...*/
-	u32 min_au_duration;
-	/*recomputed CTS for next dispatch*/
-	u32 recomputed_cts;
-	Bool first_frame_dispatched, first_frame_processed;
-	/*SHA signature for the last processed unit. Only for images (Capacity==1)*/
-	u8 last_unit_signature[20];
-	/*in case the codec performs temporal re-ordering itself*/
-	Bool is_reordering;
-	/*codec will properly handle CTS adjustments*/
-	Bool trusted_cts;
-	u32 prev_au_size;
-	u32 bytes_per_sec;
-	Double fps;
-	u32 nb_dispatch_skipped;
-	Bool direct_vout, direct_frame_output;
-
-	/*statistics*/
-	u32 last_stat_start, cur_bit_size, stat_start;
-	u32 avg_bit_rate, max_bit_rate;
-	u32 nb_dec_frames, nb_iframes;
-	//decode times in us
-	u64 total_dec_time, total_iframes_time;
-	u32 max_dec_time, max_iframes_time;
-	u32 first_frame_time, last_frame_time;
-	Bool codec_reset;
-	/*number of frames dropped at the presentation*/
-	u32 nb_dropped;
-	/*we detect if the same image is sent again and again to the decoder (using last_unit_signature)*/
-	u32 nb_repeted_frames;
-	/*min frame duration based on DTS diff*/
-	u32 min_frame_dur;
-	/*speed at which the avg_dec_time was computed*/
-	Fixed check_speed;
-	//when set, only I-frames are decoded, one out of drop_modulo if not 0.
-	//If set to 2, all frames are discarded
-	u32 decode_only_rap;
-	u32 drop_modulo, drop_count;
-	u32 consecutive_late_frames, consecutive_ontime_frames;
-
-	/*for CTS reconstruction (channels not using SL): we cannot just update timing at each frame, not precise enough
-	since we use ms and not microsec TSs*/
-	u32 cur_audio_bytes, cur_video_frames;
-
-	/*signals that CB should be resized to this value once all units in CB has been consumed (codec config change)*/
-	u32 force_cb_resize;
-	u32 profile_level;
-	Bool hybrid_layered_coded;
-};
-
-GF_Codec *gf_codec_new(GF_ObjectManager *odm, GF_ESD *base_layer, s32 PL, GF_Err *e);
-void gf_codec_del(GF_Codec *codec);
-GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch);
-/*returns TRUE if stream was present, false otherwise*/
-Bool gf_codec_remove_channel(GF_Codec *codec, GF_Channel *ch);
-GF_Err gf_codec_process(GF_Codec *codec, u32 TimeAvailable);
-GF_Err gf_codec_get_capability(GF_Codec *codec, GF_CodecCapability *cap);
-GF_Err gf_codec_set_capability(GF_Codec *codec, GF_CodecCapability cap);
-void gf_codec_set_status(GF_Codec *codec, u32 Status);
-/*returns a new codec using an existing loaded decoder - only used by private scene to handle != timelines, for
-instance when loading a BT with an animation stream*/
-GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
-
-GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize);
-GF_Err gf_codec_change_decoder(GF_Codec *codec);
-
-#endif
 
 /*OD manager*/
 
@@ -1116,11 +617,8 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid);
 /*signals end of stream on channels*/
 void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid);
 
-#if FILTER_FIXME
-
 /*set time shift buffer duration */
-void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, GF_Channel *, u32 time_shift_ms);
-#endif
+void gf_odm_set_timeshift_depth(GF_ObjectManager *odm, u32 time_shift_ms);
 
 /*send PLAY request on associated PID*/
 void gf_odm_start(GF_ObjectManager *odm);
@@ -1145,6 +643,7 @@ Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 
+void gf_odm_stop_or_destroy(GF_ObjectManager *odm);
 
 void gf_odm_signal_eos_reached(GF_ObjectManager *odm);
 
@@ -1235,11 +734,6 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
 //	pos is bottom-left(0), top-left (1) bottom-right (2) or top-right (3)
 void gf_scene_set_addon_layout_info(GF_Scene *scene, u32 position, u32 size_factor);
 
-#if FILTER_FIXME
-void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info);
-void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedContentTiming *addon_time);
-#endif
-
 
 void gf_scene_message(GF_Scene *scene, const char *service, const char *message, GF_Err error);
 void gf_scene_message_ex(GF_Scene *scene, const char *service, const char *message, GF_Err error, Bool no_filtering);
@@ -1300,16 +794,38 @@ struct _gf_addon_media
 void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
 
 
-#if FILTER_FIXME
-
-GF_Err gf_codec_process_private_media(GF_Codec *codec, u32 TimeAvailable);
-
-
-Bool gf_codec_is_scene_or_image(GF_Codec *codec);
-
-#endif
-
 void gf_scene_set_service_id(GF_Scene *scene, u32 service_id);
+
+
+/*post extended user mouse interaction to terminal
+	X and Y are point coordinates in the display expressed in 2D coord system top-left (0,0), Y increasing towards bottom
+	@xxx_but_down: specifiy whether the mouse button is down(2) or up (1), 0 if unchanged
+	@wheel: specifiy current wheel inc (0: unchanged , +1 for one wheel delta forward, -1 for one wheel delta backward)
+*/
+/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
+void gf_sc_input_sensor_mouse_input(GF_Compositor *compositor, GF_EventMouse *event);
+
+/*post extended user key interaction to terminal
+	@key_code: GPAC DOM code of input key
+	@hw_code: hardware code of input key
+	@isKeyUp: set if key is released
+*/
+/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
+Bool gf_sc_input_sensor_keyboard_input(GF_Compositor *compositor, u32 key_code, u32 hw_code, Bool isKeyUp);
+
+/*post extended user character interaction to terminal
+	@character: unicode character input
+*/
+/*NOT NEEDED WHEN THE TERMINAL IS HANDLING THE DISPLAY WINDOW (cf user.h)*/
+void gf_sc_input_sensor_string_input(GF_Compositor *compositor, u32 character);
+
+GF_Err gf_input_sensor_setup_object(GF_ObjectManager *odm, GF_ESD *esd);
+void gf_input_sensor_delete(GF_ObjectManager *odm);
+
+void InitInputSensor(GF_Scene *scene, GF_Node *node);
+void InputSensorModified(GF_Node *n);
+void InitKeySensor(GF_Scene *scene, GF_Node *node);
+void InitStringSensor(GF_Scene *scene, GF_Node *node);
 
 #ifdef __cplusplus
 }

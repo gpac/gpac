@@ -296,6 +296,8 @@
 		9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA8B1E9D3F880089DDC6 /* terminal.c */; };
 		92586A721EA7665D00A0838A /* ft_font.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A701EA7665D00A0838A /* ft_font.h */; };
 		92586A731EA7669200A0838A /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A6F1EA7665D00A0838A /* ft_font.c */; };
+		92586A761EA8B66900A0838A /* input_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A741EA8B66900A0838A /* input_sensor.c */; };
+		92586A771EA8B66900A0838A /* input_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A751EA8B66900A0838A /* input_sensor.h */; };
 		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
 		9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
@@ -1117,6 +1119,8 @@
 		9251CA8B1E9D3F880089DDC6 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
 		92586A6F1EA7665D00A0838A /* ft_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ft_font.c; path = ../../modules/ft_font/ft_font.c; sourceTree = "<group>"; };
 		92586A701EA7665D00A0838A /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
+		92586A741EA8B66900A0838A /* input_sensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input_sensor.c; sourceTree = "<group>"; };
+		92586A751EA8B66900A0838A /* input_sensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input_sensor.h; sourceTree = "<group>"; };
 		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
 		9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters_imp/unit_test_filter.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
@@ -1548,6 +1552,8 @@
 		9201007718D5A444003D1ACA /* terminal */ = {
 			isa = PBXGroup;
 			children = (
+				92586A741EA8B66900A0838A /* input_sensor.c */,
+				92586A751EA8B66900A0838A /* input_sensor.h */,
 				92F4CE0E1E9E7202006A9845 /* object_browser.c */,
 				9251CA8B1E9D3F880089DDC6 /* terminal.c */,
 				92C1FF5C1E7C4AC90093B61E /* network_service.c */,
@@ -2548,6 +2554,7 @@
 				920100E018D5A444003D1ACA /* mpeg4_grouping.h in Headers */,
 				920100EF18D5A444003D1ACA /* nodes_stacks.h in Headers */,
 				92BBFCB51A7122AD006A7735 /* constants.h in Headers */,
+				92586A771EA8B66900A0838A /* input_sensor.h in Headers */,
 				92BBFD041A7122AD006A7735 /* token.h in Headers */,
 				920100F118D5A444003D1ACA /* offscreen_cache.h in Headers */,
 				92BBFCB11A7122AD006A7735 /* color.h in Headers */,
@@ -3216,6 +3223,7 @@
 				9201016718D5A445003D1ACA /* odf_dump.c in Sources */,
 				9201016818D5A445003D1ACA /* odf_parse.c in Sources */,
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
+				92586A761EA8B66900A0838A /* input_sensor.c in Sources */,
 				9201016A18D5A445003D1ACA /* slc.c in Sources */,
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,

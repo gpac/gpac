@@ -114,8 +114,14 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	GF_FilterEvent evt;
 	Bool in_iod = GF_FALSE;
 
-	if (is_remove)
-		return GF_NOT_SUPPORTED;
+	if (is_remove) {
+		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
+		//already disconnected
+		if (!odm) return GF_OK;
+		//destroy the object
+		gf_odm_disconnect(odm, 2);
+		return GF_OK;
+	}
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
 	if (!prop) return GF_NOT_SUPPORTED;

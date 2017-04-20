@@ -224,9 +224,7 @@ void gf_scene_on_node_init(void *_scene, GF_Node *node)
 		InitMediaSensor(scene, node);
 		break;
 	case TAG_MPEG4_InputSensor:
-#ifdef FILTER_FIXME
 		InitInputSensor(scene, node);
-#endif
 		break;
 
 	/*BIFS nodes, get back to codec, but filter externProtos*/
@@ -245,14 +243,10 @@ void gf_scene_on_node_init(void *_scene, GF_Node *node)
 
 #ifndef GPAC_DISABLE_X3D
 	case TAG_X3D_KeySensor:
-#ifdef FILTER_FIXME
 		InitKeySensor(scene, node);
-#endif
 		break;
 	case TAG_X3D_StringSensor:
-#ifdef FILTER_FIXME
 		InitStringSensor(scene, node);
-#endif
 		break;
 #endif
 
@@ -313,9 +307,7 @@ void gf_scene_on_node_modified(void *_is, GF_Node *node)
 		MS_Modified(node);
 		break;
 	case TAG_MPEG4_InputSensor:
-#ifdef FILTER_FIXME
 		InputSensorModified(node);
-#endif
 		break;
 	case TAG_MPEG4_Conditional:
 		break;

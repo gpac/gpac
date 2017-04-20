@@ -29,7 +29,7 @@
 #ifdef GPAC_HAS_SPIDERMONKEY
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/modules/term_ext.h>
+#include <gpac/modules/compositor_ext.h>
 #include <gpac/modules/js_usr.h>
 
 #include <gpac/internal/smjs_api.h>
@@ -247,7 +247,6 @@ Bool gf_js_remove_root(JSContext *cx, void *rp, u32 type)
 
 void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj, Bool unload)
 {
-#if FILTER_FIXME
 	u32 i, count;
 	count = gf_list_count(js_rt->extensions);
 	for (i=0; i<count; i++) {
@@ -257,55 +256,52 @@ void gf_sg_load_script_extensions(GF_SceneGraph *sg, JSContext *c, JSObject *obj
 
 	//if (js_rt->nb_inst==1)
 	{
-		GF_Terminal *term;
+		GF_Compositor *comp;
 		GF_JSAPIParam par;
 
 		if (!sg->script_action) return;
-		if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
+		if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, sg->RootNode, &par))
 			return;
 
-		term = par.term;
+		comp = par.compositor;
 
-		count = gf_list_count(term->extensions);
+		count = gf_list_count(comp->extensions);
 		for (i=0; i<count; i++) {
-			GF_TermExt *ext = (GF_TermExt *) gf_list_get(term->extensions, i);
-			if (ext->caps & GF_TERM_EXTENSION_JS) {
-				GF_TermExtJS te;
+			GF_CompositorExt *ext = (GF_CompositorExt *) gf_list_get(comp->extensions, i);
+			if (ext->caps & GF_COMPOSITOR_EXTENSION_JS) {
+				GF_CompositorExtJS te;
 				te.ctx = c;
 				te.global = obj;
 				te.scenegraph = sg;
 				te.unload = unload;
-				ext->process(ext, GF_TERM_EXT_JSBIND, &te);
+				ext->process(ext, GF_COMPOSITOR_EXT_JSBIND, &te);
 			}
 		}
 	}
-#endif
 }
 
 
 static void gf_sg_load_script_modules(GF_SceneGraph *sg)
 {
-#if FILTER_FIXME
-	GF_Terminal *term;
+	GF_Compositor *compositor;
 	u32 i, count;
 	GF_JSAPIParam par;
 
 	js_rt->extensions = gf_list_new();
 
 	if (!sg->script_action) return;
-	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_TERM, sg->RootNode, &par))
+	if (!sg->script_action(sg->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, sg->RootNode, &par))
 		return;
 
-	term = par.term;
+	compositor = par.compositor;
 
-	count = gf_modules_get_count(term->user->modules);
+	count = gf_modules_get_count(compositor->user->modules);
 	for (i=0; i<count; i++) {
-		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(term->user->modules, i, GF_JS_USER_EXT_INTERFACE);
+		GF_JSUserExtension *ext = (GF_JSUserExtension *) gf_modules_load_interface(compositor->user->modules, i, GF_JS_USER_EXT_INTERFACE);
 		if (!ext) continue;
 		gf_list_add(js_rt->extensions, ext);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_SCRIPT, ("[ECMAScript] found %d JS extensions for %d modules\n", gf_list_count(js_rt->extensions), count));
-#endif
 }
 
 static void gf_sg_unload_script_modules()
