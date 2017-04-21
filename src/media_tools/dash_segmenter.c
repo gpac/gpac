@@ -771,10 +771,13 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info (2), %s\n", gf_error_to_string(e)));
 		return e;
 	}
+	if (gf_isom_get_media_subtype(movie, trackNumber, StreamDescriptionIndex) != GF_ISOM_BOX_TYPE_MP4A)
+		return GF_OK;
+
 	esd = gf_isom_get_esd(movie, trackNumber, 1);
 	if (!esd) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: broken MPEG-4 Track, %s\n", gf_error_to_string(e)));
-		return GF_NOT_SUPPORTED;
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: broken MPEG-4 Track, no ESD found\n"));
+		return GF_OK;
 	}
 	e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) {
