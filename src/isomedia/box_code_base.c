@@ -6813,6 +6813,7 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_WVTT:
 		case GF_ISOM_BOX_TYPE_STPP:
 		case GF_ISOM_BOX_TYPE_SBTT:
+		case GF_ISOM_BOX_TYPE_MP3:
 			continue;
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 			break;
