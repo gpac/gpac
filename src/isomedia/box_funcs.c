@@ -1105,6 +1105,7 @@ static const struct box_registry_entry {
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_ODAF, iSFM, "schi", 0, "oma"),
 
 	//apple boxes
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_MP3, audio_sample_entry, "stsd", "apple"),
 	FBOX_DEFINE_S( GF_ISOM_BOX_TYPE_CHPL, chpl, "udta", 0, "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VOID, void, "", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_ILST, ilst, "meta", "apple"),
