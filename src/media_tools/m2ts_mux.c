@@ -563,7 +563,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (!stream->continuity_counter) stream->continuity_counter=15;
 		else stream->continuity_counter--;
 	}
-	
+
 	gf_bs_write_int(bs,	0, 1);    /*priority indicator*/
 	gf_bs_write_int(bs,	stream->pid, 13); /*pid*/
 	gf_bs_write_int(bs,	0, 2);    /*scrambling indicator*/
@@ -572,7 +572,7 @@ void gf_m2ts_mux_table_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 
 	if (stream->continuity_counter < 15) stream->continuity_counter++;
 	else stream->continuity_counter=0;
-	
+
 #ifdef USE_AF_STUFFING
 	if (adaptation_field_control != GF_M2TS_ADAPTATION_NONE)
 		gf_m2ts_add_adaptation(stream->program, bs, stream->pid, 0, 0, 0, padding_length, NULL, 0);
@@ -905,10 +905,11 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 	}
 
 	/*Rescale our timestamps and express them in PCR*/
-	if (stream->ts_scale) {
-		*cts = (u64) (stream->ts_scale * (s64) *cts);
-		*dts = (u64) (stream->ts_scale * (s64) *dts);
-		if (duration) *duration = (u32) (stream->ts_scale * (u32) *duration);
+	if (stream->ts_scale.den) {
+		*cts = (u64)( *cts * stream->ts_scale.num / stream->ts_scale.den ) ;
+		*dts = (u64)( *dts * stream->ts_scale.num / stream->ts_scale.den ) ;
+		if (duration) *duration = (u32)( *duration * stream->ts_scale.num / stream->ts_scale.den ) ;
+
 
 	}
 	if (!stream->program->initial_ts_set) {
@@ -1744,7 +1745,7 @@ void gf_m2ts_mux_pes_get_next_packet(GF_M2TS_Mux_Stream *stream, char *packet)
 		if (!stream->continuity_counter) stream->continuity_counter=15;
 		else stream->continuity_counter--;
 	}
-	
+
 	gf_bs_write_int(bs,	0x47, 8); // sync byte
 	gf_bs_write_int(bs,	0, 1);    // error indicator
 	gf_bs_write_int(bs,	hdr_len ? 1 : 0, 1); // start ind
@@ -2030,7 +2031,7 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 	GF_BitStream *bs;
 	u32 data_len;
 	if (!stream || !stream->program || !stream->program->pmt) return;
-	
+
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	/*reserved*/
 	gf_bs_write_int(bs, 1, 1);
@@ -2059,7 +2060,7 @@ static void gf_m2ts_stream_add_hierarchy_descriptor(GF_M2TS_Mux_Stream *stream)
 
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
 	if (!desc) return;
-	
+
 	desc->tag = (u8) GF_M2TS_HIERARCHY_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2084,7 +2085,7 @@ static void gf_m2ts_stream_add_metadata_pointer_descriptor(GF_M2TS_Mux_Program *
 	gf_bs_write_u16(bs, program->number);
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
 	if (!desc) return;
-	
+
 	desc->tag = (u8) GF_M2TS_METADATA_POINTER_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2108,7 +2109,7 @@ static void gf_m2ts_stream_add_metadata_descriptor(GF_M2TS_Mux_Stream *stream)
 	gf_bs_write_int(bs, 0xF, 4); /* reserved */
 	GF_SAFEALLOC(desc, GF_M2TSDescriptor);
 	if (!desc) return;
-	
+
 	desc->tag = (u8) GF_M2TS_METADATA_DESCRIPTOR;
 	gf_bs_get_content(bs, &desc->data, &data_len);
 	gf_bs_del(bs);
@@ -2283,7 +2284,10 @@ GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, str
 	stream->ifce->output_ctrl = gf_m2ts_output_ctrl;
 	stream->ifce->output_udta = stream;
 	stream->mx = gf_mx_new("M2TS PID");
-	if (ifce->timescale != 90000) stream->ts_scale = 90000.0 / ifce->timescale;
+	if (ifce->timescale != 90000) {
+		stream->ts_scale.num = 90000;
+		stream->ts_scale.den = ifce->timescale;
+	}
 	return stream;
 }
 
@@ -2293,8 +2297,9 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 	GF_M2TS_Mux_Stream *stream = (GF_M2TS_Mux_Stream *)_self->output_udta;
 	if (!stream || !time_scale)
 		return GF_BAD_PARAM;
-	stream->ts_scale = 90000.0 / time_scale;
 
+	stream->ts_scale.num = 90000;
+	stream->ts_scale.den = time_scale;
 	return GF_OK;
 }
 
@@ -2316,7 +2321,7 @@ GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_num
 
 	GF_SAFEALLOC(program, GF_M2TS_Mux_Program);
 	if (!program) return NULL;
-	
+
 	program->mux = muxer;
 	program->mpeg4_signaling = mpeg4_signaling;
 	program->pcr_offset = pcr_offset;
@@ -2358,7 +2363,7 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 	GF_M2TS_Mux *muxer;
 	GF_SAFEALLOC(muxer, GF_M2TS_Mux);
 	if (!muxer) return NULL;
-	
+
 	muxer->pat = gf_m2ts_stream_new(GF_M2TS_PID_PAT);
 	if (!muxer->pat) {
 		gf_free(muxer);
