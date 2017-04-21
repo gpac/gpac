@@ -298,6 +298,7 @@
 		92586A731EA7669200A0838A /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A6F1EA7665D00A0838A /* ft_font.c */; };
 		92586A761EA8B66900A0838A /* input_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A741EA8B66900A0838A /* input_sensor.c */; };
 		92586A771EA8B66900A0838A /* input_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A751EA8B66900A0838A /* input_sensor.h */; };
+		92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7A1EAA26CC00A0838A /* raw_out.c */; };
 		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
 		9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
@@ -1121,6 +1122,7 @@
 		92586A701EA7665D00A0838A /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
 		92586A741EA8B66900A0838A /* input_sensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input_sensor.c; sourceTree = "<group>"; };
 		92586A751EA8B66900A0838A /* input_sensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input_sensor.h; sourceTree = "<group>"; };
+		92586A7A1EAA26CC00A0838A /* raw_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_out.c; path = ../modules/raw_out/raw_out.c; sourceTree = "<group>"; };
 		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
 		9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters_imp/unit_test_filter.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
@@ -2181,6 +2183,7 @@
 		9251CA871E9D3DFE0089DDC6 /* MP4Client */ = {
 			isa = PBXGroup;
 			children = (
+				92D5356F1A5C0CF700F2442A /* carbon_events.c */,
 				92F4CE101E9E7708006A9845 /* extract.c */,
 				9251CA881E9D3E2B0089DDC6 /* main.c */,
 			);
@@ -2390,7 +2393,6 @@
 			children = (
 				9251CA871E9D3DFE0089DDC6 /* MP4Client */,
 				927AACF81E44ED5C008C8E69 /* gpac */,
-				92D5356F1A5C0CF700F2442A /* carbon_events.c */,
 				92BE50B518D6D53000AA59D8 /* MP42TS */,
 				92BE509218D6325E00AA59D8 /* MP4Box */,
 			);
@@ -2425,6 +2427,7 @@
 		92C1FF4A1E7C42A40093B61E /* builtin_modules */ = {
 			isa = PBXGroup;
 			children = (
+				92586A7A1EAA26CC00A0838A /* raw_out.c */,
 				92C1FF4B1E7C42BF0093B61E /* soft_raster */,
 			);
 			name = builtin_modules;
@@ -3158,6 +3161,7 @@
 				9201012A18D5A444003D1ACA /* sample_descs.c in Sources */,
 				9201012B18D5A444003D1ACA /* stbl_read.c in Sources */,
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
+				92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
 				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
 				9201012F18D5A444003D1ACA /* tx3g.c in Sources */,

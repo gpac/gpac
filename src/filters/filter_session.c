@@ -130,15 +130,19 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	}
 	fsess->user = user;
 
-	if (user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD)
-		fsess->no_main_thread = GF_TRUE;
-
 	//setup our basic callbacks
 	if (!user) {
 		fsess->static_user.EventProc = fs_default_event_proc;
 		fsess->static_user.opaque = fsess;
 		fsess->user = &fsess->static_user;
 	}
+
+	if (fsess->user->init_flags & GF_TERM_NO_COMPOSITOR_THREAD)
+		fsess->no_main_thread = GF_TRUE;
+
+	if (fsess->user->init_flags & GF_TERM_NO_REGULATION)
+		fsess->no_regulation = GF_TRUE;
+
 
 	if (!fsess->semaphore)
 		nb_threads=0;
@@ -556,9 +560,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						if (next->schedule_next_time <= now) {
 							continue;
 						}
-						ndiff = next->schedule_next_time - now;
-						if (ndiff<diff) diff = ndiff;
-						gf_sleep(diff);
+						if (!fsess->no_regulation) {
+							ndiff = next->schedule_next_time - now;
+							if (ndiff<diff) diff = ndiff;
+							gf_sleep(diff);
+						}
 					}
 					if (do_use_sema) {
 						gf_fs_sema_io(fsess, GF_TRUE);
@@ -603,10 +609,12 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 				sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, count ? 0 : (s32) diff));
+				if (! fsess->no_regulation) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, count ? 0 : (s32) diff));
 
-				gf_sleep(diff);
-				active_start = gf_sys_clock_high_res();
+					gf_sleep(diff);
+					active_start = gf_sys_clock_high_res();
+				}
 			}
 		}
 

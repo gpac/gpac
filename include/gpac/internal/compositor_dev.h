@@ -1057,6 +1057,8 @@ void gf_mixer_remove_all(GF_AudioMixer *am);
 void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_remove_input(GF_AudioMixer *am, GF_AudioInterface *src);
 void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt);
+Bool gf_mixer_try_lock(GF_AudioMixer *am);
+
 /*mix inputs in buffer, return number of bytes written to output*/
 u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 delay_ms);
 /*reconfig all sources if needed - returns TRUE if main audio config changed

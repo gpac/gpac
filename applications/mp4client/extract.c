@@ -727,7 +727,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		if (last_error) return 1;
 		e = gf_term_process_flush(term);
 		if (e) {
-			fprintf(stderr, "Error initializing plalback: %s\n", gf_error_to_string(e));
+			fprintf(stderr, "Error initializing playback: %s\n", gf_error_to_string(e));
 			return 1;
 		}
 	}

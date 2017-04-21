@@ -663,7 +663,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 		gf_filter_pck_unref(odm->mo->pck);
 		odm->mo->pck = NULL;
 	}
-	odm->flags &= ~GF_ODM_PREFETCH;
 
 	if (odm->parentscene) {
 		parent_ck = gf_odm_get_media_clock(odm->parentscene->root_od);
@@ -891,6 +890,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
 	GF_FilterEvent com;
 
+	odm->flags &= ~GF_ODM_PREFETCH;
+	
 	//root ODs of dynamic scene may not have seen play/pause request
 	if (!odm->state && !odm->scalable_addon && (!odm->subscene || !odm->subscene->is_dynamic_scene) ) return;
 
@@ -1092,8 +1093,9 @@ void gf_odm_pause(GF_ObjectManager *odm)
 	GF_FEVT_INIT(com, GF_FEVT_PAUSE, odm->pid);
 	gf_clock_pause(odm->ck);
 
-	if (odm->state == GF_ODM_STATE_PLAY)
+	if ((odm->state == GF_ODM_STATE_PLAY) && (scene->first_frame_pause_type!=2)) {
 		gf_filter_pid_send_event(odm->pid, &com);
+	}
 
 	i=0;
 	while ((xpid = (GF_ODMExtraPid*)gf_list_enum(odm->extra_pids, &i))) {
