@@ -23,7 +23,7 @@ CFLAGS+=-DENABLE_JOYSTICK_NO_CURSOR
 endif
 
 #common obj
-OBJS= raw_video.o
+OBJS= raw_out.o
 
 SRCS := $(OBJS:.o=.c) 
 

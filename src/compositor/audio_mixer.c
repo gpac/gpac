@@ -164,6 +164,12 @@ void gf_mixer_lock(GF_AudioMixer *am, Bool lockIt)
 }
 
 GF_EXPORT
+Bool gf_mixer_try_lock(GF_AudioMixer *am)
+{
+	return gf_mx_try_lock(am->mx);
+}
+
+GF_EXPORT
 Bool gf_mixer_empty(GF_AudioMixer *am)
 {
 	return am->isEmpty;

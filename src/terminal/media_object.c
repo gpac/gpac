@@ -668,13 +668,15 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 	if (!mo) return;
 
 	if (!mo->num_open && mo->odm) {
-		Bool is_restart = GF_FALSE;
 
 		if (mo->odm->state == GF_ODM_STATE_PLAY) {
+			if (mo->odm->flags & GF_ODM_PREFETCH) {
+				mo->odm->flags &= ~GF_ODM_PREFETCH;
+				mo->num_open++;
+				return;
+			}
 			GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
-//			is_restart = GF_TRUE;
 		}
-
 		if (mo->odm->flags & GF_ODM_NO_TIME_CTRL) {
 			mo->odm->media_start_time = 0;
 		} else {
@@ -696,13 +698,9 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 			}
 		}
 		/*done prefetching*/
-		mo->odm->flags &= ~GF_ODM_PREFETCH;
+		assert(! (mo->odm->flags & GF_ODM_PREFETCH) );
 
-		if (is_restart) {
-			mediacontrol_restart(mo->odm);
-		} else {
-			gf_odm_start(mo->odm);
-		}
+		gf_odm_start(mo->odm);
 	} else if (mo->odm) {
 		if (mo->num_to_restart) mo->num_restart--;
 		if (!mo->num_restart && (mo->num_to_restart==mo->num_open+1) ) {

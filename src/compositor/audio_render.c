@@ -142,6 +142,10 @@ void gf_sc_flush_next_audio(GF_Compositor *compositor)
 	if (!compositor->audio_renderer->audio_out)
 		return;
 
+	//if the audio output uses its own thread we may already be locked
+//	if (! gf_mixer_try_lock(compositor->audio_renderer->mixer))
+//		return;
+
 	gf_mixer_lock(compositor->audio_renderer->mixer, GF_TRUE);
 	compositor->audio_renderer->step_mode = GF_TRUE;
 	//resume for one frame

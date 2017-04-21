@@ -47,7 +47,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_SDL
 	LOAD_PLUGIN(sdl_out);
 #endif
+
 	LOAD_PLUGIN(soft_raster);
+	LOAD_PLUGIN(raw_out);
 
 #if FILTER_FIXME
 
@@ -62,7 +64,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_ALSA
 	LOAD_PLUGIN(alsa);
 #endif
-	LOAD_PLUGIN(audio_filter);
+
 	LOAD_PLUGIN(bifs);
 #ifndef GPAC_DISABLE_SMGR
 	LOAD_PLUGIN(ctx_load);
@@ -124,7 +126,7 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_PULSEAUDIO
 	LOAD_PLUGIN(pulseaudio);
 #endif
-	LOAD_PLUGIN(raw_out);
+
 #ifdef GPAC_HAS_FFMPEG
 	//    LOAD_PLUGIN(redirect_av);
 #endif

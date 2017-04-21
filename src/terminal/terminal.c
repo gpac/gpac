@@ -202,6 +202,7 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Connecting to %s\n", URL));
 
+	assert(!compositor->root_scene);
 
 	/*create a new scene*/
 	scene = gf_scene_new(compositor, NULL);
@@ -212,14 +213,15 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	scene->is_dynamic_scene = GF_TRUE;
 
 	odm->media_start_time = startTime;
+
+	// we are not in compositor:process at this point of time since the terminal thread drives the compositor
+	compositor->root_scene = scene;
+
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame) {
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
 		scene->first_frame_pause_type = pause_at_first_frame;
 	}
-
-	//TODO: make sure we are not in compositor:process at this point of time !
-	compositor->root_scene = scene;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] root scene created\n", URL));
 

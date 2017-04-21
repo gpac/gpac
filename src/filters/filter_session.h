@@ -217,6 +217,7 @@ struct __gf_media_session
 	Bool task_in_process;
 	Bool requires_solved_graph;
 	Bool no_main_thread;
+	Bool no_regulation;
 
 	GF_List *registry;
 	GF_List *filters;
