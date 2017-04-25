@@ -23,7 +23,8 @@
  *
  */
 
-#include <gpac/modules/term_ext.h>
+#include <gpac/modules/compositor_ext.h>
+#include <gpac/filters.h>
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/media_dev.h>
@@ -32,7 +33,7 @@
 
 typedef struct __validation_module
 {
-	GF_Terminal *term;
+	GF_Compositor *compositor;
 
 	Bool is_recording;
 	Bool trace_mode;
@@ -72,7 +73,7 @@ typedef struct __validation_module
 	Bool snapshot_next_frame;
 	u32 snapshot_number;
 
-	GF_TermEventFilter evt_filter;
+	GF_FSEventListener evt_filter;
 } GF_Validator;
 
 static void validator_xvs_close(GF_Validator *validator);
@@ -139,12 +140,12 @@ static char *validator_create_snapshot(GF_Validator *validator)
 {
 	GF_Err e;
 	GF_VideoSurface fb;
-	GF_Terminal *term = validator->term;
+	GF_Compositor *compositor = validator->compositor;
 	char *dumpname;
 
 	dumpname = validator_get_snapshot_name(validator, validator->is_recording, validator->snapshot_number);
 
-	e = gf_term_get_screen_buffer(term, &fb);
+	e = gf_sc_get_screen_buffer(compositor, &fb, 0);
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MODULE, ("[Validator] Error dumping screen buffer %s\n", gf_error_to_string(e)));
 	} else {
@@ -165,7 +166,7 @@ static char *validator_create_snapshot(GF_Validator *validator)
 			}
 		}
 		if (dst) gf_free(dst);
-		gf_term_release_screen_buffer(term, &fb);
+		gf_sc_release_screen_buffer(compositor, &fb);
 	}
 	validator->snapshot_number++;
 	return dumpname;
@@ -248,10 +249,10 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
 			if (!validator->trace_mode) {
-				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
 
-			validator->ck = validator->term->root_scene->is_dynamic_scene ?  validator->term->root_scene->dyn_ck : validator->term->root_scene->root_od->ck;
+			validator->ck = validator->compositor->root_scene->root_od->ck;
 		}
 		break;
 	case GF_EVENT_CLICK:
@@ -269,7 +270,7 @@ Bool validator_on_event_play(void *udta, GF_Event *event, Bool consumed_by_compo
 			GF_Event evt;
 			memset(&evt, 0, sizeof(GF_Event));
 			evt.type = GF_EVENT_QUIT;
-			validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
+			validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
 		}
 		return GF_TRUE;
 	}
@@ -318,7 +319,7 @@ static void validator_xvs_add_event_dom(GF_Validator *validator, GF_Event *event
 	}
 	att->name = gf_strdup("time");
 	att->value = (char*)gf_malloc(100);
-	sprintf(att->value, "%f", gf_scene_get_time(validator->term->root_scene)*1000);
+	sprintf(att->value, "%f", gf_scene_get_time(validator->compositor->root_scene)*1000);
 	gf_list_add(evt_node->attributes, att);
 
 	switch (event->type) {
@@ -487,9 +488,9 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 	case GF_EVENT_CONNECT:
 		if (event->connect.is_connected) {
 			if (!validator->trace_mode) {
-				gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+				gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 			}
-			validator->ck = validator->term->root_scene->is_dynamic_scene ? validator->term->root_scene->dyn_ck : validator->term->root_scene->root_od->ck;
+			validator->ck = validator->compositor->root_scene->root_od->ck;
 		}
 		break;
 	case GF_EVENT_KEYDOWN:
@@ -520,21 +521,21 @@ Bool validator_on_event_record(void *udta, GF_Event *event, Bool consumed_by_com
 				GF_Event evt;
 				memset(&evt, 0, sizeof(GF_Event));
 				evt.type = GF_EVENT_QUIT;
-				validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
+				validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
 			} else if (event->key.key_code == GF_KEY_F1) {
 				validator->snapshot_next_frame = GF_TRUE;
 			}
 		} else if (event->key.key_code == GF_KEY_PAGEDOWN) {
 			rec_event = GF_FALSE;
 			validator_xvs_close(validator);
-			gf_term_disconnect(validator->term);
-			gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
+			gf_sc_disconnect(validator->compositor);
+			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 			validator_xvs_next(validator, GF_FALSE);
 		} else if (event->key.key_code == GF_KEY_PAGEUP) {
 			rec_event = GF_FALSE;
 			validator_xvs_close(validator);
-			gf_term_disconnect(validator->term);
-			gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
+			gf_sc_disconnect(validator->compositor);
+			gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 			validator_xvs_next(validator, GF_TRUE);
 		} else if (event->key.key_code == GF_KEY_CONTROL) {
 			rec_event = GF_FALSE;
@@ -816,13 +817,13 @@ static void validator_test_open(GF_Validator *validator)
 		else
 			sprintf(filename, "%s", validator->test_filename);
 
-		gf_sc_add_video_listener(validator->term->compositor, &validator->video_listener);
+		gf_sc_add_video_listener(validator->compositor, &validator->video_listener);
 		if (validator->is_recording)
 			validator->snapshot_next_frame = GF_TRUE;
-		gf_term_connect(validator->term, filename);
+		gf_sc_connect(validator->compositor, filename);
 
 	}
-//	validator->ck = validator->term->root_scene->scene_codec ? validator->term->root_scene->scene_codec->ck : validator->term->root_scene->dyn_ck;
+//	validator->ck = validator->compositor->root_scene->scene_codec ? validator->compositor->root_scene->scene_codec->ck : validator->compositor->root_scene->dyn_ck;
 }
 
 static Bool validator_xvs_next(GF_Validator *validator, Bool reverse)
@@ -924,7 +925,7 @@ static Bool validator_load_event(GF_Validator *validator)
 	return GF_TRUE;
 }
 
-static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
+static Bool validator_process(GF_CompositorExt *termext, u32 action, void *param)
 {
 	const char *opt;
 	GF_Validator *validator = (GF_Validator*)termext->udta;
@@ -932,8 +933,8 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 	switch (action) {
 
 	/* Upon starting of the terminal, we parse (possibly an XVL file), an XVS file, and start the first test sequence */
-	case GF_TERM_EXT_START:
-		validator->term = (GF_Terminal *) param;
+	case GF_COMPOSITOR_EXT_START:
+		validator->compositor = (GF_Compositor *) param;
 
 		/* if the validator is loaded, we switch off anti-aliasing for image comparison and we put a low framerate,
 		but we store the previous value to restore it upon termination of the validator */
@@ -985,7 +986,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		/* since we changed parameters of the compositor, we need to trigger a reconfiguration */
 //		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "FrameRate", "5.0");
 //		gf_modules_set_option((GF_BaseInterface*)termext, "Compositor", "AntiAlias", "None");
-//		gf_term_set_option(validator->term, GF_OPT_RELOAD_CONFIG, 1);
+//		gf_term_set_option(validator->compositor, GF_OPT_RELOAD_CONFIG, 1);
 
 		/* TODO: if start returns 0, the module is not loaded, so the above init (filter registration) is not removed,
 		   should probably return 1 all the time, to make sure stop is called */
@@ -1016,11 +1017,11 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 		validator->evt_filter.udta = validator;
 		if (!validator->is_recording) {
 			validator->evt_filter.on_event = validator_on_event_play;
-			termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
+			termext->caps |= GF_COMPOSITOR_EXTENSION_NOT_THREADED;
 		} else {
 			validator->evt_filter.on_event = validator_on_event_record;
 		}
-		gf_term_add_event_filter(validator->term, &validator->evt_filter);
+		gf_fs_add_event_listener(validator->compositor->fsess, &validator->evt_filter);
 		validator->video_listener.udta = validator;
 		validator->video_listener.on_video_frame = validator_on_video_frame;
 		validator->video_listener.on_video_reconfig = validator_on_video_reconfig;
@@ -1034,11 +1035,11 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 	/* when the terminal stops, we close the XVS parser and XVL parser if any, restore the config,
 	and free all validator data (the validator will be destroyed when the module is unloaded)
 	Note: we don't need to disconnect the terminal since it's already stopping */
-	case GF_TERM_EXT_STOP:
-		gf_term_remove_event_filter(validator->term, &validator->evt_filter);
+	case GF_COMPOSITOR_EXT_STOP:
+		gf_fs_remove_event_listener(validator->compositor->fsess, &validator->evt_filter);
 		validator_xvs_close(validator);
 		validator_xvl_close(validator);
-		validator->term = NULL;
+		validator->compositor = NULL;
 		if (validator->test_base) {
 			gf_free(validator->test_base);
 			validator->test_base = NULL;
@@ -1067,7 +1068,7 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 	/* When called in the main loop of the terminal, we don't do anything in the recording mode.
 	   In the playing/validating mode, we need to check if an event needs to be dispatched or if snapshots need to be made,
 	   until there is no more event, in which case we trigger either the load of the next XVS or the quit */
-	case GF_TERM_EXT_PROCESS:
+	case GF_COMPOSITOR_EXT_PROCESS:
 		/* if the time is right, dispatch the event and load the next one */
 		while (!validator->is_recording && validator->evt_loaded && validator->ck && (validator->next_time <= gf_clock_time(validator->ck) )) {
 			Bool has_more_events;
@@ -1083,20 +1084,20 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 				validator->next_event_snapshot = GF_FALSE;
 #endif
 			} else {
-				validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &validator->next_event);
+				validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &validator->next_event);
 			}
 			has_more_events = validator_load_event(validator);
 			if (!has_more_events) {
 				validator_xvs_close(validator);
 				if (! validator->trace_mode) {
-					gf_term_disconnect(validator->term);
-					gf_sc_remove_video_listener(validator->term->compositor, &validator->video_listener);
+					gf_sc_disconnect(validator->compositor);
+					gf_sc_remove_video_listener(validator->compositor, &validator->video_listener);
 					validator_xvs_next(validator, GF_FALSE);
 					if (!validator->xvs_node) {
 						GF_Event evt;
 						memset(&evt, 0, sizeof(GF_Event));
 						evt.type = GF_EVENT_QUIT;
-						validator->term->compositor->video_out->on_event(validator->term->compositor->video_out->evt_cbk_hdl, &evt);
+						validator->compositor->video_out->on_event(validator->compositor->video_out->evt_cbk_hdl, &evt);
 					} else {
 						if (!validator->is_recording) {
 							validator_load_event(validator);
@@ -1111,13 +1112,13 @@ static Bool validator_process(GF_TermExt *termext, u32 action, void *param)
 }
 
 
-GF_TermExt *validator_new()
+GF_CompositorExt *validator_new()
 {
-	GF_TermExt *dr;
+	GF_CompositorExt *dr;
 	GF_Validator *validator;
-	dr = (GF_TermExt*)gf_malloc(sizeof(GF_TermExt));
-	memset(dr, 0, sizeof(GF_TermExt));
-	GF_REGISTER_MODULE_INTERFACE(dr, GF_TERM_EXT_INTERFACE, "GPAC Test Validator", "gpac distribution");
+	dr = (GF_CompositorExt*)gf_malloc(sizeof(GF_CompositorExt));
+	memset(dr, 0, sizeof(GF_CompositorExt));
+	GF_REGISTER_MODULE_INTERFACE(dr, GF_COMPOSITOR_EXT_INTERFACE, "GPAC Test Validator", "gpac distribution");
 
 	GF_SAFEALLOC(validator, GF_Validator);
 	dr->process = validator_process;
@@ -1128,7 +1129,7 @@ GF_TermExt *validator_new()
 
 void validator_delete(GF_BaseInterface *ifce)
 {
-	GF_TermExt *dr = (GF_TermExt *) ifce;
+	GF_CompositorExt *dr = (GF_CompositorExt *) ifce;
 	GF_Validator *validator = (GF_Validator*)dr->udta;
 	if (validator->prev_fps) gf_free(validator->prev_fps);
 	if (validator->prev_alias) gf_free(validator->prev_alias);
@@ -1140,7 +1141,7 @@ GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
-		GF_TERM_EXT_INTERFACE,
+		GF_COMPOSITOR_EXT_INTERFACE,
 		0
 	};
 	return si;
@@ -1149,7 +1150,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	if (InterfaceType == GF_TERM_EXT_INTERFACE) return (GF_BaseInterface *)validator_new();
+	if (InterfaceType == GF_COMPOSITOR_EXT_INTERFACE) return (GF_BaseInterface *)validator_new();
 	return NULL;
 }
 
@@ -1157,7 +1158,7 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-	case GF_TERM_EXT_INTERFACE:
+	case GF_COMPOSITOR_EXT_INTERFACE:
 		validator_delete(ifce);
 		break;
 	}

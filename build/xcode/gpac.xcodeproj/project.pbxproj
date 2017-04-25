@@ -299,6 +299,8 @@
 		92586A761EA8B66900A0838A /* input_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A741EA8B66900A0838A /* input_sensor.c */; };
 		92586A771EA8B66900A0838A /* input_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A751EA8B66900A0838A /* input_sensor.h */; };
 		92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7A1EAA26CC00A0838A /* raw_out.c */; };
+		92586A7D1EAA375800A0838A /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7C1EAA375800A0838A /* gpac_js.c */; };
+		92586A7F1EAA5A4300A0838A /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7E1EAA5A4300A0838A /* validator.c */; };
 		9279D49E1E5EDF40004E53F4 /* inspect.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49D1E5EDF40004E53F4 /* inspect.c */; };
 		9279D4A01E5EE9CA004E53F4 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
@@ -1123,11 +1125,12 @@
 		92586A741EA8B66900A0838A /* input_sensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input_sensor.c; sourceTree = "<group>"; };
 		92586A751EA8B66900A0838A /* input_sensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input_sensor.h; sourceTree = "<group>"; };
 		92586A7A1EAA26CC00A0838A /* raw_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_out.c; path = ../modules/raw_out/raw_out.c; sourceTree = "<group>"; };
+		92586A7C1EAA375800A0838A /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
+		92586A7E1EAA5A4300A0838A /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../modules/validator/validator.c; sourceTree = "<group>"; };
 		9279D49D1E5EDF40004E53F4 /* inspect.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = inspect.c; path = filters_imp/inspect.c; sourceTree = "<group>"; };
 		9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters_imp/unit_test_filter.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
-		927AACFF1E44EEDC008C8E69 /* main.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = main.c; sourceTree = "<group>"; };
 		9299BDDC1E5DA57100D6289D /* ff_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dmx.c; path = filters_imp/ff_dmx.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
@@ -1619,7 +1622,6 @@
 				92BE50AC18D6375100AA59D8 /* applications */,
 				92BE50AD18D6376A00AA59D8 /* modules */,
 				9201FE7E18D5A444003D1ACA /* libgpac */,
-				927AACFE1E44EEDC008C8E69 /* gpac */,
 				92B02F4D1DD2004300F85E77 /* Frameworks */,
 			);
 			sourceTree = "<group>";
@@ -2207,14 +2209,6 @@
 			name = gpac;
 			sourceTree = "<group>";
 		};
-		927AACFE1E44EEDC008C8E69 /* gpac */ = {
-			isa = PBXGroup;
-			children = (
-				927AACFF1E44EEDC008C8E69 /* main.c */,
-			);
-			path = gpac;
-			sourceTree = "<group>";
-		};
 		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
 			isa = PBXGroup;
 			children = (
@@ -2427,6 +2421,8 @@
 		92C1FF4A1E7C42A40093B61E /* builtin_modules */ = {
 			isa = PBXGroup;
 			children = (
+				92586A7E1EAA5A4300A0838A /* validator.c */,
+				92586A7C1EAA375800A0838A /* gpac_js.c */,
 				92586A7A1EAA26CC00A0838A /* raw_out.c */,
 				92C1FF4B1E7C42BF0093B61E /* soft_raster */,
 			);
@@ -3131,6 +3127,7 @@
 				9201010F18D5A444003D1ACA /* rtsp_command.c in Sources */,
 				9201011018D5A444003D1ACA /* rtsp_common.c in Sources */,
 				9201011118D5A444003D1ACA /* rtsp_response.c in Sources */,
+				92586A7D1EAA375800A0838A /* gpac_js.c in Sources */,
 				92C1FF571E7C42DF0093B61E /* raster_argb.c in Sources */,
 				9201011218D5A444003D1ACA /* rtsp_session.c in Sources */,
 				9201011318D5A444003D1ACA /* sdp.c in Sources */,
@@ -3229,6 +3226,7 @@
 				9201016918D5A445003D1ACA /* qos.c in Sources */,
 				92586A761EA8B66900A0838A /* input_sensor.c in Sources */,
 				9201016A18D5A445003D1ACA /* slc.c in Sources */,
+				92586A7F1EAA5A4300A0838A /* validator.c in Sources */,
 				9201016B18D5A445003D1ACA /* encode_isom.c in Sources */,
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,
 				9201016D18D5A445003D1ACA /* loader_isom.c in Sources */,

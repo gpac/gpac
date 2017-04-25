@@ -68,7 +68,7 @@
 typedef struct
 {
 	u32 nb_loaded;
-	GF_Terminal *term;
+	GF_Compositor *compositor;
 
 	GF_JSClass gpacClass;
 	GF_JSClass gpacEvtClass;
@@ -78,7 +78,7 @@ typedef struct
 	GF_JSClass storageClass;
 
 	jsval evt_fun;
-	GF_TermEventFilter evt_filter;
+	GF_FSEventListener evt_filter;
 	GF_Event *evt;
 
 	JSContext *c;
@@ -140,7 +140,7 @@ enum {
 	GJS_OM_PROP_IS_ADDON = -41,
 	GJS_OM_PROP_MAIN_ADDON_ON = -42,
 	GJS_OM_PROP_IS_OVER = -43,
-	GJS_OM_PROP_IS_PULLING = -44,
+	GJS_OM_PROP_IS_VR_SCENE = -44,
 	GJS_OM_PROP_DYNAMIC_SCENE = -45,
 	GJS_OM_PROP_SERVICE_NAME = -46,
 	GJS_OM_PROP_NTP_DIFF = -47,
@@ -149,7 +149,6 @@ enum {
 	GJS_OM_PROP_SCALABLE_ENHANCEMENT = -50,
 	GJS_OM_PROP_MAIN_ADDON_MEDIATIME = -51,
 	GJS_OM_PROP_DEPENDENT_GROUPS = -52,
-	GJS_OM_PROP_IS_VR_SCENE = -53,
 };
 
 enum {
@@ -206,50 +205,50 @@ enum {
 };
 
 
-static GF_Terminal *gpac_get_term(JSContext *c, JSObject *obj)
+static GF_Compositor *gpac_get_compositor(JSContext *c, JSObject *obj)
 {
 	GF_GPACJSExt *ext = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
-	return ext ? ext->term : NULL;
+	return ext ? ext->compositor : NULL;
 }
 
 static SMJS_FUNC_PROP_GET( gpac_getProperty)
 
 const char *res;
 s32 prop_id;
-GF_Terminal *term = gpac_get_term(c, obj);
-if (!term) return JS_FALSE;
+GF_Compositor *compositor = gpac_get_compositor(c, obj);
+if (!compositor) return JS_FALSE;
 
 if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 prop_id = SMJS_ID_TO_INT(id);
 
 switch (prop_id) {
 case GJS_GPAC_PROP_LAST_WORK_DIR:
-	res = gf_cfg_get_key(term->user->config, "General", "LastWorkingDir");
-	if (!res) res = gf_cfg_get_key(term->user->config, "General", "ModulesDirectory");
+	res = gf_cfg_get_key(compositor->user->config, "General", "LastWorkingDir");
+	if (!res) res = gf_cfg_get_key(compositor->user->config, "General", "ModulesDirectory");
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, res));
 	break;
 
 case GJS_GPAC_PROP_SCALE_X:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_x)) );
+	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(compositor->scale_x)) );
 	break;
 
 case GJS_GPAC_PROP_SCALE_Y:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->scale_y)) );
+	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(compositor->scale_y)) );
 	break;
 
 case GJS_GPAC_PROP_TRANSLATION_X:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_x)) );
+	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(compositor->trans_x)) );
 	break;
 
 case GJS_GPAC_PROP_TRANSLATION_Y:
-	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(term->compositor->trans_y)) );
+	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, FIX2FLT(compositor->trans_y)) );
 	break;
 
 case GJS_GPAC_PROP_RECT_TEXTURES:
 {
 	Bool any_size = GF_FALSE;
 #ifndef GPAC_DISABLE_3D
-	if (term->compositor->gl_caps.npot_texture || term->compositor->gl_caps.rect_texture)
+	if (compositor->gl_caps.npot_texture || compositor->gl_caps.rect_texture)
 		any_size = GF_TRUE;
 #endif
 	*vp = BOOLEAN_TO_JSVAL( any_size ? JS_TRUE : JS_FALSE );
@@ -305,74 +304,78 @@ case GJS_GPAC_PROP_HOSTNAME:
 break;
 
 case GJS_GPAC_PROP_FULLSCREEN:
-	*vp = BOOLEAN_TO_JSVAL( term->compositor->fullscreen ? JS_TRUE : JS_FALSE);
+	*vp = BOOLEAN_TO_JSVAL( compositor->fullscreen ? JS_TRUE : JS_FALSE);
 	break;
 
 case GJS_GPAC_PROP_CURRENT_PATH:
 {
-	char *url = gf_url_concatenate(term->root_scene->root_od->net_service->url, "");
+#ifdef FILTER_FIXME
+	char *url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, "");
 	if (!url) url = gf_strdup("");
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url));
 	gf_free(url);
+#endif
 }
 break;
 
 case GJS_GPAC_PROP_VOLUME:
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_AUDIO_VOLUME));
+	*vp = INT_TO_JSVAL( gf_sc_get_option(compositor, GF_OPT_AUDIO_VOLUME));
 	break;
 
 case GJS_GPAC_PROP_NAVIGATION:
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION));
+	*vp = INT_TO_JSVAL( gf_sc_get_option(compositor, GF_OPT_NAVIGATION));
 	break;
 
 case GJS_GPAC_PROP_NAVIGATION_TYPE:
-	*vp = INT_TO_JSVAL( gf_term_get_option(term, GF_OPT_NAVIGATION_TYPE) );
+	*vp = INT_TO_JSVAL( gf_sc_get_option(compositor, GF_OPT_NAVIGATION_TYPE) );
 	break;
 
 case GJS_GPAC_PROP_HARDWARE_YUV:
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
+	*vp = INT_TO_JSVAL( (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_YUV) ? 1 : 0 );
 	break;
 
 case GJS_GPAC_PROP_HARDWARE_RGB:
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
+	*vp = INT_TO_JSVAL( (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGB) ? 1 : 0 );
 	break;
 
 case GJS_GPAC_PROP_HARDWARE_RGBA:
 {
-	u32 has_rgba = (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
+	u32 has_rgba = (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_RGBA) ? 1 : 0;
 #ifndef GPAC_DISABLE_3D
-	if (term->compositor->hybrid_opengl || term->compositor->is_opengl) has_rgba = 1;
+	if (compositor->hybrid_opengl || compositor->is_opengl) has_rgba = 1;
 #endif
 	*vp = INT_TO_JSVAL( has_rgba  );
 }
 break;
 
 case GJS_GPAC_PROP_HARDWARE_STRETCH:
-	*vp = INT_TO_JSVAL( (term->compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
+	*vp = INT_TO_JSVAL( (compositor->video_out->hw_caps & GF_VIDEO_HW_HAS_STRETCH) ? 1 : 0 );
 	break;
 
 case GJS_GPAC_PROP_SCREEN_WIDTH:
-	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_width);
+	*vp = INT_TO_JSVAL( compositor->video_out->max_screen_width);
 	break;
 
 case GJS_GPAC_PROP_SCREEN_HEIGHT:
-	*vp = INT_TO_JSVAL( term->compositor->video_out->max_screen_height);
+	*vp = INT_TO_JSVAL( compositor->video_out->max_screen_height);
 	break;
 
+#ifdef FILTER_FIXME
 case GJS_GPAC_PROP_HTTP_MAX_RATE:
-	*vp = INT_TO_JSVAL( gf_dm_get_data_rate(term->downloader));
+	*vp = INT_TO_JSVAL( gf_dm_get_data_rate(compositor->downloader));
 	break;
 
 case GJS_GPAC_PROP_HTTP_RATE:
-	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(term->downloader) / 1000);
+	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(compositor->downloader) / 1000);
 	break;
+#endif
 
 case GJS_GPAC_PROP_FPS:
-	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_term_get_framerate(term, 0) ) );
+	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_sc_get_fps(compositor, 0) ) );
 	break;
 
 case GJS_GPAC_PROP_SIM_FPS:
-	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, term->compositor->frame_rate) );
+	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, compositor->frame_rate) );
 	break;
 
 case GJS_GPAC_PROP_CPU:
@@ -412,15 +415,15 @@ case GJS_GPAC_PROP_ARGC:
 	break;
 
 case GJS_GPAC_PROP_DPI_X:
-	*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_x);
+	*vp = INT_TO_JSVAL(compositor->video_out->dpi_x);
 	break;
 
 case GJS_GPAC_PROP_DPI_Y:
-	*vp = INT_TO_JSVAL(term->compositor->video_out->dpi_y);
+	*vp = INT_TO_JSVAL(compositor->video_out->dpi_y);
 	break;
 	
 case GJS_GPAC_PROP_SENSORS_ACTIVE:
-	*vp = BOOLEAN_TO_JSVAL(term->orientation_sensors_active);
+	*vp = BOOLEAN_TO_JSVAL(compositor->orientation_sensors_active);
 	break;
 }
 
@@ -432,8 +435,8 @@ static SMJS_FUNC_PROP_SET( gpac_setProperty)
 
 s32 prop_id;
 char *prop_val;
-GF_Terminal *term = gpac_get_term(c, obj);
-if (!term) return JS_FALSE;
+GF_Compositor *compositor = gpac_get_compositor(c, obj);
+if (!compositor) return JS_FALSE;
 
 if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 prop_id = SMJS_ID_TO_INT(id);
@@ -444,7 +447,7 @@ case GJS_GPAC_PROP_LAST_WORK_DIR:
 		return JS_FALSE;
 	}
 	prop_val = SMJS_CHARS(c, *vp);
-	gf_cfg_set_key(term->user->config, "General", "LastWorkingDir", prop_val);
+	gf_cfg_set_key(compositor->user->config, "General", "LastWorkingDir", prop_val);
 	SMJS_FREE(c, prop_val);
 	break;
 case GJS_GPAC_PROP_CAPTION:
@@ -462,7 +465,7 @@ case GJS_GPAC_PROP_CAPTION:
 		evt.caption.caption = caption;
 	}
 
-	gf_term_user_event(term, &evt);
+	gf_sc_user_event(compositor, &evt);
 	SMJS_FREE(c, (char*)caption);
 }
 break;
@@ -471,8 +474,8 @@ case GJS_GPAC_PROP_FULLSCREEN:
 	/*no fullscreen for iOS (always on)*/
 #ifndef GPAC_IPHONE
 	Bool res = (JSVAL_TO_BOOLEAN(*vp)==JS_TRUE) ? 1 : 0;
-	if (term->compositor->fullscreen != res) {
-		gf_term_set_option(term, GF_OPT_FULLSCREEN, res);
+	if (compositor->fullscreen != res) {
+		gf_sc_set_option(compositor, GF_OPT_FULLSCREEN, res);
 	}
 #endif
 }
@@ -481,38 +484,40 @@ case GJS_GPAC_PROP_VOLUME:
 	if (JSVAL_IS_NUMBER(*vp)) {
 		jsdouble d;
 		SMJS_GET_NUMBER(*vp, d);
-		gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, (u32) d);
+		gf_sc_set_option(compositor, GF_OPT_AUDIO_VOLUME, (u32) d);
 	} else if (JSVAL_IS_INT(*vp)) {
-		gf_term_set_option(term, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
+		gf_sc_set_option(compositor, GF_OPT_AUDIO_VOLUME, JSVAL_TO_INT(*vp));
 	}
 	break;
 
 case GJS_GPAC_PROP_NAVIGATION:
-	gf_term_set_option(term, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
+	gf_sc_set_option(compositor, GF_OPT_NAVIGATION, JSVAL_TO_INT(*vp) );
 	break;
 case GJS_GPAC_PROP_NAVIGATION_TYPE:
-	gf_term_set_option(term, GF_OPT_NAVIGATION_TYPE, 0);
+	gf_sc_set_option(compositor, GF_OPT_NAVIGATION_TYPE, 0);
 	break;
 case GJS_GPAC_PROP_HTTP_MAX_RATE:
 {
+#ifdef FILTER_FIXME
 	u32 new_rate = JSVAL_TO_INT(*vp);
-	gf_dm_set_data_rate(term->downloader, new_rate);
+	gf_dm_set_data_rate(compositor->downloader, new_rate);
+#endif
 }
 break;
 case GJS_GPAC_PROP_FOCUS_HIGHLIGHT:
-	term->compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
+	compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
 	break;
 case GJS_GPAC_PROP_SENSORS_ACTIVE:
 {
 	GF_Event evt;
-	term->orientation_sensors_active = JSVAL_TO_BOOLEAN(*vp);
+	compositor->orientation_sensors_active = JSVAL_TO_BOOLEAN(*vp);
 	//send activation for sensors
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_SENSOR_REQUEST;
-	evt.activate_sensor.activate = term->orientation_sensors_active;
+	evt.activate_sensor.activate = compositor->orientation_sensors_active;
 	evt.activate_sensor.sensor_type = GF_EVENT_SENSOR_ORIENTATION;
-	if (gf_term_send_event(term, &evt) == GF_FALSE) {
-		term->orientation_sensors_active = GF_FALSE;
+	if (gf_sc_send_event(compositor, &evt) == GF_FALSE) {
+		compositor->orientation_sensors_active = GF_FALSE;
 	}
 }
 	break;
@@ -528,8 +533,8 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 	JSString *s;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	if (argc < 2) return JS_FALSE;
 
@@ -544,18 +549,10 @@ static JSBool SMJS_FUNCTION(gpac_get_option)
 		key_name = SMJS_CHARS(c, argv[1]);
 	}
 
-	if (!stricmp(sec_name, "audiofilters")) {
-		if (!term->compositor->audio_renderer->filter_chain.enable_filters
-		        || !term->compositor->audio_renderer->filter_chain.filters->filter->GetOption) {
-			SMJS_FREE(c, key_name);
-			SMJS_FREE(c, sec_name);
-			return JS_TRUE;
-		}
-		opt = term->compositor->audio_renderer->filter_chain.filters->filter->GetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name);
-	} else if (key_name) {
-		opt = gf_cfg_get_key(term->user->config, sec_name, key_name);
+	if (key_name) {
+		opt = gf_cfg_get_key(compositor->user->config, sec_name, key_name);
 	} else if (idx>=0) {
-		opt = gf_cfg_get_key_name(term->user->config, sec_name, idx);
+		opt = gf_cfg_get_key_name(compositor->user->config, sec_name, idx);
 	} else {
 		opt = NULL;
 	}
@@ -578,8 +575,8 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 	char *sec_name, *key_name, *key_val;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 	if (argc < 3) return JS_FALSE;
 
 	if (!JSVAL_IS_STRING(argv[0])) return JS_FALSE;
@@ -591,20 +588,14 @@ static JSBool SMJS_FUNCTION(gpac_set_option)
 	if (JSVAL_IS_STRING(argv[2]))
 		key_val = SMJS_CHARS(c, argv[2]);
 
-	if (!stricmp(sec_name, "audiofilters")) {
-		if (term->compositor->audio_renderer->filter_chain.enable_filters
-		        && term->compositor->audio_renderer->filter_chain.filters->filter->SetOption) {
-			term->compositor->audio_renderer->filter_chain.filters->filter->SetOption(term->compositor->audio_renderer->filter_chain.filters->filter, key_name, key_val);
-		}
-	} else {
-		gf_cfg_set_key(term->user->config, sec_name, key_name, key_val);
-		if (!strcmp(sec_name, "Audio") && !strcmp(key_name, "Filter")) {
-			gf_sc_reload_audio_filters(term->compositor);
-		}
-		if (!strcmp(sec_name, "Compositor") && !strcmp(key_name, "StereoType")) {
-			gf_sc_reload_config(term->compositor);
-		}
+	gf_cfg_set_key(compositor->user->config, sec_name, key_name, key_val);
+	if (!strcmp(sec_name, "Audio") && !strcmp(key_name, "Filter")) {
+		gf_sc_reload_audio_filters(compositor);
 	}
+	if (!strcmp(sec_name, "Compositor") && !strcmp(key_name, "StereoType")) {
+		gf_sc_reload_config(compositor);
+	}
+
 	SMJS_FREE(c, sec_name);
 	SMJS_FREE(c, key_name);
 	if (key_val) {
@@ -618,8 +609,8 @@ static JSBool SMJS_FUNCTION(gpac_get_arg)
 {
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	if (argc < 1) return JS_FALSE;
 
@@ -645,8 +636,8 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 	SMJS_ARGS
 	u32 r, g, b, a, i;
 	jsdouble d;
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	if (argc < 3) return JS_FALSE;
 	r = g = b = 0;
@@ -664,8 +655,8 @@ static JSBool SMJS_FUNCTION(gpac_set_back_color)
 		else if (i==2) b = v;
 		else if (i==3) a = v;
 	}
-	term->compositor->back_color = term->compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
-	gf_sc_invalidate(term->compositor, NULL);
+	compositor->back_color = compositor->default_back_color = GF_COL_ARGB(a, r, g, b);
+	gf_sc_invalidate(compositor, NULL);
 	return JS_TRUE;
 }
 
@@ -674,14 +665,14 @@ static JSBool SMJS_FUNCTION(gpac_switch_quality)
 {
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	if (argc < 1) return JS_FALSE;
 
 	if (JSVAL_IS_BOOLEAN(argv[0])) {
 		Bool up = (JSVAL_TO_BOOLEAN(argv[0])==JS_TRUE) ? GF_TRUE : GF_FALSE;
-		gf_term_switch_quality(term, up);
+		gf_scene_switch_quality(compositor->root_scene, up);
 		return JS_TRUE;
 	} else {
 		return JS_FALSE;
@@ -694,12 +685,12 @@ static JSBool SMJS_FUNCTION(gpac_reload)
 {
 	SMJS_OBJ
 	GF_Event evt;
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_RELOAD;
-	term->user->EventProc(term->user->opaque, &evt);
+	compositor->user->EventProc(compositor->user->opaque, &evt);
 	return JS_TRUE;
 }
 
@@ -708,8 +699,8 @@ static JSBool SMJS_FUNCTION(gpac_navigation_supported)
 	SMJS_OBJ
 	SMJS_ARGS
 	u32 type;
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	if (argc < 1) return JS_FALSE;
 
@@ -718,7 +709,7 @@ static JSBool SMJS_FUNCTION(gpac_navigation_supported)
 		return JS_TRUE;
 	}
 	type = JSVAL_TO_INT(argv[0]);
-	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( gf_sc_navigation_supported(term->compositor, type) ? JS_TRUE : JS_FALSE ) );
+	SMJS_SET_RVAL( BOOLEAN_TO_JSVAL( gf_sc_navigation_supported(compositor, type) ? JS_TRUE : JS_FALSE ) );
 	return JS_TRUE;
 }
 
@@ -786,7 +777,7 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	char *an_url;
 	Bool dir_only = 0;
 	Bool browse_root = 0;
-	GF_Terminal *term;
+	GF_Compositor *compositor;
 	SMJS_OBJ
 	SMJS_ARGS
 
@@ -834,9 +825,10 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 
 	cbk.is_dir = 1;
 
-	term = gpac_get_term(c, obj);
+	compositor = gpac_get_compositor(c, obj);
+#ifdef FILTER_FIXME
 	/*concatenate with service url*/
-	an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+	an_url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, url ? url : dir);
 	if (an_url) {
 		gf_free(url);
 		url = an_url;
@@ -848,14 +840,15 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 		cbk.is_dir = 0;
 		err = gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
 		if (dir_only && (err==GF_IO_ERR)) {
-			GF_Terminal *term = gpac_get_term(c, obj);
+			GF_Compositor *compositor = gpac_get_compositor(c, obj);
 			/*try to concatenate with service url*/
-			char *an_url = gf_url_concatenate(term->root_scene->root_od->net_service->url, url ? url : dir);
+			char *an_url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, url ? url : dir);
 			gf_free(url);
 			url = an_url;
 			gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
 		}
 	}
+#endif
 
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(cbk.array) );
 	if (url) gf_free(url);
@@ -871,8 +864,8 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 	jsdouble d;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
-	if (!term) return JS_FALSE;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	if (!compositor) return JS_FALSE;
 
 	w = h = 0;
 	if ((argc >= 1) && JSVAL_IS_NUMBER(argv[0])) {
@@ -889,22 +882,22 @@ static JSBool SMJS_FUNCTION(gpac_set_size)
 	if (w && h) {
 		GF_Event evt;
 		if (override_size_info) {
-			term->compositor->scene_width = w;
-			term->compositor->scene_height = h;
-			term->compositor->has_size_info = 1;
+			compositor->scene_width = w;
+			compositor->scene_height = h;
+			compositor->has_size_info = 1;
 			return JS_TRUE;
 		}
-		if (term->user->os_window_handler) {
+		if (compositor->user->os_window_handler) {
 			evt.type = GF_EVENT_SCENE_SIZE;
 			evt.size.width = w;
 			evt.size.height = h;
-			gf_term_send_event(term, &evt);
+			gf_sc_send_event(compositor, &evt);
 		} else {
-			gf_sc_set_size(term->compositor, w, h);
+			gf_sc_set_size(compositor, w, h);
 		}
 	} else if (override_size_info) {
-		term->compositor->has_size_info = 0;
-		term->compositor->recompute_ar = 1;
+		compositor->has_size_info = 0;
+		compositor->recompute_ar = 1;
 	}
 
 	return JS_TRUE;
@@ -915,10 +908,10 @@ static JSBool SMJS_FUNCTION(gpac_exit)
 {
 	GF_Event evt;
 	SMJS_OBJ
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	memset(&evt, 0, sizeof(GF_Event));
 	evt.type = GF_EVENT_QUIT;
-	gf_term_send_event(term, &evt);
+	gf_sc_send_event(compositor, &evt);
 	return JS_TRUE;
 }
 
@@ -927,12 +920,12 @@ static JSBool SMJS_FUNCTION(gpac_set_3d)
 	u32 type_3d = 0;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (argc && JSVAL_IS_INT(argv[0])) type_3d = JSVAL_TO_INT(argv[0]);
-	if (term->compositor->inherit_type_3d != type_3d) {
-		term->compositor->inherit_type_3d = type_3d;
-		term->compositor->root_visual_setup = 0;
-		gf_sc_reset_graphics(term->compositor);
+	if (compositor->inherit_type_3d != type_3d) {
+		compositor->inherit_type_3d = type_3d;
+		compositor->root_visual_setup = 0;
+		gf_sc_reset_graphics(compositor);
 	}
 	return JS_TRUE;
 }
@@ -942,7 +935,7 @@ static JSBool SMJS_FUNCTION(gpac_move_window)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_Event evt;
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (argc < 2) return JS_TRUE;
 	if (!JSVAL_IS_INT(argv[0]) || !JSVAL_IS_INT(argv[1])) return JS_TRUE;
 
@@ -950,7 +943,7 @@ static JSBool SMJS_FUNCTION(gpac_move_window)
 	evt.move.relative = 1;
 	evt.move.x = JSVAL_TO_INT(argv[0]);
 	evt.move.y = JSVAL_TO_INT(argv[1]);
-	term->compositor->video_out->ProcessEvent(term->compositor->video_out, &evt);
+	compositor->video_out->ProcessEvent(compositor->video_out, &evt);
 
 	return JS_TRUE;
 }
@@ -974,12 +967,12 @@ static JSBool SMJS_FUNCTION(gpac_get_scene_time)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_SceneGraph *sg = NULL;
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (!argc || !JSVAL_IS_OBJECT(argv[0])) {
-		sg = term->root_scene->graph;
+		sg = compositor->root_scene->graph;
 	} else {
 		GF_Node *n = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
-		sg = n ? n->sgprivate->scenegraph : term->root_scene->graph;
+		sg = n ? n->sgprivate->scenegraph : compositor->root_scene->graph;
 	}
 	SMJS_SET_RVAL( DOUBLE_TO_JSVAL( JS_NewDouble(c, sg->GetSceneTime(sg->userpriv) ) ) );
 
@@ -990,9 +983,9 @@ static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 {
 	SMJS_OBJ
 	GF_SceneGraph *sg = NULL;
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 
-	sg = term->root_scene->graph;
+	sg = compositor->root_scene->graph;
 	sg->trigger_gc = GF_TRUE;
 	return JS_TRUE;
 }
@@ -1000,20 +993,21 @@ static JSBool SMJS_FUNCTION(gpac_trigger_gc)
 
 static JSBool SMJS_FUNCTION(gpac_migrate_url)
 {
+#ifdef FILTER_FIXME
 	char *url;
 	u32 i, count;
 	GF_NetworkCommand com;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (!argc || !JSVAL_IS_STRING(argv[0])) return JS_FALSE;
 
 	url = SMJS_CHARS(c, argv[0]);
 	if (!url) return JS_FALSE;
 
-	count = gf_list_count(term->root_scene->resources);
+	count = gf_list_count(compositor->root_scene->resources);
 	for (i=0; i<count; i++) {
-		GF_ObjectManager *odm = gf_list_get(term->root_scene->resources, i);
+		GF_ObjectManager *odm = gf_list_get(compositor->root_scene->resources, i);
 		if (!odm->net_service) continue;
 		if (!strstr(url, odm->net_service->url)) continue;
 
@@ -1028,6 +1022,7 @@ static JSBool SMJS_FUNCTION(gpac_migrate_url)
 		break;
 	}
 	SMJS_FREE(c, url);
+#endif
 	return JS_TRUE;
 }
 
@@ -1040,11 +1035,12 @@ char *str;
 if (!SMJS_ID_IS_INT(id)) return JS_TRUE;
 
 prop_id = SMJS_ID_TO_INT(id);
-gf_term_get_object_info(odm->term, odm, &odi);
+//TODO : avoid triggering this call if not needed
+gf_odm_get_object_info(odm, &odi);
 
 switch (prop_id) {
 case GJS_OM_PROP_ID:
-	*vp = INT_TO_JSVAL(odi.od->objectDescriptorID);
+	*vp = INT_TO_JSVAL(odi.ODID);
 	break;
 case GJS_OM_PROP_NB_RES:
 	*vp = INT_TO_JSVAL(odm->subscene ? gf_list_count(odm->subscene->resources) : 0);
@@ -1144,6 +1140,7 @@ case GJS_OM_PROP_CODEC:
 	break;
 case GJS_OM_PROP_NB_QUALITIES:
 {
+#if FILTER_FIXME
 	//first check network
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
@@ -1155,6 +1152,7 @@ case GJS_OM_PROP_NB_QUALITIES:
 		*vp = INT_TO_JSVAL(com.quality_query.index);
 		break;
 	}
+#endif
 #if 0
 	//use input channels
 	if (odm->codec->type==GF_STREAM_VISUAL) {
@@ -1197,23 +1195,27 @@ case GJS_OM_PROP_IRAP_MAX_TIME:
 	*vp = INT_TO_JSVAL(odi.irap_max_dec_time);
 	break;
 case GJS_OM_PROP_SERVICE_ID:
-	*vp = INT_TO_JSVAL(odi.od ? odi.od->ServiceID : 0);
+	*vp = INT_TO_JSVAL(odi.ServiceID);
 	break;
 case GJS_OM_PROP_SELECTED_SERVICE:
 	*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 	break;
 case GJS_OM_PROP_BANDWIDTH_DOWN:
 {
+#if FILTER_FIXME
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_GET_STATS;
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 	gf_term_service_command(odm->net_service, &com);
 	*vp = INT_TO_JSVAL(com.net_stats.bw_down/1000);
+#endif
 }
 break;
 case GJS_OM_PROP_NB_HTTP:
+#if FILTER_FIXME
 	*vp = INT_TO_JSVAL(gf_list_count(odm->net_service->dnloads) );
+#endif
 	break;
 case GJS_OM_PROP_TIMESHIFT_DEPTH:
 	if ((s32) odm->timeshift_depth > 0) {
@@ -1224,6 +1226,7 @@ case GJS_OM_PROP_TIMESHIFT_DEPTH:
 	break;
 case GJS_OM_PROP_TIMESHIFT_TIME:
 {
+#ifdef FILTER_FIXME
 	GF_NetworkCommand com;
 	GF_Scene *scene;
 	Double res = 0.0;
@@ -1268,19 +1271,20 @@ case GJS_OM_PROP_TIMESHIFT_TIME:
 				GF_Event evt;
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_TIMESHIFT_UNDERRUN;
-				gf_term_send_event(odm->term, &evt);
+				gf_sc_send_event(odm->compositor, &evt);
 				res=0;
 			} else if (res && res*1000 > scene->timeshift_depth) {
 				GF_Event evt;
 				memset(&evt, 0, sizeof(evt));
 				evt.type = GF_EVENT_TIMESHIFT_OVERFLOW;
-				gf_term_send_event(odm->term, &evt);
+				gf_sc_send_event(odm->compositor, &evt);
 				res=scene->timeshift_depth;
 				res/=1000;
 			}
 		}
 	}
 	*vp = DOUBLE_TO_JSVAL( JS_NewDouble(c, res) );
+#endif
 }
 break;
 case GJS_OM_PROP_IS_ADDON:
@@ -1295,13 +1299,7 @@ break;
 case GJS_OM_PROP_IS_OVER:
 {
 	GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
-	*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(odm->term->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
-}
-break;
-case GJS_OM_PROP_IS_PULLING:
-{
-	GF_Channel *ch = gf_list_get(odm->channels, 0);
-	*vp = BOOLEAN_TO_JSVAL((ch && ch->is_pulling) ? JS_TRUE : JS_FALSE);
+	*vp = BOOLEAN_TO_JSVAL( gf_sc_is_over(scene->compositor, scene->graph) ? JS_TRUE : JS_FALSE);
 }
 break;
 case GJS_OM_PROP_DYNAMIC_SCENE:
@@ -1309,6 +1307,7 @@ case GJS_OM_PROP_DYNAMIC_SCENE:
 	break;
 case GJS_OM_PROP_SERVICE_NAME:
 {
+#ifdef FILTER_FIXME
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_INFO;
@@ -1319,6 +1318,7 @@ case GJS_OM_PROP_SERVICE_NAME:
 	} else {
 		*vp = JSVAL_NULL;
 	}
+#endif
 }
 break;
 case GJS_OM_PROP_NTP_DIFF:
@@ -1346,6 +1346,7 @@ case GJS_OM_PROP_MAIN_ADDON_URL:
 break;
 case GJS_OM_PROP_REVERSE_PLAYBACK:
 {
+#ifdef FILTER_FIXME
 	u32 i, count;
 	GF_Err e;
 	GF_NetworkCommand com;
@@ -1369,6 +1370,7 @@ case GJS_OM_PROP_REVERSE_PLAYBACK:
 	com.base.on_channel = gf_list_get(odm->channels, 0);
 	e = gf_term_service_command(odm->net_service, &com);
 	*vp = BOOLEAN_TO_JSVAL((e==GF_OK) ? GF_TRUE : GF_FALSE );
+#endif
 }
 break;
 case GJS_OM_PROP_SCALABLE_ENHANCEMENT:
@@ -1386,7 +1388,7 @@ case GJS_OM_PROP_MAIN_ADDON_MEDIATIME:
 		GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
 		if (an_odm && an_odm->addon && (an_odm->addon->addon_type==GF_ADDON_TYPE_MAIN)) {
 			if (an_odm->duration) {
-				Double now = gf_clock_time(scene->dyn_ck) / 1000.0;
+				Double now = gf_clock_time(scene->root_od->ck) / 1000.0;
 				now -= ((Double) an_odm->addon->media_pts) / 90000.0;
 				now += ((Double) an_odm->addon->media_timestamp) / an_odm->addon->media_timescale;
 				*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, now) );
@@ -1398,6 +1400,7 @@ break;
 
 case GJS_OM_PROP_DEPENDENT_GROUPS:
 {
+#if FILTER_FIXME
 	GF_NetworkCommand com;
 	memset(&com, 0, sizeof(GF_NetworkCommand));
 	com.base.command_type = GF_NET_SERVICE_QUALITY_QUERY;
@@ -1409,6 +1412,7 @@ case GJS_OM_PROP_DEPENDENT_GROUPS:
 	} else {
 		*vp = INT_TO_JSVAL(0);
 	}
+#endif
 	break;
 }
 
@@ -1421,6 +1425,7 @@ return JS_TRUE;
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 {
+#if FILTER_FIXME
 	GF_NetworkCommand com;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -1466,12 +1471,13 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_quality)
 	} else {
 		SMJS_SET_RVAL(JSVAL_NULL);
 	}
-
+#endif
 	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 {
+#if FILTER_FIXME
 	GF_NetworkCommand com;
 	SMJS_OBJ
 	SMJS_ARGS
@@ -1514,11 +1520,13 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_srd)
 	} else {
 		SMJS_SET_RVAL(JSVAL_NULL);
 	}
+#endif
 	return JS_TRUE;
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 {
+#if FILTER_FIXME
 	GF_NetworkCommand com;
 	char *ID = NULL;
 	s32 tile_mode = -1;
@@ -1560,6 +1568,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_quality)
 	gf_term_service_command(odm->net_service, &com);
 
 	SMJS_FREE(c, ID);
+#endif
 	return JS_TRUE;
 }
 
@@ -1586,7 +1595,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_select_service)
 	if (! JSVAL_IS_INT(argv[0]) ) return JS_TRUE;
 	sid = JSVAL_TO_INT(argv[0]);
 
-	gf_term_select_service(odm->term, odm->subscene ? odm : odm->parentscene->root_od, sid);
+	gf_scene_set_service_id(odm->subscene ? odm->subscene : odm->parentscene, sid);
 	return JS_TRUE;
 }
 
@@ -1620,7 +1629,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_get_resource)
 	if (odm->subscene) {
 		an_odm = gf_list_get(odm->subscene->resources, idx);
 	}
-	if (an_odm && an_odm->net_service) {
+	if (an_odm && an_odm->scene_ns) {
 		JSObject *anobj;
 		JSClass *_class = JS_GET_CLASS(c, obj);
 		anobj = JS_NewObject(c, _class, 0, 0);
@@ -1651,6 +1660,7 @@ static JSBool SMJS_FUNCTION(gjs_odm_addon_layout)
 
 static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_if_defined, Bool disable_if_defined )
 {
+#ifdef FILTER_FIXME
 	GF_AssociatedContentLocation addon_info;
 	memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
 	addon_info.external_URL = addon_url;
@@ -1658,6 +1668,7 @@ static void do_enable_addon(GF_ObjectManager *odm, char *addon_url, Bool enable_
 	addon_info.enable_if_defined = enable_if_defined;
 	addon_info.disable_if_defined = disable_if_defined;
 	gf_scene_register_associated_media(odm->subscene ? odm->subscene : odm->parentscene, &addon_info);
+#endif
 }
 
 static JSBool SMJS_FUNCTION(gjs_odm_enable_addon)
@@ -1706,8 +1717,8 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 	SMJS_OBJ
 	SMJS_ARGS
 	GF_GPACJSExt *gjs = (GF_GPACJSExt *)SMJS_GET_PRIVATE(c, obj);
-	GF_Terminal *term = gpac_get_term(c, obj);
-	GF_Scene *scene = term->root_scene;
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
+	GF_Scene *scene = compositor->root_scene;
 
 	if (JSVAL_IS_STRING(argv[0]) ) {
 		char *url, *an_url;
@@ -1726,8 +1737,8 @@ static JSBool SMJS_FUNCTION(gpac_get_object_manager)
 		count = gf_list_count(scene->resources);
 		for (i=0; i<count; i++) {
 			odm = gf_list_get(scene->resources, i);
-			if (odm->net_service) {
-				an_url = odm->net_service->url;
+			if (odm->scene_ns) {
+				an_url = odm->scene_ns->url;
 				if (!strncmp(an_url, "gpac://", 7)) an_url = an_url + 7;
 				if (!strncmp(an_url, "file://", 7)) an_url = an_url + 7;
 				if (!strncmp(an_url, url, url_len))
@@ -1794,7 +1805,7 @@ static JSBool SMJS_FUNCTION(gpac_new_storage)
 		}
 
 		if (!storage) {
-			const char *storage_dir = gf_cfg_get_key(gjs->term->user->config, "General", "StorageDirectory");
+			const char *storage_dir = gf_cfg_get_key(gjs->compositor->user->config, "General", "StorageDirectory");
 
 			storage = gf_cfg_force_new(storage_dir, szFile);
 			if (storage) {
@@ -1838,9 +1849,9 @@ if (SMJS_ID_IS_INT(id)) {
 		*vp = INT_TO_JSVAL(evt->mouse.y);
 		break;
 	case GJS_EVT_PROP_PICKED:
-		if (gjs->term->compositor->hit_appear) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
-		else if (gf_list_count(gjs->term->compositor->previous_sensors) ) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
-		else if (gjs->term->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+		if (gjs->compositor->hit_appear) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+		else if (gf_list_count(gjs->compositor->previous_sensors) ) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
+		else if (gjs->compositor->text_selection) *vp = BOOLEAN_TO_JSVAL(JS_TRUE);
 		else *vp = BOOLEAN_TO_JSVAL(JS_FALSE);
 		break;
 	case GJS_EVT_PROP_WHEEL:
@@ -1918,7 +1929,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	if (gjs->evt != NULL) return 0;
 
 	lock_fail=0;
-	res = gf_mx_try_lock(gjs->term->compositor->mx);
+	res = gf_mx_try_lock(gjs->compositor->mx);
 	if (!res) {
 		lock_fail=1;
 	} else {
@@ -1935,7 +1946,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 		gf_mx_v(gjs->event_mx);
 
 		if (lock_fail==2){
-			gf_mx_v(gjs->term->compositor->mx);
+			gf_mx_v(gjs->compositor->mx);
 		}
 		return 0;
 	}
@@ -1950,7 +1961,7 @@ static Bool gjs_event_filter(void *udta, GF_Event *evt, Bool consumed_by_composi
 	
 	res = gjs_event_filter_process(gjs, evt);
 
-	gf_mx_v(gjs->term->compositor->mx);
+	gf_mx_v(gjs->compositor->mx);
 	gf_sg_lock_javascript(gjs->c, 0);
 	return res;
 }
@@ -1969,7 +1980,8 @@ static JSBool SMJS_FUNCTION(gpac_set_event_filter)
 	gjs->c = c;
 	gjs->evt_filter.udta = gjs;
 	gjs->evt_filter.on_event = gjs_event_filter;
-	gf_term_add_event_filter(gjs->term, &gjs->evt_filter);
+
+	gf_fs_add_event_listener(gjs->compositor->fsess, &gjs->evt_filter);
 	return JS_TRUE;
 }
 
@@ -1978,28 +1990,28 @@ static JSBool SMJS_FUNCTION(gpac_set_focus)
 	GF_Node *elt;
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (!argc) return JS_FALSE;
 
 	if (JSVAL_IS_NULL(argv[0])) {
-		gf_sc_focus_switch_ring(term->compositor, 0, NULL, 0);
+		gf_sc_focus_switch_ring(compositor, 0, NULL, 0);
 		return JS_TRUE;
 	}
 
 	if (JSVAL_IS_STRING(argv[0])) {
 		char *focus_type = SMJS_CHARS(c, argv[0]);
 		if (!stricmp(focus_type, "previous")) {
-			gf_sc_focus_switch_ring(term->compositor, 1, NULL, 0);
+			gf_sc_focus_switch_ring(compositor, 1, NULL, 0);
 		}
 		else if (!stricmp(focus_type, "next")) {
-			gf_sc_focus_switch_ring(term->compositor, 0, NULL, 0);
+			gf_sc_focus_switch_ring(compositor, 0, NULL, 0);
 		}
 		SMJS_FREE(c, focus_type);
 	} else if (JSVAL_IS_OBJECT(argv[0])) {
 		elt = gf_sg_js_get_node(c, JSVAL_TO_OBJECT(argv[0]));
 		if (!elt) return JS_TRUE;
 
-		gf_sc_focus_switch_ring(term->compositor, 0, elt, 2);
+		gf_sc_focus_switch_ring(compositor, 0, elt, 2);
 	}
 
 	return JS_TRUE;
@@ -2061,7 +2073,7 @@ static JSBool SMJS_FUNCTION(gpac_show_keyboard)
 {
 	SMJS_OBJ
 	SMJS_ARGS
-	GF_Terminal *term = gpac_get_term(c, obj);
+	GF_Compositor *compositor = gpac_get_compositor(c, obj);
 	if (!argc) return JS_FALSE;
 
 	if (JSVAL_IS_BOOLEAN(argv[0])) {
@@ -2069,7 +2081,7 @@ static JSBool SMJS_FUNCTION(gpac_show_keyboard)
 		GF_Event evt;
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = show ? GF_EVENT_TEXT_EDITING_START : GF_EVENT_TEXT_EDITING_END;
-		gf_term_user_event(term, &evt);
+		gf_sc_user_event(compositor, &evt);
 	}
 	return JS_TRUE;
 }
@@ -2295,7 +2307,6 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		SMJS_PROPERTY_SPEC("is_addon",			GJS_OM_PROP_IS_ADDON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("main_addon_on",		GJS_OM_PROP_MAIN_ADDON_ON, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("is_over",			GJS_OM_PROP_IS_OVER, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
-		SMJS_PROPERTY_SPEC("is_pulling",		GJS_OM_PROP_IS_PULLING, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("dynamic_scene",		GJS_OM_PROP_DYNAMIC_SCENE, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("service_name",		GJS_OM_PROP_SERVICE_NAME, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
 		SMJS_PROPERTY_SPEC("ntp_diff",			GJS_OM_PROP_NTP_DIFF, JSPROP_ENUMERATE | JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_READONLY, 0, 0),
@@ -2342,7 +2353,7 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		gjs->nb_loaded--;
 		/*if we destroy the script context holding the gpac event filter (only one for the time being), remove the filter*/
 		if ((gjs->c==c) && gjs->evt_filter.udta) {
-			gf_term_remove_event_filter(gjs->term, &gjs->evt_filter);
+			gf_fs_remove_event_listener(gjs->compositor->fsess, &gjs->evt_filter);
 			gjs->evt_filter.udta = NULL;
 		}
 		return;
@@ -2359,8 +2370,8 @@ static void gjs_load(GF_JSUserExtension *jsext, GF_SceneGraph *scene, JSContext 
 		gjs->gpac_obj = JS_DefineObject(c, global, "gpac", &gjs->gpacClass._class, 0, 0);
 
 		if (scene->script_action) {
-			if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_TERM, scene->RootNode, &par)) {
-				gjs->term = par.term;
+			if (scene->script_action(scene->script_action_cbck, GF_JSAPI_OP_GET_COMPOSITOR, scene->RootNode, &par)) {
+				gjs->compositor = par.compositor;
 			}
 		}
 		SMJS_SET_PRIVATE(c, gjs->gpac_obj, gjs);

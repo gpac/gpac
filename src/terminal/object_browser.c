@@ -177,16 +177,14 @@ static void get_codec_stats(GF_FilterPid *pid, GF_MediaInfo *info)
 }
 
 GF_EXPORT
-GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
+GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 {
 	const GF_PropertyValue *prop;
 	GF_ObjectManager *an_odm;
 	GF_FilterPid *pid;
 
+	if (!odm || !info) return GF_BAD_PARAM;
 	memset(info, 0, sizeof(GF_MediaInfo));
-
-	if (!term || !odm || !info) return GF_BAD_PARAM;
-	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
 
 	info->ODID = odm->ID;
 	info->ServiceID = odm->ServiceID;
@@ -299,6 +297,15 @@ GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_Medi
 		info->media_url = odm->mo->URLs.vals[0].url;
 	return GF_OK;
 }
+
+GF_EXPORT
+GF_Err gf_term_get_object_info(GF_Terminal *term, GF_ObjectManager *odm, GF_MediaInfo *info)
+{
+	if (!term || !odm || !info) return GF_BAD_PARAM;
+	if (!gf_term_check_odm(term, odm)) return GF_BAD_PARAM;
+	return gf_odm_get_object_info(odm, info);
+}
+
 
 GF_EXPORT
 Bool gf_term_get_download_info(GF_Terminal *term, GF_ObjectManager *odm, u32 *d_enum, const char **server, const char **path, u32 *bytes_done, u32 *total_bytes, u32 *bytes_per_sec)

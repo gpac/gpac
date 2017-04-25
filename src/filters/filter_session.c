@@ -1137,7 +1137,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 
 
 GF_EXPORT
-GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el)
+GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el)
 {
 	GF_Err e;
 	if (!fsess || !el || !el->on_event) return GF_BAD_PARAM;
@@ -1152,7 +1152,7 @@ GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventLi
 }
 
 GF_EXPORT
-GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el)
+GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el)
 {
 	if (!fsess || !el || !fsess->event_listeners) return GF_BAD_PARAM;
 
@@ -1173,7 +1173,7 @@ Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, 
 	if (!fsess) return GF_FALSE;
 
 	if (fsess->event_listeners) {
-		GF_FilterSessionEventListener *el;
+		GF_FSEventListener *el;
 		u32 i=0;
 
 		gf_mx_p(fsess->evt_mx);
