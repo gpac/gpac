@@ -3016,3 +3016,49 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 #endif
 }
 
+
+void gf_scene_switch_quality(GF_Scene *scene, Bool up)
+{
+#ifdef FILTER_FIXME
+	u32 i;
+	GF_ClientService *root_service = NULL;
+	GF_ObjectManager *odm;
+	GF_CodecCapability caps;
+	GF_NetworkCommand net_cmd;
+
+	if (!scene) return;
+
+	/*send network command*/
+	memset(&net_cmd, 0, sizeof(GF_NetworkCommand));
+	net_cmd.command_type = GF_NET_SERVICE_QUALITY_SWITCH;
+	net_cmd.switch_quality.on_channel = NULL;
+	net_cmd.switch_quality.up = up;
+	if (scene->root_od->net_service) {
+		root_service = scene->root_od->net_service;
+		root_service->ifce->ServiceCommand(root_service->ifce, &net_cmd);
+	}
+
+	/*notify all codecs in the scene and subscenes*/
+	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
+	caps.cap.valueInt = up ? 1 : 0;
+	if (scene->scene_codec) {
+		scene->scene_codec->decio->SetCapabilities(scene->scene_codec->decio, caps);
+	}
+	i=0;
+	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
+		if (odm->codec)
+			odm->codec->decio->SetCapabilities(odm->codec->decio, caps);
+		if (odm->net_service && (odm->net_service != root_service) && (!odm->subscene || !odm->subscene->is_dynamic_scene) )
+			odm->net_service->ifce->ServiceCommand(odm->net_service->ifce, &net_cmd);
+		if (odm->subscene)
+			gf_scene_switch_quality(odm->subscene, up);
+
+		if (odm->scalable_addon) {
+			if (up)
+				gf_odm_start(odm, 0);
+			else
+				gf_odm_stop(odm, GF_FALSE);
+		}
+	}
+#endif
+}

@@ -185,6 +185,7 @@ If @odm is NULL the main scene is dumped
 */
 GF_Err gf_term_dump_scene(GF_Terminal *term, char *rad_name, char **filename, Bool xml_dump, Bool skip_proto, GF_ObjectManager *odm);
 
+
 /*! @} */
 
 #ifdef __cplusplus

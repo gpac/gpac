@@ -587,13 +587,12 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 typedef struct
 {
 	void *udta;
-	/*called when an event should be filtered
-	*/
+	/* called when an event should be filtered */
 	Bool (*on_event)(void *udta, GF_Event *evt, Bool consumed_by_compositor);
-} GF_FilterSessionEventListener;
+} GF_FSEventListener;
 
-GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el);
-GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FilterSessionEventListener *el);
+GF_Err gf_fs_add_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el);
+GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FSEventListener *el);
 
 Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool forward_only);
 Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt);

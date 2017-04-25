@@ -35,6 +35,7 @@ extern "C" {
 #include <gpac/filters.h>
 
 #include <gpac/terminal.h>
+#include <gpac/term_info.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/mpeg4_odf.h>
 
@@ -748,6 +749,7 @@ Bool gf_scene_check_addon_restart(GF_AddonMedia *addon, u64 cts, u64 dts);
 /*callbacks for scene graph library so that all related ESM nodes are properly instanciated*/
 void gf_scene_node_callback(void *_is, u32 type, GF_Node *node, void *param);
 
+void gf_scene_switch_quality(GF_Scene *scene, Bool up);
 
 //exported for gpac.js, resumes to main content
 void gf_scene_resume_live(GF_Scene *subscene);
@@ -826,6 +828,13 @@ void InitInputSensor(GF_Scene *scene, GF_Node *node);
 void InputSensorModified(GF_Node *n);
 void InitKeySensor(GF_Scene *scene, GF_Node *node);
 void InitStringSensor(GF_Scene *scene, GF_Node *node);
+
+
+GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info);
+
+
+void gf_sc_connect(GF_Compositor *compositor, const char *URL);
+void gf_sc_disconnect(GF_Compositor *compositor);
 
 #ifdef __cplusplus
 }
