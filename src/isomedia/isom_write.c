@@ -2546,6 +2546,7 @@ GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *dat
 		if (!trak->udta) trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		if (!movie->moov->udta) moov_AddBox((GF_Box*)movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		udta = movie->moov->udta;
 	}
