@@ -771,7 +771,7 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info (2), %s\n", gf_error_to_string(e)));
 		return e;
 	}
-	if (gf_isom_get_media_subtype(movie, trackNumber, StreamDescriptionIndex) != GF_ISOM_BOX_TYPE_MP4A)
+	if (gf_isom_get_media_subtype(movie, trackNumber, StreamDescriptionIndex) != GF_ISOM_SUBTYPE_MPEG4)
 		return GF_OK;
 
 	esd = gf_isom_get_esd(movie, trackNumber, 1);
@@ -784,12 +784,46 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: corrupted AAC Config, %s\n", gf_error_to_string(e)));
 		return GF_NOT_SUPPORTED;
 	}
-	if (a_cfg.has_sbr) {
+	if (SampleRate && a_cfg.has_sbr) {
 		*SampleRate = a_cfg.sbr_sr;
 	}
+	if (Channels) *Channels = a_cfg.nb_chan;
 	gf_odf_desc_del((GF_Descriptor*)esd);
 	return e;
 }
+
+
+static u32 cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
+{
+	if ( !nb_chan && !nb_surr && !nb_lfe) return 0;
+	else if ((nb_chan==1) && !nb_surr && !nb_lfe) return 1;
+	else if ((nb_chan==2) && !nb_surr && !nb_lfe) return 2;
+	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;
+	else if ((nb_chan==3) && (nb_surr==1) && !nb_lfe) return 4;
+	else if ((nb_chan==3) && (nb_surr==2) && !nb_lfe) return 5;
+	else if ((nb_chan==3) && (nb_surr==2) && (nb_lfe==1)) return 6;
+	else if ((nb_chan==5) && (nb_surr==0) && (nb_lfe==1)) return 6;
+
+	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 7;
+	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
+	else if ((nb_chan==2) && (nb_surr==2) && !nb_lfe) return 10;
+	else if ((nb_chan==3) && (nb_surr==3) && (nb_lfe==1)) return 11;
+	else if ((nb_chan==3) && (nb_surr==4) && (nb_lfe==1)) return 12;
+	else if ((nb_chan==11) && (nb_surr==11) && (nb_lfe==2)) return 13;
+	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 14;
+	else if ((nb_chan==5) && (nb_surr==5) && (nb_lfe==2)) return 15;
+	else if ((nb_chan==5) && (nb_surr==4) && (nb_lfe==1)) return 16;
+	else if ((nb_surr==5) && (nb_lfe==1) && (nb_chan==6)) return 17;
+	else if ((nb_surr==7) && (nb_lfe==1) && (nb_chan==6)) return 18;
+	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
+	else if ((nb_chan==7) && (nb_surr==6) && (nb_lfe==1)) return 20;
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unkown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
+	return 0;
+
+}
+
+
 
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
@@ -810,7 +844,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	Double segment_start_time, SegmentDuration, maxFragDurationOverSegment;
 	u64 presentationTimeOffset = 0;
 	Double file_duration, max_segment_duration;
-	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
+	u32 nb_segments, width, height, sample_rate, nb_channels, nb_surround, nb_lfe, sar_w, sar_h, fps_num, fps_denum, startNumber;
 	u32 nbFragmentInSegment = 0;
 	char *langCode = NULL;
 	u32 index_start_range, index_end_range;
@@ -1053,7 +1087,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	tf = tfref = NULL;
 	file_duration = 0;
-	width = height = sample_rate = nb_channels = sar_w = sar_h = fps_num = fps_denum = 0;
+	width = height = sample_rate = nb_channels = nb_surround = nb_lfe = sar_w = sar_h = fps_num = fps_denum = 0;
 	langCode = NULL;
 
 
@@ -1305,11 +1339,28 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			//DASH-IF and MPEG disagree here:
-			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND)
+			{
 				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, &_sr, &_nb_ch, NULL);
-			} else {
-				gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
 			}
+			else {
+				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, NULL, &_nb_ch, NULL);
+			}
+#ifndef GPAC_DISABLE_AV_PARSERS
+			if (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_AC3) {
+				GF_AC3Config *ac3 = gf_isom_ac3_config_get(input, i+1, 1);
+				if (ac3) {
+					int i;
+					nb_lfe = ac3->streams[0].lfon ? 1 : 0;
+					_nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
+					for (i=0; i<ac3->streams[0].nb_dep_sub; ++i) {
+						assert(ac3->streams[0].nb_dep_sub == 1);
+						_nb_ch += gf_ac3_get_channels(ac3->streams[0].chan_loc);
+					}
+					gf_free(ac3);
+				}
+			}
+#endif
 			if (_sr>sample_rate) sample_rate = _sr;
 			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
 			gf_isom_get_media_language(input, i+1, &langCode);
@@ -2331,8 +2382,13 @@ restart_fragmentation_pass:
 		}
 	}
 
-	if (nb_channels && !is_bs_switching)
-		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
+	if (nb_channels && !is_bs_switching) {
+		if (!nb_surround && !nb_lfe) {
+			fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels );
+		} else {
+			fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:mpegB:cicp:ChannelConfiguration\" value=\"%d\"/>\n", cicp_get_channel_config(nb_channels, nb_surround, nb_lfe) );
+		}
+	}
 
 	/* Write content protection element in representation */
 	if (protected_track && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_ADAPTATION_SET)) {
