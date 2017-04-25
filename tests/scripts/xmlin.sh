@@ -18,8 +18,10 @@ nhml_test  ()
 
  do_test "$MP4BOX -info $mp4file" "info"
 
+ rm -f $TEMP_DIR/test.xml
  do_test "$MP4BOX -raw 1 $mp4file -out $TEMP_DIR/test.xml " "export-track"
  do_hash_test $TEMP_DIR/test.xml "export-track"
+ rm -f $TEMP_DIR/test.xml
 
  do_test "$MP4BOX -raws 1 $mp4file" "export-samples"
 
@@ -72,8 +74,10 @@ test_begin "xmlin-swf-stxt"
 do_test "$MP4BOX -add $MEDIA_DIR/xmlin4/anim.swf:fmt=svg -new $TEMP_DIR/text-stxt-svg.mp4" "import"
 do_hash_test $TEMP_DIR/text-stxt-svg.mp4 "import"
 
+rm -f $TEMP_DIR/test.svg
 do_test "$MP4BOX -raw 1 $TEMP_DIR/text-stxt-svg.mp4 -out $TEMP_DIR/test.svg" "export-track"
 do_hash_test $TEMP_DIR/test.svg "export-track"
+rm -f $TEMP_DIR/test.svg
 
 do_test "$MP4BOX -raws 1 $TEMP_DIR/text-stxt-svg.mp4" "export-samples"
 
@@ -85,8 +89,10 @@ test_begin "xmlin-ttml-stpp"
 do_test "$MP4BOX -add $MEDIA_DIR/xmlin4/ebu-ttd_sample.ttml -new $TEMP_DIR/subt-stpp-ttml.mp4" "import"
 do_hash_test $TEMP_DIR/subt-stpp-ttml.mp4 "import"
 
+rm -f $TEMP_DIR/test.ttml
 do_test "$MP4BOX -raw 1 $TEMP_DIR/subt-stpp-ttml.mp4 -out $TEMP_DIR/test.ttml" "export-track"
 do_hash_test $TEMP_DIR/test.ttml "export-track"
+rm -f $TEMP_DIR/test.ttml
 
 do_test "$MP4BOX -raws 1 $TEMP_DIR/subt-stpp-ttml.mp4" "export-samples"
 

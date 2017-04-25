@@ -17,3 +17,6 @@ configure text eol=lf
 *.vcxproj text eol=crlf
 *.dsp text eol=crlf
 *.dsw text eol=crlf
+
+#tests
+tests/media/xmlin4/input.txt text eol=crlf
