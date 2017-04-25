@@ -3908,13 +3908,15 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 					gf_bs_del(bs);
 					if (e) return e;
 					ptr->esd = (GF_ESDBox *)a;
+					gf_isom_box_add_for_dump_mode((GF_Box *)ptr, a);
+
 				}
-				gf_isom_box_del(a);
 			}
 			else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s\n!", gf_4cc_to_str(a->type)));
-				return GF_ISOM_INVALID_FILE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s\n!", gf_4cc_to_str(a->type)));
 			}
+			gf_isom_box_del(a);
+			return GF_ISOM_INVALID_MEDIA;
 		}
 		break;
 	default:

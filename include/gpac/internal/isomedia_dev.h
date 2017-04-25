@@ -3371,6 +3371,8 @@ Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);
 u32 GetHintFormat(GF_TrackBox *trak);
 
 
+void gf_isom_box_add_for_dump_mode(GF_Box *parent, GF_Box *a);
+
 /*locate a box by its type or UUID*/
 GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
 
