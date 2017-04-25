@@ -3784,7 +3784,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 //	if (!full_header_parse) return 0;
 
-	si->entry_point_start_bits = (gf_bs_get_position(bs)-1)*8 + gf_bs_get_bit_position(bs);
+	si->entry_point_start_bits = ((u32)gf_bs_get_position(bs)-1)*8 + gf_bs_get_bit_position(bs);
 
 	if (pps->tiles_enabled_flag || pps->entropy_coding_sync_enabled_flag ) {
 		u32 num_entry_point_offsets = bs_get_ue(bs);
@@ -3821,7 +3821,7 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 	}
 
 	gf_bs_align(bs);
-	si->payload_start_offset = gf_bs_get_position(bs);
+	si->payload_start_offset = (s32)gf_bs_get_position(bs);
 	return 0;
 }
 
