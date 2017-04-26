@@ -9,7 +9,7 @@ setlocal enabledelayedexpansion
 call set VERSION=%%VERSION:!TAG!=%%
 setlocal disabledelayedexpansion
 set revision="%VERSION%-%BRANCH%"
-set gpac_version="0.7.2-DEV-r%gpac_revision%
+set gpac_version="0.7.1-r%gpac_revision%
 
 zip "GPAC_%gpac_version%_WindowsMobile.zip" ../*.dll ../*.exe ../*.plg
 
