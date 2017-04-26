@@ -293,13 +293,13 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
 		switch (OTI) {
 		case GPAC_OTI_IMAGE_JPEG:
-			udesc.codec_tag = GF_4CC('j', 'p', 'e', 'g');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_JPEG;
 			break;
 		case GPAC_OTI_IMAGE_PNG:
-			udesc.codec_tag = GF_4CC('p', 'n', 'g', ' ');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_PNG;
 			break;
 		case GPAC_OTI_IMAGE_JPEG_2000:
-			udesc.codec_tag = GF_4CC('j', 'p', '2', 'k');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_JP2K;
 			break;
 		}
 		udesc.width = w;
