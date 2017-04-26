@@ -1666,8 +1666,8 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		}
 		gf_isom_delete(the_file);
 		fprintf(dump, "</Tracks>\n");
+		fprintf(dump, "</ISOBaseMediaFileTrace>\n");
 	}
-	fprintf(dump, "</ISOBaseMediaFileTrace>\n");
 	if (do_close) gf_fclose(dump);
 	return e;
 }
