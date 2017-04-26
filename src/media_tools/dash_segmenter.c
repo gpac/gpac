@@ -619,7 +619,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 typedef struct
 {
+	/* indicates if the track under fragmentation is the reference for sidx or prft boxes*/
 	Bool is_ref_track;
+
 	Bool done;
 	u32 TrackID;
 	u32 SampleNum, SampleCount;
@@ -629,6 +631,7 @@ typedef struct
 	u32 TimeScale, MediaType, DefaultDuration;
 	u64 last_sample_cts, next_sample_dts, InitialTSOffset;
 	Bool all_sample_raps, splitable;
+	/* carry of the amount of time of the current sample already used in the previous segment */
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
@@ -1209,6 +1212,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			max_track_duration = (Double) gf_isom_get_track_duration(input, i+1);
 		}
 
+		/* We set the reference track (for use in the sidx or prft) to be the track that has the greatest number of sync samples,
+		  but not all of them. E.g. in audio+video we want the video to be used
+		  if for all tracks all samples are sync, we will pick anyone (see below)
+		  NOTE: This might be problematic if the file has multiple video tracks that are not sync sample aligned */
 		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) {
 			tfref = tf;
 			nb_sync = gf_isom_get_sync_point_count(input, i+1);
@@ -1397,7 +1404,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (gf_list_count(fragmenters)>1)
 		mpd_timescale = 1000;
 
+	/* Finalize the selection of the reference track for sidx computations */	  
 	if (!tfref) {
+		/* if we did not find a track in which all samples are not sync samples, we pick the first track to be the reference */
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
 		assert(tfref);
 	} else {
@@ -1405,13 +1414,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		gf_list_del_item(fragmenters, tfref);
 		gf_list_insert(fragmenters, tfref, 0);
 	}
-
 	tfref->is_ref_track = GF_TRUE;
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
 	if (tfref->all_sample_raps)
 		split_seg_at_rap = GF_TRUE;
-
 
 	if (!dash_moov_setup) {
 		max_track_duration /= gf_isom_get_timescale(input);
@@ -1610,7 +1617,7 @@ restart_fragmentation_pass:
 				if (dash_cfg->pssh_moof)
 					store_pssh = GF_TRUE;
 
-				if (tfref && dash_cfg->insert_utc) {
+				if (tfref /* tfref set to NULL after its last sample is processed */ && dash_cfg->insert_utc) {
 					store_utc = GF_TRUE;
 				}
 			}
@@ -1623,12 +1630,12 @@ restart_fragmentation_pass:
 
 		sample = NULL;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d\n", SegmentName, nbFragmentInSegment));
 		if (simulation_pass) {
 			segments_info[nb_segments_info-1] ++;
 			e = GF_OK;
 		} else {
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d\n", SegmentName, nbFragmentInSegment));
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
@@ -1643,6 +1650,7 @@ restart_fragmentation_pass:
 				} else {
 					tf->start_tfdt = tf->InitialTSOffset + tf->next_sample_dts;
 				}
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d, tfdt "LLD" on TrackID %d\n", SegmentName, nbFragmentInSegment, tf->start_tfdt, tf->TrackID));
 				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->start_tfdt);
 				if (!SegmentDuration) tf->min_cts_in_segment = (u64)-1;
 
@@ -1651,7 +1659,6 @@ restart_fragmentation_pass:
 				e = gf_isom_clone_pssh(output, input, GF_TRUE);
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d track processing\n", SegmentName, nbFragmentInSegment));
 
 		//process track by track
 		for (i=0; i<count; i++) {
@@ -1676,7 +1683,7 @@ restart_fragmentation_pass:
 				Bool is_redundant_sample = GF_FALSE;
 				u32 split_sample_duration = 0;
 
-				/*first sample*/
+				/*first sample in the fragment */
 				if (!sample) {
 					sample = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1, &descIndex);
 					if (!sample) {
@@ -1685,6 +1692,7 @@ restart_fragmentation_pass:
 					}
 
 					/*FIXME - use negative ctts to indicate "past" DTS for splitted sample*/
+					/* take into account the possible split of the last sample in the previous fragment */
 					if (tf->split_sample_dts_shift) {
 						sample->DTS += tf->split_sample_dts_shift;
 						is_redundant_sample = GF_TRUE;
@@ -1713,6 +1721,9 @@ restart_fragmentation_pass:
 				}
 
 				if (tf->splitable) {
+					/* Evaluate if we need to split the current sample 
+					(if it goes beyond the segment boundary,
+					we do not split a sample if it exceeds the fragment boundary) */
 					if (tf->is_ref_track) {
 						u64 frag_dur = (tf->FragmentLength + defaultDuration) * dash_cfg->dash_scale / tf->TimeScale;
 						/*if media segment about to be produced is longer than max segment length, force segment split*/
@@ -1721,12 +1732,15 @@ restart_fragmentation_pass:
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / dash_cfg->dash_scale - tf->FragmentLength);
 							assert(defaultDuration);
 							split_sample_duration -= defaultDuration;
+
+							/*since we split this sample we have to stop fragmenting afterwards*/
+							stop_frag = GF_TRUE;
 							nb_samp++;
 						}
-					} else if (tfref /* tfref set to NULL after the last sample of tfref is processed */
-					           /*&& next do not split if no next sample */
-
-					           /*next sample DTS */
+					} else if (tfref 
+					           /* we split the sample not at the "perfect" segment boundary 
+							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any) 
+							   there may not be a reference track anymore if all samples have been used */
 					           && ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
 						defaultDuration = (u32) ( (tfref->next_sample_dts * tf->TimeScale)/tfref_timescale - tf->next_sample_dts );
@@ -1783,6 +1797,8 @@ restart_fragmentation_pass:
 					if (e)
 						goto err_exit;
 
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d, current fragment length %d, adding sample with DTS %d from TrackID %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength, sample->DTS, tf->TrackID));
+
 					if (sample->DTS + sample->CTS_Offset < tf->min_cts_in_segment)
 						tf->min_cts_in_segment = sample->DTS + sample->CTS_Offset;
 
@@ -1830,10 +1846,7 @@ restart_fragmentation_pass:
 
 				if (next && SAP_type) {
 					if (tf->is_ref_track) {
-						if (split_sample_duration) {
-							stop_frag = GF_TRUE;
-						}
-						else if (split_seg_at_rap) {
+						if (split_seg_at_rap) {
 							u64 next_sap_time;
 							u64 frag_dur, next_dur;
 							next_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
@@ -1855,7 +1868,9 @@ restart_fragmentation_pass:
 								/*this is the fragment duration from last sample added to next SAP*/
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur > SegmentStart + MaxSegmentDuration)) {
+								if ((!tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur > SegmentStart + MaxSegmentDuration)) ||
+									/* we need to force the creation of a new segment if the next split would result in a zero duration sample*/
+									(tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur == SegmentStart + MaxSegmentDuration))) {
 									//if (!tf->splitable && (SegmentStart + SegmentDuration + frag_dur > MaxSegmentDuration * SegmentNum)) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
@@ -1887,8 +1902,9 @@ restart_fragmentation_pass:
 				if (tf->SampleNum==tf->SampleCount) {
 					stop_frag = GF_TRUE;
 				} else if (tf->is_ref_track) {
+					/* NOTE: we don't need to check for split_sample_duration because if it is used, stop_frag should already be TRUE */
 					/*fragmenting on "clock" track: no drift control*/
-					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
+					if (!dash_cfg->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
 						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
 						        /* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
 						        || (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
@@ -1915,6 +1931,7 @@ restart_fragmentation_pass:
 				}
 
 				if (stop_frag) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 					gf_isom_sample_del(&sample);
 					sample = next = NULL;
 
@@ -1926,6 +1943,8 @@ restart_fragmentation_pass:
 						}
 					}
 					tf->FragmentLength = 0;
+					/* propagate the portion of the current 'split' sample that has already been used in this fragment 
+					   to the next fragment */
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
 
@@ -1945,7 +1964,7 @@ restart_fragmentation_pass:
 				}
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done fragment %d track processing\n", SegmentName, nbFragmentInSegment));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 
 		SegmentDuration += maxFragDurationOverSegment;
 
