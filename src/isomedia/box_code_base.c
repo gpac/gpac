@@ -10397,7 +10397,7 @@ void fpar_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u32 size, char **out_str)
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str)
 {
 	u32 len=10;
 	u32 i=0;

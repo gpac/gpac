@@ -3721,7 +3721,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s);
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
 
-GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u32 size, char **out_str);
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 
 #endif //GPAC_DISABLE_ISOM
 
