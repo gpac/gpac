@@ -187,6 +187,7 @@ echo "  -warn:                 dump logs after each failed test (used for travis
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
 echo "  -keep-tmp:             keeps tmp folder used in tests (erased by default)"
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -git-hash:             syncs all remote reference hashes from git with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
@@ -219,6 +220,21 @@ cd $HASH_DIR
 wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
 cd "$main_dir"
 }
+
+git_hash ()
+{
+log $L_INF "- Mirroring reference hashes from from github to $HASH_DIR"
+cd $HASH_DIR
+if [ ! -d ".git" ]; then
+  rm -f *
+  git clone https://github.com/gpac/gpac-test-hash.git .
+else
+  git fetch origin
+  git reset --hard origin/master
+fi
+cd "$main_dir"
+}
+
 
 #performs mirroring of media and references hash & videos
 sync_refs ()
@@ -280,6 +296,8 @@ for i in $* ; do
  "-sync-hash")
   sync_hash
   exit;;
+ "-git-hash")
+  git_hash;;
  "-sync-media")
   sync_media;;
  "-sync-refs")
