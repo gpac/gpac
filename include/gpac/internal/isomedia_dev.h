@@ -506,6 +506,10 @@ enum
 	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
 	GF_ISOM_BOX_TYPE_AINF	= GF_4CC( 'a', 'i', 'n', 'f' ),
 
+	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC( 'j', 'p', 'e', 'g' ),
+	GF_ISOM_BOX_TYPE_PNG	= GF_4CC( 'p', 'n', 'g', ' ' ),
+	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC( 'j', 'p', '2', 'k' ),
+
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
 
