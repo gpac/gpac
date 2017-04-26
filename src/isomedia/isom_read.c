@@ -171,7 +171,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	while (1)  {
 		sep = strchr(val, ' ');
 		if (sep) sep[0] = 0;
-		
+
 		if (!strncmp(val, "4cc=", 4)) strcpy(sz4cc, val+4);
 		else if (!strncmp(val, "init=", 5)) {
 			char szH[3], *data = val+5;
@@ -204,7 +204,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	if (!stricmp(sz4cc, "H264")) {
 	}
 	else if (!stricmp(sz4cc, "AACL")) {
-	} 
+	}
 	else {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot convert smooth media type %s to ISO init segment\n", sz4cc));
 		return GF_NOT_SUPPORTED;
@@ -224,7 +224,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	trak = (GF_TrackBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TRAK);
 	trak->moov = file->moov;
 	gf_list_add(file->moov->trackList, trak);
-	
+
 	trak->Header = (GF_TrackHeaderBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TKHD);
 	trak->Header->trackID = 1;
 	trak->Header->flags |= 1;
@@ -251,7 +251,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 
 	trak->dts_at_seg_start = tfdt;
 
-	
+
 	if (!stricmp(sz4cc, "H264")) {
 		u32 pos = 0;
 		u32 end, sc_size=0;
@@ -327,7 +327,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 
 		gf_list_add(trak->Media->information->sampleTable->SampleDescription->other_boxes, aac);
 	}
-	
+
 	return GF_OK;
 }
 
@@ -2296,6 +2296,7 @@ found:
 			data_size = p_uuid->dataSize;
 			data = p_uuid->data;
 		} else {
+			gf_isom_box_write((GF_Box *)ptr, bs);
 			continue;
 		}
 		s = data_size+8;
@@ -2609,7 +2610,7 @@ GF_Err gf_isom_reset_data_offset(GF_ISOFile *movie, u64 *top_box_start)
         gf_isom_box_del((GF_Box *)_a);\
         _a = __cast gf_isom_box_new(type);\
     }\
- 
+
 
 GF_EXPORT
 GF_Err gf_isom_reset_tables(GF_ISOFile *movie, Bool reset_sample_count)

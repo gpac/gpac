@@ -57,6 +57,7 @@ typedef struct
 GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, Bool is_box_array)
 {
 	char *data = NULL;
+	GF_Err res = GF_OK;
 	u32 size;
 	bin128 uuid;
 	memset(uuid, 0 , 16);
@@ -92,13 +93,13 @@ GF_Err set_file_udta(GF_ISOFile *dest, u32 tracknum, u32 udta_type, char *src, B
 
 	if (size && data) {
 		if (is_box_array) {
-			gf_isom_add_user_data_boxes(dest, tracknum, data, size);
+			res = gf_isom_add_user_data_boxes(dest, tracknum, data, size);
 		} else {
-			gf_isom_add_user_data(dest, tracknum, udta_type, uuid, data, size);
+			res = gf_isom_add_user_data(dest, tracknum, udta_type, uuid, data, size);
 		}
 		gf_free(data);
 	}
-	return GF_OK;
+	return res;
 }
 
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
