@@ -1152,7 +1152,12 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_PSSH, piff_pssh, "moov moof", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFXD, tfxd, "traf", "smooth"),
 	BOX_DEFINE_S(GF_ISOM_BOX_UUID_MSSM, uuid, "file", "smooth"),
-	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, uuid, "traf", "smooth")
+	BOX_DEFINE_S(GF_ISOM_BOX_UUID_TFRF, uuid, "traf", "smooth"),
+
+	/* Image tracks */
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JPEG, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_JP2K, video_sample_entry, "stsd", "apple"),
+	BOX_DEFINE_S(GF_ISOM_BOX_TYPE_PNG, video_sample_entry, "stsd", "apple")
 };
 
 GF_EXPORT
