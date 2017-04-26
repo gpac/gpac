@@ -47,7 +47,7 @@
  * NO SPACE in GPAC_VERSION / GPAC_FULL_VERSION for proper install
  * SONAME versions must be digits (not strings)
  */
-#define GPAC_VERSION          "0.7.2-DEV"
+#define GPAC_VERSION          "0.7.1"
 #define GPAC_VERSION_MAJOR 7
 #define GPAC_VERSION_MINOR 5
 #define GPAC_VERSION_MICRO 0
