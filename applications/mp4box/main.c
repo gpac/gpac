@@ -3561,6 +3561,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_log_set_tool_level(GF_LOG_PARSER, level);
 		gf_log_set_tool_level(GF_LOG_AUTHOR, level);
 		gf_log_set_tool_level(GF_LOG_CODING, level);
+		gf_log_set_tool_level(GF_LOG_DASH, level);
 #ifdef GPAC_MEMORY_TRACKING
 		if (mem_track)
 			gf_log_set_tool_level(GF_LOG_MEMORY, level);
