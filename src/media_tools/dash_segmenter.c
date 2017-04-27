@@ -6249,6 +6249,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		u32 first_in_period = 0;
 		Double period_duration=0;
+		Double min_media_duration = -1;
+		Double max_media_duration = -1;
 
 		for (i=0; i<dasher->nb_inputs; i++) {
 			Double dur = 0;
@@ -6287,6 +6289,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			if (dur > period_duration)
 				period_duration = dur;
 
+			if (min_media_duration == -1 || min_media_duration > dur) {
+				min_media_duration = dur;
+			}
+			if (max_media_duration == -1 || max_media_duration < dur) {
+				max_media_duration = dur;
+			}
+
 			switch (dash_input->protection_scheme_type) {
 			case GF_ISOM_CENC_SCHEME:
 			case GF_ISOM_CBC_SCHEME:
@@ -6302,6 +6311,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			dasher->inputs[first_in_period-1].period_duration = period_duration;
 		}
 		presentation_duration += period_duration;
+		if (max_media_duration - min_media_duration > dasher->segment_duration) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] The difference between the durations of the longest and shortest representations (%f) is higher than the segment duration (%f)\n", max_media_duration - min_media_duration, dasher->segment_duration));
+		}
 	}
 
 	if (max_comp_per_input > 1) {
