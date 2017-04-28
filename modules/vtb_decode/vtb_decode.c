@@ -1169,9 +1169,6 @@ GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFra
 		*needs_resize = GF_TRUE;
 	}
 	vtb_frame->cts = ctx->cts;
-	if (ctx->cts==960) {
-		vtb_frame->cts = 960;
-	}
 	ctx->decoded_frames_pending++;
 	return GF_OK;
 }

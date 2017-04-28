@@ -233,7 +233,7 @@ void PrintUsage()
 	        "\t-ifce IPIFCE           : Sets default Multicast interface\n"
 	        "\t-size WxH:      specifies visual size (default: scene size)\n"
 	        "\t-no-thread:     disables thread usage (except for depending on driver audio)\n"
-	        "\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
+	        "\t-no-cthread:    disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -1301,7 +1301,7 @@ int mp4client_main(int argc, char **argv)
 		}
 		else if (!strcmp(arg, "-no-thread"))
 			threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
-		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+		else if (!strcmp(arg, "-no-cthread") || !strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;

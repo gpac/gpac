@@ -36,6 +36,8 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node);
+
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
 
@@ -525,7 +527,6 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 	compositor->scene_sampled_clock = 0;
 	compositor->video_th_id = gf_th_id();
 
-
 	/*load extensions*/
 	compositor->extensions = gf_list_new();
 	compositor->unthreaded_extensions = gf_list_new();
@@ -547,6 +548,20 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 		gf_list_del(compositor->unthreaded_extensions);
 		compositor->unthreaded_extensions = NULL;
 	}
+
+	gf_sc_set_option(compositor, GF_OPT_RELOAD_CONFIG, 1);
+	compositor->display_width = 320;
+	compositor->display_height = 240;
+	compositor->recompute_ar = GF_TRUE;
+	compositor->scene_sampled_clock = 0;
+	if (compositor->autoconfig_opengl || compositor->hybrid_opengl)
+		gf_sc_recompute_ar(compositor, NULL);
+
+	/*try to load GL extensions*/
+#ifndef GPAC_DISABLE_3D
+	gf_sc_load_opengl_extensions(compositor, GF_FALSE);
+#endif
+
 
 	return GF_OK;
 }
@@ -610,13 +625,6 @@ GF_Compositor *gf_sc_new(GF_User *user)
 	if (tmp->user->init_flags & GF_TERM_NO_REGULATION )
 		tmp->no_regulation = GF_TRUE;
 	
-	gf_sc_reload_config(tmp);
-
-	/*try to load GL extensions*/
-#ifndef GPAC_DISABLE_3D
-	gf_sc_load_opengl_extensions(tmp, GF_FALSE);
-#endif
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 	return tmp;
 }
