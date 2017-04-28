@@ -408,9 +408,6 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 #endif
 
 	gf_term_load_shortcuts(term);
-
-	/*reload compositor config*/
-	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
 
 static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
@@ -1010,6 +1007,8 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG:
 		gf_term_reload_cfg(term);
+		/*reload compositor config*/
+		gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 		return GF_OK;
 	case GF_OPT_MEDIA_CACHE:
 		gf_term_set_cache_state(term, value);

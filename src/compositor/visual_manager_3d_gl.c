@@ -2664,8 +2664,14 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			loc = gf_glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
 			if (loc>=0) {
 				int yuv_mode = 0;
-				if (visual->yuv_pixelformat_type == GF_PIXEL_NV21) yuv_mode = 1;
-				else if (visual->yuv_pixelformat_type == GF_PIXEL_NV12) yuv_mode = 2;
+				switch (visual->yuv_pixelformat_type) {
+				case GF_PIXEL_NV21:
+					yuv_mode = 1;
+					break;
+				case GF_PIXEL_NV12:
+					yuv_mode = 2;
+					break;
+				}
 			
 				glUniform1i(loc, yuv_mode);
 			}
