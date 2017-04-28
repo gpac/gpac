@@ -182,7 +182,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
 
 		//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
-#if GPAC_ANDROID
 			{
 				char *dsi = NULL;
 				GF_NetworkCommand com;
@@ -213,9 +212,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 			}
 
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
-#else
-			e = codec->decio->AttachStream(codec->decio, ch->esd);
-#endif
 
 			gf_mx_v(ch->mx);
 		}

@@ -431,12 +431,6 @@ char* gf_strdup(const char *str);
 
 #endif
 
-typedef struct
-{
-	s32 num;
-	u32 den;
-} GF_Fraction;
-
 #ifndef LLD_CAST
 #define LLD_CAST
 #endif

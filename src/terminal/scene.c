@@ -2241,7 +2241,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
 				u32 radius = MAX(width, height) / 2;
 
-				((M_Sphere *)node)->radius = - INT2FIX(radius);
+				((M_Sphere *)node)->radius = - INT2FIX(radius) / 10;
 				gf_node_changed(node, NULL);
 			}
 		}
