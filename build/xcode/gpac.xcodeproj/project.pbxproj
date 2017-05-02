@@ -294,7 +294,6 @@
 		924FEE821BA6C63A003F77A6 /* iff.c in Sources */ = {isa = PBXBuildFile; fileRef = 924FEE811BA6C63A003F77A6 /* iff.c */; };
 		9251CA8A1E9D3E960089DDC6 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA881E9D3E2B0089DDC6 /* main.c */; };
 		9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */ = {isa = PBXBuildFile; fileRef = 9251CA8B1E9D3F880089DDC6 /* terminal.c */; };
-		925768B91EB86DF500961756 /* file_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 925768B81EB86DF500961756 /* file_in.c */; };
 		92586A721EA7665D00A0838A /* ft_font.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A701EA7665D00A0838A /* ft_font.h */; };
 		92586A731EA7669200A0838A /* ft_font.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A6F1EA7665D00A0838A /* ft_font.c */; };
 		92586A761EA8B66900A0838A /* input_sensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A741EA8B66900A0838A /* input_sensor.c */; };
@@ -1121,7 +1120,6 @@
 		924FEE811BA6C63A003F77A6 /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		9251CA881E9D3E2B0089DDC6 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/mp4client/main.c; sourceTree = "<group>"; };
 		9251CA8B1E9D3F880089DDC6 /* terminal.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = terminal.c; sourceTree = "<group>"; };
-		925768B81EB86DF500961756 /* file_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_in.c; path = filters_imp/file_in.c; sourceTree = "<group>"; };
 		92586A6F1EA7665D00A0838A /* ft_font.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ft_font.c; path = ../../modules/ft_font/ft_font.c; sourceTree = "<group>"; };
 		92586A701EA7665D00A0838A /* ft_font.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ft_font.h; path = ../../modules/ft_font/ft_font.h; sourceTree = "<group>"; };
 		92586A741EA8B66900A0838A /* input_sensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = input_sensor.c; sourceTree = "<group>"; };
@@ -2214,7 +2212,6 @@
 		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
 			isa = PBXGroup;
 			children = (
-				925768B81EB86DF500961756 /* file_in.c */,
 				92E562B71EA615AB0026992A /* odf_dec.c */,
 				92E562B51EA604710026992A /* bifs_dec.c */,
 				922990E21E858383001FAC7F /* isoffin_load.c */,
@@ -3243,7 +3240,6 @@
 				92E562B81EA615AB0026992A /* odf_dec.c in Sources */,
 				92C1FF581E7C42DF0093B61E /* raster_load.c in Sources */,
 				9201017418D5A445003D1ACA /* scene_stats.c in Sources */,
-				925768B91EB86DF500961756 /* file_in.c in Sources */,
 				9201017518D5A445003D1ACA /* swf_bifs.c in Sources */,
 				92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */,
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
