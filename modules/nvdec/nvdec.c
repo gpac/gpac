@@ -36,9 +36,11 @@
 #endif
 
 
+#ifdef LOAD_GL_1_5
 GLDECL_STATIC(glGenBuffers);
 GLDECL_STATIC(glBindBuffer);
 GLDECL_STATIC(glBufferData);
+#endif
 
 
 #ifndef GPAC_DISABLE_AV_PARSERS
@@ -175,7 +177,7 @@ static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
 	cuvid_info.CodecType = ctx->codec_type;
 	cuvid_info.ulWidth = ctx->width;
 	cuvid_info.ulHeight = ctx->height;
-	cuvid_info.ulNumDecodeSurfaces = 8;
+
 	switch (cuvid_info.CodecType) {
 	case cudaVideoCodec_H264:
         cuvid_info.ulNumDecodeSurfaces = 20;
@@ -198,6 +200,9 @@ static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
         MaxDpbSize = MaxDpbSize < 16 ? MaxDpbSize : 16;
         cuvid_info.ulNumDecodeSurfaces = MaxDpbSize + 4;
     }
+		break;
+	default:
+		cuvid_info.ulNumDecodeSurfaces = 8;
 		break;
 	}
 	cuvid_info.ChromaFormat = ctx->chroma_fmt;
@@ -253,9 +258,11 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (ctx->use_gl_texture) {
 			res = cuGLCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
 
+#ifdef LOAD_GL_1_5
 			GET_GLFUN(glGenBuffers);
 			GET_GLFUN(glBindBuffer);
 			GET_GLFUN(glBufferData);
+#endif
 
 		} else {
 			res = cuCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
@@ -549,7 +556,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	CUDA_MEMCPY2D mcpi;
 	CUVIDPROCPARAMS params;
 	CUresult res;
-	GF_Err e;
+	GF_Err e = GF_OK;
 	CUdeviceptr tx_data, vid_data;
 	size_t tx_pitch;
 	u32 vid_pitch;
@@ -716,7 +723,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glDisable(GL_TEXTURE_2D);
 
-	return GF_OK;
+	return e;
 }
 
 GF_Err NVDec_GetOutputFrame(struct _mediadecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
@@ -784,6 +791,8 @@ static const char *NVDec_GetCodecName(GF_BaseDecoder *dec)
 		return ctx->use_gl_texture ? "NVidia HWGL AVC|H264" : "NVidia HW AVC|H264";
 	case cudaVideoCodec_HEVC:
 		return ctx->use_gl_texture ? "NVidia HWGL HEVC" : "NVidia HW HEVC";
+	case cudaVideoCodec_VC1:
+		return ctx->use_gl_texture ? "NVidia HWGL VC1" : "NVidia HW VC1";
 	}
 	return "NVidia HW unknown decoder";
 }
