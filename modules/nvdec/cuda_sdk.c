@@ -329,12 +329,24 @@ CUVIDDRIVER CuvidDrvLib = 0;
 
 void CUDAAPI cuUninit()
 {
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+	if (CudaDrvLib) FreeLibrary((HMODULE)CudaDrvLib);
+	if (CuvidDrvLib) FreeLibrary((HMODULE)CuvidDrvLib);
+#else
+	if (CudaDrvLib) dlclose(CudaDrvLib);
+	if (CuvidDrvLib) dlclose(CuvidDrvLib);
+#endif
+	CudaDrvLib = 0;
+	CuvidDrvLib = 0;
 }
 
 CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
 {
     int driverVer = 1000;
 	CUDADRIVER curr_lib ;
+
+	if (CudaDrvLib) return CUDA_SUCCESS;
+	
 	assert(CudaDrvLib == 0);
 	
 	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib));
