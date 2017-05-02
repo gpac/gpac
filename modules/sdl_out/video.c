@@ -703,15 +703,6 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 2);
 #endif
 
-#if defined(__APPLE__) && !defined(GPAC_IPHONE)
-		{
-			const char *opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
-			if (opt && !strcmp(opt, "yes")) {
-				ctx->disable_vsync = GF_TRUE;
-			}
-		}
-#endif
-
 		if (!ctx->screen) {
 			if (!(ctx->screen = SDL_CreateWindow("", 0, 0, width, height, flags))) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[SDL] Cannot create window: %s\n", SDL_GetError()));
@@ -734,6 +725,16 @@ GF_Err SDLVid_ResizeWindow(GF_VideoOutput *dr, u32 width, u32 height)
 			}
 			hw_reset = GF_TRUE;
 		}
+
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "Video", "DisableVSync");
+		if (opt && !strcmp(opt, "yes")) {
+#if defined(__APPLE__) && !defined(GPAC_IPHONE)
+			ctx->disable_vsync = GF_TRUE;
+#else
+			SDL_GL_SetSwapInterval(0);
+#endif
+		}
+
 		SDL_SetWindowSize(ctx->screen, width, height);
 
 #else
