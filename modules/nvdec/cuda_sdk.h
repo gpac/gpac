@@ -1676,6 +1676,7 @@ extern tcuGraphicsResourceGetMappedPointer   *cuGraphicsResourceGetMappedPointer
 
 /************************************/
 CUresult CUDAAPI cuInit   (unsigned int, int cudaVersion);
+void CUDAAPI cuUninit();
 /************************************/
 
 
