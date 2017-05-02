@@ -94,7 +94,7 @@ endif
 
 #w32 plugins
 ifeq ($(CONFIG_WIN32),yes)
-PLUGDIRS+=wav_out
+PLUGDIRS+=wav_out nvdec
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
@@ -103,6 +103,11 @@ endif
 #OSX plugins
 ifeq ($(CONFIG_DARWIN),yes)
 PLUGDIRS+=vtb_decode
+endif
+
+#other linux
+ifeq ($(CONFIG_LINUX),yes)
+PLUGDIRS+=nvdec
 endif
 
 ifneq ($(CONFIG_FFMPEG), no)
