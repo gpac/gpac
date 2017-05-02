@@ -1686,7 +1686,7 @@ void CUDAAPI cuUninit();
 
 
 #include <gpac/setup.h>
-#include "../../../../src/compositor/gl_inc.h"
+#include "../../src/compositor/gl_inc.h"
 
 /**
  * \file dynlink_cudaGL.h
