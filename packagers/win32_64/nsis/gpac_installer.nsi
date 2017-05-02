@@ -447,6 +447,11 @@ Section "OpenHEVC Decoder" SecOHEVC
   File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 
+Section "NVidia Hardware Decoder" SecNVDEC
+  SectionIn 1
+  File "${GPAC_BIN}\gm_nvdec.dll"
+SectionEnd
+
 Section "MPEG DASH Support" SecDASH
   SectionIn 1
   File "${GPAC_BIN}\gm_mpd_in.dll"
@@ -654,6 +659,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecNVDEC} "Support for hardware decoding through NVidia cuvid"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
