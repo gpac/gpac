@@ -54,7 +54,7 @@ typedef struct
 	Bool skip_next_frame;
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
-	CUresult decode_error;
+	CUresult decode_error, dec_create_error;
 	Bool frame_size_changed;
 
 	GF_List *frames;
@@ -152,6 +152,7 @@ static GF_Err nvdec_init_decoder(GF_MediaDecoder *ifcg, NVDecCtx *ctx)
 	res = cuvidCreateDecoder(&ctx->cu_decoder, &cuvid_info);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to create cuvid decoder %s\n", cudaGetErrorEnum(res) ) );
+		ctx->dec_create_error = res;
 		return GF_IO_ERR;
 	}
 
@@ -360,6 +361,7 @@ static GF_Err NVDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 	ctx->esd = NULL;
+	ctx->dec_create_error = 0;
 	return GF_OK;
 }
 
@@ -470,6 +472,8 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 		ctx->skip_next_frame = GF_FALSE;
 	}
 
+	if (ctx->dec_create_error) return GF_IO_ERR;
+	
 	cu_pkt.payload_size = inBufferLength;
 	cu_pkt.payload = inBuffer;
 	cu_pkt.timestamp = *CTS;
