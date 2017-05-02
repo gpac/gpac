@@ -1013,6 +1013,7 @@ enum
 	GF_ODM_ACTION_SCENE_DISCONNECT,
 	GF_ODM_ACTION_SCENE_RECONNECT,
 	GF_ODM_ACTION_SCENE_INLINE_RESTART,
+	GF_ODM_ACTION_SETUP
 };
 
 struct _od_manager
@@ -1148,6 +1149,8 @@ Bool gf_odm_lock_mo(struct _mediaobj *mo);
 void gf_odm_signal_eos(GF_ObjectManager *odm);
 
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
+
+void gf_odm_setup_task(GF_ObjectManager *odm);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy
