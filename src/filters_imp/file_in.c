@@ -24,7 +24,7 @@
  */
 
 
-#include <gpac/modules/service.h>
+#include <gpac/filters.h>
 /*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
 #include <gpac/download.h>
@@ -32,49 +32,33 @@
 
 typedef struct
 {
-	u32 ESID;
-	LPNETCHANNEL ch;
-	u32 start, end;
-} DummyChannel;
+	//options
+	const char *src;
+	u32 buffer_size;
 
-typedef struct
-{
-	/*the service we're responsible for*/
-	GF_ClientService *service;
-	char *url;
+	//internal
+
 	u32 oti;
 	Bool is_views_url;
-	GF_List *channels;
 
+	//only one output pid declared
+	GF_FilterPid *pid;
+
+#ifdef FILTER_FIXME
 	/*file downloader*/
 	GF_DownloadSession * dnload;
+#endif
+
 	Bool is_service_connected;
-} DCReader;
 
-DummyChannel *DC_GetChannel(DCReader *read, LPNETCHANNEL ch)
-{
-	DummyChannel *dc;
-	u32 i=0;
-	while ((dc = (DummyChannel *)gf_list_enum(read->channels, &i))) {
-		if (dc->ch && dc->ch==ch) return dc;
-	}
-	return NULL;
-}
+	FILE *file;
+	u64 file_pos;
+	u64 file_size;
+	u32 start, end;
+} GF_FileInCtx;
 
-Bool DC_RemoveChannel(DCReader *read, LPNETCHANNEL ch)
-{
-	DummyChannel *dc;
-	u32 i=0;
-	while ((dc = (DummyChannel *)gf_list_enum(read->channels, &i))) {
-		if (dc->ch && dc->ch==ch) {
-			gf_list_rem(read->channels, i-1);
-			gf_free(dc);
-			return GF_TRUE;
-		}
-	}
-	return GF_FALSE;
-}
 
+#ifdef FILTER_FIXME
 static const char * DC_MIME_TYPES[] = {
 	/*  "application/x-xmta", "xmta xmta.gz xmtaz", "MPEG-4 Text (XMT)" */
 	"application/x-bt", "bt bt.gz btz", "MPEG-4 Text (BT)",
@@ -151,7 +135,7 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_Err e;
-	DCReader *read = (DCReader *) cbk;
+	GF_FileInCtx *read = (GF_FileInCtx *) cbk;
 
 	/*handle service message*/
 	gf_service_download_update_stats(read->dnload);
@@ -189,7 +173,7 @@ void DC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 
 void DC_DownloadFile(GF_InputService *plug, char *url)
 {
-	DCReader *read = (DCReader *) plug->priv;
+	GF_FileInCtx *read = (GF_FileInCtx *) plug->priv;
 
 	read->dnload = gf_service_download_new(read->service, url, 0, DC_NetIO, read);
 	if (!read->dnload) {
@@ -200,42 +184,43 @@ void DC_DownloadFile(GF_InputService *plug, char *url)
 	}
 }
 
+#endif
 
-GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
+
+GF_Err file_in_initialize(GF_Filter *filter)
 {
-	DCReader *read = (DCReader *) plug->priv;
-	FILE *test;
+	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 	char *tmp, *ext;
 
-	if (!read || !serv || !url) return GF_BAD_PARAM;
+	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 
+#ifdef FILTER_FIXME
 	if (read->dnload) gf_service_download_del(read->dnload);
 	read->dnload = NULL;
+#endif
 
-	read->url = gf_strdup(url);
-	ext = strchr(read->url, '#');
+	ext = strchr(ctx->src, '#');
 	if (ext) {
 		char *anext;
 		ext[0] = 0;
-		anext = strrchr(read->url, '.');
+		anext = strrchr(ctx->src, '.');
 		ext[0] = '#';
 		ext = anext;
 	} else {
-		ext = strrchr(read->url, '.');
+		ext = strrchr(ctx->src, '.');
 	}
 	if (ext && !stricmp(ext, ".gz")) {
 		char *anext;
 		ext[0] = 0;
-		anext = strrchr(read->url, '.');
+		anext = strrchr(ctx->src, '.');
 		ext[0] = '.';
 		ext = anext;
 	}
-	read->service = serv;
 
-	if (!strnicmp(url, "views://", 8)) {
-		read->is_views_url = GF_TRUE;
-		gf_service_connect_ack(serv, NULL, GF_OK);
-		read->is_service_connected = GF_TRUE;
+	if (!strnicmp(ctx->src, "views://", 8)) {
+		ctx->is_views_url = GF_TRUE;
+		//gf_service_connect_ack(serv, NULL, GF_OK);
+		ctx->is_service_connected = GF_TRUE;
 		return GF_OK;
 	}
 
@@ -258,192 +243,137 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 		        || !stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz")
 		        || !stricmp(ext, "swf")
 		   )
-			read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			ctx->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
 
 		else if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz")) {
-			read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			ctx->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
 		}
 		/*XML LASeR*/
 		else if (!stricmp(ext, "xsr"))
-			read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
+			ctx->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
 		else if (!stricmp(ext, "xbl"))
-			read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
+			ctx->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
 		else if (!stricmp(ext, "wgt") || !stricmp(ext, "mgt"))
-			read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
+			ctx->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
 
 		if (cgi_par) cgi_par[0] = '?';
 	}
 
-	if (!read->oti && (!strnicmp(url, "file://", 7) || !strstr(url, "://"))) {
-		char *rtype = gf_xml_get_root_type(url, NULL);
+	if (!ctx->oti && (!strnicmp(ctx->src, "file://", 7) || !strstr(ctx->src, "://"))) {
+		char *rtype = gf_xml_get_root_type(ctx->src, NULL);
 		if (rtype) {
-			if (!strcmp(rtype, "SAFSession")) read->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
-			else if (!strcmp(rtype, "svg")) read->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
-			else if (!strcmp(rtype, "XMT-A")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			else if (!strcmp(rtype, "X3D")) read->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
-			else if (!strcmp(rtype, "bindings")) read->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
-			else if (!strcmp(rtype, "widget")) read->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
+			if (!strcmp(rtype, "SAFSession")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_LASER;
+			else if (!strcmp(rtype, "svg")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_SVG;
+			else if (!strcmp(rtype, "XMT-A")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			else if (!strcmp(rtype, "X3D")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_GENERIC;
+			else if (!strcmp(rtype, "bindings")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_XBL;
+			else if (!strcmp(rtype, "widget")) ctx->oti = GPAC_OTI_PRIVATE_SCENE_WGT;
 			gf_free(rtype);
 		}
 	}
 
 	/*remote fetch*/
-	if (!strnicmp(url, "file://", 7)) {
+	if (!strnicmp(ctx->src, "file://", 7)) {
 	}
-	else if (strstr(url, "://")) {
+	else if (strstr(ctx->src, "://")) {
+#ifdef FILTER_FIXME
 		DC_DownloadFile(plug, read->url);
 		return GF_OK;
+#else
+		gf_filter_setup_failure(filter, GF_NOT_SUPPORTED);
+		return GF_NOT_SUPPORTED;
+#endif
 	}
 
-	test = gf_fopen(read->url, "rt");
-	if (!test) {
-		gf_service_connect_ack(serv, NULL, GF_URL_ERROR);
-		return GF_OK;
+	ctx->file = gf_fopen(ctx->src, "rt");
+	if (!ctx->file) {
+		gf_filter_setup_failure(filter, GF_URL_ERROR);
+		return GF_URL_ERROR;
 	}
-	gf_fclose(test);
-	if (!read->is_service_connected) {
-		gf_service_connect_ack(serv, NULL, GF_OK);
-		read->is_service_connected = GF_TRUE;
+	gf_fseek(ctx->file, 0, SEEK_END);
+	ctx->file_size = gf_ftell(ctx->file);
+	gf_fseek(ctx->file, 0, SEEK_SET);
+
+	if (!ctx->is_service_connected) {
+		ctx->is_service_connected = GF_TRUE;
 	}
+
+	//declare pid
+	ctx->pid = gf_filter_pid_new(filter);
+
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_ID, &PROP_UINT(0xFFFE));
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(0xFFFE));
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_PRIVATE_SCENE));
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_OTI, &PROP_UINT(ctx->oti));
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(1000));
+	gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE));
+
 	return GF_OK;
 }
 
-GF_Err DC_CloseService(GF_InputService *plug)
+GF_Err file_in_finalize(GF_Filter *filter)
 {
-	DCReader *read = (DCReader *) plug->priv;
-	if (read->dnload) gf_service_download_del(read->dnload);
-	read->dnload = NULL;
-	gf_service_disconnect_ack(read->service, NULL, GF_OK);
+	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
+#ifdef FILTER_FIXME
+	if (ctx->dnload) gf_service_download_del(ctx->dnload);
+	ctx->dnload = NULL;
+#endif
 	return GF_OK;
 }
 
-/*Dummy input just send a file name, no multitrack to handle so we don't need to check sub_url nor expected type*/
-static GF_Descriptor *DC_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
+static Bool file_in_process_event(GF_Filter *filter, GF_FilterEvent *com)
 {
-	u32 size = 0;
-	char *uri;
-	GF_ESD *esd;
-	GF_BitStream *bs;
-	DCReader *read = (DCReader *) plug->priv;
-	GF_InitialObjectDescriptor *iod = (GF_InitialObjectDescriptor *) gf_odf_desc_new(GF_ODF_IOD_TAG);
-	iod->scene_profileAndLevel = 1;
-	iod->graphics_profileAndLevel = 1;
-	iod->OD_profileAndLevel = 1;
-	iod->audio_profileAndLevel = 0xFE;
-	iod->visual_profileAndLevel = 0xFE;
-	iod->objectDescriptorID = 1;
+	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
-	if (read->is_views_url) {
-		iod->URLString = gf_strdup(read->url);
-		return (GF_Descriptor *)iod;
-	}
+	if (!com->base.on_pid) return GF_FALSE;
+	if (com->base.on_pid != ctx->pid) return GF_FALSE;
 
-	esd = gf_odf_desc_esd_new(0);
-	esd->slConfig->timestampResolution = 1000;
-	esd->slConfig->useTimestampsFlag = 1;
-	esd->ESID = 0xFFFE;
-	esd->decoderConfig->streamType = GF_STREAM_PRIVATE_SCENE;
-	esd->decoderConfig->objectTypeIndication = read->oti;
-	if (read->dnload) {
-		uri = (char *) gf_dm_sess_get_cache_name(read->dnload);
-		gf_dm_sess_get_stats(read->dnload, NULL, NULL, &size, NULL, NULL, NULL);
-	} else {
-		FILE *f = gf_fopen(read->url, "rt");
-		gf_fseek(f, 0, SEEK_END);
-		size = (u32) gf_ftell(f);
-		gf_fclose(f);
-		uri = read->url;
-	}
-	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_u32(bs, size);
-	gf_bs_write_data(bs, uri, (u32) strlen(uri));
-	gf_bs_get_content(bs, &esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength);
-	gf_bs_del(bs);
-
-	gf_list_add(iod->ESDescriptors, esd);
-	return (GF_Descriptor *)iod;
-}
-
-
-GF_Err DC_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
-{
-	DCReader *read = (DCReader *) plug->priv;
-	DummyChannel *dc;
-
-	if (!com->base.on_channel) return GF_NOT_SUPPORTED;
-
-	dc = DC_GetChannel(read, com->base.on_channel);
-	if (!dc) return GF_STREAM_NOT_FOUND;
-
-	switch (com->command_type) {
-	case GF_NET_CHAN_SET_PULL:
-		return GF_OK;
-	case GF_NET_CHAN_INTERACTIVE:
-		return GF_OK;
-	/*since data is file-based, no padding is needed (decoder plugin will handle it itself)*/
-	case GF_NET_CHAN_SET_PADDING:
-		return GF_OK;
-	case GF_NET_CHAN_BUFFER:
-		com->buffer.max = com->buffer.min = 0;
-		return GF_OK;
-	case GF_NET_CHAN_DURATION:
-		/*this module is not made for updates, use undefined duration*/
-		com->duration.duration = 0;
-		return GF_OK;
-	case GF_NET_CHAN_PLAY:
-		dc->start = (u32) (1000 * com->play.start_range);
-		dc->end = (u32) (1000 * com->play.end_range);
-		return GF_OK;
-	case GF_NET_CHAN_STOP:
-		return GF_OK;
-	case GF_NET_CHAN_CONFIG:
-		return GF_OK;
-	case GF_NET_CHAN_GET_DSI:
-		com->get_dsi.dsi = NULL;
-		com->get_dsi.dsi_len = 0;
-		return GF_OK;
+	switch (com->base.type) {
+	case GF_FEVT_PLAY:
+		ctx->start = (u32) (1000 * com->play.start_range);
+		ctx->end = (u32) (1000 * com->play.end_range);
+		ctx->file_pos = 0;
+		gf_fseek(ctx->file, 0, SEEK_SET);
+		return GF_TRUE;
+	case GF_FEVT_STOP:
+		return GF_TRUE;
 	default:
 		break;
 	}
-	return GF_OK;
+	return GF_FALSE;
 }
 
-GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char *url, Bool upstream)
+static GF_Err isoffin_process(GF_Filter *filter)
 {
-	u32 ESID;
-	DCReader *read = (DCReader *) plug->priv;
+	Bool is_start, is_end;
+	u32 nb_read, to_read;
+	GF_FilterPacket *pck;
+	char *pck_data;
+	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
-	sscanf(url, "ES_ID=%ud", &ESID);
-	if (!ESID) {
-		gf_service_connect_ack(read->service, channel, GF_STREAM_NOT_FOUND);
+	if (gf_filter_pid_would_block(ctx->pid))
+		return GF_OK;
+
+	is_start = ctx->file_pos ? GF_FALSE : GF_TRUE;
+	to_read = ctx->file_size - ctx->file_pos;
+	if (to_read > ctx->buffer_size) {
+		to_read = ctx->buffer_size;
+		is_end = GF_FALSE;
 	} else {
-		DummyChannel *dc;
-		GF_SAFEALLOC(dc, DummyChannel);
-		if (!dc) return GF_OUT_OF_MEM;
-		dc->ch = channel;
-		dc->ESID = ESID;
-		gf_list_add(read->channels, dc);
-		gf_service_connect_ack(read->service, channel, GF_OK);
+		is_end = GF_TRUE;
 	}
-	return GF_OK;
-}
 
-GF_Err DC_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
-{
-	Bool had_ch;
-	DCReader *read = (DCReader *) plug->priv;
+	pck = gf_filter_pck_new_alloc(ctx->pid, to_read, &pck_data);
+	if (!pck) return GF_OK;
 
-	had_ch = DC_RemoveChannel(read, channel);
-	gf_service_disconnect_ack(read->service, channel, had_ch ? GF_OK : GF_STREAM_NOT_FOUND);
-	return GF_OK;
-}
+	gf_filter_pck_set_cts(pck, ctx->start);
 
-GF_Err DC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
-{
-	DummyChannel *dc;
-	DCReader *read = (DCReader *) plug->priv;
-	dc = DC_GetChannel(read, channel);
-	if (!dc) return GF_STREAM_NOT_FOUND;
+	nb_read = fread(pck_data, 1, to_read, ctx->file);
+
+	if (nb_read != to_read) return GF_IO_ERR;
+	if (!ctx->file_pos) is_start = GF_TRUE;
+
+	gf_filter_pck_set_cts(pck, ctx->start);
 
 	memset(out_sl_hdr, 0, sizeof(GF_SLHeader));
 	out_sl_hdr->compositionTimeStampFlag = 1;
@@ -452,11 +382,6 @@ GF_Err DC_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_
 	*sl_compressed = GF_FALSE;
 	*out_reception_status = GF_OK;
 	*is_new_data = GF_TRUE;
-	return GF_OK;
-}
-
-GF_Err DC_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
-{
 	return GF_OK;
 }
 
@@ -478,13 +403,13 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-	DCReader *read;
+	GF_FileInCtx *read;
 	GF_InputService *plug;
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
 	if (!plug) return NULL;
-	GF_SAFEALLOC(read, DCReader);
+	GF_SAFEALLOC(read, GF_FileInCtx);
 	if (!read) {
 		gf_free(plug);
 		return NULL;
@@ -515,7 +440,7 @@ void ShutdownInterface(GF_BaseInterface *bi)
 {
 	GF_InputService *ifcn = (GF_InputService*)bi;
 	if (ifcn->InterfaceType==GF_NET_CLIENT_INTERFACE) {
-		DCReader *read = (DCReader*)ifcn->priv;
+		GF_FileInCtx *read = (GF_FileInCtx*)ifcn->priv;
 		assert(!gf_list_count(read->channels));
 		gf_list_del(read->channels);
 		if( read->url) gf_free(read->url);
