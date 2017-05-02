@@ -790,12 +790,8 @@ static const char *NVDec_GetCodecName(GF_BaseDecoder *dec)
 
 
 static u32 cuvid_load_state = 0;
-
-GF_BaseDecoder *NewNVDec()
+static void init_cuda_sdk()
 {
-	GF_MediaDecoder *ifcd;
-	NVDecCtx *dec;
-
 	if (!cuvid_load_state) {
 		CUresult res;
 		int device_count;
@@ -816,6 +812,15 @@ GF_BaseDecoder *NewNVDec()
 			}
 		}
 	}
+}
+
+GF_BaseDecoder *NewNVDec()
+{
+	GF_MediaDecoder *ifcd;
+	NVDecCtx *dec;
+
+	init_cuda_sdk();
+
 	if (cuvid_load_state != 2) return NULL;
 
 	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
@@ -849,6 +854,9 @@ void DeleteNVDec(GF_BaseDecoder *ifcg)
 {
 	NVDecCtx *ctx= (NVDecCtx *)ifcg->privateStack;
 
+	cuUninit();
+	cuvid_load_state = 0;
+
 	gf_list_del(ctx->frames);
 	gf_list_del(ctx->frames_res);
 	gf_free(ctx);
@@ -867,6 +875,10 @@ const u32 *QueryInterfaces()
 #endif
 		0
 	};
+
+	init_cuda_sdk();
+
+	if (cuvid_load_state != 2) return NULL;
 
 	return si;
 }
