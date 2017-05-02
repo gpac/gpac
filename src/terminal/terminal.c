@@ -952,7 +952,7 @@ void gf_term_disconnect(GF_Terminal *term)
 		term->root_scene = NULL;
 	}
 	handle_services = 0;
-	if (term->flags & GF_TERM_NO_DECODER_THREAD)
+	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD)
 		handle_services = 1;
 	/*if an unthreaded term extension decides to disconnect the scene (validator does so), we must flush services now
 	because we are called from gf_term_handle_services*/
@@ -1198,6 +1198,9 @@ void gf_term_handle_services(GF_Terminal *term)
 #ifndef GPAC_DISABLE_VRML
 			gf_scene_mpeg4_inline_restart(odm->subscene);
 #endif
+			break;
+		case GF_ODM_ACTION_SETUP:
+			gf_odm_setup_task(odm);
 			break;
 		}
 

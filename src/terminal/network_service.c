@@ -257,6 +257,7 @@ static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
 	return 1;
 }
 
+
 static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_desc, Bool no_scene_check)
 {
 	u32 i, min_od_id;
@@ -283,8 +284,6 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Service %s] %s\n", service->url, media_desc ? "Adding new media object" : "Regenerating scene graph"));
 	if (!media_desc) {
-		if (!no_scene_check)
-			gf_scene_regenerate(scene);
 		return;
 	}
 
@@ -435,12 +434,34 @@ static void term_on_media_add(GF_ClientService *service, GF_Descriptor *media_de
 	with the compositor*/
 	gf_term_lock_net(term, 0);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
-	gf_odm_setup_object(odm, service);
+	//we post a task to make sure the AttachStream of the decoder is always called from the main thread when no compositor thread (needed for GL nvidia setup)
+	gf_term_lock_media_queue(term, GF_TRUE);
+
+	if (!odm->net_service) {
+		if (odm->flags & GF_ODM_DESTROYED) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] Object has been scheduled for destruction - ignoring object setup\n", odm->OD->objectDescriptorID));
+			return;
+		}
+		odm->net_service = service;
+		assert(odm->OD);
+		if (!odm->OD->URLString)
+			odm->net_service->nb_odm_users++;
+	}
 
 	/*OD inserted by service: resetup scene*/
-	if (!no_scene_check && scene->is_dynamic_scene) gf_scene_regenerate(scene);
+	odm->action_type = GF_ODM_ACTION_SETUP;
+	gf_list_add(term->media_queue, odm);
+	gf_term_lock_media_queue(term, GF_FALSE);
 }
+
+void gf_odm_setup_task(GF_ObjectManager *odm)
+{
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->OD->objectDescriptorID, odm->mo));
+	gf_odm_setup_object(odm, odm->net_service);
+
+	gf_scene_regenerate(odm->parentscene);
+}
+
 
 static void gather_buffer_level(GF_ObjectManager *odm, GF_ClientService *service, GF_NetworkCommand *com, u32 *max_buffer_time)
 {
