@@ -260,7 +260,6 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	return GF_TRUE;
 }
 
-
 void gf_mo_update_caps(GF_MediaObject *mo)
 {
 	const GF_PropertyValue *v;
@@ -721,6 +720,7 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
+		Bool skip_network = GF_FALSE;
 		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
 
 		/*signal STOP request*/
@@ -1286,10 +1286,11 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_max_x = scene->srd_max_x;
 	vr_info->srd_max_y = scene->srd_max_y;
 	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	vr_info->has_full_coverage = (scene->srd_type==2) ? GF_TRUE : GF_FALSE;
 	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
-	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
+	return (!scene->vr_type && !scene->srd_type) ? GF_FALSE : GF_TRUE;
 }
 
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/

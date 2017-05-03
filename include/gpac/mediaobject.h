@@ -198,6 +198,7 @@ typedef struct
 	u32 scene_width;
 	u32 scene_height;
 
+	Bool has_full_coverage;
 	Bool is_tiled_srd;
 } GF_MediaObjectVRInfo;
 
