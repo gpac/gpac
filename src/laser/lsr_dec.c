@@ -35,7 +35,7 @@
 	(_val) = gf_bs_read_int(_codec->bs, _nbBits);	\
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODING, ("[LASeR] %s\t\t%d\t\t%d\n", _str, _nbBits, _val)); \
 	}\
- 
+
 
 static void lsr_read_group_content(GF_LASeRCodec *lsr, GF_Node *elt, Bool skip_object_content);
 static void lsr_read_group_content_post_init(GF_LASeRCodec *lsr, SVG_Element *elt, Bool skip_init);
@@ -2529,10 +2529,20 @@ static void lsr_read_float_list(GF_LASeRCodec *lsr, GF_Node *n, u32 tag, SVG_Coo
 		}
 	}
 	count = lsr_read_vluimsbf5(lsr, "count");
-	for (i=0; i<count; i++) {
-		Fixed *v = (Fixed *)gf_malloc(sizeof(Fixed));
-		*v = lsr_read_fixed_16_8(lsr, "val");
-		gf_list_add(*coords, v);
+	if (tag == TAG_SVG_ATT_text_rotate) {
+		for (i=0; i<count; i++) {
+			SVG_Number *n = (SVG_Number *)gf_malloc(sizeof(SVG_Number));
+			n->type = SVG_NUMBER_VALUE;
+			n->value = lsr_read_fixed_16_8(lsr, "val");
+			gf_list_add(*coords, n);
+		}
+	}
+	else {
+		for (i=0; i<count; i++) {
+			Fixed *n = (Fixed *)gf_malloc(sizeof(Fixed));
+			*n = lsr_read_fixed_16_8(lsr, "val");
+			gf_list_add(*coords, n);
+		}
 	}
 }
 

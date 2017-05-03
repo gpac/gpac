@@ -524,7 +524,7 @@ static void meta_add_item_property_association(GF_ItemPropertyAssociationBox *ip
 	if (!found_entry) {
 		GF_SAFEALLOC(found_entry, GF_ItemPropertyAssociationEntry);
 		if (!found_entry) return;
-		
+
 		gf_list_add(ipma->entries, found_entry);
 		found_entry->item_id = item_ID;
 		found_entry->essential = gf_list_new();
@@ -702,13 +702,9 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (item_name) {
 		infe->item_name = gf_strdup(item_name);
 	} else if (resource_path) {
-		if (strrchr(resource_path, GF_PATH_SEPARATOR)) {
-			infe->item_name = gf_strdup(strrchr(resource_path, GF_PATH_SEPARATOR) + 1);
-		} else {
-			infe->item_name = gf_strdup(resource_path);
-		}
+		infe->item_name = gf_strdup(gf_file_basename( resource_path ));
 	}
-	
+
 	infe->item_type = item_type;
 
 	if (mime_type) {
@@ -739,7 +735,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	location_entry->item_ID = infe->item_ID;
 
 	if (!meta->item_infos) meta->item_infos = (GF_ItemInfoBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IINF);
-	e = gf_list_add(meta->item_infos->item_infos, infe);	
+	e = gf_list_add(meta->item_infos->item_infos, infe);
 	if (e) return e;
 
 	if (image_props) {
@@ -784,7 +780,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 			gf_list_add(location_entry->extent_entries, entry);
 			item_index = (u32 *)gf_list_get(item_extent_refs, i);
-			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_4CC('i','l','o','c'), &(entry->extent_index));	
+			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_4CC('i','l','o','c'), &(entry->extent_index));
 		}
 	}
 	else {
