@@ -210,7 +210,8 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
-	Bool is_srd, is_tiled_srd;
+	Bool is_tiled_srd;
+	u32 srd_type;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
 
 
@@ -1003,6 +1004,7 @@ enum
 	GF_ODM_STATE_PLAY,
 	GF_ODM_STATE_IN_SETUP,
 	GF_ODM_STATE_BLOCKED,
+	GF_ODM_STATE_STOP_NO_NET,
 };
 
 enum

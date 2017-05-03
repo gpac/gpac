@@ -1909,8 +1909,8 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 			evt.channel = ch;
 			ch->ipmp_tool->process(ch->ipmp_tool, &evt);
 		}
-
-		if (ch->service) {
+		
+		if (ch->service &&  (odm->state != GF_ODM_STATE_STOP_NO_NET ) ) {
 			com.base.on_channel = ch;
 			gf_term_service_command(ch->service, &com);
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d %s] CH %d At OTB %u requesting STOP\n", odm->OD->objectDescriptorID, odm->net_service->url, ch->esd->ESID, gf_clock_time(ch->clock)));

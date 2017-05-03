@@ -89,6 +89,7 @@ GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double sta
 {
 	if (!txh->stream) {
 		GF_Err e;
+		if (!url) return GF_BAD_PARAM;
 		e = gf_sc_texture_open(txh, url, lock_scene_timeline);
 		if (e != GF_OK) return e;
 	}
@@ -119,7 +120,7 @@ GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url)
 
 
 GF_EXPORT
-void gf_sc_texture_stop(GF_TextureHandler *txh)
+void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh)
 {
 	if (!txh->is_open) return;
 	/*release texture WITHOUT droping frame*/
@@ -133,7 +134,13 @@ void gf_sc_texture_stop(GF_TextureHandler *txh)
 		txh->data = NULL;
 	}
 	txh->is_open = 0;
-	
+}
+
+GF_EXPORT
+void gf_sc_texture_stop(GF_TextureHandler *txh)
+{
+	gf_sc_texture_stop_no_unregister(txh);
+
 	/*and deassociate object*/
 	gf_mo_unregister(txh->owner, txh->stream);
 	txh->stream = NULL;
