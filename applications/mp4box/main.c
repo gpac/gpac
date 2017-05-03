@@ -1292,7 +1292,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			sscanf(szSlot, "ref=%u,%s", &meta->ref_item_id, type);
 			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
 			ret = 1;
-		}		
+		}
 		else if (!strnicmp(szSlot, "name=", 5)) {
 			strcpy(meta->szName, szSlot+5);
 			ret = 1;
@@ -1358,7 +1358,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			} else {
 				meta->image_props->tile_mode = TILE_ITEM_SINGLE;
 				sscanf(szSlot + 9, "%d", &meta->image_props->single_tile_number);
-			}			
+			}
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
 			meta->use_dref = 1;
@@ -1669,7 +1669,7 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 {
 	char *param = string;
 	if (!action || !string) return GF_BAD_PARAM;
-	
+
 	while (param) {
 		param = strchr(param, ':');
 		if (param) {
@@ -3460,6 +3460,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+#ifdef _TWO_DIGIT_EXPONENT
+	_set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
+
 	/*init libgpac*/
 	gf_sys_init(mem_track);
 	if (argc < 2) {
@@ -3975,7 +3979,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Warning: using -segment-timeline with no -url-template. Forcing URL template.\n");
 			use_url_template = GF_TRUE;
 		}
-		
+
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
@@ -4480,7 +4484,7 @@ int mp4boxMain(int argc, char **argv)
 						}
 					}
 				}
-				gf_isom_remove_track(file, 1);				
+				gf_isom_remove_track(file, 1);
 				needSave = GF_TRUE;
 			}
 			break;
@@ -4541,7 +4545,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 		needSave = GF_TRUE;
 	}
-	
+
 	for (i=0; i<nb_tsel_acts; i++) {
 		switch (tsel_acts[i].act_type) {
 		case TSEL_ACTION_SET_PARAM:
