@@ -363,6 +363,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 			}
 		}
 
+
+	tr_state->camera_was_dirty = GF_FALSE;
+
 	if (tr_state->visual->nb_views>1) {
 		s32 view_idx;
 		Fixed interocular_dist_pixel;
@@ -379,8 +382,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
+		tr_state->camera_was_dirty = GF_TRUE;
 		camera_update_stereo(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->focus_distance, tr_state->visual->camera_layout);
 	} else {
+		if (tr_state->camera->flags & CAM_IS_DIRTY) tr_state->camera_was_dirty = GF_TRUE;
 		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
 	}
 

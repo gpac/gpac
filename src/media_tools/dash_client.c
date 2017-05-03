@@ -284,7 +284,7 @@ struct __dash_group
 
 	/* maximum representation index we want to download*/
 	u32 force_max_rep_index;
-	//start time of currently downloaded segment - for now only used for merging SegmentTimeline, but we should use this to resync across representations ...
+	//start time and timescales of currently downloaded segment 
 	u64 current_start_time;
 	u32 current_timescale;
 
@@ -2305,6 +2305,7 @@ static GF_Err gf_dash_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_DA
 	gf_mpd_resolve_segment_duration(rep, set, period, segment_duration, &timescale, NULL, NULL);
 	*segment_duration = (resolve_type==GF_MPD_RESOLVE_URL_MEDIA) ? (u32) ((Double) ((*segment_duration) * 1000.0) / timescale) : 0;
 	e = gf_mpd_resolve_url(mpd, rep, set, period, mpd_url, group->current_base_url_idx, resolve_type, item_index, group->nb_segments_purged, out_url, out_range_start, out_range_end, segment_duration, is_in_base_url, out_key_url, out_key_iv);
+
 
 	if (e == GF_NON_COMPLIANT_BITSTREAM) {
 //		group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
@@ -5806,6 +5807,16 @@ static void gf_dash_seek_group(GF_DashClient *dash, GF_DASH_Group *group, Double
 	group->done = 0;
 	
 	gf_mx_v(group->cache_mutex);
+}
+
+GF_EXPORT
+void gf_dash_group_seek(GF_DashClient *dash, u32 group_idx, Double seek_to)
+{
+	GF_DASH_Group *group = gf_list_get(dash->groups, group_idx);
+	if (!group) return;
+	gf_mx_p(dash->dash_mutex);
+	gf_dash_seek_group(dash, group, seek_to, (dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_TRUE : GF_FALSE);
+	gf_mx_v(dash->dash_mutex);
 }
 
 static void gf_dash_seek_groups(GF_DashClient *dash, Double seek_time, Bool is_dynamic)

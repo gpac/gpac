@@ -1515,6 +1515,12 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			//to remove once we manage to keep the service alive
 			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
 			if (gf_dash_get_period_switch_status(mpdin->dash)) return GF_OK;
+		} else if (!com->play.initial_broadcast_play) {
+			/*don't forward commands if a switch of period is to be scheduled, we are killing the service anyway ...*/
+			if (gf_dash_get_period_switch_status(mpdin->dash)) return GF_OK;
+
+			//seek on a single group
+			gf_dash_group_seek(mpdin->dash, idx, com->play.start_range);
 		}
 
 		//check if current segment playback should be aborted

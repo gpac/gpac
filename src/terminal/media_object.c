@@ -361,13 +361,17 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 			mo->srd_full_w = com.srd.width;
 			mo->srd_full_h = com.srd.height;
 
-			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
-				mo->odm->parentscene->is_srd = GF_TRUE;
+			if (mo->odm->parentscene->is_dynamic_scene) {
+				if ((mo->srd_w == mo->srd_full_w) && (mo->srd_h == mo->srd_full_h)) {
+					mo->odm->parentscene->srd_type = 2;
+				} else if (!mo->odm->parentscene->srd_type) {
+					mo->odm->parentscene->srd_type = 1;
+				}
 			}
 		}
 		// SRD object with no size but global scene size: HEVC tiled bas object
 		else if (com.srd.width && com.srd.height) {
-			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->srd_type) {
 				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
 			}
 		}
@@ -900,6 +904,7 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
+		Bool skip_network = GF_FALSE;
 		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
 
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
@@ -907,6 +912,12 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 		/*if object not in media queue, add it*/
 		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
+		} else {
+			//ODM was queued for PLAY and we stop it, remove from queue
+			if (mo->odm->action_type == GF_ODM_ACTION_PLAY) {
+				//force a stop without network commands
+				mo->odm->state = GF_ODM_STATE_STOP_NO_NET;
+			}
 		}
 
 		/*signal STOP request*/
@@ -1524,11 +1535,12 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_max_x = scene->srd_max_x;
 	vr_info->srd_max_y = scene->srd_max_y;
 	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	vr_info->has_full_coverage = (scene->srd_type==2) ? GF_TRUE : GF_FALSE;
 	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	gf_odm_lock(mo->odm, 0);
-	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
+	return (!scene->vr_type && !scene->srd_type) ? GF_FALSE : GF_TRUE;
 }
 
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/
