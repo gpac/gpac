@@ -132,6 +132,8 @@ enum
 	MESH_IS_SMOOTHED = 1<<5,
 	/*vertex.color is used with alpha channel*/
 	MESH_HAS_ALPHA = 1<<6,
+	/*flag only used by VRgeometry proto*/
+	MESH_WAS_VISIBLE = 1<<7,
 };
 
 /*indexes as used in glDrawElements - note that integer type is not allowed with oglES*/

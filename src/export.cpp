@@ -2099,6 +2099,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_url) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_get_segment_init_keys) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_select) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dash_group_seek) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_groups_set_language) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_in_last_period) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dash_get_period_switch_status) )
