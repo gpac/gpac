@@ -3110,7 +3110,7 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
 	else sscanf(att->value, _fmt, &_value); \
 	}\
- 
+
 
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
@@ -4892,7 +4892,7 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
-				
+
 				dstcfg->chroma_format = avc.sps[idx].chroma_format;
 				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
@@ -5729,7 +5729,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 he
 		lhevc_ptl->general_level_idc = ptl.level_idc;
 		gf_list_add(oinf->profile_tier_levels, lhevc_ptl);
 	}
-	
+
 	for (i = 0; i < vps->num_output_layer_sets; i++) {
 		LHEVC_OperatingPoint *op;
 		u32 j;
@@ -5828,7 +5828,7 @@ static void gf_lhevc_set_layer_information(GF_ISOFile *file, u32 track, LHVCLaye
 	u32 data_size;
 
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	
+
 	for (i=0; i<64; i++) {
 		if (linf[i].layer_id_plus_one) nb_layers++;
 	}
@@ -5894,7 +5894,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	}
 
 	memset(linf, 0, sizeof(linf));
-	
+
 	set_subsamples = (import->flags & GF_IMPORT_SET_SUBSAMPLES) ? GF_TRUE : GF_FALSE;
 
 	mdia = gf_fopen(import->in_name, "rb");
@@ -6075,7 +6075,7 @@ restart_import:
 		switch (nal_unit_type) {
 		case GF_HEVC_NALU_VID_PARAM:
 			if (import->flags & GF_IMPORT_NO_VPS_EXTENSIONS) {
-				//this may modify nal_size, but we don't use it for bitstream reading 
+				//this may modify nal_size, but we don't use it for bitstream reading
 				idx = gf_media_hevc_read_vps_ex(buffer, &nal_size, &hevc, GF_TRUE);
 			} else {
 				idx = hevc.last_parsed_vps_id;
@@ -6645,8 +6645,8 @@ next_nal:
 		gf_bs_del(sample_data);
 		sample_data = NULL;
 		e = gf_isom_add_sample(import->dest, track, di, samp);
-		if (e) goto exit;	
-		
+		if (e) goto exit;
+
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
@@ -6764,7 +6764,7 @@ next_nal:
 
 				for (k=0; k < gf_list_count(lhvc_cfg->param_array); k++) {
 					s_ar = gf_list_get(lhvc_cfg->param_array, k);
-					if (s_ar->type==GF_HEVC_NALU_VID_PARAM) 
+					if (s_ar->type==GF_HEVC_NALU_VID_PARAM)
 						break;
 					s_ar = NULL;
 				}
@@ -6856,7 +6856,7 @@ next_nal:
 
 	//base layer (i.e layer with layer_id = 0) not found in bitstream
 	//we are importing an LHVC bitstream with external base layer
-	//find this base layer with the imported tracks. 
+	//find this base layer with the imported tracks.
 	//if we find more than one HEVC/AVC track, return an warning
 	if (min_layer_id != 0) {
 		u32 avc_base_track, ref_track_id;
@@ -6897,7 +6897,7 @@ next_nal:
 		}
 	}
 
-	// This is a L-HEVC bitstream ... 
+	// This is a L-HEVC bitstream ...
 	if ( (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1))
 	// HEVC with several sublayers
 	|| (max_temporal_id[0] > 0)
