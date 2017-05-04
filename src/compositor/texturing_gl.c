@@ -1156,29 +1156,32 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					txh->tx_io->use_external_textures = GF_TRUE;
 				}
 					
-				if (txh->frame->GetGLTexture(txh->frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) == GF_OK) {
+				if (txh->frame->GetGLTexture(txh->frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+					return 0;
+				}
+				glBindTexture(gl_format, txh->tx_io->id);
+				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-					glBindTexture(gl_format, txh->tx_io->id);
-					GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-					GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-					GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-					GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 #ifdef GPAC_ANDROID
-					if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
-						txh->tx_io->flags |= TX_IS_FLIPPED;
-						txh->tx_io->gl_type = GL_TEXTURE_EXTERNAL_OES;
-						goto push_exit;
-					}
+				if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
+					txh->tx_io->flags |= TX_IS_FLIPPED;
+					txh->tx_io->gl_type = GL_TEXTURE_EXTERNAL_OES;
+					goto push_exit;
+				}
 #endif // GPAC_ANDROID
 					
-					if (txh->frame->GetGLTexture(txh->frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) == GF_OK) {
-						glBindTexture(gl_format, txh->tx_io->u_id);
-						GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-						GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-						GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-						GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-					}	
+				if (txh->frame->GetGLTexture(txh->frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+					return 0;
 				}
+				glBindTexture(gl_format, txh->tx_io->u_id);
+				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
 				goto push_exit;
 			}
 			

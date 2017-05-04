@@ -514,19 +514,6 @@ void gf_term_stop_codec(GF_Codec *codec, u32 reason)
 		locked = gf_mx_try_lock(term->mm_mx);
 	}
 
-	if (reason == 0) {
-		cap.CapCode = GF_CODEC_ABORT;
-		cap.cap.valueInt = 0;
-		gf_codec_set_capability(codec, cap);
-
-		if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
-			cap.CapCode = GF_CODEC_SHOW_SCENE;
-			cap.cap.valueInt = 0;
-			gf_codec_set_capability(codec, cap);
-			codec->odm->mo->flags &= ~GF_MO_DISPLAY_REMOVE;
-		}
-	}
-
 	/*for audio codec force CB to stop state to discard any pending AU. Not doing so would lead to a wrong estimation of the clock drift
 	when resuming the object*/
 	if (codec->type==GF_STREAM_AUDIO) {
@@ -545,6 +532,20 @@ void gf_term_stop_codec(GF_Codec *codec, u32 reason)
 
 	if ((reason==2) && codec->CB) {
 		gf_cm_set_eos(codec->CB);
+	}
+
+	/*signal the codec we stopped*/
+	if (reason == 0) {
+		cap.CapCode = GF_CODEC_ABORT;
+		cap.cap.valueInt = 0;
+		gf_codec_set_capability(codec, cap);
+
+		if (codec->decio && codec->odm->mo && (codec->odm->mo->flags & GF_MO_DISPLAY_REMOVE) ) {
+			cap.CapCode = GF_CODEC_SHOW_SCENE;
+			cap.cap.valueInt = 0;
+			gf_codec_set_capability(codec, cap);
+			codec->odm->mo->flags &= ~GF_MO_DISPLAY_REMOVE;
+		}
 	}
 
 	/*don't wait for end of thread since this can be triggered within the decoding thread*/
