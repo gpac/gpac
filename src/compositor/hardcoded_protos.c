@@ -1345,6 +1345,10 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				visible = (stack->mesh->flags & MESH_WAS_VISIBLE) ? GF_TRUE : GF_FALSE;
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
+			}
+			//not yet ready, cannot compute visibility, assume visible
+			else if (!txh->width || !txh->height) {
+				visible = GF_TRUE;
 			} else {
 			GF_Vec center, target, t, ref;
 			Fixed r, theta_angle, phi_angle, fov;
@@ -1412,8 +1416,6 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					if (txh->is_open) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d playing on hidden partial sphere - stoping it\n", txh->stream->OD_ID));
 						gf_sc_texture_stop_no_unregister(txh);
-						txh->data = txh->pU = txh->pV = NULL;
-						txh->frame = NULL;
 					}
 				}
 			} else {
