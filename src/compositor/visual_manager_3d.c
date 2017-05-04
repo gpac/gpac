@@ -1873,7 +1873,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 #ifndef GPAC_DISABLE_VRML
 	GF_TextureHandler *txh;
 	tr_state->mesh_num_textures = 0;
-	if (!tr_state->appear) return 0;
+	if (!tr_state->appear) return GF_TRUE;
 
 	gf_node_dirty_reset(tr_state->appear, 0);
 
@@ -1910,10 +1910,10 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 				*/
 			}
 		}
-		return tr_state->mesh_num_textures;
+		return tr_state->mesh_num_textures ? GF_TRUE : GF_FALSE;
 	}
 #endif /*GPAC_DISABLE_VRML*/
-	return 0;
+	return GF_FALSE;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
@@ -1932,7 +1932,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 	/*setup material and check if 100% transparent - in which case don't draw*/
 	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state, diff_a);
+	if (! visual_3d_setup_texture(tr_state, diff_a)) return 0;
 	return 1;
 }
 
