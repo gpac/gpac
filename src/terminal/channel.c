@@ -238,8 +238,9 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
-		if (! ch->is_pulling)
+		if (! ch->is_pulling && !ch->odm->disable_buffer_at_next_play) {
 			gf_es_buffer_on(ch);
+		}
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;

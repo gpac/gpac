@@ -1404,6 +1404,9 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				if (visible) {
 					if (!txh->is_open) {
 						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d stoped on visible partial sphere - starting it\n", txh->stream->OD_ID));
+						assert(txh->stream && txh->stream->odm);
+						txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
+
 						gf_sc_texture_play(txh, NULL);
 					}
 					if (txh->data) {

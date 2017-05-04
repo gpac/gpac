@@ -1073,6 +1073,7 @@ struct _od_manager
 	u32 action_type;
 
 	Fixed set_speed;
+	Bool disable_buffer_at_next_play;
 
 //	u32 raw_media_frame_pending;
 	GF_Semaphore *raw_frame_sema;
