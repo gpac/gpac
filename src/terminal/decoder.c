@@ -1418,11 +1418,6 @@ scalable_retry:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
 
-				if (AU->flags & GF_DB_AU_IS_SEEK) {
-//					unit_size = 0;
-				}
-
-
 				if (codec->direct_frame_output) {
 					Bool needs_resize = 0;
 					//may happen during seek
