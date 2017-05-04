@@ -1559,7 +1559,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	MediaControlStack *ctrl;
 #endif
 	GF_Clock *parent_ck = NULL;
-
+	
 	if (odm->codec && odm->codec->CB && !(odm->flags & GF_ODM_PREFETCH)) {
 		/*reset*/
 		gf_cm_set_status(odm->codec->CB, CB_STOP);
@@ -1755,6 +1755,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 	if (nb_failure) {
 		odm->state = GF_ODM_STATE_BLOCKED;
+		odm->disable_buffer_at_next_play = GF_FALSE;
 		return;
 	}
 
@@ -1781,6 +1782,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 #ifndef GPAC_MINIMAL_ODF
 	if (odm->oci_codec) gf_term_start_codec(odm->oci_codec, 0);
 #endif
+
+	odm->disable_buffer_at_next_play = GF_FALSE;
 
 	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
 		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
