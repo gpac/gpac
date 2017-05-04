@@ -58,6 +58,7 @@ typedef struct
 	Bool frame_size_changed;
 	u32 num_surfaces;
 	Bool needs_resetup;
+	Bool unload_inactive;
 
 
 	GF_List *frames;
@@ -336,7 +337,12 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		if (!ctx->num_surfaces) ctx->num_surfaces = 20;
 	}
 
-    oVideoParserParameters.CodecType = ctx->codec_type;
+	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive");
+	if (!opt) 
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive", "yes");
+	ctx->unload_inactive = (opt && !strcmp(opt, "no")) ? GF_FALSE : GF_TRUE;
+
+	oVideoParserParameters.CodecType = ctx->codec_type;
     oVideoParserParameters.ulMaxNumDecodeSurfaces = ctx->num_surfaces;
     oVideoParserParameters.ulMaxDisplayDelay = 4;
 	oVideoParserParameters.ulClockRate = 1000;
@@ -366,15 +372,6 @@ static GF_Err NVDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 	ctx->esd = NULL;
 	ctx->dec_create_error = 0;
-	if (ctx->cu_decoder) {
-		cuvidDestroyDecoder(ctx->cu_decoder);
-		ctx->cu_decoder = NULL;
-	}
-	//destroy parser
-	if (ctx->cu_parser) {
-		cuvidDestroyVideoParser(ctx->cu_parser);
-		ctx->cu_parser = NULL;
-	}
 	return GF_OK;
 }
 
@@ -458,22 +455,24 @@ static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 		return GF_OK;
 
 	case GF_CODEC_ABORT:
-		while (gf_list_count(ctx->frames)) {
-			NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
-			memset(f, 0, sizeof(NVDecFrame));
-			gf_list_add(ctx->frames_res, f);
+		if (ctx->unload_inactive) {
+			while (gf_list_count(ctx->frames)) {
+				NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
+				memset(f, 0, sizeof(NVDecFrame));
+				gf_list_add(ctx->frames_res, f);
+			}
+			//destroy decoder
+			if (ctx->cu_decoder) {
+				cuvidDestroyDecoder(ctx->cu_decoder);
+				ctx->cu_decoder = NULL;
+			}
+			//destroy parser
+			if (ctx->cu_parser) {
+				cuvidDestroyVideoParser(ctx->cu_parser);
+				ctx->cu_parser = NULL;
+			}
+			ctx->needs_resetup = GF_TRUE;
 		}
-		//destroy decoder
-		if (ctx->cu_decoder) {
-			cuvidDestroyDecoder(ctx->cu_decoder);
-			ctx->cu_decoder = NULL;
-		}
-		//destroy parser
-		if (ctx->cu_parser) {
-			cuvidDestroyVideoParser(ctx->cu_parser);
-			ctx->cu_parser = NULL;
-		}
-		ctx->needs_resetup = GF_TRUE;
 		return GF_OK;
 	}
 
@@ -882,12 +881,14 @@ static const char *NVDec_GetCodecName(GF_BaseDecoder *dec)
 
 
 static u32 cuvid_load_state = 0;
+static u32 nb_cuvid_inst=0;
 static void init_cuda_sdk()
 {
 	if (!cuvid_load_state) {
 		CUresult res;
 		int device_count;
 	    res = cuInit(0, __CUDA_API_VERSION);
+		nb_cuvid_inst++;
 		cuvid_load_state = 1;
 		if (res != CUDA_SUCCESS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda %s\n", cudaGetErrorEnum(res) ) );
@@ -903,6 +904,8 @@ static void init_cuda_sdk()
 				}
 			}
 		}
+	} else {
+		nb_cuvid_inst++;
 	}
 }
 
@@ -946,12 +949,16 @@ void DeleteNVDec(GF_BaseDecoder *ifcg)
 {
 	NVDecCtx *ctx= (NVDecCtx *)ifcg->privateStack;
 
-	cuUninit();
-	cuvid_load_state = 0;
-
 	if (ctx->cu_decoder) cuvidDestroyDecoder(ctx->cu_decoder);
 	if (ctx->cu_parser) cuvidDestroyVideoParser(ctx->cu_parser);
 	if (ctx->cuda_ctx) cuCtxDestroy(ctx->cuda_ctx);
+
+	assert(nb_cuvid_inst);
+	nb_cuvid_inst--;
+	if (!nb_cuvid_inst) {
+		cuUninit();
+		cuvid_load_state = 0;
+	}
 
 	gf_list_del(ctx->frames);
 	gf_list_del(ctx->frames_res);
