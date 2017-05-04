@@ -2164,7 +2164,6 @@ static u32 avc_emulation_bytes_add_count(char *buffer, u32 nal_size)
 
 static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32 nal_size)
 {
-
 	u32 i = 0, emulation_bytes_count = 0;
 	u8 num_zero = 0;
 
@@ -2176,7 +2175,7 @@ static u32 avc_add_emulation_bytes(const char *buffer_src, char *buffer_dst, u32
 		0x00000302
 		0x00000303"
 		*/
-		if (num_zero == 2 && buffer_src[i] < 0x04) {
+		if (num_zero == 2 && (u8)buffer_src[i] < 0x04) {
 			/*add emulation code*/
 			num_zero = 0;
 			buffer_dst[i+emulation_bytes_count] = 0x03;
@@ -3131,7 +3130,6 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 	new_buffer = (char*)gf_malloc(sizeof(char)*nal_size);
 	new_buffer[0] = (char) hdr;
 	written = 1;
-
 	/*parse SEI*/
 	while (gf_bs_available(bs)) {
 		Bool do_copy;
@@ -3157,7 +3155,6 @@ u32 gf_media_avc_reformat_sei(char *buffer, u32 nal_size, AVCState *avc)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[avc-h264] SEI user message type %d size error (%d but %d remain), skiping %sSEI message\n", ptype, psize, nal_size-start, written ? "end of " : ""));
 			break;
 		}
-
 		switch (ptype) {
 		/*remove SEI messages forbidden in MP4*/
 		case 3: /*filler data*/
@@ -4559,7 +4556,6 @@ static s32 gf_media_hevc_read_sps_bs(GF_BitStream *bs, HEVCState *hevc, u8 layer
 	if (vps_id>=16) {
 		return -1;
 	}
-
 	memset(&ptl, 0, sizeof(ptl));
 	max_sub_layers_minus1 = 0;
 	sps_ext_or_max_sub_layers_minus1 = 0;
@@ -5072,7 +5068,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 {
 	GF_BitStream *orig, *mod;
 	HEVCState hevc;
-	u32 i, bit_offset, flag, nal_hdr_size;
+	u32 i, bit_offset, flag;
 	s32 idx;
 	GF_HEVCParamArray *spss;
 	GF_AVCConfigSlot *slc;
@@ -5080,8 +5076,6 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 	memset(&hevc, 0, sizeof(HEVCState));
 	hevc.sps_active_idx = -1;
-
-	nal_hdr_size=2;
 
 	i=0;
 	spss = NULL;
@@ -5099,7 +5093,7 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 		u32 off;
 
 		/*SPS may still contains emulation bytes*/
-		no_emulation_buf = gf_malloc((slc->size - nal_hdr_size)*sizeof(char));
+		no_emulation_buf = gf_malloc((slc->size)*sizeof(char));
 		no_emulation_buf_size = avc_remove_emulation_bytes(slc->data, no_emulation_buf, slc->size);
 
 		idx = gf_media_hevc_read_sps_ex(no_emulation_buf, no_emulation_buf_size, &hevc, &bit_offset);
@@ -5176,10 +5170,10 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 		/*set anti-emulation*/
 		gf_bs_get_content(mod, (char **) &no_emulation_buf, &no_emulation_buf_size);
 		emulation_bytes = avc_emulation_bytes_add_count(no_emulation_buf, no_emulation_buf_size);
-		if (no_emulation_buf_size + emulation_bytes + nal_hdr_size > slc->size)
-			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes + nal_hdr_size);
+		if (no_emulation_buf_size + emulation_bytes > slc->size)
+			slc->data = (char*)gf_realloc(slc->data, no_emulation_buf_size + emulation_bytes);
 
-		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size) + nal_hdr_size;
+		slc->size = avc_add_emulation_bytes(no_emulation_buf, slc->data, no_emulation_buf_size);
 
 		gf_bs_del(mod);
 		gf_free(no_emulation_buf);
