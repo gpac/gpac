@@ -869,6 +869,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_LOAD_START);
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
+	odm->disable_buffer_at_next_play = GF_FALSE;
+
 	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
 		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
 		media_control_paused = 1;
