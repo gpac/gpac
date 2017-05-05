@@ -470,17 +470,19 @@ if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
   MP4Client -run-for 0 2> /dev/null
   res=$?
   if [ $res != 0 ] ; then
+    # to remove when travis is ready to execute playback tests
     MP4CLIENT_NOT_FOUND=1
     echo ""
     log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
     MP4Client -run-for 0
     res=$?
     if [ $res = 0 ] ; then
-      log $L_INF "MP4Client returned $res on second run - enabling all playback tests"
+      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
     else
       echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
       cat $HOME/.gpac/GPAC.cfg
       echo "** End of dump **"
+      MP4CLIENT_NOT_FOUND=1
     fi
   fi
 fi
