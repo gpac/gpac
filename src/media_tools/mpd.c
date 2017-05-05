@@ -3303,9 +3303,11 @@ strcat(szISOBMFFInit, " ");\
         }
     }
     if (timescale != 10000000) {
-        char szTS[20];
+        char szTS[20], *v;
         sprintf(szTS, "%d", timescale);
-        ISBMFFI_ADD_KEYWORD("scale", szTS)
+	//prevent gcc warning
+	v = (char *)szTS;
+        ISBMFFI_ADD_KEYWORD("scale", v)
     }
     ISBMFFI_ADD_KEYWORD("tfdt", "0000000000000000000")
     //create a url for the IS to be reconstructed
