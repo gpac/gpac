@@ -720,7 +720,6 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
-		Bool skip_network = GF_FALSE;
 		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
 
 		/*signal STOP request*/
