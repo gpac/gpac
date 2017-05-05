@@ -27,10 +27,6 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
-#ifndef GPAC_HAVE_OPENGL
-#error "OpenGL support must be enabled for nvdec module"
-#endif
-
 #include "../../src/compositor/gl_inc.h"
 
 #include "cuda_sdk.h"
