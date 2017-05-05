@@ -9,7 +9,6 @@
  *
  */
 
-#ifndef GPAC_DISABLE_3D
 
 // With these flags defined, this source file will dynamically
 // load the corresponding functions.  Disabled by default.
@@ -347,9 +346,9 @@ CUresult CUDAAPI cuInit(unsigned int Flags, int cudaVersion)
 	CUDADRIVER curr_lib ;
 
 	if (CudaDrvLib) return CUDA_SUCCESS;
-
+	
 	assert(CudaDrvLib == 0);
-
+	
 	CHECKED_CALL(LOAD_LIBRARY_CUDA(&CudaDrvLib));
 	curr_lib = CudaDrvLib;
 
@@ -698,5 +697,3 @@ const char *cudaGetErrorEnum(CUresult error)
 	}
 	return "<unknown>";
 }
-
-#endif
