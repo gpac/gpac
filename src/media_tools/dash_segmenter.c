@@ -1876,9 +1876,6 @@ restart_fragmentation_pass:
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
 									stop_frag = GF_TRUE;
-									if (frag_dur < MaxSegmentDuration) {
-										GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but segment duration is not aligned with GOP duration (%d vs %d) - using GOP duration for this segment\n", MaxSegmentDuration, frag_dur));
-									}
 								}
 
 								if (! tf->all_sample_raps) {
@@ -1905,12 +1902,16 @@ restart_fragmentation_pass:
 					/* NOTE: we don't need to check for split_sample_duration because if it is used, stop_frag should already be TRUE */
 					/*fragmenting on "clock" track: no drift control*/
 					if (!dash_cfg->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
+						Bool segment_dur_exceeded = GF_FALSE;
+						if (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)
+							segment_dur_exceeded = GF_TRUE;
+
 						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
 						        /* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
-						        || (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
+						        || (!split_seg_at_rap && segment_dur_exceeded)
 						   ) {
 							stop_frag = GF_TRUE;
-							if (split_seg_at_rap && (next && !next->IsRAP)) {
+							if (split_seg_at_rap && (next && !next->IsRAP) && segment_dur_exceeded) {
 								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but next segment will not be compatible\n"));
 							}
 						}
@@ -1997,10 +1998,13 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d flushed\n", SegmentName, nbFragmentInSegment));
 
 		if (force_switch_segment || flush_all_samples || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
-			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
+			//don't update min_seg_dur if this is the last segment
+			if (!min_seg_dur || (!flush_all_samples && (min_seg_dur>SegmentDuration)))
 				min_seg_dur = SegmentDuration;
+
 			if (max_seg_dur < SegmentDuration)
 				max_seg_dur = SegmentDuration;
+
 			total_seg_dur += SegmentDuration;
 			last_seg_dur = SegmentDuration;
 
