@@ -23,8 +23,6 @@
  *
  */
 
-#ifndef GPAC_DISABLE_3D
-
 #include <gpac/modules/codec.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
@@ -160,7 +158,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 			return 1;
 		skip_output_resize = GF_TRUE;
 	}
-
+	
 	//commented out since this falls back to soft decoding !
 #ifdef ENABLE_10BIT_OUTPUT
 	if (ctx->bpp_luma + ctx->bpp_chroma > 16)  use_10bits = GF_TRUE;
@@ -173,7 +171,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->codec_type = pFormat->codec;
 	ctx->chroma_fmt = pFormat->chroma_format;
 	ctx->stride = use_10bits ? 2*ctx->width : ctx->width;
-
+	
 	switch (ctx->chroma_fmt) {
 	case cudaVideoChromaFormat_420:
 		ctx->pix_fmt = use_10bits ? GF_PIXEL_NV12_10 : GF_PIXEL_NV12;
@@ -293,7 +291,7 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 
 		} else {
 			res = cuCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
-		}
+		}		
 		if (res != CUDA_SUCCESS) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda %scontext %s\n", ctx->use_gl_texture ? "OpenGL ": "", cudaGetErrorEnum(res) ) );
 			if (ctx->use_gl_texture) {
@@ -308,24 +306,24 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
     memset(&oVideoParserParameters, 0, sizeof(CUVIDPARSERPARAMS));
 
 	switch (esd->decoderConfig->objectTypeIndication) {
-	case GPAC_OTI_VIDEO_MPEG1:
+	case GPAC_OTI_VIDEO_MPEG1: 
 		ctx->codec_type = cudaVideoCodec_MPEG1;
 		break;
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_422:
+	case GPAC_OTI_VIDEO_MPEG2_SIMPLE: 
+	case GPAC_OTI_VIDEO_MPEG2_MAIN: 
+	case GPAC_OTI_VIDEO_MPEG2_SNR: 
+	case GPAC_OTI_VIDEO_MPEG2_SPATIAL: 
+	case GPAC_OTI_VIDEO_MPEG2_HIGH: 
+	case GPAC_OTI_VIDEO_MPEG2_422: 
 		ctx->codec_type = cudaVideoCodec_MPEG2;
 		break;
-	case GPAC_OTI_VIDEO_MPEG4_PART2:
+	case GPAC_OTI_VIDEO_MPEG4_PART2: 
 		ctx->codec_type = cudaVideoCodec_MPEG4;
 		break;
-	case GPAC_OTI_VIDEO_AVC:
+	case GPAC_OTI_VIDEO_AVC: 
 		ctx->codec_type = cudaVideoCodec_H264;
 		break;
-	case GPAC_OTI_VIDEO_HEVC:
+	case GPAC_OTI_VIDEO_HEVC: 
 		ctx->codec_type = cudaVideoCodec_HEVC;
 		break;
 	}
@@ -381,7 +379,7 @@ static GF_Err NVDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
 {
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 	const char *opt;
-
+	
 	switch (capability->CapCode) {
 	case GF_CODEC_RESILIENT:
 		capability->cap.valueInt = 1;
@@ -444,7 +442,7 @@ static GF_Err NVDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
 static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
 {
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-
+	
 	switch (capability.CapCode) {
 	case GF_CODEC_FRAME_OUTPUT:
 		if (capability.cap.valueInt == 2) {
@@ -510,7 +508,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	if (ctx->dec_create_error) return GF_IO_ERR;
-
+	
 	cu_pkt.payload_size = inBufferLength;
 	cu_pkt.payload = inBuffer;
 	cu_pkt.timestamp = *CTS;
@@ -529,7 +527,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to parse video data CTX %s\n", cudaGetErrorEnum(res) ) );
 		}
 	}
-
+	
 	*outBufferLength = 0;
 	e = GF_OK;
 	if (ctx->reload_decoder_state) {
@@ -647,7 +645,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	NVDecCtx *ctx = (NVDecCtx *)f->ctx;
 
 	if (plane_idx>1) return GF_BAD_PARAM;
-
+	
 	res = cuCtxPushCurrent(ctx->cuda_ctx);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
@@ -734,7 +732,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	//params.second_field = 0;
 	params.top_field_first = f->frame_info.top_field_first;
 	res = cuvidMapVideoFrame(ctx->cu_decoder, f->frame_info.picture_index, &vid_data, &vid_pitch, &params);
-
+	
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map decoded picture data %s\n", cudaGetErrorEnum(res) ) );
 		return GF_IO_ERR;
@@ -814,9 +812,9 @@ GF_Err NVDec_GetOutputFrame(struct _mediadecoder *dec, u16 ES_ID, GF_MediaDecode
 {
 	NVDecFrame *f;
 	NVDecCtx *ctx = (NVDecCtx *)dec->privateStack;
-
+	
 	*needs_resize = GF_FALSE;
-
+	
 	if (!ctx->pending_frame) return GF_BAD_PARAM;
 	f = ctx->pending_frame;
 	ctx->pending_frame = NULL;
@@ -1010,5 +1008,3 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 }
 
 GPAC_MODULE_STATIC_DECLARATION( nvdec )
-
-#endif
