@@ -27,6 +27,10 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
+#ifndef GPAC_HAVE_OPENGL
+#error "OpenGL support must be enabled for nvdec module"
+#endif
+
 #include "../../src/compositor/gl_inc.h"
 
 #include "cuda_sdk.h"
@@ -42,8 +46,6 @@ GLDECL_STATIC(glBindBuffer);
 GLDECL_STATIC(glBufferData);
 #endif
 
-
-#ifndef GPAC_DISABLE_AV_PARSERS
 
 typedef struct
 {
@@ -966,16 +968,13 @@ void DeleteNVDec(GF_BaseDecoder *ifcg)
 	gf_free(ifcg);
 
 }
-#endif
 
 
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {
 	static u32 si [] = {
-#ifndef GPAC_DISABLE_AV_PARSERS
 		GF_MEDIA_DECODER_INTERFACE,
-#endif
 		0
 	};
 
@@ -989,9 +988,7 @@ const u32 *QueryInterfaces()
 GPAC_MODULE_EXPORT
 GF_BaseInterface *LoadInterface(u32 InterfaceType)
 {
-#ifndef GPAC_DISABLE_AV_PARSERS
 	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewNVDec();
-#endif
 	return NULL;
 }
 
@@ -999,11 +996,9 @@ GPAC_MODULE_EXPORT
 void ShutdownInterface(GF_BaseInterface *ifce)
 {
 	switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_AV_PARSERS
 	case GF_MEDIA_DECODER_INTERFACE:
 		DeleteNVDec((GF_BaseDecoder*)ifce);
 		break;
-#endif
 	}
 }
 

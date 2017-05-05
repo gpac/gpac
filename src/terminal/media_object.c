@@ -904,7 +904,6 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 
 	mo->num_open--;
 	if (!mo->num_open && mo->odm) {
-		Bool skip_network = GF_FALSE;
 		if (mo->odm->flags & GF_ODM_DESTROYED) return GF_TRUE;
 
 		/*do not stop directly, this can delete channel data currently being decoded (BIFS anim & co)*/
@@ -913,7 +912,7 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
 		} else {
-			//ODM was queued for PLAY and we stop it, remove from queue
+			//ODM was queued for PLAY and we stop it, keep in queue for stoping buffers but don't send net commands
 			if (mo->odm->action_type == GF_ODM_ACTION_PLAY) {
 				//force a stop without network commands
 				mo->odm->state = GF_ODM_STATE_STOP_NO_NET;
