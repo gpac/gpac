@@ -34,9 +34,11 @@
 
 void X11_SetupWindow (GF_VideoOutput * vout);
 
+#ifdef GPAC_HAS_OPENGL
 PFNGLXSWAPINTERVALEXTPROC my_glXSwapIntervalEXT;
 PFNGLXSWAPINTERVALMESAPROC my_glXSwapIntervalMESA;
 PFNGLXSWAPINTERVALSGIPROC my_glXSwapIntervalSGI;
+#endif GPAC_HAS_OPENGL
 
 #ifdef GPAC_HAS_X11_XV
 static void X11_DestroyOverlay(XWindow *xwin)
@@ -1829,7 +1831,7 @@ const u32 *QueryInterfaces()
 	};
 	return si;
 }
-	
+
 
 /*
  * interface create
