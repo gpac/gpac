@@ -3150,6 +3150,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			interleaving_time = atof(argv[i + 1]) / 1000;
+			if (!interleaving_time) do_flat = GF_TRUE;
 			open_edit = GF_TRUE;
 			needSave = GF_TRUE;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
@@ -3403,7 +3404,7 @@ int mp4boxMain(int argc, char **argv)
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
+	interleaving_time = 0;
 	dash_duration = dash_subduration = 0.0;
 	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
@@ -3489,8 +3490,9 @@ int mp4boxMain(int argc, char **argv)
 		/*by default use single fragment per dash segment*/
 		if (dash_duration)
 			interleaving_time = dash_duration;
-		else
-			do_flat = GF_TRUE;
+		else if (!do_flat) {
+			interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
+		}
 	}
 
 	if (dump_std)
