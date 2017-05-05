@@ -34,9 +34,11 @@
 
 void X11_SetupWindow (GF_VideoOutput * vout);
 
+#ifdef GPAC_HAS_OPENGL
 PFNGLXSWAPINTERVALEXTPROC my_glXSwapIntervalEXT;
 PFNGLXSWAPINTERVALMESAPROC my_glXSwapIntervalMESA;
 PFNGLXSWAPINTERVALSGIPROC my_glXSwapIntervalSGI;
+#endif
 
 #ifdef GPAC_HAS_X11_XV
 static void X11_DestroyOverlay(XWindow *xwin)
@@ -931,7 +933,9 @@ static void X11_HandleEvents(GF_VideoOutput *vout)
 static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 {
 	GF_Event evt;
+#ifdef GPAC_HAS_OPENGL
 	const char *opt;
+#endif
 	XWindow *xWin = (XWindow *)vout->opaque;
 
 	if (!xWin->glx_visualinfo) return GF_IO_ERR;
@@ -949,6 +953,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 	}
 	if ( ! glXMakeCurrent(xWin->display, xWin->fullscreen ? xWin->full_wnd : xWin->wnd, xWin->glx_context) ) return GF_IO_ERR;
 
+#ifdef GPAC_HAS_OPENGL
 	opt = gf_modules_get_option((GF_BaseInterface *)vout, "Video", "DisableVSync");
 	if (opt && !strcmp(opt, "yes")) {
 		my_glXSwapIntervalEXT = (PFNGLXSWAPINTERVALEXTPROC)glXGetProcAddress( (const GLubyte*)"glXSwapIntervalEXT");
@@ -966,7 +971,7 @@ static GF_Err X11_SetupGL(GF_VideoOutput *vout)
 			}
 		}
 	}
-
+#endif
 	XSync(xWin->display, False);
 
 	evt.type = GF_EVENT_VIDEO_SETUP;
