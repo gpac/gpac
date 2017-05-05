@@ -177,16 +177,16 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		if (codec->odm->term->bench_mode==2) {
 			e = GF_OK;
 		} else {
+			GF_NetworkCommand com;
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
 			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
 
-		//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
+			//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
+#if 0
 			{
 				char *dsi = NULL;
-				GF_NetworkCommand com;
 				u32 len = 0;
-#if 0
 				if (ch->esd->decoderConfig->decoderSpecificInfo) {
 					dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
 					ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
@@ -198,17 +198,16 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 					ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
 					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
 				}
+			}
 #endif
-				cap.CapCode = GF_CODEC_FORCE_ANNEXB;
-				gf_codec_get_capability(codec, &cap);
-				if (cap.cap.valueBool) {
-					memset(&com, 0, sizeof(GF_NetworkCommand));
-					com.command_type = GF_NET_CHAN_NALU_MODE;
-					com.nalu_mode.extract_mode = 1;
-					com.base.on_channel = ch;
-					gf_term_service_command(ch->service, &com);
-				}
-
+			cap.CapCode = GF_CODEC_FORCE_ANNEXB;
+			gf_codec_get_capability(codec, &cap);
+			if (cap.cap.valueBool) {
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.command_type = GF_NET_CHAN_NALU_MODE;
+				com.nalu_mode.extract_mode = 1;
+				com.base.on_channel = ch;
+				gf_term_service_command(ch->service, &com);
 			}
 
 			e = codec->decio->AttachStream(codec->decio, ch->esd);

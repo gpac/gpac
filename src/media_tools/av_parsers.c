@@ -26,10 +26,10 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 #include <gpac/mpeg4_odf.h>
+#include <gpac/maths.h>
 
 #ifndef GPAC_DISABLE_OGG
 #include <gpac/internal/ogg.h>
-#include <gpac/maths.h>
 #endif
 
 static const struct {
@@ -3669,13 +3669,13 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					return 0;
 			} else if( sps->num_short_term_ref_pic_sets > 1 ) {
 				u32 numbits = 0;
-				s32 short_term_ref_pic_set_idx;
+
 				while ( (u32) (1 << numbits) < sps->num_short_term_ref_pic_sets)
 					numbits++;
 				if (numbits > 0)
-					short_term_ref_pic_set_idx = gf_bs_read_int(bs, numbits);
-				else
-					short_term_ref_pic_set_idx = 0;
+					/*s32 short_term_ref_pic_set_idx = */gf_bs_read_int(bs, numbits);
+				/*else
+					short_term_ref_pic_set_idx = 0;*/
 			}
 			if (sps->long_term_ref_pics_present_flag ) {
 				u8 DeltaPocMsbCycleLt[32];
@@ -3688,9 +3688,8 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 				for (i = 0; i < num_long_term_sps + num_long_term_pics; i++ ) {
 					if( i < num_long_term_sps ) {
-						u8 lt_idx_sps = 0;
 						if (sps->num_long_term_ref_pic_sps > 1)
-							lt_idx_sps = gf_bs_read_int(bs, gf_get_bit_size(sps->num_long_term_ref_pic_sps) );
+							/*u8 lt_idx_sps = */gf_bs_read_int(bs, gf_get_bit_size(sps->num_long_term_ref_pic_sps) );
 					} else {
 						/*PocLsbLt[ i ] = */ gf_bs_read_int(bs, sps->log2_max_pic_order_cnt_lsb);
 						/*UsedByCurrPicLt[ i ] = */ gf_bs_read_int(bs, 1);
@@ -5090,7 +5089,6 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 	while ((slc = (GF_AVCConfigSlot *)gf_list_enum(spss->nalus, &i))) {
 		char *no_emulation_buf = NULL;
 		u32 no_emulation_buf_size = 0, emulation_bytes = 0;
-		u32 off;
 
 		/*SPS may still contains emulation bytes*/
 		no_emulation_buf = gf_malloc((slc->size)*sizeof(char));
@@ -5109,13 +5107,11 @@ GF_Err gf_media_hevc_change_par(GF_HEVCConfig *hvcc, s32 ar_n, s32 ar_d)
 
 		/*copy over till vui flag*/
 		assert(bit_offset >= 0);
-		off = bit_offset;
 		while (bit_offset) {
 			flag = gf_bs_read_int(orig, 1);
 			gf_bs_write_int(mod, flag, 1);
 			bit_offset--;
 		}
-		assert(off == gf_bs_get_bit_offset(orig));
 
 		/*check VUI*/
 		flag = gf_bs_read_int(orig, 1);
