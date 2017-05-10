@@ -262,7 +262,7 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	ctx->needs_resetup = GF_FALSE;
 
 
-	if (! ctx->cuda_dev) {
+	if (! ctx->cuda_ctx) {
 	    int major, minor;
 	    char deviceName[256];
 		res = cuDeviceGet(&ctx->cuda_dev, 0);
@@ -275,9 +275,7 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		cuDeviceGetName(deviceName, 256, ctx->cuda_dev);
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] GPU Device %s (idx 0) has SM %d.%d compute capability\n", deviceName, major, minor));
-	}
 
-	if (! ctx->cuda_ctx) {
 		if (ctx->use_gl_texture) {
 			res = cuGLCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
 
