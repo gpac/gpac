@@ -1679,7 +1679,7 @@ void gf_odm_play(GF_ObjectManager *odm)
 #ifndef GPAC_DISABLE_VRML
 		ctrl = parent_ck ? parent_ck->mc : gf_odm_get_mediacontrol(odm);
 		/*override range and speed with MC*/
-		if (ctrl) {
+		if (ctrl && !odm->disable_buffer_at_next_play) {
 			//for addon, use current clock settings (media control is ignored)
 			if (!odm->parentscene || !odm->parentscene->root_od->addon) {
 				//this is fake timeshift, eg we are playing a VoD as a timeshift service: stop and start times have already been adjusted
