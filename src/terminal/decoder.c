@@ -113,6 +113,36 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 	return tmp;
 }
 
+static void codec_check_frame_output_mode(GF_Codec *codec)
+{
+	GF_CodecCapability cap;
+	codec->direct_frame_output = GF_FALSE;
+	codec->direct_vout = GF_FALSE;
+
+	if (codec->type == GF_STREAM_VISUAL) {
+		cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+		gf_codec_get_capability(codec, &cap);
+		if (cap.cap.valueBool) {
+			cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+			cap.cap.valueInt = gf_sc_use_3d(codec->odm->term->compositor) ? 2 : 1;
+			if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputFrame != NULL))
+				codec->direct_frame_output = GF_TRUE;
+		}
+		if (!codec->direct_frame_output) {
+			//this works but we need at least double buffering of textures on the GPU which we don't have now
+			if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
+				cap.CapCode = GF_CODEC_RAW_MEMORY;
+				gf_codec_get_capability(codec, &cap);
+				if (cap.cap.valueBool) {
+					cap.CapCode = GF_CODEC_RAW_MEMORY;
+					if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
+						codec->direct_vout = GF_TRUE;
+				}
+			}
+		}
+	}
+}
+
 GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 {
 	GF_Err e;
@@ -151,28 +181,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
 
-		if (codec->type == GF_STREAM_VISUAL) {
-			cap.CapCode = GF_CODEC_FRAME_OUTPUT;
-			gf_codec_get_capability(codec, &cap);
-			if (cap.cap.valueBool) {
-				cap.CapCode = GF_CODEC_FRAME_OUTPUT;
-				cap.cap.valueInt = gf_sc_use_3d(codec->odm->term->compositor) ? 2 : 1;
-				if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputFrame != NULL))
-					codec->direct_frame_output = GF_TRUE;
-			}
-			if (!codec->direct_frame_output) {
-				//this works but we need at least double buffering of textures on the GPU which we don't have now
-				if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
-					cap.CapCode = GF_CODEC_RAW_MEMORY;
-					gf_codec_get_capability(codec, &cap);
-					if (cap.cap.valueBool) {
-						cap.CapCode = GF_CODEC_RAW_MEMORY;
-						if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
-							codec->direct_vout = GF_TRUE;
-					}
-				}
-			}
-		}
+		codec_check_frame_output_mode(codec);
 
 		if (codec->odm->term->bench_mode==2) {
 			e = GF_OK;
@@ -200,6 +209,14 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				}
 			}
 #endif
+			e = codec->decio->AttachStream(codec->decio, ch->esd);
+			while (e == GF_PROFILE_NOT_SUPPORTED) {
+				e = gf_codec_change_decoder(codec, ch->esd);
+				if (e) break;
+				codec_check_frame_output_mode(codec);
+				e = codec->decio->AttachStream(codec->decio, ch->esd);
+			}
+
 			cap.CapCode = GF_CODEC_FORCE_ANNEXB;
 			gf_codec_get_capability(codec, &cap);
 			if (cap.cap.valueBool) {
@@ -209,8 +226,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				com.base.on_channel = ch;
 				gf_term_service_command(ch->service, &com);
 			}
-
-			e = codec->decio->AttachStream(codec->decio, ch->esd);
 
 			gf_mx_v(ch->mx);
 		}
@@ -1482,7 +1497,7 @@ scalable_retry:
 			/*release but no dispatch*/
 			UnlockCompositionUnit(codec, CU, 0);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Unsupported profile detected, blacklisting decoder for this stream and changing decoder\n", codec->decio->module_name ));
-			return gf_codec_change_decoder(codec);
+			return gf_codec_change_decoder(codec, NULL);
 		case GF_CODEC_BUFFER_UNAVAILABLE:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
@@ -2037,7 +2052,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	return GF_CODEC_NOT_FOUND;
 }
 
-GF_Err gf_codec_change_decoder(GF_Codec *codec)
+GF_Err gf_codec_change_decoder(GF_Codec *codec, GF_ESD *for_esd)
 {
 	GF_Err e;
 	u32 i, count;
@@ -2056,13 +2071,15 @@ GF_Err gf_codec_change_decoder(GF_Codec *codec)
 	}
 	gf_modules_close_interface((GF_BaseInterface *) codec->decio);
 	codec->decio = NULL;
-	if (!esd) return GF_CODEC_NOT_FOUND;
-	e = Codec_LoadModule(codec, esd, codec->profile_level);
+	if (!esd && !for_esd) return GF_CODEC_NOT_FOUND;
+	e = Codec_LoadModule(codec, for_esd ? for_esd : esd, codec->profile_level);
 	if (e) return e;
 	if (!codec->decio) return GF_CODEC_NOT_FOUND;
 
 	for (i=0; i<count; i++) {
 		GF_Channel *ch = gf_list_get(codec->inChannels, i);
+		if (ch->esd == for_esd) continue;
+
 		if (ch && ch->esd) {
 			codec->decio->AttachStream(codec->decio, ch->esd);
 		}
