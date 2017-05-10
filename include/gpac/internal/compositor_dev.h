@@ -553,6 +553,8 @@ struct __tag_compositor
 	Bool force_type_3d;
 	char *screen_buffer;
 	u32 screen_buffer_alloc_size;
+
+	u32 tile_visibility_nb_tests, tile_visibility_threshold;
 #endif
 
 	Bool texture_from_decoder_memory;
