@@ -976,7 +976,7 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		isor_check_buffer_level(read);
 #endif
 		if (!read->nb_playing)
-			gf_isom_reset_fragment_info(read->mov, GF_FALSE);
+			gf_isom_reset_seq_num(read->mov);
 
 		read->nb_playing++;
 		//cancel event
