@@ -1350,49 +1350,36 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			else if (!txh->width || !txh->height) {
 				visible = GF_TRUE;
 			} else {
-			GF_Vec center, target, t, ref;
-			Fixed r, theta_angle, phi_angle, fov;
+				u32 i, j;
+				u32 nb_visible=0;
+				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
+				u32 min_visible_threshold = tr_state->visual->compositor->tile_visibility_threshold;
+				u32 stride;
 
-			Fixed center_phi = sphere_angles.min_phi + (sphere_angles.max_phi - sphere_angles.min_phi) / 2;
-			Fixed center_theta = sphere_angles.min_theta + (sphere_angles.max_theta - sphere_angles.min_theta) / 2;
-
-			//inverse coords since we used negative radius to build the sphere
-			center.y = - gf_sin(center_phi);
-			r = - gf_sqrt(FIX_ONE - gf_mulfix(center.y, center.y) );
-			center.x = gf_mulfix(r, gf_cos(center_theta) );
-			center.z = gf_mulfix(r, gf_sin(center_theta) );
-			gf_vec_norm(&center);
-
-			target = camera_get_target_dir(tr_state->camera);
-
-			ref = center;
-			ref.y = 0;
-			gf_vec_norm(&ref);
-			t = target;
-			t.y=0;
-			gf_vec_norm(&t);
-			theta_angle = gf_acos( gf_vec_dot(t, ref) );
-			if (theta_angle<0) theta_angle += GF_2PI;
-
-			ref = center;
-			ref.x = 0;
-			gf_vec_norm(&ref);
-			t = target;
-			t.x=0;
-			gf_vec_norm(&t);
-			phi_angle = gf_acos( gf_vec_dot(t, ref) );
-			if (phi_angle<-GF_PI2) phi_angle += GF_PI;
-			
-			fov = gf_divfix(tr_state->camera->width, tr_state->camera->height);
-			fov = gf_mulfix(fov, tr_state->camera->fieldOfView/2);
-
-			if ((theta_angle < fov + (sphere_angles.max_theta-sphere_angles.min_theta)/2)
-				&& (phi_angle < tr_state->camera->fieldOfView/2 + (sphere_angles.max_phi-sphere_angles.min_phi) /2)
-			) {
-				visible = GF_TRUE;
-			}
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Texure %d Partial sphere is %s - Angle center-cam is %.02f h %.02f v\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  theta_angle, phi_angle));
-			
+				//pick nb_tests vertices spaced every stride in the mesh
+				stride = stack->mesh->v_count;
+				stride /= nb_tests;
+				for (i=0; i<nb_tests; i++) {
+					Bool vis = GF_TRUE;
+					GF_Vec pt = stack->mesh->vertices[i*stride].pos;
+					//check the point is in our frustum - don't test far plane
+					for (j=1; j<6; j++) {
+						Fixed d = gf_plane_get_distance(&tr_state->camera->planes[j], &pt);
+						if (d<0) {
+							vis = GF_FALSE;
+							break;
+						}
+					}
+					if (vis) {
+						nb_visible++;
+						//abort test if more visible points than our threshold
+						if (nb_visible > min_visible_threshold)
+							break;
+					}
+				}
+				if (nb_visible > min_visible_threshold) 
+					visible = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
 			}
 			if (visible) {
 				stack->mesh->flags |= MESH_WAS_VISIBLE;
