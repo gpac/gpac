@@ -954,7 +954,7 @@ instance when loading a BT with an animation stream*/
 GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
 GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize);
-GF_Err gf_codec_change_decoder(GF_Codec *codec);
+GF_Err gf_codec_change_decoder(GF_Codec *codec, GF_ESD *for_esd);
 
 /*OD manager*/
 
