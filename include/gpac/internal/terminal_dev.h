@@ -435,7 +435,6 @@ void gf_clock_set_speed(GF_Clock *ck, Fixed speed);
 void gf_clock_adjust_drift(GF_Clock *ck, s32 ms_drift);
 
 
-
 /*OD manager*/
 
 enum
