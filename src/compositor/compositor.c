@@ -1496,6 +1496,15 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
 	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
 
+	compositor->tile_visibility_nb_tests = 30;
+	compositor->tile_visibility_threshold = 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TileVisibilityTest");
+	if (!sOpt || !strstr(sOpt, "-")) {
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TileVisibilityTest", "30-0");
+	} else {
+		sscanf(sOpt, "%u-%u", &compositor->tile_visibility_nb_tests, &compositor->tile_visibility_threshold);
+	}
+
 #endif //GPAC_DISABLE_3D
 
 
