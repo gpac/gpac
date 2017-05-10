@@ -3593,6 +3593,14 @@ void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count)
 }
 
 GF_EXPORT
+void gf_isom_reset_seq_num(GF_ISOFile *movie)
+{
+#ifdef GPAC_DISABLE_ISOM_FRAGMENTS
+	movie->NextMoofNumber = 0;
+#endif
+}
+
+GF_EXPORT
 GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, Bool *is_rap, Bool *has_roll, s32 *roll_distance)
 {
 	GF_TrackBox *trak;
