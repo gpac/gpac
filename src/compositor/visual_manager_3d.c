@@ -1292,7 +1292,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = -FIX_ONE;
+	res.z = -FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
@@ -1302,7 +1302,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = FIX_ONE;
+	res.z = FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
