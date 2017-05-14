@@ -373,7 +373,7 @@ escape_size:
 	}
 }
 
-
+GF_EXPORT
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32 Param)
 {
 	GF_TrackFragmentBox *traf;
