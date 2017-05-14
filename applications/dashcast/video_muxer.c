@@ -582,7 +582,7 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 int dc_gpac_video_isom_close_seg(VideoOutputFile *video_output_file)
 {
 	GF_Err ret;
-	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, 1, video_output_file->seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, GF_TRUE, GF_FALSE, video_output_file->seg_marker, NULL, NULL);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
