@@ -373,7 +373,7 @@ escape_size:
 	}
 }
 
-GF_EXPORT
+
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *movie, u32 TrackID, u32 Code, u32 Param)
 {
 	GF_TrackFragmentBox *traf;
@@ -836,7 +836,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	/*estimate moof size and shift trun offsets*/
 #ifndef USE_BASE_DATA_OFFSET
 	offset = 0;
-	if (movie->use_segments || movie->force_moof_base_offset) {
+	if (movie->use_segments) {
 		e = gf_isom_box_size((GF_Box *) movie->moof);
 		if (e) return e;
 		offset = (s32) movie->moof->size;
@@ -880,7 +880,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 	DECIDE NOT TO USE THE DATA-OFFSET FLAG*/
 	if (movie->moof_first
 #ifndef USE_BASE_DATA_OFFSET
-	        && !(movie->use_segments || movie->force_moof_base_offset)
+	        && !movie->use_segments
 #endif
 	   ) {
 		i=0;
@@ -891,7 +891,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 		}
 	}
 #ifndef USE_BASE_DATA_OFFSET
-	else if (movie->use_segments || movie->force_moof_base_offset) {
+	else if (movie->use_segments) {
 		if (offset != (movie->moof->size+8)) {
 			offset = (s32) (movie->moof->size + 8 - offset);
 			update_trun_offsets(movie, offset);
@@ -1106,7 +1106,7 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 }
 
 GF_EXPORT
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
@@ -1553,6 +1553,9 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		}
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
+	} else if (close_segment_handle == GF_TRUE) {
+		gf_isom_datamap_del(movie->editFileMap);
+		movie->editFileMap = NULL;
 	}
 
 	return e;
@@ -1562,7 +1565,7 @@ GF_EXPORT
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, 1, 0, NULL, NULL);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE, 1, 0, NULL, NULL);
 	} else {
 		return StoreFragment(movie, GF_FALSE, 0, NULL);
 	}
@@ -1583,7 +1586,7 @@ GF_Err gf_isom_start_segment(GF_ISOFile *movie, const char *SegName, Bool memory
 	movie->append_segment = GF_FALSE;
 	/*update segment file*/
 	if (SegName || !gf_isom_get_filename(movie)) {
-		gf_isom_datamap_del(movie->editFileMap);
+		if (movie->editFileMap) gf_isom_datamap_del(movie->editFileMap);
 		e = gf_isom_datamap_new(SegName, NULL, GF_ISOM_DATA_MAP_WRITE, & movie->editFileMap);
 		movie->segment_start = 0;
 		movie->styp_written = GF_FALSE;
@@ -2142,7 +2145,6 @@ GF_Err gf_isom_setup_track_fragment(GF_ISOFile *the_file, u32 TrackID,
 	return GF_NOT_SUPPORTED;
 }
 
-GF_EXPORT
 GF_Err gf_isom_set_fragment_option(GF_ISOFile *the_file, u32 TrackID, u32 Code, u32 Param)
 {
 	return GF_NOT_SUPPORTED;
