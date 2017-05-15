@@ -478,6 +478,11 @@ SectionEnd
 ;  File "..\MobileSession.dll"
 ;SectionEnd
 
+Section "DekTec output" SecDecTek
+  SectionIn 1
+  File "${GPAC_BIN}\gm_dektec_out.dll"
+SectionEnd
+
 SubSectionEnd
 
 
@@ -665,6 +670,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"

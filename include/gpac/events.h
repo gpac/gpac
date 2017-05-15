@@ -326,6 +326,15 @@ typedef struct
 	Bool activate;
 } GF_EventSensorRequest;
 
+
+/*event proc return value: ignored*/
+typedef struct
+{
+	/*GF_EVENT_SENSOR_REQUEST*/
+	u8 type;
+	u32 sync_loss_ms;
+} GF_EventSyncLoss;
+
 typedef union
 {
 	u8 type;
@@ -351,6 +360,7 @@ typedef union
 	GF_EventAddonConnect addon_connect;
 	GF_EventFromService from_service;
 	GF_EventSensorRequest activate_sensor;
+	GF_EventSyncLoss sync_loss;
 } GF_Event;
 
 /*! @} */

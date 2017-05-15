@@ -401,12 +401,21 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		assert(mo->odm->parentscene);
 
 		if (! mo->odm->parentscene->compositor->drop_late_frames) {
+			if (mo->odm->parentscene->compositor->force_late_frame_draw) {
+				mo->flags |= GF_MO_IN_RESYNC;
+			}
+			else if (mo->flags & GF_MO_IN_RESYNC) {
+				if (next_ts >= obj_time) {
+					skip_resync = GF_TRUE;
+					mo->flags &= ~GF_MO_IN_RESYNC;
+				}
+			}
 			//if the next AU is at most 1 sec from the current clock use no drop mode
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d next data length %d (%d in CB)\n", mo->odm->ID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
-			if (next_pck && (next_ts + 1000 >= obj_time)) {
+			else if (next_pck && (next_ts + 1000 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
+				mo->flags |= GF_MO_IN_RESYNC;
 			}
 		}
 	}
@@ -469,6 +478,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 				mo->odm->nb_dropped++;
 			}
+
 			/*discard*/
 			gf_filter_pck_unref(mo->pck);
 			/*reassign current to next packet*/
