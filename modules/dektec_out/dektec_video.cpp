@@ -46,7 +46,7 @@ typedef struct
 	DtMxProcess *m_Matrix;
 
 	DtDevice *dvc;
-	Bool is_sending, is_configured, is_10b;
+	Bool is_sending, is_configured, is_10b, clip_sdi;
 
 	s64 frameNum;
 	FILE *pFile;
@@ -104,41 +104,52 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 	unsigned char* pDstU = VideoBuf.m_Planes[1].m_pBuf;
 	unsigned char* pDstV = VideoBuf.m_Planes[2].m_pBuf;
 
-
-#define HDR_CLIP_SSE 0
-
 	if (dtc->is_10b) {
+		u32 nb_pix = 2*dtc->width*dtc->height;
+		int lineC = 2*dtc->width / 2;
+		unsigned char *pSrcY = dtc->pixels_YUV_source;
+		unsigned char *pSrcU = dtc->pixels_YUV_source + 2 * dtc->width*dtc->height;
+		unsigned char *pSrcV = pSrcU + (2 * dtc->width*dtc->height / 4);
 
-#if HDR_CLIP_SSE
-		{
+		if (dtc->clip_sdi) {
 			u16 nYRangeMin = 4;
 			u16 nYRangeMax = 1019;
 
 			__m128i mMin = _mm_set1_epi16(nYRangeMin);
 			__m128i mMax = _mm_set1_epi16(nYRangeMax);
 
-			for (int i = 0; i < dtc->width*dtc->height * 2; i += 16) {
-				_mm_storeu_si128((__m128i *)&pDstY[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&dtc->pixels_YUV_source[i]))));
+			for (u32 i = 0; i < nb_pix; i += 16) {
+				_mm_storeu_si128((__m128i *)&pDstY[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcY[i]))));
 			}
-		}
-#else
-		memcpy(pDstY, dtc->pixels_YUV_source, 2 * dtc->width*dtc->height);
-#endif
 
-		int lineC = 2*dtc->width / 2;
-		unsigned char *pSrcU = dtc->pixels_YUV_source + 2 * dtc->width*dtc->height;
-		unsigned char *pSrcV = pSrcU + (2 * dtc->width*dtc->height / 4);
+			for (u32 h = 0; h < dtc->height/2; h++) {
+				for (u32 i = 0; i < dtc->width; i += 16) {
+					_mm_storeu_si128((__m128i *)&pDstU[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcU[i]))));
+					_mm_storeu_si128((__m128i *)&pDstV[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcV[i]))));
+				}
+				//420->422: copy over each U and V line
+				memcpy(pDstU+lineC, pDstU, lineC);
+				memcpy(pDstV+lineC, pDstV, lineC);
+
+				pSrcU += lineC;
+				pSrcV += lineC;
+				pDstU += 2 * lineC;
+				pDstV += 2 * lineC;
+			}
+		} else {
+			memcpy(pDstY, dtc->pixels_YUV_source, 2 * dtc->width*dtc->height);
 	
-		//420->422: copy over each U and V line
-		for (u32 h = 0; h < dtc->height/2; h++) {
-			memcpy(pDstU, pSrcU, lineC);
-			memcpy(pDstV, pSrcV, lineC);
-			memcpy(pDstU+lineC, pSrcU, lineC);
-			memcpy(pDstV+lineC, pSrcV, lineC);
-			pSrcU += lineC;
-			pSrcV += lineC;
-			pDstU += 2 * lineC;
-			pDstV += 2 * lineC;
+			//420->422: copy over each U and V line
+			for (u32 h = 0; h < dtc->height/2; h++) {
+				memcpy(pDstU, pSrcU, lineC);
+				memcpy(pDstV, pSrcV, lineC);
+				memcpy(pDstU+lineC, pSrcU, lineC);
+				memcpy(pDstV+lineC, pSrcV, lineC);
+				pSrcU += lineC;
+				pSrcV += lineC;
+				pDstU += 2 * lineC;
+				pDstV += 2 * lineC;
+			}
 		}
 	} else {
 		u32 nb_pix = dtc->width*dtc->height;
@@ -149,6 +160,10 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 
 		for (u32 i=0; i<nb_pix; i++) {
 			u16 srcy = ((u16) (*pSrcY)) << 2;
+			if (dtc->clip_sdi) {
+				if (srcy<4) srcy = 4;
+				else if (srcy>1019) srcy = 1019;
+			}
 			*(short *)pDstY = srcy;
 
 			pSrcY++;
@@ -158,13 +173,22 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 		nb_pix = dtc->width*dtc->height/4;
 		for (u32 i=0; i<nb_pix; i++) {
 			u16 srcu = ((u16) (*pSrcU) ) << 2;
+			u16 srcv = ((u16) (*pSrcV) ) << 2;
+
+			if (dtc->clip_sdi) {
+				if (srcu<4) srcu = 4;
+				else if (srcu>1019) srcu = 1019;
+
+				if (srcv<4) srcv = 4;
+				else if (srcv>1019) srcv = 1019;
+			}
+
 			*(short *)pDstU = srcu;
 			*(short *)(pDstU+lineC) = srcu;
 
 			pSrcU++;
 			pDstU+=2;//char type but short buffer
 
-			u16 srcv = ((u16) (*pSrcV) ) << 2;
 			*(short *)pDstV = srcv;
 			*(short *)(pDstV+lineC) = srcv;
 
@@ -261,6 +285,12 @@ GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 i
 			return GF_OK;
 		}
 	}
+	dtc->clip_sdi = GF_TRUE;
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI");
+	if (!opt) 
+		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ClipSDI", "yes");
+	else if (!strcmp(opt, "no"))
+		dtc->clip_sdi = GF_FALSE;
 
 	res = dvc->AttachToType(2174);
 	if ( res != DTAPI_OK) res = dvc->AttachToType(2154);
@@ -288,7 +318,7 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 
 	if (sopt) frameRate = atof(sopt);
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Reconfigure to %dx%d @ %g FPS %s bits src\n", width, height, frameRate, is_10_bits ? "10" : "8" ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Reconfigure to %dx%d @ %g FPS %s bits src - SDI clipping: %s\n", width, height, frameRate, is_10_bits ? "10" : "8", dtc->clip_sdi ? "yes" : "no"));
 	if (dtc->is_configured) {
 		DtMxProcess *Matrix = dtc->m_Matrix;
 		if (dtc->is_sending) {
