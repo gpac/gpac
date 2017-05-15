@@ -179,6 +179,8 @@ enum
 	GF_MO_IS_INIT = (1<<1),
 	/*used by animation stream to remove TEXT from display upon delete and URL change*/
 	GF_MO_DISPLAY_REMOVE = (1<<2),
+	/*used when resyncing a stream (droping late frames)*/
+	GF_MO_IN_RESYNC = (1<<3),
 };
 
 u32 gf_mo_get_flags(GF_MediaObject *mo);
