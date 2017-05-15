@@ -559,12 +559,21 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
-			//if the next AU is at most 1 sec from the current clock use no drop mode
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
-			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
+			if (mo->odm->term->compositor->force_late_frame_draw) {
+				mo->flags |= GF_MO_IN_RESYNC;
+			}
+			else if (mo->flags & GF_MO_IN_RESYNC) {
+				if (CU->next->TS >= obj_time) {
+					skip_resync = GF_TRUE;
+					mo->flags &= ~GF_MO_IN_RESYNC;
+				}
+			}
+			//if the next AU is at most 200 ms from the current clock use no drop mode
+			else if (CU->next->dataLength && (CU->next->TS + 200 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
+				mo->flags |= GF_MO_IN_RESYNC;
 			}
 		}
 	}
@@ -591,12 +600,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	if (resync) {
-		u32 nb_dropped = 0;
 		while (1) {
 			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time )
 				break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u length %d obj time %u\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			if (mo->timestamp != CU->TS) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u length %d obj time %u\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			}
 
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
@@ -621,11 +631,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				break;
 			}
 
-			nb_dropped ++;
-			if (nb_dropped>=1) {
+			if (mo->timestamp != CU->TS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
 				codec->nb_dropped++;
 			}
+
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;
 			gf_cm_drop_output(codec->CB);

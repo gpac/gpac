@@ -211,6 +211,7 @@ struct __tag_compositor
 
 	u32 inherit_type_3d;
 
+	Bool force_late_frame_draw;
 	/*all time nodes registered*/
 	GF_List *time_nodes;
 	/*all textures (texture handlers)*/

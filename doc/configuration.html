@@ -970,9 +970,15 @@ Specifies the underlying windowing library.</p>
 <p>
 The "DektecVideo" section of the config file holds the configuration options for the Dektec SDI video output module.</a>
 </p>
+<b>CardSlot</b> [value: <i>int:int</i>]
+<p style="text-indent: 5%">
+Specifies the bus bus number (first int) and slot id (second int) of the card. If not present, the module will look for DTA-2174 and DTA-2154.</p>
 <b>SDIOutput</b> [value: <i>unsigned integer</i>]
 <p style="text-indent: 5%">
 Specifies the output port of the card. Default value is 1.</p>
+<b>FrameRate</b> [value: <i>float</i>]
+<p style="text-indent: 5%">
+Specifies the output frame rate for the card. If not present (default), the compositor output frame rate will be used.</p>
 
 <br/><br/>
 

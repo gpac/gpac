@@ -1,4 +1,4 @@
-//*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#* DTAPI.h *#*#*#*#*#*#*#*#*#* (C) 2000-2015 DekTec
+//*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#*#* DTAPI.h *#*#*#*#*#*#*#*#*#* (C) 2000-2016 DekTec
 //
 // DTAPI - C++ API for DekTec PCI/PCI-Express cards, USB-2 adapters and network devices
 //
@@ -8,9 +8,9 @@
 
 // DTAPI version
 #define DTAPI_VERSION_MAJOR        5
-#define DTAPI_VERSION_MINOR        14
-#define DTAPI_VERSION_BUGFIX       0
-#define DTAPI_VERSION_BUILD        56
+#define DTAPI_VERSION_MINOR        18
+#define DTAPI_VERSION_BUGFIX       1
+#define DTAPI_VERSION_BUILD        78
 
 //-.-.-.-.-.-.-.-.-.-.-.-.- Additional Libraries to be Linked In -.-.-.-.-.-.-.-.-.-.-.-.-
 
@@ -121,6 +121,8 @@ class DtaPlusDevice;
 class DtDemodPars;
 class DtDvbT2Pars;
 class DteDevice;
+class DtMxAudioService;
+class DtMxAudioChannel;
 class DtSdiUtility;
 class FrameBufImpl;
 class IDevice;
@@ -130,6 +132,7 @@ class IXpMutex;
 class MplpHelper;
 class OutpChannel;
 class SdiMatrixImpl;
+class AvInputStatus;
 
 struct DtDabEnsembleInfo;
 struct DtDabEtiStreamSelPars;
@@ -239,6 +242,8 @@ public:
     bool  operator == (const int Zero) const;
     bool  operator != (const DtCaps& Caps) const;
     bool  operator != (const int Zero) const;
+    bool  operator < (const DtCaps& Caps) const;
+    bool  operator > (const DtCaps& Caps) const;
     __int64  operator [] (const int n) const;
     DtCaps  operator ~ () const;
     // Implementation data
@@ -260,198 +265,225 @@ private:
 #define DTAPI_CAP_MX          Dtapi::DtCaps(7)   // MuxXpert
 #define DTAPI_CAP_RC          Dtapi::DtCaps(8)   // StreamXpress remote control
 #define DTAPI_CAP_RX          Dtapi::DtCaps(9)   // RFXpert
-#define DTAPI_CAP_SP          Dtapi::DtCaps(10)  // StreamXpress stream player
-#define DTAPI_CAP_SPNIC       Dtapi::DtCaps(11)  // StreamXpress through local NIC
-#define DTAPI_CAP_SX          Dtapi::DtCaps(12)  // StreamXpert analyzer
-#define DTAPI_CAP_SXDGL       Dtapi::DtCaps(13)  // StreamXpert analyzer (dongled)
-#define DTAPI_CAP_SY          Dtapi::DtCaps(14)  // SdEye
-#define DTAPI_CAP_XP          Dtapi::DtCaps(15)  // Xpect
-#define DTAPI_CAP_T2X         Dtapi::DtCaps(16)  // T2Xpert
+#define DTAPI_CAP_SL          Dtapi::DtCaps(10)  // StreamXpert Lite
+#define DTAPI_CAP_SP          Dtapi::DtCaps(11)  // StreamXpress stream player
+#define DTAPI_CAP_SPNIC       Dtapi::DtCaps(12)  // StreamXpress through local NIC
+#define DTAPI_CAP_SX          Dtapi::DtCaps(13)  // StreamXpert analyzer
+#define DTAPI_CAP_SXNIC       Dtapi::DtCaps(14)  // StreamXpert via local NIC (dongled)
+#define DTAPI_CAP_SY          Dtapi::DtCaps(15)  // SdEye
+#define DTAPI_CAP_XP          Dtapi::DtCaps(16)  // Xpect
+#define DTAPI_CAP_T2X         Dtapi::DtCaps(17)  // T2Xpert
+#define DTAPI_CAP_VR          Dtapi::DtCaps(18)  // VF-REC
+
+// Capability group AUDENC - Supported audio standards
+#define DTAPI_CAP_ENC_AAC     Dtapi::DtCaps(19)  // AAC audio encoder
+#define DTAPI_CAP_ENC_AC3     Dtapi::DtCaps(20)  // AC3 audio encoder
+#define DTAPI_CAP_ENC_AG      Dtapi::DtCaps(21)  // GOLD for audio encoder
+#define DTAPI_CAP_ENC_MP1L2   Dtapi::DtCaps(22)  // MPEG1-layer II audio encoder
 
 // Capability group BOOLIO - Boolean I/O capabilities
-#define DTAPI_CAP_BW          Dtapi::DtCaps(17)  // Isochronous bandwidth allocated
-#define DTAPI_CAP_FAILSAFE    Dtapi::DtCaps(18)  // A fail-over relay is available
-#define DTAPI_CAP_FRACMODE    Dtapi::DtCaps(19)  // Fractional mode is supported
-#define DTAPI_CAP_GENLOCKED   Dtapi::DtCaps(20)  // Locked to a genlock reference
-#define DTAPI_CAP_GENREF      Dtapi::DtCaps(21)  // Genlock reference input
-#define DTAPI_CAP_SWS2APSK    Dtapi::DtCaps(22)  // DVB-S2 APSK mode
+#define DTAPI_CAP_BW          Dtapi::DtCaps(23)  // DEPRECATED, do not use
+#define DTAPI_CAP_FAILSAFE    Dtapi::DtCaps(24)  // A fail-over relay is available
+#define DTAPI_CAP_FRACMODE    Dtapi::DtCaps(25)  // Fractional mode is supported
+#define DTAPI_CAP_GENLOCKED   Dtapi::DtCaps(26)  // Locked to a genlock reference
+#define DTAPI_CAP_GENREF      Dtapi::DtCaps(27)  // Genlock reference input
+#define DTAPI_CAP_SWS2APSK    Dtapi::DtCaps(28)  // DVB-S2 APSK mode
 
 // Capability group DEMODPROPS - Demodulation properties
-#define DTAPI_CAP_ANTPWR      Dtapi::DtCaps(23)  // Antenna power
-#define DTAPI_CAP_LNB         Dtapi::DtCaps(24)  // LNB
-#define DTAPI_CAP_RX_ADV      Dtapi::DtCaps(25)  // Advanced demodulation
+#define DTAPI_CAP_ANTPWR      Dtapi::DtCaps(29)  // Antenna power
+#define DTAPI_CAP_LNB         Dtapi::DtCaps(30)  // LNB
+#define DTAPI_CAP_RX_ADV      Dtapi::DtCaps(31)  // Advanced demodulation
 
 // Capability group FREQBAND - Frequency band
-#define DTAPI_CAP_LBAND       Dtapi::DtCaps(26)  // L-band 950-2150MHz
-#define DTAPI_CAP_VHF         Dtapi::DtCaps(27)  // VHF-band 47-470MHz
-#define DTAPI_CAP_UHF         Dtapi::DtCaps(28)  // UHF-band 400-862MHz
+#define DTAPI_CAP_LBAND       Dtapi::DtCaps(32)  // L-band 950-2150MHz
+#define DTAPI_CAP_VHF         Dtapi::DtCaps(33)  // VHF-band 47-470MHz
+#define DTAPI_CAP_UHF         Dtapi::DtCaps(34)  // UHF-band 400-862MHz
+
+// Capability group HDMISTD - HDMI standard
+#define DTAPI_CAP_HDMI1_4     Dtapi::DtCaps(35)  // HDMI 1.4
 
 // Capability group IODIR - I/O direction
-#define DTAPI_CAP_DISABLED    Dtapi::DtCaps(29)  // Port is disabled
-#define DTAPI_CAP_INPUT       Dtapi::DtCaps(30)  // Uni-directional input
-#define DTAPI_CAP_OUTPUT      Dtapi::DtCaps(31)  // Uni-directional output
+#define DTAPI_CAP_DISABLED    Dtapi::DtCaps(36)  // Port is disabled
+#define DTAPI_CAP_INPUT       Dtapi::DtCaps(37)  // Uni-directional input
+#define DTAPI_CAP_INTINPUT    Dtapi::DtCaps(38)  // Internal input port
+#define DTAPI_CAP_MONITOR     Dtapi::DtCaps(39)  // Monitor of input
+#define DTAPI_CAP_OUTPUT      Dtapi::DtCaps(40)  // Uni-directional output
 
 // Subcapabilities of IODIR, DTAPI_CAP_INPUT
-#define DTAPI_CAP_SHAREDANT   Dtapi::DtCaps(32)  // Get antenna signal from another port
+#define DTAPI_CAP_SHAREDANT   Dtapi::DtCaps(41)  // Get antenna signal from another port
 
 // Subcapabilities of IODIR, DTAPI_CAP_OUTPUT
-#define DTAPI_CAP_DBLBUF      Dtapi::DtCaps(33)  // Double buffered output
-#define DTAPI_CAP_LOOPS2L3    Dtapi::DtCaps(34)  // Loop-through of DVB-S2 in L3-frames
-#define DTAPI_CAP_LOOPS2TS    Dtapi::DtCaps(35)  // Loop-through of an DVB-S(2) input
-#define DTAPI_CAP_LOOPTHR     Dtapi::DtCaps(36)  // Loop-through of another input
+#define DTAPI_CAP_DBLBUF      Dtapi::DtCaps(42)  // Double buffered output
+#define DTAPI_CAP_LOOPS2L3    Dtapi::DtCaps(43)  // Loop-through of DVB-S2 in L3-frames
+#define DTAPI_CAP_LOOPS2TS    Dtapi::DtCaps(44)  // Loop-through of an DVB-S(2) input
+#define DTAPI_CAP_LOOPTHR     Dtapi::DtCaps(45)  // Loop-through of another input
 
 // Capability group IOPROPS - Miscellaneous I/O properties
-#define DTAPI_CAP_ASIPOL      Dtapi::DtCaps(37)  // ASI output signal can be inverted
-#define DTAPI_CAP_HUFFMAN     Dtapi::DtCaps(38)  // Huffman coding for SDI
-#define DTAPI_CAP_IPPAIR      Dtapi::DtCaps(39)  // Network port supports failover
-#define DTAPI_CAP_L3MODE      Dtapi::DtCaps(40)  // L3-frame mode
-#define DTAPI_CAP_MATRIX      Dtapi::DtCaps(41)  // Matrix API support
-#define DTAPI_CAP_MATRIX2     Dtapi::DtCaps(42)  // High-level Matrix API support
-#define DTAPI_CAP_RAWASI      Dtapi::DtCaps(43)  // Raw ASI
-#define DTAPI_CAP_SDI10BNBO   Dtapi::DtCaps(44)  // 10-bit network byte order
-#define DTAPI_CAP_SDITIME     Dtapi::DtCaps(45)  // SDI timestamping
-#define DTAPI_CAP_TIMESTAMP64 Dtapi::DtCaps(46)  // 64-bit timestamping
-#define DTAPI_CAP_TRPMODE     Dtapi::DtCaps(47)  // Transparent mode
-#define DTAPI_CAP_TS          Dtapi::DtCaps(48)  // MPEG-2 transport stream
-#define DTAPI_CAP_TXONTIME    Dtapi::DtCaps(49)  // Transmit on timestamp
-#define DTAPI_CAP_VIRTUAL     Dtapi::DtCaps(50)  // Virtual port, no physical connection
+#define DTAPI_CAP_ASIPOL      Dtapi::DtCaps(46)  // ASI output signal can be inverted
+#define DTAPI_CAP_GENREFSLAVE Dtapi::DtCaps(47)  // Slaved genlock reference
+#define DTAPI_CAP_HUFFMAN     Dtapi::DtCaps(48)  // Huffman coding for SDI
+#define DTAPI_CAP_IPPAIR      Dtapi::DtCaps(49)  // Network port supports failover
+#define DTAPI_CAP_L3MODE      Dtapi::DtCaps(50)  // L3-frame mode
+#define DTAPI_CAP_MATRIX      Dtapi::DtCaps(51)  // Matrix API support
+#define DTAPI_CAP_MATRIX2     Dtapi::DtCaps(52)  // High-level Matrix API support
+#define DTAPI_CAP_RAWASI      Dtapi::DtCaps(53)  // Raw ASI
+#define DTAPI_CAP_SDI10BNBO   Dtapi::DtCaps(54)  // 10-bit network byte order
+#define DTAPI_CAP_SDITIME     Dtapi::DtCaps(55)  // SDI timestamping
+#define DTAPI_CAP_TIMESTAMP64 Dtapi::DtCaps(56)  // 64-bit timestamping
+#define DTAPI_CAP_TRPMODE     Dtapi::DtCaps(57)  // Transparent mode
+#define DTAPI_CAP_TS          Dtapi::DtCaps(58)  // MPEG-2 transport stream
+#define DTAPI_CAP_TXONTIME    Dtapi::DtCaps(59)  // Transmit on timestamp
+#define DTAPI_CAP_VIRTUAL     Dtapi::DtCaps(60)  // Virtual port, no physical connection
 
 // Capability group IOSTD - I/O standard
-#define DTAPI_CAP_3GSDI       Dtapi::DtCaps(51)  // 3G-SDI
-#define DTAPI_CAP_ASI         Dtapi::DtCaps(52)  // DVB-ASI transport stream
-#define DTAPI_CAP_DEMOD       Dtapi::DtCaps(53)  // Demodulation
-#define DTAPI_CAP_GPSTIME     Dtapi::DtCaps(54)  // Supports GPS-time
-#define DTAPI_CAP_HDSDI       Dtapi::DtCaps(55)  // HD-SDI
-#define DTAPI_CAP_IFADC       Dtapi::DtCaps(56)  // IF A/D converter
-#define DTAPI_CAP_IP          Dtapi::DtCaps(57)  // Transport stream over IP
-#define DTAPI_CAP_MOD         Dtapi::DtCaps(58)  // Modulator output
-#define DTAPI_CAP_PHASENOISE  Dtapi::DtCaps(59)  // Phase noise injector
-#define DTAPI_CAP_RS422       Dtapi::DtCaps(60)  // RS422 port
-#define DTAPI_CAP_SDI         Dtapi::DtCaps(61)  // SD-SDI
-#define DTAPI_CAP_SPI         Dtapi::DtCaps(62)  // DVB-SPI transport stream
-#define DTAPI_CAP_SPISDI      Dtapi::DtCaps(63)  // SD-SDI on a parallel port
+#define DTAPI_CAP_3GSDI       Dtapi::DtCaps(61)  // 3G-SDI
+#define DTAPI_CAP_ASI         Dtapi::DtCaps(62)  // DVB-ASI transport stream
+#define DTAPI_CAP_AVENC       Dtapi::DtCaps(63)  // Audio/video encoder
+#define DTAPI_CAP_DEMOD       Dtapi::DtCaps(64)  // Demodulation
+#define DTAPI_CAP_GPSTIME     Dtapi::DtCaps(65)  // 1PPS and 10MHz GPS-clock input
+#define DTAPI_CAP_HDMI        Dtapi::DtCaps(66)  // HDMI
+#define DTAPI_CAP_HDSDI       Dtapi::DtCaps(67)  // HD-SDI
+#define DTAPI_CAP_IFADC       Dtapi::DtCaps(68)  // IF A/D converter
+#define DTAPI_CAP_IP          Dtapi::DtCaps(69)  // Transport stream over IP
+#define DTAPI_CAP_MOD         Dtapi::DtCaps(70)  // Modulator output
+#define DTAPI_CAP_PHASENOISE  Dtapi::DtCaps(71)  // Phase noise injection
+#define DTAPI_CAP_RS422       Dtapi::DtCaps(72)  // RS422 port
+#define DTAPI_CAP_SDIRX       Dtapi::DtCaps(73)  // SDI receiver
+#define DTAPI_CAP_SDI         Dtapi::DtCaps(74)  // SD-SDI
+#define DTAPI_CAP_SPI         Dtapi::DtCaps(75)  // DVB-SPI transport stream
+#define DTAPI_CAP_SPISDI      Dtapi::DtCaps(76)  // SD-SDI on a parallel port
 
 // Subcapabilities of IOSTD, DTAPI_CAP_3GSDI
-#define DTAPI_CAP_1080P50     Dtapi::DtCaps(64)  // 1080p/50 lvl A
-#define DTAPI_CAP_1080P50B    Dtapi::DtCaps(65)  // 1080p/50 lvl B
-#define DTAPI_CAP_1080P59_94  Dtapi::DtCaps(66)  // 1080p/59.94 lvl A
-#define DTAPI_CAP_1080P59_94B Dtapi::DtCaps(67)  // 1080p/59.94 lvl B
-#define DTAPI_CAP_1080P60     Dtapi::DtCaps(68)  // 1080p/60 lvl A
-#define DTAPI_CAP_1080P60B    Dtapi::DtCaps(69)  // 1080p/60 lvl B
+#define DTAPI_CAP_1080P50     Dtapi::DtCaps(77)  // 1080p/50 lvl A
+#define DTAPI_CAP_1080P50B    Dtapi::DtCaps(78)  // 1080p/50 lvl B
+#define DTAPI_CAP_1080P59_94  Dtapi::DtCaps(79)  // 1080p/59.94 lvl A
+#define DTAPI_CAP_1080P59_94B Dtapi::DtCaps(80)  // 1080p/59.94 lvl B
+#define DTAPI_CAP_1080P60     Dtapi::DtCaps(81)  // 1080p/60 lvl A
+#define DTAPI_CAP_1080P60B    Dtapi::DtCaps(82)  // 1080p/60 lvl B
 
 // Subcapabilities of IOSTD, DTAPI_CAP_HDSDI
-#define DTAPI_CAP_1080I50     Dtapi::DtCaps(70)  // 1080i/50
-#define DTAPI_CAP_1080I59_94  Dtapi::DtCaps(71)  // 1080i/59.94
-#define DTAPI_CAP_1080I60     Dtapi::DtCaps(72)  // 1080i/60
-#define DTAPI_CAP_1080P23_98  Dtapi::DtCaps(73)  // 1080p/23.98
-#define DTAPI_CAP_1080P24     Dtapi::DtCaps(74)  // 1080p/24
-#define DTAPI_CAP_1080P25     Dtapi::DtCaps(75)  // 1080p/25
-#define DTAPI_CAP_1080P29_97  Dtapi::DtCaps(76)  // 1080p/29.97
-#define DTAPI_CAP_1080P30     Dtapi::DtCaps(77)  // 1080p/30
-#define DTAPI_CAP_1080PSF23_98 Dtapi::DtCaps(78) // 1080psf/23.98
-#define DTAPI_CAP_1080PSF24   Dtapi::DtCaps(79)  // 1080psf/24
-#define DTAPI_CAP_1080PSF25   Dtapi::DtCaps(80)  // 1080psf/25
-#define DTAPI_CAP_1080PSF29_97 Dtapi::DtCaps(81) // 1080psf/29.97
-#define DTAPI_CAP_1080PSF30   Dtapi::DtCaps(82)  // 1080psf/30
-#define DTAPI_CAP_720P23_98   Dtapi::DtCaps(83)  // 720p/23.98
-#define DTAPI_CAP_720P24      Dtapi::DtCaps(84)  // 720p/24
-#define DTAPI_CAP_720P25      Dtapi::DtCaps(85)  // 720p/25
-#define DTAPI_CAP_720P29_97   Dtapi::DtCaps(86)  // 720p/29.97
-#define DTAPI_CAP_720P30      Dtapi::DtCaps(87)  // 720p/30
-#define DTAPI_CAP_720P50      Dtapi::DtCaps(88)  // 720p/50
-#define DTAPI_CAP_720P59_94   Dtapi::DtCaps(89)  // 720p/59.94
-#define DTAPI_CAP_720P60      Dtapi::DtCaps(90)  // 720p/60
+#define DTAPI_CAP_1080I50     Dtapi::DtCaps(83)  // 1080i/50
+#define DTAPI_CAP_1080I59_94  Dtapi::DtCaps(84)  // 1080i/59.94
+#define DTAPI_CAP_1080I60     Dtapi::DtCaps(85)  // 1080i/60
+#define DTAPI_CAP_1080P23_98  Dtapi::DtCaps(86)  // 1080p/23.98
+#define DTAPI_CAP_1080P24     Dtapi::DtCaps(87)  // 1080p/24
+#define DTAPI_CAP_1080P25     Dtapi::DtCaps(88)  // 1080p/25
+#define DTAPI_CAP_1080P29_97  Dtapi::DtCaps(89)  // 1080p/29.97
+#define DTAPI_CAP_1080P30     Dtapi::DtCaps(90)  // 1080p/30
+#define DTAPI_CAP_1080PSF23_98 Dtapi::DtCaps(91) // 1080psf/23.98
+#define DTAPI_CAP_1080PSF24   Dtapi::DtCaps(92)  // 1080psf/24
+#define DTAPI_CAP_1080PSF25   Dtapi::DtCaps(93)  // 1080psf/25
+#define DTAPI_CAP_1080PSF29_97 Dtapi::DtCaps(94) // 1080psf/29.97
+#define DTAPI_CAP_1080PSF30   Dtapi::DtCaps(95)  // 1080psf/30
+#define DTAPI_CAP_720P23_98   Dtapi::DtCaps(96)  // 720p/23.98
+#define DTAPI_CAP_720P24      Dtapi::DtCaps(97)  // 720p/24
+#define DTAPI_CAP_720P25      Dtapi::DtCaps(98)  // 720p/25
+#define DTAPI_CAP_720P29_97   Dtapi::DtCaps(99)  // 720p/29.97
+#define DTAPI_CAP_720P30      Dtapi::DtCaps(100) // 720p/30
+#define DTAPI_CAP_720P50      Dtapi::DtCaps(101) // 720p/50
+#define DTAPI_CAP_720P59_94   Dtapi::DtCaps(102) // 720p/59.94
+#define DTAPI_CAP_720P60      Dtapi::DtCaps(103) // 720p/60
 
 // Subcapabilities of IOSTD, DTAPI_CAP_SDI
-#define DTAPI_CAP_525I59_94   Dtapi::DtCaps(91)  // 525i/59.94
-#define DTAPI_CAP_625I50      Dtapi::DtCaps(92)  // 625i/50
+#define DTAPI_CAP_525I59_94   Dtapi::DtCaps(104) // 525i/59.94
+#define DTAPI_CAP_625I50      Dtapi::DtCaps(105) // 625i/50
 
 // Subcapabilities of IOSTD, DTAPI_CAP_SPISDI
-#define DTAPI_CAP_SPI525I59_94 Dtapi::DtCaps(93) // SPI 525i/59.94
-#define DTAPI_CAP_SPI625I50   Dtapi::DtCaps(94)  // SPI 625i/50
+#define DTAPI_CAP_SPI525I59_94 Dtapi::DtCaps(106) // SPI 525i/59.94
+#define DTAPI_CAP_SPI625I50   Dtapi::DtCaps(107) // SPI 625i/50
+
+// Capability group PWRMODE - Power mode
+#define DTAPI_CAP_MODHQ       Dtapi::DtCaps(108) // High-quality modulation
+#define DTAPI_CAP_LOWPWR      Dtapi::DtCaps(109) // Low-power mode
 
 // Capability group MODSTD - Modulation standards
-#define DTAPI_CAP_TX_ATSC     Dtapi::DtCaps(95)  // ATSC 8-VSB modulation
-#define DTAPI_CAP_TX_CMMB     Dtapi::DtCaps(96)  // CMMB modulation
-#define DTAPI_CAP_TX_DAB      Dtapi::DtCaps(97)  // DAB modulation
-#define DTAPI_CAP_TX_DTMB     Dtapi::DtCaps(98)  // DTMB modulation
-#define DTAPI_CAP_TX_DVBC2    Dtapi::DtCaps(99)  // DVB-C2 modulation
-#define DTAPI_CAP_TX_DVBS     Dtapi::DtCaps(100) // DVB-S modulation
-#define DTAPI_CAP_TX_DVBS2    Dtapi::DtCaps(101) // DVB-S2 modulation
-#define DTAPI_CAP_TX_DVBS2X   Dtapi::DtCaps(102) // DVB-S2X modulation
-#define DTAPI_CAP_TX_DVBT     Dtapi::DtCaps(103) // DVB-T modulation
-#define DTAPI_CAP_TX_DVBT2    Dtapi::DtCaps(104) // DVB-T2 modulation
-#define DTAPI_CAP_TX_GOLD     Dtapi::DtCaps(105) // GOLD for modulators
-#define DTAPI_CAP_TX_IQ       Dtapi::DtCaps(106) // I/Q sample modulation
-#define DTAPI_CAP_TX_ISDBS    Dtapi::DtCaps(107) // ISDB-S modulation
-#define DTAPI_CAP_TX_ISDBT    Dtapi::DtCaps(108) // ISDB-T modulation
-#define DTAPI_CAP_TX_ISDBTMM  Dtapi::DtCaps(109) // ISDB-Tmm modulation
-#define DTAPI_CAP_TX_MH       Dtapi::DtCaps(110) // ATSC-MH modulation
-#define DTAPI_CAP_TX_QAMA     Dtapi::DtCaps(111) // QAM-A modulation
-#define DTAPI_CAP_TX_QAMB     Dtapi::DtCaps(112) // QAM-B modulation
-#define DTAPI_CAP_TX_QAMC     Dtapi::DtCaps(113) // QAM-C modulation
-#define DTAPI_CAP_TX_SWMC     Dtapi::DtCaps(114) // SW multi-channel modulation
-#define DTAPI_CAP_TX_T2MI     Dtapi::DtCaps(115) // T2MI transmission
-#define DTAPI_CAP_TX_T2SPLP   Dtapi::DtCaps(116) // DVB-T2 single PLP modulation
+#define DTAPI_CAP_TX_ATSC     Dtapi::DtCaps(110) // ATSC 8-VSB modulation
+#define DTAPI_CAP_TX_ATSC3    Dtapi::DtCaps(111) // ATSC3.0 modulation
+#define DTAPI_CAP_TX_CMMB     Dtapi::DtCaps(112) // CMMB modulation
+#define DTAPI_CAP_TX_DAB      Dtapi::DtCaps(113) // DAB modulation
+#define DTAPI_CAP_TX_DTMB     Dtapi::DtCaps(114) // DTMB modulation
+#define DTAPI_CAP_TX_DVBC2    Dtapi::DtCaps(115) // DVB-C2 modulation
+#define DTAPI_CAP_TX_DVBS     Dtapi::DtCaps(116) // DVB-S modulation
+#define DTAPI_CAP_TX_DVBS2    Dtapi::DtCaps(117) // DVB-S2 modulation
+#define DTAPI_CAP_TX_DVBS2X   Dtapi::DtCaps(118) // DVB-S2X modulation
+#define DTAPI_CAP_TX_DVBT     Dtapi::DtCaps(119) // DVB-T modulation
+#define DTAPI_CAP_TX_DVBT2    Dtapi::DtCaps(120) // DVB-T2 modulation
+#define DTAPI_CAP_TX_GOLD     Dtapi::DtCaps(121) // GOLD for modulators
+#define DTAPI_CAP_TX_HW8CH    Dtapi::DtCaps(122) // Eight-channel HW modulation
+#define DTAPI_CAP_TX_IQ       Dtapi::DtCaps(123) // I/Q sample modulation
+#define DTAPI_CAP_TX_ISDBS    Dtapi::DtCaps(124) // ISDB-S modulation
+#define DTAPI_CAP_TX_ISDBT    Dtapi::DtCaps(125) // ISDB-T modulation
+#define DTAPI_CAP_TX_ISDBTMM  Dtapi::DtCaps(126) // ISDB-Tmm modulation
+#define DTAPI_CAP_TX_MH       Dtapi::DtCaps(127) // ATSC-MH modulation
+#define DTAPI_CAP_TX_QAMA     Dtapi::DtCaps(128) // QAM-A modulation
+#define DTAPI_CAP_TX_QAMB     Dtapi::DtCaps(129) // QAM-B modulation
+#define DTAPI_CAP_TX_QAMC     Dtapi::DtCaps(130) // QAM-C modulation
+#define DTAPI_CAP_TX_SWMC     Dtapi::DtCaps(131) // SW multi-channel modulation
+#define DTAPI_CAP_TX_T2MI     Dtapi::DtCaps(132) // T2MI transmission
+#define DTAPI_CAP_TX_T2SPLP   Dtapi::DtCaps(133) // DVB-T2 single PLP modulation
 
 // Capability group MODPROPS - Modulation properties
-#define DTAPI_CAP_ADJLVL      Dtapi::DtCaps(117) // Adjustable output level
-#define DTAPI_CAP_CM          Dtapi::DtCaps(118) // Channel simulation
-#define DTAPI_CAP_CW          Dtapi::DtCaps(119) // Continuous wave
-#define DTAPI_CAP_DIGIQ       Dtapi::DtCaps(120) // Digital I/Q sample output
-#define DTAPI_CAP_DVBCID      Dtapi::DtCaps(121) // DVB carrier ID 
-#define DTAPI_CAP_IF          Dtapi::DtCaps(122) // IF output
-#define DTAPI_CAP_MUTE        Dtapi::DtCaps(123) // Mute RF output signal
-#define DTAPI_CAP_ROLLOFF     Dtapi::DtCaps(124) // Adjustable roll-off factor
-#define DTAPI_CAP_S2APSK      Dtapi::DtCaps(125) // DVB-S2 16-APSK/32-APSK
-#define DTAPI_CAP_SNR         Dtapi::DtCaps(126) // AWGN insertion
-#define DTAPI_CAP_TX_16MHZ    Dtapi::DtCaps(127) // 16MHz bandwidth mode
-#define DTAPI_CAP_TX_SFN      Dtapi::DtCaps(128) // SNF operation
+#define DTAPI_CAP_ADJLVL      Dtapi::DtCaps(134) // Adjustable output level
+#define DTAPI_CAP_CM          Dtapi::DtCaps(135) // Channel simulation
+#define DTAPI_CAP_CW          Dtapi::DtCaps(136) // Continuous wave
+#define DTAPI_CAP_DIGIQ       Dtapi::DtCaps(137) // Digital I/Q sample output
+#define DTAPI_CAP_DVBCID      Dtapi::DtCaps(138) // DVB carrier ID 
+#define DTAPI_CAP_IF          Dtapi::DtCaps(139) // IF output
+#define DTAPI_CAP_MUTE        Dtapi::DtCaps(140) // Mute RF output signal
+#define DTAPI_CAP_ROLLOFF     Dtapi::DtCaps(141) // Adjustable roll-off factor
+#define DTAPI_CAP_S2APSK      Dtapi::DtCaps(142) // DVB-S2 16-APSK/32-APSK
+#define DTAPI_CAP_SNR         Dtapi::DtCaps(143) // AWGN insertion
+#define DTAPI_CAP_TX_16MHZ    Dtapi::DtCaps(144) // 16MHz bandwidth mode
+#define DTAPI_CAP_TX_SFN      Dtapi::DtCaps(145) // SNF operation
 
 // Capability group RFCLKSEL - RF clock source selection
-#define DTAPI_CAP_RFCLKEXT    Dtapi::DtCaps(129) // External RF clock input
-#define DTAPI_CAP_RFCLKINT    Dtapi::DtCaps(130) // Internal RF clock reference
+#define DTAPI_CAP_RFCLKEXT    Dtapi::DtCaps(146) // External RF clock input
+#define DTAPI_CAP_RFCLKINT    Dtapi::DtCaps(147) // Internal RF clock reference
 
 // Capability group RXSTD - Receiver standards
-#define DTAPI_CAP_RX_ATSC     Dtapi::DtCaps(131) // ATSC 8-VSB reception
-#define DTAPI_CAP_RX_CMMB     Dtapi::DtCaps(132) // CMMB reception
-#define DTAPI_CAP_RX_DAB      Dtapi::DtCaps(133) // DAB reception
-#define DTAPI_CAP_RX_DTMB     Dtapi::DtCaps(134) // DTMB reception
-#define DTAPI_CAP_RX_DVBC2    Dtapi::DtCaps(135) // DVB-C2 reception
-#define DTAPI_CAP_RX_DVBS     Dtapi::DtCaps(136) // DVB-S reception
-#define DTAPI_CAP_RX_DVBS2    Dtapi::DtCaps(137) // DVB-S2 reception
-#define DTAPI_CAP_RX_DVBT     Dtapi::DtCaps(138) // DVB-T reception
-#define DTAPI_CAP_RX_DVBT2    Dtapi::DtCaps(139) // DVB-T2 reception
-#define DTAPI_CAP_RX_GOLD     Dtapi::DtCaps(140) // GOLD for receivers
-#define DTAPI_CAP_RX_IQ       Dtapi::DtCaps(141) // I/Q sample reception
-#define DTAPI_CAP_RX_ISDBS    Dtapi::DtCaps(142) // ISDB-S reception
-#define DTAPI_CAP_RX_ISDBT    Dtapi::DtCaps(143) // ISDB-T reception
-#define DTAPI_CAP_RX_MH       Dtapi::DtCaps(144) // ATSC-MH reception
-#define DTAPI_CAP_RX_QAMA     Dtapi::DtCaps(145) // QAM-A reception
-#define DTAPI_CAP_RX_QAMB     Dtapi::DtCaps(146) // QAM-B reception
-#define DTAPI_CAP_RX_QAMC     Dtapi::DtCaps(147) // QAM-C reception
-#define DTAPI_CAP_RX_T2MI     Dtapi::DtCaps(148) // T2MI reception
+#define DTAPI_CAP_RX_ATSC     Dtapi::DtCaps(148) // ATSC 8-VSB reception
+#define DTAPI_CAP_RX_CMMB     Dtapi::DtCaps(149) // CMMB reception
+#define DTAPI_CAP_RX_DAB      Dtapi::DtCaps(150) // DAB reception
+#define DTAPI_CAP_RX_DTMB     Dtapi::DtCaps(151) // DTMB reception
+#define DTAPI_CAP_RX_DVBC2    Dtapi::DtCaps(152) // DVB-C2 reception
+#define DTAPI_CAP_RX_DVBS     Dtapi::DtCaps(153) // DVB-S reception
+#define DTAPI_CAP_RX_DVBS2    Dtapi::DtCaps(154) // DVB-S2 reception
+#define DTAPI_CAP_RX_DVBT     Dtapi::DtCaps(155) // DVB-T reception
+#define DTAPI_CAP_RX_DVBT2    Dtapi::DtCaps(156) // DVB-T2 reception
+#define DTAPI_CAP_RX_GOLD     Dtapi::DtCaps(157) // GOLD for receivers
+#define DTAPI_CAP_RX_IQ       Dtapi::DtCaps(158) // I/Q sample reception
+#define DTAPI_CAP_RX_ISDBS    Dtapi::DtCaps(159) // ISDB-S reception
+#define DTAPI_CAP_RX_ISDBT    Dtapi::DtCaps(160) // ISDB-T reception
+#define DTAPI_CAP_RX_MH       Dtapi::DtCaps(161) // ATSC-MH reception
+#define DTAPI_CAP_RX_QAMA     Dtapi::DtCaps(162) // QAM-A reception
+#define DTAPI_CAP_RX_QAMB     Dtapi::DtCaps(163) // QAM-B reception
+#define DTAPI_CAP_RX_QAMC     Dtapi::DtCaps(164) // QAM-C reception
+#define DTAPI_CAP_RX_T2MI     Dtapi::DtCaps(165) // T2MI reception
 
 // Capability group SPICLKSEL - Parallel port clock source selection
-#define DTAPI_CAP_SPICLKEXT   Dtapi::DtCaps(149) // External clock input
-#define DTAPI_CAP_SPICLKINT   Dtapi::DtCaps(150) // Internal clock reference
+#define DTAPI_CAP_SPICLKEXT   Dtapi::DtCaps(166) // External clock input
+#define DTAPI_CAP_SPICLKINT   Dtapi::DtCaps(167) // Internal clock reference
 
 // Capability group SPIMODE - Parallel port mode
-#define DTAPI_CAP_SPIFIXEDCLK Dtapi::DtCaps(151) // SPI fixed clock with valid signal
-#define DTAPI_CAP_SPIDVBMODE  Dtapi::DtCaps(152) // SPI DVB mode
-#define DTAPI_CAP_SPISER8B    Dtapi::DtCaps(153) // SPI serial 8-bit mode
-#define DTAPI_CAP_SPISER10B   Dtapi::DtCaps(154) // SPI serial 10-bit mode
+#define DTAPI_CAP_SPIFIXEDCLK Dtapi::DtCaps(168) // SPI fixed clock with valid signal
+#define DTAPI_CAP_SPIDVBMODE  Dtapi::DtCaps(169) // SPI DVB mode
+#define DTAPI_CAP_SPISER8B    Dtapi::DtCaps(170) // SPI serial 8-bit mode
+#define DTAPI_CAP_SPISER10B   Dtapi::DtCaps(171) // SPI serial 10-bit mode
 
 // Capability group SPISTD - Parallel port I/O standard
-#define DTAPI_CAP_SPILVDS1    Dtapi::DtCaps(155) // LVDS1
-#define DTAPI_CAP_SPILVDS2    Dtapi::DtCaps(156) // LVDS2
-#define DTAPI_CAP_SPILVTTL    Dtapi::DtCaps(157) // LVTTL
+#define DTAPI_CAP_SPILVDS1    Dtapi::DtCaps(172) // LVDS1
+#define DTAPI_CAP_SPILVDS2    Dtapi::DtCaps(173) // LVDS2
+#define DTAPI_CAP_SPILVTTL    Dtapi::DtCaps(174) // LVTTL
 
 // Capability group TSRATESEL - Transport-stream rate selection
-#define DTAPI_CAP_EXTTSRATE   Dtapi::DtCaps(158) // External TS rate clock input
-#define DTAPI_CAP_EXTRATIO    Dtapi::DtCaps(159) // External TS rate clock with ratio
-#define DTAPI_CAP_INTTSRATE   Dtapi::DtCaps(160) // Internal TS rate clock reference
-#define DTAPI_CAP_LOCK2INP    Dtapi::DtCaps(161) // Lock TS rate to input port
+#define DTAPI_CAP_EXTTSRATE   Dtapi::DtCaps(175) // External TS rate clock input
+#define DTAPI_CAP_EXTRATIO    Dtapi::DtCaps(176) // External TS rate clock with ratio
+#define DTAPI_CAP_INTTSRATE   Dtapi::DtCaps(177) // Internal TS rate clock reference
+#define DTAPI_CAP_LOCK2INP    Dtapi::DtCaps(178) // Lock TS rate to input port
+
+// Capability group VIDENC - Supported video standards
+#define DTAPI_CAP_ENC_H264    Dtapi::DtCaps(179) // H.264 video encoder
+#define DTAPI_CAP_ENC_MP2V    Dtapi::DtCaps(180) // MPEG2 video encoder
 
 //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtCmmbPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
@@ -578,6 +610,7 @@ struct DtDeviceDesc
     int  m_HardwareRevision;        // Hardware revision (e.g. 302 = 3.2)
     int  m_FirmwareVersion;         // Firmware version
     int  m_FirmwareVariant;         // Firmware variant
+    int  m_FwPackageVersion;        // Firmware package version (-1 if not applicable)
     int  m_NumDtInpChan;            // Number of input channels (max)
     int  m_NumDtOutpChan;           // Number of output channels (max)
     int  m_NumPorts;                // Number of physical ports
@@ -772,116 +805,126 @@ struct DtIoConfig
 // I/O configuration groups
 #define DTAPI_IOCONFIG_IODIR       0             // I/O direction
 #define DTAPI_IOCONFIG_IOSTD       1             // I/O standard
-#define DTAPI_IOCONFIG_RFCLKSEL    2             // RF clock source selection
-#define DTAPI_IOCONFIG_SPICLKSEL   3             // Parallel port clock source selection
-#define DTAPI_IOCONFIG_SPIMODE     4             // Parallel port mode
-#define DTAPI_IOCONFIG_SPISTD      5             // Parallel port I/O standard
-#define DTAPI_IOCONFIG_TSRATESEL   6             // Transport-stream rate selection
+#define DTAPI_IOCONFIG_PWRMODE     2             // Power mode
+#define DTAPI_IOCONFIG_RFCLKSEL    3             // RF clock source selection
+#define DTAPI_IOCONFIG_SPICLKSEL   4             // Parallel port clock source selection
+#define DTAPI_IOCONFIG_SPIMODE     5             // Parallel port mode
+#define DTAPI_IOCONFIG_SPISTD      6             // Parallel port I/O standard
+#define DTAPI_IOCONFIG_TSRATESEL   7             // Transport-stream rate selection
 
 // I/O configuration groups - Boolean I/O
-#define DTAPI_IOCONFIG_BW          7             // Isochronous bandwidth allocated
-#define DTAPI_IOCONFIG_FAILSAFE    8             // A fail-over relay is available
-#define DTAPI_IOCONFIG_FRACMODE    9             // Fractional mode is supported
-#define DTAPI_IOCONFIG_GENLOCKED   10            // Locked to a genlock reference
-#define DTAPI_IOCONFIG_GENREF      11            // Genlock reference input
-#define DTAPI_IOCONFIG_SWS2APSK    12            // DVB-S2 APSK mode
+#define DTAPI_IOCONFIG_BW          8             // DEPRECATED, do not use
+#define DTAPI_IOCONFIG_FAILSAFE    9             // A fail-over relay is available
+#define DTAPI_IOCONFIG_FRACMODE    10            // Fractional mode is supported
+#define DTAPI_IOCONFIG_GENLOCKED   11            // Locked to a genlock reference
+#define DTAPI_IOCONFIG_GENREF      12            // Genlock reference input
+#define DTAPI_IOCONFIG_SWS2APSK    13            // DVB-S2 APSK mode
 
 // Values for boolean I/O configuration options
-#define DTAPI_IOCONFIG_TRUE        13            // Turn I/O capability on
-#define DTAPI_IOCONFIG_FALSE       14            // Turn I/O capability off
+#define DTAPI_IOCONFIG_TRUE        14            // Turn I/O capability on
+#define DTAPI_IOCONFIG_FALSE       15            // Turn I/O capability off
 
 // Values for group IO_CONFIG_IODIR (I/O direction)
-#define DTAPI_IOCONFIG_DISABLED    15            // Port is disabled
-#define DTAPI_IOCONFIG_INPUT       16            // Uni-directional input
-#define DTAPI_IOCONFIG_OUTPUT      17            // Uni-directional output
+#define DTAPI_IOCONFIG_DISABLED    16            // Port is disabled
+#define DTAPI_IOCONFIG_INPUT       17            // Uni-directional input
+#define DTAPI_IOCONFIG_INTINPUT    18            // Internal input port
+#define DTAPI_IOCONFIG_MONITOR     19            // Monitor of input
+#define DTAPI_IOCONFIG_OUTPUT      20            // Uni-directional output
 
 // SubValues for group DTAPI_IOCONFIG_IODIR, value DTAPI_IOCONFIG_INPUT
-#define DTAPI_IOCONFIG_SHAREDANT   18            // Get antenna signal from another port
+#define DTAPI_IOCONFIG_SHAREDANT   21            // Get antenna signal from another port
 
 // SubValues for group DTAPI_IOCONFIG_IODIR, value DTAPI_IOCONFIG_OUTPUT
-#define DTAPI_IOCONFIG_DBLBUF      19            // Double buffered output
-#define DTAPI_IOCONFIG_LOOPS2L3    20            // Loop-through of DVB-S2 in L3-frames
-#define DTAPI_IOCONFIG_LOOPS2TS    21            // Loop-through of an DVB-S(2) input
-#define DTAPI_IOCONFIG_LOOPTHR     22            // Loop-through of another input
+#define DTAPI_IOCONFIG_DBLBUF      22            // Double buffered output
+#define DTAPI_IOCONFIG_LOOPS2L3    23            // Loop-through of DVB-S2 in L3-frames
+#define DTAPI_IOCONFIG_LOOPS2TS    24            // Loop-through of an DVB-S(2) input
+#define DTAPI_IOCONFIG_LOOPTHR     25            // Loop-through of another input
 
 // Values for group IO_CONFIG_IOSTD (I/O standard)
-#define DTAPI_IOCONFIG_3GSDI       23            // 3G-SDI
-#define DTAPI_IOCONFIG_ASI         24            // DVB-ASI transport stream
-#define DTAPI_IOCONFIG_DEMOD       25            // Demodulation
-#define DTAPI_IOCONFIG_GPSTIME     26            // Supports GPS-time
-#define DTAPI_IOCONFIG_HDSDI       27            // HD-SDI
-#define DTAPI_IOCONFIG_IFADC       28            // IF A/D converter
-#define DTAPI_IOCONFIG_IP          29            // Transport stream over IP
-#define DTAPI_IOCONFIG_MOD         30            // Modulator output
-#define DTAPI_IOCONFIG_PHASENOISE  31            // Phase noise injector
-#define DTAPI_IOCONFIG_RS422       32            // RS422 port
-#define DTAPI_IOCONFIG_SDI         33            // SD-SDI
-#define DTAPI_IOCONFIG_SPI         34            // DVB-SPI transport stream
-#define DTAPI_IOCONFIG_SPISDI      35            // SD-SDI on a parallel port
+#define DTAPI_IOCONFIG_3GSDI       26            // 3G-SDI
+#define DTAPI_IOCONFIG_ASI         27            // DVB-ASI transport stream
+#define DTAPI_IOCONFIG_AVENC       28            // Audio/video encoder
+#define DTAPI_IOCONFIG_DEMOD       29            // Demodulation
+#define DTAPI_IOCONFIG_GPSTIME     30            // 1PPS and 10MHz GPS-clock input
+#define DTAPI_IOCONFIG_HDMI        31            // HDMI
+#define DTAPI_IOCONFIG_HDSDI       32            // HD-SDI
+#define DTAPI_IOCONFIG_IFADC       33            // IF A/D converter
+#define DTAPI_IOCONFIG_IP          34            // Transport stream over IP
+#define DTAPI_IOCONFIG_MOD         35            // Modulator output
+#define DTAPI_IOCONFIG_PHASENOISE  36            // Phase noise injection
+#define DTAPI_IOCONFIG_RS422       37            // RS422 port
+#define DTAPI_IOCONFIG_SDIRX       38            // SDI receiver
+#define DTAPI_IOCONFIG_SDI         39            // SD-SDI
+#define DTAPI_IOCONFIG_SPI         40            // DVB-SPI transport stream
+#define DTAPI_IOCONFIG_SPISDI      41            // SD-SDI on a parallel port
 
 // SubValues for group DTAPI_IOCONFIG_IOSTD, value DTAPI_IOCONFIG_3GSDI
-#define DTAPI_IOCONFIG_1080P50     36            // 1080p/50 lvl A
-#define DTAPI_IOCONFIG_1080P50B    37            // 1080p/50 lvl B
-#define DTAPI_IOCONFIG_1080P59_94  38            // 1080p/59.94 lvl A
-#define DTAPI_IOCONFIG_1080P59_94B 39            // 1080p/59.94 lvl B
-#define DTAPI_IOCONFIG_1080P60     40            // 1080p/60 lvl A
-#define DTAPI_IOCONFIG_1080P60B    41            // 1080p/60 lvl B
+#define DTAPI_IOCONFIG_1080P50     42            // 1080p/50 lvl A
+#define DTAPI_IOCONFIG_1080P50B    43            // 1080p/50 lvl B
+#define DTAPI_IOCONFIG_1080P59_94  44            // 1080p/59.94 lvl A
+#define DTAPI_IOCONFIG_1080P59_94B 45            // 1080p/59.94 lvl B
+#define DTAPI_IOCONFIG_1080P60     46            // 1080p/60 lvl A
+#define DTAPI_IOCONFIG_1080P60B    47            // 1080p/60 lvl B
 
 // SubValues for group DTAPI_IOCONFIG_IOSTD, value DTAPI_IOCONFIG_HDSDI
-#define DTAPI_IOCONFIG_1080I50     42            // 1080i/50
-#define DTAPI_IOCONFIG_1080I59_94  43            // 1080i/59.94
-#define DTAPI_IOCONFIG_1080I60     44            // 1080i/60
-#define DTAPI_IOCONFIG_1080P23_98  45            // 1080p/23.98
-#define DTAPI_IOCONFIG_1080P24     46            // 1080p/24
-#define DTAPI_IOCONFIG_1080P25     47            // 1080p/25
-#define DTAPI_IOCONFIG_1080P29_97  48            // 1080p/29.97
-#define DTAPI_IOCONFIG_1080P30     49            // 1080p/30
-#define DTAPI_IOCONFIG_1080PSF23_98 50           // 1080psf/23.98
-#define DTAPI_IOCONFIG_1080PSF24   51            // 1080psf/24
-#define DTAPI_IOCONFIG_1080PSF25   52            // 1080psf/25
-#define DTAPI_IOCONFIG_1080PSF29_97 53           // 1080psf/29.97
-#define DTAPI_IOCONFIG_1080PSF30   54            // 1080psf/30
-#define DTAPI_IOCONFIG_720P23_98   55            // 720p/23.98
-#define DTAPI_IOCONFIG_720P24      56            // 720p/24
-#define DTAPI_IOCONFIG_720P25      57            // 720p/25
-#define DTAPI_IOCONFIG_720P29_97   58            // 720p/29.97
-#define DTAPI_IOCONFIG_720P30      59            // 720p/30
-#define DTAPI_IOCONFIG_720P50      60            // 720p/50
-#define DTAPI_IOCONFIG_720P59_94   61            // 720p/59.94
-#define DTAPI_IOCONFIG_720P60      62            // 720p/60
+#define DTAPI_IOCONFIG_1080I50     48            // 1080i/50
+#define DTAPI_IOCONFIG_1080I59_94  49            // 1080i/59.94
+#define DTAPI_IOCONFIG_1080I60     50            // 1080i/60
+#define DTAPI_IOCONFIG_1080P23_98  51            // 1080p/23.98
+#define DTAPI_IOCONFIG_1080P24     52            // 1080p/24
+#define DTAPI_IOCONFIG_1080P25     53            // 1080p/25
+#define DTAPI_IOCONFIG_1080P29_97  54            // 1080p/29.97
+#define DTAPI_IOCONFIG_1080P30     55            // 1080p/30
+#define DTAPI_IOCONFIG_1080PSF23_98 56           // 1080psf/23.98
+#define DTAPI_IOCONFIG_1080PSF24   57            // 1080psf/24
+#define DTAPI_IOCONFIG_1080PSF25   58            // 1080psf/25
+#define DTAPI_IOCONFIG_1080PSF29_97 59           // 1080psf/29.97
+#define DTAPI_IOCONFIG_1080PSF30   60            // 1080psf/30
+#define DTAPI_IOCONFIG_720P23_98   61            // 720p/23.98
+#define DTAPI_IOCONFIG_720P24      62            // 720p/24
+#define DTAPI_IOCONFIG_720P25      63            // 720p/25
+#define DTAPI_IOCONFIG_720P29_97   64            // 720p/29.97
+#define DTAPI_IOCONFIG_720P30      65            // 720p/30
+#define DTAPI_IOCONFIG_720P50      66            // 720p/50
+#define DTAPI_IOCONFIG_720P59_94   67            // 720p/59.94
+#define DTAPI_IOCONFIG_720P60      68            // 720p/60
 
 // SubValues for group DTAPI_IOCONFIG_IOSTD, value DTAPI_IOCONFIG_SDI
-#define DTAPI_IOCONFIG_525I59_94   63            // 525i/59.94
-#define DTAPI_IOCONFIG_625I50      64            // 625i/50
+#define DTAPI_IOCONFIG_525I59_94   69            // 525i/59.94
+#define DTAPI_IOCONFIG_625I50      70            // 625i/50
 
 // SubValues for group DTAPI_IOCONFIG_IOSTD, value DTAPI_IOCONFIG_SPISDI
-#define DTAPI_IOCONFIG_SPI525I59_94 65           // SPI 525i/59.94
-#define DTAPI_IOCONFIG_SPI625I50   66            // SPI 625i/50
+#define DTAPI_IOCONFIG_SPI525I59_94 71           // SPI 525i/59.94
+#define DTAPI_IOCONFIG_SPI625I50   72            // SPI 625i/50
+
+// Values for group IO_CONFIG_PWRMODE (Power mode)
+#define DTAPI_IOCONFIG_MODHQ       73            // High-quality modulation
+#define DTAPI_IOCONFIG_LOWPWR      74            // Low-power mode
 
 // Values for group IO_CONFIG_RFCLKSEL (RF clock source selection)
-#define DTAPI_IOCONFIG_RFCLKEXT    67            // External RF clock input
-#define DTAPI_IOCONFIG_RFCLKINT    68            // Internal RF clock reference
+#define DTAPI_IOCONFIG_RFCLKEXT    75            // External RF clock input
+#define DTAPI_IOCONFIG_RFCLKINT    76            // Internal RF clock reference
 
 // Values for group IO_CONFIG_SPICLKSEL (Parallel port clock source selection)
-#define DTAPI_IOCONFIG_SPICLKEXT   69            // External clock input
-#define DTAPI_IOCONFIG_SPICLKINT   70            // Internal clock reference
+#define DTAPI_IOCONFIG_SPICLKEXT   77            // External clock input
+#define DTAPI_IOCONFIG_SPICLKINT   78            // Internal clock reference
 
 // Values for group IO_CONFIG_SPIMODE (Parallel port mode)
-#define DTAPI_IOCONFIG_SPIFIXEDCLK 71            // SPI fixed clock with valid signal
-#define DTAPI_IOCONFIG_SPIDVBMODE  72            // SPI DVB mode
-#define DTAPI_IOCONFIG_SPISER8B    73            // SPI serial 8-bit mode
-#define DTAPI_IOCONFIG_SPISER10B   74            // SPI serial 10-bit mode
+#define DTAPI_IOCONFIG_SPIFIXEDCLK 79            // SPI fixed clock with valid signal
+#define DTAPI_IOCONFIG_SPIDVBMODE  80            // SPI DVB mode
+#define DTAPI_IOCONFIG_SPISER8B    81            // SPI serial 8-bit mode
+#define DTAPI_IOCONFIG_SPISER10B   82            // SPI serial 10-bit mode
 
 // Values for group IO_CONFIG_SPISTD (Parallel port I/O standard)
-#define DTAPI_IOCONFIG_SPILVDS1    75            // LVDS1
-#define DTAPI_IOCONFIG_SPILVDS2    76            // LVDS2
-#define DTAPI_IOCONFIG_SPILVTTL    77            // LVTTL
+#define DTAPI_IOCONFIG_SPILVDS1    83            // LVDS1
+#define DTAPI_IOCONFIG_SPILVDS2    84            // LVDS2
+#define DTAPI_IOCONFIG_SPILVTTL    85            // LVTTL
 
 // Values for group IO_CONFIG_TSRATESEL (Transport-stream rate selection)
-#define DTAPI_IOCONFIG_EXTTSRATE   78            // External TS rate clock input
-#define DTAPI_IOCONFIG_EXTRATIO    79            // External TS rate clock with ratio
-#define DTAPI_IOCONFIG_INTTSRATE   80            // Internal TS rate clock reference
-#define DTAPI_IOCONFIG_LOCK2INP    81            // Lock TS rate to input port
+#define DTAPI_IOCONFIG_EXTTSRATE   86            // External TS rate clock input
+#define DTAPI_IOCONFIG_EXTRATIO    87            // External TS rate clock with ratio
+#define DTAPI_IOCONFIG_INTTSRATE   88            // Internal TS rate clock reference
+#define DTAPI_IOCONFIG_LOCK2INP    89            // Lock TS rate to input port
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtIqData -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
@@ -1272,7 +1315,7 @@ struct DtPar
     static DTAPI_RESULT  ToXml(DtPar* pPars, int Count, std::wstring& XmlString);
 
     // Assignment operator
-    DtPar&  operator=(const DtPar&);
+    DtPar&  operator = (const DtPar&);
 
 private:
     // No implementation is provided for the copy constructor
@@ -1313,6 +1356,21 @@ struct DtRawIpHeader
     unsigned short  m_Tag;          // 0x44A0h = \91D\92160
     unsigned short  m_Length;       // IP packet length
     unsigned int  m_TimeStamp;      // IP packet arrival/transmit timestamp
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtSdiIpFrameStat -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Header placed in front of all SDI frames when the option DTAPI_RXMODE_SDI_STAT is used
+// with SDI over IP
+//
+struct DtSdiIpFrameStat
+{
+    unsigned int  m_FrameCount;     // SDI frame counter
+    unsigned int  m_Timestamp;      // RTP timestamp first IP packet this frame
+    unsigned int  m_MinIpat;        // Min. IPAT of all IP packets this frame
+    unsigned int  m_MaxIpat;        // Max. IPAT of all IP packets this frame
+    __int64  m_Reserved1;
+    __int64  m_Reserved2;
 };
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtStatistic -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
@@ -1395,7 +1453,7 @@ struct DtStatistic
     static DTAPI_RESULT  ToXml(DtStatistic* pStatistics, int Count, std::wstring&);
 
     // Assignment operator
-    DtStatistic&  operator=(const DtStatistic&);
+    DtStatistic&  operator = (const DtStatistic&);
 
 private:
     // No implementation is given of the copy constructor
@@ -1424,6 +1482,14 @@ private:
 #define DTAPI_STAT_SNR              0x107        // Signal-to-noise ratio in dB
 #define DTAPI_STAT_TEMP_TUNER       0x009        // Tuner temperature
 #define DTAPI_STAT_T2MI_OVFS        0x00B        // DVB-T2 T2-MI overflow count
+#define DTAPI_STAT_TEMP_ENCODER     0x017        // Encoder chip temperature
+#define DTAPI_STAT_VID_STATUS       0x018        // Status of video input
+#define DTAPI_STAT_VID_FRAMES_CAPT  0x019        // Number of video frames captured
+#define DTAPI_STAT_VID_FRAMES_ENC   0x01A        // Number of video frames encoded
+#define DTAPI_STAT_VID_BYTES_ENC    0x01B        // Number of video bytes encoded
+#define DTAPI_STAT_AUD_SAMPLES_ENC  0x01C        // Number of audio samples encoded
+#define DTAPI_STAT_AUD_FRAMES_ENC   0x01D        // Number of audio frames encoded
+#define DTAPI_STAT_MUX_NUM_BYTES    0x01E        // Number of bytes multiplexed
 
 // Double statistics
 #define DTAPI_STAT_BER_POSTBCH      0x100        // Post-BCH bit error rate
@@ -1438,7 +1504,7 @@ private:
 #define DTAPI_STAT_OCCUPIEDBW       0x112        // Occupied bandwidth
 #define DTAPI_STAT_PER              0x108        // Packet error rate
 #define DTAPI_STAT_ROLLOFF          0x113        // Roll-off factor in percentage
-#define DTAPI_STAT_SAMPRATE_OFFSET  0x10C        // Sample rate offset (ppm) 
+#define DTAPI_STAT_SAMPRATE_OFFSET  0x10C        // Sample rate offset (ppm)
 
 // Boolean lock statistics
 #define DTAPI_STAT_CARRIER_LOCK     0x201        // Carrier lock
@@ -1714,7 +1780,8 @@ struct DtVidStdInfo
     bool  m_IsInterlaced;           // Is interlaced
     int  m_NumLines;                // Number of lines per frame
     double  m_Fps;                  // Frame rate
-    bool  m_IsFractional;           // Fractional framerate
+    double  m_Pps;                  // Picture rate
+    bool  m_IsFractional;           // Fractional frame rate
         
     int  m_FrameNumSym;             // Size of frame (in # symbols)
     int  m_LineNumSym;              // # of symbol per line
@@ -1734,6 +1801,9 @@ struct DtVidStdInfo
     int  m_Field2EndLine;           // Line # of last line for field 2
     int  m_Field2VidStartLine;      // Line # of first line containing active video
     int  m_Field2VidEndLine;        // Line # of last line containing active video
+
+    // Utility predicates
+    bool  IsFrameRate(double R) { return R-1e-3<m_Fps && m_Fps<R+1e-3; }
 };
 
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ DEMODULATION PARAMETERS +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
@@ -1784,7 +1854,7 @@ public:
         IsIsdbt() const,  IsQam() const;
 
     // Operators
-    void  operator=(const DtDemodPars& Pars);
+    void  operator = (const DtDemodPars& Pars);
 
     // Serialisation
     DTAPI_RESULT  FromXml(const std::wstring& XmlString);
@@ -1824,6 +1894,7 @@ struct DtDemodParsDab
 struct DtDemodParsDvbC2
 {
     int  m_Bandwidth;               // Bandwidth
+    bool m_ScanL1Part2Data;         // Scan on each tune for full L1Part2Data
 };
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtDemodParsDvbS -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
@@ -2107,8 +2178,8 @@ struct DtRfLevel
 // Used by DtInpChannel::SpectrumScan to return current state and the RF-Levels 
 // found by scanning a frequency band using the DtSpsProgressFunc callback.
 //
-struct DtSpsProgress {
-
+struct DtSpsProgress
+{
     enum SpsEvent
     {
         SPS_STEP,               // One frequency step is completed
@@ -2131,6 +2202,178 @@ public:
 
 // Function to receive asynchronous spectrum scan progess.
 typedef void  DtSpsProgressFunc(DtSpsProgress& Progress, void* pOpaque);
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtAspectRatio -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+// Aspect ratio
+enum DtAspectRatio
+{
+    DT_AR_UNKNOWN,              // Unknown aspect ratio
+    DT_AR_4_3,                  // 4x3
+    DT_AR_16_9,                 // 16x9
+    DT_AR_14_9                  // 14x9
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- struct DtDetVidStd -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// Structure with information about the detected video standard on the input. Returned
+// by DtDevice::DetectVidStd(). This function is only available on ports with the
+// DTAPI_CAP_MATRIX2, DTAPI_CAP_SDIRX or DTAPI_CAP_HDMI capability.
+//
+struct DtDetVidStd
+{
+    int  m_VidStd;                  // Detected video standard
+    int  m_LinkStd;                 // Detected link standard
+    int  m_LinkNr;                  // Link number, -1 for single-link standards
+    unsigned int  m_Vpid;           // Raw VPID extracted from stream, 0 if not available
+    unsigned int  m_Vpid2;          // Raw VPID from link 2, only for 3G level B signals
+    DtAspectRatio  m_AspectRatio;   // Picture Aspect Ratio
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- struct DtAudChanStatus -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+struct DtAudChanStatus
+{
+    int  m_ChanIdx;                 // Channel index in underlying audio/video stream
+    bool  m_IsAsynchronous;         // Is channel asynchronous wrt video clock?
+    int  m_SampleRate;              // Audio sample rate
+    int  m_StatusWordNumValid;      // Number of valid bytes in m_ChanStat
+    unsigned char  m_ChanStat[24];  // Raw channel-status word data
+
+    bool operator == (const DtAudChanStatus&) const;
+    bool operator != (const DtAudChanStatus& Rhs) const { return !(*this==Rhs); }
+};
+
+//.-.-.-.-.-.-.-.-.-.- Audio encoding parameters - Enumeration types -.-.-.-.-.-.-.-.-.-.-
+
+// Audio encoding standard
+enum DtAudEncStd
+{
+    DT_AUDENCSTD_UNKNOWN,           // Unknown or not defined yet
+    DT_AUDENCSTD_AAC,               // AAC (AAC-LC or HE-AAC)
+    DT_AUDENCSTD_AC3,               // Dolby AC-3
+    DT_AUDENCSTD_DOLBY_E,           // Dolby E (currently pass-through mode only)
+    DT_AUDENCSTD_EAC3,              // Dolby E-AC-3 (currently pass-through mode only)
+    DT_AUDENCSTD_MP1LII,            // MPEG-1 Layer II
+    DT_AUDENCSTD_PCM                // PCM samples (SMPTE 302M)
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.- struct DtDolbyECompleteMetadata -.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+struct DtDolbyECompleteMetadata
+{
+    int  m_ProgramConfig;
+    int  m_FrameRateCode;
+    int  m_PitchShiftCode;
+    unsigned char  m_SmpteTimeCode[8];
+    std::vector<unsigned char>  m_DescriptionText;
+
+    bool operator == (const DtDolbyECompleteMetadata&) const;
+    bool operator != (const DtDolbyECompleteMetadata& Rhs) const { return !(*this==Rhs); }
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.- struct DtDolbyEEssentialMetadata -.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+struct DtDolbyEEssentialMetadata
+{
+    int  m_ProgramConfig;
+    int  m_FrameRateCode;
+    int  m_PitchShiftCode;
+
+    bool operator == (const DtDolbyEEssentialMetadata&) const;
+    bool operator != (const DtDolbyEEssentialMetadata& Rhs) const 
+                                                                 { return !(*this==Rhs); }
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.- struct DtDolbyDigitalCompleteMetadata -.-.-.-.-.-.-.-.-.-.-.-.-
+//
+struct DtDolbyDigitalCompleteMetadata
+{
+    int  m_ProgramId;               // Program id
+    int  m_Datarate;                // Intended bitrate
+    int  m_BsMod;                   // Bitstream mode
+    int  m_AcMod;                   // Audio coding mode
+    int  m_CMixLev;                 // Center mix level
+    int  m_SurMixLev;               // Surround mix level
+    int  m_DSurMod;                 // Dolby surround mode
+    bool  m_LfeOn;                  // Enable Low Frequency Effect (LFE) channel
+    int  m_DialNorm;                // Dialog normalization
+    bool  m_LangCodeE;              // Language code exists
+    int  m_LangCode;                // Language code
+    bool  m_AudProdIE;              // Audio production info exists
+    int  m_MixLevel;                // Mixing level
+    int  m_RoomTyp;                 // Room type
+    bool  m_CopyrightB;             // Copyright flag
+    bool  m_OrigBs;                 // Original bitstream flag
+    bool  m_Xbsi1e;                 // Enable alternative bitstream syntax
+    int  m_DMixMod;                 // Preferred stereo downmix mode
+    int  m_LtrtCMixLev;             // Lt/Rt center mix level
+    int  m_LtrtSurMixLev;           // Lt/Rt surround mix level
+    int  m_LoroCMixLev;             // Lo/Ro center mix level
+    int  m_LoroSurMixLev;           // Lo/Ro surround mix level
+    bool  m_Xbsi2e;                 // Extended bitstream indicator
+    int  m_DSurExMod;               // Dolby surround EX mode
+    int  m_DHeadPhonMod;            // Dolby headphone mode
+    int  m_AdConvTyp;               // A/D converter type
+    bool  m_HpFOn;                  // Enable DC filter
+    bool  m_BwLpfOn;                // Enable bandwidth filter
+    bool  m_LfeLpfOn;               // Enable LFE lowpass filter
+    bool  m_Sur90On;                // Enable 90-degree phase shift for surround
+    bool  m_SurAtton;               // 3dB surround attenuation flag
+    bool  m_RfPremphOn;             // Enable digital deemphasis
+    bool  m_ComprE;                 // Compression control word exists
+    int  m_Compr1;                  // Global compression profile
+    bool  m_DynRngE;                // Enable normal compression
+    int  m_DynRng1;                 // Dynamic range control 1
+    int  m_DynRng2;                 // Dynamic range control 2
+    int  m_DynRng3;                 // Dynamic range control 3
+    int  m_DynRng4;                 // Dynamic range control 4
+
+    bool operator == (const DtDolbyDigitalCompleteMetadata&) const;
+    bool operator != (const DtDolbyDigitalCompleteMetadata& Rhs) const 
+                                                                 { return !(*this==Rhs); }
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.- struct DtDolbyDigitalEssentialMetadata -.-.-.-.-.-.-.-.-.-.-.-.
+//
+struct DtDolbyDigitalEssentialMetadata
+{
+    int  m_ProgramId;               // Program id
+    int  m_Datarate;                // Intended bitrate
+    int  m_BsMod;                   // Bitstream mode
+    int  m_AcMod;                   // Audio coding mode
+    bool  m_LfeOn;                  // Enable Low Frequency Effect (LFE) channel
+    int  m_DialNorm;                // Dialog normalization
+    bool  m_ComprE;                 // Compression control word exists
+    int  m_Compr2;                  // Global compression profile
+    bool  m_DynRngE;                // Enable normal compression
+    int  m_DynRng5;                 // Dynamic range control 5
+    int  m_DynRng6;                 // Dynamic range control 6
+    int  m_DynRng7;                 // Dynamic range control 7
+    int  m_DynRng8;                 // Dynamic range control 8
+
+    bool operator == (const DtDolbyDigitalEssentialMetadata&) const;
+    bool operator != (const DtDolbyDigitalEssentialMetadata& Rhs) const 
+                                                                 { return !(*this==Rhs); }
+};
+
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- struct DtRdd6Data -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+struct DtRdd6Data
+{
+    int  m_FirstChannelIdx;         // Derived from ST2020 SDID. Can be -1 for unknown
+    bool  m_DECompleteValid;
+    DtDolbyECompleteMetadata  m_DEComplete;
+    bool  m_DEEssentialValid;
+    DtDolbyEEssentialMetadata  m_DEEssential;
+    bool  m_DDCompleteValid;
+    DtDolbyDigitalCompleteMetadata  m_DDComplete;
+    bool  m_DDEssentialValid;
+    DtDolbyDigitalEssentialMetadata  m_DDEssential;
+
+    bool operator == (const DtRdd6Data&) const;
+    bool operator != (const DtRdd6Data& Rhs) const { return !(*this==Rhs); }
+};
 
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ MAIN DTAPI CLASSES +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
@@ -2155,6 +2398,7 @@ public:
     virtual int  Category(void);
     virtual int  ChanType(int Port);
     virtual int  FirmwareVersion(void);
+    virtual int  FwPackageVersion();
     virtual bool  IsAttached(void);
     virtual int  TypeNumber(void);
     virtual bool  HasCaps(int  Port, const DtCaps  Caps) const;
@@ -2165,9 +2409,11 @@ public:
     virtual DTAPI_RESULT  AttachToSerial(__int64 SerialNumber);
     virtual DTAPI_RESULT  AttachToSlot(int PciBusNumber, int SlotNumber);
     virtual DTAPI_RESULT  AttachToType(int TypeNumber, int DeviceNo=0);
-    virtual DTAPI_RESULT  ClearGpsErrors();	
+    virtual DTAPI_RESULT  ClearGpsErrors();
     virtual DTAPI_RESULT  Detach(void);
     virtual DTAPI_RESULT  DetectIoStd(int  Port, int& Value, int& SubValue);
+    DTAPI_DEPRECATED(virtual DTAPI_RESULT  DetectVidStd(int  Port, DtDetVidStd& Info),
+              "Deprecated (will be removed!): Use DtAvInputStatus::DetectVidStd instead");
     virtual DTAPI_RESULT  FlashDisplay(int NumFlashes=5, int OnTime=100, int OffTime=100);
     virtual DTAPI_RESULT  GetAttribute(int AttrId, int& AttrValue);
     virtual DTAPI_RESULT  GetAttribute(int Port, int AttrId, int& AttrValue);
@@ -2179,8 +2425,10 @@ public:
     virtual DTAPI_RESULT  GetDisplayName(wchar_t* pName);
     virtual DTAPI_RESULT  GetDisplayName(char* pName);
     virtual DTAPI_RESULT  GetFanSpeed(int Fan, int& Rpm);
-    virtual DTAPI_RESULT  GetFanTemperature(int Fan, int& Temp);
+    virtual DTAPI_RESULT  GetFirmwareVariant(int& FirmwareVariant);
     virtual DTAPI_RESULT  GetFirmwareVersion(int& FirmwareVersion);
+    virtual DTAPI_RESULT  GetFwPackageVersion(int& FwPackVersion);
+    virtual DTAPI_RESULT  GetTemperature(int TempSens, int& Temp);
     virtual DTAPI_RESULT  GetGenlockState(int& State, int& RefVidStd);
     virtual DTAPI_RESULT  GetGenlockState(int& State);
     virtual DTAPI_RESULT  GetGpsStatus(int& Status, int& Error);
@@ -2192,7 +2440,9 @@ public:
                                                                        __int64& ParXtra0);
     virtual DTAPI_RESULT  GetIoConfig(int Port, int Group, int& Value, int& SubValue,
                                                     __int64& ParXtra0, __int64& ParXtra1);
+    virtual DTAPI_RESULT  GetNumLicensePoints(DtAudEncStd, int& NumPoints);
     virtual DTAPI_RESULT  GetNwSpeed(int Port, bool& Enable, int& Speed);
+    virtual DTAPI_RESULT  GetPowerStatus(int& Status);
     virtual DTAPI_RESULT  GetRefClkCnt(int& RefClkCnt);
     virtual DTAPI_RESULT  GetRefClkCnt(__uint64& RefClkCnt);
     virtual DTAPI_RESULT  GetRefClkCnt(int& RefClkCnt, int& RefClkFreqHz);
@@ -2208,9 +2458,15 @@ public:
                                                        int EventTypes, void** pId = NULL);
     virtual DTAPI_RESULT  SetDisplayName(wchar_t* pName);
     virtual DTAPI_RESULT  SetDisplayName (char* pName);
+    static  DTAPI_RESULT  SetFirmwareVariant(__int64 SerialNumber, int FwVariant, 
+                                                                    bool CheckOnly=false);
     virtual DTAPI_RESULT  SetIoConfig(int Port, int Group, int Value, int SubValue = -1,
                                             __int64 ParXtra0 = -1, __int64 ParXtra1 = -1);
     virtual DTAPI_RESULT  SetIoConfig(DtIoConfig* pIoConfigs, int Count);
+    virtual DTAPI_RESULT  SetLicenseFromFile(const std::wstring& LicFilename, 
+                                                                        bool Force=false);
+    virtual DTAPI_RESULT  SetLicenseFromString(const std::wstring& LicString,
+                                                                        bool Force=false);
     virtual DTAPI_RESULT  SetNwSpeed(int Port, bool Enable, int Speed);
     virtual DTAPI_RESULT  UnregisterCallback(void* pId);
     virtual DTAPI_RESULT  VpdDelete(const char* pTag);
@@ -2266,25 +2522,31 @@ public:                             // TODOSD should be protected
 #define DTAPI_ATTR_NUM_FANS         17
 #define DTAPI_ATTR_PCIE_REQ_BW      18
 #define DTAPI_ATTR_PCIE_AVAIL_BW    19
+#define DTAPI_ATTR_NUM_TEMP_SENS    20
 
 // Order in which devices should be listed by DtapiDeviceScan/DtapiHwFuncScan
 #define DTAPI_SCANORDER_ORIG        0    // Devices are returned in order determined by OS
 #define DTAPI_SCANORDER_SN          1    // Devices are sorted by serial number
 
 // String conversion - Device type number (e.g. "DTA-100", "DTA-102")
-#define DTAPI_DVC2STR_TYPE_NMB      0
+#define DTAPI_DVC2STR_TYPE_NMB        0
 // String conversion - Device type number + location (e.g. "DTA-100 in slot 5");
-#define DTAPI_DVC2STR_TYPE_AND_LOC  1
+#define DTAPI_DVC2STR_TYPE_AND_LOC    1
 // String conversion - Device type number (e.g. "DTA-100", "DTA-102")
-#define DTAPI_HWF2STR_TYPE_NMB      0
-// String conversion - Device type number + port (e.g. "DTA-124 port 1")
-#define DTAPI_HWF2STR_TYPE_AND_PORT 1
+#define DTAPI_HWF2STR_TYPE_NMB        0
+// String conversion - Device type number + optional port (e.g. "DTA-124 port 1"). Port
+// no is only added for bidirectional ports and/or when there is more than one port
+// configured with the same direction.
+#define DTAPI_HWF2STR_TYPE_AND_PORT   1
 // String conversion - Device type number + location (e.g. "DTA-100 in slot 5");
-#define DTAPI_HWF2STR_TYPE_AND_LOC  2
+#define DTAPI_HWF2STR_TYPE_AND_LOC    2
 // String conversion - Interface type (e.g. "DVB-ASI" or "DVB-C")
-#define DTAPI_HWF2STR_ITF_TYPE      3
+#define DTAPI_HWF2STR_ITF_TYPE        3
 // String conversion - Short version of interface type (e.g. "ASI" instead "DVB-ASI")
-#define DTAPI_HWF2STR_ITF_TYPE_SHORT 4
+#define DTAPI_HWF2STR_ITF_TYPE_SHORT  4
+// String conversion - Device type number + port (e.g. "DTA-124 port 1"). Port no is
+// always added
+#define DTAPI_HWF2STR_TYPE_AND_PORT2  5
 
 // Current genlock state
 #define DTAPI_GENL_NO_REF           1
@@ -2292,9 +2554,11 @@ public:                             // TODOSD should be protected
 #define DTAPI_GENL_LOCKED           3
 
 // Status and error flags for GPS-Synchronisation
-#define DTAPI_GPS_1PPS_SYNC      0x000001
-#define DTAPI_GPS_10MHZ_SYNC     0x000002
-#define DTAPI_GPS_1PPS_ERROR     0x000001
+#define DTAPI_GPS_1PPS_SYNC         0x000001
+#define DTAPI_GPS_10MHZ_SYNC        0x000002
+#define DTAPI_GPS_1PPS_ERROR        0x000001
+#define DTAPI_GPS_10MHZ_OUT_RANGE   0x000002
+#define DTAPI_GPS_10MHZ_NO_SIGNAL   0x000004
 
 // Constants for GetStateFlags() on port level
 #define DTAPI_STATE_FLAG_INSUFF_USB_BW  0x010000
@@ -2305,6 +2569,10 @@ public:                             // TODOSD should be protected
 #define DTAPI_STATE_FLAG_NO_SERIAL      0x000002
 #define DTAPI_STATE_FLAG_NO_USB3        0x000004
 #define DTAPI_STATE_FLAG_SLEEPING       0x000008
+
+// Status and error flags for power status
+#define DTAPI_POWER_STATUS_OK           0
+#define DTAPI_POWER_EXT_12V_ABSENT      0x000001
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtDtaPlusDevice -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
@@ -2595,7 +2863,7 @@ private:
 #define DTAPI_RXMODE_SDI_10B        0x00004000
 #define DTAPI_RXMODE_SDI_16B        0x00008000
 #define DTAPI_RXMODE_SDI_10B_NBO    0x00010000
-#define DTAPI_RXMODE_SDI_FRAMECOUNT 0x00020000
+#define DTAPI_RXMODE_SDI_STAT       0x00020000
 
 // Receive mode for SDI and Transport Streams - Common flags
 #define DTAPI_RXMODE_TIMESTAMP32    0x01000000
@@ -2712,7 +2980,7 @@ public:
     virtual DTAPI_RESULT  AttachToPort(DtDevice* pDtDvc, int Port, bool ProbeOnly=false);
     virtual DTAPI_RESULT  ClearFifo(void);
     virtual DTAPI_RESULT  ClearFlags(int Latched);
-    virtual DTAPI_RESULT  ClearSfnErrors();	
+    virtual DTAPI_RESULT  ClearSfnErrors();
     virtual DTAPI_RESULT  Detach(int DetachMode);
     virtual DTAPI_RESULT  GetAttribute(int AttrId, int& AttrValue);
     virtual DTAPI_RESULT  GetAttribute(int AttrId, DtModPars& ModParVals, int& AttrValue);
@@ -2824,7 +3092,7 @@ public:
     virtual DTAPI_RESULT  AttachToPort(DtDevice* pDtDvc, int Port, bool ProbeOnly=false);
     virtual DTAPI_RESULT  ClearFifo(void);
     virtual DTAPI_RESULT  ClearFlags(int Latched);
-    virtual DTAPI_RESULT  ClearSfnErrors();	
+    virtual DTAPI_RESULT  ClearSfnErrors();
     virtual DTAPI_RESULT  Detach(int DetachMode);
     virtual DTAPI_RESULT  GetAttribute(int AttrId, int& AttrValue);
     virtual DTAPI_RESULT  GetAttribute(int AttrId, DtModPars& ModParVals, int& AttrValue);
@@ -2924,7 +3192,8 @@ public:
     virtual DTAPI_RESULT  SetMplpChannelModelling(bool CmEnable, DtCmPars&, int Chan=0);
     virtual DTAPI_RESULT  WriteMplp(int FifoIdx, char* pBuffer, int NumBytesToWrite);
     virtual DTAPI_RESULT  WriteMplpPacket(int FifoIdx, char* pPacket, int PacketSize);
-
+    virtual DTAPI_RESULT  WriteMplpPacket(int FifoIdx, char* pPacket, int PacketSize, 
+                                                                 DtFractionInt  Duration);
 private:
     bool  m_IsAttachedToVirtual;
     MplpHelper*  m_pMplpHelper;
@@ -3173,6 +3442,7 @@ private:
 // Modulation parameters - DTMB - Interleaver mode
 #define DTAPI_MOD_DTMB_IL_1         0x00100000   // Interleaver mode 1: B=54, M=240
 #define DTAPI_MOD_DTMB_IL_2         0x00200000   // Interleaver mode 2: B=54, M=720
+#define DTAPI_MOD_DTMB_IL_NONE      0x00300000   // Interleaver mode none (non-standard)
 #define DTAPI_MOD_DTMB_IL_AUTO      0x00F00000   // Auto detect
 #define DTAPI_MOD_DTMB_IL_UNK       0x00F00000   // Unknown
 #define DTAPI_MOD_DTMB_IL_MSK       0x00F00000   // Mask
@@ -3401,6 +3671,51 @@ private:
 #define DTAPI_MOD_QAMB_IL_AUTO      0xF          // Auto detect interleaver mode
 #define DTAPI_MOD_QAMB_IL_MSK       0xF
 
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtAvInputStatus -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+class DtAvInputStatus
+{
+public:
+    DtAvInputStatus();
+    virtual ~DtAvInputStatus();
+private:
+    // No implementation is provided for the copy constructor
+    DtAvInputStatus(const DtAvInputStatus&);
+    DtAvInputStatus&  operator = (const DtAvInputStatus&);
+
+public:
+    DtHwFuncDesc  m_HwFuncDesc;     // Hardware function descriptor
+
+                                    // Convenience functions
+public:
+    int  Category()             { return m_HwFuncDesc.m_DvcDesc.m_Category; }
+    int  FirmwareVersion()      { return m_HwFuncDesc.m_DvcDesc.m_FirmwareVersion; }
+    bool  IsAttached()          { return m_pInp != NULL; }
+    int  TypeNumber()           { return m_HwFuncDesc.m_DvcDesc.m_TypeNumber; }
+    bool  HasCaps(const DtCaps  Caps) const 
+    {
+        return ((m_HwFuncDesc.m_Flags & Caps) == Caps); 
+    }
+
+public:
+    DTAPI_RESULT  AttachToPort(DtDevice* pDtDvc, int Port);
+    DTAPI_RESULT  Detach();
+    DTAPI_RESULT  DetectVidStd(DtDetVidStd& Info);
+    DTAPI_RESULT  GetAudChanStatus(std::vector<DtAudChanStatus>& AudChns);
+    DTAPI_RESULT  GetDolbyMetadata(std::vector<DtRdd6Data>& Metadata);
+
+    // Encapsulated data
+private:
+    void*  m_pDetachLockCount;
+    AvInputStatus*  m_pInp;
+
+    // Private helper functions
+private:
+    DTAPI_RESULT  DetachLock();
+    DTAPI_RESULT  DetachUnlock();
+};
+
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ SDI +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 
 // DtSdi - Table-of-content entry types
@@ -3585,6 +3900,9 @@ protected:
 #define DTAPI_VIDSTD_2160P25        (DTAPI_VIDSTD_BASE + 8)
 #define DTAPI_VIDSTD_2160P29_97     (DTAPI_VIDSTD_BASE + 9)
 #define DTAPI_VIDSTD_2160P30        (DTAPI_VIDSTD_BASE + 10)
+#define DTAPI_VIDSTD_480P59_94      (DTAPI_VIDSTD_BASE + 11)
+#define DTAPI_VIDSTD_525P59_94      (DTAPI_VIDSTD_BASE + 12)
+#define DTAPI_VIDSTD_625P50         (DTAPI_VIDSTD_BASE + 13)
 
 // Video link standards.
 #define DTAPI_VIDLNK_4K_SMPTE425    0            // 4K mapping according to SMPTE 425
@@ -3605,9 +3923,16 @@ protected:
 #define DTAPI_SDI_ANC_MASK          (DTAPI_SDI_HANC | DTAPI_SDI_VANC)
     
 // Chrominace/luminance stream selection (can be OR-ed)
-#define DTAPI_SDI_CHROM             0x01
-#define DTAPI_SDI_LUM               0x02
-#define DTAPI_SDI_STREAM_MASK       (DTAPI_SDI_CHROM | DTAPI_SDI_LUM)
+#define DTAPI_SDI_CHROM_0           0x01
+#define DTAPI_SDI_LUM_0             0x02
+#define DTAPI_SDI_CHROM_1           0x04
+#define DTAPI_SDI_LUM_1             0x08
+#define DTAPI_SDI_CHROM_MASK        (DTAPI_SDI_CHROM_0 | DTAPI_SDI_CHROM_1)
+#define DTAPI_SDI_LUM_MASK          (DTAPI_SDI_LUM_0 | DTAPI_SDI_LUM_1)
+#define DTAPI_SDI_STREAM_MASK       (DTAPI_SDI_CHROM_MASK | DTAPI_SDI_LUM_MASK)
+// Old names
+#define DTAPI_SDI_CHROM             DTAPI_SDI_CHROM_0
+#define DTAPI_SDI_LUM               DTAPI_SDI_LUM_0
 
 // Anc-data operation mode
 #define DTAPI_ANC_MARK              0x0001
@@ -3687,7 +4012,7 @@ private:
 class DtFrameBufTrPars
 {
 public:
-    enum ParsType { PT_VIDEO, PT_ANC, PT_RAW };
+    enum ParsType { PT_VIDEO, PT_ANC, PT_RAW, PT_ANC2 };
 
 protected:
     DtFrameBufTrPars(ParsType  Type);
@@ -3871,94 +4196,6 @@ public:
 private:
     SdiMatrixImpl*  m_pImpl;        // Implementation class
 };
-
-//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Global DTAPI Functions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
-
-DTAPI_RESULT  DtapiCheckDeviceDriverVersion(void);
-DTAPI_RESULT  DtapiCheckDeviceDriverVersion(int DeviceCategory);
-DTAPI_RESULT  DtapiDeviceScan(int NumEntries, int& NumEntriesResult,
-                                         DtDeviceDesc* DvcDescArr, bool InclDteDvcs=false,
-                                         int  ScanOrder=DTAPI_SCANORDER_ORIG);
-DTAPI_RESULT  DtapiDtaPlusDeviceScan(int NumEntries, int& NumEntriesResult,
-                                                         DtDtaPlusDeviceDesc* DvcDescArr);
-DTAPI_RESULT  DtapiDtDeviceDesc2String(DtDeviceDesc* pDvcDesc, int StringType, 
-                                                         char* pString, int StringLength);
-DTAPI_RESULT  DtapiDtDeviceDesc2String(DtDeviceDesc* pDvcDesc, int StringType, 
-                                                      wchar_t* pString, int StringLength);
-DTAPI_RESULT  DtapiDtHwFuncDesc2String(DtHwFuncDesc* pHwFunc, int StringType, 
-                                                         char* pString, int StringLength);
-DTAPI_RESULT  DtapiDtHwFuncDesc2String(DtHwFuncDesc* pHwFunc, int StringType, 
-                                                      wchar_t* pString, int StringLength);
-DTAPI_RESULT  DtapiGetDeviceDriverVersion(int, int&, int&, int&, int&);
-DTAPI_RESULT  DtapiGetDtapiServiceVersion(int&, int&, int&, int&);
-DTAPI_RESULT  DtapiGetVersion(int& Maj, int& Min, int& BugFix, int& Build);
-DTAPI_RESULT  DtapiHwFuncScan(int NumEntries, int& NumEntriesResult,
-                                           DtHwFuncDesc* pHwFuncs, bool InclDteDvcs=false,
-                                           int  ScanOrder=DTAPI_SCANORDER_ORIG);
-DTAPI_RESULT  DtapiPower2Voltage(int dBm, int& dBmV, bool Is50Ohm=false);
-const char*  DtapiResult2Str(DTAPI_RESULT DtapiResult);
-DTAPI_RESULT  DtapiVoltage2Power(int dBmV, int& dBm, bool Is50Ohm=false);
-
-// Callbacks
-DTAPI_RESULT  DtapiRegisterCallback(pDtEventCallback Callback, void* pContext,
-                                                       int EventTypes, void** pId = NULL);
-DTAPI_RESULT  DtapiUnregisterCallback(void* pId);
-
-// IP address conversion
-DTAPI_RESULT  DtapiInitDtIpParsFromIpString(DtIpPars& IpPars,
-                                                  const char* pDstIp, const char* pSrcIp);
-DTAPI_RESULT  DtapiInitDtIpParsFromIpString(DtIpPars& IpPars,
-                                            const wchar_t* pDstIp, const wchar_t* pSrcIp);
-DTAPI_RESULT  DtapiIpAddr2ByteArray(const char* pIpStr, unsigned char* pIpByte,
-                                                                              int& Flags);
-DTAPI_RESULT  DtapiIpAddr2ByteArray(const wchar_t* pIpStr, 
-                                                      unsigned char* pIpByte, int& Flags);
-DTAPI_RESULT  DtapiIpAddr2Str(char* pStr, int Len, unsigned char* pIpAddr);
-DTAPI_RESULT  DtapiIpAddr2Str(wchar_t* pStr, int Len, unsigned char* pIpAddr);
-DTAPI_RESULT  DtapiStr2IpAddr(unsigned char* pIpAddr, const char* pStr);
-DTAPI_RESULT  DtapiStr2IpAddr(unsigned char* pIpAddr, const wchar_t* pStr);
-
-// Legacy
-#define DtapiInitDtTsIpParsFromIpString DtapiInitDtIpParsFromIpString
-
-// Modulator functions
-DTAPI_RESULT  DtapiModPars2Bandwidth(int& ModBandwidth, int& TotalBandwidth,
-                                    int ModType, int ParXtra0, int ParXtra1, int ParXtra2,
-                                    void* pXtraPars, int SymRate);
-DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
-                                                  int ParXtra1, int ParXtra2, int TsRate);
-DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
-                                        int ParXtra1, int ParXtra2, DtFractionInt TsRate);
-DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
-                                 int ParXtra1, int ParXtra2, void* pXtraPars, int TsRate);
-DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
-                       int ParXtra1, int ParXtra2, void* pXtraPars, DtFractionInt TsRate);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, int ModType, int ParXtra0,
-                                            int ParXtra1, int ParXtra2, int SymRate = -1);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, int ModType, int ParXtra0,
-                                            int ParXtra1, int ParXtra2, int SymRate = -1);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbC2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbC2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbS2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbS2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbT2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbT2Pars&, int PlpIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtIsdbTmmPars&, int TsIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtIsdbTmmPars&, int TsIdx = 0);
-DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, int ModType, int ParXtra0,
-                                int ParXtra1, int ParXtra2, void* pXtraPars, int SymRate);
-DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, int ModType, int ParXtra0,
-                                int ParXtra1, int ParXtra2, void* pXtraPars, int SymRate);
-
-// HD-SDI functions
-DTAPI_RESULT  DtapiGetRequiredUsbBandwidth(int VidStd, int RxMode, long long&  Bandwidth);
-DTAPI_RESULT  DtapiGetVidStdInfo(int VidStd, DtVidStdInfo& Info);
-DTAPI_RESULT  DtapiGetVidStdInfo(int VidStd, int  LinkStd, DtVidStdInfo& Info);
-DTAPI_RESULT  DtapiIoStd2VidStd(int Value, int SubValue, int& VidStd);
-DTAPI_RESULT  DtapiVidStd2IoStd(int VidStd, int& Value, int& SubValue);
-DTAPI_RESULT  DtapiVidStd2IoStd(int VidStd, int  LinkStd, int& Value, int& SubValue);
-const char*  DtapiVidStd2Str(int VidStd);
-const char*  DtapiLinkStd2Str(int LinkStd);
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Return Codes -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
@@ -4183,8 +4420,22 @@ const char*  DtapiLinkStd2Str(int LinkStd);
 #define DTAPI_E_NUM_CHAN            (DTAPI_E + 212)
 #define DTAPI_E_INVALID_TIME        (DTAPI_E + 213)
 #define DTAPI_E_INVALID_LINK        (DTAPI_E + 214)
-#define DTAPI_E_MODE_VIDEOSTD       (DTAPI_E + 215)
-
+#define DTAPI_E_TUNING              (DTAPI_E + 215)
+#define DTAPI_E_BUSY                (DTAPI_E + 216)
+#define DTAPI_E_ENC_TYPE_NOTSET     (DTAPI_E + 217)
+#define DTAPI_E_INITIALIZING        (DTAPI_E + 218)
+#define DTAPI_E_INVALID_ENC_TYPE    (DTAPI_E + 219)
+#define DTAPI_E_LICENSE             (DTAPI_E + 220)
+#define DTAPI_E_NO_ENCODER          (DTAPI_E + 221)
+#define DTAPI_E_NO_POWER            (DTAPI_E + 222)
+#define DTAPI_E_PASSTHROUGH_INV     (DTAPI_E + 223)
+#define DTAPI_E_PASSTHROUGH_ONLY    (DTAPI_E + 224)
+#define DTAPI_E_RX_RATE_OVF         (DTAPI_E + 225)
+#define DTAPI_E_IN_ERROR_STATE      (DTAPI_E + 226)
+#define DTAPI_E_XML_SYNTAX          (DTAPI_E + 227)
+#define DTAPI_E_XML_ELEM            (DTAPI_E + 228)
+#define DTAPI_E_FAN_FAIL            (DTAPI_E + 229)
+#define DTAPI_E_RESTART_REQD        (DTAPI_E + 230)
 
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //=+=+=+=+=+=+=+=+ DVB-C2, DVB-S2, DVB-T2, ISDB-Tmm Multi PLP Parameters +=+=+=+=+=+=+=+=+
@@ -4508,7 +4759,7 @@ struct DtDabTransmitterId
     int  m_TxMainId;                // Transmitter main identifier; 
                                     // 0...5 (for transmission mode 3) otherwise 0...69
     int  m_TxSubId;                 // Transmitter sub-identifier; 0...23
-    double  m_RelativePowerdB;;     // Transmitter power, relative to total power
+    double  m_RelativePowerdB;      // Transmitter power, relative to total power
 };
 
 
@@ -4578,6 +4829,10 @@ struct DtDabTransmitterIdInfo
 // m_C2Version - DVB-C2 specification version
 #define DTAPI_DVBC2_VERSION_1_2_1   0            // DVB-C2 version 1.2.1
 #define DTAPI_DVBC2_VERSION_1_3_1   1            // DVB-C2 version 1.3.1
+// m_GseLabelType - DVB-C2 GSE Label size
+#define DTAPI_DVBC2_GSE_LABEL_6BYTE 0           // 6 Byte GSE label
+#define DTAPI_DVBC2_GSE_LABEL_3BYTE 1           // 3 Byte GSE label
+#define DTAPI_DVBC2_GSE_LABEL_NONE  2           // No GSE label
 // m_Issy - PLP ISSY
 #define DTAPI_DVBC2_ISSY_NONE       0            // No ISSY field is used
 #define DTAPI_DVBC2_ISSY_SHORT      1            // 2 byte ISSY field is used
@@ -4715,7 +4970,7 @@ struct DtDvbC2L1UpdatePars
                                     // 'm_NumFrames' C2 frames
     // L1 DSlice updates
     std::vector<DtDvbC2L1UpdateDSlicePars>  m_DSlices;
-    bool m_EarlyWarningSystem;		// Early warning system
+    bool m_EarlyWarningSystem;      // Early warning system
 
 public:
     void  Init();
@@ -4799,6 +5054,8 @@ struct DtDvbC2ParamInfo
 //
 struct DtDvbC2PlpPars
 {
+    int  m_Ccm;                     // ACM/CMM bit in the BBframe header 0 or 1
+    // Mode adaptation layer: TS input
     bool  m_Hem;                    // High Efficiency Mode
     bool  m_Npd;                    // Null Packet Deletion
     int  m_Issy;                    // Issy mode. See DTAPI_DVBC2_ISSY_x
@@ -4810,13 +5067,16 @@ struct DtDvbC2PlpPars
     int  m_TsRate;                  // If 0 the rate is computed from the PLP parameters,
                                     // only possible in case of single PLP and no ISSY 
                                     // is used
-    int  m_Ccm;                     // ACM/CMM bit in the BBframe header 0 or 1
+    // Mode adaptation layer: GSE input
+    int  m_GseLabelType;            // GSE-label type. See DTAPI_DVBC2_GSE_LABEL_XXX
+    // Modulation parameters
     int  m_Id;                      // PLP ID. 0..255
     bool  m_Bundled;                // A bundled PLP can appear in several data slices. 
                                     // All the PLP instances have the same PLP ID.
                                     // Only a single input stream results from the 
                                     // first PLP of the bundle.
     int  m_Type;                    // PLP Type. See DTAPI_DVBC2_PLP_TYPE_x
+    int  m_PayloadType;             // PLP payload type: DTAPI_DVBC2_PAYLOAD_XXX
     int  m_GroupId;                 // Group ID. 0..255
     int  m_FecType;                 // FEC Type. 0=16K, 1=64K
     int  m_CodeRate;                // PLP Code rate. See DTAPI_DVBC2_COD_x
@@ -4886,7 +5146,7 @@ public:
     bool  m_ReservedTone;           // Reserved tone. When there are reserved carriers
                                     // (e.g. PAPR TR is enabled) it shall be set to true; 
                                     // otherwise false
-    bool m_EarlyWarningSystem;		// Early warning system
+    bool m_EarlyWarningSystem;      // Early warning system
     int  m_C2Version;               // DVB-C2 Version
     int  m_L1TiMode;                // L1 time interleaving mode. See DVBC2_L1TIMODE_x
 
@@ -5059,7 +5319,7 @@ struct DtDvbC2DemodL1Part2Data
     int  m_C2FrameLength;           // C2 frame length: #Data symbols per C2 frame
     int  m_L1P2ChangeCtr;           // Value of the L1_PART2_CHANGE_COUNTER field
     int  m_ReservedTone;            // Reserved tone
-    bool m_EarlyWarningSystem;		// Early warning system
+    bool m_EarlyWarningSystem;      // Early warning system
     int  m_C2Version;               // DVB-C2 Version
 
     // Data slices
@@ -6051,6 +6311,7 @@ enum DtStreamType
     STREAM_DABFIC,                  // DAB Fast Information Channel
     STREAM_DVBC2,                   // DVB-C2 stream (Transport Stream packets)
     STREAM_DVBC2_BBFRAME,           // DVB-C2 stream base-band frames
+    STREAM_DVBC2_GSE,               // DVB-C2 stream GSE-packets
     STREAM_DVBT,                    // DVB-T stream
     STREAM_DVBT2,                   // DVB-T2 stream (Transport Stream packets)
     STREAM_DVBT2_BBFRAME,           // DVB-T2 stream base band frames
@@ -6104,8 +6365,8 @@ struct DtDvbTTpsInfo
     int  m_CellId;                  // CellId or -1 when not present
     int  m_HpS48S49;                // S48S49 of the odd frames  (DTAPI_MOD_DVBT_Sxx)
     int  m_LpS48S49;                // S48S49 of the even frames (DTAPI_MOD_DVBT_Sxx)
-    int  m_OddS50_S53;              // S50..S53 of the odd frames	
-    int  m_EvenS50_S53;             // S50..S53 of the even frames	
+    int  m_OddS50_S53;              // S50..S53 of the odd frames
+    int  m_EvenS50_S53;             // S50..S53 of the even frames
 
     // Serialisation
     DTAPI_RESULT  FromXml(const std::wstring& XmlString);
@@ -6387,14 +6648,15 @@ enum DtMxPixelFormat
     DT_PXFMT_YUV422P_16B,       // Planar YUV, 3 planes, 1 Cb & 1 Cr sample per 2 Y. 16BPS
     DT_PXFMT_YUV422P2_8B,       // Planar YUV, 2 planes, Y plane + Cb+Cr plane. 8BPS
     DT_PXFMT_YUV422P2_16B,      // Planar YUV, 2 planes, Y plane + Cb+Cr plane. 16BPS
+    DT_PXFMT_YUV420P2_8B,       // Planar YUV, 2 planes, Y plane + Cb+Cr plane with
+                                // 2x2 sub-sampling. 8BPS. Also called NV12
     DT_PXFMT_BGR_8B,            // Packed RGB data. First B, then G, then R. 8 bits per ch
+    DT_PXFMT_BGRX_8B,           // Packed RGB data with a 4th dummy byte per pixel. Not
+                                // yet supported.
     DT_PXFMT_V210,              // Packed CbYCrY, 3 10-bit symbols per 32-bit
     // Likely future extensions:
     //DT_PXFMT_YUV420P,           // Planar YUV, 3 planes, 1 Cb & 1 Cr sample per 2x2 Y.This
                                 // is often used as decoder input/output.
-    //DT_PXFMT_RGBX,              // Packed RGB data with a 4th dummy symbol per pixel. With
-                                // 8-byte data this means 32-bit per pixel which is easy
-                                // to process.
     //DT_PXFMT_RGB_P,             // Planar RGB data
 
     DT_PXFMT_INVALID = -1,
@@ -6547,6 +6809,9 @@ class DtMxAuxConfigSdi
 {
 public:
     DtMxAuxObjConfig  m_AncPackets;  // Settings for ancillary data packets
+    DtMxAuxObjConfig  m_VideoIndex;  // Settings for (deprecated SD only) video index data
+    DtMxAuxObjConfig  m_Wss;         // Settings for (SD only) Wide Screen Signaling
+    DtMxAuxObjConfig  m_Line21;      // Settings for (SD only) analog CEA-608 line 21 data
     //DtMxAuxObjConfig  m_Rp188;
     //DtMxAuxObjConfig  m_Vitc;
     //DtMxAuxObjConfig  m_Eia608;
@@ -6712,6 +6977,172 @@ public:
     DtMxVideoBuf();
 };
 
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxSdVideoIndex -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+class DtMxSdVideoIndex
+{
+public:
+    //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum ScanningSystem -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+    //
+    enum ScanningSystem
+    {
+        SCS_NO_INFORMATION = 0,
+        SCS_525_5994_4X3   = 1,
+        SCS_625_50_4X3     = 2,
+        SCS_525_5994_16X9  = 5,
+        SCS_625_50_16X9    = 6,
+    };
+    //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum SignalForm -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+    //
+    enum SignalForm
+    {
+        SF_NO_INFORMATION = 0,
+        SF_RGB            = 1,
+        SF_YCbCr          = 2,
+        SF_YUV            = 3,
+        SF_MONOCHROME     = 4,
+        SF_NTSC           = 5,
+        SF_PAL            = 6,
+        SF_PAL_M          = 7,
+        SF_SECAM          = 8,
+    };
+    //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum SamplingStructure -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+    //
+    enum SamplingStructure
+    {
+        SAS_NO_INFORMATION   = 0,
+        SAS_420              = 1,
+        SAS_422              = 2,
+        SAS_4224_MAIN        = 3,
+        SAS_4224_SUB         = 4,
+        SAS_444_MAIN         = 5,
+        SAS_444_SUB          = 6,
+        SAS_4444_MAIN        = 7,
+        SAS_4444_SUB         = 8,
+        SAS_422P_MAIN        = 9,
+        SAS_422P_SUB         = 10,
+        SAS_420P             = 11,
+        SAS_844_MAIN         = 12,
+        SAS_844_SUB          = 13,
+        SAS_4224_SINGLE_LINK = 14,
+    };
+
+    //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum ColorField -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+    //
+    enum ColorField
+    {
+        CF_NO_INFORMATION  = 0,
+        CF_COLOR_FIELD_1   = 1,
+        CF_COLOR_FIELD_2   = 2,
+        CF_COLOR_FIELD_3   = 3,
+        CF_COLOR_FIELD_4   = 4,
+        CF_COLOR_FIELD_5   = 5,
+        CF_COLOR_FIELD_6   = 6,
+        CF_COLOR_FIELD_7   = 7,
+        CF_COLOR_FIELD_8   = 8,
+    };
+
+    //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum VideoFieldsRates -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+    //
+    enum VideoFieldsRates
+    {
+        VFR_NO_INFORMATION     = 0,
+        VFR_FIELD1_SCAN1_2SCAN = 1,
+        VFR_FIELD2_SCAN2_2SCAN = 2,
+        VFR_FIELD1_SCAN1_3SCAN = 3,
+        VFR_FIELD2_SCAN2_3SCAN = 4,
+        VFR_FIELD1_SCAN3_3SCAN = 5,
+        VFR_FIELD2_SCAN1_2SCAN = 6,
+        VFR_FIELD1_SCAN2_2SCAN = 7,
+        VFR_FIELD2_SCAN1_3SCAN = 8,
+        VFR_FIELD1_SCAN2_3SCAN = 9,
+        VFR_FIELD2_SCAN3_3SCAN = 10,
+    };
+
+    // Get or set the scanning system
+    DTAPI_RESULT  GetScanningSystem(ScanningSystem&  ScanSystem);
+    DTAPI_RESULT  SetScanningSystem(ScanningSystem  ScanSystem);
+    // Get or set the signal form
+    DTAPI_RESULT  GetSignalForm(SignalForm&  Form);
+    DTAPI_RESULT  SetSignalForm(SignalForm  Form);
+    // Get or set the sampling structure
+    DTAPI_RESULT  GetSamplingStructure(SamplingStructure&  Structure);
+    DTAPI_RESULT  SetSamplingStructure(SamplingStructure  Structure);
+    // Get or set the pand and scan data
+    DTAPI_RESULT  GetPanAndScan(int& Pan, int& Tilt, int& Zoom, bool& X, bool& Y, bool& Z);
+    DTAPI_RESULT  SetPanAndScan(int Pan, int Tilt, int Zoom, bool X, bool Y, bool Z);
+    // Get or set the color field
+    DTAPI_RESULT  GetColorField(ColorField&  Cf);
+    DTAPI_RESULT  SetColorField(ColorField  Cf);
+    // Get or set the video fields and film frames
+    DTAPI_RESULT  GetVideoFieldsFilmRates(VideoFieldsRates&  Vfr);
+    DTAPI_RESULT  SetVideoFieldsFilmRates(VideoFieldsRates  Vfr);
+    // Get or set the film frame rate as percentage of nominal rate (1%-254%)
+    // 0=no information, 255=still frame
+    DTAPI_RESULT  GetFilmFrameRate(int&  Ffr);
+    DTAPI_RESULT  SetFilmFrameRate(int  Ffr);
+
+    void  UpdateCrcs();
+
+    unsigned char m_Data[90];   // Raw video index data
+    bool  m_Valid;              // True if m_Data contains valid data
+
+    DtMxSdVideoIndex();
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxSdWss -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+class DtMxSdWss
+{
+public:
+    enum WssType
+    {
+        WSS_INVALID,
+        WSS_PAL,
+        WSS_NTSC,
+    };
+
+    enum  AspectRatioFormat
+    {
+        ARF_4_3_FULL,
+        ARF_4_3_BOX,
+        ARF_16_9_FULL,
+        ARF_16_9_BOX,
+        ARF_16_9_BOX_TOP,
+        ARF_16_9_ANAMORPHIC,
+        ARF_14_9_BOX,
+        ARF_14_9_BOX_TOP,
+        ARF_14_9_FULL,
+        ARF_GREATER_16_9_BOX,
+    };
+
+    // Get or set the aspect ratio
+    DTAPI_RESULT  GetAspectRatio(DtAspectRatio&  Ratio);
+    DTAPI_RESULT  GetAspectRatioFormat(AspectRatioFormat&  Ratio);
+    //DTAPI_RESULT  SetAspectRatioFormat(AspectRatioFormat  Ratio);
+
+    // Get or set the 'subtitles within Teletext' bit
+    DTAPI_RESULT  GetTeletextSubtitles(bool&  Subtitles);
+    //DTAPI_RESULT  SetTeletextSubtitles(bool  Subtitles);
+
+    WssType  m_Type;            // Encoding of data in m_Data
+    int  m_Data;                // Raw data
+    bool  m_Valid;              // True if m_Data contains valid data
+
+    DtMxSdWss();
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxLine21 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+class DtMxLine21
+{
+public:
+    unsigned char  m_Data[2];   // Raw data including parity bit
+    bool  m_Valid;              // True if m_Data contains valid data
+
+    DtMxLine21();
+};
+
 //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxAuxData -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
 //
 class DtMxAuxData
@@ -6719,6 +7150,10 @@ class DtMxAuxData
 public:
     // Teletext
     // Closed captioning
+
+    DtMxSdVideoIndex  m_VidIndex[2];
+    DtMxSdWss  m_Wss[2];
+    DtMxLine21  m_Line21[2];
 
     // Other anc data
     bool  m_AncTimeCodeValid;
@@ -6795,7 +7230,7 @@ public:
 public:
     DtMxAudioChannel();
     virtual ~DtMxAudioChannel();
-    DtMxAudioChannel&  operator=(const DtMxAudioChannel& Other);
+    DtMxAudioChannel&  operator = (const DtMxAudioChannel& Other);
 };
 
 //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum DtMxAudioServiceType -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -6824,7 +7259,7 @@ public:
 protected:
     // Cast to a "normal" std::vector. NOTE: Intended for internal DTAPI use only
     inline operator typename std::vector<T>& () { return m_Data; }
-    inline DtFixedVector&  operator=(const DtFixedVector&  Oth)
+    inline DtFixedVector&  operator = (const DtFixedVector&  Oth)
     {
         this->m_Data = Oth.m_Data;
         return *this;
@@ -6870,7 +7305,7 @@ public:
     // Constructor, destructor
 public:
     DtMxAudioService();
-    DtMxAudioService&  operator=(const DtMxAudioService& Other);
+    DtMxAudioService&  operator = (const DtMxAudioService& Other);
 };
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxAudioData -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
@@ -6886,6 +7321,9 @@ public:
     // the final output is consistent.
     DTAPI_RESULT  InitChannelStatus();
     DTAPI_RESULT  InitChannelStatus(const DtMxAudioService&  Service);
+
+    DTAPI_RESULT  GetAudio(const DtMxAudioService&, unsigned char* pSamples, 
+                                                         int& NumSamples, int SampleSize);
 };
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- enum DtMxFrameStatus -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -6900,9 +7338,11 @@ enum DtMxFrameStatus
     DT_FRMSTATUS_DISABLED,         // Row has been disabled, buffers not available.
     DT_FRMSTATUS_DUPLICATE,        // Frame data is duplicated from previous frame
                                    // because the input was too slow.
-    DT_FRMSTATUS_DROPPED,          // Frame data was dropped because the input thread
-                                   // in the API was too slow. Data is not available. This
-                                   // should never happen under normal circumstances.
+    DT_FRMSTATUS_LATE,             // Frame data was dropped because the input data
+                                   // arrived too late. Data is not available. Later
+                                   // frames will report NO_SIGNAL is the input signal
+                                   // is lost or will return to OK if the frame was
+                                   // dropped due to too high CPU load.
     DT_FRMSTATUS_NO_SIGNAL,        // No signal at input port. Frame data not available.
     DT_FRMSTATUS_WRONG_VIDSTD,     // Unconfigured video signal at input. Frame data
                                    // not available.
@@ -6910,6 +7350,8 @@ enum DtMxFrameStatus
                                    // not available.
     DT_FRMSTATUS_ERROR_INTERNAL,   // Internal error. Frame data is not available.
 };
+static const DtMxFrameStatus  DTAPI_DEPRECATED(DT_FRMSTATUS_DROPPED,
+      "Deprecated (will be removed!): Use DT_FRMSTATUS_LATE instead") = DT_FRMSTATUS_LATE;
 
 //-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxFrame -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
@@ -6951,6 +7393,8 @@ public:
                                 // to keep it between -1.25 and 0.05. A frame drop will
                                 // increase this value by 1.
 
+    bool  m_InLock;             // Output only: true if output is in sync with genlock
+
     bool  m_RawTimestampValid;  // True if m_RawTimestamp is valid
     __int64  m_RawTimestamp;    // 64-bit timestamp of the arrival of the SDI frame.
                                 // Timestamps created by different hardware devices have
@@ -6984,7 +7428,7 @@ protected:
 private:
     // No implementation is provided for the copy constructor or for operator=
     DtMxFrame(const DtMxFrame&);
-    DtMxFrame& operator=(const DtMxFrame&);
+    DtMxFrame&  operator = (const DtMxFrame&);
 };
 
 //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxRowData -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
@@ -7028,7 +7472,6 @@ public:
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ MATRIX CONTROL +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
 //+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
-
 
 //.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- class DtMxPort -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
 //
@@ -7078,7 +7521,7 @@ public:
     // Destructor
     virtual ~DtMxPort();
     // Assignment operator
-    DtMxPort& operator=(const DtMxPort&);
+    DtMxPort& operator = (const DtMxPort&);
     
     DTAPI_RESULT  AddPhysicalPort(DtDevice*, int  Port, int  ClockPriority=0);
 
@@ -7116,7 +7559,6 @@ enum DtMxClockMode
     DT_MXCLOCK_SW_FIFO,         // User provides timestamped Fifo-loads. HLM controls the
                                 // clock so that the average fifo load remains the same.
 };
-
 
 // Affinity masks for several threads. Each can be set to 0 to disable them.
 class  DtMxCpuAffinity
@@ -7160,26 +7602,25 @@ public:
     DTAPI_RESULT  AttachRowToOutput(int Row, const DtMxPort& Port, int ExtraOutDelay=0);
 
     // Change the way the HLM clock source is controlled.
-    DTAPI_RESULT  SetClockControl(DtMxClockMode  ClockMode, DtDevice* pDvc=NULL,
-                                                                     int  AvgFifoLoad=-1);
+    DTAPI_RESULT  SetClockControl(DtMxClockMode, DtDevice* pDvc=NULL, int AvgFifoLoad=-1);
 
     // Can be called by the user while the matrix process is running. HLM will keep
     // track of a number of these samples and will adjust it's clock source so the
     // output rate is matched to the provided samples.
-    DTAPI_RESULT  NewClockSample(__int64  PcrOrFifoLoad, int  RefClkCnt);
+    DTAPI_RESULT  NewClockSample(__int64 PcrOrFifoLoad, int RefClkCnt);
     
     // Changes the number of phases. Global setting per matrix.
-    DTAPI_RESULT  SetNumPhases(int  NumPhases);
+    DTAPI_RESULT  SetNumPhases(int NumPhases);
 
     // SetRowConfig sets the configuration and validates if it is possible valid. Not all
     // errors can be caught at this time since some depend on the video standard (for
     // example DtMxVideoConfig::m_NumLines1 if not equal to -1).
     // SetRowConfig(Row) is only valid after AttachToInput(Row)/AttachToOutput(Row) has
     // been called and will return an error otherwise.
-    DTAPI_RESULT  SetRowConfig(int Row, const DtMxRowConfig&  Config);
+    DTAPI_RESULT  SetRowConfig(int Row, const DtMxRowConfig& Config);
 
     // Function to change the video standard for all ports attached to the given row.
-    DTAPI_RESULT  SetVidStd(int Row, int  VidStd);
+    DTAPI_RESULT  SetVidStd(int Row, int VidStd);
 
     // Set a callback function the framework can use to free user-provided video buffers.
     DTAPI_RESULT  SetVidBufFreeCb(DtMxVidBufFreeCallback* pFunc);
@@ -7188,9 +7629,9 @@ public:
     // of the time the user callback function has relative to the time of a complete
     // frame. GetDefEndToEndDelay() will return a value: CbFrames >= NumPhases.
     // GetMinEndToEndDelay() will return a value: NumPhases-1 < CbFrames <= NumPhases.
-    DTAPI_RESULT  GetMinEndToEndDelay(int&  Delay, double&  CbFrames);
-    DTAPI_RESULT  GetDefEndToEndDelay(int&  Delay, double&  CbFrames);
-    DTAPI_RESULT  SetEndToEndDelay(int  Delay);
+    DTAPI_RESULT  GetMinEndToEndDelay(int& Delay, double& CbFrames);
+    DTAPI_RESULT  GetDefEndToEndDelay(int& Delay, double& CbFrames);
+    DTAPI_RESULT  SetEndToEndDelay(int Delay);
 
     // Makes sure the configuration of all rows and global matrix settings is consistent.
     // If it is, start the matrix process.
@@ -7198,7 +7639,7 @@ public:
     // Stop a runnig matrix process and return to IDLE.
     DTAPI_RESULT  Stop();
 
-    DTAPI_RESULT  SetThreadAffinity(const DtMxCpuAffinity&  Affinity);
+    DTAPI_RESULT  SetThreadAffinity(const DtMxCpuAffinity& Affinity);
 
     //TODO: add function to initialize "error-frame" for input/output and output rows.
     // This error-frame can be played out during the first few frames when there is
@@ -7218,9 +7659,978 @@ public:
 private:
     // No implementation is provided for the copy constructor or for operator=
     DtMxProcess(const DtMxProcess&);
-    DtMxProcess& operator=(const DtMxProcess&);
+    DtMxProcess& operator = (const DtMxProcess&);
 };
 
+//+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+//+=+=+=+=+=+=+=+=+=+=+=+=+ ENCODING & DECODING CONTROL CLASSES +=+=+=+=+=+=+=+=+=+=+=+=+=
+//+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- RESULT CODES -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+
+// Result codes for methods used in encoder and decoder control
+enum DtEncResult
+{
+    DT_ENC_OK,                      // All is fine
+    DT_ENC_E_AUDBITRATETOOLOW,      // Bitrate too low for selected audio service type
+    DT_ENC_E_AUDBITRATETOOHIGH,     // Bitrate too high for selected audio service type
+    DT_ENC_E_EXC_NUMAAC,            // #AAC services too high
+    DT_ENC_E_EXC_NUMDOLBYE,         // #DolbyE services too high
+    DT_ENC_E_EXC_NUMNONSURROUND,    // #Non-surround services too high
+    DT_ENC_E_EXC_NUMSURROUND,       // #Surround services too high
+    DT_ENC_E_INV_AACPAR,            // Invalid AAC parameter
+    DT_ENC_E_INV_AFDBARMODE,        // Invalid AFD/BAR mode
+    DT_ENC_E_INV_ASPECTRATIO,       // Invalid aspect ratio
+    DT_ENC_E_INV_AUDBITRATE,        // Invalid audio service bitrate
+    DT_ENC_E_INV_AUDCHANCONFIG,     // Invalid audio channel configuration
+    DT_ENC_E_INV_AUDCHANIDX,        // Invalid channel index
+    DT_ENC_E_INV_AUDDELAY,          // Invalid audio delay
+    DT_ENC_E_INV_AUDENCSTD,         // Invalid audio-encoding standard
+    DT_ENC_E_INV_AUDPID,            // Invalid audio PID
+    DT_ENC_E_INV_AUDSAMPLERATE,     // Invalid audio sample rate
+    DT_ENC_E_INV_AUDSVCCONFIG,      // Invalid audio service configuration
+    DT_ENC_E_INV_AUDSVCTYPE,        // Invalid audio service type
+    DT_ENC_E_INV_BITPERSAMPLE,      // Invalid #bits per audio sample
+    DT_ENC_E_INV_BITRATE_PCM,       // Embedded PCM samples bitrate out of range
+    DT_ENC_E_INV_BITRATE_TS,        // TS bitrate out of valid range
+    DT_ENC_E_INV_BITRATE_VID,       // Video bitrate out of valid range
+    DT_ENC_E_INV_CCMODE,            // Invalid closed captions mode
+    DT_ENC_E_INV_CCSOURCE,          // Invalid closed captions source
+    DT_ENC_E_INV_CODINGMODE,        // Invalid coding mode
+    DT_ENC_E_INV_DOLBYMETADATA,     // Invalid Dolby metadata
+    DT_ENC_E_INV_DUPLICATEPIDS,     // One or more duplicate PIDs used
+    DT_ENC_E_INV_END2ENDDELAY,      // The end-to-end delay is invalid
+    DT_ENC_E_INV_ENTROPYENC,        // The entropy encoding (e.g. CABAC/CAVLC) is invalid
+    DT_ENC_E_INV_FRAMERATE,         // The frame rate is invalid
+    DT_ENC_E_INV_FRAMESIZE,         // The frame size is invalid
+    DT_ENC_E_INV_HEAACE2EDELAY,     // The end-to-end delay is invalid for HE-AAC
+    DT_ENC_E_INV_GOPSIZE,           // Invalid GOP size
+    DT_ENC_E_INV_IDRFREQ,           // Invalid IDR frequency
+    DT_ENC_E_INV_ILIMAGE,           // Invalid input loss image
+    DT_ENC_E_INV_INTRADCPREC,       // Invalid DC precision
+    DT_ENC_E_INV_INTRAVLCFMT,       // Invalid intra VLC format
+    DT_ENC_E_INV_LEVEL,             // Invalid level
+    DT_ENC_E_INV_NUMBPICTURES,      // Invalid #B pictures between I/P pictures
+    DT_ENC_E_INV_NUMCHANNELS,       // Invalid number of (audio) channels
+    DT_ENC_E_INV_PATITV,            // Invalid PAT interval
+    DT_ENC_E_INV_PIXDEPTH,          // Invalid pixel depth
+    DT_ENC_E_INV_PMTITV,            // Invalid PMT interval
+    DT_ENC_E_INV_PMTPID,            // Invalid PMT PID
+    DT_ENC_E_INV_PCRITV,            // Invalid PCR interval
+    DT_ENC_E_INV_PCRPID,            // Invalid PCR PID
+    DT_ENC_E_INV_PROFILE,           // Invalid profile
+    DT_ENC_E_INV_QSCALETYPE,        // Invalid type of quantization scale
+    DT_ENC_E_INV_QUANTTABLE,        // Invalid quantization table
+    DT_ENC_E_INV_RESCALEHOR,        // Invalid rescaled horizontal resolution
+    DT_ENC_E_INV_SOURCEPORT,        // Invalid source port selection
+    DT_ENC_E_INV_STREAMID,          // Invalid stream ID
+    DT_ENC_E_INV_TELECINE,          // Invalid inverse telecine operation
+    DT_ENC_E_INV_TRANSBLOCKSIZE,    // Invalid transform block size (8x8 tranform)
+    DT_ENC_E_INV_TSID,              // Invalid TS ID
+    DT_ENC_E_INV_TYPE,              // Type number is not valid encoding hardware
+    DT_ENC_E_INV_UVSAMPLING,        // Invalid chroma sampling
+    DT_ENC_E_INV_VBVDELAY,          // Invalid VBV delay
+    DT_ENC_E_INV_VIDENCSTD,         // Invalid video-encoding standard
+    DT_ENC_E_INV_VIDPID,            // Invalid video PID
+    DT_ENC_E_INV_VIDSTD,            // Invalid video standard
+    DT_ENC_E_INV_VOLUMEADJUST,      // Invalid volume adjustment
+    DT_ENC_E_PASSTHROUGHONLY,       // Standard is only supported in passthrough mode
+    DT_ENC_E_TYPE_NOT_SET,          // No type number has been set
+    DT_ENC_E_UNSUP_PRF_LVL          // Unsupported profile level combination
+};
+
+// Convert DT_ENC result code to string for debugging purposes
+const char*  DtEncResult2Str(DtEncResult);
+
+// Video encoder status (see also DTAPI_STAT_VID_STATUS)
+#define DTAPI_VIDSTATUS_IDLE         0           // Not encoding
+#define DTAPI_VIDSTATUS_OK           1           // Encoding
+#define DTAPI_VIDSTATUS_SYNCLOSS     2           // Lost input synchronisation
+#define DTAPI_VIDSTATUS_ERROR        -1          // Unknown encoding error
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+=+ ENCODING PARAMETERS BASE CLASS +=+=+=+=+=+=+=+=+=+=+=+=+=+=
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncParsBase -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Base class for encoder parameter classes that are dependent on the encoder type.
+//
+class DtEncParsBase
+{
+public:
+    // Public methods
+    bool  IsEncTypeValid() const;
+    int  GetEncType() const { return m_EncType; }
+
+protected:
+    DTAPI_RESULT  SetEncType(int EncType);
+
+    // Constructor, destructor 
+    DtEncParsBase(int EncType=-1);
+    ~DtEncParsBase() {}
+
+protected:
+    int  m_EncType;                 // DekTec type number of encoder card (e.g. 2180)
+};
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+=+ ANCILLARY ENCODING PARAMETERS +=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAncPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Encoding/embedding parameters for data that is not audio or video.
+//
+class DtEncAncPars : public DtEncParsBase
+{
+public:
+    // AFD/BAR insertion mode
+    enum AfdBarMode 
+    {
+        AFDBAR_NONE,                // Do not extract/insert AFD/BAR
+        AFDBAR_WHENNEEDED,          // Insert/extract AFD/BAR as needed
+        AFDBAR_ALWAYS               // Always extract/insert AFD/BAR
+    };
+
+    // Closed caption extraction and processing mode
+    enum CcMode 
+    {
+        CC_DISABLE,                 // Do not extract/insert captions
+        CC_ALL,                     // Extract/insert all captions
+        CC_608B,                    // Extract/insert EIA608B field 1 and EIA608B field 2
+        CC_608B_FLD1,               // Extract/insert EIA608B field 1
+        CC_608B_FLD2,               // Extract/insert EIA608B field 2
+        CC_708B                     // Extract/insert EIA708B
+    };
+
+    // Closed caption capture source
+    enum CcSource 
+    {
+        CS_NONE,                    // Closed captions not used
+        CS_VANC,                    // Closed caption data taken from VANC
+        CS_WAVEFORM,                // For SD only: Decode waveform in line 21
+        CS_ALL                      // Either VANC or line 21
+    };
+
+    // VBI format
+    enum VbiFormat 
+    {
+        VBI_MSB,                    // VBI input in MSB
+        VBI_LSB                     // VBI input in LSB
+    };
+
+    // Parameters
+    AfdBarMode  m_AfdBarMode;       // AFD/BAR insertion mode
+    CcMode  m_CcMode;               // Closed caption extraction and processing mode
+    CcSource  m_CcSource;           // Closed caption source
+    VbiFormat  m_VbiFormat;         // VBI input in MSB or LSB
+    bool  m_VideoIndex;             // Enable/disable video index processing
+    bool  m_Vitc;                   // Enable/disable VITC
+
+    // Public methods
+    DtEncResult  CheckValidity() const;
+    DTAPI_RESULT  SetDefaultPars();
+    DTAPI_RESULT  SetEncType(int EncType);
+
+    // Constructor, destructor, operators
+    DtEncAncPars(int EncType=-1);
+    bool  operator == (const DtEncAncPars&) const;
+    bool  operator != (const DtEncAncPars&) const;
+};
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ AUDIO ENCODING PARAMETERS +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudParsStdBase -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// Base class for encoding parameters specific to an audio encoding standard.
+//
+class DtEncAudParsStdBase : public DtEncParsBase
+{
+public:
+    // Public methods
+    virtual DtEncResult  CheckValidity() const = 0;
+    virtual DTAPI_RESULT  SetDefaultPars() = 0;
+    virtual  DTAPI_RESULT  SetEncType(int EncType) 
+                                            { return DtEncParsBase::SetEncType(EncType); }
+    // Undocumented public methods for DTAPI-internal usage
+    void  SetAudSvcParsPtr(class DtEncAudPars* pSvcPars) { m_pSvcPars = pSvcPars; }
+
+    // Constructor / Destructor
+    DtEncAudParsStdBase(int EncType=-1) : DtEncParsBase(EncType), m_pSvcPars(NULL) {}
+    virtual ~DtEncAudParsStdBase() {}
+
+protected:
+    // Pointer back to DtEncAudPars, so that e.g m_Bitrate can be accessed
+    class DtEncAudPars*  m_pSvcPars;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudParsAac -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// AAC audio encoding parameters
+//
+class DtEncAudParsAac : public DtEncAudParsStdBase
+{
+public:
+    // AAC container format
+    enum AacFmt
+    {
+        CF_ADTS,                    // Audio Data Transport Stream (ADTS) format
+        CF_LATM                     // Low Overhead Audio Transport Multiplex (LATM)
+    };
+
+    // AAC container format
+    enum AacProfile
+    {
+        AAC_LC,                     // Low Complexity profile (AAC-LC)
+        AAC_HE,                     // High Efficiency profile (HE-AAC)
+        AAC_HEv2                    // High Efficiency version 2 profile (HE-AAC)
+    };
+
+    // AAC version
+    enum AacVersion
+    {
+        AAC_MP4,                    // MPEG-4 AAC
+        AAC_MP2                     // MPEG-2 AAC
+    };
+
+    // AAC parameters
+    AacFmt  m_ContainerFormat;      // Container format: CF_ADTS or CF_LATM
+    AacProfile  m_Profile;          // Encoder profile 
+    bool  m_Crc;                    // Add CRC to data packets 
+    AacVersion  m_Version;          // MPEG-2 or MPEG-4 AAC
+    bool  m_LowLoad;                // Use low-load encoding algorithm 
+
+    // Public methods
+    DtEncResult  CheckValidity() const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  SetDefaultPars();
+    
+    // Constructor, destructor
+    DtEncAudParsAac(int EncType=-1);
+    bool  operator == (const DtEncAudParsAac&) const;
+    bool  operator != (const DtEncAudParsAac&) const;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudParsAc3 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// AC-3 audio encoding parameters
+//
+class DtEncAudParsAc3 : public DtEncAudParsStdBase
+{
+public:
+    bool  m_LfeOn;                  // Enable Low Frequency Effect (LFE) channel
+    bool  m_LfeLpfOn;               // Enable LFE lowpass filter
+    bool  m_DynRangeCtrl1;          // Enable normal compression
+    bool  m_DynRangeCtrl2;          // Enable secondary compression
+    bool  m_SurDelay;               // Enable surround channel delay
+    int  m_DialNorm;                // Dialog normalization
+    bool  m_HpFOn;                  // Enable DC filter
+    int  m_CompChar;                // Global compression profile
+    int  m_DComp;                   // Line mode profile
+    int  m_D2Comp;                  // Line mode profile for second channel
+    int  m_CComp;                   // RF mode profile
+    int  m_C2Comp;                  // RF mode profile for second channel
+    bool  m_RfPremphOn;             // Enable digital deemphasis
+    bool  m_BwLpfOn;                // Enable bandwidth filter
+    bool  m_Sur90On;                // Enable 90-degree phase shift for surround
+    bool  m_XbsiE;                  // Enabled extended bitstream information
+    int  m_DHeadPhonMod;            // Dolby headphone mode
+    int  m_AdConvTyp;               // A/D converter type
+    int  m_MixLevel;                // Mixing level
+    bool  m_CopyrightB;             // Copyright flag
+    bool  m_OrigBs;                 // Original bitstream flag
+    int  m_BsMod;                   // Bitstream mode
+    int  m_RoomTyp;                 // Room type
+    int  m_DSurMod;                 // Dolby surround mode
+    bool  m_AdvDrc;                 // Enable advanced DRC
+    int  m_CMixLev;                 // Center mix level
+    int  m_SurMixLev;               // Surround mix level
+    int  m_DMixMod;                 // Preferred stereo downmix mode
+    int  m_LtrtCMixLev;             // Lt/Rt center mix level
+    int  m_LtrtSurMixLev;           // Lt/Rt surround mix level
+    int  m_LoroCMixLev;             // Lo/Ro center mix level
+    int  m_LoroSurMixLev;           // Lo/Ro surround mix level
+    int  m_DSurExMod;               // Dolby surround EX mode
+    bool  m_SurAtton;               // 3dB surround attenuation flag
+    bool  m_AudProdIE;              // Audio production info exists
+
+    // Public methods
+    DtEncResult  CheckValidity() const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  SetDefaultPars();
+    
+    // Constructor, destructor
+    DtEncAudParsAc3(int EncType=-1);
+    bool  operator == (const DtEncAudParsAc3&) const;
+    bool  operator != (const DtEncAudParsAc3&) const;
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudParsMp1LII -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// MPEG-1 layer II audio encoding parameters
+//
+class DtEncAudParsMp1LII : public DtEncAudParsStdBase
+{
+public:
+    // MPEG 1 layer II parameters
+    bool  m_Crc;                    // Add CRC to data packets 
+
+    // Public methods
+    DtEncResult  CheckValidity() const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  SetDefaultPars();
+    
+    // Constructor, destructor
+    DtEncAudParsMp1LII(int EncType=-1);
+    bool  operator == (const DtEncAudParsMp1LII&) const;
+    bool  operator != (const DtEncAudParsMp1LII&) const;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudParsPcm -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// PCM direct mapping into MPEG-2 transport stream according to SMPTE 302M
+//
+class DtEncAudParsPcm : public DtEncAudParsStdBase
+{
+public:
+    // PCM mapping parameters
+    int  m_BitPerSample;            // #bits per sample: 16, 20 or 24 
+
+    // Public methods
+    DtEncResult  CheckValidity() const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  SetDefaultPars();
+    
+    // Constructor, destructor
+    DtEncAudParsPcm(int EncType=-1);
+    bool  operator == (const DtEncAudParsPcm&) const;
+    bool  operator != (const DtEncAudParsPcm&) const;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncAudPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Class for specifying the encoding parameters for a single audio service.
+// It consists of:
+//  - Parameters specifying the audio channels (forming the audio service) to encode
+//  - Audio encoding parameters for this audio service
+//
+class DtEncAudPars : public DtEncParsBase
+{
+public:
+    // Audio service type
+    enum AudServiceType
+    {
+        SVC_DUAL_MONO,              // Dual mono
+        SVC_MONO,                   // Mono
+        SVC_PASSTHROUGH,            // Pass-through mode
+        SVC_STEREO,                 // Stereo
+        SVC_SURROUND_5_1            // 5.1 surround
+    };
+
+    bool  m_Enable;                 // Enable/disable this instance of DtEncAudPars.
+                                    // If disabled, all remaining parameters are ignored.
+
+    // Audio input configuration
+    std::vector<int>  m_AudChans;   // Audio channels (left+right stream of audio samples)
+                                    // included in the audio service
+
+    // Generic (standard-independent) audio-encoding parameters
+    int  m_Bitrate;                 // Bitrate of encoded audio service
+    int  m_Delay;                   // Audio delay in milliseconds
+    int  m_SampleRate;              // Sample rate: 32000, 44100, 48000
+
+    // Advanced generic audio-encoding parameters
+    bool  m_AlignedPes;             // Enable aligned PES
+    bool  m_VolumeAdjust;           // Enable volume adjustment
+    double  m_VolumeAdjustdB;       // Volume adjustment in dB
+
+public:
+     // Public methods
+    DtEncResult  CheckValidity(int SourcePort=-1) const;
+    DtAudEncStd  GetAudEncStd() const { return m_AudEncStd; }
+    AudServiceType  GetSvcType() const { return m_SvcType; }
+    DTAPI_RESULT  SetAudEncStd(DtAudEncStd, AudServiceType);
+    DTAPI_RESULT  SetEncType(int EncType);  
+    int  TpRate(int FrameRate) const;
+
+    // Methods to get a pointer to the encoding parameters for a specific audio
+    // encoding standard
+    DtEncAudParsAac*  Aac() const;
+    DtEncAudParsAc3*  Ac3() const;
+    DtEncAudParsMp1LII*  Mp1LII() const;
+    DtEncAudParsPcm*  Pcm() const;
+
+    // pParsAudEncStd() can be used for calling generic methods that are independent
+    // of the current Audio encoding standard.
+    DtEncAudParsStdBase*  ParsForAudEncStd() const { return m_pPars; }
+
+    // Undocumented public methods for DTAPI-internal usage
+    int  ReqNumLicPoints() const;
+    DTAPI_RESULT  SetDefaultPars(DtAudEncStd, AudServiceType);
+    DTAPI_RESULT  SetDefaultCommonPars(DtAudEncStd);
+
+    // Constructor, destructor, operators
+    DtEncAudPars(int EncType=-1);
+    DtEncAudPars(const DtEncAudPars&);
+    virtual ~DtEncAudPars();
+    DtEncAudPars&  operator = (const DtEncAudPars&);
+    bool  operator == (const DtEncAudPars&) const;
+    bool  operator != (const DtEncAudPars&) const;
+
+private:
+    DtAudEncStd  m_AudEncStd;       // Audio encoding standard
+    AudServiceType  m_SvcType;      // Service type: SVC_STEREO, ...
+    DtEncAudParsStdBase*  m_pPars;  // Audio encoding parameters, specific to AAC, AC-3, 
+                                    // AES, MPEG-2 audio
+};
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ MULTIPLEXER PARAMETERS +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncMuxPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Multiplexing parameters for encoders
+//
+class DtEncMuxPars : public DtEncParsBase
+{
+public:
+    // Elementary stream parameters
+    struct EsPars
+    {
+        int  m_Pid;                 // PID of the elementary stream; if disabled: -1
+        int  m_StreamId;            // Stream ID of the elementary stream
+        
+        // Operators
+        EsPars&  operator = (const EsPars&);
+        bool  operator == (const EsPars&) const;
+        bool  operator != (const EsPars&) const;
+
+        // Constructor
+        EsPars(int Pid=-1, int StreamId=-1) : m_Pid(Pid), m_StreamId(StreamId) {}
+    };
+
+    // Overall (elementary-stream independent) parameters
+    int  m_Bitrate;                 // Transport stream output bitrate
+    int  m_TsId;                    // Transport stream ID
+
+    // Elementary stream parameters: PIDs and stream IDs
+    int  m_PcrPid;                  // PCR PID
+    int  m_PmtPid;                  // PMT PID
+    EsPars  m_VidEsPars;            // Elementary stream parameters for encoded video
+
+    // Elementary stream parameters (PID, stream ID) for encoded audio.
+    // This vector gets sized in SetEncType.
+    std::vector<EsPars>  m_AudEsPars;
+
+    // Scheduling intervals
+    int  m_PatInterval;             // PAT interval in ms
+    int  m_PmtInterval;             // PMT interval in ms
+    int  m_PcrInterval;             // PCR interval in ms
+
+    // Methods
+    DtEncResult  CheckValidity(bool SkipRateChecks=false) const;
+    int  NumAudEsPars() const;
+    DTAPI_RESULT  SetEncType(int EncType);
+
+    // Constructor, destructor, operators
+    DtEncMuxPars(int EncType=-1);
+    DtEncMuxPars&  operator = (const DtEncMuxPars&);
+    bool  operator == (const DtEncMuxPars&) const;
+    bool  operator != (const DtEncMuxPars&) const;
+};
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ VIDEO ENCODING PARAMETERS +=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+//.-.-.-.-.-.-.-.-.-.- Video encoding parameters - Enumeration types -.-.-.-.-.-.-.-.-.-.-
+
+// Video encoding standard
+enum DtVidEncStd
+{
+    DT_VIDENCSTD_UNKNOWN,           // Unknown or not defined yet
+    DT_VIDENCSTD_MP2V,              // MPEG-2 video
+    DT_VIDENCSTD_H264,              // H.264 (AVC)
+    DT_VIDENCSTD_H265               // H.265 (HEVC)
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncVidParsStdBase -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+//
+// Base class for encoding parameters specific to a video encoding standard.
+// This class is specialized for MPEG-2 video, H.264 and (later on) for H.265.
+//
+class DtEncVidParsStdBase : public DtEncParsBase
+{
+public:
+    DtEncVidParsStdBase(int EncType=-1) : DtEncParsBase(EncType) {}
+    virtual ~DtEncVidParsStdBase() {};
+    virtual DtEncResult  CheckValidity(bool SkipRateChecks=false) const = 0;
+    virtual int  GetVideoBitrate() const { return -1; }
+    virtual int  GetVideoGopNumBPictures() const { return -1; }
+    virtual DTAPI_RESULT  SetEncType(int EncType) 
+                                            { return DtEncParsBase::SetEncType(EncType); }
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncVidParsMp2V -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// MPEG-2 video encoding parameters
+//
+class DtEncVidParsMp2V : public DtEncVidParsStdBase
+{
+public:
+    // MPEG-2 video - Profile
+    enum Mp2VProfile
+    {
+        PROFILE_SIMPLE,             // Simple profile
+        PROFILE_MAIN,               // Main profile
+        PROFILE_HIGH,               // High profile
+        PROFILE_422P                // 422P profile
+    };
+
+    // MPEG-2 video - Level
+    enum Mp2VLevel
+    {
+        LEVEL_AUTO,                 // Automatic
+        LEVEL_HIGH,                 // High level
+        LEVEL_HIGH1440,             // High 1440 level
+        LEVEL_MAIN                  // Main level
+    };
+
+    // Intra-VLC format
+    enum IntraVlcFormat
+    {
+        IV_ALTERNATE,               // Alternate intra-VLC format
+        IV_MPEG1                    // MPEG-1 intra-VLC format
+    };
+
+    // Quantization scale
+    enum QScaleType
+    {
+        QS_LINEAR,                  // Linear quantization scale
+        QS_NONLINEAR                // Non-linear quantization scale
+    };
+
+    // Top-level parameters
+    Mp2VProfile  m_Profile;         // MPEG-2 video profile: PROFILE_MAIN, ...
+    Mp2VLevel  m_Level;             // MPEG-2 video level: LEVEL_MAIN, ...
+    int  m_Bitrate;                 // Bitrate of the encoded video stream
+    int  m_VbvDelayMax;             // Maximum VBV delay in milliseconds
+
+    // GOP related parameters
+    bool  m_ClosedGop;              // If true, use closed GOPs
+    int  m_GopSize;                 // The size of each GOP in frames
+    int  m_GopNumBPictures;         // Number of B pictures (-1=auto)
+
+    // Specialized MPEG-2 video encoding parameters
+    bool  m_AlternateScan;          // Use alternate scan pattern for VLC coefficients
+    int  m_IntraDcPrecision;        // Number of bits used for intra-DC values: 8..11
+    IntraVlcFormat  m_IntraVlcFmt;  // Format to use for intra-vlc: MPEG-1, alternate
+    QScaleType  m_QScaleType;       // Type of quantization scale: linear, non-linear
+    bool  m_LowDelayFlag;           // Set the low delay flag (no B pictures)
+
+    // MPEG-2 video encoding parameters specific to the Magnum D7Pro
+    bool  m_AdaptiveQuantization;   // Enable adaptive quantization
+    int  m_IdrFrequency;            // Frequency of IDRs relative to I frames
+                                    // 0=every I-frame, 1=every 2nd I-frame, etc
+    int  m_QuantizationTable;       // Quantization table to use (0=use Magnum default)
+
+    // Public methods
+    DtEncResult  CheckValidity(bool SkipRateChecks=false) const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    void  SetVidParsPtr(class DtEncVidPars* pVidPars) { m_pVidPars = pVidPars; }
+
+    // Constructor, destructor
+    DtEncVidParsMp2V(int EncType=-1);
+    bool  operator == (const DtEncVidParsMp2V&) const;
+    bool  operator != (const DtEncVidParsMp2V&) const;
+
+private:
+    // Pointer back to top-level video encoding parameters
+    class DtEncVidPars*  m_pVidPars;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncVidParsH264 -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// H.264 video encoding parameters
+//
+class DtEncVidParsH264 : public DtEncVidParsStdBase
+{
+public:
+    // H.264 - Profile
+    enum H264Profile
+    {
+        PROFILE_CONSTRAINED_BASE,   // Constrained Baseline profile
+        PROFILE_MAIN,               // Main profile
+        PROFILE_HIGH,               // High profile
+        PROFILE_AVCI50,             // AVC-I 50 profile
+        PROFILE_AVCI100             // AVC-I 100 profile
+    };
+
+    // H.264 - Level
+    enum H264Level
+    {
+        LEVEL_AUTO,                 // Automatic
+        LEVEL_1,                    // Level 1
+        LEVEL_1_1,                  // Level 1.1
+        LEVEL_1_2,                  // Level 1.2
+        LEVEL_1_3,                  // Level 1.3
+        LEVEL_2,                    // Level 2
+        LEVEL_2_1,                  // Level 2.1
+        LEVEL_2_2,                  // Level 2.2
+        LEVEL_3,                    // Level 3
+        LEVEL_3_1,                  // Level 3.1
+        LEVEL_3_2,                  // Level 3.2
+        LEVEL_4,                    // Level 4
+        LEVEL_4_1,                  // Level 4.1
+        LEVEL_4_2,                  // Level 4.2
+        LEVEL_5,                    // Level 5
+        LEVEL_5_1                   // Level 5.1
+    };
+
+    // Generic
+    H264Profile  m_Profile;         // H.264 profile: PROFILE_MAIN, ...
+    H264Level  m_Level;             // H.264 level: LEVEL_1_0, ...
+    int  m_Bitrate;                 // Bitrate of the encoded video stream
+    int  m_VbvDelayMax;             // Maximum VBV delay in milliseconds
+
+    // GOP parameters
+    bool  m_ClosedGop;              // Use closed GOPs
+    int  m_GopSize;                 // GOP size in #frames (-1=auto)
+    int  m_GopNumBPictures;         // Number of B pictures (-1=auto)
+
+    // Specialized H.264 encoding parameters
+    bool  m_8x8Transform;           // Enable 8x8 transforms
+    bool  m_Cabac;                  // Enable CABAC, use CAVLC otherwise
+
+    // H.264 video encoding parameters, specific to the Magnum D7Pro
+
+    // Coding mode
+    enum CodingMode
+    {
+        CM_AUTO,                    // Automatic
+        CM_FRAME,                   // Frame, for progressive content
+        CM_FIELD,                   // Field, for interlaced content
+        CM_MBAFF                    // MBAFF, for interlaced content
+    };
+
+    bool  m_AdaptiveQuantization;   // Enable adaptive quantization
+    bool  m_ChromaScalingList;      // Enable chroma scaling list
+    CodingMode  m_CodingMode;       // Coding mode: CM_FRAME, ... 
+    int  m_IdrFrequency;            // Frequency of IDRs relative to I frames
+                                    // 0=every I-frame, 1=every 2nd I-frame, etc
+    bool  m_IntraScoreAvg;          // Use averaged intra score to compute QP increase
+    int  m_QuantizationTable;       // Quantization table to use (0=use Magnum default)
+    bool  m_WeightedPrediction;     // Enable weighted prediction
+
+    // Public methods
+    DtEncResult  CheckValidity(bool SkipRateChecks=false) const;
+
+    // Undocumented public methods for DTAPI-internal usage
+    void  SetVidParsPtr(class DtEncVidPars* pVidPars) { m_pVidPars = pVidPars; }
+
+    // Constructor, destructor
+    DtEncVidParsH264(int EncType=-1);
+    bool  operator == (const DtEncVidParsH264&) const;
+    bool  operator != (const DtEncVidParsH264&) const;
+
+private:
+    // Pointer back to top-level video encoding parameters
+    class DtEncVidPars*  m_pVidPars;
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncVidPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Top-level video encoding parameters class, consisting of:
+//  - Parameters related to preprocessing of the video, before encoding
+//  - Video encoding parameters
+//
+class DtEncVidPars : public DtEncParsBase
+{
+public:
+    // Image inserted at the encoder input when the input signal is lost
+    enum InpLossImage
+    {
+        IL_BLACKFRAME,              // Black frames
+        IL_COLORBARS                // Color bars
+    };
+
+    // Image inserted at the encoder input when the input signal is lost
+    enum UvSampling
+    {
+        UV_420,                     // 4:2:0
+        UV_422                      // 4:2:2
+    };
+
+    // Video input settings (not related to encoding)
+    DtAspectRatio  m_AspectRatio;   // Aspect ratio: 4x3, 16x9 or 14x9
+    bool  m_Dithering;              // Use dithering to reduce 10-bit input data to 8 bits
+    int  m_HorResolutionRescaled;   // Horizontal resolution after rescaling
+    InpLossImage  m_InpLossImage;   // Image to encode when input sync is lossed: 
+                                    // black frames or color bars
+    bool  m_InvTelecineDetect;      // Enable inverse telecine operation
+    int  m_PixelDepth;              // Number of bits per pixel
+    UvSampling  m_UvSampling;       // Chroma subsampling: 4:2:0 or 4:2:2
+    int  m_VidStd;                  // Video standard: DTAPI_VIDSTD_XXX
+
+    // System parameter, but strongly connected to video encoding parameters
+    int  m_EndToEndDelay;           // End-to-end delay in ms
+
+    // Public methods
+    DtEncResult  CheckValidity(bool SkipRateChecks=false) const;
+    DtVidEncStd  GetVidEncStd() const { return m_VidEncStd; }
+    DtEncResult  SetDefaultsForProfileLevel(DtEncVidParsH264::H264Profile, 
+                                                             DtEncVidParsH264::H264Level);
+    DtEncResult  SetDefaultsForProfileLevel(DtEncVidParsMp2V::Mp2VProfile, 
+                                                             DtEncVidParsMp2V::Mp2VLevel);
+    DTAPI_RESULT  SetEncType(int EncType);
+    DTAPI_RESULT  SetVidEncStd(DtVidEncStd);
+    int  TpRate(int PcrInterval) const;
+
+    static DTAPI_RESULT  Es2TpRate(int PcrInterval, int VidStd, int EsRate, int& TpRate);
+    static DTAPI_RESULT  Tp2EsRate(int PcrInterval, int VidStd, int TpRate, int& EsRate);
+
+    // Methods to get a pointer to the encoding parameters for the selected video
+    // encoding standard.
+    DtEncVidParsH264*  H264() const;// H.264 video encoding parameters
+    DtEncVidParsMp2V*  Mp2V() const;// MPEG-2 video encoding parameters
+    
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  SetDefaultCommonPars(int VidStd);
+    DTAPI_RESULT  SetDefaultPars(DtVidEncStd, int VidStd, bool ApplyVidEncStd);
+    // pParsVidEncStd() can be used for calling generic methods that are independent
+    // of the current video encoding standard.
+    DtEncVidParsStdBase*  ParsForVidEncStd();
+
+    // Constructor, destructor, operators
+    DtEncVidPars(int EncType=-1);
+    DtEncVidPars(const DtEncVidPars&);
+    virtual ~DtEncVidPars();
+    DtEncVidPars&  operator = (const DtEncVidPars&);
+    bool  operator == (const DtEncVidPars&) const;
+    bool  operator != (const DtEncVidPars&) const;
+
+private:
+    DtVidEncStd  m_VidEncStd;       // Video encoding standard
+    DtEncVidParsStdBase*  m_pPars;  // Video encoding parameters, specific to MPEG-2
+                                    // video, H.264, H.265
+    DTAPI_RESULT  SetDefaultPars(); // Set default encoding parameters for 1080i50, H.264
+};
+
+
+
+//=+=+=+=+=+=+=+=+=+=+=+=+=+ TOP-LEVEL ENCODER CONTROL CLASSES +=+=+=+=+=+=+=+=+=+=+=+=+=+
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncPars -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Top-level class for representing encoding parameters.
+//
+class DtEncPars : public DtEncParsBase
+{
+public:
+    int  m_SourcePort;              // Physical port number of encoder source
+                                    // DTA-2180: 1=SDI 2=HDMI
+    DtEncAncPars  m_AncPars;        // Ancillary encoding/embedding parameters
+    DtEncMuxPars  m_MuxPars;        // Multiplexing/"system" parameters
+    DtEncVidPars  m_VidPars;        // Video encoding parameters
+
+    // Audio encoding parameters per audio service. This vector gets sized in SetEncType.
+    std::vector<DtEncAudPars>  m_AudPars;
+   
+    // Methods
+    DtEncResult  CheckValidity(bool SkipRateChecks=false) const;
+    int  MinTsRate() const;
+    int  NumAudPars() const;
+    DTAPI_RESULT  ReqNumLicPoints(DtAudEncStd, int& NumPoints) const;
+    DTAPI_RESULT  SetEncType(int EncType);
+    DTAPI_RESULT  SetVidEncDefaultPars(DtVidEncStd, int VidStd);
+
+    static DTAPI_RESULT  IsSeamless(const DtEncPars&, const DtEncPars&, bool& Seamless);
+
+    // Constructor, destructor, operators
+    DtEncPars(int EncType=-1);
+    DtEncPars(const DtEncPars&);
+    virtual ~DtEncPars();
+    DtEncPars&  operator = (const DtEncPars&);
+    bool  operator == (const DtEncPars&) const;
+    bool  operator != (const DtEncPars&) const;
+       
+    // Serialisation
+    DTAPI_RESULT  FromXml(const std::wstring&); 
+    DTAPI_RESULT  ToXml(std::wstring&);
+};
+
+//-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- DtEncControl -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-
+//
+// Top-level class for controlling encoder hardware.
+// This version of the DTAPI supports the DTA-2180 only.
+//
+class DtEncControl
+{
+public:
+    // The 'control state' of the underlying encoder hardware and/or firmware
+    enum OpState
+    {
+        OS_BOOTING,                 // Encoder is booting
+        OS_INIT,                    // Encoder is initializing
+        OS_IDLE,                    // Encoder is initialized, but not encoding
+        OS_RUN,                     // Encoder is running
+        OS_ERROR,                   // Encoder is in an error state 
+        OS_FAN_FAIL,                // Fan is failing
+        OS_NO_POWER                 // Power is not connected to the encoder
+    };
+
+    // Public members
+    DtHwFuncDesc  m_HwFuncDesc;     // Hardware function descriptor
+
+    // Public methods
+    DTAPI_RESULT  GetEncPars(DtEncPars&);
+    DTAPI_RESULT  GetOperationalState(OpState&);
+    DTAPI_RESULT  GetSourcePort(int& Port);
+    DTAPI_RESULT  IsSeamless(const DtEncPars&, bool& Seamless);
+    DTAPI_RESULT  Reboot();
+    DTAPI_RESULT  SetEncPars(const DtEncPars&);
+    DTAPI_RESULT  SetOperationalState(const OpState&);
+    DTAPI_RESULT  WaitForInitialized(int TimeOut);
+
+    // General member functions for top-level hardware abstraction classes
+    DTAPI_RESULT  AttachToPort(DtDevice*, int Port, bool ProbeOnly=false);
+    DTAPI_RESULT  Detach();
+    DTAPI_RESULT  GetDescriptor(DtHwFuncDesc&);
+    DTAPI_RESULT  GetIoConfig(int Group, int& Value);
+    DTAPI_RESULT  GetIoConfig(int Group, int& Value, int& SubValue);
+    DTAPI_RESULT  GetIoConfig(int Group, int& Value, int& SubValue, __int64& ParXtra0);
+    DTAPI_RESULT  GetIoConfig(int Group, int& Value, int& SubValue,
+                                                    __int64& ParXtra0, __int64& ParXtra1);
+    DTAPI_RESULT  GetStatistics(int Count, DtStatistic*);
+    DTAPI_RESULT  GetStatistic(int Type, int& Statistic);
+    DTAPI_RESULT  GetStatistic(int Type, double& Statistic);
+    DTAPI_RESULT  GetStatistic(int Type, bool& Statistic);
+    DTAPI_RESULT  GetSupportedStatistics(int& Count, DtStatistic*);
+    DTAPI_RESULT  SetIoConfig(int Group, int Value, int SubValue,
+                                                      __int64 ParXtra0, __int64 ParXtra1);
+
+    // Convenience functions
+    int  Category() { return m_HwFuncDesc.m_DvcDesc.m_Category; }
+    int  FirmwareVersion() { return m_HwFuncDesc.m_DvcDesc.m_FirmwareVersion; }
+    bool  IsAttached() { return m_pEnc != NULL; }
+    int  TypeNumber() { return m_HwFuncDesc.m_DvcDesc.m_TypeNumber; }
+    bool  HasCaps(const DtCaps Caps) const { return ((m_HwFuncDesc.m_Flags&Caps)==Caps); }
+
+    // Undocumented public methods for DTAPI-internal usage
+    DTAPI_RESULT  EnableSettingsVerification(bool Enable);
+    DTAPI_RESULT  GetEncVersion(int& Major, int& Minor, int& BugFix, int& Build);
+
+    // Constructor, destructor, operators
+    DtEncControl();
+    virtual ~DtEncControl();
+    // Disable copy assignment by not providing an implementation for the copy constructor
+private:
+    DtEncControl(const DtEncControl&);
+    DtEncControl&  operator = (const DtEncControl&);
+
+    // Encapsulated data
+protected:
+    class EncControl*  m_pEnc;      // Encoder-control implementation object
+    IXpMutex*  m_pMTLock;           // Multi-threading lock for get/control functions
+    void*  m_pDetachLockCount;
+    int  m_Port;
+    bool  m_WantToDetach;
+    
+// Protected internal helper functions
+protected:
+    DTAPI_RESULT  DetachLock();
+    DTAPI_RESULT  DetachUnlock();
+    DTAPI_RESULT  ControlAccessLock();
+    DTAPI_RESULT  ControlAccessUnlock();
+};
+
+//.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.- Global DTAPI Functions -.-.-.-.-.-.-.-.-.-.-.-.-.-.-.-.
+
+DTAPI_RESULT  DtapiCheckDeviceDriverVersion(void);
+DTAPI_RESULT  DtapiCheckDeviceDriverVersion(int DeviceCategory);
+DTAPI_RESULT  DtapiDeviceScan(int NumEntries, int& NumEntriesResult,
+                                         DtDeviceDesc* DvcDescArr, bool InclDteDvcs=false,
+                                         int  ScanOrder=DTAPI_SCANORDER_ORIG);
+DTAPI_RESULT  DtapiDtaPlusDeviceScan(int NumEntries, int& NumEntriesResult,
+                                                         DtDtaPlusDeviceDesc* DvcDescArr);
+DTAPI_RESULT  DtapiDtDeviceDesc2String(DtDeviceDesc* pDvcDesc, int StringType, 
+                                                         char* pString, int StringLength);
+DTAPI_RESULT  DtapiDtDeviceDesc2String(DtDeviceDesc* pDvcDesc, int StringType, 
+                                                      wchar_t* pString, int StringLength);
+DTAPI_RESULT  DtapiDtHwFuncDesc2String(DtHwFuncDesc* pHwFunc, int StringType, 
+                                                         char* pString, int StringLength);
+DTAPI_RESULT  DtapiDtHwFuncDesc2String(DtHwFuncDesc* pHwFunc, int StringType, 
+                                                      wchar_t* pString, int StringLength);
+DTAPI_RESULT  DtapiGetDeviceDriverVersion(int, int&, int&, int&, int&);
+DTAPI_RESULT  DtapiGetDtapiServiceVersion(int&, int&, int&, int&);
+DTAPI_RESULT  DtapiGetVersion(int& Maj, int& Min, int& BugFix, int& Build);
+DTAPI_RESULT  DtapiHwFuncScan(int NumEntries, int& NumEntriesResult,
+                                           DtHwFuncDesc* pHwFuncs, bool InclDteDvcs=false,
+                                           int  ScanOrder=DTAPI_SCANORDER_ORIG);
+DTAPI_RESULT  DtapiPower2Voltage(int dBm, int& dBmV, bool Is50Ohm=false);
+const char*  DtapiResult2Str(DTAPI_RESULT DtapiResult);
+DTAPI_RESULT  DtapiVoltage2Power(int dBmV, int& dBm, bool Is50Ohm=false);
+
+// Callbacks
+DTAPI_RESULT  DtapiRegisterCallback(pDtEventCallback Callback, void* pContext,
+                                                       int EventTypes, void** pId = NULL);
+DTAPI_RESULT  DtapiUnregisterCallback(void* pId);
+
+// IP address conversion
+DTAPI_RESULT  DtapiInitDtIpParsFromIpString(DtIpPars& IpPars,
+                                                  const char* pDstIp, const char* pSrcIp);
+DTAPI_RESULT  DtapiInitDtIpParsFromIpString(DtIpPars& IpPars,
+                                            const wchar_t* pDstIp, const wchar_t* pSrcIp);
+DTAPI_RESULT  DtapiIpAddr2ByteArray(const char* pIpStr, unsigned char* pIpByte,
+                                                                              int& Flags);
+DTAPI_RESULT  DtapiIpAddr2ByteArray(const wchar_t* pIpStr, 
+                                                      unsigned char* pIpByte, int& Flags);
+DTAPI_RESULT  DtapiIpAddr2Str(char* pStr, int Len, unsigned char* pIpAddr);
+DTAPI_RESULT  DtapiIpAddr2Str(wchar_t* pStr, int Len, unsigned char* pIpAddr);
+DTAPI_RESULT  DtapiStr2IpAddr(unsigned char* pIpAddr, const char* pStr);
+DTAPI_RESULT  DtapiStr2IpAddr(unsigned char* pIpAddr, const wchar_t* pStr);
+
+// Legacy
+#define DtapiInitDtTsIpParsFromIpString DtapiInitDtIpParsFromIpString
+
+// Modulator functions
+DTAPI_RESULT  DtapiModPars2Bandwidth(int& ModBandwidth, int& TotalBandwidth,
+                                    int ModType, int ParXtra0, int ParXtra1, int ParXtra2,
+                                    void* pXtraPars, int SymRate);
+DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
+                                                  int ParXtra1, int ParXtra2, int TsRate);
+DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
+                                        int ParXtra1, int ParXtra2, DtFractionInt TsRate);
+DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
+                                 int ParXtra1, int ParXtra2, void* pXtraPars, int TsRate);
+DTAPI_RESULT  DtapiModPars2SymRate(int& SymRate, int ModType, int ParXtra0,
+                       int ParXtra1, int ParXtra2, void* pXtraPars, DtFractionInt TsRate);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, int ModType, int ParXtra0,
+                                            int ParXtra1, int ParXtra2, int SymRate = -1);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, int ModType, int ParXtra0,
+                                            int ParXtra1, int ParXtra2, int SymRate = -1);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbC2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbC2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbS2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbS2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtDvbT2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtDvbT2Pars&, int PlpIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, DtIsdbTmmPars&, int TsIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, DtIsdbTmmPars&, int TsIdx = 0);
+DTAPI_RESULT  DtapiModPars2TsRate(int& TsRate, int ModType, int ParXtra0,
+                                int ParXtra1, int ParXtra2, void* pXtraPars, int SymRate);
+DTAPI_RESULT  DtapiModPars2TsRate(DtFractionInt& TsRate, int ModType, int ParXtra0,
+                                int ParXtra1, int ParXtra2, void* pXtraPars, int SymRate);
+
+// HD-SDI functions
+DTAPI_RESULT  DtapiGetRequiredUsbBandwidth(int VidStd, int RxMode, long long&  Bandwidth);
+DTAPI_RESULT  DtapiGetVidStdInfo(int VidStd, DtVidStdInfo& Info);
+DTAPI_RESULT  DtapiGetVidStdInfo(int VidStd, int  LinkStd, DtVidStdInfo& Info);
+DTAPI_RESULT  DtapiIoStd2VidStd(int Value, int SubValue, int& VidStd);
+DTAPI_RESULT  DtapiVidStd2IoStd(int VidStd, int& Value, int& SubValue);
+DTAPI_RESULT  DtapiVidStd2IoStd(int VidStd, int  LinkStd, int& Value, int& SubValue);
+const char*  DtapiVidStd2Str(int VidStd);
+const char*  DtapiLinkStd2Str(int LinkStd);
+const char*  DtapiMxFrameStatus2Str(DtMxFrameStatus  Status);
 
 } // namespace Dtapi
 
@@ -7229,4 +8639,3 @@ using namespace Dtapi;
 #endif
 
 #endif //#ifndef __DTAPI_H
-
