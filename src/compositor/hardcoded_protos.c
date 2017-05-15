@@ -1346,10 +1346,9 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
-			//not yet ready, cannot compute visibility, assume visible
-			else if (!txh->width || !txh->height) {
-				visible = GF_TRUE;
-			} else {
+			//estimate visibility asap, even if texture not yet ready (we have SRD info): this allows sending stop commands which will 
+			//free inactive decoder HW context
+			else {
 				u32 i, j;
 				u32 nb_visible=0;
 				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
