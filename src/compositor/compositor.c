@@ -966,7 +966,11 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (!compositor) return GF_BAD_PARAM;
 
 	gf_sc_lock(compositor, 1);
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, (scene_graph ? "[Compositor] Attaching new scene\n" : "[Compositor] Detaching scene\n"));
+	if (scene_graph && !compositor->scene) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Attaching new scene\n"));
+	} else if (!scene_graph && compositor->scene) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Detaching scene\n"));
+	}
 
 	if (compositor->audio_renderer && (compositor->scene != scene_graph)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting audio compositor\n"));
@@ -1279,7 +1283,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		sOpt = (compositor->video_out->max_screen_bpp > 8) ? "no" : "yes";
 		gf_cfg_set_key(compositor->user->config, "Compositor", "Output8bit", sOpt);
 	}
-	if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
+	if (compositor->video_out->max_screen_bpp <= 8) {
+		if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
+	} else if (sOpt && !strcmp(sOpt, "forced")) {
+		compositor->output_as_8bit = GF_TRUE;
+	}
 
 	if (compositor->audio_renderer) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "NoResync");
@@ -2528,6 +2536,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		return;
 	}
 
+	compositor->force_late_frame_draw = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
@@ -3228,6 +3237,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		} else {
 			event->message.message = NULL;
 		}
+		break;
+	case GF_EVENT_SYNC_LOST:
+		compositor->force_late_frame_draw = GF_TRUE;
 		break;
 	/*when we process events we don't forward them to the user*/
 	default:
