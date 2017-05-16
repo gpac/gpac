@@ -888,7 +888,7 @@ GF_Err iref_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err iref_Size(GF_Box *s)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 count, i;
 	GF_ItemReferenceBox *ptr = (GF_ItemReferenceBox *)s;
 	if (!s) return GF_BAD_PARAM;
