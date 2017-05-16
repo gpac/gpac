@@ -152,7 +152,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 	u32 sample_rate=0;
 	u32 nb_channels=0;
 	u32 bps=0;
-	u32 atag=0;
+	//u32 atag=0;
 	u32 nal_len=4;
 	u32 width = 0;
 	u32 height = 0;
@@ -189,7 +189,7 @@ static GF_Err isom_create_init_from_mem(const char *fileName, GF_ISOFile *file)
 		}
 		else if (!strncmp(val, "nal=", 4)) nal_len = atoi(val+4);
 		else if (!strncmp(val, "bps=", 4)) bps = atoi(val+4);
-		else if (!strncmp(val, "atag=", 5)) atag = atoi(val+5);
+		//else if (!strncmp(val, "atag=", 5)) atag = atoi(val+5);
 		else if (!strncmp(val, "ch=", 3)) nb_channels = atoi(val+3);
 		else if (!strncmp(val, "srate=", 6)) sample_rate = atoi(val+6);
 		else if (!strncmp(val, "w=", 2)) width = atoi(val+2);
