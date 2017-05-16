@@ -5579,6 +5579,7 @@ restart_period:
 			}
 			if (all_done)
 				break;
+			gf_sleep(1);
 		}
 		
 		dash_global_rate_adaptation(dash, GF_FALSE);
