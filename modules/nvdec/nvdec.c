@@ -875,8 +875,10 @@ static const char *NVDec_GetCodecName(GF_BaseDecoder *dec)
 		return ctx->use_gl_texture ? "NVidia HWGL HEVC" : "NVidia HW HEVC";
 	case cudaVideoCodec_VC1:
 		return ctx->use_gl_texture ? "NVidia HWGL VC1" : "NVidia HW VC1";
+	default:
+		break;
 	}
-	return "NVidia HW unknown decoder";
+	return ctx->use_gl_texture ? "NVidia HWGL unknown decoder" : "NVidia HW unknown decoder";
 }
 
 
