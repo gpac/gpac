@@ -141,6 +141,7 @@ struct __gf_download_session
 	u64 chunk_run_time;
 	u32 bytes_per_sec;
 	u64 start_time_utc;
+	Bool last_chunk_found;
 	Bool connection_close;
 	Bool is_range_continuation;
 	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases)*/
@@ -1396,8 +1397,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		sess->status = GF_NETIO_CONNECTED;
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
-		gf_sk_set_buffer_size(sess->sock, GF_TRUE, GF_DOWNLOAD_BUFFER_SIZE);
-		gf_sk_set_buffer_size(sess->sock, GF_FALSE, GF_DOWNLOAD_BUFFER_SIZE);
+//		gf_sk_set_buffer_size(sess->sock, GF_TRUE, GF_DOWNLOAD_BUFFER_SIZE);
+//		gf_sk_set_buffer_size(sess->sock, GF_FALSE, GF_DOWNLOAD_BUFFER_SIZE);
 	}
 
 #ifdef GPAC_HAS_SSL
@@ -2110,6 +2111,7 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d at UTC "LLD"\n", body_start, 2+strlen(body_start), size, gf_net_get_utc()));
 
 	te_header[0] = '\r';
+	if (!size) sess->last_chunk_found = GF_TRUE;
 	return te_header+2;
 }
 
@@ -2169,7 +2171,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			flush_chunk = GF_TRUE;
 		}
 		/*chunk transfer is done*/
-		if (!nbBytes) {
+		if (sess->last_chunk_found) {
 			sess->total_size = sess->bytes_done;
 		}
 	} else {
@@ -2183,7 +2185,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		sess->init_data_size += nbBytes;
 	}
 
-
+	//we have some new bytes received
 	if (nbBytes && !sess->remaining_data_size) {
 		sess->bytes_done += nbBytes;
 		dm_sess_update_download_rate(sess, GF_TRUE);
@@ -2209,7 +2211,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 
 	}
-
+	//and we're done
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
 		gf_dm_disconnect(sess, GF_FALSE);
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;
@@ -2380,6 +2382,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	assert (sess->status == GF_NETIO_CONNECTED);
 
 	gf_dm_clear_headers(sess);
+
+	assert(sess->remaining_data_size == 0);
 
 	if (sess->needs_cache_reconfig) {
 		gf_dm_configure_cache(sess);
@@ -2818,7 +2822,9 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->start_time_utc = gf_net_get_utc();
 	sess->chunked = GF_FALSE;
 	sess->chunk_run_time = 0;
-
+	sess->last_chunk_found = GF_FALSE;
+	gf_sk_reset(sess->sock);
+	
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {
@@ -2829,6 +2835,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
 				}
+				assert(res==0);
 				return GF_OK;
 			}
 			continue;
@@ -2849,7 +2856,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			}
 			return e;
 		case GF_OK:
-			if (!res) return GF_OK;
+			if (!res)
+				return GF_OK;
 			break;
 		default:
 			goto exit;
