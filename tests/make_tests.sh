@@ -187,6 +187,7 @@ echo "  -warn:                 dump logs after each failed test (used for travis
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
 echo "  -keep-tmp:             keeps tmp folder used in tests (erased by default)"
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -git-hash:             syncs all remote reference hashes from git with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
@@ -219,6 +220,21 @@ cd $HASH_DIR
 wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
 cd "$main_dir"
 }
+
+git_hash ()
+{
+log $L_INF "- Mirroring reference hashes from from github to $HASH_DIR"
+cd $HASH_DIR
+if [ ! -d ".git" ]; then
+  rm -f *
+  git clone https://github.com/gpac/gpac-test-hash.git .
+else
+  git fetch origin
+  git reset --hard origin/master
+fi
+cd "$main_dir"
+}
+
 
 #performs mirroring of media and references hash & videos
 sync_refs ()
@@ -280,6 +296,8 @@ for i in $* ; do
  "-sync-hash")
   sync_hash
   exit;;
+ "-git-hash")
+  git_hash;;
  "-sync-media")
   sync_media;;
  "-sync-refs")
@@ -443,17 +461,19 @@ if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
   MP4Client -run-for 0 2> /dev/null
   res=$?
   if [ $res != 0 ] ; then
+    # to remove when travis is ready to execute playback tests
     MP4CLIENT_NOT_FOUND=1
     echo ""
     log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
     MP4Client -run-for 0
     res=$?
     if [ $res = 0 ] ; then
-      log $L_INF "MP4Client returned $res on second run - enabling all playback tests"
+      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
     else
       echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
       cat $HOME/.gpac/GPAC.cfg
       echo "** End of dump **"
+      MP4CLIENT_NOT_FOUND=1
     fi
   fi
 fi
@@ -1117,14 +1137,16 @@ do_hash_test ()
 
  # for text files, we remove potential CR chars
  # to prevent having different hashes on different platforms
- if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ; then
+ if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ||  [ ${1: -4} == ".svg" ] ; then
   file_to_hash="to_hash_$(basename $1)"
-  tr -d '\r' <  "$1" > "$file_to_hash"
+  if [ -f $1 ]; then
+    tr -d '\r' <  "$1" > "$file_to_hash"
+  fi
  fi
 
  $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subtest
 
- if [ "$file_to_hash" != "$1" ]; then
+ if [ "$file_to_hash" != "$1" ] && [ -f "$file_to_hash" ]; then
   rm "$file_to_hash"
  fi
 
