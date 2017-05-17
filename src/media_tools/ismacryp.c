@@ -936,6 +936,9 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 			char nal_hdr[2];
 			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
+			if (0 == size) {
+				continue;
+			}
 			if (size>max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
 				max_size = size;
