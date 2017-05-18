@@ -1851,6 +1851,9 @@ void gf_es_on_connect(GF_Channel *ch)
 		}
 	}
 
+	if (ch && ch->odm && ch->odm->codec && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
+		ch->odm->codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
+
 	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
 	        ch->esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_EPG) {
 		ch->bypass_sl_and_db = 1;

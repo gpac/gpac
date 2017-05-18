@@ -155,9 +155,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 
 	if (!ch || !ch->esd) return GF_BAD_PARAM;
 
-	if (ch && ch->odm && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
-		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
-
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) config_decio = GF_TRUE;
 	else if (codec->odm->term->bench_mode==2) {
