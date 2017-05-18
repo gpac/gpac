@@ -1801,9 +1801,7 @@ extension = {
 			}
 
             if (stat_obj) {
-                if (m.ntp_diff > stat_obj.ntp_diff) {
-                    stat_obj.ntp_diff = m.ntp_diff;
-                }
+                stat_obj.ntp_diff = m.ntp_diff >= 0 ? m.ntp_diff : m.ntp_diff/1000;
             }        
 
             if (wnd) {
