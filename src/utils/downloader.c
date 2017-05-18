@@ -394,8 +394,10 @@ static Bool init_ssl_lib() {
 	}
 	SSL_library_init();
 	SSL_load_error_strings();
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSLeay_add_all_algorithms();
 	SSLeay_add_ssl_algorithms();
+#endif
 	_ssl_is_initialized = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTPS] Initalization of SSL library complete.\n"));
 	return GF_FALSE;
