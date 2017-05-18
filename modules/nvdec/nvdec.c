@@ -23,6 +23,7 @@
  *
  */
 
+#include <gpac/thread.h>
 #include <gpac/modules/codec.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
@@ -42,36 +43,54 @@ GLDECL_STATIC(glBindBuffer);
 GLDECL_STATIC(glBufferData);
 #endif
 
+typedef struct _nv_dec_inst NVDecInstance;
 
-typedef struct
+typedef struct _nv_dec_ctx
 {
 	GF_ESD *esd;
 	Bool use_gl_texture;
-	u32 width, height, stride, pixel_ar, pix_fmt, out_size, bpp_luma, bpp_chroma;
-	u32 reload_decoder_state;
-	Bool skip_next_frame;
+	u32 width, height, bpp_luma, bpp_chroma;
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
+	
+	u32 pixel_ar, out_size, stride, pix_fmt;
+	u32 reload_decoder_state;
+	Bool skip_next_frame;
 	CUresult decode_error, dec_create_error;
 	Bool frame_size_changed;
 	u32 num_surfaces;
 	Bool needs_resetup;
 	Bool unload_inactive;
+	unsigned long prefer_dec_mode;
 
+	NVDecInstance *dec_inst;
 
 	GF_List *frames;
 	GF_List *frames_res;
-
-	CUdevice  cuda_dev;
-	CUcontext cuda_ctx;
-	CUvideoparser cu_parser;
-	CUvideodecoder cu_decoder;
 
 	struct __nv_frame *pending_frame;
 
 	GLint y_tx_id, uv_tx_id;
 	GLint y_pbo_id, uv_pbo_id;
 } NVDecCtx;
+
+
+struct _nv_dec_inst 
+{
+	u32 width, height, bpp_luma, bpp_chroma, stride, out_size, pix_fmt;
+	cudaVideoCodec codec_type;
+	cudaVideoChromaFormat chroma_fmt;
+	u32 id;
+	u32 th_id;
+
+	//allocated video parser and decoder
+	CUvideoparser cu_parser;
+	CUvideodecoder cu_decoder;
+
+	//current associated context, 0 is none
+	NVDecCtx *ctx;
+};
+
 
 typedef struct __nv_frame
 {
@@ -81,15 +100,22 @@ typedef struct __nv_frame
 	Bool y_mapped, uv_mapped;
 } NVDecFrame;
 
+static GF_List *global_unactive_decoders=NULL;
+static u32 global_nb_loaded_nvdec = 0;
+static u32 global_nb_loaded_decoders = 0;
+static GF_Mutex *global_inst_mutex = NULL;
+static CUdevice  cuda_dev = -1;
+static CUcontext cuda_ctx = NULL;
 
 
 //#define ENABLE_10BIT_OUTPUT
 
-static GF_Err nvdec_init_decoder(GF_MediaDecoder *ifcg, NVDecCtx *ctx)
+static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
 {
-	const char *opt;
 	CUresult res;
 	CUVIDDECODECREATEINFO cuvid_info;
+
+	assert(ctx->dec_inst);
 
 	memset(&cuvid_info, 0, sizeof(CUVIDDECODECREATEINFO));
 	cuvid_info.CodecType = ctx->codec_type;
@@ -112,39 +138,79 @@ static GF_Err nvdec_init_decoder(GF_MediaDecoder *ifcg, NVDecCtx *ctx)
 	cuvid_info.display_area.bottom = ctx->height;
 
     cuvid_info.ulNumOutputSurfaces = 1;
-
-    cuvid_info.ulCreationFlags = cudaVideoCreate_PreferCUVID;
-	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode");
-	if (opt && !stricmp(opt, "dxva")) {
-	    cuvid_info.ulCreationFlags = cudaVideoCreate_PreferDXVA;
-	} else if (opt && !stricmp(opt, "cuda")) {
-	    cuvid_info.ulCreationFlags = cudaVideoCreate_PreferCUDA;
-	} else if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode", "cuvid");
-	}
+	cuvid_info.ulCreationFlags = ctx->prefer_dec_mode;
 
     // create the decoder
-	res = cuvidCreateDecoder(&ctx->cu_decoder, &cuvid_info);
+	res = cuvidCreateDecoder(&ctx->dec_inst->cu_decoder, &cuvid_info);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to create cuvid decoder %s\n", cudaGetErrorEnum(res) ) );
 		ctx->dec_create_error = res;
 		return GF_IO_ERR;
 	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] decoder init OK\n") );
+	global_nb_loaded_decoders++;
+	assert(global_nb_loaded_decoders);
+	ctx->dec_inst->id = global_nb_loaded_decoders;
+	ctx->dec_inst->th_id = gf_th_id();
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] decoder instance %d created (%dx%d) - %d total decoders loaded\n", ctx->dec_inst->id, ctx->width, ctx->height, global_nb_loaded_decoders) );
 
 	return GF_OK;
+}
+
+Bool load_inactive_dec(NVDecCtx *ctx)
+{
+	u32 i, count;
+	//look for unactive decoder with same settings
+	if (global_unactive_decoders) {
+
+		gf_mx_p(global_inst_mutex);
+		count = gf_list_count(global_unactive_decoders);
+		for (i=0; i<count; i++) {
+			NVDecInstance *inst = gf_list_get(global_unactive_decoders, i);
+			if ((inst->width==ctx->width) && (inst->height==ctx->height) && (inst->bpp_luma == ctx->bpp_luma )
+				&& (inst->bpp_chroma == ctx->bpp_chroma ) && (inst->codec_type == ctx->codec_type) && (inst->chroma_fmt == ctx->chroma_fmt )
+				) {
+
+					gf_list_rem(global_unactive_decoders, i);
+					ctx->dec_inst = inst;
+					inst->ctx = ctx;
+					gf_mx_v(global_inst_mutex);
+					return GF_TRUE;
+			}
+		}
+		if (ctx->dec_inst && !ctx->dec_inst->cu_decoder) {
+			ctx->dec_inst->ctx = ctx;
+			gf_mx_v(global_inst_mutex);
+			return GF_FALSE;
+		}
+		ctx->dec_inst = gf_list_pop_back(global_unactive_decoders);
+		gf_mx_v(global_inst_mutex);
+	}
+	if (!ctx->dec_inst) {
+		GF_SAFEALLOC(ctx->dec_inst, NVDecInstance);
+	}
+	ctx->dec_inst->ctx = ctx;
+	return GF_FALSE;
+}
+
+static void nvdec_destroy_decoder(NVDecInstance *inst)
+{
+	if (inst->cu_decoder) {
+		cuvidDestroyDecoder(inst->cu_decoder);
+		inst->cu_decoder = NULL;
+		global_nb_loaded_decoders--;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] decoder instance %d destruction - %d decoders still loaded\n", inst->id, global_nb_loaded_decoders ) );
+	}
 }
 
 static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 {
 	Bool use_10bits=GF_FALSE;
 	Bool skip_output_resize=GF_FALSE;
-	GF_MediaDecoder *ifcg = (GF_MediaDecoder *)pUserData;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
+	NVDecInstance *inst= (NVDecInstance *)pUserData;
+	NVDecCtx *ctx = inst->ctx;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] Video sequence change detected - new setup %u x %u, %u bpp\n", pFormat->coded_width, pFormat->coded_height, pFormat->bit_depth_luma_minus8 + 8) );
-
+	//no change in config
 	if ((ctx->width == pFormat->coded_width) 
 		&& (ctx->height == pFormat->coded_height)
 		&& (ctx->bpp_luma == 8 + pFormat->bit_depth_luma_minus8)
@@ -152,7 +218,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 		&& (ctx->codec_type == pFormat->codec)
 		&& (ctx->chroma_fmt == pFormat->chroma_format)
 	) {
-		if (ctx->cu_decoder)
+		if (ctx->dec_inst && ctx->dec_inst->cu_decoder)
 			return 1;
 		skip_output_resize = GF_TRUE;
 	}
@@ -168,8 +234,28 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->bpp_chroma = 8 + pFormat->bit_depth_chroma_minus8;
 	ctx->codec_type = pFormat->codec;
 	ctx->chroma_fmt = pFormat->chroma_format;
+
+	//if load_inatcive returns TRUE, we are reusing an existing decoder with the same config, no need to recreate one
+	if (load_inactive_dec(ctx)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders) );
+		ctx->out_size = ctx->dec_inst->out_size;
+		ctx->stride = ctx->dec_inst->stride;
+		return GF_OK;
+	}
+	if (!ctx->dec_inst) return GF_OUT_OF_MEM;
+	//if we have an existing decoder but with a different config, let's reload
+	nvdec_destroy_decoder(ctx->dec_inst);
+
+	ctx->dec_inst->width = ctx->width;
+	ctx->dec_inst->height = ctx->height;
+	ctx->dec_inst->bpp_luma = ctx->bpp_luma;
+	ctx->dec_inst->bpp_chroma = ctx->bpp_chroma;
+	ctx->dec_inst->codec_type = ctx->codec_type;
+	ctx->dec_inst->chroma_fmt = ctx->chroma_fmt;
+	ctx->dec_inst->ctx = ctx;
+
+
 	ctx->stride = use_10bits ? 2*ctx->width : ctx->width;
-	
 	switch (ctx->chroma_fmt) {
 	case cudaVideoChromaFormat_420:
 		ctx->pix_fmt = use_10bits ? GF_PIXEL_NV12_10 : GF_PIXEL_NV12;
@@ -187,9 +273,13 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 		ctx->pix_fmt = 0;
 		ctx->out_size = 0;
 	}
+	assert(ctx->out_size);
+	assert(ctx->stride);
+	ctx->dec_inst->stride = ctx->stride;
+	ctx->dec_inst->out_size = ctx->out_size;
 
-	if (! ctx->cu_decoder) {
-		nvdec_init_decoder(ifcg, ctx);
+	if (! ctx->dec_inst->cu_decoder) {
+		nvdec_init_decoder(ctx);
 		if (!skip_output_resize) {
 			ctx->reload_decoder_state = 1;
 		}
@@ -201,12 +291,11 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 
 static int CUDAAPI HandlePictureDecode(void *pUserData, CUVIDPICPARAMS *pPicParams)
 {
-	GF_MediaDecoder *ifcg = (GF_MediaDecoder *)pUserData;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	ctx->decode_error = cuvidDecodePicture(ctx->cu_decoder, pPicParams);
+	NVDecInstance *inst = (NVDecInstance *)pUserData;
+	inst->ctx->decode_error = cuvidDecodePicture(inst->cu_decoder, pPicParams);
 
-	if (ctx->decode_error != CUDA_SUCCESS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to decode picture %s\n", cudaGetErrorEnum(ctx->decode_error) ) );
+	if (inst->ctx->decode_error != CUDA_SUCCESS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] decoder instance %d failed to decode picture %s\n", inst->id, cudaGetErrorEnum(inst->ctx->decode_error) ) );
 		return GF_IO_ERR;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] decoded picture %u OK\n", pPicParams->CurrPicIdx ) );
@@ -218,8 +307,8 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 {
 	u32 i, count;
 	NVDecFrame *f;
-	GF_MediaDecoder *ifcg = (GF_MediaDecoder *)pUserData;
-	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
+	NVDecInstance *inst = (NVDecInstance *)pUserData;
+	NVDecCtx *ctx = (NVDecCtx *)inst->ctx;
 
 	if (pPicParams->timestamp > 0xFFFFFFFF) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] picture %u CTS %u seek flag, discarding\n", pPicParams->picture_index, (u32) (pPicParams->timestamp & 0xFFFFFFFF)) );
@@ -247,61 +336,17 @@ static int CUDAAPI HandlePictureDisplay(void *pUserData, CUVIDPARSERDISPINFO *pP
 	return 1;
 }
 
-static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err NVDec_ConfigureStream(GF_BaseDecoder *ifcg)
 {
-    CUVIDPARSERPARAMS oVideoParserParameters;
 	CUresult res;
-	const char *opt;
+    CUVIDPARSERPARAMS oVideoParserParameters;
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
-	
-	
-	if (!ctx->needs_resetup) {
-		if (ctx->esd) return GF_NOT_SUPPORTED;
-		ctx->esd = esd;
-	}
-	ctx->needs_resetup = GF_FALSE;
-
-
-	if (! ctx->cuda_ctx) {
-	    int major, minor;
-	    char deviceName[256];
-		res = cuDeviceGet(&ctx->cuda_dev, 0);
-		if (res != CUDA_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda device %s\n", cudaGetErrorEnum(res) ) );
-			return GF_IO_ERR;
-		}
-
-		cuDeviceComputeCapability(&major, &minor, ctx->cuda_dev);
-		cuDeviceGetName(deviceName, 256, ctx->cuda_dev);
-
-		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] GPU Device %s (idx 0) has SM %d.%d compute capability\n", deviceName, major, minor));
-
-		if (ctx->use_gl_texture) {
-			res = cuGLCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
-
-#ifdef LOAD_GL_1_5
-			GET_GLFUN(glGenBuffers);
-			GET_GLFUN(glBindBuffer);
-			GET_GLFUN(glBufferData);
-#endif
-
-		} else {
-			res = cuCtxCreate(&ctx->cuda_ctx, CU_CTX_BLOCKING_SYNC, ctx->cuda_dev);
-		}		
-		if (res != CUDA_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda %scontext %s\n", ctx->use_gl_texture ? "OpenGL ": "", cudaGetErrorEnum(res) ) );
-			if (ctx->use_gl_texture) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] check you started the player without compositor thread (-no-cthread option)\n" ) );
-			}
-			return GF_IO_ERR;
-		}
-	}
-
 
 	//create a video parser and a video decoder
     memset(&oVideoParserParameters, 0, sizeof(CUVIDPARSERPARAMS));
+	ctx->needs_resetup = GF_FALSE;
 
-	switch (esd->decoderConfig->objectTypeIndication) {
+	switch (ctx->esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_MPEG1: 
 		ctx->codec_type = cudaVideoCodec_MPEG1;
 		break;
@@ -324,6 +369,86 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		break;
 	}
 
+	if (load_inactive_dec(ctx)) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders ) );
+		ctx->out_size = ctx->dec_inst->out_size;
+		ctx->stride = ctx->dec_inst->stride;
+	}
+	if (!ctx->dec_inst) return GF_OUT_OF_MEM;
+
+	ctx->decode_error = CUDA_SUCCESS;
+
+	oVideoParserParameters.CodecType = ctx->codec_type;
+    oVideoParserParameters.ulMaxNumDecodeSurfaces = ctx->num_surfaces;
+    oVideoParserParameters.ulMaxDisplayDelay = 4;
+	oVideoParserParameters.ulClockRate = 1000;
+    oVideoParserParameters.pExtVideoInfo = NULL;
+    oVideoParserParameters.pfnSequenceCallback = HandleVideoSequence;    // Called before decoding frames and/or whenever there is a format change
+    oVideoParserParameters.pfnDecodePicture = HandlePictureDecode;    // Called when a picture is ready to be decoded (decode order)
+    oVideoParserParameters.pfnDisplayPicture = HandlePictureDisplay;   // Called whenever a picture is ready to be displayed (display order)
+	oVideoParserParameters.pUserData = ctx->dec_inst;
+
+    res = cuCtxPushCurrent(cuda_ctx);
+	if (res != CUDA_SUCCESS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
+	}
+	res = cuvidCreateVideoParser(&ctx->dec_inst->cu_parser, &oVideoParserParameters);
+	cuCtxPopCurrent(NULL);
+
+	if (res != CUDA_SUCCESS) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to create CUVID parserCTX %s\n", cudaGetErrorEnum(res) ) );
+		return GF_PROFILE_NOT_SUPPORTED;
+	}
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] video parser init OK\n") );
+
+	return GF_OK;
+}
+
+static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+{
+	const char *opt;
+	CUresult res;
+	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
+	
+	if (ctx->esd) return GF_NOT_SUPPORTED;
+	ctx->esd = esd;
+
+	if (! cuda_ctx) {
+	    int major, minor;
+	    char deviceName[256];
+		res = cuDeviceGet(&cuda_dev, 0);
+		if (res != CUDA_SUCCESS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda device %s\n", cudaGetErrorEnum(res) ) );
+			return GF_IO_ERR;
+		}
+
+		cuDeviceComputeCapability(&major, &minor, cuda_dev);
+		cuDeviceGetName(deviceName, 256, cuda_dev);
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] GPU Device %s (idx 0) has SM %d.%d compute capability\n", deviceName, major, minor));
+
+		if (ctx->use_gl_texture) {
+			res = cuGLCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
+
+#ifdef LOAD_GL_1_5
+			GET_GLFUN(glGenBuffers);
+			GET_GLFUN(glBindBuffer);
+			GET_GLFUN(glBufferData);
+#endif
+
+		} else {
+			res = cuCtxCreate(&cuda_ctx, CU_CTX_BLOCKING_SYNC, cuda_dev);
+		}		
+		if (res != CUDA_SUCCESS) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to init cuda %scontext %s\n", ctx->use_gl_texture ? "OpenGL ": "", cudaGetErrorEnum(res) ) );
+			if (ctx->use_gl_texture) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[NVDec] check you started the player without compositor thread (-no-cthread option)\n" ) );
+			}
+			return GF_IO_ERR;
+		}
+	}
+
 	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "NumSurfaces");
 	if (!opt) {
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "NumSurfaces", "20");
@@ -338,29 +463,26 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive", "yes");
 	ctx->unload_inactive = (opt && !strcmp(opt, "no")) ? GF_FALSE : GF_TRUE;
 
-	oVideoParserParameters.CodecType = ctx->codec_type;
-    oVideoParserParameters.ulMaxNumDecodeSurfaces = ctx->num_surfaces;
-    oVideoParserParameters.ulMaxDisplayDelay = 4;
-	oVideoParserParameters.ulClockRate = 1000;
-    oVideoParserParameters.pExtVideoInfo = NULL;
-    oVideoParserParameters.pfnSequenceCallback = HandleVideoSequence;    // Called before decoding frames and/or whenever there is a format change
-    oVideoParserParameters.pfnDecodePicture = HandlePictureDecode;    // Called when a picture is ready to be decoded (decode order)
-    oVideoParserParameters.pfnDisplayPicture = HandlePictureDisplay;   // Called whenever a picture is ready to be displayed (display order)
-    oVideoParserParameters.pUserData = ifcg;
-
-    res = cuCtxPushCurrent(ctx->cuda_ctx);
-	if (res != CUDA_SUCCESS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
-	}
-	res = cuvidCreateVideoParser(&ctx->cu_parser, &oVideoParserParameters);
-	cuCtxPopCurrent(NULL);
-
-	if (res != CUDA_SUCCESS) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to create CUVID parserCTX %s\n", cudaGetErrorEnum(res) ) );
-		return GF_PROFILE_NOT_SUPPORTED;
+	if (ctx->unload_inactive) {
+		global_nb_loaded_nvdec++;
+		if (!global_inst_mutex ) global_inst_mutex  = gf_mx_new("NVDecGlobal");
+		gf_mx_p(global_inst_mutex);
+		if (!global_unactive_decoders) global_unactive_decoders = gf_list_new();
+		gf_mx_v(global_inst_mutex);
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] video parser init OK\n") );
+    ctx->prefer_dec_mode = cudaVideoCreate_PreferCUVID;
+	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode");
+	if (opt && !stricmp(opt, "dxva")) {
+	    ctx->prefer_dec_mode = cudaVideoCreate_PreferDXVA;
+	} else if (opt && !stricmp(opt, "cuda")) {
+	    ctx->prefer_dec_mode = cudaVideoCreate_PreferCUDA;
+	} else if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "PreferMode", "cuvid");
+	}
+
+
+	ctx->needs_resetup = GF_TRUE;
 
 	return GF_OK;
 }
@@ -370,6 +492,18 @@ static GF_Err NVDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 	ctx->esd = NULL;
 	ctx->dec_create_error = 0;
+
+	if (ctx->unload_inactive) {
+		global_nb_loaded_nvdec--;
+		if (ctx->dec_inst) {
+			assert(global_unactive_decoders);
+			gf_mx_p(global_inst_mutex);
+			ctx->dec_inst->ctx = NULL;
+			gf_list_add(global_unactive_decoders, ctx->dec_inst);
+			ctx->dec_inst = NULL;
+			gf_mx_v(global_inst_mutex);
+		}
+	}
 	return GF_OK;
 }
 
@@ -459,16 +593,18 @@ static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 				memset(f, 0, sizeof(NVDecFrame));
 				gf_list_add(ctx->frames_res, f);
 			}
-			//destroy decoder
-			if (ctx->cu_decoder) {
-				cuvidDestroyDecoder(ctx->cu_decoder);
-				ctx->cu_decoder = NULL;
+
+			if (ctx->dec_inst) {
+				assert(global_unactive_decoders);
+				gf_mx_p(global_inst_mutex);
+				if (ctx->decode_error) nvdec_destroy_decoder(ctx->dec_inst);
+				ctx->dec_inst->ctx = NULL;
+				gf_list_add(global_unactive_decoders, ctx->dec_inst);
+				ctx->dec_inst = NULL;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d\n", ctx->width, ctx->height ) );
+				gf_mx_v(global_inst_mutex);
 			}
-			//destroy parser
-			if (ctx->cu_parser) {
-				cuvidDestroyVideoParser(ctx->cu_parser);
-				ctx->cu_parser = NULL;
-			}
+
 			ctx->needs_resetup = GF_TRUE;
 			ctx->dec_create_error = CUDA_SUCCESS;
 		}
@@ -496,7 +632,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	NVDecCtx *ctx = (NVDecCtx *)ifcg->privateStack;
 
 	if (ctx->needs_resetup) {
-		NVDec_AttachStream((GF_BaseDecoder*)ifcg, ctx->esd);
+		NVDec_ConfigureStream((GF_BaseDecoder*)ifcg);
 	}
 
 	memset(&cu_pkt, 0, sizeof(CUVIDSOURCEDATAPACKET));
@@ -515,16 +651,18 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	if (mmlevel == GF_CODEC_LEVEL_SEEK) 
 		cu_pkt.timestamp |= 0x1FFFFFFFFUL;
 
-    res = cuCtxPushCurrent(ctx->cuda_ctx);
+	assert(!ctx->dec_inst->th_id || (ctx->dec_inst->th_id == gf_th_id() ) );
+
+    res = cuCtxPushCurrent(cuda_ctx);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
 	}
 	if (ctx->skip_next_frame) {
 		ctx->skip_next_frame = GF_FALSE;
 	} else {
-		res = cuvidParseVideoData(ctx->cu_parser, &cu_pkt);
+		res = cuvidParseVideoData(ctx->dec_inst->cu_parser, &cu_pkt);
 		if (res != CUDA_SUCCESS) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to parse video data CTX %s\n", cudaGetErrorEnum(res) ) );
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] decoder instance %d failed to parse data %s\n", ctx->dec_inst->id, cudaGetErrorEnum(res) ) );
 		}
 	}
 	
@@ -532,10 +670,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	e = GF_OK;
 	if (ctx->reload_decoder_state) {
 		if (ctx->reload_decoder_state==2) {
-			if (ctx->cu_decoder) {
-				cuvidDestroyDecoder(ctx->cu_decoder);
-				ctx->cu_decoder = NULL;
-			}
+			nvdec_destroy_decoder(ctx->dec_inst);
 		} else {
 			ctx->skip_next_frame = GF_TRUE;
 		}
@@ -547,8 +682,8 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 		}
 
 		//need to setup decoder
-		if (! ctx->cu_decoder) {
-			nvdec_init_decoder(ifcg, ctx);
+		if (! ctx->dec_inst->cu_decoder) {
+			nvdec_init_decoder(ctx);
 		}
 		cuCtxPopCurrent(NULL);
 		*outBufferLength = ctx->out_size;
@@ -577,7 +712,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 	params.top_field_first = f->frame_info.top_field_first;
 
 	e = GF_OK;
-	res = cuvidMapVideoFrame(ctx->cu_decoder, f->frame_info.picture_index, &map_mem , &pitch, &params);
+	res = cuvidMapVideoFrame(ctx->dec_inst->cu_decoder, f->frame_info.picture_index, &map_mem , &pitch, &params);
 	if (res == CUDA_SUCCESS) {
         CUDA_MEMCPY2D mcpi;
 		memset(&mcpi, 0, sizeof(CUDA_MEMCPY2D));
@@ -610,7 +745,7 @@ static GF_Err NVDec_ProcessData(GF_MediaDecoder *ifcg,
 				*CTS = (u32) f->frame_info.timestamp;
 			}
 		}
-		cuvidUnmapVideoFrame(ctx->cu_decoder, map_mem);
+		cuvidUnmapVideoFrame(ctx->dec_inst->cu_decoder, map_mem);
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map video frame data %s\n", cudaGetErrorEnum(res) ) );
 		e = GF_IO_ERR;
@@ -646,7 +781,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 
 	if (plane_idx>1) return GF_BAD_PARAM;
 	
-	res = cuCtxPushCurrent(ctx->cuda_ctx);
+	res = cuCtxPushCurrent(cuda_ctx);
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to push CUDA CTX %s\n", cudaGetErrorEnum(res) ) );
 	}
@@ -731,7 +866,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 	params.progressive_frame = f->frame_info.progressive_frame;
 	//params.second_field = 0;
 	params.top_field_first = f->frame_info.top_field_first;
-	res = cuvidMapVideoFrame(ctx->cu_decoder, f->frame_info.picture_index, &vid_data, &vid_pitch, &params);
+	res = cuvidMapVideoFrame(ctx->dec_inst->cu_decoder, f->frame_info.picture_index, &vid_data, &vid_pitch, &params);
 	
 	if (res != CUDA_SUCCESS) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[NVDec] failed to map decoded picture data %s\n", cudaGetErrorEnum(res) ) );
@@ -763,7 +898,7 @@ GF_Err NVDecFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *
 		e = GF_IO_ERR;
 	}
 
-	cuvidUnmapVideoFrame(ctx->cu_decoder, vid_data);
+	cuvidUnmapVideoFrame(ctx->dec_inst->cu_decoder, vid_data);
 	cuGLUnmapBufferObject(pbo_id);
 
 
@@ -951,13 +1086,29 @@ void DeleteNVDec(GF_BaseDecoder *ifcg)
 {
 	NVDecCtx *ctx= (NVDecCtx *)ifcg->privateStack;
 
-	if (ctx->cu_decoder) cuvidDestroyDecoder(ctx->cu_decoder);
-	if (ctx->cu_parser) cuvidDestroyVideoParser(ctx->cu_parser);
-	if (ctx->cuda_ctx) cuCtxDestroy(ctx->cuda_ctx);
+	if (!global_nb_loaded_nvdec && global_unactive_decoders) {
+		while (gf_list_count(global_unactive_decoders)) {
+			NVDecInstance *inst = gf_list_pop_back(global_unactive_decoders);
+			nvdec_destroy_decoder(inst);
+			if (inst->cu_parser) cuvidDestroyVideoParser(inst->cu_parser);
+			gf_free(inst);
+		}
+		gf_list_del(global_unactive_decoders);
+
+		gf_mx_del(global_inst_mutex);
+	}
+
+	if (ctx->dec_inst) {
+		nvdec_destroy_decoder(ctx->dec_inst);
+		if (ctx->dec_inst->cu_parser) cuvidDestroyVideoParser(ctx->dec_inst->cu_parser);
+		gf_free(ctx->dec_inst);
+	}
 
 	assert(nb_cuvid_inst);
 	nb_cuvid_inst--;
 	if (!nb_cuvid_inst) {
+		if (cuda_ctx) cuCtxDestroy(cuda_ctx);
+		cuda_ctx = NULL;
 		cuUninit();
 		cuvid_load_state = 0;
 	}
