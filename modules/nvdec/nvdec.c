@@ -60,7 +60,7 @@ typedef struct _nv_dec_ctx
 	Bool frame_size_changed;
 	u32 num_surfaces;
 	Bool needs_resetup;
-	Bool unload_inactive;
+	u32 unload_inactive_mode;
 	unsigned long prefer_dec_mode;
 
 	NVDecInstance *dec_inst;
@@ -77,7 +77,7 @@ typedef struct _nv_dec_ctx
 
 struct _nv_dec_inst 
 {
-	u32 width, height, bpp_luma, bpp_chroma, stride, out_size, pix_fmt;
+	u32 width, height, bpp_luma, bpp_chroma, stride;
 	cudaVideoCodec codec_type;
 	cudaVideoChromaFormat chroma_fmt;
 	u32 id;
@@ -152,7 +152,6 @@ static GF_Err nvdec_init_decoder(NVDecCtx *ctx)
 	ctx->dec_inst->id = global_nb_loaded_decoders;
 	ctx->dec_inst->th_id = gf_th_id();
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] decoder instance %d created (%dx%d) - %d total decoders loaded\n", ctx->dec_inst->id, ctx->width, ctx->height, global_nb_loaded_decoders) );
-
 	return GF_OK;
 }
 
@@ -182,7 +181,19 @@ Bool load_inactive_dec(NVDecCtx *ctx)
 			gf_mx_v(global_inst_mutex);
 			return GF_FALSE;
 		}
-		ctx->dec_inst = gf_list_pop_back(global_unactive_decoders);
+		if (ctx->dec_inst) {
+			NVDecInstance *inst = ctx->dec_inst;
+			if ((inst->width==ctx->width) && (inst->height==ctx->height) && (inst->bpp_luma == ctx->bpp_luma )
+				&& (inst->bpp_chroma == ctx->bpp_chroma ) && (inst->codec_type == ctx->codec_type) && (inst->chroma_fmt == ctx->chroma_fmt )
+				) {
+				ctx->dec_inst = inst;
+				inst->ctx = ctx;
+				gf_mx_v(global_inst_mutex);
+				return GF_TRUE;
+			}
+		} else {
+			ctx->dec_inst = gf_list_pop_back(global_unactive_decoders);
+		}
 		gf_mx_v(global_inst_mutex);
 	}
 	if (!ctx->dec_inst) {
@@ -202,6 +213,27 @@ static void nvdec_destroy_decoder(NVDecInstance *inst)
 	}
 }
 
+static void update_pix_fmt(NVDecCtx *ctx, Bool use_10bits)
+{
+	switch (ctx->chroma_fmt) {
+	case cudaVideoChromaFormat_420:
+		ctx->pix_fmt = use_10bits ? GF_PIXEL_NV12_10 : GF_PIXEL_NV12;
+		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+		break;
+	case cudaVideoChromaFormat_422:
+		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
+		ctx->out_size = ctx->stride * ctx->height * 2;
+		break;
+	case cudaVideoChromaFormat_444:
+		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
+		ctx->out_size = ctx->stride * ctx->height * 3;
+		break;
+	default:
+		ctx->pix_fmt = 0;
+		ctx->out_size = 0;
+	}
+}
+
 static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 {
 	Bool use_10bits=GF_FALSE;
@@ -209,7 +241,7 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	NVDecInstance *inst= (NVDecInstance *)pUserData;
 	NVDecCtx *ctx = inst->ctx;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[NVDec] Video sequence change detected - new setup %u x %u, %u bpp\n", pFormat->coded_width, pFormat->coded_height, pFormat->bit_depth_luma_minus8 + 8) );
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] Decoder instance %d Video sequence change detected - new setup %u x %u, %u bpp\n", inst->id, pFormat->coded_width, pFormat->coded_height, pFormat->bit_depth_luma_minus8 + 8) );
 	//no change in config
 	if ((ctx->width == pFormat->coded_width) 
 		&& (ctx->height == pFormat->coded_height)
@@ -238,8 +270,11 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	//if load_inatcive returns TRUE, we are reusing an existing decoder with the same config, no need to recreate one
 	if (load_inactive_dec(ctx)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders) );
-		ctx->out_size = ctx->dec_inst->out_size;
 		ctx->stride = ctx->dec_inst->stride;
+		//initial config, need to trigger output resize
+		if (!ctx->out_size) ctx->reload_decoder_state = 1;
+
+		update_pix_fmt(ctx, use_10bits);
 		return GF_OK;
 	}
 	if (!ctx->dec_inst) return GF_OUT_OF_MEM;
@@ -253,30 +288,13 @@ static int CUDAAPI HandleVideoSequence(void *pUserData, CUVIDEOFORMAT *pFormat)
 	ctx->dec_inst->codec_type = ctx->codec_type;
 	ctx->dec_inst->chroma_fmt = ctx->chroma_fmt;
 	ctx->dec_inst->ctx = ctx;
-
-
 	ctx->stride = use_10bits ? 2*ctx->width : ctx->width;
-	switch (ctx->chroma_fmt) {
-	case cudaVideoChromaFormat_420:
-		ctx->pix_fmt = use_10bits ? GF_PIXEL_NV12_10 : GF_PIXEL_NV12;
-		ctx->out_size = ctx->stride * ctx->height * 3 / 2;
-		break;
-	case cudaVideoChromaFormat_422:
-		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV422_10 : GF_PIXEL_YUV422;
-		ctx->out_size = ctx->stride * ctx->height * 2;
-		break;
-	case cudaVideoChromaFormat_444:
-		ctx->pix_fmt = use_10bits  ? GF_PIXEL_YUV444_10 : GF_PIXEL_YUV444;
-		ctx->out_size = ctx->stride * ctx->height * 3;
-		break;
-	default:
-		ctx->pix_fmt = 0;
-		ctx->out_size = 0;
-	}
+
+	update_pix_fmt(ctx, use_10bits);
+
 	assert(ctx->out_size);
 	assert(ctx->stride);
 	ctx->dec_inst->stride = ctx->stride;
-	ctx->dec_inst->out_size = ctx->out_size;
 
 	if (! ctx->dec_inst->cu_decoder) {
 		nvdec_init_decoder(ctx);
@@ -371,7 +389,6 @@ static GF_Err NVDec_ConfigureStream(GF_BaseDecoder *ifcg)
 
 	if (load_inactive_dec(ctx)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] reusing inactive decoder %dx%d - %d total decoders loaded\n", ctx->width, ctx->height, global_nb_loaded_decoders ) );
-		ctx->out_size = ctx->dec_inst->out_size;
 		ctx->stride = ctx->dec_inst->stride;
 	}
 	if (!ctx->dec_inst) return GF_OUT_OF_MEM;
@@ -459,11 +476,15 @@ static GF_Err NVDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 
 	opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive");
-	if (!opt) 
-		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive", "yes");
-	ctx->unload_inactive = (opt && !strcmp(opt, "no")) ? GF_FALSE : GF_TRUE;
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)ifcg, "NVDec", "UnloadInactive", "no");
+	} else if (!strcmp(opt, "destroy")) {
+		ctx->unload_inactive_mode = 1;
+	} else if (!strcmp(opt, "reuse")) {
+		ctx->unload_inactive_mode = 2;
+	}
 
-	if (ctx->unload_inactive) {
+	if (ctx->unload_inactive_mode == 2) {
 		global_nb_loaded_nvdec++;
 		if (!global_inst_mutex ) global_inst_mutex  = gf_mx_new("NVDecGlobal");
 		gf_mx_p(global_inst_mutex);
@@ -493,7 +514,7 @@ static GF_Err NVDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 	ctx->esd = NULL;
 	ctx->dec_create_error = 0;
 
-	if (ctx->unload_inactive) {
+	if (ctx->unload_inactive_mode == 2) {
 		global_nb_loaded_nvdec--;
 		if (ctx->dec_inst) {
 			assert(global_unactive_decoders);
@@ -587,24 +608,32 @@ static GF_Err NVDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability cap
 		return GF_OK;
 
 	case GF_CODEC_ABORT:
-		if (ctx->unload_inactive) {
-			while (gf_list_count(ctx->frames)) {
-				NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
-				memset(f, 0, sizeof(NVDecFrame));
-				gf_list_add(ctx->frames_res, f);
-			}
-
+		while (gf_list_count(ctx->frames)) {
+			NVDecFrame *f = (NVDecFrame *) gf_list_pop_back(ctx->frames);
+			memset(f, 0, sizeof(NVDecFrame));
+			gf_list_add(ctx->frames_res, f);
+		}
+		if (ctx->unload_inactive_mode == 2) {
 			if (ctx->dec_inst) {
 				assert(global_unactive_decoders);
 				gf_mx_p(global_inst_mutex);
-				if (ctx->decode_error) nvdec_destroy_decoder(ctx->dec_inst);
+				if (ctx->decode_error) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d and destroying instance\n", ctx->width, ctx->height ) );
+					nvdec_destroy_decoder(ctx->dec_inst);
+				} else {
+					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d\n", ctx->width, ctx->height ) );
+				}
 				ctx->dec_inst->ctx = NULL;
 				gf_list_add(global_unactive_decoders, ctx->dec_inst);
 				ctx->dec_inst = NULL;
-				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[NVDec] deactivating decoder %dx%d\n", ctx->width, ctx->height ) );
 				gf_mx_v(global_inst_mutex);
 			}
-
+			ctx->needs_resetup = GF_TRUE;
+			ctx->dec_create_error = CUDA_SUCCESS;
+		} else if (ctx->unload_inactive_mode == 1) {
+			if (ctx->dec_inst) {
+				nvdec_destroy_decoder(ctx->dec_inst);
+			}
 			ctx->needs_resetup = GF_TRUE;
 			ctx->dec_create_error = CUDA_SUCCESS;
 		}
