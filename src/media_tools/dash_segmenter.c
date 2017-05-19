@@ -1566,6 +1566,7 @@ restart_fragmentation_pass:
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
+		u32 ref_SAP_type = 0;
 #ifdef GENERATE_VIRTUAL_REP_SRD
 		if (dash_input->virtual_representation)
 			break;
@@ -1775,8 +1776,6 @@ restart_fragmentation_pass:
 					}
 				}
 
-				if (SAP_type > max_sap_type) max_sap_type = SAP_type;
-
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
@@ -1936,6 +1935,8 @@ restart_fragmentation_pass:
 					gf_isom_sample_del(&sample);
 					sample = next = NULL;
 
+					ref_SAP_type = SAP_type;
+
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
 						Double f_dur = (Double)( tf->FragmentLength ) * dash_cfg->dash_scale / tf->TimeScale;
@@ -2001,6 +2002,10 @@ restart_fragmentation_pass:
 			//don't update min_seg_dur if this is the last segment
 			if (!min_seg_dur || (!flush_all_samples && (min_seg_dur>SegmentDuration)))
 				min_seg_dur = SegmentDuration;
+
+			//remember max sap type at start of segment
+			if (ref_SAP_type > max_sap_type)
+				max_sap_type = ref_SAP_type;
 
 			if (max_seg_dur < SegmentDuration)
 				max_seg_dur = SegmentDuration;
