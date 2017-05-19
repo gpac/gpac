@@ -655,6 +655,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (!compositor) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroying\n"));
+	compositor->discard_input_events = GF_TRUE;
 	gf_sc_lock(compositor, GF_TRUE);
 
 	if (compositor->VisualThread) {
@@ -3052,7 +3053,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
 	/*not assigned yet*/
-	if (!compositor || !compositor->visual) return GF_FALSE;
+	if (!compositor || !compositor->visual || compositor->discard_input_events) return GF_FALSE;
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
