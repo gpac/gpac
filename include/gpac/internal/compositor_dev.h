@@ -194,6 +194,7 @@ struct __tag_compositor
 	GF_Thread *VisualThread;
 	/*0: not init, 1: running, 2: exit requested, 3: done*/
 	u32 video_th_state;
+	Bool discard_input_events;
 
 	u32 video_th_id;
 
