@@ -1020,9 +1020,9 @@ Sets the number of decoded surface for the decoder. Default is 20.</p>
 <b>DisableGL</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Disables hardware decoder to opengl transfer on GPU (and forces GPU->CPU->GPU memory). Default is no.</p>
-<b>UnloadInactive</b> [value: <i>yes, no</i>]
+<b>UnloadInactive</b> [value: <i>no, destroy, reuse</i>]
 <p style="text-indent: 5%">
-Enables unloading inactive decoders to free GPU resources (usefull for tiling VR). Default is yes.</p>
+Enables unloading inactive decoders to free GPU resources (usefull for tiling VR). <i>no</i> disables unloading, <i>destroy</i> kills the decoder, <i>reuse</i> reassigns the HW decoder to another object (still buggy). Default is no.</p>
 <b>PreferMode</b> [value: <i>cuvid, dxva, cuda</i>]
 <p style="text-indent: 5%">
 Sets prefered mode for harware decoder. cuda should only be used for MPEG-1 and MPEG-2 video. Default is cuvid.</p>
