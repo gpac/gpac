@@ -189,6 +189,7 @@ struct __tag_compositor
 
 	/*all textures (texture handlers)*/
 	GF_List *video_listeners;
+	Bool discard_input_events;
 	u32 video_th_id;
 
 	/*compositor exclusive access to the scene and display*/
