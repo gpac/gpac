@@ -6,6 +6,8 @@ do_test "$MP4BOX -add $EXTERNAL_MEDIA_DIR/counter/counter_30s_I25_baseline_1280x
 
 do_test "$MP4BOX -dash 1000 $TEMP_DIR/file.mp4#video $TEMP_DIR/file.mp4#audio -out $TEMP_DIR/file.mpd" "basic-dash"
 
+do_hash_test $TEMP_DIR/file.mpd "basic-dash-hash"
+
 do_playback_test "$TEMP_DIR/file.mpd" "play-basic-dash"
 
 test_end
