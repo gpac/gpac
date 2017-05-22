@@ -408,9 +408,6 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 #endif
 
 	gf_term_load_shortcuts(term);
-
-	/*reload compositor config*/
-	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
 
 static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
@@ -955,7 +952,7 @@ void gf_term_disconnect(GF_Terminal *term)
 		term->root_scene = NULL;
 	}
 	handle_services = 0;
-	if (term->flags & GF_TERM_NO_DECODER_THREAD)
+	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD)
 		handle_services = 1;
 	/*if an unthreaded term extension decides to disconnect the scene (validator does so), we must flush services now
 	because we are called from gf_term_handle_services*/
@@ -1010,6 +1007,8 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG:
 		gf_term_reload_cfg(term);
+		/*reload compositor config*/
+		gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 		return GF_OK;
 	case GF_OPT_MEDIA_CACHE:
 		gf_term_set_cache_state(term, value);
@@ -1199,6 +1198,9 @@ void gf_term_handle_services(GF_Terminal *term)
 #ifndef GPAC_DISABLE_VRML
 			gf_scene_mpeg4_inline_restart(odm->subscene);
 #endif
+			break;
+		case GF_ODM_ACTION_SETUP:
+			gf_odm_setup_task(odm);
 			break;
 		}
 

@@ -35,6 +35,8 @@
 #include "visual_manager.h"
 #include "texturing.h"
 
+static void gf_sc_recompute_ar(GF_Compositor *compositor, GF_Node *top_node);
+
 #define SC_DEF_WIDTH	320
 #define SC_DEF_HEIGHT	240
 
@@ -514,6 +516,20 @@ static GF_Err gf_sc_create(GF_Compositor *compositor)
 
 	compositor->scene_sampled_clock = 0;
 	compositor->video_th_id = gf_th_id();
+
+	gf_sc_set_option(compositor, GF_OPT_RELOAD_CONFIG, 1);
+	compositor->display_width = 320;
+	compositor->display_height = 240;
+	compositor->recompute_ar = GF_TRUE;
+	compositor->scene_sampled_clock = 0;
+	if (compositor->autoconfig_opengl || compositor->hybrid_opengl)
+		gf_sc_recompute_ar(compositor, NULL);
+
+	/*try to load GL extensions*/
+#ifndef GPAC_DISABLE_3D
+	gf_sc_load_opengl_extensions(compositor, GF_FALSE);
+#endif
+
 	return GF_OK;
 }
 
@@ -629,11 +645,6 @@ GF_Compositor *gf_sc_new(GF_User *user, Bool self_threaded, GF_Terminal *term)
 	if ((tmp->user->init_flags & GF_TERM_NO_REGULATION) || !tmp->VisualThread)
 		tmp->no_regulation = GF_TRUE;
 	
-	/*try to load GL extensions*/
-#ifndef GPAC_DISABLE_3D
-	gf_sc_load_opengl_extensions(tmp, GF_FALSE);
-#endif
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTI, ("[RTI]\tCompositor Cycle Log\tNetworks\tDecoders\tFrame\tDirect Draw\tVisual Config\tEvent\tRoute\tSMIL Timing\tTime node\tTexture\tSMIL Anim\tTraverse setup\tTraverse (and direct Draw)\tTraverse (and direct Draw) without anim\tIndirect Draw\tTraverse And Draw (Indirect or Not)\tFlush\tCycle\n"));
 	return tmp;
 }
@@ -644,6 +655,7 @@ void gf_sc_del(GF_Compositor *compositor)
 	if (!compositor) return;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Destroying\n"));
+	compositor->discard_input_events = GF_TRUE;
 	gf_sc_lock(compositor, GF_TRUE);
 
 	if (compositor->VisualThread) {
@@ -964,7 +976,11 @@ GF_Err gf_sc_set_scene(GF_Compositor *compositor, GF_SceneGraph *scene_graph)
 	if (!compositor) return GF_BAD_PARAM;
 
 	gf_sc_lock(compositor, 1);
-	GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, (scene_graph ? "[Compositor] Attaching new scene\n" : "[Compositor] Detaching scene\n"));
+	if (scene_graph && !compositor->scene) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Attaching new scene\n"));
+	} else if (!scene_graph && compositor->scene) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Detaching scene\n"));
+	}
 
 	if (compositor->audio_renderer && (compositor->scene != scene_graph)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Reseting audio compositor\n"));
@@ -1277,7 +1293,11 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 		sOpt = (compositor->video_out->max_screen_bpp > 8) ? "no" : "yes";
 		gf_cfg_set_key(compositor->user->config, "Compositor", "Output8bit", sOpt);
 	}
-	if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
+	if (compositor->video_out->max_screen_bpp <= 8) {
+		if (sOpt && !strcmp(sOpt, "yes")) compositor->output_as_8bit = GF_TRUE;
+	} else if (sOpt && !strcmp(sOpt, "forced")) {
+		compositor->output_as_8bit = GF_TRUE;
+	}
 
 	if (compositor->audio_renderer) {
 		sOpt = gf_cfg_get_key(compositor->user->config, "Audio", "NoResync");
@@ -1493,6 +1513,15 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 
 	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "ReverseViews");
 	if (sOpt && !strcmp(sOpt, "yes")) compositor->visual->reverse_views = 1;
+
+	compositor->tile_visibility_nb_tests = 30;
+	compositor->tile_visibility_threshold = 0;
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TileVisibilityTest");
+	if (!sOpt || !strstr(sOpt, "-")) {
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TileVisibilityTest", "30-0");
+	} else {
+		sscanf(sOpt, "%u-%u", &compositor->tile_visibility_nb_tests, &compositor->tile_visibility_threshold);
+	}
 
 #endif //GPAC_DISABLE_3D
 
@@ -2469,6 +2498,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		return;
 	}
 
+	compositor->force_late_frame_draw = GF_FALSE;
 
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock() - texture_time;
@@ -3023,7 +3053,7 @@ void gf_sc_traverse_subscene(GF_Compositor *compositor, GF_Node *inline_parent, 
 static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool from_user)
 {
 	/*not assigned yet*/
-	if (!compositor || !compositor->visual) return GF_FALSE;
+	if (!compositor || !compositor->visual || compositor->discard_input_events) return GF_FALSE;
 	/*we're reconfiguring the video output, cancel all messages except GL reconfig (context lost)*/
 	if (compositor->msg_type & GF_SR_IN_RECONFIG) {
 		if (event->type==GF_EVENT_VIDEO_SETUP) {
@@ -3169,6 +3199,9 @@ static Bool gf_sc_on_event_ex(GF_Compositor *compositor , GF_Event *event, Bool 
 		} else {
 			event->message.message = NULL;
 		}
+		break;
+	case GF_EVENT_SYNC_LOST:
+		compositor->force_late_frame_draw = GF_TRUE;
 		break;
 	/*when we process events we don't forward them to the user*/
 	default:

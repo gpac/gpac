@@ -3030,7 +3030,7 @@ GF_Err mdia_Read(GF_Box *s, GF_BitStream *bs)
 	if (!((GF_MediaBox *)s)->information) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaInformationBox\n"));
 		return GF_ISOM_INVALID_FILE;
-	} 
+	}
 	if (!((GF_MediaBox *)s)->handler) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing HandlerBox\n"));
 		return GF_ISOM_INVALID_FILE;
@@ -3753,7 +3753,7 @@ GF_Err moov_Read(GF_Box *s, GF_BitStream *bs)
 		if (!((GF_MovieBox *)s)->mvhd) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MovieHeaderBox\n"));
 			return GF_ISOM_INVALID_FILE;
-		} 
+		}
 	}
 	return e;
 }
@@ -3908,13 +3908,15 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 					gf_bs_del(bs);
 					if (e) return e;
 					ptr->esd = (GF_ESDBox *)a;
+					gf_isom_box_add_for_dump_mode((GF_Box *)ptr, a);
+
 				}
-				gf_isom_box_del(a);
 			}
 			else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s\n!", gf_4cc_to_str(a->type)));
-				return GF_ISOM_INVALID_FILE;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Cannot process box %s\n!", gf_4cc_to_str(a->type)));
 			}
+			gf_isom_box_del(a);
+			return GF_ISOM_INVALID_MEDIA;
 		}
 		break;
 	default:
@@ -5568,6 +5570,9 @@ GF_Err stsd_AddBox(GF_Box *s, GF_Box *a)
 	case GF_ISOM_BOX_TYPE_SBTT:
 	case GF_ISOM_BOX_TYPE_ELNG:
 	case GF_ISOM_BOX_TYPE_MP3:
+	case GF_ISOM_BOX_TYPE_JPEG:
+	case GF_ISOM_BOX_TYPE_JP2K:
+	case GF_ISOM_BOX_TYPE_PNG:
 	case GF_ISOM_SUBTYPE_3GP_AMR:
 	case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
@@ -5598,7 +5603,7 @@ GF_Err stsd_Read(GF_Box *s, GF_BitStream *bs)
 {
 	gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(s, 4)
-	
+
 	return gf_isom_box_array_read(s, bs, stsd_AddBox);
 }
 
@@ -6150,10 +6155,10 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 
 		if (!ptr->entries[i].sampleDelta) {
 			if ((i+1<ptr->nb_entries) ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stss entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] Found stts entry with sample_delta=0 - forbidden ! Fixing to 1\n" ));
 				ptr->entries[i].sampleDelta = 1;
 			} else if (ptr->entries[i].sampleCount>1) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one sample at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] more than one stts entry at the end of the track with sample_delta=0 - forbidden ! Fixing to 1\n" ));
 				ptr->entries[i].sampleDelta = 1;
 			}
 		} else if ((s32) ptr->entries[i].sampleDelta < 0) {
@@ -6814,6 +6819,9 @@ static void gf_isom_check_sample_desc(GF_TrackBox *trak)
 		case GF_ISOM_BOX_TYPE_STPP:
 		case GF_ISOM_BOX_TYPE_SBTT:
 		case GF_ISOM_BOX_TYPE_MP3:
+		case GF_ISOM_BOX_TYPE_JPEG:
+		case GF_ISOM_BOX_TYPE_PNG:
+		case GF_ISOM_BOX_TYPE_JP2K:
 			continue;
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 			break;
@@ -7429,7 +7437,7 @@ GF_Err reftype_Write(GF_Box *s, GF_BitStream *bs)
 	GF_TrackReferenceTypeBox *ptr = (GF_TrackReferenceTypeBox *)s;
 	ptr->type = ptr->reference_type;
 	if (!ptr->trackIDCount) return GF_OK;
-	
+
 	e = gf_isom_box_write_header(s, bs);
 	ptr->type = GF_ISOM_BOX_TYPE_REFT;
 	if (e) return e;
@@ -7815,18 +7823,27 @@ GF_UserDataMap *udta_getEntry(GF_UserDataBox *ptr, u32 box_type, bin128 *uuid)
 GF_Err udta_AddBox(GF_Box *s, GF_Box *a)
 {
 	GF_Err e;
+	u32 box_type;
 	GF_UserDataMap *map;
 	GF_UserDataBox *ptr = (GF_UserDataBox *)s;
 	if (!ptr) return GF_BAD_PARAM;
 	if (!a) return GF_OK;
 
-	map = udta_getEntry(ptr, a->type, (a->type==GF_ISOM_BOX_TYPE_UUID) ? & ((GF_UUIDBox *)a)->uuid : NULL);
+	/* for unknown udta boxes, we reference them by their original box type */
+	box_type = a->type;
+	if (box_type == GF_ISOM_BOX_TYPE_UNKNOWN) {
+		GF_UnknownBox* unkn = (GF_UnknownBox *)a;
+		if (unkn)
+			box_type = unkn->original_4cc;
+	}
+
+	map = udta_getEntry(ptr, box_type, (a->type==GF_ISOM_BOX_TYPE_UUID) ? & ((GF_UUIDBox *)a)->uuid : NULL);
 	if (map == NULL) {
 		map = (GF_UserDataMap *) gf_malloc(sizeof(GF_UserDataMap));
 		if (map == NULL) return GF_OUT_OF_MEM;
 		memset(map, 0, sizeof(GF_UserDataMap));
 
-		map->boxType = a->type;
+		map->boxType = box_type;
 		if (a->type == GF_ISOM_BOX_TYPE_UUID)
 			memcpy(map->uuid, ((GF_UUIDBox *)a)->uuid, 16);
 		map->other_boxes = gf_list_new();
@@ -8070,7 +8087,7 @@ GF_Err sdtp_Read(GF_Box *s, GF_BitStream *bs)
 	/*out-of-order sdtp, assume no padding at the end*/
 	if (!ptr->sampleCount) ptr->sampleCount = (u32) ptr->size;
 	else if (ptr->sampleCount > (u32) ptr->size) return GF_ISOM_INVALID_FILE;
-	
+
 	ptr->sample_info = (u8 *) gf_malloc(sizeof(u8)*ptr->sampleCount);
 	gf_bs_read_data(bs, (char*)ptr->sample_info, ptr->sampleCount);
 	ISOM_DECREASE_SIZE(ptr, ptr->sampleCount);
@@ -8967,7 +8984,7 @@ GF_Err leva_Read(GF_Box *s, GF_BitStream *bs)
 			level->grouping_type_parameter = gf_bs_read_u32(bs);
 		}
 		else if (level->type == 4) {
-			level->sub_track_id = gf_bs_read_u32(bs);			
+			level->sub_track_id = gf_bs_read_u32(bs);
 		}
 	}
 	return GF_OK;
@@ -9414,7 +9431,7 @@ GF_Err sbgp_Size(GF_Box *s)
 
 	p->size += 8;
 	if (p->grouping_type_parameter) p->version=1;
-	
+
 	if (p->version==1) p->size += 4;
 	p->size += 8*p->entry_count;
 	return GF_OK;
@@ -9512,7 +9529,7 @@ static void *sgpd_parse_entry(u32 grouping_type, GF_BitStream *bs, u32 entry_siz
 		}
 		return ptr;
 	}
-		
+
 	case GF_ISOM_SAMPLE_GROUP_TRIF:
 		if (! entry_size) {
 			u32 flags = gf_bs_peek_bits(bs, 24, 0);
@@ -9754,7 +9771,7 @@ GF_Err sgpd_Size(GF_Box *s)
 	//we force all sample groups to version 1, v0 being deprecated
 	p->version=1;
 	p->size += 4;
-	
+
 	if (p->version>=2) p->size += 4;
 	p->default_length = 0;
 
@@ -10386,7 +10403,7 @@ void fpar_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str)
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str)
 {
 	u32 len=10;
 	u32 i=0;
@@ -10395,11 +10412,21 @@ GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **o
 	while (1) {
 		ISOM_DECREASE_SIZE(s, 1 );
 		(*out_str)[i] = gf_bs_read_u8(bs);
-		if (! (*out_str)[i]) break;
+		if (!(*out_str)[i]) break;
 		i++;
 		if (i==len) {
 			len += 10;
 			*out_str = gf_realloc(*out_str, sizeof(char)*len);
+		}
+		if (gf_bs_available(bs) == 0) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] missing null character in null terminated string\n"));
+			(*out_str)[i] = 0;
+			return GF_OK;
+		}
+		if (i >= size) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] string bigger than container, probably missing null character\n"));
+			(*out_str)[i] = 0;
+			return GF_OK;
 		}
 	}
 	return GF_OK;
@@ -10421,7 +10448,7 @@ GF_Err fpar_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->encoding_symbol_length = gf_bs_read_u16(bs);
 	ptr->max_number_of_encoding_symbols = gf_bs_read_u16(bs);
 
-	e = gf_isom_read_null_terminated_string(s, bs, &ptr->scheme_specific_info);
+	e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->scheme_specific_info);
 	if (e) return e;
 
 	ISOM_DECREASE_SIZE(ptr, (ptr->version ? 4 : 2) );
@@ -10671,7 +10698,7 @@ GF_Err gitn_Read(GF_Box *s, GF_BitStream *bs)
 		ISOM_DECREASE_SIZE(ptr, 4);
 		ptr->entries[i].group_id = gf_bs_read_u32(bs);
 
-		e = gf_isom_read_null_terminated_string(s, bs, &ptr->entries[i].name);
+		e = gf_isom_read_null_terminated_string(s, bs, ptr->size, &ptr->entries[i].name);
 		if (e) return e;
 	}
 	return GF_OK;
@@ -11084,7 +11111,7 @@ GF_Err ainf_Read(GF_Box *s,GF_BitStream *bs)
 
 	ISOM_DECREASE_SIZE(s, 4)
 	ptr->profile_version = gf_bs_read_u32(bs);
-	return gf_isom_read_null_terminated_string(s, bs, &ptr->APID);
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->APID);
 }
 
 GF_Box *ainf_New()

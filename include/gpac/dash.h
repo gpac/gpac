@@ -347,6 +347,9 @@ Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 /*get video info for this group if video*/
 GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
 
+/*seek only a given group*/
+void gf_dash_group_seek(GF_DashClient *dash, u32 group_idx, Double seek_to);
+
 /*sets playback speed of the session. Speed is used in adaptation logic*/
 void gf_dash_set_speed(GF_DashClient *dash, Double speed);
 

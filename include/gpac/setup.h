@@ -340,6 +340,10 @@ typedef enum {
 } Bool;
 #endif
 
+typedef struct {
+	s32 num;
+	u32 den;
+} GF_Fraction;
 
 /*GPAC memory tracking*/
 #if defined(GPAC_MEMORY_TRACKING)

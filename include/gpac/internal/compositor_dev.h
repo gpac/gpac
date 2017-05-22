@@ -194,6 +194,7 @@ struct __tag_compositor
 	GF_Thread *VisualThread;
 	/*0: not init, 1: running, 2: exit requested, 3: done*/
 	u32 video_th_state;
+	Bool discard_input_events;
 
 	u32 video_th_id;
 
@@ -211,6 +212,7 @@ struct __tag_compositor
 
 	u32 inherit_type_3d;
 
+	Bool force_late_frame_draw;
 	/*all time nodes registered*/
 	GF_List *time_nodes;
 	/*all textures (texture handlers)*/
@@ -553,6 +555,8 @@ struct __tag_compositor
 	Bool force_type_3d;
 	char *screen_buffer;
 	u32 screen_buffer_alloc_size;
+
+	u32 tile_visibility_nb_tests, tile_visibility_threshold;
 #endif
 
 	Bool texture_from_decoder_memory;
@@ -708,7 +712,10 @@ GF_Err gf_sc_texture_open(GF_TextureHandler *txh, MFURL *url, Bool lock_scene_ti
 GF_Err gf_sc_texture_play(GF_TextureHandler *txh, MFURL *url);
 GF_Err gf_sc_texture_play_from_to(GF_TextureHandler *txh, MFURL *url, Double start_offset, Double end_offset, Bool can_loop, Bool lock_scene_timeline);
 /*stops associated object*/
+void gf_sc_texture_stop_no_unregister(GF_TextureHandler *txh);
+/*stops associated object and unregister it*/
 void gf_sc_texture_stop(GF_TextureHandler *txh);
+
 /*restarts associated object - DO NOT CALL stop/start*/
 void gf_sc_texture_restart(GF_TextureHandler *txh);
 /*common routine for all video texture: fetches a frame and update the 2D texture object */
@@ -972,6 +979,7 @@ struct _traversing_state
 	GF_Plane clip_planes[MAX_USER_CLIP_PLANES];
 	u32 num_clip_planes;
 
+	Bool camera_was_dirty;
 
 	/*layer traversal state:
 		set to the first traversed layer3D when picking

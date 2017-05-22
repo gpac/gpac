@@ -1,6 +1,6 @@
 ;--------------------------------
 ;General
-!define GPAC_VERSION 0.7.0
+!define GPAC_VERSION 0.7.2-DEV
 !include default.out
 
 !define GPAC_ROOT ..\..\..
@@ -447,6 +447,11 @@ Section "OpenHEVC Decoder" SecOHEVC
   File "${GPAC_BIN}\gm_openhevc_dec.dll"
 SectionEnd
 
+Section "NVidia Hardware Decoder" SecNVDEC
+  SectionIn 1
+  File "${GPAC_BIN}\gm_nvdec.dll"
+SectionEnd
+
 Section "MPEG DASH Support" SecDASH
   SectionIn 1
   File "${GPAC_BIN}\gm_mpd_in.dll"
@@ -472,6 +477,11 @@ SectionEnd
 ;  File "..\gm_mobile_ip.dll"
 ;  File "..\MobileSession.dll"
 ;SectionEnd
+
+Section "DekTec output" SecDecTek
+  SectionIn 1
+  File "${GPAC_BIN}\gm_dektec_out.dll"
+SectionEnd
 
 SubSectionEnd
 
@@ -654,11 +664,13 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecXIPH} "Support for XIPP OGG, Vorbis and Theora media"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOSVC} "Support for SVC decoding through OpenSVC Decoder"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOHEVC} "Support for HEVC decoding through OpenHEVC Decoder"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecNVDEC} "Support for hardware decoding through NVidia cuvid"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDASH} "HTTP Streaming using MPEG DASH"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMSE}  "HTTP Streaming using HTML 5 Media Source Extensions"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecUPnP} "Support for UPnP based on Platinum"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"

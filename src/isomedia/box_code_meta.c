@@ -247,7 +247,7 @@ void xml_del(GF_Box *s)
 GF_Err xml_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_XMLBox *ptr = (GF_XMLBox *)s;
-	return gf_isom_read_null_terminated_string(s, bs, &ptr->xml);
+	return gf_isom_read_null_terminated_string(s, bs, s->size, &ptr->xml);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -888,7 +888,7 @@ GF_Err iref_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err iref_Size(GF_Box *s)
 {
-	GF_Err e;
+	GF_Err e = GF_OK;
 	u32 count, i;
 	GF_ItemReferenceBox *ptr = (GF_ItemReferenceBox *)s;
 	if (!s) return GF_BAD_PARAM;

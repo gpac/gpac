@@ -535,7 +535,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 	int retCode;
 #endif
 #ifndef GPAC_DISABLE_LOG
-	const char *mx_holder_name = log_th_name(mx->Holder);
+	const char *mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
 #endif
 	u32 caller;
 	assert(mx);

@@ -96,13 +96,26 @@ typedef struct
 	u32 time_scale;
 	s32 fixed_frame_rate_flag;
 
+	Bool aspect_ratio_info_present_flag;
 	u32 par_num, par_den;
+
+	Bool overscan_info_present_flag;
+	Bool video_signal_type_present_flag;
+	u8 video_format;
+	Bool video_full_range_flag;
+
+	Bool colour_description_present_flag;
+	u8 colour_primaries;
+	u8 transfer_characteristics;
+	u8 matrix_coefficients;
 
 	Bool nal_hrd_parameters_present_flag;
 	Bool vcl_hrd_parameters_present_flag;
+	Bool low_delay_hrd_flag;
 	AVC_HRD hrd;
 
 	Bool pic_struct_present_flag;
+
 	/*to be eventually completed by other vui members*/
 } AVC_VUI;
 
@@ -127,6 +140,9 @@ typedef struct
 	s32 delta_pic_order_always_zero_flag;
 	s32 offset_for_non_ref_pic, offset_for_top_to_bottom_field;
 	Bool frame_mbs_only_flag;
+	Bool mb_adaptive_frame_field_flag;
+	u32 max_num_ref_frames;
+	Bool gaps_in_frame_num_value_allowed_flag;
 	u8 chroma_format;
 	u8 luma_bit_depth_m8;
 	u8 chroma_bit_depth_m8;
@@ -135,6 +151,7 @@ typedef struct
 
 	u32 width, height;
 
+	Bool vui_parameters_present_flag;
 	AVC_VUI vui;
 	AVC_CROP crop;
 
@@ -149,6 +166,7 @@ typedef struct
 {
 	s32 id; /* used to compare pps when storing SVC PSS */
 	s32 sps_id;
+	Bool entropy_coding_mode_flag;
 	s32 pic_order_present;			/* pic_order_present_flag*/
 	s32 redundant_pic_cnt_present;	/* redundant_pic_cnt_present_flag */
 	u32 slice_group_count;			/* num_slice_groups_minus1 + 1*/

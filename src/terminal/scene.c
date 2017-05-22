@@ -1305,7 +1305,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
-	if (scene->is_srd) {
+	if (scene->srd_type) {
 		GF_Node *app = n2;
 		
 		if (scene->vr_type) {
@@ -1475,7 +1475,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 	set_media_url(scene, &scene->audio_url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 
-	if (scene->is_srd) {
+	if (scene->srd_type) {
 		char szName[20], szTex[20], szGeom[20];
 		u32 i, nb_srd = 0, srd_missing = 0;
 		GF_ObjectManager *a_odm;
@@ -2083,7 +2083,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 #ifndef GPAC_DISABLE_VRML
 		scene->force_size_set = GF_TRUE;
-		if (! scene->is_srd) {
+		if (! scene->srd_type) {
 			GF_Node *node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
 			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
 				u32 radius = MAX(width, height) / 2;
@@ -2169,7 +2169,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	} else {
 		gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
 	}
-	if (scene->is_srd)
+	if (scene->srd_type)
 		gf_scene_regenerate(scene);
 
 #ifndef GPAC_DISABLE_VRML
