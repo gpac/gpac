@@ -1177,7 +1177,7 @@ typedef struct __m2ts_mux_stream {
 	Bool start_pes_at_rap, prevent_two_au_start_in_pes;
 
 	struct __elementary_stream_ifce *ifce;
-	Double ts_scale;
+	GF_Fraction ts_scale;
 
 	/*packet fifo*/
 	GF_M2TS_Packet *pck_first, *pck_last;

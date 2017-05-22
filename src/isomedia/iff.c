@@ -668,7 +668,7 @@ GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
 	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)s;
 	GF_Err e;
 
-	e = gf_isom_read_null_terminated_string(s, bs, &p->aux_urn);
+	e = gf_isom_read_null_terminated_string(s, bs, s->size, &p->aux_urn);
 	if (e) return e;
 	p->data_size = (u32) p->size;
 	p->data = gf_malloc(sizeof(char) * p->data_size);

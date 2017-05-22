@@ -771,15 +771,15 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 
 
 /**
-  * Returns a pointer to the start of a filepath extension or null
+  * Returns a pointer to the start of a filepath basename
  **/
 GF_EXPORT
-char* gf_file_ext_start(const char* filename)
+char* gf_file_basename(const char* filename)
 {
-	char* res = NULL;
+	char* lastPathPart = NULL;
 	if (filename) {
 
-		const char* lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
+		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
 		if (GF_PATH_SEPARATOR != '/')
 		{
 			// windows paths can mix slashes and backslashes
@@ -787,16 +787,32 @@ char* gf_file_ext_start(const char* filename)
 			// if it occurs before it's not relevant
 			// if there's no backslashes we search in the whole file path
 
-			const char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+			char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
 			if (trailingSlash)
 				lastPathPart = trailingSlash;
 		}
 		if (!lastPathPart)
-			lastPathPart = filename;
+			lastPathPart = (char *)filename;
 		else
 			lastPathPart++;
 
-		res = strrchr(lastPathPart, '.');
+
+
+	}
+	return lastPathPart;
+}
+
+/**
+  * Returns a pointer to the start of a filepath extension or null
+ **/
+GF_EXPORT
+char* gf_file_ext_start(const char* filename)
+{
+	char* res = NULL;
+	char* basename = gf_file_basename(filename);
+	if (basename) {
+
+		res = strrchr(basename, '.');
 
 	}
 	return res;

@@ -812,6 +812,12 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			com->net_stats.ctrl_bw_up = (u32) bps;
 		}
 		return GF_OK;
+	case GF_NET_CHAN_NALU_MODE:
+		if (com->nalu_mode.extract_mode)
+			ch->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
+		else
+			ch->depacketizer->flags &= ~GF_RTP_AVC_USE_ANNEX_B;
+		return GF_OK;
 	default:
 		break;
 	}

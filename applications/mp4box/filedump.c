@@ -951,7 +951,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	s8 sample_offset;
-	u32 data_offset, idx, data_size;
+	u32 data_offset, data_size;
+	s32 idx;
 	GF_BitStream *bs;
 
 	if (!ptr_size) {
@@ -1113,12 +1114,41 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		idx = gf_media_avc_read_sps(ptr, ptr_size, avc, 0, NULL);
 		assert (idx >= 0);
 		fprintf(dump, "\" sps_id=\"%d", idx);
+		fprintf(dump, "\" frame_mbs_only_flag=\"%d", avc->sps->frame_mbs_only_flag);
+		fprintf(dump, "\" mb_adaptive_frame_field_flag=\"%d", avc->sps->mb_adaptive_frame_field_flag);
+		fprintf(dump, "\" vui_parameters_present_flag=\"%d", avc->sps->vui_parameters_present_flag);
+		fprintf(dump, "\" max_num_ref_frames=\"%d", avc->sps->max_num_ref_frames);
+		fprintf(dump, "\" gaps_in_frame_num_value_allowed_flag=\"%d", avc->sps->gaps_in_frame_num_value_allowed_flag);
+		fprintf(dump, "\" chroma_format_idc=\"%d", avc->sps->chroma_format);
+		fprintf(dump, "\" bit_depth_luma_minus8=\"%d", avc->sps->luma_bit_depth_m8);
+		fprintf(dump, "\" bit_depth_chroma_minus8=\"%d", avc->sps->chroma_bit_depth_m8);
+		fprintf(dump, "\" width=\"%d", avc->sps->width);
+		fprintf(dump, "\" height=\"%d", avc->sps->height);
+		fprintf(dump, "\" crop_top=\"%d", avc->sps->crop.top);
+		fprintf(dump, "\" crop_left=\"%d", avc->sps->crop.left);
+		fprintf(dump, "\" crop_bottom=\"%d", avc->sps->crop.bottom);
+		fprintf(dump, "\" crop_right=\"%d", avc->sps->crop.right);
+		if (avc->sps->vui_parameters_present_flag) {
+			fprintf(dump, "\" vui_video_full_range_flag=\"%d", avc->sps->vui.video_full_range_flag);
+			fprintf(dump, "\" vui_video_signal_type_present_flag=\"%d", avc->sps->vui.video_signal_type_present_flag);
+			fprintf(dump, "\" vui_aspect_ratio_info_present_flag=\"%d", avc->sps->vui.aspect_ratio_info_present_flag);
+			fprintf(dump, "\" vui_aspect_ratio_num=\"%d", avc->sps->vui.par_num);
+			fprintf(dump, "\" vui_aspect_ratio_den=\"%d", avc->sps->vui.par_den);
+			fprintf(dump, "\" vui_overscan_info_present_flag=\"%d", avc->sps->vui.overscan_info_present_flag);
+			fprintf(dump, "\" vui_colour_description_present_flag=\"%d", avc->sps->vui.colour_description_present_flag);
+			fprintf(dump, "\" vui_colour_primaries=\"%d", avc->sps->vui.colour_primaries);
+			fprintf(dump, "\" vui_transfer_characteristics=\"%d", avc->sps->vui.transfer_characteristics);
+			fprintf(dump, "\" vui_matrix_coefficients=\"%d", avc->sps->vui.matrix_coefficients);
+			fprintf(dump, "\" vui_low_delay_hrd_flag=\"%d", avc->sps->vui.low_delay_hrd_flag);
+		}
 		break;
 	case GF_AVC_NALU_PIC_PARAM:
 		fputs("PictureParameterSet", dump);
 		idx = gf_media_avc_read_pps(ptr, ptr_size, avc);
 		assert (idx >= 0);
 		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
+		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
+		
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
 		fputs("AccessUnit delimiter", dump);
@@ -1235,12 +1265,14 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 
 #define DUMP_ARRAY(arr, name, loc)\
 	if (arr) {\
+		fprintf(dump, "  <%sArray location=\"%s\">\n", name, loc);\
 		for (i=0; i<gf_list_count(arr); i++) {\
 			slc = gf_list_get(arr, i);\
-			fprintf(dump, "  <%s location=\"%s\" number=\"%d\" size=\"%d\" ", name, loc, i+1, slc->size);\
+			fprintf(dump, "   <NALU number=\"%d\" size=\"%d\" ", i+1, slc->size);\
 			dump_nalu(dump, slc->data, slc->size, svccfg ? 1 : 0, is_hevc ? &hevc : NULL, &avc, nalh_size);\
 			fprintf(dump, "/>\n");\
 		}\
+		fprintf(dump, "  </%sArray>\n", name);\
 	}\
  
 	nalh_size = 0;
@@ -1248,14 +1280,14 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 	if (avccfg) {
 		nalh_size = avccfg->nal_unit_size;
 
-		DUMP_ARRAY(avccfg->sequenceParameterSets, "AVCSPSArray", "avcC")
-		DUMP_ARRAY(avccfg->pictureParameterSets, "AVCPPSArray", "avcC")
-		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSExArray", "avcC")
+		DUMP_ARRAY(avccfg->sequenceParameterSets, "AVCSPS", "avcC")
+		DUMP_ARRAY(avccfg->pictureParameterSets, "AVCPPS", "avcC")
+		DUMP_ARRAY(avccfg->sequenceParameterSetExtensions, "AVCSPSEx", "avcC")
 	}
 	if (svccfg) {
 		if (!nalh_size) nalh_size = svccfg->nal_unit_size;
-		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPSArray", "svcC")
-		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPSArray", "svcC")
+		DUMP_ARRAY(svccfg->sequenceParameterSets, "SVCSPS", "svcC")
+		DUMP_ARRAY(svccfg->pictureParameterSets, "SVCPPS", "svcC")
 	}
 	if (hevccfg) {
 #ifndef GPAC_DISABLE_HEVC
@@ -1265,13 +1297,13 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 		for (idx=0; idx<gf_list_count(hevccfg->param_array); idx++) {
 			GF_HEVCParamArray *ar = gf_list_get(hevccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCSPSArray", "hvcC")
+				DUMP_ARRAY(ar->nalus, "HEVCSPS", "hvcC")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCPPSArray", "hvcC")
+				DUMP_ARRAY(ar->nalus, "HEVCPPS", "hvcC")
 			} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCVPSArray", "hvcC")
+				DUMP_ARRAY(ar->nalus, "HEVCVPS", "hvcC")
 			} else {
-				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray", "hvcC")
+				DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "hvcC")
 			}
 		}
 #endif
@@ -1284,13 +1316,13 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 		for (idx=0; idx<gf_list_count(lhvccfg->param_array); idx++) {
 			GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, idx);
 			if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCSPSArray", "lhcC")
+				DUMP_ARRAY(ar->nalus, "HEVCSPS", "lhcC")
 			} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCPPSArray", "lhcC")
+				DUMP_ARRAY(ar->nalus, "HEVCPPS", "lhcC")
 			} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-				DUMP_ARRAY(ar->nalus, "HEVCVPSArray", "lhcC")
+				DUMP_ARRAY(ar->nalus, "HEVCVPS", "lhcC")
 			} else {
-				DUMP_ARRAY(ar->nalus, "HEVCUnknownPSArray", "lhcC")
+				DUMP_ARRAY(ar->nalus, "HEVCUnknownPS", "lhcC")
 			}
 		}
 #endif
@@ -1574,8 +1606,6 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	if (e) {
 		fprintf(stderr, "Error dumping ISO structure\n");
 	}
-	if ( gf_isom_get_track_count(file) == 0 )
-		do_track_dump = GF_FALSE;
 
 	if (do_track_dump) {
 		u32 i, j;

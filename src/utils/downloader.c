@@ -138,8 +138,10 @@ struct __gf_download_session
 	u32 flags;
 	u32 total_size, bytes_done, icy_metaint, icy_count, icy_bytes;
 	u64 start_time;
+	u64 chunk_run_time;
 	u32 bytes_per_sec;
 	u64 start_time_utc;
+	Bool last_chunk_found;
 	Bool connection_close;
 	Bool is_range_continuation;
 	/*0: no cache reconfig before next GET request: 1: try to rematch the cache entry: 2: force to create a new cache entry (for byte-range cases)*/
@@ -1003,6 +1005,9 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	else if (sess->status>GF_NETIO_DISCONNECTED)
 		socket_changed = GF_TRUE;
 
+	assert(sess->status != GF_NETIO_WAIT_FOR_REPLY);
+	assert(sess->status != GF_NETIO_DATA_EXCHANGE);
+
 	//strip fragment
 	sep_frag = strchr(url, '#');
 	if (sep_frag) sep_frag[0]=0;
@@ -1097,6 +1102,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	}
 	sess->total_size=0;
 	sess->bytes_done=0;
+	assert(sess->remaining_data_size==0);
 	return sess->last_error;
 }
 
@@ -1391,8 +1397,8 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		sess->status = GF_NETIO_CONNECTED;
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] Connected to %s:%d\n", proxy, proxy_port));
 		gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
-		gf_sk_set_buffer_size(sess->sock, GF_TRUE, GF_DOWNLOAD_BUFFER_SIZE);
-		gf_sk_set_buffer_size(sess->sock, GF_FALSE, GF_DOWNLOAD_BUFFER_SIZE);
+//		gf_sk_set_buffer_size(sess->sock, GF_TRUE, GF_DOWNLOAD_BUFFER_SIZE);
+//		gf_sk_set_buffer_size(sess->sock, GF_FALSE, GF_DOWNLOAD_BUFFER_SIZE);
 	}
 
 #ifdef GPAC_HAS_SSL
@@ -2027,7 +2033,7 @@ static void gf_icy_skip_data(GF_DownloadSession * sess, const char * data, u32 n
 }
 
 
-static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u32 *payload_size, u32 *header_size)
+static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_payload, char *body_start, u32 *payload_size, u32 *header_size)
 {
 	u32 size;
 	s32 res;
@@ -2042,10 +2048,20 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 		} else {
 			*payload_size = sess->nb_left_in_chunk;
 			sess->nb_left_in_chunk = 0;
+			//update chunk download time
+			sess->chunk_run_time += gf_sys_clock_high_res() - sess->start_time;
+			sess->start_time = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk encoding: last bytes in chunk received\n"));
 		}
 		*header_size = 0;
 		return body_start;
+	}
+	//start of a new chunk, update start time
+	if (!sess->start_time) {
+		sess->start_time = gf_sys_clock_high_res();
+		//assume RTT is session reply time, and that chunk transfer started RTT/2 ago
+		if (first_chunk_in_payload && sess->start_time > sess->reply_time/2)
+			sess->start_time -= sess->reply_time/2;
 	}
 
 	if (*payload_size == 2) {
@@ -2095,6 +2111,7 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, char *body_start, u3
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk Start: Header \"%s\" - header size %d - payload size %d at UTC "LLD"\n", body_start, 2+strlen(body_start), size, gf_net_get_utc()));
 
 	te_header[0] = '\r';
+	if (!size) sess->last_chunk_found = GF_TRUE;
 	return te_header+2;
 }
 
@@ -2105,9 +2122,15 @@ static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_
 	if (!always_check && (sess->bytes_done==sess->total_size)) return;
 
 	/*update state*/
-	runtime = (u32) (gf_sys_clock_high_res() - sess->start_time) / 1000;
+	runtime = (u32) (sess->chunk_run_time / 1000);
+	if (sess->start_time) {
+		runtime += (u32) ( (gf_sys_clock_high_res() - sess->start_time) / 1000);
+	}
 	if (!runtime) runtime=1;
+
 	sess->bytes_per_sec = (u32) (1000 * (u64) sess->bytes_done / runtime);
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: runtime %u (chunk runtime %u) ms - bytes %u - rate %u kbps\n", runtime, (u32) (sess->chunk_run_time/1000), sess->bytes_done, sess->bytes_per_sec*8/1000));
 }
 
 
@@ -2115,6 +2138,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 {
 	u32 nbBytes, remaining, hdr_size;
 	u8 *data;
+	Bool first_chunk_in_payload = GF_TRUE;
 	Bool flush_chunk = GF_FALSE;
 	GF_NETIO_Parameter par;
 
@@ -2124,7 +2148,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	if (!payload)
 		return; //nothing to do
 	if (sess->chunked) {
- 		data = (u8 *) gf_dm_get_chunk_data(sess, (char *) payload, &nbBytes, &hdr_size);
+ 		data = (u8 *) gf_dm_get_chunk_data(sess, first_chunk_in_payload, (char *) payload, &nbBytes, &hdr_size);
+		first_chunk_in_payload = GF_FALSE;
 		if (!hdr_size && !data) {
 			/* keep the data and wait for the rest */
 			if (sess->remaining_data) gf_free(sess->remaining_data);
@@ -2146,7 +2171,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 			flush_chunk = GF_TRUE;
 		}
 		/*chunk transfer is done*/
-		if (!nbBytes) {
+		if (sess->last_chunk_found) {
 			sess->total_size = sess->bytes_done;
 		}
 	} else {
@@ -2160,7 +2185,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		sess->init_data_size += nbBytes;
 	}
 
-
+	//we have some new bytes received
 	if (nbBytes && !sess->remaining_data_size) {
 		sess->bytes_done += nbBytes;
 		dm_sess_update_download_rate(sess, GF_TRUE);
@@ -2186,7 +2211,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		}
 
 	}
-
+	//and we're done
 	if (sess->total_size && (sess->bytes_done == sess->total_size)) {
 		gf_dm_disconnect(sess, GF_FALSE);
 		par.msg_type = GF_NETIO_DATA_TRANSFERED;
@@ -2357,6 +2382,8 @@ static GF_Err http_send_headers(GF_DownloadSession *sess, char * sHTTP) {
 	assert (sess->status == GF_NETIO_CONNECTED);
 
 	gf_dm_clear_headers(sess);
+
+	assert(sess->remaining_data_size == 0);
 
 	if (sess->needs_cache_reconfig) {
 		gf_dm_configure_cache(sess);
@@ -2794,7 +2821,10 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->start_time = gf_sys_clock_high_res();
 	sess->start_time_utc = gf_net_get_utc();
 	sess->chunked = GF_FALSE;
-
+	sess->chunk_run_time = 0;
+	sess->last_chunk_found = GF_FALSE;
+	gf_sk_reset(sess->sock);
+	
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {
@@ -2805,6 +2835,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 					sess->status = GF_NETIO_STATE_ERROR;
 					return GF_IP_NETWORK_EMPTY;
 				}
+				assert(res==0);
 				return GF_OK;
 			}
 			continue;
@@ -2825,7 +2856,8 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			}
 			return e;
 		case GF_OK:
-			if (!res) return GF_OK;
+			if (!res)
+				return GF_OK;
 			break;
 		default:
 			goto exit;

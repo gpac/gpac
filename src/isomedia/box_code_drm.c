@@ -1109,7 +1109,7 @@ void piff_psec_del(GF_Box *s)
 
 GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 sample_count;
+	//u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->version = gf_bs_read_u8(bs);
@@ -1127,7 +1127,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->bs_offset = gf_bs_get_position(bs);
 
-	sample_count = gf_bs_read_u32(bs);
+	/*sample_count = */gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 	if (ptr->IV_size != 8 && ptr->IV_size != 16) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] PIFF PSEC box incorrect IV size: %u - shall be 8 or 16\n", ptr->IV_size));

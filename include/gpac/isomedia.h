@@ -1506,6 +1506,8 @@ GF_Err gf_isom_fragment_append_data(GF_ISOFile *the_file, u32 TrackID, char *dat
 /*reset internal info used with fragments and segment. Should be called when seeking (with keep_sample_count=0) or when loading a media segments with the same timing as the previously loaded segment*/
 void gf_isom_reset_fragment_info(GF_ISOFile *movie, Bool keep_sample_count);
 
+void gf_isom_reset_seq_num(GF_ISOFile *movie);
+
 /*return the duration of the movie+fragments if known, 0 if error*/
 u64 gf_isom_get_fragmented_duration(GF_ISOFile *movie);
 /*returns the number of sidx boxes*/

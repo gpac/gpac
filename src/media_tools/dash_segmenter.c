@@ -619,7 +619,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 typedef struct
 {
+	/* indicates if the track under fragmentation is the reference for sidx or prft boxes*/
 	Bool is_ref_track;
+
 	Bool done;
 	u32 TrackID;
 	u32 SampleNum, SampleCount;
@@ -629,6 +631,7 @@ typedef struct
 	u32 TimeScale, MediaType, DefaultDuration;
 	u64 last_sample_cts, next_sample_dts, InitialTSOffset;
 	Bool all_sample_raps, splitable;
+	/* carry of the amount of time of the current sample already used in the previous segment */
 	u32 split_sample_dts_shift;
 	s32 media_time_to_pres_time_shift;
 	u64 min_cts_in_segment;
@@ -771,7 +774,7 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: could not get audio info (2), %s\n", gf_error_to_string(e)));
 		return e;
 	}
-	if (gf_isom_get_media_subtype(movie, trackNumber, StreamDescriptionIndex) != GF_ISOM_BOX_TYPE_MP4A)
+	if (gf_isom_get_media_subtype(movie, trackNumber, StreamDescriptionIndex) != GF_ISOM_SUBTYPE_MPEG4)
 		return GF_OK;
 
 	esd = gf_isom_get_esd(movie, trackNumber, 1);
@@ -784,12 +787,46 @@ static GF_Err isom_get_audio_info_with_m4a_sbr_ps(GF_ISOFile *movie, u32 trackNu
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("DASH input: corrupted AAC Config, %s\n", gf_error_to_string(e)));
 		return GF_NOT_SUPPORTED;
 	}
-	if (a_cfg.has_sbr) {
+	if (SampleRate && a_cfg.has_sbr) {
 		*SampleRate = a_cfg.sbr_sr;
 	}
+	if (Channels) *Channels = a_cfg.nb_chan;
 	gf_odf_desc_del((GF_Descriptor*)esd);
 	return e;
 }
+
+
+static u32 cicp_get_channel_config(u32 nb_chan,u32 nb_surr, u32 nb_lfe)
+{
+	if ( !nb_chan && !nb_surr && !nb_lfe) return 0;
+	else if ((nb_chan==1) && !nb_surr && !nb_lfe) return 1;
+	else if ((nb_chan==2) && !nb_surr && !nb_lfe) return 2;
+	else if ((nb_chan==3) && !nb_surr && !nb_lfe) return 3;
+	else if ((nb_chan==3) && (nb_surr==1) && !nb_lfe) return 4;
+	else if ((nb_chan==3) && (nb_surr==2) && !nb_lfe) return 5;
+	else if ((nb_chan==3) && (nb_surr==2) && (nb_lfe==1)) return 6;
+	else if ((nb_chan==5) && (nb_surr==0) && (nb_lfe==1)) return 6;
+
+	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 7;
+	else if ((nb_chan==2) && (nb_surr==1) && !nb_lfe) return 9;
+	else if ((nb_chan==2) && (nb_surr==2) && !nb_lfe) return 10;
+	else if ((nb_chan==3) && (nb_surr==3) && (nb_lfe==1)) return 11;
+	else if ((nb_chan==3) && (nb_surr==4) && (nb_lfe==1)) return 12;
+	else if ((nb_chan==11) && (nb_surr==11) && (nb_lfe==2)) return 13;
+	else if ((nb_chan==5) && (nb_surr==2) && (nb_lfe==1)) return 14;
+	else if ((nb_chan==5) && (nb_surr==5) && (nb_lfe==2)) return 15;
+	else if ((nb_chan==5) && (nb_surr==4) && (nb_lfe==1)) return 16;
+	else if ((nb_surr==5) && (nb_lfe==1) && (nb_chan==6)) return 17;
+	else if ((nb_surr==7) && (nb_lfe==1) && (nb_chan==6)) return 18;
+	else if ((nb_chan==5) && (nb_surr==6) && (nb_lfe==1)) return 19;
+	else if ((nb_chan==7) && (nb_surr==6) && (nb_lfe==1)) return 20;
+
+	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("Unkown CICP mapping for channel config %d/%d.%d\n", nb_chan, nb_surr, nb_lfe));
+	return 0;
+
+}
+
+
 
 static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_file, GF_DASHSegmenter *dash_cfg, GF_DashSegInput *dash_input, Bool first_in_set)
 {
@@ -810,7 +847,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	Double segment_start_time, SegmentDuration, maxFragDurationOverSegment;
 	u64 presentationTimeOffset = 0;
 	Double file_duration, max_segment_duration;
-	u32 nb_segments, width, height, sample_rate, nb_channels, sar_w, sar_h, fps_num, fps_denum, startNumber;
+	u32 nb_segments, width, height, sample_rate, nb_channels, nb_surround, nb_lfe, sar_w, sar_h, fps_num, fps_denum, startNumber;
 	u32 nbFragmentInSegment = 0;
 	char *langCode = NULL;
 	u32 index_start_range, index_end_range;
@@ -1053,7 +1090,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	tf = tfref = NULL;
 	file_duration = 0;
-	width = height = sample_rate = nb_channels = sar_w = sar_h = fps_num = fps_denum = 0;
+	width = height = sample_rate = nb_channels = nb_surround = nb_lfe = sar_w = sar_h = fps_num = fps_denum = 0;
 	langCode = NULL;
 
 
@@ -1175,6 +1212,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			max_track_duration = (Double) gf_isom_get_track_duration(input, i+1);
 		}
 
+		/* We set the reference track (for use in the sidx or prft) to be the track that has the greatest number of sync samples,
+		  but not all of them. E.g. in audio+video we want the video to be used
+		  if for all tracks all samples are sync, we will pick anyone (see below)
+		  NOTE: This might be problematic if the file has multiple video tracks that are not sync sample aligned */
 		if (gf_isom_get_sync_point_count(input, i+1)>nb_sync) {
 			tfref = tf;
 			nb_sync = gf_isom_get_sync_point_count(input, i+1);
@@ -1305,11 +1346,28 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 			break;
 		case GF_ISOM_MEDIA_AUDIO:
 			//DASH-IF and MPEG disagree here:
-			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND) {
+			if (dash_cfg->profile == GF_DASH_PROFILE_AVC264_LIVE || dash_cfg->profile == GF_DASH_PROFILE_AVC264_ONDEMAND)
+			{
 				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, &_sr, &_nb_ch, NULL);
-			} else {
-				gf_isom_get_audio_info(input, i+1, 1, &_sr, &_nb_ch, NULL);
 			}
+			else {
+				isom_get_audio_info_with_m4a_sbr_ps(input, i+1, 1, NULL, &_nb_ch, NULL);
+			}
+#ifndef GPAC_DISABLE_AV_PARSERS
+			if (gf_isom_get_media_subtype(input, i+1, 1)==GF_ISOM_SUBTYPE_AC3) {
+				GF_AC3Config *ac3 = gf_isom_ac3_config_get(input, i+1, 1);
+				if (ac3) {
+					int i;
+					nb_lfe = ac3->streams[0].lfon ? 1 : 0;
+					_nb_ch = gf_ac3_get_channels(ac3->streams[0].acmod);
+					for (i=0; i<ac3->streams[0].nb_dep_sub; ++i) {
+						assert(ac3->streams[0].nb_dep_sub == 1);
+						_nb_ch += gf_ac3_get_channels(ac3->streams[0].chan_loc);
+					}
+					gf_free(ac3);
+				}
+			}
+#endif
 			if (_sr>sample_rate) sample_rate = _sr;
 			if (_nb_ch>nb_channels) nb_channels = _nb_ch;
 			gf_isom_get_media_language(input, i+1, &langCode);
@@ -1346,7 +1404,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (gf_list_count(fragmenters)>1)
 		mpd_timescale = 1000;
 
+	/* Finalize the selection of the reference track for sidx computations */	  
 	if (!tfref) {
+		/* if we did not find a track in which all samples are not sync samples, we pick the first track to be the reference */
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
 		assert(tfref);
 	} else {
@@ -1354,13 +1414,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		gf_list_del_item(fragmenters, tfref);
 		gf_list_insert(fragmenters, tfref, 0);
 	}
-
 	tfref->is_ref_track = GF_TRUE;
 	tfref_timescale = tfref->TimeScale;
 	ref_track_id = tfref->TrackID;
 	if (tfref->all_sample_raps)
 		split_seg_at_rap = GF_TRUE;
-
 
 	if (!dash_moov_setup) {
 		max_track_duration /= gf_isom_get_timescale(input);
@@ -1508,6 +1566,7 @@ restart_fragmentation_pass:
 
 	while ( (count = gf_list_count(fragmenters)) ) {
 		Bool store_pssh = GF_FALSE;
+		u32 ref_SAP_type = 0;
 #ifdef GENERATE_VIRTUAL_REP_SRD
 		if (dash_input->virtual_representation)
 			break;
@@ -1559,7 +1618,7 @@ restart_fragmentation_pass:
 				if (dash_cfg->pssh_moof)
 					store_pssh = GF_TRUE;
 
-				if (tfref && dash_cfg->insert_utc) {
+				if (tfref /* tfref set to NULL after its last sample is processed */ && dash_cfg->insert_utc) {
 					store_utc = GF_TRUE;
 				}
 			}
@@ -1572,12 +1631,12 @@ restart_fragmentation_pass:
 
 		sample = NULL;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d\n", SegmentName, nbFragmentInSegment));
 		if (simulation_pass) {
 			segments_info[nb_segments_info-1] ++;
 			e = GF_OK;
 		} else {
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d\n", SegmentName, nbFragmentInSegment));
 			e = gf_isom_start_fragment(output, GF_TRUE);
 			if (e) goto err_exit;
 
@@ -1592,6 +1651,7 @@ restart_fragmentation_pass:
 				} else {
 					tf->start_tfdt = tf->InitialTSOffset + tf->next_sample_dts;
 				}
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d, tfdt "LLD" on TrackID %d\n", SegmentName, nbFragmentInSegment, tf->start_tfdt, tf->TrackID));
 				gf_isom_set_traf_base_media_decode_time(output, tf->TrackID, tf->start_tfdt);
 				if (!SegmentDuration) tf->min_cts_in_segment = (u64)-1;
 
@@ -1600,7 +1660,6 @@ restart_fragmentation_pass:
 				e = gf_isom_clone_pssh(output, input, GF_TRUE);
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, starting fragment %d track processing\n", SegmentName, nbFragmentInSegment));
 
 		//process track by track
 		for (i=0; i<count; i++) {
@@ -1625,7 +1684,7 @@ restart_fragmentation_pass:
 				Bool is_redundant_sample = GF_FALSE;
 				u32 split_sample_duration = 0;
 
-				/*first sample*/
+				/*first sample in the fragment */
 				if (!sample) {
 					sample = gf_isom_get_sample(input, tf->OriginalTrack, tf->SampleNum + 1, &descIndex);
 					if (!sample) {
@@ -1634,6 +1693,7 @@ restart_fragmentation_pass:
 					}
 
 					/*FIXME - use negative ctts to indicate "past" DTS for splitted sample*/
+					/* take into account the possible split of the last sample in the previous fragment */
 					if (tf->split_sample_dts_shift) {
 						sample->DTS += tf->split_sample_dts_shift;
 						is_redundant_sample = GF_TRUE;
@@ -1662,6 +1722,9 @@ restart_fragmentation_pass:
 				}
 
 				if (tf->splitable) {
+					/* Evaluate if we need to split the current sample 
+					(if it goes beyond the segment boundary,
+					we do not split a sample if it exceeds the fragment boundary) */
 					if (tf->is_ref_track) {
 						u64 frag_dur = (tf->FragmentLength + defaultDuration) * dash_cfg->dash_scale / tf->TimeScale;
 						/*if media segment about to be produced is longer than max segment length, force segment split*/
@@ -1670,12 +1733,15 @@ restart_fragmentation_pass:
 							defaultDuration = (u32) (tf->TimeScale * (MaxSegmentDuration - SegmentDuration) / dash_cfg->dash_scale - tf->FragmentLength);
 							assert(defaultDuration);
 							split_sample_duration -= defaultDuration;
+
+							/*since we split this sample we have to stop fragmenting afterwards*/
+							stop_frag = GF_TRUE;
 							nb_samp++;
 						}
-					} else if (tfref /* tfref set to NULL after the last sample of tfref is processed */
-					           /*&& next do not split if no next sample */
-
-					           /*next sample DTS */
+					} else if (tfref 
+					           /* we split the sample not at the "perfect" segment boundary 
+							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any) 
+							   there may not be a reference track anymore if all samples have been used */
 					           && ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
 						defaultDuration = (u32) ( (tfref->next_sample_dts * tf->TimeScale)/tfref_timescale - tf->next_sample_dts );
@@ -1710,8 +1776,6 @@ restart_fragmentation_pass:
 					}
 				}
 
-				if (SAP_type > max_sap_type) max_sap_type = SAP_type;
-
 				if (simulation_pass) {
 					e = GF_OK;
 				} else {
@@ -1731,6 +1795,8 @@ restart_fragmentation_pass:
 					                                defaultDuration, NbBits, 0, is_redundant_sample);
 					if (e)
 						goto err_exit;
+
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d, current fragment length %d, adding sample with DTS %d from TrackID %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength, sample->DTS, tf->TrackID));
 
 					if (sample->DTS + sample->CTS_Offset < tf->min_cts_in_segment)
 						tf->min_cts_in_segment = sample->DTS + sample->CTS_Offset;
@@ -1779,10 +1845,7 @@ restart_fragmentation_pass:
 
 				if (next && SAP_type) {
 					if (tf->is_ref_track) {
-						if (split_sample_duration) {
-							stop_frag = GF_TRUE;
-						}
-						else if (split_seg_at_rap) {
+						if (split_seg_at_rap) {
 							u64 next_sap_time;
 							u64 frag_dur, next_dur;
 							next_dur = gf_isom_get_sample_duration(input, tf->OriginalTrack, tf->SampleNum + 1);
@@ -1804,15 +1867,14 @@ restart_fragmentation_pass:
 								/*this is the fragment duration from last sample added to next SAP*/
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dash_cfg->dash_scale / tf->TimeScale;
 								/*if media segment about to be produced is longer than max segment length, force segment split*/
-								if (!tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur > SegmentStart + MaxSegmentDuration)) {
+								if ((!tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur > SegmentStart + MaxSegmentDuration)) ||
+									/* we need to force the creation of a new segment if the next split would result in a zero duration sample*/
+									(tf->splitable && (SegmentStart + SegmentDuration + next_sap_dur == SegmentStart + MaxSegmentDuration))) {
 									//if (!tf->splitable && (SegmentStart + SegmentDuration + frag_dur > MaxSegmentDuration * SegmentNum)) {
 									split_at_rap = GF_TRUE;
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
 									stop_frag = GF_TRUE;
-									if (frag_dur < MaxSegmentDuration) {
-										GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but segment duration is not aligned with GOP duration (%d vs %d) - using GOP duration for this segment\n", MaxSegmentDuration, frag_dur));
-									}
 								}
 
 								if (! tf->all_sample_raps) {
@@ -1836,14 +1898,19 @@ restart_fragmentation_pass:
 				if (tf->SampleNum==tf->SampleCount) {
 					stop_frag = GF_TRUE;
 				} else if (tf->is_ref_track) {
+					/* NOTE: we don't need to check for split_sample_duration because if it is used, stop_frag should already be TRUE */
 					/*fragmenting on "clock" track: no drift control*/
-					if (!dash_cfg->fragments_start_with_rap || ( tf->splitable && split_sample_duration ) || ( (next && next->IsRAP) || split_at_rap) ) {
+					if (!dash_cfg->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
+						Bool segment_dur_exceeded = GF_FALSE;
+						if (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration)
+							segment_dur_exceeded = GF_TRUE;
+
 						if ((tf->FragmentLength * dash_cfg->dash_scale >= MaxFragmentDuration * tf->TimeScale)
 						        /* if we don't split segment at rap and if the current fragment makes the segment longer than required, stop the current fragment */
-						        || (!split_seg_at_rap && (SegmentDuration + (tf->FragmentLength * dash_cfg->dash_scale / tf->TimeScale) >= MaxSegmentDuration))
+						        || (!split_seg_at_rap && segment_dur_exceeded)
 						   ) {
 							stop_frag = GF_TRUE;
-							if (split_seg_at_rap && (next && !next->IsRAP)) {
+							if (split_seg_at_rap && (next && !next->IsRAP) && segment_dur_exceeded) {
 								GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Require segment starts with RAP but next segment will not be compatible\n"));
 							}
 						}
@@ -1864,8 +1931,11 @@ restart_fragmentation_pass:
 				}
 
 				if (stop_frag) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 					gf_isom_sample_del(&sample);
 					sample = next = NULL;
+
+					ref_SAP_type = SAP_type;
 
 					//only compute max dur over segment for the track used for indexing / deriving MPD start time
 					if (!tfref || (tf->is_ref_track)) {
@@ -1875,6 +1945,8 @@ restart_fragmentation_pass:
 						}
 					}
 					tf->FragmentLength = 0;
+					/* propagate the portion of the current 'split' sample that has already been used in this fragment 
+					   to the next fragment */
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
 
@@ -1894,7 +1966,7 @@ restart_fragmentation_pass:
 				}
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done fragment %d track processing\n", SegmentName, nbFragmentInSegment));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, done with fragment %d, fragment length %d\n", SegmentName, nbFragmentInSegment, tf->FragmentLength));
 
 		SegmentDuration += maxFragDurationOverSegment;
 
@@ -1927,10 +1999,17 @@ restart_fragmentation_pass:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s, fragment %d flushed\n", SegmentName, nbFragmentInSegment));
 
 		if (force_switch_segment || flush_all_samples || ((SegmentDuration >= MaxSegmentDuration) && (!split_seg_at_rap || !next || next_sample_rap || tf->splitable))) {
-			if (!min_seg_dur || (min_seg_dur>SegmentDuration))
+			//don't update min_seg_dur if this is the last segment
+			if (!min_seg_dur || (!flush_all_samples && (min_seg_dur>SegmentDuration)))
 				min_seg_dur = SegmentDuration;
+
+			//remember max sap type at start of segment
+			if (ref_SAP_type > max_sap_type)
+				max_sap_type = ref_SAP_type;
+
 			if (max_seg_dur < SegmentDuration)
 				max_seg_dur = SegmentDuration;
+
 			total_seg_dur += SegmentDuration;
 			last_seg_dur = SegmentDuration;
 
@@ -2331,8 +2410,13 @@ restart_fragmentation_pass:
 		}
 	}
 
-	if (nb_channels && !is_bs_switching)
-		fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels);
+	if (nb_channels && !is_bs_switching) {
+		if (!nb_surround && !nb_lfe) {
+			fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", nb_channels );
+		} else {
+			fprintf(dash_cfg->mpd, "    <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:mpegB:cicp:ChannelConfiguration\" value=\"%d\"/>\n", cicp_get_channel_config(nb_channels, nb_surround, nb_lfe) );
+		}
+	}
 
 	/* Write content protection element in representation */
 	if (protected_track && (dash_cfg->cp_location_mode != GF_DASH_CPMODE_ADAPTATION_SET)) {
@@ -6174,6 +6258,8 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	for (cur_period=0; cur_period<max_period; cur_period++) {
 		u32 first_in_period = 0;
 		Double period_duration=0;
+		Double min_media_duration = -1;
+		Double max_media_duration = -1;
 
 		for (i=0; i<dasher->nb_inputs; i++) {
 			Double dur = 0;
@@ -6212,6 +6298,13 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			if (dur > period_duration)
 				period_duration = dur;
 
+			if (min_media_duration == -1 || min_media_duration > dur) {
+				min_media_duration = dur;
+			}
+			if (max_media_duration == -1 || max_media_duration < dur) {
+				max_media_duration = dur;
+			}
+
 			switch (dash_input->protection_scheme_type) {
 			case GF_ISOM_CENC_SCHEME:
 			case GF_ISOM_CBC_SCHEME:
@@ -6227,6 +6320,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			dasher->inputs[first_in_period-1].period_duration = period_duration;
 		}
 		presentation_duration += period_duration;
+		if (max_media_duration - min_media_duration > dasher->segment_duration) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] The difference between the durations of the longest and shortest representations (%f) is higher than the segment duration (%f)\n", max_media_duration - min_media_duration, dasher->segment_duration));
+		}
 	}
 
 	if (max_comp_per_input > 1) {

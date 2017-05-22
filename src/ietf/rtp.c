@@ -535,6 +535,15 @@ GF_Err gf_rtp_decode_rtp(GF_RTPChannel *ch, char *pck, u32 pck_size, GF_RTPHeade
 	//we work with no CSRC so payload offset is always 12
 	*PayloadStart = 12;
 
+	if (rtp_hdr->Extension) {
+		u16 ext_size;
+		char *payl = pck + *PayloadStart;
+		ext_size = payl[2];
+		ext_size <<= 8;
+		ext_size |= payl[3];
+		*PayloadStart += 4 + (ext_size * 4);
+	}
+
 	//store the time
 	ch->CurrentTime = rtp_hdr->TimeStamp;
 	return e;

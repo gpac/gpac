@@ -239,7 +239,7 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-	        "\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
+	        "\t-no-cthread:    disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -1135,11 +1135,11 @@ Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnum
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {
 			sep[0] = 0;
-			dir_len = strlen(item_path);
+			dir_len = (u32) strlen(item_path);
 			sep[0] = 'g';
 		}
 		url+=3;
-		len = strlen(url);
+		len = (u32) strlen(url);
 		dst_name = gf_malloc(len+dir_len+1);
 		memset(dst_name, 0, len+dir_len+1);
 
@@ -1309,7 +1309,7 @@ int mp4client_main(int argc, char **argv)
 #else
 		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
-		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+		else if (!strcmp(arg, "-no-cthread") || !strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;

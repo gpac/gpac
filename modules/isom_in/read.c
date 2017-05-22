@@ -1164,6 +1164,9 @@ GF_Err ISOR_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		//and check buffer level on play request
 		isor_check_buffer_level(read);
+		if (!read->nb_playing)
+			gf_isom_reset_seq_num(read->mov);
+
 		read->nb_playing++;
 		return GF_OK;
 	case GF_NET_CHAN_STOP:
