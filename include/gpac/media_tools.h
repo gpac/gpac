@@ -638,9 +638,10 @@ void gf_dasher_clean_inputs(GF_DASHSegmenter *dasher);
  *	\param copyright MPD copyright
  *	\param moreInfoURL MPD "more info" URL
  *	\param sourceInfo MPD source info
+ * 	\param forceTestMode If true, disable generation date print in mpd
  *	\return error code if any
 */
-GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo);
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, Bool forceTestMode);
 
 /*!
  Sets MPD Location. This is useful to distrubute a dynamic MPD by mail or any non-HTTP mean
