@@ -3958,7 +3958,7 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
 		}
-		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
+		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source, force_test_mode);
 		if (e) {
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
