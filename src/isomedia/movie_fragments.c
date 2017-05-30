@@ -1163,6 +1163,10 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
 			}
 		}
+		if (close_segment_handle) {
+			gf_isom_datamap_del(movie->editFileMap);
+			movie->editFileMap = NULL;
+		}
 		return GF_OK;
 	}
 
