@@ -68,7 +68,13 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string)
 	case GF_ISOM_BOX_TYPE_PAYL:
 	case GF_ISOM_BOX_TYPE_VTTA:
 		a = gf_isom_box_new(type);
-		if (a && string) ((GF_StringBox *)a)->string = gf_strdup(string);
+		if (a && string) {
+			/* remove trailing spaces; spec. \r, \n */
+			char* str = ((GF_StringBox *)a)->string = gf_strdup(string);
+			str += strlen(str);
+			while (str != ((GF_StringBox *)a)->string && isspace(*--str))
+				*str = '\0';
+		}
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box type %s is not a boxstring, cannot initialize with data\n", gf_4cc_to_str(type) ));
