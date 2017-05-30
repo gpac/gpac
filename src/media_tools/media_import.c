@@ -4941,7 +4941,7 @@ restart_import:
 					FPS = (Double)timescale / dts_inc;
 					detect_fps = GF_FALSE;
 
-					if (avc.sps[idx].vui.fixed_frame_rate_flag)
+					if (!avc.sps[idx].vui.fixed_frame_rate_flag)
 						GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[avc-h264] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent.\n"));
 
 					gf_isom_remove_track(import->dest, track);
