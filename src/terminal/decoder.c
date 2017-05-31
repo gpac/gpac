@@ -183,29 +183,24 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		if (codec->odm->term->bench_mode==2) {
 			e = GF_OK;
 		} else {
+			Bool force_annex_b = GF_FALSE;
 			GF_NetworkCommand com;
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
 			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
 
-			//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
-#if 0
-			{
-				char *dsi = NULL;
-				u32 len = 0;
-				if (ch->esd->decoderConfig->decoderSpecificInfo) {
-					dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
-					ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
-					len = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
-					ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
-				}
-				e = codec->decio->AttachStream(codec->decio, ch->esd);
-				if (ch->esd->decoderConfig->decoderSpecificInfo) {
-					ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
-					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
-				}
+			cap.CapCode = GF_CODEC_FORCE_ANNEXB;
+			gf_codec_get_capability(codec, &cap);
+			if (cap.cap.valueBool) {
+				force_annex_b = GF_TRUE;
 			}
-#endif
+
+			if (force_annex_b && ch->esd->decoderConfig->decoderSpecificInfo) {
+				gf_free(ch->esd->decoderConfig->decoderSpecificInfo->data);
+				ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
+				ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
+			}
+
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
 			while (e == GF_PROFILE_NOT_SUPPORTED) {
 				e = gf_codec_change_decoder(codec, ch->esd);
@@ -214,9 +209,7 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 				e = codec->decio->AttachStream(codec->decio, ch->esd);
 			}
 
-			cap.CapCode = GF_CODEC_FORCE_ANNEXB;
-			gf_codec_get_capability(codec, &cap);
-			if (cap.cap.valueBool) {
+			if (force_annex_b) {
 				memset(&com, 0, sizeof(GF_NetworkCommand));
 				com.command_type = GF_NET_CHAN_NALU_MODE;
 				com.nalu_mode.extract_mode = 1;
