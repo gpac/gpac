@@ -3585,6 +3585,30 @@ parse_weights:
 }
 
 static
+Bool ref_pic_lists_modification(GF_BitStream *bs, u32 slice_type, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active)
+{
+	u32 i;
+	Bool ref_pic_list_modification_flag_l0 = gf_bs_read_int(bs, 1);
+	if (ref_pic_list_modification_flag_l0) {
+		for (i=0; i<num_ref_idx_l0_active; i++) {
+			return GF_FALSE;
+			/*list_entry_l0[i] = *//*gf_bs_read_int(bs, (u32)ceil(log(getNumPicTotalCurr())/log(2)));*/
+		}
+	}
+	if (slice_type == GF_HEVC_SLICE_TYPE_B) {
+		Bool ref_pic_list_modification_flag_l1 = gf_bs_read_int(bs, 1);
+		if (ref_pic_list_modification_flag_l1) {
+			for (i=0; i<num_ref_idx_l1_active; i++) {
+				return GF_FALSE;
+				/*list_entry_l1[i] = *//*gf_bs_read_int(bs, (u32)ceil(log(getNumPicTotalCurr()) / log(2)));*/
+			}
+		}
+	}
+
+	return GF_TRUE;
+}
+
+static
 s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si)
 {
 	u32 i, j;
@@ -3714,7 +3738,6 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 		if (si->slice_type == GF_HEVC_SLICE_TYPE_P || si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 			//u32 NumPocTotalCurr;
-
 			num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
 			num_ref_idx_l1_active = 0;
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
@@ -3726,9 +3749,11 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					num_ref_idx_l1_active = 1 + bs_get_ue(bs);
 			}
 
-			if (pps->lists_modification_present_flag ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[hevc] ref_pic_lists_modification( ) not implemented\n"));
-				return 0;
+			if (pps->lists_modification_present_flag /*TODO: && NumPicTotalCurr > 1*/) {
+				if (!ref_pic_lists_modification(bs, si->slice_type, num_ref_idx_l0_active, num_ref_idx_l1_active)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[hevc] ref_pic_lists_modification( ) not implemented\n"));
+					return 0;
+				}
 			}
 
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
