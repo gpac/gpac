@@ -1387,6 +1387,7 @@ scalable_retry:
 			if (codec->CB->LastRenderedTS) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resize output buffer requested\n", codec->decio->module_name, codec->odm->ID, ch->esd->ESID));
 				codec->force_cb_resize = unit_size;
+				gf_cm_abort_buffering(codec->CB);
 				return GF_OK;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->ID, ch->esd->ESID, codec->CB->UnitSize, unit_size));
