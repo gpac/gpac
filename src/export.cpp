@@ -941,6 +941,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_audio_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_cts_packing) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_modify_cts_offset) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_shift_cts_offset) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_cts_info) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_name) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_track_name) )
