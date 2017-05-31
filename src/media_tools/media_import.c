@@ -6059,7 +6059,8 @@ restart_import:
 		switch (res) {
 		case 1:
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			} else {
 				flush_sample = GF_TRUE;
 			}
@@ -6096,7 +6097,6 @@ restart_import:
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(vpss);
 					vpss->array_completeness = 0;
 				}
@@ -6136,7 +6136,8 @@ restart_import:
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			cur_vps_id = idx;
@@ -6158,7 +6159,6 @@ restart_import:
 			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
 				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(spss);
 					spss->array_completeness = 0;
 				}
@@ -6243,7 +6243,8 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6257,7 +6258,6 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(ppss);
 					ppss->array_completeness = 0;
 				}
@@ -6290,7 +6290,8 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			break;
@@ -6566,6 +6567,7 @@ restart_import:
 						poc_diff = abs(hevc.s_info.poc - last_poc);/*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
 					}
 					last_poc = hevc.s_info.poc;
+					assert(is_slice);
 				}
 
 				/*ref slice, reset poc*/
