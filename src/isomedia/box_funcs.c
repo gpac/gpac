@@ -795,8 +795,8 @@ static const struct box_registry_entry {
 	TRGT_DEFINE( GF_ISOM_BOX_TYPE_TRGT, trgt, "trgr", GF_ISOM_BOX_TYPE_CSTG, 0, "p15" ),
 
 	//part12 boxes
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_FREE, free, ""),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_SKIP, free, ""),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_FREE, free, "*"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_SKIP, free, "*"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MDAT, mdat, "file"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IDAT, mdat, "meta"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MOOV, moov, "file"),
@@ -1532,6 +1532,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s)
 {
 	if (!s || !s->registry) return GF_FALSE;
 	if (strstr(s->registry->parents_4cc, "file")!= NULL) return GF_TRUE;
+	if (strstr(s->registry->parents_4cc, "*")!= NULL) return GF_TRUE;
 	return GF_FALSE;
 }
 #endif
