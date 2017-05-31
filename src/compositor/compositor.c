@@ -2507,6 +2507,9 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 	compositor->ms_until_next_frame = GF_INT_MAX;
 	frame_duration = compositor->frame_duration;
 
+	if (compositor->auto_rotate) 
+		compositor_handle_auto_navigation(compositor);
+
 #ifndef GPAC_DISABLE_LOG
 	texture_time = gf_sys_clock();
 #endif

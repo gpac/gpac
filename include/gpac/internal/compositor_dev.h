@@ -421,6 +421,8 @@ struct __tag_compositor
 	/*user rotation angle - ALWAYS CENTERED*/
 	Fixed rotation;
 
+	u32 auto_rotate;
+
 	/*0: flush to be done - 1: flush can be skipped - 2: forces flush*/
 	u32 skip_flush;
 #ifndef GPAC_DISABLE_SVG
@@ -1441,6 +1443,8 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, u32 force_focus_type);
 
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
+
+void compositor_handle_auto_navigation(GF_Compositor *compositor);
 
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state);
 
