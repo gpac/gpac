@@ -447,6 +447,11 @@ typedef struct
 
 typedef struct _hevc_state
 {
+	//set by user
+	Bool full_slice_header_parse;
+
+	//all other vars set by parser
+
 	HEVC_SPS sps[16]; /* range allowed in the spec is 0..15 */
 	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
 
@@ -456,6 +461,7 @@ typedef struct _hevc_state
 
 	HEVCSliceInfo s_info;
 	HEVC_SEI sei;
+
 	//-1 or the value of the vps/sps/pps ID of the nal just parsed
 	s32 last_parsed_vps_id;
 	s32 last_parsed_sps_id;
