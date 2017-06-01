@@ -1436,7 +1436,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, gf_isom_get_track_id(file, trackID), dump);
+	dump_isom_nal_ex(file, trackID, dump);
 
 	if (inName) gf_fclose(dump);
 }
