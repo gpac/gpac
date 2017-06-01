@@ -5876,7 +5876,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, sample_has_vps, sample_has_sps, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_hevc, has_hevc, has_lhvc;
@@ -5978,6 +5978,8 @@ restart_import:
 	sample_data = NULL;
 	sample_rap_type = RAP_NO;
 	sample_has_islice = GF_FALSE;
+	sample_has_sps = GF_FALSE;
+	sample_has_vps = GF_FALSE;
 	cur_samp = 0;
 	is_paff = GF_FALSE;
 	total_size = gf_bs_get_size(bs);
@@ -6123,15 +6125,17 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					vpss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-
-					gf_list_add(vpss->nalus, slc);
+					sample_has_vps = GF_TRUE;
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(vpss->nalus, slc);
+
 			}
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
@@ -6216,14 +6220,14 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					spss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-					gf_list_add(spss->nalus, slc);
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				gf_list_add(spss->nalus, slc);
 
 				if (first_hevc) {
 					first_hevc = GF_FALSE;
@@ -6243,6 +6247,7 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
+				sample_has_sps = GF_TRUE;
 				if (!is_empty_sample)
 					flush_sample = GF_TRUE;
 			}
@@ -6278,15 +6283,15 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					ppss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-
-					gf_list_add(ppss->nalus, slc);
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(ppss->nalus, slc);
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
@@ -6413,6 +6418,35 @@ restart_import:
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 
+			//fixme, we should check sps and vps IDs when missing
+			if ((import->flags & GF_IMPORT_FORCE_XPS_INBAND) && sample_rap_type && (!sample_has_vps || !sample_has_sps) ) {
+				u32 k;
+				GF_BitStream *fbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				if (!sample_has_vps) {
+					if (!vpss)
+						vpss = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_VID_PARAM);
+					assert(vpss);
+					for (k=0;k<gf_list_count(vpss->nalus); k++) {
+						GF_AVCConfigSlot *slc = gf_list_get(vpss->nalus, k);
+						gf_bs_write_int(fbs, slc->size, size_length);
+						gf_bs_write_data(fbs, slc->data, slc->size);
+					}
+				}
+				if (!sample_has_sps) {
+					if (!spss)
+						spss = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_SEQ_PARAM);
+					assert(spss);
+					for (k=0;k<gf_list_count(spss->nalus); k++) {
+						GF_AVCConfigSlot *slc = gf_list_get(spss->nalus, k);
+						gf_bs_write_int(fbs, slc->size, size_length);
+						gf_bs_write_data(fbs, slc->data, slc->size);
+					}
+				}
+				gf_bs_write_data(fbs, samp->data, samp->dataLength);
+				gf_bs_get_content(fbs, &samp->data, &samp->dataLength);
+				gf_bs_del(fbs);
+			}
+
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
 			store the POC as the CTS offset and update the whole table at the end*/
 			samp->CTS_Offset = last_poc - poc_shift;
@@ -6445,6 +6479,8 @@ restart_import:
 				min_poc = last_poc;
 
 			sample_has_islice = GF_FALSE;
+			sample_has_vps = GF_FALSE;
+			sample_has_sps = GF_FALSE;
 			sei_recovery_frame_count = -1;
 			is_empty_sample = GF_TRUE;
 		}
