@@ -3660,7 +3660,7 @@ GF_Err gf_isom_get_sample_rap_roll_info(GF_ISOFile *the_file, u32 trackNumber, u
 			break;
 		}
 		/*no sampleGroup info associated*/
-		if (!group_desc_index) continue;
+		if (group_desc_index <= 1) continue;
 
 		sgdesc = NULL;
 		for (j=0; j<gf_list_count(trak->Media->information->sampleTable->sampleGroupsDescription); j++) {
