@@ -5474,7 +5474,7 @@ restart_import:
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 i, last_cts_samp;
-		u64 last_dts, max_cts, min_cts;
+		u64 last_dts, max_cts, min_cts, min_cts_offset;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -5486,6 +5486,7 @@ restart_import:
 		last_dts = 0;
 		max_cts = 0;
 		min_cts = (u64) -1;
+		min_cts_offset = (u64) -1;
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
@@ -5497,7 +5498,7 @@ restart_import:
 				last_dts = samp->DTS * (1+is_paff);
 
 			/*CTS offset is frame POC (refers to last IDR)*/
-			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) last_dts;
+			cts = ( (min_poc + (s32) samp->CTS_Offset) * dts_inc ) / poc_diff + (u32) last_dts;
 
 			/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 			if (is_paff) {
@@ -5512,6 +5513,9 @@ restart_import:
 			cts += (u32) (max_total_delay*dts_inc);
 
 			samp->CTS_Offset = (u32) (cts - samp->DTS);
+
+			if (samp->CTS_Offset < min_cts_offset)
+				min_cts_offset = samp->CTS_Offset;
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
 				max_cts = samp->DTS + samp->CTS_Offset;
@@ -5545,6 +5549,10 @@ restart_import:
 				gf_isom_modify_cts_offset(import->dest, track, i+1, samp->CTS_Offset);
 			}
 			gf_isom_sample_del(&samp);
+		}
+
+		if (min_cts_offset > 0) {
+			gf_isom_shift_cts_offset(import->dest, track, min_cts_offset);
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
@@ -6051,7 +6059,8 @@ restart_import:
 		switch (res) {
 		case 1:
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			} else {
 				flush_sample = GF_TRUE;
 			}
@@ -6088,7 +6097,6 @@ restart_import:
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(vpss);
 					vpss->array_completeness = 0;
 				}
@@ -6128,7 +6136,8 @@ restart_import:
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			cur_vps_id = idx;
@@ -6150,7 +6159,6 @@ restart_import:
 			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
 				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(spss);
 					spss->array_completeness = 0;
 				}
@@ -6235,7 +6243,8 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 			break;
 
@@ -6249,7 +6258,6 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(ppss);
 					ppss->array_completeness = 0;
 				}
@@ -6282,7 +6290,8 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			break;
@@ -6558,6 +6567,7 @@ restart_import:
 						poc_diff = abs(hevc.s_info.poc - last_poc);/*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
 					}
 					last_poc = hevc.s_info.poc;
+					assert(is_slice);
 				}
 
 				/*ref slice, reset poc*/
@@ -9775,7 +9785,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_h263(importer);
 	/*H264/AVC video*/
 	if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
-	        || !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
+	        || !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4) || !strnicmp(ext, ".avc", 4)
 	        || !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_avc_h264(importer);
 	/*HEVC video*/

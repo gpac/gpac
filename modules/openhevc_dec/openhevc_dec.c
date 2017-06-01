@@ -79,7 +79,6 @@ typedef struct
 	u32 avc_base_size;
 	u32 avc_base_pts;
 #endif
-
 	FILE *raw_out;
 } HEVCDec;
 
@@ -479,6 +478,15 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		break;
 	case GF_CODEC_RAW_MEMORY:
 		capability->cap.valueBool = GF_TRUE;
+		break;
+	case GF_CODEC_FORCE_ANNEXB:
+	{
+		const char *opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ForceAnnexB");
+		if (!opt)
+			gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ForceAnnexB", "no");
+		else if ( !strcmp(opt, "yes"))
+			capability->cap.valueBool = GF_TRUE;
+	}
 		break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
