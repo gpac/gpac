@@ -1281,7 +1281,7 @@ static u32 gf_m2ts_stream_process_pes(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *st
 
 	/*compute next interesting time in TS unit: this will be DTS of next packet*/
 	stream->time = stream->program->ts_time_at_pcr_init;
-	time_inc = stream->curr_pck.dts - stream->program->pcr_offset;
+	time_inc = stream->curr_pck.dts - stream->program->pcr_init_time/300;
 
 	gf_m2ts_time_inc(&stream->time, time_inc, 90000);
 
