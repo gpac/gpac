@@ -67,6 +67,7 @@ typedef struct
 	
 	u32 frame_idx;
 	Bool pack_mode;
+	Bool reset_dec;
 	u32 dec_frames;
 	u8  chroma_format_idc;
 
@@ -377,6 +378,10 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	if (sOpt && !strcmp(sOpt, "yes") && !ctx->direct_output ) ctx->pack_mode = GF_TRUE;
 	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR", "no");
 
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ResetAtReinit");
+	if (sOpt && !strcmp(sOpt, "yes") ) ctx->reset_dec = GF_TRUE;
+	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ResetAtReinit", "no");
+
 	if (!ctx->raw_out) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "InputRipFile");
 		if (sOpt) ctx->raw_out = fopen(sOpt, "wb");
@@ -509,7 +514,10 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	switch (capability.CapCode) {
 	case GF_CODEC_WAIT_RAP:
-		if (ctx->dec_frames) {
+		if (ctx->reset_dec && ctx->dec_frames) {
+			u32 cl = ctx->cur_layer;
+			u32 nl = ctx->nb_layers;
+
 			//quick hack, we have an issue with openHEVC resuming after being flushed ...
 			ctx->had_pic = GF_FALSE;
 			libOpenHevcClose(ctx->openHevcHandle);
@@ -517,6 +525,12 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			ctx->decoder_started = GF_FALSE;
 			ctx->is_init = GF_FALSE;
 			HEVC_ConfigureStream(ctx, ctx->esd);
+			ctx->cur_layer = cl;
+			ctx->nb_layers = nl;
+			if (ctx->openHevcHandle) {
+				libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+				libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+			}
 		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
@@ -744,13 +758,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		if ( got_pic ) {
 			return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		}
-		//quick hack, we have an issue with openHEVC resuming after being flushed ...
-		ctx->had_pic = GF_FALSE;
-		libOpenHevcClose(ctx->openHevcHandle);
-		ctx->openHevcHandle = NULL;
-		ctx->is_init = GF_FALSE;
-		HEVC_ConfigureStream(ctx, ctx->esd);
-
 		return GF_OK;
 	}
 
