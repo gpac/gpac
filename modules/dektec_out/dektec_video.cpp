@@ -58,6 +58,7 @@ typedef struct
 
 	u32 frame_dur, frame_scale;
 	Bool needs_reconfigure;
+	u32 force_width, force_height;
 } DtContext;
 
 static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
@@ -298,6 +299,15 @@ GF_Err Dektec_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 i
 	if ( res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] No DTA 2174 or 2154 in system: %s\n", DtapiResult2Str(res)));
 		return GF_BAD_PARAM;
+	}
+	opt = gf_modules_get_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes");
+	if (!opt) {
+		gf_modules_set_option((GF_BaseInterface *)dr, "DektecVideo", "ForceRes", "no");
+		dtc->force_width = dtc->force_height = 0;
+	} else if (sscanf(opt, "%ux%u", &dtc->force_width, &dtc->force_height) == 2) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] Using forced resolution %ux%u\n", dtc->force_width, dtc->force_height));
+	} else {
+		dtc->force_width = dtc->force_height = 0;
 	}
 	return GF_OK;
 }
@@ -626,6 +636,11 @@ static GF_Err Dektec_Blit(GF_VideoOutput *dr, GF_VideoSurface *video_src, GF_Win
 		} else if ((w==3840) && (h==2160)) {
 		} else {
 			return GF_NOT_SUPPORTED;
+		}
+		if (dtc->force_width && dtc->force_height) {
+			if ((w != dtc->force_width) || (h != dtc->force_height)) {
+				return GF_NOT_SUPPORTED;
+			}
 		}
 		dtc->needs_reconfigure = GF_FALSE;
 		Dektec_Configure(dr, w, h, (video_src->pixel_format==GF_PIXEL_YV12_10) ? GF_TRUE : GF_FALSE);
