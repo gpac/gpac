@@ -272,8 +272,15 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
-		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+		if (esd->has_scalable_layers) {
+			ctx->cur_layer = ctx->nb_layers;
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+		} else {
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+		}
+
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
 			libOpenShvcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, NULL, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
@@ -784,7 +791,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				ctx->avc_base_pts = *CTS;
 			}
 		} else if (ctx->cur_layer>1) {
-			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts	, *CTS);
+			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts, *CTS);
 			if (ctx->avc_base) {
 				gf_free(ctx->avc_base);
 				ctx->avc_base = NULL;
