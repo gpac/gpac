@@ -1,7 +1,7 @@
 
 
 test_begin "mp4box-base-dump"
-if [ $test_skip = 1 ] ; then
+if [ "$test_skip" = 1 ] ; then
  return
 fi
 
@@ -31,7 +31,7 @@ do_hash_test $TEMP_DIR/test.tmp "ttxt-text"
 do_test "$MP4BOX -raws 1 $mp4file" "raw-samples"
 n=`ls $TEMP_DIR/test_track* | wc -l`
 n=${n#0}
-if [ $n != 173 ] ; then
+if [ "$n" != 173 ] ; then
 result="Wrong sample count $n (expected 173)"
 fi
 rm $TEMP_DIR/test_track* 2&>/dev/null
