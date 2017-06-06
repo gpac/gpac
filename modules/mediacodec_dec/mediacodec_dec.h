@@ -26,10 +26,18 @@
 #ifndef _MEDIACODEC_DEC_H_
 #define _MEDIACODEC_DEC_H_
 #include <gpac/modules/codec.h>
+#include <jni.h>
+#include "../../src/compositor/gl_inc.h"
 
-GF_Err MCDec_CreateSurface (ANativeWindow ** window, u32 *gl_tex_id, Bool * surface_rendering);
-GF_Err MCFrame_UpdateTexImage();
-GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx);
-GF_Err MCDec_DeleteSurface();
+typedef struct {
+	jobject oSurfaceTex;
+	int texture_id;
+} MC_SurfaceTexture;
+	
+GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, MC_SurfaceTexture * surfaceTex);
+GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex);
+GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex);
+GF_Err MCDec_DeleteSurface(MC_SurfaceTexture surfaceTex);
+
 #endif //_MEDIACODEC_DEC_H_
 
