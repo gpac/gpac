@@ -3,7 +3,9 @@ include ../config.mak
 APPDIRS=
 
 ifeq ($(MP4BOX_STATIC),yes)
-APPDIRS+=mp4box 
+APPDIRS+=mp4box
+#Toussaint adition
+APPDIRS+=tiles 
 else
 
 ifeq ($(DISABLE_PLAYER), no)
