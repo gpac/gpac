@@ -1,10 +1,5 @@
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
-
-#include "../../src/compositor/gl_inc.h"
-
-#include <jni.h>
-
 #include "media/NdkMediaCodec.h"
 #include "media/NdkMediaExtractor.h"
 #include "media/NdkMediaFormat.h"
@@ -30,6 +25,8 @@ typedef struct
 	Bool frame_size_changed;
 	Bool inputEOS, outputEOS;
 	Bool raw_frame_dispatch;
+	Bool can_init_decoder;
+	MC_SurfaceTexture surfaceTex;
 	//NAL-based specific
 	GF_List *SPSs, *PPSs, *VPSs;
 	s32 active_sps, active_pps, active_vps;
@@ -45,7 +42,7 @@ typedef struct
 	u16 ES_ID;
 	AMediaCodecBufferInfo info;
 	ssize_t outIndex;
-	u32 gl_tex_id;
+	GLuint tex_id;
 } MCDec;
 
 typedef struct {
@@ -328,10 +325,12 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
         return GF_CODEC_NOT_FOUND;
     }
     
-    if(!ctx->window) 
-		MCDec_CreateSurface(&ctx->window,&ctx->gl_tex_id, &ctx->surface_rendering);
-
-    if( AMediaCodec_configure(
+    if(!ctx->window){
+		if(MCDec_CreateSurface(ctx->tex_id, &ctx->window, &ctx->surface_rendering, &ctx->surfaceTex) != GF_OK)
+			return GF_BAD_PARAM;
+	}
+	
+	if( AMediaCodec_configure(
         ctx->codec, // codec   
         ctx->format, // format
         (ctx->surface_rendering) ? ctx->window : NULL,  //surface 
@@ -463,8 +462,9 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     ctx->esd = esd;
     GF_Err e;
-
-    //check AVC config
+	
+	glGenTextures(1, &ctx->tex_id);
+	//check AVC config
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
 		ctx->SPSs = gf_list_new();
 		ctx->PPSs = gf_list_new();
@@ -472,7 +472,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->avc.sps_active_idx = -1;
 		ctx->active_sps = ctx->active_pps = -1;
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-            ctx->width=ctx->height=128;
+			ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
             return GF_OK;
@@ -503,6 +503,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			
 			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 				e = MCDec_InitDecoder(ctx);
+				if (e) return e;
 			}
 			else {
 				e = GF_OK;
@@ -524,8 +525,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
             ctx->height = vcfg.height;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
-
-            return MCDec_InitDecoder(ctx);
+			return MCDec_InitDecoder(ctx);
         }
     }
   
@@ -590,24 +590,20 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
             return e;
         }
     }
-
-    return MCDec_InitDecoder(ctx);
+	return MCDec_InitDecoder(ctx);
 }
-
-
 
 static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     
-    if(AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
+    if(ctx->codec && AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
          GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_stop failed"));
     }
-    MCDec_DeleteSurface();
-
-    return GF_OK;
+	if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
+	
+	return GF_OK;
 }
-
 
 static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
 {
@@ -618,11 +614,11 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         capability->cap.valueInt = 1;                   
         break;
     case GF_CODEC_WIDTH:
-        capability->cap.valueInt = ctx->width;  
+		capability->cap.valueInt = ctx->width;
 		break;
-    case GF_CODEC_HEIGHT:
-        capability->cap.valueInt = ctx->height;         
-        break;
+	case GF_CODEC_HEIGHT:
+		capability->cap.valueInt = ctx->height;
+		break;
     case GF_CODEC_STRIDE:
         capability->cap.valueInt = ctx->stride;
 		break;
@@ -653,8 +649,8 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         capability->cap.valueInt = 1;                   
         break;
     case GF_CODEC_WANTS_THREAD:
-        capability->cap.valueInt = 0;                   
-        break;
+        capability->cap.valueInt = 1;
+		break;
     case GF_CODEC_FRAME_OUTPUT:
         capability->cap.valueInt = 1;                   
         break;
@@ -685,7 +681,6 @@ static GF_Err MCDec_ParseNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength, ch
 		*out_buffer = NULL;
 		*out_size = 0;
 	}
-	
 	if (!ctx->nalu_size_length) {
 		sc_size = 0;
 		nal_size = gf_media_nalu_next_start_code((u8 *)inBuffer, inBufferLength, &sc_size);
@@ -743,8 +738,8 @@ static GF_Err MCDec_ParseNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength, ch
 
 		//if sps and pps are ready, init decoder
 		if (!ctx->codec && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
-			e = MCDec_InitDecoder(ctx);
-			if (e) return e;
+			ctx->reconfig_needed = 1;
+			return GF_OK;
 		}
 		if (!out_buffer) add_nal = GF_FALSE;
 		else if (add_nal && !ctx->codec) add_nal = GF_FALSE;
@@ -793,11 +788,9 @@ static GF_Err MCDec_ParseHEVCNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength
 		u8 nal_type;
 		u16 nal_hdr ;
 		u8 type, quality_id, temporal_id;
-		GF_BitStream *nal_bs = NULL;
 		
 		nal_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
-		nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
-		gf_media_hevc_parse_nalu(nal_bs, &ctx->hevc, &type, &temporal_id, &quality_id);
+		gf_media_hevc_parse_nalu(ptr, nal_size, &ctx->hevc, &type, &temporal_id, &quality_id);
 		switch(type) {
 			case GF_HEVC_NALU_SEQ_PARAM:
 				MCDec_RegisterHEVCParameterSet(ctx, ptr, nal_size, SPS);
@@ -812,7 +805,6 @@ static GF_Err MCDec_ParseHEVCNALs(MCDec *ctx, char *inBuffer, u32 inBufferLength
 				break;
 		}
 		
-		gf_bs_del(nal_bs);
 		if ((nal_type <= GF_HEVC_NALU_SLICE_CRA) && ctx->hevc.s_info.sps) {
 			if ((ctx->hevc.sps_active_idx != ctx->active_sps) || (ctx->hevc.sps[ctx->active_sps].vps_id != ctx->active_vps)) {
 				ctx->reconfig_needed = 1;
@@ -867,6 +859,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
     MCDec *ctx = (MCDec *)ifcg->privateStack;
 	ctx->nalu_size_length = 0;
 	Bool mcdec_buffer_available = GF_FALSE;
+	
 	if (!ctx->reconfig_needed) {
 		if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC)
 			MCDec_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
@@ -903,7 +896,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 
             if (inBufferLength > inSize)  {
                  GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("The returned buffer is too small"));
-                return GF_BUFFER_TOO_SMALL;
+				 return GF_BUFFER_TOO_SMALL;
             }
 			memcpy(buffer, inBuffer, inBufferLength);
 			
@@ -1051,15 +1044,16 @@ GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_
 	MC_Frame *f = (MC_Frame *)frame->user_data;
    if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
-	*gl_tex_id = f->ctx->gl_tex_id;
+	*gl_tex_id = f->ctx->tex_id;
 	
 	if(!f->flushed && f->ctx->codec) {
 		if (AMediaCodec_releaseOutputBuffer(f->ctx->codec, f->outIndex, GF_TRUE) != AMEDIA_OK) {
 			 GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("NOT Release Output Buffer Index: %d to surface", f->outIndex));
 			 return GF_OK;
 		}
-		MCFrame_UpdateTexImage();
-		MCFrame_GetTransformMatrix(texcoordmatrix);
+		if(MCFrame_UpdateTexImage(f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
+		if(MCFrame_GetTransformMatrix(texcoordmatrix, f->ctx->surfaceTex) != GF_OK) return GF_BAD_PARAM;
+		
 		f->flushed = GF_TRUE;
 	}
 	return GF_OK;
@@ -1175,6 +1169,8 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
 		ANativeWindow_release(ctx->window);
 		ctx->window = NULL;
     }
+	if(ctx->codec)
+		MCDec_DeleteSurface(ctx->surfaceTex);
 	
 	MCDec_DelParamList(ctx->SPSs);
 	ctx->SPSs = NULL;
