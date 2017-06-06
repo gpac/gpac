@@ -600,9 +600,9 @@ static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
     if(ctx->codec && AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
          GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_stop failed"));
     }
-	if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
-	
-	return GF_OK;
+    if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
+    
+    return GF_OK;
 }
 
 static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
@@ -650,16 +650,16 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         break;
     case GF_CODEC_WANTS_THREAD:
         capability->cap.valueInt = 1;
-		break;
+	break;
     case GF_CODEC_FRAME_OUTPUT:
         capability->cap.valueInt = 1;                   
         break;
-	case GF_CODEC_FORCE_ANNEXB:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_TRUSTED_CTS:
-		capability->cap.valueInt = 1;
-		break;
+    case GF_CODEC_FORCE_ANNEXB:
+	capability->cap.valueInt = 1;
+	break;
+    case GF_CODEC_TRUSTED_CTS:
+	capability->cap.valueInt = 1;
+	break;
 	/*not known at our level...*/
     case GF_CODEC_CU_DURATION:                             
     default:
@@ -896,7 +896,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 
             if (inBufferLength > inSize)  {
                  GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("The returned buffer is too small"));
-				 return GF_BUFFER_TOO_SMALL;
+                 return GF_BUFFER_TOO_SMALL;
             }
 			memcpy(buffer, inBuffer, inBufferLength);
 			
