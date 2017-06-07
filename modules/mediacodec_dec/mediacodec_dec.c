@@ -600,7 +600,6 @@ static GF_Err MCDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
     if(ctx->codec && AMediaCodec_stop(ctx->codec) != AMEDIA_OK) {
          GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_stop failed"));
     }
-    if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
     
     return GF_OK;
 }
@@ -1166,21 +1165,24 @@ void DeleteMCDec(GF_BaseDecoder *ifcg)
     }
     
     if(ctx->window) {
-		ANativeWindow_release(ctx->window);
-		ctx->window = NULL;
+	ANativeWindow_release(ctx->window);
+	ctx->window = NULL;
     }
-	if(ctx->codec)
-		MCDec_DeleteSurface(ctx->surfaceTex);
+
+    if(ctx->codec)
+	MCDec_DeleteSurface(ctx->surfaceTex);
 	
-	MCDec_DelParamList(ctx->SPSs);
-	ctx->SPSs = NULL;
-	MCDec_DelParamList(ctx->PPSs);
-	ctx->PPSs = NULL;
-	MCDec_DelParamList(ctx->VPSs);
-	ctx->VPSs = NULL;
-	
-	gf_free(ctx);
-	gf_free(ifcg);
+    if(ctx->tex_id) glDeleteTextures (1, &ctx->tex_id);
+
+    MCDec_DelParamList(ctx->SPSs);
+    ctx->SPSs = NULL;
+    MCDec_DelParamList(ctx->PPSs);
+    ctx->PPSs = NULL;
+    MCDec_DelParamList(ctx->VPSs);
+    ctx->VPSs = NULL;
+
+    gf_free(ctx);
+    gf_free(ifcg);
 	
 }
 
