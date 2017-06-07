@@ -4291,8 +4291,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
 		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - ignoring because not supported\n"));
-			continue;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - may result in broken adaptation\n"));
 		}
 		if (group->adaptation_set->xlink_href) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet with xlink:href to %s - ignoring because not supported\n", group->adaptation_set->xlink_href));
@@ -6050,20 +6049,15 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->mpd_dnload = NULL;
 			return GF_URL_ERROR;
 		}
+
+		if (dash->is_smooth) {
+			e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
+		} else {
+			e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
+		}
+		gf_xml_dom_del(mpd_parser);
 	}
 
-	if (dash->mpd)
-		gf_mpd_del(dash->mpd);
-
-	dash->mpd = gf_mpd_new();
-	if (!dash->mpd) {
-		e = GF_OUT_OF_MEM;
-	} else if (dash->is_smooth) {
-		e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
-	} else {
-		e = gf_mpd_init_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
-	}
-	gf_xml_dom_del(mpd_parser);
 
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));
