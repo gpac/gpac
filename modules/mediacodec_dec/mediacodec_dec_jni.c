@@ -62,13 +62,13 @@ static GF_Err CacheAppClassLoader(JNIEnv* env, const char* name)
 	if (!randomClass) goto cache_calassloader_failed;
 	jclass classClass = (*env)->GetObjectClass(env, randomClass);
 	if (!classClass) goto cache_calassloader_failed;
-    jclass classLoaderClass = (*env)->FindClass(env, "java/lang/ClassLoader");
+    	jclass classLoaderClass = (*env)->FindClass(env, "java/lang/ClassLoader");
 	if (!classLoaderClass) goto cache_calassloader_failed;
-    jmethodID getClassLoaderMethod = (*env)->GetMethodID(env, classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
+    	jmethodID getClassLoaderMethod = (*env)->GetMethodID(env, classClass, "getClassLoader", "()Ljava/lang/ClassLoader;");
 	if (!getClassLoaderMethod) goto cache_calassloader_failed;
 	oClassLoader = (jobject) (*env)->NewGlobalRef(env,(*env)->CallObjectMethod(env,randomClass, getClassLoaderMethod));
 	if(!oClassLoader) goto cache_calassloader_failed;
-    mFindClassMethod = (*env)->GetMethodID(env, classLoaderClass, "findClass", "(Ljava/lang/String;)Ljava/lang/Class;");
+    	mFindClassMethod = (*env)->GetMethodID(env, classLoaderClass, "findClass", "(Ljava/lang/String;)Ljava/lang/Class;");
 	if(!mFindClassMethod) goto cache_calassloader_failed;
 	ret = GF_OK;
 
@@ -81,6 +81,7 @@ cache_calassloader_failed:
 		 (*env)->DeleteLocalRef(env, classLoaderClass);
 	return ret;
 }
+
 jint JNI_OnLoad(JavaVM* vm, void* reserved)
 {
 	JNIEnv* env = NULL;
@@ -89,16 +90,9 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved)
 	
 	if ((*javaVM)->GetEnv(javaVM, (void**)&env, JNI_VERSION_1_2) != JNI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("GetEnv failed"));
-		goto load_error;
-	}
-	if(CacheAppClassLoader(env, RANDOM_JAVA_APP_CLASS) != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("cache class loader failed"));
-		goto load_error;
+		return GF_BAD_PARAM;
 	}
 	return JNI_VERSION_1_2;
-
-load_error:
-	return GF_BAD_PARAM;
 }
 
 JNIEnv* GetEnv()
@@ -112,8 +106,10 @@ JavaVM* GetJavaVM()
 {
 	return javaVM;
 }
+
 static u32 beforeThreadExits(void * param) {
-	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread"));
+
+	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread %p...\n", gf_th_current()));
 	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
 }
 
@@ -133,7 +129,9 @@ GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surfa
 	}
 	if (!env) goto create_surface_failed;
 	
-	gf_register_before_exit_function(gf_th_current(), &beforeThreadExits);
+	if (gf_register_before_exit_function(gf_th_current(), &beforeThreadExits) != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
+	}
 	// cache classes
 	if (!cSurfaceTexture) {
 		ctmp = (*env)->FindClass(env, "android/graphics/SurfaceTexture");
@@ -213,6 +211,7 @@ GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
 	}
 	return GF_OK;
 }
+
 GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
