@@ -25,7 +25,6 @@
  
 #include <gpac/tools.h>
 #include <gpac/constants.h>
-#include <gpac/thread.h>
 // for native window JNI
 #include <android/native_window_jni.h>
 #include <android/asset_manager.h>
@@ -107,7 +106,7 @@ JavaVM* GetJavaVM()
 	return javaVM;
 }
 
-static u32 beforeThreadExits(void * param) {
+u32 MCDec_BeforeExit(void * param) {
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread %p...\n", gf_th_current()));
 	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
@@ -131,9 +130,6 @@ GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surfa
 	}
 	if (!env) goto create_surface_failed;
 	
-	if (gf_register_before_exit_function(gf_th_current(), &beforeThreadExits) != GF_OK) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
-	}
 	// cache classes
 	if (!cSurfaceTexture) {
 		ctmp = (*env)->FindClass(env, "android/graphics/SurfaceTexture");

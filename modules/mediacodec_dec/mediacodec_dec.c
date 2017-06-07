@@ -34,6 +34,7 @@ typedef struct
 	HEVCState hevc;
 	u32 decoded_frames_pending;
 	Bool reconfig_needed;
+	Bool before_exit_registered;
 	u32 nalu_size_length;
 	//hevc
 	char *vps;
@@ -859,6 +860,12 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 	ctx->nalu_size_length = 0;
 	Bool mcdec_buffer_available = GF_FALSE;
 	
+	if(!ctx->before_exit_registered) {
+		ctx->before_exit_registered = GF_TRUE;
+		if (gf_register_before_exit_function(gf_th_current(), &MCDec_BeforeExit) != GF_OK) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
+		}
+	}
 	if (!ctx->reconfig_needed) {
 		if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC)
 			MCDec_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);

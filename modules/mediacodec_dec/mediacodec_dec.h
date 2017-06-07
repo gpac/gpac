@@ -26,6 +26,7 @@
 #ifndef _MEDIACODEC_DEC_H_
 #define _MEDIACODEC_DEC_H_
 #include <gpac/modules/codec.h>
+#include <gpac/thread.h>
 #include <jni.h>
 #include "../../src/compositor/gl_inc.h"
 
@@ -38,6 +39,7 @@ GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surfa
 GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex);
 GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex);
 GF_Err MCDec_DeleteSurface(MC_SurfaceTexture surfaceTex);
+u32 MCDec_BeforeExit(void * param);
 
 #endif //_MEDIACODEC_DEC_H_
 
