@@ -614,14 +614,14 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         capability->cap.valueInt = 1;                   
         break;
     case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ctx->width;
-		break;
-	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = ctx->height;
-		break;
+	capability->cap.valueInt = ctx->width;
+	break;
+    case GF_CODEC_HEIGHT:
+	capability->cap.valueInt = ctx->height;
+	break;
     case GF_CODEC_STRIDE:
         capability->cap.valueInt = ctx->stride;
-		break;
+	break;
     case GF_CODEC_FPS:
         capability->cap.valueFloat = ctx->frame_rate;
         break;
@@ -633,7 +633,7 @@ static GF_Err MCDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *ca
         break;
     case GF_CODEC_PIXEL_FORMAT:
         capability->cap.valueInt = ctx->pix_fmt;    
-		break;
+	break;
     case GF_CODEC_BUFFER_MIN:
         capability->cap.valueInt = 1;                   
         break;
@@ -1048,7 +1048,7 @@ GF_Err MCFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char *
 GF_Err MCFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {		
 	MC_Frame *f = (MC_Frame *)frame->user_data;
-   if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
+   	if (!gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = GL_TEXTURE_EXTERNAL_OES;
 	*gl_tex_id = f->ctx->tex_id;
 	
