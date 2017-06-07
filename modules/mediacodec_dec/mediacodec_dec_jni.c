@@ -111,6 +111,8 @@ static u32 beforeThreadExits(void * param) {
 
 	GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,(" [Android Mediacodec decoder] Detach decoder thread %p...\n", gf_th_current()));
 	(*GetJavaVM())->DetachCurrentThread(GetJavaVM());
+	
+	return GF_OK;
 }
 
 GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surface_rendering, MC_SurfaceTexture * surfaceTex)
