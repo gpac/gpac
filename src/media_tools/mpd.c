@@ -104,9 +104,17 @@ static u64 gf_mpd_parse_date(char *attr)
 	return gf_net_parse_date(attr);
 }
 
-static u64 gf_mpd_parse_duration(char *duration) {
+static u64 gf_mpd_parse_duration(char *duration)
+{
 	u32 i;
-	if (!duration) return 0;
+	char *sep1, *sep2;
+	u32 h, m;
+	double s;
+	const char *startT;
+	if (!duration) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
+		return 0;
+	}
 	i = 0;
 	while (1) {
 		if (duration[i] == ' ') i++;
@@ -115,41 +123,45 @@ static u64 gf_mpd_parse_duration(char *duration) {
 			break;
 		}
 	}
-	if (duration[i] == 'P') {
-		if (duration[i+1] == 0) return 0;
-		else if (duration[i+1] != 'T') return 0;
-		else {
-			char *sep1, *sep2;
-			u32 h, m;
-			double s;
-			h = m = 0;
-			s = 0;
-			if (NULL != (sep1 = strchr(duration+i+2, 'H'))) {
-				*sep1 = 0;
-				h = atoi(duration+i+2);
-				*sep1 = 'H';
-				sep1++;
-			} else {
-				sep1 = duration+i+2;
-			}
-			if (NULL != (sep2 = strchr(sep1, 'M'))) {
-				*sep2 = 0;
-				m = atoi(sep1);
-				*sep2 = 'M';
-				sep2++;
-			} else {
-				sep2 = sep1;
-			}
-			if (NULL != (sep1 = strchr(sep2, 'S'))) {
-				*sep1 = 0;
-				s = atof(sep2);
-				*sep1 = 'S';
-			}
-			return (u64)((h*3600+m*60+s)*(u64)1000);
-		}
-	} else {
+	if (duration[i] != 'P') {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
 		return 0;
 	}
+	startT = strchr(duration+1, 'T');
+
+	if (duration[i+1] == 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
+		return 0;
+	}
+	if (! startT) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no Time section found\n"));
+		return 0;
+	}
+
+	h = m = 0;
+	s = 0;
+	if (NULL != (sep1 = strchr(startT+1, 'H'))) {
+		*sep1 = 0;
+		h = atoi(duration+i+2);
+		*sep1 = 'H';
+		sep1++;
+	} else {
+		sep1 = (char *) startT+1;
+	}
+	if (NULL != (sep2 = strchr(sep1, 'M'))) {
+		*sep2 = 0;
+		m = atoi(sep1);
+		*sep2 = 'M';
+		sep2++;
+	} else {
+		sep2 = sep1;
+	}
+	if (NULL != (sep1 = strchr(sep2, 'S'))) {
+		*sep1 = 0;
+		s = atof(sep2);
+		*sep1 = 'S';
+	}
+	return (u64)((h*3600+m*60+s)*(u64)1000);
 }
 
 static u32 gf_mpd_parse_duration_u32(char *duration)
