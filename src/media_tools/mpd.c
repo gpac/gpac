@@ -1858,13 +1858,14 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	if (pe->init_segment_url) {
 		if (!rep->segment_list->initialization_segment) {
 			GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
-			rep->segment_list->initialization_segment->sourceURL = pe->init_segment_url;
-			pe->init_segment_url=NULL;
 
 			if (strstr(pe->init_segment_url, "mp4") || strstr(pe->init_segment_url, "MP4")) {
 				if (rep->mime_type) gf_free(rep->mime_type);
 				rep->mime_type = gf_strdup("video/mp4");
 			}
+			rep->segment_list->initialization_segment->sourceURL = pe->init_segment_url;
+			pe->init_segment_url=NULL;
+
 			if (pe->init_byte_range_end) {
 				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
 				 rep->segment_list->initialization_segment->byte_range->start_range = pe->init_byte_range_start;
