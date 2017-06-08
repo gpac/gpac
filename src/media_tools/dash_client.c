@@ -1588,7 +1588,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
 		if (gf_dash_is_m3u8_mime(purl, mime) || strstr(purl, ".m3u8")) {
 			new_mpd = gf_mpd_new();
-			e = gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, new_mpd, GF_FALSE);
+			e = gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, new_mpd, GF_FALSE, dash->keep_files);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: error in MPD creation %s\n", gf_error_to_string(e)));
 				gf_mpd_del(new_mpd);
@@ -6016,12 +6016,12 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			if (sep) sep[0]=0;
 			strcat(local_path, ".mpd");
 
-			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE);
+			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		} else {
 			const char *redirected_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
 			if (!redirected_url) redirected_url=manifest_url;
 
-			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE);
+			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
 		}
 	} else {
 		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
