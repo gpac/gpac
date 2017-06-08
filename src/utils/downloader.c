@@ -1827,7 +1827,8 @@ retry_cache:
 			dm->allow_offline_cache = GF_TRUE;
 	}
 
-	dm->allow_offline_cache = GF_FALSE;
+	dm->clean_cache = GF_FALSE;
+	dm->allow_broken_certificate = GF_FALSE;
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
 		if (opt) {
