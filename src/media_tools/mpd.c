@@ -1659,7 +1659,7 @@ GF_EXPORT
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
                       const char *mpd_file,
                       u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter,
-                      GF_MPD *mpd, Bool parse_sub_playlist)
+                      GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files)
 {
 	GF_Err e;
 	char *title;
@@ -1679,7 +1679,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		return e;
 	}
 	if (mpd_file == NULL) {
-		gf_delete_file(m3u8_file);
+		if (!keep_files) gf_delete_file(m3u8_file);
 		mpd_file = m3u8_file;
 	}
 
@@ -1743,7 +1743,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download faile for %s\n", suburl));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
 					gf_delete_file("tmp.m3u8");
