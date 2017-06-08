@@ -1554,6 +1554,12 @@ int mp4client_main(int argc, char **argv)
 	}
 	fprintf(stderr, "Modules Found : %d \n", i);
 
+	str = gf_cfg_get_key(cfg_file, "General", "GPACVersion");
+	if (!str || strcmp(str, GPAC_FULL_VERSION)) {
+		gf_cfg_del_section(cfg_file, "PluginsCache");
+		gf_cfg_set_key(cfg_file, "General", "GPACVersion", GPAC_FULL_VERSION);
+	}
+
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
 	/*dummy in this case (global vars) but MUST be non-NULL*/
