@@ -2799,6 +2799,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	hvcc = gf_isom_hevc_config_get(file, track, 1);
 	nalu_size_length = hvcc->nal_unit_size;
 
+	memset(&hevc, 0, sizeof(HEVCState));
+
 	count = gf_list_count(hvcc->param_array);
 	for (i=0; i<count; i++) {
 		GF_HEVCParamArray *ar = gf_list_get(hvcc->param_array, i);
