@@ -4,7 +4,7 @@ if [ $EXTERNAL_MEDIA_AVAILABLE = 0 ] ; then
   return
 fi
 
-COUNTERFILE=$MEDIA_DIR/counter/counter_1280_720_I_25_tiled_500kb.hevc
+COUNTERFILE=$EXTERNAL_MEDIA_DIR/counter/counter_1280_720_I_25_tiled_500kb.hevc
 
 test_begin "iff"
 
