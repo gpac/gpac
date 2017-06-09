@@ -572,7 +572,7 @@ GF_Err Media_FindSyncSample(GF_SampleTableBox *stbl, u32 searchFromSample, u32 *
 
 	if (prev_in_sap > prev)
 		prev = prev_in_sap;
-	if (next_in_sap < next)
+	if (next_in_sap && next_in_sap < next)
 		next = next_in_sap;
 
 	//nothing yet, go for next time...
