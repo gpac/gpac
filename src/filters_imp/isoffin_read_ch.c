@@ -192,7 +192,7 @@ next_segment:
 					if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to reparse segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
 					} else {
-						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
