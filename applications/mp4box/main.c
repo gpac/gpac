@@ -3958,7 +3958,7 @@ int mp4boxMain(int argc, char **argv)
 			return mp4box_cleanup(1);
 			return GF_OUT_OF_MEM;
 		}
-		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source, force_test_mode);
+		e = gf_dasher_set_info(dasher, dash_title, cprt, dash_more_info, dash_source);
 		if (e) {
 			fprintf(stderr, "DASH Error: %s\n", gf_error_to_string(e));
 			return mp4box_cleanup(1);
@@ -3999,6 +3999,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
+		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
