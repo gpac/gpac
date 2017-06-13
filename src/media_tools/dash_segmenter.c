@@ -5651,13 +5651,18 @@ void gf_dasher_del(GF_DASHSegmenter *dasher)
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo, Bool forceTestMode)
+GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const char *copyright, const char *moreInfoURL, const char *sourceInfo)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	if (title) dasher->title = gf_strdup(title);
 	if (copyright) dasher->copyright = gf_strdup(copyright);
 	if (moreInfoURL) dasher->moreInfoURL = gf_strdup(moreInfoURL);
 	if (sourceInfo) dasher->source = gf_strdup(sourceInfo);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 	dasher->force_test_mode=forceTestMode;
 	return GF_OK;
 }
