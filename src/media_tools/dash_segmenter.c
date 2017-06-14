@@ -1440,7 +1440,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	for (i=0; i<gf_list_count(fragmenters); i++) {
 		tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 		if (tf->SampleCount)
-			nb_done += tf->SampleCount - tf->SampleNum - 1;
+			nb_done += tf->SampleCount - tf->SampleNum;
 	}
 	if (!nb_done) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No samples in movie, rewriting moof and exit\n"));
