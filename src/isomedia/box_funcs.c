@@ -795,8 +795,8 @@ static const struct box_registry_entry {
 	TRGT_DEFINE( GF_ISOM_BOX_TYPE_TRGT, trgt, "trgr", GF_ISOM_BOX_TYPE_CSTG, 0, "p15" ),
 
 	//part12 boxes
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_FREE, free, ""),
-	BOX_DEFINE( GF_ISOM_BOX_TYPE_SKIP, free, ""),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_FREE, free, "*"),
+	BOX_DEFINE( GF_ISOM_BOX_TYPE_SKIP, free, "*"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MDAT, mdat, "file"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_IDAT, mdat, "meta"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_MOOV, moov, "file"),
@@ -1110,6 +1110,9 @@ static const struct box_registry_entry {
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9DES, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9GEN, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9GRP, ilst_item, "ilst data", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_0xA9ENC, ilst_item, "ilst data", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_aART, ilst_item, "ilst data", "apple"),
+	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_PGAP, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_GNRE, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_DISK, ilst_item, "ilst data", "apple"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_TRKN, ilst_item, "ilst data", "apple"),
@@ -1532,6 +1535,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s)
 {
 	if (!s || !s->registry) return GF_FALSE;
 	if (strstr(s->registry->parents_4cc, "file")!= NULL) return GF_TRUE;
+	if (strstr(s->registry->parents_4cc, "*")!= NULL) return GF_TRUE;
 	return GF_FALSE;
 }
 #endif

@@ -1161,8 +1161,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 
 #ifdef GPAC_ANDROID
 				if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
@@ -1178,8 +1178,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->u_id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 
 				goto push_exit;
 			}
