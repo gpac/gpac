@@ -210,7 +210,8 @@ struct _scene
 	/*URLs of current video, audio and subs (we can't store objects since they may be destroyed when seeking)*/
 	SFURL visual_url, audio_url, text_url, dims_url;
 
-	Bool is_srd, is_tiled_srd;
+	Bool is_tiled_srd;
+	u32 srd_type;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
 
 
@@ -953,7 +954,7 @@ instance when loading a BT with an animation stream*/
 GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm);
 
 GF_Err gf_codec_resize_composition_buffer(GF_Codec *dec, u32 NewSize);
-GF_Err gf_codec_change_decoder(GF_Codec *codec);
+GF_Err gf_codec_change_decoder(GF_Codec *codec, GF_ESD *for_esd);
 
 /*OD manager*/
 
@@ -1003,6 +1004,7 @@ enum
 	GF_ODM_STATE_PLAY,
 	GF_ODM_STATE_IN_SETUP,
 	GF_ODM_STATE_BLOCKED,
+	GF_ODM_STATE_STOP_NO_NET,
 };
 
 enum
@@ -1013,6 +1015,7 @@ enum
 	GF_ODM_ACTION_SCENE_DISCONNECT,
 	GF_ODM_ACTION_SCENE_RECONNECT,
 	GF_ODM_ACTION_SCENE_INLINE_RESTART,
+	GF_ODM_ACTION_SETUP
 };
 
 struct _od_manager
@@ -1070,6 +1073,7 @@ struct _od_manager
 	u32 action_type;
 
 	Fixed set_speed;
+	Bool disable_buffer_at_next_play;
 
 //	u32 raw_media_frame_pending;
 	GF_Semaphore *raw_frame_sema;
@@ -1148,6 +1152,8 @@ Bool gf_odm_lock_mo(struct _mediaobj *mo);
 void gf_odm_signal_eos(GF_ObjectManager *odm);
 
 void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset);
+
+void gf_odm_setup_task(GF_ObjectManager *odm);
 
 /*GF_MediaObject: link between real object manager and scene. although there is a one-to-one mapping between a
 MediaObject and an ObjectManager, we have to keep them separated in order to handle OD remove commands which destroy

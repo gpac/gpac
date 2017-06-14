@@ -187,6 +187,7 @@ echo "  -warn:                 dump logs after each failed test (used for travis
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
 echo "  -keep-tmp:             keeps tmp folder used in tests (erased by default)"
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -git-hash:             syncs all remote reference hashes from git with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
@@ -219,6 +220,21 @@ cd $HASH_DIR
 wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
 cd "$main_dir"
 }
+
+git_hash ()
+{
+log $L_INF "- Mirroring reference hashes from from github to $HASH_DIR"
+cd $HASH_DIR
+if [ ! -d ".git" ]; then
+  rm -f *
+  git clone https://github.com/gpac/gpac-test-hash.git .
+else
+  git fetch origin
+  git reset --hard origin/master
+fi
+cd "$main_dir"
+}
+
 
 #performs mirroring of media and references hash & videos
 sync_refs ()
@@ -280,6 +296,8 @@ for i in $* ; do
  "-sync-hash")
   sync_hash
   exit;;
+ "-git-hash")
+  git_hash;;
  "-sync-media")
   sync_media;;
  "-sync-refs")
@@ -440,27 +458,25 @@ fi
 MP4CLIENT="MP4Client"
 
 if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
-
-MP4Client -run-for 0 2> /dev/null
-res=$?
-if [ $res != 0 ] ; then
-MP4CLIENT_NOT_FOUND=1
-echo ""
-log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
-MP4Client -run-for 0
-res=$?
-if [ $res = 0 ] ; then
-log $L_INF "MP4Client returned $res on second run - enabling all playback tests"
-else
-echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
-cat $HOME/.gpac/GPAC.cfg
-echo "** End of dump **"
+  MP4Client -run-for 0 2> /dev/null
+  res=$?
+  if [ $res != 0 ] ; then
+    # to remove when travis is ready to execute playback tests
+    MP4CLIENT_NOT_FOUND=1
+    echo ""
+    log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
+    MP4Client -run-for 0
+    res=$?
+    if [ $res = 0 ] ; then
+      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
+    else
+      echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
+      cat $HOME/.gpac/GPAC.cfg
+      echo "** End of dump **"
+      MP4CLIENT_NOT_FOUND=1
+    fi
+  fi
 fi
-
-fi
-
-fi
-
 
 MP42TS -h 2> /dev/null
 res=$?
@@ -610,6 +626,10 @@ test_begin ()
   fi
  fi
 
+ if [ $MP4CLIENT_NOT_FOUND > 0 ] ; then
+  skip_play_hash=1
+ fi
+
  if [ $generate_hash = 1 ] ; then
   #skip test only if reference hash is marked as valid
   if [ -f "$reference_hash_valid" ] ; then
@@ -740,7 +760,7 @@ shopt -s nullglob
     result="$SUBTEST_NAME:Fail(ret code $RETURN_VALUE) $result"
    fi
    test_ok=0
-   test_exec_na=$((test_exec_na + 1))
+   test_fail=$((test_fail + 1))
   fi
 
   if [ $log_after_fail = 1 ] ; then
@@ -766,10 +786,12 @@ shopt -s nullglob
    if [ $HASH_NOT_FOUND -eq 1 ] ; then
     result="$HASH_TEST:HashNotFound $result"
     nb_hash_missing=$((nb_hash_missing + 1))
+    test_exec_na=$((test_exec_na + 1))
    elif [ $HASH_FAIL -eq 1 ] ; then
     result="$HASH_TEST:HashFail $result"
     test_ok=0
     nb_hash_fail=$((nb_hash_fail + 1))
+    test_exec_na=$((test_exec_na + 1))
    fi
   fi
   rm -f $i > /dev/null
@@ -1111,7 +1133,23 @@ do_hash_test ()
  echo "HASH_TEST=$2" > $STATHASH_SH
 
  echo "Computing $1  ($2) hash: " >> $log_subtest
- $MP4BOX -hash -std $1 > $test_hash 2>> $log_subtest
+ file_to_hash="$1"
+
+ # for text files, we remove potential CR chars
+ # to prevent having different hashes on different platforms
+ if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ||  [ ${1: -4} == ".svg" ] ; then
+  file_to_hash="to_hash_$(basename $1)"
+  if [ -f $1 ]; then
+    tr -d '\r' <  "$1" > "$file_to_hash"
+  fi
+ fi
+
+ $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subtest
+
+ if [ "$file_to_hash" != "$1" ] && [ -f "$file_to_hash" ]; then
+  rm "$file_to_hash"
+ fi
+
  if [ $generate_hash = 0 ] ; then
   if [ ! -f $ref_hash ] ; then
    echo "HASH_NOT_FOUND=1" >> $STATHASH_SH
@@ -1380,23 +1418,22 @@ else
  TESTS_SKIP=$((TESTS_SKIP + $TEST_SKIP))
 fi
 
-if [ $TEST_EXEC_NA != 0 ] ; then
- if [ $TEST_FAIL = 0 ] ; then
-  TEST_FAIL=1
- fi
- TESTS_EXEC_NA=$((TESTS_EXEC_NA + 1))
-fi
-
 if [ $TEST_FAIL = 0 ] ; then
- TESTS_PASSED=$((TESTS_PASSED + 1))
+  if [ $TEST_EXEC_NA = 0 ] && [ $SUBTESTS_LEAK = 0 ]; then
+    TESTS_PASSED=$((TESTS_PASSED + 1))
+  else
+    rm -f $i > /dev/null
+    if [ $TEST_EXEC_NA != 0 ] ; then
+      TESTS_EXEC_NA=$((TESTS_EXEC_NA + 1))
+    else
+      TESTS_LEAK=$((TESTS_LEAK + 1))
+    fi
+  fi
 else
- TESTS_FAILED=$((TESTS_FAILED + 1))
- rm -f $i > /dev/null
+  TESTS_FAILED=$((TESTS_FAILED + 1))
+  rm -f $i > /dev/null
 fi
 
-if [ $SUBTESTS_LEAK != 0 ] ; then
-  TESTS_LEAK=$((TESTS_LEAK + 1))
-fi
 
 SUBTESTS_FAIL=$((SUBTESTS_FAIL + $TEST_FAIL))
 SUBTESTS_EXEC_NA=$((SUBTESTS_EXEC_NA + $TEST_EXEC_NA))
@@ -1485,12 +1522,12 @@ fi
 
  if [ $SUBTESTS_HASH_FAIL != 0 ] ; then
   pc=$((100*SUBTESTS_HASH_FAIL/SUBTESTS_DONE))
-  log $L_WAR "Tests HASH total $TESTS_HASH - fail $TESTS_HASH_FAIL ($pc % of subtests)"
+  log $L_WAR "Tests HASH total $SUBTESTS_HASH - fail $SUBTESTS_HASH_FAIL ($pc % of subtests)"
  fi
 
  if [ $SUBTESTS_HASH_MISSING != 0 ] ; then
   pc=$((100*SUBTESTS_HASH_MISSING/$SUBTESTS_HASH))
-  log $L_WAR "Missing hashes $SUBTESTS_HASH_MISSING / $SUBTESTS_HASH ($pc % )"
+  log $L_WAR "Missing hashes $SUBTESTS_HASH_MISSING / $SUBTESTS_HASH ($pc % hashed subtests)"
  fi
 
 

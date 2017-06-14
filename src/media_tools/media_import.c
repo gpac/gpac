@@ -293,13 +293,13 @@ static GF_Err gf_import_still_image(GF_MediaImporter *import, Bool mult_desc_all
 		memset(&udesc, 0, sizeof(GF_GenericSampleDescription));
 		switch (OTI) {
 		case GPAC_OTI_IMAGE_JPEG:
-			udesc.codec_tag = GF_4CC('j', 'p', 'e', 'g');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_JPEG;
 			break;
 		case GPAC_OTI_IMAGE_PNG:
-			udesc.codec_tag = GF_4CC('p', 'n', 'g', ' ');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_PNG;
 			break;
 		case GPAC_OTI_IMAGE_JPEG_2000:
-			udesc.codec_tag = GF_4CC('j', 'p', '2', 'k');
+			udesc.codec_tag = GF_ISOM_BOX_TYPE_JP2K;
 			break;
 		}
 		udesc.width = w;
@@ -3110,7 +3110,7 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 	else if (strstr(att->value, "0X")) { u32 __i; sscanf(att->value+2, "%X", &__i); _value = __i; }\
 	else sscanf(att->value, _fmt, &_value); \
 	}\
- 
+
 
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
 GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
@@ -4892,7 +4892,7 @@ restart_import:
 				dstcfg->profile_compatibility = avc.sps[idx].prof_compat;
 				dstcfg->AVCProfileIndication = avc.sps[idx].profile_idc;
 				dstcfg->AVCLevelIndication = avc.sps[idx].level_idc;
-				
+
 				dstcfg->chroma_format = avc.sps[idx].chroma_format;
 				dstcfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
 				dstcfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
@@ -4941,7 +4941,7 @@ restart_import:
 					FPS = (Double)timescale / dts_inc;
 					detect_fps = GF_FALSE;
 
-					if (avc.sps[idx].vui.fixed_frame_rate_flag)
+					if (!avc.sps[idx].vui.fixed_frame_rate_flag)
 						GF_LOG(GF_LOG_INFO, GF_LOG_CODING, ("[avc-h264] Possible Variable Frame Rate: VUI \"fixed_frame_rate_flag\" absent.\n"));
 
 					gf_isom_remove_track(import->dest, track);
@@ -5474,7 +5474,7 @@ restart_import:
 	/*recompute all CTS offsets*/
 	if (has_cts_offset) {
 		u32 i, last_cts_samp;
-		u64 last_dts, max_cts, min_cts;
+		u64 last_dts, max_cts, min_cts, min_cts_offset;
 		if (!poc_diff) poc_diff = 1;
 		/*no b-frame references, no need to cope with negative poc*/
 		if (!max_total_delay) {
@@ -5486,6 +5486,7 @@ restart_import:
 		last_dts = 0;
 		max_cts = 0;
 		min_cts = (u64) -1;
+		min_cts_offset = (u64) -1;
 		last_cts_samp = 0;
 
 		for (i=0; i<cur_samp; i++) {
@@ -5497,7 +5498,7 @@ restart_import:
 				last_dts = samp->DTS * (1+is_paff);
 
 			/*CTS offset is frame POC (refers to last IDR)*/
-			cts = (min_poc + (s32) samp->CTS_Offset) * dts_inc/poc_diff + (u32) last_dts;
+			cts = ( (min_poc + (s32) samp->CTS_Offset) * dts_inc ) / poc_diff + (u32) last_dts;
 
 			/*if PAFF, 2 pictures (eg poc) <=> 1 aggregated frame (eg sample), divide by 2*/
 			if (is_paff) {
@@ -5512,6 +5513,9 @@ restart_import:
 			cts += (u32) (max_total_delay*dts_inc);
 
 			samp->CTS_Offset = (u32) (cts - samp->DTS);
+
+			if (samp->CTS_Offset < min_cts_offset)
+				min_cts_offset = samp->CTS_Offset;
 
 			if (max_cts < samp->DTS + samp->CTS_Offset) {
 				max_cts = samp->DTS + samp->CTS_Offset;
@@ -5545,6 +5549,10 @@ restart_import:
 				gf_isom_modify_cts_offset(import->dest, track, i+1, samp->CTS_Offset);
 			}
 			gf_isom_sample_del(&samp);
+		}
+
+		if (min_cts_offset > 0) {
+			gf_isom_shift_cts_offset(import->dest, track, min_cts_offset);
 		}
 		/*and repack table*/
 		gf_isom_set_cts_packing(import->dest, track, GF_FALSE);
@@ -5729,7 +5737,7 @@ static GF_Err gf_lhevc_set_operating_points_information(GF_ISOFile *file, u32 he
 		lhevc_ptl->general_level_idc = ptl.level_idc;
 		gf_list_add(oinf->profile_tier_levels, lhevc_ptl);
 	}
-	
+
 	for (i = 0; i < vps->num_output_layer_sets; i++) {
 		LHEVC_OperatingPoint *op;
 		u32 j;
@@ -5828,7 +5836,7 @@ static void gf_lhevc_set_layer_information(GF_ISOFile *file, u32 track, LHVCLaye
 	u32 data_size;
 
 	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	
+
 	for (i=0; i<64; i++) {
 		if (linf[i].layer_id_plus_one) nb_layers++;
 	}
@@ -5868,7 +5876,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	GF_HEVCParamArray *spss, *ppss, *vpss;
 	GF_BitStream *bs;
 	GF_BitStream *sample_data;
-	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
+	Bool flush_sample, flush_next_sample, is_empty_sample, sample_has_islice, sample_has_vps, sample_has_sps, is_islice, first_nal, slice_is_ref, has_cts_offset, is_paff, set_subsamples, slice_force_ref;
 	u32 ref_frame, timescale, copy_size, size_length, dts_inc;
 	s32 last_poc, max_last_poc, max_last_b_poc, poc_diff, prev_last_poc, min_poc, poc_shift;
 	Bool first_hevc, has_hevc, has_lhvc;
@@ -5894,7 +5902,7 @@ static GF_Err gf_import_hevc(GF_MediaImporter *import)
 	}
 
 	memset(linf, 0, sizeof(linf));
-	
+
 	set_subsamples = (import->flags & GF_IMPORT_SET_SUBSAMPLES) ? GF_TRUE : GF_FALSE;
 
 	mdia = gf_fopen(import->in_name, "rb");
@@ -5970,6 +5978,8 @@ restart_import:
 	sample_data = NULL;
 	sample_rap_type = RAP_NO;
 	sample_has_islice = GF_FALSE;
+	sample_has_sps = GF_FALSE;
+	sample_has_vps = GF_FALSE;
 	cur_samp = 0;
 	is_paff = GF_FALSE;
 	total_size = gf_bs_get_size(bs);
@@ -6013,9 +6023,9 @@ restart_import:
 		/*read the file, and work on a memory buffer*/
 		gf_bs_read_data(bs, buffer, nal_size);
 
-		gf_bs_seek(bs, nal_start);
+//		gf_bs_seek(bs, nal_start);
 
-		res = gf_media_hevc_parse_nalu(bs, &hevc, &nal_unit_type, &temporal_id, &layer_id);
+		res = gf_media_hevc_parse_nalu(buffer, nal_size, &hevc, &nal_unit_type, &temporal_id, &layer_id);
 
 		if (max_temporal_id[layer_id] < temporal_id)
 			max_temporal_id[layer_id] = temporal_id;
@@ -6051,7 +6061,8 @@ restart_import:
 		switch (res) {
 		case 1:
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			} else {
 				flush_sample = GF_TRUE;
 			}
@@ -6075,10 +6086,10 @@ restart_import:
 		switch (nal_unit_type) {
 		case GF_HEVC_NALU_VID_PARAM:
 			if (import->flags & GF_IMPORT_NO_VPS_EXTENSIONS) {
-				//this may modify nal_size, but we don't use it for bitstream reading 
+				//this may modify nal_size, but we don't use it for bitstream reading
 				idx = gf_media_hevc_read_vps_ex(buffer, &nal_size, &hevc, GF_TRUE);
 			} else {
-				idx = gf_media_hevc_read_vps(buffer, nal_size , &hevc);
+				idx = hevc.last_parsed_vps_id;
 			}
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Video Param");
@@ -6088,7 +6099,6 @@ restart_import:
 			if (hevc.vps[idx].state == 2) {
 				if (hevc.vps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(vpss);
 					vpss->array_completeness = 0;
 				}
@@ -6115,26 +6125,29 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					vpss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-
-					gf_list_add(vpss->nalus, slc);
+					sample_has_vps = GF_TRUE;
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(vpss->nalus, slc);
+
 			}
 
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			cur_vps_id = idx;
 			break;
 		case GF_HEVC_NALU_SEQ_PARAM:
-			idx = gf_media_hevc_read_sps(buffer, nal_size, &hevc);
+			idx = hevc.last_parsed_sps_id;
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing SeqInfo");
 				break;
@@ -6150,7 +6163,6 @@ restart_import:
 			else if (hevc.sps[idx].state & AVC_SPS_DECLARED) {
 				if (hevc.sps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(spss);
 					spss->array_completeness = 0;
 				}
@@ -6208,14 +6220,14 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					spss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-					gf_list_add(spss->nalus, slc);
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+				gf_list_add(spss->nalus, slc);
 
 				if (first_hevc) {
 					first_hevc = GF_FALSE;
@@ -6235,12 +6247,14 @@ restart_import:
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				sample_has_sps = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 			break;
 
 		case GF_HEVC_NALU_PIC_PARAM:
-			idx = gf_media_hevc_read_pps(buffer, nal_size, &hevc);
+			idx = hevc.last_parsed_pps_id;
 			if (idx<0) {
 				e = gf_import_message(import, GF_NON_COMPLIANT_BITSTREAM, "Error parsing Picture Param");
 				goto exit;
@@ -6249,7 +6263,6 @@ restart_import:
 			if (hevc.pps[idx].state == 2) {
 				if (hevc.pps[idx].crc != gf_crc_32(buffer, nal_size)) {
 					copy_size = nal_size;
-					has_vcl_nal = GF_TRUE;
 					assert(ppss);
 					ppss->array_completeness = 0;
 				}
@@ -6270,19 +6283,20 @@ restart_import:
 				if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 					ppss->array_completeness = 0;
 					copy_size = nal_size;
-				} else {
-					slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
-					slc->size = nal_size;
-					slc->id = idx;
-					slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
-					memcpy(slc->data, buffer, sizeof(char)*slc->size);
-
-					gf_list_add(ppss->nalus, slc);
 				}
+
+				slc = (GF_AVCConfigSlot*)gf_malloc(sizeof(GF_AVCConfigSlot));
+				slc->size = nal_size;
+				slc->id = idx;
+				slc->data = (char*)gf_malloc(sizeof(char)*slc->size);
+				memcpy(slc->data, buffer, sizeof(char)*slc->size);
+
+				gf_list_add(ppss->nalus, slc);
 			}
 			if (import->flags & GF_IMPORT_FORCE_XPS_INBAND) {
 				copy_size = nal_size;
-				if (!is_empty_sample) flush_sample = GF_TRUE;
+				if (!is_empty_sample)
+					flush_sample = GF_TRUE;
 			}
 
 			break;
@@ -6404,6 +6418,35 @@ restart_import:
 			gf_bs_del(sample_data);
 			sample_data = NULL;
 
+			//fixme, we should check sps and vps IDs when missing
+			if ((import->flags & GF_IMPORT_FORCE_XPS_INBAND) && sample_rap_type && (!sample_has_vps || !sample_has_sps) ) {
+				u32 k;
+				GF_BitStream *fbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				if (!sample_has_vps) {
+					if (!vpss)
+						vpss = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_VID_PARAM);
+					assert(vpss);
+					for (k=0;k<gf_list_count(vpss->nalus); k++) {
+						GF_AVCConfigSlot *slc = gf_list_get(vpss->nalus, k);
+						gf_bs_write_int(fbs, slc->size, size_length);
+						gf_bs_write_data(fbs, slc->data, slc->size);
+					}
+				}
+				if (!sample_has_sps) {
+					if (!spss)
+						spss = get_hevc_param_array(hevc_cfg, GF_HEVC_NALU_SEQ_PARAM);
+					assert(spss);
+					for (k=0;k<gf_list_count(spss->nalus); k++) {
+						GF_AVCConfigSlot *slc = gf_list_get(spss->nalus, k);
+						gf_bs_write_int(fbs, slc->size, size_length);
+						gf_bs_write_data(fbs, slc->data, slc->size);
+					}
+				}
+				gf_bs_write_data(fbs, samp->data, samp->dataLength);
+				gf_bs_get_content(fbs, &samp->data, &samp->dataLength);
+				gf_bs_del(fbs);
+			}
+
 			/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
 			store the POC as the CTS offset and update the whole table at the end*/
 			samp->CTS_Offset = last_poc - poc_shift;
@@ -6436,6 +6479,8 @@ restart_import:
 				min_poc = last_poc;
 
 			sample_has_islice = GF_FALSE;
+			sample_has_vps = GF_FALSE;
+			sample_has_sps = GF_FALSE;
 			sei_recovery_frame_count = -1;
 			is_empty_sample = GF_TRUE;
 		}
@@ -6558,6 +6603,7 @@ restart_import:
 						poc_diff = abs(hevc.s_info.poc - last_poc);/*ideally we would need to start the parsing again as poc_diff helps computing max_total_delay*/
 					}
 					last_poc = hevc.s_info.poc;
+					assert(is_slice);
 				}
 
 				/*ref slice, reset poc*/
@@ -6645,8 +6691,8 @@ next_nal:
 		gf_bs_del(sample_data);
 		sample_data = NULL;
 		e = gf_isom_add_sample(import->dest, track, di, samp);
-		if (e) goto exit;	
-		
+		if (e) goto exit;
+
 		gf_isom_sample_del(&samp);
 		gf_set_progress("Importing HEVC", (u32) cur_samp, cur_samp+1);
 		cur_samp++;
@@ -6764,7 +6810,7 @@ next_nal:
 
 				for (k=0; k < gf_list_count(lhvc_cfg->param_array); k++) {
 					s_ar = gf_list_get(lhvc_cfg->param_array, k);
-					if (s_ar->type==GF_HEVC_NALU_VID_PARAM) 
+					if (s_ar->type==GF_HEVC_NALU_VID_PARAM)
 						break;
 					s_ar = NULL;
 				}
@@ -6856,7 +6902,7 @@ next_nal:
 
 	//base layer (i.e layer with layer_id = 0) not found in bitstream
 	//we are importing an LHVC bitstream with external base layer
-	//find this base layer with the imported tracks. 
+	//find this base layer with the imported tracks.
 	//if we find more than one HEVC/AVC track, return an warning
 	if (min_layer_id != 0) {
 		u32 avc_base_track, ref_track_id;
@@ -6897,7 +6943,7 @@ next_nal:
 		}
 	}
 
-	// This is a L-HEVC bitstream ... 
+	// This is a L-HEVC bitstream ...
 	if ( (has_lhvc && (cur_vps_id >= 0) && (cur_vps_id < 16) && (hevc.vps[cur_vps_id].max_layers > 1))
 	// HEVC with several sublayers
 	|| (max_temporal_id[0] > 0)
@@ -9775,7 +9821,7 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		return gf_import_h263(importer);
 	/*H264/AVC video*/
 	if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
-	        || !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4)
+	        || !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4) || !strnicmp(ext, ".avc", 4)
 	        || !stricmp(fmt, "AVC") || !stricmp(fmt, "H264") )
 		return gf_import_avc_h264(importer);
 	/*HEVC video*/

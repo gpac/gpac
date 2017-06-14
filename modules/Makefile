@@ -98,11 +98,21 @@ PLUGDIRS+=wav_out
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
+ifeq ($(HAS_OPENGL),yes)
+PLUGDIRS+=nvdec
+endif
 endif
 
 #OSX plugins
 ifeq ($(CONFIG_DARWIN),yes)
 PLUGDIRS+=vtb_decode
+endif
+
+#other linux
+ifeq ($(CONFIG_LINUX),yes)
+ifeq ($(HAS_OPENGL),yes)
+PLUGDIRS+=nvdec
+endif
 endif
 
 ifneq ($(CONFIG_FFMPEG), no)

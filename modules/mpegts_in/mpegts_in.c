@@ -868,7 +868,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
 		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
 		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
-		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
+//		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
 		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
 		gf_service_command(m2ts->service, &com, GF_OK);
 	}
@@ -1501,6 +1501,9 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		//do not override config
 		if (ts->dnload || plug->query_proxy) {
 			if (!com->buffer.max) com->buffer.max = 1000;
+		} else if (ts->file) {
+			//use default small buffer for PCR regulation when from file
+			com->buffer.max = com->buffer.occupancy = M2TS_MAX_SLEEP;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:

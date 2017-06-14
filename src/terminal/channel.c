@@ -238,8 +238,9 @@ GF_Err gf_es_start(GF_Channel *ch)
 	/*and start buffering - pull channels always turn off buffering immediately, otherwise
 	buffering size is setup by the network service - except InputSensor*/
 	if ((ch->esd->decoderConfig->streamType != GF_STREAM_INTERACT) || ch->esd->URLString) {
-		if (! ch->is_pulling)
+		if (! ch->is_pulling && !ch->odm->disable_buffer_at_next_play) {
 			gf_es_buffer_on(ch);
+		}
 	}
 	ch->last_au_time = gf_term_get_time(ch->odm->term);
 	ch->es_state = GF_ESM_ES_RUNNING;
@@ -512,9 +513,9 @@ static void gf_es_dispatch_au(GF_Channel *ch, u32 duration)
 	max = 3*ch->MaxBufferOccupancy/2;
 	if (max<300000) max = 300000;
 
-	if( (ch->MaxBuffer && (ch->BufferTime > (s32) max) ) || (ch->AU_Count > max/100) //eg 100fps seconds
+	if( (ch->MaxBuffer && (ch->BufferTime > (s32) max) ) || (ch->AU_Count > max)
 	  ) {
-		if (ch->AU_Count>10000) {
+		if (ch->AU_Count > max) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong, too many AUs (%d) in decoding buffer - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->AU_Count));
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s): Something really wrong,  decoding buffer exceeded (%d ms vs %d max) - trashing buffers\n", ch->esd->ESID, ch->odm->net_service->url, ch->BufferTime, ch->MaxBuffer));
@@ -1849,6 +1850,9 @@ void gf_es_on_connect(GF_Channel *ch)
 			if (ch->MaxBufferOccupancy < ch->MaxBuffer) ch->MaxBufferOccupancy = ch->MaxBuffer;
 		}
 	}
+
+	if (ch && ch->odm && ch->odm->codec && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
+		ch->odm->codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	if (ch->esd->decoderConfig->streamType == GF_STREAM_PRIVATE_SCENE &&
 	        ch->esd->decoderConfig->objectTypeIndication == GPAC_OTI_PRIVATE_SCENE_EPG) {

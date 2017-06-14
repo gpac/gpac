@@ -3981,7 +3981,8 @@ GF_Err stsg_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "SubTrackSampleGroupBox", trace);
 
 	if (p->grouping_type)
-		fprintf(trace, "grouping_type=\"%s\">\n", gf_4cc_to_str(p->grouping_type) );
+		fprintf(trace, "grouping_type=\"%s\"", gf_4cc_to_str(p->grouping_type) );
+	fprintf(trace, ">\n");
 
 	for (i = 0; i < p->nb_groups; i++) {
 		fprintf(trace, "<SubTrackSampleGroupBoxEntry group_description_index=\"%d\"/>\n", p->group_description_index[i]);
@@ -4559,8 +4560,8 @@ GF_Err piff_psec_dump(GF_Box *a, FILE * trace)
 
 			if (cenc_sample) {
 				if  (!strlen((char *)cenc_sample->IV)) continue;
-				fprintf(trace, "<PIFFSampleEncryptionEntry IV=\"");
-				dump_data_hex(trace, (char *) cenc_sample->IV, 16);
+				fprintf(trace, "<PIFFSampleEncryptionEntry IV_size=\"%u\" IV=\"", cenc_sample->IV_size);
+				dump_data_hex(trace, (char *) cenc_sample->IV, cenc_sample->IV_size);
 				if (ptr->flags & 0x2) {
 					fprintf(trace, "\" SubsampleCount=\"%d\"", cenc_sample->subsample_count);
 					fprintf(trace, ">\n");
@@ -4597,7 +4598,7 @@ GF_Err senc_dump(GF_Box *a, FILE * trace)
 		GF_CENCSampleAuxInfo *cenc_sample = (GF_CENCSampleAuxInfo *)gf_list_get(ptr->samp_aux_info, i);
 
 		if (cenc_sample) {
-			fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV=\"", i+1);
+			fprintf(trace, "<SampleEncryptionEntry sampleCount=\"%d\" IV_size=\"%u\" IV=\"", i+1, cenc_sample->IV_size);
 			dump_data_hex(trace, (char *) cenc_sample->IV, 16);
 			fprintf(trace, "\"");
 			if (ptr->flags & 0x2) {

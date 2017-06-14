@@ -784,12 +784,16 @@ void PrintMetaUsage()
 		"                        encoding=enctype: item content-encoding type\n"
 		"                        id=id:	           item ID\n"
 		"                        ref=4cc,id:       reference of type 4cc to an other item\n"
-		"                      Image Item options\n"
-		"                        image-size=wxh      sets the width and height of the image.\n"
-		"                        image-pasp=wxh      sets the pixel aspect ratio property of the image.\n"
-		"                        image-rloc=wxh      sets the location of this image within another image item.\n"
-		"                        image-irot=a        sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
-		"                        image-hidden        indicates that this image item should be hidden.\n"
+		" -add-image args      adds the given file (with parameters) as HEIF image item \n"
+		"                       * same syntax as add-item with the following options\n"
+		"						 name=str			same as for -add-item\n"
+		"						 id=id				same as for -add-item\n"
+		"						 ref=4cc, id		same as for -add-item\n"
+		"                        primary			indicates that this item should be the primary item.\n"
+		"						 time=t				uses the next sync sample after time t (float, in sec, default 0)\n"
+		"						 split_tiles		for an HEVC tiled image, each tile is stored as a separate item\n"
+		"                        rotation=a       sets the rotation angle for this image to 90*a degrees anti-clockwise.\n"
+		"                        image-hidden       indicates that this image item should be hidden.\n"
 		" -rem-item args       removes resource from meta - syntax: item_ID[:tk=ID]\n"
 		" -set-primary args    sets item as primary for meta - syntax: item_ID[:tk=ID]\n"
 		" -set-xml args        sets meta XML data\n"
@@ -1243,6 +1247,7 @@ typedef struct
 	char szPath[GF_MAX_PATH];
 	char szName[1024], mime_type[1024], enc_type[1024];
 	u32 item_id;
+	Bool primary;
 	u32 item_type;
 	u32 ref_item_id;
 	u32 ref_type;
@@ -1289,10 +1294,10 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 		}
 		else if (!strnicmp(szSlot, "ref=", 4)) {
 			char type[10];
-			sscanf(szSlot, "ref=%u,%s", &meta->ref_item_id, type);
+			sscanf(szSlot, "ref=%s,%u", type, &meta->ref_item_id);
 			meta->ref_type = GF_4CC(type[0], type[1], type[2], type[3]);
 			ret = 1;
-		}		
+		}
 		else if (!strnicmp(szSlot, "name=", 5)) {
 			strcpy(meta->szName, szSlot+5);
 			ret = 1;
@@ -1331,37 +1336,40 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			sscanf(szSlot+11, "%dx%d", &meta->image_props->hOffset, &meta->image_props->vOffset);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "image-irot=", 11)) {
+		else if (!strnicmp(szSlot, "rotation=", 9)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
-			meta->image_props->angle = atoi(szSlot+11);
+			meta->image_props->angle = atoi(szSlot+9);
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "image-hidden", 12)) {
+		else if (!strnicmp(szSlot, "hidden", 6)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
 			meta->image_props->hidden = GF_TRUE;
 			ret = 1;
 		}
-		else if (!strnicmp(szSlot, "tilemode=", 9)) {
+		else if (!strnicmp(szSlot, "time=", 5)) {
 			if (!meta->image_props) {
 				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
 			}
-			if (!strnicmp(szSlot + 9, "nobase", 6)) {
-				meta->image_props->tile_mode = TILE_ITEM_ALL_NO_BASE;
-			} else if (!strnicmp(szSlot + 9, "base", 4)) {
-				meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
-			} else if (!strnicmp(szSlot + 9, "grid", 4)) {
-				meta->image_props->tile_mode = TILE_ITEM_ALL_GRID;
-			} else {
-				meta->image_props->tile_mode = TILE_ITEM_SINGLE;
-				sscanf(szSlot + 9, "%d", &meta->image_props->single_tile_number);
-			}			
+			meta->image_props->time = atof(szSlot+5);
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "split_tiles", 11)) {
+			if (!meta->image_props) {
+				GF_SAFEALLOC(meta->image_props, GF_ImageItemProperties);
+			}
+			meta->image_props->tile_mode = TILE_ITEM_ALL_BASE;
+			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "dref", 4)) {
 			meta->use_dref = 1;
+			ret = 1;
+		}
+		else if (!strnicmp(szSlot, "primary", 7)) {
+			meta->primary = 1;
 			ret = 1;
 		}
 		else if (!stricmp(szSlot, "binary")) {
@@ -1669,7 +1677,7 @@ static GF_Err parse_track_action_params(char *string, TrackAction *action)
 {
 	char *param = string;
 	if (!action || !string) return GF_BAD_PARAM;
-	
+
 	while (param) {
 		param = strchr(param, ':');
 		if (param) {
@@ -3150,6 +3158,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-inter") || !stricmp(arg, "-old-inter")) {
 			CHECK_NEXT_ARG
 			interleaving_time = atof(argv[i + 1]) / 1000;
+			if (!interleaving_time) do_flat = GF_TRUE;
 			open_edit = GF_TRUE;
 			needSave = GF_TRUE;
 			if (!stricmp(arg, "-old-inter")) old_interleave = 1;
@@ -3403,7 +3412,7 @@ int mp4boxMain(int argc, char **argv)
 	e = GF_OK;
 	split_duration = 0.0;
 	split_start = -1.0;
-	interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
+	interleaving_time = 0;
 	dash_duration = dash_subduration = 0.0;
 	dash_duration_strict = GF_FALSE;
 	import_fps = 0;
@@ -3459,6 +3468,10 @@ int mp4boxMain(int argc, char **argv)
 		}
 	}
 
+#ifdef _TWO_DIGIT_EXPONENT
+	_set_output_format(_TWO_DIGIT_EXPONENT);
+#endif
+
 	/*init libgpac*/
 	gf_sys_init(mem_track);
 	if (argc < 2) {
@@ -3489,8 +3502,9 @@ int mp4boxMain(int argc, char **argv)
 		/*by default use single fragment per dash segment*/
 		if (dash_duration)
 			interleaving_time = dash_duration;
-		else
-			do_flat = GF_TRUE;
+		else if (!do_flat) {
+			interleaving_time = DEFAULT_INTERLEAVING_IN_SEC;
+		}
 	}
 
 	if (dump_std)
@@ -3561,6 +3575,7 @@ int mp4boxMain(int argc, char **argv)
 		gf_log_set_tool_level(GF_LOG_PARSER, level);
 		gf_log_set_tool_level(GF_LOG_AUTHOR, level);
 		gf_log_set_tool_level(GF_LOG_CODING, level);
+		gf_log_set_tool_level(GF_LOG_DASH, level);
 #ifdef GPAC_MEMORY_TRACKING
 		if (mem_track)
 			gf_log_set_tool_level(GF_LOG_MEMORY, level);
@@ -3627,7 +3642,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE);
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 
@@ -3972,7 +3987,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "DASH Warning: using -segment-timeline with no -url-template. Forcing URL template.\n");
 			use_url_template = GF_TRUE;
 		}
-		
+
 		e = gf_dasher_enable_url_template(dasher, (Bool) use_url_template, seg_name, seg_ext);
 		if (!e) e = gf_dasher_enable_segment_timeline(dasher, segment_timeline);
 		if (!e) e = gf_dasher_enable_single_segment(dasher, single_segment);
@@ -4103,7 +4118,7 @@ int mp4boxMain(int argc, char **argv)
 		}
 		switch (get_file_type_by_ext(inName)) {
 		case 1:
-			file = gf_isom_open(inName, (u8) (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ), tmpdir);
+			file = gf_isom_open(inName, (u8) (force_new ? GF_ISOM_WRITE_EDIT : (open_edit ? GF_ISOM_OPEN_EDIT : ( ((dump_isom>0) || print_info) ? GF_ISOM_OPEN_READ_DUMP : GF_ISOM_OPEN_READ) ) ), tmpdir);
 			if (!file && (gf_isom_last_error(NULL) == GF_ISOM_INCOMPLETE_FILE) && !open_edit) {
 				u64 missing_bytes;
 				e = gf_isom_open_progressive(inName, 0, 0, &file, &missing_bytes);
@@ -4459,25 +4474,34 @@ int mp4boxMain(int argc, char **argv)
 			{
 				e = import_file(file, meta->szPath, 0, 0, 0);
 				if (e == GF_OK) {
-					if (!gf_isom_get_meta_type(file, meta->root_meta, tk)) {
+					u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
+					if (!meta_type) {
 						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_4CC('p','i','c','t'));
+					} else {
+						if (meta_type != GF_4CC('p', 'i', 'c', 't')) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
+							e = GF_BAD_PARAM;
+						}
 					}
 					if (e == GF_OK) {
 						if (!meta->item_id) {
 							e = gf_isom_meta_get_next_item_id(file, meta->root_meta, tk, &meta->item_id);
 						}
 						if (e == GF_OK) {
-							gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
-								strlen(meta->szName) ? meta->szName : NULL,
-								meta->item_id,
-								meta->image_props, NULL);
-							if (meta->ref_type) {
+							e = gf_isom_iff_create_image_item_from_track(file, meta->root_meta, tk, 1,
+									strlen(meta->szName) ? meta->szName : NULL,
+									meta->item_id,
+									meta->image_props, NULL);
+							if (e == GF_OK && meta->primary) {
+								e = gf_isom_set_meta_primary_item(file, meta->root_meta, tk, meta->item_id);
+							}
+							if (e == GF_OK && meta->ref_type) {
 								e = gf_isom_meta_add_item_ref(file, meta->root_meta, tk, meta->item_id, meta->ref_item_id, meta->ref_type, NULL);
 							}
 						}
 					}
 				}
-				gf_isom_remove_track(file, 1);				
+				gf_isom_remove_track(file, 1);
 				needSave = GF_TRUE;
 			}
 			break;
@@ -4538,7 +4562,7 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 		needSave = GF_TRUE;
 	}
-	
+
 	for (i=0; i<nb_tsel_acts; i++) {
 		switch (tsel_acts[i].act_type) {
 		case TSEL_ACTION_SET_PARAM:
@@ -4879,7 +4903,8 @@ int mp4boxMain(int argc, char **argv)
 			needSave = GF_TRUE;
 			break;
 		case TRAC_ACTION_SET_UDTA:
-			set_file_udta(file, track, tka->udta_type, tka->src_name, tka->sample_num ? GF_TRUE : GF_FALSE);
+			e = set_file_udta(file, track, tka->udta_type, tka->src_name, tka->sample_num ? GF_TRUE : GF_FALSE);
+			if (e) goto err_exit;
 			needSave = GF_TRUE;
 			break;
 		default:
@@ -5181,7 +5206,7 @@ exit:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+		gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}

@@ -2546,6 +2546,7 @@ GF_Err gf_isom_add_user_data_boxes(GF_ISOFile *movie, u32 trackNumber, char *dat
 		if (!trak->udta) trak_AddBox((GF_Box*)trak, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		udta = trak->udta;
 	} else {
+		if (!movie->moov) return GF_BAD_PARAM;
 		if (!movie->moov->udta) moov_AddBox((GF_Box*)movie->moov, gf_isom_box_new(GF_ISOM_BOX_TYPE_UDTA));
 		udta = movie->moov->udta;
 	}
@@ -3372,6 +3373,22 @@ GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!trak->Media->information->sampleTable->CompositionOffset->unpack_mode) return GF_BAD_PARAM;
 	/*we're in unpack mode: one entry per sample*/
 	trak->Media->information->sampleTable->CompositionOffset->entries[sample_number - 1].decodingOffset = offset;
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offset_shift)
+{
+	u32 i;
+	GF_TrackBox *trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+	if (!trak->Media->information->sampleTable->CompositionOffset) return GF_BAD_PARAM;
+	if (!trak->Media->information->sampleTable->CompositionOffset->unpack_mode) return GF_BAD_PARAM;
+
+	for (i=0; i<trak->Media->information->sampleTable->CompositionOffset->nb_entries; i++) {
+		/*we're in unpack mode: one entry per sample*/
+		trak->Media->information->sampleTable->CompositionOffset->entries[i].decodingOffset -= offset_shift;
+	}
 	return GF_OK;
 }
 
