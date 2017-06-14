@@ -660,7 +660,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	GF_MetaBox *meta;
 	u32 lastItemID = 0;
 
-	if (!self_reference && !resource_path && !data) return GF_BAD_PARAM;
+	if (!self_reference && !resource_path && !data && !item_extent_refs) return GF_BAD_PARAM;
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -673,7 +673,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (e) return e;
 
 	/*check file exists */
-	if (!URN && !URL && !self_reference && !data) {
+	if (resource_path) {
 		FILE *src = gf_fopen(resource_path, "rb");
 		if (!src) return GF_URL_ERROR;
 		gf_fclose(src);

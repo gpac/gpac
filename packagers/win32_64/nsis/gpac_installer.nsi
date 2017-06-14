@@ -457,6 +457,11 @@ Section "MPEG DASH Support" SecDASH
   File "${GPAC_BIN}\gm_mpd_in.dll"
 SectionEnd
 
+Section "RAW audio-video output" SecRAW
+  SectionIn 1
+  File "${GPAC_BIN}\gm_raw_out.dll"
+SectionEnd
+
 Section "HTML 5 Media Source Extensions Support" SecMSE
   SectionIn 1
   File "${GPAC_BIN}\gm_mse_in.dll"
@@ -671,6 +676,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"

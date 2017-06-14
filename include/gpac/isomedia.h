@@ -1225,6 +1225,9 @@ unpack=1: set unpack off and repacks all table info
 GF_Err gf_isom_set_cts_packing(GF_ISOFile *the_file, u32 trackNumber, Bool unpack);
 /*modify CTS offset of a given sample (used for B-frames) - MUST be called in unpack mode only*/
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset);
+/*shift all CTS with the given offset - MUST be called in unpack mode only*/
+GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offset_shift);
+
 /*remove CTS offset table (used for B-frames)*/
 GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber);
 
@@ -2348,6 +2351,7 @@ typedef struct
 	void *config;
 	GF_TileItemMode tile_mode; 
 	u32 single_tile_number;
+	double time;
 } GF_ImageItemProperties;
 
 GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);
