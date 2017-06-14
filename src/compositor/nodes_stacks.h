@@ -91,6 +91,7 @@ typedef struct
 	GF_List *reg_stacks;
 	Bool prev_was_bound;
 	GF_Matrix world_view_mx;
+	SFVec2f last_vp_size;
 	u32 last_sim_time;
 } ViewStack;
 

@@ -166,6 +166,14 @@ u64 gf_ftell(FILE *f);
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
 
 /*!
+ *	\brief get basename from filename/path
+ *
+ *	Returns a pointer to the start of a filepath basename or null
+ *	\param filename Path of the file, can be an absolute path
+*/
+char* gf_file_basename(const char* filename);
+
+/*!
  *	\brief get extension from filename
  *
  *	Returns a pointer to the start of a filepath extension or null
@@ -282,6 +290,8 @@ typedef enum
 	GF_NOT_FOUND							= -53,
 	/*! Unexpected format of data */
 	GF_PROFILE_NOT_SUPPORTED				= -54,
+	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
+	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 } GF_Err;
 
 /*!

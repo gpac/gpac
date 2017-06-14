@@ -26,16 +26,10 @@
 #ifndef _MEDIACODEC_DEC_H_
 #define _MEDIACODEC_DEC_H_
 #include <gpac/modules/codec.h>
-#include <android/log.h>
-#define TAG "mediacodec_dec"
-#define LOGV(...)  __android_log_print(ANDROID_LOG_VERBOSE, TAG,  __VA_ARGS__)
-#define LOGD(...)  __android_log_print(ANDROID_LOG_DEBUG, TAG,  __VA_ARGS__)
-#define LOGE(...)  __android_log_print(ANDROID_LOG_ERROR, TAG,  __VA_ARGS__)
-#define LOGW(...)  __android_log_print(ANDROID_LOG_WARN, TAG,  __VA_ARGS__)
-#define LOGI(...)  __android_log_print(ANDROID_LOG_INFO, TAG,  __VA_ARGS__)
 
 GF_Err MCDec_CreateSurface (ANativeWindow ** window, u32 *gl_tex_id, Bool * surface_rendering);
 GF_Err MCFrame_UpdateTexImage();
 GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx);
+GF_Err MCDec_DeleteSurface();
 #endif //_MEDIACODEC_DEC_H_
 

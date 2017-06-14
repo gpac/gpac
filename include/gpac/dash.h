@@ -126,9 +126,9 @@ struct _gf_dash_io
 	/*download the content - synchronous call: all the file shall be fetched before returning*/
 	GF_Err (*run)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 
-	/*get URL of the file - i tmay be different from the original one if resource relocation happened*/
+	/*get URL of the file - it may be different from the original one if resource relocation happened*/
 	const char *(*get_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
-	/*get the name of the cache file. If NULL is returned, the file cannot be cached and its associated UTL will be used when
+	/*get the name of the cache file. If NULL is returned, the file cannot be cached and its associated URL will be used when
 	the client request file to play*/
 	const char *(*get_cache_name)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the MIME type of the file*/
@@ -346,6 +346,9 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range);
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 /*get video info for this group if video*/
 GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
+
+/*seek only a given group*/
+void gf_dash_group_seek(GF_DashClient *dash, u32 group_idx, Double seek_to);
 
 /*sets playback speed of the session. Speed is used in adaptation logic*/
 void gf_dash_set_speed(GF_DashClient *dash, Double speed);

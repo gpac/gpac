@@ -685,6 +685,8 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 		if (gf_isom_cenc_has_saiz_saio_traf(traf)) {
 			u32 size, nb_saio;
 			u64 offset;
+			GF_Err e;
+			Bool is_encrypted;
 			GF_SampleAuxiliaryInfoOffsetBox *saio = NULL;
 			GF_SampleAuxiliaryInfoSizeBox *saiz = NULL;
 
@@ -715,19 +717,31 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 						offset = (saio->version ? saio->offsets_large[i] : saio->offsets[i]) + moof_offset;
 					size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[i];
 
+
 					cur_position = gf_bs_get_position(trak->moov->mov->movieFileMap->bs);
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, offset);
 
 					GF_SAFEALLOC(sai, GF_CENCSampleAuxInfo);
 
-					gf_bs_read_data(trak->moov->mov->movieFileMap->bs, (char *)sai->IV, 16);
-					if (size > 16) {
-						sai->subsample_count = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
-						sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
-						for (j = 0; j < sai->subsample_count; j++) {
-							sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
-							sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(trak->moov->mov->movieFileMap->bs);
+					e = gf_isom_get_sample_cenc_info_ex(trak, traf, senc, i+1, (u32*)&is_encrypted, &sai->IV_size, NULL, NULL, NULL, NULL, NULL);
+					if (e) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isobmf] could not get cenc info for sample %d: %s\n", i+1, gf_error_to_string(e) ));
+						return e;
+					}
+
+					if (is_encrypted) {
+						gf_bs_read_data(trak->moov->mov->movieFileMap->bs, (char *)sai->IV, sai->IV_size);
+						if (size > sai->IV_size) {
+							sai->subsample_count = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
+							sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry)*sai->subsample_count);
+							for (j = 0; j < sai->subsample_count; j++) {
+								sai->subsamples[j].bytes_clear_data = gf_bs_read_u16(trak->moov->mov->movieFileMap->bs);
+								sai->subsamples[j].bytes_encrypted_data = gf_bs_read_u32(trak->moov->mov->movieFileMap->bs);
+							}
 						}
+					} else {
+						sai->IV_size=0;
+						sai->subsample_count=0;
 					}
 
 					gf_bs_seek(trak->moov->mov->movieFileMap->bs, cur_position);

@@ -2665,7 +2665,8 @@ GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level)
 }
 
 #ifndef GPAC_DISABLE_HEVC
-static u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
+GF_EXPORT
+u32 hevc_get_tile_id(HEVCState *hevc, u32 *tile_x, u32 *tile_y, u32 *tile_width, u32 *tile_height)
 {
 	HEVCSliceInfo *si = &hevc->s_info;
 	u32 i, tbX, tbY, PicWidthInCtbsY, PicHeightInCtbsY, tileX, tileY, oX, oY, val;
@@ -2798,6 +2799,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	hvcc = gf_isom_hevc_config_get(file, track, 1);
 	nalu_size_length = hvcc->nal_unit_size;
 
+	memset(&hevc, 0, sizeof(HEVCState));
+
 	count = gf_list_count(hvcc->param_array);
 	for (i=0; i<count; i++) {
 		GF_HEVCParamArray *ar = gf_list_get(hvcc->param_array, i);
@@ -2824,20 +2827,18 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	i=0;
 	while ((pps_idx==-1) || (sps_idx==-1)) {
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
-		u8 *data = sample->data;
+		char *data = sample->data;
 		u32 size = sample->dataLength;
 
 		while (size) {
 			u8 temporal_id, layer_id;
 			u8 nal_type = 0;
 			u32 nalu_size = 0;
-			GF_BitStream *bs;
+
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
-			bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);
-			gf_media_hevc_parse_nalu(bs, &hevc, &nal_type, &temporal_id, &layer_id);
-			gf_bs_del(bs);
+			gf_media_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
 
 			switch (nal_type) {
 			case GF_HEVC_NALU_PIC_PARAM:
@@ -2893,7 +2894,6 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 	for (i=0; i<count; i++) {
 		u8 *data;
 		u32 size, nb_nalus=0, nb_nal_entries=0, last_tile_group=(u32) -1;
-		GF_BitStream *src_bs;
 		GF_BitStream *bs=NULL;
 		GF_ISOSample *sample = gf_isom_get_sample(file, track, i+1, &di);
 
@@ -2930,9 +2930,8 @@ GF_Err gf_media_split_hevc_tiles(GF_ISOFile *file, u32 signal_mode)
 			for (j=0; j<nalu_size_length; j++) {
 				nalu_size = (nalu_size<<8) + data[j];
 			}
-			src_bs = gf_bs_new((const char *) data + nalu_size_length, nalu_size, GF_BITSTREAM_READ);
-			ret = gf_media_hevc_parse_nalu(src_bs, &hevc, &nal_type, &temporal_id, &layer_id);
-			gf_bs_del(src_bs);
+			ret = gf_media_hevc_parse_nalu(data + nalu_size_length, nalu_size, &hevc, &nal_type, &temporal_id, &layer_id);
+
 			//error parsing NAL, set nal to fallback to regular import
 			if (ret<0) nal_type = GF_HEVC_NALU_VID_PARAM;
 

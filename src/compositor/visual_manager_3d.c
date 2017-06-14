@@ -363,6 +363,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 			}
 		}
 
+
+	tr_state->camera_was_dirty = GF_FALSE;
+
 	if (tr_state->visual->nb_views>1) {
 		s32 view_idx;
 		Fixed interocular_dist_pixel;
@@ -379,8 +382,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
+		tr_state->camera_was_dirty = GF_TRUE;
 		camera_update_stereo(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->focus_distance, tr_state->visual->camera_layout);
 	} else {
+		if (tr_state->camera->flags & CAM_IS_DIRTY) tr_state->camera_was_dirty = GF_TRUE;
 		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
 	}
 
@@ -546,6 +551,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp = tr_state->camera->vp;
 		Fixed vp_width = orig_vp.width;
 //		Fixed vp_height = orig_vp.height;
+		Fixed old_w = tr_state->camera->width;
+		Fixed old_h = tr_state->camera->height;
 
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
@@ -566,6 +573,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 				tr_state->camera->vp.width = max_width;
 				tr_state->camera->vp.height = max_height;
 #endif
+				tr_state->camera->width = max_width;
+				tr_state->camera->height = max_height;
 
 			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
 			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
@@ -596,6 +605,9 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_setup_projection(tr_state, layer_type);
 
 		tr_state->camera->vp = orig_vp;
+		tr_state->camera->width = old_w;
+		tr_state->camera->height = old_h;
+
 	} else if (tr_state->visual->autostereo_type==GF_3D_STEREO_TOP) {
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
@@ -1280,7 +1292,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = -FIX_ONE;
+	res.z = -FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
@@ -1290,7 +1302,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = FIX_ONE;
+	res.z = FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
@@ -1861,7 +1873,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 #ifndef GPAC_DISABLE_VRML
 	GF_TextureHandler *txh;
 	tr_state->mesh_num_textures = 0;
-	if (!tr_state->appear) return 0;
+	if (!tr_state->appear) return GF_TRUE;
 
 	gf_node_dirty_reset(tr_state->appear, 0);
 
@@ -1874,14 +1886,22 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 			switch (txh->pixelformat) {
 			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGB_24:
-				v[0] = v[1] = v[2] = FIX_ONE;
-				v[3] = diffuse_alpha;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (tr_state->visual->has_material_2d) {
+					SFColor c;
+					c.red = c.green = c.blue = FIX_ONE;
+					visual_3d_set_material_2d(tr_state->visual, c, diffuse_alpha);
+				} else {
+					v[0] = v[1] = v[2] = FIX_ONE;
+					v[3] = diffuse_alpha;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				break;
 			/*override diffuse color AND material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGBA:
-				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (!tr_state->visual->has_material_2d) {
+					v[0] = v[1] = v[2] = v[3] = FIX_ONE;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				tr_state->mesh_is_transparent = 1;
 				break;
 				/*			case GF_PIXEL_GREYSCALE:
@@ -1890,10 +1910,10 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 				*/
 			}
 		}
-		return tr_state->mesh_num_textures;
+		return tr_state->mesh_num_textures ? GF_TRUE : GF_FALSE;
 	}
 #endif /*GPAC_DISABLE_VRML*/
-	return 0;
+	return GF_FALSE;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
@@ -1912,7 +1932,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 	/*setup material and check if 100% transparent - in which case don't draw*/
 	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state, diff_a);
+	if (! visual_3d_setup_texture(tr_state, diff_a)) return 0;
 	return 1;
 }
 

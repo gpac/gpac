@@ -62,14 +62,14 @@ lsr_test ()
  test_end
 
  rm $saffile 2> /dev/null
- rm $mp4file 2> /dev/null 
+ rm $mp4file 2> /dev/null
 
 }
 
 
 laser_tests ()
 {
- for bt in $MEDIA_DIR/laser/* ; do
+ for bt in $MEDIA_DIR/laser/*.xml ; do
   lsr_test $bt
  done
 }

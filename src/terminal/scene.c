@@ -1305,7 +1305,7 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 	((M_Appearance *)n2)->texture = (GF_Node *)mt;
 	gf_node_register((GF_Node *)mt, n2);
 
-	if (scene->is_srd) {
+	if (scene->srd_type) {
 		GF_Node *app = n2;
 		
 		if (scene->vr_type) {
@@ -1371,17 +1371,18 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		//create VP info regardless of VR type
 		if (scene->vr_type) {
+			const char *opt;
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Viewpoint, "DYN_VP");
 			((M_Viewpoint *)n2)->position.z = 0;
-			{
-				const char *opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
-				if (!opt) {
-					gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", "0.785398006");
-				} else {
-					((M_Viewpoint *)n2)->position.z = FLT2FIX( atof(opt) );
-				}
-			}
 			((M_Viewpoint *)n2)->fieldOfView = GF_PI/2;
+
+			opt = gf_cfg_get_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV");
+			if (!opt) {
+				opt="1.570796326794897";
+				gf_cfg_set_key(scene->root_od->term->user->config, "Compositor", "VRDefaultFOV", opt);
+			}
+			((M_Viewpoint *)n2)->fieldOfView = FLT2FIX( atof(opt) );
+
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, n2);
 			gf_node_register(n2, n1);
 
@@ -1474,7 +1475,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	ac = (M_AudioClip *) gf_sg_find_node_by_name(scene->graph, "DYN_AUDIO");
 	set_media_url(scene, &scene->audio_url, (GF_Node*)ac, &ac->url, GF_STREAM_AUDIO);
 
-	if (scene->is_srd) {
+	if (scene->srd_type) {
 		char szName[20], szTex[20], szGeom[20];
 		u32 i, nb_srd = 0, srd_missing = 0;
 		GF_ObjectManager *a_odm;
@@ -1585,9 +1586,6 @@ void gf_scene_regenerate(GF_Scene *scene)
 
 		dims = (M_Inline *) gf_sg_find_node_by_name(scene->graph, "DIMS_SCENE");
 		set_media_url(scene, &scene->dims_url, (GF_Node*)dims, &dims->url, GF_STREAM_SCENE);
-
-		n2 = gf_sg_find_node_by_name(scene->graph, "DYN_TOUCH");
-		((M_TouchSensor *)n2)->enabled = GF_FALSE;
 	}
 
 	gf_sc_lock(scene->root_od->term->compositor, 0);
@@ -2085,7 +2083,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 
 #ifndef GPAC_DISABLE_VRML
 		scene->force_size_set = GF_TRUE;
-		if (! scene->is_srd) {
+		if (! scene->srd_type) {
 			GF_Node *node = gf_sg_find_node_by_name(scene->graph, "DYN_GEOM1");
 			if (node && (((M_Sphere *)node)->radius == FIX_ONE)) {
 				u32 radius = MAX(width, height) / 2;
@@ -2171,7 +2169,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	} else {
 		gf_sg_set_scene_size_info(scene->graph, width, height, GF_TRUE);
 	}
-	if (scene->is_srd)
+	if (scene->srd_type)
 		gf_scene_regenerate(scene);
 
 #ifndef GPAC_DISABLE_VRML
@@ -2798,9 +2796,6 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	}
 	if (!odm_base) return;
 
-	odm_base->upper_layer_odm = odm;
-	odm->lower_layer_odm = odm_base;
-
 	base_ch = gf_list_get(odm_base->channels, 0);
 	
 	switch (base_ch->esd->decoderConfig->objectTypeIndication) {
@@ -2816,7 +2811,17 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 			break;
 		}
 		break;
+	case GPAC_OTI_VIDEO_HEVC:
+		force_attach=GF_TRUE;
+		break;
 	}
+
+	if (odm_base->upper_layer_odm) {
+		force_attach=GF_FALSE;
+	} else {
+		odm_base->upper_layer_odm = odm;
+	}
+	odm->lower_layer_odm = odm_base;
 
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
@@ -2829,7 +2834,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		}
 	} else if (force_attach) {
 		//we force annexB mode, delete avcC/hvcC
-		if (ch->esd->decoderConfig->decoderSpecificInfo) {
+		if (nalu_annex_b && ch->esd->decoderConfig->decoderSpecificInfo) {
 			gf_odf_desc_del((GF_Descriptor *)ch->esd->decoderConfig->decoderSpecificInfo);
 			ch->esd->decoderConfig->decoderSpecificInfo=NULL;
 		}

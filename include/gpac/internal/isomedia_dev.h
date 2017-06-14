@@ -506,6 +506,10 @@ enum
 	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
 	GF_ISOM_BOX_TYPE_AINF	= GF_4CC( 'a', 'i', 'n', 'f' ),
 
+	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC( 'j', 'p', 'e', 'g' ),
+	GF_ISOM_BOX_TYPE_PNG	= GF_4CC( 'p', 'n', 'g', ' ' ),
+	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC( 'j', 'p', '2', 'k' ),
+
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
 
@@ -3162,7 +3166,6 @@ struct __tag_isom {
 	u8 convert_streaming_text;
 	u8 is_jp2;
 	u8 force_co64;
-	u8 is_dump_mode;
 
 	Bool keep_utc, drop_date_version_info;
 	/*main boxes for fast access*/
@@ -3371,6 +3374,8 @@ Bool IsHintTrack(GF_TrackBox *trak);
 Bool CheckHintFormat(GF_TrackBox *trak, u32 HintType);
 u32 GetHintFormat(GF_TrackBox *trak);
 
+
+void gf_isom_box_add_for_dump_mode(GF_Box *parent, GF_Box *a);
 
 /*locate a box by its type or UUID*/
 GF_ItemListBox *gf_ismo_locate_box(GF_List *list, u32 boxType, bin128 UUID);
@@ -3720,7 +3725,7 @@ Bool gf_isom_box_is_file_level(GF_Box *s);
 
 GF_Box *boxstring_new_with_data(u32 type, const char *string);
 
-GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, char **out_str);
+GF_Err gf_isom_read_null_terminated_string(GF_Box *s, GF_BitStream *bs, u64 size, char **out_str);
 
 #endif //GPAC_DISABLE_ISOM
 

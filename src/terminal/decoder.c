@@ -113,6 +113,36 @@ GF_Codec *gf_codec_use_codec(GF_Codec *codec, GF_ObjectManager *odm)
 	return tmp;
 }
 
+static void codec_check_frame_output_mode(GF_Codec *codec)
+{
+	GF_CodecCapability cap;
+	codec->direct_frame_output = GF_FALSE;
+	codec->direct_vout = GF_FALSE;
+
+	if (codec->type == GF_STREAM_VISUAL) {
+		cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+		gf_codec_get_capability(codec, &cap);
+		if (cap.cap.valueBool) {
+			cap.CapCode = GF_CODEC_FRAME_OUTPUT;
+			cap.cap.valueInt = gf_sc_use_3d(codec->odm->term->compositor) ? 2 : 1;
+			if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputFrame != NULL))
+				codec->direct_frame_output = GF_TRUE;
+		}
+		if (!codec->direct_frame_output) {
+			//this works but we need at least double buffering of textures on the GPU which we don't have now
+			if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
+				cap.CapCode = GF_CODEC_RAW_MEMORY;
+				gf_codec_get_capability(codec, &cap);
+				if (cap.cap.valueBool) {
+					cap.CapCode = GF_CODEC_RAW_MEMORY;
+					if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
+						codec->direct_vout = GF_TRUE;
+				}
+			}
+		}
+	}
+}
+
 GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 {
 	GF_Err e;
@@ -124,9 +154,6 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 	u32 min, max;
 
 	if (!ch || !ch->esd) return GF_BAD_PARAM;
-
-	if (ch && ch->odm && !ch->is_pulling && (ch->MaxBuffer <= ch->odm->term->low_latency_buffer_max))
-		codec->flags |= GF_ESM_CODEC_IS_LOW_LATENCY;
 
 	/*only for valid codecs (eg not OCR)*/
 	if (codec->decio) config_decio = GF_TRUE;
@@ -151,71 +178,44 @@ GF_Err gf_codec_add_channel(GF_Codec *codec, GF_Channel *ch)
 		}
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[Codec] Attaching stream %d to codec %s\n", ch->esd->ESID, codec->decio->module_name));
 
-		if (codec->type == GF_STREAM_VISUAL) {
-			cap.CapCode = GF_CODEC_FRAME_OUTPUT;
-			gf_codec_get_capability(codec, &cap);
-			if (cap.cap.valueBool) {
-				cap.CapCode = GF_CODEC_FRAME_OUTPUT;
-				cap.cap.valueInt = gf_sc_use_3d(codec->odm->term->compositor) ? 2 : 1;
-				if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputFrame != NULL))
-					codec->direct_frame_output = GF_TRUE;
-			}
-			if (!codec->direct_frame_output) {
-				//this works but we need at least double buffering of textures on the GPU which we don't have now
-				if ( gf_sc_use_raw_texture(codec->odm->term->compositor)) {
-					cap.CapCode = GF_CODEC_RAW_MEMORY;
-					gf_codec_get_capability(codec, &cap);
-					if (cap.cap.valueBool) {
-						cap.CapCode = GF_CODEC_RAW_MEMORY;
-						if ((gf_codec_set_capability(codec, cap)==GF_OK) && (((GF_MediaDecoder*)codec->decio)->GetOutputBuffer != NULL))
-							codec->direct_vout = GF_TRUE;
-					}
-				}
-			}
-		}
+		codec_check_frame_output_mode(codec);
 
 		if (codec->odm->term->bench_mode==2) {
 			e = GF_OK;
 		} else {
+			Bool force_annex_b = GF_FALSE;
+			GF_NetworkCommand com;
 			/*lock the channel before setup in case we are using direct_decode */
 			gf_mx_p(ch->mx);
 			ch->esd->service_url = (ch->odm && ch->odm->net_service) ? ch->odm->net_service->url : NULL;
 
-		//test code to force annexB format for AVC/SVC or HEVC/LHEVC streams
-#if GPAC_ANDROID
-			{
-				char *dsi = NULL;
-				GF_NetworkCommand com;
-				u32 len = 0;
-#if 0
-				if (ch->esd->decoderConfig->decoderSpecificInfo) {
-					dsi = ch->esd->decoderConfig->decoderSpecificInfo->data;
-					ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
-					len = ch->esd->decoderConfig->decoderSpecificInfo->dataLength;
-					ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
-				}
-				e = codec->decio->AttachStream(codec->decio, ch->esd);
-				if (ch->esd->decoderConfig->decoderSpecificInfo) {
-					ch->esd->decoderConfig->decoderSpecificInfo->data = dsi;
-					ch->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
-				}
-#endif
-				cap.CapCode = GF_CODEC_FORCE_ANNEXB;
-				gf_codec_get_capability(codec, &cap);
-				if (cap.cap.valueBool) {
-					memset(&com, 0, sizeof(GF_NetworkCommand));
-					com.command_type = GF_NET_CHAN_NALU_MODE;
-					com.nalu_mode.extract_mode = 1;
-					com.base.on_channel = ch;
-					gf_term_service_command(ch->service, &com);
-				}
+			cap.CapCode = GF_CODEC_FORCE_ANNEXB;
+			gf_codec_get_capability(codec, &cap);
+			if (cap.cap.valueBool) {
+				force_annex_b = GF_TRUE;
+			}
 
+			if (force_annex_b && ch->esd->decoderConfig->decoderSpecificInfo) {
+				gf_free(ch->esd->decoderConfig->decoderSpecificInfo->data);
+				ch->esd->decoderConfig->decoderSpecificInfo->data = NULL;
+				ch->esd->decoderConfig->decoderSpecificInfo->dataLength=0;
 			}
 
 			e = codec->decio->AttachStream(codec->decio, ch->esd);
-#else
-			e = codec->decio->AttachStream(codec->decio, ch->esd);
-#endif
+			while (e == GF_PROFILE_NOT_SUPPORTED) {
+				e = gf_codec_change_decoder(codec, ch->esd);
+				if (e) break;
+				codec_check_frame_output_mode(codec);
+				e = codec->decio->AttachStream(codec->decio, ch->esd);
+			}
+
+			if (force_annex_b) {
+				memset(&com, 0, sizeof(GF_NetworkCommand));
+				com.command_type = GF_NET_CHAN_NALU_MODE;
+				com.nalu_mode.extract_mode = 1;
+				com.base.on_channel = ch;
+				gf_term_service_command(ch->service, &com);
+			}
 
 			gf_mx_v(ch->mx);
 		}
@@ -558,8 +558,9 @@ refetch_AU:
 				baseAU->data = gf_realloc(baseAU->data, baseAU->dataLength + AU->dataLength);
 				memcpy(baseAU->data + baseAU->dataLength , AU->data, AU->dataLength);
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u CTS %u size %d reaggregated on base layer %d - base DTS %d size %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, AU->CTS, AU->dataLength, (*activeChannel)->esd->ESID, baseAU->DTS, baseAU->dataLength));
+
 			baseAU->dataLength += AU->dataLength;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] ODM%d#CH%d (%s) AU DTS %u reaggregated on base layer %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, AU->DTS, (*activeChannel)->esd->ESID));
 			gf_es_drop_au(ch);
 			ch->first_au_fetched = 1;
 			scalable_check = 2;
@@ -1376,6 +1377,7 @@ scalable_retry:
 			if (codec->CB->LastRenderedTS) {
 				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resize output buffer requested\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID));
 				codec->force_cb_resize = unit_size;
+				gf_cm_abort_buffering(codec->CB);
 				return GF_OK;
 			}
 			GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[%s] ODM%d ES%d: Resizing output buffer %d -> %d\n", codec->decio->module_name, codec->odm->OD->objectDescriptorID, ch->esd->ESID, codec->CB->UnitSize, unit_size));
@@ -1420,7 +1422,6 @@ scalable_retry:
 		case GF_OK:
 			if (unit_size) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
-
 
 				if (codec->direct_frame_output) {
 					Bool needs_resize = 0;
@@ -1487,7 +1488,49 @@ scalable_retry:
 			/*release but no dispatch*/
 			UnlockCompositionUnit(codec, CU, 0);
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] Unsupported profile detected, blacklisting decoder for this stream and changing decoder\n", codec->decio->module_name ));
-			return gf_codec_change_decoder(codec);
+			return gf_codec_change_decoder(codec, NULL);
+		case GF_CODEC_BUFFER_UNAVAILABLE:
+			if (unit_size) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[%s] At %u ODM%d ES%d decoded frame DTS %u CTS %u size %d in "LLU" us - %d in CB\n", codec->decio->module_name, gf_clock_real_time(ch->clock), codec->odm->OD->objectDescriptorID, ch->esd->ESID, AU->DTS, AU->CTS, AU->dataLength, now, codec->CB->UnitCount + 1));
+				
+				if (codec->direct_frame_output) {
+					Bool needs_resize = 0;
+					//may happen during seek
+					if (CU->frame) {
+						CU->frame->Release(CU->frame);
+						CU->frame = NULL;
+					}
+
+					e = mdec->GetOutputFrame(mdec, ch->esd->ESID, &CU->frame, &needs_resize);
+					if (e!=GF_OK) {
+						CU->frame=NULL;
+					}
+					if (!CU->frame)
+						unit_size = 0;
+					else if (needs_resize) {
+						assert(unit_size);
+						//if dynamic scene, set size
+						if ((codec->type==GF_STREAM_VISUAL) && codec->odm->parentscene->is_dynamic_scene) {
+							/*update config*/
+							gf_mo_update_caps(codec->odm->mo);
+							gf_scene_force_size_to_video(codec->odm->parentscene, codec->odm->mo);
+						}
+					}
+					
+				}
+				else if (codec->direct_vout) {
+					e = mdec->GetOutputBuffer(mdec, ch->esd->ESID, &codec->CB->pY, &codec->CB->pU, &codec->CB->pV);
+					if (e==GF_OK) {
+						gf_sc_set_video_pending_frame(codec->odm->term->compositor);
+					}
+				}
+				CU->sender_ntp = AU->sender_ntp;
+			}
+
+			codec_update_stats(codec, AU->dataLength, now, AU->DTS, (AU->flags & GF_DB_AU_RAP));
+			UnlockCompositionUnit(codec, CU, unit_size);
+			
+			continue;
 
 		default:
 			unit_size = 0;
@@ -2000,7 +2043,7 @@ static GF_Err Codec_LoadModule(GF_Codec *codec, GF_ESD *esd, u32 PL)
 	return GF_CODEC_NOT_FOUND;
 }
 
-GF_Err gf_codec_change_decoder(GF_Codec *codec)
+GF_Err gf_codec_change_decoder(GF_Codec *codec, GF_ESD *for_esd)
 {
 	GF_Err e;
 	u32 i, count;
@@ -2019,13 +2062,15 @@ GF_Err gf_codec_change_decoder(GF_Codec *codec)
 	}
 	gf_modules_close_interface((GF_BaseInterface *) codec->decio);
 	codec->decio = NULL;
-	if (!esd) return GF_CODEC_NOT_FOUND;
-	e = Codec_LoadModule(codec, esd, codec->profile_level);
+	if (!esd && !for_esd) return GF_CODEC_NOT_FOUND;
+	e = Codec_LoadModule(codec, for_esd ? for_esd : esd, codec->profile_level);
 	if (e) return e;
 	if (!codec->decio) return GF_CODEC_NOT_FOUND;
 
 	for (i=0; i<count; i++) {
 		GF_Channel *ch = gf_list_get(codec->inChannels, i);
+		if (ch->esd == for_esd) continue;
+
 		if (ch && ch->esd) {
 			codec->decio->AttachStream(codec->decio, ch->esd);
 		}

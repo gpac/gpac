@@ -1109,7 +1109,7 @@ void piff_psec_del(GF_Box *s)
 
 GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 {
-	u32 sample_count;
+	//u32 sample_count;
 	GF_SampleEncryptionBox *ptr = (GF_SampleEncryptionBox *)s;
 	if (ptr->size<4) return GF_ISOM_INVALID_FILE;
 	ptr->version = gf_bs_read_u8(bs);
@@ -1127,7 +1127,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 
 	ptr->bs_offset = gf_bs_get_position(bs);
 
-	sample_count = gf_bs_read_u32(bs);
+	/*sample_count = */gf_bs_read_u32(bs);
 	ISOM_DECREASE_SIZE(ptr, 4);
 	if (ptr->IV_size != 8 && ptr->IV_size != 16) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] PIFF PSEC box incorrect IV size: %u - shall be 8 or 16\n", ptr->IV_size));
@@ -1143,7 +1143,7 @@ GF_Err piff_psec_Read(GF_Box *s, GF_BitStream *bs)
 GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 {
 	GF_Err e;
-	u64 pos;
+	u64 pos, new_pos;
 	if (!ptr->cenc_saio) return GF_OK;
 
 	pos = gf_bs_get_position(bs);
@@ -1155,12 +1155,24 @@ GF_Err store_senc_info(GF_SampleEncryptionBox *ptr, GF_BitStream *bs)
 	//force using version 1 for saio box i.e offset has 64 bits
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
 	if (ptr->traf) {
-		gf_bs_write_u64(bs, pos - ptr->traf->moof_start_in_bs );
+		new_pos = pos - ptr->traf->moof_start_in_bs;
 	} else
 #endif
 	{
-		gf_bs_write_u64(bs, pos);
+		new_pos = pos;
 	}
+
+	if (ptr->cenc_saio->offsets_large) {
+		u32 i;
+		u64 old_offset = ptr->cenc_saio->offsets_large[0];
+		for (i=0; i<ptr->cenc_saio->entry_count; i++) {
+			gf_bs_write_u64(bs, new_pos + ptr->cenc_saio->offsets_large[i] - old_offset);
+			ptr->cenc_saio->offsets_large[i] = new_pos + ptr->cenc_saio->offsets_large[i] - old_offset;
+		}
+	} else {
+		gf_bs_write_u64(bs, new_pos);
+	}
+
 	return gf_bs_seek(bs, pos);
 }
 

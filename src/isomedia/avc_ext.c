@@ -57,6 +57,10 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	case GF_4CC('h','v','t','1'):
 	case GF_4CC('l','h','t','1'):
 		return GF_TRUE;
+	case GF_ISOM_BOX_TYPE_GNRV:
+	case GF_ISOM_BOX_TYPE_GNRA:
+	case GF_ISOM_BOX_TYPE_GNRM:
+		return GF_FALSE;
 	default:
 		break;
 	}
@@ -1028,7 +1032,7 @@ void HEVC_RewriteESDescriptorEx(GF_MPEGVisualSampleEntryBox *hevc, GF_MediaBox *
 	hevc->emul_esd = gf_odf_desc_esd_new(2);
 	hevc->emul_esd->decoderConfig->streamType = GF_STREAM_VISUAL;
 	hevc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
-	if (hevc->lhvc_config && !hevc->hevc_config)
+	if (hevc->lhvc_config /*&& !hevc->hevc_config*/)
 		hevc->emul_esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_LHVC;
 
 	if (btrt) {

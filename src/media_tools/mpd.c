@@ -129,9 +129,17 @@ static u64 gf_mpd_parse_date(char *attr)
 	return gf_net_parse_date(attr);
 }
 
-static u64 gf_mpd_parse_duration(char *duration) {
+static u64 gf_mpd_parse_duration(char *duration)
+{
 	u32 i;
-	if (!duration) return 0;
+	char *sep1, *sep2;
+	u32 h, m;
+	double s;
+	const char *startT;
+	if (!duration) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
+		return 0;
+	}
 	i = 0;
 	while (1) {
 		if (duration[i] == ' ') i++;
@@ -140,41 +148,45 @@ static u64 gf_mpd_parse_duration(char *duration) {
 			break;
 		}
 	}
-	if (duration[i] == 'P') {
-		if (duration[i+1] == 0) return 0;
-		else if (duration[i+1] != 'T') return 0;
-		else {
-			char *sep1, *sep2;
-			u32 h, m;
-			double s;
-			h = m = 0;
-			s = 0;
-			if (NULL != (sep1 = strchr(duration+i+2, 'H'))) {
-				*sep1 = 0;
-				h = atoi(duration+i+2);
-				*sep1 = 'H';
-				sep1++;
-			} else {
-				sep1 = duration+i+2;
-			}
-			if (NULL != (sep2 = strchr(sep1, 'M'))) {
-				*sep2 = 0;
-				m = atoi(sep1);
-				*sep2 = 'M';
-				sep2++;
-			} else {
-				sep2 = sep1;
-			}
-			if (NULL != (sep1 = strchr(sep2, 'S'))) {
-				*sep1 = 0;
-				s = atof(sep2);
-				*sep1 = 'S';
-			}
-			return (u64)((h*3600+m*60+s)*(u64)1000);
-		}
-	} else {
+	if (duration[i] != 'P') {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
 		return 0;
 	}
+	startT = strchr(duration+1, 'T');
+
+	if (duration[i+1] == 0) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no value indicated\n"));
+		return 0;
+	}
+	if (! startT) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] Error parsing duration: no Time section found\n"));
+		return 0;
+	}
+
+	h = m = 0;
+	s = 0;
+	if (NULL != (sep1 = strchr(startT+1, 'H'))) {
+		*sep1 = 0;
+		h = atoi(duration+i+2);
+		*sep1 = 'H';
+		sep1++;
+	} else {
+		sep1 = (char *) startT+1;
+	}
+	if (NULL != (sep2 = strchr(sep1, 'M'))) {
+		*sep2 = 0;
+		m = atoi(sep1);
+		*sep2 = 'M';
+		sep2++;
+	} else {
+		sep2 = sep1;
+	}
+	if (NULL != (sep1 = strchr(sep2, 'S'))) {
+		*sep1 = 0;
+		s = atof(sep2);
+		*sep1 = 'S';
+	}
+	return (u64)((h*3600+m*60+s)*(u64)1000);
 }
 
 static u32 gf_mpd_parse_duration_u32(char *duration)
@@ -1785,7 +1797,7 @@ GF_EXPORT
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
                       const char *mpd_file,
                       u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates, GF_FileDownload *getter,
-                      GF_MPD *mpd, Bool parse_sub_playlist)
+                      GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files)
 {
 	GF_Err e;
 	char *title;
@@ -1805,7 +1817,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 		return e;
 	}
 	if (mpd_file == NULL) {
-		gf_delete_file(m3u8_file);
+		if (!keep_files) gf_delete_file(m3u8_file);
 		mpd_file = m3u8_file;
 	}
 
@@ -1869,7 +1881,7 @@ GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url,
 					if (e == GF_OK) {
 						e = gf_m3u8_parse_sub_playlist("tmp.m3u8", &pl, suburl, stream, pe);
 					} else {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download faile for %s\n", suburl));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD Generator] Download failed for %s\n", suburl));
 						e = GF_OK;
 					}
 					gf_delete_file("tmp.m3u8");
@@ -1985,13 +1997,14 @@ GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDow
 	if (pe->init_segment_url) {
 		if (!rep->segment_list->initialization_segment) {
 			GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
-			rep->segment_list->initialization_segment->sourceURL = pe->init_segment_url;
-			pe->init_segment_url=NULL;
 
 			if (strstr(pe->init_segment_url, "mp4") || strstr(pe->init_segment_url, "MP4")) {
 				if (rep->mime_type) gf_free(rep->mime_type);
 				rep->mime_type = gf_strdup("video/mp4");
 			}
+			rep->segment_list->initialization_segment->sourceURL = pe->init_segment_url;
+			pe->init_segment_url=NULL;
+
 			if (pe->init_byte_range_end) {
 				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
 				 rep->segment_list->initialization_segment->byte_range->start_range = pe->init_byte_range_start;
@@ -3525,9 +3538,11 @@ strcat(szISOBMFFInit, " ");\
         }
     }
     if (timescale != 10000000) {
-        char szTS[20];
+        char szTS[20], *v;
         sprintf(szTS, "%d", timescale);
-        ISBMFFI_ADD_KEYWORD("scale", szTS)
+	//prevent gcc warning
+	v = (char *)szTS;
+        ISBMFFI_ADD_KEYWORD("scale", v)
     }
     ISBMFFI_ADD_KEYWORD("tfdt", "0000000000000000000")
     //create a url for the IS to be reconstructed
