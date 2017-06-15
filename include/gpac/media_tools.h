@@ -838,14 +838,14 @@ GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *das
 GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode);
 
 /*!
- Sets cache options for dasher .
+ Enable/Disable cached inputs .
  *	\param dasher the DASH segmenter object
  *	\param no_cache if true, input file will be reopen each time the dasher process function is called .
  *	\return error code if any
 */
 
 GF_EXPORT
-GF_Err gf_dasher_set_cache_options(GF_DASHSegmenter *dasher, Bool no_cache);
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache);
 
 /*!
  Adds a media input to the DASHer
