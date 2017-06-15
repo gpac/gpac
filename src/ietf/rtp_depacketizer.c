@@ -741,7 +741,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			gf_bs_write_u8(rtp->inter_bs, nal_hdr);
 		}
 		gf_bs_write_data(rtp->inter_bs, payload+2, size-2);
-		if (hdr->Marker) gf_rtp_h264_flush(rtp, hdr, GF_FALSE);
+		if (is_end || hdr->Marker) gf_rtp_h264_flush(rtp, hdr, GF_FALSE);
 	}
 }
 
