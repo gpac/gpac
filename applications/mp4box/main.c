@@ -4013,6 +4013,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 		if (!e) e = gf_dasher_set_cache_options(dasher, no_cache);
+		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
