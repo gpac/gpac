@@ -135,6 +135,7 @@ struct __gf_dash_segmenter
 	GF_DASH_ContentLocationMode cp_location_mode;
 
 	Double max_segment_duration;
+	Bool no_cache;
 
 };
 
@@ -213,6 +214,7 @@ struct _dash_segment_input
 	Bool get_component_info_done;
 	//cached isobmf input
 	GF_ISOFile *isobmf_input;
+	Bool no_cache;
 };
 
 
@@ -3336,7 +3338,12 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 	}
 
 
-	return gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dash_cfg, dash_input, first_in_set);
+	e= gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dash_cfg, dash_input, first_in_set);
+	if(dash_input->no_cache){
+		gf_isom_delete(dash_input->isobmf_input);
+		dash_input->isobmf_input=NULL;
+	}
+	return e;
 }
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -5879,6 +5886,14 @@ GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *das
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	if(no_cache)dasher->no_cache = GF_TRUE;
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input)
@@ -5912,6 +5927,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	dash_input->as_c_descs = input->as_c_descs;
 	dash_input->nb_p_descs = input->nb_p_descs;
 	dash_input->p_descs = input->p_descs;
+	dash_input->no_cache = dasher->no_cache;
 
 	dash_input->bandwidth = input->bandwidth;
 

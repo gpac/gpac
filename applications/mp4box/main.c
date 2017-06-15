@@ -380,6 +380,7 @@ void PrintDASHUsage()
 	        " -mem-frags           fragments will be produced in memory rather than on disk before flushing to disk\n"
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
+	        " -no-cache            disable file cache for dash inputs .\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -1916,6 +1917,7 @@ const char *grab_ifce = NULL;
 FILE *logfile = NULL;
 static u32 dash_run_for;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
+static Bool no_cache=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3224,6 +3226,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			dash_run_for = atoi(argv[i + 1]);
 			i++;
 		}
+		else if (!stricmp(arg, "-no-cache")) {
+			no_cache = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i + 1];
@@ -4007,6 +4012,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_real_time(dasher, frag_real_time);
 		if (!e) e = gf_dasher_set_content_protection_location_mode(dasher, cp_location_mode);
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
+		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 
 		for (i=0; i < nb_dash_inputs; i++) {
