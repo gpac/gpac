@@ -5887,7 +5887,7 @@ GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *das
 }
 
 GF_EXPORT
-GF_Err gf_dasher_set_cache_options(GF_DASHSegmenter *dasher, Bool no_cache)
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache)
 {
 	if (!dasher) return GF_BAD_PARAM;
 	if(no_cache)dasher->no_cache = GF_TRUE;
