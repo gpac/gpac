@@ -789,7 +789,7 @@ GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e;
 	u32 imported_sample_desc_index = 1;
-	u32 sample_index = 1;
+//	u32 sample_index = 1;
 	u32 w, h, hSpacing, vSpacing;
 	u32 subtype;
 	GF_ISOSample *sample = NULL;
