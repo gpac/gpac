@@ -828,6 +828,13 @@ GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, 
 */
 GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
 
+/*! Sets Dasher debug mode
+ *	\param dasher the DASH segmenter object
+ *	\param forceTestMode If true, disable generation date print in mpd
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode);
+
 /*!
  Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
