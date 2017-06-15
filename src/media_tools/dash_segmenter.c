@@ -2409,7 +2409,9 @@ restart_fragmentation_pass:
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			if (strchr(dash_input->rep_descs[i], '<') != NULL) {
+				fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			}
 		}
 	}
 
@@ -4341,7 +4343,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			if (strchr(dash_input->rep_descs[i], '<') != NULL) {
+				fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			}
 		}
 	}
 
@@ -5097,7 +5101,9 @@ static GF_Err write_period_header(GF_DASHSegmenter *dasher, FILE *mpd, const cha
 	for (i=0; i< dasher->nb_inputs; i++) {
 		if (dasher->inputs[i].adaptation_set && (dasher->inputs[i].period==period_num)) {
 			for (j = 0; j < dasher->inputs[i].nb_p_descs; j++) {
-				fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
+				if (strchr(dasher->inputs[i].p_descs[j], '<') != NULL) {
+					fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
+				}
 			}
 		}
 	}
@@ -5150,7 +5156,9 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	for (i=0; i< nb_dash_inputs; i++) {
 		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
-				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+				if (strchr(dash_inputs[i].as_c_descs[j], '<') != NULL) {
+					fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+				}
 			}
 		}
 	}
@@ -5181,7 +5189,9 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
 		for (i=0; i<first_rep->nb_as_descs; i++) {
-			fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+			if (strchr(first_rep->as_descs[i], '<') != NULL) {
+				fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+			}
 		}
 
 		if (bitstream_switching_mode) {
