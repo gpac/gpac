@@ -528,6 +528,8 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
+	/*! if true, the dasher inputs will open each time the segmentation function is called */
+	Bool no_cache;
 } GF_DashSegmenterInput;
 
 /*!
@@ -827,6 +829,16 @@ GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, 
  *	\return error code if any
 */
 GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
+
+/*!
+ Sets cache options for dasher .
+ *	\param dasher the DASH segmenter object
+ *	\param no_cache if true, input file will be reopen each time the dasher process function is called .
+ *	\return error code if any
+*/
+
+GF_EXPORT
+GF_Err gf_dasher_set_cache_options(GF_DASHSegmenter *dasher, Bool no_cache);
 
 /*!
  Adds a media input to the DASHer
