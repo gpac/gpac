@@ -129,6 +129,9 @@ struct __gf_dash_segmenter
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
 
+	/*If true, disable generation date printing in mpd headers*/
+	Bool force_test_mode;
+
 	GF_DASH_ContentLocationMode cp_location_mode;
 
 	Double max_segment_duration;
@@ -4938,15 +4941,18 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 	assert(time_ms<1000);
 
 	fprintf(mpd, "<?xml version=\"1.0\"?>\n");
-	fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
+	if(!dasher->force_test_mode)
+		fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
 
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	t = gmtime(&gtime);
-	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
+	if(!dasher->force_test_mode)
+		fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms) );
 #else
 	GetSystemTime(&syst);
+	if(!dasher->force_test);
 	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 #endif
@@ -5653,6 +5659,12 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 	if (copyright) dasher->copyright = gf_strdup(copyright);
 	if (moreInfoURL) dasher->moreInfoURL = gf_strdup(moreInfoURL);
 	if (sourceInfo) dasher->source = gf_strdup(sourceInfo);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
+	dasher->force_test_mode=forceTestMode;
 	return GF_OK;
 }
 
