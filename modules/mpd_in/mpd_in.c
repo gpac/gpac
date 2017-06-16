@@ -569,6 +569,7 @@ GF_Err MPD_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 {
 	GF_MPDGroup *group = (GF_MPDGroup *)cbk;
+	u32 bytes_per_sec;
 
 	if (param->msg_type == GF_NETIO_PARSE_HEADER) {
 		if (!strcmp(param->name, "Dash-Newest-Segment")) {
@@ -580,10 +581,11 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 		group->has_new_data = 1;
 
 		if (param->reply) {
-			u32 bytes_per_sec;
+			//u32 bytes_per_sec;
 			const char *url;
 			gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of chunk received for %s at UTC "LLU" ms - estimated bandwidth %d kbps - chunk start at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. redowload at max  %d \n", 8*bytes_per_sec/1000));
 
 			if (group->mpdin->use_low_latency)
 				MPD_NotifyData(group, 1);
@@ -599,6 +601,7 @@ static void mpdin_dash_segment_netio(void *cbk, GF_NETIO_Parameter *param)
 		const char *url;
 		gf_dm_sess_get_stats(group->sess, NULL, &url, NULL, NULL, &bytes_per_sec, NULL);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[MPD_IN] End of file %s download at UTC "LLU" ms - estimated bandwidth %d kbps - started file or last chunk at UTC "LLU"\n", url, gf_net_get_utc(), 8*bytes_per_sec/1000, gf_dm_sess_get_utc_start(group->sess)));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG1. %d \n", 8*bytes_per_sec/1000));
 	}
 }
 
@@ -698,6 +701,7 @@ u32 mpdin_dash_io_get_bytes_per_sec(GF_DASHFileIO *dashio, GF_DASHFileIOSession 
 		bps = gf_dm_get_data_rate(mpdin->service->term->downloader);
 		bps/=8;
 	}
+	//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. max max max  %d \n", bps*8));
 	return bps;
 }
 u32 mpdin_dash_io_get_total_size(GF_DASHFileIO *dashio, GF_DASHFileIOSession session)
@@ -1005,6 +1009,18 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 	}
 	else if (!strcmp(opt, "buffer")) {
 		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_LEGACY_BUFFER;
+	}
+	else if (!strcmp(opt, "BBA-0")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_BBA0;
+	}
+	else if (!strcmp(opt, "BOLA_FINITE")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_BOLA_FINITE;
+	}
+	else if (!strcmp(opt, "BOLA_BASIC")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_BOLA_BASIC;
+	}
+	else if (!strcmp(opt, "BOLA_U")) {
+		mpdin->adaptation_algorithm = GF_DASH_ALGO_BOLA_U;
 	}
 	else if (!strcmp(opt, "test")) {
 		mpdin->adaptation_algorithm = GF_DASH_ALGO_GPAC_TEST;
@@ -1397,7 +1413,7 @@ GF_Err MPD_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 
 		e = gf_dash_group_get_quality_info(mpdin->dash, g_idx, com->quality_query.index-1, &qinfo);
 		if (e) return e;
-		
+		//group->bandwidth = qinfo.bandwidth;
 		com->quality_query.bandwidth = qinfo.bandwidth;
 		com->quality_query.ID = qinfo.ID;
 		com->quality_query.mime = qinfo.mime;
