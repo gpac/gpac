@@ -232,7 +232,7 @@ struct _dash_segment_input
 				}	\
 			}	\
 			char_template+=1;	\
- 
+
 GF_EXPORT
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline)
 {
@@ -540,6 +540,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (subtype==GF_ISOM_SUBTYPE_HVT1) {
 			u32 refTrack;
 			gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, 1, &refTrack);
+			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 			hvcc = gf_isom_hevc_config_get(movie, refTrack, 1);
 		}
 		if (hvcc) {
@@ -902,7 +903,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
-	
+
 	if (!dash_input) return GF_BAD_PARAM;
 	if (!seg_ext) seg_ext = "m4s";
 
@@ -1409,7 +1410,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (gf_list_count(fragmenters)>1)
 		mpd_timescale = 1000;
 
-	/* Finalize the selection of the reference track for sidx computations */	  
+	/* Finalize the selection of the reference track for sidx computations */
 	if (!tfref) {
 		/* if we did not find a track in which all samples are not sync samples, we pick the first track to be the reference */
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
@@ -1727,7 +1728,7 @@ restart_fragmentation_pass:
 				}
 
 				if (tf->splitable) {
-					/* Evaluate if we need to split the current sample 
+					/* Evaluate if we need to split the current sample
 					(if it goes beyond the segment boundary,
 					we do not split a sample if it exceeds the fragment boundary) */
 					if (tf->is_ref_track) {
@@ -1743,9 +1744,9 @@ restart_fragmentation_pass:
 							stop_frag = GF_TRUE;
 							nb_samp++;
 						}
-					} else if (tfref 
-					           /* we split the sample not at the "perfect" segment boundary 
-							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any) 
+					} else if (tfref
+					           /* we split the sample not at the "perfect" segment boundary
+							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any)
 							   there may not be a reference track anymore if all samples have been used */
 					           && ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
@@ -1950,7 +1951,7 @@ restart_fragmentation_pass:
 						}
 					}
 					tf->FragmentLength = 0;
-					/* propagate the portion of the current 'split' sample that has already been used in this fragment 
+					/* propagate the portion of the current 'split' sample that has already been used in this fragment
 					   to the next fragment */
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
@@ -2735,7 +2736,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		if (! dasher_inputs_have_same_roles(&dash_inputs[input_idx], &dash_inputs[i]) ) {
 			continue;
 		}
-		
+
 		/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 		   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 		if (dash_inputs[input_idx].nb_as_descs != dash_inputs[i].nb_as_descs)
@@ -3255,8 +3256,10 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 				gf_set_progress("ISO File Force Duration", (trackNumber-1)*sample_count+i, trackCount*sample_count);
 				if (s->DTS >= duration_in_sec * gf_isom_get_media_timescale(in, trackNumber)) {
 					track_duration2 = (u32)(s->DTS * gf_isom_get_timescale(in) / gf_isom_get_media_timescale(in, trackNumber));
+					gf_isom_sample_del(&s);
 					break;
 				}
+				gf_isom_sample_del(&s);
 			}
 			for (j=i; j <= sample_count; ++j) {
 				u32 di;
@@ -5395,7 +5398,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
 	if (ms_in_session) *ms_in_session = (u64) ( 1000*max_dur );
-	
+
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
 		return (u32) (1000*max_dur - ms_elapsed);
