@@ -820,7 +820,7 @@ u32 gf_m2ts_stream_process_pmt(GF_M2TS_Mux *muxer, GF_M2TS_Mux_Stream *stream)
 				}
 			}
 
-			if (es->ifce && es->ifce->lang && (es->ifce->lang  != GF_4CC('u', 'n', 'd', ' ')) ) {
+			if (es->ifce && es->ifce->lang && (es->ifce->lang  != GF_MEDIA_LANG_UND) ) {
 				es_info_length += 2 + 3;
 				has_lang = GF_TRUE;
 			}
@@ -957,7 +957,7 @@ static void id3_tag_create(char **input, u32 *len)
 	gf_bs_write_int(bs, 0, 1);
 	gf_bs_write_int(bs, 0, 1);
 	gf_bs_write_int(bs, 0x1F, 5);
-	gf_bs_write_u32(bs, GF_4CC('T','X','X','X'));
+	gf_bs_write_u32(bs, ID3V2_FRAME_TXXX);
 	gf_bs_write_u32(bs, *len); /* size of the text */
 	gf_bs_write_u8(bs, 0);
 	gf_bs_write_u8(bs, 0);
@@ -2075,9 +2075,9 @@ static void gf_m2ts_stream_add_metadata_pointer_descriptor(GF_M2TS_Mux_Program *
 	u32 data_len;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u16(bs, 0xFFFF);
-	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u32(bs, GF_MEDIA_TYPE_ID3);
 	gf_bs_write_u8(bs, 0xFF);
-	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u32(bs, GF_MEDIA_TYPE_ID3);
 	gf_bs_write_u8(bs, 0); /* service id */
 	gf_bs_write_int(bs, 0, 1); /* locator */
 	gf_bs_write_int(bs, 0, 2); /* carriage flags */
@@ -2100,9 +2100,9 @@ static void gf_m2ts_stream_add_metadata_descriptor(GF_M2TS_Mux_Stream *stream)
 	u32 data_len;
 	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	gf_bs_write_u16(bs, 0xFFFF);
-	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u32(bs, GF_MEDIA_TYPE_ID3);
 	gf_bs_write_u8(bs, 0xFF);
-	gf_bs_write_u32(bs, GF_4CC('I','D','3',' '));
+	gf_bs_write_u32(bs, GF_MEDIA_TYPE_ID3);
 	gf_bs_write_u8(bs, 0); /* service id */
 	gf_bs_write_int(bs, 0, 3); /* decoder config flags */
 	gf_bs_write_int(bs, 0, 1); /* dsmcc flag */

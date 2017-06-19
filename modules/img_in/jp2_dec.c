@@ -39,6 +39,7 @@
 
 
 #include <openjpeg.h>
+#include <gpac/isomedia.h>
 
 typedef struct
 {
@@ -97,9 +98,9 @@ static GF_Err JP2_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		gf_bs_write_u32(bs, 0x0D0A870A);
 		gf_bs_write_u32(bs, 20);
 		gf_bs_write_u32(bs, GF_4CC('f','t','y','p') );
-		gf_bs_write_u32(bs, GF_4CC('j','p','2',' ') );
+		gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2 );
 		gf_bs_write_u32(bs, 0);
-		gf_bs_write_u32(bs, GF_4CC('j','p','2',' ') );
+		gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2 );
 
 		gf_bs_write_data(bs, esd->decoderConfig->decoderSpecificInfo->data+8, esd->decoderConfig->decoderSpecificInfo->dataLength-8);
 		gf_bs_get_content(bs, &ctx->dsi, &ctx->dsi_size);

@@ -42,7 +42,7 @@ GF_Err gf_isom_parse_root_box(GF_Box **outBox, GF_BitStream *bs, u64 *bytesExpec
 	ret = gf_isom_box_parse_ex(outBox, bs, 0, GF_TRUE);
 	if (ret == GF_ISOM_INCOMPLETE_FILE) {
 		if (!*outBox) {
-			// We could not even read the box size, we at least need 8 bytes 
+			// We could not even read the box size, we at least need 8 bytes
 			*bytesExpected = 8;
 			GF_LOG(progressive_mode ? GF_LOG_DEBUG : GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Incomplete box\n"));
 		}
@@ -305,7 +305,7 @@ GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs)
 	}
 	if (ptr->size > 0xFFFFFFFF)
 		gf_bs_write_u64(bs, ptr->size);
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[iso file] Written Box type %s size "LLD" start "LLD"\n", gf_4cc_to_str(ptr->type), LLD_CAST ptr->size, LLD_CAST start));
 
 	return GF_OK;
@@ -751,8 +751,8 @@ static const struct box_registry_entry {
 
 	//all item reference types
 	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_ISOM_REF_TBAS, "p12"),
-	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_4CC('i','l','o','c'), "p12" ),
-	TREF_DEFINE(GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_4CC('f','d','e','l'), "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_ISOM_REF_ILOC, "p12"),
+	TREF_DEFINE( GF_ISOM_BOX_TYPE_REFI, ireftype, "iref", GF_ISOM_REF_FDEL, "p12"),
 
 	//all sample group descriptions
 	SGPD_DEFINE( GF_ISOM_BOX_TYPE_SGPD, sgpd, "stbl traf", GF_ISOM_SAMPLE_GROUP_ROLL, "p12"),
@@ -1488,7 +1488,7 @@ GF_Err gf_isom_box_dump_start(GF_Box *a, const char *name, FILE * trace)
 	if (a->registry->max_version_plus_one) {
 		fprintf(trace, "Version=\"%d\" Flags=\"%d\" ", ((GF_FullBox*)a)->version,((GF_FullBox*)a)->flags);
 	}
-	
+
 	fprintf(trace, "Specification=\"%s\" ", a->registry->spec);
 	fprintf(trace, "Container=\"%s\" ", a->registry->parents_4cc);
 	//disable all box dumping until end of this box

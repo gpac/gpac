@@ -25,6 +25,7 @@
 
 
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 #include <gpac/mpegts.h>
 #include <gpac/constants.h>
 
@@ -239,14 +240,14 @@ GF_Err gf_export_hint(GF_MediaExporter *dumper)
 static void write_jp2_file(GF_BitStream *bs, char *data, u32 data_size, char *dsi, u32 dsi_size)
 {
 	gf_bs_write_u32(bs, 12);
-	gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
 	gf_bs_write_u32(bs, 0x0D0A870A);
 
 	gf_bs_write_u32(bs, 20);
-	gf_bs_write_u32(bs, GF_4CC('f','t','y','p'));
-	gf_bs_write_u32(bs, GF_4CC('j','p','2',' '));
+	gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_FTYP);
+	gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2);
 	gf_bs_write_u32(bs, 0);
-	gf_bs_write_u32(bs, GF_4CC('j','p','2',' '));
+	gf_bs_write_u32(bs, GF_ISOM_BRAND_JP2);
 
 	gf_bs_write_data(bs, dsi, dsi_size);
 	gf_bs_write_data(bs, data, data_size);
@@ -396,7 +397,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 	} else if (m_stype==GF_ISOM_SUBTYPE_MP3) {
 		gf_export_message(dumper, GF_OK, "Extracting MP3 sample%s", szNum);
 		strcpy(szEXT, ".mp3");
-	} else if (m_stype==GF_4CC('x','d','v','b') ) {
+	} else if (m_stype==GF_ISOM_SUBTYPE_XDVB ) {
 		gf_export_message(dumper, GF_OK, "Extracting MPEG-2 sample%s", szNum);
 		strcpy(szEXT, ".m2v");
 	} else if ((m_stype==GF_ISOM_SUBTYPE_AVC_H264)
@@ -442,7 +443,7 @@ GF_Err gf_media_export_samples(GF_MediaExporter *dumper)
 		strcpy(szEXT, ".xml");
 	} else if (m_type==GF_ISOM_MEDIA_HINT) {
 		return gf_export_hint(dumper);
-	} else if (m_stype==GF_4CC('m','j','p','2')) {
+	} else if (m_stype==GF_ISOM_BRAND_MJP2) {
 		strcpy(szEXT, ".jp2");
 		gf_export_message(dumper, GF_OK, "Dumping JPEG 2000 sample%s", szNum);
 		udesc = gf_isom_get_generic_sample_description(dumper->file, track, 1);
@@ -1018,7 +1019,7 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 			gf_export_message(dumper, GF_OK, "Extracting H263 Video");
 			if (add_ext)
 				strcat(szName, ".263");
-		} else if (m_stype==GF_4CC('x','d','v','b')) {
+		} else if (m_stype==GF_ISOM_SUBTYPE_XDVB) {
 			gf_export_message(dumper, GF_OK, "Extracting MPEG-2 Video (xdvb)");
 			if (add_ext)
 				strcat(szName, ".m2v");
