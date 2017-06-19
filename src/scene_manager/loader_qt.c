@@ -25,6 +25,7 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
 
 #if !defined(GPAC_DISABLE_QTVR)
@@ -79,7 +80,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 	for (i=0; i<gf_isom_get_track_count(src); i++) {
 		switch (gf_isom_get_media_type(src, i+1)) {
 		case GF_ISOM_MEDIA_VISUAL:
-			if (gf_isom_get_media_subtype(src, i+1, 1) == GF_4CC('j', 'p', 'e', 'g')) {
+			if (gf_isom_get_media_subtype(src, i+1, 1) == GF_ISOM_BOX_TYPE_JPEG) {
 				GF_GenericSampleDescription *udesc = gf_isom_get_generic_sample_description(src, i+1, 1);
 				if ((udesc->width>w) || (udesc->height>h)) {
 					w = udesc->width;
@@ -91,7 +92,7 @@ GF_Err gf_sm_load_init_qt(GF_SceneLoader *load)
 				gf_free(udesc);
 			}
 			break;
-		case GF_4CC('q','t','v','r'):
+		case GF_ISOM_MEDIA_QTVR:
 			has_qtvr = 1;
 			break;
 		}

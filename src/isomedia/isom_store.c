@@ -637,7 +637,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 			if (!totSize) {
 				if (movie->is_jp2) {
 					gf_bs_write_u32(movie->editFileMap->bs, 12);
-					gf_bs_write_u32(movie->editFileMap->bs, GF_4CC('j','P',' ',' '));
+					gf_bs_write_u32(movie->editFileMap->bs, GF_ISOM_BOX_TYPE_JP);
 					gf_bs_write_u32(movie->editFileMap->bs, 0x0D0A870A);
 					totSize += 12;
 					begin += 12;
@@ -667,7 +667,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 		} else {
 			if (movie->is_jp2) {
 				gf_bs_write_u32(bs, 12);
-				gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+				gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
 				gf_bs_write_u32(bs, 0x0D0A870A);
 			}
 			if (movie->brand) {
@@ -768,7 +768,7 @@ GF_Err WriteFlat(MovieWriter *mw, u8 moovFirst, GF_BitStream *bs)
 
 	if (movie->is_jp2) {
 		gf_bs_write_u32(bs, 12);
-		gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
 		gf_bs_write_u32(bs, 0x0D0A870A);
 	}
 	if (movie->brand) {
@@ -1182,7 +1182,7 @@ static GF_Err WriteInterleaved(MovieWriter *mw, GF_BitStream *bs, Bool drift_int
 
 	if (movie->is_jp2) {
 		gf_bs_write_u32(bs, 12);
-		gf_bs_write_u32(bs, GF_4CC('j','P',' ',' '));
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_JP);
 		gf_bs_write_u32(bs, 0x0D0A870A);
 	}
 	if (movie->brand) {

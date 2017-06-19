@@ -95,8 +95,8 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 	//find stream dependencies: dpnd, sbas and scal
 	for (k=0; k<3; k++) {
 		u32 ref = GF_ISOM_BOX_TYPE_DPND;
-		if (k==1) ref = GF_4CC('s', 'b', 'a', 's');
-		else if (k==2) ref = GF_4CC('s', 'c', 'a', 'l');
+		if (k==1) ref = GF_ISOM_REF_BASE;
+		else if (k==2) ref = GF_ISOM_REF_SCAL;
 
 		e = Track_FindRef(trak, ref , &dpnd);
 		if (e) return e;
@@ -115,7 +115,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 		GF_UserDataMap *map;
 		u32 i = 0;
 		while ((map = (GF_UserDataMap*)gf_list_enum(trak->udta->recordList, &i))) {
-			if (map->boxType == GF_4CC('A','U','X','V')) {
+			if (map->boxType == GF_ISOM_BOX_TYPE_AUXV) {
 				GF_Descriptor *d = gf_odf_desc_new(GF_ODF_AUX_VIDEO_DATA);
 				gf_list_add(esd->extensionDescriptors, d);
 				break;
@@ -693,7 +693,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			for (i = 0; i < gf_list_count(traf->sai_offsets); i++) {
 				saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(traf->sai_offsets, i);
 				/*if we have only 1 sai_offsets, assume that its type is cenc*/
-				if ((saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) || (gf_list_count(traf->sai_offsets) == 1)) {
+				if ((saio->aux_info_type == GF_ISOM_CENC_SCHEME) || (gf_list_count(traf->sai_offsets) == 1)) {
 					offset = (saio->version ? saio->offsets_large[0] : saio->offsets[0]) + moof_offset;
 					nb_saio = saio->entry_count;
 					break;
@@ -702,7 +702,7 @@ GF_Err MergeTrack(GF_TrackBox *trak, GF_TrackFragmentBox *traf, u64 moof_offset,
 			for (i = 0; i < gf_list_count(traf->sai_sizes); i++) {
 				saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(traf->sai_sizes, i);
 				/*if we have only 1 sai_sizes, assume that its type is cenc*/
-				if ((saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c'))  || (gf_list_count(traf->sai_sizes) == 1)) {
+				if ((saiz->aux_info_type == GF_ISOM_CENC_SCHEME)  || (gf_list_count(traf->sai_sizes) == 1)) {
 					break;
 				}
 			}
