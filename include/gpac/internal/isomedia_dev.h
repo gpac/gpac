@@ -56,12 +56,12 @@ extern "C" {
 	GF_ISOM_BOX			\
 	u8 version;			\
 	u32 flags;			\
- 
+
 #define GF_ISOM_UUID_BOX	\
 	GF_ISOM_BOX			\
 	u8 uuid[16];		\
 	u32 internal_4cc;		\
- 
+
 typedef struct
 {
 	GF_ISOM_BOX
@@ -247,8 +247,12 @@ enum
 	GF_ISOM_BOX_TYPE_AVC4	= GF_4CC( 'a', 'v', 'c', '4' ),
 	GF_ISOM_BOX_TYPE_SVCC	= GF_4CC( 's', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_SVC1	= GF_4CC( 's', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_SVC2	= GF_4CC( 's', 'v', 'c', '2' ),
 	GF_ISOM_BOX_TYPE_MVCC	= GF_4CC( 'm', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_MVC1	= GF_4CC( 'm', 'v', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_MVC2	= GF_4CC( 'm', 'v', 'c', '2' ),
+	GF_ISOM_BOX_TYPE_MHC1	= GF_4CC( 'm', 'h', 'c', '1' ),
+	GF_ISOM_BOX_TYPE_MHV1	= GF_4CC( 'm', 'h', 'v', '1' ),
 
 	GF_ISOM_BOX_TYPE_HVCC	= GF_4CC( 'h', 'v', 'c', 'C' ),
 	GF_ISOM_BOX_TYPE_HVC1	= GF_4CC( 'h', 'v', 'c', '1' ),
@@ -259,6 +263,7 @@ enum
 	GF_ISOM_BOX_TYPE_HEV2	= GF_4CC( 'h', 'e', 'v', '2' ),
 	GF_ISOM_BOX_TYPE_LHV1	= GF_4CC( 'l', 'h', 'v', '1' ),
 	GF_ISOM_BOX_TYPE_LHE1	= GF_4CC( 'l', 'h', 'e', '1' ),
+	GF_ISOM_BOX_TYPE_LHT1	= GF_4CC( 'l', 'h', 't', '1' ),
 
 	GF_ISOM_BOX_TYPE_LHVC	= GF_4CC( 'l', 'h', 'v', 'C' ),
 
@@ -506,9 +511,25 @@ enum
 	GF_ISOM_BOX_TYPE_BLOC	= GF_4CC( 'b', 'l', 'o', 'c' ),
 	GF_ISOM_BOX_TYPE_AINF	= GF_4CC( 'a', 'i', 'n', 'f' ),
 
-	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC( 'j', 'p', 'e', 'g' ),
-	GF_ISOM_BOX_TYPE_PNG	= GF_4CC( 'p', 'n', 'g', ' ' ),
-	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC( 'j', 'p', '2', 'k' ),
+	GF_ISOM_BOX_TYPE_IHDR	= GF_4CC('i','h','d','r'),
+	GF_ISOM_BOX_TYPE_JP  	= GF_4CC('j','P',' ',' '),
+	GF_ISOM_BOX_TYPE_JP2H	= GF_4CC('j','p','2','h'),
+	GF_ISOM_BOX_TYPE_JP2K	= GF_4CC('j','p','2','k'),
+	GF_ISOM_BOX_TYPE_JPEG	= GF_4CC('j','p','e','g'),
+	GF_ISOM_BOX_TYPE_PNG 	= GF_4CC('p','n','g',' '),
+
+	GF_ISOM_BOX_TYPE_WAVE 	= GF_4CC('w','a','v','e'),
+
+	/* apple alis box */
+	GF_ISOM_BOX_TYPE_ALIS 	= GF_4CC('a','l','i','s'),
+
+	GF_ISOM_BOX_TYPE_WIDE 	= GF_4CC('w','i','d','e'),
+
+	/* from drm_sample.c */
+	GF_ISOM_BOX_TYPE_264B 	= GF_4CC('2','6','4','b'),
+	GF_ISOM_BOX_TYPE_265B 	= GF_4CC('2','6','5','b'),
+
+	GF_ISOM_BOX_TYPE_AUXV 	= GF_4CC('A','U','X','V'),
 
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
@@ -1064,7 +1085,7 @@ enum
 	GF_CleanAppertureBox *clap;		\
 	struct __tag_protect_box *rinf;				\
 	GF_RVCConfigurationBox *rvcc;		\
- 
+
 typedef struct
 {
 	GF_ISOM_VISUAL_SAMPLE_ENTRY
@@ -1154,7 +1175,7 @@ typedef struct
 	u16 samplerate_hi;				\
 	u16 samplerate_lo;				\
 	u8 extensions[36];				\
- 
+
 
 typedef struct
 {
@@ -2433,7 +2454,7 @@ typedef struct
 	u32 grouping_type;
 	u32 grouping_type_parameter;
 	u32 sub_track_id;
-} GF_LevelAssignment; 
+} GF_LevelAssignment;
 
 typedef struct __leva_box
 {
@@ -3677,7 +3698,7 @@ GF_GenericSubtitleSample *gf_isom_parse_generic_subtitle_sample_from_data(char *
 	}
 
 
-#ifndef GPAC_DISABLE_VTT 
+#ifndef GPAC_DISABLE_VTT
 
 GF_Err gf_isom_update_webvtt_description(GF_ISOFile *movie, u32 trackNumber, u32 descriptionIndex, const char *config);
 GF_ISOSample *gf_isom_webvtt_to_sample(void *samp);

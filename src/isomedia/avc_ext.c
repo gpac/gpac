@@ -38,24 +38,24 @@ Bool gf_isom_is_nalu_based_entry(GF_MediaBox *mdia, GF_SampleEntryBox *_entry)
 	GF_MPEGVisualSampleEntryBox *entry;
 	if (mdia->handler->handlerType != GF_ISOM_MEDIA_VISUAL) return GF_FALSE;
 	switch (_entry->type) {
-	case GF_4CC('a','v','c','1'):
-	case GF_4CC('a','v','c','2'):
-	case GF_4CC('a','v','c','3'):
-	case GF_4CC('a','v','c','4'):
-	case GF_4CC('s','v','c','1'):
-	case GF_4CC('s','v','c','2'):
-	case GF_4CC('m','v','c','1'):
-	case GF_4CC('m','v','c','2'):
-	case GF_4CC('h','v','c','1'):
-	case GF_4CC('h','e','v','1'):
-	case GF_4CC('h','v','c','2'):
-	case GF_4CC('h','e','v','2'):
-	case GF_4CC('l','h','v','1'):
-	case GF_4CC('l','h','e','1'):
-	case GF_4CC('m','h','v','1'):
-	case GF_4CC('m','h','c','1'):
-	case GF_4CC('h','v','t','1'):
-	case GF_4CC('l','h','t','1'):
+	case GF_ISOM_BOX_TYPE_AVC1:
+	case GF_ISOM_BOX_TYPE_AVC2:
+	case GF_ISOM_BOX_TYPE_AVC3:
+	case GF_ISOM_BOX_TYPE_AVC4:
+	case GF_ISOM_BOX_TYPE_SVC1:
+	case GF_ISOM_BOX_TYPE_SVC2:
+	case GF_ISOM_BOX_TYPE_MVC1:
+	case GF_ISOM_BOX_TYPE_MVC2:
+	case GF_ISOM_BOX_TYPE_HVC1:
+	case GF_ISOM_BOX_TYPE_HEV1:
+	case GF_ISOM_BOX_TYPE_HVC2:
+	case GF_ISOM_BOX_TYPE_HEV2:
+	case GF_ISOM_BOX_TYPE_LHV1:
+	case GF_ISOM_BOX_TYPE_LHE1:
+	case GF_ISOM_BOX_TYPE_MHV1:
+	case GF_ISOM_BOX_TYPE_MHC1:
+	case GF_ISOM_BOX_TYPE_HVT1:
+	case GF_ISOM_BOX_TYPE_LHT1:
 		return GF_TRUE;
 	case GF_ISOM_BOX_TYPE_GNRV:
 	case GF_ISOM_BOX_TYPE_GNRA:
@@ -121,7 +121,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			data_offset = gf_bs_read_int(src_bs, nal_unit_size_field*8);
 			data_length = gf_bs_read_int(src_bs, nal_unit_size_field*8);
 
-			Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &dpnd);
+			Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &dpnd);
 			ref_track_num = 0;
 			if (dpnd && ref_track_index && (ref_track_index<=dpnd->trackIDCount))
 				ref_track_num = gf_isom_get_track_by_id(file, dpnd->trackIDs[ref_track_index-1]);
@@ -390,7 +390,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	ref_samp = NULL;
 	buffer = NULL;
 
-	Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &scal);
+	Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &scal);
 
 	rewrite_ps = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ? GF_TRUE : GF_FALSE;
 	rewrite_start_codes = (mdia->mediaTrack->extractor_mode & GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG) ? GF_TRUE : GF_FALSE;
@@ -428,7 +428,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 							sample->dataLength += base_samp->dataLength;
 						}
 						if (base_samp) gf_isom_sample_del(&base_samp);
-						Track_FindRef(mdia->mediaTrack, GF_4CC('s','b','a','s'), &scal);
+						Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_BASE, &scal);
 						break;
 					}
 				}
@@ -921,7 +921,7 @@ void merge_all_config(GF_AVCConfig *avc_cfg, GF_HEVCConfig *hevc_cfg, GF_MediaBo
 {
 	u32 i;
 	GF_TrackReferenceTypeBox *scal = NULL;
-	Track_FindRef(mdia->mediaTrack, GF_4CC('s','c','a','l'), &scal);
+	Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &scal);
 
 	if (!scal) return;
 

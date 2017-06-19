@@ -108,7 +108,7 @@ static GF_Err ISMA_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	priv->state = ISMAEA_STATE_ERROR;
 
-	if (cfg->scheme_type != GF_4CC('i','A','E','C')) return GF_NOT_SUPPORTED;
+	if (cfg->scheme_type != GF_ISOM_ISMACRYP_SCHEME) return GF_NOT_SUPPORTED;
 	if (cfg->scheme_version != 1) return GF_NOT_SUPPORTED;
 
 	if (!cfg->kms_uri) return GF_NON_COMPLIANT_BITSTREAM;
@@ -251,7 +251,7 @@ static GF_Err OMA_DRM_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	priv->state = ISMAEA_STATE_ERROR;
 
-	if (cfg->scheme_type != GF_4CC('o','d','k','m')) return GF_NOT_SUPPORTED;
+	if (cfg->scheme_type != GF_ISOM_OMADRM_SCHEME) return GF_NOT_SUPPORTED;
 	if (cfg->scheme_version != 0x00000200) return GF_NOT_SUPPORTED;
 
 	hdr_pos = 0;
@@ -286,7 +286,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	priv->state = ISMAEA_STATE_ERROR;
 
-	if ((cfg->scheme_type != GF_4CC('c', 'e', 'n', 'c')) && (cfg->scheme_type != GF_4CC('c','b','c','1')) && (cfg->scheme_type != GF_4CC('c', 'e', 'n', 's')) && (cfg->scheme_type != GF_4CC('c','b','c','s'))) 
+	if ((cfg->scheme_type != GF_ISOM_CENC_SCHEME) && (cfg->scheme_type != GF_ISOM_CBC_SCHEME) && (cfg->scheme_type != GF_ISOM_CENS_SCHEME) && (cfg->scheme_type != GF_ISOM_CBCS_SCHEME))
 		return GF_NOT_SUPPORTED;
 	if (cfg->scheme_version != 0x00010000) return GF_NOT_SUPPORTED;
 
@@ -347,7 +347,7 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		}
 	}
 
-	if ((cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (cfg->scheme_type == GF_4CC('c', 'e', 'n', 's')))
+	if ((cfg->scheme_type == GF_ISOM_CENC_SCHEME) || (cfg->scheme_type == GF_ISOM_CENS_SCHEME))
 		priv->is_cenc = GF_TRUE;
 	else
 		priv->is_cbc = GF_TRUE;
@@ -530,7 +530,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			buffer = (char*)gf_realloc(buffer, sizeof(char)*evt->data_size);
 		}
 		gf_bs_read_data(cyphertext_bs, buffer, evt->data_size);
-		if (priv->is_cenc) {			
+		if (priv->is_cenc) {
 			gf_crypt_decrypt(priv->crypt, buffer, evt->data_size);
 		} else {
 			u32 ret = evt->data_size % 16;
@@ -558,11 +558,11 @@ static GF_Err IPMP_Process(GF_IPMPTool *plug, GF_IPMPEvent *evt)
 
 	switch (evt->event_type) {
 	case GF_IPMP_TOOL_SETUP:
-		if (evt->config_data_code == GF_4CC('i','s','m','a')) return ISMA_Setup(priv, evt);
+		if (evt->config_data_code == GF_ISOM_ISMA_SCHEME) return ISMA_Setup(priv, evt);
 #ifdef OMA_DRM_MP4MC
-		if (evt->config_data_code == GF_4CC('o','d','r','m')) return OMA_DRM_Setup(priv, evt);
+		if (evt->config_data_code == GF_ISOM_ODRM_SCHEME) return OMA_DRM_Setup(priv, evt);
 #endif
-		if((evt->config_data_code == GF_4CC('c', 'e', 'n', 'c')) || (evt->config_data_code == GF_4CC('c','b','c','1')) || (evt->config_data_code == GF_4CC('c', 'e', 'n', 's')) || (evt->config_data_code == GF_4CC('c','b','c','s'))) 
+		if((evt->config_data_code == GF_ISOM_CENC_SCHEME) || (evt->config_data_code == GF_ISOM_CBC_SCHEME) || (evt->config_data_code == GF_ISOM_CENS_SCHEME) || (evt->config_data_code == GF_ISOM_CBCS_SCHEME))
 			return CENC_Setup(priv, evt);
 		return GF_NOT_SUPPORTED;
 
