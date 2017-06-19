@@ -105,7 +105,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 	if (store_file) {
 		/*"dash" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_4CC('d','a','s','h'), 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
 
 		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
 			//update durations
@@ -178,7 +178,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 	/*set brands for segment*/
 
 	/*"msdh": it's a media segment */
-	gf_isom_set_brand_info(movie, GF_4CC('m','s','d','h'), 0);
+	gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MSDH, 0);
 	/*remove all brands	*/
 	gf_isom_reset_alt_brands(movie);
 	/*
@@ -620,10 +620,10 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		sg = (GF_SampleGroupBox*)gf_list_get(traf->sampleGroups, i);
 
 		switch (sg->grouping_type) {
-		case GF_4CC('r','a','p',' '):
+		case GF_ISOM_SAMPLE_GROUP_RAP:
 			rap_type = GF_TRUE;
 			break;
-		case GF_4CC('r','o','l','l'):
+		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			break;
 		default:
 			continue;
@@ -897,7 +897,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 
 	if (movie->moof->ntp) {
 		gf_bs_write_u32(bs, 8*4);
-		gf_bs_write_u32(bs, GF_4CC('p','r','f','t') );
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_PRFT );
 		gf_bs_write_u8(bs, 1);
 		gf_bs_write_u24(bs, 0);
 		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
@@ -994,10 +994,10 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 		/*modify brands STYP*/
 
 		/*"msix" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_4CC('m','s','i','x'), 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, 1);
 		if (last_segment) {
 			/*"lmsg" brand: this is the last DASH Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, 1);
 		}
 
 		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
@@ -2080,7 +2080,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 				/*found our sample, add it to trak->sampleGroups*/
 				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  sg->sample_entries[j].group_description_index, sgpd_in_traf);
 				if (e) return e;
-				
+
 				break;
 			}
 		}

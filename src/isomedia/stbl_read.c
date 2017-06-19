@@ -281,10 +281,10 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 		u32 first_sample_in_entry, last_sample_in_entry;
 		GF_SampleGroupBox *sg = gf_list_get(stbl->sampleGroups, i);
 		switch (sg->grouping_type) {
-		case GF_4CC('r','a','p',' '):
+		case GF_ISOM_SAMPLE_GROUP_RAP:
 			is_rap_group = 1;
 			break;
-		case GF_4CC('r','o','l','l'):
+		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			break;
 		default:
 			continue;

@@ -783,7 +783,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 			GF_SAFEALLOC(entry, GF_ItemExtentEntry);
 			gf_list_add(location_entry->extent_entries, entry);
 			item_index = (u32 *)gf_list_get(item_extent_refs, i);
-			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_4CC('i','l','o','c'), &(entry->extent_index));
+			gf_isom_meta_add_item_ref(file, root_meta, track_num, infe->item_ID, *item_index, GF_ISOM_REF_ILOC, &(entry->extent_index));
 		}
 	}
 	else {

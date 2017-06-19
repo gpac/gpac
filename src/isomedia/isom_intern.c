@@ -235,7 +235,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 #endif
 			e = gf_list_add(mov->TopBoxes, a);
 			if (e) return e;
-			
+
 			totSize += a->size;
 
 			//dump senc info in dump mode
@@ -328,9 +328,9 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		{
 			u32 brand = ((GF_SegmentTypeBox *)a)->majorBrand;
 			switch (brand) {
-			case GF_4CC('s', 'i', 's', 'x'):
-			case GF_4CC('r', 'i', 's', 'x'):
-			case GF_4CC('s', 's', 's', 's'):
+			case GF_ISOM_BRAND_SISX:
+			case GF_ISOM_BRAND_RISX:
+			case GF_ISOM_BRAND_SSSS:
 				mov->is_index_segment = GF_TRUE;
 				break;
 			default:
@@ -414,7 +414,7 @@ GF_Err gf_isom_parse_movie_boxes(GF_ISOFile *mov, u64 *bytesMissing, Bool progre
 		case GF_ISOM_BOX_TYPE_UNKNOWN:
 		{
 			GF_UnknownBox *box = (GF_UnknownBox*)a;
-			if (box->original_4cc == GF_4CC('j','P',' ',' ')) {
+			if (box->original_4cc == GF_ISOM_BOX_TYPE_JP) {
 				u8 *c = (u8 *) box->data;
 				if ((box->dataSize==4) && (GF_4CC(c[0],c[1],c[2],c[3])==(u32)0x0D0A870A))
 					mov->is_jp2 = 1;
@@ -1109,7 +1109,7 @@ u32 gf_isom_sample_get_subsample_entry(GF_ISOFile *movie, u32 track, u32 sampleN
 		sub_samples = NULL;
 	}
 	if (!sub_samples) return 0;
-	
+
 	last_sample = 0;
 	count = gf_list_count(sub_samples->Samples);
 	for (i=0; i<count; i++) {
