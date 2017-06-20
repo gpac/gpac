@@ -4970,7 +4970,8 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 #endif
-	fprintf(mpd, "-->\n");
+	if(!dasher->force_test_mode)
+            fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
 	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", dasher->min_buffer, dasher->dash_mode ? "dynamic" : "static");
