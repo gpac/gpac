@@ -541,6 +541,7 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
             ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
+	    return GF_OK
         } else {
 			GF_HEVCConfig *hvcc = NULL;
 			GF_AVCConfigSlot *sl;
