@@ -32,91 +32,6 @@ extern "C" {
 
 #include <gpac/isomedia.h>
 
-#ifndef GPAC_DISABLE_ISOM
-
-
-#if defined(GPAC_DISABLE_ISOM_FRAGMENTS) && !defined(GPAC_DISABLE_ISOM_ADOBE)
-#define GPAC_DISABLE_ISOM_ADOBE
-#endif
-
-	/*the default size is 64, cause we need to handle large boxes...
-
-	the other_boxes container is by default NOT created. When parsing a box and adding
-	a sub-box with gf_isom_box_add_default, the list is created.
-	This list is destroyed befaore calling the final box destructor
-	This list is automatically taken into account during size() and write() functions
-	*/
-#define GF_ISOM_BOX			\
-	u32 type;			\
-	u64 size;			\
-	const struct box_registry_entry *registry;\
-	GF_List *other_boxes;
-
-#define GF_ISOM_FULL_BOX		\
-	GF_ISOM_BOX			\
-	u8 version;			\
-	u32 flags;			\
-
-#define GF_ISOM_UUID_BOX	\
-	GF_ISOM_BOX			\
-	u8 uuid[16];		\
-	u32 internal_4cc;		\
-
-typedef struct
-{
-	GF_ISOM_BOX
-} GF_Box;
-
-typedef struct
-{
-	GF_ISOM_FULL_BOX
-} GF_FullBox;
-
-typedef struct
-{
-	GF_ISOM_UUID_BOX
-} GF_UUIDBox;
-
-
-#define ISOM_DECL_BOX_ALLOC(__TYPE, __4cc)	__TYPE *tmp; \
-	GF_SAFEALLOC(tmp, __TYPE);	\
-	if (tmp==NULL) return NULL;	\
-	tmp->type = __4cc;
-
-#define ISOM_DECREASE_SIZE(__ptr, bytes)	if (__ptr->size < (bytes) ) {\
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(__ptr->type), __ptr->size, (bytes), __FILE__, __LINE__ )); \
-			return GF_ISOM_INVALID_FILE; \
-		}\
-		__ptr->size -= bytes; \
-
-/*constructor*/
-GF_Box *gf_isom_box_new(u32 boxType);
-//some boxes may have different syntax based on container. Use this constructor for this case
-GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType);
-
-GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
-GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
-void gf_isom_box_del(GF_Box *ptr);
-GF_Err gf_isom_box_size(GF_Box *ptr);
-
-GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
-
-GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
-GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
-GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
-GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
-GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
-
-//writes box header - shall be called at the begining of each xxxx_Write function
-//this function is not factorized in order to let box serializer modify box type before writing
-GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
-
-//writes box header then version+flags
-GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
-
-void gf_isom_box_array_del(GF_List *other_boxes);
-GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
-GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
 enum
 {
@@ -477,7 +392,7 @@ enum
 	GF_ISOM_BOX_TYPE_IPCO   = GF_4CC( 'i', 'p', 'c', 'o' ),
 	GF_ISOM_BOX_TYPE_IPRP   = GF_4CC( 'i', 'p', 'r', 'p' ),
 	GF_ISOM_BOX_TYPE_IPMA   = GF_4CC( 'i', 'p', 'm', 'a' ),
-	GF_ISOM_BOX_TYPE_GRPL  = GF_4CC('g', 'r', 'p', 'l'),
+	GF_ISOM_BOX_TYPE_GRPL   = GF_4CC( 'g', 'r', 'p', 'l'),
 	GF_ISOM_BOX_TYPE_CCST	= GF_4CC( 'c', 'c', 's', 't' ),
 	GF_ISOM_BOX_TYPE_AUXC	= GF_4CC( 'a', 'u', 'x', 'C' ),
 	GF_ISOM_BOX_TYPE_OINF	= GF_4CC( 'o', 'i', 'n', 'f' ),
@@ -533,6 +448,100 @@ enum
 
 	GF_ISOM_BOX_TYPE_UNKNOWN = GF_4CC( 'U', 'N', 'K', 'N' ),
 };
+
+enum
+{
+	GF_ISOM_SAMPLE_ENTRY_UNKN = 0,
+	GF_ISOM_SAMPLE_ENTRY_VIDEO = GF_4CC('v','i','d','e'),
+	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i')
+};
+
+
+#ifndef GPAC_DISABLE_ISOM
+
+
+#if defined(GPAC_DISABLE_ISOM_FRAGMENTS) && !defined(GPAC_DISABLE_ISOM_ADOBE)
+#define GPAC_DISABLE_ISOM_ADOBE
+#endif
+
+	/*the default size is 64, cause we need to handle large boxes...
+
+	the other_boxes container is by default NOT created. When parsing a box and adding
+	a sub-box with gf_isom_box_add_default, the list is created.
+	This list is destroyed befaore calling the final box destructor
+	This list is automatically taken into account during size() and write() functions
+	*/
+#define GF_ISOM_BOX			\
+	u32 type;			\
+	u64 size;			\
+	const struct box_registry_entry *registry;\
+	GF_List *other_boxes;
+
+#define GF_ISOM_FULL_BOX		\
+	GF_ISOM_BOX			\
+	u8 version;			\
+	u32 flags;			\
+
+#define GF_ISOM_UUID_BOX	\
+	GF_ISOM_BOX			\
+	u8 uuid[16];		\
+	u32 internal_4cc;		\
+
+typedef struct
+{
+	GF_ISOM_BOX
+} GF_Box;
+
+typedef struct
+{
+	GF_ISOM_FULL_BOX
+} GF_FullBox;
+
+typedef struct
+{
+	GF_ISOM_UUID_BOX
+} GF_UUIDBox;
+
+
+#define ISOM_DECL_BOX_ALLOC(__TYPE, __4cc)	__TYPE *tmp; \
+	GF_SAFEALLOC(tmp, __TYPE);	\
+	if (tmp==NULL) return NULL;	\
+	tmp->type = __4cc;
+
+#define ISOM_DECREASE_SIZE(__ptr, bytes)	if (__ptr->size < (bytes) ) {\
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[isom] not enough bytes in box %s: %d left, reading %d (file %s, line %d)\n", gf_4cc_to_str(__ptr->type), __ptr->size, (bytes), __FILE__, __LINE__ )); \
+			return GF_ISOM_INVALID_FILE; \
+		}\
+		__ptr->size -= bytes; \
+
+/*constructor*/
+GF_Box *gf_isom_box_new(u32 boxType);
+//some boxes may have different syntax based on container. Use this constructor for this case
+GF_Box *gf_isom_box_new_ex(u32 boxType, u32 parentType);
+
+GF_Err gf_isom_box_write(GF_Box *ptr, GF_BitStream *bs);
+GF_Err gf_isom_box_read(GF_Box *ptr, GF_BitStream *bs);
+void gf_isom_box_del(GF_Box *ptr);
+GF_Err gf_isom_box_size(GF_Box *ptr);
+
+GF_Err gf_isom_clone_box(GF_Box *src, GF_Box **dst);
+
+GF_Err gf_isom_box_parse(GF_Box **outBox, GF_BitStream *bs);
+GF_Err gf_isom_box_array_read(GF_Box *s, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b));
+GF_Err gf_isom_box_array_read_ex(GF_Box *parent, GF_BitStream *bs, GF_Err (*add_box)(GF_Box *par, GF_Box *b), u32 parent_type);
+GF_Err gf_isom_box_add_default(GF_Box *a, GF_Box *subbox);
+GF_Err gf_isom_box_parse_ex(GF_Box **outBox, GF_BitStream *bs, u32 parent_type, Bool is_root_box);
+
+//writes box header - shall be called at the begining of each xxxx_Write function
+//this function is not factorized in order to let box serializer modify box type before writing
+GF_Err gf_isom_box_write_header(GF_Box *ptr, GF_BitStream *bs);
+
+//writes box header then version+flags
+GF_Err gf_isom_full_box_write(GF_Box *s, GF_BitStream *bs);
+
+void gf_isom_box_array_del(GF_List *other_boxes);
+GF_Err gf_isom_box_array_write(GF_Box *parent, GF_List *list, GF_BitStream *bs);
+GF_Err gf_isom_box_array_size(GF_Box *parent, GF_List *list);
 
 
 typedef struct
@@ -1059,13 +1068,6 @@ typedef struct
 	u16 predefined_rvc_config;
 	u32 rvc_meta_idx;
 } GF_RVCConfigurationBox;
-
-enum
-{
-	GF_ISOM_SAMPLE_ENTRY_UNKN = 0,
-	GF_ISOM_SAMPLE_ENTRY_VIDEO = GF_4CC('v','i','d','e'),
-	GF_ISOM_SAMPLE_ENTRY_AUDIO = GF_4CC('a','u','d','i')
-};
 
 #define GF_ISOM_VISUAL_SAMPLE_ENTRY		\
 	GF_ISOM_SAMPLE_ENTRY_FIELDS			\
