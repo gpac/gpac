@@ -319,7 +319,8 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
     ctx->stride = ctx->width;
     initMediaFormat(ctx, ctx->format);
 
-    ctx->codec = AMediaCodec_createDecoderByType(ctx->mime);
+	if(!ctx->codec)
+		ctx->codec = AMediaCodec_createDecoderByType(ctx->mime);
 
     if(!ctx->codec) {
          GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
@@ -882,14 +883,12 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 		if (ctx->codec) {
 			AMediaCodec_flush(ctx->codec);
 			AMediaCodec_stop(ctx->codec);
-			AMediaCodec_delete(ctx->codec);
-			ctx->codec = NULL;
 		}
 		MCDec_InitDecoder(ctx);
-			 if (ctx->out_size != *outBufferLength) {
-				 *outBufferLength = ctx->out_size;
-				 return GF_BUFFER_TOO_SMALL;
-			 }
+		if (ctx->out_size != *outBufferLength) {
+			*outBufferLength = ctx->out_size;
+			return GF_BUFFER_TOO_SMALL;
+		}
 	}
 	
 	if(!ctx->inputEOS) {
