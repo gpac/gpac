@@ -319,8 +319,8 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
     ctx->stride = ctx->width;
     initMediaFormat(ctx, ctx->format);
 
-	if(!ctx->codec)
-		ctx->codec = AMediaCodec_createDecoderByType(ctx->mime);
+    if(!ctx->codec)
+       ctx->codec = AMediaCodec_createDecoderByType(ctx->mime);
 
     if(!ctx->codec) {
          GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
@@ -464,8 +464,10 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
     MCDec *ctx = (MCDec *)ifcg->privateStack;
     ctx->esd = esd;
     GF_Err e;
-	
-    glGenTextures(1, &ctx->tex_id);
+
+    if(!ctx->tex_id)
+       glGenTextures(1, &ctx->tex_id);
+
 	//check AVC config
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
 	ctx->SPSs = gf_list_new();
