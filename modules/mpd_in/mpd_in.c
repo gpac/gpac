@@ -1068,7 +1068,7 @@ GF_Err MPD_ConnectService(GF_InputService *plug, GF_ClientService *serv, const c
 
 	opt = gf_modules_get_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC");
 	if (!opt) gf_modules_set_option((GF_BaseInterface *)plug, "DASH", "UseServerUTC", "yes");
-	use_server_utc = (opt && !strcmp(opt, "yes")) ? 1 : 0;
+	use_server_utc = (!opt || !strcmp(opt, "yes")) ? 1 : 0;
 
 	mpdin->nb_playing = 0;
 
