@@ -159,7 +159,7 @@ struct __dash_client
 
 	GF_DASHAdaptationAlgorithm adaptation_algorithm;
 
-	u32 (*rate_adaptation_algo)(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+	s32 (*rate_adaptation_algo)(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 												  GF_MPD_Representation *rep, Bool go_up_bitrate);
 
@@ -224,6 +224,9 @@ struct __dash_group
 	u32 min_representation_bitrate;
 
 	u32 nb_segments_in_rep;
+
+	/* Segment duration as advertised in the MPD
+	   for the real duration of the segment being downloaded see current_downloaded_segment_duration */
 	Double segment_duration;
 
 	Double start_playback_range;
@@ -331,11 +334,8 @@ struct __dash_group
 
 	Bool rate_adaptation_postponed;
 
-	/* current index in bola algorithm */
+	/* current segment index in BBA and BOLA algorithm */
 	u32 current_index;
-
-	/* network bandwidth in bola algorithm */
-	u32 bandwidth;
 };
 
 struct _dash_srd_desc
@@ -485,9 +485,6 @@ static void gf_dash_group_timeline_setup(GF_MPD *mpd, GF_DASH_Group *group, u64 
 	u64 current_time, current_time_no_timeshift, availabilityStartTime;
 	u32 ast_diff, start_number;
 	Double ast_offset = 0;
-
-	/* init the curent index = 0 for BOLA algorithm */
-	group->current_index = 0;
 
 	if (mpd->type==GF_MPD_TYPE_STATIC)
 		return;
@@ -2418,129 +2415,6 @@ static void dash_store_stats(GF_DashClient *dash, GF_DASH_Group *group, u32 byte
 #endif
 }
 
-static GF_Err dash_do_rate_monitor_bola(GF_DashClient *dash, GF_DASH_Group *group)
-{
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. no redowload at max  \n"));
-	Bool default_switch_mode = GF_FALSE;
-	u32 download_rate, set_idx, time_since_start, done, tot_size, time_until_end;
-	//if (group->depend_on_group) return GF_BAD_PARAM;
-	if (group->dash->disable_switching) return GF_OK;
-
-	if (group->buffering)
-		return GF_OK;
-
-	download_rate = group->dash->dash_io->get_bytes_per_sec(group->dash->dash_io, group->segment_download);
-	if (!download_rate) return GF_OK;
-
-
-	done = group->dash->dash_io->get_bytes_done(group->dash->dash_io, group->segment_download);
-
-	tot_size = group->dash->dash_io->get_total_size(group->dash->dash_io, group->segment_download);
-	time_until_end = 0;
-	if (tot_size) {
-		time_until_end = 1000*(tot_size-done) / download_rate;
-	}
-
-	download_rate *= 8;
-	if (download_rate<group->min_bitrate) group->min_bitrate = download_rate;
-	if (download_rate>group->max_bitrate) group->max_bitrate = download_rate;
-	//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. dowload at bandwidth %f  \n", download_rate));
-	if (!download_rate || (download_rate > group->active_bitrate)) {
-		return GF_OK;
-	}
-
-	set_idx = gf_list_find(group->period->adaptation_sets, group->adaptation_set)+1;
-	time_since_start = gf_sys_clock() - group->download_start_time;
-
-	if (group->min_bandwidth_selected) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but media bitrate is"
-				" %d kbps - no lower bitrate available ...\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
-		return GF_OK;
-	}
-
-
-	//TODO - when do we start checking ?
-	if (time_since_start < 200) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps but "
-				"media bitrate is %d kbps\n", set_idx, download_rate/1024, group->active_bitrate/1024 ));
-		return GF_OK;
-	}
-
-	if (time_until_end) {
-		u32 i, cache_dur=0;
-		for (i=1; i<group->nb_cached_segments; i++) {
-			cache_dur += group->cached[i].duration;
-		}
-		//we have enough cache data to go until end of this download, perform rate switching at next segment
-		if (time_until_end<cache_dur) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading from set #%ds at rate %d kbps but "
-					"media bitrate is %d kbps - %d till end of download and %d in cache - "
-					"going on with download\n", set_idx, download_rate/1024, group->active_bitrate/1024,time_until_end, cache_dur ));
-			return GF_OK;
-		}
-	}
-
-	GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Downloading from set #%d at rate %d kbps but "
-			"media bitrate is %d kbps - %d/%d in cache - killing connection and "
-			"switching\n", set_idx, download_rate/1024, group->active_bitrate/1024, group->nb_cached_segments, group->max_cached_segments ));
-
-	group->download_abort_type = 2;
-	group->dash->dash_io->abort(group->dash->dash_io, group->segment_download);
-
-	//in live we just abort current download and go to next. In onDemand, we may want to rebuffer
-	default_switch_mode = (group->dash->mpd->type==GF_MPD_TYPE_DYNAMIC) ? GF_FALSE : GF_TRUE;
-
-	//if we have time to download from another rep ?
-	if (group->current_downloaded_segment_duration <= time_since_start) {
-		//don't force bandwidth switch (it's too late anyway, consider we lost the segment), let the rate adaptation decide
-		group->force_switch_bandwidth = default_switch_mode;
-
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download time longer than segment duration - trying to resync on next "
-				"segment\n"));
-
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. no redowload at max  \n"));
-	} else {
-
-	    // Optimal coefficient
-	    double V = 0.93;
-	    double p = 1; // chunk duration p =1
-	    double gma = (double)5/(double)p;
-
-	    GF_MPD_Representation *min_rep = gf_list_get(group->adaptation_set->representations, 0);
-
-	    GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, gf_list_count(group->adaptation_set->representations)-1);
-	    		    		// compute the utilities of each bitrate
-	    double Vm = log( ((Double )rep->bandwidth) / min_rep->bandwidth );
-	    		    		//the values of optimization problem
-	    double value = (V*Vm + V*gma*p - group->buffer_occupancy_ms/(double)1000)/rep->bandwidth; //rep->bandwidth
-	    //GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. 2. redowload at max  %f \n", value));
-
-	    if (value >= 0)
-	    	group->force_switch_bandwidth = GF_TRUE;
-	    }
-
-		/*u32 target_rate;
-		//compute min bitrate needed to fetch the segement in another rep, with the time remaining
-		Double ratio = ((u32)group->current_downloaded_segment_duration - time_since_start);
-		ratio /= (u32)group->current_downloaded_segment_duration;
-
-		target_rate = (u32) (download_rate * ratio);
-
-		if (target_rate < group->min_representation_bitrate) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Download rate lower than min available rate ...\n"));
-			target_rate = group->min_representation_bitrate;
-			//don't force bandwidth switch, we won't have time to redownload the segment.
-			group->force_switch_bandwidth = default_switch_mode;
-		} else {
-			group->force_switch_bandwidth = GF_TRUE;
-			GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Attempting to re-download at target rate %d\n", target_rate));
-		}
-		//cap max bitrate for next rate adaptation pass
-		group->max_bitrate = target_rate;
-	}*/
-	return GF_OK;
-}
-
 static GF_Err dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *group)
 {
 	Bool default_switch_mode = GF_FALSE;
@@ -2641,14 +2515,14 @@ static GF_Err dash_do_rate_monitor_default(GF_DashClient *dash, GF_DASH_Group *g
 	return GF_OK;
 }
 
-static u32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+static s32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 												GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
 	u32 k;
 	Bool do_switch;
 	GF_MPD_Representation *new_rep;
-	u32 new_index = group->active_rep_index;
+	s32 new_index = group->active_rep_index;
 
 	/* records the number of representations between the current one and the next chosen one */
 	u32 nb_inter_rep = 0;
@@ -2763,12 +2637,12 @@ static u32 dash_do_rate_adaptation_legacy_rate(GF_DashClient *dash, GF_DASH_Grou
 	return new_index;
 }
 
-static u32 dash_do_rate_adaptation_legacy_buffer(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+static s32 dash_do_rate_adaptation_legacy_buffer(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 												  GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
 	Bool do_switch;
-	u32 new_index = group->active_rep_index;
+	s32 new_index = group->active_rep_index;
 
 	/* We assume that there will be a change in quality
 	   and then set it to no change or increase if this is not the case */
@@ -2839,275 +2713,279 @@ static u32 dash_do_rate_adaptation_legacy_buffer(GF_DashClient *dash, GF_DASH_Gr
 	return new_index;
 }
 
-// BBA-0 function
-//TODO: check this code, there are constants unjustified all over the place
-static u32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+// returns the bitrate and index of the representation having the minimum bitrate above the given rate
+static u32 get_min_rate_above(GF_List *representations, double rate, s32 *index) {
+	u32 k;
+	u32 min_rate = GF_INT_MAX;
+	GF_MPD_Representation *rep;
+
+	u32 nb_reps = gf_list_count(representations);
+	for (k = 0; k < nb_reps; k++) {
+		rep = gf_list_get(representations, k);
+		if ((rep->bandwidth < min_rate) && (rep->bandwidth > rate)) {
+			min_rate = rep->bandwidth;
+			if (index) {
+				*index = k;
+			}
+			return min_rate; // representations are sorted by bandwidth
+		}
+	}
+	return min_rate;
+}
+
+// returns the bitrate and index of the representation having the maximum bitrate below the given rate
+static u32 get_max_rate_below(GF_List *representations, double rate, s32 *index) {
+	u32 k;
+	u32 max_rate = 0;
+	GF_MPD_Representation *rep;
+
+	u32 nb_reps = gf_list_count(representations);
+	for (k = nb_reps-1; k >=0 ; k--) {
+		rep = gf_list_get(representations, k);
+		if ((rep->bandwidth > max_rate) && (rep->bandwidth < rate)) {
+			max_rate = rep->bandwidth;
+			if (index) {
+				*index = k;
+			}
+			return max_rate; // representations are sorted by bandwidth
+		}
+	}
+	return max_rate;
+}
+
+/**
+Adaptation Algorithm as described in 
+	T.-Y. Huang et al. 2014. A buffer-based approach to rate adaptation: evidence from a large video streaming service. 
+	In Proceedings of the 2014 ACM conference on SIGCOMM (SIGCOMM '14). 
+*/
+static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 												  GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
-	int new_index;
-	u32 buf_high_threshold, buf_low_threshold;
-	u32 r,cu;
-	u32 k;
+	u32 rate_plus;
+	u32 rate_minus;
+	u32 rate_prev = group->active_bitrate;
+	u32 rate_max;
+	u32 rate_min;
+	s32 new_index;
+	u32 r; // reservoir
+	u32 cu; // cushion
+	u32 buf_now = group->buffer_occupancy_ms;
+	double f_buf_now;
+	
+	/* We don't use the segment duration as advertised in the MPD because it may not be there due to segment timeline*/
+	u32 segment_duration_ms = (u32)group->current_downloaded_segment_duration;
 
-	if (group->buffer_occupancy_ms + group->segment_duration*1000 > group->buffer_max_ms) {
-		return 0xFFFFFFFF;
+	rate_min = ((GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, 0))->bandwidth;
+	rate_max = ((GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, gf_list_count(group->adaptation_set->representations) - 1))->bandwidth;
+	/* if the current buffer cannot hold an entire new segment, we indicate that we don't want to download it
+	   NOTE: This is not described in the paper
+	*/
+	if (group->buffer_occupancy_ms + segment_duration_ms > group->buffer_max_ms) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] BBA-0: not enough space to download new segment: %d\n", group->buffer_occupancy_ms));
+		return -1;
 	}
 
-    if (group->active_bitrate == group->max_bitrate) {
-    	buf_high_threshold = group->max_bitrate;
+    if (rate_prev == rate_max) {
+    	rate_plus = rate_max;
     } else {
-    	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 3);
-    	u32 min_temp = rep->bandwidth;
-
-    	for (k = 1; k<gf_list_count(group->adaptation_set->representations); k++) {
-    		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-    		if ((rep->bandwidth < min_temp) && (rep->bandwidth > group->active_bitrate))
-    			min_temp = rep->bandwidth;
-    	}
-    	buf_high_threshold = min_temp;
+		rate_plus = get_min_rate_above(group->adaptation_set->representations, rate_prev, NULL);
     }
 
-	/* set buffer threshold to control dowload rate*/
-    if (group->active_bitrate == group->min_bitrate) {
-    	buf_low_threshold = group->min_bitrate;
+    if (rate_prev == rate_min) {
+    	rate_minus = rate_min;
     } else {
-    	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
-    	u32 max_temp = rep->bandwidth;
-
-    	for (k = 1; k<gf_list_count(group->adaptation_set->representations); k++) {
-    		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-    		if ((rep->bandwidth > max_temp) && (rep->bandwidth < group->active_bitrate))
-    			max_temp = rep->bandwidth;
-    	}
-    	buf_low_threshold = max_temp;
+		rate_minus = get_max_rate_below(group->adaptation_set->representations, rate_prev, NULL);
     }
 
     /*
-     *  define the the size of reservoir (r aleast = 1 chunk duration)
-     *  define the the size of cushion (cu )
-     *  define the piecewise function for rate map
+     * the size of the reservoir is 37.5% of the buffer size, but at least = 1 chunk duration)
+	 * the size of the upper reservoir is 10% of the buffer size
+     * the size of cushion is between 37.5% and 90% of the buffer size
+	 * the rate map is piece-wise
      */
-	r = group->buffer_min_ms + 3000;
-	cu = group->buffer_max_ms - 1000 - r;
+	if (group->buffer_max_ms <= segment_duration_ms) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] BBA-0: cannot initialize BBA-0 given the buffer size (%d) and segment duration (%d)\n", group->buffer_max_ms, group->segment_duration*1000));
+		return -1;
+	}
+	r = (u32)(37.5*group->buffer_max_ms / 100);
+	if (r < segment_duration_ms) {
+		r = segment_duration_ms;
+	}
+	cu = (u32)((90-37.5)*group->buffer_max_ms / 100);
 
-	new_index = -1;
-	if (group->buffer_occupancy_ms <= r) {
-		new_index = 0;
-	} else if (group->buffer_occupancy_ms >= (cu+r)) {
-		new_index = gf_list_count(group->adaptation_set->representations)-1;
-	} else {
-		// the maping rate function with y = coef_mr(x - r) + 51245 / min_bitrate = 51245
-		Double coef_mr	= (771067 - 51245)/cu;
-		Double f_mr = coef_mr*(group->buffer_occupancy_ms - r) + 51245;
-
-		//compare map bitrate with threshold
-		if ( f_mr >= buf_high_threshold) {
-			// find the max{Ri:Ri < f_mr}
-	    	for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-	    		GF_MPD_Representation *max_rep = gf_list_get(group->adaptation_set->representations, k);
-	    		if (max_rep->bandwidth < f_mr) {
-	    			new_index = k;
-	    		} else {
-					break;
-				}
-	    	}
-		} else if (f_mr <= buf_low_threshold){
-			// find the min{Ri:Ri > f_mr}
-	    	for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-	    		GF_MPD_Representation *min_rep = gf_list_get(group->adaptation_set->representations, k);
-	    		if (f_mr < min_rep->bandwidth){
-	    			new_index = k;
-	    			break;
-	    		}
-	    	}
-		} else {
-			new_index = group->active_rep_index;
-		}
+	if (buf_now <= r) {
+		f_buf_now = rate_min;
+	}
+	else if (buf_now >= (cu + r)) {
+		f_buf_now = rate_max;
+	}
+	else {
+		f_buf_now = rate_min + (rate_max - rate_min)*((buf_now - r) * 1.0 / cu);
 	}
 
-	group->current_index = group->current_index + 1;
+	if (f_buf_now == rate_max) {
+		// rate_next = rate_max;
+		new_index = gf_list_count(group->adaptation_set->representations) - 1;
+	}
+	else if (f_buf_now == rate_min) {
+		// rate_next = rate_min;
+		new_index = 0;
+	}
+	else if (f_buf_now >= rate_plus) {
+		// rate_next = max of Ri st. Ri < f_buf_now
+		new_index = 0;
+		get_max_rate_below(group->adaptation_set->representations, f_buf_now, &new_index);
+	}
+	else if (f_buf_now <= rate_minus) {
+		// rate_next = min of Ri st. Ri > f_buf_now
+		new_index = gf_list_count(group->adaptation_set->representations) - 1;;
+		get_min_rate_above(group->adaptation_set->representations, f_buf_now, &new_index);
+	}
+	else {
+		// no change
+		new_index = group->active_rep_index;
+	}
 
 	if (new_index != -1) {
-		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, new_index);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("BBA-0 current rep idx %d new %d bandwidth %d buffer %d ms\n",group->current_index, new_index, result->bandwidth, group->buffer_occupancy_ms));
-
-		// count the chunk number
-		if (new_index >= 0)
-			group->current_index = group->current_index + 1;
+		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+		// increment the segment number for debug purposes
+		group->current_index++;
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] BBA-0: buffer %d ms, segment number %d, new quality %d with rate %d\n", group->buffer_occupancy_ms, group->current_index, new_index, result->bandwidth));
 	}
 	return new_index;
 }
 
-/* BOLA function*/
-static u32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
+/* returns the index of the representation which maximises BOLA utility function 
+   based on the relative log-based utility of each representation compared to the one with the lowest bitrate
+   NOTE: V can represent V (in BOLA BASIC) or V_D (in other modes of BOLA) */
+static s32 bola_find_max_utility_index(GF_List *representations, Double V, Double gamma, Double p, Double Q) {
+	u32 k;
+	Double max_utility = GF_MIN_DOUBLE;
+	u32 nb_reps = gf_list_count(representations);
+	s32 new_index = -1;
+
+	for (k = 0; k < nb_reps; k++) {
+		GF_MPD_Representation *rep = gf_list_get(representations, k);
+		Double utility = (V * rep->playback.bola_v + V*gamma*p - Q) / (rep->bandwidth*p);
+		if (utility >= max_utility) {
+			max_utility = utility;
+			new_index = k;
+		}
+	}
+	return new_index;
+}
+
+/**
+Adaptation Algorithm as described in
+K. Spiteri et al. 2016. BOLA: Near-Optimal Bitrate Adaptation for Online Videos
+Arxiv.org
+*/
+static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 		  	  	  	  	  	  	  	  	  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
 										  	  GF_MPD_Representation *rep, Bool go_up_bitrate)
 {
-	u32 new_index = 0xFFFFFFFF;
+	s32 new_index = -1;
 	u32 k;
-	Double t_bgn; //play time from begin
-	Double t_end; //play time to the end
-	Double p = group->segment_duration; // segment duration
-	Double gma = (double)5/(double)p;
-	Double t_Q;
-	Double t_new;
-	Double Vm;
-	Double value;
-	Double max_value = -1;
-	Double max_br, max_vm, Q_Dmax, V_D;
-	Double N = dash->mpd->media_presentation_duration/(group->segment_duration * 1000);
-	GF_MPD_Representation *min_rep = gf_list_get(group->adaptation_set->representations, 0);
-	GF_MPD_Representation *max_rep = gf_list_get(group->adaptation_set->representations, gf_list_count(group->adaptation_set->representations)-1);
-	Double V;
-	// The maximum utility
-	Double V_max = log( ((Double) max_rep->bandwidth)/ min_rep->bandwidth);
+	Double p = group->current_downloaded_segment_duration / 1000.0;	// segment duration
+	Double gamma = (double)5/(double)p;
+	Double Qmax = group->buffer_max_ms / 1000.0 / p;		// max nb of segments in the buffer
+	Double Q = group->buffer_occupancy_ms / 1000.0 / p;		// current buffer occupancy in number of segments
 
-	switch(dash->adaptation_algorithm) {
-	case GF_DASH_ALGO_BOLA_BASIC:
-		//Q_Dmax/p in chunks to compute V
-		V = ((Double) group->buffer_max_ms) / p / 1000 - 1;
-		V /= V_max + (gma*p);
-
-		for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-			// compute the utilities of each bitrate
-			Vm = log( ((Double) rep->bandwidth) / min_rep->bandwidth);
-			// the values of optimization problem
-			value = V * Vm + V * gma * p - ((Double) group->buffer_occupancy_ms) / p / 1000;
-			value /= rep->bandwidth;
-
-			// find the maximum utilities
-			if (value >= max_value) {
-				max_value = value;
-				//max_vm = Vm;
-				new_index = k;
-			}
-		}
-		if (max_value == 0) {
-			 new_index = 0;
-		}
-		break;
-
-	case GF_DASH_ALGO_BOLA_FINITE:
-		t_bgn = p*dash->active_period_index;
-		t_end = (N-dash->active_period_index)*p;
-
-		t_Q = MIN(t_bgn, t_end);
-		t_new = MAX(t_Q/2, 3*p);
-
-		//in seconds in paper calculated in chunks
-		Q_Dmax = MIN(group->buffer_max_ms, t_new) / p;
-
-		//Q_Dmax/p in chunks to compute V
-		V_D = (Q_Dmax-1) / (V_max+ gma*p);
-
-		for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-			// compute the utilities of each bit-rate
-			Vm = log( ((Double) rep->bandwidth) / min_rep->bandwidth);
-			//the values of optimization problem
-			value = V_D * Vm + V_D * gma * p - ((Double)group->buffer_occupancy_ms) / p / 1000;
-			value /= rep->bandwidth;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("BOLA: index %d bit-rate value %d cost value %f %f\n", k, rep->bandwidth, value, Vm));
-			// find the maximum utilities
-			if (value > max_value) {
-				max_value = value;
-				new_index = k;
-			}
-		}
-		break;
-
-	case GF_DASH_ALGO_BOLA_U:
-		t_bgn = p*group->current_index;
-		t_end = (N-group->segment_duration)*p;
-
-		t_Q = MIN(t_bgn, t_end);
-		t_new = MAX(t_Q/2, 3*p);
-
-		 //in seconds in paper calculated in chunks
-		Q_Dmax = MIN(group->buffer_max_ms/1000, t_new) / p;
-
-		//Q_Dmax/p in chunks to compute V
-		V_D = (Q_Dmax - 1) / (V_max + gma*p);
-
-		for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-
-			// compute the utilities of each bitrate
-			Vm = log( ((Double) rep->bandwidth) / min_rep->bandwidth);
-			//the values of optimization problem
-			//JLF: there's a missing /p compared to other versions
-			value = V_D * Vm + V_D * gma * p - ((Double) group->buffer_occupancy_ms)/ 1000;
-			value /= rep->bandwidth;
-
-			// find the maximum utilities
-			if (value > max_value) {
-				max_value = value;
-				max_br = rep->bandwidth;
-				max_vm = Vm;
-				new_index = k;
-			}
-		}
-
-		//Bola U algorithm
-		if ((new_index > group->active_rep_index) && (new_index != 0xFFFFFFFF)) {
-			int index_prime = 0;
-			for (k = 0; k<gf_list_count(group->adaptation_set->representations); k++) {
-				GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
-				//index_prime the max index such that (Sm[m]/p)<= max(bandwidth_previous,min_rep->bandwidth))
-				if ((index_prime < k) && (rep->bandwidth <= MAX(group->active_bitrate,min_rep->bandwidth)))
-					index_prime = k;
-			}
-			if (index_prime >= new_index) {
-				index_prime = new_index;
-			} else if (index_prime < group->active_rep_index) {
-				index_prime = group->active_rep_index;
-			} else {
-				index_prime = index_prime + 1; // BOLA U
-				new_index=index_prime;
-			}
-		}
-		break;
-
-	default:
-		break;
+	GF_MPD_Representation *min_rep;
+	GF_MPD_Representation *max_rep;
+	u32 nb_reps;
+	
+	if (dash->mpd->type != GF_MPD_TYPE_STATIC) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] BOLA: Cannot be used for live MPD\n"));
+		return -1;
 	}
 
-	if (new_index != 0xFFFFFFFF) {
-		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, new_index);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("BOLA: current index %d new index %d new bandwidth %d buffer %d ms\n",group->current_index, new_index, result->bandwidth, group->buffer_occupancy_ms));
+	nb_reps = gf_list_count(group->adaptation_set->representations);
+	min_rep = gf_list_get(group->adaptation_set->representations, 0);
+	max_rep = gf_list_get(group->adaptation_set->representations, nb_reps - 1);
 
-		// count the chunk number
-		group->current_index = group->current_index + 1;
+	// Computing the log-based utility of each segment (recomputing each time for period changes)
+	for (k = 0; k < nb_reps; k++) {
+		GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, k);
+		rep->playback.bola_v = log(((Double)rep->bandwidth) / min_rep->bandwidth);
+	}
+
+	if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_BASIC) {
+		/* BOLA Basic is the variant of BOLA that assumes infinite duration streams (no wind-up/down, no rate use, no oscillation control)
+		   It simply consists in finding the maximum utility */
+		// NOTE in BOLA, representation indices decrease when the quality increases [1 = best quality]
+		Double V = (Qmax - 1) / (gamma * p + max_rep->playback.bola_v);
+		new_index = bola_find_max_utility_index(group->adaptation_set->representations, V, gamma, p, Q);
+	}
+	else if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_FINITE ||
+		dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_O ||
+		dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_U) {
+		/* BOLA FINITE is the same as BOLA Basic with the wind-up and down phases */
+		/* BOLA O and U add extra steps to BOLA FINITE */
+		Double t_bgn; //play time from begin
+		Double t_end; //play time to the end
+		Double t;
+		Double t_prime;
+		Double Q_Dmax;
+		Double V_D;
+		Double N = dash->mpd->media_presentation_duration / p;
+
+		t_bgn = p*group->current_index;
+		t_end = (N - group->current_index)*p;
+		t = MIN(t_bgn, t_end);
+		t_prime = MAX(t / 2, 3 * p);
+		Q_Dmax = MIN(Qmax, t_prime / p);
+		V_D = (Q_Dmax - 1) / (gamma * p + max_rep->playback.bola_v);
+
+		new_index = bola_find_max_utility_index(group->adaptation_set->representations, V_D, gamma, p, Q);
+
+		if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_U || dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_O) {
+			//Bola U algorithm
+			if ((new_index != -1) && ((u32)new_index > group->active_rep_index)) {
+				u32 r = group->bytes_per_sec*8;
+
+				// index_prime the min m such that (Sm[m]/p)<= max(bandwidth_previous,S_M/p))
+				// NOTE in BOLA, representation indices decrease when the quality increases [1 = best quality]
+				u32 m_prime = 0;
+				get_max_rate_below(group->adaptation_set->representations, MAX(r, min_rep->bandwidth), &m_prime);
+				if (m_prime >= (u32)new_index) {
+					m_prime = new_index;
+				}
+				else if (m_prime < group->active_rep_index) {
+					m_prime = group->active_rep_index;
+				}
+				else {
+					if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_U) {
+						m_prime++;
+					}
+					else { //GF_DASH_ALGO_BOLA_O						
+						GF_MPD_Representation *rep_m_prime;
+						GF_MPD_Representation *rep_m_prime_plus_one;
+						assert(m_prime >= 0 && m_prime < nb_reps - 2);
+						rep_m_prime = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime);
+						rep_m_prime_plus_one = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime+1);
+						Double Sm_prime = rep_m_prime->bandwidth*p;
+						Double Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
+						Double f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
+						Double f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
+						Double bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
+						// TODO wait for bola_o_pause before making the download 
+					}
+				}
+				new_index = m_prime;
+			}
+		}
+		// TODO trigger pause for max(p*(Q-Q_Dmax+1), 0)
+	}
+
+	if (new_index != -1) {
+		GF_MPD_Representation *result = gf_list_get(group->adaptation_set->representations, (u32)new_index);
+		// increment the segment number for debug purposes
+		group->current_index++;
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] BOLA: buffer %d ms, segment number %d, new quality %d with rate %d\n", group->buffer_occupancy_ms, group->current_index, new_index, result->bandwidth));
 	}
 	return new_index;
-}
-
-
-// test function
-
-static u32 dash_do_rate_adaptation_test(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
-												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
-												  GF_MPD_Representation *rep, Bool go_up_bitrate)
-{
-	if (group->buffer_occupancy_ms + group->segment_duration*1000 > group->buffer_max_ms) {
-		if (!group->rate_adaptation_postponed) {
-			//fprintf(stderr, "new buffer occupancy would be %u ms, greater than max buffer %u ms - postponing download\n", group->buffer_occupancy_ms+(u32)(group->segment_duration*1000), group->buffer_max_ms);
-		}
-		//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. index %x \n",0xFFFFFFFF));
-		return 0xFFFFFFFF;
-	}
-	else if (group->rate_adaptation_postponed) {
-		if (group->buffer_occupancy_ms + group->segment_duration*1000 > group->buffer_max_ms/2) {
-			//fprintf(stderr, "new buffer occupancy %u ms, greater than half max buffer %u ms - still postponing download\n", group->buffer_occupancy_ms+(u32)(group->segment_duration*1000), group->buffer_max_ms);
-			//GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("DEBUG. index %x \n",0xFFFFFFFF));
-			return 0xFFFFFFFF;
-		}
-	}
-//	fprintf(stderr, "new buffer occupancy ms, max buffer %u ms - doing rate adaptation\n", group->buffer_occupancy_ms+(u32)(group->segment_duration*1000), group->buffer_max_ms);
-
-	return dash_do_rate_adaptation_legacy_rate(dash, group, base_group, dl_rate, speed, max_available_speed, force_lower_complexity, rep, go_up_bitrate);
 }
 
 /* This function is called each time a new segment has been downloaded */
@@ -3117,7 +2995,7 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 	Double max_available_speed;
 	u32 dl_rate;
 	u32 k;
-	u32 new_index;
+	s32 new_index;
 	GF_DASH_Group *base_group;
 	GF_MPD_Representation *rep;
 	GF_MPD_Representation *new_rep;
@@ -3222,14 +3100,14 @@ static void dash_do_rate_adaptation(GF_DashClient *dash, GF_DASH_Group *group)
 														  rep, GF_FALSE);
 	}
 
-	if (new_index==0xFFFFFFFF) {
+	if (new_index==-1) {
 		group->rate_adaptation_postponed = GF_TRUE;
 		return;
 	}
 	group->rate_adaptation_postponed = GF_FALSE;
 
 	if (new_index != group->active_rep_index) {
-		new_rep = gf_list_get(group->adaptation_set->representations, new_index);
+		new_rep = gf_list_get(group->adaptation_set->representations, (u32)new_index);
 		if (!new_rep) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error: Cannot find new representation index: %d\n", new_index));
 			return;
@@ -6521,37 +6399,22 @@ void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo)
 		dash->rate_adaptation_algo = dash_do_rate_adaptation_legacy_rate;
 		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_default;
 		break;
-	case GF_DASH_ALGO_GPAC_TEST:
-		dash->rate_adaptation_algo = dash_do_rate_adaptation_test;
-		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_default;
-		break;
 	case GF_DASH_ALGO_BBA0:
 		dash->rate_adaptation_algo = dash_do_rate_adaptation_bba0;
-		//dash->rate_adaptation_download_monitor = dash_do_rate_monitor_default;
-		break;
-	case GF_DASH_ALGO_BOLA_FINITE:
-		dash->rate_adaptation_algo = dash_do_rate_adaptation_bola;
 		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_default;
 		break;
-	/*case GF_DASH_ALGO_BOLA_BASIC:
-		dash->rate_adaptation_algo = dash_do_rate_adaptation_bola_basic;
-		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_bola;
-		break;*/
-	case GF_DASH_ALGO_BOLA_U:
-		dash->rate_adaptation_algo = dash_do_rate_adaptation_bola;
-		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_bola;
-		break;
+	case GF_DASH_ALGO_BOLA_FINITE:
 	case GF_DASH_ALGO_BOLA_BASIC:
+	case GF_DASH_ALGO_BOLA_U:
+	case GF_DASH_ALGO_BOLA_O:
 		dash->rate_adaptation_algo = dash_do_rate_adaptation_bola;
-		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_bola;
+		dash->rate_adaptation_download_monitor = dash_do_rate_monitor_default;
 		break;
 	case GF_DASH_ALGO_NONE:
 	default:
 		dash->rate_adaptation_algo = NULL;
 		break;
 	}
-
-
 }
 
 GF_EXPORT

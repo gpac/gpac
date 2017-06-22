@@ -513,13 +513,11 @@ typedef enum {
 	GF_DASH_ALGO_GPAC_LEGACY_BUFFER,
 
 	GF_DASH_ALGO_BBA0,
-	GF_DASH_ALGO_BOLA_FINITE,
 
+	GF_DASH_ALGO_BOLA_FINITE,
 	GF_DASH_ALGO_BOLA_BASIC,
 	GF_DASH_ALGO_BOLA_U,
-
-
-	GF_DASH_ALGO_GPAC_TEST = 20
+	GF_DASH_ALGO_BOLA_O
 } GF_DASHAdaptationAlgorithm;
 
 void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
