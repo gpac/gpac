@@ -319,7 +319,7 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 
 	if (odm->subscene) {
 		char *sep = strchr(sub_url, '#');
-		if (sep && !strnicmp(sep, "#LIVE360", 8)) {
+		if (sep && ( !strnicmp(sep, "#LIVE360", 8) || !strnicmp(sep, "#360", 4) || !strnicmp(sep, "#VR", 3) ) ) {
 			sep[0] = 0;
 			odm->subscene->vr_type = 1;
 		}
