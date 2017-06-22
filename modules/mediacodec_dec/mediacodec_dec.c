@@ -465,54 +465,53 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
     ctx->esd = esd;
     GF_Err e;
 	
-	glGenTextures(1, &ctx->tex_id);
+    glGenTextures(1, &ctx->tex_id);
 	//check AVC config
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC) {
-		ctx->SPSs = gf_list_new();
-		ctx->PPSs = gf_list_new();
-		ctx->mime = "video/avc";
-		ctx->avc.sps_active_idx = -1;
-		ctx->active_sps = ctx->active_pps = -1;
+	ctx->SPSs = gf_list_new();
+	ctx->PPSs = gf_list_new();
+	ctx->mime = "video/avc";
+	ctx->avc.sps_active_idx = -1;
+	ctx->active_sps = ctx->active_pps = -1;
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
-			ctx->width=ctx->height=128;
+            ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
             return GF_OK;
         } else {
-			u32 i;
-			GF_AVCConfigSlot *slc;
-			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			for (i = 0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
-				slc = gf_list_get(cfg->sequenceParameterSets, i);
-				slc->id = -1;
-				MCDec_RegisterParameterSet(ctx, slc->data, slc->size, SPS);
-			}
+            u32 i;
+            GF_AVCConfigSlot *slc;
+            GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+            for (i = 0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
+		     slc = gf_list_get(cfg->sequenceParameterSets, i);
+		     slc->id = -1;
+		     MCDec_RegisterParameterSet(ctx, slc->data, slc->size, SPS);
+	    }
 
-			for (i = 0; i<gf_list_count(cfg->pictureParameterSets); i++) {
-				slc = gf_list_get(cfg->pictureParameterSets, i);
-				slc->id = -1;
-				MCDec_RegisterParameterSet(ctx, slc->data, slc->size, PPS);
-			}
+	    for (i = 0; i<gf_list_count(cfg->pictureParameterSets); i++) {
+		     slc = gf_list_get(cfg->pictureParameterSets, i);
+		     slc->id = -1;
+		     MCDec_RegisterParameterSet(ctx, slc->data, slc->size, PPS);
+	    }
 
-			slc = gf_list_get(ctx->SPSs, 0);
-			if (slc) ctx->active_sps = slc->id;
+	    slc = gf_list_get(ctx->SPSs, 0);
+	    if (slc) ctx->active_sps = slc->id;
 
-			slc = gf_list_get(ctx->PPSs, 0);
-			if (slc) ctx->active_pps = slc->id;
+	    slc = gf_list_get(ctx->PPSs, 0);
+	    if (slc) ctx->active_pps = slc->id;
 			
-			ctx->nalu_size_length = cfg->nal_unit_size;
+	    ctx->nalu_size_length = cfg->nal_unit_size;
 		
 			
-			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
-				e = MCDec_InitDecoder(ctx);
-				if (e) return e;
-			}
-			else {
-				e = GF_OK;
-			}
-			gf_odf_avc_cfg_del(cfg);
-			return e;
-		}
+	   if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
+	       e = MCDec_InitDecoder(ctx);
+	       if (e) return e;
+            } else {
+		e = GF_OK;
+	    }
+	    gf_odf_avc_cfg_del(cfg);
+	    return e;
+	}
     }
 
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
@@ -527,69 +526,68 @@ static GF_Err MCDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
             ctx->height = vcfg.height;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
-			return MCDec_InitDecoder(ctx);
+	    return MCDec_InitDecoder(ctx);
         }
     }
   
     if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC) {
         ctx->esd= esd;
-		ctx->SPSs = gf_list_new();
-		ctx->PPSs = gf_list_new();
-		ctx->VPSs = gf_list_new();
-		ctx->mime = "video/hevc";
+	ctx->SPSs = gf_list_new();
+	ctx->PPSs = gf_list_new();
+	ctx->VPSs = gf_list_new();
+	ctx->mime = "video/hevc";
         if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
             ctx->width=ctx->height=128;
             ctx->out_size = ctx->width*ctx->height*3/2;
             ctx->pix_fmt = GF_PIXEL_NV12;
-	    return GF_OK
+	    return GF_OK;
         } else {
-			GF_HEVCConfig *hvcc = NULL;
-			GF_AVCConfigSlot *sl;
-			HEVCState hevc;
-			u32 i,j;
-			memset(&hevc, 0, sizeof(HEVCState));
+	    GF_HEVCConfig *hvcc = NULL;
+	    GF_AVCConfigSlot *sl;
+	    HEVCState hevc;
+	    u32 i,j;
+	    memset(&hevc, 0, sizeof(HEVCState));
 
-			hvcc = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
-			if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
-			ctx->nalu_size_length = hvcc->nal_unit_size;
+	    hvcc = gf_odf_hevc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, GF_FALSE);
+	    if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+	    ctx->nalu_size_length = hvcc->nal_unit_size;
 
-			for (i=0; i< gf_list_count(hvcc->param_array); i++) {
-				GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
-				for (j=0; j< gf_list_count(ar->nalus); j++) {
-					GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-					s32 idx;
-					u16 hdr = sl->data[0] << 8 | sl->data[1];
+	    for (i=0; i< gf_list_count(hvcc->param_array); i++) {
+		  GF_HEVCParamArray *ar = (GF_HEVCParamArray *)gf_list_get(hvcc->param_array, i);
+		  for (j=0; j< gf_list_count(ar->nalus); j++) {
+			 GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
+			 s32 idx;
+			 u16 hdr = sl->data[0] << 8 | sl->data[1];
 
-					if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
-						sl->id = -1;
-						MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, SPS);
-					}
-					else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
-						sl->id = -1;
-						MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, VPS);
-					}
-					else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
-						sl->id = -1;
-						MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, PPS);
-					}
-				}
-			}
-			sl = gf_list_get(ctx->SPSs, 0);
-			if (sl) ctx->active_sps = sl->id;
+			 if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+			     sl->id = -1;
+			     MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, SPS);
+			 }
+			 else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+				  sl->id = -1;
+				  MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, VPS);
+			 }
+			 else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+				  sl->id = -1;
+				  MCDec_RegisterHEVCParameterSet(ctx, sl->data, sl->size, PPS);
+			 }
+		  }
+	    }
+	    sl = gf_list_get(ctx->SPSs, 0);
+	    if (sl) ctx->active_sps = sl->id;
 
-			sl = gf_list_get(ctx->PPSs, 0);
-			if (sl) ctx->active_pps = sl->id;
+	    sl = gf_list_get(ctx->PPSs, 0);
+	    if (sl) ctx->active_pps = sl->id;
 			
-			sl = gf_list_get(ctx->VPSs, 0);
-			if (sl) ctx->active_vps = sl->id;
+	    sl = gf_list_get(ctx->VPSs, 0);
+	    if (sl) ctx->active_vps = sl->id;
 			
-			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
-				e = MCDec_InitDecoder(ctx);
-			}
-			else {
-				e = GF_OK;
-			}
-			gf_odf_hevc_cfg_del(hvcc);
+	    if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) && gf_list_count(ctx->VPSs) ) {
+		e = MCDec_InitDecoder(ctx);
+	    } else {
+		e = GF_OK;
+	    }
+	    gf_odf_hevc_cfg_del(hvcc);
             return e;
         }
     }
