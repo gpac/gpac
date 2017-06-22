@@ -587,7 +587,6 @@ struct __tag_compositor
 	s32 display_depth;
 #endif
 
-
 	//moved from old GF_Terminal
 	struct _gf_scene *root_scene;
 	Bool drop_late_frames;
@@ -612,6 +611,8 @@ struct __tag_compositor
 	 */
 	GF_List *nodes_pending;
 	GF_List *extensions, *unthreaded_extensions;
+
+	Bool gazer_enabled;
 };
 
 typedef struct
