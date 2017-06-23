@@ -151,6 +151,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	if (!timeScale) timeScale = 1000;
 
 	GF_SAFEALLOC(stream, GF_RTPStreamer);
+	if (!stream) return NULL;
 
 
 	/*by default NO PL signaled*/
@@ -159,7 +160,6 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 	force_dts_delta = 0;
 	mpeg4mode = NULL;
 	required_rate = 0;
-	nb_ch = 0;
 	has_mpeg4_mapping = GF_TRUE;
 	rtp_type = 0;
 
@@ -193,8 +193,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			if (dsi) {
 				GF_M4ADecSpecInfo a_cfg;
 				gf_m4a_get_config(dsi, dsi_len, &a_cfg);
-				nb_ch = a_cfg.nb_chan;
-				sample_rate = a_cfg.base_sr;
+				//nb_ch = a_cfg.nb_chan;
+				//sample_rate = a_cfg.base_sr;
 				PL_ID = a_cfg.audioPL;
 				switch (a_cfg.base_object_type) {
 				case GF_M4A_AAC_MAIN:
@@ -241,7 +241,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_QCELP;
 			OfficialPayloadType = 12;
 			required_rate = 8000;
-			nb_ch = 1;
+			//nb_ch = 1;
 			break;
 
 		/*EVRC/SVM audio*/
@@ -249,7 +249,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		case GPAC_OTI_AUDIO_SMV_VOICE:
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			required_rate = 8000;
-			nb_ch = 1;
+			//nb_ch = 1;
 		}
 
 		break;
@@ -297,6 +297,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 		/*H264-SVC*/
 		case GPAC_OTI_VIDEO_SVC:
+		case GPAC_OTI_VIDEO_MVC:
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_SVC;
 			PL_ID = 0x0F;
@@ -307,10 +308,10 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_HEVC;
 			PL_ID = 0x0F;
 			break;
-		/*SHVC*/
-		case GPAC_OTI_VIDEO_SHVC:
+		/*LHVC*/
+		case GPAC_OTI_VIDEO_LHVC:
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
-			rtp_type = GF_RTP_PAYT_SHVC;
+			rtp_type = GF_RTP_PAYT_LHVC;
 			PL_ID = 0x0F;
 			break;
 		}
@@ -343,26 +344,27 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_AMR;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = GF_FALSE;
-			nb_ch = 1;
+//			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_AMR_WB:
 			required_rate = 16000;
 			rtp_type = GF_RTP_PAYT_AMR_WB;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = GF_FALSE;
-			nb_ch = 1;
+//			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AC3:
 			rtp_type = GF_RTP_PAYT_AC3;
 			streamType = GF_STREAM_AUDIO;
 			has_mpeg4_mapping = GF_TRUE;
-			nb_ch = 1;
+//			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_AVC_H264:
 		case GF_ISOM_SUBTYPE_AVC2_H264:
 		case GF_ISOM_SUBTYPE_AVC3_H264:
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
+		case GF_ISOM_SUBTYPE_MVC_H264:
 		{
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_AVC;
@@ -377,7 +379,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			streamType = GF_STREAM_AUDIO;
 			oti = GPAC_OTI_AUDIO_13K_VOICE;
 			OfficialPayloadType = 12;
-			nb_ch = 1;
+//			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_EVRC:
 		case GF_ISOM_SUBTYPE_3GP_SMV:
@@ -385,7 +387,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
 			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
-			nb_ch = 1;
+//			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_MP3:
 			rtp_type = GF_RTP_PAYT_MPEG12_AUDIO;
@@ -629,7 +631,7 @@ GF_Err gf_rtp_streamer_append_sdp_extended(GF_RTPStreamer *rtp, u16 ESID, char *
 			strcat(sdpLine, "\n");
 		}
 	}
-	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_SHVC)) {
+	else if ((rtp->packetizer->rtp_payt == GF_RTP_PAYT_HEVC) || (rtp->packetizer->rtp_payt == GF_RTP_PAYT_LHVC)) {
 #ifndef GPAC_DISABLE_HEVC
 		GF_HEVCConfig *hevcc = dsi ? gf_odf_hevc_cfg_read(dsi, dsi_len, GF_FALSE) : NULL;
 		if (hevcc) {

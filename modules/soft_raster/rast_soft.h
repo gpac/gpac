@@ -281,8 +281,6 @@ GF_Err evg_stencil_set_texture(GF_STENCIL st, char *pixels, u32 width, u32 heigh
 GF_Err evg_stencil_set_tiling(GF_STENCIL st, GF_TextureTiling mode);
 GF_Err evg_stencil_set_filter(GF_STENCIL st, GF_TextureFilter filter_mode);
 GF_Err evg_stencil_set_color_matrix(GF_STENCIL st, GF_ColorMatrix *cmat);
-GF_Err evg_stencil_reset_color_matrix(GF_STENCIL st);
-GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_PixelFormat pixelFormat);
 
 
 
@@ -354,7 +352,6 @@ GF_Err evg_surface_clear_555(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 void evg_user_fill_const(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_user_fill_const_a(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
 void evg_user_fill_var(s32 y, s32 count, EVG_Span *spans, EVGSurface *surf);
-GF_Err evg_surface_clear_user(GF_SURFACE surf, GF_IRect rc, GF_Color col);
 
 
 

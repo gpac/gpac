@@ -76,11 +76,9 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 	int i;
-	u32 tmp_strsize = (u32) ptr->size - 8;
-	char *tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
-
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
+	u32 tmp_strsize;
+	char *tmp_str;
+	GF_Err e;
 
 	ptr->bootstrapinfo_version = gf_bs_read_u32(bs);
 	ptr->profile = gf_bs_read_int(bs, 2);
@@ -90,8 +88,12 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->time_scale = gf_bs_read_u32(bs);
 	ptr->current_media_time = gf_bs_read_u64(bs);
 	ptr->smpte_time_code_offset = gf_bs_read_u64(bs);
+
 	i=0;
+	if (ptr->size<8) return GF_ISOM_INVALID_FILE;
 	tmp_strsize=(u32)ptr->size-8;
+	tmp_str = gf_malloc(sizeof(char)*tmp_strsize);
+
 	while (tmp_strsize) {
 		tmp_str[i] = gf_bs_read_u8(bs);
 		tmp_strsize--;
@@ -157,7 +159,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->segment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->segment_run_table_count; i++) {
 		GF_AdobeSegmentRunTableBox *asrt;
-		e = gf_isom_parse_box((GF_Box **)&asrt, bs);
+		e = gf_isom_box_parse((GF_Box **)&asrt, bs);
 		if (e) return e;
 		gf_list_insert(ptr->segment_run_table_entries, asrt, i);
 	}
@@ -165,7 +167,7 @@ GF_Err abst_Read(GF_Box *s, GF_BitStream *bs)
 	ptr->fragment_run_table_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->fragment_run_table_count; i++) {
 		GF_AdobeFragmentRunTableBox *afrt;
-		e = gf_isom_parse_box((GF_Box **)&afrt, bs);
+		e = gf_isom_box_parse((GF_Box **)&afrt, bs);
 		if (e) return e;
 		gf_list_insert(ptr->fragment_run_table_entries, afrt, i);
 	}
@@ -255,9 +257,6 @@ GF_Err abst_Size(GF_Box *s)
 	int i;
 	GF_AdobeBootstrapInfoBox *ptr = (GF_AdobeBootstrapInfoBox *)s;
 
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
-
 	s->size += 25
 	           + (ptr->movie_identifier ? (strlen(ptr->movie_identifier) + 1) : 1)
 	           + 1;
@@ -318,9 +317,6 @@ GF_Err afra_Read(GF_Box *s, GF_BitStream *bs)
 {
 	unsigned int i;
 	GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;
-
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	ptr->long_ids = gf_bs_read_int(bs, 1);
 	ptr->long_offsets = gf_bs_read_int(bs, 1);
@@ -433,11 +429,7 @@ GF_Err afra_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err afra_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_AdobeFragRandomAccessBox *ptr = (GF_AdobeFragRandomAccessBox *)s;
-
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 
 	s->size += 9
 	           + ptr->entry_count * (ptr->long_offsets ? 16 : 12)
@@ -472,9 +464,6 @@ GF_Err asrt_Read(GF_Box *s, GF_BitStream *bs)
 {
 	unsigned int i;
 	GF_AdobeSegmentRunTableBox *ptr = (GF_AdobeSegmentRunTableBox *)s;
-
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	ptr->quality_entry_count = gf_bs_read_u8(bs);
 	for (i=0; i<ptr->quality_entry_count; i++) {
@@ -542,11 +531,7 @@ GF_Err asrt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err asrt_Size(GF_Box *s)
 {
 	int i;
-	GF_Err e;
 	GF_AdobeSegmentRunTableBox *ptr = (GF_AdobeSegmentRunTableBox *)s;
-
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 
 	s->size += 5;
 
@@ -584,9 +569,6 @@ GF_Err afrt_Read(GF_Box *s, GF_BitStream *bs)
 {
 	unsigned int i;
 	GF_AdobeFragmentRunTableBox *ptr = (GF_AdobeFragmentRunTableBox *)s;
-
-	GF_Err e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	ptr->timescale = gf_bs_read_u32(bs);
 
@@ -663,11 +645,7 @@ GF_Err afrt_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err afrt_Size(GF_Box *s)
 {
 	u32 i;
-	GF_Err e;
 	GF_AdobeFragmentRunTableBox *ptr = (GF_AdobeFragmentRunTableBox *)s;
-
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 
 	s->size += 5;
 

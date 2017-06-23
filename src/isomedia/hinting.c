@@ -32,11 +32,7 @@ GF_Box *ghnt_New()
 	GF_HintSampleEntryBox *tmp;
 	GF_SAFEALLOC(tmp, GF_HintSampleEntryBox);
 	if (tmp == NULL) return NULL;
-	tmp->HintDataTable = gf_list_new();
-	if (!tmp->HintDataTable) {
-		gf_free(tmp);
-		return NULL;
-	}
+
 	//this type is used internally for protocols that share the same base entry
 	//currently only RTP uses this, but a flexMux could use this entry too...
 	tmp->type = GF_ISOM_BOX_TYPE_GHNT;
@@ -50,35 +46,35 @@ void ghnt_del(GF_Box *s)
 	GF_HintSampleEntryBox *ptr;
 
 	ptr = (GF_HintSampleEntryBox *)s;
-	gf_isom_box_array_del(ptr->HintDataTable);
 	if (ptr->hint_sample) gf_isom_hint_sample_del(ptr->hint_sample);
 	gf_free(ptr);
 }
 
 GF_Err ghnt_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Box *a;
 	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
 	if (ptr == NULL) return GF_BAD_PARAM;
 
 	if (ptr->size < 16) return GF_ISOM_INVALID_FILE;
 
-	gf_bs_read_data(bs, ptr->reserved, 6);
-	ptr->dataReferenceIndex = gf_bs_read_u16(bs);
+	e = gf_isom_base_sample_entry_read((GF_SampleEntryBox *)ptr, bs);
+	if (e) return e;
+
 	ptr->HintTrackVersion = gf_bs_read_u16(bs);
 	ptr->LastCompatibleVersion = gf_bs_read_u16(bs);
-	ptr->MaxPacketSize = gf_bs_read_u32(bs);
-	ptr->size -= 16;
 
-	while (ptr->size) {
-		e = gf_isom_parse_box(&a, bs);
-		if (e) return e;
-		e = gf_list_add(ptr->HintDataTable, a);
-		if (e) return e;
-		ptr->size -= a->size;
+	ptr->size -= 12;
+	if ((s->type == GF_ISOM_BOX_TYPE_RTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_SRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RRTP_STSD) || (s->type == GF_ISOM_BOX_TYPE_RTCP_STSD)) {
+		ptr->MaxPacketSize = gf_bs_read_u32(bs);
+		ptr->size -= 4;
+	} else if (s->type == GF_ISOM_BOX_TYPE_FDP_STSD) {
+		ptr->partition_entry_ID = gf_bs_read_u16(bs);
+		ptr->FEC_overhead = gf_bs_read_u16(bs);
+		ptr->size -= 4;
+
 	}
-	return GF_OK;
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -95,19 +91,13 @@ GF_Err ghnt_Write(GF_Box *s, GF_BitStream *bs)
 	gf_bs_write_u16(bs, ptr->HintTrackVersion);
 	gf_bs_write_u16(bs, ptr->LastCompatibleVersion);
 	gf_bs_write_u32(bs, ptr->MaxPacketSize);
-	return gf_isom_box_array_write(s, ptr->HintDataTable, bs);
+	return GF_OK;
 }
 
 GF_Err ghnt_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_HintSampleEntryBox *ptr = (GF_HintSampleEntryBox *)s;
-
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	ptr->size += 16;
-	e = gf_isom_box_array_size(s, ptr->HintDataTable);
-	if (e) return e;
 	return GF_OK;
 }
 
@@ -118,18 +108,22 @@ GF_Err ghnt_Size(GF_Box *s)
 GF_HintSample *gf_isom_hint_sample_new(u32 ProtocolType)
 {
 	GF_HintSample *tmp;
-	u8 type;
-
 	switch (ProtocolType) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
-		type = GF_ISMO_HINT_RTP;
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		break;
+	case GF_ISOM_BOX_TYPE_FDP_STSD:
+		return (GF_HintSample *) gf_isom_box_new(GF_ISOM_BOX_TYPE_FDSA);
 		break;
 	default:
 		return NULL;
 	}
 	GF_SAFEALLOC(tmp, GF_HintSample);
+	if (!tmp) return NULL;
 	tmp->packetTable = gf_list_new();
-	tmp->HintType = type;
+	tmp->hint_subtype = ProtocolType;
 	return tmp;
 }
 
@@ -137,9 +131,14 @@ void gf_isom_hint_sample_del(GF_HintSample *ptr)
 {
 	GF_HintPacket *pck;
 
+	if (ptr->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
+		gf_isom_box_del((GF_Box*)ptr);
+		return;
+	}
+
 	while (gf_list_count(ptr->packetTable)) {
 		pck = (GF_HintPacket *)gf_list_get(ptr->packetTable, 0);
-		gf_isom_hint_pck_del(ptr->HintType, pck);
+		gf_isom_hint_pck_del(pck);
 		gf_list_rem(ptr->packetTable, 0);
 	}
 	gf_list_del(ptr->packetTable);
@@ -154,27 +153,66 @@ void gf_isom_hint_sample_del(GF_HintSample *ptr)
 		}
 		gf_list_del(ptr->sample_cache);
 	}
+	if (ptr->extra_data)
+		gf_isom_box_del((GF_Box*)ptr->extra_data);
+	if (ptr->other_boxes)
+		gf_isom_box_array_del(ptr->other_boxes);
+
 	gf_free(ptr);
 }
 
 GF_Err gf_isom_hint_sample_read(GF_HintSample *ptr, GF_BitStream *bs, u32 sampleSize)
 {
-	u16 entryCount, i;
+	u16 i;
+	u32 type;
 	GF_HintPacket *pck;
 	GF_Err e;
+	char *szName = (ptr->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) ? "RTCP" : "RTP";
 	u64 sizeIn, sizeOut;
 
 	sizeIn = gf_bs_available(bs);
 
-	entryCount = gf_bs_read_u16(bs);
-	ptr->reserved = gf_bs_read_u16(bs);
-
-	for (i = 0; i < entryCount; i++) {
-		pck = gf_isom_hint_pck_new(ptr->HintType);
-		e = gf_isom_hint_pck_read(ptr->HintType, pck, bs);
-		if (e) return e;
-		gf_list_add(ptr->packetTable, pck);
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		break;
+	case GF_ISOM_BOX_TYPE_FDP_STSD:
+		ptr->size = gf_bs_read_u32(bs);
+		type = gf_bs_read_u32(bs);
+		if (type != GF_ISOM_BOX_TYPE_FDSA) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] invalid FDT sample, top box type %s not fdsa\n", gf_4cc_to_str(type) ));
+			return GF_ISOM_INVALID_MEDIA;
+		}
+		return gf_isom_box_read((GF_Box*)ptr, bs);
+	default:
+		return GF_NOT_SUPPORTED;
 	}
+
+	ptr->packetCount = gf_bs_read_u16(bs);
+	ptr->reserved = gf_bs_read_u16(bs);
+	if (ptr->packetCount>=sampleSize) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] broken %s sample: %d packet_count indicated but only %d bytes in samples\n", szName, ptr->packetCount, sampleSize));
+		return GF_ISOM_INVALID_MEDIA;
+	}
+	
+	for (i = 0; i < ptr->packetCount; i++) {
+		if (! gf_bs_available(bs) ) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] %s hint sample has no more data but still %d entries to read\n", szName, ptr->packetCount-i));
+			return GF_ISOM_INVALID_MEDIA;
+		}
+		pck = gf_isom_hint_pck_new(ptr->hint_subtype);
+		pck->trackID = ptr->trackID;
+		pck->sampleNumber = ptr->sampleNumber;
+		gf_list_add(ptr->packetTable, pck);
+
+		e = gf_isom_hint_pck_read(pck, bs);
+		if (e) return e;
+	}
+
+	if (ptr->hint_subtype==GF_ISOM_BOX_TYPE_RTCP_STSD) return GF_OK;
+
 
 	sizeOut = gf_bs_available(bs) - sizeIn;
 
@@ -196,13 +234,19 @@ GF_Err gf_isom_hint_sample_write(GF_HintSample *ptr, GF_BitStream *bs)
 	GF_HintPacket *pck;
 	GF_Err e;
 
+	if (ptr->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
+		e = gf_isom_box_size((GF_Box*)ptr);
+		if (!e) e = gf_isom_box_write((GF_Box*)ptr, bs);
+		return e;
+	}
+
 	count = gf_list_count(ptr->packetTable);
 	gf_bs_write_u16(bs, count);
 	gf_bs_write_u16(bs, ptr->reserved);
 	//write the packet table
 	for (i=0; i<count; i++) {
 		pck = (GF_HintPacket *)gf_list_get(ptr->packetTable, i);
-		e = gf_isom_hint_pck_write(ptr->HintType, pck, bs);
+		e = gf_isom_hint_pck_write(pck, bs);
 		if (e) return e;
 	}
 	//write additional data
@@ -218,13 +262,18 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 	u32 size, count, i;
 	GF_HintPacket *pck;
 
-	size = 4;
-	count = gf_list_count(ptr->packetTable);
-	for (i=0; i<count; i++) {
-		pck = (GF_HintPacket *)gf_list_get(ptr->packetTable, i);
-		size += gf_isom_hint_pck_size(ptr->HintType, pck);
+	if (ptr->hint_subtype==GF_ISOM_BOX_TYPE_FDP_STSD) {
+		gf_isom_box_size((GF_Box*)ptr);
+		size = (u32) ptr->size;
+	} else {
+		size = 4;
+		count = gf_list_count(ptr->packetTable);
+		for (i=0; i<count; i++) {
+			pck = (GF_HintPacket *)gf_list_get(ptr->packetTable, i);
+			size += gf_isom_hint_pck_size(pck);
+		}
+		size += ptr->dataLength;
 	}
-	size += ptr->dataLength;
 	return size;
 }
 
@@ -232,32 +281,52 @@ u32 gf_isom_hint_sample_size(GF_HintSample *ptr)
 
 
 
-GF_HintPacket *gf_isom_hint_pck_new(u8 HintType)
+GF_HintPacket *gf_isom_hint_pck_new(u32 HintType)
 {
+	GF_HintPacket *pck;
 	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
-		return (GF_HintPacket *) gf_isom_hint_rtp_new();
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
+		pck = (GF_HintPacket *) gf_isom_hint_rtp_new();
+		if (pck) pck->hint_subtype = HintType;
+		return pck;
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		pck = (GF_HintPacket *) gf_isom_hint_rtcp_new();
+		if (pck) pck->hint_subtype = HintType;
+		return pck;
 	default:
 		return NULL;
 	}
 }
 
-void gf_isom_hint_pck_del(u8 HintType, GF_HintPacket *ptr)
+void gf_isom_hint_pck_del(GF_HintPacket *ptr)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		gf_isom_hint_rtp_del((GF_RTPPacket *)ptr);
+		break;
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		gf_isom_hint_rtcp_del((GF_RTCPPacket *)ptr);
 		break;
 	default:
 		break;
 	}
 }
 
-GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_pck_read(GF_HintPacket *ptr, GF_BitStream *bs)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return GF_BAD_PARAM;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		return gf_isom_hint_rtp_read((GF_RTPPacket *)ptr, bs);
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return gf_isom_hint_rtcp_read((GF_RTCPPacket *)ptr, bs);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
@@ -265,55 +334,80 @@ GF_Err gf_isom_hint_pck_read(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
-GF_Err gf_isom_hint_pck_write(u8 HintType, GF_HintPacket *ptr, GF_BitStream *bs)
+GF_Err gf_isom_hint_pck_write(GF_HintPacket *ptr, GF_BitStream *bs)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return GF_BAD_PARAM;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		return gf_isom_hint_rtp_write((GF_RTPPacket *)ptr, bs);
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return gf_isom_hint_rtcp_write((GF_RTCPPacket *)ptr, bs);
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
 
-u32 gf_isom_hint_pck_size(u8 HintType, GF_HintPacket *ptr)
+u32 gf_isom_hint_pck_size(GF_HintPacket *ptr)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return GF_BAD_PARAM;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		return gf_isom_hint_rtp_size((GF_RTPPacket *)ptr);
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return gf_isom_hint_rtcp_size((GF_RTCPPacket *)ptr);
 	default:
 		return 0;
 	}
 }
 
-GF_Err gf_isom_hint_pck_offset(u8 HintType, GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber)
+GF_Err gf_isom_hint_pck_offset(GF_HintPacket *ptr, u32 offset, u32 HintSampleNumber)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return GF_BAD_PARAM;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		return gf_isom_hint_rtp_offset((GF_RTPPacket *)ptr, offset, HintSampleNumber);
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return GF_BAD_PARAM;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
 
-GF_Err gf_isom_hint_pck_add_dte(u8 HintType, GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin)
+GF_Err gf_isom_hint_pck_add_dte(GF_HintPacket *ptr, GF_GenericDTE *dte, u8 AtBegin)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return GF_BAD_PARAM;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		if (AtBegin)
 			return gf_list_insert( ((GF_RTPPacket *)ptr)->DataTable, dte, 0);
 		else
 			return gf_list_add( ((GF_RTPPacket *)ptr)->DataTable, dte);
 
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return GF_BAD_PARAM;
 	default:
 		return GF_NOT_SUPPORTED;
 	}
 }
 
-u32 gf_isom_hint_pck_length(u8 HintType, GF_HintPacket *ptr)
+u32 gf_isom_hint_pck_length(GF_HintPacket *ptr)
 {
-	switch (HintType) {
-	case GF_ISMO_HINT_RTP:
+	if (!ptr) return 0;
+	switch (ptr->hint_subtype) {
+	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		return gf_isom_hint_rtp_length((GF_RTPPacket *)ptr);
+	case GF_ISOM_BOX_TYPE_RTCP_STSD:
+		return gf_isom_hint_rtcp_length((GF_RTCPPacket *)ptr);
 	default:
 		return 0;
 	}
@@ -458,12 +552,18 @@ GF_Err Read_ImmediateDTE(GF_ImmediateDTE *dte, GF_BitStream *bs)
 
 GF_Err Read_SampleDTE(GF_SampleDTE *dte, GF_BitStream *bs)
 {
-	dte->trackRefIndex = gf_bs_read_u8(bs);
+	dte->trackRefIndex = (s8) gf_bs_read_u8(bs);
 	dte->dataLength = gf_bs_read_u16(bs);
 	dte->sampleNumber = gf_bs_read_u32(bs);
 	dte->byteOffset = gf_bs_read_u32(bs);
 	dte->bytesPerComp = gf_bs_read_u16(bs);
 	dte->samplesPerComp = gf_bs_read_u16(bs);
+	if (dte->bytesPerComp != 1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with bytesperblock %d, not 1\n", dte->bytesPerComp));
+	}
+	if (dte->samplesPerComp != 1) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] hint packet constructor with samplesperblock %d, not 1\n", dte->bytesPerComp));
+	}
 	return GF_OK;
 }
 
@@ -635,7 +735,7 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		tempSize = 4;	//TLVsize includes its field length
 		TLVsize = gf_bs_read_u32(bs);
 		while (tempSize < TLVsize) {
-			e = gf_isom_parse_box(&a, bs);
+			e = gf_isom_box_parse(&a, bs);
 			if (e) return e;
 			gf_list_add(ptr->TLV, a);
 			tempSize += (u32) a->size;
@@ -648,6 +748,10 @@ GF_Err gf_isom_hint_rtp_read(GF_RTPPacket *ptr, GF_BitStream *bs)
 		Bool add_it = 0;
 		type = gf_bs_read_u8(bs);
 		dte = NewDTE(type);
+		if (!dte) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso] invalid DTE code %d in hint sample %d of trackID %d\n", type, ptr->sampleNumber, ptr->trackID));
+			return GF_ISOM_INVALID_FILE;
+		}
 		e = ReadDTE(dte, bs);
 		if (e) return e;
 		/*little opt, remove empty dte*/
@@ -788,6 +892,72 @@ GF_Err gf_isom_hint_rtp_write(GF_RTPPacket *ptr, GF_BitStream *bs)
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
+
+
+GF_RTCPPacket *gf_isom_hint_rtcp_new()
+{
+	GF_RTCPPacket *tmp;
+	GF_SAFEALLOC(tmp, GF_RTCPPacket);
+	return tmp;
+}
+
+void gf_isom_hint_rtcp_del(GF_RTCPPacket *ptr)
+{
+	if(ptr->data) gf_free(ptr->data);
+	gf_free(ptr);
+}
+
+GF_Err gf_isom_hint_rtcp_read(GF_RTCPPacket *ptr, GF_BitStream *bs)
+{
+	//RTCP Header
+
+	ptr->Version = gf_bs_read_int(bs, 2);
+	ptr->Padding = gf_bs_read_int(bs, 1);
+	ptr->Count = gf_bs_read_int(bs, 5);
+	ptr->PayloadType = gf_bs_read_u8(bs);
+	ptr->length = 4 * gf_bs_read_u16(bs);
+	if (ptr->length<4) return GF_ISOM_INVALID_MEDIA;
+
+	//remove header size
+	if (gf_bs_available(bs) < ptr->length) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso] RTCP hint packet has more data (%d) than available\n", ptr->length ));
+		return GF_ISOM_INVALID_MEDIA;
+	}
+	ptr->data = gf_malloc(sizeof(char) * ptr->length);
+	gf_bs_read_data(bs, ptr->data, ptr->length);
+	return GF_OK;
+}
+
+
+//Gets the REAL size of the packet once rebuild, but without CSRC fields in the
+//header
+u32 gf_isom_hint_rtcp_length(GF_RTCPPacket *ptr)
+{
+	return 4 * (ptr->length + 1);
+}
+
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+u32 gf_isom_hint_rtcp_size(GF_RTCPPacket *ptr)
+{
+	return 4 * (ptr->length + 1);
+}
+
+GF_Err gf_isom_hint_rtcp_write(GF_RTCPPacket *ptr, GF_BitStream *bs)
+{
+	//RTP Header
+	gf_bs_write_int(bs, ptr->Version, 2);
+	gf_bs_write_int(bs, ptr->Padding, 1);
+	gf_bs_write_int(bs, ptr->Count, 5);
+	gf_bs_write_u8(bs, ptr->PayloadType);
+	gf_bs_write_u16(bs, 4*ptr->length);
+	gf_bs_write_data(bs, ptr->data, ptr->length);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 GF_EXPORT
 GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 sample_start, u32 ts_offset, u32 sn_offset, u32 ssrc)
 {
@@ -805,6 +975,8 @@ GF_Err gf_isom_reset_hint_reader(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (e) return e;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -863,6 +1035,7 @@ static GF_ISOSample *gf_isom_get_data_sample(GF_HintSample *hsamp, GF_TrackBox *
 	Media_GetSample(trak->Media, sample_num, &samp, &i, 0, NULL);
 	if (!samp) return NULL;
 	GF_SAFEALLOC(hdc, GF_HintDataCache);
+	if (!hdc) return NULL;
 	hdc->samp = samp;
 	hdc->sample_num = sample_num;
 	hdc->trak = trak;
@@ -896,6 +1069,8 @@ GF_Err gf_isom_next_hint_packet(GF_ISOFile *the_file, u32 trackNumber, char **pc
 	if (e) return e;
 	switch (entry->type) {
 	case GF_ISOM_BOX_TYPE_RTP_STSD:
+	case GF_ISOM_BOX_TYPE_SRTP_STSD:
+	case GF_ISOM_BOX_TYPE_RRTP_STSD:
 		break;
 	default:
 		return GF_NOT_SUPPORTED;

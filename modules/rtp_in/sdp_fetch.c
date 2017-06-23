@@ -108,7 +108,6 @@ void SDP_NetIO(void *cbk, GF_NETIO_Parameter *param)
 				if (!szFile) {
 					e = GF_SERVICE_ERROR;
 				} else {
-					e = GF_OK;
 					RP_SDPFromFile(rtp, (char *) szFile, sdp->chan);
 					gf_free(sdp->remote_url);
 					if (sdp->original_url) gf_free(sdp->original_url);

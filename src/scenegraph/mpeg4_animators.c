@@ -360,7 +360,6 @@ static void PA_SetFraction(GF_Node *node, GF_Route *route)
 	nbKeys = pa->key.count;
 	nbVals = pa->keyValue.count;
 
-	i=0;
 	switch (pa->keyValueType) {
 	/*linear interpolate*/
 	case ANIM_LINE:
@@ -484,6 +483,10 @@ void PA_Init(GF_Node *n)
 	M_PositionAnimator *sa = (M_PositionAnimator*)n;
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator stack\n"));
+		return;
+	}
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);
@@ -526,7 +529,6 @@ static void PA2D_SetFraction(GF_Node *node, GF_Route *route)
 	nbKeys = pa->key.count;
 	nbVals = pa->keyValue.count;
 
-	i=0;
 	switch (pa->keyValueType) {
 	/*linear interpolate*/
 	case ANIM_LINE:
@@ -647,6 +649,10 @@ void PA2D_Init(GF_Node *n)
 	M_PositionAnimator2D *sa = (M_PositionAnimator2D *)n;
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate position animator 2D stack\n"));
+		return;
+	}
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);
@@ -805,6 +811,10 @@ void SA_Init(GF_Node *n)
 	M_ScalarAnimator *sa = (M_ScalarAnimator *)n;
 	AnimatorStack *stack;
 	GF_SAFEALLOC(stack, AnimatorStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate scalar animator stack\n"));
+		return;
+	}
 	stack->is_dirty = 1;
 	gf_node_set_private(n, stack);
 	gf_node_set_callback_function(n, Anim_Destroy);

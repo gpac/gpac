@@ -390,8 +390,11 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 			entry_time = gf_sys_clock();
 			gf_fseek(priv->src, priv->file_pos, SEEK_SET);
 			while (1) {
-				u32 diff, nb_read;
-				nb_read = (u32) fread(file_buf, 1, 4096, priv->src);
+				u32 diff;
+				s32 nb_read = (s32) fread(file_buf, 1, 4096, priv->src);
+				if (nb_read<0) {
+					return GF_IO_ERR;
+				}
 				file_buf[nb_read] = 0;
 				if (!nb_read) {
 					if (priv->file_pos==priv->file_size) {
@@ -588,6 +591,8 @@ static GF_Err CTXLoad_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u
 									gf_odf_encode_ui_config(cfg, &esd->decoderConfig->decoderSpecificInfo);
 									gf_odf_desc_del((GF_Descriptor *) cfg);
 									ODS_SetupOD(priv->scene, od);
+								} else if (esd->decoderConfig->streamType==GF_STREAM_OCR) {
+									ODS_SetupOD(priv->scene, od);
 								} else {
 									gf_odf_desc_del((GF_Descriptor *) od);
 								}
@@ -780,7 +785,12 @@ GF_BaseDecoder *NewContextLoader()
 	GF_SceneDecoder *tmp;
 
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
+	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, CTXLoadPriv);
+	if (!priv) {
+		gf_free(tmp);
+		return NULL;
+	}
 	priv->files_to_delete = gf_list_new();
 
 	tmp->privateStack = priv;

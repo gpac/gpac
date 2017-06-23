@@ -522,6 +522,10 @@ void AAC_NetIO(void *cbk, GF_NETIO_Parameter *param)
 #ifndef DONT_USE_TERMINAL_MODULE_API
 		gf_service_connect_ack(read->service, NULL, e);
 		if (!e) AAC_SetupObject(read);
+#else
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to initialize AAC reader\n"));
+		}
 #endif
 	}
 }

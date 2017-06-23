@@ -342,6 +342,10 @@ JSContext *gf_sg_ecmascript_new(GF_SceneGraph *sg)
 			return NULL;
 		}
 		GF_SAFEALLOC(js_rt, GF_JSRuntime);
+		if (!js_rt) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[JS] Failed to create script runtime\n"));
+			return NULL;
+		}
 		js_rt->js_runtime = js_runtime;
 		js_rt->allocated_contexts = gf_list_new();
 		js_rt->mx = gf_mx_new("JavaScript");
@@ -562,6 +566,7 @@ static GFINLINE GF_JSField *NewJSField(JSContext *c)
 {
 	GF_JSField *ptr;
 	GF_SAFEALLOC(ptr, GF_JSField);
+	if (!ptr) return NULL;
 	ptr->js_ctx = c;
 	return ptr;
 }
@@ -690,9 +695,19 @@ static JSObject *node_get_binding(GF_ScriptPriv *priv, GF_Node *node, Bool is_co
 	gf_list_add(priv->js_cache, obj);
 
 	/*remember the object*/
-	if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+	if (!node->sgprivate->interact) {
+		GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+		if (!node->sgprivate->interact) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
+			return NULL;
+		}
+	}
 	if (!node->sgprivate->interact->js_binding) {
 		GF_SAFEALLOC(node->sgprivate->interact->js_binding, struct _node_js_binding);
+		if (!node->sgprivate->interact->js_binding) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
+			return NULL;
+		}
 		node->sgprivate->interact->js_binding->fields = gf_list_new();
 	}
 	node->sgprivate->flags |= GF_NODE_HAS_BINDING;
@@ -980,7 +995,13 @@ static JSBool SMJS_FUNCTION(addRoute)
 			r->is_setup = 1;
 			r->graph = n1->sgprivate->scenegraph;
 
-			if (!n1->sgprivate->interact) GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
+			if (!n1->sgprivate->interact) {
+				GF_SAFEALLOC(n1->sgprivate->interact, struct _node_interactive_ext);
+				if (!n1->sgprivate->interact) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
+					return JS_FALSE;
+				}
+			}
 			if (!n1->sgprivate->interact->routes) n1->sgprivate->interact->routes = gf_list_new();
 			gf_list_add(n1->sgprivate->interact->routes, r);
 			gf_list_add(n1->sgprivate->scenegraph->Routes, r);
@@ -2914,6 +2935,7 @@ ret = JS_SetElement(c, ptr->js_list, ind, vp);
 if (ret==JS_FALSE) return JS_FALSE;
 
 if (!ptr->owner) return JS_TRUE;
+if (!ptr->field.far_ptr) return JS_FALSE;
 
 /*rewrite MF slot*/
 switch (ptr->field.fieldType) {
@@ -4303,8 +4325,16 @@ jsval gf_sg_script_to_smjs_field(GF_ScriptPriv *priv, GF_FieldInfo *field, GF_No
 
 			/*remember the object*/
 			if (!parent->sgprivate->interact) GF_SAFEALLOC(parent->sgprivate->interact, struct _node_interactive_ext);
+			if (!parent->sgprivate->interact) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create interact storage\n"));
+				return JSVAL_NULL;
+			}
 			if (!parent->sgprivate->interact->js_binding) {
 				GF_SAFEALLOC(parent->sgprivate->interact->js_binding, struct _node_js_binding);
+				if (!parent->sgprivate->interact->js_binding) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRMLJS] Failed to create JS bindings storage\n"));
+					return JSVAL_NULL;
+				}
 				parent->sgprivate->interact->js_binding->fields = gf_list_new();
 			}
 
@@ -4444,7 +4474,7 @@ static void JS_InitScriptFields(GF_ScriptPriv *priv, GF_Node *sc)
 		switch (sf->eventType) {
 		case GF_SG_EVENT_IN:
 			gf_node_get_field(sc, sf->ALL_index, &info);
-			val = gf_sg_script_to_smjs_field(priv, &info, sc, 0);
+			/*val = */gf_sg_script_to_smjs_field(priv, &info, sc, 0);
 			break;
 		case GF_SG_EVENT_OUT:
 			gf_node_get_field(sc, sf->ALL_index, &info);
@@ -4833,7 +4863,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 			return;
 		}
 #else
-		if (!node->sgprivate->parents && node->sgprivate->interact->js_binding->node) {
+		if (!node->sgprivate->parents && node->sgprivate->interact && node->sgprivate->interact->js_binding && node->sgprivate->interact->js_binding->node) {
 			GF_JSField *field = node->sgprivate->interact->js_binding->node;
 			if (field->is_rooted) {
 				gf_js_remove_root(field->js_ctx, &field->obj, GF_JSGC_OBJECT);
@@ -4846,7 +4876,7 @@ static void JSScript_NodeModified(GF_SceneGraph *sg, GF_Node *node, GF_FieldInfo
 		/*final destroy*/
 		if (!node->sgprivate->num_instances) {
 			i=0;
-			while ((jsf = gf_list_enum(node->sgprivate->interact->js_binding->fields, &i))) {
+			while (node->sgprivate->interact && node->sgprivate->interact->js_binding && (jsf = gf_list_enum(node->sgprivate->interact->js_binding->fields, &i))) {
 				jsf->owner = NULL;
 
 				if (jsf->js_list) {

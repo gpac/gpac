@@ -48,7 +48,7 @@ LIBGPAC:
 	$(MAKE) -C ../../../src
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
+	$(CC) -o ../../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../../bin/gcc/$(PROG)

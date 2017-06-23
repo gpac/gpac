@@ -28,6 +28,7 @@
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
 
+#include <gpac/internal/terminal_dev.h>
 
 static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video);
 static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGPropertiesPointers *props);
@@ -287,18 +288,21 @@ static void svg_traverse_bitmap(GF_Node *node, void *rs, Bool is_destroy)
 		return;
 
 	if (gf_node_dirty_get(node) & GF_SG_SVG_XLINK_HREF_DIRTY) {
-		gf_term_get_mfurl_from_xlink(node, &stack->txurl);
-		stack->txh.width = stack->txh.height = 0;
+		if (!stack->txh.stream || gf_mo_url_changed(stack->txh.stream, &stack->txurl)) {
 
-		/*remove associated audio if any*/
-		if (stack->audio) {
-			svg_audio_smil_evaluate_ex(NULL, 0, SMIL_TIMING_EVAL_REMOVE, stack->audio, stack->txh.owner);
-			gf_node_unregister(stack->audio, NULL);
-			stack->audio = NULL;
+			gf_term_get_mfurl_from_xlink(node, &stack->txurl);
+			stack->txh.width = stack->txh.height = 0;
+
+			/*remove associated audio if any*/
+			if (stack->audio) {
+				svg_audio_smil_evaluate_ex(NULL, 0, SMIL_TIMING_EVAL_REMOVE, stack->audio, stack->txh.owner);
+				gf_node_unregister(stack->audio, NULL);
+				stack->audio = NULL;
+			}
+			stack->audio_dirty = GF_TRUE;
+
+			if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		}
-		stack->audio_dirty = GF_TRUE;
-
-		if (stack->txurl.count) svg_play_texture(stack, &all_atts);
 		gf_node_dirty_clear(node, GF_SG_SVG_XLINK_HREF_DIRTY);
 	}
 
@@ -408,7 +412,7 @@ static void SVG_Update_image(GF_TextureHandler *txh)
 
 	gf_sc_texture_update_frame(txh, GF_FALSE);
 	/*URL is present but not opened - redraw till fetch*/
-	if (txh->stream && (!txh->tx_io || txh->needs_refresh) ) {
+	if (txh->stream && !txh->stream_finished && (!txh->tx_io || txh->needs_refresh) ) {
 		/*mark all subtrees using this image as dirty*/
 		gf_node_dirty_parents(txh->owner);
 		gf_sc_invalidate(txh->compositor, NULL);
@@ -424,6 +428,10 @@ void compositor_init_svg_image(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg image stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	stack->drawable->node = node;
@@ -555,6 +563,10 @@ void compositor_init_svg_video(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_video_stack *stack;
 	GF_SAFEALLOC(stack, SVG_video_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg video stack\n"));
+		return;
+	}
 	stack->drawable = drawable_new();
 	stack->drawable->flags = DRAWABLE_USE_TRAVERSE_DRAW;
 	stack->drawable->node = node;
@@ -893,6 +905,10 @@ void compositor_init_svg_updates(GF_Compositor *compositor, GF_Node *node)
 {
 	SVG_updates_stack *stack;
 	GF_SAFEALLOC(stack, SVG_updates_stack)
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate laser updates stack\n"));
+		return;
+	}
 
 	/*force first processing of xlink-href*/
 	gf_node_dirty_set(node, GF_SG_SVG_XLINK_HREF_DIRTY, GF_FALSE);

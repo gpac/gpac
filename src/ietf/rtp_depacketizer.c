@@ -605,12 +605,13 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 		data[3] = nal_s&0xFF;
 	}
 	/*set F-bit since nal is corrupted*/
-	if (missed_end) data[4] |= 0x80;
+//	if (missed_end) data[4] |= 0x80;
 
 	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.decodingTimeStampFlag = 0;
+
 	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
 	rtp->sl_hdr.accessUnitStartFlag = 0;
 	rtp->sl_hdr.randomAccessPointFlag = 0;
@@ -644,7 +645,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 	/*single NALU*/
 	if (nal_type<23) {
-		if (nal_type==5) {
+		if (nal_type==GF_AVC_NALU_IDR_SLICE) {
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 		}
@@ -684,7 +685,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
 			offset += 2;
-			if ((payload[offset] & 0x1F) == 5) {
+			if ((payload[offset] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			}
@@ -719,7 +720,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		/*flush*/
 		if (is_start) gf_rtp_h264_flush(rtp, hdr, GF_TRUE);
 
-		if ((payload[1] & 0x1F) == 5) {
+		if ((payload[1] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 		} else if (rtp->flags & GF_RTP_AVC_WAIT_RAP)
@@ -732,7 +733,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			/*copy F and NRI*/
 			nal_hdr = payload[0] & 0xE0;
 			/*start bit not set, signal corrupted data (we missed start packet)*/
-			if (!is_start) nal_hdr |= 0x80;
+//			if (!is_start) nal_hdr |= 0x80;
 			/*copy NALU type*/
 			nal_hdr |= (payload[1] & 0x1F);
 			/*dummy size field*/
@@ -1082,7 +1083,7 @@ static u32 gf_rtp_get_payload_type(GF_RTPMap *map, GF_SDPMedia *media)
 	else if (!stricmp(map->payload_name, "ac3")) return GF_RTP_PAYT_AC3;
 	else if (!stricmp(map->payload_name, "H264-SVC")) return GF_RTP_PAYT_H264_SVC;
 	else if (!stricmp(map->payload_name, "H265")) return GF_RTP_PAYT_HEVC;
-	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_SHVC;
+	else if (!stricmp(map->payload_name, "H265-SHVC")) return GF_RTP_PAYT_LHVC;
 	else return 0;
 }
 
@@ -1554,14 +1555,18 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				}
 			}
 		}
-		gf_odf_avc_cfg_write(avcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		if (gf_list_count(avcc->sequenceParameterSets) && gf_list_count(avcc->pictureParameterSets)) {
+			gf_odf_avc_cfg_write(avcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		} else {
+			rtp->flags |= GF_RTP_AVC_USE_ANNEX_B;
+		}
 		gf_odf_avc_cfg_del(avcc);
 	}
 		/*assign depacketizer*/
 	rtp->depacketize = gf_rtp_parse_h264;
 	break;
 	case GF_RTP_PAYT_HEVC:
-	case GF_RTP_PAYT_SHVC:
+	case GF_RTP_PAYT_LHVC:
 #ifndef GPAC_DISABLE_HEVC
 	{
 		GF_SDP_FMTP *fmtp;
@@ -1582,16 +1587,19 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				GF_HEVCParamArray *ar;
 				if (!stricmp(att->Name, "sprop-vps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_VID_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-sps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_SEQ_PARAM;
 				}
 				else if (!stricmp(att->Name, "sprop-pps")) {
 					GF_SAFEALLOC(ar, GF_HEVCParamArray);
+					if (!ar) return GF_OUT_OF_MEM;
 					ar->nalus = gf_list_new();
 					ar->type = GF_HEVC_NALU_PIC_PARAM;
 				}
@@ -1685,6 +1693,7 @@ GF_RTPDepacketizer *gf_rtp_depacketizer_new(GF_SDPMedia *media, void (*sl_packet
 	if (!payt) return NULL;
 
 	GF_SAFEALLOC(tmp, GF_RTPDepacketizer);
+	if (!tmp) return NULL;
 	tmp->payt = payt;
 
 	e = gf_rtp_payt_setup(tmp, map, media);
@@ -1739,7 +1748,6 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *slc)
 {
 	memset(slc, 0, sizeof(GF_SLConfig));
 	slc->tag = GF_ODF_SLC_TAG;
-
 
 	slc->AULength = rtp->sl_map.ConstantSize;
 	if (rtp->sl_map.ConstantDuration) {

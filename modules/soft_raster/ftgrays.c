@@ -645,7 +645,6 @@ static void gray_hline( TRaster *raster, TCoord  x, TCoord  y, TPos    area, int
 			raster->render_span(y, count, raster->gray_spans, raster->render_span_data );
 			raster->num_gray_spans = 0;
 
-			count = 0;
 			span  = raster->gray_spans;
 		} else
 			span++;

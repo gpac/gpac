@@ -35,6 +35,7 @@ GF_RTSPResponse *gf_rtsp_response_new()
 {
 	GF_RTSPResponse *tmp;
 	GF_SAFEALLOC(tmp, GF_RTSPResponse);
+	if (!tmp) return NULL;
 	tmp->Transports = gf_list_new();
 	tmp->RTP_Infos = gf_list_new();
 	tmp->Xtensions = gf_list_new();
@@ -144,6 +145,7 @@ GF_RTSPRange *gf_rtsp_range_parse(char *range_buf)
 	if (!strstr(range_buf, "npt")) return NULL;
 
 	GF_SAFEALLOC(rg, GF_RTSPRange);
+	if (!rg) return NULL;
 	if (sscanf(range_buf, "npt=%lf-%lf", &rg->start, &rg->end) != 2) {
 		rg->end = -1.0;
 		sscanf(range_buf, "npt=%lf-", &rg->start);
@@ -208,6 +210,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 	else if (!stricmp(Header, "Bandwidth")) sscanf(Value, "%u", &rsp->Bandwidth);
 	else if (!stricmp(Header, "Blocksize")) sscanf(Value, "%u", &rsp->Blocksize);
 	else if (!stricmp(Header, "Cache-Control")) rsp->Cache_Control = gf_strdup(Value);
+	else if (!stricmp(Header, "com.ses.streamID")) sscanf(Value, "%u", &rsp->StreamID);
 	else if (!stricmp(Header, "Conference")) rsp->Conference = gf_strdup(Value);
 	else if (!stricmp(Header, "Connection")) rsp->Connection = gf_strdup(Value);
 	else if (!stricmp(Header, "Content-Base")) rsp->Content_Base = gf_strdup(Value);
@@ -256,9 +259,8 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 		//get timeout if any
 		if (Value[LinePos] == ';') {
 			LinePos += 1;
-			LinePos = gf_token_get(Value, LinePos, ";\r\n", LineBuffer, 400);
-			//default
-			rsp->SessionTimeOut = 60;
+			/*LinePos = */gf_token_get(Value, LinePos, ";\r\n", LineBuffer, 400);
+			rsp->SessionTimeOut = 60; //default
 			sscanf(LineBuffer, "timeout=%u", &rsp->SessionTimeOut);
 		}
 	}
@@ -273,6 +275,8 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 			if (LinePos <= 0) return;
 
 			GF_SAFEALLOC(info, GF_RTPInfo);
+			if (!info) return;
+
 			Pos = 0;
 			while (1) {
 				Pos = gf_token_get(LineBuffer, Pos, " ;", buf, 1000);
@@ -280,7 +284,7 @@ void gf_rtsp_set_response_value(GF_RTSPResponse *rsp, char *Header, char *Value)
 				if (strstr(buf, "=")) {
 					nPos = gf_token_get(buf, 0, "=", param_name, 100);
 					nPos += 1;
-					nPos = gf_token_get(buf, nPos, "", param_val, 1000);
+					/*nPos = */gf_token_get(buf, nPos, "", param_val, 1000);
 				} else {
 					strcpy(param_name, buf);
 				}
@@ -478,9 +482,6 @@ exit:
 	gf_mx_v(sess->mx);
 	return e;
 }
-
-
-
 
 GF_Err RTSP_WriteResponse(GF_RTSPSession *sess, GF_RTSPResponse *rsp,
                           unsigned char **out_buffer, u32 *out_size)

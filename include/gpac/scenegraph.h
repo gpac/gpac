@@ -31,6 +31,28 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/scenegraph.h>
+ *	\brief Scenegraph used for manipulating scenes (parsing, traversing, cleaning node status, ...)
+ */
+	
+	
+/*! \defgroup scene_grp Scene Graph
+ *	\brief Scene graph management.
+ *	
+*/
+	
+/*!
+ *	\addtogroup sscene Base Scenegraph
+ *	\ingroup scene_grp
+ *	\brief Scenegraph used for manipulating scenes.
+ *
+ *This section documents the Scenegraph used in GPAC for all interactive scenes.
+ *	@{
+ */
+
+
 #include <gpac/list.h>
 #include <gpac/maths.h>
 
@@ -774,6 +796,8 @@ GF_CommandField *gf_sg_command_field_new(GF_Command *com);
 
 /* Executes JS code in the root context of the scene graph */
 GF_Err gf_scene_execute_script(GF_SceneGraph *sg, const char *com);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

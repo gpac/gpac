@@ -363,7 +363,14 @@
 		71CCF3FE12770A8C00339E12 /* utf.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3AF12770A8C00339E12 /* utf.h */; };
 		71CCF3FF12770A8C00339E12 /* xml.h in Headers */ = {isa = PBXBuildFile; fileRef = 71CCF3B012770A8C00339E12 /* xml.h */; };
 		71EC88E11396273B004DCB6A /* osmo.icns in Resources */ = {isa = PBXBuildFile; fileRef = 71EC88E01396273B004DCB6A /* osmo.icns */; };
-		9201D1111BD3FE11005E326A /* bifs_tests in Resources */ = {isa = PBXBuildFile; fileRef = 9201D1101BD3FE11005E326A /* bifs_tests */; };
+		9212E8031CCA82310036F310 /* amr_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9212E8021CCA82300036F310 /* amr_in.c */; };
+		9214AD341D0181A5009D3CFD /* ac3_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD321D0181A5009D3CFD /* ac3_in.c */; };
+		9214AD351D0181A5009D3CFD /* liba52_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 9214AD331D0181A5009D3CFD /* liba52_dec.c */; };
+		921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9E1CF8665900B437C2 /* CoreLocation.framework */; };
+		921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 921FEB9C1CF8664800B437C2 /* CoreMotion.framework */; };
+		921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA21CF881DE00B437C2 /* sensors_def.h */; };
+		921FEBA61CF881DE00B437C2 /* sensors.h in Headers */ = {isa = PBXBuildFile; fileRef = 921FEBA31CF881DE00B437C2 /* sensors.h */; };
+		921FEBA71CF881DE00B437C2 /* sensors.m in Sources */ = {isa = PBXBuildFile; fileRef = 921FEBA41CF881DE00B437C2 /* sensors.m */; };
 		922EB5801AAE13C500DF46D0 /* dash.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5781AAE13C500DF46D0 /* dash.h */; };
 		922EB5811AAE13C500DF46D0 /* html5_media.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB5791AAE13C500DF46D0 /* html5_media.h */; };
 		922EB5821AAE13C500DF46D0 /* html5_mse.h in Headers */ = {isa = PBXBuildFile; fileRef = 922EB57A1AAE13C500DF46D0 /* html5_mse.h */; };
@@ -377,8 +384,13 @@
 		925FF2A51ABC53F30085B04C /* odf_parse_common.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A31ABC53F30085B04C /* odf_parse_common.h */; };
 		925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */ = {isa = PBXBuildFile; fileRef = 925FF2A41ABC53F30085B04C /* smjs_api.h */; };
 		925FF2A71ABC55030085B04C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 71CCF2361277045100339E12 /* os_file.c */; };
+		9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */ = {isa = PBXBuildFile; fileRef = 9236FDEF1DD23F1400B3E86F /* iTunesArtwork */; };
 		928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D111BE11BC100CAC65D /* libcrypto.a */; };
 		928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 928B2D121BE11BC100CAC65D /* libssl.a */; };
+		9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */; };
+		9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BF001CFC93D50070EB05 /* CoreVideo.framework */; };
+		9292BF031CFC94060070EB05 /* CoreMedia.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9292BF021CFC94060070EB05 /* CoreMedia.framework */; };
+		9292BF071CFCAAAE0070EB05 /* vtb_decode.c in Sources */ = {isa = PBXBuildFile; fileRef = 9292BF061CFCAAAE0070EB05 /* vtb_decode.c */; };
 		929A929C16EF8BC200B7C64F /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929616EF8BC200B7C64F /* Default-568h@2x.png */; };
 		929A929D16EF8BC200B7C64F /* icon_ipad_retina.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929716EF8BC200B7C64F /* icon_ipad_retina.png */; };
 		929A929E16EF8BC200B7C64F /* icon_ipad.png in Resources */ = {isa = PBXBuildFile; fileRef = 929A929816EF8BC200B7C64F /* icon_ipad.png */; };
@@ -451,6 +463,7 @@
 		92E8C78F1A0CD57A00E0436D /* audio_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825B16F254AF0002629E /* audio_filter.c */; };
 		92E8C7901A0CD58300E0436D /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92FA825916F2549D0002629E /* validator.c */; };
 		92F930861A5ADC1A0072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930841A5ADC1A0072A85C /* os_divers.c */; };
+		92FA48891D059A820072C8A4 /* glcontext.m in Sources */ = {isa = PBXBuildFile; fileRef = 92FA48881D059A820072C8A4 /* glcontext.m */; };
 		970A26C913434D2C0007362C /* m3u8.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C713434D2C0007362C /* m3u8.c */; };
 		970A26CA13434D2C0007362C /* mpd.c in Sources */ = {isa = PBXBuildFile; fileRef = 970A26C813434D2C0007362C /* mpd.c */; };
 		970A26CD13434D780007362C /* m3u8.h in Headers */ = {isa = PBXBuildFile; fileRef = 970A26CB13434D780007362C /* m3u8.h */; };
@@ -471,9 +484,7 @@
 		9747B6F114864C6400280D95 /* events_constants.h in Headers */ = {isa = PBXBuildFile; fileRef = 9747B6EE14864C6400280D95 /* events_constants.h */; };
 		9747B6F414864C7800280D95 /* ait.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F214864C7800280D95 /* ait.c */; };
 		9747B6F514864C7800280D95 /* dsmcc.c in Sources */ = {isa = PBXBuildFile; fileRef = 9747B6F314864C7800280D95 /* dsmcc.c */; };
-		976AF99A1704C5C9004E9C00 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
 		97793E5115E6370D005123E1 /* dash_client.c in Sources */ = {isa = PBXBuildFile; fileRef = 97793E5015E6370D005123E1 /* dash_client.c */; };
-		9793AE351704C0BD00E0C938 /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9793AE341704C0BD00E0C938 /* CoreGraphics.framework */; };
 		97A5D5891704C61A00144E5D /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 976AF9991704C5C9004E9C00 /* AudioToolbox.framework */; };
 		97A8DDC41896AFF300F4680F /* ttml.c in Sources */ = {isa = PBXBuildFile; fileRef = 97A8DDC31896AFF300F4680F /* ttml.c */; };
 		97DB67C51627B22F00A7E054 /* dash_segmenter.c in Sources */ = {isa = PBXBuildFile; fileRef = 97DB67C41627B22F00A7E054 /* dash_segmenter.c */; };
@@ -481,8 +492,6 @@
 		97E08C69160F684B00BBDC34 /* swf_svg.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E08C68160F684B00BBDC34 /* swf_svg.c */; };
 		97E29F6917D1138B00904FBF /* webvtt.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F6817D1138B00904FBF /* webvtt.c */; };
 		97E29F6E17D114E900904FBF /* mse_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F6D17D114E900904FBF /* mse_in.c */; };
-		97E29F7417D1154D00904FBF /* ac3_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7217D1154D00904FBF /* ac3_in.c */; };
-		97E29F7517D1154D00904FBF /* liba52_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7317D1154D00904FBF /* liba52_dec.c */; };
 		97E29F7A17D118F100904FBF /* raw_video.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7917D118F100904FBF /* raw_video.c */; };
 		97E29F7C17D1190600904FBF /* osd.c in Sources */ = {isa = PBXBuildFile; fileRef = 97E29F7B17D1190600904FBF /* osd.c */; };
 		97FF0660138CE4C400D6C707 /* os_config_init.c in Sources */ = {isa = PBXBuildFile; fileRef = 97FF065F138CE4C400D6C707 /* os_config_init.c */; };
@@ -914,6 +923,15 @@
 		71F2A45512830B1400C384DE /* libmad.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libmad.a; path = ../../extra_lib/lib/iOS/libmad.a; sourceTree = SOURCE_ROOT; };
 		71F2A45612830B1400C384DE /* libpng.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libpng.a; path = ../../extra_lib/lib/iOS/libpng.a; sourceTree = SOURCE_ROOT; };
 		9201D1101BD3FE11005E326A /* bifs_tests */ = {isa = PBXFileReference; lastKnownFileType = folder; path = bifs_tests; sourceTree = "<group>"; };
+		9212E8021CCA82300036F310 /* amr_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = amr_in.c; path = ../../modules/amr_dec/amr_in.c; sourceTree = "<group>"; };
+		9214AD301D018197009D3CFD /* aac_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = aac_in.c; path = ../../modules/aac_in/aac_in.c; sourceTree = "<group>"; };
+		9214AD321D0181A5009D3CFD /* ac3_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ac3_in.c; path = ../../modules/ac3_in/ac3_in.c; sourceTree = "<group>"; };
+		9214AD331D0181A5009D3CFD /* liba52_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = liba52_dec.c; path = ../../modules/ac3_in/liba52_dec.c; sourceTree = "<group>"; };
+		921FEB9C1CF8664800B437C2 /* CoreMotion.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMotion.framework; path = System/Library/Frameworks/CoreMotion.framework; sourceTree = SDKROOT; };
+		921FEB9E1CF8665900B437C2 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
+		921FEBA21CF881DE00B437C2 /* sensors_def.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors_def.h; path = ../../applications/osmo4_ios/sensors_def.h; sourceTree = "<group>"; };
+		921FEBA31CF881DE00B437C2 /* sensors.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = sensors.h; path = ../../applications/osmo4_ios/sensors.h; sourceTree = "<group>"; };
+		921FEBA41CF881DE00B437C2 /* sensors.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = sensors.m; path = ../../applications/osmo4_ios/sensors.m; sourceTree = "<group>"; };
 		922EB5781AAE13C500DF46D0 /* dash.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = dash.h; sourceTree = "<group>"; };
 		922EB5791AAE13C500DF46D0 /* html5_media.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_media.h; sourceTree = "<group>"; };
 		922EB57A1AAE13C500DF46D0 /* html5_mse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = html5_mse.h; sourceTree = "<group>"; };
@@ -922,12 +940,17 @@
 		922EB57D1AAE13C500DF46D0 /* revision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = revision.h; sourceTree = "<group>"; };
 		922EB57E1AAE13C500DF46D0 /* version.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = version.h; sourceTree = "<group>"; };
 		922EB57F1AAE13C500DF46D0 /* webvtt.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = webvtt.h; sourceTree = "<group>"; };
+		9236FDEF1DD23F1400B3E86F /* iTunesArtwork */ = {isa = PBXFileReference; lastKnownFileType = file; name = iTunesArtwork; path = ../../applications/osmo4_ios/Resources/iTunesArtwork; sourceTree = "<group>"; };
 		925730A11A0916D20057FF04 /* libiconv.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libiconv.dylib; path = usr/lib/libiconv.dylib; sourceTree = SDKROOT; };
 		925730A31A0916DB0057FF04 /* libbz2.dylib */ = {isa = PBXFileReference; lastKnownFileType = "compiled.mach-o.dylib"; name = libbz2.dylib; path = usr/lib/libbz2.dylib; sourceTree = SDKROOT; };
 		925FF2A31ABC53F30085B04C /* odf_parse_common.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = odf_parse_common.h; sourceTree = "<group>"; };
 		925FF2A41ABC53F30085B04C /* smjs_api.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = smjs_api.h; sourceTree = "<group>"; };
 		928B2D111BE11BC100CAC65D /* libcrypto.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libcrypto.a; path = ../../extra_lib/lib/iOS/libcrypto.a; sourceTree = "<group>"; };
 		928B2D121BE11BC100CAC65D /* libssl.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libssl.a; path = ../../extra_lib/lib/iOS/libssl.a; sourceTree = "<group>"; };
+		9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = VideoToolbox.framework; path = System/Library/Frameworks/VideoToolbox.framework; sourceTree = SDKROOT; };
+		9292BF001CFC93D50070EB05 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = System/Library/Frameworks/CoreVideo.framework; sourceTree = SDKROOT; };
+		9292BF021CFC94060070EB05 /* CoreMedia.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreMedia.framework; path = System/Library/Frameworks/CoreMedia.framework; sourceTree = SDKROOT; };
+		9292BF061CFCAAAE0070EB05 /* vtb_decode.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = vtb_decode.c; path = ../../modules/vtb_decode/vtb_decode.c; sourceTree = "<group>"; };
 		929A929616EF8BC200B7C64F /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "Default-568h@2x.png"; path = "../../applications/osmo4_ios/Resources/Default-568h@2x.png"; sourceTree = SOURCE_ROOT; };
 		929A929716EF8BC200B7C64F /* icon_ipad_retina.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad_retina.png; path = ../../applications/osmo4_ios/Resources/icon_ipad_retina.png; sourceTree = SOURCE_ROOT; };
 		929A929816EF8BC200B7C64F /* icon_ipad.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = icon_ipad.png; path = ../../applications/osmo4_ios/Resources/icon_ipad.png; sourceTree = SOURCE_ROOT; };
@@ -1015,6 +1038,7 @@
 		92DF5CA51BA6C6F80058A7BA /* iff.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = iff.c; sourceTree = "<group>"; };
 		92F930841A5ADC1A0072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930851A5ADC1A0072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
+		92FA48881D059A820072C8A4 /* glcontext.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = glcontext.m; path = ../../modules/vtb_decode/glcontext.m; sourceTree = "<group>"; };
 		92FA825916F2549D0002629E /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../../modules/validator/validator.c; sourceTree = SOURCE_ROOT; };
 		92FA825B16F254AF0002629E /* audio_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio_filter.c; path = ../../modules/audio_filter/audio_filter.c; sourceTree = SOURCE_ROOT; };
 		92FA825D16F254C60002629E /* saf_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = saf_in.c; path = ../../modules/saf_in/saf_in.c; sourceTree = SOURCE_ROOT; };
@@ -1051,8 +1075,6 @@
 		97E08C68160F684B00BBDC34 /* swf_svg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = swf_svg.c; sourceTree = "<group>"; };
 		97E29F6817D1138B00904FBF /* webvtt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = webvtt.c; sourceTree = "<group>"; };
 		97E29F6D17D114E900904FBF /* mse_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mse_in.c; path = ../../modules/mse_in/mse_in.c; sourceTree = "<group>"; };
-		97E29F7217D1154D00904FBF /* ac3_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ac3_in.c; path = ../../modules/ac3_in/ac3_in.c; sourceTree = "<group>"; };
-		97E29F7317D1154D00904FBF /* liba52_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = liba52_dec.c; path = ../../modules/ac3_in/liba52_dec.c; sourceTree = "<group>"; };
 		97E29F7917D118F100904FBF /* raw_video.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_video.c; path = ../../modules/raw_out/raw_video.c; sourceTree = "<group>"; };
 		97E29F7B17D1190600904FBF /* osd.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = osd.c; path = ../../modules/osd/osd.c; sourceTree = "<group>"; };
 		97FF065F138CE4C400D6C707 /* os_config_init.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = os_config_init.c; sourceTree = "<group>"; };
@@ -1063,6 +1085,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				9292BF031CFC94060070EB05 /* CoreMedia.framework in Frameworks */,
+				9292BF011CFC93D50070EB05 /* CoreVideo.framework in Frameworks */,
+				9292BEFF1CFC93C10070EB05 /* VideoToolbox.framework in Frameworks */,
+				921FEBA11CF8671300B437C2 /* CoreMotion.framework in Frameworks */,
+				921FEBA01CF8670A00B437C2 /* CoreLocation.framework in Frameworks */,
 				928B2D131BE11BC100CAC65D /* libcrypto.a in Frameworks */,
 				928B2D141BE11BC100CAC65D /* libssl.a in Frameworks */,
 				2897039C1A13C4050063E9C0 /* libswresample.a in Frameworks */,
@@ -1097,8 +1124,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9793AE351704C0BD00E0C938 /* CoreGraphics.framework in Frameworks */,
-				976AF99A1704C5C9004E9C00 /* AudioToolbox.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1132,6 +1157,11 @@
 		7184780712785F7B00917298 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				9292BF021CFC94060070EB05 /* CoreMedia.framework */,
+				9292BF001CFC93D50070EB05 /* CoreVideo.framework */,
+				9292BEFE1CFC93C10070EB05 /* VideoToolbox.framework */,
+				921FEB9E1CF8665900B437C2 /* CoreLocation.framework */,
+				921FEB9C1CF8664800B437C2 /* CoreMotion.framework */,
 				928B2D111BE11BC100CAC65D /* libcrypto.a */,
 				928B2D121BE11BC100CAC65D /* libssl.a */,
 				2897039B1A13C4050063E9C0 /* libswresample.a */,
@@ -1254,6 +1284,9 @@
 		71A19B1412796AC700ACFF58 /* osmo4iOS */ = {
 			isa = PBXGroup;
 			children = (
+				921FEBA21CF881DE00B437C2 /* sensors_def.h */,
+				921FEBA31CF881DE00B437C2 /* sensors.h */,
+				921FEBA41CF881DE00B437C2 /* sensors.m */,
 				92D127FD1BBADC7F00DA003B /* shaders */,
 				92B69DB01A091CFC004E74AA /* gui */,
 				929A929616EF8BC200B7C64F /* Default-568h@2x.png */,
@@ -1261,6 +1294,7 @@
 				929A929816EF8BC200B7C64F /* icon_ipad.png */,
 				929A929916EF8BC200B7C64F /* icon_retina.png */,
 				929A929A16EF8BC200B7C64F /* icon.png */,
+				9236FDEF1DD23F1400B3E86F /* iTunesArtwork */,
 				71EC88E01396273B004DCB6A /* osmo.icns */,
 				71A19B2012796B6F00ACFF58 /* main.c */,
 				71A19B1C12796B5700ACFF58 /* osmo4ios-Info.plist */,
@@ -1799,40 +1833,42 @@
 		929A929516EF8A7500B7C64F /* modules */ = {
 			isa = PBXGroup;
 			children = (
-				28F2240B17D6372100E9D2BE /* ffmpeg_in */,
-				97E29F7B17D1190600904FBF /* osd.c */,
-				97E29F7917D118F100904FBF /* raw_video.c */,
-				97E29F7217D1154D00904FBF /* ac3_in.c */,
-				97E29F7317D1154D00904FBF /* liba52_dec.c */,
-				97E29F6D17D114E900904FBF /* mse_in.c */,
-				92FA826116F254F50002629E /* timedtext_dec.c */,
-				92FA826216F254F50002629E /* timedtext_in.c */,
-				92FA825F16F254DA0002629E /* isma_ea.c */,
-				92FA825D16F254C60002629E /* saf_in.c */,
+				9214AD321D0181A5009D3CFD /* ac3_in.c */,
+				9214AD301D018197009D3CFD /* aac_in.c */,
+				9212E8021CCA82300036F310 /* amr_in.c */,
 				92FA825B16F254AF0002629E /* audio_filter.c */,
-				92FA825916F2549D0002629E /* validator.c */,
-				71A1993D127876E300ACFF58 /* img_in */,
-				71A199531278770900ACFF58 /* isom_in */,
-				71A1996A1278774A00ACFF58 /* rtp_in */,
-				71A199981278778800ACFF58 /* sdl_out */,
-				71A199141278769100ACFF58 /* soft_raster */,
-				92B32CA61A08ABF10065F44A /* vtt */,
-				71A199871278777A00ACFF58 /* widgetman */,
-				71A199071278765600ACFF58 /* aac_in.c */,
 				71A1990E1278767B00ACFF58 /* bifs_dec.c */,
 				71A1992D127876B000ACFF58 /* ctx_load.c */,
 				71A19928127876A200ACFF58 /* dummy_in.c */,
 				71A199081278765600ACFF58 /* faad_dec.c */,
+				28F2240B17D6372100E9D2BE /* ffmpeg_in */,
 				71A199811278776700ACFF58 /* ft_font.c */,
 				71A199821278776700ACFF58 /* ft_font.h */,
 				71A1994F127876FA00ACFF58 /* gpac_js.c */,
+				71A1993D127876E300ACFF58 /* img_in */,
+				92FA825F16F254DA0002629E /* isma_ea.c */,
+				71A199531278770900ACFF58 /* isom_in */,
 				71A199611278772500ACFF58 /* laser_dec.c */,
+				9214AD331D0181A5009D3CFD /* liba52_dec.c */,
 				71A19937127876D300ACFF58 /* mad_dec.c */,
 				71A19939127876D300ACFF58 /* mp3_in.c */,
-				71A1997D1278775900ACFF58 /* mpegts_in.c */,
 				71179CBF1292EC1800A83216 /* mpd_in.c */,
+				71A1997D1278775900ACFF58 /* mpegts_in.c */,
+				97E29F6D17D114E900904FBF /* mse_in.c */,
 				71A199671278773900ACFF58 /* odf_dec.c */,
+				97E29F7B17D1190600904FBF /* osd.c */,
+				97E29F7917D118F100904FBF /* raw_video.c */,
+				71A1996A1278774A00ACFF58 /* rtp_in */,
+				92FA825D16F254C60002629E /* saf_in.c */,
+				71A199981278778800ACFF58 /* sdl_out */,
+				71A199141278769100ACFF58 /* soft_raster */,
 				71A19933127876C300ACFF58 /* svg_in.c */,
+				92FA826116F254F50002629E /* timedtext_dec.c */,
+				92FA826216F254F50002629E /* timedtext_in.c */,
+				92FA825916F2549D0002629E /* validator.c */,
+				92FA488A1D05DADC0072C8A4 /* vtb_decoder */,
+				92B32CA61A08ABF10065F44A /* vtt */,
+				71A199871278777A00ACFF58 /* widgetman */,
 			);
 			name = modules;
 			sourceTree = "<group>";
@@ -1968,6 +2004,15 @@
 			path = icons;
 			sourceTree = "<group>";
 		};
+		92FA488A1D05DADC0072C8A4 /* vtb_decoder */ = {
+			isa = PBXGroup;
+			children = (
+				9292BF061CFCAAAE0070EB05 /* vtb_decode.c */,
+				92FA48881D059A820072C8A4 /* glcontext.m */,
+			);
+			name = vtb_decoder;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXHeadersBuildPhase section */
@@ -1996,6 +2041,7 @@
 				71CCF2961277045100339E12 /* visual_manager_2d.h in Headers */,
 				71CCF2991277045100339E12 /* visual_manager_3d.h in Headers */,
 				925FF2A61ABC53F30085B04C /* smjs_api.h in Headers */,
+				921FEBA51CF881DE00B437C2 /* sensors_def.h in Headers */,
 				71CCF2E11277045100339E12 /* mpeg2_ps.h in Headers */,
 				922EB5861AAE13C500DF46D0 /* version.h in Headers */,
 				71CCF31B1277045100339E12 /* input_sensor.h in Headers */,
@@ -2050,6 +2096,7 @@
 				71CCF3DB12770A8C00339E12 /* mediaobject.h in Headers */,
 				71CCF3DC12770A8C00339E12 /* module.h in Headers */,
 				71CCF3DD12770A8C00339E12 /* audio_out.h in Headers */,
+				921FEBA61CF881DE00B437C2 /* sensors.h in Headers */,
 				71CCF3DE12770A8C00339E12 /* codec.h in Headers */,
 				71CCF3DF12770A8C00339E12 /* font.h in Headers */,
 				71CCF3E012770A8C00339E12 /* ipmp.h in Headers */,
@@ -2145,7 +2192,7 @@
 		29B97313FDCFA39411CA2CEA /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0700;
+				LastUpgradeCheck = 0800;
 				TargetAttributes = {
 					71A19B1912796B5600ACFF58 = {
 						DevelopmentTeam = Q46G522WGV;
@@ -2178,7 +2225,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				9201D1111BD3FE11005E326A /* bifs_tests in Resources */,
+				9280E7251DD23FFE001E6441 /* iTunesArtwork in Resources */,
 				92C7F19A1AA8B48E00BA5B4C /* gui in Resources */,
 				92D127FE1BBADC7F00DA003B /* shaders in Resources */,
 				71EC88E11396273B004DCB6A /* osmo.icns in Resources */,
@@ -2271,7 +2318,9 @@
 				92BC210F16EF8E7A000E0620 /* gpac_js.c in Sources */,
 				92BC211916EF8E7A000E0620 /* laser_dec.c in Sources */,
 				92BC211B16EF8E7A000E0620 /* mad_dec.c in Sources */,
+				921FEBA71CF881DE00B437C2 /* sensors.m in Sources */,
 				92BC211D16EF8E7A000E0620 /* mp3_in.c in Sources */,
+				9212E8031CCA82310036F310 /* amr_in.c in Sources */,
 				92BC211E16EF8E7A000E0620 /* mpd_in.c in Sources */,
 				92BC211F16EF8E7A000E0620 /* mpegts_in.c in Sources */,
 				92BC212016EF8E7A000E0620 /* odf_dec.c in Sources */,
@@ -2389,6 +2438,7 @@
 				71CCF2BF1277045100339E12 /* stbl_write.c in Sources */,
 				71CCF2C01277045100339E12 /* track.c in Sources */,
 				71CCF2C11277045100339E12 /* tx3g.c in Sources */,
+				92FA48891D059A820072C8A4 /* glcontext.m in Sources */,
 				71CCF2C21277045100339E12 /* lsr_dec.c in Sources */,
 				71CCF2C31277045100339E12 /* lsr_enc.c in Sources */,
 				71CCF2C41277045100339E12 /* lsr_tables.c in Sources */,
@@ -2468,15 +2518,18 @@
 				71CCF3101277045100339E12 /* vrml_route.c in Sources */,
 				71CCF3111277045100339E12 /* vrml_script.c in Sources */,
 				71CCF3121277045100339E12 /* vrml_smjs.c in Sources */,
+				9214AD341D0181A5009D3CFD /* ac3_in.c in Sources */,
 				71CCF3131277045100339E12 /* vrml_tools.c in Sources */,
 				71CCF3141277045100339E12 /* x3d_nodes.c in Sources */,
 				71CCF3151277045100339E12 /* xbl_process.c in Sources */,
 				71CCF3161277045100339E12 /* xml_ns.c in Sources */,
 				71CCF3171277045100339E12 /* channel.c in Sources */,
+				9292BF071CFCAAAE0070EB05 /* vtb_decode.c in Sources */,
 				71CCF3181277045100339E12 /* clock.c in Sources */,
 				71CCF3191277045100339E12 /* decoder.c in Sources */,
 				71CCF31A1277045100339E12 /* input_sensor.c in Sources */,
 				71CCF31C1277045100339E12 /* media_control.c in Sources */,
+				9214AD351D0181A5009D3CFD /* liba52_dec.c in Sources */,
 				71CCF31E1277045100339E12 /* media_manager.c in Sources */,
 				71CCF31F1277045100339E12 /* media_memory.c in Sources */,
 				71CCF3211277045100339E12 /* media_object.c in Sources */,
@@ -2529,8 +2582,6 @@
 				970FBA8216F9F0920052216D /* html5_mse_smjs.c in Sources */,
 				97E29F6917D1138B00904FBF /* webvtt.c in Sources */,
 				97E29F6E17D114E900904FBF /* mse_in.c in Sources */,
-				97E29F7417D1154D00904FBF /* ac3_in.c in Sources */,
-				97E29F7517D1154D00904FBF /* liba52_dec.c in Sources */,
 				97E29F7A17D118F100904FBF /* raw_video.c in Sources */,
 				97E29F7C17D1190600904FBF /* osd.c in Sources */,
 				28F2240417D6367000E9D2BE /* ffmpeg_decode.c in Sources */,
@@ -2578,7 +2629,7 @@
 				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
@@ -2616,7 +2667,7 @@
 				);
 				INFOPLIST_FILE = "../../applications/osmo4_ios/osmo4ios-Info.plist";
 				INSTALL_PATH = /Applications;
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"\"$(SRCROOT)/../../extra_lib/lib/iOS\"",
@@ -2647,6 +2698,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_VERSION = "";
@@ -2662,12 +2714,13 @@
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-fms-extensions",
 					"-D__IPHONEOS__",
+					"-Wno-shift-negative-value",
 				);
 				PRODUCT_NAME = libgpac_static;
 				VALID_ARCHS = "arm64 armv7 armv7s";
@@ -2684,6 +2737,7 @@
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					GPAC_CONFIG_DARWIN,
 					GPAC_IPHONE,
+					GPAC_AMR_IN_STANDALONE,
 				);
 				GCC_THUMB_SUPPORT = NO;
 				GCC_VERSION = "";
@@ -2699,13 +2753,14 @@
 					../../extra_lib/include/SDL2,
 					../../extra_lib/include/freetype,
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 4.3;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = ../../extra_lib/lib/iOS;
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = (
 					"-fms-extensions",
 					"-DNS_BLOCK_ASSERTIONS=1",
 					"-D__IPHONEOS__",
+					"-Wno-shift-negative-value",
 				);
 				PRODUCT_NAME = libgpac_static;
 				VALID_ARCHS = "arm64 armv7 armv7s";
@@ -2716,6 +2771,7 @@
 		C01FCF4F08A954540054247B /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -2735,7 +2791,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PROVISIONING_PROFILE = "";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
@@ -2747,6 +2803,7 @@
 		C01FCF5008A954540054247B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED = YES;
 				CLANG_CXX_LIBRARY = "compiler-default";
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
@@ -2765,7 +2822,7 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = ../../include;
-				IPHONEOS_DEPLOYMENT_TARGET = 3.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				PROVISIONING_PROFILE = "";

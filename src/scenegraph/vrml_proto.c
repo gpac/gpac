@@ -106,8 +106,9 @@ GF_Err gf_sg_proto_del(GF_Proto *proto)
 
 	if (!proto) return GF_OK;
 	i = gf_list_del_item(proto->parent_graph->protos, proto);
-	if (i<0) i = gf_list_del_item(proto->parent_graph->unregistered_protos, proto);
-
+	if (i<0) {
+		gf_list_del_item(proto->parent_graph->unregistered_protos, proto);
+	}
 	if (proto->userpriv && proto->OnDelete) proto->OnDelete(proto->userpriv);
 
 	/*first destroy the code*/
@@ -336,6 +337,7 @@ s32 gf_sg_proto_get_field_index_by_name(GF_Proto *proto, GF_Node *node, char *na
 	GF_ProtoFieldInterface *proto_field;
 	GF_Proto *__proto;
 
+	if (!node && !proto) return -1;
 	if (node && (node->sgprivate->tag!=TAG_ProtoNode)) return -1;
 
 	__proto = proto ? proto : ((GF_ProtoInstance *) node)->proto_interface;
@@ -624,7 +626,7 @@ void gf_sg_proto_instanciate(GF_ProtoInstance *proto_node)
 				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
 				gf_sg_vrml_field_copy(pf->field_pointer, pfi->def_value, pfi->FieldType);
 			} else {
-				pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
+				//pfi = (GF_ProtoFieldInterface*)gf_list_get(proto->proto_fields, i);
 			}
 		}
 
@@ -723,8 +725,9 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	u32 i;
 	GF_ProtoField *inst, *from_field;
 	GF_ProtoFieldInterface *field;
-
 	GF_ProtoInstance *proto_node;
+	if (!proto) return NULL;
+	
 	GF_SAFEALLOC(proto_node, GF_ProtoInstance)
 	if (!proto_node) return NULL;
 
@@ -747,6 +750,11 @@ GF_Node *gf_sg_proto_create_node(GF_SceneGraph *scene, GF_Proto *proto, GF_Proto
 	i=0;
 	while ((field = (GF_ProtoFieldInterface*)gf_list_enum(proto->proto_fields, &i))) {
 		GF_SAFEALLOC(inst, GF_ProtoField);
+		if (!inst) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] Failed to allocate proto instance field\n]"));
+			continue;
+		}
+		
 		inst->EventType = field->EventType;
 		inst->FieldType = field->FieldType;
 
@@ -869,7 +877,7 @@ void gf_sg_proto_del_instance(GF_ProtoInstance *inst)
 	assert(!gf_list_count(inst->scripts_to_load));
 	gf_list_del(inst->scripts_to_load);
 
-	if (inst->proto_interface) gf_list_del_item(inst->proto_interface->instances, inst);
+	if (inst->proto_interface && inst->proto_interface->instances) gf_list_del_item(inst->proto_interface->instances, inst);
 
 	gf_node_free((GF_Node *)inst);
 	gf_sg_del(sg);
@@ -890,9 +898,9 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 	if (e) return e;
 	if (field.fieldType != nodeField.fieldType) {
 		if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFSTRING) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFURL)) {
-			e = GF_OK;
+//			e = GF_OK;
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
-			e = GF_OK;
+//			e = GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
@@ -908,7 +916,12 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 		r->FromNode = node;
 		r->ToField.fieldIndex = protoFieldIndex;
 		r->ToNode = NULL;
-		if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+		if (!node->sgprivate->interact) {
+			GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+			if (!node->sgprivate->interact) {
+				return GF_OUT_OF_MEM;
+			}
+		}
 		if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 		gf_list_add(node->sgprivate->interact->routes, r);
 	} else {
@@ -934,7 +947,10 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 				r2->ToField.fieldIndex = protoFieldIndex;
 				r2->ToNode = NULL;
 				r2->graph =  proto->sub_graph;
-				if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact) {
+					GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+					if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+				}
 				if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 				gf_list_add(node->sgprivate->interact->routes, r2);
 				gf_list_add(proto->sub_graph->Routes, r2);
@@ -945,7 +961,10 @@ GF_Err gf_sg_proto_field_set_ised(GF_Proto *proto, u32 protoFieldIndex, GF_Node 
 			r->FromNode = node;
 			r->ToField.fieldIndex = protoFieldIndex;
 			r->ToNode = NULL;
-			if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+			if (!node->sgprivate->interact) {
+				GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+			}
 			if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 			break;
 		default:
@@ -970,9 +989,9 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 	if (e) return e;
 	if (field.fieldType != nodeField.fieldType) {
 		if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFSTRING) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFURL)) {
-			e = GF_OK;
+//			e = GF_OK;
 		} else if ((gf_sg_vrml_get_sf_type(field.fieldType)==GF_SG_VRML_SFURL) && (gf_sg_vrml_get_sf_type(nodeField.fieldType) == GF_SG_VRML_SFSTRING)) {
-			e = GF_OK;
+//			e = GF_OK;
 		} else {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_SCENE, ("[VRML] error in IS - node field %s.%s - inType %s - outType %s\n", gf_node_get_class_name(node) , nodeField.name, gf_sg_vrml_get_field_type_by_name(field.fieldType), gf_sg_vrml_get_field_type_by_name(nodeField.fieldType)));
 			return GF_SG_INVALID_PROTO;
@@ -988,7 +1007,10 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 		r->FromNode = node;
 		r->ToField.fieldIndex = protoFieldIndex;
 		r->ToNode = protoinst;
-		if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+		if (!node->sgprivate->interact) {
+			GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+			if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+		}
 		if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 		gf_list_add(node->sgprivate->interact->routes, r);
 	} else {
@@ -1015,7 +1037,10 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 				r2->ToField.fieldIndex = protoFieldIndex;
 				r2->ToNode = protoinst;
 				r2->graph =  node->sgprivate->scenegraph;
-				if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact) {
+					GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+					if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+				}
 				if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 				gf_list_add(node->sgprivate->interact->routes, r2);
 				gf_list_add(r->graph->Routes, r2);
@@ -1026,7 +1051,10 @@ GF_Err gf_sg_proto_instance_set_ised(GF_Node *protoinst, u32 protoFieldIndex, GF
 			r->FromNode = node;
 			r->ToField.fieldIndex = protoFieldIndex;
 			r->ToNode = protoinst;
-			if (!node->sgprivate->interact) GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+			if (!node->sgprivate->interact) {
+				GF_SAFEALLOC(node->sgprivate->interact, struct _node_interactive_ext);
+				if (!node->sgprivate->interact) return GF_OUT_OF_MEM;
+			}
 			if (!node->sgprivate->interact->routes) node->sgprivate->interact->routes = gf_list_new();
 			gf_list_add(node->sgprivate->interact->routes, r);
 			break;

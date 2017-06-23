@@ -30,8 +30,13 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/constants.h>
+ *	\brief Most constants defined in GPAC are in this file.
+ */
 
-/*! \addtogroup cst_grp constants
+
+/*! \addtogroup cst_grp Constants
  *	\brief Constants used within GPAC
  *
  *	This section documents some constants used in the GPAC framework which are not related to
@@ -238,8 +243,12 @@ typedef enum
 	GF_PIXEL_I420		=	GF_4CC('I','4','2','0'),
 	/*!YUV planar format*/
 	GF_PIXEL_I444		=	GF_4CC('I','4','4','4'),
-	/*!YUV planar format*/
+	/*!420 Y planar UV interleaved*/
 	GF_PIXEL_NV21		=	GF_4CC('N','V','2','1'),
+	/*!420 Y planar VU interleaved (U and V swapped) */
+	GF_PIXEL_NV12		=	GF_4CC('N','V','1','2'),
+	/*!420 Y planar VU interleaved (U and V swapped), 10 bits */
+	GF_PIXEL_NV12_10	=	GF_4CC('N','1','2','0'),
 
 	/*!YV12 + Alpha plane*/
 	GF_PIXEL_YUVA		=	GF_4CC('Y', 'U', 'V', 'A'),
@@ -248,7 +257,13 @@ typedef enum
 	GF_PIXEL_YUVD		=	GF_4CC('Y', 'U', 'V', 'D'),
 
 	/*!YUV planar format in 10 bits mode, all components are stored as shorts*/
-	GF_PIXEL_YV12_10		=	GF_4CC('P','0','1','0')
+	GF_PIXEL_YV12_10	=	GF_4CC('Y','0','1','0'),
+	
+	GF_PIXEL_YUV422		=	GF_4CC('Y','4','4','2'),
+	GF_PIXEL_YUV422_10	=	GF_4CC('Y','2','1','0'),
+	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
+	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
+	
 } GF_PixelFormat;
 
 
@@ -296,7 +311,9 @@ enum
 	/*!OTI for H264-SVC streams*/
 	GPAC_OTI_VIDEO_SVC = 0x24,
 	/*!OTI for HEVC layered streams*/
-	GPAC_OTI_VIDEO_SHVC = 0x25,
+	GPAC_OTI_VIDEO_LHVC = 0x25,
+	/*!OTI for H264-SVC streams*/
+	GPAC_OTI_VIDEO_MVC = 0x29,
 	/*!OTI for MPEG-4 AAC streams*/
 	GPAC_OTI_AUDIO_AAC_MPEG4 = 0x40,
 
@@ -559,105 +576,153 @@ enum
 
 
 /*!
- \cond DUMMY_DOXY_SECTION
-*/
+ * AVC NAL unit types
+ */
+enum
+{
+	/*! Non IDR AVC slice*/
+	GF_AVC_NALU_NON_IDR_SLICE = 1,
+	/*! DP_A AVC slice*/
+	GF_AVC_NALU_DP_A_SLICE = 2,
+	/*! DP_B AVC slice*/
+	GF_AVC_NALU_DP_B_SLICE = 3,
+	/*! DP_C AVC slice*/
+	GF_AVC_NALU_DP_C_SLICE = 4,
+	/*! IDR AVC slice*/
+	GF_AVC_NALU_IDR_SLICE = 5,
+	/*! SEI Message*/
+	GF_AVC_NALU_SEI = 6,
+	/*! Sequence Parameter Set */
+	GF_AVC_NALU_SEQ_PARAM = 7,
+	/*! Picture Parameter Set*/
+	GF_AVC_NALU_PIC_PARAM = 8,
+	/*! Access Unit delimiter*/
+	GF_AVC_NALU_ACCESS_UNIT = 9,
+	/*! End of Sequence*/
+	GF_AVC_NALU_END_OF_SEQ = 10,
+	/*! End of stream*/
+	GF_AVC_NALU_END_OF_STREAM = 11,
+	/*! Filler data*/
+	GF_AVC_NALU_FILLER_DATA = 12,
+	/*! Sequence Parameter Set Extension*/
+	GF_AVC_NALU_SEQ_PARAM_EXT = 13,
+	/*! SVC preffix*/
+	GF_AVC_NALU_SVC_PREFIX_NALU = 14,
+	/*! SVC subsequence parameter set*/
+	GF_AVC_NALU_SVC_SUBSEQ_PARAM = 15,
+	/*! Auxiliary slice*/
+	GF_AVC_NALU_SLICE_AUX = 19,
+	/*! SVC slice*/
+	GF_AVC_NALU_SVC_SLICE = 20,
+	/*! View and dependency representation delimiter */
+	GF_AVC_NALU_VDRD = 24
+};
 
-/*AVC NAL unit types*/
-#define GF_AVC_NALU_NON_IDR_SLICE	1
-#define GF_AVC_NALU_DP_A_SLICE		2
-#define GF_AVC_NALU_DP_B_SLICE		3
-#define GF_AVC_NALU_DP_C_SLICE		4
-#define GF_AVC_NALU_IDR_SLICE		5
-#define GF_AVC_NALU_SEI				6
-#define GF_AVC_NALU_SEQ_PARAM		7
-#define GF_AVC_NALU_PIC_PARAM		8
-#define GF_AVC_NALU_ACCESS_UNIT		9
-#define GF_AVC_NALU_END_OF_SEQ		10
-#define GF_AVC_NALU_END_OF_STREAM	11
-#define GF_AVC_NALU_FILLER_DATA		12
-#define GF_AVC_NALU_SEQ_PARAM_EXT	13
 
-#define GF_AVC_NALU_SVC_PREFIX_NALU		14
-#define GF_AVC_NALU_SVC_SUBSEQ_PARAM	15
-#define GF_AVC_NALU_SLICE_AUX			19
-
-#define GF_AVC_NALU_SVC_SLICE 20	//0x14
-#define GF_AVC_NALU_VDRD 24 //View and dependency representation delimiter
-
-
-/*#define GF_SVC_NALU_SLICE 0x14
-#define GF_SVC_NALU_NAL_EXT_PARAM 14
-#define GF_SVC_NALU_SEQ_EXT_PARAM 15*/
-
-#define GF_AVC_TYPE_P 0
-#define GF_AVC_TYPE_B 1
-#define GF_AVC_TYPE_I 2
-#define GF_AVC_TYPE_SP 3
-#define GF_AVC_TYPE_SI 4
-#define GF_AVC_TYPE2_P 5
-#define GF_AVC_TYPE2_B 6
-#define GF_AVC_TYPE2_I 7
-#define GF_AVC_TYPE2_SP 8
-#define GF_AVC_TYPE2_SI 9
-
-#ifndef GPAC_DISABLE_HEVC
-
-/*HEVC NAL unit types*/
-enum {
+/*!
+ * AVC slice types
+ */
+enum
+{
+	/*! P slice*/
+	GF_AVC_TYPE_P = 0,
+	/*! B slice*/
+	GF_AVC_TYPE_B = 1,
+	/*! I slice*/
+	GF_AVC_TYPE_I = 2,
+	/*! SP slice*/
+	GF_AVC_TYPE_SP = 3,
+	/*! SI slice*/
+	GF_AVC_TYPE_SI = 4,
+	/*! Type2 P slice*/
+	GF_AVC_TYPE2_P = 5,
+	/*! Type2 B slice*/
+	GF_AVC_TYPE2_B = 6,
+	/*! Type2 I slice*/
+	GF_AVC_TYPE2_I = 7,
+	/*! Type2 SP slice*/
+	GF_AVC_TYPE2_SP = 8,
+	/*! Type2 SI slice*/
+	GF_AVC_TYPE2_SI = 9
+};
+	
+/*!
+ HEVC NAL unit types
+ */
+enum
+{
+	/*! Trail N HEVC slice*/
 	GF_HEVC_NALU_SLICE_TRAIL_N = 0,
+	/*! Trail R HEVC slice*/
 	GF_HEVC_NALU_SLICE_TRAIL_R = 1,
+	/*! TSA N HEVC slice*/
 	GF_HEVC_NALU_SLICE_TSA_N = 2,
+	/*! TSA R HEVC slice*/
 	GF_HEVC_NALU_SLICE_TSA_R = 3,
+	/*! STSA N HEVC slice*/
 	GF_HEVC_NALU_SLICE_STSA_N = 4,
+	/*! STSA R HEVC slice*/
 	GF_HEVC_NALU_SLICE_STSA_R = 5,
+	/*! RADL N HEVC slice*/
 	GF_HEVC_NALU_SLICE_RADL_N = 6,
+	/*! RADL R HEVC slice*/
 	GF_HEVC_NALU_SLICE_RADL_R = 7,
+	/*! RASL N HEVC slice*/
 	GF_HEVC_NALU_SLICE_RASL_N = 8,
+	/*! RASL R HEVC slice*/
 	GF_HEVC_NALU_SLICE_RASL_R = 9,
-
+	/*! BLA LP HEVC slice*/
 	GF_HEVC_NALU_SLICE_BLA_W_LP = 16,
+	/*! BLA DLP HEVC slice*/
 	GF_HEVC_NALU_SLICE_BLA_W_DLP = 17,
+	/*! BLA no LP HEVC slice*/
 	GF_HEVC_NALU_SLICE_BLA_N_LP = 18,
-
+	/*! IDR DLP HEVC slice*/
 	GF_HEVC_NALU_SLICE_IDR_W_DLP = 19,
+	/*! IDR HEVC slice*/
 	GF_HEVC_NALU_SLICE_IDR_N_LP = 20,
+	/*! CRA HEVC slice*/
 	GF_HEVC_NALU_SLICE_CRA = 21,
-
+	/*! Video Parameter Set*/
 	GF_HEVC_NALU_VID_PARAM = 32,
+	/*! Sequence Parameter Set*/
 	GF_HEVC_NALU_SEQ_PARAM = 33,
+	/*! Picture Parameter Set*/
 	GF_HEVC_NALU_PIC_PARAM = 34,
+	/*! AU delimiter*/
 	GF_HEVC_NALU_ACCESS_UNIT = 35,
+	/*! End of sequence*/
 	GF_HEVC_NALU_END_OF_SEQ = 36,
+	/*! End of stream*/
 	GF_HEVC_NALU_END_OF_STREAM = 37,
+	/*! Filler Data*/
 	GF_HEVC_NALU_FILLER_DATA = 38,
+	/*! prefix SEI message*/
 	GF_HEVC_NALU_SEI_PREFIX = 39,
+	/*! suffix SEI message*/
 	GF_HEVC_NALU_SEI_SUFFIX = 40,
 };
 
-#else
-enum {
-	GF_HEVC_NALU_ACCESS_UNIT = 35
-};
 
-#endif
-
-
-/*rate sizes - note that these sizes INCLUDE the rate_type header byte*/
-static const unsigned int GF_QCELP_RATE_TO_SIZE [] = {0, 1, 1, 4, 2, 8, 3, 17, 4, 35, 5, 8, 14, 1};
+	
+/*! Number of defined QCELP rate sizes*/
 static const unsigned int GF_QCELP_RATE_TO_SIZE_NB = 7;
-static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 5, 1};
+/*! QCELP rate sizes - note that these sizes INCLUDE the rate_type header byte*/
+static const unsigned int GF_QCELP_RATE_TO_SIZE [] = {0, 1, 1, 4, 2, 8, 3, 17, 4, 35, 5, 8, 14, 1};
+	
+/*! Number of defined EVRC rate sizes*/
 static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
+/*! EVRC rate sizes - note that these sizes INCLUDE the rate_type header byte*/
+static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 5, 1};
+	
+/*! AMR frame sizes*/
 static const unsigned int GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
+/*! AMR WB frame sizes*/
 static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 50, 58, 60, 5, 5, 0, 0, 0, 0, 0 };
 
 
-/*out-of-band sample desc (128 and 255 reserved in RFC)*/
+/*! out-of-band sample description index for 3GPP (128 and 255 reserved in RFC)*/
 #define GF_RTP_TX3G_SIDX_OFFSET	129
-
-/*!
- \endcond
-*/
-
 
 /*! @} */
 

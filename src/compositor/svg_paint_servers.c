@@ -570,6 +570,10 @@ void compositor_init_svg_linearGradient(GF_Compositor *compositor, GF_Node *node
 {
 	SVG_GradientStack *st;
 	GF_SAFEALLOC(st, SVG_GradientStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg gradient stack\n"));
+		return;
+	}
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
 	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order
@@ -698,6 +702,10 @@ void compositor_init_svg_radialGradient(GF_Compositor *compositor, GF_Node *node
 {
 	SVG_GradientStack *st;
 	GF_SAFEALLOC(st, SVG_GradientStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg gradient stack\n"));
+		return;
+	}
 
 	/*!!! Gradients are textures but are not registered as textures with the compositor in order to avoid updating
 	too many textures each frame - gradients are only registered with the compositor when they are used in OpenGL, in order

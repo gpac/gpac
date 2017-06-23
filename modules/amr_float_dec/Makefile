@@ -16,7 +16,7 @@ LDFLAGS+=-pg
 endif
 
 #common obj
-OBJS=../amr_dec/amr_in.o amr_float_dec.o
+OBJS=amr_float_dec.o
 
 #AMR NB obj
 CFLAGS+=-DGPAC_HAS_AMR_FT
@@ -45,7 +45,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L../../bin/gcc -lgpac $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

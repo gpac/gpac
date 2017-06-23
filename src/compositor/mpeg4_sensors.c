@@ -220,6 +220,10 @@ void compositor_init_anchor(GF_Compositor *compositor, GF_Node *node)
 {
 	AnchorStack *stack;
 	GF_SAFEALLOC(stack, AnchorStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate anchor stack\n"));
+		return;
+	}
 
 	stack->hdl.IsEnabled = anchor_is_enabled;
 	stack->hdl.OnUserEvent = OnAnchor;
@@ -359,6 +363,10 @@ void compositor_init_disc_sensor(GF_Compositor *compositor, GF_Node *node)
 {
 	DiscSensorStack *st;
 	GF_SAFEALLOC(st, DiscSensorStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate disc sensor stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = ds_is_enabled;
 	st->hdl.OnUserEvent = OnDiscSensor;
@@ -518,6 +526,10 @@ void compositor_init_plane_sensor2d(GF_Compositor *compositor, GF_Node *node)
 {
 	PS2DStack *st;
 	GF_SAFEALLOC(st, PS2DStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate plane sensor 2d stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = ps2D_is_enabled;
 	st->hdl.OnUserEvent = OnPlaneSensor2D;
@@ -605,6 +617,10 @@ void compositor_init_proximity_sensor2d(GF_Compositor *compositor, GF_Node *node
 {
 	Prox2DStack *st;
 	GF_SAFEALLOC(st, Prox2DStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate proximity sensor 2d stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = prox2D_is_enabled;
 	st->hdl.OnUserEvent = OnProximitySensor2D;
@@ -704,6 +720,10 @@ void compositor_init_touch_sensor(GF_Compositor *compositor, GF_Node *node)
 {
 	TouchSensorStack *st;
 	GF_SAFEALLOC(st, TouchSensorStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate touch sensor stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = ts_is_enabled;
 	st->hdl.OnUserEvent = OnTouchSensor;
@@ -929,6 +949,10 @@ void compositor_init_plane_sensor(GF_Compositor *compositor, GF_Node *node)
 {
 	PSStack *st;
 	GF_SAFEALLOC(st, PSStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate plane sensor stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = ps_is_enabled;
 	st->hdl.OnUserEvent = OnPlaneSensor;
@@ -1128,6 +1152,10 @@ void compositor_init_cylinder_sensor(GF_Compositor *compositor, GF_Node *node)
 {
 	CylinderSensorStack *st;
 	GF_SAFEALLOC(st, CylinderSensorStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate cylinder sensor 2d stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = cs_is_enabled;
 	st->hdl.OnUserEvent = OnCylinderSensor;
@@ -1303,6 +1331,10 @@ void compositor_init_sphere_sensor(GF_Compositor *compositor, GF_Node *node)
 {
 	SphereSensorStack *st;
 	GF_SAFEALLOC(st, SphereSensorStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate sphere sensor 2d stack\n"));
+		return;
+	}
 
 	st->hdl.IsEnabled = sphere_is_enabled;
 	st->hdl.OnUserEvent = OnSphereSensor;

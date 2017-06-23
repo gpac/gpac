@@ -141,6 +141,8 @@ Bool gf_modules_load_library(ModuleInstance *inst)
 		return 0;
 	}
 	error = dlerror();    /* Clear any existing error */
+	if (error)
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] Cleaning up previous dlerror %s\n", error));
 	inst->query_func = (QueryInterfaces) dlsym(inst->lib_handle, "QueryInterfaces");
 	error = dlerror();
 	if (error)
@@ -249,7 +251,12 @@ static Bool enum_modules(void *cbck, char *item_name, char *item_path, GF_FileEn
 #endif
 
 	GF_SAFEALLOC(inst, ModuleInstance);
+	if (!inst) return GF_FALSE;
 	inst->interfaces = gf_list_new();
+	if (!inst->interfaces) {
+		gf_free(inst);
+		return GF_FALSE;
+	}
 	inst->plugman = pm;
 	inst->name = gf_strdup(item_name);
 	inst->dir = gf_strdup(item_path);
@@ -269,7 +276,12 @@ static void load_static_modules(GF_ModuleManager *pm)
 		if (gf_module_is_loaded(pm, (char *) ifce_reg->name) ) continue;
 
 		GF_SAFEALLOC(inst, ModuleInstance);
+		if (!inst) continue;
 		inst->interfaces = gf_list_new();
+		if (!inst->interfaces) {
+			gf_free(inst);
+			continue;
+		}
 		inst->plugman = pm;
 		inst->name = (char *) ifce_reg->name;
 		inst->ifce_reg = ifce_reg;
@@ -298,7 +310,13 @@ u32 gf_modules_refresh(GF_ModuleManager *pm)
 #endif
 #else
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("Refreshing list of modules in directory %s...\n", pm->dirs[i]));
+
+#if defined(GPAC_CONFIG_WIN32)
+		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".dll");
+#else
 		gf_enum_directory(pm->dirs[i], 0, enum_modules, pm, ".so");
+#endif
+
 #endif
 	}
 

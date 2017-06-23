@@ -49,8 +49,7 @@ void group_cache_draw(GroupCache *cache, GF_TraverseState *tr_state)
 			cache->drawable->mesh = new_mesh();
 		}
 		mesh_from_path(cache->drawable->mesh, cache->drawable->path);
-
-		visual_3d_draw_2d(cache->drawable, tr_state);
+		visual_3d_draw_2d_with_aspect(cache->drawable, tr_state, &tr_state->ctx->aspect);
 		return;
 	}
 #endif
@@ -65,6 +64,10 @@ GroupCache *group_cache_new(GF_Compositor *compositor, GF_Node *node)
 {
 	GroupCache *cache;
 	GF_SAFEALLOC(cache, GroupCache);
+	if (!cache) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate group cache\n"));
+		return NULL;
+	}
 	gf_sc_texture_setup(&cache->txh, compositor, node);
 	cache->drawable = drawable_new();
 	/*draw the cache through traverse callback*/
@@ -138,13 +141,17 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 	if (force_recompute) {
 		GF_Matrix2D backup;
 		GF_IRect rc1, rc2;
-		u32 type_3d;
 		u32 prev_flags;
+		Bool prev_hybgl, visual_attached, for_3d=GF_FALSE;
 		GF_Rect cache_bounds;
 		GF_SURFACE offscreen_surface, old_surf;
 		GF_Raster2D *r2d = tr_state->visual->compositor->rasterizer;
 		DrawableContext *child_ctx;
 		Fixed temp_x, temp_y, scale_x, scale_y;
+#ifndef GPAC_DISABLE_3D
+		u32 type_3d;
+		GF_Matrix2D transf;
+#endif
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Recomputing cache for subtree %s\n", gf_node_get_log_name(node)));
 		/*step 1 : store current state and indicate children should not be cached*/
@@ -154,12 +161,15 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		gf_mx2d_copy(backup, tr_state->transform);
 		gf_mx2d_init(tr_state->transform);
 
-		type_3d = 0;
 #ifndef GPAC_DISABLE_3D
 		/*force 2D rendering*/
 		type_3d = tr_state->visual->type_3d;
 		tr_state->visual->type_3d = 0;
+		if (type_3d || tr_state->visual->compositor->hybrid_opengl)
+			for_3d = GF_TRUE;
 #endif
+		prev_hybgl = tr_state->visual->compositor->hybrid_opengl;
+		tr_state->visual->compositor->hybrid_opengl = GF_FALSE;
 
 		/*step 2: collect the bounds of all children*/
 		tr_state->traversing_mode = TRAVERSE_GET_BOUNDS;
@@ -180,6 +190,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #ifndef GPAC_DISABLE_3D
 			tr_state->visual->type_3d = type_3d;
 #endif
+			tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
 			return 0;
 		}
 
@@ -194,7 +205,7 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 #endif
 		}
 		if (!group_ctx) return 0;
-
+		
 		/*step 4: now we have the bounds:
 			allocate the offscreen memory
 			create temp raster visual & attach to buffer
@@ -205,14 +216,22 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		old_surf = tr_state->visual->raster_surface;
 		offscreen_surface = r2d->surface_new(r2d, tr_state->visual->center_coords);	/*a new temp raster visual*/
 		tr_state->visual->raster_surface = offscreen_surface;
+#ifndef GPAC_DISABLE_3D
+		if (type_3d) {
+			gf_mx2d_from_mx(&transf, &tr_state->model_matrix);
+			scale_x = transf.m[0];
+			scale_y = transf.m[4];
+		} else
+#endif
+		{
+			scale_x = backup.m[0];
+			scale_y = backup.m[4];
+		}
 
 		/*use current surface coordinate scaling to compute the cache*/
 #ifdef GF_SR_USE_VIDEO_CACHE
-		scale_x = tr_state->visual->compositor->cache_scale * backup.m[0] / 100;
-		scale_y = tr_state->visual->compositor->cache_scale * backup.m[4] / 100;
-#else
-		scale_x = backup.m[0];
-		scale_y = backup.m[4];
+		scale_x = tr_state->visual->compositor->cache_scale * scale_x / 100;
+		scale_y = tr_state->visual->compositor->cache_scale * scale_y / 100;
 #endif
 
 		if (scale_x<0) scale_x = -scale_x;
@@ -220,15 +239,20 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		cache->scale = MAX(scale_x, scale_y);
 		tr_state->bounds = cache_bounds;
+
 		gf_mx2d_add_scale(&tr_state->transform, scale_x, scale_y);
 		gf_mx2d_apply_rect(&tr_state->transform, &cache_bounds);
 
 		rc1 = gf_rect_pixelize(&cache_bounds);
 		if (rc1.width % 2) rc1.width++;
 		if (rc1.height%2) rc1.height++;
+		
+		//TODO - set min offscreen size in cfg file
+		while (rc1.width && rc1.width<128) rc1.width *= 2;
+		while (rc1.height && rc1.height<128) rc1.height *= 2;
 
 		/* Initialize the group cache with the scaled pixelized bounds for texture but the original bounds for path*/
-		group_cache_setup(cache, &tr_state->bounds, &rc1, tr_state->visual->compositor, type_3d);
+		group_cache_setup(cache, &tr_state->bounds, &rc1, tr_state->visual->compositor, for_3d);
 
 
 		/*attach the buffer to visual*/
@@ -239,6 +263,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		                              cache->txh.stride,
 		                              cache->txh.pixelformat);
 
+		visual_attached = tr_state->visual->is_attached;
+		tr_state->visual->is_attached = 1;
 
 		/*recompute the bounds with the final scaling used*/
 		scale_x = gf_divfix(INT2FIX(rc1.width), tr_state->bounds.width);
@@ -298,6 +324,9 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		gf_mx2d_copy(tr_state->transform, backup);
 		tr_state->in_group_cache = 0;
 		tr_state->immediate_draw = prev_flags;
+		tr_state->visual->compositor->hybrid_opengl = prev_hybgl;
+		tr_state->visual->is_attached = visual_attached;
+
 		r2d->surface_delete(offscreen_surface);
 		tr_state->visual->raster_surface = old_surf;
 		tr_state->traversing_mode = TRAVERSE_SORT;
@@ -310,9 +339,11 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 
 		/*update texture*/
 		cache->txh.transparent = 1;
-		cache->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		if (tr_state->visual->center_coords)
+			cache->txh.flags |= GF_SR_TEXTURE_NO_GL_FLIP;
+		
 		gf_sc_texture_set_data(&cache->txh);
-		gf_sc_texture_push_image(&cache->txh, 0, type_3d ? 0 : 1);
+		gf_sc_texture_push_image(&cache->txh, 0, for_3d ? 0 : 1);
 
 		cache->orig_vp = tr_state->vp_size;
 	}
@@ -340,6 +371,8 @@ Bool group_cache_traverse(GF_Node *node, GroupCache *cache, GF_TraverseState *tr
 		group_ctx->drawable = NULL;
 		return 0;
 	}
+
+	drawable_check_texture_dirty(group_ctx, group_ctx->drawable, tr_state);
 
 	if (gf_node_dirty_get(node)) group_ctx->flags |= CTX_TEXTURE_DIRTY;
 

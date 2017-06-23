@@ -58,9 +58,9 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS) $(LDFLAGS)
 ifeq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LDFLAGS) -o ../../bin/gcc/gm_img_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS)
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/gm_img_in-static$(DYN_LIB_SUFFIX) $(OBJS) $(EXTRALIBS) -L$(LOCAL_LIB) $(LINKLIBS) $(LDFLAGS)
 endif
 
 clean: 

@@ -51,9 +51,24 @@
 #ifndef _GF_CRYPT_H_
 #define _GF_CRYPT_H_
 
+
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+/*!
+ *	\file <gpac/crypt.h>
+ *	\brief Utility tools for encryption and decryption.
+ */
+	
+/*!
+ *	\addtogroup crypt_grp Cryptography
+ *	\ingroup media_grp
+ *	\brief Utility tools for encryption and decryption.
+ *
+ *This section documents the encryption and decryption routines used by GPAC, mostly AES 128 in CBC or CTR modes.
+ *	@{
+ */
 
 #include <gpac/tools.h>
 
@@ -155,6 +170,8 @@ u32 gf_crypt_str_module_get_algo_key_size(const char *algorithm);
 u32 gf_crypt_str_get_algo_supported_key_sizes(const char *algorithm, int *keys);
 
 #endif /*GPAC_DISABLE_MCRYPT*/
+
+/*! @} */
 
 
 #ifdef __cplusplus

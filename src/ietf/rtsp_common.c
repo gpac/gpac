@@ -148,12 +148,12 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 	s32 pos, nPos;
 	u32 v1, v2;
 	GF_RTSPTransport *tmp;
-	pos = 0;
 	if (!buffer) return NULL;
 	//only support for RTP/AVP for now
 	if (strnicmp(buffer, "RTP/AVP", 7) && strnicmp(buffer, "RTP/SAVP", 8)) return NULL;
 
 	GF_SAFEALLOC(tmp, GF_RTSPTransport);
+	if (!tmp) return NULL;
 
 	IsFirst = GF_TRUE;
 	pos = 0;
@@ -162,7 +162,7 @@ GF_RTSPTransport *gf_rtsp_transport_parse(char *buffer)
 		if (pos <= 0) break;
 		if (strstr(buf, "=")) {
 			nPos = gf_token_get(buf, 0, "=", param_name, 100);
-			nPos = gf_token_get(buf, nPos, "=", param_val, 100);
+			/*nPos = */gf_token_get(buf, nPos, "=", param_val, 100);
 		} else {
 			strcpy(param_name, buf);
 		}
@@ -233,7 +233,6 @@ GF_Err gf_rtsp_parse_header(char *buffer, u32 BufferSize, u32 BodyStart, GF_RTSP
 	LinePos = 0;
 	strcpy(HeaderBuf, "");
 	while (1) {
-		HeaderLine = 0;
 		LinePos = gf_token_get_line(buffer, LinePos, BufferSize, LineBuffer, 1024);
 		if (LinePos <= 0) return GF_REMOTE_SERVICE_ERROR;
 

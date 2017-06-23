@@ -33,6 +33,7 @@ CFLAGS+=-DGPAC_DISABLE_PLAYER
 endif
 
 LINKFLAGS+=-lgpac_static
+LINKFLAGS+= $(GPAC_SH_FLAGS)
 LINKFLAGS+=$(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
@@ -46,7 +47,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 $(PROG): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS)
+	$(CC) -o ../../bin/gcc/$@ $(OBJS) $(LINKFLAGS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)

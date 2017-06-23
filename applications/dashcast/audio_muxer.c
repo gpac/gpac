@@ -153,6 +153,7 @@ int dc_gpac_audio_moov_create(AudioOutputFile *audio_output_file, char *filename
 	}
 
 	ret = gf_media_get_rfc_6381_codec_name(audio_output_file->isof, track, audio_output_file->audio_data_conf->codec6381, GF_FALSE, GF_FALSE);
+	if (ret != GF_OK) return -1;
 	return 0;
 }
 
@@ -165,7 +166,7 @@ int dc_gpac_audio_isom_open_seg(AudioOutputFile *audio_output_file, char *filena
 		return -1;
 	}
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment %s started at "LLU"\n", filename, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment %s started at "LLU"\n", filename, gf_net_get_utc() ));
 
 	audio_output_file->dts = 0;
 
@@ -198,7 +199,7 @@ int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment closed at "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment closed at "LLU"\n", gf_net_get_utc() ));
 
 	//audio_output_file->acc_samples = 0;
 
@@ -424,12 +425,12 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool 
 
 			gf_isom_set_traf_base_media_decode_time(audio_output_file->isof, 1, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			audio_output_file->first_dts += audio_output_file->frame_per_frag;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio start fragment first DTS %d at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio start fragment first DTS %u at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
 		}
 		dc_gpac_audio_isom_write(audio_output_file);
 		if (frame_nb % audio_output_file->frame_per_frag == audio_output_file->frame_per_frag - 1) {
 			gf_isom_flush_fragments(audio_output_file->isof, 1);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio flush fragment first DTS %d at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio flush fragment first DTS %u at "LLU"\n", audio_output_file->first_dts, gf_net_get_utc() ));
 		}
 		//TODO - do same as video, flush based on time in case of losses
 		if (frame_nb + 1 == audio_output_file->frame_per_seg) {

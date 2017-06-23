@@ -176,6 +176,10 @@ static GF_ESD *RP_GetChannelESD(RTPStream *ch, u32 ch_idx)
 	GF_ESD *esd;
 
 	if (!ch->ES_ID) ch->ES_ID = ch_idx + 1;
+	if (!ch->depacketizer) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("RTP Stream channel %u has no depacketizer\n", ch_idx));
+		return NULL;
+	}
 
 	esd = gf_odf_desc_esd_new(0);
 	esd->slConfig->timestampResolution = gf_rtp_get_clockrate(ch->rtp_ch);
@@ -185,7 +189,7 @@ static GF_ESD *RP_GetChannelESD(RTPStream *ch, u32 ch_idx)
 	esd->ESID = ch->ES_ID;
 	esd->OCRESID = 0;
 	if (ch->mid)
-		esd->has_ref_base = GF_TRUE;
+		esd->has_scalable_layers = GF_TRUE;
 
 	esd->decoderConfig->streamType = ch->depacketizer->sl_map.StreamType;
 	esd->decoderConfig->objectTypeIndication = ch->depacketizer->sl_map.ObjectTypeIndication;
@@ -219,19 +223,16 @@ static GF_ObjectDescriptor *RP_GetChannelOD(RTPStream *ch, u32 ch_idx)
 	gf_list_add(od->ESDescriptors, esd);
 
 	// for each channel depending on this channel, get esd, set esd->dependsOnESID and add to od
-	if (ch->owner->is_scalable)
-	{
+	if (ch->owner->is_scalable) {
 		u32 i, count;
 
 		count = gf_list_count(ch->owner->channels);
-		for (i = 0; i < count; i++)
-		{
+		for (i = 0; i < count; i++) {
 			RTPStream *the_channel;
 			GF_ESD *the_esd;
 
 			the_channel = (RTPStream *)gf_list_get(ch->owner->channels, i);
-			if (the_channel->base_stream == ch->mid)
-			{
+			if (the_channel->base_stream == ch->mid) {
 				the_esd = RP_GetChannelESD(the_channel, i);
 				the_esd->dependsOnESID = the_channel->prev_stream;
 				gf_list_add(od->ESDescriptors, the_esd);
@@ -319,7 +320,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 	if (e == GF_OK) e = RP_SetupSDP(rtp, sdp, stream);
 
 	/*root SDP, attach service*/
-	if (! stream) {
+	if (!stream) {
 		/*look for IOD*/
 		if (e==GF_OK) {
 			i=0;
@@ -350,7 +351,7 @@ void RP_LoadSDP(RTPClient *rtp, char *sdp_text, u32 sdp_len, RTPStream *stream)
 				Bool needs_iod = GF_FALSE;
 				i=0;
 				while ((ch = (RTPStream *)gf_list_enum(rtp->channels, &i))) {
-					if ((ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
+					if (ch->depacketizer && (ch->depacketizer->payt==GF_RTP_PAYT_MPEG4) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE)
 //						|| ((ch->depacketizer->payt==GF_RTP_PAYT_3GPP_DIMS) && (ch->depacketizer->sl_map.StreamType==GF_STREAM_SCENE))
 					   ) {
 						needs_iod = GF_TRUE;
@@ -474,6 +475,10 @@ void RP_SaveSessionState(RTPClient *rtp)
 			ch->current_start += gf_rtp_get_current_time(ch->rtp_ch);
 
 			GF_SAFEALLOC(att, GF_X_Attribute);
+			if (!att) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save stream state for channel\n"));
+				continue;
+			}
 			att->Name = gf_strdup("x-stream-state");
 			porta = ch->rtp_ch->net_info.port_first ? ch->rtp_ch->net_info.port_first : ch->rtp_ch->net_info.client_port_first;
 			portb = ch->rtp_ch->net_info.port_last ? ch->rtp_ch->net_info.port_last : ch->rtp_ch->net_info.client_port_last;
@@ -512,16 +517,24 @@ void RP_SaveSessionState(RTPClient *rtp)
 
 		if (sess->session_id) {
 			GF_SAFEALLOC(att, GF_X_Attribute);
-			att->Name = gf_strdup("x-session-id");
-			att->Value = gf_strdup(sess->session_id);
-			gf_list_add(sdp->Attributes, att);
+			if (!att) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save session ID\n"));
+			} else {
+				att->Name = gf_strdup("x-session-id");
+				att->Value = gf_strdup(sess->session_id);
+				gf_list_add(sdp->Attributes, att);
+			}
 		}
 
 		GF_SAFEALLOC(att, GF_X_Attribute);
-		att->Name = gf_strdup("x-session-name");
-		sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
-		att->Value = gf_strdup(szURL);
-		gf_list_add(sdp->Attributes, att);
+		if (!att) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_RTP, ("[RTP] Failed to save session name\n"));
+		} else {
+			att->Name = gf_strdup("x-session-name");
+			sprintf(szURL, "rtsp://%s:%d/%s", sess->session->Server, sess->session->Port, sess->session->Service);
+			att->Value = gf_strdup(szURL);
+			gf_list_add(sdp->Attributes, att);
+		}
 	}
 
 	gf_free(rtp->session_state_data);
@@ -563,7 +576,7 @@ void RP_SaveSessionState(RTPClient *rtp)
 				e = GF_IO_ERR;
 			}
 		}
-		if (e<0) {
+		if (sess && sess->owner && (e<0)) {
 			RP_SendMessage(sess->owner->service, e, "Error saving session state");
 		}
 	}

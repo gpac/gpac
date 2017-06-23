@@ -28,7 +28,7 @@
 #ifndef GPAC_DISABLE_ISOM
 
 //Get the sample number
-GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
+GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sampleNumber, u32 *prevSampleNumber)
 {
 	u32 i, j, curSampNum, count;
 	s32 CTSOffset;
@@ -38,8 +38,8 @@ GF_Err findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *sample
 	(*prevSampleNumber) = 0;
 
 	if (!stbl->TimeToSample) return GF_ISOM_INVALID_FILE;
-	if (!stbl->CompositionOffset) useCTS = 0;
-	/*FIXME: CTS is ALWAYS disabled for now to make sure samples are fetched in
+	/*if (!stbl->CompositionOffset) useCTS = 0;
+	FIXME: CTS is ALWAYS disabled for now to make sure samples are fetched in
 	decoding order. */
 	useCTS = 0;
 
@@ -266,6 +266,8 @@ GF_Err stbl_SearchSAPs(GF_SampleTableBox *stbl, u32 SampleNumber, SAPType *IsRAP
 	u32 i, j, count, count2;
 	assert(prevRAP);
 	assert(nextRAP);
+	(*prevRAP) = 0;
+	(*nextRAP) = 0;
 	(*IsRAP) = RAP_NO;
 
 	if (!stbl->sampleGroups || !stbl->sampleGroupsDescription) return GF_OK;

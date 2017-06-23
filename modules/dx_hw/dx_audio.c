@@ -472,7 +472,7 @@ void *NewAudioOutput()
 	return driv;
 }
 
-void DeleteAudioOutput(void *ifce)
+void DeleteDxAudioOutput(void *ifce)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *)ifce;
 	DSCONTEXT();

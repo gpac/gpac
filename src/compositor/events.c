@@ -528,7 +528,7 @@ static void exec_text_input(GF_Compositor *compositor, GF_Event *event)
 		default:
 			return;
 		}
-		if (!is_end) {
+		if (!is_end && compositor->sel_buffer) {
 			if (compositor->caret_pos==prev_caret) return;
 			memmove(&compositor->sel_buffer[prev_caret], &compositor->sel_buffer[prev_caret+1], sizeof(u16)*(compositor->sel_buffer_len-prev_caret));
 			memmove(&compositor->sel_buffer[compositor->caret_pos+1], &compositor->sel_buffer[compositor->caret_pos], sizeof(u16)*(compositor->sel_buffer_len-compositor->caret_pos));
@@ -677,7 +677,6 @@ static Bool exec_event_dom(GF_Compositor *compositor, GF_Event *event)
 			GF_Node *focus;
 			Bool hit_changed = GF_FALSE;
 			GF_Node *current_use = (GF_Node*)gf_list_last(compositor->hit_use_stack);
-			cursor_type = compositor->sensor_type;
 			memset(&evt, 0, sizeof(GF_DOM_Event));
 			evt.clientX = evt.screenX = FIX2INT(X);
 			evt.clientY = evt.screenY = FIX2INT(Y);
@@ -888,7 +887,6 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 					hs->OnUserEvent(hs, GF_FALSE, GF_TRUE, ev, compositor);
 					gf_list_add(compositor->sensors, hs);
 					compositor->grabbed_sensor = 1;
-					stype = gf_node_get_tag(hs->sensor);
 				}
 			}
 
@@ -898,11 +896,10 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 		compositor->prev_hit_appear = compositor->hit_appear;
 	}
 
+	count = gf_list_count(compositor->sensors);
 	/*if we have a hit node at the compositor level, use "touch" as default cursor - this avoid
 	resetting the cursor when the picked node is a DOM node in a composite texture*/
-	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
-
-	count = gf_list_count(compositor->sensors);
+//	stype = (compositor->hit_node!=NULL) ? GF_CURSOR_TOUCH : GF_CURSOR_NORMAL;
 	stype = GF_CURSOR_NORMAL;
 	for (i=0; i<count; i++) {
 		GF_Node *keynav;
@@ -1009,7 +1006,7 @@ Bool gf_sc_exec_event_vrml(GF_Compositor *compositor, GF_Event *ev)
 #if 1
 		GF_SceneGraph *sg;
 		/*apply event cascade - this is needed for cases where several events are processed inbetween
-		2 simultaion tick. If we don't flush the routes stack, the result will likely be wrong
+		2 simulation tick. If we don't flush the routes stack, the result will likely be wrong
 		*/
 		gf_sg_activate_routes(compositor->scene);
 		i = 0;
@@ -1977,9 +1974,9 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
 		GF_Event event;
-		/*emulate doubleclick*/
+		/*emulate doubleclick unless in step mode*/
 		now = gf_sys_clock();
-		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
+		if (!compositor->step_mode && (now - compositor->last_click_time < DOUBLECLICK_TIME_MS)) {
 			event.type = GF_EVENT_DBLCLICK;
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;

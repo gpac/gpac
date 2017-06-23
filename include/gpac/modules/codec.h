@@ -62,6 +62,8 @@ enum
 	GF_CODEC_RESILIENT_AFTER_FIRST_RAP=2
 };
 
+/*Define codec matrix*/ 
+typedef struct __matrix GF_CodecMatrix;
 
 /*the structure for capabilities*/
 typedef struct
@@ -136,9 +138,10 @@ enum
 	GF_CODEC_CU_DURATION,
 	/*queries whether data is RAW (directly dispatched to CompositionMemory) or not*/
 	GF_CODEC_RAW_MEDIA,
-	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only*/
-	GF_CODEC_DIRECT_OUTPUT,
-
+	/*queries or set  support for usage of raw YUV from decoder memory - used for video codecs only, single frame pending*/
+	GF_CODEC_RAW_MEMORY,
+	/*queries or set  support for usage of decoded frame from decoder memory - used for video codecs only, multiple frames shall be supported*/
+	GF_CODEC_FRAME_OUTPUT,
 	/*This is only called on scene decoders to signal that potential overlay scene should be
 	showed (cap.valueINT=1) or hidden (cap.valueINT=0). Currently only used with SetCap*/
 	GF_CODEC_SHOW_SCENE,
@@ -150,6 +153,9 @@ enum
 	/*switches up (1), max (2), down (0) or min (-1) media quality for scalable coding. */
 	GF_CODEC_MEDIA_SWITCH_QUALITY,
 
+	//notifies the codec all streams have been attached for the current time and that it may start init
+	//this is require for L-HEVC+AVC
+	GF_CODEC_CAN_INIT,
 	/*special cap indicating the codec should abort processing as soon as possible because it is about to be destroyed*/
 	GF_CODEC_ABORT,
 
@@ -160,6 +166,9 @@ enum
 	 return GF_NOT_SUPPORTED if your codec does'nt handle this
 	*/
 	GF_CODEC_INTERACT_COORDS,
+	GF_CODEC_NBVIEWS,
+	GF_CODEC_NBLAYERS,
+	GF_CODEC_FORCE_ANNEXB,
 };
 
 
@@ -169,6 +178,7 @@ enum
 	GF_CODEC_NOT_SUPPORTED = 0,
 	/*stream type (eg audio, video) is supported by this codec*/
 	GF_CODEC_STREAM_TYPE_SUPPORTED = 1,
+	GF_CODEC_PROFILE_NOT_SUPPORTED = 2,
 	/*stream format may be (partially) supported by this codec*/
 	GF_CODEC_MAYBE_SUPPORTED = 127,
 	/*stream format is supported by this codec*/
@@ -218,6 +228,22 @@ typedef struct _basedecoder
 /*interface name and version for media decoder */
 #define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
 
+typedef struct _mediadecoderframe
+{
+	//release media frame
+	void (*Release)(struct _mediadecoderframe *frame);
+	//get media frame plane
+	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
+	// @outPlane: adress of target color plane
+	// @outStride: stride in bytes of target color plane
+	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
+
+	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix);
+
+	//allocated space by the decoder
+	void *user_data;
+} GF_MediaDecoderFrame;
+
 /*the media module interface. A media module MUST be implemented in synchronous mode as time
 and resources management is done by the terminal*/
 typedef struct _mediadecoder
@@ -239,8 +265,11 @@ typedef struct _mediadecoder
 	                      u8 PaddingBits, u32 mmlevel);
 
 
-	/*optionnal (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_DIRECT_OUTPUT*/
+	/*optional (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
 	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+
+	/*optional (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
+	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
 } GF_MediaDecoder;
 
 

@@ -867,6 +867,10 @@ s32 gf_lsr_rare_type_to_attribute(u32 tag) {
 u32 gf_lsr_same_rare(SVGAllAttributes *elt_atts, SVGAllAttributes *base_atts)
 {
 	GF_FieldInfo f_elt, f_base;
+	
+	memset(&f_elt, 0, sizeof(GF_FieldInfo));
+	memset(&f_base, 0, sizeof(GF_FieldInfo));
+	
 	f_elt.fieldType = f_base.fieldType = DOM_String_datatype;
 	f_elt.fieldIndex = f_base.fieldIndex = TAG_SVG_ATT__class;
 	f_elt.far_ptr = elt_atts->_class;

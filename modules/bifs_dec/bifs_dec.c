@@ -158,6 +158,10 @@ GF_BaseDecoder *NewBIFSDec()
 	GF_SAFEALLOC(tmp, GF_SceneDecoder);
 	if (!tmp) return NULL;
 	GF_SAFEALLOC(priv, BIFSPriv);
+	if (!priv) {
+		gf_free(tmp);
+		return NULL;
+	}
 	priv->codec = NULL;
 	tmp->privateStack = priv;
 	tmp->AttachStream = BIFS_AttachStream;

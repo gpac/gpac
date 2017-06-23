@@ -176,6 +176,11 @@ void gf_mixer_add_input(GF_AudioMixer *am, GF_AudioInterface *src)
 	if (gf_mixer_is_src_present(am, src)) return;
 	gf_mixer_lock(am, GF_TRUE);
 	GF_SAFEALLOC(in, MixerInput);
+	if (!in) {
+		gf_mixer_lock(am, GF_FALSE);
+		GF_LOG(GF_LOG_ERROR, GF_LOG_AUDIO, ("[AudioMixer] Cannot allocate input source\n"));
+		return;
+	}
 	in->src = src;
 	gf_list_add(am->sources, in);
 	am->must_reconfig = GF_TRUE;
@@ -258,13 +263,13 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	}
 
 	numInit = 0;
-	max_sample_rate = am->sample_rate;
 	max_channels = am->nb_channels;
 	max_bps = am->bits_per_sample;
 	cfg_changed = 0;
-	ch_cfg = 0;
-
+//	max_sample_rate = am->sample_rate;
 	max_sample_rate = 0,
+
+	ch_cfg = 0;
 
 	count = gf_list_count(am->sources);
 	assert(count);
@@ -465,7 +470,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	s32 frac, inChan[GF_SR_MAX_CHANNELS], inChanNext[GF_SR_MAX_CHANNELS];
 
 	in_s8 = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, audio_delay);
-	if (!in_s8) {
+	if (!in_s8 || !src_size) {
 		in->has_prev = GF_FALSE;
 		/*done, stop fill*/
 		in->out_samples_to_write = 0;
@@ -494,6 +499,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 
 	/*while space to fill and input data, convert*/
 	use_prev = in->has_prev;
+	memset(inChanNext, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
 	i = 0;
 	next = prev = 0;
 	while (1) {
@@ -585,6 +591,7 @@ u32 gf_mixer_get_output(GF_AudioMixer *am, void *buffer, u32 buffer_size, u32 de
 		return 0;
 	}
 
+	size=0;
 	single_source = NULL;
 	if (count!=1) goto do_mix;
 	if (am->force_channel_out) goto do_mix;
@@ -715,7 +722,7 @@ do_mix:
 
 	/*if only one active source in native format, process as single source (direct copy)
 	this is needed because mediaControl on an audio object doesn't deactivate it (eg the audio
-	object is still present in the mixer). this opt is typically usefull for language selection
+	object is still present in the mixer). this opt is typically useful for language selection
 	content (cf mp4menu)*/
 	if ((nb_act_src==1) && single_source) goto single_source_mix;
 

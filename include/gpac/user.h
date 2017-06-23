@@ -32,6 +32,24 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/user.h>
+ *	\brief GPAC terminal <-> user API.
+ */
+	
+/*!
+ *\addtogroup termuser_grp Terminal User
+ *\ingroup playback_grp
+ *\brief GPAC terminal <-> user API.
+ *
+ *This section documents the user-level API of the GPAC media player.
+ *	@{
+ */
+	
+
+
+
 #include <gpac/events.h>
 #include <gpac/module.h>
 
@@ -107,6 +125,7 @@ struct _tag_user
 	u32 init_flags;
 };
 
+/*! @} */
 
 #ifdef __cplusplus
 }

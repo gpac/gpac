@@ -32,15 +32,9 @@
 
 #include <gpac/constants.h>
 #include <gpac/events_constants.h>
+#include <gpac/events.h>
 
 #include "directfb_out.h"
-
-enum
-{
-	GF_MOUSE_LEFT = 0,
-	GF_MOUSE_MIDDLE,
-	GF_MOUSE_RIGHT
-};
 
 static int do_xor = 0;
 

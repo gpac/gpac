@@ -39,6 +39,10 @@ Drawable3D *drawable_3d_new(GF_Node *node)
 {
 	Drawable3D *tmp;
 	GF_SAFEALLOC(tmp, Drawable3D);
+	if (!tmp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D stack\n"));
+		return NULL;
+	}
 	tmp->mesh = new_mesh();
 	gf_node_set_private(node, tmp);
 	return tmp;
@@ -359,6 +363,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 			}
 		}
 
+
+	tr_state->camera_was_dirty = GF_FALSE;
+
 	if (tr_state->visual->nb_views>1) {
 		s32 view_idx;
 		Fixed interocular_dist_pixel;
@@ -375,8 +382,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
+		tr_state->camera_was_dirty = GF_TRUE;
 		camera_update_stereo(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->focus_distance, tr_state->visual->camera_layout);
 	} else {
+		if (tr_state->camera->flags & CAM_IS_DIRTY) tr_state->camera_was_dirty = GF_TRUE;
 		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
 	}
 
@@ -539,25 +548,34 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 	visual_3d_enable_depth_buffer(tr_state->visual, tr_state->camera->is_3D);
 
 	if ((tr_state->visual->autostereo_type==GF_3D_STEREO_SIDE) || (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET)) {
-		GF_Rect orig_vp;
-		Fixed vp_width, vp_height;
-		orig_vp = tr_state->camera->vp;
-
-		vp_width = orig_vp.width;
-		vp_height = orig_vp.height;
+		GF_Rect orig_vp = tr_state->camera->vp;
+		Fixed vp_width = orig_vp.width;
+//		Fixed vp_height = orig_vp.height;
+		Fixed old_w = tr_state->camera->width;
+		Fixed old_h = tr_state->camera->height;
 
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
-			Fixed ratio = gf_divfix(vp_width, vp_height);
 			Fixed max_width = INT2FIX(tr_state->visual->compositor->display_width) / tr_state->visual->nb_views;
 			Fixed max_height = INT2FIX(tr_state->visual->compositor->display_height);
 
-			if (max_width < gf_mulfix(ratio, max_height) ) {
+#if 0
+				Fixed ratio = gf_divfix(vp_width, vp_height);
+
+				if (max_width < gf_mulfix(ratio, max_height) ) {
+					tr_state->camera->vp.width = max_width;
+				} else {
+					tr_state->camera->vp.width = gf_mulfix(ratio, max_height);
+				}
+				tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
+#else
+				//fill max of screen
 				tr_state->camera->vp.width = max_width;
-			} else {
-				tr_state->camera->vp.width = gf_mulfix(ratio, max_height);
-			}
-			tr_state->camera->vp.height = gf_divfix(tr_state->camera->vp.width, ratio);
+				tr_state->camera->vp.height = max_height;
+#endif
+				tr_state->camera->width = max_width;
+				tr_state->camera->height = max_height;
+
 			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
 			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
 
@@ -587,6 +605,9 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_setup_projection(tr_state, layer_type);
 
 		tr_state->camera->vp = orig_vp;
+		tr_state->camera->width = old_w;
+		tr_state->camera->height = old_h;
+
 	} else if (tr_state->visual->autostereo_type==GF_3D_STEREO_TOP) {
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
@@ -677,7 +698,7 @@ static GFINLINE Bool visual_3d_has_alpha(GF_TraverseState *tr_state, GF_Node *ge
 	}
 
 	/*check alpha texture in3D or with bitmap*/
-	if (is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap)) {
+	if (tr_state->appear && ( is_mat3D || (gf_node_get_tag(geom)==TAG_MPEG4_Bitmap))) {
 		GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
 		if (txh && txh->transparent) return 1;
 	}
@@ -727,8 +748,12 @@ void visual_3d_register_context(GF_TraverseState *tr_state, GF_Node *geometry)
 		return;
 	}
 
-
 	GF_SAFEALLOC(ctx, Drawable3DContext);
+	if (!ctx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate drawable 3D context\n"));
+		return;
+	}
+	
 	ctx->directional_lights = gf_list_new();
 	ctx->geometry = geometry;
 	ctx->appearance = tr_state->appear;
@@ -1267,7 +1292,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = -FIX_ONE;
+	res.z = -FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
@@ -1277,7 +1302,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = FIX_ONE;
+	res.z = FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
 	if (!res.q) return;
@@ -1331,7 +1356,6 @@ void visual_3d_vrml_drawable_pick(GF_Node *n, GF_TraverseState *tr_state, GF_Mes
 	count = gf_list_count(tr_state->vrml_sensors);
 	compositor = tr_state->visual->compositor;
 
-	node_is_over = 0;
 	if (mesh) {
 		if (mesh->mesh_type!=MESH_TRIANGLES)
 			return;
@@ -1818,12 +1842,16 @@ static GFINLINE Bool visual_3d_setup_material(GF_TraverseState *tr_state, u32 me
 		/*this is an extra feature: if material2D.filled is FALSE on 3D objects, switch to TX_REPLACE mode
 		and enable lighting*/
 		if (!mat->filled) {
-			GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-			if (txh) {
-				gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
-				visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
-				return 1;
+			if (mat->transparency) {
+				emi.red = emi.green = emi.blue = FIX_ONE;
+			} else {
+				GF_TextureHandler *txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
+				if (txh) {
+					gf_sc_texture_set_blend_mode(txh, TX_REPLACE);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_COLOR, 0);
+					visual_3d_set_state(tr_state->visual, V3D_STATE_LIGHT, 1);
+					return 1;
+				}
 			}
 		}
 		/*regular mat 2D*/
@@ -1845,7 +1873,7 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 #ifndef GPAC_DISABLE_VRML
 	GF_TextureHandler *txh;
 	tr_state->mesh_num_textures = 0;
-	if (!tr_state->appear) return 0;
+	if (!tr_state->appear) return GF_TRUE;
 
 	gf_node_dirty_reset(tr_state->appear, 0);
 
@@ -1858,14 +1886,22 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 			switch (txh->pixelformat) {
 			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGB_24:
-				v[0] = v[1] = v[2] = FIX_ONE;
-				v[3] = diffuse_alpha;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (tr_state->visual->has_material_2d) {
+					SFColor c;
+					c.red = c.green = c.blue = FIX_ONE;
+					visual_3d_set_material_2d(tr_state->visual, c, diffuse_alpha);
+				} else {
+					v[0] = v[1] = v[2] = FIX_ONE;
+					v[3] = diffuse_alpha;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				break;
 			/*override diffuse color AND material alpha (cf VRML lighting)*/
 			case GF_PIXEL_RGBA:
-				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
-				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				if (!tr_state->visual->has_material_2d) {
+					v[0] = v[1] = v[2] = v[3] = FIX_ONE;
+					visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
+				}
 				tr_state->mesh_is_transparent = 1;
 				break;
 				/*			case GF_PIXEL_GREYSCALE:
@@ -1874,10 +1910,10 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 				*/
 			}
 		}
-		return tr_state->mesh_num_textures;
+		return tr_state->mesh_num_textures ? GF_TRUE : GF_FALSE;
 	}
 #endif /*GPAC_DISABLE_VRML*/
-	return 0;
+	return GF_FALSE;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
@@ -1896,7 +1932,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 	/*setup material and check if 100% transparent - in which case don't draw*/
 	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state, diff_a);
+	if (! visual_3d_setup_texture(tr_state, diff_a)) return 0;
 	return 1;
 }
 
@@ -1947,6 +1983,7 @@ void visual_3d_enable_headlight(GF_VisualManager *visual, Bool bOn, GF_Camera *c
 void visual_3d_set_material_2d(GF_VisualManager *visual, SFColor col, Fixed alpha)
 {
 	visual->has_material_2d = alpha ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = col.red;
 		visual->mat_2d.green = col.green;
@@ -1960,6 +1997,7 @@ void visual_3d_set_material_2d_argb(GF_VisualManager *visual, u32 col)
 {
 	u32 a = GF_COL_A(col);
 	visual->has_material_2d = a ? 1 : 0;
+	visual->has_material=0;
 	if (visual->has_material_2d) {
 		visual->mat_2d.red = INT2FIX( GF_COL_R(col) ) / 255;
 		visual->mat_2d.green = INT2FIX( GF_COL_G(col) ) / 255;
@@ -2005,6 +2043,7 @@ void visual_3d_set_material(GF_VisualManager *visual, u32 material_type, Fixed *
 	visual->materials[material_type].alpha = rgba[3];
 
 	visual->has_material = 1;
+	visual->has_material_2d=0;
 }
 
 void visual_3d_set_shininess(GF_VisualManager *visual, Fixed shininess)

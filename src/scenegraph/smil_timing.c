@@ -199,6 +199,8 @@ static void gf_smil_timing_get_interval_end(SMIL_Timing_RTI *rti, SMIL_Interval 
 static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 {
 	u32 i, count;
+	if (!rti || !rti->current_interval) return;
+	
 	memset(rti->current_interval, 0, sizeof(SMIL_Interval));
 	rti->current_interval->begin = -1;
 	count = (rti->timingp->begin ? gf_list_count(*rti->timingp->begin) : 0);
@@ -238,7 +240,8 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 static Bool gf_smil_timing_get_next_interval(SMIL_Timing_RTI *rti, Bool current, SMIL_Interval *interval, Double scene_time)
 {
 	u32 i, count;
-
+	if (!interval) return GF_FALSE;
+	
 	memset(interval, 0, sizeof(SMIL_Interval));
 	interval->begin = -1;
 
@@ -354,6 +357,10 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	}
 
 	GF_SAFEALLOC(rti, SMIL_Timing_RTI)
+	if (!rti) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing RTI\n"));
+		return;
+	}
 	timingp->runtime = rti;
 	rti->timed_elt = timed_elt;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Initialization\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -367,8 +374,16 @@ void gf_smil_timing_init_runtime_info(GF_Node *timed_elt)
 	rti->media_duration = -1;
 
 	GF_SAFEALLOC(rti->current_interval, SMIL_Interval);
+	if (!rti->current_interval) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing current interval\n"));
+		return;
+	}
 	gf_smil_timing_get_first_interval(rti);
 	GF_SAFEALLOC(rti->next_interval, SMIL_Interval);
+	if (!rti->next_interval) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL timing next interval\n"));
+		return;
+	}
 	gf_smil_timing_get_next_interval(rti, 0, rti->next_interval, rti->current_interval->begin);
 
 	/* Now that the runtime info for this timed element is initialized, we can tell the scene graph that it can start
@@ -963,6 +978,10 @@ Bool gf_svg_resolve_smil_times(GF_Node *anim, void *event_base_element,
 	if (!count && !is_end && (anim->sgprivate->tag==TAG_SVG_discard) ) {
 		SMIL_Time *t;
 		GF_SAFEALLOC(t, SMIL_Time);
+		if (!t) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL time for discard\n"));
+			return 0;
+		}
 		t->clock = 0;
 		t->type = GF_SMIL_TIME_CLOCK;
 		gf_list_add(smil_times, t);
@@ -985,6 +1004,10 @@ void gf_smil_timing_insert_clock(GF_Node *elt, Bool is_end, Double clock)
 	SMIL_Time *begin;
 	GF_List *l;
 	GF_SAFEALLOC(begin, SMIL_Time);
+	if (!begin) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_SMIL, ("[SMIL Timing] Failed to alloc SMIL begin value\n"));
+		return;
+	}
 
 	begin->type = GF_SMIL_TIME_EVENT_RESOLVED;
 	begin->clock = clock;

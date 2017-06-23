@@ -3,7 +3,9 @@
  **/
 
 //version defined first, at shader compilation
-
+#ifdef GF_GL_IS_ExternalOES
+#extension GL_OES_EGL_image_external : require
+#endif
 #if defined(GL_ES)
 #if defined(GL_FRAGMENT_PRECISION_HIGH)
 precision highp float;	//ES2.0 supporting highp
@@ -100,11 +102,13 @@ uniform bool hasColorKey;
 uniform int gfNumTextures;
 
 //Texture samplers
-#ifdef GF_GL_IS_YUV
-uniform bool isNV21PixelFormat;
+#if defined(GF_GL_IS_YUV)
+uniform int yuvPixelFormat;
 uniform sampler2D y_plane;
 uniform sampler2D u_plane;
 uniform sampler2D v_plane;
+#elif defined(GF_GL_IS_ExternalOES)
+uniform samplerExternalOES imgOES;
 #else
 uniform sampler2D img;
 #endif
@@ -294,10 +298,14 @@ void main()
 	
 	//currently supporting 1 texture
 	if (gfNumTextures>0) {
-#ifdef GF_GL_IS_YUV
+#if defined(GF_GL_IS_YUV)
 		texc = TexCoord.st;
 		yuv.x = texture2D(y_plane, texc).r;
-		if (isNV21PixelFormat) {
+		if (yuvPixelFormat==2) {
+			yuv.y = texture2D(u_plane, texc).r;
+			yuv.z = texture2D(u_plane, texc).a;
+		}
+		else if (yuvPixelFormat==1) {
 			yuv.y = texture2D(u_plane, texc).a;
 			yuv.z = texture2D(u_plane, texc).r;
 		}
@@ -311,13 +319,16 @@ void main()
 		rgb.b = dot(yuv, B_mul);
 
 		rgba = vec4(rgb, alpha);
+		
+#elif defined(GF_GL_IS_ExternalOES)
+		rgba = texture2D(imgOES, TexCoord);
 #else
 		rgba = texture2D(img, TexCoord);
 #endif
 
 #ifdef GF_GL_HAS_LIGHT
 		if (gfNumLights>0) {	//RGB texture
-			fragColor = rgba;
+			fragColor *= rgba;
 		}
 		//RGB texture with material 2D [TODO: check]
 		else if(gfNumLights==0)
@@ -327,6 +338,7 @@ void main()
 		}
 
 		//we have mat 2D + texture
+#ifndef GF_GL_IS_ExternalOES
 		if (hasMaterial2D) {
 			if(gfEmissionColor.a > 0.0 && gfEmissionColor.a <1.0) {
 				fragColor *= gfEmissionColor;
@@ -334,6 +346,7 @@ void main()
 				fragColor.rgb = gfEmissionColor.rgb;
 			}
 		}
+#endif // GF_GL_IS_ExternalOES
 	}
 	
 #endif // GF_GL_HAS_TEXTURE

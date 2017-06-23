@@ -226,7 +226,9 @@ u32 gf_clock_real_time(GF_Clock *ck)
 	if ((ck->speed < 0) && ((s32) ck->init_time < (-ck->speed) * (time - ck->StartTime))) {
 		time = 0;
 	} else {
-		time = ck->discontinuity_time + (u32) ( ck->init_time + ck->speed * (time - ck->StartTime) );
+		//DO NOT CHANGE the position of cast float->u32, otherwise we have precision issues when ck->init_time
+		//is >= 0x40000000. We know for sure that ck->speed * (time - ck->StartTime) is positive
+		time = ck->discontinuity_time + ck->init_time + (u32) (ck->speed * (time - ck->StartTime) );
 	}
 
 #endif
@@ -258,6 +260,11 @@ u32 gf_clock_media_time(GF_Clock *ck)
 	return t;
 }
 
+u32 gf_clock_elapsed_time(GF_Clock *ck)
+{
+	if (!ck || ck->Buffering || ck->Paused) return 0;
+	return gf_sys_clock() - ck->StartTime;
+}
 
 Bool gf_clock_is_started(GF_Clock *ck)
 {

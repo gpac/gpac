@@ -45,7 +45,7 @@ extern "C" {
  *	\ingroup utils_grp
  *	\brief XML Parsing functions
  *
- *This section documents the XML functions of the GPAC framework.\n
+ *This section documents the XML functions of the GPAC framework.
  *	@{
  */
 

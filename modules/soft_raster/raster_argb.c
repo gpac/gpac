@@ -484,7 +484,7 @@ GF_Err evg_surface_clear_rgbx(GF_SURFACE surf, GF_IRect rc, GF_Color col)
 	r = GF_COL_R(col);
 	g = GF_COL_G(col);
 	b = GF_COL_B(col);
-	col = GF_COL_ARGB(0xFF, b, g, r);
+	
 	for (y = 0; y < h; y++) {
 		u8 *data = (u8 *) _this ->pixels + (y + sy) * _this->pitch_y + st*sx;
 		for (x = 0; x < w; x++) {

@@ -342,6 +342,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 					//1 to 1 mapping trackID and ESID. Add this track to MPOD
 					//if track does not exist, this will be remove while reading the OD stream
 					e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);
+					if (e) goto err_exit;
 					e = gf_odf_desc_add_desc((GF_Descriptor *)isom_od, (GF_Descriptor *)ref);
 					if (e) goto err_exit;
 				}
@@ -366,6 +367,7 @@ GF_Err Media_ParseODFrame(GF_MediaBox *mdia, const GF_ISOSample *sample, GF_ISOS
 				ref = (GF_ES_ID_Ref *) gf_odf_desc_new(GF_ODF_ESD_REF_TAG);
 				//1 to 1 mapping trackID and ESID
 				e = reftype_AddRefTrack(mpod, esd->ESID, &ref->trackRef);
+				if (e) goto err_exit;
 				e = gf_list_add(esdU2->ESDescriptors, ref);
 				if (e) goto err_exit;
 			}
@@ -504,7 +506,6 @@ u32 gf_isom_find_od_for_track(GF_ISOFile *file, u32 track)
 	GF_TrackBox *tk = gf_isom_get_track_from_file(file, track);
 	if (!tk) return 0;
 
-	the_od_id = 0;
 	i=0;
 	while ( (od_tk = (GF_TrackBox*)gf_list_enum(file->moov->trackList, &i))) {
 		if (od_tk->Media->handler->handlerType != GF_ISOM_MEDIA_OD) continue;

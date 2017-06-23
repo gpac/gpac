@@ -30,6 +30,21 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/scenegraph_svg.h>
+ *	\brief Scenegraph for SVG files
+ */
+	
+/*!
+ *	\addtogroup ssvg SVG Scenegraph
+ *	\ingroup scene_grp
+ *	\brief Scenegraph for SVG files.
+ *
+ *This section documents the Scenegraph for SVG files.
+ *	@{
+ */
+
+
 #include <gpac/scenegraph.h>
 #include <gpac/svg_types.h>
 
@@ -648,6 +663,7 @@ u32 gf_xml_get_attribute_tag(GF_Node *node, char *attribute_name, u32 ns);
 
 u32 gf_xml_get_element_tag(const char *element_name, u32 xmlns);
 
+/*! @} */
 
 #ifdef __cplusplus
 }
