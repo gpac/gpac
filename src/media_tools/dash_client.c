@@ -2960,16 +2960,16 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 						m_prime++;
 					}
 					else { //GF_DASH_ALGO_BOLA_O						
-						GF_MPD_Representation *rep_m_prime;
-						GF_MPD_Representation *rep_m_prime_plus_one;
+						GF_MPD_Representation *rep_m_prime, *rep_m_prime_plus_one;
+						Double Sm_prime, Sm_prime_plus_one, f_m_prime, f_m_prime_1, bola_o_pause;
 						assert(m_prime >= 0 && m_prime < nb_reps - 2);
 						rep_m_prime = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime);
 						rep_m_prime_plus_one = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime+1);
-						Double Sm_prime = rep_m_prime->bandwidth*p;
-						Double Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
-						Double f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
-						Double f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
-						Double bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
+						Sm_prime = rep_m_prime->bandwidth*p;
+						Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
+						f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
+						f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
+						bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
 						// TODO wait for bola_o_pause before making the download 
 					}
 				}
