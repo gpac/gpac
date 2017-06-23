@@ -380,8 +380,8 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 
 			if (!rootmost_svg) {
 				DrawableContext *ctx;
-				Fixed width = tr_state->parent_anim_atts->width->value;
-				Fixed height = tr_state->parent_anim_atts->height->value;
+				Fixed width = tr_state->parent_anim_atts ? tr_state->parent_anim_atts->width->value : 0;
+				Fixed height = tr_state->parent_anim_atts ? tr_state->parent_anim_atts->height->value : 0;
 
 				if (!stack->vp_fill) {
 					stack->vp_fill = drawable_new();
@@ -411,8 +411,8 @@ static void svg_traverse_svg(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 
-	if (!stack->root_svg && (all_atts.x || all_atts.y))
-		gf_mx2d_add_translation(&tr_state->vb_transform, all_atts.x->value, all_atts.y->value);
+	if (!stack->root_svg)
+		gf_mx2d_add_translation(&tr_state->vb_transform, all_atts.x ? all_atts.x->value : 0, all_atts.y ? all_atts.y->value : 0);
 
 #ifndef GPAC_DISABLE_3D
 	if (tr_state->visual->type_3d) {
@@ -483,6 +483,10 @@ void compositor_init_svg_svg(GF_Compositor *compositor, GF_Node *node)
 	SVGsvgStack *stack;
 
 	GF_SAFEALLOC(stack, SVGsvgStack);
+	if (!stack) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate svg stack\n"));
+		return;
+	}
 
 	root = gf_sg_get_root_node(gf_node_get_graph(node));
 	stack->root_svg = (root==node) ? 1 : 0;
@@ -791,6 +795,10 @@ void compositor_init_svg_switch(GF_Compositor *compositor, GF_Node *node)
 {
 	s32 *selected_idx;
 	GF_SAFEALLOC(selected_idx, s32);
+	if (!selected_idx) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate font for svg switch stack\n"));
+		return;
+	}
 	*selected_idx = -1;
 	gf_node_set_private(node, selected_idx);
 	gf_node_set_callback_function(node, svg_traverse_switch);

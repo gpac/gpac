@@ -270,7 +270,7 @@ ifeq ($(CONFIG_DARWIN),yes)
 	$(LIBTOOL) -s -o ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
 ifneq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS) 
+	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(EXTRALIBS)  $(LDFLAGS)
 endif
 
 else
@@ -278,15 +278,16 @@ else
 	$(AR) cr ../bin/gcc/libgpac_static.a $(OBJS)
 	$(RANLIB) ../bin/gcc/libgpac_static.a
 ifneq ($(STATICBUILD),yes)
-	$(CC) $(SHFLAGS) $(LD_SONAME) $(LDFLAGS) -o $@ $(OBJS) $(EXTRALIBS)	
+	$(CC) $(SHFLAGS) $(LD_SONAME) -o $@ $(OBJS) $(EXTRALIBS)	 $(LDFLAGS)
 	mv $@ $@.$(VERSION_SONAME)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@.$(VERSION_MAJOR)
 	ln -sf $(notdir $@).$(VERSION_SONAME) $@
 endif
 
 endif
-ifeq ($(shell fgrep "Libs.private:" ../gpac.pc),)
-	@echo "Libs.private: $(EXTRALIBS)" >> ../gpac.pc
+
+ifeq ($(shell fgrep "Libs.private:" ../gpac.pc 1>&2 2> /dev/null ; echo $$?), 1)
+	@echo "Libs.private: -lgpac_static $(EXTRALIBS)" >> ../gpac.pc
 endif
 
 dep:

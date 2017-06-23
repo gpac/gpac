@@ -30,6 +30,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/compositor.h>
+ *	\brief GPAC A/V/2D/3D compositor/rendering.
+ */
+	
+/*!
+ *\addtogroup compose_grp Compositor
+ *\ingroup playback_grp
+ *\brief GPAC A/V/2D/3D compositor/rendering.
+ *
+ *This section documents the compositor of GPAC? in charge of assembling audio, images, video, text, 2D and 3D graphics with in a timed way
+ *	@{
+ */
+	
 
 /*include scene graph API*/
 #include <gpac/scenegraph.h>
@@ -168,6 +182,9 @@ void gf_sc_reload_audio_filters(GF_Compositor *compositor);
 
 Bool gf_sc_uri_is_hardcoded_proto(GF_Compositor *compositor, const char *uri);
 
+void gf_sc_reload_config(GF_Compositor *compositor);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

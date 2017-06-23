@@ -81,7 +81,7 @@ int dc_video_decoder_open(VideoInputFile *video_input_file, VideoDataConf *video
 	}
 #endif
 
-	if (video_data_conf->format && strcmp(video_data_conf->format, "") != 0) {
+	if (strcmp(video_data_conf->format, "") != 0) {
 		in_fmt = av_find_input_format(video_data_conf->format);
 		if (in_fmt == NULL) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Cannot find the format %s.\n", video_data_conf->format));
@@ -237,7 +237,8 @@ int dc_video_decoder_read(VideoInputFile *video_input_file, VideoInputData *vide
 			AVPacket *packet_copy = NULL;
 			if (ret != AVERROR_EOF) {
 				GF_SAFEALLOC(packet_copy, AVPacket);
-				memcpy(packet_copy, &packet, sizeof(AVPacket));
+				if (packet_copy)
+					memcpy(packet_copy, &packet, sizeof(AVPacket));
 			}
 
 			assert(video_input_file->av_pkt_list);

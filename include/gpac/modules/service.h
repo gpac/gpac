@@ -145,6 +145,8 @@ typedef enum
 	//sets nalu mode
 	GF_NET_CHAN_NALU_MODE,
 
+	/*indicates visible part of the visual object associated with the channel*/
+	GF_NET_CHAN_VISIBILITY_HINT,
 	/*request current position in TSB - 0 means 'at the live point'*/
 	GF_NET_GET_TIMESHIFT,
 
@@ -153,6 +155,8 @@ typedef enum
 
 	/*query codec statistic on all channels*/
 	GF_NET_SERVICE_CODEC_STAT_QUERY,
+	/* Used in DASH: submodules can query the DASH module for the computed UTC delay between client and server */
+	GF_NET_SERVICE_QUERY_UTC_DELAY,
 } GF_NET_CHAN_CMD;
 
 /*channel command for all commands that don't need params:
@@ -221,6 +225,8 @@ typedef struct
 	u32 min, max;
 	/*only used with GF_NET_CHAN_BUFFER_QUERY and GF_NET_BUFFER_QUERY- amount of media in decoding buffer, in ms. This value is adjusted by the current playback speed, eg if playing at 2x the occupancy is (media time in buffers) / 2 */
 	u32 occupancy;
+	/*set to GF_TRUE if a channel is buffering for the required service*/
+	Bool buffering;
 } GF_NetComBuffer;
 
 /*GF_NET_CHAN_DURATION*/
@@ -373,7 +379,19 @@ typedef struct
 	u32 command_type;
 	LPNETCHANNEL on_channel;
 	u32 w,h,x,y, width, height;
+	u32 dependent_group_index;
 } GF_NetComSRDInfo;
+
+/*GF_NET_CHAN_VISIBILITY_HINT*/
+typedef struct
+{
+	u32 command_type;
+	LPNETCHANNEL on_channel;
+	//gives min_max coords of the visible rectangle associated with channels.
+	//min_x may be greater than max_x in case of 360 videos
+	u32 min_x, max_x, min_y, max_y;
+} GF_NetComVisibililityHint;
+
 
 /*GF_NET_SERVICE_INFO*/
 typedef struct __netinfocom
@@ -480,8 +498,14 @@ typedef struct
 	Bool up;
 
 	Bool set_auto;
+	//0: current group, otherwise index of the depending_on group
+	u32 dependent_group_index;
 	//or ID of the quality to switch, as indicated in query quality
 	const char *ID;
+	//1+tile mode adaptation (doesn't change other selections)
+	u32 set_tile_mode_plus_one;
+	
+	u32 quality_degradation;
 } GF_NetQualitySwitch;
 
 
@@ -493,9 +517,11 @@ typedef struct
 	LPNETCHANNEL on_channel;
 
 	//1-based index of quality to query
-	//if 0, the command is used to query the number of quality for the object
+	//if 0, the command is used to query the number of quality for the object and the number of objects depending on this one in dependent_group_index
 	u32 index;
-
+	//if not 0, the parameters are queried for the depending on grup with the given index
+	u32 dependent_group_index;
+	
 	//all out params
 	u32 bandwidth;
 	const char *ID;
@@ -512,6 +538,7 @@ typedef struct
 	Bool disabled;
 	Bool is_selected;
 	Bool automatic;
+	u32 tile_adaptation_mode;
 } GF_NetQualityQuery;
 
 /*GF_NET_SERVICE_STATUS_PROXY*/
@@ -584,6 +611,7 @@ typedef struct
 
 	//mode 0: extract in ISOBMF format (nalu size field + nalu)
 	//mode 1: extract in Annex B format (start code + nalu)
+	//mode 2: extract in Annex B format (start code + nalu) and disable sync sample seek mode (only used for scalable hybrid)
 	u32 extract_mode;
 } GF_NALUExtractMode;
 
@@ -597,6 +625,12 @@ typedef struct
 	Bool codec_reset;
 	Bool decode_only_rap;
 } GF_CodecStat;
+
+/*GF_NET_SERVICE_QUERY_UTC_DELAY*/
+typedef struct
+{
+	s32 delay;
+} GF_UTCDelay;
 
 typedef union __netcommand
 {
@@ -629,6 +663,8 @@ typedef union __netcommand
 	GF_NetQualityQuery quality_query;
 	GF_CodecStat codec_stat;
 	GF_NetComSRDInfo srd;
+	GF_NetComVisibililityHint visibility_hint;
+	GF_UTCDelay utc_delay;
 } GF_NetworkCommand;
 
 /*

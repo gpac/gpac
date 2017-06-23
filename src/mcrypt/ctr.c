@@ -200,7 +200,7 @@ GF_Err _mcrypt(void * buf,void *plaintext, int len, int blocksize, void* akey, v
 	}
 	modlen = len % blocksize;
 	if (modlen > 0) {
-		/* This is only usefull if encrypting the
+		/* This is only useful if encrypting the
 		 * final block. Otherwise you'll not be
 		 * able to decrypt it.
 		 */

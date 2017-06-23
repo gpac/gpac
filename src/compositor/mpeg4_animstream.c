@@ -167,6 +167,10 @@ void compositor_init_animationstream(GF_Compositor *compositor, GF_Node *node)
 {
 	AnimationStreamStack *st;
 	GF_SAFEALLOC(st, AnimationStreamStack);
+	if (!st) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate AnimationStream stack\n"));
+		return;
+	}
 	st->compositor = compositor;
 	st->time_handle.UpdateTimeNode = animationstream_update_time;
 	st->time_handle.udta = node;

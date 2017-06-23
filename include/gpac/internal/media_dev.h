@@ -96,15 +96,38 @@ typedef struct
 	u32 time_scale;
 	s32 fixed_frame_rate_flag;
 
+	Bool aspect_ratio_info_present_flag;
 	u32 par_num, par_den;
+
+	Bool overscan_info_present_flag;
+	Bool video_signal_type_present_flag;
+	u8 video_format;
+	Bool video_full_range_flag;
+
+	Bool colour_description_present_flag;
+	u8 colour_primaries;
+	u8 transfer_characteristics;
+	u8 matrix_coefficients;
 
 	Bool nal_hrd_parameters_present_flag;
 	Bool vcl_hrd_parameters_present_flag;
+	Bool low_delay_hrd_flag;
 	AVC_HRD hrd;
 
 	Bool pic_struct_present_flag;
+
 	/*to be eventually completed by other vui members*/
 } AVC_VUI;
+
+typedef struct 
+{
+	u32 left;
+	u32 right;
+	u32 top;
+	u32 bottom;
+	
+} AVC_CROP;
+
 
 typedef struct
 {
@@ -117,6 +140,9 @@ typedef struct
 	s32 delta_pic_order_always_zero_flag;
 	s32 offset_for_non_ref_pic, offset_for_top_to_bottom_field;
 	Bool frame_mbs_only_flag;
+	Bool mb_adaptive_frame_field_flag;
+	u32 max_num_ref_frames;
+	Bool gaps_in_frame_num_value_allowed_flag;
 	u8 chroma_format;
 	u8 luma_bit_depth_m8;
 	u8 chroma_bit_depth_m8;
@@ -125,7 +151,9 @@ typedef struct
 
 	u32 width, height;
 
+	Bool vui_parameters_present_flag;
 	AVC_VUI vui;
+	AVC_CROP crop;
 
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 sent*/
 	u32 state;
@@ -138,6 +166,7 @@ typedef struct
 {
 	s32 id; /* used to compare pps when storing SVC PSS */
 	s32 sps_id;
+	Bool entropy_coding_mode_flag;
 	s32 pic_order_present;			/* pic_order_present_flag*/
 	s32 redundant_pic_cnt_present;	/* redundant_pic_cnt_present_flag */
 	u32 slice_group_count;			/* num_slice_groups_minus1 + 1*/
@@ -342,13 +371,16 @@ typedef struct
 } HEVC_RateInfo;
 
 
-#define MAX_SHVC_LAYERS	4
+#define MAX_LHVC_LAYERS	4
+#define MAX_NUM_LAYER_SETS 1024
 typedef struct
 {
 	s32 id;
 	/*used to discard repeated SPSs - 0: not parsed, 1 parsed, 2 stored*/
 	u32 state;
+	s32 bit_pos_vps_extensions;
 	u32 crc;
+	Bool vps_extension_found;
 	u32 max_layers, max_sub_layers, max_layer_id, num_layer_sets;
 	Bool temporal_id_nesting;
 	HEVC_ProfileTierLevel ptl;
@@ -358,17 +390,27 @@ typedef struct
 
 
 	u32 scalability_mask[16];
-	u32 dimension_id[MAX_SHVC_LAYERS][16];
-	u32 layer_id_in_nuh[MAX_SHVC_LAYERS];
-	u32 layer_id_in_vps[MAX_SHVC_LAYERS];
+	u32 dimension_id[MAX_LHVC_LAYERS][16];
+	u32 layer_id_in_nuh[MAX_LHVC_LAYERS];
+	u32 layer_id_in_vps[MAX_LHVC_LAYERS];
 
-
-	u32 profile_level_tier_idx[MAX_SHVC_LAYERS];
-	HEVC_ProfileTierLevel ext_ptl[MAX_SHVC_LAYERS];
+	u8 num_profile_tier_level, num_output_layer_sets;
+	u32 profile_level_tier_idx[MAX_LHVC_LAYERS];
+	HEVC_ProfileTierLevel ext_ptl[MAX_LHVC_LAYERS];
 
 	u32 num_rep_formats;
 	HEVC_RepFormat rep_formats[16];
 	u32 rep_format_idx[16];
+	Bool base_layer_internal_flag, base_layer_available_flag;
+	u8 num_layers_in_id_list[MAX_NUM_LAYER_SETS];
+	u8 direct_dependency_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool output_layer_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 profile_tier_level_idx[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	Bool alt_output_layer_flag[MAX_LHVC_LAYERS];
+	u8 num_necessary_layers[MAX_LHVC_LAYERS];
+	Bool necessary_layers_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdList[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS];
+	u8 LayerSetLayerIdListMax[MAX_LHVC_LAYERS]; //the highest value in LayerSetLayerIdList[i]
 } HEVC_VPS;
 
 typedef struct
@@ -381,8 +423,6 @@ typedef struct
 typedef struct
 {
 	u8 nal_unit_type;
-	s8 temporal_id;
-
 	u32 frame_num, poc_lsb, slice_type;
 
 	s32 redundant_pic_cnt;
@@ -394,6 +434,12 @@ typedef struct
 	Bool dependent_slice_segment_flag;
 	Bool first_slice_segment_in_pic_flag;
 	u32 slice_segment_address;
+	u8 prev_layer_id_plus1;
+
+	//bit offset of the num_entry_point (if present) field
+	s32 entry_point_start_bits;
+	//byte offset of the payload start (after byte alignment)
+	s32 payload_start_offset;
 
 	HEVC_SPS *sps;
 	HEVC_PPS *pps;
@@ -401,6 +447,11 @@ typedef struct
 
 typedef struct _hevc_state
 {
+	//set by user
+	Bool full_slice_header_parse;
+
+	//all other vars set by parser
+
 	HEVC_SPS sps[16]; /* range allowed in the spec is 0..15 */
 	s8 sps_active_idx;	/*currently active sps; must be initalized to -1 in order to discard not yet decodable SEIs*/
 
@@ -411,21 +462,27 @@ typedef struct _hevc_state
 	HEVCSliceInfo s_info;
 	HEVC_SEI sei;
 
-	Bool is_svc;
+	//-1 or the value of the vps/sps/pps ID of the nal just parsed
+	s32 last_parsed_vps_id;
+	s32 last_parsed_sps_id;
+	s32 last_parsed_pps_id;
 } HEVCState;
 
 enum
 {
-	GF_HEVC_TYPE_B = 0,
-	GF_HEVC_TYPE_P = 1,
-	GF_HEVC_TYPE_I = 2,
+	GF_HEVC_SLICE_TYPE_B = 0,
+	GF_HEVC_SLICE_TYPE_P = 1,
+	GF_HEVC_SLICE_TYPE_I = 2,
 };
 s32 gf_media_hevc_read_vps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_sps(char *data, u32 size, HEVCState *hevc);
 s32 gf_media_hevc_read_pps(char *data, u32 size, HEVCState *hevc);
-s32 gf_media_hevc_parse_nalu(GF_BitStream *bs, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
+s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit_type, u8 *temporal_id, u8 *layer_id);
 Bool gf_media_hevc_slice_is_intra(HEVCState *hevc);
 Bool gf_media_hevc_slice_is_IDR(HEVCState *hevc);
+//parses VPS and rewrites data buffer after removing VPS extension
+s32 gf_media_hevc_read_vps_ex(char *data, u32 *size, HEVCState *hevc, Bool remove_extensions);
+
 
 GF_Err gf_hevc_get_sps_info_with_state(HEVCState *hevc_state, char *sps_data, u32 sps_size, u32 *sps_id, u32 *width, u32 *height, s32 *par_n, s32 *par_d);
 
@@ -490,7 +547,7 @@ void gf_webvtt_sample_del(GF_WebVTTSample * samp);
 u64 gf_webvtt_sample_get_start(GF_WebVTTSample * samp);
 
 #ifndef GPAC_DISABLE_ISOM
-GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, u32 index);
+GF_Err gf_webvtt_dump_header(FILE *dump, GF_ISOFile *file, u32 track, Bool box_mode, u32 index);
 GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp);
 GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 #endif /* GPAC_DISABLE_ISOM */

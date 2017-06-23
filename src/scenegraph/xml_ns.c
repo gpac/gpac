@@ -389,7 +389,6 @@ u32 gf_xml_get_attribute_tag(GF_Node *elt, char *attribute_name, u32 ns)
 
 	if (!ns) {
 		ns_sep = strchr(attribute_name, ':');
-		ns = GF_XMLNS_UNDEFINED;
 		if (ns_sep) {
 			ns_sep[0] = 0;
 			ns = gf_sg_get_namespace_code(elt->sgprivate->scenegraph, attribute_name);
@@ -641,7 +640,7 @@ const char *gf_xml_get_element_name(GF_Node *n)
 	ns = n ? gf_sg_get_namespace_code(n->sgprivate->scenegraph, NULL) : 0;
 	count = sizeof(xml_elements) / sizeof(struct xml_elt_def);
 	for (i=0; i<count; i++) {
-		if (n->sgprivate->tag==xml_elements[i].tag) {
+		if (n && n->sgprivate && (n->sgprivate->tag==xml_elements[i].tag)) {
 			char *xmlns;
 			if (!n || (ns == xml_elements[i].xmlns))
 				return xml_elements[i].name;
@@ -722,6 +721,7 @@ SVGAttribute *gf_node_create_attribute_from_datatype(u32 data_type, u32 attribut
 	if (!data_type) return NULL;
 
 	GF_SAFEALLOC(att, SVGAttribute);
+	if (!att) return NULL;
 	att->data_type = (u16) data_type;
 	att->tag = (u16) attribute_tag;
 	att->data = gf_svg_create_attribute_value(att->data_type);
@@ -754,6 +754,7 @@ GF_Err gf_node_get_attribute_by_name(GF_Node *node, char *name, u32 xmlns_code, 
 		}
 		if (create_if_not_found) {
 			GF_SAFEALLOC(att, GF_DOMFullAttribute);
+			if (!att) return GF_OUT_OF_MEM;
 			att->data_type = (u16) DOM_String_datatype;
 			att->tag = (u16) TAG_DOM_ATT_any;
 			att->data = gf_svg_create_attribute_value(att->data_type);
@@ -1046,6 +1047,7 @@ static u32 check_existing_file(char *base_file, char *ext, char *data, u32 data_
 		gf_fseek(f, 0, SEEK_SET);
 		while (fsize) {
 			u32 read = (u32) fread(cache, 1, 1024, f);
+			if ((s32) read < 0) return 0;
 			fsize -= read;
 			if (memcmp(cache, data+offset, sizeof(char)*read)) break;
 			offset+=read;

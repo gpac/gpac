@@ -86,6 +86,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 	GF_SceneDumper *tmp;
 	if (!graph) return NULL;
 	GF_SAFEALLOC(tmp, GF_SceneDumper);
+	if (!tmp) return NULL;
 
 	/*store original*/
 	tmp->dump_mode = dump_mode;
@@ -152,7 +153,7 @@ GF_SceneDumper *gf_sm_dumper_new(GF_SceneGraph *graph, char *_rad_name, Bool is_
 				ext_name = ".bt";
 				break;
 			}
-			
+
 			tmp->filename = (char *)gf_malloc(strlen(_rad_name ? _rad_name : "") + strlen(ext_name) + 1);
 			strcpy(tmp->filename, _rad_name ? _rad_name : "");
 			if (!is_final_name) strcat(tmp->filename, ext_name);
@@ -245,7 +246,7 @@ static void gf_dump_setup(GF_SceneDumper *sdump, GF_Descriptor *root_od)
 				if (esd->decoderConfig->objectTypeIndication != 0x09) continue;
 				if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) continue;
 				gf_odf_get_laser_config(esd->decoderConfig->decoderSpecificInfo, &lsrcfg);
-				gf_odf_dump_desc(&lsrcfg, sdump->trace, 1, 1);
+				gf_odf_dump_desc((GF_Descriptor*)&lsrcfg, sdump->trace, 1, 1);
 			}
 			fprintf(sdump->trace, "</saf:sceneHeader>\n");
 		}
@@ -588,20 +589,20 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 		u16 *uniLine;
 		str = (char*)((SFScript *)ptr)->script_text;
 		len = (u32)strlen(str);
-		uniLine = (u16*)gf_malloc(sizeof(short) * (len+1));
-		_len = gf_utf8_mbstowcs(uniLine, len, (const char **) &str);
-		if (_len != (size_t) -1) {
-			len = (u32) _len;
-			if (!sdump->XMLDump) fputc('\"', sdump->trace);
 
-			for (i=0; i<len; i++) {
-				if (!sdump->XMLDump) {
-#ifndef __SYMBIAN32__
-					fputwc(uniLine[i], sdump->trace);
-#else
-					fputc(uniLine[i], sdump->trace);
-#endif
-				} else {
+		if (!sdump->XMLDump) {
+			fprintf(sdump->trace, "\"%s\"", str);
+		}
+		else {
+
+			uniLine = (u16*)gf_malloc(sizeof(short) * (len + 1));
+			_len = gf_utf8_mbstowcs(uniLine, len, (const char **)&str);
+
+			if (_len != (size_t)-1) {
+				len = (u32)_len;
+
+				for (i = 0; i<len; i++) {
+
 					switch (uniLine[i]) {
 					case '&':
 						fprintf(sdump->trace, "&amp;");
@@ -618,21 +619,21 @@ static void gf_dump_vrml_sffield(GF_SceneDumper *sdump, u32 type, void *ptr, Boo
 						break;
 					case 0:
 						break;
-					/*FIXME: how the heck can we preserve newlines and spaces of JavaScript in
-					an XML attribute in any viewer ? */
+						/*FIXME: how the heck can we preserve newlines and spaces of JavaScript in
+						an XML attribute in any viewer ? */
 					default:
 						if (uniLine[i]<128) {
-							fprintf(sdump->trace, "%c", (u8) uniLine[i]);
-						} else {
+							fprintf(sdump->trace, "%c", (u8)uniLine[i]);
+						}
+						else {
 							fprintf(sdump->trace, "&#%d;", uniLine[i]);
 						}
 						break;
 					}
-				}
 			}
-			if (!sdump->XMLDump) fprintf(sdump->trace, "\"\n");
 		}
-		gf_free(uniLine);
+			gf_free(uniLine);
+	}
 		DUMP_IND(sdump);
 	}
 	break;
@@ -2227,6 +2228,7 @@ static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
 		toNode = gf_sg_find_node(com->in_scene, com->toNodeID);
 		if (!toNode) return GF_NON_COMPLIANT_BITSTREAM;
 		e = gf_node_get_field(toNode, com->toFieldIndex, &idxField);
+		if (e) return e;
 	}
 	else {
 		/*indexed replacement */
@@ -2285,6 +2287,7 @@ static GF_Err DumpXReplace(GF_SceneDumper *sdump, GF_Command *com)
 			target = gf_sg_find_node(com->in_scene, com->fromNodeID);
 			if (!target) return GF_NON_COMPLIANT_BITSTREAM;
 			e = gf_node_get_field(target, com->fromFieldIndex, &idxField);
+			if (e) return e;
 
 			fprintf(sdump->trace, " fromNode=\"");
 			scene_dump_vrml_id(sdump, target);
@@ -2715,28 +2718,31 @@ static GF_Err DumpLSRAddReplaceInsert(GF_SceneDumper *sdump, GF_Command *com)
 				fprintf(sdump->trace, "operandAttributeName=\"%s\" ", op_info.name);
 			}
 		}
+		if (!f->new_node && !f->node_list) {
+			fprintf(sdump->trace, "/>\n");
+			return GF_OK;
+		}
+		if (f->new_node && f->new_node->sgprivate->tag==TAG_DOMText) is_text = 1;
+		/*if fieldIndex (eg attributeName) is set, this is children replacement*/
+		if (f->fieldIndex>0)
+			fprintf(sdump->trace, "attributeName=\"children\" ");
 	}
-	if (!f->new_node && !f->node_list) {
-		fprintf(sdump->trace, "/>\n");
-		return GF_OK;
-	}
-	if (f->new_node && f->new_node->sgprivate->tag==TAG_DOMText) is_text = 1;
-	/*if fieldIndex (eg attributeName) is set, this is children replacement*/
-	if (f->fieldIndex>0)
-		fprintf(sdump->trace, "attributeName=\"children\" ");
+
 
 	fprintf(sdump->trace, ">");
 	if (!is_text) {
 		fprintf(sdump->trace, "\n");
 		sdump->indent++;
 	}
-	if (f->new_node) {
-		gf_dump_svg_element(sdump, f->new_node, com->node, 0);
-	} else if (f->node_list) {
-		GF_ChildNodeItem *list = f->node_list;
-		while (list) {
-			gf_dump_svg_element(sdump, list->node, com->node, 0);
-			list = list->next;
+	if (f) {
+		if (f->new_node) {
+			gf_dump_svg_element(sdump, f->new_node, com->node, 0);
+		} else if (f->node_list) {
+			GF_ChildNodeItem *list = f->node_list;
+			while (list) {
+				gf_dump_svg_element(sdump, list->node, com->node, 0);
+				list = list->next;
+			}
 		}
 	}
 	sdump->indent--;
@@ -3138,11 +3144,11 @@ void gf_dump_svg_element(GF_SceneDumper *sdump, GF_Node *n, GF_Node *parent, Boo
 		}
 		info.far_ptr = att->data;
 		attValue = gf_svg_dump_attribute((GF_Node*)svg, &info);
-		if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = (u32) strlen(attValue)))
-			fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
-
-		if (attValue) gf_free(attValue);
-
+		if (attValue) {
+			if (/*strcmp(info.name, "xmlns") &&*/ (info.fieldType = (u32) strlen(attValue)))
+				fprintf(sdump->trace, " %s=\"%s\"", info.name, attValue);
+			gf_free(attValue);
+		}
 		fflush(sdump->trace);
 		att = att->next;
 	}
@@ -3528,9 +3534,10 @@ GF_Err gf_sm_dump(GF_SceneManager *ctx, char *rad_name, Bool is_final_name, GF_S
 		}
 		else {
 			if (dumper->LSRDump) {
-				if (time != au->timing_sec) {
+/*				if (time != au->timing_sec) {
 					time = au->timing_sec;
 				}
+*/
 			} else if (!time && !num_scene && first_bifs) {
 			} else if (num_scene || num_od) {
 				if (!first_par) {

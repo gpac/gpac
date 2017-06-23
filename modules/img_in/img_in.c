@@ -180,6 +180,7 @@ void IMG_NetIO(void *cbk, GF_NETIO_Parameter *param)
 		szCache = gf_dm_sess_get_cache_name(read->dnload);
 		if (!szCache) e = GF_IO_ERR;
 		else {
+			if (read->stream) gf_fclose(read->stream);
 			read->stream = gf_fopen((char *) szCache, "rb");
 			if (!read->stream) e = GF_SERVICE_ERROR;
 			else {
@@ -211,12 +212,16 @@ void jp_download_file(GF_InputService *plug, const char *url)
 
 static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, const char *url)
 {
-	char *sExt;
+	char *sExt, *frag;
 	IMGLoader *read = (IMGLoader *)plug->priv;
 
 	read->service = serv;
 	if (!url)
 		return GF_BAD_PARAM;
+
+	frag = strrchr(url, '#');
+	if (frag) frag[0] = 0;
+
 	sExt = strrchr(url, '.');
 	if (!stricmp(sExt, ".jpeg") || !stricmp(sExt, ".jpg")) read->img_type = IMG_JPEG;
 	else if (!stricmp(sExt, ".png")) read->img_type = IMG_PNG;
@@ -231,6 +236,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 	/*remote fetch*/
 	if (!jp_is_local(url)) {
 		jp_download_file(plug, url);
+		if (frag) frag[0] = '#';
 		return GF_OK;
 	}
 
@@ -240,6 +246,7 @@ static GF_Err IMG_ConnectService(GF_InputService *plug, GF_ClientService *serv, 
 		read->data_size = (u32) gf_ftell(read->stream);
 		gf_fseek(read->stream, 0, SEEK_SET);
 	}
+	if (frag) frag[0] = '#';
 	gf_service_connect_ack(serv, NULL, read->stream ? GF_OK : GF_URL_ERROR);
 	if (read->stream && read->is_inline) IMG_SetupObject(read);
 	return GF_OK;
@@ -383,6 +390,7 @@ static GF_Err IMG_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, cha
 			gf_fseek(read->stream, 0, SEEK_SET);
 			read->data = (char*) gf_malloc(sizeof(char) * (read->data_size + read->pad_bytes));
 			read->data_size = (u32) fread(read->data, sizeof(char), read->data_size, read->stream);
+			if ((s32) read->data_size<0) return GF_IO_ERR;
 			gf_fseek(read->stream, 0, SEEK_SET);
 			if (read->pad_bytes) memset(read->data + read->data_size, 0, sizeof(char) * read->pad_bytes);
 
@@ -414,7 +422,15 @@ void *NewLoaderInterface()
 	IMGLoader *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Image Reader", "gpac distribution")
+
+	GF_SAFEALLOC(priv, IMGLoader);
+	if (!priv) {
+		gf_free(plug);
+		return NULL;
+	}
+	plug->priv = priv;
 
 	plug->RegisterMimeTypes = IMG_RegisterMimeTypes;
 	plug->CanHandleURL = IMG_CanHandleURL;
@@ -428,8 +444,6 @@ void *NewLoaderInterface()
 	plug->ChannelReleaseSLP = IMG_ChannelReleaseSLP;
 	plug->ServiceCommand = IMG_ServiceCommand;
 
-	GF_SAFEALLOC(priv, IMGLoader);
-	plug->priv = priv;
 	return plug;
 }
 

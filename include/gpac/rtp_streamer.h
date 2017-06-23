@@ -32,7 +32,7 @@ extern "C" {
 
 /*!
  *	\file <gpac/rtp_streamer.h>
- *	\brief RTP streamer functions (packetizer and RTP socket).
+ *	\brief RTP streaming (packetizer and RTP socket).
  */
 
 /*!
@@ -54,8 +54,8 @@ typedef struct __rtp_streamer GF_RTPStreamer;
  *	\brief RTP Streamer constructor
  *
  *	Constructs a new RTP file streamer
- *\param streamType type of the stream (GF_STREAM_* as defined in \ref constants.h)
- *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in \ref constants.h)
+ *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
+ *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in <gpac/constants.h>)
  *\param timeScale unit to express timestamps
  *\param ip_dest IP address of the destination
  *\param port port number of the destination
@@ -76,8 +76,8 @@ GF_RTPStreamer *gf_rtp_streamer_new(u32 streamType, u32 oti, u32 timeScale,
  *	\brief RTP Streamer constructor with extended parameters
  *
  *	Constructs a new RTP file streamer
- *\param streamType type of the stream (GF_STREAM_* as defined in \ref constants.h)
- *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in \ref constants.h)
+ *\param streamType type of the stream (GF_STREAM_* as defined in <gpac/constants.h>)
+ *\param oti MPEG-4 object type indication for the stream (GPAC_OTI_* as defined in <gpac/constants.h>)
  *\param timeScale unit to express timestamps
  *\param ip_dest IP address of the destination
  *\param port port number of the destination

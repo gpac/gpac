@@ -24,6 +24,11 @@ ifeq ($(CONFIG_WIN32),yes)
 LINKFLAGS+=$(UNICODEFLAGS)
 EXE=.exe
 PROG=MP4Client$(EXE)
+
+ifeq ($(HAS_WMAIN),no)
+CFLAGS+=-DNO_WMAIN
+endif
+
 else
 EXT=
 PROG=MP4Client
@@ -32,8 +37,7 @@ endif
 ifeq ($(STATICBUILD),yes)
 ##include static modules and other deps for libgpac
 include ../../static.mak
-LINKFLAGS+=-lgpac_static
-LINKFLAGS+=$(EXTRALIBS)
+LINKFLAGS=-lgpac_static $(GPAC_SH_FLAGS) $(EXTRALIBS)
 else
 LINKFLAGS+=-lgpac
 endif
@@ -52,7 +56,7 @@ SRCS := $(OBJS:.o=.c)
 all: $(PROG)
 
 MP4Client$(EXE): $(OBJS)
-	$(CC) $(LDFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS)
+	$(CC) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc $(LINKFLAGS) $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(PROG)

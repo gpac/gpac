@@ -528,7 +528,6 @@ static void bmp_fill_run(EVGStencil *p, EVGSurface *surf, s32 _x, s32 _y, u32 co
 	if (!repeat_t && (y < - _fd)) y = 0;
 	while (y<0) y += _fd;
 
-	y0 = (s32) FIX2INT(y);
 	has_alpha = (_this->alpha != 255) ? GF_TRUE : GF_FALSE;
 	has_replace_cmat = _this->cmat_is_replace ? GF_TRUE : GF_FALSE;
 	has_cmat = _this->cmat.identity ? GF_FALSE : GF_TRUE;
@@ -919,7 +918,7 @@ void evg_set_texture_active(EVGStencil *st)
 	}
 
 	memset(&src, 0, sizeof(GF_VideoSurface));
-	src.height = _this->height;
+	src.height = _this->height;	
 	src.width = _this->width;
 	src.pitch_x = 0;
 	src.pitch_y = _this->orig_stride;
@@ -942,44 +941,3 @@ void evg_set_texture_active(EVGStencil *st)
 	texture_set_callback(_this);
 }
 
-GF_Err evg_stencil_create_texture(GF_STENCIL st, u32 width, u32 height, GF_PixelFormat pixelFormat)
-{
-	EVG_Texture *_this = 	(EVG_Texture *)st;
-	if (_this->orig_buf) return GF_BAD_PARAM;
-	_this->pixels = 0L;
-	_this->is_converted = GF_TRUE;
-
-	switch (pixelFormat) {
-	case GF_PIXEL_ARGB:
-	case GF_PIXEL_RGBA:
-	case GF_PIXEL_RGB_32:
-		_this->Bpp = 4;
-		break;
-	case GF_PIXEL_RGB_24:
-	case GF_PIXEL_BGR_24:
-		_this->Bpp = 3;
-		break;
-	case GF_PIXEL_RGB_555:
-	case GF_PIXEL_RGB_565:
-	case GF_PIXEL_RGB_444:
-	case GF_PIXEL_ALPHAGREY:
-		_this->Bpp = 2;
-		break;
-	case GF_PIXEL_GREYSCALE:
-		_this->Bpp = 1;
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
-	}
-	_this->pixel_format = pixelFormat;
-	_this->width = width;
-	_this->height = height;
-	_this->stride = width*_this->Bpp;
-
-	if (_this->pixels) gf_free(_this->pixels);
-	_this->pixels = (char *) gf_malloc(sizeof(char) * _this->stride * _this->height);
-	memset(_this->pixels, 0, sizeof(char) * _this->stride * _this->height);
-	_this->owns_texture = GF_TRUE;
-	texture_set_callback(_this);
-	return GF_OK;
-}

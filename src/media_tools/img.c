@@ -138,60 +138,63 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 		*OTI = GPAC_OTI_IMAGE_PNG;
 		*mtype = GF_4CC('p','n','g',' ');
 	}
-	size = gf_bs_read_u8(bs);
-	type = gf_bs_read_u32(bs);
-	if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
+	/*try j2k*/
+	else {
+		size = gf_bs_read_u8(bs);
+		type = gf_bs_read_u32(bs);
+		if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
 	        || (type==GF_4CC('j','p','2','h') ) ) {
 
-		if (type==GF_4CC('j','p','2','h')) {
+			if (type==GF_4CC('j','p','2','h')) {
+				*OTI = GPAC_OTI_IMAGE_JPEG_2000;
+				*mtype = GF_4CC('j','p','2',' ');
+				goto j2k_restart;
+			}
+
+			type = gf_bs_read_u32(bs);
+			if (type!=0x0D0A870A) goto exit;
+
 			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
 			*mtype = GF_4CC('j','p','2',' ');
-			goto j2k_restart;
-		}
 
-		type = gf_bs_read_u32(bs);
-		if (type!=0x0D0A870A) goto exit;
-
-		*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-		*mtype = GF_4CC('j','p','2',' ');
-
-		while (gf_bs_available(bs)) {
+			while (gf_bs_available(bs)) {
 j2k_restart:
-			size = gf_bs_read_u32(bs);
-			type = gf_bs_read_u32(bs);
-			switch (type) {
-			case GF_4CC('j','p','2','h'):
-				goto j2k_restart;
-			case GF_4CC('i','h','d','r'):
-			{
-				u16 nb_comp;
-				u8 BPC, C, UnkC, IPR;
-				*height = gf_bs_read_u32(bs);
-				*width = gf_bs_read_u32(bs);
-				nb_comp = gf_bs_read_u16(bs);
-				BPC = gf_bs_read_u8(bs);
-				C = gf_bs_read_u8(bs);
-				UnkC = gf_bs_read_u8(bs);
-				IPR = gf_bs_read_u8(bs);
+				size = gf_bs_read_u32(bs);
+				type = gf_bs_read_u32(bs);
+				switch (type) {
+				case GF_4CC('j','p','2','h'):
+					goto j2k_restart;
+				case GF_4CC('i','h','d','r'):
+				{
+					u16 nb_comp;
+					u8 BPC, C, UnkC, IPR;
+					*height = gf_bs_read_u32(bs);
+					*width = gf_bs_read_u32(bs);
+					nb_comp = gf_bs_read_u16(bs);
+					BPC = gf_bs_read_u8(bs);
+					C = gf_bs_read_u8(bs);
+					UnkC = gf_bs_read_u8(bs);
+					IPR = gf_bs_read_u8(bs);
 
-				if (dsi) {
-					GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-					gf_bs_write_u32(bs_dsi, *height);
-					gf_bs_write_u32(bs_dsi, *width);
-					gf_bs_write_u16(bs_dsi, nb_comp);
-					gf_bs_write_u8(bs_dsi, BPC);
-					gf_bs_write_u8(bs_dsi, C);
-					gf_bs_write_u8(bs_dsi, UnkC);
-					gf_bs_write_u8(bs_dsi, IPR);
-					gf_bs_get_content(bs_dsi, dsi, dsi_len);
-					gf_bs_del(bs_dsi);
+					if (dsi) {
+						GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+						gf_bs_write_u32(bs_dsi, *height);
+						gf_bs_write_u32(bs_dsi, *width);
+						gf_bs_write_u16(bs_dsi, nb_comp);
+						gf_bs_write_u8(bs_dsi, BPC);
+						gf_bs_write_u8(bs_dsi, C);
+						gf_bs_write_u8(bs_dsi, UnkC);
+						gf_bs_write_u8(bs_dsi, IPR);
+						gf_bs_get_content(bs_dsi, dsi, dsi_len);
+						gf_bs_del(bs_dsi);
+					}
+					goto exit;
 				}
-				goto exit;
-			}
-			break;
-			default:
-				gf_bs_skip_bytes(bs, size-8);
 				break;
+				default:
+					gf_bs_skip_bytes(bs, size-8);
+					break;
+				}
 			}
 		}
 	}
@@ -397,6 +400,7 @@ typedef struct
 	char *buffer;
 	u32 pos;
 	u32 size;
+	png_byte **rows;
 } GFpng;
 
 static void gf_png_user_read_data(png_structp png_ptr, png_bytep data, png_size_t length)
@@ -422,18 +426,20 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	GFpng udta;
 	png_struct *png_ptr;
 	png_info *info_ptr;
-	png_byte **rows;
 	u32 i, stride, out_size;
 	png_bytep trans_alpha;
 	int num_trans;
 	png_color_16p trans_color;
 
-	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) return GF_NON_COMPLIANT_BITSTREAM;
-
+	if ((png_size<8) || png_sig_cmp((png_bytep)png, 0, 8) ) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[PNG]: Wrong signature\n"));
+		return GF_NON_COMPLIANT_BITSTREAM;
+	}
 	udta.buffer = png;
 	udta.size = png_size;
 	udta.pos = 0;
-
+	udta.rows=NULL;
+	
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
 	info_ptr = png_create_info_struct(png_ptr);
@@ -444,6 +450,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	if (setjmp(png_jmpbuf(png_ptr))) {
 		png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 		png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
+		if (udta.rows) gf_free(udta.rows);
 		return GF_IO_ERR;
 	}
 	png_set_read_fn(png_ptr, &udta, (png_rw_ptr) gf_png_user_read_data);
@@ -498,13 +505,13 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 
 	/*read*/
 	stride = (u32) png_get_rowbytes(png_ptr, info_ptr);
-	rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
+	udta.rows = (png_bytepp) gf_malloc(sizeof(png_bytep) * png_get_image_height(png_ptr, info_ptr));
 	for (i=0; i<png_get_image_height(png_ptr, info_ptr); i++) {
-		rows[i] = (png_bytep)dst + i*stride;
+		udta.rows[i] = (png_bytep)dst + i*stride;
 	}
-	png_read_image(png_ptr, rows);
+	png_read_image(png_ptr, udta.rows);
 	png_read_end(png_ptr, NULL);
-	gf_free(rows);
+	gf_free(udta.rows);
 
 	png_destroy_info_struct(png_ptr,(png_infopp) & info_ptr);
 	png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
@@ -534,8 +541,6 @@ GF_Err gf_img_png_enc(char *data, u32 width, u32 height, s32 stride, u32 pixel_f
 	png_infop info_ptr;
 	u32 type, nb_comp;
 
-	type = 0;
-	nb_comp = 0;
 	switch (pixel_format) {
 	case GF_PIXEL_GREYSCALE:
 		nb_comp = 1;
@@ -727,7 +732,7 @@ GF_Err gf_img_file_dec(char *png_filename, u32 *hint_oti, u32 *width, u32 *heigh
 	fsize = (u32)gf_ftell(f);
 	gf_fseek(f, 0, SEEK_SET);
 	data = gf_malloc(fsize);
-	read = (u32) fread(data, sizeof(char), fsize, f);
+	read = (s32) fread(data, sizeof(char), fsize, f);
 	gf_fclose( f );
 	if (read != fsize) return GF_IO_ERR;
 

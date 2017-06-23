@@ -63,8 +63,6 @@ void dom_document_finalize(JSFreeOp *fop, JSObject *obj);
 void dom_element_finalize(JSContext *c, JSObject *obj);
 void dom_document_finalize(JSContext *c, JSObject *obj);
 #endif
-char *js_get_utf8(jsval val);
-
 
 void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val);
 

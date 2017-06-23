@@ -569,7 +569,7 @@ void gf_sg_mfbool_del(MFBool par) {
 void gf_sg_mfcolor_del(MFColor par) {
 	gf_free(par.vals);
 }
-void gf_sg_mfcolor_rgba_del(MFColorRGBA par) {
+void gf_sg_mfcolorrgba_del(MFColorRGBA par) {
 	gf_free(par.vals);
 }
 void gf_sg_mfrotation_del(MFRotation par) {
@@ -686,7 +686,7 @@ void gf_sg_vrml_field_pointer_del(void *field, u32 FieldType)
 		gf_sg_mfcolor_del( * ((MFColor *)field));
 		break;
 	case GF_SG_VRML_MFCOLORRGBA:
-		gf_sg_mfcolor_rgba_del( * ((MFColorRGBA *)field));
+		gf_sg_mfcolorrgba_del( * ((MFColorRGBA *)field));
 		break;
 	case GF_SG_VRML_MFROTATION:
 	case GF_SG_VRML_MFVEC4F:

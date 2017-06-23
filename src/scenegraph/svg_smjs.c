@@ -531,6 +531,10 @@ JSBool SMJS_FUNCTION_EXT(svg_udom_smil_time_insert, Bool is_end)
 
 	times = *((GF_List **)info.far_ptr);
 	GF_SAFEALLOC(newtime, SMIL_Time);
+	if (!newtime) {
+		dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+		return JS_FALSE;
+	}
 	newtime->type = GF_SMIL_TIME_EVENT_RESOLVED;
 
 	offset = 0;
@@ -878,6 +882,10 @@ JSBool SMJS_FUNCTION(svg_udom_get_rect_trait)
 		SVG_ViewBox *v = (SVG_ViewBox *)info.far_ptr;
 		newObj = JS_NewObject(c, &svg_rt->rectClass._class, 0, 0);
 		GF_SAFEALLOC(rc, rectCI);
+		if (!rc) {
+			dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return JS_FALSE;
+		}
 		rc->x = FIX2FLT(v->x);
 		rc->y = FIX2FLT(v->y);
 		rc->w = FIX2FLT(v->width);
@@ -940,6 +948,10 @@ JSBool SMJS_FUNCTION(svg_udom_get_rgb_color_trait)
 		if (col->type == SVG_COLOR_INHERIT) return JS_TRUE;
 		newObj = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 		GF_SAFEALLOC(rgb, rgbCI);
+		if (!rgb) {
+			dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return JS_FALSE;
+		}
 		rgb->r = (u8) (255*FIX2FLT(col->red)) ;
 		rgb->g = (u8) (255*FIX2FLT(col->green)) ;
 		rgb->b = (u8) (255*FIX2FLT(col->blue)) ;
@@ -954,6 +966,10 @@ JSBool SMJS_FUNCTION(svg_udom_get_rgb_color_trait)
 		if (1 || paint->type==SVG_PAINT_COLOR) {
 			newObj = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 			GF_SAFEALLOC(rgb, rgbCI);
+			if (!rgb) {
+				dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+				return JS_FALSE;
+			}
 			rgb->r = (u8) (255*FIX2FLT(paint->color.red) );
 			rgb->g = (u8) (255*FIX2FLT(paint->color.green) );
 			rgb->b = (u8) (255*FIX2FLT(paint->color.blue) );
@@ -1064,9 +1080,13 @@ JSBool SMJS_FUNCTION(svg_udom_set_float_trait)
 		while (gf_list_count(*l)) {
 			val = (SVG_Number *)gf_list_get(*l, 0);
 			gf_list_rem(*l, 0);
-			gf_free(val);
+			if (val) gf_free(val);
 		}
 		GF_SAFEALLOC(val, SVG_Coordinate);
+		if (!val) {
+			dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+			return JS_FALSE;
+		}
 		val->type=SVG_NUMBER_VALUE;
 		val->value = FLT2FIX(d);
 		gf_list_add(*l, val);
@@ -1409,6 +1429,10 @@ JSBool SMJS_FUNCTION(svg_udom_create_color)
 	if (argc!=3) return JS_TRUE;
 
 	GF_SAFEALLOC(col, rgbCI);
+	if (!col) {
+		dom_throw_exception(c, GF_DOM_EXC_DATA_CLONE_ERR);
+		return JS_FALSE;
+	}
 	col->r = JSVAL_TO_INT(argv[0]);
 	col->g = JSVAL_TO_INT(argv[1]);
 	col->b = JSVAL_TO_INT(argv[2]);
@@ -2605,6 +2629,9 @@ GF_Err JSScript_CreateSVGContext(GF_SceneGraph *sg)
 	}
 
 	GF_SAFEALLOC(svg_js, GF_SVGJS);
+	if (!svg_js) {
+		return GF_OUT_OF_MEM;
+	}
 	/*create new ecmascript context*/
 	svg_js->js_ctx = gf_sg_ecmascript_new(sg);
 	if (!svg_js->js_ctx) {
@@ -2694,6 +2721,7 @@ static Bool svg_js_load_script(GF_Node *script, char *file)
 	fsize = (u32) fread(jsscript, sizeof(char), (size_t)fsize, jsf);
 	gf_fclose(jsf);
 	jsscript[fsize] = 0;
+	if ((s32) fsize<0) return GF_FALSE;
 
 	/*for handler, only load code*/
 	if (script->sgprivate->tag==TAG_SVG_handler) {

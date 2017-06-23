@@ -90,7 +90,7 @@ GF_Err gf_bifs_dec_qp_remove(GF_BifsDecoder *codec, Bool ActivatePrev)
 //parses efficient float
 Fixed gf_bifs_dec_mantissa_float(GF_BifsDecoder *codec, GF_BitStream *bs)
 {
-	u32 mantLength, expLength, mantSign, mantissa, expSign, exponent;
+	u32 mantLength, expLength, mantSign, mantissa;
 	unsigned char exp;
 
 	union {
@@ -105,13 +105,10 @@ Fixed gf_bifs_dec_mantissa_float(GF_BifsDecoder *codec, GF_BitStream *bs)
 	mantSign = gf_bs_read_int(bs, 1);
 	mantissa = gf_bs_read_int(bs, mantLength - 1);
 
-	expSign = exponent = 0;
-	exp = 0;
-
 	exp = 127;
 	if (expLength) {
-		expSign = gf_bs_read_int(bs, 1);
-		exponent = gf_bs_read_int(bs, expLength-1);
+		u32 expSign = gf_bs_read_int(bs, 1);
+		u32 exponent = gf_bs_read_int(bs, expLength-1);
 		exp += (1-2*expSign)*( (1 << (expLength-1) ) + exponent);
 	}
 

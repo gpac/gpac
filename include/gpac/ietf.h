@@ -32,6 +32,20 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/ietf.h>
+ *	\brief Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP .
+ */
+	
+/*!
+ *	\addtogroup ietf_grp RTP Streaming
+ *	\ingroup media_grp
+ *	\brief  Tools for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+ *
+ *This section documents the tools used for real-time streaming over IP using RTP/RTCP/RTSP/SDP.
+ *	@{
+ */
+
 #include <gpac/list.h>
 
 #ifndef GPAC_DISABLE_STREAMING
@@ -352,6 +366,7 @@ typedef struct
 	char *Session;
 	u32 SessionTimeOut;
 	Double Speed;
+	u32 StreamID; //only when sess->satip is true
 	char *Timestamp;
 	/*nota : RTSP allows several configurations for a single channel (multicast and
 	unicast , ...). Usually only 1*/
@@ -395,7 +410,7 @@ are closed. As this lib doesn't maintain the number of valid streams
 you MUST call reset when all your streams are shutdown (either requested through
 TEARDOWN or signaled through RTCP BYE packets for RTP, or any other signaling means
 for other protocols)
-reset connection will destroy the socket - this is isefull in case of timeouts, because
+reset connection will destroy the socket - this is useful in case of timeouts, because
 some servers do not restart with the right CSeq...*/
 void gf_rtsp_session_reset(GF_RTSPSession *sess, Bool ResetConnection);
 
@@ -1079,7 +1094,7 @@ enum
 	GF_RTP_PAYT_H264_SVC,
 	/*use HEVC/H265 transport - no RFC yet, only draft*/
 	GF_RTP_PAYT_HEVC,
-	GF_RTP_PAYT_SHVC
+	GF_RTP_PAYT_LHVC
 };
 
 
@@ -1343,6 +1358,8 @@ void gf_rtp_depacketizer_get_slconfig(GF_RTPDepacketizer *rtp, GF_SLConfig *sl);
 
 
 #endif /*GPAC_DISABLE_STREAMING*/
+
+/*! @} */
 
 #ifdef __cplusplus
 }

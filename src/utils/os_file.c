@@ -62,19 +62,19 @@ GF_Err gf_rmdir(char *DirPathName)
 	res = RemoveDirectory(swzName);
 	if (! res) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
 	int res = rmdir(DirPathName);
 	if (res==-1) {
 		int err = GetLastError();
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, err ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 		return GF_IO_ERR;
 	}
 #else
 	int res = rmdir(DirPathName);
 	if (res==-1) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete director %s: last error %d\n", DirPathName, errno  ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, errno  ));
 		return GF_IO_ERR;
 	}
 #endif
@@ -203,6 +203,22 @@ static char* gf_sanetize_single_quoted_string(const char *src) {
 }
 #endif
 
+#if defined(GPAC_IPHONE) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
+#include <spawn.h>
+extern char **environ;
+#endif
+
+GF_EXPORT
+Bool gf_file_exists(const char *fileName)
+{
+	FILE *f = gf_fopen(fileName, "r");
+	if (f) {
+		gf_fclose(f);
+		return GF_TRUE;
+	}
+	return GF_FALSE;
+}
+
 GF_EXPORT
 GF_Err gf_move_file(const char *fileName, const char *newFileName)
 {
@@ -223,7 +239,21 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	arg1 = gf_sanetize_single_quoted_string(fileName);
 	arg2 = gf_sanetize_single_quoted_string(newFileName);
 	if (snprintf(cmd, sizeof cmd, "mv %s %s", arg1, arg2) >= sizeof cmd) goto error;
+
+#if defined(GPAC_IPHONE) && (__IPHONE_OS_VERSION_MAX_ALLOWED >= 80000)
+	{
+		pid_t pid;
+		char *argv[3];
+		argv[0] = "mv";
+		argv[1] = cmd;
+		argv[2] = NULL;
+		posix_spawn(&pid, argv[0], NULL, NULL, argv, environ);
+		waitpid(pid, NULL, 0);
+	}
+#else
 	e = (system(cmd) == 0) ? GF_OK : GF_IO_ERR;
+#endif
+
 error:
 	gf_free(arg1);
 	gf_free(arg2);
@@ -576,7 +606,7 @@ u64 gf_ftell(FILE *fp)
 {
 #if defined(_WIN32_WCE)
 	return (u64) ftell(fp);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) ftello64(fp);
 #else
@@ -598,7 +628,7 @@ u64 gf_fseek(FILE *fp, s64 offset, s32 whence)
 {
 #if defined(_WIN32_WCE)
 	return (u64) fseek(fp, (s32) offset, whence);
-#elif defined(GPAC_CONFIG_WIN32)	/* mingw or cygwin */
+#elif defined(GPAC_CONFIG_WIN32) && !defined(__CYGWIN__)	/* mingw or cygwin */
 #if (_FILE_OFFSET_BITS >= 64)
 	return (u64) fseeko64(fp, offset, whence);
 #else
@@ -641,7 +671,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 		size_t len;
 		size_t len_res;
 		if (!is_create) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file in UTF-8 mode, trying UTF-16\n"));
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file %s mode %s in UTF-8 mode, trying UTF-16\n", file_name, mode));
 		}
 		len = (strlen(file_name) + 1)*sizeof(wchar_t);
 		wname = (wchar_t *)gf_malloc(len);
@@ -672,6 +702,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 
 	if (res) {
 		gpac_file_handles++;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file %s opened in mode %s - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
 #if defined(WIN32)
@@ -698,6 +729,11 @@ s32 gf_fclose(FILE *file)
 #if (_POSIX_C_SOURCE >= 200112L || _XOPEN_SOURCE >= 600) && ! defined(_GNU_SOURCE) && !defined(WIN32)
 #define HAVE_STRERROR_R 1
 #endif
+
+GF_EXPORT
+size_t gf_fread(void *ptr, size_t size, size_t nmemb, FILE *stream) {
+	return fread(ptr, size, nmemb, stream);
+}
 
 GF_EXPORT
 size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
@@ -733,3 +769,51 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 	return result;
 }
 
+
+/**
+  * Returns a pointer to the start of a filepath basename
+ **/
+GF_EXPORT
+char* gf_file_basename(const char* filename)
+{
+	char* lastPathPart = NULL;
+	if (filename) {
+
+		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
+		if (GF_PATH_SEPARATOR != '/')
+		{
+			// windows paths can mix slashes and backslashes
+			// so we search for the last slash that occurs after the last backslash
+			// if it occurs before it's not relevant
+			// if there's no backslashes we search in the whole file path
+
+			char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+			if (trailingSlash)
+				lastPathPart = trailingSlash;
+		}
+		if (!lastPathPart)
+			lastPathPart = (char *)filename;
+		else
+			lastPathPart++;
+
+
+
+	}
+	return lastPathPart;
+}
+
+/**
+  * Returns a pointer to the start of a filepath extension or null
+ **/
+GF_EXPORT
+char* gf_file_ext_start(const char* filename)
+{
+	char* res = NULL;
+	char* basename = gf_file_basename(filename);
+	if (basename) {
+
+		res = strrchr(basename, '.');
+
+	}
+	return res;
+}

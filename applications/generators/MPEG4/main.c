@@ -869,6 +869,7 @@ void WriteNodeCode(GF_List *BNodes)
 			        || !strcmp(bf->familly, "SFString")
 			        || !strcmp(bf->familly, "SFURL")
 			        || !strcmp(bf->familly, "SFImage")
+					|| !strcmp(bf->familly, "MFAttrRef")
 			   ) {
 				char szName[500];
 				strcpy(szName, bf->familly);

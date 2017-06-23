@@ -38,7 +38,6 @@
 
 #endif
 
-
 GPAC_MODULE_EXPORT
 const u32 *QueryInterfaces()
 {

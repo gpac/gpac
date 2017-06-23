@@ -80,6 +80,34 @@ GF_Err RAW_Setup(GF_VideoOutput *dr, void *os_handle, void *os_display, u32 init
 	} else {
 		rc->bpp = 3;
 		rc->pixel_format = GF_PIXEL_RGB_24;
+		opt = gf_modules_get_option((GF_BaseInterface *)dr, "RAWVideo", "PixelFormat");
+		if (opt) {
+			if (!strcmp(opt, "555")) {
+				rc->bpp = 2;
+				rc->pixel_format = GF_PIXEL_RGB_555;
+			} else if (!strcmp(opt, "565")) {
+				rc->bpp = 2;
+				rc->pixel_format = GF_PIXEL_RGB_565;
+			} else if (!strcmp(opt, "bgr")) {
+				rc->bpp = 3;
+				rc->pixel_format = GF_PIXEL_BGR_24;
+			} else if (!strcmp(opt, "rgb")) {
+				rc->bpp = 3;
+				rc->pixel_format = GF_PIXEL_RGB_24;
+			} else if (!strcmp(opt, "bgr32")) {
+				rc->bpp = 4;
+				rc->pixel_format = GF_PIXEL_BGR_32;
+			} else if (!strcmp(opt, "rgb32")) {
+				rc->bpp = 4;
+				rc->pixel_format = GF_PIXEL_RGB_32;
+			} else if (!strcmp(opt, "rgba")) {
+				rc->bpp = 4;
+				rc->pixel_format = GF_PIXEL_RGBA;
+			} else if (!strcmp(opt, "argb")) {
+				rc->bpp = 4;
+				rc->pixel_format = GF_PIXEL_ARGB;
+			}
+		}
 	}
 	raw_resize(dr, 100, 100);
 	return GF_OK;
@@ -241,7 +269,7 @@ void *NewRawAudioOutput()
 	return driv;
 }
 
-void DeleteAudioOutput(void *ifce)
+static void DeleteAudioOutput(void *ifce)
 {
 	GF_AudioOutput *dr = (GF_AudioOutput *) ifce;
 	RawContext *ctx = (RawContext*)dr->opaque;

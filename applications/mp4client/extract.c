@@ -703,21 +703,22 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	if (!prev) prev = url;
 	strcpy(szPath, prev);
-	prev = strrchr(szPath, '.');
-	if (prev) prev[0] = 0;
+	prev = gf_file_ext_start(szPath);
+	if (prev) *prev = 0;
 
 	if (out_url) {
 		strcpy(szOutPath, out_url);
 	} else {
 		strcpy(szOutPath, szPath);
 	}
-	prev = strrchr(szOutPath, '.');
-	if (prev) prev[0] = 0;
+	prev = gf_file_ext_start(szOutPath);
+	if (prev) *prev = 0;
 
+	gf_term_set_simulation_frame_rate(term, (Double) fps);
 
 	fprintf(stderr, "Opening URL %s\n", url);
 	/*connect and pause */
-	gf_term_connect_from_time(term, url, 0, 1);
+	gf_term_connect_from_time(term, url, 0, 2);
 
 	while (!term->compositor->scene
 	        || term->compositor->msg_type
@@ -882,9 +883,16 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 	ret = 0;
 	while (time < dump_dur) {
+		u32 frame_start_time = gf_sys_clock();
 		while ((gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)) {
 			e = gf_term_process_flush(term);
 			if (e) {
+				ret = 1;
+				break;
+			}
+			//if we can't flush a frame in 30 seconds consider this is an error
+			if (gf_sys_clock() - frame_start_time > 30000) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("[MP4Client] Could not flush frame in 30 seconds for AVI dump, aborting dump\n"));
 				ret = 1;
 				break;
 			}
@@ -936,25 +944,25 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 		if (gf_prompt_has_input() && (gf_prompt_get_char()=='q')) {
 			fprintf(stderr, "Aborting dump\n");
-			dump_dur=0;
 			break;
 		}
 	}
 
 #ifndef GPAC_DISABLE_AVILIB
 	//flush audio dump
-	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+	if (!ret && (mode==DUMP_AVI) && ! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
 		while ((avi_al.flush_retry <1000) && (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur)) {
 			gf_term_step_clocks(term, 0);
 			avi_al.flush_retry++;
+			gf_sleep(1);
 		}
 		if (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur) {
-			fprintf(stderr, "Failed to flush audio frames: audio time "LLU" - expected "LLU"\n", avi_al.audio_time, avi_al.audio_time_init + avi_al.max_dur);
+			GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to flush audio frames: audio time "LLU" - expected "LLU" - retry %d\n", avi_al.audio_time, avi_al.audio_time_init + avi_al.max_dur, avi_al.flush_retry));
 			ret = 1;
 		}
 	}
-	
+
 	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
 		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
 	}

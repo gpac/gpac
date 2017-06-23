@@ -32,7 +32,22 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/mediaobject.h>
+ *	\brief Interface between compositor and decoding engine for media data access.
+ */
+	
+/*!
+ *\addtogroup mobj_grp MediaObject
+ *\ingroup playback_grp
+ *\brief Interface between compositor and decoding engine for media data access.
+ *
+ *This section documents the API betwwen the compositor of GPAC and the decoding engine (terminal)
+ *	@{
+ */
+	
 #include <gpac/scenegraph_vrml.h>
+#include <gpac/modules/codec.h>
 
 
 /*
@@ -92,7 +107,7 @@ Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
 Bool gf_mo_is_raw_memory(GF_MediaObject *mo);
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV);
+GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma);
 
 
 /*returns min frame duration for his object or 0 if unknown*/
@@ -113,7 +128,7 @@ typedef enum
 /*fetch media data
 
 */
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next);
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame);
 
 /*release given amount of media data - nb_bytes is used for audio  - drop_mode can take the following values:
 -1: do not drop
@@ -136,6 +151,10 @@ void gf_mo_adjust_clock(GF_MediaObject *mo, s32 ms_drift);
 u32 gf_mo_get_last_frame_time(GF_MediaObject *mo);
 
 Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *stride, u32 *pixel_ar, u32 *pixelFormat, Bool *is_flipped);
+
+void gf_mo_get_nb_views(GF_MediaObject *mo, int * nb_views);
+
+void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers);
 
 Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config);
 
@@ -160,6 +179,8 @@ enum
 	GF_MO_IS_INIT = (1<<1),
 	/*used by animation stream to remove TEXT from display upon delete and URL change*/
 	GF_MO_DISPLAY_REMOVE = (1<<2),
+	/*used when resyncing a stream (droping late frames)*/
+	GF_MO_IN_RESYNC = (1<<3),
 };
 
 u32 gf_mo_get_flags(GF_MediaObject *mo);
@@ -171,6 +192,36 @@ GF_MediaObject *gf_mo_load_xlink_resource(GF_Node *node, Bool primary_resource, 
 void gf_mo_unload_xlink_resource(GF_Node *node, GF_MediaObject *mo);
 /*returns scene graph associated with a scene/document object, or NULL if wrong type or not loaded*/
 GF_SceneGraph *gf_mo_get_scenegraph(GF_MediaObject *mo);
+
+
+typedef struct
+{
+	u32 vr_type;
+	s32 srd_x;
+	s32 srd_y;
+	s32 srd_w;
+	s32 srd_h;
+	
+	s32 srd_min_x;
+	s32 srd_min_y;
+	s32 srd_max_x;
+	s32 srd_max_y;
+	
+	u32 scene_width;
+	u32 scene_height;
+
+	Bool has_full_coverage;
+	Bool is_tiled_srd;
+} GF_MediaObjectVRInfo;
+
+//get SRD and VR info for this object. Returns FALSE if no VR and no SRD info
+Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info);
+
+/*sets quality degradation hint for this media object  - quality_rank is between 0 (max quality) and 100 (worst quality)*/
+void gf_mo_hint_quality_degradation(GF_MediaObject *mo, u32 quality_degradation);
+
+/*sets visible rectangle for the object - only used in 360 videos for now*/
+void gf_mo_hint_visible_rect(GF_MediaObject *mo, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
 
 #include <gpac/scenegraph_svg.h>
 void gf_mo_del(GF_MediaObject *mo);
@@ -186,6 +237,8 @@ s32                 gf_mo_event_target_find_by_node(GF_MediaObject *mo, GF_Node 
 GF_Node            *gf_mo_event_target_enum_node(GF_MediaObject *mo, u32 *i);
 
 GF_Node            *gf_event_target_get_node(GF_DOMEventTarget *target);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

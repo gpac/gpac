@@ -268,9 +268,15 @@ GF_BaseInterface *LoadWidgetReader()
 	GF_SceneDecoder *sdec;
 
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
+	if (!sdec) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC W3C Widget Loader", "gpac distribution");
 
 	GF_SAFEALLOC(wgtload, WgtLoad);
+	if (!wgtload) {
+		gf_free(sdec);
+		return NULL;
+	}
+	
 	sdec->privateStack = wgtload;
 	sdec->AttachStream = WGT_AttachStream;
 	sdec->CanHandleStream = WGT_CanHandleStream;

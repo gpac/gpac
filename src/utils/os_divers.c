@@ -64,7 +64,6 @@
 #include <errno.h>
 #endif
 
-
 #define SLEEP_ABS_SELECT		1
 
 static u32 sys_start_time = 0;
@@ -468,7 +467,12 @@ Bool gf_prompt_has_input()
 {
 	u8 ch;
 	s32 nread;
+	pid_t fg = tcgetpgrp(STDIN_FILENO);
 
+	//we are not foreground nor piped (used for IDEs), can't read stdin
+	if ((fg!=-1) && (fg != getpgrp())) {
+		return 0;
+	}
 	init_keyboard();
 	if (ch_peek != -1) return 1;
 	t_new.c_cc[VMIN]=0;
@@ -792,24 +796,7 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 		last_update_time = 0;
 		memset(&the_rti, 0, sizeof(GF_SystemRTInfo));
 		the_rti.pid = getpid();
-
-#ifdef GPAC_CONFIG_FREEBSD
-		{
-			s32 flags[4];
-			size_t len = sizeof(u32);
-			flags[0] = CTL_HW;
-			flags[1] = HW_AVAILCPU;
-			sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
-			if( the_rti.nb_cores < 1 ) {
-				flags[1] = HW_NCPU;
-				sysctl(flags, 2, &the_rti.nb_cores, &len, NULL, 0);
-				if (the_rti.nb_cores<1) the_rti.nb_cores = 1;
-			}
-		}
-#else
 		the_rti.nb_cores = (u32) sysconf( _SC_NPROCESSORS_ONLN );
-#endif
-
 		sys_start_time = gf_sys_clock();
 		sys_start_time_hr = gf_sys_clock_high_res();
 #endif
@@ -825,9 +812,12 @@ void gf_sys_init(GF_MemTrackerType mem_tracker_type)
 	/*init RTI stats*/
 	if (!memory_at_gpac_startup) {
 		GF_SystemRTInfo rti;
-		gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY);
-		memory_at_gpac_startup = rti.physical_memory_avail;
-		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] System init OK - process id %d - %d MB physical RAM - %d cores\n", rti.pid, (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
+		if (gf_sys_get_rti(500, &rti, GF_RTI_SYSTEM_MEMORY_ONLY)) {
+			memory_at_gpac_startup = rti.physical_memory_avail;
+			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[core] System init OK - process id %d - %d MB physical RAM - %d cores\n", rti.pid, (u32) (rti.physical_memory/1024/1024), rti.nb_cores));
+		} else {
+			memory_at_gpac_startup = 0;
+		}
 	}
 }
 
@@ -1046,7 +1036,9 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 		/*rough values*/
 		the_rti.cpu_idle_time = the_rti.sampling_period_duration - the_rti.total_cpu_time_diff;
+		if (!the_rti.sampling_period_duration) the_rti.sampling_period_duration=1;
 		the_rti.total_cpu_usage = (u32) (100 * the_rti.total_cpu_time_diff / the_rti.sampling_period_duration);
+		if (the_rti.total_cpu_time_diff + the_rti.cpu_idle_time==0) the_rti.total_cpu_time_diff ++;
 		the_rti.process_cpu_usage = (u32) (100*the_rti.process_cpu_time_diff / (the_rti.total_cpu_time_diff + the_rti.cpu_idle_time) );
 
 #else
@@ -1213,7 +1205,7 @@ Bool gf_sys_get_rti_os(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 			percent +=  (u32) (100 * (double)thi->cpu_usage / TH_USAGE_SCALE);
 		}
 	}
-	error = vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
+	vm_deallocate(mach_task_self(), (vm_offset_t)thread_table, table_size * sizeof(thread_array_t));
 	mach_port_deallocate(mach_task_self(), task);
 
 	process_u_k_time = utime + stime;
@@ -1686,10 +1678,15 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 	u64 frac_part;
 	struct timeval now;
 	gettimeofday(&now, NULL);
-	*sec = (u32) (now.tv_sec) + ntp_shift;
-	frac_part = now.tv_usec * 0xFFFFFFFFULL;
-	frac_part /= 1000000;
-	*frac = (u32) ( frac_part );
+	if (sec) {
+		*sec = (u32) (now.tv_sec) + ntp_shift;
+	}
+	
+	if (frac) {
+		frac_part = now.tv_usec * 0xFFFFFFFFULL;
+		frac_part /= 1000000;
+		*frac = (u32) ( frac_part );
+	}
 }
 
 GF_EXPORT

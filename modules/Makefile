@@ -1,7 +1,7 @@
 include ../config.mak
 
 #all OS and lib independent
-PLUGDIRS=aac_in ac3_in audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp raw_out validator
+PLUGDIRS=aac_in ac3_in amr_dec audio_filter bifs_dec dummy_in soft_raster mp3_in isom_in odf_dec rtp_in timedtext img_in saf_in ismacryp raw_out validator
 
 ifeq ($(DISABLE_DASH_CLIENT), no)
 PLUGDIRS+=mpd_in
@@ -98,17 +98,29 @@ PLUGDIRS+=wav_out
 ifeq ($(CONFIG_DIRECTX),yes)
 PLUGDIRS+=dx_hw
 endif
+ifeq ($(HAS_OPENGL),yes)
+PLUGDIRS+=nvdec
+endif
 endif
 
+#OSX plugins
+ifeq ($(CONFIG_DARWIN),yes)
+PLUGDIRS+=vtb_decode
+endif
+
+#other linux
+ifeq ($(CONFIG_LINUX),yes)
+ifeq ($(HAS_OPENGL),yes)
+PLUGDIRS+=nvdec
+endif
+endif
 
 ifneq ($(CONFIG_FFMPEG), no)
-ifneq ($(CONFIG_LIBAV), new) #we don't support libav newest APIs
 ifeq ($(CONFIG_OPENHEVC),no)
 PLUGDIRS+=ffmpeg_in
 else
 ifneq ($(STATIC_MODULES), yes)
 PLUGDIRS+=ffmpeg_in
-endif
 endif
 endif
 endif
@@ -129,10 +141,6 @@ endif
 
 
 #all modules below are not (yet) included in static build
-
-ifeq ($(CONFIG_AMR_NB), yes)
-PLUGDIRS+=amr_dec
-endif
 
 ifeq ($(CONFIG_AMR_NB_FT), yes)
 PLUGDIRS+=amr_float_dec

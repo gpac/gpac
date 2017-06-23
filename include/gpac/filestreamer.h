@@ -32,7 +32,7 @@ extern "C" {
 
 /*!
  *	\file <gpac/filestreamer.h>
- *	\brief RTP file streamer functions.
+ *	\brief RTP file streamer.
  */
 
 /*!

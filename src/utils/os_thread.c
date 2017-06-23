@@ -192,7 +192,7 @@ void * RunThread(void *ptr)
 
 exit:
 #ifndef GPAC_DISABLE_LOG
-	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Exiting thread proc\n", t->log_name, gf_sys_clock()));
+	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] At %d Exiting thread proc, return code %d\n", t->log_name, gf_sys_clock(), ret));
 #endif
 	t->status = GF_THREAD_STATUS_DEAD;
 	t->Run = NULL;
@@ -231,7 +231,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	t->_signal = gf_sema_new(1, 0);
 
 #ifdef WIN32
-	t->threadH = CreateThread(NULL,  t->stackSize, &(RunThread), (void *)t, 0, &id);
+	t->threadH = CreateThread(NULL, t->stackSize, &(RunThread), (void *)t, 0, &id);
 	if (t->threadH != NULL) {
 #ifdef _MSC_VER
 		/*add thread name for the msvc debugger*/
@@ -469,13 +469,21 @@ GF_Mutex *gf_mx_new(const char *name)
 GF_EXPORT
 void gf_mx_del(GF_Mutex *mx)
 {
+#ifndef WIN32
+	int err;
+#endif
+	
+	if (mx->Holder) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MUTEX, ("[Mutex %s] Destroying mutex from thread %s but hold by thread %s\n", mx->log_name, log_th_name(gf_th_id() ), log_th_name(mx->Holder) ));
+	}
+	
 #ifdef WIN32
 	if (!CloseHandle(mx->hMutex)) {
 		DWORD err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] CloseHandle when deleting mutex failed with error code %d\n", mx->log_name, err));
 	}
 #else
-	int err = pthread_mutex_destroy(&mx->hMutex);
+	err = pthread_mutex_destroy(&mx->hMutex);
 	if (err)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MUTEX, ("[Mutex %s] pthread_mutex_destroy failed with error code %d\n", mx->log_name, err));
 
@@ -526,6 +534,9 @@ u32 gf_mx_p(GF_Mutex *mx)
 #ifndef WIN32
 	int retCode;
 #endif
+#ifndef GPAC_DISABLE_LOG
+	const char *mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
+#endif
 	u32 caller;
 	assert(mx);
 	if (!mx) return 0;
@@ -537,7 +548,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 
 #ifndef GPAC_DISABLE_LOG
 	if (mx->Holder)
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), log_th_name(mx->Holder) ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_MUTEX, ("[Mutex %s] At %d Thread %s waiting a release from thread %s\n", mx->log_name, gf_sys_clock(), log_th_name(caller), mx_holder_name ));
 #endif
 
 #ifdef WIN32

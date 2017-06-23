@@ -41,6 +41,7 @@ const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
 	char *ptr, *name = (char *)szTYPE;
+	if (!type) return "";
 	ptr = name;
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
@@ -85,7 +86,7 @@ static u64 prev_pc = 0;
 static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 {
 	Double prog;
-	u32 pos;
+	u32 pos, pc;
 	const char *szT = _title ? (char *)_title : (char *) "";
 	prog = (double) done;
 	prog /= total;
@@ -95,6 +96,13 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 		prev_pos = 0;
 		prev_pc = 0;
 	}
+	pc = (u32) ( 100 * prog);
+	if ((pos!=prev_pos) || (pc!=prev_pc)) {
+		prev_pos = pos;
+		prev_pc = pc;
+		fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
+		fflush(stderr);
+	}
 	if (done==total) {
 		u32 len = (u32) strlen(szT) + 40;
 		while (len) {
@@ -102,15 +110,6 @@ static void gf_on_progress_std(const char *_title, u64 done, u64 total)
 			len--;
 		};
 		fprintf(stderr, "\r");
-	}
-	else {
-		u32 pc = (u32) ( 100 * prog);
-		if ((pos!=prev_pos) || (pc!=prev_pc)) {
-			prev_pos = pos;
-			prev_pc = pc;
-			fprintf(stderr, "%s: |%s| (%02d/100)\r", szT, szProg[pos], pc);
-			fflush(stderr);
-		}
 	}
 }
 
@@ -189,7 +188,6 @@ GF_Err gf_log_modify_tools_levels(const char *val)
 			return GF_BAD_PARAM;
 		}
 
-		level = 0;
 		if (!strnicmp(sep_level+1, "error", 5)) {
 			level = GF_LOG_ERROR;
 			next_val = sep_level+1 + 5;
@@ -406,7 +404,7 @@ void default_log_callback(void *cbck, GF_LOG_Level level, GF_LOG_Tool tool, cons
 }
 
 static void *user_log_cbk = NULL;
-static gf_log_cbk log_cbk = default_log_callback;
+gf_log_cbk log_cbk = default_log_callback;
 static Bool log_exit_on_error = GF_FALSE;
 
 GF_EXPORT
@@ -416,6 +414,15 @@ void gf_log(const char *fmt, ...)
 	va_start(vl, fmt);
 	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	va_end(vl);
+	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
+		exit(1);
+	}
+}
+
+GF_EXPORT
+void gf_log_va_list(GF_LOG_Level level, GF_LOG_Tool tool, const char *fmt, va_list vl)
+{
+	log_cbk(user_log_cbk, call_lev, call_tool, fmt, vl);
 	if (log_exit_on_error && (call_lev==GF_LOG_ERROR) && (call_tool != GF_LOG_MEMORY)) {
 		exit(1);
 	}
@@ -574,10 +581,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Bad configuration for the current context";
 	case GF_NOT_FOUND:
 		return "At least one required element has not been found";
-	case GF_MISSING_REQUIREMENTS:
-		return "The filter is missing at least one requirement";
-	case GF_WRONG_DATAFORMAT:
-		return "Unexpected data format";
+	case GF_PROFILE_NOT_SUPPORTED:
+		return "Unsupported codec profile";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;

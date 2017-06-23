@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
       <Configuration>Debug</Configuration>
@@ -11,51 +11,12 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\..\src\isomedia\avc_ext.c">
-      <PreprocessorDefinitions Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">GPAC_MINIMAL_ODF;GPAC_DISABLE_AV_PARSERS;GPAC_DISABLE_ISOM_DUMP;GPAC_DISABLE_ZILB;WIN32;_DEBUG;_CONSOLE;_CRT_SECURE_NO_DEPRECATE;_CRT_NONSTDC_NO_DEPRECATE;_SCL_SECURE_NO_DEPRECATE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-    <ClCompile Include="..\..\..\src\isomedia\box_code_3gpp.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_code_adobe.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_code_apple.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_code_base.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_code_drm.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_code_meta.c" />
-    <ClCompile Include="..\..\..\src\isomedia\box_funcs.c" />
-    <ClCompile Include="..\..\..\src\isomedia\data_map.c" />
-    <ClCompile Include="..\..\..\src\isomedia\drm_sample.c" />
-    <ClCompile Include="..\..\..\src\isomedia\isom_intern.c" />
-    <ClCompile Include="..\..\..\src\isomedia\isom_read.c" />
-    <ClCompile Include="..\..\..\src\isomedia\isom_store.c" />
-    <ClCompile Include="..\..\..\src\isomedia\isom_write.c" />
-    <ClCompile Include="..\..\..\src\isomedia\media.c" />
-    <ClCompile Include="..\..\..\src\isomedia\media_odf.c" />
-    <ClCompile Include="..\..\..\src\isomedia\meta.c" />
-    <ClCompile Include="..\..\..\src\isomedia\movie_fragments.c" />
-    <ClCompile Include="..\..\..\src\isomedia\sample_descs.c" />
-    <ClCompile Include="..\..\..\src\isomedia\stbl_read.c" />
-    <ClCompile Include="..\..\..\src\isomedia\stbl_write.c" />
-    <ClCompile Include="..\..\..\src\isomedia\track.c" />
-    <ClCompile Include="..\..\..\src\isomedia\ttml.c" />
-    <ClCompile Include="..\..\..\src\isomedia\tx3g.c" />
-    <ClCompile Include="..\..\..\src\media_tools\webvtt.c" />
-    <ClCompile Include="..\..\..\src\odf\descriptors.c" />
-    <ClCompile Include="..\..\..\src\odf\desc_private.c" />
-    <ClCompile Include="..\..\..\src\odf\odf_code.c" />
-    <ClCompile Include="..\..\..\src\odf\odf_codec.c" />
-    <ClCompile Include="..\..\..\src\odf\odf_command.c" />
-    <ClCompile Include="..\..\..\src\odf\odf_parse.c" />
-    <ClCompile Include="..\..\..\src\odf\slc.c" />
-    <ClCompile Include="..\..\..\src\utils\alloc.c" />
-    <ClCompile Include="..\..\..\src\utils\bitstream.c" />
-    <ClCompile Include="..\..\..\src\utils\configfile.c" />
-    <ClCompile Include="..\..\..\src\utils\error.c" />
-    <ClCompile Include="..\..\..\src\utils\list.c" />
-    <ClCompile Include="..\..\..\src\utils\os_config_init.c" />
-    <ClCompile Include="..\..\..\src\utils\os_divers.c" />
-    <ClCompile Include="..\..\..\src\utils\os_file.c" />
-    <ClCompile Include="..\..\..\src\utils\os_thread.c" />
-    <ClCompile Include="..\..\..\src\utils\url.c" />
     <ClCompile Include="main.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\build\msvc14\libgpac_dll.vcxproj">
+      <Project>{d3540754-e0cf-4604-ac11-82de9bd4d814}</Project>
+    </ProjectReference>
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{BEBEB264-EEA8-4FCF-9467-2E7988DD923B}</ProjectGuid>
@@ -64,13 +25,13 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <PlatformToolset>v100</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>

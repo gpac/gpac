@@ -769,7 +769,7 @@ GF_Err DD_Flush(GF_VideoOutput *dr, GF_Window *dest)
 
 	if (!dd) return GF_BAD_PARAM;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] FLushing video output\n"));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DX] Flushing video output\n"));
 
 #ifndef GPAC_DISABLE_3D
 
@@ -918,6 +918,8 @@ static void DeleteVideoOutput(void *ifce)
 		FreeLibrary(dd->hDDrawLib);
 	}
 
+	if (dd->caption) gf_free(dd->caption);
+
 	gf_free(dd);
 	gf_free(driv);
 }
@@ -950,7 +952,7 @@ void ShutdownInterface(GF_BaseInterface *ifce)
 		DeleteVideoOutput((GF_VideoOutput *)ifce);
 		break;
 	case GF_AUDIO_OUTPUT_INTERFACE:
-		DeleteAudioOutput(ifce);
+		DeleteDxAudioOutput(ifce);
 		break;
 	}
 }

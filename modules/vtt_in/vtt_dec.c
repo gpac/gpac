@@ -141,6 +141,8 @@ static GF_Err VTT_ProcessData(GF_SceneDecoder *plug, const char *inBuffer, u32 i
 				sprintf(start, "%02d:%02d:%02d.%03d", cue->start.hour, cue->start.min, cue->start.sec, cue->start.ms);
 				sprintf(end, "%02d:%02d:%02d.%03d", cue->end.hour, cue->end.min, cue->end.sec, cue->end.ms);
 				gf_webvtt_js_addCue(vttdec->sg->RootNode, cue->id, start, end, cue->settings, cue->text);
+
+				gf_webvtt_cue_del(cue);
 			}
 		}
 		gf_list_del(cues);
@@ -162,11 +164,14 @@ void VTT_UpdateSizeInfo(VTTDec *vttdec)
 	char szVB[100];
 	GF_Node *root = gf_sg_get_root_node(vttdec->sg);
 	if (!root) return;
+#if 0
 	w = vttdec->scene->root_od->term->compositor->display_width;
 	h = vttdec->scene->root_od->term->compositor->display_height;
-
+#else
 	w=1280;
 	h=720;
+#endif
+
 	/*apply*/
 	gf_sg_set_scene_size_info(vttdec->sg, w, h, GF_TRUE);
 
@@ -207,12 +212,15 @@ void VTT_load_script(VTTDec *vttdec, GF_SceneGraph *graph)
 	if (!path) {
 		/* try to find the JS renderer in the default GPAC installation folder */
 		const char *startuppath = gf_modules_get_option((GF_BaseInterface *)vttdec->module, "General", "StartupFile");
-		path = gf_url_concatenate(startuppath, "webvtt-renderer.js");
-		jsfile = gf_fopen(path, "rt");
+		char *jspath = gf_url_concatenate(startuppath, "webvtt-renderer.js");
+		jsfile = gf_fopen(jspath, "rt");
 		if (jsfile) {
-			gf_modules_set_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript", path);
+			gf_modules_set_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript", jspath);
 			gf_fclose(jsfile);
+			gf_free(jspath);
+			path = gf_modules_get_option((GF_BaseInterface *)vttdec->module, "WebVTT", "RenderingScript");
 		} else {
+			gf_free(jspath);
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[WebVTT] Cannot find Rendering Script [WebVTT:RenderingScript] - check config file\n"));
 			return;
 		}
@@ -295,7 +303,7 @@ static void VTT_ReadConfigFromDSI(VTTDec *vttdec, GF_DefaultDescriptor *dsi)
 	entry_type = gf_bs_read_u32(bs);
 	if (entry_type == GF_ISOM_BOX_TYPE_WVTT) {
 		GF_Box *b;
-		gf_isom_parse_box(&b, bs);
+		gf_isom_box_parse(&b, bs);
 		vttdec->config = ((GF_StringBox *)b)->string;
 		((GF_StringBox *)b)->string = NULL;
 		gf_isom_box_del(b);
@@ -403,9 +411,14 @@ GF_BaseInterface *NewVTTDec()
 	GF_SceneDecoder *sdec;
 
 	GF_SAFEALLOC(sdec, GF_SceneDecoder)
+	if (!sdec) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(sdec, GF_SCENE_DECODER_INTERFACE, "GPAC WebVTT Parser", "gpac distribution");
 
 	GF_SAFEALLOC(vttdec, VTTDec);
+	if (!vttdec) {
+		gf_free(sdec);
+		return NULL;
+	}
 	vttdec->cues = gf_list_new();
 	vttdec->module = (GF_BaseInterface *)sdec;
 

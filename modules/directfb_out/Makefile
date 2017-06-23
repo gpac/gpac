@@ -31,7 +31,7 @@ all: $(LIB)
 
 
 $(LIB): $(OBJS)
-	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) $(LDFLAGS) -L../../bin/gcc -lgpac
+	$(CC) $(SHFLAGS) -o ../../bin/gcc/$@ $(OBJS) -L../../bin/gcc -lgpac $(LDFLAGS)
 
 clean: 
 	rm -f $(OBJS) ../../bin/gcc/$(LIB)

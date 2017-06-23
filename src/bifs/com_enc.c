@@ -458,6 +458,7 @@ GF_Err BE_IndexFieldReplace(GF_BifsEncoder *codec, GF_Command *com, GF_BitStream
 	GF_BIFS_WRITE_INT(codec, bs, ind, NumBits, "field", NULL);
 
 	e = gf_node_get_field(com->node, inf->fieldIndex, &field);
+	if (e) return e;
 	if (gf_sg_vrml_is_sf_field(field.fieldType))
 		return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -862,6 +863,10 @@ GF_Err gf_bifs_enc_commands(GF_BifsEncoder *codec, GF_List *comList, GF_BitStrea
 					GF_Command *rcom = (GF_Command*)gf_list_get(comList, i+1);
 					if (rcom->tag!=GF_SG_ROUTE_INSERT) break;
 					GF_SAFEALLOC(r, GF_Route);
+					if (!r) {
+						GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[BIFS] Cannot allocate route\n"));
+						continue;
+					}
 					r->FromField.fieldIndex = rcom->fromFieldIndex;
 					r->FromNode = gf_sg_find_node(codec->scene_graph, rcom->fromNodeID);
 					r->ToField.fieldIndex = rcom->toFieldIndex;

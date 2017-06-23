@@ -1226,8 +1226,6 @@ static s32 FT_Stroker_ParseOutline(FT_Stroker *stroker, GF_Path*  outline)
 				/* for closure                                      */
 				v_start.x = ( v_start.x + v_last.x ) / 2;
 				v_start.y = ( v_start.y + v_last.y ) / 2;
-
-				v_last = v_start;
 			}
 			point--;
 			tags--;
@@ -1553,7 +1551,6 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 		}
 	}
 	dash -= dash_dist;
-	dash_dist = 0;
 
 	/* subpath fits within first dash and no offset*/
 	if (!dist && totaldist <= dash) {
@@ -1569,7 +1566,6 @@ static GF_Err evg_dash_subpath(GF_Path *dashed, GF_Point2D *pts, u32 nb_pts, GF_
 
 	/* subpath is composed of at least one dash */
 	phase = 0;
-	offset = offsetinit;
 	toggle = toggleinit;
 	i = start_ind;
 

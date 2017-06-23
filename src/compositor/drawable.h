@@ -224,6 +224,7 @@ enum
 	CTX_HYBOGL_NO_CLEAR = 1<<11,
 	//flag set in opengl auto mode to indicate that the corresponding area should not be cleared but still redrawn (this means an opaque texture is used)
 	CTX_BACKROUND_NOT_LAYER = 1<<12,
+	CTX_BACKROUND_NO_CLEAR= 1<<13,
 };
 
 #define CTX_3DTYPE_MASK 0x7800
@@ -324,4 +325,5 @@ void drawable_compute_line_scale(GF_TraverseState *tr_state, DrawAspect2D *asp);
 
 Bool svg_drawable_is_over(Drawable *drawable, Fixed x, Fixed y, DrawAspect2D *asp, GF_TraverseState *tr_state, GF_Rect *glyph_rc);
 
+void drawable_check_texture_dirty(DrawableContext *ctx, Drawable *drawable, GF_TraverseState *tr_state);
 #endif

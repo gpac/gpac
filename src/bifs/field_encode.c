@@ -278,7 +278,7 @@ GF_Err gf_bifs_enc_mf_field(GF_BifsEncoder *codec, GF_BitStream *bs, GF_Node *no
 	sffield.fieldType = gf_sg_vrml_get_sf_type(field->fieldType);
 	sffield.NDTtype = field->NDTtype;
 
-	initial_qp = qp_on = GF_FALSE;
+	qp_on = GF_FALSE;
 	qp_local = 0;
 	initial_qp = codec->ActiveQP ? GF_TRUE : GF_FALSE;
 	for (i=0; i<nbF; i++) {

@@ -459,6 +459,10 @@ void compositor_init_background(GF_Compositor *compositor, GF_Node *node)
 {
 	BackgroundStack *ptr;
 	GF_SAFEALLOC(ptr, BackgroundStack);
+	if (!ptr) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to allocate background stack\n"));
+		return;
+	}
 
 	ptr->compositor = compositor;
 	ptr->reg_stacks = gf_list_new();

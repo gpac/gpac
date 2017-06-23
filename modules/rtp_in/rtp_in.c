@@ -204,9 +204,70 @@ static Bool RP_CanHandleURL(GF_InputService *plug, const char *url)
 	        strstr(url, "data:application/mpeg4-es-au;base64")) return GF_TRUE;
 
 	/*we need rtsp/tcp , rtsp/udp or direct RTP sender (no control)*/
-	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "rtp://", 6)) return GF_TRUE;
+	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "rtp://", 6)  || !strnicmp(url, "satip://", 6))
+		return GF_TRUE;
 	/*we don't check extensions*/
 	return GF_FALSE;
+}
+
+//simplified version of RTSP_UnpackURL for SAT>IP
+static void Satip_GetServerIP(const char *sURL, char *Server)
+{
+	char schema[10], *test, text[1024], *retest;
+	u32 i, len;
+	Bool is_ipv6;
+
+	strcpy(Server, "");
+
+	//extract the schema
+	i = 0;
+	while (i <= strlen(sURL)) {
+		if (sURL[i] == ':')
+			goto found;
+		schema[i] = sURL[i];
+		i += 1;
+	}
+	return;
+
+found:
+	schema[i] = 0;
+	if (stricmp(schema, "satip")) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP] Wrong SATIP schema %s - not setting up\n", schema));
+		return;
+	}
+	test = strstr(sURL, "://");
+	test += 3;
+	//check for service
+	retest = strstr(test, "/");
+
+	//check for port
+	retest = strrchr(test, ':');
+	/*IPV6 address*/
+	if (retest && strchr(retest, ']')) retest = NULL;
+
+	if (retest && strstr(retest, "/")) {
+		retest += 1;
+		i = 0;
+		while (i<strlen(retest)) {
+			if (retest[i] == '/') break;
+			text[i] = retest[i];
+			i += 1;
+		}
+		text[i] = 0;
+	}
+	//get the server name
+	is_ipv6 = GF_FALSE;
+	len = (u32)strlen(test);
+	i = 0;
+	while (i<len) {
+		if (test[i] == '[') is_ipv6 = GF_TRUE;
+		else if (test[i] == ']') is_ipv6 = GF_FALSE;
+		if ((test[i] == '/') || (!is_ipv6 && (test[i] == ':'))) break;
+		text[i] = test[i];
+		i += 1;
+	}
+	text[i] = 0;
+	strcpy(Server, text);
 }
 
 GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const char *url, Bool skip_migration)
@@ -255,7 +316,7 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 	}
 
 	/*rtsp and rtsp over udp*/
-	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
+	if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "satip://", 8)) {
 		char *the_url = gf_strdup(url);
 		char *the_ext = strrchr(the_url, '#');
 		if (the_ext) {
@@ -264,6 +325,11 @@ GF_Err RP_ConnectServiceEx(GF_InputService *plug, GF_ClientService *serv, const 
 			the_ext[0] = 0;
 		}
 		sess = RP_NewSession(priv, (char *) the_url);
+		if (!strnicmp(url, "satip://", 8)) {
+			sess->satip = GF_TRUE;
+			sess->satip_server = gf_malloc(GF_MAX_PATH);
+			Satip_GetServerIP(url, sess->satip_server);
+		}
 		gf_free(the_url);
 		if (!sess) {
 			gf_service_connect_ack(serv, NULL, GF_NOT_SUPPORTED);
@@ -351,9 +417,18 @@ static GF_Err RP_CloseService(GF_InputService *plug)
 static GF_Descriptor *RP_GetServiceDesc(GF_InputService *plug, u32 expect_type, const char *sub_url)
 {
 	GF_Descriptor *desc;
+	RTSPSession *sess = NULL;
 	RTPClient *priv = (RTPClient *)plug->priv;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Fetching service descriptor\n"));
+
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return NULL;
+		return ch->satip_m2ts_ifce->GetServiceDescriptor(ch->satip_m2ts_ifce, expect_type, sub_url);
+	}
+
 	if ((expect_type!=GF_MEDIA_OBJECT_UNDEF) && (expect_type!=GF_MEDIA_OBJECT_SCENE) && (expect_type!=GF_MEDIA_OBJECT_UPDATES)) {
 		/*ignore the SDP IOD and regenerate one*/
 		if (priv->session_desc) gf_odf_desc_del(priv->session_desc);
@@ -371,13 +446,19 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 {
 	u32 ESID, i;
 	RTPStream *ch, *next_ch;
-	RTSPSession *sess;
+	RTSPSession *sess = NULL;
 	char *es_url;
 	RTPClient *priv = (RTPClient *)plug->priv;
 	if (upstream) return GF_NOT_SUPPORTED;
 
-
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Connecting channel @%08x - %s\n", channel, url));
+
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->ConnectChannel(ch->satip_m2ts_ifce, channel, url, upstream);
+	}
 
 	ch = RP_FindChannel(priv, channel, 0, (char *) url, GF_FALSE);
 	if (ch && (ch->status != RTP_Disconnected) ) return GF_SERVICE_ERROR;
@@ -407,7 +488,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		sess = ch->rtsp;
 	}
 	/*rtsp url - create a session if needed*/
-	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8)) {
+	else if (!strnicmp(url, "rtsp://", 7) || !strnicmp(url, "rtspu://", 8) || !strnicmp(url, "satip://", 8)) {
 		sess = RP_CheckSession(priv, (char *) url);
 		if (!sess) sess = RP_NewSession(priv, (char *) url);
 		es_url = (char *) url;
@@ -419,6 +500,8 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 	        ) {
 
 		GF_SAFEALLOC(ch, RTPStream);
+		if (!ch) return GF_OUT_OF_MEM;
+		
 		ch->control = gf_strdup(url);
 		ch->owner = priv;
 		ch->channel = channel;
@@ -430,7 +513,7 @@ static GF_Err RP_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, con
 		return GF_OK;
 	}
 	/*session migration resume - don't send data to the server*/
-	if (ch->status==RTP_SessionResume) {
+	if (ch && (ch->status==RTP_SessionResume)) {
 		ch->flags |= RTP_CONNECTED;
 		RP_InitStream(ch, GF_FALSE);
 		RP_ConfirmChannelConnect(ch, GF_OK);
@@ -450,8 +533,16 @@ static GF_Err RP_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
 {
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
+	RTSPSession *sess = NULL;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_RTP, ("[RTP] Disconnecting channel @%08x\n", channel));
+	
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->DisconnectChannel(ch->satip_m2ts_ifce, channel);
+	}
 
 	ch = RP_FindChannel(priv, channel, 0, NULL, GF_FALSE);
 	if (!ch) return GF_STREAM_NOT_FOUND;
@@ -543,7 +634,14 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 {
 	RTPStream *ch;
 	RTPClient *priv = (RTPClient *)plug->priv;
+	RTSPSession *sess = NULL;
 
+	sess = gf_list_get(priv->sessions, 0);
+	if (sess && sess->satip) {
+		RTPStream *ch = gf_list_get(priv->channels, 0);
+		if (!ch) return GF_SERVICE_ERROR;
+		return ch->satip_m2ts_ifce->ServiceCommand(ch->satip_m2ts_ifce, com);
+	}
 
 	if (com->command_type==GF_NET_SERVICE_HAS_AUDIO) {
 		u32 i;
@@ -599,17 +697,8 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 	case GF_NET_CHAN_BUFFER:
 		if (!(ch->rtp_ch || ch->rtsp || !ch->control)) {
 			com->buffer.max = com->buffer.min = 0;
-		} else {
-			const char *opt;
-			/*amount of buffering in ms*/
-			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "BufferLength");
-			com->buffer.max = opt ? atoi(opt) : 1000;
-			/*rebuffer low limit in ms - if the amount of buffering is less than this, rebuffering will never occur*/
-			opt = gf_modules_get_option((GF_BaseInterface *)plug, "Network", "RebufferLength");
-			if (opt) com->buffer.min = atoi(opt);
-			else com->buffer.min = 500;
-			if (com->buffer.min >= com->buffer.max ) com->buffer.min = 0;
 		}
+		//otherwise use default player config
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:
 		com->duration.duration = (ch->flags & RTP_HAS_RANGE) ? (ch->range_end - ch->range_start) : 0;
@@ -723,6 +812,12 @@ static GF_Err RP_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 			com->net_stats.ctrl_bw_up = (u32) bps;
 		}
 		return GF_OK;
+	case GF_NET_CHAN_NALU_MODE:
+		if (com->nalu_mode.extract_mode)
+			ch->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
+		else
+			ch->depacketizer->flags &= ~GF_RTP_AVC_USE_ANNEX_B;
+		return GF_OK;
 	default:
 		break;
 	}
@@ -823,8 +918,14 @@ GF_InputService *RTP_Load()
 	RTPClient *priv;
 	GF_InputService *plug;
 	GF_SAFEALLOC(plug, GF_InputService);
-	memset(plug, 0, sizeof(GF_InputService));
+	if (!plug) return NULL;
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC RTP/RTSP Client", "gpac distribution")
+
+	GF_SAFEALLOC(priv, RTPClient);
+	if (!priv) {
+		gf_free(plug);
+		return NULL;
+	}
 
 	plug->CanHandleURL = RP_CanHandleURL;
 	plug->CanHandleURLInService = RP_CanHandleURLInService;
@@ -840,7 +941,6 @@ GF_InputService *RTP_Load()
 	plug->ChannelGetSLP = RP_ChannelGetSLP;
 	plug->ChannelReleaseSLP = RP_ChannelReleaseSLP;
 
-	GF_SAFEALLOC(priv, RTPClient);
 	priv->sessions = gf_list_new();
 	priv->channels = gf_list_new();
 

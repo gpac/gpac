@@ -27,6 +27,7 @@
 
 #include "nodes_stacks.h"
 #include "visual_manager.h"
+#include <gpac/internal/terminal_dev.h>
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {
@@ -131,6 +132,10 @@ static void TraverseShape(GF_Node *node, void *rs, Bool is_destroy)
 #ifndef GPAC_DISABLE_3D
 		/*if we're here we passed culler already*/
 		case TRAVERSE_DRAW_3D:
+			if (!tr_state->visual->type_3d && tr_state->visual->compositor->hybrid_opengl) {
+				tr_state->visual->compositor->root_visual_setup=0;
+				tr_state->visual->compositor->force_type_3d=1;
+			}
 			gf_node_traverse((GF_Node *) shape->geometry, tr_state);
 			break;
 		case TRAVERSE_COLLIDE:
@@ -314,6 +319,60 @@ static void rectangle_check_changes(GF_Node *node, Drawable *stack, GF_TraverseS
 		drawable_mark_modified(stack, tr_state);
 	}
 }
+
+Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	GF_TextureHandler *txh;
+	GF_MediaObjectVRInfo vrinfo;
+	Bool is_visible = GF_FALSE;
+	if (! tr_state->visual->compositor->gazer_enabled)
+		return GF_TRUE;
+
+	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
+		return GF_TRUE;
+	
+	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
+	if (!txh->stream) return GF_TRUE;
+
+	if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
+		return GF_TRUE;
+
+	//simple test condition: only keep the first row
+	if (!vrinfo.srd_x) {
+		is_visible = GF_TRUE;
+	}
+
+	if (vrinfo.has_full_coverage) {
+		if (is_visible) {
+			if (!txh->is_open) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d stoped on visible partial plane - starting it\n", txh->stream->OD_ID));
+				assert(txh->stream && txh->stream->odm);
+				txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
+
+				gf_sc_texture_play(txh, NULL);
+			}
+			if (! txh->data)  return GF_FALSE;
+			return GF_TRUE;
+		} else {
+			if (txh->is_open) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d playing on hidden partial plane - stoping it\n", txh->stream->OD_ID));
+				gf_sc_texture_stop_no_unregister(txh);
+			}
+			return GF_FALSE;
+		}
+	} else {
+		if (is_visible) {
+			gf_mo_hint_quality_degradation(txh->stream, 0);
+			if (! txh->data)  return GF_FALSE;
+			return GF_TRUE;
+		} else {
+			gf_mo_hint_quality_degradation(txh->stream, 100);
+			return GF_FALSE;
+		}
+	}
+	return GF_TRUE;
+}
+
 static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
@@ -326,6 +385,9 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	rectangle_check_changes(node, stack, tr_state);
+
+	if (! rectangle_check_adaptation(node, stack, tr_state))
+		return;
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:

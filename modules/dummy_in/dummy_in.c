@@ -289,7 +289,6 @@ GF_Err DC_ConnectService(GF_InputService *plug, GF_ClientService *serv, const ch
 
 	/*remote fetch*/
 	if (!strnicmp(url, "file://", 7)) {
-		url += 7;
 	}
 	else if (strstr(url, "://")) {
 		DC_DownloadFile(plug, read->url);
@@ -420,6 +419,7 @@ GF_Err DC_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const char
 	} else {
 		DummyChannel *dc;
 		GF_SAFEALLOC(dc, DummyChannel);
+		if (!dc) return GF_OUT_OF_MEM;
 		dc->ch = channel;
 		dc->ESID = ESID;
 		gf_list_add(read->channels, dc);
@@ -483,8 +483,17 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	if (InterfaceType != GF_NET_CLIENT_INTERFACE) return NULL;
 
 	GF_SAFEALLOC(plug, GF_InputService);
-	memset(plug, 0, sizeof(GF_InputService));
+	if (!plug) return NULL;
+	GF_SAFEALLOC(read, DCReader);
+	if (!read) {
+		gf_free(plug);
+		return NULL;
+	}
+	read->channels = gf_list_new();
+	plug->priv = read;
+
 	GF_REGISTER_MODULE_INTERFACE(plug, GF_NET_CLIENT_INTERFACE, "GPAC Dummy Loader", "gpac distribution")
+
 
 	plug->RegisterMimeTypes = DC_RegisterMimeTypes;
 	plug->CanHandleURL = DC_CanHandleURL;
@@ -497,9 +506,7 @@ GF_BaseInterface *LoadInterface(u32 InterfaceType)
 	plug->CanHandleURLInService = DC_CanHandleURLInService;
 	plug->ChannelGetSLP = DC_ChannelGetSLP;
 	plug->ChannelReleaseSLP = DC_ChannelReleaseSLP;
-	GF_SAFEALLOC(read, DCReader);
-	read->channels = gf_list_new();
-	plug->priv = read;
+
 	return (GF_BaseInterface *)plug;
 }
 

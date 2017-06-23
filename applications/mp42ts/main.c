@@ -120,7 +120,7 @@ static GFINLINE void usage()
 	        "-force-pcr-only        allows sending PCR-only packets to enforce the requested PCR rate - STILL EXPERIMENTAL.\n"
 	        "-ttl N                 specifies Time-To-Live for multicast. Default is 1.\n"
 	        "-ifce IPIFCE           specifies default IP interface to use. Default is IF_ANY.\n"
-	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optionnal, and can be a number for external timeline IDs\n"
+	        "-temi [URL]            Inserts TEMI time codes in adaptation field. URL is optional, and can be a number for external timeline IDs\n"
 	        "-temi-delay DelayMS    Specifies delay between two TEMI url descriptors (default is 1000)\n"
 	        "-temi-offset OffsetMS  Specifies an offset in ms to add to TEMI (by default TEMI starts at 0)\n"
 	        "-temi-noloop           Do not restart the TEMI timeline at the end of the source\n"
@@ -200,7 +200,7 @@ typedef struct
 	void *dsi_and_rap;
 	Bool loop;
 	Bool is_repeat;
-	s64 ts_offset;
+	s64 ts_offset, cts_dts_shift;
 	M2TSSource *source;
 
 	const char *temi_url;
@@ -360,7 +360,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		if (priv->timeline_id) {
 			u64 ntp=0;
-			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset;
+			u64 tc = priv->sample->DTS + priv->sample->CTS_Offset + priv->cts_dts_shift;
 			if (temi_disable_loop) {
 				tc += priv->ts_offset;
 			}
@@ -385,6 +385,11 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 		}
 
 		pck.dts = pck.cts;
+		if (priv->cts_dts_shift) {
+			pck.cts += + priv->cts_dts_shift;
+			pck.flags |= GF_ESI_DATA_HAS_DTS;
+		}
+		
 		if (priv->sample->CTS_Offset) {
 			pck.cts += priv->sample->CTS_Offset;
 			pck.flags |= GF_ESI_DATA_HAS_DTS;
@@ -491,11 +496,16 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	GF_ESIMP4 *priv;
 	char *_lan;
 	GF_ESD *esd;
+	Bool is_hevc=GF_FALSE;
 	u64 avg_rate, duration;
 	s32 ref_count;
 	s64 mediaOffset;
 
 	GF_SAFEALLOC(priv, GF_ESIMP4);
+	if (!priv) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate MP4 input handler\n"));
+		return;
+	}
 
 	priv->mp4 = mp4;
 	priv->track = track_num;
@@ -526,11 +536,18 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 				ifce->decoder_config = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
 				ifce->decoder_config_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
 				memcpy(ifce->decoder_config, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_MPEG4_PART2) {
+					priv->dsi = (char *)gf_malloc(sizeof(char)*esd->decoderConfig->decoderSpecificInfo->dataLength);
+					priv->dsi_size = esd->decoderConfig->decoderSpecificInfo->dataLength;
+					memcpy(priv->dsi, esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				}
 				break;
 			case GPAC_OTI_VIDEO_HEVC:
-			case GPAC_OTI_VIDEO_SHVC:
+			case GPAC_OTI_VIDEO_LHVC:
+				is_hevc=GF_TRUE;
 			case GPAC_OTI_VIDEO_AVC:
 			case GPAC_OTI_VIDEO_SVC:
+			case GPAC_OTI_VIDEO_MVC:
 				gf_isom_set_nalu_extract_mode(mp4, track_num, GF_ISOM_NALU_EXTRACT_LAYER_ONLY | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG | GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG | GF_ISOM_NALU_EXTRACT_VDRD_FLAG);
 				break;
 			case GPAC_OTI_SCENE_VTT_MP4:
@@ -566,8 +583,12 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 	ifce->duration /= ifce->timescale;
 
 	GF_SAFEALLOC(ifce->sl_config, GF_SLConfig);
+	if (!ifce->sl_config) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate interface SLConfig\n"));
+		return;
+	}
+	
 	ifce->sl_config->tag = GF_ODF_SLC_TAG;
-//	ifce->sl_config->predefined = 3;
 	ifce->sl_config->useAccessUnitStartFlag = 1;
 	ifce->sl_config->useAccessUnitEndFlag = 1;
 	ifce->sl_config->useRandomAccessPointFlag = 1;
@@ -599,12 +620,19 @@ static void fill_isom_es_ifce(M2TSSource *source, GF_ESInterface *ifce, GF_ISOFi
 		priv->ts_offset = mediaOffset;
 	}
 
+	if (gf_isom_has_time_offset(mp4, track_num)==2) {
+		priv->cts_dts_shift = gf_isom_get_cts_to_dts_shift(mp4, track_num);
+	}
+
+	ifce->depends_on_stream = 0;
 	ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_SCAL);
 	if (ref_count > 0) {
 		gf_isom_get_reference_ID(mp4, track_num, GF_ISOM_REF_SCAL, (u32) ref_count, &ifce->depends_on_stream);
-	}
-	else {
-		ifce->depends_on_stream = 0;
+	} else if (is_hevc) {
+		ref_count = gf_isom_get_reference_count(mp4, track_num, GF_ISOM_REF_BASE);
+		if (ref_count > 0) {
+			gf_isom_get_reference_ID(mp4, track_num, GF_ISOM_REF_BASE, (u32) ref_count, &ifce->depends_on_stream);
+		}
 	}
 
 	if (compute_max_size) {
@@ -831,6 +859,10 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 	/*check payload type*/
 	map = (GF_RTPMap*)gf_list_get(media->RTPMaps, 0);
 	GF_SAFEALLOC(rtp, GF_ESIRTP);
+	if (!rtp) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate RTP input handler\n"));
+		return;
+	}
 
 	memset(ifce, 0, sizeof(GF_ESInterface));
 	rtp->rtp_ch = gf_rtp_new();
@@ -881,6 +913,7 @@ static void fill_rtp_es_ifce(GF_ESInterface *ifce, GF_SDPMedia *media, GF_SDPInf
 			break;
 		case GPAC_OTI_VIDEO_AVC:
 		case GPAC_OTI_VIDEO_SVC:
+		case GPAC_OTI_VIDEO_MVC:
 			rtp->is_264 = GF_TRUE;
 			rtp->depacketizer->flags |= GF_RTP_AVC_USE_ANNEX_B;
 			{
@@ -1043,6 +1076,10 @@ static void SampleCallBack(void *calling_object, u16 ESID, char *data, u32 size,
 					{
 						/*audio OD descriptor: rap=1 and vers_inc=0*/
 						GF_SAFEALLOC(source->streams[audio_OD_stream_id].input_udta, GF_ESIStream);
+						if (!source->streams[audio_OD_stream_id].input_udta) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate aac input handler\n"));
+							return;
+						}
 						((GF_ESIStream*)source->streams[audio_OD_stream_id].input_udta)->rap = 1;
 
 						/*we have the descriptor; now call this callback recursively so that a player gets the audio descriptor before audio data.*/
@@ -1378,7 +1415,11 @@ void fill_seng_es_ifce(GF_ESInterface *ifce, u32 i, GF_SceneEngine *seng, u32 pe
 
 	ifce->repeat_rate = period;
 	GF_SAFEALLOC(stream, GF_ESIStream);
-	memset(stream, 0, sizeof(GF_ESIStream));
+	if (!stream) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate SENG input handler\n"));
+		return;
+	}
+
 	stream->rap = 1;
 	if (ifce->input_udta)
 		gf_free(ifce->input_udta);
@@ -1399,7 +1440,6 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 #ifndef GPAC_DISABLE_STREAMING
 	GF_SDPInfo *sdp;
 #endif
-	s64 min_offset = 0;
 
 	memset(source, 0, sizeof(M2TSSource));
 	source->mpeg4_signaling = mpeg4_signaling;
@@ -1413,6 +1453,8 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 		Bool temi_assigned = 0;
 		u32 first_audio = 0;
 		u32 first_other = 0;
+		s64 min_offset = 0;
+		u32 min_offset_timescale = 0;
 		source->mp4 = gf_isom_open(src, GF_ISOM_OPEN_READ, 0);
 		source->nb_streams = 0;
 		source->real_time = force_real_time;
@@ -1426,8 +1468,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				continue;
 
 			fill_isom_es_ifce(source, &source->streams[i], source->mp4, i+1, bifs_use_pes, compute_max_size);
-			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset)
+			if (min_offset > ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset) {
 				min_offset = ((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset;
+				min_offset_timescale = source->streams[i].timescale;
+			}
 
 			switch(source->streams[i].stream_type) {
 			case GF_STREAM_OD:
@@ -1520,7 +1564,9 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 
 		if (min_offset < 0) {
 			for (i=0; i<source->nb_streams; i++) {
-				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += -min_offset;
+				Double scale = source->streams[i].timescale;
+				scale /= min_offset_timescale;
+				((GF_ESIMP4 *)source->streams[i].input_udta)->ts_offset += (s64) (-min_offset * scale);
 			}
 		}
 
@@ -1707,6 +1753,11 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				source->streams[source->nb_streams].timescale = 1000;
 
 				GF_SAFEALLOC(source->streams[source->nb_streams].input_udta, GF_ESIStream);
+				if (!source->streams[source->nb_streams].input_udta) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate audio input handler\n"));
+					return 0;
+				}
+				
 				((GF_ESIStream*)source->streams[source->nb_streams].input_udta)->vers_inc = 1;	/*increment version number at every audio update*/
 				assert( source );
 				//assert( source->iod);
@@ -1760,6 +1811,10 @@ static Bool open_source(M2TSSource *source, char *src, u32 carousel_rate, u32 mp
 				source->streams[source->nb_streams].timescale = 1000;
 
 				GF_SAFEALLOC(source->streams[source->nb_streams].input_udta, GF_ESIStream);
+				if (!source->streams[source->nb_streams].input_udta) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_APP, ("Failed to allocate video input handler\n"));
+					return 0;
+				}
 				((GF_ESIStream*)source->streams[source->nb_streams].input_udta)->vers_inc = 1;	/*increment version number at every video update*/
 				assert(source);
 
@@ -2819,7 +2874,7 @@ exit:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}

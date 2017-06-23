@@ -381,7 +381,7 @@ GF_DataMap *gf_isom_fdm_new(const char *sPath, u8 mode)
 	if (!strcmp(sPath, "mp4_tmp_edit")) {
 		//create a temp file (that only occurs in EDIT/WRITE mode)
 		tmp->stream = gf_temp_file_new(&tmp->temp_file);
-		bs_mode = GF_BITSTREAM_READ;
+//		bs_mode = GF_BITSTREAM_READ;
 	}
 #endif
 	if (!strncmp(sPath, "gmem://", 7)) {

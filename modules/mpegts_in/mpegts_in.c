@@ -216,8 +216,11 @@ static GF_ESD *MP2TS_GetESD(M2TSIn *m2ts, GF_M2TS_PES *stream, char *dsi, u32 ds
 		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_HEVC;
 		break;
 	case GF_M2TS_VIDEO_SHVC:
+	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
+	case GF_M2TS_VIDEO_MHVC:
+	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
 		esd->decoderConfig->streamType = GF_STREAM_VISUAL;
-		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_SHVC;
+		esd->decoderConfig->objectTypeIndication = GPAC_OTI_VIDEO_LHVC;
 		break;
 	case GF_M2TS_AUDIO_MPEG1:
 		esd->decoderConfig->streamType = GF_STREAM_AUDIO;
@@ -296,7 +299,7 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 	if (!esd) return NULL;
 
 	if (stream->program->is_scalable)
-		esd->has_ref_base = GF_TRUE;
+		esd->has_scalable_layers = GF_TRUE;
 
 	/*declare object to terminal*/
 	od = (GF_ObjectDescriptor*)gf_odf_desc_new(GF_ODF_OD_TAG);
@@ -316,8 +319,12 @@ static GF_ObjectDescriptor *MP2TS_GetOD(M2TSIn *m2ts, GF_M2TS_PES *stream, char 
 			GF_ESD *the_esd;
 			the_esd = MP2TS_GetESD(m2ts, (GF_M2TS_PES *)es, dsi, dsi_size);
 			if (the_esd) {
+				if ((esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) && (the_esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_LHVC)) {
+					esd->has_scalable_layers = GF_FALSE;
+				}
+				the_esd->has_scalable_layers = GF_TRUE;
+
 				the_esd->dependsOnESID = cur_ES;
-				the_esd->has_ref_base = GF_TRUE;
 				gf_list_add(od->ESDescriptors, the_esd);
 			}
 			cur_ES = the_esd->ESID;
@@ -661,6 +668,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PES_PCR:
 	{
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
+		GF_M2TS_PES_PCK *pck;
 		/*send pcr*/
 		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
 			GF_SLHeader slh;
@@ -679,7 +687,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				com.base.on_channel = NULL;
 				while (ts->run_state) {
 					gf_service_command(m2ts->service, &com, GF_OK);
-					if (!com.buffer.occupancy) {
+					if (!com.buffer.occupancy || com.buffer.buffering) {
 						break;
 					}
 					gf_sleep(1);
@@ -700,12 +708,13 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 				m2ts->pcr_last = 0;
 			}
 		}
-		((GF_M2TS_PES_PCK *) param)->stream->program->first_dts = 1;
+		pck = (GF_M2TS_PES_PCK *) param;
+		if (pck->stream && pck->stream->program) pck->stream->program->first_dts = 1;
 
 		if (discontinuity) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", m2ts->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
 			if (m2ts->pcr_last) {
-				m2ts->pcr_last = ((GF_M2TS_PES_PCK *) param)->PTS;
+				m2ts->pcr_last = pck->PTS;
 				m2ts->stb_at_last_pcr = gf_sys_clock();
 			}
 			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities
@@ -714,15 +723,17 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		}
 
 		if (m2ts->file_regulate) {
-			u64 pcr = ((GF_M2TS_PES_PCK *) param)->PTS;
+			u64 pcr = pck->PTS;
 			u32 stb = gf_sys_clock();
 
-			if (m2ts->regulation_pcr_pid==0) {
-				/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
-				only check buffer levels, not DTS/PTS of the streams in the regulation step*/
-				m2ts->regulation_pcr_pid = ((GF_M2TS_PES_PCK *) param)->stream->pid;
-			} else if (m2ts->regulation_pcr_pid != ((GF_M2TS_PES_PCK *) param)->stream->pid) {
-				return;
+			if (pck->stream) {
+				if (m2ts->regulation_pcr_pid==0) {
+					/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
+					only check buffer levels, not DTS/PTS of the streams in the regulation step*/
+					m2ts->regulation_pcr_pid = pck->stream->pid;
+				} else if (m2ts->regulation_pcr_pid != pck->stream->pid) {
+					return;
+				}
 			}
 
 
@@ -857,7 +868,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
 		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
 		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
-		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
+//		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
 		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
 		gf_service_command(m2ts->service, &com, GF_OK);
 	}
@@ -1130,7 +1141,7 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	}
 
 	if (url && !strnicmp(url, "http://", 7)) {
-		m2ts->ts->dnload = gf_service_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED, m2ts_net_io, m2ts);
+		m2ts->ts->dnload = gf_service_download_new(m2ts->service, url, GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_NOT_CACHED | GF_NETIO_SESSION_NOTIFY_DATA, m2ts_net_io, m2ts);
 		if (!m2ts->ts->dnload) {
 			gf_service_connect_ack(m2ts->service, NULL, GF_NOT_SUPPORTED);
 			return GF_OK;
@@ -1201,7 +1212,7 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 	if (frag) frag++;
 
 	/* consider the channel name in DVB URL as a fragment */
-	if (!frag && !strncmp(sub_url, "dvb://", 6)) {
+	if (!frag && sub_url && !strncmp(sub_url, "dvb://", 6)) {
 		frag = (char*)sub_url + 6;
 	}
 
@@ -1212,6 +1223,10 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 		gf_mx_p(m2ts->mx);
 		if (!strnicmp(frag, "pid=", 4)) {
 			GF_SAFEALLOC(prog, M2TSIn_Prog);
+			if (!prog) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Fail to allocate pid playback request"));
+				return NULL;
+			}
 			prog->pid = atoi(frag+4);
 			gf_list_add(m2ts->ts->requested_pids, prog);
 		} else if (!strnicmp(frag, "EPG", 3)) {
@@ -1228,6 +1243,10 @@ static GF_Descriptor *M2TS_GetServiceDesc(GF_InputService *plug, u32 expect_type
 			}
 			if (!prog) {
 				GF_SAFEALLOC(prog, M2TSIn_Prog);
+				if (!prog) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSIn] Fail to allocate URI fragment playback request"));
+					return NULL;
+				}
 				gf_list_add(m2ts->ts->requested_progs, prog);
 				prog->fragment = gf_strdup(frag);
 			}
@@ -1482,6 +1501,9 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		//do not override config
 		if (ts->dnload || plug->query_proxy) {
 			if (!com->buffer.max) com->buffer.max = 1000;
+		} else if (ts->file) {
+			//use default small buffer for PCR regulation when from file
+			com->buffer.max = com->buffer.occupancy = M2TS_MAX_SLEEP;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:

@@ -899,8 +899,12 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 	/*flatten all modifiers*/
 	if (!txt->styles || !txt->styles->entry_count) {
 		GF_SAFEALLOC(tc, TTDTextChunk);
-		tc->end_char = char_count;
-		gf_list_add(chunks, tc);
+		if (!tc) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+		} else {
+			tc->end_char = char_count;
+			gf_list_add(chunks, tc);
+		}
 	} else {
 		GF_StyleRecord *srec = NULL;
 		char_offset = 0;
@@ -911,23 +915,35 @@ static void TTD_ApplySample(TTDPriv *priv, GF_TextSample *txt, u32 sdi, Bool is_
 			/*handle not continuous modifiers*/
 			if (char_offset < srec->startCharOffset) {
 				GF_SAFEALLOC(tc, TTDTextChunk);
-				tc->start_char = char_offset;
-				tc->end_char = srec->startCharOffset;
-				gf_list_add(chunks, tc);
+				if (!tc) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+				} else {
+					tc->start_char = char_offset;
+					tc->end_char = srec->startCharOffset;
+					gf_list_add(chunks, tc);
+				}
 			}
 			GF_SAFEALLOC(tc, TTDTextChunk);
-			tc->start_char = srec->startCharOffset;
-			tc->end_char = srec->endCharOffset;
-			tc->srec = srec;
-			gf_list_add(chunks, tc);
+			if (!tc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+			} else {
+				tc->start_char = srec->startCharOffset;
+				tc->end_char = srec->endCharOffset;
+				tc->srec = srec;
+				gf_list_add(chunks, tc);
+			}
 			char_offset = srec->endCharOffset;
 		}
 
 		if (srec->endCharOffset<char_count) {
 			GF_SAFEALLOC(tc, TTDTextChunk);
-			tc->start_char = char_offset;
-			tc->end_char = char_count;
-			gf_list_add(chunks, tc);
+			if (!tc) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[TimedText] Failed to allocate text chunk\n"));
+			} else {
+				tc->start_char = char_offset;
+				tc->end_char = char_count;
+				gf_list_add(chunks, tc);
+			}
 		}
 	}
 	/*apply all other modifiers*/
@@ -1115,11 +1131,11 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 	while (gf_bs_available(bs)) {
 		GF_TextSample *txt;
 		Bool is_utf_16;
-		u32 type, length, sample_index, sample_duration;
+		u32 type, /*length, */sample_index, sample_duration;
 		is_utf_16 = (Bool)gf_bs_read_int(bs, 1);
 		gf_bs_read_int(bs, 4);
 		type = gf_bs_read_int(bs, 3);
-		length = gf_bs_read_u16(bs);
+		/*length = */gf_bs_read_u16(bs);
 
 		/*currently only full text samples are supported*/
 		if (type != 1) {
@@ -1129,7 +1145,6 @@ static GF_Err TTD_ProcessData(GF_SceneDecoder*plug, const char *inBuffer, u32 in
 		sample_index = gf_bs_read_u8(bs);
 		/*duration*/
 		sample_duration = gf_bs_read_u24(bs);
-		length -= 8;
 		/*txt length is parsed with the sample*/
 		txt = gf_isom_parse_texte_sample(bs);
 		TTD_ApplySample(priv, txt, sample_index, is_utf_16, sample_duration);

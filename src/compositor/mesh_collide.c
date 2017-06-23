@@ -125,6 +125,7 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParam
 	u32 axis, num_pos, i, j;
 	SFVec3f extend;
 
+if (!mesh || !node) return;
 	/*update mesh depth*/
 	aab_par->depth ++;
 
@@ -224,17 +225,20 @@ static void mesh_subdivide_aabbtree(GF_Mesh *mesh, AABBNode *node, AABSplitParam
 	aab_par->nb_nodes += 2;
 
 	GF_SAFEALLOC(node->pos, AABBNode);
-	node->pos->indices = &node->indices[0];
-	node->pos->nb_idx = num_pos;
-	update_node_bounds(mesh, node->pos);
-	mesh_subdivide_aabbtree(mesh, node->pos, aab_par);
+	if (node->pos) {
+		node->pos->indices = &node->indices[0];
+		node->pos->nb_idx = num_pos;
+		update_node_bounds(mesh, node->pos);
+		mesh_subdivide_aabbtree(mesh, node->pos, aab_par);
+	}
 
 	GF_SAFEALLOC(node->neg, AABBNode);
-	node->neg->indices = &node->indices[num_pos];
-	node->neg->nb_idx = node->nb_idx - num_pos;
-	update_node_bounds(mesh, node->neg);
-	mesh_subdivide_aabbtree(mesh, node->neg, aab_par);
-
+	if (node->neg) {
+		node->neg->indices = &node->indices[num_pos];
+		node->neg->nb_idx = node->nb_idx - num_pos;
+		update_node_bounds(mesh, node->neg);
+		mesh_subdivide_aabbtree(mesh, node->neg, aab_par);
+	}
 	aab_par->depth --;
 }
 
@@ -256,10 +260,12 @@ void gf_mesh_build_aabbtree(GF_Mesh *mesh)
 	for (i=0; i<nb_idx; i++) mesh->aabb_indices[i] = i;
 
 	GF_SAFEALLOC(mesh->aabb_root, AABBNode);
-	mesh->aabb_root->min = mesh->bounds.min_edge;
-	mesh->aabb_root->max = mesh->bounds.max_edge;
-	mesh->aabb_root->indices = mesh->aabb_indices;
-	mesh->aabb_root->nb_idx = nb_idx;
+	if (mesh->aabb_root) {
+		mesh->aabb_root->min = mesh->bounds.min_edge;
+		mesh->aabb_root->max = mesh->bounds.max_edge;
+		mesh->aabb_root->indices = mesh->aabb_indices;
+		mesh->aabb_root->nb_idx = nb_idx;
+	}
 	pars.nb_nodes = 1;
 	pars.depth = 0;
 	mesh_subdivide_aabbtree(mesh, mesh->aabb_root, &pars);

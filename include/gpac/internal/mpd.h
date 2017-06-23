@@ -154,8 +154,10 @@ typedef struct
 	char *index;
 	GF_MPD_ByteRange *index_range;
 	u64 duration;
+	/*HLS only*/
 	char *key_url;
 	bin128 key_iv;
+	u64 hls_utc_start_time;
 } GF_MPD_SegmentURL;
 
 typedef struct
@@ -201,7 +203,7 @@ typedef enum
 	char *segmentProfiles;	\
 	char *codecs;	\
 	u32 maximum_sap_period;	\
-	Bool starts_with_sap;	\
+	u32 starts_with_sap;	\
 	Double max_playout_rate;	\
 	Bool coding_dependency;	\
 	GF_MPD_ScanType scan_type;	\
@@ -240,6 +242,8 @@ typedef struct
 	Double prev_max_available_speed;
 	/*after switch we may have some buffered segments of the previous representation; so codec stats at this moment is unreliable. we should wait after the codec reset*/
 	Bool waiting_codec_reset;
+	// BOLA Utility
+	Double bola_v;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {
@@ -404,15 +408,21 @@ struct _gf_file_get
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates,
-                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
+                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files);
 
 GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration);
 
 GF_MPD_SegmentList *gf_mpd_solve_segment_list_xlink(GF_MPD *mpd, GF_XMLNode *root);
 
+GF_Err gf_mpd_init_smooth_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *default_base_url);
+
 void gf_mpd_delete_segment_list(GF_MPD_SegmentList *segment_list);
 
 void gf_mpd_getter_del_session(GF_FileDownload *getter);
+
+
+/*get the number of base URLs for the given representation. This cumuluates all base URLs at MPD, period, AdaptationSet and Representation levels*/
+u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep);
 
 typedef enum
 {
@@ -424,10 +434,11 @@ typedef enum
 } GF_MPD_URLResolveType;
 
 /*resolves a URL based for a given segment, based on the MPD url, the type of resolution
+	base_url_index: 0-based index of the baseURL to use
 	item_index: current downloading index of the segment
 	nb_segments_removed: number of segments removed when purging the MPD after updates (can be 0). The start number will be offset by this value
 */
-GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
+GF_Err gf_mpd_resolve_url(GF_MPD *mpd, GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, const char *mpd_url, u32 base_url_index, GF_MPD_URLResolveType resolve_type, u32 item_index, u32 nb_segments_removed,
                           char **out_url, u64 *out_range_start, u64 *out_range_end, u64 *segment_duration, Bool *is_in_base_url, char **out_key_url, bin128 *key_iv);
 
 /*get duration of the presentation*/
@@ -457,6 +468,12 @@ GF_EXPORT
 GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
+
+/*get duration of the presentation*/
+Double gf_mpd_get_duration(GF_MPD *mpd);
+
+/*get the duration of media segments in seconds*/
+void gf_mpd_resolve_segment_duration(GF_MPD_Representation *rep, GF_MPD_AdaptationSet *set, GF_MPD_Period *period, u64 *out_duration, u32 *out_timescale, u64 *out_pts_offset, GF_MPD_SegmentTimeline **out_segment_timeline);
 
 #endif /*GPAC_DISABLE_CORE_TOOLS*/
 

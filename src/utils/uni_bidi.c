@@ -137,7 +137,7 @@ Bool gf_utf8_reorder_bidi(u16 *utf_string, u32 len)
 	start = stop = 0;
 
 	for (i=0; i<len; i++) {
-		Bool rtl = cur_dir;
+		Bool rtl;
 		u32 c = bidi_get_class(utf_string[i]);
 		switch (c) {
 		case R:

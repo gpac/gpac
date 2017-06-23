@@ -38,9 +38,13 @@
 //startof GL3/ES2.0 specifics
 
 /* number of preprocessor flags for GL3/ES2.0 */
-#define GF_GL_NUM_OF_FLAGS			5
+#define GF_GL_NUM_OF_FLAGS			6
+#ifdef GPAC_ANDROID
 #define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS) )	//=2^GF_GL_NUM_OF_FLAGS
-#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 (YUV ignored in vertex shader)
+#else
+#define GF_GL_NB_FRAG_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-1) )	//=2^GF_GL_NUM_OF_FLAGS-1 ( ExternalOES ignored in fragment shader when the platform is not Android)
+#endif // GPAC_ANDROID
+#define GF_GL_NB_VERT_SHADERS		(1<<(GF_GL_NUM_OF_FLAGS-2) )	//=2^GF_GL_NUM_OF_FLAGS-2 (YUV and ExternalOES ignored in vertex shader)
 
 /* setting preprocessor flags for GL3/ES2.0 shaders */
 enum {
@@ -49,34 +53,10 @@ enum {
 	GF_GL_HAS_COLOR = (1<<2),
 	GF_GL_HAS_CLIP = (1<<3),
 	//only for fragment shaders
-	GF_GL_IS_YUV = 1<<4,
+	GF_GL_IS_YUV = (1<<4),
+	GF_GL_IS_ExternalOES = (1<<5),
 };
 //endof
-
-enum
-{
-	GF_3D_STEREO_NONE = 0,
-	GF_3D_STEREO_TOP,
-	GF_3D_STEREO_SIDE,
-	GF_3D_STEREO_HEADSET,
-
-	GF_3D_STEREO_LAST_SINGLE_BUFFER = GF_3D_STEREO_HEADSET,
-
-	/*all modes above GF_3D_STEREO_LAST_SINGLE_BUFFER require shaders and textures for view storage*/
-
-	/*custom interleaving using GLSL shaders*/
-	GF_3D_STEREO_CUSTOM,
-	/*some built-in interleaving modes*/
-	/*each pixel correspond to a different view*/
-	GF_3D_STEREO_COLUMNS,
-	GF_3D_STEREO_ROWS,
-	/*special case of sub-pixel interleaving for 2 views*/
-	GF_3D_STEREO_ANAGLYPH,
-	/*SpatialView 19'' 5views interleaving*/
-	GF_3D_STEREO_5VSP19,
-	/*Alioscopy 8 views interleaving*/
-	GF_3D_STEREO_8VALIO
-};
 
 enum
 {
@@ -150,9 +130,10 @@ struct _visual_manager
 		BackColor for background nodes
 		0x00000000 for composite,
 		compositor clear color otherwise
-		offscreen_clear is set to 1 when the clear targets the canvas buffer in hybrid GL mode
+		offscreen_clear is set to 1 when the clear targets the entire canvas buffer in hybrid GL mode (full redraw)
+		                       to 2 when the clear targets a part of the canvas buffer in hybrid GL mode (dirty area clean)
 	*/
-	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, Bool offscreen_clear);
+	void (*ClearSurface)(GF_VisualManager *visual, GF_IRect *rc, u32 BackColor, u32 offscreen_clear);
 	/*draws specified texture as flat bitmap*/
 	Bool (*DrawBitmap)(GF_VisualManager *visual, GF_TraverseState *tr_state, DrawableContext *ctx);
 	/*checks if the visual is ready for being drawn on. Returns GF_FALSE if no draw operation can be sent*/

@@ -605,6 +605,7 @@ GF_SHA1Context *gf_sha1_starts()
 {
 	GF_SHA1Context *context;
 	GF_SAFEALLOC(context, GF_SHA1Context);
+	if (!context) return NULL;
 	context->Length_Low             = 0;
 	context->Length_High            = 0;
 	context->Message_Block_Index    = 0;
@@ -727,9 +728,12 @@ void gf_sha1_csum( u8 *input, u32 ilen, u8 output[GF_SHA1_DIGEST_SIZE] )
 {
 	GF_SHA1Context *ctx;
 
+	memset(output, 0, sizeof(u8)*GF_SHA1_DIGEST_SIZE);
 	ctx = gf_sha1_starts();
-	gf_sha1_update(ctx, input, ilen );
-	gf_sha1_finish(ctx, output );
+	if (ctx) {
+		gf_sha1_update(ctx, input, ilen );
+		gf_sha1_finish(ctx, output );
+	}
 }
 
 GF_EXPORT

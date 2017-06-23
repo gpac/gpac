@@ -30,6 +30,19 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/svg_types.h>
+ *	\brief Data types used for SVG scene graph
+ */
+	
+/*!
+ *	\ingroup ssvg
+ *	\brief Data types used for SVG scene graph.
+ *
+ *This section documents the data types used for SVG scene graph.
+ *	@{
+ */
+
 #include <gpac/path2d.h>
 #include <gpac/events_constants.h>
 
@@ -851,8 +864,8 @@ typedef u8 SVG_Overlay;
 
 enum {
 	SVG_FOCUSABLE_AUTO = 0,
-	SVG_FOCUSABLE_TRUE,
 	SVG_FOCUSABLE_FALSE,
+	SVG_FOCUSABLE_TRUE,
 };
 typedef u8 SVG_Focusable;
 
@@ -889,6 +902,7 @@ typedef struct {
 	Fixed width, height;
 } LASeR_Size;
 
+/*! @} */
 
 #ifdef __cplusplus
 }

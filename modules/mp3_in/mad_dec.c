@@ -329,7 +329,12 @@ GF_BaseDecoder *NewMADDec()
 	MADDec *dec;
 
 	GF_SAFEALLOC(ifce, GF_MediaDecoder);
+	if (!ifce) return NULL;
 	GF_SAFEALLOC(dec, MADDec);
+	if (!dec) {
+		gf_free(ifce);
+		return NULL;
+	}
 	GF_REGISTER_MODULE_INTERFACE(ifce, GF_MEDIA_DECODER_INTERFACE, "MAD Decoder", "gpac distribution")
 	ifce->privateStack = dec;
 

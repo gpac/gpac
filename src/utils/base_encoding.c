@@ -31,7 +31,7 @@
 static const char base_64[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 GF_EXPORT
-u32 gf_base64_encode(char *_in, u32 inSize, char *_out, u32 outSize)
+u32 gf_base64_encode(const char *_in, u32 inSize, char *_out, u32 outSize)
 {
 	s32 padding;
 	u32 i = 0, j = 0;

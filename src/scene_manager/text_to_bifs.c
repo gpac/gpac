@@ -72,7 +72,7 @@ static GF_Err gf_text_guess_format(char *filename, u32 *fmt)
 		if (!strnicmp(ext, ".ttxt", 5)) *fmt = GF_TEXT_IMPORT_TTXT;
 		ext = strstr(szLine, "?>");
 		if (ext) ext += 2;
-		if (!ext[0]) {
+		if (ext && !ext[0]) {
 			if (!fgets(szLine, 2048, test))
 				szLine[0] = '\0';
 		}
@@ -411,7 +411,7 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 	src->decoderConfig->objectTypeIndication = GPAC_OTI_SCENE_BIFS;
 
 	e = GF_OK;
-	start = end = 0;
+	end = 0;
 	au = NULL;
 	com = NULL;
 	inf = NULL;
@@ -500,17 +500,19 @@ static GF_Err gf_text_import_sub_bifs(GF_SceneManager *ctx, GF_ESD *src, GF_MuxI
 		}
 		szText[i-j] = 0;
 
-		com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
-		com->node = text;
-		gf_node_register(text, NULL);
-		inf = gf_sg_command_field_new(com);
-		inf->fieldIndex = string.fieldIndex;
-		inf->fieldType = string.fieldType;
-		inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
-		gf_list_add(au->commands, com);
+		if (au) {
+			com = gf_sg_command_new(ctx->scene_graph, GF_SG_FIELD_REPLACE);
+			com->node = text;
+			gf_node_register(text, NULL);
+			inf = gf_sg_command_field_new(com);
+			inf->fieldIndex = string.fieldIndex;
+			inf->fieldType = string.fieldType;
+			inf->field_ptr = gf_sg_vrml_field_pointer_new(string.fieldType);
+			gf_list_add(au->commands, com);
 
-		gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
-		sfstr->buffer = gf_strdup(szText);
+			gf_sg_vrml_mf_append(inf->field_ptr, GF_SG_VRML_MFSTRING, (void **) &sfstr);
+			sfstr->buffer = gf_strdup(szText);
+		}
 	}
 
 	if (e) gf_sm_stream_del(ctx, srt);

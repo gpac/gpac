@@ -526,7 +526,7 @@ void wxFileProps::SetDecoderInfo()
 		avg_dec_time /= odi.nb_dec_frames;
 	}
 	info += wxString::Format(wxT("Average Bitrate %d kbps (%d max)\nAverage Decoding Time %.2f ms (%d max)\nTotal decoded frames %d - %d dropped\n"),
-	                         (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_droped);
+	                         (u32) odi.avg_bitrate/1024, odi.max_bitrate/1024, avg_dec_time, odi.max_dec_time, odi.nb_dec_frames, odi.nb_dropped);
 
 	m_pViewInfo->Clear();
 	m_pViewInfo->AppendText(info);

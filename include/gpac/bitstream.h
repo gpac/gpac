@@ -32,11 +32,11 @@ extern "C" {
 
 /*!
  *	\file <gpac/bitstream.h>
- *	\brief bitstream functions.
+ *	\brief bitstream reading and writing.
  */
 
 /*!
- *	\addtogroup bs_grp bitstream
+ *	\addtogroup bs_grp Bitstream
  *	\ingroup utils_grp
  *	\brief BitStream object
  *

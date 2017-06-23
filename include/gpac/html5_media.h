@@ -31,6 +31,26 @@
 extern "C" {
 #endif
 
+
+/*!
+ *	\file <gpac/html5_media.h>
+ *	\brief Scene graph extensions for HTML5 media.
+ */
+	
+/*! \defgroup html5_grp HTML5
+ *	\ingroup scene_grp
+ *	\brief HTML5 extensions of the scene graph.
+ *	
+*/
+/*!
+ *  \addtogroup html5media_grp HTML5 media
+ *	\ingroup html5_grp
+ *	\brief Scene graph extensions for HTML5 media.
+ *
+ *This section documents the scene graph extensions used for HTML5 media (video).
+ *	@{
+ */
+
 #include <gpac/internal/scenegraph_dev.h>
 
 /*base SVG type*/
@@ -355,6 +375,8 @@ void gf_html_media_controller_del(GF_HTML_MediaController *mc);
 GF_HTML_ArrayBuffer *gf_arraybuffer_new(char *data, u32 length);
 JSObject *gf_arraybuffer_js_new(JSContext *c, char *data, u32 length, JSObject *parent);
 void gf_arraybuffer_del(GF_HTML_ArrayBuffer *buffer, Bool del_js);
+
+/*! @} */
 
 #ifdef __cplusplus
 }

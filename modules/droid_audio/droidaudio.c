@@ -260,11 +260,21 @@ static void WAV_WriteAudio(GF_AudioOutput *dr)
 #ifdef DROID_EXTREME_LOGS
 	LOGV("[Android Audio] WAV_WriteAudio() : entering",ctx->sampleRateInHz);
 #endif /* DROID_EXTREME_LOGS */
-	pBuffer = (*env)->GetPrimitiveArrayCritical(env, ctx->buff, NULL);
+	
+	if ( ctx->audioFormat == ENCODING_PCM_8BIT )
+		pBuffer = (*env)->GetByteArrayElements(env, ctx->buff, NULL);
+	else
+		pBuffer = (*env)->GetShortArrayElements(env, ctx->buff, NULL);
+	
 	if (pBuffer)
 	{
 		written = dr->FillBuffer(dr->audio_renderer, pBuffer, ctx->mbufferSizeInBytes);
-		(*env)->ReleasePrimitiveArrayCritical(env, ctx->buff, pBuffer, 0);
+		
+		if ( ctx->audioFormat == ENCODING_PCM_8BIT )
+			(*env)->ReleaseByteArrayElements(env, ctx->buff, pBuffer, 0);
+		else
+			(*env)->ReleaseShortArrayElements(env, ctx->buff, pBuffer, 0);
+		
 		if (written)
 		{
 			if ( ctx->audioFormat == ENCODING_PCM_8BIT )

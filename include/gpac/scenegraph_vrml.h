@@ -31,6 +31,21 @@
 extern "C" {
 #endif
 
+/*!
+ *	\file <gpac/scenegraph_vrml.h>
+ *	\brief Scenegraph for VRML files
+ */
+	
+/*!
+ *	\addtogroup svrml BIFS/VRML/X3D Scenegraph
+ *	\ingroup scene_grp
+ *	\brief Scenegraph for VRML files.
+ *
+ *This section documents the Scenegraph for VRML files.
+ *	@{
+ */
+
+
 #include <gpac/scenegraph.h>
 #include <gpac/maths.h>
 
@@ -627,7 +642,7 @@ typedef struct _scriptfield GF_ScriptField;
 /*creates new sript field - script fields are dynamically added to the node, and thus can be accessed through the
 same functions as other GF_Node fields*/
 GF_ScriptField *gf_sg_script_field_new(GF_Node *script, u32 eventType, u32 fieldType, const char *name);
-/*retrieves field info, usefull to get the field index*/
+/*retrieves field info, useful to get the field index*/
 GF_Err gf_sg_script_field_get_info(GF_ScriptField *field, GF_FieldInfo *info);
 
 /*activate eventIn for script node - needed for BIFS field replace*/
@@ -667,6 +682,7 @@ GF_Err gf_node_proto_set_grouping(GF_Node *node);
 /*assigns callback to an eventIn field of an hardcoded proto*/
 GF_Err gf_node_set_proto_eventin_handler(GF_Node *node, u32 fieldIndex, void (*event_in_cbk)(GF_Node *pThis, struct _route *route) );
 
+/*! @} */
 
 
 #ifdef __cplusplus

@@ -85,4 +85,6 @@ extra_lib/include/ios/
 config.mak
 configure-stamp
 gpac.pc
+tests/external_media/
+tests/results/
 
