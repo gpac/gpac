@@ -921,6 +921,7 @@ struct tag_m2ts_demux
 	const char *network_type;
 	//for sockets, we need to reopen them after resume/restart....
 	char *socket_url;
+	u32 udp_buffer_size;
 	/* Set it to 1 if the TS is meant to be played during the demux */
 	Bool demux_and_play;
 	/* End of M2TSIn */
