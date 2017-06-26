@@ -1135,6 +1135,9 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 	m2ts->force_temi_url = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "ForceTEMILocation");
 	if (m2ts->force_temi_url && !strlen(m2ts->force_temi_url)) m2ts->force_temi_url = NULL;
 
+	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "UDPBufferSize");
+	if (opt) m2ts->ts->udp_buffer_size = (u32)atoi(opt);
+
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
 	if (opt && !strcmp(opt, "yes")) {
 		gf_m2ts_demux_dmscc_init(m2ts->ts);
