@@ -2124,22 +2124,22 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 
 static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check)
 {
-	u32 runtime;
+	u64 runtime;
 	if (!always_check && (sess->bytes_done==sess->total_size)) return;
 
 	/*update state*/
-	runtime = (u32) (sess->chunk_run_time / 1000);
+	runtime = sess->chunk_run_time;
 	if (sess->start_time) {
-		runtime += (u32) ( (gf_sys_clock_high_res() - sess->start_time) / 1000);
+		runtime += (gf_sys_clock_high_res() - sess->start_time);
 	}
 	if (!runtime) runtime=1;
 
-	sess->bytes_per_sec = (u32) (1000 * (u64) sess->bytes_done / runtime);
+	sess->bytes_per_sec = (u32) ((1000000 * (u64) sess->bytes_done) / runtime);
 
 	if (sess->chunked) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: runtime %u (chunk runtime %u) ms - bytes %u - rate %u kbps\n", runtime, (u32) (sess->chunk_run_time/1000), sess->bytes_done, sess->bytes_per_sec*8/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us (chunk download time "LLD" us) - bytes %u - rate %u kbps\n", runtime, sess->chunk_run_time, sess->bytes_done, sess->bytes_per_sec*8/1000));
 	} else {
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: runtime %u - bytes %u - rate %u kbps\n", runtime, sess->bytes_done, sess->bytes_per_sec*8/1000));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us - bytes %u - rate %u kbps\n", runtime, sess->bytes_done, sess->bytes_per_sec*8/1000));
 	}
 }
 
@@ -2235,8 +2235,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry),
-		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req, sess->reply_time ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
+		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
 		
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
