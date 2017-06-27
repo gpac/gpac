@@ -613,6 +613,7 @@ struct __tag_compositor
 	GF_List *extensions, *unthreaded_extensions;
 
 	Bool gazer_enabled;
+	s32 gaze_x, gaze_y;
 };
 
 typedef struct
