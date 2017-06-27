@@ -588,6 +588,7 @@ struct __tag_compositor
 #endif
 
 	Bool gazer_enabled;
+	s32 gaze_x, gaze_y;
 };
 
 typedef struct
