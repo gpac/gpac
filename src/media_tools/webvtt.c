@@ -443,7 +443,6 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 	GF_WebVTTSampleEntryBox *cuebox = (GF_WebVTTSampleEntryBox *)a;
 	gf_isom_box_dump_start(a, "WebVTTSampleEntryBox", trace);
 	fprintf(trace, ">\n");
-	//if (cuebox->config) boxstring_dump((GF_Box *)cuebox->config, trace);
 	gf_isom_box_dump_done("WebVTTSampleEntryBox", a, trace);
 	return GF_OK;
 }
