@@ -67,8 +67,21 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string)
 	case GF_ISOM_BOX_TYPE_STTG:
 	case GF_ISOM_BOX_TYPE_PAYL:
 	case GF_ISOM_BOX_TYPE_VTTA:
-		a = gf_isom_box_new(type);
-		if (a && string) ((GF_StringBox *)a)->string = gf_strdup(string);
+		if (string) {
+			/* remove trailing spaces; spec. \r, \n; skip if empty */
+			size_t len = strlen(string);
+			char const* last = string + len-1;
+			while (len && isspace(*last--))
+				--len;
+
+			if (len && (a = gf_isom_box_new(type)))
+			{
+				// strndup
+				char* str = ((GF_StringBox *)a)->string = gf_malloc(len + 1);
+				memcpy(str, string, len);
+				str[len] = '\0';
+			}
+		}
 		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Box type %s is not a boxstring, cannot initialize with data\n", gf_4cc_to_str(type) ));
@@ -430,7 +443,6 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 	GF_WebVTTSampleEntryBox *cuebox = (GF_WebVTTSampleEntryBox *)a;
 	gf_isom_box_dump_start(a, "WebVTTSampleEntryBox", trace);
 	fprintf(trace, ">\n");
-	if (cuebox->config) boxstring_dump((GF_Box *)cuebox->config, trace);
 	gf_isom_box_dump_done("WebVTTSampleEntryBox", a, trace);
 	return GF_OK;
 }
