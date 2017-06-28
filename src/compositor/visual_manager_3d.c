@@ -1248,17 +1248,14 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 #endif
 }
 
-void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
+Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s32 ix, s32 iy)
 {
 	Fixed in_x, in_y, x, y;
 	SFVec3f start, end;
 	SFVec4f res;
 
-	visual_3d_setup_traversing_state(visual, tr_state);
-	visual_3d_setup_projection(tr_state, 0);
-
-	x = INT2FIX(ev->mouse.x);
-	y = INT2FIX(ev->mouse.y);
+	x = INT2FIX(ix);
+	y = INT2FIX(iy);
 
 	/*if coordinate system is not centered, move to centered coord before applying camera transform
 	because the (un)projection matrices include this transform*/
@@ -1295,7 +1292,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	res.z = -FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
-	if (!res.q) return;
+	if (!res.q) return GF_FALSE;
 	start.x = gf_divfix(res.x, res.q);
 	start.y = gf_divfix(res.y, res.q);
 	start.z = gf_divfix(res.z, res.q);
@@ -1305,7 +1302,7 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	res.z = FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
-	if (!res.q) return;
+	if (!res.q) return GF_FALSE;
 	end.x = gf_divfix(res.x, res.q);
 	end.y = gf_divfix(res.y, res.q);
 	end.z = gf_divfix(res.z, res.q);
@@ -1314,11 +1311,22 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	/*also update hit info world ray in case we have a grabbed sensor with mouse off*/
 	visual->compositor->hit_world_ray = tr_state->ray;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n",
-	                                      FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
-	                                      FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
-	                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
+	return GF_TRUE;
+}
 
+void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
+{
+
+	visual_3d_setup_traversing_state(visual, tr_state);
+	visual_3d_setup_projection(tr_state, 0);
+
+
+	if (!visual_3d_setup_ray(visual, tr_state, ev->mouse.x, ev->mouse.y))
+		return;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] cast ray Origin %.4f %.4f %.4f Direction %.4f %.4f %.4f\n",
+	                                      FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
+	                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
 
 	visual->compositor->hit_square_dist = 0;

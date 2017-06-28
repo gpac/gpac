@@ -242,6 +242,8 @@ typedef struct
 	Double prev_max_available_speed;
 	/*after switch we may have some buffered segments of the previous representation; so codec stats at this moment is unreliable. we should wait after the codec reset*/
 	Bool waiting_codec_reset;
+	// BOLA Utility
+	Double bola_v;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {
@@ -406,7 +408,7 @@ struct _gf_file_get
 
 /*converts M3U8 to MPD - getter is optional (download will still be processed if NULL)*/
 GF_Err gf_m3u8_to_mpd(const char *m3u8_file, const char *base_url, const char *mpd_file, u32 reload_count, char *mimeTypeForM3U8Segments, Bool do_import, Bool use_mpd_templates,
-                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist);
+                      GF_FileDownload *getter, GF_MPD *mpd, Bool parse_sub_playlist, Bool keep_files);
 
 GF_Err gf_m3u8_solve_representation_xlink(GF_MPD_Representation *rep, GF_FileDownload *getter, Bool *is_static, u64 *duration);
 

@@ -1827,7 +1827,8 @@ retry_cache:
 			dm->allow_offline_cache = GF_TRUE;
 	}
 
-	dm->allow_offline_cache = GF_FALSE;
+	dm->clean_cache = GF_FALSE;
+	dm->allow_broken_certificate = GF_FALSE;
 	if (cfg) {
 		opt = gf_cfg_get_key(cfg, "Downloader", "CleanCache");
 		if (opt) {
@@ -2048,20 +2049,10 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 		} else {
 			*payload_size = sess->nb_left_in_chunk;
 			sess->nb_left_in_chunk = 0;
-			//update chunk download time
-			sess->chunk_run_time += gf_sys_clock_high_res() - sess->start_time;
-			sess->start_time = 0;
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] Chunk encoding: last bytes in chunk received\n"));
 		}
 		*header_size = 0;
 		return body_start;
-	}
-	//start of a new chunk, update start time
-	if (!sess->start_time) {
-		sess->start_time = gf_sys_clock_high_res();
-		//assume RTT is session reply time, and that chunk transfer started RTT/2 ago
-		if (first_chunk_in_payload && sess->start_time > sess->reply_time/2)
-			sess->start_time -= sess->reply_time/2;
 	}
 
 	if (*payload_size == 2) {
@@ -2073,6 +2064,11 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 		if ((body_start[0]=='\r') && (body_start[1]=='\n')) {
 			body_start += 2;
 			*header_size = 2;
+			//chunk exactly ends our packet, reset session start time
+			if (*payload_size == 2) {
+				sess->chunk_run_time += gf_sys_clock_high_res() - sess->start_time;
+				sess->start_time = 0;
+			}
 		}
 		if (*payload_size <= 4) {
 			*header_size = 0;
@@ -2083,6 +2079,16 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 		//not enough bytes to read CRLF, don't bother parsing
 		te_header = NULL;
 	}
+
+	//start of a new chunk, update start time
+	if (!sess->start_time) {
+		sess->start_time = gf_sys_clock_high_res();
+		//assume RTT is session reply time, and that chunk transfer started RTT/2 ago
+		if (first_chunk_in_payload && sess->start_time > sess->reply_time/2)
+			sess->start_time -= sess->reply_time/2;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] First byte in chunk received (%d bytes in packet), new start time %u ms\n", *payload_size, (u32) sess->start_time/1000));
+	}
+
 	//cannot parse now, copy over the bytes
 	if (!te_header) {
 		*header_size = 0;
@@ -2118,19 +2124,23 @@ static char *gf_dm_get_chunk_data(GF_DownloadSession *sess, Bool first_chunk_in_
 
 static void dm_sess_update_download_rate(GF_DownloadSession * sess, Bool always_check)
 {
-	u32 runtime;
+	u64 runtime;
 	if (!always_check && (sess->bytes_done==sess->total_size)) return;
 
 	/*update state*/
-	runtime = (u32) (sess->chunk_run_time / 1000);
+	runtime = sess->chunk_run_time;
 	if (sess->start_time) {
-		runtime += (u32) ( (gf_sys_clock_high_res() - sess->start_time) / 1000);
+		runtime += (gf_sys_clock_high_res() - sess->start_time);
 	}
 	if (!runtime) runtime=1;
 
-	sess->bytes_per_sec = (u32) (1000 * (u64) sess->bytes_done / runtime);
+	sess->bytes_per_sec = (u32) ((1000000 * (u64) sess->bytes_done) / runtime);
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: runtime %u (chunk runtime %u) ms - bytes %u - rate %u kbps\n", runtime, (u32) (sess->chunk_run_time/1000), sess->bytes_done, sess->bytes_per_sec*8/1000));
+	if (sess->chunked) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us (chunk download time "LLD" us) - bytes %u - rate %u kbps\n", runtime, sess->chunk_run_time, sess->bytes_done, sess->bytes_per_sec*8/1000));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] bandwidth estimation: download time "LLD" us - bytes %u - rate %u kbps\n", runtime, sess->bytes_done, sess->bytes_per_sec*8/1000));
+	}
 }
 
 
@@ -2225,8 +2235,8 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 		gf_dm_sess_user_io(sess, &par);
 		sess->total_time_since_req = (u32) (gf_sys_clock_high_res() - sess->request_start_time);
 
-		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry),
-		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1024, sess->total_time_since_req, sess->reply_time ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
+		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
 		
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
@@ -2241,9 +2251,6 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 	if (!sess->nb_left_in_chunk && remaining) {
 		sess->nb_left_in_chunk = remaining;
 	} else if (payload_size) {
-		if (sess->chunked && (payload_size==2))
-			payload_size=2;
-	
 		gf_dm_data_received(sess, payload, payload_size, store_in_init, rewrite_size);
 	}
 }

@@ -789,17 +789,22 @@ GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e;
 	u32 imported_sample_desc_index = 1;
-	u32 sample_index = 1;
+//	u32 sample_index = 1;
 	u32 w, h, hSpacing, vSpacing;
 	u32 subtype;
-	GF_ISOSample *sample;
+	GF_ISOSample *sample = NULL;
+	u32 timescale;
 	u32 item_type = 0;
 	GF_ImageItemProperties local_image_props;
 	Bool config_needed = 0;
 	GF_Box *config_box = NULL;
 	//u32 media_brand = 0;
+	u32 sample_desc_index = 0;
 
 	if (image_props && image_props->tile_mode != TILE_ITEM_NONE) {
+		/* Processing the input file in Tiled mode:
+		   The single track is split into multiple tracks 
+		   and each track is processed to create an item */
 		u32 i, count;
 		u32 tile_track;
 		GF_List *tile_item_ids;
@@ -890,17 +895,25 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 				item_type = GF_4CC('l', 'h', 'v', '1');
 			}
 			//media_brand = GF_ISOM_BRAND_HEIC;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
+			return GF_NOT_SUPPORTED;
 		}
-		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) return GF_BAD_PARAM;
-
+		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Image type %s requires a missing configuration box\n", gf_4cc_to_str(item_type)));
+			return GF_BAD_PARAM;
+		}
 		/* Get some images properties from the track data */
 		e = gf_isom_get_visual_info(movie, imported_track, imported_sample_desc_index, &w, &h);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image size\n"));
 			if (config_box) gf_isom_box_del(config_box);
 			return e;
 		}
 		e = gf_isom_get_pixel_aspect_ratio(movie, imported_track, imported_sample_desc_index, &hSpacing, &vSpacing);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image aspect ratio\n"));
 			if (config_box) gf_isom_box_del(config_box);
 			return e;
 		}
@@ -918,15 +931,23 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		}
 		image_props->config = config_box;
 
-		sample = gf_isom_get_sample(movie, imported_track, sample_index, NULL);
-		if (!sample) {
+		timescale = gf_isom_get_media_timescale(movie, imported_track);
+		e = gf_isom_get_sample_for_media_time(movie, imported_track, (u64)(image_props->time*timescale), &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &sample, NULL);
+		if (sample_desc_index != imported_sample_desc_index) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning sample description index for sync sample differ from config\n"));
+		}
+		if (e || !sample || !sample->IsRAP) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
+			if (sample) gf_isom_sample_del(&sample);
 			if (config_box) gf_isom_box_del(config_box);
 			return GF_BAD_PARAM;
 		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample from time %.3f as item %d\n", sample->DTS*1.0/timescale, item_id));
 		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
 
 		gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
 		gf_isom_reset_alt_brands(movie);
+		// TODO Analyze configuration to determine the brand */
 		//if (media_brand) {
 		//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
 		//}
@@ -935,5 +956,5 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		return e;
 	}
 }
-
+ 
 #endif /*GPAC_DISABLE_ISOM*/

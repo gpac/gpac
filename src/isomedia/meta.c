@@ -419,12 +419,15 @@ GF_Err gf_isom_set_meta_xml(GF_ISOFile *file, Bool root_meta, u32 track_num, cha
 	assert(gf_ftell(xmlfile) < 1<<31);
 	length = (u32) gf_ftell(xmlfile);
 	gf_fseek(xmlfile, 0, SEEK_SET);
-	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*length);
+	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*(length+1));
 	bread =  (u32) fread(xml->xml, 1, sizeof(unsigned char)*length, xmlfile);
 	if (ferror(xmlfile) || (bread != length)) {
 		gf_free(xml->xml);
 		xml->xml = NULL;
 		return GF_BAD_PARAM;
+	}
+	else {
+		xml->xml[length] = '\0';
 	}
 	gf_fclose(xmlfile);
 	return GF_OK;
@@ -660,7 +663,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	GF_MetaBox *meta;
 	u32 lastItemID = 0;
 
-	if (!self_reference && !resource_path && !data) return GF_BAD_PARAM;
+	if (!self_reference && !resource_path && !data && !item_extent_refs) return GF_BAD_PARAM;
 	e = CanAccessMovie(file, GF_ISOM_OPEN_WRITE);
 	if (e) return e;
 	meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -673,7 +676,7 @@ GF_Err gf_isom_add_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 trac
 	if (e) return e;
 
 	/*check file exists */
-	if (!URN && !URL && !self_reference && !data) {
+	if (resource_path) {
 		FILE *src = gf_fopen(resource_path, "rb");
 		if (!src) return GF_URL_ERROR;
 		gf_fclose(src);
