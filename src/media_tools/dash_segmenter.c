@@ -873,6 +873,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u32 tfref_timescale = 0;
 	u32 bandwidth = 0;
 	GF_ISOMTrackFragmenter *tf, *tfref;
+	char szMPDTempLine[2048];
 	char SegmentName[GF_MAX_PATH];
 	char RepSecName[200];
 	char RepURLsSecName[200];
@@ -1504,7 +1505,27 @@ restart_fragmentation_pass:
 	if (dash_cfg->dash_ctx) {
 		const char *opt;
 		char sKey[100];
-		GF_BitStream *mpd_bs = NULL;
+		count = gf_cfg_get_key_count(dash_cfg->dash_ctx, RepURLsSecName);		
+		for (i=0; i<count; i++) {
+			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
+			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
+			sprintf(szMPDTempLine, "     %s\n", opt);
+			GF_DOMParser *segurl_parser;
+			GF_XMLNode *Xml_node;
+			segurl_parser = gf_xml_dom_new();
+			e = gf_xml_dom_parse_string(segurl_parser, szMPDTempLine);
+			if(e!=GF_OK){
+			    GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load old segment URL, something went wrong \n"));
+			    goto err_exit;
+			}
+			Xml_node=gf_xml_dom_get_root(segurl_parser);
+			if(!Xml_node){
+			    GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load old segment URL, something went wrong \n"));
+			    goto err_exit;
+			}
+			gf_mpd_parse_segment_url(segment_urls,Xml_node);
+			gf_xml_dom_del(segurl_parser);
+		}
 
 		opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepSecName, "NextSegmentIndex");
 		if (opt) {

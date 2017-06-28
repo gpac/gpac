@@ -406,6 +406,7 @@ void gf_mpd_reset_periods(GF_MPD *mpd);
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
 void gf_mpd_segment_url_list_free(GF_List *list);
+void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root);
 
 GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);

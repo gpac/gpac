@@ -418,7 +418,7 @@ GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 
 	return seg_url;
 }
 
-static void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
+void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 {
 	u32 i;
 	GF_MPD_SegmentURL *seg;
