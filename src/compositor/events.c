@@ -1994,6 +1994,11 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	Bool switch_coords = GF_FALSE;
 	Bool ret = GF_FALSE;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
+		if (compositor->simulate_gaze) {
+			compositor->gaze_x = evt->mouse.x;
+			compositor->gaze_y = evt->mouse.y;
+		}
+
 		if (compositor->visual->center_coords) {
 			x = evt->mouse.x;
 			y = evt->mouse.y;
@@ -2015,6 +2020,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (switch_coords) {
 		evt->mouse.x = x;
 		evt->mouse.y = y;
+
 	}
 
 	if (!ret) {

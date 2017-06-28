@@ -2268,12 +2268,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 					gf_sc_set_size(scene->compositor, 0, 0);
 				}
 			} else {
-<<<<<<< HEAD
-				/*need output resize*/
-				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-				gf_sc_set_scene(scene->compositor, scene->graph);
-				gf_sc_set_size(scene->compositor, width, height);
-=======
 				if (scene->vr_type) {
 					width = MAX(width, height) / 2;
 					gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
@@ -2283,7 +2277,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 					gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
 					gf_sc_set_size(scene->root_od->term->compositor, width, height);
 				}
->>>>>>> fixes in AR with 360 images
 			}
 
 		} else if (!scene->force_size_set) {
