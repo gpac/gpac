@@ -67,13 +67,20 @@ GF_Box *boxstring_new_with_data(u32 type, const char *string)
 	case GF_ISOM_BOX_TYPE_STTG:
 	case GF_ISOM_BOX_TYPE_PAYL:
 	case GF_ISOM_BOX_TYPE_VTTA:
-		a = gf_isom_box_new(type);
-		if (a && string) {
-			/* remove trailing spaces; spec. \r, \n */
-			char* str = ((GF_StringBox *)a)->string = gf_strdup(string);
-			str += strlen(str);
-			while (str != ((GF_StringBox *)a)->string && isspace(*--str))
-				*str = '\0';
+		if (string) {
+			/* remove trailing spaces; spec. \r, \n; skip if empty */
+			size_t len = strlen(string);
+			char const* last = string + len-1;
+			while (len && isspace(*last--))
+				--len;
+
+			if (len && (a = gf_isom_box_new(type)))
+			{
+				// strndup
+				char* str = ((GF_StringBox *)a)->string = gf_malloc(len + 1);
+				memcpy(str, string, len);
+				str[len] = '\0';
+			}
 		}
 		break;
 	default:
@@ -436,7 +443,7 @@ GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 	GF_WebVTTSampleEntryBox *cuebox = (GF_WebVTTSampleEntryBox *)a;
 	gf_isom_box_dump_start(a, "WebVTTSampleEntryBox", trace);
 	fprintf(trace, ">\n");
-	if (cuebox->config) boxstring_dump((GF_Box *)cuebox->config, trace);
+	//if (cuebox->config) boxstring_dump((GF_Box *)cuebox->config, trace);
 	gf_isom_box_dump_done("WebVTTSampleEntryBox", a, trace);
 	return GF_OK;
 }
