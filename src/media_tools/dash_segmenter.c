@@ -976,6 +976,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		e = gf_isom_last_error(NULL);
 		goto err_exit;
 	}
+	else if (dash_cfg->force_test_mode) {
+		gf_isom_no_version_date_info(output, 1);
+	}
 
 	if (store_dash_params) {
 		const char *name;
@@ -1103,7 +1106,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	mpd_timescale = nb_video = nb_audio = nb_text = nb_scene = 0;
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		u32 _w, _h, _sr, _nb_ch, vidtype;
+		u32 _w, _h, _nb_ch, vidtype;
+		u32 _sr = 0;
 
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
