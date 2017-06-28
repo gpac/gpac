@@ -575,13 +575,14 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 
 int dc_gpac_video_isom_close_seg(VideoOutputFile *video_output_file)
 {
+	u64 seg_size;
 	GF_Err ret;
-	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, 1, video_output_file->seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, 1, video_output_file->seg_marker, NULL, NULL, &seg_size);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Rep %s Closing segment at UTC "LLU" ms\n", video_output_file->rep_id, gf_net_get_utc() ));
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DashCast] Rep %s Closing segment %s at UTC "LLU" ms - size "LLU" bytes\n", video_output_file->rep_id, gf_isom_get_segment_name(video_output_file->isof), gf_net_get_utc(), seg_size ));
 
 	return 0;
 }

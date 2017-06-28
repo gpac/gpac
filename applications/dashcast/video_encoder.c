@@ -229,6 +229,8 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 			video_codec_ctx->coded_frame->key_frame = (pkt.flags & AV_PKT_FLAG_KEY) ? 1 : 0;
 			video_output_file->frame_ntp = video_data_node->frame_ntp;
 			video_output_file->frame_utc = video_data_node->frame_utc;
+
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video %s Frame TS "LLU" encoded at UTC "LLU" ms in "LLU" us size %d bytes\n", video_output_file->rep_id, pkt.pts, gf_net_get_utc(), time_spent, video_output_file->encoded_frame_size ));
 		}
 	}
 
@@ -241,8 +243,6 @@ int dc_video_encoder_encode(VideoOutputFile *video_output_file, VideoScaledData 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("Error occured while encoding video frame.\n"));
 		return -1;
 	}
-
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Video %s Frame TS "LLU" encoded at UTC "LLU" ms in "LLU" us\n", video_output_file->rep_id, /*video_data_node->source_number, */video_data_node->vframe->pts, gf_net_get_utc(), time_spent ));
 
 	/* if zero size, it means the image was buffered */
 //	if (out_size > 0) {
