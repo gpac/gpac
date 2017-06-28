@@ -440,7 +440,6 @@ GF_Err vtte_dump(GF_Box *a, FILE * trace)
 
 GF_Err wvtt_dump(GF_Box *a, FILE * trace)
 {
-	GF_WebVTTSampleEntryBox *cuebox = (GF_WebVTTSampleEntryBox *)a;
 	gf_isom_box_dump_start(a, "WebVTTSampleEntryBox", trace);
 	fprintf(trace, ">\n");
 	gf_isom_box_dump_done("WebVTTSampleEntryBox", a, trace);
