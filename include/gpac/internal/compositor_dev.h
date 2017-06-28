@@ -586,6 +586,9 @@ struct __tag_compositor
 	/*display depth in pixels - if -1, it is the height of the display area*/
 	s32 display_depth;
 #endif
+
+	Bool gazer_enabled;
+	s32 gaze_x, gaze_y;
 };
 
 typedef struct

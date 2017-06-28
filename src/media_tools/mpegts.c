@@ -3789,6 +3789,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
 	ts->ChannelAppList = gf_list_new();
+	ts->udp_buffer_size = GF_M2TS_UDP_BUFFER_SIZE;
 
 	return ts;
 }
@@ -4050,16 +4051,16 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 {
 	u32 i;
 	GF_Err e;
-	char data[GF_M2TS_UDP_BUFFER_SIZE];
 	u32 size;
 	GF_M2TS_Demuxer *ts = _p;
+	char *data = gf_malloc(ts->udp_buffer_size);
 
 	gf_m2ts_reset_parsers(ts);
 	ts->abort_parsing = GF_FALSE;
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
-		gf_m2ts_get_socket(ts->socket_url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		gf_m2ts_get_socket(ts->socket_url, ts->network_type, ts->udp_buffer_size, &ts->sock);
 	}
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -4072,7 +4073,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				continue;
 			}
 
-			ts_size = read(ts->tuner->ts_fd, data, GF_M2TS_UDP_BUFFER_SIZE);
+			ts_size = read(ts->tuner->ts_fd, data, ts->udp_buffer_size);
 			if (ts_size>0) gf_m2ts_process_data(ts, data, (u32) ts_size);
 		}
 	} else
@@ -4097,7 +4098,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				}
 				size = 0;
 				/*m2ts chunks by chunks*/
-				e = gf_sk_receive(ts->sock, data, GF_M2TS_UDP_BUFFER_SIZE, 0, &size);
+				e = gf_sk_receive(ts->sock, data, ts->udp_buffer_size, 0, &size);
 				if (!size || e) {
 					nb_empty++;
 					if (nb_empty==1000) {
@@ -4231,6 +4232,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
 	ts->run_state = 2;
+	gf_free(data);
 	return 0;
 }
 
@@ -4298,7 +4300,7 @@ static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 		ts->sock_is_delegate = GF_TRUE;
 	} else {
 		GF_Err e;
-		e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		e = gf_m2ts_get_socket(url, ts->network_type, ts->udp_buffer_size, &ts->sock);
 		if (e) return e;
 	}
 
