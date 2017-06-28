@@ -1099,7 +1099,29 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 }
 
 GF_EXPORT
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
+const char *gf_isom_get_segment_name(GF_ISOFile *movie)
+{
+	if (!movie) return NULL;
+	if (movie->append_segment) return movie->movieFileMap->szName;
+	return movie->editFileMap->szName;
+}
+
+static void compute_seg_size(GF_ISOFile *movie, u64 *out_seg_size)
+{
+	u64 final_size;
+	if (out_seg_size) {
+		if (movie->append_segment) {
+			final_size = gf_bs_get_position(movie->movieFileMap->bs);
+			final_size -= movie->segment_start;
+		} else {
+			final_size = gf_bs_get_position(movie->editFileMap->bs);
+		}
+		*out_seg_size = final_size;
+	}
+}
+
+GF_EXPORT
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
@@ -1156,6 +1178,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
 			}
 		}
+		compute_seg_size(movie, out_seg_size);
 		return GF_OK;
 	}
 
@@ -1485,6 +1508,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			gf_isom_box_del((GF_Box*) movie->root_sidx);
 			movie->root_sidx = NULL;
 		}
+		compute_seg_size(movie, out_seg_size);
 		return GF_OK;
 	}
 
@@ -1547,6 +1571,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = gf_isom_fdm_new_temp(NULL);
 	}
+	compute_seg_size(movie, out_seg_size);
 
 	return e;
 }
@@ -1555,7 +1580,7 @@ GF_EXPORT
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, 1, 0, NULL, NULL);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, 1, 0, NULL, NULL, NULL);
 	} else {
 		return StoreFragment(movie, GF_FALSE, 0, NULL);
 	}
