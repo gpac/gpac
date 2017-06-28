@@ -3860,6 +3860,10 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 		if (!has_dependent_representations)
 			group->base_rep_index_plus_one = 0; // all representations in this group are independent
 
+		if (group->max_cached_segments>50) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Too many cached segments (%d), segment duration %g - using 50 max\n", group->max_cached_segments, seg_dur));
+			group->max_cached_segments = 50;
+		}
 		group->cached = gf_malloc(sizeof(segment_cache_entry)*group->max_cached_segments);
 		memset(group->cached, 0, sizeof(segment_cache_entry)*group->max_cached_segments);
 		if (!group->cached) {
@@ -4639,7 +4643,7 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 			if (rep->width && rep->height) group_has_video = GF_TRUE;
 		}
 
-		//sort by  bandwidth and quality
+		//sort by ascending bandwidth and quality
 		for (rep_i = 1; rep_i < nb_rep; rep_i++) {
 			Bool swap=GF_FALSE;
 			GF_MPD_Representation *r2 = gf_list_get(group->adaptation_set->representations, rep_i);
@@ -5397,6 +5401,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 	u32 quality_rank;
 	u32 min_bandwidth = 0;
 	Bool force_rep_idx = GF_FALSE;
+	Bool local_file_mode = GF_FALSE;
 	GF_MPD_Representation *rep;
 	u32 total_rate, bandwidths[20], groups_per_quality[20], max_level;
 	u32 q_idx, nb_qualities = 0;
@@ -5432,9 +5437,10 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 	}
 	if (local_files==count) {
 		total_rate = dash->dash_io->get_bytes_per_sec(dash->dash_io, NULL);
+		if (!total_rate) local_file_mode = GF_TRUE;
+	} else if (!total_rate) {
+		return;
 	}
-	if (!total_rate) return;
-
 
 	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
@@ -5453,8 +5459,28 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 			bandwidths[q_idx] += rep->bandwidth;
 			groups_per_quality[q_idx] ++;
 			if (max_level < 1 + quality_rank) max_level = 1+quality_rank;
+
+			//quick trick here: if no download cap in local playback, compute the total rate based on
+			//quality rank
+			if (local_file_mode) {
+				u32 nb_reps = gf_list_count(group->adaptation_set->representations);
+				//get rep matching the given quality rank - quality 0 is the highest and our
+				//reps are sorted from lowest !
+				u32 rep_target;
+				if (!quality_rank)
+					rep_target = nb_reps-1;
+				else
+					rep_target = (nb_qualities - quality_rank) * nb_reps / nb_qualities;
+
+				rep = gf_list_get(group->adaptation_set->representations, rep_target);
+				total_rate += rep->bandwidth;
+			}
 		}
 		min_bandwidth += bandwidths[q_idx];
+	}
+	if (local_file_mode) {
+		//total rate is in bytes per second, and add a safety of 10 bytes to ensure selection
+		total_rate = 10 + total_rate / 8;
 	}
 
 	/*no per-quality adaptation, we may have oscillations*/
