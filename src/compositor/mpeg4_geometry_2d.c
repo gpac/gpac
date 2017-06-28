@@ -375,10 +375,8 @@ Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState
 		if (is_visible) {
 			gf_mo_hint_quality_degradation(txh->stream, 0);
 			if (! txh->data)  return GF_FALSE;
-			return GF_TRUE;
 		} else {
 			gf_mo_hint_quality_degradation(txh->stream, 100);
-			return GF_FALSE;
 		}
 	}
 	return GF_TRUE;
