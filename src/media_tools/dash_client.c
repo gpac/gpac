@@ -2735,12 +2735,12 @@ static u32 get_min_rate_above(GF_List *representations, double rate, s32 *index)
 
 // returns the bitrate and index of the representation having the maximum bitrate below the given rate
 static u32 get_max_rate_below(GF_List *representations, double rate, s32 *index) {
-	u32 k;
+	s32 k;
 	u32 max_rate = 0;
 	GF_MPD_Representation *rep;
 
 	u32 nb_reps = gf_list_count(representations);
-	for (k = nb_reps-1; k >=0 ; k--) {
+	for (k = (s32) nb_reps-1; k >=0 ; k--) {
 		rep = gf_list_get(representations, k);
 		if ((rep->bandwidth > max_rate) && (rep->bandwidth < rate)) {
 			max_rate = rep->bandwidth;
@@ -2960,8 +2960,10 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 						m_prime++;
 					}
 					else { //GF_DASH_ALGO_BOLA_O						
+#if 0
 						GF_MPD_Representation *rep_m_prime, *rep_m_prime_plus_one;
 						Double Sm_prime, Sm_prime_plus_one, f_m_prime, f_m_prime_1, bola_o_pause;
+
 						assert(m_prime >= 0 && m_prime < nb_reps - 2);
 						rep_m_prime = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime);
 						rep_m_prime_plus_one = (GF_MPD_Representation *)gf_list_get(group->adaptation_set->representations, m_prime+1);
@@ -2969,8 +2971,9 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 						Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
 						f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
 						f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
-						bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
 						// TODO wait for bola_o_pause before making the download 
+						bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
+#endif
 					}
 				}
 				new_index = m_prime;
