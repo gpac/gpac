@@ -2114,10 +2114,15 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 					gf_sc_set_size(scene->root_od->term->compositor, 0, 0);
 				}
 			} else {
-				/*need output resize*/
-				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-				gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-				gf_sc_set_size(scene->root_od->term->compositor, width, height);
+				if (scene->vr_type) {
+					width = MAX(width, height) / 2;
+					gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
+				} else {
+					/*need output resize*/
+					gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+					gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+					gf_sc_set_size(scene->root_od->term->compositor, width, height);
+				}
 			}
 
 		} else if (!scene->force_size_set) {
@@ -2131,7 +2136,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			}
 			scene->force_size_set = 1;
-		} else {
+			} else {
 			u32 w, h;
 			gf_sg_get_scene_size_info(scene->graph, &w, &h);
 			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {

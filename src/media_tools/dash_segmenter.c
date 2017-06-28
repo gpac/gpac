@@ -129,9 +129,13 @@ struct __gf_dash_segmenter
 	/*set if seg_rad_name depends on input file name (had %s in it). In this case, SegmentTemplate cannot be used at adaptation set level*/
 	Bool variable_seg_rad_name;
 
+	/*If true, disable generation date printing in mpd headers*/
+	Bool force_test_mode;
+
 	GF_DASH_ContentLocationMode cp_location_mode;
 
 	Double max_segment_duration;
+	Bool no_cache;
 
 };
 
@@ -210,6 +214,7 @@ struct _dash_segment_input
 	Bool get_component_info_done;
 	//cached isobmf input
 	GF_ISOFile *isobmf_input;
+	Bool no_cache;
 };
 
 
@@ -227,7 +232,7 @@ struct _dash_segment_input
 				}	\
 			}	\
 			char_template+=1;	\
- 
+
 GF_EXPORT
 GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Bool is_bs_switching, char *segment_name, const char *output_file_name, const char *rep_id, const char *base_url, const char *seg_rad_name, const char *seg_ext, u64 start_time, u32 bandwidth, u32 segment_number, Bool use_segment_timeline)
 {
@@ -535,6 +540,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (subtype==GF_ISOM_SUBTYPE_HVT1) {
 			u32 refTrack;
 			gf_isom_get_reference(movie, track, GF_ISOM_REF_TBAS, 1, &refTrack);
+			if (hvcc) gf_odf_hevc_cfg_del(hvcc);
 			hvcc = gf_isom_hevc_config_get(movie, refTrack, 1);
 		}
 		if (hvcc) {
@@ -897,7 +903,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	SegmentDuration = 0;
 	nb_samp = 0;
 	fragmenters = NULL;
-	
+
 	if (!dash_input) return GF_BAD_PARAM;
 	if (!seg_ext) seg_ext = "m4s";
 
@@ -970,6 +976,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[ISOBMF DASH] Cannot open %s for writing\n", opt ? opt : SegmentName));
 		e = gf_isom_last_error(NULL);
 		goto err_exit;
+	}
+	else if (dash_cfg->force_test_mode) {
+		gf_isom_no_version_date_info(output, 1);
 	}
 
 	if (store_dash_params) {
@@ -1097,7 +1106,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	mpd_timescale = nb_video = nb_audio = nb_text = nb_scene = 0;
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		u32 _w, _h, _sr, _nb_ch, vidtype;
+		u32 _w, _h, _nb_ch, vidtype;
+		u32 _sr = 0;
 
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
@@ -1404,7 +1414,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (gf_list_count(fragmenters)>1)
 		mpd_timescale = 1000;
 
-	/* Finalize the selection of the reference track for sidx computations */	  
+	/* Finalize the selection of the reference track for sidx computations */
 	if (!tfref) {
 		/* if we did not find a track in which all samples are not sync samples, we pick the first track to be the reference */
 		tfref = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, 0);
@@ -1437,7 +1447,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	for (i=0; i<gf_list_count(fragmenters); i++) {
 		tf = (GF_ISOMTrackFragmenter *)gf_list_get(fragmenters, i);
 		if (tf->SampleCount)
-			nb_done += tf->SampleCount - tf->SampleNum - 1;
+			nb_done += tf->SampleCount - tf->SampleNum;
 	}
 	if (!nb_done) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] No samples in movie, rewriting moof and exit\n"));
@@ -1722,7 +1732,7 @@ restart_fragmentation_pass:
 				}
 
 				if (tf->splitable) {
-					/* Evaluate if we need to split the current sample 
+					/* Evaluate if we need to split the current sample
 					(if it goes beyond the segment boundary,
 					we do not split a sample if it exceeds the fragment boundary) */
 					if (tf->is_ref_track) {
@@ -1738,9 +1748,9 @@ restart_fragmentation_pass:
 							stop_frag = GF_TRUE;
 							nb_samp++;
 						}
-					} else if (tfref 
-					           /* we split the sample not at the "perfect" segment boundary 
-							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any) 
+					} else if (tfref
+					           /* we split the sample not at the "perfect" segment boundary
+							   but at the "real" segment boundary given by the end of the last sample of the reference track (if any)
 							   there may not be a reference track anymore if all samples have been used */
 					           && ((tf->next_sample_dts + defaultDuration) * tfref_timescale > tfref->next_sample_dts * tf->TimeScale)) {
 						split_sample_duration = defaultDuration;
@@ -1945,7 +1955,7 @@ restart_fragmentation_pass:
 						}
 					}
 					tf->FragmentLength = 0;
-					/* propagate the portion of the current 'split' sample that has already been used in this fragment 
+					/* propagate the portion of the current 'split' sample that has already been used in this fragment
 					   to the next fragment */
 					if (split_sample_duration)
 						tf->split_sample_dts_shift += defaultDuration;
@@ -2406,7 +2416,9 @@ restart_fragmentation_pass:
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			if (strchr(dash_input->rep_descs[i], '<') != NULL) {
+				fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			}
 		}
 	}
 
@@ -2728,7 +2740,7 @@ static GF_Err dasher_isom_classify_input(GF_DashSegInput *dash_inputs, u32 nb_da
 		if (! dasher_inputs_have_same_roles(&dash_inputs[input_idx], &dash_inputs[i]) ) {
 			continue;
 		}
-		
+
 		/* if two inputs don't have the same (number and value) as_desc they don't belong to the same AdaptationSet
 		   (use c_as_desc for AdaptationSet descriptors common to all inputs in an AS) */
 		if (dash_inputs[input_idx].nb_as_descs != dash_inputs[i].nb_as_descs)
@@ -3248,8 +3260,10 @@ static GF_Err dasher_isom_force_duration(GF_ISOFile *in, const Double duration_i
 				gf_set_progress("ISO File Force Duration", (trackNumber-1)*sample_count+i, trackCount*sample_count);
 				if (s->DTS >= duration_in_sec * gf_isom_get_media_timescale(in, trackNumber)) {
 					track_duration2 = (u32)(s->DTS * gf_isom_get_timescale(in) / gf_isom_get_media_timescale(in, trackNumber));
+					gf_isom_sample_del(&s);
 					break;
 				}
+				gf_isom_sample_del(&s);
 			}
 			for (j=i; j <= sample_count; ++j) {
 				u32 di;
@@ -3331,7 +3345,12 @@ static GF_Err dasher_isom_segment_file(GF_DashSegInput *dash_input, const char *
 	}
 
 
-	return gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dash_cfg, dash_input, first_in_set);
+	e= gf_media_isom_segment_file(dash_input->isobmf_input, szOutName, dash_cfg, dash_input, first_in_set);
+	if(dash_input->no_cache){
+		gf_isom_delete(dash_input->isobmf_input);
+		dash_input->isobmf_input=NULL;
+	}
+	return e;
 }
 
 #endif /*GPAC_DISABLE_ISOM_FRAGMENTS*/
@@ -4338,7 +4357,9 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/* writing Representation level descriptors */
 	if (dash_input->nb_rep_descs) {
 		for (i=0; i<dash_input->nb_rep_descs; i++) {
-			fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			if (strchr(dash_input->rep_descs[i], '<') != NULL) {
+				fprintf(dash_cfg->mpd, "    %s\n", dash_input->rep_descs[i]);
+			}
 		}
 	}
 
@@ -4938,19 +4959,23 @@ static GF_Err write_mpd_header(GF_DASHSegmenter *dasher, FILE *mpd, Bool is_mpeg
 	assert(time_ms<1000);
 
 	fprintf(mpd, "<?xml version=\"1.0\"?>\n");
-	fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
+	if(!dasher->force_test_mode)
+		fprintf(mpd, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
 
 #ifndef _WIN32_WCE
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	t = gmtime(&gtime);
-	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
+	if(!dasher->force_test_mode)
+		fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900+t->tm_year, t->tm_mon+1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32) time_ms) );
 #else
 	GetSystemTime(&syst);
+	if(!dasher->force_test);
 	fprintf(mpd, " at %d-%02d-%02dT%02d:%02d:%02dZ", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02dZ\n", syst.wYear, syst.wMonth, syst.wDay, syst.wHour, syst.wMinute, syst.wSecond);
 #endif
-	fprintf(mpd, "-->\n");
+	if(!dasher->force_test_mode)
+            fprintf(mpd, "-->\n");
 
 	/*TODO what should we put for minBufferTime */
 	fprintf(mpd, "<MPD xmlns=\"urn:mpeg:dash:schema:mpd:2011\" minBufferTime=\"PT%.3fS\" type=\"%s\"", dasher->min_buffer, dasher->dash_mode ? "dynamic" : "static");
@@ -5091,7 +5116,9 @@ static GF_Err write_period_header(GF_DASHSegmenter *dasher, FILE *mpd, const cha
 	for (i=0; i< dasher->nb_inputs; i++) {
 		if (dasher->inputs[i].adaptation_set && (dasher->inputs[i].period==period_num)) {
 			for (j = 0; j < dasher->inputs[i].nb_p_descs; j++) {
-				fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
+				if (strchr(dasher->inputs[i].p_descs[j], '<') != NULL) {
+					fprintf(mpd, "  %s\n", dasher->inputs[i].p_descs[j]);
+				}
 			}
 		}
 	}
@@ -5144,7 +5171,9 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 	for (i=0; i< nb_dash_inputs; i++) {
 		if ((dash_inputs[i].adaptation_set == adaptation_set_num) && (dash_inputs[i].period == period_num)) {
 			for (j = 0; j < dash_inputs[i].nb_as_c_descs; j++) {
-				fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+				if (strchr(dash_inputs[i].as_c_descs[j], '<') != NULL) {
+					fprintf(mpd, "   %s\n", dash_inputs[i].as_c_descs[j]);
+				}
 			}
 		}
 	}
@@ -5175,7 +5204,9 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 
 		/* writing AdaptationSet level descriptors specified only all inputs for that AdaptationSet*/
 		for (i=0; i<first_rep->nb_as_descs; i++) {
-			fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+			if (strchr(first_rep->as_descs[i], '<') != NULL) {
+				fprintf(mpd, "   %s\n", first_rep->as_descs[i]);
+			}
 		}
 
 		if (bitstream_switching_mode) {
@@ -5372,7 +5403,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 	ms_elapsed += ((u64)(ntp_sec - prev_sec))*1000;
 
 	if (ms_in_session) *ms_in_session = (u64) ( 1000*max_dur );
-	
+
 	/*check if we need to generate */
 	if (ms_elapsed < (max_dur /* - safety_dur*/)*1000 ) {
 		return (u32) (1000*max_dur - ms_elapsed);
@@ -5657,6 +5688,12 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 }
 
 GF_EXPORT
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
+	dasher->force_test_mode=forceTestMode;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_dasher_set_location(GF_DASHSegmenter *dasher, const char *location)
 {
 	if (!dasher) return GF_BAD_PARAM;
@@ -5857,6 +5894,14 @@ GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *das
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache)
+{
+	if (!dasher) return GF_BAD_PARAM;
+	if(no_cache)dasher->no_cache = GF_TRUE;
+	return GF_OK;
+}
+
 
 GF_EXPORT
 GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input)
@@ -5890,6 +5935,7 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 	dash_input->as_c_descs = input->as_c_descs;
 	dash_input->nb_p_descs = input->nb_p_descs;
 	dash_input->p_descs = input->p_descs;
+	dash_input->no_cache = dasher->no_cache;
 
 	dash_input->bandwidth = input->bandwidth;
 

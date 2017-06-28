@@ -1346,8 +1346,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
-			//estimate visibility asap, even if texture not yet ready (we have SRD info): this allows sending stop commands which will 
-			//free inactive decoder HW context
+			//estimate visibility asap, even if texture not yet ready (we have SRD info):
+			//this allows sending stop commands which will free inactive decoder HW context
 			else {
 				u32 i, j;
 				u32 nb_visible=0;
@@ -1378,12 +1378,25 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				}
 				if (nb_visible > min_visible_threshold) 
 					visible = GF_TRUE;
-				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
 			}
 			if (visible) {
 				stack->mesh->flags |= MESH_WAS_VISIBLE;
 			} else {
 				stack->mesh->flags &= ~MESH_WAS_VISIBLE;
+			}
+
+			if (visible && (vrinfo.srd_w != vrinfo.srd_max_x) && tr_state->visual->compositor->gazer_enabled) {
+				tr_state->visual->compositor->hit_node = NULL;
+				tr_state->visual->compositor->hit_square_dist = 0;
+				visual_3d_setup_ray(tr_state->visual, tr_state, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y);
+				visual_3d_vrml_drawable_pick(node, tr_state, stack->mesh, NULL);
+				if (tr_state->visual->compositor->hit_node) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is under gaze coord\n", txh->stream->OD_ID));
+
+					tr_state->visual->compositor->hit_node = NULL;
+				}
+
 			}
 
 			if (vrinfo.has_full_coverage) {
