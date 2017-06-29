@@ -758,6 +758,9 @@ u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts);
 /*get the current tfdt of the track - this can be used to adjust sample time queries when edit list are used*/
 u64 gf_isom_get_current_tfdt(GF_ISOFile *the_file, u32 trackNumber);
 
+//returns true if the file init segment (moov) was generated from external meta-data (smooth streaming)
+Bool gf_isom_is_smooth_streaming_moov(GF_ISOFile *the_file);
+
 /*Track Edition functions*/
 
 /*return a sample given a desired time in the movie. MovieTime is IN MEDIA TIME SCALE , handles edit list.

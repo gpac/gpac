@@ -221,18 +221,20 @@ next_segment:
 			}
 			e = GF_OK;
 			if (param.url_query.next_url_init_or_switch_segment) {
-				//FIXME @rbouqueau : this seems not compliant with regular dash
-				//and there is no place in the code where we set the tfdt= ... (plus potential mem overwrite)
-#if 0
 				u64 tfdt = gf_isom_get_current_tfdt(read->mov, 1);
-				char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU")\n", param.url_query.next_url_init_or_switch_segment, tfdt));
-				if (tfdt_val) {
-					sprintf(tfdt_val+5, LLU, tfdt);
-				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+
+				if (gf_isom_is_smooth_streaming_moov(read->mov)) {
+					char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+
+					//smooth adressing, replace tfdt=0000000000000000000 with proper value
+					if (tfdt_val) {
+						sprintf(tfdt_val+5, LLU, tfdt);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+					}
 				}
-#endif
 
 				if (read->mov) gf_isom_close(read->mov);
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
