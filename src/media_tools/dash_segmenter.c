@@ -713,6 +713,7 @@ static void gf_dash_append_segment_timeline(GF_MPD_SegmentTimeline *seg_tl, u64 
 	}
 	*previous_segment_duration = segment_dur;
 	GF_SAFEALLOC(entry, GF_MPD_SegmentTimelineEntry);
+	if(!seg_tl->entries)seg_tl->entries=gf_list_new();
 	gf_list_add(seg_tl->entries, entry);
 	if (*first_segment_in_timeline) {
 		entry->start_time = segment_start;
@@ -2290,8 +2291,7 @@ restart_fragmentation_pass:
 			seg_template->initialization = gf_strdup(SegmentName);
 			seg_template->presentation_time_offset = presentationTimeOffset;
 
-			if (seg_tl) {
-			}
+            /*Old code version was printing mpd_seg_info here, what is it ?*/
 		}
 		/*in BS switching we share the same IS for all reps, write the SegmentTemplate for the init segment*/
 		else if ((is_bs_switching || seg_tl) && first_in_set && !dash_cfg->segment_alignment_disabled) {
