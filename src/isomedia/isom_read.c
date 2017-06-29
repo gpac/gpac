@@ -4102,6 +4102,13 @@ u64 gf_isom_get_current_tfdt(GF_ISOFile *the_file, u32 trackNumber)
 #endif
 }
 
+GF_EXPORT
+Bool gf_isom_is_smooth_streaming_moov(GF_ISOFile *the_file)
+{
+	return the_file ? the_file->is_smooth : GF_FALSE;
+}
+
+
 void gf_isom_parse_trif_info(const char *data, u32 size, u32 *id, u32 *independent, Bool *full_picture, u32 *x, u32 *y, u32 *w, u32 *h)
 {
 	GF_BitStream *bs;
