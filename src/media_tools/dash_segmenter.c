@@ -712,15 +712,17 @@ static void gf_dash_append_segment_timeline(GF_MPD_SegmentTimeline *seg_tl, u64 
 		}
 	}
 	*previous_segment_duration = segment_dur;
-	GF_SAFEALLOC(entry, GF_MPD_SegmentTimelineEntry);
-	if(!seg_tl->entries)seg_tl->entries=gf_list_new();
-	gf_list_add(seg_tl->entries, entry);
-	if (*first_segment_in_timeline) {
-		entry->start_time = segment_start;
-		entry->duration = (u32)segment_dur;
-		*first_segment_in_timeline = GF_FALSE;
-	} else {
-		entry->duration = (u32)segment_dur;
+	if(segment_dur){
+		GF_SAFEALLOC(entry, GF_MPD_SegmentTimelineEntry);
+		if(!seg_tl->entries)seg_tl->entries=gf_list_new();
+		gf_list_add(seg_tl->entries, entry);
+		if (*first_segment_in_timeline) {
+			entry->start_time = segment_start;
+			entry->duration = (u32)segment_dur;
+			*first_segment_in_timeline = GF_FALSE;
+		} else {
+			entry->duration = (u32)segment_dur;
+		}
 	}
 	*segment_timeline_repeat_count = 0;
 }
@@ -2205,7 +2207,7 @@ restart_fragmentation_pass:
 	}
 	//close timeline
 	if (seg_tl) {
-		gf_dash_append_segment_timeline(seg_tl, (u64)segment_start_time, (u64)SegmentDuration, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
+		gf_dash_append_segment_timeline(seg_tl, (u64)segment_start_time, (u64)(segment_start_time+SegmentDuration), &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
 	}
 	else if (!dash_cfg->use_segment_timeline) {
 		if (3*min_seg_dur < max_seg_dur) {
