@@ -1025,7 +1025,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 
 	//if segment alignment not set or if first in AS, create SegmentTimeline
 	if (dash_cfg->use_segment_timeline && (first_in_set || dash_cfg->segment_alignment_disabled) ) {
-		GF_SAFEALLOC(seg_tl, GF_MPD_SegmentTimeline);
+		seg_tl=gf_mpd_segmentimeline_new();
 
 		if (dash_cfg->dash_ctx) {
 			gf_dash_load_segment_timeline(dash_cfg, seg_tl, dash_input->representationID, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
