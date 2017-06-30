@@ -499,6 +499,8 @@ void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
 
 GF_MPD_Representation *gf_mpd_representation_new();
 
+GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new();
+
 /*get duration of the presentation*/
 Double gf_mpd_get_duration(GF_MPD *mpd);
 

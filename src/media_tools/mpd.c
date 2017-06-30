@@ -2186,6 +2186,14 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	fprintf(out, "%s </SegmentTimeline>\n", indent);
 }
 
+GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new(void)
+{
+	GF_MPD_SegmentTimeline *seg_tl;
+	GF_SAFEALLOC(seg_tl, GF_MPD_SegmentTimeline);
+	if(!seg_tl->entries)seg_tl->entries=gf_list_new();
+	return seg_tl;
+}
+
 static u32 gf_mpd_print_multiple_segment_base(FILE *out, GF_MPD_MultipleSegmentBase *ms, char *indent, Bool close_if_no_child)
 {
 	gf_mpd_print_segment_base_attr(out, (GF_MPD_SegmentBase *)ms);
