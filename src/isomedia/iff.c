@@ -104,7 +104,7 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 
 	p->colour_type = gf_bs_read_u32(bs);
 	p->size -= 4;
-	if (p->colour_type == GF_4CC('n','c','l','x')) {
+	if (p->colour_type == GF_ISOM_SUBTYPE_NCLX) {
 		p->colour_primaries = gf_bs_read_u16(bs);
 		p->transfer_characteristics = gf_bs_read_u16(bs);
 		p->matrix_coefficients = gf_bs_read_u16(bs);
@@ -126,7 +126,7 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	if (p->colour_type != GF_4CC('n','c','l','x')) {
+	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
 		gf_bs_write_u32(bs, p->colour_type);
 		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
 	} else {
@@ -143,7 +143,7 @@ GF_Err colr_Size(GF_Box *s)
 {
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
 
-	if (p->colour_type != GF_4CC('n','c','l','x')) {
+	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
 		p->size += 4 + p->opaque_size;
 	} else {
 		p->size += 11;
@@ -803,7 +803,7 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 
 	if (image_props && image_props->tile_mode != TILE_ITEM_NONE) {
 		/* Processing the input file in Tiled mode:
-		   The single track is split into multiple tracks 
+		   The single track is split into multiple tracks
 		   and each track is processed to create an item */
 		u32 i, count;
 		u32 tile_track;
@@ -829,7 +829,7 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			if (e) return e;
 			gf_isom_remove_track(movie, tile_track);
 			if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
-				e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, *tile_item_id, item_id, GF_4CC('t', 'b', 'a', 's'), NULL);
+				e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, *tile_item_id, item_id, GF_ISOM_REF_TBAS, NULL);
 			}
 			if (e) return e;
 		}
@@ -859,19 +859,19 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			//FIXME: in avc1 with multiple descriptor, we should take the right description index
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_4CC('a', 'v', 'c', '1');
+			item_type = GF_ISOM_SUBTYPE_AVC_H264;
 			config_needed = 1;
 			break;
 		case GF_ISOM_SUBTYPE_SVC_H264:
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_4CC('s', 'v', 'c', '1');
+			item_type = GF_ISOM_SUBTYPE_SVC_H264;
 			config_needed = 1;
 			break;
 		case GF_ISOM_SUBTYPE_MVC_H264:
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_4CC('m', 'v', 'c', '1');
+			item_type = GF_ISOM_SUBTYPE_MVC_H264;
 			config_needed = 1;
 			break;
 		case GF_ISOM_SUBTYPE_HVC1:
@@ -884,15 +884,15 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
 			if (subtype == GF_ISOM_SUBTYPE_HVT1) {
-				item_type = GF_4CC('h', 'v', 't', '1');
+				item_type = GF_ISOM_SUBTYPE_HVT1;
 			}
 			else {
-				item_type = GF_4CC('h', 'v', 'c', '1');
+				item_type = GF_ISOM_SUBTYPE_HVC1;
 			}
 			config_needed = 1;
 			if (!((GF_HEVCConfigurationBox *)config_box)->config) {
 				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
-				item_type = GF_4CC('l', 'h', 'v', '1');
+				item_type = GF_ISOM_SUBTYPE_LHV1;
 			}
 			//media_brand = GF_ISOM_BRAND_HEIC;
 			break;
@@ -956,5 +956,5 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		return e;
 	}
 }
- 
+
 #endif /*GPAC_DISABLE_ISOM*/

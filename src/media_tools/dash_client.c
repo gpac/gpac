@@ -290,7 +290,7 @@ struct __dash_group
 
 	/* maximum representation index we want to download*/
 	u32 force_max_rep_index;
-	//start time and timescales of currently downloaded segment 
+	//start time and timescales of currently downloaded segment
 	u64 current_start_time;
 	u32 current_timescale;
 
@@ -866,7 +866,7 @@ static Bool gf_dash_is_m3u8_mime(const char *url, const char * mime) {
 	return GF_FALSE;
 }
 
-static Bool gf_dash_is_smooth_mime(const char *url, const char * mime) 
+static Bool gf_dash_is_smooth_mime(const char *url, const char * mime)
 {
 	u32 i;
 	if (!url || !mime)
@@ -3934,7 +3934,7 @@ static GF_Err gf_dash_load_sidx(GF_BitStream *bs, GF_MPD_Representation *rep, Bo
 	gf_bs_seek(bs, sidx_offset);
 	size = gf_bs_read_u32(bs);
 	type = gf_bs_read_u32(bs);
-	if (type != GF_4CC('s','i','d','x')) {
+	if (type != GF_ISOM_BOX_TYPE_SIDX) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error parsing SIDX: type is %s (box start offset "LLD")\n", gf_4cc_to_str(type), gf_bs_get_position(bs)-8 ));
 		return GF_ISOM_INVALID_FILE;
 	}
@@ -4001,10 +4001,10 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 	while (gf_bs_available(bs)) {
 		u32 size = gf_bs_read_u32(bs);
 		u32 type = gf_bs_read_u32(bs);
-		if (type != GF_4CC('s','i','d','x')) {
+		if (type != GF_ISOM_BOX_TYPE_SIDX) {
 			gf_bs_skip_bytes(bs, size-8);
 
-			if (needs_mov_range && (type==GF_4CC('m','o','o','v') )) {
+			if (needs_mov_range && (type==GF_ISOM_BOX_TYPE_MOOV )) {
 				GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
 				rep->segment_list->initialization_segment->byte_range->end_range = gf_bs_get_position(bs);
 			}
@@ -4068,7 +4068,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 		char *profile = rep->profiles;
 		if (!profile) profile = group->adaptation_set->profiles;
 		if (!profile) profile = group->dash->mpd->profiles;
-		
+
 		//if on-demand cleanup all segment templates and segment list if we have base URLs
 		if (profile && strstr(profile, "on-demand")) {
 			u32 nb_rem=0;
@@ -4082,7 +4082,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				gf_mpd_segment_template_free(group->adaptation_set->segment_template);
 				group->adaptation_set->segment_template = NULL;
 			}
-			
+
 			if (group->period->segment_template) {
 				nb_rem++;
 				gf_mpd_segment_template_free(group->period->segment_template);
@@ -4112,7 +4112,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 			}
 		}
 	}
-	
+
 	/*OK we are in single-file mode, download all required indexes & co*/
 	for (i=0; i<gf_list_count(group->adaptation_set->representations); i++) {
 		char *sidx_file = NULL;
@@ -4172,7 +4172,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				offset = 8;
 				while (box_type) {
 					/*we got the moov, stop here */
-					if (!index_in_base && (box_type==GF_4CC('m','o','o','v'))) {
+					if (!index_in_base && (box_type==GF_ISOM_BOX_TYPE_MOOV)) {
 						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-9, 2, group);
 						break;
 					} else {
@@ -4186,7 +4186,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						if (e == GF_IO_ERR) {
 							/*if the socket was closed then gf_dash_download_resource() with gmem:// was reset - retry*/
 							e = dash_load_box_type(cache_name, offset-offset_ori-8, &box_type, &box_size);
-							if (box_type == GF_4CC('s','i','d','x')) {
+							if (box_type == GF_ISOM_BOX_TYPE_SIDX) {
 								offset -= 8;
 								/*FIXME sidx found, reload the full resource*/
 								GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] have to re-downloading init and SIDX for rep %s\n", init_url));
@@ -4195,7 +4195,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							}
 						}
 
-						if (box_type == GF_4CC('s','i','d','x'))
+						if (box_type == GF_ISOM_BOX_TYPE_SIDX)
 							has_seen_sidx = 1;
 						else if (has_seen_sidx)
 							break;
@@ -5445,7 +5445,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		return;
 	}
 
-	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
+  for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
 		groups_per_quality[q_idx] = 0;
 

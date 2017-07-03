@@ -25,6 +25,7 @@
 
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
+#include <gpac/internal/isomedia_dev.h>
 #include <gpac/media_tools.h>
 #include <gpac/bifs.h>
 #include <gpac/network.h>
@@ -286,7 +287,7 @@ static GF_Err gf_sm_import_stream(GF_SceneManager *ctx, GF_ISOFile *mp4, GF_ESD 
 	i=0;
 	while ((d = gf_list_enum(src->extensionDescriptors, &i))) {
 		if (d->tag == GF_ODF_AUX_VIDEO_DATA) {
-			gf_isom_add_user_data(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_4CC('A','U','X','V'), 0, NULL, 0);
+			gf_isom_add_user_data(mp4, gf_isom_get_track_by_id(mp4, import.final_trackID), GF_ISOM_BOX_TYPE_AUXV, 0, NULL, 0);
 			gf_list_rem(src->extensionDescriptors, i-1);
 			gf_odf_desc_del(d);
 		}
