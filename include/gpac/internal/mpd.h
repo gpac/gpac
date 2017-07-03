@@ -242,6 +242,8 @@ typedef struct
 	Double prev_max_available_speed;
 	/*after switch we may have some buffered segments of the previous representation; so codec stats at this moment is unreliable. we should wait after the codec reset*/
 	Bool waiting_codec_reset;
+	// BOLA Utility
+	Double bola_v;
 } GF_DASH_RepresentationPlayback;
 
 typedef struct {

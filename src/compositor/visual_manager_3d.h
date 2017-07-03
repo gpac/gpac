@@ -41,6 +41,8 @@
 /*draw frame, performing collisions, camera displacement and drawing*/
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual);
 
+Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s32 ix, s32 iy);
+
 /*traverse the scene and picks the node under the current ray, if any*/
 void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
