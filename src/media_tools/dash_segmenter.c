@@ -1640,6 +1640,7 @@ restart_fragmentation_pass:
 							sprintf(szVal, "<SegmentURL media=\"%s\"/>", name);
 							gf_cfg_set_key(dash_cfg->dash_ctx, RepURLsSecName, szKey, szVal);
 						}
+						gf_list_add(segment_urls, seg_url);
 					}
 				} else {
 					e = gf_isom_start_segment(output, NULL, dash_cfg->fragments_in_memory);
