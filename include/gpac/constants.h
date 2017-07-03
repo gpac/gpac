@@ -258,12 +258,12 @@ typedef enum
 
 	/*!YUV planar format in 10 bits mode, all components are stored as shorts*/
 	GF_PIXEL_YV12_10	=	GF_4CC('Y','0','1','0'),
-	
+
 	GF_PIXEL_YUV422		=	GF_4CC('Y','4','4','2'),
 	GF_PIXEL_YUV422_10	=	GF_4CC('Y','2','1','0'),
 	GF_PIXEL_YUV444		=	GF_4CC('Y','4','4','4'),
 	GF_PIXEL_YUV444_10	=	GF_4CC('Y','4','1','0')
-	
+
 } GF_PixelFormat;
 
 
@@ -645,7 +645,7 @@ enum
 	/*! Type2 SI slice*/
 	GF_AVC_TYPE2_SI = 9
 };
-	
+
 /*!
  HEVC NAL unit types
  */
@@ -704,17 +704,17 @@ enum
 };
 
 
-	
+
 /*! Number of defined QCELP rate sizes*/
 static const unsigned int GF_QCELP_RATE_TO_SIZE_NB = 7;
 /*! QCELP rate sizes - note that these sizes INCLUDE the rate_type header byte*/
 static const unsigned int GF_QCELP_RATE_TO_SIZE [] = {0, 1, 1, 4, 2, 8, 3, 17, 4, 35, 5, 8, 14, 1};
-	
+
 /*! Number of defined EVRC rate sizes*/
 static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE_NB = 6;
 /*! EVRC rate sizes - note that these sizes INCLUDE the rate_type header byte*/
 static const unsigned int GF_SMV_EVRC_RATE_TO_SIZE [] = {0, 1, 1, 3, 2, 6, 3, 11, 4, 23, 5, 1};
-	
+
 /*! AMR frame sizes*/
 static const unsigned int GF_AMR_FRAME_SIZE[16] = { 12, 13, 15, 17, 19, 20, 26, 31, 5, 0, 0, 0, 0, 0, 0, 0 };
 /*! AMR WB frame sizes*/
@@ -725,6 +725,151 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 #define GF_RTP_TX3G_SIDX_OFFSET	129
 
 /*! @} */
+
+#define GF_VENDOR_GPAC GF_4CC('G', 'P', 'A', 'C')
+
+/* ID3v2 tags from mpegts.c */
+typedef enum {
+	ID3V2_FRAME_AENC = GF_4CC('A','E','N','C'),
+	ID3V2_FRAME_APIC = GF_4CC('A','P','I','C'),
+	ID3V2_FRAME_COMM = GF_4CC('C','O','M','M'),
+	ID3V2_FRAME_COMR = GF_4CC('C','O','M','R'),
+	ID3V2_FRAME_ENCR = GF_4CC('E','N','C','R'),
+	ID3V2_FRAME_EQUA = GF_4CC('E','Q','U','A'),
+	ID3V2_FRAME_ETCO = GF_4CC('E','T','C','O'),
+	ID3V2_FRAME_GEOB = GF_4CC('G','E','O','B'),
+	ID3V2_FRAME_GRID = GF_4CC('G','R','I','D'),
+	ID3V2_FRAME_IPLS = GF_4CC('I','P','L','S'),
+	ID3V2_FRAME_LINK = GF_4CC('L','I','N','K'),
+	ID3V2_FRAME_MCDI = GF_4CC('M','C','D','I'),
+	ID3V2_FRAME_MLLT = GF_4CC('M','L','L','T'),
+	ID3V2_FRAME_OWNE = GF_4CC('O','W','N','E'),
+	ID3V2_FRAME_PRIV = GF_4CC('P','R','I','V'),
+	ID3V2_FRAME_PCNT = GF_4CC('P','C','N','T'),
+	ID3V2_FRAME_POPM = GF_4CC('P','O','P','M'),
+	ID3V2_FRAME_POSS = GF_4CC('P','O','S','S'),
+	ID3V2_FRAME_RBUF = GF_4CC('R','B','U','F'),
+	ID3V2_FRAME_RVAD = GF_4CC('R','V','A','D'),
+	ID3V2_FRAME_RVRB = GF_4CC('R','V','R','B'),
+	ID3V2_FRAME_SYLT = GF_4CC('S','Y','L','T'),
+	ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
+	ID3V2_FRAME_TALB = GF_4CC('T','E','N','C'),
+	ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
+	ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
+	ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
+	ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
+	ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
+	ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
+	ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
+	ID3V2_FRAME_TEXT = GF_4CC('T','E','X','T'),
+	ID3V2_FRAME_TFLT = GF_4CC('T','F','L','T'),
+	ID3V2_FRAME_TIME = GF_4CC('T','I','M','E'),
+	ID3V2_FRAME_TIT1 = GF_4CC('T','I','T','1'),
+	ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
+	ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
+	ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
+	ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
+	ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
+	ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
+	ID3V2_FRAME_TOAL = GF_4CC('T','O','A','L'),
+	ID3V2_FRAME_TOFN = GF_4CC('T','O','F','N'),
+	ID3V2_FRAME_TOLY = GF_4CC('T','O','L','Y'),
+	ID3V2_FRAME_TOPE = GF_4CC('T','O','P','E'),
+	ID3V2_FRAME_TORY = GF_4CC('T','O','R','Y'),
+	ID3V2_FRAME_TOWN = GF_4CC('T','O','W','N'),
+	ID3V2_FRAME_TPE1 = GF_4CC('T','P','E','1'),
+	ID3V2_FRAME_TPE2 = GF_4CC('T','P','E','2'),
+	ID3V2_FRAME_TPE3 = GF_4CC('T','P','E','3'),
+	ID3V2_FRAME_TPE4 = GF_4CC('T','P','E','4'),
+	ID3V2_FRAME_TPOS = GF_4CC('T','P','E','5'),
+	ID3V2_FRAME_TPUB = GF_4CC('T','P','U','B'),
+	ID3V2_FRAME_TRCK = GF_4CC('T','R','C','K'),
+	ID3V2_FRAME_TRDA = GF_4CC('T','R','D','A'),
+	ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
+	ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
+	ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
+	ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
+	ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
+	ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
+	ID3V2_FRAME_TXXX = GF_4CC('T','X','X','X'),
+	ID3V2_FRAME_UFID = GF_4CC('U','F','I','D'),
+	ID3V2_FRAME_USER = GF_4CC('U','S','E','R'),
+	ID3V2_FRAME_USLT = GF_4CC('U','S','L','T'),
+	ID3V2_FRAME_WCOM = GF_4CC('W','C','O','M'),
+	ID3V2_FRAME_WCOP = GF_4CC('W','C','O','P'),
+	ID3V2_FRAME_WOAF = GF_4CC('W','O','A','F'),
+	ID3V2_FRAME_WOAR = GF_4CC('W','O','A','R'),
+	ID3V2_FRAME_WOAS = GF_4CC('W','O','A','S'),
+	ID3V2_FRAME_WORS = GF_4CC('W','O','R','S'),
+	ID3V2_FRAME_WPAY = GF_4CC('W','P','A','Y'),
+	ID3V2_FRAME_WPUB = GF_4CC('W','P','U','B'),
+	ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X')
+} GF_ID3v2FrameType;
+
+
+/* media types consts from media_import.c */
+enum {
+
+	GF_MEDIA_TYPE_AC3 	= GF_4CC('A','C','3',' '),
+	GF_MEDIA_TYPE_BIFS 	= GF_4CC('B','I','F','S'),
+	GF_MEDIA_TYPE_CHAP 	= GF_4CC('C','H','A','P'),
+	GF_MEDIA_TYPE_DAC3 	= GF_4CC('D','A','C','3'),
+	GF_MEDIA_TYPE_DEC3 	= GF_4CC('D','E','C','3'),
+	GF_MEDIA_TYPE_DTS 	= GF_4CC('D','T','S',' '),
+	GF_MEDIA_TYPE_H264 	= GF_4CC('H','2','6','4'),
+	GF_MEDIA_TYPE_HEVC 	= GF_4CC('H','E','V','C'),
+	GF_MEDIA_TYPE_ID3 	= GF_4CC('I','D','3',' '),
+	GF_MEDIA_TYPE_JPEG 	= GF_4CC('J','P','E','G'),
+	GF_MEDIA_TYPE_LASR 	= GF_4CC('L','A','S','R'),
+	GF_MEDIA_TYPE_LHVC 	= GF_4CC('L','H','V','C'),
+	GF_MEDIA_TYPE_LPCM 	= GF_4CC('L','P','C','M'),
+	GF_MEDIA_TYPE_M4SP 	= GF_4CC('M','4','S','P'),
+	GF_MEDIA_TYPE_M4SS 	= GF_4CC('M','4','S','S'),
+	GF_MEDIA_TYPE_MP1A 	= GF_4CC('M','P','1','A'),
+	GF_MEDIA_TYPE_MP1V 	= GF_4CC('M','P','1','V'),
+	GF_MEDIA_TYPE_MP2A 	= GF_4CC('M','P','2','A'),
+	GF_MEDIA_TYPE_MP2V 	= GF_4CC('M','P','2','V'),
+	GF_MEDIA_TYPE_MP4A 	= GF_4CC('M','P','4','A'),
+	GF_MEDIA_TYPE_MP4V 	= GF_4CC('M','P','4','V'),
+	GF_MEDIA_TYPE_MPG1 	= GF_4CC('M','P','G','1'),
+	GF_MEDIA_TYPE_MPG2 	= GF_4CC('M','P','G','2'),
+	GF_MEDIA_TYPE_MPGA 	= GF_4CC('M','P','G','A'),
+	GF_MEDIA_TYPE_NHNL 	= GF_4CC('N','H','n','l'),
+	GF_MEDIA_TYPE_NHNT 	= GF_4CC('N','H','n','t'),
+	GF_MEDIA_TYPE_PNG 	= GF_4CC('P','N','G',' '),
+	GF_MEDIA_TYPE_SVC 	= GF_4CC('S','V','C',' '),
+	GF_MEDIA_TYPE_THEO 	= GF_4CC('t','h','e','o'),
+	GF_MEDIA_TYPE_UNK 	= GF_4CC('U','N','K',' '),
+
+	/* from mpegts.c */
+	GF_MEDIA_STREAM_AC3	= GF_4CC('A','C','-','3'),
+	GF_MEDIA_STREAM_VC1	= GF_4CC('V','C','-','1'),
+
+	/* from m2ts_muc.c */
+	GF_MEDIA_LANG_UND	= GF_4CC('u','n','d',' '),
+
+};
+
+
+/* meta types from box_code_meta.c - fileimport.c */
+enum {
+
+	GF_META_ITEM_TYPE_MIME 	= GF_4CC('m', 'i', 'm', 'e'),
+	GF_META_ITEM_TYPE_URI 	= GF_4CC('u', 'r', 'i', ' '),
+	GF_META_ITEM_TYPE_PICT 	= GF_4CC('p', 'i', 'c', 't'),
+
+	GF_META_TYPE_SVG 	= GF_4CC('s','v','g',' '),
+	GF_META_TYPE_SVGZ 	= GF_4CC('s','v','g','z'),
+	GF_META_TYPE_SMIL 	= GF_4CC('s','m','i','l'),
+	GF_META_TYPE_SMLZ 	= GF_4CC('s','m','l','z'),
+	GF_META_TYPE_X3D 	= GF_4CC('x','3','d',' '),
+	GF_META_TYPE_X3DZ 	= GF_4CC('x','3','d','z'),
+	GF_META_TYPE_XMTA 	= GF_4CC('x','m','t','a'),
+	GF_META_TYPE_XMTZ 	= GF_4CC('x','m','t','z'),
+
+	GF_META_TYPE_RVCI 	= GF_4CC('r','v','c','i'),
+
+};
 
 #ifdef __cplusplus
 }

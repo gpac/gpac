@@ -984,7 +984,7 @@ GF_Err HintFile(GF_ISOFile *file, u32 MTUSize, u32 max_ptime, u32 rtp_rate, u32 
 			continue;
 		default:
 			/*no hinting of systems track on isma*/
-			if (spec_type==GF_4CC('I','S','M','A')) continue;
+			if (spec_type==GF_ISOM_BRAND_ISMA) continue;
 		}
 		mtype = gf_isom_get_media_subtype(file, i+1, 1);
 		if ((mtype==GF_ISOM_SUBTYPE_MPEG4) || (mtype==GF_ISOM_SUBTYPE_MPEG4_CRYP) ) mtype = gf_isom_get_mpeg4_subtype(file, i+1, 1);
@@ -1212,7 +1212,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
-	if (spec==GF_4CC('I','S','M','A')) return GF_TRUE;
+	if (spec==GF_ISOM_BRAND_ISMA) return GF_TRUE;
 	return GF_FALSE;
 }
 #endif
@@ -1308,7 +1308,7 @@ static Bool parse_meta_args(MetaAction *meta, MetaActionType act_type, char *opt
 			ret = 1;
 		}
 		else if (!strnicmp(szSlot, "mime=", 5)) {
-			meta->item_type = GF_4CC('m','i','m','e');
+			meta->item_type = GF_META_ITEM_TYPE_MIME;
 			strcpy(meta->mime_type, szSlot+5);
 			ret = 1;
 		}
@@ -4483,9 +4483,9 @@ int mp4boxMain(int argc, char **argv)
 				if (e == GF_OK) {
 					u32 meta_type = gf_isom_get_meta_type(file, meta->root_meta, tk);
 					if (!meta_type) {
-						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_4CC('p','i','c','t'));
+						e = gf_isom_set_meta_type(file, meta->root_meta, tk, GF_META_ITEM_TYPE_PICT);
 					} else {
-						if (meta_type != GF_4CC('p', 'i', 'c', 't')) {
+						if (meta_type != GF_META_ITEM_TYPE_PICT) {
 							GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Warning: file already has a root 'meta' box of type %s\n", gf_4cc_to_str(meta_type)));
 							e = GF_BAD_PARAM;
 						}
@@ -4691,7 +4691,7 @@ int mp4boxMain(int argc, char **argv)
 				u32 mType = gf_isom_get_media_type(file, i+1);
 				switch (mType) {
 				case GF_ISOM_MEDIA_VISUAL:
-					major_brand = GF_4CC('M','4','V',' ');
+					major_brand = GF_ISOM_BRAND_M4V;
 					gf_isom_set_ipod_compatible(file, i+1);
 #if 0
 					switch (gf_isom_get_media_subtype(file, i+1, 1)) {
@@ -4706,20 +4706,20 @@ int mp4boxMain(int argc, char **argv)
 #endif
 					break;
 				case GF_ISOM_MEDIA_AUDIO:
-					if (!major_brand) major_brand = GF_4CC('M','4','A',' ');
-					else gf_isom_modify_alternate_brand(file, GF_4CC('M','4','A',' '), 1);
+					if (!major_brand) major_brand = GF_ISOM_BRAND_M4A;
+					else gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_M4A, 1);
 					break;
 				case GF_ISOM_MEDIA_TEXT:
 					/*this is a text track track*/
-					if (gf_isom_get_media_subtype(file, i+1, 1) == GF_4CC('t','x','3','g')) {
+					if (gf_isom_get_media_subtype(file, i+1, 1) == GF_ISOM_SUBTYPE_TX3G) {
 						u32 j;
 						Bool is_chap = 0;
 						for (j=0; j<gf_isom_get_track_count(file); j++) {
-							s32 count = gf_isom_get_reference_count(file, j+1, GF_4CC('c','h','a','p'));
+							s32 count = gf_isom_get_reference_count(file, j+1, GF_ISOM_REF_CHAP);
 							if (count>0) {
 								u32 tk, k;
 								for (k=0; k<(u32) count; k++) {
-									gf_isom_get_reference(file, j+1, GF_4CC('c','h','a','p'), k+1, &tk);
+									gf_isom_get_reference(file, j+1, GF_ISOM_REF_CHAP, k+1, &tk);
 									if (tk==i+1) {
 										is_chap = 1;
 										break;
