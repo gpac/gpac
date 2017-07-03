@@ -427,6 +427,9 @@ Default field of view for VR 360. Default is PI/2.</p>
 <p style="text-indent: 5%">
 Sets the number of points to test for tile visibility to int1, and consider the tile visible if more than int2 points are visible. Default is 30-0.</p>
 
+<b>SimulateGaze</b> [value: <i>yes,no</i>]
+<p style="text-indent: 5%">
+Uses the mouse to simulate gazing direction on the display for quality adaptation. Default is no.</p>
 
 <br/><br/>
 
@@ -1000,6 +1003,9 @@ Overrides the URL in TEMI location descriptor with the specified value.</p>
 <b>RecordTo</b> [value: <i>file path</i>]
 <p style="text-indent: 5%">
 Records the TS content to the specified file.</p>
+<b>UDPBufferSize</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+UDP buffer size for the socket. Default value is a few hundred kilobytes depending on the platform.</p>
 
 <a name="RAW"></a>
 <span style="text-decoration: underline;"><b>Section "RAWVideo"</b></span> <i><a href="#Overview">Back to top</a></i>

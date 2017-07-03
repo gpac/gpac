@@ -977,6 +977,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		e = gf_isom_last_error(NULL);
 		goto err_exit;
 	}
+	else if (dash_cfg->force_test_mode) {
+		gf_isom_no_version_date_info(output, 1);
+	}
 
 	if (store_dash_params) {
 		const char *name;
@@ -1103,7 +1106,8 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	mpd_timescale = nb_video = nb_audio = nb_text = nb_scene = 0;
 	//duplicates all tracks
 	for (i=0; i<gf_isom_get_track_count(input); i++) {
-		u32 _w, _h, _sr, _nb_ch, vidtype;
+		u32 _w, _h, _nb_ch, vidtype;
+		u32 _sr = 0;
 
 		u32 mtype = gf_isom_get_media_type(input, i+1);
 		if (mtype == GF_ISOM_MEDIA_HINT) continue;
@@ -2092,7 +2096,7 @@ restart_fragmentation_pass:
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
-				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 				nbFragmentInSegment = 0;
 
 				//take care of scalable reps
@@ -2166,7 +2170,7 @@ restart_fragmentation_pass:
 		last_seg_dur = SegmentDuration;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
-		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 		nb_segments++;
 
 		if (!seg_rad_name) {
