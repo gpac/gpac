@@ -2107,7 +2107,7 @@ void gf_mpd_print_date(FILE *out, char *name, u64 time)
 
 }
 
-void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
+void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms, Bool UseHoursAndMinutes)
 {
 	u32 h, m;
 	Double s;
@@ -2115,7 +2115,10 @@ void gf_mpd_print_duration(FILE *out, char *name, u64 duration_in_ms)
 	m = (u32) (duration_in_ms/ 60000) - h*60;
 	s = ((Double) duration_in_ms/1000.0) - h*3600 - m*60;
 
-	fprintf(out, " %s=\"PT%dH%02dM%02.2fS\"", name, h, m, s);
+	fprintf(out, " %s=\"PT", name);
+	if(UseHoursAndMinutes)
+		fprintf(out, "%dH%dM", h, m);
+	fprintf(out, "%.3fS\"", s);
 }
 
 void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent)
@@ -2155,7 +2158,7 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 	if (s->index_range_exact) fprintf(out, " indexRangeExact=\"true\"");
 	if (s->availability_time_offset) fprintf(out, " availabilityTimeOffset=\"%g\"", s->availability_time_offset);
 	if (s->time_shift_buffer_depth)
-		gf_mpd_print_duration(out, "timeShiftBufferDepth", s->time_shift_buffer_depth);
+		gf_mpd_print_duration(out, "timeShiftBufferDepth", s->time_shift_buffer_depth, GF_TRUE);
 }
 
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
@@ -2506,9 +2509,9 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 	if (period->ID)
 		fprintf(out, " id=\"%s\"", period->ID);
 	if (is_dynamic || period->start)
-		gf_mpd_print_duration(out, "start", period->start);
+		gf_mpd_print_duration(out, "start", period->start, GF_TRUE);
 	if (period->duration)
-		gf_mpd_print_duration(out, "duration", period->duration);
+		gf_mpd_print_duration(out, "duration", period->duration, GF_TRUE);
 	if (period->bitstream_switching)
 		fprintf(out, " bitstreamSwitching=\"true\"");
 
@@ -2583,7 +2586,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->profiles)
 		fprintf(out, " profiles=\"%s\"", mpd->profiles);
 	if (mpd->min_buffer_time)
-		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time);
+		gf_mpd_print_duration(out, "minBufferTime", mpd->min_buffer_time, GF_FALSE);
 
 	fprintf(out," type=\"%s\"",(mpd->type == GF_MPD_TYPE_STATIC ? "static" : "dynamic"));
 
@@ -2594,17 +2597,17 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->publishTime && mpd->type != GF_MPD_TYPE_STATIC)
 		gf_mpd_print_date(out, "publishTime", mpd->publishTime);
 	if (mpd->media_presentation_duration)
-		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration);
+		gf_mpd_print_duration(out, "mediaPresentationDuration", mpd->media_presentation_duration, GF_TRUE);
 	if (mpd->minimum_update_period)
-		gf_mpd_print_duration(out, "minimumUpdatePeriod", mpd->minimum_update_period);
+		gf_mpd_print_duration(out, "minimumUpdatePeriod", mpd->minimum_update_period, GF_TRUE);
 	if (mpd->time_shift_buffer_depth)
-		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth);
+		gf_mpd_print_duration(out, "timeShiftBufferDepth", mpd->time_shift_buffer_depth, GF_TRUE);
 	if (mpd->suggested_presentation_delay)
-		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay);
+		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
 	if (mpd->max_segment_duration)
-		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration);
+		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration, GF_TRUE);
 	if (mpd->max_subsegment_duration)
-		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration);
+		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
 
 	if (mpd->attributes) gf_mpd_extensible_print_attr(out, (GF_MPD_ExtensibleVirtual*)mpd);
 
