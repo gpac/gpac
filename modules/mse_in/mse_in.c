@@ -216,8 +216,6 @@ static GF_Err MSE_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		return GF_OK;
 	case GF_NET_SERVICE_QUALITY_SWITCH:
 		return GF_NOT_SUPPORTED;
-	case GF_NET_SERVICE_FLUSH_DATA:
-		return GF_NOT_SUPPORTED;
 	default:
 		break;
 	}

@@ -103,8 +103,6 @@ typedef enum
 	GF_NET_SERVICE_HAS_AUDIO,
 	/*checks if the service can support reverse playback (speed<0) - term->service only*/
 	GF_NET_SERVICE_CAN_REVERSE_PLAYBACK,
-	/*send by the terminal to indicate the channel(s) on this service need more data - term->net only*/
-	GF_NET_SERVICE_FLUSH_DATA,
 
 	/*checks if there is a forced video size  - if yes, info is stored in GF_NetComPixelAR - term->net only*/
 	GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE,
