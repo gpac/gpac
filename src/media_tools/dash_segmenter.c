@@ -2303,6 +2303,7 @@ restart_fragmentation_pass:
 				if (presentationTimeOffset) {
 					seg_template->presentation_time_offset = presentationTimeOffset;
 				}
+				seg_template->start_number=(u32)-1;
 			}
 			if (dash_cfg->ast_offset_ms<0) {
 				seg_template->availability_time_offset = -(Double)dash_cfg->ast_offset_ms / 1000.0;
@@ -2518,6 +2519,7 @@ restart_fragmentation_pass:
 		GF_MPD_SegmentList *seg_list;
 		GF_SAFEALLOC(seg_list, GF_MPD_SegmentList);
 		representation_obj->segment_list = seg_list;
+		seg_list->start_number=(u32)-1;
 		if (!seg_tl) {
 			seg_list->timescale = mpd_timescale;
 			seg_list->duration = (u32)(max_segment_duration * mpd_timescale + 0.5);
@@ -5171,7 +5173,7 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	GF_MPD_other_descriptors Desc;
 
 	//force segmentAlignment in onDemand
-	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled);
+	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled) ? GF_FALSE : GF_TRUE;
 	if (bitstream_switching_mode) {
 		adaptation_set_obj->bitstream_switching = GF_TRUE;
 	}
