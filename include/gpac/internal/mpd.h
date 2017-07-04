@@ -393,6 +393,9 @@ typedef struct {
 
 	/*set during parsing*/
 	const char *xml_namespace; /*won't be freed by GPAC*/
+	
+	Bool force_test_mode;
+	
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);

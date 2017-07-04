@@ -5759,6 +5759,7 @@ GF_Err gf_dasher_set_info(GF_DASHSegmenter *dasher, const char *title, const cha
 GF_EXPORT
 GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode){
 	dasher->force_test_mode=forceTestMode;
+	dasher->mpd->force_test_mode=forceTestMode;
 	return GF_OK;
 }
 
