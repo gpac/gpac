@@ -2438,9 +2438,6 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	}
 	if (as->id) fprintf(out, " id=\"%d\"", as->id);
 	if (as->group !=  (u32) -1) fprintf(out, " group=\"%d\"", as->group);
-	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);
-	if (as->par && (as->par->num !=0 ) && (as->par->num != 0))
-		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
 	if (as->min_bandwidth) fprintf(out, " minBandwidth=\"%d\"", as->min_bandwidth);
 	if (as->max_bandwidth) fprintf(out, " maxBandwidth=\"%d\"", as->max_bandwidth);
 	if (as->min_width) fprintf(out, " minWidth=\"%d\"", as->min_width);
@@ -2448,7 +2445,10 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	if (as->min_height) fprintf(out, " minHeight=\"%d\"", as->min_height);
 	if (as->max_height) fprintf(out, " maxHeight=\"%d\"", as->max_height);
 	if (as->min_framerate) fprintf(out, " minFrameRate=\"%d\"", as->min_framerate);
-	if (as->max_framerate) fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate);
+	if (as->max_framerate) fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate);	
+	if (as->par && (as->par->num !=0 ) && (as->par->num != 0))
+		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
+	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);
 	if (as->segment_alignment) fprintf(out, " segmentAlignment=\"true\"");
 	if (as->bitstream_switching) fprintf(out, " bitstreamSwitching=\"true\"");
 	if (as->subsegment_alignment) fprintf(out, " subsegmentAlignment=\"true\"");
@@ -2636,7 +2636,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		if (info->copyright) {
 			fprintf(out, "  <Copyright>%s</Copyright>\n", info->copyright);
 		}
-		fprintf(out, " </ProgramInformation>\n");
+		fprintf(out, " </ProgramInformation>\n\n");
 	}
 
 	gf_mpd_print_base_urls(out, mpd->base_URLs, " ");
