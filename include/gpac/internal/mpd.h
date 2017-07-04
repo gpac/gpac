@@ -144,7 +144,9 @@ typedef struct
 	GF_MPD_SEGMENT_BASE
 } GF_MPD_SegmentBase;
 
-/*WARNING: duration is expressed in GF_MPD_SEGMENT_BASE@timescale unit*/
+/*WARNING: duration is expressed in GF_MPD_SEGMENT_BASE@timescale unit
+           startnumber=(u32)-1 if unused, 1 bydefault.
+*/
 #define GF_MPD_MULTIPLE_SEGMENT_BASE	\
 	GF_MPD_SEGMENT_BASE	\
 	u64 duration;	\
