@@ -2553,10 +2553,12 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 
 	gtime = sec - GF_NTP_SEC_1900_TO_1970;
 	t = gmtime(&gtime);
-	fprintf(out, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
-	fprintf(out, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms);
-	fprintf(out, "-->\n");
-	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms));
+	if(!mpd->force_test_mode){
+		fprintf(out, "<!-- MPD file Generated with GPAC version "GPAC_FULL_VERSION" ");
+		fprintf(out, " at %d-%02d-%02dT%02d:%02d:%02d.%03dZ", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms);
+		fprintf(out, "-->\n");
+	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Generating MPD at time %d-%02d-%02dT%02d:%02d:%02d.%03dZ\n", 1900 + t->tm_year, t->tm_mon + 1, t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, (u32)time_ms));	
 	return GF_OK;
 }
 
