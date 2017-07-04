@@ -879,12 +879,7 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		isor_flush_data(read, 1, com->proxy_data.is_chunk);
 		return GF_OK;
 	}
-	if (com->type == GF_NET_SERVICE_FLUSH_DATA) {
-		if (read->nb_playing && plug->query_proxy)
-			isor_flush_data(read, 0, 0);
-		return GF_OK;
-	}
-	if (com->type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
+	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
 		return GF_OK;
 
 #endif

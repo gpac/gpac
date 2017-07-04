@@ -1466,11 +1466,6 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		m2ts_flush_data(m2ts, com->proxy_data.is_chunk ? GF_M2TS_PUSH_CHUNK : GF_M2TS_PUSH_SEGMENT);
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		if (plug->query_proxy)
-			m2ts_flush_data(m2ts, GF_M2TS_FLUSH_DATA);
-		return GF_OK;
-	}
 	//get info on the first running program
 	if (com->command_type==GF_NET_SERVICE_INFO) {
 		u32 id = com->info.service_id;
