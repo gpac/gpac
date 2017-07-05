@@ -2436,6 +2436,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 		if (as->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
 	}
+	if (as->segment_alignment) fprintf(out, " segmentAlignment=\"true\"");
 	if (as->id) fprintf(out, " id=\"%d\"", as->id);
 	if (as->group !=  (u32) -1) fprintf(out, " group=\"%d\"", as->group);
 	if (as->min_bandwidth) fprintf(out, " minBandwidth=\"%d\"", as->min_bandwidth);
@@ -2448,8 +2449,7 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	if (as->max_framerate) fprintf(out, " maxFrameRate=\"%d\"", as->max_framerate);	
 	if (as->par && (as->par->num !=0 ) && (as->par->num != 0))
 		fprintf(out, " par=\"%d:%d\"", as->par->num, as->par->den);
-	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);
-	if (as->segment_alignment) fprintf(out, " segmentAlignment=\"true\"");
+	if (as->lang) fprintf(out, " lang=\"%s\"", as->lang);	
 	if (as->bitstream_switching) fprintf(out, " bitstreamSwitching=\"true\"");
 	if (as->subsegment_alignment) fprintf(out, " subsegmentAlignment=\"true\"");
 	if (as->subsegment_starts_with_sap) fprintf(out, " subsegmentStartsWithSAP=\"%d\"", as->subsegment_starts_with_sap);
