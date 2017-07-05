@@ -2144,7 +2144,7 @@ static void gf_mpd_print_base_urls(FILE *out, GF_List *base_URLs, char *indent)
 
 static void gf_mpd_print_url(FILE *out, GF_MPD_URL *url, char *name, char *indent)
 {
-	fprintf(out, "   %s<%s", indent, name);
+	fprintf(out, "%s<%s", indent, name);
 	if (url->byte_range) fprintf(out, " range=\""LLD"-"LLD"\"", url->byte_range->start_range, url->byte_range->end_range);
 	if (url->sourceURL) fprintf(out, " sourceURL=\"%s\"", url->sourceURL);
 	fprintf(out, "/>\n");
@@ -2229,14 +2229,18 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 		if (s->xlink_actuate_on_load)
 			fprintf(out, " actuate=\"onLoad\"");
 	}
-	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, indent, GF_FALSE);
+	char tmp_indent[256];
+	sprintf(tmp_indent, "%s ",indent);
+	gf_mpd_print_multiple_segment_base(out, (GF_MPD_MultipleSegmentBase *)s, tmp_indent, GF_FALSE);
+	
+	sprintf(tmp_indent, "%s  ",indent);
 
 	if (s->segment_URLs) {
 		u32 i;
 		GF_MPD_SegmentURL *url;
 		i = 0;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-			fprintf(out, "%s<SegmentURL", indent);
+			fprintf(out, "%s<SegmentURL", tmp_indent);
 			if (url->media) fprintf(out, " media=\"%s\"", url->media);
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
 			if (url->media_range) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
@@ -2399,13 +2403,13 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 
 	gf_mpd_print_base_urls(out, rep->base_URLs, " ");
 	if (rep->segment_base) {
-		gf_mpd_print_segment_base(out, rep->segment_base, "   ");
+		gf_mpd_print_segment_base(out, rep->segment_base, "    ");
 	}
 	if (rep->segment_list) {
-		gf_mpd_print_segment_list(out, rep->segment_list, "   ");
+		gf_mpd_print_segment_list(out, rep->segment_list, "    ");
 	}
 	if (rep->segment_template) {
-		gf_mpd_print_segment_template(out, rep->segment_template, "   ");
+		gf_mpd_print_segment_template(out, rep->segment_template, "    ");
 	}
 	/*TODO
 				e = gf_mpd_parse_subrepresentation(rep->sub_representations, child);
@@ -2658,7 +2662,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 		gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
 	}
 
-	fprintf(out, "</MPD>\n");
+	fprintf(out, "</MPD>");
 
 	return GF_OK;
 }
