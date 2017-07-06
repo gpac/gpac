@@ -29,7 +29,7 @@ do_hash_test $TEMP_DIR/test.tmp "ttxt-text"
 
 
 do_test "$MP4BOX -raws 1 $mp4file" "raw-samples"
-n=`ls $TEMP_DIR/test_track* | wc -l`
+n=`ls -1f $TEMP_DIR/test_track* | wc -l | tr -d ' '`
 n=${n#0}
 if [ "$n" != 173 ] ; then
 result="Wrong sample count $n (expected 173)"
