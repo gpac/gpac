@@ -5072,7 +5072,7 @@ static GF_Err mpd_set_header(GF_DASHSegmenter *dasher, Bool is_mpeg2, Double mpd
 			strcpy(profiles_string, "urn:mpeg:dash:profile:isoff-on-demand:2011");
 		}
 	} else if (dasher->profile==GF_DASH_PROFILE_MAIN) {
-		sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-simple" : "isoff-live");
+		sprintf(profiles_string, "urn:mpeg:dash:profile:%s:2011", is_mpeg2 ? "mp2t-main" : "isoff-main");
 	} else if (dasher->profile==GF_DASH_PROFILE_HBBTV_1_5_ISOBMF_LIVE) {
 		strcpy(profiles_string, "urn:hbbtv:dash:profile:isoff-live:2012");
 	} else if (dasher->profile==GF_DASH_PROFILE_AVC264_LIVE) {
