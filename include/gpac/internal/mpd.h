@@ -379,7 +379,7 @@ typedef struct {
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */
 	u32 suggested_presentation_delay; /* expressed in milliseconds */
 
-	u32 max_segment_duration; /* expressed in milliseconds */
+	u32 max_segment_duration; /* expressed in seconds */
 	u32 max_subsegment_duration; /* expressed in milliseconds */
 
 	/*list of GF_MPD_ProgramInfo */

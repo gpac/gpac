@@ -2609,7 +2609,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	if (mpd->suggested_presentation_delay)
 		gf_mpd_print_duration(out, "suggestedPresentationDelay", mpd->suggested_presentation_delay, GF_TRUE);
 	if (mpd->max_segment_duration)
-		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration, GF_TRUE);
+		gf_mpd_print_duration(out, "maxSegmentDuration", mpd->max_segment_duration*1000, GF_TRUE);
 	if (mpd->max_subsegment_duration)
 		gf_mpd_print_duration(out, "maxSubsegmentDuration", mpd->max_subsegment_duration, GF_TRUE);
 

@@ -2084,7 +2084,7 @@ restart_fragmentation_pass:
 				period_duration += tick_adjust;
 			}
 			if (dash_cfg->mpd->max_segment_duration * dash_cfg->dash_scale < SegmentDuration) {
-				dash_cfg->mpd->max_segment_duration = (u32)(SegmentDuration*1000);
+				dash_cfg->mpd->max_segment_duration = (u32)(SegmentDuration);
 				dash_cfg->mpd->max_segment_duration /= dash_cfg->dash_scale;
 			}
 
