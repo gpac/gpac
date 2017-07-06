@@ -2243,8 +2243,8 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 			fprintf(out, "%s<SegmentURL", tmp_indent);
 			if (url->media) fprintf(out, " media=\"%s\"", url->media);
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
-			if (url->media_range) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
-			if (url->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
+			if (url->media_range && url->media_range->end_range!=0) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
+			if (url->index_range && url->index_range->end_range!=0) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
 			if (url->key_url) {
 				u32 idx;
 				fprintf(out, " hls:keyMethod=\"aes-128\" hls:KeyURL=%s hls:KeyIV=\"", url->key_url);
