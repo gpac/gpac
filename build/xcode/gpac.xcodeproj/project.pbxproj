@@ -282,6 +282,7 @@
 		921D1BEF1E55B1AE00B9B23A /* filter_session.h in Headers */ = {isa = PBXBuildFile; fileRef = 921D1BE81E55B1AE00B9B23A /* filter_session.h */; };
 		921D1BF01E55B1AE00B9B23A /* filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D1BE91E55B1AE00B9B23A /* filter.c */; };
 		921D1BF21E55F02300B9B23A /* filter_queue.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D1BF11E55F02300B9B23A /* filter_queue.c */; };
+		921D6A091F0F67AB007F2219 /* blob.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D6A081F0F67AB007F2219 /* blob.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		922990DF1E858198001FAC7F /* isoffin_read_ch.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DC1E858198001FAC7F /* isoffin_read_ch.c */; };
 		922990E01E858198001FAC7F /* isoffin_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DD1E858198001FAC7F /* isoffin_read.c */; };
@@ -1109,6 +1110,7 @@
 		921D1BE81E55B1AE00B9B23A /* filter_session.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filter_session.h; path = filters/filter_session.h; sourceTree = "<group>"; };
 		921D1BE91E55B1AE00B9B23A /* filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter.c; path = filters/filter.c; sourceTree = "<group>"; };
 		921D1BF11E55F02300B9B23A /* filter_queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_queue.c; path = filters/filter_queue.c; sourceTree = "<group>"; };
+		921D6A081F0F67AB007F2219 /* blob.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = blob.c; path = filters/blob.c; sourceTree = "<group>"; };
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		922990DC1E858198001FAC7F /* isoffin_read_ch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read_ch.c; path = filters_imp/isoffin_read_ch.c; sourceTree = "<group>"; };
 		922990DD1E858198001FAC7F /* isoffin_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read.c; path = filters_imp/isoffin_read.c; sourceTree = "<group>"; };
@@ -2447,6 +2449,7 @@
 		92DB147A1E4F033400382A81 /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				921D6A081F0F67AB007F2219 /* blob.c */,
 				921D1BF11E55F02300B9B23A /* filter_queue.c */,
 				921D1BE41E55B1AE00B9B23A /* filter_pck.c */,
 				921D1BE51E55B1AE00B9B23A /* filter_pid.c */,
@@ -3262,6 +3265,7 @@
 				9201018518D5A445003D1ACA /* svg_properties.c in Sources */,
 				9201018618D5A445003D1ACA /* svg_smjs.c in Sources */,
 				9201018718D5A445003D1ACA /* svg_types.c in Sources */,
+				921D6A091F0F67AB007F2219 /* blob.c in Sources */,
 				9201018818D5A445003D1ACA /* vrml_interpolators.c in Sources */,
 				9201018918D5A445003D1ACA /* vrml_proto.c in Sources */,
 				9201018A18D5A445003D1ACA /* vrml_route.c in Sources */,
