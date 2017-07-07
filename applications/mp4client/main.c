@@ -821,7 +821,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_EOS:
 		eos_seen = GF_TRUE;
-		if (!playlist && loop_at_end) restart = 1;
+		if (playlist) {
+			if (Duration>1500)
+				request_next_playlist_item = GF_TRUE;
+		}
+		else if (loop_at_end) {
+			restart = 1;
+		}
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
