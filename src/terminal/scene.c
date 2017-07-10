@@ -2620,10 +2620,10 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 
 	gf_sc_set_option(scene->compositor, GF_OPT_USE_OPENGL, 1);
 
-	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
-	gf_sc_set_scene(scene->compositor, scene->graph);
-	scene->graph_attached = 1;
 	scene->is_dynamic_scene = 2;
+	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
+
+	gf_scene_attach_to_compositor(scene);
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
@@ -2643,7 +2643,7 @@ void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 	s32 width=1920, height=1080, x, y, tw, th;
 
 	GF_Event evt;
-	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
+	gf_sc_node_destroy(scene->compositor, NULL, scene->graph);
 	gf_sg_reset(scene->graph);
 
 	scene->force_single_timeline = GF_FALSE;
@@ -2721,14 +2721,14 @@ restart:
 		goto restart;
 	}
 
-	gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-	scene->graph_attached = 1;
 	scene->is_dynamic_scene = 2;
+	gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+
+	gf_scene_attach_to_compositor(scene);
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
-	gf_term_send_event(scene->root_od->term, &evt);
+	gf_sc_send_event(scene->compositor, &evt);
 #endif
 }
 
