@@ -3198,7 +3198,8 @@ static GF_Err gf_dash_download_init_segment(GF_DashClient *dash, GF_DASH_Group *
 		group->dont_delete_first_segment = 1;
 	}
 
-	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7) || !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "isobmff://", 10)) {
+	if (!strstr(base_init_url, "://") || !strnicmp(base_init_url, "file://", 7) || !strnicmp(base_init_url, "gmem://", 7)
+		|| !strnicmp(base_init_url, "views://", 8) || !strnicmp(base_init_url, "mosaic://", 9) || !strnicmp(base_init_url, "isobmff://", 10)) {
 		//if file-based, check if file exists, if not switch base URL
 		if ( strnicmp(base_init_url, "gmem://", 7)) {
 			FILE *ftest = gf_fopen(base_init_url, "rb");
@@ -4132,7 +4133,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 
 
 		if (is_isom && (init_in_base || index_in_base)) {
-			if (!strstr(init_url, "://") || (!strnicmp(init_url, "file://", 7) || !strnicmp(init_url, "views://", 7)) ) {
+			if (!strstr(init_url, "://") || (!strnicmp(init_url, "file://", 7) ) ) {
 				GF_SAFEALLOC(rep->segment_list, GF_MPD_SegmentList);
 				if (!rep->segment_list) {
 					e = GF_OUT_OF_MEM;
