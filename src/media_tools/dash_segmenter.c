@@ -1508,7 +1508,7 @@ restart_fragmentation_pass:
 		for (i=0; i<count; i++) {
 			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
-			sprintf(szMPDTempLine, "     %s\n", opt);
+			sprintf(szMPDTempLine, "      %s\n", opt);
 			gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 		}
 
@@ -1613,7 +1613,7 @@ restart_fragmentation_pass:
 
 					if (!use_url_template) {
 						const char *name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, SegmentName);
-						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );
+						sprintf(szMPDTempLine, "      <SegmentURL media=\"%s\"/>\n", name );
 						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (dash_cfg->dash_ctx) {
 							char szKey[100], szVal[4046];
