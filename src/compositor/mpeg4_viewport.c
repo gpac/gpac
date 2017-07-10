@@ -386,8 +386,8 @@ static void TraverseViewpoint(GF_Node *node, void *rs, Bool is_destroy)
 	}
 	gf_node_dirty_clear(node, 0);
 
-	tr_state->vp_size.x = st->last_vp_size.x;
-	tr_state->vp_size.y = st->last_vp_size.y;
+	st->last_vp_size.x = tr_state->vp_size.x;
+	st->last_vp_size.y = tr_state->vp_size.y;
 
 	/*move to local system*/
 	gf_mx_copy(mx, st->world_view_mx);
