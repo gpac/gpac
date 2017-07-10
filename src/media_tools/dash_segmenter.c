@@ -2268,10 +2268,10 @@ restart_fragmentation_pass:
 
 	if (use_url_template) {
 		GF_MPD_SegmentTemplate *seg_template;
-		GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
-		adaptation_set_obj->segment_template = seg_template;
 		/*segment template does not depend on file name, write the template at the adaptationSet level*/
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
+			GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
+			adaptation_set_obj->segment_template = seg_template;
 			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
 			seg_template->timescale = seg_tl ? dash_cfg->dash_scale : mpd_timescale;
@@ -2299,6 +2299,8 @@ restart_fragmentation_pass:
 		}
 		/*in BS switching we share the same IS for all reps, write the SegmentTemplate for the init segment*/
 		else if ((is_bs_switching || seg_tl) && first_in_set && !dash_cfg->segment_alignment_disabled) {
+			GF_SAFEALLOC(seg_template, GF_MPD_SegmentTemplate);
+			adaptation_set_obj->segment_template = seg_template;
 			if (is_bs_switching) {
 				seg_template->initialization = gf_strdup(bs_switching_segment_name);
 				if (presentationTimeOffset) {
