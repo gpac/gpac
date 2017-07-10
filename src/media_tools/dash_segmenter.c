@@ -1508,7 +1508,7 @@ restart_fragmentation_pass:
 		for (i=0; i<count; i++) {
 			const char *key_name = gf_cfg_get_key_name(dash_cfg->dash_ctx, RepURLsSecName, i);
 			opt = gf_cfg_get_key(dash_cfg->dash_ctx, RepURLsSecName, key_name);
-			sprintf(szMPDTempLine, "     %s\n", opt);
+			sprintf(szMPDTempLine, "      %s\n", opt);
 			gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 		}
 
@@ -1613,7 +1613,7 @@ restart_fragmentation_pass:
 
 					if (!use_url_template) {
 						const char *name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, SegmentName);
-						sprintf(szMPDTempLine, "     <SegmentURL media=\"%s\"/>\n", name );
+						sprintf(szMPDTempLine, "      <SegmentURL media=\"%s\"/>\n", name );
 						gf_bs_write_data(mpd_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
 						if (dash_cfg->dash_ctx) {
 							char szKey[100], szVal[4046];
@@ -2285,7 +2285,7 @@ restart_fragmentation_pass:
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
 			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
-			fprintf(dash_cfg->mpd, "   <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
+			fprintf(dash_cfg->mpd, "   <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName, mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, startNumber);
 			if (dash_cfg->ast_offset_ms<0) {
 				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
 			}
@@ -2447,7 +2447,7 @@ restart_fragmentation_pass:
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			}
 
-			fprintf(dash_cfg->mpd, "    <SegmentTemplate timescale=\"%d\" media=\"%s\" startNumber=\"%d\"", dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, SegmentName, startNumber);
+			fprintf(dash_cfg->mpd, "    <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName,dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
