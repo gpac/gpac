@@ -39,6 +39,7 @@ GF_Err MCDec_CreateSurface (GLuint tex_id, ANativeWindow ** window, Bool * surfa
 GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex);
 GF_Err MCFrame_GetTransformMatrix(GF_CodecMatrix * mx, MC_SurfaceTexture surfaceTex);
 GF_Err MCDec_DeleteSurface(MC_SurfaceTexture surfaceTex);
+char * MCDec_FinDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive);
 u32 MCDec_BeforeExit(void * param);
 
 #endif //_MEDIACODEC_DEC_H_
