@@ -31,15 +31,22 @@
 #include <android/asset_manager_jni.h>
 #include "mediacodec_dec.h"
 #define RANDOM_JAVA_APP_CLASS "com/gpac/Osmo4/GPACInstance"
+#define ALL_CODECS 1
 
 static jclass cSurfaceTexture = NULL;
 static jclass cSurface = NULL;
+static jclass cMediaCodecList = NULL;
+static jclass cMediaFormat = NULL;
 static jmethodID mUpdateTexImage;
 static jmethodID mSurfaceTexConstructor;
 static jmethodID mSurfaceConstructor;
 static jmethodID mSurfaceRelease;
 static jmethodID mGetTransformMatrix;
 static jmethodID mFindClassMethod;
+static jmethodID mMediaCodecListConstructor;
+static jmethodID mFindDecoderForFormat;
+static jmethodID mCreateVideoFormat;
+static jmethodID mSetFeatureEnabled;
 static jobject oClassLoader = NULL;
 static JavaVM* javaVM = 0;
 
@@ -192,6 +199,122 @@ create_surface_failed:
 	 return ret;
 }
 
+static char * MCDec_GetDecoderName(JNIEnv * env, jobject mediaCodecList, jmethodID findId, jobject mediaFomat)
+{
+	jint res = 0;
+	jstring jdecoder_name;
+	char * decoder_name = NULL;
+
+	jdecoder_name = (*env)->CallObjectMethod(env, mediaCodecList, findId, mediaFomat);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto get_decoder_exit;
+	}
+	if(jdecoder_name) {
+		const char *decoder_name_tmp;
+		decoder_name_tmp = (*env)->GetStringUTFChars(env, jdecoder_name, 0);
+		decoder_name = gf_strdup(decoder_name_tmp);
+		(*env)->ReleaseStringUTFChars(env, jdecoder_name, decoder_name_tmp);
+	}
+
+get_decoder_exit:
+	if(jdecoder_name)
+		(*env)->DeleteLocalRef(env, jdecoder_name);
+
+	return decoder_name;
+}
+
+char * MCDec_FinDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
+{
+	JNIEnv* env = NULL;
+	jobject oMediaCodecList = NULL, oMediaFormat = NULL;
+	jclass ctmp = NULL;
+	jint res = 0;
+	jstring jmime, jfeature;
+	char *decoder_name = NULL, *decoder_name_tmp;
+
+
+	if(!mime || !is_adaptive) goto find_decoder_exit;
+
+	res = (*GetJavaVM())->GetEnv(GetJavaVM(), (void**)&env, JNI_VERSION_1_2);
+	if ( res == JNI_EDETACHED ) {
+		(*GetJavaVM())->AttachCurrentThread(GetJavaVM(), &env, NULL);
+	}
+	if (!env) goto find_decoder_exit;
+
+	// cache classes
+	if (!cMediaCodecList) {
+		ctmp = (*env)->FindClass(env, "android/media/MediaCodecList");
+		cMediaCodecList = (*env)->NewGlobalRef(env, ctmp);
+		if(!cMediaCodecList) goto find_decoder_exit;
+	}
+	if (!cMediaFormat) {
+		ctmp = (*env)->FindClass(env, "android/media/MediaFormat");
+		cMediaFormat = (*env)->NewGlobalRef(env, ctmp);
+		if(!cMediaFormat) goto find_decoder_exit;
+	}
+
+	//methods
+	if(!mMediaCodecListConstructor) {
+		mMediaCodecListConstructor = (*env)->GetMethodID(env, cMediaCodecList, "<init>", "(I)V");
+		if(!mMediaCodecListConstructor) goto find_decoder_exit;
+	}
+	if(!mFindDecoderForFormat) {
+		mFindDecoderForFormat = (*env)->GetMethodID(env, cMediaCodecList, "findDecoderForFormat", "(Landroid/media/MediaFormat;)Ljava/lang/String;");
+		if(!mFindDecoderForFormat) goto find_decoder_exit;
+	}
+	if(!mCreateVideoFormat) {
+		mCreateVideoFormat = (*env)->GetStaticMethodID(env, cMediaFormat, "createVideoFormat", "(Ljava/lang/String;II)Landroid/media/MediaFormat;");
+		if(!mCreateVideoFormat) goto find_decoder_exit;
+	}
+	if(!mSetFeatureEnabled ) {
+		mSetFeatureEnabled = (*env)->GetMethodID(env, cMediaFormat, "setFeatureEnabled", "(Ljava/lang/String;Z)V");
+		if(!mSetFeatureEnabled) goto find_decoder_exit;
+	}
+	oMediaCodecList = (*env)->NewObject(env, cMediaCodecList, mMediaCodecListConstructor, ALL_CODECS);
+	if(!oMediaCodecList) goto find_decoder_exit;
+
+	jmime = (*env)->NewStringUTF(env, mime);
+	oMediaFormat = (*env)->CallStaticObjectMethod(env, cMediaFormat, mCreateVideoFormat, jmime, width, height);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto find_decoder_exit;
+	}
+	decoder_name_tmp = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	if(!decoder_name_tmp) goto find_decoder_exit;
+
+	jfeature = (*env)->NewStringUTF(env, "adaptive-playback");
+	(*env)->CallVoidMethod(env, oMediaFormat, mSetFeatureEnabled, jfeature, JNI_TRUE);
+	if ((*env)->ExceptionCheck(env)) {
+		HandleJNIError(env);
+		goto find_decoder_exit;
+	}
+	decoder_name = MCDec_GetDecoderName(env, oMediaCodecList, mFindDecoderForFormat, oMediaFormat);
+	if(decoder_name){
+		*is_adaptive = GF_TRUE;
+		gf_free(decoder_name_tmp);
+		decoder_name_tmp = NULL;
+	} else {
+		*is_adaptive = GF_FALSE;
+		decoder_name = decoder_name_tmp;
+	}
+
+find_decoder_exit:
+	if(ctmp)
+		(*env)->DeleteLocalRef(env, ctmp);
+	if(oMediaCodecList)
+		(*env)->DeleteLocalRef(env, oMediaCodecList);
+	if(oMediaFormat)
+		(*env)->DeleteLocalRef(env, oMediaFormat);
+	if(jmime)
+		(*env)->DeleteLocalRef(env, jmime);
+	if(jfeature)
+		(*env)->DeleteLocalRef(env, jfeature);
+
+	return decoder_name;
+
+}
+
 GF_Err MCFrame_UpdateTexImage(MC_SurfaceTexture surfaceTex)
 {
 	JNIEnv* env = NULL;
@@ -272,6 +395,10 @@ GF_Err MCDec_DeleteSurface(MC_SurfaceTexture  surfaceTex)
 	cSurface = NULL;
 	(*env)->DeleteGlobalRef(env, cSurfaceTexture);
 	cSurfaceTexture = NULL;
+	(*env)->DeleteGlobalRef(env, cMediaCodecList);
+	cMediaCodecList = NULL;
+	(*env)->DeleteGlobalRef(env, cMediaFormat);
+	cMediaFormat = NULL;
 	(*env)->DeleteGlobalRef(env, surfaceTex.oSurfaceTex);
 	surfaceTex.oSurfaceTex = NULL;
 	

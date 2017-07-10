@@ -9,8 +9,8 @@ typedef struct
 {
 	AMediaCodec *codec;
 	AMediaFormat *format;
-	ANativeWindow * window;
-	char * frame;
+	ANativeWindow *window;
+	char *frame, *decoder_name;
 	Bool use_gl_textures;
 	u32 dequeue_timeout;
 	u32 width, height, stride, out_size;
@@ -21,6 +21,7 @@ typedef struct
 	u8 chroma_format, luma_bit_depth, chroma_bit_depth;
 	GF_ESD *esd;
 	Float frame_rate;
+	Bool is_adaptive;
 	Bool surface_rendering;
 	Bool frame_size_changed;
 	Bool inputEOS, outputEOS;
@@ -319,11 +320,17 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
     ctx->stride = ctx->width;
     initMediaFormat(ctx, ctx->format);
 
-    if(!ctx->codec)
-       ctx->codec = AMediaCodec_createDecoderByType(ctx->mime);
+    if(!ctx->codec) {
+		ctx->decoder_name = MCDec_FinDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
+		if(!ctx->decoder_name) return GF_PROFILE_NOT_SUPPORTED;
+
+		ctx->codec = AMediaCodec_createCodecByName(ctx->decoder_name);
+		gf_free(ctx->decoder_name);
+		ctx->decoder_name = NULL;
+	}
 
     if(!ctx->codec) {
-         GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
+        GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC,("AMediaCodec_createDecoderByType failed"));
         return GF_CODEC_NOT_FOUND;
     }
     
@@ -868,7 +875,7 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("Failed to register exit function for the decoder thread %p, try to continue anyway...\n", gf_th_current()));
 		}
 	}
-	if (!ctx->reconfig_needed) {
+	if (!ctx->reconfig_needed && (!(ctx->codec && ctx->is_adaptive))) {
 		if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_AVC)
 			MCDec_ParseNALs(ctx, inBuffer, inBufferLength, NULL, NULL);
 		else if(ctx->esd->decoderConfig->objectTypeIndication == GPAC_OTI_VIDEO_HEVC)
@@ -932,11 +939,21 @@ static GF_Err MCDec_ProcessData(GF_MediaDecoder *ifcg,
         *outBufferLength=0;
         
         switch(ctx->outIndex) {
-	    case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
-                GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED"));
-                ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
+            case AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED:
+			{
+				u32 width, height, stride;
+				GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_OUTPUT_FORMAT_CHANGED"));
+				ctx->format = AMediaCodec_getOutputFormat(ctx->codec);
+				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_WIDTH, &width);
+				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_HEIGHT, &height);
+				AMediaFormat_getInt32(ctx->format, AMEDIAFORMAT_KEY_STRIDE, &stride);
+				if((ctx->width != width) || (ctx->height != height) || (ctx->stride != stride)){
+					ctx->out_size = ctx->stride * ctx->height * 3 / 2;
+					*outBufferLength = ctx->out_size;
+					ctx->frame_size_changed = GF_TRUE;
+				}
                 break;
-
+			}
             case AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED:
                 GF_LOG(GF_LOG_INFO, GF_LOG_CODEC,("AMEDIACODEC_INFO_OUTPUT_BUFFERS_CHANGED"));
                 break;
