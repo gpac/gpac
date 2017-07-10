@@ -231,6 +231,10 @@ static void gf_term_connect_from_time_ex(GF_Compositor *compositor, const char *
 		gf_scene_generate_views(compositor->root_scene, (char *) URL+8, (char*)parent_path);
 		return;
 	}
+	else if (!strnicmp(URL, "mosaic://", 9)) {
+		gf_scene_generate_mosaic(compositor->root_scene, (char *) URL+9, (char*)parent_path);
+		return;
+	}
 
 	gf_scene_ns_connect_object(scene, odm, (char *) URL, (char*)parent_path);
 }

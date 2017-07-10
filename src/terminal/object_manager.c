@@ -308,7 +308,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		odm->scene_ns = parent_ns;
 		odm->scene_ns->nb_odm_users++;
 	}
-		/*restore OD ID */
+
+	/*restore OD ID */
 	if (odm->media_current_time) {
 		odm->ID = odm->media_current_time;
 		odm->media_current_time = 0;
