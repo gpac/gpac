@@ -2479,7 +2479,7 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 {
 #ifndef GPAC_DISABLE_VRML
-	char *url_search;
+	char *url_search, *cur_url;
 	Bool use_old_syntax = 1;
 	GF_Node *n1;
 	M_Inline *inl;
@@ -2499,7 +2499,7 @@ void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 	if (strstr(url, "::")) use_old_syntax = 0;
 
 restart:
-	url_search = url;
+	url_search = cur_url = url;
 	x = y = 0;
 	while (1) {
 		char *sep;
@@ -2544,22 +2544,23 @@ restart:
 
 			gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
 			gf_sg_vrml_mf_append(&inl->url, GF_SG_VRML_MFURL, NULL);
-			inl->url.vals[0].url = gf_url_concatenate(parent_path, url_search);
+			inl->url.vals[0].url = gf_url_concatenate(parent_path, cur_url);
 		}
 
 		if (!sep) break;
 		sep[0] = ':';
 		if (use_old_syntax) {
-			url_search = sep+1;
+			cur_url = sep+1;
 		} else {
-			url_search = sep+2;
+			cur_url = sep+2;
 		}
+		url_search = cur_url;
 	}
 	if (first_pass) {
 		first_pass = GF_FALSE;
-		nb_rows=(u32) gf_ceil( gf_sqrt(nb_items) );
-		nb_cols=nb_items/nb_rows;
-		if (nb_cols * nb_rows < nb_items) nb_cols++;
+		nb_cols=(u32) gf_ceil( gf_sqrt(nb_items) );
+		nb_rows=nb_items/nb_cols;
+		if (nb_cols * nb_rows < nb_items) nb_rows++;
 		tw = width/nb_cols;
 		th = height/nb_rows;
 		goto restart;
