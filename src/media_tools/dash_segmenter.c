@@ -670,20 +670,21 @@ static GF_MPD_Descriptor *gf_isom_get_content_protection_desc(GF_ISOFile *input,
 		GF_MPD_Descriptor *desc;
 		GF_XMLAttribute *att;
 		char cenc_value[256];
+		cenc_value[0]='\0';
 		bin128 default_KID;
 		u8 i;
 		gf_isom_cenc_get_default_info(input, protected_track, 1, NULL, NULL, &default_KID);
 		desc = gf_mpd_descriptor_new(NULL, "urn:mpeg:dash:mp4protection:2011", gf_4cc_to_str(prot_scheme));
 		/* Output canonical UIID form */
-		for (i=0; i<4; i++) sprintf(cenc_value, "%02x", default_KID[i]);
-		sprintf(cenc_value, "-");
-		for (i=4; i<6; i++) sprintf(cenc_value, "%02x", default_KID[i]);
-		sprintf(cenc_value, "-");
-		for (i=6; i<8; i++) sprintf(cenc_value, "%02x", default_KID[i]);
-		sprintf(cenc_value, "-");
-		for (i=8; i<10; i++) sprintf(cenc_value, "%02x", default_KID[i]);
-		sprintf(cenc_value, "-");
-		for (i=10; i<16; i++) sprintf(cenc_value, "%02x", default_KID[i]);
+		for (i=0; i<4; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
+		sprintf(cenc_value, "%s-",cenc_value);
+		for (i=4; i<6; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
+		sprintf(cenc_value, "%s-",cenc_value);
+		for (i=6; i<8; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
+		sprintf(cenc_value, "%s-",cenc_value);
+		for (i=8; i<10; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
+		sprintf(cenc_value, "%s-",cenc_value);
+		for (i=10; i<16; i++) sprintf(cenc_value, "%s%02x",cenc_value, default_KID[i]);
 		att = gf_xml_dom_create_attribute("cenc:default_KID", cenc_value);
 		if (!desc->attributes) {
 			desc->attributes = gf_list_new();
