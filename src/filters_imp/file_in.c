@@ -112,6 +112,10 @@ Bool DC_CanHandleURL(GF_InputService *plug, const char *url)
 	/*views:// internal URI*/
 	if (!strnicmp(url, "views://", 8))
 		return GF_TRUE;
+	/*mosaic:// internal URI*/
+	if (!strnicmp(url, "mosaic://", 9))
+		return GF_TRUE;
+
 
 	if (!strncmp(url, "\\\\", 2)) return GF_FALSE;
 
@@ -217,7 +221,7 @@ GF_Err file_in_initialize(GF_Filter *filter)
 		ext = anext;
 	}
 
-	if (!strnicmp(ctx->src, "views://", 8)) {
+	if (!strnicmp(ctx->src, "views://", 8) || !strnicmp(url, "mosaic://", 9)) {
 		ctx->is_views_url = GF_TRUE;
 		//gf_service_connect_ack(serv, NULL, GF_OK);
 		ctx->is_service_connected = GF_TRUE;
