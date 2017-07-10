@@ -2476,6 +2476,106 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 #endif
 }
 
+void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
+{
+#ifndef GPAC_DISABLE_VRML
+	char *url_search;
+	Bool use_old_syntax = 1;
+	GF_Node *n1;
+	M_Inline *inl;
+	Bool first_pass = GF_TRUE;
+	u32 nb_items=0, nb_rows=0, nb_cols=0;
+	s32 width=1920, height=1080, x, y, tw, th;
+
+	GF_Event evt;
+	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
+	gf_sg_reset(scene->graph);
+
+	scene->force_single_timeline = GF_FALSE;
+	n1 = is_create_node(scene->graph, TAG_MPEG4_OrderedGroup, NULL);
+	gf_sg_set_root_node(scene->graph, n1);
+	gf_node_register(n1, NULL);
+
+	if (strstr(url, "::")) use_old_syntax = 0;
+
+restart:
+	url_search = url;
+	x = y = 0;
+	while (1) {
+		char *sep;
+
+		if (use_old_syntax) {
+			sep = strchr(url_search, ':');
+			/*if :// or :\ is found, skip it*/
+			if (sep && ( ((sep[1] == '/') && (sep[2] == '/')) || (sep[1] == '\\') ) ) {
+				url_search = sep+1;
+				continue;
+			}
+		} else {
+			sep = strstr(url_search, "::");
+		}
+		if (sep) sep[0] = 0;
+
+		if (first_pass) {
+			nb_items ++;
+		} else {
+			GF_Node *tr = is_create_node(scene->graph, TAG_MPEG4_Transform2D, NULL);
+			GF_Node *layer = is_create_node(scene->graph, TAG_MPEG4_Layer2D, NULL);
+			gf_node_register(tr, n1);
+			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, tr);
+
+			((M_Transform2D *)tr)->translation.x = -width/2 + tw/2 + x*tw;
+			((M_Transform2D *)tr)->translation.y = height/2 - th/2 - y*th;
+
+			x++;
+			if (x==nb_cols) {
+				y++;
+				x=0;
+			}
+
+			gf_node_register(layer, tr);
+			gf_node_list_add_child( &((M_Transform2D *)tr)->children, layer);
+			((M_Layer2D *)layer)->size.x = INT2FIX(tw);
+			((M_Layer2D *)layer)->size.y = INT2FIX(th);
+
+			inl = (M_Inline *) is_create_node(scene->graph, TAG_MPEG4_Inline, NULL);
+			gf_node_list_add_child( &((M_Layer2D *)layer)->children, (GF_Node *)inl);
+			gf_node_register((GF_Node*) inl, layer);
+
+			gf_sg_vrml_mf_reset(&inl->url, GF_SG_VRML_MFURL);
+			gf_sg_vrml_mf_append(&inl->url, GF_SG_VRML_MFURL, NULL);
+			inl->url.vals[0].url = gf_url_concatenate(parent_path, url_search);
+		}
+
+		if (!sep) break;
+		sep[0] = ':';
+		if (use_old_syntax) {
+			url_search = sep+1;
+		} else {
+			url_search = sep+2;
+		}
+	}
+	if (first_pass) {
+		first_pass = GF_FALSE;
+		nb_rows=(u32) gf_ceil( gf_sqrt(nb_items) );
+		nb_cols=nb_items/nb_rows;
+		if (nb_cols * nb_rows < nb_items) nb_cols++;
+		tw = width/nb_cols;
+		th = height/nb_rows;
+		goto restart;
+	}
+
+	gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
+	scene->graph_attached = 1;
+	scene->is_dynamic_scene = 2;
+
+	evt.type = GF_EVENT_CONNECT;
+	evt.connect.is_connected = 1;
+	gf_term_send_event(scene->root_od->term, &evt);
+#endif
+}
+
 void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
 	if (disconnect && addon->root_od) {

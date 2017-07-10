@@ -260,6 +260,9 @@ void PrintUsage()
 	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC.\n"
 	        "\t                 in this mode, URL argument of GPAC is ignored, GUI as well.\n"
 	        "\t                 this is equivalent as using views://v1:.:N as an URL.\n"
+	        "\t-mosaic v1:.:vN: creates a mosaic of N views. vN can be any type of URL supported by GPAC.\n"
+	        "\t                 in this mode, URL argument of GPAC is ignored.\n"
+	        "\t                 this is equivalent as using mosaic://v1:.:N as an URL.\n"
 	        "\n"
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
@@ -1208,7 +1211,7 @@ int mp4client_main(int argc, char **argv)
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible, do_uncache;
-	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com;
+	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com, *mosaic;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1222,7 +1225,7 @@ int mp4client_main(int argc, char **argv)
 
 	dump_mode = DUMP_NONE;
 	fill_ar = visible = do_uncache = GF_FALSE;
-	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
+	url_arg = out_arg = the_cfg = rti_file = views = default_com = mosaic = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1442,6 +1445,10 @@ int mp4client_main(int argc, char **argv)
 			else if (!strcmp(arg, "-exit")) auto_exit = GF_TRUE;
 			else if (!stricmp(arg, "-views")) {
 				views = argv[i+1];
+				i++;
+			}
+			else if (!stricmp(arg, "-mosaic")) {
+				mosaic = argv[i+1];
 				i++;
 			}
 			else if (!stricmp(arg, "-com")) {
@@ -1716,6 +1723,11 @@ int mp4client_main(int argc, char **argv)
 	if (views) {
 		char szTemp[4046];
 		sprintf(szTemp, "views://%s", views);
+		gf_term_connect(term, szTemp);
+	}
+	if (mosaic) {
+		char szTemp[4046];
+		sprintf(szTemp, "mosaic://%s", mosaic);
 		gf_term_connect(term, szTemp);
 	}
 	if (bench_mode) {

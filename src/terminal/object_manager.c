@@ -416,6 +416,9 @@ void gf_odm_setup_entry_point(GF_ObjectManager *odm, const char *service_sub_url
 	if (redirect_url && !strnicmp(redirect_url, "views://", 8)) {
 		gf_scene_generate_views(odm->subscene ? odm->subscene : odm->parentscene , (char *) redirect_url + 8, (char*)odm->parentscene ? odm->parentscene->root_od->net_service->url : NULL);
 	}
+	else if (redirect_url && !strnicmp(redirect_url, "mosaic://", 9)) {
+		gf_scene_generate_mosaic(odm->subscene ? odm->subscene : odm->parentscene , (char *) redirect_url + 9, (char*)odm->parentscene ? odm->parentscene->root_od->net_service->url : NULL);
+	}
 	/*it may happen that this object was inserted in a dynamic scene from a service through a URL redirect. In which case,
 	the scene regeneration might not have been completed since the redirection was not done yet - force a scene regenerate*/
 	else if (odm->parentscene && odm->parentscene->is_dynamic_scene) {
@@ -721,6 +724,8 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_ClientService *serv)
 		}
 		parent_url = parent ? parent->url : NULL;
 		if (parent_url && !strnicmp(parent_url, "views://", 8))
+			parent_url = NULL;
+		else if (parent_url && !strnicmp(parent_url, "mosaic://", 9))
 			parent_url = NULL;
 
 		gf_term_post_connect_object(odm->term, odm, url, parent_url);
