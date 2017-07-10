@@ -2465,10 +2465,10 @@ void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_path)
 
 	gf_sc_set_option(scene->root_od->term->compositor, GF_OPT_USE_OPENGL, 1);
 
-	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
-	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-	scene->graph_attached = 1;
 	scene->is_dynamic_scene = 2;
+	gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
+
+	gf_scene_attach_to_compositor(scene);
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
@@ -2566,10 +2566,10 @@ restart:
 		goto restart;
 	}
 
-	gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-	gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-	scene->graph_attached = 1;
 	scene->is_dynamic_scene = 2;
+	gf_sg_set_scene_size_info(scene->graph, width, height, 1);
+
+	gf_scene_attach_to_compositor(scene);
 
 	evt.type = GF_EVENT_CONNECT;
 	evt.connect.is_connected = 1;
