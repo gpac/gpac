@@ -5843,13 +5843,17 @@ restart_period:
 				if (group->nb_cached_segments && !group->dont_delete_first_segment) {
 					gf_dash_group_reset(dash, group);
 				}
+				group->download_th_done = GF_TRUE;
 				continue;
 			}
 
 			if (group->depend_on_group) continue;
 			//not yet scheduled for download
-			if (group->rate_adaptation_postponed) continue;
-
+			if (group->rate_adaptation_postponed) {
+				group->download_th_done = GF_TRUE;
+				continue;
+			}
+			
 			if (dash->use_threaded_download) {
 				group->download_th_done = GF_FALSE;
 				e = gf_th_run(group->download_th, dash_download_threaded, group);
