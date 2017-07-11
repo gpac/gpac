@@ -2024,8 +2024,9 @@ restart_fragmentation_pass:
 			last_seg_dur = SegmentDuration;
 
 			if (mpd_timeline_bs) {
-				u32 tick_adjust = 0;
+				u64 s_start, s_end;
 
+				u32 tick_adjust = 0;
 				//since dash scale and ref track used for segmentation may not have the same timescale we will have drift in segment timelines. Adjust it
 				if (tfref) {
 					s64 seg_start_time_min_cts = (s64) (tfref->min_cts_in_segment + tfref->media_time_to_pres_time_shift) * dash_cfg->dash_scale;
@@ -2059,8 +2060,13 @@ restart_fragmentation_pass:
 						}
 					}
 				}
+
+				s_start = (u64) ( ((Double)period_duration + segment_start_time) * mpd_timescale );
+				s_end = (u64) ( ((Double)period_duration + segment_start_time + SegmentDuration + (Double) tick_adjust)*mpd_timescale);
+				s_start /= dash_cfg->dash_scale;
+				s_end /= dash_cfg->dash_scale;
 				//adjust
-				gf_dash_append_segment_timeline(mpd_timeline_bs, period_duration + (u64)segment_start_time, (u64)(period_duration + segment_start_time + SegmentDuration + tick_adjust), &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
+				gf_dash_append_segment_timeline(mpd_timeline_bs, s_start, s_end, &previous_segment_duration, &first_segment_in_timeline, &segment_timeline_repeat_count);
 				period_duration += tick_adjust;
 			}
 			if (dash_cfg->max_segment_duration * dash_cfg->dash_scale < SegmentDuration) {
@@ -2198,7 +2204,7 @@ restart_fragmentation_pass:
 	}
 	//close timeline
 	if (mpd_timeline_bs) {
-		if (previous_segment_duration == SegmentDuration) {
+		if (previous_segment_duration * dash_cfg->dash_scale == SegmentDuration * mpd_timescale) {
 			segment_timeline_repeat_count ++;
 			sprintf(szMPDTempLine, " r=\"%d\"/>\n", segment_timeline_repeat_count);
 			gf_bs_write_data(mpd_timeline_bs, szMPDTempLine, (u32) strlen(szMPDTempLine));
@@ -2285,7 +2291,7 @@ restart_fragmentation_pass:
 		if (!dash_cfg->variable_seg_rad_name && first_in_set) {
 			const char *rad_name = gf_dasher_strip_output_dir(dash_cfg->mpd_name, seg_rad_name);
 			gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, 0, 0, dash_cfg->use_segment_timeline);
-			fprintf(dash_cfg->mpd, "   <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName, mpd_timeline_bs ? dash_cfg->dash_scale : mpd_timescale, startNumber);
+			fprintf(dash_cfg->mpd, "   <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName, mpd_timescale, startNumber);
 			if (dash_cfg->ast_offset_ms<0) {
 				fprintf(dash_cfg->mpd, " availabilityTimeOffset=\"%g\"", - (Double) dash_cfg->ast_offset_ms / 1000.0);
 			}
@@ -2334,7 +2340,7 @@ restart_fragmentation_pass:
 				u32 size;
 
 
-				fprintf(dash_cfg->mpd, " timescale=\"%d\">\n", dash_cfg->dash_scale);
+				fprintf(dash_cfg->mpd, " timescale=\"%d\">\n", mpd_timescale);
 
 				gf_bs_get_content(mpd_timeline_bs, &mpd_seg_info, &size);
 				gf_fwrite(mpd_seg_info, 1, size, dash_cfg->mpd);
@@ -2447,7 +2453,7 @@ restart_fragmentation_pass:
 				gf_media_mpd_format_segment_name(GF_DASH_TEMPLATE_TEMPLATE, is_bs_switching, SegmentName, output_file, dash_input->representationID, NULL, rad_name, !stricmp(seg_ext, "null") ? NULL : seg_ext, 0, bandwidth, 0, dash_cfg->use_segment_timeline);
 			}
 
-			fprintf(dash_cfg->mpd, "    <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName,dash_cfg->use_segment_timeline ? dash_cfg->dash_scale : mpd_timescale, startNumber);
+			fprintf(dash_cfg->mpd, "    <SegmentTemplate media=\"%s\" timescale=\"%d\" startNumber=\"%d\"", SegmentName,mpd_timescale, startNumber);
 			if (!dash_cfg->use_segment_timeline) {
 				fprintf(dash_cfg->mpd, " duration=\"%d\"", (u32) (max_segment_duration * mpd_timescale + 0.5));
 			}
