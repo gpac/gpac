@@ -1387,14 +1387,22 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 			}
 
 			if (visible && (vrinfo.srd_w != vrinfo.srd_max_x) && tr_state->visual->compositor->gazer_enabled) {
+				s32 gx, gy;
 				tr_state->visual->compositor->hit_node = NULL;
 				tr_state->visual->compositor->hit_square_dist = 0;
-				visual_3d_setup_ray(tr_state->visual, tr_state, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y);
+
+				//gaze coords are 0,0 in top-left
+				gx = tr_state->visual->compositor->gaze_x - tr_state->camera->width/2;
+				gy = tr_state->camera->height/2 - tr_state->visual->compositor->gaze_y;
+
+				visual_3d_setup_ray(tr_state->visual, tr_state, gx, gy);
 				visual_3d_vrml_drawable_pick(node, tr_state, stack->mesh, NULL);
 				if (tr_state->visual->compositor->hit_node) {
-					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is under gaze coord\n", txh->stream->OD_ID));
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is under gaze coord %d %d\n", txh->stream->OD_ID, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
 
 					tr_state->visual->compositor->hit_node = NULL;
+				} else {
+					visible = GF_FALSE;
 				}
 
 			}

@@ -532,7 +532,7 @@ Bool Media_IsSelfContained(GF_MediaBox *mdia, u32 StreamDescIndex)
 	}
 	if (a->flags & 1) return 1;
 	/*QT specific*/
-	if (a->type == GF_4CC('a', 'l', 'i', 's')) return 1;
+	if (a->type == GF_ISOM_BOX_TYPE_ALIS) return 1;
 	return 0;
 }
 
@@ -838,7 +838,7 @@ GF_Err Media_AddSample(GF_MediaBox *mdia, u64 data_offset, const GF_ISOSample *s
 	//and update the chunks
 	e = stbl_AddChunkOffset(mdia, sampleNumber, StreamDescIndex, data_offset);
 	if (e) return e;
-	
+
 	if (!syncShadowNumber) return GF_OK;
 	if (!stbl->ShadowSync) stbl->ShadowSync = (GF_ShadowSyncBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_STSH);
 	return stbl_AddShadow(mdia->information->sampleTable->ShadowSync, sampleNumber, syncShadowNumber);

@@ -24,6 +24,7 @@
  */
 
 #include <gpac/internal/media_dev.h>
+#include <gpac/internal/isomedia_dev.h>
 #include <gpac/constants.h>
 
 #ifdef GPAC_HAS_PNG
@@ -112,7 +113,7 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 			}
 		}
 		*OTI = GPAC_OTI_IMAGE_JPEG;
-		*mtype = GF_4CC('j','p','e','g');
+		*mtype = GF_ISOM_MEDIA_JPEG;
 		if (dsi) {
 			GF_BitStream *bs_dsi = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u16(bs_dsi, offset);
@@ -136,18 +137,18 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 		*width = gf_bs_read_u32(bs);
 		*height = gf_bs_read_u32(bs);
 		*OTI = GPAC_OTI_IMAGE_PNG;
-		*mtype = GF_4CC('p','n','g',' ');
+		*mtype = GF_ISOM_MEDIA_PNG;
 	}
 	/*try j2k*/
 	else {
 		size = gf_bs_read_u8(bs);
 		type = gf_bs_read_u32(bs);
-		if ( ((size==12) && (type==GF_4CC('j','P',' ',' ') ))
-	        || (type==GF_4CC('j','p','2','h') ) ) {
+		if ( ((size==12) && (type==GF_ISOM_BOX_TYPE_JP ))
+	        || (type==GF_ISOM_BOX_TYPE_JP2H ) ) {
 
-			if (type==GF_4CC('j','p','2','h')) {
+			if (type==GF_ISOM_BOX_TYPE_JP2H) {
 				*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-				*mtype = GF_4CC('j','p','2',' ');
+				*mtype = GF_ISOM_MEDIA_JP2;
 				goto j2k_restart;
 			}
 
@@ -155,16 +156,16 @@ void gf_img_parse(GF_BitStream *bs, u8 *OTI, u32 *mtype, u32 *width, u32 *height
 			if (type!=0x0D0A870A) goto exit;
 
 			*OTI = GPAC_OTI_IMAGE_JPEG_2000;
-			*mtype = GF_4CC('j','p','2',' ');
+			*mtype = GF_ISOM_MEDIA_JP2;
 
 			while (gf_bs_available(bs)) {
 j2k_restart:
 				size = gf_bs_read_u32(bs);
 				type = gf_bs_read_u32(bs);
 				switch (type) {
-				case GF_4CC('j','p','2','h'):
+				case GF_ISOM_BOX_TYPE_JP2H:
 					goto j2k_restart;
-				case GF_4CC('i','h','d','r'):
+				case GF_ISOM_BOX_TYPE_IHDR:
 				{
 					u16 nb_comp;
 					u8 BPC, C, UnkC, IPR;
@@ -439,7 +440,7 @@ GF_Err gf_img_png_dec(char *png, u32 png_size, u32 *width, u32 *height, u32 *pix
 	udta.size = png_size;
 	udta.pos = 0;
 	udta.rows=NULL;
-	
+
 	png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, (png_voidp) &udta, NULL, NULL);
 	if (!png_ptr) return GF_IO_ERR;
 	info_ptr = png_create_info_struct(png_ptr);

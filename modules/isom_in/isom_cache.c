@@ -159,13 +159,13 @@ static GF_Err ISOW_Write(GF_StreamingCache *mc, LPNETCHANNEL ch, char *data, u32
 
 				amrc.frames_per_sample = (u32) esd->decoderConfig->decoderSpecificInfo->data[13];
 				amrc.type = (!stricmp(szCode, "sawb")) ? GF_ISOM_SUBTYPE_3GP_AMR_WB : GF_ISOM_SUBTYPE_3GP_AMR;
-				amrc.vendor = GF_4CC('G','P','A','C');
+				amrc.vendor = GF_VENDOR_GPAC;
 				gf_isom_3gp_config_new(cache->mov, mch->track, &amrc, NULL, NULL, &di);
 			} else if (!stricmp(szCode, "h263")) {
 				GF_3GPConfig h263c;
 				memset(&h263c, 0, sizeof(GF_3GPConfig));
 				h263c.type = GF_ISOM_SUBTYPE_3GP_H263;
-				h263c.vendor = GF_4CC('G','P','A','C');
+				h263c.vendor = GF_VENDOR_GPAC;
 				gf_isom_3gp_config_new(cache->mov, mch->track, &h263c, NULL, NULL, &di);
 				mapped = GF_TRUE;
 			}

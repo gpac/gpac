@@ -30,6 +30,7 @@
 #include <gpac/esi.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
+#include <gpac/isomedia.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/avparse.h>
 
@@ -1172,7 +1173,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	} /*ISMACryp config*/
 	else if (!stricmp(param_name, "ISMACrypCryptoSuite")) {
 		if (!stricmp(param_val, "AES_CTR_128"))
-			rtp->isma_scheme = GF_4CC('i','A','E','C');
+			rtp->isma_scheme = GF_ISOM_ISMACRYP_SCHEME;
 		else
 			rtp->isma_scheme = 0;
 	}
@@ -1286,7 +1287,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*mark if AU header is present*/
 		rtp->sl_map.auh_first_min_len = 0;
 		if (rtp->flags & GF_RTP_HAS_ISMACRYP) {
-			if (!rtp->isma_scheme) rtp->isma_scheme = GF_4CC('i','A','E','C');
+			if (!rtp->isma_scheme) rtp->isma_scheme = GF_ISOM_ISMACRYP_SCHEME;
 			if (!rtp->sl_map.IV_length) rtp->sl_map.IV_length = 4;
 
 			if (rtp->flags & GF_RTP_ISMA_SEL_ENC) rtp->sl_map.auh_first_min_len += 8;
@@ -1364,12 +1365,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*create DSI*/
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (rtp->payt == GF_RTP_PAYT_AMR) {
-			gf_bs_write_u32(bs, GF_4CC('s', 'a', 'm', 'r'));
+			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR);
 			gf_bs_write_u32(bs, 8000);
 			gf_bs_write_u16(bs, 1);
 			gf_bs_write_u16(bs, 160);
 		} else {
-			gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
+			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR_WB);
 			gf_bs_write_u32(bs, 16000);
 			gf_bs_write_u16(bs, 1);
 			gf_bs_write_u16(bs, 320);
@@ -1399,7 +1400,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		/*create DSI*/
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
+		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
