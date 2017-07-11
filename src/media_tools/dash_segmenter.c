@@ -2493,8 +2493,8 @@ restart_fragmentation_pass:
 				GF_SAFEALLOC(segmentbase, GF_MPD_SegmentBase);
 				representation_obj->segment_base = segmentbase;
 				GF_SAFEALLOC(segmentbase->index_range, GF_MPD_ByteRange);
-				segmentbase->index_range->start_range = index_start_range+1;
-				segmentbase->index_range->end_range = index_end_range+1;
+				segmentbase->index_range->start_range = index_start_range;
+				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
 				if (!is_bs_switching) {
 					GF_MPD_URL *URL;
@@ -2504,7 +2504,7 @@ restart_fragmentation_pass:
 					GF_SAFEALLOC(ByteRange, GF_MPD_ByteRange);
 					URL->byte_range=ByteRange;
 					ByteRange->start_range = 0;
-					ByteRange->end_range = index_start_range ;
+					ByteRange->end_range = index_start_range - 1;
 				}
 			}
 		}
