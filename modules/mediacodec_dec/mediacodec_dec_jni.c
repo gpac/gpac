@@ -224,7 +224,7 @@ get_decoder_exit:
 	return decoder_name;
 }
 
-char * MCDec_FinDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
+char * MCDec_FindDecoder(const char * mime, u32 width, u32 height,  Bool * is_adaptive)
 {
 	JNIEnv* env = NULL;
 	jobject oMediaCodecList = NULL, oMediaFormat = NULL;

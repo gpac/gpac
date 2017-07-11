@@ -321,7 +321,7 @@ static GF_Err MCDec_InitDecoder(MCDec *ctx) {
     initMediaFormat(ctx, ctx->format);
 
     if(!ctx->codec) {
-		ctx->decoder_name = MCDec_FinDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
+		ctx->decoder_name = MCDec_FindDecoder(ctx->mime, ctx->width, ctx->height, &ctx->is_adaptive);
 		if(!ctx->decoder_name) return GF_PROFILE_NOT_SUPPORTED;
 
 		ctx->codec = AMediaCodec_createCodecByName(ctx->decoder_name);
