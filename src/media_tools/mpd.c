@@ -2153,7 +2153,7 @@ static void gf_mpd_print_url(FILE *out, GF_MPD_URL *url, char *name, char *inden
 static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 {
 	if (s->timescale) fprintf(out, " timescale=\"%d\"", s->timescale);
-	if (s->presentation_time_offset) fprintf(out, " timescale=\""LLU"\"", s->presentation_time_offset);
+	if (s->presentation_time_offset) fprintf(out, " presentationTimeOffset=\""LLU"\"", s->presentation_time_offset);
 	if (s->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", s->index_range->start_range, s->index_range->end_range);
 	if (s->index_range_exact) fprintf(out, " indexRangeExact=\"true\"");
 	if (s->availability_time_offset) fprintf(out, " availabilityTimeOffset=\"%g\"", s->availability_time_offset);
