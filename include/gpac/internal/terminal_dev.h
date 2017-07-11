@@ -1241,6 +1241,7 @@ void gf_term_service_media_event_with_download(GF_ObjectManager *odm, GF_EventTy
 u32 gf_mo_get_od_id(MFURL *url);
 
 void gf_scene_generate_views(GF_Scene *scene, char *url, char *parent_url);
+void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path);
 //sets pos and size of addon
 //	size is 1/2 height (0), 1/3 (1) or 1/4 (2)
 //	pos is bottom-left(0), top-left (1) bottom-right (2) or top-right (3)

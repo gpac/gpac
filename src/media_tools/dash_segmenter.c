@@ -1056,10 +1056,10 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		vseg = gf_fopen(virtual_url, "w");
 		bs = gf_bs_from_file(vseg, GF_BITSTREAM_WRITE);
 		gf_bs_write_u32(bs, 20);
-		gf_bs_write_u32(bs, GF_4CC('s','t','y','p'));
-		gf_bs_write_u32(bs, GF_4CC('m','s','d','h'));
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_STYP);
+		gf_bs_write_u32(bs, GF_ISOM_BRAND_MSDH);
 		gf_bs_write_u32(bs, 0);
-		gf_bs_write_u32(bs, GF_4CC('m','s','d','h'));
+		gf_bs_write_u32(bs, GF_ISOM_BRAND_MSDH);
 		gf_bs_del(bs);
 		gf_fclose(vseg);
 
@@ -1075,11 +1075,11 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		if (e) goto err_exit;
 
 		/*because of movie fragments MOOF based offset, ISOM <4 is forbidden*/
-		gf_isom_set_brand_info(output, GF_4CC('i','s','o','5'), 1);
-		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','m'), 0);
-		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','1'), 0);
-		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','2'), 0);
-		gf_isom_modify_alternate_brand(output, GF_4CC('i','s','o','3'), 0);
+		gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO5, 1);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISOM, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO1, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO2, 0);
+		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_ISO3, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP41, 0);
 		gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MP42, 0);
 
@@ -1269,13 +1269,13 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 				tf->media_time_to_pres_time_shift += (u32) (scale*SegDuration);
 			}
 
-			gf_isom_set_brand_info(output, GF_4CC('i','s','o','5'), 1);
+			gf_isom_set_brand_info(output, GF_ISOM_BRAND_ISO5, 1);
 
 			/*DASH self-init media segment*/
 			if (dash_cfg->single_file_mode==1) {
-				gf_isom_modify_alternate_brand(output, GF_4CC('d','s','m','s'), 1);
+				gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_DSMS, 1);
 			} else {
-				gf_isom_modify_alternate_brand(output, GF_4CC('d','a','s','h'), 1);
+				gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_DASH, 1);
 			}
 
 			/*locate sample description in list if given*/
@@ -1442,7 +1442,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	}
 
 	//if single segment, add msix brand if we use indexes
-	gf_isom_modify_alternate_brand(output, GF_4CC('m','s','i','x'), ((dash_cfg->single_file_mode==1) && dash_cfg->enable_sidx) ? 1 : 0);
+	gf_isom_modify_alternate_brand(output, GF_ISOM_BRAND_MSIX, ((dash_cfg->single_file_mode==1) && dash_cfg->enable_sidx) ? 1 : 0);
 
 	//flush movie
 	e = gf_isom_finalize_for_fragment(output, 1);
@@ -2117,7 +2117,7 @@ restart_fragmentation_pass:
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
-				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 				nbFragmentInSegment = 0;
 
 				//take care of scalable reps
@@ -2186,7 +2186,7 @@ restart_fragmentation_pass:
 		last_seg_dur = SegmentDuration;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
-		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range);
+		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 		nb_segments++;
 
 		if (!seg_rad_name) {
@@ -3078,7 +3078,7 @@ retry_track:
 						case GF_ISOM_SUBTYPE_HVC2:
 							gf_isom_hevc_set_inband_config(init_seg, track, 1);
 							use_hevc = GF_TRUE;
-							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 							sps_merge_failed = GF_FALSE;
 							break;
 						case GF_ISOM_SUBTYPE_AVC_H264:
@@ -3087,7 +3087,7 @@ retry_track:
 						case GF_ISOM_SUBTYPE_MVC_H264:
 							gf_isom_avc_set_inband_config(init_seg, track, 1);
 							use_avc3 = GF_TRUE;
-							gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+							gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 							sps_merge_failed = GF_FALSE;
 							break;
 						}
@@ -3183,15 +3183,15 @@ retry_track:
 		}
 		if (!i) {
 			if (use_hevc || use_avc3) {
-				gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','6'), 1);
+				gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO6, 1);
 			} else {
-				gf_isom_set_brand_info(init_seg, GF_4CC('i','s','o','5'), 1);
+				gf_isom_set_brand_info(init_seg, GF_ISOM_BRAND_ISO5, 1);
 			}
 			/*DASH self-init media segment*/
 			if (single_segment) {
-				gf_isom_modify_alternate_brand(init_seg, GF_4CC('d','s','m','s'), 1);
+				gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_DSMS, 1);
 			} else {
-				gf_isom_modify_alternate_brand(init_seg, GF_4CC('d','a','s','h'), 1);
+				gf_isom_modify_alternate_brand(init_seg, GF_ISOM_BRAND_DASH, 1);
 			}
 
 			if (!dash_opts->pssh_moof) {
@@ -4193,7 +4193,7 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 		ts_seg.index_bs = gf_bs_from_file(ts_seg.index_file, GF_BITSTREAM_WRITE);
 
 		styp = (GF_SegmentTypeBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_STYP);
-		styp->majorBrand = GF_4CC('r','i','s','x');
+		styp->majorBrand = GF_ISOM_BRAND_RISX;
 		styp->minorVersion = 0;
 		styp->altBrand = (u32*)gf_malloc(sizeof(u32));
 		styp->altBrand[0] = styp->majorBrand;

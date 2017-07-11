@@ -28,6 +28,7 @@
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/sync_layer.h>
 #include <gpac/constants.h>
+#include <gpac/isomedia.h>
 
 #include "media_memory.h"
 #include "media_control.h"
@@ -201,7 +202,7 @@ Bool gf_es_owns_clock(GF_Channel *ch)
 	//if we share the clock with a clock from the same clock namespace but the clock was inherited
 	//don't trust ESIDs (typically happen in DASH where all streams may end up with the same ID...)
 	if (ch->clock_inherited) return GF_FALSE;
-	
+
 	/*if the clock is not in the same namespace (used with dynamic scenes), it's not ours*/
 	if (gf_list_find(ch->odm->net_service->Clocks, ch->clock)<0) return 0;
 	/*It occurs in TS stream when PCR is provided in a dedicated stream. Suppose that the channel owns a clock*/
@@ -1022,7 +1023,7 @@ void gf_es_receive_sl_packet(GF_ClientService *serv, GF_Channel *ch, char *paylo
 			if (ch->IsClockInit && (ABS(pcr_diff) > 60000)  && (ABS(pcr_pcrprev_diff) > 60000) ) {
 				discontinuity = GF_TRUE;
 			}
-			//try to ignore PCR disc signaling if our PCR diff seems to be reasonnable 
+			//try to ignore PCR disc signaling if our PCR diff seems to be reasonnable
 			if ((hdr.m2ts_pcr==2) && (ABS(pcr_diff) <= 60000)) {
 				discontinuity = GF_FALSE;
 			}
@@ -1488,27 +1489,7 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 	if (ch->es_state != GF_ESM_ES_RUNNING) return NULL;
 
 	if (!ch->is_pulling) {
-		GF_NetworkCommand com;
-		Bool flush_data = GF_FALSE;
 		gf_mx_p(ch->mx);
-
-		if (ch->odm->term->bench_mode && !ch->AU_buffer_first) {
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.command_type = GF_NET_BUFFER_QUERY;
-			com.base.on_channel = NULL;
-			gf_service_command(ch->service, &com, GF_OK);
-			if (!com.buffer.occupancy)
-				flush_data = GF_TRUE;
-		} else {
-			if (!ch->AU_buffer_first || (ch->BufferTime < (s32) ch->MaxBuffer/2) )
-				flush_data = GF_TRUE;
-		}
-		if (flush_data) {
-			/*query buffer level, don't sleep if too low*/
-			com.command_type = GF_NET_SERVICE_FLUSH_DATA;
-			com.base.on_channel = ch;
-			gf_term_service_command(ch->service, &com);
-		}
 
 		/*we must update buffering before fetching in order to stop buffering for streams with very few
 		updates (especially streams with one update, like most of OD streams)*/
@@ -1904,7 +1885,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 
 	/*push all cfg data*/
 	/*CommonEncryption*/
-	if ((drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 'c')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','1')) || (drm_cfg->scheme_type == GF_4CC('c', 'e', 'n', 's')) || (drm_cfg->scheme_type == GF_4CC('c','b','c','s'))) {
+	if ((drm_cfg->scheme_type == GF_ISOM_CENC_SCHEME) || (drm_cfg->scheme_type == GF_ISOM_CBC_SCHEME) || (drm_cfg->scheme_type == GF_ISOM_CENS_SCHEME) || (drm_cfg->scheme_type == GF_ISOM_CBCS_SCHEME)) {
 		evt.config_data_code = drm_cfg->scheme_type;
 		memset(&cenc_cfg, 0, sizeof(cenc_cfg));
 		cenc_cfg.scheme_version = drm_cfg->scheme_version;
@@ -1915,7 +1896,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 	} else {
 		/*ISMA and OMA*/
 		if (drm_cfg->contentID) {
-			evt.config_data_code = GF_4CC('o','d','r','m');
+			evt.config_data_code = GF_ISOM_ODRM_SCHEME;
 			memset(&cfg, 0, sizeof(cfg));
 			cfg.scheme_version = drm_cfg->scheme_version;
 			cfg.scheme_type = drm_cfg->scheme_type;
@@ -1930,7 +1911,7 @@ void gf_es_config_drm(GF_Channel *ch, GF_NetComDRMConfig *drm_cfg)
 			cfg.oma_drm_textual_headers_len = drm_cfg->oma_drm_textual_headers_len;
 			evt.config_data = &cfg;
 		} else {
-			evt.config_data_code = GF_4CC('i','s','m','a');
+			evt.config_data_code = GF_ISOM_ISMA_SCHEME;
 			memset(&isma_cfg, 0, sizeof(isma_cfg));
 			isma_cfg.scheme_version = drm_cfg->scheme_version;
 			isma_cfg.scheme_type = drm_cfg->scheme_type;

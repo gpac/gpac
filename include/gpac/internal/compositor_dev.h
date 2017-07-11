@@ -587,7 +587,7 @@ struct __tag_compositor
 	s32 display_depth;
 #endif
 
-	Bool gazer_enabled;
+	Bool gazer_enabled, simulate_gaze;
 	s32 gaze_x, gaze_y;
 };
 

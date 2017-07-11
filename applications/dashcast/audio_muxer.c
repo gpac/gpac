@@ -193,13 +193,14 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 
 int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 {
+	u64 seg_size;
 	GF_Err ret;
-	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, 0, 1, audio_output_file->seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, 0, 1, audio_output_file->seg_marker, NULL, NULL, &seg_size);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment closed at "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment %s closed at "LLU" - size "LLU" bytes\n", gf_isom_get_segment_name(audio_output_file->isof), gf_net_get_utc(), seg_size ));
 
 	//audio_output_file->acc_samples = 0;
 

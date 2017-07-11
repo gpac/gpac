@@ -579,6 +579,11 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 		gf_scene_generate_views(term->root_scene, (char *) URL+8, (char*)parent_path);
 		return;
 	}
+	else if (!strnicmp(URL, "mosaic://", 9)) {
+		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
+		gf_scene_generate_mosaic(term->root_scene, (char *) URL+9, (char*)parent_path);
+		return;
+	}
 
 	/*connect - we don't have any parentID */
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
