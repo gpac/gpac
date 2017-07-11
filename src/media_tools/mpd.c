@@ -2398,6 +2398,13 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 		return;
 	}
 	fprintf(out, ">\n");
+	
+	if (rep->other_descriptors){
+		i=0;
+		while ( (rsld = (GF_MPD_other_descriptors*) gf_list_enum(rep->other_descriptors, &i))) {
+			fprintf(out, "    %s\n",rsld->xml_desc);
+		}
+	}
 
 	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)rep, "    ");
 
@@ -2415,12 +2422,6 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 				e = gf_mpd_parse_subrepresentation(rep->sub_representations, child);
 				if (e) return e;
 	*/
-	if (rep->other_descriptors){
-		i=0;
-		while ( (rsld = (GF_MPD_other_descriptors*) gf_list_enum(rep->other_descriptors, &i))) {
-			fprintf(out, "  %s\n",rsld->xml_desc);
-		}
-	}
 
 
 	fprintf(out, "   </Representation>\n");
@@ -2462,6 +2463,11 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	gf_mpd_print_common_attributes(out, (GF_MPD_CommonAttributes*)as, "   ", 0);
 
 	fprintf(out, ">\n");
+	
+	i=0;
+	while ( (Asld = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
+		fprintf(out, "  %s\n",Asld->xml_desc);
+	}
 
 	gf_mpd_print_common_children(out, (GF_MPD_CommonAttributes*)as, "   ");
 
@@ -2482,11 +2488,6 @@ static void gf_mpd_print_adaptation_set(GF_MPD_AdaptationSet const * const as, F
 	}
 	if (as->segment_template) {
 		gf_mpd_print_segment_template(out, as->segment_template, "   ");
-	}
-
-	i=0;
-	while ( (Asld = (GF_MPD_other_descriptors*) gf_list_enum(as->other_descriptors, &i))) {
-		fprintf(out, "  %s\n",Asld->xml_desc);
 	}
 
 
@@ -2520,6 +2521,12 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 		fprintf(out, " bitstreamSwitching=\"true\"");
 
 	fprintf(out, ">\n");
+	
+	i=0;
+	while ( (pld = (GF_MPD_other_descriptors*) gf_list_enum(period->other_descriptors, &i))) {
+		fprintf(out, "  %s\n",pld->xml_desc);
+	}
+	
 
 	gf_mpd_print_base_urls(out, period->base_URLs, " ");
 
@@ -2531,11 +2538,6 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 	}
 	if (period->segment_template) {
 		gf_mpd_print_segment_template(out, period->segment_template, " ");
-	}
-
-	i=0;
-	while ( (pld = (GF_MPD_other_descriptors*) gf_list_enum(period->other_descriptors, &i))) {
-		fprintf(out, "  %s\n",pld->xml_desc);
 	}
 
 	i=0;
