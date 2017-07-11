@@ -1036,7 +1036,7 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 
 Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 {
-	u32 i;
+	u32 i, c1, c2;
 	GF_List *sai_sizes, *sai_offsets;
 	Bool has_saiz, has_saio;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1057,16 +1057,28 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 	else
 		return GF_FALSE;
 
-	for (i = 0; i < gf_list_count(sai_sizes); i++) {
+	c1 = gf_list_count(sai_sizes);
+	c2 = gf_list_count(sai_offsets);
+	for (i = 0; i < c1; i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(sai_sizes, i);
+
+		if (!saiz->aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saiz box without flags nor cenc type, assuming cenc\n"));
+			saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
+		}
+
 		if (saiz->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			has_saiz = GF_TRUE;
 			break;
 		}
 	}
 
-	for (i = 0; i < gf_list_count(sai_offsets); i++) {
+	for (i = 0; i < c2; i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
+		if (!saio->aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor cenc type, assuming cenc\n"));
+			saio->aux_info_type = GF_ISOM_CENC_SCHEME;
+		}
 		if (saio->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			has_saio = GF_TRUE;
 			break;
