@@ -1907,6 +1907,7 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 			break;
 		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isofile] Unsupported encryption storage box %s\n", gf_4cc_to_str(boxType) ));
 			return GF_NOT_SUPPORTED;
 		}
 
