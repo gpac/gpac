@@ -2154,8 +2154,8 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 {
 	if (s->timescale) fprintf(out, " timescale=\"%d\"", s->timescale);
 	if (s->presentation_time_offset) fprintf(out, " presentationTimeOffset=\""LLU"\"", s->presentation_time_offset);
-	if (s->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", s->index_range->start_range, s->index_range->end_range);
 	if (s->index_range_exact) fprintf(out, " indexRangeExact=\"true\"");
+	if (s->index_range) fprintf(out, " indexRange=\""LLD"-"LLD"\"", s->index_range->start_range, s->index_range->end_range);	
 	if (s->availability_time_offset) fprintf(out, " availabilityTimeOffset=\"%g\"", s->availability_time_offset);
 	if (s->time_shift_buffer_depth)
 		gf_mpd_print_duration(out, "timeShiftBufferDepth", s->time_shift_buffer_depth, GF_TRUE);
@@ -2163,14 +2163,17 @@ static void gf_mpd_print_segment_base_attr(FILE *out, GF_MPD_SegmentBase *s)
 
 void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent)
 {
-	fprintf(out, " %s<SegmentBase", indent);
+	fprintf(out, "%s<SegmentBase", indent);
 	gf_mpd_print_segment_base_attr(out, s);
 	fprintf(out, ">\n");
 
-	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", indent);
+	char tmp_indent[256];
+	sprintf(tmp_indent, "%s ",indent);
+	
+	if (s->initialization_segment) gf_mpd_print_url(out, s->initialization_segment, "Initialization", tmp_indent);
 	if (s->representation_index) gf_mpd_print_url(out, s->representation_index, "RepresentationIndex", indent);
 
-	fprintf(out, " %s</SegmentBase>\n", indent);
+	fprintf(out, "%s</SegmentBase>\n", indent);
 }
 
 static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl, char *indent)
