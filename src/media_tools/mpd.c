@@ -2185,7 +2185,7 @@ static void gf_mpd_print_segment_timeline(FILE *out, GF_MPD_SegmentTimeline *tl,
 	i = 0;
 	while ( (se = gf_list_enum(tl->entries, &i))) {
 		fprintf(out, "%s <S", indent);
-		if (se->start_time) fprintf(out, " t=\""LLD"\"", se->start_time);
+		fprintf(out, " t=\""LLD"\"", se->start_time);
 		if (se->duration) fprintf(out, " d=\"%d\"", se->duration);
 		if (se->repeat_count) fprintf(out, " r=\"%d\"", se->repeat_count);
 		fprintf(out, "/>\n");
