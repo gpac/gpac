@@ -2334,7 +2334,7 @@ static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 	fprintf(out, "<?xml version=\"1.0\"?>\n<MPD xmlns=\"%s\" type=\"%s\"", (mpd->xml_namespace ? mpd->xml_namespace : "urn:mpeg:dash:schema:mpd:2011"), (mpd->type == GF_MPD_TYPE_STATIC) ? "static" : "dynamic");
 
 	if (mpd->ID)
-		fprintf(out, " ID=\"%s\"", mpd->ID);
+		fprintf(out, " id=\"%s\"", mpd->ID);
 
 	if (mpd->profiles)
 		fprintf(out, " profiles=\"%s\"", mpd->profiles);
