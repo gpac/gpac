@@ -2396,10 +2396,7 @@ static void gf_mpd_print_representation(GF_MPD_Representation const * const rep,
 	if (rep->dependency_id) fprintf(out, " dependencyId=\"%s\"", rep->dependency_id);
 	if (rep->media_stream_structure_id) fprintf(out, " mediaStreamStructureId=\"%s\"", rep->media_stream_structure_id);
 
-	if(can_close){
-		fprintf(out, "/>\n");
-		return;
-	}
+
 	fprintf(out, ">\n");
 	
 	if (rep->other_descriptors){
