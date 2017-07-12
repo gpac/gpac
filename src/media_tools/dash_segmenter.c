@@ -2488,6 +2488,7 @@ restart_fragmentation_pass:
 				GF_SAFEALLOC(segmentbase, GF_MPD_SegmentBase);
 				representation_obj->segment_base = segmentbase;
 				GF_SAFEALLOC(segmentbase->index_range, GF_MPD_ByteRange);
+				segmentbase->index_range_exact=GF_TRUE;
 				segmentbase->index_range->start_range = index_start_range;
 				segmentbase->index_range->end_range = index_end_range;
 				segmentbase->presentation_time_offset = presentationTimeOffset;
