@@ -240,7 +240,7 @@ GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir
 GF_EXPORT
 GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs)
 {
-	if (movie->openMode != GF_ISOM_OPEN_WRITE || movie->fileName || movie->segment_bs) //memory mode
+	if (movie->openMode != GF_ISOM_OPEN_WRITE || movie->fileName || movie->segment_bs || !movie->editFileMap) //memory mode
 		return GF_NOT_SUPPORTED;
 	*out_bs = movie->editFileMap->bs;
 	return GF_OK;
