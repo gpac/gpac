@@ -49,7 +49,7 @@ struct _dash_component
 {
 	u32 ID;/*audio/video/text/ ...*/
 	u32 media_type;/*audio/video/text/ ...*/
-	char szCodec[50];
+	char szCodec[40];
 	/*for video */
 	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap;
 
@@ -412,10 +412,10 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-
+	const u32 szCodecSize = 40; //from fonction declaration
 	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
 
-	if (subtype==GF_ISOM_SUBTYPE_MPEG4_CRYP) {
+	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
 		GF_Err e;
 		u32 originalFormat=0;
 		if (gf_isom_is_ismacryp_media(movie, track, 1)) {
@@ -457,9 +457,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				}
 #endif
 
-				sprintf(szCodec, "mp4a.%02x.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
+				snprintf(szCodec, szCodecSize, "mp4a.%02x.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
 			} else {
-				sprintf(szCodec, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
+				snprintf(szCodec, szCodecSize, "mp4a.%02x", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		case GF_STREAM_VISUAL:
@@ -467,15 +467,15 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				sprintf(szCodec, "mp4v.%02x.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
+				snprintf(szCodec, szCodecSize, "mp4v.%02x.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
 			} else
 #endif
 			{
-				sprintf(szCodec, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
+				snprintf(szCodec, szCodecSize, "mp4v.%02x", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		default:
-			sprintf(szCodec, "mp4s.%02x", esd->decoderConfig->objectTypeIndication);
+			snprintf(szCodec, szCodecSize, "mp4s.%02x", esd->decoderConfig->objectTypeIndication);
 			break;
 		}
 		gf_odf_desc_del((GF_Descriptor *)esd);
@@ -494,7 +494,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				subtype = GF_ISOM_SUBTYPE_AVC4_H264;
 		}
 		if (avcc) {
-			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(szCodec, szCodecSize, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -505,7 +505,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 	case GF_ISOM_SUBTYPE_SVC_H264:
 		avcc = gf_isom_svc_config_get(movie, track, 1);
 		if (avcc) {
-			sprintf(szCodec, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(szCodec, szCodecSize, "%s.%02x%02x%02x", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -538,7 +538,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		if (hvcc) {
 			u8 c;
 			char szTemp[40];
-			sprintf(szCodec, "%s.", gf_4cc_to_str(subtype));
+			snprintf(szCodec, szCodecSize, "%s.", gf_4cc_to_str(subtype));
 			if (hvcc->profile_space==1) strcat(szCodec, "A");
 			else if (hvcc->profile_space==2) strcat(szCodec, "B");
 			else if (hvcc->profile_space==3) strcat(szCodec, "C");
@@ -597,14 +597,14 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 			gf_odf_hevc_cfg_del(hvcc);
 		} else {
-			sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+			snprintf(szCodec, szCodecSize, "%s", gf_4cc_to_str(subtype));
 		}
 		return GF_OK;
 #endif
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
-		sprintf(szCodec, "%s", gf_4cc_to_str(subtype));
+		snprintf(szCodec, szCodecSize, "%s", gf_4cc_to_str(subtype));
 		return GF_OK;
 	}
 	return GF_OK;
@@ -797,7 +797,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u16 defaultDegradationPriority;
 	GF_Err e;
 	char sOpt[100], sKey[100];
-	char szCodecs[200], szCodec[100];
+	char szCodecs[200], szCodec[40];
 	u32 cur_seg, fragment_index, max_sap_type;
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
@@ -992,7 +992,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		char *virtual_url;
 		FILE *vseg;
 		GF_BitStream *bs;
-		gf_media_get_rfc_6381_codec_name(input, dash_input->trackNum , szCodec, dash_cfg->inband_param_set, GF_TRUE);
+		gf_media_get_rfc_6381_codec_name(input, dash_input->trackNum, szCodec, dash_cfg->inband_param_set, GF_TRUE);
 		if (strlen(szCodecs)) strcat(szCodecs, ",");
 		strcpy(szCodecs, szCodec);
 

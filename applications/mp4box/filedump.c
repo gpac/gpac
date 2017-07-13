@@ -2496,7 +2496,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	{
-		char szCodec[100];
+		char szCodec[40];
 		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
