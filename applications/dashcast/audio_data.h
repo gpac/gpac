@@ -93,7 +93,7 @@ typedef struct {
 	time_t end_time;
 
 	/* RFC6381 codec name, only valid when VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 */
-	char codec6381[GF_MAX_PATH];
+	char codec6381[40];
 } AudioDataConf;
 
 /*

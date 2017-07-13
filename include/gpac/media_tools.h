@@ -71,7 +71,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
  * Get RFC 6381 description for a given track.
  * \param movie source movie
  * \param track track to check
- * \param szCodec a pointer to an already allocated string of size 20 bytes (to refine).
+ * \param szCodec a pointer to an already allocated string of size 40 bytes.
  * \param force_inband_xps force inband signaling of parameter sets.
  * \param force_sbr forces using explicit signaling for SBR.
  * \return error if any.
