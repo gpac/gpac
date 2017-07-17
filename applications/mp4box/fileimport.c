@@ -309,6 +309,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
+		Bool is_filename = GF_FALSE;
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
 		if (ext2 && !strncmp(ext2, ":\\", 2)) ext2 = strchr(ext2+1, ':');
@@ -322,13 +323,20 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
 			} else {
+				char *ext3=NULL;
 				if (ext2) ext2[0] = ':';
-				if (ext2) ext2 = strchr(ext2+1, ':');
-				if (ext2) ext2[0] = 0;
+				if (ext2) ext3 = strchr(ext2+1, ':');
+				if (ext3) ext3[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
+				if (ext3) ext3[0] = ':';
+				if (ext2) ext = ext2+1;
+				ext2 = NULL;
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "name=", 5)) {
+			handler_name = gf_strdup(ext+6);
+			is_filename = GF_TRUE;
+		}
 		else if (!strnicmp(ext+1, "ext=", 4)) {
 			/*extensions begin with '.'*/
 			if (*(ext+5) == '.')
@@ -424,9 +432,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
-		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
+		else if (!strnicmp(ext+1, "chapter=", 8)) {
+			chapter_name = gf_strdup(ext+9);
+			is_filename = GF_TRUE;
+		}
 		else if (!strnicmp(ext+1, "chapfile=", 9)) {
 			chapter_name = gf_strdup(ext+10);
+			is_filename = GF_TRUE;
 			is_chap_file=1;
 		}
 		else if (!strnicmp(ext+1, "layout=", 7)) {
@@ -520,6 +532,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		if (ext2) ext2[0] = ':';
+
+		if (is_filename) {
+			char *sep;
+			sep = strchr(ext+6, ':');
+			if (sep) ext = sep+1;
+		}
 
 		ext[0] = 0;
 		ext = strchr(ext+1, ':');
