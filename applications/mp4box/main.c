@@ -256,6 +256,7 @@ void PrintGeneralUsage()
 	        " -split-rap           splits in files beginning at each RAP. same as -splitr.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
+	        "                       E may be a number, \"end\" or \"end-N\", where N is a number of seconds before the end\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
@@ -2602,8 +2603,14 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			if (strstr(argv[i + 1], "end")) {
-				sscanf(argv[i + 1], "%lf:end", &split_start);
-				split_duration = -2;
+				if (strstr(argv[i + 1], "end-")) {
+					Double dur_end=0;
+					sscanf(argv[i + 1], "%lf:end-%lf", &split_start, &dur_end);
+					split_duration = -2 - dur_end;
+				} else {
+					sscanf(argv[i + 1], "%lf:end", &split_start);
+					split_duration = -2;
+				}
 			}
 			else {
 				sscanf(argv[i + 1], "%lf:%lf", &split_start, &split_duration);
