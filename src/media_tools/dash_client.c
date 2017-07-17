@@ -4568,6 +4568,15 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
+		//on HLS get rid of audio only adaptation set if not in fMP4 mode
+		if (dash->is_m3u8 && (nb_rep>1) && !group->adaptation_set->max_width && !group->adaptation_set->max_height) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+			if ((!rep->segment_template || !rep->segment_template->initialization) && (!rep->segment_list || !rep->segment_list->initialization_segment)) {
+				group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+				continue;
+			}
+		}
+
 		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - may result in broken adaptation\n"));
 		}
