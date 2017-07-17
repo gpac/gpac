@@ -2147,6 +2147,9 @@ GF_Err gf_import_isomedia(GF_MediaImporter *import)
 	if (import->esd && import->esd->dependsOnESID) {
 		gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_DECODE, import->esd->dependsOnESID);
 	}
+	if (import->trackID && !(import->flags & GF_IMPORT_KEEP_REFS)) {
+		gf_isom_remove_track_references(import->dest, track);
+	}
 
 	mstype = gf_isom_get_media_subtype(import->orig, track_in, di);
 

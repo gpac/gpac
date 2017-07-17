@@ -493,6 +493,7 @@ void PrintImportUsage()
 	        " \":trailing\"          keeps trailing 0-bytes in AVC/HEVC samples\n"
 	        " \":agg=VAL\"           same as -agg option\n"
 	        " \":dref\"              same as -dref option\n"
+	        " \":keep_refs\"         keeps track reference when importing a single track\n"
 	        " \":nodrop\"            same as -nodrop option\n"
 	        " \":packed\"            same as -packed option\n"
 	        " \":sbr\"               same as -sbr option\n"
