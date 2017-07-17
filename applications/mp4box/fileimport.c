@@ -1028,10 +1028,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	rap_split = 0;
 	if (split_size_kb == (u64)-1) rap_split = 1;
 	if (split_dur == -1) rap_split = 1;
-	else if (split_dur==-2) {
+	else if (split_dur <= -2) {
 		split_size_kb = 0;
 		split_until_end = 1;
-		split_dur = 0;
 	}
 
 	if (rap_split) {
@@ -1150,7 +1149,18 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		return GF_NOT_SUPPORTED;
 	}
 	if (split_until_end) {
-		split_dur = max_dur;
+		if (split_dur < -2) {
+			split_dur = - (split_dur + 2 - chunk_start);
+			if (max_dur < split_dur) {
+				fprintf(stderr, "Split duration till end %lf longer than track duration %lf\n", split_dur, max_dur);
+				gf_free(tks);
+				return GF_NOT_SUPPORTED;
+			} else {
+				split_dur = max_dur - split_dur;
+			}
+		} else {
+			split_dur = max_dur;
+		}
 	} else if (!rap_split && (max_dur<=split_dur)) {
 		fprintf(stderr, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		gf_free(tks);
