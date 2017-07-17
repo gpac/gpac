@@ -317,6 +317,15 @@ GF_Err gf_media_mpd_format_segment_name(GF_DashTemplateSegmentType seg_type, Boo
 				char_template += (u32) strlen(seg_rad_name + char_template)+1;
 				if (sep) sep[0] = '$';
 			}
+			else if (!strnicmp(& seg_rad_name[char_template], "$Segment=", 9)) {
+				char *sep = strchr(seg_rad_name + char_template+9, '$');
+				if (sep) sep[0] = 0;
+				if (!is_init && !is_init_template) {
+					strcat(segment_name, seg_rad_name + char_template+9);
+				}
+				char_template += (u32) strlen(seg_rad_name + char_template)+1;
+				if (sep) sep[0] = '$';
+			}
 
 			else {
 				char_template+=1;
