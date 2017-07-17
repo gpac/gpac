@@ -1099,7 +1099,8 @@ Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample, u64 dataOffset);
 
 /*set the duration of the last media sample. If not set, the duration of the last sample is the
-duration of the previous one if any, or media TimeScale (default value).*/
+duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any, 
+you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
 /*sets a track reference*/
