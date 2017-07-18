@@ -126,7 +126,7 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 
 GF_EXPORT
 GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num,
-                                  u32 *itemID, u32 *protection_idx, Bool *is_self_reference,
+                                  u32 *itemID, u32 *type, u32 *protection_idx, Bool *is_self_reference,
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn)
 {
@@ -144,6 +144,7 @@ GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_nu
 	if (item_mime_type) (*item_mime_type) = iinf->content_type;
 	if (item_encoding) (*item_encoding) = iinf->content_encoding;
 	if (is_self_reference) *is_self_reference = 0;
+	if (type) *type = iinf->item_type;
 
 	if (item_url) (*item_url) = NULL;
 	if (item_urn) (*item_urn) = NULL;
@@ -380,6 +381,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, dump_file_name, NULL, NULL, NULL);
 }
 
+GF_EXPORT
 GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **out_mime)
 {
 	return gf_isom_extract_meta_item_extended(file, root_meta, track_num, item_id, NULL, out_data, out_size, out_mime);
@@ -544,6 +546,63 @@ GF_Err gf_isom_set_meta_xml_memory(GF_ISOFile *file, Bool root_meta, u32 track_n
 	/*assume 32bit max size = 4Go should be sufficient for a DID!!*/
 	xml->xml = (char*)gf_malloc(sizeof(unsigned char)*data_size);
 	memcpy(xml->xml, data, sizeof(unsigned char)*data_size);
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {
+	u32 count, i;
+	u32 count2, j;
+	GF_MetaBox *meta;
+	meta = gf_isom_get_meta(file, root_meta, track_num);
+	if (!meta) return GF_BAD_PARAM;
+
+	GF_ItemPropertyAssociationBox *ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
+	GF_ItemPropertyContainerBox *ipco = meta->item_props->property_container;
+	count = gf_list_count(ipma->entries);
+	for (i = 0; i < count; i++) {
+		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
+		if (entry->item_id == item_id) {
+			count2 = gf_list_count(entry->property_index);
+			for (j = 0; j < count2; j++) {
+				u32 *index = (u32 *)gf_list_get(entry->property_index, j);
+				GF_Box *b = (GF_Box *)gf_list_get(ipco->other_boxes, *index - 1);
+				if (!b) continue;
+				switch (b->type) {
+				case GF_ISOM_BOX_TYPE_ISPE:
+				{
+					GF_ImageSpatialExtentsPropertyBox *ispe = (GF_ImageSpatialExtentsPropertyBox *)b;
+					prop->width = ispe->image_width;
+					prop->height = ispe->image_height;
+				}
+				break;
+				case GF_ISOM_BOX_TYPE_RLOC:
+				{
+					GF_RelativeLocationPropertyBox *rloc = (GF_RelativeLocationPropertyBox *)b;
+					prop->hOffset = rloc->horizontal_offset;
+					prop->vOffset = rloc->vertical_offset;
+				}
+				break;
+				case GF_ISOM_BOX_TYPE_PASP:
+				{
+					GF_PixelAspectRatioBox *pasp = (GF_PixelAspectRatioBox *)b;
+					prop->hSpacing = pasp->hSpacing;
+					prop->vSpacing = pasp->vSpacing;
+				}
+				break;
+				case GF_ISOM_BOX_TYPE_IROT:
+				{
+					GF_ImageRotationBox *irot = (GF_ImageRotationBox *)b;
+					prop->angle = irot->angle * 90;
+				}
+				break;
+				case GF_ISOM_BOX_TYPE_HVCC:
+					prop->config = b;
+					break;
+				}
+			}
+		}
+	}
 	return GF_OK;
 }
 

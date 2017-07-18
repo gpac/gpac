@@ -87,7 +87,9 @@ typedef struct
 
 typedef struct
 {
+	Bool use_item;
 	u32 track, track_id;
+	u32 item_id, item_idx;
 	/*base track if scalable media, 0 otherwise*/
 	u32 base_track;
 	u32 next_track;
