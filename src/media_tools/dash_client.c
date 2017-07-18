@@ -5770,7 +5770,10 @@ restart_period:
 
 					gf_mx_p(group->cache_mutex);
 
-					if ((group->selection != GF_DASH_GROUP_SELECTED) || group->done || group->depend_on_group) {
+					if ((group->selection != GF_DASH_GROUP_SELECTED)
+						|| group->depend_on_group
+						|| (group->done && !group->nb_cached_segments)
+					) {
 						gf_mx_v(group->cache_mutex);
 						continue;
 					}
@@ -5783,6 +5786,10 @@ restart_period:
 						&& !dash->request_period_switch
 						&& !group->has_pending_enhancement
 					) {
+						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
+					}
+					if (group->done && group->nb_cached_segments)
+					{
 						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
 					}
 
