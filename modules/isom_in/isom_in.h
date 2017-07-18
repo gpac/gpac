@@ -150,6 +150,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 
 void isor_declare_objects(ISOMReader *read);
 
+void isor_reader_get_sample_from_item(ISOMChannel *ch);
 
 void send_proxy_command(ISOMReader *read, Bool is_disconnect, Bool is_add_media, GF_Err e, GF_Descriptor *desc, LPNETCHANNEL channel);
 
