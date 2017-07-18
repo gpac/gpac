@@ -135,7 +135,7 @@ static void widget_package_extract_file(GF_WidgetPackage *wpack, GF_WidgetPackag
 			Bool self_ref;
 			const char *item_name;
 
-			gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
+			gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 			if (strcmp(res->inner_path, item_name)) continue;
 
 			gf_isom_extract_meta_item(isom, GF_TRUE, 0, ID, res->extracted_path);
@@ -307,7 +307,7 @@ static GF_WidgetPackage *widget_isom_new(GF_WidgetManager *wm, const char *path)
 		char *sep;
 		const char *item_name;
 
-		gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
+		gf_isom_get_meta_item_info(isom, GF_TRUE, 0, i+1, &ID, NULL, NULL, &self_ref, &item_name, NULL, &enc, &url, &urn);
 
 		sep = strrchr(item_name, '/');
 		if (!sep) sep = strrchr(item_name, '\\');

@@ -1853,8 +1853,9 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 		const char *it_name, *mime, *enc, *url, *urn;
 		Bool self_ref;
 		u32 ID;
-		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, NULL, &self_ref, &it_name, &mime, &enc, &url, &urn);
-		fprintf(stderr, "Item #%d - ID %d", i+1, ID);
+		u32 it_type;
+		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, NULL, &self_ref, &it_name, &mime, &enc, &url, &urn);
+		fprintf(stderr, "Item #%d - ID %d - type %s ", i+1, ID, gf_4cc_to_str(it_type));
 		if (self_ref) fprintf(stderr, " - Self-Reference");
 		else if (it_name) fprintf(stderr, " - Name: %s", it_name);
 		if (mime) fprintf(stderr, " - MimeType: %s", mime);

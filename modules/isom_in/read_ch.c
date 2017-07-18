@@ -461,7 +461,25 @@ static void init_reader(ISOMChannel *ch)
 	ch->owner->no_order_check = ch->speed < 0 ? GF_TRUE : GF_FALSE;
 }
 
-
+void isor_reader_get_sample_from_item(ISOMChannel *ch)
+{
+	GF_Err e;
+	if (ch->current_slh.AU_sequenceNumber) {
+		ch->last_state = GF_EOS;
+		return;
+	}
+	ch->sample_time = 0;
+	ch->last_state = GF_OK;
+	ch->sample = gf_isom_sample_new();
+	ch->sample->IsRAP = RAP;
+	ch->current_slh.accessUnitEndFlag = ch->current_slh.accessUnitStartFlag = 1;
+	ch->current_slh.au_duration = 1000;
+	ch->current_slh.randomAccessPointFlag = ch->sample->IsRAP;
+	ch->current_slh.compositionTimeStampFlag = 1;
+	ch->current_slh.decodingTimeStampFlag = 1;
+	e = gf_isom_extract_meta_item_mem(ch->owner->mov, GF_TRUE, 0, ch->item_id, &ch->sample->data, &ch->sample->dataLength, NULL);
+	ch->current_slh.accessUnitLength = ch->sample->dataLength;
+}
 
 void isor_reader_get_sample(ISOMChannel *ch)
 {
