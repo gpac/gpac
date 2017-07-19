@@ -880,7 +880,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	char RepSecName[200];
 	char RepURLsSecName[200];
 	const char *opt;
-	Double max_track_duration = 0;
+	GF_Fraction max_track_duration = {0, 1};
 	Bool bs_switching_is_output = GF_FALSE;
 	Bool store_dash_params = GF_FALSE;
 	Bool dash_moov_setup = GF_FALSE;
@@ -1216,8 +1216,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		tf->DefaultDuration = defaultDuration;
 		mpd_timescale = tf->TimeScale;
 
-		if (max_track_duration < gf_isom_get_track_duration(input, i+1)) {
-			max_track_duration = (Double) gf_isom_get_track_duration(input, i+1);
+		if ( (max_track_duration.num / max_track_duration.den) < gf_isom_get_track_duration(input, i+1)) {
+			max_track_duration.num = gf_isom_get_track_duration(input, i+1);
+			max_track_duration.den = 1;
 		}
 
 		/* We set the reference track (for use in the sidx or prft) to be the track that has the greatest number of sync samples,
@@ -1429,9 +1430,9 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 		split_seg_at_rap = GF_TRUE;
 
 	if (!dash_moov_setup) {
-		max_track_duration /= gf_isom_get_timescale(input);
-		max_track_duration *= gf_isom_get_timescale(output);
-		gf_isom_set_movie_duration(output, (u64) max_track_duration);
+		max_track_duration.den *= gf_isom_get_timescale(input);
+		max_track_duration.num *= gf_isom_get_timescale(output);
+		gf_isom_set_movie_duration(output, (u64) (max_track_duration.num / max_track_duration.den) );
 	}
 
 	//if single segment, add msix brand if we use indexes
