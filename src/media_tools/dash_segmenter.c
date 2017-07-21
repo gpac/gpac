@@ -1759,7 +1759,7 @@ restart_fragmentation_pass:
 					sample_duration = (u32) (next->DTS - sample->DTS);
 				}
 				//in dynamic mode we will loop, pay attention to the timing
-				else if ( clamp_duration && dash_input->clamp_duration) {
+				else if (!dasher->disable_loop) {
 					if (clamp_duration) {
 						sample_duration = clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset);
 					} else {
@@ -1981,7 +1981,7 @@ restart_fragmentation_pass:
 									stop_frag = GF_TRUE;
 								}
 
-								if (! tf->all_sample_raps) {
+								if (! tf->all_sample_raps && 0) {
 									/*if adding this SAP will result in stopping the fragment "soon" after it, stop now and start with SAP
 									if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
 									otherwise, take 3 samples (should be refined of course)*/
@@ -2688,7 +2688,7 @@ restart_fragmentation_pass:
 
 				sprintf(sKey, "TKID_%d_LoopTSOffset", tf->TrackID);
 				sprintf(sOpt, LLU, tf->loop_ts_offset);
-				gf_cfg_set_key(dasher->dash_ctx, RepSecName, sKey, tf->done ? NULL : sOpt);
+				gf_cfg_set_key(dasher->dash_ctx, RepSecName, sKey, (tf->done && dasher->disable_loop) ? NULL : sOpt);
 
 			}
 		}
@@ -6311,7 +6311,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	//check we have a segment template
 	if (dasher->use_url_template && !dasher->seg_rad_name) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] WARNING! DASH Live profile requested but no -segment-name\n\tusing \"%%s_dash\" by default\n\n"));
+		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] DASH Live profile requested but no -segment-name - using \"%%s_dash\" by default\n"));
 		dasher_format_seg_name(dasher, "%s_dash");
 	}
 
@@ -6431,6 +6431,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		if (max_media_duration - min_media_duration > dasher->segment_duration) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] The difference between the durations of the longest and shortest representations (%f) is higher than the segment duration (%f)\n", max_media_duration - min_media_duration, dasher->segment_duration));
 		}
+
+		if (! dasher->subduration)
+			dasher->disable_loop = GF_TRUE;
 
 		if (!dasher->disable_loop && dasher->subduration && (max_audio_duration>0)) {
 			if (max_audio_duration != min_audio_duration) {
