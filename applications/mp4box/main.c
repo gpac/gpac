@@ -386,6 +386,7 @@ void PrintDASHUsage()
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
+	        "                       NOTE: If there is not enough samples to finish a segment, data is looped unless -no-loop is used (period end).\n"
 	        " -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
@@ -394,6 +395,7 @@ void PrintDASHUsage()
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
+	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -1932,6 +1934,7 @@ FILE *logfile = NULL;
 static u32 dash_run_for;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
+static Bool no_loop=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -3249,6 +3252,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-no-cache")) {
 			no_cache = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-no-loop")) {
+			no_loop = GF_TRUE;
+		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
 			seg_ext = argv[i + 1];
@@ -4034,6 +4040,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
+		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

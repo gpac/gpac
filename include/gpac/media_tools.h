@@ -845,9 +845,15 @@ GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode);
  *	\param no_cache if true, input file will be reopen each time the dasher process function is called .
  *	\return error code if any
 */
-
-GF_EXPORT
 GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache);
+
+/*!
+ Enable/Disable loop inputs .
+ *	\param dasher the DASH segmenter object
+ *	\param do_llop if true, input files will be looped at the end of the file in a live simulation. Otherwise a new period will be created.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
 
 /*!
  Adds a media input to the DASHer
