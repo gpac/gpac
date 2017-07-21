@@ -4139,7 +4139,7 @@ int mp4boxMain(int argc, char **argv)
 		goto exit;
 	}
 
-	else if (!file
+	else if (!file && !do_hash
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 	         && !(track_dump_type & GF_EXPORT_AVI_NATIVE)
 #endif
