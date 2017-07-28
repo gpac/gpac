@@ -1158,29 +1158,29 @@ do_hash_test ()
   if [ $rv != 0 ] ; then
    hashres=0
    fhash=`hexdump -ve '1/1 "%.2X"' $ref_hash`
-   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subtest
+   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subt
    shopt -s nullglob
    for alt_ref in "$ref_hash-alt"* ; do
     $DIFF $test_hash $alt_ref > /dev/null
     rv_alt=$?
     if [ $rv_alt != 0 ] ; then
       fhash=`hexdump -ve '1/1 "%.2X"' $alt_ref`
-      echo "Hash alt fail, alt ref $alt_ref was $fhash"  >> $log_subtest
+      echo "Hash alt fail, alt ref $alt_ref was $fhash"  >> $log_subt
     else
       hashres=1
-      echo "Hash alt OK with alt ref $alt_ref"  >> $log_subtest
+      echo "Hash alt OK with alt ref $alt_ref"  >> $log_subt
       break
     fi
    done
    shopt -u nullglob
    if [ $hashres != 0 ] ; then
-    echo "Hash OK for $1"  >> $log_subtest
+    echo "Hash OK for $1"  >> $log_subt
     echo "HASH_FAIL=0" >> $STATHASH_SH
    else
     echo "HASH_FAIL=1" >> $STATHASH_SH
    fi
   else
-   echo "Hash OK for $1"  >> $log_subtest
+   echo "Hash OK for $1"  >> $log_subt
    echo "HASH_FAIL=0" >> $STATHASH_SH
   fi
   rm $test_hash
