@@ -2245,6 +2245,8 @@ int avi_parse_input_file(avi_t *AVI, int getIndex)
 #endif
 						}
 
+						AVI->track[AVI->aptr].audio_superindex->stdindex = NULL;
+
 #ifdef DEBUG_ODML
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] FOURCC \"%.4s\"\n", AVI->track[AVI->aptr].audio_superindex->fcc));
 						GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[avilib] LEN \"%ld\"\n", (long)AVI->track[AVI->aptr].audio_superindex->dwSize));
