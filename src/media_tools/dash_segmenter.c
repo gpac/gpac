@@ -2348,11 +2348,11 @@ restart_fragmentation_pass:
 	}
 
 
-	if (!bandwidth)
-		bandwidth = (u32) (file_size * 8 / file_duration);
+    if (!bandwidth)
+            bandwidth = (u32) (file_size * 8 / file_duration);
 
-	bandwidth += dash_input->dependency_bandwidth;
-	dash_input->bandwidth = bandwidth;
+    bandwidth += dash_input->dependency_bandwidth;
+    dash_input->bandwidth = bandwidth;
 
 
 	/* max segment duration */
@@ -3030,6 +3030,9 @@ static GF_Err dasher_isom_create_init_segment(GF_DashSegInput *dash_inputs, u32 
 restart_init:
 
 	init_seg = gf_isom_open(szInitName, GF_ISOM_OPEN_WRITE, tmpdir);
+	if (dash_opts->force_test_mode) {
+		gf_isom_no_version_date_info(init_seg, 1);
+	}
 	for (i=0; i<nb_dash_inputs; i++) {
 		u32 j;
 		GF_ISOFile *in;
