@@ -329,7 +329,7 @@ void PrintDASHUsage()
 	        " \"#audio\"           only uses the first audio track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
-	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
+	        "                       If VALUE is longer than media duration, last sample duration is extended.\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
 	        " \":BaseURL=NAME\"    sets the BaseURL. Set multiple times for multiple BaseURLs\n"
@@ -387,7 +387,7 @@ void PrintDASHUsage()
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
 	        "                       NOTE: If there is not enough samples to finish a segment, data is looped unless -no-loop is used (period end).\n"
-	        " -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
+	        " -run-for TIME        runs for T ms of the dash-live session then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
@@ -1931,7 +1931,7 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
-static u32 dash_run_for;
+static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
 static Bool no_loop=GF_FALSE;
@@ -3244,9 +3244,9 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
-		else if (!stricmp(arg, "-dash-run-for")) {
+		else if (!stricmp(arg, "-run-for")) {
 			CHECK_NEXT_ARG
-			dash_run_for = atoi(argv[i + 1]);
+			run_for = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-no-cache")) {
@@ -4053,7 +4053,7 @@ int mp4boxMain(int argc, char **argv)
 		dash_cumulated_time=0;
 
 		while (1) {
-			if (dash_run_for && (dash_cumulated_time>dash_run_for))
+			if (run_for && (dash_cumulated_time > run_for))
 				do_abort = 3;
 
 			dash_prev_time=gf_sys_clock();
