@@ -138,7 +138,6 @@ struct __gf_dash_segmenter
 	Double max_segment_duration;
 	Bool no_cache;
 	Bool disable_loop;
-
 };
 
 struct _dash_segment_input
@@ -1680,7 +1679,7 @@ restart_fragmentation_pass:
 					Double diff = (cur_seg-2) * sdur;
 					diff -= ((Double)tf->start_tfdt) / tf->TimeScale;
 					if (ABS(diff) > sdur/2) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duraion (MPD time minus TFDT %lf secs)\n", SegmentName, cur_seg-1, diff));
+						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Segment %s (Number #%d): drift between MPD timeline and tfdt exceeds 50%% of segment duraion (MPD time minus TFDT %lf secs) - bitstream will not be compliant, try using segment template or reencode\n", SegmentName, cur_seg-1, diff));
 					}
 				}
 			}
@@ -1762,6 +1761,9 @@ restart_fragmentation_pass:
 				else if (!dasher->disable_loop) {
 					if (clamp_duration) {
 						sample_duration = clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset);
+						//it may happen that the sample duration is 0 if the clamp duration is right after the sample DTS and timescale is not big enough to express it - force to 1
+						if (sample_duration==0)
+							sample_duration=1;
 					} else {
 						sample_duration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack) - (sample->DTS - tf->loop_ts_offset) );
 
@@ -1924,7 +1926,6 @@ restart_fragmentation_pass:
 							next_sap_time = isom_get_next_sap_time(input, tf->OriginalTrack, tf->SampleCount, tf->SampleNum + 2);
 							/*if no more SAP after this one, do not switch segment*/
 							if (next_sap_time) {
-								u32 scaler;
 								Double SegmentStart;
 								u64 next_sap_dur;
 								Bool do_split = GF_FALSE;
@@ -1939,17 +1940,17 @@ restart_fragmentation_pass:
 								next_sap_dur = frag_dur + (s64) (next_sap_time - tf->next_sample_dts - next_dur) * dasher->dash_scale / tf->TimeScale;
 
 								if (!tf->splitable) {
-									if (tf->all_sample_raps) {
-										/*all samples RAP: if media segment about to be produced exceeds max segment length, force segment split*/
-										if (SegmentDuration + next_sap_dur >  MaxSegmentDuration) {
+									/*all samples RAP: if adding up to next sap exceeds max segment length, force segment split*/
+									if (SegmentDuration + next_sap_dur >  MaxSegmentDuration) {
+										if (tf->all_sample_raps) {
 											do_split = GF_TRUE;
-										}
-									} else {
-										/*not all samples RAP: if media segment about to be produced exceeds 1.5*max segment length, force segment split
+										} else {
+										/*not all samples RAP: if adding up to next sap equals or exceeds 1.5*max segment length, we can split here since next seg after this one would at least be 0.5*segment_duration
 										this allows flexibility in segment length to cope with varying GOP length
 										*/
-										if (SegmentDuration + next_sap_dur > 3*MaxSegmentDuration/2) {
-											do_split = GF_TRUE;
+											if (SegmentDuration + next_sap_dur >= 3*MaxSegmentDuration/2) {
+												do_split = GF_TRUE;
+											}
 										}
 									}
 								}
@@ -1979,15 +1980,6 @@ restart_fragmentation_pass:
 									/*force new segment*/
 									force_switch_segment = GF_TRUE;
 									stop_frag = GF_TRUE;
-								}
-
-								if (! tf->all_sample_raps && 0) {
-									/*if adding this SAP will result in stopping the fragment "soon" after it, stop now and start with SAP
-									if all samples are RAPs, just stop fragment if we exceed the requested duration by adding the next sample
-									otherwise, take 3 samples (should be refined of course)*/
-									scaler = 3;
-									if ( (tf->FragmentLength + scaler * next_dur) * dasher->dash_scale >= MaxFragmentDuration * tf->TimeScale)
-										stop_frag = GF_TRUE;
 								}
 							}
 						} else if (!has_rap) {
@@ -5328,8 +5320,6 @@ static GF_Err gf_dasher_init_context(GF_DASHSegmenter *dasher, GF_DashDynamicMod
 		gf_cfg_set_key(dash_ctx, "DASH", "StoreParams", "no");
 	}
 
-	gf_cfg_set_key(dash_ctx, "DASH", "PeriodSwitch", "no");
-
 	if (first_run) {
 		u32 sec, frac;
 #ifndef _WIN32_WCE
@@ -5363,7 +5353,6 @@ static GF_Err gf_dasher_init_context(GF_DASHSegmenter *dasher, GF_DashDynamicMod
 			opt = gf_cfg_get_key(dash_ctx, "DASH", "PeriodID");
 			if (!opt || strcmp(opt, periodID)) {
 				gf_cfg_set_key(dash_ctx, "DASH", "PeriodID", periodID);
-				gf_cfg_set_key(dash_ctx, "DASH", "PeriodSwitch", "yes");
 			}
 		}
 	}
@@ -5376,7 +5365,7 @@ static GF_Err gf_dasher_init_context(GF_DASHSegmenter *dasher, GF_DashDynamicMod
 GF_EXPORT
 u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 {
-	Double max_dur = 0;
+	Double past_period_dur = 0, max_dur = 0;
 //	Double safety_dur;
 	Double ms_elapsed;
 	u32 i, ntp_sec, frac, prev_sec, prev_frac, dash_scale;
@@ -5401,6 +5390,7 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "TimeScale");
 	sscanf(opt, "%u", &dash_scale);
 
+
 	/*compute cumulated duration*/
 	for (i=0; i<gf_cfg_get_section_count(dasher->dash_ctx); i++) {
 		Double dur = 0;
@@ -5414,6 +5404,11 @@ u32 gf_dasher_next_update_time(GF_DASHSegmenter *dasher, u64 *ms_in_session)
 			}
 			if (dur>max_dur) max_dur = dur;
 		}
+	}
+	opt = gf_cfg_get_key(dasher->dash_ctx, "DASH", "CumulatedPastPeriodsDuration");
+	if (opt) {
+		sscanf(opt, "%lf", &past_period_dur);
+		max_dur += past_period_dur;
 	}
 
 	if (!max_dur) return 0;
@@ -5935,6 +5930,33 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop)
 }
 
 
+static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input)
+{
+	if (dash_input->period_id_not_specified) {
+		if (dash_input->periodID) gf_free(dash_input->periodID);
+		dash_input->periodID = NULL;
+		dash_input->period_id_not_specified = 0;
+	}
+
+	if (! dash_input->periodID) {
+		dash_input->period_id_not_specified = 1;
+		//assign ID if dynamic - if dash_ctx also assign ID since we could have moved from dynamic to static
+		if ((dasher->dash_mode!=GF_DASH_STATIC) || dasher->dash_ctx) {
+			char szPName[50];
+			sprintf(szPName, "DID1");
+			if (dasher->dash_ctx) {
+				while (1) {
+					const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
+					if (!p) break;
+					dash_input->period_id_not_specified++;
+					sprintf(szPName, "DID%d", dash_input->period_id_not_specified);
+				}
+			}
+			dash_input->periodID = gf_strdup(szPName);
+		}
+	}
+}
+
 GF_EXPORT
 GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *input)
 {
@@ -5971,23 +5993,6 @@ GF_Err gf_dasher_add_input(GF_DASHSegmenter *dasher, GF_DashSegmenterInput *inpu
 
 	dash_input->bandwidth = input->bandwidth;
 
-	if (! dash_input->periodID) {
-		dash_input->period_id_not_specified = 1;
-		//assign ID if dynamic - if dash_ctx also assign ID since we could have moved from dynamic to static
-		if ((dasher->dash_mode!=GF_DASH_STATIC) || dasher->dash_ctx) {
-			char szPName[50];
-			sprintf(szPName, "DID1");
-			if (dasher->dash_ctx) {
-				while (1) {
-					const char *p = gf_cfg_get_key(dasher->dash_ctx, "PastPeriods", szPName);
-					if (!p) break;
-					dash_input->period_id_not_specified++;
-					sprintf(szPName, "DID%d", dash_input->period_id_not_specified);
-				}
-			}
-			dash_input->periodID = gf_strdup(szPName);
-		}
-	}
 	if (!strcmp(dash_input->file_name, "NULL") || !strcmp(dash_input->file_name, "") || !dash_input->file_name) {
 		if (!strcmp(dash_input->xlink, "")) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] No input file specified and no xlink set - cannot dash\n"));
@@ -6088,6 +6093,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		u32 r;
 		GF_DashSegInput *dash_input = &dasher->inputs[i];
 		dash_input->period = 0;
+		dash_input_check_period_id(dasher, dash_input);
 
 		dash_input->moof_seqnum_increase = dash_input->nb_representations;
 		if (!dash_input->moof_seqnum_increase) dash_input->moof_seqnum_increase=1;
@@ -6129,7 +6135,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		}
 		//reset adaptation classifier
 		dash_input->adaptation_set = 0;
-
 
 		if (dash_input->period)
 			continue;
@@ -6977,11 +6982,28 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 			flush_period = GF_TRUE;
 		}
 		if (flush_period) {
+			//get largest duration
+			u32 k, scount = gf_cfg_get_section_count(dasher->dash_ctx);
+			for (k=0; k<scount; k++) {
+				const char *sec = gf_cfg_get_section_name(dasher->dash_ctx, k);
+				if (!sec) continue;
+				if( !strnicmp(sec, "Representation_", 15) ) {
+					const char *key = gf_cfg_get_key(dasher->dash_ctx, sec, "CumulatedDuration");
+					if (key) {
+						Double v = atof(key) / dasher->dash_scale;
+						if (v>period_duration) period_duration = v;
+					}
+				}
+			}
+
 			sprintf(szOpt, "%g-%g", active_period_start, period_duration);
 			gf_cfg_set_key(dasher->dash_ctx, "PastPeriods", id, szOpt);
 
 			sprintf(szOpt, "%g", active_period_start);
 			gf_cfg_set_key(dasher->dash_ctx, "DASH", "LastActivePeriodStart", szOpt);
+			//also update last period duration with computed val
+			sprintf(szOpt, "%g", period_duration);
+			gf_cfg_set_key(dasher->dash_ctx, "DASH", "LastPeriodDuration", szOpt);
 
 			if (dasher->dash_ctx) purge_dash_context(dasher->dash_ctx);
 		}
