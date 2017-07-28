@@ -2154,7 +2154,6 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 				for (k=0; k<gf_list_count(rep->segment_list->segment_URLs); k++) {
 					s64 start_diff;
 					seg_url = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, k);
-					assert(seg_url->hls_utc_start_time);
 
 					start_diff = (s64) current_start_time;
 					start_diff -= (s64) seg_url->hls_utc_start_time;
@@ -2166,7 +2165,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 						break;
 					}
 					if (current_start_time < seg_url->hls_utc_start_time) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probabluy lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probably lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
 						group->download_segment_index = k;
 						next_media_seq = rep->m3u8_media_seq_min + group->download_segment_index;
 						next_found = GF_TRUE;
