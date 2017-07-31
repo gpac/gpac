@@ -1760,7 +1760,8 @@ restart_fragmentation_pass:
 				//in dynamic mode we will loop, pay attention to the timing
 				else if (!dasher->disable_loop) {
 					if (clamp_duration) {
-						sample_duration = clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset);
+						/* simple round with (int)+.5 to avoid trucating .99999 to 0 */
+						sample_duration = (u32)(clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset) + 0.5);
 						//it may happen that the sample duration is 0 if the clamp duration is right after the sample DTS and timescale is not big enough to express it - force to 1
 						if (sample_duration==0)
 							sample_duration=1;
@@ -1775,7 +1776,7 @@ restart_fragmentation_pass:
 					next = gf_isom_get_sample(input, tf->OriginalTrack, 1, &j);
 					next->DTS += tf->loop_ts_offset;
 				} else if (clamp_duration) {
-					sample_duration = clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset);
+					sample_duration = (u32)(clamp_duration*tf->TimeScale - (sample->DTS - tf->loop_ts_offset) + 0.5);
 					force_eos = GF_TRUE;
 				} else {
 					sample_duration = (u32) (gf_isom_get_media_duration(input, tf->OriginalTrack) - (sample->DTS - tf->loop_ts_offset));
@@ -6984,7 +6985,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 		else if (dasher->force_period_end) {
 			flush_period = GF_TRUE;
 		}
-		if (flush_period) {
+		if (flush_period && dasher->dash_ctx) {
 			//get largest duration
 			u32 k, scount = gf_cfg_get_section_count(dasher->dash_ctx);
 			for (k=0; k<scount; k++) {
