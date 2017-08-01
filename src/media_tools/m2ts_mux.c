@@ -906,8 +906,8 @@ static void gf_m2ts_remap_timestamps_for_pes(GF_M2TS_Mux_Stream *stream, u32 pck
 
 	/*Rescale our timestamps and express them in PCR*/
 	if (stream->ts_scale.den) {
-		*cts = (u64)( *cts * stream->ts_scale.num / stream->ts_scale.den ) ;
-		*dts = (u64)( *dts * stream->ts_scale.num / stream->ts_scale.den ) ;
+		*cts = *cts * stream->ts_scale.num / stream->ts_scale.den ;
+		*dts = *dts * stream->ts_scale.num / stream->ts_scale.den ;
 		if (duration) *duration = (u32)( *duration * stream->ts_scale.num / stream->ts_scale.den ) ;
 
 

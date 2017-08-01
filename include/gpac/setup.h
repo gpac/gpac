@@ -341,8 +341,8 @@ typedef enum {
 #endif
 
 typedef struct {
-	s32 num;
-	u32 den;
+	s64 num;
+	u64 den;
 } GF_Fraction;
 
 /*GPAC memory tracking*/

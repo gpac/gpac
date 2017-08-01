@@ -292,9 +292,8 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	}
 	av_dict_free(&opts);
 
-	avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
+	return avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
 
-	return 0;
 }
 
 int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
@@ -419,7 +418,7 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool 
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
 			gf_isom_start_fragment(audio_output_file->isof, 1);
-			
+
 			if (insert_ntp) {
 				gf_isom_set_fragment_reference_time(audio_output_file->isof, 1, audio_output_file->frame_ntp, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			}
