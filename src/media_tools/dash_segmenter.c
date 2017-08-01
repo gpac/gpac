@@ -1436,7 +1436,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	if (!dash_moov_setup) {
 		max_track_duration.den *= gf_isom_get_timescale(input);
 		max_track_duration.num *= gf_isom_get_timescale(output);
-		gf_isom_set_movie_duration(output, (u64) (max_track_duration.num / max_track_duration.den) );
+		gf_isom_set_movie_duration(output, max_track_duration.num / max_track_duration.den );
 	}
 
 	//if single segment, add msix brand if we use indexes
@@ -1675,7 +1675,7 @@ restart_fragmentation_pass:
 				if (!SegmentDuration) tf->min_cts_in_segment = (u64)-1;
 
 				if (!mpd_timeline_bs && use_url_template) {
-					Double sdur = MaxSegmentDuration / dasher->dash_scale;
+					Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
 					Double diff = (cur_seg-2) * sdur;
 					diff -= ((Double)tf->start_tfdt) / tf->TimeScale;
 					if (ABS(diff) > sdur/2) {
@@ -1962,7 +1962,7 @@ restart_fragmentation_pass:
 								}
 								/*avoid drift with segment template*/
 								if (!tf->all_sample_raps && !mpd_timeline_bs && use_url_template) {
-									Double sdur = MaxSegmentDuration / dasher->dash_scale;
+									Double sdur = ((Double)MaxSegmentDuration) / dasher->dash_scale;
 									Double diff;
 									//tfdt of first sample in next segment
 									diff = ((Double)next_sap_time) / tf->TimeScale;
@@ -2000,7 +2000,7 @@ restart_fragmentation_pass:
 					if (!dasher->fragments_start_with_rap || ( (next && next->IsRAP) || split_at_rap) ) {
 						Bool segment_dur_exceeded = GF_FALSE;
 						Bool last_frag_in_seg = GF_FALSE;
-						u64 seg_dur = SegmentDuration + (tf->FragmentLength * dasher->dash_scale / tf->TimeScale);
+						u64 seg_dur = (u64) (SegmentDuration + (tf->FragmentLength * dasher->dash_scale / tf->TimeScale));
 
 						if (seg_dur >= MaxSegmentDuration) {
 							last_frag_in_seg = GF_TRUE;
