@@ -212,16 +212,7 @@ sync_media ()
  cd "$main_dir"
 }
 
-#performs mirroring of media
 sync_hash ()
-{
-log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
-cd $HASH_DIR
-wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
-cd "$main_dir"
-}
-
-git_hash ()
 {
 log $L_INF "- Mirroring reference hashes from from github to $HASH_DIR"
 cd $HASH_DIR
@@ -297,7 +288,7 @@ for i in $* ; do
   sync_hash
   exit;;
  "-git-hash")
-  git_hash;;
+  sync_hash;;
  "-sync-media")
   sync_media;;
  "-sync-refs")
@@ -1132,7 +1123,10 @@ do_hash_test ()
 
  echo "HASH_TEST=$2" > $STATHASH_SH
 
- echo "Computing $1  ($2) hash: " >> $log_subtest
+ #redefine log subtest var using the hash name in case the subtest was a subscript (do_test &)
+ log_subt="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
+
+ echo "Computing $1  ($2) hash: " >> $log_subt
  file_to_hash="$1"
 
  # for text files, we remove potential CR chars
@@ -1144,7 +1138,7 @@ do_hash_test ()
   fi
  fi
 
- $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subtest
+ $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subt
 
  if [ "$file_to_hash" != "$1" ] && [ -f "$file_to_hash" ]; then
   rm "$file_to_hash"
@@ -1164,29 +1158,29 @@ do_hash_test ()
   if [ $rv != 0 ] ; then
    hashres=0
    fhash=`hexdump -ve '1/1 "%.2X"' $ref_hash`
-   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subtest
+   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subt
    shopt -s nullglob
    for alt_ref in "$ref_hash-alt"* ; do
     $DIFF $test_hash $alt_ref > /dev/null
     rv_alt=$?
     if [ $rv_alt != 0 ] ; then
       fhash=`hexdump -ve '1/1 "%.2X"' $alt_ref`
-      echo "Hash alt fail, alt ref $alt_ref was $fhash"  >> $log_subtest
+      echo "Hash alt fail, alt ref $alt_ref was $fhash"  >> $log_subt
     else
       hashres=1
-      echo "Hash alt OK with alt ref $alt_ref"  >> $log_subtest
+      echo "Hash alt OK with alt ref $alt_ref"  >> $log_subt
       break
     fi
    done
    shopt -u nullglob
    if [ $hashres != 0 ] ; then
-    echo "Hash OK for $1"  >> $log_subtest
+    echo "Hash OK for $1"  >> $log_subt
     echo "HASH_FAIL=0" >> $STATHASH_SH
    else
     echo "HASH_FAIL=1" >> $STATHASH_SH
    fi
   else
-   echo "Hash OK for $1"  >> $log_subtest
+   echo "Hash OK for $1"  >> $log_subt
    echo "HASH_FAIL=0" >> $STATHASH_SH
   fi
   rm $test_hash

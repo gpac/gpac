@@ -537,7 +537,7 @@ void gf_scene_buffering_info(GF_Scene *scene)
 		j=0;
 		while ((ch = (GF_Channel*)gf_list_enum(odm->channels, &j))) {
 			if (max_buff_val < ch->MaxBuffer) max_buff_val = ch->MaxBuffer;
-			
+
 			/*count only re-buffering channels*/
 			if (!ch->BufferOn) continue;
 			if (ch->MaxBuffer) {
@@ -1256,7 +1256,7 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
 	GF_Proto *proto;
 	GF_Node *node;
 	char *name = "urn:inet:gpac:builtin:VRGeometry";
-	
+
 	proto = gf_sg_find_proto(sg, 0, name);
 	if (!proto) {
 		MFURL *url;
@@ -1307,13 +1307,13 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 
 	if (scene->srd_type) {
 		GF_Node *app = n2;
-		
+
 		if (scene->vr_type) {
 			n2 = load_vr_proto_node(scene->graph, name_geo);
 		} else {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		}
-		
+
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
 		//force  appearance material2D.filled = TRUE
@@ -1357,7 +1357,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
 		GF_Event evt;
-		
+
 		/*create an OrderedGroup*/
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
@@ -1457,7 +1457,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
 		}
-		
+
 
 		//send activation for sensors
 		memset(&evt, 0, sizeof(GF_Event));
@@ -1527,7 +1527,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		scene->srd_min_y = min_y;
 		scene->srd_max_x = max_x;
 		scene->srd_max_y = max_y;
-		
+
 		url.url = NULL;
 		gf_sg_get_scene_size_info(scene->graph, &sw, &sh);
 		i=0;
@@ -1548,7 +1548,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 				if (!scene->dyn_ck && a_odm->codec) {
 					scene->dyn_ck = a_odm->codec->ck;
 				}
-				
+
 				if (scene->vr_type) {
 					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 					gf_node_changed(n2, NULL);
@@ -2078,7 +2078,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		width /= 2;
 		height /= 2;
 		/*if we already processed a force size in 360, don't do it again*/
-		if (scene->force_size_set) 
+		if (scene->force_size_set)
 			return;
 
 #ifndef GPAC_DISABLE_VRML
@@ -2103,7 +2103,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 			com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
 			gf_term_service_command(scene->root_od->net_service, &com);
 		}
-		
+
 		if (scene->root_od->term->root_scene == scene) {
 			if (com.par.width && com.par.height) {
 				gf_sc_set_scene_size(scene->root_od->term->compositor, width, height, 1);
@@ -2485,7 +2485,7 @@ void gf_scene_generate_mosaic(GF_Scene *scene, char *url, char *parent_path)
 	M_Inline *inl;
 	Bool first_pass = GF_TRUE;
 	u32 nb_items=0, nb_rows=0, nb_cols=0;
-	s32 width=1920, height=1080, x, y, tw, th;
+	s32 width=1920, height=1080, x, y, tw=0, th=0;
 
 	GF_Event evt;
 	gf_sc_node_destroy(scene->root_od->term->compositor, NULL, scene->graph);
@@ -2524,8 +2524,8 @@ restart:
 			gf_node_register(tr, n1);
 			gf_node_list_add_child( &((GF_ParentNode *)n1)->children, tr);
 
-			((M_Transform2D *)tr)->translation.x = -width/2 + tw/2 + x*tw;
-			((M_Transform2D *)tr)->translation.y = height/2 - th/2 - y*th;
+			((M_Transform2D *)tr)->translation.x = (Fixed)(-width/2 + tw/2 + x*tw);
+			((M_Transform2D *)tr)->translation.y = (Fixed)(height/2 - th/2 - y*th);
 
 			x++;
 			if (x==nb_cols) {
@@ -2903,7 +2903,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	if (!odm_base) return;
 
 	base_ch = gf_list_get(odm_base->channels, 0);
-	
+
 	switch (base_ch->esd->decoderConfig->objectTypeIndication) {
 	case GPAC_OTI_VIDEO_AVC:
 	case GPAC_OTI_VIDEO_SVC:
@@ -2932,7 +2932,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
-	
+
 	if (0 && odm_base->codec->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
 		nalu_annex_b = 0;
 		if (force_attach) {

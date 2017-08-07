@@ -256,6 +256,7 @@ void PrintGeneralUsage()
 	        " -split-rap           splits in files beginning at each RAP. same as -splitr.\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -split-chunk S:E     extracts a new file from Start to End (in seconds). same as -splitx\n"
+	        "                       E may be a number, \"end\" or \"end-N\", where N is a number of seconds before the end\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
 	        " -splitz S:E          same as -split-chunk, but adjust the end time to be before the last RAP sample\n"
 	        "                       * Note: this removes all MPEG-4 Systems media\n"
@@ -328,7 +329,7 @@ void PrintDASHUsage()
 	        " \"#audio\"           only uses the first audio track from the source file\n"
 	        " \":id=NAME\"         sets the representation ID to NAME\n"
 	        " \":dur=VALUE\"       processes VALUE seconds from the media\n"
-	        "                       If VALUE is longer than the media duration, the last media duration is lengthen.\n"
+	        "                       If VALUE is longer than media duration, last sample duration is extended.\n"
 	        " \":period=NAME\"     sets the representation's period to NAME. Multiple periods may be used\n"
 	        "                       period appear in the MPD in the same order as specified with this option\n"
 	        " \":BaseURL=NAME\"    sets the BaseURL. Set multiple times for multiple BaseURLs\n"
@@ -362,9 +363,10 @@ void PrintDASHUsage()
 	        "                      $RepresentationID$ is replaced by representation name.\n"
 	        "                      $Time$ is replaced by segment start time.\n"
 	        "                      $Bandwidth$ is replaced by representation bandwidth.\n"
-	        "                      $Init=NAME$ is replaced by NAME for init segment, ignored otherwise.\n"
-	        "                      $Index=NAME$ is replaced by NAME for index segments, ignored otherwise.\n"
-	        "                      $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise.\n"
+	        "                      $Init=NAME$ is replaced by NAME for init segment, ignored otherwise. May occur multiple times.\n"
+	        "                      $Index=NAME$ is replaced by NAME for index segments, ignored otherwise. May occur multiple times.\n"
+	        "                      $Path=PATH$ is replaced by PATH when creating segments, ignored otherwise. May occur multiple times.\n"
+	        "                      $Segment=NAME$ is replaced by NAME for media segments, ignored for init segments. May occur multiple times.\n"
 			"\n"
 	        " -segment-ext name    sets the segment extension. Default is m4s, \"null\" means no extension\n"
 	        " -segment-timeline    uses SegmentTimeline when generating segments.\n"
@@ -384,7 +386,8 @@ void PrintDASHUsage()
 	        " -time-shift  TIME    specifies MPD time shift buffer depth in seconds (default 0). Specify -1 to keep all files\n"
 	        " -subdur DUR          specifies maximum duration in ms of the input file to be dashed in LIVE or context mode.\n"
 	        "                       NOTE: This does not change the segment duration: dashing stops once segments produced exceeded the duration.\n"
-	        " -dash-run-for TIME   In case of dash live, runs for T ms of the media then exits\n"
+	        "                       NOTE: If there is not enough samples to finish a segment, data is looped unless -no-loop is used (period end).\n"
+	        " -run-for TIME        runs for T ms of the dash-live session then exits\n"
 	        " -min-buffer TIME     specifies MPD min buffer time in milliseconds\n"
 	        " -ast-offset TIME     specifies MPD AvailabilityStartTime offset in ms if positive, or availabilityTimeOffset of each representation if negative. Default is 0 sec delay\n"
 	        " -dash-scale SCALE    specifies that timing for -dash and -frag are expressed in SCALE units per seconds\n"
@@ -392,6 +395,7 @@ void PrintDASHUsage()
 	        " -pssh-moof           stores PSSH boxes in first moof of each segments. By default PSSH are stored in movie box.\n"
 	        " -sample-groups-traf  stores sample group descriptions in traf (duplicated for each traf). If not used, sample group descriptions are stored in the movie box.\n"
 	        " -no-cache            disable file cache for dash inputs .\n"
+	        " -no-loop             disables looping content in live mode and uses period switch instead.\n"
 
 	        "\n"
 	        "Advanced Options, should not be needed when using -profile:\n"
@@ -493,6 +497,7 @@ void PrintImportUsage()
 	        " \":trailing\"          keeps trailing 0-bytes in AVC/HEVC samples\n"
 	        " \":agg=VAL\"           same as -agg option\n"
 	        " \":dref\"              same as -dref option\n"
+	        " \":keep_refs\"         keeps track reference when importing a single track\n"
 	        " \":nodrop\"            same as -nodrop option\n"
 	        " \":packed\"            same as -packed option\n"
 	        " \":sbr\"               same as -sbr option\n"
@@ -1926,9 +1931,10 @@ const char *grab_m2ts = NULL;
 const char *grab_ifce = NULL;
 #endif
 FILE *logfile = NULL;
-static u32 dash_run_for;
+static u32 run_for=0;
 static u32 dash_cumulated_time,dash_prev_time,dash_now_time;
 static Bool no_cache=GF_FALSE;
+static Bool no_loop=GF_FALSE;
 
 u32 mp4box_cleanup(u32 ret_code) {
 	if (mpd_base_urls) {
@@ -2601,8 +2607,14 @@ u32 mp4box_parse_args_continue(int argc, char **argv, u32 *current_index)
 				return 2;
 			}
 			if (strstr(argv[i + 1], "end")) {
-				sscanf(argv[i + 1], "%lf:end", &split_start);
-				split_duration = -2;
+				if (strstr(argv[i + 1], "end-")) {
+					Double dur_end=0;
+					sscanf(argv[i + 1], "%lf:end-%lf", &split_start, &dur_end);
+					split_duration = -2 - dur_end;
+				} else {
+					sscanf(argv[i + 1], "%lf:end", &split_start);
+					split_duration = -2;
+				}
 			}
 			else {
 				sscanf(argv[i + 1], "%lf:%lf", &split_start, &split_duration);
@@ -3232,13 +3244,16 @@ Bool mp4box_parse_args(int argc, char **argv)
 			seg_name = argv[i + 1];
 			i++;
 		}
-		else if (!stricmp(arg, "-dash-run-for")) {
+		else if (!stricmp(arg, "-run-for")) {
 			CHECK_NEXT_ARG
-			dash_run_for = atoi(argv[i + 1]);
+			run_for = atoi(argv[i + 1]);
 			i++;
 		}
 		else if (!stricmp(arg, "-no-cache")) {
 			no_cache = GF_TRUE;
+		}
+		else if (!stricmp(arg, "-no-loop")) {
+			no_loop = GF_TRUE;
 		}
 		else if (!stricmp(arg, "-segment-ext")) {
 			CHECK_NEXT_ARG
@@ -4025,6 +4040,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_set_profile_extension(dasher, dash_profile_extension);
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
+		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);
@@ -4037,7 +4053,7 @@ int mp4boxMain(int argc, char **argv)
 		dash_cumulated_time=0;
 
 		while (1) {
-			if (dash_run_for && (dash_cumulated_time>dash_run_for))
+			if (run_for && (dash_cumulated_time > run_for))
 				do_abort = 3;
 
 			dash_prev_time=gf_sys_clock();
@@ -4123,7 +4139,7 @@ int mp4boxMain(int argc, char **argv)
 		goto exit;
 	}
 
-	else if (!file
+	else if (!file && !do_hash
 #ifndef GPAC_DISABLE_MEDIA_EXPORT
 	         && !(track_dump_type & GF_EXPORT_AVI_NATIVE)
 #endif

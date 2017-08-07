@@ -840,6 +840,8 @@ static void SetWindowless(GF_VideoOutput *vout, HWND hWnd)
 	GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DX Out] Windowloess mode not supported on Window CE\n"));
 	return;
 #else
+/* use VerifyVersionInfo() instead of GetVersionEx? */
+#pragma warning(disable : 4996)
 	const char *opt;
 	u32 a, r, g, b;
 	COLORREF ckey;
