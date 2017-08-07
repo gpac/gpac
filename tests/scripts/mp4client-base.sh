@@ -5,7 +5,7 @@ single_playback_test "-guid" "mp4client-gui"
 #2- test playback of raw media
 single_playback_test "$MEDIA_DIR/auxiliary_files/count_english.mp3" "mp4client-mp3"
 
-single_playback_test "$MEDIA_DIR/auxiliary_files/count_video.cmp" "mp4client-m4vp2"
+single_playback_test "$MEDIA_DIR/auxiliary_files/count_video.mp4" "mp4client-m4vp2"
 
 single_playback_test "$MEDIA_DIR/auxiliary_files/enst_video.h264" "mp4client-h264"
 
@@ -44,14 +44,14 @@ fi
 
 single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=disable -no-save $MEDIA_DIR/auxiliary_files/logo.jpg" "mp4client-sdl2d-jpg"
 
-single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=disable -no-save $MEDIA_DIR/auxiliary_files/count_video.cmp" "mp4client-sdl2d-yuv"
+single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=disable -no-save $MEDIA_DIR/auxiliary_files/count_video.mp4" "mp4client-sdl2d-yuv"
 
 single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=disable -no-save $MEDIA_DIR/bifs/bifs-2D-background-background2D-image.bt" "mp4client-sdl2d-compose"
 
 
 single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=hybrid -no-save $MEDIA_DIR/auxiliary_files/logo.jpg" "mp4client-sdlgl-jpg"
 
-single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=hybrid -no-save $MEDIA_DIR/auxiliary_files/count_video.cmp" "mp4client-sdlgl-yuv"
+single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=hybrid -no-save $MEDIA_DIR/auxiliary_files/count_video.mp4" "mp4client-sdlgl-yuv"
 
 single_playback_test "-opt Video:DriverName=sdl_out -opt Compositor:OpenGLMode=hybrid -no-save $MEDIA_DIR/bifs/bifs-2D-background-background2D-image.bt" "mp4client-sdlgl-compose"
 

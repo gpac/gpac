@@ -2154,7 +2154,6 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 				for (k=0; k<gf_list_count(rep->segment_list->segment_URLs); k++) {
 					s64 start_diff;
 					seg_url = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, k);
-					assert(seg_url->hls_utc_start_time);
 
 					start_diff = (s64) current_start_time;
 					start_diff -= (s64) seg_url->hls_utc_start_time;
@@ -2166,7 +2165,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 						break;
 					}
 					if (current_start_time < seg_url->hls_utc_start_time) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probabluy lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probably lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
 						group->download_segment_index = k;
 						next_media_seq = rep->m3u8_media_seq_min + group->download_segment_index;
 						next_found = GF_TRUE;
@@ -4568,6 +4567,19 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
+		//on HLS get rid of audio only adaptation set if not in fMP4 mode
+		if (dash->is_m3u8
+			&& !group->adaptation_set->max_width
+			&& !group->adaptation_set->max_height
+			&& (gf_list_count(dash->groups)>1)
+		) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+			if ((!rep->segment_template || !rep->segment_template->initialization) && (!rep->segment_list || !rep->segment_list->initialization_segment)) {
+				group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+				continue;
+			}
+		}
+
 		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - may result in broken adaptation\n"));
 		}
@@ -5757,7 +5769,10 @@ restart_period:
 
 					gf_mx_p(group->cache_mutex);
 
-					if ((group->selection != GF_DASH_GROUP_SELECTED) || group->done || group->depend_on_group) {
+					if ((group->selection != GF_DASH_GROUP_SELECTED)
+						|| group->depend_on_group
+						|| (group->done && !group->nb_cached_segments)
+					) {
 						gf_mx_v(group->cache_mutex);
 						continue;
 					}
@@ -5770,6 +5785,10 @@ restart_period:
 						&& !dash->request_period_switch
 						&& !group->has_pending_enhancement
 					) {
+						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
+					}
+					if (group->done && group->nb_cached_segments)
+					{
 						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
 					}
 

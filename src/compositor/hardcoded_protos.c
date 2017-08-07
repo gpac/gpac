@@ -1392,8 +1392,8 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				tr_state->visual->compositor->hit_square_dist = 0;
 
 				//gaze coords are 0,0 in top-left
-				gx = tr_state->visual->compositor->gaze_x - tr_state->camera->width/2;
-				gy = tr_state->camera->height/2 - tr_state->visual->compositor->gaze_y;
+				gx = (s32)( tr_state->visual->compositor->gaze_x - tr_state->camera->width/2 );
+				gy = (s32)( tr_state->camera->height/2 - tr_state->visual->compositor->gaze_y );
 
 				visual_3d_setup_ray(tr_state->visual, tr_state, gx, gy);
 				visual_3d_vrml_drawable_pick(node, tr_state, stack->mesh, NULL);

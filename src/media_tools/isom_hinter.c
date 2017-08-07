@@ -718,10 +718,10 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			samp->IsRAP = RAP;
 		}
 
-		ts = (u64) (ft.num * (samp->DTS+samp->CTS_Offset) / ft.den);
+		ts = ft.num * (samp->DTS+samp->CTS_Offset) / ft.den;
 		tkHint->rtp_p->sl_header.compositionTimeStamp = ts;
 
-		ts = (u64) (ft.num * samp->DTS / ft.den);
+		ts = ft.num * samp->DTS / ft.den;
 		tkHint->rtp_p->sl_header.decodingTimeStamp = ts;
 		tkHint->rtp_p->sl_header.randomAccessPointFlag = samp->IsRAP;
 

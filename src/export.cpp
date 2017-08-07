@@ -900,6 +900,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_last_sample_duration) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_set_track_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_reference) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_track_references) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_sample) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_update_sample_reference) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_remove_sample) )
@@ -2061,6 +2062,9 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_add_input) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_process) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_set_start_date) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_cached_inputs) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_dasher_enable_loop_inputs) )
+
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_dasher_next_update_time) )
 

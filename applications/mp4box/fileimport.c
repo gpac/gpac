@@ -309,26 +309,34 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
+		Bool is_filename = GF_FALSE;
 		char *ext2 = strchr(ext+1, ':');
 		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
 		if (ext2 && !strncmp(ext2, ":\\", 2)) ext2 = strchr(ext2+1, ':');
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
+		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
 		else if (!strnicmp(ext+1, "lang=", 5)) szLan = ext+6;
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
 			} else {
+				char *ext3=NULL;
 				if (ext2) ext2[0] = ':';
-				if (ext2) ext2 = strchr(ext2+1, ':');
-				if (ext2) ext2[0] = 0;
+				if (ext2) ext3 = strchr(ext2+1, ':');
+				if (ext3) ext3[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
+				if (ext3) ext3[0] = ':';
+				if (ext2) ext = ext2+1;
+				ext2 = NULL;
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "name=", 5)) {
+			handler_name = gf_strdup(ext+6);
+			is_filename = GF_TRUE;
+		}
 		else if (!strnicmp(ext+1, "ext=", 4)) {
 			/*extensions begin with '.'*/
 			if (*(ext+5) == '.')
@@ -360,6 +368,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "trailing")) import_flags |= GF_IMPORT_KEEP_TRAILING;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
+		else if (!stricmp(ext+1, "keep_refs")) import_flags |= GF_IMPORT_KEEP_REFS;
 		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
@@ -424,9 +433,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
-		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
+		else if (!strnicmp(ext+1, "chapter=", 8)) {
+			chapter_name = gf_strdup(ext+9);
+			is_filename = GF_TRUE;
+		}
 		else if (!strnicmp(ext+1, "chapfile=", 9)) {
 			chapter_name = gf_strdup(ext+10);
+			is_filename = GF_TRUE;
 			is_chap_file=1;
 		}
 		else if (!strnicmp(ext+1, "layout=", 7)) {
@@ -520,6 +533,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		}
 
 		if (ext2) ext2[0] = ':';
+
+		if (is_filename) {
+			char *sep;
+			sep = strchr(ext+6, ':');
+			if (sep) ext = sep+1;
+		}
 
 		ext[0] = 0;
 		ext = strchr(ext+1, ':');
@@ -723,6 +742,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 	} else {
+		if (do_all)
+			import.flags |= GF_IMPORT_KEEP_REFS;
+		
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
 			if (prog_id) {
@@ -908,7 +930,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	{
 		e = gf_isom_rewrite_track_dependencies(import.dest, i);
 		if (e) {
-			fprintf(stderr, "Warning: track ID %d has references to a track not imported\n", gf_isom_get_track_id(import.dest, i));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning: track ID %d has references to a track not imported\n", gf_isom_get_track_id(import.dest, i) ));
 			e = GF_OK;
 		}
 	}
@@ -1006,10 +1028,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	rap_split = 0;
 	if (split_size_kb == (u64)-1) rap_split = 1;
 	if (split_dur == -1) rap_split = 1;
-	else if (split_dur==-2) {
+	else if (split_dur <= -2) {
 		split_size_kb = 0;
 		split_until_end = 1;
-		split_dur = 0;
 	}
 
 	if (rap_split) {
@@ -1128,7 +1149,18 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		return GF_NOT_SUPPORTED;
 	}
 	if (split_until_end) {
-		split_dur = max_dur;
+		if (split_dur < -2) {
+			split_dur = - (split_dur + 2 - chunk_start);
+			if (max_dur < split_dur) {
+				fprintf(stderr, "Split duration till end %lf longer than track duration %lf\n", split_dur, max_dur);
+				gf_free(tks);
+				return GF_NOT_SUPPORTED;
+			} else {
+				split_dur = max_dur - split_dur;
+			}
+		} else {
+			split_dur = max_dur;
+		}
 	} else if (!rap_split && (max_dur<=split_dur)) {
 		fprintf(stderr, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		gf_free(tks);
