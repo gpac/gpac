@@ -38,9 +38,11 @@ matrix:
     - os: osx
       env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="" AUDIODEV=null
 script:
-  - ./configure --cc="gcc -v " --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make SHELL='sh -x' && $DOINSTALL && $DOTRAVIS
+  - ls -RlA /usr/include ; grep -Rn AV_CH_LAYOUT_MONO /usr/include/* ; ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make SHELL='sh -x' && $DOINSTALL && $DOTRAVIS
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash) ; fi
+after_failure:
+  - cd /home/travis/build/gpac/gpac/applications/dashcast ; gcc -v -O3 -Wall -fno-strict-aliasing -Wno-pointer-sign -fPIC -DPIC --coverage -msse2 -DNDEBUG -DGPAC_HAVE_CONFIG_H -I/home/enstdevs/gpac/gpac_public -fvisibility=hidden -D_GNU_SOURCE -I/home/enstdevs/gpac/gpac_public/include -I../../ -I/usr/local/include -DGPAC_USE_LIBAV -c -o audio_encoder.o audio_encoder.c ; cd -
 
 notifications:
   email:
