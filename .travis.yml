@@ -38,7 +38,7 @@ matrix:
     - os: osx
       env: GPAC_CONFIGURE_OPTIONS="--enable-mem-track" GPAC_CONFIGURE_ECFLAGS="" DOINSTALL="sudo make install" DOTRAVIS="" AUDIODEV=null
 script:
-  - ls -RlA /usr/include ; grep -Rn AV_CH_LAYOUT_MONO /usr/include/* ; ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make SHELL='sh -x' && $DOINSTALL && $DOTRAVIS
+  - grep -Rn "channel_layout.h" /usr/include/* ; ./configure --extra-cflags=''"$GPAC_CONFIGURE_ECFLAGS"'' $GPAC_CONFIGURE_OPTIONS && make SHELL='sh -x' && $DOINSTALL && $DOTRAVIS
 after_success:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then bash <(curl -s https://codecov.io/bash) ; fi
 after_failure:
