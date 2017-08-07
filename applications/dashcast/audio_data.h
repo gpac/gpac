@@ -34,6 +34,7 @@
 
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavcodec/avcodec.h"
+#include "libavutil/channel_layout.h"
 #include "libavutil/mem.h"
 #include "libav_compat.h"
 #include "circular_buffer.h"
