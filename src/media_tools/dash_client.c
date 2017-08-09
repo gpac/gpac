@@ -2755,9 +2755,9 @@ static u32 get_max_rate_below(GF_List *representations, double rate, s32 *index)
 }
 
 /**
-Adaptation Algorithm as described in 
-	T.-Y. Huang et al. 2014. A buffer-based approach to rate adaptation: evidence from a large video streaming service. 
-	In Proceedings of the 2014 ACM conference on SIGCOMM (SIGCOMM '14). 
+Adaptation Algorithm as described in
+	T.-Y. Huang et al. 2014. A buffer-based approach to rate adaptation: evidence from a large video streaming service.
+	In Proceedings of the 2014 ACM conference on SIGCOMM (SIGCOMM '14).
 */
 static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
@@ -2773,7 +2773,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	u32 cu; // cushion
 	u32 buf_now = group->buffer_occupancy_ms;
 	double f_buf_now;
-	
+
 	/* We don't use the segment duration as advertised in the MPD because it may not be there due to segment timeline*/
 	u32 segment_duration_ms = (u32)group->current_downloaded_segment_duration;
 
@@ -2857,7 +2857,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	return new_index;
 }
 
-/* returns the index of the representation which maximises BOLA utility function 
+/* returns the index of the representation which maximises BOLA utility function
    based on the relative log-based utility of each representation compared to the one with the lowest bitrate
    NOTE: V can represent V (in BOLA BASIC) or V_D (in other modes of BOLA) */
 static s32 bola_find_max_utility_index(GF_List *representations, Double V, Double gamma, Double p, Double Q) {
@@ -2896,7 +2896,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 	GF_MPD_Representation *min_rep;
 	GF_MPD_Representation *max_rep;
 	u32 nb_reps;
-	
+
 	if (dash->mpd->type != GF_MPD_TYPE_STATIC) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] BOLA: Cannot be used for live MPD\n"));
 		return -1;
@@ -2960,7 +2960,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 					if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_U) {
 						m_prime++;
 					}
-					else { //GF_DASH_ALGO_BOLA_O						
+					else { //GF_DASH_ALGO_BOLA_O
 #if 0
 						GF_MPD_Representation *rep_m_prime, *rep_m_prime_plus_one;
 						Double Sm_prime, Sm_prime_plus_one, f_m_prime, f_m_prime_1, bola_o_pause;
@@ -2972,7 +2972,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 						Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
 						f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
 						f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
-						// TODO wait for bola_o_pause before making the download 
+						// TODO wait for bola_o_pause before making the download
 						bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
 #endif
 					}
@@ -3909,9 +3909,13 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 			for (j=0; j<nb_dep_groups; j++) {
 				GF_DASH_Group *dep_group = gf_list_get(group->groups_depending_on, j);
-				gf_free(dep_group->cached);
-				dep_group->cached = NULL;
+
 				dep_group->max_cached_segments = 0;
+
+				/* the rest of the code assumes that at least group->cached[0] is allocated */
+				dep_group->cached = gf_realloc(dep_group->cached, sizeof(segment_cache_entry));
+				memset(dep_group->cached, 0, sizeof(segment_cache_entry));
+
 			}
 		}
 	}
@@ -5874,7 +5878,7 @@ restart_period:
 				group->download_th_done = GF_TRUE;
 				continue;
 			}
-			
+
 			if (dash->use_threaded_download) {
 				group->download_th_done = GF_FALSE;
 				e = gf_th_run(group->download_th, dash_download_threaded, group);
