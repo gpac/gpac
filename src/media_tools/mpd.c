@@ -1378,7 +1378,7 @@ try_next_segment:
 				break;
 
 			if (elt) {
-				base_url = gf_url_concatenate(pe->url, elt->url);
+				base_url = gf_url_get_absolute_path(elt->url, pe->url);
 			} else {
 				base_url = gf_strdup(pe->url);
 			}
@@ -1388,6 +1388,11 @@ try_next_segment:
 			/*keep final '/' */
 			if (sep)
 				sep[1] = 0;
+			/* if no path separator then base_url is just a filename */
+			else {
+				free(base_url);
+				base_url = gf_strdup("./");
+			}
 
 
 			width = pe->width;
@@ -1403,7 +1408,7 @@ try_next_segment:
 				
 				br_start = elt->init_segment_url ? elt->init_byte_range_start : elt->byte_range_start;
 				br_end = elt->init_segment_url ? elt->init_byte_range_end : elt->byte_range_end;
-				elt_url = gf_url_concatenate(pe->url, elt_url);
+				elt_url = gf_url_get_absolute_path(elt_url, pe->url);
 
 				memset(&import, 0, sizeof(GF_MediaImporter));
 				import.trackID = 0;
@@ -2482,7 +2487,7 @@ static char *gf_mpd_get_base_url(GF_List *baseURLs, char *url, u32 *base_url_ind
 	
 	url_child = gf_list_get(baseURLs, idx);
 	if (url_child) {
-		char *t_url = gf_url_concatenate(url, url_child->URL);
+		char *t_url = gf_url_get_absolute_path(url_child->URL, url);
 		gf_free(url);
 		url = t_url;
 	}
