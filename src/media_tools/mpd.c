@@ -1432,7 +1432,6 @@ try_next_segment:
 					import.in_name = elt_url;
 				}
 				e = gf_media_import(&import);
-				gf_free(elt_url);
 
 				if (e != GF_OK) {
 //					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[MPD] M3U8 missing Media Element %s< (Playlist %s) %s \n", import.in_name, base_url));
