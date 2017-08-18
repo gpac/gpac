@@ -317,7 +317,13 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
-		else if (!strnicmp(ext+1, "lang=", 5)) szLan = ext+6;
+		else if (!strnicmp(ext+1, "lang=", 5)) {
+			/* prevent leak if param is set twice */
+			if (szLan)
+				gf_free((char*) szLan);
+
+			szLan = gf_strdup(ext+6);
+		}
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
@@ -744,7 +750,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	} else {
 		if (do_all)
 			import.flags |= GF_IMPORT_KEEP_REFS;
-		
+
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
 			if (prog_id) {
@@ -990,6 +996,7 @@ exit:
 	if (import.streamFormat) gf_free(import.streamFormat);
 	if (import.force_ext) gf_free(import.force_ext);
 	if (rvc_config) gf_free(rvc_config);
+	if (szLan) gf_free((char *)szLan);
 	return e;
 }
 
