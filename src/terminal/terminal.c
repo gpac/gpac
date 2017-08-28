@@ -408,9 +408,6 @@ static void gf_term_reload_cfg(GF_Terminal *term)
 #endif
 
 	gf_term_load_shortcuts(term);
-
-	/*reload compositor config*/
-	gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 }
 
 static Bool gf_term_get_user_pass(void *usr_cbk, const char *site_url, char *usr_name, char *password)
@@ -448,7 +445,8 @@ static GF_Err gf_term_step_clocks_intern(GF_Terminal * term, u32 ms_diff, Bool f
 					ck->Paused++;
 			}
 		}
-		term->compositor->step_mode = 1;
+		term->compositor->step_mode = GF_TRUE;
+		term->use_step_mode = GF_TRUE;
 		gf_sc_next_frame_state(term->compositor, GF_SC_DRAW_FRAME);
 
 		//resume/pause to trigger codecs state change 
@@ -483,6 +481,7 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (!term || !term->root_scene) return;
 
 	prev_state = term->play_state;
+	term->use_step_mode = GF_FALSE;
 
 	if (PlayState==GF_STATE_PLAY_LIVE) {
 		PlayState = GF_STATE_PLAYING;
@@ -520,8 +519,8 @@ static void gf_term_set_play_state(GF_Terminal *term, u32 PlayState, Bool reset_
 	if (term->play_state == PlayState) return;
 	term->play_state = PlayState;
 
-	if (term->root_scene->pause_at_first_frame && (PlayState == GF_STATE_PLAYING))
-		term->root_scene->pause_at_first_frame = GF_FALSE;
+	if (term->root_scene->first_frame_pause_type && (PlayState == GF_STATE_PLAYING))
+		term->root_scene->first_frame_pause_type = 0;
 
 	if (!pause_clocks) return;
 
@@ -572,13 +571,17 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 	/*render first visual frame and pause*/
 	if (pause_at_first_frame) {
 		gf_term_set_play_state(term, GF_STATE_STEP_PAUSE, 0, 0);
-		if (pause_at_first_frame==1)
-			scene->pause_at_first_frame = GF_TRUE;
+		scene->first_frame_pause_type = pause_at_first_frame;
 	}
 
 	if (!strnicmp(URL, "views://", 8)) {
 		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
 		gf_scene_generate_views(term->root_scene, (char *) URL+8, (char*)parent_path);
+		return;
+	}
+	else if (!strnicmp(URL, "mosaic://", 9)) {
+		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
+		gf_scene_generate_mosaic(term->root_scene, (char *) URL+9, (char*)parent_path);
 		return;
 	}
 
@@ -954,7 +957,7 @@ void gf_term_disconnect(GF_Terminal *term)
 		term->root_scene = NULL;
 	}
 	handle_services = 0;
-	if (term->flags & GF_TERM_NO_DECODER_THREAD)
+	if (term->flags & GF_TERM_NO_COMPOSITOR_THREAD)
 		handle_services = 1;
 	/*if an unthreaded term extension decides to disconnect the scene (validator does so), we must flush services now
 	because we are called from gf_term_handle_services*/
@@ -1009,6 +1012,8 @@ GF_Err gf_term_set_option(GF_Terminal * term, u32 type, u32 value)
 		return GF_OK;
 	case GF_OPT_RELOAD_CONFIG:
 		gf_term_reload_cfg(term);
+		/*reload compositor config*/
+		gf_sc_set_option(term->compositor, GF_OPT_RELOAD_CONFIG, 1);
 		return GF_OK;
 	case GF_OPT_MEDIA_CACHE:
 		gf_term_set_cache_state(term, value);
@@ -1198,6 +1203,9 @@ void gf_term_handle_services(GF_Terminal *term)
 #ifndef GPAC_DISABLE_VRML
 			gf_scene_mpeg4_inline_restart(odm->subscene);
 #endif
+			break;
+		case GF_ODM_ACTION_SETUP:
+			gf_odm_setup_task(odm);
 			break;
 		}
 

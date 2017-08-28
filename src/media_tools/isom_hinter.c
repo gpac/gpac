@@ -447,15 +447,19 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 		case GF_ISOM_SUBTYPE_AVC3_H264:
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
+		case GF_ISOM_SUBTYPE_MVC_H264:
 		{
 			GF_AVCConfig *avcc = gf_isom_avc_config_get(file, TrackNum, 1);
 			GF_AVCConfig *svcc = gf_isom_svc_config_get(file, TrackNum, 1);
+			GF_AVCConfig *mvcc = gf_isom_mvc_config_get(file, TrackNum, 1);
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			hintType = GF_RTP_PAYT_H264_AVC;
 			if (TrackMediaSubType==GF_ISOM_SUBTYPE_SVC_H264)
 				hintType = GF_RTP_PAYT_H264_SVC;
+			else if (TrackMediaSubType==GF_ISOM_SUBTYPE_MVC_H264)
+				hintType = GF_RTP_PAYT_H264_SVC;
 			streamType = GF_STREAM_VISUAL;
-			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc->nal_unit_size;
+			avc_nalu_size = avcc ? avcc->nal_unit_size : svcc ? svcc->nal_unit_size : mvcc->nal_unit_size;
 			oti = GPAC_OTI_VIDEO_AVC;
 			PL_ID = 0x0F;
 			gf_odf_avc_cfg_del(avcc);
@@ -583,7 +587,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 
 	my_sl.AUSeqNumLength = gf_get_bit_size(gf_isom_get_sample_count(file, TrackNum));
 	if (my_sl.AUSeqNumLength>16) my_sl.AUSeqNumLength=16;
-	
+
 	my_sl.CUDuration = const_dur;
 
 	if (gf_isom_has_sync_points(file, TrackNum)) {
@@ -690,14 +694,14 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 	u32 i, descIndex, duration;
 	u64 ts;
 	u8 PadBits;
-	Double ft;
+	GF_Fraction ft;
 	GF_ISOSample *samp;
 
 	tkHint->HintSample = tkHint->RTPTime = 0;
 
 	tkHint->TotalSample = gf_isom_get_sample_count(tkHint->file, tkHint->TrackNum);
-	ft = tkHint->rtp_p->sl_config.timestampResolution;
-	ft /= tkHint->OrigTimeScale;
+	ft.num = tkHint->rtp_p->sl_config.timestampResolution;
+	ft.den = tkHint->OrigTimeScale;
 
 	e = GF_OK;
 	for (i=0; i<tkHint->TotalSample; i++) {
@@ -714,10 +718,10 @@ GF_Err gf_hinter_track_process(GF_RTPHinter *tkHint)
 			samp->IsRAP = RAP;
 		}
 
-		ts = (u64) (ft * (s64) (samp->DTS+samp->CTS_Offset));
+		ts = ft.num * (samp->DTS+samp->CTS_Offset) / ft.den;
 		tkHint->rtp_p->sl_header.compositionTimeStamp = ts;
 
-		ts = (u64) (ft * (s64)(samp->DTS));
+		ts = ft.num * samp->DTS / ft.den;
 		tkHint->rtp_p->sl_header.decodingTimeStamp = ts;
 		tkHint->rtp_p->sl_header.randomAccessPointFlag = samp->IsRAP;
 

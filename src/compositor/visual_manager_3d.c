@@ -363,6 +363,9 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 			}
 		}
 
+
+	tr_state->camera_was_dirty = GF_FALSE;
+
 	if (tr_state->visual->nb_views>1) {
 		s32 view_idx;
 		Fixed interocular_dist_pixel;
@@ -379,8 +382,10 @@ void visual_3d_setup_projection(GF_TraverseState *tr_state, Bool is_layer)
 		if (tr_state->visual->reverse_views) delta = - delta;
 
 		tr_state->camera->flags |= CAM_IS_DIRTY;
+		tr_state->camera_was_dirty = GF_TRUE;
 		camera_update_stereo(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords, delta, tr_state->visual->compositor->video_out->view_distance, tr_state->visual->compositor->focus_distance, tr_state->visual->camera_layout);
 	} else {
+		if (tr_state->camera->flags & CAM_IS_DIRTY) tr_state->camera_was_dirty = GF_TRUE;
 		camera_update(tr_state->camera, &tr_state->transform, tr_state->visual->center_coords);
 	}
 
@@ -546,6 +551,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		GF_Rect orig_vp = tr_state->camera->vp;
 		Fixed vp_width = orig_vp.width;
 //		Fixed vp_height = orig_vp.height;
+		Fixed old_w = tr_state->camera->width;
+		Fixed old_h = tr_state->camera->height;
 
 		//fill up the entire screen matchin AR
 		if (tr_state->visual->autostereo_type==GF_3D_STEREO_HEADSET) {
@@ -566,6 +573,8 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 				tr_state->camera->vp.width = max_width;
 				tr_state->camera->vp.height = max_height;
 #endif
+				tr_state->camera->width = max_width;
+				tr_state->camera->height = max_height;
 
 			tr_state->camera->vp.x = (INT2FIX(tr_state->visual->compositor->display_width) - tr_state->visual->nb_views*tr_state->camera->vp.width)/2 + tr_state->visual->current_view * tr_state->camera->vp.width;
 			tr_state->camera->vp.y = (INT2FIX(tr_state->visual->compositor->display_height) - tr_state->camera->vp.height)/2;
@@ -596,6 +605,9 @@ void visual_3d_init_draw(GF_TraverseState *tr_state, u32 layer_type)
 		visual_3d_setup_projection(tr_state, layer_type);
 
 		tr_state->camera->vp = orig_vp;
+		tr_state->camera->width = old_w;
+		tr_state->camera->height = old_h;
+
 	} else if (tr_state->visual->autostereo_type==GF_3D_STEREO_TOP) {
 		GF_Rect orig_vp;
 		orig_vp = tr_state->camera->vp;
@@ -1236,17 +1248,14 @@ Bool visual_3d_node_cull(GF_TraverseState *tr_state, GF_BBox *bbox, Bool skip_ne
 #endif
 }
 
-void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
+Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s32 ix, s32 iy)
 {
 	Fixed in_x, in_y, x, y;
 	SFVec3f start, end;
 	SFVec4f res;
 
-	visual_3d_setup_traversing_state(visual, tr_state);
-	visual_3d_setup_projection(tr_state, 0);
-
-	x = INT2FIX(ev->mouse.x);
-	y = INT2FIX(ev->mouse.y);
+	x = INT2FIX(ix);
+	y = INT2FIX(iy);
 
 	/*if coordinate system is not centered, move to centered coord before applying camera transform
 	because the (un)projection matrices include this transform*/
@@ -1280,20 +1289,20 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = -FIX_ONE;
+	res.z = -FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
-	if (!res.q) return;
+	if (!res.q) return GF_FALSE;
 	start.x = gf_divfix(res.x, res.q);
 	start.y = gf_divfix(res.y, res.q);
 	start.z = gf_divfix(res.z, res.q);
 
 	res.x = in_x;
 	res.y = in_y;
-	res.z = FIX_ONE;
+	res.z = FIX_ONE/2;
 	res.q = FIX_ONE;
 	gf_mx_apply_vec_4x4(&visual->camera.unprojection, &res);
-	if (!res.q) return;
+	if (!res.q) return GF_FALSE;
 	end.x = gf_divfix(res.x, res.q);
 	end.y = gf_divfix(res.y, res.q);
 	end.z = gf_divfix(res.z, res.q);
@@ -1302,11 +1311,22 @@ void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, G
 	/*also update hit info world ray in case we have a grabbed sensor with mouse off*/
 	visual->compositor->hit_world_ray = tr_state->ray;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] cast ray\n\tOrigin %.4f %.4f %.4f - End %.4f %.4f %.4f\n\tDir %.4f %.4f %.4f\n",
-	                                      FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
-	                                      FIX2FLT(end.x), FIX2FLT(end.y), FIX2FLT(end.z),
-	                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
+	return GF_TRUE;
+}
 
+void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children)
+{
+
+	visual_3d_setup_traversing_state(visual, tr_state);
+	visual_3d_setup_projection(tr_state, 0);
+
+
+	if (!visual_3d_setup_ray(visual, tr_state, ev->mouse.x, ev->mouse.y))
+		return;
+
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Picking] cast ray Origin %.4f %.4f %.4f Direction %.4f %.4f %.4f\n",
+	                                      FIX2FLT(tr_state->ray.orig.x), FIX2FLT(tr_state->ray.orig.y), FIX2FLT(tr_state->ray.orig.z),
+	                                      FIX2FLT(tr_state->ray.dir.x), FIX2FLT(tr_state->ray.dir.y), FIX2FLT(tr_state->ray.dir.z)));
 
 
 	visual->compositor->hit_square_dist = 0;
@@ -1861,39 +1881,50 @@ Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha)
 #ifndef GPAC_DISABLE_VRML
 	GF_TextureHandler *txh;
 	tr_state->mesh_num_textures = 0;
-	if (!tr_state->appear) return 0;
+	if (!tr_state->appear) return GF_TRUE;
 
 	gf_node_dirty_reset(tr_state->appear, 0);
 
 	txh = gf_sc_texture_get_handler(((M_Appearance *)tr_state->appear)->texture);
-	if (txh) {
-		gf_sc_texture_set_blend_mode(txh, gf_sc_texture_is_transparent(txh) ? TX_MODULATE : TX_REPLACE);
-		tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
-		if (tr_state->mesh_num_textures) {
-			Fixed v[4];
-			switch (txh->pixelformat) {
-			/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
-			case GF_PIXEL_RGB_24:
+	//no texture, return TRUE (eg draw)
+	if (!txh)
+		return GF_TRUE;
+
+	gf_sc_texture_set_blend_mode(txh, gf_sc_texture_is_transparent(txh) ? TX_MODULATE : TX_REPLACE);
+	tr_state->mesh_num_textures = gf_sc_texture_enable(txh, ((M_Appearance *)tr_state->appear)->textureTransform);
+	if (tr_state->mesh_num_textures) {
+		Fixed v[4];
+		switch (txh->pixelformat) {
+		/*override diffuse color with full intensity, but keep material alpha (cf VRML lighting)*/
+		case GF_PIXEL_RGB_24:
+			if (tr_state->visual->has_material_2d) {
+				SFColor c;
+				c.red = c.green = c.blue = FIX_ONE;
+				visual_3d_set_material_2d(tr_state->visual, c, diffuse_alpha);
+			} else {
 				v[0] = v[1] = v[2] = FIX_ONE;
 				v[3] = diffuse_alpha;
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
-				break;
-			/*override diffuse color AND material alpha (cf VRML lighting)*/
-			case GF_PIXEL_RGBA:
+			}
+			break;
+		/*override diffuse color AND material alpha (cf VRML lighting)*/
+		case GF_PIXEL_RGBA:
+			if (!tr_state->visual->has_material_2d) {
 				v[0] = v[1] = v[2] = v[3] = FIX_ONE;
 				visual_3d_set_material(tr_state->visual, V3D_MATERIAL_DIFFUSE, v);
-				tr_state->mesh_is_transparent = 1;
-				break;
-				/*			case GF_PIXEL_GREYSCALE:
-								tr_state->mesh_num_textures = 2;
-								break;
-				*/
 			}
+			tr_state->mesh_is_transparent = 1;
+			break;
+			/*			case GF_PIXEL_GREYSCALE:
+							tr_state->mesh_num_textures = 2;
+							break;
+			*/
 		}
-		return tr_state->mesh_num_textures;
 	}
+	return tr_state->mesh_num_textures ? GF_TRUE : GF_FALSE;
+#else
+	return GF_TRUE;
 #endif /*GPAC_DISABLE_VRML*/
-	return 0;
 }
 
 void visual_3d_disable_texture(GF_TraverseState *tr_state)
@@ -1912,7 +1943,7 @@ Bool visual_3d_setup_appearance(GF_TraverseState *tr_state)
 	/*setup material and check if 100% transparent - in which case don't draw*/
 	if (!visual_3d_setup_material(tr_state, 0, &diff_a)) return 0;
 	/*setup texture*/
-	visual_3d_setup_texture(tr_state, diff_a);
+	if (! visual_3d_setup_texture(tr_state, diff_a)) return 0;
 	return 1;
 }
 

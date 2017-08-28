@@ -117,6 +117,7 @@ static void TraversePathExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_traverse(path_ext.geometry, tr_state);
 		tr_state->traversing_mode = mode;
 
+		gf_node_dirty_clear(node, 0);
 
 		switch (gf_node_get_tag(path_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
@@ -234,6 +235,7 @@ static void TraversePlanarExtrusion(GF_Node *node, void *rs, Bool is_destroy)
 		gf_node_traverse(plane_ext.geometry, tr_state);
 		gf_node_traverse(plane_ext.spine, tr_state);
 		tr_state->traversing_mode = mode;
+		gf_node_dirty_clear(node, 0);
 
 		switch (gf_node_get_tag(plane_ext.geometry) ) {
 		case TAG_MPEG4_Circle:
@@ -422,6 +424,7 @@ static void TraversePlaneClipper(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		PlaneClipper_GetNode(node, &stack->pc);
+		gf_node_dirty_clear(node, 0);
 	}
 
 	if (tr_state->num_clip_planes==MAX_USER_CLIP_PLANES) {
@@ -813,6 +816,7 @@ static void TraverseIndexedCurve2D(GF_Node *node, void *rs, Bool is_destroy)
 
 	if (gf_node_dirty_get(node)) {
 		if (!IndexedCurve2D_GetNode(node, &ic2d)) return;
+		//clears dirty flag
 		curve2d_check_changes((GF_Node*) &ic2d, stack, tr_state, &ic2d.index);
 	}
 
@@ -1307,18 +1311,18 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
 			return;
 			
-		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * vrinfo.srd_y / vrinfo.srd_max_y;
-		sphere_angles.max_phi = -GF_PI2 + GF_PI * vrinfo.srd_h * (1 +  vrinfo.srd_y) / vrinfo.srd_max_y;
+		sphere_angles.min_phi = -GF_PI2 + GF_PI * vrinfo.srd_y / vrinfo.srd_max_y;
+		sphere_angles.max_phi = -GF_PI2 + GF_PI * (vrinfo.srd_h +  vrinfo.srd_y) / vrinfo.srd_max_y;
 
-		sphere_angles.min_theta = GF_2PI * vrinfo.srd_w * vrinfo.srd_x / vrinfo.srd_max_x;
-		sphere_angles.max_theta = GF_2PI * vrinfo.srd_w * ( 1 + vrinfo.srd_x ) / vrinfo.srd_max_x;
+		sphere_angles.min_theta = GF_2PI * vrinfo.srd_x / vrinfo.srd_max_x;
+		sphere_angles.max_theta = GF_2PI * ( vrinfo.srd_w + vrinfo.srd_x ) / vrinfo.srd_max_x;
 
 		if (gf_node_dirty_get(node)) {
 			u32 radius;
 			mesh_reset(stack->mesh);
 
 			radius = MAX(vrinfo.scene_width, vrinfo.scene_height) / 4;
-			//may happen that we don't have an scene width/height, use hardcoded 100 units radius (size actually doesn't matter
+			//may happen that we don't have a scene width/height, use hardcoded 100 units radius (size actually doesn't matter
 			//since our VP/camera is at the center of the sphere
 			if (!radius) {
 				radius = 100;
@@ -1335,58 +1339,107 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		
 		
 		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
-			GF_Vec center, target, ref;
-			Fixed r, theta_angle, phi_angle;
-			DrawAspect2D asp;
 			Bool visible = GF_FALSE;
-			Fixed center_phi = sphere_angles.min_phi + (sphere_angles.max_phi - sphere_angles.min_phi) / 2;
-			Fixed center_theta = sphere_angles.min_theta + (sphere_angles.max_theta - sphere_angles.min_theta) / 2;
-			
-			visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
-			visual_3d_draw(tr_state, stack->mesh);
-	
-			/*notify decoder/network stack on whether the geometry was visible or not (maybe a % of what is visible would be nicer)*/
-			memset(&asp, 0, sizeof(DrawAspect2D));
-			drawable_get_aspect_2d_mpeg4(node, &asp, tr_state);
-		
-			center.y = gf_sin(center_phi);
-			r = gf_sqrt(FIX_ONE - gf_mulfix(center.y, center.y) );
-			center.x = gf_mulfix(r, gf_cos(center_theta) );
-			center.z = gf_mulfix(r, gf_sin(center_theta) );
-			gf_vec_norm(&center);
 
-			ref = center;
-			ref.y = 0;
-			gf_vec_norm(&ref);
-			target = camera_get_target_dir(tr_state->camera);
-			target.y=0;
-			gf_vec_norm(&target);
-			theta_angle = gf_acos( gf_vec_dot(target, ref) );
-			theta_angle-=GF_PI;
-			if (theta_angle<0) theta_angle = -theta_angle;
-
-			ref = center;
-			ref.x = 0;
-			gf_vec_norm(&ref);
-			target = camera_get_target_dir(tr_state->camera);
-			target.x=0;
-			gf_vec_norm(&target);
-			phi_angle = gf_acos( gf_vec_dot(target, ref) );
-			phi_angle-=GF_PI;
-			if (phi_angle<-GF_PI2) phi_angle += GF_PI;
-			
-			if ((theta_angle < tr_state->camera->fieldOfView/2 + (sphere_angles.max_theta-sphere_angles.min_theta)/2)
-				&& (phi_angle < tr_state->camera->fieldOfView/2 + (sphere_angles.max_phi-sphere_angles.min_phi) /2)
-			) {
+			if (! tr_state->camera_was_dirty) {
+				visible = (stack->mesh->flags & MESH_WAS_VISIBLE) ? GF_TRUE : GF_FALSE;
+			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;
 			}
-			
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_COMPOSE, ("[Compositor] Texure %d Partial sphere is %s - Angle center-cam is %.02f h %.02f v\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  theta_angle, phi_angle));
+			//estimate visibility asap, even if texture not yet ready (we have SRD info):
+			//this allows sending stop commands which will free inactive decoder HW context
+			else {
+				u32 i, j;
+				u32 nb_visible=0;
+				u32 nb_tests = tr_state->visual->compositor->tile_visibility_nb_tests;
+				u32 min_visible_threshold = tr_state->visual->compositor->tile_visibility_threshold;
+				u32 stride;
 
+				//pick nb_tests vertices spaced every stride in the mesh
+				stride = stack->mesh->v_count;
+				stride /= nb_tests;
+				for (i=0; i<nb_tests; i++) {
+					Bool vis = GF_TRUE;
+					GF_Vec pt = stack->mesh->vertices[i*stride].pos;
+					//check the point is in our frustum - don't test far plane
+					for (j=1; j<6; j++) {
+						Fixed d = gf_plane_get_distance(&tr_state->camera->planes[j], &pt);
+						if (d<0) {
+							vis = GF_FALSE;
+							break;
+						}
+					}
+					if (vis) {
+						nb_visible++;
+						//abort test if more visible points than our threshold
+						if (nb_visible > min_visible_threshold)
+							break;
+					}
+				}
+				if (nb_visible > min_visible_threshold) 
+					visible = GF_TRUE;
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
+			}
 			if (visible) {
-				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 0);
+				stack->mesh->flags |= MESH_WAS_VISIBLE;
 			} else {
-				gf_mo_hint_quality_degradation(asp.fill_texture->stream, 100);
+				stack->mesh->flags &= ~MESH_WAS_VISIBLE;
+			}
+
+			if (visible && (vrinfo.srd_w != vrinfo.srd_max_x) && tr_state->visual->compositor->gazer_enabled) {
+				s32 gx, gy;
+				tr_state->visual->compositor->hit_node = NULL;
+				tr_state->visual->compositor->hit_square_dist = 0;
+
+				//gaze coords are 0,0 in top-left
+				gx = (s32)( tr_state->visual->compositor->gaze_x - tr_state->camera->width/2 );
+				gy = (s32)( tr_state->camera->height/2 - tr_state->visual->compositor->gaze_y );
+
+				visual_3d_setup_ray(tr_state->visual, tr_state, gx, gy);
+				visual_3d_vrml_drawable_pick(node, tr_state, stack->mesh, NULL);
+				if (tr_state->visual->compositor->hit_node) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is under gaze coord %d %d\n", txh->stream->OD_ID, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
+
+					tr_state->visual->compositor->hit_node = NULL;
+				} else {
+					visible = GF_FALSE;
+				}
+
+			}
+
+			if (vrinfo.has_full_coverage) {
+				if (visible) {
+					if (!txh->is_open) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d stoped on visible partial sphere - starting it\n", txh->stream->OD_ID));
+						assert(txh->stream && txh->stream->odm);
+						txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
+
+						gf_sc_texture_play(txh, NULL);
+					}
+					if (txh->data) {
+						visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+						visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
+						visual_3d_draw(tr_state, stack->mesh);
+						visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
+					}
+				} else {
+					if (txh->is_open) {
+						GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d playing on hidden partial sphere - stoping it\n", txh->stream->OD_ID));
+						gf_sc_texture_stop_no_unregister(txh);
+					}
+				}
+			} else {
+				if (txh->data) {
+					visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
+					visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
+					visual_3d_draw(tr_state, stack->mesh);
+					visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
+				}
+				if (visible) {
+					gf_mo_hint_quality_degradation(txh->stream, 0);
+				} else {
+					gf_mo_hint_quality_degradation(txh->stream, 100);
+				}
 			}
 		}
 	}

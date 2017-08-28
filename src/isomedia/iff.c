@@ -43,11 +43,7 @@ void ispe_del(GF_Box *a)
 
 GF_Err ispe_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_ImageSpatialExtentsPropertyBox *p = (GF_ImageSpatialExtentsPropertyBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	if (p->version == 0 && p->flags == 0) {
 		p->image_width = gf_bs_read_u32(bs);
@@ -77,10 +73,7 @@ GF_Err ispe_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ispe_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ImageSpatialExtentsPropertyBox *p = (GF_ImageSpatialExtentsPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 8;
 		return GF_OK;
@@ -111,13 +104,13 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 
 	p->colour_type = gf_bs_read_u32(bs);
 	p->size -= 4;
-	if (p->colour_type == GF_4CC('n','c','l','x')) {
+	if (p->colour_type == GF_ISOM_SUBTYPE_NCLX) {
 		p->colour_primaries = gf_bs_read_u16(bs);
 		p->transfer_characteristics = gf_bs_read_u16(bs);
 		p->matrix_coefficients = gf_bs_read_u16(bs);
 		p->full_range_flag = (gf_bs_read_u8(bs) & 0x80 ? GF_TRUE : GF_FALSE);
 	} else {
-		p->opaque = gf_malloc(sizeof(u8)* (u32) p->size);
+		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
 		p->opaque_size = (u32) p->size;
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
 		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
@@ -133,7 +126,7 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 	e = gf_isom_box_write_header(s, bs);
 	if (e) return e;
 
-	if (p->colour_type != GF_4CC('n','c','l','x')) {
+	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
 		gf_bs_write_u32(bs, p->colour_type);
 		gf_bs_write_data(bs, (char *)p->opaque, p->opaque_size);
 	} else {
@@ -148,11 +141,9 @@ GF_Err colr_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err colr_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ColourInformationBox *p = (GF_ColourInformationBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
-	if (p->colour_type != GF_4CC('n','c','l','x')) {
+
+	if (p->colour_type != GF_ISOM_SUBTYPE_NCLX) {
 		p->size += 4 + p->opaque_size;
 	} else {
 		p->size += 11;
@@ -178,11 +169,7 @@ void pixi_del(GF_Box *a)
 GF_Err pixi_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i;
-	GF_Err e;
 	GF_PixelInformationPropertyBox *p = (GF_PixelInformationPropertyBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	if (p->version == 0 && p->flags == 0) {
 		p->num_channels = gf_bs_read_u8(bs);
@@ -218,10 +205,7 @@ GF_Err pixi_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err pixi_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_PixelInformationPropertyBox *p = (GF_PixelInformationPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 1 + p->num_channels;
 		return GF_OK;
@@ -247,11 +231,7 @@ void rloc_del(GF_Box *a)
 
 GF_Err rloc_Read(GF_Box *s, GF_BitStream *bs)
 {
-	GF_Err e;
 	GF_RelativeLocationPropertyBox *p = (GF_RelativeLocationPropertyBox *)s;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	if (p->version == 0 && p->flags == 0) {
 		p->horizontal_offset = gf_bs_read_u32(bs);
@@ -281,10 +261,7 @@ GF_Err rloc_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err rloc_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_RelativeLocationPropertyBox *p = (GF_RelativeLocationPropertyBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
 	if (p->version == 0 && p->flags == 0) {
 		p->size += 8;
 		return GF_OK;
@@ -328,10 +305,7 @@ GF_Err irot_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err irot_Size(GF_Box *s)
 {
-	GF_Err e;
 	GF_ImageRotationBox *p = (GF_ImageRotationBox*)s;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	p->size += 1;
 	return GF_OK;
 }
@@ -353,7 +327,7 @@ void ipco_del(GF_Box *s)
 
 GF_Err ipco_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read(s, bs, gf_isom_box_add_default);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -366,7 +340,7 @@ GF_Err ipco_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err ipco_Size(GF_Box *s)
 {
-	return gf_isom_box_get_size(s);
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
@@ -402,7 +376,7 @@ static GF_Err iprp_AddBox(GF_Box *s, GF_Box *a)
 
 GF_Err iprp_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, iprp_AddBox);
+	return gf_isom_box_array_read(s, bs, iprp_AddBox);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -426,8 +400,6 @@ GF_Err iprp_Size(GF_Box *s)
 	GF_Err e;
 	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
 	if (!s) return GF_BAD_PARAM;
-	e = gf_isom_box_get_size(s);
-	if (e) return e;
 	if (p->property_container) {
 		e = gf_isom_box_size((GF_Box *) p->property_container);
 		if (e) return e;
@@ -476,12 +448,8 @@ void ipma_del(GF_Box *a)
 GF_Err ipma_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 i, j;
-	GF_Err e;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox *)s;
 	u32 entry_count, association_count;
-
-	e = gf_isom_full_box_read(s, bs);
-	if (e) return e;
 
 	entry_count = gf_bs_read_u32(bs);
 	for (i = 0; i < entry_count; i++) {
@@ -553,11 +521,9 @@ GF_Err ipma_Write(GF_Box *s, GF_BitStream *bs)
 GF_Err ipma_Size(GF_Box *s)
 {
 	u32 i;
-	GF_Err e;
 	u32 entry_count, association_count;
 	GF_ItemPropertyAssociationBox *p = (GF_ItemPropertyAssociationBox*)s;
-	e = gf_isom_full_box_get_size(s);
-	if (e) return e;
+
 	entry_count = gf_list_count(p->entries);
 	p->size += 4;
 	if (p->version == 0) {
@@ -595,7 +561,7 @@ void grpl_del(GF_Box *s)
 
 GF_Err grpl_Read(GF_Box *s, GF_BitStream *bs)
 {
-	return gf_isom_read_box_list(s, bs, gf_isom_box_add_default);
+	return gf_isom_box_array_read_ex(s, bs, gf_isom_box_add_default, s->type);
 }
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
@@ -608,26 +574,237 @@ GF_Err grpl_Write(GF_Box *s, GF_BitStream *bs)
 
 GF_Err grpl_Size(GF_Box *s)
 {
-	return gf_isom_box_get_size(s);
+	return GF_OK;
 }
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+void grptype_del(GF_Box *s)
+{
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	if (!ptr) return;
+	if (ptr->entity_ids) gf_free(ptr->entity_ids);
+	gf_free(ptr);
+}
+
+
+GF_Err grptype_Read(GF_Box *s, GF_BitStream *bs)
+{
+	u32 bytesToRead;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+
+	bytesToRead = (u32) (ptr->size);
+	if (!bytesToRead) return GF_OK;
+	ptr->group_id = gf_bs_read_u32(bs);
+	ptr->entity_id_count = gf_bs_read_u32(bs);
+	ISOM_DECREASE_SIZE(ptr, 8)
+	if (ptr->entity_id_count*4 > ptr->size) return GF_ISOM_INVALID_FILE;
+
+	ptr->entity_ids = (u32 *) gf_malloc(ptr->entity_id_count * sizeof(u32));
+	if (!ptr->entity_ids) return GF_OUT_OF_MEM;
+
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		ptr->entity_ids[i] = gf_bs_read_u32(bs);
+	}
+	return GF_OK;
+}
+
+GF_Box *grptype_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_EntityToGroupTypeBox, GF_ISOM_BOX_TYPE_GRPT);
+	//the group type code is assign in gf_isom_box_parse_ex
+	return (GF_Box *)tmp;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+
+GF_Err grptype_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	u32 i;
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	ptr->type = ptr->grouping_type;
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	ptr->type = GF_ISOM_BOX_TYPE_GRPT;
+
+	gf_bs_write_u32(bs, ptr->group_id);
+	gf_bs_write_u32(bs, ptr->entity_id_count);
+
+	for (i = 0; i < ptr->entity_id_count; i++) {
+		gf_bs_write_u32(bs, ptr->entity_ids[i]);
+	}
+	return GF_OK;
+}
+
+
+GF_Err grptype_Size(GF_Box *s)
+{
+	GF_EntityToGroupTypeBox *ptr = (GF_EntityToGroupTypeBox *)s;
+	ptr->size += 8 * (ptr->entity_id_count * sizeof(u32));
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *auxc_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_AuxiliaryTypePropertyBox, GF_ISOM_BOX_TYPE_AUXC);
+	return (GF_Box *)tmp;
+}
+
+void auxc_del(GF_Box *a)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)a;
+	if (p->aux_urn) gf_free(p->aux_urn);
+	if (p->data) gf_free(p->data);
+	gf_free(p);
+}
+
+GF_Err auxc_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox *)s;
+	GF_Err e;
+
+	e = gf_isom_read_null_terminated_string(s, bs, s->size, &p->aux_urn);
+	if (e) return e;
+	p->data_size = (u32) p->size;
+	p->data = gf_malloc(sizeof(char) * p->data_size);
+	gf_bs_read_data(bs, p->data, p->data_size);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err auxc_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	//with terminating 0
+	gf_bs_write_data(bs, p->aux_urn, (u32) strlen(p->aux_urn) + 1 );
+	gf_bs_write_data(bs, p->data, p->data_size);
+
+	return GF_OK;
+}
+
+GF_Err auxc_Size(GF_Box *s)
+{
+	GF_AuxiliaryTypePropertyBox *p = (GF_AuxiliaryTypePropertyBox*)s;
+	p->size += 1;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+
+GF_Box *oinf_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_OINFPropertyBox, GF_ISOM_BOX_TYPE_OINF);
+	tmp->oinf = gf_isom_oinf_new_entry();
+	return (GF_Box *)tmp;
+}
+
+void oinf_del(GF_Box *a)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)a;
+	if (p->oinf) gf_isom_oinf_del_entry(p->oinf);
+	gf_free(p);
+}
+
+GF_Err oinf_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox *)s;
+	return gf_isom_oinf_read_entry(p->oinf, bs);
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err oinf_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	return gf_isom_oinf_write_entry(p->oinf, bs);
+}
+
+GF_Err oinf_Size(GF_Box *s)
+{
+	GF_OINFPropertyBox *p = (GF_OINFPropertyBox*)s;
+	if (!p->oinf) return GF_BAD_PARAM;
+	p->size += gf_isom_oinf_size_entry(p->oinf);
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Box *tols_New()
+{
+	ISOM_DECL_BOX_ALLOC(GF_TargetOLSPropertyBox, GF_ISOM_BOX_TYPE_TOLS);
+	return (GF_Box *)tmp;
+}
+
+void tols_del(GF_Box *a)
+{
+	gf_free(a);
+}
+
+GF_Err tols_Read(GF_Box *s, GF_BitStream *bs)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox *)s;
+
+	ISOM_DECREASE_SIZE(p, 2)
+	p->target_ols_index = gf_bs_read_u16(bs);
+	return GF_OK;
+}
+
+#ifndef GPAC_DISABLE_ISOM_WRITE
+GF_Err tols_Write(GF_Box *s, GF_BitStream *bs)
+{
+	GF_Err e;
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+
+	e = gf_isom_full_box_write(s, bs);
+	if (e) return e;
+	gf_bs_write_u16(bs, p->target_ols_index);
+	return GF_OK;
+}
+
+GF_Err tols_Size(GF_Box *s)
+{
+	GF_TargetOLSPropertyBox *p = (GF_TargetOLSPropertyBox*)s;
+	p->size += 2;
+	return GF_OK;
+}
+
+#endif /*GPAC_DISABLE_ISOM_WRITE*/
+
 
 
 GF_EXPORT
 GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_meta, u32 meta_track_number, u32 imported_track, const char *item_name, u32 item_id, GF_ImageItemProperties *image_props, GF_List *item_extent_refs) {
 	GF_Err e;
 	u32 imported_sample_desc_index = 1;
-	u32 sample_index = 1;
+//	u32 sample_index = 1;
 	u32 w, h, hSpacing, vSpacing;
 	u32 subtype;
-	GF_ISOSample *sample;
+	GF_ISOSample *sample = NULL;
+	u32 timescale;
 	u32 item_type = 0;
 	GF_ImageItemProperties local_image_props;
 	Bool config_needed = 0;
 	GF_Box *config_box = NULL;
 	//u32 media_brand = 0;
+	u32 sample_desc_index = 0;
 
 	if (image_props && image_props->tile_mode != TILE_ITEM_NONE) {
+		/* Processing the input file in Tiled mode:
+		   The single track is split into multiple tracks
+		   and each track is processed to create an item */
 		u32 i, count;
 		u32 tile_track;
 		GF_List *tile_item_ids;
@@ -652,7 +829,7 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			if (e) return e;
 			gf_isom_remove_track(movie, tile_track);
 			if (orig_tile_mode == TILE_ITEM_ALL_BASE) {
-				e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, *tile_item_id, item_id, GF_4CC('t', 'b', 'a', 's'), NULL);
+				e = gf_isom_meta_add_item_ref(movie, root_meta, meta_track_number, *tile_item_id, item_id, GF_ISOM_REF_TBAS, NULL);
 			}
 			if (e) return e;
 		}
@@ -682,13 +859,19 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			//FIXME: in avc1 with multiple descriptor, we should take the right description index
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_AVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_avc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_4CC('a', 'v', 'c', '1');
+			item_type = GF_ISOM_SUBTYPE_AVC_H264;
 			config_needed = 1;
 			break;
 		case GF_ISOM_SUBTYPE_SVC_H264:
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_SVCC);
 			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_svc_config_get(movie, imported_track, imported_sample_desc_index);
-			item_type = GF_4CC('s', 'v', 'c', '1');
+			item_type = GF_ISOM_SUBTYPE_SVC_H264;
+			config_needed = 1;
+			break;
+		case GF_ISOM_SUBTYPE_MVC_H264:
+			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_MVCC);
+			((GF_AVCConfigurationBox *)config_box)->config = gf_isom_mvc_config_get(movie, imported_track, imported_sample_desc_index);
+			item_type = GF_ISOM_SUBTYPE_MVC_H264;
 			config_needed = 1;
 			break;
 		case GF_ISOM_SUBTYPE_HVC1:
@@ -701,28 +884,36 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 			config_box = gf_isom_box_new(GF_ISOM_BOX_TYPE_HVCC);
 			((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_hevc_config_get(movie, imported_track, imported_sample_desc_index);
 			if (subtype == GF_ISOM_SUBTYPE_HVT1) {
-				item_type = GF_4CC('h', 'v', 't', '1');
+				item_type = GF_ISOM_SUBTYPE_HVT1;
 			}
 			else {
-				item_type = GF_4CC('h', 'v', 'c', '1');
+				item_type = GF_ISOM_SUBTYPE_HVC1;
 			}
 			config_needed = 1;
 			if (!((GF_HEVCConfigurationBox *)config_box)->config) {
 				((GF_HEVCConfigurationBox *)config_box)->config = gf_isom_lhvc_config_get(movie, imported_track, imported_sample_desc_index);
-				item_type = GF_4CC('l', 'h', 'v', '1');
+				item_type = GF_ISOM_SUBTYPE_LHV1;
 			}
 			//media_brand = GF_ISOM_BRAND_HEIC;
+			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Codec not supported to create HEIF image items\n"));
+			return GF_NOT_SUPPORTED;
 		}
-		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) return GF_BAD_PARAM;
-
+		if (config_needed && !config_box && !((GF_AVCConfigurationBox *)config_box)->config) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error: Image type %s requires a missing configuration box\n", gf_4cc_to_str(item_type)));
+			return GF_BAD_PARAM;
+		}
 		/* Get some images properties from the track data */
 		e = gf_isom_get_visual_info(movie, imported_track, imported_sample_desc_index, &w, &h);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image size\n"));
 			if (config_box) gf_isom_box_del(config_box);
 			return e;
 		}
 		e = gf_isom_get_pixel_aspect_ratio(movie, imported_track, imported_sample_desc_index, &hSpacing, &vSpacing);
 		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error determining image aspect ratio\n"));
 			if (config_box) gf_isom_box_del(config_box);
 			return e;
 		}
@@ -740,15 +931,23 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		}
 		image_props->config = config_box;
 
-		sample = gf_isom_get_sample(movie, imported_track, sample_index, NULL);
-		if (!sample) {
+		timescale = gf_isom_get_media_timescale(movie, imported_track);
+		e = gf_isom_get_sample_for_media_time(movie, imported_track, (u64)(image_props->time*timescale), &sample_desc_index, GF_ISOM_SEARCH_SYNC_FORWARD, &sample, NULL);
+		if (sample_desc_index != imported_sample_desc_index) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning sample description index for sync sample differ from config\n"));
+		}
+		if (e || !sample || !sample->IsRAP) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("Error no sync sample found after time %g\n", image_props->time));
+			if (sample) gf_isom_sample_del(&sample);
 			if (config_box) gf_isom_box_del(config_box);
 			return GF_BAD_PARAM;
 		}
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("Adding sample from time %.3f as item %d\n", sample->DTS*1.0/timescale, item_id));
 		e = gf_isom_add_meta_item_memory(movie, root_meta, meta_track_number, (!item_name || !strlen(item_name) ? "Image" : item_name), item_id, item_type, NULL, NULL, image_props, sample->data, sample->dataLength, item_extent_refs);
 
 		gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MIF1, 0);
 		gf_isom_reset_alt_brands(movie);
+		// TODO Analyze configuration to determine the brand */
 		//if (media_brand) {
 		//	gf_isom_modify_alternate_brand(movie, media_brand, 1);
 		//}

@@ -622,6 +622,11 @@ static GF_SHADERID visual_3d_shader_with_flags(const char *src_path, u32 shader_
 			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
 			strcat(defs,"#define GF_GL_IS_YUV \n");
 		}
+		if(flags & GF_GL_IS_ExternalOES) {
+			str_size += strlen("#define GF_GL_IS_ExternalOES \n");
+			defs = (char *) gf_realloc(defs, sizeof(char)*str_size);
+			strcat(defs,"#define GF_GL_IS_ExternalOES \n");
+		}
 	}
 
 	if (src) {
@@ -671,6 +676,12 @@ static void visual_3d_set_tx_planes(GF_VisualManager *visual)
 				}
 				glUniform1i(loc, j);
 			}
+		} else if (i & GF_GL_IS_ExternalOES)  {
+			loc = glGetUniformLocation(visual->glsl_programs[i], "imgOES");
+			if (loc == -1) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_COMPOSE, ("[Compositor] Failed to locate texture imgOES in ExternalOES shader\n"));
+			}
+			glUniform1i(loc, 0);
 		} else {
 			loc = glGetUniformLocation(visual->glsl_programs[i], "img");
 			if (loc == -1) {
@@ -1016,7 +1027,7 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 		u32 vert_id;
 		GL_CHECK_ERR;
 		//discard unused flags combination (ie YUV with no texture)
-		if ( (i& GF_GL_IS_YUV) && ! (i & GF_GL_HAS_TEXTURE)) {
+		if ( (i& (GF_GL_IS_YUV | GF_GL_IS_ExternalOES)) && ! (i & GF_GL_HAS_TEXTURE)) {
 			DEL_PROGRAM(visual->glsl_programs[i]);
 			visual->glsl_programs[i]=0;
 			visual->glsl_fragment_shaders[i] = 0;
@@ -1032,8 +1043,8 @@ static Bool visual_3d_init_generic_shaders(GF_VisualManager *visual)
 
 		//compute vertex shader for this fragment: all YUV frag shaders are texture vert shaders
 		vert_id = i;
-		if (i & GF_GL_IS_YUV) {
-			vert_id &= ~GF_GL_IS_YUV;
+		if (i & (GF_GL_IS_YUV | GF_GL_IS_ExternalOES)) {
+			vert_id &= ~(GF_GL_IS_YUV | GF_GL_IS_ExternalOES);
 			vert_id |= GF_GL_HAS_TEXTURE;
 			assert(vert_id<GF_GL_NB_VERT_SHADERS);
 		}
@@ -2419,6 +2430,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 	} else {
 		flags &= ~GF_GL_HAS_TEXTURE;
 		flags &= ~GF_GL_IS_YUV;
+		flags &= ~GF_GL_IS_ExternalOES;
 
 	}
 
@@ -2652,8 +2664,14 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 			loc = gf_glGetUniformLocation(visual->glsl_program, "yuvPixelFormat");
 			if (loc>=0) {
 				int yuv_mode = 0;
-				if (visual->yuv_pixelformat_type == GF_PIXEL_NV21) yuv_mode = 1;
-				else if (visual->yuv_pixelformat_type == GF_PIXEL_NV12) yuv_mode = 2;
+				switch (visual->yuv_pixelformat_type) {
+				case GF_PIXEL_NV21:
+					yuv_mode = 1;
+					break;
+				case GF_PIXEL_NV12:
+					yuv_mode = 2;
+					break;
+				}
 			
 				glUniform1i(loc, yuv_mode);
 			}
@@ -2787,7 +2805,7 @@ static void visual_3d_draw_mesh_shader_only(GF_TraverseState *tr_state, GF_Mesh 
 
 	visual->has_material_2d = 0;
 	visual->glsl_flags = visual->compositor->visual->glsl_flags;
-	root_visual->glsl_flags &= ~ (GF_GL_IS_YUV | GF_GL_HAS_COLOR);
+	root_visual->glsl_flags &= ~ (GF_GL_IS_ExternalOES | GF_GL_IS_YUV | GF_GL_HAS_COLOR);
 	visual->has_material = 0;
 	visual->state_color_on = 0;
 	if (tr_state->mesh_is_transparent) glDisable(GL_BLEND);

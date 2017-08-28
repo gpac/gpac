@@ -193,13 +193,14 @@ int dc_gpac_audio_isom_write(AudioOutputFile *audio_output_file)
 
 int dc_gpac_audio_isom_close_seg(AudioOutputFile *audio_output_file)
 {
+	u64 seg_size;
 	GF_Err ret;
-	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0,0, 0, 0, 0, GF_TRUE, GF_FALSE, audio_output_file->seg_marker, NULL, NULL);
+	ret = gf_isom_close_segment(audio_output_file->isof, 0, 0, 0, 0, 0, 0, GF_TRUE, GF_FALSE, audio_output_file->seg_marker, NULL, NULL, &seg_size);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment closed at "LLU"\n", gf_net_get_utc() ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DashCast] Audio segment %s closed at "LLU" - size "LLU" bytes\n", gf_isom_get_segment_name(audio_output_file->isof), gf_net_get_utc(), seg_size ));
 
 	//audio_output_file->acc_samples = 0;
 
@@ -291,9 +292,8 @@ int dc_ffmpeg_audio_muxer_open(AudioOutputFile *audio_output_file, char *filenam
 	}
 	av_dict_free(&opts);
 
-	avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
+	return avformat_write_header(audio_output_file->av_fmt_ctx, NULL);
 
-	return 0;
 }
 
 int dc_ffmpeg_audio_muxer_write(AudioOutputFile *audio_output_file)
@@ -418,7 +418,7 @@ int dc_audio_muxer_write(AudioOutputFile *audio_output_file, int frame_nb, Bool 
 	case GPAC_INIT_AUDIO_MUXER:
 		if (frame_nb % audio_output_file->frame_per_frag == 0) {
 			gf_isom_start_fragment(audio_output_file->isof, 1);
-			
+
 			if (insert_ntp) {
 				gf_isom_set_fragment_reference_time(audio_output_file->isof, 1, audio_output_file->frame_ntp, audio_output_file->first_dts * audio_output_file->codec_ctx->frame_size);
 			}

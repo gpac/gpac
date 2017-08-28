@@ -58,6 +58,11 @@ static const char * const GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "
  */
 static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
+/*!
+ * All the possible Mime-types for Smooth files
+ */
+static const char * GF_DASH_SMOOTH_MIME_TYPES[] = { "application/vnd.ms-sstr+xml", NULL};
+
 /*! DASH Event type. The DASH client communitcaes with the user through a callback mechanism using events*/
 typedef enum
 {
@@ -121,9 +126,9 @@ struct _gf_dash_io
 	/*download the content - synchronous call: all the file shall be fetched before returning*/
 	GF_Err (*run)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 
-	/*get URL of the file - i tmay be different from the original one if resource relocation happened*/
+	/*get URL of the file - it may be different from the original one if resource relocation happened*/
 	const char *(*get_url)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
-	/*get the name of the cache file. If NULL is returned, the file cannot be cached and its associated UTL will be used when
+	/*get the name of the cache file. If NULL is returned, the file cannot be cached and its associated URL will be used when
 	the client request file to play*/
 	const char *(*get_cache_name)(GF_DASHFileIO *dashio, GF_DASHFileIOSession session);
 	/*get the MIME type of the file*/
@@ -320,8 +325,10 @@ void gf_dash_set_group_done(GF_DashClient *dash, u32 idx, Bool done);
 /*gets presentationTimeOffset and timescale for the active representation*/
 GF_Err gf_dash_group_get_presentation_time_offset(GF_DashClient *dash, u32 idx, u64 *presentation_time_offset, u32 *timescale);
 
-/*returns 1 if the playback position is in the last period of the presentation*/
-Bool gf_dash_in_last_period(GF_DashClient *dash);
+/*returns 1 if the playback position is in the last period of the presentation
+if check_eos is set, return one only if the last period is known to be the last one (eg not an open period in live)
+*/
+Bool gf_dash_in_last_period(GF_DashClient *dash, Bool check_eos);
 /*return value:
 	1 if the period switching has been requested (due to seeking),
 	2 if the switching is in progress (all groups will soon be destroyed and plyback will be stopped and restarted)
@@ -339,6 +346,9 @@ void gf_dash_seek(GF_DashClient *dash, Double start_range);
 Bool gf_dash_group_segment_switch_forced(GF_DashClient *dash, u32 idx);
 /*get video info for this group if video*/
 GF_Err gf_dash_group_get_video_info(GF_DashClient *dash, u32 idx, u32 *max_width, u32 *max_height);
+
+/*seek only a given group*/
+void gf_dash_group_seek(GF_DashClient *dash, u32 group_idx, Double seek_to);
 
 /*sets playback speed of the session. Speed is used in adaptation logic*/
 void gf_dash_set_speed(GF_DashClient *dash, Double speed);
@@ -498,9 +508,17 @@ void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads);
 
 typedef enum {
 	GF_DASH_ALGO_NONE = 0,
-	GF_DASH_ALGO_GPAC_LEGACY_RATE = 1,
-	GF_DASH_ALGO_GPAC_LEGACY_BUFFER = 2,
+	GF_DASH_ALGO_GPAC_LEGACY_RATE,
+	GF_DASH_ALGO_GPAC_LEGACY_BUFFER,
+
+	GF_DASH_ALGO_BBA0,
+
+	GF_DASH_ALGO_BOLA_FINITE,
+	GF_DASH_ALGO_BOLA_BASIC,
+	GF_DASH_ALGO_BOLA_U,
+	GF_DASH_ALGO_BOLA_O
 } GF_DASHAdaptationAlgorithm;
+
 void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
 
 #endif //GPAC_DISABLE_DASH_CLIENT

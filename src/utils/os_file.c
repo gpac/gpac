@@ -253,7 +253,7 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 #else
 	e = (system(cmd) == 0) ? GF_OK : GF_IO_ERR;
 #endif
-	
+
 error:
 	gf_free(arg1);
 	gf_free(arg2);
@@ -769,3 +769,51 @@ size_t gf_fwrite(const void *ptr, size_t size, size_t nmemb,
 	return result;
 }
 
+
+/**
+  * Returns a pointer to the start of a filepath basename
+ **/
+GF_EXPORT
+char* gf_file_basename(const char* filename)
+{
+	char* lastPathPart = NULL;
+	if (filename) {
+
+		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
+		if (GF_PATH_SEPARATOR != '/')
+		{
+			// windows paths can mix slashes and backslashes
+			// so we search for the last slash that occurs after the last backslash
+			// if it occurs before it's not relevant
+			// if there's no backslashes we search in the whole file path
+
+			char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+			if (trailingSlash)
+				lastPathPart = trailingSlash;
+		}
+		if (!lastPathPart)
+			lastPathPart = (char *)filename;
+		else
+			lastPathPart++;
+
+
+
+	}
+	return lastPathPart;
+}
+
+/**
+  * Returns a pointer to the start of a filepath extension or null
+ **/
+GF_EXPORT
+char* gf_file_ext_start(const char* filename)
+{
+	char* res = NULL;
+	char* basename = gf_file_basename(filename);
+	if (basename) {
+
+		res = strrchr(basename, '.');
+
+	}
+	return res;
+}

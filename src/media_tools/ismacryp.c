@@ -29,6 +29,7 @@
 #include <gpac/xml.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
+#include <gpac/internal/isomedia_dev.h>
 #include <gpac/crypt.h>
 #include <math.h>
 
@@ -438,7 +439,7 @@ GF_Err gf_ismacryp_decrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (
 	track = gf_isom_get_track_by_id(mp4, tci->trackID);
 	e = gf_isom_get_ismacryp_info(mp4, track, 1, &is_avc, NULL, NULL, NULL, NULL, &use_sel_enc, &IV_size, NULL);
 	if (e) return e;
-	is_avc = (is_avc==GF_4CC('2','6','4','b')) ? 1 : 0;
+	is_avc = (is_avc==GF_ISOM_BOX_TYPE_264B) ? 1 : 0;
 
 
 	mc = gf_crypt_open("AES-128", "CTR");
@@ -910,7 +911,7 @@ static void cenc_resync_IV(GF_Crypt *mc, char IV[16], u8 IV_size) {
 	memcpy(IV, next_IV+1, 16*sizeof(char));
 }
 
-static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz, 
+static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										 u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
 	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
 	char *buffer;
@@ -936,6 +937,9 @@ static GF_Err gf_cenc_encrypt_sample_ctr(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 			char nal_hdr[2];
 			GF_CENCSubSampleEntry *entry = (GF_CENCSubSampleEntry *)gf_malloc(sizeof(GF_CENCSubSampleEntry));
 			size = gf_bs_read_int(pleintext_bs, 8*nalu_size_length);
+			if (0 == size) {
+				continue;
+			}
 			if (size>max_size) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*size);
 				max_size = size;
@@ -1005,7 +1009,7 @@ exit:
 	return e;
 }
 
-static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz, 
+static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool is_nalu_video, u32 nalu_size_length, char IV[16], u32 IV_size, char **sai, u32 *saiz,
 										u32 bytes_in_nalhr, u8 crypt_byte_block, u8 skip_byte_block) {
 	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
 	char *buffer;
@@ -1045,7 +1049,7 @@ static GF_Err gf_cenc_encrypt_sample_cbc(GF_Crypt *mc, GF_ISOSample *samp, Bool 
 
 			gf_bs_read_data(pleintext_bs, buffer, size-bytes_in_nalhr);
 
-			//FIXME: we adjust bytes_encrypted_data to a multiple of 16 bytes, is this correct in cbcs scheme ? 
+			//FIXME: we adjust bytes_encrypted_data to a multiple of 16 bytes, is this correct in cbcs scheme ?
 			ret = (size-bytes_in_nalhr)  % 16;
 			if (ret) {
 				gf_bs_write_data(cyphertext_bs, buffer, ret);
@@ -1206,7 +1210,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 	}
 
 	/*create CENC protection*/
-	e = gf_isom_set_cenc_protection(mp4, track, 1, tci->cenc_scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID, 
+	e = gf_isom_set_cenc_protection(mp4, track, 1, tci->cenc_scheme_type, 0x00010000, tci->IsEncrypted, tci->IV_size, tci->default_KID,
 		tci->crypt_byte_block, tci->skip_byte_block, tci->constant_IV_size, tci->constant_IV);
 	if (e) goto exit;
 
@@ -1295,7 +1299,7 @@ GF_Err gf_cenc_encrypt_track(GF_ISOFile *mp4, GF_TrackCryptInfo *tci, void (*pro
 			}
 			else if (tci->IV_size == 16) {
 				memcpy(IV, tci->first_IV, sizeof(char)*16);
-			} 
+			}
 			else if (!tci->IV_size) {
 				if (tci->constant_IV_size == 8) {
 					memcpy(IV, tci->constant_IV, sizeof(char)*8);
@@ -1996,8 +2000,8 @@ GF_Err gf_decrypt_file(GF_ISOFile *mp4, const char *drm_file)
 		if (e) break;
 	}
 	if (is_oma) {
-		e = gf_isom_set_brand_info(mp4, GF_4CC('i','s','o','2'), 0x00000001);
-		if (!e) e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','d','c','f'), 0);
+		e = gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_ISO2, 0x00000001);
+		if (!e) e = gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_ODCF, 0);
 	}
 
 	if (is_cenc)
@@ -2214,10 +2218,10 @@ GF_Err gf_crypt_file(GF_ISOFile *mp4, const char *drm_file)
 	if (is_oma) {
 #if 0
 		/*set as OMA V2*/
-		e = gf_isom_set_brand_info(mp4, GF_4CC('o','d','c','f'), 0x00000002);
+		e = gf_isom_set_brand_info(mp4, GF_ISOM_BRAND_ODCF, 0x00000002);
 		gf_isom_reset_alt_brands(mp4);
 #else
-		e = gf_isom_modify_alternate_brand(mp4, GF_4CC('o','p','f','2'), 1);
+		e = gf_isom_modify_alternate_brand(mp4, GF_ISOM_BRAND_OPF2, 1);
 #endif
 	}
 

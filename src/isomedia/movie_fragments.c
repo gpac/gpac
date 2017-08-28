@@ -105,7 +105,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 
 	if (store_file) {
 		/*"dash" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_4CC('d','a','s','h'), 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_DASH, 1);
 
 		if (!movie->moov->mvex->mehd || !movie->moov->mvex->mehd->fragment_duration) {
 			//update durations
@@ -177,7 +177,7 @@ GF_Err gf_isom_finalize_for_fragment(GF_ISOFile *movie, u32 media_segment_type)
 	/*set brands for segment*/
 
 	/*"msdh": it's a media segment */
-	gf_isom_set_brand_info(movie, GF_4CC('m','s','d','h'), 0);
+	gf_isom_set_brand_info(movie, GF_ISOM_BRAND_MSDH, 0);
 	/*remove all brands	*/
 	gf_isom_reset_alt_brands(movie);
 	/*
@@ -627,10 +627,10 @@ static u32 moof_get_sap_info(GF_MovieFragmentBox *moof, u32 refTrackID, u32 *sap
 		sg = (GF_SampleGroupBox*)gf_list_get(traf->sampleGroups, i);
 
 		switch (sg->grouping_type) {
-		case GF_4CC('r','a','p',' '):
+		case GF_ISOM_SAMPLE_GROUP_RAP:
 			rap_type = GF_TRUE;
 			break;
-		case GF_4CC('r','o','l','l'):
+		case GF_ISOM_SAMPLE_GROUP_ROLL:
 			break;
 		default:
 			continue;
@@ -904,7 +904,7 @@ GF_Err StoreFragment(GF_ISOFile *movie, Bool load_mdat_only, s32 data_offset_dif
 
 	if (movie->moof->ntp) {
 		gf_bs_write_u32(bs, 8*4);
-		gf_bs_write_u32(bs, GF_4CC('p','r','f','t') );
+		gf_bs_write_u32(bs, GF_ISOM_BOX_TYPE_PRFT );
 		gf_bs_write_u8(bs, 1);
 		gf_bs_write_u24(bs, 0);
 		gf_bs_write_u32(bs, movie->moof->reference_track_ID);
@@ -1001,10 +1001,10 @@ static GF_Err gf_isom_write_styp(GF_ISOFile *movie, Bool last_segment)
 		/*modify brands STYP*/
 
 		/*"msix" brand: this is a DASH Initialization Segment*/
-		gf_isom_modify_alternate_brand(movie, GF_4CC('m','s','i','x'), 1);
+		gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_MSIX, 1);
 		if (last_segment) {
 			/*"lmsg" brand: this is the last DASH Segment*/
-			gf_isom_modify_alternate_brand(movie, GF_4CC('l','m','s','g'), 1);
+			gf_isom_modify_alternate_brand(movie, GF_ISOM_BRAND_LMSG, 1);
 		}
 
 		movie->brand->type = GF_ISOM_BOX_TYPE_STYP;
@@ -1106,7 +1106,29 @@ static u64 get_presentation_time(u64 media_time, s32 ts_shift)
 }
 
 GF_EXPORT
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range)
+const char *gf_isom_get_segment_name(GF_ISOFile *movie)
+{
+	if (!movie) return NULL;
+	if (movie->append_segment) return movie->movieFileMap->szName;
+	return movie->editFileMap->szName;
+}
+
+static void compute_seg_size(GF_ISOFile *movie, u64 *out_seg_size)
+{
+	u64 final_size;
+	if (out_seg_size) {
+		if (movie->append_segment) {
+			final_size = gf_bs_get_position(movie->movieFileMap->bs);
+			final_size -= movie->segment_start;
+		} else {
+			final_size = gf_bs_get_position(movie->editFileMap->bs);
+		}
+		*out_seg_size = final_size;
+	}
+}
+
+GF_EXPORT
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 ts_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size)
 {
 	GF_SegmentIndexBox *sidx=NULL;
 	GF_SegmentIndexBox *root_sidx=NULL;
@@ -1163,10 +1185,14 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 				gf_bs_write_u32(movie->editFileMap->bs, segment_marker_4cc); //write box type field
 			}
 		}
+
+		compute_seg_size(movie, out_seg_size);
+
 		if (close_segment_handle) {
 			gf_isom_datamap_del(movie->editFileMap);
 			movie->editFileMap = NULL;
 		}
+
 		return GF_OK;
 	}
 
@@ -1496,6 +1522,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 			gf_isom_box_del((GF_Box*) movie->root_sidx);
 			movie->root_sidx = NULL;
 		}
+		compute_seg_size(movie, out_seg_size);
 		return GF_OK;
 	}
 
@@ -1561,6 +1588,7 @@ GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegments_per_sidx, u32 re
 		gf_isom_datamap_del(movie->editFileMap);
 		movie->editFileMap = NULL;
 	}
+	compute_seg_size(movie, out_seg_size);
 
 	return e;
 }
@@ -1569,7 +1597,7 @@ GF_EXPORT
 GF_Err gf_isom_close_fragments(GF_ISOFile *movie)
 {
 	if (movie->use_segments) {
-		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE, 1, 0, NULL, NULL);
+		return gf_isom_close_segment(movie, 0, 0, 0, 0, 0, GF_FALSE, GF_FALSE, 1, 0, NULL, NULL, NULL);
 	} else {
 		return StoreFragment(movie, GF_FALSE, 0, NULL);
 	}
@@ -1873,17 +1901,17 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 
 		switch (boxType) {
 		case GF_ISOM_BOX_UUID_PSEC:
-			if (!traf->piff_sample_encryption) {
-				GF_PIFFSampleEncryptionBox *psec = (GF_PIFFSampleEncryptionBox *) src_trak->Media->information->sampleTable->piff_psec;
+			//have we seen cases where the psec box is in trak but not in traf ? to check
+			if (!traf->sample_encryption) {
+				GF_SampleEncryptionBox *psec = (GF_SampleEncryptionBox *) src_trak->sample_encryption;
 				if (!psec) return GF_ISOM_INVALID_FILE;
-				traf->piff_sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
-				traf->piff_sample_encryption->traf = traf;
+				traf->sample_encryption = gf_isom_create_piff_psec_box(1, 0, psec->AlgorithmID, psec->IV_size, psec->KID);
+				if (!traf->sample_encryption)
+					return GF_OUT_OF_MEM;
+				traf->sample_encryption->traf = traf;
 			}
 
-			if (!traf->piff_sample_encryption) {
-				return GF_IO_ERR;
-			}
-			senc = (GF_SampleEncryptionBox *) traf->piff_sample_encryption;
+			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 			break;
 		case GF_ISOM_BOX_TYPE_SENC:
 			if (!traf->sample_encryption) {
@@ -1897,13 +1925,25 @@ GF_Err gf_isom_fragment_add_sai(GF_ISOFile *output, GF_ISOFile *input, u32 Track
 			senc = (GF_SampleEncryptionBox *) traf->sample_encryption;
 			break;
 		default:
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[isofile] Unsupported encryption storage box %s\n", gf_4cc_to_str(boxType) ));
 			return GF_NOT_SUPPORTED;
 		}
 
 		gf_list_add(senc->samp_aux_info, sai);
 		if (sai->subsample_count) senc->flags = 0x00000002;
-		//this assumes that we don't have a cenc sample info with subsamples indicated and subsample_count=0
-		gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IsEncrypted ? IV_size + (2+6)*sai->subsample_count : 0);
+
+		//not encrypted, saiz is 0
+		if (!IsEncrypted) {
+			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, 0);
+		}
+		//no subsample (not NAL-based data), saiz is IV size only
+		else if (! sai->subsample_count) {
+			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size);
+		}
+		// subsamples ( NAL-based data), saiz is IV size + nb subsamples (2 bytes) + 6 bytes per subsample
+		else {
+			gf_isom_cenc_set_saiz_saio(senc, NULL, traf, IV_size + 2+6*sai->subsample_count);
+		}
 	}
 
 	return GF_OK;
@@ -2084,7 +2124,7 @@ GF_Err gf_isom_fragment_copy_subsample(GF_ISOFile *dest, u32 TrackID, GF_ISOFile
 				/*found our sample, add it to trak->sampleGroups*/
 				e = gf_isom_copy_sample_group_entry_to_traf(traf, trak->Media->information->sampleTable, sg->grouping_type, sg->grouping_type_parameter,  sg->sample_entries[j].group_description_index, sgpd_in_traf);
 				if (e) return e;
-				
+
 				break;
 			}
 		}

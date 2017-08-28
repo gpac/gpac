@@ -32,6 +32,9 @@ fi
 echo "*** Generate IPA ***"
 mkdir -p Payload
 mv osmo4ios.xcarchive/Products/Applications/osmo4ios.app Payload/
+if [ ! -d "../../bin/iOS" ]; then
+	mkdir -p "../../bin/iOS"
+fi
 zip -r "../../bin/iOS/osmo4-$full_version-ios.ipa" Payload
 rm -rf Payload
 rm -rf osmo4ios.xcarchive

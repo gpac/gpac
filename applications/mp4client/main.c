@@ -239,7 +239,7 @@ void PrintUsage()
 #else
 	        "\t-no-thread:     disables thread usage (except for audio)\n"
 #endif
-	        "\t-no-compositor-thread:      disables compositor thread (iOS and Android mode)\n"
+	        "\t-no-cthread:    disables compositor thread (iOS and Android mode)\n"
 	        "\t-no-audio:      disables audio \n"
 	        "\t-no-wnd:        uses windowless mode (Win32 only)\n"
 	        "\t-no-back:       uses transparent background for output window when no background is specified (Win32 only)\n"
@@ -260,6 +260,9 @@ void PrintUsage()
 	        "\t-views v1:.:vN: creates an auto-stereo scene of N views. vN can be any type of URL supported by GPAC.\n"
 	        "\t                 in this mode, URL argument of GPAC is ignored, GUI as well.\n"
 	        "\t                 this is equivalent as using views://v1:.:N as an URL.\n"
+	        "\t-mosaic v1:.:vN: creates a mosaic of N views. vN can be any type of URL supported by GPAC.\n"
+	        "\t                 in this mode, URL argument of GPAC is ignored.\n"
+	        "\t                 this is equivalent as using mosaic://v1:.:N as an URL.\n"
 	        "\n"
 	        "\t-exit:          automatically exits when presentation is over\n"
 	        "\t-run-for TIME:  runs for TIME seconds and exits\n"
@@ -768,14 +771,16 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 				ViewODs(term, 0);
 			break;
 		case GF_KEY_H:
-			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 0);
-				gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 0);
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
+				gf_term_switch_quality(term, 1);
+			//	gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 0);
+			}
 			break;
 		case GF_KEY_L:
-			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected)
-				gf_term_switch_quality(term, 1);
-				gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 1);
+			if ((evt->key.flags & GF_KEY_MOD_CTRL) && is_connected) {
+				gf_term_switch_quality(term, 0);
+			//	gf_term_set_option(term, GF_OPT_MULTIVIEW_MODE, 1);
+			}
 			break;
 		case GF_KEY_F5:
 			if (is_connected)
@@ -824,7 +829,13 @@ Bool GPAC_EventProc(void *ptr, GF_Event *evt)
 		break;
 	case GF_EVENT_EOS:
 		eos_seen = GF_TRUE;
-		if (!playlist && loop_at_end) restart = 1;
+		if (playlist) {
+			if (Duration>1500)
+				request_next_playlist_item = GF_TRUE;
+		}
+		else if (loop_at_end) {
+			restart = 1;
+		}
 		break;
 	case GF_EVENT_SIZE:
 		if (user.init_flags & GF_TERM_WINDOWLESS) {
@@ -1133,11 +1144,11 @@ Bool revert_cache_file(void *cbck, char *item_name, char *item_path, GF_FileEnum
 		sep = strstr(item_path, "gpac_cache_");
 		if (sep) {
 			sep[0] = 0;
-			dir_len = strlen(item_path);
+			dir_len = (u32) strlen(item_path);
 			sep[0] = 'g';
 		}
 		url+=3;
-		len = strlen(url);
+		len = (u32) strlen(url);
 		dst_name = gf_malloc(len+dir_len+1);
 		memset(dst_name, 0, len+dir_len+1);
 
@@ -1200,7 +1211,7 @@ int mp4client_main(int argc, char **argv)
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
 	Bool fill_ar, visible, do_uncache;
-	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com;
+	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com, *mosaic;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1214,7 +1225,7 @@ int mp4client_main(int argc, char **argv)
 
 	dump_mode = DUMP_NONE;
 	fill_ar = visible = do_uncache = GF_FALSE;
-	url_arg = out_arg = the_cfg = rti_file = views = default_com = NULL;
+	url_arg = out_arg = the_cfg = rti_file = views = default_com = mosaic = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1307,7 +1318,7 @@ int mp4client_main(int argc, char **argv)
 #else
 		else if (!strcmp(arg, "-no-thread")) threading_flags = GF_TERM_NO_DECODER_THREAD | GF_TERM_NO_COMPOSITOR_THREAD | GF_TERM_WINDOW_NO_THREAD;
 #endif
-		else if (!strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
+		else if (!strcmp(arg, "-no-cthread") || !strcmp(arg, "-no-compositor-thread")) threading_flags |= GF_TERM_NO_COMPOSITOR_THREAD;
 		else if (!strcmp(arg, "-no-audio")) no_audio = 1;
 		else if (!strcmp(arg, "-no-regulation")) no_regulation = 1;
 		else if (!strcmp(arg, "-fs")) start_fs = 1;
@@ -1436,6 +1447,10 @@ int mp4client_main(int argc, char **argv)
 				views = argv[i+1];
 				i++;
 			}
+			else if (!stricmp(arg, "-mosaic")) {
+				mosaic = argv[i+1];
+				i++;
+			}
 			else if (!stricmp(arg, "-com")) {
 				default_com = argv[i+1];
 				i++;
@@ -1551,6 +1566,12 @@ int mp4client_main(int argc, char **argv)
 		return 1;
 	}
 	fprintf(stderr, "Modules Found : %d \n", i);
+
+	str = gf_cfg_get_key(cfg_file, "General", "GPACVersion");
+	if (!str || strcmp(str, GPAC_FULL_VERSION)) {
+		gf_cfg_del_section(cfg_file, "PluginsCache");
+		gf_cfg_set_key(cfg_file, "General", "GPACVersion", GPAC_FULL_VERSION);
+	}
 
 	user.config = cfg_file;
 	user.EventProc = GPAC_EventProc;
@@ -1702,6 +1723,11 @@ int mp4client_main(int argc, char **argv)
 	if (views) {
 		char szTemp[4046];
 		sprintf(szTemp, "views://%s", views);
+		gf_term_connect(term, szTemp);
+	}
+	if (mosaic) {
+		char szTemp[4046];
+		sprintf(szTemp, "mosaic://%s", mosaic);
 		gf_term_connect(term, szTemp);
 	}
 	if (bench_mode) {
@@ -2332,7 +2358,7 @@ force_input:
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (mem_track && (gf_memory_size() || gf_file_handles_count() )) {
-        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
+	        gf_log_set_tool_level(GF_LOG_MEMORY, GF_LOG_INFO);
 		gf_memory_print();
 		return 2;
 	}

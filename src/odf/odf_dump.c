@@ -1697,11 +1697,7 @@ GF_Err gf_odf_dump_muxinfo(GF_MuxInfo *mi, FILE *trace, u32 indent, Bool XMTDump
 {
 	char *full_path = NULL;
 
-	if (mi->file_name && mi->src_url) {
-		if (strchr(mi->src_url, '/') || strchr(mi->src_url, '\\')) {
-			full_path = gf_url_concatenate(mi->src_url, mi->file_name);
-		}
-	}
+	full_path = gf_url_get_absolute_path( mi->file_name, mi->src_url );
 
 	if (!XMTDump) {
 		StartDescDump(trace, "MuxInfo", indent, GF_FALSE);
