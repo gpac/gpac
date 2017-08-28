@@ -43,7 +43,7 @@ extern "C" {
 
 /*! \defgroup utils_grp Core Tools
  *	\brief Core definitions and tools of GPAC.
- *	
+ *
  * You will find in this module the documentation of the core tools used in GPAC.
 */
 
@@ -165,6 +165,23 @@ u64 gf_ftell(FILE *f);
 */
 u64 gf_fseek(FILE *f, s64 pos, s32 whence);
 
+/*!
+ *	\brief get basename from filename/path
+ *
+ *	Returns a pointer to the start of a filepath basename or null
+ *	\param filename Path of the file, can be an absolute path
+*/
+char* gf_file_basename(const char* filename);
+
+/*!
+ *	\brief get extension from filename
+ *
+ *	Returns a pointer to the start of a filepath extension or null
+ *	\param filename Path of the file, can be an absolute path
+*/
+char* gf_file_ext_start(const char* filename);
+
+
 /*! @} */
 
 
@@ -271,10 +288,10 @@ typedef enum
 	GF_INVALID_CONFIGURATION				= -52,
 	/*! The element has not been found */
 	GF_NOT_FOUND							= -53,
-	/*! The filter is missing at least one requirement */
-	GF_MISSING_REQUIREMENTS					= -54,
 	/*! Unexpected format of data */
-	GF_WRONG_DATAFORMAT						= -55
+	GF_PROFILE_NOT_SUPPORTED				= -54,
+	/*! the decoder buffers were filled, it is necessary to recuperate decoded data*/
+	GF_CODEC_BUFFER_UNAVAILABLE				= -55,
 } GF_Err;
 
 /*!

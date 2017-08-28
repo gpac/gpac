@@ -6,7 +6,6 @@ check_inline_res()
   if [ -f $libfile ] ; then
    $MP4BOX -mp4 $libfile 2> /dev/null
    libfile="${btfile%.*}-inline.mp4"
-   echo "lib file $libfile"
   else
    libfile=""
    fi
@@ -24,6 +23,7 @@ bt_test ()
  name=$(basename $1)
  name=${name%.*}
  extern_proto=0
+ playback_test=1
  inline_resource=0
 
  #file used by other test
@@ -41,6 +41,14 @@ bt_test ()
    ;;
  *htk* )
   return;;
+ *counter-auto* )
+  return;;
+ bifs-game* )
+  playback_test=0
+  ;;
+ *-date* )
+  playback_test=0
+  ;;
 esac
 
  #start our test, specifying all hash names we will check
@@ -78,37 +86,41 @@ esac
  #then BT->XMT
  do_test "$MP4BOX -xmt $btfile" "BT2XMT" && do_hash_test "$xmtfile" "bt-to-xmt"
 
- #then all following tests can be run in parallel
+ #then all following tests can be run in parallel, but for now we run them sequentially
 
  #XMT->BT
- do_test "$MP4BOX -bt $xmtfile -out test1.bt" "XMT2BT" && do_hash_test "test1.bt" "xmt-to-bt" && rm test1.bt 2> /dev/null &
+ do_test "$MP4BOX -bt $xmtfile -out test1.bt" "XMT2BT" && do_hash_test "test1.bt" "xmt-to-bt" && rm test1.bt 2> /dev/null 
 
  #XMT->MP4
- do_test "$MP4BOX -mp4 $xmtfile -out $mp4file.tmp" "XMT2MP4" && do_hash_test "$mp4file.tmp" "xmt-to-mp4" && rm "$mp4file.tmp" &
+ do_test "$MP4BOX -mp4 $xmtfile -out $mp4file.tmp" "XMT2MP4" && do_hash_test "$mp4file.tmp" "xmt-to-mp4" && rm "$mp4file.tmp" 
 
  #MP4->BT
- do_test "$MP4BOX -bt $mp4file -out test2.bt" "MP42BT" && do_hash_test "test2.bt" "mp4-to-bt" && rm test2.bt 2> /dev/null &
+ do_test "$MP4BOX -bt $mp4file -out test2.bt" "MP42BT" && do_hash_test "test2.bt" "mp4-to-bt" && rm test2.bt 2> /dev/null 
 
  #MP4->XMT
- do_test "$MP4BOX -xmt $mp4file -out test.xmt" "MP42XMT" && do_hash_test "test.xmt" "mp4-to-xmt" && rm test.xmt 2> /dev/null &
+ do_test "$MP4BOX -xmt $mp4file -out test.xmt" "MP42XMT" && do_hash_test "test.xmt" "mp4-to-xmt" && rm test.xmt 2> /dev/null 
 
  #MP4 stat
- do_test "$MP4BOX -stat $mp4file -std" "MP4STAT" &
- do_test "$MP4BOX -stats $mp4file -std" "MP4STATS" &
- do_test "$MP4BOX -statx $mp4file -std" "MP4STATX" &
+ do_test "$MP4BOX -stat $mp4file -std" "MP4STAT" 
+ do_test "$MP4BOX -stats $mp4file -std" "MP4STATS" 
+ do_test "$MP4BOX -statx $mp4file -std" "MP4STATX" 
 
  if [ $play_all = 1 ] ; then
 
   #BT playback
-  do_test "$MP4CLIENT -run-for 1 $btfile" "bt-play" &
+  do_test "$MP4CLIENT -run-for 1 $btfile" "bt-play" 
 
   #XMT playback
-  do_test "$MP4CLIENT -run-for 1 $xmtfile" "xmt-play" &
+  do_test "$MP4CLIENT -run-for 1 $xmtfile" "xmt-play" 
 
  fi
 
- #MP4 playback - dump 10 sec of AVI and hash it. This should be enough for most of our sequences ...
- do_playback_test $mp4file "play" &
+ if [ $playback_test = 0 ] ; then
+  do_test "$MP4CLIENT -run-for 1 $mp4file" "play" 
+ else
+  #MP4 playback - dump 10 sec of AVI and hash it. This should be enough for most of our sequences ...
+  do_playback_test $mp4file "play" 
+ fi
 
  #this will sync everything, we can delete after
  test_end

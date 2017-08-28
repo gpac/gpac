@@ -83,7 +83,7 @@ GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
  */
 GF_BitStream *gf_bs_from_file(FILE *f, u32 mode);
 /*!
- *	\brief bitstream constructor from file handle
+ *	\brief bitstream destructor from file handle
  *
  * Deletes the bitstream object. If the buffer was created by the bitstream, it is deleted if still present.
  */

@@ -868,7 +868,7 @@ static void M2TS_OnEvent(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		com.addon_info.is_announce = ((GF_M2TS_TemiLocationDescriptor*)param)->is_announce;
 		com.addon_info.is_splicing = ((GF_M2TS_TemiLocationDescriptor*)param)->is_splicing;
 		com.addon_info.activation_countdown = ((GF_M2TS_TemiLocationDescriptor*)param)->activation_countdown;
-		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
+//		com.addon_info.reload_external = ((GF_M2TS_TemiLocationDescriptor*)param)->reload_external;
 		com.addon_info.timeline_id = ((GF_M2TS_TemiLocationDescriptor*)param)->timeline_id;
 		gf_service_command(m2ts->service, &com, GF_OK);
 	}
@@ -1134,6 +1134,9 @@ static GF_Err M2TS_ConnectService(GF_InputService *plug, GF_ClientService *serv,
 
 	m2ts->force_temi_url = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "ForceTEMILocation");
 	if (m2ts->force_temi_url && !strlen(m2ts->force_temi_url)) m2ts->force_temi_url = NULL;
+
+	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "M2TS", "UDPBufferSize");
+	if (opt) m2ts->ts->udp_buffer_size = (u32)atoi(opt);
 
 	opt = gf_modules_get_option((GF_BaseInterface *)m2ts->owner, "DSMCC", "Activated");
 	if (opt && !strcmp(opt, "yes")) {
@@ -1463,11 +1466,6 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		m2ts_flush_data(m2ts, com->proxy_data.is_chunk ? GF_M2TS_PUSH_CHUNK : GF_M2TS_PUSH_SEGMENT);
 		return GF_OK;
 	}
-	if (com->command_type == GF_NET_SERVICE_FLUSH_DATA) {
-		if (plug->query_proxy)
-			m2ts_flush_data(m2ts, GF_M2TS_FLUSH_DATA);
-		return GF_OK;
-	}
 	//get info on the first running program
 	if (com->command_type==GF_NET_SERVICE_INFO) {
 		u32 id = com->info.service_id;
@@ -1501,6 +1499,9 @@ static GF_Err M2TS_ServiceCommand(GF_InputService *plug, GF_NetworkCommand *com)
 		//do not override config
 		if (ts->dnload || plug->query_proxy) {
 			if (!com->buffer.max) com->buffer.max = 1000;
+		} else if (ts->file) {
+			//use default small buffer for PCR regulation when from file
+			com->buffer.max = com->buffer.occupancy = M2TS_MAX_SLEEP;
 		}
 		return GF_OK;
 	case GF_NET_CHAN_DURATION:

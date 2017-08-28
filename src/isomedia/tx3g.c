@@ -473,7 +473,7 @@ GF_TextSample *gf_isom_parse_texte_sample(GF_BitStream *bs)
 
 	while (gf_bs_available(bs)) {
 		GF_Box *a;
-		GF_Err e = gf_isom_parse_box(&a, bs);
+		GF_Err e = gf_isom_box_parse(&a, bs);
 		if (!e) {
 			switch (a->type) {
 			case GF_ISOM_BOX_TYPE_STYL:

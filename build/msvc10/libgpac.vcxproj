@@ -731,6 +731,7 @@
     <Lib>
       <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalOptions> /ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>
@@ -801,6 +802,7 @@
       <OutputFile>../../bin/$(Platform)/$(Configuration)/libgpac_static.lib</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <TargetMachine>MachineX64</TargetMachine>
+      <AdditionalOptions> /ignore:4221 %(AdditionalOptions)</AdditionalOptions>
     </Lib>
     <Bscmake>
       <SuppressStartupBanner>true</SuppressStartupBanner>

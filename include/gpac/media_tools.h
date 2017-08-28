@@ -192,6 +192,8 @@ enum
 	GF_IMPORT_NO_VPS_EXTENSIONS = 1<<25,
 	/*! when set no SEI messages are imported*/
 	GF_IMPORT_NO_SEI = 1<<26,
+	/*! keeps track references when importing a single track*/
+	GF_IMPORT_KEEP_REFS = 1<<27,
 
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
@@ -528,6 +530,8 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
+	/*! if true, the dasher inputs will open each time the segmentation function is called */
+	Bool no_cache;
 } GF_DashSegmenterInput;
 
 /*!
@@ -828,6 +832,29 @@ GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, 
 */
 GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
 
+/*! Sets Dasher debug mode
+ *	\param dasher the DASH segmenter object
+ *	\param forceTestMode If true, disable generation date print in mpd
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode);
+
+/*!
+ Enable/Disable cached inputs .
+ *	\param dasher the DASH segmenter object
+ *	\param no_cache if true, input file will be reopen each time the dasher process function is called .
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache);
+
+/*!
+ Enable/Disable loop inputs .
+ *	\param dasher the DASH segmenter object
+ *	\param do_llop if true, input files will be looped at the end of the file in a live simulation. Otherwise a new period will be created.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
+
 /*!
  Adds a media input to the DASHer
  *	\param dasher the DASH segmenter object
@@ -958,6 +985,10 @@ typedef struct __track_exporter
 	u32 flags;
 	/*! non-ISOBMF source file (AVI, TS)*/
 	char *in_name;
+	/*! set to TRUE if no additionnal files are to be created*/
+	Bool nhml_only;
+	/*! optionnal FILE for output*/
+	FILE *dump_file;
 } GF_MediaExporter;
 
 /*!
@@ -966,6 +997,12 @@ typedef struct __track_exporter
  \return  error if any
  */
 GF_Err gf_media_export(GF_MediaExporter *dump);
+
+GF_Err gf_media_export_nhml(GF_MediaExporter *dumper, Bool dims_doc);
+
+#ifndef GPAC_DISABLE_VTT
+GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump);
+#endif
 
 #endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 

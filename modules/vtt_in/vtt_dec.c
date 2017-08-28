@@ -303,7 +303,7 @@ static void VTT_ReadConfigFromDSI(VTTDec *vttdec, GF_DefaultDescriptor *dsi)
 	entry_type = gf_bs_read_u32(bs);
 	if (entry_type == GF_ISOM_BOX_TYPE_WVTT) {
 		GF_Box *b;
-		gf_isom_parse_box(&b, bs);
+		gf_isom_box_parse(&b, bs);
 		vttdec->config = ((GF_StringBox *)b)->string;
 		((GF_StringBox *)b)->string = NULL;
 		gf_isom_box_del(b);
