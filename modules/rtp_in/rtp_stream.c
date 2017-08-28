@@ -491,7 +491,7 @@ static void RP_ProcessRTP(RTPStream *ch, char *pck, u32 size)
 			/*skip RTCP clock init when RTSP is used*/
 			if (ch->rtsp) ch->rtcp_init = GF_TRUE;
 
-//			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
+			if (ch->depacketizer->payt==GF_RTP_PAYT_H264_AVC) ch->depacketizer->flags |= GF_RTP_AVC_WAIT_RAP;
 		}
 		/*this is RESUME on channel, filter packet based on time (darwin seems to send
 		couple of packet before)

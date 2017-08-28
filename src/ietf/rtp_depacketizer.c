@@ -30,6 +30,7 @@
 #include <gpac/esi.h>
 #include <gpac/base_coding.h>
 #include <gpac/constants.h>
+#include <gpac/isomedia.h>
 #include <gpac/mpeg4_odf.h>
 #include <gpac/avparse.h>
 
@@ -605,12 +606,13 @@ static void gf_rtp_h264_flush(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, Bool m
 		data[3] = nal_s&0xFF;
 	}
 	/*set F-bit since nal is corrupted*/
-	if (missed_end) data[4] |= 0x80;
+//	if (missed_end) data[4] |= 0x80;
 
 	rtp->sl_hdr.accessUnitEndFlag = (rtp->flags & GF_RTP_UNRELIABLE_M) ? 0 : hdr->Marker;
 	rtp->sl_hdr.compositionTimeStampFlag = 1;
 	rtp->sl_hdr.compositionTimeStamp = hdr->TimeStamp;
 	rtp->sl_hdr.decodingTimeStampFlag = 0;
+
 	rtp->on_sl_packet(rtp->udta, data, data_size, &rtp->sl_hdr, GF_OK);
 	rtp->sl_hdr.accessUnitStartFlag = 0;
 	rtp->sl_hdr.randomAccessPointFlag = 0;
@@ -644,7 +646,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 
 	/*single NALU*/
 	if (nal_type<23) {
-		if (nal_type==5) {
+		if (nal_type==GF_AVC_NALU_IDR_SLICE) {
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 		}
@@ -684,7 +686,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			nal_size<<=8;
 			nal_size |= (u8) payload[offset+1];
 			offset += 2;
-			if ((payload[offset] & 0x1F) == 5) {
+			if ((payload[offset] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 				rtp->sl_hdr.randomAccessPointFlag = 1;
 				rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			}
@@ -719,7 +721,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 		/*flush*/
 		if (is_start) gf_rtp_h264_flush(rtp, hdr, GF_TRUE);
 
-		if ((payload[1] & 0x1F) == 5) {
+		if ((payload[1] & 0x1F) == GF_AVC_NALU_IDR_SLICE) {
 			rtp->flags &= ~GF_RTP_AVC_WAIT_RAP;
 			rtp->sl_hdr.randomAccessPointFlag = 1;
 		} else if (rtp->flags & GF_RTP_AVC_WAIT_RAP)
@@ -732,7 +734,7 @@ void gf_rtp_parse_h264(GF_RTPDepacketizer *rtp, GF_RTPHeader *hdr, char *payload
 			/*copy F and NRI*/
 			nal_hdr = payload[0] & 0xE0;
 			/*start bit not set, signal corrupted data (we missed start packet)*/
-			if (!is_start) nal_hdr |= 0x80;
+//			if (!is_start) nal_hdr |= 0x80;
 			/*copy NALU type*/
 			nal_hdr |= (payload[1] & 0x1F);
 			/*dummy size field*/
@@ -1171,7 +1173,7 @@ static GF_Err payt_set_param(GF_RTPDepacketizer *rtp, char *param_name, char *pa
 	} /*ISMACryp config*/
 	else if (!stricmp(param_name, "ISMACrypCryptoSuite")) {
 		if (!stricmp(param_val, "AES_CTR_128"))
-			rtp->isma_scheme = GF_4CC('i','A','E','C');
+			rtp->isma_scheme = GF_ISOM_ISMACRYP_SCHEME;
 		else
 			rtp->isma_scheme = 0;
 	}
@@ -1285,7 +1287,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*mark if AU header is present*/
 		rtp->sl_map.auh_first_min_len = 0;
 		if (rtp->flags & GF_RTP_HAS_ISMACRYP) {
-			if (!rtp->isma_scheme) rtp->isma_scheme = GF_4CC('i','A','E','C');
+			if (!rtp->isma_scheme) rtp->isma_scheme = GF_ISOM_ISMACRYP_SCHEME;
 			if (!rtp->sl_map.IV_length) rtp->sl_map.IV_length = 4;
 
 			if (rtp->flags & GF_RTP_ISMA_SEL_ENC) rtp->sl_map.auh_first_min_len += 8;
@@ -1363,12 +1365,12 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		/*create DSI*/
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		if (rtp->payt == GF_RTP_PAYT_AMR) {
-			gf_bs_write_u32(bs, GF_4CC('s', 'a', 'm', 'r'));
+			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR);
 			gf_bs_write_u32(bs, 8000);
 			gf_bs_write_u16(bs, 1);
 			gf_bs_write_u16(bs, 160);
 		} else {
-			gf_bs_write_u32(bs, GF_4CC('s', 'a', 'w', 'b'));
+			gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_3GP_AMR_WB);
 			gf_bs_write_u32(bs, 16000);
 			gf_bs_write_u16(bs, 1);
 			gf_bs_write_u16(bs, 320);
@@ -1398,7 +1400,7 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 		rtp->sl_map.ObjectTypeIndication = GPAC_OTI_MEDIA_GENERIC;
 		/*create DSI*/
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-		gf_bs_write_u32(bs, GF_4CC('h', '2', '6', '3'));
+		gf_bs_write_u32(bs, GF_ISOM_SUBTYPE_H263);
 		gf_bs_write_u16(bs, w);
 		gf_bs_write_u16(bs, h);
 		gf_bs_get_content(bs, &rtp->sl_map.config, &rtp->sl_map.configSize);
@@ -1554,7 +1556,11 @@ static GF_Err gf_rtp_payt_setup(GF_RTPDepacketizer *rtp, GF_RTPMap *map, GF_SDPM
 				}
 			}
 		}
-		gf_odf_avc_cfg_write(avcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		if (gf_list_count(avcc->sequenceParameterSets) && gf_list_count(avcc->pictureParameterSets)) {
+			gf_odf_avc_cfg_write(avcc, &rtp->sl_map.config, &rtp->sl_map.configSize);
+		} else {
+			rtp->flags |= GF_RTP_AVC_USE_ANNEX_B;
+		}
 		gf_odf_avc_cfg_del(avcc);
 	}
 		/*assign depacketizer*/

@@ -258,7 +258,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 			gf_odf_avc_cfg_del((cfg));
 			
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-			data = CFDataCreate(kCFAllocatorDefault, dsi_data, dsi_data_size);
+			data = CFDataCreate(kCFAllocatorDefault, (const UInt8*)dsi_data, dsi_data_size);
 			if (data) {
 				CFDictionarySetValue(dsi, CFSTR("avcC"), data);
 				CFDictionarySetValue(dec_dsi, kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms, dsi);
@@ -322,7 +322,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 			gf_bs_del(bs);
 			
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-			data = CFDataCreate(kCFAllocatorDefault, dsi_data, dsi_data_size);
+			data = CFDataCreate(kCFAllocatorDefault, (const UInt8*) dsi_data, dsi_data_size);
 			gf_free(dsi_data);
 			
 			if (data) {
@@ -681,7 +681,7 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 			}
 			ptr += ctx->nalu_size_length;
 		} else {
-			nal_size = gf_media_nalu_next_start_code(ptr, inBufferLength, &sc_size);
+			nal_size = gf_media_nalu_next_start_code((const u8 *) ptr, inBufferLength, &sc_size);
 		}
 		nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
 		nal_hdr = gf_bs_read_u8(nal_bs);
@@ -1063,7 +1063,7 @@ GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char 
 
 void *myGetGLContext();
 
-GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id)
+GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
     OSStatus status;
 	GLenum target_fmt;
@@ -1169,9 +1169,6 @@ GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFra
 		*needs_resize = GF_TRUE;
 	}
 	vtb_frame->cts = ctx->cts;
-	if (ctx->cts==960) {
-		vtb_frame->cts = 960;
-	}
 	ctx->decoded_frames_pending++;
 	return GF_OK;
 }

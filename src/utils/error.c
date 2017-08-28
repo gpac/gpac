@@ -41,6 +41,7 @@ const char *gf_4cc_to_str(u32 type)
 {
 	u32 ch, i;
 	char *ptr, *name = (char *)szTYPE;
+	if (!type) return "";
 	ptr = name;
 	for (i = 0; i < 4; i++, name++) {
 		ch = type >> (8 * (3-i) ) & 0xff;
@@ -118,6 +119,7 @@ static void *user_cbk;
 GF_EXPORT
 void gf_set_progress(const char *title, u64 done, u64 total)
 {
+	if (done>total) done=total;
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);
 	}
@@ -580,10 +582,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Bad configuration for the current context";
 	case GF_NOT_FOUND:
 		return "At least one required element has not been found";
-	case GF_MISSING_REQUIREMENTS:
-		return "The filter is missing at least one requirement";
-	case GF_WRONG_DATAFORMAT:
-		return "Unexpected data format";
+	case GF_PROFILE_NOT_SUPPORTED:
+		return "Unsupported codec profile";
 	default:
 		sprintf(szErrMsg, "Unknown Error (%d)", e);
 		return szErrMsg;

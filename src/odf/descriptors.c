@@ -771,7 +771,7 @@ GF_Err gf_odf_get_text_config(GF_DefaultDescriptor *dsi, u8 oti, GF_TextConfig *
 		for (i=0; i<nb_desc; i++) {
 			sample_index = gf_bs_read_int(bs, 8);
 			avail -= 1;
-			e = gf_isom_parse_box((GF_Box **) &a, bs);
+			e = gf_isom_box_parse((GF_Box **) &a, bs);
 			if (e) goto exit;
 			avail -= (s32) a->size;
 

@@ -358,14 +358,20 @@ static void gf_mo_update_visual_info(GF_MediaObject *mo)
 			mo->srd_y = com.srd.y;
 			mo->srd_w = com.srd.w;
 			mo->srd_h = com.srd.h;
+			mo->srd_full_w = com.srd.width;
+			mo->srd_full_h = com.srd.height;
 
-			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
-				mo->odm->parentscene->is_srd = GF_TRUE;
+			if (mo->odm->parentscene->is_dynamic_scene) {
+				if ((mo->srd_w == mo->srd_full_w) && (mo->srd_h == mo->srd_full_h)) {
+					mo->odm->parentscene->srd_type = 2;
+				} else if (!mo->odm->parentscene->srd_type) {
+					mo->odm->parentscene->srd_type = 1;
+				}
 			}
 		}
 		// SRD object with no size but global scene size: HEVC tiled bas object
 		else if (com.srd.width && com.srd.height) {
-			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->is_srd) {
+			if (mo->odm->parentscene->is_dynamic_scene && !mo->odm->parentscene->srd_type) {
 				mo->odm->parentscene->is_tiled_srd = GF_TRUE;
 			}
 		}
@@ -553,24 +559,34 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 
 		if (!(mo->odm->term->flags & GF_TERM_DROP_LATE_FRAMES)) {
-			//if the next AU is at most 1 sec from the current clock use no drop mode
-//			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %d frame TS %u next frame TS %d next data length %d (%d in CB)\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, CU->next->dataLength, codec->CB->UnitCount));
-			if (CU->next->dataLength && (CU->next->TS + 1000 >= obj_time)) {
+			if (mo->odm->term->compositor->force_late_frame_draw) {
+				mo->flags |= GF_MO_IN_RESYNC;
+			}
+			else if (mo->flags & GF_MO_IN_RESYNC) {
+				if (CU->next->TS >= obj_time) {
+					skip_resync = GF_TRUE;
+					mo->flags &= ~GF_MO_IN_RESYNC;
+				}
+			}
+			//if the next AU is at most 200 ms from the current clock use no drop mode
+			else if (CU->next->dataLength && (CU->next->TS + 200 >= obj_time)) {
 				skip_resync = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS, CU->next->TS, resync));
+				mo->flags |= GF_MO_IN_RESYNC;
 			}
 		}
 	}
 
 	if (skip_resync) {
 		resync=GF_MO_FETCH;
+		if (mo->odm->term->use_step_mode) upload_time_ms=0;
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
-		//the time threshold for fecthing should is given by the caller
-		if ( (gf_clock_is_started(codec->ck) || mo->odm->term->compositor->step_mode)
+		//the time threshold for fecthing is given by the caller
+		if ( (gf_clock_is_started(codec->ck) || mo->odm->term->use_step_mode)
 
-			&& (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS + upload_time_ms <= obj_time) ) {
+			&& (mo->timestamp==CU->TS) && CU->next->dataLength && (CU->next->TS <= obj_time + upload_time_ms) ) {
 			
 			gf_cm_drop_output(codec->CB);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %u now %u\n", mo->odm->OD->objectDescriptorID, CU->next->TS, obj_time));
@@ -584,12 +600,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	if (resync) {
-		u32 nb_dropped = 0;
 		while (1) {
 			if (codec->ck->speed > 0 ? CU->TS >= obj_time : CU->TS <= obj_time )
 				break;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u length %d obj time %u\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			if (mo->timestamp != CU->TS) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u length %d obj time %u\n", mo->odm->OD->objectDescriptorID, CU->TS, CU->next->TS, CU->next->dataLength, obj_time));
+			}
 
 			if (!CU->next->dataLength) {
 				if (force_decode_mode) {
@@ -614,11 +631,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				break;
 			}
 
-			nb_dropped ++;
-			if (nb_dropped>=1) {
+			if (mo->timestamp != CU->TS) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->OD->objectDescriptorID, obj_time, CU->TS));
 				codec->nb_dropped++;
 			}
+
 			/*discard*/
 			CU->RenderedLength = CU->dataLength = 0;
 			gf_cm_drop_output(codec->CB);
@@ -904,6 +921,12 @@ Bool gf_mo_stop(GF_MediaObject *mo)
 		/*if object not in media queue, add it*/
 		if (gf_list_find(mo->odm->term->media_queue, mo->odm)<0) {
 			gf_list_add(mo->odm->term->media_queue, mo->odm);
+		} else {
+			//ODM was queued for PLAY and we stop it, keep in queue for stoping buffers but don't send net commands
+			if (mo->odm->action_type == GF_ODM_ACTION_PLAY) {
+				//force a stop without network commands
+				mo->odm->state = GF_ODM_STATE_STOP_NO_NET;
+			}
 		}
 
 		/*signal STOP request*/
@@ -1521,11 +1544,12 @@ Bool gf_mo_get_srd_info(GF_MediaObject *mo, GF_MediaObjectVRInfo *vr_info)
 	vr_info->srd_max_x = scene->srd_max_x;
 	vr_info->srd_max_y = scene->srd_max_y;
 	vr_info->is_tiled_srd = scene->is_tiled_srd;
+	vr_info->has_full_coverage = (scene->srd_type==2) ? GF_TRUE : GF_FALSE;
 	
 	gf_sg_get_scene_size_info(scene->graph, &vr_info->scene_width, &vr_info->scene_height);
 
 	gf_odm_lock(mo->odm, 0);
-	return (!scene->vr_type && !scene->is_srd) ? GF_FALSE : GF_TRUE;
+	return (!scene->vr_type && !scene->srd_type) ? GF_FALSE : GF_TRUE;
 }
 
 /*sets quality hint for this media object  - quality_rank is between 0 (min quality) and 100 (max quality)*/

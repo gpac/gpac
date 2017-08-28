@@ -653,6 +653,9 @@ static GF_Err FFDEC_GetCapabilities(GF_BaseDecoder *plug, GF_CodecCapability *ca
 	case GF_CODEC_REORDER:
 		capability->cap.valueInt = 1;
 		break;
+	case GF_CODEC_TRUSTED_CTS:
+		capability->cap.valueInt = 1;
+		break;
 	case GF_CODEC_WAIT_RAP:
 		//ffd->ctx->hurry_up = 5;
 		break;
@@ -975,7 +978,6 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		return GF_BAD_PARAM;
 	}
 
-
 	/*WARNING: this breaks H264 (and maybe others) decoding, disabled for now*/
 #if 0
 	if (!ctx->hurry_up) {
@@ -1251,6 +1253,9 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		return GF_OK;
 	}
 #endif
+
+	//copy over CTS of packet passed in decode()
+	*CTS = (u32) frame->pkt_pts;
 
 	if (ffd->direct_output_mode) {
 		*outBufferLength = ffd->out_size;

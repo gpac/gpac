@@ -546,6 +546,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		if ((cb->Status != CB_STOP) && cb->HasSeenEOS && (cb->odm && cb->odm->codec)) {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
 
+			if ((cb->Status==CB_BUFFER_DONE) && (cb->odm->codec->type == GF_STREAM_VISUAL) ){
+				gf_clock_buffer_off(cb->odm->codec->ck);
+			}
 			cb->Status = CB_STOP;
 			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
@@ -568,6 +571,9 @@ GF_CMUnit *gf_cm_get_output(GF_CompositionMemory *cb)
 		/*handle visual object - EOS if no more data (we keep the last CU for rendering, so check next one)*/
 		if (cb->HasSeenEOS && (cb->odm->codec->type == GF_STREAM_VISUAL) && (!cb->output->next->dataLength || (cb->Capacity==1))) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[ODM%d] Switching composition memory to stop state - time %d\n", cb->odm->OD->objectDescriptorID, (u32) cb->odm->media_stop_time));
+			if (cb->Status==CB_BUFFER_DONE) {
+				gf_clock_buffer_off(cb->odm->codec->ck);
+			}
 			cb->Status = CB_STOP;
 			cb->odm->media_current_time = (u32) cb->odm->media_stop_time;
 #ifndef GPAC_DISABLE_VRML
@@ -658,9 +664,13 @@ void gf_cm_set_status(GF_CompositionMemory *cb, u32 Status)
 	if (Status == CB_PLAY) {
 		switch (cb->Status) {
 		case CB_STOP:
-			cb->Status = CB_BUFFER;
-			gf_clock_buffer_on(cb->odm->codec->ck);
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck),gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+			if (cb->odm->disable_buffer_at_next_play) {
+				cb->Status = CB_BUFFER_DONE;
+			} else {
+				cb->Status = CB_BUFFER;
+				gf_clock_buffer_on(cb->odm->codec->ck);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] CB status changed - ODM%d: buffering on at OTB %d (STB %d) (nb wait on clock: %d)\n", cb->odm->OD->objectDescriptorID, gf_clock_time(cb->odm->codec->ck),gf_term_get_time(cb->odm->term), cb->odm->codec->ck->Buffering));
+			}
 			break;
 		case CB_PAUSE:
 			cb->Status = CB_PLAY;

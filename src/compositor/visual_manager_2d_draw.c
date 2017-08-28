@@ -394,8 +394,9 @@ void visual_2d_flush_hybgl_canvas(GF_VisualManager *visual, GF_TextureHandler *t
 				}
 				//if object was not completely in the flush region we will need to flush the canvas
 				if ( gf_irect_inside(&rc, &visual->hybgl_drawn.list[i].rect)) {
-					assert(nb_obj_left_on_canvas);
-					nb_obj_left_on_canvas--;
+					//it may happen that we had no object on the canvas but syil have their bounds (we only drew textures)
+					if (nb_obj_left_on_canvas)
+						nb_obj_left_on_canvas--;
 				}
 			}
 			//immediate mode flush, erase all canvas (we just completely flusged it)

@@ -660,7 +660,7 @@ mkdir -p extra_lib/lib/gcc
 
 #OK check for all local & systems lib
 local_inc=$source_path/extra_lib/include
-local_lib=extra_lib/lib/gcc
+local_lib=$source_path/extra_lib/lib/gcc
 
 
 dolog() {
@@ -1047,7 +1047,7 @@ else
     fi
     if docxx -o $TMPO $TMPC $avcap_cflags $LDFLAGS -L$local_lib $avcap_ldflags ; then
         has_avcap="yes"
-        avcap_ldflags="-L../../$local_lib $avcap_ldflags"
+        avcap_ldflags="-L$local_lib $avcap_ldflags"
     fi
 fi
 
@@ -1069,12 +1069,12 @@ EOF
 if docc $osvc_cflags $LDFLAGS $osvc_ldflags ; then
   has_opensvc="yes"
 else
-osvc_cflags="-I$local_inc"
+osvc_cflags="-idirafter $local_inc"
 osvc_ldflags="-lOpenSVCDec"
 
 if docc $osvc_cflags $LDFLAGS -L$local_lib $osvc_ldflags ; then
   has_opensvc="yes"
-  osvc_ldflags="-L../../$local_lib $osvc_ldflags"
+  osvc_ldflags="-L$local_lib $osvc_ldflags"
 fi
 
 fi
@@ -1104,7 +1104,7 @@ else
   ohevc_ldflags="-lLibOpenHevcWrapper -lm -lpthread"
   if docc $ohevc_cflags $ohevc_ldflags $LDFLAGS -L$local_lib ; then
     has_openhevc="yes"
-    ohevc_ldflags="-L../../$local_lib $ohevc_ldflags"
+    ohevc_ldflags="-L$local_lib $ohevc_ldflags"
   fi
 fi
 
@@ -2661,7 +2661,7 @@ if test "$disable_import" = "yes" ; then
     echo "#define GPAC_DISABLE_MEDIA_IMPORT" >> $TMPH
 fi
 if test "$disable_export" = "yes" ; then
-    echo "Media exmporters disabled"
+    echo "Media exporters disabled"
     echo "#define GPAC_DISABLE_MEDIA_EXPORT" >> $TMPH
 fi
 if test "$disable_swf" = "yes" ; then

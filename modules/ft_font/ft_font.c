@@ -254,7 +254,7 @@ static void ft_rescan_fonts(GF_FontReader *dr)
 	if (ftpriv->font_serif) gf_free(ftpriv->font_serif);
 	ftpriv->font_serif = NULL;
 
-	/* let's check we have fonts that match our default Bol/Italic/BoldItalic conventions*/
+	/* let's check we have fonts that match our default Bold/Italic/BoldItalic conventions*/
 	count = gf_cfg_get_key_count(cfg, "FontEngine");
 	for (i=0; i<count; i++) {
 		const char *opt;
@@ -581,7 +581,7 @@ typedef struct
 
 
 
-int ft_move_to(FTCST FT_Vector *to, void *user)
+static int ft_move_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_move_to(ftol->path, INT2FIX(to->x), INT2FIX(to->y) );
@@ -590,7 +590,7 @@ int ft_move_to(FTCST FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_line_to(FTCST FT_Vector *to, void *user)
+static int ft_line_to(FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	if ( (ftol->last_x == to->x) && (ftol->last_y == to->y)) {
@@ -601,7 +601,7 @@ int ft_line_to(FTCST FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_conic_to(FTCST FT_Vector * control, FTCST FT_Vector *to, void *user)
+static int ft_conic_to(FTCST FT_Vector * control, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_quadratic_to(ftol->path, INT2FIX(control->x), INT2FIX(control->y), INT2FIX(to->x), INT2FIX(to->y) );
@@ -609,7 +609,7 @@ int ft_conic_to(FTCST FT_Vector * control, FTCST FT_Vector *to, void *user)
 	return 0;
 }
 
-int ft_cubic_to(FTCST FT_Vector *c1, FTCST FT_Vector *c2, FTCST FT_Vector *to, void *user)
+static int ft_cubic_to(FTCST FT_Vector *c1, FTCST FT_Vector *c2, FTCST FT_Vector *to, void *user)
 {
 	ft_outliner *ftol = (ft_outliner *)user;
 	gf_path_add_cubic_to(ftol->path, INT2FIX(c1->x), INT2FIX(c1->y), INT2FIX(c2->x), INT2FIX(c2->y), INT2FIX(to->x), INT2FIX(to->y) );
@@ -687,7 +687,7 @@ static GF_Glyph *ft_load_glyph(GF_FontReader *dr, u32 glyph_name)
 }
 
 
-GF_FontReader *ft_load()
+static GF_FontReader *ft_load()
 {
 	GF_FontReader *dr;
 	FTBuilder *ftpriv;
@@ -715,7 +715,7 @@ GF_FontReader *ft_load()
 }
 
 
-void ft_delete(GF_BaseInterface *ifce)
+static void ft_delete(GF_BaseInterface *ifce)
 {
 	GF_FontReader *dr = (GF_FontReader *) ifce;
 	FTBuilder *ftpriv = dr->udta;
