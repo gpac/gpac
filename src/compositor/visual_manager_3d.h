@@ -41,6 +41,8 @@
 /*draw frame, performing collisions, camera displacement and drawing*/
 Bool visual_3d_draw_frame(GF_VisualManager *visual, GF_Node *root, GF_TraverseState *tr_state, Bool is_root_visual);
 
+Bool visual_3d_setup_ray(GF_VisualManager *visual, GF_TraverseState *tr_state, s32 ix, s32 iy);
+
 /*traverse the scene and picks the node under the current ray, if any*/
 void visual_3d_pick_node(GF_VisualManager *visual, GF_TraverseState *tr_state, GF_Event *ev, GF_ChildNodeItem *children);
 
@@ -84,7 +86,7 @@ void visual_3d_set_2d_strike(GF_TraverseState *tr_state, DrawAspect2D *asp);
 /*sets 3D material. Returns false is object is not visible due to appearance
 	- exported for text drawing*/
 Bool visual_3d_setup_appearance(GF_TraverseState *tr_state);
-/*sets 3D texture. Returns true if a texture is found and successfully bound
+/*sets 3D texture. Returns true if a texture is found and successfully bound or no texture found, FALSE otherwise (texture failure)
 	- exported for text drawing*/
 Bool visual_3d_setup_texture(GF_TraverseState *tr_state, Fixed diffuse_alpha);
 /*disables texture

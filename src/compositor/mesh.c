@@ -689,9 +689,11 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAng
 	if (!sphere_angles) {
 		mesh->flags |= MESH_IS_SOLID;
 	}
+	if (radius<0) radius = -radius;
 
 	mesh->bounds.min_edge.x = mesh->bounds.min_edge.y = mesh->bounds.min_edge.z = -radius;
 	mesh->bounds.max_edge.x = mesh->bounds.max_edge.y = mesh->bounds.max_edge.z = radius;
+
 	gf_bbox_refresh(&mesh->bounds);
 
 	if (radius != FIX_ONE) gf_mesh_build_aabbtree(mesh);

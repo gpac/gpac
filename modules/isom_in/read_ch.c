@@ -93,7 +93,7 @@ void isor_segment_switch_or_refresh(ISOMReader *read, Bool do_refresh)
 {
 	GF_NetworkCommand param;
 	u32 i, count;
-	Bool scalable_segment = 0;
+	Bool scalable_segment = GF_FALSE;
 	GF_Err e;
 
 	/*access to the segment switching must be protected in case several decoders are threaded on the file using GetSLPacket */
@@ -184,10 +184,10 @@ next_segment:
 					u64 bytesMissing=0;
 					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
 
-					if (e) {
+					if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to reparse segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
 					} else {
-						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
@@ -216,10 +216,24 @@ next_segment:
 			}
 			e = GF_OK;
 			if (param.url_query.next_url_init_or_switch_segment) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s\n", param.url_query.next_url_init_or_switch_segment));
+				u64 tfdt = gf_isom_get_current_tfdt(read->mov, 1);
+
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU")\n", param.url_query.next_url_init_or_switch_segment, tfdt));
+
+				if (gf_isom_is_smooth_streaming_moov(read->mov)) {
+					char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+
+					//smooth adressing, replace tfdt=0000000000000000000 with proper value
+					if (tfdt_val) {
+						sprintf(tfdt_val+5, LLU, tfdt);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+					}
+				}
+
 				if (read->mov) gf_isom_close(read->mov);
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
-				if (e<0) {
+				if (e < 0) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc(), gf_error_to_string(e) ));
 				}
 			}
@@ -425,7 +439,7 @@ static void init_reader(ISOMChannel *ch)
 			ch->sample_time = ch->sample->DTS + ch->dts_offset;
 		}
 	}
-	ch->to_init = 0;
+	ch->to_init = GF_FALSE;
 
 	ch->current_slh.seekFlag = 0;
 	if (ch->disable_seek) {
@@ -461,7 +475,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	}
 
 	if ((ch->owner->seg_opened==1) && ch->is_pulling) {
-		isor_segment_switch_or_refresh(ch->owner, 1);
+		isor_segment_switch_or_refresh(ch->owner, GF_TRUE);
 	}
 
 	if (ch->to_init) {
@@ -614,7 +628,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->owner->frag_type==1) {
 				//if segment is fully opened and no more data, this track is done, wait for next segment
 				if (!ch->wait_for_segment_switch && ch->owner->input->query_proxy && (ch->owner->seg_opened==2) ) {
-					ch->wait_for_segment_switch = 1;
+					ch->wait_for_segment_switch = GF_TRUE;
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Track #%d end of segment reached - waiting for sample %d - current count %d\n", ch->track, ch->sample_num, gf_isom_get_sample_count(ch->owner->mov, ch->track) ));
 				}
 				/*if sample cannot be found and file is fragmented, rewind sample*/

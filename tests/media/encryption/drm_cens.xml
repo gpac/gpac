@@ -16,7 +16,7 @@
 <BS ID128="0x5544694d47473326622665665a396b36"/>
 </DRMInfo>
 
-<CrypTrack trackID="1" IsEncrypted="1" constant_IV_size="16" constant_IV="0x0a610676cb88f302d10ac8bc66e039ed" saiSavedBox="senc" skip_byte_block="1" crypt_byte_block="10">
+<CrypTrack trackID="1" IsEncrypted="1" IV_size="16" first_IV="0x0a610676cb88f302d10ac8bc66e039ed" saiSavedBox="senc" skip_byte_block="1" crypt_byte_block="10">
 <key KID="0x279926496a7f5d25da69f2b3b2799a7f" value="0x5544694d47473326622665665a396b36"/>
 </CrypTrack>
 

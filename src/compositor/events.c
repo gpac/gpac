@@ -1974,9 +1974,9 @@ static Bool forward_event(GF_Compositor *compositor, GF_Event *ev, Bool consumed
 	if ((ev->type==GF_EVENT_MOUSEUP) && (ev->mouse.button==GF_MOUSE_LEFT)) {
 		u32 now;
 		GF_Event event;
-		/*emulate doubleclick*/
+		/*emulate doubleclick unless in step mode*/
 		now = gf_sys_clock();
-		if (now - compositor->last_click_time < DOUBLECLICK_TIME_MS) {
+		if (!compositor->step_mode && (now - compositor->last_click_time < DOUBLECLICK_TIME_MS)) {
 			event.type = GF_EVENT_DBLCLICK;
 			event.mouse.key_states = compositor->key_states;
 			event.mouse.x = ev->mouse.x;
@@ -1995,6 +1995,11 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	Bool switch_coords = GF_FALSE;
 	Bool ret = GF_FALSE;
 	if (evt->type<=GF_EVENT_MOUSEWHEEL) {
+		if (compositor->simulate_gaze) {
+			compositor->gaze_x = evt->mouse.x;
+			compositor->gaze_y = evt->mouse.y;
+		}
+
 		if (compositor->visual->center_coords) {
 			x = evt->mouse.x;
 			y = evt->mouse.y;
@@ -2016,6 +2021,7 @@ Bool gf_sc_exec_event(GF_Compositor *compositor, GF_Event *evt)
 	if (switch_coords) {
 		evt->mouse.x = x;
 		evt->mouse.y = y;
+
 	}
 
 	if (!ret) {

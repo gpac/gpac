@@ -297,6 +297,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 		/*H264-SVC*/
 		case GPAC_OTI_VIDEO_SVC:
+		case GPAC_OTI_VIDEO_MVC:
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_SVC;
 			PL_ID = 0x0F;
@@ -363,6 +364,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		case GF_ISOM_SUBTYPE_AVC3_H264:
 		case GF_ISOM_SUBTYPE_AVC4_H264:
 		case GF_ISOM_SUBTYPE_SVC_H264:
+		case GF_ISOM_SUBTYPE_MVC_H264:
 		{
 			required_rate = 90000;	/* "90 kHz clock rate MUST be used"*/
 			rtp_type = GF_RTP_PAYT_H264_AVC;

@@ -977,7 +977,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 		if (import->esd->OCRESID) gf_isom_set_track_reference(import->dest, track, GF_ISOM_REF_OCR, import->esd->OCRESID);
 	}
 
-	gf_import_message(import, GF_OK, "TTML Import");
+	gf_import_message(import, GF_OK, "TTML EBU-TTD Import");
 
 	/*** root (including language) ***/
 	i=0;
@@ -1019,7 +1019,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 						GF_XMLNode *styling_node;
 						u32 styling_idx;
 						if (has_styling) {
-							e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"styling\" element. Abort.\n");
+							e = gf_import_message(import, GF_BAD_PARAM, "[TTML EBU-TTD] duplicated \"styling\" element. Abort.\n");
 							goto exit;
 						}
 						has_styling = GF_TRUE;
@@ -1065,11 +1065,11 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			}
 		}
 		if (!has_styling) {
-			e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"styling\" element. Abort.\n");
+			e = gf_import_message(import, GF_BAD_PARAM, "[TTML EBU-TTD] missing \"styling\" element. Abort.\n");
 			goto exit;
 		}
 		if (!has_style) {
-			e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"style\" element. Abort.\n");
+			e = gf_import_message(import, GF_BAD_PARAM, "[TTML EBU-TTD] missing \"style\" element. Abort.\n");
 			goto exit;
 		}
 		e = gf_isom_new_text_description(import->dest, track, sd, NULL, NULL, &desc_idx);
@@ -1079,7 +1079,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 	e = gf_isom_new_xml_subtitle_description(import->dest, track, TTML_NAMESPACE, NULL, NULL, &desc_idx);
 #endif
 	if (e != GF_OK) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] incorrect sample description. Abort.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] incorrect sample description. Abort.\n"));
 		e = gf_isom_last_error(import->dest);
 		goto exit;
 	}
@@ -1104,13 +1104,13 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 
 		e_opt = gf_xml_get_element_check_namespace(node, "body", root->ns);
 		if (e_opt == GF_BAD_PARAM) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
 		} else if (e_opt == GF_OK) {
 			GF_XMLNode *body_node;
 			u32 body_idx = 0;
 
 			if (has_body) {
-				e = gf_import_message(import, GF_BAD_PARAM, "[TTML] duplicated \"body\" element. Abort.\n");
+				e = gf_import_message(import, GF_BAD_PARAM, "[TTML EBU-TTD] duplicated \"body\" element. Abort.\n");
 				goto exit;
 			}
 			has_body = GF_TRUE;
@@ -1121,13 +1121,13 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 			while ( (body_node = (GF_XMLNode*)gf_list_enum(node->content, &body_idx))) {
 				e_opt = gf_xml_get_element_check_namespace(body_node, "div", root->ns);
 				if (e_opt == GF_BAD_PARAM) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] ignored \"%s\" node, check your namespaces\n", node->name));
 				} else if (e_opt == GF_OK) {
 					GF_XMLNode *div_node;
-					u32 div_idx = 0;
+					u32 div_idx = 0, nb_p_found = 0;
 					while ( (div_node = (GF_XMLNode*)gf_list_enum(body_node->content, &div_idx))) {
 						e_opt = gf_xml_get_element_check_namespace(div_node, "p", root->ns);
-						if (e_opt == GF_BAD_PARAM) {
+						if (e_opt != GF_OK) {
 							GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML] ignored \"%s\" node, check your namespaces\n", node->name));
 						} else if (e_opt == GF_OK) {
 							GF_XMLNode *p_node;
@@ -1263,6 +1263,7 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 								gf_isom_sample_del(&s);
 								nb_samples++;
 
+								nb_p_found++;
 								gf_set_progress("Importing TTML", nb_samples, nb_children);
 								if (import->duration && (ts_end > import->duration))
 									break;
@@ -1271,23 +1272,28 @@ static GF_Err gf_text_import_ebu_ttd(GF_MediaImporter *import, GF_DOMParser *par
 							}
 						}
 					}
+
+					if (!nb_p_found) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] \"%s\" div node has no <p> elements. Aborting.\n", node->name));
+						goto exit;
+					}
 				}
 			}
 		}
 	}
 	if (!has_body) {
-		e = gf_import_message(import, GF_BAD_PARAM, "[TTML] missing \"body\" element. Abort.\n");
+		e = gf_import_message(import, GF_BAD_PARAM, "[TTML EBU-TTD] missing \"body\" element. Abort.\n");
 		goto exit;
 	}
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_PARSER, ("last_sample_duration="LLU", last_sample_end="LLU"\n", last_sample_duration, last_sample_end));
 	gf_isom_set_last_sample_duration(import->dest, track, (u32) last_sample_duration);
-	gf_set_progress("Importing TTML", nb_samples, nb_samples);
+	gf_set_progress("Importing TTML EBU-TTD", nb_samples, nb_samples);
 
 exit:
 	gf_free(samp_text);
 	gf_xml_dom_del(parser_working_copy);
 	if (!gf_isom_get_sample_count(import->dest, track)) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[EBU-TTD] No sample imported. Might be an error. Check your content.\n"));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[TTML EBU-TTD] No sample imported. Might be an error. Check your content.\n"));
 	}
 	return e;
 }

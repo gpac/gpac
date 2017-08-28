@@ -591,7 +591,7 @@ typedef struct __vec4f
  the translation part at the end of the coefficients list.
  \note Unless specified otherwise, the matrix object is always expected to represent an affine transformation.
  */
-typedef struct
+typedef struct __matrix
 {
 	Fixed m[16];
 } GF_Matrix;
@@ -816,12 +816,12 @@ void gf_mx_ortho(GF_Matrix *mx, Fixed left, Fixed right, Fixed bottom, Fixed top
  *
  *Creates a perspective projection matrix
  *\param mx matrix to initialize
- *\param foc camera field of view angle in radian
+ *\param fov camera field of view angle in radian
  *\param aspect_ratio viewport aspect ratio
  *\param z_near min depth coordinate of viewport
  *\param z_far max depth coordinate of viewport
 */
-void gf_mx_perspective(GF_Matrix *mx, Fixed foc, Fixed aspect_ratio, Fixed z_near, Fixed z_far);
+void gf_mx_perspective(GF_Matrix *mx, Fixed fov, Fixed aspect_ratio, Fixed z_near, Fixed z_far);
 /*!\brief creates look matrix
  *
  *Creates a transformation matrix looking at a given direction from a given point (camera matrix).
