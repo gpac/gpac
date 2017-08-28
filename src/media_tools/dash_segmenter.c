@@ -49,7 +49,7 @@ struct _dash_component
 {
 	u32 ID;/*audio/video/text/ ...*/
 	u32 media_type;/*audio/video/text/ ...*/
-	char szCodec[40];
+	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	/*for video */
 	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap;
 
@@ -418,7 +418,6 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 #ifndef GPAC_DISABLE_HEVC
 	GF_HEVCConfig *hvcc;
 #endif
-	const u32 szCodecSize = 40; //from fonction declaration
 	u32 subtype = gf_isom_get_media_subtype(movie, track, 1);
 
 	if (subtype == GF_ISOM_SUBTYPE_MPEG4_CRYP) {
@@ -462,10 +461,9 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 					}
 				}
 #endif
-
-				snprintf(szCodec, szCodecSize, "mp4a.%02X.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X.%01d", esd->decoderConfig->objectTypeIndication, audio_object_type);
 			} else {
-				snprintf(szCodec, szCodecSize, "mp4a.%02X", esd->decoderConfig->objectTypeIndication);
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4a.%02X", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		case GF_STREAM_VISUAL:
@@ -473,15 +471,15 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 			if (esd->decoderConfig->decoderSpecificInfo) {
 				GF_M4VDecSpecInfo dsi;
 				gf_m4v_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &dsi);
-				snprintf(szCodec, szCodecSize, "mp4v.%02X.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X.%01x", esd->decoderConfig->objectTypeIndication, dsi.VideoPL);
 			} else
 #endif
 			{
-				snprintf(szCodec, szCodecSize, "mp4v.%02X", esd->decoderConfig->objectTypeIndication);
+				snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4v.%02X", esd->decoderConfig->objectTypeIndication);
 			}
 			break;
 		default:
-			snprintf(szCodec, szCodecSize, "mp4s.%02X", esd->decoderConfig->objectTypeIndication);
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "mp4s.%02X", esd->decoderConfig->objectTypeIndication);
 			break;
 		}
 		gf_odf_desc_del((GF_Descriptor *)esd);
@@ -500,7 +498,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 				subtype = GF_ISOM_SUBTYPE_AVC4_H264;
 		}
 		if (avcc) {
-			snprintf(szCodec, szCodecSize, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -513,7 +511,7 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		avcc = gf_isom_mvc_config_get(movie, track, 1);
 		if (!avcc) avcc = gf_isom_svc_config_get(movie, track, 1);
 		if (avcc) {
-			snprintf(szCodec, szCodecSize, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.%02X%02X%02X", gf_4cc_to_str(subtype), avcc->AVCProfileIndication, avcc->profile_compatibility, avcc->AVCLevelIndication);
 			gf_odf_avc_cfg_del(avcc);
 			return GF_OK;
 		}
@@ -546,8 +544,8 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 		}
 		if (hvcc) {
 			u8 c;
-			char szTemp[40];
-			snprintf(szCodec, szCodecSize, "%s.", gf_4cc_to_str(subtype));
+			char szTemp[RFC6381_CODEC_NAME_SIZE_MAX];
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s.", gf_4cc_to_str(subtype));
 			if (hvcc->profile_space==1) strcat(szCodec, "A");
 			else if (hvcc->profile_space==2) strcat(szCodec, "B");
 			else if (hvcc->profile_space==3) strcat(szCodec, "C");
@@ -606,14 +604,14 @@ GF_Err gf_media_get_rfc_6381_codec_name(GF_ISOFile *movie, u32 track, char *szCo
 
 			gf_odf_hevc_cfg_del(hvcc);
 		} else {
-			snprintf(szCodec, szCodecSize, "%s", gf_4cc_to_str(subtype));
+			snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		}
 		return GF_OK;
 #endif
 
 	default:
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_AUTHOR, ("[ISOM Tools] codec parameters not known - setting codecs string to default value \"%s\"\n", gf_4cc_to_str(subtype) ));
-		snprintf(szCodec, szCodecSize, "%s", gf_4cc_to_str(subtype));
+		snprintf(szCodec, RFC6381_CODEC_NAME_SIZE_MAX, "%s", gf_4cc_to_str(subtype));
 		return GF_OK;
 	}
 	return GF_OK;
@@ -845,7 +843,7 @@ static GF_Err gf_media_isom_segment_file(GF_ISOFile *input, const char *output_f
 	u16 defaultDegradationPriority;
 	GF_Err e;
 	char sOpt[100], sKey[100];
-	char szCodecs[200], szCodec[40];
+	char szCodecs[200], szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	u32 cur_seg, fragment_index, max_sap_type;
 	GF_ISOFile *output, *bs_switch_segment;
 	GF_ISOSample *sample, *next;
@@ -2198,7 +2196,7 @@ restart_fragmentation_pass:
 				}
 
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU" - segment AST "LLU" (MPD AST "LLU")\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc(), generation_start_utc + period_duration + (u64)segment_start_time, generation_start_utc ));
-				gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, last_segment, GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
+				gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, last_segment, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 				nbFragmentInSegment = 0;
 
 				//take care of scalable reps
@@ -2273,7 +2271,7 @@ restart_fragmentation_pass:
 		last_seg_dur = SegmentDuration;
 
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Closing segment %s at "LLU" us, at UTC "LLU"\n", SegmentName, gf_sys_clock_high_res(), gf_net_get_utc()));
-		gf_isom_close_segment(output, dash_cfg->enable_sidx ? dash_cfg->subsegs_per_sidx : 0, dash_cfg->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dash_cfg->daisy_chain_sidx, GF_TRUE, GF_FALSE, dash_cfg->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
+		gf_isom_close_segment(output, dasher->enable_sidx ? dasher->subsegs_per_sidx : 0, dasher->enable_sidx ? ref_track_id : 0, ref_track_first_dts, tfref ? tfref->media_time_to_pres_time_shift : tf->media_time_to_pres_time_shift, ref_track_next_cts, dasher->daisy_chain_sidx, GF_TRUE, GF_FALSE, dasher->segment_marker_4cc, &idx_start_range, &idx_end_range, NULL);
 		nb_segments++;
 
 		if (!seg_rad_name) {
