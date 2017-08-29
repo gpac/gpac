@@ -1609,7 +1609,7 @@ scalable_retry:
 		if (cts_diff < 0) cts_diff = -cts_diff;
 		//the decoder is dispathing CTS in the previous time base , override the timestamp ...
 		if (cts_diff > 20000 ) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] decoded frame CTS %d but input frame CTS %d, lilely due to clock discontinuity\n", codec->decio->module_name, CU->TS, cts));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[%s] decoded frame CTS %d but input frame CTS %d, likely due to clock discontinuity\n", codec->decio->module_name, CU->TS, cts));
 			CU->TS = cts;
 		}
 
