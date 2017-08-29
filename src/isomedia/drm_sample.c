@@ -162,7 +162,7 @@ GF_ISMASample *gf_isom_get_ismacryp_sample(GF_ISOFile *the_file, u32 trackNumber
 		return gf_isom_ismacryp_sample_from_data(samp->data, samp->dataLength, sinf->info->isfm->selective_encryption, sinf->info->isfm->key_indicator_length, sinf->info->isfm->IV_length);
 	}
 	/*OMA*/
-	else if (sinf->scheme_type->scheme_type == GF_4CC('o','d','k','m') ) {
+	else if (sinf->scheme_type->scheme_type == GF_ISOM_OMADRM_SCHEME ) {
 		if (!sinf->info->odkm) return NULL;
 		fmt = sinf->info->odkm->fmt;
 
@@ -342,8 +342,8 @@ GF_Err gf_isom_remove_track_protection(GF_ISOFile *the_file, u32 trackNumber, u3
 	sea->type = sinf->original_format->data_format;
 	gf_isom_box_array_del(sea->protections);
 	sea->protections = gf_list_new();
-	if (sea->type == GF_4CC('2','6','4','b')) sea->type = GF_ISOM_BOX_TYPE_AVC1;
-	if (sea->type == GF_4CC('2','6','5','b')) sea->type = GF_ISOM_BOX_TYPE_HVC1;
+	if (sea->type == GF_ISOM_BOX_TYPE_264B) sea->type = GF_ISOM_BOX_TYPE_AVC1;
+	if (sea->type == GF_ISOM_BOX_TYPE_265B) sea->type = GF_ISOM_BOX_TYPE_HVC1;
 	return GF_OK;
 }
 
@@ -415,7 +415,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_SVC1:
 	case GF_ISOM_BOX_TYPE_MVC1:
 		if (is_isma)
-			original_format = GF_4CC('2','6','4','b');
+			original_format = GF_ISOM_BOX_TYPE_264B;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_HVC1:
@@ -426,7 +426,7 @@ static GF_Err isom_set_protected_entry(GF_ISOFile *the_file, u32 trackNumber, u3
 	case GF_ISOM_BOX_TYPE_LHV1:
 	case GF_ISOM_BOX_TYPE_HVT1:
 		if (is_isma)
-			original_format = GF_4CC('2','6','5','b');
+			original_format = GF_ISOM_BOX_TYPE_265B;
 		sea->type = GF_ISOM_BOX_TYPE_ENCV;
 		break;
 	case GF_ISOM_BOX_TYPE_MP4S:
@@ -608,7 +608,7 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
-                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID, 
+                                   u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size,	bin128 default_KID,
 								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
 								    u8 default_constant_IV_size, bin128 default_constant_IV)
 {
@@ -649,7 +649,7 @@ GF_Err gf_isom_set_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 		return GF_BAD_PARAM;
 
 	saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
-	saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+	saio->aux_info_type = GF_ISOM_CENC_SCHEME;
 	saio->aux_info_type_parameter = 0;
 
 	if (!stbl->sai_offsets) stbl->sai_offsets = gf_list_new();
@@ -672,7 +672,7 @@ GF_Err gf_isom_remove_cenc_saiz(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sai_sizes); i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(stbl->sai_sizes, i);
-		if (saiz->aux_info_type != GF_4CC('c', 'e', 'n', 'c'))
+		if (saiz->aux_info_type != GF_ISOM_CENC_SCHEME)
 			continue;
 		gf_isom_box_del((GF_Box *)saiz);
 		gf_list_rem(stbl->sai_sizes, i);
@@ -700,7 +700,7 @@ GF_Err gf_isom_remove_cenc_saio(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(stbl->sai_offsets, i);
-		if (saio->aux_info_type != GF_4CC('c', 'e', 'n', 'c'))
+		if (saio->aux_info_type != GF_ISOM_CENC_SCHEME)
 			continue;
 		gf_isom_box_del((GF_Box *)saio);
 		gf_list_rem(stbl->sai_offsets, i);
@@ -787,7 +787,7 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sampleGroupsDescription); i++) {
 		GF_SampleGroupDescriptionBox *a = (GF_SampleGroupDescriptionBox *)gf_list_get(stbl->sampleGroupsDescription, i);
-		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
+		if (a->grouping_type == GF_ISOM_SAMPLE_GROUP_SEIG) {
 			gf_list_rem(stbl->sampleGroupsDescription, i);
 			gf_isom_box_del((GF_Box *) a);
 			i--;
@@ -800,7 +800,7 @@ GF_Err gf_isom_remove_samp_group_box(GF_ISOFile *the_file, u32 trackNumber)
 
 	for (i = 0; i < gf_list_count(stbl->sampleGroups); i++) {
 		GF_SampleGroupBox *a = (GF_SampleGroupBox *)gf_list_get(stbl->sampleGroups, i);
-		if (a->grouping_type == GF_4CC( 's', 'e', 'i', 'g' )) {
+		if (a->grouping_type == GF_ISOM_SAMPLE_GROUP_SEIG) {
 			gf_list_rem(stbl->sampleGroups, i);
 			gf_isom_box_del((GF_Box *) a);
 			i--;
@@ -819,7 +819,7 @@ GF_Err gf_isom_remove_pssh_box(GF_ISOFile *the_file)
 	u32 i;
 	for (i = 0; i < gf_list_count(the_file->moov->other_boxes); i++) {
 		GF_Box *a = (GF_Box *)gf_list_get(the_file->moov->other_boxes, i);
-		if (a->type == GF_4CC('p', 's', 's', 'h')) {
+		if (a->type == GF_ISOM_BOX_UUID_PSSH) {
 			gf_list_rem(the_file->moov->other_boxes, i);
 			gf_isom_box_del(a);
 			i--;
@@ -896,7 +896,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 	u32  i;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
-		senc->cenc_saiz->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
 		if (stbl)
 			stbl_AddBox((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
@@ -907,7 +907,7 @@ void gf_isom_cenc_set_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBox 
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = 1;
-		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saio->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		senc->cenc_saio->entry_count = 1;
 		if (stbl)
@@ -937,7 +937,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 	u32  i;
 	if (!senc->cenc_saiz) {
 		senc->cenc_saiz = (GF_SampleAuxiliaryInfoSizeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIZ);
-		senc->cenc_saiz->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saiz->aux_info_type_parameter = 0;
 		if (stbl)
 			stbl_AddBox((GF_Box*)stbl, (GF_Box *)senc->cenc_saiz);
@@ -946,7 +946,7 @@ void gf_isom_cenc_merge_saiz_saio(GF_SampleEncryptionBox *senc, GF_SampleTableBo
 		senc->cenc_saio = (GF_SampleAuxiliaryInfoOffsetBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_SAIO);
 		//force using version 1 for saio box, it could be redundant when we use 64 bits for offset
 		senc->cenc_saio->version = 1;
-		senc->cenc_saio->aux_info_type = GF_4CC('c', 'e', 'n', 'c');
+		senc->cenc_saio->aux_info_type = GF_ISOM_CENC_SCHEME;
 		senc->cenc_saio->aux_info_type_parameter = 0;
 		if (stbl)
 			stbl_AddBox((GF_Box*)stbl, (GF_Box *)senc->cenc_saio);
@@ -1036,7 +1036,7 @@ void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp)
 
 Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 {
-	u32 i;
+	u32 i, c1, c2;
 	GF_List *sai_sizes, *sai_offsets;
 	Bool has_saiz, has_saio;
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1057,17 +1057,29 @@ Bool gf_isom_cenc_has_saiz_saio_full(GF_SampleTableBox *stbl, void *_traf)
 	else
 		return GF_FALSE;
 
-	for (i = 0; i < gf_list_count(sai_sizes); i++) {
+	c1 = gf_list_count(sai_sizes);
+	c2 = gf_list_count(sai_offsets);
+	for (i = 0; i < c1; i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(sai_sizes, i);
-		if (saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+
+		if (!saiz->aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saiz box without flags nor cenc type, assuming cenc\n"));
+			saiz->aux_info_type = GF_ISOM_CENC_SCHEME;
+		}
+
+		if (saiz->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			has_saiz = GF_TRUE;
 			break;
 		}
 	}
 
-	for (i = 0; i < gf_list_count(sai_offsets); i++) {
+	for (i = 0; i < c2; i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(sai_offsets, i);
-		if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+		if (!saio->aux_info_type && (c1==1) && (c2==1)) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[iso file] saio box without flags nor cenc type, assuming cenc\n"));
+			saio->aux_info_type = GF_ISOM_CENC_SCHEME;
+		}
+		if (saio->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			has_saio = GF_TRUE;
 			break;
 		}
@@ -1102,7 +1114,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_offsets); i++) {
 		GF_SampleAuxiliaryInfoOffsetBox *saio = (GF_SampleAuxiliaryInfoOffsetBox *)gf_list_get(mdia->information->sampleTable->sai_offsets, i);
-		if (saio->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+		if (saio->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			if (saio->entry_count == 1)
 				offset = saio->version ? saio->offsets_large[0] : saio->offsets[0];
 			else
@@ -1114,7 +1126,7 @@ static GF_Err isom_cenc_get_sai_by_saiz_saio(GF_MediaBox *mdia, u32 sampleNumber
 
 	for (i = 0; i < gf_list_count(mdia->information->sampleTable->sai_sizes); i++) {
 		GF_SampleAuxiliaryInfoSizeBox *saiz = (GF_SampleAuxiliaryInfoSizeBox *)gf_list_get(mdia->information->sampleTable->sai_sizes, i);
-		if (saiz->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+		if (saiz->aux_info_type == GF_ISOM_CENC_SCHEME) {
 			for (j = 0; j < sampleNumber-1; j++)
 				prev_sai_size += saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[j];
 			size = saiz->default_sample_info_size ? saiz->default_sample_info_size : saiz->sample_info_size[sampleNumber-1];

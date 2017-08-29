@@ -60,9 +60,9 @@ Function EnableNext
 	GetDlgItem $0 $HWNDPARENT 1
 	${If} $R1 == ${BST_CHECKED}
    EnableWindow $0 1
-  ${Else} 
+  ${Else}
    EnableWindow $0 0
-  ${Endif} 
+  ${Endif}
 FunctionEnd
 
 Function customPage
@@ -79,8 +79,8 @@ Function customPage
   Pop $Confirm
 	GetFunctionAddress $0 EnableNext
 	nsDialogs::OnClick $Confirm $0
-  
-  
+
+
   nsDialogs::Show
 FunctionEnd
 
@@ -88,14 +88,14 @@ FunctionEnd
 ;Pages
 
   !insertmacro MUI_PAGE_WELCOME
-  !insertmacro MUI_PAGE_LICENSE "${GPAC_ROOT}\COPYING" 
+  !insertmacro MUI_PAGE_LICENSE "${GPAC_ROOT}\COPYING"
   Page custom customPage
   !insertmacro MUI_PAGE_COMPONENTS
   !insertmacro MUI_PAGE_DIRECTORY
-    
+
   !insertmacro MUI_PAGE_INSTFILES
   !insertmacro MUI_PAGE_FINISH
-  
+
   !insertmacro MUI_UNPAGE_CONFIRM
   !insertmacro MUI_UNPAGE_INSTFILES
 
@@ -126,7 +126,7 @@ Function FctWriteRegStrAuth
    StrCmp $R0 "HKCR" +1 +3
    WriteRegStr HKCR $R1 $R2 $R3
    goto lbl_end
-   
+
    #has current user admin privileges?
    userInfo::getAccountType
    Pop $0
@@ -154,7 +154,7 @@ FunctionEnd
     Push "${VALUESTR}"
     Call FctWriteRegStrAuth
 !macroend
- 
+
 !define WriteRegStrAuth "!insertmacro WriteRegStrAuth"
 
 
@@ -173,16 +173,16 @@ Function un.FctDeleteRegKeyAuth
    StrCmp $R0 "HKCR" +1 +3
    DeleteRegKey HKCR $R1
    goto lbl_end
-   
+
    #has current user admin privileges?
    userInfo::getAccountType
    Pop $0
    StrCmp $0 "Admin" lbl_admin lbl_not_admin
-   
+
    lbl_admin:
       DeleteRegKey HKLM $R1
       goto lbl_end
-   
+
    lbl_not_admin:
       DeleteRegKey HKCU $R1
 
@@ -197,7 +197,7 @@ FunctionEnd
     Push "${SUBREG}"
     Call un.FctDeleteRegKeyAuth
 !macroend
- 
+
 !define DeleteRegKeyAuth "!insertmacro DeleteRegKeyAuth"
 
 Function InsertGDIPLUS
@@ -235,9 +235,7 @@ lbl_winnt:
    StrCmp $R1 '5.2' lbl_done	;.NET server
 
 lbl_add:
- !ifndef IS_WIN64
-   File "${GPAC_BIN}\Gdiplus.dll"
-  !endif
+
 
 lbl_xp:
    File "${GPAC_BIN}\gm_gdip_raster.dll"
@@ -265,7 +263,7 @@ Section "GPAC Core" SecGPAC
   SetOutPath $INSTDIR\cache
 
   SetOutPath $INSTDIR
-  
+
   ${WriteRegStrAuth} HKCU "SOFTWARE\GPAC" "InstallDir" "$INSTDIR"
   ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "DisplayName" "GPAC (remove only)"
   ${WriteRegStrAuth} HKCU "Software\Microsoft\Windows\CurrentVersion\Uninstall\GPAC" "UninstallString" "$INSTDIR\uninstall.exe"
@@ -277,9 +275,8 @@ SectionEnd
 Section "GPAC Player" SecOsmo4
   SectionIn 1
 
-  !ifndef IS_WIN64
-  File "${GPAC_BIN}\Osmo4.exe"
-  !endif
+  File "${GPAC_BIN}\MP4Client.exe"
+
   File "${GPAC_BIN}\gm_dummy_in.dll"
   File "${GPAC_BIN}\gm_dx_hw.dll"
   File "${GPAC_BIN}\gm_gpac_js.dll"
@@ -457,6 +454,11 @@ Section "MPEG DASH Support" SecDASH
   File "${GPAC_BIN}\gm_mpd_in.dll"
 SectionEnd
 
+Section "RAW audio-video output" SecRAW
+  SectionIn 1
+  File "${GPAC_BIN}\gm_raw_out.dll"
+SectionEnd
+
 Section "HTML 5 Media Source Extensions Support" SecMSE
   SectionIn 1
   File "${GPAC_BIN}\gm_mse_in.dll"
@@ -520,45 +522,19 @@ Section "GPAC SDK" SecSDK
   File ${GPAC_EXTRA_LIB}\js.lib
 SectionEnd
 
-
-!ifndef IS_WIN64
-!define HK_MOZ "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0"
-
-Section "Osmozilla" SecZILLA
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\nposmozilla.dll"
-  File "${GPAC_BIN}\nposmozilla.xpt"
-
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Path" "$INSTDIR\nposmozilla.dll"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "XPTPath" "$INSTDIR\nposmozilla.xpt"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Version" "${GPAC_VERSION}"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Vendor" "GPAC"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "Description" "GPAC plugin"
-  ${WriteRegStrAuth} HKCU "SOFTWARE\MozillaPlugins\@gpac/osmozilla,version=1.0" "ProductName" "Osmozilla"
-SectionEnd
-!endif
-
+!if /FileExists "${GPAC_BIN}\GPAX.dll"
 Section "GPAX" SecGPAX
   SectionIn 1
   SetOutPath $INSTDIR
   File "${GPAC_BIN}\GPAX.dll"
   RegDLL "$INSTDIR\GPAX.dll"
 SectionEnd
+!endif
 
-
-Section "MP4Client" SecMP4C
-  SectionIn 1
-  SetOutPath $INSTDIR
-  File "${GPAC_BIN}\MP4Client.exe"
-SectionEnd   
-                 
-                 
-                  
 Section "Windows Runtime Libraries" SecMSVCRT
   SectionIn 1
 ;  File "..\Microsoft.VC100.CRT.manifest"
-;  File "..\Microsoft.VC100.MFC.manifest"       
+;  File "..\Microsoft.VC100.MFC.manifest"
   File "${GPAC_BIN}\msvcr100.dll"
   File "${GPAC_BIN}\mfc100.dll"
 SectionEnd
@@ -577,60 +553,14 @@ Section "Add Start Menu Shortcuts"
   SetShellVarContext all
   CreateDirectory "$SMPROGRAMS\GPAC"
   CreateShortCut "$SMPROGRAMS\GPAC\Uninstall.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4.lnk" "$INSTDIR\MP4Client.exe" "" 
+  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4.lnk" "$INSTDIR\MP4Client.exe" ""
   CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (with Console).lnk" "$INSTDIR\MP4Client.exe" "-guid"
-  !ifndef IS_WIN64
-  CreateShortCut "$SMPROGRAMS\GPAC\Osmo4 (Old UI).lnk" "$INSTDIR\Osmo4.exe" ""
-  !endif
   CreateShortCut "$SMPROGRAMS\GPAC\Readme.lnk" "$INSTDIR\ReadMe.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\License.lnk" "$INSTDIR\License.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\History.lnk" "$INSTDIR\changelog.txt"
   CreateShortCut "$SMPROGRAMS\GPAC\Configuration Info.lnk" "$INSTDIR\configuration.html"
 SectionEnd
 
-!ifndef IS_WIN64
-Section "Add shortcut to QuickLaunch"
-  SectionIn 1
-  CreateShortCut "$QUICKLAUNCH\GPAC.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
-SectionEnd
-
-Section "Add shortcut to Desktop"
-  SectionIn 1
-  CreateShortCut "$DESKTOP\Osmo4.lnk" "$INSTDIR\Osmo4.exe" "" "$INSTDIR\Osmo4.exe" 0
-SectionEnd
-
-!define SHCNE_ASSOCCHANGED 0x08000000
-!define SHCNF_IDLIST 0
-
-Section "Make Osmo4 the default MPEG-4 Player"
-  SectionIn 1
-  ;write file association
-  ${WriteRegStrAuth} HKCR GPAC\mp4\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  ${WriteRegStrAuth} HKCR GPAC\mp4\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
-  ${WriteRegStrAuth} HKCR .mp4 "" "GPAC\mp4"
-  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
-
-SectionEnd
-
-Section "Associate 3GPP files (3GP) with Osmo4"
-  SectionIn 1
-  ;write file association
-  ${WriteRegStrAuth} HKCR GPAC\3gp\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  ${WriteRegStrAuth} HKCR GPAC\3gp\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
-  ${WriteRegStrAuth} HKCR .3gp "" "GPAC\3gp"
-  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
-SectionEnd
-
-Section "Associate 3GPP2 files (3G2) with Osmo4"
-  SectionIn 1
-  ;write file association
-  ${WriteRegStrAuth} HKCR GPAC\3g2\DefaultIcon "" "$INSTDIR\Osmo4.ico, 0"
-  ${WriteRegStrAuth} HKCR GPAC\3g2\Shell\open\command "" "$INSTDIR\Osmo4.exe %L"
-  ${WriteRegStrAuth} HKCR .3g2 "" "GPAC\3g2"
-  !system 'shell32.dll::SHChangeNotify(i, i, i, i) v (${SHCNE_ASSOCCHANGED}, ${SHCNF_IDLIST}, 0, 0)'
-SectionEnd
-!endif
-  
 SubSectionEnd
 
 
@@ -671,6 +601,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMPEGU} "Support for W3C and MPEG-U Widgets"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMobIP} "UNIGE Mobile IP Framework"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecDecTek} "DekTek 3G SDI output support"
+  !insertmacro MUI_DESCRIPTION_TEXT ${SecRAW} "RAW audio-video output support"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecOffisComp} "OFFIS Audio Compressor"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4B} "MP4Box command-line tool for various multimedia operations"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP42TS} "MP42TS command-line tool for MPEG-2 TS multiplexing"
@@ -679,7 +610,7 @@ SubSectionEnd
   !insertmacro MUI_DESCRIPTION_TEXT ${SecZILLA} "GPAC playback support NPAPI-based browsers (FireFox/Gecko, Safari/WebKit)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecGPAX} "GPAC playback support using ActiveX component (Internet Explorer)"
   !insertmacro MUI_DESCRIPTION_TEXT ${SecMP4C} "GPAC command-line player and AVI dumper"
-  
+
 !insertmacro MUI_FUNCTION_DESCRIPTION_END
 
 
@@ -756,10 +687,10 @@ Function AddToPath
   Push $1
   Push $2
   Push $3
- 
+
   # don't add if the path doesn't exist
   IfFileExists "$0\*.*" "" AddToPath_done
- 
+
   ReadEnvStr $1 PATH
   Push "$1;"
   Push "$0;"
@@ -782,7 +713,7 @@ Function AddToPath
   Call StrStr
   Pop $2
   StrCmp $2 "" "" AddToPath_done
- 
+
   Call IsNT
   Pop $1
   StrCmp $1 1 AddToPath_NT
@@ -797,7 +728,7 @@ Function AddToPath
     FileClose $1
     SetRebootFlag true
     Goto AddToPath_done
- 
+
   AddToPath_NT:
     ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
     StrCpy $2 $1 1 -1 # copy last char
@@ -808,7 +739,7 @@ Function AddToPath
     AddToPath_NTdoIt:
       WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $0
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
- 
+
   AddToPath_done:
     Pop $3
     Pop $2
@@ -827,9 +758,9 @@ Function un.RemoveFromPath
   Push $4
   Push $5
   Push $6
- 
+
   IntFmt $6 "%c" 26 # DOS EOF
- 
+
   Call un.IsNT
   Pop $1
   StrCmp $1 1 unRemoveFromPath_NT
@@ -841,7 +772,7 @@ Function un.RemoveFromPath
     GetFullPathName /SHORT $0 $0
     StrCpy $0 "SET PATH=%PATH%;$0"
     Goto unRemoveFromPath_dosLoop
- 
+
     unRemoveFromPath_dosLoop:
       FileRead $1 $3
       StrCpy $5 $3 1 -1 # read last char
@@ -856,7 +787,7 @@ Function un.RemoveFromPath
       unRemoveFromPath_dosLoopRemoveLine:
         SetRebootFlag true
         Goto unRemoveFromPath_dosLoop
- 
+
     unRemoveFromPath_dosLoopEnd:
       FileClose $2
       FileClose $1
@@ -865,7 +796,7 @@ Function un.RemoveFromPath
       CopyFiles /SILENT $4 "$1\autoexec.bat"
       Delete $4
       Goto unRemoveFromPath_done
- 
+
   unRemoveFromPath_NT:
     ReadRegStr $1 ${WriteEnvStr_RegKey} "PATH"
     StrCpy $5 $1 1 -1 # copy last char
@@ -884,14 +815,14 @@ Function un.RemoveFromPath
       StrCpy $5 $1 -$4 # $5 is now the part before the path to remove
       StrCpy $6 $2 "" $3 # $6 is now the part after the path to remove
       StrCpy $3 $5$6
- 
+
       StrCpy $5 $3 1 -1 # copy last char
       StrCmp $5 ";" 0 +2 # if last char == ;
         StrCpy $3 $3 -1 # remove last char
- 
+
       WriteRegExpandStr ${WriteEnvStr_RegKey} "PATH" $3
       SendMessage ${HWND_BROADCAST} ${WM_WININICHANGE} 0 "STR:Environment" /TIMEOUT=5000
- 
+
   unRemoveFromPath_done:
     Pop $6
     Pop $5
@@ -924,7 +855,7 @@ Function ${un}IsNT
   Pop $0
   Push 0
   Return
- 
+
   IsNT_yes:
     ; NT!!!
     Pop $0

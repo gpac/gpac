@@ -254,8 +254,8 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 
 			if (txh->raw_memory) {
 				txh->data = dst.video_buffer;
-				txh->pU = dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = dst.video_buffer + 2 * dst.pitch_y * txh->height;
+				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				txh->pV = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
 			}
 		}
 	}
@@ -1046,7 +1046,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 	char *data;
 	Bool first_load = 0;
 	GLint tx_mode;
-	u32 pixel_format, w, h, nb_views=1, nb_layers=1, nb_frames=1;
+	u32 pixel_format, w, h;
+	int nb_views = 1, nb_layers = 1, nb_frames = 1;
 	u32 push_time;
 
 	if (txh->stream) {
@@ -1161,8 +1162,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 
 #ifdef GPAC_ANDROID
 				if ( gl_format == GL_TEXTURE_EXTERNAL_OES) {
@@ -1178,8 +1179,8 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				glBindTexture(gl_format, txh->tx_io->u_id);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 				GLTEXPARAM(gl_format, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MAG_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
+				GLTEXPARAM(gl_format, GL_TEXTURE_MIN_FILTER, txh->compositor->high_speed ? GL_NEAREST : GL_LINEAR);
 
 				goto push_exit;
 			}
@@ -1496,7 +1497,7 @@ void gf_get_tinygl_depth(GF_TextureHandler *txh)
 Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, GF_Matrix *mx, Bool for_picking)
 {
 #ifndef GPAC_DISABLE_3D
-	u32 nb_views=1;
+	int nb_views=1;
 #endif
 	Bool ret = 0;
 	gf_mx_init(*mx);

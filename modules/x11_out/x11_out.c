@@ -1834,7 +1834,7 @@ const u32 *QueryInterfaces()
 	};
 	return si;
 }
-	
+
 
 /*
  * interface create

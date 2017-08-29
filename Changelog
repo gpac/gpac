@@ -1,3 +1,34 @@
+26/04/2017: GPAC 0.7.1
+ - Full changelog at https://github.com/gpac/gpac/wiki/GPAC-0.7.0
+ - Many security fixes (static compile and fuzzing through [AFL](http://lcamtuf.coredump.cx/afl/), always ongoing)
+ - Colorized log.
+ - Fix pkg-config Private.libs.
+ - Changed default audio volume to 100% instead of 75%.
+ - Expose more experimental options through the [documentation](http://htmlpreview.github.io/?https://github.com/gpac/gpac/blob/master/doc/configuration.html).
+ - Improved GLES renderer on mobile platforms 
+ - YUV422 and YUV444 8 and 10 bit support in GLES renderer 
+ - Improvements on AVI dump.
+ - SAT>IP modified RTSP client.
+ - Added L-HEVC File Format support (SHVC/MV-HEVC tracks and HEVC Tile Tracks).
+ - Added MPEG IFF (image File Format) support.
+ - Range extension support for AVC and HEVC.
+ - SHVC and MV-HEVC importers and playback: moved to final spec version (SHM6+).
+ - Support of HLS with fragmented MP4 playback.
+ - APIs: gf_mpd_() functions and new segmenter API.
+ - Improved alternate groups.
+ - More support for PIFF PSEC and Smooth Streaming ( file format & playback).
+ - DASH client: pluggable algorithms + improvements with scalable contents.
+ - The counter source from the DASH sequences added to the public content.
+ - HLS and DASH playback minor fixes.
+ - Cleanup of DASH client logs.
+ - Added support for DASH SRD in 360 for independent videos videos (NxM partial spheres) [more](https://gpac.wp.imt.fr/2016/05/25/srd/)
+ - Added support for DASH SRD in 360 for HEV Ctiled videos (NxM tiles on one sphere) - [checkout tuto](https://gpac.wp.imt.fr/2017/02/01/hevc-tile-based-adaptation-guide/)
+ - Apple VideoToolBox hardware decoding support for OSX and iOS for AVC|H264.
+ - Android hardware decoding hardware acceleration for AVC|H264 (HEVC on its way).
+ - Android build is based on Android Studio.
+ - Android: new File Manager.
+ - Import of TTML via NHML according to MPEG-4 part 30 improved.
+
 19/02/2016: GPAC 0.6.0
   Many things added, improved and fixed - see https://github.com/gpac/gpac/releases/tag/v0.6.0
 

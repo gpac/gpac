@@ -194,6 +194,7 @@ struct __tag_compositor
 	GF_Thread *VisualThread;
 	/*0: not init, 1: running, 2: exit requested, 3: done*/
 	u32 video_th_state;
+	Bool discard_input_events;
 
 	u32 video_th_id;
 
@@ -423,6 +424,8 @@ struct __tag_compositor
 	/*user rotation angle - ALWAYS CENTERED*/
 	Fixed rotation;
 
+	u32 auto_rotate;
+
 	/*0: flush to be done - 1: flush can be skipped - 2: forces flush*/
 	u32 skip_flush;
 #ifndef GPAC_DISABLE_SVG
@@ -583,6 +586,9 @@ struct __tag_compositor
 	/*display depth in pixels - if -1, it is the height of the display area*/
 	s32 display_depth;
 #endif
+
+	Bool gazer_enabled, simulate_gaze;
+	s32 gaze_x, gaze_y;
 };
 
 typedef struct
@@ -1445,6 +1451,8 @@ GF_Font *gf_compositor_svg_set_font(GF_FontManager *fm, char *a_font, u32 styles
 u32 gf_sc_focus_switch_ring(GF_Compositor *compositor, Bool move_prev, GF_Node *focus, u32 force_focus_type);
 
 Bool compositor_handle_navigation(GF_Compositor *compositor, GF_Event *ev);
+
+void compositor_handle_auto_navigation(GF_Compositor *compositor);
 
 void gf_sc_next_frame_state(GF_Compositor *compositor, u32 state);
 

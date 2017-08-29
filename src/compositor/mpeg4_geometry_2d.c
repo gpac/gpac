@@ -27,6 +27,7 @@
 
 #include "nodes_stacks.h"
 #include "visual_manager.h"
+#include <gpac/internal/terminal_dev.h>
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {
@@ -318,6 +319,69 @@ static void rectangle_check_changes(GF_Node *node, Drawable *stack, GF_TraverseS
 		drawable_mark_modified(stack, tr_state);
 	}
 }
+
+Bool rectangle_check_adaptation(GF_Node *node, Drawable *stack, GF_TraverseState *tr_state)
+{
+	GF_TextureHandler *txh;
+	GF_MediaObjectVRInfo vrinfo;
+	s32 tx, ty;
+	Bool is_visible = GF_FALSE;
+	if (! tr_state->visual->compositor->gazer_enabled)
+		return GF_TRUE;
+
+	if (!tr_state->appear || ! ((M_Appearance *)tr_state->appear)->texture)
+		return GF_TRUE;
+	
+	txh = gf_sc_texture_get_handler( ((M_Appearance *) tr_state->appear)->texture );
+	if (!txh->stream) return GF_TRUE;
+
+	if (! gf_mo_get_srd_info(txh->stream, &vrinfo))
+		return GF_TRUE;
+
+	tx = tr_state->visual->compositor->gaze_x;
+	tx *= vrinfo.srd_max_x;
+	tx /= tr_state->visual->width;
+
+	ty = tr_state->visual->compositor->gaze_y;
+	ty *= vrinfo.srd_max_y;
+	ty /= tr_state->visual->height;
+
+	//simple test condition: only keep the first row
+	if ((tx>=vrinfo.srd_x) && (tx<=vrinfo.srd_x+vrinfo.srd_w) && (ty>=vrinfo.srd_y) && (ty<=vrinfo.srd_y+vrinfo.srd_h)) {
+
+		GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial plane is under gaze coord %d %d\n", txh->stream->OD_ID, tr_state->visual->compositor->gaze_x, tr_state->visual->compositor->gaze_y));
+		is_visible = GF_TRUE;
+	}
+
+	if (vrinfo.has_full_coverage) {
+		if (is_visible) {
+			if (!txh->is_open) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d stoped on visible partial plane - starting it\n", txh->stream->OD_ID));
+				assert(txh->stream && txh->stream->odm);
+				txh->stream->odm->disable_buffer_at_next_play = GF_TRUE;
+
+				gf_sc_texture_play(txh, NULL);
+			}
+			if (! txh->data)  return GF_FALSE;
+			return GF_TRUE;
+		} else {
+			if (txh->is_open) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texure %d playing on hidden partial plane - stoping it\n", txh->stream->OD_ID));
+				gf_sc_texture_stop_no_unregister(txh);
+			}
+			return GF_FALSE;
+		}
+	} else {
+		if (is_visible) {
+			gf_mo_hint_quality_degradation(txh->stream, 0);
+			if (! txh->data)  return GF_FALSE;
+		} else {
+			gf_mo_hint_quality_degradation(txh->stream, 100);
+		}
+	}
+	return GF_TRUE;
+}
+
 static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 {
 	DrawableContext *ctx;
@@ -330,6 +394,9 @@ static void TraverseRectangle(GF_Node *node, void *rs, Bool is_destroy)
 	}
 
 	rectangle_check_changes(node, stack, tr_state);
+
+	if (! rectangle_check_adaptation(node, stack, tr_state))
+		return;
 
 	switch (tr_state->traversing_mode) {
 	case TRAVERSE_DRAW_2D:

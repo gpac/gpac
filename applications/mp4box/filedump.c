@@ -826,7 +826,7 @@ void dump_isom_timestamps(GF_ISOFile *file, char *inName, Bool is_final_name)
 		s64 cts_dts_shift = gf_isom_get_cts_to_dts_shift(file, i+1);
 		u32 has_cts_offset = gf_isom_has_time_offset(file, i+1);
 
-		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1)); 
+		fprintf(dump, "#dumping track ID %d timing:\n", gf_isom_get_track_id(file, i + 1));
 		fprintf(dump, "Num\tDTS\tCTS\tSize\tRAP\tOffset\tisLeading\tDependsOn\tDependedOn\tRedundant\tRAP-SampleGroup\tRoll-SampleGroup\tRoll-Distance\n");
 		count = gf_isom_get_sample_count(file, i+1);
 
@@ -951,7 +951,8 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 	u8 dependency_id, quality_id, temporal_id;
 	u8 track_ref_index;
 	s8 sample_offset;
-	u32 data_offset, idx, data_size;
+	u32 data_offset, data_size;
+	s32 idx;
 	GF_BitStream *bs;
 
 	if (!ptr_size) {
@@ -1147,7 +1148,7 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 		assert (idx >= 0);
 		fprintf(dump, "\" pps_id=\"%d\" sps_id=\"%d", idx, avc->pps[idx].sps_id);
 		fprintf(dump, "\" entropy_coding_mode_flag=\"%d", avc->pps[idx].entropy_coding_mode_flag);
-		
+
 		break;
 	case GF_AVC_NALU_ACCESS_UNIT:
 		fputs("AccessUnit delimiter", dump);
@@ -1255,9 +1256,9 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 	//for tile tracks the hvcC is stored in the 'tbas' track
-	if (!hevccfg && gf_isom_get_reference_count(file, track, GF_4CC('t','b','a','s'))) {
+	if (!hevccfg && gf_isom_get_reference_count(file, track, GF_ISOM_REF_TBAS)) {
 		u32 tk = 0;
-		gf_isom_get_reference(file, track, GF_4CC('t','b','a','s'), 1, &tk);
+		gf_isom_get_reference(file, track, GF_ISOM_REF_TBAS, 1, &tk);
 		hevccfg = gf_isom_hevc_config_get(file, tk, 1);
 	}
 	fprintf(dump, " <NALUConfig>\n");
@@ -1273,7 +1274,7 @@ void dump_isom_nal_ex(GF_ISOFile *file, u32 trackID, FILE *dump)
 		}\
 		fprintf(dump, "  </%sArray>\n", name);\
 	}\
- 
+
 	nalh_size = 0;
 
 	if (avccfg) {
@@ -1435,7 +1436,7 @@ void dump_isom_nal(GF_ISOFile *file, u32 trackID, char *inName, Bool is_final_na
 	} else {
 		dump = stdout;
 	}
-	dump_isom_nal_ex(file, gf_isom_get_track_id(file, trackID), dump);
+	dump_isom_nal_ex(file, trackID, dump);
 
 	if (inName) gf_fclose(dump);
 }
@@ -1512,7 +1513,7 @@ void dump_isom_timed_text(GF_ISOFile *file, u32 trackID, char *inName, Bool is_f
 			sprintf(szBuf, "%s.%s", inName, ext) ;
 		else
 			sprintf(szBuf, "%s_%d_text.%s", inName, trackID, ext);
-		
+
 		dump = gf_fopen(szBuf, "wt");
 		if (!dump) {
 			fprintf(stderr, "Failed to open %s for dumping\n", szBuf);
@@ -1583,7 +1584,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	Bool do_close=GF_FALSE;
 	char szBuf[1024];
 	if (!file) return GF_ISOM_INVALID_FILE;
-	
+
 	if (inName) {
 		strcpy(szBuf, inName);
 		if (!is_final_name) {
@@ -1605,8 +1606,6 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 	if (e) {
 		fprintf(stderr, "Error dumping ISO structure\n");
 	}
-	if ( gf_isom_get_track_count(file) == 0 )
-		do_track_dump = GF_FALSE;
 
 	if (do_track_dump) {
 		u32 i, j;
@@ -1765,7 +1764,7 @@ GF_Err dump_isom_udta(GF_ISOFile *file, char *inName, Bool is_final_name, u32 du
 			strcpy(szName, inName);
 		else
 			sprintf(szName, "%s_%s.udta", inName, gf_4cc_to_str(dump_udta_type) );
-		
+
 		t = gf_fopen(szName, "wb");
 		if (!t) {
 			gf_free(data);
@@ -2202,7 +2201,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 						Bool full_frame;
 						if (gf_isom_get_tile_info(file, trackNum, 1, &is_default, &id, &independent, &full_frame, &x, &y, &w, &h)) {
 							fprintf(stderr, "\tHEVC Tile - ID %d independent %d (x,y,w,h)=%d,%d,%d,%d \n", id, independent, x, y, w, h);
-						} else if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_4CC('t','r','i','f'), &is_default, &data, &size)) {
+						} else if (gf_isom_get_sample_group_info(file, trackNum, 1, GF_ISOM_SAMPLE_GROUP_TRIF, &is_default, &data, &size)) {
 							fprintf(stderr, "\tHEVC Tile track containing a tile set\n");
 						} else {
 							fprintf(stderr, "\tHEVC Tile track without tiling info\n");
@@ -2210,8 +2209,8 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					} else if (!hevccfg && !lhvccfg) {
 						fprintf(stderr, "\n\n\tNon-compliant HEVC track: No hvcC or shcC found in sample description\n");
 					}
-					
-					if (gf_isom_get_reference_count(file, trackNum, GF_4CC('s','a','b','t'))) {
+
+					if (gf_isom_get_reference_count(file, trackNum, GF_ISOM_REF_SABT)) {
 						fprintf(stderr, "\tHEVC Tile base track\n");
 					}
 					if (hevccfg) {
@@ -2476,7 +2475,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stderr, "\t3GPP H263 stream - Resolution %d x %d\n", w, h);
-	} else if (msub_type == GF_4CC('m','j','p','2')) {
+	} else if (msub_type == GF_ISOM_SUBTYPE_MJP2) {
 		u32 w, h;
 		gf_isom_get_visual_info(file, trackNum, 1, &w, &h);
 		fprintf(stderr, "\tMotionJPEG2000 stream - Resolution %d x %d\n", w, h);
@@ -2643,7 +2642,7 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 	}
 
 	{
-		char szCodec[100];
+		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
 		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
 	}
@@ -2849,7 +2848,7 @@ void DumpMovieInfo(GF_ISOFile *file)
 	if (gf_isom_get_brand_info(file, &brand, &min, &count) == GF_OK) {
 		fprintf(stderr, "\tFile Brand %s - version %d\n\t\tCompatible brands:", gf_4cc_to_str(brand), min);
 		for (i=0; i<count;i++) {
-			if (gf_isom_get_alternate_brand(file, i+1, &brand)==GF_OK) 
+			if (gf_isom_get_alternate_brand(file, i+1, &brand)==GF_OK)
 				fprintf(stderr, " %s", gf_4cc_to_str(brand) );
 		}
 		fprintf(stderr, "\n");

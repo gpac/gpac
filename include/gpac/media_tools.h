@@ -71,7 +71,7 @@ GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
  * Get RFC 6381 description for a given track.
  * \param movie source movie
  * \param track track to check
- * \param szCodec a pointer to an already allocated string of size 20 bytes (to refine).
+ * \param szCodec a pointer to an already allocated string of size RFC6381_CODEC_NAME_SIZE_MAX bytes.
  * \param force_inband_xps force inband signaling of parameter sets.
  * \param force_sbr forces using explicit signaling for SBR.
  * \return error if any.
@@ -192,6 +192,8 @@ enum
 	GF_IMPORT_NO_VPS_EXTENSIONS = 1<<25,
 	/*! when set no SEI messages are imported*/
 	GF_IMPORT_NO_SEI = 1<<26,
+	/*! keeps track references when importing a single track*/
+	GF_IMPORT_KEEP_REFS = 1<<27,
 
 	/*! when set by user during import, will abort*/
 	GF_IMPORT_DO_ABORT = 1<<31
@@ -528,6 +530,8 @@ typedef struct
 	u32 bandwidth;
 	/*! forced period duration (used when using empty periods or xlink periods without content)*/
 	Double period_duration;
+	/*! if true, the dasher inputs will open each time the segmentation function is called */
+	Bool no_cache;
 } GF_DashSegmenterInput;
 
 /*!
@@ -827,6 +831,29 @@ GF_Err gf_dasher_set_content_protection_location_mode(GF_DASHSegmenter *dasher, 
  *	\return error code if any
 */
 GF_Err gf_dasher_set_profile_extension(GF_DASHSegmenter *dasher, const char *dash_profile_extension);
+
+/*! Sets Dasher debug mode
+ *	\param dasher the DASH segmenter object
+ *	\param forceTestMode If true, disable generation date print in mpd
+ *	\return error code if any
+*/
+GF_Err gf_dasher_set_test_mode(GF_DASHSegmenter *dasher, Bool forceTestMode);
+
+/*!
+ Enable/Disable cached inputs .
+ *	\param dasher the DASH segmenter object
+ *	\param no_cache if true, input file will be reopen each time the dasher process function is called .
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_cached_inputs(GF_DASHSegmenter *dasher, Bool no_cache);
+
+/*!
+ Enable/Disable loop inputs .
+ *	\param dasher the DASH segmenter object
+ *	\param do_llop if true, input files will be looped at the end of the file in a live simulation. Otherwise a new period will be created.
+ *	\return error code if any
+*/
+GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop);
 
 /*!
  Adds a media input to the DASHer

@@ -1141,88 +1141,10 @@ static u32 gf_m2ts_reframe_ec3(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-
-typedef enum {
-	ID3V2_FRAME_AENC = GF_4CC('A','E','N','C'),
-	ID3V2_FRAME_APIC = GF_4CC('A','P','I','C'),
-	ID3V2_FRAME_COMM = GF_4CC('C','O','M','M'),
-	ID3V2_FRAME_COMR = GF_4CC('C','O','M','R'),
-	ID3V2_FRAME_ENCR = GF_4CC('E','N','C','R'),
-	ID3V2_FRAME_EQUA = GF_4CC('E','Q','U','A'),
-	ID3V2_FRAME_ETCO = GF_4CC('E','T','C','O'),
-	ID3V2_FRAME_GEOB = GF_4CC('G','E','O','B'),
-	ID3V2_FRAME_GRID = GF_4CC('G','R','I','D'),
-	ID3V2_FRAME_IPLS = GF_4CC('I','P','L','S'),
-	ID3V2_FRAME_LINK = GF_4CC('L','I','N','K'),
-	ID3V2_FRAME_MCDI = GF_4CC('M','C','D','I'),
-	ID3V2_FRAME_MLLT = GF_4CC('M','L','L','T'),
-	ID3V2_FRAME_OWNE = GF_4CC('O','W','N','E'),
-	ID3V2_FRAME_PRIV = GF_4CC('P','R','I','V'),
-	ID3V2_FRAME_PCNT = GF_4CC('P','C','N','T'),
-	ID3V2_FRAME_POPM = GF_4CC('P','O','P','M'),
-	ID3V2_FRAME_POSS = GF_4CC('P','O','S','S'),
-	ID3V2_FRAME_RBUF = GF_4CC('R','B','U','F'),
-	ID3V2_FRAME_RVAD = GF_4CC('R','V','A','D'),
-	ID3V2_FRAME_RVRB = GF_4CC('R','V','R','B'),
-	ID3V2_FRAME_SYLT = GF_4CC('S','Y','L','T'),
-	ID3V2_FRAME_SYTC = GF_4CC('S','Y','T','C'),
-	ID3V2_FRAME_TALB = GF_4CC('T','E','N','C'),
-	ID3V2_FRAME_TBPM = GF_4CC('T','B','P','M'),
-	ID3V2_FRAME_TCOM = GF_4CC('T','C','O','M'),
-	ID3V2_FRAME_TCON = GF_4CC('T','C','O','N'),
-	ID3V2_FRAME_TCOP = GF_4CC('T','C','O','P'),
-	ID3V2_FRAME_TDAT = GF_4CC('T','D','A','T'),
-	ID3V2_FRAME_TDLY = GF_4CC('T','D','L','Y'),
-	ID3V2_FRAME_TENC = GF_4CC('T','E','N','C'),
-	ID3V2_FRAME_TEXT = GF_4CC('T','E','X','T'),
-	ID3V2_FRAME_TFLT = GF_4CC('T','F','L','T'),
-	ID3V2_FRAME_TIME = GF_4CC('T','I','M','E'),
-	ID3V2_FRAME_TIT1 = GF_4CC('T','I','T','1'),
-	ID3V2_FRAME_TIT2 = GF_4CC('T','I','T','2'),
-	ID3V2_FRAME_TIT3 = GF_4CC('T','I','T','3'),
-	ID3V2_FRAME_TKEY = GF_4CC('T','K','E','Y'),
-	ID3V2_FRAME_TLAN = GF_4CC('T','L','A','N'),
-	ID3V2_FRAME_TLEN = GF_4CC('T','L','E','N'),
-	ID3V2_FRAME_TMED = GF_4CC('T','M','E','D'),
-	ID3V2_FRAME_TOAL = GF_4CC('T','O','A','L'),
-	ID3V2_FRAME_TOFN = GF_4CC('T','O','F','N'),
-	ID3V2_FRAME_TOLY = GF_4CC('T','O','L','Y'),
-	ID3V2_FRAME_TOPE = GF_4CC('T','O','P','E'),
-	ID3V2_FRAME_TORY = GF_4CC('T','O','R','Y'),
-	ID3V2_FRAME_TOWN = GF_4CC('T','O','W','N'),
-	ID3V2_FRAME_TPE1 = GF_4CC('T','P','E','1'),
-	ID3V2_FRAME_TPE2 = GF_4CC('T','P','E','2'),
-	ID3V2_FRAME_TPE3 = GF_4CC('T','P','E','3'),
-	ID3V2_FRAME_TPE4 = GF_4CC('T','P','E','4'),
-	ID3V2_FRAME_TPOS = GF_4CC('T','P','E','5'),
-	ID3V2_FRAME_TPUB = GF_4CC('T','P','U','B'),
-	ID3V2_FRAME_TRCK = GF_4CC('T','R','C','K'),
-	ID3V2_FRAME_TRDA = GF_4CC('T','R','D','A'),
-	ID3V2_FRAME_TRSN = GF_4CC('T','R','S','N'),
-	ID3V2_FRAME_TRSO = GF_4CC('T','R','S','O'),
-	ID3V2_FRAME_TSIZ = GF_4CC('T','S','I','Z'),
-	ID3V2_FRAME_TSRC = GF_4CC('T','S','R','C'),
-	ID3V2_FRAME_TSSE = GF_4CC('T','S','S','E'),
-	ID3V2_FRAME_TYER = GF_4CC('T','Y','E','R'),
-	ID3V2_FRAME_TXXX = GF_4CC('T','X','X','X'),
-	ID3V2_FRAME_UFID = GF_4CC('U','F','I','D'),
-	ID3V2_FRAME_USER = GF_4CC('U','S','E','R'),
-	ID3V2_FRAME_USLT = GF_4CC('U','S','L','T'),
-	ID3V2_FRAME_WCOM = GF_4CC('W','C','O','M'),
-	ID3V2_FRAME_WCOP = GF_4CC('W','C','O','P'),
-	ID3V2_FRAME_WOAF = GF_4CC('W','O','A','F'),
-	ID3V2_FRAME_WOAR = GF_4CC('W','O','A','R'),
-	ID3V2_FRAME_WOAS = GF_4CC('W','O','A','S'),
-	ID3V2_FRAME_WORS = GF_4CC('W','O','R','S'),
-	ID3V2_FRAME_WPAY = GF_4CC('W','P','A','Y'),
-	ID3V2_FRAME_WPUB = GF_4CC('W','P','U','B'),
-	ID3V2_FRAME_WXXX = GF_4CC('W','X','X','X')
-} GF_ID3v2FrameType;
-
 static void add_text(char **buffer, u32 *size, u32 *pos, char *msg, u32 msg_len)
 {
 	if (!msg || !buffer || ! *buffer) return;
-	
+
 	if (*pos+msg_len>*size) {
 		*size = *pos+msg_len-*size+256;
 		*buffer = (char *)gf_realloc(*buffer, *size);
@@ -2268,8 +2190,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 				metadatapd_bs = gf_bs_new((char *)data+6, len, GF_BITSTREAM_READ);
 				metapd = gf_m2ts_read_metadata_pointer_descriptor(metadatapd_bs, len);
 				gf_bs_del(metadatapd_bs);
-				if (metapd->application_format_identifier == GF_4CC('I', 'D', '3', ' ') &&
-				        metapd->format_identifier == GF_4CC('I', 'D', '3', ' ') &&
+				if (metapd->application_format_identifier == GF_MEDIA_TYPE_ID3 &&
+				        metapd->format_identifier == GF_MEDIA_TYPE_ID3 &&
 				        metapd->carriage_flag == METADATA_CARRIAGE_SAME_TS) {
 					/*HLS ID3 Metadata */
 					pmt->program->metadata_pointer_descriptor = metapd;
@@ -2452,10 +2374,10 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					reg_desc_format = GF_4CC(data[2], data[3], data[4], data[5]);
 					/*cf http://www.smpte-ra.org/mpegreg/mpegreg.html*/
 					switch (reg_desc_format) {
-					case GF_4CC('A', 'C', '-', '3'):
+					case GF_MEDIA_STREAM_AC3:
 						es->stream_type = GF_M2TS_AUDIO_AC3;
 						break;
-					case GF_4CC('V', 'C', '-', '1'):
+					case GF_MEDIA_STREAM_VC1:
 						es->stream_type = GF_M2TS_VIDEO_VC1;
 						break;
 					default:
@@ -2525,8 +2447,8 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 					metadatad_bs = gf_bs_new((char *)data+2, len, GF_BITSTREAM_READ);
 					metad = gf_m2ts_read_metadata_descriptor(metadatad_bs, len);
 					gf_bs_del(metadatad_bs);
-					if (metad->application_format_identifier == GF_4CC('I', 'D', '3', ' ') &&
-					        metad->format_identifier == GF_4CC('I', 'D', '3', ' ')) {
+					if (metad->application_format_identifier == GF_MEDIA_TYPE_ID3 &&
+					        metad->format_identifier == GF_MEDIA_TYPE_ID3) {
 						/*HLS ID3 Metadata */
 						if (pes) {
 							pes->metadata_descriptor = metad;
@@ -2870,7 +2792,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 {
 	GF_M2TS_PESHeader pesh;
 	if (!ts) return;
-	
+
 	/*we need at least a full, valid start code !!*/
 	if ((pes->pck_data_len >= 4) && !pes->pck_data[0] && !pes->pck_data[1] && (pes->pck_data[2] == 0x1)) {
 		u32 len;
@@ -3302,8 +3224,8 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 		paf = &af;
 		memset(paf, 0, sizeof(GF_M2TS_AdaptationField));
 		//this will stop you when processing invalid (yet existing) mpeg2ts streams in debug
-		assert( af_size<=182);
-		if (af_size>182)
+		assert( af_size<=183);
+		if (af_size>183)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] TS Packet %d Detected wrong adaption field size %u when control value is 3\n", ts->pck_number, af_size));
 		if (af_size) gf_m2ts_get_adaptation_field(ts, paf, data+5, af_size, hdr.pid);
 		pos += 1+af_size;
@@ -3419,7 +3341,7 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 
 				//ignore PCR discontinuity indicator if PCR found is larger than previously received PCR and diffence between PCR before and after discontinuity indicator is smaller than 50ms
 				else if ((diff_in_us > 0) && (diff < 200000)) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled but diff is small (diff %d us - PCR diff %d vs prev PCR diff %d) - ignore it\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled but diff is small (diff %d us - PCR diff %d vs prev PCR diff %d) - ignore it\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
 				} else {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled (diff %d us - PCR diff %d vs prev PCR diff %d)\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
 					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
@@ -3672,7 +3594,7 @@ GF_EXPORT
 GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 {
 	if (!pes) return GF_BAD_PARAM;
-	
+
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Setting pes framing mode of PID %d to %d\n", pes->pid, mode) );
 	/*ignore request for section PIDs*/
 	if (pes->flags & GF_M2TS_ES_IS_SECTION) {
@@ -3789,6 +3711,7 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
 	ts->ChannelAppList = gf_list_new();
+	ts->udp_buffer_size = GF_M2TS_UDP_BUFFER_SIZE;
 
 	return ts;
 }
@@ -4050,16 +3973,16 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 {
 	u32 i;
 	GF_Err e;
-	char data[GF_M2TS_UDP_BUFFER_SIZE];
 	u32 size;
 	GF_M2TS_Demuxer *ts = _p;
+	char *data = gf_malloc(ts->udp_buffer_size);
 
 	gf_m2ts_reset_parsers(ts);
 	ts->abort_parsing = GF_FALSE;
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
-		gf_m2ts_get_socket(ts->socket_url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		gf_m2ts_get_socket(ts->socket_url, ts->network_type, ts->udp_buffer_size, &ts->sock);
 	}
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -4072,7 +3995,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				continue;
 			}
 
-			ts_size = read(ts->tuner->ts_fd, data, GF_M2TS_UDP_BUFFER_SIZE);
+			ts_size = read(ts->tuner->ts_fd, data, ts->udp_buffer_size);
 			if (ts_size>0) gf_m2ts_process_data(ts, data, (u32) ts_size);
 		}
 	} else
@@ -4097,7 +4020,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 				}
 				size = 0;
 				/*m2ts chunks by chunks*/
-				e = gf_sk_receive(ts->sock, data, GF_M2TS_UDP_BUFFER_SIZE, 0, &size);
+				e = gf_sk_receive(ts->sock, data, ts->udp_buffer_size, 0, &size);
 				if (!size || e) {
 					nb_empty++;
 					if (nb_empty==1000) {
@@ -4231,6 +4154,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
 	ts->run_state = 2;
+	gf_free(data);
 	return 0;
 }
 
@@ -4298,7 +4222,7 @@ static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 		ts->sock_is_delegate = GF_TRUE;
 	} else {
 		GF_Err e;
-		e = gf_m2ts_get_socket(url, ts->network_type, GF_M2TS_UDP_BUFFER_SIZE, &ts->sock);
+		e = gf_m2ts_get_socket(url, ts->network_type, ts->udp_buffer_size, &ts->sock);
 		if (e) return e;
 	}
 
@@ -4685,7 +4609,7 @@ static void rewrite_pts_dts(unsigned char *ptr, u64 TS)
 	if (_TS < (u64) -ts_shift) _TS = pcr_mod + _TS + ts_shift; \
 	else _TS = _TS + ts_shift; \
 	while (_TS > pcr_mod) _TS -= pcr_mod; \
- 
+
 
 GF_Err gf_m2ts_restamp(char *buffer, u32 size, s64 ts_shift, u8 *is_pes)
 {

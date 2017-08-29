@@ -67,6 +67,7 @@ typedef struct
 	
 	u32 frame_idx;
 	Bool pack_mode;
+	Bool reset_dec;
 	u32 dec_frames;
 	u8  chroma_format_idc;
 
@@ -79,7 +80,6 @@ typedef struct
 	u32 avc_base_size;
 	u32 avc_base_pts;
 #endif
-
 	FILE *raw_out;
 } HEVCDec;
 
@@ -149,6 +149,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 
 		gf_free(data);
 	}
+	gf_odf_hevc_cfg_del(cfg);
 	return GF_OK;
 }
 
@@ -273,8 +274,15 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 #endif
 
 	if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
-		libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+		if (esd->has_scalable_layers) {
+			ctx->cur_layer = ctx->nb_layers;
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+		} else {
+			libOpenHevcSetActiveDecoders(ctx->openHevcHandle, 1);
+			libOpenHevcSetViewLayers(ctx->openHevcHandle, 0);
+		}
+
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
 			libOpenShvcCopyExtraData(ctx->openHevcHandle, (u8 *) esd->decoderConfig->decoderSpecificInfo->data, NULL, esd->decoderConfig->decoderSpecificInfo->dataLength, 0);
@@ -370,6 +378,10 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR");
 	if (sOpt && !strcmp(sOpt, "yes") && !ctx->direct_output ) ctx->pack_mode = GF_TRUE;
 	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "PackHFR", "no");
+
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ResetAtReinit");
+	if (sOpt && !strcmp(sOpt, "yes") ) ctx->reset_dec = GF_TRUE;
+	else if (!sOpt) gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ResetAtReinit", "no");
 
 	if (!ctx->raw_out) {
 		sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "InputRipFile");
@@ -480,6 +492,15 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 	case GF_CODEC_RAW_MEMORY:
 		capability->cap.valueBool = GF_TRUE;
 		break;
+	case GF_CODEC_FORCE_ANNEXB:
+	{
+		const char *opt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ForceAnnexB");
+		if (!opt)
+			gf_modules_set_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ForceAnnexB", "no");
+		else if ( !strcmp(opt, "yes"))
+			capability->cap.valueBool = GF_TRUE;
+	}
+		break;
 	/*not known at our level...*/
 	case GF_CODEC_CU_DURATION:
 	default:
@@ -494,7 +515,10 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 	HEVCDec *ctx = (HEVCDec*) ifcg->privateStack;
 	switch (capability.CapCode) {
 	case GF_CODEC_WAIT_RAP:
-		if (ctx->dec_frames) {
+		if (ctx->reset_dec && ctx->dec_frames) {
+			u32 cl = ctx->cur_layer;
+			u32 nl = ctx->nb_layers;
+
 			//quick hack, we have an issue with openHEVC resuming after being flushed ...
 			ctx->had_pic = GF_FALSE;
 			libOpenHevcClose(ctx->openHevcHandle);
@@ -502,6 +526,12 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 			ctx->decoder_started = GF_FALSE;
 			ctx->is_init = GF_FALSE;
 			HEVC_ConfigureStream(ctx, ctx->esd);
+			ctx->cur_layer = cl;
+			ctx->nb_layers = nl;
+			if (ctx->openHevcHandle) {
+				libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+				libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
+			}
 		}
 		return GF_OK;
 	case GF_CODEC_MEDIA_SWITCH_QUALITY:
@@ -729,13 +759,6 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 		if ( got_pic ) {
 			return HEVC_flush_picture(ctx, outBuffer, outBufferLength, CTS);
 		}
-		//quick hack, we have an issue with openHEVC resuming after being flushed ...
-		ctx->had_pic = GF_FALSE;
-		libOpenHevcClose(ctx->openHevcHandle);
-		ctx->openHevcHandle = NULL;
-		ctx->is_init = GF_FALSE;
-		HEVC_ConfigureStream(ctx, ctx->esd);
-
 		return GF_OK;
 	}
 
@@ -776,7 +799,7 @@ static GF_Err HEVC_ProcessData(GF_MediaDecoder *ifcg,
 				ctx->avc_base_pts = *CTS;
 			}
 		} else if (ctx->cur_layer>1) {
-			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts	, *CTS);
+			got_pic = libOpenShvcDecode2(ctx->openHevcHandle, (u8*)ctx->avc_base, (u8 *) inBuffer, ctx->avc_base_size, inBufferLength, ctx->avc_base_pts, *CTS);
 			if (ctx->avc_base) {
 				gf_free(ctx->avc_base);
 				ctx->avc_base = NULL;
