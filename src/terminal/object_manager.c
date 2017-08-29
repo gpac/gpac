@@ -265,6 +265,13 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
 		GF_Event evt;
+
+		if (odm->addon) {
+			gf_list_del_item(odm->parentscene->declared_addons, odm->addon);
+			gf_scene_reset_addon(odm->addon, GF_FALSE);
+			odm->addon = NULL;
+		}
+
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
 		gf_term_forward_event(odm->term, &evt, GF_FALSE, GF_TRUE);
@@ -1998,7 +2005,8 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	} else {
 		if (nb_eos != count) return;
 	}
-
+	if (odm->addon && odm->addon->is_splicing) odm->addon->is_over = GF_TRUE;
+	if (odm->parentscene && odm->parentscene->root_od->addon && odm->parentscene->root_od->addon->is_splicing) odm->parentscene->root_od->addon->is_over = GF_TRUE;
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_LOAD_DONE);
 
