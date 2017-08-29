@@ -46,6 +46,7 @@
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
 #include <gpac/xml.h>
+#include <gpac/internal/isomedia_dev.h>
 
 typedef struct
 {
@@ -226,7 +227,7 @@ static void set_chapter_track(GF_ISOFile *file, u32 track, u32 chapter_ref_trak)
 	u64 ref_duration, chap_duration;
 	Double scale;
 
-	gf_isom_set_track_reference(file, chapter_ref_trak, GF_4CC('c','h','a','p'), gf_isom_get_track_id(file, track) );
+	gf_isom_set_track_reference(file, chapter_ref_trak, GF_ISOM_REF_CHAP, gf_isom_get_track_id(file, track) );
 	gf_isom_set_track_enabled(file, track, 0);
 
 	ref_duration = gf_isom_get_media_duration(file, chapter_ref_trak);
@@ -309,25 +310,38 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	rvc_config = NULL;
 	while (ext) {
 		char *ext2 = strchr(ext+1, ':');
-		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
-		if (ext2 && !strncmp(ext2, ":\\", 2)) ext2 = strchr(ext2+1, ':');
+
+		// if the colon is part of a file path/url we keep it
+		if (ext2 && ( !strncmp(ext2, "://", 3) || !strncmp(ext2, ":\\", 2) ) ) {
+			ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+		}
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
-		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32) (atof(ext+5) * 1000);
-		else if (!strnicmp(ext+1, "lang=", 5)) szLan = ext+6;
+		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
+		else if (!strnicmp(ext+1, "lang=", 5)) {
+			/* prevent leak if param is set twice */
+			if (szLan)
+				gf_free((char*) szLan);
+
+			szLan = gf_strdup(ext+6);
+		}
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
 			} else {
+				char *ext3=NULL;
 				if (ext2) ext2[0] = ':';
 				if (ext2) ext2 = strchr(ext2+1, ':');
 				if (ext2) ext2[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
 			}
 		}
-		else if (!strnicmp(ext+1, "name=", 5)) handler_name = gf_strdup(ext+6);
+		else if (!strnicmp(ext+1, "name=", 5)) {
+			handler_name = gf_strdup(ext+6);
+		}
 		else if (!strnicmp(ext+1, "ext=", 4)) {
 			/*extensions begin with '.'*/
 			if (*(ext+5) == '.')
@@ -359,6 +373,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "trailing")) import_flags |= GF_IMPORT_KEEP_TRAILING;
 		else if (!strnicmp(ext+1, "agg=", 4)) frames_per_sample = atoi(ext+5);
 		else if (!stricmp(ext+1, "dref")) import_flags |= GF_IMPORT_USE_DATAREF;
+		else if (!stricmp(ext+1, "keep_refs")) import_flags |= GF_IMPORT_KEEP_REFS;
 		else if (!stricmp(ext+1, "nodrop")) import_flags |= GF_IMPORT_NO_FRAME_DROP;
 		else if (!stricmp(ext+1, "packed")) import_flags |= GF_IMPORT_FORCE_PACKED;
 		else if (!stricmp(ext+1, "sbr")) import_flags |= GF_IMPORT_SBR_IMPLICIT;
@@ -409,7 +424,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			} else {
 				if (!strnicmp(ext+1, "max_lid=", 8))
 					max_layer_id_plus_one = 1 + (u8) val;
-				else 
+				else
 					max_temporal_id_plus_one = 1 + (u8) val;
 			}
 		}
@@ -423,7 +438,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			stype = GF_4CC(ext[7], ext[8], ext[9], ext[10]);
 		}
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
-		else if (!strnicmp(ext+1, "chapter=", 8)) chapter_name = gf_strdup(ext+9);
+		else if (!strnicmp(ext+1, "chapter=", 8)) {
+			chapter_name = gf_strdup(ext+9);
+		}
 		else if (!strnicmp(ext+1, "chapfile=", 9)) {
 			chapter_name = gf_strdup(ext+10);
 			is_chap_file=1;
@@ -479,7 +496,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "swf-same-app")) import.swf_flags |= GF_SM_SWF_REUSE_APPEARANCE;
 		else if (!strnicmp(ext+1, "swf-flatten=", 12)) import.swf_flatten_angle = (Float) atof(ext+13);
 #endif
-		
+
 		else if (!strnicmp(ext+1, "kind=", 5)) {
 			char *kind_scheme, *kind_value;
 			char *kind_data = ext+6;
@@ -521,7 +538,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		if (ext2) ext2[0] = ':';
 
 		ext[0] = 0;
-		ext = strchr(ext+1, ':');
+
+		/* restart from where we stopped
+		 * if we didn't stop (ext2 null) then the end has been reached
+		 * so we can stop the whole thing */
+		ext = ext2;
 	}
 
 	/*check duration import (old syntax)*/
@@ -685,7 +706,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (profile || level)
 				gf_media_change_pl(import.dest, i+1, profile, level);
 
-			if (gf_isom_get_media_subtype(import.dest, i+1, 1)== GF_4CC( 'm', 'p', '4', 's' ))
+			if (gf_isom_get_media_subtype(import.dest, i+1, 1)== GF_ISOM_BOX_TYPE_MP4S)
 				keep_sys_tracks = 1;
 
 			gf_isom_set_composition_offset_mode(import.dest, i+1, negative_cts_offset);
@@ -722,6 +743,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			}
 		}
 	} else {
+		if (do_all)
+			import.flags |= GF_IMPORT_KEEP_REFS;
+
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
 			if (prog_id) {
@@ -907,7 +931,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	{
 		e = gf_isom_rewrite_track_dependencies(import.dest, i);
 		if (e) {
-			fprintf(stderr, "Warning: track ID %d has references to a track not imported\n", gf_isom_get_track_id(import.dest, i));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("Warning: track ID %d has references to a track not imported\n", gf_isom_get_track_id(import.dest, i) ));
 			e = GF_OK;
 		}
 	}
@@ -967,6 +991,7 @@ exit:
 	if (import.streamFormat) gf_free(import.streamFormat);
 	if (import.force_ext) gf_free(import.force_ext);
 	if (rvc_config) gf_free(rvc_config);
+	if (szLan) gf_free((char *)szLan);
 	return e;
 }
 
@@ -1005,10 +1030,9 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 	rap_split = 0;
 	if (split_size_kb == (u64)-1) rap_split = 1;
 	if (split_dur == -1) rap_split = 1;
-	else if (split_dur==-2) {
+	else if (split_dur <= -2) {
 		split_size_kb = 0;
 		split_until_end = 1;
-		split_dur = 0;
 	}
 
 	if (rap_split) {
@@ -1028,7 +1052,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 
 	conv_type = 0;
 	switch (gf_isom_guess_specification(mp4)) {
-	case GF_4CC('I','S','M','A'):
+	case GF_ISOM_BRAND_ISMA:
 		conv_type = 1;
 		break;
 	case GF_ISOM_BRAND_3GP4:
@@ -1127,7 +1151,18 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 		return GF_NOT_SUPPORTED;
 	}
 	if (split_until_end) {
-		split_dur = max_dur;
+		if (split_dur < -2) {
+			split_dur = - (split_dur + 2 - chunk_start);
+			if (max_dur < split_dur) {
+				fprintf(stderr, "Split duration till end %lf longer than track duration %lf\n", split_dur, max_dur);
+				gf_free(tks);
+				return GF_NOT_SUPPORTED;
+			} else {
+				split_dur = max_dur - split_dur;
+			}
+		} else {
+			split_dur = max_dur;
+		}
 	} else if (!rap_split && (max_dur<=split_dur)) {
 		fprintf(stderr, "Input file (%f) shorter than requested split duration (%f)\n", max_dur, split_dur);
 		gf_free(tks);
@@ -1141,7 +1176,7 @@ GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb,
 			has_enough_sync = GF_TRUE;
 		else if (gf_isom_get_sync_point_count(mp4, tki->tk) > 1)
 			has_enough_sync = GF_TRUE;
-		else if (gf_isom_get_sample_group_info(mp4, tki->tk, 1, GF_4CC('r', 'a', 'p', ' '), NULL, NULL, NULL))
+		else if (gf_isom_get_sample_group_info(mp4, tki->tk, 1, GF_ISOM_SAMPLE_GROUP_RAP, NULL, NULL, NULL))
 			has_enough_sync = GF_TRUE;
 
 		if (!has_enough_sync) {
@@ -2781,10 +2816,10 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 		mtype = GF_4CC(fcc[0],fcc[1],fcc[2],fcc[3]);
 	} else {
 		mtype = 0;
-		if (!stricmp(type, "svg")) mtype = ascii ? GF_4CC('s','v','g',' ') : GF_4CC('s','v','g','z');
-		else if (!stricmp(type, "smil")) mtype = ascii ? GF_4CC('s','m','i','l') : GF_4CC('s','m','l','z');
-		else if (!stricmp(type, "x3d")) mtype = ascii ? GF_4CC('x','3','d',' ')  : GF_4CC('x','3','d','z')  ;
-		else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_4CC('x','m','t','a') : GF_4CC('x','m','t','z');
+		if (!stricmp(type, "svg")) mtype = ascii ? GF_META_TYPE_SVG : GF_META_TYPE_SVGZ;
+		else if (!stricmp(type, "smil")) mtype = ascii ? GF_META_TYPE_SMIL : GF_META_TYPE_SMLZ;
+		else if (!stricmp(type, "x3d")) mtype = ascii ? GF_META_TYPE_X3D  : GF_META_TYPE_X3DZ  ;
+		else if (!stricmp(type, "xmt-a")) mtype = ascii ? GF_META_TYPE_XMTA : GF_META_TYPE_XMTZ;
 	}
 	if (!mtype) {
 		fprintf(stderr, "Missing 4CC code for meta name - please use ABCD:fileName\n");
@@ -2881,7 +2916,7 @@ GF_ISOFile *package_file(char *file_name, char *fcc, const char *tmpdir, Bool ma
 			encoding = "binary-gzip";
 		}
 
-		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, GF_4CC('m', 'i', 'm', 'e'), mime, encoding, NULL,  NULL, NULL);
+		e = gf_isom_add_meta_item(file, 1, 0, 0, item, name, 0, GF_META_ITEM_TYPE_MIME, mime, encoding, NULL,  NULL, NULL);
 		gf_free(name);
 		if (e) goto exit;
 	}

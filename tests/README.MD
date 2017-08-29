@@ -19,7 +19,7 @@ GPAC test suite is composed of scripts written in the Bash language. Tests are p
 
 Media files used in a test can be anywhere (local file, http URL). The environmnent variable `$MEDIA_DIR` can be used to access to data located in gpac/tests/media. 
 
-Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directtory is cleaned after each test.
+Scripts should use the `$TEMP_DIR` environment variable to get a directory where to place the file they generate. This directory is cleaned after each test.
 
 A simple GPAC test can be:
 ```

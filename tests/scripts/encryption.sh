@@ -50,11 +50,14 @@ crypto_test "cenc-ctr" $MEDIA_DIR/encryption/drm_ctr.xml &
 #test cenc CBC
 crypto_test "cenc-cbc" $MEDIA_DIR/encryption/drm_cbc.xml &
 
-#test cenc CBC
+#test cenc CENS
 crypto_test "cenc-cens" $MEDIA_DIR/encryption/drm_cens.xml &
 
-#test cenc CBC
+#test cenc CBCS
 crypto_test "cenc-cbcs" $MEDIA_DIR/encryption/drm_cbcs.xml &
+
+#test cenc CBCS constant
+crypto_test "cenc-cbcs-const" $MEDIA_DIR/encryption/drm_cbcs_const.xml &
 
 
 wait

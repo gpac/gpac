@@ -184,10 +184,10 @@ next_segment:
 					u64 bytesMissing=0;
 					e = gf_isom_refresh_fragmented(read->mov, &bytesMissing, read->use_memory ? param.url_query.next_url : NULL);
 
-					if (e) {
+					if (e && (e!= GF_ISOM_INCOMPLETE_FILE)) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Failed to reparse segment %s: %s\n", param.url_query.next_url, gf_error_to_string(e) ));
 					} else {
-						GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] LowLatency mode: Reparsing segment %s boxes at UTC "LLU" - "LLU" bytes still missing\n", param.url_query.next_url, gf_net_get_utc(), bytesMissing ));
 					}
 #ifndef GPAC_DISABLE_LOG
 					if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
@@ -217,13 +217,20 @@ next_segment:
 			e = GF_OK;
 			if (param.url_query.next_url_init_or_switch_segment) {
 				u64 tfdt = gf_isom_get_current_tfdt(read->mov, 1);
-				char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU")\n", param.url_query.next_url_init_or_switch_segment, tfdt));
-				if (tfdt_val) {
-					sprintf(tfdt_val+5, LLU, tfdt);
-				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+
+				if (gf_isom_is_smooth_streaming_moov(read->mov)) {
+					char *tfdt_val = strstr(param.url_query.next_url_init_or_switch_segment, "tfdt=");
+
+					//smooth adressing, replace tfdt=0000000000000000000 with proper value
+					if (tfdt_val) {
+						sprintf(tfdt_val+5, LLU, tfdt);
+					} else {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[IsoMedia] Error finding init time for init segment %s at UTC "LLU"\n", param.url_query.next_url_init_or_switch_segment, gf_net_get_utc() ));
+					}
 				}
+
 				if (read->mov) gf_isom_close(read->mov);
 				e = gf_isom_open_progressive(param.url_query.next_url_init_or_switch_segment, param.url_query.switch_start_range, param.url_query.switch_end_range, &read->mov, &read->missing_bytes);
 				if (e < 0) {

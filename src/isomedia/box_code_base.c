@@ -977,7 +977,7 @@ void dref_del(GF_Box *s)
 
 GF_Err dref_AddDataEntry(GF_Box *ptr, GF_Box *entry)
 {
-	if (entry->type==GF_4CC('a','l','i','s')) {
+	if (entry->type==GF_ISOM_BOX_TYPE_ALIS) {
 		GF_DataEntryURLBox *urle = (GF_DataEntryURLBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_URL);
 		urle->flags = 1;
 		gf_isom_box_del(entry);
@@ -3894,7 +3894,7 @@ GF_Err audio_sample_entry_AddBox(GF_Box *s, GF_Box *a)
 			/*HACK for QT files: get the esds box from the track*/
 		{
 			GF_UnknownBox *wave = (GF_UnknownBox *)a;
- 			if (wave->original_4cc == GF_4CC('w','a','v','e')) {
+ 			if (wave->original_4cc == GF_ISOM_BOX_TYPE_WAVE) {
 				u32 offset = 0;
 				while ((wave->data[offset + 4] != 'e') && (wave->data[offset + 5] != 's')) {
 					offset++;
@@ -7021,6 +7021,7 @@ GF_Err trak_AddBox(GF_Box *s, GF_Box *a)
 GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 {
 	GF_Err e;
+	u32 i;
 	GF_TrackBox *ptr = (GF_TrackBox *)s;
 	e = gf_isom_box_array_read(s, bs, trak_AddBox);
 	if (e) return e;
@@ -7034,7 +7035,17 @@ GF_Err trak_Read(GF_Box *s, GF_BitStream *bs)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[iso file] Missing MediaBox\n"));
 		return GF_ISOM_INVALID_FILE;
 	}
-
+	for (i=0; i<gf_list_count(ptr->Media->information->sampleTable->other_boxes); i++) {
+		GF_Box *a = gf_list_get(ptr->Media->information->sampleTable->other_boxes, i);
+		if ((a->type ==GF_ISOM_BOX_TYPE_UUID) && (((GF_UUIDBox *)a)->internal_4cc == GF_ISOM_BOX_UUID_PSEC)) {
+			ptr->sample_encryption = (struct __sample_encryption_box *) a;
+			break;
+		}
+		else if (a->type == GF_ISOM_BOX_TYPE_SENC) {
+			ptr->sample_encryption = (struct __sample_encryption_box *)a;
+			break;
+		}
+	}
 	return e;
 }
 
@@ -9966,7 +9977,7 @@ GF_Err saio_Size(GF_Box *s)
 	if (ptr->flags & 1) ptr->size += 8;
 	ptr->size += 4;
 	//a little optim here: in cenc, the saio always points to a single data block, only one entry is needed
-	if (ptr->aux_info_type == GF_4CC('c', 'e', 'n', 'c')) {
+	if (ptr->aux_info_type == GF_ISOM_CENC_SCHEME) {
 		if (ptr->offsets_large) gf_free(ptr->offsets_large);
 		if (ptr->offsets) gf_free(ptr->offsets);
 		ptr->offsets_large = NULL;

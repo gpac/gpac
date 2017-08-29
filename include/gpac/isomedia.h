@@ -37,7 +37,7 @@ extern "C" {
  *	\file <gpac/isomedia.h>
  *	\brief ISOBMFF parsing and writing library.
  */
-	
+
 /*!
  *	\addtogroup iso_grp ISO Base Media File
  *	\ingroup isobmf_grp
@@ -159,8 +159,11 @@ enum
 	GF_ISOM_REF_SCPT			= GF_4CC( 's', 'c', 'p', 't' ),
 	//nonprimary source description
 	GF_ISOM_REF_SSRC			= GF_4CC( 's', 's', 'r', 'c' ),
-	//layer audio track dependency 
+	//layer audio track dependency
 	GF_ISOM_REF_LYRA			= GF_4CC( 'l', 'y', 'r', 'a' ),
+
+	/* File Delivery Item Information Extension */
+	GF_ISOM_REF_FDEL			= GF_4CC( 'f', 'd', 'e', 'l' ),
 
 };
 
@@ -233,7 +236,14 @@ enum
 	/*DIMS media type (same as scene but with a different mediaInfo)*/
 	GF_ISOM_MEDIA_DIMS		= GF_4CC( 'd', 'i', 'm', 's' ),
 
-	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' )
+	GF_ISOM_MEDIA_FLASH		= GF_4CC( 'f', 'l', 's', 'h' ),
+
+	GF_ISOM_MEDIA_QTVR		= GF_4CC( 'q', 't', 'v', 'r' ),
+
+	GF_ISOM_MEDIA_JPEG		= GF_4CC( 'j', 'p', 'e', 'g' ),
+	GF_ISOM_MEDIA_JP2		= GF_4CC( 'j', 'p', '2', ' ' ),
+	GF_ISOM_MEDIA_PNG		= GF_4CC( 'p', 'n', 'g', ' ' ),
+
 };
 
 
@@ -260,6 +270,9 @@ enum
 	/* Pattern Encryption Scheme Type in the SchemeTypeInfoBox */
 	GF_ISOM_CENS_SCHEME	= GF_4CC('c','e','n','s'),
 	GF_ISOM_CBCS_SCHEME	= GF_4CC('c','b','c','s'),
+
+	GF_ISOM_ISMA_SCHEME = GF_4CC('i','s','m','a'),
+	GF_ISOM_ODRM_SCHEME = GF_4CC('o','d','r','m'),
 };
 
 
@@ -320,6 +333,18 @@ enum
 	GF_ISOM_SUBTYPE_RRTP		= GF_4CC( 'r', 'r', 't', 'p' ),
 	GF_ISOM_SUBTYPE_RTCP		= GF_4CC( 'r', 't', 'c', 'p' ),
 	GF_ISOM_SUBTYPE_FLUTE		= GF_4CC( 'f', 'd', 'p', ' ' ),
+
+	/* Apple XDCAM */
+	GF_ISOM_SUBTYPE_XDVB		= GF_4CC( 'x', 'd', 'v', 'b' ),
+
+	GF_ISOM_SUBTYPE_H263		= GF_4CC( 'h', '2', '6', '3' ),
+
+	GF_ISOM_SUBTYPE_JPEG		= GF_4CC( 'j', 'p', 'e', 'g' ),
+	GF_ISOM_SUBTYPE_PNG 		= GF_4CC( 'p', 'n', 'g', ' ' ),
+	GF_ISOM_SUBTYPE_MJP2 		= GF_4CC( 'm', 'j', 'p', '2' ),
+
+	/* on-screen colours */
+	GF_ISOM_SUBTYPE_NCLX 		= GF_4CC( 'n', 'c', 'l', 'x' ),
 };
 
 
@@ -371,6 +396,7 @@ enum
 	/*final version of 3GPP file spec*/
 	GF_ISOM_BRAND_3GP6 = GF_4CC('3', 'g', 'p', '6'),
 	/*generci 3GPP file (several audio tracks, etc..)*/
+	GF_ISOM_BRAND_3GG5 = GF_4CC('3', 'g', 'g', '5'),
 	GF_ISOM_BRAND_3GG6 = GF_4CC('3', 'g', 'g', '6'),
 	/*3GPP2 file spec*/
 	GF_ISOM_BRAND_3G2A = GF_4CC('3', 'g', '2', 'a'),
@@ -383,6 +409,53 @@ enum
 	/* Image File Format */
 	GF_ISOM_BRAND_MIF1 = GF_4CC('m', 'i', 'f', '1'),
 	GF_ISOM_BRAND_HEIC = GF_4CC('h', 'e', 'i', 'c'),
+
+	/*other iso media brands */
+	GF_ISOM_BRAND_ISO1 = GF_4CC( 'i', 's', 'o', '1' ),
+	GF_ISOM_BRAND_ISO3 = GF_4CC( 'i', 's', 'o', '3' ),
+	GF_ISOM_BRAND_ISO5 = GF_4CC( 'i', 's', 'o', '5' ),
+	GF_ISOM_BRAND_ISO6 = GF_4CC( 'i', 's', 'o', '6' ),
+
+	/* JPEG 2000 Image (.JP2) [ISO 15444-1] */
+	GF_ISOM_BRAND_JP2  = GF_4CC( 'j', 'p', '2', ' ' ),
+
+	/* MPEG-4 (.MP4) for SonyPSP */
+	GF_ISOM_BRAND_MSNV = GF_4CC( 'M', 'S', 'N', 'V' ),
+	/* Apple iTunes AAC-LC (.M4A) Audio */
+	GF_ISOM_BRAND_M4A  = GF_4CC( 'M', '4', 'A', ' ' ),
+	/* Apple iTunes Video (.M4V) Video */
+	GF_ISOM_BRAND_M4V  = GF_4CC( 'M', '4', 'V', ' ' ),
+
+	GF_ISOM_BRAND_HVC1 = GF_4CC( 'h', 'v', 'c', '1' ),
+	GF_ISOM_BRAND_HVCE = GF_4CC( 'h', 'v', 'c', 'e' ),
+	GF_ISOM_BRAND_HVCI = GF_4CC( 'h', 'v', 'c', 'i' ),
+
+	GF_ISOM_BRAND_ISMA = GF_4CC( 'I', 'S', 'M', 'A' ),
+
+	/* dash related brands (ISO/IEC 23009-1) */
+	GF_ISOM_BRAND_DASH = GF_4CC('d','a','s','h'),
+	/* Media Segment conforming to the DASH Self-Initializing Media Segment format type */
+	GF_ISOM_BRAND_DSMS = GF_4CC('d','s','m','s'),
+	/* Media Segment conforming to the general format type */
+	GF_ISOM_BRAND_MSDH = GF_4CC('m','s','d','h'),
+	/* Media Segment conforming to the Indexed Media Segment format type */
+	GF_ISOM_BRAND_MSIX = GF_4CC('m','s','i','x'),
+	/* Representation Index Segment used to index MPEG-2 TS based Media Segments */
+	GF_ISOM_BRAND_RISX = GF_4CC('r','i','s','x'),
+	/* last Media Segment indicator for ISO base media file format */
+	GF_ISOM_BRAND_LMSG = GF_4CC('l','m','s','g'),
+	/* Single Index Segment used to index MPEG-2 TS based Media Segments */
+	GF_ISOM_BRAND_SISX = GF_4CC('s','i','s','x'),
+	/* Subsegment Index Segment used to index MPEG-2 TS based Media Segments */
+	GF_ISOM_BRAND_SSSS = GF_4CC('s','s','s','s'),
+
+
+	/* from ismacryp.c */
+	/* OMA DCF DRM Format 2.0 (OMA-TS-DRM-DCF-V2_0-20060303-A) */
+	GF_ISOM_BRAND_ODCF = GF_4CC('o','d','c','f'),
+	/* OMA PDCF DRM Format 2.1 (OMA-TS-DRM-DCF-V2_1-20070724-C) */
+	GF_ISOM_BRAND_OPF2 = GF_4CC('o','p','f','2'),
+
 };
 
 
@@ -460,12 +533,19 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
+If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
 tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.*/
 GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
-/*close the file, write it if new/edited*/
+/*close the file, write it if new/edited - equivalent to gf_isom_write()+gf_isom_delete()*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
+
+/*write the file without deleting (gf_isom_delete())*/
+GF_Err gf_isom_write(GF_ISOFile *movie);
+
+/*get access to the data bitstream  - see gf_isom_open()*/
+GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs);
 
 /*delete the movie without saving it.*/
 void gf_isom_delete(GF_ISOFile *the_file);
@@ -684,6 +764,9 @@ u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts);
 
 /*get the current tfdt of the track - this can be used to adjust sample time queries when edit list are used*/
 u64 gf_isom_get_current_tfdt(GF_ISOFile *the_file, u32 trackNumber);
+
+//returns true if the file init segment (moov) was generated from external meta-data (smooth streaming)
+Bool gf_isom_is_smooth_streaming_moov(GF_ISOFile *the_file);
 
 /*Track Edition functions*/
 
@@ -1023,7 +1106,8 @@ Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample, u64 dataOffset);
 
 /*set the duration of the last media sample. If not set, the duration of the last sample is the
-duration of the previous one if any, or media TimeScale (default value).*/
+duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any, 
+you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
 /*sets a track reference*/
@@ -1031,6 +1115,9 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 
 /*removes a track reference*/
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex);
+
+/*removes all track references*/
+GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber);
 
 /*sets track handler name. name is either NULL (reset), a UTF-8 formatted string or a UTF8 file
 resource in the form "file://path/to/file_utf8" */
@@ -1225,6 +1312,9 @@ unpack=1: set unpack off and repacks all table info
 GF_Err gf_isom_set_cts_packing(GF_ISOFile *the_file, u32 trackNumber, Bool unpack);
 /*modify CTS offset of a given sample (used for B-frames) - MUST be called in unpack mode only*/
 GF_Err gf_isom_modify_cts_offset(GF_ISOFile *the_file, u32 trackNumber, u32 sample_number, u32 offset);
+/*shift all CTS with the given offset - MUST be called in unpack mode only*/
+GF_Err gf_isom_shift_cts_offset(GF_ISOFile *the_file, u32 trackNumber, s32 offset_shift);
+
 /*remove CTS offset table (used for B-frames)*/
 GF_Err gf_isom_remove_cts_info(GF_ISOFile *the_file, u32 trackNumber);
 
@@ -1442,11 +1532,16 @@ GF_Err gf_isom_set_traf_base_media_decode_time(GF_ISOFile *movie, u32 TrackID, u
 GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp_in_10mhz, u64 traf_duration_in_10mhz);
 
 /*closes current segment - if fragments_per_sidx is <0, no sidx is used - if fragments_per_sidx is ==0, a single sidx is used
-timestamp_shift is the constant difference between media time and presentation time (derived from edit list)*/
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range);
+timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
+out_seg_size is optional, holds the segment size in bytes
+*/
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
+
+//gets name of current segment (or last segment if called between close_segment and start_segment)
+const char *gf_isom_get_segment_name(GF_ISOFile *movie);
 
 /*sets fragment prft box info, written just before the moof*/
 GF_Err gf_isom_set_fragment_reference_time(GF_ISOFile *movie, u32 reference_track_ID, u64 ntp, u64 timestamp);
@@ -1472,7 +1567,10 @@ enum
 	media from a live source (typically audio-video), and greatly reduces file size
 	param: Number of samples (> 1) to cache before disk flushing. You shouldn't try
 	to cache too many samples since this will load your memory. base that on FPS/SR*/
-	GF_ISOM_TRAF_DATA_CACHE
+	GF_ISOM_TRAF_DATA_CACHE,
+	/*forces moof base offsets when traf based offsets would be chosen
+	param: on/off (0/1)*/
+	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET
 };
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the
@@ -2204,7 +2302,7 @@ GF_Err gf_isom_track_cenc_add_sample_info(GF_ISOFile *the_file, u32 trackNumber,
 
 GF_Err gf_isom_set_cenc_protection(GF_ISOFile *the_file, u32 trackNumber, u32 desc_index, u32 scheme_type,
                                    u32 scheme_version, u32 default_IsEncrypted, u8 default_IV_size, bin128 default_KID,
-								   u8 default_crypt_byte_block, u8 default_skip_byte_block, 
+								   u8 default_crypt_byte_block, u8 default_skip_byte_block,
 								   u8 default_constant_IV_size, bin128 default_constant_IV);
 
 GF_Err gf_cenc_set_pssh(GF_ISOFile *mp4, bin128 systemID, u32 version, u32 KID_count, bin128 *KID, char *data, u32 len);
@@ -2346,8 +2444,9 @@ typedef struct
 	u32 angle;
 	Bool hidden;
 	void *config;
-	GF_TileItemMode tile_mode; 
+	GF_TileItemMode tile_mode;
 	u32 single_tile_number;
+	double time;
 } GF_ImageItemProperties;
 
 GF_Err gf_isom_meta_get_next_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 *item_id);

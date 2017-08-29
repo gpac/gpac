@@ -230,6 +230,8 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	t->args = param;
 	t->_signal = gf_sema_new(1, 0);
 
+	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] Starting\n", t->log_name));
+
 #ifdef WIN32
 	t->threadH = CreateThread(NULL, t->stackSize, &(RunThread), (void *)t, 0, &id);
 	if (t->threadH != NULL) {
@@ -268,6 +270,7 @@ GF_Err gf_th_run(GF_Thread *t, u32 (*Run)(void *param), void *param)
 	gf_sema_wait(t->_signal);
 	gf_sema_del(t->_signal);
 	t->_signal = NULL;
+	GF_LOG(GF_LOG_INFO, GF_LOG_MUTEX, ("[Thread %s] Started\n", t->log_name));
 	return GF_OK;
 }
 
@@ -535,7 +538,7 @@ u32 gf_mx_p(GF_Mutex *mx)
 	int retCode;
 #endif
 #ifndef GPAC_DISABLE_LOG
-	const char *mx_holder_name = log_th_name(mx->Holder);
+	const char *mx_holder_name = mx->Holder ? log_th_name(mx->Holder) : "none";
 #endif
 	u32 caller;
 	assert(mx);

@@ -106,8 +106,6 @@ typedef enum
 	GF_NET_SERVICE_HAS_AUDIO,
 	/*checks if the service can support reverse playback (speed<0) - term->service only*/
 	GF_NET_SERVICE_CAN_REVERSE_PLAYBACK,
-	/*send by the terminal to indicate the channel(s) on this service need more data - term->net only*/
-	GF_NET_SERVICE_FLUSH_DATA,
 
 	/*checks if there is a forced video size  - if yes, info is stored in GF_NetComPixelAR - term->net only*/
 	GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE,
@@ -584,6 +582,8 @@ typedef struct
 	Bool enable_if_defined;
 	Bool disable_if_defined;
 	Double activation_countdown;
+	//start and end times of splicing if any
+	Double splice_start_time, splice_end_time;
 } GF_AssociatedContentLocation;
 
 /*GF_NET_ASSOCIATED_CONTENT_TIMING*/

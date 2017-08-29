@@ -187,6 +187,7 @@ echo "  -warn:                 dump logs after each failed test (used for travis
 echo "  -keep-avi:             keeps raw AVI files (warning this can be pretty big)"
 echo "  -keep-tmp:             keeps tmp folder used in tests (erased by default)"
 echo "  -sync-hash:            syncs all remote reference hashes with local base"
+echo "  -git-hash:             syncs all remote reference hashes from git with local base"
 echo "  -sync-media:           syncs all remote media with local base (warning this can be long)"
 echo "  -sync-refs:            syncs all remote reference videos with local base (warning this can be long)"
 echo "  -sync-before:          syncs all remote resources with local base (warning this can be long) before running the tests"
@@ -211,14 +212,20 @@ sync_media ()
  cd "$main_dir"
 }
 
-#performs mirroring of media
 sync_hash ()
 {
-log $L_INF "- Mirroring reference hashes from from $REFERENCE_DIR to $HASH_DIR"
+log $L_INF "- Mirroring reference hashes from from github to $HASH_DIR"
 cd $HASH_DIR
-wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/hash_refs/"
+if [ ! -d ".git" ]; then
+  rm -f *
+  git clone https://github.com/gpac/gpac-test-hash.git .
+else
+  git fetch origin
+  git reset --hard origin/master
+fi
 cd "$main_dir"
 }
+
 
 #performs mirroring of media and references hash & videos
 sync_refs ()
@@ -280,6 +287,8 @@ for i in $* ; do
  "-sync-hash")
   sync_hash
   exit;;
+ "-git-hash")
+  sync_hash;;
  "-sync-media")
   sync_media;;
  "-sync-refs")
@@ -443,17 +452,19 @@ if [ $MP4CLIENT_NOT_FOUND = 0 ] && [ $do_clean = 0 ] ; then
   MP4Client -run-for 0 2> /dev/null
   res=$?
   if [ $res != 0 ] ; then
+    # to remove when travis is ready to execute playback tests
     MP4CLIENT_NOT_FOUND=1
     echo ""
     log $L_WAR "WARNING: MP4Client not found (ret $res) - launch results:"
     MP4Client -run-for 0
     res=$?
     if [ $res = 0 ] ; then
-      log $L_INF "MP4Client returned $res on second run - enabling all playback tests"
+      log $L_INF "MP4Client returned $res on second run - all playback tests ready but still disabled"
     else
       echo "** MP4Client returned $res - disabling all playback tests - dumping GPAC config file **"
       cat $HOME/.gpac/GPAC.cfg
       echo "** End of dump **"
+      MP4CLIENT_NOT_FOUND=1
     fi
   fi
 fi
@@ -1112,19 +1123,24 @@ do_hash_test ()
 
  echo "HASH_TEST=$2" > $STATHASH_SH
 
- echo "Computing $1  ($2) hash: " >> $log_subtest
+ #redefine log subtest var using the hash name in case the subtest was a subscript (do_test &)
+ log_subt="$LOGS_DIR/$TEST_NAME-logs-$subtest_idx-$2.txt"
+
+ echo "Computing $1  ($2) hash: " >> $log_subt
  file_to_hash="$1"
 
  # for text files, we remove potential CR chars
  # to prevent having different hashes on different platforms
- if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ; then
+ if [ -n "$(file -b $1 | grep text)" ] ||  [ ${1: -4} == ".lsr" ] ||  [ ${1: -4} == ".svg" ] ; then
   file_to_hash="to_hash_$(basename $1)"
-  tr -d '\r' <  "$1" > "$file_to_hash"
+  if [ -f $1 ]; then
+    tr -d '\r' <  "$1" > "$file_to_hash"
+  fi
  fi
 
- $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subtest
+ $MP4BOX -hash -std $file_to_hash > $test_hash 2>> $log_subt
 
- if [ "$file_to_hash" != "$1" ]; then
+ if [ "$file_to_hash" != "$1" ] && [ -f "$file_to_hash" ]; then
   rm "$file_to_hash"
  fi
 
@@ -1140,11 +1156,31 @@ do_hash_test ()
   rv=$?
 
   if [ $rv != 0 ] ; then
+   hashres=0
    fhash=`hexdump -ve '1/1 "%.2X"' $ref_hash`
-   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subtest
-   echo "HASH_FAIL=1" >> $STATHASH_SH
+   echo "Hash fail, ref hash $ref_hash was $fhash"  >> $log_subt
+   shopt -s nullglob
+   for alt_ref in "$ref_hash-alt"* ; do
+    $DIFF $test_hash $alt_ref > /dev/null
+    rv_alt=$?
+    if [ $rv_alt != 0 ] ; then
+      fhash=`hexdump -ve '1/1 "%.2X"' $alt_ref`
+      echo "Hash alt fail, alt ref $alt_ref was $fhash"  >> $log_subt
+    else
+      hashres=1
+      echo "Hash alt OK with alt ref $alt_ref"  >> $log_subt
+      break
+    fi
+   done
+   shopt -u nullglob
+   if [ $hashres != 0 ] ; then
+    echo "Hash OK for $1"  >> $log_subt
+    echo "HASH_FAIL=0" >> $STATHASH_SH
+   else
+    echo "HASH_FAIL=1" >> $STATHASH_SH
+   fi
   else
-   echo "Hash OK for $1"  >> $log_subtest
+   echo "Hash OK for $1"  >> $log_subt
    echo "HASH_FAIL=0" >> $STATHASH_SH
   fi
   rm $test_hash

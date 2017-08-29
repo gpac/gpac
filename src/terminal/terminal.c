@@ -579,6 +579,11 @@ static void gf_term_connect_from_time_ex(GF_Terminal * term, const char *URL, u6
 		gf_scene_generate_views(term->root_scene, (char *) URL+8, (char*)parent_path);
 		return;
 	}
+	else if (!strnicmp(URL, "mosaic://", 9)) {
+		odm->OD = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
+		gf_scene_generate_mosaic(term->root_scene, (char *) URL+9, (char*)parent_path);
+		return;
+	}
 
 	/*connect - we don't have any parentID */
 	gf_term_connect_object(term, odm, (char *) URL, (char*)parent_path);
@@ -1932,7 +1937,47 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 			gf_scene_register_associated_media(term->root_scene, &addon_info);
 			return GF_OK;
 		}
-		//new add-on
+		//new splicing add-on
+		if (term->root_scene && !strncmp(com, "splice ", 7)) {
+			char *sep;
+			Double start, end;
+			GF_AssociatedContentLocation addon_info;
+			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
+			sep = strchr(com+7, ':');
+			start = 0;
+			end = -1;
+			if (sep) {
+				sep[0]=0;
+				if (sscanf(com+7, "%lf-%lf", &start, &end) != 2) {
+					end = -1;
+					sscanf(com+7, "%lf", &start);
+				}
+				sep[0]=':';
+				addon_info.external_URL = sep+1;
+			}
+			//splice end, locate first splice with no end set and set it
+			else if (sscanf(com+7, "%lf", &end)==1) {
+				u32 count = gf_list_count(term->root_scene->declared_addons);
+				for (i=0; i<count; i++) {
+					GF_AddonMedia *addon = gf_list_get(term->root_scene->declared_addons, i);
+					if (addon->is_splicing && (addon->splice_end<0) ) {
+						addon->splice_end = end;
+						break;
+					}
+				}
+				return GF_OK;
+			} else {
+				//splice now, until end of spliced media
+				addon_info.external_URL = com + 7;
+			}
+			addon_info.is_splicing = GF_TRUE;
+			addon_info.timeline_id = -100;
+			addon_info.splice_start_time = start;
+			addon_info.splice_end_time = end;
+			gf_scene_register_associated_media(term->root_scene, &addon_info);
+			return GF_OK;
+		}
+		//select object
 		if (term->root_scene && !strncmp(com, "select ", 7)) {
 			u32 idx = atoi(com+7);
 			gf_term_select_object(term, gf_list_get(term->root_scene->resources, idx));

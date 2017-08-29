@@ -427,6 +427,9 @@ Default field of view for VR 360. Default is PI/2.</p>
 <p style="text-indent: 5%">
 Sets the number of points to test for tile visibility to int1, and consider the tile visible if more than int2 points are visible. Default is 30-0.</p>
 
+<b>SimulateGaze</b> [value: <i>yes,no</i>]
+<p style="text-indent: 5%">
+Uses the mouse to simulate gazing direction on the display for quality adaptation. Default is no.</p>
 
 <br/><br/>
 
@@ -938,6 +941,10 @@ Specifies the number of decoded frames in memory before display. Default value i
 <p style="text-indent: 5%">
 Packs 4 consecutive frames in a single 4x frame.</p>
 
+<b>ResetAtReinit</b> [value: <i>yes</i>, <i>no</i> ]
+<p style="text-indent: 5%">
+Destroys and recreates the decoder whenever a layer is restarted (base or enhancement). Default is no, but openHevc may need this depending on version/branch/platform.</p>
+
 
 <br/><br/>
 
@@ -996,6 +1003,9 @@ Overrides the URL in TEMI location descriptor with the specified value.</p>
 <b>RecordTo</b> [value: <i>file path</i>]
 <p style="text-indent: 5%">
 Records the TS content to the specified file.</p>
+<b>UDPBufferSize</b> [value: <i>unsigned integer</i>]
+<p style="text-indent: 5%">
+UDP buffer size for the socket. Default value is a few hundred kilobytes depending on the platform.</p>
 
 <a name="RAW"></a>
 <span style="text-decoration: underline;"><b>Section "RAWVideo"</b></span> <i><a href="#Overview">Back to top</a></i>
@@ -1020,9 +1030,9 @@ Sets the number of decoded surface for the decoder. Default is 20.</p>
 <b>DisableGL</b> [value: <i>yes, no</i>]
 <p style="text-indent: 5%">
 Disables hardware decoder to opengl transfer on GPU (and forces GPU->CPU->GPU memory). Default is no.</p>
-<b>UnloadInactive</b> [value: <i>yes, no</i>]
+<b>UnloadInactive</b> [value: <i>no, destroy, reuse</i>]
 <p style="text-indent: 5%">
-Enables unloading inactive decoders to free GPU resources (usefull for tiling VR). Default is yes.</p>
+Enables unloading inactive decoders to free GPU resources (usefull for tiling VR). <i>no</i> disables unloading, <i>destroy</i> kills the decoder, <i>reuse</i> reassigns the HW decoder to another object (still buggy). Default is no.</p>
 <b>PreferMode</b> [value: <i>cuvid, dxva, cuda</i>]
 <p style="text-indent: 5%">
 Sets prefered mode for harware decoder. cuda should only be used for MPEG-1 and MPEG-2 video. Default is cuvid.</p>

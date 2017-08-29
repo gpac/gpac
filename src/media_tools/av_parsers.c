@@ -3585,6 +3585,30 @@ parse_weights:
 }
 
 static
+Bool ref_pic_lists_modification(GF_BitStream *bs, u32 slice_type, u32 num_ref_idx_l0_active, u32 num_ref_idx_l1_active)
+{
+	//u32 i;
+	Bool ref_pic_list_modification_flag_l0 = gf_bs_read_int(bs, 1);
+	if (ref_pic_list_modification_flag_l0) {
+		/*for (i=0; i<num_ref_idx_l0_active; i++) {
+			list_entry_l0[i] = *//*gf_bs_read_int(bs, (u32)ceil(log(getNumPicTotalCurr())/log(2)));
+		}*/
+		return GF_FALSE;
+	}
+	if (slice_type == GF_HEVC_SLICE_TYPE_B) {
+		Bool ref_pic_list_modification_flag_l1 = gf_bs_read_int(bs, 1);
+		if (ref_pic_list_modification_flag_l1) {
+			/*for (i=0; i<num_ref_idx_l1_active; i++) {
+				list_entry_l1[i] = *//*gf_bs_read_int(bs, (u32)ceil(log(getNumPicTotalCurr()) / log(2)));
+			}*/
+			return GF_FALSE;
+		}
+	}
+
+	return GF_TRUE;
+}
+
+static
 s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *si)
 {
 	u32 i, j;
@@ -3658,15 +3682,20 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 		if (IDRPicFlag) {
 			si->poc_lsb = 0;
+
+			//if not asked to parse full header, abort since we know the poc
+			if (!hevc->full_slice_header_parse) return 0;
+			
 		} else {
 			si->poc_lsb = gf_bs_read_int(bs, sps->log2_max_pic_order_cnt_lsb);
 
-//			if (!full_header_parse) return 0;
+			//if not asked to parse full header, abort once we have the poc
+			if (!hevc->full_slice_header_parse) return 0;
 
 			if (/*short_term_ref_pic_set_sps_flag =*/gf_bs_read_int(bs, 1) == 0) {
 				Bool ret = parse_short_term_ref_pic_set(bs, sps, sps->num_short_term_ref_pic_sets );
 				if (!ret)
-					return 0;
+					return -1;
 			} else if( sps->num_short_term_ref_pic_sets > 1 ) {
 				u32 numbits = 0;
 
@@ -3714,7 +3743,6 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 
 		if (si->slice_type == GF_HEVC_SLICE_TYPE_P || si->slice_type == GF_HEVC_SLICE_TYPE_B) {
 			//u32 NumPocTotalCurr;
-
 			num_ref_idx_l0_active = pps->num_ref_idx_l0_default_active;
 			num_ref_idx_l1_active = 0;
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
@@ -3726,9 +3754,11 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 					num_ref_idx_l1_active = 1 + bs_get_ue(bs);
 			}
 
-			if (pps->lists_modification_present_flag ) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[hevc] ref_pic_lists_modification( ) not implemented\n"));
-				return 0;
+			if (pps->lists_modification_present_flag /*TODO: && NumPicTotalCurr > 1*/) {
+				if (!ref_pic_lists_modification(bs, si->slice_type, num_ref_idx_l0_active, num_ref_idx_l1_active)) {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[hevc] ref_pic_lists_modification( ) not implemented\n"));
+					return -1;
+				}
 			}
 
 			if (si->slice_type == GF_HEVC_SLICE_TYPE_B)
@@ -3778,7 +3808,11 @@ s32 hevc_parse_slice_segment(GF_BitStream *bs, HEVCState *hevc, HEVCSliceInfo *s
 			/*slice_loop_filter_across_slices_enabled_flag = */gf_bs_read_int(bs, 1);
 		}
 	}
-//	if (!full_header_parse) return 0;
+	//dependent slice segment
+	else {
+		//if not asked to parse full header, abort
+		if (!hevc->full_slice_header_parse) return 0;
+	}
 
 	si->entry_point_start_bits = ((u32)gf_bs_get_position(bs)-1)*8 + gf_bs_get_bit_position(bs);
 
