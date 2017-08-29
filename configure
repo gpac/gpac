@@ -113,6 +113,7 @@ want_pic="no"
 want_gcov="no"
 has_joystick="no"
 has_xul="no"
+has_hid="no"
 enable_joystick="no"
 static_mp4box="no"
 disable_core_tools="no"
@@ -1845,6 +1846,16 @@ EOF
 fi
 
 
+#look for hid support
+cat > $TMPC << EOF
+#include <hidapi/hidapi.h>
+int main( void ) { hid_init(); hid_exit(); return 0; }
+EOF
+
+if docc -lhidapi-hidraw $LDFLAGS ; then
+    hid_lib="-lhidapi-hidraw"
+    has_hid="yes"
+fi
 
 #overwrite detection with manual settings
 for opt do
@@ -3269,6 +3280,10 @@ fi
 if test "$has_x11_xv" = "yes"; then
     echo "USE_X11_XV=$has_x11_xv" >> config.mak
 fi
+
+echo "CONFIG_HID=$has_hid" >> config.mak
+echo "HID_LDFLAGS=$hid_lib" >> config.mak
+
 
 if test "$is_64" = "yes"; then
 #not on OSX ...
