@@ -92,6 +92,11 @@ ifeq ($(CONFIG_OPENSVC),yes)
 PLUGDIRS+=opensvc_dec
 endif
 
+ifeq ($(CONFIG_HID),yes)
+PLUGDIRS+=psvr
+endif
+
+
 #w32 plugins
 ifeq ($(CONFIG_WIN32),yes)
 PLUGDIRS+=wav_out
