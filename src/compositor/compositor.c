@@ -177,12 +177,14 @@ static void gf_sc_reconfig_task(GF_Compositor *compositor)
 			GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Changing display size to %d x %d\n", compositor->new_width, compositor->new_height));
 			fs_width = fs_height = 0;
 			if (restore_fs) {
+#ifdef GPAC_IPHONE
 				if ((compositor->new_width>compositor->display_width) || (compositor->new_height>compositor->display_height)) {
 					u32 w = compositor->display_width;
 					compositor->display_width = compositor->display_height;
 					compositor->display_height = w;
 					compositor->recompute_ar = 1;
 				}
+#endif
 				fs_width = compositor->display_width;
 				fs_height = compositor->display_height;
 			}
