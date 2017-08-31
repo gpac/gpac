@@ -136,7 +136,9 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 		event.mouse.x = (1-gaze_x) * netctrl->term->compositor->display_width;
 		event.mouse.y = (1-gaze_y) * netctrl->term->compositor->display_height;
 
-		if (!netctrl->mouse_down){
+		if (!netctrl->mouse_down) {
+			//don't grab if mouse is down
+			if (netctrl->term->compositor->navigation_state) break;
 			netctrl->mouse_down = GF_TRUE;
 			event.type = GF_EVENT_MOUSEDOWN;
 			netctrl->term->compositor->video_out->on_event(netctrl->term->compositor->video_out->evt_cbk_hdl, &event);
