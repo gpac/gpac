@@ -1055,6 +1055,9 @@ do_playback_test ()
 
  #don't try hash if error
  if [ $ret != 0 ] ; then
+  if [ $keep_avi != 0 ] ; then
+    rm "$AVI_DUMP.avi" 2> /dev/null
+  fi
   return
  fi
 
