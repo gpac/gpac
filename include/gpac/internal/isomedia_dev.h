@@ -3046,11 +3046,13 @@ typedef struct
 */
 
 /*regular file IO*/
-#define GF_ISOM_DATA_FILE			0x01
-/*File Maping object, read-only mode on complete files (no download)*/
-#define GF_ISOM_DATA_FILE_MAPPING		0x02
+#define GF_ISOM_DATA_FILE         0x01
+/*File Mapping object, read-only mode on complete files (no download)*/
+#define GF_ISOM_DATA_FILE_MAPPING 0x02
 /*External file object. Needs implementation*/
-#define GF_ISOM_DATA_FILE_EXTERN		0x03
+#define GF_ISOM_DATA_FILE_EXTERN  0x03
+/*regular memory IO*/
+#define GF_ISOM_DATA_MEM          0x04
 
 /*Data Map modes*/
 enum
@@ -3215,7 +3217,7 @@ struct __tag_isom {
 	u64 segment_start;
 
 	GF_List *moof_list;
-	Bool use_segments, moof_first, append_segment, styp_written;
+	Bool use_segments, moof_first, append_segment, styp_written, force_moof_base_offset;
 
 	/*used when building single-indexed self initializing media segments*/
 	GF_SegmentIndexBox *root_sidx;

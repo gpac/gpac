@@ -1412,7 +1412,7 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
 	GF_Proto *proto;
 	GF_Node *node;
 	char *name = "urn:inet:gpac:builtin:VRGeometry";
-	
+
 	proto = gf_sg_find_proto(sg, 0, name);
 	if (!proto) {
 		MFURL *url;
@@ -1463,13 +1463,13 @@ static void create_movie(GF_Scene *scene, GF_Node *root, const char *tr_name, co
 
 	if (scene->srd_type) {
 		GF_Node *app = n2;
-		
+
 		if (scene->vr_type) {
 			n2 = load_vr_proto_node(scene->graph, name_geo);
 		} else {
 			n2 = is_create_node(scene->graph, TAG_MPEG4_Rectangle, name_geo);
 		}
-		
+
 		((M_Shape *)n1)->geometry = n2;
 		gf_node_register(n2, n1);
 		//force  appearance material2D.filled = TRUE
@@ -1511,7 +1511,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 	/*this is the first time, generate a scene graph*/
 	if (!ac) {
 		GF_Event evt;
-		
+
 		/*create an OrderedGroup*/
 		n1 = is_create_node(scene->graph, scene->vr_type ? TAG_MPEG4_Group : TAG_MPEG4_OrderedGroup, NULL);
 		gf_sg_set_root_node(scene->graph, n1);
@@ -1611,7 +1611,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 			gf_node_list_add_child( &((GF_ParentNode *)addon_layer)->children, (GF_Node*)addon_scene);
 			gf_node_register((GF_Node *)addon_scene, (GF_Node *)addon_layer);
 		}
-		
+
 		//send activation for sensors
 		memset(&evt, 0, sizeof(GF_Event));
 		evt.type = GF_EVENT_SENSOR_REQUEST;
@@ -1680,7 +1680,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 		scene->srd_min_y = min_y;
 		scene->srd_max_x = max_x;
 		scene->srd_max_y = max_y;
-		
+
 		url.url = NULL;
 		gf_sg_get_scene_size_info(scene->graph, &sw, &sh);
 		i=0;
@@ -1701,7 +1701,7 @@ void gf_scene_regenerate(GF_Scene *scene)
 				if (!scene->root_od->ck && a_odm->ck) {
 					scene->root_od->ck = a_odm->ck;
 				}
-				
+
 				if (scene->vr_type) {
 					n2 = gf_sg_find_node_by_name(scene->graph, szGeom);
 					gf_node_changed(n2, NULL);
@@ -2231,7 +2231,7 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 		width /= 2;
 		height /= 2;
 		/*if we already processed a force size in 360, don't do it again*/
-		if (scene->force_size_set) 
+		if (scene->force_size_set)
 			return;
 
 #ifndef GPAC_DISABLE_VRML
@@ -2732,13 +2732,14 @@ restart:
 #endif
 }
 
-void scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
+
+void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 {
-	if (disconnect && addon->root_od) {
-		gf_odm_disconnect(addon->root_od, 1);
-	}
 	if (addon->root_od) {
 		addon->root_od->addon = NULL;
+		if (disconnect) {
+			gf_odm_disconnect(addon->root_od, 1);
+		}
 	}
 
 	if (addon->url) gf_free(addon->url);
@@ -2751,7 +2752,7 @@ void gf_scene_reset_addons(GF_Scene *scene)
 		GF_AddonMedia *addon = gf_list_last(scene->declared_addons);
 		gf_list_rem_last(scene->declared_addons);
 
-		scene_reset_addon(addon, 0);
+		gf_scene_reset_addon(addon, 0);
 	}
 }
 
@@ -2797,7 +2798,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		addon = gf_list_get(scene->declared_addons, i);
 		if ((addon_info->timeline_id>=0) && addon->timeline_id==addon_info->timeline_id) {
 			my_addon = 1;
-		} else if (addon->url && addon_info->external_URL && !strcmp(addon->url, addon_info->external_URL)) {
+		} else if ((addon_info->timeline_id>=0) && addon->url && addon_info->external_URL && !strcmp(addon->url, addon_info->external_URL)) {
 			my_addon = 1;
 			//send message to service handler
 		}
@@ -2826,7 +2827,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 			}
 			//nothing associated, deactivate addon
 			if (!addon_info->external_URL) {
-				scene_reset_addon(addon, 1);
+				gf_scene_reset_addon(addon, 1);
 			} else if (strcmp(addon_info->external_URL, addon->url)) {
 				//reconfigure addon
 				gf_free(addon->url);
@@ -2835,6 +2836,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 			}
 			return;
 		}
+		addon = NULL;
 	}
 
 	if (!addon_info->external_URL) {
@@ -2857,6 +2859,13 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	addon->url = gf_strdup(addon_info->external_URL);
 	addon->media_timescale = 1;
 	addon->timeline_ready = (addon_info->timeline_id<0) ? 1 : 0;
+	addon->splice_start = addon_info->splice_start_time;
+	addon->splice_end = addon_info->splice_end_time;
+	if (addon_info->is_splicing) {
+		addon->addon_type = GF_ADDON_TYPE_SPLICED;
+		scene->has_splicing_addons = GF_TRUE;
+		addon->media_pts = addon->splice_start * 90000;
+	}
 
 	if (!new_addon) return;
 
@@ -2903,7 +2912,7 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 		        //this is a splicing point, discard all previsously declared splicing addons
 		        || prev_addon->is_splicing
 		   ) {
-			scene_reset_addon(prev_addon, GF_TRUE);
+			gf_scene_reset_addon(prev_addon, GF_TRUE);
 			gf_list_rem(scene->declared_addons, i);
 			i--;
 			count--;
@@ -3073,6 +3082,7 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		force_attach=GF_TRUE;
 		break;
 	}
+	odm->lower_layer_odm = odm_base;
 
 #ifdef FILTER_FIXME
 	GF_NetworkCommand com;
@@ -3087,8 +3097,9 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 	nalu_annex_b = 1;
 	if (base_ch->esd->decoderConfig->decoderSpecificInfo && base_ch->esd->decoderConfig->decoderSpecificInfo->dataLength)
 		nalu_annex_b = 0;
-	
+
 	if (0 && odm_base->hybrid_layered_coded && ch->esd->decoderConfig->decoderSpecificInfo && ch->esd->decoderConfig->decoderSpecificInfo->dataLength) {
+
 		nalu_annex_b = 0;
 		if (force_attach) {
 			odm_base->codec->decio->AttachStream(odm_base->codec->decio, ch->esd);
@@ -3115,9 +3126,15 @@ void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 		gf_term_service_command(ch->service, &com);
 	}
 
-	//signal to the base decoder that we will want full quality
 	caps.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
-	caps.cap.valueInt = 2;
+	// splicing, signal to the base decoder that we will want low quality and wait for splice activation
+	if (odm->parentscene->root_od->addon->is_splicing) {
+		caps.cap.valueInt = 0;
+	}
+	//not splicing, signal to the base decoder that we will want full quality right now
+	else {
+		caps.cap.valueInt = 2;
+	}
 	odm_base->codec->decio->SetCapabilities(odm_base->codec->decio, caps);
 #endif
 }

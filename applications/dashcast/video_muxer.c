@@ -576,8 +576,7 @@ int dc_gpac_video_isom_write(VideoOutputFile *video_output_file)
 int dc_gpac_video_isom_close_seg(VideoOutputFile *video_output_file)
 {
 	u64 seg_size;
-	GF_Err ret;
-	ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, 1, video_output_file->seg_marker, NULL, NULL, &seg_size);
+	GF_Err ret = gf_isom_close_segment(video_output_file->isof, 0, 0, 0, 0, 0, 0, GF_TRUE, GF_FALSE, video_output_file->seg_marker, NULL, NULL, &seg_size);
 	if (ret != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("%s: gf_isom_close_segment\n", gf_error_to_string(ret)));
 		return -1;
@@ -624,6 +623,7 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 {
 	AVStream *video_stream;
 	AVOutputFormat *output_fmt;
+	int ret;
 
 	AVCodecContext *video_codec_ctx = video_output_file->codec_ctx;
 	video_output_file->av_fmt_ctx = NULL;
@@ -688,7 +688,12 @@ int dc_ffmpeg_video_muxer_open(VideoOutputFile *video_output_file, char *filenam
 		return -1;
 	}
 
-	avformat_write_header(video_output_file->av_fmt_ctx, NULL);
+	ret = avformat_write_header(video_output_file->av_fmt_ctx, NULL);
+
+	if (!ret) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("avformat_write_header returned %d\n", ret));
+		return ret;
+	}
 
 	video_output_file->timescale = video_codec_ctx->time_base.den;
 	return 0;
@@ -847,7 +852,7 @@ int dc_video_muxer_write(VideoOutputFile *video_output_file, int frame_nb, Bool 
 				if (ret < 0)
 					return -1;
 
-				
+
 				//insert UTC for each fragment
 				if (insert_ntp) {
 					gf_isom_set_fragment_reference_time(video_output_file->isof, video_output_file->trackID, video_output_file->frame_ntp, video_output_file->codec_ctx->coded_frame->pts);

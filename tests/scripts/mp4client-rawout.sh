@@ -5,7 +5,7 @@ run_rawout_tests()
  opts="-opt Video:DriverName=raw_out -opt RAWVideo:PixelFormat=$1 -no-save"
  single_playback_test "$opts -run-for 1" "mp4client-rawout-$1-gui"
  single_playback_test "$opts $MEDIA_DIR/auxiliary_files/logo.jpg" "mp4client-rawout-$1-jpg"
- single_playback_test "$opts $MEDIA_DIR/auxiliary_files/count_video.cmp" "mp4client-rawout-$1-yuv"
+ single_playback_test "$opts $MEDIA_DIR/auxiliary_files/count_video.mp4" "mp4client-rawout-$1-yuv"
  single_playback_test "$opts $MEDIA_DIR/bifs/bifs-2D-background-background2D-image.bt" "mp4client-rawout-$1-back"
  single_playback_test "$opts $MEDIA_DIR/bifs/bifs-2D-texturing-gradients-transparent.bt" "mp4client-rawout-$1-gradalpha"
  single_playback_test "$opts $MEDIA_DIR/bifs/bifs-2D-texturing-imagetexture-shapes.bt" "mp4client-rawout-$1-texture"

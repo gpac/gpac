@@ -260,6 +260,7 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	return GF_TRUE;
 }
 
+
 void gf_mo_update_caps(GF_MediaObject *mo)
 {
 	const GF_PropertyValue *v;
@@ -478,6 +479,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 				mo->odm->nb_dropped++;
 			}
+
 
 			/*discard*/
 			gf_filter_pck_unref(mo->pck);

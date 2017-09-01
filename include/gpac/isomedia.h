@@ -533,12 +533,19 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
+If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
 tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.*/
 GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
-/*close the file, write it if new/edited*/
+/*close the file, write it if new/edited - equivalent to gf_isom_write()+gf_isom_delete()*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
+
+/*write the file without deleting (gf_isom_delete())*/
+GF_Err gf_isom_write(GF_ISOFile *movie);
+
+/*get access to the data bitstream  - see gf_isom_open()*/
+GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs);
 
 /*delete the movie without saving it.*/
 void gf_isom_delete(GF_ISOFile *the_file);
@@ -1099,7 +1106,8 @@ Use streamDescriptionIndex to specify the desired stream (if several)*/
 GF_Err gf_isom_add_sample_reference(GF_ISOFile *the_file, u32 trackNumber, u32 StreamDescriptionIndex, GF_ISOSample *sample, u64 dataOffset);
 
 /*set the duration of the last media sample. If not set, the duration of the last sample is the
-duration of the previous one if any, or media TimeScale (default value).*/
+duration of the previous one if any, or media TimeScale (default value). This does not modify the edit list if any, 
+you must modify this using gf_isom_set_edit_segment*/
 GF_Err gf_isom_set_last_sample_duration(GF_ISOFile *the_file, u32 trackNumber, u32 duration);
 
 /*sets a track reference*/
@@ -1107,6 +1115,9 @@ GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 re
 
 /*removes a track reference*/
 GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferenceIndex);
+
+/*removes all track references*/
+GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber);
 
 /*sets track handler name. name is either NULL (reset), a UTF-8 formatted string or a UTF8 file
 resource in the form "file://path/to/file_utf8" */
@@ -1524,7 +1535,7 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
 out_seg_size is optional, holds the segment size in bytes
 */
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
@@ -1556,7 +1567,10 @@ enum
 	media from a live source (typically audio-video), and greatly reduces file size
 	param: Number of samples (> 1) to cache before disk flushing. You shouldn't try
 	to cache too many samples since this will load your memory. base that on FPS/SR*/
-	GF_ISOM_TRAF_DATA_CACHE
+	GF_ISOM_TRAF_DATA_CACHE,
+	/*forces moof base offsets when traf based offsets would be chosen
+	param: on/off (0/1)*/
+	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET
 };
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the

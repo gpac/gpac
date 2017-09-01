@@ -58,7 +58,6 @@ static const char * const GF_DASH_MPD_MIME_TYPES[] = { "application/dash+xml", "
  */
 static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audio/x-mpegurl", "application/x-mpegurl", "application/vnd.apple.mpegurl", NULL};
 
-
 /*!
  * All the possible Mime-types for Smooth files
  */

@@ -212,11 +212,12 @@ struct _gf_scene
 	u32 first_frame_pause_type;
 	u32 vr_type;
 
-//	GF_Scene *parent_scene;
 	GF_Compositor *compositor;
 	
 	//only for root scene
 	GF_List *namespaces;
+
+	Bool has_splicing_addons;
 };
 
 GF_Scene *gf_scene_new(GF_Compositor *compositor, GF_Scene *parentScene);
@@ -277,6 +278,7 @@ GF_Node *gf_scene_get_subscene_root(GF_Node *inline_node);
 
 void gf_scene_select_main_addon(GF_Scene *scene, GF_ObjectManager *odm, Bool set_on, u32 current_clock_time);
 void gf_scene_reset_addons(GF_Scene *scene);
+void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect);
 
 #ifndef GPAC_DISABLE_VRML
 
@@ -588,6 +590,8 @@ struct _od_manager
 
 	//only set on root OD of addon subscene, which gather all the hybrid resources
 	GF_AddonMedia *addon;
+	//set for objects splicing the main content, indicates the media type (usually in @codec but no codec created for splicing)
+	u32 splice_addon_mtype;
 	//set to true if this is a scalable addon for an existing object
 	Bool scalable_addon;
 
@@ -769,6 +773,8 @@ enum
 	GF_ADDON_TYPE_SCALABLE,
 	//multiview reconstruction - reassembly after the decoder(s)
 	GF_ADDON_TYPE_MULTIVIEW,
+	//addon used for temporary splicing
+	GF_ADDON_TYPE_SPLICED,
 };
 
 struct _gf_addon_media
@@ -796,6 +802,9 @@ struct _gf_addon_media
 	Bool loop_detected;
 
 	u32 addon_type;
+
+	Double splice_start, splice_end;
+	Bool is_over, coding_config_changed;
 };
 
 void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);
