@@ -206,7 +206,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 			GF_Event evt;
 			root->scene_ns->connect_ack = GF_TRUE;
 
-
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Root object connected (%s) !\n", root->scene_ns->url));
 
 			evt.type = GF_EVENT_CONNECT;

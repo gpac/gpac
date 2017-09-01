@@ -201,6 +201,13 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	/*delete from the parent scene.*/
 	if (odm->parentscene) {
 		GF_Event evt;
+
+		if (odm->addon) {
+			gf_list_del_item(odm->parentscene->declared_addons, odm->addon);
+			gf_scene_reset_addon(odm->addon, GF_FALSE);
+			odm->addon = NULL;
+		}
+
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
 		gf_fs_forward_event(odm->parentscene->compositor->fsess, &evt, GF_FALSE, GF_TRUE);
@@ -872,6 +879,8 @@ void gf_odm_play(GF_ObjectManager *odm)
 
 	odm->disable_buffer_at_next_play = GF_FALSE;
 
+	odm->disable_buffer_at_next_play = GF_FALSE;
+
 	if (odm->flags & GF_ODM_PAUSE_QUEUED) {
 		odm->flags &= ~GF_ODM_PAUSE_QUEUED;
 		media_control_paused = 1;
@@ -932,6 +941,7 @@ void gf_odm_stop(GF_ObjectManager *odm, Bool force_close)
 		com.base.on_pid = xpid->pid;
 		gf_list_del_item(scene->compositor->systems_pids, xpid->pid);
 		gf_filter_pid_send_event(xpid->pid, &com);
+
 	}
 
 	if (odm->parentscene && odm->parentscene->root_od->addon) {
@@ -981,7 +991,6 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 	nb_share_clock=0;
 	nb_eos = odm->has_seen_eos ? 1 : 0;
 	nb_ck_running = 0;
-
 
 	if (odm->pid==pid) {
 		odm->has_seen_eos = GF_TRUE;

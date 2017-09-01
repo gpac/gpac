@@ -1597,7 +1597,7 @@ static GF_Err gf_dash_update_manifest(GF_DashClient *dash)
 		/* Some servers, for instance http://tv.freebox.fr, serve m3u8 as text/plain */
 		if (gf_dash_is_m3u8_mime(purl, mime) || strstr(purl, ".m3u8")) {
 			new_mpd = gf_mpd_new();
-			e = gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, new_mpd, GF_FALSE, dash->keep_files);
+			e = gf_m3u8_to_mpd(local_url, purl, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, new_mpd, GF_FALSE, dash->keep_files, 0);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot update playlist: error in MPD creation %s\n", gf_error_to_string(e)));
 				gf_mpd_del(new_mpd);
@@ -2154,7 +2154,6 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 				for (k=0; k<gf_list_count(rep->segment_list->segment_URLs); k++) {
 					s64 start_diff;
 					seg_url = (GF_MPD_SegmentURL *) gf_list_get(rep->segment_list->segment_URLs, k);
-					assert(seg_url->hls_utc_start_time);
 
 					start_diff = (s64) current_start_time;
 					start_diff -= (s64) seg_url->hls_utc_start_time;
@@ -2166,7 +2165,7 @@ static void gf_dash_set_group_representation(GF_DASH_Group *group, GF_MPD_Repres
 						break;
 					}
 					if (current_start_time < seg_url->hls_utc_start_time) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probabluy lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
+						GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] Switching to HLS start time "LLU" but found earlier segment with start time "LLU" - probably lost one segment\n", current_start_time, seg_url->hls_utc_start_time));
 						group->download_segment_index = k;
 						next_media_seq = rep->m3u8_media_seq_min + group->download_segment_index;
 						next_found = GF_TRUE;
@@ -2754,9 +2753,9 @@ static u32 get_max_rate_below(GF_List *representations, double rate, s32 *index)
 }
 
 /**
-Adaptation Algorithm as described in 
-	T.-Y. Huang et al. 2014. A buffer-based approach to rate adaptation: evidence from a large video streaming service. 
-	In Proceedings of the 2014 ACM conference on SIGCOMM (SIGCOMM '14). 
+Adaptation Algorithm as described in
+	T.-Y. Huang et al. 2014. A buffer-based approach to rate adaptation: evidence from a large video streaming service.
+	In Proceedings of the 2014 ACM conference on SIGCOMM (SIGCOMM '14).
 */
 static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *group, GF_DASH_Group *base_group,
 												  u32 dl_rate, Double speed, Double max_available_speed, Bool force_lower_complexity,
@@ -2772,7 +2771,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	u32 cu; // cushion
 	u32 buf_now = group->buffer_occupancy_ms;
 	double f_buf_now;
-	
+
 	/* We don't use the segment duration as advertised in the MPD because it may not be there due to segment timeline*/
 	u32 segment_duration_ms = (u32)group->current_downloaded_segment_duration;
 
@@ -2856,7 +2855,7 @@ static s32 dash_do_rate_adaptation_bba0(GF_DashClient *dash, GF_DASH_Group *grou
 	return new_index;
 }
 
-/* returns the index of the representation which maximises BOLA utility function 
+/* returns the index of the representation which maximises BOLA utility function
    based on the relative log-based utility of each representation compared to the one with the lowest bitrate
    NOTE: V can represent V (in BOLA BASIC) or V_D (in other modes of BOLA) */
 static s32 bola_find_max_utility_index(GF_List *representations, Double V, Double gamma, Double p, Double Q) {
@@ -2895,7 +2894,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 	GF_MPD_Representation *min_rep;
 	GF_MPD_Representation *max_rep;
 	u32 nb_reps;
-	
+
 	if (dash->mpd->type != GF_MPD_TYPE_STATIC) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] BOLA: Cannot be used for live MPD\n"));
 		return -1;
@@ -2959,7 +2958,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 					if (dash->adaptation_algorithm == GF_DASH_ALGO_BOLA_U) {
 						m_prime++;
 					}
-					else { //GF_DASH_ALGO_BOLA_O						
+					else { //GF_DASH_ALGO_BOLA_O
 #if 0
 						GF_MPD_Representation *rep_m_prime, *rep_m_prime_plus_one;
 						Double Sm_prime, Sm_prime_plus_one, f_m_prime, f_m_prime_1, bola_o_pause;
@@ -2971,7 +2970,7 @@ static s32 dash_do_rate_adaptation_bola(GF_DashClient *dash, GF_DASH_Group *grou
 						Sm_prime_plus_one = rep_m_prime_plus_one->bandwidth*p;
 						f_m_prime = V_D*(rep_m_prime->playback.bola_v + gamma*p) / Sm_prime;
 						f_m_prime_1 = V_D*(rep_m_prime_plus_one->playback.bola_v + gamma*p) / Sm_prime_plus_one;
-						// TODO wait for bola_o_pause before making the download 
+						// TODO wait for bola_o_pause before making the download
 						bola_o_pause = Q - (f_m_prime - f_m_prime_1) / (1 / Sm_prime - 1 / Sm_prime_plus_one);
 #endif
 					}
@@ -3908,9 +3907,13 @@ GF_Err gf_dash_setup_groups(GF_DashClient *dash)
 
 			for (j=0; j<nb_dep_groups; j++) {
 				GF_DASH_Group *dep_group = gf_list_get(group->groups_depending_on, j);
-				gf_free(dep_group->cached);
-				dep_group->cached = NULL;
+
 				dep_group->max_cached_segments = 0;
+
+				/* the rest of the code assumes that at least group->cached[0] is allocated */
+				dep_group->cached = gf_realloc(dep_group->cached, sizeof(segment_cache_entry));
+				memset(dep_group->cached, 0, sizeof(segment_cache_entry));
+
 			}
 		}
 	}
@@ -4566,6 +4569,19 @@ static GF_Err gf_dash_setup_period(GF_DashClient *dash)
 
 		nb_rep = gf_list_count(group->adaptation_set->representations);
 
+		//on HLS get rid of audio only adaptation set if not in fMP4 mode
+		if (dash->is_m3u8
+			&& !group->adaptation_set->max_width
+			&& !group->adaptation_set->max_height
+			&& (gf_list_count(dash->groups)>1)
+		) {
+			GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+			if ((!rep->segment_template || !rep->segment_template->initialization) && (!rep->segment_list || !rep->segment_list->initialization_segment)) {
+				group->selection = GF_DASH_GROUP_NOT_SELECTABLE;
+				continue;
+			}
+		}
+
 		if ((nb_rep>1) && !group->adaptation_set->segment_alignment && !group->adaptation_set->subsegment_alignment) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] AdaptationSet without segmentAlignment flag set - may result in broken adaptation\n"));
 		}
@@ -5110,6 +5126,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				/* if not, we are really at the end of the playlist, we can quit */
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of period reached for group\n"));
 				group->done = 1;
+				if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following)
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
 				return GF_DASH_DownloadCancel;
 			}
 		}
@@ -5444,7 +5462,7 @@ static void dash_global_rate_adaptation(GF_DashClient *dash, Bool for_postponed_
 		return;
 	}
 
-	for (q_idx=0; q_idx<nb_qualities; q_idx++) {
+  for (q_idx=0; q_idx<nb_qualities; q_idx++) {
 		bandwidths[q_idx] = 0;
 		groups_per_quality[q_idx] = 0;
 
@@ -5755,7 +5773,10 @@ restart_period:
 
 					gf_mx_p(group->cache_mutex);
 
-					if ((group->selection != GF_DASH_GROUP_SELECTED) || group->done || group->depend_on_group) {
+					if ((group->selection != GF_DASH_GROUP_SELECTED)
+						|| group->depend_on_group
+						|| (group->done && !group->nb_cached_segments)
+					) {
 						gf_mx_v(group->cache_mutex);
 						continue;
 					}
@@ -5768,6 +5789,10 @@ restart_period:
 						&& !dash->request_period_switch
 						&& !group->has_pending_enhancement
 					) {
+						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
+					}
+					if (group->done && group->nb_cached_segments)
+					{
 						dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, i, GF_OK);
 					}
 
@@ -5853,7 +5878,7 @@ restart_period:
 				group->download_th_done = GF_TRUE;
 				continue;
 			}
-			
+
 			if (dash->use_threaded_download) {
 				group->download_th_done = GF_FALSE;
 				e = gf_th_run(group->download_th, dash_download_threaded, group);
@@ -6331,12 +6356,12 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			if (sep) sep[0]=0;
 			strcat(local_path, ".mpd");
 
-			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
+			e = gf_m3u8_to_mpd(local_url, manifest_url, local_path, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files, 0);
 		} else {
 			const char *redirected_url = dash->dash_io->get_url(dash->dash_io, dash->mpd_dnload);
 			if (!redirected_url) redirected_url=manifest_url;
 
-			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files);
+			e = gf_m3u8_to_mpd(local_url, redirected_url, NULL, dash->reload_count, dash->mimeTypeForM3U8Segments, 0, M3U8_TO_MPD_USE_TEMPLATE, &dash->getter, dash->mpd, GF_FALSE, dash->keep_files, 0);
 		}
 	} else {
 		if (!dash->is_smooth && !gf_dash_check_mpd_root_type(local_url)) {
@@ -6362,6 +6387,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 			dash->mpd_dnload = NULL;
 			return GF_URL_ERROR;
 		}
+
 		if (dash->is_smooth) {
 			e = gf_mpd_init_smooth_from_dom(gf_xml_dom_get_root(mpd_parser), dash->mpd, manifest_url);
 		} else {
@@ -6369,6 +6395,7 @@ GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url)
 		}
 		gf_xml_dom_del(mpd_parser);
 	}
+
 
 	if (e != GF_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Error - cannot connect service: MPD creation problem %s\n", gf_error_to_string(e)));

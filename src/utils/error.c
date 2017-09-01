@@ -119,6 +119,7 @@ static void *user_cbk;
 GF_EXPORT
 void gf_set_progress(const char *title, u64 done, u64 total)
 {
+	if (done>total) done=total;
 	if (prog_cbk) {
 		prog_cbk(user_cbk, title, done, total);
 	}

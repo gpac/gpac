@@ -3214,7 +3214,6 @@ GF_Err gf_isom_remove_sample_description(GF_ISOFile *movie, u32 trackNumber, u32
 	return GF_OK;
 }
 
-
 //sets a track reference
 GF_EXPORT
 GF_Err gf_isom_set_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32 referenceType, u32 ReferencedTrackID)
@@ -3292,6 +3291,24 @@ GF_Err gf_isom_remove_track_reference(GF_ISOFile *the_file, u32 trackNumber, u32
 	dpnd->trackIDs = newIDs;
 	return GF_OK;
 }
+
+
+//sets a track reference
+GF_EXPORT
+GF_Err gf_isom_remove_track_references(GF_ISOFile *the_file, u32 trackNumber)
+{
+	GF_TrackBox *trak;
+
+	trak = gf_isom_get_track_from_file(the_file, trackNumber);
+	if (!trak) return GF_BAD_PARAM;
+
+	if (trak->References) {
+		gf_isom_box_del((GF_Box *)trak->References);
+		trak->References = NULL;
+	}
+	return GF_OK;
+}
+
 
 
 //changes track ID

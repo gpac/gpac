@@ -34,6 +34,7 @@
 
 #include "../../modules/ffmpeg_in/ffmpeg_in.h"
 #include "libavcodec/avcodec.h"
+#include "libavutil/channel_layout.h"
 #include "libavutil/mem.h"
 #include "libav_compat.h"
 #include "circular_buffer.h"
@@ -93,7 +94,7 @@ typedef struct {
 	time_t end_time;
 
 	/* RFC6381 codec name, only valid when VIDEO_MUXER == GPAC_INIT_VIDEO_MUXER_AVC1 */
-	char codec6381[GF_MAX_PATH];
+	char codec6381[RFC6381_CODEC_NAME_SIZE_MAX];
 } AudioDataConf;
 
 /*

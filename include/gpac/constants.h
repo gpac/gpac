@@ -756,6 +756,10 @@ static const unsigned int GF_AMR_WB_FRAME_SIZE[16] = { 17, 23, 32, 36, 40, 46, 5
 /*! out-of-band sample description index for 3GPP (128 and 255 reserved in RFC)*/
 #define GF_RTP_TX3G_SIDX_OFFSET	129
 
+
+/*! RFC6381 codec name max length*/
+#define RFC6381_CODEC_NAME_SIZE_MAX 100
+
 /*! @} */
 
 #define GF_VENDOR_GPAC GF_4CC('G', 'P', 'A', 'C')
