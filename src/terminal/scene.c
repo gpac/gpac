@@ -2706,7 +2706,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	if (addon_info->is_splicing) {
 		addon->addon_type = GF_ADDON_TYPE_SPLICED;
 		scene->has_splicing_addons = GF_TRUE;
-		addon->media_pts = addon->splice_start * 90000;
+		addon->media_pts = (u64)(addon->splice_start * 90000);
 	}
 
 	if (!new_addon) return;
