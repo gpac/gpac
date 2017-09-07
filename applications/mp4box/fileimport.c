@@ -332,7 +332,6 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
 			} else {
-				char *ext3=NULL;
 				if (ext2) ext2[0] = ':';
 				if (ext2) ext2 = strchr(ext2+1, ':');
 				if (ext2) ext2[0] = 0;
