@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2005-2012
+ *			Copyright (c) Telecom ParisTech 2005-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / OD decoder module
+ *  This file is part of GPAC / OD decoder filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -84,7 +84,7 @@ GF_Err odf_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
-static void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
+void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od)
 {
 	u32 i, j, count, nb_scene, nb_od, nb_esd;
 	GF_ESD *esd;
@@ -448,7 +448,7 @@ GF_FilterRegister ODFDecRegister = {
 	.process_event = odf_dec_process_event,
 };
 
-const GF_FilterRegister *odf_dec_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *odf_dec_register(GF_FilterSession *session)
 {
 	return &ODFDecRegister;
 }

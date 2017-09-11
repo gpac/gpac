@@ -164,6 +164,18 @@ Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 	case GF_PROP_NAME:
 		if (!p1->value.string) return p2->value.string ? GF_FALSE : GF_TRUE;
 		if (!p2->value.string) return GF_FALSE;
+		if (!strcmp(p2->value.string, "*")) return GF_TRUE;
+		if (strchr(p2->value.string, '|')) {
+			u32 len = strlen(p1->value.string);
+			char *cur = p2->value.string;
+			while (cur) {
+				if (!strncmp(p1->value.string, cur, len) && (cur[len]=='|' || !cur[len]))
+					return GF_TRUE;
+				cur = strchr(cur, '|');
+				if (cur) cur++;
+			}
+			return GF_FALSE;
+		}
 		return !strcmp(p1->value.string, p2->value.string) ? GF_TRUE : GF_FALSE;
 
 	case GF_PROP_DATA:
@@ -293,7 +305,14 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 		map->hash_table[hash] = gf_props_get_list(map);
 		if (!map->hash_table[hash]) return GF_OUT_OF_MEM;
 	} else {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
+		u32 i, count = gf_list_count(map->hash_table[hash]);
+		if (count) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries - confllicting with:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
+			for (i=0; i<count; i++) {
+				GF_PropertyEntry *prop_c = gf_list_get(map->hash_table[hash], i);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));
+			}
+		}
 	}
 
 	prop = gf_fq_pop(map->session->prop_maps_entry_reservoir);
@@ -470,7 +489,11 @@ struct _gf_prop_typedef {
 
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
 
+	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING},
+
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Indicate sender NTP time if known", GF_PROP_LUINT},
+	{ GF_PROP_PCK_BYTE_OFFSET, "ByteOffset", "Byte offset of first byte in packet", GF_PROP_LUINT},
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

@@ -32,25 +32,6 @@
 #include <gpac/user.h>
 
 
-//atomic ref_count++ / ref_count--
-#if defined(WIN32) || defined(_WIN32_WCE)
-
-#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
-#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
-
-#define safe_int_add(__v, inc_val) InterlockedAdd((int *) (__v), inc_val)
-#define safe_int_sub(__v, dec_val) InterlockedAdd((int *) (__v), -dec_val)
-
-#else
-
-#define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
-#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
-
-#define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
-#define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
-
-#endif
-
 #define PID_IS_INPUT(__pid) ((__pid->pid==__pid) ? GF_FALSE : GF_TRUE)
 #define PID_IS_OUTPUT(__pid) ((__pid->pid==__pid) ? GF_TRUE : GF_FALSE)
 #define PCK_IS_INPUT(__pck) ((__pck->pck==__pck) ? GF_FALSE : GF_TRUE)
@@ -241,9 +222,13 @@ struct __gf_media_session
 	//only used in forced lock mode
 	GF_Mutex *tasks_mx;
 
-	GF_Semaphore *semaphore;
-
-	volatile u32 sema_count;
+	//we duplicate the semaphores for the main and other task list. This avoids having threads grabing tasks
+	//posted for main thread, and re-notifying the sema which could then be grabbed by another thread
+	//than the main, hence producing too many wake-ups
+	//semaphore for tasks posted in main task list
+	GF_Semaphore *semaphore_main;
+	//semaphore for tasks posted in other task list
+	GF_Semaphore *semaphore_other;
 
 	volatile u32 tasks_pending;
 
@@ -322,6 +307,7 @@ struct __gf_filter
 
 	volatile u32 stream_reset_pending;
 
+	GF_List *postponed_packets;
 
 	//list of blacklisted filtered registries
 	GF_List *blacklisted;
@@ -352,6 +338,8 @@ struct __gf_filter
 	Bool removed;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
+
+	volatile u32 process_task_queued;
 
 	Bool skip_process_trigger_on_tasks;
 
@@ -447,7 +435,6 @@ void gf_filter_pid_connect_task(GF_FSTask *task);
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
 void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
 void gf_filter_update_arg_task(GF_FSTask *task);
-void gf_filter_process_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);
 

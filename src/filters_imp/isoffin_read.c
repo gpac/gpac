@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / IsoMedia reader module
+ *  This file is part of GPAC / ISOBMFF reader filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -1062,7 +1062,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 GF_FilterProbeScore isoffin_probe_url(const char *url, const char *mime_type)
 {
-	char *ext;
 	if (!strnicmp(url, "rtsp://", 7)) return GF_FPROBE_NOT_SUPPORTED;
 
 	if (gf_isom_probe_file(url)) {
@@ -1097,7 +1096,7 @@ GF_FilterRegister ISOFFInRegister = {
 
 #endif /*GPAC_DISABLE_ISOM*/
 
-const GF_FilterRegister *isoffin_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *isoffin_register(GF_FilterSession *session)
 {
 #ifdef GPAC_DISABLE_ISOM
 	return NULL;

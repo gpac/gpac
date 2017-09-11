@@ -25,7 +25,7 @@
 
 #include "filter_session.h"
 
-GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
+static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
 	u32 i, count;
@@ -34,7 +34,7 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (gf_filter_pid_would_block(pid))
+	if (!no_block_check && gf_filter_pid_would_block(pid))
 		return NULL;
 
 	count = gf_fq_count(pid->filter->pcks_alloc_reservoir);
@@ -88,6 +88,11 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 	return pck;
 }
 
+GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
+{
+	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_FALSE);
+}
+
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
@@ -132,6 +137,21 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	return pck;
 }
 
+GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
+{
+	GF_FilterPacket *pck;
+	if (!reference) return NULL;
+	reference=reference->pck;
+	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	pck->reference = reference;
+	assert(reference->reference_count);
+	safe_int_inc(&reference->reference_count);
+
+	pck->data = reference->data;
+	pck->data_length = reference->data_length;
+
+	return gf_filter_pck_send(pck);
+}
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
@@ -255,10 +275,9 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	pid->has_seen_eos = GF_FALSE;
+	pid->has_seen_eos = pck->eos;
 
-	//a new property map was created - we cannot post a task now since we have pending packets in the old context
-	//fust flag the packet
+	//a new property map was created -  flag the packet
 	if (!pid->request_property_map) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
@@ -266,6 +285,24 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	}
 	//any new pid_set_property after this packet will trigger a new property map
 	pid->request_property_map = GF_TRUE;
+
+	if (pck->pid_props) {
+		timescale = pck->pid_props->timescale;
+	} else {
+		//pid properties applying to this packet are the last defined ones
+		pck->pid_props = gf_list_last(pid->properties);
+		if (pck->pid_props) {
+			safe_int_inc(&pck->pid_props->reference_count);
+			timescale = pck->pid_props->timescale;
+		}
+	}
+
+	if (pid->filter->pid_connection_pending || pid->filter->has_pending_pids) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s connection pending, queuing packet\n", pck->pid->filter->name, pck->pid->name));
+		if (!pid->filter->postponed_packets) pid->filter->postponed_packets = gf_list_new();
+		gf_list_add(pid->filter->postponed_packets, pck);
+		return GF_OK;
+	}
 
 	assert(pck->pid);
 	pid->nb_pck_sent++;
@@ -297,13 +334,6 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 	}
 	if (!pck->duration && pid->min_pck_duration) pck->duration = duration;
-
-	//pid properties applying to this packet are the last defined ones
-	pck->pid_props = gf_list_last(pid->properties);
-	if (pck->pid_props) {
-		safe_int_inc(&pck->pid_props->reference_count);
-		timescale = pck->pid_props->timescale;
-	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag));
 
@@ -375,6 +405,40 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				}
 				//new block start or continuation
 				else {
+					//if packet mem is hold by filter we must copy the packet since it is no longer
+					//consumable until end of block is received, and source might be waiting for this packet to be freed to dispatch further packets
+					if (inst->pck->filter_owns_mem) {
+						char *data;
+						u32 alloc_size;
+						inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data, GF_TRUE);
+						alloc_size = inst->pck->alloc_size;
+						memcpy(inst->pck, pck, sizeof(GF_FilterPacket));
+						inst->pck->pck = inst->pck;
+						inst->pck->data = data;
+						memcpy(inst->pck->data, pck->data, pck->data_length);
+						inst->pck->alloc_size = alloc_size;
+						inst->pck->filter_owns_mem = GF_FALSE;
+						inst->pck->reference_count = 0;
+						inst->pck->reference = NULL;
+						inst->pck->destructor = NULL;
+						if (pck->props) {
+							GF_Err e;
+							inst->pck->props = gf_props_new(pck->pid->filter);
+							if (inst->pck->props) {
+								e = gf_props_merge_property(inst->pck->props, pck->props);
+							} else {
+								e = GF_OUT_OF_MEM;
+							}
+							if (e) {
+								GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to copy properties for cloned packet: %s\n", pid->filter->name, gf_error_to_string(e) ));
+							}
+						}
+						if (inst->pck->pid_props)
+							safe_int_inc(&inst->pck->pid_props->reference_count);
+
+						safe_int_dec(&pck->reference_count);
+						safe_int_inc(&inst->pck->reference_count);
+					}
 					//insert packet into reassembly (no need to lock here)
 					gf_list_add(dst->pck_reassembly, inst);
 

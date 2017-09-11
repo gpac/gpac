@@ -143,8 +143,20 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	gf_odm_stop(odm, GF_TRUE);
 
 	/*disconnect sub-scene*/
-	if (odm->subscene) gf_scene_disconnect(odm->subscene, do_remove ? GF_TRUE : GF_FALSE);
-
+	if (odm->subscene) {
+		//send a scene reset
+		if (odm->pid) {
+			GF_FilterEvent fevt;
+			//this function is not exposed and shall only be used for the reset scene event
+			//it sends the event synchronously, as needed for gf_term_disconnect()
+			void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
+			
+			GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
+			fevt.attach_scene.object_manager = odm;
+			gf_filter_pid_exec_event(odm->pid, &fevt);
+		}
+		gf_scene_disconnect(odm->subscene, do_remove ? GF_TRUE : GF_FALSE);
+	}
 	/*no destroy*/
 	if (!do_remove) return;
 
@@ -221,6 +233,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 	/*this is the scene root OD (may be a remote OD ..) */
 	if (odm->subscene) {
 		GF_Event evt;
+
 		evt.type = GF_EVENT_CONNECT;
 		evt.connect.is_connected = GF_FALSE;
 		gf_sc_send_event(compositor, &evt);

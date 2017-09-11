@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / filters sub-project
+ *  This file is part of GPAC / common ffmpeg filters
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -38,6 +38,7 @@ void ffmpeg_initialize()
 {
 	if (ffmpeg_init) return;
 	av_register_all();
+	avformat_network_init();
 	ffmpeg_init = GF_TRUE;
 }
 

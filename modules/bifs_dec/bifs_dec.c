@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / BIFS decoder module
+ *  This file is part of GPAC / BIFS decoder filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -222,7 +222,7 @@ static Bool bifs_dec_process_event(GF_Filter *filter, GF_FilterEvent *com)
 	u32 count, i;
 	GF_BIFSDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPid *ipid;
-	//an
+	//check for scene attach
 	switch (com->base.type) {
 	case GF_FEVT_ATTACH_SCENE:
 		break;
@@ -286,7 +286,7 @@ GF_FilterRegister BIFSDecRegister = {
 
 #endif /*GPAC_DISABLE_BIFS*/
 
-const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session)
 {
 #ifdef GPAC_DISABLE_BIFS
 	return NULL;

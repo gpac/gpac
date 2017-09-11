@@ -183,8 +183,9 @@ int gpac_main(int argc, char **argv)
 			nb_threads = atoi(arg_val);
 		} else if (arg_val && !strcmp(arg, "-sched")) {
 			if (!strcmp(arg_val, "lock")) sched_type = GF_FS_SCHEDULER_LOCK;
-			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_FORCE_LOCK;
+			else if (!strcmp(arg_val, "flock")) sched_type = GF_FS_SCHEDULER_LOCK_FORCE;
 			else if (!strcmp(arg_val, "direct")) sched_type = GF_FS_SCHEDULER_DIRECT;
+			else if (!strcmp(arg_val, "freex")) sched_type = GF_FS_SCHEDULER_LOCK_FREE_X;
 		} else if (!strcmp(arg, "-ltf")) {
 			load_test_filters = GF_TRUE;
 		} else if (!strcmp(arg, "-list")) {

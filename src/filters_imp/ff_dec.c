@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / filters sub-project
+ *  This file is part of GPAC / ffmpeg decode filters
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -762,10 +762,11 @@ void ffdec_regfree(GF_FilterSession *session, GF_FilterRegister *reg)
 	ffmpeg_registry_free(session, reg, 0);
 }
 
-const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ffdec_register(GF_FilterSession *session)
 {
 	GF_FilterArgs *args;
 	u32 i=0, idx=0;
+	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
 	AVCodecContext *ctx;
 	const struct AVOption *opt;
 

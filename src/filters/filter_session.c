@@ -27,30 +27,31 @@
 #include <gpac/network.h>
 
 
-const GF_FilterRegister *ut_filter_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *ut_source_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *ut_sink_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *ffdec_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *compose_filter_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *isoffin_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session, Bool load_meta_filters);
-const GF_FilterRegister *odf_dec_register(GF_FilterSession *session, Bool load_meta_filters);
+const GF_FilterRegister *ut_filter_register(GF_FilterSession *session);
+const GF_FilterRegister *ut_source_register(GF_FilterSession *session);
+const GF_FilterRegister *ut_sink_register(GF_FilterSession *session);
+const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session);
+const GF_FilterRegister *ffdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *ffdec_register(GF_FilterSession *session);
+const GF_FilterRegister *inspect_register(GF_FilterSession *session);
+const GF_FilterRegister *compose_filter_register(GF_FilterSession *session);
+const GF_FilterRegister *isoffin_register(GF_FilterSession *session);
+const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session);
+const GF_FilterRegister *odf_dec_register(GF_FilterSession *session);
+const GF_FilterRegister *filein_register(GF_FilterSession *session);
+const GF_FilterRegister *ctxload_register(GF_FilterSession *session);
+const GF_FilterRegister *httpin_register(GF_FilterSession *session);
 
-static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify)
+static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
-	if (fsess->semaphore) {
+	GF_Semaphore *sem = main ? fsess->semaphore_main : fsess->semaphore_other;
+	if (sem) {
 		if (notify) {
-			safe_int_inc(&fsess->sema_count);
-			if ( ! gf_sema_notify(fsess->semaphore, 1)) {
+			if ( ! gf_sema_notify(sem, 1)) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_SCHEDULER, ("Cannot notify scheduler of new task, semaphore failure\n"));
 			}
 		} else {
-			if (gf_sema_wait(fsess->semaphore)) {
-				assert(fsess->sema_count);
-				safe_int_dec(&fsess->sema_count);
+			if (gf_sema_wait(sem)) {
 			}
 		}
 	}
@@ -90,7 +91,7 @@ GF_EXPORT
 GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, GF_User *user, Bool load_meta_filters)
 {
 	u32 i;
-	GF_FilterSession *fsess;
+	GF_FilterSession *fsess, *a_sess;
 
 	if ( ! gf_props_4cc_check_props())
 		return NULL;
@@ -107,26 +108,29 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		fsess->direct_mode = GF_TRUE;
 		nb_threads=0;
 	}
-	if (sched_type==GF_FS_SCHEDULER_FORCE_LOCK) {
-		fsess->tasks_mx = gf_mx_new("Main Tasks");
+	if (nb_threads && (sched_type != GF_FS_SCHEDULER_LOCK_FREE_X)) {
+		fsess->tasks_mx = gf_mx_new("TasksList");
 	}
 
 	//regardless of scheduler type, we don't use lock on the main task list
 	fsess->tasks = gf_fq_new(fsess->tasks_mx);
 
-	if (nb_threads>0)
+	if (nb_threads>0) {
 		fsess->main_thread_tasks = gf_fq_new(fsess->tasks_mx);
-	else
+	} else {
 		//otherwise use the same as the global task list
 		fsess->main_thread_tasks = fsess->tasks;
+	}
 
 	fsess->tasks_reservoir = gf_fq_new(fsess->tasks_mx);
 
-	if (nb_threads || (sched_type==GF_FS_SCHEDULER_FORCE_LOCK) ) {
-		fsess->semaphore = gf_sema_new(GF_UINT_MAX, 0);
+	if (nb_threads || (sched_type==GF_FS_SCHEDULER_LOCK_FORCE) ) {
+		fsess->semaphore_main = fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
+		if (nb_threads>0)
+			fsess->semaphore_other = gf_sema_new(GF_UINT_MAX, 0);
 
 		//force testing of mutex queues
-		fsess->use_locks = GF_TRUE;
+		//fsess->use_locks = GF_TRUE;
 	}
 	fsess->user = user;
 
@@ -144,14 +148,16 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 		fsess->no_regulation = GF_TRUE;
 
 
-	if (!fsess->semaphore)
+	if (!fsess->semaphore_main)
 		nb_threads=0;
 
 	if (nb_threads) {
 		fsess->threads = gf_list_new();
 		if (!fsess->threads) {
-			gf_sema_del(fsess->semaphore);
-			fsess->semaphore=NULL;
+			gf_sema_del(fsess->semaphore_main);
+			fsess->semaphore_main=NULL;
+			gf_sema_del(fsess->semaphore_other);
+			fsess->semaphore_other=NULL;
 			nb_threads=0;
 		}
 		fsess->use_locks = (sched_type==GF_FS_SCHEDULER_LOCK) ? GF_TRUE : GF_FALSE;
@@ -187,13 +193,17 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	fsess->registry = gf_list_new();
 
-	gf_fs_add_filter_registry(fsess, inspect_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, ffdmx_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, compose_filter_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, isoffin_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, bifs_dec_register(fsess, load_meta_filters) );
-	gf_fs_add_filter_registry(fsess, odf_dec_register(fsess, load_meta_filters) );
+	a_sess = load_meta_filters ? fsess : NULL;
+	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, odf_dec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, filein_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
 
 	//fixme - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -206,10 +216,10 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 GF_EXPORT
 void gf_fs_register_test_filters(GF_FilterSession *fsess)
 {
-	gf_fs_add_filter_registry(fsess, ut_source_register(fsess, GF_FALSE) );
-	gf_fs_add_filter_registry(fsess, ut_filter_register(fsess, GF_FALSE) );
-	gf_fs_add_filter_registry(fsess, ut_sink_register(fsess, GF_FALSE) );
-	gf_fs_add_filter_registry(fsess, ut_sink2_register(fsess, GF_FALSE) );
+	gf_fs_add_filter_registry(fsess, ut_source_register(NULL) );
+	gf_fs_add_filter_registry(fsess, ut_filter_register(NULL) );
+	gf_fs_add_filter_registry(fsess, ut_sink_register(NULL) );
+	gf_fs_add_filter_registry(fsess, ut_sink2_register(NULL) );
 }
 
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
@@ -276,8 +286,11 @@ void gf_fs_del(GF_FilterSession *fsess)
 	if (fsess->props_mx)
 		gf_mx_del(fsess->props_mx);
 
-	if (fsess->semaphore)
-		gf_sema_del(fsess->semaphore);
+	if (fsess->semaphore_other && (fsess->semaphore_other != fsess->semaphore_main) )
+		gf_sema_del(fsess->semaphore_other);
+
+	if (fsess->semaphore_main)
+		gf_sema_del(fsess->semaphore_main);
 
 	if (fsess->tasks_mx)
 		gf_mx_del(fsess->tasks_mx);
@@ -382,10 +395,11 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		safe_int_inc(&fsess->tasks_pending);
 		if (filter && filter->freg->requires_main_thread) {
 			gf_fq_add(fsess->main_thread_tasks, task);
+			gf_fs_sema_io(fsess, GF_TRUE, GF_TRUE);
 		} else {
 			gf_fq_add(fsess->tasks, task);
+			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
 		}
-		gf_fs_sema_io(fsess, GF_TRUE);
 
 	}
 }
@@ -432,6 +446,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	u64 enter_time = gf_sys_clock_high_res();
 	//main thread not using this thread proc, don't wait for notifications
 	Bool do_use_sema = (!thid && fsess->no_main_thread) ? GF_FALSE : GF_TRUE;
+	Bool use_main_sema = thid ? GF_FALSE : GF_TRUE;
 	GF_Filter *current_filter = NULL;
 	sess_thread->th_id = gf_th_id();
 
@@ -447,7 +462,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 		if (do_use_sema && (current_filter==NULL)) {
 			//wait for something to be done
-			gf_fs_sema_io(fsess, GF_FALSE);
+			gf_fs_sema_io(fsess, GF_FALSE, use_main_sema);
 		}
 
 		active_start = gf_sys_clock_high_res();
@@ -513,21 +528,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					if (do_use_sema) {
 						//maybe last task, force a notify to check if we are truly done
 						sess_thread->has_seen_eot = GF_TRUE;
-						gf_fs_sema_io(fsess, GF_TRUE);
+						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 					}
 				}
 			}
-			//this thread maye have got the slot used to notify a task in the main thread specific list, re-post
-			if (thid && gf_fq_count(fsess->main_thread_tasks)) {
-				gf_fs_sema_io(fsess, GF_TRUE);
-			}
-#if 0
-			if (fsess->tasks_pending) {
-				GF_LOG(GF_LOG_WARNING, GF_LOG_SCHEDULER, ("Thread %d: no task available but still %d pending tasks, renotifying main semaphore\n", thid, fsess->tasks_pending));
-				gf_fs_sema_io(fsess, GF_TRUE);
-			}
-#endif
 
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: no task available\n", thid));
+
+			gf_sleep(0);
 			continue;
 		}
 		if (current_filter) {
@@ -567,7 +575,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 						}
 					}
 					if (do_use_sema) {
-						gf_fs_sema_io(fsess, GF_TRUE);
+						gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 					}
 
 					continue;
@@ -610,10 +618,20 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
 				if (! fsess->no_regulation) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, count ? 0 : (s32) diff));
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, (s32) diff));
 
 					gf_sleep(diff);
 					active_start = gf_sys_clock_high_res();
+				}
+				if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
+					current_filter->in_process = GF_FALSE;
+					if (current_filter->freg->requires_main_thread) {
+						gf_fq_add(fsess->main_thread_tasks, task);
+					} else {
+						gf_fq_add(fsess->tasks, task);
+					}
+					current_filter = NULL;
+					continue;
 				}
 			}
 		}
@@ -629,7 +647,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		sess_thread->nb_tasks++;
 		sess_thread->has_seen_eot = GF_FALSE;
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter->name, task->log_name, fsess->tasks_pending));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d task#%d %p executing Filter %s::%s (%d tasks pending)\n", thid, sess_thread->nb_tasks, task, task->filter ? task->filter->name : "(none)", task->log_name, fsess->tasks_pending));
 
 		fsess->task_in_process = GF_TRUE;
 		assert( task->run_task );
@@ -705,7 +723,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					gf_fq_add(fsess->tasks, task);
 				}
 				if (do_use_sema)
-					gf_fs_sema_io(fsess, GF_TRUE);
+					gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 			}
 		} else {
 			check_task_list(fsess->main_thread_tasks, task);
@@ -731,7 +749,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			if (thid || !gf_fq_count(fsess->main_thread_tasks) ) {
 				//maybe last task, force a notify to check if we are truly done
 				sess_thread->has_seen_eot = GF_TRUE;
-				gf_fs_sema_io(fsess, GF_TRUE);
+				gf_fs_sema_io(fsess, GF_TRUE, use_main_sema);
 			}
 		}
 
@@ -751,8 +769,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		fsess->run_status = GF_EOS;
 
 	for (i=0; i < count; i++) {
-		gf_fs_sema_io(fsess, GF_TRUE);
-		//gf_sema_notify(fsess->semaphore, 1);
+		gf_fs_sema_io(fsess, GF_TRUE, i ? GF_FALSE : GF_TRUE);
 	}
 	return 0;
 }
@@ -829,7 +846,7 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 		fsess->run_status = GF_EOS;
 
 	for (i=0; i < count; i++) {
-		gf_fs_sema_io(fsess, GF_TRUE);
+		gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
 	}
 
 	//wait for all threads to be done, we might still need flushing the main thread queue
@@ -840,9 +857,12 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	}
 	if (fsess->no_main_thread) {
 		safe_int_inc(&fsess->nb_threads_stopped);
+		fsess->main_th.has_seen_eot = GF_TRUE;
 	}
 
 	while (count+1 != fsess->nb_threads_stopped) {
+		gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+		gf_sleep(0);
 	}
 	return GF_OK;
 }
@@ -1094,15 +1114,30 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
+		u32 j;
 		GF_FilterProbeScore s;
 		GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		if (! freg->probe_url) continue;
 		if (! freg->args) continue;
 
+		j=0;
+		while (freg->args) {
+			src_arg = &freg->args[j];
+			if (!src_arg || !src_arg->arg_name) {
+				src_arg=NULL;
+				break;
+			}
+			if (!strcmp(src_arg->arg_name, "src")) break;
+			src_arg = NULL;
+			i++;
+		}
+		if (!src_arg)
+			continue;
+
 		s = freg->probe_url(sURL, mime_type);
 		if (s > score) {
 			candidate_freg = freg;
-			s = score;
+			score = s;
 		}
 	}
 	if (!candidate_freg) {
@@ -1110,26 +1145,15 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 		return NULL;
 	}
 
-	i=0;
-	while (candidate_freg->args) {
-		src_arg = &candidate_freg->args[i];
-		if (!src_arg || !src_arg->arg_name) {
-			src_arg=NULL;
-			break;
-		}
-		if (!strcmp(src_arg->arg_name, "src")) break;
-		src_arg = NULL;
-		i++;
-	}
-	if (!src_arg) {
-		gf_free(sURL);
-		return NULL;
-	}
 	args = gf_malloc(sizeof(char)*(5+strlen(sURL)) );
 	strcpy(args, "src=");
 	strcat(args, sURL);
 
 	filter = gf_filter_new(fsess, candidate_freg, args);
+
+	if (filter && !filter->num_output_pids)
+		gf_filter_post_process_task(filter);
+
 	gf_free(args);
 	gf_free(sURL);
 	return filter;
@@ -1202,6 +1226,43 @@ GF_EXPORT
 Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
 {
 	return gf_fs_forward_event(fsess, evt, 0, 0);
+}
+
+GF_EXPORT
+const char *gf_filter_session_get_mime(GF_Filter *filter, const char *ext)
+{
+	GF_FilterSession *fsess = filter->session;
+
+	//todo make this registry dynamic
+
+	if (!ext) return NULL;
+	if (ext[0]=='.') ext += 1;
+
+	if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz"))
+		return "application/x-bt";
+	if (!stricmp(ext, "xmta") || !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz"))
+		return "application/x-xmt";
+
+	if (!stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz"))
+		return "model/vrml";
+	if (!stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz"))
+		return "model/x3d+xml";
+	if (!stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz"))
+		return "model/x3d+vrml";
+
+	if (!stricmp(ext, "swf"))
+		return "application/x-shockwave-flash";
+
+	if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz"))
+		return "image/svg+xml";
+
+	if (!stricmp(ext, "xsr"))
+		return "application/x-LASeR+xml";
+
+	if (!stricmp(ext, "wgt") || !stricmp(ext, "mgt"))
+		return "application/widget";
+
+	return NULL;
 }
 
 #ifdef FILTER_FIXME
