@@ -276,11 +276,10 @@ void isor_declare_objects(ISOMReader *read)
 		//move channel diuration in media timescale
 		ch->duration = (u32) (track_dur * ch->time_scale);
 
-		if (read->is_local) {
-			gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
-			gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
-			gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
-		}
+		gf_filter_pid_set_property_str(pid, "BufferLength", &PROP_UINT(500000));
+		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
+		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
+
 
 		//todo: map other ESD params if needed
 

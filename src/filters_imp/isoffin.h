@@ -58,13 +58,8 @@ typedef struct
 	GF_ISOFile *mov;
 	u32 time_scale;
 	u32 nb_playing;
-	Bool is_local;
+//	Bool is_local;
 
-
-	/*remote file handling*/
-#ifdef FILTER_FIXME
-	GF_DownloadSession * dnload;
-#endif
 	u64 missing_bytes, last_size;
 
 	u32 play_only_track_id;
@@ -86,10 +81,13 @@ typedef struct
 	Bool clock_discontinuity;
 	Bool disconnected;
 	Bool no_order_check;
+	Bool moov_not_loaded;
 
 	u64 last_sender_ntp, cts_for_last_sender_ntp;
 	Double remain_at_buffering_start;
 	Bool buffering;
+
+	GF_FilterPid *pid;
 } ISOMReader;
 
 

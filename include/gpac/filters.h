@@ -33,6 +33,9 @@ extern "C" {
 #include <gpac/tools.h>
 #include <gpac/events.h>
 #include <gpac/user.h>
+
+#include <gpac/download.h>
+
 //for offsetof()
 #include <stddef.h>
 
@@ -272,7 +275,8 @@ void gf_fs_register_test_filters(GF_FilterSession *fsess);
 void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
 const char *gf_filter_get_name(GF_Filter *filter);
-u32 gf_filter_get_probe_result(GF_Filter *filter);
+
+GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter);
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
 
@@ -497,6 +501,8 @@ enum
 	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
 	//(string) file extension of source file if known
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
+	//(uint) download rate in bits per second
+	GF_PROP_PID_DOWN_RATE = GF_4CC('D','L','B','W'),
 
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
@@ -623,8 +629,6 @@ union __gf_filter_event
 
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
-
-const char *gf_filter_session_get_mime(GF_Filter *filter, const char *ext);
 
 
 

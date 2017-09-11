@@ -245,6 +245,9 @@ struct __gf_media_session
 	GF_Mutex *evt_mx;
 	u32 in_event_listener;
 
+	GF_DownloadManager *download_manager;
+	volatile u32 nb_dm_users;
+
 };
 
 

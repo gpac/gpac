@@ -172,13 +172,8 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 		return 1;
 	}
 	if (type==GF_JSAPI_OP_GET_DOWNLOAD_MANAGER) {
-		assert(0);
-#ifdef FILTER_FIXME
-		param->dnld_man = term->downloader;
+		param->dnld_man = gf_filter_get_download_manager(scene->compositor->filter);
 		return 1;
-#else
-		return 0;
-#endif
 	}
 	if (type==GF_JSAPI_OP_SET_TITLE) {
 		GF_Event evt;
