@@ -35,6 +35,8 @@ typedef struct
 	const char *src;
 	u32 block_size;
 
+	GF_DownloadManager *dm;
+
 	//only one output pid declared
 	GF_FilterPid *pid;
 
@@ -47,10 +49,6 @@ typedef struct
 
 GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size);
 
-
-static GF_DownloadManager *the_dm = NULL;
-static volatile u32 nb_dm_users = 0;
-
 GF_Err httpin_initialize(GF_Filter *filter)
 {
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
@@ -60,16 +58,13 @@ GF_Err httpin_initialize(GF_Filter *filter)
 	char *cgi_par = NULL;
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
+	ctx->dm = gf_filter_get_download_manager(filter);
+	if (!ctx->dm) return GF_SERVICE_ERROR;
 
 	ctx->block = gf_malloc(ctx->block_size +1);
 
-	if (!the_dm) {
-		the_dm = gf_dm_new(NULL);
-	}
-	safe_int_inc(&nb_dm_users);
-
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;
-	ctx->sess = gf_dm_sess_new(the_dm, ctx->src, flags, NULL, NULL, &e);
+	ctx->sess = gf_dm_sess_new(ctx->dm, ctx->src, flags, NULL, NULL, &e);
 	if (e) {
 		gf_filter_setup_failure(filter, e);
 		return e;
@@ -85,12 +80,6 @@ void httpin_finalize(GF_Filter *filter)
 	if (ctx->sess) gf_dm_sess_del(ctx->sess);
 
 	if (ctx->block) gf_free(ctx->block);
-
-	safe_int_dec(&nb_dm_users);
-	if (!nb_dm_users) {
-		gf_dm_del( the_dm );
-		the_dm = NULL;
-	}
 }
 
 GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
@@ -135,6 +124,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_FilterPacket *pck;
 	char *pck_data;
 	GF_Err e;
+	u32 bytes_done, bytes_per_sec;
+	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->pck_out)
@@ -163,9 +154,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	//wait until we have some data to declare the pid
 	if ((e!= GF_EOS) && !nb_read) return GF_OK;
 
-	if (!ctx->file_size) {
-		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, NULL, NULL, NULL);
-	}
+	gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
 
 	if (!ctx->pid) {
 		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
@@ -180,9 +169,11 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 		ctx->block[nb_read] = 0;
 		ctx->initial_play = GF_TRUE;
-		ctx->pid = filein_declare_pid(filter, ctx->src, cached, NULL, ctx->block, nb_read);
+		ctx->pid = filein_declare_pid(filter, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
 		if (!ctx->pid) return GF_SERVICE_ERROR;
 	}
+	fprintf(stderr, "httpin rate is %d kbps\n", 8*bytes_per_sec);
+	gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {

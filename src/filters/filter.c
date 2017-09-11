@@ -117,6 +117,16 @@ void gf_filter_del(GF_Filter *filter)
 {
 	assert(filter);
 
+	//may happen when a filter is removed from the chain
+	if (filter->postponed_packets) {
+		while (gf_list_count(filter->postponed_packets)) {
+			GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
+			gf_filter_packet_destroy(pck);
+		}
+		gf_list_del(filter->postponed_packets);
+		filter->postponed_packets = NULL;
+	}
+
 	//delete output pids before the packet reservoir
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
@@ -131,11 +141,6 @@ void gf_filter_del(GF_Filter *filter)
 	gf_fq_del(filter->pending_pids, NULL);
 
 	reset_filter_args(filter);
-
-	if (filter->postponed_packets) {
-		assert(!gf_list_count(filter->postponed_packets));
-		gf_list_del(filter->postponed_packets);
-	}
 
 	gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
@@ -693,7 +698,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		nb_inst = gf_list_count(pid->destinations);
 		for (j=0; j<nb_inst; j++) {
-			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter);
 		}
 	}

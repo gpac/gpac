@@ -338,6 +338,14 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			return NULL;
 	}
 
+	{
+	const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
+	v = gf_filter_pid_get_info(mo->odm->pid, GF_PROP_PID_DOWN_RATE);
+	if (v) {
+		fprintf(stderr, "download rate is %d bps\n", v->value.uint);
+	}
+	}
+
 	if (!mo->pck) {
 		mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 		if (!mo->pck)

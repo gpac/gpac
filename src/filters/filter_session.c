@@ -25,6 +25,7 @@
 
 #include "filter_session.h"
 #include <gpac/network.h>
+#include <gpac/download.h>
 
 
 const GF_FilterRegister *ut_filter_register(GF_FilterSession *session);
@@ -241,6 +242,16 @@ void gf_fs_del(GF_FilterSession *fsess)
 		//first pass: disconnect all filters, since some may have references to property maps or packets 
 		for (i=0; i<count; i++) {
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
+
+			if (filter->postponed_packets) {
+				while (gf_list_count(filter->postponed_packets)) {
+					GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
+					gf_filter_packet_destroy(pck);
+				}
+				gf_list_del(filter->postponed_packets);
+				filter->postponed_packets = NULL;
+			}
+
 			if (filter->freg->finalize) {
 				filter->finalized = GF_TRUE;
 				filter->freg->finalize(filter);
@@ -761,6 +772,10 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			return 0;
 		}
 	}
+	//no main thread, return
+	if (!thid && fsess->no_main_thread) {
+		return 0;
+	}
 	sess_thread->run_time = gf_sys_clock_high_res() - enter_time;
 
 	safe_int_inc(&fsess->nb_threads_stopped);
@@ -861,8 +876,15 @@ GF_Err gf_fs_stop(GF_FilterSession *fsess)
 	}
 
 	while (count+1 != fsess->nb_threads_stopped) {
-		gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+		for (i=0; i < count; i++) {
+			gf_fs_sema_io(fsess, GF_TRUE, GF_FALSE);
+		}
 		gf_sleep(0);
+		//we may have tasks in main task list posted by other threads
+		if (fsess->no_main_thread) {
+			gf_fs_thread_proc(&fsess->main_th);
+			fsess->main_th.has_seen_eot = GF_TRUE;
+		}
 	}
 	return GF_OK;
 }
@@ -1228,41 +1250,19 @@ Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
 	return gf_fs_forward_event(fsess, evt, 0, 0);
 }
 
+
 GF_EXPORT
-const char *gf_filter_session_get_mime(GF_Filter *filter, const char *ext)
+GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 {
-	GF_FilterSession *fsess = filter->session;
+	GF_FilterSession *fsess;
+	if (!filter) return NULL;
+	fsess = filter->session;
 
-	//todo make this registry dynamic
-
-	if (!ext) return NULL;
-	if (ext[0]=='.') ext += 1;
-
-	if (!stricmp(ext, "bt") || !stricmp(ext, "btz") || !stricmp(ext, "bt.gz"))
-		return "application/x-bt";
-	if (!stricmp(ext, "xmta") || !stricmp(ext, "xmt") || !stricmp(ext, "xmt.gz") || !stricmp(ext, "xmtz"))
-		return "application/x-xmt";
-
-	if (!stricmp(ext, "wrl") || !stricmp(ext, "wrl.gz"))
-		return "model/vrml";
-	if (!stricmp(ext, "x3d") || !stricmp(ext, "x3d.gz") || !stricmp(ext, "x3dz"))
-		return "model/x3d+xml";
-	if (!stricmp(ext, "x3dv") || !stricmp(ext, "x3dv.gz") || !stricmp(ext, "x3dvz"))
-		return "model/x3d+vrml";
-
-	if (!stricmp(ext, "swf"))
-		return "application/x-shockwave-flash";
-
-	if (!stricmp(ext, "svg") || !stricmp(ext, "svgz") || !stricmp(ext, "svg.gz"))
-		return "image/svg+xml";
-
-	if (!stricmp(ext, "xsr"))
-		return "application/x-LASeR+xml";
-
-	if (!stricmp(ext, "wgt") || !stricmp(ext, "mgt"))
-		return "application/widget";
-
-	return NULL;
+	if (!fsess->download_manager) {
+		fsess->download_manager = gf_dm_new(NULL);
+	}
+	safe_int_inc(&fsess->nb_dm_users);
+	return fsess->download_manager;
 }
 
 #ifdef FILTER_FIXME

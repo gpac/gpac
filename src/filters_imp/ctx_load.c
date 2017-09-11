@@ -377,6 +377,9 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	u32 min_next_time_ms = 0;
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);
 
+	//not yet ready
+	if (!priv->scene) return GF_OK;
+	
 	/*something failed*/
 	if (priv->load_flags==3) return GF_EOS;
 

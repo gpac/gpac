@@ -63,310 +63,29 @@ static GFINLINE Bool isor_is_local(const char *url)
 	return GF_TRUE;
 }
 
-#ifdef FILTER_FIXME
 
-static const char * ISOR_MIME_TYPES[] = {
-	/* First one is specific because we probe */
-	"application/x-isomedia", "*", "IsoMedia Files",
-	"video/mp4", "mp4 mpg4", "MPEG-4 Movies",
-	"audio/mp4", "m4a mp4 mpg4", "MPEG-4 Music",
-	"application/mp4", "m4i mp4 mpg4", "MPEG-4 Applications",
-	"video/3gpp", "3gp 3gpp", "3GPP/MMS Movies",
-	"audio/3gpp", "3gp 3gpp", "3GPP/MMS Music",
-	"video/3gpp2", "3g2 3gp2", "3GPP2/MMS Movies",
-	"audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",
-	"video/iso.segment", "iso", "ISOBMF Fragments",
-	"audio/iso.segment", "iso", "ISOBMF Fragments",
-	NULL
-};
-
-u32 ISOR_RegisterMimeTypes(const GF_InputService *plug) {
-	u32 i;
-	for (i = 0 ; ISOR_MIME_TYPES[i]; i+=3)
-		gf_service_register_mime(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2]);
-	return i/3;
-}
-
-Bool ISOR_CanHandleURL(GF_InputService *plug, const char *url)
-{
-	char *ext;
-	if (!strnicmp(url, "rtsp://", 7)) return GF_FALSE;
-	ext = (char *)strrchr(url, '.');
-	{
-		u32 i;
-		/* We don't start at 0 since first one is specific */
-		for (i = 3 ; ISOR_MIME_TYPES[i]; i+=3)
-			if (gf_service_check_mime_register(plug, ISOR_MIME_TYPES[i], ISOR_MIME_TYPES[i+1], ISOR_MIME_TYPES[i+2], ext))
-				return GF_TRUE;
-	}
-
-	if (ext && gf_isom_probe_file(url)) {
-		gf_service_check_mime_register(plug, ISOR_MIME_TYPES[0], ext+1, ISOR_MIME_TYPES[2], ext);
-		return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
-void isor_check_buffer_level(ISOMReader *read)
-{
-	Double dld_time_remaining, mov_rate;
-	GF_NetworkCommand com;
-	u32 i, total, done, Bps;
-	u64 dur;
-	GF_NetIOStatus status;
-	Bool do_buffer = GF_FALSE;
-	if (!read->dnload) return;
-	if (!read->mov) return;
-
-	gf_dm_sess_get_stats(read->dnload, NULL, NULL, &total, &done, &Bps, &status);
-	if (!Bps) return;
-
-
-	gf_mx_p(read->segment_mutex);
-
-	dld_time_remaining = total-done;
-	dld_time_remaining /= Bps;
-
-	mov_rate = total;
-	if (read->frag_type) {
-		u64 bytesMissing=0;
-		gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
-		mov_rate = (Double) (done + bytesMissing);
-	}
-	dur = gf_isom_get_duration(read->mov);
-	if (dur) {
-		mov_rate /= dur;
-		mov_rate *= gf_isom_get_timescale(read->mov);
-	}
-
-	for (i=0; i<gf_list_count(read->channels); i++) {
-		ISOMChannel *ch = gf_list_get(read->channels, i);
-		Double time_remain_ch = (Double) gf_isom_get_media_duration(read->mov, ch->track);
-		u32 buffer_level=0;
-		if (total==done) {
-			time_remain_ch = 0;
-			do_buffer = GF_FALSE;
-		} else if (ch->last_state == GF_EOS) {
-			time_remain_ch = 0;
-			do_buffer = GF_TRUE;
-		} else {
-			u64 data_offset;
-			u32 di, sn = ch->sample_num ? ch->sample_num : 1;
-			GF_ISOSample *samp = gf_isom_get_sample_info(read->mov, ch->track, sn, &di, &data_offset);
-			if (!samp) {
-				continue;
-			}
-
-			data_offset += samp->dataLength;
-
-#if 1
-			//we don't have enough data
-			if (((data_offset + ch->buffer_min * mov_rate/1000 > done))) {
-				do_buffer = GF_TRUE;
-			}
-			//we have enough buffer
-			else if ((data_offset + ch->buffer_max * mov_rate/1000 <= done)) {
-				do_buffer = GF_FALSE;
-			} else {
-				do_buffer = ch->buffering;
-			}
-			buffer_level = (u32) ( (done - data_offset) / mov_rate * 1000);
-#else
-			//we only send buffer on/off based on remainging playback time in channel
-			time_remain_ch -= (samp->DTS + samp->CTS_Offset);
-			if (time_remain_ch<0) time_remain_ch=0;
-
-			time_remain_ch /= ch->time_scale;
-			if (time_remain_ch && (time_remain_ch < dld_time_remaining)) {
-				do_buffer = GF_TRUE;
-				if (!read->remain_at_buffering_start || (read->remain_at_buffering_start < dld_time_remaining)) {
-					buffer_level = 0;
-					read->remain_at_buffering_start = dld_time_remaining;
-				} else {
-					buffer_level = (u32) (100 * (read->remain_at_buffering_start - dld_time_remaining) / (read->remain_at_buffering_start - time_remain_ch) );
-				}
-			} else {
-				do_buffer = GF_FALSE;
-			}
-#endif
-
-			gf_isom_sample_del(&samp);
-		}
-
-		if (do_buffer != ch->buffering) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[IsoMedia] Buffering %s at %d: %g sec still to download and %g sec still to play on track %d (movie rate %g - download rate %g kbps)\n", do_buffer ? "on" : "off", gf_sys_clock(), dld_time_remaining , time_remain_ch, ch->track_id, mov_rate*8/1000, Bps*8.0/1000));
-
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.command_type = do_buffer ? GF_NET_CHAN_PAUSE : GF_NET_CHAN_RESUME;
-			com.buffer.on_channel = ch->channel;
-			com.buffer.min = ch->buffer_min;
-			com.buffer.max = ch->buffer_max;
-			gf_service_command(read->service, &com, GF_OK);
-			ch->buffering = do_buffer;
-			read->buffering = do_buffer;
-		} else if (ch->buffering) {
-			memset(&com, 0, sizeof(GF_NetworkCommand));
-			com.command_type = GF_NET_CHAN_BUFFER;
-			com.buffer.on_channel = ch->channel;
-			com.buffer.min = ch->buffer_min;
-			com.buffer.max = ch->buffer_max;
-			com.buffer.occupancy = buffer_level;
-			gf_service_command(read->service, &com, GF_OK);
-		}
-	}
-	gf_mx_v(read->segment_mutex);
-}
-
-void isor_net_io(void *cbk, GF_NETIO_Parameter *param)
-{
-	GF_Err e;
-	u32 size = 0;
-	char *local_name;
-	ISOMReader *read = (ISOMReader *) cbk;
-
-	/*handle service message*/
-	if (!read->buffering)
-		gf_service_download_update_stats(read->dnload);
-
-	if (param->msg_type==GF_NETIO_DATA_TRANSFERED) {
-		e = GF_EOS;
-	} else if (param->msg_type==GF_NETIO_DATA_EXCHANGE) {
-		e = GF_OK;
-		size = param->size;
-	} else {
-		e = param->error;
-	}
-
-	if (e<GF_OK) {
-		/*error opening service*/
-		if (!read->mov) {
-			/* if there is an intermediate between this module and the terminal, report to it */
-			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-				send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, NULL);
-			} else {
-				gf_service_connect_ack(read->service, NULL, e);
-			}
-		}
-		return;
-	}
-
-	/*open file if not done yet (bad interleaving)*/
-	if (e==GF_EOS) {
-		const char *local_name;
-		if (read->mov) return;
-		local_name = gf_dm_sess_get_cache_name(read->dnload);
-		if (!local_name) {
-			if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-				send_proxy_command(read, GF_FALSE, GF_FALSE, GF_SERVICE_ERROR, NULL, NULL);
-			} else {
-				gf_service_connect_ack(read->service, NULL, GF_SERVICE_ERROR);
-			}
-			return;
-		}
-		read->mov = gf_isom_open(local_name, GF_ISOM_OPEN_READ, NULL);
-		if (!read->mov) gf_isom_last_error(NULL);
-		else read->time_scale = gf_isom_get_timescale(read->mov);
-		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
-		} else {
-			gf_service_connect_ack(read->service, NULL, GF_OK);
-		}
-		if (read->no_service_desc) isor_declare_objects(read);
-	}
-
-	if (!size) return;
-
-	/*service is opened, nothing to do*/
-	if (read->mov) {
-		isor_check_buffer_level(read);
-
-		/*end of chunk*/
-		if (read->frag_type && (param->reply==1) ) {
-			u64 bytesMissing = 0;
-			gf_mx_p(read->segment_mutex);
-			gf_isom_refresh_fragmented(read->mov, &bytesMissing, NULL);
-			gf_mx_v(read->segment_mutex);
-		}
-		return;
-	}
-
-	/*try to open the service*/
-	local_name = (char *)gf_dm_sess_get_cache_name(read->dnload);
-	if (!local_name) {
-		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_SERVICE_ERROR, NULL, NULL);
-		} else {
-			gf_service_connect_ack(read->service, NULL, GF_SERVICE_ERROR);
-		}
-		return;
-	}
-
-	/*not enogh data yet*/
-	if (read->missing_bytes && (read->missing_bytes > size) ) {
-		read->missing_bytes -= size;
-		return;
-	}
-
-	e = gf_isom_open_progressive(local_name, 0, 0, &read->mov, &read->missing_bytes);
-	switch (e) {
-	case GF_ISOM_INCOMPLETE_FILE:
-		return;
-	case GF_OK:
-		break;
-	default:
-		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-			send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, NULL);
-		} else {
-			gf_service_connect_ack(read->service, NULL, e);
-		}
-		return;
-	}
-	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-
-	/*ok let's go, we can setup the decoders */
-	read->time_scale = gf_isom_get_timescale(read->mov);
-	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
-	} else {
-		gf_service_connect_ack(read->service, NULL, GF_OK);
-	}
-
-	if (read->no_service_desc) isor_declare_objects(read);
-}
-
-
-void isor_setup_download(GF_InputService *plug, const char *url)
-{
-	ISOMReader *read = (ISOMReader *) plug->priv;
-	read->dnload = gf_service_download_new(read->service, url, 0, isor_net_io, read);
-	if (!read->dnload) {
-		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_NOT_SUPPORTED, NULL, NULL);
-		} else {
-			gf_service_connect_ack(read->service, NULL, GF_NOT_SUPPORTED);
-		}
-	} else {
-		/*start our download (threaded)*/
-		gf_dm_sess_process(read->dnload);
-	}
-	/*service confirm is done once IOD can be fetched*/
-}
-#endif
-
-
-GF_Err isoffin_initialize(GF_Filter *filter)
+static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 {
 	char szURL[2048];
-	char *tmp;
-	ISOMReader *read = gf_filter_get_udta(filter);
-	if (!read || !read->src) return GF_SERVICE_ERROR;
-	read = (ISOMReader *) gf_filter_get_udta(filter);
+	char *tmp, *src;
+	GF_Err e;
+	u64 start_range, end_range;
+	if (!read) return GF_SERVICE_ERROR;
+
+	if (read->pid) {
+		const GF_PropertyValue *prop;
+		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
+		assert(prop);
+		src = prop->value.string;
+	} else {
+		src = read->src;
+	}
+	if (!src)  return GF_SERVICE_ERROR;
 
 	read->filter = filter;
 	read->channels = gf_list_new();
 
-	strcpy(szURL, read->src);
+	strcpy(szURL, src);
 	tmp = strrchr(szURL, '.');
 	if (tmp) {
 		tmp = strchr(tmp, '#');
@@ -380,10 +99,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 		}
 	}
 
-	if (isor_is_local(szURL)) {
-		GF_Err e;
-		u64 start_range, end_range;
-		start_range = end_range = 0;
+	if (! isor_is_local(szURL)) {
+		return GF_NOT_SUPPORTED;
+	}
+	start_range = end_range = 0;
 #ifdef FILTER_FIXME
 		if (plug->query_proxy) {
 			GF_NetworkCommand param;
@@ -394,35 +113,75 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 			}
 		}
 #endif
-		e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
-		if (e != GF_OK) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] error while opening %s, error=%s\n", szURL, gf_error_to_string(e)));
-			gf_filter_setup_failure(filter, e);
-			return e;
-		}
-		read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
-		read->is_local = GF_TRUE;
+	e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
 
-		read->time_scale = gf_isom_get_timescale(read->mov);
-#ifdef FILTER_FIXME
-		/*reply to user*/
-		if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-			send_proxy_command(read, GF_FALSE, GF_FALSE, GF_OK, NULL, NULL);
-		} else {
-			gf_service_connect_ack(read->service, NULL, GF_OK);
-		}
-#endif
-	
-		isor_declare_objects(read);
-
-	} else {
-		/*setup downloader*/
-#ifdef FILTER_FIXME
-		isor_setup_download(plug, szURL);
-#endif
+	if (e == GF_ISOM_INCOMPLETE_FILE) {
+		read->moov_not_loaded = GF_TRUE;
+		return GF_OK;
 	}
+
+	if (e != GF_OK) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[IsoMedia] error while opening %s, error=%s\n", szURL,gf_error_to_string(e)));
+		gf_filter_setup_failure(filter, e);
+		return e;
+	}
+	read->frag_type = gf_isom_is_fragmented(read->mov) ? 1 : 0;
+
+	read->time_scale = gf_isom_get_timescale(read->mov);
+
+	isor_declare_objects(read);
+
 	return GF_OK;
 }
+
+static void isoffin_disconnect(ISOMReader *read)
+{
+	read->disconnected = GF_TRUE;
+	while (gf_list_count(read->channels)) {
+		ISOMChannel *ch = (ISOMChannel *)gf_list_get(read->channels, 0);
+		gf_list_rem(read->channels, 0);
+		isor_reset_reader(ch);
+		gf_free(ch);
+	}
+
+	if (read->mov) gf_isom_close(read->mov);
+	read->mov = NULL;
+
+	read->pid = NULL;
+}
+
+GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	const GF_PropertyValue *prop;
+	ISOMReader *read = gf_filter_get_udta(filter);
+	if (is_remove) {
+		isoffin_disconnect(read);
+		return GF_OK;
+	}
+	//TODO, needed for dash multilayer
+	if (read->pid) return GF_NOT_SUPPORTED;
+
+	//we must have a file path for now
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
+	if (!prop || ! prop->value.string) {
+		return GF_NOT_SUPPORTED;
+	}
+
+	read->pid = pid;
+	return isoffin_setup(filter, read);
+}
+
+GF_Err isoffin_initialize(GF_Filter *filter)
+{
+	char szURL[2048];
+	char *tmp;
+	ISOMReader *read = gf_filter_get_udta(filter);
+	if (read && read->src)
+		return isoffin_setup(filter, read);
+
+	return GF_OK;
+}
+
 
 static GF_Err isoffin_finalize(GF_Filter *filter)
 {
@@ -973,6 +732,9 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
 
+		if (!read->nb_playing) {
+			gf_filter_post_process_task(read->filter);
+		}
 		read->nb_playing++;
 		//cancel event
 		return GF_TRUE;
@@ -981,7 +743,7 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		if (read->nb_playing) read->nb_playing--;
 		isor_reset_reader(ch);
 		//cancel event
-		return GF_TRUE;
+		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
 		ch->speed = com->play.speed;
@@ -1023,6 +785,10 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 
+	if (read->moov_not_loaded) {
+		read->moov_not_loaded = GF_FALSE;
+		return isoffin_setup(filter, read);
+	}
 	for (i=0; i<count; i++) {
 		char *data;
 		ISOMChannel *ch;
@@ -1079,6 +845,30 @@ static const GF_FilterArgs ISOFFInArgs[] =
 	{}
 };
 
+static const GF_FilterCapability ISOFFInInputs[] =
+{
+	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-isomedia"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("application/mp4"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mp4"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/mp4"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("video/3gpp"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/3gpp"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("video/3gp2"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/3gp2"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("video/iso.segment"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/iso.segment"), .start=GF_TRUE},
+
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp4 mpg4 m4a m4i 3gp 3gpp 3g2 3gp2 iso m4s"), .start=GF_TRUE},
+};
+
+static const GF_FilterCapability ISOFFInOutputs[] =
+{
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{}
+};
+
 GF_FilterRegister ISOFFInRegister = {
 	.name = "mp4in",
 	.description = "ISOFF Demuxer",
@@ -1087,8 +877,10 @@ GF_FilterRegister ISOFFInRegister = {
 	.initialize = isoffin_initialize,
 	.finalize = isoffin_finalize,
 	.process = isoffin_process,
-	.configure_pid = NULL,
+	.configure_pid = isoffin_configure_pid,
 	.update_arg = NULL,
+	.input_caps = ISOFFInInputs,
+	.output_caps = ISOFFInOutputs,
 	.process_event = isoffin_process_event,
 	.probe_url = isoffin_probe_url
 };

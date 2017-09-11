@@ -172,6 +172,7 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s PID %s to filter %s\n", pid->filter->name,  pid->name, filter->name));
+			assert(pidinst);
 			gf_list_add(pid->destinations, pidinst);
 
 			if (!filter->input_pids) filter->input_pids = gf_list_new();
@@ -248,7 +249,7 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 
 			//pending packets dispatched by source while setting up PID, flush through process()
 			if (pid->pid->filter->postponed_packets) {
-//				gf_filter_post_process_task(pid->pid->filter);
+				gf_filter_post_process_task(pid->pid->filter);
 			}
 
 			//source filters, start flushing data
@@ -902,6 +903,28 @@ const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const 
 	assert(map);
 	return gf_props_get_property(map, 0, prop_name);
 }
+
+const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
+{
+	u32 i, count;
+	const GF_PropertyValue * prop;
+	GF_PropertyMap *map;
+	pid = pid->pid;
+	map = gf_list_last(pid->properties);
+	assert(map);
+	prop = gf_props_get_property(map, prop_4cc, NULL);
+	if (prop) return prop;
+
+	count = gf_list_count(pid->filter->input_pids);
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pidinst = gf_list_get(pid->filter->input_pids, i);
+		prop = gf_filter_pid_get_info(pidinst->pid, prop_4cc);
+		if (prop) return prop;
+	}
+	return NULL;
+}
+
+
 
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
 {
