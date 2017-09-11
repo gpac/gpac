@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / filters sub-project
+ *  This file is part of GPAC / ffmpeg demux filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -75,7 +75,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 #endif
 
 	for (i=0; i<ffd->ctx->nb_streams; i++) {
-		if (gf_filter_pid_would_block(ffd->pids[i])) {
+		if (ffd->pids[i] && gf_filter_pid_would_block(ffd->pids[i])) {
 			return GF_OK;
 		}
 	}
@@ -85,7 +85,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	/*EOF*/
 	if (av_read_frame(ffd->ctx, &pkt) <0) {
 		for (i=0; i<ffd->ctx->nb_streams; i++) {
-			gf_filter_pid_set_eos(ffd->pids[i]);
+			if (ffd->pids[i]) gf_filter_pid_set_eos(ffd->pids[i]);
 		}
 		return GF_EOS;
 	}
@@ -100,8 +100,9 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	}
 
 	if (! ffd->pids[pkt.stream_index] ) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] No PID defined for given stream %d\n", pkt.stream_index ));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFDemux] No PID defined for given stream %d\n", pkt.stream_index ));
 		av_free_packet(&pkt);
+		return GF_OK;
 	}
 
 	//todo - check if we want to use shared memory here
@@ -134,9 +135,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	e = gf_filter_pck_send(pck_dst);
 
 	av_free_packet(&pkt);
-
 	return e;
-
 }
 
 
@@ -176,7 +175,6 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	u32 i;
 	u32 nb_a, nb_v;
 	s32 res;
-	Bool is_local;
 	char *ext;
 	AVInputFormat *av_in = NULL;
 	char szName[50];
@@ -192,17 +190,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		if (!stricmp(ext+1, "cmp")) av_in = av_find_input_format("m4v");
 	}
 
-	is_local = (strnicmp(ffd->src, "file://", 7) && strstr(ffd->src, "://")) ? GF_FALSE : GF_TRUE;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFDemux] opening file %s - av_in %08x\n", ffd->src, av_in));
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("[FFDemux] opening file %s - local %d - av_in %08x\n", ffd->src, is_local, av_in));
-
-	if (!is_local) {
-		//TODO
-		return GF_NOT_SUPPORTED;
-	}
 	res = avformat_open_input(&ffd->ctx, ffd->src, av_in, ffd->options ? &ffd->options : NULL);
-
-
 	switch (res) {
 	case 0:
 		e = GF_OK;
@@ -218,13 +208,13 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		break;
 	}
 	if (e) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Fail to open %s - error %s\n", ffd->src, av_err2str(e) ));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDemux] Fail to open %s - error %s\n", ffd->src, av_err2str(res) ));
 		return e;
 	}
 	res = avformat_find_stream_info(ffd->ctx, ffd->options ? &ffd->options : NULL);
 
 	if (res <0) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFDemux] cannot locate streams - error %s\n", av_err2str(e)));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[FFDemux] cannot locate streams - error %s\n", av_err2str(res)));
 		e = GF_NOT_SUPPORTED;
 		return e;
 	}
@@ -425,13 +415,13 @@ static const GF_FilterArgs FFDemuxArgs[] =
 	{}
 };
 
-const GF_FilterRegister *ffdmx_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *ffdmx_register(GF_FilterSession *session)
 {
 	GF_FilterArgs *args;
 	u32 i=0;
 	const struct AVOption *opt;
 	AVFormatContext *ctx;
-
+	Bool load_meta_filters = session ? GF_TRUE : GF_FALSE;
 	ffmpeg_initialize();
 
 	if (!load_meta_filters) {

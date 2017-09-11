@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / filters sub-project
+ *  This file is part of GPAC / compositor filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -94,7 +94,6 @@ static GF_Err compose_process(GF_Filter *filter)
 	//to clean up,depending on whether we use a thread to poll user inputs, etc...
 	if (ms_until_next > 100)
 		ms_until_next = 100;
-
 
 	//ask for real-time reschedule
 	gf_filter_ask_rt_reschedule(filter, ms_until_next ? ms_until_next*1000 : 1);
@@ -277,7 +276,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.update_arg = compose_update_arg
 };
 
-const GF_FilterRegister *compose_filter_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *compose_filter_register(GF_FilterSession *session)
 {
 	return &CompositorFilterRegister;
 }

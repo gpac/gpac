@@ -101,7 +101,6 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 		}
 	}
-
 	return filter;
 }
 
@@ -133,6 +132,11 @@ void gf_filter_del(GF_Filter *filter)
 
 	reset_filter_args(filter);
 
+	if (filter->postponed_packets) {
+		assert(!gf_list_count(filter->postponed_packets));
+		gf_list_del(filter->postponed_packets);
+	}
+
 	gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_alloc_reservoir, gf_filterpacket_del);
@@ -146,7 +150,6 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->filter_udta) gf_free(filter->filter_udta);
 	gf_free(filter);
 }
-
 
 void *gf_filter_get_udta(GF_Filter *filter)
 {
@@ -360,6 +363,8 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 		Bool found=GF_FALSE;
 		//look for our arg separator
 		char *sep = strchr(args, ':');
+		if (sep && !strncmp(sep, "://", 3))
+			sep = strchr(sep+3, ':');
 
 		//watchout for "C:\\"
 		while (sep && (sep[1]=='\\')) {
@@ -454,7 +459,15 @@ static void reset_filter_args(GF_Filter *filter)
 	}
 }
 
-void gf_filter_process_task(GF_FSTask *task)
+static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
+{
+	safe_int_dec(&filter->process_task_queued);
+	if (filter->process_task_queued) {
+		task->requeue_request = GF_TRUE;
+	}
+
+}
+static void gf_filter_process_task(GF_FSTask *task)
 {
 	GF_Err e;
 	GF_Filter *filter = task->filter;
@@ -464,18 +477,28 @@ void gf_filter_process_task(GF_FSTask *task)
 
 	filter->schedule_next_time = 0;
 	if (filter->pid_connection_pending || filter->removed) {
+		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", filter->name));
 		filter->nb_tasks_done--;
+		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
+#if 0
 	//empty input for this filter, don't call process
 	else if (filter->num_input_pids==1 && !filter->pending_packets && !filter->skip_process_trigger_on_tasks) {
 		filter->nb_tasks_done--;
+		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
+#endif
+	while (gf_list_count(task->filter->postponed_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
+		gf_filter_pck_send(pck);
+	}
+
 	e = filter->freg->process(filter);
 
 	//flush all pending pid init requests following the call to init
@@ -487,14 +510,18 @@ void gf_filter_process_task(GF_FSTask *task)
 		}
 	}
 	//no requeue if end of session
-	if (filter->session->run_status != GF_OK)
+	if (filter->session->run_status != GF_OK) {
 		return;
-
-	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
-	if (!filter->would_block && !filter->input_pids && filter->output_pids && (e!=GF_EOS)) {
-		task->requeue_request = GF_TRUE;
+	}
+	if (e==GF_EOS) {
+		filter->process_task_queued = 0;
+		return;
 	}
 
+	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
+	if (!filter->would_block && !filter->input_pids && (e!=GF_EOS)) {
+		task->requeue_request = GF_TRUE;
+	}
 	//last task for filter but pending packets and not blocking, requeue in main scheduler
 	else if ((filter->would_block < filter->num_output_pids)
 			&& filter->pending_packets
@@ -506,6 +533,9 @@ void gf_filter_process_task(GF_FSTask *task)
 	else if (filter->schedule_next_time) {
 		task->schedule_next_time = filter->schedule_next_time;
 		task->requeue_request = GF_TRUE;
+	}
+	else {
+		gf_filter_check_pending_tasks(filter, task);
 	}
 }
 
@@ -541,7 +571,10 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 
 void gf_filter_post_process_task(GF_Filter *filter)
 {
-	gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+	safe_int_inc(&filter->process_task_queued);
+	if (filter->process_task_queued<=1) {
+		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
+	}
 }
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)

@@ -458,7 +458,7 @@ void gf_sc_disconnect(GF_Compositor *compositor)
 	/*resume*/
 	if (compositor->play_state != GF_STATE_PLAYING) gf_term_set_play_state(compositor, GF_STATE_PLAYING, 1, 1);
 
-	if (compositor->root_scene->root_od) {
+	if (compositor->root_scene && compositor->root_scene->root_od) {
 		GF_ObjectManager *root = compositor->root_scene->root_od;
 		gf_sc_lock(compositor, GF_TRUE);
 		compositor->root_scene = NULL;

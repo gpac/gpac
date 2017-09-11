@@ -36,6 +36,25 @@ extern "C" {
 //for offsetof()
 #include <stddef.h>
 
+//atomic ref_count++ / ref_count--
+#if defined(WIN32) || defined(_WIN32_WCE)
+
+#define safe_int_inc(__v) InterlockedIncrement((int *) (__v))
+#define safe_int_dec(__v) InterlockedDecrement((int *) (__v))
+
+#define safe_int_add(__v, inc_val) InterlockedAdd((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) InterlockedAdd((int *) (__v), -dec_val)
+
+#else
+
+#define safe_int_inc(__v) __sync_add_and_fetch((int *) (__v), 1)
+#define safe_int_dec(__v) __sync_sub_and_fetch((int *) (__v), 1)
+
+#define safe_int_add(__v, inc_val) __sync_add_and_fetch((int *) (__v), inc_val)
+#define safe_int_sub(__v, dec_val) __sync_sub_and_fetch((int *) (__v), dec_val)
+
+#endif
+
 typedef struct __gf_media_session GF_FilterSession;
 
 typedef struct __gf_filter GF_Filter;
@@ -55,12 +74,14 @@ void *gf_fs_task_get_udta(GF_FSTask *task);
 
 typedef enum
 {
-	//the scheduler does not use locks for packet and property queues
+	//the scheduler does not use locks for packet and property queues. Main task list is mutex-protected
 	GF_FS_SCHEDULER_LOCK_FREE=0,
-	//the scheduler uses locks for packet and property queues. Defaults to lock-free if no threads are used
+	//the scheduler uses locks for packet and property queues. Defaults to lock-free if no threads are used. Main task list is mutex-protected
 	GF_FS_SCHEDULER_LOCK,
+	//the scheduler does not use locks for packet and property queues, nor for the main task list
+	GF_FS_SCHEDULER_LOCK_FREE_X,
 	//the scheduler uses locks for packet and property queues even if single-threaded (test mode)
-	GF_FS_SCHEDULER_FORCE_LOCK,
+	GF_FS_SCHEDULER_LOCK_FORCE,
 	//the scheduler uses direct dispatch and no threads, trying to nest task calls within task calls
 	GF_FS_SCHEDULER_DIRECT,
 } GF_FilterSchedulerType;
@@ -136,6 +157,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 #define PROP_FLOAT(_val) (GF_PropertyValue){.type=GF_PROP_FLOAT, .value.fnumber = FLT2FIX(_val)}
 #define PROP_FRAC(_num, _den) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac.num = _num, .value.frac.den = _den}
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
+#define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
 #define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
 #define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
@@ -250,6 +272,7 @@ void gf_fs_register_test_filters(GF_FilterSession *fsess);
 void *gf_filter_get_udta(GF_Filter *filter);
 void gf_filter_set_name(GF_Filter *filter, const char *name);
 const char *gf_filter_get_name(GF_Filter *filter);
+u32 gf_filter_get_probe_result(GF_Filter *filter);
 
 void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next);
 
@@ -279,10 +302,17 @@ void gf_filter_pid_remove(GF_FilterPid *pid);
 
 //set a new property to the pid. previous properties (ones set before last packet dispatch)
 //will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
-//properties with gf_filter_pid_reset_properties
+//properties with gf_filter_pid_reset_properties. Setting a new property will trigger a PID reconfigure
 GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
 GF_Err gf_filter_pid_set_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value);
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
+
+//set a new info on the pid. previous info (ones set before last packet dispatch)
+//will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
+//properties with gf_filter_pid_reset_properties. Setting a new info will not trigger a PID reconfigure.
+GF_Err gf_filter_pid_set_info(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_set_info_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value);
+GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value);
 
 void gf_filter_pid_set_udta(GF_FilterPid *pid, void *udta);
 void *gf_filter_pid_get_udta(GF_FilterPid *pid);
@@ -336,6 +366,7 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid);
+Bool gf_filter_pid_check_caps(GF_FilterPid *pid);
 
 Bool gf_filter_pid_would_block(GF_FilterPid *pid);
 
@@ -349,6 +380,8 @@ GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char 
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct);
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference);
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck);
+
+GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid);
 
 const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
 
@@ -456,11 +489,20 @@ enum
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
 
+	//(string) URL of source file
+	GF_PROP_PID_URL = GF_4CC('F','U','R','L'),
+	//(string) URL of source file on the local file system, if any
+	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
+	//(string) mime type of source file if known
+	GF_PROP_PID_MIME = GF_4CC('M','I','M','E'),
+	//(string) file extension of source file if known
+	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
 
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
-	//(longuint) NTP time stamp from sender
-	GF_PROP_PCK_SEEK_STATE = GF_4CC('S','E','E','K'),
+	//(longuint) byte offset in file of first byte in packet
+	GF_PROP_PCK_BYTE_OFFSET = GF_4CC('B','O','F','F'),
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -482,6 +524,7 @@ typedef enum
 	GF_FEVT_PAUSE,	//no associated event structure
 	GF_FEVT_RESUME,	//no associated event structure
 	GF_FEVT_ATTACH_SCENE,
+	GF_FEVT_RESET_SCENE,
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_MOUSE,
@@ -523,7 +566,7 @@ typedef struct
 	u8 timestamp_based;
 } GF_FEVT_Play;
 
-/*GF_FEVT_ATTACH_SCENE*/
+/*GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE*/
 typedef struct
 {
 	FILTER_EVENT_BASE
@@ -581,6 +624,7 @@ union __gf_filter_event
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
+const char *gf_filter_session_get_mime(GF_Filter *filter, const char *ext);
 
 
 

@@ -284,6 +284,8 @@
 		921D1BF21E55F02300B9B23A /* filter_queue.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D1BF11E55F02300B9B23A /* filter_queue.c */; };
 		921D6A091F0F67AB007F2219 /* blob.c in Sources */ = {isa = PBXBuildFile; fileRef = 921D6A081F0F67AB007F2219 /* blob.c */; };
 		9225733418D726D800D6FD98 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		92266A211F59A0790019DB71 /* file_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92266A201F59A0790019DB71 /* file_in.c */; };
+		92266A231F59ACA00019DB71 /* ctx_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 92266A221F59ACA00019DB71 /* ctx_load.c */; };
 		922990DF1E858198001FAC7F /* isoffin_read_ch.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DC1E858198001FAC7F /* isoffin_read_ch.c */; };
 		922990E01E858198001FAC7F /* isoffin_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 922990DD1E858198001FAC7F /* isoffin_read.c */; };
 		922990E11E858198001FAC7F /* isoffin.h in Headers */ = {isa = PBXBuildFile; fileRef = 922990DE1E858198001FAC7F /* isoffin.h */; };
@@ -308,6 +310,7 @@
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		9299BDDD1E5DA57100D6289D /* ff_dmx.c in Sources */ = {isa = PBXBuildFile; fileRef = 9299BDDC1E5DA57100D6289D /* ff_dmx.c */; };
+		92A5CBE11F62AEF7005D2A6A /* http_in.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A5CBE01F62AEF7005D2A6A /* http_in.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
 		92AAF0E618D6DB8600E2FF12 /* sdl_out.h in Headers */ = {isa = PBXBuildFile; fileRef = 92AAF0DB18D6DB5500E2FF12 /* sdl_out.h */; };
@@ -1112,6 +1115,8 @@
 		921D1BF11E55F02300B9B23A /* filter_queue.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = filter_queue.c; path = filters/filter_queue.c; sourceTree = "<group>"; };
 		921D6A081F0F67AB007F2219 /* blob.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = blob.c; path = filters/blob.c; sourceTree = "<group>"; };
 		9225732418D7267900D6FD98 /* gm_ogg_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_ogg_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		92266A201F59A0790019DB71 /* file_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = file_in.c; path = filters_imp/file_in.c; sourceTree = "<group>"; };
+		92266A221F59ACA00019DB71 /* ctx_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ctx_load.c; path = filters_imp/ctx_load.c; sourceTree = "<group>"; };
 		922990DC1E858198001FAC7F /* isoffin_read_ch.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read_ch.c; path = filters_imp/isoffin_read_ch.c; sourceTree = "<group>"; };
 		922990DD1E858198001FAC7F /* isoffin_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read.c; path = filters_imp/isoffin_read.c; sourceTree = "<group>"; };
 		922990DE1E858198001FAC7F /* isoffin.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = isoffin.h; path = filters_imp/isoffin.h; sourceTree = "<group>"; };
@@ -1134,6 +1139,7 @@
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		9299BDDC1E5DA57100D6289D /* ff_dmx.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dmx.c; path = filters_imp/ff_dmx.c; sourceTree = "<group>"; };
+		92A5CBE01F62AEF7005D2A6A /* http_in.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = http_in.c; path = filters_imp/http_in.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
 		92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = sdl_out.c; path = ../../modules/sdl_out/sdl_out.c; sourceTree = "<group>"; };
@@ -2214,18 +2220,21 @@
 		9299BDDB1E5DA56500D6289D /* filters_imp */ = {
 			isa = PBXGroup;
 			children = (
-				92E562B71EA615AB0026992A /* odf_dec.c */,
 				92E562B51EA604710026992A /* bifs_dec.c */,
+				92C1FF341E7BEDF30093B61E /* compose.c */,
+				92266A221F59ACA00019DB71 /* ctx_load.c */,
+				92AE971B1E7AD268005D3411 /* ff_common.c */,
+				92AE97191E797323005D3411 /* ff_dec.c */,
+				9299BDDC1E5DA57100D6289D /* ff_dmx.c */,
+				92266A201F59A0790019DB71 /* file_in.c */,
+				92A5CBE01F62AEF7005D2A6A /* http_in.c */,
+				9279D49D1E5EDF40004E53F4 /* inspect.c */,
 				922990E21E858383001FAC7F /* isoffin_load.c */,
 				922990DC1E858198001FAC7F /* isoffin_read_ch.c */,
 				922990DD1E858198001FAC7F /* isoffin_read.c */,
 				922990DE1E858198001FAC7F /* isoffin.h */,
-				92C1FF341E7BEDF30093B61E /* compose.c */,
-				92AE971B1E7AD268005D3411 /* ff_common.c */,
-				92AE97191E797323005D3411 /* ff_dec.c */,
+				92E562B71EA615AB0026992A /* odf_dec.c */,
 				9279D49F1E5EE9CA004E53F4 /* unit_test_filter.c */,
-				9279D49D1E5EDF40004E53F4 /* inspect.c */,
-				9299BDDC1E5DA57100D6289D /* ff_dmx.c */,
 			);
 			name = filters_imp;
 			sourceTree = "<group>";
@@ -3162,6 +3171,8 @@
 				9201012B18D5A444003D1ACA /* stbl_read.c in Sources */,
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
 				92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */,
+				92266A231F59ACA00019DB71 /* ctx_load.c in Sources */,
+				92A5CBE11F62AEF7005D2A6A /* http_in.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
 				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
 				9201012F18D5A444003D1ACA /* tx3g.c in Sources */,
@@ -3234,6 +3245,7 @@
 				9201016C18D5A445003D1ACA /* loader_bt.c in Sources */,
 				9201016D18D5A445003D1ACA /* loader_isom.c in Sources */,
 				92C1FF451E7C18870093B61E /* media_control.c in Sources */,
+				92266A211F59A0790019DB71 /* file_in.c in Sources */,
 				9201016E18D5A445003D1ACA /* loader_qt.c in Sources */,
 				9201016F18D5A445003D1ACA /* loader_svg.c in Sources */,
 				9201017018D5A445003D1ACA /* loader_xmt.c in Sources */,
@@ -3766,6 +3778,7 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
@@ -3844,6 +3857,7 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
@@ -4657,6 +4671,7 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;
@@ -4678,6 +4693,7 @@
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				INSTALL_PATH = "";
 				MACOSX_DEPLOYMENT_TARGET = 10.6;

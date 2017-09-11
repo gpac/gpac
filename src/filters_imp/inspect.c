@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / filters sub-project
+ *  This file is part of GPAC / inspection filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -281,7 +281,7 @@ const GF_FilterRegister InspectRegister = {
 	.configure_pid = inspect_config_input,
 };
 
-const GF_FilterRegister *inspect_register(GF_FilterSession *session, Bool load_meta_filters)
+const GF_FilterRegister *inspect_register(GF_FilterSession *session)
 {
 	return &InspectRegister;
 }

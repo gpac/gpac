@@ -175,12 +175,12 @@ void *gf_lfq_pop(GF_FilterQueue *q)
 	GF_LFQItem *slot=NULL;
 	void *data = gf_fq_lockfree_dequeue( &q->head, &q->tail, &slot);
 	if (!data) return NULL;
+	safe_int_dec(&q->nb_items);
 	assert(slot);
 
 	slot->data = NULL;
 	slot->next = NULL;
 	gf_fq_lockfree_enqueue(slot, &q->res_tail);
-	safe_int_dec(&q->nb_items);
 
 	return data;
 }
@@ -196,8 +196,8 @@ void gf_fq_add(GF_FilterQueue *fq, void *item)
 	GF_LFQItem *it;
 
 #if 1
-	u32 k, c = gf_fq_count(fq);
-	for (k=0; k<c; k++) {
+	u32 k;
+	for (k=0; k<fq->nb_items; k++) {
 		void *a = gf_fq_get(fq, k);
 		assert(a != item);
 	}
@@ -253,7 +253,7 @@ void *gf_fq_pop(GF_FilterQueue *fq)
 		} else {
 			fq->res_head = fq->res_tail = it;
 		}
-
+		assert(fq->nb_items);
 		fq->nb_items--;
 
 		if (! fq->head) fq->tail = NULL;
@@ -296,7 +296,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 		gf_mx_v(fq->mx);
 	} else {
 		it = fq->head->next;
-		while (idx) {
+		while (it && idx) {
 			it = it->next;
 			idx--;
 			if (!it) break;

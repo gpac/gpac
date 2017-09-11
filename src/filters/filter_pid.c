@@ -246,6 +246,11 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 		assert(pid->filter->pid_connection_pending);
 		if ( (safe_int_dec(&pid->filter->pid_connection_pending)==0) ) {
 
+			//pending packets dispatched by source while setting up PID, flush through process()
+			if (pid->pid->filter->postponed_packets) {
+//				gf_filter_post_process_task(pid->pid->filter);
+			}
+
 			//source filters, start flushing data
 			//commented for now, we may want an auto-start
 			if (0 && !pid->filter->input_pids) {
@@ -535,6 +540,14 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 	return nb_matched;
 }
 
+Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
+{
+	const GF_FilterRegister *freg = pid->filter->freg;
+	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
+	return filter_pid_caps_match(pid->pid, freg);
+}
+
+
 u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *filter_reg, GF_List *black_list, GF_List *filter_chain, const GF_FilterRegister *dst_filter)
 {
 	u32 nb_matched = 0;
@@ -787,6 +800,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	}
 	pid->request_property_map = GF_FALSE;
 	map = gf_props_new(pid->filter);
+	if (!map) return NULL;
 	gf_list_add(pid->properties, map);
 
 	//when creating a new map, ref_count of old map is decremented
@@ -802,7 +816,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	return map;
 }
 
-static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
+static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value, Bool is_info)
 {
 	GF_PropertyMap *map;
 
@@ -810,8 +824,17 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to write property on input PID in filter %s - ignoring\n", pid->filter->name));
 		return GF_BAD_PARAM;
 	}
-	//always merge properties
-	map = check_new_pid_props(pid, GF_TRUE);
+	//info property, do not request a new property map
+	if (is_info) {
+		map = gf_list_last(pid->properties);
+		if (!map) {
+			map = gf_props_new(pid->filter);
+			if (map) gf_list_add(pid->properties, map);
+		}
+	} else {
+		//always merge properties
+		map = check_new_pid_props(pid, GF_TRUE);
+	}
 	if (!map) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for destination pid in filter %s, ignoring reset\n", pid->filter->name));
 		return GF_OUT_OF_MEM;
@@ -820,22 +843,46 @@ static GF_Err gf_filter_pid_set_property_full(GF_FilterPid *pid, u32 prop_4cc, c
 	return gf_props_set_property(map, prop_4cc, prop_name, dyn_name, value);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_set_property(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
 {
 	if (!prop_4cc) return GF_BAD_PARAM;
-	return gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value);
+	return gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_FALSE);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_set_property_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value)
 {
 	if (!name) return GF_BAD_PARAM;
-	return gf_filter_pid_set_property_full(pid, 0, name, NULL, value);
+	return gf_filter_pid_set_property_full(pid, 0, name, NULL, value, GF_FALSE);
 }
 
+GF_EXPORT
 GF_Err gf_filter_pid_set_property_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value)
 {
 	if (!name) return GF_BAD_PARAM;
-	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value);
+	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value, GF_FALSE);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_info(GF_FilterPid *pid, u32 prop_4cc, const GF_PropertyValue *value)
+{
+	if (!prop_4cc) return GF_BAD_PARAM;
+	return gf_filter_pid_set_property_full(pid, prop_4cc, NULL, NULL, value, GF_TRUE);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_info_str(GF_FilterPid *pid, const char *name, const GF_PropertyValue *value)
+{
+	if (!name) return GF_BAD_PARAM;
+	return gf_filter_pid_set_property_full(pid, 0, name, NULL, value, GF_TRUE);
+}
+
+GF_EXPORT
+GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_PropertyValue *value)
+{
+	if (!name) return GF_BAD_PARAM;
+	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value, GF_TRUE);
 }
 
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
@@ -932,7 +979,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		//it may happen that no task is currently scheduled for the source pid (bug to investigate)
 		//we force a task if not EOS to force flushing the parent
 		if (!pidinst->pid->has_seen_eos && !pidinst->pid->filter->would_block) {
-			gf_filter_post_process_task(pidinst->pid->filter);
+//			gf_filter_post_process_task(pidinst->pid->filter);
 		}
 		return NULL;
 	}
@@ -978,9 +1025,11 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 
 	if (pck->data_length) {
 		u64 ts = pck->dts ? pck->dts : pck->cts;
-		ts *= 1000000;
-		ts /= pck->pid_props->timescale;
-
+		if (pck->pid_props->timescale) {
+			ts *= 1000000;
+			ts /= pck->pid_props->timescale;
+		}
+		
 		if (!pidi->cur_bit_size || (pidi->stats_start_ts > ts)) {
 			pidi->stats_start_ts = ts;
 			pidi->stats_start_us = now;
@@ -1157,7 +1206,7 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid)
 {
-	u32 count, i;
+	u32 count, i, j;
 	u64 duration=0;
 	if (PID_IS_INPUT(pid)) {
 		GF_Filter *filter;
@@ -1172,18 +1221,19 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid)
 		duration += pidinst->buffer_duration;
 		return duration;
 	} else {
-		u32 count;
+		u32 count2;
 		u64 max_dur=0;
 		count = gf_list_count(pid->destinations);
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, i);
 			if (pidinst->buffer_duration > duration) duration = pidinst->buffer_duration;
-		}
-		count = pid->filter->num_output_pids;
-		for (i=0; i<count; i++) {
-			GF_FilterPid *pid_n = gf_list_get(pid->filter->output_pids, i);
-			u64 dur = gf_filter_pid_query_buffer_duration(pid_n);
-			if (dur > max_dur ) max_dur = dur;
+
+			count2 = pidinst->filter->num_output_pids;
+			for (j=0; j<count2; j++) {
+				GF_FilterPid *pid_n = gf_list_get(pidinst->filter->output_pids, i);
+				u64 dur = gf_filter_pid_query_buffer_duration(pid_n);
+				if (dur > max_dur ) max_dur = dur;
+			}
 		}
 		duration += max_dur;
 	}
@@ -1319,6 +1369,18 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	dup_evt->base.on_pid = pid->pid;
 
 	gf_fs_post_task(pid->pid->filter->session, gf_filter_pid_send_event_downstream, pid->pid->filter, pid->pid, "downstream_event", dup_evt);
+}
+
+void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
+{
+	GF_FilterEvent *dup_evt;
+
+	//filter is being shut down, prevent any event posting
+	if (pid->pid->filter->finalized) return;
+	assert (pid->pid->filter->freg->requires_main_thread);
+
+	if (pid->pid->filter->freg->process_event)
+		pid->pid->filter->freg->process_event(pid->pid->filter, evt);
 }
 
 
