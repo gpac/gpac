@@ -274,6 +274,7 @@ const GF_FilterRegister InspectRegister = {
 	.name = "inspect",
 	.description = "Inspect packets on pids",
 	.private_size = sizeof(GF_InspectCtx),
+	.max_extra_pids = (u32) -1,
 	.args = InspectArgs,
 	.initialize = inspect_initialize,
 	.finalize = inspect_finalize,

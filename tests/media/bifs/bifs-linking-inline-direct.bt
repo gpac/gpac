@@ -41,7 +41,7 @@ OrderedGroup {
    scale 1.5 1
    children [
     Inline {
-     url ["bifs-linking-inline-direct-inline.mp4"]
+     url ["bifs-linking-inline-direct-inline.bt"]
     }
    ]
   }

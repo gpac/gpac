@@ -25,7 +25,6 @@
 
 #include "filter_session.h"
 #include <gpac/network.h>
-#include <gpac/download.h>
 
 
 const GF_FilterRegister *ut_filter_register(GF_FilterSession *session);
@@ -42,6 +41,7 @@ const GF_FilterRegister *odf_dec_register(GF_FilterSession *session);
 const GF_FilterRegister *filein_register(GF_FilterSession *session);
 const GF_FilterRegister *ctxload_register(GF_FilterSession *session);
 const GF_FilterRegister *httpin_register(GF_FilterSession *session);
+const GF_FilterRegister *svgin_register(GF_FilterSession *session);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -205,6 +205,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, filein_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
 
 	//fixme - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -264,6 +265,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 		}
 		gf_list_del(fsess->filters);
 	}
+
+	if (fsess->download_manager) gf_dm_del(fsess->download_manager);
 
 	if (fsess->registry) {
 		while (gf_list_count(fsess->registry)) {
@@ -984,10 +987,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 	GF_Err e;
 	char *sURL, *qm, *frag, *ext, *mime_type, *url_res, *args;
 	char szExt[50];
-	Bool skip_mime = GF_TRUE;
 	memset(szExt, 0, sizeof(szExt));
-
-	mime_type = NULL;
 
 
 	sURL = NULL;
@@ -1007,131 +1007,6 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 
 	if (gf_url_is_local(sURL))
 		gf_url_to_fs_path(sURL);
-
-
-	if (skip_mime) {
-		mime_type = NULL;
-	} else {
-#ifdef FILTER_FIXME
-		/*fetch a mime type if any. If error don't even attempt to open the service	*/
-		mime_type = get_mime_type(term, sURL, &e, the_session);
-		if (e) {
-			(*ret_code) = e;
-			goto exit;
-		}
-#endif
-	}
-
-	if (mime_type &&
-	        (!stricmp(mime_type, "text/plain")
-	         || !stricmp(mime_type, "video/quicktime")
-	         || !stricmp(mime_type, "video/mpeg")
-	         || !stricmp(mime_type, "application/octet-stream")
-	        )
-	   ) {
-		skip_mime = 1;
-	}
-
-	/*load from mime type*/
-#ifdef FILTER_FIXME
-	if (mime_type && !skip_mime) {
-		const char *sPlug = gf_cfg_get_key(fsess->user->config, "MimeTypes", mime_type);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Mime type found: %s\n", mime_type));
-		if (!sPlug) {
-			*out_mime_type = mime_type;
-			mime_type=NULL;
-		}
-		if (sPlug) sPlug = strrchr(sPlug, '"');
-		if (sPlug) {
-			sPlug += 2;
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("%s:%d FOUND matching module %s\n", __FILE__, __LINE__, sPlug));
-			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
-				gf_modules_close_interface((GF_BaseInterface *) ifce);
-				ifce = NULL;
-			}
-			if (ifce && !net_check_interface(ifce) ) {
-				gf_modules_close_interface((GF_BaseInterface *) ifce);
-				ifce = NULL;
-			}
-		}
-	}
-
-
-	/* The file extension, if any, is before '?' if any or before '#' if any.*/
-	url_res = strrchr(sURL, '/');
-	if (!url_res) url_res = strrchr(sURL, '\\');
-	if (!url_res) url_res = sURL;
-	qm = strchr(url_res, '?');
-	if (qm) {
-		qm[0] = 0;
-		ext = strrchr(url_res, '.');
-		qm[0] = '?';
-	} else {
-		frag = strchr(url_res, '#');
-		if (frag) {
-			frag[0] = 0;
-			ext = strrchr(url_res, '.');
-			frag[0] = '#';
-		} else {
-			ext = strrchr(url_res, '.');
-		}
-	}
-	if (ext && !stricmp(ext, ".gz")) {
-		char *anext;
-		ext[0] = 0;
-		anext = strrchr(sURL, '.');
-		ext[0] = '.';
-		ext = anext;
-	}
-	/*no mime type: either local or streaming. If streaming discard extension checking*/
-	if (!ifce && !mime_type && strstr(sURL, "://") && strnicmp(sURL, "file://", 7)) ext = NULL;
-
-	/*browse extensions for prefered module*/
-	if (!ifce && ext) {
-		u32 keyCount;
-		strncpy(szExt, &ext[1], 49);
-		ext = strrchr(szExt, '?');
-		if (ext) ext[0] = 0;
-		ext = strrchr(szExt, '#');
-		if (ext) ext[0] = 0;
-
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] No mime type found - checking by extension %s\n", szExt));
-		assert( term && term->user && term->user->modules);
-		keyCount = gf_cfg_get_key_count(term->user->config, "MimeTypes");
-		for (i=0; i<keyCount; i++) {
-			char *sPlug;
-			const char *sKey;
-			const char *sMime;
-			sMime = gf_cfg_get_key_name(term->user->config, "MimeTypes", i);
-			if (!sMime) continue;
-			sKey = gf_cfg_get_key(term->user->config, "MimeTypes", sMime);
-			if (!sKey) continue;
-			if (!check_extension(sKey, szExt)) continue;
-			sPlug = strrchr(sKey, '"');
-			if (!sPlug) continue;	/*bad format entry*/
-			sPlug += 2;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] Trying module[%i]=%s, mime=%s\n", i, sPlug, sMime));
-			ifce = (GF_InputService *) gf_modules_load_interface_by_name(term->user->modules, sPlug, GF_NET_CLIENT_INTERFACE);
-			if (!ifce) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[Terminal] module[%i]=%s, mime=%s, cannot be loaded for GF_NET_CLIENT_INTERFACE.\n", i, sPlug, sMime));
-				continue;
-			}
-			if (force_module && ifce && !strstr(ifce->module_name, force_module)) {
-				gf_modules_close_interface((GF_BaseInterface *) ifce);
-				ifce = NULL;
-				continue;
-			}
-			if (ifce && !net_check_interface(ifce)) {
-				gf_modules_close_interface((GF_BaseInterface *) ifce);
-				ifce = NULL;
-				continue;
-			}
-			break;
-		}
-	}
-#endif
 
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);

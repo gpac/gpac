@@ -732,9 +732,9 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
 
-		if (!read->nb_playing) {
-			gf_filter_post_process_task(read->filter);
-		}
+		//always request a process task upon a play
+		gf_filter_post_process_task(read->filter);
+
 		read->nb_playing++;
 		//cancel event
 		return GF_TRUE;
@@ -858,7 +858,7 @@ static const GF_FilterCapability ISOFFInInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("video/iso.segment"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/iso.segment"), .start=GF_TRUE},
 
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp4 mpg4 m4a m4i 3gp 3gpp 3g2 3gp2 iso m4s"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s"), .start=GF_TRUE},
 };
 
 static const GF_FilterCapability ISOFFInOutputs[] =
@@ -881,8 +881,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.update_arg = NULL,
 	.input_caps = ISOFFInInputs,
 	.output_caps = ISOFFInOutputs,
-	.process_event = isoffin_process_event,
-	.probe_url = isoffin_probe_url
+	.process_event = isoffin_process_event
+//	.probe_url = isoffin_probe_url
 };
 
 

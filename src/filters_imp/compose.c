@@ -231,7 +231,8 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->magic_ptr = ctx;
 
 	ctx->compositor = gf_sc_new( gf_fs_get_user( gf_filter_get_session(filter) ) );
-	if (!ctx->compositor) return GF_SERVICE_ERROR;
+	if (!ctx->compositor)
+		return GF_SERVICE_ERROR;
 	ctx->compositor->no_regulation = GF_TRUE;
 	ctx->compositor->filter = filter;
 	ctx->compositor->fsess = gf_filter_get_session(filter);
@@ -267,6 +268,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.description = "Compositor Filter running the GPAC interactive media compositor. Sink filter for now",
 	.private_size = sizeof(GF_CompositorFilter),
 	.requires_main_thread = GF_TRUE,
+	.max_extra_pids = (u32) -1,
 	.input_caps = CompositorFilterInputs,
 	.args = CompositorFilterArgs,
 	.initialize = compose_initialize,

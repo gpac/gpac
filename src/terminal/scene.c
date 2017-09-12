@@ -614,7 +614,7 @@ void gf_scene_remove_object(GF_Scene *scene, GF_ObjectManager *odm, u32 for_shut
 		    /*remote OD*/
 		    ((obj->OD_ID!=GF_MEDIA_EXTERNAL_ID) && (obj->OD_ID == odm->ID) )
 		    /*dynamic OD*/
-		 ||   (obj->URLs.count && (odm->scene_ns!=scene->root_od->scene_ns) && !stricmp(obj->URLs.vals[0].url, odm->scene_ns->url))
+		 ||   (obj->URLs.count && odm->scene_ns && (odm->scene_ns!=scene->root_od->scene_ns) && !stricmp(obj->URLs.vals[0].url, odm->scene_ns->url))
 		) {
 			u32 discard_obj = 0;
 

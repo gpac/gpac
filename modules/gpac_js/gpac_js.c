@@ -309,12 +309,10 @@ case GJS_GPAC_PROP_FULLSCREEN:
 
 case GJS_GPAC_PROP_CURRENT_PATH:
 {
-#ifdef FILTER_FIXME
-	char *url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, "");
+	char *url = gf_url_concatenate(compositor->root_scene->root_od->scene_ns->url, "");
 	if (!url) url = gf_strdup("");
 	*vp = STRING_TO_JSVAL(JS_NewStringCopyZ(c, url));
 	gf_free(url);
-#endif
 }
 break;
 
@@ -360,15 +358,21 @@ case GJS_GPAC_PROP_SCREEN_HEIGHT:
 	*vp = INT_TO_JSVAL( compositor->video_out->max_screen_height);
 	break;
 
-#ifdef FILTER_FIXME
 case GJS_GPAC_PROP_HTTP_MAX_RATE:
-	*vp = INT_TO_JSVAL( gf_dm_get_data_rate(compositor->downloader));
+	{
+	GF_DownloadManager *dm = gf_sc_get_downloader(compositor);
+	if (dm)
+		*vp = INT_TO_JSVAL( gf_dm_get_data_rate(dm));
+	}
 	break;
 
 case GJS_GPAC_PROP_HTTP_RATE:
-	*vp = INT_TO_JSVAL( gf_dm_get_global_rate(compositor->downloader) / 1000);
+	{
+	GF_DownloadManager *dm = gf_sc_get_downloader(compositor);
+	if (dm)
+		*vp = INT_TO_JSVAL( gf_dm_get_global_rate(dm) / 1000);
+	}
 	break;
-#endif
 
 case GJS_GPAC_PROP_FPS:
 	*vp = DOUBLE_TO_JSVAL(JS_NewDouble(c, gf_sc_get_fps(compositor, 0) ) );
@@ -497,13 +501,14 @@ case GJS_GPAC_PROP_NAVIGATION_TYPE:
 	gf_sc_set_option(compositor, GF_OPT_NAVIGATION_TYPE, 0);
 	break;
 case GJS_GPAC_PROP_HTTP_MAX_RATE:
-{
-#ifdef FILTER_FIXME
-	u32 new_rate = JSVAL_TO_INT(*vp);
-	gf_dm_set_data_rate(compositor->downloader, new_rate);
-#endif
-}
-break;
+	{
+	GF_DownloadManager *dm = gf_sc_get_downloader(compositor);
+	if (dm) {
+		u32 new_rate = JSVAL_TO_INT(*vp);
+		gf_dm_set_data_rate(dm, new_rate);
+	}
+	}
+	break;
 case GJS_GPAC_PROP_FOCUS_HIGHLIGHT:
 	compositor->disable_focus_highlight = JSVAL_TO_BOOLEAN(*vp) ? 0 : 1;
 	break;
@@ -826,9 +831,9 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 	cbk.is_dir = 1;
 
 	compositor = gpac_get_compositor(c, obj);
-#ifdef FILTER_FIXME
+
 	/*concatenate with service url*/
-	an_url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, url ? url : dir);
+	an_url = gf_url_concatenate(compositor->root_scene->root_od->scene_ns->url, url ? url : dir);
 	if (an_url) {
 		gf_free(url);
 		url = an_url;
@@ -842,13 +847,12 @@ static JSBool SMJS_FUNCTION(gpac_enum_directory)
 		if (dir_only && (err==GF_IO_ERR)) {
 			GF_Compositor *compositor = gpac_get_compositor(c, obj);
 			/*try to concatenate with service url*/
-			char *an_url = gf_url_concatenate(compositor->root_scene->root_od->net_service->url, url ? url : dir);
+			char *an_url = gf_url_concatenate(compositor->root_scene->root_od->scene_ns->url, url ? url : dir);
 			gf_free(url);
 			url = an_url;
 			gf_enum_directory(url ? url : dir, 0, enum_dir_fct, &cbk, filter);
 		}
 	}
-#endif
 
 	SMJS_SET_RVAL( OBJECT_TO_JSVAL(cbk.array) );
 	if (url) gf_free(url);
@@ -1201,16 +1205,11 @@ case GJS_OM_PROP_SELECTED_SERVICE:
 	*vp = INT_TO_JSVAL( (!odm->addon && odm->subscene) ? odm->subscene->selected_service_id : odm->parentscene->selected_service_id);
 	break;
 case GJS_OM_PROP_BANDWIDTH_DOWN:
-{
-#if FILTER_FIXME
-	GF_NetworkCommand com;
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.command_type = GF_NET_GET_STATS;
-	com.base.on_channel = gf_list_get(odm->channels, 0);
-	gf_term_service_command(odm->net_service, &com);
-	*vp = INT_TO_JSVAL(com.net_stats.bw_down/1000);
-#endif
-}
+	{
+		const GF_PropertyValue *prop = gf_filter_get_info(odm->scene_ns->source_filter, GF_PROP_PID_DOWN_RATE);
+		if (prop)
+			*vp = INT_TO_JSVAL(prop->value.uint/1000);
+	}
 break;
 case GJS_OM_PROP_NB_HTTP:
 #if FILTER_FIXME

@@ -655,7 +655,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", f->name));
 
 	//avoid destruction of the task
 	if (!task->in_main_task_list_only) {
@@ -700,6 +700,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter);
+			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 		}
 	}
 }
@@ -709,6 +710,7 @@ void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
 	u32 i, j, count, opids;
 
 	//walk all dest pids and mark filters as removed
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s up to %s\n", filter->name, until_filter->name));
 
 	opids = gf_list_count(filter->output_pids);
 	filter->removed = GF_TRUE;

@@ -51,107 +51,57 @@ static void load_all_modules(GF_ModuleManager *mgr)
 	LOAD_PLUGIN(soft_raster);
 	LOAD_PLUGIN(raw_out);
 
-#if FILTER_FIXME
-
-#ifdef GPAC_HAS_FAAD
-	LOAD_PLUGIN(aac_in);
-#endif
-#ifdef GPAC_HAS_AC3
-	LOAD_PLUGIN(ac3);
-#endif
-	LOAD_PLUGIN(amr_in);
-	
-#ifdef GPAC_HAS_ALSA
-	LOAD_PLUGIN(alsa);
-#endif
-
-	LOAD_PLUGIN(bifs);
-#ifndef GPAC_DISABLE_SMGR
-	LOAD_PLUGIN(ctx_load);
-#endif
-#ifdef GPAC_HAS_DIRECTFB
-	LOAD_PLUGIN(directfb_out);
-#endif
-	LOAD_PLUGIN(dummy_in);
-#ifdef GPAC_HAS_DIRECTX
-	LOAD_PLUGIN(dx_out);
-#endif
-#ifdef GPAC_HAS_FFMPEG
-	LOAD_PLUGIN(ffmpeg);
-#endif
-#ifdef GPAC_HAS_FREENECT
-	LOAD_PLUGIN(freenect);
-#endif
 #ifdef GPAC_HAS_FREETYPE
 	LOAD_PLUGIN(ftfont);
 #endif
 #ifdef GPAC_HAS_SPIDERMONKEY
 	LOAD_PLUGIN(gpac_js);
 #endif
-	LOAD_PLUGIN(img_in);
-	LOAD_PLUGIN(isma_ea);
-	LOAD_PLUGIN(isom);
+
+#ifdef GPAC_HAS_ALSA
+	LOAD_PLUGIN(alsa);
+#endif
+
+#ifdef GPAC_HAS_DIRECTFB
+	LOAD_PLUGIN(directfb_out);
+#endif
+
+#ifdef GPAC_HAS_DIRECTX
+	LOAD_PLUGIN(dx_out);
+#endif
+
 #ifdef GPAC_HAS_JACK
 	LOAD_PLUGIN(jack);
 #endif
-#ifndef GPAC_DISABLE_SVG
-	LOAD_PLUGIN(laser);
-#endif
-#ifdef GPAC_HAS_MAD
-	LOAD_PLUGIN(mp3_in);
-#endif
-	LOAD_PLUGIN(mpd_in);
-#ifndef GPAC_DISABLE_MEDIA_IMPORT
-	LOAD_PLUGIN(mpegts_in);
-#endif
-#ifdef GPAC_HAS_SPIDERMONKEY
-	LOAD_PLUGIN(mse_in);
-#endif
-	LOAD_PLUGIN(odf_dec);
-#ifdef GPAC_HAS_OGG
-	LOAD_PLUGIN(ogg_in);
-#endif
-#ifdef GPAC_HAS_OPENHEVC
-	LOAD_PLUGIN(openhevc);
-#endif
-#ifdef GPAC_HAS_OPENSVC
-	LOAD_PLUGIN(opensvc);
-#endif
-#ifndef GPAC_DISABLE_LOADER_BT
-	LOAD_PLUGIN(osd);
-#endif
+
 #ifdef GPAC_HAS_OSS
 	LOAD_PLUGIN(oss);
 #endif
+
 #ifdef GPAC_HAS_PULSEAUDIO
 	LOAD_PLUGIN(pulseaudio);
 #endif
 
-#ifdef GPAC_HAS_FFMPEG
-	//    LOAD_PLUGIN(redirect_av);
-#endif
-	LOAD_PLUGIN(rtp_in);
-	LOAD_PLUGIN(saf_in);
-#if !defined(GPAC_DISABLE_SMGR) && !defined(GPAC_DISABLE_SVG)
-	LOAD_PLUGIN(svg_in);
-#endif
-	LOAD_PLUGIN(timedtext);
 	LOAD_PLUGIN(validator);
+
 #ifdef GPAC_HAS_WAVEOUT
 	LOAD_PLUGIN(wave_out);
 #endif
-#ifndef GPAC_DISABLE_VTT
-	LOAD_PLUGIN(vtt_dec);
-#endif
-#ifndef GPAC_DISABLE_SVG
-	LOAD_PLUGIN(widgetman);
-#endif
+
 #ifdef GPAC_HAS_X11
 	LOAD_PLUGIN(x11_out);
 #endif
-#ifdef GPAC_HAS_XVID
-	LOAD_PLUGIN(xvid);
+
+#if FILTER_FIXME
+
+#ifndef GPAC_DISABLE_LOADER_BT
+	LOAD_PLUGIN(osd);
 #endif
+
+#ifndef GPAC_DISABLE_SVG
+	LOAD_PLUGIN(widgetman);
+#endif
+
 
 #if defined(GPAC_IPHONE) || defined(__DARWIN__) || defined(__APPLE__)
     LOAD_PLUGIN(vtb);

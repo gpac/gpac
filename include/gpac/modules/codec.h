@@ -273,6 +273,8 @@ typedef struct _mediadecoder
 } GF_MediaDecoder;
 
 
+#if 0
+
 /*
 				WARNING - DO NOT MODIFY THE POSITION OF ProcessData IN SCENE OR NODE DECODER, AS THE BOTH STRUCTURES
 		ARE TYPE_CASTED BY THE TERMINAL WHEN CALLING ProcessData
@@ -313,6 +315,8 @@ typedef struct _scenedecoder
 	*/
 	GF_Err (*ReleaseScene)(struct _scenedecoder *);
 } GF_SceneDecoder;
+
+#endif
 
 
 /*interface name and version for node decoder mainly used by AFX*/

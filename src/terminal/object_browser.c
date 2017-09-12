@@ -243,7 +243,8 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			info->min_buffer = -1;
 			info->max_buffer = 0;
 
-			info->buffer = gf_filter_pid_query_buffer_duration(pid) / 1000;
+			if (pid)
+				info->buffer = gf_filter_pid_query_buffer_duration(pid) / 1000;
 			info->max_buffer = odm->buffer_max_us / 1000;
 			info->min_buffer = odm->buffer_min_us / 1000;
 

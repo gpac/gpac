@@ -1516,6 +1516,9 @@ For these nodes, the traverse effect passed will be NULL.*/
 void gf_sc_queue_node_traverse(GF_Compositor *compositor, GF_Node *node);
 void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node);
 
+
+GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor);
+
 #ifdef __cplusplus
 }
 #endif

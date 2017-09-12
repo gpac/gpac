@@ -223,7 +223,10 @@ typedef struct __gf_filter_register
 	const char *description;
 	//optional - size of private stack structure. The structure is allocated by the framework and arguments are setup before calling any of the filter functions
 	u32 private_size;
+	//indicates all calls shall take place in fthe main thread (running GL output) - to be refined
 	Bool requires_main_thread;
+	//indicates the max number of additional input PIDs - muxers and scalable filters typically set this to (u32) -1
+	u32 max_extra_pids;
 
 	//list of input capabilities
 	const GF_FilterCapability *input_caps;
@@ -362,11 +365,17 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid);
 
+
+const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc);
+const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
+
+
 //signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
 //since there is no explicit link between input PIDs and output PIDs
 void gf_filter_pid_set_eos(GF_FilterPid *pid);
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
 
+//may trigger a reconfigure signal to the filter. If reconfigure not OK, returns NULL and the pid passed to the filter NO LONGER EXISTS (implicit remove)
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid);

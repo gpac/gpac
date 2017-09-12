@@ -410,12 +410,6 @@ static Bool odf_dec_process_event(GF_Filter *filter, GF_FilterEvent *com)
 	return GF_TRUE;
 }
 
-GF_Err odf_dec_initialize(GF_Filter *f)
-{
-	fprintf(stderr, "ODF init\n");
-	return GF_OK;
-}
-
 static const GF_FilterCapability ODFDecInputs[] =
 {
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD)},
@@ -442,7 +436,6 @@ GF_FilterRegister ODFDecRegister = {
 	.input_caps = ODFDecInputs,
 	.output_caps = ODFDecOutputs,
 	.process = odf_dec_process,
-	.initialize = odf_dec_initialize,
 	.configure_pid = odf_dec_configure_pid,
 	.update_arg = NULL,
 	.process_event = odf_dec_process_event,

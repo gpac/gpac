@@ -279,7 +279,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 
 	//a new property map was created -  flag the packet
 	if (!pid->request_property_map) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
 		pck->pid_props_changed = GF_TRUE;
 	}

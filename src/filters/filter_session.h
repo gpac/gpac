@@ -436,7 +436,6 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck);
 void gf_filter_pid_init_task(GF_FSTask *task);
 void gf_filter_pid_connect_task(GF_FSTask *task);
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
-void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove);
 void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
 void gf_filter_remove_task(GF_FSTask *task);

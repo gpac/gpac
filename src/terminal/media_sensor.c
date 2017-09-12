@@ -50,16 +50,19 @@ void RenderMediaSensor(GF_Node *node, void *rs, Bool is_destroy)
 	//we need to disable culling otherwise we may never be called back again ...
 	tr_state->disable_cull = 1;
 
-	if (!st->stream) st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
-	if (!st->stream || !st->stream->odm) return;
-
 	if (!st->is_init) {
+		if (!st->stream) {
+			st->stream = gf_mo_register(node, &st->sensor->url, 0, 0);
+			if (!st->stream || !st->stream->odm) return;
+		}
 		gf_list_add(st->stream->odm->ms_stack, st);
 		gf_odm_init_segments(st->stream->odm, st->seg, &st->sensor->url);
 		st->is_init = 1;
 		st->active_seg = 0;
-
 	}
+	//st->stream may be NULL when destroying the ODM
+	if (!st->stream || !st->stream->odm) return;
+
 	/*media sensor bound to natural media (audio, video) is updated when fetching the stream
 	data for rendering.*/
 
