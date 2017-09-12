@@ -2586,7 +2586,7 @@ void gf_sc_render_frame(GF_Compositor *compositor)
 		GF_TimeNode *tn = (GF_TimeNode *)gf_list_get(compositor->time_nodes, i);
 		if (!tn->needs_unregister) tn->UpdateTimeNode(tn);
 		if (tn->needs_unregister) {
-//			tn->is_registered = 0;
+			tn->is_registered = 0;
 			tn->needs_unregister = 0;
 			gf_list_rem(compositor->time_nodes, i);
 			i--;
@@ -3809,3 +3809,11 @@ void gf_sc_unqueue_node_traverse(GF_Compositor *compositor, GF_Node *node)
 	}
 	gf_sc_lock(compositor, GF_FALSE);
 }
+
+
+#include "../filters/filter_session.h"
+GF_DownloadManager *gf_sc_get_downloader(GF_Compositor *compositor)
+{
+	return compositor->filter->session->download_manager;
+}
+

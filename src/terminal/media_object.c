@@ -291,6 +291,10 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 		mo->bits_per_sample = 16;
 
 		mo->bytes_per_sec = mo->bits_per_sample * mo->num_channels * mo->sample_rate / 8;
+	} else if (mo->odm->type==GF_STREAM_OD) {
+		//nothing to do
+	} else if (mo->odm->type==GF_STREAM_OCR) {
+		//nothing to do
 	} else if (mo->odm->type==GF_STREAM_SCENE) {
 		//nothing to do
 	} else {
@@ -336,14 +340,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		//if buffering, first frame fetched and still buffering return
 		if (mo->pck && mo->odm->nb_buffering)
 			return NULL;
-	}
-
-	{
-	const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
-	v = gf_filter_pid_get_info(mo->odm->pid, GF_PROP_PID_DOWN_RATE);
-	if (v) {
-		fprintf(stderr, "download rate is %d bps\n", v->value.uint);
-	}
 	}
 
 	if (!mo->pck) {

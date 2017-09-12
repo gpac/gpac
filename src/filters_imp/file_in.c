@@ -51,6 +51,7 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 {
 	u32 oti=0;
 	char *ext = NULL;
+	char *sep;
 	GF_FilterPid *pid;
 	//declare a single PID carrying FILE data pid
 	pid = gf_filter_pid_new(filter);
@@ -59,6 +60,13 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING((char *)local_file));
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING((char *)url));
+
+	sep = strrchr(url, '/');
+	if (!sep) sep = strrchr(url, '\\');
+	if (!sep) sep = url;
+	else sep++;
+	gf_filter_pid_set_name(pid, sep);
+
 
 	ext = strrchr(url, '.');
 	if (ext && !stricmp(ext, ".gz")) {
@@ -89,6 +97,8 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 		) {
 			mime_type = "application/x-LASeR+xml";
 		} else if (strstr(probe_data, "<svg") || strstr(probe_data, "w3.org/2000/svg") ) {
+			mime_type = "image/svg+xml";
+		} else if (strstr(probe_data, "<widget")  ) {
 			mime_type = "application/widget";
 		}
 	}
@@ -138,6 +148,7 @@ GF_Err filein_initialize(GF_Filter *filter)
 		gf_filter_setup_failure(filter, GF_URL_ERROR);
 		return GF_URL_ERROR;
 	}
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FileIn] opening %s\n", src));
 	gf_fseek(ctx->file, 0, SEEK_END);
 	ctx->file_size = gf_ftell(ctx->file);
 	gf_fseek(ctx->file, 0, SEEK_SET);

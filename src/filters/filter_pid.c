@@ -126,7 +126,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		return;
 	}
 	//WARNING at this point pidinst->filter may be destroyed
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid instance %s destruction task\n",  filter->name, pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction\n",  filter->name, pid->name));
 	gf_list_del_item(pid->destinations, pidinst);
 	gf_filter_pid_inst_del(pidinst);
 
@@ -142,7 +142,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	}
 }
 
-void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove)
+GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_connect, Bool is_remove)
 {
 	u32 i, count;
 	GF_Err e;
@@ -162,6 +162,10 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 
 	//first connection of this PID to this filter
 	if (!pidinst) {
+		if (is_remove) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to disconnect PID %s not found in filter %s inputs\n",  pid->name, filter->name));
+			return GF_SERVICE_ERROR;
+		}
 		pidinst = gf_filter_pid_inst_new(filter, pid);
 		new_pid_inst=GF_TRUE;
 	}
@@ -197,9 +201,9 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 			//TODO: copy over args from current filter
 			GF_Filter *new_filter = gf_filter_clone(filter);
 			if (new_filter) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Clone filter %s, new instance for pid %s\n", filter->name, pid->name));
 				gf_fs_post_task(filter->session, gf_filter_pid_connect_task, new_filter, pid, "pid_connect", NULL);
-				e = GF_OK;
-				return;
+				return GF_OK;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
 				e = GF_OUT_OF_MEM;
@@ -221,7 +225,7 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 		}
 		//try to run filter no matter what
 		if (filter->session->requires_solved_graph )
-			return;
+			return e;
 	}
 
 	//flush all pending pid init requests following the call to init
@@ -240,7 +244,7 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		//post a pid_delete task to also trigger removal of the filter if needed
 		gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, pid->filter, pid, "pid_inst_delete", pidinst);
-		return;
+		return e;
 	}
 
 	if (is_connect) {
@@ -265,23 +269,37 @@ void gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_conne
 	}
 	//once all pid have been (re)connected, update any internal caps
 	gf_filter_pid_update_caps(pid, filter);
+	return e;
 }
 
 void gf_filter_pid_connect_task(GF_FSTask *task)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s connect to %s task\n", task->pid->pid->filter->name, task->filter->name, task->pid->pid->name));
-	gf_filter_pid_configure(task->filter, task->pid->pid, GF_TRUE, GF_FALSE);
+	GF_Filter *filter = task->filter;
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s connecting to %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
+
+	//filter will require a new instance, clone it
+	if (filter->num_input_pids && (filter->freg->max_extra_pids <= filter->num_input_pids - 1)) {
+		//TODO: copy over args from current filter
+		GF_Filter *new_filter = gf_filter_clone(filter);
+		if (new_filter) {
+			filter = new_filter;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to clone filter %s\n", filter->name));
+			return;
+		}
+	}
+	gf_filter_pid_configure(filter, task->pid->pid, GF_TRUE, GF_FALSE);
 }
 
 void gf_filter_pid_reconfigure_task(GF_FSTask *task)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s reconfigure to %s task\n", task->pid->pid->filter->name, task->filter->name, task->pid->pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s reconfigure to %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 	gf_filter_pid_configure(task->filter, task->pid->pid, GF_FALSE, GF_FALSE);
 }
 
 void gf_filter_pid_disconnect_task(GF_FSTask *task)
 {
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s task\n", task->pid->pid->filter->name, task->filter->name, task->pid->pid->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid %s disconnect from %s\n", task->pid->pid->filter->name, task->pid->pid->name, task->filter->name));
 	gf_filter_pid_configure(task->filter, task->pid->pid, GF_FALSE, GF_TRUE);
 }
 
@@ -651,7 +669,7 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
 	count = gf_list_count(filter_chain);
 	if (count==0) {
 		//no filter found for this pid !
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for PID in filter %s - NOT CONNECTED\n", pid->filter->name));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
 	} else {
 		//no filter found for this pid !
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved filter chain from filter %s PID %s to filter %s - dumping chain:\n", pid->filter->name, pid->name, dst_filter->name));
@@ -691,6 +709,10 @@ restart:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
+		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
+		if (task->pid->pid->filter->freg == filter_dst->freg) {
+			continue;
+		}
 		//second pass, we try to load a filter chain, so don't test against filters
 		//loaded for another chain
 		if (!first_pass && filter_dst->dynamic_filter) continue;
@@ -710,6 +732,7 @@ restart:
 		//if we have sourceID info on the pid, check them
 		if (!filter_source_id_match(task->pid, task->filter->id, filter_dst->source_ids)) continue;
 
+
 		//we have a match, check if caps are OK
 		if (!filter_pid_caps_match(task->pid, filter_dst->freg)) {
 			if (first_pass) continue;
@@ -720,12 +743,15 @@ restart:
 				continue;
 			}
 			filter_dst = new_f;
+			assert(task->pid->pid->filter->freg != filter_dst->freg);
 		}
+		assert(task->pid->pid->filter->freg != filter_dst->freg);
 
 		safe_int_inc(&task->pid->filter->pid_connection_pending);
 		gf_fs_post_task(filter_dst->session, gf_filter_pid_connect_task, filter_dst, task->pid, "pid_connect", NULL);
 
 		found_dest = GF_TRUE;
+		break;
 	}
 
 	//connection in proces, do nothing
@@ -924,6 +950,27 @@ const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
 	return NULL;
 }
 
+const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
+{
+	u32 i, count;
+	const GF_PropertyValue * prop;
+	GF_PropertyMap *map;
+
+	//TODO avoid doing back and forth ...
+	count = gf_list_count(filter->output_pids);
+	for (i=0; i<count; i++) {
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		prop = gf_filter_pid_get_info(pid, prop_4cc);
+		if (prop) return prop;
+	}
+	count = gf_list_count(filter->input_pids);
+	for (i=0; i<count; i++) {
+		GF_FilterPidInst *pidinst = gf_list_get(filter->input_pids, i);
+		prop = gf_filter_pid_get_info(pidinst->pid, prop_4cc);
+		if (prop) return prop;
+	}
+	return NULL;
+}
 
 
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid)
@@ -1012,10 +1059,14 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 
 	assert(pcki->pck);
 	if (pcki->pck->pid_props_changed && !pcki->pid_props_change_done) {
+		GF_Err e;
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 		pcki->pid_props_change_done = GF_TRUE;
 		assert(pidinst->filter->freg->configure_pid);
-		gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_FALSE, GF_FALSE);
+
+		e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_FALSE, GF_FALSE);
+		if (e != GF_OK) return NULL;
 	}
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
 
@@ -1028,7 +1079,8 @@ static void gf_filter_pidinst_update_stats(GF_FilterPidInst *pidi, GF_FilterPack
 	u64 now = gf_sys_clock_high_res();
 	u64 dec_time = now - pidi->last_pck_fetch_time;
 	if (pck->eos) return;
-
+	if (pidi->pid->filter->removed) return;
+	
 	pidi->filter->nb_pck_processed++;
 	pidi->filter->nb_bytes_processed += pck->data_length;
 
@@ -1385,7 +1437,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 		return;
 	}
 
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
 
 	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
 	memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
@@ -1447,6 +1499,8 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Removing PID input filter (%s:%s) not allowed\n", pid->filter->name, pid->pid->name));
 	}
+	if (pid->filter->removed) return;
+	
 	count = gf_list_count(pid->destinations);
 	for (j=0; j<count; j++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);

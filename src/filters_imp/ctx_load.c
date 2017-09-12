@@ -210,7 +210,7 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		priv->in_pid = pid;
 	} else {
 		if (pid != priv->in_pid) {
-			return GF_NOT_SUPPORTED;
+			return GF_REQUIRES_NEW_INSTANCE;
 		}
 		//update of PID filename
 		if (!prop->value.string || !priv->file_name || strcmp(prop->value.string, priv->file_name))
@@ -854,17 +854,17 @@ static const GF_FilterCapability CTXLoadInputs[] =
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("bt|btz|bt.gz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-xmt"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("xmt xmt.gz xmtz"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("xmt|xmt.gz|xmtz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("model/vrml"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_MIME, PROP_STRING("x-model/x-vrml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("wrl wrl.gz"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("wrl|wrl.gz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("model/x3d+vrml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3dv x3dv.gz x3dvz"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3dv|x3dv.gz|x3dvz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("model/x3d+xml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3d x3d.gz x3dz"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3d|x3d.gz|x3dz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-shockwave-flash"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("swf"), .start=GF_TRUE},
