@@ -520,7 +520,7 @@ enum {
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0;
+	u32 type=0, set_type=0, oti=0;
 	const GF_PropertyValue *prop;
 	GF_FFDecodeCtx  *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
@@ -533,15 +533,43 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	//check our PID: streamtype and OTI
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	if (!prop) return GF_NOT_SUPPORTED;
-	type = prop->value.uint;
-	switch (type) {
-	case GF_STREAM_AUDIO:
-	case GF_STREAM_VISUAL:
-//	case GF_STREAM_TEXT: todo
-		break;
-	default:
-		return GF_NOT_SUPPORTED;
+	if (prop) {
+		type = prop->value.uint;
+		switch (type) {
+		case GF_STREAM_AUDIO:
+		case GF_STREAM_VISUAL:
+//		case GF_STREAM_TEXT: todo
+			break;
+		default:
+			return GF_NOT_SUPPORTED;
+		}
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+		if (!prop) return GF_NOT_SUPPORTED;
+		oti = prop->value.uint;
+	} else {
+		//TODO - automatic map from ffmpeg mime and ext info ?
+		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+		if (prop && (!strcmp(prop->value.string, "jpg") || !strcmp(prop->value.string, "jpeg")) ) {
+			oti = GPAC_OTI_IMAGE_JPEG;
+			set_type = GF_STREAM_VISUAL;
+		}
+		else if (prop && !strcmp(prop->value.string, "png")) {
+			oti = GPAC_OTI_IMAGE_PNG;
+			set_type = GF_STREAM_VISUAL;
+		}
+		if (!oti) {
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+			if (prop && !strcmp(prop->value.string, "image/jpg")) {
+				oti = GPAC_OTI_IMAGE_JPEG;
+				set_type = GF_STREAM_VISUAL;
+			}
+			else if (prop && !strcmp(prop->value.string, "image/jpg")) {
+				oti = GPAC_OTI_IMAGE_PNG;
+				set_type = GF_STREAM_VISUAL;
+			}
+		}
+		if (!oti) return GF_NOT_SUPPORTED;
+		type = set_type;
 	}
 
 	//initial config or update
@@ -556,11 +584,9 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (ffdec->in_pid) return GF_REQUIRES_NEW_INSTANCE;
 	}
 
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-	if (!prop) return GF_NOT_SUPPORTED;
 
 
-	if (prop->value.uint == GPAC_OTI_MEDIA_FFMPEG) {
+	if (oti == GPAC_OTI_MEDIA_FFMPEG) {
 		AVCodec *codec=NULL;
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
@@ -580,7 +606,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//we reconfigure the stream
 	else if (ffdec->codec_ctx) {
 		u32 ex_crc=0;
-		u32 codec_id = ff_gpac_oti_to_codec_id(prop->value.uint);
+		u32 codec_id = ff_gpac_oti_to_codec_id(oti);
 
 		//TODO: flush decoder to dispatch internally pending frames and create a new decoder
 		if (ffdec->codec_ctx->codec->id != codec_id) {
@@ -597,7 +623,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 	} else {
 		AVCodec *codec=NULL;
-		u32 codec_id = ff_gpac_oti_to_codec_id(prop->value.uint);
+		u32 codec_id = ff_gpac_oti_to_codec_id(oti);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
@@ -633,6 +659,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		//to change once we implement on-the-fly codec change
 		sprintf(szCodecName, "ffdec:%s", ffdec->codec_ctx->codec->name ? ffdec->codec_ctx->codec->name : "unknown");
 		gf_filter_set_name(filter, szCodecName);
+		gf_filter_pid_set_framing_mode(ffdec->in_pid, GF_TRUE);
 	}
 	//copy props it at init config or at reconfig
 	if (ffdec->out_pid) {
@@ -641,6 +668,10 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 
 		gf_filter_pid_set_name(ffdec->out_pid, gf_filter_pid_get_name(ffdec->in_pid) );
+		if (set_type) {
+			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
+			//we need the full block to process ?
+		}
 	}
 
 	if (type==GF_STREAM_VISUAL) {
@@ -723,6 +754,9 @@ static const GF_FilterCapability FFDecodeInputs[] =
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("image/png"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("png"), .start=GF_TRUE},
+
+	{.code=GF_PROP_PID_MIME, PROP_STRING("image/jpg"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("jpg|jpeg"), .start=GF_TRUE},
 	{}
 };
 
