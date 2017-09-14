@@ -45,6 +45,7 @@ typedef struct
 	char *block;
 	Bool initial_play, pck_out, is_end;
 	u32 nb_read, file_size;
+	FILE *cached;
 } GF_HTTPInCtx;
 
 GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size);
@@ -80,6 +81,7 @@ void httpin_finalize(GF_Filter *filter)
 	if (ctx->sess) gf_dm_sess_del(ctx->sess);
 
 	if (ctx->block) gf_free(ctx->block);
+	if (ctx->cached) gf_fclose(ctx->cached);
 }
 
 GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
@@ -89,8 +91,15 @@ GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
+	ctx->pck_out = GF_FALSE;
+}
+
 static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 {
+	GF_FilterPacket *pck;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (!com->base.on_pid) return GF_FALSE;
@@ -105,16 +114,19 @@ static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		return GF_TRUE;
+	case GF_FEVT_FILE_NO_PCK:
+		if (! ctx->cached || ctx->is_end) return GF_TRUE;
+		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
+		if (!pck) return GF_TRUE;
+		ctx->is_end = GF_TRUE;
+		gf_filter_pck_set_framing(pck, ctx->nb_read ? GF_FALSE : GF_TRUE, ctx->is_end);
+		gf_filter_pck_send(pck);
+		gf_filter_pid_set_eos(ctx->pid);
+		return GF_TRUE;
 	default:
 		break;
 	}
 	return GF_FALSE;
-}
-
-static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
-{
-	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
-	ctx->pck_out = GF_FALSE;
 }
 
 static GF_Err httpin_process(GF_Filter *filter)
@@ -144,36 +156,47 @@ static GF_Err httpin_process(GF_Filter *filter)
 	is_start = ctx->nb_read ? GF_FALSE : GF_TRUE;
 	ctx->is_end = GF_FALSE;
 
-	e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
-	if (e<0) {
-		if (! ctx->nb_read)
-			gf_filter_setup_failure(filter, e);
-		return e;
+	//we read from cache file
+	if (ctx->cached) {
+		u32 to_read = ctx->file_size - ctx->nb_read;
+		if (to_read>ctx->block_size) to_read = ctx->block_size;
+
+		nb_read = fread(ctx->block, 1, to_read, ctx->cached);
+
 	}
+	//we read from network
+	else {
 
-	//wait until we have some data to declare the pid
-	if ((e!= GF_EOS) && !nb_read) return GF_OK;
-
-	gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
-
-	if (!ctx->pid) {
-		const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
-		if ((e==GF_EOS) && cached) {
-			FILE *f = gf_fopen(cached, "rb");
-			if (f) {
-				nb_read = fread(ctx->block, 1, ctx->block_size, f);
-				gf_fclose(f);
-			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[HTTPIn] Failed to open cached file %s\n", cached));
-			}
+		e = gf_dm_sess_fetch_data(ctx->sess, ctx->block, ctx->block_size, &nb_read);
+		if (e<0) {
+			if (! ctx->nb_read)
+				gf_filter_setup_failure(filter, e);
+			return e;
 		}
-		ctx->block[nb_read] = 0;
-		ctx->initial_play = GF_TRUE;
-		ctx->pid = filein_declare_pid(filter, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
-		if (!ctx->pid) return GF_SERVICE_ERROR;
+
+		//wait until we have some data to declare the pid
+		if ((e!= GF_EOS) && !nb_read) return GF_OK;
+
+		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
+
+		if (!ctx->pid) {
+			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+			if ((e==GF_EOS) && cached) {
+				ctx->cached = gf_fopen(cached, "rb");
+				if (ctx->cached) {
+					nb_read = fread(ctx->block, 1, ctx->block_size, ctx->cached);
+				} else {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[HTTPIn] Failed to open cached file %s\n", cached));
+				}
+			}
+			ctx->block[nb_read] = 0;
+			ctx->initial_play = GF_TRUE;
+			ctx->pid = filein_declare_pid(filter, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
+			if (!ctx->pid) return GF_SERVICE_ERROR;
+		}
+
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 	}
-	fprintf(stderr, "httpin rate is %d kbps\n", 8*bytes_per_sec);
-	gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
 
 	ctx->nb_read += nb_read;
 	if (ctx->file_size && (ctx->nb_read==ctx->file_size)) {
@@ -191,8 +214,9 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_set_sap(pck, 1);
 	gf_filter_pck_set_property(pck, GF_PROP_PCK_BYTE_OFFSET, &PROP_LONGUINT( ctx->nb_read ));
 
-	gf_filter_pck_send(pck);
+	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned
 	ctx->pck_out = GF_TRUE;
+	gf_filter_pck_send(pck);
 
 	if (ctx->is_end) {
 		gf_filter_pid_set_eos(ctx->pid);

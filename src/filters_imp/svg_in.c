@@ -309,6 +309,11 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 
 	if (!svgin->in_pid) {
 		svgin->in_pid = pid;
+		if (svgin->file_name) {
+			GF_FilterEvent evt;
+			evt.base.type = GF_FEVT_FILE_NO_PCK;
+			gf_filter_pid_send_event(pid, &evt);
+		}
 	} else {
 		if (pid != svgin->in_pid) {
 			return GF_REQUIRES_NEW_INSTANCE;
