@@ -2244,20 +2244,20 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 	}
 
 	if (scene->is_dynamic_scene) {
-#ifdef FILTER_FIXME
-		GF_NetworkCommand com;
+		u32 serv_w=0, serv_h=0;
+		GF_FilterPid *pid = gf_filter_get_ipid(scene->compositor->filter, 0);
+		const GF_PropertyValue *prop;
+		prop = gf_filter_pid_get_info(pid, GF_PROP_SERVICE_WIDTH);
+		if (prop) serv_w = prop->value.uint;
+		prop = gf_filter_pid_get_info(pid, GF_PROP_SERVICE_HEIGHT);
+		if (prop) serv_h = prop->value.uint;
 
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		if (!scene->vr_type) {
-			com.base.command_type = GF_NET_SERVICE_HAS_FORCED_VIDEO_SIZE;
-			gf_term_service_command(scene->root_od->net_service, &com);
-		}
 
-		if (!scene->parent_scene) {
-			if (com.par.width && com.par.height) {
+		if (!scene->root_od->parentscene) {
+			if (serv_w && serv_w) {
 				gf_sc_set_scene_size(scene->compositor, width, height, 1);
 				if (!scene->force_size_set) {
-					gf_sc_set_size(scene->compositor, com.par.width, com.par.height);
+					gf_sc_set_size(scene->compositor, serv_w, serv_h);
 					scene->force_size_set = 1;
 				} else {
 					gf_sc_set_size(scene->compositor, 0, 0);
@@ -2269,15 +2269,15 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				} else {
 					/*need output resize*/
 					gf_sg_set_scene_size_info(scene->graph, width, height, 1);
-					gf_sc_set_scene(scene->root_od->term->compositor, scene->graph);
-					gf_sc_set_size(scene->root_od->term->compositor, width, height);
+					gf_sc_set_scene(scene->compositor, scene->graph);
+					gf_sc_set_size(scene->compositor, width, height);
 				}
 			}
 
 		} else if (!scene->force_size_set) {
-			if (com.par.width && com.par.height) {
-				width = com.par.width;
-				height = com.par.height;
+			if (serv_w && serv_h) {
+				width = serv_w;
+				height = serv_h;
 			}
 			if (scene->vr_type) {
 				gf_sg_set_scene_size_info(scene->graph, 0, 0, 1);
@@ -2285,10 +2285,10 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			}
 			scene->force_size_set = 1;
-			} else {
+		} else {
 			u32 w, h;
 			gf_sg_get_scene_size_info(scene->graph, &w, &h);
-			if (!com.par.width && !com.par.height && ((w<width) || (h<height)) ) {
+			if (!serv_w && !serv_h && ((w<width) || (h<height)) ) {
 				gf_sg_set_scene_size_info(scene->graph, width, height, 1);
 			} else {
 				GF_DOM_Event devt;
@@ -2307,7 +2307,6 @@ void gf_scene_force_size(GF_Scene *scene, u32 width, u32 height)
 				height = h;
 			}
 		}
-#endif
 	}
 	else if (scene->root_od->parentscene && scene->root_od->parentscene->is_dynamic_scene) {
 		gf_sg_set_scene_size_info(scene->root_od->parentscene->graph, width, height, gf_sg_use_pixel_metrics(scene->root_od->parentscene->graph));

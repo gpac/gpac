@@ -352,7 +352,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	data = gf_filter_pck_get_data(mo->pck, size);
 	timescale = gf_filter_pck_get_timescale(mo->pck);
 
-	mo->is_eos = GF_FALSE;
 	if (!data) {
 		Bool is_eos = gf_filter_pck_get_eos(mo->pck);
 		if (!mo->is_eos && is_eos) {
@@ -576,7 +575,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
 	if (outFrame) *outFrame = mo->media_frame;
 
-	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
+//	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
 	if (mo->media_frame)
 		return (char *) mo->media_frame;
@@ -685,7 +684,7 @@ void gf_mo_play(GF_MediaObject *mo, Double clipBegin, Double clipEnd, Bool can_l
 	if (!mo) return;
 
 	if (!mo->num_open && mo->odm) {
-
+		mo->is_eos = GF_FALSE;
 		if (mo->odm->state == GF_ODM_STATE_PLAY) {
 			if (mo->odm->flags & GF_ODM_PREFETCH) {
 				mo->odm->flags &= ~GF_ODM_PREFETCH;

@@ -137,7 +137,12 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		//change of stream type for a given object, no use case yet
 		if (odm->type != mtype)
 			return GF_NOT_SUPPORTED;
-		if (odm->mo) odm->mo->config_changed = GF_TRUE;
+		if (odm->mo) {
+			odm->mo->config_changed = GF_TRUE;
+			if ((odm->type == GF_STREAM_VISUAL) && odm->parentscene && odm->parentscene->is_dynamic_scene) {
+				gf_scene_force_size_to_video(odm->parentscene, odm->mo);
+			}
+		}
 		return GF_OK;
 	}
 
