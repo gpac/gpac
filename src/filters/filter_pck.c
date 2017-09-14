@@ -157,6 +157,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
 	GF_FilterPid *pid = pck->pid;
 	assert(pck->pid);
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 
 	if (pck->pid_props) {
@@ -222,7 +223,10 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		pos += pcki->pck->data_length;
 		gf_filter_pck_merge_properties(pcki->pck, final);
 
-		if (pcki->pck->pid_props) final->pid_props = pcki->pck->pid_props;
+		if (pcki->pck->pid_props) {
+			final->pid_props = pcki->pck->pid_props;
+			safe_int_inc(&final->pid_props->reference_count);
+		}
 
 		gf_list_rem(dst->pck_reassembly, i);
 
@@ -433,8 +437,9 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 								GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to copy properties for cloned packet: %s\n", pid->filter->name, gf_error_to_string(e) ));
 							}
 						}
-						if (inst->pck->pid_props)
+						if (inst->pck->pid_props) {
 							safe_int_inc(&inst->pck->pid_props->reference_count);
+						}
 
 						safe_int_dec(&pck->reference_count);
 						safe_int_inc(&inst->pck->reference_count);

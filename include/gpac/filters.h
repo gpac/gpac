@@ -513,6 +513,11 @@ enum
 	//(uint) download rate in bits per second
 	GF_PROP_PID_DOWN_RATE = GF_4CC('D','L','B','W'),
 
+	//(uint) display width of service
+	GF_PROP_SERVICE_WIDTH = GF_4CC('D','W','D','T'),
+	//(uint) display  height of service
+	GF_PROP_SERVICE_HEIGHT = GF_4CC('D','H','G','T'),
+
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
 	//(longuint) byte offset in file of first byte in packet
@@ -543,6 +548,7 @@ typedef enum
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_MOUSE,
+	GF_FEVT_FILE_NO_PCK,	//no associated event structure
 } GF_FEventType;
 
 /*command type: the type of the event*/

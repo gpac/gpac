@@ -368,6 +368,10 @@ struct __gf_filter_pid_inst
 	struct __gf_filter_pid *pid; // source pid
 	GF_Filter *filter;
 
+	//current properties for the pid - we cannot use pid->properties since there could be
+	//multiple consumers running at different speed
+	GF_PropertyMap *props;
+
 	GF_FilterQueue *packets;
 
 	GF_Mutex *pck_mx;
