@@ -2263,7 +2263,7 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	GF_Err e;
 	if (/*sess->cache || */ !buffer || !buffer_size) return GF_BAD_PARAM;
 	if (sess->th) return GF_BAD_PARAM;
-	if (sess->status == GF_NETIO_DISCONNECTED) return GF_EOS;
+	if (!sess->init_data_size && (sess->status == GF_NETIO_DISCONNECTED)) return GF_EOS;
 	if (sess->status > GF_NETIO_DATA_TRANSFERED) return GF_BAD_PARAM;
 
 	*read_size = 0;
@@ -2299,6 +2299,8 @@ GF_Err gf_dm_sess_fetch_data(GF_DownloadSession *sess, char *buffer, u32 buffer_
 	size = *read_size;
 	*read_size = 0;
 	gf_dm_data_received(sess, (u8 *) buffer, size, GF_FALSE, read_size);
+	if (!sess->chunked)
+		*read_size = size;
 	return GF_OK;
 }
 
