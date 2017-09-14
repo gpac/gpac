@@ -55,7 +55,6 @@ void gf_odm_reset_media_control(GF_ObjectManager *odm, Bool signal_reset)
 	while ((media_sens = (MediaSensorStack *)gf_list_last(odm->ms_stack))) {
 		MS_Stop(media_sens);
 		/*and detach from stream object*/
-		printf("unregistered MS stream %p\n", media_sens->stream);
 		media_sens->stream = NULL;
 		gf_list_rem_last(odm->ms_stack);
 	}
