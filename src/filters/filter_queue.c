@@ -287,7 +287,7 @@ void *gf_fq_get(GF_FilterQueue *fq, u32 idx)
 		gf_mx_p(fq->mx);
 		it = fq->head;
 
-		while (idx) {
+		while (it && idx) {
 			it = it->next;
 			idx--;
 			if (!it) break;

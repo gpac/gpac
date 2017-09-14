@@ -634,6 +634,11 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
 		if (gf_list_find(pid->filter->blacklisted, (void *) freg)>=0)
 			continue;
 
+		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
+		if (pid->filter->freg == freg) {
+			continue;
+		}
+
 		//no match of pid caps for this filter
 		freg_weight = filter_pid_caps_match(pid, freg) ? 1 : 0;
 		if (!freg_weight) continue;
@@ -743,7 +748,6 @@ restart:
 				continue;
 			}
 			filter_dst = new_f;
-			assert(task->pid->pid->filter->freg != filter_dst->freg);
 		}
 		assert(task->pid->pid->filter->freg != filter_dst->freg);
 
@@ -912,20 +916,34 @@ GF_Err gf_filter_pid_set_info_dyn(GF_FilterPid *pid, char *name, const GF_Proper
 	return gf_filter_pid_set_property_full(pid, 0, NULL, name, value, GF_TRUE);
 }
 
+static GF_PropertyMap *filter_pid_get_prop_map(GF_FilterPid *pid)
+{
+	if (PID_IS_INPUT(pid)) {
+		GF_FilterPidInst *pidi = (GF_FilterPidInst *) pid;
+		//first time we access the props, use the first entry in the property list
+		if (!pidi->props) {
+			pidi->props = gf_list_get(pid->pid->properties, 0);
+			assert(pidi->props);
+			safe_int_inc(&pidi->props->reference_count);
+		}
+		return pidi->props;
+	} else {
+		pid = pid->pid;
+		return gf_list_last(pid->properties);
+	}
+	return NULL;
+}
+
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc)
 {
-	GF_PropertyMap *map;
-	pid = pid->pid;
-	map = gf_list_last(pid->properties);
+	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
 	assert(map);
 	return gf_props_get_property(map, prop_4cc, NULL);
 }
 
 const GF_PropertyValue *gf_filter_pid_get_property_str(GF_FilterPid *pid, const char *prop_name)
 {
-	GF_PropertyMap *map;
-	pid = pid->pid;
-	map = gf_list_last(pid->properties);
+	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
 	assert(map);
 	return gf_props_get_property(map, 0, prop_name);
 }
@@ -934,9 +952,7 @@ const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc)
 {
 	u32 i, count;
 	const GF_PropertyValue * prop;
-	GF_PropertyMap *map;
-	pid = pid->pid;
-	map = gf_list_last(pid->properties);
+	GF_PropertyMap *map = filter_pid_get_prop_map(pid);
 	assert(map);
 	prop = gf_props_get_property(map, prop_4cc, NULL);
 	if (prop) return prop;
@@ -954,7 +970,6 @@ const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc)
 {
 	u32 i, count;
 	const GF_PropertyValue * prop;
-	GF_PropertyMap *map;
 
 	//TODO avoid doing back and forth ...
 	count = gf_list_count(filter->output_pids);
@@ -1046,11 +1061,13 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 
 	if (!pcki) {
+#if 0
 		//it may happen that no task is currently scheduled for the source pid (bug to investigate)
 		//we force a task if not EOS to force flushing the parent
 		if (!pidinst->pid->has_seen_eos && !pidinst->pid->filter->would_block) {
-//			gf_filter_post_process_task(pidinst->pid->filter);
+			gf_filter_post_process_task(pidinst->pid->filter);
 		}
+#endif
 		return NULL;
 	}
 	
@@ -1059,12 +1076,28 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 
 	assert(pcki->pck);
 	if (pcki->pck->pid_props_changed && !pcki->pid_props_change_done) {
+		s32 props_idx;
 		GF_Err e;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 		pcki->pid_props_change_done = GF_TRUE;
-		assert(pidinst->filter->freg->configure_pid);
 
+		assert(pidinst->props && pidinst->props->reference_count);
+		//it may happen the props are already for the first packet, if
+		//filter_pid_get_property was queried before the first packet dispatch
+		if (pidinst->props != pcki->pck->pid_props) {
+
+			//unassign old property list and set the new one
+			if (safe_int_dec(& pidinst->props->reference_count) == 0) {
+				gf_list_del_item(pidinst->pid->properties, pidinst->props);
+				gf_props_del(pidinst->props);
+			}
+			pidinst->props = pcki->pck->pid_props;
+			safe_int_inc( & pidinst->props->reference_count );
+		}
+
+
+		assert(pidinst->filter->freg->configure_pid);
 		e = gf_filter_pid_configure(pidinst->filter, pidinst->pid, GF_FALSE, GF_FALSE);
 		if (e != GF_OK) return NULL;
 	}
