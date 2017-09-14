@@ -41,6 +41,8 @@ typedef struct
 
 	FILE *file;
 	u64 file_size;
+	u64 file_pos;
+	Bool is_end, pck_out;
 
 	char *block;
 	u32 start;
@@ -193,8 +195,15 @@ GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 	return res ? GF_FPROBE_SUPPORTED : GF_FPROBE_NOT_SUPPORTED;
 }
 
+void filein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
+	ctx->pck_out = GF_FALSE;
+}
+
 static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *com)
 {
+	GF_FilterPacket *pck;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (!com->base.on_pid) return GF_FALSE;
@@ -206,6 +215,15 @@ static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		return GF_TRUE;
+	case GF_FEVT_FILE_NO_PCK:
+		if (ctx->is_end) return GF_TRUE;
+		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, filein_pck_destructor);
+		if (!pck) return GF_TRUE;
+		ctx->is_end = GF_TRUE;
+		gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
+		gf_filter_pck_send(pck);
+		gf_filter_pid_set_eos(ctx->pid);
+		return GF_TRUE;
 	default:
 		break;
 	}
@@ -214,32 +232,47 @@ static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 static GF_Err filein_process(GF_Filter *filter)
 {
-	u32 nb_read;
+	u32 nb_read, to_read;
 	GF_FilterPacket *pck;
 	char *pck_data;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
-	if (ctx->pid) return GF_EOS;
+	if (ctx->is_end) return GF_EOS;
+	if (ctx->pck_out) return GF_OK;
+	if (ctx->pid && gf_filter_pid_would_block(ctx->pid)) {
+		assert(0);
+		return GF_OK;
+	}
+	to_read = ctx->file_size - ctx->file_pos;
+	if (to_read > ctx->block_size) to_read = ctx->block_size;
 
-	nb_read = fread(ctx->block, 1, ctx->block_size, ctx->file);
+	nb_read = fread(ctx->block, 1, to_read, ctx->file);
 
 	ctx->block[nb_read] = 0;
-	ctx->pid = filein_declare_pid(filter, ctx->src, ctx->src, NULL, ctx->block, nb_read);
-	if (!ctx->pid) return GF_SERVICE_ERROR;
-
-	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, NULL);
+	if (!ctx->pid) {
+		ctx->pid = filein_declare_pid(filter, ctx->src, ctx->src, NULL, ctx->block, nb_read);
+		if (!ctx->pid) return GF_SERVICE_ERROR;
+	}
+	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
 	if (!pck) return GF_OK;
 
 	gf_filter_pck_set_cts(pck, ctx->start);
 
-	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+//	gf_filter_pck_set_property(pck, GF_PROP_PCK_BYTE_OFFSET, &PROP_LONGUINT( ctx->file_pos ));
+	ctx->file_pos += nb_read;
+	if (ctx->file_pos == ctx->file_size)
+		ctx->is_end = GF_TRUE;
+	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
 	gf_filter_pck_set_sap(pck, 1);
-	gf_filter_pck_set_property(pck, GF_PROP_PCK_BYTE_OFFSET, &PROP_LONGUINT( 0 ));
 
+	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);
 
-	gf_filter_pid_set_eos(ctx->pid);
-	return GF_EOS;
+	if (ctx->is_end) {
+		gf_filter_pid_set_eos(ctx->pid);
+		return GF_EOS;
+	}
+	return GF_OK;
 }
 
 

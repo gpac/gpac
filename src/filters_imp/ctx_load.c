@@ -207,7 +207,11 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (!priv->in_pid) {
+		GF_FilterEvent evt;
 		priv->in_pid = pid;
+		evt.base.type = GF_FEVT_FILE_NO_PCK;
+		gf_filter_pid_send_event(pid, &evt);
+
 	} else {
 		if (pid != priv->in_pid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -476,7 +480,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 		/*load first frame only*/
 		else if (!priv->load_flags) {
-			/*we need the whole file*/
+			/*we need the whole file - this could be further optimized by loading from memory the entire buffer*/
 			if (!is_end) return GF_OK;
 
 			priv->load_flags = 1;
@@ -518,7 +522,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 		}
 	}
 
-	fprintf(stderr, "in CTX process - %s\n", pck ? "has packets" : "no packet");
 	updates_pending = 0;
 
 	i=0;
@@ -742,7 +745,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 				}
 
 			}
-			fprintf(stderr, "last au time is %d\n", au_time + 1);
 			sc->last_au_time = au_time + 1;
 			/*attach graph to renderer*/
 			if (!priv->scene->graph_attached)
@@ -761,7 +763,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	if (e) return e;
 
 	if ((priv->load_flags==2) && !updates_pending) {
-		fprintf(stderr, "in CTX process EOS\n");
 		gf_filter_pid_set_eos(priv->out_pid);
 		return GF_EOS;
 	}
@@ -770,7 +771,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	if (min_next_time_ms>2000)
 		min_next_time_ms=min_next_time_ms;
 	gf_filter_ask_rt_reschedule(filter, min_next_time_ms);
-	fprintf(stderr, "end CTX process - next time %d us\n", min_next_time_ms);
 	return GF_OK;
 }
 
