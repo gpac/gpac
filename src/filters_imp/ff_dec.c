@@ -502,6 +502,73 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	return GF_OK;
 }
 
+//#defined FFDEC_SUB_SUPPORT
+#ifdef FFDEC_SUB_SUPPORT
+static GF_Err ffdec_process_subtitle(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec)
+{
+	AVPacket pkt;
+	AVSubtitle subs;
+	s32 gotpic;
+	s32 len, in_size;
+	u32 output_size;
+	Bool is_eos=GF_FALSE;
+	char *data;
+	AVFrame *frame;
+	GF_FilterPacket *dst_pck;
+
+	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
+
+	if (!pck) {
+		is_eos = gf_filter_pid_is_eos(ffdec->in_pid);
+		if (!is_eos) return GF_OK;
+	}
+	av_init_packet(&pkt);
+	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
+
+	if (!is_eos) {
+		u64 dts;
+		pkt.pts = gf_filter_pck_get_cts(pck);
+
+		//copy over SAP and duration in dts
+		dts = gf_filter_pck_get_sap(pck);
+		dts <<= 32;
+		dts |= gf_filter_pck_get_duration(pck);
+		pkt.dts = dts;
+
+		pkt.size = in_size;
+		if (ffdec->frame_start > pkt.size) ffdec->frame_start = 0;
+		//seek to last byte consumed by the previous decode4()
+		else if (ffdec->frame_start) {
+			pkt.data += ffdec->frame_start;
+			pkt.size -= ffdec->frame_start;
+		}
+	} else {
+		pkt.size = 0;
+	}
+
+	memset(&subs, 0, sizeof(AVSubtitle));
+	frame = ffdec->frame;
+	len = avcodec_decode_subtitle2(ffdec->codec_ctx, &subs, &gotpic, &pkt);
+
+	//this will handle eos as well
+	if ((len<0) || !gotpic) {
+		ffdec->frame_start = 0;
+		if (pck) gf_filter_pid_drop_packet(ffdec->in_pid);
+		if (len<0) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ffdec->in_pid), pkt.pts, av_err2str(len) ));
+			return GF_NON_COMPLIANT_BITSTREAM;
+		}
+		if (is_eos) {
+			gf_filter_pid_set_eos(ffdec->out_pid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+
+	avsubtitle_free(&subs);
+	return GF_OK;
+}
+#endif
 
 static GF_Err ffdec_process(GF_Filter *filter)
 {
@@ -570,7 +637,9 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	switch (type) {
 	case GF_STREAM_AUDIO:
 	case GF_STREAM_VISUAL:
-//	case GF_STREAM_TEXT: todo
+#ifdef FFDEC_SUB_SUPPORT
+	case GF_STREAM_TEXT:
+#endif
 		break;
 	default:
 		return GF_NOT_SUPPORTED;
@@ -699,8 +768,10 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 			ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
 			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
 		}
+		if (!ffdec->frame)
+			ffdec->frame = av_frame_alloc();
 
-	} else {
+	} else if (type==GF_STREAM_AUDIO) {
 		ffdec->process = ffdec_process_audio;
 		//for now we convert everything to s16, to be updated later on
 		ffdec->sample_fmt = GF_AUDIO_FMT_S16;
@@ -717,9 +788,13 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (ffdec->codec_ctx->sample_rate) {
 			FF_CHECK_PROP(sample_rate, sample_rate, GF_PROP_PID_SAMPLE_RATE)
 		}
+		if (!ffdec->frame)
+			ffdec->frame = av_frame_alloc();
+	} else {
+#ifdef FFDEC_SUB_SUPPORT
+		ffdec->process = ffdec_process_subtitle;
+#endif
 	}
-	if (!ffdec->frame)
-		ffdec->frame = av_frame_alloc();
 	return GF_OK;
 }
 
@@ -756,12 +831,11 @@ static const GF_FilterCapability FFDecodeInputs[] =
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
 
-/*	{.code=GF_PROP_PID_MIME, PROP_STRING("image/png"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("png"), .start=GF_TRUE},
+#ifdef FFDEC_SUB_SUPPORT
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_TEXT), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
+#endif
 
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/jpg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("jpg|jpeg"), .start=GF_TRUE},
-*/
 	{}
 };
 
