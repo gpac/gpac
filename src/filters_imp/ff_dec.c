@@ -625,7 +625,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	//disconnect of src pid (not yet supported)
 	if (is_remove) {
 		//one in one out, this is simple
-		gf_filter_pid_remove(ffdec->out_pid);
+		if (ffdec->out_pid) gf_filter_pid_remove(ffdec->out_pid);
 		return GF_OK;
 	}
 
