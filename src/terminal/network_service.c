@@ -515,9 +515,9 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	odm->scene_ns->nb_odm_users++;
 	assert(odm->scene_ns->owner == odm);
 
-	odm->scene_ns->source_filter = gf_fs_load_source(fsess, serviceURL, parent_url);
+	odm->scene_ns->source_filter = gf_fs_load_source(fsess, serviceURL, parent_url, &e);
 	if (!odm->scene_ns->source_filter) {
-		gf_scene_message(scene, serviceURL, "Cannot find filter for service", GF_NOT_SUPPORTED);
+		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);
 		gf_odm_disconnect(odm, 1);
 		return;
 	}

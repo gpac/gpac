@@ -27,7 +27,6 @@
 #include <gpac/filters.h>
 /*for GF_STREAM_PRIVATE_SCENE definition*/
 #include <gpac/constants.h>
-#include <gpac/download.h>
 #include <gpac/xml.h>
 
 typedef struct
@@ -249,7 +248,7 @@ static GF_Err filein_process(GF_Filter *filter)
 
 	gf_filter_pck_set_cts(pck, ctx->start);
 
-//	gf_filter_pck_set_property(pck, GF_PROP_PCK_BYTE_OFFSET, &PROP_LONGUINT( ctx->file_pos ));
+	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
 	ctx->file_pos += nb_read;
 	if (ctx->file_pos == ctx->file_size)
 		ctx->is_end = GF_TRUE;
@@ -273,7 +272,7 @@ static GF_Err filein_process(GF_Filter *filter)
 static const GF_FilterArgs FileInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "2048", NULL, GF_FALSE},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "4096", NULL, GF_FALSE},
 	{}
 };
 

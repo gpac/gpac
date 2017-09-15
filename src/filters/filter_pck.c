@@ -83,6 +83,7 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	pck->corrupted = 0;
 	pck->sap_type = GF_FALSE;
 	pck->seek_flag = GF_FALSE;
+	pck->byte_offset = -1;
 
 	assert(pck->pid);
 	return pck;
@@ -197,6 +198,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 {
 	u32 size=0, pos=0;
+	u64 byte_offset = 0;
 	char *data;
 	GF_FilterPacket *final;
 	u32 i, count;
@@ -210,6 +212,13 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		assert(pck);
 		assert(!pck->pck->data_block_start || !pck->pck->data_block_end);
 		size += pck->pck->data_length;
+		if (!i) {
+			byte_offset = pck->pck->byte_offset + pck->pck->data_length;
+		}else if (byte_offset == pck->pck->byte_offset) {
+			byte_offset += pck->pck->data_length;
+		} else {
+			byte_offset = -1;
+		}
 	}
 
 	final = gf_filter_pck_new_alloc(dst->pid, size, &data);
@@ -247,6 +256,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 				duration /= pck->pid_props->timescale;
 				safe_int_add(&dst->buffer_duration, duration);
 			}
+			//not continous set of bytes reaggregated
+			if (byte_offset == -1) final->byte_offset = -1;
 
 			gf_fq_add(dst->packets, pcki);
 
@@ -260,6 +271,18 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		i--;
 	}
 	return GF_TRUE;
+}
+
+void gf_filter_pck_discard(GF_FilterPacket *pck)
+{
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to discard input packet on output PID in filter %s\n", pck->pid->filter->name));
+		return;
+	}
+	//function is only used to discard packets allocated but not dispatched, eg with no reference count
+	if (pck->reference_count == 0) {
+		gf_filter_packet_destroy(pck);
+	}
 }
 
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
@@ -749,3 +772,17 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 	//get true packet pointer
 	return pck->pck->seek_flag;
 }
+
+GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
+{
+	PCK_SETTER_CHECK("ByteOffset")
+	pck->byte_offset = byte_offset;
+	return GF_OK;
+}
+
+u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
+{
+	assert(pck);
+	return pck->pck->byte_offset;
+}
+

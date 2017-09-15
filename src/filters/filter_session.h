@@ -132,6 +132,7 @@ struct __gf_filter_pck
 	u8 eos;
 	u8 clock_discontinuity;
 	u8 seek_flag;
+	u64 byte_offset;
 
 	char *data;
 	u32 data_length;
@@ -349,11 +350,16 @@ struct __gf_filter
 	u64 schedule_next_time;
 };
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args);
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_Err *err);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 
 void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv);
+Bool gf_filter_swap_source_registry(GF_Filter *filter);
+
+GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args);
+
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter);
 
 typedef struct
 {
