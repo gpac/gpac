@@ -29,6 +29,7 @@
 #include <libavcodec/avcodec.h>
 #include <libavutil/opt.h>
 #include <libavutil/dict.h>
+#include <libavutil/pixdesc.h>
 #include <libswscale/swscale.h>
 
 #define FF_CHECK_PROP(_name, _ffname, _type)	if (ffdec->_name != ffdec->codec_ctx->_ffname) { \
@@ -216,20 +217,27 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		outsize = stride * ffdec->height;
 		break;
 	case GF_PIXEL_YV12:
-	case GF_PIXEL_YV12_10:
 		stride = ffdec->width;
 		outsize = 3*stride * ffdec->height / 2;
 		break;
-
+	case GF_PIXEL_YV12_10:
+		stride = ffdec->width*2;
+		outsize = 3*stride * ffdec->height / 2;
+		break;
 	case GF_PIXEL_YUV422:
-	case GF_PIXEL_YUV422_10:
 		stride = ffdec->width;
 		outsize = stride * ffdec->height * 2;
 		break;
-
+	case GF_PIXEL_YUV422_10:
+		stride = ffdec->width*2;
+		outsize = stride * ffdec->height * 2;
+		break;
 	case GF_PIXEL_YUV444:
-	case GF_PIXEL_YUV444_10:
 		stride = ffdec->width;
+		outsize = stride * ffdec->height * 3;
+		break;
+	case GF_PIXEL_YUV444_10:
+		stride = ffdec->width*2;
 		outsize = stride * ffdec->height * 3;
 		break;
 	default:
@@ -296,7 +304,33 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffdec->stride;
 		pix_out = PIX_FMT_YUV444P;
 		break;
+	case GF_PIXEL_YV12_10:
+		pict.data[0] =  (uint8_t *)out_buffer;
+		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
+		pict.data[2] =  (uint8_t *)out_buffer + 5 * ffdec->stride * ffdec->height / 4;
+		pict.linesize[0] = ffdec->stride;
+		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
+		pix_out = PIX_FMT_YUV420P10LE;
+		break;
+	case GF_PIXEL_YUV422_10:
+		pict.data[0] =  (uint8_t *)out_buffer;
+		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
+		pict.data[2] =  (uint8_t *)out_buffer + 3*ffdec->stride * ffdec->height/2;
+		pict.linesize[0] = ffdec->stride;
+		pict.linesize[1] = pict.linesize[2] = ffdec->stride/2;
+		pix_out = PIX_FMT_YUV422P10LE;
+	case GF_PIXEL_YUV444_10:
+		pict.data[0] =  (uint8_t *)out_buffer;
+		pict.data[1] =  (uint8_t *)out_buffer + ffdec->stride * ffdec->height;
+		pict.data[2] =  (uint8_t *)out_buffer + 2*ffdec->stride * ffdec->height;
+		pict.linesize[0] = pict.linesize[1] = pict.linesize[2] = ffdec->stride;
+		pix_out = PIX_FMT_YUV444P10LE;
+		break;
 	default:
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] Unsupported pixel format %s\n", av_get_pix_fmt_name(ffdec->codec_ctx->pix_fmt) ));
+
+		gf_filter_pck_discard(dst_pck);
+
 		return GF_NOT_SUPPORTED;
 	}
 
@@ -517,7 +551,7 @@ enum {
 static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	s32 res;
-	u32 type=0, set_type=0, oti=0;
+	u32 type=0, oti=0;
 	const GF_PropertyValue *prop;
 	GF_FFDecodeCtx  *ffdec = (GF_FFDecodeCtx *) gf_filter_get_udta(filter);
 
@@ -530,44 +564,21 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 	//check our PID: streamtype and OTI
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
-	if (prop) {
-		type = prop->value.uint;
-		switch (type) {
-		case GF_STREAM_AUDIO:
-		case GF_STREAM_VISUAL:
-//		case GF_STREAM_TEXT: todo
-			break;
-		default:
-			return GF_NOT_SUPPORTED;
-		}
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
-		if (!prop) return GF_NOT_SUPPORTED;
-		oti = prop->value.uint;
-	} else {
-		//TODO - automatic map from ffmpeg mime and ext info ?
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
-		if (prop && (!strcmp(prop->value.string, "jpg") || !strcmp(prop->value.string, "jpeg")) ) {
-			oti = GPAC_OTI_IMAGE_JPEG;
-			set_type = GF_STREAM_VISUAL;
-		}
-		else if (prop && !strcmp(prop->value.string, "png")) {
-			oti = GPAC_OTI_IMAGE_PNG;
-			set_type = GF_STREAM_VISUAL;
-		}
-		if (!oti) {
-			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
-			if (prop && !strcmp(prop->value.string, "image/jpg")) {
-				oti = GPAC_OTI_IMAGE_JPEG;
-				set_type = GF_STREAM_VISUAL;
-			}
-			else if (prop && !strcmp(prop->value.string, "image/jpg")) {
-				oti = GPAC_OTI_IMAGE_PNG;
-				set_type = GF_STREAM_VISUAL;
-			}
-		}
-		if (!oti) return GF_NOT_SUPPORTED;
-		type = set_type;
+	if (!prop) return GF_NOT_SUPPORTED;
+
+	type = prop->value.uint;
+	switch (type) {
+	case GF_STREAM_AUDIO:
+	case GF_STREAM_VISUAL:
+//	case GF_STREAM_TEXT: todo
+		break;
+	default:
+		return GF_NOT_SUPPORTED;
 	}
+	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	if (!prop) return GF_NOT_SUPPORTED;
+	oti = prop->value.uint;
+
 
 	//initial config or update
 	if (!ffdec->in_pid || (ffdec->in_pid==pid)) {
@@ -665,10 +676,6 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 
 		gf_filter_pid_set_name(ffdec->out_pid, gf_filter_pid_get_name(ffdec->in_pid) );
-		if (set_type) {
-			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-			//we need the full block to process ?
-		}
 	}
 
 	if (type==GF_STREAM_VISUAL) {
@@ -749,11 +756,12 @@ static const GF_FilterCapability FFDecodeInputs[] =
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
 
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/png"), .start=GF_TRUE},
+/*	{.code=GF_PROP_PID_MIME, PROP_STRING("image/png"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("png"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("image/jpg"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("jpg|jpeg"), .start=GF_TRUE},
+*/
 	{}
 };
 

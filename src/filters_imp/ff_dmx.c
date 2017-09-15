@@ -107,7 +107,9 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 
 	//todo - check if we want to use shared memory here
 	pck_dst = gf_filter_pck_new_alloc(ffd->pids[pkt.stream_index] , pkt.size, &data_dst);
+	assert(pck_dst);
 	memcpy(data_dst, pkt.data, pkt.size);
+
 
 	if (pkt.pts != AV_NOPTS_VALUE) {
 		AVStream *stream = ffd->ctx->streams[pkt.stream_index];
@@ -201,6 +203,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		e = GF_NON_COMPLIANT_BITSTREAM;
 		break;
 	case AVERROR_DEMUXER_NOT_FOUND:
+	case -ENOENT:
 		e = GF_URL_ERROR;
 		break;
 	default:

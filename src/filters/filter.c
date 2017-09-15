@@ -39,10 +39,11 @@ void gf_filterpacket_del(void *p)
 
 void gf_filter_parse_args(GF_Filter *filter, const char *args);
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_Err *err)
 {
 	char szName[200];
 	GF_Filter *filter;
+	GF_Err e;
 	assert(fsess);
 
 	GF_SAFEALLOC(filter, GF_Filter);
@@ -76,22 +77,33 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	gf_list_add(fsess->filters, filter);
 
+	e = gf_filter_new_finalize(filter, args);
+	if (e) {
+		if (!filter->finalized) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
+			gf_filter_setup_failure(filter, e);
+		}
+		if (err) *err = e;
+		return NULL;
+	}
+
+	return filter;
+}
+
+
+GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args)
+{
 	gf_filter_set_name(filter, NULL);
 
 	gf_filter_parse_args(filter, args);
 
-	if (!strcmp(registry->name, "compositor"))
+	filter->skip_process_trigger_on_tasks = GF_FALSE;
+	if (!strcmp(filter->freg->name, "compositor"))
 		filter->skip_process_trigger_on_tasks = GF_TRUE;
 
 	if (filter->freg->initialize) {
 		GF_Err e = filter->freg->initialize(filter);
-		if (e) {
-			if (!filter->finalized) {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e), registry->name));
-				gf_filter_setup_failure(filter, e);
-			}
-			return NULL;
-		}
+		if (e) return e;
 	}
 	//flush all pending pid init requests
 	if (filter->has_pending_pids) {
@@ -101,8 +113,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
 		}
 	}
-	return filter;
+	return GF_OK;
 }
+
 
 static void reset_filter_args(GF_Filter *filter);
 
@@ -551,7 +564,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 
@@ -727,6 +740,56 @@ void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
 	if (gf_list_count(filter->input_pids) ) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Disconnecting a filter in the middle of a chain not yet implemented\n"));
 	}
+}
+
+
+Bool gf_filter_swap_source_registry(GF_Filter *filter)
+{
+	u32 i;
+	char *src_url;
+	GF_Err e;
+	const GF_FilterArgs *src_arg=NULL;
+
+	while (gf_list_count(filter->postponed_packets)) {
+		GF_FilterPacket *pck = gf_list_pop_front(filter->postponed_packets);
+		gf_filter_packet_destroy(pck);
+	}
+
+	while (gf_list_count(filter->output_pids)) {
+		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
+		gf_filter_pid_del(pid);
+	}
+
+	if (filter->freg->finalize) filter->freg->finalize(filter);
+	gf_list_add(filter->blacklisted, filter->freg);
+
+	i=0;
+	while (filter->freg->args) {
+		src_arg = &filter->freg->args[i];
+		if (!src_arg || !src_arg->arg_name) {
+			src_arg=NULL;
+			break;
+		}
+		i++;
+		if (strcmp(src_arg->arg_name, "src")) continue;
+		//found it, get the url
+		if (src_arg->offset_in_private<0) continue;
+
+		src_url = *(char **) (filter->filter_udta + src_arg->offset_in_private);
+		 *(char **) (filter->filter_udta + src_arg->offset_in_private) = NULL;
+		 break;
+	}
+
+
+	gf_free(filter->filter_udta);
+	filter->filter_udta = NULL;
+	if (!src_url) return GF_FALSE;
+
+	gf_fs_load_source_internal(filter->session, src_url, NULL, &e, filter);
+	//we manage to reassign an input registry
+	if (e==GF_OK) return GF_TRUE;
+	//nope ...
+	return GF_FALSE;
 }
 
 

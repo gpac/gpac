@@ -492,7 +492,6 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING},
 
 	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Indicate sender NTP time if known", GF_PROP_LUINT},
-	{ GF_PROP_PCK_BYTE_OFFSET, "ByteOffset", "Byte offset of first byte in packet", GF_PROP_LUINT},
 
 };
 

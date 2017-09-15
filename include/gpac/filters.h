@@ -296,7 +296,7 @@ void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url);
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err);
 
 GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
@@ -396,6 +396,8 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 data_size, GF_FilterPacket *reference);
 GF_Err gf_filter_pck_send(GF_FilterPacket *pck);
 
+void gf_filter_pck_discard(GF_FilterPacket *pck);
+
 GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid);
 
 const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
@@ -435,6 +437,10 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
 
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek);
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
+
+
+GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset);
+u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
 
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
@@ -520,9 +526,6 @@ enum
 
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
-	//(longuint) byte offset in file of first byte in packet
-	GF_PROP_PCK_BYTE_OFFSET = GF_4CC('B','O','F','F'),
-
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);

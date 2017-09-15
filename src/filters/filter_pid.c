@@ -72,8 +72,6 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 	return pidinst;
 }
 
-GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst);
-
 static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 {
 	u32 mtype=0, oti=0;
@@ -220,7 +218,6 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 			if (filter->freg->output_caps) {
 				//todo - try to load another filter to handle that connection
 				gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
-				//gf_filter_pid_resolve_link(pid, filter);
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
 			}
@@ -613,13 +610,14 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 	return nb_matched;
 }
 
-GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
+static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, Bool *filter_reassigned)
 {
 	GF_Filter *chain_input = NULL;
 	GF_FilterSession *fsess = pid->filter->session;
 	GF_List *filter_chain = gf_list_new();
 	u32 max_weight=0;
 	const GF_FilterRegister *dst_filter = dst->freg;
+	*filter_reassigned = GF_FALSE;
 
 	//browse all our registered filters
 	u32 i, count=gf_list_count(fsess->registry);
@@ -675,8 +673,17 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
 	}
 	count = gf_list_count(filter_chain);
 	if (count==0) {
-		//no filter found for this pid !
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+		Bool res = GF_FALSE;
+		//if source filter, try to load another filter - we should complete this with a cache of filter sources
+		if (!pid->filter->num_input_pids) {
+			res = gf_filter_swap_source_registry(pid->filter);
+		}
+		if (!res) {
+			//no filter found for this pid !
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
+		} else {
+			*filter_reassigned = GF_TRUE;
+		}
 	} else {
 		//no filter found for this pid !
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved filter chain from filter %s PID %s to filter %s - dumping chain:\n", pid->filter->name, pid->name, dst_filter->name));
@@ -687,7 +694,7 @@ GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst)
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
 			//todo - we could forward the src arguments to the new filters
-			af = gf_filter_new(fsess, freg, NULL);
+			af = gf_filter_new(fsess, freg, NULL, NULL);
 			if (!af) goto exit;
 			//remember the first load one
 			if (!i) chain_input = af;
@@ -742,11 +749,14 @@ restart:
 
 		//we have a match, check if caps are OK
 		if (!filter_pid_caps_match(task->pid, filter_dst->freg)) {
+			Bool reassigned;
 			if (first_pass) continue;
 
-			GF_Filter *new_f = gf_filter_pid_resolve_link(task->pid, filter_dst);
+			GF_Filter *new_f = gf_filter_pid_resolve_link(task->pid, filter_dst, &reassigned);
 			//try to load filters
 			if (! new_f) {
+				//filter was reassigned (pid is destroyed), return
+				if (reassigned) return;
 				continue;
 			}
 			filter_dst = new_f;
@@ -1092,10 +1102,10 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
 		pcki->pid_props_change_done = GF_TRUE;
 
-		assert(pidinst->props && pidinst->props->reference_count);
-		//it may happen the props are already for the first packet, if
-		//filter_pid_get_property was queried before the first packet dispatch
-		if (pidinst->props != pcki->pck->pid_props) {
+		//it may happen that:
+		//- the props are not set when querying the first packet (no prop queries on pid)
+		//- the new props are already set if filter_pid_get_property was queried before the first packet dispatch
+		if (pidinst->props && (pidinst->props != pcki->pck->pid_props)) {
 
 			//unassign old property list and set the new one
 			if (safe_int_dec(& pidinst->props->reference_count) == 0) {

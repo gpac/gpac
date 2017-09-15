@@ -42,6 +42,7 @@ const GF_FilterRegister *filein_register(GF_FilterSession *session);
 const GF_FilterRegister *ctxload_register(GF_FilterSession *session);
 const GF_FilterRegister *httpin_register(GF_FilterSession *session);
 const GF_FilterRegister *svgin_register(GF_FilterSession *session);
+const GF_FilterRegister *img_reframe_register(GF_FilterSession *session);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -206,6 +207,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
+
 
 	//fixme - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -444,7 +447,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			filter = gf_filter_new(fsess, f_reg, args);
+			filter = gf_filter_new(fsess, f_reg, args, NULL);
 			if (filter) filter->orig_args = args;
 			return filter;
 		}
@@ -977,9 +980,8 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 }
 
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url)
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter)
 {
-	GF_Filter *filter;
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
 	const GF_FilterArgs *src_arg=NULL;
@@ -994,20 +996,23 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		return NULL;
 	}
+	if (filter) {
+		sURL = url;
+	} else {
+		/*used by GUIs scripts to skip URL concatenation*/
+		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
+		/*opera-style localhost URLs*/
+		else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
 
-	/*used by GUIs scripts to skip URL concatenation*/
-	if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
-	/*opera-style localhost URLs*/
-	else if (!strncmp(url, "file://localhost", 16)) sURL = gf_strdup(url+16);
+		else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
 
-	else if (parent_url) sURL = gf_url_concatenate(parent_url, url);
+		/*path absolute*/
+		if (!sURL) sURL = gf_strdup(url);
 
-	/*path absolute*/
-	if (!sURL) sURL = gf_strdup(url);
-
-	if (gf_url_is_local(sURL))
-		gf_url_to_fs_path(sURL);
-
+		if (gf_url_is_local(sURL))
+			gf_url_to_fs_path(sURL);
+	}
+	
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
@@ -1016,6 +1021,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 		GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 		if (! freg->probe_url) continue;
 		if (! freg->args) continue;
+		if (filter && (gf_list_find(filter->blacklisted, freg) >=0)) continue;
 
 		j=0;
 		while (freg->args) {
@@ -1039,6 +1045,7 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 	}
 	if (!candidate_freg) {
 		gf_free(sURL);
+		if (err) *err = GF_NOT_SUPPORTED;
 		return NULL;
 	}
 
@@ -1046,14 +1053,25 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_ur
 	strcpy(args, "src=");
 	strcat(args, sURL);
 
-	filter = gf_filter_new(fsess, candidate_freg, args);
-
+	if (!filter) {
+		filter = gf_filter_new(fsess, candidate_freg, args, err);
+	} else {
+		filter->freg = candidate_freg;
+		e = gf_filter_new_finalize(filter, args);
+		if (err) *err = e;
+	}
+	
 	if (filter && !filter->num_output_pids)
 		gf_filter_post_process_task(filter);
 
-	gf_free(args);
 	gf_free(sURL);
+	gf_free(args);
 	return filter;
+}
+
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err)
+{
+	return gf_fs_load_source_internal(fsess, url, parent_url, err, NULL);
 }
 
 
