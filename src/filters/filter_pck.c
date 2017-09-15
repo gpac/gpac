@@ -607,13 +607,14 @@ GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket 
 	pck_src=pck_src->pck;
 	pck_dst=pck_dst->pck;
 
-	if (pck_src->dts) pck_dst->dts = pck_src->dts;
-	if (pck_src->cts) pck_dst->cts = pck_src->cts;
-	if (pck_src->sap_type) pck_dst->sap_type = pck_src->sap_type;
-	if (pck_src->duration) pck_dst->duration = pck_src->duration;
-	if (pck_src->corrupted) pck_dst->corrupted = pck_src->corrupted;
-	if (pck_src->eos) pck_dst->eos = pck_src->eos;
-	if (pck_src->interlaced) pck_dst->interlaced = pck_src->interlaced;
+	pck_dst->dts = pck_src->dts;
+	pck_dst->cts = pck_src->cts;
+	pck_dst->sap_type = pck_src->sap_type;
+	pck_dst->duration = pck_src->duration;
+	pck_dst->corrupted = pck_src->corrupted;
+	pck_dst->eos = pck_src->eos;
+	pck_dst->interlaced = pck_src->interlaced;
+	pck_dst->byte_offset = pck_src->byte_offset;
 
 	if (!pck_src->props) {
 		if (pck_dst->props) {

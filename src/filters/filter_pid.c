@@ -216,8 +216,34 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to connect filter %s PID %s to filter %s: %s\n", pid->filter->name, pid->name, filter->name, gf_error_to_string(e) ));
 
 			if (filter->freg->output_caps) {
-				//todo - try to load another filter to handle that connection
+				Bool unload_filter = GF_TRUE;
+				//try to load another filter to handle that connection
+				//1-blacklist this filter
 				gf_list_add(pid->filter->blacklisted, (void *) filter->freg);
+				//2-disconnect all other inputs, and post a re-init
+				while (gf_list_count(filter->input_pids)) {
+					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
+					filter->freg->configure_pid(filter, a_pidinst, GF_TRUE);
+
+					gf_fs_post_task(filter->session, gf_filter_pid_init_task, a_pidinst->pid->filter, a_pidinst->pid, "pid_init", NULL);
+
+					gf_fs_post_task(filter->session, gf_filter_pid_inst_delete_task, a_pidinst->pid->filter, a_pidinst->pid, "pid_inst_delete", a_pidinst);
+
+					unload_filter = GF_FALSE;
+				}
+				if (is_connect) {
+					assert(pid->filter->pid_connection_pending);
+					safe_int_dec(&pid->filter->pid_connection_pending);
+				}
+				//3- post a re-init on this pid
+				gf_fs_post_task(filter->session, gf_filter_pid_init_task, pid->filter, pid, "pid_init", NULL);
+
+				if (unload_filter) {
+					filter->finalized = GF_TRUE;
+					assert(!gf_list_count(filter->input_pids));
+					gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
+				}
+				return e;
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
 			}
@@ -257,7 +283,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 
 			//source filters, start flushing data
 			//commented for now, we may want an auto-start
-			if (0 && !pid->filter->input_pids) {
+			else if (0 && !pid->filter->input_pids) {
 				gf_filter_post_process_task(pid->filter);
 			}
 			//other filters with packets ready in inputs, start processing
@@ -722,6 +748,8 @@ restart:
 		//source filter
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
+
+		if (gf_list_find(task->pid->filter->blacklisted, filter_dst->freg)>=0) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
 		if (task->pid->pid->filter->freg == filter_dst->freg) {
