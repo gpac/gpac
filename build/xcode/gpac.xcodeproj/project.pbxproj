@@ -453,6 +453,7 @@
 		92F4CE0F1E9E7202006A9845 /* object_browser.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F4CE0E1E9E7202006A9845 /* object_browser.c */; };
 		92F4CE121E9E7737006A9845 /* extract.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F4CE101E9E7708006A9845 /* extract.c */; };
 		92F8D4671F6BD93400616F7C /* reframe_img.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4661F6BD93400616F7C /* reframe_img.c */; };
+		92F8D4691F6C1C6F00616F7C /* img_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D4681F6C1C6F00616F7C /* img_dec.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 /* End PBXBuildFile section */
@@ -1285,6 +1286,7 @@
 		92F4CE0E1E9E7202006A9845 /* object_browser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = object_browser.c; sourceTree = "<group>"; };
 		92F4CE101E9E7708006A9845 /* extract.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = extract.c; path = ../../applications/mp4client/extract.c; sourceTree = "<group>"; };
 		92F8D4661F6BD93400616F7C /* reframe_img.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_img.c; path = filters_imp/reframe_img.c; sourceTree = "<group>"; };
+		92F8D4681F6C1C6F00616F7C /* img_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = img_dec.c; path = filters_imp/img_dec.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -2232,6 +2234,7 @@
 				9299BDDC1E5DA57100D6289D /* ff_dmx.c */,
 				92266A201F59A0790019DB71 /* file_in.c */,
 				92A5CBE01F62AEF7005D2A6A /* http_in.c */,
+				92F8D4681F6C1C6F00616F7C /* img_dec.c */,
 				9279D49D1E5EDF40004E53F4 /* inspect.c */,
 				922990E21E858383001FAC7F /* isoffin_load.c */,
 				922990DC1E858198001FAC7F /* isoffin_read_ch.c */,
@@ -3146,6 +3149,7 @@
 				9201010F18D5A444003D1ACA /* rtsp_command.c in Sources */,
 				9201011018D5A444003D1ACA /* rtsp_common.c in Sources */,
 				9201011118D5A444003D1ACA /* rtsp_response.c in Sources */,
+				92F8D4691F6C1C6F00616F7C /* img_dec.c in Sources */,
 				92C1FF571E7C42DF0093B61E /* raster_argb.c in Sources */,
 				9201011218D5A444003D1ACA /* rtsp_session.c in Sources */,
 				9201011318D5A444003D1ACA /* sdp.c in Sources */,
