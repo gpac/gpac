@@ -170,12 +170,14 @@ enum {
 };
 
 
+//#defined FFDMX_SUB_SUPPORT
+
 static GF_Err ffdmx_initialize(GF_Filter *filter)
 {
 	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
 	GF_Err e;
 	u32 i;
-	u32 nb_a, nb_v;
+	u32 nb_a, nb_v, nb_t;
 	s32 res;
 	char *ext;
 	AVInputFormat *av_in = NULL;
@@ -226,7 +228,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	ffd->pids = gf_malloc(sizeof(GF_FilterPid *)*ffd->ctx->nb_streams);
 	memset(ffd->pids, 0, sizeof(GF_FilterPid *)*ffd->ctx->nb_streams);
 
-	nb_a = nb_v = 0;
+	nb_t = nb_a = nb_v = 0;
 	for (i = 0; i < ffd->ctx->nb_streams; i++) {
 		GF_FilterPid *pid=NULL;
 		Bool expose_ffdec=GF_FALSE;
@@ -250,6 +252,16 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			sprintf(szName, "video%d", nb_v);
 			gf_filter_pid_set_name(pid, szName);
 			break;
+#ifdef FFDMX_SUB_SUPPORT
+		case AVMEDIA_TYPE_SUBTITLE:
+			pid = gf_filter_pid_new(filter);
+			if (!pid) return GF_OUT_OF_MEM;
+			gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_TEXT) );
+			nb_t++;
+			sprintf(szName, "text%d", nb_t);
+			gf_filter_pid_set_name(pid, szName);
+			break;
+#endif
 		default:
 			break;
 		}
@@ -376,19 +388,10 @@ static GF_FilterProbeScore ffdmx_probe_url(const char *url, const char *mime)
 #define OFFS(_n)	#_n, offsetof(GF_FFDemuxCtx, _n)
 
 
-static const GF_FilterCapability FFDemuxOutputs[] =
-{
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{}
-};
-
 GF_FilterRegister FFDemuxRegister = {
 	.name = "ffdmx",
 	.description = "FFMPEG demuxer "LIBAVFORMAT_IDENT,
 	.private_size = sizeof(GF_FFDemuxCtx),
-	.output_caps = FFDemuxOutputs,
 	.args = NULL,
 	.initialize = ffdmx_initialize,
 	.finalize = ffdmx_finalize,
