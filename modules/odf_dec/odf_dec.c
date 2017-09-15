@@ -277,14 +277,15 @@ GF_Err odf_dec_process(GF_Filter *filter)
 		if (!odm) continue;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pid);
-		if (!pck) continue;
-
-		data = gf_filter_pck_get_data(pck, &size);
-		if (!data) {
-			Bool is_eos = gf_filter_pck_get_eos(pck);
-			gf_filter_pid_drop_packet(pid);
+		if (!pck) {
+			Bool is_eos = gf_filter_pid_is_eos(pid);
 			if (is_eos)
 				gf_filter_pid_set_eos(opid);
+			continue;
+		}
+		data = gf_filter_pck_get_data(pck, &size);
+		if (!data) {
+			gf_filter_pid_drop_packet(pid);
 			continue;
 		}
 		scene = odm->subscene;

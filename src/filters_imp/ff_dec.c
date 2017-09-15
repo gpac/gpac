@@ -126,26 +126,24 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	Bool is_eos=GF_FALSE;
 	s32 res;
 	s32 gotpic;
-	const char *data;
+	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
 	u8 sap_type = 0;
 	u32 pck_duration = 0;
-	u32 size, pix_fmt, outsize, pix_out, stride;
+	u32 size=0, pix_fmt, outsize, pix_out, stride;
 	char *out_buffer;
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
 
-	if (!pck) return GF_OK;
-
+	if (!pck) {
+		is_eos = gf_filter_pid_is_eos(ffdec->in_pid);
+		if (!is_eos) return GF_OK;
+	}
 	frame = ffdec->frame;
 
 	av_init_packet(&pkt);
 
-	data = gf_filter_pck_get_data(pck, &size);
-
-	if (!data) {
-		is_eos = gf_filter_pck_get_eos(pck);
-	}
+	if (pck) data = gf_filter_pck_get_data(pck, &size);
 
 	if (!is_eos) {
 		u64 flags;
@@ -179,7 +177,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	//not end of stream, or no more data to flush
 	if (!is_eos || !gotpic) {
-		gf_filter_pid_drop_packet(ffdec->in_pid);
+		if (pck) gf_filter_pid_drop_packet(ffdec->in_pid);
 		if (is_eos) {
 			ffdec->flush_done = GF_TRUE;
 			gf_filter_pid_set_eos(ffdec->out_pid);
@@ -336,14 +334,13 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ffdec->in_pid);
 
-	if (!pck) return GF_OK;
-
-	av_init_packet(&pkt);
-	pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
-
-	if (!pkt.data) {
-		is_eos = gf_filter_pck_get_eos(pck);
+	if (!pck) {
+		is_eos = gf_filter_pid_is_eos(ffdec->in_pid);
+		if (!is_eos) return GF_OK;
 	}
+	av_init_packet(&pkt);
+	if (pck) pkt.data = (uint8_t *) gf_filter_pck_get_data(pck, &in_size);
+
 	if (!is_eos) {
 		u64 dts;
 		pkt.pts = gf_filter_pck_get_cts(pck);
@@ -371,7 +368,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	//this will handle eos as well
 	if ((len<0) || !gotpic) {
 		ffdec->frame_start = 0;
-		gf_filter_pid_drop_packet(ffdec->in_pid);
+		if (pck) gf_filter_pid_drop_packet(ffdec->in_pid);
 		if (len<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s failed to decode frame PTS "LLU": %s\n", gf_filter_pid_get_name(ffdec->in_pid), pkt.pts, av_err2str(len) ));
 			return GF_NON_COMPLIANT_BITSTREAM;

@@ -207,11 +207,7 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (!priv->in_pid) {
-		GF_FilterEvent evt;
 		priv->in_pid = pid;
-		evt.base.type = GF_FEVT_FILE_NO_PCK;
-		gf_filter_pid_send_event(pid, &evt);
-
 	} else {
 		if (pid != priv->in_pid) {
 			return GF_REQUIRES_NEW_INSTANCE;
@@ -269,7 +265,6 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (ext) priv->sax_max_duration = atoi(ext);
 #endif
 
-gf_filter_pid_set_framing_mode(pid, GF_FALSE);
 	return GF_OK;
 }
 

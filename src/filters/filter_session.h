@@ -397,6 +397,8 @@ struct __gf_filter_pid_inst
 	u64 total_process_time, total_sap_process_time;
 	u64 max_process_time, max_sap_process_time;
 	u64 first_frame_time;
+	Bool is_end_of_stream;
+	volatile u32 nb_eos_signaled;
 };
 
 struct __gf_filter_pid

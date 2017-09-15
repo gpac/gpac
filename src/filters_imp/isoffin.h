@@ -87,6 +87,7 @@ typedef struct
 	Double remain_at_buffering_start;
 	Bool buffering;
 
+	u32 src_crc;
 	GF_FilterPid *pid;
 } ISOMReader;
 

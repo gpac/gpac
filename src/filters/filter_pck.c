@@ -364,6 +364,10 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			inst->pck = pck;
 			inst->pid = dst;
 
+			if (inst->pck->eos) {
+				safe_int_inc(&inst->pid->nb_eos_signaled);
+			}
+			
 			safe_int_inc(&pck->reference_count);
 			nb_dispatch++;
 
@@ -503,12 +507,14 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	return GF_OK;
 }
 
-GF_FilterPacket *gf_filter_pck_ref(GF_FilterPacket *pck)
+GF_Err gf_filter_pck_ref(GF_FilterPacket **pck)
 {
-	assert(pck);
-	pck=pck->pck;
-	safe_int_inc(&pck->reference_count);
-	return pck;
+	if (! pck ) return GF_BAD_PARAM;
+	if (! *pck ) return GF_OK;
+
+	(*pck) = (*pck)->pck;
+	safe_int_inc(& (*pck)->reference_count);
+	return GF_OK;
 }
 
 void gf_filter_pck_unref(GF_FilterPacket *pck)
@@ -718,18 +724,7 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 	//get true packet pointer
 	return pck->pck->corrupted;
 }
-GF_Err gf_filter_pck_set_eos(GF_FilterPacket *pck, Bool eos)
-{
-	PCK_SETTER_CHECK("eos")
-	pck->eos = eos;
-	return GF_OK;
-}
-Bool gf_filter_pck_get_eos(GF_FilterPacket *pck)
-{
-	assert(pck);
-	//get true packet pointer
-	return pck->pck->eos;
-}
+
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 {
 	PCK_SETTER_CHECK("eos")
