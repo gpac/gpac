@@ -82,8 +82,7 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	}
 	if (!src)  return GF_SERVICE_ERROR;
 
-	read->filter = filter;
-	read->channels = gf_list_new();
+	read->src_crc = gf_crc_32(src, strlen(src));
 
 	strcpy(szURL, src);
 	tmp = strrchr(szURL, '.');
@@ -158,13 +157,17 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		isoffin_disconnect(read);
 		return GF_OK;
 	}
-	//TODO, needed for dash multilayer
-	if (read->pid) return GF_NOT_SUPPORTED;
-
 	//we must have a file path for now
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_FILEPATH);
 	if (!prop || ! prop->value.string) {
 		return GF_NOT_SUPPORTED;
+	}
+	if (read->pid) {
+		//TODO, will be needed for dash multilayer or playlists
+		if (read->src_crc != gf_crc_32(prop->value.string, strlen(prop->value.string)))
+			return GF_NOT_SUPPORTED;
+
+		return GF_OK;
 	}
 
 	read->pid = pid;
@@ -173,10 +176,12 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 GF_Err isoffin_initialize(GF_Filter *filter)
 {
-	char szURL[2048];
-	char *tmp;
 	ISOMReader *read = gf_filter_get_udta(filter);
-	if (read && read->src)
+
+	read->filter = filter;
+	read->channels = gf_list_new();
+
+	if (read->src)
 		return isoffin_setup(filter, read);
 
 	return GF_OK;
@@ -756,35 +761,17 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 	return GF_FALSE;
 }
 
-#ifdef FILTER_FIXME
-static Bool ISOR_CanHandleURLInService(GF_InputService *plug, const char *url)
-{
-	char szURL[2048], *sep;
-	ISOMReader *read = (ISOMReader *)plug->priv;
-	const char *this_url = gf_service_get_url(read->service);
-	if (!this_url || !url) return GF_FALSE;
-
-	if (!strcmp(this_url, url)) return GF_TRUE;
-
-	strcpy(szURL, this_url);
-	sep = strrchr(szURL, '#');
-	if (sep) sep[0] = 0;
-
-	/*direct addressing in service*/
-	if (url[0] == '#') return GF_TRUE;
-	if (strnicmp(szURL, url, sizeof(char)*strlen(szURL))) return GF_FALSE;
-	return GF_TRUE;
-}
-
-#endif
-
-
 static GF_Err isoffin_process(GF_Filter *filter)
 {
 	ISOMReader *read = gf_filter_get_udta(filter);
 	u32 i, count = gf_list_count(read->channels);
 	Bool is_active = GF_FALSE;
 
+	if (read->pid) {
+		while (gf_filter_pid_get_packet(read->pid)) {
+			gf_filter_pid_drop_packet(read->pid);
+		}
+	}
 	if (read->moov_not_loaded) {
 		read->moov_not_loaded = GF_FALSE;
 		return isoffin_setup(filter, read);
@@ -803,6 +790,8 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				u32 sample_dur;
 				GF_FilterPacket *pck;
 				pck = gf_filter_pck_new_alloc(ch->pid, ch->sample->dataLength, &data);
+				assert(pck);
+				
 				memcpy(data, ch->sample->data, ch->sample->dataLength);
 
 				gf_filter_pck_set_dts(pck, ch->current_slh.decodingTimeStamp);

@@ -114,15 +114,6 @@ static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		return GF_TRUE;
 	case GF_FEVT_STOP:
 		return GF_TRUE;
-	case GF_FEVT_FILE_NO_PCK:
-		if (! ctx->cached || ctx->is_end) return GF_TRUE;
-		pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, 0, httpin_rel_pck);
-		if (!pck) return GF_TRUE;
-		ctx->is_end = GF_TRUE;
-		gf_filter_pck_set_framing(pck, ctx->nb_read ? GF_FALSE : GF_TRUE, ctx->is_end);
-		gf_filter_pck_send(pck);
-		gf_filter_pid_set_eos(ctx->pid);
-		return GF_TRUE;
 	default:
 		break;
 	}

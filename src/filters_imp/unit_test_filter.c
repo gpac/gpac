@@ -351,7 +351,7 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		}
 	}
 	//just for coverage: check keeping a reference to the packet
-	gf_filter_pck_ref(pck);
+	gf_filter_pck_ref(& pck);
 
 	gf_filter_pck_send(pck);
 

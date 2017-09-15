@@ -374,6 +374,8 @@ const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
 //since there is no explicit link between input PIDs and output PIDs
 void gf_filter_pid_set_eos(GF_FilterPid *pid);
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
+Bool gf_filter_pid_is_eos(GF_FilterPid *pid);
+
 
 //may trigger a reconfigure signal to the filter. If reconfigure not OK, returns NULL and the pid passed to the filter NO LONGER EXISTS (implicit remove)
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
@@ -385,8 +387,8 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid);
 
 void gf_filter_send_update(GF_Filter *filter, const char *filter_id, const char *arg_name, const char *arg_val);
 
-//pck structure may be destroyed in this call, use the packet passed as return value 
-GF_FilterPacket *gf_filter_pck_ref(GF_FilterPacket *pck);
+//keeps a reference to the given packet
+GF_Err gf_filter_pck_ref(GF_FilterPacket **pck);
 void gf_filter_pck_unref(GF_FilterPacket *pck);
 
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data);
@@ -430,8 +432,6 @@ GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
 u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck);
-GF_Err gf_filter_pck_set_eos(GF_FilterPacket *pck, Bool eos);
-Bool gf_filter_pck_get_eos(GF_FilterPacket *pck);
 
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek);
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
@@ -548,7 +548,6 @@ typedef enum
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_MOUSE,
-	GF_FEVT_FILE_NO_PCK,	//no associated event structure
 } GF_FEventType;
 
 /*command type: the type of the event*/

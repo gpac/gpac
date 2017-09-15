@@ -68,7 +68,6 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 	pidinst->packets = gf_fq_new(pidinst->pck_mx);
 
 	pidinst->pck_reassembly = gf_list_new();
-	pidinst->requires_full_data_block = GF_TRUE;
 	pidinst->last_block_ended = GF_TRUE;
 	return pidinst;
 }
@@ -170,27 +169,30 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 		new_pid_inst=GF_TRUE;
 	}
 
+	//if new, add the PID to input/output before calling configure
+	if (new_pid_inst) {
+		assert(pidinst);
+		gf_list_add(pid->destinations, pidinst);
+
+		if (!filter->input_pids) filter->input_pids = gf_list_new();
+		gf_list_add(filter->input_pids, pidinst);
+		filter->num_input_pids = gf_list_count(filter->input_pids);
+	}
+
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, is_remove);
 
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Connected filter %s PID %s to filter %s\n", pid->filter->name,  pid->name, filter->name));
-			assert(pidinst);
-			gf_list_add(pid->destinations, pidinst);
-
-			if (!filter->input_pids) filter->input_pids = gf_list_new();
-			gf_list_add(filter->input_pids, pidinst);
-			filter->num_input_pids = gf_list_count(filter->input_pids);
 		}
 	} else {
-		//error, if old pid remove from input
-		if (!new_pid_inst) {
-			gf_list_del_item(filter->input_pids, pidinst);
-			gf_list_del_item(pidinst->pid->destinations, pidinst);
-			pidinst->filter = NULL;
-			filter->num_input_pids = gf_list_count(filter->input_pids);
-		}
+		//error,  remove from input
+		gf_list_del_item(filter->input_pids, pidinst);
+		gf_list_del_item(pidinst->pid->destinations, pidinst);
+		pidinst->filter = NULL;
+		filter->num_input_pids = gf_list_count(filter->input_pids);
+		
 		//if connect or reconfigure and error, direct delete of pid
 		if (!is_remove) {
 			gf_list_del_item(pid->destinations, pidinst);
@@ -1040,11 +1042,11 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 	if (PID_IS_OUTPUT(pid)) {
 		pidinst = gf_list_get(pid->destinations, 0);
 		if (! pidinst) return 0;
-		return gf_fq_count(pidinst->packets);
+		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
 
 	} else {
 		if (pidinst->discard_input_packets) return 0;
-		return gf_fq_count(pidinst->packets);
+		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
 	}
 }
 
@@ -1070,11 +1072,19 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 #endif
 		return NULL;
 	}
-	
+	assert(pcki->pck);
+
+	if (pcki->pck->eos) {
+		pcki->pid->is_end_of_stream = GF_TRUE;
+		safe_int_dec(&pcki->pid->nb_eos_signaled);
+		gf_filter_pid_drop_packet(pid);
+		return gf_filter_pid_get_packet(pid);
+	}
+	pcki->pid->is_end_of_stream = GF_FALSE;
+
 	if (pidinst->requires_full_data_block && !pcki->pck->data_block_end)
 		return NULL;
 
-	assert(pcki->pck);
 	if (pcki->pck->pid_props_changed && !pcki->pid_props_change_done) {
 		s32 props_idx;
 		GF_Err e;
@@ -1252,10 +1262,19 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (safe_int_dec(&pck->reference_count) == 0) {
 		gf_filter_packet_destroy(pck);
 	}
-	//decrement number of pending packet on target filter
-	safe_int_dec(&pidinst->filter->pending_packets);
+	//decrement number of pending packet on target filter if this is not a destroy
+	if (pidinst->filter)
+		safe_int_dec(&pidinst->filter->pending_packets);
 }
 
+Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_FALSE;
+	}
+	return ((GF_FilterPidInst *)pid)->is_end_of_stream;
+}
 
 void gf_filter_pid_set_eos(GF_FilterPid *pid)
 {
@@ -1264,10 +1283,12 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to signal EOS on input PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return;
 	}
+	//we create a fake packet for eos signaling
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
-	gf_filter_pck_set_eos(pck, GF_TRUE );
-	gf_filter_pck_send(pck);
+	gf_filter_pck_set_framing(pck, GF_TRUE, GF_TRUE);
+	pck->pck->eos = 1;
 	pid->pid->has_seen_eos = GF_TRUE;
+	gf_filter_pck_send(pck);
 }
 
 const GF_PropertyValue *gf_filter_pid_enum_properties(GF_FilterPid *pid, u32 *idx, u32 *prop_4cc, const char **prop_name)

@@ -310,7 +310,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 obj_time;
 	s32 diff;
 	Bool bench_mode, skip_resync;
-	const char *data;
+	const char *data = NULL;
 	const GF_PropertyValue *v;
 	u32 timescale=0;
 	u32 pck_ts=0, next_ts=0;
@@ -344,28 +344,28 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (!mo->pck) {
 		mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
-		if (!mo->pck)
+		if (!mo->pck) {
+			if (gf_filter_pid_is_eos(mo->odm->pid)) {
+				if (!mo->is_eos) {
+					mo->is_eos = GF_TRUE;
+					mediasensor_update_timing(mo->odm, GF_TRUE);
+					gf_odm_signal_eos_reached(mo->odm);
+				}
+			}
+			*eos = mo->is_eos;
 			return NULL;
-		mo->pck = gf_filter_pck_ref(mo->pck);
-		gf_filter_pid_drop_packet(mo->odm->pid);
-	}
-	data = gf_filter_pck_get_data(mo->pck, size);
-	timescale = gf_filter_pck_get_timescale(mo->pck);
-
-	if (!data) {
-		Bool is_eos = gf_filter_pck_get_eos(mo->pck);
-		if (!mo->is_eos && is_eos) {
-			mo->is_eos = GF_TRUE;
-			mediasensor_update_timing(mo->odm, GF_TRUE);
-			gf_odm_signal_eos_reached(mo->odm);
-			*eos = GF_TRUE;
+		} else {
+			gf_filter_pck_ref(&mo->pck);
+			gf_filter_pid_drop_packet(mo->odm->pid);
 		}
-		gf_filter_pid_drop_packet(mo->odm->pid);
-		mo->pck = NULL;
-		return NULL;
 	}
 
-	pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
+	if (mo->pck) {
+		data = gf_filter_pck_get_data(mo->pck, size);
+		timescale = gf_filter_pck_get_timescale(mo->pck);
+
+		pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
+	}
 
 	/*not running and no resync (ie audio)*/
 	if (!resync && !gf_clock_is_started(mo->odm->ck)) {
@@ -380,15 +380,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	next_ts = 0;
 	if (next_pck) {
 		next_ts = (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale);
-
-		if (gf_filter_pck_get_eos(next_pck)) {
+	} else {
+		if (gf_filter_pid_is_eos(mo->odm->pid)) {
 			if (!mo->is_eos) {
 				mo->is_eos = GF_TRUE;
 				mediasensor_update_timing(mo->odm, GF_TRUE);
 				gf_odm_signal_eos_reached(mo->odm);
 			}
-			gf_filter_pid_drop_packet(mo->odm->pid);
-			next_pck=NULL;
 		}
 	}
 	*eos = mo->is_eos;
@@ -437,7 +435,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 			//delete our packet
 			gf_filter_pck_unref(mo->pck);
-			mo->pck = gf_filter_pck_ref(next_pck);
+			mo->pck = next_pck;
+			gf_filter_pck_ref( &mo->pck);
 			pck_ts = next_ts;
 			//drop next packet from pid
 			gf_filter_pid_drop_packet(mo->odm->pid);
@@ -487,7 +486,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			/*discard*/
 			gf_filter_pck_unref(mo->pck);
 			/*reassign current to next packet*/
-			mo->pck = gf_filter_pck_ref(next_pck);
+			mo->pck = next_pck;
+			gf_filter_pck_ref(& mo->pck);
 			pck_ts = next_ts;
 			//drop next packet from pid
 			gf_filter_pid_drop_packet(mo->odm->pid);

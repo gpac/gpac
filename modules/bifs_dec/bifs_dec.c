@@ -163,17 +163,13 @@ GF_Err bifs_dec_process(GF_Filter *filter)
 		assert(odm->ck);
 
 		pck = gf_filter_pid_get_packet(pid);
-		if (!pck) continue;
-
-		data = gf_filter_pck_get_data(pck, &size);
-		if (!data) {
-			Bool is_eos = gf_filter_pck_get_eos(pck);
-
-			gf_filter_pid_drop_packet(pid);
+		if (!pck) {
+			Bool is_eos = gf_filter_pid_is_eos(pid);
 			if (is_eos)
 				gf_filter_pid_set_eos(opid);
 			continue;
 		}
+		data = gf_filter_pck_get_data(pck, &size);
 
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
 		if (prop) ESID = prop->value.uint;

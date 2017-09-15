@@ -74,7 +74,7 @@ static GF_Err compose_process(GF_Filter *filter)
 
 		e = GF_OK;
 		pck = gf_filter_pid_get_packet(pid);
-		if (pck && gf_filter_pck_get_eos(pck)) {
+		if (!pck && gf_filter_pid_is_eos(pid)) {
 			e = GF_EOS;
 		}
 		if (pck)
