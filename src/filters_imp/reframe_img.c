@@ -268,6 +268,9 @@ static const GF_FilterCapability ReframeImgOutputs[] =
 	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
 	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_IMAGE_JPEG )},
 
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_IMAGE_JPEG_2000 )},
+
 	{}
 };
 
