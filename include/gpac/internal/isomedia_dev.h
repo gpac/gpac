@@ -1879,6 +1879,7 @@ typedef struct {
 typedef struct {
 	GF_ISOM_BOX
 	GF_ItemPropertyContainerBox *property_container;
+	struct __item_association_box *property_association;
 } GF_ItemPropertiesBox;
 
 typedef struct {
@@ -2920,7 +2921,7 @@ typedef struct {
 	GF_List *property_index;
 } GF_ItemPropertyAssociationEntry;
 
-typedef struct {
+typedef struct __item_association_box {
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 } GF_ItemPropertyAssociationBox;

@@ -634,6 +634,7 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_odf_avc_cfg_write_bs) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_new) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_read) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_odf_hevc_cfg_del) )
