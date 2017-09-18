@@ -1941,22 +1941,28 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 		if (term->root_scene && !strncmp(com, "splice ", 7)) {
 			char *sep;
 			Double start, end;
+			Bool is_pts = GF_FALSE;
 			GF_AssociatedContentLocation addon_info;
 			memset(&addon_info, 0, sizeof(GF_AssociatedContentLocation));
-			sep = strchr(com+7, ':');
+			com += 7;
+			if (!strnicmp(com, "pts ", 4)) {
+				is_pts = GF_TRUE;
+				com += 4;
+			}
+			sep = strchr(com, ':');
 			start = 0;
 			end = -1;
 			if (sep) {
 				sep[0]=0;
-				if (sscanf(com+7, "%lf-%lf", &start, &end) != 2) {
+				if (sscanf(com, "%lf-%lf", &start, &end) != 2) {
 					end = -1;
-					sscanf(com+7, "%lf", &start);
+					sscanf(com, "%lf", &start);
 				}
 				sep[0]=':';
 				addon_info.external_URL = sep+1;
 			}
 			//splice end, locate first splice with no end set and set it
-			else if (sscanf(com+7, "%lf", &end)==1) {
+			else if (sscanf(com, "%lf", &end)==1) {
 				u32 count = gf_list_count(term->root_scene->declared_addons);
 				for (i=0; i<count; i++) {
 					GF_AddonMedia *addon = gf_list_get(term->root_scene->declared_addons, i);
@@ -1968,12 +1974,14 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 				return GF_OK;
 			} else {
 				//splice now, until end of spliced media
-				addon_info.external_URL = com + 7;
+				addon_info.external_URL = com;
 			}
 			addon_info.is_splicing = GF_TRUE;
 			addon_info.timeline_id = -100;
 			addon_info.splice_start_time = start;
 			addon_info.splice_end_time = end;
+			addon_info.splice_end_time = end;
+			addon_info.splice_time_pts = is_pts;
 			gf_scene_register_associated_media(term->root_scene, &addon_info);
 			return GF_OK;
 		}

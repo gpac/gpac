@@ -505,6 +505,7 @@
 		92BE50D518D6D66C00AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92BE50D618D6D6C100AA59D8 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
+		92F8D46C1F6FF7A100616F7C /* netctrl.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F8D46B1F6FF7A100616F7C /* netctrl.c */; };
 		92F930821A5ADB870072A85C /* os_divers.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930801A5ADB870072A85C /* os_divers.c */; };
 		92F930831A5ADB870072A85C /* os_file.c in Sources */ = {isa = PBXBuildFile; fileRef = 92F930811A5ADB870072A85C /* os_file.c */; };
 /* End PBXBuildFile section */
@@ -1397,6 +1398,7 @@
 		92BE511018D6DA6300AA59D8 /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
+		92F8D46B1F6FF7A100616F7C /* netctrl.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = netctrl.c; path = ../../modules/netctrl/netctrl.c; sourceTree = "<group>"; };
 		92F930801A5ADB870072A85C /* os_divers.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_divers.c; sourceTree = "<group>"; };
 		92F930811A5ADB870072A85C /* os_file.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = os_file.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -2394,6 +2396,7 @@
 				92AAF12218D6E6FE00E2FF12 /* mpd_in */,
 				92AAF12518D6E71C00E2FF12 /* mpegts_in */,
 				92AAF12818D6E73700E2FF12 /* mse_in */,
+				92F8D46A1F6FF78600616F7C /* netctrl */,
 				92AAF12B18D6E74F00E2FF12 /* odf_dec */,
 				92AAF12E18D6E76400E2FF12 /* osd */,
 				92BE50DF18D6D7F800AA59D8 /* raw_out */,
@@ -2880,6 +2883,14 @@
 				92BE511018D6DA6300AA59D8 /* surface.c */,
 			);
 			name = soft_raster;
+			sourceTree = "<group>";
+		};
+		92F8D46A1F6FF78600616F7C /* netctrl */ = {
+			isa = PBXGroup;
+			children = (
+				92F8D46B1F6FF7A100616F7C /* netctrl.c */,
+			);
+			name = netctrl;
 			sourceTree = "<group>";
 		};
 		92FA48841D0191570072C8A4 /* linklibs */ = {
@@ -3647,6 +3658,7 @@
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
+				92F8D46C1F6FF7A100616F7C /* netctrl.c in Sources */,
 				9201017F18D5A445003D1ACA /* mpeg4_animators.c in Sources */,
 				9201018018D5A445003D1ACA /* mpeg4_nodes.c in Sources */,
 				9201018118D5A445003D1ACA /* mpeg4_valuator.c in Sources */,
