@@ -200,6 +200,8 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 	u32 i, count;
 	GF_ItemLocationEntry *location_entry;
 	u32 item_num;
+	u32 item_type = 0;
+	u32 nalu_size_length = 0;
 	char *item_name = NULL;
 
 	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
@@ -212,6 +214,8 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		GF_ItemInfoEntryBox *item_entry = (GF_ItemInfoEntryBox *)gf_list_get(meta->item_infos->item_infos, item_num-1);
 		item_name = item_entry->item_name;
 		if (out_mime) *out_mime = item_entry->content_type;
+
+		item_type = item_entry->item_type;
 	}
 
 	location_entry = NULL;
@@ -250,6 +254,7 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 
 	item_bs = NULL;
 
+
 	if (out_data) {
 		item_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	} else if (dump_file_name) {
@@ -263,6 +268,47 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 		item_bs = gf_bs_from_file(resource, GF_BITSTREAM_WRITE);
 	}
 
+	if ((item_type == GF_ISOM_SUBTYPE_HVC1) || (item_type == GF_ISOM_SUBTYPE_AVC_H264) ) {
+		u32 i, count, j, c2;
+		GF_HEVCConfigurationBox *hvcc = NULL;
+		GF_AVCConfigurationBox *avcc = NULL;
+		if (! meta->item_props) return GF_NON_COMPLIANT_BITSTREAM;
+		if (! meta->item_props->property_container) return GF_NON_COMPLIANT_BITSTREAM;
+		if (! meta->item_props->property_association) return GF_NON_COMPLIANT_BITSTREAM;
+
+		count = gf_list_count(meta->item_props->property_association->entries);
+		for (i=0; i<count; i++) {
+			GF_ItemPropertyAssociationEntry *e = gf_list_get(meta->item_props->property_association->entries, i);
+			if (e->item_id!=item_id) continue;
+			c2 = gf_list_count(e->property_index);
+			for (j=0; j<c2; j++) {
+				u32 *idx = gf_list_get(e->property_index, j);
+				hvcc = gf_list_get(meta->item_props->property_container->other_boxes, *idx);
+				if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
+				if (hvcc->type == GF_ISOM_BOX_TYPE_HVCC) break;
+				if (hvcc->type == GF_ISOM_BOX_TYPE_AVCC) {
+					avcc = (GF_AVCConfigurationBox *) hvcc;
+					hvcc = NULL;
+					break;
+				}
+			}
+			if (avcc || hvcc) break;
+		}
+
+		if (hvcc) {
+			hvcc->config->write_annex_b = GF_TRUE;
+			gf_odf_hevc_cfg_write_bs(hvcc->config, item_bs);
+			hvcc->config->write_annex_b = GF_FALSE;
+			nalu_size_length = hvcc->config->nal_unit_size;
+		}
+		else if (avcc) {
+			avcc->config->write_annex_b = GF_TRUE;
+			gf_odf_avc_cfg_write_bs(avcc->config, item_bs);
+			avcc->config->write_annex_b = GF_FALSE;
+			nalu_size_length = avcc->config->nal_unit_size;
+		}
+	}
+
 	for (i=0; i<count; i++) {
 		char buf_cache[4096];
 		u64 remain;
@@ -271,10 +317,25 @@ GF_Err gf_isom_extract_meta_item_extended(GF_ISOFile *file, Bool root_meta, u32 
 
 		remain = extent_entry->extent_length;
 		while (remain) {
-			u32 cache_size = (remain>4096) ? 4096 : (u32) remain;
-			gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
-			gf_bs_write_data(item_bs, buf_cache, cache_size);
-			remain -= cache_size;
+			if (nalu_size_length) {
+				u32 nal_size = gf_bs_read_int(file->movieFileMap->bs, 8*nalu_size_length);
+				assert(remain>nalu_size_length);
+				
+				gf_bs_write_u32(item_bs, 1);
+				remain -= nalu_size_length + nal_size;
+				while (nal_size) {
+					u32 cache_size = (nal_size>4096) ? 4096 : (u32) nal_size;
+
+					gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
+					gf_bs_write_data(item_bs, buf_cache, cache_size);
+					nal_size -= cache_size;
+				}
+			} else {
+				u32 cache_size = (remain>4096) ? 4096 : (u32) remain;
+				gf_bs_read_data(file->movieFileMap->bs, buf_cache, cache_size);
+				gf_bs_write_data(item_bs, buf_cache, cache_size);
+				remain -= cache_size;
+			}
 		}
 	}
 	if (out_data) {
@@ -549,10 +610,10 @@ static void meta_process_image_properties(GF_MetaBox *meta, u32 item_ID, GF_Imag
 		meta->item_props->property_container = (GF_ItemPropertyContainerBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IPCO);
 		ipco = meta->item_props->property_container;
 		ipma = (GF_ItemPropertyAssociationBox *)gf_isom_box_new(GF_ISOM_BOX_TYPE_IPMA);
-		gf_list_add(meta->item_props->other_boxes, ipma);
+		meta->item_props->property_association = ipma;
 	} else {
-		ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
 		ipco = meta->item_props->property_container;
+		ipma = meta->item_props->property_association;
 	}
 	if (image_props->width || image_props->height) {
 		searchprop.width = image_props->width;
