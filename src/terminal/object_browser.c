@@ -255,7 +255,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	}
 
 	if (odm->scene_ns) {
-		info->service_handler = gf_filter_get_name(odm->scene_ns->source_filter);
+		info->service_handler = odm->scene_ns->source_filter ? gf_filter_get_name(odm->scene_ns->source_filter) : "unloaded";
 
 		info->service_url = odm->scene_ns->url;
 		if (odm->scene_ns->owner == odm) info->owns_service = 1;

@@ -718,28 +718,62 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	}
 }
 
-void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
+void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 {
-	u32 i, j, count, opids;
+	u32 i, j, count, opids, ipids;
 
-	//walk all dest pids and mark filters as removed
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s up to %s\n", filter->name, until_filter->name));
+	if (filter->removed) 
+		return;
 
-	opids = gf_list_count(filter->output_pids);
+	if (filter==until_filter)
+		return;
+
+	if (until_filter) {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s up to %s\n", filter->name, until_filter->name));
+	} else {
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
+	}
+	//get all dest pids, post disconnect and mark filters as removed
 	filter->removed = GF_TRUE;
-	for (i=0; i<opids; i++) {
+	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
 		count = gf_list_count(pid->destinations);
 		for (j=0; j<count; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
-			gf_filter_tag_remove(pidi->filter, filter, until_filter);
+			if (until_filter) {
+				gf_filter_tag_remove(pidi->filter, filter, until_filter);
+			}
+
 			gf_fs_post_task(filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 		}
 	}
 
-	if (gf_list_count(filter->input_pids) ) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Disconnecting a filter in the middle of a chain not yet implemented\n"));
+
+	//check all pids connected to this filter, ensure their owner is only connected to this filter
+	for (i=0; i<filter->num_input_pids; i++) {
+		GF_FilterPid *pid;
+		GF_FilterPidInst *pidi = gf_list_get(filter->input_pids, i);
+		Bool can_remove = GF_TRUE;
+		//check all output pids of the filter owning this pid are connected to ourselves
+		pid = pidi->pid;
+		count = gf_list_count(pid->destinations);
+		for (j=0; j<count; j++) {
+			GF_FilterPidInst *pidi_o = gf_list_get(pid->destinations, j);
+			if (pidi_o->filter != filter) {
+				can_remove = GF_FALSE;
+				break;
+			}
+		}
+		if (can_remove && !pid->filter->removed) {
+			gf_filter_remove_internal(pid->filter, NULL);
+		}
 	}
+}
+
+void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
+{
+	
+	gf_filter_remove_internal(filter, until_filter);
 }
 
 
@@ -791,5 +825,4 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	//nope ...
 	return GF_FALSE;
 }
-
 

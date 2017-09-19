@@ -189,8 +189,10 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_IN_IOD);
-	if (prop && prop->value.boolean) in_iod = GF_TRUE;
-
+	if (prop && prop->value.boolean) {
+		scene->is_dynamic_scene = GF_FALSE;
+		in_iod = GF_TRUE;
+	}
 	if ((mtype==GF_STREAM_OD) && !in_iod) return GF_NOT_SUPPORTED;
 
 	//setup object (clock) and playback requests

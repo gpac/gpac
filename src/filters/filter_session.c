@@ -905,7 +905,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 
 	fprintf(stderr, "\n");
 	count=gf_list_count(fsess->filters);
-	fprintf(stderr, "Filter stats - %d filters\n", 1+count);
+	fprintf(stderr, "Filter stats - %d filters\n", count);
 	for (i=0; i<count; i++) {
 		u32 k, ipids, opids;
 		GF_Filter *f = gf_list_get(fsess->filters, i);

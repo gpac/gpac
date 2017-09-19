@@ -751,7 +751,7 @@ Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 {
-	PCK_SETTER_CHECK("eos")
+	PCK_SETTER_CHECK("dur")
 	pck->duration = duration;
 	return GF_OK;
 }
@@ -763,7 +763,7 @@ u32 gf_filter_pck_get_duration(GF_FilterPacket *pck)
 }
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek)
 {
-	PCK_SETTER_CHECK("eos")
+	PCK_SETTER_CHECK("seek")
 	pck->seek_flag = is_seek;
 	return GF_OK;
 }
@@ -776,7 +776,7 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
 {
-	PCK_SETTER_CHECK("ByteOffset")
+	PCK_SETTER_CHECK("byteOffset")
 	pck->byte_offset = byte_offset;
 	return GF_OK;
 }

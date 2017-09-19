@@ -1099,15 +1099,8 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	if (pidinst->discard_input_packets) return NULL;
 
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
-
+	//no packets
 	if (!pcki) {
-#if 0
-		//it may happen that no task is currently scheduled for the source pid (bug to investigate)
-		//we force a task if not EOS to force flushing the parent
-		if (!pidinst->pid->has_seen_eos && !pidinst->pid->filter->would_block) {
-			gf_filter_post_process_task(pidinst->pid->filter);
-		}
-#endif
 		return NULL;
 	}
 	assert(pcki->pck);
