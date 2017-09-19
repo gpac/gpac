@@ -1031,6 +1031,26 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_FilterPid *pid)
 
 
 		gf_odm_service_media_event(odm, GF_EVENT_MEDIA_LOAD_DONE);
+		//a little optimization here: for scene with no associated resources (no audio, video, images), unload
+		//the filter chain once the scene is loaded
+		//TODO: further optimize to disconnect scenes with static resources (images, logo, ...)
+		if (odm->subscene && !gf_list_count(odm->subscene->resources)) {
+			GF_FilterEvent fevt;
+
+			GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
+			fevt.attach_scene.object_manager = odm;
+			gf_filter_pid_exec_event(odm->pid, &fevt);
+
+			gf_filter_pid_set_udta(odm->pid, NULL);
+			odm->pid = NULL;
+			for (i=0; i<count; i++) {
+				GF_ODMExtraPid *xpid = gf_list_get(odm->extra_pids, i);
+				gf_filter_pid_set_udta(xpid->pid, NULL);
+				xpid->pid = NULL;
+			}
+			gf_filter_remove(odm->scene_ns->source_filter, odm->subscene->compositor->filter);
+			odm->scene_ns->source_filter = NULL;
+		}
 	}
 }
 

@@ -194,6 +194,8 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (is_remove) {
 		priv->in_pid = NULL;
+		gf_filter_pid_remove(priv->out_pid);
+		priv->out_pid = NULL;
 		return GF_OK;
 	}
 
@@ -244,6 +246,7 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
+
 	gf_filter_pid_set_udta(pid, priv->out_pid);
 
 

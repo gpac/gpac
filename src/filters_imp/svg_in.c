@@ -260,6 +260,7 @@ exit:
 	if (e) {
 		gf_sm_load_done(&svgin->loader);
 		svgin->loader.fileName = NULL;
+		gf_filter_pid_set_eos(svgin->out_pid);
 		e = GF_EOS;
 	}
 	return e;

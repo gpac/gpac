@@ -361,6 +361,9 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args);
 
 GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter);
 
+void gf_filter_pid_inst_delete_task(GF_FSTask *task);
+
+
 typedef struct
 {
 	char *name;

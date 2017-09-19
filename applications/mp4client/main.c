@@ -37,6 +37,9 @@
 #include <gpac/utf.h>
 #include <time.h>
 
+//for gf_fs_print_stats, to remove
+#include <gpac/internal/terminal_dev.h>
+
 /*ISO 639 languages*/
 #include <gpac/iso639.h>
 
@@ -2084,6 +2087,9 @@ force_input:
 			if (display_rti) display_rti = 0;
 			else display_rti = 2;
 			ResetCaption();
+			break;
+		case 'f':
+			gf_fs_print_stats(term->fsess);
 			break;
 
 		case 'u':
