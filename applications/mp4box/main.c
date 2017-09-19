@@ -3644,7 +3644,7 @@ int mp4boxMain(int argc, char **argv)
 		if (sep) sep[0] = ':';
 		if (e) fprintf(stderr, "Failed to bind socket to %s: %s\n", udp_dest, gf_error_to_string(e) );
 		else {
-			e = gf_sk_send(sock, inName, strlen(inName));
+			e = gf_sk_send(sock, inName, (u32)strlen(inName));
 			if (e) fprintf(stderr, "Failed to send datagram: %s\n", gf_error_to_string(e) );
 		}
 		gf_sk_del(sock);

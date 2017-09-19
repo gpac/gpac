@@ -46,7 +46,7 @@ if not exist include/gpac/revision.h goto Abort
 REM check if found a local commit which has not been pushed
 for /f "delims=" %%a in ('git diff FETCH_HEAD') do @set diff=%%a
 echo diff = %diff%
-if not "%diff%"=="" goto RevisionAbort
+if not "%diff%"=="" echo Local and remote revisions not in sync, consider pushing or pulling changes
 
 REM execute git and check if the result if found within revision.h
 for /f "delims=" %%a in ('git describe --tags --long') do @set VERSION=%%a
