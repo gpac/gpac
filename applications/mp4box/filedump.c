@@ -2643,8 +2643,10 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 
 	{
 		char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
-		gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
-		fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
+		GF_Err e = gf_media_get_rfc_6381_codec_name(file, trackNum, szCodec, GF_FALSE, GF_FALSE);
+		if (e == GF_OK) {
+			fprintf(stderr, "\tRFC6381 Codec Parameters: %s\n", szCodec);
+		}
 	}
 
 	DumpMetaItem(file, 0, trackNum, "Track Meta");
