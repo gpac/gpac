@@ -106,7 +106,8 @@ typedef struct __gf_filter_pck_inst
 {
 	struct __gf_filter_pck *pck; //source packet
 	GF_FilterPidInst *pid;
-	Bool pid_props_change_done;
+	u8 pid_props_change_done;
+	u8 pid_info_change_done;
 } GF_FilterPacketInstance;
 
 struct __gf_filter_pck
@@ -121,6 +122,7 @@ struct __gf_filter_pck
 	Bool data_block_end;
 	
 	Bool pid_props_changed;
+	Bool pid_info_changed;
 
 	//packet timing in pid_props->timescale units
 	u64 dts, cts;
@@ -420,6 +422,7 @@ struct __gf_filter_pid
 	GF_List *destinations;
 	GF_List *properties;
 	Bool request_property_map;
+	Bool pid_info_changed;
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 

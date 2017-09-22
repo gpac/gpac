@@ -210,6 +210,20 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
+static Bool compose_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+{
+	GF_ObjectManager *odm;
+
+	switch (evt->base.type) {
+	case GF_FEVT_INFO_UPDATE:
+		odm = gf_filter_pid_get_udta(evt->base.on_pid);
+		gf_odm_update_duration(odm, evt->base.on_pid);
+		break;
+	}
+	//all events cancelled
+	return GF_TRUE;
+}
+
 static GF_Err compose_update_arg(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *arg_val)
 {
 	return GF_OK;
@@ -281,6 +295,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.initialize = compose_initialize,
 	.finalize = compose_finalize,
 	.process = compose_process,
+	.process_event = compose_process_event,
 	.configure_pid = compose_config_input,
 	.update_arg = compose_update_arg
 };

@@ -623,8 +623,16 @@ clock_setup:
 	odm->ck = ck;
 	odm->clock_inherited = clock_inherited;
 
-	dur=0;
-	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DURATION);
+	gf_odm_update_duration(odm, pid);
+	/*regular setup*/
+	return GF_OK;
+}
+
+void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
+{
+	u32 dur=0;
+	const GF_PropertyValue *prop;
+	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION);
 	if (prop) {
 		dur = 1000 * prop->value.frac.num;
 		if (prop->value.frac.den) dur /= prop->value.frac.den;
@@ -634,8 +642,6 @@ clock_setup:
 		/*update scene duration*/
 		gf_scene_set_duration(odm->subscene ? odm->subscene : odm->parentscene);
 	}
-	/*regular setup*/
-	return GF_OK;
 }
 
 /*this is the tricky part: make sure the net is locked before doing anything since an async service

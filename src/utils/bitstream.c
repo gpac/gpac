@@ -63,6 +63,17 @@ struct __tag_bitstream
 	u32 buffer_io_size, buffer_written;
 };
 
+GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
+{
+	if (bs->bsmode != GF_BITSTREAM_READ) return GF_BAD_PARAM;
+	bs->original = (char*)buffer;
+	bs->size = BufferSize;
+	bs->position = 0;
+	bs->current = 0;
+	bs->nbBits = 8;
+	bs->current = 0;
+	return GF_OK;
+}
 
 GF_EXPORT
 GF_BitStream *gf_bs_new(const char *buffer, u64 BufferSize, u32 mode)

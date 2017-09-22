@@ -648,6 +648,8 @@ void gf_odm_init_segments(GF_ObjectManager *odm, GF_List *list, MFURL *url);
 /*returns true if this OD depends on the given clock*/
 Bool gf_odm_shares_clock(GF_ObjectManager *odm, struct _object_clock *ock);
 
+void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid);
+
 GF_Segment *gf_odm_find_segment(GF_ObjectManager *odm, char *descName);
 
 void gf_odm_stop_or_destroy(GF_ObjectManager *odm);

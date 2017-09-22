@@ -515,6 +515,18 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url);
 const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name);
 
 /*
+ *\enumerates the  HTTP headers for a session
+ *
+ *Retrieves the HTTP header name and value for the given header index.
+ *\param sess the current session
+ *\param idx index for the enumeration, must be initialized to 0 for the first call
+ *\param hdr_name where name of header is stored - do not free
+ *\param hdr_val where value of header is stored - do not free
+ * \return error code, GF_OK or GF_EOS if no more headers
+ */
+GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val);
+
+/*
  *\brief sets download manager max rate per session
  *
  *Sets the maximum rate (per session only at the current time).

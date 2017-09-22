@@ -3812,6 +3812,19 @@ const char *gf_dm_sess_get_header(GF_DownloadSession *sess, const char *name)
 }
 
 GF_EXPORT
+GF_Err gf_dm_sess_enum_headers(GF_DownloadSession *sess, u32 *idx, const char **hdr_name, const char **hdr_val)
+{
+	GF_HTTPHeader *hdr;
+	if( !sess || !idx || !hdr_name || !hdr_val) return GF_BAD_PARAM;
+	hdr = gf_list_get(sess->headers, *idx);
+	if (!hdr) return GF_EOS;
+	(*idx) = (*idx) + 1;
+	(*hdr_name) = hdr->name;
+	(*hdr_val) = hdr->value;
+	return GF_OK;
+}
+
+GF_EXPORT
 GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time)
 {
 	if (!sess) return GF_BAD_PARAM;

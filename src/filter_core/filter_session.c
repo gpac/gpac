@@ -44,6 +44,7 @@ const GF_FilterRegister *httpin_register(GF_FilterSession *session);
 const GF_FilterRegister *svgin_register(GF_FilterSession *session);
 const GF_FilterRegister *img_reframe_register(GF_FilterSession *session);
 const GF_FilterRegister *imgdec_register(GF_FilterSession *session);
+const GF_FilterRegister *adts_dmx_register(GF_FilterSession *session);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -210,6 +211,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, imgdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, adts_dmx_register(a_sess) );
 
 
 	//fixme - find a way to handle events without mutex ...
@@ -365,7 +367,7 @@ void gf_fs_post_task(GF_FilterSession *fsess, gf_fs_task_callback task_fun, GF_F
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread 0 task#%d %p executing Filter %s::%s (%d tasks pending)\n", fsess->main_th.nb_tasks, &atask, filter ? filter->name : "", log_name, fsess->tasks_pending));
 
 		task_fun(&atask);
-
+		filter = atask.filter;
 		if (filter) {
 			filter->time_process += gf_sys_clock_high_res() - task_time;
 			filter->nb_tasks_done++;
@@ -460,7 +462,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 {
 	GF_FilterSession *fsess = sess_thread->fsess;
-	u32 i, count = fsess->threads ? gf_list_count(fsess->threads) : 0;
+	u32 i, th_count = fsess->threads ? gf_list_count(fsess->threads) : 0;
 	u32 thid =  1 + gf_list_find(fsess->threads, sess_thread);
 	u64 enter_time = gf_sys_clock_high_res();
 	//main thread not using this thread proc, don't wait for notifications
@@ -517,7 +519,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 				if (fsess->run_status != GF_OK)
 					break;
 
-				for (i=0; i<count; i++) {
+				for (i=0; i<th_count; i++) {
 					GF_SessionThread *st = gf_list_get(fsess->threads, i);
 					if (!st->has_seen_eot) {
 						all_done = GF_FALSE;
@@ -638,6 +640,11 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 
 				if (! fsess->no_regulation) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, (s32) diff));
+
+					if (th_count==0) {
+						if ( gf_fq_count(fsess->tasks) )
+							diff=5;
+					}
 
 					gf_sleep(diff);
 					active_start = gf_sys_clock_high_res();
@@ -791,7 +798,7 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 	if (!fsess->run_status)
 		fsess->run_status = GF_EOS;
 
-	for (i=0; i < count; i++) {
+	for (i=0; i < th_count; i++) {
 		gf_fs_sema_io(fsess, GF_TRUE, i ? GF_FALSE : GF_TRUE);
 	}
 	return 0;

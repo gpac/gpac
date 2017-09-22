@@ -128,6 +128,7 @@ void task_del(void *task)
 
 void gf_filter_del(GF_Filter *filter)
 {
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	assert(filter);
 
 	//may happen when a filter is removed from the chain
@@ -668,7 +669,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
-	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", f->name));
+	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));
 
 	//avoid destruction of the task
 	if (!task->in_main_task_list_only) {

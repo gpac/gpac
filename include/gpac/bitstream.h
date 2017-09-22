@@ -68,6 +68,18 @@ typedef struct __tag_bitstream GF_BitStream;
  *	does not write more than possible.
  */
 GF_BitStream *gf_bs_new(const char *buffer, u64 size, u32 mode);
+
+/*!
+ *	\brief bitstream reassignment
+ *
+ *	Reassigns a bitstream in GF_BITSTREAM_READ mode to a new buffer
+ *	\param bs the bitstream to reassign
+ *	\param buffer buffer to read
+ *	\param size size of the buffer given.
+ *	\return error code if any
+ */
+GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 size);
+
 /*!
  *	\brief bitstream constructor from file handle
  *

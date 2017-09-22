@@ -44,7 +44,6 @@ typedef struct
 	Bool is_end, pck_out;
 
 	char *block;
-	u32 start;
 } GF_FileInCtx;
 
 
@@ -200,19 +199,27 @@ void filein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 	ctx->pck_out = GF_FALSE;
 }
 
-static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	GF_FilterPacket *pck;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
-	if (!com->base.on_pid) return GF_FALSE;
-	if (com->base.on_pid != ctx->pid) return GF_FALSE;
+	if (!evt->base.on_pid) return GF_FALSE;
+	if (evt->base.on_pid != ctx->pid) return GF_FALSE;
 
-	switch (com->base.type) {
+	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		ctx->start = (u32) (1000 * com->play.start_range);
 		return GF_TRUE;
 	case GF_FEVT_STOP:
+		//stop sending data
+		ctx->is_end = GF_TRUE;
+		return GF_TRUE;
+	case GF_FEVT_SOURCE_SEEK:
+		if (evt->seek.start_offset < ctx->file_size) {
+			ctx->is_end = GF_FALSE;
+			gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
+			ctx->file_pos = evt->seek.start_offset;
+		}
 		return GF_TRUE;
 	default:
 		break;
@@ -242,11 +249,10 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (!ctx->pid) {
 		ctx->pid = filein_declare_pid(filter, ctx->src, ctx->src, NULL, ctx->block, nb_read);
 		if (!ctx->pid) return GF_SERVICE_ERROR;
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
 	if (!pck) return GF_OK;
-
-	gf_filter_pck_set_cts(pck, ctx->start);
 
 	gf_filter_pck_set_byte_offset(pck, ctx->file_pos);
 	ctx->file_pos += nb_read;
@@ -272,7 +278,7 @@ static GF_Err filein_process(GF_Filter *filter)
 static const GF_FilterArgs FileInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
-	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "4096", NULL, GF_FALSE},
+	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
 	{}
 };
 

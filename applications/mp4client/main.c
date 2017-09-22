@@ -1223,7 +1223,7 @@ int mp4client_main(int argc, char **argv)
 
 	dump_mode = DUMP_NONE;
 	fill_ar = visible = do_uncache = has_command = GF_FALSE;
-	url_arg = out_arg = the_cfg = rti_file = views =  NULL;
+	url_arg = out_arg = the_cfg = rti_file = views = mosaic = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
