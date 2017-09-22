@@ -56,6 +56,7 @@ typedef struct
 	GF_Fraction duration;
 	Double start_range;
 	Bool in_seek;
+	u32 timescale;
 
 	u32 remaining;
 	ADTSHeader hdr;
@@ -133,6 +134,7 @@ static Bool adts_dmx_sync_frame_bs(GF_BitStream *bs, ADTSHeader *hdr)
 
 GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	const GF_PropertyValue *p;
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -144,6 +146,8 @@ GF_Err adts_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 		return GF_NOT_SUPPORTED;
 
 	ctx->ipid = pid;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
+	if (p) ctx->timescale = p->value.uint;
 	return GF_OK;
 }
 
@@ -319,6 +323,18 @@ static Bool adts_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
+static GFINLINE void adts_dmx_update_cts(GF_ADTSDmxCtx *ctx)
+{
+	if (ctx->timescale) {
+		u64 inc = ctx->frame_size;
+		inc *= ctx->timescale;
+		inc /= GF_M4ASampleRates[ctx->sr_idx];
+		ctx->cts += inc;
+	} else {
+		ctx->cts += ctx->frame_size;
+	}
+}
+
 GF_Err adts_dmx_process(GF_Filter *filter)
 {
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
@@ -327,6 +343,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
+	u64 src_cts;
 	u32 pck_size, remain;
 	Bool alread_sync = GF_FALSE;
 
@@ -372,7 +389,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
-		ctx->cts += ctx->frame_size;
+		adts_dmx_update_cts(ctx);
 		start += to_send;
 		remain -= to_send;
 	}
@@ -391,6 +408,12 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		remain -= to_copy;
 		ctx->bytes_in_header = 0;
 		alread_sync = GF_TRUE;
+	}
+	//input pid sets some timescale - we flushed pending data , update cts
+	else if (ctx->timescale) {
+		u64 cts = gf_filter_pck_get_cts(pck);
+		if (ctx != GF_FILTER_NO_TS)
+			ctx->cts = ctx;
 	}
 
 	while (remain) {
@@ -510,7 +533,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		remain -= offset+size;
 		alread_sync = 0;
 		if (ctx->remaining) break;
-		ctx->cts += ctx->frame_size;
+		adts_dmx_update_cts(ctx);
 	}
 	gf_filter_pid_drop_packet(ctx->ipid);
 
