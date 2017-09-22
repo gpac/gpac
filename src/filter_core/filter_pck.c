@@ -25,6 +25,22 @@
 
 #include "filter_session.h"
 
+static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
+{
+	pck->data_block_start = pck->data_block_end = GF_TRUE;
+	pck->pid_props_changed = GF_FALSE;
+	pck->clock_discontinuity = GF_FALSE;
+	pck->corrupted = GF_FALSE;
+	pck->cts = pck->dts = 0;
+	pck->duration = 0;
+	pck->eos = GF_FALSE;
+	pck->corrupted = 0;
+	pck->sap_type = GF_FALSE;
+	pck->seek_flag = GF_FALSE;
+	pck->byte_offset = -1;
+	pck->pid_info_changed = 0;
+}
+
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
@@ -72,26 +88,15 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 	pck->data_length = data_size;
 	pck->pid = pid;
 	if (data) *data = pck->data;
-	pck->data_block_start = pck->data_block_end = GF_TRUE;
+	pck->filter_owns_mem = GF_FALSE;
 
-	pck->pid_props_changed = GF_FALSE;
-	pck->clock_discontinuity = GF_FALSE;
-	pck->corrupted = GF_FALSE;
-	pck->cts = pck->dts = 0;
-	pck->duration = 0;
-	pck->eos = GF_FALSE;
-	pck->corrupted = 0;
-	pck->sap_type = GF_FALSE;
-	pck->seek_flag = GF_FALSE;
-	pck->byte_offset = -1;
-
-	assert(pck->pid);
+	gf_filter_pck_reset_props(pck);
 	return pck;
 }
 
 GF_FilterPacket *gf_filter_pck_new_alloc(GF_FilterPid *pid, u32 data_size, char **data)
 {
-	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_FALSE);
+	return gf_filter_pck_new_alloc_internal(pid, data_size, data, GF_TRUE);
 }
 
 GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u32 data_size, packet_destructor destruct)
@@ -102,7 +107,7 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (gf_filter_pid_would_block(pid))
+	if ((data || destruct) && gf_filter_pid_would_block(pid))
 		return NULL;
 
 	pck = gf_fq_pop(pid->filter->pcks_shared_reservoir);
@@ -116,7 +121,8 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 	pck->data_length = data_size;
 	pck->filter_owns_mem = GF_TRUE;
 	pck->destructor = destruct;
-	pck->data_block_start = pck->data_block_end = GF_TRUE;
+
+	gf_filter_pck_reset_props(pck);
 
 	assert(pck->pid);
 	return pck;
@@ -312,6 +318,10 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	}
 	//any new pid_set_property after this packet will trigger a new property map
 	pid->request_property_map = GF_TRUE;
+	if (pid->pid_info_changed) {
+		pck->pid_info_changed = GF_TRUE;
+		pid->pid_info_changed = GF_FALSE;
+	}
 
 	if (pck->pid_props) {
 		timescale = pck->pid_props->timescale;
@@ -353,6 +363,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			duration = pck->cts - pid->last_pck_cts;
 			if (duration<0) duration = -duration;
 		}
+		pid->last_pck_dts = pck->dts;
+		pid->last_pck_cts = pck->cts;
 	} else {
 		duration = pck->duration;
 	}
@@ -362,7 +374,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	}
 	if (!pck->duration && pid->min_pck_duration) pck->duration = duration;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag, pck->duration));
 
 
 	//protect packet from destruction - this could happen

@@ -43,7 +43,7 @@ typedef struct
 	GF_DownloadSession *sess;
 
 	char *block;
-	Bool initial_play, pck_out, is_end;
+	Bool pck_out, is_end;
 	u32 nb_read, file_size;
 	FILE *cached;
 } GF_HTTPInCtx;
@@ -97,22 +97,42 @@ static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 	ctx->pck_out = GF_FALSE;
 }
 
-static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	GF_FilterPacket *pck;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
-	if (!com->base.on_pid) return GF_FALSE;
-	if (com->base.on_pid != ctx->pid) return GF_FALSE;
+	if (!evt->base.on_pid) return GF_FALSE;
+	if (evt->base.on_pid != ctx->pid) return GF_FALSE;
 
-	switch (com->base.type) {
+	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->initial_play) {
-			ctx->initial_play = GF_FALSE;
-		} else {
-		}
+		ctx->is_end = GF_FALSE;
 		return GF_TRUE;
 	case GF_FEVT_STOP:
+		if (!ctx->is_end) {
+			//abort session
+			ctx->is_end = GF_TRUE;
+			gf_dm_sess_abort(ctx->sess);
+		}
+		return GF_TRUE;
+	case GF_FEVT_SOURCE_SEEK:
+		if (evt->seek.start_offset < ctx->file_size) {
+			ctx->is_end = GF_FALSE;
+			//open cache if needed
+			if (!ctx->cached && ctx->file_size && (ctx->nb_read==ctx->file_size) ) {
+				const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
+				if (cached) ctx->cached = gf_fopen(cached, "rb");
+			}
+			ctx->nb_read = evt->seek.start_offset;
+
+			if (ctx->cached) {
+				gf_fseek(ctx->cached, ctx->nb_read, SEEK_SET);
+			} else {
+				gf_dm_sess_abort(ctx->sess);
+				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_FALSE);
+			}
+		}
 		return GF_TRUE;
 	default:
 		break;
@@ -171,6 +191,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
 
 		if (!ctx->pid) {
+			u32 idx;
+			const char *hname, *hval;
 			const char *cached = gf_dm_sess_get_cache_name(ctx->sess);
 			if ((e==GF_EOS) && cached) {
 				ctx->cached = gf_fopen(cached, "rb");
@@ -181,9 +203,22 @@ static GF_Err httpin_process(GF_Filter *filter)
 				}
 			}
 			ctx->block[nb_read] = 0;
-			ctx->initial_play = GF_TRUE;
 			ctx->pid = filein_declare_pid(filter, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
 			if (!ctx->pid) return GF_SERVICE_ERROR;
+
+			if ((e==GF_EOS) && cached)
+				gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+
+			idx = 0;
+			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
+				if (!strcmp(hname, "icy-name")) {
+					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING(hval));
+				} else if (!strcmp(hname, "icy-genre")) {
+					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING(hval));
+				} else if (!strcmp(hname, "icy-meta")) {
+					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING(hval));
+				}
+			}
 		}
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
@@ -210,6 +245,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_send(pck);
 
 	if (ctx->is_end) {
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_eos(ctx->pid);
 		return GF_EOS;
 	}

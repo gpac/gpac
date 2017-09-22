@@ -848,6 +848,7 @@ static const GF_FilterCapability ISOFFInInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/iso.segment"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s"), .start=GF_TRUE},
+	{}
 };
 
 static const GF_FilterCapability ISOFFInOutputs[] =

@@ -39,6 +39,9 @@ extern "C" {
 //for offsetof()
 #include <stddef.h>
 
+#define GF_FILTER_NO_BO 0xFFFFFFFFFFUL
+#define GF_FILTER_NO_TS 0xFFFFFFFFFFUL
+
 //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
 
@@ -329,7 +332,6 @@ const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
 
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 
-
 void gf_filter_pid_get_buffer_occupancy(GF_FilterPid *pid, u32 *max_slots, u32 *nb_pck, u32 *max_duration, u32 *duration);
 
 typedef struct
@@ -518,6 +520,8 @@ enum
 	GF_PROP_PID_FILE_EXT = GF_4CC('F','E','X','T'),
 	//(uint) download rate in bits per second
 	GF_PROP_PID_DOWN_RATE = GF_4CC('D','L','B','W'),
+	//(bool) indicates the file is completely cached
+	GF_PROP_PID_FILE_CACHED = GF_4CC('C','A','C','H'),
 
 	//(uint) display width of service
 	GF_PROP_SERVICE_WIDTH = GF_4CC('D','W','D','T'),
@@ -546,10 +550,12 @@ typedef enum
 	GF_FEVT_STOP,	//no associated event structure
 	GF_FEVT_PAUSE,	//no associated event structure
 	GF_FEVT_RESUME,	//no associated event structure
+	GF_FEVT_SOURCE_SEEK,
 	GF_FEVT_ATTACH_SCENE,
 	GF_FEVT_RESET_SCENE,
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
+	GF_FEVT_INFO_UPDATE,
 	GF_FEVT_MOUSE,
 } GF_FEventType;
 
@@ -588,6 +594,15 @@ typedef struct
 	*/
 	u8 timestamp_based;
 } GF_FEVT_Play;
+
+/*GF_FEVT_SOURCE_SEEK*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	u64 start_offset;
+	u64 end_offset;
+} GF_FEVT_SourceSeek;
+
 
 /*GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE*/
 typedef struct
@@ -637,6 +652,7 @@ union __gf_filter_event
 {
 	GF_FEVT_Base base;
 	GF_FEVT_Play play;
+	GF_FEVT_SourceSeek seek;
 	GF_FEVT_AttachScene attach_scene;
 	GF_FEVT_Event user_event;
 	GF_FEVT_QualitySwitch quality_switch;
