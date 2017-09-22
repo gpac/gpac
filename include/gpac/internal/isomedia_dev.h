@@ -549,6 +549,8 @@ typedef struct
 	GF_ISOM_BOX
 	/*note: the data is NEVER loaded to the mdat in this lib*/
 	u64 dataSize;
+	/* store the file offset when parsing to access the raw data */
+	u64 bsOffset;
 	char *data;
 } GF_MediaDataBox;
 
