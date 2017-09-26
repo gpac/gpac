@@ -37,7 +37,7 @@
 # endif
 #endif
 
-#include <faad.h>
+#include <neaacdec.h>
 
 #include <gpac/modules/codec.h>
 #include <gpac/constants.h>
@@ -46,8 +46,8 @@
 
 typedef struct
 {
-	faacDecHandle codec;
-	faacDecFrameInfo info;
+	NeAACDecHandle codec;
+	NeAACDecFrameInfo info;
 	u32 sample_rate, out_size, num_samples;
 	u8 num_channels;
 	/*no support for scalability in FAAD yet*/
@@ -78,8 +78,8 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Attaching stream %d\n", esd->ESID));
 	}
 
-	if (ctx->codec) faacDecClose(ctx->codec);
-	ctx->codec = faacDecOpen();
+	if (ctx->codec) NeAACDecClose(ctx->codec);
+	ctx->codec = NeAACDecOpen();
 	if (!ctx->codec) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing decoder\n"));
 		return GF_IO_ERR;
@@ -89,7 +89,7 @@ static GF_Err FAAD_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	e = gf_m4a_get_config(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, &a_cfg);
 	if (e) return e;
 #endif
-	if (faacDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
+	if (NeAACDecInit2(ctx->codec, (unsigned char *)esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
@@ -123,7 +123,7 @@ base_object_type_error: /*error case*/
 		a_cfg.nb_chan = a_cfg.nb_chan > 2 ? 1 : a_cfg.nb_chan;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
-		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
+		res = NeAACDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		gf_free(dsi);
 		if (res < 0)
 #endif
@@ -147,7 +147,7 @@ static GF_Err FAAD_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
 {
 	FAADCTX();
 	if (ES_ID != ctx->ES_ID) return GF_BAD_PARAM;
-	if (ctx->codec) faacDecClose(ctx->codec);
+	if (ctx->codec) NeAACDecClose(ctx->codec);
 	ctx->codec = NULL;
 	ctx->ES_ID = 0;
 	ctx->sample_rate = ctx->out_size = ctx->num_samples = 0;
@@ -304,9 +304,9 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Decoding AU\n"));
-	buffer = faacDecDecode(ctx->codec, &ctx->info, (unsigned char *) inBuffer, inBufferLength);
+	buffer = NeAACDecDecode(ctx->codec, &ctx->info, (unsigned char *) inBuffer, inBufferLength);
 	if (ctx->info.error>0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", NeAACDecGetErrorMessage(ctx->info.error) ));
 		*outBufferLength = 0;
 		//reinit if error
 		FAAD_AttachStream((GF_BaseDecoder *)ifcg, ctx->esd);
@@ -490,7 +490,7 @@ GF_BaseDecoder *NewFAADDec()
 void DeleteFAADDec(GF_BaseDecoder *ifcg)
 {
 	FAADCTX();
-	if (ctx->codec) faacDecClose(ctx->codec);
+	if (ctx->codec) NeAACDecClose(ctx->codec);
 	gf_free(ctx);
 	gf_free(ifcg);
 }
