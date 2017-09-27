@@ -707,7 +707,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 	}
 
 	range_end = odm->media_stop_time;
-//	odm->media_stop_time = 0;
 
 	/*send play command*/
 	GF_FEVT_INIT(com, GF_FEVT_PLAY, odm->pid)
@@ -716,7 +715,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 		odm->flags &= ~GF_ODM_INITIAL_BROADCAST_PLAY;
 		com.play.initial_broadcast_play = 1;
 	}
-
 
 	/*play from requested time (seeking or non-mpeg4 media control)*/
 	if (odm->media_start_time && !clock->clock_init) {
@@ -879,8 +877,6 @@ void gf_odm_play(GF_ObjectManager *odm)
 			}
 		}
 	}
-
-//	odm->media_start_time = 0;
 
 	if (odm->parentscene) {
 		if (odm->parentscene->root_od->addon) {
@@ -1377,6 +1373,8 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			time *= 1000;
 			time /= timescale;
 			gf_clock_set_time(odm->ck, time);
+			if (odm->parentscene)
+				odm->parentscene->root_od->media_start_time = 0;
 		}
 		if (buffer_duration > odm->buffer_playout_us) {
 			odm->nb_buffering --;

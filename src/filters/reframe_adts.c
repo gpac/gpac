@@ -63,6 +63,10 @@ typedef struct
 	char header[10];
 	u32 bytes_in_header;
 
+	Bool is_playing;
+	Bool is_file, file_loaded;
+	Bool initial_play_done;
+
 	ADTSIdx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_ADTSDmxCtx;
@@ -159,16 +163,15 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	u64 duration, cur_dur;
 	s32 sr_idx = -1;
 	const GF_PropertyValue *p;
-	if (!ctx->opid) return;
-	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
-	if (!p || !p->value.boolean) return;
+	if (!ctx->opid || ctx->timescale || ctx->file_loaded) return;
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
 	if (!p || !p->value.string) {
-		//prevents from constant updating for non-file based
-		ctx->duration.num = 1;
+		ctx->is_file = GF_FALSE;
 		return;
 	}
+	ctx->is_file = GF_TRUE;
+
 	stream = gf_fopen(p->value.string, "r");
 	if (!stream) return;
 
@@ -209,6 +212,9 @@ static void adts_dmx_check_dur(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration.num, ctx->duration.den));
 	}
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
+	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
 }
 
 static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
@@ -283,34 +289,47 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 static Bool adts_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	u32 i;
+	GF_FilterEvent fevt;
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
-		if (ctx->duration.num && (ctx->start_range = evt->play.start_range) ) {
-			GF_FilterEvent fevt;
-			ctx->start_range = evt->play.start_range;
+		if (!ctx->is_playing) {
+			ctx->is_playing = GF_TRUE;
 			ctx->cts = 0;
 			ctx->remaining = 0;
 			ctx->bytes_in_header = 0;
-			ctx->in_seek = GF_TRUE;
-			for (i=1; i<ctx->index_size; i++) {
-				if (ctx->indexes[i].duration>ctx->start_range) {
-					ctx->cts = ctx->indexes[i-1].duration * GF_M4ASampleRates[ctx->sr_idx];
-					ctx->file_pos = ctx->indexes[i-1].pos;
-					break;
-				}
-			}
-			//post a seek from 0 - TODO we could build a map of byte offsets
-			GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
-			fevt.seek.start_offset = ctx->file_pos;
-			gf_filter_pid_send_event(ctx->ipid, &fevt);
 		}
+		if (! ctx->is_file) {
+			return GF_FALSE;
+		}
+		ctx->start_range = evt->play.start_range;
+		ctx->in_seek = GF_TRUE;
+		ctx->file_pos = 0;
+		for (i=1; i<ctx->index_size; i++) {
+			if (ctx->indexes[i].duration>ctx->start_range) {
+				ctx->cts = ctx->indexes[i-1].duration * GF_M4ASampleRates[ctx->sr_idx];
+				ctx->file_pos = ctx->indexes[i-1].pos;
+				break;
+			}
+		}
+		if (!ctx->initial_play_done) {
+			ctx->initial_play_done = GF_TRUE;
+			//seek will not change the current source state, don't send a seek
+			if (!ctx->file_pos)
+				return GF_TRUE;
+		}
+		//post a seek from 0 - TODO we could build a map of byte offsets
+		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+		fevt.seek.start_offset = ctx->file_pos;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+
 		//cancel event
 		return GF_TRUE;
 
 	case GF_FEVT_STOP:
 		//don't cancel event
+		ctx->is_playing = GF_FALSE;
 		return GF_FALSE;
 
 	case GF_FEVT_SET_SPEED:
@@ -345,7 +364,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	u8 *start;
 	u64 src_cts;
 	u32 pck_size, remain;
-	Bool alread_sync = GF_FALSE;
+	u32 alread_sync = 0;
 
 	//always reparse duration
 	if (!ctx->duration.num)
@@ -376,14 +395,15 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		} else {
 			ctx->remaining = 0;
 		}
-//		dst_pck = gf_filter_pck_new_ref(ctx->opid, data, to_send, pck);
-		dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
-		memcpy(output, data, to_send);
+		if (!ctx->in_seek) {
+			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
+			memcpy(output, data, to_send);
 
-		gf_filter_pck_set_cts(dst_pck, ctx->cts);
-		gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
+			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
 
-		gf_filter_pck_send(dst_pck);
+			gf_filter_pck_send(dst_pck);
+		}
 
 		if (ctx->remaining) {
 			gf_filter_pid_drop_packet(ctx->ipid);
@@ -395,17 +415,16 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	}
 
 	if (ctx->bytes_in_header) {
-		u32 to_copy;
 		if (ctx->bytes_in_header + remain < 7) {
 			memcpy(ctx->header + ctx->bytes_in_header, start, remain);
 			ctx->bytes_in_header += remain;
 			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
-		to_copy = 7 - ctx->bytes_in_header;
-		memcpy(ctx->header + ctx->bytes_in_header, start, to_copy);
-		start += to_copy;
-		remain -= to_copy;
+		alread_sync = 7 - ctx->bytes_in_header;
+		memcpy(ctx->header + ctx->bytes_in_header, start, alread_sync);
+		start += alread_sync;
+		remain -= alread_sync;
 		ctx->bytes_in_header = 0;
 		alread_sync = GF_TRUE;
 	}
@@ -493,6 +512,8 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 		adts_dmx_check_pid(filter, ctx);
 
+		if (!ctx->is_playing) return GF_OK;
+
 		size = ctx->hdr.frame_size - ctx->hdr.hdr_size;
 		offset = ctx->hdr.hdr_size;
 		if (alread_sync) {
@@ -523,7 +544,11 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 
 			if (byte_offset != GF_FILTER_NO_BO) {
 				u64 boffset = byte_offset;
-				boffset += (char *) (sync + offset) - data;
+				if (alread_sync) {
+					boffset -= (7-alread_sync);
+				} else {
+					boffset += (char *) (sync + offset) - data;
+				}
 				gf_filter_pck_set_byte_offset(dst_pck, boffset);
 			}
 

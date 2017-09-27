@@ -305,6 +305,7 @@
 		92AAF1B918D70A5200E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
+		92BB85491F75659F009BC9C8 /* reframe_mp3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85481F75659F009BC9C8 /* reframe_mp3.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1137,6 +1138,7 @@
 		92AAF1AE18D709D900E2FF12 /* gm_mp3_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_mp3_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		92BB85481F75659F009BC9C8 /* reframe_mp3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mp3.c; path = filters/reframe_mp3.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2473,6 +2475,7 @@
 				92F8D4A21F716B5000616F7C /* odf_dec.c */,
 				92F8D48C1F71644400616F7C /* reframe_adts.c */,
 				92F8D48D1F71644400616F7C /* reframe_img.c */,
+				92BB85481F75659F009BC9C8 /* reframe_mp3.c */,
 				92F8D48E1F71644400616F7C /* svg_in.c */,
 				92F8D48F1F71644400616F7C /* unit_test_filter.c */,
 			);
@@ -3204,6 +3207,7 @@
 				9201013C18D5A445003D1ACA /* ofb.c in Sources */,
 				9201013D18D5A445003D1ACA /* rijndael-128.c in Sources */,
 				9201013E18D5A445003D1ACA /* rijndael-192.c in Sources */,
+				92BB85491F75659F009BC9C8 /* reframe_mp3.c in Sources */,
 				9201013F18D5A445003D1ACA /* rijndael-256.c in Sources */,
 				9201014018D5A445003D1ACA /* stream.c in Sources */,
 				9201014118D5A445003D1ACA /* tripledes.c in Sources */,

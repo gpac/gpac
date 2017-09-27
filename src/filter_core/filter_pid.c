@@ -118,7 +118,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	GF_Filter *filter = pid->filter;
 
 	//reset in process
-	if ((pidinst->filter && pidinst->discard_input_packets) || filter->stream_reset_pending) {
+	if ((pidinst->filter && pidinst->discard_packets) || filter->stream_reset_pending) {
 		task->requeue_request = GF_TRUE;
 		return;
 	}
@@ -1100,7 +1100,7 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
 
 	} else {
-		if (pidinst->discard_input_packets) return 0;
+		if (pidinst->discard_packets) return 0;
 		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
 	}
 }
@@ -1113,7 +1113,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to fetch a packet on an output PID in filter %s\n", pid->filter->name));
 		return NULL;
 	}
-	if (pidinst->discard_input_packets) return NULL;
+	if (pidinst->discard_packets) return NULL;
 
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
 	//no packets
@@ -1433,11 +1433,18 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid)
 
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 {
+	u32 i;
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
 	}
-	return pid->pid->has_seen_eos;
+	if (pid->pid->has_seen_eos) return GF_TRUE;
+
+	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
+		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
+		if (gf_filter_pid_has_seen_eos(pidi)) return GF_TRUE;
+	}
+	return GF_FALSE;
 }
 
 static const char *get_fevt_name(u32 type)
@@ -1454,7 +1461,7 @@ static const char *get_fevt_name(u32 type)
 	}
 }
 
-static void gf_filter_pid_reset(GF_FSTask *task)
+static void gf_filter_pid_reset_task(GF_FSTask *task)
 {
 	GF_FilterPidInst *pidi = (GF_FilterPidInst *)task->udta;
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s input PID %s (from %s) reseting buffer\n", task->filter->name, pidi->pid->name, pidi->pid->filter->name ));
@@ -1468,7 +1475,7 @@ static void gf_filter_pid_reset(GF_FSTask *task)
 	}
 	gf_filter_pidinst_reset_stats(pidi);
 
-	pidi->discard_input_packets = GF_FALSE;
+	pidi->discard_packets = GF_FALSE;
 	pidi->last_block_ended = GF_TRUE;
 	pidi->first_block_started = GF_FALSE;
 	pidi->is_end_of_stream = GF_FALSE;
@@ -1480,6 +1487,8 @@ static void gf_filter_pid_reset(GF_FSTask *task)
 
 	pidi->pid->nb_buffer_unit = 0;
 	pidi->pid->nb_buffer_unit = 0;
+
+	safe_int_dec(& pidi->pid->discard_input_packets );
 
 }
 
@@ -1498,8 +1507,8 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	if (f->freg->process_event) {
 		canceled = f->freg->process_event(f, evt);
 
-		//source filters and play or seek, request a process task
-		if (!f->input_pids) {
+		//after  play or seek, request a process task for source filters or filters having pending packets
+		if (!f->input_pids || f->pending_packets) {
 			if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 				gf_filter_post_process_task(f);
 			}
@@ -1507,15 +1516,16 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
 
-	if (evt->base.type == GF_FEVT_STOP) {
+	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 		u32 i;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
 		GF_FilterPid *pid = p->pid;
 		for (i=0; i<gf_list_count(pid->destinations); i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
-			pidi->discard_input_packets = GF_TRUE;
+			pidi->discard_packets = GF_TRUE;
 			safe_int_inc(& pid->filter->stream_reset_pending );
-			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset, pidi->filter, NULL, "reset_pid", pidi);
+			//post task on destination filter
+			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
 		}
 	}
 
@@ -1535,7 +1545,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 		//mark pid instance as about to be reset to avoid processing PID destroy task before
 		if (evt->base.type == GF_FEVT_STOP) {
-			pid_inst->discard_input_packets = GF_TRUE;
+			pid_inst->discard_packets = GF_TRUE;
 		}
 		//allocate a copy except for the last PID where we use the one from the input
 		if (i+1<count) {
@@ -1563,6 +1573,16 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
+
+	if (evt->base.type == GF_FEVT_SOURCE_SEEK) {
+		u32 i, count = gf_list_count(pid->pid->destinations);
+		for (i=0; i<count; i++) {
+			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
+			//flag pid instance to discard all packets
+			pidi->discard_packets = GF_TRUE;
+			safe_int_inc(& pidi->pid->discard_input_packets );
+		}
+	}
 
 	dup_evt = gf_malloc(sizeof(GF_FilterEvent));
 	memcpy(dup_evt, evt, sizeof(GF_FilterEvent));
