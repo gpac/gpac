@@ -1,0 +1,443 @@
+/*
+ *			GPAC - Multimedia Framework C SDK
+ *
+ *			Authors: Jean Le Feuvre
+ *			Copyright (c) Telecom ParisTech 2000-2012
+ *					All rights reserved
+ *
+ *  This file is part of GPAC / codec pack module
+ *
+ *  GPAC is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU Lesser General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *
+ *  GPAC is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Lesser General Public License for more details.
+ *
+ *  You should have received a copy of the GNU Lesser General Public
+ *  License along with this library; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.
+ *
+ */
+
+
+#include <gpac/filters.h>
+#include <gpac/avparse.h>
+#include <gpac/constants.h>
+
+
+/*if we don't have M4V (A)SP parser, we con't get width and height and xvid is then unusable ...*/
+#if !defined(GPAC_DISABLE_AV_PARSERS) && defined(GPAC_HAS_XVID)
+
+#if !defined(__GNUC__)
+# if defined(_WIN32_WCE) || defined (WIN32)
+#  pragma comment(lib, "libxvidcore")
+# endif
+#endif
+
+
+#include <xvid.h>
+
+#ifndef XVID_DEC_FRAME
+#define XVID_DEC_FRAME xvid_dec_frame_t
+#define XVID_DEC_PARAM xvid_dec_create_t
+#else
+#define XVID_USE_OLD_API
+#endif
+
+//#undef XVID_USE_OLD_API
+
+static Bool xvid_is_init = GF_FALSE;
+
+typedef struct{
+	u64 cts;
+	u32 duration;
+	u8 sap_type;
+	u8 seek_flag;
+} XVidFrameInfo;
+
+typedef struct
+{
+	Bool deblock_y;
+	Bool deblock_uv;
+#ifndef XVID_USE_OLD_API
+	Bool film_effect;
+	Bool dering_y;
+	Bool dering_uv;
+#endif
+
+	GF_FilterPid *ipid, *opid;
+	u32 cfg_crc;
+	void *codec;
+
+	u32 width, height, out_size, pixel_ar;
+	Bool first_frame;
+	s32 base_filters;
+	Float FPS;
+	u32 offset;
+
+	XVidFrameInfo *frame_infos;
+	u32 frame_infos_alloc, frame_infos_size;
+
+} GF_XVIDCtx;
+
+static GF_Err xviddec_initialize(GF_Filter *filter)
+{
+	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
+	if (!xvid_is_init) {
+#ifdef XVID_USE_OLD_API
+		XVID_INIT_PARAM init;
+		init.api_version = 0;
+		init.core_build = 0;
+		/*get info*/
+		init.cpu_flags = XVID_CPU_CHKONLY;
+		xvid_init(NULL, 0, &init, NULL);
+		/*then init*/
+		xvid_init(NULL, 0, &init, NULL);
+#else
+		xvid_gbl_init_t init;
+		init.debug = 0;
+		init.version = XVID_VERSION;
+		init.cpu_flags = 0; /*autodetect*/
+		xvid_global(NULL, 0, &init, NULL);
+#endif
+		xvid_is_init = GF_TRUE;
+	}
+
+#ifndef XVID_USE_OLD_API
+	if (ctx->film_effect) ctx->base_filters |= XVID_FILMEFFECT;
+#endif
+
+#ifdef XVID_USE_OLD_API
+	if (ctx->deblock_y) ctx->base_filters |= XVID_DEC_DEBLOCKY;
+#else
+	if (ctx->deblock_y) ctx->base_filters |= XVID_DEBLOCKY;
+#endif
+
+#ifdef XVID_USE_OLD_API
+	if (ctx->deblock_uv) ctx->base_filters |= XVID_DEC_DEBLOCKUV;
+#else
+	if (ctx->deblock_uv) ctx->base_filters |= XVID_DEBLOCKUV;
+#endif
+
+#ifndef XVID_USE_OLD_API
+	if (ctx->dering_y) ctx->base_filters |= XVID_DERINGY | XVID_DEBLOCKY;
+	if (ctx->dering_uv) ctx->base_filters |= XVID_DERINGUV | XVID_DEBLOCKUV;
+#endif
+
+	return GF_OK;
+}
+
+static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
+{
+	const GF_PropertyValue *p;
+	GF_M4VDecSpecInfo dsi;
+	GF_Err e;
+#ifdef XVID_USE_OLD_API
+	XVID_DEC_FRAME frame;
+	XVID_DEC_PARAM par;
+#else
+	xvid_dec_frame_t frame;
+	xvid_dec_create_t par;
+#endif
+	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
+
+	if (is_remove) {
+		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
+		ctx->opid = NULL;
+		ctx->ipid = NULL;
+		return GF_OK;
+	}
+	if (! gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	if (p && p->value.data && p->data_len) {
+		u32 ex_crc = gf_crc_32(p->value.data, p->data_len);
+		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
+			//shoud we flush ?
+			if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
+			ctx->codec = NULL;
+		}
+	} else {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring withou DSI not yet supported\n"));
+		return GF_NOT_SUPPORTED;
+	}
+
+	/*decode DSI*/
+	e = gf_m4v_get_config(p->value.data, p->data_len, &dsi);
+	if (e) return e;
+	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
+
+	memset(&par, 0, sizeof(par));
+	par.width = dsi.width;
+	par.height = dsi.height;
+	/*note that this may be irrelevant when used through systems (FPS is driven by systems CTS)*/
+	ctx->FPS = dsi.clock_rate;
+	ctx->FPS /= 1000;
+	if (!ctx->FPS) ctx->FPS = 30.0f;
+	ctx->pixel_ar = (dsi.par_num<<16) | dsi.par_den;
+
+#ifndef XVID_USE_OLD_API
+	par.version = XVID_VERSION;
+#endif
+
+	if (xvid_decore(NULL, XVID_DEC_CREATE, &par, NULL) < 0) return GF_NON_COMPLIANT_BITSTREAM;
+
+	ctx->width = par.width;
+	ctx->height = par.height;
+	ctx->codec = par.handle;
+
+	/*init decoder*/
+	memset(&frame, 0, sizeof(frame));
+	frame.bitstream = (void *) p->value.data;
+	frame.length = p->data_len;
+#ifndef XVID_USE_OLD_API
+	frame.version = XVID_VERSION;
+	xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
+#else
+	/*don't perform error check, XviD doesn't like DSI only frame ...*/
+	xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
+#endif
+
+	ctx->first_frame = GF_TRUE;
+	ctx->out_size = ctx->width * ctx->height * 3 / 2;
+
+	ctx->ipid = pid;
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	}
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_UINT(ctx->pixel_ar) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YV12) );
+
+	return GF_OK;
+}
+
+static GF_Err xviddec_finalize(GF_Filter *filter)
+{
+	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
+	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
+	if (ctx->frame_infos) gf_free(ctx->frame_infos);
+	return GF_OK;
+}
+
+static GF_Err xviddec_process(GF_Filter *filter)
+{
+#ifdef XVID_USE_OLD_API
+	XVID_DEC_FRAME frame;
+#else
+	xvid_dec_frame_t frame;
+#endif
+	char *buffer;
+	Bool is_seek;
+	s32 postproc, res;
+	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
+	GF_FilterPacket *pck, *dst_pck;
+
+	if (!ctx->codec) return GF_SERVICE_ERROR;
+
+	pck = gf_filter_pid_get_packet(ctx->ipid);
+	memset(&frame, 0, sizeof(frame));
+	if (pck) {
+		u32 i;
+		u64 cts = gf_filter_pck_get_cts(pck);;
+		frame.bitstream = gf_filter_pck_get_data(pck, &frame.length);
+
+		if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
+			ctx->frame_infos_alloc += 10;
+			ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(XVidFrameInfo)*ctx->frame_infos_alloc);
+		}
+		for (i=0; i<ctx->frame_infos_size; i++) {
+			if (ctx->frame_infos[i].cts > cts) {
+				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(XVidFrameInfo) * (ctx->frame_infos_size-i));
+				ctx->frame_infos[i].cts = cts;
+				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
+				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
+				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
+				break;
+			}
+		}
+		if (i==ctx->frame_infos_size) {
+			ctx->frame_infos[i].cts = cts;
+			ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck);
+			ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck);
+			ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck);
+		}
+		ctx->frame_infos_size++;
+
+	} else {
+		frame.bitstream = NULL;
+		frame.length = -1;
+	}
+
+packed_frame :
+
+	dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->width*ctx->height*3/2, &buffer);
+
+#ifdef XVID_USE_OLD_API
+	frame.colorspace = XVID_CSP_I420;
+	frame.stride = ctx->width;
+	frame.image = (void *) buffer;
+#else
+	frame.version = XVID_VERSION;
+	frame.output.csp = XVID_CSP_I420;
+	frame.output.stride[0] = ctx->width;
+	frame.output.plane[0] = (void *) buffer;
+#endif
+
+
+	postproc = ctx->base_filters;
+#if 0
+	/*to check, not convinced yet by results...*/
+	switch (mmlevel) {
+	case GF_CODEC_LEVEL_SEEK:
+	case GF_CODEC_LEVEL_DROP:
+		/*turn off all post-proc*/
+#ifdef XVID_USE_OLD_API
+		postproc &= ~XVID_DEC_DEBLOCKY;
+		postproc &= ~XVID_DEC_DEBLOCKUV;
+#else
+		postproc &= ~XVID_DEBLOCKY;
+		postproc &= ~XVID_DEBLOCKUV;
+		postproc &= ~XVID_FILMEFFECT;
+#endif
+		break;
+	case GF_CODEC_LEVEL_VERY_LATE:
+		/*turn off post-proc*/
+#ifdef XVID_USE_OLD_API
+		postproc &= ~XVID_DEC_DEBLOCKY;
+#else
+		postproc &= ~XVID_FILMEFFECT;
+		postproc &= ~XVID_DEBLOCKY;
+#endif
+		break;
+	case GF_CODEC_LEVEL_LATE:
+#ifdef XVID_USE_OLD_API
+		postproc &= ~XVID_DEC_DEBLOCKUV;
+#else
+		postproc &= ~XVID_DEBLOCKUV;
+		postproc &= ~XVID_FILMEFFECT;
+#endif
+		break;
+	}
+#endif
+
+	/*xvid may keep the first I frame and force a 1-frame delay, so we simply trick it*/
+	if (ctx->first_frame) {
+		buffer[0] = 'v';
+		buffer[1] = 'o';
+		buffer[2] = 'i';
+		buffer[3] = 'd';
+	}
+
+	res = xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);
+	if (res < 0) {
+		gf_filter_pck_discard(dst_pck);
+		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return pck ? GF_NON_COMPLIANT_BITSTREAM : GF_OK;
+	}
+
+	if (ctx->first_frame) {
+		ctx->first_frame = GF_FALSE;
+		if ((buffer[0] == 'v') && (buffer[1] == 'o') && (buffer[2] == 'i') && (buffer[3] =='d')) {
+			gf_filter_pck_discard(dst_pck);
+			if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+			return GF_OK;
+		}
+	}
+
+	gf_filter_pck_set_cts(dst_pck, ctx->frame_infos[0].cts);
+	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
+	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
+	is_seek = ctx->frame_infos[0].seek_flag;
+
+	if (ctx->frame_infos_size) {
+		ctx->frame_infos_size--;
+		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(XVidFrameInfo)*ctx->frame_infos_size);
+	} else {
+		assert(pck==NULL);
+	}
+
+	if (!pck || !is_seek )
+		gf_filter_pck_send(dst_pck);
+	else
+		gf_filter_pck_discard(dst_pck);
+
+	if (res + 6 < frame.length) {
+		frame.bitstream += res;
+		frame.length -= res;
+		goto packed_frame;
+	}
+
+	if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+
+	return GF_OK;
+}
+
+static const GF_FilterCapability XVIDInputs[] =
+{
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2)},
+
+	{}
+};
+
+static const GF_FilterCapability XVIDOutputs[] =
+{
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
+	{}
+};
+
+#define OFFS(_n)	#_n, offsetof(GF_XVIDCtx, _n)
+
+static const GF_FilterArgs XVIDArgs[] =
+{
+	{ OFFS(deblock_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(deblock_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+#ifndef XVID_USE_OLD_API
+	{ OFFS(film_effect), "enable film effect", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(dering_y), "enable Y deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(dering_uv), "enable UV deblocking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+#endif
+	{}
+};
+
+GF_FilterRegister XVIDRegister = {
+	.name = "xvide",
+	.description = "XVid decoder",
+	.private_size = sizeof(GF_XVIDCtx),
+	.args = XVIDArgs,
+	.input_caps = XVIDInputs,
+	.output_caps = XVIDOutputs,
+	.initialize = xviddec_initialize,
+	.finalize = xviddec_finalize,
+	.configure_pid = xviddec_configure_pid,
+	.process = xviddec_process,
+};
+
+#endif
+
+const GF_FilterRegister *xviddec_register(GF_FilterSession *session)
+{
+#ifdef GPAC_HAS_XVID
+	return &XVIDRegister;
+#else
+	return NULL;
+#endif
+}
