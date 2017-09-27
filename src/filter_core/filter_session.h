@@ -392,7 +392,7 @@ struct __gf_filter_pid_inst
 	Bool last_block_ended;
 	Bool first_block_started;
 
-	Bool discard_input_packets;
+	Bool discard_packets;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
 	volatile u32 buffer_duration;
@@ -423,6 +423,7 @@ struct __gf_filter_pid
 	GF_List *properties;
 	Bool request_property_map;
 	Bool pid_info_changed;
+	volatile u32 discard_input_packets;
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
 

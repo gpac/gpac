@@ -69,10 +69,8 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck_dst;
 	GF_FFDemuxCtx *ffd = (GF_FFDemuxCtx *) gf_filter_get_udta(filter);
 
-#if 0
-		seek_to = (s64) (AV_TIME_BASE*seek_time);
-		av_seek_frame(ffd->ctx, -1, seek_to, AVSEEK_FLAG_BACKWARD);
-#endif
+	if (!ffd->nb_playing)
+		return GF_EOS;
 
 	for (i=0; i<ffd->ctx->nb_streams; i++) {
 		if (ffd->pids[i] && gf_filter_pid_would_block(ffd->pids[i])) {
@@ -105,7 +103,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	//todo - check if we want to use shared memory here
+	//we don't use shared memory on demuxers since they are usually the ones performing all the buffering
 	pck_dst = gf_filter_pck_new_alloc(ffd->pids[pkt.stream_index] , pkt.size, &data_dst);
 	assert(pck_dst);
 	memcpy(data_dst, pkt.data, pkt.size);
@@ -358,7 +356,10 @@ static Bool ffdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 	switch (com->base.type) {
 	case GF_FEVT_PLAY:
 		if (!ffd->nb_playing) {
-			av_seek_frame(ffd->ctx, -1, (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
+			int res = av_seek_frame(ffd->ctx, -1, (AV_TIME_BASE*com->play.start_range), AVSEEK_FLAG_BACKWARD);
+			if (res<0) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[FFDemux] Fail to seek %s to %g - error %s\n", ffd->src, com->play.start_range, av_err2str(res) ));
+			}
 		}
 		ffd->nb_playing++;
 

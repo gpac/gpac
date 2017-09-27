@@ -160,6 +160,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	if (!ctx->pid) {
 		if (ctx->nb_read) return GF_SERVICE_ERROR;
 	} else {
+		//TODO: go on fetching data to cache even when not consuming, and reread from cache
 		if (gf_filter_pid_would_block(ctx->pid))
 			return GF_OK;
 	}
@@ -184,11 +185,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 				gf_filter_setup_failure(filter, e);
 			return e;
 		}
+		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
 
 		//wait until we have some data to declare the pid
 		if ((e!= GF_EOS) && !nb_read) return GF_OK;
-
-		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
 
 		if (!ctx->pid) {
 			u32 idx;

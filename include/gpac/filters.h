@@ -249,7 +249,7 @@ typedef struct __gf_filter_register
 	//since discontinuities may happen at any time, and a filter may fetch packets in burst,
 	// this function may be called while the filter is calling gf_filter_pid_get_packet
 	//
-	//is_remove: indicates the input PID is removed (not yet implemented)
+	//is_remove: indicates the input PID is removed
 	GF_Err (*configure_pid)(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove);
 
 	//optional - callback for filter init -  private stack of filter is allocated by framework)
@@ -375,6 +375,7 @@ const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);
 //signals EOS on a PID. Each filter needs to call this when EOS is reached on a given stream
 //since there is no explicit link between input PIDs and output PIDs
 void gf_filter_pid_set_eos(GF_FilterPid *pid);
+//recursive
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid);
 

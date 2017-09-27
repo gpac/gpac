@@ -303,10 +303,18 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 
 	//todo - check amount of packets size/time to return a WOULD_BLOCK
 
-
 	if (PCK_IS_INPUT(pck)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
+	}
+
+	if (pid->discard_input_packets) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s reset pending, discarding input packet\n", pid->filter->name, pid->name));
+		safe_int_inc(&pck->reference_count);
+		if (safe_int_dec(&pck->reference_count) == 0) {
+			gf_filter_packet_destroy(pck);
+		}
+		return GF_OK;
 	}
 	pid->has_seen_eos = pck->eos;
 
