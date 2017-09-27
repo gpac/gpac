@@ -49,6 +49,7 @@ const GF_FilterRegister *mp3_dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *faad_register(GF_FilterSession *session);
 const GF_FilterRegister *maddec_register(GF_FilterSession *session);
 const GF_FilterRegister *xviddec_register(GF_FilterSession *session);
+const GF_FilterRegister *j2kdec_register(GF_FilterSession *session);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -220,9 +221,9 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, faad_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, maddec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, xviddec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, j2kdec_register(a_sess) );
 
-
-	//fixme - find a way to handle events without mutex ...
+	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
 
 	fsess->disable_blocking = GF_FALSE;
