@@ -328,6 +328,7 @@
 		92BB857A1F7BFB63009BC9C8 /* isoffin_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85641F7BFB63009BC9C8 /* isoffin_load.c */; };
 		92BB857B1F7BFB63009BC9C8 /* isoffin_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85651F7BFB63009BC9C8 /* isoffin_read.c */; };
 		92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */; };
+		92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1165,6 +1166,7 @@
 		92BB85641F7BFB63009BC9C8 /* isoffin_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_load.c; path = filters/isoffin_load.c; sourceTree = "<group>"; };
 		92BB85651F7BFB63009BC9C8 /* isoffin_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read.c; path = filters/isoffin_read.c; sourceTree = "<group>"; };
 		92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_xvid.c; path = filters/dec_xvid.c; sourceTree = "<group>"; };
+		92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_j2k.c; path = filters/dec_j2k.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2470,6 +2472,7 @@
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
 				92BB85551F7BFB60009BC9C8 /* dec_faad.c */,
 				92BB85571F7BFB60009BC9C8 /* dec_img.c */,
+				92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
@@ -3287,6 +3290,7 @@
 				92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */,
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
+				92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */,
 				92BB857A1F7BFB63009BC9C8 /* isoffin_load.c in Sources */,
 				9201017818D5A445003D1ACA /* text_to_bifs.c in Sources */,
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
@@ -3806,6 +3810,7 @@
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
+					GPAC_HAS_JP2,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3818,6 +3823,7 @@
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
+					GPAC_HAS_JP2,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3833,6 +3839,7 @@
 					/opt/local/include/nspr,
 					../../include,
 					/usr/local/include,
+					"/opt/local/include/openjpeg-1.5",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
@@ -3877,6 +3884,7 @@
 					"-lfaad",
 					"-lmad",
 					"-lxvidcore",
+					"-lopenjpeg",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3904,6 +3912,7 @@
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
+					GPAC_HAS_JP2,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3918,6 +3927,7 @@
 					/opt/local/include/nspr,
 					../../include,
 					/usr/local/include,
+					"/opt/local/include/openjpeg-1.5",
 				);
 				LIBRARY_SEARCH_PATHS = (
 					/usr/local/lib,
@@ -3961,6 +3971,7 @@
 					"-lfaad",
 					"-lmad",
 					"-lxvidcore",
+					"-lopenjpeg",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
