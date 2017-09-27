@@ -3077,6 +3077,7 @@ enum
 	u64	curPos;		\
 	u8	mode;		\
 	GF_BitStream *bs;\
+	u64 last_read_offset;\
 	char *szName;
 
 typedef struct __tag_data_map
@@ -3206,6 +3207,8 @@ struct __tag_isom {
 	GF_MetaBox *meta;
 
 	Bool dump_mode_alloc;
+
+	u64 read_byte_offset;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
 	u32 FragmentsFlags, NextMoofNumber;

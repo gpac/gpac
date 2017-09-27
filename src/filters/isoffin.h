@@ -58,12 +58,12 @@ typedef struct
 	GF_ISOFile *mov;
 	u32 time_scale;
 	u32 nb_playing;
-//	Bool is_local;
+	Bool input_loaded;
 
 	u64 missing_bytes, last_size;
 
 	u32 play_only_track_id;
-
+	u32 play_only_first_media;
 	/*0: not fragmented - 1 fragmented - 2 fragmented and last fragment received*/
 	u32 frag_type;
 	Bool waiting_for_data, reset_frag_state;
@@ -84,8 +84,7 @@ typedef struct
 	Bool moov_not_loaded;
 
 	u64 last_sender_ntp, cts_for_last_sender_ntp;
-	Double remain_at_buffering_start;
-	Bool buffering;
+	Bool is_partial_download, wait_for_source;
 
 	u32 src_crc;
 	GF_FilterPid *pid;

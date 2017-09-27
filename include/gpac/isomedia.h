@@ -564,6 +564,9 @@ only relies on the underlying OS fwrite/fgetc
 If movie is NULL, assigns the default write cache size for any new movie*/
 GF_Err gf_isom_set_output_buffering(GF_ISOFile *movie, u32 size);
 
+/*when reading a file, indicates that file data is missing the indicated bytes*/
+GF_Err gf_isom_set_byte_offset(GF_ISOFile *file, u64 byte_offset);
+
 /********************************************************************
 				STREAMING API FUNCTIONS
 ********************************************************************/
@@ -757,7 +760,7 @@ this index allows to retrieve the stream description if needed (2 media in 1 tra
 return GF_EOS if the desired time exceeds the media duration
 WARNING: the sample may not be sync even though the sync was requested (depends on the media and the editList)
 the SampleNum is optional. If non-NULL, will contain the sampleNumber*/
-GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum);
+GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum, u64 *data_offset);
 
 /*retrieves given sample DTS*/
 u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts);
@@ -787,7 +790,7 @@ on the track time-line. The sample TSs (DTS / CTS offset) are expressed in MEDIA
 
 sampleNumber is optional and gives the number of the sample in the media
 */
-GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber);
+GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber, u64 *data_offset);
 
 /*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list, in which case mediaOffset is set to the DTS offset value (e.g., your app should add mediaOffset to all sample DTS)*/
 Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *mediaOffset);

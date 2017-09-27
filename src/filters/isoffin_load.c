@@ -80,6 +80,7 @@ void isor_declare_objects(ISOMReader *read)
 	const char *tag;
 	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
 	Bool highest_stream;
+	Bool single_media_found = GF_FALSE;
 	Bool use_iod = GF_FALSE;
 	GF_Descriptor *od = gf_isom_get_root_od(read->mov);
 	if (od && gf_list_count(((GF_ObjectDescriptor*)od)->ESDescriptors)) {
@@ -96,11 +97,12 @@ void isor_declare_objects(ISOMReader *read)
 		Bool external_base=GF_FALSE;
 		Double track_dur=0;
 		GF_FilterPid *pid;
-		u32 m_subtype;
+		u32 mtype, m_subtype;
 		if (!gf_isom_is_track_enabled(read->mov, i+1))
 			continue;
 
-		switch (gf_isom_get_media_type(read->mov, i+1)) {
+		mtype = gf_isom_get_media_type(read->mov, i+1);
+		switch (mtype) {
 		case GF_ISOM_MEDIA_AUDIO:
 		case GF_ISOM_MEDIA_VISUAL:
 		case GF_ISOM_MEDIA_TEXT:
@@ -126,6 +128,12 @@ void isor_declare_objects(ISOMReader *read)
 		highest_stream = GF_TRUE;
 		track_id = gf_isom_get_track_id(read->mov, i+1);
 		if (read->play_only_track_id && (read->play_only_track_id != track_id)) continue;
+
+		if (read->play_only_first_media) {
+			if (read->play_only_first_media != mtype) continue;
+			if (single_media_found) continue;
+			single_media_found = GF_TRUE;
+		}
 
 		for (j = 0; j < count; j++) {
 			if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_SCAL, track_id) > 0) {
