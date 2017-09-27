@@ -39,8 +39,6 @@
 #endif
 
 #include <faad.h>
-
-#include <gpac/modules/codec.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 
@@ -57,7 +55,7 @@ typedef struct
 
 	Bool signal_mc;
 	Bool is_sbr;
-	Bool reset_decoder;
+
 	u32 channel_mask;
 	char ch_reorder[16];
 	u64 last_cts;
@@ -189,7 +187,7 @@ base_object_type_error: /*error case*/
 #endif
 		{
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error when initializing AAC decoder for stream\n"));
-			return GF_CODEC_NOT_SUPPORTED;
+			return GF_NOT_SUPPORTED;
 		}
 	}
 
@@ -202,12 +200,12 @@ base_object_type_error: /*error case*/
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
 	}
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, &PROP_UINT(ctx->sample_rate) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, &PROP_UINT(ctx->num_samples) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, &PROP_UINT(ctx->num_channels) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AUDIO_FORMAT, &PROP_UINT(GF_AUDIO_FMT_S16) );
 
 	if (ctx->is_sbr) gf_filter_set_name(filter, "dec_faad:FAAD2 " FAAD2_VERSION " SBR mode");
 	else gf_filter_set_name(filter,  "dec_faad:FAAD2 " FAAD2_VERSION);
@@ -253,12 +251,6 @@ static s8 faaddec_get_channel_pos(GF_FAADCtx *ffd, u32 ch_cfg)
 	return -1;
 }
 
-static Bool faaddec_process_event(GF_Filter *filter, GF_FilterEvent *evt)
-{
-	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
-	if (evt->base.type == GF_FEVT_STOP) ctx->reset_decoder = GF_TRUE;
-	return GF_FALSE;
-}
 static GF_Err faaddec_process(GF_Filter *filter)
 {
 	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
@@ -270,12 +262,6 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 
-	if (ctx->reset_decoder) {
-		GF_Err e = faaddec_configure_pid(filter, ctx->ipid, GF_FALSE);
-		ctx->reset_decoder = GF_FALSE;
-		if (e) return e;
-
-	}
 	if (!pck) {
 		is_eos = gf_filter_pid_is_eos(ctx->ipid);
 		if (!is_eos) return GF_OK;
@@ -435,7 +421,6 @@ GF_FilterRegister FAADRegister = {
 	.output_caps = FAADOutputs,
 	.configure_pid = faaddec_configure_pid,
 	.process = faaddec_process,
-	.process_event = faaddec_process_event,
 };
 
 #endif
