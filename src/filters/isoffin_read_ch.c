@@ -403,9 +403,9 @@ static void init_reader(ISOMChannel *ch)
 
 		/*take care of seeking out of the track range*/
 		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &sample_desc_index, mode, &ch->sample, &ch->sample_num);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &sample_desc_index, mode, &ch->sample, &ch->sample_num, NULL);
 		} else {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->sample, &ch->sample_num);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->sample, &ch->sample_num, NULL);
 		}
 		ch->last_state = GF_OK;
 
@@ -418,14 +418,10 @@ static void init_reader(ISOMChannel *ch)
 	if (!ch->sample) {
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
-#ifdef FILTER_FIXME
-			GF_NetIOStatus net_status;
-			gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
-			if (net_status == GF_NETIO_DATA_EXCHANGE) {
+			if (!ch->owner->input_loaded) {
 				ch->last_state = GF_OK;
 				return;
 			}
-#endif
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
 		} else if (ch->sample_num) {
 			ch->last_state = (ch->owner->frag_type==1) ? GF_OK : GF_EOS;
@@ -494,7 +490,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->last_state = GF_EOS;
 			return;
 		} else {
-			e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+			e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num, NULL);
 			if (e) {
 				if ((e==GF_EOS) && !ch->owner->frag_type) {
 					ch->last_state = GF_EOS;
@@ -519,7 +515,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;
-		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num, NULL);
 
 		if (e == GF_OK) {
 
@@ -552,7 +548,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						if (s2 && s1) {
 							assert(s2->DTS >= s1->DTS);
 							time_diff = (u32) (s2->DTS - s1->DTS);
-							/*e = */gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num);
+							/*e = */gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num, NULL);
 						} else if (s1 && !s2) {
 							/*e = GF_EOS;*/
 						}
@@ -568,7 +564,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_ISOSample *found = ch->sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
-					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num);
+					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num, NULL);
 					assert (e == GF_OK);
 					/*if no sync point in the past, use the first non-sync for the given time*/
 					if (!ch->sample || !ch->sample->data) {
@@ -613,23 +609,11 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		/*incomplete file - check if we're still downloading or not*/
 		if (gf_isom_get_missing_bytes(ch->owner->mov, ch->track)) {
 			ch->last_state = GF_ISOM_INCOMPLETE_FILE;
-#ifdef FILTER_FIXME
-			if (ch->owner->dnload) {
-				GF_NetIOStatus net_status;
-				gf_dm_sess_get_stats(ch->owner->dnload, NULL, NULL, NULL, NULL, NULL, &net_status);
-				if (net_status == GF_NETIO_DATA_EXCHANGE) {
-					ch->last_state = GF_OK;
-					if (!ch->has_edit_list)
-						ch->sample_num--;
-				}
-			}
-			else if (ch->owner->input->query_proxy) {
+			if (!ch->owner->input_loaded) {
 				ch->last_state = GF_OK;
 				if (!ch->has_edit_list && ch->sample_num)
 					ch->sample_num--;
 			}
-#endif
-
 		}
 		else if (!ch->sample_num
 		         || ((ch->speed >= 0) && (ch->sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track)))

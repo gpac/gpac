@@ -130,8 +130,12 @@ static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 				gf_fseek(ctx->cached, ctx->nb_read, SEEK_SET);
 			} else {
 				gf_dm_sess_abort(ctx->sess);
-				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_FALSE);
+				gf_dm_sess_set_range(ctx->sess, ctx->nb_read, 0, GF_TRUE);
 			}
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPIn] Requested seek outside file range !\n") );
+			ctx->is_end = GF_TRUE;
+			gf_filter_pid_set_eos(ctx->pid);
 		}
 		return GF_TRUE;
 	default:
@@ -143,7 +147,7 @@ static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 static GF_Err httpin_process(GF_Filter *filter)
 {
 	Bool is_start;
-	u32 nb_read=0;
+	u32 nb_read=0, total_size;
 	GF_FilterPacket *pck;
 	char *pck_data;
 	GF_Err e;
@@ -185,7 +189,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 				gf_filter_setup_failure(filter, e);
 			return e;
 		}
-		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &ctx->file_size, &bytes_done, &bytes_per_sec, &net_status);
+		gf_dm_sess_get_stats(ctx->sess, NULL, NULL, &total_size, &bytes_done, &bytes_per_sec, &net_status);
 
 		//wait until we have some data to declare the pid
 		if ((e!= GF_EOS) && !nb_read) return GF_OK;
@@ -202,6 +206,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[HTTPIn] Failed to open cached file %s\n", cached));
 				}
 			}
+			ctx->file_size = total_size;
 			ctx->block[nb_read] = 0;
 			ctx->pid = filein_declare_pid(filter, ctx->src, cached, gf_dm_sess_mime_type(ctx->sess), ctx->block, nb_read);
 			if (!ctx->pid) return GF_SERVICE_ERROR;
@@ -222,6 +227,8 @@ static GF_Err httpin_process(GF_Filter *filter)
 		}
 
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_RATE, &PROP_UINT(8*bytes_per_sec) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_BYTES, &PROP_UINT(bytes_done) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_UINT(ctx->file_size) );
 	}
 
 	ctx->nb_read += nb_read;
@@ -230,6 +237,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	} else if (e==GF_EOS) {
 		ctx->is_end = GF_TRUE;
 	}
+	assert(!ctx->file_size || (ctx->nb_read <= ctx->file_size));
 
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, httpin_rel_pck);
 	if (!pck) return GF_OK;

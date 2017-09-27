@@ -77,6 +77,13 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 		ext = anext;
 	}
 	if (ext) ext++;
+	if (ext) {
+		char *s = strchr(ext, '#');
+		if (s) s[0] = 0;
+
+		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
+		if (s) s[0] = '#';
+	}
 
 	//TODO - make this generic
 	if (!mime_type && probe_data) {
@@ -102,9 +109,6 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 			mime_type = "application/widget";
 		}
 	}
-
-	if (ext)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_FILE_EXT, &PROP_STRING(ext));
 	if (mime_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING(mime_type));
 

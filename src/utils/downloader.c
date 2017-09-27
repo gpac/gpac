@@ -1584,14 +1584,14 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 			if (gf_cache_get_end_range(sess->cache_entry) + 1 != start_range)
 				return GF_NOT_SUPPORTED;
 		}
-		if (!sess->sock)
-			return GF_BAD_PARAM;
-		if (sess->status != GF_NETIO_CONNECTED) {
-			if (sess->status != GF_NETIO_DISCONNECTED) {
-				return GF_BAD_PARAM;
+		if (sess->sock) {
+			if (sess->status != GF_NETIO_CONNECTED) {
+				if (sess->status != GF_NETIO_DISCONNECTED) {
+					return GF_BAD_PARAM;
+				}
 			}
 		}
-		sess->status = GF_NETIO_CONNECTED;
+		sess->status = sess->sock ? GF_NETIO_CONNECTED : GF_NETIO_SETUP;
 		sess->num_retry = SESSION_RETRY_COUNT;
 		if (!discontinue_cache) {
 			gf_cache_set_end_range(sess->cache_entry, end_range);

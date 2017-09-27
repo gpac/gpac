@@ -135,6 +135,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	//no more pids on filter, destroy it
 	if (! gf_list_count(pid->destinations)) {
 		gf_list_del_item(filter->output_pids, pid);
+		filter->num_output_pids = gf_list_count(filter->output_pids);
 		gf_filter_pid_del(pid);
 	}
 	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
@@ -721,10 +722,10 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		}
 		if (!res) {
 			//no filter found for this pid !
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s in filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
-		} else {
-			*filter_reassigned = GF_TRUE;
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable source filter found - NOT CONNECTED\n"));
 		}
+		*filter_reassigned = GF_TRUE;
+		
 	} else {
 		//no filter found for this pid !
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved filter chain from filter %s PID %s to filter %s - dumping chain:\n", pid->filter->name, pid->name, dst_filter->name));
@@ -1488,8 +1489,8 @@ static void gf_filter_pid_reset_task(GF_FSTask *task)
 	pidi->pid->nb_buffer_unit = 0;
 	pidi->pid->nb_buffer_unit = 0;
 
+	assert(pidi->pid->discard_input_packets);
 	safe_int_dec(& pidi->pid->discard_input_packets );
-
 }
 
 void gf_filter_pid_send_event_downstream(GF_FSTask *task)
@@ -1544,8 +1545,9 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		GF_FilterPid *pid = pid_inst->pid;
 
 		//mark pid instance as about to be reset to avoid processing PID destroy task before
-		if (evt->base.type == GF_FEVT_STOP) {
+		if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 			pid_inst->discard_packets = GF_TRUE;
+			safe_int_inc(& pid_inst->pid->discard_input_packets );
 		}
 		//allocate a copy except for the last PID where we use the one from the input
 		if (i+1<count) {
@@ -1574,7 +1576,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
 
-	if (evt->base.type == GF_FEVT_SOURCE_SEEK) {
+	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
 		u32 i, count = gf_list_count(pid->pid->destinations);
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);

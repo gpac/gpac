@@ -773,7 +773,6 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 
 void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
 {
-	
 	gf_filter_remove_internal(filter, until_filter);
 }
 
@@ -794,6 +793,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
 		gf_filter_pid_del(pid);
 	}
+	filter->num_output_pids = 0;
 
 	if (filter->freg->finalize) filter->freg->finalize(filter);
 	gf_list_add(filter->blacklisted, filter->freg);

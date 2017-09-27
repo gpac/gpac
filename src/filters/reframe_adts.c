@@ -319,7 +319,7 @@ static Bool adts_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 			if (!ctx->file_pos)
 				return GF_TRUE;
 		}
-		//post a seek from 0 - TODO we could build a map of byte offsets
+		//post a seek
 		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
 		fevt.seek.start_offset = ctx->file_pos;
 		gf_filter_pid_send_event(ctx->ipid, &fevt);

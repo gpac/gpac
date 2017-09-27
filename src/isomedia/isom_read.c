@@ -1699,7 +1699,7 @@ u32 gf_isom_get_sample_from_dts(GF_ISOFile *the_file, u32 trackNumber, u64 dts)
 //return NULL if error
 //WARNING: the sample may not be sync even though the sync was requested (depends on the media)
 GF_EXPORT
-GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum)
+GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, u64 desiredTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *SampleNum, u64 *data_offset)
 {
 	GF_Err e;
 	u32 sampleNumber, prevSampleNumber, syncNum, shadowSync;
@@ -1707,8 +1707,6 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	GF_ISOSample *shadow;
 	GF_SampleTableBox *stbl;
 	u8 useShadow, IsSync;
-
-	if (!sample) return GF_BAD_PARAM;
 
 	if (SampleNum) *SampleNum = 0;
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
@@ -1800,9 +1798,10 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 
 	//OK sampleNumber is exactly the sample we need (except for shadow)
 
-	*sample = gf_isom_sample_new();
-	if (*sample == NULL) return GF_OUT_OF_MEM;
-
+	if (sample) {
+		*sample = gf_isom_sample_new();
+		if (*sample == NULL) return GF_OUT_OF_MEM;
+	}
 	//we are in shadow mode, we need to browse both SyncSample and ShadowSyncSample to get
 	//the desired sample...
 	if (SearchMode == GF_ISOM_SEARCH_SYNC_SHADOW) {
@@ -1819,12 +1818,12 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		}
 	}
 
-	e = Media_GetSample(trak->Media, sampleNumber, sample, StreamDescriptionIndex, GF_FALSE, NULL);
+	e = Media_GetSample(trak->Media, sampleNumber, sample, StreamDescriptionIndex, GF_FALSE, data_offset);
 	if (e) {
 		gf_isom_sample_del(sample);
 		return e;
 	}
-	if (! (*sample)->IsRAP) {
+	if (sample && ! (*sample)->IsRAP) {
 		Bool has_roll, is_rap;
 		e = gf_isom_get_sample_rap_roll_info(the_file, trackNumber, sampleNumber, &is_rap, &has_roll, NULL);
 		if (e) return e;
@@ -1839,7 +1838,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 
 	//in shadow mode, we only get the data of the shadowing sample !
-	if (useShadow) {
+	if (sample && useShadow) {
 		//we have to use StreamDescriptionIndex in case the sample data is in another desc
 		//though this is unlikely as non optimized...
 		shadow = gf_isom_get_sample(the_file, trackNumber, shadowSync, StreamDescriptionIndex);
@@ -1857,7 +1856,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 }
 
 GF_EXPORT
-GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber)
+GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber, u64 *data_offset)
 {
 	Double tsscale;
 	GF_Err e;
@@ -1870,7 +1869,6 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	trak = gf_isom_get_track_from_file(the_file, trackNumber);
 	if (!trak) return GF_BAD_PARAM;
 
-	if (*sample || !sample) return GF_BAD_PARAM;
 	//check 0-duration tracks (BIFS and co). Check we're not searching forward
 	if (!trak->Header->duration) {
 		if (movieTime && ( (SearchMode == GF_ISOM_SEARCH_SYNC_FORWARD) || (SearchMode == GF_ISOM_SEARCH_FORWARD)) ) {
@@ -1908,7 +1906,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 			else
 				e = GetPrevMediaTime(trak, movieTime, &mediaTime);
 			if (e) return e;
-			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber);
+			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber, data_offset);
 		}
 		if (sampleNumber) *sampleNumber = 0;
 		*sample = gf_isom_sample_new();
@@ -1926,7 +1924,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 			else
 				e = GetPrevMediaTime(trak, movieTime, &mediaTime);
 			if (e) return e;
-			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber);
+			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber, data_offset);
 		}
 	}
 
@@ -1934,7 +1932,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	tsscale /= trak->moov->mvhd->timeScale;
 
 	//OK, we have a sample so fetch it
-	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum);
+	e = gf_isom_get_sample_for_media_time(the_file, trackNumber, mediaTime, StreamDescriptionIndex, SearchMode, sample, &sampNum, data_offset);
 	if (e) {
 		if (e==GF_EOS) {
 #ifndef GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1944,7 +1942,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 #endif
 
 			if (nextMediaTime)
-				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber);
+				return gf_isom_get_sample_for_movie_time(the_file, trackNumber, nextMediaTime-1, StreamDescriptionIndex, SearchMode, sample, sampleNumber, data_offset);
 		}
 		return e;
 	}
@@ -1965,7 +1963,7 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	}
 	if (sampleNumber) *sampleNumber = sampNum;
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
-	if ( (*sample) ) (*sample)->DTS += trak->dts_at_seg_start;
+	if (sample && (*sample) ) (*sample)->DTS += trak->dts_at_seg_start;
 #endif
 
 	return GF_OK;
@@ -4188,4 +4186,9 @@ Bool gf_isom_get_oinf_info(GF_ISOFile *file, u32 trackNumber, GF_OperatingPoints
 	return *ptr ? GF_TRUE : GF_FALSE;
 }
 
+GF_EXPORT
+GF_Err gf_isom_set_byte_offset(GF_ISOFile *file, u64 byte_offset)
+{
+	file->read_byte_offset = byte_offset;
+}
 #endif /*GPAC_DISABLE_ISOM*/

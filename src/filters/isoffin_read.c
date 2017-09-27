@@ -69,11 +69,11 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	char szURL[2048];
 	char *tmp, *src;
 	GF_Err e;
+	const GF_PropertyValue *prop;
 	u64 start_range, end_range;
 	if (!read) return GF_SERVICE_ERROR;
 
 	if (read->pid) {
-		const GF_PropertyValue *prop;
 		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILEPATH);
 		assert(prop);
 		src = prop->value.string;
@@ -87,14 +87,31 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	strcpy(szURL, src);
 	tmp = strrchr(szURL, '.');
 	if (tmp) {
+		Bool truncate = GF_TRUE;
 		tmp = strchr(tmp, '#');
+		if (!tmp && read->pid) {
+			prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_URL);
+			if (prop && prop->value.string) {
+				tmp = strrchr(prop->value.string, '.');
+				if (tmp) tmp = strchr(tmp, '#');
+				truncate = GF_FALSE;
+			}
+		}
 		if (tmp) {
-			if (!strnicmp(tmp, "#trackID=", 9)) {
+			if (!strnicmp(tmp, "#audio", 6)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_AUDIO;
+			} else if (!strnicmp(tmp, "#video", 6)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_VISUAL;
+			} else if (!strnicmp(tmp, "#text", 5)) {
+				read->play_only_first_media = GF_ISOM_MEDIA_TEXT;
+			} else if (!strnicmp(tmp, "#trackID=", 9)) {
 				read->play_only_track_id = atoi(tmp+9);
+			} else if (!strnicmp(tmp, "#ID=", 4)) {
+				read->play_only_track_id = atoi(tmp+4);
 			} else {
 				read->play_only_track_id = atoi(tmp+1);
 			}
-			tmp[0] = 0;
+			if (truncate) tmp[0] = 0;
 		}
 	}
 
@@ -171,6 +188,10 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	read->pid = pid;
+
+	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_CACHED);
+	if (prop && prop->value.boolean) read->input_loaded = GF_TRUE;
+
 	return isoffin_setup(filter, read);
 }
 
@@ -181,8 +202,10 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 	read->filter = filter;
 	read->channels = gf_list_new();
 
-	if (read->src)
+	if (read->src) {
+		read->input_loaded = GF_TRUE;
 		return isoffin_setup(filter, read);
+	}
 
 	return GF_OK;
 }
@@ -203,101 +226,8 @@ static GF_Err isoffin_finalize(GF_Filter *filter)
 	}
 	gf_list_del(read->channels);
 
-#ifdef FILTER_FIXME
-	if (read->dnload) gf_service_download_del(read->dnload);
-	read->dnload = NULL;
-#endif
-
 	if (read->mov) gf_isom_close(read->mov);
 	read->mov = NULL;
-
-#ifdef FILTER_FIXME
-	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, GF_TRUE, GF_FALSE, reply, NULL, NULL);
-	} else {
-		gf_service_disconnect_ack(read->service, NULL, reply);
-	}
-#endif
-
-}
-
-static Bool check_mpeg4_systems(GF_Filter *filter, GF_ISOFile *mov)
-{
-	char *opt, *bname, *br, *next;
-	u32 i, count, brand;
-	Bool has_mpeg4;
-	GF_Err e;
-	e = gf_isom_get_brand_info(mov, &brand, &i, &count);
-	/*no brand == MP4 v1*/
-	if (e || !brand) return GF_TRUE;
-
-	has_mpeg4 = GF_FALSE;
-	if ((brand==GF_ISOM_BRAND_MP41) || (brand==GF_ISOM_BRAND_MP42)) has_mpeg4 = GF_TRUE;
-
-#ifdef FILTER_FIXME
-	opt = (char*) gf_modules_get_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands");
-	if (!opt) {
-		gf_modules_set_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands", "nd*");
-		opt = (char*) gf_modules_get_option((GF_BaseInterface *)plug, "ISOReader", "IgnoreMPEG-4ForBrands");
-	}
-#endif
-
-	for (i=0; i<count; i++) {
-		e = gf_isom_get_alternate_brand(mov, i+1, &brand);
-		if (e) return GF_FALSE;
-		if ((brand==GF_ISOM_BRAND_MP41) || (brand==GF_ISOM_BRAND_MP42)) {
-			has_mpeg4 = GF_TRUE;
-			continue;
-		}
-		bname = (char*)gf_4cc_to_str(brand);
-		br = opt;
-		while (br) {
-			Bool ignore = GF_FALSE;
-			u32 orig_len, len;
-			next = strchr(br, ' ');
-			if (next) next[0] = 0;
-			len = orig_len = (u32) strlen(br);
-
-			while (len) {
-				if (br[len-1]=='*') {
-					br[len-1]=0;
-					len--;
-				} else {
-					break;
-				}
-			}
-			/*ignor all brands*/
-			if (!len) ignore = GF_TRUE;
-			else if (!strncmp(bname, br, len)) ignore = GF_TRUE;
-
-			while (len<orig_len) {
-				br[len] = '*';
-				len++;
-			}
-			if (next) {
-				next[0] = ' ';
-				br = next + 1;
-			} else {
-				br = NULL;
-			}
-			if (ignore) return GF_FALSE;
-		}
-	}
-	return has_mpeg4;
-}
-
-static u32 get_track_id(GF_ISOFile *mov, u32 media_type, u32 idx)
-{
-	u32 i, count, cur;
-	cur=0;
-	count = gf_isom_get_track_count(mov);
-	for (i=0; i<count; i++) {
-		if (gf_isom_get_media_type(mov, i+1) != media_type) continue;
-		if (!idx) return gf_isom_get_track_id(mov, i+1);
-		cur++;
-		if (cur==idx) return gf_isom_get_track_id(mov, i+1);
-	}
-	return GF_FALSE;
 }
 
 
@@ -350,7 +280,6 @@ ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track)
 	}
 	ch->owner = read;
 	ch->pid = pid;
-//	ch->is_playing = GF_TRUE;
 	ch->to_init = GF_TRUE;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
@@ -447,95 +376,6 @@ exit:
 
 #ifdef FILTER_FIXME
 
-GF_Err ISOR_DisconnectChannel(GF_InputService *plug, LPNETCHANNEL channel)
-{
-	ISOMChannel *ch;
-	GF_Err e;
-	ISOMReader *read;
-	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
-	read = (ISOMReader *) plug->priv;
-	if (!read->mov) return GF_SERVICE_ERROR;
-
-	gf_mx_p(read->segment_mutex);
-	e = GF_OK;
-	ch = isor_get_channel(read, channel);
-	assert(ch);
-	if (!ch) {
-		e = GF_STREAM_NOT_FOUND;
-		goto exit;
-	}
-	/*signal the service is broken but still process the delete*/
-	isor_delete_channel(read, ch);
-	assert(!isor_get_channel(read, channel));
-
-exit:
-	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, 1, 0, e, NULL, channel);
-	} else {
-		gf_service_disconnect_ack(read->service, channel, e);
-	}
-	gf_mx_v(read->segment_mutex);
-	return e;
-}
-
-GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **out_data_ptr, u32 *out_data_size, GF_SLHeader *out_sl_hdr, Bool *sl_compressed, GF_Err *out_reception_status, Bool *is_new_data)
-{
-	ISOMChannel *ch;
-	ISOMReader *read;
-	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
-	/*cannot read native SL-PDUs*/
-	if (!out_sl_hdr) return GF_NOT_SUPPORTED;
-	read = (ISOMReader *) plug->priv;
-	if (!read->mov) return GF_SERVICE_ERROR;
-
-	*out_data_ptr = NULL;
-	*out_data_size = 0;
-	*sl_compressed = GF_FALSE;
-	*out_reception_status = GF_OK;
-	*is_new_data = GF_FALSE;
-	ch = isor_get_channel(read, channel);
-	if (!ch) return GF_STREAM_NOT_FOUND;
-	if (!ch->is_playing) return GF_OK;
-
-	*is_new_data = GF_FALSE;
-	if (!ch->sample) {
-		/*get sample*/
-		gf_mx_p(read->segment_mutex);
-		isor_reader_get_sample(ch);
-		gf_mx_v(read->segment_mutex);
-		*is_new_data = ch->sample ? GF_TRUE : GF_FALSE;
-	}
-
-	if (ch->sample) {
-		*out_data_ptr = ch->sample->data;
-		*out_data_size = ch->sample->dataLength;
-		*out_sl_hdr = ch->current_slh;
-	}
-	*out_reception_status = ch->last_state;
-	if (read->waiting_for_data)
-		*out_reception_status = GF_BUFFER_TOO_SMALL;
-
-	return GF_OK;
-}
-
-GF_Err ISOR_ChannelReleaseSLP(GF_InputService *plug, LPNETCHANNEL channel)
-{
-	ISOMChannel *ch;
-	ISOMReader *read;
-	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
-	read = (ISOMReader *) plug->priv;
-	if (!read->mov) return GF_SERVICE_ERROR;
-	ch = isor_get_channel(read, channel);
-	if (!ch) return GF_STREAM_NOT_FOUND;
-	if (!ch->is_playing) return GF_SERVICE_ERROR;
-
-	if (ch->sample) {
-		isor_reader_release_sample(ch);
-		/*release sample*/
-	}
-	return GF_OK;
-}
-
 /*switch channel quality. Return next channel or current channel if error*/
 static
 u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch_up)
@@ -586,6 +426,8 @@ u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch
 	return next_track;
 }
 #endif
+
+
 
 static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 {
@@ -656,21 +498,6 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 	switch (com->base.type) {
 #ifdef FILTER_FIXME
-	case GF_NET_CHAN_SET_PADDING:
-		if (!ch->track) return GF_OK;
-		gf_isom_set_sample_padding(read->mov, ch->track, com->pad.padding_bytes);
-		return GF_OK;
-	case GF_NET_CHAN_SET_PULL:
-		//we don't pull in DASH base services, we flush as soon as we have a complete segment
-#ifndef DASH_USE_PULL
-		if (read->input->proxy_udta && !read->input->proxy_type)
-			return GF_NOT_SUPPORTED;
-#endif
-
-		ch->is_pulling = 1;
-		return GF_OK;
-	case GF_NET_CHAN_INTERACTIVE:
-		return GF_OK;
 	case GF_NET_CHAN_BUFFER:
 		//dash or HTTP, do rebuffer if not disabled
 		if (plug->query_proxy) {
@@ -730,13 +557,50 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 #endif
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
-#ifdef FILTER_FIXME
-		//and check buffer level on play request
-		isor_check_buffer_level(read);
-#endif
 		if (!read->nb_playing)
 			gf_isom_reset_seq_num(read->mov);
 
+		if (read->is_partial_download) read->input_loaded = GF_FALSE;
+
+		if (!read->nb_playing && read->pid && !read->input_loaded) {
+			GF_FilterEvent fevt;
+			u64 max_offset = GF_FILTER_NO_BO;
+			u32 i, count = gf_list_count(read->channels);
+			for (i=0; i< count; i++) {
+				u32 mode, sample_desc_index, sample_num;
+				u64 data_offset;
+				GF_ISOSample *sample;
+				GF_Err e;
+				u64 time;
+				ch = gf_list_get(read->channels, i);
+				mode = ch->disable_seek ? GF_ISOM_SEARCH_BACKWARD : GF_ISOM_SEARCH_SYNC_BACKWARD;
+				time = com->play.start_range;
+				time *= ch->time_scale;
+
+				/*take care of seeking out of the track range*/
+				if (!read->frag_type && (ch->duration < time)) {
+					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, ch->duration, 	&sample_desc_index, mode, NULL, &sample_num, &data_offset);
+				} else {
+					e = gf_isom_get_sample_for_movie_time(read->mov, ch->track, time, &sample_desc_index, mode, NULL, &sample_num, &data_offset);
+				}
+				if ((e == GF_OK) && (data_offset<max_offset))
+					max_offset = data_offset;
+			}
+
+			if ((com->play.start_range || read->is_partial_download)  && (max_offset != GF_FILTER_NO_BO) ) {
+
+				//send a seek request
+				read->is_partial_download = GF_TRUE;
+				read->wait_for_source = GF_TRUE;
+
+				//post a seek from 0 - TODO we could build a map of byte offsets
+				GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, read->pid);
+				fevt.seek.start_offset = max_offset;
+				gf_filter_pid_send_event(read->pid, &fevt);
+				gf_isom_set_byte_offset(read->mov, max_offset);
+
+			}
+		}
 		//always request a process task upon a play
 		gf_filter_post_process_task(read->filter);
 
@@ -768,9 +632,24 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	Bool is_active = GF_FALSE;
 
 	if (read->pid) {
-		while (gf_filter_pid_get_packet(read->pid)) {
+		while (1) {
+			GF_FilterPacket *pck = gf_filter_pid_get_packet(read->pid);
+			if (!pck) {
+				//we issued a seek, wait for the first packet to be received before fetching channels
+				//otherwise we could end up reading from the wrong cache
+				if (read->wait_for_source) {
+					//something went wrong during the seek request
+					if (gf_filter_pid_is_eos(read->pid))
+						return GF_EOS;
+					return GF_OK;
+				}
+				break;
+			}
+			read->wait_for_source = GF_FALSE;
 			gf_filter_pid_drop_packet(read->pid);
 		}
+		if (gf_filter_pid_is_eos(read->pid))
+			read->input_loaded = GF_TRUE;
 	}
 	if (read->moov_not_loaded) {
 		read->moov_not_loaded = GF_FALSE;

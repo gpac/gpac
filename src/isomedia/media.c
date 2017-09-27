@@ -360,6 +360,18 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	//OK, here we go....
 	if (sampleNumber > mdia->information->sampleTable->SampleSize->sampleCount) return GF_BAD_PARAM;
 
+	//the data info
+	if (!sIDX && !no_data) return GF_BAD_PARAM;
+	if (!sIDX && !out_offset) return GF_OK;
+	if (!sIDX) return GF_OK;
+
+	(*sIDX) = 0;
+	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &isEdited);
+	if (e) return e;
+
+	if (out_offset) *out_offset = offset;
+	if (!samp ) return GF_OK;
+
 	if (mdia->information->sampleTable->TimeToSample) {
 		//get the DTS
 		e = stbl_GetSampleDTS(mdia->information->sampleTable->TimeToSample, sampleNumber, &(*samp)->DTS);
@@ -400,15 +412,6 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 	/*get sync shadow*/
 	if (Media_IsSampleSyncShadow(mdia->information->sampleTable->ShadowSync, sampleNumber)) (*samp)->IsRAP = RAP_REDUNDANT;
 
-	//the data info
-	if (!sIDX && !no_data) return GF_BAD_PARAM;
-	if (!sIDX && !out_offset) return GF_OK;
-	if (!sIDX) return GF_OK;
-
-	(*sIDX) = 0;
-	e = stbl_GetSampleInfos(mdia->information->sampleTable, sampleNumber, &offset, &chunkNumber, sIDX, &isEdited);
-	if (e) return e;
-
 	//then get the DataRef
 	e = Media_GetSampleDesc(mdia, *sIDX, &entry, &dataRefIndex);
 	if (e) return e;
@@ -429,8 +432,23 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		if (e) return e;
 	}
 
-	if (out_offset) *out_offset = offset;
 	if (no_data) return GF_OK;
+
+	if ( mdia->mediaTrack->moov->mov->read_byte_offset) {
+		GF_DataEntryBox *ent = (GF_DataEntryBox*)gf_list_get(mdia->information->dataInformation->dref->other_boxes, dataRefIndex - 1);
+		if (ent && (ent->flags&1)) {
+
+			if (offset < mdia->mediaTrack->moov->mov->read_byte_offset) return GF_IO_ERR;
+
+			if (mdia->information->dataHandler->last_read_offset != mdia->mediaTrack->moov->mov->read_byte_offset) {
+
+				mdia->information->dataHandler->last_read_offset = mdia->mediaTrack->moov->mov->read_byte_offset;
+				gf_bs_get_refreshed_size(mdia->information->dataHandler->bs);
+			}
+
+			offset -= mdia->mediaTrack->moov->mov->read_byte_offset;
+		}
+	}
 	if ((*samp)->dataLength != 0) {
 
 		/*and finally get the data, include padding if needed*/
