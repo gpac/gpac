@@ -163,7 +163,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			ctx->codec = NULL;
 		}
 	} else {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring withou DSI not yet supported\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring without DSI not yet supported\n"));
 		return GF_NOT_SUPPORTED;
 	}
 
