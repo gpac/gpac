@@ -195,7 +195,7 @@ void gf_fq_add(GF_FilterQueue *fq, void *item)
 {
 	GF_LFQItem *it;
 
-#if 1
+#if 0
 	u32 k;
 	for (k=0; k<fq->nb_items; k++) {
 		void *a = gf_fq_get(fq, k);
