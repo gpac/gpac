@@ -307,6 +307,7 @@
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
 		92BB85491F75659F009BC9C8 /* reframe_mp3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85481F75659F009BC9C8 /* reframe_mp3.c */; };
 		92BB854B1F7BD634009BC9C8 /* dec_faad.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB854A1F7BD633009BC9C8 /* dec_faad.c */; };
+		92BB854F1F7BEEA7009BC9C8 /* dec_mad.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB854E1F7BEEA7009BC9C8 /* dec_mad.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1142,6 +1143,7 @@
 		92BB85481F75659F009BC9C8 /* reframe_mp3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mp3.c; path = filters/reframe_mp3.c; sourceTree = "<group>"; };
 		92BB854A1F7BD633009BC9C8 /* dec_faad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_faad.c; path = filters/dec_faad.c; sourceTree = "<group>"; };
 		92BB854C1F7BE2BA009BC9C8 /*  */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "\U0001"; path = "../../../../../../../\U0001"; sourceTree = "<group>"; };
+		92BB854E1F7BEEA7009BC9C8 /* dec_mad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_mad.c; path = filters/dec_mad.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2466,6 +2468,7 @@
 				92F8D47F1F71644400616F7C /* compose.c */,
 				92F8D4801F71644400616F7C /* ctx_load.c */,
 				92BB854A1F7BD633009BC9C8 /* dec_faad.c */,
+				92BB854E1F7BEEA7009BC9C8 /* dec_mad.c */,
 				92F8D4811F71644400616F7C /* ff_common.c */,
 				92F8D4821F71644400616F7C /* ff_dec.c */,
 				92F8D4831F71644400616F7C /* ff_dmx.c */,
@@ -3117,6 +3120,7 @@
 				920100E418D5A444003D1ACA /* mpeg4_layer_3d.c in Sources */,
 				920100E518D5A444003D1ACA /* mpeg4_layout.c in Sources */,
 				920100E618D5A444003D1ACA /* mpeg4_lighting.c in Sources */,
+				92BB854F1F7BEEA7009BC9C8 /* dec_mad.c in Sources */,
 				9251CA8C1E9D3F880089DDC6 /* terminal.c in Sources */,
 				92F8D4771F71642E00616F7C /* filter_pck.c in Sources */,
 				92A5CBE51F66ED2A005D2A6A /* gpac_js.c in Sources */,
@@ -3795,6 +3799,7 @@
 					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
 					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
@@ -3805,6 +3810,7 @@
 					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
 					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
@@ -3863,6 +3869,7 @@
 					"-weak_framework",
 					CoreGraphics,
 					"-lfaad",
+					"-lmad",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3887,6 +3894,7 @@
 					NO_JS_RUNTIMETHREAD,
 					SPIDERMONKEY_NEW_API,
 					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3943,6 +3951,7 @@
 					"-weak_framework",
 					CoreGraphics,
 					"-lfaad",
+					"-lmad",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
