@@ -213,11 +213,13 @@ static Bool mp3_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 		ctx->start_range = evt->play.start_range;
 		ctx->in_seek = GF_TRUE;
 		ctx->file_pos = 0;
-		for (i=1; i<ctx->index_size; i++) {
-			if (ctx->indexes[i].duration>ctx->start_range) {
-				ctx->cts = ctx->indexes[i-1].duration * ctx->sr;
-				ctx->file_pos = ctx->indexes[i-1].pos;
-				break;
+		if (ctx->start_range) {
+			for (i=1; i<ctx->index_size; i++) {
+				if (ctx->indexes[i].duration>ctx->start_range) {
+					ctx->cts = ctx->indexes[i-1].duration * ctx->sr;
+					ctx->file_pos = ctx->indexes[i-1].pos;
+					break;
+				}
 			}
 		}
 		if (!ctx->initial_play_done) {

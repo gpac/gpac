@@ -1507,13 +1507,6 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 
 	if (f->freg->process_event) {
 		canceled = f->freg->process_event(f, evt);
-
-		//after  play or seek, request a process task for source filters or filters having pending packets
-		if (!f->input_pids || f->pending_packets) {
-			if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
-				gf_filter_post_process_task(f);
-			}
-		}
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
 
@@ -1527,6 +1520,12 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			safe_int_inc(& pid->filter->stream_reset_pending );
 			//post task on destination filter
 			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);
+		}
+	}
+	//after  play or seek, request a process task for source filters or filters having pending packets
+	if (!f->input_pids || f->pending_packets) {
+		if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
+			gf_filter_post_process_task(f);
 		}
 	}
 
