@@ -462,7 +462,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			filter = gf_filter_new(fsess, f_reg, args, NULL);
+			filter = gf_filter_new(fsess, f_reg, args, GF_FALSE, NULL);
 			if (filter) filter->orig_args = args;
 			return filter;
 		}
@@ -1007,7 +1007,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 	const GF_FilterArgs *src_arg=NULL;
 	u32 i, count;
 	GF_Err e;
-	char *sURL, *qm, *frag, *ext, *mime_type, *url_res, *args;
+	char *sURL, *qm, *frag, *ext, *mime_type, *url_res, *args, *sep;
 	char szExt[50];
 	memset(szExt, 0, sizeof(szExt));
 
@@ -1032,7 +1032,16 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		if (gf_url_is_local(sURL))
 			gf_url_to_fs_path(sURL);
 	}
-	
+	sep = strstr(sURL, "://");
+	if (sep) {
+		sep = strchr(sep+3, '/');
+		if (sep) sep = strchr(sep+1, ':');
+	} else {
+		sep = strchr(sURL, ':');
+		if (sep && !strnicmp(sep, ":\\", 2)) sep = strchr(sep+2, ':');
+	}
+	if (sep) sep[0] = 0;
+
 	//check all our registered filters
 	count = gf_list_count(fsess->registry);
 	for (i=0; i<count; i++) {
@@ -1068,16 +1077,17 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		if (err) *err = GF_NOT_SUPPORTED;
 		return NULL;
 	}
+	if (sep) sep[0] = ':';
 
 	args = gf_malloc(sizeof(char)*(5+strlen(sURL)) );
 	strcpy(args, "src=");
 	strcat(args, sURL);
 
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, err);
+		filter = gf_filter_new(fsess, candidate_freg, args, GF_TRUE, err);
 	} else {
 		filter->freg = candidate_freg;
-		e = gf_filter_new_finalize(filter, args);
+		e = gf_filter_new_finalize(filter, args, GF_TRUE);
 		if (err) *err = e;
 	}
 	
@@ -1085,7 +1095,10 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		gf_filter_post_process_task(filter);
 
 	gf_free(sURL);
-	gf_free(args);
+	if (filter)
+		filter->src_args = args;
+	else
+		gf_free(args);
 	return filter;
 }
 

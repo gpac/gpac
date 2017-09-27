@@ -727,16 +727,26 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		*filter_reassigned = GF_TRUE;
 		
 	} else {
+		const char *args = pid->filter->src_args;
+		GF_FilterPid *a_pid = pid;
 		//no filter found for this pid !
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Solved filter chain from filter %s PID %s to filter %s - dumping chain:\n", pid->filter->name, pid->name, dst_filter->name));
+
+		while (a_pid) {
+			GF_FilterPidInst *pidi;
+			args = a_pid->filter->src_args;
+			if (args) break;
+			pidi = gf_list_get(a_pid->filter->input_pids, 0);
+			if (!pidi) break;
+			a_pid = pidi->pid;
+		}
 
 		for (i=0; i<count; i++) {
 			GF_Filter *af;
 			const GF_FilterRegister *freg = gf_list_get(filter_chain, i);
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			//todo - we could forward the src arguments to the new filters
-			af = gf_filter_new(fsess, freg, NULL, NULL);
+			af = gf_filter_new(fsess, freg, args, GF_TRUE, NULL);
 			if (!af) goto exit;
 			//remember the first load one
 			if (!i) chain_input = af;
