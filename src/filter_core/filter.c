@@ -37,9 +37,9 @@ void gf_filterpacket_del(void *p)
 	gf_free(p);
 }
 
-void gf_filter_parse_args(GF_Filter *filter, const char *args);
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_global_args);
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_Err *err)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, Bool is_global_args, GF_Err *err)
 {
 	char szName[200];
 	GF_Filter *filter;
@@ -77,7 +77,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	gf_list_add(fsess->filters, filter);
 
-	e = gf_filter_new_finalize(filter, args);
+	e = gf_filter_new_finalize(filter, args, is_global_args);
 	if (e) {
 		if (!filter->finalized) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
@@ -91,11 +91,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 }
 
 
-GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args)
+GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, Bool is_global_args)
 {
 	gf_filter_set_name(filter, NULL);
 
-	gf_filter_parse_args(filter, args);
+	gf_filter_parse_args(filter, args, is_global_args);
 
 	filter->skip_process_trigger_on_tasks = GF_FALSE;
 	if (!strcmp(filter->freg->name, "compositor"))
@@ -155,6 +155,7 @@ void gf_filter_del(GF_Filter *filter)
 	gf_fq_del(filter->pending_pids, NULL);
 
 	reset_filter_args(filter);
+	if (filter->src_args) gf_free(filter->src_args);
 
 	gf_fq_del(filter->pcks_shared_reservoir, gf_void_del);
 	gf_fq_del(filter->pcks_inst_reservoir, gf_void_del);
@@ -324,7 +325,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 }
 
 
-void gf_filter_parse_args(GF_Filter *filter, const char *args)
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_global_args)
 {
 	u32 i=0;
 	Bool has_meta_args = GF_FALSE;
@@ -380,15 +381,25 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 		char *value;
 		u32 len;
 		Bool found=GF_FALSE;
+		char *escaped = NULL;
 		//look for our arg separator
 		char *sep = strchr(args, ':');
-		if (sep && !strncmp(sep, "://", 3))
+		if (sep && !strncmp(sep, "://", 3)) {
+			char *p = strchr(sep+3, '/');
 			sep = strchr(sep+3, ':');
+			//skip ':' if happening before the first / (port number)
+			if (p && sep && ((p-args) > (sep-args)) ) sep = p;
+		}
 
 		//watchout for "C:\\"
 		while (sep && (sep[1]=='\\')) {
 			sep = strchr(sep+1, ':');
 		}
+		if (sep) {
+			escaped = strstr(sep, ":gpac:");
+			if (escaped) sep = escaped;
+		}
+
 		if (sep) len = sep-args;
 		else len = strlen(args);
 
@@ -448,9 +459,11 @@ void gf_filter_parse_args(GF_Filter *filter, const char *args)
 
 
 		if (!found) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
+			GF_LOG(is_global_args ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
 		}
-		if (sep) {
+		if (escaped) {
+			args=sep+6;
+		} else if (sep) {
 			args=sep+1;
 		} else {
 			args=NULL;
@@ -570,7 +583,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, GF_FALSE, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 
