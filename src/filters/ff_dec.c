@@ -589,6 +589,10 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 		return CODEC_ID_AAC;
 	case GPAC_OTI_AUDIO_AC3:
 		return CODEC_ID_AC3;
+	case GPAC_OTI_AUDIO_AMR:
+		return CODEC_ID_AMR_NB;
+	case GPAC_OTI_AUDIO_AMR_WB:
+		return CODEC_ID_AMR_WB;
 
 	case GPAC_OTI_VIDEO_MPEG4_PART2:
 		return CODEC_ID_MPEG4;

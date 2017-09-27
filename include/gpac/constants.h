@@ -417,6 +417,10 @@ enum
 	GPAC_OTI_AUDIO_DTS_HD_HR = 0xAA,
 	/*!OTI for DTS-HD Master audio streams*/
 	GPAC_OTI_AUDIO_DTS_HD_MASTER = 0xAB,
+	/*!OTI for AMR*/
+	GPAC_OTI_AUDIO_AMR = 0xAC,
+	/*!OTI for AMR-WB*/
+	GPAC_OTI_AUDIO_AMR_WB = 0xAD,
 
 	/*!OTI for dummy streams (dsi = file name) using the generic context loader (BIFS/VRML/SWF/...) - GPAC internal*/
 	GPAC_OTI_PRIVATE_SCENE_GENERIC = 0xC0,
