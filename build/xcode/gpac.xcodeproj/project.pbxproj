@@ -330,6 +330,7 @@
 		92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */; };
 		92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */; };
 		92BB85811F7C3C4B009BC9C8 /* reframe_ac3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */; };
+		92BB85831F7C5774009BC9C8 /* dec_ac52.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85821F7C5773009BC9C8 /* dec_ac52.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1169,6 +1170,7 @@
 		92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_xvid.c; path = filters/dec_xvid.c; sourceTree = "<group>"; };
 		92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_j2k.c; path = filters/dec_j2k.c; sourceTree = "<group>"; };
 		92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ac3.c; path = filters/reframe_ac3.c; sourceTree = "<group>"; };
+		92BB85821F7C5773009BC9C8 /* dec_ac52.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ac52.c; path = filters/dec_ac52.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2471,6 +2473,7 @@
 			isa = PBXGroup;
 			children = (
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
+				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
 				92BB85551F7BFB60009BC9C8 /* dec_faad.c */,
 				92BB85571F7BFB60009BC9C8 /* dec_img.c */,
@@ -3114,6 +3117,7 @@
 				920100D318D5A444003D1ACA /* mpeg4_animstream.c in Sources */,
 				920100D418D5A444003D1ACA /* mpeg4_audio.c in Sources */,
 				920100D518D5A444003D1ACA /* mpeg4_background.c in Sources */,
+				92BB85831F7C5774009BC9C8 /* dec_ac52.c in Sources */,
 				920100D618D5A444003D1ACA /* mpeg4_background2d.c in Sources */,
 				920100D718D5A444003D1ACA /* mpeg4_bitmap.c in Sources */,
 				920100D818D5A444003D1ACA /* mpeg4_composite.c in Sources */,
@@ -3815,6 +3819,7 @@
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
+					GPAC_HAS_LIBA52,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3828,6 +3833,7 @@
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
+					GPAC_HAS_LIBA52,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3889,6 +3895,7 @@
 					"-lmad",
 					"-lxvidcore",
 					"-lopenjpeg",
+					"-la52",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3917,6 +3924,7 @@
 					GPAC_HAS_FAAD,
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
+					GPAC_HAS_LIBA52,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3976,6 +3984,7 @@
 					"-lmad",
 					"-lxvidcore",
 					"-lopenjpeg",
+					"-la52",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
