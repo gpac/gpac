@@ -246,7 +246,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 
 static const GF_FilterCapability MADInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3)},
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG1)},
@@ -258,10 +258,6 @@ static const GF_FilterCapability MADOutputs[] =
 {
 	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
 	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-
 	{}
 };
 
@@ -280,7 +276,7 @@ GF_FilterRegister MADRegister = {
 
 const GF_FilterRegister *maddec_register(GF_FilterSession *session)
 {
-#ifdef GPAC_HAS_FAAD
+#ifdef GPAC_HAS_MAD
 	return &MADRegister;
 #else
 	return NULL;
