@@ -327,6 +327,7 @@
 		92BB85791F7BFB63009BC9C8 /* unit_test_filter.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */; };
 		92BB857A1F7BFB63009BC9C8 /* isoffin_load.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85641F7BFB63009BC9C8 /* isoffin_load.c */; };
 		92BB857B1F7BFB63009BC9C8 /* isoffin_read.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85651F7BFB63009BC9C8 /* isoffin_read.c */; };
+		92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1163,6 +1164,7 @@
 		92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unit_test_filter.c; path = filters/unit_test_filter.c; sourceTree = "<group>"; };
 		92BB85641F7BFB63009BC9C8 /* isoffin_load.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_load.c; path = filters/isoffin_load.c; sourceTree = "<group>"; };
 		92BB85651F7BFB63009BC9C8 /* isoffin_read.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = isoffin_read.c; path = filters/isoffin_read.c; sourceTree = "<group>"; };
+		92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_xvid.c; path = filters/dec_xvid.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2470,6 +2472,7 @@
 				92BB85571F7BFB60009BC9C8 /* dec_img.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
+				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
 				92BB85601F7BFB62009BC9C8 /* ff_dmx.c */,
@@ -3183,6 +3186,7 @@
 				9201011D18D5A444003D1ACA /* data_map.c in Sources */,
 				9201011E18D5A444003D1ACA /* drm_sample.c in Sources */,
 				9201012018D5A444003D1ACA /* hint_track.c in Sources */,
+				92BB857D1F7BFD80009BC9C8 /* dec_xvid.c in Sources */,
 				9201012118D5A444003D1ACA /* hinting.c in Sources */,
 				9201012218D5A444003D1ACA /* isom_intern.c in Sources */,
 				9201012318D5A444003D1ACA /* isom_read.c in Sources */,
@@ -3801,6 +3805,7 @@
 					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
+					GPAC_HAS_XVID,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3812,6 +3817,7 @@
 					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
+					GPAC_HAS_XVID,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3870,6 +3876,7 @@
 					CoreGraphics,
 					"-lfaad",
 					"-lmad",
+					"-lxvidcore",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3896,6 +3903,7 @@
 					GPAC_AMR_IN_STANDALONE,
 					GPAC_HAS_MAD,
 					GPAC_HAS_FAAD,
+					GPAC_HAS_XVID,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3952,6 +3960,7 @@
 					CoreGraphics,
 					"-lfaad",
 					"-lmad",
+					"-lxvidcore",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
