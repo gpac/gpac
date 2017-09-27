@@ -306,6 +306,7 @@
 		92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
 		92BB85491F75659F009BC9C8 /* reframe_mp3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85481F75659F009BC9C8 /* reframe_mp3.c */; };
+		92BB854B1F7BD634009BC9C8 /* dec_faad.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB854A1F7BD633009BC9C8 /* dec_faad.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1139,6 +1140,8 @@
 		92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
 		92BB85481F75659F009BC9C8 /* reframe_mp3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mp3.c; path = filters/reframe_mp3.c; sourceTree = "<group>"; };
+		92BB854A1F7BD633009BC9C8 /* dec_faad.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_faad.c; path = filters/dec_faad.c; sourceTree = "<group>"; };
+		92BB854C1F7BE2BA009BC9C8 /*  */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "\U0001"; path = "../../../../../../../\U0001"; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2239,6 +2242,7 @@
 		92B02F4D1DD2004300F85E77 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				92BB854C1F7BE2BA009BC9C8 /*  */,
 				92B02F4E1DD2004400F85E77 /* OpenGL.framework */,
 			);
 			name = Frameworks;
@@ -2461,6 +2465,7 @@
 				92F8D4A11F716B5000616F7C /* bifs_dec.c */,
 				92F8D47F1F71644400616F7C /* compose.c */,
 				92F8D4801F71644400616F7C /* ctx_load.c */,
+				92BB854A1F7BD633009BC9C8 /* dec_faad.c */,
 				92F8D4811F71644400616F7C /* ff_common.c */,
 				92F8D4821F71644400616F7C /* ff_dec.c */,
 				92F8D4831F71644400616F7C /* ff_dmx.c */,
@@ -3292,6 +3297,7 @@
 				9201018518D5A445003D1ACA /* svg_properties.c in Sources */,
 				9201018618D5A445003D1ACA /* svg_smjs.c in Sources */,
 				9201018718D5A445003D1ACA /* svg_types.c in Sources */,
+				92BB854B1F7BD634009BC9C8 /* dec_faad.c in Sources */,
 				9201018818D5A445003D1ACA /* vrml_interpolators.c in Sources */,
 				9201018918D5A445003D1ACA /* vrml_proto.c in Sources */,
 				9201018A18D5A445003D1ACA /* vrml_route.c in Sources */,
@@ -3716,6 +3722,7 @@
 				ENABLE_TESTABILITY = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -3750,6 +3757,7 @@
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_PREPROCESSOR_DEFINITIONS = GPAC_CONFIG_DARWIN;
+				GCC_PREPROCESSOR_DEFINITIONS_NOT_USED_IN_PRECOMPS = "";
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_DEPRECATED_FUNCTIONS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -3787,6 +3795,17 @@
 					SPIDERMONKEY_NEW_API,
 					"DEBUG=1",
 					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_FAAD,
+				);
+				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
+					GPAC_STATIC_MODULES,
+					GPAC_CONFIG_DARWIN,
+					CONFIG_DARWIN_GL,
+					NO_JS_RUNTIMETHREAD,
+					SPIDERMONKEY_NEW_API,
+					"DEBUG=1",
+					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_FAAD,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3843,6 +3862,7 @@
 					QuartzCore,
 					"-weak_framework",
 					CoreGraphics,
+					"-lfaad",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3867,6 +3887,7 @@
 					NO_JS_RUNTIMETHREAD,
 					SPIDERMONKEY_NEW_API,
 					GPAC_AMR_IN_STANDALONE,
+					GPAC_HAS_FAAD,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3921,6 +3942,7 @@
 					QuartzCore,
 					"-weak_framework",
 					CoreGraphics,
+					"-lfaad",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

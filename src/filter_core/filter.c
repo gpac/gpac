@@ -505,6 +505,11 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
+	if (filter->stream_reset_pending) {
+		filter->nb_tasks_done--;
+		task->requeue_request = GF_TRUE;
+		return;
+	}
 #if 0
 	//empty input for this filter, don't call process
 	else if (filter->num_input_pids==1 && !filter->pending_packets && !filter->skip_process_trigger_on_tasks) {
