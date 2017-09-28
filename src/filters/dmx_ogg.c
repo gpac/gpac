@@ -945,7 +945,7 @@ static const GF_FilterArgs OGGDmxArgs[] =
 
 
 GF_FilterRegister OGGDmxRegister = {
-	.name = "reframe_ogg",
+	.name = "ogg",
 	.description = "OGG Demux",
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.args = OGGDmxArgs,

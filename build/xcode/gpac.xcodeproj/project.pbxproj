@@ -291,10 +291,10 @@
 		92586A7F1EAA5A4300A0838A /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7E1EAA5A4300A0838A /* validator.c */; };
 		926656C21F7D10F400299CC6 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
 		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
+		926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C51F7D45F700299CC6 /* dmx_ogg.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
-		9294C44C1F7CF59200597765 /* reframe_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9294C44B1F7CF59200597765 /* reframe_ogg.c */; };
 		92A5CBE51F66ED2A005D2A6A /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A5CBE41F66ED2A005D2A6A /* gpac_js.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
@@ -1135,9 +1135,9 @@
 		92586A7E1EAA5A4300A0838A /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../modules/validator/validator.c; sourceTree = "<group>"; };
 		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
 		926656C31F7D3DF700299CC6 /* dec_theora.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_theora.c; path = filters/dec_theora.c; sourceTree = "<group>"; };
+		926656C51F7D45F700299CC6 /* dmx_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_ogg.c; path = filters/dmx_ogg.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
-		9294C44B1F7CF59200597765 /* reframe_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ogg.c; path = filters/reframe_ogg.c; sourceTree = "<group>"; };
 		92A5CBE41F66ED2A005D2A6A /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
@@ -2488,9 +2488,10 @@
 				92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
-				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
 				926656C31F7D3DF700299CC6 /* dec_theora.c */,
+				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
+				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
 				92BB85601F7BFB62009BC9C8 /* ff_dmx.c */,
@@ -2508,7 +2509,6 @@
 				92BB85841F7C606A009BC9C8 /* reframe_amr.c */,
 				92BB85541F7BFB60009BC9C8 /* reframe_img.c */,
 				92BB855B1F7BFB61009BC9C8 /* reframe_mp3.c */,
-				9294C44B1F7CF59200597765 /* reframe_ogg.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 			);
 			name = filters;
@@ -3224,6 +3224,7 @@
 				9201012B18D5A444003D1ACA /* stbl_read.c in Sources */,
 				9201012C18D5A444003D1ACA /* stbl_write.c in Sources */,
 				92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */,
+				926656C61F7D45F700299CC6 /* dmx_ogg.c in Sources */,
 				9201012D18D5A444003D1ACA /* track.c in Sources */,
 				9201012E18D5A444003D1ACA /* ttml.c in Sources */,
 				9201012F18D5A444003D1ACA /* tx3g.c in Sources */,
@@ -3345,7 +3346,6 @@
 				9201018E18D5A445003D1ACA /* webvtt_smjs.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				9201019018D5A445003D1ACA /* xbl_process.c in Sources */,
-				9294C44C1F7CF59200597765 /* reframe_ogg.c in Sources */,
 				9201019118D5A445003D1ACA /* xml_ns.c in Sources */,
 				9201019318D5A445003D1ACA /* clock.c in Sources */,
 				9201019C18D5A445003D1ACA /* media_object.c in Sources */,
