@@ -2011,7 +2011,10 @@ Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *medi
 	if (!ent) return GF_TRUE;
 	/*mediaRate>0, the track playback shall start at media time>0 -> mediaOffset is < 0 */
 	if ((count==1) && (ent->mediaRate==1)) {
-		*mediaOffset = - ent->mediaTime;
+		Double time = (Double)-ent->mediaTime;
+		time /= trak->moov->mvhd->timeScale;
+		time *= trak->Media->mediaHeader->timeScale;
+		*mediaOffset = (s64)time;
 		return GF_FALSE;
 	} else if (count==2) {
 		/*mediaRate==-1, the track playback shall be empty for segmentDuration -> mediaOffset is > 0 */
@@ -2019,7 +2022,6 @@ Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *medi
 			Double time = (Double) ent->segmentDuration;
 			time /= trak->moov->mvhd->timeScale;
 			time *= trak->Media->mediaHeader->timeScale;
-
 			*mediaOffset = (s64) time;
 			return GF_FALSE;
 		}
