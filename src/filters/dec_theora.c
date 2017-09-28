@@ -125,55 +125,6 @@ static GF_Err theoradec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool
 	return GF_OK;
 }
 
-#if 0
-
-static GF_Err THEO_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
-{
-	THEORACTX();
-	switch (capability->CapCode) {
-	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ctx->ti.width;
-		break;
-	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = ctx->ti.height;
-		break;
-	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ctx->ti.width;
-		break;
-	case GF_CODEC_FPS:
-		capability->cap.valueFloat = (Float) ctx->ti.fps_numerator;
-		capability->cap.valueFloat /= ctx->ti.fps_denominator;
-		break;
-	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = GF_PIXEL_YV12;
-		break;
-	case GF_CODEC_REORDER:
-		capability->cap.valueInt = 0;
-		break;
-	case GF_CODEC_RESILIENT:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_OUTPUT_SIZE:
-		capability->cap.valueInt = 3*ctx->ti.width * ctx->ti.height / 2;
-		break;
-	case GF_CODEC_BUFFER_MIN:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_BUFFER_MAX:
-		capability->cap.valueInt = 4;
-		break;
-	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = 0;
-		break;
-	default:
-		capability->cap.valueInt = 0;
-		break;
-	}
-	return GF_OK;
-}
-#endif
-
-
 static void theoradec_drop_frame(GF_TheoraDecCtx *ctx)
 {
 	if (ctx->frame_infos_size) {
