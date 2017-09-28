@@ -422,6 +422,7 @@ struct __gf_filter_pid
 
 	char *name;
 	GF_List *destinations;
+	u32 num_destinations;
 	GF_List *properties;
 	Bool request_property_map;
 	Bool pid_info_changed;

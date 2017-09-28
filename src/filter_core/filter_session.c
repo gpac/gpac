@@ -53,6 +53,9 @@ const GF_FilterRegister *j2kdec_register(GF_FilterSession *session);
 const GF_FilterRegister *ac3dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *a52dec_register(GF_FilterSession *session);
 const GF_FilterRegister *amrdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *oggdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *vorbisdec_register(GF_FilterSession *session);
+const GF_FilterRegister *theoradec_register(GF_FilterSession *session);
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -207,8 +210,6 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	a_sess = load_meta_filters ? fsess : NULL;
 	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
@@ -228,6 +229,12 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	gf_fs_add_filter_registry(fsess, ac3dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, a52dec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, amrdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, oggdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, vorbisdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, theoradec_register(a_sess) );
+
+	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");

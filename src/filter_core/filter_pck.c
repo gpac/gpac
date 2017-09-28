@@ -44,7 +44,8 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
-	u32 i, count;
+	GF_FilterPacket *closest=NULL;
+	u32 i, count, max_reservoir_size;
 
 	if (PID_IS_INPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to allocate a packet on an input PID in filter %s\n", pid->filter->name));
@@ -61,9 +62,23 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 				pck = cur;
 			}
 		}
+		else if (!closest) closest = cur;
+		//small data blocks, find smaller one
+		else if (data_size<1000) {
+			if (closest->alloc_size > cur->alloc_size) closest = cur;
+		}
+		//otherwise find largest one below our target size
+		else if (closest->alloc_size < cur->alloc_size) closest = cur;
+	}
+	//stop allocating after a while - TODO we for sur can design a better algo...
+	max_reservoir_size = pid->num_destinations ? 50 : 1;
+	if (!pck && (count>=max_reservoir_size)) {
+		assert(closest);
+		closest->alloc_size = data_size;
+		closest->data = gf_realloc(closest->data, closest->alloc_size);
+		pck = closest;
 	}
 
-	//TODO - stop allocating after a while...
 	if (!pck) {
 		GF_SAFEALLOC(pck, GF_FilterPacket);
 		pck->data = gf_malloc(sizeof(char)*data_size);
@@ -392,7 +407,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	safe_int_inc(&pck->reference_count);
 
 	assert(pck->pid);
-	count = gf_list_count(pck->pid->destinations);
+	count = pck->pid->num_destinations;
 	for (i=0; i<count; i++) {
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
 		if (dst->filter->freg->process) {

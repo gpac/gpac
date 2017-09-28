@@ -60,7 +60,7 @@ static GF_FilterPidInst *gf_filter_pid_inst_new(GF_Filter *filter, GF_FilterPid 
 	if (filter->session->use_locks) {
 		char szName[200];
 		u32 pid_idx = 1 + gf_list_find(pid->filter->output_pids, pid);
-		u32 dst_idx = 1 + gf_list_count(pid->destinations);
+		u32 dst_idx = 1 + pid->num_destinations;
 		snprintf(szName, 200, "F%sPid%dDest%dPackets", filter->name, pid_idx, dst_idx);
 		pidinst->pck_mx = gf_mx_new(szName);
 	}
@@ -85,7 +85,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 		pid->max_buffer_unit = 4;
 	}
 	else if ((mtype==GF_STREAM_AUDIO) && (oti==GPAC_OTI_RAW_MEDIA_STREAM)) {
-		pid->max_buffer_unit = 8;
+		pid->max_buffer_unit = 20;
 	}
 	//output is a decoded stream: if some input has same type but different OTI this is a decoder
 	//set input buffer size
@@ -125,6 +125,8 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 	//WARNING at this point pidinst->filter may be destroyed
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s pid instance %s destruction\n",  filter->name, pid->name));
 	gf_list_del_item(pid->destinations, pidinst);
+	pid->num_destinations = gf_list_count(pid->destinations);
+
 	gf_filter_pid_inst_del(pidinst);
 
 	//if filter still has input pids, another filter is still connected to it so we cannot destroy the pid
@@ -133,7 +135,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		return;
 	}
 	//no more pids on filter, destroy it
-	if (! gf_list_count(pid->destinations)) {
+	if (! pid->num_destinations ) {
 		gf_list_del_item(filter->output_pids, pid);
 		filter->num_output_pids = gf_list_count(filter->output_pids);
 		gf_filter_pid_del(pid);
@@ -153,7 +155,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 
 	assert(filter->freg->configure_pid);
 
-	count = gf_list_count(pid->destinations);
+	count = pid->num_destinations;
 	for (i=0; i<count; i++) {
 		pidinst = gf_list_get(pid->destinations, i);
 		if (pidinst->filter==filter) {
@@ -176,6 +178,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 	if (new_pid_inst) {
 		assert(pidinst);
 		gf_list_add(pid->destinations, pidinst);
+		pid->num_destinations = gf_list_count(pid->destinations);
 
 		if (!filter->input_pids) filter->input_pids = gf_list_new();
 		gf_list_add(filter->input_pids, pidinst);
@@ -193,12 +196,14 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 		//error,  remove from input
 		gf_list_del_item(filter->input_pids, pidinst);
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
+		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		pidinst->filter = NULL;
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		
 		//if connect or reconfigure and error, direct delete of pid
 		if (!is_remove) {
 			gf_list_del_item(pid->destinations, pidinst);
+			pid->num_destinations = gf_list_count(pid->destinations);
 			gf_filter_pid_inst_del(pidinst);
 		}
 
@@ -270,6 +275,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 	if (is_remove) {
 		gf_list_del_item(filter->input_pids, pidinst);
 		gf_list_del_item(pidinst->pid->destinations, pidinst);
+		pidinst->pid->num_destinations = gf_list_count(pidinst->pid->destinations);
 		pidinst->filter = NULL;
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 		//post a pid_delete task to also trigger removal of the filter if needed
@@ -1424,7 +1430,7 @@ u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid)
 	} else {
 		u32 count2;
 		u64 max_dur=0;
-		count = gf_list_count(pid->destinations);
+		count = pid->num_destinations;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidinst = gf_list_get(pid->destinations, i);
 			if (pidinst->buffer_duration > duration) duration = pidinst->buffer_duration;
@@ -1524,7 +1530,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		u32 i;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
 		GF_FilterPid *pid = p->pid;
-		for (i=0; i<gf_list_count(pid->destinations); i++) {
+		for (i=0; i<pid->num_destinations; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
 			pidi->discard_packets = GF_TRUE;
 			safe_int_inc(& pid->filter->stream_reset_pending );
@@ -1586,7 +1592,7 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s queuing event %s\n", pid->pid->filter->name, pid->pid->name, get_fevt_name(evt->base.type) ));
 
 	if ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) {
-		u32 i, count = gf_list_count(pid->pid->destinations);
+		u32 i, count = pid->pid->num_destinations;
 		for (i=0; i<count; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->pid->destinations, i);
 			//flag pid instance to discard all packets
@@ -1659,7 +1665,7 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 	if (pid->filter->removed) {
 		return;
 	}
-	count = gf_list_count(pid->destinations);
+	count = pid->num_destinations;
 	for (j=0; j<count; j++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
