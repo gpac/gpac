@@ -232,6 +232,13 @@ static GF_Err xviddec_finalize(GF_Filter *filter)
 	return GF_OK;
 }
 
+static void xviddec_drop_frame(GF_XVIDCtx *ctx)
+{
+	if (ctx->frame_infos_size) {
+		ctx->frame_infos_size--;
+		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(XVidFrameInfo)*ctx->frame_infos_size);
+	}
+}
 static GF_Err xviddec_process(GF_Filter *filter)
 {
 #ifdef XVID_USE_OLD_API
@@ -345,6 +352,7 @@ packed_frame :
 	if (res < 0) {
 		gf_filter_pck_discard(dst_pck);
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
+		xviddec_drop_frame(ctx);
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -365,13 +373,6 @@ packed_frame :
 	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
 	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
 	is_seek = ctx->frame_infos[0].seek_flag;
-
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(XVidFrameInfo)*ctx->frame_infos_size);
-	} else {
-		assert(pck==NULL);
-	}
 
 	if (!pck || !is_seek )
 		gf_filter_pck_send(dst_pck);
