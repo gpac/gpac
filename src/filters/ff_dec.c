@@ -166,6 +166,10 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		flags |= gf_filter_pck_get_duration(pck);
 		pkt.dts = flags;
 		pkt.pts = gf_filter_pck_get_cts(pck);
+
+		pkt.duration = gf_filter_pck_get_duration(pck);
+		if (gf_filter_pck_get_sap(pck)>0)
+			pkt.flags = AV_PKT_FLAG_KEY;
 	}
 	pkt.data = (uint8_t*)data;
 	pkt.size = size;
@@ -392,6 +396,10 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 			pkt.data += ffdec->frame_start;
 			pkt.size -= ffdec->frame_start;
 		}
+		pkt.duration = gf_filter_pck_get_duration(pck);
+		if (gf_filter_pck_get_sap(pck)>0)
+			pkt.flags = AV_PKT_FLAG_KEY;
+
 	} else {
 		pkt.size = 0;
 	}
@@ -674,7 +682,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		prop = gf_filter_pid_get_property(pid, GF_FFMPEG_DECODER_CONFIG);
 		if (!prop || !prop->value.ptr) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] PID %s codec context not exposed by demuxer !\n", gf_filter_pid_get_name(pid) ));
-			return GF_NON_COMPLIANT_BITSTREAM;
+			return GF_SERVICE_ERROR;
 		}
 		ffdec->codec_ctx = prop->value.ptr;
 		codec = avcodec_find_decoder(ffdec->codec_ctx->codec_id);
