@@ -728,7 +728,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 	count = gf_list_count(filter->output_pids);
 	for (i=0; i<count; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		nb_inst = gf_list_count(pid->destinations);
+		nb_inst = pid->num_destinations;
 		for (j=0; j<nb_inst; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			gf_filter_tag_remove(pidi->filter, filter, until_filter);
@@ -756,7 +756,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 	filter->removed = GF_TRUE;
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
-		count = gf_list_count(pid->destinations);
+		count = pid->num_destinations;
 		for (j=0; j<count; j++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 			if (until_filter) {
@@ -775,7 +775,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 		Bool can_remove = GF_TRUE;
 		//check all output pids of the filter owning this pid are connected to ourselves
 		pid = pidi->pid;
-		count = gf_list_count(pid->destinations);
+		count = pid->num_destinations;
 		for (j=0; j<count; j++) {
 			GF_FilterPidInst *pidi_o = gf_list_get(pid->destinations, j);
 			if (pidi_o->filter != filter) {
