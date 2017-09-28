@@ -289,9 +289,12 @@
 		92586A771EA8B66900A0838A /* input_sensor.h in Headers */ = {isa = PBXBuildFile; fileRef = 92586A751EA8B66900A0838A /* input_sensor.h */; };
 		92586A7B1EAA26CC00A0838A /* raw_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7A1EAA26CC00A0838A /* raw_out.c */; };
 		92586A7F1EAA5A4300A0838A /* validator.c in Sources */ = {isa = PBXBuildFile; fileRef = 92586A7E1EAA5A4300A0838A /* validator.c */; };
+		926656C21F7D10F400299CC6 /* dec_vorbis.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C11F7D10F400299CC6 /* dec_vorbis.c */; };
+		926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */ = {isa = PBXBuildFile; fileRef = 926656C31F7D3DF700299CC6 /* dec_theora.c */; };
 		927AACF71E44ED58008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD041E44EF17008C8E69 /* main.c in Sources */ = {isa = PBXBuildFile; fileRef = 927AACF61E44ED58008C8E69 /* main.c */; };
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
+		9294C44C1F7CF59200597765 /* reframe_ogg.c in Sources */ = {isa = PBXBuildFile; fileRef = 9294C44B1F7CF59200597765 /* reframe_ogg.c */; };
 		92A5CBE51F66ED2A005D2A6A /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A5CBE41F66ED2A005D2A6A /* gpac_js.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
 		92AAF0E518D6DB8600E2FF12 /* sdl_out.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0DA18D6DB5500E2FF12 /* sdl_out.c */; };
@@ -1130,8 +1133,11 @@
 		92586A751EA8B66900A0838A /* input_sensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = input_sensor.h; sourceTree = "<group>"; };
 		92586A7A1EAA26CC00A0838A /* raw_out.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = raw_out.c; path = ../modules/raw_out/raw_out.c; sourceTree = "<group>"; };
 		92586A7E1EAA5A4300A0838A /* validator.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = validator.c; path = ../modules/validator/validator.c; sourceTree = "<group>"; };
+		926656C11F7D10F400299CC6 /* dec_vorbis.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_vorbis.c; path = filters/dec_vorbis.c; sourceTree = "<group>"; };
+		926656C31F7D3DF700299CC6 /* dec_theora.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_theora.c; path = filters/dec_theora.c; sourceTree = "<group>"; };
 		927AACF61E44ED58008C8E69 /* main.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = main.c; path = ../../applications/gpac/main.c; sourceTree = "<group>"; };
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
+		9294C44B1F7CF59200597765 /* reframe_ogg.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ogg.c; path = filters/reframe_ogg.c; sourceTree = "<group>"; };
 		92A5CBE41F66ED2A005D2A6A /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF0D818D6DB5500E2FF12 /* audio.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = audio.c; path = ../../modules/sdl_out/audio.c; sourceTree = "<group>"; };
@@ -1588,20 +1594,20 @@
 		9201007718D5A444003D1ACA /* terminal */ = {
 			isa = PBXGroup;
 			children = (
+				9201007918D5A444003D1ACA /* clock.c */,
 				92586A741EA8B66900A0838A /* input_sensor.c */,
 				92586A751EA8B66900A0838A /* input_sensor.h */,
-				92F4CE0E1E9E7202006A9845 /* object_browser.c */,
-				9251CA8B1E9D3F880089DDC6 /* terminal.c */,
-				92C1FF5C1E7C4AC90093B61E /* network_service.c */,
-				92C1FF481E7C2B950093B61E /* object_manager.c */,
 				92C1FF401E7C18870093B61E /* media_control.c */,
 				92C1FF411E7C18870093B61E /* media_control.h */,
-				92C1FF421E7C18870093B61E /* media_sensor.c */,
-				9201007918D5A444003D1ACA /* clock.c */,
 				9201008218D5A444003D1ACA /* media_object.c */,
+				92C1FF421E7C18870093B61E /* media_sensor.c */,
 				9201008418D5A444003D1ACA /* mpeg4_inline.c */,
+				92C1FF5C1E7C4AC90093B61E /* network_service.c */,
+				92F4CE0E1E9E7202006A9845 /* object_browser.c */,
+				92C1FF481E7C2B950093B61E /* object_manager.c */,
 				9201008818D5A444003D1ACA /* scene.c */,
 				9201008918D5A444003D1ACA /* svg_external.c */,
+				9251CA8B1E9D3F880089DDC6 /* terminal.c */,
 				9201008A18D5A444003D1ACA /* term_node_init.c */,
 			);
 			path = terminal;
@@ -2482,6 +2488,8 @@
 				92BB857E1F7C30AE009BC9C8 /* dec_j2k.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
+				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
+				926656C31F7D3DF700299CC6 /* dec_theora.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
@@ -2500,6 +2508,7 @@
 				92BB85841F7C606A009BC9C8 /* reframe_amr.c */,
 				92BB85541F7BFB60009BC9C8 /* reframe_img.c */,
 				92BB855B1F7BFB61009BC9C8 /* reframe_mp3.c */,
+				9294C44B1F7CF59200597765 /* reframe_ogg.c */,
 				92BB85631F7BFB63009BC9C8 /* unit_test_filter.c */,
 			);
 			name = filters;
@@ -3310,6 +3319,7 @@
 				9201017A18D5A445003D1ACA /* commands.c in Sources */,
 				9201017B18D5A445003D1ACA /* dom_events.c in Sources */,
 				92BB856F1F7BFB63009BC9C8 /* load_svg.c in Sources */,
+				926656C21F7D10F400299CC6 /* dec_vorbis.c in Sources */,
 				9201017C18D5A445003D1ACA /* dom_smjs.c in Sources */,
 				9201017D18D5A445003D1ACA /* html5_media_smjs.c in Sources */,
 				9201017E18D5A445003D1ACA /* html5_mse_smjs.c in Sources */,
@@ -3335,6 +3345,7 @@
 				9201018E18D5A445003D1ACA /* webvtt_smjs.c in Sources */,
 				9201018F18D5A445003D1ACA /* x3d_nodes.c in Sources */,
 				9201019018D5A445003D1ACA /* xbl_process.c in Sources */,
+				9294C44C1F7CF59200597765 /* reframe_ogg.c in Sources */,
 				9201019118D5A445003D1ACA /* xml_ns.c in Sources */,
 				9201019318D5A445003D1ACA /* clock.c in Sources */,
 				9201019C18D5A445003D1ACA /* media_object.c in Sources */,
@@ -3372,6 +3383,7 @@
 				920101C418D5A445003D1ACA /* utf.c in Sources */,
 				920101C518D5A445003D1ACA /* xml_parser.c in Sources */,
 				92C1FF471E7C18870093B61E /* media_sensor.c in Sources */,
+				926656C41F7D3DF700299CC6 /* dec_theora.c in Sources */,
 				92BB856A1F7BFB63009BC9C8 /* reframe_img.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3824,6 +3836,8 @@
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
 					GPAC_HAS_LIBA52,
+					GPAC_HAS_VORBIS,
+					GPAC_HAS_THEORA,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3838,6 +3852,8 @@
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
 					GPAC_HAS_LIBA52,
+					GPAC_HAS_VORBIS,
+					GPAC_HAS_THEORA,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3900,6 +3916,8 @@
 					"-lxvidcore",
 					"-lopenjpeg",
 					"-la52",
+					"-lvorbis",
+					"-ltheora",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3929,6 +3947,8 @@
 					GPAC_HAS_XVID,
 					GPAC_HAS_JP2,
 					GPAC_HAS_LIBA52,
+					GPAC_HAS_VORBIS,
+					GPAC_HAS_THEORA,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -3989,6 +4009,8 @@
 					"-lxvidcore",
 					"-lopenjpeg",
 					"-la52",
+					"-lvorbis",
+					"-ltheora",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

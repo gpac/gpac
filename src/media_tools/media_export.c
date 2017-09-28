@@ -108,7 +108,7 @@ static GF_Err gf_dump_to_ogg(GF_MediaExporter *dumper, char *szName, u32 track)
 			gf_fwrite(og.body, 1, og.body_len, out);
 			op.b_o_s = 0;
 
-			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_MEDIA_THEORA) {
+			if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_THEORA) {
 				u32 kff;
 				GF_BitStream *vbs = gf_bs_new((char*)op.packet, op.bytes, GF_BITSTREAM_READ);
 				gf_bs_skip_bytes(vbs, 40);
