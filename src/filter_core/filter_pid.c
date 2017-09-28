@@ -869,7 +869,8 @@ GF_FilterPid *gf_filter_pid_new(GF_Filter *filter)
 	gf_list_add(filter->output_pids, pid);
 	filter->num_output_pids = gf_list_count(filter->output_pids);
 	pid->pid = pid;
-
+	pid->playback_speed_scaler = GF_FILTER_SPEED_SCALER;
+	
 	sprintf(szName, "PID%d", filter->num_output_pids);
 	pid->name = gf_strdup(szName);
 
@@ -1259,9 +1260,36 @@ static void gf_filter_pidinst_reset_stats(GF_FilterPidInst *pidi)
 	pidi->first_frame_time = 0;
 }
 
-void gf_filter_pid_drop_packet(GF_FilterPid *pid)
+static void gf_filter_pid_check_unblock(GF_FilterPid *pid)
 {
 	Bool unblock=GF_FALSE;
+
+	if (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER < pid->max_buffer_unit * pid->playback_speed_scaler) {
+		unblock=GF_TRUE;
+	}
+
+	if (pid->buffer_duration * GF_FILTER_SPEED_SCALER < pid->max_buffer_time * pid->playback_speed_scaler) {
+		unblock=GF_TRUE;
+	}
+
+	if (pid->would_block && unblock) {
+		//todo needs Compare&Swap
+		safe_int_dec(&pid->would_block);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
+		assert(pid->filter->would_block);
+		safe_int_dec(&pid->filter->would_block);
+		if (!pid->filter->would_block) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s unblocked, requesting process task\n", pid->filter->name));
+			//requeue task
+			if (!pid->filter->skip_process_trigger_on_tasks)
+				gf_filter_post_process_task(pid->filter);
+		}
+	}
+
+}
+
+void gf_filter_pid_drop_packet(GF_FilterPid *pid)
+{
 	u32 nb_pck=0;
 	GF_FilterPacket *pck=NULL;
 	GF_FilterPacketInstance *pcki;
@@ -1291,9 +1319,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (nb_pck<pid->nb_buffer_unit) {
 		//todo needs Compare&Swap
 		pid->nb_buffer_unit = nb_pck;
-		if (pid->nb_buffer_unit < pid->max_buffer_unit) {
-			unblock=GF_TRUE;
-		}
 	}
 
 	if (pck->duration && pck->pid_props->timescale) {
@@ -1306,24 +1331,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	if (!pid->buffer_duration || (pidinst->buffer_duration < pid->buffer_duration)) {
 		//todo needs Compare&Swap
 		pid->buffer_duration = pidinst->buffer_duration;
-		if (pid->buffer_duration < pid->max_buffer_time) {
-			unblock=GF_TRUE;
-		}
 	}
 
-	if (pid->would_block && unblock) {
-		//todo needs Compare&Swap
-		safe_int_dec(&pid->would_block);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s unblocked\n", pid->pid->filter->name, pid->pid->name));
-		assert(pid->filter->would_block);
-		safe_int_dec(&pid->filter->would_block);
-		if (!pid->filter->would_block) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s unblocked, requesting process task\n", pid->filter->name));
-			//requeue task
-			if (!pid->filter->skip_process_trigger_on_tasks)
-				gf_filter_post_process_task(pid->filter);
-		}
-	}
+	gf_filter_pid_check_unblock(pid);
 
 	//destroy pcki
 	pcki->pck = NULL;
@@ -1396,11 +1406,11 @@ Bool gf_filter_pid_would_block(GF_FilterPid *pid)
 	if (pid->filter->session->disable_blocking)
 		return GF_FALSE;
 
-	if (pid->max_buffer_unit && (pid->nb_buffer_unit >= pid->max_buffer_unit)) {
+	if (pid->max_buffer_unit && (pid->nb_buffer_unit * GF_FILTER_SPEED_SCALER >= pid->max_buffer_unit * pid->playback_speed_scaler) ) {
 		would_block = GF_TRUE;
 	}
 
-	if (pid->max_buffer_time && pid->buffer_duration > pid->max_buffer_time) {
+	if (pid->max_buffer_time && (pid->buffer_duration * GF_FILTER_SPEED_SCALER > pid->max_buffer_time * pid->playback_speed_scaler) ) {
 		would_block = GF_TRUE;
 	}
 	if (would_block && !pid->would_block) {
@@ -1544,6 +1554,22 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			gf_filter_post_process_task(f);
 		}
 	}
+	if ((evt->base.type==GF_FEVT_PLAY) || (evt->base.type==GF_FEVT_SET_SPEED)) {
+		if (evt->base.on_pid) {
+			u32 scaler = (u32)  ( (evt->play.speed<0) ? -evt->play.speed : evt->play.speed ) * GF_FILTER_SPEED_SCALER;
+			if (!scaler) scaler = GF_FILTER_SPEED_SCALER;
+			if (scaler != evt->base.on_pid->playback_speed_scaler) {
+				u32 prev_scaler = evt->base.on_pid->playback_speed_scaler;
+				evt->base.on_pid->playback_speed_scaler = scaler;
+				//lowering speed, we may need to trigger blocking
+				if (scaler<prev_scaler)
+					gf_filter_pid_would_block(evt->base.on_pid);
+				//increasing speed, we may want to unblock
+				else
+					gf_filter_pid_check_unblock(evt->base.on_pid);
+			}
+		}
+	}
 
 	//no more input pids
 	count = f->num_input_pids;
@@ -1670,6 +1696,10 @@ void gf_filter_pid_remove(GF_FilterPid *pid)
 		GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
 		gf_fs_post_task(pid->filter->session, gf_filter_pid_disconnect_task, pidi->filter, pid, "pidinst_disconnect", NULL);
 	}
+}
+
+void gf_filter_pid_try_pull(GF_FilterPid *pid)
+{
 }
 
 

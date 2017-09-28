@@ -1243,6 +1243,7 @@ void gf_odm_set_speed(GF_ObjectManager *odm, Fixed speed, Bool adjust_clock_spee
 	GF_FilterEvent com;
 
 	if (odm->flags & GF_ODM_NO_TIME_CTRL) return;
+	if (!odm->pid) return;
 
 	if (adjust_clock_speed)
 		gf_clock_set_speed(odm->ck, speed);

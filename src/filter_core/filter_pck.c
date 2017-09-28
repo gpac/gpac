@@ -316,8 +316,6 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	assert(pck->pid);
 	pid = pck->pid;
 
-	//todo - check amount of packets size/time to return a WOULD_BLOCK
-
 	if (PCK_IS_INPUT(pck)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to dispatch input packet on output PID in filter %s\n", pck->pid->filter->name));
 		return GF_BAD_PARAM;
