@@ -319,12 +319,11 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			expose_ffdec=GF_TRUE;
 			break;
 		}
-
-		if (codec->extradata_size) {
+		if (expose_ffdec) {
+			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
+		} else if (codec->extradata_size) {
 			//expose as const data
 			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA(codec->extradata, codec->extradata_size) );
-		} else if (expose_ffdec) {
-			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
 		}
 
 		if (codec->sample_rate)
