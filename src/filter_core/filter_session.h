@@ -31,6 +31,7 @@
 #include <gpac/filters.h>
 #include <gpac/user.h>
 
+#define GF_FILTER_SPEED_SCALER	1000
 
 #define PID_IS_INPUT(__pid) ((__pid->pid==__pid) ? GF_FALSE : GF_TRUE)
 #define PID_IS_OUTPUT(__pid) ((__pid->pid==__pid) ? GF_TRUE : GF_FALSE)
@@ -397,7 +398,7 @@ struct __gf_filter_pid_inst
 	Bool discard_packets;
 
 	//amount of media data in us in the packet queue - concurrent inc/dec
-	volatile u32 buffer_duration;
+	volatile u64 buffer_duration;
 
 	void *udta;
 
@@ -445,6 +446,8 @@ struct __gf_filter_pid
 	u32 min_pck_duration;
 
 	u32 nb_pck_sent;
+	//1000x speed value
+	u32 playback_speed_scaler;
 
 	void *udta;
 };

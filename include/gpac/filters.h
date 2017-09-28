@@ -367,6 +367,8 @@ GF_Err gf_filter_pid_set_framing_mode(GF_FilterPid *pid, Bool requires_full_bloc
 
 u64 gf_filter_pid_query_buffer_duration(GF_FilterPid *pid);
 
+void gf_filter_pid_try_pull(GF_FilterPid *pid);
+
 
 const GF_PropertyValue *gf_filter_get_info(GF_Filter *filter, u32 prop_4cc);
 const GF_PropertyValue *gf_filter_pid_get_info(GF_FilterPid *pid, u32 prop_4cc);

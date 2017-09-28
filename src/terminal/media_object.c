@@ -315,6 +315,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 timescale=0;
 	u32 pck_ts=0, next_ts=0;
 	GF_FilterPacket *next_pck=NULL;
+	u32 retry_pull;
 
 	*eos = GF_FALSE;
 	*timestamp = mo->timestamp;
@@ -376,20 +377,41 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (resync==GF_MO_FETCH_PAUSED)
 		resync=GF_MO_FETCH;
 
-	next_pck = gf_filter_pid_get_packet(mo->odm->pid);
-	next_ts = 0;
-	if (next_pck) {
-		next_ts = (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale);
-	} else {
-		if (gf_filter_pid_is_eos(mo->odm->pid)) {
-			if (!mo->is_eos) {
-				mo->is_eos = GF_TRUE;
-				mediasensor_update_timing(mo->odm, GF_TRUE);
-				gf_odm_signal_eos_reached(mo->odm);
+	retry_pull = 1;
+	/*fast forward, bench mode with composition memory: force one decode if no data is available*/
+	if (! *eos && ((mo->odm->ck->speed > FIX_ONE) || mo->odm->parentscene->compositor->bench_mode || (mo->odm->type==GF_STREAM_AUDIO) ) ) {
+		retry_pull = 10;
+		force_decode_mode=1;
+	}
+
+	while (retry_pull) {
+		retry_pull--;
+
+		next_pck = gf_filter_pid_get_packet(mo->odm->pid);
+		next_ts = 0;
+		if (next_pck) {
+			next_ts = (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale);
+			break;
+		} else {
+			if (gf_filter_pid_is_eos(mo->odm->pid)) {
+				if (!mo->is_eos) {
+					mo->is_eos = GF_TRUE;
+					mediasensor_update_timing(mo->odm, GF_TRUE);
+					gf_odm_signal_eos_reached(mo->odm);
+				}
+				break;
 			}
 		}
+		*eos = mo->is_eos;
+		if (!retry_pull) break;
+
+		gf_filter_pid_try_pull(mo->odm->pid);
+		//we will wait max 100 ms for the CB to be re-fill
+		gf_sleep(1);
 	}
-	*eos = mo->is_eos;
+	if (!retry_pull && (force_decode_mode==1)) {
+		GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d] At %d could not force a pull from pid - blank frame after TS %u\n", mo->odm->ID, gf_clock_time(mo->odm->ck), mo->timestamp));
+	}
 
 	/*resync*/
 	obj_time = gf_clock_time(mo->odm->ck);
