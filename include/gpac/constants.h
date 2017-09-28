@@ -462,8 +462,12 @@ enum
 			dsi_size -= packet_size;
 		}\endcode
 	*/
-	GPAC_OTI_MEDIA_OGG = 0xDD,
-	GPAC_OTI_MEDIA_THEORA = 0xDF,
+	GPAC_OTI_MEDIA_OGG = 0xD6, //TODO get rid of this
+
+	GPAC_OTI_THEORA = 0xD7,
+	GPAC_OTI_VORBIS = 0xD8,
+	GPAC_OTI_FLAC = 0xD9,
+	GPAC_OTI_SPEEX = 0xDA,
 
 	GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
