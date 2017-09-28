@@ -630,7 +630,7 @@ clock_setup:
 
 void gf_odm_update_duration(GF_ObjectManager *odm, GF_FilterPid *pid)
 {
-	u32 dur=0;
+	u64 dur=0;
 	const GF_PropertyValue *prop;
 	prop = gf_filter_pid_get_info(pid, GF_PROP_PID_DURATION);
 	if (prop) {
