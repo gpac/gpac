@@ -162,7 +162,9 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
 		mp3_dmx_check_dur(filter, ctx);
 	}
@@ -183,7 +185,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	}
 	ctx->sr = sr;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(sr));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(gf_mp3_object_type_indication(ctx->hdr) ) );
@@ -343,8 +345,8 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	else if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		if (ctx != GF_FILTER_NO_TS)
-			ctx->cts = ctx;
+		if (cts != GF_FILTER_NO_TS)
+			ctx->cts = cts;
 	}
 
 	while (remain) {
@@ -456,6 +458,15 @@ static const GF_FilterCapability MP3DmxInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-mp3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/mp3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp3"), .start=GF_TRUE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG1 )},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG2_PART3 )},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
+
 	{}
 };
 

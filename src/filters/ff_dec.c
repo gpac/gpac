@@ -382,6 +382,10 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	if (!is_eos) {
 		u64 dts;
 		pkt.pts = gf_filter_pck_get_cts(pck);
+		if (!pkt.data) {
+			gf_filter_pid_drop_packet(ffdec->in_pid);
+			return GF_OK;
+		}
 
 		//copy over SAP and duration in dts
 		dts = gf_filter_pck_get_sap(pck);
@@ -683,26 +687,33 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		}
 	}
 	//we reconfigure the stream
-	else if (ffdec->codec_ctx) {
-		u32 ex_crc=0;
-		u32 codec_id = ff_gpac_oti_to_codec_id(oti);
-
-		//TODO: flush decoder to dispatch internally pending frames and create a new decoder
-		if (ffdec->codec_ctx->codec->id != codec_id) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] Cannot switch codec type on the fly, not yet supported !\n" ));
-			return GF_NOT_SUPPORTED;
-		}
-		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (prop && prop->value.data && prop->data_len) {
-			ex_crc = gf_crc_32(prop->value.data, prop->data_len);
-		}
-		if (ex_crc != ffdec->extra_data_crc) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] Cannot switch codec config on the fly, not yet supported !\n" ));
-			return GF_NOT_SUPPORTED;
-		}
-	} else {
+	else {
 		AVCodec *codec=NULL;
-		u32 codec_id = ff_gpac_oti_to_codec_id(oti);
+		u32 codec_id;
+		if (ffdec->codec_ctx) {
+			u32 cfg_crc=0;
+			u32 codec_id = ff_gpac_oti_to_codec_id(oti);
+
+			//TODO: flush decoder to dispatch internally pending frames and create a new decoder
+			if (ffdec->codec_ctx->codec->id != codec_id) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FFDecode] Cannot switch codec type on the fly, not yet supported !\n" ));
+				return GF_NOT_SUPPORTED;
+			}
+			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+			if (prop && prop->value.data && prop->data_len) {
+				cfg_crc = gf_crc_32(prop->value.data, prop->data_len);
+			}
+			if (cfg_crc == ffdec->extra_data_crc) return GF_OK;
+
+			if (ffdec->codec_ctx) {
+				if (ffdec->codec_ctx->extradata) gf_free(ffdec->codec_ctx->extradata);
+				ffdec->codec_ctx->extradata = NULL;
+				avcodec_close(ffdec->codec_ctx);
+				ffdec->codec_ctx = NULL;
+			}
+		}
+
+		codec_id = ff_gpac_oti_to_codec_id(oti);
 		if (codec_id) codec = avcodec_find_decoder(codec_id);
 		if (!codec) return GF_NOT_SUPPORTED;
 
@@ -829,13 +840,16 @@ static const GF_FilterCapability FFDecodeInputs[] =
 {
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-	
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
 
 #ifdef FFDEC_SUB_SUPPORT
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_TEXT), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
 #endif
 
 	{}

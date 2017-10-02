@@ -1931,6 +1931,51 @@ u64 gf_net_parse_date(const char *val)
 }
 
 GF_EXPORT
+u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec)
+{
+	u64 current_time;
+#ifdef _WIN32_WCE
+	SYSTEMTIME syst;
+	FILETIME filet;
+#else
+	struct tm t;
+	memset(&t, 0, sizeof(struct tm));
+#endif
+
+#ifdef _WIN32_WCE
+	memset(&syst, 0, sizeof(SYSTEMTIME));
+	syst.wYear = year;
+	syst.wMonth = month + 1;
+	syst.wDay = day;
+	syst.wHour = hour;
+	syst.wMinute = min;
+	syst.wSecond = (u32) sec;
+	SystemTimeToFileTime(&syst, &filet);
+	current_time = (u64) ((*(LONGLONG *) &filet - TIMESPEC_TO_FILETIME_OFFSET) / 10000000);
+#else
+	t.tm_year = year>1000 ? year-1900 : year;
+	t.tm_mday = day;
+	t.tm_hour = hour;
+	t.tm_min = min;
+	t.tm_sec = (u32) sec;
+	t.tm_mon = month;
+
+	current_time = gf_mktime_utc(&t);
+	if ((s64) current_time == -1) {
+		//use 1 ms
+		return 1;
+	}
+	if (current_time == 0) {
+		//use 1 ms
+		return 1;
+	}
+#endif
+
+	current_time *= 1000;
+	return current_time;
+}
+
+GF_EXPORT
 u64 gf_net_get_utc()
 {
 	u64 current_time;

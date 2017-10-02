@@ -343,6 +343,7 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	}
 	odm->ID = pid_odid;
 	odm->mo = the_mo;
+	odm->ServiceID = ServiceID;
 	if (!odm->pid)
 		odm->type = mtype;
 
@@ -363,7 +364,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	//FILTER_FIXME: needs rework to enable attaching subtitle to a non-dynamic scene
 	//otherwise if subscene, this is an IOD
 	if (odm->subscene || (odm->flags & GF_ODM_NOT_IN_OD_STREAM) ) {
-
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] setup object - MO %08x\n", odm->ID, odm->mo));
 		gf_odm_setup_object(odm, sns, pid);
 	} else {

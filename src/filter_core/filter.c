@@ -102,7 +102,9 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, Bool is_globa
 		filter->skip_process_trigger_on_tasks = GF_TRUE;
 
 	if (filter->freg->initialize) {
-		GF_Err e = filter->freg->initialize(filter);
+		GF_Err e;
+		FSESS_CHECK_THREAD(filter)
+		e = filter->freg->initialize(filter);
 		if (e) return e;
 	}
 	//flush all pending pid init requests
@@ -308,7 +310,9 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 		argv = gf_props_parse_value(a->arg_type, a->arg_name, arg->val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
-			GF_Err e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
+			GF_Err e;
+			FSESS_CHECK_THREAD(task->filter)
+			e = task->filter->freg->update_arg(task->filter, arg->name, &argv);
 			if (e==GF_OK) {
 				gf_filter_set_arg(task->filter, a, &argv);
 			} else {
@@ -366,6 +370,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 			if (a->offset_in_private>=0) {
 				gf_filter_set_arg(filter, a, &argv);
 			} else if (filter->freg->update_arg) {
+				FSESS_CHECK_THREAD(filter)
 				filter->freg->update_arg(filter, a->arg_name, &argv);
 			}
 		} else {
@@ -431,6 +436,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 					if (a->offset_in_private>=0) {
 						gf_filter_set_arg(filter, a, &argv);
 					} else if (filter->freg->update_arg) {
+						FSESS_CHECK_THREAD(filter)
 						filter->freg->update_arg(filter, a->arg_name, &argv);
 
 						if ((argv.type==GF_PROP_STRING) && argv.value.string)
@@ -451,6 +457,7 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 			}
 			else if (has_meta_args && filter->freg->update_arg) {
 				GF_PropertyValue argv = gf_props_parse_value(GF_PROP_STRING, szArg, value, NULL);
+				FSESS_CHECK_THREAD(filter)
 				filter->freg->update_arg(filter, szArg, &argv);
 				if (argv.value.string) gf_free(argv.value.string);
 				found = GF_TRUE;
@@ -458,8 +465,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 		}
 
 
-		if (!found) {
-			GF_LOG(is_global_args ? GF_LOG_DEBUG : GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
+		if (!found && !is_global_args) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
 		}
 		if (escaped) {
 			args=sep+6;
@@ -536,6 +543,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		gf_filter_pck_send(pck);
 	}
 
+	FSESS_CHECK_THREAD(filter)
 	e = filter->freg->process(filter);
 
 	//flush all pending pid init requests following the call to init
@@ -600,6 +608,16 @@ GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx)
 	return gf_list_get(filter->input_pids, idx);
 }
 
+u32 gf_filter_get_opid_count(GF_Filter *filter)
+{
+	return filter->num_output_pids;
+}
+
+GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx)
+{
+	return gf_list_get(filter->output_pids, idx);
+}
+
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 {
 	if (filter) return filter->session;
@@ -647,8 +665,10 @@ void gf_filter_setup_failure_task(GF_FSTask *task)
 	if (f->on_setup_error)
 		f->on_setup_error(f, f->on_setup_error_udta, e);
 
-	if (f->freg->finalize)
+	if (f->freg->finalize) {
+		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
+	}
 
 	res = gf_list_del_item(f->session->filters, f);
 	assert (res >=0 );
@@ -694,8 +714,10 @@ void gf_filter_remove_task(GF_FSTask *task)
 		gf_fq_pop(f->tasks);
 	}
 
-	if (f->freg->finalize)
+	if (f->freg->finalize) {
+		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
+	}
 
 	res = gf_list_del_item(f->session->filters, f);
 	assert (res >=0 );
@@ -813,7 +835,10 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	}
 	filter->num_output_pids = 0;
 
-	if (filter->freg->finalize) filter->freg->finalize(filter);
+	if (filter->freg->finalize) {
+		FSESS_CHECK_THREAD(filter)
+		filter->freg->finalize(filter);
+	}
 	gf_list_add(filter->blacklisted, filter->freg);
 
 	i=0;

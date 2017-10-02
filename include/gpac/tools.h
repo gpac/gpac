@@ -824,6 +824,18 @@ u64 gf_net_get_utc();
 u64 gf_net_parse_date(const char *date);
 
 /*!
+ *\brief returns 64-bit UTC timestamp from year, month, day, hour, min and sec
+ * \param year the year
+ * \param month the month
+ * \param day the day
+ * \param hour the hour
+ * \param min the min
+ * \param sec the sec
+ * \return UTC time in milliseconds
+ */
+u64 gf_net_get_utc_ts(u32 year, u32 month, u32 day, u32 hour, u32 min, u32 sec);
+
+/*!
  *\brief gets timezone adjustment in seconds
  *
  * Gets timezone adjustment in seconds, with localtime - timezone = UTC time

@@ -225,8 +225,10 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
 		adts_dmx_check_dur(filter, ctx);
 	}
@@ -246,7 +248,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	}
 	ctx->sr_idx = ctx->hdr.sr_idx;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(sr));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(sr));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->is_mp2 ? ctx->profile+GPAC_OTI_AUDIO_AAC_MPEG2_MP : GPAC_OTI_AUDIO_AAC_MPEG4) );
@@ -433,8 +435,8 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	else if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		if (ctx != GF_FILTER_NO_TS)
-			ctx->cts = ctx;
+		if (cts != GF_FILTER_NO_TS)
+			ctx->cts = cts;
 	}
 
 	while (remain) {
@@ -581,6 +583,11 @@ static const GF_FilterCapability ADTSDmxInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/aacp"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-aac"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("aac"), .start=GF_TRUE},
+
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG4 )},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
 	{}
 };
 
