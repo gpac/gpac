@@ -39,8 +39,8 @@ extern "C" {
 //for offsetof()
 #include <stddef.h>
 
-#define GF_FILTER_NO_BO 0xFFFFFFFFFFUL
-#define GF_FILTER_NO_TS 0xFFFFFFFFFFUL
+#define GF_FILTER_NO_BO 0xFFFFFFFFFFFFFFFFUL
+#define GF_FILTER_NO_TS 0xFFFFFFFFFFFFFFFFUL
 
 //atomic ref_count++ / ref_count--
 #if defined(WIN32) || defined(_WIN32_WCE)
@@ -199,7 +199,8 @@ typedef struct
 
 	GF_PropertyValue val;	//default type and value of the capability listed
 
-	//when set to true the cap is valid if the value does not match
+	//when set to true the cap is valid if the value does not match. If an excluded cap is not found in the destination pid
+	//it is assumed to match
 	Bool exclude;
 	//name of the capability listed. the special value * is used to indicate that the capability is
 	//solved at run time (the filter must be loaded)
@@ -305,6 +306,9 @@ GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
+
+u32 gf_filter_get_opid_count(GF_Filter *filter);
+GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
@@ -447,9 +451,8 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset);
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
 
-void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
-void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
-
+GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck);
+Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck);
 
 
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
@@ -468,13 +471,18 @@ enum
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
 	GF_PROP_PID_LANGUAGE = GF_4CC('P','L','A','N'),
 
+	GF_PROP_PID_SERVICE_NAME = GF_4CC('S','N','A','M'),
+	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
 
 	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
 	//(uint) object type indication , matching gpac OTI types
 	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
-	//(bool) object type indication , matching gpac OTI types
+	//(bool) indicates if PID is present in IOD
 	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
+
+	//(bool) indicates the PID is not framed (framed= one full packet <=> one compressed framed). Only used for compressed media, raw media shall only be framed
+	GF_PROP_PID_UNFRAMED = GF_4CC('P','F','R','M'),
 
 	//(rational) PID duration
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
@@ -503,6 +511,9 @@ enum
 	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	//(uint) U/V plane stride
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
+
+	//(uint) PCR/OCR timescale of pid
+	GF_PROP_PID_OCR_TIMESCALE = GF_4CC('O','C','T','S'),
 
 	//(rational) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
@@ -534,6 +545,12 @@ enum
 	GF_PROP_SERVICE_WIDTH = GF_4CC('D','W','D','T'),
 	//(uint) display  height of service
 	GF_PROP_SERVICE_HEIGHT = GF_4CC('D','H','G','T'),
+
+	//thses two may need refinements when handling clock discontinuities
+	//(longuint) UTC date and time of PID
+	GF_PROP_PID_UTC_TIME = GF_4CC('U','T','C','D'),
+	//(longuint) timestamp corresponding to UTC date and time of PID
+	GF_PROP_PID_UTC_TIMESTAMP = GF_4CC('U','T','C','T'),
 
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),

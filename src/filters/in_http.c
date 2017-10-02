@@ -62,6 +62,9 @@ GF_Err httpin_initialize(GF_Filter *filter)
 	ctx->dm = gf_filter_get_download_manager(filter);
 	if (!ctx->dm) return GF_SERVICE_ERROR;
 
+	while (ctx->block_size % 188)
+		ctx->block_size++;
+
 	ctx->block = gf_malloc(ctx->block_size +1);
 
 	flags = GF_NETIO_SESSION_NOT_THREADED | GF_NETIO_SESSION_PERSISTENT;

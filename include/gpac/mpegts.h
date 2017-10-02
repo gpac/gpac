@@ -885,10 +885,6 @@ typedef struct
 /*MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
 {
-	/* From M2TSIn */
-	GF_List *requested_progs;
-	GF_List *requested_pids;
-
 	/*demuxer thread*/
 	GF_Thread *th;
 	u32 run_state;
@@ -915,9 +911,6 @@ struct tag_m2ts_demux
 	const char *ts_data_chunk;
 	u32 ts_data_chunk_size;
 
-	const char *record_to;
-	/* "Network" =  "MobileIP", "DefaultMCastInterface" */
-	Bool MobileIPEnabled;
 	const char *network_type;
 	//for sockets, we need to reopen them after resume/restart....
 	char *socket_url;
@@ -985,8 +978,6 @@ struct tag_m2ts_demux
 	u64 first_pcr_found;
 	u16 pcr_pid;
 	u64 nb_pck_at_pcr;
-
-	Bool paused;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -1000,8 +991,6 @@ void gf_m2ts_es_del(GF_M2TS_ES *es, GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size);
 u32 gf_dvb_get_freq_from_url(const char *channels_config_path, const char *url);
 void gf_m2ts_demux_dmscc_init(GF_M2TS_Demuxer *ts);
-
-void gf_m2ts_pause_demux(GF_M2TS_Demuxer *ts, Bool do_pause);
 
 GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id);
 
@@ -1396,10 +1385,6 @@ struct __gf_dvb_tuner {
 
 
 #ifndef GPAC_DISABLE_MPEG2TS
-GF_Err gf_m2ts_demuxer_setup(GF_M2TS_Demuxer *ts, const char *url, Bool loop);
-GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts);
-GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts);
-
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 

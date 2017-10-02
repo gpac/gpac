@@ -394,6 +394,7 @@ static const GF_FilterCapability XVIDInputs[] =
 {
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
 
 	{}
 };

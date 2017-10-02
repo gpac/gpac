@@ -158,8 +158,10 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(AC3_FRAME_SIZE) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 
 		ac3dmx_check_dur(filter, ctx);
 	}
@@ -174,7 +176,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	}
 	ctx->sample_rate = ctx->hdr.sample_rate;
 
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->sample_rate));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_AC3) );
@@ -326,8 +328,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	else if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		if (ctx != GF_FILTER_NO_TS)
-			ctx->cts = ctx;
+		if (cts != GF_FILTER_NO_TS)
+			ctx->cts = cts;
 	}
 
 	while (remain) {
@@ -462,6 +464,11 @@ static const GF_FilterCapability AC3DmxInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-ac3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/ac3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ac3"), .start=GF_TRUE},
+
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AC3 )},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
+	
 	{}
 };
 

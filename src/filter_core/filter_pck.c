@@ -434,7 +434,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				//missed end of previous, aggregate all before excluding this packet
 				if (pck->data_block_start) {
 					if (!dst->last_block_ended) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - reaggregating packet\n", pid->filter->name));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - reaggregating packet\n", pid->filter->name));
 
 						//post process task if we have been reaggregating a packet
 						post_task = gf_filter_aggregate_packets(dst);
@@ -648,6 +648,8 @@ GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket 
 	pck_dst->eos = pck_src->eos;
 	pck_dst->interlaced = pck_src->interlaced;
 	pck_dst->byte_offset = pck_src->byte_offset;
+	pck_dst->pid_info_changed = pck_src->pid_info_changed;
+	pck_dst->pid_props_changed = pck_src->pid_props_changed;
 
 	if (!pck_src->props) {
 		if (pck_dst->props) {
@@ -820,3 +822,15 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 	return pck->pck->byte_offset;
 }
 
+GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck)
+{
+	PCK_SETTER_CHECK("clock_discontinuity")
+	pck->clock_discontinuity = GF_TRUE;
+	return GF_OK;
+}
+
+Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck)
+{
+	assert(pck);
+	return pck->pck->clock_discontinuity ? GF_TRUE : GF_FALSE;
+}

@@ -38,6 +38,8 @@
 #define PCK_IS_INPUT(__pck) ((__pck->pck==__pck) ? GF_FALSE : GF_TRUE)
 #define PCK_IS_OUTPUT(__pck) ((__pck->pck==__pck) ? GF_TRUE : GF_FALSE)
 
+#define FSESS_CHECK_THREAD(__f) assert( !(__f)->process_th_id || ( (__f)->process_th_id == gf_th_id() ) );
+
 typedef struct
 {
 	//parent filter session for property reservoir
@@ -51,7 +53,7 @@ typedef struct
 
 } GF_PropertyEntry;
 
-#define HASH_TABLE_SIZE 255
+#define HASH_TABLE_SIZE 30
 
 typedef struct
 {

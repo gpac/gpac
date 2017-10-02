@@ -185,6 +185,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 		filter->num_input_pids = gf_list_count(filter->input_pids);
 	}
 
+	FSESS_CHECK_THREAD(filter)
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, is_remove);
 
 	if (e==GF_OK) {
@@ -233,6 +234,7 @@ GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool is_con
 				//2-disconnect all other inputs, and post a re-init
 				while (gf_list_count(filter->input_pids)) {
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
+					FSESS_CHECK_THREAD(filter)
 					filter->freg->configure_pid(filter, a_pidinst, GF_TRUE);
 
 					gf_fs_post_task(filter->session, gf_filter_pid_init_task, a_pidinst->pid->filter, a_pidinst->pid, "pid_init", NULL);
@@ -537,12 +539,15 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		//we found a property of that type and it is equal
 		if (pid_cap) {
 			Bool prop_equal = gf_props_equal(pid_cap, &cap->val);
-			if (cap->exclude) prop_equal = !prop_equal;
+			if (cap->exclude)
+				prop_equal = !prop_equal;
 
 			if (!prop_equal) {
 				all_caps_matched=GF_FALSE;
 			}
-		} else {
+		}
+		//cap exclusion defaults to match if cap is not found
+		else if (!cap->exclude) {
 			all_caps_matched=GF_FALSE;
 		}
 
@@ -721,17 +726,16 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 	}
 	count = gf_list_count(filter_chain);
 	if (count==0) {
-		Bool res = GF_FALSE;
 		//if source filter, try to load another filter - we should complete this with a cache of filter sources
 		if (!pid->filter->num_input_pids) {
-			res = gf_filter_swap_source_registry(pid->filter);
+			if (! gf_filter_swap_source_registry(pid->filter) ) {
+				//no filter found for this pid !
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable source filter found - NOT CONNECTED\n"));
+			}
+			*filter_reassigned = GF_TRUE;
+		} else {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter found for pid %s from filter %s - NOT CONNECTED\n", pid->name, pid->filter->name));
 		}
-		if (!res) {
-			//no filter found for this pid !
-			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable source filter found - NOT CONNECTED\n"));
-		}
-		*filter_reassigned = GF_TRUE;
-		
 	} else {
 		const char *args = pid->filter->src_args;
 		GF_FilterPid *a_pid = pid;
@@ -1182,6 +1186,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_FilterEvent evt;
 		pcki->pid_info_change_done = 1;
 		GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
+		FSESS_CHECK_THREAD(pidinst->filter)
 		pidinst->filter->freg->process_event(pidinst->filter, &evt);
 	}
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
@@ -1532,6 +1537,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	}
 
 	if (f->freg->process_event) {
+		FSESS_CHECK_THREAD(f)
 		canceled = f->freg->process_event(f, evt);
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
@@ -1642,8 +1648,10 @@ void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 	if (pid->pid->filter->finalized) return;
 	assert (pid->pid->filter->freg->requires_main_thread);
 
-	if (pid->pid->filter->freg->process_event)
+	if (pid->pid->filter->freg->process_event) {
+		FSESS_CHECK_THREAD(pid->pid->filter)
 		pid->pid->filter->freg->process_event(pid->pid->filter, evt);
+	}
 }
 
 

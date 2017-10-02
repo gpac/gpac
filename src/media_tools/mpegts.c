@@ -624,178 +624,6 @@ static u32 gf_m2ts_reframe_mpeg_video(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Boo
 
 #ifndef GPAC_DISABLE_AV_PARSERS
 
-typedef struct
-{
-	Bool is_mp2, no_crc;
-	u32 profile, sr_idx, nb_ch, frame_size;
-} ADTSHeader;
-
-static u32 gf_m2ts_reframe_aac_adts(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
-{
-	ADTSHeader hdr;
-	u32 sc_pos = 0;
-	u32 start = 0;
-	u32 hdr_size = 0;
-	u64 PTS;
-	Bool first = 1;
-	Bool garbage_bytes = 0;
-	GF_M2TS_PES_PCK pck;
-
-	/*dispatch frame*/
-	PTS = pes->PTS;
-	pck.stream = pes;
-	pck.DTS = pes->DTS;
-	pck.PTS = PTS;
-	pck.flags = 0;
-
-	if (pes->frame_state && ((pes->frame_state==data_len) || (((pes->frame_state+1<data_len)) && (data[pes->frame_state]==0xFF) && ((data[pes->frame_state+1] & 0xF0) == 0xF0)))) {
-		assert(pes->frame_state<=data_len);
-		/*dispatch frame*/
-		pck.stream = pes;
-		pck.DTS = PTS;
-		pck.PTS = PTS;
-		pck.flags = 0;
-		pck.data = (char *)data;
-		pck.data_len = pes->frame_state;
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		first = 0;
-		start = sc_pos = pes->frame_state;
-	}
-	pes->frame_state = 0;
-
-	/*fixme - we need to test this with more ADTS sources were PES framing is on any boundaries*/
-	while (sc_pos+2<data_len) {
-		u32 size;
-		GF_BitStream *bs;
-		/*look for sync marker 0xFFF0 on 12 bits*/
-		if ((data[sc_pos]!=0xFF) || ((data[sc_pos+1] & 0xF0) != 0xF0)) {
-			sc_pos++;
-			continue;
-		}
-
-		if (garbage_bytes) {
-			garbage_bytes = 0;
-		}
-		/*flush any pending data*/
-		else if (start < sc_pos) {
-			/*dispatch frame*/
-			pck.stream = pes;
-			pck.DTS = PTS;
-			pck.PTS = PTS;
-			pck.flags = 0;
-			pck.data = (char *)data+start;
-			pck.data_len = sc_pos-start;
-			ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-			if (pes->frame_state == pck.data_len) {
-				/*consider we are sync*/
-				first = 0;
-			} else {
-				first = 1;
-			}
-			pes->frame_state = 0;
-		}
-		/*not enough data to parse the frame header*/
-		if (sc_pos + 7 >= data_len) {
-			pes->frame_state = 0;
-			pes->prev_PTS = PTS;
-			return data_len-sc_pos;
-		}
-
-		bs = gf_bs_new((char *)data + sc_pos + 1, 9, GF_BITSTREAM_READ);
-		gf_bs_read_int(bs, 4);
-		hdr.is_mp2 = gf_bs_read_int(bs, 1);
-		gf_bs_read_int(bs, 2);
-		hdr.no_crc = gf_bs_read_int(bs, 1);
-
-		hdr.profile = 1 + gf_bs_read_int(bs, 2);
-		hdr.sr_idx = gf_bs_read_int(bs, 4);
-		gf_bs_read_int(bs, 1);
-		hdr.nb_ch = gf_bs_read_int(bs, 3);
-		gf_bs_read_int(bs, 4);
-		hdr.frame_size = gf_bs_read_int(bs, 13);
-		gf_bs_read_int(bs, 11);
-		gf_bs_read_int(bs, 2);
-		if (!hdr.no_crc) gf_bs_read_int(bs, 16);
-		hdr_size = hdr.no_crc ? 7 : 9;
-
-		gf_bs_del(bs);
-
-		/*make sure we are sync if we have more data following*/
-		if (sc_pos + hdr.frame_size < data_len) {
-			if ((hdr.frame_size < hdr_size) || (data[sc_pos + hdr.frame_size]!=0xFF) || ((data[sc_pos+hdr.frame_size+1] & 0xF0) != 0xF0)) {
-				sc_pos++;
-				continue;
-			}
-		} else if (first && (hdr.frame_size + sc_pos > data_len)) {
-			sc_pos++;
-			continue;
-		}
-
-		if (pes->aud_sr != GF_M4ASampleRates[hdr.sr_idx]) {
-			GF_M4ADecSpecInfo cfg;
-			pck.stream = pes;
-			memset(&cfg, 0, sizeof(GF_M4ADecSpecInfo));
-			cfg.base_object_type = hdr.profile;
-			cfg.base_sr = GF_M4ASampleRates[hdr.sr_idx];
-
-
-			if (!cfg.base_sr) {
-				sc_pos++;
-				garbage_bytes = 1;
-				continue;
-			}
-
-			pes->aud_sr = cfg.base_sr;
-			pes->aud_nb_ch = cfg.nb_chan = hdr.nb_ch;
-			cfg.sbr_object_type = 0;
-			gf_m4a_write_config(&cfg, &pck.data, &pck.data_len);
-			ts->on_event(ts, GF_M2TS_EVT_AAC_CFG, &pck);
-			gf_free(pck.data);
-			pes->aud_aac_sr_idx = cfg.base_sr_index;
-			pes->aud_sr = cfg.base_sr;
-			pes->aud_nb_ch = cfg.nb_chan;
-			pes->aud_aac_obj_type = hdr.profile;
-		}
-
-		/*dispatch frame*/
-		pck.stream = pes;
-		if (first && pes->prev_PTS) {
-			pck.DTS = pck.PTS = pes->prev_PTS;
-		} else {
-			pck.DTS = pck.PTS = PTS;
-		}
-		pck.flags = GF_M2TS_PES_PCK_AU_START | GF_M2TS_PES_PCK_RAP;
-		pck.data = (char *)data + sc_pos + hdr_size;
-		pck.data_len = hdr.frame_size - hdr_size;
-
-		if (pck.data_len > data_len - sc_pos - hdr_size) {
-			assert(pck.data_len - (data_len - sc_pos - hdr_size) > 0);
-			/*remember how much we have to send*/
-			pes->frame_state = pck.data_len - (data_len - sc_pos - hdr_size);
-			assert((s32) pes->frame_state > 0);
-			pck.data_len = data_len - sc_pos - hdr_size;
-		}
-
-		ts->on_event(ts, GF_M2TS_EVT_PES_PCK, &pck);
-		sc_pos += pck.data_len + hdr_size;
-		start = sc_pos;
-
-		if (first && pes->prev_PTS) {
-			pes->prev_PTS = 0;
-		}
-		/*update PTS in case we don't get any update*/
-		else if (pes->aud_sr) {
-			size = 1024*90000/pes->aud_sr;
-			PTS += size;
-		}
-		first = 0;
-	}
-	/*did we consumed all data ?*/
-	if (data_len==sc_pos) return 0;
-	pes->prev_PTS = PTS;
-	return data_len - sc_pos;
-}
-
 static u32 gf_m2ts_reframe_aac_latm(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
 {
 	u32 sc_pos = 0;
@@ -1245,17 +1073,17 @@ static u32 gf_m2ts_reframe_id3_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool s
 	return 0;
 }
 
-static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, Bool simple_check)
+static u32 gf_m2ts_sync(GF_M2TS_Demuxer *ts, char *data, u32 size, Bool simple_check)
 {
 	u32 i=0;
 	/*if first byte is sync assume we're sync*/
-	if (simple_check && (ts->buffer[i]==0x47)) return 0;
+	if (simple_check && (data[i]==0x47)) return 0;
 
-	while (i<ts->buffer_size) {
-		if (i+188>ts->buffer_size) return ts->buffer_size;
-		if ((ts->buffer[i]==0x47) && (ts->buffer[i+188]==0x47))
+	while (i < size) {
+		if (i+188 > size) return size;
+		if ((data[i]==0x47) && (data[i+188]==0x47))
 			break;
-		if ((ts->buffer[i]==0x47) && (ts->buffer[i+192]==0x47)) {
+		if ((data[i]==0x47) && (data[i+192]==0x47)) {
 			ts->prefix_present = 1;
 			break;
 		}
@@ -3405,29 +3233,50 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 GF_EXPORT
 GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 {
-	GF_Err e;
+	GF_Err e=GF_OK;;
 	u32 pos, pck_size;
 	Bool is_align = 1;
-	if (ts->buffer) {
-		if (ts->alloc_size < ts->buffer_size+data_size) {
-			ts->alloc_size = ts->buffer_size+data_size;
-			ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+	char *remain_data = NULL;
+	u32 remain_size = 0;
+
+	if (ts->buffer_size) {
+		//we are sync, copy remaining bytes
+		if ( (ts->buffer[0]==0x47) && (ts->buffer_size<200)) {
+			u32 pck_size = ts->prefix_present ? 192 : 188;
+
+			if (ts->alloc_size < 200) {
+				ts->alloc_size = 200;
+				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+			}
+			memcpy(ts->buffer + ts->buffer_size, data, pck_size - ts->buffer_size);
+			e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer);
+			data += (pck_size - ts->buffer_size);
+			data_size = data_size - (pck_size - ts->buffer_size);
 		}
-		memcpy(ts->buffer + ts->buffer_size, data, sizeof(char)*data_size);
-		ts->buffer_size += data_size;
-		is_align = 0;
-	} else {
-		ts->buffer = data;
-		ts->buffer_size = data_size;
+		//not sync, copy over the complete buffer
+		else {
+			if (ts->alloc_size < ts->buffer_size+data_size) {
+				ts->alloc_size = ts->buffer_size+data_size;
+				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+			}
+			memcpy(ts->buffer + ts->buffer_size, data, sizeof(char)*data_size);
+			ts->buffer_size += data_size;
+			is_align = 0;
+			data = ts->buffer;
+			data_size = ts->buffer_size;
+		}
 	}
 
 	/*sync input data*/
-	pos = gf_m2ts_sync(ts, is_align);
-	if (pos==ts->buffer_size) {
+	pos = gf_m2ts_sync(ts, data, data_size, is_align);
+	if (pos==data_size) {
 		if (is_align) {
-			ts->buffer = (char*)gf_malloc(sizeof(char)*data_size);
+			if (ts->alloc_size<data_size) {
+				ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*data_size);
+				ts->alloc_size = data_size;
+			}
 			memcpy(ts->buffer, data, sizeof(char)*data_size);
-			ts->alloc_size = ts->buffer_size = data_size;
+			ts->buffer_size = data_size;
 		}
 		return GF_OK;
 	}
@@ -3435,30 +3284,33 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	e=GF_OK;
 	for (;;) {
 		/*wait for a complete packet*/
-		if (ts->buffer_size < pos  + pck_size) {
-			ts->buffer_size -= pos;
+		if (data_size < pos  + pck_size) {
+			ts->buffer_size = data_size - pos;
+			data += pos;
 			if (!ts->buffer_size) {
-				if (!is_align) gf_free(ts->buffer);
-				ts->buffer = NULL;
 				return e;
 			}
+			assert(ts->buffer_size<pck_size);
+
 			if (is_align) {
-				data = ts->buffer+pos;
-				ts->buffer = (char*)gf_malloc(sizeof(char)*ts->buffer_size);
+				u32 s = ts->buffer_size;
+				if (s<200) s = 200;
+
+				if (ts->alloc_size < s) {
+					ts->alloc_size = s;
+					ts->buffer = (char*)gf_realloc(ts->buffer, sizeof(char)*ts->alloc_size);
+				}
 				memcpy(ts->buffer, data, sizeof(char)*ts->buffer_size);
-				ts->alloc_size = ts->buffer_size;
 			} else {
-				memmove(ts->buffer, ts->buffer + pos, sizeof(char)*ts->buffer_size);
+				memmove(ts->buffer, data, sizeof(char)*ts->buffer_size);
 			}
 			return e;
 		}
 		/*process*/
-		e |= gf_m2ts_process_packet(ts, (unsigned char *)ts->buffer+pos);
+		e |= gf_m2ts_process_packet(ts, (unsigned char *)data + pos);
 		pos += pck_size;
 
 		if (ts->abort_parsing) {
-			if (!is_align) gf_free(ts->buffer);
-			ts->buffer = NULL;
 			return e;
 		}
 	}
@@ -3657,7 +3509,7 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			pes->reframe = gf_m2ts_reframe_mpeg_audio;
 			break;
 		case GF_M2TS_AUDIO_AAC:
-			pes->reframe = gf_m2ts_reframe_aac_adts;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_AUDIO_LATM_AAC:
 			pes->reframe = gf_m2ts_reframe_aac_latm;
@@ -3706,8 +3558,6 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	gf_dvb_mpe_init(ts);
 #endif
 
-	ts->requested_progs = gf_list_new();
-	ts->requested_pids = gf_list_new();
 	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
 	ts->ChannelAppList = gf_list_new();
@@ -3821,16 +3671,6 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	gf_list_del(ts->ChannelAppList);
 
-	if (ts->requested_progs) {
-		assert(!gf_list_count(ts->requested_progs));
-		gf_list_del(ts->requested_progs);
-	}
-
-	if (ts->requested_pids) {
-		assert(!gf_list_count(ts->requested_pids));
-		gf_list_del(ts->requested_pids);
-	}
-
 	if (ts->th)
 		gf_th_del(ts->th);
 
@@ -3843,12 +3683,6 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #ifdef GPAC_ENABLE_MPE
 	gf_m2ts_print_mpe_info(ts);
 #endif
-}
-
-GF_EXPORT
-void gf_m2ts_pause_demux(GF_M2TS_Demuxer *ts, Bool do_pause)
-{
-	if (ts) ts->paused = do_pause;
 }
 
 GF_EXPORT
@@ -3982,7 +3816,7 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 
 	//recreate the socket if needed
 	if (ts->socket_url && !ts->sock) {
-		gf_m2ts_get_socket(ts->socket_url, ts->network_type, ts->udp_buffer_size, &ts->sock);
+		gf_m2ts_get_socket(ts->socket_url, NULL, ts->udp_buffer_size, &ts->sock);
 	}
 
 #ifdef GPAC_HAS_LINUX_DVB
@@ -4007,17 +3841,10 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 #endif
 			u32 nb_empty=0;
 			Bool first_run, is_rtp;
-			FILE *record_to = NULL;
-			if (ts->record_to)
-				record_to = gf_fopen(ts->record_to, "wb");
 
 			first_run = 1;
 			is_rtp = 0;
 			while (ts->run_state) {
-				if (ts->paused) {
-					gf_sleep(1);
-					continue;
-				}
 				size = 0;
 				/*m2ts chunks by chunks*/
 				e = gf_sk_receive(ts->sock, data, ts->udp_buffer_size, 0, &size);
@@ -4049,24 +3876,16 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 					pck = (char *) gf_rtp_reorderer_get(ch, &size);
 					if (pck) {
 						gf_m2ts_process_data(ts, pck+12, size-12);
-						if (record_to)
-							fwrite(data+12, size-12, 1, record_to);
 						gf_free(pck);
 					}
 #else
 					gf_m2ts_process_data(ts, data+12, size-12);
-					if (record_to)
-						fwrite(data+12, size-12, 1, record_to);
 #endif
 
 				} else {
 					gf_m2ts_process_data(ts, data, size);
-					if (record_to)
-						fwrite(data, size, 1, record_to);
 				}
 			}
-			if (record_to)
-				gf_fclose(record_to);
 
 #ifndef GPAC_DISABLE_STREAMING
 			if (ch)
@@ -4092,12 +3911,6 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 			gf_bs_seek(ts_bs, 0);
 
 			while (ts->run_state && gf_bs_available(ts_bs) && !ts->force_file_refresh) {
-
-				if (ts->paused) {
-					gf_sleep(1);
-					continue;
-				}
-
 				if (ts->start_range && ts->duration) {
 					Double perc = ts->start_range / (1000 * ts->duration);
 					pos = (u32) (s64) (perc * ts->file_size);
@@ -4157,6 +3970,8 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	gf_free(data);
 	return 0;
 }
+
+#if 0
 
 
 GF_EXPORT
@@ -4222,15 +4037,14 @@ static GF_Err gf_m2ts_demuxer_setup_live(GF_M2TS_Demuxer *ts, char *url)
 		ts->sock_is_delegate = GF_TRUE;
 	} else {
 		GF_Err e;
-		e = gf_m2ts_get_socket(url, ts->network_type, ts->udp_buffer_size, &ts->sock);
+		e = gf_m2ts_get_socket(url, NULL, ts->udp_buffer_size, &ts->sock);
 		if (e) return e;
 	}
 
 	if (ts->socket_url) gf_free(ts->socket_url);
 	ts->socket_url = gf_strdup(url);
 
-	//gf_th_set_priority(ts->th, GF_THREAD_PRIORITY_HIGHEST);
-	return gf_m2ts_demuxer_play(ts);
+	return GF_OK;
 
 }
 
@@ -4442,7 +4256,7 @@ GF_Err gf_m2ts_demuxer_setup_dvb(GF_M2TS_Demuxer *ts, const char *url)
 		return GF_SERVICE_ERROR;
 	}
 
-	return  gf_m2ts_demuxer_play(ts);
+	return GF_OK;
 }
 
 #endif
@@ -4480,8 +4294,7 @@ static GF_Err gf_m2ts_demuxer_setup_file(GF_M2TS_Demuxer *ts, char *url)
 
 	/* reinitialization for seek */
 	ts->end_range = ts->start_range = 0;
-	return  gf_m2ts_demuxer_play(ts);
-
+	return GF_OK;
 }
 
 GF_EXPORT
@@ -4543,21 +4356,8 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts)
 	return GF_OK;
 }
 
-GF_EXPORT
-GF_Err gf_m2ts_demuxer_play(GF_M2TS_Demuxer *ts)
-{
+#endif
 
-	/*set the state variable outside the TS thread. If inside, we may get called for shutdown before the TS thread has started
-	and we would overwrite the run_state when entering the TS thread, which would make the thread run forever and the stop() wait forever*/
-	ts->run_state = 1;
-	if(ts->th) {
-		/*start playing for tune-in*/
-		return gf_th_run(ts->th, gf_m2ts_demuxer_run, ts);
-	} else {
-		return gf_m2ts_demuxer_run(ts);
-	}
-
-}
 
 #define M2TS_PROBE_SIZE	188000
 GF_EXPORT

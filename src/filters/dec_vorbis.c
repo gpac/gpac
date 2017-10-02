@@ -258,6 +258,7 @@ static const GF_FilterCapability VorbisDecInputs[] =
 {
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VORBIS)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
 
 	{}
 };

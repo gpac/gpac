@@ -415,9 +415,12 @@ static const GF_FilterCapability ODFDecInputs[] =
 {
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD)},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_OD_V1) },
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
 
 	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
 	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_OD_V2) },
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
 	{}
 };
 

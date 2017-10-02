@@ -56,6 +56,39 @@ const GF_FilterRegister *amrdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *oggdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *vorbisdec_register(GF_FilterSession *session);
 const GF_FilterRegister *theoradec_register(GF_FilterSession *session);
+const GF_FilterRegister *m2tsdmx_register(GF_FilterSession *session);
+
+
+static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
+{
+	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, odf_dec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, filein_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, imgdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, adts_dmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, mp3_dmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, faad_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, maddec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, xviddec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, j2kdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ac3dmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, a52dec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, amrdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, oggdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, vorbisdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, theoradec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, m2tsdmx_register(a_sess) );
+
+	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+}
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
 {
@@ -209,32 +242,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->registry = gf_list_new();
 
 	a_sess = load_meta_filters ? fsess : NULL;
-	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, odf_dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, filein_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ctxload_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, httpin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, svgin_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, img_reframe_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, imgdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, adts_dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, mp3_dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, faad_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, maddec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, xviddec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, j2kdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ac3dmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, a52dec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, amrdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, oggdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, vorbisdec_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, theoradec_register(a_sess) );
-
-	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+	gf_fs_reg_all(fsess, a_sess);
 
 	//todo - find a way to handle events without mutex ...
 	fsess->evt_mx = gf_mx_new("Event mutex");
@@ -284,6 +292,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 			if (filter->freg->finalize) {
 				filter->finalized = GF_TRUE;
+				FSESS_CHECK_THREAD(filter)
 				filter->freg->finalize(filter);
 			}
 		}
@@ -1072,7 +1081,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 			}
 			if (!strcmp(src_arg->arg_name, "src")) break;
 			src_arg = NULL;
-			i++;
+			j++;
 		}
 		if (!src_arg)
 			continue;
