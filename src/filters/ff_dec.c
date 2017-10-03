@@ -253,7 +253,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 		ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
 
-		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
+		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar ) );
 	}
 
 	memset(&pict, 0, sizeof(pict));
@@ -779,7 +779,7 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 		if (ffdec->codec_ctx->sample_aspect_ratio.num && ffdec->codec_ctx->sample_aspect_ratio.den) {
 			ffdec->sar.num = ffdec->codec_ctx->sample_aspect_ratio.num;
 			ffdec->sar.den = ffdec->codec_ctx->sample_aspect_ratio.den;
-			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar.num, ffdec->sar.den ) );
+			gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_SAR, &PROP_FRAC( ffdec->sar) );
 		}
 		if (!ffdec->frame)
 			ffdec->frame = av_frame_alloc();

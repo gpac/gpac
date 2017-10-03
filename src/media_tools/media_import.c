@@ -8931,7 +8931,6 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 	ts = gf_m2ts_demux_new();
 	ts->on_event = on_m2ts_import_data;
 	ts->user = &tsimp;
-	ts->file_size = fsize;
 
 	ts->dvb_h_demux = (import->flags & GF_IMPORT_MPE_DEMUX) ? GF_TRUE : GF_FALSE;
 
@@ -8946,7 +8945,6 @@ GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 			break;
 
 		gf_m2ts_process_data(ts, data, size);
-		ts->nb_pck++;
 		if (import->flags & GF_IMPORT_DO_ABORT) break;
 		done += size;
 		if (do_import) gf_set_progress(progress, (u32) (done/1024), (u32) (fsize/1024));

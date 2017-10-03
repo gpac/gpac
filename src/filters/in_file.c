@@ -254,6 +254,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		ctx->pid = filein_declare_pid(filter, ctx->src, ctx->src, NULL, ctx->block, nb_read);
 		if (!ctx->pid) return GF_SERVICE_ERROR;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
+		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
 	if (!pck) return GF_OK;

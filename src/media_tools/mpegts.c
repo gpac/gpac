@@ -112,58 +112,6 @@ const char *gf_m2ts_get_stream_name(u32 streamType)
 	}
 }
 
-static void gf_m2ts_estimate_duration(GF_M2TS_Demuxer *ts, u64 PCR, u16 pcr_pid)
-{
-	u64 file_size = 0;
-//	if (ts->duration>0) return;
-
-	if (ts->file || ts->file_size) {
-		file_size = ts->file_size;
-	} else if (ts->dnload) {
-		u32 size;
-		gf_dm_sess_get_stats(ts->dnload, NULL, NULL, &size, NULL, NULL, NULL);
-		file_size = size;
-	} else {
-		return;
-	}
-
-	if (!ts->first_pcr_found) {
-		ts->first_pcr_found = PCR;
-		ts->pcr_pid = pcr_pid;
-		ts->nb_pck_at_pcr = ts->nb_pck;
-	} else if (ts->pcr_pid == pcr_pid) {
-		if (PCR < ts->first_pcr_found) {
-			ts->first_pcr_found = PCR;
-			ts->pcr_pid = pcr_pid;
-			ts->nb_pck_at_pcr = ts->nb_pck;
-		} else if (PCR - ts->first_pcr_found > 2*27000000) {
-			Bool changed = GF_FALSE;
-			Double pck_dur = (Double) (PCR-ts->first_pcr_found);
-			pck_dur /= (ts->nb_pck - ts->nb_pck_at_pcr);
-			pck_dur /= 27000000;
-
-			pck_dur *= file_size;
-			pck_dur /= 188.0;
-			if ((u32) ts->duration != (u32) pck_dur) {
-				ts->duration = pck_dur;
-				changed = GF_TRUE;
-			}
-
-			ts->first_pcr_found = PCR;
-			ts->pcr_pid = pcr_pid;
-			ts->nb_pck_at_pcr = ts->nb_pck;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] Estimated duration based on instant bitrate: %g sec\n", ts->duration));
-
-			if (ts->on_event && changed) {
-				GF_M2TS_PES_PCK pck;
-				memset(&pck, 0, sizeof(GF_M2TS_PES_PCK));
-				pck.PTS = (u64) (ts->duration*1000);
-				ts->on_event(ts, GF_M2TS_EVT_DURATION_ESTIMATED, &pck);
-			}
-		}
-	}
-}
 
 static u32 gf_m2ts_reframe_default(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes, Bool same_pts, unsigned char *data, u32 data_len, GF_M2TS_PESHeader *pes_hdr)
 {
@@ -1212,7 +1160,7 @@ GF_M2TS_SDT *gf_m2ts_get_sdt_info(GF_M2TS_Demuxer *ts, u32 program_id)
 static void gf_m2ts_section_complete(GF_M2TS_Demuxer *ts, GF_M2TS_SectionFilter *sec, GF_M2TS_SECTION_ES *ses)
 {
 	//seek mode, only process PAT and PMT
-	if (ts->start_range && (sec->section[0] != GF_M2TS_TABLE_ID_PAT) && (sec->section[0] != GF_M2TS_TABLE_ID_PMT)) {
+	if (ts->seek_mode && (sec->section[0] != GF_M2TS_TABLE_ID_PAT) && (sec->section[0] != GF_M2TS_TABLE_ID_PMT)) {
 		/*clean-up (including broken sections)*/
 		if (sec->section) gf_free(sec->section);
 		sec->section = NULL;
@@ -2732,7 +2680,7 @@ void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes)
 					ts->on_event(ts, GF_M2TS_EVT_TEMI_TIMECODE, &pes->temi_tc);
 			}
 
-			if (! ts->start_range)
+			if (! ts->seek_mode)
 				remain = pes->reframe(ts, pes, same_pts, pes->pck_data+offset, pes->pck_data_len-offset, &pesh);
 
 			//CLEANUP alloc stuff
@@ -3194,7 +3142,6 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 			}
 
 			if (ts->on_event) {
-				gf_m2ts_estimate_duration(ts, es->program->last_pcr_value, hdr.pid);
 				ts->on_event(ts, GF_M2TS_EVT_PES_PCR, &pck);
 			}
 		}
@@ -3558,11 +3505,8 @@ GF_M2TS_Demuxer *gf_m2ts_demux_new()
 	gf_dvb_mpe_init(ts);
 #endif
 
-	ts->demux_and_play = 0;
 	ts->nb_prog_pmt_received = 0;
 	ts->ChannelAppList = gf_list_new();
-	ts->udp_buffer_size = GF_M2TS_UDP_BUFFER_SIZE;
-
 	return ts;
 }
 
@@ -3671,10 +3615,6 @@ void gf_m2ts_demux_del(GF_M2TS_Demuxer *ts)
 	}
 	gf_list_del(ts->ChannelAppList);
 
-	if (ts->th)
-		gf_th_del(ts->th);
-
-	if (ts->socket_url) gf_free(ts->socket_url);
 	gf_free(ts);
 }
 
@@ -3685,130 +3625,14 @@ void gf_m2ts_print_info(GF_M2TS_Demuxer *ts)
 #endif
 }
 
-GF_EXPORT
-GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_byterange, u64 end_byterange, u32 refresh_type, Bool signal_end_of_stream)
-{
-	u32 i;
-	GF_Err e;
-	u32 size;
-	u64 read;
-	GF_BitStream *bs = NULL;
-	FILE *f = NULL;
-
-	//force EOS signaing
-	if (!fileName) {
-		if (!signal_end_of_stream) return GF_BAD_PARAM;
-		ts->pos_in_stream = 0;
-	}
-	else if (fileName && !strnicmp(fileName, "gmem://", 7)) {
-		void *mem_address;
-		u32 remain;
-		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", fileName));
-			return GF_URL_ERROR;
-		}
-		if (refresh_type==0)
-			ts->pos_in_stream = 0;
-
-		//resume where we left
-		mem_address = (u8 *) mem_address + ts->pos_in_stream;
-		size -= (u32) ts->pos_in_stream;
-
-		remain = (size % 188);
-		size -= remain;
-
-		/*process chunk*/
-		ts->abort_parsing = GF_FALSE;
-		/*e = */gf_m2ts_process_data(ts, mem_address, size);
-
-		if (refresh_type==2)
-			ts->pos_in_stream = 0;
-		else
-			ts->pos_in_stream += size;
-
-	} else if (fileName) {
-		char data[188000];
-
-		f = gf_fopen(fileName, "rb");
-
-		if (!f) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Cannot open next file %s\n", fileName));
-			return GF_URL_ERROR;
-		}
-		bs = gf_bs_from_file(f, GF_BITSTREAM_READ);
-
-		if (refresh_type) {
-			if (ts->pos_in_stream) {
-				gf_bs_seek(bs, ts->pos_in_stream);
-			}
-		} else {
-			if (start_byterange) {
-				gf_bs_seek(bs, start_byterange);
-			}
-		}
-		read = 0;
-		ts->abort_parsing = GF_FALSE;
-		while (1) {
-			u32 to_read = 188000;
-			Bool done = 0;
-			u64 avail = gf_bs_available(bs);
-
-			if (avail < 188)
-				break;
-
-			if (end_byterange && (read + to_read > end_byterange)) {
-				to_read = (u32) (end_byterange - read);
-				done = 1;
-			}
-			if (to_read > avail) {
-				u32 skip = avail % 188;
-				to_read = (u32) (avail - skip);
-				done = 1;
-			}
-			size = gf_bs_read_data(bs, data, to_read);
-			if (size) {
-				e = gf_m2ts_process_data(ts, data, size);
-				if (e) {
-					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDemux] Error %s while demuxing %s\n", gf_error_to_string(e), fileName));
-				}
-			}
-			read += size;
-			if (done) break;
-			if (ts->abort_parsing)
-				break;
-		}
-
-		if ((refresh_type==2) || !gf_bs_available(bs)) {
-			ts->pos_in_stream = 0;
-		} else {
-			ts->pos_in_stream = gf_bs_get_position(bs);
-		}
-
-		gf_bs_del(bs);
-		gf_fclose(f);
-		ts->abort_parsing = GF_FALSE;
-	}
-
-	if (signal_end_of_stream && !ts->pos_in_stream) {
-		for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-			if (ts->ess[i]) {
-				if (ts->ess[i]->flags & GF_M2TS_ES_IS_PES) {
-					gf_m2ts_flush_pes(ts, (GF_M2TS_PES *) ts->ess[i]);
-					ts->on_event(ts, GF_M2TS_EVT_EOS, (GF_M2TS_PES *) ts->ess[i]);
-				}
-			}
-		}
-	}
-	return GF_OK;
-}
-
 
 static u32 gf_m2ts_demuxer_run(void *_p)
 {
+	GF_M2TS_Demuxer *ts = _p;
+#if FILTER_FIXME
 	u32 i;
 	GF_Err e;
 	u32 size;
-	GF_M2TS_Demuxer *ts = _p;
 	char *data = gf_malloc(ts->udp_buffer_size);
 
 	gf_m2ts_reset_parsers(ts);
@@ -3966,8 +3790,9 @@ static u32 gf_m2ts_demuxer_run(void *_p)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TSDemux] EOS reached\n"));
 
-	ts->run_state = 2;
 	gf_free(data);
+	ts->run_state = 2;
+#endif
 	return 0;
 }
 
