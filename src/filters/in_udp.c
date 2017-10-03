@@ -144,7 +144,7 @@ void udpin_finalize(GF_Filter *filter)
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
 	if (ctx->socket) gf_sk_del(ctx->socket);
 #ifndef GPAC_DISABLE_STREAMING
-	gf_rtp_reorderer_del(ctx->rtp_reorder);
+	if (ctx->rtp_reorder) gf_rtp_reorderer_del(ctx->rtp_reorder);
 #endif
 	if (ctx->block) gf_free(ctx->block);
 }
@@ -219,7 +219,8 @@ static GF_Err udpin_process(GF_Filter *filter)
 	}
 
 	e = gf_sk_receive(ctx->socket, ctx->block, ctx->block_size, 0, &nb_read);
-	if (!nb_read || e) return GF_OK;
+	if (!nb_read || e)
+		return GF_OK;
 	ctx->block[nb_read] = 0;
 
 	//first run, probe data
