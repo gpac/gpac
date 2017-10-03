@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2017
  *					All rights reserved
  *
- *  This file is part of GPAC / generic FILE input filter
+ *  This file is part of GPAC / generic UDP/RTP input filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
