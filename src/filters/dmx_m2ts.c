@@ -1025,9 +1025,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 
 static const GF_FilterCapability M2TSDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mpeg-2")},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mp2t"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mpeg"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mpeg-2|video/mp2t|video/mpeg")},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ts|m2t|mts|dmb|trp"), .start=GF_TRUE},
 	{}
 };

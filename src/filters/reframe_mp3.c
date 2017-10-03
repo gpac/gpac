@@ -455,8 +455,7 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability MP3DmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-mp3"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/mp3"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-mp3|audio/mp3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp3"), .start=GF_TRUE},
 
 	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},

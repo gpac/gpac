@@ -854,8 +854,7 @@ static const GF_FilterCapability CTXLoadInputs[] =
 	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-xmt"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("xmt|xmt.gz|xmtz"), .start=GF_TRUE},
 
-	{.code=GF_PROP_PID_MIME, PROP_STRING("model/vrml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("x-model/x-vrml"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("model/vrml|x-model/x-vrml"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("wrl|wrl.gz"), .start=GF_TRUE},
 
 	{.code=GF_PROP_PID_MIME, PROP_STRING("model/x3d+vrml"), .start=GF_TRUE},

@@ -479,12 +479,8 @@ static void amrdmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability AMRDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/amr"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("amr|awb"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/evrc"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("evc"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/smv"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("smv"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/amr|audio/evrc|audio/smv"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("amr|awb|evc|smv"), .start=GF_TRUE},
 	{}
 };
 

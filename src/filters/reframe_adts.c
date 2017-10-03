@@ -578,10 +578,7 @@ static void adts_dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability ADTSDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-m4a"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/aac"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/aacp"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-aac"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-m4a|audio/aac|audio/aacp|audio/x-aac"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("aac"), .start=GF_TRUE},
 
 

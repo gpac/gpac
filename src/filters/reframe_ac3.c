@@ -461,8 +461,7 @@ static void ac3dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability AC3DmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-ac3"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/ac3"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-ac3|audio/ac3"), .start=GF_TRUE},
 	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ac3"), .start=GF_TRUE},
 
 	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
