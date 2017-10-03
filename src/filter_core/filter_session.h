@@ -213,6 +213,10 @@ struct __gf_media_session
 	GF_FilterQueue *main_thread_tasks;
 	GF_FilterQueue *tasks_reservoir;
 
+	//if more than one thread, this mutex protects access to loaded filters list, to avoid concurrent calls to destruct and
+	//filter testing (graph resolution, update sending, ...)
+	GF_Mutex *filters_mx;
+
 	//reservoir for property maps for PID and packets properties
 	GF_FilterQueue *prop_maps_reservoir;
 	//reservoir for property maps hash table entries (GF_Lists) for PID and packets properties

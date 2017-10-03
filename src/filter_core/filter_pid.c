@@ -777,6 +777,9 @@ void gf_filter_pid_init_task(GF_FSTask *task)
 	Bool first_pass=GF_TRUE;
 
 restart:
+
+	if (task->filter->session->filters_mx) gf_mx_p(task->filter->session->filters_mx);
+
 	//try to connect pid to all running filters
 	count = gf_list_count(task->filter->session->filters);
 	for (i=0; i<count; i++) {
@@ -820,7 +823,10 @@ restart:
 			//try to load filters
 			if (! new_f) {
 				//filter was reassigned (pid is destroyed), return
-				if (reassigned) return;
+				if (reassigned) {
+					if (task->filter->session->filters_mx) gf_mx_v(task->filter->session->filters_mx);
+					return;
+				}
 				continue;
 			}
 			filter_dst = new_f;
@@ -833,6 +839,7 @@ restart:
 		found_dest = GF_TRUE;
 		break;
 	}
+	if (task->filter->session->filters_mx) gf_mx_v(task->filter->session->filters_mx);
 
 	//connection in proces, do nothing
 	if (found_dest) return;
