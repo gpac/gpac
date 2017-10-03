@@ -675,17 +675,8 @@ static void oggdmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability OGGDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-vorbis+ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("oga|spx"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/x-ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/x-ogm+ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ogg|ogv|oggm"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/ogg|audio/x-ogg|audio/x-vorbis+ogg|application/ogg|application/x-ogg|video/ogg|video/x-ogg|video/x-ogm+ogg"), .start=GF_TRUE},
+	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("oga|spx|ogg|ogv|oggm"), .start=GF_TRUE},
 	{}
 };
 
