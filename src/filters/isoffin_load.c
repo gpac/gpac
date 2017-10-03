@@ -277,7 +277,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (!ch->duration) {
 			ch->duration = gf_isom_get_duration(read->mov);
 		}
-		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC(ch->duration, read->time_scale));
+		gf_filter_pid_set_info(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(ch->duration, read->time_scale));
 
 		track_dur = (Double) (s64) ch->duration;
 		track_dur /= read->time_scale;

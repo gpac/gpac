@@ -272,7 +272,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(stream->time_base.den) );
 
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC_INT( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
 
 		if (stream->metadata) {
 			AVDictionaryEntry *ent=NULL;
@@ -338,7 +338,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		if (codec->height)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT( codec->height ) );
 		if (codec->framerate.num && codec->framerate.den)
-			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC( codec->framerate.num, codec->framerate.den ) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_FPS, &PROP_FRAC_INT( codec->framerate.num, codec->framerate.den ) );
 
 		if (codec->bit_rate)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_BITRATE, &PROP_UINT( codec->bit_rate ) );

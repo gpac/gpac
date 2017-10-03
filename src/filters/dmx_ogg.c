@@ -245,12 +245,12 @@ static void oggdmx_declare_pid(GF_Filter *filter, GF_OGGDmxCtx *ctx, GF_OGGStrea
 	if (st->info.height)
 		gf_filter_pid_set_property(st->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(st->info.height) );
 	if (st->info.sar.den)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAR, &PROP_FRAC(st->info.sar.num, st->info.sar.den) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_SAR, &PROP_FRAC(st->info.sar) );
 	if (st->info.frame_rate.den)
-		gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC(st->info.frame_rate.num, st->info.frame_rate.den) );
+		gf_filter_pid_set_property(st->opid, GF_PROP_PID_FPS, &PROP_FRAC(st->info.frame_rate) );
 
 	if (ctx->duration.num)
-		gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration.num, ctx->duration.den));
+		gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 
 }
 
@@ -480,7 +480,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 			GF_OGGStream *st;
 			ctx->duration = dur;
 			while ( (st = gf_list_enum(ctx->streams, &i)) ) {
-				gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration.num, ctx->duration.den));
+				gf_filter_pid_set_info(st->opid, GF_PROP_PID_DURATION, & PROP_FRAC(ctx->duration));
 			}
 		}
 	}

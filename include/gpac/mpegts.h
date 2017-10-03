@@ -885,40 +885,6 @@ typedef struct
 /*MPEG-2 TS demuxer*/
 struct tag_m2ts_demux
 {
-	/*demuxer thread*/
-	GF_Thread *th;
-	u32 run_state;
-
-	Bool force_file_refresh;
-	/*net playing*/
-	GF_Socket *sock;
-	Bool sock_is_delegate;
-
-#ifdef GPAC_HAS_LINUX_DVB
-	/*dvb playing*/
-	GF_Tuner *tuner;
-#endif
-	/*local file playing*/
-	FILE *file;
-	char filename[GF_MAX_PATH];
-	//start/end in ms
-	u32 start_range, end_range;
-	u64 file_size;
-	u64 pos_in_stream;
-	Double duration;
-	u32 nb_pck;
-	Bool loop_demux;
-	const char *ts_data_chunk;
-	u32 ts_data_chunk_size;
-
-	const char *network_type;
-	//for sockets, we need to reopen them after resume/restart....
-	char *socket_url;
-	u32 udp_buffer_size;
-	/* Set it to 1 if the TS is meant to be played during the demux */
-	Bool demux_and_play;
-	/* End of M2TSIn */
-
 	GF_M2TS_ES *ess[GF_M2TS_MAX_STREAMS];
 	GF_List *programs;
 	u32 nb_prog_pmt_received;
@@ -943,9 +909,9 @@ struct tag_m2ts_demux
 	/* analyser */
 	FILE *pes_out;
 
-
+	//when set, only pmt and PAT are parsed
+	Bool seek_mode;
 	Bool prefix_present;
-
 	Bool direct_mpe;
 
 	Bool dvb_h_demux;
@@ -973,11 +939,6 @@ struct tag_m2ts_demux
 
 	Bool abort_parsing;
 	Bool table_reset;
-
-	//duration estimation
-	u64 first_pcr_found;
-	u16 pcr_pid;
-	u64 nb_pck_at_pcr;
 };
 
 GF_M2TS_Demuxer *gf_m2ts_demux_new();
@@ -1045,13 +1006,6 @@ typedef struct
 
 
 void gf_m2ts_print_info(GF_M2TS_Demuxer *ts);
-
-/*demuxes the TS file using a complete number of 1888 blocks - refresh_type is one of the following:
-0 - this is a new file
-1 - this is a refresh of a previous file
-2 - this is the last refresh of a previous file
-*/
-GF_Err gf_m2ts_demux_file(GF_M2TS_Demuxer *ts, const char *fileName, u64 start_byterange, u64 end_byterange, u32 refresh_type, Bool signal_end_of_stream);
 
 #endif /*GPAC_DISABLE_MPEG2TS*/
 

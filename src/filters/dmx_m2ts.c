@@ -51,13 +51,15 @@ typedef struct
 	const char *temi_url;
 	Bool dsmcc;
 
-
 	GF_Filter *filter;
 	GF_FilterPid *ipid;
 
 	GF_M2TS_Demuxer *ts;
 
 	GF_FilterPid *eit_pid;
+
+	Bool is_file;
+	u64 file_size;
 
 	Bool in_seek;
 	/*pick first pcr pid for regulation*/
@@ -73,6 +75,14 @@ typedef struct
 	u32 nb_playing;
 
 	u32 declaration_pendings;
+
+	Bool initial_play_done;
+
+	//duration estimation
+	GF_Fraction duration;
+	u64 first_pcr_found;
+	u16 pcr_pid;
+	u64 nb_pck_at_pcr;
 } GF_M2TSDmxCtx;
 
 
@@ -87,6 +97,77 @@ static GF_FilterProbeScore m2tsdmx_probe_url(const char *url, const char *mime)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
+static void m2tsdmx_estimate_duration(GF_M2TSDmxCtx *ctx, GF_M2TS_ES *stream)
+{
+	Bool changed;
+	Double pck_dur;
+	const GF_PropertyValue *p;
+
+	if (ctx->duration.num) return;
+	if (!ctx->file_size) {
+		p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DOWN_SIZE);
+		if (p) {
+			ctx->file_size = p->value.longuint;
+		} else {
+			ctx->duration.num = 1;
+			return;
+		}
+	}
+
+	if (!ctx->first_pcr_found) {
+		ctx->first_pcr_found = stream->program->last_pcr_value;
+		ctx->pcr_pid = stream->pid;
+		ctx->nb_pck_at_pcr = ctx->ts->pck_number;
+		return;
+	}
+	if (ctx->pcr_pid != stream->pid) return;
+	if (stream->program->last_pcr_value < ctx->first_pcr_found) {
+		ctx->first_pcr_found = stream->program->last_pcr_value;
+		ctx->pcr_pid = stream->pid;
+		ctx->nb_pck_at_pcr = ctx->ts->pck_number;
+		return;
+	}
+	if (stream->program->last_pcr_value - ctx->first_pcr_found <= 2*27000000)
+		return;
+
+	changed = GF_FALSE;
+
+	pck_dur = (Double) (stream->program->last_pcr_value - ctx->first_pcr_found);
+	pck_dur /= (ctx->ts->pck_number - ctx->nb_pck_at_pcr);
+	pck_dur /= 27000;
+
+	pck_dur *= ctx->file_size;
+	pck_dur /= ctx->ts->prefix_present ? 192 : 188;
+	if ((u32) ctx->duration.num != (u32) pck_dur) {
+		ctx->duration.num = pck_dur;
+		ctx->duration.den = 1000;
+		changed = GF_TRUE;
+	}
+	ctx->first_pcr_found = stream->program->last_pcr_value;
+	ctx->pcr_pid = stream->pid;
+	ctx->nb_pck_at_pcr = ctx->ts->pck_number;
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[M2TSDmx] Estimated duration based on instant bitrate: %g sec\n", pck_dur/1000));
+
+	if (changed) {
+		u32 i, nb_streams = gf_filter_get_opid_count(ctx->filter);
+		for (i=0; i<nb_streams; i++) {
+			GF_FilterPid *opid = gf_filter_get_opid(ctx->filter, i);
+			gf_filter_pid_set_info(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
+		}
+	}
+}
+
+static void m2tsdmx_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
+{
+	GF_Filter *filter = (GF_Filter *) ts->user;
+	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
+
+	if (evt_type == GF_M2TS_EVT_PES_PCR) {
+		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
+
+		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
+	}
+}
 
 static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
 {
@@ -184,6 +265,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
 	gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
+
+	if (ctx->duration.num>1)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DURATION, &PROP_FRAC(ctx->duration) );
 
 	/*indicate our coding dependencies if any*/
 	if (stream->depends_on_pid) {
@@ -398,10 +482,14 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 	case GF_M2TS_EVT_PES_PCR:
 	{
-		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
-		GF_M2TS_PES_PCK *pck;
+		Bool discontinuity;
+		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
+		discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
+
+		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
+
 		/*send pcr*/
-		if (((GF_M2TS_PES_PCK *) param)->stream && ((GF_M2TS_PES_PCK *) param)->stream->user) {
+		if (pck->stream && pck->stream->user) {
 
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_shared(((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, NULL);
 			gf_filter_pck_set_cts(dst_pck, ((GF_M2TS_PES_PCK *) param)->PTS / 300);
@@ -584,7 +672,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	GF_Err e=GF_OK;
-	const char *opt;
+	const GF_PropertyValue *p;;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -600,6 +688,26 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (e) {
 		gf_filter_setup_failure(filter, e);
 		return e;
+	}
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
+	if (p && p->value.string) {
+		FILE *stream = gf_fopen(p->value.string, "r");
+		ctx->is_file = GF_TRUE;
+		ctx->ts->seek_mode = GF_TRUE;
+		ctx->ts->on_event = m2tsdmx_on_event_duration_probe;
+		while (!feof(stream)) {
+			char buf[1880];
+			u32 nb_read = fread(buf, 1, 1880, stream);
+			gf_m2ts_process_data(ctx->ts, buf, nb_read);
+			if (ctx->duration.num || (nb_read!=1880)) break;
+		}
+		gf_m2ts_demux_del(ctx->ts);
+		ctx->ts = gf_m2ts_demux_new();
+		ctx->ts->on_event = m2tsdmx_on_event;
+		ctx->ts->user = filter;
+	} else {
+		ctx->duration.num = 1;
 	}
 	return GF_OK;
 }
@@ -673,6 +781,8 @@ static void m2tsdmx_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 {
 	GF_M2TS_PES *pes;
+	u64 file_pos = 0;
+	GF_FilterEvent fevt;
 	GF_M2TSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_M2TS_Demuxer *ts = ctx->ts;
 
@@ -702,18 +812,38 @@ static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		if (pes->program->pcr_pid==pes->pid) pes->program->first_dts=0;
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_DEFAULT);
 		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[GF_M2TSDmxCtx] Setting default reframing for PID %d\n", pes->pid));
+
 		/*this is a multplex, only trigger the play command for the first stream activated*/
-		if (!ctx->nb_playing) {
-			if (ts->start_range && (ts->start_range != com->play.start_range)) {
-				ctx->in_seek = GF_TRUE;
-			}
-			if (ts->file) {
-				ts->start_range = (u32) (com->play.start_range*1000);
-				ts->end_range = (com->play.end_range>0) ? (u32) (com->play.end_range*1000) : 0;
-			}
-		}
 		ctx->nb_playing++;
-		return GF_OK;
+		if (ctx->nb_playing>1) return GF_TRUE;
+
+
+		if (ctx->is_file && ctx->duration.num) {
+			file_pos = ctx->file_size * com->play.start_range;
+			file_pos *= ctx->duration.den;
+			file_pos /= ctx->duration.num;
+			if (file_pos > ctx->file_size) return GF_TRUE;
+		}
+
+		if (!ctx->initial_play_done) {
+			ctx->initial_play_done = GF_TRUE;
+			//seek will not change the current source state, don't send a seek
+			if (!file_pos)
+				return GF_TRUE;
+		}
+		//not file, don't cancel the event
+		if (!ctx->is_file)
+			return GF_FALSE;
+
+		//file and seek, cancel the event and post a seek event to source
+		ctx->in_seek = GF_TRUE;
+
+		//post a seek
+		GF_FEVT_INIT(fevt, GF_FEVT_SOURCE_SEEK, ctx->ipid);
+		fevt.seek.start_offset = file_pos;
+		gf_filter_pid_send_event(ctx->ipid, &fevt);
+		return GF_TRUE;
+
 	case GF_FEVT_STOP:
 		pes = m2tsdmx_get_stream(ctx, com->base.on_pid);
 		if (!pes) {
@@ -727,7 +857,9 @@ static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 			ctx->nb_playing--;
 
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		return GF_OK;
+		//don't cancel event
+		return GF_FALSE;
+
 	case GF_FEVT_PAUSE:
 	case GF_FEVT_RESUME:
 		return GF_FALSE;
@@ -747,7 +879,6 @@ static GF_Err m2tsdmx_initialize(GF_Filter *filter)
 
 	ctx->ts->on_event = m2tsdmx_on_event;
 	ctx->ts->user = filter;
-	ctx->ts->demux_and_play = 1;
 	ctx->declaration_pendings = 1;
 
 	ctx->filter = filter;
@@ -778,6 +909,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 
 	if (ctx->in_seek) {
 		gf_m2ts_reset_parsers(ctx->ts);
+		ctx->in_seek = GF_FALSE;
 	} else {
 		u32 i, nb_streams, would_block = 0;
 		nb_streams = gf_filter_get_opid_count(filter);
@@ -792,9 +924,10 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	}
 
 	data = gf_filter_pck_get_data(pck, &size);
-	gf_m2ts_process_data(ctx->ts, data, size);
-	gf_filter_pid_drop_packet(ctx->ipid);
+	if (data)
+		gf_m2ts_process_data(ctx->ts, data, size);
 
+	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }
 
