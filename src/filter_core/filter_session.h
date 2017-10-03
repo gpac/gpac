@@ -137,6 +137,7 @@ struct __gf_filter_pck
 	u8 eos;
 	u8 clock_discontinuity;
 	u8 seek_flag;
+	u8 carousel_version_number;
 	u64 byte_offset;
 
 	char *data;

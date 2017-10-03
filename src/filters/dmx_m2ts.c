@@ -169,123 +169,134 @@ static void m2tsdmx_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type, v
 	}
 }
 
-static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
+static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD *esd)
 {
-	u32 cur_pid, i, count;
+	u32 cur_pid, i, count, oti=0, stype=0;
 	GF_FilterPid *opid;
 	Bool m4sys_stream = GF_FALSE;
+	Bool m4sys_iod_stream = GF_FALSE;
 	Bool has_scal_layer = GF_TRUE;
+	Bool unframed = GF_FALSE;
 	if (stream->user) return;
-
-	opid = gf_filter_pid_new(ctx->filter);
-	stream->user = opid;
-
-	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
-	if (stream->mpeg4_es_id)
-		gf_filter_pid_set_property(opid, GF_PROP_PID_ESID, &PROP_UINT(stream->mpeg4_es_id) );
 
 	switch (stream->stream_type) {
 	case GF_M2TS_VIDEO_MPEG1:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG1) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_MPEG1;
 		break;
 	case GF_M2TS_VIDEO_MPEG2:
 	case GF_M2TS_VIDEO_DCII:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG2_422) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_MPEG2_422;
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_MPEG4_PART2;
 		break;
 	case GF_M2TS_VIDEO_H264:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_AVC) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_AVC;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_SVC:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_SVC) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_SVC;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_HEVC) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_HEVC;
 		has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_SHVC:
 	case GF_M2TS_VIDEO_SHVC_TEMPORAL:
 	case GF_M2TS_VIDEO_MHVC:
 	case GF_M2TS_VIDEO_MHVC_TEMPORAL:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_VISUAL) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_LHVC) );
+		stype = GF_STREAM_VISUAL;
+		oti = GPAC_OTI_VIDEO_LHVC;
 		has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_MPEG1:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG1) );
+		stype = GF_STREAM_AUDIO;
+		oti = GPAC_OTI_AUDIO_MPEG1;
 		break;
 	case GF_M2TS_AUDIO_MPEG2:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3) );
+		stype = GF_STREAM_AUDIO;
+		oti = GPAC_OTI_AUDIO_MPEG2_PART3;
 		break;
 	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_MP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_LCP:
 	case GPAC_OTI_AUDIO_AAC_MPEG2_SSRP:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AAC_MPEG4) );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+		stype = GF_STREAM_AUDIO;
+		oti = GPAC_OTI_AUDIO_AAC_MPEG4;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_AC3:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
+		stype = GF_STREAM_AUDIO;
 		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AC3) );
 		break;
 	case GF_M2TS_AUDIO_EC3:
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_AUDIO) );
+		stype = GF_STREAM_AUDIO;
 		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
 		break;
 	//TODO: MP4on2 is currently broken in filters
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 		((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
-		count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
-		for (i=0; i<count; i++) {
-			GF_ESD *esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
-			if (esd->ESID != stream->mpeg4_es_id) continue;
-			m4sys_stream = GF_TRUE;
-			if (stream->slcfg) gf_free(stream->slcfg);
-
-			stream->slcfg = esd->slConfig;
-			esd->slConfig = NULL;
-
-			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->streamType : GF_STREAM_SCENE) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GPAC_OTI_SCENE_BIFS) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID ? esd->OCRESID : esd->ESID) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID) );
-			if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo )
-				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
-			break;
+		if (!esd) {
+			m4sys_iod_stream = GF_TRUE;
+			count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
+			for (i=0; i<count; i++) {
+				esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
+				if (esd->ESID == stream->mpeg4_es_id) break;
+				esd = NULL;
+			}
 		}
-		if (!m4sys_stream) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] MPEG-4 Systems stream outside of IOD - might be not supported\n") );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
-			gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_SCENE_BIFS) );
-		}
+		m4sys_stream = GF_TRUE;
+		//cannot setup stream yet
+		if (!esd) return;
 		break;
 	default:
 		break;
 	}
-	if (((GF_M2TS_ES*)stream)->slcfg && ((GF_M2TS_ES*)stream)->slcfg->timestampResolution ) {
+
+	opid = gf_filter_pid_new(ctx->filter);
+	stream->user = opid;
+	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+
+	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
+	if (stream->mpeg4_es_id)
+		gf_filter_pid_set_property(opid, GF_PROP_PID_ESID, &PROP_UINT(stream->mpeg4_es_id) );
+
+	if (m4sys_stream) {
+		if (stream->slcfg) gf_free(stream->slcfg);
+
+		stream->slcfg = esd->slConfig;
+		esd->slConfig = NULL;
+
+		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->streamType : GF_STREAM_SCENE) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GPAC_OTI_SCENE_BIFS) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID ? esd->OCRESID : esd->ESID) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID) );
+		if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo )
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength) );
+
+		gf_filter_pid_set_property(opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(m4sys_iod_stream) );
+
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(((GF_M2TS_ES*)stream)->slcfg->timestampResolution) );
+		if (esd->decoderConfig->streamType==GF_STREAM_OD)
+			stream->flags |= GF_M2TS_ES_IS_MPEG4_OD;
 	} else {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(stype) );
+		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(oti) );
+		if (unframed)
+			gf_filter_pid_set_property(opid, GF_PROP_PID_UNFRAMED, &PROP_BOOL(GF_TRUE) );
+
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
-	}
-	if (!m4sys_stream) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
 	}
 
@@ -337,8 +348,7 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_DEFAULT);
 
 		if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
-			m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es);
-			es->flags |= GF_M2TS_ES_ALREADY_DECLARED;
+			m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es, NULL);
 		}
 	}
 }
@@ -369,6 +379,20 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 	gf_filter_pck_send(dst_pck);
 }
 
+static GF_M2TS_ES *m2tsdmx_get_m4sys_stream(GF_M2TSDmxCtx *ctx, u32 m4sys_es_id)
+{
+	u32 i, j, count, count2;
+	count = gf_list_count(ctx->ts->programs);
+	for (i=0; i<count; i++) {
+		GF_M2TS_Program *prog = gf_list_get(ctx->ts->programs, i);
+		count2 = gf_list_count(prog->streams);
+		for (j=0; j<count2; j++) {
+			GF_M2TS_ES *pes = (GF_M2TS_ES *)gf_list_get(prog->streams, j);
+			if (pes->mpeg4_es_id == m4sys_es_id) return pes;
+		}
+	}
+	return NULL;
+}
 static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *pck)
 {
 	GF_SLConfig *slc = ((GF_M2TS_ES*)pck->stream)->slcfg;
@@ -402,12 +426,66 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 		gf_filter_pck_set_dts(dst_pck, slh.decodingTimeStamp);
 
 	if (slc->useTimestampsFlag && slh.compositionTimeStampFlag)
-		gf_filter_pck_set_dts(dst_pck, slh.compositionTimeStamp);
+		gf_filter_pck_set_cts(dst_pck, slh.compositionTimeStamp);
 
 	if (slc->hasRandomAccessUnitsOnlyFlag || slh.randomAccessPointFlag)
 		gf_filter_pck_set_sap(dst_pck, 1);
 
+	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
+
 	gf_filter_pck_send(dst_pck);
+
+	if (pck->version_number == pck->stream->slcfg->predefined)
+		return;
+	pck->stream->slcfg->predefined = pck->version_number;
+
+
+	if (pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {
+		/* We need to decode OD streams to get the SL config for other streams :( */
+		GF_SLHeader hdr;
+		u32 hdr_len;
+		GF_ODCom *com;
+		GF_ESD *esd;
+		GF_ODUpdate* odU;
+		GF_ESDUpdate* esdU;
+		u32 com_count, com_index, od_count, od_index, esd_index;
+		GF_ODCodec *od_codec = gf_odf_codec_new();
+
+		gf_odf_codec_set_au(od_codec, pck->data + slh_len, pck->data_len - slh_len);
+		gf_odf_codec_decode(od_codec);
+		com_count = gf_list_count(od_codec->CommandList);
+		for (com_index = 0; com_index < com_count; com_index++) {
+			com = (GF_ODCom *)gf_list_get(od_codec->CommandList, com_index);
+			switch (com->tag) {
+			case GF_ODF_OD_UPDATE_TAG:
+				odU = (GF_ODUpdate*)com;
+				od_count = gf_list_count(odU->objectDescriptors);
+				for (od_index=0; od_index<od_count; od_index++) {
+					GF_ObjectDescriptor *od = (GF_ObjectDescriptor *)gf_list_get(odU->objectDescriptors, od_index);
+					esd_index = 0;
+					while ( (esd = gf_list_enum(od->ESDescriptors, &esd_index)) ) {
+						GF_M2TS_ES *es = m2tsdmx_get_m4sys_stream(ctx, esd->ESID);
+
+						if (es && ! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
+							m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es, esd);
+						}
+					}
+				}
+				break;
+			case GF_ODF_ESD_UPDATE_TAG:
+				esdU = (GF_ESDUpdate*)com;
+				esd_index = 0;
+				while ( (esd = gf_list_enum(esdU->ESDescriptors, &esd_index)) ) {
+					GF_M2TS_ES *es = m2tsdmx_get_m4sys_stream(ctx, esd->ESID);
+						if (es && ! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
+							m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es, esd);
+						}
+				}
+				break;
+			}
+		}
+		gf_odf_codec_del(od_codec);
+	}
 }
 
 static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
@@ -753,21 +831,6 @@ static GF_M2TS_PES *m2tsdmx_get_stream(GF_M2TSDmxCtx *ctx, GF_FilterPid *pid)
 	}
 	return NULL;
 }
-
-static GF_M2TS_PES *M2TS_GetFirstRunningChannel(GF_M2TSDmxCtx *ctx)
-{
-	u32 i;
-	for (i=0; i<GF_M2TS_MAX_STREAMS; i++) {
-		GF_M2TS_PES *pes = (GF_M2TS_PES *)ctx->ts->ess[i];
-		if (!pes || (pes->pid==pes->program->pmt_pid)) continue;
-		if (!pes->user) continue;
-
-		if (gf_m2ts_pes_get_framing_mode(pes) >= GF_M2TS_PES_FRAMING_DEFAULT)
-			return pes;
-	}
-	return NULL;
-}
-
 
 static void m2tsdmx_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, Bool switch_up)
 {
