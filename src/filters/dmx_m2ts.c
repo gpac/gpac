@@ -906,6 +906,11 @@ static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		ctx->nb_playing++;
 		if (ctx->nb_playing>1) return GF_TRUE;
 
+		//not file, don't cancel the event
+		if (!ctx->is_file) {
+			ctx->initial_play_done = GF_TRUE;
+			return GF_FALSE;
+		}
 
 		if (ctx->is_file && ctx->duration.num) {
 			file_pos = ctx->file_size * com->play.start_range;
@@ -920,9 +925,6 @@ static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 			if (!file_pos)
 				return GF_TRUE;
 		}
-		//not file, don't cancel the event
-		if (!ctx->is_file)
-			return GF_FALSE;
 
 		//file and seek, cancel the event and post a seek event to source
 		ctx->in_seek = GF_TRUE;
@@ -946,8 +948,8 @@ static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
 			ctx->nb_playing--;
 
 		gf_m2ts_set_pes_framing(pes, GF_M2TS_PES_FRAMING_SKIP);
-		//don't cancel event
-		return GF_FALSE;
+		//don't cancel event if still playing
+		return ctx->nb_playing ? GF_TRUE : GF_FALSE;
 
 	case GF_FEVT_PAUSE:
 	case GF_FEVT_RESUME:

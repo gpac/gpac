@@ -148,7 +148,14 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 
 Bool gf_props_equal(const GF_PropertyValue *p1, const GF_PropertyValue *p2)
 {
-	if (p1->type!=p2->type) return GF_FALSE;
+	if (p1->type!=p2->type) {
+		if ((p1->type == GF_PROP_STRING) && (p2->type == GF_PROP_NAME) ) {
+		} else if ((p2->type == GF_PROP_STRING) && (p1->type == GF_PROP_NAME) ) {
+		} else {
+			return GF_FALSE;
+		}
+	}
+
 	switch (p1->type) {
 	case GF_PROP_SINT: return (p1->value.sint==p2->value.sint) ? GF_TRUE : GF_FALSE;
 	case GF_PROP_UINT: return (p1->value.uint==p2->value.uint) ? GF_TRUE : GF_FALSE;
