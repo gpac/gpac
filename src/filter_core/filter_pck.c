@@ -39,6 +39,7 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
 	pck->seek_flag = GF_FALSE;
 	pck->byte_offset = -1;
 	pck->pid_info_changed = 0;
+	pck->carousel_version_number = 0;
 }
 
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
@@ -372,6 +373,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	if (pck->clock_discontinuity) {
 		pid->duration_init = GF_FALSE;
 	}
+	if (pck->dts && !pck->cts)
+		pck->cts = pck->dts;
 
 	if (! pid->duration_init) {
 		pid->last_pck_dts = pck->dts;
@@ -393,7 +396,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		if (!pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 		else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 	}
-	if (!pck->duration && pid->min_pck_duration) pck->duration = duration;
+	if (!pck->duration && pid->min_pck_duration)
+		pck->duration = duration;
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag, pck->duration));
 
@@ -807,6 +811,19 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 	assert(pck);
 	//get true packet pointer
 	return pck->pck->seek_flag;
+}
+
+GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number)
+{
+	PCK_SETTER_CHECK("carousel_version")
+	pck->carousel_version_number = version_number;
+	return GF_OK;
+}
+u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck)
+{
+	assert(pck);
+	//get true packet pointer
+	return pck->pck->carousel_version_number;
 }
 
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)

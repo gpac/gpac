@@ -455,6 +455,8 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck);
 Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck);
 
+GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
+u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
