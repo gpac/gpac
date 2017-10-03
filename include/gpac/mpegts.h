@@ -274,10 +274,6 @@ typedef struct tag_m2ts_demux GF_M2TS_Demuxer;
 typedef struct tag_m2ts_es GF_M2TS_ES;
 typedef struct tag_m2ts_section_es GF_M2TS_SECTION_ES;
 
-#ifdef GPAC_HAS_LINUX_DVB
-typedef struct __gf_dvb_tuner GF_Tuner;
-#endif
-
 /*Maximum number of streams in a TS*/
 #define GF_M2TS_MAX_STREAMS	8192
 
@@ -1306,36 +1302,6 @@ void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);
 
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
-
-/******************* Demux DVB ****************************/
-
-
-
-#ifdef GPAC_HAS_LINUX_DVB
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/stat.h>
-#include <linux/dvb/dmx.h>
-#include <linux/dvb/frontend.h>
-
-struct __gf_dvb_tuner {
-	u32 freq;
-	u16 vpid;
-	u16 apid;
-	fe_spectral_inversion_t specInv;
-	fe_modulation_t modulation;
-	fe_bandwidth_t bandwidth;
-	fe_transmit_mode_t TransmissionMode;
-	fe_guard_interval_t guardInterval;
-	fe_code_rate_t HP_CodeRate;
-	fe_code_rate_t LP_CodeRate;
-	fe_hierarchy_t hierarchy;
-
-	int ts_fd;
-};
-
-
-#endif //GPAC_HAS_LINUX_DVB
 
 
 #ifndef GPAC_DISABLE_MPEG2TS

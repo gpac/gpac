@@ -310,6 +310,7 @@
 		92AAF1B918D70A5200E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92AAF1C618D70BAE00E2FF12 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		92B02F4F1DD2004400F85E77 /* OpenGL.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 92B02F4E1DD2004400F85E77 /* OpenGL.framework */; };
+		92B9A5071F83FD7800A24FE4 /* in_dvb4linux.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */; };
 		92BB85661F7BFB63009BC9C8 /* ff_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85501F7BFB60009BC9C8 /* ff_dec.c */; };
 		92BB85671F7BFB63009BC9C8 /* dec_odf.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85511F7BFB60009BC9C8 /* dec_odf.c */; };
 		92BB85681F7BFB63009BC9C8 /* dec_bifs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85521F7BFB60009BC9C8 /* dec_bifs.c */; };
@@ -1155,6 +1156,7 @@
 		92AAF1AE18D709D900E2FF12 /* gm_mp3_in.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_mp3_in.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92AAF1BE18D70B1C00E2FF12 /* gm_openhevc_dec.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_openhevc_dec.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
 		92B02F4E1DD2004400F85E77 /* OpenGL.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = OpenGL.framework; path = System/Library/Frameworks/OpenGL.framework; sourceTree = SDKROOT; };
+		92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = in_dvb4linux.c; path = filters/in_dvb4linux.c; sourceTree = "<group>"; };
 		92BB854C1F7BE2BA009BC9C8 /*  */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "\U0001"; path = "../../../../../../../\U0001"; sourceTree = "<group>"; };
 		92BB85501F7BFB60009BC9C8 /* ff_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dec.c; path = filters/ff_dec.c; sourceTree = "<group>"; };
 		92BB85511F7BFB60009BC9C8 /* dec_odf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_odf.c; path = filters/dec_odf.c; sourceTree = "<group>"; };
@@ -2500,6 +2502,7 @@
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
 				92BB85501F7BFB60009BC9C8 /* ff_dec.c */,
 				92BB85601F7BFB62009BC9C8 /* ff_dmx.c */,
+				92B9A5061F83FD7700A24FE4 /* in_dvb4linux.c */,
 				92BB855A1F7BFB61009BC9C8 /* in_file.c */,
 				92BB855E1F7BFB61009BC9C8 /* in_http.c */,
 				926656C91F836DE200299CC6 /* in_udp.c */,
@@ -3321,6 +3324,7 @@
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
 				92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */,
+				92B9A5071F83FD7800A24FE4 /* in_dvb4linux.c in Sources */,
 				92BB857A1F7BFB63009BC9C8 /* isoffin_load.c in Sources */,
 				9201017818D5A445003D1ACA /* text_to_bifs.c in Sources */,
 				9201017918D5A445003D1ACA /* base_scenegraph.c in Sources */,
