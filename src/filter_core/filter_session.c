@@ -165,6 +165,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	if (nb_threads>0) {
 		fsess->main_thread_tasks = gf_fq_new(fsess->tasks_mx);
+		fsess->filters_mx = gf_mx_new("Filters");
 	} else {
 		//otherwise use the same as the global task list
 		fsess->main_thread_tasks = fsess->tasks;
@@ -280,6 +281,7 @@ void gf_fs_del(GF_FilterSession *fsess)
 		//first pass: disconnect all filters, since some may have references to property maps or packets 
 		for (i=0; i<count; i++) {
 			GF_Filter *filter = gf_list_get(fsess->filters, i);
+			filter->process_th_id = 0;
 
 			if (filter->postponed_packets) {
 				while (gf_list_count(filter->postponed_packets)) {
@@ -346,6 +348,9 @@ void gf_fs_del(GF_FilterSession *fsess)
 
 	if (fsess->tasks_mx)
 		gf_mx_del(fsess->tasks_mx);
+
+	if (fsess->filters_mx)
+		gf_mx_del(fsess->filters_mx);
 
 	if (fsess->static_user.modules) gf_modules_del(fsess->static_user.modules);
 	if (fsess->static_user.config) gf_cfg_del(fsess->static_user.config);
@@ -942,6 +947,8 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 	u32 i, count;
 
 	fprintf(stderr, "\n");
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+
 	count=gf_list_count(fsess->filters);
 	fprintf(stderr, "Filter stats - %d filters\n", count);
 	for (i=0; i<count; i++) {
@@ -975,6 +982,7 @@ void gf_fs_print_stats(GF_FilterSession *fsess)
 			fprintf(stderr, "\t\t* output PID %s: %d packets sent\n", pid->name, pid->nb_pck_sent);
 		}
 	}
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
 	count=gf_list_count(fsess->threads);
 	fprintf(stderr, "Session stats - threads %d\n", 1+count);
@@ -1002,7 +1010,10 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 	GF_FilterUpdate *upd;
 	GF_Filter *filter=NULL;
 	u32 i, count;
+	Bool removed = GF_FALSE;
 	if (!fid || !name) return;
+
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 
 	count = gf_list_count(fsess->filters);
 	for (i=0; i<count; i++) {
@@ -1011,7 +1022,10 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 			break;
 		}
 	}
-	if (!filter) return;
+	removed = (!filter || filter->removed || filter->finalized) ? GF_TRUE : GF_FALSE;
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+
+	if (removed) return;
 
 	GF_SAFEALLOC(upd, GF_FilterUpdate);
 	upd->name = gf_strdup(name);

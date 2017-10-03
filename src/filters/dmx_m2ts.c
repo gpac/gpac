@@ -173,6 +173,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
 {
 	u32 cur_pid, i, count;
 	GF_FilterPid *opid;
+	Bool m4sys_stream = GF_FALSE;
 	Bool has_scal_layer = GF_TRUE;
 	if (stream->user) return;
 
@@ -251,8 +252,30 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
 		((GF_M2TS_ES*)stream)->flags |= GF_M2TS_ES_SEND_REPEATED_SECTIONS;
 	case GF_M2TS_SYSTEMS_MPEG4_PES:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] Support of MPEG-2 over MPEG-2 currently not tested - patch welcome\n") );
-		gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
+		count = gf_list_count(stream->program->pmt_iod->ESDescriptors);
+		for (i=0; i<count; i++) {
+			GF_ESD *esd = gf_list_get(stream->program->pmt_iod->ESDescriptors, i);
+			if (esd->ESID != stream->mpeg4_es_id) continue;
+			m4sys_stream = GF_TRUE;
+			if (stream->slcfg) gf_free(stream->slcfg);
+
+			stream->slcfg = esd->slConfig;
+			esd->slConfig = NULL;
+
+			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->streamType : GF_STREAM_SCENE) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(esd->decoderConfig ? esd->decoderConfig->objectTypeIndication : GPAC_OTI_SCENE_BIFS) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(esd->OCRESID ? esd->OCRESID : esd->ESID) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(esd->dependsOnESID) );
+			if (esd->decoderConfig && esd->decoderConfig->decoderSpecificInfo )
+				gf_filter_pid_set_property(opid, GF_PROP_PID_DECODER_CONFIG, &PROP_DATA(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_IN_IOD, &PROP_BOOL(GF_TRUE) );
+			break;
+		}
+		if (!m4sys_stream) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] MPEG-4 Systems stream outside of IOD - might be not supported\n") );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
+			gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_SCENE_BIFS) );
+		}
 		break;
 	default:
 		break;
@@ -262,7 +285,9 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream)
 	} else {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 	}
-	gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
+	if (!m4sys_stream) {
+		gf_filter_pid_set_property(opid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(stream->program->pcr_pid) );
+	}
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_SERVICE_ID, &PROP_UINT(stream->program->number) );
 
@@ -362,7 +387,8 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 		gf_sl_depacketize(slc, &slh, pck->data, pck->data_len, &slh_len);
 		slh.m2ts_version_number_plus_one = pck->version_number + 1;
 	} else {
-		memset(&slh, 0, sizeof(GF_SLHeader));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[M2TSDmx] MPEG-4 SL-packetized stream without SLConfig assigned - ignoring packet\n") );
+		return;
 	}
 
 	dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len - slh_len, &data);

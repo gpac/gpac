@@ -75,7 +75,9 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	filter->blacklisted = gf_list_new();
 
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	gf_list_add(fsess->filters, filter);
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
 	e = gf_filter_new_finalize(filter, args, is_global_args);
 	if (e) {
@@ -669,9 +671,12 @@ void gf_filter_setup_failure_task(GF_FSTask *task)
 		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
 	}
+	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
 
 	res = gf_list_del_item(f->session->filters, f);
 	assert (res >=0 );
+
+	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 
 	gf_filter_del(f);
 }
@@ -719,8 +724,12 @@ void gf_filter_remove_task(GF_FSTask *task)
 		f->freg->finalize(f);
 	}
 
+	if (f->session->filters_mx) gf_mx_p(f->session->filters_mx);
+
 	res = gf_list_del_item(f->session->filters, f);
 	assert (res >=0 );
+
+	if (f->session->filters_mx) gf_mx_v(f->session->filters_mx);
 
 	//detach all input pids
 	while (gf_list_count(f->input_pids)) {
