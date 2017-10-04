@@ -1598,10 +1598,11 @@ GF_DBUnit *gf_es_get_au(GF_Channel *ch)
 				return NULL;
 			}
 		}
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %u - Dispatch Pull AU DTS %u - CTS %u - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
-
 		ch->AU_buffer_pull->flags = 0;
 		if (ch->IsRap) ch->AU_buffer_pull->flags |= GF_DB_AU_RAP;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[SyncLayer] ES%d (%s) at %u - Dispatch Pull AU DTS %u - CTS %u - size %d - RAP %d\n", ch->esd->ESID, ch->odm->net_service->url, gf_clock_real_time(ch->clock), ch->DTS, ch->CTS, ch->AU_buffer_pull->dataLength, ch->AU_buffer_pull->flags&1 ? 1 : 0));
+
 	} else if (reagg_au) {
 		ch->AU_buffer_pull->data = reagg_au;
 		ch->AU_buffer_pull->dataLength = reagg_au_size;
@@ -1662,6 +1663,7 @@ void gf_es_drop_au(GF_Channel *ch)
 			if (ch->AU_buffer_pull->flags & GF_DB_AU_REAGGREGATED) {
 				gf_free(ch->AU_buffer_pull->data);
 			}
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[ODM%d] ES%d (%s) Droping pull AU CTS %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, ch->AU_buffer_pull->CTS));
 			gf_term_channel_release_sl_packet(ch->service, ch);
 			ch->AU_buffer_pull->data = NULL;
 			ch->AU_buffer_pull->dataLength = 0;
@@ -1686,7 +1688,7 @@ void gf_es_drop_au(GF_Channel *ch)
 	ch->AU_buffer_first = au->next;
 
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[ODM%d] ES%d Droping AU CTS %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, au->CTS));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("[ODM%d] ES%d (%s) Droping AU CTS %d\n", ch->odm->OD->objectDescriptorID, ch->esd->ESID, ch->odm->net_service->url, au->CTS));
 
 	au->next = NULL;
 	gf_db_unit_del(au);

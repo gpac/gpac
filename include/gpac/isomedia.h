@@ -533,12 +533,19 @@ GF_Err gf_isom_last_error(GF_ISOFile *the_file);
 u32 gf_isom_probe_file(const char *fileName);
 
 /*Opens an isoMedia File.
+If fileName is NULL data will be written in memory ; write with gf_isom_write() ; use gf_isom_get_bs() to get the data ; use gf_isom_delete() to delete the internal data.
 tmp_dir: for the 2 edit modes only, specifies a location for temp file. If NULL, the library will use the default
 OS temporary file management schemes.*/
 GF_ISOFile *gf_isom_open(const char *fileName, u32 OpenMode, const char *tmp_dir);
 
-/*close the file, write it if new/edited*/
+/*close the file, write it if new/edited - equivalent to gf_isom_write()+gf_isom_delete()*/
 GF_Err gf_isom_close(GF_ISOFile *the_file);
+
+/*write the file without deleting (gf_isom_delete())*/
+GF_Err gf_isom_write(GF_ISOFile *movie);
+
+/*get access to the data bitstream  - see gf_isom_open()*/
+GF_Err gf_isom_get_bs(GF_ISOFile *movie, GF_BitStream **out_bs);
 
 /*delete the movie without saving it.*/
 void gf_isom_delete(GF_ISOFile *the_file);
@@ -782,13 +789,15 @@ sampleNumber is optional and gives the number of the sample in the media
 */
 GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber);
 
-/*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list, in which case mediaOffset is set to the DTS offset value (e.g., your app should add mediaOffset to all sample DTS)*/
+/*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list,
+  in which case mediaOffset is set to the DTS offset value in the media track timescale
+  (e.g., your app should add mediaOffset to all sample DTS)*/
 Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *mediaOffset);
 
 /*get the number of edited segment*/
 u32 gf_isom_get_edit_segment_count(GF_ISOFile *the_file, u32 trackNumber);
 
-/*Get the desired segment information*/
+/*get the desired segment information*/
 GF_Err gf_isom_get_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 SegmentIndex, u64 *EditTime, u64 *SegmentDuration, u64 *MediaTime, u8 *EditMode);
 
 /*get the number of languages for the copyright*/
@@ -801,7 +810,7 @@ GF_Err gf_isom_get_watermark(GF_ISOFile *the_file, bin128 UUID, u8** data, u32* 
 /*get the number of chapter for movie or track if trackNumber !=0*/
 u32 gf_isom_get_chapter_count(GF_ISOFile *the_file, u32 trackNumber);
 /*get the given movie or track (trackNumber!=0) chapter time and name - index is 1-based
-@chapter_time: retrives start time in milliseconds - may be NULL.
+@chapter_time: retrieves start time in milliseconds - may be NULL.
 @name: retrieves chapter name - may be NULL - SHALL NOT be destroyed by user
 */
 GF_Err gf_isom_get_chapter(GF_ISOFile *the_file, u32 trackNumber, u32 Index, u64 *chapter_time, const char **name);
@@ -1205,7 +1214,7 @@ the new segment
 WARNING: The first segment always have an EditTime of 0. You should insert an empty or dwelled segment first.*/
 GF_Err gf_isom_set_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u8 EditMode);
 
-/*same as above except only modifies duartion type and mediaType*/
+/*same as above except only modifies duration type and mediaType*/
 GF_Err gf_isom_modify_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, u8 EditMode);
 /*same as above except only appends new segment*/
 GF_Err gf_isom_append_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditDuration, u64 MediaTime, u8 EditMode);
@@ -1528,7 +1537,7 @@ GF_Err gf_isom_set_traf_mss_timeext(GF_ISOFile *movie, u32 reference_track_ID, u
 timestamp_shift is the constant difference between media time and presentation time (derived from edit list)
 out_seg_size is optional, holds the segment size in bytes
 */
-GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
+GF_Err gf_isom_close_segment(GF_ISOFile *movie, s32 subsegs_per_sidx, u32 referenceTrackID, u64 ref_track_decode_time, s32 timestamp_shift, u64 ref_track_next_cts, Bool daisy_chain_sidx, Bool last_segment, Bool close_segment_handle, u32 segment_marker_4cc, u64 *index_start_range, u64 *index_end_range, u64 *out_seg_size);
 
 /*writes any pending fragment to file for low-latency output. shall only be used if no SIDX is used (subsegs_per_sidx<0 or flushing all fragments before calling gf_isom_close_segment)*/
 GF_Err gf_isom_flush_fragments(GF_ISOFile *movie, Bool last_segment);
@@ -1560,7 +1569,10 @@ enum
 	media from a live source (typically audio-video), and greatly reduces file size
 	param: Number of samples (> 1) to cache before disk flushing. You shouldn't try
 	to cache too many samples since this will load your memory. base that on FPS/SR*/
-	GF_ISOM_TRAF_DATA_CACHE
+	GF_ISOM_TRAF_DATA_CACHE,
+	/*forces moof base offsets when traf based offsets would be chosen
+	param: on/off (0/1)*/
+	GF_ISOM_TFHD_FORCE_MOOF_BASE_OFFSET
 };
 
 /*set options. Options can be set at the beginning of each new fragment only, and for the

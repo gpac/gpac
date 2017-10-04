@@ -450,9 +450,9 @@ static void BS_WriteByte(GF_BitStream *bs, u8 val)
 			if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
 			/*gf_realloc if enough space...*/
 			if (bs->size > 0xFFFFFFFF) return;
-			bs->original = (char*)gf_realloc(bs->original, (u32) (bs->size * 2));
-			if (!bs->original) return;
-			bs->size *= 2;
+			bs->size = bs->size ? (bs->size * 2) : BS_MEM_BLOCK_ALLOC_SIZE;
+			bs->original = (char*)gf_realloc(bs->original, (u32)bs->size);
+			if (!bs->original) return;	
 		}
 		if (bs->original)
 			bs->original[bs->position] = val;
@@ -1048,7 +1048,6 @@ GF_EXPORT
 void gf_bs_truncate(GF_BitStream *bs)
 {
 	bs->size = bs->position;
-	if (bs->stream) return;
 }
 
 

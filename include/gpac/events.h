@@ -311,7 +311,7 @@ typedef struct
 {
 	/*GF_EVENT_SENSOR_ORIENTATION*/
 	u8 type;
-	/*device orientation as quaternion*/
+	/*device orientation as quaternion if w is not 0, or as radians otherwise*/
 	Float x, y, z, w;
 } GF_EventSensor;
 

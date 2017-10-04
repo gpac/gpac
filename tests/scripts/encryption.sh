@@ -57,8 +57,7 @@ crypto_test "cenc-cens" $MEDIA_DIR/encryption/drm_cens.xml &
 crypto_test "cenc-cbcs" $MEDIA_DIR/encryption/drm_cbcs.xml &
 
 #test cenc CBCS constant
-# temp. disabling since the xml file is missing
-#crypto_test "cenc-cbcs-const" $MEDIA_DIR/encryption/drm_cbcs_const.xml &
+crypto_test "cenc-cbcs-const" $MEDIA_DIR/encryption/drm_cbcs_const.xml &
 
 
 wait

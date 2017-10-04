@@ -1876,6 +1876,7 @@ char **mpd_base_urls = NULL;
 u32 nb_mpd_base_urls = 0;
 u32 dash_scale = 1000;
 Bool insert_utc = GF_FALSE;
+const char *udp_dest = NULL;
 
 #ifndef GPAC_DISABLE_MPD
 Bool do_mpd = GF_FALSE;
@@ -3429,6 +3430,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-insert-utc")) {
 			insert_utc = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-udp-write")) {
+			udp_dest = argv[i+1];
+			i++;
+		}
 		else {
 			u32 ret = mp4box_parse_args_continue(argc, argv, &i);
 			if (ret) return ret;
@@ -3627,6 +3632,25 @@ int mp4boxMain(int argc, char **argv)
 	}
 #endif
 
+	if (udp_dest) {
+		GF_Socket *sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+		u16 port = 2345;
+		char *sep = strrchr(udp_dest, ':');
+		if (sep) {
+			sep[0] = 0;
+			port = atoi(sep+1);
+		}
+		e = gf_sk_bind( sock, "127.0.0.1", 0, udp_dest, port, 0);
+		if (sep) sep[0] = ':';
+		if (e) fprintf(stderr, "Failed to bind socket to %s: %s\n", udp_dest, gf_error_to_string(e) );
+		else {
+			e = gf_sk_send(sock, inName, (u32)strlen(inName));
+			if (e) fprintf(stderr, "Failed to send datagram: %s\n", gf_error_to_string(e) );
+		}
+		gf_sk_del(sock);
+		return 0;
+	}
+
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
 		Bool remote = GF_FALSE;
@@ -3673,7 +3697,7 @@ int mp4boxMain(int argc, char **argv)
 			fprintf(stderr, "[DASH] Error: MPD creation problem %s\n", gf_error_to_string(e));
 			mp4box_cleanup(1);
 		}
-		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE);
+		e = gf_m3u8_to_mpd(remote ? "tmp_main.m3u8" : inName, mpd_base_url ? mpd_base_url : inName, outfile, 0, "video/mp2t", GF_TRUE, use_url_template, NULL, mpd, GF_TRUE, GF_TRUE, force_test_mode);
 		if (!e)
 			gf_mpd_write_file(mpd, outfile);
 

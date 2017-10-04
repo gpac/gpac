@@ -112,7 +112,7 @@ GF_Err colr_Read(GF_Box *s, GF_BitStream *bs)
 	} else {
 		p->opaque = gf_malloc(sizeof(u8)*(size_t)p->size);
 		p->opaque_size = (u32) p->size;
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("ICC colour profile not supported \n" ));
+		GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("%s colour profile not supported \n", gf_4cc_to_str(p->colour_type) ));
 		gf_bs_read_data(bs, (char *) p->opaque, p->opaque_size);
 	}
 	return GF_OK;
@@ -355,6 +355,7 @@ void iprp_del(GF_Box *s)
 {
 	GF_ItemPropertiesBox *p = (GF_ItemPropertiesBox *)s;
 	if (p->property_container) gf_isom_box_del((GF_Box *)p->property_container);
+	if (p->property_association) gf_isom_box_del((GF_Box *)p->property_association);
 	gf_free(p);
 }
 
@@ -367,6 +368,12 @@ static GF_Err iprp_AddBox(GF_Box *s, GF_Box *a)
 			return GF_ISOM_INVALID_FILE;
 		}
 		p->property_container = (GF_ItemPropertyContainerBox*)a;
+		break;
+	case GF_ISOM_BOX_TYPE_IPMA:
+		if (p->property_association) {
+			return GF_ISOM_INVALID_FILE;
+		}
+		p->property_association = (GF_ItemPropertyAssociationBox*)a;
 		break;
 	default:
 		return gf_isom_box_add_default(s, a);
@@ -392,6 +399,10 @@ GF_Err iprp_Write(GF_Box *s, GF_BitStream *bs)
 		e = gf_isom_box_write((GF_Box *) p->property_container, bs);
 		if (e) return e;
 	}
+	if (p->property_association) {
+		e = gf_isom_box_write((GF_Box *) p->property_association, bs);
+		if (e) return e;
+	}
 	return GF_OK;
 }
 
@@ -404,6 +415,11 @@ GF_Err iprp_Size(GF_Box *s)
 		e = gf_isom_box_size((GF_Box *) p->property_container);
 		if (e) return e;
 		p->size += p->property_container->size;
+	}
+	if (p->property_association) {
+		e = gf_isom_box_size((GF_Box *) p->property_association);
+		if (e) return e;
+		p->size += p->property_association->size;
 	}
 	return GF_OK;
 }
