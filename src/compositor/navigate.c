@@ -616,27 +616,25 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		GF_Vec target;
 		GF_Matrix mx;
 
-#ifndef GPAC_ANDROID
-		/*
-		 * In iOS we get x, y, z in quaternions (first measurement is the frame of reference)
-		 */
-		x = ev->sensor.x;
-		y = ev->sensor.y;
-		z = ev->sensor.z;
-		w = ev->sensor.w;
+		/* In iOS we get x, y, z in quaternions (first measurement is the frame of reference) */
+		if (ev->sensor.w) {
+			x = ev->sensor.x;
+			y = ev->sensor.y;
+			z = ev->sensor.z;
+			w = ev->sensor.w;
 		
-		yaw = gf_atan2(2*gf_mulfix(z,w) - 2*gf_mulfix(y,x) , 1 - 2*gf_mulfix(z,z) - 2*gf_mulfix(x,x));
-		//pitch = asin(2*y*z + 2*x*w);
-		roll = gf_atan2(2*gf_mulfix(y,w) - 2*gf_mulfix(z,x) , 1 - 2*gf_mulfix(y,y) - 2*gf_mulfix(x,x));
-#else
-		/*
-		 * In Android we get yaw, pitch, roll values (in rad)
-		 * The frame of reference is absolute
-		 */
-		yaw = ev->sensor.x;
-		//pitch = ev->sensor.y;
-		roll = ev->sensor.z;
-#endif
+			yaw = gf_atan2(2*gf_mulfix(z,w) - 2*gf_mulfix(y,x) , 1 - 2*gf_mulfix(z,z) - 2*gf_mulfix(x,x));
+			//pitch = asin(2*y*z + 2*x*w);
+			roll = gf_atan2(2*gf_mulfix(y,w) - 2*gf_mulfix(z,x) , 1 - 2*gf_mulfix(y,y) - 2*gf_mulfix(x,x));
+		} else {
+			/*
+			 * In Android we get yaw, pitch, roll values (in rad)
+			 * The frame of reference is absolute
+			 */
+			yaw = ev->sensor.x;
+			//pitch = ev->sensor.y;
+			roll = ev->sensor.z;
+		}
 		target.x = 0;
 		target.y = -FIX_ONE;
 		target.z = 0;

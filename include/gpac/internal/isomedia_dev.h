@@ -549,6 +549,8 @@ typedef struct
 	GF_ISOM_BOX
 	/*note: the data is NEVER loaded to the mdat in this lib*/
 	u64 dataSize;
+	/* store the file offset when parsing to access the raw data */
+	u64 bsOffset;
 	char *data;
 } GF_MediaDataBox;
 
@@ -1879,6 +1881,7 @@ typedef struct {
 typedef struct {
 	GF_ISOM_BOX
 	GF_ItemPropertyContainerBox *property_container;
+	struct __item_association_box *property_association;
 } GF_ItemPropertiesBox;
 
 typedef struct {
@@ -2920,7 +2923,7 @@ typedef struct {
 	GF_List *property_index;
 } GF_ItemPropertyAssociationEntry;
 
-typedef struct {
+typedef struct __item_association_box {
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 } GF_ItemPropertyAssociationBox;
@@ -3046,11 +3049,13 @@ typedef struct
 */
 
 /*regular file IO*/
-#define GF_ISOM_DATA_FILE			0x01
-/*File Maping object, read-only mode on complete files (no download)*/
-#define GF_ISOM_DATA_FILE_MAPPING		0x02
+#define GF_ISOM_DATA_FILE         0x01
+/*File Mapping object, read-only mode on complete files (no download)*/
+#define GF_ISOM_DATA_FILE_MAPPING 0x02
 /*External file object. Needs implementation*/
-#define GF_ISOM_DATA_FILE_EXTERN		0x03
+#define GF_ISOM_DATA_FILE_EXTERN  0x03
+/*regular memory IO*/
+#define GF_ISOM_DATA_MEM          0x04
 
 /*Data Map modes*/
 enum
@@ -3215,7 +3220,7 @@ struct __tag_isom {
 	u64 segment_start;
 
 	GF_List *moof_list;
-	Bool use_segments, moof_first, append_segment, styp_written;
+	Bool use_segments, moof_first, append_segment, styp_written, force_moof_base_offset;
 
 	/*used when building single-indexed self initializing media segments*/
 	GF_SegmentIndexBox *root_sidx;

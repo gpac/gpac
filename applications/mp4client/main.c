@@ -1210,8 +1210,8 @@ int mp4client_main(int argc, char **argv)
     GF_MemTrackerType mem_track = GF_MemTrackerNone;
 #endif
 	Double fps = GF_IMPORT_DEFAULT_FPS;
-	Bool fill_ar, visible, do_uncache;
-	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *default_com, *mosaic;
+	Bool fill_ar, visible, do_uncache, has_command;
+	char *url_arg, *out_arg, *the_cfg, *rti_file, *views, *mosaic;
 	FILE *logfile = NULL;
 	Float scale = 1;
 #ifndef WIN32
@@ -1224,8 +1224,8 @@ int mp4client_main(int argc, char **argv)
 	memset(&user, 0, sizeof(GF_User));
 
 	dump_mode = DUMP_NONE;
-	fill_ar = visible = do_uncache = GF_FALSE;
-	url_arg = out_arg = the_cfg = rti_file = views = default_com = mosaic = NULL;
+	fill_ar = visible = do_uncache = has_command = GF_FALSE;
+	url_arg = out_arg = the_cfg = rti_file = views = mosaic = NULL;
 	nb_times = 0;
 	times[0] = 0;
 
@@ -1452,7 +1452,7 @@ int mp4client_main(int argc, char **argv)
 				i++;
 			}
 			else if (!stricmp(arg, "-com")) {
-				default_com = argv[i+1];
+				has_command = GF_TRUE;
 				i++;
 			}
 			else if (!stricmp(arg, "-service")) {
@@ -1755,9 +1755,14 @@ int mp4client_main(int argc, char **argv)
 				goto force_input;
 			}
 
-			if (default_com && is_connected) {
-				gf_term_scene_update(term, NULL, default_com);
-				default_com = NULL;
+			if (has_command && is_connected) {
+				has_command = GF_FALSE;
+				for (i=0; i<(u32)argc; i++) {
+					if (!strcmp(argv[i], "-com")) {
+						gf_term_scene_update(term, NULL, argv[i+1]);
+						i++;
+					}
+				}
 			}
 			if (initial_service_id && is_connected) {
 				GF_ObjectManager *root_od = gf_term_get_root_object(term);

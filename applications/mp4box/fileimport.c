@@ -309,33 +309,37 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	handler_name = NULL;
 	rvc_config = NULL;
 	while (ext) {
-		Bool is_filename = GF_FALSE;
 		char *ext2 = strchr(ext+1, ':');
-		if (ext2 && !strncmp(ext2, "://", 3)) ext2 = strchr(ext2+1, ':');
-		if (ext2 && !strncmp(ext2, ":\\", 2)) ext2 = strchr(ext2+1, ':');
+
+		// if the colon is part of a file path/url we keep it
+		if (ext2 && ( !strncmp(ext2, "://", 3) || !strncmp(ext2, ":\\", 2) ) ) {
+			ext2[0] = ':';
+			ext2 = strchr(ext2+1, ':');
+		}
 		if (ext2) ext2[0] = 0;
 
 		/*all extensions for track-based importing*/
 		if (!strnicmp(ext+1, "dur=", 4)) import.duration = (u32)( (atof(ext+5) * 1000) + 0.5 );
-		else if (!strnicmp(ext+1, "lang=", 5)) szLan = ext+6;
+		else if (!strnicmp(ext+1, "lang=", 5)) {
+			/* prevent leak if param is set twice */
+			if (szLan)
+				gf_free((char*) szLan);
+
+			szLan = gf_strdup(ext+6);
+		}
 		else if (!strnicmp(ext+1, "delay=", 6)) delay = atoi(ext+7);
 		else if (!strnicmp(ext+1, "par=", 4)) {
 			if (!stricmp(ext+5, "none")) {
 				par_n = par_d = -1;
 			} else {
-				char *ext3=NULL;
 				if (ext2) ext2[0] = ':';
-				if (ext2) ext3 = strchr(ext2+1, ':');
-				if (ext3) ext3[0] = 0;
+				if (ext2) ext2 = strchr(ext2+1, ':');
+				if (ext2) ext2[0] = 0;
 				sscanf(ext+5, "%d:%d", &par_n, &par_d);
-				if (ext3) ext3[0] = ':';
-				if (ext2) ext = ext2+1;
-				ext2 = NULL;
 			}
 		}
 		else if (!strnicmp(ext+1, "name=", 5)) {
 			handler_name = gf_strdup(ext+6);
-			is_filename = GF_TRUE;
 		}
 		else if (!strnicmp(ext+1, "ext=", 4)) {
 			/*extensions begin with '.'*/
@@ -435,11 +439,9 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 		else if (!stricmp(ext+1, "chap")) is_chap = 1;
 		else if (!strnicmp(ext+1, "chapter=", 8)) {
 			chapter_name = gf_strdup(ext+9);
-			is_filename = GF_TRUE;
 		}
 		else if (!strnicmp(ext+1, "chapfile=", 9)) {
 			chapter_name = gf_strdup(ext+10);
-			is_filename = GF_TRUE;
 			is_chap_file=1;
 		}
 		else if (!strnicmp(ext+1, "layout=", 7)) {
@@ -534,14 +536,12 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 		if (ext2) ext2[0] = ':';
 
-		if (is_filename) {
-			char *sep;
-			sep = strchr(ext+6, ':');
-			if (sep) ext = sep+1;
-		}
-
 		ext[0] = 0;
-		ext = strchr(ext+1, ':');
+
+		/* restart from where we stopped
+		 * if we didn't stop (ext2 null) then the end has been reached
+		 * so we can stop the whole thing */
+		ext = ext2;
 	}
 
 	/*check duration import (old syntax)*/
@@ -744,7 +744,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 	} else {
 		if (do_all)
 			import.flags |= GF_IMPORT_KEEP_REFS;
-		
+
 		for (i=0; i<import.nb_tracks; i++) {
 			import.trackID = import.tk_info[i].track_num;
 			if (prog_id) {
@@ -990,6 +990,7 @@ exit:
 	if (import.streamFormat) gf_free(import.streamFormat);
 	if (import.force_ext) gf_free(import.force_ext);
 	if (rvc_config) gf_free(rvc_config);
+	if (szLan) gf_free((char *)szLan);
 	return e;
 }
 

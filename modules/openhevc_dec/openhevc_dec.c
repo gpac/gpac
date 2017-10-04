@@ -149,6 +149,7 @@ static GF_Err HEVC_ConfigurationScalableStream(HEVCDec *ctx, GF_ESD *esd)
 
 		gf_free(data);
 	}
+	gf_odf_hevc_cfg_del(cfg);
 	return GF_OK;
 }
 

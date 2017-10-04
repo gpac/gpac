@@ -98,6 +98,9 @@ static void load_all_modules(GF_ModuleManager *mgr)
 #ifdef GPAC_HAS_SPIDERMONKEY
 	LOAD_PLUGIN(mse_in);
 #endif
+
+	LOAD_PLUGIN(netctrl);
+
 	LOAD_PLUGIN(odf_dec);
 #ifdef GPAC_HAS_OGG
 	LOAD_PLUGIN(ogg_in);
