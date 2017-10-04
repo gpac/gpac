@@ -40,7 +40,9 @@ typedef struct
 /*TODO*/
 typedef struct
 {
-	u32 dummy;
+	u32 id;
+	char *type;
+	char *lang;
 } GF_MPD_ContentComponent;
 
 
@@ -118,6 +120,14 @@ typedef struct
 	s64 mediaOffset;
 } GF_MPD_ISOBMFInfo;
 
+
+typedef struct
+{
+	char *xml_desc;
+} GF_MPD_other_descriptors;
+
+
+
 #define GF_MPD_SEGMENT_BASE	\
 	u32 timescale;	\
 	u64 presentation_time_offset;	\
@@ -134,7 +144,9 @@ typedef struct
 	GF_MPD_SEGMENT_BASE
 } GF_MPD_SegmentBase;
 
-/*WARNING: duration is expressed in GF_MPD_SEGMENT_BASE@timescale unit*/
+/*WARNING: duration is expressed in GF_MPD_SEGMENT_BASE@timescale unit
+           startnumber=(u32)-1 if unused, 1 bydefault.
+*/
 #define GF_MPD_MULTIPLE_SEGMENT_BASE	\
 	GF_MPD_SEGMENT_BASE	\
 	u64 duration;	\
@@ -159,6 +171,8 @@ typedef struct
 	bin128 key_iv;
 	u64 hls_utc_start_time;
 } GF_MPD_SegmentURL;
+
+GF_MPD_SegmentURL *gf_mpd_segmenturl_new(const char*media, u64 start_range, u64 end_range, const char *index, u64 idx_start_range, u64 idx_end_range);
 
 typedef struct
 {
@@ -268,6 +282,7 @@ typedef struct {
 	/*GPAC playback implementation*/
 	GF_DASH_RepresentationPlayback playback;
 	u32 m3u8_media_seq_min, m3u8_media_seq_max;
+	GF_List *other_descriptors;
 } GF_MPD_Representation;
 
 
@@ -310,6 +325,7 @@ typedef struct
 
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+	GF_List *other_descriptors;
 } GF_MPD_AdaptationSet;
 
 
@@ -329,6 +345,7 @@ typedef struct
 	GF_List *subsets;
 	char *xlink_href;
 	Bool xlink_actuate_on_load;
+	GF_List *other_descriptors;
 } GF_MPD_Period;
 
 typedef struct
@@ -362,7 +379,7 @@ typedef struct {
 	u32 time_shift_buffer_depth; /* expressed in milliseconds */
 	u32 suggested_presentation_delay; /* expressed in milliseconds */
 
-	u32 max_segment_duration; /* expressed in milliseconds */
+	u32 max_segment_duration; /* expressed in seconds */
 	u32 max_subsegment_duration; /* expressed in milliseconds */
 
 	/*list of GF_MPD_ProgramInfo */
@@ -378,6 +395,9 @@ typedef struct {
 
 	/*set during parsing*/
 	const char *xml_namespace; /*won't be freed by GPAC*/
+	
+	Bool force_test_mode;
+	
 } GF_MPD;
 
 GF_Err gf_mpd_init_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_url);
@@ -385,14 +405,23 @@ GF_Err gf_mpd_complete_from_dom(GF_XMLNode *root, GF_MPD *mpd, const char *base_
 
 GF_MPD *gf_mpd_new();
 void gf_mpd_del(GF_MPD *mpd);
+/*resets the periods of an initialized MPD*/
+void gf_mpd_reset_periods(GF_MPD *mpd);
 /*frees a GF_MPD_SegmentURL structure (type-casted to void *)*/
 void gf_mpd_segment_url_free(void *ptr);
 void gf_mpd_segment_base_free(void *ptr);
+void gf_mpd_segment_url_list_free(GF_List *list);
+void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root);
 
+GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
+void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out);
+GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 
+GF_MPD_Descriptor *gf_mpd_descriptor_new(const char *id, const char *uri, const char *value);
+GF_MPD_AdaptationSet *gf_mpd_adaptation_set_new();
 
 typedef struct _gf_file_get GF_FileDownload;
 struct _gf_file_get
@@ -468,6 +497,14 @@ GF_EXPORT
 GF_Err gf_mpd_seek_to_time(Double seek_time, MPDSeekMode seek_mode,
 	GF_MPD const * const in_mpd, GF_MPD_AdaptationSet const * const in_set, GF_MPD_Representation const * const in_rep,
 	GF_MPD_Period **out_period, u32 *out_segment_index, Double *out_opt_seek_time);
+
+void gf_mpd_print_base_url(FILE *out, GF_MPD_BaseURL *base_URL, char *indent);
+void gf_mpd_base_url_free(void *_item);
+void gf_mpd_print_segment_base(FILE *out, GF_MPD_SegmentBase *s, char *indent);
+
+GF_MPD_Representation *gf_mpd_representation_new();
+
+GF_MPD_SegmentTimeline *gf_mpd_segmentimeline_new();
 
 /*get duration of the presentation*/
 Double gf_mpd_get_duration(GF_MPD *mpd);
