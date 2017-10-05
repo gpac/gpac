@@ -25,7 +25,6 @@
 
 #include <gpac/modules/compositor_ext.h>
 #include <gpac/filters.h>
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/xml.h>

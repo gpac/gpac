@@ -210,9 +210,6 @@ the buffer is released by calling gf_term_release_screen_buffer*/
 GF_Err gf_term_get_offscreen_buffer(GF_Terminal *term, GF_VideoSurface *framebuffer, u32 view_idx, u32 depth_buffer_type);
 
 
-/*ObjectManager used by both terminal and object browser (term_info.h)*/
-typedef struct _od_manager GF_ObjectManager;
-
 /*switches quality up or down - can be called several time in the same direction
 this will call all decoders to adjust their quality levels
 VERY BASIC INTERFACE*/

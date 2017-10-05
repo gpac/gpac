@@ -23,13 +23,13 @@
  *
  */
 
-#ifndef _INPUT_SENSOR_H_
-#define _INPUT_SENSOR_H_
 
-#include <gpac/internal/terminal_dev.h>
-/*input sensor defs*/
+
+#ifndef _MEDIA_CONTROL_H_
+#define _MEDIA_CONTROL_H_
+
+/*MediaControl definition*/
 #include <gpac/nodes_mpeg4.h>
 
 
-#endif	/*_INPUT_SENSOR_H_*/
-
+#endif	/*_MEDIA_CONTROL_H_*/

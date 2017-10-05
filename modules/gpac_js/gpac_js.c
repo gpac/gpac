@@ -59,7 +59,6 @@
 #include <gpac/internal/smjs_api.h>
 
 #include <gpac/modules/js_usr.h>
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/term_info.h>
 

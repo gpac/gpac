@@ -24,7 +24,6 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
-#include <gpac/internal/terminal_dev.h>
 
 #define ENABLE_EARLY_FRAME_DETECTION
 

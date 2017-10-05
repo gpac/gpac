@@ -62,9 +62,8 @@ extern "C" {
 
 #include <gpac/download.h>
 #include <gpac/network.h>
-//#include <gpac/modules/service.h>
 #include <gpac/xml.h>
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 #include <gpac/internal/smjs_api.h>

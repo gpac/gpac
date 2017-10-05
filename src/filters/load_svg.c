@@ -24,7 +24,7 @@
  */
 
 
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/scene_manager.h>
 #include <gpac/constants.h>
 

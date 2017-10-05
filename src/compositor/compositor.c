@@ -24,8 +24,6 @@
  */
 
 #include <gpac/internal/compositor_dev.h>
-/*for user and terminal API (options and InputSensor)*/
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/options.h>
 #include <gpac/utf.h>
 #include <gpac/modules/hardcoded_proto.h>

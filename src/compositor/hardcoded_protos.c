@@ -30,7 +30,6 @@
 #include "mpeg4_grouping.h"
 
 #include <gpac/modules/hardcoded_proto.h>
-#include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
 

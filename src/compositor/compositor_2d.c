@@ -28,7 +28,6 @@
 #include "visual_manager.h"
 #include "nodes_stacks.h"
 #include <gpac/options.h>
-#include <gpac/internal/terminal_dev.h>
 #include "texturing.h"
 
 #include "gl_inc.h"

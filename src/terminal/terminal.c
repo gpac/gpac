@@ -25,7 +25,6 @@
 
 
 #include <gpac/internal/terminal_dev.h>
-#include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/term_info.h>
 #include <gpac/constants.h>
@@ -33,8 +32,6 @@
 #include <gpac/network.h>
 #include <gpac/xml.h>
 #include "../utils/module_wrap.h"
-
-#include "media_control.h"
 
 /*textual command processing*/
 #include <gpac/scene_manager.h>
@@ -1380,5 +1377,6 @@ GF_Err gf_term_process_flush_video(GF_Terminal *term)
 	gf_sc_flush_video(term->compositor);
 	return GF_OK;
 }
+
 
 

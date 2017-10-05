@@ -29,9 +29,8 @@
 #include <gpac/constants.h>
 /*for URL concatenation*/
 #include <gpac/network.h>
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
-#include "media_control.h"
+#include "mpeg4_mediacontrol.h"
 #include <gpac/nodes_x3d.h>
 #include <gpac/options.h>
 
@@ -39,9 +38,6 @@
 #ifndef GPAC_DISABLE_SVG
 #include <gpac/scenegraph_svg.h>
 #endif
-
-#include "input_sensor.h"
-#include "media_memory.h"
 
 GF_EXPORT
 Double gf_scene_get_time(void *_is)
