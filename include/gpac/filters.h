@@ -514,6 +514,8 @@ enum
 	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	//(uint) U/V plane stride
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
+	//(string) remote URL where stream data is available - NOT YET SUPPORTED
+	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 
 	//(uint) PCR/OCR timescale of pid
 	GF_PROP_PID_OCR_TIMESCALE = GF_4CC('O','C','T','S'),

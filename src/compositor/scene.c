@@ -2,10 +2,10 @@
  *			GPAC - Multimedia Framework C SDK
  *
  *			Authors: Jean Le Feuvre
- *			Copyright (c) Telecom ParisTech 2000-2012
+ *			Copyright (c) Telecom ParisTech 2000-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / Media terminal sub-project
+ *  This file is part of GPAC / Scene Compositor sub-project
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -30,7 +30,6 @@
 /*for URL concatenation*/
 #include <gpac/network.h>
 #include <gpac/internal/compositor_dev.h>
-#include "mpeg4_mediacontrol.h"
 #include <gpac/nodes_x3d.h>
 #include <gpac/options.h>
 
