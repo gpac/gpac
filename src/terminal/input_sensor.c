@@ -25,6 +25,7 @@
 
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
+#include <gpac/modules/codec.h>
 #include <gpac/utf.h>
 #include <gpac/nodes_x3d.h>
 #include <gpac/constants.h>

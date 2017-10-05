@@ -411,6 +411,7 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid);
 
 const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
 
+Bool gf_filter_pck_is_empty(GF_FilterPacket *pck);
 
 GF_Err gf_filter_pck_set_property(GF_FilterPacket *pck, u32 prop_4cc, const GF_PropertyValue *value);
 GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, const GF_PropertyValue *value);
@@ -703,6 +704,36 @@ GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FSEventListener *
 
 Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool forward_only);
 Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt);
+
+
+
+typedef struct _gf_filter_hw_frame
+{
+	//get media frame plane
+	// @frame: media frame pointer
+	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
+	// @outPlane: adress of target color plane
+	// @outStride: stride in bytes of target color plane
+	GF_Err (*get_plane)(struct _gf_filter_hw_frame *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
+
+	//get media frame plane texture
+	// @frame: media frame pointer
+	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
+	// @gl_tex_format: GL texture format used
+	// @gl_tex_id: GL texture ID used
+	// @texcoordmatrix: texture transform
+	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, struct __matrix * texcoordmatrix);
+
+	//release media frame
+	void (*destroy)(struct _gf_filter_frame *frame);
+
+	//allocated space by the filter
+	void *user_data;
+} GF_FilterHWFrame;
+
+
+GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame);
+GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck);
 
 #ifdef __cplusplus
 }

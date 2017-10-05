@@ -59,6 +59,7 @@ const GF_FilterRegister *theoradec_register(GF_FilterSession *session);
 const GF_FilterRegister *m2tsdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *udpin_register(GF_FilterSession *session);
 const GF_FilterRegister *dvblin_register(GF_FilterSession *session);
+const GF_FilterRegister *vtbdec_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -89,9 +90,10 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, m2tsdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, udpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
 
-	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+//	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+//	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 }
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
@@ -491,7 +493,7 @@ GF_Filter *gf_fs_load_filter(GF_FilterSession *fsess, const char *name)
 	for (i=0;i<count;i++) {
 		const GF_FilterRegister *f_reg = gf_list_get(fsess->registry, i);
 		if (!strncmp(f_reg->name, name, len)) {
-			filter = gf_filter_new(fsess, f_reg, args, GF_FALSE, NULL);
+			filter = gf_filter_new(fsess, f_reg, args, GF_FILTER_ARG_LOCAL, NULL);
 			if (filter) filter->orig_args = args;
 			return filter;
 		}
@@ -1122,7 +1124,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 	strcat(args, sURL);
 
 	if (!filter) {
-		filter = gf_filter_new(fsess, candidate_freg, args, GF_TRUE, err);
+		filter = gf_filter_new(fsess, candidate_freg, args, GF_FILTER_ARG_GLOBAL_SOURCE, err);
 	} else {
 		filter->freg = candidate_freg;
 		e = gf_filter_new_finalize(filter, args, GF_TRUE);

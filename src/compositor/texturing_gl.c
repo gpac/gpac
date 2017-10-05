@@ -118,14 +118,14 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YV12;
-			if(txh->raw_memory)
+			if(txh->hw_frame)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
 		}
 		else if (txh->pixelformat == GF_PIXEL_NV12_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_NV12;
-			if(txh->raw_memory)
+			if(txh->hw_frame)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height / 2);
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV422_10) {
@@ -133,14 +133,14 @@ GF_Err gf_sc_texture_configure_conversion(GF_TextureHandler *txh)
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YUV422;
 			
-			if (txh->raw_memory)
+			if (txh->hw_frame)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 2 * sizeof(char)* txh->stride * txh->height);
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV444_10) {
 			txh->stride /= 2;
 			txh->tx_io->conv_to_8bit = GF_TRUE;
 			txh->pixelformat = GF_PIXEL_YUV444;
-			if (txh->raw_memory)
+			if (txh->hw_frame)
 				txh->tx_io->conv_data = (char*)gf_realloc(txh->tx_io->conv_data, 3 * sizeof(char)* txh->stride * txh->height);
 		}
 	}
@@ -214,79 +214,95 @@ void gf_sc_texture_cleanup_hw(GF_Compositor *compositor)
 
 GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 {
+	u32 y_stride = txh->stride;
+	u8  *p_y, *p_u, *p_v;
 	txh->tx_io->flags |= TX_NEEDS_RASTER_LOAD | TX_NEEDS_HW_LOAD;
 
+	p_y = txh->data;
+	p_u = p_v = NULL;
+	//10->8 bit conversion
 	if (txh->tx_io->conv_to_8bit) {
 		GF_VideoSurface dst;
-		u8  *p_y;
 		u32 src_stride = txh->stride * 2;
 		memset(&dst, 0, sizeof(GF_VideoSurface));
 		dst.width = txh->width;
 		dst.height = txh->height;
 		dst.pitch_y = txh->stride;
-		dst.video_buffer = txh->raw_memory ? txh->tx_io->conv_data : txh->data;
+		dst.video_buffer = txh->hw_frame ? txh->tx_io->conv_data : txh->data;
+
+		p_u = p_v = NULL;
 		p_y = (u8 *)txh->data;
+		if (txh->hw_frame) {
+			txh->hw_frame->get_plane(txh->hw_frame, 0, &p_y, &src_stride);
+			txh->hw_frame->get_plane(txh->hw_frame, 1, &p_u, &src_stride);
+			txh->hw_frame->get_plane(txh->hw_frame, 2, &p_v, &src_stride);
+		}
 
 		if (txh->pixelformat == GF_PIXEL_YV12) {
 
-			gf_color_write_yv12_10_to_yuv(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+			gf_color_write_yv12_10_to_yuv(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->raw_memory) {
-				txh->data = dst.video_buffer;
-				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
+			if (txh->hw_frame) {
+				p_y = dst.video_buffer;
+				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				p_v = (u8*) dst.video_buffer + 5 * dst.pitch_y * txh->height / 4;
 			}
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV422) {
 
-			gf_color_write_yuv422_10_to_yuv422(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+			gf_color_write_yuv422_10_to_yuv422(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->raw_memory) {
-				txh->data = dst.video_buffer;
-				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
+			if (txh->hw_frame) {
+				p_y = dst.video_buffer;
+				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				p_v = (u8*) dst.video_buffer + 3 * dst.pitch_y * txh->height / 2;
 			}
 
 		}
 		else if (txh->pixelformat == GF_PIXEL_YUV444) {
 
-			gf_color_write_yuv444_10_to_yuv444(&dst, (u8 *)p_y, (u8 *)txh->pU, (u8 *)txh->pV, src_stride, txh->width, txh->height, NULL, GF_FALSE);
+			gf_color_write_yuv444_10_to_yuv444(&dst, p_y, p_u, p_v, src_stride, txh->width, txh->height, NULL, GF_FALSE);
 
-			if (txh->raw_memory) {
-				txh->data = dst.video_buffer;
-				txh->pU = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
-				txh->pV = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
+			if (txh->hw_frame) {
+				p_y = dst.video_buffer;
+				p_u = (u8*) dst.video_buffer + dst.pitch_y * txh->height;
+				p_v = (u8*) dst.video_buffer + 2 * dst.pitch_y * txh->height;
 			}
 		}
 	}
+	else if (txh->tx_io->pbo_id && txh->hw_frame) {
+		u32 src_stride;
+		txh->hw_frame->get_plane(txh->hw_frame, 0, &p_y, &y_stride);
+		txh->hw_frame->get_plane(txh->hw_frame, 1, &p_u, &src_stride);
+		txh->hw_frame->get_plane(txh->hw_frame, 2, &p_v, &src_stride);
+	}
+
 
 #if !defined(GPAC_DISABLE_3D) && !defined(GPAC_USE_TINYGL) && !defined(GPAC_USE_GLES1X) && !defined(GPAC_USE_GLES2)
 	//PBO mode: start pushing the texture
-	if (txh->data && txh->tx_io->pbo_id) {
+	if (p_y && txh->tx_io->pbo_id) {
 		u8 *ptr;
-		u32 size = txh->stride*txh->height;
+		u32 size = y_stride * txh->height;
 
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->pbo_id);
 		ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-		if (ptr) memcpy(ptr, txh->data, size);
+		if (ptr) memcpy(ptr, p_y, size);
 		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
 		if (txh->tx_io->u_pbo_id) {
-			u8 *pU = txh->pU;
-			u8 *pV = txh->pV;
-			if (!pU) pU = (u8 *) txh->data + size;
-			if (!pV) pV = (u8 *) txh->data + 5*size/4;
+			if (!p_u) p_u = (u8 *) p_v + size;
+			if (!p_v) p_v = (u8 *) p_v + 5*size/4;
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->u_pbo_id);
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-			if (ptr) memcpy(ptr, pU, size/4);
+			if (ptr) memcpy(ptr, p_u, size/4);
 			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, txh->tx_io->v_pbo_id);
 			ptr =(u8 *)glMapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, GL_WRITE_ONLY_ARB);
-			if (ptr) memcpy(ptr, pV, size/4);
+			if (ptr) memcpy(ptr, p_v, size/4);
 			glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER_ARB);
 			glBindBuffer(GL_PIXEL_UNPACK_BUFFER_ARB, 0);
 		}
@@ -294,7 +310,7 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		txh->tx_io->pbo_pushed = 1;
 
 		//we just pushed our texture to the GPU, release
-		if (txh->raw_memory) {
+		if (txh->hw_frame) {
 			gf_sc_texture_release_stream(txh);
 		}
 	}
@@ -1055,7 +1071,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 		gf_mo_get_nb_views(txh->stream, &nb_views);
 		gf_mo_get_nb_layers(txh->stream, &nb_layers);
 	}
-	if (txh->raw_memory || nb_views == 1) nb_frames = 1;
+	if (txh->hw_frame || nb_views == 1) nb_frames = 1;
 	else if (nb_layers) nb_frames = nb_layers;
 
 #endif
@@ -1146,7 +1162,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			u32 stride_chroma = txh->stride_chroma;
 			u8 *pY, *pU, *pV;
 			
-			if (txh->frame && txh->frame->GetGLTexture) {
+			if (txh->hw_frame && txh->hw_frame->get_gl_texture ) {
 				u32 gl_format;
 				
 				if (!txh->tx_io->use_external_textures) {
@@ -1157,7 +1173,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 					txh->tx_io->use_external_textures = GF_TRUE;
 				}
 					
-				if (txh->frame->GetGLTexture(txh->frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+				if (txh->hw_frame->get_gl_texture(txh->hw_frame, 0, &gl_format, &txh->tx_io->id, &txh->tx_io->texcoordmatrix) != GF_OK) {
 					return 0;
 				}
 				glBindTexture(gl_format, txh->tx_io->id);
@@ -1174,7 +1190,7 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 				}
 #endif // GPAC_ANDROID
 					
-				if (txh->frame->GetGLTexture(txh->frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
+				if (txh->hw_frame->get_gl_texture(txh->hw_frame, 1, &gl_format, &txh->tx_io->u_id, &txh->tx_io->texcoordmatrix) != GF_OK) {
 					return 0;
 				}
 
@@ -1191,10 +1207,14 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 			pY = (u8 *) data;
 			pU = pV = NULL;
 
-			if (txh->raw_memory) {
-				assert(txh->pU);
-				pU = (u8 *) txh->pU;
-				pV = (u8 *) txh->pV;
+			if (txh->hw_frame) {
+				GF_Err e;
+				e = txh->hw_frame->get_plane(txh->hw_frame, 0, &pY, &stride_luma);
+				if (e) goto push_exit;
+				e = txh->hw_frame->get_plane(txh->hw_frame, 1, &pU, &stride_chroma);
+				if (e) goto push_exit;
+				e = txh->hw_frame->get_plane(txh->hw_frame, 2, &pV, &stride_chroma);
+				if (e) goto push_exit;
 			} else {
 				pU = (u8 *) pY + nb_frames * txh->height * txh->stride;
 			}
@@ -1515,7 +1535,7 @@ Bool gf_sc_texture_get_transform(GF_TextureHandler *txh, GF_Node *tx_transform, 
 		ret = 1;
 	}
 #endif // GPAC_ANDROID
-	if (nb_views>1 && !txh->raw_memory){
+	if (nb_views>1 && !txh->hw_frame) {
 		if (txh->compositor->visual->current_view%2 != 0 && !txh->compositor->multiview_mode){
 			gf_mx_add_translation(mx, 0, 0.5f, 0);
 		}

@@ -23,7 +23,12 @@
  *
  */
 
+//do not include math.h we would have a conflict with Fixed ... we're lucky we don't need maths routines here
+#define _GF_MATH_H_
 
+#include <gpac/setup.h>
+
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
 
 #include <stdint.h>
 
@@ -35,10 +40,7 @@
 #  define kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder CFSTR("RequireHardwareAcceleratedVideoDecoder")
 #endif
 
-//do not include math.h we would have a conflict with Fixed ... we're lucky we don't need maths routines here
-#define _GF_MATH_H_
-
-#include <gpac/modules/codec.h>
+#include <gpac/filters.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
@@ -48,13 +50,19 @@
 
 typedef struct
 {
-	Bool is_hardware;
+	//opts
+	Bool no_copy;
+	Bool disable_hw;
+
+	//internal
+	GF_FilterPid *ipid, *opid;
 	u32 width, height;
 	u32 pixel_ar, pix_fmt;
 	u32 out_size;
-	Bool raw_frame_dispatch;
-	
-	GF_ESD *esd;
+	u32 cfg_crc;
+	u32 oti;
+	Bool is_hardware;
+
 	GF_Err last_error;
 	
 	int vtb_type;
@@ -88,18 +96,20 @@ typedef struct
 	AVCState avc;
 	Bool check_h264_isma;
 
+	GF_List *hwframes;
 	//openGL output
 #ifdef GPAC_IPHONE
 	Bool use_gl_textures;
 	CVOpenGLESTextureCacheRef cache_texture;
 #endif
 	void *gl_context;
-} VTBDec;
+} GF_VTBDecCtx;
 
+static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx);
 
-static void VTBDec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus status, VTDecodeInfoFlags flags, CVImageBufferRef image, CMTime pts, CMTime duration)
+static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus status, VTDecodeInfoFlags flags, CVImageBufferRef image, CMTime pts, CMTime duration)
 {
-	VTBDec *ctx = (VTBDec *)opaque;
+	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *)opaque;
     if (ctx->frame) {
         CVPixelBufferRelease(ctx->frame);
         ctx->frame = NULL;
@@ -116,7 +126,7 @@ static void VTBDec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
     ctx->frame = CVPixelBufferRetain(image);
 }
 
-static CFDictionaryRef VTBDec_CreateBufferAttributes(VTBDec *ctx, OSType pix_fmt)
+static CFDictionaryRef vtbdec_create_buffer_attributes(GF_VTBDecCtx *ctx, OSType pix_fmt)
 {
     CFMutableDictionaryRef buffer_attributes;
     CFMutableDictionaryRef surf_props;
@@ -149,7 +159,7 @@ static CFDictionaryRef VTBDec_CreateBufferAttributes(VTBDec *ctx, OSType pix_fmt
     return buffer_attributes;
 }
 
-static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
+static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 {
 	CFMutableDictionaryRef dec_dsi, dec_type;
 	CFMutableDictionaryRef dsi;
@@ -157,7 +167,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
     CFDictionaryRef buffer_attribs;
     OSStatus status;
 	OSType kColorSpace;
-	
+	const GF_PropertyValue *p;
 	CFDataRef data = NULL;
 	char *dsi_data=NULL;
 	u32 dsi_data_size=0;
@@ -169,8 +179,10 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 	
 	kColorSpace = kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange;
 	ctx->pix_fmt = GF_PIXEL_NV12;
-	
-	switch (ctx->esd->decoderConfig->objectTypeIndication) {
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
+
+	switch (ctx->oti) {
     case GPAC_OTI_VIDEO_AVC :
 		if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs)) {
 			s32 idx;
@@ -238,7 +250,7 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 				}
 				break;
 			}
-			//always rewrite with cirrent sps and pps
+			//always rewrite with current sps and pps
 			cfg = gf_odf_avc_cfg_new();
 			cfg->configurationVersion = 1;
 			cfg->profile_compatibility = ctx->avc.sps[idx].prof_compat;
@@ -294,33 +306,39 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
     case GPAC_OTI_VIDEO_MPEG4_PART2 :
 	{
 		Bool reset_dsi = GF_FALSE;
+		char *vosh = NULL;
+		u32 vosh_size = 0;
 		ctx->vtb_type = kCMVideoCodecType_MPEG4Video;
-		if (!ctx->esd->decoderConfig->decoderSpecificInfo) {
-			ctx->esd->decoderConfig->decoderSpecificInfo = (GF_DefaultDescriptor *) gf_odf_desc_new(GF_ODF_DSI_TAG);
-		}
 
-		if (!ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+		if (!p || !p->value.data) {
 			reset_dsi = GF_TRUE;
-			ctx->esd->decoderConfig->decoderSpecificInfo->data = ctx->vosh;
-			ctx->esd->decoderConfig->decoderSpecificInfo->dataLength = ctx->vosh_size;
+			vosh = ctx->vosh;
+			vosh_size = ctx->vosh_size;
+		} else {
+			vosh = p->data_len;
+			vosh_size = p->data_len;
 		}
 		
-		if (ctx->esd->decoderConfig->decoderSpecificInfo->data) {
+		if (vosh) {
 			GF_M4VDecSpecInfo vcfg;
 			GF_BitStream *bs;
-			
-			gf_m4v_get_config(ctx->esd->decoderConfig->decoderSpecificInfo->data, ctx->esd->decoderConfig->decoderSpecificInfo->dataLength, &vcfg);
+			GF_ESD *esd;
+
+			gf_m4v_get_config(vosh, vosh_size, &vcfg);
 			ctx->width = vcfg.width;
 			ctx->height = vcfg.height;
-			if (ctx->esd->slConfig) {
-				ctx->esd->slConfig->predefined  = 2;
-			}
+			esd = gf_odf_desc_esd_new(2);
+			esd->decoderConfig->decoderSpecificInfo->data = vosh;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = vosh_size;
 			bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 			gf_bs_write_u32(bs, 0);
-			gf_odf_desc_write_bs((GF_Descriptor *) ctx->esd, bs);
+			gf_odf_desc_write_bs((GF_Descriptor *) esd, bs);
 			gf_bs_get_content(bs, &dsi_data, &dsi_data_size);
 			gf_bs_del(bs);
-			
+			esd->decoderConfig->decoderSpecificInfo->data = NULL;
+			esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
+			gf_odf_desc_del((GF_Descriptor*)esd);
+
 			dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 			data = CFDataCreate(kCFAllocatorDefault, (const UInt8*) dsi_data, dsi_data_size);
 			gf_free(dsi_data);
@@ -332,10 +350,6 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 			}
 			CFRelease(dsi);
 			
-			if (reset_dsi) {
-				ctx->esd->decoderConfig->decoderSpecificInfo->data = NULL;
-				ctx->esd->decoderConfig->decoderSpecificInfo->dataLength = 0;
-			}
 			ctx->skip_mpeg4_vosh = GF_FALSE;
 		} else {
 			ctx->skip_mpeg4_vosh = GF_TRUE;
@@ -344,9 +358,9 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
         break;
     }
 	case GPAC_OTI_MEDIA_GENERIC:
-		if (ctx->esd->decoderConfig->decoderSpecificInfo && ctx->esd->decoderConfig->decoderSpecificInfo->dataLength) {
-			char *dsi = ctx->esd->decoderConfig->decoderSpecificInfo->data;
-			if (ctx->esd->decoderConfig->decoderSpecificInfo->dataLength<8) return GF_NON_COMPLIANT_BITSTREAM;
+		if (p && p->value.data && p->data_len) {
+			char *dsi = p->value.data;
+			if (p->data_len<8) return GF_NON_COMPLIANT_BITSTREAM;
 			if (strnicmp(dsi, "s263", 4)) return GF_NOT_SUPPORTED;
 			
 			ctx->width = ((u8) dsi[4]); ctx->width<<=8; ctx->width |= ((u8) dsi[5]);
@@ -367,17 +381,21 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 		if (dec_dsi) CFRelease(dec_dsi);
         return GF_NON_COMPLIANT_BITSTREAM;
     }
-	buffer_attribs = VTBDec_CreateBufferAttributes(ctx, kColorSpace);
+	buffer_attribs = vtbdec_create_buffer_attributes(ctx, kColorSpace);
 	
-	cbacks.decompressionOutputCallback = VTBDec_on_frame;
+	cbacks.decompressionOutputCallback = vtbdec_on_frame;
     cbacks.decompressionOutputRefCon   = ctx;
 
-    dec_type = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
-    CFDictionarySetValue(dec_type, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
-	ctx->is_hardware = GF_TRUE;
+	status = 1;
+	if (!ctx->disable_hw) {
+		dec_type = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
+		CFDictionarySetValue(dec_type, kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder, kCFBooleanTrue);
+		ctx->is_hardware = GF_TRUE;
 
-    status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, buffer_attribs, &cbacks, &ctx->vtb_session);
-	//if HW decoder not available, try soft one
+		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, buffer_attribs, &cbacks, &ctx->vtb_session);
+	}
+
+	//if HW decoder not available or disabled , try soft one
 	if (status) {
 		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, NULL, buffer_attribs, &cbacks, &ctx->vtb_session);
 		ctx->is_hardware = GF_FALSE;
@@ -421,10 +439,36 @@ static GF_Err VTBDec_InitDecoder(VTBDec *ctx)
 		ctx->out_size *= 2;
 	}
 	ctx->frame_size_changed = GF_TRUE;
+
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->width) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_UINT(ctx->pixel_ar) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(ctx->pix_fmt) );
+
+	switch (ctx->vtb_type) {
+	case kCMVideoCodecType_H264:
+		gf_filter_set_name(filter, ctx->is_hardware ? "VTB:Hardware:AVC|H264" : "VTB:Software:AVC|H264");
+		break;
+	case kCMVideoCodecType_MPEG2Video:
+		gf_filter_set_name(filter, ctx->is_hardware ? "VTB:Hardware:MPEG2" : "VTB:Software:MPEG2");
+		break;
+    case  kCMVideoCodecType_MPEG4Video:
+		gf_filter_set_name(filter, ctx->is_hardware ? "VTB:Hardware:MPEG4P2" : "VTB:Software:MPEG4P2");
+		break;
+    case kCMVideoCodecType_H263:
+		gf_filter_set_name(filter, ctx->is_hardware ? "VTB:Hardware:H263" : "VTB:Software:H263");
+		break;
+	case kCMVideoCodecType_MPEG1Video:
+		gf_filter_set_name(filter, ctx->is_hardware ? "VTB:Hardware:MPEG1" : "VTB:Software:MPEG1");
+		break;
+	default:
+		break;
+	}
 	return GF_OK;
 }
 
-static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_sps)
+static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, Bool is_sps)
 {
 	Bool add = GF_TRUE;
 	u32 i, count;
@@ -469,14 +513,51 @@ static void VTB_RegisterParameterSet(VTBDec *ctx, char *data, u32 size, Bool is_
 	}
 }
 
-static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
+static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
+	const GF_PropertyValue *p, *dsi;
+	u32 oti, dsi_crc;
 	GF_Err e;
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
-	ctx->esd = esd;
+	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
+
+	if (is_remove) {
+		if (ctx->opid) gf_filter_pid_remove(ctx->opid);
+		ctx->opid = NULL;
+		ctx->ipid = NULL;
+		return GF_OK;
+	}
+	if (! gf_filter_pid_check_caps(pid))
+		return GF_NOT_SUPPORTED;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	if (!p) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTBDec] Missing OTI, cannot initialize\n"));
+		return GF_NOT_SUPPORTED;
+	}
+	oti = p->value.uint;
+
+	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	dsi_crc = dsi ? gf_crc_32(dsi->value.data, dsi->data_len) : 0;
+	if ((oti==ctx->oti) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
+	//need a reset !
+	if (ctx->vtb_session) {
+		vtbdec_delete_decoder(ctx->vtb_session);
+	}
+
+	ctx->ipid = pid;
+	ctx->cfg_crc = dsi_crc;
+	ctx->oti = oti;
+
+	if (!ctx->opid) {
+		ctx->opid = gf_filter_pid_new(filter);
+		gf_filter_pid_set_framing_mode(ctx->ipid, GF_TRUE);
+
+		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
+	}
 
 	//check AVC config
-	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_AVC) {
+	if (oti==GPAC_OTI_VIDEO_AVC) {
 		ctx->SPSs = gf_list_new();
 		ctx->PPSs = gf_list_new();
 		ctx->is_avc = GF_TRUE;
@@ -485,7 +566,7 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		ctx->avc.sps_active_idx = -1;
 		ctx->active_sps = ctx->active_pps = -1;
 
-		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
+		if (!dsi || !dsi->value.data) {
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
@@ -494,17 +575,17 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 		} else {
 			u32 i;
 			GF_AVCConfigSlot *slc;
-			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(dsi->value.data, dsi->data_len);
 			for (i=0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
 				slc = gf_list_get(cfg->sequenceParameterSets, i);
 				slc->id = -1;
-				VTB_RegisterParameterSet(ctx, slc->data, slc->size, GF_TRUE);
+				vtbdec_register_param_sets(ctx, slc->data, slc->size, GF_TRUE);
 			}
 
 			for (i=0; i<gf_list_count(cfg->pictureParameterSets); i++) {
 				slc = gf_list_get(cfg->pictureParameterSets, i);
 				slc->id = -1;
-				VTB_RegisterParameterSet(ctx, slc->data, slc->size, GF_FALSE);
+				vtbdec_register_param_sets(ctx, slc->data, slc->size, GF_FALSE);
 			}
 
 			slc = gf_list_get(ctx->SPSs, 0);
@@ -515,7 +596,7 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			
 			ctx->nalu_size_length = cfg->nal_unit_size;
 			if (gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
-				e = VTBDec_InitDecoder(ctx);
+				e = vtbdec_init_decoder(filter, ctx);
 			} else {
 				e = GF_OK;
 			}
@@ -525,20 +606,21 @@ static GF_Err VTBDec_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 	}
 
 	//check VOSH config
-	if (esd->decoderConfig->objectTypeIndication==GPAC_OTI_VIDEO_MPEG4_PART2) {
-		if (!esd->decoderConfig->decoderSpecificInfo || !esd->decoderConfig->decoderSpecificInfo->data) {
+	if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
+		if (!dsi || !dsi->value.data) {
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
 			ctx->pix_fmt = GF_PIXEL_YV12;
 		} else {
-			return VTBDec_InitDecoder(ctx);
+			return vtbdec_init_decoder(filter, ctx);
 		}
 	}
 
-	return VTBDec_InitDecoder(ctx);
+	e = vtbdec_init_decoder(filter, ctx);
+	if (e) return e;
 }
 
-static void VTB_DelParamList(GF_List *list)
+static void vtbdec_del_param_list(GF_List *list)
 {
 	while (gf_list_count(list)) {
 		GF_AVCConfigSlot *slc = gf_list_get(list, 0);
@@ -549,7 +631,7 @@ static void VTB_DelParamList(GF_List *list)
 	gf_list_del(list);
 }
 
-static void VTBDec_DeleteDecoder(VTBDec *ctx)
+static void vtbdec_delete_decoder(GF_VTBDecCtx *ctx)
 {
 	if (ctx->fmt_desc) {
 		CFRelease(ctx->fmt_desc);
@@ -559,95 +641,13 @@ static void VTBDec_DeleteDecoder(VTBDec *ctx)
 		VTDecompressionSessionInvalidate(ctx->vtb_session);
 		ctx->vtb_session=NULL;
 	}
-	VTB_DelParamList(ctx->SPSs);
+	vtbdec_del_param_list(ctx->SPSs);
 	ctx->SPSs = NULL;
-	VTB_DelParamList(ctx->PPSs);
+	vtbdec_del_param_list(ctx->PPSs);
 	ctx->PPSs = NULL;
 }
 
-static GF_Err VTBDec_DetachStream(GF_BaseDecoder *ifcg, u16 ES_ID)
-{
-	return GF_OK;
-}
-
-static GF_Err VTBDec_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *capability)
-{
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
-	
-	switch (capability->CapCode) {
-	case GF_CODEC_RESILIENT:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_WIDTH:
-		capability->cap.valueInt = ctx->width;
-		break;
-	case GF_CODEC_HEIGHT:
-		capability->cap.valueInt = ctx->height;
-		break;
-	case GF_CODEC_STRIDE:
-		capability->cap.valueInt = ctx->width;
-		break;
-	case GF_CODEC_FPS:
-		capability->cap.valueFloat = 30.0;
-		break;
-	case GF_CODEC_PAR:
-		capability->cap.valueInt = ctx->pixel_ar;
-		break;
-	case GF_CODEC_OUTPUT_SIZE:
-		capability->cap.valueInt = ctx->out_size;
-		break;
-	case GF_CODEC_PIXEL_FORMAT:
-		capability->cap.valueInt = ctx->pix_fmt;
-		break;
-	case GF_CODEC_BUFFER_MIN:
-		capability->cap.valueInt = 1;
-		break;
-	case GF_CODEC_BUFFER_MAX:
-		//since we do the temporal de-interleaving ask for more CUs to avoid displaying refs before reordered frames
-		capability->cap.valueInt = 6;
-		break;
-	/*by default we use 4 bytes padding (otherwise it happens that XviD crashes on some videos...)*/
-	case GF_CODEC_PADDING_BYTES:
-		capability->cap.valueInt = 0;
-		break;
-	/*reorder is up to us*/
-	case GF_CODEC_REORDER:
-		capability->cap.valueInt = 0;
-		break;
-	case GF_CODEC_WANTS_THREAD:
-		capability->cap.valueInt = 0;
-		break;
-	case GF_CODEC_FRAME_OUTPUT:
-		capability->cap.valueInt = 1;
-		break;
-	/*not known at our level...*/
-	case GF_CODEC_CU_DURATION:
-	default:
-		capability->cap.valueInt = 0;
-		break;
-	}
-	return GF_OK;
-}
-static GF_Err VTBDec_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capability)
-{
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
-	
-	switch (capability.CapCode) {
-	case GF_CODEC_FRAME_OUTPUT:
-		ctx->raw_frame_dispatch = capability.cap.valueInt ? GF_TRUE : GF_FALSE;
-#ifdef GPAC_IPHONE
-		if (ctx->raw_frame_dispatch && (capability.cap.valueInt==2))
-			ctx->use_gl_textures = GF_TRUE;
-#endif
-		return GF_OK;
-	}
-
-	/*return unsupported to avoid confusion by the player (like color space changing ...) */
-	return GF_NOT_SUPPORTED;
-}
-
-
-static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
+static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char *inBuffer, u32 inBufferLength, char **out_buffer, u32 *out_size)
 {
 	u32 i, sc_size;
 	char *ptr = inBuffer;
@@ -688,11 +688,11 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 		nal_type = nal_hdr & 0x1F;
 		switch (nal_type) {
 		case GF_AVC_NALU_SEQ_PARAM:
-			VTB_RegisterParameterSet(ctx, ptr, nal_size, GF_TRUE);
+			vtbdec_register_param_sets(ctx, ptr, nal_size, GF_TRUE);
 			add_nal = GF_FALSE;
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
-			VTB_RegisterParameterSet(ctx, ptr, nal_size, GF_FALSE);
+			vtbdec_register_param_sets(ctx, ptr, nal_size, GF_FALSE);
 			add_nal = GF_FALSE;
 			break;
 		case GF_AVC_NALU_ACCESS_UNIT:
@@ -719,7 +719,7 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 		
 		//if sps and pps are ready, init decoder
 		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
-			e = VTBDec_InitDecoder(ctx);
+			e = vtbdec_init_decoder(filter, ctx);
 			if (e) return e;
 		}
 		
@@ -751,11 +751,10 @@ static GF_Err VTB_ParseNALs(VTBDec *ctx, char *inBuffer, u32 inBufferLength, cha
 	return e;
 }
 
-static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
-                               char *inBuffer, u32 inBufferLength,
-                               u16 ES_ID, u32 *CTS,
-                               char *outBuffer, u32 *outBufferLength,
-                               u8 PaddingBits, u32 mmlevel)
+
+static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx);
+
+static GF_Err vtbdec_process(GF_Filter *filter)
 {
     OSStatus status;
     CMSampleBufferRef sample = NULL;
@@ -763,34 +762,44 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	OSType type;
 	char *in_data;
 	u32 in_data_size;
+	char *in_buffer;
+	u32 in_buffer_size;
 	Bool do_free=GF_FALSE;
-	
 	GF_Err e;
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
-	
+	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
+	GF_FilterPacket *pck, *dst_pck;
+
+	pck = gf_filter_pid_get_packet(ctx->ipid);
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			gf_filter_pid_set_eos(ctx->opid);
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+	in_buffer = gf_filter_pck_get_data(pck, &in_buffer_size);
+
 	if (ctx->skip_mpeg4_vosh) {
 		GF_M4VDecSpecInfo dsi;
 		dsi.width = dsi.height = 0;
-		e = gf_m4v_get_config(inBuffer, inBufferLength, &dsi);
+		e = gf_m4v_get_config(in_buffer, in_buffer_size, &dsi);
 		//found a vosh - remove it from payload, init decoder if needed
 		if ((e==GF_OK) && dsi.width && dsi.height) {
 			if (!ctx->vtb_session) {
-				ctx->vosh = inBuffer;
+				ctx->vosh = in_buffer;
 				ctx->vosh_size = dsi.next_object_start;
-				e = VTBDec_InitDecoder(ctx);
-				if (e) return e;
+				e = vtbdec_init_decoder(filter, ctx);
+				if (e) {
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return e;
+				}
 
 				//enfoce removal for all frames
 				ctx->skip_mpeg4_vosh = GF_TRUE;
-				
-				if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
-					*outBufferLength = ctx->out_size;
-					return GF_BUFFER_TOO_SMALL;
-				}
 			}
 			ctx->vosh_size = dsi.next_object_start;
 		} else if (!ctx->vtb_session) {
-			*outBufferLength=0;
+			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 	}
@@ -799,7 +808,7 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		GF_M4VDecSpecInfo dsi;
 		dsi.width = dsi.height = 0;
 		
-		e = gf_mpegv12_get_config(inBuffer, inBufferLength, &dsi);
+		e = gf_mpegv12_get_config(in_buffer, in_buffer_size, &dsi);
 		if ((e==GF_OK) && dsi.width && dsi.height) {
 			ctx->width = dsi.width;
 			ctx->height = dsi.height;
@@ -807,23 +816,21 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			ctx->pixel_ar <<= 16;
 			ctx->pixel_ar |= dsi.par_den;
 			
-			e = VTBDec_InitDecoder(ctx);
-			if (e) return e;
-
-			if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
-				*outBufferLength = ctx->out_size;
-				return GF_BUFFER_TOO_SMALL;
+			e = vtbdec_init_decoder(filter, ctx);
+			if (e) {
+				gf_filter_pid_drop_packet(ctx->ipid);
+				return e;
 			}
 		}
 
 		if (!ctx->vtb_session) {
-			*outBufferLength=0;
+			gf_filter_pid_drop_packet(ctx->ipid);
 			return GF_OK;
 		}
 	}
 	
 	if (ctx->check_h264_isma) {
-		if (inBuffer && !inBuffer[0] && !inBuffer[1] && !inBuffer[2] && (inBuffer[3]==0x01)) {
+		if (in_buffer && !in_buffer[0] && !in_buffer[1] && !in_buffer[2] && (in_buffer[3]==0x01)) {
 			ctx->check_h264_isma=GF_FALSE;
 			ctx->nalu_size_length=0;
 			ctx->is_annex_b=GF_TRUE;
@@ -838,16 +845,15 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 			in_data_size = ctx->cached_annex_b_size;
 			ctx->cached_annex_b = NULL;
 		} else {
-			e = VTB_ParseNALs(ctx, inBuffer, inBufferLength, &in_data, &in_data_size);
+			e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
 			if (e) return e;
 		}
 
 		if (ctx->reconfig_needed) {
-			if (ctx->raw_frame_dispatch && ctx->decoded_frames_pending) {
-				*outBufferLength = 1;
+			if (ctx->no_copy && ctx->decoded_frames_pending) {
 				gf_free(in_data);
 				ctx->cached_annex_b = NULL;
-				return GF_BUFFER_TOO_SMALL;
+				return GF_OK;
 			}
 			if (ctx->fmt_desc) {
 				CFRelease(ctx->fmt_desc);
@@ -857,34 +863,20 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 				VTDecompressionSessionInvalidate(ctx->vtb_session);
 				ctx->vtb_session=NULL;
 			}
-			VTBDec_InitDecoder(ctx);
-			if (ctx->out_size != *outBufferLength) {
-				*outBufferLength = ctx->out_size;
-				gf_free(in_data);
-				ctx->cached_annex_b = NULL;
-				return GF_BUFFER_TOO_SMALL;
-			}
+			vtbdec_init_decoder(filter, ctx);
 		}
 
-
-		if (!ctx->raw_frame_dispatch && (ctx->out_size != *outBufferLength)) {
-			*outBufferLength = ctx->out_size;
-			ctx->cached_annex_b = in_data;
-			ctx->cached_annex_b_size = in_data_size;
-
-			return GF_BUFFER_TOO_SMALL;
-		}
 	} else if (ctx->vosh_size) {
-		in_data = inBuffer + ctx->vosh_size;
-		in_data_size = inBufferLength - ctx->vosh_size;
+		in_data = in_buffer + ctx->vosh_size;
+		in_data_size = in_buffer_size - ctx->vosh_size;
 		ctx->vosh_size = 0;
 	} else {
-		in_data = inBuffer;
-		in_data_size = inBufferLength;
+		in_data = in_buffer;
+		in_data_size = in_buffer_size;
 	}
 	
 	if (!ctx->vtb_session) {
-		*outBufferLength=0;
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
 	
@@ -895,7 +887,6 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		return GF_IO_ERR;
 	}
 
-	*outBufferLength=0;
 	if (block_buffer == NULL)
 		return GF_OK;
 		
@@ -905,6 +896,8 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
     if (status || (sample==NULL)) {
 		if (block_buffer)
 			CFRelease(block_buffer);
+
+		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_IO_ERR;
 	}
 	ctx->last_error = GF_OK;
@@ -917,18 +910,20 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 	CFRelease(sample);
 	if (do_free)
 		gf_free(in_data);
-	
+
+	ctx->cts = gf_filter_pck_get_cts(pck);
+
+	gf_filter_pid_drop_packet(ctx->ipid);
+
 	if (ctx->last_error) return ctx->last_error;
 	if (status)
 		return GF_NON_COMPLIANT_BITSTREAM;
 	
 	if (!ctx->frame) {
-		*outBufferLength=0;
 		return ctx->last_error;
 	}
-	ctx->cts = *CTS;
-	*outBufferLength = ctx->out_size;
-	if (ctx->raw_frame_dispatch) return GF_OK;
+	//TODO
+	if (ctx->no_copy) return vtbdec_send_output_frame(filter, ctx);
 
 	status = CVPixelBufferLockBaseAddress(ctx->frame, kCVPixelBufferLock_ReadOnly);
     if (status != kCVReturnSuccess) {
@@ -947,10 +942,12 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 		|| (type==kCVPixelFormatType_420YpCbCr8BiPlanarFullRange)
 	) {
         u32 i, j, nb_planes = (u32) CVPixelBufferGetPlaneCount(ctx->frame);
-		char *dst = outBuffer;
+		char *dst;
 		Bool needs_stride=GF_FALSE;
 		u32 stride = (u32) CVPixelBufferGetBytesPerRowOfPlane(ctx->frame, 0);
-			
+
+		GF_FilterPacket *dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &dst);
+
 		//TOCHECK - for now the 3 planes are consecutive in VideoToolbox
 		if (stride==ctx->width) {
 			char *data = CVPixelBufferGetBaseAddressOfPlane(ctx->frame, 0);
@@ -984,6 +981,10 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 				}
 			}
 		}
+
+		gf_filter_pck_set_cts(dst_pck, ctx->cts);
+
+		gf_filter_pck_send(dst_pck);
 	}
     CVPixelBufferUnlockBaseAddress(ctx->frame, kCVPixelBufferLock_ReadOnly);
 
@@ -992,20 +993,22 @@ static GF_Err VTBDec_ProcessData(GF_MediaDecoder *ifcg,
 
 typedef struct
 {
+	GF_FilterHWFrame hw_frame;
+
 	Bool locked;
 	CVPixelBufferRef frame;
-	VTBDec *ctx;
+	GF_VTBDecCtx *ctx;
 	u32 cts;
 	
 	//openGL mode
 #ifdef GPAC_IPHONE
 	CVOpenGLESTextureRef y, u, v;
 #endif
-} VTB_Frame;
+} GF_VTBHWFrame;
 
-void VTBFrame_Release(GF_MediaDecoderFrame *frame)
+void vtbframe_release(GF_FilterHWFrame *frame)
 {
-	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (f->locked) {
 		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
 	}
@@ -1021,28 +1024,27 @@ void VTBFrame_Release(GF_MediaDecoderFrame *frame)
         CVPixelBufferRelease(f->frame);
     }
 	f->ctx->decoded_frames_pending--;
-
-	gf_free(f);
-	gf_free(frame);
+	if (!f->ctx->hwframes) f->ctx->hwframes = gf_list_new();
+	gf_list_add(f->ctx->hwframes, f);
 }
 
-GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
+GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
 {
     OSStatus status;
 	GF_Err e;
-	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! outPlane || !outStride) return GF_BAD_PARAM;
 	*outPlane = NULL;
 	*outStride = 0;
 
-//	if (!f->locked) {
+	if (!f->locked) {
 		status = CVPixelBufferLockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
 		if (status != kCVReturnSuccess) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error locking frame data\n"));
 			return GF_IO_ERR;
 		}
-//		f->locked = GF_TRUE;
-//	}
+		f->locked = GF_TRUE;
+	}
 	e = GF_OK;
 	
     if (CVPixelBufferIsPlanar(f->frame)) {
@@ -1054,8 +1056,6 @@ GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char 
 	} else {
 		e = GF_BAD_PARAM;
 	}
-		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
-
 	return e;
 }
 
@@ -1063,13 +1063,13 @@ GF_Err VTBFrame_GetPlane(GF_MediaDecoderFrame *frame, u32 plane_idx, const char 
 
 void *myGetGLContext();
 
-GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
+GF_Err vtbframe_get_gl_texture(GF_FilterHWFrame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix)
 {
     OSStatus status;
 	GLenum target_fmt;
 	u32 w, h;
 	CVOpenGLESTextureRef *outTexture=NULL;
-	VTB_Frame *f = (VTB_Frame *)frame->user_data;
+	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (! gl_tex_format || !gl_tex_id) return GF_BAD_PARAM;
 	*gl_tex_format = 0;
 	*gl_tex_id = 0;
@@ -1135,204 +1135,151 @@ GF_Err VTBFrame_GetGLTexture(GF_MediaDecoderFrame *frame, u32 plane_idx, u32 *gl
 }
 #endif
 
-GF_Err VTBDec_GetOutputFrame(GF_MediaDecoder *dec, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize)
+static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 {
-	GF_MediaDecoderFrame *a_frame;
-	VTB_Frame *vtb_frame;
-	VTBDec *ctx = (VTBDec *)dec->privateStack;
-	
-	*needs_resize = GF_FALSE;
-	
+	GF_VTBHWFrame *vtb_frame;
+	GF_FilterPacket *dst_pck;
+
 	if (!ctx->frame) return GF_BAD_PARAM;
-	
-	GF_SAFEALLOC(a_frame, GF_MediaDecoderFrame);
-	if (!a_frame) return GF_OUT_OF_MEM;
-	GF_SAFEALLOC(vtb_frame, VTB_Frame);
+
+	vtb_frame = ctx->hwframes ? gf_list_pop_back(ctx->hwframes) : NULL;
 	if (!vtb_frame) {
-		gf_free(a_frame);
-		return GF_OUT_OF_MEM;
+		GF_SAFEALLOC(vtb_frame, GF_VTBHWFrame);
+		if (!vtb_frame) return GF_OUT_OF_MEM;
+	} else {
+		memset(vtb_frame, 0, sizeof(GF_VTBHWFrame));
 	}
-	a_frame->user_data = vtb_frame;
+
 	vtb_frame->ctx = ctx;
 	vtb_frame->frame = ctx->frame;
 	ctx->frame = NULL;
-	a_frame->Release = VTBFrame_Release;
-	a_frame->GetPlane = VTBFrame_GetPlane;
+
+	vtb_frame->hw_frame.user_data = vtb_frame;
+	vtb_frame->hw_frame.destroy = vtbframe_release;
+	vtb_frame->hw_frame.get_plane = vtbframe_get_plane;
 #ifdef GPAC_IPHONE
 	if (ctx->use_gl_textures)
-		a_frame->GetGLTexture = VTBFrame_GetGLTexture;
+		vtb_frame->hw_frame.get_gl_texture = vtbframe_get_gl_texture;
 #endif
 
-	*frame = a_frame;
-	if (ctx->frame_size_changed) {
-		ctx->frame_size_changed = GF_FALSE;
-		*needs_resize = GF_TRUE;
-	}
 	vtb_frame->cts = ctx->cts;
 	ctx->decoded_frames_pending++;
+
+	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame);
+	gf_filter_pck_set_cts(dst_pck, vtb_frame->cts);
+	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }
 
-static u32 VTBDec_CanHandleStream(GF_BaseDecoder *dec, u32 StreamType, GF_ESD *esd, u8 PL)
-{
-#ifdef GPAC_IPHONE
-	u32 ret_val_OK = GF_CODEC_SUPPORTED * 2;
-#else
-	u32 ret_val_OK = GF_CODEC_MAYBE_SUPPORTED;
-#endif
-	if (StreamType != GF_STREAM_VISUAL) return GF_CODEC_NOT_SUPPORTED;
-	/*media type query*/
-	if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-
-	switch (esd->decoderConfig->objectTypeIndication) {
-	case GPAC_OTI_VIDEO_AVC:
-		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
-			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
-			Bool cp_ok = GF_TRUE;
-			if (!cfg->chroma_format) {
-				GF_AVCConfigSlot *s = gf_list_get(cfg->sequenceParameterSets, 0);
-				if (s) {
-					AVCState avc;
-					s32 idx;
-					memset(&avc, 0, sizeof(AVCState));
-					avc.sps_active_idx = -1;
-					idx = gf_media_avc_read_sps(s->data, s->size, &avc, 0, NULL);
-					cfg->chroma_format = avc.sps[idx].chroma_format;
-					cfg->luma_bit_depth = 8 + avc.sps[idx].luma_bit_depth_m8;
-					cfg->chroma_bit_depth = 8 + avc.sps[idx].chroma_bit_depth_m8;
-				}
-			}
-			if ((cfg->chroma_bit_depth>8) || (cfg->luma_bit_depth > 8) || (cfg->chroma_format>1)) {
-				cp_ok = GF_FALSE;
-			}
-			gf_odf_avc_cfg_del(cfg);
-			if (!cp_ok) return GF_CODEC_PROFILE_NOT_SUPPORTED;
-		}
-		return ret_val_OK;
-
-	case GPAC_OTI_VIDEO_MPEG4_PART2:
-		return ret_val_OK;
-
-	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
-	case GPAC_OTI_VIDEO_MPEG2_MAIN:
-	case GPAC_OTI_VIDEO_MPEG2_SNR:
-	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
-	case GPAC_OTI_VIDEO_MPEG2_HIGH:
-	case GPAC_OTI_VIDEO_MPEG2_422:
-		//not supported on iphone
-#ifdef GPAC_IPHONE
-		return GF_CODEC_NOT_SUPPORTED;
-#else
-		return ret_val_OK;
 #endif
 
-	//cannot make it work on ios and OSX version seems buggy (wrong frame output order)
-//	case GPAC_OTI_VIDEO_MPEG1:
-//		return GF_CODEC_SUPPORTED * 2;
+static GF_Err vtbdec_initialize(GF_Filter *filter)
+{
+	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
 
-	case GPAC_OTI_MEDIA_GENERIC:
-		if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->dataLength) {
-			char *dsi = esd->decoderConfig->decoderSpecificInfo->data;
-			if (!strnicmp(dsi, "s263", 4)) return ret_val_OK;
-		}
-	}
-	return GF_CODEC_NOT_SUPPORTED;
+#ifdef GPAC_IPHONE
+	if (ctx->no_copy)
+		ctx->use_gl_textures = GF_TRUE;
+#endif
+
+	return GF_OK;
 }
 
-static const char *VTBDec_GetCodecName(GF_BaseDecoder *dec)
+static void vtbdec_finalize(GF_Filter *filter)
 {
-	VTBDec *ctx = (VTBDec *)dec->privateStack;
-	switch (ctx->vtb_type) {
-	case kCMVideoCodecType_H264:
-		return ctx->is_hardware ? "VTB hardware AVC|H264" : "VTB software AVC|H264";
-	case kCMVideoCodecType_MPEG2Video:
-		return ctx->is_hardware ? "VTB hardware MPEG-2" : "VTB software MPEG-2";
-    case  kCMVideoCodecType_MPEG4Video:
-		return ctx->is_hardware ? "VTB hardware MPEG-4 Part2" : "VTB software MPEG-4 Part2";
-    case kCMVideoCodecType_H263:
-		return ctx->is_hardware ? "VTB hardware H263" : "VTB software H263";
-	case kCMVideoCodecType_MPEG1Video:
-		return ctx->is_hardware ? "VTB hardware MPEG-1" : "VTB software MPEG-1";
-	default:
-		return "VideoToolbox unknown Decoder";
-	}
-}
-
-GF_BaseDecoder *NewVTBDec()
-{
-	GF_MediaDecoder *ifcd;
-	VTBDec *dec;
-
-	GF_SAFEALLOC(ifcd, GF_MediaDecoder);
-	if (!ifcd) return NULL;
-	GF_SAFEALLOC(dec, VTBDec);
-	if (!dec) {
-		gf_free(ifcd);
-		return NULL;
-	}
-	GF_REGISTER_MODULE_INTERFACE(ifcd, GF_MEDIA_DECODER_INTERFACE, "VideoToolbox Decoder", "gpac distribution")
-
-	ifcd->privateStack = dec;
-
-	/*setup our own interface*/
-	ifcd->AttachStream = VTBDec_AttachStream;
-	ifcd->DetachStream = VTBDec_DetachStream;
-	ifcd->GetCapabilities = VTBDec_GetCapabilities;
-	ifcd->SetCapabilities = VTBDec_SetCapabilities;
-	ifcd->GetName = VTBDec_GetCodecName;
-	ifcd->CanHandleStream = VTBDec_CanHandleStream;
-	ifcd->ProcessData = VTBDec_ProcessData;
-	ifcd->GetOutputFrame = VTBDec_GetOutputFrame;
-	return (GF_BaseDecoder *) ifcd;
-}
-
-void DeleteVTBDec(GF_BaseDecoder *ifcg)
-{
-	VTBDec *ctx = (VTBDec *)ifcg->privateStack;
-	VTBDec_DeleteDecoder(ctx);
+	GF_VTBDecCtx *ctx = (GF_VTBDecCtx *) gf_filter_get_udta(filter);
+	vtbdec_delete_decoder(ctx);
 
 #ifdef GPAC_IPHONE
 	if (ctx->cache_texture) {
 		CFRelease(ctx->cache_texture);
     }
 #endif
-	gf_free(ctx);
-	gf_free(ifcg);
-}
-#endif
-
-
-GPAC_MODULE_EXPORT
-const u32 *QueryInterfaces()
-{
-	static u32 si [] = {
-#ifndef GPAC_DISABLE_AV_PARSERS
-		GF_MEDIA_DECODER_INTERFACE,
-#endif
-		0
-	};
-	return si;
-}
-
-GPAC_MODULE_EXPORT
-GF_BaseInterface *LoadInterface(u32 InterfaceType)
-{
-#ifndef GPAC_DISABLE_AV_PARSERS
-	if (InterfaceType == GF_MEDIA_DECODER_INTERFACE) return (GF_BaseInterface *)NewVTBDec();
-#endif
-	return NULL;
-}
-
-GPAC_MODULE_EXPORT
-void ShutdownInterface(GF_BaseInterface *ifce)
-{
-	switch (ifce->InterfaceType) {
-#ifndef GPAC_DISABLE_AV_PARSERS
-	case GF_MEDIA_DECODER_INTERFACE:
-		DeleteVTBDec((GF_BaseDecoder*)ifce);
-		break;
-#endif
+	if (ctx->hwframes) {
+		while (gf_list_count(ctx->hwframes) ) {
+			GF_VTBHWFrame *f = gf_list_pop_back(ctx->hwframes);
+			gf_free(f);
+		}
+		gf_list_del(ctx->hwframes);
 	}
 }
 
-GPAC_MODULE_STATIC_DECLARATION( vtb )
+
+static const GF_FilterCapability GF_VTBDecCtxInputs[] =
+{
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_AVC)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+#ifndef GPAC_IPHONE
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SIMPLE)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SNR)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SPATIAL)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_HIGH)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+
+	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
+	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_422)},
+	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+#endif
+
+	{}
+};
+
+static const GF_FilterCapability GF_VTBDecCtxOutputs[] =
+{
+	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
+	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
+	{}
+};
+
+#define OFFS(_n)	#_n, offsetof(GF_VTBDecCtx, _n)
+
+static const GF_FilterArgs VTBDecArgs[] =
+{
+	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_TRUE},
+	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "true", NULL, GF_TRUE},
+	{}
+};
+
+GF_FilterRegister GF_VTBDecCtxRegister = {
+	.name = "vtbdec",
+	.description = "VideoToolBox decoder",
+	.private_size = sizeof(GF_VTBDecCtx),
+	.args = VTBDecArgs,
+	.input_caps = GF_VTBDecCtxInputs,
+	.output_caps = GF_VTBDecCtxOutputs,
+	.initialize = vtbdec_initialize,
+	.finalize = vtbdec_finalize,
+	.configure_pid = vtbdec_configure_pid,
+	.process = vtbdec_process,
+};
+
+#endif // !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
+
+const GF_FilterRegister *vtbdec_register(GF_FilterSession *session)
+{
+#if !defined(GPAC_DISABLE_AV_PARSERS) && ( defined(GPAC_CONFIG_DARWIN) || defined(GPAC_IPHONE) )
+	return &GF_VTBDecCtxRegister;
+#else
+	return NULL;
+#endif
+}

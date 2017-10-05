@@ -60,23 +60,10 @@ typedef struct
 
 	Bool is_file;
 	u64 file_size;
-
 	Bool in_seek;
-	/*pick first pcr pid for regulation*/
-	u32 regulation_pcr_pid;
-
-	Bool skip_regulation;
-
-	u64 pcr_last;
-	u32 stb_at_last_pcr;
-
-	u32 nb_paused;
-	Bool file_regulate;
-	u32 nb_playing;
-
-	u32 declaration_pendings;
-
 	Bool initial_play_done;
+	u32 nb_playing;
+	u32 declaration_pendings;
 
 	//duration estimation
 	GF_Fraction duration;
@@ -499,17 +486,6 @@ static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(GF_M2TS_PID_EIT_ST_CIT) );
 }
 
-static void forward_m2ts_event(GF_M2TSDmxCtx *ctx, u32 evt_type, void *param)
-{
-#if FILTER_FIXME
-	com.command_type = GF_NET_SERVICE_EVENT;
-	com.send_event.evt.type = GF_EVENT_FROM_SERVICE;
-	com.send_event.evt.from_service.forward_type = GF_EVT_MPEG2;
-	com.send_event.evt.from_service.service_event_type = evt_type;
-	com.send_event.evt.from_service.param = param;
-	gf_service_command(ctx->service, &com, GF_OK);
-#endif
-}
 
 static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
@@ -519,27 +495,18 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 	switch (evt_type) {
 	case GF_M2TS_EVT_PAT_UPDATE:
-//		forward_m2ts_event(ctx, evt_type, param);
 		break;
 	case GF_M2TS_EVT_AIT_FOUND:
-//		forward_m2ts_event(ctx, evt_type, param);
 		ctx->declaration_pendings = gf_list_count(ctx->ts->programs);
 		break;
-
 	case GF_M2TS_EVT_PAT_FOUND:
-		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
-//		forward_m2ts_event(ctx, evt_type, param);
-
 		break;
 	case GF_M2TS_EVT_DSMCC_FOUND:
-//		forward_m2ts_event(ctx, evt_type, param);
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
 		assert(ctx->declaration_pendings);
 		ctx->declaration_pendings --;
 		m2tsdmx_setup_program(ctx, param);
-		/* Send the TS to the a user if needed. Useful to check the number of received programs*/
-//		forward_m2ts_event(ctx, evt_type, param);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
 		break;
@@ -586,9 +553,8 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 
 	case GF_M2TS_EVT_PES_PCR:
 	{
-		Bool discontinuity;
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
-		discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
+		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
 		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
 
@@ -600,98 +566,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 			if (discontinuity) gf_filter_pck_set_clock_discontinuity(dst_pck);
 			gf_filter_pck_send(dst_pck);
 		}
-		pck = (GF_M2TS_PES_PCK *) param;
-		if (pck->stream && pck->stream->program) pck->stream->program->first_dts = 1;
-
-#ifdef FILTER_FIXME
-		if (discontinuity) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR discontinuity - switching from old STB "LLD" to new one "LLD"\n", ctx->pcr_last, ((GF_M2TS_PES_PCK *) param)->PTS));
-			if (ctx->pcr_last) {
-				ctx->pcr_last = pck->PTS;
-				ctx->stb_at_last_pcr = gf_sys_clock();
-			}
-			/*FIXME - we need to find a way to treat PCR discontinuities correctly while ignoring broken PCR discontinuities
-			seen in many HLS solutions*/
-			return;
-		}
-
-		if (ctx->file_regulate) {
-			u64 pcr = pck->PTS;
-			u32 stb = gf_sys_clock();
-
-			if (pck->stream) {
-				if (ctx->regulation_pcr_pid==0) {
-					/*we pick the first PCR PID for file regulation - we don't need to make sure this is the PCR of a program being played as we
-					only check buffer levels, not DTS/PTS of the streams in the regulation step*/
-					ctx->regulation_pcr_pid = pck->stream->pid;
-				} else if (ctx->regulation_pcr_pid != pck->stream->pid) {
-					return;
-				}
-			}
-
-
-			if (ctx->pcr_last) {
-				s32 diff;
-				if (pcr < ctx->pcr_last) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR "LLU" less than previous PCR "LLU"\n", ((GF_M2TS_PES_PCK *) param)->PTS, ctx->pcr_last));
-					ctx->pcr_last = pcr;
-					ctx->stb_at_last_pcr = gf_sys_clock();
-					diff = 0;
-				} else {
-					u64 pcr_diff = (pcr - ctx->pcr_last);
-					pcr_diff /= 27000;
-					if (pcr_diff>1000) {
-						GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] PCR diff too big: "LLU" ms - PCR "LLU" - previous PCR "LLU" - error in TS ?\n", pcr_diff, ((GF_M2TS_PES_PCK *) param)->PTS, ctx->pcr_last));
-						diff = 100;
-					} else {
-						diff = (u32) pcr_diff - (stb - ctx->stb_at_last_pcr);
-					}
-				}
-				if (diff<-400) {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS In] Demux not going fast enough according to PCR (drift %d, pcr: "LLU", last pcr: "LLU")\n", diff, pcr, ctx->pcr_last));
-				} else if (diff>0) {
-					u32 sleep_for=1;
-#ifndef GPAC_DISABLE_LOG
-					u32 nb_sleep=0;
-#endif
-					/*query buffer level, don't sleep if too low*/
-					GF_NetworkCommand com;
-					com.command_type = GF_NET_BUFFER_QUERY;
-					com.base.on_channel = NULL;
-					while (ts->run_state) {
-						gf_service_command(ctx->service, &com, GF_OK);
-						if (!com.buffer.occupancy || (com.buffer.occupancy < com.buffer.max)) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux not going to sleep: buffer occupancy %d ms\n", com.buffer.occupancy));
-							break;
-						}
-						/*We don't sleep for the entire buffer occupancy, because we would take
-						the risk of starving the audio chains. We try to keep buffers half full*/
-						sleep_for = MIN(com.buffer.occupancy/2, M2TS_MAX_SLEEP);
-
-#ifndef GPAC_DISABLE_LOG
-						if (!nb_sleep) {
-							GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux going to sleep for %d ms (buffer occupancy %d ms)\n", sleep_for, com.buffer.occupancy));
-						}
-						nb_sleep++;
-#endif
-						gf_sleep(sleep_for);
-					}
-#ifndef GPAC_DISABLE_LOG
-					if (nb_sleep) {
-						GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux resume after %d ms - current buffer occupancy %d ms\n", sleep_for*nb_sleep, com.buffer.occupancy));
-					}
-#endif
-					ctx->pcr_last = pcr;
-					ctx->stb_at_last_pcr = gf_sys_clock();
-				} else {
-					GF_LOG(GF_LOG_INFO, GF_LOG_CONTAINER, ("[M2TS In] Demux drift according to PCR (drift %d, pcr: "LLD", last pcr: "LLD")\n", diff, pcr, ctx->pcr_last));
-				}
-			} else {
-				ctx->pcr_last = pcr;
-				ctx->stb_at_last_pcr = gf_sys_clock();
-			}
-		}
-#endif
 	}
 		break;
 

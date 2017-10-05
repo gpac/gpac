@@ -3038,7 +3038,6 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 {
-	GF_CodecCapability caps;
 	Bool nalu_annex_b;
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count;

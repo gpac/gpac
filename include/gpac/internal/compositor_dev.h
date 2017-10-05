@@ -704,13 +704,12 @@ typedef struct _gf_sc_texture_handler
 
 	/*image data for natural media*/
 	char *data;
+	//we need a local copy of width/height/etc since some textures may be defined without a stream object
 	u32 size, width, height, pixelformat, pixel_ar, stride, stride_chroma;
 	Bool is_flipped;
 
-	Bool raw_memory;
-	u8 *pU, *pV;
+	GF_FilterHWFrame *hw_frame;
 	u32 nb_frames, upload_time;
-	GF_MediaDecoderFrame *frame;
 
 #ifndef GPAC_DISABLE_VRML
 	/*if set texture has been transformed by MatteTexture -> disable blit*/

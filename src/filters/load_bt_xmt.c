@@ -33,6 +33,11 @@
 
 typedef struct
 {
+	//opts
+	Bool progressive;
+	u32 sax_dur;
+
+	//internal
 	GF_FilterPid *in_pid, *out_pid;
 
 	GF_Scene *scene;
@@ -51,8 +56,7 @@ typedef struct
 	GF_List *files_to_delete;
 	/*progressive loading support for XMT X3D*/
 	FILE *src;
-	u32 file_pos, sax_max_duration;
-	Bool progressive_support;
+	u32 file_pos;
 
 	u64 pck_time;
 	const char *service_url;
@@ -163,9 +167,7 @@ static GF_Err CTXLoad_Setup(GF_Filter *filter, CTXLoadPriv *priv)
 	priv->load.fileName = priv->file_name;
 	priv->load.src_url = priv->service_url;
 	priv->load.flags = GF_SM_LOAD_FOR_PLAYBACK;
-#ifdef FILTER_FIXME
-	priv->load.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-#endif
+	priv->load.localPath = gf_get_default_cache_directory();
 
 	priv->load.swf_import_flags = GF_SM_SWF_STATIC_DICT | GF_SM_SWF_QUAD_CURVE | GF_SM_SWF_SCALABLE_LINE | GF_SM_SWF_SPLIT_TIMELINE;
 
@@ -257,16 +259,35 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	priv->pck_time = -1;
 
-	priv->progressive_support = GF_FALSE;
-	priv->sax_max_duration = 0;
 
-#if FILTER_FIXME
-	ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
-	priv->progressive_support = (ext && !stricmp(ext, "yes")) ? GF_TRUE : GF_FALSE;
-
-	ext = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
-	if (ext) priv->sax_max_duration = atoi(ext);
-#endif
+	switch (priv->load.type) {
+	case GF_SM_LOAD_BT:
+		gf_filter_set_name(filter, "Load:BT");
+		break;
+	case GF_SM_LOAD_VRML:
+		gf_filter_set_name(filter, "Load:VRML97");
+		break;
+	case GF_SM_LOAD_X3DV:
+		gf_filter_set_name(filter, "Load:X3D+vrml");
+		break;
+	case GF_SM_LOAD_XMTA:
+		gf_filter_set_name(filter, "Load:XMTA");
+		break;
+	case GF_SM_LOAD_X3D:
+		gf_filter_set_name(filter, "Load:X3D+XML Syntax");
+		break;
+	case GF_SM_LOAD_SWF:
+		gf_filter_set_name(filter, "Load:SWF");
+		break;
+	case GF_SM_LOAD_XSR:
+		gf_filter_set_name(filter, "Load:LASeRML");
+		break;
+	case GF_SM_LOAD_MP4:
+		gf_filter_set_name(filter, "Load:MP4BIFSMemory");
+		break;
+	default:
+		break;
+	}
 
 	return GF_OK;
 }
@@ -433,7 +454,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 
 	if (priv->load_flags != 2) {
 
-		if (priv->progressive_support) {
+		if (priv->progressive) {
 			u32 entry_time;
 			char file_buf[4096+1];
 			if (!priv->src) {
@@ -467,7 +488,7 @@ static GF_Err ctxload_process(GF_Filter *filter)
 				priv->file_pos += nb_read;
 				if (e) break;
 				diff = gf_sys_clock() - entry_time;
-				if (diff > priv->sax_max_duration) break;
+				if (diff > priv->sax_dur) break;
 			}
 			if (!priv->scene->graph_attached) {
 				gf_sg_set_scene_size_info(priv->scene->graph, priv->ctx->scene_width, priv->ctx->scene_height, priv->ctx->is_pixel_metrics);
@@ -772,67 +793,6 @@ static GF_Err ctxload_process(GF_Filter *filter)
 	return GF_OK;
 }
 
-const char *CTXLoad_GetName(struct _basedecoder *plug)
-{
-	CTXLoadPriv *priv = (CTXLoadPriv *)plug->privateStack;
-
-	switch (priv->load.type) {
-	case GF_SM_LOAD_BT:
-		return "MPEG-4 BT Parser";
-	case GF_SM_LOAD_VRML:
-		return "VRML 97 Parser";
-	case GF_SM_LOAD_X3DV:
-		return "X3D (VRML Syntax) Parser";
-	case GF_SM_LOAD_XMTA:
-		return "XMT-A Parser";
-	case GF_SM_LOAD_X3D:
-		return "X3D (XML Syntax) Parser";
-	case GF_SM_LOAD_SWF:
-		return "Flash (SWF) Emulator";
-	case GF_SM_LOAD_XSR:
-		return "LASeRML Loader";
-	case GF_SM_LOAD_MP4:
-		return "MP4 Memory Loader";
-	case GF_SM_LOAD_XBL:
-		return "XBL Parser";
-
-	default:
-		return "Undetermined";
-	}
-}
-
-static u32 CTXLoad_CanHandleStream(GF_BaseDecoder *ifce, u32 StreamType, GF_ESD *esd, u8 PL)
-{
-	if (StreamType==GF_STREAM_PRIVATE_SCENE) {
-		/*media type query*/
-		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_PRIVATE_SCENE_GENERIC:
-			return GF_CODEC_SUPPORTED;
-		/*LASeR ML: we use this plugin since it has command handling*/
-		case GPAC_OTI_PRIVATE_SCENE_LASER:
-			return GF_CODEC_SUPPORTED;
-		/* XBL */
-		case GPAC_OTI_PRIVATE_SCENE_XBL:
-			return GF_CODEC_SUPPORTED;
-		/*SVG*/
-		case GPAC_OTI_PRIVATE_SCENE_SVG:
-			return GF_CODEC_MAYBE_SUPPORTED;
-		}
-	} else if (StreamType==GF_STREAM_SCENE) {
-		/*media type query*/
-		if (!esd) return GF_CODEC_STREAM_TYPE_SUPPORTED;
-		switch (esd->decoderConfig->objectTypeIndication) {
-		case GPAC_OTI_SCENE_SVG:
-		case GPAC_OTI_SCENE_SVG_GZ:
-		case GPAC_OTI_SCENE_DIMS:
-			return GF_CODEC_MAYBE_SUPPORTED;
-		default:
-			break;
-		}
-	}
-	return GF_CODEC_NOT_SUPPORTED;
-}
 
 static void ctxload_finalize(GF_Filter *filter)
 {
@@ -878,12 +838,22 @@ static const GF_FilterCapability CTXLoadOutputs[] =
 	{}
 };
 
+
+#define OFFS(_n)	#_n, offsetof(CTXLoadPriv, _n)
+
+static const GF_FilterArgs CTXLoadArgs[] =
+{
+	{ OFFS(progressive), "enable progressive loading", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(sax_dur), "SAX loading duration", GF_PROP_UINT, "1000", NULL, GF_TRUE},
+	{}
+};
+
 GF_FilterRegister CTXLoadRegister = {
 	.name = "ctx_load",
 	.description = "Textual scene playback for BT/XMT/X3D",
 	.private_size = sizeof(CTXLoadPriv),
 	.requires_main_thread = GF_TRUE,
-	.args = NULL,
+	.args = CTXLoadArgs,
 	.input_caps = CTXLoadInputs,
 	.output_caps = CTXLoadOutputs,
 	.finalize = ctxload_finalize,
