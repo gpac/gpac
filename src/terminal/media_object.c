@@ -27,7 +27,6 @@
 #include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
-#include <gpac/modules/codec.h>
 #include <gpac/nodes_x3d.h>
 #include "media_memory.h"
 #include "media_control.h"
@@ -303,7 +302,7 @@ void gf_mo_update_caps(GF_MediaObject *mo)
 }
 
 GF_EXPORT
-char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_MediaDecoderFrame **outFrame)
+char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_time_ms, Bool *eos, u32 *timestamp, u32 *size, s32 *ms_until_pres, s32 *ms_until_next, GF_FilterHWFrame **outFrame)
 {
 
 	u32 force_decode_mode = 0;
@@ -483,11 +482,8 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 
-			gf_filter_pck_get_data(next_pck, &next_data_size);
 			//nothing ready yet
-			if (!next_data_size) {
-				//TODO: force decode mode (pull mode of filter graph ?)
-
+			if ( gf_filter_pck_is_empty(next_pck) ) {
 				break;
 			}
 
@@ -522,6 +518,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	mo->frame = gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
 	mo->frame += mo->RenderedLength;
+	mo->hw_frame = gf_filter_pck_get_hw_frame(mo->pck);
 //	mo->media_frame = CU->frame;
 
 	if (next_ts) {
@@ -590,17 +587,17 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 
 	mo->nb_fetch ++;
-	assert(mo->frame);
+	assert(mo->frame || mo->hw_frame);
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;
 	if (ms_until_next) *ms_until_next = mo->ms_until_next;
-	if (outFrame) *outFrame = mo->media_frame;
+	if (outFrame) *outFrame = mo->hw_frame;
 
 //	gf_odm_service_media_event(mo->odm, GF_EVENT_MEDIA_TIME_UPDATE);
 
-	if (mo->media_frame)
-		return (char *) mo->media_frame;
+	if (mo->hw_frame)
+		return (char *) mo->hw_frame;
 
 	return mo->frame;
 }

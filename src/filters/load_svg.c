@@ -34,13 +34,16 @@
 
 typedef struct
 {
+	//opts
+	u32 sax_dur;
+
+	//internal
 	GF_FilterPid *in_pid, *out_pid;
 	GF_SceneLoader loader;
 	GF_Scene *scene;
 	u32 oti;
 	const char *file_name;
 	u32 file_size;
-	u32 sax_max_duration;
 	u16 base_es_id;
 	u32 file_pos;
 	gzFile src;
@@ -195,7 +198,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet( svgin->in_pid);
 
 		/*full doc parsing*/
-		if ((svgin->sax_max_duration==(u32) -1) && svgin->file_name) {
+		if ((svgin->sax_dur == 0) && svgin->file_name) {
 			if (end) {
 				svgin->loader.fileName = svgin->file_name;
 				e = gf_sm_load_init(&svgin->loader);
@@ -244,7 +247,7 @@ static GF_Err svgin_process(GF_Filter *filter)
 
 				gf_set_progress("SVG Parsing", svgin->file_pos, svgin->file_size);
 				diff = gf_sys_clock() - entry_time;
-				if (diff > svgin->sax_max_duration) {
+				if (diff > svgin->sax_dur) {
 					break;
 				}
 			}
@@ -329,37 +332,17 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	gf_filter_pid_set_udta(pid, svgin->out_pid);
 
 
-	svgin->sax_max_duration = (u32) -1;
-
-#ifdef FILTER_FIXME
-	if (!esd->dependsOnESID) svgin->base_es_id = esd->ESID;
-
-	sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "Progressive");
-	if (sOpt && !strcmp(sOpt, "yes")) {
-		svgin->sax_max_duration = 30;
-		sOpt = gf_modules_get_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration");
-		if (sOpt) {
-			svgin->sax_max_duration = atoi(sOpt);
-		} else {
-			svgin->sax_max_duration = 30;
-			gf_modules_set_option((GF_BaseInterface *)plug, "SAXLoader", "MaxDuration", "30");
-		}
-	} else {
-		svgin->sax_max_duration = (u32) -1;
+	if (svgin->oti==GPAC_OTI_PRIVATE_SCENE_SVG) {
+		gf_filter_set_name(filter,  ((svgin->sax_dur==0) && svgin->file_size) ? "SVGLoad" : "SVGLoad:Progressive");
+	} else if (svgin->oti==GPAC_OTI_SCENE_SVG) {
+		gf_filter_set_name(filter,  "SVG:Streaming");
+	} else if (svgin->oti==GPAC_OTI_SCENE_SVG_GZ) {
+		gf_filter_set_name(filter,  "SVG:Streaming:GZ");
+	} else if (svgin->oti==GPAC_OTI_SCENE_DIMS) {
+		gf_filter_set_name(filter,  "SVG:DIMS");
 	}
-#endif
 
 	return GF_OK;
-}
-
-const char *SVG_GetName(struct _basedecoder *plug)
-{
-	SVGIn *svgin = (SVGIn *)plug->privateStack;
-	if (svgin->oti==GPAC_OTI_PRIVATE_SCENE_SVG) return ((svgin->sax_max_duration==(u32)-1) && svgin->file_size) ? "GPAC SVG SAX Parser" : "GPAC SVG Progressive Parser";
-	if (svgin->oti==GPAC_OTI_SCENE_SVG) return "GPAC Streaming SVG Parser";
-	if (svgin->oti==GPAC_OTI_SCENE_SVG_GZ) return "GPAC Streaming SVGZ Parser";
-	if (svgin->oti==GPAC_OTI_SCENE_DIMS) return "GPAC DIMS Parser";
-	return "INTERNAL ERROR";
 }
 
 static Bool svgin_process_event(GF_Filter *filter, GF_FilterEvent *com)
@@ -394,9 +377,8 @@ static Bool svgin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 				svgin->loader.is = svgin->scene;
 				svgin->scene = svgin->scene;
 				svgin->loader.scene_graph = svgin->scene->graph;
-#ifdef FILTER_FIXME
-				svgin->loader.localPath = gf_modules_get_option((GF_BaseInterface *)plug, "General", "CacheDirectory");
-#endif
+				svgin->loader.localPath = gf_get_default_cache_directory();
+				
 				/*Warning: svgin->loader.type may be overriden in attach stream */
 				svgin->loader.type = GF_SM_LOAD_SVG;
 				svgin->loader.flags = GF_SM_LOAD_FOR_PLAYBACK;
@@ -436,12 +418,20 @@ static const GF_FilterCapability SVGInOutputs[] =
 	{}
 };
 
+
+#define OFFS(_n)	#_n, offsetof(SVGIn, _n)
+
+static const GF_FilterArgs SVGInArgs[] =
+{
+	{ OFFS(sax_dur), "SAX loading duration, 0 disables SAX parsing", GF_PROP_UINT, "0", NULL, GF_TRUE},
+	{}
+};
 GF_FilterRegister SVGInRegister = {
 	.name = "svg_in",
 	.description = "SVG playback",
 	.private_size = sizeof(SVGIn),
 	.requires_main_thread = GF_TRUE,
-	.args = NULL,
+	.args = SVGInArgs,
 	.input_caps = SVGInInputs,
 	.output_caps = SVGInOutputs,
 	.process = svgin_process,

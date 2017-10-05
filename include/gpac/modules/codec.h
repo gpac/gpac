@@ -225,99 +225,6 @@ typedef struct _basedecoder
 	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
 } GF_BaseDecoder;
 
-/*interface name and version for media decoder */
-#define GF_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'M', 'D', '3')
-
-typedef struct _mediadecoderframe
-{
-	//release media frame
-	void (*Release)(struct _mediadecoderframe *frame);
-	//get media frame plane
-	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
-	// @outPlane: adress of target color plane
-	// @outStride: stride in bytes of target color plane
-	GF_Err (*GetPlane)(struct _mediadecoderframe *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
-
-	GF_Err (*GetGLTexture)(struct _mediadecoderframe *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_CodecMatrix * texcoordmatrix);
-
-	//allocated space by the decoder
-	void *user_data;
-} GF_MediaDecoderFrame;
-
-/*the media module interface. A media module MUST be implemented in synchronous mode as time
-and resources management is done by the terminal*/
-typedef struct _mediadecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Process the media data in inAU.
-	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
-	@ES_ID: stream this data belongs too (scalable object)
-	@outBuffer, outBufferLength: allocated data for decoding - if outBufferLength is not enough
-		you must set the size in outBufferLength and GF_BUFFER_TOO_SMALL
-
-	@PaddingBits is the padding at the end of the buffer (some codecs need this info)
-	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _mediadecoder *,
-	                      char *inBuffer, u32 inBufferLength,
-	                      u16 ES_ID, u32 *CTS,
-	                      char *outBuffer, u32 *outBufferLength,
-	                      u8 PaddingBits, u32 mmlevel);
-
-
-	/*optional (may be null), retrievs internal output frame of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_RAW_MEMORY*/
-	GF_Err (*GetOutputBuffer)(struct _mediadecoder *, u16 ES_ID, u8 **pY_or_RGB, u8 **pU, u8 **pV);
-
-	/*optional (may be null), retrievs internal output frame object of decoder. this function is called only if the decoder returns GF_OK on a SetCapabilities GF_CODEC_FRAME_OUTPUT*/
-	GF_Err (*GetOutputFrame)(struct _mediadecoder *, u16 ES_ID, GF_MediaDecoderFrame **frame, Bool *needs_resize);
-} GF_MediaDecoder;
-
-
-#if 0
-
-/*
-				WARNING - DO NOT MODIFY THE POSITION OF ProcessData IN SCENE OR NODE DECODER, AS THE BOTH STRUCTURES
-		ARE TYPE_CASTED BY THE TERMINAL WHEN CALLING ProcessData
-*/
-typedef struct _gf_scene *LPSCENE;
-
-/*interface name and version for scene decoder */
-#define GF_SCENE_DECODER_INTERFACE		GF_4CC('G', 'S', 'D', '3')
-
-typedef struct _scenedecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Process the scene data in inAU.
-	@inBuffer, inBufferLength: encoded input data (complete framing of encoded data)
-	@ES_ID: stream this data belongs too (scalable object)
-	@AU_Time: specifies the current AU time. This is usually unused, however is needed for decoder
-	handling the scene graph without input data (cf below). In this case the buffer passed is always NULL and the AU
-	time caries the time of the scene (or of the stream object attached to the scene decoder, cf below)
-	@mmlevel: speed indicator for the decoding - cf above for values*/
-	GF_Err (*ProcessData)(struct _scenedecoder *, const char *inBuffer, u32 inBufferLength,
-	                      u16 ES_ID, u32 AU_Time, u32 mmlevel);
-
-
-	/*attaches scene to the decoder - a scene may be attached to several decoders of several types
-	(BIFS or others scene dec, ressource decoders (OD), etc.
-	is: inline scene owning graph (and not just graph), defined in intern/terminal_dev.h. With inline scene
-	the complete terminal is exposed so there's pretty much everything doable in a scene decoder
-	@is_scene_root: set to true if this decoder is the root of the scene, false otherwise (either another decoder
-	or a re-entrant call, cf below)
-	This is called once upon creation of the decoder (several times if re-entrant)
-	*/
-	GF_Err (*AttachScene)(struct _scenedecoder *, LPSCENE scene, Bool is_scene_root);
-	/*releases scene. If the decoder manages nodes / resources in the scene,
-	THESE MUST BE DESTROYED. May be NULL if decoder doesn't manage nodes but only create them (like BIFS, OD) and
-	doesn't have to be instructed the scene is about to be resumed
-	This is called each time the scene is about to be reseted (eg, seek and destroy)
-	*/
-	GF_Err (*ReleaseScene)(struct _scenedecoder *);
-} GF_SceneDecoder;
-
-#endif
-
 
 /*interface name and version for node decoder mainly used by AFX*/
 #define GF_NODE_DECODER_INTERFACE		GF_4CC('G', 'N', 'D', '3')
@@ -364,23 +271,6 @@ typedef struct __input_device
 } GF_InputSensorDevice;
 
 
-
-
-/*interface name and version for media decoder */
-#define GF_PRIVATE_MEDIA_DECODER_INTERFACE		GF_4CC('G', 'P', 'M', '2')
-
-/*the media module interface. A media module MUST be implemented in synchronous mode as time
-and resources management is done by the terminal*/
-typedef struct _private_mediadecoder
-{
-	GF_CODEC_BASE_INTERFACE(struct _basedecoder *)
-
-	/*Control media decoder.
-	@mute: set mute or not
-	@x, y, w, h: video output position in screen coordinate
-	*/
-	GF_Err (*Control)(struct _private_mediadecoder *, Bool mute, GF_Window *src_rect, GF_Window *dst_rect);
-} GF_PrivateMediaDecoder;
 
 #ifdef __cplusplus
 }

@@ -37,9 +37,9 @@ void gf_filterpacket_del(void *p)
 	gf_free(p);
 }
 
-static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_global_args);
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, Bool is_global_args, GF_Err *err)
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err)
 {
 	char szName[200];
 	GF_Filter *filter;
@@ -79,7 +79,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	gf_list_add(fsess->filters, filter);
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
-	e = gf_filter_new_finalize(filter, args, is_global_args);
+	e = gf_filter_new_finalize(filter, args, arg_type);
 	if (e) {
 		if (!filter->finalized) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
@@ -93,11 +93,11 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 }
 
 
-GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, Bool is_global_args)
+GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	gf_filter_set_name(filter, NULL);
 
-	gf_filter_parse_args(filter, args, is_global_args);
+	gf_filter_parse_args(filter, args, arg_type);
 
 	filter->skip_process_trigger_on_tasks = GF_FALSE;
 	if (!strcmp(filter->freg->name, "compositor"))
@@ -331,7 +331,7 @@ void gf_filter_update_arg_task(GF_FSTask *task)
 }
 
 
-static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_global_args)
+static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterArgType arg_type)
 {
 	u32 i=0;
 	Bool has_meta_args = GF_FALSE;
@@ -365,7 +365,6 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 			has_meta_args = GF_TRUE;
 			continue;
 		}
-
 		argv = gf_props_parse_value(a->arg_type, a->arg_name, a->arg_default_val, a->min_max_enum);
 
 		if (argv.type != GF_PROP_FORBIDEN) {
@@ -422,6 +421,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 			value[0] = 0;
 			value++;
 		}
+
+		if ((arg_type == GF_FILTER_ARG_GLOBAL) && !strcmp(szArg, "src"))
+			goto skip_arg;
+
 		i=0;
 		while (filter->freg->args) {
 			const GF_FilterArgs *a = &filter->freg->args[i];
@@ -466,10 +469,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, Bool is_gl
 			}
 		}
 
-
-		if (!found && !is_global_args) {
+		if (!found && (arg_type==GF_FILTER_ARG_LOCAL) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("Argument \"%s\" not found in filter options, ignoring\n", szArg));
 		}
+skip_arg:
 		if (escaped) {
 			args=sep+6;
 		} else if (sep) {
@@ -593,7 +596,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, GF_FALSE, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, GF_FILTER_ARG_LOCAL, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 

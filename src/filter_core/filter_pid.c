@@ -756,7 +756,7 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 			const GF_FilterRegister *freg = gf_list_get(filter_chain, i);
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\t%s\n", freg->name));
 
-			af = gf_filter_new(fsess, freg, args, GF_TRUE, NULL);
+			af = gf_filter_new(fsess, freg, args, GF_FILTER_ARG_GLOBAL, NULL);
 			if (!af) goto exit;
 			//remember the first load one
 			if (!i) chain_input = af;

@@ -151,6 +151,8 @@ struct __gf_filter_pck
 	//for packet reference  packets (sharing data from other packets)
 	struct __gf_filter_pck *reference;
 
+	GF_FilterHWFrame *hw_frame;
+	
 	// properties applying to this packet
 	GF_PropertyMap *props;
 	//pid properties applying to this packet
@@ -362,14 +364,21 @@ struct __gf_filter
 	u64 schedule_next_time;
 };
 
-GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, Bool is_global_args, GF_Err *err);
+typedef enum
+{
+	GF_FILTER_ARG_LOCAL = 0,
+	GF_FILTER_ARG_GLOBAL,
+	GF_FILTER_ARG_GLOBAL_SOURCE,
+} GF_FilterArgType;
+
+GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *registry, const char *args, GF_FilterArgType arg_type, GF_Err *err);
 GF_Filter *gf_filter_clone(GF_Filter *filter);
 void gf_filter_del(GF_Filter *filter);
 
 void gf_filter_set_arg(GF_Filter *filter, const GF_FilterArgs *a, GF_PropertyValue *argv);
 Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
-GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, Bool is_global_args);
+GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
 GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter);
 

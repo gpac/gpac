@@ -285,7 +285,7 @@ void gf_props_remove_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const cha
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		for (i=0; i<count; i++) {
 			GF_PropertyEntry *prop = gf_list_get(map->hash_table[hash], i);
-			if ((p4cc && (p4cc==prop->p4cc)) || (name && !strcmp(prop->pname, name)) ) {
+			if ((p4cc && (p4cc==prop->p4cc)) || (name && prop->pname && !strcmp(prop->pname, name)) ) {
 				gf_list_rem(map->hash_table[hash], i);
 				gf_props_del_property(map, prop);
 				break;
@@ -314,7 +314,7 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	} else {
 		u32 i, count = gf_list_count(map->hash_table[hash]);
 		if (count) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries - confllicting with:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("PropertyMap hash collision for %s - %d entries:\n", p4cc ? gf_4cc_to_str(p4cc) : name ? name : dyn_name, 1+gf_list_count(map->hash_table[hash]) ));
 			for (i=0; i<count; i++) {
 				GF_PropertyEntry *prop_c = gf_list_get(map->hash_table[hash], i);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n\n", prop_c->pname ? prop_c->pname : gf_4cc_to_str(prop_c->p4cc)  ));

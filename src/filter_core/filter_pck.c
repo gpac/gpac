@@ -160,6 +160,15 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	return pck;
 }
 
+GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame)
+{
+	GF_FilterPacket *pck;
+	if (!hw_frame) return NULL;
+	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	pck->hw_frame = hw_frame;
+	return pck;
+}
+
 GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 {
 	GF_FilterPacket *pck;
@@ -182,6 +191,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	assert(pck->pid);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
+	if (pck->hw_frame && pck->hw_frame->destroy) pck->hw_frame->destroy(pck->hw_frame);
 
 	if (pck->pid_props) {
 		GF_PropertyMap *props = pck->pid_props;
@@ -596,6 +606,12 @@ const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 	return (const char *)pck->data;
 }
 
+Bool gf_filter_pck_is_empty(GF_FilterPacket *pck)
+{
+	if (!pck) return GF_TRUE;
+	return (pck->data_length || pck->hw_frame) ? GF_FALSE : GF_TRUE;
+}
+
 static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
 {
 	u32 hash;
@@ -851,3 +867,10 @@ Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck)
 	assert(pck);
 	return pck->pck->clock_discontinuity ? GF_TRUE : GF_FALSE;
 }
+
+GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
+{
+	assert(pck);
+	return pck->pck->hw_frame;
+}
+

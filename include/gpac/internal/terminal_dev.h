@@ -726,7 +726,7 @@ struct _mediaobj
 	u32 nb_views;
 	u32 nb_layers;
 	u32 view_min_x, view_max_x, view_min_y, view_max_y;
-	GF_MediaDecoderFrame *media_frame;
+	GF_FilterHWFrame *hw_frame;
 };
 
 GF_MediaObject *gf_mo_new();
