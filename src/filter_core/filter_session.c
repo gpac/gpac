@@ -61,6 +61,7 @@ const GF_FilterRegister *udpin_register(GF_FilterSession *session);
 const GF_FilterRegister *dvblin_register(GF_FilterSession *session);
 const GF_FilterRegister *vtbdec_register(GF_FilterSession *session);
 const GF_FilterRegister *lsrdec_register(GF_FilterSession *session);
+const GF_FilterRegister *safdmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -93,6 +94,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
 
 //	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 //	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
