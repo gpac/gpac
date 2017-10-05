@@ -25,6 +25,7 @@
 
 
 #include <gpac/terminal.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/options.h>
 #include <gpac/media_tools.h>
 
@@ -60,7 +61,6 @@ typedef struct tagBITMAPINFOHEADER {
 
 
 #include <gpac/internal/avilib.h>
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 
 
@@ -344,12 +344,13 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 {
 	GF_Err e;
 	u32 i, k;
+	GF_Compositor *compositor = gf_term_get_compositor(term);
 
 	GF_VideoSurface fb;
 	u32 dump_mode = dump_mode_flags & 0x0000FFFF;
 
 	/*lock it*/
-	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+	e = gf_sc_get_screen_buffer(compositor, &fb, 1);
 	if (e) fprintf(stderr, "Error grabbing depth buffer: %s\n", gf_error_to_string(e));
 	else  fprintf(stderr, "OK\n");
 	/*export frame*/
@@ -443,7 +444,7 @@ void dump_depth (GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fra
 		break;
 	}
 	/*unlock it*/
-	gf_sc_release_screen_buffer(term->compositor, &fb);
+	gf_sc_release_screen_buffer(compositor, &fb);
 }
 
 void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 frameNum, char *conv_buf, void *avi_out, FILE *sha_out)
@@ -451,6 +452,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 	GF_Err e = GF_OK;
 	u32 i, k, out_size;
 	GF_VideoSurface fb;
+	GF_Compositor *compositor = gf_term_get_compositor(term);
 
 	u32 dump_mode = dump_mode_flags & 0x0000FFFF;
 	u32 depth_dump_mode = 0;
@@ -460,7 +462,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 	else if (dump_mode_flags & DUMP_DEPTH_ONLY) depth_dump_mode = 1;
 
 	/*lock it*/
-	e = gf_sc_get_screen_buffer(term->compositor, &fb, depth_dump_mode);
+	e = gf_sc_get_screen_buffer(compositor, &fb, depth_dump_mode);
 	if (e) fprintf(stderr, "Error grabbing frame buffer: %s\n", gf_error_to_string(e));
 
 	/*export frame*/
@@ -603,7 +605,7 @@ void dump_frame(GF_Terminal *term, char *rad_name, u32 dump_mode_flags, u32 fram
 		break;
 	}
 	/*unlock it*/
-	gf_sc_release_screen_buffer(term->compositor, &fb);
+	gf_sc_release_screen_buffer(compositor, &fb);
 }
 
 #ifndef GPAC_DISABLE_AVILIB
@@ -677,6 +679,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	u32 time, prev_time, nb_frames, init_time;
 	u64 dump_dur;
 	char *conv_buf = NULL;
+	GF_Compositor *compositor = gf_term_get_compositor(term);
 #ifndef GPAC_DISABLE_AVILIB
 	avi_t *avi_out = NULL;
 	avi_t *depth_avi_out = NULL;
@@ -720,8 +723,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	/*connect and pause */
 	gf_term_connect_from_time(term, url, 0, 2);
 
-	while (!term->compositor->scene
-	        || term->compositor->msg_type
+	while (!compositor->scene
+	        || compositor->msg_type
 	        || (gf_term_get_option(term, GF_OPT_PLAY_STATE) == GF_STATE_STEP_PAUSE)
 	      ) {
 		if (last_error) return 1;
@@ -737,9 +740,9 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		gf_term_process_flush(term);
 	}
 #ifndef GPAC_USE_TINYGL
-	e = gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+	e = gf_sc_get_screen_buffer(compositor, &fb, 0);
 #else
-	e = gf_sc_get_screen_buffer(term->compositor, &fb, 1);
+	e = gf_sc_get_screen_buffer(compositor, &fb, 1);
 #endif
 	if (e != GF_OK) {
 		fprintf(stderr, "Error grabbing screen buffer: %s\n", gf_error_to_string(e));
@@ -747,7 +750,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 	}
 	width = fb.width;
 	height = fb.height;
-	gf_sc_release_screen_buffer(term->compositor, &fb);
+	gf_sc_release_screen_buffer(compositor, &fb);
 
 	if (scale != 1) {
 		width = (u32)(width * scale);
@@ -764,10 +767,10 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		gf_term_set_size(term, width, height);
 		gf_term_process_flush(term);
 
-		gf_sc_get_screen_buffer(term->compositor, &fb, 0);
+		gf_sc_get_screen_buffer(compositor, &fb, 0);
 		width = fb.width;
 		height = fb.height;
-		gf_sc_release_screen_buffer(term->compositor, &fb);
+		gf_sc_release_screen_buffer(compositor, &fb);
 	}
 
 
@@ -843,7 +846,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		comp[0] = comp[1] = comp[2] = comp[3] = comp[4] = 0;
 		AVI_set_video(avi_out, width, height, fps, comp);
 
-		if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+		if (! (compositor->user->init_flags & GF_TERM_NO_AUDIO)) {
 			memset(&avi_al, 0, sizeof(avi_al));
 			avi_al.al.udta = &avi_al;
 			avi_al.al.on_audio_frame = avi_audio_frame;
@@ -852,7 +855,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			avi_al.avi = avi_out;
 			avi_al.max_dur=dump_dur;
 
-			gf_sc_add_audio_listener(term->compositor, &avi_al.al);
+			gf_sc_add_audio_listener(compositor, &avi_al.al);
 		}
 
 		if (dump_mode_flags & DUMP_DEPTH_ONLY)
@@ -910,10 +913,10 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 			if (dump_mode_flags & DUMP_DEPTH_ONLY) {
 
 				/*we'll dump both buffers at once*/
-				gf_mx_p(term->compositor->mx);
+				gf_mx_p(compositor->mx);
 				dump_depth(term, szPath_depth, dump_mode_flags, i+1, conv_buf, depth_avi_out, sha_depth_out);
 				dump_frame(term, szOutPath, mode, i+1, conv_buf, avi_out, sha_out);
-				gf_mx_v(term->compositor->mx);
+				gf_mx_v(compositor->mx);
 			} else {
 				dump_frame(term, szOutPath, dump_mode_flags, i+1, conv_buf, avi_out, sha_out);
 			}
@@ -950,7 +953,7 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 
 #ifndef GPAC_DISABLE_AVILIB
 	//flush audio dump
-	if (!ret && (mode==DUMP_AVI) && ! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
+	if (!ret && (mode==DUMP_AVI) && ! (compositor->user->init_flags & GF_TERM_NO_AUDIO)) {
 		avi_al.flush_retry=0;
 		while ((avi_al.flush_retry <1000) && (avi_al.audio_time < avi_al.audio_time_init + avi_al.max_dur)) {
 			gf_term_step_clocks(term, 0);
@@ -963,8 +966,8 @@ Bool dump_file(char *url, char *out_url, u32 dump_mode_flags, Double fps, u32 wi
 		}
 	}
 
-	if (! (term->user->init_flags & GF_TERM_NO_AUDIO)) {
-		gf_sc_remove_audio_listener(term->compositor, &avi_al.al);
+	if (! (compositor->user->init_flags & GF_TERM_NO_AUDIO)) {
+		gf_sc_remove_audio_listener(compositor, &avi_al.al);
 	}
 	if (avi_out) AVI_close(avi_out);
 	if (depth_avi_out) AVI_close(depth_avi_out);
