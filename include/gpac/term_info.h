@@ -56,6 +56,8 @@ extern "C" {
 #include <gpac/mpeg4_odf.h>
 #include <gpac/terminal.h>
 
+typedef struct _od_manager GF_ObjectManager;
+
 /*returns top-level OD of the presentation*/
 GF_ObjectManager *gf_term_get_root_object(GF_Terminal *term);
 /*returns number of sub-ODs in the current root. scene_od must be an inline OD*/

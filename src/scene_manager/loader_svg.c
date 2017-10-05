@@ -28,13 +28,11 @@
 #include <gpac/utf.h>
 #include <gpac/xml.h>
 #include <gpac/events.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/internal/laser_dev.h>
 #include <gpac/nodes_svg.h>
 #include <gpac/base_coding.h>
-
-#include <gpac/internal/terminal_dev.h>
-
 
 #ifndef GPAC_DISABLE_SVG
 

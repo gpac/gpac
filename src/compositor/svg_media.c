@@ -28,8 +28,6 @@
 #ifndef GPAC_DISABLE_SVG
 #include "nodes_stacks.h"
 
-#include <gpac/internal/terminal_dev.h>
-
 static void svg_audio_smil_evaluate_ex(SMIL_Timing_RTI *rti, Fixed normalized_scene_time, u32 status, GF_Node *audio, GF_Node *video);
 static void svg_traverse_audio_ex(GF_Node *node, void *rs, Bool is_destroy, SVGPropertiesPointers *props);
 

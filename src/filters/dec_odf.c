@@ -23,10 +23,9 @@
  *
  */
 
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/constants.h>
 #include <gpac/compositor.h>
-#include <gpac/internal/terminal_dev.h>
 
 typedef struct
 {

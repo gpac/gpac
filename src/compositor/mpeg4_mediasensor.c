@@ -24,7 +24,6 @@
  */
 
 
-#include "media_control.h"
 #include <gpac/constants.h>
 #include <gpac/internal/compositor_dev.h>
 

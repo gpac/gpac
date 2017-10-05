@@ -23,13 +23,10 @@
  *
  */
 
-
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/compositor_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/nodes_x3d.h>
-#include "media_memory.h"
-#include "media_control.h"
+#include "mpeg4_mediacontrol.h"
 #include <gpac/nodes_svg.h>
 #include <gpac/network.h>
 

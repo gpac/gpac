@@ -27,7 +27,6 @@
 
 #include "nodes_stacks.h"
 #include "visual_manager.h"
-#include <gpac/internal/terminal_dev.h>
 
 Bool compositor_get_2d_plane_intersection(GF_Ray *ray, SFVec3f *res)
 {

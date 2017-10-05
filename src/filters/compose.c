@@ -25,8 +25,7 @@
 
 #include <gpac/filters.h>
 #include <gpac/config_file.h>
-#include <gpac/compositor.h>
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 
 
 GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);

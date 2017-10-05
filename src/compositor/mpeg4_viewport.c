@@ -25,8 +25,7 @@
 
 #include "nodes_stacks.h"
 #include "visual_manager.h"
-/*for default scene view*/
-#include <gpac/internal/terminal_dev.h>
+
 #include <gpac/options.h>
 
 

@@ -110,8 +110,6 @@ static void mediasource_sourceBuffer_initjs(JSContext *c, JSObject *ms_obj, GF_H
 	SMJS_SET_PRIVATE(c, sb->buffered->_this, sb->buffered);
 }
 
-//#include <gpac/internal/terminal_dev.h>
-
 static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
 	SMJS_ARGS

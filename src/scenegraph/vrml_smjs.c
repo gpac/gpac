@@ -28,7 +28,7 @@
 
 #ifdef GPAC_HAS_SPIDERMONKEY
 
-#include <gpac/internal/terminal_dev.h>
+#include <gpac/internal/compositor_dev.h>
 #include <gpac/modules/compositor_ext.h>
 #include <gpac/modules/js_usr.h>
 

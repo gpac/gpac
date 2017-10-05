@@ -29,7 +29,6 @@
 #include "nodes_stacks.h"
 #include "offscreen_cache.h"
 
-#include <gpac/internal/terminal_dev.h>
 #include <gpac/internal/scenegraph_dev.h>
 #include <gpac/mediaobject.h>
 

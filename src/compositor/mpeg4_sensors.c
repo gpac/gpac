@@ -29,8 +29,6 @@
 #include "visual_manager.h"
 /*for anchor*/
 #include "mpeg4_grouping.h"
-/*for anchor processing, which needs to be filtered at the inline scene level*/
-#include <gpac/internal/terminal_dev.h>
 
 #ifndef GPAC_DISABLE_VRML
 

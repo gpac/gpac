@@ -70,8 +70,6 @@ void gf_svg_set_attributeNS(GF_Node *n, u32 ns_code, char *name, char *val);
 
 /* including terminal dev for MediaObject */
 
-#include <gpac/internal/terminal_dev.h>
-
 /* including Compositor dev for TextureHandler and AudioInput */
 #include <gpac/internal/compositor_dev.h>
 
