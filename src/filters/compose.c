@@ -140,6 +140,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 			odm->mo->config_changed = GF_TRUE;
 			if ((odm->type == GF_STREAM_VISUAL) && odm->parentscene && odm->parentscene->is_dynamic_scene) {
 				gf_scene_force_size_to_video(odm->parentscene, odm->mo);
+				odm->mo->config_changed = GF_TRUE;
 			}
 		}
 		return GF_OK;
@@ -268,19 +269,17 @@ static const GF_FilterArgs CompositorFilterArgs[] =
 
 static const GF_FilterCapability CompositorFilterInputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ), GF_FALSE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ), GF_FALSE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ) },
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM ) },
-
-	{ NULL }
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 const GF_FilterRegister CompositorFilterRegister = {
@@ -289,7 +288,7 @@ const GF_FilterRegister CompositorFilterRegister = {
 	.private_size = sizeof(GF_CompositorFilter),
 	.requires_main_thread = GF_TRUE,
 	.max_extra_pids = (u32) -1,
-	.input_caps = CompositorFilterInputs,
+	INCAPS(CompositorFilterInputs),
 	.args = CompositorFilterArgs,
 	.initialize = compose_initialize,
 	.finalize = compose_finalize,

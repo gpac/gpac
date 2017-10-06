@@ -105,7 +105,7 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 			//set buffer req
 			if ((mtype==i_type) && (oti != i_oti)) {
 				if (!pidi->pid->max_buffer_time)
-					pidi->pid->max_buffer_time = 3000000;
+					pidi->pid->max_buffer_time = 2000;
 			}
 		}
 	}
@@ -512,21 +512,16 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		return GF_TRUE;
 
 	//check all input caps of dst filter
-	while (freg->input_caps) {
+	for (i=0; i<freg->nb_input_caps; i++) {
 		const GF_PropertyValue *pid_cap=NULL;
 		const GF_FilterCapability *cap = &freg->input_caps[i];
-		if (!cap || (!cap->code && !cap->name) ) {
-			if (nb_subcaps && all_caps_matched)
-				return GF_TRUE;
-			break;
-		}
 
-		if (i && cap->start) {
+		if (i && !cap->in_bundle) {
 			if (all_caps_matched) return GF_TRUE;
 			all_caps_matched = GF_TRUE;
 			nb_subcaps=0;
+			continue;
 		}
-		i++;
 		nb_subcaps++;
 		//no match for this cap, go on until new one or end
 		if (!all_caps_matched) continue;
@@ -538,10 +533,23 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 
 		//we found a property of that type and it is equal
 		if (pid_cap) {
-			Bool prop_equal = gf_props_equal(pid_cap, &cap->val);
-			if (cap->exclude)
-				prop_equal = !prop_equal;
-
+			u32 j;
+			Bool prop_equal = GF_FALSE;
+			//this could be optimized by not checking several times the same cap
+			for (j=0; j<freg->nb_input_caps; j++) {
+				const GF_FilterCapability *a_cap = &freg->input_caps[j];
+				if (cap->code) {
+					if (cap->code!=a_cap->code) continue;
+				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
+					continue;
+				}
+				if (!prop_equal) {
+					prop_equal = gf_props_equal(pid_cap, &a_cap->val);
+					if (cap->exclude)
+						prop_equal = !prop_equal;
+					if (prop_equal) break;
+				}
+			}
 			if (!prop_equal) {
 				all_caps_matched=GF_FALSE;
 			}
@@ -550,8 +558,11 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		else if (!cap->exclude) {
 			all_caps_matched=GF_FALSE;
 		}
-
 	}
+
+	if (nb_subcaps && all_caps_matched)
+		return GF_TRUE;
+
 	return GF_FALSE;
 }
 
@@ -564,32 +575,27 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 
 	//check all output caps of src filter
 	i=0;
-	while (src->output_caps) {
-		u32 j=0;
+	for (i=0; i<src->nb_output_caps; i++) {
+		u32 j;
 		Bool matched=GF_FALSE;
 		GF_PropertyValue capv;
 		const GF_FilterCapability *out_cap = &src->output_caps[i];
-		i++;
-		if (!out_cap || (!out_cap->code && !out_cap->name) ) {
-			if (nb_subcaps && all_caps_matched) nb_matched++;
-			break;
-		}
 
-		if (out_cap->start) {
+		if (!out_cap->in_bundle) {
 			if (all_caps_matched) nb_matched++;
 			all_caps_matched = GF_TRUE;
 			nb_subcaps=0;
+			continue;
 		}
 		nb_subcaps++;
 		//no match possible for this cap, wait until next cap start
 		if (!all_caps_matched) continue;
 
 		//check all input caps of dst filter, count ones that are matched
-		while (dst->input_caps) {
+		for (j=0; j<dst->nb_input_caps; j++) {
 			Bool prop_equal;
 			const GF_FilterCapability *in_cap = &dst->input_caps[j];
-			j++;
-			if (!in_cap || (!in_cap->code && !in_cap->name) ) break;
+
 			if (out_cap->code && (out_cap->code!=in_cap->code) )
 				continue;
 			if (out_cap->name && (!in_cap->name || strcmp(out_cap->name, in_cap->name)))
@@ -608,6 +614,8 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 			all_caps_matched = GF_FALSE;
 		}
 	}
+	if (nb_subcaps && all_caps_matched) nb_matched++;
+
 	return nb_matched;
 }
 
@@ -1199,6 +1207,57 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
 
 	return (GF_FilterPacket *)pcki;
+}
+
+Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
+{
+	GF_FilterPacketInstance *pcki;
+	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to read packet CTS on an output PID in filter %s\n", pid->filter->name));
+		return GF_FALSE;
+	}
+	if (pidinst->discard_packets) return GF_FALSE;
+
+	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
+	//no packets
+	if (!pcki) {
+		return GF_FALSE;
+	}
+	assert(pcki->pck);
+
+	if (pcki->pck->eos) {
+		return GF_FALSE;
+	}
+	if (pidinst->requires_full_data_block && !pcki->pck->data_block_end)
+		return GF_FALSE;
+	*cts = pcki->pck->cts;
+	return GF_TRUE;
+}
+
+Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
+{
+	GF_FilterPacketInstance *pcki;
+	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to read packet CTS on an output PID in filter %s\n", pid->filter->name));
+		return GF_TRUE;
+	}
+	if (pidinst->discard_packets) return GF_TRUE;
+
+	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidinst->packets);
+	//no packets
+	if (!pcki) {
+		return GF_TRUE;
+	}
+	assert(pcki->pck);
+
+	if (pcki->pck->eos) {
+		return GF_TRUE;
+	}
+	if (pidinst->requires_full_data_block && !pcki->pck->data_block_end)
+		return GF_TRUE;
+	return (pcki->pck->data_length || pcki->pck->hw_frame) ? GF_FALSE : GF_TRUE;
 }
 
 

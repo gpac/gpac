@@ -190,21 +190,48 @@ typedef struct
 	Bool meta_arg;
 } GF_FilterArgs;
 
+
+#define CAP_INC_SINT(_a, _b) { .code=_a, .val=PROP_SINT(_b), .in_bundle=1 }
+#define CAP_INC_UINT(_a, _b) { .code=_a, .val=PROP_UINT(_b), .in_bundle=1 }
+#define CAP_INC_LONGSINT(_a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .in_bundle=1 }
+#define CAP_INC_LONGUINT(_a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .in_bundle=1 }
+#define CAP_INC_BOOL(_a, _b) { .code=_a, .val=PROP_BOOL(_b), .in_bundle=1 }
+#define CAP_INC_FIXED(_a, _b) { .code=_a, .val=PROP_FIXED(_b), .in_bundle=1 }
+#define CAP_INC_FLOAT(_a, _b) { .code=_a, .val=PROP_FLOAT(_b), .in_bundle=1 }
+#define CAP_INC_FRAC_INT(_a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .in_bundle=1 }
+#define CAP_INC_FRAC(_a, _b) { .code=_a, .val=PROP_FRAC(_b), .in_bundle=1 }
+#define CAP_INC_DOUBLE(_a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .in_bundle=1 }
+#define CAP_INC_NAME(_a, _b) { .code=_a, .val=PROP_NAME(_b), .in_bundle=1 }
+#define CAP_INC_STRING(_a, _b) { .code=_a, .val=PROP_STRING(_b), .in_bundle=1 }
+
+#define CAP_EXC_SINT(_a, _b) { .code=_a, .val=PROP_SINT(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_UINT(_a, _b) { .code=_a, .val=PROP_UINT(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_LONGSINT(_a, _b) { .code=_a, .val=PROP_LONGSINT(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_LONGUINT(_a, _b) { .code=_a, .val=PROP_LONGUINT(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_BOOL(_a, _b) { .code=_a, .val=PROP_BOOL(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_FIXED(_a, _b) { .code=_a, .val=PROP_FIXED(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_FLOAT(_a, _b) { .code=_a, .val=PROP_FLOAT(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_FRAC_INT(_a, _b, _c) { .code=_a, .val=PROP_FRAC_INT(_b, _c), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_FRAC(_a, _b) { .code=_a, .val=PROP_FRAC(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_DOUBLE(_a, _b) { .code=_a, .val=PROP_DOUBLE(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_NAME(_a, _b) { .code=_a, .val=PROP_NAME(_b), .exclude=1, .in_bundle=1 }
+#define CAP_EXC_STRING(_a, _b) { .code=_a, .val=PROP_STRING(_b), .exclude=1, .in_bundle=1 }
+
+
 typedef struct
 {
-	//set to true to indicate the start of a new set of cap. The first cap is treated as cap_start=TRUE
-	Bool start;
 	//4cc of the capability listed.
 	u32 code;
-
-	GF_PropertyValue val;	//default type and value of the capability listed
-
-	//when set to true the cap is valid if the value does not match. If an excluded cap is not found in the destination pid
-	//it is assumed to match
-	Bool exclude;
+	//default type and value of the capability listed
+	GF_PropertyValue val;
 	//name of the capability listed. the special value * is used to indicate that the capability is
 	//solved at run time (the filter must be loaded)
 	const char *name;
+	//when set to true the cap is valid if the value does not match. If an excluded cap is not found in the destination pid
+	//it is assumed to match
+	u8 exclude;
+	//when not set, indicates the start of a new set of caps. Set by default by the generic macros
+	u8 in_bundle;
 } GF_FilterCapability;
 
 typedef enum
@@ -216,6 +243,9 @@ typedef enum
 	//input is supported
 	GF_FPROBE_SUPPORTED
 } GF_FilterProbeScore;
+
+#define INCAPS( __struct ) .input_caps = __struct, .nb_input_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
+#define OUTCAPS( __struct ) .output_caps = __struct, .nb_output_caps=sizeof(__struct)/sizeof(GF_FilterCapability)
 
 typedef struct __gf_filter_register
 {
@@ -234,8 +264,10 @@ typedef struct __gf_filter_register
 
 	//list of input capabilities
 	const GF_FilterCapability *input_caps;
+	u32 nb_input_caps;
 	//list of output capabilities
 	const GF_FilterCapability *output_caps;
+	u32 nb_output_caps;
 
 	//optional - filter arguments if any
 	const GF_FilterArgs *args;
@@ -385,9 +417,11 @@ void gf_filter_pid_set_eos(GF_FilterPid *pid);
 Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid);
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid);
 
+Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid);
 
 //may trigger a reconfigure signal to the filter. If reconfigure not OK, returns NULL and the pid passed to the filter NO LONGER EXISTS (implicit remove)
 GF_FilterPacket * gf_filter_pid_get_packet(GF_FilterPid *pid);
+Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts);
 void gf_filter_pid_drop_packet(GF_FilterPid *pid);
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid);
 Bool gf_filter_pid_check_caps(GF_FilterPid *pid);
@@ -410,8 +444,6 @@ void gf_filter_pck_discard(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid);
 
 const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size);
-
-Bool gf_filter_pck_is_empty(GF_FilterPacket *pck);
 
 GF_Err gf_filter_pck_set_property(GF_FilterPacket *pck, u32 prop_4cc, const GF_PropertyValue *value);
 GF_Err gf_filter_pck_set_property_str(GF_FilterPacket *pck, const char *name, const GF_PropertyValue *value);

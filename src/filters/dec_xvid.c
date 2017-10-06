@@ -232,7 +232,7 @@ static GF_Err xviddec_finalize(GF_Filter *filter)
 	return GF_OK;
 }
 
-static void xviddec_drop_frame(GF_XVIDCtx *ctx)
+static void xviddec_drop_frameinfo(GF_XVIDCtx *ctx)
 {
 	if (ctx->frame_infos_size) {
 		ctx->frame_infos_size--;
@@ -352,7 +352,7 @@ packed_frame :
 	if (res < 0) {
 		gf_filter_pck_discard(dst_pck);
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		xviddec_drop_frame(ctx);
+		xviddec_drop_frameinfo(ctx);
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
@@ -392,18 +392,15 @@ packed_frame :
 
 static const GF_FilterCapability XVIDInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG4_PART2),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability XVIDOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_XVIDCtx, _n)
@@ -421,12 +418,12 @@ static const GF_FilterArgs XVIDArgs[] =
 };
 
 GF_FilterRegister XVIDRegister = {
-	.name = "xvide",
+	.name = "xvid",
 	.description = "XVid decoder",
 	.private_size = sizeof(GF_XVIDCtx),
 	.args = XVIDArgs,
-	.input_caps = XVIDInputs,
-	.output_caps = XVIDOutputs,
+	INCAPS(XVIDInputs),
+	OUTCAPS(XVIDOutputs),
 	.initialize = xviddec_initialize,
 	.finalize = xviddec_finalize,
 	.configure_pid = xviddec_configure_pid,

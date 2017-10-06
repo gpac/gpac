@@ -357,6 +357,7 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
         break;
     }
+	case GPAC_OTI_VIDEO_H263:
 	case GPAC_OTI_MEDIA_GENERIC:
 		if (p && p->value.data && p->data_len) {
 			char *dsi = p->value.data;
@@ -393,6 +394,9 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		ctx->is_hardware = GF_TRUE;
 
 		status = VTDecompressionSessionCreate(NULL, ctx->fmt_desc, dec_type, buffer_attribs, &cbacks, &ctx->vtb_session);
+
+		if (dec_type)
+			CFRelease(dec_type);
 	}
 
 	//if HW decoder not available or disabled , try soft one
@@ -403,8 +407,6 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	
 	if (dec_dsi)
 		CFRelease(dec_dsi);
-	if (dec_type)
-		CFRelease(dec_type);
     if (buffer_attribs)
         CFRelease(buffer_attribs);
 
@@ -1205,50 +1207,28 @@ static void vtbdec_finalize(GF_Filter *filter)
 }
 
 
-static const GF_FilterCapability GF_VTBDecCtxInputs[] =
+static const GF_FilterCapability VTBDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_AVC)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG4_PART2),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
 
 #ifndef GPAC_IPHONE
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SIMPLE)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SNR)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_SPATIAL)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_HIGH)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VIDEO_MPEG2_422)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SIMPLE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_MAIN),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SNR),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_SPATIAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_HIGH),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_MPEG2_422),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_H263),
 #endif
-
-	{}
 };
 
-static const GF_FilterCapability GF_VTBDecCtxOutputs[] =
+static const GF_FilterCapability VTBDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_VTBDecCtx, _n)
@@ -1256,7 +1236,7 @@ static const GF_FilterCapability GF_VTBDecCtxOutputs[] =
 static const GF_FilterArgs VTBDecArgs[] =
 {
 	{ OFFS(no_copy), "dispatch VTB frames into filter chain (no copy)", GF_PROP_BOOL, "true", NULL, GF_TRUE},
-	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "true", NULL, GF_TRUE},
+	{ OFFS(disable_hw), "Disables hardware decoding", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{}
 };
 
@@ -1265,8 +1245,8 @@ GF_FilterRegister GF_VTBDecCtxRegister = {
 	.description = "VideoToolBox decoder",
 	.private_size = sizeof(GF_VTBDecCtx),
 	.args = VTBDecArgs,
-	.input_caps = GF_VTBDecCtxInputs,
-	.output_caps = GF_VTBDecCtxOutputs,
+	INCAPS(VTBDecInputs),
+	OUTCAPS(VTBDecOutputs),
 	.initialize = vtbdec_initialize,
 	.finalize = vtbdec_finalize,
 	.configure_pid = vtbdec_configure_pid,

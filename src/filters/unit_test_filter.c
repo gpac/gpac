@@ -708,14 +708,14 @@ static const GF_FilterArgs UTFilterArgs[] =
 static const GF_FilterCapability UTFilterInputs[] =
 {
 	{ .name="cust", .val=PROP_NAME("UTSourceData") },
-	{ .name="cust", .val=PROP_NAME("UTFilterData"), .start=GF_TRUE },
+	{ .name="cust", .val=PROP_NAME("UTFilterData") },
 	{}
 };
 
 static const GF_FilterCapability UTFilterOutputs[] =
 {
 	{.name="cust", .val=PROP_NAME("UTSourceData") },
-	{.name="cust", .val=PROP_NAME("UTFilterData"), .start=GF_TRUE },
+	{.name="cust", .val=PROP_NAME("UTFilterData") },
 	{}
 };
 
@@ -743,8 +743,8 @@ const GF_FilterRegister UTFilterRegister = {
 	.name = "UTFilter",
 	.description = "Unit Test Filter, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	.input_caps = UTFilterInputs,
-	.output_caps = UTFilterOutputs,
+	INCAPS( UTFilterInputs),
+	OUTCAPS(UTFilterOutputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -758,7 +758,7 @@ const GF_FilterRegister UTSinkRegister = {
 	.name = "UTSink",
 	.description = "Unit Test Sink, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	.input_caps = UTSinkInputs,
+	INCAPS(UTSinkInputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -771,7 +771,7 @@ const GF_FilterRegister UTSink2Register = {
 	.name = "UTSink2",
 	.description = "Unit Test Sink, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	.input_caps = UTSink2Inputs,
+	INCAPS(UTSink2Inputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,
@@ -784,7 +784,7 @@ const GF_FilterRegister UTSourceRegister = {
 	.name = "UTSource",
 	.description = "Unit Test Source, only used for unit testing of filter framework",
 	.private_size = sizeof(GF_UnitTestFilter),
-	.output_caps = UTSourceOutputs,
+	OUTCAPS(UTSourceOutputs),
 	.args = UTFilterArgs,
 	.initialize = utfilter_initialize,
 	.finalize = ut_filter_finalize,

@@ -407,8 +407,6 @@ GF_FilterRegister DVBLinuxRegister = {
 	.initialize = dvblin_initialize,
 	.finalize = dvblin_finalize,
 	.process = dvblin_process,
-	.configure_pid = NULL,
-	.update_arg = NULL,
 	.process_event = dvblin_process_event,
 	.probe_url = dvblin_probe_url
 };

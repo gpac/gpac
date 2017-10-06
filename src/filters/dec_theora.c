@@ -259,28 +259,25 @@ static void theoradec_finalize(GF_Filter *filter)
 	if (ctx->frame_infos) gf_free(ctx->frame_infos);
 }
 
-static const GF_FilterCapability GF_TheoraDecCtxInputs[] =
+static const GF_FilterCapability TheoraDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_THEORA)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_THEORA),
 };
 
-static const GF_FilterCapability GF_TheoraDecCtxOutputs[] =
+static const GF_FilterCapability TheoraDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister TheoraDecRegister = {
 	.name = "theora_dec",
 	.description = "OGG/Theora decoder",
 	.private_size = sizeof(GF_TheoraDecCtx),
-	.input_caps = GF_TheoraDecCtxInputs,
-	.output_caps = GF_TheoraDecCtxOutputs,
+	INCAPS(TheoraDecInputs),
+	OUTCAPS(TheoraDecOutputs),
 	.finalize = theoradec_finalize,
 	.configure_pid = theoradec_configure_pid,
 	.process = theoradec_process,

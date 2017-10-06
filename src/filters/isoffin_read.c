@@ -715,17 +715,17 @@ static const GF_FilterArgs ISOFFInArgs[] =
 
 static const GF_FilterCapability ISOFFInInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s"), .start=GF_TRUE},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s"),
 };
 
 static const GF_FilterCapability ISOFFInOutputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 };
 
 GF_FilterRegister ISOFFInRegister = {
@@ -737,9 +737,8 @@ GF_FilterRegister ISOFFInRegister = {
 	.finalize = isoffin_finalize,
 	.process = isoffin_process,
 	.configure_pid = isoffin_configure_pid,
-	.update_arg = NULL,
-	.input_caps = ISOFFInInputs,
-	.output_caps = ISOFFInOutputs,
+	INCAPS(ISOFFInInputs),
+	OUTCAPS(ISOFFInOutputs),
 	.process_event = isoffin_process_event
 //	.probe_url = isoffin_probe_url
 };

@@ -606,12 +606,6 @@ const char *gf_filter_pck_get_data(GF_FilterPacket *pck, u32 *size)
 	return (const char *)pck->data;
 }
 
-Bool gf_filter_pck_is_empty(GF_FilterPacket *pck)
-{
-	if (!pck) return GF_TRUE;
-	return (pck->data_length || pck->hw_frame) ? GF_FALSE : GF_TRUE;
-}
-
 static GF_Err gf_filter_pck_set_property_full(GF_FilterPacket *pck, u32 prop_4cc, const char *prop_name, char *dyn_name, const GF_PropertyValue *value)
 {
 	u32 hash;

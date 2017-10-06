@@ -808,34 +808,39 @@ static void ctxload_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability CTXLoadInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-bt"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("bt|btz|bt.gz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-xmt"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("xmt|xmt.gz|xmtz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("model/vrml|x-model/x-vrml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("wrl|wrl.gz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("model/x3d+vrml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3dv|x3dv.gz|x3dvz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("model/x3d+xml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("x3d|x3d.gz|x3dz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-shockwave-flash"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("swf"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-LASeR+xml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("xsr"), .start=GF_TRUE},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-bt"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bt|btz|bt.gz"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-xmt"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "xmt|xmt.gz|xmtz"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "model/vrml|x-model/x-vrml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "wrl|wrl.gz"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "model/x3d+vrml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "x3dv|x3dv.gz|x3dvz"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "model/x3d+xml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "x3d|x3d.gz|x3dz"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-shockwave-flash"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "swf"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-LASeR+xml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "xsr"),
 };
 
 static const GF_FilterCapability CTXLoadOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 
@@ -854,14 +859,14 @@ GF_FilterRegister CTXLoadRegister = {
 	.private_size = sizeof(CTXLoadPriv),
 	.requires_main_thread = GF_TRUE,
 	.args = CTXLoadArgs,
-	.input_caps = CTXLoadInputs,
-	.output_caps = CTXLoadOutputs,
+	INCAPS(CTXLoadInputs),
+	OUTCAPS(CTXLoadOutputs),
 	.finalize = ctxload_finalize,
 	.process = ctxload_process,
 	.configure_pid = ctxload_configure_pid,
-	.update_arg = NULL,
 	.process_event = ctxload_process_event,
 };
+
 
 const GF_FilterRegister *ctxload_register(GF_FilterSession *session)
 {

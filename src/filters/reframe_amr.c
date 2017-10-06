@@ -479,25 +479,19 @@ static void amrdmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability AMRDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/amr|audio/evrc|audio/smv"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("amr|awb|evc|smv"), .start=GF_TRUE},
-	{}
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/amr|audio/evrc|audio/smv"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "amr|awb|evc|smv"),
 };
 
 static const GF_FilterCapability AMRDmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AMR )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AMR_WB )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_SMV_VOICE )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_EVRC_VOICE )},
-
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR_WB),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_SMV_VOICE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EVRC_VOICE),
 	{}
 };
 
@@ -515,8 +509,8 @@ GF_FilterRegister AMRDmxRegister = {
 	.private_size = sizeof(GF_AMRDmxCtx),
 	.args = AMRDmxArgs,
 	.finalize = amrdmx_finalize,
-	.input_caps = AMRDmxInputs,
-	.output_caps = AMRDmxOutputs,
+	INCAPS(AMRDmxInputs),
+	OUTCAPS(AMRDmxOutputs),
 	.configure_pid = amrdmx_configure_pid,
 	.process = amrdmx_process,
 	.process_event = amrdmx_process_event

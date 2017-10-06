@@ -246,30 +246,24 @@ static GF_Err maddec_process(GF_Filter *filter)
 
 static const GF_FilterCapability MADInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG2_PART3)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_AUDIO_MPEG1)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG2_PART3),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG1),
 };
 
 static const GF_FilterCapability MADOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister MADRegister = {
 	.name = "mad",
 	.description = "MAD decoder",
 	.private_size = sizeof(GF_MADCtx),
-	.input_caps = MADInputs,
-	.output_caps = MADOutputs,
+	INCAPS(MADInputs),
+	OUTCAPS(MADOutputs),
 	.finalize = maddec_finalize,
 	.configure_pid = maddec_configure_pid,
 	.process = maddec_process,

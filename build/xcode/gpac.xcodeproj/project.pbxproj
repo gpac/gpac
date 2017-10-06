@@ -317,6 +317,7 @@
 		92B9A5B91F866E0500A24FE4 /* mpeg4_inputsensor.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5B81F866E0500A24FE4 /* mpeg4_inputsensor.c */; };
 		92B9A5BD1F868D0000A24FE4 /* dec_laser.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */; };
 		92B9A5BF1F8695FA00A24FE4 /* dmx_saf.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */; };
+		92B9A5C11F86ACDF00A24FE4 /* dec_opensvc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */; };
 		92BB85661F7BFB63009BC9C8 /* ff_dec.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85501F7BFB60009BC9C8 /* ff_dec.c */; };
 		92BB85671F7BFB63009BC9C8 /* dec_odf.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85511F7BFB60009BC9C8 /* dec_odf.c */; };
 		92BB85681F7BFB63009BC9C8 /* dec_bifs.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85521F7BFB60009BC9C8 /* dec_bifs.c */; };
@@ -1162,6 +1163,7 @@
 		92B9A5B81F866E0500A24FE4 /* mpeg4_inputsensor.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; path = mpeg4_inputsensor.c; sourceTree = "<group>"; };
 		92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_laser.c; path = filters/dec_laser.c; sourceTree = "<group>"; };
 		92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_saf.c; path = filters/dmx_saf.c; sourceTree = "<group>"; };
+		92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_opensvc.c; path = filters/dec_opensvc.c; sourceTree = "<group>"; };
 		92BB854C1F7BE2BA009BC9C8 /*  */ = {isa = PBXFileReference; lastKnownFileType = text.xml; name = "\U0001"; path = "../../../../../../../\U0001"; sourceTree = "<group>"; };
 		92BB85501F7BFB60009BC9C8 /* ff_dec.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = ff_dec.c; path = filters/ff_dec.c; sourceTree = "<group>"; };
 		92BB85511F7BFB60009BC9C8 /* dec_odf.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_odf.c; path = filters/dec_odf.c; sourceTree = "<group>"; };
@@ -2489,6 +2491,7 @@
 				92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
+				92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */,
 				926656C31F7D3DF700299CC6 /* dec_theora.c */,
 				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
 				92B9A5081F840A6700A24FE4 /* dec_vtb.c */,
@@ -3148,6 +3151,7 @@
 				9201010C18D5A444003D1ACA /* rtp_pck_mpeg12.c in Sources */,
 				92B9A5821F8660D700A24FE4 /* hc_flash_shape.c in Sources */,
 				9201010D18D5A444003D1ACA /* rtp_pck_mpeg4.c in Sources */,
+				92B9A5C11F86ACDF00A24FE4 /* dec_opensvc.c in Sources */,
 				9201010E18D5A444003D1ACA /* rtp_streamer.c in Sources */,
 				92B9A58D1F8660D700A24FE4 /* audio_input.c in Sources */,
 				9201010F18D5A444003D1ACA /* rtsp_command.c in Sources */,
@@ -3846,6 +3850,7 @@
 					GPAC_HAS_LIBA52,
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
+					GPAC_HAS_OPENSVC,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3862,6 +3867,7 @@
 					GPAC_HAS_LIBA52,
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
+					GPAC_HAS_OPENSVC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3926,6 +3932,7 @@
 					"-la52",
 					"-lvorbis",
 					"-ltheora",
+					"-lOpenSVCDec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3957,6 +3964,7 @@
 					GPAC_HAS_LIBA52,
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
+					GPAC_HAS_OPENSVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -4019,6 +4027,7 @@
 					"-la52",
 					"-lvorbis",
 					"-ltheora",
+					"-lOpenSVCDec",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
