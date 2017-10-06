@@ -204,7 +204,7 @@ struct __gf_download_manager
 	u32 limit_data_rate, read_buf_size;
 	u64 max_cache_size;
 	Bool allow_broken_certificate;
-	
+
 	GF_List *skip_proxy_servers;
 	GF_List *credentials;
 	GF_List *cache_entries;
@@ -392,10 +392,18 @@ static Bool init_ssl_lib() {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTPS] Error while initializing Random Number generator, failed to init SSL !\n"));
 		return GF_TRUE;
 	}
+
+	/* per https://www.openssl.org/docs/man1.1.0/ssl/OPENSSL_init_ssl.html
+	** As of version 1.1.0 OpenSSL will automatically allocate all resources that it needs so no explicit initialisation is required.
+	** Similarly it will also automatically deinitialise as required.
+	*/
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	SSL_library_init();
 	SSL_load_error_strings();
 	SSLeay_add_all_algorithms();
 	SSLeay_add_ssl_algorithms();
+#endif
+
 	_ssl_is_initialized = GF_TRUE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[HTTPS] Initalization of SSL library complete.\n"));
 	return GF_FALSE;
@@ -422,6 +430,7 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	}
 
 	switch (mode) {
+#if OPENSSL_VERSION_NUMBER < 0x10100000L
 	case 0:
 		meth = SSLv23_client_method();
 		break;
@@ -436,6 +445,11 @@ static int ssl_init(GF_DownloadManager *dm, u32 mode)
 	case 3:
 		meth = TLSv1_client_method();
 		break;
+#else /* for openssl 1.1+ this is the prefered method */
+	case 0:
+		meth = TLS_client_method();
+		break;
+#endif
 	default:
 		goto error;
 	}
@@ -771,7 +785,7 @@ void gf_dm_sess_del(GF_DownloadSession *sess)
 		gf_sk_del(sess->sock);
 	gf_list_del(sess->headers);
 	gf_mx_del(sess->mx);
-	
+
 	gf_free(sess);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[Downloader] gf_dm_sess_del(%p) : DONE\n", sess ));
 }
@@ -1145,7 +1159,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 {
 	GF_DownloadSession *sess;
 	if (!dm) return NULL;
-	
+
 	GF_SAFEALLOC(sess, GF_DownloadSession);
 	if (!sess) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("%s:%d Cannot allocate session for URL %s: OUT OF MEMORY!\n", __FILE__, __LINE__, url));
@@ -1166,8 +1180,8 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 		gf_free(sess);
 		return NULL;
 	}
-	
-	
+
+
 	assert( dm );
 
 	*e = gf_dm_sess_setup_from_url(sess, url);
@@ -1225,7 +1239,7 @@ static GF_Err gf_dm_read_data(GF_DownloadSession *sess, char *data, u32 data_siz
 		gf_mx_v(sess->mx);
 		return GF_IP_CONNECTION_CLOSED;
 	}
-	
+
 #ifdef GPAC_HAS_SSL
 	if (sess->ssl) {
 		s32 size;
@@ -1451,7 +1465,11 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 							const GENERAL_NAME *altname = sk_GENERAL_NAME_value(altnames, i);
 							if (altname->type == GEN_DNS)
 							{
-								unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
+								#if OPENSSL_VERSION_NUMBER < 0x10100000L
+									unsigned char *altname_str = ASN1_STRING_data(altname->d.ia5);
+								#else
+									unsigned char *altname_str = (unsigned char *)ASN1_STRING_get0_data(altname->d.ia5);
+								#endif
 								gf_list_add(valid_names, altname_str);
 							}
 						}
@@ -1806,7 +1824,7 @@ retry_cache:
 		dm->limit_data_rate = 1000 * atoi(opt) / 8;
 	else
 		gf_cfg_set_key(cfg, "Downloader", "MaxRate", "0");
-	
+
 
 	dm->read_buf_size = GF_DOWNLOAD_BUFFER_SIZE;
 	//when rate is limited, use smaller smaller read size
@@ -2237,7 +2255,7 @@ static GFINLINE void gf_dm_data_received(GF_DownloadSession *sess, u8 *payload, 
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[HTTP] url %s (%d bytes) downloaded in "LLU" us (%d kbps) (%d us since request - got response in %d us)\n", gf_cache_get_url(sess->cache_entry), sess->bytes_done,
 		                                     gf_sys_clock_high_res() - sess->start_time, 8*sess->bytes_per_sec/1000, sess->total_time_since_req, sess->reply_time ));
-		
+
 		if (sess->chunked && (payload_size==2))
 			payload_size=0;
 	}
@@ -2831,7 +2849,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 	sess->chunk_run_time = 0;
 	sess->last_chunk_found = GF_FALSE;
 	gf_sk_reset(sess->sock);
-	
+
 	while (1) {
 		e = gf_dm_read_data(sess, sHTTP + bytesRead, buf_size - bytesRead, &res);
 		switch (e) {
@@ -2943,7 +2961,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			hdrp->value = gf_strdup(hdr_val);
 			gf_list_add(sess->headers, hdrp);
 		}
-	
+
 		if (sep) sep[0]=':';
 		if (hdr_sep) hdr_sep[0] = '\r';
 	}
