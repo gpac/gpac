@@ -47,6 +47,10 @@
 #include <gpac/internal/odf_dev.h>
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 
 /*MPEG-2 Descriptor tags*/
 enum
@@ -1407,5 +1411,11 @@ GF_Err gf_m2ts_demuxer_close(GF_M2TS_Demuxer *ts);
 GF_Err gf_m2ts_get_socket(const char *url, const char *mcast_ifce_or_mobileip, u32 buf_size, GF_Socket **out_socket);
 
 /*! @} */
+
+
+#ifdef __cplusplus
+}
+#endif
+
 
 #endif	//_GF_MPEG_TS_H_
