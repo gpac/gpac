@@ -899,9 +899,9 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 
 static const GF_FilterCapability M2TSDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("video/mpeg-2|video/mp2t|video/mpeg")},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ts|m2t|mts|dmb|trp"), .start=GF_TRUE},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "video/mpeg-2|video/mp2t|video/mpeg"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ts|m2t|mts|dmb|trp"),
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_M2TSDmxCtx, _n)
@@ -914,28 +914,20 @@ static const GF_FilterArgs M2TSDmxArgs[] =
 
 static const GF_FilterCapability M2TSDmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_SCENE_BIFS)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_SCENE_BIFS_V2)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_OD_V1)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_OD_V2)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_PRIVATE_SCENE), .start=GF_TRUE},
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GPAC_OTI_PRIVATE_SCENE_EPG)},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS_V2),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V1),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V2),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_PRIVATE_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_PRIVATE_SCENE_EPG),
 };
 
 
@@ -946,8 +938,8 @@ GF_FilterRegister M2TSDmxRegister = {
 	.initialize = m2tsdmx_initialize,
 	.finalize = m2tsdmx_finalize,
 	.args = M2TSDmxArgs,
-	.input_caps = M2TSDmxInputs,
-	.output_caps = M2TSDmxOutputs,
+	INCAPS(M2TSDmxInputs),
+	OUTCAPS(M2TSDmxOutputs),
 	.configure_pid = m2tsdmx_configure_pid,
 	.process = m2tsdmx_process,
 	.process_event = m2tsdmx_process_event,

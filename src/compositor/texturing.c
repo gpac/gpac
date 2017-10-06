@@ -245,6 +245,7 @@ void gf_sc_texture_update_frame(GF_TextureHandler *txh, Bool disable_resync)
 	}
 	
 	if (needs_reload) {
+		txh->stream->config_changed = GF_FALSE;
 		/*if we had a texture this means the object has changed - delete texture and resetup. Do not skip
 		texture update as this may lead to an empty rendering pass (blank frame for this object), especially in DASH*/
 		if (txh->tx_io) {

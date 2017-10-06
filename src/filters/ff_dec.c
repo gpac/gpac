@@ -838,40 +838,34 @@ static GF_Err ffdec_update_arg(GF_Filter *filter, const char *arg_name, const GF
 
 static const GF_FilterCapability FFDecodeInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
 
 #ifdef FFDEC_SUB_SUPPORT
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_TEXT), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM), .exclude=GF_TRUE},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
 #endif
-
-	{}
 };
 
 static const GF_FilterCapability FFDecodeOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
+#ifdef FFDEC_SUB_SUPPORT
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_TEXT),
+#endif
 };
 
 GF_FilterRegister FFDecodeRegister = {
 	.name = "ffdec",
 	.description = "FFMPEG decoder "LIBAVCODEC_IDENT,
 	.private_size = sizeof(GF_FFDecodeCtx),
-	.input_caps = FFDecodeInputs,
-	.output_caps = FFDecodeOutputs,
+	INCAPS(FFDecodeInputs),
+	OUTCAPS(FFDecodeOutputs),
 	.initialize = ffdec_initialize,
 	.finalize = ffdec_finalize,
 	.configure_pid = ffdec_config_input,

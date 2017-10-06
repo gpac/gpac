@@ -461,24 +461,21 @@ static void ac3dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability AC3DmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-ac3|audio/ac3"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("ac3"), .start=GF_TRUE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AC3 )},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
-	
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3"),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AC3),
+	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 
 static const GF_FilterCapability AC3DmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AC3 )},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AC3),
 	//TODO check with E-AC3
-
-	{}
 };
 
 #define OFFS(_n)	#_n, offsetof(GF_AC3DmxCtx, _n)
@@ -495,8 +492,8 @@ GF_FilterRegister AC3DmxRegister = {
 	.private_size = sizeof(GF_AC3DmxCtx),
 	.args = AC3DmxArgs,
 	.finalize = ac3dmx_finalize,
-	.input_caps = AC3DmxInputs,
-	.output_caps = AC3DmxOutputs,
+	INCAPS(AC3DmxInputs),
+	OUTCAPS(AC3DmxOutputs),
 	.configure_pid = ac3dmx_configure_pid,
 	.process = ac3dmx_process,
 	.process_event = ac3dmx_process_event

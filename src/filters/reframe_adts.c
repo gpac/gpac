@@ -578,31 +578,23 @@ static void adts_dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability ADTSDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-m4a|audio/aac|audio/aacp|audio/x-aac"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("aac"), .start=GF_TRUE},
-
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG4 )},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-m4a|audio/aac|audio/aacp|audio/x-aac"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "aac"),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG4),
+	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 
 static const GF_FilterCapability ADTSDmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG4 )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG2_MP )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG2_LCP )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG2_SSRP )},
-	
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG4),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_MP),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_LCP),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AAC_MPEG2_SSRP),
 	{}
 };
 
@@ -621,8 +613,8 @@ GF_FilterRegister ADTSDmxRegister = {
 	.private_size = sizeof(GF_ADTSDmxCtx),
 	.args = ADTSDmxArgs,
 	.finalize = adts_dmx_finalize,
-	.input_caps = ADTSDmxInputs,
-	.output_caps = ADTSDmxOutputs,
+	INCAPS(ADTSDmxInputs),
+	OUTCAPS(ADTSDmxOutputs),
 	.configure_pid = adts_dmx_configure_pid,
 	.process = adts_dmx_process,
 	.process_event = adts_dmx_process_event

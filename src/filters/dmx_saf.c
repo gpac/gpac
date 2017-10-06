@@ -435,21 +435,17 @@ void safdmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability SAFDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("application/x-saf|application/saf"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("saf|lsr"), .start=GF_TRUE},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-saf|application/saf"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "saf|lsr"),
 };
 
 
 static const GF_FilterCapability SAFDmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), .start=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
 };
 
 
@@ -459,8 +455,8 @@ GF_FilterRegister SAFDmxRegister = {
 	.private_size = sizeof(GF_SAFDmxCtx),
 	.initialize = safdmx_initialize,
 	.finalize = safdmx_finalize,
-	.input_caps = SAFDmxInputs,
-	.output_caps = SAFDmxOutputs,
+	INCAPS(SAFDmxInputs),
+	OUTCAPS(SAFDmxOutputs),
 	.configure_pid = safdmx_configure_pid,
 	.process = safdmx_process,
 	.process_event = safdmx_process_event

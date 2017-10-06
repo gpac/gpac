@@ -412,22 +412,16 @@ static Bool odf_dec_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 static const GF_FilterCapability ODFDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_OD_V1) },
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_OD_V2) },
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V1),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_OD_V2),
 };
 
 static const GF_FilterCapability ODFDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_OD)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister ODFDecRegister = {
@@ -435,12 +429,10 @@ GF_FilterRegister ODFDecRegister = {
 	.description = "MPEG-4 OD Decoder",
 	.private_size = sizeof(GF_ODFDecCtx),
 	.requires_main_thread = GF_TRUE,
-	.args = NULL,
-	.input_caps = ODFDecInputs,
-	.output_caps = ODFDecOutputs,
+	INCAPS(ODFDecInputs),
+	OUTCAPS(ODFDecOutputs),
 	.process = odf_dec_process,
 	.configure_pid = odf_dec_configure_pid,
-	.update_arg = NULL,
 	.process_event = odf_dec_process_event,
 };
 

@@ -235,42 +235,42 @@ GF_Err img_process(GF_Filter *filter)
 
 static const GF_FilterCapability ReframeImgInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/jpg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("jpg|jpeg"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/jp2"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("jp2"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/bmp"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("bmp"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/png"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("png"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/x-png+depth"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("pngd"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/x-png+depth+mask"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("pngds"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/x-png+stereo"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("pngs"), .start=GF_TRUE},
-
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jpg"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jpg|jpeg"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/jp2"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "jp2"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/bmp"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "bmp"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/png"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "png"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+depth"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngd"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+depth+mask"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngds"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/x-png+stereo"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "pngs"),
 };
 
 
 static const GF_FilterCapability ReframeImgOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_IMAGE_PNG )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_IMAGE_JPEG )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_IMAGE_JPEG_2000 )},
-
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_PNG),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG_2000),
 	{}
 };
 
@@ -278,8 +278,8 @@ GF_FilterRegister ReframeImgRegister = {
 	.name = "img_reframe",
 	.description = "Image Reframer ",
 	.private_size = sizeof(GF_ReframeImgCtx),
-	.input_caps = ReframeImgInputs,
-	.output_caps = ReframeImgOutputs,
+	INCAPS(ReframeImgInputs),
+	OUTCAPS(ReframeImgOutputs),
 	.configure_pid = img_configure_pid,
 	.process = img_process,
 };

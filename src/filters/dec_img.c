@@ -137,31 +137,24 @@ static GF_Err imgdec_process(GF_Filter *filter)
 
 static const GF_FilterCapability ImgDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_IMAGE_JPEG  )},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_IMAGE_PNG)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_JPEG),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_IMAGE_PNG),
 };
 
 static const GF_FilterCapability ImgDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister ImgDecRegister = {
 	.name = "imgdec",
 	.description = "PNG/JPG Decoder",
 	.private_size = sizeof(GF_IMGDecCtx),
-	.input_caps = ImgDecInputs,
-	.output_caps = ImgDecOutputs,
+	INCAPS(ImgDecInputs),
+	OUTCAPS(ImgDecOutputs),
 	.configure_pid = imgdec_configure_pid,
 	.process = imgdec_process,
 };

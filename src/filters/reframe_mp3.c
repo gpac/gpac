@@ -455,29 +455,23 @@ static void mp3_dmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability MP3DmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/x-mp3|audio/mp3"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("mp3"), .start=GF_TRUE},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG1 )},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG2_PART3 )},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE)},
-
+	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-mp3|audio/mp3"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp3"),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG1),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG2_PART3),
 	{}
 };
 
 
 static const GF_FilterCapability MP3DmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG1 )},
-	
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_AUDIO_MPEG2_PART3 )},
-
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG1),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_MPEG2_PART3),
 	{}
 };
 
@@ -495,8 +489,8 @@ GF_FilterRegister MP3DmxRegister = {
 	.private_size = sizeof(GF_MP3DmxCtx),
 	.args = MP3DmxArgs,
 	.finalize = mp3_dmx_finalize,
-	.input_caps = MP3DmxInputs,
-	.output_caps = MP3DmxOutputs,
+	INCAPS(MP3DmxInputs),
+	OUTCAPS(MP3DmxOutputs),
 	.configure_pid = mp3_dmx_configure_pid,
 	.process = mp3_dmx_process,
 	.process_event = mp3_dmx_process_event

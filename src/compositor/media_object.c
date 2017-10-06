@@ -214,7 +214,6 @@ Bool gf_mo_get_visual_info(GF_MediaObject *mo, u32 *width, u32 *height, u32 *str
 
 	if (mo->config_changed) {
 		gf_mo_update_caps(mo);
-		mo->config_changed = GF_FALSE;
 	}
 	if (width) *width = mo->width;
 	if (height) *height = mo->height;
@@ -245,7 +244,6 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 
 	if (mo->config_changed) {
 		gf_mo_update_caps(mo);
-		mo->config_changed = GF_FALSE;
 	}
 
 	if (sample_rate) *sample_rate = mo->sample_rate;
@@ -308,8 +306,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	const char *data = NULL;
 	const GF_PropertyValue *v;
 	u32 timescale=0;
-	u32 pck_ts=0, next_ts=0;
-	GF_FilterPacket *next_pck=NULL;
+	u64 pck_ts=0, next_ts=0;
 	u32 retry_pull;
 
 	*eos = GF_FALSE;
@@ -381,11 +378,9 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	while (retry_pull) {
 		retry_pull--;
-
-		next_pck = gf_filter_pid_get_packet(mo->odm->pid);
 		next_ts = 0;
-		if (next_pck) {
-			next_ts = (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale);
+		if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts) ) {
+			next_ts = (u32) (1000*next_ts / timescale);
 			break;
 		} else {
 			if (gf_filter_pid_is_eos(mo->odm->pid)) {
@@ -430,7 +425,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				}
 			}
 			//if the next AU is at most 1 sec from the current clock use no drop mode
-			else if (next_pck && (next_ts + 1000 >= obj_time)) {
+			else if (next_ts + 1000 >= obj_time) {
 				skip_resync = GF_TRUE;
 			} else {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At %u frame TS %u next frame TS %d too late in no-drop mode, enabling drop - resync mode %d\n", mo->odm->ID, obj_time, pck_ts, next_ts, resync));
@@ -448,30 +443,33 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode
 		)
 
-			&& (mo->timestamp==pck_ts) && next_pck && (next_ts <= obj_time + upload_time_ms) ) {
+			&& (mo->timestamp==pck_ts) && next_ts && (next_ts <= obj_time + upload_time_ms) ) {
 
 			//delete our packet
 			gf_filter_pck_unref(mo->pck);
-			mo->pck = next_pck;
+			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 			gf_filter_pck_ref( &mo->pck);
-			pck_ts = next_ts;
+			pck_ts = (u32) (1000 * gf_filter_pck_get_cts(mo->pck) / timescale);
+			if (next_ts)
+				assert(pck_ts );
+
 			//drop next packet from pid
 			gf_filter_pid_drop_packet(mo->odm->pid);
 
-			next_pck = gf_filter_pid_get_packet(mo->odm->pid);
+			next_ts = 0;
+			if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts)) {
+				next_ts = (u32) (1000*next_ts / timescale);
+			}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to next CU CTS %u now %u\n", mo->odm->ID, next_ts, obj_time));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 
 			mo->RenderedLength = 0;
 		}
 	}
 
-	next_ts = next_pck ? (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale) : 0;
-
-
 	if (resync) {
 		u32 nb_dropped = 0;
-		while (next_pck) {
+		while (next_ts) {
 			u32 next_data_size;
 			if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
 				break;
@@ -479,7 +477,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
 
 			//nothing ready yet
-			if ( gf_filter_pck_is_empty(next_pck) ) {
+			if ( gf_filter_pid_first_packet_is_empty(mo->odm->pid) ) {
 				break;
 			}
 
@@ -500,13 +498,16 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			/*discard*/
 			gf_filter_pck_unref(mo->pck);
 			/*reassign current to next packet*/
-			mo->pck = next_pck;
+			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 			gf_filter_pck_ref(& mo->pck);
 			pck_ts = next_ts;
 			//drop next packet from pid
 			gf_filter_pid_drop_packet(mo->odm->pid);
-			next_pck = gf_filter_pid_get_packet(mo->odm->pid);
-			next_ts = next_pck ? (u32) (1000*gf_filter_pck_get_cts(next_pck) / timescale) : 0;
+
+			next_ts = 0;
+			if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts)) {
+				next_ts = (u32) (1000*next_ts / timescale);
+			}
 			mo->RenderedLength = 0;
 		}
 	}

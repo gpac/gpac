@@ -275,22 +275,14 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{}
 };
 
-static const GF_FilterCapability HTTPInOutputs[] =
-{
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_FILE)},
-	{}
-};
-
 GF_FilterRegister HTTPInRegister = {
 	.name = "http",
 	.description = "HTTP Input",
 	.private_size = sizeof(GF_HTTPInCtx),
 	.args = HTTPInArgs,
-	.output_caps = HTTPInOutputs,
 	.initialize = httpin_initialize,
 	.finalize = httpin_finalize,
 	.process = httpin_process,
-	.update_arg = NULL,
 	.process_event = httpin_process_event,
 	.probe_url = httpin_probe_url
 };

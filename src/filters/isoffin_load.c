@@ -140,9 +140,6 @@ void isor_declare_objects(ISOMReader *read)
 				highest_stream = GF_FALSE;
 				break;
 			}
-		}
-		//no SCAL found, check for sbas (lhvc with avc base)
-		for (j = 0; j < count; j++) {
 			if (gf_isom_has_track_reference(read->mov, j+1, GF_ISOM_REF_BASE, track_id) > 0) {
 				highest_stream = GF_FALSE;
 				break;

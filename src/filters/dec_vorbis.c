@@ -256,26 +256,23 @@ static void vorbisdec_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability VorbisDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_VORBIS)},
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VORBIS),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability VorbisDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister VorbisDecRegister = {
 	.name = "vorbid_dec",
 	.description = "OGG/Vorbis decoder",
 	.private_size = sizeof(GF_VorbisDecCtx),
-	.input_caps = VorbisDecInputs,
-	.output_caps = VorbisDecOutputs,
+	INCAPS(VorbisDecInputs),
+	OUTCAPS(VorbisDecOutputs),
 	.finalize = vorbisdec_finalize,
 	.configure_pid = vorbisdec_configure_pid,
 	.process = vorbisdec_process,

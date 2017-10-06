@@ -304,8 +304,6 @@ GF_FilterRegister UDPInRegister = {
 	.initialize = udpin_initialize,
 	.finalize = udpin_finalize,
 	.process = udpin_process,
-	.configure_pid = NULL,
-	.update_arg = NULL,
 	.process_event = udpin_process_event,
 	.probe_url = udpin_probe_url
 };

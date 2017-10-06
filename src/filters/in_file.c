@@ -295,8 +295,6 @@ GF_FilterRegister FileInRegister = {
 	.initialize = filein_initialize,
 	.finalize = filein_finalize,
 	.process = filein_process,
-	.configure_pid = NULL,
-	.update_arg = NULL,
 	.process_event = filein_process_event,
 	.probe_url = filein_probe_url
 };

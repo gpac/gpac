@@ -675,27 +675,21 @@ static void oggdmx_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability OGGDmxInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("audio/ogg|audio/x-ogg|audio/x-vorbis+ogg|application/ogg|application/x-ogg|video/ogg|video/x-ogg|video/x-ogm+ogg"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("oga|spx|ogg|ogv|oggm"), .start=GF_TRUE},
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/ogg|audio/x-ogg|audio/x-vorbis+ogg|application/ogg|application/x-ogg|video/ogg|video/x-ogg|video/x-ogm+ogg"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "oga|spx|ogg|ogv|oggm"),
 };
 
 
 static const GF_FilterCapability OGGDmxOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_VORBIS )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_FLAC )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_AUDIO), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_SPEEX )},
-
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_VISUAL), .start=GF_TRUE},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_THEORA )},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VORBIS),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_FLAC),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SPEEX),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_THEORA),
 };
 
 
@@ -705,8 +699,8 @@ GF_FilterRegister OGGDmxRegister = {
 	.private_size = sizeof(GF_OGGDmxCtx),
 	.initialize = oggdmx_initialize,
 	.finalize = oggdmx_finalize,
-	.input_caps = OGGDmxInputs,
-	.output_caps = OGGDmxOutputs,
+	INCAPS(OGGDmxInputs),
+	OUTCAPS(OGGDmxOutputs),
 	.configure_pid = oggdmx_configure_pid,
 	.process = oggdmx_process,
 	.process_event = oggdmx_process_event

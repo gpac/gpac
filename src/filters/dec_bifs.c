@@ -250,22 +250,16 @@ static Bool bifs_dec_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 static const GF_FilterCapability BIFSDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_BIFS) },
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_BIFS_V2) },
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_BIFS_V2),
 };
 
 static const GF_FilterCapability BIFSDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister BIFSDecRegister = {
@@ -273,13 +267,11 @@ GF_FilterRegister BIFSDecRegister = {
 	.description = "MPEG-4 BIFS Decoder",
 	.private_size = sizeof(GF_BIFSDecCtx),
 	.requires_main_thread = GF_TRUE,
-	.args = NULL,
-	.input_caps = BIFSDecInputs,
-	.output_caps = BIFSDecOutputs,
+	INCAPS(BIFSDecInputs),
+	OUTCAPS(BIFSDecOutputs),
 	.finalize = bifs_dec_finalize,
 	.process = bifs_dec_process,
 	.configure_pid = bifs_dec_configure_pid,
-	.update_arg = NULL,
 	.process_event = bifs_dec_process_event,
 };
 

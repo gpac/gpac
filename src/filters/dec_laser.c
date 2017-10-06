@@ -220,17 +220,15 @@ static void lsrdec_finalize(GF_Filter *filter)
 
 static const GF_FilterCapability LSRDecInputs[] =
 {
-	{.code=GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_LASER) },
-	{.code=GF_PROP_PID_UNFRAMED, PROP_BOOL(GF_TRUE), .exclude=GF_TRUE},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_LASER),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 
 static const GF_FilterCapability LSRDecOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 GF_FilterRegister LSRDecRegister = {
@@ -238,8 +236,8 @@ GF_FilterRegister LSRDecRegister = {
 	.description = "MPEG-4 LASeR Decoder",
 	.private_size = sizeof(GF_LSRDecCtx),
 	.requires_main_thread = GF_TRUE,
-	.input_caps = LSRDecInputs,
-	.output_caps = LSRDecOutputs,
+	INCAPS(LSRDecInputs),
+	OUTCAPS(LSRDecOutputs),
 	.finalize = lsrdec_finalize,
 	.process = lsrdec_process,
 	.configure_pid = lsrdec_configure_pid,

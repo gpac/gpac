@@ -401,21 +401,20 @@ static Bool svgin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 static const GF_FilterCapability SVGInInputs[] =
 {
-	{.code=GF_PROP_PID_MIME, PROP_STRING("image/svg+xml"), .start=GF_TRUE},
-	{.code=GF_PROP_PID_FILE_EXT, PROP_STRING("svg|svgz|svg.gz"), .start=GF_TRUE},
-
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_SVG), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_SVG_GZ), .start=GF_TRUE},
-	{.code=GF_PROP_PID_OTI, PROP_UINT(GPAC_OTI_SCENE_DIMS), .start=GF_TRUE},
-
-	{}
+	CAP_INC_STRING(GF_PROP_PID_MIME, "image/svg+xml"),
+	{},
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "svg|svgz|svg.gz"),
+	{},
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_SVG_GZ),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_SCENE_DIMS),
 };
 
 static const GF_FilterCapability SVGInOutputs[] =
 {
-	{.code= GF_PROP_PID_STREAM_TYPE, PROP_UINT(GF_STREAM_SCENE)},
-	{.code= GF_PROP_PID_OTI, PROP_UINT( GPAC_OTI_RAW_MEDIA_STREAM )},
-	{}
+	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 };
 
 
@@ -432,11 +431,10 @@ GF_FilterRegister SVGInRegister = {
 	.private_size = sizeof(SVGIn),
 	.requires_main_thread = GF_TRUE,
 	.args = SVGInArgs,
-	.input_caps = SVGInInputs,
-	.output_caps = SVGInOutputs,
+	INCAPS(SVGInInputs),
+	OUTCAPS(SVGInOutputs),
 	.process = svgin_process,
 	.configure_pid = svgin_configure_pid,
-	.update_arg = NULL,
 	.process_event = svgin_process_event,
 };
 
