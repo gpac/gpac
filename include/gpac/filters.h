@@ -617,6 +617,7 @@ typedef enum
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_INFO_UPDATE,
+	GF_FEVT_BUFFER_REQ,
 	GF_FEVT_MOUSE,
 } GF_FEventType;
 
@@ -709,6 +710,17 @@ typedef struct
 } GF_FEVT_VisibililityHint;
 
 
+/*GF_FEVT_VISIBILITY_HINT*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	//indicates the max buffer to set on pid
+	//the buffer is only activated on pids connected to decoders
+	u32 max_buffer_us;
+} GF_FEVT_BufferRequirement;
+
+
+
 union __gf_filter_event
 {
 	GF_FEVT_Base base;
@@ -718,6 +730,7 @@ union __gf_filter_event
 	GF_FEVT_Event user_event;
 	GF_FEVT_QualitySwitch quality_switch;
 	GF_FEVT_VisibililityHint visibility_hint;
+	GF_FEVT_BufferRequirement buffer_req;
 };
 
 

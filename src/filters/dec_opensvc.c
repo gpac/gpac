@@ -39,7 +39,7 @@
 
 #include <OpenSVCDecoder/SVCDecoder_ietr_api.h>
 
-#define SVC_MAX_STREAMS 10
+#define SVC_MAX_STREAMS 3
 
 typedef struct
 {
@@ -493,6 +493,7 @@ GF_FilterRegister OSVCDecRegister = {
 	.configure_pid = osvcdec_configure_pid,
 	.process = osvcdec_process,
 	.process_event = osvcdec_process_event,
+	.max_extra_pids = (SVC_MAX_STREAMS-1)
 };
 
 #endif //GPAC_HAS_OPENSVC

@@ -262,6 +262,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	fsess->disable_blocking = GF_FALSE;
 	fsess->run_status = GF_EOS;
+	fsess->default_pid_buffer_max_us = 1000;
+	fsess->decoder_pid_buffer_max_us = 1000000;
 	return fsess;
 }
 
