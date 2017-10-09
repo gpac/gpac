@@ -261,6 +261,7 @@ struct __gf_media_session
 	GF_DownloadManager *download_manager;
 	volatile u32 nb_dm_users;
 
+	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
 };
 
 
@@ -452,8 +453,11 @@ struct __gf_filter_pid
 	volatile u32 nb_buffer_unit;
 	//times in us
 	u32 max_buffer_time;
+	u32 user_max_buffer_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u32 buffer_duration;
+
+	Bool is_decoder_input;
 
 	volatile u32 would_block; // concurrent set
 	

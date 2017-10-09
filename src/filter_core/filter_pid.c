@@ -87,6 +87,9 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 	else if ((mtype==GF_STREAM_AUDIO) && (oti==GPAC_OTI_RAW_MEDIA_STREAM)) {
 		pid->max_buffer_unit = 20;
 	}
+	//by default all buffers are 1ms max
+	pid->max_buffer_time = pid->filter->session->default_pid_buffer_max_us;
+	pid->is_decoder_input = GF_FALSE;
 	//output is a decoded stream: if some input has same type but different OTI this is a decoder
 	//set input buffer size
 	if (oti==GPAC_OTI_RAW_MEDIA_STREAM) {
@@ -104,8 +107,14 @@ static void gf_filter_pid_update_caps(GF_FilterPid *pid, GF_Filter *dst_filter)
 			//same stream type but changing format type: this is a decoder
 			//set buffer req
 			if ((mtype==i_type) && (oti != i_oti)) {
-				if (!pidi->pid->max_buffer_time)
-					pidi->pid->max_buffer_time = 2000;
+				//default decoder buffer
+				if (pid->user_max_buffer_time)
+					pid->max_buffer_time = pid->user_max_buffer_time;
+				else
+					pid->max_buffer_time = pid->filter->session->decoder_pid_buffer_max_us;
+
+				pid->is_decoder_input = GF_TRUE;
+				break;
 			}
 		}
 	}
@@ -1601,8 +1610,17 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 		task->requeue_request = GF_TRUE;
 		return;
 	}
-
-	if (f->freg->process_event) {
+	if (evt->base.type == GF_FEVT_BUFFER_REQ) {
+		if (!evt->base.on_pid) {
+			gf_free(evt);
+			return;
+		}
+		if (evt->base.on_pid->is_decoder_input) {
+			evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
+			canceled = GF_TRUE;
+		}
+	}
+	else if (f->freg->process_event) {
 		FSESS_CHECK_THREAD(f)
 		canceled = f->freg->process_event(f, evt);
 	}
@@ -1678,7 +1696,10 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
 	GF_FilterEvent *dup_evt;
-
+	if (!pid) {
+		pid = evt->base.on_pid;
+		if (!pid) return;
+	}
 	//filter is being shut down, prevent any event posting
 	if (pid->filter->finalized) return;
 
