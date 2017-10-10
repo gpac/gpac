@@ -2005,8 +2005,10 @@ void gf_odm_on_eos(GF_ObjectManager *odm, GF_Channel *on_channel)
 	} else {
 		if (nb_eos != count) return;
 	}
-	if (odm->addon && odm->addon->is_splicing) odm->addon->is_over = GF_TRUE;
-	if (odm->parentscene && odm->parentscene->root_od->addon && odm->parentscene->root_od->addon->is_splicing) odm->parentscene->root_od->addon->is_over = GF_TRUE;
+	if (odm->addon && odm->addon->is_splicing)
+		odm->addon->is_over = 1;
+	if (odm->parentscene && odm->parentscene->root_od->addon && odm->parentscene->root_od->addon->is_splicing)
+		odm->parentscene->root_od->addon->is_over = 1;
 
 	gf_term_service_media_event(odm, GF_EVENT_MEDIA_LOAD_DONE);
 

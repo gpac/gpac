@@ -72,6 +72,7 @@ typedef struct
 	u8  chroma_format_idc;
 
 	u32 nb_views;
+	Bool force_stereo, force_stereo_reset;
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	u32 avc_base_id;
@@ -309,6 +310,8 @@ static GF_Err HEVC_ConfigureStream(HEVCDec *ctx, GF_ESD *esd)
 
 	//FIXME - we need to get the views info from the decoder ...
 	if (ctx->nb_views>1) stride_mul = ctx->nb_layers;
+	else if (ctx->force_stereo && ctx->nb_layers>1)
+		stride_mul = ctx->nb_layers;
 
 	ctx->stride = ((ctx->luma_bpp==8) && (ctx->chroma_bpp==8)) ? ctx->width : ctx->width * 2;
 	if ( ctx->chroma_format_idc  == 1) { // 4:2:0
@@ -361,6 +364,8 @@ static GF_Err HEVC_AttachStream(GF_BaseDecoder *ifcg, GF_ESD *esd)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[OpenHEVC] Initializing with %d threads but only %d available cores detected on the system\n", ctx->nb_threads, rti.nb_cores));
 		}
 	}
+	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ForceStereo");
+	if (sOpt && !strcmp(sOpt, "yes")) ctx->force_stereo = GF_TRUE;
 
 	sOpt = gf_modules_get_option((GF_BaseInterface *)ifcg, "OpenHEVC", "ThreadingType");
 	if (sOpt && !strcmp(sOpt, "wpp")) ctx->threading_type = 2;
@@ -445,7 +450,10 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		capability->cap.valueInt = ctx->height;
 		if (ctx->pack_mode) {
 			capability->cap.valueInt *= 2;
+		} else if (ctx->force_stereo && ctx->cur_layer>1) {
+			capability->cap.valueInt *= 2;
 		}
+
 		break;
 	case GF_CODEC_STRIDE:
 		capability->cap.valueInt = ctx->stride;
@@ -463,10 +471,10 @@ static GF_Err HEVC_GetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability *cap
 		}
 		break;
 	case GF_CODEC_NBVIEWS:
-		capability->cap.valueInt = ctx->nb_views;
+		capability->cap.valueInt = ctx->force_stereo ? 1 : ctx->nb_views;
 		break;
 	case GF_CODEC_NBLAYERS:
-		capability->cap.valueInt = ctx->nb_layers;
+		capability->cap.valueInt = ctx->force_stereo ? 1 : ctx->nb_layers;
 		break;
 	case GF_CODEC_PIXEL_FORMAT:
 		capability->cap.valueInt = HEVC_GetPixelFormat(ctx->luma_bpp, ctx->chroma_format_idc);
@@ -547,6 +555,7 @@ static GF_Err HEVC_SetCapabilities(GF_BaseDecoder *ifcg, GF_CodecCapability capa
 		}
 		libOpenHevcSetViewLayers(ctx->openHevcHandle, ctx->cur_layer-1);
 		libOpenHevcSetActiveDecoders(ctx->openHevcHandle, ctx->cur_layer-1);
+		ctx->force_stereo_reset = ctx->force_stereo;
 		return GF_OK;
 	case GF_CODEC_RAW_MEMORY:
 		ctx->direct_output = GF_TRUE;
@@ -584,10 +593,18 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 	chromat_format = openHevcFrame_FL.frameInfo.chromat_format;
 	*CTS = (u32) openHevcFrame_FL.frameInfo.nTimeStamp;
 	
-	if (!ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) ){
+	if (ctx->force_stereo_reset || !ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride) || (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1)) )
+	{
+		u32 stride_mul = 1;
 		ctx->width = a_w;
 		ctx->stride = a_stride;
 		ctx->height = a_h;
+		ctx->force_stereo_reset = GF_FALSE;
+
+		if (ctx->nb_views>1) stride_mul = ctx->cur_layer;
+		else if (ctx->force_stereo && ctx->cur_layer>1)
+			stride_mul = ctx->cur_layer;
+
 		if( chromat_format == YUV420 ) {
 			ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 		} else if  ( chromat_format == YUV422 ) {
@@ -700,7 +717,7 @@ static GF_Err HEVC_flush_picture(HEVCDec *ctx, char *outBuffer, u32 *outBufferLe
 
 	*outBufferLength = 0;
 	openHevcFrame_FL.pvY = (void*) outBuffer;
-	if (ctx->nb_layers==2 && ctx->nb_views>1 && !ctx->direct_output){
+	if ((ctx->cur_layer==2)  && !ctx->direct_output && (ctx->nb_views>1 || ctx->force_stereo) ){
 		int out1, out2;
 		if( chromat_format == YUV420){
 			openHevcFrame_SL.pvY = (void*) (outBuffer +  ctx->stride * ctx->height);
