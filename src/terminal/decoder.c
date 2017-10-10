@@ -650,7 +650,7 @@ refetch_AU:
 				//addon start not yet reached
 				if (addon->splice_start > (*nextAU)->CTS ) check_addon = GF_FALSE;
 				//addon end reached
-				if (addon->is_over || ((addon->splice_end>=0) && (addon->splice_end <= (*nextAU)->CTS) ) ) {
+				if ((addon->is_over==2) || ((addon->splice_end>=0) && (addon->splice_end <= (*nextAU)->CTS) ) ) {
 					check_addon = GF_FALSE;
 					//switch off enhancement layer
 					if (codec->coding_config_changed) {
@@ -701,7 +701,7 @@ refetch_AU:
 			if (an_addon->splice_start<0) continue;
 			if (an_addon->splice_start > (*nextAU)->CTS ) continue;
 			//addon end reached
-			if (an_addon->is_over ||
+			if ((an_addon->is_over==2) ||
 				((an_addon->splice_end>=0) && an_addon->splice_end  <= (*nextAU)->CTS )
 			) {
 				if (codec->in_splice) {
@@ -746,9 +746,10 @@ refetch_AU:
 		}
 	}
 	if (splice_check) {
-		if (!addon->is_over) {
-			assert(*nextAU);
-			if (spliced_AU && spliced_AU->CTS <= (*nextAU)->CTS) {
+		Bool is_over = *nextAU ? 0 : addon->is_over;
+		if (!is_over) {
+			//nextAU might be NULL if no RAP yet arrived on spliced channel
+			if (*nextAU && spliced_AU && spliced_AU->CTS <= (*nextAU)->CTS) {
 				gf_es_drop_au(spliced_channel);
 			}
 
@@ -772,6 +773,7 @@ refetch_AU:
 				addon->nb_splicing++;
 			}
 		} else {
+			if (addon->is_over) addon->is_over = 2;
 			*activeChannel = spliced_channel;
 			*nextAU = spliced_AU;
 			if (codec->coding_config_changed) {

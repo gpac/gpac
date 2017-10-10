@@ -215,9 +215,6 @@ static GF_Err MAD_ProcessData(GF_MediaDecoder *ifcg,
 	/*check not using scalabilty*/
 	assert(ctx->ES_ID == ES_ID);
 
-	if (ctx->ES_ID != ES_ID)
-		return GF_BAD_PARAM;
-
 	/*if late or seeking don't decode*/
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:

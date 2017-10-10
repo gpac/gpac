@@ -2895,6 +2895,10 @@ Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u
 	if (timestamp_based)
 		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
 
+	if (addon->is_splicing) {
+		return ((Double)addon->media_timestamp) / addon->media_timescale;
+	}
+
 	//get PTS diff (clock is in ms, pt is in 90k)
 	media_time = clock_time;
 	media_time -= addon->media_pts/90000.0;
@@ -2908,6 +2912,13 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 {
 	s64 media_ts_ms;
 	assert(addon->timeline_ready);
+	if (addon->is_splicing) {
+		if (!addon->min_dts_set || (orig_ts<addon->splice_min_dts)) {
+			addon->splice_min_dts = orig_ts;
+			addon->min_dts_set = GF_TRUE;
+		}
+		orig_ts -= addon->splice_min_dts;
+	}
 	media_ts_ms = orig_ts;
 	media_ts_ms -= (addon->media_timestamp*1000) / addon->media_timescale;
 	media_ts_ms += (addon->media_pts/90);
