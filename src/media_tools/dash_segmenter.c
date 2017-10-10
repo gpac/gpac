@@ -5161,7 +5161,7 @@ static GF_Err set_period_header(GF_DASHSegmenter *dasher, GF_MPD_Period *period,
 	}
 
 	if (period_start || dasher->dash_mode) {
-		period->start = (u64)period_start;
+		period->start = (u64)(period_start*1000);
 	}
 	if (!dasher->dash_mode && period_duration) {
 		period->duration = (u64)(period_duration*1000);
