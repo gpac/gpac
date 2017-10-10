@@ -38,7 +38,7 @@
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
-static Bool gf_mpd_parse_bool(char *attr)
+static Bool gf_mpd_parse_bool(const char * const attr)
 {
 	if (!strcmp(attr, "true")) return 1;
 	if (!strcmp(attr, "1")) return 1;
@@ -99,37 +99,40 @@ static char *gf_mpd_parse_text_content(GF_XMLNode *child)
 	return NULL;
 }
 
-static u32 gf_mpd_parse_int(char *attr)
+static u32 gf_mpd_parse_int(const char * const attr)
 {
 	return atoi(attr);
 }
 
-static u64 gf_mpd_parse_long_int(char *attr)
+static u64 gf_mpd_parse_long_int(const char * const attr)
 {
 	u64 longint;
 	sscanf(attr, LLU, &longint);
 	return longint;
 }
 
-static Double gf_mpd_parse_double(char *attr)
+static Double gf_mpd_parse_double(const char * const attr)
 {
 	return atof(attr);
 }
 
-static GF_MPD_Fractional *gf_mpd_parse_frac(char *attr)
+static GF_MPD_Fractional *gf_mpd_parse_frac(const char * const attr, const char sep)
 {
+	char str[6];
 	GF_MPD_Fractional *res;
 	GF_SAFEALLOC(res, GF_MPD_Fractional);
-	sscanf(attr, "%d:%d", &res->num, &res->den);
+	snprintf(str, sizeof(str), "%%d%c%%d", sep);
+	res->den = 1;
+	sscanf(attr, str, &res->num, &res->den);
 	return res;
 }
 
-static u64 gf_mpd_parse_date(char *attr)
+static u64 gf_mpd_parse_date(const char * const attr)
 {
 	return gf_net_parse_date(attr);
 }
 
-static u64 gf_mpd_parse_duration(char *duration)
+static u64 gf_mpd_parse_duration(const char * const duration)
 {
 	u32 i;
 	char *sep1, *sep2;
@@ -189,7 +192,7 @@ static u64 gf_mpd_parse_duration(char *duration)
 	return (u64)((h*3600+m*60+s)*(u64)1000);
 }
 
-static u32 gf_mpd_parse_duration_u32(char *duration)
+static u32 gf_mpd_parse_duration_u32(const char * const duration)
 {
 	u64 dur = gf_mpd_parse_duration(duration);
 	if (dur <= GF_UINT_MAX) {
@@ -200,7 +203,7 @@ static u32 gf_mpd_parse_duration_u32(char *duration)
 	}
 }
 
-static GF_MPD_ByteRange *gf_mpd_parse_byte_range(char *attr)
+static GF_MPD_ByteRange *gf_mpd_parse_byte_range(const char * const attr)
 {
 	GF_MPD_ByteRange *br;
 	GF_SAFEALLOC(br, GF_MPD_ByteRange);
@@ -570,11 +573,11 @@ static void gf_mpd_parse_common_representation(GF_MPD *mpd, GF_MPD_CommonAttribu
 		else if (!strcmp(att->name, "height")) com->height = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "sar")) {
 			if (com->sar) gf_free(com->sar);
-			com->sar = gf_mpd_parse_frac(att->value);
+			com->sar = gf_mpd_parse_frac(att->value, ':');
 		}
 		else if (!strcmp(att->name, "frameRate")) {
 			if (com->framerate) gf_free(com->framerate);
-			com->framerate = gf_mpd_parse_frac(att->value);
+			com->framerate = gf_mpd_parse_frac(att->value, '/');
 		}
 		else if (!strcmp(att->name, "audioSamplingRate")) com->samplerate = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "mimeType")) com->mime_type = gf_mpd_parse_string(att->value);
@@ -733,7 +736,7 @@ static GF_Err gf_mpd_parse_adaptation_set(GF_MPD *mpd, GF_List *container, GF_XM
 		else if (!strcmp(att->name, "contentType")) set->content_type = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "par")) {
 			if (set->par) gf_free(set->par);
-			set->par = gf_mpd_parse_frac(att->value);
+			set->par = gf_mpd_parse_frac(att->value, ':');
 		}
 		else if (!strcmp(att->name, "minBandwidth")) set->min_bandwidth = gf_mpd_parse_int(att->value);
 		else if (!strcmp(att->name, "maxBandwidth")) set->max_bandwidth = gf_mpd_parse_int(att->value);
