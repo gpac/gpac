@@ -1568,7 +1568,7 @@ ctrl_c_trap() {
 shopt -u nullglob
 
 #run our tests
-if [ -n "$url_arg[0]" ] ; then
+if [ -n "${url_arg[0]}" ] ; then
  count=0
  while [ "x${url_arg[count]}" != "x" ]
  do
