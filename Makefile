@@ -154,14 +154,19 @@ endif
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/icons"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/gui/extensions"
 	$(INSTALL) -d "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+
+	$(INSTALL) -d "$(DESTDIR)$(prefix)/include"
+
 ifeq ($(CONFIG_DARWIN),yes)
-	cp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/" 
-	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/" 
-	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/" 
+	cp $(SRC_PATH)/gui/icons/* "$(DESTDIR)$(prefix)/share/gpac/gui/icons/"
+	cp -R $(SRC_PATH)/gui/extensions/* "$(DESTDIR)$(prefix)/share/gpac/gui/extensions/"
+	cp $(SRC_PATH)/shaders/* "$(DESTDIR)$(prefix)/share/gpac/shaders/"
+	cp -R $(SRC_PATH)/include/* "$(DESTDIR)$(prefix)/include/"
 else
 	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/icons/* $(DESTDIR)$(prefix)/share/gpac/gui/icons/
 	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/gui/extensions/* $(DESTDIR)$(prefix)/share/gpac/gui/extensions/
 	cp --no-preserve=mode,ownership,timestamp $(SRC_PATH)/shaders/* $(DESTDIR)$(prefix)/share/gpac/shaders/
+	cp -R --no-preserve=mode,ownership,timestamp $(SRC_PATH)/include/* $(DESTDIR)$(prefix)/include/
 endif
 
 lninstall:
