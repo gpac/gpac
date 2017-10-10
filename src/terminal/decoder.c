@@ -627,6 +627,11 @@ refetch_AU:
 				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED) {
 					scalable_check = 2;
 				} else {
+					if (codec->last_unit_dts && (AU->DTS<codec->last_unit_dts)) {
+						gf_es_drop_au(ch);
+						ch->stream_state = 1;
+						goto refetch_AU;
+					}
 					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS %u - CTS %d too early for this AU\n", AU->DTS, AU->CTS));
 				}
 			}
@@ -1115,7 +1120,8 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 		if (dec->trusted_cts && (CU->prev->dataLength && CU->prev->TS > CU->TS) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d codec is reordering but CTSs are out of order (%u vs %u prev) - forcing CTS recomputing\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, CU->prev->TS));
 
-			dec->trusted_cts = GF_FALSE;
+			//dec->trusted_cts = GF_FALSE;
+			CU->TS = CU->prev->TS;
 		}
 		if (!dec->trusted_cts) {
 			/*first dispatch from decoder, store CTS*/
