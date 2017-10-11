@@ -186,8 +186,9 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 		format_ex.Format.cbSize = sizeof(WAVEFORMATEXTENSIBLE);
 		format_ex.SubFormat = GPAC_KSDATAFORMAT_SUBTYPE_PCM;
 		format_ex.Samples.wValidBitsPerSample = *nbBitsPerSample;
-		format_ex.dwChannelMask = 0;
-		if (channel_cfg & GF_AUDIO_CH_FRONT_LEFT) format_ex.dwChannelMask |= SPEAKER_FRONT_LEFT;
+		//our channel config is exactly the same as ksmedia
+		format_ex.dwChannelMask = channel_cfg;
+/*		if (channel_cfg & GF_AUDIO_CH_FRONT_LEFT) format_ex.dwChannelMask |= SPEAKER_FRONT_LEFT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_RIGHT) format_ex.dwChannelMask |= SPEAKER_FRONT_RIGHT;
 		if (channel_cfg & GF_AUDIO_CH_FRONT_CENTER) format_ex.dwChannelMask |= SPEAKER_FRONT_CENTER;
 		if (channel_cfg & GF_AUDIO_CH_LFE) format_ex.dwChannelMask |= SPEAKER_LOW_FREQUENCY;
@@ -196,6 +197,8 @@ static GF_Err DS_ConfigureOutput(GF_AudioOutput *dr, u32 *SampleRate, u32 *NbCha
 		if (channel_cfg & GF_AUDIO_CH_BACK_CENTER) format_ex.dwChannelMask |= SPEAKER_BACK_CENTER;
 		if (channel_cfg & GF_AUDIO_CH_SIDE_LEFT) format_ex.dwChannelMask |= SPEAKER_SIDE_LEFT;
 		if (channel_cfg & GF_AUDIO_CH_SIDE_RIGHT) format_ex.dwChannelMask |= SPEAKER_SIDE_RIGHT;
+	*/
+
 		dsbBufferDesc.lpwfxFormat = (WAVEFORMATEX *) &format_ex;
 	}
 #endif
