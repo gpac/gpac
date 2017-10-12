@@ -669,7 +669,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILEPATH);
-	if (p && p->value.string) {
+	if (p && p->value.string && !ctx->duration.num) {
 		FILE *stream = gf_fopen(p->value.string, "r");
 		ctx->is_file = GF_TRUE;
 		ctx->ts->seek_mode = GF_TRUE;
@@ -681,6 +681,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			if (ctx->duration.num || (nb_read!=1880)) break;
 		}
 		gf_m2ts_demux_del(ctx->ts);
+		gf_fclose(stream);
 		ctx->ts = gf_m2ts_demux_new();
 		ctx->ts->on_event = m2tsdmx_on_event;
 		ctx->ts->user = filter;

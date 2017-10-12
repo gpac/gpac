@@ -295,11 +295,78 @@ u64 gf_file_modification_time(const char *filename)
 	return 0;
 }
 
+#ifdef GPAC_MEMORY_TRACKING
+#include <gpac/list.h>
+extern int gf_mem_track_enabled;
+static  GF_List * gpac_open_files = NULL;
+typedef struct
+{
+	FILE *ptr;
+	const char *url;
+} GF_FileHandle;
+#endif
 static u32 gpac_file_handles = 0;
+
 GF_EXPORT
 u32 gf_file_handles_count()
 {
+#ifdef GPAC_MEMORY_TRACKING
+	if (gpac_open_files) {
+		return gf_list_count(gpac_open_files);
+	}
+#endif
 	return gpac_file_handles;
+}
+
+#ifdef GPAC_MEMORY_TRACKING
+const char *enum_open_handles(u32 *idx)
+{
+	GF_FileHandle *h;
+	u32 count = gf_list_count(gpac_open_files);
+	if (*idx >= count) return NULL;
+	h = gf_list_get(gpac_open_files, *idx);
+	(*idx)++;
+	return h->url;
+}
+#endif
+
+static void gf_register_file_handle(const char *filename, FILE *ptr)
+{
+#ifdef GPAC_MEMORY_TRACKING
+	if (gf_mem_track_enabled) {
+		GF_FileHandle *h;
+		if (!gpac_open_files) gpac_open_files = gf_list_new();
+		GF_SAFEALLOC(h, GF_FileHandle);
+		h->ptr = ptr;
+		h->url = gf_strdup(filename);
+		gf_list_add(gpac_open_files, h);
+	}
+#endif
+	gpac_file_handles++;
+}
+
+static void gf_unregister_file_handle(FILE *ptr)
+{
+	assert(gpac_file_handles);
+	gpac_file_handles--;
+#ifdef GPAC_MEMORY_TRACKING
+	if (gf_mem_track_enabled) {
+		u32 i, count = gf_list_count(gpac_open_files);
+		for (i=0; i<count; i++) {
+			GF_FileHandle *h = gf_list_get(gpac_open_files, i);
+			if (h->ptr==ptr) {
+				gf_free(h->url);
+				gf_free(h);
+				gf_list_rem(gpac_open_files, i);
+				if (!gf_list_count(gpac_open_files)) {
+					gf_list_del(gpac_open_files);
+					gpac_open_files = NULL;
+				}
+				return;
+			}
+		}
+	}
+#endif
 }
 
 GF_EXPORT
@@ -329,7 +396,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 			t_file = tempnam(tmp, tmp2);
 			res = gf_fopen(t_file, "w+b");
 			if (res) {
-				gpac_file_handles--;
+				gf_unregister_file_handle(res);
 				if (fileName) {
 					*fileName = gf_strdup(t_file);
 				} else {
@@ -344,7 +411,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 #endif
 
 	if (res) {
-		gpac_file_handles++;
+		gf_register_file_handle("temp file", res);
 	}
 	return res;
 }
@@ -701,7 +768,7 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 #endif
 
 	if (res) {
-		gpac_file_handles++;
+		gf_register_file_handle(file_name, res);
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CORE, ("[Core] file %s opened in mode %s - %d file handles\n", file_name, mode, gpac_file_handles));
 	} else {
 		if (strchr(mode, 'w') || strchr(mode, 'a')) {
@@ -720,8 +787,7 @@ GF_EXPORT
 s32 gf_fclose(FILE *file)
 {
 	if (file) {
-		assert(gpac_file_handles);
-		gpac_file_handles--;
+		gf_unregister_file_handle(file);
 	}
 	return fclose(file);
 }
