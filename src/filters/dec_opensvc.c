@@ -363,7 +363,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 				data_size -= size+sc_size;
 			} else {
 				/*no annex-B start-code found, discard */
-				gf_filter_pid_drop_packet(ctx->streams[i].ipid);
+				gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
 				return GF_OK;
 			}
 		}
