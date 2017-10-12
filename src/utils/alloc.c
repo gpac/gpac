@@ -201,6 +201,8 @@ size_t gpac_nb_alloc_blocs = 0;
 #define GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 #endif
 
+int gf_mem_track_enabled = 0;
+
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
 static int gf_mem_backtrace_enabled = 0;
 
@@ -446,6 +448,7 @@ void gf_mem_enable_tracker(unsigned int enable_backtrace)
 #ifndef GPAC_MEMORY_TRACKING_DISABLE_STACKTRACE
     gf_mem_backtrace_enabled = enable_backtrace ? 1 : 0;
 #endif
+	gf_mem_track_enabled = 1;
     gf_mem_malloc_proto = gf_mem_malloc_tracker;
 	gf_mem_calloc_proto = gf_mem_calloc_tracker;
 	gf_mem_realloc_proto = gf_mem_realloc_tracker;
@@ -846,8 +849,11 @@ void gf_memory_print()
 	} else {
 		int i=0;
 		assert(gpac_allocations_lock);
+		const char *enum_open_handles(u32 *idx);
+		u32 nb_handles = gf_file_handles_count();
 
-		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", gf_file_handles_count());
+
+		gf_memory_log(GF_MEMORY_INFO, "\n[MemTracker] Printing the current state of allocations (%d open file handles) :\n", nb_handles);
 
 		/*lock*/
 		gf_mx_p(gpac_allocations_lock);
@@ -872,9 +878,15 @@ void gf_memory_print()
 			}
 		}
 		print_memory_size();
-
 		/*unlock*/
 		gf_mx_v(gpac_allocations_lock);
+
+		i=0;
+		while (1) {
+			const char *n = enum_open_handles(&i);
+			if (!n) break;
+			gf_memory_log(GF_MEMORY_ERROR, "[MemTracker] File %s was not closed\n", n);
+		}
 	}
 }
 
