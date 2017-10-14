@@ -826,7 +826,11 @@ GF_Err gf_isom_iff_create_image_item_from_track(GF_ISOFile *movie, Bool root_met
 		GF_List *tile_item_ids;
 		char sz_item_name[256];
 		GF_TileItemMode orig_tile_mode;
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 		e = gf_media_split_hevc_tiles(movie, 0);
+#else
+		e = GF_NOT_SUPPORTED;
+#endif
 		if (e) return e;
 		tile_item_ids = gf_list_new();
 		orig_tile_mode = image_props->tile_mode;
