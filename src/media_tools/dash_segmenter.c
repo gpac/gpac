@@ -4801,7 +4801,7 @@ static GF_Err gf_dash_segmenter_probe_input(GF_DashSegInput **io_dash_inputs, u3
 			memcpy(di, dash_input, sizeof(GF_DashSegInput));
 
 			/*representationID*/
-			sprintf(di->representationID, "%s_%d", dep_representation_id, cur_idx);
+			snprintf(di->representationID, sizeof(di->representationID), "%s_%d", dep_representation_id, cur_idx);
 			di->trackNum = j+1;
 
 			di->protection_scheme_type = gf_isom_is_media_encrypted(file, di->trackNum, 1);
