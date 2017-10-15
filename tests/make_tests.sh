@@ -237,7 +237,8 @@ cd "$main_dir"
 }
 
 
-url_arg=""
+url_arg[0]=""
+num_arg=0
 do_clean=0
 keep_avi=0
 do_clean_hash=0
@@ -316,12 +317,8 @@ for i in $* ; do
    log $L_ERR "Unknown Option \"$i\" - check usage (-h)"
    exit;;
  *)
-  if [ -n "$url_arg" ] ; then
-   log $L_ERR "More than one input specified - check usage (-h)"
-   exit
-  else
-   url_arg=$i
-  fi
+   url_arg[num_arg]=$i
+   num_arg=$((num_arg+1))
  ;;
 esac
 done
@@ -1571,9 +1568,14 @@ ctrl_c_trap() {
 shopt -u nullglob
 
 #run our tests
-if [ -n "$url_arg" ] ; then
- current_script=$url_arg
- source $url_arg
+if [ -n "${url_arg[0]}" ] ; then
+ count=0
+ while [ "x${url_arg[count]}" != "x" ]
+ do
+   current_script=${url_arg[count]}
+   source ${url_arg[count]}
+   count=$(( $count + 1 ))
+ done
 else
  for i in $SCRIPTS_DIR/*.sh ; do
   if [ $verbose = 1 ] ; then
