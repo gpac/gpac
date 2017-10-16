@@ -5079,6 +5079,8 @@ GF_Err srpp_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
+
 GF_Err fdpa_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -5136,6 +5138,8 @@ GF_Err fdsa_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 GF_Err trik_dump(GF_Box *a, FILE * trace)
 {

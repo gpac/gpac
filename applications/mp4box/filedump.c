@@ -1613,6 +1613,7 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 		GF_ISOFile *the_file = gf_isom_open(gf_isom_get_filename(file), GF_ISOM_OPEN_READ, NULL);
 		u32 tcount = gf_isom_get_track_count(the_file);
 		fprintf(dump, "<Tracks>\n");
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
 		for (i=0; i<tcount; i++) {
 			GF_MediaExporter dumper;
 			u32 trackID = gf_isom_get_track_id(the_file, i+1);
@@ -1663,6 +1664,9 @@ GF_Err dump_isom_xml(GF_ISOFile *file, char *inName, Bool is_final_name, Bool do
 				gf_media_export_nhml(&dumper, GF_FALSE);
 			}
 		}
+#else
+		return GF_NOT_SUPPORTED;
+#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 		gf_isom_delete(the_file);
 		fprintf(dump, "</Tracks>\n");
 		fprintf(dump, "</ISOBaseMediaFileTrace>\n");

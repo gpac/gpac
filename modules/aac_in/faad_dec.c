@@ -285,9 +285,6 @@ static GF_Err FAAD_ProcessData(GF_MediaDecoder *ifcg,
 	u32 i, j;
 	FAADCTX();
 
-	/*check not using scalabilty*/
-	if (ctx->ES_ID != ES_ID) return GF_BAD_PARAM;
-
 	/*if late or seeking don't decode*/
 	switch (mmlevel) {
 	case GF_CODEC_LEVEL_SEEK:
