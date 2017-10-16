@@ -5571,6 +5571,10 @@ restart_import:
 		gf_isom_remove_cts_info(import->dest, track);
 	}
 
+	if (gf_isom_get_sample_count(import->dest,track) == 1) {
+	    gf_isom_set_last_sample_duration(import->dest, track, dts_inc );
+	}
+
 	gf_set_progress("Importing AVC-H264", (u32) cur_samp, cur_samp);
 
 	gf_isom_set_visual_info(import->dest, track, di, max_w, max_h);
