@@ -345,6 +345,7 @@
 		92BB85811F7C3C4B009BC9C8 /* reframe_ac3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */; };
 		92BB85831F7C5774009BC9C8 /* dec_ac52.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85821F7C5773009BC9C8 /* dec_ac52.c */; };
 		92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85841F7C606A009BC9C8 /* reframe_amr.c */; };
+		92BBDD751F9642C0001471C6 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BBDD741F9642C0001471C6 /* dec_openhevc.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
 		92BBFCAD1A7122AD006A7735 /* base_coding.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC4A1A7122AD006A7735 /* base_coding.h */; };
@@ -1192,6 +1193,7 @@
 		92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ac3.c; path = filters/reframe_ac3.c; sourceTree = "<group>"; };
 		92BB85821F7C5773009BC9C8 /* dec_ac52.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ac52.c; path = filters/dec_ac52.c; sourceTree = "<group>"; };
 		92BB85841F7C606A009BC9C8 /* reframe_amr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_amr.c; path = filters/reframe_amr.c; sourceTree = "<group>"; };
+		92BBDD741F9642C0001471C6 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
 		92BBFC4A1A7122AD006A7735 /* base_coding.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = base_coding.h; path = ../include/gpac/base_coding.h; sourceTree = "<group>"; };
@@ -2491,6 +2493,7 @@
 				92B9A5BC1F868CFF00A24FE4 /* dec_laser.c */,
 				92BB855D1F7BFB61009BC9C8 /* dec_mad.c */,
 				92BB85511F7BFB60009BC9C8 /* dec_odf.c */,
+				92BBDD741F9642C0001471C6 /* dec_openhevc.c */,
 				92B9A5C01F86ACDF00A24FE4 /* dec_opensvc.c */,
 				926656C31F7D3DF700299CC6 /* dec_theora.c */,
 				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
@@ -3240,6 +3243,7 @@
 				9201014B18D5A445003D1ACA /* html5_media.c in Sources */,
 				9201014C18D5A445003D1ACA /* html5_mse.c in Sources */,
 				9201014D18D5A445003D1ACA /* img.c in Sources */,
+				92BBDD751F9642C0001471C6 /* dec_openhevc.c in Sources */,
 				9201014E18D5A445003D1ACA /* ismacryp.c in Sources */,
 				9201014F18D5A445003D1ACA /* isom_hinter.c in Sources */,
 				9201015018D5A445003D1ACA /* isom_tools.c in Sources */,
@@ -3851,6 +3855,7 @@
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
 					GPAC_HAS_OPENSVC,
+					GPAC_HAS_OPENHEVC,
 				);
 				"GCC_PREPROCESSOR_DEFINITIONS[arch=*]" = (
 					GPAC_STATIC_MODULES,
@@ -3868,6 +3873,7 @@
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
 					GPAC_HAS_OPENSVC,
+					GPAC_HAS_OPENHEVC,
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
@@ -3933,6 +3939,7 @@
 					"-lvorbis",
 					"-ltheora",
 					"-lOpenSVCDec",
+					"-lLibOpenHevcWrapper",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
@@ -3965,6 +3972,7 @@
 					GPAC_HAS_VORBIS,
 					GPAC_HAS_THEORA,
 					GPAC_HAS_OPENSVC,
+					GPAC_HAS_OPENHEVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
@@ -4028,6 +4036,7 @@
 					"-lvorbis",
 					"-ltheora",
 					"-lOpenSVCDec",
+					"-lLibOpenHevcWrapper",
 				);
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;

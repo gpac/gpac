@@ -301,7 +301,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	u32 force_decode_mode = 0;
 	u32 obj_time;
-	s32 diff;
+	s64 diff;
 	Bool bench_mode, skip_resync;
 	const char *data = NULL;
 	const GF_PropertyValue *v;
@@ -523,22 +523,18 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	mo->hw_frame = gf_filter_pck_get_hw_frame(mo->pck);
 //	mo->media_frame = CU->frame;
 
-	if (next_ts) {
-		diff = (s32) (next_ts) - (s32) obj_time;
-	} else  {
-		diff = 1000*gf_filter_pck_get_duration(mo->pck)  / timescale;
-	}
-	if (mo->speed)
-		mo->ms_until_next = FIX2INT(diff * mo->speed);
-	else
-		mo->ms_until_next = diff;
+	diff = (s32) ( (mo->speed >= 0) ? ( (s64) pck_ts - (s64) obj_time) : ( (s64) obj_time - (s64) pck_ts) );
+	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
-	//do't allow too crazy refresh rates
+	diff = next_ts ? next_ts : (pck_ts + 1000*gf_filter_pck_get_duration(mo->pck) / timescale);
+	diff = (s32) ( (mo->speed >= 0) ? ( (s64) diff - (s64) obj_time) : ( (s64) obj_time - (s64) diff) );
+	mo->ms_until_next = FIX2INT(diff * mo->speed);
+	if (mo->ms_until_next < 0)
+		mo->ms_until_next = 0;
+
+	//safe guard
 	if (mo->ms_until_next>500)
 		mo->ms_until_next=500;
-
-	diff = (mo->speed >= 0) ? (s32) (pck_ts) - (s32) obj_time : (s32) obj_time - (s32) (pck_ts);
-	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
 	if (mo->timestamp != pck_ts) {
 		mo->frame_dur = gf_filter_pck_get_duration(mo->pck);
@@ -670,6 +666,11 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 		} else {
 			/*we cannot drop since we don't know the speed of the playback (which can even be frame by frame)*/
 		}
+	}
+	//release frame asap if producer is waiting for the release to be able to process
+	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+		gf_filter_pck_unref(&mo->pck);
+		mo->pck = NULL;
 	}
 }
 
