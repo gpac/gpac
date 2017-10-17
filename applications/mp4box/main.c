@@ -5279,6 +5279,7 @@ exit:
 }
 
 #if defined(WIN32) && !defined(NO_WMAIN)
+#include <windows.h>
 
 int wmain( int argc, wchar_t** wargv )
 {
