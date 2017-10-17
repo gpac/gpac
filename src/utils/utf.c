@@ -388,6 +388,7 @@ size_t gf_utf8_wcslen (const unsigned short *s)
 GF_EXPORT
 size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 {
+	if (!srcp || !*srcp) return 0;
 	const UTF16** sourceStart = srcp;
 	const UTF16* sourceEnd = *srcp + gf_utf8_wcslen(*srcp);
 	UTF8* targetStart = (UTF8*) dest;
@@ -404,6 +405,7 @@ size_t gf_utf8_wcstombs(char* dest, size_t len, const unsigned short** srcp)
 GF_EXPORT
 size_t gf_utf8_mbstowcs(unsigned short* dest, size_t len, const char** srcp)
 {
+	if (!srcp || !*srcp) return 0;
 	const UTF8** sourceStart = (const UTF8**) srcp;
 	const UTF8* sourceEnd = (const UTF8*) ( *srcp + strlen( *srcp) );
 	UTF16* targetStart = (UTF16* ) dest;

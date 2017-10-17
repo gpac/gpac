@@ -5299,6 +5299,8 @@ int wmain( int argc, wchar_t** wargv )
 			return -1;
 		}
 	}
+	/* force windows console codepage to utf8 to display (some, but not all) characters properly */
+	SetConsoleOutputCP(65001);
 	res = mp4boxMain(argc, argv);
 	for (i = 0; i < argc; i++) {
 		free(argv[i]);

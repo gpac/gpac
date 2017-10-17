@@ -136,7 +136,7 @@ GF_Err gf_mkdir(char* DirPathName)
 	if (!wcsDirPathName)
 		return GF_IO_ERR;
 	int res = _wmkdir(wcsDirPathName);
-	free(wcsDirPathName);
+	gf_free(wcsDirPathName);
 	if (res==-1) {
 		int err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
