@@ -325,6 +325,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->nb_fetch ++;
 		return mo->frame;
 	}
+
+	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
+		gf_filter_pck_unref(&mo->pck);
+		mo->pck = NULL;
+	}
 	v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TIMESCALE);
 	if (v) timescale = v->value.uint;
 	if (!timescale) timescale=1;
@@ -582,9 +587,11 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		mo->ms_until_next = 1;
 	}
 
+	//TODO fixme, hack for clock signaling
+	if (!mo->frame && !mo->hw_frame)
+		return NULL;
 
 	mo->nb_fetch ++;
-	assert(mo->frame || mo->hw_frame);
 	*timestamp = mo->timestamp;
 	*size = mo->framesize;
 	if (ms_until_pres) *ms_until_pres = mo->ms_until_pres;

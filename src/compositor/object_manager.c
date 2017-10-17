@@ -378,7 +378,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 
 		prop = gf_filter_pid_get_info(for_pid ? for_pid : odm->pid, GF_PROP_PID_FILE_CACHED);
 		if (prop) {
-			odm->buffer_playout_us = odm->buffer_max_us = 100000;
+			odm->buffer_playout_us = odm->buffer_max_us = 1000000;
 			odm->buffer_min_us = 0;
 		}
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
@@ -1375,14 +1375,14 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			timescale = gf_filter_pck_get_timescale(pck);
 
 			time = gf_filter_pck_get_cts(pck);
-			if (!time) time = gf_filter_pck_get_dts(pck);
+			if (time==GF_FILTER_NO_TS) time = gf_filter_pck_get_dts(pck);
 			time *= 1000;
 			time /= timescale;
 			gf_clock_set_time(odm->ck, time);
 			if (odm->parentscene)
 				odm->parentscene->root_od->media_start_time = 0;
 		}
-		if (buffer_duration > odm->buffer_playout_us) {
+		if (buffer_duration >= odm->buffer_playout_us) {
 			odm->nb_buffering --;
 			scene->nb_buffering--;
 			if (!scene->nb_buffering) {

@@ -113,11 +113,32 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	Bool in_iod = GF_FALSE;
 
 	if (is_remove) {
+		GF_Scene *scene;
+		u32 ID=0;
 		GF_ObjectManager *odm = gf_filter_pid_get_udta(pid);
 		//already disconnected
 		if (!odm) return GF_OK;
+		ID = odm->ID;
+		scene = odm->parentscene;
+		if (scene && !scene->is_dynamic_scene)
+			scene = NULL;
 		//destroy the object
 		gf_odm_disconnect(odm, 2);
+		if (scene) {
+			if (scene->visual_url.OD_ID == ID) {
+				scene->visual_url.OD_ID = 0;
+				gf_scene_regenerate(scene);
+			} else if (scene->audio_url.OD_ID == ID) {
+				scene->audio_url.OD_ID = 0;
+				gf_scene_regenerate(scene);
+			} else if (scene->text_url.OD_ID == ID) {
+				scene->text_url.OD_ID = 0;
+				gf_scene_regenerate(scene);
+			} else if (scene->dims_url.OD_ID == ID) {
+				scene->dims_url.OD_ID = 0;
+				gf_scene_regenerate(scene);
+			}
+		}
 		return GF_OK;
 	}
 

@@ -774,6 +774,9 @@ typedef struct _gf_filter_hw_frame
 	//release media frame
 	void (*destroy)(struct _gf_filter_frame *frame);
 
+	//set to true if a hardware reset is pending after the consumption of this frame
+	Bool hardware_reset_pending;
+
 	//allocated space by the filter
 	void *user_data;
 } GF_FilterHWFrame;

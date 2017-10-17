@@ -114,7 +114,7 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 		filter->has_pending_pids=GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
-			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+			gf_filter_pid_post_init_task(filter, pid);
 		}
 	}
 	return GF_OK;
@@ -543,11 +543,21 @@ static void gf_filter_process_task(GF_FSTask *task)
 		return;
 	}
 #endif
-	while (gf_list_count(task->filter->postponed_packets)) {
-		GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
-		gf_filter_pck_send(pck);
-	}
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s process\n", filter->name));
+
+	if (task->filter->postponed_packets) {
+		while (gf_list_count(task->filter->postponed_packets)) {
+			GF_FilterPacket *pck = gf_list_pop_front(task->filter->postponed_packets);
+			gf_filter_pck_send(pck);
+		}
+		gf_list_del(task->filter->postponed_packets);
+		task->filter->postponed_packets = NULL;
+		if (task->filter->process_task_queued==1) {
+			task->filter->process_task_queued = 0;
+			return;
+		}
+	}
 	FSESS_CHECK_THREAD(filter)
 	e = filter->freg->process(filter);
 
@@ -556,7 +566,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 		filter->has_pending_pids=GF_FALSE;
 		while (gf_fq_count(filter->pending_pids)) {
 			GF_FilterPid *pid=gf_fq_pop(filter->pending_pids);
-			gf_fs_post_task(filter->session, gf_filter_pid_init_task, filter, pid, "pid_init", NULL);
+			gf_filter_pid_post_init_task(filter, pid);
 		}
 	}
 	//no requeue if end of session
@@ -757,6 +767,9 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 		if (pidi->pid->filter==source_filter) nb_rem_inst++;
 	}
 	if (nb_rem_inst != count) return;
+	//already removed
+	if (filter->removed) return;
+	
 	//filter will be removed, propagate on all output pids
 	filter->removed = GF_TRUE;
 	count = gf_list_count(filter->output_pids);
@@ -787,6 +800,7 @@ void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Disconnecting filter %s from session\n", filter->name));
 	}
 	//get all dest pids, post disconnect and mark filters as removed
+	assert(!filter->removed);
 	filter->removed = GF_TRUE;
 	for (i=0; i<filter->num_output_pids; i++) {
 		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
