@@ -655,6 +655,7 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	}
 	if (!us_until_next) return;
 	filter->schedule_next_time = 1+us_until_next + gf_sys_clock_high_res();
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }
 
 void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)

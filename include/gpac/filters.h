@@ -552,6 +552,8 @@ enum
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
 	//(string) remote URL where stream data is available - NOT YET SUPPORTED
 	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
+	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
+	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
 
 	//(uint) PCR/OCR timescale of pid
 	GF_PROP_PID_OCR_TIMESCALE = GF_4CC('O','C','T','S'),
