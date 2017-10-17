@@ -94,12 +94,6 @@ GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
-static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
-{
-	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
-	ctx->pck_out = GF_FALSE;
-}
-
 static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 {
 	GF_FilterPacket *pck;
@@ -147,6 +141,14 @@ static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 	return GF_FALSE;
 }
 
+static void httpin_rel_pck(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
+{
+	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
+	ctx->pck_out = GF_FALSE;
+	//ready to process again
+	gf_filter_post_process_task(filter);
+}
+
 static GF_Err httpin_process(GF_Filter *filter)
 {
 	Bool is_start;
@@ -158,8 +160,10 @@ static GF_Err httpin_process(GF_Filter *filter)
 	GF_NetIOStatus net_status;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
+	//until packet is released we return EOS (no processing), and ask for processing again upon release
+	assert(!ctx->pck_out);
 	if (ctx->pck_out)
-		return GF_OK;
+		return GF_EOS;
 
 	if (ctx->is_end)
 		return GF_EOS;
@@ -261,7 +265,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 		return GF_EOS;
 	}
 
-	return GF_OK;
+	return ctx->pck_out ? GF_EOS : GF_OK;
 }
 
 

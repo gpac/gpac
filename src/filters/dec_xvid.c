@@ -73,7 +73,8 @@ typedef struct
 	u32 cfg_crc;
 	void *codec;
 
-	u32 width, height, out_size, pixel_ar;
+	u32 width, height, out_size;
+	GF_Fraction pixel_ar;
 	Bool first_frame;
 	s32 base_filters;
 	Float FPS;
@@ -179,7 +180,8 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	ctx->FPS = dsi.clock_rate;
 	ctx->FPS /= 1000;
 	if (!ctx->FPS) ctx->FPS = 30.0f;
-	ctx->pixel_ar = (dsi.par_num<<16) | dsi.par_den;
+	ctx->pixel_ar.num = dsi.par_num;
+	ctx->pixel_ar.den = dsi.par_den;
 
 #ifndef XVID_USE_OLD_API
 	par.version = XVID_VERSION;
@@ -218,7 +220,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->width) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_UINT(ctx->pixel_ar) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YV12) );
 
 	return GF_OK;

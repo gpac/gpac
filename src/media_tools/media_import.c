@@ -8899,8 +8899,6 @@ void on_m2ts_import_data(GF_M2TS_Demuxer *ts, u32 evt_type, void *par)
 	}
 }
 
-extern void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes);
-
 /* Warning: we start importing only after finding the PMT */
 GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
 {

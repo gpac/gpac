@@ -27,21 +27,39 @@
 
 static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
 {
-	pck->data_block_start = pck->data_block_end = GF_TRUE;
-	pck->pid_props_changed = GF_FALSE;
-	pck->clock_discontinuity = GF_FALSE;
-	pck->corrupted = GF_FALSE;
-	pck->cts = pck->dts = 0;
-	pck->duration = 0;
-	pck->eos = GF_FALSE;
-	pck->corrupted = 0;
-	pck->sap_type = GF_FALSE;
-	pck->seek_flag = GF_FALSE;
-	pck->byte_offset = -1;
-	pck->pid_info_changed = 0;
-	pck->carousel_version_number = 0;
+	memset(&pck->info, 0, sizeof(GF_FilterPckInfo));
+	pck->info.dts = pck->info.cts = GF_FILTER_NO_TS;
+	pck->info.byte_offset =  GF_FILTER_NO_BO;
+	pck->info.data_block_start = pck->info.data_block_end = GF_TRUE;
 }
 
+GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst)
+{
+	if (PCK_IS_INPUT(pck_dst)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set property on an input packet in filter %s\n", pck_dst->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	//we allow copying over properties from dest packets to dest packets
+	//get true packet pointer
+	pck_src=pck_src->pck;
+	pck_dst=pck_dst->pck;
+
+	pck_dst->info = pck_src->info;
+
+	if (!pck_src->props) {
+		if (pck_dst->props) {
+			gf_props_del(pck_dst->props);
+			pck_dst->props=NULL;
+		}
+		return GF_OK;
+	}
+	if (!pck_dst->props) {
+		pck_dst->props = gf_props_new(pck_dst->pid->filter);
+
+		if (!pck_dst->props) return GF_OUT_OF_MEM;
+	}
+	return gf_props_merge_property(pck_dst->props, pck_src->props);
+}
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
@@ -150,6 +168,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	if (!reference) return NULL;
 	reference=reference->pck;
 	pck = gf_filter_pck_new_shared(pid, data, data_size, NULL);
+	if (!pck) return NULL;
 	pck->reference = reference;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
@@ -165,6 +184,7 @@ GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame 
 	GF_FilterPacket *pck;
 	if (!hw_frame) return NULL;
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	if (!pck) return NULL;
 	pck->hw_frame = hw_frame;
 	return pck;
 }
@@ -175,10 +195,12 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 	if (!reference) return NULL;
 	reference=reference->pck;
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
+	if (!pck) return NULL;
 	pck->reference = reference;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
 
+	gf_filter_pck_merge_properties(reference, pck);
 	pck->data = reference->data;
 	pck->data_length = reference->data_length;
 
@@ -239,14 +261,27 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	count=gf_list_count(dst->pck_reassembly);
 	//no packet to reaggregate
 	if (!count) return GF_FALSE;
+	//single packet, update PID buffer and dispatch to packet queue
+	if (count==1) {
+		GF_FilterPacketInstance *pcki = gf_list_pop_back(dst->pck_reassembly);
+		safe_int_inc(&dst->filter->pending_packets);
+		if (pcki->pck->info.duration && pcki->pck->pid_props->timescale) {
+			s64 duration = ((u64)pcki->pck->info.duration) * 1000000;
+			duration /= pcki->pck->pid_props->timescale;
+			safe_int_add(&dst->buffer_duration, duration);
+		}
+		gf_fq_add(dst->packets, pcki);
+		return GF_TRUE;
+	}
+
 	for (i=0; i<count; i++) {
 		GF_FilterPacketInstance *pck = gf_list_get(dst->pck_reassembly, i);
 		assert(pck);
-		assert(!pck->pck->data_block_start || !pck->pck->data_block_end);
+		assert(!pck->pck->info.data_block_start || !pck->pck->info.data_block_end);
 		size += pck->pck->data_length;
 		if (!i) {
-			byte_offset = pck->pck->byte_offset + pck->pck->data_length;
-		}else if (byte_offset == pck->pck->byte_offset) {
+			byte_offset = pck->pck->info.byte_offset + pck->pck->data_length;
+		}else if (byte_offset == pck->pck->info.byte_offset) {
 			byte_offset += pck->pck->data_length;
 		} else {
 			byte_offset = -1;
@@ -263,6 +298,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		memcpy(data+pos, pcki->pck->data, pcki->pck->data_length);
 		pos += pcki->pck->data_length;
 		gf_filter_pck_merge_properties(pcki->pck, final);
+		final->info.data_block_start = final->info.data_block_end = GF_TRUE;
 
 		if (pcki->pck->pid_props) {
 			final->pid_props = pcki->pck->pid_props;
@@ -283,13 +319,13 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 			safe_int_inc(&dst->filter->pending_packets);
 
-			if (pck->duration && pck->pid_props->timescale) {
-				s64 duration = ((u64)pck->duration) * 1000000;
+			if (pck->info.duration && pck->pid_props->timescale) {
+				s64 duration = ((u64)pck->info.duration) * 1000000;
 				duration /= pck->pid_props->timescale;
 				safe_int_add(&dst->buffer_duration, duration);
 			}
 			//not continous set of bytes reaggregated
-			if (byte_offset == -1) final->byte_offset = -1;
+			if (byte_offset == GF_FILTER_NO_BO) final->info.byte_offset = GF_FILTER_NO_BO;
 
 			gf_fq_add(dst->packets, pcki);
 
@@ -340,18 +376,20 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 		return GF_OK;
 	}
-	pid->has_seen_eos = pck->eos;
+	pid->has_seen_eos = pck->info.eos;
+	if (!pck->data_length)
+		pck->data_length = 0;
 
 	//a new property map was created -  flag the packet
 	if (!pid->request_property_map) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s properties modified, marking packet\n", pck->pid->filter->name, pck->pid->name));
 
-		pck->pid_props_changed = GF_TRUE;
+		pck->info.pid_props_changed = GF_TRUE;
 	}
 	//any new pid_set_property after this packet will trigger a new property map
 	pid->request_property_map = GF_TRUE;
 	if (pid->pid_info_changed) {
-		pck->pid_info_changed = GF_TRUE;
+		pck->info.pid_info_changed = GF_TRUE;
 		pid->pid_info_changed = GF_FALSE;
 	}
 
@@ -380,36 +418,62 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		pid->filter->nb_bytes_sent += pck->data_length;
 	}
 
-	if (pck->clock_discontinuity) {
+	if (pck->info.clock_discontinuity) {
 		pid->duration_init = GF_FALSE;
 	}
-	if (pck->dts && !pck->cts)
-		pck->cts = pck->dts;
+	if (pck->info.dts==GF_FILTER_NO_TS)
+		pck->info.dts = pck->info.cts;
+	else if (pck->info.cts==GF_FILTER_NO_TS)
+		pck->info.cts = pck->info.dts;
 
-	if (! pid->duration_init) {
-		pid->last_pck_dts = pck->dts;
-		pid->last_pck_cts = pck->cts;
-		pid->duration_init = GF_TRUE;
-	} else if (!pck->duration) {
-		if (pck->dts) {
-			duration = pck->dts - pid->last_pck_dts;
-		} else if (pck->cts) {
-			duration = pck->cts - pid->last_pck_cts;
-			if (duration<0) duration = -duration;
+	if (pck->info.cts != GF_FILTER_NO_TS) {
+		if (! pid->duration_init) {
+			pid->last_pck_dts = pck->info.dts;
+			pid->last_pck_cts = pck->info.cts;
+			pid->duration_init = GF_TRUE;
+		} else if (!pck->info.duration) {
+			if (pck->info.dts!=GF_FILTER_NO_TS) {
+				duration = pck->info.dts - pid->last_pck_dts;
+			} else if (pck->info.cts!=GF_FILTER_NO_TS) {
+				duration = pck->info.cts - pid->last_pck_cts;
+				if (duration<0) duration = -duration;
+			}
+			pid->last_pck_dts = pck->info.dts;
+			pid->last_pck_cts = pck->info.cts;
+		} else {
+			duration = pck->info.duration;
 		}
-		pid->last_pck_dts = pck->dts;
-		pid->last_pck_cts = pck->cts;
 	} else {
-		duration = pck->duration;
+		duration = pck->info.duration;
 	}
+	
 	if (duration) {
 		if (!pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 		else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
 	}
-	if (!pck->duration && pid->min_pck_duration)
-		pck->duration = duration;
+	if (!pck->info.duration && pid->min_pck_duration)
+		pck->info.duration = duration;
 
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->dts, pck->cts, pck->sap_type, pck->seek_flag, pck->duration));
+	//may happen if we don't have DTS, only CTS signaled and B-frames
+	if ((s32) pck->info.duration < 0) {
+		pck->info.duration = duration = 0;
+	}
+
+#ifndef GPAC_DISABLE_LOG
+	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
+		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+		}
+		else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+		}
+		else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+		}
+	}
+#endif
 
 
 	//protect packet from destruction - this could happen
@@ -433,44 +497,48 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			}
 			inst->pck = pck;
 			inst->pid = dst;
+			inst->pid_props_change_done = 0;
+			inst->pid_info_change_done = 0;
 
-			if (inst->pck->eos) {
+			if (inst->pck->info.eos) {
 				safe_int_inc(&inst->pid->nb_eos_signaled);
 			}
 			
 			safe_int_inc(&pck->reference_count);
 			nb_dispatch++;
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), dst->buffer_duration ));
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
 
 			if (dst->requires_full_data_block) {
 
-				//missed end of previous, aggregate all before excluding this packet
-				if (pck->data_block_start) {
+				if (pck->info.data_block_start) {
+					//missed end of previous, aggregate all before excluding this packet
 					if (!dst->last_block_ended) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - reaggregating packet\n", pid->filter->name));
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - queuing for potential reaggregation\n", pid->filter->name));
 
 						//post process task if we have been reaggregating a packet
 						post_task = gf_filter_aggregate_packets(dst);
+						if (post_task && pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
 					}
 					dst->last_block_ended = GF_TRUE;
 				}
 
 				//block end, aggregate all before and including this packet
-				if (pck->data_block_end) {
+				if (pck->info.data_block_end) {
 					//not starting at this packet, append and aggregate
-					if (!pck->data_block_start) {
+					if (!pck->info.data_block_start && gf_list_count(dst->pck_reassembly) ) {
 						//insert packet into reassembly (no need to lock here)
 						gf_list_add(dst->pck_reassembly, inst);
 
 						gf_filter_aggregate_packets(dst);
+						if (pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
 					}
 					//single block packet, direct dispatch in packet queue (aggregation done before)
 					else {
 						assert(dst->last_block_ended);
 
-						if (pck->duration && timescale) {
-							duration = ((u64)pck->duration) * 1000000;
+						if (pck->info.duration && timescale) {
+							duration = ((u64)pck->info.duration) * 1000000;
 							duration /= timescale;
 							safe_int_add(&dst->buffer_duration, duration);
 						}
@@ -483,6 +551,10 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				}
 				//new block start or continuation
 				else {
+					if (pck->info.data_block_start) {
+						pid->nb_reaggregation_pending++;
+					}
+
 					//if packet mem is hold by filter we must copy the packet since it is no longer
 					//consumable until end of block is received, and source might be waiting for this packet to be freed to dispatch further packets
 					if (inst->pck->filter_owns_mem) {
@@ -528,14 +600,14 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 			} else {
 				duration=0;
 				//store start of block info
-				if (pck->data_block_start) {
+				if (pck->info.data_block_start) {
 					dst->first_block_started = GF_TRUE;
-					duration = pck->duration;
+					duration = pck->info.duration;
 				}
-				if (pck->data_block_end) {
+				if (pck->info.data_block_end) {
 					//we didn't get a start for this end of block use the packet duration
 					if (!dst->first_block_started) {
-						duration=pck->duration;
+						duration=pck->info.duration;
 					}
 					dst->first_block_started = GF_FALSE;
 				}
@@ -642,46 +714,6 @@ GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF
 	return gf_filter_pck_set_property_full(pck, 0, NULL, name, value);
 }
 
-GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst)
-{
-	if (PCK_IS_INPUT(pck_dst)) {
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set property on an input packet in filter %s\n", pck_dst->pid->filter->name));
-		return GF_BAD_PARAM;
-	}
-	//we allow copying over properties from dest packets to dest packets
-
-	//get true packet pointer
-	pck_src=pck_src->pck;
-	pck_dst=pck_dst->pck;
-
-	pck_dst->dts = pck_src->dts;
-	pck_dst->cts = pck_src->cts;
-	pck_dst->sap_type = pck_src->sap_type;
-	pck_dst->duration = pck_src->duration;
-	pck_dst->corrupted = pck_src->corrupted;
-	pck_dst->eos = pck_src->eos;
-	pck_dst->interlaced = pck_src->interlaced;
-	pck_dst->byte_offset = pck_src->byte_offset;
-	pck_dst->pid_info_changed = pck_src->pid_info_changed;
-	pck_dst->pid_props_changed = pck_src->pid_props_changed;
-
-	if (!pck_src->props) {
-		if (pck_dst->props) {
-			gf_props_del(pck_dst->props);
-			pck_dst->props=NULL;
-		}
-		return GF_OK;
-	}
-
-	if (!pck_dst->props) {
-		pck_dst->props = gf_props_new(pck_dst->pid->filter);
-
-		if (!pck_dst->props) return GF_OUT_OF_MEM;
-	}
-
-	return gf_props_merge_property(pck_dst->props, pck_src->props);
-}
-
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc)
 {
 	//get true packet pointer
@@ -715,8 +747,8 @@ GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_en
 {
 	PCK_SETTER_CHECK("framing info")
 
-	pck->data_block_start = is_start;
-	pck->data_block_end = is_end;
+	pck->info.data_block_start = is_start;
+	pck->info.data_block_end = is_end;
 	return GF_OK;
 }
 
@@ -725,8 +757,8 @@ GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_
 	assert(pck);
 	//get true packet pointer
 	pck=pck->pck;
-	if (is_start) *is_start = pck->data_block_start;
-	if (is_end) *is_end = pck->data_block_end;
+	if (is_start) *is_start = pck->info.data_block_start;
+	if (is_end) *is_end = pck->info.data_block_end;
 	return GF_OK;
 }
 
@@ -734,26 +766,26 @@ GF_Err gf_filter_pck_get_framing(GF_FilterPacket *pck, Bool *is_start, Bool *is_
 GF_Err gf_filter_pck_set_dts(GF_FilterPacket *pck, u64 dts)
 {
 	PCK_SETTER_CHECK("DTS")
-	pck->dts = dts;
+	pck->info.dts = dts;
 	return GF_OK;
 }
 u64 gf_filter_pck_get_dts(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->dts;
+	return pck->pck->info.dts;
 }
 GF_Err gf_filter_pck_set_cts(GF_FilterPacket *pck, u64 cts)
 {
 	PCK_SETTER_CHECK("CTS")
-	pck->cts = cts;
+	pck->info.cts = cts;
 	return GF_OK;
 }
 u64 gf_filter_pck_get_cts(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->cts;
+	return pck->pck->info.cts;
 }
 u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 {
@@ -764,102 +796,102 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, u32 sap_type)
 {
 	PCK_SETTER_CHECK("SAP")
-	pck->sap_type = sap_type;
+	pck->info.sap_type = sap_type;
 	return GF_OK;
 }
 u32 gf_filter_pck_get_sap(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->sap_type;
+	return pck->pck->info.sap_type;
 }
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced)
 {
 	PCK_SETTER_CHECK("interlaced")
-	pck->interlaced = is_interlaced;
+	pck->info.interlaced = is_interlaced;
 	return GF_OK;
 }
 u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->interlaced;
+	return pck->pck->info.interlaced;
 }
 GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted)
 {
 	PCK_SETTER_CHECK("corrupted")
-	pck->corrupted = is_corrupted;
+	pck->info.corrupted = is_corrupted;
 	return GF_OK;
 }
 Bool gf_filter_pck_get_corrupted(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->corrupted;
+	return pck->pck->info.corrupted;
 }
 
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration)
 {
 	PCK_SETTER_CHECK("dur")
-	pck->duration = duration;
+	pck->info.duration = duration;
 	return GF_OK;
 }
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->duration;
+	return pck->pck->info.duration;
 }
 GF_Err gf_filter_pck_set_seek_flag(GF_FilterPacket *pck, Bool is_seek)
 {
 	PCK_SETTER_CHECK("seek")
-	pck->seek_flag = is_seek;
+	pck->info.seek_flag = is_seek;
 	return GF_OK;
 }
 Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->seek_flag;
+	return pck->pck->info.seek_flag;
 }
 
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number)
 {
 	PCK_SETTER_CHECK("carousel_version")
-	pck->carousel_version_number = version_number;
+	pck->info.carousel_version_number = version_number;
 	return GF_OK;
 }
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->carousel_version_number;
+	return pck->pck->info.carousel_version_number;
 }
 
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset)
 {
 	PCK_SETTER_CHECK("byteOffset")
-	pck->byte_offset = byte_offset;
+	pck->info.byte_offset = byte_offset;
 	return GF_OK;
 }
 
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 {
 	assert(pck);
-	return pck->pck->byte_offset;
+	return pck->pck->info.byte_offset;
 }
 
 GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck)
 {
 	PCK_SETTER_CHECK("clock_discontinuity")
-	pck->clock_discontinuity = GF_TRUE;
+	pck->info.clock_discontinuity = GF_TRUE;
 	return GF_OK;
 }
 
 Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck)
 {
 	assert(pck);
-	return pck->pck->clock_discontinuity ? GF_TRUE : GF_FALSE;
+	return pck->pck->info.clock_discontinuity ? GF_TRUE : GF_FALSE;
 }
 
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)

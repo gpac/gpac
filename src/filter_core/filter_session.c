@@ -93,13 +93,13 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, m2tsdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, udpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
-//	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, osvcdec_register(a_sess) );
 
-//	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-//	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 }
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
@@ -1237,6 +1237,30 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	}
 	safe_int_inc(&fsess->nb_dm_users);
 	return fsess->download_manager;
+}
+
+
+void gf_fs_cleanup_filters(GF_FilterSession *fsess)
+{
+	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
+	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
+		u32 i, count = gf_list_count(fsess->filters);
+		for (i=0; i<count; i++) {
+			GF_Filter *filter = gf_list_get(fsess->filters, i);
+			//dynamic filter with no connections, remove it
+			if (filter->dynamic_filter && !filter->num_input_pids && !filter->num_output_pids) {
+
+				gf_list_rem(fsess->filters, i);
+				i--;
+				count--;
+
+				filter->removed = GF_TRUE;
+				filter->finalized = GF_TRUE;
+				gf_filter_del(filter);
+			}
+		}
+	}
+	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 }
 
 #ifdef FILTER_FIXME

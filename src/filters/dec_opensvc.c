@@ -45,6 +45,7 @@ typedef struct
 {
 	GF_FilterPid *ipid;
 	u32 cfg_crc;
+	u32 id;
 	u32 dep_id;
 } GF_SVCStream;
 
@@ -59,16 +60,15 @@ typedef struct
 {
 	GF_FilterPid *opid;
 	GF_SVCStream streams[SVC_MAX_STREAMS];
-	u32 nb_streams;
-	u32 width, stride, height, out_size, pixel_ar;
+	u32 nb_streams, active_streams;
+	u32 width, stride, height, out_size;
+	GF_Fraction pixel_ar;
 
 	u32 nalu_size_length;
-	Bool init_layer_set;
-	Bool state_found;
 
 	/*OpenSVC things*/
 	void *codec;
-	int CurrentDqId;
+	int LimitDqId;
 	int MaxDqId;
 	int DqIdTable[8];
 	int TemporalId;
@@ -76,6 +76,7 @@ typedef struct
 
 	OSVCDecFrameInfo *frame_infos;
 	u32 frame_infos_alloc, frame_infos_size;
+	int layers[4];
 
 } GF_OSVCDecCtx;
 
@@ -85,10 +86,9 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	const GF_PropertyValue *p;
 	GF_M4VDecSpecInfo dsi;
 	GF_Err e;
-	u32 i, count, dep_id=0, cfg_crc=0;
+	u32 i, count, dep_id=0, id=0, cfg_crc=0;
 	s32 res;
 	OPENSVCFRAME Picture;
-	int Layer[4];
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -96,7 +96,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			memset(ctx->streams, 0, SVC_MAX_STREAMS*sizeof(GF_SVCStream));
 			if (ctx->opid) gf_filter_pid_remove(ctx->opid);
 			ctx->opid = NULL;
-			ctx->nb_streams=0;
+			ctx->nb_streams = ctx->active_streams = 0;
 			if (ctx->codec) SVCDecoder_close(ctx->codec);
 			ctx->codec = NULL;
 			return GF_OK;
@@ -107,6 +107,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 					ctx->streams[i].cfg_crc = 0;
 					memmove(&ctx->streams[i], &ctx->streams[i+1], sizeof(GF_SVCStream)*(ctx->nb_streams-1));
 					ctx->nb_streams--;
+					ctx->active_streams--;
 					return GF_OK;
 				}
 			}
@@ -119,6 +120,10 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DEPENDENCY_ID);
 	if (p) dep_id = p->value.uint;
 
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_ID);
+	if (!p) p = gf_filter_pid_get_property(pid, GF_PROP_PID_ESID);
+	if (p) id = p->value.uint;
+
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data && p->data_len) {
 		cfg_crc = gf_crc_32(p->value.data, p->data_len);
@@ -128,8 +133,8 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	found = GF_FALSE;
-	for (i=0; i<ctx->nb_streams; i++) {
-		if (!ctx->streams[i].ipid == pid) {
+	for (i=0; i<ctx->active_streams; i++) {
+		if (ctx->streams[i].ipid == pid) {
 			ctx->streams[i].cfg_crc = cfg_crc;
 			found = GF_TRUE;
 		}
@@ -138,11 +143,48 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		if (ctx->nb_streams==SVC_MAX_STREAMS) {
 			return GF_NOT_SUPPORTED;
 		}
-		ctx->streams[ctx->nb_streams].ipid = pid;
-		ctx->streams[ctx->nb_streams].cfg_crc = cfg_crc;
-		ctx->streams[ctx->nb_streams].dep_id = dep_id;
-		gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		//insert new pid in order of dependencies
+		for (i=0; i<ctx->nb_streams; i++) {
+
+			if (!dep_id && !ctx->streams[i].dep_id) {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[SVC Decoder] Detected multiple independent base (%s and %s)\n", gf_filter_pid_get_name(pid), gf_filter_pid_get_name(ctx->streams[i].ipid)));
+				return GF_REQUIRES_NEW_INSTANCE;
+			}
+
+			if (ctx->streams[i].id == dep_id) {
+				if (ctx->nb_streams > i+2)
+					memmove(&ctx->streams[i+1], &ctx->streams[i+2], sizeof(GF_SVCStream) * (ctx->nb_streams-i-1));
+
+				ctx->streams[i+1].ipid = pid;
+				ctx->streams[i+1].cfg_crc = cfg_crc;
+				ctx->streams[i+1].dep_id = dep_id;
+				ctx->streams[i+1].id = id;
+				gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+				found = GF_TRUE;
+				break;
+			}
+			if (ctx->streams[i].dep_id == id) {
+				if (ctx->nb_streams > i+1)
+					memmove(&ctx->streams[i+1], &ctx->streams[i], sizeof(GF_SVCStream) * (ctx->nb_streams-i));
+
+				ctx->streams[i].ipid = pid;
+				ctx->streams[i].cfg_crc = cfg_crc;
+				ctx->streams[i].dep_id = dep_id;
+				ctx->streams[i].id = id;
+				gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+				found = GF_TRUE;
+				break;
+			}
+		}
+		if (!found) {
+			ctx->streams[ctx->nb_streams].ipid = pid;
+			ctx->streams[ctx->nb_streams].cfg_crc = cfg_crc;
+			ctx->streams[ctx->nb_streams].id = id;
+			ctx->streams[ctx->nb_streams].dep_id = dep_id;
+			gf_filter_pid_set_framing_mode(pid, GF_TRUE);
+		}
 		ctx->nb_streams++;
+		ctx->active_streams = ctx->nb_streams;
 	}
 
 	if (p && p->value.data) {
@@ -155,7 +197,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 		/*decode all NALUs*/
 		count = gf_list_count(cfg->sequenceParameterSets);
-		SetCommandLayer(Layer, 255, 0, &res, 0);//bufindex can be reset without pb
+		SetCommandLayer(ctx->layers, 255, 0, &res, 0);//bufindex can be reset without pb
 		for (i=0; i<count; i++) {
 			u32 w=0, h=0, sid;
 			s32 par_n=0, par_d=0;
@@ -169,11 +211,13 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 				if ((ctx->width<w) || (ctx->height<h)) {
 					ctx->width = w;
 					ctx->height = h;
-					if ( ((s32)par_n>0) && ((s32)par_d>0) )
-						ctx->pixel_ar = (par_n<<16) || par_d;
+					if ( ((s32)par_n>0) && ((s32)par_d>0) ) {
+						ctx->pixel_ar.num = par_n;
+						ctx->pixel_ar.den = par_d;
+					}
 				}
 			}
-			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
+			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, ctx->layers);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding SPS %d\n", res));
 			}
@@ -185,26 +229,27 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			u32 sps_id, pps_id;
 			GF_AVCConfigSlot *slc = (GF_AVCConfigSlot*)gf_list_get(cfg->pictureParameterSets, i);
 			gf_avc_get_pps_info(slc->data, slc->size, &pps_id, &sps_id);
-			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, Layer);
+			res = decodeNAL(ctx->codec, (unsigned char *) slc->data, slc->size, &Picture, ctx->layers);
 			if (res<0) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding PPS %d\n", res));
 			}
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] Attach: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", pps_id, slc->data[0] & 0x1F, slc->size, sps_id));
 		}
-		ctx->state_found = GF_TRUE;
 		gf_odf_avc_cfg_del(cfg);
 	} else {
 		if (ctx->nalu_size_length) {
 			return GF_NOT_SUPPORTED;
 		}
 		ctx->nalu_size_length = 0;
-		if (!dep_id) {
+		if (!ctx->codec) {
 			if (SVCDecoder_init(&ctx->codec) == SVC_STATUS_ERROR) return GF_IO_ERR;
+			SetCommandLayer(ctx->layers, 255, 0, &res, 0);
 		}
-		ctx->pixel_ar = (1<<16) || 1;
+		ctx->pixel_ar = (GF_Fraction){1, 1};
 	}
 	ctx->stride = ctx->width + 32;
-	ctx->CurrentDqId = ctx->MaxDqId = 0;
+	ctx->LimitDqId = -1;
+	ctx->MaxDqId = 0;
 	ctx->out_size = ctx->stride * ctx->height * 3 / 2;
 
 	if (!ctx->opid) {
@@ -217,8 +262,8 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
-		if (ctx->pixel_ar)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_UINT(ctx->pixel_ar) );
+		if (ctx->pixel_ar.num)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YV12) );
 	}
 	return GF_OK;
@@ -231,13 +276,15 @@ static Bool osvcdec_process_event(GF_Filter *filter, GF_FilterEvent *fevt)
 
 	if (fevt->base.type == GF_FEVT_QUALITY_SWITCH) {
 		if (fevt->quality_switch.up) {
-			if (ctx->CurrentDqId < ctx->MaxDqId)
+			if (ctx->LimitDqId == -1)
+				ctx->LimitDqId = ctx->MaxDqId;
+			if (ctx->LimitDqId < ctx->MaxDqId)
 				// set layer up (command=1)
-				UpdateLayer( ctx->DqIdTable, &ctx->CurrentDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
+				UpdateLayer( ctx->DqIdTable, &ctx->LimitDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 1 );
 		} else {
-			if (ctx->CurrentDqId > 0)
+			if (ctx->LimitDqId > 0)
 				// set layer down (command=0)
-				UpdateLayer( ctx->DqIdTable, &ctx->CurrentDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
+				UpdateLayer( ctx->DqIdTable, &ctx->LimitDqId, &ctx->TemporalCom, &ctx->TemporalId, ctx->MaxDqId, 0 );
 		}
 		//todo: we should get the set of pids active and trigger the switch up/down based on that
 		//rather than not canceling the event
@@ -260,56 +307,75 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
 	OPENSVCFRAME pic;
-	int Layer[4];
 	u32 i, idx, nalu_size, sc_size, nb_eos=0;
 	u8 *ptr;
 	u32 data_size;
 	char *data;
 	Bool has_pic = GF_FALSE;
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
-	GF_FilterPacket *dst_pck;
-	GF_FilterPacket *pck_ref=NULL;
-	u32 curMaxDqId = ctx->MaxDqId;
+	GF_FilterPacket *dst_pck, *pck_ref = NULL;
 
-	for (idx=0; idx<ctx->nb_streams; idx++) {
+	for (idx=0; idx<ctx->active_streams; idx++) {
 		u64 dts, cts;
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) {
 			if (gf_filter_pid_is_eos(ctx->streams[idx].ipid)) nb_eos++;
+			//make sure we do have a packet on the enhancement
+			else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] no input packets on running pid %s - postponing decode\n", gf_filter_pid_get_name(ctx->streams[idx].ipid) ) );
+				return GF_OK;
+			}
 			continue;
 		}
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
+
+		data = gf_filter_pck_get_data(pck, &data_size);
+		//TODO: this is a clock signaling, for now just trash ..
+		if (!data) {
+			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
+			idx--;
+			continue;
+		}
+		if (dts==GF_FILTER_NO_TS) dts = cts;
+		//get packet with min dts (either a timestamp or a decode order number)
 		if (min_dts > dts) {
 			min_dts = dts;
+			if (cts == GF_FILTER_NO_TS) min_cts = min_dts;
+			else min_cts = cts;
 			pck_ref = pck;
 		}
-		if (min_cts > cts) {
-			min_cts = cts;
-			if (!pck_ref) pck_ref = pck;
-		}
 	}
-	if (nb_eos == ctx->nb_streams) {
+	if (nb_eos == ctx->active_streams) {
 		gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
-	if (!pck_ref) return GF_OK;
+	if (min_cts == GF_FILTER_NO_TS) return GF_OK;
 
 	if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
 		ctx->frame_infos_alloc += 10;
 		ctx->frame_infos = gf_realloc(ctx->frame_infos, sizeof(OSVCDecFrameInfo)*ctx->frame_infos_alloc);
 	}
-	min_cts = gf_filter_pck_get_cts(pck_ref);
-	for (i=0; i<ctx->frame_infos_size; i++) {
-		if (ctx->frame_infos[i].cts > min_cts) {
-			memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(OSVCDecFrameInfo) * (ctx->frame_infos_size-i));
-			ctx->frame_infos[i].cts = min_cts;
-			ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
-			ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
-			ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
-			break;
+	//queue CTS
+	if (!ctx->frame_infos_size || (ctx->frame_infos[ctx->frame_infos_size-1].cts != min_cts)) {
+		for (i=0; i<ctx->frame_infos_size; i++) {
+			//this is likel continuing decoding if we didn't get a frame in time from the enhancement layer
+			if (ctx->frame_infos[i].cts == min_cts)
+				break;
+
+			if (ctx->frame_infos[i].cts > min_cts) {
+				memmove(&ctx->frame_infos[i+1], &ctx->frame_infos[i], sizeof(OSVCDecFrameInfo) * (ctx->frame_infos_size-i));
+				ctx->frame_infos[i].cts = min_cts;
+				ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
+				ctx->frame_infos[i].sap_type = gf_filter_pck_get_sap(pck_ref);
+				ctx->frame_infos[i].seek_flag = gf_filter_pck_get_seek_flag(pck_ref);
+				break;
+			}
 		}
+	} else {
+		i = ctx->frame_infos_size;
 	}
+
 	if (i==ctx->frame_infos_size) {
 		ctx->frame_infos[i].cts = min_cts;
 		ctx->frame_infos[i].duration = gf_filter_pck_get_duration(pck_ref);
@@ -318,37 +384,45 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 	ctx->frame_infos_size++;
 
-
+	pic.Width = pic.Height = 0;
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
 		u32 sps_id, pps_id;
+		u32 maxDqIdInAU;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) continue;
 
+		if (idx>=ctx->active_streams) {
+			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
+			continue;
+		}
+
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
+		if (dts==GF_FILTER_NO_TS) dts = cts;
+
 		if (min_dts != GF_FILTER_NO_TS) {
 			if (min_dts != dts) continue;
 		} else if (min_cts != cts) {
 			continue;
 		}
+
 		data = gf_filter_pck_get_data(pck, &data_size);
 
-		ctx->MaxDqId = GetDqIdMax((unsigned char *) data, data_size, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
-		if (!ctx->init_layer_set) {
-			//AVC stream in a h264 file
-			if (ctx->MaxDqId == -1)
-				ctx->MaxDqId = 0;
-
-			ctx->CurrentDqId = ctx->MaxDqId;
-			ctx->init_layer_set = GF_TRUE;
+		maxDqIdInAU = GetDqIdMax((unsigned char *) data, data_size, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
+		if (ctx->MaxDqId <= maxDqIdInAU) {
+			ctx->MaxDqId = maxDqIdInAU;
 		}
-		if (curMaxDqId != ctx->MaxDqId)
-			ctx->CurrentDqId = ctx->MaxDqId;
+		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[OpenSVC] decode from stream %s - DTS "LLU" PTS "LLU" size %d - max DQID %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), dts, cts, data_size, maxDqIdInAU) );
+
+
+		//we are asked to use a lower quality
+		if ((ctx->LimitDqId>=0) && (ctx->LimitDqId < maxDqIdInAU))
+			maxDqIdInAU = ctx->LimitDqId;
 
 		/*decode only current layer*/
-		SetCommandLayer(Layer, ctx->MaxDqId, ctx->CurrentDqId, &ctx->TemporalCom, ctx->TemporalId);
+		SetCommandLayer(ctx->layers, ctx->MaxDqId, maxDqIdInAU, &ctx->TemporalCom, ctx->TemporalId);
 
 		got_pic = 0;
 		nalu_size = 0;
@@ -364,11 +438,13 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			} else {
 				/*no annex-B start-code found, discard */
 				gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
-				return GF_OK;
+				idx--;
+				continue;
 			}
 		}
 
 		while (data_size) {
+			int res;
 			if (ctx->nalu_size_length) {
 				for (i=0; i<ctx->nalu_size_length; i++) {
 					nalu_size = (nalu_size<<8) + ptr[i];
@@ -377,6 +453,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			} else {
 				nalu_size = gf_media_nalu_next_start_code(ptr, data_size, &sc_size);
 			}
+
 #ifndef GPAC_DISABLE_LOG
 			if (gf_log_tool_level_on(GF_LOG_CODEC, GF_LOG_DEBUG)) {
 				switch (ptr[0] & 0x1F) {
@@ -389,27 +466,23 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 					gf_avc_get_pps_info((char *)ptr, nalu_size, &pps_id, &sps_id);
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] PID %s: PPS id=\"%d\" code=\"%d\" size=\"%d\" sps_id=\"%d\"\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), pps_id, ptr[0] & 0x1F, nalu_size, sps_id));
 					break;
+				case GF_AVC_NALU_VDRD:
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] PID %s: VDRD found\n", gf_filter_pid_get_name(ctx->streams[idx].ipid)));
+					break;
 				default:
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[SVC Decoder] PID %s: NALU code=\"%d\" size=\"%d\"\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), ptr[0] & 0x1F, nalu_size));
 				}
 			}
 #endif
-			if (!ctx->state_found) {
-				u8 nal_type = (ptr[0] & 0x1F) ;
-				switch (nal_type) {
-				case GF_AVC_NALU_SEQ_PARAM:
-				case GF_AVC_NALU_PIC_PARAM:
-					if (! ctx->streams[idx].dep_id)
-						ctx->state_found = GF_TRUE;
-					break;
-				}
-			}
 
-			if (ctx->state_found) {
-				if (!got_pic)
-					got_pic = decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
-				else
-					decodeNAL(ctx->codec, ptr, nalu_size, &pic, Layer);
+			if (!got_pic) {
+				res = decodeNAL(ctx->codec, ptr, nalu_size, &pic, ctx->layers);
+				if (res>0) got_pic = res;
+			} else {
+				res = decodeNAL(ctx->codec, ptr, nalu_size, &pic, ctx->layers);
+			}
+			if (res<0) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[SVC Decoder] Error decoding NAL: %d\n", res));
 			}
 
 			ptr += nalu_size;
@@ -428,7 +501,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	}
 	if (!has_pic) return GF_OK;
 
-	if (/*(curMaxDqId != ctx->MaxDqId) || */ (pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
+	if ((pic.Width != ctx->width) || (pic.Height!=ctx->height)) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("[SVC Decoder] Resizing from %dx%d to %dx%d\n", ctx->width, ctx->height, pic.Width, pic.Height ));
 		ctx->width = pic.Width;
 		ctx->stride = pic.Width + 32;
@@ -438,8 +511,10 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
-		if (ctx->pixel_ar)
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_UINT(ctx->pixel_ar) );
+		if (ctx->pixel_ar.num)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PAR, &PROP_FRAC(ctx->pixel_ar) );
+
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PIXFMT, &PROP_UINT(GF_PIXEL_YV12) );
 	}
 
 	if (ctx->frame_infos[0].seek_flag) {
@@ -456,6 +531,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 	gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
 	gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
 
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[OpenSVC] decoded out frame PTS "LLU"\n", ctx->frame_infos[0].cts) );
 	gf_filter_pck_send(dst_pck);
 
 	osvcdec_drop_frameinfo(ctx);

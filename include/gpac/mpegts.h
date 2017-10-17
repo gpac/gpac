@@ -1300,6 +1300,7 @@ GF_Err gf_m2ts_program_stream_update_ts_scale(GF_ESInterface *_self, u32 time_sc
 void gf_m2ts_mux_program_set_name(GF_M2TS_Mux_Program *program, const char *program_name, const char *mux_provider_name);
 void gf_m2ts_mux_enable_sdt(GF_M2TS_Mux *mux, u32 refresh_rate_ms);
 
+void gf_m2ts_flush_pes(GF_M2TS_Demuxer *ts, GF_M2TS_PES *pes);
 
 #endif /*GPAC_DISABLE_MPEG2TS_MUX*/
 

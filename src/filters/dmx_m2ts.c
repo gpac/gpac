@@ -253,6 +253,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 
 	opid = gf_filter_pid_new(ctx->filter);
 	stream->user = opid;
+	gf_filter_pid_set_udta(opid, stream);
 	stream->flags |= GF_M2TS_ES_ALREADY_DECLARED;
 
 	gf_filter_pid_set_property(opid, GF_PROP_PID_ID, &PROP_UINT(stream->pid) );
@@ -296,6 +297,8 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	if (stream->depends_on_pid) {
 		gf_filter_pid_set_property(opid, GF_PROP_PID_DEPENDENCY_ID, &PROP_UINT(stream->depends_on_pid) );
 	}
+
+	gf_m2ts_set_pes_framing((GF_M2TS_PES *)stream, GF_M2TS_PES_FRAMING_DEFAULT);
 }
 
 static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
@@ -327,12 +330,6 @@ static void m2tsdmx_setup_program(GF_M2TSDmxCtx *ctx, GF_M2TS_Program *prog)
 	for (i=0; i<count; i++) {
 		GF_M2TS_ES *es = gf_list_get(prog->streams, i);
 		if (es->pid==prog->pmt_pid) continue;
-		if ((es->flags & GF_M2TS_ES_IS_PES) && ((GF_M2TS_PES *)es)->depends_on_pid )
-			continue;
-
-		/*move to skip mode for all ES until asked for playback*/
-		if (!es->user)
-			gf_m2ts_set_pes_framing((GF_M2TS_PES *)es, GF_M2TS_PES_FRAMING_DEFAULT);
 
 		if (! (es->flags & GF_M2TS_ES_ALREADY_DECLARED)) {
 			m2tsdmx_declare_pid(ctx, (GF_M2TS_PES *)es, NULL);
@@ -547,10 +544,6 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_SL_PCK: /* DMB specific */
 		m2tsdmx_send_sl_packet(ctx, param);
 		break;
-	case GF_M2TS_EVT_EOS:
-		gf_filter_pid_set_eos((GF_FilterPid *) ((GF_M2TS_PES *)param)->user);
-		break;
-
 	case GF_M2TS_EVT_PES_PCR:
 	{
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
@@ -559,7 +552,7 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
 
 		/*send pcr*/
-		if (pck->stream && pck->stream->user) {
+		if (0 && pck->stream && pck->stream->user) {
 
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_shared(((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, NULL);
 			gf_filter_pck_set_cts(dst_pck, ((GF_M2TS_PES_PCK *) param)->PTS / 300);
@@ -869,9 +862,25 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
 	const char *data;
 	u32 size;
-	if (!pck) return GF_OK;
 
-	if (!ctx->declaration_pendings && !ctx->nb_playing) return GF_OK;
+	if (!pck) {
+		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			u32 i, nb_streams = gf_filter_get_opid_count(filter);
+			for (i=0; i<nb_streams; i++) {
+				GF_FilterPid *opid = gf_filter_get_opid(filter, i);
+				GF_M2TS_PES *stream = gf_filter_pid_get_udta(opid);
+
+				if (stream->flags & GF_M2TS_ES_IS_PES) {
+					gf_m2ts_flush_pes(ctx->ts, (GF_M2TS_PES *) stream);
+				}
+				gf_filter_pid_set_eos(opid);
+			}
+			return GF_EOS;
+		}
+		return GF_OK;
+	}
+	if (!ctx->declaration_pendings && !ctx->nb_playing)
+		return GF_EOS;
 
 	if (ctx->in_seek) {
 		gf_m2ts_reset_parsers(ctx->ts);

@@ -2623,6 +2623,7 @@ s32 gf_media_avc_read_pps(const char *pps_data, u32 pps_size, AVCState *avc)
 		pps_id = -1;
 		goto exit;
 	}
+	avc->pps_active_idx = pps->id; /*set active sps*/
 	avc->sps_active_idx = pps->sps_id; /*set active sps*/
 	pps->entropy_coding_mode_flag = gf_bs_read_int(bs, 1);
 	pps->pic_order_present= gf_bs_read_int(bs, 1);

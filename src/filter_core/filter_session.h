@@ -111,19 +111,17 @@ typedef struct __gf_filter_pck_inst
 	GF_FilterPidInst *pid;
 	u8 pid_props_change_done;
 	u8 pid_info_change_done;
+
+	//DO NOT EXTEND UNLESS UPDATING CODE IN gf_filter_pck_send()
 } GF_FilterPacketInstance;
 
-struct __gf_filter_pck
-{
-	struct __gf_filter_pck *pck; //this object
-	GF_FilterPid *pid;
 
-	//nb references of this packet
-	volatile u32 reference_count;
+typedef struct __gf_filter_pck_info
+{
 	//framing info is not set as a property but directly in packet
 	Bool data_block_start;
 	Bool data_block_end;
-	
+
 	Bool pid_props_changed;
 	Bool pid_info_changed;
 
@@ -139,6 +137,18 @@ struct __gf_filter_pck
 	u8 seek_flag;
 	u8 carousel_version_number;
 	u64 byte_offset;
+
+} GF_FilterPckInfo;
+
+struct __gf_filter_pck
+{
+	struct __gf_filter_pck *pck; //this object
+	GF_FilterPid *pid;
+
+	//nb references of this packet
+	volatile u32 reference_count;
+
+	GF_FilterPckInfo info;
 
 	char *data;
 	u32 data_length;
@@ -253,6 +263,7 @@ struct __gf_media_session
 	Bool user_init;
 	GF_User static_user, *user;
 
+	volatile u32 pid_connect_tasks_pending;
 
 	GF_List *event_listeners;
 	GF_Mutex *evt_mx;
@@ -430,6 +441,8 @@ struct __gf_filter_pid_inst
 	u64 first_frame_time;
 	Bool is_end_of_stream;
 	volatile u32 nb_eos_signaled;
+
+	Bool is_decoder_input;
 };
 
 struct __gf_filter_pid
@@ -447,20 +460,22 @@ struct __gf_filter_pid
 	volatile u32 discard_input_packets;
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
+	u32 nb_reaggregation_pending;
 
+	//only valid for decoder output pids
 	u32 max_buffer_unit;
 	//max number of packets in each of the destination pids - concurrent inc/dec
 	volatile u32 nb_buffer_unit;
+
 	//times in us
 	u32 max_buffer_time;
 	u32 user_max_buffer_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u32 buffer_duration;
 
-	Bool is_decoder_input;
-
 	volatile u32 would_block; // concurrent set
-	
+	volatile u32 nb_decoder_inputs;
+
 	Bool duration_init;
 	u64 last_pck_dts, last_pck_cts;
 	u32 min_pck_duration;
@@ -477,9 +492,13 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
+void gf_fs_cleanup_filters(GF_FilterSession *fsess);
+
+/*specific task posting*/
+void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid);
+void gf_filter_pid_post_connect_task(GF_Filter *filter, GF_FilterPid *pid);
+
 /*internal tasks definitions*/
-void gf_filter_pid_init_task(GF_FSTask *task);
-void gf_filter_pid_connect_task(GF_FSTask *task);
 void gf_filter_pid_reconfigure_task(GF_FSTask *task);
 void gf_filter_update_arg_task(GF_FSTask *task);
 void gf_filter_pid_disconnect_task(GF_FSTask *task);
