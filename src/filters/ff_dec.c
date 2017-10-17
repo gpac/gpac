@@ -870,7 +870,11 @@ GF_FilterRegister FFDecodeRegister = {
 	.finalize = ffdec_finalize,
 	.configure_pid = ffdec_config_input,
 	.process = ffdec_process,
-	.update_arg = ffdec_update_arg
+	.update_arg = ffdec_update_arg,
+	//use middle priorty, so that hardware decs/other native impl in gpac can take over if needed
+	//don't use lowest one since we use this for scalable codecs
+	.priority = 128
+
 };
 
 

@@ -808,6 +808,8 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		//no match of pid caps for this filter
 		freg_weight = filter_pid_caps_match(pid, freg) ? 1 : 0;
 		if (!freg_weight) continue;
+		freg_weight = (255 - freg->priority);
+		//TODO: handle user-defined priorities
 
 		//we have a target destination filter match, keep solving filter until done
 		path_len = gf_list_count(filter_chain);

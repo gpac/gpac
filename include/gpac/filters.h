@@ -249,7 +249,7 @@ typedef enum
 
 typedef struct __gf_filter_register
 {
-	//mandatory - name of the filter as used when setting up filters
+	//mandatory - name of the filter as used when setting up filters, shall not contain any space
 	const char *name;
 	//optional - author of the filter
 	const char *author;
@@ -300,6 +300,10 @@ typedef struct __gf_filter_register
 
 	//required for source filters - probe the given URL, returning a score
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
+
+	//for filters having the same match of input caps for a PID, the filter with priority at the lowest value will be used
+	//scalable decoders should use high values, so that they are only selected when enhancement layers are present
+	u8 priority;
 
 	//optional for dynamic filter registries. Dynamic registries may declare any number of registries. The registry_free function will be called to cleanup any allocated memory
 	void (*registry_free)(GF_FilterSession *session, struct __gf_filter_register *freg);
