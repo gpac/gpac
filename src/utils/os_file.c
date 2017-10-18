@@ -56,7 +56,7 @@
 #if defined(WIN32)
 static wchar_t* utf8_to_wcs(const char* str)
 {
-	int source_len;
+	size_t source_len;
 	wchar_t* result;
 	if (str == 0) return 0;
 	source_len = strlen(str);
@@ -71,7 +71,7 @@ static wchar_t* utf8_to_wcs(const char* str)
 }
 static char* wcs_to_utf8(const wchar_t* str)
 {
-	int source_len;
+	size_t source_len;
 	char* result;
 	if (str == 0) return 0;
 	source_len = wcslen(str);
@@ -402,7 +402,7 @@ FILE *gf_temp_file_new(char ** const fileName)
 			wchar_t tmp2[MAX_PATH], *t_file;
 			char* mbs_t_file;
 			gf_rand_init(GF_FALSE);
-			_swprintf(tmp2, L"gpac_%08x_", gf_rand());
+			swprintf(tmp2, MAX_PATH, L"gpac_%08x_", gf_rand());
 			t_file = _wtempnam(tmp, tmp2);
 			mbs_t_file = wcs_to_utf8(t_file);
 			if (!mbs_t_file)
@@ -530,10 +530,10 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	switch (w_dir[wcslen(w_dir) - 1]) {
 	case '/':
 	case '\\':
-		_swprintf(path, L"%s*", w_dir);
+		swprintf(path, MAX_PATH, L"%s*", w_dir);
 		break;
 	default:
-		_swprintf(path, L"%s%c*", w_dir, GF_PATH_SEPARATOR);
+		swprintf(path, MAX_PATH, L"%s%c*", w_dir, GF_PATH_SEPARATOR);
 		break;
 	}
 	{
