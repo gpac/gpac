@@ -824,18 +824,9 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 		ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 	}
 	else {
-		u32 item_type;
 		ch->item_id = ESID;
 		ch->item_idx = item_idx;
 		ch->use_item = GF_TRUE;
-		gf_isom_get_meta_item_info(ch->owner->mov, GF_TRUE, 0, ch->item_idx, NULL, &item_type, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
-		switch (item_type) {
-		case GF_ISOM_SUBTYPE_HVC1:
-			ch->streamType = GF_STREAM_VISUAL;
-			break;
-		default:
-			e = GF_BAD_PARAM;
-		}
 		ch->has_edit_list = GF_FALSE;
 		ch->has_rap = GF_TRUE;
 		ch->time_scale = 1000;
