@@ -179,12 +179,13 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	return pck;
 }
 
-GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame)
+GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, packet_destructor destruct)
 {
 	GF_FilterPacket *pck;
 	if (!hw_frame) return NULL;
 	pck = gf_filter_pck_new_shared(pid, NULL, 0, NULL);
 	if (!pck) return NULL;
+	pck->destructor = destruct;
 	pck->hw_frame = hw_frame;
 	return pck;
 }
@@ -213,7 +214,6 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	assert(pck->pid);
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
-	if (pck->hw_frame && pck->hw_frame->destroy) pck->hw_frame->destroy(pck->hw_frame);
 
 	if (pck->pid_props) {
 		GF_PropertyMap *props = pck->pid_props;

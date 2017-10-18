@@ -605,12 +605,15 @@ static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 	return GF_FALSE;
 }
 
-static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg)
+static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, u8 *priority)
 {
 	u32 i=0;
 	u32 nb_matched=0;
 	u32 nb_subcaps=0;
 	Bool all_caps_matched = GF_TRUE;
+
+	if (priority)
+		*priority = freg->priority;
 
 	//filters with no explicit input cap accept anything for now, this should be refined ...
 	if (!freg->input_caps)
@@ -657,6 +660,8 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 			}
 			if (!prop_equal) {
 				all_caps_matched=GF_FALSE;
+			} else if (priority && ( (*priority) < cap->priority) ) {
+				(*priority) = cap->priority;
 			}
 		}
 		//cap exclusion defaults to match if cap is not found
@@ -726,9 +731,10 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 
 Bool gf_filter_pid_check_caps(GF_FilterPid *pid)
 {
+	u8 priority;
 	const GF_FilterRegister *freg = pid->filter->freg;
 	if (PID_IS_OUTPUT(pid)) return GF_FALSE;
-	return filter_pid_caps_match(pid->pid, freg);
+	return filter_pid_caps_match(pid->pid, freg, &priority);
 }
 
 
@@ -791,6 +797,7 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		u32 freg_weight=0;
 		u32 path_weight=0;
 		u32 path_len=0;
+		u8 priority=0;
 		const GF_FilterRegister *freg = gf_list_get(fsess->registry, i);
 
 		//source filter, can't add pid
@@ -806,9 +813,9 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		}
 
 		//no match of pid caps for this filter
-		freg_weight = filter_pid_caps_match(pid, freg) ? 1 : 0;
+		freg_weight = filter_pid_caps_match(pid, freg, &priority) ? 1 : 0;
 		if (!freg_weight) continue;
-		freg_weight = (255 - freg->priority);
+		freg_weight = (255 - priority);
 		//TODO: handle user-defined priorities
 
 		//we have a target destination filter match, keep solving filter until done
@@ -931,7 +938,7 @@ restart:
 
 
 		//we have a match, check if caps are OK
-		if (!filter_pid_caps_match(task->pid, filter_dst->freg)) {
+		if (!filter_pid_caps_match(task->pid, filter_dst->freg, NULL)) {
 			Bool reassigned;
 			if (first_pass) continue;
 

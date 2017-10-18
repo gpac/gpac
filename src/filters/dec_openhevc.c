@@ -68,7 +68,7 @@ typedef struct
 {
 	//options
 	u32 threading;
-	Bool direct_output;
+	Bool no_copy;
 	u32 nb_threads;
 	Bool pack_hfr;
 	Bool seek_reset;
@@ -534,9 +534,9 @@ static Bool ohevcdec_process_event(GF_Filter *filter, GF_FilterEvent *fevt)
 }
 
 
-void ohevcframe_release(GF_FilterHWFrame *frame)
+void ohevcframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
-	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *)frame->user_data;
+	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *) gf_filter_get_udta(filter);
 	ctx->frame_out = GF_FALSE;
 	gf_filter_post_process_task(ctx->filter);
 }
@@ -570,13 +570,12 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 	GF_FilterPacket *dst_pck;
 
 	ctx->hw_frame.user_data = ctx;
-	ctx->hw_frame.destroy = ohevcframe_release;
 	ctx->hw_frame.get_plane = ohevcframe_get_plane;
 	//we only keep one frame out, force releasing it
 	ctx->hw_frame.hardware_reset_pending = GF_TRUE;
 	libOpenHevcGetOutput(ctx->codec, 1, &ctx->frame_ptr);
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame);
+	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
 	gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frameInfo.nTimeStamp);
 
 	ctx->frame_out = GF_TRUE;
@@ -592,7 +591,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	OpenHevc_Frame_cpy openHevcFrame_FL, openHevcFrame_SL;
 	int chromat_format;
 
-	if (ctx->direct_output && !ctx->pack_hfr) {
+	if (ctx->no_copy && !ctx->pack_hfr) {
 		libOpenHevcGetPictureInfo(ctx->codec, &openHevcFrame_FL.frameInfo);
 	} else {
 		libOpenHevcGetPictureInfoCpy(ctx->codec, &openHevcFrame_FL.frameInfo);
@@ -643,7 +642,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	}
 
 
-	if (ctx->direct_output && !ctx->pack_hfr) {
+	if (ctx->no_copy && !ctx->pack_hfr) {
 		return ohevcdec_send_output_frame(ctx);
 	}
 
@@ -736,7 +735,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 	openHevcFrame_FL.pvY = (void*) data;
 #ifdef FILTER_FIXME
-	if (ctx->nb_layers==2 && ctx->nb_views>1 && !ctx->direct_output){
+	if (ctx->nb_layers==2 && ctx->nb_views>1 && !ctx->no_copy){
 		int out1, out2;
 		if( chromat_format == YUV420){
 			openHevcFrame_SL.pvY = (void*) (data +  ctx->stride * ctx->height);
@@ -963,7 +962,7 @@ static const GF_FilterCapability OHEVCDecInputs[] =
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_HEVC),
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_LHVC),
 #ifdef  OPENHEVC_HAS_AVC_BASE
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_AVC),
+	{ .code=GF_PROP_PID_OTI, .val=PROP_UINT(GPAC_OTI_VIDEO_AVC), .in_bundle=1, .priority=255 }
 #endif
 };
 
@@ -979,7 +978,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 {
 	{ OFFS(threading), "Set threading mode", GF_PROP_UINT, "frame", "frameslice|frame|slice", GF_FALSE},
 	{ OFFS(nb_threads), "Set number of threads. If 0, uses number of cores minus one", GF_PROP_UINT, "0", NULL, GF_TRUE},
-	{ OFFS(direct_output), "Enables direct output", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(no_copy), "Directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{}
