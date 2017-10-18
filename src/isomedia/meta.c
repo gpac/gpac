@@ -553,12 +553,17 @@ GF_EXPORT
 GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop) {
 	u32 count, i;
 	u32 count2, j;
-	GF_MetaBox *meta;
-	meta = gf_isom_get_meta(file, root_meta, track_num);
+	GF_ItemPropertyAssociationBox *ipma = NULL;
+	GF_ItemPropertyContainerBox *ipco = NULL;
+	GF_MetaBox *meta = gf_isom_get_meta(file, root_meta, track_num);
 	if (!meta) return GF_BAD_PARAM;
 
-	GF_ItemPropertyAssociationBox *ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
-	GF_ItemPropertyContainerBox *ipco = meta->item_props->property_container;
+	memset(prop, 0, sizeof(GF_ImageItemProperties));
+	if (!meta->item_props) return GF_OK;
+
+	ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
+	ipco = meta->item_props->property_container;
+
 	count = gf_list_count(ipma->entries);
 	for (i = 0; i < count; i++) {
 		GF_ItemPropertyAssociationEntry *entry = (GF_ItemPropertyAssociationEntry *)gf_list_get(ipma->entries, i);
@@ -597,6 +602,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 				}
 				break;
 				case GF_ISOM_BOX_TYPE_HVCC:
+				case GF_ISOM_BOX_TYPE_AVCC:
 					prop->config = b;
 					break;
 				}
