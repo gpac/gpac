@@ -93,7 +93,9 @@ typedef struct
 
 typedef struct
 {
+	Bool use_item;
 	u32 track, track_id;
+	u32 item_id, item_idx;
 	/*base track if scalable media, 0 otherwise*/
 	u32 base_track;
 	u32 next_track;
@@ -152,6 +154,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 
 void isor_declare_objects(ISOMReader *read);
 
+void isor_reader_get_sample_from_item(ISOMChannel *ch);
 void isor_send_cenc_config(ISOMChannel *ch);
 
 void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush);

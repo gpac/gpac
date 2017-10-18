@@ -2526,6 +2526,14 @@
 			name = filters;
 			sourceTree = "<group>";
 		};
+		92F8D46A1F6FF78600616F7C /* netctrl */ = {
+			isa = PBXGroup;
+			children = (
+				92F8D46B1F6FF7A100616F7C /* netctrl.c */,
+			);
+			name = netctrl;
+			sourceTree = "<group>";
+		};
 		92FA48841D0191570072C8A4 /* linklibs */ = {
 			isa = PBXGroup;
 			children = (

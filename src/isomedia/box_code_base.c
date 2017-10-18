@@ -1120,9 +1120,6 @@ void elst_del(GF_Box *s)
 	gf_free(ptr);
 }
 
-
-
-
 GF_Err elst_Read(GF_Box *s, GF_BitStream *bs)
 {
 	u32 entries;
@@ -1147,7 +1144,7 @@ GF_Err elst_Read(GF_Box *s, GF_BitStream *bs)
 	}
 
 
-	for (entries = 0; entries < nb_entries; entries++ ) {
+	for (entries = 0; entries < nb_entries; entries++) {
 		p = (GF_EdtsEntry *) gf_malloc(sizeof(GF_EdtsEntry));
 		if (!p) return GF_OUT_OF_MEM;
 		if (ptr->version == 1) {
@@ -2846,6 +2843,8 @@ GF_Err mdat_Read(GF_Box *s, GF_BitStream *bs)
 	if (ptr == NULL) return GF_BAD_PARAM;
 
 	ptr->dataSize = s->size;
+	ptr->bsOffset = gf_bs_get_position(bs);
+
 	//then skip these bytes
 	gf_bs_skip_bytes(bs, ptr->dataSize);
 	return GF_OK;
@@ -6150,7 +6149,7 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
-		ptr->w_LastDTS += ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
+		ptr->w_LastDTS += (u64)ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
 #endif
 
 		if (!ptr->entries[i].sampleDelta) {

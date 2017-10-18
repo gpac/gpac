@@ -37,6 +37,9 @@ mp4_test ()
  #only check the logo.png
  */logo.jpg )
   return ;;
+ # mkv not supported yet
+ *.mkv )
+  return ;;
  *.jpg )
   do_hint=0 ;;
  *.jpeg )

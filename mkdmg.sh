@@ -82,6 +82,7 @@ cd ../../../..
 
 echo Copying GUI
 rsync -r --exclude=.git $source_path/gui ./tmpdmg/Osmo4.app/Contents/MacOS/
+rsync -r --exclude=.git $source_path/shaders ./tmpdmg/Osmo4.app/Contents/MacOS/
 
 echo Building DMG
 version=`grep '#define GPAC_VERSION ' $source_path/include/gpac/version.h | cut -d '"' -f 2`

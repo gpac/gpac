@@ -549,6 +549,8 @@ typedef struct
 	GF_ISOM_BOX
 	/*note: the data is NEVER loaded to the mdat in this lib*/
 	u64 dataSize;
+	/* store the file offset when parsing to access the raw data */
+	u64 bsOffset;
 	char *data;
 } GF_MediaDataBox;
 
@@ -1879,6 +1881,7 @@ typedef struct {
 typedef struct {
 	GF_ISOM_BOX
 	GF_ItemPropertyContainerBox *property_container;
+	struct __item_association_box *property_association;
 } GF_ItemPropertiesBox;
 
 typedef struct {
@@ -2920,7 +2923,7 @@ typedef struct {
 	GF_List *property_index;
 } GF_ItemPropertyAssociationEntry;
 
-typedef struct {
+typedef struct __item_association_box {
 	GF_ISOM_FULL_BOX
 	GF_List *entries;
 } GF_ItemPropertyAssociationBox;

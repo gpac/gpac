@@ -552,16 +552,38 @@ enum
 	/*!LFE Audio Channel*/
 	GF_AUDIO_CH_LFE = (1<<3),
 	/*!Back Left Audio Channel*/
-	GF_AUDIO_CH_BACK_LEFT = (1<<4),
+	GF_AUDIO_CH_BACK_LEFT = (1 << 4),
 	/*!Back Right Audio Channel*/
-	GF_AUDIO_CH_BACK_RIGHT = (1<<5),
+	GF_AUDIO_CH_BACK_RIGHT = (1 << 5),
+	/*Between left and center in front Audio Channel*/
+	GF_AUDIO_CH_LEFT_CENTER = (1 << 6),
+	/*Between right and center in front Audio Channel*/
+	GF_AUDIO_CH_RIGHT_CENTER = (1 << 7),
 	/*!Back Center Audio Channel*/
-	GF_AUDIO_CH_BACK_CENTER = (1<<6),
+	GF_AUDIO_CH_BACK_CENTER = (1 << 8),
 	/*!Side Left Audio Channel*/
-	GF_AUDIO_CH_SIDE_LEFT = (1<<7),
+	GF_AUDIO_CH_SIDE_LEFT = (1<<9),
 	/*!Side Right Audio Channel*/
-	GF_AUDIO_CH_SIDE_RIGHT = (1<<8)
+	GF_AUDIO_CH_SIDE_RIGHT = (1<<10),
+	/*!top Audio Channel*/
+	GF_AUDIO_CH_TOP_CENTER = (1 << 11),
+	/*!between left and center above Audio Channel*/
+	GF_AUDIO_CH_TOP_FRONT_LEFT = (1 << 12),
+	/*!above center Audio Channel*/
+	GF_AUDIO_CH_TOP_FRONT_CENTER = (1 << 13),
+	/*!between right and center above Audio Channel*/
+	GF_AUDIO_CH_TOP_FRONT_RIGHT = (1 << 14),
+	/*!Back Left High Audio Channel*/
+	GF_AUDIO_CH_TOP_BACK_LEFT = (1 << 15),
+	/*!Back top High Audio Channel*/
+	GF_AUDIO_CH_TOP_BACK_CENTER = (1 << 16),
+	/*!Back Right High Audio Channel*/
+	GF_AUDIO_CH_TOP_BACK_RIGHT = (1 << 17)
 };
+
+#define SPEAKER_TOP_BACK_LEFT           0x8000
+#define SPEAKER_TOP_BACK_CENTER         0x10000
+#define SPEAKER_TOP_BACK_RIGHT          0x20000
 
 
 /*!

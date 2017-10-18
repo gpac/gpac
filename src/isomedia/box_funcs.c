@@ -897,9 +897,11 @@ static const struct box_registry_entry {
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_SEGR, segr, "fiin"),
 	FBOX_DEFINE( GF_ISOM_BOX_TYPE_GITN, gitn, "fiin", 0),
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FDSA, fdsa, "fdp_sample"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_FDPA, fdpa, "fdsa"),
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_EXTR, extr, "fdsa"),
+#endif
 
 	//full boxes todo
 	//FBOX_DEFINE( GF_ISOM_BOX_TYPE_ASSP, assp, 1),

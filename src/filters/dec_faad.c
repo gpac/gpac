@@ -38,16 +38,15 @@
 # endif
 #endif
 
-#include <faad.h>
+#include <neaacdec.h>
 #include <gpac/constants.h>
 #include <gpac/avparse.h>
 
 
 typedef struct
 {
-	faacDecHandle codec;
-	faacDecFrameInfo info;
-	u32 sample_rate, timescale, num_samples;
+	NeAACDecHandle codec;
+	NeAACDecFrameInfo info;	u32 sample_rate, timescale, num_samples;
 	u8 num_channels;
 
 	GF_FilterPid *ipid, *opid;
@@ -127,7 +126,7 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		u32 ex_crc = gf_crc_32(p->value.data, p->data_len);
 		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
 			//shoud we flush ?
-			if (ctx->codec) faacDecClose(ctx->codec);
+			if (ctx->codec) NeAACDecClose(ctx->codec);
 			ctx->codec = NULL;
 		}
 	} else {
@@ -137,7 +136,7 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	ctx->ipid = pid;
 
-	ctx->codec = faacDecOpen();
+	ctx->codec = NeAACDecOpen();
 	if (!ctx->codec) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FAAD] Error initializing decoder\n"));
 		return GF_IO_ERR;
@@ -147,7 +146,7 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	e = gf_m4a_get_config(p->value.data, p->data_len, &a_cfg);
 	if (e) return e;
 #endif
-	if (faacDecInit2(ctx->codec, (unsigned char *)p->value.data, p->data_len, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
+	if (NeAACDecInit2(ctx->codec, (unsigned char *)p->value.data, p->data_len, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;
@@ -181,7 +180,7 @@ base_object_type_error: /*error case*/
 		a_cfg.nb_chan = a_cfg.nb_chan > 2 ? 1 : a_cfg.nb_chan;
 
 		gf_m4a_write_config(&a_cfg, &dsi, &dsi_len);
-		res = faacDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
+		res = NeAACDecInit2(ctx->codec, (unsigned char *) dsi, dsi_len, (unsigned long *) &ctx->sample_rate, (u8 *) &ctx->num_channels);
 		gf_free(dsi);
 		if (res < 0)
 #endif
@@ -269,19 +268,19 @@ static GF_Err faaddec_process(GF_Filter *filter)
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[FAAD] Decoding AU\n"));
 	if (!pck) {
-		buffer = faacDecDecode(ctx->codec, &ctx->info, NULL, 0);
+		buffer = NeAACDecDecode(ctx->codec, &ctx->info, NULL, 0);
 	} else {
 		Bool start, end;
 		u32 size;
 		const char *data = gf_filter_pck_get_data(pck, &size);
-		buffer = faacDecDecode(ctx->codec, &ctx->info, data, size);
+		buffer = NeAACDecDecode(ctx->codec, &ctx->info, data, size);
 
 		gf_filter_pck_get_framing(pck, &start, &end);
 		assert(start && end);
 	}
 
 	if (ctx->info.error>0) {
-		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", faacDecGetErrorMessage(ctx->info.error) ));
+		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[FAAD] Error decoding AU %s\n", NeAACDecGetErrorMessage(ctx->info.error) ));
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
