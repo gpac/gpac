@@ -97,6 +97,13 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 		message[bytes] = '\0';
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[NetControl] received message %s\n", message));
 
+		if (!strncmp(message, "gpac splice ", 12) || !strncmp(message, "gpac add ", 9)
+			|| !strncmp(message, "gpac select ", 12)
+		) {
+			gf_term_scene_update(netctrl->term, NULL, message);
+			break;
+		}
+
 		if (strncmp(message, "gpac:face=", 10)) break;
 
 		sscanf(message, "gpac:face=%d,%f,%f,%f,%f", &face, &face_min_x, &face_max_x, &face_min_y, &face_max_y);

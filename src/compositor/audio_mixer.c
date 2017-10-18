@@ -26,7 +26,7 @@
 #include <gpac/internal/compositor_dev.h>
 
 /*max number of channels we support in mixer*/
-#define GF_SR_MAX_CHANNELS	16
+#define GF_SR_MAX_CHANNELS	24
 
 /*
 	Notes about the mixer:
@@ -322,7 +322,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 		/*cfg has changed, we must reconfig everything*/
 		if (cfg_changed || (max_sample_rate != am->sample_rate) ) {
 			in->has_prev = GF_FALSE;
-			memset(&in->last_channels, 0, sizeof(s16)*GF_SR_MAX_CHANNELS);
+			memset(&in->last_channels, 0, sizeof(s32)*GF_SR_MAX_CHANNELS);
 		}
 	}
 
@@ -466,15 +466,22 @@ static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, u
 	}
 }
 
+static GFINLINE s32 make_s24_int(u8 *ptr) 
+{
+	s16 res = * (s16 *) (ptr+1);
+	return (((s32)res) << 8 ) | ptr[0];
+}
 
 static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_delay)
 {
 	u32 i, j, in_ch, out_ch, prev, next, src_samp, ratio, src_size;
 	Bool use_prev;
-	s16 *in_s16;
-	s8 *in_s8;
+	s32 *in_s32 = NULL;
+	s16 *in_s16 = NULL;
+	s8 *in_s24 = NULL;
+	s8 *in_s8 = NULL;
 	s32 frac, inChan[GF_SR_MAX_CHANNELS], inChanNext[GF_SR_MAX_CHANNELS];
-
+	
 	in_s8 = (s8 *) in->src->FetchFrame(in->src->callback, &src_size, audio_delay);
 	if (!in_s8 || !src_size) {
 		in->has_prev = GF_FALSE;
@@ -482,15 +489,20 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		in->out_samples_to_write = 0;
 		return;
 	}
-
+	
 	ratio = (u32) (in->src->samplerate * FIX2INT(255*in->speed) / am->sample_rate);
 	src_samp = (u32) (src_size * 8 / in->src->bps / in->src->chan);
 	in_ch = in->src->chan;
 	out_ch = am->nb_channels;
-	if (in->src->bps == 8) {
-		in_s16 = NULL;
-	} else {
-		in_s16 = (s16 *) in_s8;
+	if (in->src->bps == 16) {
+		in_s16 = (s16 *)in_s8;
+		in_s8 = NULL;
+	}
+	else if (in->src->bps == 24) {
+		in_s24 = (s8 *)in_s8;
+		in_s8 = NULL;
+	} else if (in->src->bps == 32) {
+		in_s32 = (s32 *)in_s8;
 		in_s8 = NULL;
 	}
 
@@ -498,7 +510,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	interpolate audio*/
 	if (src_samp==1) {
 		in->has_prev = GF_TRUE;
-		for (j=0; j<in_ch; j++) in->last_channels[j] = in_s16 ? in_s16[j] : in_s8[j];
+		for (j=0; j<in_ch; j++) in->last_channels[j] = in_s32 ? in_s32[j] : (in_s24 ? make_s24_int(&in_s24[3*j]) : (in_s16 ? in_s16[j] : in_s8[j] ) );
 		in->in_bytes_used = src_size;
 		return;
 	}
@@ -518,11 +530,23 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 		if (use_prev && prev)
 			use_prev = GF_FALSE;
 
-		if (in_s16) {
-			for (j=0; j<in_ch; j++) {
+		if (in_s32) {
+			for (j = 0; j < in_ch; j++) {
+				inChan[j] = use_prev ? in->last_channels[j] : in_s32[in_ch*prev + j];
+				inChanNext[j] = in_s32[in_ch*next + j];
+				inChan[j] = (frac*inChanNext[j] + (255 - frac)*inChan[j]) / 255;
+			}
+		} else if (in_s24) {
+			for (j = 0; j<in_ch; j++) {
+				inChan[j] = use_prev ? in->last_channels[j] : make_s24_int(&in_s24[3*(in_ch*prev + j)]);
+				inChanNext[j] = make_s24_int(&in_s24[3*(in_ch*next + j)]);
+				inChan[j] = (frac*inChanNext[j] + (255 - frac)*inChan[j]) / 255;
+			}
+		} else if (in_s16) {
+			for (j = 0; j<in_ch; j++) {
 				inChan[j] = use_prev ? in->last_channels[j] : in_s16[in_ch*prev + j];
 				inChanNext[j] = in_s16[in_ch*next + j];
-				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;
+				inChan[j] = (frac*inChanNext[j] + (255 - frac)*inChan[j]) / 255;
 			}
 		} else {
 			for (j=0; j<in_ch; j++) {
@@ -565,7 +589,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 				idx = (prev>=src_samp) ? in_ch*(src_samp-1) : in_ch*prev;
 				for (j=0; j<in_ch; j++) {
 					assert(idx + j < src_size/2);
-					in->last_channels[j] = in_s16 ? in_s16[idx + j] : in_s8[idx + j];
+					in->last_channels[j] = in_s32 ? in_s32[idx + j] : (in_s24 ? make_s24_int(&in_s24[3*(idx + j)]) : (in_s16 ? in_s16[idx + j] : in_s8[idx + j]) );
 				}
 			}
 		}
@@ -763,15 +787,38 @@ do_mix:
 
 	nb_written = 0;
 	for (i=0; i<count; i++) {
+		u32 k;
 		out_mix = am->output;
 		in = (MixerInput *)gf_list_get(am->sources, i);
 		if (!in->out_samples_to_write) continue;
 		/*only write what has been filled in the source buffer (may be less than output size)*/
-		for (j=0; j<in->out_samples_written; j++) {
-			u32 k;
-			for (k=0; k<am->nb_channels; k++) {
-				(*out_mix) += * (in->ch_buf[k] + j);
-				out_mix += 1;
+		if (am->bits_per_sample > in->src->bps) {
+			s32 mul = am->bits_per_sample - in->src->bps;
+			for (j = 0; j < in->out_samples_written; j++) {
+				for (k = 0; k < am->nb_channels; k++) {
+					s32 res = *(in->ch_buf[k] + j);
+					res <<= mul;
+					(*out_mix) += res;
+					out_mix += 1;
+				}
+			}
+		}
+		else if (am->bits_per_sample < in->src->bps) {
+			s32 div = in->src->bps - am->bits_per_sample;
+			for (j = 0; j < in->out_samples_written; j++) {
+				for (k = 0; k < am->nb_channels; k++) {
+					s32 res = *(in->ch_buf[k] + j);
+					res >>= div;
+					(*out_mix) += res;
+					out_mix += 1;
+				}
+			}
+		} else {
+			for (j = 0; j < in->out_samples_written; j++) {
+				for (k = 0; k < am->nb_channels; k++) {
+					(*out_mix) += *(in->ch_buf[k] + j);
+					out_mix += 1;
+				}
 			}
 		}
 		if (nb_written < in->out_samples_written) nb_written = in->out_samples_written;
@@ -782,13 +829,46 @@ do_mix:
 		return 0;
 	}
 
+	//TODO big-endian support (output is assumed to be little endian PCM)
+
 	//we do not re-normalize based on the numbner of input, this is the author's responsability
 	out_mix = am->output;
-	if (am->bits_per_sample==16) {
-		s16 *out_s16 = (s16 *) buffer;
-		for (i=0; i<nb_written; i++) {
-			for (j=0; j<am->nb_channels; j++) {
-				s32 samp = (*out_mix );
+	if (am->bits_per_sample == 32) {
+		s32 *out_s32 = (s32 *)buffer;
+		for (i = 0; i < nb_written; i++) {
+			for (j = 0; j < am->nb_channels; j++) {
+				s32 samp = (*out_mix);
+				if (samp > GF_SHORT_MAX) samp = GF_INT_MAX;
+				else if (samp < GF_SHORT_MIN) samp = GF_INT_MIN;
+				(*out_s32) = samp;
+				out_s32 += 1;
+				out_mix += 1;
+			}
+		}
+	}
+	else if (am->bits_per_sample == 24) {
+#define GF_S24_MAX	8388607
+#define GF_S24_MIN	-8388608
+		s8 *out_s24 = (s8 *)buffer;
+		for (i = 0; i<nb_written; i++) {
+			for (j = 0; j<am->nb_channels; j++) {
+				s32 samp = (*out_mix);
+				u8 lsb;
+				if (samp > GF_S24_MAX) samp = GF_S24_MAX;
+				else if (samp < GF_S24_MIN) samp = GF_S24_MIN;
+				lsb = (samp) & 0xFF;
+				samp >>= 8;
+				*((s16 *)&out_s24[1]) = (s16)samp;
+				out_s24[0] = lsb;
+				out_s24 += 3;
+				out_mix += 1;
+			}
+		}
+	} else if (am->bits_per_sample == 16) {
+		s16 *out_s16 = (s16 *)buffer;
+		for (i = 0; i<nb_written; i++) {
+			for (j = 0; j<am->nb_channels; j++) {
+				s32 samp = (*out_mix);
 				if (samp > GF_SHORT_MAX) samp = GF_SHORT_MAX;
 				else if (samp < GF_SHORT_MIN) samp = GF_SHORT_MIN;
 				(*out_s16) = samp;
@@ -796,7 +876,8 @@ do_mix:
 				out_mix += 1;
 			}
 		}
-	} else {
+	}
+	else {
 		s8 *out_s8 = (s8 *) buffer;
 		for (i=0; i<nb_written; i++) {
 			for (j=0; j<am->nb_channels; j++) {

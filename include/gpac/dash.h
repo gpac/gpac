@@ -61,7 +61,7 @@ static const char * const GF_DASH_M3U8_MIME_TYPES[] = { "video/x-mpegurl", "audi
 /*!
  * All the possible Mime-types for Smooth files
  */
-static const char * GF_DASH_SMOOTH_MIME_TYPES[] = { "application/vnd.ms-sstr+xml", NULL};
+static const char * const GF_DASH_SMOOTH_MIME_TYPES[] = { "application/vnd.ms-sstr+xml", NULL};
 
 /*! DASH Event type. The DASH client communitcaes with the user through a callback mechanism using events*/
 typedef enum

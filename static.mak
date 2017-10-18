@@ -356,6 +356,8 @@ OBJS+=../modules/vtb_decode/vtb_decode.o
 EXTRALIBS+=-framework CoreFoundation -framework CoreVideo -framework CoreMedia -framework VideoToolbox
 endif
 
+OBJS+=../modules/netctrl/netctrl.o
+
 #end of static modules
 
 endif

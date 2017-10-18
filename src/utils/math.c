@@ -31,6 +31,7 @@
 
 #include <gpac/maths.h>
 
+GF_EXPORT
 u32 gf_get_bit_size(u32 MaxVal)
 {
 	u32 k=0;

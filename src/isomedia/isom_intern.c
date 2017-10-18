@@ -530,7 +530,7 @@ GF_ISOFile *gf_isom_open_file(const char *fileName, u32 OpenMode, const char *tm
 	GF_Err e;
 	u64 bytes;
 	GF_ISOFile *mov = gf_isom_new_movie();
-	if (! mov) return NULL;
+	if (!mov || !fileName) return NULL;
 
 	mov->fileName = gf_strdup(fileName);
 	mov->openMode = OpenMode;
@@ -956,17 +956,16 @@ GF_ISOFile *gf_isom_create_movie(const char *fileName, u32 OpenMode, const char 
 	if (OpenMode == GF_ISOM_OPEN_WRITE) {
 		//THIS IS NOT A TEMP FILE, WRITE mode is used for "live capture"
 		//this file will be the final file...
-		mov->fileName = gf_strdup(fileName);
-		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		mov->fileName = fileName ? gf_strdup(fileName) : NULL;
+		e = gf_isom_datamap_new(fileName, NULL, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) goto err_exit;
 
 		/*brand is set to ISOM by default - it may be touched until sample data is added to track*/
 		gf_isom_set_brand_info( (GF_ISOFile *) mov, GF_ISOM_BRAND_ISOM, 1);
 	} else {
 		//we are in EDIT mode but we are creating the file -> temp file
-		mov->finalName = (char*)gf_malloc(strlen(fileName) + 1);
-		strcpy(mov->finalName, fileName);
-		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, & mov->editFileMap);
+		mov->finalName = fileName ? gf_strdup(fileName) : NULL;
+		e = gf_isom_datamap_new("mp4_tmp_edit", tmp_dir, GF_ISOM_DATA_MAP_WRITE, &mov->editFileMap);
 		if (e) {
 			gf_isom_set_last_error(NULL, e);
 			gf_isom_delete_movie(mov);

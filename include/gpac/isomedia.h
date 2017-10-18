@@ -792,13 +792,15 @@ sampleNumber is optional and gives the number of the sample in the media
 */
 GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, u64 movieTime, u32 *StreamDescriptionIndex, u8 SearchMode, GF_ISOSample **sample, u32 *sampleNumber, u64 *data_offset);
 
-/*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list, in which case mediaOffset is set to the DTS offset value (e.g., your app should add mediaOffset to all sample DTS)*/
+/*return 1 if true edit list, 0 if no edit list or if time-shifting only edit list,
+  in which case mediaOffset is set to the DTS offset value in the media track timescale
+  (e.g., your app should add mediaOffset to all sample DTS)*/
 Bool gf_isom_get_edit_list_type(GF_ISOFile *the_file, u32 trackNumber, s64 *mediaOffset);
 
 /*get the number of edited segment*/
 u32 gf_isom_get_edit_segment_count(GF_ISOFile *the_file, u32 trackNumber);
 
-/*Get the desired segment information*/
+/*get the desired segment information*/
 GF_Err gf_isom_get_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 SegmentIndex, u64 *EditTime, u64 *SegmentDuration, u64 *MediaTime, u8 *EditMode);
 
 /*get the number of languages for the copyright*/
@@ -811,7 +813,7 @@ GF_Err gf_isom_get_watermark(GF_ISOFile *the_file, bin128 UUID, u8** data, u32* 
 /*get the number of chapter for movie or track if trackNumber !=0*/
 u32 gf_isom_get_chapter_count(GF_ISOFile *the_file, u32 trackNumber);
 /*get the given movie or track (trackNumber!=0) chapter time and name - index is 1-based
-@chapter_time: retrives start time in milliseconds - may be NULL.
+@chapter_time: retrieves start time in milliseconds - may be NULL.
 @name: retrieves chapter name - may be NULL - SHALL NOT be destroyed by user
 */
 GF_Err gf_isom_get_chapter(GF_ISOFile *the_file, u32 trackNumber, u32 Index, u64 *chapter_time, const char **name);
@@ -1215,7 +1217,7 @@ the new segment
 WARNING: The first segment always have an EditTime of 0. You should insert an empty or dwelled segment first.*/
 GF_Err gf_isom_set_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditTime, u64 EditDuration, u64 MediaTime, u8 EditMode);
 
-/*same as above except only modifies duartion type and mediaType*/
+/*same as above except only modifies duration type and mediaType*/
 GF_Err gf_isom_modify_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u32 seg_index, u64 EditDuration, u64 MediaTime, u8 EditMode);
 /*same as above except only appends new segment*/
 GF_Err gf_isom_append_edit_segment(GF_ISOFile *the_file, u32 trackNumber, u64 EditDuration, u64 MediaTime, u8 EditMode);
@@ -2384,6 +2386,7 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 /*gets item info for the given item
 	@item_num: 1-based index of item to query
 	@itemID (optional): item ID in file
+	@type: item 4CC type
 	@is_self_reference: item is the file itself
 	@item_name (optional): item name
 	@item_mime_type (optional): item mime type
@@ -2393,7 +2396,7 @@ u32 gf_isom_get_meta_item_count(GF_ISOFile *file, Bool root_meta, u32 track_num)
 
 */
 GF_Err gf_isom_get_meta_item_info(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_num,
-                                  u32 *itemID, u32 *protection_idx, Bool *is_self_reference,
+                                  u32 *itemID, u32 *type, u32 *protection_idx, Bool *is_self_reference,
                                   const char **item_name, const char **item_mime_type, const char **item_encoding,
                                   const char **item_url, const char **item_urn);
 
@@ -2469,6 +2472,8 @@ GF_Err gf_isom_set_meta_primary_item(GF_ISOFile *file, Bool root_meta, u32 track
 GF_Err gf_isom_meta_add_item_ref(GF_ISOFile *file, Bool root_meta, u32 trackID, u32 from_id, u32 to_id, u32 type, u64 *ref_index);
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
+
+GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, GF_ImageItemProperties *prop);
 
 
 /********************************************************************

@@ -4799,6 +4799,7 @@ GF_Err iprp_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_start(a, "ItemPropertiesBox", trace);
 	fprintf(trace, ">\n");
 	if (ptr->property_container) gf_isom_box_dump(ptr->property_container, trace);
+	if (ptr->property_association) gf_isom_box_dump(ptr->property_association, trace);
 	gf_isom_box_dump_done("ItemPropertiesBox", a, trace);
 	return GF_OK;
 }
@@ -5078,6 +5079,8 @@ GF_Err srpp_dump(GF_Box *a, FILE * trace)
 	return GF_OK;
 }
 
+#ifndef GPAC_DISABLE_ISOM_HINTING
+
 GF_Err fdpa_dump(GF_Box *a, FILE * trace)
 {
 	u32 i;
@@ -5135,6 +5138,8 @@ GF_Err fdsa_dump(GF_Box *a, FILE * trace)
 	gf_isom_box_dump_done("FDSampleBox", a, trace);
 	return GF_OK;
 }
+
+#endif /*GPAC_DISABLE_ISOM_HINTING*/
 
 GF_Err trik_dump(GF_Box *a, FILE * trace)
 {

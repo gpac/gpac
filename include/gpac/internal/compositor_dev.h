@@ -2274,7 +2274,11 @@ struct _gf_addon_media
 	u32 addon_type;
 
 	Double splice_start, splice_end;
-	Bool is_over, coding_config_changed;
+	Bool is_over;
+	Bool splice_in_pts;
+	u32 nb_splicing;
+	Bool min_dts_set;
+	u64 splice_min_dts;
 };
 
 void gf_scene_toggle_addons(GF_Scene *scene, Bool show_addons);

@@ -113,11 +113,10 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 		unsigned char *pSrcV = pSrcU + (2 * dtc->width*dtc->height / 4);
 
 		if (dtc->clip_sdi) {
-			u16 nYRangeMin = 4;
-			u16 nYRangeMax = 1019;
-
-			__m128i mMin = _mm_set1_epi16(nYRangeMin);
-			__m128i mMax = _mm_set1_epi16(nYRangeMax);
+			const u16 nYRangeMin = 4;
+			const u16 nYRangeMax = 1019;
+			const __m128i mMin = _mm_set1_epi16(nYRangeMin);
+			const __m128i mMax = _mm_set1_epi16(nYRangeMax);
 
 			for (u32 i = 0; i < nb_pix; i += 16) {
 				_mm_storeu_si128((__m128i *)&pDstY[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcY[i]))));
@@ -126,15 +125,19 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 			for (u32 h = 0; h < dtc->height/2; h++) {
 				for (u32 i = 0; i < dtc->width; i += 16) {
 					_mm_storeu_si128((__m128i *)&pDstU[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcU[i]))));
-					_mm_storeu_si128((__m128i *)&pDstV[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcV[i]))));
 				}
 				//420->422: copy over each U and V line
 				memcpy(pDstU+lineC, pDstU, lineC);
-				memcpy(pDstV+lineC, pDstV, lineC);
-
 				pSrcU += lineC;
-				pSrcV += lineC;
 				pDstU += 2 * lineC;
+			}
+
+			for (u32 h = 0; h < dtc->height / 2; h++) {
+				for (u32 i = 0; i < dtc->width; i += 16) {
+					_mm_storeu_si128((__m128i *)&pDstV[i], _mm_max_epi16(mMin, _mm_min_epi16(mMax, _mm_loadu_si128((__m128i const *)&pSrcV[i]))));
+				}
+				memcpy(pDstV + lineC, pDstV, lineC);
+				pSrcV += lineC;
 				pDstV += 2 * lineC;
 			}
 		} else {
@@ -143,18 +146,22 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 			//420->422: copy over each U and V line
 			for (u32 h = 0; h < dtc->height/2; h++) {
 				memcpy(pDstU, pSrcU, lineC);
-				memcpy(pDstV, pSrcV, lineC);
 				memcpy(pDstU+lineC, pSrcU, lineC);
-				memcpy(pDstV+lineC, pSrcV, lineC);
 				pSrcU += lineC;
-				pSrcV += lineC;
 				pDstU += 2 * lineC;
+			}
+			for (u32 h = 0; h < dtc->height / 2; h++) {
+				memcpy(pDstV, pSrcV, lineC);
+				memcpy(pDstV + lineC, pSrcV, lineC);
+				pSrcV += lineC;
 				pDstV += 2 * lineC;
 			}
 		}
 	} else {
+		const u16 nYRangeMin = 4;
+		const u16 nYRangeMax = 1019;
 		u32 nb_pix = dtc->width*dtc->height;
-		int lineC = dtc->width / 2;
+		const int lineC = dtc->width / 2;
 		unsigned char *pSrcY = dtc->pixels_YUV_source;
 		unsigned char *pSrcU = dtc->pixels_YUV_source + dtc->width * dtc->height;
 		unsigned char *pSrcV = pSrcU + (dtc->width*dtc->height / 4);
@@ -162,41 +169,43 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 		for (u32 i=0; i<nb_pix; i++) {
 			u16 srcy = ((u16) (*pSrcY)) << 2;
 			if (dtc->clip_sdi) {
-				if (srcy<4) srcy = 4;
-				else if (srcy>1019) srcy = 1019;
+				if (srcy<nYRangeMin)      srcy = nYRangeMin;
+				else if (srcy>nYRangeMax) srcy = nYRangeMax;
 			}
 			*(short *)pDstY = srcy;
 
 			pSrcY++;
-			pDstY+=2;//char type but short buffer
+			pDstY+=sizeof(short); //char type but short buffer
 		}
 
 		nb_pix = dtc->width*dtc->height/4;
 		for (u32 i=0; i<nb_pix; i++) {
-			u16 srcu = ((u16) (*pSrcU) ) << 2;
-			u16 srcv = ((u16) (*pSrcV) ) << 2;
-
+			u16 srcu = ((u16)(*pSrcU)) << 2;
 			if (dtc->clip_sdi) {
-				if (srcu<4) srcu = 4;
-				else if (srcu>1019) srcu = 1019;
-
-				if (srcv<4) srcv = 4;
-				else if (srcv>1019) srcv = 1019;
+				if (srcu<nYRangeMin)      srcu = nYRangeMin;
+				else if (srcu>nYRangeMax) srcu = nYRangeMax;
 			}
 
 			*(short *)pDstU = srcu;
 			*(short *)(pDstU+lineC) = srcu;
 
 			pSrcU++;
-			pDstU+=2;//char type but short buffer
-
-			*(short *)pDstV = srcv;
-			*(short *)(pDstV+lineC) = srcv;
-
-			pSrcV++;
-			pDstV+=2;//char type but short buffer
+			pDstU+=sizeof(short); //char type but short buffer
 		}
 
+		for (u32 i = 0; i<nb_pix; i++) {
+			u16 srcv = ((u16)(*pSrcV)) << 2;
+			if (dtc->clip_sdi) {
+				if (srcv<nYRangeMin)      srcv = nYRangeMin;
+				else if (srcv>nYRangeMax) srcv = nYRangeMax;
+			}
+
+			*(short *)pDstV = srcv;
+			*(short *)(pDstV + lineC) = srcv;
+
+			pSrcV++;
+			pDstV += sizeof(short); //char type but short buffer
+		}
 	}
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MMIO, ("[DekTecOut] wrote YUV data in "LLU" us\n", gf_sys_clock_high_res() - now));

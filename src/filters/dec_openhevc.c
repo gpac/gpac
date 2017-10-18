@@ -72,12 +72,14 @@ typedef struct
 	u32 nb_threads;
 	Bool pack_hfr;
 	Bool seek_reset;
+	Bool force_stereo;
 
 	//internal
 	GF_Filter *filter;
 	GF_FilterPid *opid;
 	GF_HEVCStream streams[HEVC_MAX_STREAMS];
 	u32 nb_streams;
+	Bool is_multiview;
 
 	OHEVCDecFrameInfo *frame_infos;
 	u32 frame_infos_alloc, frame_infos_size;
@@ -107,6 +109,7 @@ typedef struct
 	u32 avc_base_pts;
 #endif
 
+	Bool force_stereo_reset;
 
 	GF_FilterHWFrame hw_frame;
 	OpenHevc_Frame frame_ptr;
@@ -392,8 +395,11 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 				else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
 					s32 vps_id = gf_media_hevc_read_vps(sl->data, sl->size, &hevc);
 					//multiview
-					if ((vps_id>=0) && (hevc.vps[vps_id].scalability_mask[1]))
-						stride_mul=2;
+					if ((vps_id>=0) && (hevc.vps[vps_id].scalability_mask[1])) {
+						ctx->is_multiview = GF_TRUE;
+						if (ctx->force_stereo)
+							stride_mul=2;
+					}
 				}
 				else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
 					gf_media_hevc_read_pps(sl->data, sl->size, &hevc);
@@ -505,6 +511,8 @@ static Bool ohevcdec_process_event(GF_Filter *filter, GF_FilterEvent *fevt)
 		}
 		libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
 		libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
+		if (ctx->is_multiview)
+			ctx->force_stereo_reset = ctx->force_stereo;
 
 		//todo: we should get the set of pids active and trigger the switch up/down based on that
 		//rather than not canceling the event
@@ -605,7 +613,7 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	chromat_format = openHevcFrame_FL.frameInfo.chromat_format;
 	cts = (u32) openHevcFrame_FL.frameInfo.nTimeStamp;
 	
-	if (!ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)
+	if (ctx->force_stereo_reset || !ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)
 		|| (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1))
 		|| (ctx->sar.num*openHevcFrame_FL.frameInfo.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frameInfo.sample_aspect_ratio.num)
 	 ) {
@@ -633,7 +641,13 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 			ctx->out_size *= 4;
 		} else {
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, &PROP_UINT(ctx->width) );
-			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+			if (ctx->force_stereo && ctx->is_multiview && ctx->cur_layer>1) {
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(2*ctx->height) );
+				ctx->out_size *= 2;
+			} else {
+				gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, &PROP_UINT(ctx->height) );
+			}
+
 			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STRIDE, &PROP_UINT(ctx->stride) );
 		}
 		pixfmt = ohevcdec_get_pixel_format(ctx->luma_bpp, ctx->chroma_format_idc);
@@ -734,8 +748,8 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &data);
 
 	openHevcFrame_FL.pvY = (void*) data;
-#ifdef FILTER_FIXME
-	if (ctx->nb_layers==2 && ctx->nb_views>1 && !ctx->no_copy){
+
+	if (ctx->nb_layers==2 && ctx->is_multiview && !ctx->no_copy){
 		int out1, out2;
 		if( chromat_format == YUV420){
 			openHevcFrame_SL.pvY = (void*) (data +  ctx->stride * ctx->height);
@@ -750,11 +764,10 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		libOpenHevcSetViewLayers(ctx->codec, 1);
 		out2 = libOpenHevcGetOutputCpy(ctx->codec, 1, &openHevcFrame_SL);
 		
-		if (out1 && out2) *outBufferLength = ctx->out_size*2;
+		gf_filter_pck_set_cts(pck, cts);
+		gf_filter_pck_send(pck);
 
-	} else
-#endif
-	{
+	} else {
 		openHevcFrame_FL.pvU = (void*) (data + ctx->stride * ctx->height);
 		if( chromat_format == YUV420) {
 			openHevcFrame_FL.pvV = (void*) (data + 5*ctx->stride * ctx->height/4);
@@ -981,6 +994,7 @@ static const GF_FilterArgs OHEVCDecArgs[] =
 	{ OFFS(no_copy), "Directly dispatch internal decoded frame without copy", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(pack_hfr), "Packs 4 consecutive frames in a single output", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{ OFFS(seek_reset), "Resets decoder when seeking", GF_PROP_BOOL, "false", NULL, GF_TRUE},
+	{ OFFS(force_stereo), "Forces stereo output for multiview (top-bottom only)", GF_PROP_BOOL, "false", NULL, GF_TRUE},
 	{}
 };
 

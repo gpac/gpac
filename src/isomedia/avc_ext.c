@@ -115,7 +115,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 				}
 				continue;
 			}
-			
+
 			ref_track_index = gf_bs_read_u8(src_bs);
 			sample_offset = (s8) gf_bs_read_int(src_bs, 8);
 			data_offset = gf_bs_read_int(src_bs, nal_unit_size_field*8);
@@ -202,7 +202,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			if (buffer) gf_free(buffer);
 			buffer = NULL;
 			gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
-			
+
 			if (!is_hevc) break;
 		}
 		break;
@@ -436,7 +436,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 
 		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
-		if ((s32) sabt_ref >= 0) {
+		if ((s32) sabt_ref > 0) {
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
@@ -523,7 +523,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		//we are SVC, don't write NALU delim, only insert VDRD NALU
 		if (insert_vdrd_code) {
 			if (is_hevc) {
-				//spec is not clear here, we insert a NALU AU delimiter before the layer starts
+				//spec is not clear here, we don't insert an NALU AU delimiter before the layer starts since it breaks openHEVC
+//				insert_nalu_delim=0;
 			} else {
 				gf_bs_write_int(dst_bs, 1, 32);
 				gf_bs_write_int(dst_bs, GF_AVC_NALU_VDRD , 8);
@@ -770,6 +771,7 @@ exit:
 	if (src_bs) gf_bs_del(src_bs);
 	if (ref_bs) gf_bs_del(ref_bs);
 	if (dst_bs) gf_bs_del(dst_bs);
+	if (ps_bs)  gf_bs_del(ps_bs);
 	if (buffer) gf_free(buffer);
 	return e;
 }
@@ -853,7 +855,7 @@ static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 {
 	GF_AVCConfig *cfg = AVC_DuplicateConfig(src_cfg);
 	if (!cfg || !dst_cfg) return;
-	
+
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
@@ -1690,8 +1692,8 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_EXPORT 
-GF_Box *gf_isom_clone_config_box(GF_Box *box) 
+GF_EXPORT
+GF_Box *gf_isom_clone_config_box(GF_Box *box)
 {
 	GF_Box *clone;
 	switch (box->type)
@@ -2268,7 +2270,7 @@ GF_Err hvcc_Size(GF_Box *s)
 		ptr->size = 0;
 		return GF_OK;
 	}
-	
+
 	if (!ptr->config->is_lhvc)
 		ptr->size += 23;
 	else
@@ -2501,7 +2503,7 @@ u32 gf_isom_oinf_size_entry(void *entry)
 	count=gf_list_count(ptr->dependency_layers);
 	for (i = 0; i < count; i++) {
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
-		size += 1/*dependent_layerID*/ + 1/*num_layers_dependent_on*/; 
+		size += 1/*dependent_layerID*/ + 1/*num_layers_dependent_on*/;
 		size += dep->num_layers_dependent_on * 1;//dependent_on_layerID
 		for (j = 0; j < 16; j++) {
 			if (ptr->scalability_mask & (1 << j))
@@ -2517,7 +2519,7 @@ GF_LHVCLayerInformation *gf_isom_linf_new_entry()
 	GF_LHVCLayerInformation* ptr;
 	GF_SAFEALLOC(ptr, GF_LHVCLayerInformation);
 	if (ptr) ptr->num_layers_in_track = gf_list_new();
-	
+
 	return ptr;
 
 }

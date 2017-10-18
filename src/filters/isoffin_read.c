@@ -715,9 +715,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 
 static const GF_FilterCapability ISOFFInInputs[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic"),
 };
 
 static const GF_FilterCapability ISOFFInOutputs[] =
