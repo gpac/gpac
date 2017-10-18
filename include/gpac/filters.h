@@ -232,6 +232,8 @@ typedef struct
 	u8 exclude;
 	//when not set, indicates the start of a new set of caps. Set by default by the generic macros
 	u8 in_bundle;
+	//overrides the filter registry priority for this cap. Usually 0
+	u8 priority;
 } GF_FilterCapability;
 
 typedef enum
@@ -777,9 +779,6 @@ typedef struct _gf_filter_hw_frame
 	// @texcoordmatrix: texture transform
 	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, struct __matrix * texcoordmatrix);
 
-	//release media frame
-	void (*destroy)(struct _gf_filter_frame *frame);
-
 	//set to true if a hardware reset is pending after the consumption of this frame
 	Bool hardware_reset_pending;
 
@@ -788,7 +787,7 @@ typedef struct _gf_filter_hw_frame
 } GF_FilterHWFrame;
 
 
-GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame);
+GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, packet_destructor destruct);
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck);
 
 #ifdef __cplusplus

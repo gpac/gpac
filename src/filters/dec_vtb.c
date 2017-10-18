@@ -1106,8 +1106,9 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	return vtbdec_flush_frame(filter, ctx);
 }
 
-void vtbframe_release(GF_FilterHWFrame *frame)
+void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck)
 {
+	GF_FilterHWFrame *frame = gf_filter_pck_get_hw_frame(pck);
 	GF_VTBHWFrame *f = (GF_VTBHWFrame *)frame->user_data;
 	if (f->locked) {
 		CVPixelBufferUnlockBaseAddress(f->frame, kCVPixelBufferLock_ReadOnly);
@@ -1243,7 +1244,6 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	if (!vtb_frame) return GF_BAD_PARAM;
 
 	vtb_frame->hw_frame.user_data = vtb_frame;
-	vtb_frame->hw_frame.destroy = vtbframe_release;
 	vtb_frame->hw_frame.get_plane = vtbframe_get_plane;
 #ifdef GPAC_IPHONE
 	if (ctx->use_gl_textures)
@@ -1255,7 +1255,7 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	ctx->decoded_frames_pending++;
 
-	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame);
+	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame, vtbframe_release);
 	gf_filter_pck_set_cts(dst_pck, vtb_frame->cts);
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
