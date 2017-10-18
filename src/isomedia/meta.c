@@ -561,7 +561,7 @@ GF_Err gf_isom_get_meta_image_props(GF_ISOFile *file, Bool root_meta, u32 track_
 	memset(prop, 0, sizeof(GF_ImageItemProperties));
 	if (!meta->item_props) return GF_OK;
 
-	ipma = (GF_ItemPropertyAssociationBox *)gf_list_get(meta->item_props->other_boxes, 0);
+	ipma = (GF_ItemPropertyAssociationBox *) meta->item_props->property_association;
 	ipco = meta->item_props->property_container;
 
 	count = gf_list_count(ipma->entries);

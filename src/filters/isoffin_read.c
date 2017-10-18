@@ -265,7 +265,7 @@ void isor_send_cenc_config(ISOMChannel *ch)
 }
 
 
-ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track)
+ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id)
 {
 	ISOMChannel *ch;
 	Bool is_esd_url;
@@ -283,6 +283,8 @@ ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track)
 	ch->to_init = GF_TRUE;
 	gf_list_add(read->channels, ch);
 	ch->track = track;
+	ch->item_id = item_id;
+
 	ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 	switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
 	case GF_ISOM_MEDIA_OCR:
@@ -664,7 +666,12 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 		while (! gf_filter_pid_would_block(ch->pid) ) {
 
-			isor_reader_get_sample(ch);
+			if (ch->item_id) {
+				isor_reader_get_sample_from_item(ch);
+			} else {
+				isor_reader_get_sample(ch);
+			}
+
 			if (ch->sample) {
 				u32 sample_dur;
 				GF_FilterPacket *pck;
@@ -715,9 +722,9 @@ static const GF_FilterArgs ISOFFInArgs[] =
 
 static const GF_FilterCapability ISOFFInInputs[] =
 {
-	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic"),
+	CAP_INC_STRING(GF_PROP_PID_MIME, "application/x-isomedia|application/mp4|video/mp4|audio/mp4|video/3gpp|audio/3gpp|video/3gp2|audio/3gp2|video/iso.segment|audio/iso.segment|image/heif|image/heic|image/avci"),
 	{},
-	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic"),
+	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "mp4|mpg4|m4a|m4i|3gp|3gpp|3g2|3gp2|iso|m4s|heif|heic|avci"),
 };
 
 static const GF_FilterCapability ISOFFInOutputs[] =
