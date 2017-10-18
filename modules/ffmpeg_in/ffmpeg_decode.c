@@ -1015,7 +1015,8 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 	/*we have a valid frame not yet dispatched*/
 	if (ffd->had_pic) {
 		ffd->had_pic = GF_FALSE;
-		gotpic = 1;
+		gotpic = ffd->needs_output_resize ? 0 : 1;
+		ffd->needs_output_resize = 0;
 	} else {
 		if (ffd->check_h264_isma) {
 			/*for AVC bitstreams after ISMA decryption, in case (as we do) the decryption DRM tool
@@ -1200,7 +1201,7 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		video in the output buffer*/
 		if (!gotpic) {
 			ffd->needs_output_resize = GF_TRUE;
-			return GF_OK;
+//			return GF_OK;
 		}
 		*outBufferLength = ffd->out_size;
 		if (ffd->check_h264_isma) {
@@ -1262,7 +1263,7 @@ static GF_Err FFDEC_ProcessVideo(FFDec *ffd,
 		return GF_OK;
 	}
 
-	if (ES_ID == ffd->depth_ES_ID) {
+	if (ES_ID && (ES_ID == ffd->depth_ES_ID)) {
 		s32 i;
 		u8 *pYO, *pYD;
 
