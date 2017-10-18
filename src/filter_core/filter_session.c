@@ -1145,10 +1145,12 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		gf_filter_post_process_task(filter);
 
 	gf_free(sURL);
-	if (filter)
+	if (filter) {
+		if (filter->src_args) gf_free(filter->src_args);
 		filter->src_args = args;
-	else
+	} else {
 		gf_free(args);
+	}
 	return filter;
 }
 
