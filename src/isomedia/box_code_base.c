@@ -6149,7 +6149,7 @@ GF_Err stts_Read(GF_Box *s, GF_BitStream *bs)
 		ptr->entries[i].sampleDelta = gf_bs_read_u32(bs);
 #ifndef GPAC_DISABLE_ISOM_WRITE
 		ptr->w_currentSampleNum += ptr->entries[i].sampleCount;
-		ptr->w_LastDTS += ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
+		ptr->w_LastDTS += (u64)ptr->entries[i].sampleCount * ptr->entries[i].sampleDelta;
 #endif
 
 		if (!ptr->entries[i].sampleDelta) {
