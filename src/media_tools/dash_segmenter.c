@@ -6919,7 +6919,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				}
 
 				if ((dash_input->trackNum || dash_input->single_track_num) && (!dasher->seg_rad_name || !strstr(dasher->seg_rad_name, "$RepresentationID$") ) ) {
-					char tmp[10];
+					char tmp[20];
 					sprintf(tmp, "_track%d", dash_input->trackNum ? dash_input->trackNum : dash_input->single_track_num);
 					strcat(szOutName, tmp);
 				}
@@ -6930,14 +6930,14 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 					strcpy(szOutName, tmp);
 				}
 				if (segment_name && dash_input->trackNum && !strstr(dasher->seg_rad_name, "$RepresentationID$") ) {
-					char tmp[10];
+					char tmp[20];
 					sprintf(tmp, "_track%d_", dash_input->trackNum);
 					strcat(segment_name, tmp);
 				}
 				//dynamic loop of input creates same segment ID in new periods, force pid identification
 				//to have different names in periods
 				if (dash_input->period_id_not_specified>1) {
-					char tmp[10];
+					char tmp[20];
 					sprintf(tmp, "_p%d_", dash_input->period_id_not_specified);
 					strcat(segment_name, tmp);
 				}
