@@ -527,7 +527,6 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 		Bool notified;
 		Bool requeue = GF_FALSE;
 		Bool task_from_filter = GF_FALSE;
-		Bool skip_and_requeue = GF_FALSE;
 		u64 active_start, task_time;
 		u32 pending_packets=0;
 		GF_FSTask *task=NULL;
@@ -1057,7 +1056,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 	const GF_FilterArgs *src_arg=NULL;
 	u32 i, count;
 	GF_Err e;
-	char *sURL, *qm, *frag, *ext, *mime_type, *url_res, *args, *sep;
+	char *sURL, *mime_type, *args, *sep;
 	char szExt[50];
 	memset(szExt, 0, sizeof(szExt));
 
@@ -1244,7 +1243,7 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 }
 
 
-void gf_fs_cleanup_filters(GF_FilterSession *fsess)
+void gf_fs_cleanup_filters(GF_FilterSession *fsess, GF_FSTask *task)
 {
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
@@ -1261,6 +1260,7 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 				filter->removed = GF_TRUE;
 				filter->finalized = GF_TRUE;
 				gf_filter_del(filter);
+				if (task->filter == filter) task->filter = NULL;
 			}
 		}
 	}

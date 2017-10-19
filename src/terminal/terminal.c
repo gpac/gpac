@@ -716,10 +716,11 @@ GF_Node *gf_term_pick_node(GF_Terminal *term, s32 X, s32 Y)
 GF_EXPORT
 void gf_term_navigate_to(GF_Terminal *term, const char *toURL)
 {
+#ifdef FILTER_FIXME
 	GF_Compositor *compositor = term ? term->compositor : NULL;
 	if (!term) return;
 	if (!toURL && !term->compositor->root_scene) return;
-#ifdef FILTER_FIXME
+
 	if (term->reload_url) gf_free(term->reload_url);
 	term->reload_url = NULL;
 
@@ -787,7 +788,9 @@ GF_Err gf_term_scene_update(GF_Terminal *term, char *type, char *com)
 #ifndef GPAC_DISABLE_SMGR
 	GF_Err e;
 	GF_StreamContext *sc;
+#ifdef FILTER_FIXME
 	GF_ESD *esd;
+#endif
 	Bool is_xml = 0;
 	Double time = 0;
 	u32 i, tag;
@@ -1037,6 +1040,7 @@ enum
 	GF_ACTION_QUALITY_DOWN,
 };
 
+#ifdef FILTER_FIXME
 static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
 {
 	u32 i, j;
@@ -1053,6 +1057,7 @@ static void set_clocks_speed(GF_Compositor *compositor, Fixed ratio)
 		}
 	}
 }
+#endif
 
 GF_EXPORT
 GF_Err gf_term_set_speed(GF_Terminal *term, Fixed speed)

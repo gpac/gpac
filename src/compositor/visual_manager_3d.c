@@ -218,16 +218,18 @@ void visual_3d_viewpoint_change(GF_TraverseState *tr_state, GF_Node *vp, Bool an
 		}
 	}
 	if (vp) {
+#if 0
 		/*now check if vp is in pixel metrics. If not then:
 		- either it's in the main scene, there's nothing to do
 		- or it's in an inline, and the inline has been scaled if main scene is in pm: nothing to do*/
-		if (0 && gf_sg_use_pixel_metrics(gf_node_get_graph(vp))) {
+		if ( gf_sg_use_pixel_metrics(gf_node_get_graph(vp))) {
 			GF_Matrix mx;
 			gf_mx_init(mx);
 			gf_mx_add_scale(&mx, tr_state->min_hsize, tr_state->min_hsize, tr_state->min_hsize);
 			gf_mx_apply_vec(&mx, &position);
 			gf_mx_apply_vec(&mx, &local_center);
 		}
+#endif
 	}
 	/*default VP setup - this is undocumented in the spec. Default VP pos is (0, 0, 10) but not really nice
 	in pixel metrics. We set z so that we see just the whole visual*/

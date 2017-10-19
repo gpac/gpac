@@ -93,7 +93,6 @@ static void c2d_gl_fill_alpha(void *cbk, u32 x, u32 y, u32 run_h_len, GF_Color c
 
 static void c2d_gl_fill_rect(void *cbk, u32 x, u32 y, u32 width, u32 height, GF_Color color)
 {
-	return;
 #if defined(GPAC_USE_GLES1X)
 	GLfloat line[8];
 
@@ -936,11 +935,11 @@ static Bool compositor_2d_draw_bitmap_ex(GF_VisualManager *visual, GF_TextureHan
 		u32 stride;
 		if (!txh->hw_frame->get_plane) return GF_FALSE;
 
-		e = txh->hw_frame->get_plane(txh->hw_frame, 0, (const char **) &video_src.video_buffer, &video_src.pitch_y);
+		e = txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &video_src.video_buffer, &video_src.pitch_y);
 		if (e) return GF_FALSE;
-		e = txh->hw_frame->get_plane(txh->hw_frame, 1, (const char **) video_src.u_ptr, &stride);
+		e = txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) video_src.u_ptr, &stride);
 		if (e) return GF_FALSE;
-		e = txh->hw_frame->get_plane(txh->hw_frame, 2, (const char **) video_src.v_ptr, &stride);
+		e = txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) video_src.v_ptr, &stride);
 		if (e) return GF_FALSE;
 	}
 	video_src.global_alpha = alpha;

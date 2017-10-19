@@ -1441,13 +1441,6 @@ void gf_font_spans_pick(GF_Node *node, GF_List *spans, GF_TraverseState *tr_stat
 			gf_path_get_bounds(span->glyphs[j]->path, &rc);
 			rc.height = INT2FIX(span->font->ascent + span->font->descent);
 
-			if (0&&span->rot) {
-				GF_Matrix2D r;
-				gf_mx2d_init(r);
-				gf_mx2d_add_rotation(&r, 0, 0, span->rot[i]);
-				gf_mx2d_apply_coords(&r, &loc_x, &loc_y);
-			}
-
 			if (use_dom_events && !compositor->sel_buffer) {
 				if (svg_drawable_is_over(drawable, loc_x, loc_y, &asp, tr_state, &rc))
 					goto picked;

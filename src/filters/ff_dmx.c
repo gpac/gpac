@@ -323,7 +323,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			gf_filter_pid_set_property(pid, GF_FFMPEG_DECODER_CONFIG, &PROP_POINTER( (void*)codec ) );
 		} else if (codec->extradata_size) {
 			//expose as const data
-			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA(codec->extradata, codec->extradata_size) );
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DECODER_CONFIG, &PROP_CONST_DATA( (char *)codec->extradata, codec->extradata_size) );
 		}
 
 		if (codec->sample_rate)
@@ -348,7 +348,7 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
-static Bool ffdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool ffdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	GF_FFDemuxCtx *ffd = gf_filter_get_udta(filter);
 

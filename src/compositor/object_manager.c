@@ -130,6 +130,10 @@ void gf_odm_register_pid(GF_ObjectManager *odm, GF_FilterPid *pid, Bool register
 	gf_odm_setup_object(odm, odm->subscene ? odm->scene_ns : odm->parentscene->root_od->scene_ns, pid);
 }
 
+//this function is not exposed and shall only be used for the reset scene event
+//it sends the event synchronously, as needed for gf_term_disconnect()
+void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
+
 GF_EXPORT
 void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 {
@@ -142,10 +146,7 @@ void gf_odm_disconnect(GF_ObjectManager *odm, u32 do_remove)
 		//send a scene reset
 		if (odm->pid) {
 			GF_FilterEvent fevt;
-			//this function is not exposed and shall only be used for the reset scene event
-			//it sends the event synchronously, as needed for gf_term_disconnect()
-			void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt);
-			
+
 			GF_FEVT_INIT(fevt, GF_FEVT_RESET_SCENE, odm->pid);
 			fevt.attach_scene.object_manager = odm;
 			gf_filter_pid_exec_event(odm->pid, &fevt);
@@ -518,7 +519,6 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_List *ck_namespace;
 	s8 flag;
 	u16 clockID;
-	Double dur;
 	GF_Scene *scene;
 	Bool clock_inherited = GF_TRUE;
 	const GF_PropertyValue *prop;

@@ -311,7 +311,6 @@ static void html_media_element_populate_tracks(JSContext *c, GF_HTML_MediaElemen
 
 	count = gf_list_count(scene->resources);
 	for (i=0; i<count; i++) {
-		u32 j;
 		char id[256];
 		char *lang = "";
 		GF_ObjectManager *odm = (GF_ObjectManager *)gf_list_get(scene->resources, i);
@@ -588,7 +587,9 @@ void gf_odm_collect_buffer_info(void *net, GF_ObjectManager *odm, GF_DOMMediaEve
 static void html_media_get_states(GF_MediaObject *mo, GF_HTML_MediaReadyState *readyState, GF_HTML_NetworkState *networkState)
 {
 	GF_DOMMediaEvent media_event;
+#ifdef FILTER_FIXME
 	u32 min_time=0;
+#endif
 	u32 min_buffer=0;
 	if (!mo) return;
 

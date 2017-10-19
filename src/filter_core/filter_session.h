@@ -492,7 +492,7 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
-void gf_fs_cleanup_filters(GF_FilterSession *fsess);
+void gf_fs_cleanup_filters(GF_FilterSession *fsess, GF_FSTask *task);
 
 /*specific task posting*/
 void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid);

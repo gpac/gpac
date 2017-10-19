@@ -89,7 +89,6 @@ GF_Err mp3_dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {
 	FILE *stream;
-	u32 hdr;
 	u64 duration, cur_dur;
 	s32 prev_sr = -1;
 	const GF_PropertyValue *p;
@@ -156,9 +155,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 {
-	GF_BitStream *dsi;
-	char *dsi_b;
-	u32 i, sbr_sr_idx, sbr_oti, dsi_s, sr;
+	u32 sr;
 
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
@@ -193,7 +190,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 }
 
-static Bool mp3_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool mp3_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
@@ -270,11 +267,9 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 {
 	GF_MP3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	GF_Err e;
 	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
-	u64 src_cts;
 	u32 pck_size, remain;
 	u32 alread_sync = 0;
 
@@ -294,7 +289,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = gf_filter_pck_get_data(pck, &pck_size);
+	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -400,7 +395,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = ctx->start_range * ctx->sr;
 			if (ctx->cts + nb_samp >= nb_samples_at_seek) {
-				u32 samples_to_discard = (ctx->cts + nb_samp ) - nb_samples_at_seek;
+				//u32 samples_to_discard = (ctx->cts + nb_samp ) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
 		}

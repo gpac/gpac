@@ -105,7 +105,6 @@ static void faaddec_check_mc_config(GF_FAADCtx *ctx)
 static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 i, channel_mask=0;
 	GF_FAADCtx *ctx = gf_filter_get_udta(filter);
 #ifndef GPAC_DISABLE_AV_PARSERS
 	GF_Err e;
@@ -273,7 +272,7 @@ static GF_Err faaddec_process(GF_Filter *filter)
 		Bool start, end;
 		u32 size;
 		const char *data = gf_filter_pck_get_data(pck, &size);
-		buffer = NeAACDecDecode(ctx->codec, &ctx->info, data, size);
+		buffer = NeAACDecDecode(ctx->codec, &ctx->info, (char *) data, size);
 
 		gf_filter_pck_get_framing(pck, &start, &end);
 		assert(start && end);

@@ -536,7 +536,7 @@ Bool gf_dom_event_fire_ex(GF_Node *node, GF_DOM_Event *event, GF_List *use_stack
 
 	/*capture phase - not 100% sure, the actual capture phase should be determined by the std using the DOM events
 	SVGT doesn't use this phase, so we don't add it for now.*/
-	if (0) {
+	if ((0)) {
 		Bool aborted = GF_FALSE;
 		u32 i, count;
 		GF_List *parents;

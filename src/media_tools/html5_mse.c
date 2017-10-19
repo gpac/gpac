@@ -344,6 +344,8 @@ GF_Err gf_mse_source_buffer_load_parser(GF_HTML_SourceBuffer *sourcebuffer, cons
 #endif
 }
 
+#ifdef FILTER_FIXME
+
 /* create a track based on the ESD and adds it to the source buffer */
 static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, GF_ESD *esd)
 {
@@ -377,7 +379,6 @@ static GF_HTML_Track *gf_mse_source_buffer_add_track(GF_HTML_SourceBuffer *sb, G
    Needs the parser to be setup and the initialization segment passed */
 static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 {
-#ifdef FILTER_FIXME
 	if (!sb || !sb->parser || !sb->parser_connected) return GF_BAD_PARAM;
 	sb->service_desc = (GF_ObjectDescriptor *)sb->parser->GetServiceDescriptor(sb->parser, GF_MEDIA_OBJECT_UNDEF, NULL);
 	if (sb->service_desc) {
@@ -394,7 +395,6 @@ static GF_Err gf_mse_source_buffer_setup_tracks(GF_HTML_SourceBuffer *sb)
 	} else {
 		return GF_BAD_PARAM;
 	}
-#endif
 	return GF_BAD_PARAM;
 }
 
@@ -429,6 +429,8 @@ static GF_Err gf_mse_source_buffer_store_track_desc(GF_HTML_SourceBuffer *sb, GF
 	}
 	return GF_OK;
 }
+
+#endif
 
 #define SECONDS_TO_TIMESCALE(s) ((s)*track->timescale)
 #define TIMESCALE_TO_SECONDS(u) ((u)*1.0/track->timescale)
@@ -528,6 +530,7 @@ void gf_mse_packet_del(GF_MSE_Packet *packet) {
 	gf_free(packet);
 }
 
+#ifdef FILTER_FIXME
 static GF_MSE_Packet *gf_mse_find_overlapped_packet(GF_HTML_Track           *track,
         GF_MSE_Packet           *packet)
 {
@@ -552,6 +555,7 @@ static GF_MSE_Packet *gf_mse_find_overlapped_packet(GF_HTML_Track           *tra
 	gf_mx_v(track->buffer_mutex);
 	return NULL;
 }
+#endif
 
 static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
         u64           from,
@@ -575,6 +579,7 @@ static void gf_mse_remove_frames_from_to(GF_HTML_Track *track,
 	gf_mx_v(track->buffer_mutex);
 }
 
+#ifdef FILTER_FIXME
 static void gf_mse_track_buffer_add_packet(GF_HTML_Track *track, GF_MSE_Packet *frame)
 {
 	u32 i, count;
@@ -754,6 +759,8 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
 
 	return GF_OK;
 }
+#endif
+
 
 /* Thread run function: called as a result of an append buffer
  * Parses/Demultiplexes media segments and places the parsed AU in the track buffers
@@ -762,13 +769,13 @@ static GF_Err gf_mse_process_coded_frame(GF_HTML_SourceBuffer    *sb,
  */
 u32 gf_mse_parse_segment(void *par)
 {
+#ifdef FILTER_FIXME
 	GF_MSE_Packet           *packet;
 	GF_HTML_Track           *track;
 	GF_HTML_SourceBuffer    *sb = (GF_HTML_SourceBuffer *)par;
 	u32                     i;
 	u32                     track_count;
 
-#ifdef FILTER_FIXME
 	if (!sb->parser_connected) {
 		GF_HTML_ArrayBuffer *buffer = (GF_HTML_ArrayBuffer *)gf_list_get(sb->input_buffer, 0);
 		gf_list_rem(sb->input_buffer, 0);

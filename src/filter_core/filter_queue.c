@@ -31,7 +31,7 @@ typedef struct __lf_item
 	void *data;
 } GF_LFQItem;
 
-typedef struct __gf_filter_queue
+struct __gf_filter_queue
 {
 	//head element is dummy, never swaped
 	GF_LFQItem *head;
@@ -43,7 +43,7 @@ typedef struct __gf_filter_queue
 	volatile u32 nb_items;
 
 	GF_Mutex *mx;
-} GF_FilterQueue;
+};
 
 
 

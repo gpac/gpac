@@ -49,7 +49,6 @@ typedef struct
 
 GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size)
 {
-	u32 oti=0;
 	char *ext = NULL;
 	char *sep;
 	GF_FilterPid *pid;
@@ -63,7 +62,7 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 
 	sep = strrchr(url, '/');
 	if (!sep) sep = strrchr(url, '\\');
-	if (!sep) sep = url;
+	if (!sep) sep = (char *) url;
 	else sep++;
 	gf_filter_pid_set_name(pid, sep);
 
@@ -110,7 +109,7 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 		}
 	}
 	if (mime_type)
-		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING(mime_type));
+		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING((char *) mime_type));
 
 	return pid;
 }
@@ -138,7 +137,7 @@ GF_Err filein_initialize(GF_Filter *filter)
 	cgi_par = strchr(ctx->src, '?');
 	if (cgi_par) cgi_par[0] = 0;
 
-	src = ctx->src;
+	src = (char *) ctx->src;
 	if (!strnicmp(ctx->src, "file://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
@@ -178,7 +177,7 @@ GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 {
 	char *frag_par = NULL;
 	char *cgi_par = NULL;
-	char *src = url;
+	char *src = (char *) url;
 	Bool res;
 	if (!strnicmp(url, "file://", 7)) src += 7;
 	else if (!strnicmp(url, "file:", 5)) src += 5;
@@ -197,9 +196,8 @@ GF_FilterProbeScore filein_probe_url(const char *url, const char *mime_type)
 	return res ? GF_FPROBE_SUPPORTED : GF_FPROBE_NOT_SUPPORTED;
 }
 
-static Bool filein_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterPacket *pck;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (!evt->base.on_pid) return GF_FALSE;
@@ -238,7 +236,6 @@ static GF_Err filein_process(GF_Filter *filter)
 {
 	u32 nb_read, to_read;
 	GF_FilterPacket *pck;
-	char *pck_data;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
 	if (ctx->is_end)

@@ -154,7 +154,9 @@ static GF_Err theoradec_process(GF_Filter *filter)
 
 	if (pck) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		op.packet = gf_filter_pck_get_data(pck, &op.bytes);
+		u32 psize;
+		op.packet = (char *) gf_filter_pck_get_data(pck, &psize);
+		op.bytes = psize;
 
 		if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
 			ctx->frame_infos_alloc += 10;

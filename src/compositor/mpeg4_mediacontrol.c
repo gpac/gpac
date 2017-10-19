@@ -571,8 +571,6 @@ void MC_Modified(GF_Node *node)
 
 void gf_odm_set_mediacontrol(GF_ObjectManager *odm, MediaControlStack *ctrl)
 {
-	u32 i;
-
 	/*keep track of it*/
 	if (ctrl && (gf_list_find(odm->mc_stack, ctrl) < 0)) gf_list_add(odm->mc_stack, ctrl);
 	if (ctrl && !ctrl->control->enabled) return;

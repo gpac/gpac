@@ -101,7 +101,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
-static Bool lsrdec_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool lsrdec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
 	GF_LSRDecCtx *ctx = gf_filter_get_udta(filter);

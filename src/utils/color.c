@@ -1650,7 +1650,7 @@ GF_Err gf_stretch_bits(GF_VideoSurface *dst, GF_VideoSurface *src, GF_Window *ds
 				}
 			}
 			/*FIXME - this should be configurable, and tested against each graphics card*/
-			if (0&&dst_temp_bits) {
+			if ((0) && dst_temp_bits) {
 				/*load from video memory*/
 				memcpy(dst_temp_bits, dst_bits, dst_w_size);
 				/*merge*/

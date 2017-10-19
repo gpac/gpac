@@ -558,17 +558,16 @@ static void pixeltexture_update(GF_TextureHandler *txh)
 	if (st->pixels) gf_free(st->pixels);
 	st->pixels = (char*)gf_malloc(sizeof(char) * stride * pt->image.height);
 	/*FIXME FOR OPENGL !!*/
-	if (0) {
-		for (i=0; i<pt->image.height; i++) {
-			memcpy(st->pixels + i * stride, pt->image.pixels + i * stride, stride);
-		}
+#if 0
+	for (i=0; i<pt->image.height; i++) {
+		memcpy(st->pixels + i * stride, pt->image.pixels + i * stride, stride);
 	}
+#else
 	/*revert pixel ordering...*/
-	else {
-		for (i=0; i<pt->image.height; i++) {
-			memcpy(st->pixels + i * stride, pt->image.pixels + (pt->image.height - 1 - i) * stride, stride);
-		}
+	for (i=0; i<pt->image.height; i++) {
+		memcpy(st->pixels + i * stride, pt->image.pixels + (pt->image.height - 1 - i) * stride, stride);
 	}
+#endif
 
 	txh->width = pt->image.width;
 	txh->height = pt->image.height;

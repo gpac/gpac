@@ -522,7 +522,8 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 	if (ni->avatarSize.count>1) tr_state->camera->avatar_size.y = gf_mulfix(scale, ni->avatarSize.vals[1]);
 	if (ni->avatarSize.count>2) tr_state->camera->avatar_size.z = gf_mulfix(scale, ni->avatarSize.vals[2]);
 
-	if (0 && tr_state->pixel_metrics) {
+#if 0
+	if (tr_state->pixel_metrics) {
 		u32 s = MAX(tr_state->visual->width, tr_state->visual->height);
 		s /= 2;
 //		tr_state->camera->speed = ni->speed;
@@ -531,6 +532,8 @@ static void TraverseNavigationInfo(GF_Node *node, void *rs, Bool is_destroy)
 		tr_state->camera->avatar_size.y *= s;
 		tr_state->camera->avatar_size.z *= s;
 	}
+#endif
+
 #endif
 
 }

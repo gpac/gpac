@@ -90,9 +90,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
 		} else {
-			if (sscanf(value, "%d/%d", &p.value.frac.num, &p.value.frac.den) != 2) {
+			if (sscanf(value, LLD"/"LLU, &p.value.frac.num, &p.value.frac.den) != 2) {
 				p.value.frac.den=1;
-				if (sscanf(value, "%d", &p.value.frac.num) != 1) {
+				if (sscanf(value, LLD, &p.value.frac.num) != 1) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 					p.value.frac.num = 0;
 					p.value.frac.den = 1;

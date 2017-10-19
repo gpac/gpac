@@ -157,7 +157,7 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 	duration = 0;
 	while (!feof(stream)) {
-		u32 size;
+		u32 size=0;
 		u64 pos;
 		u8 toc, ft;
 		toc = fgetc(stream);
@@ -211,8 +211,6 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 {
-	u32 i, sbr_sr_idx, sbr_oti, sr;
-
 	if (ctx->opid) return;
 	ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
@@ -227,7 +225,7 @@ static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 }
 
-static Bool amrdmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool amrdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
@@ -306,13 +304,10 @@ GF_Err amrdmx_process(GF_Filter *filter)
 {
 	GF_AMRDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	GF_Err e;
 	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
-	u64 src_cts;
 	u32 pck_size, remain;
-	u32 alread_sync = 0;
 
 	//update duration
 	amrdmx_check_dur(filter, ctx);
@@ -330,7 +325,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = gf_filter_pck_get_data(pck, &pck_size);
+	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -367,7 +362,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 	//input pid sets some timescale - we flushed pending data , update cts
 	if (ctx->timescale) {
 		u64 cts = gf_filter_pck_get_cts(pck);
-		if (ctx != GF_FILTER_NO_TS)
+		if (cts != GF_FILTER_NO_TS)
 			ctx->cts = ctx;
 	}
 	if (ctx->skip_magic) {
@@ -382,9 +377,8 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 
 	while (remain) {
-		u8 *sync;
 		u8 toc, ft;
-		u32 bytes_skipped=0, size, i;
+		u32 size=0, i;
 
 		toc = start[0];
 		if (!toc) {
@@ -413,7 +407,6 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 		if (!size) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[AMRDmx] Broken TOC, trying resync\n"));
-			break;
 			start++;
 			remain--;
 			continue;
@@ -431,7 +424,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = ctx->start_range * ctx->sample_rate;
 			if (ctx->cts + ctx->block_size >= nb_samples_at_seek) {
-				u32 samples_to_discard = (ctx->cts + ctx->block_size ) - nb_samples_at_seek;
+				//u32 samples_to_discard = (ctx->cts + ctx->block_size ) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
 		}

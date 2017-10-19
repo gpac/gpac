@@ -84,8 +84,6 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 {
 	Bool found=GF_TRUE;
 	const GF_PropertyValue *p;
-	GF_M4VDecSpecInfo dsi;
-	GF_Err e;
 	u32 i, count, dep_id=0, id=0, cfg_crc=0;
 	s32 res;
 	OPENSVCFRAME Picture;
@@ -270,7 +268,7 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 }
 
 
-static Bool osvcdec_process_event(GF_Filter *filter, GF_FilterEvent *fevt)
+static Bool osvcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 {
 	GF_OSVCDecCtx *ctx = (GF_OSVCDecCtx*) gf_filter_get_udta(filter);
 
@@ -330,7 +328,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 
-		data = gf_filter_pck_get_data(pck, &data_size);
+		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 		//TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
 			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
@@ -408,7 +406,7 @@ static GF_Err osvcdec_process(GF_Filter *filter)
 			continue;
 		}
 
-		data = gf_filter_pck_get_data(pck, &data_size);
+		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 
 		maxDqIdInAU = GetDqIdMax((unsigned char *) data, data_size, ctx->nalu_size_length, ctx->DqIdTable, ctx->nalu_size_length ? 1 : 0);
 		if (ctx->MaxDqId <= maxDqIdInAU) {

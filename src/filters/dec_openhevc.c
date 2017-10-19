@@ -494,7 +494,7 @@ static u32 ohevcdec_get_pixel_format( u32 luma_bpp, u8 chroma_format_idc)
 }
 
 
-static Bool ohevcdec_process_event(GF_Filter *filter, GF_FilterEvent *fevt)
+static Bool ohevcdec_process_event(GF_Filter *filter, const GF_FilterEvent *fevt)
 {
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx*) gf_filter_get_udta(filter);
 
@@ -549,7 +549,7 @@ void ohevcframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *p
 	gf_filter_post_process_task(ctx->filter);
 }
 
-GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
+GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
 	GF_Err e;
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *)frame->user_data;
@@ -559,13 +559,13 @@ GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const char *
 
 	e = GF_OK;
 	if (plane_idx==0) {
-		*outPlane = ctx->frame_ptr.pvY;
+		*outPlane = (const u8 *) ctx->frame_ptr.pvY;
 		*outStride = ctx->frame_ptr.frameInfo.nYPitch;
 	} else if (plane_idx==1) {
-		*outPlane = ctx->frame_ptr.pvU;
+		*outPlane = (const u8 *)  ctx->frame_ptr.pvU;
 		*outStride = ctx->frame_ptr.frameInfo.nUPitch;
 	} else if (plane_idx==2) {
-		*outPlane = ctx->frame_ptr.pvV;
+		*outPlane = (const u8 *)  ctx->frame_ptr.pvV;
 		*outStride = ctx->frame_ptr.frameInfo.nVPitch;
 	} else
 		return GF_BAD_PARAM;
@@ -799,8 +799,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 	s32 got_pic;
 	u64 min_dts = GF_FILTER_NO_TS;
 	u64 min_cts = GF_FILTER_NO_TS;
-	u32 i, idx, nalu_size, sc_size, nb_eos=0;
-	u8 *ptr;
+	u32 i, idx, nb_eos=0;
 	u32 data_size;
 	char *data;
 	Bool has_pic = GF_FALSE;
@@ -813,7 +812,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		ctx->decoder_started=1;
 	}
 
-	GF_FilterPacket *dst_pck, *pck_ref = NULL;
+	GF_FilterPacket *pck_ref = NULL;
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
@@ -830,7 +829,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 
-		data = gf_filter_pck_get_data(pck, &data_size);
+		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 		//TODO: this is a clock signaling, for now just trash ..
 		if (!data) {
 			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
@@ -901,7 +900,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 	for (idx=0; idx<ctx->nb_streams; idx++) {
 		u64 dts, cts;
-		u32 sps_id, pps_id;
 
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) continue;
@@ -921,7 +919,7 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			continue;
 		}
 
-		data = gf_filter_pck_get_data(pck, &data_size);
+		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {

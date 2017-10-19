@@ -376,7 +376,7 @@ GF_Err odf_dec_process(GF_Filter *filter)
 
 
 
-static Bool odf_dec_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool odf_dec_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
 	GF_ODFDecCtx *ctx = gf_filter_get_udta(filter);

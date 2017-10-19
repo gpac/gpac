@@ -302,7 +302,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 force_decode_mode = 0;
 	u32 obj_time;
 	s64 diff;
-	Bool bench_mode, skip_resync;
+	Bool skip_resync;
 	const char *data = NULL;
 	const GF_PropertyValue *v;
 	u32 timescale=0;
@@ -327,7 +327,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
-		gf_filter_pck_unref(&mo->pck);
+		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
 	v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TIMESCALE);
@@ -357,6 +357,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			gf_filter_pid_drop_packet(mo->odm->pid);
 		}
 	}
+	*eos = mo->is_eos;
 
 	if (mo->pck) {
 		data = gf_filter_pck_get_data(mo->pck, size);
@@ -475,7 +476,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	if (resync) {
 		u32 nb_dropped = 0;
 		while (next_ts) {
-			u32 next_data_size;
 			if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
 				break;
 
@@ -517,7 +517,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		}
 	}
 
-	mo->frame = gf_filter_pck_get_data(mo->pck, &mo->size);
+	mo->frame = (char *) gf_filter_pck_get_data(mo->pck, &mo->size);
 	mo->framesize = mo->size - mo->RenderedLength;
 	mo->frame += mo->RenderedLength;
 	mo->hw_frame = gf_filter_pck_get_hw_frame(mo->pck);
@@ -526,8 +526,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	diff = (s32) ( (mo->speed >= 0) ? ( (s64) pck_ts - (s64) obj_time) : ( (s64) obj_time - (s64) pck_ts) );
 	mo->ms_until_pres = FIX2INT(diff * mo->speed);
 
-	diff = next_ts ? next_ts : (pck_ts + 1000*gf_filter_pck_get_duration(mo->pck) / timescale);
-	diff = (s32) ( (mo->speed >= 0) ? ( (s64) diff - (s64) obj_time) : ( (s64) obj_time - (s64) diff) );
+	if (mo->is_eos) {
+		diff = 1000*gf_filter_pck_get_duration(mo->pck) / timescale;
+		if (!diff) diff = 100;
+	} else {
+		diff = next_ts ? next_ts : (pck_ts + 1000*gf_filter_pck_get_duration(mo->pck) / timescale);
+		diff = (s32) ( (mo->speed >= 0) ? ( (s64) diff - (s64) obj_time) : ( (s64) obj_time - (s64) diff) );
+	}
 	mo->ms_until_next = FIX2INT(diff * mo->speed);
 	if (mo->ms_until_next < 0)
 		mo->ms_until_next = 0;
@@ -602,36 +607,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	return mo->frame;
 }
 
-GF_EXPORT
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma)
-{
-	u32 stride;
-	if (!mo || !mo->odm || !mo->odm) return GF_BAD_PARAM;
-	GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("NOT YET IMPLEMENTED IN FILTERS\n"));
-	return GF_NOT_SUPPORTED;
-
-#if 0
-	if (mo->odm->codec->direct_vout) {
-		*pY_or_RGB = mo->odm->codec->CB->pY;
-		*pU = mo->odm->codec->CB->pU;
-		*pV = mo->odm->codec->CB->pV;
-		return GF_OK;
-	}
-	if (!mo->odm->codec->direct_frame_output || !mo->media_frame)
-		return GF_BAD_PARAM;
-
-	mo->media_frame->GetPlane(mo->media_frame, 0, (const char **) pY_or_RGB, stride_luma_rgb);
-	mo->media_frame->GetPlane(mo->media_frame, 1, (const char **) pU, &stride);
-	mo->media_frame->GetPlane(mo->media_frame, 2, (const char **) pV, &stride);
-	*stride_chroma = stride;
-	return GF_OK;
-#endif
-}
 
 GF_EXPORT
 void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 {
-	GF_FilterPacket *pck;
 	if (!mo || !mo->odm || !mo->odm->pid || !mo->nb_fetch) return;
 
 	mo->nb_fetch--;
@@ -669,7 +648,7 @@ void gf_mo_release_data(GF_MediaObject *mo, u32 nb_bytes, s32 drop_mode)
 	}
 	//release frame asap if producer is waiting for the release to be able to process
 	if (mo->pck && mo->hw_frame && mo->hw_frame->hardware_reset_pending) {
-		gf_filter_pck_unref(&mo->pck);
+		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
 }
@@ -1076,8 +1055,10 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo)
 	MediaControlStack *ctrl;
 #endif
 
-	if (!mo->odm->state || (mo->odm->parentscene && mo->odm->parentscene->is_dynamic_scene)) {
-		return GF_FALSE;
+	if (!mo->odm->state) return GF_FALSE;
+	//if dynamic scene we can deactivate
+	if (mo->odm->parentscene && mo->odm->parentscene->is_dynamic_scene) {
+		return GF_TRUE;
 	}
 
 #ifndef GPAC_DISABLE_VRML

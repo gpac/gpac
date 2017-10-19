@@ -298,7 +298,7 @@ typedef struct __gf_filter_register
 	GF_Err (*update_arg)(GF_Filter *filter, const char *arg_name, const GF_PropertyValue *new_val);
 
 	//optional - process a given event. Retruns TRUE if the event has to be canceled, FALSE otherwise
-	Bool (*process_event)(GF_Filter *filter, GF_FilterEvent *evt);
+	Bool (*process_event)(GF_Filter *filter, const GF_FilterEvent *evt);
 
 	//required for source filters - probe the given URL, returning a score
 	GF_FilterProbeScore (*probe_url)(const char *url, const char *mime);
@@ -769,7 +769,7 @@ typedef struct _gf_filter_hw_frame
 	// @plane_idx: plane index, 0: Y or full plane, 1: U or UV plane, 2: V plane
 	// @outPlane: adress of target color plane
 	// @outStride: stride in bytes of target color plane
-	GF_Err (*get_plane)(struct _gf_filter_hw_frame *frame, u32 plane_idx, const char **outPlane, u32 *outStride);
+	GF_Err (*get_plane)(struct _gf_filter_hw_frame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride);
 
 	//get media frame plane texture
 	// @frame: media frame pointer

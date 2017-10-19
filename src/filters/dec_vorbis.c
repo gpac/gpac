@@ -168,7 +168,9 @@ static GF_Err vorbisdec_process(GF_Filter *filter)
 	op.packetno = 0;
 
 	if (pck) {
-		op.packet = gf_filter_pck_get_data(pck, &op.bytes);
+		u32 psize;
+		op.packet = (u8 *) gf_filter_pck_get_data(pck, &psize);
+		op.bytes = psize;
 	} else {
 		op.packet = NULL;
 		op.bytes = 0;

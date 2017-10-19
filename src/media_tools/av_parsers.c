@@ -1519,7 +1519,8 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 	/*ER cfg - not supported*/
 
 	/*implicit sbr - not used yet*/
-	if (0 && (cfg->base_object_type != 5) && (cfg->base_object_type != 29) ) {
+#if 0
+	if ((cfg->base_object_type != 5) && (cfg->base_object_type != 29) ) {
 		gf_bs_write_int(bs, 0x2b7, 11);
 		cfg->sbr_object_type = gf_bs_read_int(bs, 5);
 		cfg->has_sbr = gf_bs_read_int(bs, 1);
@@ -1532,6 +1533,8 @@ GF_Err gf_m4a_write_config_bs(GF_BitStream *bs, GF_M4ADecSpecInfo *cfg)
 			}
 		}
 	}
+#endif
+
 	return GF_OK;
 }
 

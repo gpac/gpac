@@ -77,7 +77,6 @@ static GFINLINE GF_SAFStream *saf_get_channel(GF_SAFDmxCtx *saf, u32 stream_id)
 
 static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 data_size)
 {
-	GF_Err e;
 	Bool is_rap, go;
 	GF_SAFStream *st;
 	u32 cts, au_sn, au_size, type, i, stream_id;
@@ -154,7 +153,7 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 
 				/*bufferSizeDB = */gf_bs_read_u16(bs);
 				au_size -= 7;
-				if ((oti == 0xFF) && (st == 0xFF) ) {
+				if ((oti == 0xFF) && (stype == 0xFF) ) {
 					u16 mimeLen = gf_bs_read_u16(bs);
 					gf_bs_skip_bytes(bs, mimeLen);
 					au_size -= mimeLen+2;
@@ -301,7 +300,6 @@ static void safdmx_check_dur(GF_SAFDmxCtx *ctx)
 GF_Err safdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i;
-	const GF_PropertyValue *p;
 	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -321,10 +319,8 @@ GF_Err safdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	return GF_OK;
 }
 
-static Bool safdmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool safdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	u32 i;
-	GF_SAFStream *st;
 	GF_FilterEvent fevt;
 	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
 
@@ -384,7 +380,6 @@ GF_Err safdmx_process(GF_Filter *filter)
 	GF_SAFDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
 	GF_SAFStream *st;
-	GF_Err e;
 	u32 i=0, pkt_size;
 	const char *data;
 	u32 would_block = 0;
@@ -407,7 +402,7 @@ GF_Err safdmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 	data = gf_filter_pck_get_data(pck, &pkt_size);
-	safdmx_demux(filter, ctx, data, pkt_size);
+	safdmx_demux(filter, ctx, (char *) data, pkt_size);
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }

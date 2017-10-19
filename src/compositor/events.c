@@ -1912,7 +1912,7 @@ Bool gf_sc_execute_event(GF_Compositor *compositor, GF_TraverseState *tr_state, 
 		if (ev->type==GF_EVENT_KEYDOWN) {
 			switch (ev->key.key_code) {
 			case GF_KEY_ENTER:
-				if (0&&compositor->focus_text_type) {
+				if ((0) && compositor->focus_text_type) {
 					exec_text_input(compositor, NULL);
 					ret = GF_TRUE;
 #ifndef GPAC_DISABLE_VRML

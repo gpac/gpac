@@ -95,7 +95,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		fprintf(dump, ""LLU, att->value.longuint);
 		break;
 	case GF_PROP_FRACTION:
-		fprintf(dump, "%d/%d", att->value.frac.num, att->value.frac.den);
+		fprintf(dump, LLD"/"LLU, att->value.frac.num, att->value.frac.den);
 		break;
 	case GF_PROP_BOOL:
 		fprintf(dump, "%s", att->value.boolean ? "true" : "fale");

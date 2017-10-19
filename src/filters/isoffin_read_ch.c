@@ -55,10 +55,10 @@ void isor_check_producer_ref_time(ISOMReader *read)
 #if !defined(_WIN32_WCE) && !defined(GPAC_DISABLE_LOG)
 
 		if (gf_log_tool_level_on(GF_LOG_DASH, GF_LOG_DEBUG)) {
+#ifdef FILTER_FIXME
 			time_t secs;
 			struct tm t;
 
-#ifdef FILTER_FIXME
 			s32 diff = gf_net_get_ntp_diff_ms(ntp);
 
 			if (read->input->query_proxy) {
