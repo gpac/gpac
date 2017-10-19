@@ -66,7 +66,7 @@ GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *s
 			if ( i && (curDTS + CTSOffset > DTS) ) {
 				ent = &stbl->TimeToSample->entries[i];
 				curSampNum -= ent->sampleCount;
-				curDTS -= ent->sampleDelta * ent->sampleCount;
+				curDTS -= (u64)ent->sampleDelta * ent->sampleCount;
 				i --;
 			} else if (!i) {
 				//beginning of the table, no choice
