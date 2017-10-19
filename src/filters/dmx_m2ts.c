@@ -183,13 +183,13 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_VIDEO_SVC:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_SVC;
-		if (stream->program->is_scalable)
-			has_scal_layer = GF_TRUE;
+		has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_HEVC;
-		has_scal_layer = GF_TRUE;
+		if (stream->program->is_scalable)
+			has_scal_layer = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_SHVC:
 	case GF_M2TS_VIDEO_SHVC_TEMPORAL:

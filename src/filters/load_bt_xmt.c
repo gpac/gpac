@@ -761,6 +761,7 @@ static void ctxload_finalize(GF_Filter *filter)
 	if (priv->files_to_delete)
 		gf_list_del(priv->files_to_delete);
 	priv->files_to_delete = NULL;
+	if (priv->load.localPath) gf_free((char *)priv->load.localPath);
 }
 
 

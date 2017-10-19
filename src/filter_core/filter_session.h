@@ -361,11 +361,13 @@ struct __gf_filter
 
 	volatile u32 would_block; //concurrent inc/dec
 
-	//finalized has been called
+	//filter destroy task has been posted
 	Bool finalized;
 	//filter is scheduled for removal: any filter connected to this filter will
-	//not be checked for graph resolution
+	//not be checked for graph resolution - destroy has not yet been posted
 	Bool removed;
+	//setup has been notified
+	Bool setup_notified;
 	//filter loaded to solve a filter chain
 	Bool dynamic_filter;
 
@@ -492,7 +494,7 @@ void gf_filter_pid_del(GF_FilterPid *pid);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 
-void gf_fs_cleanup_filters(GF_FilterSession *fsess, GF_FSTask *task);
+void gf_fs_cleanup_filters(GF_FilterSession *fsess);
 
 /*specific task posting*/
 void gf_filter_pid_post_init_task(GF_Filter *filter, GF_FilterPid *pid);

@@ -91,6 +91,7 @@ typedef struct
 
 	u32 hevc_nalu_size_length;
 	Bool has_pic;
+	Bool probe_layers;
 
 	OpenHevc_Handle codec;
 	u32 nb_layers, cur_layer;
@@ -114,9 +115,12 @@ typedef struct
 	GF_FilterHWFrame hw_frame;
 	OpenHevc_Frame frame_ptr;
 	Bool frame_out;
+
+	char *reaggregation_buffer;
+	u32 reaggregation_alloc_size, reaggregation_size;
 } GF_OHEVCDecCtx;
 
-static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 oti, Bool has_scalable, const GF_PropertyValue *dsi)
+static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid *pid, u32 oti, const GF_PropertyValue *dsi)
 {
 	GF_HEVCConfig *cfg = NULL;
 	char *data;
@@ -125,7 +129,6 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	u32 i, j;
 
 	if (!ctx->codec) return GF_NOT_SUPPORTED;
-	if (! has_scalable) return GF_OK;
 
 	if (!dsi || !dsi->data_len) {
 		ctx->nb_layers++;
@@ -191,7 +194,7 @@ void openhevc_log_callback(void *udta, int l, const char*fmt, va_list vl)
 	if (l <= OHEVC_LOG_ERROR) l = GF_LOG_ERROR;
 	else if (l <= OHEVC_LOG_WARNING) l = GF_LOG_WARNING;
 	else if (l <= OHEVC_LOG_INFO) l = GF_LOG_INFO;
-	else if (l >= OHEVC_LOG_VERBOSE) return;
+//	else if (l >= OHEVC_LOG_VERBOSE) return;
 
 	if (gf_log_tool_level_on(GF_LOG_CODEC, level)) {
 		gf_log_va_list(level, GF_LOG_CODEC, fmt, vl);
@@ -261,20 +264,20 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	if (p) has_scalable = p->value.boolean;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
+	cfg_crc = 0;
 	if (dsi && dsi->value.data && dsi->data_len) {
 		cfg_crc = gf_crc_32(dsi->value.data, dsi->data_len);
-		for (i=0; i<ctx->nb_streams; i++) {
-			if ((ctx->streams[i].ipid == pid) && (ctx->streams[i].cfg_crc == cfg_crc)) return GF_OK;
-		}
 	}
-
 	found = GF_FALSE;
+	//check if this is an update
 	for (i=0; i<ctx->nb_streams; i++) {
 		if (ctx->streams[i].ipid == pid) {
+			if (ctx->streams[i].cfg_crc == cfg_crc) return GF_OK;
 			ctx->streams[i].cfg_crc = cfg_crc;
 			found = GF_TRUE;
 		}
 	}
+
 	if (!found) {
 		if (ctx->nb_streams==HEVC_MAX_STREAMS) {
 			return GF_NOT_SUPPORTED;
@@ -321,13 +324,12 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		}
 		ctx->nb_streams++;
 	}
-	
-	ctx->nb_layers = 1;
-	ctx->cur_layer = 1;
+	ctx->nb_layers = ctx->cur_layer = 1;
+	ctx->probe_layers = (ctx->nb_streams>1) ? GF_FALSE : GF_TRUE;
 
 	//scalable stream setup
 	if (dep_id) {
-		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, oti, has_scalable, dsi);
+		GF_Err e = ohevcdec_configure_scalable_pid(ctx, pid, oti, dsi);
 		ohevcdec_set_codec_name(filter);
 		return e;
 	}
@@ -573,6 +575,14 @@ GF_Err ohevcframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **o
 	return GF_OK;
 }
 
+static void ohevcdec_drop_frameinfo(GF_OHEVCDecCtx *ctx)
+{
+	if (ctx->frame_infos_size) {
+		ctx->frame_infos_size--;
+		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(OHEVCDecFrameInfo)*ctx->frame_infos_size);
+	}
+}
+
 static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 {
 	GF_FilterPacket *dst_pck;
@@ -585,6 +595,11 @@ static GF_Err ohevcdec_send_output_frame(GF_OHEVCDecCtx *ctx)
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &ctx->hw_frame, ohevcframe_release);
 	gf_filter_pck_set_cts(dst_pck, ctx->frame_ptr.frameInfo.nTimeStamp);
+	if (ctx->frame_infos_size) {
+		gf_filter_pck_set_duration(dst_pck, ctx->frame_infos[0].duration);
+		gf_filter_pck_set_sap(dst_pck, ctx->frame_infos[0].sap_type);
+		ohevcdec_drop_frameinfo(ctx);
+	}
 
 	ctx->frame_out = GF_TRUE;
 	gf_filter_pck_send(dst_pck);
@@ -612,7 +627,16 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 	bit_depth = openHevcFrame_FL.frameInfo.nBitDepth;
 	chromat_format = openHevcFrame_FL.frameInfo.chromat_format;
 	cts = (u32) openHevcFrame_FL.frameInfo.nTimeStamp;
-	
+
+	while (cts && ctx->frame_infos_size && (cts != ctx->frame_infos[0].cts) ) {
+		ohevcdec_drop_frameinfo(ctx);
+	}
+
+	if (ctx->frame_infos_size && ctx->frame_infos[0].seek_flag) {
+		ohevcdec_drop_frameinfo(ctx);
+		return GF_OK;
+	}
+
 	if (ctx->force_stereo_reset || !ctx->out_size || (ctx->width != a_w) || (ctx->height!=a_h) || (ctx->stride != a_stride)
 		|| (ctx->luma_bpp!= bit_depth)  || (ctx->chroma_bpp != bit_depth) || (ctx->chroma_format_idc != (chromat_format + 1))
 		|| (ctx->sar.num*openHevcFrame_FL.frameInfo.sample_aspect_ratio.den != ctx->sar.den*openHevcFrame_FL.frameInfo.sample_aspect_ratio.num)
@@ -672,7 +696,12 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 		if (!ctx->packed_pck) {
 			ctx->packed_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->out_size, &ctx->packed_data);
 			gf_filter_pck_set_cts(ctx->packed_pck, cts);
+			if (ctx->frame_infos_size) {
+				gf_filter_pck_set_duration(ctx->packed_pck, ctx->frame_infos[0].duration*4);
+				gf_filter_pck_set_sap(ctx->packed_pck, ctx->frame_infos[0].sap_type);
+			}
 		}
+		ohevcdec_drop_frameinfo(ctx);
 		pY = (u8*) (ctx->packed_data + idx_h + idx_w );
 
 		if (chromat_format == YUV422) {
@@ -779,19 +808,16 @@ static GF_Err ohevcdec_flush_picture(GF_OHEVCDecCtx *ctx)
 
 		if (libOpenHevcGetOutputCpy(ctx->codec, 1, &openHevcFrame_FL)) {
 			gf_filter_pck_set_cts(pck, cts);
+			if (ctx->frame_infos_size) {
+				gf_filter_pck_set_duration(pck, ctx->frame_infos[0].duration);
+				gf_filter_pck_set_sap(pck, ctx->frame_infos[0].sap_type);
+				ohevcdec_drop_frameinfo(ctx);
+			}
 			gf_filter_pck_send(pck);
 		} else
 			gf_filter_pck_discard(pck);
 	}
 	return GF_OK;
-}
-
-static void ohevcdec_drop_frameinfo(GF_OHEVCDecCtx *ctx)
-{
-	if (ctx->frame_infos_size) {
-		ctx->frame_infos_size--;
-		memmove(&ctx->frame_infos[0], &ctx->frame_infos[1], sizeof(OHEVCDecFrameInfo)*ctx->frame_infos_size);
-	}
 }
 
 static GF_Err ohevcdec_process(GF_Filter *filter)
@@ -904,11 +930,6 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->streams[idx].ipid);
 		if (!pck) continue;
 
-		if (idx>=ctx->nb_streams) {
-			gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
-			continue;
-		}
-
 		dts = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 		if (dts==GF_FILTER_NO_TS) dts = cts;
@@ -921,6 +942,8 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 
 		data = (char *) gf_filter_pck_get_data(pck, &data_size);
 
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] PID %s Decode CTS %d - size %d - got pic %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), min_cts, data_size, got_pic));
+
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
 			if (ctx->avc_base_id == ctx->streams[idx].id) {
@@ -930,11 +953,48 @@ static GF_Err ohevcdec_process(GF_Filter *filter)
 			}
 		} else
 #endif
-			got_pic = libOpenHevcDecode(ctx->codec, (u8 *) data, data_size, cts);
+		{
+			if (ctx->probe_layers && !ctx->hevc_nalu_size_length)  {
+				u8 layer_id;
+				char *ptr = data;
+				u32 remain = data_size;
+				while (1) {
+					u32 sc_size;
+					u32 size = gf_media_nalu_next_start_code((u8 *) ptr, remain, &sc_size);
+					if (!sc_size) break;
 
+					gf_media_hevc_parse_nalu( (u8 *) ptr, size, NULL, NULL, NULL, &layer_id);
 
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[HEVC Decoder] PID %s Decode CTS %d - size %d - got pic %d\n", gf_filter_pid_get_name(ctx->streams[idx].ipid), min_cts, data_size, got_pic));
-		if (got_pic) has_pic = GF_TRUE;
+					ptr += size+sc_size;
+					if (remain<=size+sc_size) break;
+					remain -= size+sc_size;
+					if (layer_id>0) {
+						ctx->nb_layers = ctx->cur_layer = 2;
+						ctx->probe_layers = GF_FALSE;
+						libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
+						libOpenHevcSetViewLayers(ctx->codec, ctx->cur_layer-1);
+						ohevcdec_set_codec_name(filter);
+						break;
+					}
+				}
+			}
+			if (!ctx->hevc_nalu_size_length && (ctx->nb_streams>1) ) {
+				if (ctx->reaggregation_alloc_size < ctx->reaggregation_size + data_size) {
+					ctx->reaggregation_alloc_size = ctx->reaggregation_size + data_size;
+					ctx->reaggregation_buffer = gf_realloc(ctx->reaggregation_buffer, sizeof(char)*ctx->reaggregation_alloc_size);
+				}
+				memcpy(ctx->reaggregation_buffer + ctx->reaggregation_size, data, sizeof(char)*data_size);
+				ctx->reaggregation_size += data_size;
+				if (idx+1 == ctx->nb_streams) {
+					got_pic = libOpenHevcDecode(ctx->codec, (u8 *) ctx->reaggregation_buffer, ctx->reaggregation_size, cts);
+					ctx->reaggregation_size = 0;
+				}
+			} else {
+				got_pic = libOpenHevcDecode(ctx->codec, (u8 *) data, data_size, cts);
+			}
+		}
+		if (got_pic)
+			has_pic = GF_TRUE;
 
 		gf_filter_pid_drop_packet(ctx->streams[idx].ipid);
 
@@ -964,6 +1024,7 @@ static void ohevcdec_finalize(GF_Filter *filter)
 	GF_OHEVCDecCtx *ctx = (GF_OHEVCDecCtx *) gf_filter_get_udta(filter);
 	if (ctx->frame_infos) gf_free(ctx->frame_infos);
 	if (ctx->codec) libOpenHevcClose(ctx->codec);
+	if (ctx->reaggregation_buffer) gf_free(ctx->reaggregation_buffer);
 }
 
 static const GF_FilterCapability OHEVCDecInputs[] =

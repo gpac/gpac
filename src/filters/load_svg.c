@@ -386,6 +386,11 @@ static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 	return GF_FALSE;
 }
 
+void svgin_finalize(GF_Filter *filter)
+{
+	SVGIn *svgin = gf_filter_get_udta(filter);
+	if (svgin->loader.localPath) gf_free((char *)svgin->loader.localPath);
+}
 
 static const GF_FilterCapability SVGInInputs[] =
 {
@@ -424,6 +429,7 @@ GF_FilterRegister SVGInRegister = {
 	.process = svgin_process,
 	.configure_pid = svgin_configure_pid,
 	.process_event = svgin_process_event,
+	.finalize = svgin_finalize
 };
 
 #endif

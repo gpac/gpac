@@ -1242,27 +1242,31 @@ GF_DownloadManager *gf_filter_get_download_manager(GF_Filter *filter)
 	return fsess->download_manager;
 }
 
+void gf_fs_cleanup_filters_task(GF_FSTask *task)
+{
+	GF_FilterSession *fsess = task->udta;
+	u32 i, count = gf_list_count(fsess->filters);
+	for (i=0; i<count; i++) {
+		GF_Filter *filter = gf_list_get(fsess->filters, i);
+		//dynamic filter with no connections, remove it
+		if (filter->dynamic_filter && !filter->num_input_pids && !filter->num_output_pids) {
+			gf_list_rem(fsess->filters, i);
+			i--;
+			count--;
 
-void gf_fs_cleanup_filters(GF_FilterSession *fsess, GF_FSTask *task)
+			filter->removed = GF_TRUE;
+			filter->finalized = GF_TRUE;
+			gf_filter_del(filter);
+		}
+	}
+}
+
+void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
-		u32 i, count = gf_list_count(fsess->filters);
-		for (i=0; i<count; i++) {
-			GF_Filter *filter = gf_list_get(fsess->filters, i);
-			//dynamic filter with no connections, remove it
-			if (filter->dynamic_filter && !filter->num_input_pids && !filter->num_output_pids) {
-
-				gf_list_rem(fsess->filters, i);
-				i--;
-				count--;
-
-				filter->removed = GF_TRUE;
-				filter->finalized = GF_TRUE;
-				gf_filter_del(filter);
-				if (task->filter == filter) task->filter = NULL;
-			}
-		}
+		//we need a task for cleanup, otherwise we may destroy the filter and the task of the task currently scheduled !!
+		gf_fs_post_task(fsess, gf_fs_cleanup_filters_task, NULL, NULL, "filters_cleanup", fsess);
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 }
