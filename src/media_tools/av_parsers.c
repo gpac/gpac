@@ -4993,11 +4993,18 @@ s32 gf_media_hevc_parse_nalu(char *data, u32 size, HEVCState *hevc, u8 *nal_unit
 	s32 ret = -1;
 	HEVCSliceInfo n_state;
 
+	if (!hevc) {
+		if (nal_unit_type) (*nal_unit_type) = (data[0] & 0x7E) >> 1;
+		if (layer_id) {
+			u8 id = data[0] & 1;
+			id <<= 5;
+			id |= (data[1]>>3) & 0x1F;
+			(*layer_id) = id;
+		}
+		if (temporal_id) (*temporal_id) = (data[1] & 0x7);
+		return -1;
+	}
 	memcpy(&n_state, &hevc->s_info, sizeof(HEVCSliceInfo));
-
-	hevc->last_parsed_vps_id = hevc->last_parsed_sps_id = hevc->last_parsed_pps_id = -1;
-	hevc->s_info.entry_point_start_bits = -1;
-	hevc->s_info.payload_start_offset = -1;
 
 	data_without_emulation_bytes_size = avc_emulation_bytes_remove_count(data, size);
 	if (!data_without_emulation_bytes_size) {

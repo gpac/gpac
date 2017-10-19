@@ -245,6 +245,7 @@ void gf_filter_pid_inst_delete_task(GF_FSTask *task)
 		gf_filter_pid_del(pid);
 	}
 	if (!gf_list_count(filter->output_pids) && !gf_list_count(filter->input_pids)) {
+		assert(!filter->finalized);
 		filter->finalized = GF_TRUE;
 		gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
 	}
@@ -359,6 +360,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 				gf_filter_pid_post_init_task(pid->filter, pid);
 
 				if (unload_filter) {
+					assert(!filter->finalized);
 					filter->finalized = GF_TRUE;
 					assert(!gf_list_count(filter->input_pids));
 					gf_fs_post_task(filter->session, gf_filter_remove_task, filter, NULL, "filter_destroy", NULL);
@@ -432,7 +434,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	}
 	gf_filter_pid_configure(filter, task->pid->pid, GF_TRUE, GF_FALSE);
 
-	gf_fs_cleanup_filters(fsess, task);
+	gf_fs_cleanup_filters(fsess);
 
 }
 
@@ -450,6 +452,7 @@ void gf_filter_pid_disconnect_task(GF_FSTask *task)
 	//if the filter has no more connected ins and outs, remove it
 	if (task->filter->removed && !gf_list_count(task->filter->output_pids) && !gf_list_count(task->filter->input_pids)) {
 		Bool direct_mode = task->filter->session->direct_mode;
+		assert(!task->filter->finalized);
 		task->filter->finalized = GF_TRUE;
 		gf_fs_post_task(task->filter->session, gf_filter_remove_task, task->filter, NULL, "filter_destroy", NULL);
 		if (direct_mode) task->filter = NULL;
@@ -642,6 +645,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		if (pid_cap) {
 			u32 j;
 			Bool prop_equal = GF_FALSE;
+
 			//this could be optimized by not checking several times the same cap
 			for (j=0; j<freg->nb_input_caps; j++) {
 				const GF_FilterCapability *a_cap = &freg->input_caps[j];
@@ -652,8 +656,13 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 				}
 				if (!prop_equal) {
 					prop_equal = gf_props_equal(pid_cap, &a_cap->val);
-					if (cap->exclude)
-						prop_equal = !prop_equal;
+					//excluded cap: if value match, don't match this cap at all
+					if (cap->exclude) {
+						if (prop_equal) {
+							prop_equal = GF_FALSE;
+							break;
+						}
+					}
 					if (prop_equal) break;
 				}
 			}

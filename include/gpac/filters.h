@@ -760,7 +760,8 @@ GF_Err gf_fs_remove_event_listener(GF_FilterSession *fsess, GF_FSEventListener *
 Bool gf_fs_forward_event(GF_FilterSession *fsess, GF_Event *evt, Bool consumed, Bool forward_only);
 Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt);
 
-
+//redefinition of GF_Matrix but without the maths.h include which breaks VideoToolBox on OSX/iOS
+typedef struct __matrix GF_Matrix_unexposed;
 
 typedef struct _gf_filter_hw_frame
 {
@@ -777,7 +778,7 @@ typedef struct _gf_filter_hw_frame
 	// @gl_tex_format: GL texture format used
 	// @gl_tex_id: GL texture ID used
 	// @texcoordmatrix: texture transform
-	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, struct __matrix * texcoordmatrix);
+	GF_Err (*get_gl_texture)(struct _gf_filter_hw_frame *frame, u32 plane_idx, u32 *gl_tex_format, u32 *gl_tex_id, GF_Matrix_unexposed * texcoordmatrix);
 
 	//set to true if a hardware reset is pending after the consumption of this frame
 	Bool hardware_reset_pending;

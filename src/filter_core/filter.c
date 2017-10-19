@@ -81,7 +81,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 
 	e = gf_filter_new_finalize(filter, args, arg_type);
 	if (e) {
-		if (!filter->finalized) {
+		if (!filter->setup_notified) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Error %s while instantiating filter %s\n", gf_error_to_string(e),registry->name));
 			gf_filter_setup_failure(filter, e);
 		}
@@ -172,7 +172,6 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
-	fprintf(stderr, "filter %p deleted\n", filter);
 	gf_free(filter);
 }
 
@@ -521,10 +520,12 @@ static void gf_filter_process_task(GF_FSTask *task)
 	assert(filter->freg->process);
 
 	filter->schedule_next_time = 0;
-	if (filter->pid_connection_pending || filter->removed) {
+	if (filter->pid_connection_pending) {
 		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
+	if (filter->removed) return;
+	
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", filter->name));
 		filter->nb_tasks_done--;
@@ -700,8 +701,8 @@ void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
 {
 	struct _gf_filter_setup_failure *stack;
 	//don't accept twice a notif
-	if (filter->finalized) return;
-	filter->finalized = GF_TRUE;
+	if (filter->setup_notified) return;
+	filter->setup_notified = GF_TRUE;
 
 	stack = gf_malloc(sizeof(struct _gf_filter_setup_failure));
 	stack->e = reason;
@@ -725,6 +726,12 @@ void gf_filter_remove_task(GF_FSTask *task)
 	if (task->in_main_task_list_only) count++;
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
+		count = gf_fq_count(f->tasks);
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destroy postponed, tasks remaining in filer %d:\n", f->name, count));
+		for (u32 i=0; i<count; i++) {
+			GF_FSTask *at = gf_fq_get(f->tasks, i);
+			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("\ttask #%d %s\n", i+1, at->log_name));
+		}
 		return;
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction task\n", f->name));

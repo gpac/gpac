@@ -976,6 +976,8 @@ static GF_Err void_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 #endif
 
 /*AAC import features*/
+#define GPAC_DISABLE_PLAYER
+
 #ifndef GPAC_DISABLE_PLAYER
 
 void *audio_prog = NULL;

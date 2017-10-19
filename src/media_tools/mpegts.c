@@ -2314,8 +2314,12 @@ static void gf_m2ts_process_pmt(GF_M2TS_Demuxer *ts, GF_M2TS_SECTION_ES *pmt, GF
 			//fixeme we are not always assured that hierarchy_layer_index matches the stream index...
 			//+1 is because our first stream is the PMT
 			an_es =  (GF_M2TS_PES *)gf_list_get(pmt->program->streams, es->depends_on_pid);
-			if (an_es)
+			if (an_es) {
 				es->depends_on_pid = an_es->pid;
+			} else {
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[M2TS] Wrong dependency index in hierarchy descriptor, assuming non-scalable stream\n"));
+				es->depends_on_pid = 0;
+			}
 		}
 
 		evt_type = (status&GF_M2TS_TABLE_FOUND) ? GF_M2TS_EVT_PMT_FOUND : GF_M2TS_EVT_PMT_UPDATE;
