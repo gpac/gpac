@@ -155,21 +155,6 @@ static void term_on_disconnect(GF_ClientService *service, LPNETCHANNEL netch, GF
 }
 #endif
 
-
-static Bool is_same_od(GF_ObjectDescriptor *od1, GF_ObjectDescriptor *od2)
-{
-	GF_ESD *esd1, *esd2;
-	if (gf_list_count(od1->ESDescriptors) != gf_list_count(od2->ESDescriptors)) return 0;
-	esd1 = gf_list_get(od1->ESDescriptors, 0);
-	if (!esd1) return 0;
-	esd2 = gf_list_get(od2->ESDescriptors, 0);
-	if (!esd2) return 0;
-	if (esd1->ESID!=esd2->ESID) return 0;
-	if (esd1->decoderConfig->streamType != esd2->decoderConfig->streamType) return 0;
-	if (esd1->decoderConfig->objectTypeIndication != esd2->decoderConfig->objectTypeIndication ) return 0;
-	return 1;
-}
-
 void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *pid, Bool is_in_iod)
 {
 	u32 i, min_od_id;
@@ -177,7 +162,6 @@ void gf_scene_insert_pid(GF_Scene *scene, GF_SceneNamespace *sns, GF_FilterPid *
 	GF_ObjectManager *odm, *root;
 	const GF_PropertyValue *v;
 	u32 mtype=0;
-	u32 moti=0;
 	u32 pid_odid=0;
 	u32 pid_id=0;
 	u32 ServiceID=0;
@@ -414,11 +398,12 @@ void gf_scene_ns_del(GF_SceneNamespace *sns, GF_Scene *root_scene)
 /*connects given OD manager to its URL*/
 void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *serviceURL, char *parent_url)
 {
+#if FILTER_FIXME
 	GF_SceneNamespace *ns;
 	u32 i, count;
+#endif
 	GF_Err e;
 	Bool reloc_result=GF_FALSE;
-	GF_Filter *filter;
 	GF_FilterSession *fsess = gf_filter_get_session(scene->compositor->filter);
 
 	

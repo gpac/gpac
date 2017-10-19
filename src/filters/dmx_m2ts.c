@@ -32,12 +32,6 @@
 #include <gpac/mpegts.h>
 #include <gpac/thread.h>
 
-static const char * MIMES[] = { "video/mpeg-2", "video/mp2t", "video/mpeg", NULL};
-static const char * M2TS_EXTENSIONS = "ts m2t mts dmb trp";
-
-//when regulating data rate from file using PCR, this is the maximum sleep we tolerate
-#define M2TS_MAX_SLEEP 200
-
 typedef struct {
 	char *fragment;
 	u32 id;
@@ -152,13 +146,13 @@ static void m2tsdmx_on_event_duration_probe(GF_M2TS_Demuxer *ts, u32 evt_type, v
 	if (evt_type == GF_M2TS_EVT_PES_PCR) {
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 
-		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
+		if (pck->stream) m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
 	}
 }
 
 static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD *esd)
 {
-	u32 cur_pid, i, count, oti=0, stype=0;
+	u32 i, count, oti=0, stype=0;
 	GF_FilterPid *opid;
 	Bool m4sys_stream = GF_FALSE;
 	Bool m4sys_iod_stream = GF_FALSE;
@@ -224,11 +218,11 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		break;
 	case GF_M2TS_AUDIO_AC3:
 		stype = GF_STREAM_AUDIO;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+		oti = GPAC_OTI_AUDIO_AC3;
 		break;
 	case GF_M2TS_AUDIO_EC3:
 		stype = GF_STREAM_AUDIO;
-		gf_filter_pid_set_property(opid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
+		oti = GPAC_OTI_AUDIO_EAC3;
 		break;
 	//TODO: MP4on2 is currently broken in filters
 	case GF_M2TS_SYSTEMS_MPEG4_SECTIONS:
@@ -426,8 +420,6 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 
 	if (pck->stream->flags & GF_M2TS_ES_IS_MPEG4_OD) {
 		/* We need to decode OD streams to get the SL config for other streams :( */
-		GF_SLHeader hdr;
-		u32 hdr_len;
 		GF_ODCom *com;
 		GF_ESD *esd;
 		GF_ODUpdate* odU;
@@ -472,6 +464,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 	}
 }
 
+#ifdef FILTER_FIXME
 static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 {
 	assert(ctx->eit_pid == NULL);
@@ -482,7 +475,7 @@ static void m2tsdmx_declare_epg_pid(GF_M2TSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(90000) );
 	gf_filter_pid_set_property(ctx->eit_pid, GF_PROP_PID_CLOCK_ID, &PROP_UINT(GF_M2TS_PID_EIT_ST_CIT) );
 }
-
+#endif
 
 static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 {
@@ -549,10 +542,10 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
-		if (pck->stream) m2tsdmx_estimate_duration(ctx, pck->stream);
+		if (pck->stream) m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
 
 		/*send pcr*/
-		if (0 && pck->stream && pck->stream->user) {
+		if ((0) && pck->stream && pck->stream->user) {
 
 			GF_FilterPacket *dst_pck = gf_filter_pck_new_shared(((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, NULL);
 			gf_filter_pck_set_cts(dst_pck, ((GF_M2TS_PES_PCK *) param)->PTS / 300);
@@ -735,7 +728,7 @@ static void m2tsdmx_switch_quality(GF_M2TS_Program *prog, GF_M2TS_Demuxer *ts, B
 	}
 }
 
-static GF_Err m2tsdmx_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool m2tsdmx_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	GF_M2TS_PES *pes;
 	u64 file_pos = 0;
@@ -900,7 +893,7 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 
 	data = gf_filter_pck_get_data(pck, &size);
 	if (data)
-		gf_m2ts_process_data(ctx->ts, data, size);
+		gf_m2ts_process_data(ctx->ts, (char*) data, size);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;

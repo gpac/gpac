@@ -963,7 +963,7 @@ JSBool SMJS_FUNCTION(svg_udom_get_rgb_color_trait)
 	case SVG_Paint_datatype:
 	{
 		SVG_Paint *paint = (SVG_Paint *)info.far_ptr;
-		if (1 || paint->type==SVG_PAINT_COLOR) {
+		if ((1) || paint->type==SVG_PAINT_COLOR) {
 			newObj = JS_NewObject(c, &svg_rt->rgbClass._class, 0, 0);
 			GF_SAFEALLOC(rgb, rgbCI);
 			if (!rgb) {

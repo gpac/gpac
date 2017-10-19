@@ -200,7 +200,6 @@ void gf_sc_audio_predestroy(GF_AudioInput *ai)
 GF_EXPORT
 GF_Err gf_sc_audio_open(GF_AudioInput *ai, MFURL *url, Double clipBegin, Double clipEnd, Bool lock_timeline)
 {
-	u32 i;
 	if (ai->is_open) return GF_BAD_PARAM;
 
 	/*get media object*/

@@ -231,7 +231,7 @@ static GF_Err compose_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
-static Bool compose_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_ObjectManager *odm;
 
@@ -239,6 +239,8 @@ static Bool compose_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 	case GF_FEVT_INFO_UPDATE:
 		odm = gf_filter_pid_get_udta(evt->base.on_pid);
 		gf_odm_update_duration(odm, evt->base.on_pid);
+		break;
+	default:
 		break;
 	}
 	//all events cancelled

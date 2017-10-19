@@ -354,7 +354,6 @@ void oggdmx_send_packet(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_packet *oggpack
 GF_Err oggdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	u32 i;
-	const GF_PropertyValue *p;
 	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -378,7 +377,6 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 {
 	ogg_sync_state oy;
 	FILE *stream;
-	u32 hdr;
 	const GF_PropertyValue *p;
 	OGGInfo info, the_info;
 	ogg_page oggpage;
@@ -487,7 +485,7 @@ static void oggdmx_check_dur(GF_Filter *filter, GF_OGGDmxCtx *ctx)
 	gf_fclose(stream);
 }
 
-static Bool oggdmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool oggdmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_OGGStream *st;
@@ -559,10 +557,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 {
 	ogg_page oggpage;
 	GF_OGGDmxCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
-	GF_Err e;
-	u8 *start;
-	u64 src_cts;
+	GF_FilterPacket *pck;
 	GF_OGGStream *st;
 
 	//update duration
@@ -597,7 +592,7 @@ GF_Err oggdmx_process(GF_Filter *filter)
 				if (gf_filter_pid_is_eos(ctx->ipid)) oggdmx_signal_eos(ctx);
 				return GF_OK;
 			}
-			data = gf_filter_pck_get_data(pck, &pck_size);
+			data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 			buffer = ogg_sync_buffer(&ctx->oy, pck_size);
 			memcpy(buffer, data, pck_size);
 			if (ogg_sync_wrote(&ctx->oy, pck_size) >= 0) {

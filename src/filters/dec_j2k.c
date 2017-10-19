@@ -55,7 +55,6 @@ typedef struct
 static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	GF_Err e;
 	GF_BitStream *bs;
 	GF_J2KCtx *ctx = gf_filter_get_udta(filter);
 
@@ -176,7 +175,7 @@ static GF_Err j2kdec_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
-	data = gf_filter_pck_get_data(pck, &size);
+	data = (char *) gf_filter_pck_get_data(pck, &size);
 
 	/* configure the event callbacks (not required) */
 	memset(&event_mgr, 0, sizeof(opj_event_mgr_t));

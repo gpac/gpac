@@ -170,13 +170,12 @@ void udpin_rtp_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket 
 	char *data;
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
 	ctx->pck_out = GF_FALSE;
-	data = gf_filter_pck_get_data(pck, &size);
+	data = (char *) gf_filter_pck_get_data(pck, &size);
 	if (data) gf_free(data);
 }
 
-static Bool udpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool udpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterPacket *pck;
 	GF_UDPInCtx *ctx = (GF_UDPInCtx *) gf_filter_get_udta(filter);
 
 	if (!evt->base.on_pid) return GF_FALSE;
@@ -240,7 +239,7 @@ static GF_Err udpin_process(GF_Filter *filter)
 		//TODO - probe data, we only assume m2ts for now ...
 		ctx->pid = gf_filter_pid_new(filter);
 		if (mime)
-			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_MIME, &PROP_NAME(mime));
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_MIME, &PROP_NAME((char *) mime));
 		else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[UDPIn] unknow input data type, application/octet-stream\n", ctx->src));
 			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_MIME, &PROP_NAME("application/octet-stream"));

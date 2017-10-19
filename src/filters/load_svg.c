@@ -49,17 +49,6 @@ typedef struct
 	gzFile src;
 } SVGIn;
 
-static Bool svg_check_download(SVGIn *svgin)
-{
-	u64 size;
-	FILE *f = gf_fopen(svgin->file_name, "rb");
-	if (!f) return GF_FALSE;
-	gf_fseek(f, 0, SEEK_END);
-	size = gf_ftell(f);
-	gf_fclose(f);
-	if (size==svgin->file_size) return GF_TRUE;
-	return GF_FALSE;
-}
 
 #define SVG_PROGRESSIVE_BUFFER_SIZE		4096
 
@@ -271,7 +260,6 @@ exit:
 
 static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	const char *sOpt;
 	SVGIn *svgin = (SVGIn *) gf_filter_get_udta(filter);
 	const GF_PropertyValue *prop;
 
@@ -345,7 +333,7 @@ static GF_Err svgin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_
 	return GF_OK;
 }
 
-static Bool svgin_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool svgin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
 	SVGIn *svgin = gf_filter_get_udta(filter);

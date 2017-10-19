@@ -55,8 +55,6 @@ GF_Err httpin_initialize(GF_Filter *filter)
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 	GF_Err e;
 	u32 flags = 0;
-	char *frag_par = NULL;
-	char *cgi_par = NULL;
 
 	if (!ctx || !ctx->src) return GF_BAD_PARAM;
 	ctx->dm = gf_filter_get_download_manager(filter);
@@ -94,9 +92,8 @@ GF_FilterProbeScore httpin_probe_url(const char *url, const char *mime_type)
 	return GF_FPROBE_NOT_SUPPORTED;
 }
 
-static Bool httpin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool httpin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterPacket *pck;
 	GF_HTTPInCtx *ctx = (GF_HTTPInCtx *) gf_filter_get_udta(filter);
 
 	if (!evt->base.on_pid) return GF_FALSE;
@@ -154,7 +151,6 @@ static GF_Err httpin_process(GF_Filter *filter)
 	Bool is_start;
 	u32 nb_read=0, total_size;
 	GF_FilterPacket *pck;
-	char *pck_data;
 	GF_Err e;
 	u32 bytes_done, bytes_per_sec;
 	GF_NetIOStatus net_status;
@@ -224,11 +220,11 @@ static GF_Err httpin_process(GF_Filter *filter)
 			idx = 0;
 			while (gf_dm_sess_enum_headers(ctx->sess, &idx, &hname, &hval) == GF_OK) {
 				if (!strcmp(hname, "icy-name")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING(hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-name", & PROP_STRING((char *) hval));
 				} else if (!strcmp(hname, "icy-genre")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING(hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-genre", & PROP_STRING((char *) hval));
 				} else if (!strcmp(hname, "icy-meta")) {
-					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING(hval));
+					gf_filter_pid_set_info_str(ctx->pid, "icy-meta", & PROP_STRING((char *) hval));
 				}
 			}
 		}

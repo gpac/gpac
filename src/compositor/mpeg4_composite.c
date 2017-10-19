@@ -372,7 +372,7 @@ static void composite_update(GF_TextureHandler *txh)
 		}
 
 		/*we don't use rect ext because of no support for texture transforms*/
-		if (1
+		if ((1)
 #ifndef GPAC_DISABLE_3D
 		        || compositor->gl_caps.npot_texture
 #endif
@@ -531,8 +531,9 @@ static void composite_update(GF_TextureHandler *txh)
 			st->visual->has_text_edit = 0;
 
 
+#if 0
 		/*set active viewport in image coordinates top-left=(0, 0), not in BIFS*/
-		if (0 && gf_list_count(st->visual->view_stack)) {
+		if (gf_list_count(st->visual->view_stack)) {
 			M_Viewport *vp = (M_Viewport *)gf_list_get(st->visual->view_stack, 0);
 
 			if (vp->isBound) {
@@ -543,6 +544,7 @@ static void composite_update(GF_TextureHandler *txh)
 				}
 			}
 		}
+#endif
 
 		if (txh->needs_refresh) {
 #ifndef GPAC_DISABLE_3D

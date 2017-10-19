@@ -1071,7 +1071,7 @@ GF_Err gf_import_aac_adts(GF_MediaImporter *import)
 		}
 	}
 	/*not MPEG4 tool*/
-	if (0 && hdr.is_mp2) acfg.audioPL = 0xFE;
+	//if (hdr.is_mp2) acfg.audioPL = 0xFE;
 	gf_bs_align(dsi);
 
 	timescale = sr;
@@ -5284,12 +5284,12 @@ restart_import:
 				u8 prio;
 				unsigned char *p = (unsigned char *) buffer;
 				res |= (p[0] & 0x60) ? 0x80000000 : 0; // RefPicFlag
-				res |= 0 ? 0x40000000 : 0;             // RedPicFlag TODO: not supported, would require to parse NAL unit payload
+				res |= (0) ? 0x40000000 : 0;             // RedPicFlag TODO: not supported, would require to parse NAL unit payload
 				res |= (1<=nal_type && nal_type<=5) || (nal_type==GF_AVC_NALU_SVC_PREFIX_NALU) || (nal_type==GF_AVC_NALU_SVC_SLICE) ? 0x20000000 : 0;  // VclNALUnitFlag
 				res |= p[1] << 16;                     // use values of IdrFlag and PriorityId directly from SVC extension header
 				res |= p[2] << 8;                      // use values of DependencyId and QualityId directly from SVC extension header
 				res |= p[3] & 0xFC;                    // use values of TemporalId and UseRefBasePicFlag directly from SVC extension header
-				res |= 0 ? 0x00000002 : 0;             // StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
+				res |= (0) ? 0x00000002 : 0;             // StoreBaseRepFlag TODO: SVC FF mentions a store_base_rep_flag which cannot be found in SVC spec
 
 				// priority_id (6 bits) in SVC has inverse meaning -> lower value means higher priority - invert it and scale it to 8 bits
 				prio = (63 - (p[1] & 0x3F)) << 2;

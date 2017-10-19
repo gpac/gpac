@@ -152,10 +152,6 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 {
-	GF_BitStream *dsi;
-	char *dsi_b;
-	u32 i, sbr_sr_idx, sbr_oti, dsi_s;
-
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
@@ -182,7 +178,7 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_AC3) );
 }
 
-static Bool ac3dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
@@ -256,11 +252,9 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 {
 	GF_AC3DmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	GF_Err e;
 	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
-	u64 src_cts;
 	u32 pck_size, remain;
 	u32 alread_sync = 0;
 
@@ -278,7 +272,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = gf_filter_pck_get_data(pck, &pck_size);
+	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -407,7 +401,7 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = ctx->start_range * ctx->sample_rate;
 			if (ctx->cts + AC3_FRAME_SIZE >= nb_samples_at_seek) {
-				u32 samples_to_discard = (ctx->cts + AC3_FRAME_SIZE) - nb_samples_at_seek;
+				//u32 samples_to_discard = (ctx->cts + AC3_FRAME_SIZE) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
 		}

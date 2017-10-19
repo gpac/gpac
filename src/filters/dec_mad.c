@@ -67,7 +67,6 @@ typedef struct
 static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
 	const GF_PropertyValue *p;
-	u32 i, channel_mask=0;
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -123,7 +122,7 @@ static GF_Err maddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	return GF_OK;
 }
 
-static GF_Err maddec_finalize(GF_Filter *filter)
+static void maddec_finalize(GF_Filter *filter)
 {
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 
@@ -134,7 +133,6 @@ static GF_Err maddec_finalize(GF_Filter *filter)
 		mad_frame_finish(&ctx->frame);
 		mad_synth_finish(&ctx->synth);
 	}
-	return GF_OK;
 }
 
 /*from miniMad.c*/
@@ -152,7 +150,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 	mad_fixed_t *left_ch, *right_ch, chan;
 	char *ptr;
 	char *data;
-	u32 num, in_size, outSize;
+	u32 num, in_size, outSize=0;
 	GF_MADCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *dst_pck;
 	GF_FilterPacket *pck = gf_filter_pid_get_packet(ctx->ipid);
@@ -162,7 +160,7 @@ static GF_Err maddec_process(GF_Filter *filter)
 			gf_filter_pid_set_eos(ctx->opid);
 		return GF_OK;
 	}
-	data = gf_filter_pck_get_data(pck, &in_size);
+	data = (char *) gf_filter_pck_get_data(pck, &in_size);
 
 	if (ctx->len + in_size > 2*MAD_BUFFER_MDLEN) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[MAD] MAD buffer overflow, truncating\n"));

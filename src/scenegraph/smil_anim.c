@@ -627,7 +627,7 @@ static void gf_smil_anim_compute_interpolation_value(SMIL_Anim_RTI *rai, Fixed n
 	}
 
 #ifndef GPAC_DISABLE_LOG
-	if (0 && gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
+	if (gf_log_tool_level_on(GF_LOG_SMIL, GF_LOG_DEBUG)) {
 		char *str;
 		gf_log_lt(GF_LOG_DEBUG, GF_LOG_SMIL);
 		str = gf_svg_dump_attribute(rai->anim_elt, &rai->interpolated_value);

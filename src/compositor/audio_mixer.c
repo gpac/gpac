@@ -478,7 +478,7 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 	Bool use_prev;
 	s32 *in_s32 = NULL;
 	s16 *in_s16 = NULL;
-	s8 *in_s24 = NULL;
+	u8 *in_s24 = NULL;
 	s8 *in_s8 = NULL;
 	s32 frac, inChan[GF_SR_MAX_CHANNELS], inChanNext[GF_SR_MAX_CHANNELS];
 	

@@ -185,7 +185,10 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 
 	if (type==GF_JSAPI_OP_RESOLVE_URI) {
 		char *url;
-		char new_url[GF_MAX_PATH], localized_url[GF_MAX_PATH];
+		char new_url[GF_MAX_PATH];
+#ifdef FILTER_FIXME
+		char localized_url[GF_MAX_PATH];
+#endif
 		Bool result=GF_FALSE;
 		GF_Scene *scene = (GF_Scene *)gf_sg_get_private(gf_node_get_graph(n));
 		url = (char *)param->uri.url;
@@ -278,7 +281,6 @@ Bool gf_scene_is_root(GF_Scene *scene)
 
 GF_Scene *gf_scene_get_root_scene(GF_Scene *scene)
 {
-	GF_Scene *s = scene;
 	while (scene->root_od->parentscene) scene = scene->root_od->parentscene;
 	return scene;
 }
@@ -2745,6 +2747,7 @@ void gf_scene_reset_addons(GF_Scene *scene)
 		gf_scene_reset_addon(addon, 0);
 	}
 }
+#ifdef FILTER_FIXME
 
 static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 {
@@ -2770,7 +2773,6 @@ static void load_associated_media(GF_Scene *scene, GF_AddonMedia *addon)
 	mo->odm->addon = addon;
 }
 
-#ifdef FILTER_FIXME
 
 GF_EXPORT
 void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLocation *addon_info)
@@ -3072,7 +3074,9 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 
 void gf_scene_select_scalable_addon(GF_Scene *scene, GF_ObjectManager *odm)
 {
+#ifdef FILTER_FIXME
 	Bool nalu_annex_b;
+#endif
 	GF_ObjectManager *odm_base = NULL;
 	u32 i, count;
 	Bool force_attach=GF_FALSE;
@@ -3176,13 +3180,14 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	if (!scene) return;
 
 	GF_FEVT_INIT(evt, GF_FEVT_QUALITY_SWITCH, NULL);
-
+	evt.quality_switch.up = up;
+	
 	if (scene->root_od->pid) {
 		gf_filter_pid_send_event(scene->root_od->pid, &evt);
-		if (odm->extra_pids) {
+		if (scene->root_od->extra_pids) {
 			u32 i=0;
 			GF_ODMExtraPid *xpid;
-			while ( (xpid = gf_list_enum(odm->extra_pids, &i) ) ) {
+			while ( (xpid = gf_list_enum(scene->root_od->extra_pids, &i) ) ) {
 				evt.base.on_pid = xpid->pid;
 				gf_filter_pid_send_event(xpid->pid, &evt);
 			}

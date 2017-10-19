@@ -97,7 +97,6 @@ static void gf_ar_pause(GF_AudioRenderer *ar, Bool DoFreeze, Bool for_reconfig, 
 
 static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 {
-	u32 written;
 	GF_AudioRenderer *ar = (GF_AudioRenderer *) ptr;
 	if (!ar->need_reconfig) {
 		u32 delay_ms = ar->disable_resync ?	0 : ar->audio_delay;
@@ -109,7 +108,7 @@ static u32 gf_ar_fill_output(void *ptr, char *buffer, u32 buffer_size)
 
 		gf_mixer_lock(ar->mixer, GF_TRUE);
 
-		/*written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
+		/*u32 written = */gf_mixer_get_output(ar->mixer, buffer, buffer_size, delay_ms);
 
 		gf_mixer_lock(ar->mixer, GF_FALSE);
 

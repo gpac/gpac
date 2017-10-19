@@ -58,7 +58,7 @@ extern "C" {
 typedef struct _gf_scene GF_Scene;
 typedef struct _gf_addon_media GF_AddonMedia;
 typedef struct _object_clock GF_Clock;
-typedef struct _od_manager GF_ObjectManager;
+//typedef struct _od_manager GF_ObjectManager;
 
 Bool gf_sc_send_event(GF_Compositor *compositor, GF_Event *evt);
 

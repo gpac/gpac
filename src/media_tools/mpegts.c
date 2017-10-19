@@ -3183,8 +3183,6 @@ GF_Err gf_m2ts_process_data(GF_M2TS_Demuxer *ts, char *data, u32 data_size)
 	GF_Err e=GF_OK;;
 	u32 pos, pck_size;
 	Bool is_align = 1;
-	char *remain_data = NULL;
-	u32 remain_size = 0;
 
 	if (ts->buffer_size) {
 		//we are sync, copy remaining bytes

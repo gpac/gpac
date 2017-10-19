@@ -114,7 +114,9 @@ static JSBool SMJS_FUNCTION(mediasource_is_type_supported)
 {
 	SMJS_ARGS
 	GF_SceneGraph *sg;
+#ifdef FILTER_FIXME
 	GF_JSAPIParam par;
+#endif
 	Bool isSupported = GF_TRUE;
 	char *mime;
 	if (!argc || !JSVAL_CHECK_STRING(argv[0])) {

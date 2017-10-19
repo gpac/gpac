@@ -377,7 +377,7 @@ static  GF_List * gpac_open_files = NULL;
 typedef struct
 {
 	FILE *ptr;
-	const char *url;
+	char *url;
 } GF_FileHandle;
 #endif
 static u32 gpac_file_handles = 0;
@@ -933,17 +933,16 @@ char* gf_file_basename(const char* filename)
 	if (filename) {
 
 		lastPathPart = strrchr(filename , GF_PATH_SEPARATOR);
-		if (GF_PATH_SEPARATOR != '/')
-		{
-			// windows paths can mix slashes and backslashes
-			// so we search for the last slash that occurs after the last backslash
-			// if it occurs before it's not relevant
-			// if there's no backslashes we search in the whole file path
+#if GF_PATH_SEPARATOR != '/'
+		// windows paths can mix slashes and backslashes
+		// so we search for the last slash that occurs after the last backslash
+		// if it occurs before it's not relevant
+		// if there's no backslashes we search in the whole file path
 
-			char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
-			if (trailingSlash)
-				lastPathPart = trailingSlash;
-		}
+		char* trailingSlash = strrchr(lastPathPart?lastPathPart:filename, '/');
+		if (trailingSlash)
+			lastPathPart = trailingSlash;
+#endif
 		if (!lastPathPart)
 			lastPathPart = (char *)filename;
 		else

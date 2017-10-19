@@ -39,19 +39,6 @@ ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid)
 	return NULL;
 }
 
-static void isor_delete_channel(ISOMReader *reader, ISOMChannel *ch)
-{
-	u32 i=0;
-	ISOMChannel *ch2;
-	while ((ch2 = (ISOMChannel *)gf_list_enum(reader->channels, &i))) {
-		if (ch2 == ch) {
-			isor_reset_reader(ch);
-			gf_free(ch);
-			gf_list_rem(reader->channels, i-1);
-			return;
-		}
-	}
-}
 
 static GFINLINE Bool isor_is_local(const char *url)
 {
@@ -211,9 +198,8 @@ GF_Err isoffin_initialize(GF_Filter *filter)
 }
 
 
-static GF_Err isoffin_finalize(GF_Filter *filter)
+static void isoffin_finalize(GF_Filter *filter)
 {
-	GF_Err reply;
 	ISOMReader *read = (ISOMReader *) gf_filter_get_udta(filter);
 
 	read->disconnected = GF_TRUE;
@@ -268,9 +254,6 @@ void isor_send_cenc_config(ISOMChannel *ch)
 ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id)
 {
 	ISOMChannel *ch;
-	Bool is_esd_url;
-	GF_Err e;
-
 
 	if (!read->mov) return NULL;
 
@@ -376,11 +359,9 @@ exit:
 
 }
 
-#ifdef FILTER_FIXME
-
 /*switch channel quality. Return next channel or current channel if error*/
 static
-u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch_up)
+u32 isoffin_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch_up)
 {
 	u32 i, count, next_track, trackID, cur_track;
 	s32 ref_count;
@@ -390,18 +371,15 @@ u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch
 	trackID = gf_isom_get_track_id(the_file, cur_track);
 	next_track = 0;
 
-	if (switch_up)
-	{
-		for (i = 0; i < count; i++)
-		{
+	if (switch_up) {
+		for (i = 0; i < count; i++) {
 			ref_count = gf_isom_get_reference_count(the_file, i+1, GF_ISOM_REF_SCAL);
 			if (ref_count < 0)
 				return cur_track; //error
-			else if (ref_count == 0)
+			if (ref_count == 0)
 				continue;
 			/*next track is the one that has the last reference of type GF_ISOM_REF_SCAL refers to this current track*/
-			else if ((u32)ref_count == gf_isom_has_track_reference(the_file, i+1, GF_ISOM_REF_SCAL, trackID))
-			{
+			if ((u32)ref_count == gf_isom_has_track_reference(the_file, i+1, GF_ISOM_REF_SCAL, trackID)) {
 				next_track = i+1;
 				break;
 			}
@@ -409,9 +387,7 @@ u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch
 		/*this is the highest quality*/
 		if (!next_track)
 			return cur_track;
-	}
-	else
-	{
+	} else {
 		if (cur_track == ch->base_track)
 			return cur_track;
 		ref_count = gf_isom_get_reference_count(the_file, cur_track, GF_ISOM_REF_SCAL);
@@ -427,13 +403,9 @@ u32 gf_channel_switch_quality(ISOMChannel *ch, GF_ISOFile *the_file, Bool switch
 
 	return next_track;
 }
-#endif
 
-
-
-static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
-	Double track_dur, media_dur;
 	u32 count, i;
 	ISOMChannel *ch;
 	ISOMReader *read = gf_filter_get_udta(filter);
@@ -462,35 +434,24 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 		}
 		return GF_OK;
 	}
-	if (com->type==GF_NET_SERVICE_HAS_AUDIO) {
-		u32 i, count;
-		count = gf_isom_get_track_count(read->mov);
-		for (i=0; i<count; i++) {
-			if (gf_isom_get_media_type(read->mov, i+1) == GF_ISOM_MEDIA_AUDIO) return GF_OK;
-		}
-		return GF_NOT_SUPPORTED;
-	}
-
-	if (com->type == GF_NET_SERVICE_QUALITY_SWITCH)
-	{
-		count = gf_list_count(read->channels);
-		for (i = 0; i < count; i++)
-		{
-			ch = (ISOMChannel *)gf_list_get(read->channels, i);
-			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
-				ch->next_track = gf_channel_switch_quality(ch, read->mov, com->switch_quality.up);
-			}
-		}
-		return GF_OK;
-	}
 	if (com->type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
 		isor_flush_data(read, 1, com->proxy_data.is_chunk);
 		return GF_OK;
 	}
 	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
 		return GF_OK;
-
 #endif
+
+	if (com->base.type == GF_FEVT_QUALITY_SWITCH) {
+		count = gf_list_count(read->channels);
+		for (i = 0; i < count; i++) {
+			ch = (ISOMChannel *)gf_list_get(read->channels, i);
+			if (ch->base_track && gf_isom_needs_layer_reconstruction(read->mov)) {
+				ch->next_track = isoffin_channel_switch_quality(ch, read->mov, com->quality_switch.up);
+			}
+		}
+		return GF_OK;
+	}
 
 	if (!com->base.on_pid) return GF_FALSE;
 
@@ -500,17 +461,6 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 
 	switch (com->base.type) {
 #ifdef FILTER_FIXME
-	case GF_NET_CHAN_BUFFER:
-		//dash or HTTP, do rebuffer if not disabled
-		if (plug->query_proxy) {
-		} else if (read->dnload) {
-			ch->buffer_min = com->buffer.min;
-			ch->buffer_max = com->buffer.max;
-		} else {
-			com->buffer.max = com->buffer.min = 0;
-		}
-		return GF_OK;
-
 	case GF_NET_CHAN_NALU_MODE:
 		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
@@ -571,7 +521,6 @@ static Bool isoffin_process_event(GF_Filter *filter, GF_FilterEvent *com)
 			for (i=0; i< count; i++) {
 				u32 mode, sample_desc_index, sample_num;
 				u64 data_offset;
-				GF_ISOSample *sample;
 				GF_Err e;
 				u64 time;
 				ch = gf_list_get(read->channels, i);

@@ -529,18 +529,18 @@ static Bool lsr_float_list_equal(GF_List *l1, GF_List *l2)
 
 static void lsr_write_any_attribute(GF_LASeRCodec *lsr, SVG_Element *node, Bool skippable)
 {
-	if (1) {
-		if (skippable) GF_LSR_WRITE_INT(lsr, 0, 1, "has_attrs");
-	} else {
-		if (skippable) GF_LSR_WRITE_INT(lsr, 1, 1, "has_attrs");
-		/*
-				do () {
-					GF_LSR_WRITE_INT(lsr, 0, lsr->info->cfg.extensionIDBits, "reserved");
-				    lsr_write_vluimsbf5(lsr, 0, "len");//len in BITS
-					GF_LSR_WRITE_INT(lsr, 0, 0, "reserved_val");
-				} while ()
-		*/
-	}
+#if 1
+	if (skippable) GF_LSR_WRITE_INT(lsr, 0, 1, "has_attrs");
+#else
+	if (skippable) GF_LSR_WRITE_INT(lsr, 1, 1, "has_attrs");
+	/*
+			do () {
+				GF_LSR_WRITE_INT(lsr, 0, lsr->info->cfg.extensionIDBits, "reserved");
+				lsr_write_vluimsbf5(lsr, 0, "len");//len in BITS
+				GF_LSR_WRITE_INT(lsr, 0, 0, "reserved_val");
+			} while ()
+	*/
+#endif
 }
 
 static void lsr_write_private_attributes(GF_LASeRCodec *lsr, SVG_Element *elt)
@@ -4291,7 +4291,9 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 		GF_LSR_WRITE_INT(lsr, reset_encoding_context ? 1 : 0, 1, "resetEncodingContext");
 	}
 	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
-	if (0) lsr_write_extension(lsr, NULL, 0, "ext");
+#if 0
+	lsr_write_extension(lsr, NULL, 0, "ext");
+#endif
 
 	/*clean all tables*/
 	if (reset_encoding_context) {
@@ -4394,7 +4396,9 @@ static GF_Err lsr_write_laser_unit(GF_LASeRCodec *lsr, GF_List *com_list, Bool r
 		if (e) return e;
 	}
 	GF_LSR_WRITE_INT(lsr, 0, 1, "opt_group");
-	if (0) lsr_write_extension(lsr, NULL, 0, "ext");
+#if 0
+	lsr_write_extension(lsr, NULL, 0, "ext");
+#endif
 	return GF_OK;
 }
 

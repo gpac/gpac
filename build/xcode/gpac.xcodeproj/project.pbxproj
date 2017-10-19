@@ -2526,14 +2526,6 @@
 			name = filters;
 			sourceTree = "<group>";
 		};
-		92F8D46A1F6FF78600616F7C /* netctrl */ = {
-			isa = PBXGroup;
-			children = (
-				92F8D46B1F6FF7A100616F7C /* netctrl.c */,
-			);
-			name = netctrl;
-			sourceTree = "<group>";
-		};
 		92FA48841D0191570072C8A4 /* linklibs */ = {
 			isa = PBXGroup;
 			children = (
@@ -3885,11 +3877,14 @@
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
+				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
@@ -3909,6 +3904,7 @@
 				ONLY_ACTIVE_ARCH = YES;
 				OTHER_CFLAGS = "-Wno-conversion";
 				OTHER_LDFLAGS = (
+					"-w",
 					"-lcrypto",
 					"-lssl",
 					"-ljpeg",
@@ -3952,6 +3948,7 @@
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
 				SYMROOT = ../../bin/osx/;
+				WARNING_LDFLAGS = "";
 			};
 			name = Debug;
 		};
@@ -3983,11 +3980,14 @@
 					GPAC_HAS_OPENHEVC,
 				);
 				GCC_TREAT_IMPLICIT_FUNCTION_DECLARATIONS_AS_ERRORS = YES;
+				GCC_TREAT_INCOMPATIBLE_POINTER_TYPE_WARNINGS_AS_ERRORS = YES;
 				GCC_VERSION = com.apple.compilers.llvm.clang.1_0;
 				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_MISSING_NEWLINE = YES;
 				GCC_WARN_ABOUT_MISSING_PROTOTYPES = NO;
+				GCC_WARN_ABOUT_POINTER_SIGNEDNESS = NO;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_INHIBIT_ALL_WARNINGS = YES;
+				GCC_WARN_INHIBIT_ALL_WARNINGS = NO;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				HEADER_SEARCH_PATHS = (
 					/opt/local/include,
@@ -4006,6 +4006,7 @@
 				OBJROOT = build;
 				OTHER_CFLAGS = "-Wno-conversion";
 				OTHER_LDFLAGS = (
+					"-w",
 					"-lcrypto",
 					"-lssl",
 					"-ljpeg",
@@ -4049,6 +4050,7 @@
 				PRODUCT_NAME = gpac;
 				SDKROOT = macosx;
 				SYMROOT = ../../bin/osx/;
+				WARNING_LDFLAGS = "";
 			};
 			name = Release;
 		};

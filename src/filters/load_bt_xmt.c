@@ -66,20 +66,6 @@ typedef struct
 void ODS_SetupOD(GF_Scene *scene, GF_ObjectDescriptor *od);
 
 
-static void CTXLoad_Reset(CTXLoadPriv *priv)
-{
-	if (priv->ctx) gf_sm_del(priv->ctx);
-	priv->ctx = NULL;
-	gf_sg_reset(priv->scene->graph);
-	if (priv->load_flags != 3) priv->load_flags = 0;
-	while (gf_list_count(priv->files_to_delete)) {
-		char *fileName = (char*)gf_list_get(priv->files_to_delete, 0);
-		gf_list_rem(priv->files_to_delete, 0);
-		gf_delete_file(fileName);
-		gf_free(fileName);
-	}
-}
-
 static void CTXLoad_ExecuteConditional(M_Conditional *c, GF_Scene *scene)
 {
 	GF_List *clist = c->buffer.commandList;
@@ -127,32 +113,6 @@ void CTXLoad_NodeCallback(void *cbk, u32 type, GF_Node *node, void *param)
 		gf_scene_node_callback(cbk, type, node, param);
 	}
 }
-
-static Bool CTXLoad_CheckDownload(CTXLoadPriv *priv)
-{
-	u64 size;
-	FILE *f;
-	u32 now = gf_sys_clock();
-
-	if (!priv->file_size && (now - priv->last_check_time < 1000) ) return GF_FALSE;
-
-	f = gf_fopen(priv->file_name, "rt");
-	if (!f) return GF_FALSE;
-	gf_fseek(f, 0, SEEK_END);
-	size = gf_ftell(f);
-	gf_fclose(f);
-
-	/*we MUST have a complete file for now ...*/
-	if (!priv->file_size) {
-		if (priv->last_check_size == size) return GF_TRUE;
-		priv->last_check_size = size;
-		priv->last_check_time = now;
-	} else {
-		if (size==priv->file_size) return GF_TRUE;
-	}
-	return GF_FALSE;
-}
-
 
 static GF_Err CTXLoad_Setup(GF_Filter *filter, CTXLoadPriv *priv)
 {
@@ -292,7 +252,7 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	return GF_OK;
 }
 
-static Bool ctxload_process_event(GF_Filter *filter, GF_FilterEvent *com)
+static Bool ctxload_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 {
 	u32 count, i;
 	CTXLoadPriv *priv = gf_filter_get_udta(filter);

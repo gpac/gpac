@@ -78,8 +78,11 @@ void isor_declare_objects(ISOMReader *read)
 {
 	GF_ESD *esd;
 	ISOMChannel *ch;
+#ifdef FILTER_FIXME
 	const char *tag;
-	u32 i, count, ocr_es_id, tlen, base_track, j, track_id;
+	u32 tlen;
+#endif
+	u32 i, count, ocr_es_id, base_track, j, track_id;
 	Bool highest_stream;
 	Bool single_media_found = GF_FALSE;
 	Bool use_iod = GF_FALSE;

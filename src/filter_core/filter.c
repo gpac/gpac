@@ -172,6 +172,7 @@ void gf_filter_del(GF_Filter *filter)
 	if (filter->id) gf_free(filter->id);
 	if (filter->source_ids) gf_free(filter->source_ids);
 	if (filter->filter_udta) gf_free(filter->filter_udta);
+	fprintf(stderr, "filter %p deleted\n", filter);
 	gf_free(filter);
 }
 
@@ -787,7 +788,7 @@ static void gf_filter_tag_remove(GF_Filter *filter, GF_Filter *source_filter, GF
 
 void gf_filter_remove_internal(GF_Filter *filter, GF_Filter *until_filter)
 {
-	u32 i, j, count, opids, ipids;
+	u32 i, j, count;
 
 	if (filter->removed) 
 		return;
@@ -847,7 +848,7 @@ void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter)
 Bool gf_filter_swap_source_registry(GF_Filter *filter)
 {
 	u32 i;
-	char *src_url;
+	char *src_url=NULL;
 	GF_Err e;
 	const GF_FilterArgs *src_arg=NULL;
 
@@ -866,7 +867,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 		FSESS_CHECK_THREAD(filter)
 		filter->freg->finalize(filter);
 	}
-	gf_list_add(filter->blacklisted, filter->freg);
+	gf_list_add(filter->blacklisted, (void *)filter->freg);
 
 	i=0;
 	while (filter->freg->args) {

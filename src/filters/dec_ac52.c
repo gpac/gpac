@@ -64,8 +64,6 @@ typedef struct
 
 static GF_Err a52dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	const GF_PropertyValue *p;
-	u32 i, channel_mask=0;
 	GF_A52DecCtx *ctx = gf_filter_get_udta(filter);
 
 	if (is_remove) {
@@ -115,7 +113,7 @@ static void a52dec_finalize(GF_Filter *filter)
 
 static void a52dec_check_mc_config(GF_A52DecCtx *ctx)
 {
-	u32 i, channel_mask = 0;
+	u32 channel_mask = 0;
 
 	switch (ctx->flags & A52_CHANNEL_MASK) {
 	case A52_CHANNEL1:
@@ -184,7 +182,6 @@ static const int ac3_channels[8] = {
 	2, 1, 2, 3, 3, 4, 4, 5
 };
 
-static u32 count = 0;
 static GF_Err a52dec_process(GF_Filter *filter)
 {
 	short *out_samples;
@@ -207,7 +204,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[A52] Decoding AU\n"));
 
 	data = gf_filter_pck_get_data(pck, &size);
-	len = a52_syncinfo(data, &flags, &sample_rate, &bit_rate);
+	len = a52_syncinfo((u8 *) data, &flags, &sample_rate, &bit_rate);
 	if (!len) return GF_NON_COMPLIANT_BITSTREAM;
 
 	num_channels = ac3_channels[flags & 7];
@@ -227,7 +224,7 @@ static GF_Err a52dec_process(GF_Filter *filter)
 		gf_filter_pid_set_info(ctx->opid, GF_PROP_PID_BITRATE, &PROP_UINT(ctx->bit_rate) );
 	}
 	level = 1;
-	if ( a52_frame(ctx->codec, data, &ctx->flags, &level, 384)) {
+	if ( a52_frame(ctx->codec, (u8 *) data, &ctx->flags, &level, 384)) {
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[A52] Error decoding AU\n" ));
 		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_NON_COMPLIANT_BITSTREAM;
@@ -286,6 +283,7 @@ GF_FilterRegister A52DecRegister = {
 	OUTCAPS(A52DecOutputs),
 	.configure_pid = a52dec_configure_pid,
 	.process = a52dec_process,
+	.finalize = a52dec_finalize
 };
 
 #endif

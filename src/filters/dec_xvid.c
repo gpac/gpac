@@ -226,12 +226,11 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	return GF_OK;
 }
 
-static GF_Err xviddec_finalize(GF_Filter *filter)
+static void xviddec_finalize(GF_Filter *filter)
 {
 	GF_XVIDCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
 	if (ctx->frame_infos) gf_free(ctx->frame_infos);
-	return GF_OK;
 }
 
 static void xviddec_drop_frameinfo(GF_XVIDCtx *ctx)
@@ -261,7 +260,7 @@ static GF_Err xviddec_process(GF_Filter *filter)
 	if (pck) {
 		u32 i;
 		u64 cts = gf_filter_pck_get_cts(pck);;
-		frame.bitstream = gf_filter_pck_get_data(pck, &frame.length);
+		frame.bitstream = (char *) gf_filter_pck_get_data(pck, &frame.length);
 
 		if (ctx->frame_infos_size==ctx->frame_infos_alloc) {
 			ctx->frame_infos_alloc += 10;

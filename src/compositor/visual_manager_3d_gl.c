@@ -3979,10 +3979,12 @@ restart:
 				if (first_pass==1) {
 					if ((z1>delta) || (z2>delta))
 					{
-						if (0 && in_strip) {
+#if 0
+						if (in_strip) {
 							glEnd();
 							in_strip = 0;
 						}
+#endif
 						x += FLT2FIX(inc);
 						continue;
 					}

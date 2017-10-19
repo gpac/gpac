@@ -224,7 +224,7 @@ static void gf_smil_timing_get_first_interval(SMIL_Timing_RTI *rti)
 
 	/* this is the first time we check the interval */
 	gf_smil_timing_get_interval_end(rti, rti->current_interval);
-	if (0 && rti->current_interval->end == -2) {
+	if ((0) && rti->current_interval->end == -2) {
 		/* TODO: check if the interval can be discarded (i.e. if end is specified with an invalid end value (return -2)),
 		   probably yes, but next time we call the evaluation of interval, we should call get_first_interval */
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));
@@ -923,7 +923,7 @@ void gf_smil_timing_modified(GF_Node *node, GF_FieldInfo *field)
 	} else {
 		/* we don't have the right to modify the end of an element if it's not in unresolved state */
 		if (rti->current_interval->end == -1) gf_smil_timing_get_interval_end(rti, rti->current_interval);
-		if (0 && rti->current_interval->end == -2) {
+		if ((0) && rti->current_interval->end == -2) {
 			/* TODO: check if the interval can be discarded if end = -2,
 			   probably no, because the interval is currently running*/
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_SMIL, ("[SMIL Timing   ] Time %f - Timed element %s - Wrong Interval\n", gf_node_get_scene_time((GF_Node *)rti->timed_elt), gf_node_get_log_name((GF_Node *)rti->timed_elt)));

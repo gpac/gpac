@@ -105,9 +105,6 @@ Bool gf_mo_should_deactivate(GF_MediaObject *mo);
 /*checks whether the target object is changed - you MUST use this in order to detect url changes*/
 Bool gf_mo_url_changed(GF_MediaObject *mo, MFURL *url);
 
-/*checks whether the target object is changed - you MUST use this in order to detect url changes*/
-GF_Err gf_mo_get_raw_image_planes(GF_MediaObject *mo, u8 **pY_or_RGB, u8 **pU, u8 **pV, u32 *stride_luma_rgb, u32 *stride_chroma);
-
 
 /*returns min frame duration for his object or 0 if unknown*/
 u32 gf_mo_get_min_frame_dur(GF_MediaObject *mo);

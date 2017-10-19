@@ -41,6 +41,7 @@
 #endif
 
 #include <gpac/filters.h>
+#include <gpac/maths.h>
 #include <gpac/internal/media_dev.h>
 #include <gpac/constants.h>
 
@@ -614,7 +615,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	if ((oti==ctx->oti) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
 	//need a reset !
 	if (ctx->vtb_session) {
-		vtbdec_delete_decoder(ctx->vtb_session);
+		vtbdec_delete_decoder(ctx);
 	}
 
 	ctx->ipid = pid;
@@ -697,8 +698,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		}
 	}
 
-	e = vtbdec_init_decoder(filter, ctx);
-	if (e) return e;
+	return vtbdec_init_decoder(filter, ctx);
 }
 
 static void vtbdec_del_param_list(GF_List *list)
@@ -931,7 +931,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 	Bool do_free=GF_FALSE;
 	GF_Err e;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
-	GF_FilterPacket *pck, *dst_pck;
+	GF_FilterPacket *pck;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -944,7 +944,7 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	in_buffer = gf_filter_pck_get_data(pck, &in_buffer_size);
+	in_buffer = (char *) gf_filter_pck_get_data(pck, &in_buffer_size);
 
 	if (ctx->skip_mpeg4_vosh) {
 		GF_M4VDecSpecInfo dsi;
@@ -1128,7 +1128,7 @@ void vtbframe_release(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket *pck
 	gf_list_add(f->ctx->frames_res, f);
 }
 
-GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const char **outPlane, u32 *outStride)
+GF_Err vtbframe_get_plane(GF_FilterHWFrame *frame, u32 plane_idx, const u8 **outPlane, u32 *outStride)
 {
     OSStatus status;
 	GF_Err e;

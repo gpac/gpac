@@ -76,17 +76,17 @@ typedef struct
 
 static GF_Err dvblin_tune(GF_DVBLinuxCtx *ctx)
 {
+	int demux1, front1;
+	FILE *chanfile;
+	char line[255];
 #ifndef GPAC_SIM_LINUX_DVB
 	struct dmx_pes_filter_params pesFilterParams;
 	struct dvb_frontend_parameters frp;
-#endif
-
-	int demux1, front1;
-	FILE *chanfile;
-	char line[255], chan_name_t[255];
+	char chan_name_t[255];
 	char freq_str[255], inv[255], bw[255], lcr[255], hier[255], cr[255],
 	     mod[255], transm[255], gi[255], apid_str[255], vpid_str[255];
 	const char *chan_conf = ":%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:%255[^:]:";
+#endif
 	char *chan_name;
 	char *tmp;
 	char frontend_name[100], demux_name[100], dvr_name[100];
@@ -341,9 +341,8 @@ GF_FilterProbeScore dvblin_probe_url(const char *url, const char *mime_type)
 }
 
 
-static Bool dvblin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool dvblin_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
-	GF_FilterPacket *pck;
 	GF_DVBLinuxCtx *ctx = (GF_DVBLinuxCtx *) gf_filter_get_udta(filter);
 
 	if (!evt->base.on_pid) return GF_FALSE;
@@ -368,7 +367,6 @@ static Bool dvblin_process_event(GF_Filter *filter, GF_FilterEvent *evt)
 static GF_Err dvblin_process(GF_Filter *filter)
 {
 	u32 nb_read=0;
-	GF_Err e;
 	GF_FilterPacket *dst_pck;
 	char *out_data;
 	GF_DVBLinuxCtx *ctx = (GF_DVBLinuxCtx *) gf_filter_get_udta(filter);

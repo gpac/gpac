@@ -233,9 +233,9 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 		p_u = p_v = NULL;
 		p_y = (u8 *)txh->data;
 		if (txh->hw_frame) {
-			txh->hw_frame->get_plane(txh->hw_frame, 0, &p_y, &src_stride);
-			txh->hw_frame->get_plane(txh->hw_frame, 1, &p_u, &src_stride);
-			txh->hw_frame->get_plane(txh->hw_frame, 2, &p_v, &src_stride);
+			txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &src_stride);
+			txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &src_stride);
+			txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
 		}
 
 		if (txh->pixelformat == GF_PIXEL_YV12) {
@@ -272,9 +272,9 @@ GF_Err gf_sc_texture_set_data(GF_TextureHandler *txh)
 	}
 	else if (txh->tx_io->pbo_id && txh->hw_frame) {
 		u32 src_stride;
-		txh->hw_frame->get_plane(txh->hw_frame, 0, &p_y, &y_stride);
-		txh->hw_frame->get_plane(txh->hw_frame, 1, &p_u, &src_stride);
-		txh->hw_frame->get_plane(txh->hw_frame, 2, &p_v, &src_stride);
+		txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &p_y, &y_stride);
+		txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &p_u, &src_stride);
+		txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &p_v, &src_stride);
 	}
 
 
@@ -1209,11 +1209,11 @@ Bool gf_sc_texture_push_image(GF_TextureHandler *txh, Bool generate_mipmaps, Boo
 
 			if (txh->hw_frame) {
 				GF_Err e;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 0, &pY, &stride_luma);
+				e = txh->hw_frame->get_plane(txh->hw_frame, 0, (const u8 **) &pY, &stride_luma);
 				if (e) goto push_exit;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 1, &pU, &stride_chroma);
+				e = txh->hw_frame->get_plane(txh->hw_frame, 1, (const u8 **) &pU, &stride_chroma);
 				if (e) goto push_exit;
-				e = txh->hw_frame->get_plane(txh->hw_frame, 2, &pV, &stride_chroma);
+				e = txh->hw_frame->get_plane(txh->hw_frame, 2, (const u8 **) &pV, &stride_chroma);
 				if (e) goto push_exit;
 			} else {
 				pU = (u8 *) pY + nb_frames * txh->height * txh->stride;

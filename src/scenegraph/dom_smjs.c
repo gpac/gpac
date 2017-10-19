@@ -2804,7 +2804,6 @@ static void xml_http_append_send_header(XMLHTTPContext *ctx, char *hdr, char *va
 				ctx->headers[nb_hdr+1] = new_val;
 				return;
 			}
-			nb_hdr+=2;
 		}
 	}
 	xml_http_append_recv_header(ctx, hdr, val);
@@ -4552,7 +4551,7 @@ static void xml_reload_node_start(void *sax_cbck, const char *node_name, const c
 		memset(&evt, 0, sizeof(GF_DOM_Event));
 		evt.type = new_node ? GF_EVENT_NODE_INSERTED : GF_EVENT_ATTR_MODIFIED;
 		evt.bubbles = 1;
-		evt.relatedNode = (GF_Node*) (GF_EVENT_NODE_INSERTED ? par : node);
+		evt.relatedNode = (GF_Node*) ( (evt.type == GF_EVENT_NODE_INSERTED) ? par : node);
 		gf_dom_event_fire((GF_Node*)node, &evt);
 	}
 }

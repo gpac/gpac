@@ -708,9 +708,7 @@ remove_track:
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 0);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 0);
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[3GPP convert] Setting major brand to 3GPP Generic file\n"));
-		}
-		/*commented for QT compatibility, although this is correct (qt doesn't understand 3GP6 brand)*/
-		else if (nb_txt && 0) {
+		} else if (nb_txt) {
 			gf_isom_set_brand_info(mp4file, GF_ISOM_BRAND_3GP6, 1024);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP5, 1);
 			gf_isom_modify_alternate_brand(mp4file, GF_ISOM_BRAND_3GP4, 1);

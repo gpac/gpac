@@ -103,7 +103,7 @@ GF_Err img_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) return GF_EOS;
 
-	data = gf_filter_pck_get_data(pck, &size);
+	data = (char *) gf_filter_pck_get_data(pck, &size);
 
 	if (!ctx->opid) {
 #ifndef GPAC_DISABLE_AV_PARSERS

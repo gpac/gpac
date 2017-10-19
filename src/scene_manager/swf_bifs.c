@@ -1110,8 +1110,6 @@ static void swf_bifs_end_of_clip(SWFReader *read)
 	GF_CommandField *f;
 	GF_Node *empty;
 
-	return;
-
 	empty = gf_sg_find_node_by_name(read->load->scene_graph, "Shape0");
 
 	au = gf_list_get(read->bifs_es->AUs, 0);
@@ -1749,7 +1747,7 @@ static GF_Err swf_bifs_show_frame(SWFReader *read)
 	Bool is_rap;
 
 	/*hack to allow for empty BIFS AU to be encoded in order to keep the frame-rate (this reduces MP4 table size...)*/
-	if (0 && !gf_list_count(read->bifs_au->commands)) {
+	if ( !gf_list_count(read->bifs_au->commands)) {
 		GF_Command *com;
 		GF_CommandField *f;
 		com = gf_sg_command_new(read->load->scene_graph, GF_SG_FIELD_REPLACE);

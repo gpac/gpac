@@ -1883,7 +1883,7 @@ next_field:
 			GF_Node *n = gf_bt_sf_node(parser, str, NULL, isDEF ? szDefName : NULL);
 			isDEF = 0;
 			if (!n) goto err;
-			if (0 && isDEF) {
+			if ((0) && isDEF) {
 				u32 ID = gf_bt_get_def_id(parser, szDefName);
 				isDEF = 0;
 				gf_node_set_id(n, ID, szDefName);

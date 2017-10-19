@@ -116,7 +116,7 @@ static void gf_filter_pid_inst_check_dependencies(GF_FilterPidInst *pidi)
 	if (!dep_id) return;
 
 	for (i=0; i<filter->num_output_pids; i++) {
-		u32 j, count;
+		u32 j;
 		GF_FilterPid *a_pid = gf_list_get(filter->output_pids, i);
 		if (a_pid==pid) continue;
 		p = gf_filter_pid_get_property(a_pid, GF_PROP_PID_ID);
@@ -343,7 +343,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 				while (gf_list_count(filter->input_pids)) {
 					GF_FilterPidInst *a_pidinst = gf_list_pop_back(filter->input_pids);
 					FSESS_CHECK_THREAD(filter)
-					filter->freg->configure_pid(filter, a_pidinst, GF_TRUE);
+					filter->freg->configure_pid(filter, (GF_FilterPid *) a_pidinst, GF_TRUE);
 
 					gf_filter_pid_post_init_task(a_pidinst->pid->filter, a_pidinst->pid);
 
@@ -432,7 +432,7 @@ static void gf_filter_pid_connect_task(GF_FSTask *task)
 	}
 	gf_filter_pid_configure(filter, task->pid->pid, GF_TRUE, GF_FALSE);
 
-	gf_fs_cleanup_filters(fsess);
+	gf_fs_cleanup_filters(fsess, task);
 
 }
 
@@ -608,7 +608,6 @@ static Bool filter_in_parent_chain(GF_Filter *parent, GF_Filter *filter)
 static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister *freg, u8 *priority)
 {
 	u32 i=0;
-	u32 nb_matched=0;
 	u32 nb_subcaps=0;
 	Bool all_caps_matched = GF_TRUE;
 
@@ -688,7 +687,6 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 	for (i=0; i<src->nb_output_caps; i++) {
 		u32 j;
 		Bool matched=GF_FALSE;
-		GF_PropertyValue capv;
 		const GF_FilterCapability *out_cap = &src->output_caps[i];
 
 		if (!out_cap->in_bundle) {
@@ -911,7 +909,7 @@ restart:
 		if (!filter_dst->freg->configure_pid) continue;
 		if (filter_dst->finalized || filter_dst->removed) continue;
 
-		if (gf_list_find(task->pid->filter->blacklisted, filter_dst->freg)>=0) continue;
+		if (gf_list_find(task->pid->filter->blacklisted, (void *) filter_dst->freg)>=0) continue;
 
 		//we don't allow re-entrant filter registries (eg filter foo of type A output cannot connect to filter bar of type A)
 		if (task->pid->pid->filter->freg == filter_dst->freg) {
@@ -1255,7 +1253,6 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 {
-	GF_FilterPacket *pck;
 	GF_FilterPidInst *pidinst = (GF_FilterPidInst *)pid;
 	if (PID_IS_OUTPUT(pid)) {
 		pidinst = gf_list_get(pid->destinations, 0);
@@ -1295,7 +1292,6 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	pcki->pid->is_end_of_stream = GF_FALSE;
 
 	if (pcki->pck->info.pid_props_changed && !pcki->pid_props_change_done) {
-		s32 props_idx;
 		GF_Err e;
 
 		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s property changed at this packet, triggering reconfigure\n", pidinst->pid->filter->name, pidinst->pid->name));
@@ -1530,6 +1526,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 {
+	GF_FilterPacketInstance *pcki;
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
+
 	if (PID_IS_OUTPUT(pid)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to query EOS on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
 		return GF_FALSE;
@@ -1538,6 +1537,15 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 		((GF_FilterPidInst *)pid)->is_end_of_stream = GF_FALSE;
 		return GF_FALSE;
 	}
+	//peek next for eos
+	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidi->packets);
+	if (pcki && pcki->pck->info.eos) {
+		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pid->pid->name, pid->filter->name, pcki->pid->pid->has_seen_eos));
+		safe_int_dec(&pcki->pid->nb_eos_signaled);
+		gf_filter_pid_drop_packet(pid);
+	}
+
 	return ((GF_FilterPidInst *)pid)->is_end_of_stream;
 }
 
@@ -1658,7 +1666,7 @@ Bool gf_filter_pid_has_seen_eos(GF_FilterPid *pid)
 
 	for (i=0; i<pid->pid->filter->num_input_pids; i++) {
 		GF_FilterPidInst *pidi = gf_list_get(pid->pid->filter->input_pids, i);
-		if (gf_filter_pid_has_seen_eos(pidi)) return GF_TRUE;
+		if (gf_filter_pid_has_seen_eos((GF_FilterPid *) pidi)) return GF_TRUE;
 	}
 	return GF_FALSE;
 }
@@ -1851,8 +1859,6 @@ void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 
 void gf_filter_pid_exec_event(GF_FilterPid *pid, GF_FilterEvent *evt)
 {
-	GF_FilterEvent *dup_evt;
-
 	//filter is being shut down, prevent any event posting
 	if (pid->pid->filter->finalized) return;
 	assert (pid->pid->filter->freg->requires_main_thread);

@@ -36,8 +36,6 @@ typedef struct
 
 static GF_Err imgdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
 {
-	s32 res;
-	u32 type=0, oti=0;
 	const GF_PropertyValue *prop;
 	GF_IMGDecCtx *ctx = (GF_IMGDecCtx *) gf_filter_get_udta(filter);
 
@@ -79,7 +77,7 @@ static GF_Err imgdec_process(GF_Filter *filter)
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) return GF_EOS;
-	data = gf_filter_pck_get_data(pck, &size);
+	data = (char *) gf_filter_pck_get_data(pck, &size);
 
 	if ((ctx->oti == GPAC_OTI_IMAGE_JPEG) || (ctx->oti == GPAC_OTI_IMAGE_PNG)) {
 		u32 out_size = 0;
@@ -128,10 +126,9 @@ static GF_Err imgdec_process(GF_Filter *filter)
 		gf_filter_pid_drop_packet(ctx->ipid);
 		return GF_OK;
 	}
-
-#else
-	return GF_NOT_SUPPORTED;
 #endif //GPAC_DISABLE_AV_PARSERS
+
+	return GF_NOT_SUPPORTED;
 }
 
 

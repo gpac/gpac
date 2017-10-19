@@ -288,7 +288,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi_b, dsi_s) );
 }
 
-static Bool adts_dmx_process_event(GF_Filter *filter, GF_FilterEvent *evt)
+static Bool adts_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	u32 i;
 	GF_FilterEvent fevt;
@@ -362,11 +362,9 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 {
 	GF_ADTSDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
-	GF_Err e;
 	u64 byte_offset;
 	char *data, *output;
 	u8 *start;
-	u64 src_cts;
 	u32 pck_size, remain;
 	u32 alread_sync = 0;
 
@@ -384,7 +382,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		return GF_OK;
 	}
 
-	data = gf_filter_pck_get_data(pck, &pck_size);
+	data = (char *) gf_filter_pck_get_data(pck, &pck_size);
 	byte_offset = gf_filter_pck_get_byte_offset(pck);
 
 	start = data;
@@ -463,7 +461,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 			}
 
 			//not sync !
-			if ((remain - sync_pos <= 1) || (sync[1] & 0xF0 != 0xF0) ) {
+			if ((remain - sync_pos <= 1) || ((sync[1] & 0xF0) != 0xF0) ) {
 				start ++;
 				remain --;
 				continue;
@@ -502,7 +500,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 				next_frame = ctx->hdr.frame_size - 7;
 			}
 			//make sure we are sync!
-			if ((sync[next_frame] !=0xFF) || (sync[next_frame+1] & 0xF0 !=0xF0) ) {
+			if ((sync[next_frame] !=0xFF) || ((sync[next_frame+1] & 0xF0) !=0xF0) ) {
 				if (alread_sync) {
 					assert(memchr(ctx->header+1, 0xFF, 8) == NULL);
 					alread_sync = 0;
@@ -531,7 +529,7 @@ GF_Err adts_dmx_process(GF_Filter *filter)
 		if (ctx->in_seek) {
 			u64 nb_samples_at_seek = ctx->start_range * GF_M4ASampleRates[ctx->sr_idx];
 			if (ctx->cts + ctx->frame_size >= nb_samples_at_seek) {
-				u32 samples_to_discard = (ctx->cts + ctx->frame_size) - nb_samples_at_seek;
+				//u32 samples_to_discard = (ctx->cts + ctx->frame_size) - nb_samples_at_seek;
 				ctx->in_seek = GF_FALSE;
 			}
 		}
