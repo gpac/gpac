@@ -65,6 +65,7 @@ struct __gf_dash_segmenter
 {
 	GF_MPD *mpd;
 	char *mpd_name;
+       char *m3u8_name;
 	GF_DashSegInput *inputs;
 	u32 nb_inputs;
 	GF_DashProfile profile;
@@ -6024,6 +6025,14 @@ GF_Err gf_dasher_enable_loop_inputs(GF_DASHSegmenter *dasher, Bool do_loop)
 	return GF_OK;
 }
 
+GF_EXPORT
+GF_Err gf_dasher_set_m3u8info(GF_DASHSegmenter *dasher, const char *m3u8_name)
+{
+       if (!dasher) return GF_BAD_PARAM;
+       if (m3u8_name)dasher->m3u8_name = gf_strdup(m3u8_name);
+       return GF_OK;
+}
+
 
 static void dash_input_check_period_id(GF_DASHSegmenter *dasher, GF_DashSegInput *dash_input)
 {
@@ -6115,7 +6124,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 {
 	u32 i, j, max_period, cur_period;
 	Bool has_role = GF_FALSE;
-	char *sep, szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
+       char *sep, szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH],szTempm3u8[GF_MAX_PATH];
 	const char *opt;
 	GF_Err e;
 	Bool uses_xlink = GF_FALSE;
@@ -6698,6 +6707,9 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	strcpy(szTempMPD, dasher->mpd_name);
 	if (dasher->dash_mode) strcat(szTempMPD, ".tmp");
 
+       if(dasher->m3u8_name)
+           strcpy(szTempm3u8, dasher->m3u8_name);/*Might be useful for periods, although not sure of period use in hls*/
+
 	dasher->mpd_file = gf_fopen(szTempMPD, "wt");
 	if (!dasher->mpd_file) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MPD] Cannot open MPD file %s for writing\n", szTempMPD));
@@ -7184,6 +7196,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 	}
 
 	gf_mpd_write_file(dasher->mpd, szTempMPD);
+       gf_mpd_write_m3u8_file(dasher->mpd, dasher->m3u8_name);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] DASH MPD done\n"));
 
