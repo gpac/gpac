@@ -3224,7 +3224,7 @@ Bool mp4box_parse_args(int argc, char **argv)
 		}
                else if (!stricmp(arg, "-m3u8-from-mpd")) {
                        CHECK_NEXT_ARG
-                       dash_mpd_m3u_name = gf_strdup(argv[i + 1]);
+                       dash_mpd_m3u_name = argv[i + 1];
                        i++;
                }
 		else if (!stricmp(arg, "-subdur")) {
