@@ -169,7 +169,7 @@ static void gf_inline_check_restart(GF_Scene *scene)
 
 	if (scene->root_od->media_ctrl && scene->root_od->media_ctrl->control->loop) {
 		GF_Clock *ck = gf_odm_get_media_clock(scene->root_od);
-		if (ck->has_seen_eos && !ck->Paused) {
+		if (ck->has_seen_eos && !ck->nb_paused) {
 			u32 now = gf_clock_time(ck);
 			u64 dur = scene->duration;
 			if (scene->root_od->media_ctrl->current_seg) {

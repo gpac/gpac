@@ -521,13 +521,16 @@ static void gf_filter_process_task(GF_FSTask *task)
 
 	filter->schedule_next_time = 0;
 	if (filter->pid_connection_pending) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has connection pending, skiping process\n", filter->name));
 		gf_filter_check_pending_tasks(filter, task);
 		return;
 	}
-	if (filter->removed) return;
-	
+	if (filter->removed) {
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has been removed, skiping process\n", filter->name));
+		return;
+	}
 	if (filter->would_block && (filter->would_block == filter->num_output_pids) ) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping task\n", filter->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s blocked, skiping process\n", filter->name));
 		filter->nb_tasks_done--;
 		gf_filter_check_pending_tasks(filter, task);
 		return;
@@ -645,6 +648,7 @@ void gf_filter_post_process_task(GF_Filter *filter)
 {
 	safe_int_inc(&filter->process_task_queued);
 	if (filter->process_task_queued<=1) {
+		assert(!filter->finalized);
 		gf_fs_post_task(filter->session, gf_filter_process_task, filter, NULL, "process", NULL);
 	}
 }
@@ -723,6 +727,7 @@ void gf_filter_remove_task(GF_FSTask *task)
 	GF_Filter *f = task->filter;
 	u32 count = gf_fq_count(f->tasks);
 
+	assert(f->finalized);
 	if (task->in_main_task_list_only) count++;
 	if (count!=1) {
 		task->requeue_request = GF_TRUE;
@@ -904,4 +909,40 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	//nope ...
 	return GF_FALSE;
 }
+
+void gf_filter_forward_clock(GF_Filter *filter)
+{
+	GF_FilterPacket *pck;
+	u64 i, clock_val;
+	if (!filter->next_clock_dispatch_type) return;
+	if (!filter->num_output_pids) return;
+	
+	for (i=0; i<filter->num_output_pids; i++) {
+		Bool req_props_map, info_modified;
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		GF_PropertyMap *map = gf_list_last(pid->properties);
+		clock_val = filter->next_clock_dispatch;
+		if (map->timescale != filter->next_clock_dispatch_timescale) {
+			clock_val *= map->timescale;
+			clock_val /= filter->next_clock_dispatch_timescale;
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s internal forward of clock reference\n", pid->filter->name, pid->name));
+		pck = gf_filter_pck_new_shared((GF_FilterPid *)pid, NULL, 0, NULL);
+		gf_filter_pck_set_cts(pck, clock_val);
+		gf_filter_pck_set_clock_type(pck, filter->next_clock_dispatch_type);
+
+		//do not let the clock packet carry the props/info change flags since it is an internal
+		//packet discarded before processing these flags
+		req_props_map = pid->request_property_map;
+		pid->request_property_map = GF_TRUE;
+		info_modified = pid->pid_info_changed;
+		pid->pid_info_changed = GF_FALSE;
+
+		gf_filter_pck_send(pck);
+		pid->request_property_map = req_props_map;
+		pid->pid_info_changed = info_modified;
+	}
+	filter->next_clock_dispatch_type = 0;
+}
+
 

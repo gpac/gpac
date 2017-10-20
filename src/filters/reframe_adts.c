@@ -227,6 +227,7 @@ static void adts_dmx_check_pid(GF_Filter *filter, GF_ADTSDmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT( GPAC_OTI_AUDIO_AAC_MPEG4));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->frame_size) );
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
 

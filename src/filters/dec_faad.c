@@ -371,18 +371,17 @@ static GF_Err faaddec_process(GF_Filter *filter)
 	/*we assume left/right order*/
 	if (ctx->num_channels<=2) {
 		memcpy(output, buffer, sizeof(short)* ctx->info.samples);
-		gf_filter_pck_send(dst_pck);
-		if (pck) gf_filter_pid_drop_packet(ctx->ipid);
-		return GF_OK;
-	}
-
-	conv_in = (unsigned short *) buffer;
-	conv_out = (unsigned short *) output;
-	for (i=0; i<ctx->info.samples; i+=ctx->info.channels) {
-		for (j=0; j<ctx->info.channels; j++) {
-			conv_out[i + j] = conv_in[i + ctx->ch_reorder[j]];
+	} else {
+		conv_in = (unsigned short *) buffer;
+		conv_out = (unsigned short *) output;
+		for (i=0; i<ctx->info.samples; i+=ctx->info.channels) {
+			for (j=0; j<ctx->info.channels; j++) {
+				conv_out[i + j] = conv_in[i + ctx->ch_reorder[j]];
+			}
 		}
 	}
+	gf_filter_pck_send(dst_pck);
+	if (pck) gf_filter_pid_drop_packet(ctx->ipid);
 	return GF_OK;
 }
 

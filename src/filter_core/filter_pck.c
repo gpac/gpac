@@ -270,7 +270,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			duration /= pcki->pck->pid_props->timescale;
 			safe_int_add(&dst->buffer_duration, duration);
 		}
-		gf_fq_add(dst->packets, pcki);
+		pcki->pck->info.data_block_start = pcki->pck->info.data_block_end = GF_TRUE;
+ 		gf_fq_add(dst->packets, pcki);
 		return GF_TRUE;
 	}
 
@@ -359,6 +360,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	GF_FilterPid *pid;
 	s64 duration=0;
 	u32 timescale=0;
+
 	assert(pck);
 	assert(pck->pid);
 	pid = pck->pid;
@@ -376,9 +378,11 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		}
 		return GF_OK;
 	}
+
+	if (!pck->info.clock_type)
+		gf_filter_forward_clock(pck->pid->filter);
+
 	pid->has_seen_eos = pck->info.eos;
-	if (!pck->data_length)
-		pck->data_length = 0;
 
 	//a new property map was created -  flag the packet
 	if (!pid->request_property_map) {
@@ -418,62 +422,69 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		pid->filter->nb_bytes_sent += pck->data_length;
 	}
 
-	if (pck->info.clock_discontinuity) {
+	if ((GF_FilterClockType) pck->info.clock_type == GF_FILTER_CLOCK_PCR_DISC) {
 		pid->duration_init = GF_FALSE;
 	}
-	if (pck->info.dts==GF_FILTER_NO_TS)
-		pck->info.dts = pck->info.cts;
-	else if (pck->info.cts==GF_FILTER_NO_TS)
-		pck->info.cts = pck->info.dts;
 
-	if (pck->info.cts != GF_FILTER_NO_TS) {
-		if (! pid->duration_init) {
-			pid->last_pck_dts = pck->info.dts;
-			pid->last_pck_cts = pck->info.cts;
-			pid->duration_init = GF_TRUE;
-		} else if (!pck->info.duration) {
-			if (pck->info.dts!=GF_FILTER_NO_TS) {
-				duration = pck->info.dts - pid->last_pck_dts;
-			} else if (pck->info.cts!=GF_FILTER_NO_TS) {
-				duration = pck->info.cts - pid->last_pck_cts;
-				if (duration<0) duration = -duration;
+	if (!pck->info.clock_type) {
+		if (pck->info.dts==GF_FILTER_NO_TS)
+			pck->info.dts = pck->info.cts;
+		else if (pck->info.cts==GF_FILTER_NO_TS)
+			pck->info.cts = pck->info.dts;
+
+		if (pck->info.cts != GF_FILTER_NO_TS) {
+			if (! pid->duration_init) {
+				pid->last_pck_dts = pck->info.dts;
+				pid->last_pck_cts = pck->info.cts;
+				pid->duration_init = GF_TRUE;
+			} else if (!pck->info.duration) {
+				if (pck->info.dts!=GF_FILTER_NO_TS) {
+					duration = pck->info.dts - pid->last_pck_dts;
+				} else if (pck->info.cts!=GF_FILTER_NO_TS) {
+					duration = pck->info.cts - pid->last_pck_cts;
+					if (duration<0) duration = -duration;
+				}
+				pid->last_pck_dts = pck->info.dts;
+				pid->last_pck_cts = pck->info.cts;
+			} else {
+				duration = pck->info.duration;
 			}
-			pid->last_pck_dts = pck->info.dts;
-			pid->last_pck_cts = pck->info.cts;
 		} else {
 			duration = pck->info.duration;
 		}
-	} else {
-		duration = pck->info.duration;
-	}
-	
-	if (duration) {
-		if (!pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
-		else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
-	}
-	if (!pck->info.duration && pid->min_pck_duration)
-		pck->info.duration = duration;
 
-	//may happen if we don't have DTS, only CTS signaled and B-frames
-	if ((s32) pck->info.duration < 0) {
-		pck->info.duration = duration = 0;
-	}
+		if (duration) {
+			if (!pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
+			else if ((u32) duration < pid->min_pck_duration) pid->min_pck_duration = (u32) duration;
+		}
+		if (!pck->info.duration && pid->min_pck_duration)
+			pck->info.duration = duration;
+
+		//may happen if we don't have DTS, only CTS signaled and B-frames
+		if ((s32) pck->info.duration < 0) {
+			pck->info.duration = duration = 0;
+		}
 
 #ifndef GPAC_DISABLE_LOG
-	if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
-		if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
+			if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+			}
+			else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+			}
+			else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+			} else {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+			}
 		}
-		else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
-		}
-		else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
-		} else {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
-		}
-	}
 #endif
+	} else {
+		duration = pck->info.duration = 0;
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent clock reference "LLU"%s\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, (pck->info.clock_type==GF_FILTER_CLOCK_PCR_DISC) ? " - discontinuity detected" : ""));
+	}
+
 
 
 	//protect packet from destruction - this could happen
@@ -485,152 +496,158 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	assert(pck->pid);
 	count = pck->pid->num_destinations;
 	for (i=0; i<count; i++) {
+		Bool post_task=GF_FALSE;
+		GF_FilterPacketInstance *inst;
 		GF_FilterPidInst *dst = gf_list_get(pck->pid->destinations, i);
-		if (dst->filter->freg->process) {
-			Bool post_task=GF_FALSE;
-			GF_FilterPacketInstance *inst;
+		if (!dst->filter->freg->process) continue;
 
-			inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
-			if (!inst) {
-				GF_SAFEALLOC(inst, GF_FilterPacketInstance);
-				if (!inst) return GF_OUT_OF_MEM;
-			}
-			inst->pck = pck;
-			inst->pid = dst;
-			inst->pid_props_change_done = 0;
-			inst->pid_info_change_done = 0;
+		inst = gf_fq_pop(pck->pid->filter->pcks_inst_reservoir);
+		if (!inst) {
+			GF_SAFEALLOC(inst, GF_FilterPacketInstance);
+			if (!inst) return GF_OUT_OF_MEM;
+		}
+		inst->pck = pck;
+		inst->pid = dst;
+		inst->pid_props_change_done = 0;
+		inst->pid_info_change_done = 0;
 
-			if (inst->pck->info.eos) {
-				safe_int_inc(&inst->pid->nb_eos_signaled);
-			}
-			
-			safe_int_inc(&pck->reference_count);
-			nb_dispatch++;
+		if (inst->pck->info.eos) {
+			safe_int_inc(&inst->pid->nb_eos_signaled);
+		}
 
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
+		if (!inst->pid->handles_clock_references && inst->pck->info.clock_type) {
+			safe_int_inc(&inst->pid->nb_clocks_signaled);
+		}
 
-			if (dst->requires_full_data_block) {
+		safe_int_inc(&pck->reference_count);
+		nb_dispatch++;
 
-				if (pck->info.data_block_start) {
-					//missed end of previous, aggregate all before excluding this packet
-					if (!dst->last_block_ended) {
-						GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - queuing for potential reaggregation\n", pid->filter->name));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Dispatching packet from filter %s to filter %s - %d packet in PID %s buffer ("LLU" us buffer)\n", pid->filter->name, dst->filter->name, gf_fq_count(dst->packets), pid->name, dst->buffer_duration ));
 
-						//post process task if we have been reaggregating a packet
-						post_task = gf_filter_aggregate_packets(dst);
-						if (post_task && pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
-					}
-					dst->last_block_ended = GF_TRUE;
+		if (pck->info.clock_type) {
+			safe_int_inc(&dst->filter->pending_packets);
+			gf_fq_add(dst->packets, inst);
+			post_task = GF_TRUE;
+		} else if (dst->requires_full_data_block) {
+			if (pck->info.data_block_start) {
+				//missed end of previous, aggregate all before excluding this packet
+				if (!dst->last_block_ended) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s: Missed end of block signaling but got start of block - queuing for potential reaggregation\n", pid->filter->name));
+
+					//post process task if we have been reaggregating a packet
+					post_task = gf_filter_aggregate_packets(dst);
+					if (post_task && pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
 				}
-
-				//block end, aggregate all before and including this packet
-				if (pck->info.data_block_end) {
-					//not starting at this packet, append and aggregate
-					if (!pck->info.data_block_start && gf_list_count(dst->pck_reassembly) ) {
-						//insert packet into reassembly (no need to lock here)
-						gf_list_add(dst->pck_reassembly, inst);
-
-						gf_filter_aggregate_packets(dst);
-						if (pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
-					}
-					//single block packet, direct dispatch in packet queue (aggregation done before)
-					else {
-						assert(dst->last_block_ended);
-
-						if (pck->info.duration && timescale) {
-							duration = ((u64)pck->info.duration) * 1000000;
-							duration /= timescale;
-							safe_int_add(&dst->buffer_duration, duration);
-						}
-
-						safe_int_inc(&dst->filter->pending_packets);
-						gf_fq_add(dst->packets, inst);
-					}
-					dst->last_block_ended = GF_TRUE;
-					post_task = GF_TRUE;
-				}
-				//new block start or continuation
-				else {
-					if (pck->info.data_block_start) {
-						pid->nb_reaggregation_pending++;
-					}
-
-					//if packet mem is hold by filter we must copy the packet since it is no longer
-					//consumable until end of block is received, and source might be waiting for this packet to be freed to dispatch further packets
-					if (inst->pck->filter_owns_mem) {
-						char *data;
-						u32 alloc_size;
-						inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data, GF_TRUE);
-						alloc_size = inst->pck->alloc_size;
-						memcpy(inst->pck, pck, sizeof(GF_FilterPacket));
-						inst->pck->pck = inst->pck;
-						inst->pck->data = data;
-						memcpy(inst->pck->data, pck->data, pck->data_length);
-						inst->pck->alloc_size = alloc_size;
-						inst->pck->filter_owns_mem = GF_FALSE;
-						inst->pck->reference_count = 0;
-						inst->pck->reference = NULL;
-						inst->pck->destructor = NULL;
-						if (pck->props) {
-							GF_Err e;
-							inst->pck->props = gf_props_new(pck->pid->filter);
-							if (inst->pck->props) {
-								e = gf_props_merge_property(inst->pck->props, pck->props);
-							} else {
-								e = GF_OUT_OF_MEM;
-							}
-							if (e) {
-								GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to copy properties for cloned packet: %s\n", pid->filter->name, gf_error_to_string(e) ));
-							}
-						}
-						if (inst->pck->pid_props) {
-							safe_int_inc(&inst->pck->pid_props->reference_count);
-						}
-
-						safe_int_dec(&pck->reference_count);
-						safe_int_inc(&inst->pck->reference_count);
-					}
+				dst->last_block_ended = GF_TRUE;
+			}
+			//block end, aggregate all before and including this packet
+			if (pck->info.data_block_end) {
+				//not starting at this packet, append and aggregate
+				if (!pck->info.data_block_start && gf_list_count(dst->pck_reassembly) ) {
 					//insert packet into reassembly (no need to lock here)
 					gf_list_add(dst->pck_reassembly, inst);
 
-					dst->last_block_ended = GF_FALSE;
-					//block not complete, don't post process task
+					gf_filter_aggregate_packets(dst);
+					if (pid->nb_reaggregation_pending) pid->nb_reaggregation_pending--;
 				}
+				//single block packet, direct dispatch in packet queue (aggregation done before)
+				else {
+					assert(dst->last_block_ended);
 
-			} else {
-				duration=0;
-				//store start of block info
-				if (pck->info.data_block_start) {
-					dst->first_block_started = GF_TRUE;
-					duration = pck->info.duration;
-				}
-				if (pck->info.data_block_end) {
-					//we didn't get a start for this end of block use the packet duration
-					if (!dst->first_block_started) {
-						duration=pck->info.duration;
+					if (pck->info.duration && timescale) {
+						duration = ((u64)pck->info.duration) * 1000000;
+						duration /= timescale;
+						safe_int_add(&dst->buffer_duration, duration);
 					}
-					dst->first_block_started = GF_FALSE;
+					inst->pck->info.data_block_start = GF_TRUE;
+
+					safe_int_inc(&dst->filter->pending_packets);
+					gf_fq_add(dst->packets, inst);
 				}
-
-				if (duration && timescale) {
-					duration *= 1000000;
-					duration /= timescale;
-					safe_int_add(&dst->buffer_duration, duration);
-				}
-
-				safe_int_inc(&dst->filter->pending_packets);
-
-				gf_fq_add(dst->packets, inst);
+				dst->last_block_ended = GF_TRUE;
 				post_task = GF_TRUE;
 			}
-			if (post_task) {
-				u32 nb_pck = gf_fq_count(dst->packets);
-				if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
-				if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
+			//new block start or continuation
+			else {
+				if (pck->info.data_block_start) {
+					pid->nb_reaggregation_pending++;
+				}
 
-				if (!dst->filter->skip_process_trigger_on_tasks)
-					gf_filter_post_process_task(dst->filter);
+				//if packet mem is hold by filter we must copy the packet since it is no longer
+				//consumable until end of block is received, and source might be waiting for this packet to be freed to dispatch further packets
+				if (inst->pck->filter_owns_mem) {
+					char *data;
+					u32 alloc_size;
+					inst->pck = gf_filter_pck_new_alloc_internal(pck->pid, pck->data_length, &data, GF_TRUE);
+					alloc_size = inst->pck->alloc_size;
+					memcpy(inst->pck, pck, sizeof(GF_FilterPacket));
+					inst->pck->pck = inst->pck;
+					inst->pck->data = data;
+					memcpy(inst->pck->data, pck->data, pck->data_length);
+					inst->pck->alloc_size = alloc_size;
+					inst->pck->filter_owns_mem = GF_FALSE;
+					inst->pck->reference_count = 0;
+					inst->pck->reference = NULL;
+					inst->pck->destructor = NULL;
+					if (pck->props) {
+						GF_Err e;
+						inst->pck->props = gf_props_new(pck->pid->filter);
+						if (inst->pck->props) {
+							e = gf_props_merge_property(inst->pck->props, pck->props);
+						} else {
+							e = GF_OUT_OF_MEM;
+						}
+						if (e) {
+							GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Filter %s: failed to copy properties for cloned packet: %s\n", pid->filter->name, gf_error_to_string(e) ));
+						}
+					}
+					if (inst->pck->pid_props) {
+						safe_int_inc(&inst->pck->pid_props->reference_count);
+					}
+
+					safe_int_dec(&pck->reference_count);
+					safe_int_inc(&inst->pck->reference_count);
+				}
+				//insert packet into reassembly (no need to lock here)
+				gf_list_add(dst->pck_reassembly, inst);
+
+				dst->last_block_ended = GF_FALSE;
+				//block not complete, don't post process task
 			}
+
+		} else {
+			duration=0;
+			//store start of block info
+			if (pck->info.data_block_start) {
+				dst->first_block_started = GF_TRUE;
+				duration = pck->info.duration;
+			}
+			if (pck->info.data_block_end) {
+				//we didn't get a start for this end of block use the packet duration
+				if (!dst->first_block_started) {
+					duration=pck->info.duration;
+				}
+				dst->first_block_started = GF_FALSE;
+			}
+
+			if (duration && timescale) {
+				duration *= 1000000;
+				duration /= timescale;
+				safe_int_add(&dst->buffer_duration, duration);
+			}
+
+			safe_int_inc(&dst->filter->pending_packets);
+
+			gf_fq_add(dst->packets, inst);
+			post_task = GF_TRUE;
+		}
+		if (post_task) {
+			u32 nb_pck = gf_fq_count(dst->packets);
+			if (max_nb_pck < nb_pck) max_nb_pck = nb_pck;
+			if (max_buf_dur<dst->buffer_duration) max_buf_dur = dst->buffer_duration;
+
+			if (!dst->filter->skip_process_trigger_on_tasks)
+				gf_filter_post_process_task(dst->filter);
 		}
 	}
 	//todo needs Compare&Swap
@@ -881,17 +898,11 @@ u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck)
 	return pck->pck->info.byte_offset;
 }
 
-GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck)
+GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype)
 {
-	PCK_SETTER_CHECK("clock_discontinuity")
-	pck->info.clock_discontinuity = GF_TRUE;
+	PCK_SETTER_CHECK("clock_type")
+	pck->info.clock_type = (u8) ctype;
 	return GF_OK;
-}
-
-Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck)
-{
-	assert(pck);
-	return pck->pck->info.clock_discontinuity ? GF_TRUE : GF_FALSE;
 }
 
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)

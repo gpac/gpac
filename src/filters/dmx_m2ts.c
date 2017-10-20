@@ -539,17 +539,23 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 		break;
 	case GF_M2TS_EVT_PES_PCR:
 	{
+		u32 i, count;
 		GF_M2TS_PES_PCK *pck = ((GF_M2TS_PES_PCK *) param);
 		Bool discontinuity = ( ((GF_M2TS_PES_PCK *) param)->flags & GF_M2TS_PES_PCK_DISCONTINUITY) ? 1 : 0;
 
-		if (pck->stream) m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
+		assert(pck->stream);
+		m2tsdmx_estimate_duration(ctx, (GF_M2TS_ES *) pck->stream);
 
-		/*send pcr*/
-		if ((0) && pck->stream && pck->stream->user) {
+		//we forward the PCR on each pid
+		count = gf_list_count(pck->stream->program->streams);
+		for (i=0; i<count; i++) {
+			GF_FilterPacket *dst_pck;
+			GF_M2TS_PES *stream = gf_list_get(pck->stream->program->streams, i);
+			if (!stream->user) continue;
 
-			GF_FilterPacket *dst_pck = gf_filter_pck_new_shared(((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, NULL);
+			dst_pck = gf_filter_pck_new_shared(((GF_M2TS_PES_PCK *) param)->stream->user, NULL, 0, NULL);
 			gf_filter_pck_set_cts(dst_pck, ((GF_M2TS_PES_PCK *) param)->PTS / 300);
-			if (discontinuity) gf_filter_pck_set_clock_discontinuity(dst_pck);
+			gf_filter_pck_set_clock_type(dst_pck, discontinuity ? GF_FILTER_CLOCK_PCR_DISC : GF_FILTER_CLOCK_PCR);
 			gf_filter_pck_send(dst_pck);
 		}
 	}

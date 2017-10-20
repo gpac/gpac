@@ -229,7 +229,7 @@ static Bool gf_scene_script_action(void *opaque, u32 type, GF_Node *n, GF_JSAPIP
 			GF_Scene *scene = (GF_Scene *)gf_sg_get_private(graph);
 			GF_Clock *ck = scene->root_od->ck;
 			if (ck) {
-				Bool is_paused = ck->Paused;
+				Bool is_paused = ck->nb_paused ? GF_TRUE : GF_FALSE;
 				if (is_paused) gf_clock_resume(ck);
 				gf_scene_restart_dynamic(scene, 0, 0, 0);
 				if (is_paused) gf_clock_pause(ck);
@@ -2452,7 +2452,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 						return 0;
 					}
 				} else {
-					if (odm->ck->Buffering) {
+					if (odm->ck->nb_buffering) {
 						return 0;
 					}
 				}
@@ -2466,7 +2466,7 @@ Bool gf_scene_check_clocks(GF_SceneNamespace *ns, GF_Scene *scene, Bool check_bu
 		if (!check_buffering) {
 			if (!ck->has_seen_eos) return 0;
 		} else {
-			if (ck->Buffering) return 0;
+			if (ck->nb_buffering) return 0;
 		}
 
 	}

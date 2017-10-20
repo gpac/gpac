@@ -294,7 +294,11 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 		gf_filter_pid_update_caps(pid);
 	}
 
+	//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
+	//could be called for video at the same time... FIXME
+#ifdef FILTER_FIXME
 	FSESS_CHECK_THREAD(filter)
+#endif
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, is_remove);
 
 	if (e==GF_OK) {
@@ -644,6 +648,7 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 		//we found a property of that type and it is equal
 		if (pid_cap) {
 			u32 j;
+			Bool prop_excluded = GF_FALSE;
 			Bool prop_equal = GF_FALSE;
 
 			//this could be optimized by not checking several times the same cap
@@ -662,11 +667,12 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 							prop_equal = GF_FALSE;
 							break;
 						}
+						prop_excluded = GF_TRUE;
 					}
 					if (prop_equal) break;
 				}
 			}
-			if (!prop_equal) {
+			if (!prop_equal && !prop_excluded) {
 				all_caps_matched=GF_FALSE;
 			} else if (priority && ( (*priority) < cap->priority) ) {
 				(*priority) = cap->priority;
@@ -1266,12 +1272,41 @@ u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)
 	if (PID_IS_OUTPUT(pid)) {
 		pidinst = gf_list_get(pid->destinations, 0);
 		if (! pidinst) return 0;
-		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
+		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled - pidinst->nb_clocks_signaled;
 
 	} else {
 		if (pidinst->discard_packets) return 0;
-		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled;
+		return gf_fq_count(pidinst->packets) - pidinst->nb_eos_signaled - pidinst->nb_clocks_signaled;
 	}
+}
+
+static Bool gf_filter_pid_filter_internal_packet(GF_FilterPid *pid, GF_FilterPacketInstance *pcki)
+{
+	Bool is_internal = GF_FALSE;
+	if (pcki->pck->info.eos) {
+		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
+		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pid->pid->name, pid->filter->name, pcki->pid->pid->has_seen_eos));
+		safe_int_dec(&pcki->pid->nb_eos_signaled);
+		is_internal = GF_TRUE;
+	}
+	if (pcki->pck->info.clock_type) {
+		if (pcki->pid->handles_clock_references) return GF_FALSE;
+		safe_int_dec(&pcki->pid->nb_clocks_signaled);
+		//signal destination
+		pcki->pid->filter->next_clock_dispatch = pcki->pck->info.cts;
+		pcki->pid->filter->next_clock_dispatch_timescale = pcki->pck->pid_props->timescale;
+		pcki->pid->filter->next_clock_dispatch_type = pcki->pck->info.clock_type;
+
+		//keep value
+		pcki->pid->last_clock_value = pcki->pck->info.cts;
+		pcki->pid->last_clock_timescale = pcki->pck->pid_props->timescale;
+		pcki->pid->last_clock_type = pcki->pck->info.clock_type;
+		//the following call to drop_packet will trigger clock forwarding to all output pids
+		is_internal = GF_TRUE;
+	}
+
+	if (is_internal) gf_filter_pid_drop_packet(pid);
+	return is_internal;
 }
 
 GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
@@ -1291,11 +1326,7 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.eos) {
-		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pid->pid->name, pid->filter->name, pcki->pid->pid->has_seen_eos));
-		safe_int_dec(&pcki->pid->nb_eos_signaled);
-		gf_filter_pid_drop_packet(pid);
+	if (gf_filter_pid_filter_internal_packet(pid, pcki))  {
 		return gf_filter_pid_get_packet(pid);
 	}
 	pcki->pid->is_end_of_stream = GF_FALSE;
@@ -1329,7 +1360,12 @@ GF_FilterPacket *gf_filter_pid_get_packet(GF_FilterPid *pid)
 		GF_FilterEvent evt;
 		pcki->pid_info_change_done = 1;
 		GF_FEVT_INIT(evt, GF_FEVT_INFO_UPDATE, pid);
+
+		//commented out for now, due to audio thread pulling packets out of the pid but not in the compositor:process, which
+		//could be called for video at the same time... FIXME
+#ifdef FILTER_FIXME
 		FSESS_CHECK_THREAD(pidinst->filter)
+#endif
 		pidinst->filter->freg->process_event(pidinst->filter, &evt);
 	}
 	pidinst->last_pck_fetch_time = gf_sys_clock_high_res();
@@ -1354,9 +1390,10 @@ Bool gf_filter_pid_get_first_packet_cts(GF_FilterPid *pid, u64 *cts)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.eos) {
-		return GF_FALSE;
+	if (gf_filter_pid_filter_internal_packet(pid, pcki))  {
+		return gf_filter_pid_get_first_packet_cts(pid, cts);
 	}
+
 	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
 		return GF_FALSE;
 	*cts = pcki->pck->info.cts;
@@ -1380,7 +1417,7 @@ Bool gf_filter_pid_first_packet_is_empty(GF_FilterPid *pid)
 	}
 	assert(pcki->pck);
 
-	if (pcki->pck->info.eos) {
+	if (pcki->pck->info.eos || pcki->pck->info.clock_type) {
 		return GF_TRUE;
 	}
 	if (pidinst->requires_full_data_block && !pcki->pck->info.data_block_end)
@@ -1531,6 +1568,9 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 	//decrement number of pending packet on target filter if this is not a destroy
 	if (pidinst->filter)
 		safe_int_dec(&pidinst->filter->pending_packets);
+
+	if (pidinst->filter)
+		gf_filter_forward_clock(pidinst->filter);
 }
 
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
@@ -1548,12 +1588,8 @@ Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
 	}
 	//peek next for eos
 	pcki = (GF_FilterPacketInstance *)gf_fq_head(pidi->packets);
-	if (pcki && pcki->pck->info.eos) {
-		pcki->pid->is_end_of_stream = pcki->pid->pid->has_seen_eos ? GF_TRUE : GF_FALSE;
-		GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Found EOS packet in PID %s in filter %s - eos %d\n", pid->pid->name, pid->filter->name, pcki->pid->pid->has_seen_eos));
-		safe_int_dec(&pcki->pid->nb_eos_signaled);
-		gf_filter_pid_drop_packet(pid);
-	}
+	if (pcki)
+		gf_filter_pid_filter_internal_packet(pid, pcki);
 
 	return ((GF_FilterPidInst *)pid)->is_end_of_stream;
 }
@@ -1934,5 +1970,18 @@ void gf_filter_pid_try_pull(GF_FilterPid *pid)
 {
 }
 
-
+GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_time, u32 *timescale)
+{
+	GF_FilterPidInst *pidi = (GF_FilterPidInst *)pid;
+	GF_FilterClockType res;
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Querying clock on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return GF_FILTER_CLOCK_NONE;
+	}
+	if (clock_time) *clock_time = pidi->last_clock_value;
+	if (timescale) *timescale = pidi->last_clock_timescale;
+	res = pidi->last_clock_type;
+	pidi->last_clock_type = 0;
+	return res;
+}
 

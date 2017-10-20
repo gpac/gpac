@@ -574,7 +574,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	override OCR. This will solve addressing like file.avi#audio and file.avi#video*/
 	if (!OD_OCR_ID && (odm->flags & GF_ODM_REMOTE_OD) && (gf_list_count(ck_namespace)==1) ) {
 		ck = (GF_Clock*)gf_list_get(ck_namespace, 0);
-		OD_OCR_ID = ck->clockID;
+		OD_OCR_ID = ck->clock_id;
 	}
 	/*for dynamic scene, force all streams to be sync on main OD stream (one timeline, no need to reload ressources)*/
 	else if (odm->parentscene && odm->parentscene->is_dynamic_scene && !odm->subscene) {
@@ -582,7 +582,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 		if (parent_od->scene_ns && (gf_list_count(parent_od->scene_ns->Clocks)==1)) {
 			ck = (GF_Clock*)gf_list_get(parent_od->scene_ns->Clocks, 0);
 			if (!odm->ServiceID || (odm->ServiceID==ck->service_id)) {
-				OD_OCR_ID = ck->clockID;
+				OD_OCR_ID = ck->clock_id;
 				goto clock_setup;
 			}
 		}
@@ -603,7 +603,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	/*override clock dependencies if specified*/
 	if (scene->compositor->force_single_clock) {
 		GF_Scene *parent = gf_scene_get_root_scene(scene);
-		clockID = scene->root_od->ck->clockID;
+		clockID = scene->root_od->ck->clock_id;
 		ck_namespace = parent->root_od->scene_ns->Clocks;
 	}
 
@@ -617,7 +617,7 @@ GF_Err gf_odm_setup_pid(GF_ObjectManager *odm, GF_FilterPid *pid)
 	ck->service_id = odm->ServiceID;
 	clock_inherited = GF_FALSE;
 
-	if (es_id==ck->clockID)
+	if (es_id==ck->clock_id)
 		odm->owns_clock = GF_TRUE;
 
 	if (scene->root_od->subscene && scene->root_od->subscene->is_dynamic_scene && !scene->root_od->ck)
@@ -1365,12 +1365,28 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	u32 timescale;
 	Bool signal_eob = GF_FALSE;
 	GF_Scene *scene;
+	GF_FilterClockType ck_type;
+	u64 clock_reference;
+	u64 next_ts;
+	GF_FilterPacket *pck;
+
 	assert(odm);
 
 	if (!pid)
 		pid = odm->pid;
 
 	scene = odm->subscene ? odm->subscene : odm->parentscene;
+
+	pck = gf_filter_pid_get_packet(pid);
+	ck_type = gf_filter_pid_get_clock_info(pid, &clock_reference, &timescale);
+
+	if (!odm->ck->clock_init && ck_type) {
+		clock_reference *= 1000;
+		clock_reference /= timescale;
+		gf_clock_set_time(odm->ck, clock_reference);
+		if (odm->parentscene)
+			odm->parentscene->root_od->media_start_time = 0;
+	}
 
 	if (odm->nb_buffering) {
 		u64 buffer_duration = gf_filter_pid_query_buffer_duration(pid);
@@ -1388,6 +1404,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			if (odm->parentscene)
 				odm->parentscene->root_od->media_start_time = 0;
 		}
+		//TODO abort buffering when errors are found on the input chain !!
 		if (buffer_duration >= odm->buffer_playout_us) {
 			odm->nb_buffering --;
 			scene->nb_buffering--;
@@ -1408,7 +1425,54 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	if (scene->nb_buffering || signal_eob)
 		gf_scene_buffering_info(scene);
 
-	return odm->ck->Buffering ? GF_TRUE : GF_FALSE;
+	//handle both PCR discontinuities or TS looping when no PCR disc is present/signaled
+	if (pck) {
+		s32 diff=0;
+		u64 pck_time = 0;
+		u32 clock_time = gf_clock_time(odm->ck);
+		if (ck_type) {
+			clock_reference *= 1000;
+			clock_reference /= timescale;
+			diff = (s32) clock_time + odm->buffer_playout_us/1000;
+			diff -= (s32) clock_reference;
+			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Clock %d reference found "LLU" ms clock time %d ms - diff %d\n", odm->ck->clock_id, clock_reference, clock_time, diff));
+
+			//if explicit clock discontinuity, mark clock
+			if (ck_type==GF_FILTER_CLOCK_PCR_DISC) odm->ck->ocr_discontinuity_time = clock_reference;
+		}
+		pck_time = gf_filter_pck_get_cts(pck);
+		timescale = gf_filter_pck_get_timescale(pck);
+		if (pck_time != GF_FILTER_NO_TS) {
+			pck_time *= 1000;
+			pck_time /= timescale;
+
+			diff = clock_time;
+			diff -= pck_time;
+		}
+
+		//we have a valid TS for the packet, and the CTS diff to the current clock is larget than 8 sec, check for discontinuities
+		//it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems, 8 sec should be enough
+		if (pck_time && (odm->ck->ocr_discontinuity_time || (diff > 8000) ) ) {
+			s64 diff_pck_old_clock, diff_pck_new_clock;
+			//compute diff to old clock and new clock
+			diff_pck_new_clock = pck_time - (s64) clock_reference;
+			if (diff_pck_new_clock<0) diff_pck_new_clock = -diff_pck_new_clock;
+			diff_pck_old_clock = pck_time - (s64) clock_time;
+			if (diff_pck_old_clock<0) diff_pck_old_clock = -diff_pck_old_clock;
+
+			//if the packet time is closer to the new clock than the old, switch to new clock
+			if (diff_pck_old_clock > diff_pck_new_clock) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Clock %d discontinuity detected "LLU" clock time %d - diff %d - type %d\n", odm->ck->clock_id, clock_reference, clock_time, diff, ck_type));
+				odm->ck->clock_init = GF_FALSE;
+				odm->ck->ocr_discontinuity_time = 0;
+				odm->ck->prev_clock_at_discontinuity = clock_time;
+				gf_clock_set_time(odm->ck, clock_reference);
+			}
+			//TODO: we currently reset the discontinuity state in audio only, since audio and other medias are not consumed at the same pace
+			//we would need some more logic to know when the discontinuity is over for all media
+		}
+	}
+	return odm->ck->nb_buffering ? GF_TRUE : GF_FALSE;
 }
 
 #ifndef GPAC_DISABLE_SVG
@@ -1579,7 +1643,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 	info->ODID = odm->ID;
 	info->ServiceID = odm->ServiceID;
 	info->pid_id = odm->pid_id;
-	info->ocr_id = odm->ck ? odm->ck->clockID : 0;
+	info->ocr_id = odm->ck ? odm->ck->clock_id : 0;
 	info->od_type = odm->type;
 
 	info->duration = (Double) (s64)odm->duration;
