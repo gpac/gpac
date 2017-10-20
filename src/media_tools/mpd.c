@@ -2558,6 +2558,12 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 }
 
+static GF_Err gf_mpd_write_m3u8_playlist_tag(GF_MPD_AdaptationSet const * const as, FILE *out)
+{
+	if (as->mime_type=="audio/mp4") fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES");
+	return GF_OK;
+}
+
 static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
 {
     u32 i;
@@ -2565,9 +2571,11 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
     
     i=0;
     while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-        //gf_mpd_print_adaptation_set(as, out);
-        
+        gf_mpd_write_m3u8_playlist_tag(as, out);
+        //gf_mpd_write_m3u8       
     }
+    
+    return GF_OK;
 }
 
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
@@ -2608,6 +2616,8 @@ static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *
             * only one period*/
            gf_mpd_write_m3u8_playlists(period, out);
        }
+       
+       return GF_OK;
 }
 
 
