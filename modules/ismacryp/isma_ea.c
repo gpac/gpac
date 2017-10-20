@@ -175,7 +175,7 @@ static GF_Err ISMA_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 static GF_Err ISMA_Access(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
 	GF_Err e;
-	char IV[16];
+	char IV[GF_AES_128_KEYSIZE];
 
 	if (evt->event_type==GF_IPMP_TOOL_GRANT_ACCESS) {
 		if (priv->state != ISMAEA_STATE_SETUP) return GF_SERVICE_ERROR;
@@ -185,12 +185,12 @@ static GF_Err ISMA_Access(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 		//priv->nb_allow_play--;
 
 		/*init decrypter*/
-		priv->crypt = gf_crypt_open("AES-128", "CTR");
+		priv->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 		if (!priv->crypt) return GF_IO_ERR;
 
 		memset(IV, 0, sizeof(char)*16);
 		memcpy(IV, priv->salt, sizeof(char)*8);
-		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
+		e = gf_crypt_init(priv->crypt, priv->key, IV);
 		if (e) return e;
 
 		priv->state = ISMAEA_STATE_PLAY;
@@ -214,7 +214,7 @@ static GF_Err ISMA_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	/*resync IV*/
 	if (!priv->last_IV || (priv->last_IV != evt->isma_BSO)) {
-		char IV[17];
+		char IV[GF_AES_128_KEYSIZE + 1];
 		u64 count;
 		u32 remain;
 		GF_BitStream *bs;
@@ -320,12 +320,12 @@ static GF_Err CENC_Setup(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			gf_bin128_parse("0x6770616363656E6364726D746F6F6C31", cypherKey);
 			gf_bin128_parse("0x00000000000000000000000000000001", cypherIV);
 
-			mc = gf_crypt_open("AES-128", "CTR");
+			mc = gf_crypt_open(GF_AES_128, GF_CTR);
 			if (!mc) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC/ISMA] Cannot open AES-128 CTR\n"));
 				return GF_IO_ERR;
 			}
-			gf_crypt_init(mc, cypherKey, 16, cypherIV);
+			gf_crypt_init(mc, cypherKey, cypherIV);
 			gf_crypt_decrypt(mc, pssh->private_data+cypherOffset, pssh->private_data_size-cypherOffset);
 			gf_crypt_close(mc);
 
@@ -368,9 +368,9 @@ static GF_Err CENC_Access(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 		/*open decrypter - we do NOT initialize decrypter; it wil be done when we decrypt the first crypted sample*/
 		if (priv->is_cenc)
-			priv->crypt = gf_crypt_open("AES-128", "CTR");
+			priv->crypt = gf_crypt_open(GF_AES_128, GF_CTR);
 		else
-			priv->crypt = gf_crypt_open("AES-128", "CBC");
+			priv->crypt = gf_crypt_open(GF_AES_128, GF_CBC);
 		if (!priv->crypt) return GF_IO_ERR;
 
 		priv->first_crypted_samp = GF_TRUE;
@@ -392,7 +392,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
 	GF_Err e;
 	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
-	char IV[17];
+	char IV[GF_AES_128_KEYSIZE + 1];
 	bin128 KID;
 	char *buffer;
 	u32 max_size, i, subsample_count;
@@ -448,7 +448,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			if (evt->constant_IV_size == 8)
 				memset(IV+8, 0, sizeof(char)*8);
 		}
-		e = gf_crypt_init(priv->crypt, priv->key, 16, IV);
+		e = gf_crypt_init(priv->crypt, priv->key, IV);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Cannot initialize AES-128 AES-128 %s (%s)\n", priv->is_cenc ? "CTR" : "CBC", gf_error_to_string(e)) );
 			e = GF_IO_ERR;

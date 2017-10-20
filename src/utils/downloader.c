@@ -42,8 +42,8 @@
 #include <openssl/rand.h>
 
 #if (defined(WIN32) || defined(_WIN32_WCE)) && !defined(__GNUC__)
-#pragma comment(lib, "ssleay32")
-#pragma comment(lib, "libeay32")
+//#pragma comment(lib, "ssleay32")
+//#pragma comment(lib, "libeay32")
 #endif
 
 #endif
