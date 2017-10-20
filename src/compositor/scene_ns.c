@@ -501,6 +501,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 
 	odm->scene_ns->source_filter = gf_fs_load_source(fsess, serviceURL, parent_url, &e);
 	if (!odm->scene_ns->source_filter) {
+		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, e, GF_TRUE);
 		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);
 		gf_odm_disconnect(odm, 1);
 		return;
