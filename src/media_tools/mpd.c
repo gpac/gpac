@@ -2581,6 +2581,13 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
+static GF_Err gf_mpd_write_m3u8(GF_MPD const * const mpd, FILE *out)
+{
+       fprintf(out, "#EXTM3U\n");
+       fprintf(out, "#EXT-X-VERSION:6\n");
+       fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
+}
+
 static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
 	u32 i;
@@ -2706,7 +2713,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name)
                if (!out) return GF_IO_ERR;
        }
 
-       //e = gf_mpd_write(mpd, out);
+       e = gf_mpd_write_m3u8(mpd, out);
        gf_fclose(out);
        return e;
 }
