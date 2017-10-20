@@ -396,6 +396,9 @@
     <ClInclude Include="..\..\include\gpac\webvtt.h">
       <Filter>include</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\mcrypt\g_crypt_openssl.h">
+      <Filter>mcrypt</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\bifs\arith_decoder.c">
@@ -749,46 +752,7 @@
     <ClCompile Include="..\..\src\laser\lsr_tables.c">
       <Filter>laser</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\cbc.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\cfb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ctr.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\des.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ecb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\src\mcrypt\g_crypt.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ncfb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\nofb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\ofb.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-128.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-192.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\rijndael-256.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\stream.c">
-      <Filter>mcrypt</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\src\mcrypt\tripledes.c">
       <Filter>mcrypt</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\media_tools\ait.c">
@@ -1171,6 +1135,9 @@
     </ClCompile>
     <ClCompile Include="..\..\src\isomedia\iff.c">
       <Filter>isomedia</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\src\mcrypt\g_crypt_openssl.c">
+      <Filter>mcrypt</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>
