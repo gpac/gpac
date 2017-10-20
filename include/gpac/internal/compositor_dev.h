@@ -1861,7 +1861,6 @@ struct _object_clock
 	Bool has_media_time_shift;
 
 	u32 ocr_discontinuity_time;
-	u32 prev_clock_at_discontinuity;
 };
 
 /*destroys clock*/
@@ -1987,6 +1986,7 @@ struct _od_manager
 	//one of the pid contributing to this object acts as the clock reference
 	Bool owns_clock;
 
+	u32 prev_clock_at_discontinuity_plus_one;
 
 	u32 nb_dropped;
 	Bool low_latency_mode;
@@ -2156,6 +2156,7 @@ struct _mediaobj
 	GF_FilterPacket *pck;
 
 	u32 frame_dur;
+	u32 last_fetch_time;
 
 	//number of bytes read in the current packet
 	u32 RenderedLength;

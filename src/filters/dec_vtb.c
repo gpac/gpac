@@ -82,6 +82,8 @@ typedef struct
 	u32 decoded_frames_pending;
 	u32 reorder_probe;
 	Bool reconfig_needed;
+	u64 last_cts_out;
+	u32 last_timescale_out;
 
 	//MPEG-1/2 specific
 	Bool init_mpeg12;
@@ -122,7 +124,7 @@ typedef struct
 	GF_VTBDecCtx *ctx;
 	u64 cts;
 	u32 duration;
-
+	u32 timescale;
 	//openGL mode
 #ifdef GPAC_IPHONE
 	CVOpenGLESTextureRef y, u, v;
@@ -155,12 +157,28 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
 	frame->hw_frame.user_data = frame;
 	frame->frame = CVPixelBufferRetain(image);
 	frame->cts = gf_filter_pck_get_cts(ctx->cur_pck);
+	frame->duration = gf_filter_pck_get_duration(ctx->cur_pck);
+	frame->timescale = gf_filter_pck_get_timescale(ctx->cur_pck);
 	frame->ctx = ctx;
 
 	count = gf_list_count(ctx->frames);
 	for (i=0; i<count; i++) {
 		GF_VTBHWFrame *aframe = gf_list_get(ctx->frames, i);
-		if (aframe->cts > frame->cts) {
+		Bool insert = GF_FALSE;
+		s64 diff;
+		if ((frame->timescale == aframe->timescale) && (ctx->last_timescale_out == frame->timescale)) {
+			diff = (s64) aframe->cts - (s64) frame->cts;
+			if ((diff>0) && (frame->cts > frame->timescale) ) {
+				insert = GF_TRUE;
+			}
+		} else {
+			diff = (s64) (aframe->cts * frame->timescale);
+			diff = - (s64) (frame->cts * aframe->timescale);
+			if ((diff>0) && (ctx->last_timescale_out * frame->cts > frame->timescale * ctx->last_cts_out) ) {
+				insert = GF_TRUE;
+			}
+		}
+		if (insert) {
 			gf_list_insert(ctx->frames, frame, i);
 			ctx->reorder_detected = GF_TRUE;
 			return;
@@ -912,6 +930,8 @@ static GF_Err vtbdec_flush_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		}
 
 		gf_filter_pck_set_cts(dst_pck, vtbframe->cts);
+		ctx->last_cts_out = vtbframe->cts;
+		ctx->last_timescale_out = vtbframe->timescale;
 
 		gf_filter_pck_send(dst_pck);
 	}
@@ -1257,6 +1277,9 @@ static GF_Err vtbdec_send_output_frame(GF_Filter *filter, GF_VTBDecCtx *ctx)
 
 	dst_pck = gf_filter_pck_new_hw_frame(ctx->opid, &vtb_frame->hw_frame, vtbframe_release);
 	gf_filter_pck_set_cts(dst_pck, vtb_frame->cts);
+	ctx->last_cts_out = vtb_frame->cts;
+	ctx->last_timescale_out = vtb_frame->timescale;
+
 	gf_filter_pck_send(dst_pck);
 	return GF_OK;
 }

@@ -299,6 +299,8 @@ void gf_odm_setup_remote_object(GF_ObjectManager *odm, GF_SceneNamespace *parent
 	if (odm->mo && (odm->mo->type==GF_MEDIA_OBJECT_SCENE)) {
 		odm->subscene = gf_scene_new(NULL, odm->parentscene);
 		odm->subscene->root_od = odm;
+		//scenes are by default dynamic
+		odm->subscene->is_dynamic_scene = GF_TRUE;
 	}
 	parent_url = parent_ns ? parent_ns->url : NULL;
 	if (parent_url && !strnicmp(parent_url, "views://", 8))
@@ -1367,7 +1369,6 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 	GF_Scene *scene;
 	GF_FilterClockType ck_type;
 	u64 clock_reference;
-	u64 next_ts;
 	GF_FilterPacket *pck;
 
 	assert(odm);
@@ -1426,47 +1427,58 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		gf_scene_buffering_info(scene);
 
 	//handle both PCR discontinuities or TS looping when no PCR disc is present/signaled
-	if (pck) {
+	if (pck  ) {
 		s32 diff=0;
 		u64 pck_time = 0;
 		u32 clock_time = gf_clock_time(odm->ck);
+		s32 diff_to = 0;
 		if (ck_type) {
 			clock_reference *= 1000;
 			clock_reference /= timescale;
 			diff = (s32) clock_time + odm->buffer_playout_us/1000;
 			diff -= (s32) clock_reference;
-			GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Clock %d reference found "LLU" ms clock time %d ms - diff %d\n", odm->ck->clock_id, clock_reference, clock_time, diff));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d reference found "LLU" ms clock time %d ms - diff %d\n", odm->ck->clock_id, clock_reference, clock_time, diff));
 
 			//if explicit clock discontinuity, mark clock
-			if (ck_type==GF_FILTER_CLOCK_PCR_DISC) odm->ck->ocr_discontinuity_time = clock_reference;
+			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+				odm->ck->ocr_discontinuity_time = 1+clock_reference;
 		}
 		pck_time = gf_filter_pck_get_cts(pck);
 		timescale = gf_filter_pck_get_timescale(pck);
 		if (pck_time != GF_FILTER_NO_TS) {
 			pck_time *= 1000;
 			pck_time /= timescale;
-
+			pck_time += 1;
 			diff = clock_time;
 			diff -= pck_time;
+			if (!diff_to) diff_to = odm->ck->ocr_discontinuity_time ? 1000 : 8000;
 		}
 
 		//we have a valid TS for the packet, and the CTS diff to the current clock is larget than 8 sec, check for discontinuities
 		//it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems, 8 sec should be enough
-		if (pck_time && (odm->ck->ocr_discontinuity_time || (diff > 8000) ) ) {
+		if (diff_to && (diff > diff_to) ) {
 			s64 diff_pck_old_clock, diff_pck_new_clock;
 			//compute diff to old clock and new clock
-			diff_pck_new_clock = pck_time - (s64) clock_reference;
+			diff_pck_new_clock = pck_time-1 - (s64) clock_reference;
 			if (diff_pck_new_clock<0) diff_pck_new_clock = -diff_pck_new_clock;
-			diff_pck_old_clock = pck_time - (s64) clock_time;
+			diff_pck_old_clock = pck_time-1 - (s64) clock_time;
 			if (diff_pck_old_clock<0) diff_pck_old_clock = -diff_pck_old_clock;
 
 			//if the packet time is closer to the new clock than the old, switch to new clock
 			if (diff_pck_old_clock > diff_pck_new_clock) {
-				GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("Clock %d discontinuity detected "LLU" clock time %d - diff %d - type %d\n", odm->ck->clock_id, clock_reference, clock_time, diff, ck_type));
+				u32 i, count;
+				GF_Scene *scene = odm->subscene ? odm->subscene : odm->parentscene;
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d (ODM %d) discontinuity detected "LLU" clock time %d - diff %d - type %d - pck time "LLU"\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type, pck_time-1));
+
+				count = gf_list_count(scene->resources);
+				for (i=0; i<count; i++) {
+					GF_ObjectManager *an_odm = gf_list_get(scene->resources, i);
+					if (an_odm->ck != odm->ck) continue;
+					an_odm->prev_clock_at_discontinuity_plus_one = 1 + clock_time;
+				}
 				odm->ck->clock_init = GF_FALSE;
+				gf_clock_set_time(odm->ck, odm->ck->ocr_discontinuity_time ? odm->ck->ocr_discontinuity_time - 1 : clock_reference);
 				odm->ck->ocr_discontinuity_time = 0;
-				odm->ck->prev_clock_at_discontinuity = clock_time;
-				gf_clock_set_time(odm->ck, clock_reference);
 			}
 			//TODO: we currently reset the discontinuity state in audio only, since audio and other medias are not consumed at the same pace
 			//we would need some more logic to know when the discontinuity is over for all media

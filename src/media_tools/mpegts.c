@@ -3122,8 +3122,11 @@ static GF_Err gf_m2ts_process_packet(GF_M2TS_Demuxer *ts, unsigned char *data)
 				//ignore PCR discontinuity indicator if PCR found is larger than previously received PCR and diffence between PCR before and after discontinuity indicator is smaller than 50ms
 				else if ((diff_in_us > 0) && (diff < 200000)) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled but diff is small (diff %d us - PCR diff %d vs prev PCR diff %d) - ignore it\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
-				} else {
+				} else if (paf->discontinuity_indicator) {
 					GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity signaled (diff %d us - PCR diff %d vs prev PCR diff %d)\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
+					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
+				} else {
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MPEG-2 TS] PID %d PCR discontinuity not signaled (diff %d us - PCR diff %d vs prev PCR diff %d)\n", hdr.pid, diff, diff_in_us, prev_diff_in_us));
 					pck.flags = GF_M2TS_PES_PCK_DISCONTINUITY;
 				}
 			}
