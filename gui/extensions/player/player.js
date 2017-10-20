@@ -1001,7 +1001,6 @@ extension = {
                     //do not reopen ourselves !
                     if (arg.indexOf('gui.bt') >= 0) continue;
 
-                    url_arg
                     if (arg.indexOf('://') < 0) url_arg = 'gpac://' + arg;
                     else url_arg = arg;
                 }
