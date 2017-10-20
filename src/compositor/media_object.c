@@ -300,7 +300,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 {
 
 	u32 force_decode_mode = 0;
-	u32 obj_time;
+	u32 obj_time, obj_time_orig;
 	s64 diff;
 	Bool skip_resync;
 	const char *data = NULL;
@@ -308,6 +308,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	u32 timescale=0;
 	u64 pck_ts=0, next_ts=0;
 	u32 retry_pull;
+	Bool move_to_next_only = GF_FALSE;
 
 	*eos = GF_FALSE;
 	*timestamp = mo->timestamp;
@@ -330,9 +331,6 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		gf_filter_pck_unref(mo->pck);
 		mo->pck = NULL;
 	}
-	v = gf_filter_pid_get_property(mo->odm->pid, GF_PROP_PID_TIMESCALE);
-	if (v) timescale = v->value.uint;
-	if (!timescale) timescale=1;
 
 	if ( gf_odm_check_buffering(mo->odm, NULL) ) {
 		//if buffering, first frame fetched and still buffering return
@@ -358,13 +356,12 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		}
 	}
 	*eos = mo->is_eos;
+	assert(mo->pck);
 
-	if (mo->pck) {
-		data = gf_filter_pck_get_data(mo->pck, size);
-		timescale = gf_filter_pck_get_timescale(mo->pck);
+	data = gf_filter_pck_get_data(mo->pck, size);
+	timescale = gf_filter_pck_get_timescale(mo->pck);
 
-		pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
-	}
+	pck_ts = (u32) (1000*gf_filter_pck_get_cts(mo->pck) / timescale);
 
 	/*not running and no resync (ie audio)*/
 	if (!resync && !gf_clock_is_started(mo->odm->ck)) {
@@ -386,7 +383,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		retry_pull--;
 		next_ts = 0;
 		if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts) ) {
-			next_ts = (u32) (1000*next_ts / timescale);
+			next_ts = 1+ (u32) (1000*next_ts / timescale);
 			break;
 		} else {
 			if (gf_filter_pid_is_eos(mo->odm->pid)) {
@@ -410,7 +407,34 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 	}
 
 	/*resync*/
-	obj_time = gf_clock_time(mo->odm->ck);
+	obj_time = obj_time_orig = gf_clock_time(mo->odm->ck);
+
+	if (mo->odm->prev_clock_at_discontinuity_plus_one) {
+		s32 diff_new, diff_old, diff_pck_old, diff_pck_new;
+		s32 old_timebase_time = (s32) obj_time;
+		old_timebase_time -= (s32) mo->odm->ck->init_timestamp;
+		old_timebase_time += (s32) mo->odm->prev_clock_at_discontinuity_plus_one;
+		diff_new = (s32) obj_time;
+		diff_new -= mo->last_fetch_time;
+		if (diff_new < 0) diff_new = -diff_new;
+		diff_old = (s32) old_timebase_time;
+		diff_old -= mo->last_fetch_time;
+		if (diff_old < 0) diff_old = -diff_old;
+
+		diff_pck_old = (s32) pck_ts - (s32) old_timebase_time;
+		diff_pck_new = (s32) pck_ts - (s32) obj_time;
+		if (ABS(diff_pck_old) > ABS(diff_pck_new)) {
+			//don't reset discontinuity flag for audio
+			if (resync>GF_MO_FETCH) {
+				GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] end of clock discontinuity: diff pck TS to old clock %d to new clock %d\n", mo->odm->ID, diff_pck_old, diff_pck_new));
+				mo->odm->prev_clock_at_discontinuity_plus_one = 0;
+			}
+		} else if (diff_old < diff_new) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] in clock discontinuity: time since fetch old clock %d new clock %d\n", mo->odm->ID, diff_old, diff_new));
+
+			obj_time = old_timebase_time;
+		}
+	}
 
 	skip_resync = GF_FALSE;
 	//no drop mode, only for speed = 1: all frames are presented, we discard the current output only if already presented and next frame time is mature
@@ -425,10 +449,13 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 				mo->flags |= GF_MO_IN_RESYNC;
 			}
 			else if (mo->flags & GF_MO_IN_RESYNC) {
-				if (next_ts >= obj_time) {
+				if (next_ts >= 1 + obj_time) {
 					skip_resync = GF_TRUE;
 					mo->flags &= ~GF_MO_IN_RESYNC;
 				}
+			}
+			else if (next_ts && (next_ts < pck_ts) ) {
+				skip_resync = GF_TRUE;
 			}
 			//if the next AU is at most 1 sec from the current clock use no drop mode
 			else if (next_ts + 1000 >= obj_time) {
@@ -446,74 +473,67 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		//we are in no resync mode, drop current frame once played and object time just matured
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fecthing is given by the caller
-		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode
-		)
+		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
+			&& (mo->timestamp==pck_ts) && next_ts && (next_ts <= obj_time + upload_time_ms) )
+		{
+			//drop current and go to next - we use the same loop as regular resync below
+			resync = GF_MO_FETCH_RESYNC;
+			move_to_next_only = GF_TRUE;
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
+		}
+	}
+	if (resync) {
+		u32 nb_dropped = 0;
+		while (next_ts) {
+			if (!move_to_next_only) {
+				if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
+					break;
 
-			&& (mo->timestamp==pck_ts) && next_ts && (next_ts <= obj_time + upload_time_ms) ) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
+
+				//nothing ready yet
+				if ( gf_filter_pid_first_packet_is_empty(mo->odm->pid) ) {
+					break;
+				}
+
+				/*figure out closest time*/
+				if (mo->odm->ck->speed > 0 ? next_ts > obj_time : next_ts < obj_time) {
+					*eos = GF_FALSE;
+					break;
+				}
+
+				nb_dropped ++;
+				if (nb_dropped>=1) {
+					GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->ID, obj_time, pck_ts));
+
+					mo->odm->nb_dropped++;
+				}
+			}
 
 			//delete our packet
 			gf_filter_pck_unref(mo->pck);
 			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
 			gf_filter_pck_ref( &mo->pck);
 			pck_ts = (u32) (1000 * gf_filter_pck_get_cts(mo->pck) / timescale);
-			if (next_ts)
-				assert(pck_ts );
-
 			//drop next packet from pid
 			gf_filter_pid_drop_packet(mo->odm->pid);
+
+			if (obj_time != obj_time_orig) {
+				if ( ( (mo->odm->ck->speed >= 0) && (pck_ts < mo->timestamp) )
+					||  ( (mo->odm->ck->speed < 0) && (pck_ts > mo->timestamp) )
+				) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] end of clock discontinuity, moving from old time base %d to new %d\n", mo->odm->ID, obj_time, obj_time_orig));
+					obj_time = obj_time_orig;
+					mo->odm->prev_clock_at_discontinuity_plus_one = 0;
+				}
+			}
 
 			next_ts = 0;
 			if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts)) {
 				next_ts = (u32) (1000*next_ts / timescale);
 			}
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Switching to CU CTS %u (next %d) now %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
-
-			mo->RenderedLength = 0;
-		}
-	}
-
-	if (resync) {
-		u32 nb_dropped = 0;
-		while (next_ts) {
-			if (mo->odm->ck->speed > 0 ? pck_ts >= obj_time : pck_ts <= obj_time )
+			if (move_to_next_only)
 				break;
-
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] Try to drop frame TS %u next frame TS %u obj time %u\n", mo->odm->ID, pck_ts, next_ts, obj_time));
-
-			//nothing ready yet
-			if ( gf_filter_pid_first_packet_is_empty(mo->odm->pid) ) {
-				break;
-			}
-
-			/*figure out closest time*/
-			if (mo->odm->ck->speed > 0 ? next_ts > obj_time : next_ts < obj_time) {
-				*eos = GF_FALSE;
-				break;
-			}
-
-			nb_dropped ++;
-			if (nb_dropped>=1) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM%d] At OTB %u dropped frame TS %u\n", mo->odm->ID, obj_time, pck_ts));
-
-				mo->odm->nb_dropped++;
-			}
-
-
-			/*discard*/
-			gf_filter_pck_unref(mo->pck);
-			/*reassign current to next packet*/
-			mo->pck = gf_filter_pid_get_packet(mo->odm->pid);
-			gf_filter_pck_ref(& mo->pck);
-			pck_ts = next_ts;
-			//drop next packet from pid
-			gf_filter_pid_drop_packet(mo->odm->pid);
-
-			next_ts = 0;
-			if (gf_filter_pid_get_first_packet_cts(mo->odm->pid, &next_ts)) {
-				next_ts = (u32) (1000*next_ts / timescale);
-			}
-			mo->RenderedLength = 0;
 		}
 	}
 
@@ -543,6 +563,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 
 	if (mo->timestamp != pck_ts) {
 		mo->frame_dur = gf_filter_pck_get_duration(mo->pck);
+		mo->last_fetch_time = obj_time;
 
 		if (mo->odm->media_current_time <= mo->timestamp)
 			mo->odm->media_current_time = mo->timestamp;
