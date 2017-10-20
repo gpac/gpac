@@ -2558,6 +2558,17 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 }
 
+static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
+{
+    u32 i;
+    GF_MPD_AdaptationSet *as;
+    
+    i=0;
+    while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+        //gf_mpd_print_adaptation_set(as, out);
+    }
+}
+
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 {
 	u64 time_ms;
@@ -2581,12 +2592,24 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_write_m3u8(GF_MPD const * const mpd, FILE *out)
+static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out)
 {
+       u32 i;
+       GF_MPD_Period *period;
        fprintf(out, "#EXTM3U\n");
        fprintf(out, "#EXT-X-VERSION:6\n");
        fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
+       
+       i=0;
+       while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
+           //gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
+           /*The notion of periods seems to be undefined in HLS, We'll assuming be here
+            * only one period*/
+           gf_mpd_write_m3u8_playlists(period, out);
+       }
 }
+
+
 
 static GF_Err gf_mpd_write(GF_MPD const * const mpd, FILE *out)
 {
@@ -2713,7 +2736,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name)
                if (!out) return GF_IO_ERR;
        }
 
-       e = gf_mpd_write_m3u8(mpd, out);
+       e = gf_mpd_write_m3u8_master_playlist(mpd, out);
        gf_fclose(out);
        return e;
 }
