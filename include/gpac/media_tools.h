@@ -68,6 +68,15 @@ only, since the OTI used when emulated is not standard...
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 
 /*!
+Creates (if needed) a GF_ESD for the given image item - THIS IS RESERVED for local playback
+only, since the OTI used when emulated is not standard...
+* \param mp4 source file
+* \param item_id item for which the esd is to be emulated
+* \return rebuilt ESD. It is the caller responsibility to delete it.
+*/
+GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id);
+
+/*!
  * Get RFC 6381 description for a given track.
  * \param movie source movie
  * \param track track to check
