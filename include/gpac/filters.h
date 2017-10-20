@@ -490,8 +490,15 @@ Bool gf_filter_pck_get_seek_flag(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_byte_offset(GF_FilterPacket *pck, u64 byte_offset);
 u64 gf_filter_pck_get_byte_offset(GF_FilterPacket *pck);
 
-GF_Err gf_filter_pck_set_clock_discontinuity(GF_FilterPacket *pck);
-Bool gf_filter_pck_is_clock_discontinuity(GF_FilterPacket *pck);
+typedef enum
+{
+	GF_FILTER_CLOCK_NONE=0,
+	GF_FILTER_CLOCK_PCR,
+	GF_FILTER_CLOCK_PCR_DISC,
+} GF_FilterClockType;
+
+GF_Err gf_filter_pck_set_clock_type(GF_FilterPacket *pck, GF_FilterClockType ctype);
+GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_val, u32 *timescale);
 
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);

@@ -80,6 +80,21 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 		drift = (s32)obj_time;
 		drift -= (s32)ts;
 	}
+	if (ai->stream->odm->ck->prev_clock_at_discontinuity) {
+		s32 drift_old = drift;
+		s32 diff;
+		drift_old -= (s32) ai->stream->odm->ck->init_timestamp;
+		drift_old += (s32) ai->stream->odm->ck->prev_clock_at_discontinuity;
+		diff = ABS(drift_old);
+		diff -= ABS(drift);
+		if (diff < 0) {
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUDIO, ("[Audio Input] audio likely at clock discontinuity: drift old clock %d new clock %d - disabling clock adjustment\n", drift_old, drift));
+			drift = 0;
+			audio_delay_ms = 0;
+		} else {
+			ai->stream->odm->ck->prev_clock_at_discontinuity = 0;
+		}
+	}
 
 #ifdef ENABLE_EARLY_FRAME_DETECTION
 	/*too early (silence insertions), skip*/

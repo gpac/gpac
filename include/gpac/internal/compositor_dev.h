@@ -1835,34 +1835,33 @@ void gf_scene_notify_associated_media_timeline(GF_Scene *scene, GF_AssociatedCon
 /*clock*/
 struct _object_clock
 {
-	u16 clockID;
+	u16 clock_id;
 	GF_Compositor *compositor;
 	GF_Mutex *mx;
 	/*no_time_ctrl : set if ANY stream running on this clock has no time control capabilities - this avoids applying
 	mediaControl and others that would break stream dependencies*/
-	Bool use_ocr, clock_init, has_seen_eos, no_time_ctrl;
-	u32 init_time, StartTime, PauseTime, Paused;
+	Bool clock_init, has_seen_eos, no_time_ctrl;
+	u32 init_timestamp, start_time, pause_time, nb_paused;
 	/*the number of streams buffering on this clock*/
-	u32 Buffering;
+	u32 nb_buffering;
 	/*associated media control if any*/
 	struct _media_control *mc;
 	/*for MC only (no FlexTime)*/
 	Fixed speed;
-	u32 discontinuity_time;
+	//whenever speed is changed we store the time at this instant
+	u32 speed_set_time;
 	s32 drift;
 	u32 data_timeout;
-	Bool probe_ocr;
-	Bool broken_pcr;
-	u32 last_TS_rendered;
+
+	u32 last_ts_rendered;
 	u32 service_id;
 
 	//media time in ms corresponding to the init tmiestamp of the clock
 	u32 media_time_at_init;
 	Bool has_media_time_shift;
 
-	u16 ocr_on_esid;
-
-	u64 ts_shift;
+	u32 ocr_discontinuity_time;
+	u32 prev_clock_at_discontinuity;
 };
 
 /*destroys clock*/

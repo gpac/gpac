@@ -653,62 +653,64 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 					continue;
 				}
 
+				if (!task->filter->finalized) {
+					//task was in the filter queue, drop it
+					if (!task->in_main_task_list_only) {
+						next = gf_fq_head(current_filter->tasks);
+						assert(next == task);
 
-				//task was in the filter queue, drop it
-				if (!task->in_main_task_list_only) {
+						gf_fq_pop(current_filter->tasks);
+						task->in_main_task_list_only = GF_TRUE;
+					}
+
+					check_task_list(current_filter->tasks, task);
+					check_task_list(fsess->main_thread_tasks, task);
+
+					//next in filter should be handled before this task, move task at the end of the filter task
 					next = gf_fq_head(current_filter->tasks);
-					assert(next == task);
+					if (next && next->schedule_next_time < task->schedule_next_time) {
+						if (task->notified) {
+							assert(fsess->tasks_pending);
+							safe_int_dec(&fsess->tasks_pending);
+							task->notified = GF_FALSE;
+						}
+						task->in_main_task_list_only = GF_FALSE;
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s reposted to filter task until task exec time is reached (%d us)\n", thid, current_filter->name, task->log_name, (s32) (task->schedule_next_time - next->schedule_next_time) ));
+						gf_fq_add(current_filter->tasks, task);
+						continue;
+					}
+					assert(task->in_main_task_list_only);
 
-					gf_fq_pop(current_filter->tasks);
+					//move task to main list
+					if (!task->notified) {
+						task->notified = GF_TRUE;
+						safe_int_inc(&fsess->tasks_pending);
+					}
 					task->in_main_task_list_only = GF_TRUE;
-				}
 
-				check_task_list(current_filter->tasks, task);
-				check_task_list(fsess->main_thread_tasks, task);
+					sess_thread->active_time += gf_sys_clock_high_res() - active_start;
 
-				//next in filter should be handled before this task, move task at the end of the filter task
-				next = gf_fq_head(current_filter->tasks);
-				if (next && next->schedule_next_time < task->schedule_next_time) {
-					if (task->notified) {
-						assert(fsess->tasks_pending);
-						safe_int_dec(&fsess->tasks_pending);
-						task->notified = GF_FALSE;
+					if (! fsess->no_regulation) {
+						GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, (s32) diff));
+
+						if (th_count==0) {
+							if ( gf_fq_count(fsess->tasks) )
+								diff=5;
+						}
+
+						gf_sleep(diff);
+						active_start = gf_sys_clock_high_res();
 					}
-					task->in_main_task_list_only = GF_FALSE;
-					gf_fq_add(current_filter->tasks, task);
-					continue;
-				}
-				assert(task->in_main_task_list_only);
-
-				//move task to main list
-				if (!task->notified) {
-					task->notified = GF_TRUE;
-					safe_int_inc(&fsess->tasks_pending);
-				}
-				task->in_main_task_list_only = GF_TRUE;
-
-				sess_thread->active_time += gf_sys_clock_high_res() - active_start;
-
-				if (! fsess->no_regulation) {
-					GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Thread %d: task %s:%s postponed for %d ms\n", thid, current_filter->name, task->log_name, (s32) diff));
-
-					if (th_count==0) {
-						if ( gf_fq_count(fsess->tasks) )
-							diff=5;
+					if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
+						current_filter->in_process = GF_FALSE;
+						if (current_filter->freg->requires_main_thread) {
+							gf_fq_add(fsess->main_thread_tasks, task);
+						} else {
+							gf_fq_add(fsess->tasks, task);
+						}
+						current_filter = NULL;
+						continue;
 					}
-
-					gf_sleep(diff);
-					active_start = gf_sys_clock_high_res();
-				}
-				if (task->schedule_next_time >  gf_sys_clock_high_res() + 2000) {
-					current_filter->in_process = GF_FALSE;
-					if (current_filter->freg->requires_main_thread) {
-						gf_fq_add(fsess->main_thread_tasks, task);
-					} else {
-						gf_fq_add(fsess->tasks, task);
-					}
-					current_filter = NULL;
-					continue;
 				}
 			}
 		}
@@ -1263,12 +1265,15 @@ void gf_fs_cleanup_filters_task(GF_FSTask *task)
 
 void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 {
+#if 0
 	if (fsess->filters_mx) gf_mx_p(fsess->filters_mx);
 	if ( safe_int_dec(&fsess->pid_connect_tasks_pending) == 0) {
 		//we need a task for cleanup, otherwise we may destroy the filter and the task of the task currently scheduled !!
 		gf_fs_post_task(fsess, gf_fs_cleanup_filters_task, NULL, NULL, "filters_cleanup", fsess);
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
+#endif
+
 }
 
 #ifdef FILTER_FIXME

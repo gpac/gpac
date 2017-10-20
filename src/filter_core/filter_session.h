@@ -133,7 +133,7 @@ typedef struct __gf_filter_pck_info
 	u8 interlaced;
 	u8 corrupted;
 	u8 eos;
-	u8 clock_discontinuity;
+	u8 clock_type;
 	u8 seek_flag;
 	u8 carousel_version_number;
 	u64 byte_offset;
@@ -376,6 +376,10 @@ struct __gf_filter
 	Bool skip_process_trigger_on_tasks;
 
 	u64 schedule_next_time;
+
+	u64 next_clock_dispatch;
+	u32 next_clock_dispatch_timescale;
+	GF_FilterClockType next_clock_dispatch_type;
 };
 
 typedef enum
@@ -397,6 +401,8 @@ GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgT
 GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
+
+void gf_filter_forward_clock(GF_Filter *filter);
 
 
 typedef struct
@@ -445,6 +451,19 @@ struct __gf_filter_pid_inst
 	volatile u32 nb_eos_signaled;
 
 	Bool is_decoder_input;
+
+	//clock handling by the consumer: the clock values are not automatically dispatched to the output pids and are kept
+	//available as regular packets in the input pid
+	Bool handles_clock_references;
+	//if clocks are handled internally:
+	//number of clock packets present
+	volatile u32 nb_clocks_signaled;
+	//last clock value found
+	u64 last_clock_value;
+	//last clock value's timescale found
+	u32 last_clock_timescale;
+	//last clock type found
+	GF_FilterClockType last_clock_type;
 };
 
 struct __gf_filter_pid

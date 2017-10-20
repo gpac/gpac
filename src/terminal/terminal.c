@@ -108,11 +108,11 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 		while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
 			j = 0;
 			while ((ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j))) {
-				ck->init_time += ms_diff;
+				ck->init_timestamp += ms_diff;
 				ck->media_time_at_init += ms_diff;
 				//make sure we don't touch clock while doing resume/pause below
 				if (force_resume_pause)
-					ck->Paused++;
+					ck->nb_paused++;
 			}
 		}
 		compositor->step_mode = GF_TRUE;
@@ -129,7 +129,7 @@ static GF_Err gf_sc_step_clocks_intern(GF_Compositor *compositor, u32 ms_diff, B
 			while ((ns = (GF_SceneNamespace*)gf_list_enum(compositor->root_scene->namespaces, &i))) {
 				j = 0;
 				while ((ck = (GF_Clock *)gf_list_enum(ns->Clocks, &j))) {
-					ck->Paused--;
+					ck->nb_paused--;
 				}
 			}
 		}
