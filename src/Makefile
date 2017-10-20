@@ -77,7 +77,7 @@ LIBGPAC_SCENE=scenegraph/base_scenegraph.o scenegraph/mpeg4_animators.o scenegra
 ## libgpac objects gathering: src/mcrypt
 LIBGPAC_MCRYPT=
 ifeq ($(DISABLE_MCRYPT), no)
-LIBGPAC_MCRYPT+=mcrypt/cbc.o mcrypt/cfb.o mcrypt/ctr.o mcrypt/des.o mcrypt/ecb.o mcrypt/g_crypt.o mcrypt/ncfb.o mcrypt/nofb.o mcrypt/ofb.o mcrypt/rijndael-128.o mcrypt/rijndael-192.o mcrypt/rijndael-256.o mcrypt/stream.o mcrypt/tripledes.o 
+LIBGPAC_MCRYPT+=mcrypt/g_crypt.o mcrypt/g_crypt_openssl.o
 endif
 
 ## libgpac objects gathering: src/media tools
