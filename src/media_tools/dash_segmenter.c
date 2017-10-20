@@ -5771,6 +5771,7 @@ void gf_dasher_del(GF_DASHSegmenter *dasher)
 	gf_mpd_del(dasher->mpd);
 	gf_free(dasher->tmpdir);
 	gf_free(dasher->mpd_name);
+	gf_free(dasher->m3u8_name);
 	gf_free(dasher);
 }
 
@@ -6124,7 +6125,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 {
 	u32 i, j, max_period, cur_period;
 	Bool has_role = GF_FALSE;
-       char *sep, szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH],szTempm3u8[GF_MAX_PATH];
+       char *sep, szSolvedSegName[GF_MAX_PATH], szTempMPD[GF_MAX_PATH], szOpt[GF_MAX_PATH];
 	const char *opt;
 	GF_Err e;
 	Bool uses_xlink = GF_FALSE;
@@ -6706,9 +6707,6 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 
 	strcpy(szTempMPD, dasher->mpd_name);
 	if (dasher->dash_mode) strcat(szTempMPD, ".tmp");
-
-       if(dasher->m3u8_name)
-           strcpy(szTempm3u8, dasher->m3u8_name);/*Might be useful for periods, although not sure of period use in hls*/
 
 	dasher->mpd_file = gf_fopen(szTempMPD, "wt");
 	if (!dasher->mpd_file) {

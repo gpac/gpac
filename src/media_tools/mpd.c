@@ -2566,6 +2566,7 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
     i=0;
     while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
         //gf_mpd_print_adaptation_set(as, out);
+        
     }
 }
 
