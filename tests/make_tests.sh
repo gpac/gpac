@@ -210,7 +210,7 @@ sync_media ()
   mkdir $EXTERNAL_MEDIA_DIR
  fi
  cd $EXTERNAL_MEDIA_DIR
- wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" "$REFERENCE_DIR/media/"
+ wget -q -m -nH --no-parent --cut-dirs=4 --reject "*.gif" --reject "index.html*" --restrict-file-names=nocontrol "$REFERENCE_DIR/media/"
  cd "$main_dir"
 }
 

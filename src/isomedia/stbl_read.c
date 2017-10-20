@@ -66,7 +66,7 @@ GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *s
 			if ( i && (curDTS + CTSOffset > DTS) ) {
 				ent = &stbl->TimeToSample->entries[i];
 				curSampNum -= ent->sampleCount;
-				curDTS -= ent->sampleDelta * ent->sampleCount;
+				curDTS -= (u64)ent->sampleDelta * ent->sampleCount;
 				i --;
 			} else if (!i) {
 				//beginning of the table, no choice
@@ -96,7 +96,7 @@ GF_Err stbl_findEntryForTime(GF_SampleTableBox *stbl, u64 DTS, u8 useCTS, u32 *s
 			curDTS += ent->sampleDelta;
 		}
 		//we're switching to the next entry, update the cache!
-		stbl->TimeToSample->r_CurrentDTS += ent->sampleCount * ent->sampleDelta;
+		stbl->TimeToSample->r_CurrentDTS += (u64)ent->sampleCount * ent->sampleDelta;
 		stbl->TimeToSample->r_currentEntryIndex += 1;
 		stbl->TimeToSample->r_FirstSampleInEntry += ent->sampleCount;
 	}
@@ -206,7 +206,7 @@ GF_Err stbl_GetSampleDTS_and_Duration(GF_TimeToSampleBox *stts, u32 SampleNumber
 		}
 
 		//update our cache
-		stts->r_CurrentDTS += ent->sampleCount * ent->sampleDelta;
+		stts->r_CurrentDTS += (u64)ent->sampleCount * ent->sampleDelta;
 		stts->r_currentEntryIndex += 1;
 		stts->r_FirstSampleInEntry += ent->sampleCount;
 	}
