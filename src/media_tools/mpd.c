@@ -2695,6 +2695,22 @@ GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 }
 
 GF_EXPORT
+GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name)
+{
+       GF_Err e;
+       FILE *out;
+       if (!strcmp(file_name, "std")) out = stdout;
+       else {
+               out = gf_fopen(file_name, "wb");
+               if (!out) return GF_IO_ERR;
+       }
+
+       //e = gf_mpd_write(mpd, out);
+       gf_fclose(out);
+       return e;
+}
+
+GF_EXPORT
 u32 gf_mpd_get_base_url_count(GF_MPD *mpd, GF_MPD_Period *period, GF_MPD_AdaptationSet *set, GF_MPD_Representation *rep)
 {
 	u32 base_url_count, i;

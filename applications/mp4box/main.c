@@ -1870,7 +1870,7 @@ GF_SceneDumpFormat dump_mode;
 Double mpd_live_duration = 0;
 Bool HintIt, needSave, FullInter, Frag, HintInter, dump_rtp, regular_iod, remove_sys_tracks, remove_hint, force_new, remove_root_od;
 Bool print_sdp, print_info, open_edit, dump_cr, force_ocr, encode, do_log, do_flat, dump_srt, dump_ttxt, dump_timestamps, do_saf, dump_m2ts, dump_cart, do_hash, verbose, force_cat, align_cat, pack_wgt, single_group, clean_groups, dash_live, no_fragments_defaults, single_traf_per_moof;
-char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file;
+char *inName, *outName, *arg, *mediaSource, *tmpdir, *input_ctx, *output_ctx, *drm_file, *avi2raw, *cprt, *chap_file, *pes_dump, *itunes_tags, *pack_file, *raw_cat, *seg_name, *dash_ctx_file,*dash_mpd_m3u_name;
 u32 track_dump_type, dump_isom;
 u32 trackID;
 Double min_buffer = 1.5;
@@ -3222,6 +3222,11 @@ Bool mp4box_parse_args(int argc, char **argv)
 			dash_duration_strict = GF_TRUE;
 			i++;
 		}
+               else if (!stricmp(arg, "-m3u8-from-mpd")) {
+                       CHECK_NEXT_ARG
+                       dash_mpd_m3u_name = gf_strdup(argv[i + 1]);
+                       i++;
+               }
 		else if (!stricmp(arg, "-subdur")) {
 			CHECK_NEXT_ARG
 			dash_subduration = atof(argv[i + 1]) / 1000;
@@ -3480,6 +3485,7 @@ int mp4boxMain(int argc, char **argv)
 	file = NULL;
 	itunes_tags = pes_dump = NULL;
 	seg_name = dash_ctx_file = NULL;
+       dash_mpd_m3u_name = NULL;
 	initial_moof_sn = 0;
 	initial_tfdt = 0;
 
@@ -4071,6 +4077,7 @@ int mp4boxMain(int argc, char **argv)
 		if (!e) e = gf_dasher_enable_cached_inputs(dasher, no_cache);
 		if (!e) e = gf_dasher_set_test_mode(dasher,force_test_mode);
 		if (!e) e = gf_dasher_enable_loop_inputs(dasher, ! no_loop);
+               if (!e) e = gf_dasher_set_m3u8info(dasher, dash_mpd_m3u_name);
 
 		for (i=0; i < nb_dash_inputs; i++) {
 			if (!e) e = gf_dasher_add_input(dasher, &dash_inputs[i]);

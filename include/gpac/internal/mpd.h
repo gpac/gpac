@@ -417,6 +417,8 @@ GF_MPD_Period *gf_mpd_period_new();
 void gf_mpd_period_free(void *_item);
 
 GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name);
+GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name);
+
 void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FILE *out);
 GF_Err gf_mpd_parse_period(GF_MPD *mpd, GF_XMLNode *root);
 
