@@ -1482,7 +1482,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 				odm->ck->ocr_discontinuity_time = 0;
 			}
 		}
-	} else {
+	} else if (ck_type) {
 		clock_reference *= 1000;
 		clock_reference /= timescale;
 		if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
