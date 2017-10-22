@@ -1293,14 +1293,22 @@ static Bool gf_filter_pid_filter_internal_packet(GF_FilterPid *pid, GF_FilterPac
 		if (pcki->pid->handles_clock_references) return GF_FALSE;
 		safe_int_dec(&pcki->pid->nb_clocks_signaled);
 		//signal destination
+		assert(!pcki->pid->filter->next_clock_dispatch_type || !pcki->pid->filter->num_output_pids);
+
 		pcki->pid->filter->next_clock_dispatch = pcki->pck->info.cts;
 		pcki->pid->filter->next_clock_dispatch_timescale = pcki->pck->pid_props->timescale;
 		pcki->pid->filter->next_clock_dispatch_type = pcki->pck->info.clock_type;
 
-		//keep value
+		//keep clock values but only override clock type if no discontinuity is pending
 		pcki->pid->last_clock_value = pcki->pck->info.cts;
 		pcki->pid->last_clock_timescale = pcki->pck->pid_props->timescale;
-		pcki->pid->last_clock_type = pcki->pck->info.clock_type;
+		if (pcki->pid->last_clock_type != GF_FILTER_CLOCK_PCR_DISC)
+			pcki->pid->last_clock_type = pcki->pck->info.clock_type;
+
+		if (pcki->pck->info.clock_type == GF_FILTER_CLOCK_PCR_DISC) {
+			assert(pcki->pid->last_clock_type == GF_FILTER_CLOCK_PCR_DISC);
+		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Internal clock reference packet filtered - PID %s clock ref "LLU"/%d - type %d\n", pcki->pid->pid->name, pcki->pid->last_clock_value, pcki->pid->last_clock_timescale, pcki->pid->last_clock_type));
 		//the following call to drop_packet will trigger clock forwarding to all output pids
 		is_internal = GF_TRUE;
 	}

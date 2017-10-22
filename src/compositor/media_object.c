@@ -474,7 +474,7 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 		//do it only if clock is started or if compositor step mode is set
 		//the time threshold for fecthing is given by the caller
 		if ( (gf_clock_is_started(mo->odm->ck) || mo->odm->parentscene->compositor->use_step_mode)
-			&& (mo->timestamp==pck_ts) && next_ts && (next_ts <= obj_time + upload_time_ms) )
+			&& (mo->timestamp==pck_ts) && next_ts && ( (next_ts <= 1 + obj_time + upload_time_ms) || (next_ts <= 1 + obj_time_orig + upload_time_ms) ) )
 		{
 			//drop current and go to next - we use the same loop as regular resync below
 			resync = GF_MO_FETCH_RESYNC;
@@ -519,9 +519,10 @@ char *gf_mo_fetch_data(GF_MediaObject *mo, GF_MOFetchMode resync, u32 upload_tim
 			gf_filter_pid_drop_packet(mo->odm->pid);
 
 			if (obj_time != obj_time_orig) {
-				if ( ( (mo->odm->ck->speed >= 0) && (pck_ts < mo->timestamp) )
-					||  ( (mo->odm->ck->speed < 0) && (pck_ts > mo->timestamp) )
-				) {
+				s32 diff_pck_old = (s32) pck_ts - (s32) obj_time;
+				s32 diff_pck_new = (s32) pck_ts - (s32) obj_time_orig;
+
+				if (ABS(diff_pck_old) > ABS(diff_pck_new)) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("[ODM%d] end of clock discontinuity, moving from old time base %d to new %d\n", mo->odm->ID, obj_time, obj_time_orig));
 					obj_time = obj_time_orig;
 					mo->odm->prev_clock_at_discontinuity_plus_one = 0;
