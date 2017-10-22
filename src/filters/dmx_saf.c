@@ -5,7 +5,7 @@
  *			Copyright (c) Telecom ParisTech 2005-2017
  *					All rights reserved
  *
- *  This file is part of GPAC / SAF demuxer filter module
+ *  This file is part of GPAC / SAF demuxer filter
  *
  *  GPAC is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
