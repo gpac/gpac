@@ -94,11 +94,9 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	s8 sample_offset;
 	char*buffer = NULL;
 	u32 max_size = 0;
-	u32 last_byte, ref_sample_num, prev_ref_sample_num, header_start;
+	u32 last_byte, ref_sample_num, prev_ref_sample_num;
 	Bool header_written = GF_FALSE;
 	nb_bytes_nalh = is_hevc ? 2 : 1;
-
-	header_start = gf_bs_get_position(dst_bs);
 
 	switch (extractor_mode) {
 	case 0:
