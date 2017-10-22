@@ -1134,6 +1134,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 	strcpy(args, "src=");
 	strcat(args, sURL);
 
+	e = GF_OK;
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, GF_FILTER_ARG_GLOBAL_SOURCE, err);
 	} else {
@@ -1142,7 +1143,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		if (err) *err = e;
 	}
 	
-	if (filter && !filter->num_output_pids)
+	if (!e && filter && !filter->num_output_pids)
 		gf_filter_post_process_task(filter);
 
 	gf_free(sURL);

@@ -422,8 +422,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			value++;
 		}
 
+/*
 		if ((arg_type == GF_FILTER_ARG_GLOBAL) && !strcmp(szArg, "src"))
 			goto skip_arg;
+*/
 
 		i=0;
 		while (filter->freg->args) {
@@ -907,6 +909,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	//we manage to reassign an input registry
 	if (e==GF_OK) return GF_TRUE;
 	//nope ...
+	gf_filter_setup_failure(filter, e);
 	return GF_FALSE;
 }
 
