@@ -102,7 +102,7 @@ GF_Err GetESD(GF_MovieBox *moov, u32 trackID, u32 StreamDescIndex, GF_ESD **outE
 		if (e) return e;
 		if (dpnd) {
 			//ONLY ONE STREAM DEPENDENCY IS ALLOWED
-			if (dpnd->trackIDCount != 1) return GF_ISOM_INVALID_MEDIA;
+			if (!k && (dpnd->trackIDCount != 1)) return GF_ISOM_INVALID_MEDIA;
 			//fix the spec: where is the index located ??
 			esd->dependsOnESID = dpnd->trackIDs[0];
 			break;

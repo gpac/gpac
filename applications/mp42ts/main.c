@@ -82,6 +82,8 @@ static GFINLINE void usage()
 	        "             All sources with the same ID will be added to the same program\n"
 	        "name=STR               program name, as used in DVB service description table\n"
 	        "provider=STR           provider name, as used in DVB service description table\n"
+	        "disc                   the first packet of each stream will have the discontinuity marker set\n"
+	        "pmt=N                  stes version number of the PMT\n"
 
 	        "\n"
 	        "-prog filename        same as -src filename\n"
@@ -181,6 +183,8 @@ typedef struct
 	char provider_name[20];
 	u32 ID;
 	Bool is_not_program_declaration;
+	Bool set_disc;
+	u32 pmt_version;
 
 	Double last_ntp;
 } M2TSSource;
@@ -445,7 +449,7 @@ static GF_Err mp4_input_ctrl(GF_ESInterface *ifce, u32 act_type, void *param)
 
 		if (!priv->source->real_time && !priv->is_repeat) {
 			priv->source->samples_done++;
-			gf_set_progress("Converting to MPEG-2 TS", priv->source->samples_done, priv->source->samples_count);
+			gf_set_progress("MPEG-2 TS Muxing", priv->source->samples_done, priv->source->samples_count);
 		}
 
 		if (priv->sample_number==priv->sample_count) {
@@ -2228,6 +2232,10 @@ static GFINLINE GF_Err parse_args(int argc, char **argv, u32 *mux_rate, u32 *car
 						break;
 					}
 				}
+			} else if (!strnicmp(src_args, "disc", 4)) {
+				sources[*nb_sources].set_disc = GF_TRUE;
+			} else if (!strnicmp(src_args, "PMT=", 4)) {
+				sources[*nb_sources].pmt_version = atoi(src_args+4);
 			}
 
 			if (sep) {
@@ -2590,7 +2598,7 @@ int main(int argc, char **argv)
 			}
 			fprintf(stderr, "Setting up program ID %d - send rates: PSI %d ms PCR %d ms - PCR offset %d\n", sources[i].ID, psi_refresh_rate, pcr_ms, prog_pcr_offset);
 
-			program = gf_m2ts_mux_program_add(muxer, sources[i].ID, cur_pid, psi_refresh_rate, prog_pcr_offset, sources[i].mpeg4_signaling);
+			program = gf_m2ts_mux_program_add(muxer, sources[i].ID, cur_pid, psi_refresh_rate, prog_pcr_offset, sources[i].mpeg4_signaling, sources[i].pmt_version, sources[i].set_disc);
 			if (sources[i].mpeg4_signaling) program->iod = sources[i].iod;
 			if (sources[i].od_updates) {
 				program->loop_descriptors = sources[i].od_updates;
