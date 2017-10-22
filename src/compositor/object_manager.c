@@ -1427,7 +1427,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 		gf_scene_buffering_info(scene);
 
 	//handle both PCR discontinuities or TS looping when no PCR disc is present/signaled
-	if (pck  ) {
+	if (pck) {
 		s32 diff=0;
 		u64 pck_time = 0;
 		u32 clock_time = gf_clock_time(odm->ck);
@@ -1437,7 +1437,7 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			clock_reference /= timescale;
 			diff = (s32) clock_time + odm->buffer_playout_us/1000;
 			diff -= (s32) clock_reference;
-			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d reference found "LLU" ms clock time %d ms - diff %d\n", odm->ck->clock_id, clock_reference, clock_time, diff));
+			GF_LOG(GF_LOG_INFO, GF_LOG_SYNC, ("Clock %d (ODM %d) reference found "LLU" ms clock time %d ms - diff %d - type %d\n", odm->ck->clock_id, odm->ID, clock_reference, clock_time, diff, ck_type));
 
 			//if explicit clock discontinuity, mark clock
 			if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
@@ -1451,12 +1451,13 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 			pck_time += 1;
 			diff = clock_time;
 			diff -= pck_time;
-			if (!diff_to) diff_to = odm->ck->ocr_discontinuity_time ? 1000 : 8000;
+			diff_to = odm->ck->ocr_discontinuity_time ? 500 : 8000;
 		}
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) pck time %d - clock ref "LLU" clock time %d - diff %d vs %d\n", odm->ck->clock_id, odm->ID, pck_time, clock_reference, clock_time, diff, diff_to));
 
 		//we have a valid TS for the packet, and the CTS diff to the current clock is larget than 8 sec, check for discontinuities
 		//it may happen that video is sent up to 4 or 5 seconds ahead of the PCR in some systems, 8 sec should be enough
-		if (diff_to && (diff > diff_to) ) {
+		if (diff_to && (ABS(diff) > diff_to) ) {
 			s64 diff_pck_old_clock, diff_pck_new_clock;
 			//compute diff to old clock and new clock
 			diff_pck_new_clock = pck_time-1 - (s64) clock_reference;
@@ -1480,9 +1481,14 @@ Bool gf_odm_check_buffering(GF_ObjectManager *odm, GF_FilterPid *pid)
 				gf_clock_set_time(odm->ck, odm->ck->ocr_discontinuity_time ? odm->ck->ocr_discontinuity_time - 1 : clock_reference);
 				odm->ck->ocr_discontinuity_time = 0;
 			}
-			//TODO: we currently reset the discontinuity state in audio only, since audio and other medias are not consumed at the same pace
-			//we would need some more logic to know when the discontinuity is over for all media
 		}
+	} else {
+		clock_reference *= 1000;
+		clock_reference /= timescale;
+		if (ck_type==GF_FILTER_CLOCK_PCR_DISC)
+			odm->ck->ocr_discontinuity_time = 1 + clock_reference;
+
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_SYNC, ("Clock %d (ODM %d) received "LLU" type %d clock time %d no pending packets\n", odm->ck->clock_id, odm->ID, clock_reference, ck_type, gf_clock_time(odm->ck)));
 	}
 	return odm->ck->nb_buffering ? GF_TRUE : GF_FALSE;
 }
