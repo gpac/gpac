@@ -2563,8 +2563,8 @@ static GF_Err gf_mpd_write_m3u8_playlist_tags(GF_MPD_AdaptationSet const * const
 {
         if(rs->mime_type){
             if (!strcmp(rs->mime_type,"audio/mp4")){
-                fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\"");
-                fprintf(out, "NAME=\"English stereo\",");
+                fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",");
+                fprintf(out, "NAME=\"%s\",",rs->id);
                 fprintf(out, "LANGUAGE=\"%s\",",as->lang);
                 fprintf(out, "AUTOSELECT=YES,URI=%s\"\n",m3u8_name);
             }
@@ -2594,9 +2594,29 @@ static char *remove_m3u8_ext(char* mystr) {
     return retstr;
 }
 
+static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, GF_MPD_Representation const * const rs, char *m3u8_name,u64 duration){
+       FILE *out;
+       if (!strcmp(m3u8_name, "std")) out = stdout;
+       else {
+               out = gf_fopen(m3u8_name, "wb");
+               if (!out) return GF_IO_ERR;
+       }
+
+       fprintf(out,"#EXTM3U\n");
+       fprintf(out,"#EXT-X-TARGETDURATION:%d\n",duration/1000);
+       fprintf(out,"#EXT-X-VERSION:\n");
+       fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
+       fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
+       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
+
+       gf_fclose(out);
+
+}
+
 static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, char* m3u8_name)
 {
     u32 i,j;
+    GF_Err e;
     GF_MPD_AdaptationSet *as;
     GF_MPD_Representation *rs;
     char URL_NAME[1000];
@@ -2616,8 +2636,12 @@ static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, char
             sprintf(URL_NAME, "%s_%d_%d.m3u8",m3u8_name_rad, i, j);
             gf_mpd_write_m3u8_playlist_tags(as, rs, out, URL_NAME);
             fprintf(out,"\n");
+            e=gf_mpd_write_m3u8_playlist(as,rs,URL_NAME, period->duration);
+            if(e){
+                 GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] IO error while opening m3u8 files.\n"));
+                 return GF_IO_ERR;
+            }
         }
-        //gf_mpd_write_m3u8       
     }
 
     free(m3u8_name_rad);
