@@ -2558,20 +2558,37 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist_tag(GF_MPD_AdaptationSet const * const as, FILE *out)
+static GF_Err gf_mpd_write_m3u8_playlist_tag_from_as(GF_MPD_AdaptationSet const * const as, FILE *out)
 {
-	if (as->mime_type=="audio/mp4") fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES");
+        if(as->mime_type){
+            if (!strcmp(as->mime_type,"audio/mp4"))fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES\n");
+            else if(!strcmp(as->mime_type,"video/mp4"))fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
+        }
 	return GF_OK;
+}
+
+static GF_Err gf_mpd_write_m3u8_playlist_tag_from_rs(GF_MPD_Representation const * const rs, FILE *out)
+{
+        if(rs->mime_type){
+            if (!strcmp(rs->mime_type,"audio/mp4"))fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES\n");
+            else if(!strcmp(rs->mime_type,"video/mp4"))fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
+        }
+        return GF_OK;
 }
 
 static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
 {
-    u32 i;
+    u32 i,j;
     GF_MPD_AdaptationSet *as;
+    GF_MPD_Representation *rs;
     
     i=0;
     while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-        gf_mpd_write_m3u8_playlist_tag(as, out);
+        gf_mpd_write_m3u8_playlist_tag_from_as(as, out);
+        j=0;
+        while ( (rs = (GF_MPD_AdaptationSet *) gf_list_enum(as->representations, &j))) {
+            gf_mpd_write_m3u8_playlist_tag_from_rs(rs, out);
+        }
         //gf_mpd_write_m3u8       
     }
     
@@ -2607,7 +2624,7 @@ static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *
        GF_MPD_Period *period;
        fprintf(out, "#EXTM3U\n");
        fprintf(out, "#EXT-X-VERSION:6\n");
-       fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n");
+       fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n\n");
        
        i=0;
        while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
