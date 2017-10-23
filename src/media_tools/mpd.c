@@ -442,6 +442,7 @@ void gf_mpd_parse_segment_url(GF_List *container, GF_XMLNode *root)
 		//else if (!strcmp(att->name, "hls:keyMethod")) seg->key_url = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "hls:keyURL")) seg->key_url = gf_mpd_parse_string(att->value);
 		else if (!strcmp(att->name, "hls:keyIV")) gf_bin128_parse(att->value, seg->key_iv);
+                else if (!strcmp(att->name, "duration")) seg->duration=gf_mpd_parse_int(att->value);
 
 	}
 }
@@ -2607,7 +2608,20 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
        fprintf(out,"#EXT-X-VERSION:\n");
        fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
        fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
-       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
+       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n\n");
+
+       if (rs->segment_list) {
+           GF_MPD_SegmentList *s=rs->segment_list;
+           if (s->segment_URLs) {
+               u32 i;
+               GF_MPD_SegmentURL *url;
+               i = 0;
+               while ( (url = gf_list_enum(s->segment_URLs, &i))) {
+                   fprintf(out,"#EXTINF:%f\n",(float)s->duration/(float)s->timescale);
+                   fprintf(out,"%s\n",url->media);
+               }
+            }
+       }
 
        gf_fclose(out);
 
