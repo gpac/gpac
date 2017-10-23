@@ -2560,37 +2560,72 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 static GF_Err gf_mpd_write_m3u8_playlist_tag_from_as(GF_MPD_AdaptationSet const * const as, FILE *out)
 {
-        if(as->mime_type){
-            if (!strcmp(as->mime_type,"audio/mp4"))fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES\n");
-            else if(!strcmp(as->mime_type,"video/mp4"))fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
-        }
+//        if(as->mime_type){
+//            if (!strcmp(as->mime_type,"audio/mp4"))fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES\n");
+//            else if(!strcmp(as->mime_type,"video/mp4"))fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
+//        }
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_write_m3u8_playlist_tag_from_rs(GF_MPD_Representation const * const rs, FILE *out)
+static GF_Err gf_mpd_write_m3u8_playlist_tag_from_rs(GF_MPD_Representation const * const rs, FILE *out, char *m3u8_name)
 {
         if(rs->mime_type){
-            if (!strcmp(rs->mime_type,"audio/mp4"))fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES\n");
-            else if(!strcmp(rs->mime_type,"video/mp4"))fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
+            if (!strcmp(rs->mime_type,"audio/mp4")){
+                fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",NAME=\"English stereo\",LANGUAGE=\"en\",AUTOSELECT=YES,");
+                fprintf(out, "URI=%s\"\n",m3u8_name);
+            }
+            else if(!strcmp(rs->mime_type,"video/mp4")){
+                fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=628000,CODECS=\"avc1.4dc00d,mp4a.40.2\",RESOLUTION=320x180,AUDIO=\"audio\"\n");
+                fprintf(out, "%s\n",m3u8_name);
+            }
+
         }
         return GF_OK;
 }
 
-static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out)
+/*Warning, returned string should be freed by user*/
+static char *remove_m3u8_ext(char* mystr) {
+    char *retstr;
+    char *lastdot;
+    if (mystr == NULL)
+         return NULL;
+    if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
+        return NULL;
+    strcpy (retstr, mystr);
+    lastdot = strrchr (retstr, '.');
+    if (lastdot != NULL)
+        *lastdot = '\0';
+    return retstr;
+}
+
+static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, char* m3u8_name)
 {
     u32 i,j;
     GF_MPD_AdaptationSet *as;
     GF_MPD_Representation *rs;
+    char URL_NAME[1000];
+    char *m3u8_name_rad;
+
+    m3u8_name_rad=remove_m3u8_ext(m3u8_name);
+    if(!m3u8_name_rad){
+        GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] The m3u8 file should contain .m3u8 extension.\n"));
+        return GF_BAD_PARAM;
+    }
+
     
     i=0;
     while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
         gf_mpd_write_m3u8_playlist_tag_from_as(as, out);
         j=0;
-        while ( (rs = (GF_MPD_AdaptationSet *) gf_list_enum(as->representations, &j))) {
-            gf_mpd_write_m3u8_playlist_tag_from_rs(rs, out);
+        while ( (rs = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+            sprintf(URL_NAME, "%s_%d_%d.m3u8",m3u8_name_rad, i, j);
+            gf_mpd_write_m3u8_playlist_tag_from_rs(rs, out, URL_NAME);
+            fprintf(out,"\n");
         }
         //gf_mpd_write_m3u8       
     }
+
+    free(m3u8_name_rad);
     
     return GF_OK;
 }
@@ -2618,7 +2653,7 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 	return GF_OK;
 }
 
-static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out)
+static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, char* m3u8_name)
 {
        u32 i;
        GF_MPD_Period *period;
@@ -2631,7 +2666,7 @@ static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *
            //gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
            /*The notion of periods seems to be undefined in HLS, We'll assuming be here
             * only one period*/
-           gf_mpd_write_m3u8_playlists(period, out);
+           gf_mpd_write_m3u8_playlists(period, out, m3u8_name);
        }
        
        return GF_OK;
@@ -2764,7 +2799,7 @@ GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name)
                if (!out) return GF_IO_ERR;
        }
 
-       e = gf_mpd_write_m3u8_master_playlist(mpd, out);
+       e = gf_mpd_write_m3u8_master_playlist(mpd, out, file_name);
        gf_fclose(out);
        return e;
 }
