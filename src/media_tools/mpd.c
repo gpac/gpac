@@ -2608,10 +2608,11 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
        fprintf(out,"#EXT-X-VERSION:\n");
        fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
        fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
-       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n\n");
-
+       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
        if (rs->segment_list) {
            GF_MPD_SegmentList *s=rs->segment_list;
+           fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
+
            if (s->segment_URLs) {
                u32 i;
                GF_MPD_SegmentURL *url;
