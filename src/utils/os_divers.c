@@ -1417,16 +1417,34 @@ Bool gf_sys_get_rti(u32 refresh_time_ms, GF_SystemRTInfo *rti, u32 flags)
 
 
 char * gf_get_default_cache_directory() {
+	char szPath[GF_MAX_PATH];
+	char* root_tmp;
+	size_t len;
 #ifdef _WIN32_WCE
-	return gf_strdup( "\\windows\\temp" );
+	strcpy(szPath, "\\windows\\temp" );
 #elif defined(WIN32)
-	char szPath[MAX_PATH];
-	/*ivica patch*/
-	GetTempPath(MAX_PATH, szPath);
-	return gf_strdup( szPath );
+	GetTempPath(GF_MAX_PATH, szPath);
 #else
-	return gf_strdup("/tmp");
+	strcpy(szPath, "/tmp");
 #endif
+
+	root_tmp = gf_strdup(szPath);
+
+	len = strlen(szPath);
+	if (szPath[len-1] != GF_PATH_SEPARATOR) {
+		szPath[len] = GF_PATH_SEPARATOR;
+		szPath[len+1] = 0;
+	}
+
+	strcat(szPath, "gpac_cache");
+
+	if ( !gf_dir_exists(szPath) && gf_mkdir(szPath)!=GF_OK ) {
+		return root_tmp;
+	}
+
+	gf_free(root_tmp);
+	return gf_strdup(szPath);
+
 }
 
 
@@ -1681,7 +1699,7 @@ void gf_net_get_ntp(u32 *sec, u32 *frac)
 	if (sec) {
 		*sec = (u32) (now.tv_sec) + ntp_shift;
 	}
-	
+
 	if (frac) {
 		frac_part = now.tv_usec * 0xFFFFFFFFULL;
 		frac_part /= 1000000;
