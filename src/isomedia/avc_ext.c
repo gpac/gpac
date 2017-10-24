@@ -195,7 +195,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 						assert(data_length>nal_unit_size_field);
 						data_length -= nal_unit_size_field;
 						if (data_length > gf_bs_available(ref_bs)) {
-							data_length = gf_bs_available(ref_bs);
+							data_length = (u32)gf_bs_available(ref_bs);
 						}
 					} else {
 						ref_nalu_size = data_length;
