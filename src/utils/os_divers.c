@@ -1444,7 +1444,6 @@ char * gf_get_default_cache_directory() {
 
 	gf_free(root_tmp);
 	return gf_strdup(szPath);
-
 }
 
 
