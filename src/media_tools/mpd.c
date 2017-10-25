@@ -2255,7 +2255,8 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 		i = 0;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
 			fprintf(out, "%s<SegmentURL", tmp_indent);
-			if (url->media) fprintf(out, " media=\"%s\"", url->media);
+                       if (url->media) fprintf(out, " media=\"%s\"", url->media);
+                       if (url->duration)fprintf(out, " duration=\""LLU"\"", url->duration);
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
 			if (url->media_range && url->media_range->end_range!=0) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
 			if (url->index_range && url->index_range->end_range!=0) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
@@ -2618,7 +2619,7 @@ static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, 
                GF_MPD_SegmentURL *url;
                i = 0;
                while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-                   fprintf(out,"#EXTINF:%f\n",(float)s->duration/(float)s->timescale);
+                   fprintf(out,"#EXTINF:%f\n",(float)(url->duration)/1000.0);
                    fprintf(out,"%s\n",url->media);
                }
             }
