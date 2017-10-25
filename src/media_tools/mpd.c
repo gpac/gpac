@@ -2254,7 +2254,8 @@ static void gf_mpd_print_segment_list(FILE *out, GF_MPD_SegmentList *s, char *in
 		i = 0;
 		while ( (url = gf_list_enum(s->segment_URLs, &i))) {
 			fprintf(out, "%s<SegmentURL", tmp_indent);
-			if (url->media) fprintf(out, " media=\"%s\"", url->media);
+                       if (url->media) fprintf(out, " media=\"%s\"", url->media);
+                       if (url->duration)fprintf(out, " duration=\""LLU"\"", url->duration);
 			if (url->index) fprintf(out, " index=\"%s\"", url->index);
 			if (url->media_range && url->media_range->end_range!=0) fprintf(out, " mediaRange=\""LLD"-"LLD"\"", url->media_range->start_range, url->media_range->end_range);
 			if (url->index_range && url->index_range->end_range!=0) fprintf(out, " indexRange=\""LLD"-"LLD"\"", url->index_range->start_range, url->index_range->end_range);
@@ -2557,6 +2558,7 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 	fprintf(out, " </Period>\n");
 
 }
+
 
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 {
