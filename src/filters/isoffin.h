@@ -74,8 +74,6 @@ typedef struct
 
 	u32 pending_scalable_enhancement_segment_index;
 
-	Bool use_memory;
-
 	Bool drop_next_segment;
 	Bool in_data_flush;
 	u32 has_pending_segments, nb_force_flush;
@@ -106,13 +104,10 @@ typedef struct
 	ISOMReader *owner;
 	u64 duration;
 
-	Bool wait_for_segment_switch;
 	/*current sample*/
 	GF_ISOSample *sample;
 	GF_SLHeader current_slh;
 	GF_Err last_state;
-
-	Bool is_pulling;
 
 	Bool has_edit_list;
 	u32 sample_num;
@@ -129,15 +124,6 @@ typedef struct
 	u8 streamType;
 
 	Bool is_encrypted, is_cenc;
-
-	/*cache stuff*/
-	u64 cache_seed_ts;
-	u32 frame_cts_offset;
-	u64 prev_dts, max_cts;
-	GF_ISOSample *cache_sample;
-
-	Bool buffering;
-	u32 buffer_min, buffer_max;
 
 	Bool disable_seek;
 	u32 nalu_extract_mode;
@@ -161,8 +147,6 @@ void isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
 void isor_send_cenc_config(ISOMChannel *ch);
-
-void isor_flush_data(ISOMReader *read, Bool check_buffer_level, Bool is_chunk_flush);
 
 #endif /*GPAC_DISABLE_ISOM*/
 
