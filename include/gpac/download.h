@@ -583,6 +583,13 @@ GF_Err gf_dm_get_file_memory(const char *url, char **out_data, u32 *out_size, ch
  */
 GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_hdr_size, u32 *rsp_hdr_size, u32 *connect_time, u32 *reply_time, u32 *download_time);
 
+/*
+ *\brief Forces session to use memory storage
+ *
+ *Forces session to use memory storage for future downloads
+ *\param sess the current session
+ */
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess);
 
 /*! @} */
 

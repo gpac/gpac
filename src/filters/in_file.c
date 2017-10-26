@@ -34,6 +34,7 @@ typedef struct
 	//options
 	char *src;
 	u32 block_size;
+	GF_Fraction range;
 
 	//only one output pid declared
 	GF_FilterPid *pid;
@@ -147,7 +148,9 @@ GF_Err filein_initialize(GF_Filter *filter)
 	if (!strnicmp(ctx->src, "file://", 7)) src += 7;
 	else if (!strnicmp(ctx->src, "file:", 5)) src += 5;
 
-	ctx->file = gf_fopen(src, "rt");
+	if (!ctx->file)
+		ctx->file = gf_fopen(src, "r");
+
 	if (!ctx->file) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[FileIn] Failed to open %s\n", src));
 
@@ -160,7 +163,15 @@ GF_Err filein_initialize(GF_Filter *filter)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("[FileIn] opening %s\n", src));
 	gf_fseek(ctx->file, 0, SEEK_END);
 	ctx->file_size = gf_ftell(ctx->file);
-	gf_fseek(ctx->file, 0, SEEK_SET);
+	ctx->file_pos = ctx->range.num;
+	gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
+	if (ctx->range.den) {
+		ctx->end_pos = ctx->range.den;
+		if (ctx->end_pos>ctx->file_size) {
+			ctx->range.den = ctx->end_pos = ctx->file_size;
+		}
+	}
+	ctx->is_end = GF_FALSE;
 
 	if (frag_par) frag_par[0] = '#';
 	if (cgi_par) cgi_par[0] = '?';
@@ -222,22 +233,26 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->is_end = GF_FALSE;
 			gf_fseek(ctx->file, evt->seek.start_offset, SEEK_SET);
 			ctx->file_pos = evt->seek.start_offset;
+			ctx->end_pos = evt->seek.end_offset;
+			if (ctx->end_pos>ctx->file_size) ctx->end_pos = ctx->file_size;
+			ctx->range.num = evt->seek.start_offset;
+			ctx->range.den = ctx->end_pos;
 		}
 		return GF_TRUE;
 	case GF_FEVT_SOURCE_SWITCH:
 		assert(ctx->is_end);
+		ctx->range.num = evt->seek.start_offset;
+		ctx->range.den = evt->seek.end_offset;
 		if (evt->seek.source_switch) {
-			gf_free(ctx->src);
-			ctx->src = gf_strdup(evt->seek.source_switch);
-			if (ctx->file) gf_fclose(ctx->file);
-			ctx->file = NULL;
-			filein_initialize(filter);
+			if (strcmp(evt->seek.source_switch, ctx->src)) {
+				gf_free(ctx->src);
+				ctx->src = gf_strdup(evt->seek.source_switch);
+				if (ctx->file) gf_fclose(ctx->file);
+				ctx->file = NULL;
+			}
 			ctx->do_reconfigure = GF_TRUE;
 		}
-		ctx->file_pos = evt->seek.start_offset;
-		ctx->end_pos = evt->seek.end_offset;
-		ctx->is_end = GF_FALSE;
-		gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
+		filein_initialize(filter);
 		gf_filter_post_process_task(filter);
 		break;
 	default:
@@ -273,7 +288,7 @@ static GF_Err filein_process(GF_Filter *filter)
 		assert(0);
 		return GF_OK;
 	}
-	if (ctx->end_pos>ctx->file_pos)
+	if (ctx->end_pos > ctx->file_pos)
 		to_read = ctx->end_pos - ctx->file_pos;
 	else
 		to_read = ctx->file_size - ctx->file_pos;
@@ -290,6 +305,8 @@ static GF_Err filein_process(GF_Filter *filter)
 		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
+		if (ctx->range.num || ctx->range.den)
+			gf_filter_pid_set_property(ctx->pid, GF_PROP_PID_FILE_RANGE, &PROP_FRAC(ctx->range) );
 	}
 	pck = gf_filter_pck_new_shared(ctx->pid, ctx->block, nb_read, filein_pck_destructor);
 	if (!pck)
@@ -320,6 +337,7 @@ static const GF_FilterArgs FileInArgs[] =
 {
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "5000", NULL, GF_FALSE},
+	{ OFFS(range), "byte range", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
 	{}
 };
 

@@ -57,7 +57,6 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	char *tmp, *src;
 	GF_Err e;
 	const GF_PropertyValue *prop;
-	u64 start_range, end_range;
 	if (!read) return GF_SERVICE_ERROR;
 
 	if (read->pid) {
@@ -105,18 +104,14 @@ static GF_Err isoffin_setup(GF_Filter *filter, ISOMReader *read)
 	if (! isor_is_local(szURL)) {
 		return GF_NOT_SUPPORTED;
 	}
-	start_range = end_range = 0;
-#ifdef FILTER_FIXME
-		if (plug->query_proxy) {
-			GF_NetworkCommand param;
-			param.command_type = GF_NET_SERVICE_QUERY_INIT_RANGE;
-			if (read->input->query_proxy(read->input, &param)==GF_OK) {
-				start_range = param.url_query.start_range;
-				end_range = param.url_query.end_range;
-			}
-		}
-#endif
-	e = gf_isom_open_progressive(szURL, start_range, end_range, &read->mov, &read->missing_bytes);
+	read->start_range = read->end_range = 0;
+	prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
+	if (prop) {
+		read->start_range = prop->value.frac.num;
+		read->end_range = prop->value.frac.den;
+	}
+
+	e = gf_isom_open_progressive(szURL, read->start_range, read->end_range, &read->mov, &read->missing_bytes);
 
 	if (e == GF_ISOM_INCOMPLETE_FILE) {
 		read->moov_not_loaded = GF_TRUE;
@@ -158,7 +153,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	const GF_PropertyValue *prop;
 	u32 i, count;
 	Bool is_new_mov = GF_FALSE;
-	u64 tfdt, switch_start_range, switch_end_range;
+	u64 tfdt;
 	u32 trackID, flags=0;
 	GF_Err e;
 
@@ -167,10 +162,9 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	read->refresh_fragmented = GF_FALSE;
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] reconfigure triggered, URL %s\n", next_url));
 
-	switch (gf_isom_probe_file(next_url)) {
+	switch (gf_isom_probe_file_range(next_url, read->start_range, read->end_range)) {
 	//this is a fragment
 	case 3:
-		switch_start_range = switch_end_range = 0;
 		gf_isom_release_segment(read->mov, 1);
 		gf_isom_reset_fragment_info(read->mov, 1);
 
@@ -178,7 +172,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #ifdef FILTER_FIXME
 		if (scalable_segment) flags |= GF_ISOM_SEGMENT_SCALABLE_FLAG;
 #endif
-		e = gf_isom_open_segment(read->mov, next_url, switch_start_range, switch_end_range, flags);
+		e = gf_isom_open_segment(read->mov, next_url, read->start_range, read->end_range, flags);
 		if (!read->input_loaded && (e==GF_ISOM_INCOMPLETE_FILE)) {
 			read->refresh_fragmented = GF_TRUE;
 			e = GF_OK;
@@ -187,8 +181,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 #ifndef GPAC_DISABLE_LOG
 		if (e<0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening new segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
-		} else if (switch_end_range) {
-			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", next_url, switch_start_range, switch_end_range));
+		} else if (read->end_range) {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Playing new range in %s: "LLU"-"LLU"\n", next_url, read->start_range, read->end_range));
 		} else {
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] playing new segment %s (has next dep %d TODO)\n", next_url, 0));
 		}
@@ -197,9 +191,8 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 	//this is a movie, reload
 	case 2:
 	case 1:
-		switch_start_range = switch_end_range = 0;
 		tfdt = gf_isom_get_current_tfdt(read->mov, 1);
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU")\n", next_url, tfdt));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[IsoMedia] Switching between files - opening new init segment %s (time offset="LLU") - range "LLU"-"LLU"\n", next_url, tfdt, read->start_range, read->end_range));
 
 		if (gf_isom_is_smooth_streaming_moov(read->mov)) {
 			char *tfdt_val = strstr(next_url, "tfdt=");
@@ -212,7 +205,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		}
 
 		if (read->mov) gf_isom_close(read->mov);
-		e = gf_isom_open_progressive(next_url, switch_start_range, switch_end_range, &read->mov, &read->missing_bytes);
+		e = gf_isom_open_progressive(next_url, read->start_range, read->end_range, &read->mov, &read->missing_bytes);
 		if (e < 0) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[IsoMedia] Error opening init segment %s at UTC "LLU": %s\n", next_url, gf_net_get_utc(), gf_error_to_string(e) ));
 		}
@@ -330,10 +323,21 @@ GF_Err isoffin_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	if (read->pid) {
 		const char *next_url = prop->value.string;
+		u64 sr, er;
 		u32 crc = gf_crc_32(next_url, strlen(next_url) );
-		if (read->src_crc == crc)
+
+		sr = er = 0;
+		prop = gf_filter_pid_get_property(read->pid, GF_PROP_PID_FILE_RANGE);
+		if (prop) {
+			sr = prop->value.frac.num;
+			er = prop->value.frac.den;
+		}
+
+		if ((read->src_crc == crc) && (read->start_range==sr) && (read->end_range==er))
 			return GF_OK;
 		read->src_crc = crc;
+		read->start_range = sr;
+		read->end_range = er;
 		
 		//we need to reconfigure
 		return isoffin_reconfigure(filter, read, next_url);

@@ -985,7 +985,7 @@ retry:
 
 		/*file cannot be cached on disk !*/
 		if (group) {
-			if (dash_io->get_cache_name(dash_io, group->segment_download) == NULL) {
+			if (dash_io->get_cache_name(dash_io, *sess ) == NULL) {
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Segment %s cannot be cached on disk, will use direct streaming\n", url));
 				group->segment_must_be_streamed = GF_TRUE;
 				if (group->segment_download) dash_io->abort(dash_io, group->segment_download);
@@ -4064,7 +4064,7 @@ static GF_Err gf_dash_load_representation_sidx(GF_DASH_Group *group, GF_MPD_Repr
 		}
 		bs = gf_bs_new(mem_address, size, GF_BITSTREAM_READ);
 	} else {
-		FILE *f = gf_fopen(cache_name, "rb");
+		f = gf_fopen(cache_name, "rb");
 		if (!f) return GF_IO_ERR;
 		bs = gf_bs_from_file(f, GF_BITSTREAM_READ);
 	}
@@ -4130,7 +4130,10 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 	GF_Err e = GF_OK;
 	char *init_url = NULL;
 	char *index_url = NULL;
+	GF_DASHFileIOSession *download_sess = &group->segment_download;
 	GF_MPD_Representation *rep = gf_list_get(group->adaptation_set->representations, 0);
+
+	if (!group->dash->thread_mode) download_sess = &group->dash->mpd_dnload;
 
 	if (!rep->segment_base && !group->adaptation_set->segment_base && !group->period->segment_base) {
 		if (rep->segment_template || group->adaptation_set->segment_template || group->period->segment_template) return GF_OK;
@@ -4236,23 +4239,23 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] Downloading init segment and SIDX for representation %s\n", init_url));
 
 				/*download first 8 bytes and check if we do have a box starting there*/
-				e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, 7, 1, group);
+				e = gf_dash_download_resource(group->dash, download_sess, init_url, offset, 7, 1, group);
 				if (e) goto exit;
-				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
+				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 				e = dash_load_box_type(cache_name, offset, &box_type, &box_size);
 				offset = 8;
 				while (box_type) {
 					/*we got the moov, stop here */
 					if (!index_in_base && (box_type==GF_ISOM_BOX_TYPE_MOOV)) {
-						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-9, 2, group);
+						e = gf_dash_download_resource(group->dash, download_sess, init_url, offset, offset+box_size-9, 2, group);
 						break;
 					} else {
 						const u32 offset_ori = offset;
-						e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, offset, offset+box_size-1, 2, group);
+						e = gf_dash_download_resource(group->dash, download_sess, init_url, offset, offset+box_size-1, 2, group);
 						if (e < 0) goto exit;
 						offset += box_size;
 						/*we need to refresh the cache name because of our memory astorage thing ...*/
-						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
+						cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 						e = dash_load_box_type(cache_name, offset-8, &box_type, &box_size);
 						if (e == GF_IO_ERR) {
 							/*if the socket was closed then gf_dash_download_resource() with gmem:// was reset - retry*/
@@ -4261,7 +4264,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 								offset -= 8;
 								/*FIXME sidx found, reload the full resource*/
 								GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[DASH] have to re-downloading init and SIDX for rep %s\n", init_url));
-								e = gf_dash_download_resource(group->dash, &(group->segment_download), init_url, 0, offset+box_size-1, 2, group);
+								e = gf_dash_download_resource(group->dash, download_sess, init_url, 0, offset+box_size-1, 2, group);
 								break;
 							}
 						}
@@ -4287,7 +4290,7 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 				}
 				rep->segment_list->segment_URLs = gf_list_new();
 
-				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
+				cache_name = group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 				if (init_in_base) {
 					char szName[100];
 					GF_SAFEALLOC(rep->segment_list->initialization_segment, GF_MPD_URL);
@@ -4295,8 +4298,16 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 						e = GF_OUT_OF_MEM;
 						goto exit;
 					}
+
+					if (!group->dash->thread_mode) {
+						rep->segment_list->initialization_segment->sourceURL = gf_strdup(init_url);
+						GF_SAFEALLOC(rep->segment_list->initialization_segment->byte_range, GF_MPD_ByteRange);
+						rep->segment_list->initialization_segment->byte_range->start_range = init_start_range;
+						rep->segment_list->initialization_segment->byte_range->end_range = init_end_range;
+
+					}
 					//we need to store the init segment since it has the same name as the rest of the segments and will be destroyed when cleaning up the cache ..
-					if (!strnicmp(cache_name, "gmem://", 7)) {
+					else if (!strnicmp(cache_name, "gmem://", 7)) {
 						char *mem_address;
 						if (sscanf(cache_name, "gmem://%d@%p", &rep->playback.init_segment_size, &mem_address) != 2) {
 							e = GF_IO_ERR;
@@ -4327,10 +4338,11 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 							}
 						}
 					}
-
-					cache_name = rep->segment_list->initialization_segment->sourceURL;
-					//cleanup cache right away
-					group->dash->dash_io->delete_cache_file(group->dash->dash_io, group->segment_download, init_url);
+					if (group->dash->thread_mode) {
+						cache_name = rep->segment_list->initialization_segment->sourceURL;
+						//cleanup cache right away
+						group->dash->dash_io->delete_cache_file(group->dash->dash_io, *download_sess, init_url);
+					}
 
 				}
 				if (index_in_base) {
@@ -4340,9 +4352,9 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 		}
 		/*we have index url, download it*/
 		if (! index_in_base) {
-			e = gf_dash_download_resource(group->dash, &(group->segment_download), index_url, index_start_range, index_end_range, 1, group);
+			e = gf_dash_download_resource(group->dash, download_sess, index_url, index_start_range, index_end_range, 1, group);
 			if (e) goto exit;
-			sidx_file = (char *)group->dash->dash_io->get_cache_name(group->dash->dash_io, group->segment_download);
+			sidx_file = (char *)group->dash->dash_io->get_cache_name(group->dash->dash_io, *download_sess);
 		}
 
 		/*load sidx*/
@@ -4350,6 +4362,11 @@ static GF_Err gf_dash_setup_single_index_mode(GF_DASH_Group *group)
 		if (e) {
 			rep->playback.disabled = 1;
 			GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[DASH] Failed to load segment index for this representation - disabling\n"));
+		}
+
+		if (!group->dash->thread_mode) {
+			//cleanup cache right away
+			group->dash->dash_io->delete_cache_file(group->dash->dash_io, *download_sess, init_url);
 		}
 
 		/*reset all seg based stuff*/
@@ -5117,6 +5134,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	u32 representation_index;
 	u32 clock_time, file_size=0, Bps=0;
 	Bool empty_file = GF_FALSE;
+	Bool remote_file = GF_FALSE;
 	const char *local_file_name = NULL;
 	const char *resource_name = NULL;
 
@@ -5275,7 +5293,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 	use_byterange = (start_range || end_range) ? 1 : 0;
 
 	if (use_byterange) {
-		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Downloading new segment: %s (range: "LLD"-"LLD")\n", new_base_seg_url, start_range, end_range));
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] Queuing new segment: %s (range: "LLD"-"LLD")\n", new_base_seg_url, start_range, end_range));
 	}
 
 	/*local file*/
@@ -5379,6 +5397,7 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 		Bps = dash->dash_io->get_bytes_per_sec(dash->dash_io, base_group->segment_download);
 	} else {
 		resource_name = local_file_name = new_base_seg_url;
+		remote_file = GF_TRUE;
 	}
 
 	if (local_file_name && (e == GF_OK || group->segment_must_be_streamed || !dash->thread_mode ) ) {
@@ -5392,8 +5411,13 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 
 			cache_entry->cache = gf_strdup(local_file_name);
 			cache_entry->url = gf_strdup( resource_name );
-			cache_entry->start_range = 0;
-			cache_entry->end_range = 0;
+			if (use_byterange && remote_file) {
+				cache_entry->start_range = start_range;
+				cache_entry->end_range = end_range;
+			} else {
+				cache_entry->start_range = 0;
+				cache_entry->end_range = 0;
+			}
 			cache_entry->representation_index = representation_index;
 			cache_entry->duration = (u32) group->current_downloaded_segment_duration;
 			cache_entry->loop_detected = group->loop_detected;

@@ -221,7 +221,7 @@ static void dashdmx_on_filter_setup_error(GF_Filter *failed_filter, void *udta, 
 }
 
 /*locates input service (demuxer) based on mime type or segment name*/
-static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const char *mime, const char *init_segment_name)
+static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const char *mime, const char *init_segment_name, u64 start_range, u64 end_range)
 {
 	GF_DASHGroup *group;
 	GF_Err e;
@@ -241,6 +241,12 @@ static GF_Err dashdmx_load_source(GF_DASHDmxCtx *ctx, u32 group_index, const cha
 	strcpy(sURL, init_segment_name);
 	if (!ctx->store) strcat(sURL, ":cache=mem");
 	else if (ctx->store==2) strcat(sURL, ":cache=keep");
+
+	if (start_range || end_range) {
+		char szRange[500];
+		snprintf(szRange, 500, ":range="LLU"-"LLU, start_range, end_range);
+		strcat(sURL, szRange);
+	}
 
 	group->seg_filter_src = gf_filter_connect_source(ctx->filter, sURL, NULL, &e);
 	if (!group->seg_filter_src) {
@@ -279,8 +285,12 @@ GF_DASHFileIOSession dashdmx_io_create(GF_DASHFileIO *dashio, Bool persistent, c
 	//this should be safe unless the mpd_pid is destroyed, which should only happen upon destruction of the DASH session
 	p = gf_filter_pid_get_property(ctx->mpd_pid, GF_GPAC_DOWNLOAD_SESSION);
 	if (p) {
+		GF_DownloadSession *sess = (GF_DownloadSession *) p->value.ptr;
+		if (!ctx->store) {
+			gf_dm_sess_force_memory_mode(sess);
+		}
 		ctx->reuse_download_session = GF_TRUE;
-		return (GF_DASHFileIOSession) p->value.ptr;
+		return (GF_DASHFileIOSession) sess;
 	}
 
 	if (!ctx->store) flags |= GF_NETIO_SESSION_MEMORY_CACHE;
@@ -390,6 +400,7 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 		/*select input services if possible*/
 		for (i=0; i<gf_dash_get_group_count(ctx->dash); i++) {
 			const char *mime, *init_segment;
+			u64 start_range, end_range;
 			u32 j;
 			Bool playable = GF_TRUE;
 			//let the player decide which group to play
@@ -419,9 +430,9 @@ GF_Err dashdmx_io_on_dash_event(GF_DASHFileIO *dashio, GF_DASHEventType dash_evt
 			}
 
 			mime = gf_dash_group_get_segment_mime(ctx->dash, i);
-			init_segment = gf_dash_group_get_segment_init_url(ctx->dash, i, NULL, NULL);
+			init_segment = gf_dash_group_get_segment_init_url(ctx->dash, i, &start_range, &end_range);
 
-			e = dashdmx_load_source(ctx, i, mime, init_segment);
+			e = dashdmx_load_source(ctx, i, mime, init_segment, start_range, end_range);
 			if (e != GF_OK) {
 				gf_dash_group_select(ctx->dash, i, GF_FALSE);
 			} else {
@@ -1072,7 +1083,6 @@ static void dashdmx_switch_segment(GF_DASHDmxCtx *ctx, GF_DASHGroup *group)
 		GF_FEVT_INIT(evt, GF_FEVT_SOURCE_SWITCH,  NULL);
 		evt.seek.start_offset = switch_start_range;
 		evt.seek.end_offset = switch_end_range;
-		evt.seek.source_switch = next_url_init_or_switch_segment;
 		evt.seek.source_switch = next_url_init_or_switch_segment;
 		evt.seek.previous_is_init_segment = group->prev_is_init_segment;
 		evt.seek.skip_cache_expiration = GF_TRUE;
