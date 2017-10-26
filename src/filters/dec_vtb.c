@@ -102,7 +102,6 @@ typedef struct
 	GF_List *SPSs, *PPSs;
 	s32 active_sps, active_pps;
 	u32 active_sps_crc, active_pps_crc;
-	u32 cur_pic_sps_crc, cur_pic_pps_crc;
 	AVCState avc;
 	Bool check_h264_isma;
 
@@ -576,24 +575,29 @@ static void vtbdec_register_param_sets(GF_VTBDecCtx *ctx, char *data, u32 size, 
 		memcpy(slc->data, data, size);
 		slc->size = size;
 		slc->id = ps_id;
+		slc->crc = gf_crc_32(data, size);
 		gf_list_add(dest, slc);
 	}
 }
 
-static void vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps)
+static u32 vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps, s32 idx)
 {
-	u32 i, j, count;
+	u32 i, j, count, crc_res = 0;
 	GF_List *dest = is_sps ? ctx->SPSs : ctx->PPSs;
 
 	//remove all xPS sharing the same ID, use only the last occurence
 	count = gf_list_count(dest);
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *slc = gf_list_get(dest, i);
+		if (slc->id != idx) continue;
+		crc_res = slc->crc;
+
 		for (j=i+1; j<count; j++) {
 			GF_AVCConfigSlot *a_slc = gf_list_get(dest, j);
 			if (a_slc->id != slc->id) continue;
 			//not same size or different content but same ID, remove old xPS
 			if ((slc->size != a_slc->size) || memcmp(a_slc->data, slc->data, a_slc->size) ) {
+				crc_res = a_slc->crc;
 				gf_free(slc->data);
 				gf_free(slc);
 				gf_list_rem(dest, i);
@@ -603,6 +607,7 @@ static void vtbdec_purge_param_sets(GF_VTBDecCtx *ctx, Bool is_sps)
 			}
 		}
 	}
+	return crc_res;
 }
 
 static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove)
@@ -657,7 +662,6 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 		ctx->avc.sps_active_idx = ctx->avc.pps_active_idx = -1;
 		ctx->active_sps = ctx->active_pps = -1;
-		ctx->cur_pic_sps_crc = ctx->cur_pic_pps_crc = 0;
 		ctx->active_sps_crc = ctx->active_pps_crc = 0;
 
 		if (!dsi || !dsi->value.data) {
@@ -791,13 +795,11 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			vtbdec_register_param_sets(ctx, ptr, nal_size, GF_TRUE);
 			add_nal = GF_FALSE;
 			check_reconfig = GF_TRUE;
-			ctx->cur_pic_sps_crc = gf_crc_32(ptr, nal_size);
 			break;
 		case GF_AVC_NALU_PIC_PARAM:
 			vtbdec_register_param_sets(ctx, ptr, nal_size, GF_FALSE);
 			add_nal = GF_FALSE;
 			check_reconfig = GF_TRUE;
-			ctx->cur_pic_pps_crc = gf_crc_32(ptr, nal_size);
 			break;
 		case GF_AVC_NALU_ACCESS_UNIT:
 		case GF_AVC_NALU_END_OF_SEQ:
@@ -810,12 +812,16 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		}
 		
 		gf_media_avc_parse_nalu(nal_bs, nal_hdr, &ctx->avc);
+
 		gf_bs_del(nal_bs);
 
 		//if sps and pps are ready, init decoder
 		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
 			e = vtbdec_init_decoder(filter, ctx);
-			if (e) return e;
+			if (e) {
+				gf_bs_del(bs);
+				return e;
+			}
 		}
 		
 		if (!out_buffer) add_nal = GF_FALSE;
@@ -839,16 +845,17 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		}
 	}
 
-	if (check_reconfig) {
-		vtbdec_purge_param_sets(ctx, GF_TRUE);
-		vtbdec_purge_param_sets(ctx, GF_FALSE);
+	if (check_reconfig && ctx->avc.s_info.pps ) {
+		u32 sps_crc, pps_crc;
+		sps_crc = vtbdec_purge_param_sets(ctx, GF_TRUE, ctx->avc.s_info.pps->sps_id);
+		pps_crc = vtbdec_purge_param_sets(ctx, GF_FALSE, ctx->avc.s_info.pps->id);
 
-		if ((ctx->cur_pic_sps_crc != ctx->active_sps_crc) || (ctx->cur_pic_pps_crc != ctx->active_pps_crc) ) {
+		if ((sps_crc != ctx->active_sps_crc) || (pps_crc != ctx->active_pps_crc) ) {
 			ctx->reconfig_needed = 1;
-			ctx->active_sps = ctx->avc.sps_active_idx;
-			ctx->active_pps = ctx->avc.pps_active_idx;
-			ctx->active_sps_crc = ctx->cur_pic_sps_crc;
-			ctx->active_pps_crc = ctx->cur_pic_pps_crc;
+			ctx->active_sps = ctx->avc.s_info.pps->sps_id;
+			ctx->active_pps = ctx->avc.s_info.pps->id;
+			ctx->active_sps_crc = sps_crc;
+			ctx->active_pps_crc = pps_crc;
 		}
 	}
 
@@ -1054,7 +1061,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 				ctx->vtb_session=NULL;
 			}
 			vtbdec_init_decoder(filter, ctx);
-			return vtbdec_process(filter);
 		}
 
 	} else if (ctx->vosh_size) {
