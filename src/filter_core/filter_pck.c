@@ -172,7 +172,7 @@ GF_FilterPacket *gf_filter_pck_new_ref(GF_FilterPid *pid, const char *data, u32 
 	pck->reference = reference;
 	assert(reference->reference_count);
 	safe_int_inc(&reference->reference_count);
-	if (!data || !data_size) {
+	if (!data && !data_size) {
 		pck->data = reference->data;
 		pck->data_length = reference->data_length;
 	}
@@ -910,4 +910,5 @@ GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
 	assert(pck);
 	return pck->pck->hw_frame;
 }
+
 

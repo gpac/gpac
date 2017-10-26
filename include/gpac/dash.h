@@ -90,6 +90,8 @@ typedef enum
 	GF_DASH_EVENT_TIMESHIFT_OVERFLOW,
 	/*! event send when we need the decoding statistics*/
 	GF_DASH_EVENT_CODEC_STAT_QUERY,
+	/*! event send when no threading to trigger segment download abort*/
+	GF_DASH_EVENT_ABORT_DOWNLOAD,
 } GF_DASHEventType;
 
 /*structure used for all IO operations for DASH*/
@@ -151,7 +153,7 @@ typedef struct __dash_client GF_DashClient;
 typedef enum
 {
 	//selects the lowest quality when starting - if one of the representation does not have video (HLS), it may be selected
-	GF_DASH_SELECT_QUALITY_LOWEST,
+	GF_DASH_SELECT_QUALITY_LOWEST=0,
 	//selects the highest quality when starting
 	GF_DASH_SELECT_QUALITY_HIGHEST,
 	//selects the lowest bandwidth when starting - if one of the representation does not have video (HLS), it will NOT be selected
@@ -162,8 +164,19 @@ typedef enum
 	GF_DASH_SELECT_BANDWIDTH_HIGHEST_TILES
 } GF_DASHInitialSelectionMode;
 
+typedef enum
+{
+	//no threads used, gf_dash_process shall be called
+	GF_DASH_THREAD_NONE = 0,
+	//single thread used for MPD and segment download
+	GF_DASH_THREAD_SINGLE,
+	//one thread for MPD and each independent representations
+	GF_DASH_THREAD_ALL
+} GF_DASHThreadMode;
+
 /*create a new DASH client:
 	@dash_io: DASH callbacks to the user
+	@thread_mode: threading mode of the dash client
 	@max_cache_duration: maximum duration in milliseconds for the cached media. If less than mpd@minBufferTime, mpd@minBufferTime is used
 	@auto_switch_count: forces representation switching every auto_switch_count segments, set to 0 to disable
 	@keep_files: do not delete files from the cache
@@ -172,7 +185,7 @@ typedef enum
 	@enable_buffering: forces buffering of segments for the duration indicated in the MPD before calling back the user
 	@initial_time_shift_value: sets initial buffering: if between 0 and 100, this is a percentage of the time shift window of the session. If greater than 100, this is a time shift in milliseconds.
 */
-GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io,
+GF_DashClient *gf_dash_new(GF_DASHFileIO *dash_io, GF_DASHThreadMode thread_mode,
                            u32 max_cache_duration,
                            u32 auto_switch_count,
                            Bool keep_files,
@@ -187,6 +200,9 @@ void gf_dash_del(GF_DashClient *dash);
 GF_Err gf_dash_open(GF_DashClient *dash, const char *manifest_url);
 /*closes the dash client*/
 void gf_dash_close(GF_DashClient *dash);
+
+/*for unthreaded session, executes DASH logic*/
+GF_Err gf_dash_process(GF_DashClient *dash);
 
 /*returns URL of the DASH manifest file*/
 const char *gf_dash_get_url(GF_DashClient *dash);
@@ -502,24 +518,25 @@ GF_Err gf_dash_group_set_quality_degradation_hint(GF_DashClient *dash, u32 idx, 
 //sets visible rectangle of a video object, may be used for adaptation. If min_x==max_x==min_y=max_y==0, disable adaptation
 GF_Err gf_dash_group_set_visible_rect(GF_DashClient *dash, u32 idx, u32 min_x, u32 max_x, u32 min_y, u32 max_y);
 
-/*Enables or disables threaded downloads of media files for the dash client
- @use_threads: if true, threads are used to download files*/
-void gf_dash_set_threaded_download(GF_DashClient *dash, Bool use_threads);
-
 typedef enum {
 	GF_DASH_ALGO_NONE = 0,
 	GF_DASH_ALGO_GPAC_LEGACY_RATE,
 	GF_DASH_ALGO_GPAC_LEGACY_BUFFER,
-
 	GF_DASH_ALGO_BBA0,
-
 	GF_DASH_ALGO_BOLA_FINITE,
 	GF_DASH_ALGO_BOLA_BASIC,
 	GF_DASH_ALGO_BOLA_U,
 	GF_DASH_ALGO_BOLA_O
 } GF_DASHAdaptationAlgorithm;
 
+//sets dash adaptation algorithm
 void gf_dash_set_algo(GF_DashClient *dash, GF_DASHAdaptationAlgorithm algo);
+
+//sets group download status for non threaded modes
+void gf_dash_set_group_download_state(GF_DashClient *dash, u32 group_idx, GF_Err err);
+
+//sets group download statistics for non threaded modes
+void gf_dash_group_store_stats(GF_DashClient *dash, u32 idx, u32 bytes_per_sec, u32 file_size, u32 bytes_done);
 
 #endif //GPAC_DISABLE_DASH_CLIENT
 

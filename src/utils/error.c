@@ -553,8 +553,8 @@ const char *gf_error_to_string(GF_Err e)
 		return "Bad Buffer size (too small)";
 	case GF_NON_COMPLIANT_BITSTREAM:
 		return "BitStream Not Compliant";
-	case GF_CODEC_NOT_FOUND:
-		return "Media Codec not found";
+	case GF_FILTER_NOT_FOUND:
+		return "Filter not found for the desired type";
 
 	/*DMIF errors - local and control plane */
 	case GF_URL_ERROR:

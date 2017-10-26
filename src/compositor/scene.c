@@ -3188,7 +3188,6 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 			u32 i=0;
 			GF_ODMExtraPid *xpid;
 			while ( (xpid = gf_list_enum(scene->root_od->extra_pids, &i) ) ) {
-				evt.base.on_pid = xpid->pid;
 				gf_filter_pid_send_event(xpid->pid, &evt);
 			}
 		}
@@ -3197,7 +3196,6 @@ void gf_scene_switch_quality(GF_Scene *scene, Bool up)
 	i=0;
 	while (NULL != (odm = gf_list_enum(scene->resources, &i))) {
 		if (odm->pid) {
-			evt.base.on_pid = odm->pid;
 			gf_filter_pid_send_event(odm->pid, &evt);
 		}
 		if (odm->subscene)

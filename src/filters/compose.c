@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/config_file.h>
 #include <gpac/internal/compositor_dev.h>
+#include "../filter_core/filter_session.h"
 
 
 GF_Err compose_bifs_dec_config_input(GF_Scene *scene, GF_FilterPid *pid, u32 oti, Bool is_remove);
@@ -240,6 +241,9 @@ static Bool compose_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 		odm = gf_filter_pid_get_udta(evt->base.on_pid);
 		gf_odm_update_duration(odm, evt->base.on_pid);
 		break;
+	//event(s) we trigger on ourselves to go up the filter chain
+	case GF_FEVT_CAPS_CHANGE:
+		return GF_FALSE;
 	default:
 		break;
 	}
@@ -280,6 +284,11 @@ GF_Err compose_initialize(GF_Filter *filter)
 	ctx->compositor->no_regulation = GF_TRUE;
 	ctx->compositor->filter = filter;
 	ctx->compositor->fsess = gf_filter_get_session(filter);
+
+	ctx->compositor->fsess->caps.max_screen_width = ctx->compositor->video_out->max_screen_width;
+	ctx->compositor->fsess->caps.max_screen_height = ctx->compositor->video_out->max_screen_height;
+	ctx->compositor->fsess->caps.max_screen_bpp = ctx->compositor->video_out->max_screen_bpp;
+
 	return GF_OK;
 }
 

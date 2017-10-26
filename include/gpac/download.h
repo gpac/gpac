@@ -500,9 +500,10 @@ GF_Err gf_dm_sess_reassign(GF_DownloadSession *sess, u32 flags, gf_dm_user_io us
  * has the GF_NETIO_SESSION_PERSISTENT flag set. This is only possible if the session is not threaded.
  * \param sess The session
  * \param url The new url for the session
+ * \param allow_direct_reuse Allow reuse of cache entry without checking cache directives
  * \return GF_OK or error
  */
-GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url);
+GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse);
 
 /*
  *\retrieves the HTTP header value for the given name

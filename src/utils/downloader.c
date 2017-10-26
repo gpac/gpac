@@ -115,6 +115,7 @@ struct __gf_download_session
 
 	Bool in_callback, destroy;
 	u32 proxy_enabled;
+	Bool allow_direct_reuse;
 
 	char *server_name;
 	u16 port;
@@ -588,6 +589,8 @@ static void gf_dm_remove_cache_entry_from_session(GF_DownloadSession * sess) {
  */
 s32 gf_cache_add_session_to_cache_entry(DownloadedCacheEntry entry, GF_DownloadSession * sess);
 
+static void gf_dm_sess_notify_state(GF_DownloadSession *sess, GF_NetIOStatus dnload_status, GF_Err error);
+
 static void gf_dm_configure_cache(GF_DownloadSession *sess)
 {
 	DownloadedCacheEntry entry;
@@ -626,6 +629,16 @@ static void gf_dm_configure_cache(GF_DownloadSession *sess)
 		}
 		gf_cache_add_session_to_cache_entry(sess->cache_entry, sess);
 		GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] Cache setup to %p %s\n", sess, gf_cache_get_cache_filename(sess->cache_entry)));
+
+
+		if ( (sess->allow_direct_reuse || sess->dm->allow_offline_cache) && !gf_cache_check_if_cache_file_is_corrupted(sess->cache_entry)
+		) {
+			sess->from_cache_only = GF_TRUE;
+			sess->connect_time = 0;
+			sess->status = GF_NETIO_CONNECTED;
+			GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] using existing cache entry\n"));
+			gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
+		}
 	}
 }
 
@@ -1004,7 +1017,7 @@ GF_Err gf_dm_get_url_info(const char * url, GF_URL_Info * info, const char * bas
 }
 
 GF_EXPORT
-GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
+GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url, Bool allow_direct_reuse)
 {
 	Bool socket_changed = GF_FALSE;
 	GF_URL_Info info;
@@ -1012,7 +1025,7 @@ GF_Err gf_dm_sess_setup_from_url(GF_DownloadSession *sess, const char *url)
 	if (!url) return GF_BAD_PARAM;
 
 	gf_dm_clear_headers(sess);
-
+	sess->allow_direct_reuse = allow_direct_reuse;
 	gf_dm_url_info_init(&info);
 
 	if (!sess->sock) socket_changed = GF_TRUE;
@@ -1184,7 +1197,7 @@ GF_DownloadSession *gf_dm_sess_new_simple(GF_DownloadManager * dm, const char *u
 
 	assert( dm );
 
-	*e = gf_dm_sess_setup_from_url(sess, url);
+	*e = gf_dm_sess_setup_from_url(sess, url, GF_FALSE);
 	if (*e) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("%s:%d gf_dm_sess_new_simple: error=%s at setup for '%s'\n", __FILE__, __LINE__, gf_error_to_string(*e), url));
 		gf_dm_sess_del(sess);
@@ -1392,19 +1405,16 @@ static void gf_dm_connect(GF_DownloadSession *sess)
 		if (e) {
 			if (!sess->cache_entry && sess->dm && sess->dm->allow_offline_cache) {
 				gf_dm_configure_cache(sess);
-				if (sess->cache_entry && !gf_cache_check_if_cache_file_is_corrupted(sess->cache_entry)) {
-					sess->from_cache_only = GF_TRUE;
-					sess->connect_time = (u32) (gf_sys_clock_high_res() - now);
-					sess->status = GF_NETIO_CONNECTED;
-					GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[HTTP] Host %s:%d unreachable, using existing cache\n", proxy, proxy_port));
-					gf_dm_sess_notify_state(sess, GF_NETIO_CONNECTED, GF_OK);
-					return;
-				}
+				if (sess->from_cache_only) return;
 			}
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
 			gf_dm_sess_notify_state(sess, sess->status, e);
 			return;
+		}
+		if (sess->allow_direct_reuse) {
+			gf_dm_configure_cache(sess);
+			if (sess->from_cache_only) return;
 		}
 
 		sess->connect_time = (u32) (gf_sys_clock_high_res() - now);
@@ -1548,7 +1558,7 @@ DownloadedCacheEntry gf_dm_refresh_cache_entry(GF_DownloadSession *sess) {
 					sess->status = GF_NETIO_SETUP;
 					sess->server_only_understand_get = GF_TRUE;
 					GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Timeout with HEAD, try with GET\n"));
-					e = gf_dm_sess_setup_from_url(sess, sess->orig_url);
+					e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
 					if (e) {
 						GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("gf_dm_refresh_cache_entry() : Error with GET %d\n", e));
 						sess->status = GF_NETIO_STATE_ERROR;
@@ -1616,7 +1626,7 @@ GF_Err gf_dm_sess_set_range(GF_DownloadSession *sess, u64 start_range, u64 end_r
 			/*remember this in case we get disconnected*/
 			sess->is_range_continuation = GF_TRUE;
 		} else {
-			sess->needs_cache_reconfig = 2;
+			sess->needs_cache_reconfig = 1;
 			sess->reused_cache_entry = GF_FALSE;
 		}
 	} else {
@@ -3136,7 +3146,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		/*reset and reconnect*/
 		gf_dm_disconnect(sess, GF_TRUE);
 		sess->status = GF_NETIO_SETUP;
-		e = gf_dm_sess_setup_from_url(sess, new_location);
+		e = gf_dm_sess_setup_from_url(sess, new_location, GF_FALSE);
 		if (e) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
@@ -3165,7 +3175,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 				/* Ooops, no cache, redowload everything ! */
 				gf_dm_disconnect(sess, GF_FALSE);
 				sess->status = GF_NETIO_SETUP;
-				e = gf_dm_sess_setup_from_url(sess, sess->orig_url);
+				e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
 				sess->total_size = gf_cache_get_cache_filesize(sess->cache_entry);
 				if (e) {
 					sess->status = GF_NETIO_STATE_ERROR;
@@ -3228,7 +3238,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 		}
 		gf_dm_disconnect(sess, GF_FALSE);
 		sess->status = GF_NETIO_SETUP;
-		e = gf_dm_sess_setup_from_url(sess, sess->orig_url);
+		e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
 		if (e) {
 			sess->status = GF_NETIO_STATE_ERROR;
 			sess->last_error = e;
@@ -3266,7 +3276,7 @@ static GF_Err wait_for_header_and_parse(GF_DownloadSession *sess, char * sHTTP)
 			sess->status = GF_NETIO_SETUP;
 			sess->server_only_understand_get = GF_TRUE;
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("Method not supported, try with GET.\n"));
-			e = gf_dm_sess_setup_from_url(sess, sess->orig_url);
+			e = gf_dm_sess_setup_from_url(sess, sess->orig_url, GF_FALSE);
 			if (e) {
 				sess->status = GF_NETIO_STATE_ERROR;
 				sess->last_error = e;

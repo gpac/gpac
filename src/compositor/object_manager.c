@@ -386,6 +386,7 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 		}
 		GF_FEVT_INIT(evt, GF_FEVT_BUFFER_REQ, for_pid ? for_pid : odm->pid);
 		evt.buffer_req.max_buffer_us = odm->buffer_max_us;
+		evt.buffer_req.max_playout_us = odm->buffer_playout_us;
 		gf_filter_pid_send_event(NULL, &evt);
 	}
 

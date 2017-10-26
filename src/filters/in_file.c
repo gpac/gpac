@@ -32,7 +32,7 @@
 typedef struct
 {
 	//options
-	const char *src;
+	char *src;
 	u32 block_size;
 
 	//only one output pid declared
@@ -40,25 +40,31 @@ typedef struct
 
 	FILE *file;
 	u64 file_size;
-	u64 file_pos;
+	u64 file_pos, end_pos;
 	Bool is_end, pck_out;
 
+	Bool do_reconfigure;
 	char *block;
 } GF_FileInCtx;
 
 
-GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size)
+GF_Err filein_declare_pid(GF_Filter *filter, GF_FilterPid **the_pid, const char *url, const char *local_file, const char *mime_type, char *probe_data, u32 probe_size)
 {
 	char *ext = NULL;
 	char *sep;
-	GF_FilterPid *pid;
+	GF_FilterPid *pid = (*the_pid);
 	//declare a single PID carrying FILE data pid
-	pid = gf_filter_pid_new(filter);
+	if (!pid) {
+		pid = gf_filter_pid_new(filter);
+		(*the_pid) = pid;
+		if (!pid) return GF_OUT_OF_MEM;
+	}
 
 	if (local_file)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_FILEPATH, &PROP_STRING((char *)local_file));
 
 	gf_filter_pid_set_property(pid, GF_PROP_PID_URL, &PROP_STRING((char *)url));
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_FILE) );
 
 	sep = strrchr(url, '/');
 	if (!sep) sep = strrchr(url, '\\');
@@ -111,7 +117,7 @@ GF_FilterPid * filein_declare_pid(GF_Filter *filter, const char *url, const char
 	if (mime_type)
 		gf_filter_pid_set_property(pid, GF_PROP_PID_MIME, &PROP_STRING((char *) mime_type));
 
-	return pid;
+	return GF_OK;
 }
 
 
@@ -159,7 +165,8 @@ GF_Err filein_initialize(GF_Filter *filter)
 	if (frag_par) frag_par[0] = '#';
 	if (cgi_par) cgi_par[0] = '?';
 
-	ctx->block = gf_malloc(ctx->block_size +1);
+	if (!ctx->block)
+		ctx->block = gf_malloc(ctx->block_size +1);
 
 	return GF_OK;
 }
@@ -200,8 +207,8 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 {
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
 
-	if (!evt->base.on_pid) return GF_FALSE;
-	if (evt->base.on_pid != ctx->pid) return GF_FALSE;
+	if (evt->base.on_pid && (evt->base.on_pid != ctx->pid))
+	 return GF_FALSE;
 
 	switch (evt->base.type) {
 	case GF_FEVT_PLAY:
@@ -217,6 +224,22 @@ static Bool filein_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->file_pos = evt->seek.start_offset;
 		}
 		return GF_TRUE;
+	case GF_FEVT_SOURCE_SWITCH:
+		assert(ctx->is_end);
+		if (evt->seek.source_switch) {
+			gf_free(ctx->src);
+			ctx->src = gf_strdup(evt->seek.source_switch);
+			if (ctx->file) gf_fclose(ctx->file);
+			ctx->file = NULL;
+			filein_initialize(filter);
+			ctx->do_reconfigure = GF_TRUE;
+		}
+		ctx->file_pos = evt->seek.start_offset;
+		ctx->end_pos = evt->seek.end_offset;
+		ctx->is_end = GF_FALSE;
+		gf_fseek(ctx->file, ctx->file_pos, SEEK_SET);
+		gf_filter_post_process_task(filter);
+		break;
 	default:
 		break;
 	}
@@ -234,6 +257,7 @@ void filein_pck_destructor(GF_Filter *filter, GF_FilterPid *pid, GF_FilterPacket
 
 static GF_Err filein_process(GF_Filter *filter)
 {
+	GF_Err e;
 	u32 nb_read, to_read;
 	GF_FilterPacket *pck;
 	GF_FileInCtx *ctx = (GF_FileInCtx *) gf_filter_get_udta(filter);
@@ -249,15 +273,21 @@ static GF_Err filein_process(GF_Filter *filter)
 		assert(0);
 		return GF_OK;
 	}
-	to_read = ctx->file_size - ctx->file_pos;
-	if (to_read > ctx->block_size) to_read = ctx->block_size;
+	if (ctx->end_pos>ctx->file_pos)
+		to_read = ctx->end_pos - ctx->file_pos;
+	else
+		to_read = ctx->file_size - ctx->file_pos;
+
+	if (to_read > ctx->block_size)
+		to_read = ctx->block_size;
 
 	nb_read = fread(ctx->block, 1, to_read, ctx->file);
 
 	ctx->block[nb_read] = 0;
-	if (!ctx->pid) {
-		ctx->pid = filein_declare_pid(filter, ctx->src, ctx->src, NULL, ctx->block, nb_read);
-		if (!ctx->pid) return GF_SERVICE_ERROR;
+	if (!ctx->pid || ctx->do_reconfigure) {
+		ctx->do_reconfigure = GF_FALSE;
+		e = filein_declare_pid(filter, &ctx->pid, ctx->src, ctx->src, NULL, ctx->block, nb_read);
+		if (e) return e;
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_FILE_CACHED, &PROP_BOOL(GF_TRUE) );
 		gf_filter_pid_set_info(ctx->pid, GF_PROP_PID_DOWN_SIZE, &PROP_LONGUINT(ctx->file_size) );
 	}
