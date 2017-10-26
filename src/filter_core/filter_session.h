@@ -273,6 +273,8 @@ struct __gf_media_session
 	volatile u32 nb_dm_users;
 
 	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
+
+	GF_FilterSessionCaps caps;
 };
 
 
@@ -293,6 +295,7 @@ struct __gf_filter
 
 	void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e);
 	void *on_setup_error_udta;
+	GF_Filter *on_setup_error_filter;
 
 	//const pointer to the argument string
 	const char *orig_args;
@@ -344,6 +347,9 @@ struct __gf_filter
 
 	//pointer to the original filter being cloned - only used for graph setup, reset after
 	GF_Filter *cloned_from;
+
+	//pointer to the target filter to connect to - only used for graph setup, reset after
+	GF_Filter *dst_filter;
 
 	//statistics
 	//number of tasks executed by this filter
@@ -398,7 +404,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter);
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 
@@ -478,6 +484,7 @@ struct __gf_filter_pid
 	GF_List *properties;
 	Bool request_property_map;
 	Bool pid_info_changed;
+	Bool destroyed;
 	volatile u32 discard_input_packets;
 	//set whenever an eos packet is dispatched, reset whenever a regular packet is dispatched
 	Bool has_seen_eos;
@@ -490,7 +497,7 @@ struct __gf_filter_pid
 
 	//times in us
 	u32 max_buffer_time;
-	u32 user_max_buffer_time;
+	u32 user_max_buffer_time, user_max_playout_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
 	u32 buffer_duration;
 
@@ -510,6 +517,7 @@ struct __gf_filter_pid
 
 
 void gf_filter_pid_del(GF_FilterPid *pid);
+void gf_filter_pid_del_task(GF_FSTask *task);
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck);
 

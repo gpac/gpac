@@ -102,6 +102,11 @@ u32 gf_fs_run_step(GF_FilterSession *fsess);
 
 GF_Err gf_fs_stop(GF_FilterSession *fsess);
 
+typedef struct
+{
+	u32 max_screen_width, max_screen_height, max_screen_bpp;
+} GF_FilterSessionCaps;
+
 typedef enum
 {
 	GF_PROP_FORBIDEN=0,
@@ -234,7 +239,11 @@ typedef struct
 	u8 in_bundle;
 	//overrides the filter registry priority for this cap. Usually 0
 	u8 priority;
+	//when set, the pid cap is validated only for filter loaded for this destination filter
+	u8 explicit_only;
 } GF_FilterCapability;
+
+void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps);
 
 typedef enum
 {
@@ -329,18 +338,22 @@ void gf_filter_post_process_task(GF_Filter *filter);
 
 void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name);
 
-void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta);
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta);
 
 void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason);
+
+void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force_disconnect);
 
 void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err);
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err);
 
 GF_User *gf_fs_get_user(GF_FilterSession *fsess);
+
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
 GF_FilterPid *gf_filter_get_ipid(GF_Filter *filter, u32 idx);
@@ -351,6 +364,7 @@ GF_FilterPid *gf_filter_get_opid(GF_Filter *filter, u32 idx);
 GF_FilterPid *gf_filter_pid_new(GF_Filter *filter);
 void gf_filter_pid_remove(GF_FilterPid *pid);
 
+void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf);
 
 //set a new property to the pid. previous properties (ones set before last packet dispatch)
 //will still be valid. You need to remove them one by one using set_property with NULL property, or reset the
@@ -503,9 +517,12 @@ GF_FilterClockType gf_filter_pid_get_clock_info(GF_FilterPid *pid, u64 *clock_va
 GF_Err gf_filter_pck_set_carousel_version(GF_FilterPacket *pck, u8 version_number);
 u8 gf_filter_pck_get_carousel_version(GF_FilterPacket *pck);
 
+void gf_filter_pid_clear_eos(GF_FilterPid *pid);
+
 void gf_fs_add_filter_registry(GF_FilterSession *fsess, const GF_FilterRegister *freg);
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg);
 
+void gf_filter_pid_set_clock_mode(GF_FilterPid *pid, Bool filter_in_charge);
 
 enum
 {
@@ -534,6 +551,9 @@ enum
 
 	//(rational) PID duration
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
+	//(rational) PID timeshift depth
+	GF_PROP_PID_TIMESHIFT = GF_4CC('P','T','S','H'),
+
 
 	//(uint) timescale of pid
 	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
@@ -604,6 +624,11 @@ enum
 	//(longuint) timestamp corresponding to UTC date and time of PID
 	GF_PROP_PID_UTC_TIMESTAMP = GF_4CC('U','T','C','T'),
 
+	//(bool) reverse playback capability of the pid
+	GF_PROP_PID_REVERSE_PLAYBACK = GF_4CC('R','P','B','C'),
+	GF_PROP_PID_MAX_WIDTH = GF_4CC('M','W','I','D'),
+	GF_PROP_PID_MAX_HEIGHT = GF_4CC('M','H','E','I'),
+
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
 };
@@ -627,12 +652,14 @@ typedef enum
 	GF_FEVT_PAUSE,	//no associated event structure
 	GF_FEVT_RESUME,	//no associated event structure
 	GF_FEVT_SOURCE_SEEK,
+	GF_FEVT_SOURCE_SWITCH,
 	GF_FEVT_ATTACH_SCENE,
 	GF_FEVT_RESET_SCENE,
 	GF_FEVT_QUALITY_SWITCH,
 	GF_FEVT_VISIBILITY_HINT,
 	GF_FEVT_INFO_UPDATE,
 	GF_FEVT_BUFFER_REQ,
+	GF_FEVT_CAPS_CHANGE,
 	GF_FEVT_MOUSE,
 } GF_FEventType;
 
@@ -670,16 +697,33 @@ typedef struct
 		2: range is in media time but timestamps should not be shifted (hybrid dash only for now)
 	*/
 	u8 timestamp_based;
+
+	u8 forced_dash_segment_switch;
 } GF_FEVT_Play;
 
-/*GF_FEVT_SOURCE_SEEK*/
+/*GF_FEVT_SOURCE_SEEK and GF_FEVT_SOURCE_SWITCH*/
 typedef struct
 {
 	FILTER_EVENT_BASE
 	u64 start_offset;
 	u64 end_offset;
+	const char *source_switch;
+	u8 previous_is_init_segment;
+	u8 skip_cache_expiration;
 } GF_FEVT_SourceSeek;
 
+/*GF_FEVT_SOURCE_SWITCH*/
+typedef struct
+{
+	FILTER_EVENT_BASE
+	const char *queue_url;
+	u64 start_offset;
+	u64 end_offset;
+
+	const char *switch_url;
+	u64 switch_start_offset;
+	u64 switch_end_offset;
+} GF_FEVT_SourceSwitch;
 
 /*GF_FEVT_ATTACH_SCENE and GF_FEVT_RESET_SCENE*/
 typedef struct
@@ -732,9 +776,8 @@ typedef struct
 	//indicates the max buffer to set on pid
 	//the buffer is only activated on pids connected to decoders
 	u32 max_buffer_us;
+	u32 max_playout_us;
 } GF_FEVT_BufferRequirement;
-
-
 
 union __gf_filter_event
 {
@@ -752,7 +795,7 @@ union __gf_filter_event
 
 void gf_filter_pid_send_event(GF_FilterPid *pid, GF_FilterEvent *evt);
 
-
+void gf_filter_send_event(GF_Filter *filter, GF_FilterEvent *evt);
 
 typedef struct
 {

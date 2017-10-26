@@ -273,7 +273,7 @@ void isor_declare_objects(ISOMReader *read)
 		if (esd->has_scalable_layers)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SCALABLE, &PROP_BOOL(GF_TRUE));
 
-		ch = ISOR_CreateChannel(read, pid, i+1, 0);
+		ch = isor_create_channel(read, pid, i+1, 0);
 
 		ch->duration = gf_isom_get_track_duration(read->mov, ch->track);
 		if (!ch->duration) {
@@ -290,6 +290,7 @@ void isor_declare_objects(ISOMReader *read)
 		gf_filter_pid_set_property_str(pid, "RebufferLength", &PROP_UINT(0));
 		gf_filter_pid_set_property_str(pid, "BufferMaxOccupancy", &PROP_UINT(500000));
 
+		gf_filter_pid_set_info(pid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE) );
 
 		//todo: map other ESD params if needed
 
@@ -330,7 +331,7 @@ void isor_declare_objects(ISOMReader *read)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_HEIGHT, &PROP_UINT(props.height));
 		}
 
-		ch = ISOR_CreateChannel(read, pid, 0, item_id);
+		ch = isor_create_channel(read, pid, 0, item_id);
 		gf_odf_desc_del((GF_Descriptor *)esd);
 	}
 

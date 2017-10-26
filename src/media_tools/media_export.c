@@ -2997,7 +2997,7 @@ GF_Err gf_media_export_ts_native(GF_MediaExporter *dumper)
 	if (dumper->flags & GF_EXPORT_PROBE_ONLY) return GF_OK;
 
 	src = gf_fopen(dumper->in_name, "rb");
-	if (!src) return gf_export_message(dumper, GF_CODEC_NOT_FOUND, "Error opening %s", dumper->in_name);
+	if (!src) return gf_export_message(dumper, GF_FILTER_NOT_FOUND, "Error opening %s", dumper->in_name);
 
 	gf_fseek(src, 0, SEEK_END);
 	fsize = gf_ftell(src);

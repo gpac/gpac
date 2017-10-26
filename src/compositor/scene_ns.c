@@ -32,20 +32,16 @@ struct on_setup_task
 	GF_Err reason;
 };
 
-static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
+void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
 {
 	GF_SceneNamespace *scene_ns;
 	GF_Scene *scene, *top_scene;
-	struct on_setup_task *task = gf_fs_task_get_udta(filter_task);
-	GF_Err err = task->reason;
-	GF_ObjectManager *root = (GF_ObjectManager *)task->odm;
+	GF_ObjectManager *root = (GF_ObjectManager *)udta;
 	assert(root);
 	scene_ns = root->scene_ns;
 	assert(scene_ns);
 	scene = root->subscene ? root->subscene : root->parentscene;
 	assert(scene);
-
-	gf_free(task);
 
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_MEDIA, ("[ODM] Service connection failure received from %s - %s\n", scene_ns->url, gf_error_to_string(err) ));
 
@@ -95,18 +91,6 @@ static void scene_ns_on_setup_error_task(GF_FSTask *filter_task)
 			return;
 		}
 	}
-}
-
-static void scene_ns_on_setup_error(GF_Filter *failed_filter, void *udta, GF_Err err)
-{
-	GF_Scene *scene;
-	struct on_setup_task*t = gf_malloc(sizeof(struct on_setup_task));
-	t->reason = err;
-	t->odm = (GF_ObjectManager *)udta;
-	assert(t->odm);
-	scene = t->odm->subscene ? t->odm->subscene : t->odm->parentscene;
-	assert(scene);
-	gf_filter_post_task(scene->compositor->filter, scene_ns_on_setup_error_task, t, "compositor_on_connect");
 }
 
 
@@ -404,8 +388,6 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 #endif
 	GF_Err e;
 	Bool reloc_result=GF_FALSE;
-	GF_FilterSession *fsess = gf_filter_get_session(scene->compositor->filter);
-
 	
 #if FILTER_FIXME
 	Bool net_locked;
@@ -499,7 +481,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 	odm->scene_ns->nb_odm_users++;
 	assert(odm->scene_ns->owner == odm);
 
-	odm->scene_ns->source_filter = gf_fs_load_source(fsess, serviceURL, parent_url, &e);
+	odm->scene_ns->source_filter = gf_filter_connect_source(scene->compositor->filter, serviceURL, parent_url, &e);
 	if (!odm->scene_ns->source_filter) {
 		gf_scene_notify_event(scene, GF_EVENT_SCENE_ATTACHED, NULL, NULL, e, GF_TRUE);
 		gf_scene_message(scene, serviceURL, "Cannot find filter for service", e);
@@ -507,7 +489,7 @@ void gf_scene_ns_connect_object(GF_Scene *scene, GF_ObjectManager *odm, char *se
 		return;
 	}
 
-	gf_filter_set_setup_failure_callback(odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
+	gf_filter_set_setup_failure_callback(scene->compositor->filter, odm->scene_ns->source_filter, scene_ns_on_setup_error, odm);
 
 	/*OK connect*/
 	gf_odm_service_media_event(odm, GF_EVENT_MEDIA_SETUP_BEGIN);

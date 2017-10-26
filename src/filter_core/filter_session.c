@@ -64,6 +64,7 @@ const GF_FilterRegister *lsrdec_register(GF_FilterSession *session);
 const GF_FilterRegister *safdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *osvcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session);
+const GF_FilterRegister *dashdmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -99,6 +100,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ohevcdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, dashdmx_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
@@ -1051,7 +1053,7 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 }
 
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err, GF_Filter *filter)
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
@@ -1068,7 +1070,7 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 		return NULL;
 	}
 	if (filter) {
-		sURL = url;
+		sURL = (char *) url;
 	} else {
 		/*used by GUIs scripts to skip URL concatenation*/
 		if (!strncmp(url, "gpac://", 7)) sURL = gf_strdup(url+7);
@@ -1150,15 +1152,16 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, char *url, char *
 	if (filter) {
 		if (filter->src_args) gf_free(filter->src_args);
 		filter->src_args = args;
+		filter->dst_filter = dst_filter;
 	} else {
 		gf_free(args);
 	}
 	return filter;
 }
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, char *url, char *parent_url, GF_Err *err)
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_internal(fsess, url, parent_url, err, NULL);
+	return gf_fs_load_source_internal(fsess, url, parent_url, err, NULL, NULL);
 }
 
 
@@ -1228,6 +1231,18 @@ GF_EXPORT
 Bool gf_fs_send_event(GF_FilterSession *fsess, GF_Event *evt)
 {
 	return gf_fs_forward_event(fsess, evt, 0, 0);
+}
+
+GF_EXPORT
+void gf_filter_get_session_caps(GF_Filter *filter, GF_FilterSessionCaps *caps)
+{
+	if (caps) {
+		if (filter) {
+			(*caps) = filter->session->caps;
+		} else {
+			memset(caps, 0, sizeof(GF_FilterSessionCaps));
+		}
+	}
 }
 
 

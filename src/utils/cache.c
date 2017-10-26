@@ -774,7 +774,7 @@ GF_Err gf_cache_delete_entry ( const DownloadedCacheEntry entry )
 {
 	if ( !entry )
 		return GF_OK;
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p\n", __LINE__, entry));
+	GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, url=%s\n", __LINE__, entry, entry->url));
 	if (entry->writeFilePtr) {
 		/** Cache should have been close before, abornormal situation */
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[CACHE] gf_cache_delete_entry:%d, entry=%p, cache has not been closed properly\n", __LINE__, entry));
@@ -876,7 +876,7 @@ Bool gf_cache_check_if_cache_file_is_corrupted(const DownloadedCacheEntry entry)
 			entry->flags |= CORRUPTED;
 			GF_LOG(GF_LOG_INFO, GF_LOG_NETWORK, ("[CACHE] gf_cache_create_entry:%d, CACHE is corrupted !\n", __LINE__));
 		}
-	} else {
+	} else if (!entry->mem_storage) {
 		entry->flags |= CORRUPTED;
 	}
 	return entry->flags & CORRUPTED;

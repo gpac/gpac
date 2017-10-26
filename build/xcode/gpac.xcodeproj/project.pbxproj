@@ -345,6 +345,7 @@
 		92BB85811F7C3C4B009BC9C8 /* reframe_ac3.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */; };
 		92BB85831F7C5774009BC9C8 /* dec_ac52.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85821F7C5773009BC9C8 /* dec_ac52.c */; };
 		92BB85851F7C606A009BC9C8 /* reframe_amr.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB85841F7C606A009BC9C8 /* reframe_amr.c */; };
+		92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BB9A661F9C827600524E5B /* dmx_dash.c */; };
 		92BBDD751F9642C0001471C6 /* dec_openhevc.c in Sources */ = {isa = PBXBuildFile; fileRef = 92BBDD741F9642C0001471C6 /* dec_openhevc.c */; };
 		92BBFCAB1A7122AD006A7735 /* ait.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC481A7122AD006A7735 /* ait.h */; };
 		92BBFCAC1A7122AD006A7735 /* avparse.h in Headers */ = {isa = PBXBuildFile; fileRef = 92BBFC491A7122AD006A7735 /* avparse.h */; };
@@ -1193,6 +1194,7 @@
 		92BB85801F7C3C4A009BC9C8 /* reframe_ac3.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_ac3.c; path = filters/reframe_ac3.c; sourceTree = "<group>"; };
 		92BB85821F7C5773009BC9C8 /* dec_ac52.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_ac52.c; path = filters/dec_ac52.c; sourceTree = "<group>"; };
 		92BB85841F7C606A009BC9C8 /* reframe_amr.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_amr.c; path = filters/reframe_amr.c; sourceTree = "<group>"; };
+		92BB9A661F9C827600524E5B /* dmx_dash.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_dash.c; path = filters/dmx_dash.c; sourceTree = "<group>"; };
 		92BBDD741F9642C0001471C6 /* dec_openhevc.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dec_openhevc.c; path = filters/dec_openhevc.c; sourceTree = "<group>"; };
 		92BBFC481A7122AD006A7735 /* ait.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ait.h; path = ../include/gpac/ait.h; sourceTree = "<group>"; };
 		92BBFC491A7122AD006A7735 /* avparse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = avparse.h; path = ../include/gpac/avparse.h; sourceTree = "<group>"; };
@@ -2499,6 +2501,7 @@
 				926656C11F7D10F400299CC6 /* dec_vorbis.c */,
 				92B9A5081F840A6700A24FE4 /* dec_vtb.c */,
 				92BB857C1F7BFD7F009BC9C8 /* dec_xvid.c */,
+				92BB9A661F9C827600524E5B /* dmx_dash.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
@@ -3370,6 +3373,7 @@
 				920101AA18D5A445003D1ACA /* color.c in Sources */,
 				92B9A5841F8660D700A24FE4 /* mpeg4_form.c in Sources */,
 				927AACF71E44ED58008C8E69 /* main.c in Sources */,
+				92BB9A671F9C827600524E5B /* dmx_dash.c in Sources */,
 				92B9A5A71F8660D700A24FE4 /* texturing_gl.c in Sources */,
 				92B9A5A51F8660D700A24FE4 /* mpeg4_gradients.c in Sources */,
 				920101AB18D5A445003D1ACA /* configfile.c in Sources */,

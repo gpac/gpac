@@ -235,8 +235,8 @@ typedef enum
 	GF_BUFFER_TOO_SMALL						= -9,
 	/*! Bitstream is not compliant to the specfication it refers to*/
 	GF_NON_COMPLIANT_BITSTREAM				= -10,
-	/*! No decoders could be found to handle the desired media type*/
-	GF_CODEC_NOT_FOUND						= -11,
+	/*! No filter could be found to handle the desired media type*/
+	GF_FILTER_NOT_FOUND						= -11,
 	/*! The URL is not properly formatted or cannot be found*/
 	GF_URL_ERROR							= -12,
 	/*! An service error has occured at the local side*/

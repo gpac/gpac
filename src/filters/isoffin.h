@@ -58,7 +58,10 @@ typedef struct
 	GF_ISOFile *mov;
 	u32 time_scale;
 	u32 nb_playing;
+	//source data is completely available
 	Bool input_loaded;
+	//fragmented file to be refreshed before processing it
+	Bool refresh_fragmented;
 
 	u64 missing_bytes, last_size;
 
@@ -72,8 +75,7 @@ typedef struct
 	u32 pending_scalable_enhancement_segment_index;
 
 	Bool use_memory;
-	/*0: segment is not opened - 1: segment is opened but can be refreshed incomplete file) - 2: segment is fully parsed, no need for refresh*/
-	u32 seg_opened;
+
 	Bool drop_next_segment;
 	Bool in_data_flush;
 	u32 has_pending_segments, nb_force_flush;
@@ -121,7 +123,8 @@ typedef struct
 	Double speed;
 
 	u32 time_scale;
-	Bool to_init, is_playing, has_rap;
+	Bool to_init, has_rap;
+	u32 play_state;
 	u8 streamType;
 
 	Bool is_encrypted, is_cenc;
@@ -145,8 +148,10 @@ void isor_reset_reader(ISOMChannel *ch);
 void isor_reader_get_sample(ISOMChannel *ch);
 void isor_reader_release_sample(ISOMChannel *ch);
 
+void isor_check_producer_ref_time(ISOMReader *read);
+
 //ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid);
-ISOMChannel *ISOR_CreateChannel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id);
+ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id);
 
 /*uses nero chapter info and remaps to MPEG-4 OCI if no OCI present in descriptor*/
 void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);

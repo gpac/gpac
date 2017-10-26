@@ -391,10 +391,10 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 		//look for our arg separator
 		char *sep = strchr(args, ':');
 		if (sep && !strncmp(sep, "://", 3)) {
-			char *p = strchr(sep+3, '/');
-			sep = strchr(sep+3, ':');
-			//skip ':' if happening before the first / (port number)
-			if (p && sep && ((p-args) > (sep-args)) ) sep = p;
+			//get root /
+			sep = strchr(sep+3, '/');
+			//get first : after root
+			if (sep) sep = strchr(sep+1, ':');
 		}
 
 		//watchout for "C:\\"
@@ -422,10 +422,8 @@ static void gf_filter_parse_args(GF_Filter *filter, const char *args, GF_FilterA
 			value++;
 		}
 
-/*
 		if ((arg_type == GF_FILTER_ARG_GLOBAL) && !strcmp(szArg, "src"))
 			goto skip_arg;
-*/
 
 		i=0;
 		while (filter->freg->args) {
@@ -580,7 +578,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	if (filter->session->run_status != GF_OK) {
 		return;
 	}
-	if (e==GF_EOS) {
+	if ((e==GF_EOS) || filter->removed || filter->finalized) {
 		filter->process_task_queued = 0;
 		return;
 	}
@@ -666,28 +664,28 @@ void gf_filter_ask_rt_reschedule(GF_Filter *filter, u32 us_until_next)
 	GF_LOG(GF_LOG_DEBUG, GF_LOG_SCHEDULER, ("Filter %s real-time reschedule in %d us (at "LLU" sys clock)\n", filter->name, us_until_next, filter->schedule_next_time));
 }
 
-void gf_filter_set_setup_failure_callback(GF_Filter *filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
+void gf_filter_set_setup_failure_callback(GF_Filter *filter, GF_Filter *source_filter, void (*on_setup_error)(GF_Filter *f, void *on_setup_error_udta, GF_Err e), void *udta)
 {
-	assert(filter);
-	filter->on_setup_error = on_setup_error;
-	filter->on_setup_error_udta = udta;
+	if (!filter) return;
+	if (!source_filter) return;
+	source_filter->on_setup_error = on_setup_error;
+	source_filter->on_setup_error_filter = filter;
+	source_filter->on_setup_error_udta = udta;
 }
 
 struct _gf_filter_setup_failure
 {
 	GF_Err e;
 	GF_Filter *filter;
+	GF_Filter *notify_filter;
+	Bool do_disconnect;
 } filter_setup_failure;
 
-void gf_filter_setup_failure_task(GF_FSTask *task)
+static void gf_filter_setup_failure_task(GF_FSTask *task)
 {
 	s32 res;
-	GF_Err e = ((struct _gf_filter_setup_failure *)task->udta)->e;
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
 	gf_free(task->udta);
-
-	if (f->on_setup_error)
-		f->on_setup_error(f, f->on_setup_error_udta, e);
 
 	if (f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
@@ -703,21 +701,47 @@ void gf_filter_setup_failure_task(GF_FSTask *task)
 	gf_filter_del(f);
 }
 
-void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
+static void gf_filter_setup_failure_notify_task(GF_FSTask *task)
+{
+	struct _gf_filter_setup_failure *st = (struct _gf_filter_setup_failure *)task->udta;
+	if (st->notify_filter && st->filter->on_setup_error)
+		st->filter->on_setup_error(st->filter, st->filter->on_setup_error_udta, st->e);
+
+	if (st->do_disconnect) {
+		gf_fs_post_task(st->filter->session, gf_filter_setup_failure_task, NULL, NULL, "setup_failure", st);
+	} else {
+		gf_free(st);
+	}
+}
+
+void gf_filter_notification_failure(GF_Filter *filter, GF_Err reason, Bool force_disconnect)
 {
 	struct _gf_filter_setup_failure *stack;
+	if (!filter->on_setup_error_filter && !force_disconnect) return;
+
+	stack = gf_malloc(sizeof(struct _gf_filter_setup_failure));
+	stack->e = reason;
+	stack->notify_filter = filter->on_setup_error_filter;
+	stack->filter = filter;
+	stack->do_disconnect = force_disconnect;
+	if (force_disconnect) {
+		filter->removed = GF_TRUE;
+	}
+	if (filter->on_setup_error_filter) {
+		gf_fs_post_task(filter->session, gf_filter_setup_failure_notify_task, filter->on_setup_error_filter, NULL, "setup_failure_notify", stack);
+	} else if (force_disconnect) {
+		gf_fs_post_task(filter->session, gf_filter_setup_failure_task, NULL, NULL, "setup_failure", stack);
+	}
+}
+
+void gf_filter_setup_failure(GF_Filter *filter, GF_Err reason)
+{
 	//don't accept twice a notif
 	if (filter->setup_notified) return;
 	filter->setup_notified = GF_TRUE;
 
-	stack = gf_malloc(sizeof(struct _gf_filter_setup_failure));
-	stack->e = reason;
-	stack->filter = filter;
-
-	//setup failure may happen after an initialize, potentially in another thread - post a task
-	gf_fs_post_task(filter->session, gf_filter_setup_failure_task, NULL, NULL, "process", stack);
+	gf_filter_notification_failure(filter, reason, GF_TRUE);
 }
-
 void gf_filter_post_task(GF_Filter *filter, gf_fs_task_callback task_fun, void *udta, const char *task_name)
 {
 	gf_fs_post_task(filter->session, task_fun, filter, NULL, task_name, udta);
@@ -873,7 +897,8 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 
 	while (gf_list_count(filter->output_pids)) {
 		GF_FilterPid *pid = gf_list_pop_back(filter->output_pids);
-		gf_filter_pid_del(pid);
+		pid->destroyed = GF_TRUE;
+		gf_fs_post_task(filter->session, gf_filter_pid_del_task, filter, pid, "pid_delete", NULL);
 	}
 	filter->num_output_pids = 0;
 
@@ -905,7 +930,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
 
-	gf_fs_load_source_internal(filter->session, src_url, NULL, &e, filter);
+	gf_fs_load_source_internal(filter->session, src_url, NULL, &e, filter, filter->dst_filter);
 	//we manage to reassign an input registry
 	if (e==GF_OK) return GF_TRUE;
 	//nope ...
@@ -948,4 +973,36 @@ void gf_filter_forward_clock(GF_Filter *filter)
 	filter->next_clock_dispatch_type = 0;
 }
 
+GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
+{
+	return gf_fs_load_source_internal(filter->session, url, parent_url, err, NULL, filter);
+}
+
+
+void gf_filter_get_buffer_max(GF_Filter *filter, u32 *max_buf, u32 *max_playout_buf)
+{
+	u32 i;
+	u32 buf_max = 0;
+	u32 buf_play_max = 0;
+	for (i=0; i<filter->num_output_pids; i++) {
+		u32 j;
+		GF_FilterPid *pid = gf_list_get(filter->output_pids, i);
+		if (buf_max < pid->user_max_buffer_time) buf_max = pid->user_max_buffer_time;
+		if (buf_max < pid->max_buffer_time) buf_max = pid->max_buffer_time;
+
+		if (buf_play_max < pid->user_max_playout_time) buf_play_max = pid->user_max_playout_time;
+		if (buf_play_max < pid->max_buffer_time) buf_play_max = pid->max_buffer_time;
+
+		for (j=0; j<pid->num_destinations; j++) {
+			u32 mb, pb;
+			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, j);
+			gf_filter_get_buffer_max(pidi->filter, &mb, &pb);
+			if (buf_max < mb) buf_max = mb;
+			if (buf_play_max < pb) buf_play_max = pb;
+		}
+	}
+	*max_buf = buf_max;
+	*max_playout_buf = buf_play_max;
+	return;
+}
 
