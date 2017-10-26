@@ -911,6 +911,7 @@ typedef struct
 	char *data;
 	/* used of AVC/SVC detection */
 	s32 id;
+	u32 crc;
 } GF_AVCConfigSlot;
 
 /*! AVC config record - not a real MPEG-4 descriptor
