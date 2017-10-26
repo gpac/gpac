@@ -244,7 +244,6 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 
 	for (i=0; i<count; i++) {
 		ISOMChannel *ch = gf_list_get(read->channels, i);
-		ch->wait_for_segment_switch = 0;
 		ch->last_state = GF_OK;
 		if (ch->play_state) ch->play_state = 1;
 		
@@ -300,9 +299,6 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 			isor_send_cenc_config(ch);
 		}
 	}
-#ifdef FILTER_FIXME
-	read->use_memory = !strncmp(param.url_query.next_url, "gmem://", 7) ? GF_TRUE : GF_FALSE;
-#endif
 	return e;
 }
 
@@ -469,33 +465,6 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 #ifdef FILTER_FIXME
 
 exit:
-	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
-		send_proxy_command(read, GF_FALSE, GF_FALSE, e, NULL, channel);
-	} else {
-		gf_service_connect_ack(read->service, channel, e);
-	}
-	/*if esd url reconfig SL layer*/
-	if (!e && is_esd_url) {
-		GF_ESD *esd;
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.on_channel = channel;
-		com.command_type = GF_NET_CHAN_RECONFIG;
-		esd = gf_isom_get_esd(read->mov, ch->track, 1);
-		if (esd) {
-			memcpy(&com.cfg.sl_config, esd->slConfig, sizeof(GF_SLConfig));
-			gf_odf_desc_del((GF_Descriptor *)esd);
-		} else {
-			com.cfg.sl_config.tag = GF_ODF_SLC_TAG;
-			com.cfg.sl_config.timestampLength = 32;
-			com.cfg.sl_config.timestampResolution = ch->time_scale;
-			com.cfg.sl_config.useRandomAccessPointFlag = 1;
-		}
-		if (read->input->query_proxy && read->input->proxy_udta) {
-			read->input->query_proxy(read->input, &com);
-		} else {
-			gf_service_command(read->service, &com, GF_OK);
-		}
-	}
 	if (!e && track && gf_isom_is_track_encrypted(read->mov, track)) {
 		memset(&com, 0, sizeof(GF_NetworkCommand));
 		com.base.on_channel = channel;
@@ -602,12 +571,6 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 		}
 		return GF_OK;
 	}
-	if (com->type == GF_NET_SERVICE_PROXY_DATA_RECEIVE) {
-		isor_flush_data(read, 1, com->proxy_data.is_chunk);
-		return GF_OK;
-	}
-	if (com->command_type == GF_NET_SERVICE_CAN_REVERSE_PLAYBACK)
-		return GF_OK;
 #endif
 
 	if (com->base.type == GF_FEVT_QUALITY_SWITCH) {
@@ -672,9 +635,7 @@ static Bool isoffin_process_event(GF_Filter *filter, const GF_FilterEvent *com)
 				ch->end = (u64) (s64) (end  * ch->time_scale);
 		}
 		ch->play_state = 1;
-#ifdef FILTER_FIXME
-		if (com->play.dash_segment_switch) ch->wait_for_segment_switch = 1;
-#endif
+
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_NETWORK, ("[IsoMedia] Starting channel playback "LLD" to "LLD" (%g to %g)\n", ch->start, ch->end, com->play.start_range, com->play.end_range));
 
 		if (!read->nb_playing)
