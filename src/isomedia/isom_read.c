@@ -91,7 +91,7 @@ void gf_isom_sample_del(GF_ISOSample **samp)
 }
 
 GF_EXPORT
-u32 gf_isom_probe_file(const char *fileName)
+u32 gf_isom_probe_file_range(const char *fileName, u64 start_range, u64 end_range)
 {
 	u32 type = 0;
 
@@ -101,12 +101,13 @@ u32 gf_isom_probe_file(const char *fileName)
 		if (sscanf(fileName, "gmem://%d@%p", &size, &mem_address) != 2) {
 			return 0;
 		}
-		if (size>8)
-			type = GF_4CC(mem_address[4], mem_address[5], mem_address[6], mem_address[7]);
+		if (size > start_range + 8)
+			type = GF_4CC(mem_address[start_range + 4], mem_address[start_range + 5], mem_address[start_range + 6], mem_address[start_range + 7]);
 	} else {
 		unsigned char data[4];
 		FILE *f = gf_fopen(fileName, "rb");
 		if (!f) return 0;
+		if (start_range) gf_fseek(f, start_range, SEEK_SET);
 		type = 0;
 		if (fread(data, 1, 4, f) == 4) {
 			if (fread(data, 1, 4, f) == 4) {
@@ -143,6 +144,11 @@ u32 gf_isom_probe_file(const char *fileName)
 	}
 }
 
+GF_EXPORT
+u32 gf_isom_probe_file(const char *fileName)
+{
+	return gf_isom_probe_file_range(fileName, 0, 0);
+}
 #ifndef GPAC_DISABLE_AV_PARSERS
 #include <gpac/internal/media_dev.h>
 #endif

@@ -612,6 +612,8 @@ enum
 	GF_PROP_PID_DOWN_SIZE = GF_4CC('D','L','S','Z'),
 	//(uint) total downloaded bytes if known
 	GF_PROP_PID_DOWN_BYTES = GF_4CC('D','L','B','D'),
+	//(fraction) byte range for the file
+	GF_PROP_PID_FILE_RANGE = GF_4CC('F','B','R','A'),
 
 	//(uint) display width of service
 	GF_PROP_SERVICE_WIDTH = GF_4CC('D','W','D','T'),

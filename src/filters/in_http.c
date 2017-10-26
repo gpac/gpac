@@ -90,7 +90,7 @@ GF_Err httpin_initialize(GF_Filter *filter)
 		ctx->initial_ack_done = GF_TRUE;
 		return e;
 	}
-	if (ctx->range.num) {
+	if (ctx->range.den) {
 		gf_dm_sess_set_range(ctx->sess, ctx->range.num, ctx->range.den, GF_TRUE);
 	}
 
@@ -352,7 +352,7 @@ static const GF_FilterArgs HTTPInArgs[] =
 	{ OFFS(src), "location of source content", GF_PROP_NAME, NULL, NULL, GF_FALSE},
 	{ OFFS(block_size), "block size used to read file", GF_PROP_UINT, "1000000", NULL, GF_FALSE},
 	{ OFFS(cache), "Sets cache mode: disk, disk without discarding, memory or none", GF_PROP_UINT, "disk", "disk|keep|mem|none", GF_FALSE},
-	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
+	{ OFFS(range), "Sets byte range, as fraction", GF_PROP_FRACTION, "0-0", NULL, GF_FALSE},
 	{}
 };
 

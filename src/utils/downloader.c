@@ -3868,5 +3868,11 @@ GF_Err gf_dm_sess_get_header_sizes_and_times(GF_DownloadSession *sess, u32 *req_
 	return GF_OK;
 }
 
+GF_EXPORT
+void gf_dm_sess_force_memory_mode(GF_DownloadSession *sess)
+{
+	if (sess) sess->flags |= GF_NETIO_SESSION_MEMORY_CACHE;
+}
+
 
 #endif

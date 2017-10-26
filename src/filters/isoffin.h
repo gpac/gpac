@@ -89,6 +89,7 @@ typedef struct
 	Bool is_partial_download, wait_for_source;
 
 	u32 src_crc;
+	u64 start_range, end_range;
 	GF_FilterPid *pid;
 } ISOMReader;
 
