@@ -38,6 +38,14 @@ extern "C" {
 #include <gpac/color.h>
 #include <gpac/thread.h>
 
+typedef struct {
+	GF_VideoOutput *dr;
+	enum {
+		VIDEO,
+		AUDIO
+	} type;
+} DtCbkCtx;
+
 typedef struct
 {
 	unsigned char *pixels_YUV_source;
@@ -47,6 +55,8 @@ typedef struct
 
 	DtDevice *dvc;
 	Bool is_sending, is_configured, is_10b, clip_sdi;
+
+	DtCbkCtx audio_cbk_ctx, video_cbk_ctx;
 
 	s64 frameNum;
 	FILE *pFile;
@@ -61,13 +71,36 @@ typedef struct
 	u32 force_width, force_height;
 } DtContext;
 
-static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
+static void OnNewFrameAudio(DtMxData *pData, void *pOpaque) {
+	DTAPI_RESULT  dr;
+
+	// Must have a valid frame
+	DtMxRowData &OurRow = pData->m_Rows[0];
+	if (OurRow.m_CurFrame->m_Status != DT_FRMSTATUS_OK) {
+		return; // Frame is not valid so we have to assume the frame buffers are unusable
+	}
+
+	// Get frame audio data
+	DtMxAudioData&  AudioData = OurRow.m_CurFrame->m_Audio;
+
+	// Init channel status word for all (valid) audio channels
+	dr = AudioData.InitChannelStatus();
+}
+
+static void OnNewFrameVideo(DtMxData *pData, void *opaque)
 {
 	u64 now = gf_sys_clock_high_res();
 	DtMxRowData&  OurRow = pData->m_Rows[0];
-	GF_VideoOutput *dr = (GF_VideoOutput *)pOpaque;
+	GF_VideoOutput *dr = ((DtCbkCtx*)opaque)->dr;
 	DtContext *dtc = (DtContext*)dr->opaque;
 	if (!dtc->is_configured) return;
+	if (pData->m_NumSkippedFrames>0) {
+		GF_Event evt;
+		evt.type = GF_EVENT_SYNC_LOST;
+		evt.sync_loss.sync_loss_ms = (u32)((u64)pData->m_NumSkippedFrames * dtc->frame_dur * 1000) / dtc->frame_scale;
+		dr->on_event(dr->evt_cbk_hdl, &evt);
+		GF_LOG(GF_LOG_INFO, GF_LOG_MMIO, ("[DekTecOut] [%lld] #skipped frames=%d\n", pData->m_Frame, pData->m_NumSkippedFrames));
+	}
 
 	if (!dtc->init_clock)  {
 		dtc->init_clock = dtc->last_frame_time = now;
@@ -158,53 +191,61 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 			}
 		}
 	} else {
-		const u16 nYRangeMin = 4;
-		const u16 nYRangeMax = 1019;
 		u32 nb_pix = dtc->width*dtc->height;
 		const int lineC = dtc->width / 2;
 		unsigned char *pSrcY = dtc->pixels_YUV_source;
 		unsigned char *pSrcU = dtc->pixels_YUV_source + dtc->width * dtc->height;
 		unsigned char *pSrcV = pSrcU + (dtc->width*dtc->height / 4);
 
-		for (u32 i=0; i<nb_pix; i++) {
-			u16 srcy = ((u16) (*pSrcY)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcy<nYRangeMin)      srcy = nYRangeMin;
-				else if (srcy>nYRangeMax) srcy = nYRangeMax;
-			}
-			*(short *)pDstY = srcy;
+		if (dtc->clip_sdi) {
+			const u16 nYRangeMin = 4;
+			const u16 nYRangeMax = 1019;
 
-			pSrcY++;
-			pDstY+=sizeof(short); //char type but short buffer
+			for (u32 i = 0; i < nb_pix; i++) {
+				u16 srcy = ((u16)(*pSrcY)) << 2;
+				if (dtc->clip_sdi) {
+					if (srcy < nYRangeMin)      srcy = nYRangeMin;
+					else if (srcy > nYRangeMax) srcy = nYRangeMax;
+				}
+				*(short *)pDstY = srcy;
+
+				pSrcY++;
+				pDstY += sizeof(short); //char type but short buffer
+			}
+
+			nb_pix = dtc->width*dtc->height / 4;
+			for (u32 i = 0; i < nb_pix; i++) {
+				u16 srcu = ((u16)(*pSrcU)) << 2;
+				if (dtc->clip_sdi) {
+					if (srcu < nYRangeMin)      srcu = nYRangeMin;
+					else if (srcu > nYRangeMax) srcu = nYRangeMax;
+				}
+
+				*(short *)pDstU = srcu;
+				*(short *)(pDstU + lineC) = srcu;
+
+				pSrcU++;
+				pDstU += sizeof(short); //char type but short buffer
+			}
+
+			for (u32 i = 0; i < nb_pix; i++) {
+				u16 srcv = ((u16)(*pSrcV)) << 2;
+				if (dtc->clip_sdi) {
+					if (srcv < nYRangeMin)      srcv = nYRangeMin;
+					else if (srcv > nYRangeMax) srcv = nYRangeMax;
+				}
+
+				*(short *)pDstV = srcv;
+				*(short *)(pDstV + lineC) = srcv;
+
+				pSrcV++;
+				pDstV += sizeof(short); //char type but short buffer
+			}
 		}
-
-		nb_pix = dtc->width*dtc->height/4;
-		for (u32 i=0; i<nb_pix; i++) {
-			u16 srcu = ((u16)(*pSrcU)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcu<nYRangeMin)      srcu = nYRangeMin;
-				else if (srcu>nYRangeMax) srcu = nYRangeMax;
-			}
-
-			*(short *)pDstU = srcu;
-			*(short *)(pDstU+lineC) = srcu;
-
-			pSrcU++;
-			pDstU+=sizeof(short); //char type but short buffer
-		}
-
-		for (u32 i = 0; i<nb_pix; i++) {
-			u16 srcv = ((u16)(*pSrcV)) << 2;
-			if (dtc->clip_sdi) {
-				if (srcv<nYRangeMin)      srcv = nYRangeMin;
-				else if (srcv>nYRangeMax) srcv = nYRangeMax;
-			}
-
-			*(short *)pDstV = srcv;
-			*(short *)(pDstV + lineC) = srcv;
-
-			pSrcV++;
-			pDstV += sizeof(short); //char type but short buffer
+		else {
+			memcpy(pDstY, pSrcY, dtc->width * dtc->height);
+			memcpy(pDstU, pSrcU, dtc->width * dtc->height / 4);
+			memcpy(pDstV, pSrcV, dtc->width * dtc->height / 4);
 		}
 	}
 
@@ -212,11 +253,17 @@ static void OnNewFrameVideo(DtMxData* pData, void* pOpaque)
 	dtc->frame_transfered = GF_TRUE;
 }
 
+static void OnNewFrame(DtMxData *pData, void *pOpaque) {
+	const DtCbkCtx *ctx = ((const DtCbkCtx*)pOpaque);
+	if (ctx->type == DtCbkCtx::VIDEO)
+		OnNewFrameVideo(pData, pOpaque);
+	else if (ctx->type == DtCbkCtx::AUDIO)
+		OnNewFrameAudio(pData, pOpaque);
+}
 
 static GF_Err Dektec_Flush(GF_VideoOutput *dr, GF_Window *dest)
 {
 	DtContext *dtc = (DtContext*)dr->opaque;
-	//DtFrameBuffer *dtf = dtc->dtf;
 	DtMxProcess *Matrix = dtc->m_Matrix;
 
 	if (!dtc->is_configured || !dtc->is_sending) return GF_OK;
@@ -262,7 +309,6 @@ static void Dektec_Shutdown(GF_VideoOutput *dr)
 
 static GF_Err Dektec_ProcessEvent(GF_VideoOutput *dr, GF_Event *evt)
 {
-	//DtFrameBuffer *dtf = (DtFrameBuffer*)(((DtContext*)dr->opaque)->dtf);
 	DtContext *dtc = (DtContext*)dr->opaque;
 
 	if (evt) {
@@ -565,7 +611,7 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 	RowConfig.m_Video.m_LineAlignment = 8; // Want an 8-byte alignment
 
 	// Enable audio
-	RowConfig.m_AudioEnable = false;
+	RowConfig.m_AudioEnable = true;
 	// We will add four channels (2x stereo)
 	for (int i = 0; i<4; i++)
 	{
@@ -601,19 +647,16 @@ GF_Err Dektec_Configure(GF_VideoOutput *dr, u32 width, u32 height, Bool is_10_bi
 		return GF_BAD_PARAM;
 	}
 
-	// Register our callbacks
-	////m_ContextAudio.m_pPlayer = this;
-	////m_ContextAudio.m_Type = CallbackContext::GEN_AUDIO;
-	//res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrameAudio, dr);
-	//if (res != DTAPI_OK){
-	//	GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register audio callback function"));
-	//	return GF_BAD_PARAM;
-	//}
-
-	//m_ContextVideo.m_pPlayer = this;
-	//m_ContextVideo.m_Type = CallbackContext::GEN_VIDEO;
-	res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrameVideo, dr);
+	dtc->audio_cbk_ctx.type = DtCbkCtx::AUDIO;
+	res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrame, &dtc->audio_cbk_ctx);
 	if (res != DTAPI_OK){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register audio callback function"));
+		return GF_BAD_PARAM;
+	}
+	dtc->video_cbk_ctx.type = DtCbkCtx::VIDEO;
+	dtc->video_cbk_ctx.dr = dr;
+	res = dtc->m_Matrix->AddMatrixCbFunc(OnNewFrame, &dtc->video_cbk_ctx);
+	if (res != DTAPI_OK) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] Failed register video callback function"));
 		return GF_BAD_PARAM;
 	}
@@ -669,13 +712,10 @@ GF_VideoOutput *NewDektecVideoOutput()
 	GF_REGISTER_MODULE_INTERFACE(driv, GF_VIDEO_OUTPUT_INTERFACE, "Dektec Video Output", "gpac distribution")
 
 	DtDevice *dvc = new DtDevice;
-	//DtFrameBuffer *dtf = new DtFrameBuffer;
 	DtMxProcess *Matrix = new DtMxProcess;
-	//if (!dtf || !dvc) {
 	if (!Matrix || !dvc) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_MMIO, ("[DekTecOut] DTA API couldn't be initialized.\n"));
 		delete dvc;
-		//delete dtf;
 		delete Matrix;
 		gf_free(driv);
 		return NULL;
@@ -684,7 +724,6 @@ GF_VideoOutput *NewDektecVideoOutput()
 	DtContext *dtc = new DtContext;
 	memset(dtc, 0, sizeof(DtContext));
 	dtc->dvc = dvc;
-	//dtc->dtf = dtf;
 	dtc->m_Matrix = Matrix;
 	driv->opaque = (void*)dtc;
 
