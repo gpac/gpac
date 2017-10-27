@@ -53,6 +53,40 @@
 #endif
 
 
+#if defined(WIN32)
+static wchar_t* utf8_to_wcs(const char* str)
+{
+	size_t source_len;
+	wchar_t* result;
+	if (str == 0) return 0;
+	source_len = strlen(str);
+	result = gf_calloc(source_len + 1, sizeof(wchar_t));
+	if (!result)
+		return 0;
+	if (gf_utf8_mbstowcs(result, source_len, &str) < 0) {
+		gf_free(result);
+		return 0;
+	}
+	return result;
+}
+static char* wcs_to_utf8(const wchar_t* str)
+{
+	size_t source_len;
+	char* result;
+	if (str == 0) return 0;
+	source_len = wcslen(str);
+	result = gf_calloc(source_len + 1, UTF8_MAX_BYTES_PER_CHAR);
+	if (!result)
+		return 0;
+	if (gf_utf8_wcstombs(result, source_len * UTF8_MAX_BYTES_PER_CHAR, &str) < 0) {
+		gf_free(result);
+		return 0;
+	}
+	return result;
+}
+#endif
+
+
 GF_Err gf_rmdir(char *DirPathName)
 {
 #if defined (_WIN32_WCE)
@@ -65,8 +99,13 @@ GF_Err gf_rmdir(char *DirPathName)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
-	int res = rmdir(DirPathName);
-	if (res==-1) {
+	int res;
+	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	if (!wcsDirPathName)
+		return GF_IO_ERR;
+	res = _wrmdir(wcsDirPathName);
+	gf_free(wcsDirPathName);
+	if (res == -1) {
 		int err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot delete directory %s: last error %d\n", DirPathName, err ));
 		return GF_IO_ERR;
@@ -94,7 +133,12 @@ GF_Err gf_mkdir(char* DirPathName)
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
 	}
 #elif defined (WIN32)
-	int res = mkdir(DirPathName);
+	int res;
+	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	if (!wcsDirPathName)
+		return GF_IO_ERR;
+	res = _wmkdir(wcsDirPathName);
+	gf_free(wcsDirPathName);
 	if (res==-1) {
 		int err = GetLastError();
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("Cannot create directory %s: last error %d\n", DirPathName, err ));
@@ -126,7 +170,12 @@ Bool gf_dir_exists(char* DirPathName)
 	att = GetFileAttributes(swzName);
 	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
 #elif defined (WIN32)
-	DWORD att = GetFileAttributes(DirPathName);
+	DWORD att;
+	wchar_t* wcsDirPathName = utf8_to_wcs(DirPathName);
+	if (!wcsDirPathName)
+		return GF_FALSE;
+	att = GetFileAttributesW(wcsDirPathName);
+	gf_free(wcsDirPathName);
 	return (att != INVALID_FILE_ATTRIBUTES && (att & FILE_ATTRIBUTE_DIRECTORY)) ? GF_TRUE : GF_FALSE;
 #else
 	DIR* dir = opendir(DirPathName);
@@ -174,7 +223,15 @@ GF_Err gf_delete_file(const char *fileName)
 	return (DeleteFile(swzName)==0) ? GF_IO_ERR : GF_OK;
 #elif defined(WIN32)
 	/* success if != 0 */
-	return (DeleteFile(fileName)==0) ? GF_IO_ERR : GF_OK;
+	{
+		BOOL op_result;
+		wchar_t* wcsFileName = utf8_to_wcs(fileName);
+		if (!wcsFileName)
+			return GF_IO_ERR;
+		op_result = DeleteFileW(wcsFileName);
+		gf_free(wcsFileName);
+		return (op_result==0) ? GF_IO_ERR : GF_OK;
+	}
 #else
 	/* success is == 0 */
 	return ( remove(fileName) == 0) ? GF_OK : GF_IO_ERR;
@@ -230,7 +287,19 @@ GF_Err gf_move_file(const char *fileName, const char *newFileName)
 	return (MoveFile(swzName, swzNewName) == 0 ) ? GF_IO_ERR : GF_OK;
 #elif defined(WIN32)
 	/* success if != 0 */
-	return (MoveFile(fileName, newFileName) == 0 ) ? GF_IO_ERR : GF_OK;
+	BOOL op_result;
+	wchar_t* wcsFileName = utf8_to_wcs(fileName);
+	wchar_t* wcsNewFileName = utf8_to_wcs(newFileName);
+	if (!wcsFileName || !wcsNewFileName)
+	{
+		if (wcsFileName) gf_free(wcsFileName);
+		if (wcsNewFileName) gf_free(wcsNewFileName);
+		return GF_IO_ERR;
+	}
+	op_result = MoveFileW(wcsFileName, wcsNewFileName);
+	gf_free(wcsFileName);
+	gf_free(wcsNewFileName);
+	return ( op_result == 0 ) ? GF_IO_ERR : GF_OK;
 #else
 	GF_Err e = GF_IO_ERR;
 	char cmd[1024], *arg1, *arg2;
@@ -285,7 +354,13 @@ u64 gf_file_modification_time(const char *filename)
 	return time_ms;
 #elif defined(WIN32) && !defined(__GNUC__)
 	struct _stat64 sb;
-	if (_stat64(filename, &sb) != 0) return 0;
+	int op_result;
+	wchar_t* wcsFilename = utf8_to_wcs(filename);
+	if (!wcsFilename)
+		return 0;
+	op_result = _wstat64(wcsFilename, &sb);
+	gf_free(wcsFilename);
+	if (op_result != 0) return 0;
 	return sb.st_mtime;
 #else
 	struct stat sb;
@@ -316,26 +391,32 @@ FILE *gf_temp_file_new(char ** const fileName)
 	if (GetTempFileName(pPath, TEXT("git"), 0, pTemp))
 		res = _wfopen(pTemp, TEXT("w+b"));
 #elif defined(WIN32)
-	char tmp[MAX_PATH];
 	res = tmpfile();
 	if (!res) {
+		wchar_t tmp[MAX_PATH];
+
 		GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Win32] system failure for tmpfile(): 0x%08x\n", GetLastError()));
 
 		/*tmpfile() may fail under vista ...*/
-		if (GetEnvironmentVariable("TEMP", tmp, MAX_PATH)) {
-			char tmp2[MAX_PATH], *t_file;
+		if (GetEnvironmentVariableW(L"TEMP", tmp, MAX_PATH)) {
+			wchar_t tmp2[MAX_PATH], *t_file;
+			char* mbs_t_file;
 			gf_rand_init(GF_FALSE);
-			sprintf(tmp2, "gpac_%08x_", gf_rand());
-			t_file = tempnam(tmp, tmp2);
-			res = gf_fopen(t_file, "w+b");
+			swprintf(tmp2, MAX_PATH, L"gpac_%08x_", gf_rand());
+			t_file = _wtempnam(tmp, tmp2);
+			mbs_t_file = wcs_to_utf8(t_file);
+			if (!mbs_t_file)
+				return 0;
+			res = gf_fopen(mbs_t_file, "w+b");
 			if (res) {
 				gpac_file_handles--;
 				if (fileName) {
-					*fileName = gf_strdup(t_file);
+					*fileName = gf_strdup(mbs_t_file);
 				} else {
-					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] temporary file %s won't be deleted - contact the GPAC team\n", t_file));
+					GF_LOG(GF_LOG_WARNING, GF_LOG_CORE, ("[Win32] temporary file %s won't be deleted - contact the GPAC team\n", mbs_t_file));
 				}
 			}
+			gf_free(mbs_t_file);
 			free(t_file);
 		}
 	}
@@ -353,7 +434,11 @@ FILE *gf_temp_file_new(char ** const fileName)
 GF_EXPORT
 GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item enum_dir_fct, void *cbck, const char *filter)
 {
+#ifdef WIN32
+	wchar_t item_path[GF_MAX_PATH];
+#else
 	char item_path[GF_MAX_PATH];
+#endif
 	GF_FileEnumInfo file_info;
 
 #if defined(_WIN32_WCE)
@@ -361,12 +446,17 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	unsigned short path[GF_MAX_PATH];
 	unsigned short w_filter[GF_MAX_PATH];
 	char file[GF_MAX_PATH];
+#elif defined(WIN32)
+	wchar_t path[GF_MAX_PATH], *file;
+	wchar_t w_filter[GF_MAX_PATH];
+	wchar_t w_dir[GF_MAX_PATH];
+	char *mbs_file, *mbs_item_path;
 #else
 	char path[GF_MAX_PATH], *file;
 #endif
 
 #ifdef WIN32
-	WIN32_FIND_DATA FindData;
+	WIN32_FIND_DATAW FindData;
 	HANDLE SearchH;
 #else
 	DIR *the_dir;
@@ -433,14 +523,22 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 	CE_CharToWide(_path, path);
 	CE_CharToWide((char *)filter, w_filter);
 #elif defined(WIN32)
-	switch (dir[strlen(dir) - 1]) {
+	{
+		const char* tmpdir = dir;
+		gf_utf8_mbstowcs(w_dir, sizeof(w_dir), &tmpdir);
+	}
+	switch (w_dir[wcslen(w_dir) - 1]) {
 	case '/':
 	case '\\':
-		sprintf(path, "%s*", dir);
+		swprintf(path, MAX_PATH, L"%s*", w_dir);
 		break;
 	default:
-		sprintf(path, "%s%c*", dir, GF_PATH_SEPARATOR);
+		swprintf(path, MAX_PATH, L"%s%c*", w_dir, GF_PATH_SEPARATOR);
 		break;
+	}
+	{
+		const char* tmpfilter = filter;
+		gf_utf8_mbstowcs(w_filter, sizeof(w_filter), &tmpfilter);
 	}
 #else
 	strcpy(path, dir);
@@ -448,13 +546,13 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 #endif
 
 #ifdef WIN32
-	SearchH= FindFirstFile(path, &FindData);
+	SearchH= FindFirstFileW(path, &FindData);
 	if (SearchH == INVALID_HANDLE_VALUE) return GF_IO_ERR;
 
 #if defined (_WIN32_WCE)
 	_path[strlen(_path)-1] = 0;
 #else
-	path[strlen(path)-1] = 0;
+	path[wcslen(path)-1] = 0;
 #endif
 
 	while (SearchH != INVALID_HANDLE_VALUE) {
@@ -478,8 +576,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		if (!wcscmp(FindData.cFileName, _T(".") )) goto next;
 		if (!wcscmp(FindData.cFileName, _T("..") )) goto next;
 #elif defined(WIN32)
-		if (!strcmp(FindData.cFileName, ".")) goto next;
-		if (!strcmp(FindData.cFileName, "..")) goto next;
+		if (!wcscmp(FindData.cFileName, L".")) goto next;
+		if (!wcscmp(FindData.cFileName, L"..")) goto next;
 #else
 		if (!strcmp(the_file->d_name, "..")) goto next;
 		if (the_file->d_name[0] == '.') goto next;
@@ -500,12 +598,12 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			wcslwr(ext);
 			if (!wcsstr(w_filter, ext)) goto next;
 #elif defined(WIN32)
-			char ext[30];
-			char *sep = strrchr(FindData.cFileName, '.');
+			wchar_t ext[30];
+			wchar_t *sep = wcsrchr(FindData.cFileName, L'.');
 			if (!sep) goto next;
-			strcpy(ext, sep+1);
-			strlwr(ext);
-			if (!strstr(filter, ext)) goto next;
+			wcscpy(ext, sep+1);
+			wcslwr(ext);
+			if (!wcsstr(w_filter, ext)) goto next;
 #else
 			char ext[30];
 			char *sep = strrchr(the_file->d_name, '.');
@@ -531,8 +629,8 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 		strcpy(item_path, _path);
 		strcat(item_path, file);
 #elif defined(WIN32)
-		strcpy(item_path, path);
-		strcat(item_path, FindData.cFileName);
+		wcscpy(item_path, path);
+		wcscat(item_path, FindData.cFileName);
 		file = FindData.cFileName;
 #else
 		strcpy(item_path, path);
@@ -570,20 +668,36 @@ GF_Err gf_enum_directory(const char *dir, Bool enum_directory, gf_enum_dir_item 
 			}
 		}
 #endif
-		if (enum_dir_fct(cbck, file, item_path, &file_info)) {
+		
 #ifdef WIN32
+		mbs_file = wcs_to_utf8(file);
+		mbs_item_path = wcs_to_utf8(item_path);
+		if (!mbs_file || !mbs_item_path)
+		{
+			if (mbs_file) gf_free(mbs_file);
+			if (mbs_item_path) gf_free(mbs_item_path);
+			return GF_IO_ERR;
+		}
+		if (enum_dir_fct(cbck, mbs_file, mbs_item_path, &file_info)) {
 			BOOL ret = FindClose(SearchH);
 			if (!ret) {
 				DWORD err = GetLastError();
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CORE, ("[core] FindClose() in gf_enum_directory() returned(1) the following error code: %d\n", err));
 			}
+#else
+		if (enum_dir_fct(cbck, file, item_path, &file_info)) {
 #endif
 			break;
 		}
 
+#ifdef WIN32
+		gf_free(mbs_file);
+		gf_free(mbs_item_path);
+#endif
+
 next:
 #ifdef WIN32
-		if (!FindNextFile(SearchH, &FindData)) {
+		if (!FindNextFileW(SearchH, &FindData)) {
 			BOOL ret = FindClose(SearchH);
 			if (!ret) {
 				DWORD err = GetLastError();
@@ -651,47 +765,20 @@ FILE *gf_fopen(const char *file_name, const char *mode)
 	FILE *res = NULL;
 
 #if defined(WIN32)
-	Bool is_create;
-	is_create = (strchr(mode, 'w') == NULL) ? GF_FALSE : GF_TRUE;
-	if (!is_create) {
-		if (strchr(mode, 'a')) {
-			res = fopen(file_name, "rb");
-			if (res) {
-				fclose(res);
-				res = fopen(file_name, mode);
-			}
-		} else {
-			res = fopen(file_name, mode);
-		}
-	}
-	if (!res) {
-		const char *str_src;
-		wchar_t *wname;
-		wchar_t *wmode;
-		size_t len;
-		size_t len_res;
-		if (!is_create) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_CORE, ("[Core] Could not open file %s mode %s in UTF-8 mode, trying UTF-16\n", file_name, mode));
-		}
-		len = (strlen(file_name) + 1)*sizeof(wchar_t);
-		wname = (wchar_t *)gf_malloc(len);
-		str_src = file_name;
-		len_res = gf_utf8_mbstowcs(wname, len, &str_src);
-		if (len_res == -1) {
-			return NULL;
-		}
-		len = (strlen(mode) + 1)*sizeof(wchar_t);
-		wmode = (wchar_t *)gf_malloc(len);
-		str_src = mode;
-		len_res = gf_utf8_mbstowcs(wmode, len, &str_src);
-		if (len_res == -1) {
-			return NULL;
-		}
+	wchar_t *wname;
+	wchar_t *wmode;
 
-		res = _wfsopen(wname, wmode, _SH_DENYNO);
-		gf_free(wname);
-		gf_free(wmode);
+	wname = utf8_to_wcs(file_name);
+	wmode = utf8_to_wcs(mode);
+	if (!wname || !wmode)
+	{
+		if (wname) gf_free(wname);
+		if (wmode) gf_free(wmode);
+		return NULL;
 	}
+	res = _wfsopen(wname, wmode, _SH_DENYNO);
+	gf_free(wname);
+	gf_free(wmode);
 #elif defined(GPAC_CONFIG_LINUX) && !defined(GPAC_ANDROID)
 	res = fopen64(file_name, mode);
 #elif (defined(GPAC_CONFIG_FREEBSD) || defined(GPAC_CONFIG_DARWIN))

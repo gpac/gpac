@@ -75,6 +75,8 @@ static const char * ISOR_MIME_TYPES[] = {
 	"audio/3gpp2", "3g2 3gp2", "3GPP2/MMS Music",
 	"video/iso.segment", "iso", "ISOBMF Fragments",
 	"audio/iso.segment", "iso", "ISOBMF Fragments",
+	"image/heif", "heif", "HEIF Images",
+	"image/heic", "heic", "HEIF Images",
 	NULL
 };
 
@@ -724,12 +726,14 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	ISOMChannel *ch;
 	GF_NetworkCommand com;
 	u32 track;
+	u32 item_idx;
 	Bool is_esd_url;
 	GF_Err e;
 	ISOMReader *read;
 	if (!plug || !plug->priv) return GF_SERVICE_ERROR;
 	read = (ISOMReader *) plug->priv;
 
+	item_idx = 0;
 	track = 0;
 	ch = NULL;
 	is_esd_url = GF_FALSE;
@@ -775,8 +779,11 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	}
 	track = gf_isom_get_track_by_id(read->mov, (u32) ESID);
 	if (!track) {
-		e = GF_STREAM_NOT_FOUND;
-		goto exit;
+		item_idx = gf_isom_get_meta_item_by_id(read->mov, GF_TRUE, 0, ESID);
+		if (!item_idx) {
+			e = GF_STREAM_NOT_FOUND;
+			goto exit;
+		}
 	}
 
 	GF_SAFEALLOC(ch, ISOMChannel);
@@ -787,34 +794,43 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 	ch->owner = read;
 	ch->channel = channel;
 	gf_list_add(read->channels, ch);
-	ch->track = track;
-	ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
-	switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
-	case GF_ISOM_MEDIA_OCR:
-		ch->streamType = GF_STREAM_OCR;
-		break;
-	case GF_ISOM_MEDIA_SCENE:
-		ch->streamType = GF_STREAM_SCENE;
-		break;
-	case GF_ISOM_MEDIA_VISUAL:
-		gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
-		//use base track only if avc/svc or hevc/lhvc. If avc+lhvc we need different rules
-		if ( gf_isom_get_avc_svc_type(ch->owner->mov, ch->base_track, 1) == GF_ISOM_AVCTYPE_AVC_ONLY) {
-			if ( gf_isom_get_hevc_lhvc_type(ch->owner->mov, ch->track, 1) >= GF_ISOM_HEVCTYPE_HEVC_ONLY) {
-				ch->base_track=0;
+	if (!item_idx) {
+		ch->track = track;
+		ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
+		switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
+		case GF_ISOM_MEDIA_OCR:
+			ch->streamType = GF_STREAM_OCR;
+			break;
+		case GF_ISOM_MEDIA_SCENE:
+			ch->streamType = GF_STREAM_SCENE;
+			break;
+		case GF_ISOM_MEDIA_VISUAL:
+			gf_isom_get_reference(ch->owner->mov, ch->track, GF_ISOM_REF_BASE, 1, &ch->base_track);
+			//use base track only if avc/svc or hevc/lhvc. If avc+lhvc we need different rules
+			if (gf_isom_get_avc_svc_type(ch->owner->mov, ch->base_track, 1) == GF_ISOM_AVCTYPE_AVC_ONLY) {
+				if (gf_isom_get_hevc_lhvc_type(ch->owner->mov, ch->track, 1) >= GF_ISOM_HEVCTYPE_HEVC_ONLY) {
+					ch->base_track = 0;
+				}
 			}
-		}
-		
-		ch->next_track = 0;
-		/*in scalable mode add SPS/PPS in-band*/
-		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
-		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
-		break;
-	}
 
-	ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->dts_offset) ? GF_TRUE : GF_FALSE;
-	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
-	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
+			ch->next_track = 0;
+			/*in scalable mode add SPS/PPS in-band*/
+			ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
+			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
+			break;
+		}
+		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->dts_offset) ? GF_TRUE : GF_FALSE;
+		ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track) == 1) ? GF_TRUE : GF_FALSE;
+		ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
+	}
+	else {
+		ch->item_id = ESID;
+		ch->item_idx = item_idx;
+		ch->use_item = GF_TRUE;
+		ch->has_edit_list = GF_FALSE;
+		ch->has_rap = GF_TRUE;
+		ch->time_scale = 1000;
+	}
 
 exit:
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
@@ -927,7 +943,12 @@ GF_Err ISOR_ChannelGetSLP(GF_InputService *plug, LPNETCHANNEL channel, char **ou
 	if (!ch->sample) {
 		/*get sample*/
 		gf_mx_p(read->segment_mutex);
-		isor_reader_get_sample(ch);
+		if (!ch->use_item) {
+			isor_reader_get_sample(ch);
+		}
+		else {
+			isor_reader_get_sample_from_item(ch);
+		}
 		gf_mx_v(read->segment_mutex);
 		*is_new_data = ch->sample ? GF_TRUE : GF_FALSE;
 	}

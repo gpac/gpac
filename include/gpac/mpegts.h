@@ -1143,6 +1143,7 @@ typedef struct __m2ts_mux_stream {
 
 	/*table tools*/
 	GF_M2TS_Mux_Table *tables;
+	u8 initial_version_number;
 	/*total table sizes for bitrate estimation (PMT/PAT/...)*/
 	u32 total_table_size;
 	/* used for on-the-fly packetization of sections */
@@ -1153,6 +1154,7 @@ typedef struct __m2ts_mux_stream {
 	Bool table_needs_update;
 	Bool table_needs_send;
 	Bool force_single_au;
+	Bool set_initial_disc;
 
 	/*minimal amount of bytes we are allowed to copy frome next AU in the current PES. If no more than this
 	is available in PES, don't copy from next*/
@@ -1240,6 +1242,7 @@ struct __m2ts_mux_program {
 	Bool initial_ts_set;
 	Bool pcr_init_time_set;
 	u32 pcr_offset;
+	Bool initial_disc_set;
 
 	GF_Descriptor *iod;
 	/*list of GF_M2TSDescriptor to add to the program descriptor loop. By default set to NULL, if non null will be reset and destroyed upon cleanup*/
@@ -1345,7 +1348,7 @@ GF_M2TS_Mux *gf_m2ts_mux_new(u32 mux_rate, u32 pat_refresh_rate, Bool real_time)
 void gf_m2ts_mux_del(GF_M2TS_Mux *mux);
 //sets max interval between two PCR. Default/max interval is 100 ms
 void gf_m2ts_mux_set_pcr_max_interval(GF_M2TS_Mux *muxer, u32 pcr_update_ms);
-GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling);
+GF_M2TS_Mux_Program *gf_m2ts_mux_program_add(GF_M2TS_Mux *muxer, u32 program_number, u32 pmt_pid, u32 pmt_refresh_rate, u32 pcr_offset, Bool mpeg4_signaling, u32 pmt_version, Bool initial_disc);
 GF_M2TS_Mux_Stream *gf_m2ts_program_stream_add(GF_M2TS_Mux_Program *program, GF_ESInterface *ifce, u32 pid, Bool is_pcr, Bool force_pes_mode);
 void gf_m2ts_mux_update_config(GF_M2TS_Mux *mux, Bool reset_time);
 

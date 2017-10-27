@@ -815,6 +815,8 @@
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_xml) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_extract_meta_item_mem) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_isom_get_meta_image_props) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_movie) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_has_segment) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_isom_segment_get_fragment_count) )
@@ -1123,6 +1125,7 @@
 #endif
 
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_map_esd) )
+#pragma comment (linker, EXPORT_SYMBOL(gf_media_map_item_esd) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_get_file_hash) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_reduce_aspect_ratio) )
 #pragma comment (linker, EXPORT_SYMBOL(gf_media_get_reduced_frame_rate) )
