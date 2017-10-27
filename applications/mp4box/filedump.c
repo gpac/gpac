@@ -1049,12 +1049,40 @@ static void dump_nalu(FILE *dump, char *ptr, u32 ptr_size, Bool is_svc, HEVCStat
 			fputs("HEVCAggregator", dump);
 			break;
 		case 49:
-			fputs("HEVCExtractor", dump);
-			track_ref_index = (u8) ptr[3];
-			sample_offset = (s8) ptr[4];
-			data_offset = read_nal_size_hdr(&ptr[5], nalh_size);
-			data_size = read_nal_size_hdr(&ptr[5+nalh_size], nalh_size);
-			fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
+		{
+			u32 remain = ptr_size-2;
+			char *s = ptr+2;
+
+			fputs("HEVCExtractor ", dump);
+			while (remain) {
+				u32 mode = s[0];
+				remain -= 1;
+				s += 1;
+				if (mode) {
+					u32 len = s[0];
+					if (len+1>remain) {
+						fprintf(dump, "error=\"invalid inband data extractor size: %d vs %d remaining\"", len, remain);
+						return;
+					}
+					remain -= len+1;
+					s += len+1;
+					fprintf(dump, "\" inband_size=\"%d", len);
+				} else {
+					if (remain < 2 + 2*nalh_size) {
+						fprintf(dump, "error=\"invalid ref data extractor size: %d vs %d remaining\"", 2 + 2*nalh_size, remain);
+						return;
+					}
+					track_ref_index = (u8) s[0];
+					sample_offset = (s8) s[1];
+					data_offset = read_nal_size_hdr(&s[2], nalh_size);
+					data_size = read_nal_size_hdr(&s[2+nalh_size], nalh_size);
+					fprintf(dump, "\" track_ref_index=\"%d\" sample_offset=\"%d\" data_offset=\"%d\" data_size=\"%d", track_ref_index, sample_offset, data_offset, data_size);
+
+					remain -= 2 + 2*nalh_size;
+					s += 2 + 2*nalh_size;
+				}
+			}
+		}
 			break;
 		default:
 			fprintf(dump, "UNKNOWN (parsing return %d)", res);
@@ -1853,8 +1881,9 @@ static void DumpMetaItem(GF_ISOFile *file, Bool root_meta, u32 tk_num, char *nam
 		const char *it_name, *mime, *enc, *url, *urn;
 		Bool self_ref;
 		u32 ID;
-		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, NULL, &self_ref, &it_name, &mime, &enc, &url, &urn);
-		fprintf(stderr, "Item #%d - ID %d", i+1, ID);
+		u32 it_type;
+		gf_isom_get_meta_item_info(file, root_meta, tk_num, i+1, &ID, &it_type, NULL, &self_ref, &it_name, &mime, &enc, &url, &urn);
+		fprintf(stderr, "Item #%d - ID %d - type %s ", i+1, ID, gf_4cc_to_str(it_type));
 		if (self_ref) fprintf(stderr, " - Self-Reference");
 		else if (it_name) fprintf(stderr, " - Name: %s", it_name);
 		if (mime) fprintf(stderr, " - MimeType: %s", mime);
