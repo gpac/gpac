@@ -1750,20 +1750,13 @@ typedef struct
 	u64 out_size;
 } cache_probe;
 
-static Bool gather_cache_size(void *cbck, char *item_name, char *item_path, GF_FileEnumInfo *file_info)
-{
-	u64 *out_size = (u64 *) cbck;
-	*out_size += file_info->size;
-	return 0;
-}
 
 static void gf_dm_clean_cache(GF_DownloadManager *dm)
 {
-	u64 out_size = 0;
-	gf_enum_directory(dm->cache_directory, GF_FALSE, gather_cache_size, &out_size, "*");
+	u64 out_size = gf_cache_get_size(dm->cache_directory);
 	if (out_size >= dm->max_cache_size) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_NETWORK, ("[Cache] Cache size %d exceeds max allowed %d, deleting entire cache\n", out_size, dm->max_cache_size));
-		gf_cleanup_dir(dm->cache_directory);
+		gf_cache_delete_all_cached_files(dm->cache_directory);
 	}
 }
 

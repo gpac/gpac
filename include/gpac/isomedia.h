@@ -2418,7 +2418,7 @@ GF_Err gf_isom_extract_meta_item(GF_ISOFile *file, Bool root_meta, u32 track_num
 /*extracts item from given meta in memory
 	@item_num: 1-based index of item to query
 */
-GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **mime_type);
+GF_Err gf_isom_extract_meta_item_mem(GF_ISOFile *file, Bool root_meta, u32 track_num, u32 item_id, char **out_data, u32 *out_size, const char **mime_type, Bool use_annex_b);
 
 /*retirves primary item ID, 0 if none found (primary can also be stored through meta XML)*/
 u32 gf_isom_get_meta_primary_item_id(GF_ISOFile *file, Bool root_meta, u32 track_num);
