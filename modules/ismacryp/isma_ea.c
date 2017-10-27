@@ -391,14 +391,14 @@ static GF_Err CENC_Access(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 {
 	GF_Err e;
-	GF_BitStream *pleintext_bs, *cyphertext_bs, *sai_bs;
+	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	char IV[GF_AES_128_KEYSIZE + 1];
 	bin128 KID;
 	char *buffer;
 	u32 max_size, i, subsample_count;
 	GF_CENCSampleAuxInfo *sai;
 
-	pleintext_bs = cyphertext_bs = sai_bs = NULL;
+	plaintext_bs = cyphertext_bs = sai_bs = NULL;
 	buffer = NULL;
 	max_size = 4096;
 
@@ -408,7 +408,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 
 	cyphertext_bs = gf_bs_new(evt->data, evt->data_size, GF_BITSTREAM_READ);
 	sai_bs = gf_bs_new(evt->sai, evt->saiz, GF_BITSTREAM_READ);
-	pleintext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	plaintext_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 	buffer = (char*)gf_malloc(sizeof(char) * max_size);
 
 	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
@@ -487,15 +487,15 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 				gf_crypt_set_state(priv->crypt, IV, 16);
 			}
 
-			/*read clear data and write it to pleintext bitstream*/
+			/*read clear data and write it to plaintext_bs bitstream*/
 			if (max_size < sai->subsamples[subsample_count].bytes_clear_data) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
 				max_size = sai->subsamples[subsample_count].bytes_clear_data;
 			}
 			gf_bs_read_data(cyphertext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
-			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
+			gf_bs_write_data(plaintext_bs, buffer, sai->subsamples[subsample_count].bytes_clear_data);
 
-			/*now read encrypted data, decrypted it and write to pleintext bitstream*/
+			/*now read encrypted data, decrypted it and write to plaintext_bs bitstream*/
 			if (max_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
 				buffer = (char*)gf_realloc(buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
 				max_size = sai->subsamples[subsample_count].bytes_encrypted_data;
@@ -517,12 +517,12 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 			} else {
 				gf_crypt_decrypt(priv->crypt, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 			}
-			gf_bs_write_data(pleintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			gf_bs_write_data(plaintext_bs, buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
 
 			subsample_count++;
 		}
 		if (buffer) gf_free(buffer);
-		gf_bs_get_content(pleintext_bs, &buffer, &evt->data_size);
+		gf_bs_get_content(plaintext_bs, &buffer, &evt->data_size);
 	}
 	//full sample encryption
 	else {
@@ -542,7 +542,7 @@ static GF_Err CENC_ProcessData(ISMAEAPriv *priv, GF_IPMPEvent *evt)
 	memmove(evt->data, buffer, evt->data_size);
 
 exit:
-	if (pleintext_bs) gf_bs_del(pleintext_bs);
+	if (plaintext_bs) gf_bs_del(plaintext_bs);
 	if (sai_bs) gf_bs_del(sai_bs);
 	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
 	if (buffer) gf_free(buffer);

@@ -814,9 +814,6 @@ GF_Err ISOR_ConnectChannel(GF_InputService *plug, LPNETCHANNEL channel, const ch
 			}
 
 			ch->next_track = 0;
-			/*in scalable mode add SPS/PPS in-band*/
-			ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
-			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 			break;
 		}
 		ch->has_edit_list = gf_isom_get_edit_list_type(ch->owner->mov, ch->track, &ch->dts_offset) ? GF_TRUE : GF_FALSE;
@@ -885,6 +882,11 @@ exit:
 			ch->is_cenc = GF_TRUE;
 			isor_send_cenc_config(ch);
 		}
+	}
+	if (!ch->is_encrypted) {
+		/*in scalable mode add SPS/PPS in-band*/
+		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
+		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 	}
 	return e;
 }
