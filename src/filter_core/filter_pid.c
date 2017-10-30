@@ -1296,7 +1296,7 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 		GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("No properties for source pid in filter %s, ignoring merge\n", src_pid->filter->name));
 		return GF_OK;
 	}
-
+	gf_props_reset(dst_props);
 	return gf_props_merge_property(dst_props, src_props);
 }
 

@@ -414,6 +414,7 @@ GF_Err gf_filter_pid_get_statistics(GF_FilterPid *pid, GF_FilterPidStatistics *s
 //resets current properties of the pid
 GF_Err gf_filter_pid_reset_properties(GF_FilterPid *pid);
 //push a new set of properties for dst_pid using all properties from src_pid
+//old props in dst_pid will be lost (i.e. reset properties is always during copy properties)
 GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pid);
 
 const GF_PropertyValue *gf_filter_pid_get_property(GF_FilterPid *pid, u32 prop_4cc);
