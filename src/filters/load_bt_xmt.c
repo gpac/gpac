@@ -203,7 +203,6 @@ GF_Err ctxload_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	//declare a new output PID of type STREAM, OTI RAW
 	priv->out_pid = gf_filter_pid_new(filter);
 
-	gf_filter_pid_reset_properties(priv->out_pid);
 	gf_filter_pid_copy_properties(priv->out_pid, pid);
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_SCENE) );
 	gf_filter_pid_set_property(priv->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );

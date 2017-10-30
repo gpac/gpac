@@ -127,7 +127,6 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	//declare a new output PID of type STREAM, OTI RAW
 	out_pid = gf_filter_pid_new(filter);
 
-	gf_filter_pid_reset_properties(out_pid);
 	gf_filter_pid_copy_properties(out_pid, pid);
 	gf_filter_pid_set_property(out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 	gf_filter_pid_set_udta(pid, out_pid);

@@ -753,7 +753,6 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 	}
 	//copy props it at init config or at reconfig
 	if (ffdec->out_pid) {
-		gf_filter_pid_reset_properties(ffdec->out_pid);
 		gf_filter_pid_copy_properties(ffdec->out_pid, ffdec->in_pid);
 		gf_filter_pid_set_property(ffdec->out_pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_RAW_MEDIA_STREAM) );
 
