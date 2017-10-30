@@ -665,9 +665,15 @@ static Bool filter_pid_caps_match(GF_FilterPid *src_pid, const GF_FilterRegister
 				} else if (!cap->name || !a_cap->name || strcmp(cap->name, a_cap->name)) {
 					continue;
 				}
-				if (!skip_explicit_load && a_cap->explicit_only && (!dst_filter || (dst_filter != src_pid->filter->dst_filter)) ) {
-					prop_equal = GF_FALSE;
-					break;
+				if (!skip_explicit_load && a_cap->explicit_only) {
+					if (!dst_filter || (dst_filter != src_pid->filter->dst_filter)) {
+						prop_equal = GF_FALSE;
+						break;
+					}
+					if (dst_filter->freg != freg) {
+						prop_equal = GF_FALSE;
+						break;
+					}
 				}
 
 				if (!prop_equal) {

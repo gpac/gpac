@@ -31,6 +31,7 @@ extern "C" {
 #endif
 
 #include <gpac/tools.h>
+#include <gpac/list.h>
 #include <gpac/events.h>
 #include <gpac/user.h>
 
@@ -150,6 +151,7 @@ typedef struct
 		//alloc/freed by filter if type is GF_PROP_STRING, otherwise const char *
 		char *string;
 		void *ptr;
+		GF_List *list;
 	} value;
 
 	u32 data_len;
@@ -541,6 +543,8 @@ enum
 
 	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
+	//(uint) media stream type before encryption
+	GF_PROP_PID_ORIG_STREAM_TYPE = GF_4CC('P','O','S','T'),
 	//(uint) object type indication , matching gpac OTI types
 	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
 	//(bool) indicates if PID is present in IOD
@@ -631,8 +635,31 @@ enum
 	GF_PROP_PID_MAX_WIDTH = GF_4CC('M','W','I','D'),
 	GF_PROP_PID_MAX_HEIGHT = GF_4CC('M','H','E','I'),
 
+
+	GF_PROP_PID_PROTECTION_SCHEME_TYPE = GF_4CC('S','C','H','T'),
+	GF_PROP_PID_PROTECTION_SCHEME_VERSION = GF_4CC('S','C','H','V'),
+	GF_PROP_PID_PROTECTION_SCHEME_URI = GF_4CC('S','C','H','U'),
+	GF_PROP_PID_PROTECTION_KMS_URI = GF_4CC('K','M','S','U'),
+	
 	//(longuint) NTP time stamp from sender
 	GF_PROP_PCK_SENDER_NTP = GF_4CC('N','T','P','S'),
+	//(boolean) packet protected
+	GF_PROP_PCK_ENCRYPTED = GF_4CC('E','P','C','K'),
+	//(longuint) ISMA BSO
+	GF_PROP_PCK_ISMA_BSO = GF_4CC('I','B','S','O'),
+	//(long uint)
+	GF_PROP_PID_OMA_PREVIEW_RANGE = GF_4CC('O','D','P','R'),
+	//(data) binary blob containing (u32)N [(bin128)SystemID(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]
+	GF_PROP_PID_CENC_PSSH = GF_4CC('P','S','S','H'),
+	//ptr to raw CENC subsample info
+	GF_PROP_PCK_CENC_SAI = GF_4CC('S','A','I','S'),
+	//(uint) IV size, used on PID and packets
+	GF_PROP_PID_PCK_CENC_IV_SIZE = GF_4CC('S','A','I','V'),
+	//(data) constant IV
+	GF_PROP_PID_PCK_CENC_IV_CONST = GF_4CC('C','B','I','V'),
+	//(fraction) CENC pattern, skip as num crypt as den
+	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
@@ -842,6 +869,15 @@ typedef struct _gf_filter_hw_frame
 
 GF_FilterPacket *gf_filter_pck_new_hw_frame(GF_FilterPid *pid, GF_FilterHWFrame *hw_frame, packet_destructor destruct);
 GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck);
+
+typedef struct
+{
+	bin128 SystemID;
+	u32 KID_count;
+	bin128 *KIDs;
+	u32 private_data_size;
+	u8 *private_data;
+} GF_CENCPSSHSysInfo;
 
 #ifdef __cplusplus
 }
