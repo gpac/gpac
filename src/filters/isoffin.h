@@ -146,7 +146,7 @@ void isor_emulate_chapters(GF_ISOFile *file, GF_InitialObjectDescriptor *iod);
 void isor_declare_objects(ISOMReader *read);
 
 void isor_reader_get_sample_from_item(ISOMChannel *ch);
-void isor_send_cenc_config(ISOMChannel *ch);
+void isor_set_crypt_config(ISOMChannel *ch);
 
 #endif /*GPAC_DISABLE_ISOM*/
 

@@ -28,6 +28,7 @@
 #ifndef GPAC_DISABLE_ISOM
 
 #include <gpac/ismacryp.h>
+#include <gpac/media_tools.h>
 
 ISOMChannel *isor_get_channel(ISOMReader *reader, GF_FilterPid *pid)
 {
@@ -296,7 +297,7 @@ static GF_Err isoffin_reconfigure(GF_Filter *filter, ISOMReader *read, const cha
 		ch->last_state = GF_OK;
 
 		if (ch->is_cenc) {
-			isor_send_cenc_config(ch);
+			isor_set_crypt_config(ch);
 		}
 	}
 	return e;
@@ -381,44 +382,67 @@ static void isoffin_finalize(GF_Filter *filter)
 }
 
 
-void isor_send_cenc_config(ISOMChannel *ch)
+void isor_set_crypt_config(ISOMChannel *ch)
 {
-#ifdef FILTER_FIXME
-	GF_NetworkCommand com;
-	u32 i;
+	GF_ISOFile *mov = ch->owner->mov;
+	u32 track = ch->track;
+	u32 scheme_type, scheme_version;
+	const char *kms_uri, *scheme_uri;
 
-	memset(&com, 0, sizeof(GF_NetworkCommand));
-	com.base.on_channel = ch->channel;
-	com.command_type = GF_NET_CHAN_DRM_CFG;
-	ch->is_encrypted = GF_TRUE;
+	if (!ch->is_encrypted) return;
 
-	gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, NULL);
+	scheme_type = scheme_version = 0;
+	kms_uri = scheme_uri = NULL;
 
-	com.drm_cfg.PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
-	com.drm_cfg.PSSHs = gf_malloc(sizeof(GF_NetComDRMConfigPSSH)*(com.drm_cfg.PSSH_count) );
+	if (gf_isom_is_ismacryp_media(mov, track, 1)) {
+		gf_isom_get_ismacryp_info(mov, track, 1, NULL, &scheme_type, &scheme_version, &scheme_uri, &kms_uri, NULL, NULL, NULL);
+	} else if (gf_isom_is_omadrm_media(mov, track, 1)) {
+		u32 crypt_type;
+		//u8 hash[20];
+		gf_isom_get_omadrm_info(mov, track, 1, NULL, &scheme_type, &scheme_version, NULL, &kms_uri, NULL, NULL, NULL, &crypt_type, NULL, NULL, NULL);
 
-	/*fill PSSH in the structure. We will free it in CENC_Setup*/
-	for (i=0; i<com.drm_cfg.PSSH_count; i++) {
-		GF_NetComDRMConfigPSSH *pssh = &com.drm_cfg.PSSHs[i];
-		gf_isom_get_pssh_info(ch->owner->mov, i+1, pssh->SystemID, &pssh->KID_count, (const bin128 **) & pssh->KIDs, (const u8 **) &pssh->private_data, &pssh->private_data_size);
+		//gf_media_get_file_hash(gf_isom_get_filename(mov), hash);
+	} else if (gf_isom_is_cenc_media(mov, track, 1)) {
+		ch->is_cenc = GF_TRUE;
+
+		gf_isom_get_cenc_info(ch->owner->mov, ch->track, 1, NULL, &scheme_type, &scheme_version, NULL);
 	}
-	//fixme - check MSE and EME
-#if 0
-	if (read->input->query_proxy && read->input->proxy_udta) {
-		read->input->query_proxy(read->input, &com);
-	} else
-#endif
-		gf_service_command(ch->owner->service, &com, GF_OK);
-	//free our PSSH
-	if (com.drm_cfg.PSSHs) gf_free(com.drm_cfg.PSSHs);
-#endif
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_TYPE, &PROP_UINT(scheme_type) );
+	gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_VERSION, &PROP_UINT(scheme_version) );
+	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_SCHEME_URI, &PROP_STRING((char*) scheme_uri) );
+	if (kms_uri) gf_filter_pid_set_property(ch->pid, GF_PROP_PID_PROTECTION_KMS_URI, &PROP_STRING((char*) kms_uri) );
+
+	if (ch->is_cenc) {
+		char *psshd;
+		GF_BitStream *pssh_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		u32 i, s, PSSH_count = gf_isom_get_pssh_count(ch->owner->mov);
+
+		gf_bs_write_u32(pssh_bs, PSSH_count);
+
+		/*fill PSSH in the structure. We will free it in CENC_Setup*/
+		for (i=0; i<PSSH_count; i++) {
+			GF_CENCPSSHSysInfo info;
+			gf_isom_get_pssh_info(ch->owner->mov, i+1, info.SystemID, &info.KID_count, (const bin128 **) & info.KIDs, (const u8 **) &info.private_data, &info.private_data_size);
+
+			gf_bs_write_data(pssh_bs, info.SystemID, 16);
+			gf_bs_write_u32(pssh_bs, info.KID_count);
+			for (s=0; s<info.KID_count; s++) {
+				gf_bs_write_data(pssh_bs, info.KIDs[s], 16);
+			}
+			gf_bs_write_u32(pssh_bs, info.private_data_size);
+			gf_bs_write_data(pssh_bs, info.private_data, info.private_data_size);
+		}
+		gf_bs_get_content(pssh_bs, &psshd, &s);
+		gf_bs_del(pssh_bs);
+		gf_filter_pid_set_property(ch->pid, GF_PROP_PID_CENC_PSSH, & PROP_DATA_NO_COPY(psshd, s) );
+	}
 }
 
 
 ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track, u32 item_id)
 {
 	ISOMChannel *ch;
-
+	const GF_PropertyValue *p;
 	if (!read->mov) return NULL;
 
 	GF_SAFEALLOC(ch, ISOMChannel);
@@ -432,6 +456,7 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	ch->track = track;
 	ch->item_id = item_id;
 
+	ch->nalu_extract_mode = 0;
 	ch->track_id = gf_isom_get_track_id(read->mov, ch->track);
 	switch (gf_isom_get_media_type(ch->owner->mov, ch->track)) {
 	case GF_ISOM_MEDIA_OCR:
@@ -448,11 +473,9 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 				ch->base_track=0;
 			}
 		}
-		
 		ch->next_track = 0;
 		/*in scalable mode add SPS/PPS in-band*/
 		ch->nalu_extract_mode = GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG /*| GF_ISOM_NALU_EXTRACT_ANNEXB_FLAG*/;
-		gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 		break;
 	}
 
@@ -460,40 +483,24 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 	ch->has_rap = (gf_isom_has_sync_points(ch->owner->mov, ch->track)==1) ? GF_TRUE : GF_FALSE;
 	ch->time_scale = gf_isom_get_media_timescale(ch->owner->mov, ch->track);
 
-	return ch;
+	if (!track || !gf_isom_is_track_encrypted(read->mov, track)) return ch;
 
-#ifdef FILTER_FIXME
+	ch->is_encrypted = GF_TRUE;
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_STREAM_TYPE);
+	if (p) gf_filter_pid_set_property(pid, GF_PROP_PID_ORIG_STREAM_TYPE, &PROP_UINT(p->value.uint) );
+	gf_filter_pid_set_property(pid, GF_PROP_PID_STREAM_TYPE, &PROP_UINT(GF_STREAM_ENCRYPTED) );
 
-exit:
-	if (!e && track && gf_isom_is_track_encrypted(read->mov, track)) {
-		memset(&com, 0, sizeof(GF_NetworkCommand));
-		com.base.on_channel = channel;
-		com.command_type = GF_NET_CHAN_DRM_CFG;
-		ch->is_encrypted = GF_TRUE;
-		if (gf_isom_is_ismacryp_media(read->mov, track, 1)) {
-			gf_isom_get_ismacryp_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, &com.drm_cfg.scheme_uri, &com.drm_cfg.kms_uri, NULL, NULL, NULL);
-			if (read->input->query_proxy && read->input->proxy_udta) {
-				read->input->query_proxy(read->input, &com);
-			} else {
-				gf_service_command(read->service, &com, GF_OK);
-			}
-		} else if (gf_isom_is_omadrm_media(read->mov, track, 1)) {
-			gf_isom_get_omadrm_info(read->mov, track, 1, NULL, &com.drm_cfg.scheme_type, &com.drm_cfg.scheme_version, &com.drm_cfg.contentID, &com.drm_cfg.kms_uri, &com.drm_cfg.oma_drm_textual_headers, &com.drm_cfg.oma_drm_textual_headers_len, NULL, &com.drm_cfg.oma_drm_crypt_type, NULL, NULL, NULL);
+	isor_set_crypt_config(ch);
 
-			gf_media_get_file_hash(gf_isom_get_filename(read->mov), com.drm_cfg.hash);
-			if (read->input->query_proxy && read->input->proxy_udta) {
-				read->input->query_proxy(read->input, &com);
-			} else {
-				gf_service_command(read->service, &com, GF_OK);
-			}
-		} else if (gf_isom_is_cenc_media(read->mov, track, 1)) {
-			ch->is_cenc = GF_TRUE;
-			isor_send_cenc_config(ch);
+	if (ch->nalu_extract_mode) {
+		if (ch->is_encrypted) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] using sample rewrite with encryption is not yet supported, patch welcome\n"));
+		} else {
+			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 		}
 	}
-	return e;
-#endif
 
+	return ch;
 }
 
 /*switch channel quality. Return next channel or current channel if error*/
@@ -791,6 +798,18 @@ static GF_Err isoffin_process(GF_Filter *filter)
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);
 
+				gf_filter_pck_set_property(pck, GF_PROP_PCK_ENCRYPTED, &PROP_BOOL(ch->current_slh.cenc_encrypted) );
+				if (ch->current_slh.cenc_encrypted) {
+					gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_PATTERN, &PROP_FRAC_INT(ch->current_slh.skip_byte_block, ch->current_slh.crypt_byte_block) );
+
+					if (ch->current_slh.cenc_encrypted && !ch->current_slh.IV_size) {
+						gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_IV_CONST, &PROP_DATA(ch->current_slh.constant_IV, ch->current_slh.constant_IV_size) );
+					} else {
+						gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_IV_SIZE, &PROP_UINT(ch->current_slh.IV_size) );
+					}
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->current_slh.sai, ch->current_slh.saiz) );
+				}
+				
 				gf_filter_pck_send(pck);
 				isor_reader_release_sample(ch);
 			} else if (ch->last_state==GF_EOS) {
@@ -838,8 +857,8 @@ static const GF_FilterCapability ISOFFInOutputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
-	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
+//	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_SCENE),
+//	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_OD),
 };
 
 GF_FilterRegister ISOFFInRegister = {
