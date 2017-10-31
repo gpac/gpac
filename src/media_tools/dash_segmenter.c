@@ -4185,8 +4185,6 @@ static GF_Err dasher_mp2t_segment_file(GF_DashSegInput *dash_input, const char *
 	/*compute name for indexed segments*/
 	const char *basename = gf_dasher_strip_output_dir(dasher->mpd_name, szOutName);
 	GF_MPD_Representation *representation_obj = NULL;
-	GF_MPD_SegmentTimeline *seg_tl = NULL;
-	GF_List *segment_urls = NULL;
 
 	if (dash_input->media_duration) {
 		GF_LOG(GF_LOG_WARNING, GF_LOG_DASH, ("[DASH] media duration cannot be forced with MPEG2-TS segmenter. Ignoring.\n"));
@@ -5200,7 +5198,6 @@ static GF_Err set_adaptation_header(GF_MPD_AdaptationSet *adaptation_set_obj, GF
 	u32 i, j;
 	Bool is_on_demand = ((profile==GF_DASH_PROFILE_ONDEMAND) || (profile==GF_DASH_PROFILE_AVC264_ONDEMAND));
 	GF_DashSegInput *first_rep = &dash_inputs[first_rep_in_set];
-	GF_MPD_other_descriptors Desc;
 
 	//force segmentAlignment in onDemand
 	adaptation_set_obj->segment_alignment = (!is_on_demand  && segment_alignment_disabled) ? GF_FALSE : GF_TRUE;
