@@ -65,13 +65,41 @@ struct __tag_bitstream
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
 {
-	if (bs->bsmode != GF_BITSTREAM_READ) return GF_BAD_PARAM;
-	bs->original = (char*)buffer;
-	bs->size = BufferSize;
+	if (bs->bsmode == GF_BITSTREAM_READ) {
+		bs->original = (char*)buffer;
+		bs->size = BufferSize;
+		bs->position = 0;
+		bs->current = 0;
+		bs->nbBits = 8;
+		bs->current = 0;
+		return GF_OK;
+	}
+	if (bs->bsmode==GF_BITSTREAM_WRITE) {
+		if (!buffer || !BufferSize) return GF_BAD_PARAM;
+		bs->original = (char*)buffer;
+		bs->size = BufferSize;
+		bs->position = 0;
+		bs->current = 0;
+		bs->nbBits = 0;
+		bs->current = 0;
+		return GF_OK;
+	}
+	if (bs->bsmode!=GF_BITSTREAM_WRITE_DYN) return GF_BAD_PARAM;
+	if (bs->original) return GF_BAD_PARAM;
+
 	bs->position = 0;
 	bs->current = 0;
-	bs->nbBits = 8;
+	bs->nbBits = 0;
 	bs->current = 0;
+	bs->size = BufferSize ? BufferSize : BS_MEM_BLOCK_ALLOC_SIZE;
+	if (buffer) {
+		bs->original = (char *) buffer;
+	} else {
+		bs->original = (char *) gf_malloc(sizeof(char) * ((u32) bs->size));
+		if (! bs->original) {
+			return GF_OUT_OF_MEM;
+		}
+	}
 	return GF_OK;
 }
 
@@ -787,9 +815,9 @@ static s32 BS_CutBuffer(GF_BitStream *bs)
 	return nbBytes;
 }
 
-/*For DYN mode, this gets the content out*/
+/*For DYN mode, this gets the content out without cutting the buffer to the  number of written bytes*/
 GF_EXPORT
-void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
+void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize, u32 *alloc_size)
 {
 	/*only in WRITE MEM mode*/
 	if (bs->bsmode != GF_BITSTREAM_WRITE_DYN) return;
@@ -798,16 +826,31 @@ void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
 		*outSize = 0;
 		gf_free(bs->original);
 	} else {
-		s32 copy = BS_CutBuffer(bs);
-		if (copy < 0) {
-			*output = NULL;
-		} else
+		if (alloc_size) {
+			/*Align our buffer or we're dead!*/
+			gf_bs_align(bs);
+			*alloc_size = bs->size;
+			*outSize = bs->position;
 			*output = bs->original;
-		*outSize = (u32) bs->size;
+		} else {
+			s32 copy = BS_CutBuffer(bs);
+			if (copy < 0) {
+				*output = NULL;
+			} else
+				*output = bs->original;
+			*outSize = (u32) bs->size;
+		}
 	}
 	bs->original = NULL;
 	bs->size = 0;
 	bs->position = 0;
+}
+
+/*For DYN mode, this gets the content out*/
+GF_EXPORT
+void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize)
+{
+	gf_bs_get_content_no_truncate(bs, output, outSize, NULL);
 }
 
 /*	Skip nbytes.
@@ -1063,7 +1106,7 @@ void gf_bs_truncate(GF_BitStream *bs)
 
 
 GF_EXPORT
-GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src)
+GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src)
 {
 	char *data;
 	u32 data_len, written;
@@ -1074,13 +1117,23 @@ GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src)
 	if (!data || !data_len)
 	{
 		if (data) {
-			gf_free(data);
+			if (keep_src) {
+				src->original = data;
+				src->size = data_len;
+			} else {
+				gf_free(data);
+			}
 			return GF_IO_ERR;
 		}
 		return GF_OK;
 	}
 	written = gf_bs_write_data(dst, data, data_len);
-	gf_free(data);
+	if (keep_src) {
+		src->original = data;
+		src->size = data_len;
+	} else {
+		gf_free(data);
+	}
 	if (written<data_len) return GF_IO_ERR;
 	return GF_OK;
 }

@@ -274,6 +274,10 @@ struct __gf_media_session
 
 	u32 default_pid_buffer_max_us, decoder_pid_buffer_max_us;
 
+#ifdef GPAC_MEMORY_TRACKING
+	Bool check_allocs;
+#endif
+
 	GF_FilterSessionCaps caps;
 };
 
@@ -364,6 +368,14 @@ struct __gf_filter
 	u64 nb_bytes_sent;
 	//number of microseconds this filter was active
 	u64 time_process;
+
+#ifdef GPAC_MEMORY_TRACKING
+	u64 stats_mem_allocated;
+	u32 stats_nb_alloc, stats_nb_realloc, stats_nb_calloc, stats_nb_free;
+	u32 nb_process_since_reset, nb_consecutive_process;
+	u32 max_stats_nb_alloc, max_stats_nb_realloc, max_stats_nb_calloc, max_stats_nb_free;
+	u32 max_nb_consecutive_process, max_nb_process;
+#endif
 
 	volatile u32 would_block; //concurrent inc/dec
 

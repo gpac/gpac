@@ -301,6 +301,22 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 #endif
 	e = filter->freg->configure_pid(filter, (GF_FilterPid*) pidinst, is_remove);
 
+#ifdef GPAC_MEMORY_TRACKING
+	if (filter->session->check_allocs) {
+		if (filter->nb_consecutive_process >= filter->max_nb_consecutive_process) {
+			filter->max_nb_consecutive_process = filter->nb_consecutive_process;
+			filter->max_nb_process = filter->nb_process_since_reset;
+			filter->max_stats_nb_alloc = filter->stats_nb_alloc;
+			filter->max_stats_nb_calloc = filter->stats_nb_calloc;
+			filter->max_stats_nb_realloc = filter->stats_nb_realloc;
+			filter->max_stats_nb_free = filter->stats_nb_free;
+		}
+		filter->stats_mem_allocated = 0;
+		filter->stats_nb_alloc = filter->stats_nb_realloc = filter->stats_nb_free = 0;
+		filter->nb_process_since_reset = filter->nb_consecutive_process = 0;
+	}
+#endif
+
 	if (e==GF_OK) {
 		//if new, register the new pid instance, and the source pid as input to this filer
 		if (new_pid_inst) {

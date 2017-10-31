@@ -37,7 +37,7 @@ typedef struct _bitmap_stack
 	/*cached size for 3D mode*/
 	SFVec2f size, scale;
 	u32 prev_tx_w, prev_tx_h;
-	GF_Rect rc;
+	GF_Rect rc, unclip_rc;
 } BitmapStack;
 
 
@@ -185,9 +185,11 @@ static void draw_bitmap_2d(GF_Node *node, GF_TraverseState *tr_state)
 		gf_mx2d_copy(_mat, ctx->transform);
 		gf_mx2d_inverse(&_mat);
 		gf_mx2d_apply_rect(&_mat, &rc);
-
-		drawable_reset_path(st->graph);
-		gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+		if ((st->unclip_rc.width != rc.width) || (st->unclip_rc.height != rc.height)) {
+			drawable_reset_path(st->graph);
+			gf_path_add_rect_center(st->graph->path, 0, 0, rc.width, rc.height);
+			st->unclip_rc = rc;
+		}
 		ctx->flags |= CTX_NO_ANTIALIAS;
 		visual_2d_texture_path(tr_state->visual, st->graph->path, ctx, tr_state);
 	}

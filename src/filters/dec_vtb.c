@@ -92,12 +92,17 @@ typedef struct
 	Bool skip_mpeg4_vosh;
 	char *vosh;
 	u32 vosh_size;
-	
+
 	//NAL-based specific
+	GF_BitStream *nal_bs;
+
+	GF_BitStream *nalu_rewrite_bs;
+	char *nalu_buffer;
+	u32 nalu_buffer_alloc;
+
 	Bool is_avc;
 	Bool is_annex_b;
-	char *cached_annex_b;
-	u32 cached_annex_b_size;
+
 	u32 nalu_size_length;
 	GF_List *SPSs, *PPSs;
 	s32 active_sps, active_pps;
@@ -756,7 +761,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 	char *ptr = inBuffer;
 	u32 nal_size;
 	GF_Err e = GF_OK;
-	GF_BitStream *bs = NULL;
+	Bool reassign_bs = GF_TRUE;
 	Bool check_reconfig = GF_FALSE;
 
 	if (out_buffer) {
@@ -776,8 +781,7 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 	while (inBufferLength) {
 		Bool add_nal = GF_TRUE;
 		u8 nal_type, nal_hdr;
-		GF_BitStream *nal_bs=NULL;
-		
+
 		if (ctx->nalu_size_length) {
 			nal_size = 0;
 			for (i=0; i<ctx->nalu_size_length; i++) {
@@ -787,8 +791,10 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		} else {
 			nal_size = gf_media_nalu_next_start_code((const u8 *) ptr, inBufferLength, &sc_size);
 		}
-		nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
-		nal_hdr = gf_bs_read_u8(nal_bs);
+		if (!ctx->nal_bs) ctx->nal_bs = gf_bs_new(ptr, nal_size, GF_BITSTREAM_READ);
+		else gf_bs_reassign_buffer(ctx->nal_bs, ptr, nal_size);
+
+		nal_hdr = gf_bs_read_u8(ctx->nal_bs);
 		nal_type = nal_hdr & 0x1F;
 		switch (nal_type) {
 		case GF_AVC_NALU_SEQ_PARAM:
@@ -811,15 +817,12 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			break;
 		}
 		
-		gf_media_avc_parse_nalu(nal_bs, nal_hdr, &ctx->avc);
-
-		gf_bs_del(nal_bs);
+		gf_media_avc_parse_nalu(ctx->nal_bs, nal_hdr, &ctx->avc);
 
 		//if sps and pps are ready, init decoder
 		if (!ctx->vtb_session && gf_list_count(ctx->SPSs) && gf_list_count(ctx->PPSs) ) {
 			e = vtbdec_init_decoder(filter, ctx);
 			if (e) {
-				gf_bs_del(bs);
 				return e;
 			}
 		}
@@ -828,10 +831,19 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		else if (add_nal && !ctx->vtb_session) add_nal = GF_FALSE;
 
 		if (add_nal) {
-			if (!bs) bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+			if (reassign_bs) {
+				if (!ctx->nalu_rewrite_bs) ctx->nalu_rewrite_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+				else {
+					gf_bs_reassign_buffer(ctx->nalu_rewrite_bs, ctx->nalu_buffer, ctx->nalu_buffer_alloc);
+					//detach from context until we get the output of the bistream
+					ctx->nalu_buffer = NULL;
+					ctx->nalu_buffer_alloc = 0;
+				}
+				reassign_bs = GF_FALSE;
+			}
 			
-			gf_bs_write_u32(bs, nal_size);
-			gf_bs_write_data(bs, ptr, nal_size);
+			gf_bs_write_u32(ctx->nalu_rewrite_bs, nal_size);
+			gf_bs_write_data(ctx->nalu_rewrite_bs, ptr, nal_size);
 		}
 		
 		ptr += nal_size;
@@ -859,9 +871,10 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 		}
 	}
 
-	if (bs) {
-		gf_bs_get_content(bs, out_buffer, out_size);
-		gf_bs_del(bs);
+	if (!reassign_bs) {
+		//get output without truncating the allocated buffer, repass the buffer at the next AU
+		gf_bs_get_content_no_truncate(ctx->nalu_rewrite_bs, &ctx->nalu_buffer, out_size, &ctx->nalu_buffer_alloc);
+		*out_buffer = ctx->nalu_buffer;
 	}
 	return e;
 }
@@ -951,11 +964,11 @@ static GF_Err vtbdec_process(GF_Filter *filter)
     OSStatus status;
     CMSampleBufferRef sample = NULL;
     CMBlockBufferRef block_buffer = NULL;
-	char *in_data;
+	char *in_data=NULL;
 	u32 in_data_size;
 	char *in_buffer;
 	u32 in_buffer_size, frames_count;
-	Bool do_free=GF_FALSE;
+
 	GF_Err e;
 	GF_VTBDecCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck;
@@ -1032,15 +1045,10 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 	//Always parse AVC data , remove SPS/PPS/... and reconfig if needed
 	if (ctx->is_annex_b || ctx->nalu_size_length) {
-		do_free=GF_TRUE;
-		if (ctx->vtb_session && ctx->cached_annex_b) {
-			in_data = ctx->cached_annex_b;
-			in_data_size = ctx->cached_annex_b_size;
-			ctx->cached_annex_b = NULL;
-		} else {
-			e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
-			if (e) return e;
-		}
+
+		e = vtbdec_parse_nal_units(filter, ctx, in_buffer, in_buffer_size, &in_data, &in_data_size);
+		if (e) return e;
+
 		if (ctx->reconfig_needed) {
 			//flush alll pending frames
 			while (gf_list_count(ctx->frames)) {
@@ -1048,8 +1056,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 			}
 			//waiting for last frame to be discarded - this needs checking with the new arch (compositor might not release the last frame)
 			if (ctx->no_copy && ctx->decoded_frames_pending) {
-				gf_free(in_data);
-				ctx->cached_annex_b = NULL;
 				return GF_OK;
 			}
 			if (ctx->fmt_desc) {
@@ -1106,8 +1112,6 @@ static GF_Err vtbdec_process(GF_Filter *filter)
 
 	CFRelease(block_buffer);
 	CFRelease(sample);
-	if (do_free)
-		gf_free(in_data);
 
 	gf_filter_pid_drop_packet(ctx->ipid);
 	ctx->cur_pck = NULL;
@@ -1332,6 +1336,9 @@ static void vtbdec_finalize(GF_Filter *filter)
 		}
 		gf_list_del(ctx->frames_res);
 	}
+	if (ctx->nal_bs) gf_bs_del(ctx->nal_bs);
+	if (ctx->nalu_rewrite_bs) gf_bs_del(ctx->nalu_rewrite_bs);
+	if (ctx->nalu_buffer) gf_free(ctx->nalu_buffer);
 }
 
 

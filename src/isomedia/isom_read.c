@@ -1542,7 +1542,7 @@ GF_Err gf_isom_get_sample_flags(GF_ISOFile *the_file, u32 trackNumber, u32 sampl
 //this index allows to retrieve the stream description if needed (2 media in 1 track)
 //return NULL if error
 GF_EXPORT
-GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex)
+GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample)
 {
 	GF_Err e;
 	u32 descIndex;
@@ -1552,7 +1552,13 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 	if (!trak) return NULL;
 
 	if (!sampleNumber) return NULL;
-	samp = gf_isom_sample_new();
+	if (static_sample) {
+		samp = static_sample;
+		if (static_sample->dataLength && !static_sample->alloc_size)
+			static_sample->alloc_size = static_sample->dataLength;
+	} else {
+		samp = gf_isom_sample_new();
+	}
 	if (!samp) return NULL;
 
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1562,9 +1568,12 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 #endif
 
 	e = Media_GetSample(trak->Media, sampleNumber, &samp, &descIndex, GF_FALSE, NULL);
+	if (static_sample && !static_sample->alloc_size)
+		static_sample->alloc_size = static_sample->dataLength;
+
 	if (e) {
 		gf_isom_set_last_error(the_file, e);
-		gf_isom_sample_del(&samp);
+		if (!static_sample) gf_isom_sample_del(&samp);
 		return NULL;
 	}
 	if (sampleDescriptionIndex) *sampleDescriptionIndex = descIndex;
@@ -1573,6 +1582,12 @@ GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 samp
 #endif
 
 	return samp;
+}
+
+GF_EXPORT
+GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex)
+{
+	return gf_isom_get_sample_ex(the_file, trackNumber, sampleNumber, sampleDescriptionIndex, NULL);
 }
 
 GF_EXPORT

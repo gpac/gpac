@@ -105,6 +105,7 @@ typedef struct
 	u64 duration;
 
 	/*current sample*/
+	GF_ISOSample *static_sample;
 	GF_ISOSample *sample;
 	GF_SLHeader current_slh;
 	GF_Err last_state;

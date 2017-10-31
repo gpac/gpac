@@ -794,6 +794,17 @@ typedef struct __tag_media_box
 	GF_HandlerBox *handler;
 	struct __tag_media_info_box *information;
 	u64 BytesMissing;
+
+	//all the following are only used for NALU-based tracks
+	//NALU reader
+	GF_BitStream *nalu_parser;
+
+	GF_BitStream *nalu_out_bs;
+	GF_BitStream *nalu_ps_bs;
+	char *in_sample_buffer;
+	u32 in_sample_buffer_alloc;
+	char *tmp_nal_copy_buffer;
+	u32 tmp_nal_copy_buffer_alloc;
 } GF_MediaBox;
 
 typedef struct

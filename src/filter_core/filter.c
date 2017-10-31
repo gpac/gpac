@@ -135,6 +135,17 @@ void gf_filter_del(GF_Filter *filter)
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s destruction\n", filter->name));
 	assert(filter);
 
+#ifdef GPAC_MEMORY_TRACKING
+	if (filter->session->check_allocs) {
+		if (filter->max_nb_consecutive_process * 10 < filter->max_nb_process) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\nFilter %s extensively uses memory alloc/free in process(): \n", filter->name));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\tmax stats of over %d calls (%d consecutive calls with no alloc/free):\n", filter->max_nb_process, filter->max_nb_consecutive_process));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\t\t%d allocs %d callocs %d reallocs %d free\n", filter->max_stats_nb_alloc, filter->max_stats_nb_calloc, filter->max_stats_nb_realloc, filter->max_stats_nb_free));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("\tPlease consider rewriting the code\n"));
+		}
+	}
+#endif
+
 	//may happen when a filter is removed from the chain
 	if (filter->postponed_packets) {
 		while (gf_list_count(filter->postponed_packets)) {
@@ -509,8 +520,42 @@ static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 	if (filter->process_task_queued) {
 		task->requeue_request = GF_TRUE;
 	}
+}
+
+#ifdef GPAC_MEMORY_TRACKING
+static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
+{
+	GF_Err e;
+	u64 prev_alloc_mem=0, alloc_mem=0;
+	size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free);
+	u32 nb_allocs=0, nb_callocs=0, nb_reallocs=0, nb_free=0;
+	u32 prev_nb_allocs=0, prev_nb_callocs=0, prev_nb_reallocs=0, prev_nb_free=0;
+
+	prev_alloc_mem = (u64) gf_mem_get_stats(&prev_nb_allocs, &prev_nb_callocs, &prev_nb_reallocs, &prev_nb_free);
+	e = filter->freg->process(filter);
+
+	alloc_mem = (u64) gf_mem_get_stats(&nb_allocs, &nb_callocs, &nb_reallocs, &nb_free);
+
+	nb_allocs -= prev_nb_allocs;
+	nb_callocs -= prev_nb_callocs;
+	nb_reallocs -= prev_nb_reallocs;
+	nb_free -= prev_nb_free;
+
+	if (nb_allocs || nb_callocs || nb_reallocs || nb_free) {
+		filter->stats_nb_alloc += nb_allocs;
+		filter->stats_nb_calloc += nb_callocs;
+		filter->stats_nb_realloc += nb_reallocs;
+		filter->stats_nb_free += nb_free;
+	} else {
+		filter->nb_consecutive_process ++;
+	}
+	filter->nb_process_since_reset++;
+	return e;
 
 }
+#endif
+
+
 static void gf_filter_process_task(GF_FSTask *task)
 {
 	GF_Err e;
@@ -564,7 +609,14 @@ static void gf_filter_process_task(GF_FSTask *task)
 		}
 	}
 	FSESS_CHECK_THREAD(filter)
-	e = filter->freg->process(filter);
+
+
+#ifdef GPAC_MEMORY_TRACKING
+	if (filter->session->check_allocs)
+		e = gf_filter_process_check_alloc(filter);
+	else
+#endif
+		e = filter->freg->process(filter);
 
 	//flush all pending pid init requests following the call to init
 	if (filter->has_pending_pids) {
