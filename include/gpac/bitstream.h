@@ -425,13 +425,28 @@ u64 gf_bs_available(GF_BitStream *bs);
  *
  *	Fetches the internal bitstream buffer in write mode. If a buffer was given at the bitstream construction, or if the bitstream is in read mode, this does nothing.
  *	\param bs the target bitstream
- *	\param output address of a memory block to be allocated for bitstream data.
- *	\param outSize set to the size of the allocated memory block.
+ *	\param output address of the memory block allocated by the bitstream.
+ *	\param outSize size of the allocated memory block.
  *	\note
 	* It is the user responsability to destroy the allocated buffer
 	* Once this function has been called, the internal bitstream buffer is reseted.
  */
 void gf_bs_get_content(GF_BitStream *bs, char **output, u32 *outSize);
+
+/*!
+ *	\brief buffer fetching
+ *
+ *	Fetches the internal bitstream buffer in write mode. If a buffer was given at the bitstream construction, or if the bitstream is in read mode, this does nothing. Retrieves both the allocated buffer size and the written size
+ *	\param bs the target bitstream
+ *	\param output address of the memory block allocated by the bitstream.
+ *	\param outSize  number of bytes written in the allocated memory block.
+ *	\param allocSize  size of the allocated memory block.
+ *	\note
+	* It is the user responsability to destroy the allocated buffer
+	* Once this function has been called, the internal bitstream buffer is reseted.
+ */
+void gf_bs_get_content_no_truncate(GF_BitStream *bs, char **output, u32 *outSize, u32 *allocSize);
+
 /*!
  *	\brief byte skipping
  *
@@ -516,10 +531,11 @@ u64 gf_bs_get_refreshed_size(GF_BitStream *bs);
  *
  *Returns the size of the associated buffer/file.
  *\param dst the target bitstream
- *\param src the source bitstream. This bitstream is empty after calling teh function
+ *\param src the source bitstream.
+ *\param keep_src If not set, the source bitstream is empty after calling the function
  *\return error if any
  */
-GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src);
+GF_Err gf_bs_transfer(GF_BitStream *dst, GF_BitStream *src, Bool keep_src);
 
 
 /*!

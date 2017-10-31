@@ -83,7 +83,7 @@ static void rewrite_nalus_list(GF_List *nalus, GF_BitStream *bs, Bool rewrite_st
 }
 
 
-static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleNumber, u64 sampleDTS, u32 nal_size, u16 nal_hdr, u32 nal_unit_size_field, Bool is_hevc, Bool rewrite_ps, Bool rewrite_start_codes, GF_BitStream *src_bs, GF_BitStream *dst_bs, u32 extractor_mode)
+static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleNumber, u64 sampleDTS, u32 nal_size, u16 nal_hdr, u32 nal_unit_size_field, Bool is_hevc, Bool rewrite_ps, Bool rewrite_start_codes, u32 extractor_mode)
 {
 	GF_Err e;
 	u32 di, ref_track_index, ref_track_num, data_offset, data_length, cur_extract_mode, ref_extract_mode, ref_nalu_size, nb_bytes_nalh;
@@ -92,45 +92,43 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	GF_BitStream *ref_bs;
 	GF_TrackBox *ref_trak;
 	s8 sample_offset;
-	char*buffer = NULL;
-	u32 max_size = 0;
 	u32 last_byte, ref_sample_num, prev_ref_sample_num;
 	Bool header_written = GF_FALSE;
 	nb_bytes_nalh = is_hevc ? 2 : 1;
 
 	switch (extractor_mode) {
 	case 0:
-		last_byte = (u32) gf_bs_get_position(src_bs) + nal_size - (is_hevc ? 2 : 1);
-		if (!is_hevc) gf_bs_read_int(src_bs, 24); //1 byte for HEVC , 3 bytes for AVC of NALUHeader in extractor
-		while (gf_bs_get_position(src_bs) < last_byte) {
+		last_byte = (u32) gf_bs_get_position(mdia->nalu_parser) + nal_size - (is_hevc ? 2 : 1);
+		if (!is_hevc) gf_bs_read_int(mdia->nalu_parser, 24); //1 byte for HEVC , 3 bytes for AVC of NALUHeader in extractor
+		while (gf_bs_get_position(mdia->nalu_parser) < last_byte) {
 			u32 xmode = 0;
 			//hevc extractors use constructors
-			if (is_hevc) xmode = gf_bs_read_u8(src_bs);
+			if (is_hevc) xmode = gf_bs_read_u8(mdia->nalu_parser);
 			if (xmode) {
-				u8 done=0, len = gf_bs_read_u8(src_bs);
+				u8 done=0, len = gf_bs_read_u8(mdia->nalu_parser);
 				while (done<len) {
-					u8 c = gf_bs_read_u8(src_bs);
+					u8 c = gf_bs_read_u8(mdia->nalu_parser);
 					done++;
 					if (header_written) {
-						gf_bs_write_u8(dst_bs, c);
+						gf_bs_write_u8(mdia->nalu_out_bs, c);
 					} else if (done==nal_unit_size_field) {
 						if (rewrite_start_codes) {
-							gf_bs_write_int(dst_bs, 1, 32);
+							gf_bs_write_int(mdia->nalu_out_bs, 1, 32);
 						} else {
-							gf_bs_write_u8(dst_bs, c);
+							gf_bs_write_u8(mdia->nalu_out_bs, c);
 						}
 						header_written = GF_TRUE;
 					} else if (!rewrite_start_codes) {
-						gf_bs_write_u8(dst_bs, c);
+						gf_bs_write_u8(mdia->nalu_out_bs, c);
 					}
 				}
 				continue;
 			}
 
-			ref_track_index = gf_bs_read_u8(src_bs);
-			sample_offset = (s8) gf_bs_read_int(src_bs, 8);
-			data_offset = gf_bs_read_int(src_bs, nal_unit_size_field*8);
-			data_length = gf_bs_read_int(src_bs, nal_unit_size_field*8);
+			ref_track_index = gf_bs_read_u8(mdia->nalu_parser);
+			sample_offset = (s8) gf_bs_read_int(mdia->nalu_parser, 8);
+			data_offset = gf_bs_read_int(mdia->nalu_parser, nal_unit_size_field*8);
+			data_length = gf_bs_read_int(mdia->nalu_parser, nal_unit_size_field*8);
 
 			Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &dpnd);
 			ref_track_num = 0;
@@ -201,20 +199,20 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 						ref_nalu_size = data_length;
 					}
 
-					if (ref_nalu_size > max_size) {
-						buffer = (char*) gf_realloc(buffer, sizeof(char) * ref_nalu_size );
-						max_size = ref_nalu_size;
+					if (ref_nalu_size > mdia->tmp_nal_copy_buffer_alloc) {
+						mdia->tmp_nal_copy_buffer_alloc = ref_nalu_size;
+						mdia->tmp_nal_copy_buffer = (char*) gf_realloc(mdia->tmp_nal_copy_buffer, sizeof(char) * ref_nalu_size );
 					}
-					gf_bs_read_data(ref_bs, buffer, ref_nalu_size);
+					gf_bs_read_data(ref_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
 
 					if (!header_written) {
 						if (rewrite_start_codes)
-							gf_bs_write_u32(dst_bs, 1);
+							gf_bs_write_u32(mdia->nalu_out_bs, 1);
 						else
-							gf_bs_write_int(dst_bs, ref_nalu_size, 8*nal_unit_size_field);
+							gf_bs_write_int(mdia->nalu_out_bs, ref_nalu_size, 8*nal_unit_size_field);
 					}
 					assert(data_length >= ref_nalu_size);
-					gf_bs_write_data(dst_bs, buffer, ref_nalu_size);
+					gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, ref_nalu_size);
 					data_length -= ref_nalu_size;
 
 					header_written = GF_FALSE;
@@ -227,8 +225,6 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			ref_samp = NULL;
 			gf_bs_del(ref_bs);
 			ref_bs = NULL;
-			if (buffer) gf_free(buffer);
-			buffer = NULL;
 			gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
 
 			if (!is_hevc) break;
@@ -236,19 +232,21 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 		break;
 	case 1:
 		//skip to end of this NALU
-		gf_bs_skip_bytes(src_bs, nal_size - nb_bytes_nalh);
+		gf_bs_skip_bytes(mdia->nalu_parser, nal_size - nb_bytes_nalh);
 		break;
 	case 2:
-		buffer = (char*) gf_malloc( sizeof(char) * (nal_size - nb_bytes_nalh));
-		gf_bs_read_data(src_bs, buffer, nal_size - nb_bytes_nalh);
+		if (nal_size - nb_bytes_nalh > mdia->tmp_nal_copy_buffer_alloc) {
+			mdia->tmp_nal_copy_buffer_alloc = nal_size - nb_bytes_nalh;
+			mdia->tmp_nal_copy_buffer = (char*) gf_realloc(mdia->tmp_nal_copy_buffer, sizeof(char) * (nal_size - nb_bytes_nalh) );
+		}
+		gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size - nb_bytes_nalh);
 		if (rewrite_start_codes)
-			gf_bs_write_u32(dst_bs, 1);
+			gf_bs_write_u32(mdia->nalu_out_bs, 1);
 		else
-			gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+			gf_bs_write_int(mdia->nalu_out_bs, nal_size, 8*nal_unit_size_field);
 
-		gf_bs_write_u8(dst_bs, nal_hdr);
-		gf_bs_write_data(dst_bs, buffer, nal_size - nb_bytes_nalh);
-		gf_free(buffer);
+		gf_bs_write_u8(mdia->nalu_out_bs, nal_hdr);
+		gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, nal_size - nb_bytes_nalh);
 		break;
 	}
 	return GF_OK;
@@ -273,11 +271,10 @@ static SAPType sap_type_from_nal_type(u8 nal_type) {
 }
 #endif
 
-static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
+static SAPType is_sample_idr(GF_MediaBox *mdia, GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *entry)
 {
 	Bool is_hevc = GF_FALSE;
 	u32 nalu_size_field = 0;
-	GF_BitStream *bs;
 	if (entry->avc_config && entry->avc_config->config) nalu_size_field = entry->avc_config->config->nal_unit_size;
 	else if (entry->svc_config && entry->svc_config->config) nalu_size_field = entry->svc_config->config->nal_unit_size;
 	else if (entry->mvc_config && entry->mvc_config->config) nalu_size_field = entry->mvc_config->config->nal_unit_size;
@@ -291,30 +288,31 @@ static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *
 	}
 	if (!nalu_size_field) return RAP_NO;
 
-	bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
-	if (!bs) return RAP_NO;
+	if (!mdia->nalu_parser)
+		mdia->nalu_parser = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(mdia->nalu_parser, sample->data, sample->dataLength);
 
-	while (gf_bs_available(bs)) {
+	if (!mdia->nalu_parser) return RAP_NO;
+
+	while (gf_bs_available(mdia->nalu_parser)) {
 		u8 nal_type;
-		u32 size = gf_bs_read_int(bs, 8*nalu_size_field);
+		u32 size = gf_bs_read_int(mdia->nalu_parser, 8*nalu_size_field);
 
 		if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
-			u16 nal_hdr = gf_bs_read_u16(bs);
+			u16 nal_hdr = gf_bs_read_u16(mdia->nalu_parser);
 			nal_type = (nal_hdr&0x7E00) >> 9;
 
 			switch (nal_type) {
 			case GF_HEVC_NALU_SLICE_CRA:
-				gf_bs_del(bs);
 				return SAP_TYPE_3;
 			case GF_HEVC_NALU_SLICE_IDR_N_LP:
 			case GF_HEVC_NALU_SLICE_BLA_N_LP:
-				gf_bs_del(bs);
 				return SAP_TYPE_1;
 			case GF_HEVC_NALU_SLICE_IDR_W_DLP:
 			case GF_HEVC_NALU_SLICE_BLA_W_DLP:
 			case GF_HEVC_NALU_SLICE_BLA_W_LP:
-				gf_bs_del(bs);
 				return SAP_TYPE_2;
 			case GF_HEVC_NALU_ACCESS_UNIT:
 			case GF_HEVC_NALU_FILLER_DATA:
@@ -324,13 +322,12 @@ static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *
 			case GF_HEVC_NALU_PIC_PARAM:
 				break;
 			default:
-				gf_bs_del(bs);
 				return RAP_NO;
 			}
-			gf_bs_skip_bytes(bs, size - 2);
+			gf_bs_skip_bytes(mdia->nalu_parser, size - 2);
 #endif
 		} else {
-			u8 nal_hdr = gf_bs_read_u8(bs);
+			u8 nal_hdr = gf_bs_read_u8(mdia->nalu_parser);
 			nal_type = nal_hdr & 0x1F;
 
 			switch (nal_type) {
@@ -339,20 +336,18 @@ static SAPType is_sample_idr(GF_ISOSample *sample, GF_MPEGVisualSampleEntryBox *
 						case GF_AVC_NALU_SEQ_PARAM_EXT:
 						case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 		*/			case GF_AVC_NALU_IDR_SLICE:
-				gf_bs_del(bs);
+				gf_bs_del(mdia->nalu_parser);
 				return SAP_TYPE_1;
 			case GF_AVC_NALU_ACCESS_UNIT:
 			case GF_AVC_NALU_FILLER_DATA:
 			case GF_AVC_NALU_SEI:
 				break;
 			default:
-				gf_bs_del(bs);
 				return RAP_NO;
 			}
-			gf_bs_skip_bytes(bs, size - 1);
+			gf_bs_skip_bytes(mdia->nalu_parser, size - 1);
 		}
 	}
-	gf_bs_del(bs);
 	return RAP_NO;
 }
 
@@ -403,20 +398,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 	Bool check_cra_bla = GF_TRUE;
 	Bool insert_nalu_delim = GF_TRUE;
 	GF_Err e = GF_OK;
-	GF_ISOSample *ref_samp;
-	GF_BitStream *src_bs, *ref_bs, *dst_bs, *ps_bs;
-	u32 nal_size, max_size, nal_unit_size_field, extractor_mode;
+	Bool ps_transfered = GF_FALSE;
+	u32 nal_size, nal_unit_size_field, extractor_mode;
 	Bool rewrite_ps, rewrite_start_codes, insert_vdrd_code;
 	s8 nal_type;
 	u32 nal_hdr, sabt_ref, i, track_num;
 	u32 temporal_id = 0;
-	char *buffer;
 	GF_ISOFile *file = mdia->mediaTrack->moov->mov;
 	GF_TrackReferenceTypeBox *scal = NULL;
-
-	src_bs = ref_bs = dst_bs = ps_bs = NULL;
-	ref_samp = NULL;
-	buffer = NULL;
 
 	Track_FindRef(mdia->mediaTrack, GF_ISOM_REF_SCAL, &scal);
 
@@ -491,7 +480,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (sample->IsRAP < SAP_TYPE_2) {
 		if (mdia->information->sampleTable->no_sync_found || (!sample->IsRAP && check_cra_bla) ) {
-			sample->IsRAP = is_sample_idr(sample, entry);
+			sample->IsRAP = is_sample_idr(mdia, sample, entry);
 		}
 	}
 	if (!sample->IsRAP)
@@ -539,11 +528,30 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	if (!nal_unit_size_field) return GF_ISOM_INVALID_FILE;
 
-	dst_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	src_bs = gf_bs_new(sample->data, sample->dataLength, GF_BITSTREAM_READ);
-	if (!src_bs && sample->data) return GF_ISOM_INVALID_FILE;
-	max_size = 4096;
+	//setup PS rewriter
+	if (!mdia->nalu_ps_bs)
+		mdia->nalu_ps_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_seek(mdia->nalu_ps_bs, 0);
+
+	//setup sample reader
+	if (mdia->in_sample_buffer_alloc<sample->dataLength) {
+		mdia->in_sample_buffer_alloc = sample->dataLength;
+		mdia->in_sample_buffer = gf_realloc(mdia->in_sample_buffer, sample->dataLength);
+	}
+	memcpy(mdia->in_sample_buffer, sample->data, sample->dataLength);
+
+	if (!mdia->nalu_parser) {
+		mdia->nalu_parser = gf_bs_new(mdia->in_sample_buffer, sample->dataLength, GF_BITSTREAM_READ);
+		if (!mdia->nalu_parser && sample->data) return GF_ISOM_INVALID_FILE;
+	} else {
+		e = gf_bs_reassign_buffer(mdia->nalu_parser, mdia->in_sample_buffer, sample->dataLength);
+		if (e) return e;
+	}
+	//setup ouput
+	if (!mdia->nalu_out_bs)
+		mdia->nalu_out_bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+
+	gf_bs_reassign_buffer(mdia->nalu_out_bs, sample->data, sample->alloc_size ? sample->alloc_size : sample->dataLength);
 
 	/*rewrite start code with NALU delim*/
 	if (rewrite_start_codes) {
@@ -554,29 +562,29 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				//spec is not clear here, we don't insert an NALU AU delimiter before the layer starts since it breaks openHEVC
 //				insert_nalu_delim=0;
 			} else {
-				gf_bs_write_int(dst_bs, 1, 32);
-				gf_bs_write_int(dst_bs, GF_AVC_NALU_VDRD , 8);
+				gf_bs_write_int(mdia->nalu_out_bs, 1, 32);
+				gf_bs_write_int(mdia->nalu_out_bs, GF_AVC_NALU_VDRD , 8);
 				insert_nalu_delim=0;
 			}
 		}
 
 		//AVC/HEVC base, insert NALU delim
 		if (insert_nalu_delim) {
-			gf_bs_write_int(dst_bs, 1, 32);
+			gf_bs_write_int(mdia->nalu_out_bs, 1, 32);
 			if (is_hevc) {
 #ifndef GPAC_DISABLE_HEVC
-				gf_bs_write_int(dst_bs, 0, 1);
-				gf_bs_write_int(dst_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
-				gf_bs_write_int(dst_bs, insert_vdrd_code ? 1 : 0, 6); //we should pick the layerID of the following nalus ...
-				gf_bs_write_int(dst_bs, 1, 3); //nuh_temporal_id_plus1 - cannot be 0, we use 1 by default, and overwrite it if needed at the end
+				gf_bs_write_int(mdia->nalu_out_bs, 0, 1);
+				gf_bs_write_int(mdia->nalu_out_bs, GF_HEVC_NALU_ACCESS_UNIT, 6);
+				gf_bs_write_int(mdia->nalu_out_bs, insert_vdrd_code ? 1 : 0, 6); //we should pick the layerID of the following nalus ...
+				gf_bs_write_int(mdia->nalu_out_bs, 1, 3); //nuh_temporal_id_plus1 - cannot be 0, we use 1 by default, and overwrite it if needed at the end
 
 				/*pic-type - by default we signal all slice types possible*/
-				gf_bs_write_int(dst_bs, 2, 3);
-				gf_bs_write_int(dst_bs, 0, 5);
+				gf_bs_write_int(mdia->nalu_out_bs, 2, 3);
+				gf_bs_write_int(mdia->nalu_out_bs, 0, 5);
 #endif
 			} else {
-				gf_bs_write_int(dst_bs, (sample->data[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
-				gf_bs_write_int(dst_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
+				gf_bs_write_int(mdia->nalu_out_bs, (sample->data[0] & 0x60) | GF_AVC_NALU_ACCESS_UNIT, 8);
+				gf_bs_write_int(mdia->nalu_out_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
 			}
 		}
 	}
@@ -594,17 +602,17 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						an_entry = (GF_MPEGVisualSampleEntryBox*)gf_list_get(a_track->Media->information->sampleTable->SampleDescription->other_boxes, 0);
 
 					if (an_entry)
-						nalu_merge_ps(ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc);
+						nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, an_entry, is_hevc);
 				}
 			}
 		}
-		nalu_merge_ps(ps_bs, rewrite_start_codes, nal_unit_size_field, entry, is_hevc);
+		nalu_merge_ps(mdia->nalu_ps_bs, rewrite_start_codes, nal_unit_size_field, entry, is_hevc);
 
 
 		if (is_hevc) {
 			/*little optimization if we are not asked to start codes: copy over the sample*/
 			if (!rewrite_start_codes && !entry->lhvc_config && !scal) {
-				if (ps_bs) {
+				if (! ps_transfered) {
 					u8 nal_type = (sample->data[nal_unit_size_field] & 0x7E) >> 1;
 					//temp fix - if we detect xPS in the beginning of the sample do NOT copy the ps bitstream
 					//this is not correct since we are not sure whether they are the same xPS or not, but it crashes openHEVC ...
@@ -616,18 +624,13 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 						break;
 #endif
 					default:
-						gf_bs_transfer(dst_bs, ps_bs);
+						gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
 						break;
 					}
-					gf_bs_del(ps_bs);
-					ps_bs = NULL;
+					ps_transfered = GF_TRUE;
 				}
-				gf_bs_write_data(dst_bs, sample->data, sample->dataLength);
-				gf_free(sample->data);
-				sample->data = NULL;
-				gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
-				gf_bs_del(src_bs);
-				gf_bs_del(dst_bs);
+				gf_bs_write_data(mdia->nalu_out_bs, mdia->in_sample_buffer, sample->dataLength);
+				gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 				return GF_OK;
 			}
 		}
@@ -635,58 +638,55 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 	/*little optimization if we are not asked to rewrite extractors or start codes: copy over the sample*/
 	if (!scal && !rewrite_start_codes && !rewrite_ps) {
-		if (ps_bs)
+		if (! ps_transfered)
 		{
-			gf_bs_transfer(dst_bs, ps_bs);
-			gf_bs_del(ps_bs);
-			ps_bs = NULL;
+			gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
+			ps_transfered = GF_TRUE;
 		}
-		gf_bs_write_data(dst_bs, sample->data, sample->dataLength);
-		gf_free(sample->data);
-		sample->data = NULL;
-		gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
-		gf_bs_del(src_bs);
-		gf_bs_del(dst_bs);
+		gf_bs_write_data(mdia->nalu_out_bs, mdia->in_sample_buffer, sample->dataLength);
+		gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 		return GF_OK;
 	}
 
-	buffer = (char *)gf_malloc(sizeof(char)*max_size);
+	if (!mdia->tmp_nal_copy_buffer) {
+		mdia->tmp_nal_copy_buffer = gf_malloc(sizeof(char) * 4096);
+		mdia->tmp_nal_copy_buffer_alloc = 4096;
+	}
 
-	while (gf_bs_available(src_bs)) {
-		nal_size = gf_bs_read_int(src_bs, 8*nal_unit_size_field);
-		if (gf_bs_get_position(src_bs) + nal_size > sample->dataLength) {
+	while (gf_bs_available(mdia->nalu_parser)) {
+		nal_size = gf_bs_read_int(mdia->nalu_parser, 8*nal_unit_size_field);
+		if (gf_bs_get_position(mdia->nalu_parser) + nal_size > sample->dataLength) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("Sample %u (size %u) rewrite: corrupted NAL Unit (size %u)\n", sampleNumber, sample->dataLength, nal_size));
 			goto exit;
 		}
-		if (nal_size>max_size) {
-			buffer = (char*) gf_realloc(buffer, sizeof(char)*nal_size);
-			max_size = nal_size;
+		if (nal_size > mdia->tmp_nal_copy_buffer_alloc) {
+			mdia->tmp_nal_copy_buffer_alloc = nal_size;
+			mdia->tmp_nal_copy_buffer = (char*) gf_realloc(mdia->tmp_nal_copy_buffer, sizeof(char)*nal_size);
 		}
 		if (is_hevc) {
-			nal_hdr = gf_bs_read_u16(src_bs);
+			nal_hdr = gf_bs_read_u16(mdia->nalu_parser);
 			nal_type = (nal_hdr&0x7E00) >> 9;
 		} else {
-			nal_hdr = gf_bs_read_u8(src_bs);
+			nal_hdr = gf_bs_read_u8(mdia->nalu_parser);
 			nal_type = nal_hdr & 0x1F;
 		}
 
 		if (is_hevc) {
-			if (ps_bs) {
-				gf_bs_transfer(dst_bs, ps_bs);
-				gf_bs_del(ps_bs);
-				ps_bs = NULL;
+			if (!ps_transfered) {
+				gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
+				ps_transfered = GF_TRUE;
 			}
 
 #ifndef GPAC_DISABLE_HEVC
 			/*we already wrote this stuff*/
 			if (nal_type==GF_HEVC_NALU_ACCESS_UNIT) {
-				gf_bs_skip_bytes(src_bs, nal_size-2);
+				gf_bs_skip_bytes(mdia->nalu_parser, nal_size-2);
 				continue;
 			}
 			switch (nal_type) {
 			//extractor
 			case 49:
-				e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_TRUE, rewrite_ps, rewrite_start_codes, src_bs, dst_bs, extractor_mode);
+				e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_TRUE, rewrite_ps, rewrite_start_codes, extractor_mode);
 				if (e) goto exit;
 				break;
 
@@ -697,14 +697,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 				if (temporal_id < (nal_hdr & 0x7))
 					temporal_id = (nal_hdr & 0x7);
 				/*rewrite nal*/
-				gf_bs_read_data(src_bs, buffer, nal_size-2);
+				gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size-2);
 				if (rewrite_start_codes)
-					gf_bs_write_u32(dst_bs, 1);
+					gf_bs_write_u32(mdia->nalu_out_bs, 1);
 				else
-					gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+					gf_bs_write_int(mdia->nalu_out_bs, nal_size, 8*nal_unit_size_field);
 
-				gf_bs_write_u16(dst_bs, nal_hdr);
-				gf_bs_write_data(dst_bs, buffer, nal_size-2);
+				gf_bs_write_u16(mdia->nalu_out_bs, nal_hdr);
+				gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, nal_size-2);
 				break;
 
 			case GF_HEVC_NALU_SLICE_BLA_W_LP:
@@ -715,12 +715,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 			case GF_HEVC_NALU_SLICE_CRA:
 				//insert xPS before CRA/BLA
 				if (check_cra_bla && !sample->IsRAP) {
-					if (ref_samp) gf_isom_sample_del(&ref_samp);
-					if (src_bs) gf_bs_del(src_bs);
-					if (ref_bs) gf_bs_del(ref_bs);
-					if (dst_bs) gf_bs_del(dst_bs);
-					if (buffer) gf_free(buffer);
-
 					sample->IsRAP = sap_type_from_nal_type(nal_type);
 					return gf_isom_nalu_sample_rewrite(mdia, sample, sampleNumber, entry);
 				}
@@ -731,14 +725,14 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 					e = GF_NON_COMPLIANT_BITSTREAM;
 					goto exit;
 				}
-				gf_bs_read_data(src_bs, buffer, nal_size-2);
+				gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size-2);
 				if (rewrite_start_codes)
-					gf_bs_write_u32(dst_bs, 1);
+					gf_bs_write_u32(mdia->nalu_out_bs, 1);
 				else
-					gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+					gf_bs_write_int(mdia->nalu_out_bs, nal_size, 8*nal_unit_size_field);
 
-				gf_bs_write_u16(dst_bs, nal_hdr);
-				gf_bs_write_data(dst_bs, buffer, nal_size-2);
+				gf_bs_write_u16(mdia->nalu_out_bs, nal_hdr);
+				gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, nal_size-2);
 			}
 #endif
 
@@ -749,11 +743,11 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		switch(nal_type) {
 		case GF_AVC_NALU_ACCESS_UNIT:
 			/*we already wrote this stuff*/
-			gf_bs_skip_bytes(src_bs, nal_size-1);
+			gf_bs_skip_bytes(mdia->nalu_parser, nal_size-1);
 			continue;
 		//extractor
 		case 31:
-			e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_FALSE, rewrite_ps, rewrite_start_codes, src_bs, dst_bs, extractor_mode);
+			e = process_extractor(file, mdia, sampleNumber, sample->DTS, nal_size, nal_hdr, nal_unit_size_field, GF_FALSE, rewrite_ps, rewrite_start_codes, extractor_mode);
 			if (e) goto exit;
 			break;
 //			case GF_AVC_NALU_SEI:
@@ -762,31 +756,27 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		case GF_AVC_NALU_SEQ_PARAM_EXT:
 		case GF_AVC_NALU_SVC_SUBSEQ_PARAM:
 			// we will rewrite the sps/pps if and only if there is no sps/pps in bistream
-			if (ps_bs) {
-				gf_bs_del(ps_bs);
-				ps_bs = NULL;
+			if (!ps_transfered) {
+				ps_transfered = GF_TRUE;
 			}
 		default:
-			if (ps_bs) {
-				gf_bs_transfer(dst_bs, ps_bs);
-				gf_bs_del(ps_bs);
-				ps_bs = NULL;
+			if (!ps_transfered) {
+				gf_bs_transfer(mdia->nalu_out_bs, mdia->nalu_ps_bs, GF_TRUE);
+				ps_transfered = GF_TRUE;
 			}
-			gf_bs_read_data(src_bs, buffer, nal_size-1);
+			gf_bs_read_data(mdia->nalu_parser, mdia->tmp_nal_copy_buffer, nal_size-1);
 			if (rewrite_start_codes)
-				gf_bs_write_u32(dst_bs, 1);
+				gf_bs_write_u32(mdia->nalu_out_bs, 1);
 			else
-				gf_bs_write_int(dst_bs, nal_size, 8*nal_unit_size_field);
+				gf_bs_write_int(mdia->nalu_out_bs, nal_size, 8*nal_unit_size_field);
 
-			gf_bs_write_u8(dst_bs, nal_hdr);
-			gf_bs_write_data(dst_bs, buffer, nal_size-1);
+			gf_bs_write_u8(mdia->nalu_out_bs, nal_hdr);
+			gf_bs_write_data(mdia->nalu_out_bs, mdia->tmp_nal_copy_buffer, nal_size-1);
 		}
 	}
 
 	/*done*/
-	gf_free(sample->data);
-	sample->data = NULL;
-	gf_bs_get_content(dst_bs, &sample->data, &sample->dataLength);
+	gf_bs_get_content_no_truncate(mdia->nalu_out_bs, &sample->data, &sample->dataLength, &sample->alloc_size);
 
 	/*rewrite temporal ID of AU Ddelim NALU (first one)*/
 	if (rewrite_start_codes && is_hevc && temporal_id) {
@@ -795,12 +785,6 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 
 
 exit:
-	if (ref_samp) gf_isom_sample_del(&ref_samp);
-	if (src_bs) gf_bs_del(src_bs);
-	if (ref_bs) gf_bs_del(ref_bs);
-	if (dst_bs) gf_bs_del(dst_bs);
-	if (ps_bs)  gf_bs_del(ps_bs);
-	if (buffer) gf_free(buffer);
 	return e;
 }
 

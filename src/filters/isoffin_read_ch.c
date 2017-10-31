@@ -36,6 +36,7 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->last_state = GF_OK;
 	isor_reader_release_sample(ch);
 
+	if (ch->static_sample) gf_isom_sample_del(&ch->static_sample);
 	ch->sample = NULL;
 	ch->sample_num = 0;
 	ch->speed = 1.0;
@@ -140,7 +141,8 @@ static void init_reader(ISOMChannel *ch)
 		}
 		return;
 	}
-
+	ch->static_sample = ch->sample;
+	
 	if (ch->has_edit_list) {
 		ch->sample_time = ch->sample->DTS;
 	} else {
@@ -226,8 +228,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (!ch->owner->frag_type) {
 				ch->last_state = GF_EOS;
 			} else {
-				if (ch->sample)
-					gf_isom_sample_del(&ch->sample);
+				ch->sample = NULL;
 			}
 		}
 		if (ch->sample) {
@@ -247,8 +248,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (ch->edit_sync_frame) {
 				ch->edit_sync_frame++;
 				if (ch->edit_sync_frame < ch->sample_num) {
-					gf_isom_sample_del(&ch->sample);
-					ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index);
+					ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->edit_sync_frame, &sample_desc_index, ch->static_sample);
 					ch->sample->DTS = ch->sample_time;
 					ch->sample->CTS_Offset = 0;
 				} else {
@@ -259,15 +259,16 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				/*if we get the same sample, figure out next interesting time (current sample + DTS gap to next sample should be a good bet)*/
 				if (prev_sample == ch->sample_num) {
 					if (ch->owner->frag_type && (ch->sample_num==gf_isom_get_sample_count(ch->owner->mov, ch->track))) {
-						if (ch->sample)
-							gf_isom_sample_del(&ch->sample);
+						ch->sample = NULL;
 					} else {
 						u32 time_diff = 2;
 						u32 sample_num = ch->sample_num ? ch->sample_num : 1;
+						assert(0);
+#ifdef FILTER_FIXME
 						GF_ISOSample *s1 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num, NULL);
 						GF_ISOSample *s2 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num+1, NULL);
 
-						gf_isom_sample_del(&ch->sample);
+						ch->sample = NULL;
 
 						if (s2 && s1) {
 							assert(s2->DTS >= s1->DTS);
@@ -278,6 +279,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 						}
 						gf_isom_sample_del(&s1);
 						gf_isom_sample_del(&s2);
+#endif
 
 					}
 				}
@@ -285,19 +287,19 @@ void isor_reader_get_sample(ISOMChannel *ch)
 				/*we jumped to another segment - if RAP is needed look for closest rap in decoding order and
 				force seek mode*/
 				if (ch->sample && !ch->sample->IsRAP && ch->has_rap && (ch->sample_num != prev_sample+1)) {
-					GF_ISOSample *found = ch->sample;
+					GF_ISOSample *found = ch->static_sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
 					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num, NULL);
 					assert (e == GF_OK);
 					/*if no sync point in the past, use the first non-sync for the given time*/
 					if (!ch->sample || !ch->sample->data) {
-						gf_isom_sample_del(&ch->sample);
-						ch->sample = found;
+						ch->sample = ch->static_sample = found;
 						ch->sample_time = ch->sample->DTS;
 						ch->sample_num = samp_num;
 					} else {
 						gf_isom_sample_del(&found);
+						ch->static_sample = ch->sample;
 						ch->edit_sync_frame = ch->sample_num;
 						ch->sample->DTS = ch->sample_time;
 						ch->sample->CTS_Offset = 0;
@@ -310,10 +312,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	} else {
 		ch->sample_num++;
 
-		ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index);
+		ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &sample_desc_index, ch->static_sample);
 		/*if sync shadow / carousel RAP skip*/
 		if (ch->sample && (ch->sample->IsRAP==RAP_REDUNDANT)) {
-			gf_isom_sample_del(&ch->sample);
+			ch->sample = NULL;
 			ch->sample_num++;
 			isor_reader_get_sample(ch);
 			return;
@@ -324,7 +326,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 	if (ch->sample && ch->sample->IsRAP && ch->next_track) {
 		ch->track = ch->next_track;
 		ch->next_track = 0;
-		gf_isom_sample_del(&ch->sample);
+		ch->sample = NULL;
 		isor_reader_get_sample(ch);
 		return;
 	}
@@ -367,10 +369,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if ( ! (ch->nalu_extract_mode & GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG) ) {
 				u32 extract_mode = ch->nalu_extract_mode | GF_ISOM_NALU_EXTRACT_INBAND_PS_FLAG;
 
-				gf_isom_sample_del(&ch->sample);
 				ch->sample = NULL;
 				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, extract_mode);
-				ch->sample = gf_isom_get_sample(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index);
+				ch->sample = gf_isom_get_sample_ex(ch->owner->mov, ch->track, ch->sample_num, &ch->last_sample_desc_index, ch->static_sample);
 
 				gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 			}
@@ -383,7 +384,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 		default:
 			//TODO: do we want to support codec changes ?
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[IsoMedia] Change of sample description (%d->%d) for media type %s not supported\n", ch->last_sample_desc_index, sample_desc_index, gf_4cc_to_str(mtype) ));
-			gf_isom_sample_del(&ch->sample);
 			ch->sample = NULL;
 			ch->last_state = GF_NOT_SUPPORTED;
 			return;
@@ -512,7 +512,6 @@ void isor_reader_release_sample(ISOMChannel *ch)
 		gf_free(ch->current_slh.sai);
 		ch->current_slh.sai = NULL;
 	}
-	if (ch->sample) gf_isom_sample_del(&ch->sample);
 	ch->sample = NULL;
 	ch->current_slh.AU_sequenceNumber++;
 	ch->current_slh.packetSequenceNumber++;

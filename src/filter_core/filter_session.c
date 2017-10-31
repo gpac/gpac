@@ -228,6 +228,12 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 			nb_threads=0;
 		}
 		fsess->use_locks = (sched_type==GF_FS_SCHEDULER_LOCK) ? GF_TRUE : GF_FALSE;
+	} else {
+#ifdef GPAC_MEMORY_TRACKING
+		extern int gf_mem_track_enabled;
+		fsess->check_allocs = gf_mem_track_enabled;
+#endif
+
 	}
 
 	if (fsess->use_locks)

@@ -450,9 +450,16 @@ GF_Err Media_GetSample(GF_MediaBox *mdia, u32 sampleNumber, GF_ISOSample **samp,
 		}
 	}
 	if ((*samp)->dataLength != 0) {
-
 		/*and finally get the data, include padding if needed*/
-		(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+		if ((*samp)->alloc_size) {
+			if ((*samp)->alloc_size < (*samp)->dataLength + mdia->mediaTrack->padding_bytes) {
+				(*samp)->data = (char *) gf_realloc((*samp)->data, sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+				(*samp)->alloc_size = (*samp)->dataLength + mdia->mediaTrack->padding_bytes;
+			}
+		} else {
+			/*and finally get the data, include padding if needed*/
+			(*samp)->data = (char *) gf_malloc(sizeof(char) * ( (*samp)->dataLength + mdia->mediaTrack->padding_bytes) );
+		}
 		if (mdia->mediaTrack->padding_bytes)
 			memset((*samp)->data + (*samp)->dataLength, 0, sizeof(char) * mdia->mediaTrack->padding_bytes);
 

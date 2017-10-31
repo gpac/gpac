@@ -504,6 +504,9 @@ typedef struct
 	/*relative offset for composition if needed*/
 	s32 CTS_Offset;
 	SAPType IsRAP;
+
+	/*allocated data size - used only when using static sample in gf_isom_get_sample_ex*/
+	u32 alloc_size;
 } GF_ISOSample;
 
 
@@ -735,6 +738,9 @@ GF_Err gf_isom_set_sample_padding(GF_ISOFile *the_file, u32 trackNumber, u32 pad
 this index allows to retrieve the stream description if needed (2 media in 1 track)
 return NULL if error*/
 GF_ISOSample *gf_isom_get_sample(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *StreamDescriptionIndex);
+
+//same as gf_isom_get_sample but fills in , potentially reallocating buffers, the static_sample passed as argument
+GF_ISOSample *gf_isom_get_sample_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, GF_ISOSample *static_sample);
 
 /*same as gf_isom_get_sample but doesn't fetch media data
 @StreamDescriptionIndex (optional): set to stream description index

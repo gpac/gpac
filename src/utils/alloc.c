@@ -321,6 +321,12 @@ static char *gf_mem_strdup_basic(const char *str, const char *filename, int line
 	STRDUP(str);
 }
 
+
+static unsigned int nb_calls_alloc = 0;
+static unsigned int nb_calls_calloc = 0;
+static unsigned int nb_calls_realloc = 0;
+static unsigned int nb_calls_free = 0;
+
 void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 {
 	void *ptr = MALLOC(size);
@@ -332,6 +338,7 @@ void *gf_mem_malloc_tracker(size_t size, const char *filename, int line)
 	}
 	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] malloc %3d bytes at %p in:\n", size, ptr);
 	gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
+	nb_calls_alloc++;
 	return ptr;
 }
 
@@ -347,6 +354,7 @@ void *gf_mem_calloc_tracker(size_t num, size_t size_of, const char *filename, in
 	}
 	gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] calloc %3d bytes at %p in:\n", ptr, size);
 	gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
+	nb_calls_calloc++;
 	return ptr;
 }
 
@@ -358,6 +366,7 @@ void gf_mem_free_tracker(void *ptr, const char *filename, int line)
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 		FREE(ptr);
 	}
+	nb_calls_free++;
 }
 
 void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int line)
@@ -387,6 +396,7 @@ void *gf_mem_realloc_tracker(void *ptr, size_t size, const char *filename, int l
 		gf_memory_log(GF_MEMORY_DEBUG, "[MemTracker] realloc %3d (instead of %3d) bytes at %p\n", size, size_prev, ptr_g);
 		gf_memory_log(GF_MEMORY_DEBUG, "             file %s at line %d\n" , filename, line);
 	}
+	nb_calls_realloc++;
 	return ptr_g;
 }
 
@@ -398,6 +408,7 @@ char *gf_mem_strdup_tracker(const char *str, const char *filename, int line)
 	strcpy(ptr, str);
 	return ptr;
 }
+
 
 static void *(*gf_mem_malloc_proto)(size_t size, const char *filename, int line) = gf_mem_malloc_basic;
 static void *(*gf_mem_calloc_proto)(size_t num, size_t size_of, const char *filename, int line) = gf_mem_calloc_basic;
@@ -456,6 +467,14 @@ void gf_mem_enable_tracker(unsigned int enable_backtrace)
 	gf_mem_strdup_proto = gf_mem_strdup_tracker;
 }
 
+size_t gf_mem_get_stats(unsigned int *nb_allocs, unsigned int *nb_callocs, unsigned int *nb_reallocs, unsigned int *nb_free)
+{
+	(*nb_allocs) =  nb_calls_alloc;
+	(*nb_callocs) =  nb_calls_calloc;
+	(*nb_reallocs) =  nb_calls_realloc;
+	(*nb_free) =  nb_calls_free;
+	return gpac_allocated_memory;
+}
 
 typedef struct s_memory_element
 {
