@@ -2562,106 +2562,106 @@ void gf_mpd_print_period(GF_MPD_Period const * const period, Bool is_dynamic, FI
 
 static GF_Err gf_mpd_write_m3u8_playlist_tags(GF_MPD_AdaptationSet const * const as,GF_MPD_Representation const * const rs, FILE *out, char *m3u8_name)
 {
-        if(rs->mime_type){
-            if (!strcmp(rs->mime_type,"audio/mp4")){
-                fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",");
-                fprintf(out, "NAME=\"%s\",",rs->id);
-                fprintf(out, "LANGUAGE=\"%s\",",as->lang);
-                fprintf(out, "AUTOSELECT=YES,URI=%s\"\n",m3u8_name);
-            }
-            else if(!strcmp(rs->mime_type,"video/mp4")){
-                fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,",rs->bandwidth);
-                fprintf(out,"CODECS=\"%s\",",rs->codecs);
-                fprintf(out,"RESOLUTION=%dx%d,",rs->width,rs->height);
-                fprintf(out,"AUDIO=\"audio\"\n");
-                fprintf(out, "%s\n",m3u8_name);
-            }
-        }
-        return GF_OK;
+	if(rs->mime_type){
+		if (!strcmp(rs->mime_type,"audio/mp4")){
+			fprintf(out, "#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID=\"audio\",");
+			fprintf(out, "NAME=\"%s\",",rs->id);
+			fprintf(out, "LANGUAGE=\"%s\",",as->lang);
+			fprintf(out, "AUTOSELECT=YES,URI=%s\"\n",m3u8_name);
+		}
+		else if(!strcmp(rs->mime_type,"video/mp4")){
+			fprintf(out,"#EXT-X-STREAM-INF:BANDWIDTH=%d,",rs->bandwidth);
+			fprintf(out,"CODECS=\"%s\",",rs->codecs);
+			fprintf(out,"RESOLUTION=%dx%d,",rs->width,rs->height);
+			fprintf(out,"AUDIO=\"audio\"\n");
+			fprintf(out, "%s\n",m3u8_name);
+		}
+	}
+	return GF_OK;
 }
 
 /*Warning, returned string should be freed by user*/
 static char *remove_m3u8_ext(char* mystr) {
-    char *retstr;
-    char *lastdot;
-    if (mystr == NULL)
-         return NULL;
-    if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
-        return NULL;
-    strcpy (retstr, mystr);
-    lastdot = strrchr (retstr, '.');
-    if (lastdot != NULL)
-        *lastdot = '\0';
-    return retstr;
+	char *retstr;
+	char *lastdot;
+	if (mystr == NULL)
+		return NULL;
+	if ((retstr = malloc (strlen (mystr) + 1)) == NULL)
+		return NULL;
+	strcpy (retstr, mystr);
+	lastdot = strrchr (retstr, '.');
+	if (lastdot != NULL)
+		*lastdot = '\0';
+	return retstr;
 }
 
 static GF_Err gf_mpd_write_m3u8_playlist(GF_MPD_AdaptationSet const * const as, GF_MPD_Representation const * const rs, char *m3u8_name,u64 duration){
-       FILE *out;
-       if (!strcmp(m3u8_name, "std")) out = stdout;
-       else {
-               out = gf_fopen(m3u8_name, "wb");
-               if (!out) return GF_IO_ERR;
-       }
-
-       fprintf(out,"#EXTM3U\n");
-       fprintf(out,"#EXT-X-TARGETDURATION:%d\n",duration/1000);
-       fprintf(out,"#EXT-X-VERSION:\n");
-       fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
-       fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
-       fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
-       if (rs->segment_list) {
-           GF_MPD_SegmentList *s=rs->segment_list;
-           fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
-
-           if (s->segment_URLs) {
-               u32 i;
-               GF_MPD_SegmentURL *url;
-               i = 0;
-               while ( (url = gf_list_enum(s->segment_URLs, &i))) {
-                   fprintf(out,"#EXTINF:%f\n",(float)s->duration/(float)s->timescale);
-                   fprintf(out,"%s\n",url->media);
-               }
-            }
-       }
-
-       gf_fclose(out);
+	FILE *out;
+	if (!strcmp(m3u8_name, "std")) out = stdout;
+	else {
+		out = gf_fopen(m3u8_name, "wb");
+		if (!out) return GF_IO_ERR;
+	}
+	
+	fprintf(out,"#EXTM3U\n");
+	fprintf(out,"#EXT-X-TARGETDURATION:%d\n",duration/1000);
+	fprintf(out,"#EXT-X-VERSION:\n");
+	fprintf(out,"#EXT-X-MEDIA-SEQUENCE:1\n");
+	fprintf(out,"#EXT-X-PLAYLIST-TYPE:VOD\n");
+	fprintf(out,"#EXT-X-INDEPENDENT-SEGMENTS\n");
+	if (rs->segment_list) {
+		GF_MPD_SegmentList *s=rs->segment_list;
+		fprintf(out,"#EXT-X-MAP:URI=\"%s\"\n\n",s->initialization_segment->sourceURL);
+		
+		if (s->segment_URLs) {
+			u32 i;
+			GF_MPD_SegmentURL *url;
+			i = 0;
+			while ( (url = gf_list_enum(s->segment_URLs, &i))) {
+				fprintf(out,"#EXTINF:%f\n",(float)s->duration/(float)s->timescale);
+				fprintf(out,"%s\n",url->media);
+			}
+		}
+	}
+	
+	gf_fclose(out);
 
 }
 
 static GF_Err gf_mpd_write_m3u8_playlists(GF_MPD_Period *period, FILE *out, char* m3u8_name)
 {
-    u32 i,j;
-    GF_Err e;
-    GF_MPD_AdaptationSet *as;
-    GF_MPD_Representation *rs;
-    char URL_NAME[1000];
-    char *m3u8_name_rad;
-
-    m3u8_name_rad=remove_m3u8_ext(m3u8_name);
-    if(!m3u8_name_rad){
-        GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] The m3u8 file should contain .m3u8 extension.\n"));
-        return GF_BAD_PARAM;
-    }
-
-    
-    i=0;
-    while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
-        j=0;
-        while ( (rs = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
-            sprintf(URL_NAME, "%s_%d_%d.m3u8",m3u8_name_rad, i, j);
-            gf_mpd_write_m3u8_playlist_tags(as, rs, out, URL_NAME);
-            fprintf(out,"\n");
-            e=gf_mpd_write_m3u8_playlist(as,rs,URL_NAME, period->duration);
-            if(e){
-                 GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] IO error while opening m3u8 files.\n"));
-                 return GF_IO_ERR;
-            }
-        }
-    }
-
-    free(m3u8_name_rad);
-    
-    return GF_OK;
+	u32 i,j;
+	GF_Err e;
+	GF_MPD_AdaptationSet *as;
+	GF_MPD_Representation *rs;
+	char URL_NAME[1000];
+	char *m3u8_name_rad;
+	
+	m3u8_name_rad=remove_m3u8_ext(m3u8_name);
+	if(!m3u8_name_rad){
+		GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] The m3u8 file should contain .m3u8 extension.\n"));
+		return GF_BAD_PARAM;
+	}
+	
+	
+	i=0;
+	while ( (as = (GF_MPD_AdaptationSet *) gf_list_enum(period->adaptation_sets, &i))) {
+		j=0;
+		while ( (rs = (GF_MPD_Representation *) gf_list_enum(as->representations, &j))) {
+			sprintf(URL_NAME, "%s_%d_%d.m3u8",m3u8_name_rad, i, j);
+			gf_mpd_write_m3u8_playlist_tags(as, rs, out, URL_NAME);
+			fprintf(out,"\n");
+			e=gf_mpd_write_m3u8_playlist(as,rs,URL_NAME, period->duration);
+			if(e){
+				GF_LOG(GF_LOG_ERROR, GF_LOG_DASH, ("[MPD] IO error while opening m3u8 files.\n"));
+				return GF_IO_ERR;
+			}
+		}
+	}
+	
+	free(m3u8_name_rad);
+	
+	return GF_OK;
 }
 
 static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
@@ -2689,21 +2689,20 @@ static GF_Err mpd_write_generation_comment(GF_MPD const * const mpd, FILE *out)
 
 static GF_Err gf_mpd_write_m3u8_master_playlist(GF_MPD const * const mpd, FILE *out, char* m3u8_name)
 {
-       u32 i;
-       GF_MPD_Period *period;
-       fprintf(out, "#EXTM3U\n");
-       fprintf(out, "#EXT-X-VERSION:6\n");
-       fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n\n");
-       
-       i=0;
-       while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
-           //gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
-           /*The notion of periods seems to be undefined in HLS, We'll assuming be here
-            * only one period*/
-           gf_mpd_write_m3u8_playlists(period, out, m3u8_name);
-       }
-       
-       return GF_OK;
+	u32 i;
+	GF_MPD_Period *period;
+	fprintf(out, "#EXTM3U\n");
+	fprintf(out, "#EXT-X-VERSION:6\n");
+	fprintf(out, "#EXT-X-INDEPENDENT-SEGMENTS\n\n");
+
+	i=0;
+	while ((period = (GF_MPD_Period *)gf_list_enum(mpd->periods, &i))) {
+		//gf_mpd_print_period(period, mpd->type==GF_MPD_TYPE_DYNAMIC, out);
+		/*The notion of periods seems to be undefined in HLS, We'll assuming be here
+		* only one period*/
+		gf_mpd_write_m3u8_playlists(period, out, m3u8_name);
+	}
+	return GF_OK;
 }
 
 
@@ -2825,17 +2824,17 @@ GF_Err gf_mpd_write_file(GF_MPD const * const mpd, const char *file_name)
 GF_EXPORT
 GF_Err gf_mpd_write_m3u8_file(GF_MPD const * const mpd, const char *file_name)
 {
-       GF_Err e;
-       FILE *out;
-       if (!strcmp(file_name, "std")) out = stdout;
-       else {
-               out = gf_fopen(file_name, "wb");
-               if (!out) return GF_IO_ERR;
-       }
+	GF_Err e;
+	FILE *out;
+	if (!strcmp(file_name, "std")) out = stdout;
+	else {
+		out = gf_fopen(file_name, "wb");
+		if (!out) return GF_IO_ERR;
+	}
 
-       e = gf_mpd_write_m3u8_master_playlist(mpd, out, file_name);
-       gf_fclose(out);
-       return e;
+	e = gf_mpd_write_m3u8_master_playlist(mpd, out, file_name);
+	gf_fclose(out);
+	return e;
 }
 
 GF_EXPORT
