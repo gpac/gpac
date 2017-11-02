@@ -1261,7 +1261,7 @@ static void load_line_YUV420SP(u8 *src_bits, u32 x_offset, u32 y_offset, u32 y_p
 	yp = (s32)(x_offset + y_offset * y_pitch / 1.5f);
 	j = y_offset;
 
-	uvp = frameSize + (j >> 1) * width, u = 0, v = 0;
+	uvp = frameSize + (j >> 1) * width; u = 0; v = 0;
 
 	for (i=0; i<width; i++, yp++) {
 

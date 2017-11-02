@@ -382,13 +382,13 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 		u32 vosh_size = 0;
 		ctx->vtb_type = kCMVideoCodecType_MPEG4Video;
 
-		if (!p || !p->value.data) {
+		if (!p || !p->value.data.ptr) {
 			reset_dsi = GF_TRUE;
 			vosh = ctx->vosh;
 			vosh_size = ctx->vosh_size;
 		} else {
-			vosh = p->data_len;
-			vosh_size = p->data_len;
+			vosh = p->value.data.ptr;
+			vosh_size = p->value.data.size;
 		}
 		
 		if (vosh) {
@@ -432,9 +432,9 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	case GPAC_OTI_VIDEO_H263:
 			ctx->reorder_probe = 0;
 	case GPAC_OTI_MEDIA_GENERIC:
-		if (p && p->value.data && p->data_len) {
-			char *dsi = p->value.data;
-			if (p->data_len<8) return GF_NON_COMPLIANT_BITSTREAM;
+		if (p && p->value.data.ptr && p->value.data.size) {
+			char *dsi = p->value.data.ptr;
+			if (p->value.data.size<8) return GF_NON_COMPLIANT_BITSTREAM;
 			if (strnicmp(dsi, "s263", 4)) return GF_NOT_SUPPORTED;
 			
 			ctx->width = ((u8) dsi[4]); ctx->width<<=8; ctx->width |= ((u8) dsi[5]);
@@ -639,7 +639,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	oti = p->value.uint;
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	dsi_crc = dsi ? gf_crc_32(dsi->value.data, dsi->data_len) : 0;
+	dsi_crc = dsi ? gf_crc_32(dsi->value.data.ptr, dsi->value.data.size) : 0;
 	if ((oti==ctx->oti) && (dsi_crc == ctx->cfg_crc)) return GF_OK;
 	//need a reset !
 	if (ctx->vtb_session) {
@@ -669,7 +669,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		ctx->active_sps = ctx->active_pps = -1;
 		ctx->active_sps_crc = ctx->active_pps_crc = 0;
 
-		if (!dsi || !dsi->value.data) {
+		if (!dsi || !dsi->value.data.ptr) {
 			ctx->is_annex_b = GF_TRUE;
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
@@ -678,7 +678,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		} else {
 			u32 i;
 			GF_AVCConfigSlot *slc;
-			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(dsi->value.data, dsi->data_len);
+			GF_AVCConfig *cfg = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 			for (i=0; i<gf_list_count(cfg->sequenceParameterSets); i++) {
 				slc = gf_list_get(cfg->sequenceParameterSets, i);
 				slc->id = -1;
@@ -716,7 +716,7 @@ static GF_Err vtbdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//check VOSH config
 	if (oti==GPAC_OTI_VIDEO_MPEG4_PART2) {
-		if (!dsi || !dsi->value.data) {
+		if (!dsi || !dsi->value.data.ptr) {
 			ctx->width=ctx->height=128;
 			ctx->out_size = ctx->width*ctx->height*3/2;
 			ctx->pix_fmt = GF_PIXEL_YV12;

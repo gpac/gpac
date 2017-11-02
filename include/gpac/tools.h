@@ -94,7 +94,7 @@ extern "C" {
  *
  *	returns the list of features enabled/disabled in this GPAC build.
 */
-const char *gpac_features();
+const char *gpac_features(void);
 
 /*!
  *	\brief 4CC Printing
@@ -350,7 +350,7 @@ Bool gf_log_set_strict_error(Bool strict);
  *	\return string-formatted log tools.
  *
  */
-char *gf_log_get_tools_levels();
+char *gf_log_get_tools_levels(void);
 
 /*!
  * GPAC Log tools

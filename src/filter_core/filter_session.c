@@ -242,6 +242,8 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 	fsess->prop_maps_list_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_reservoir = gf_fq_new(fsess->props_mx);
 	fsess->prop_maps_entry_reservoir = gf_fq_new(fsess->props_mx);
+	fsess->prop_maps_entry_data_alloc_reservoir = gf_fq_new(fsess->props_mx);
+
 
 
 	if (!fsess->filters || !fsess->tasks || !fsess->tasks_reservoir) {
@@ -291,6 +293,13 @@ void gf_fs_register_test_filters(GF_FilterSession *fsess)
 void gf_fs_remove_filter_registry(GF_FilterSession *session, GF_FilterRegister *freg)
 {
 	gf_list_del_item(session->registry, freg);
+}
+
+void gf_propalloc_del(void *it)
+{
+	GF_PropertyEntry *pe = (GF_PropertyEntry *)it;
+	if (pe->prop.value.data.ptr) gf_free(pe->prop.value.data.ptr);
+	gf_free(pe);
 }
 
 GF_EXPORT
@@ -363,6 +372,8 @@ void gf_fs_del(GF_FilterSession *fsess)
 	gf_fq_del(fsess->prop_maps_reservoir, gf_void_del);
 	gf_fq_del(fsess->prop_maps_list_reservoir, (gf_destruct_fun) gf_list_del);
 	gf_fq_del(fsess->prop_maps_entry_reservoir, gf_void_del);
+	gf_fq_del(fsess->prop_maps_entry_data_alloc_reservoir, gf_propalloc_del);
+
 	if (fsess->props_mx)
 		gf_mx_del(fsess->props_mx);
 

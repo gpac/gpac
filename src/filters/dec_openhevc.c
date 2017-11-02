@@ -130,7 +130,7 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 
 	if (!ctx->codec) return GF_NOT_SUPPORTED;
 
-	if (!dsi || !dsi->data_len) {
+	if (!dsi || !dsi->value.data.size) {
 		ctx->nb_layers++;
 		ctx->cur_layer++;
 		libOpenHevcSetActiveDecoders(ctx->codec, ctx->cur_layer-1);
@@ -139,9 +139,9 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 	}
 	//FIXME in isomedia this should be an LHCC, not an HVCC
 	if (oti==GPAC_OTI_VIDEO_LHVC) {
-		cfg = gf_odf_hevc_cfg_read(dsi->value.data, dsi->data_len, GF_FALSE);
+		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 	} else {
-		cfg = gf_odf_hevc_cfg_read(dsi->value.data, dsi->data_len, GF_FALSE);
+		cfg = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 	}
 	
 	if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
@@ -157,7 +157,7 @@ static GF_Err ohevcdec_configure_scalable_pid(GF_OHEVCDecCtx *ctx, GF_FilterPid 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 	//LHVC mode with base AVC layer: set extradata for LHVC
 	if (ctx->avc_base_id) {
-		libOpenShvcCopyExtraData(ctx->codec, NULL, (u8 *) dsi->value.data, 0, dsi->data_len);
+		libOpenShvcCopyExtraData(ctx->codec, NULL, (u8 *) dsi->value.data.ptr, 0, dsi->value.data.size);
 	} else
 #endif
 	//LHVC mode with base HEVC layer: decode the LHVC SPS/PPS/VPS
@@ -265,8 +265,8 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 	dsi = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	cfg_crc = 0;
-	if (dsi && dsi->value.data && dsi->data_len) {
-		cfg_crc = gf_crc_32(dsi->value.data, dsi->data_len);
+	if (dsi && dsi->value.data.ptr && dsi->value.data.size) {
+		cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 	}
 	found = GF_FALSE;
 	//check if this is an update
@@ -342,14 +342,14 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 	return GF_NOT_SUPPORTED;
 #endif
 	
-	if (dsi && dsi->data_len) {
+	if (dsi && dsi->value.data.size) {
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (oti==GPAC_OTI_VIDEO_AVC) {
 			GF_AVCConfig *avcc = NULL;
 			AVCState avc;
 			memset(&avc, 0, sizeof(AVCState));
 
-			avcc = gf_odf_avc_cfg_read(dsi->value.data, dsi->data_len);
+			avcc = gf_odf_avc_cfg_read(dsi->value.data.ptr, dsi->value.data.size);
 			if (!avcc) return GF_NON_COMPLIANT_BITSTREAM;
 			ctx->avc_nalu_size_length = avcc->nal_unit_size;
 
@@ -371,7 +371,7 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 		HEVCState hevc;
 		memset(&hevc, 0, sizeof(HEVCState));
 
-		hvcc = gf_odf_hevc_cfg_read(dsi->value.data, dsi->data_len, GF_FALSE);
+		hvcc = gf_odf_hevc_cfg_read(dsi->value.data.ptr, dsi->value.data.size, GF_FALSE);
 		if (!hvcc) return GF_NON_COMPLIANT_BITSTREAM;
 		ctx->hevc_nalu_size_length = hvcc->nal_unit_size;
 
@@ -447,10 +447,10 @@ static GF_Err ohevcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool 
 
 #ifdef  OPENHEVC_HAS_AVC_BASE
 		if (ctx->avc_base_id) {
-			libOpenShvcCopyExtraData(ctx->codec, (u8 *) dsi->value.data, NULL, dsi->data_len, 0);
+			libOpenShvcCopyExtraData(ctx->codec, (u8 *) dsi->value.data.ptr, NULL, dsi->value.data.size, 0);
 		} else
 #endif
-			libOpenHevcCopyExtraData(ctx->codec, (u8 *) dsi->value.data, dsi->data_len);
+			libOpenHevcCopyExtraData(ctx->codec, (u8 *) dsi->value.data.ptr, dsi->value.data.size);
 	}else{
 		//decode and display layer 0 by default - will be changed when attaching enhancement layers
 

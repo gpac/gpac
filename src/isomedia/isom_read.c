@@ -1728,6 +1728,7 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	GF_TrackBox *trak;
 	GF_ISOSample *shadow;
 	GF_SampleTableBox *stbl;
+	Bool static_sample = GF_FALSE;
 	u8 useShadow, IsSync;
 
 	if (SampleNum) *SampleNum = 0;
@@ -1821,8 +1822,12 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//OK sampleNumber is exactly the sample we need (except for shadow)
 
 	if (sample) {
-		*sample = gf_isom_sample_new();
-		if (*sample == NULL) return GF_OUT_OF_MEM;
+		if (*sample) {
+			static_sample = GF_TRUE;
+		} else {
+			*sample = gf_isom_sample_new();
+			if (*sample == NULL) return GF_OUT_OF_MEM;
+		}
 	}
 	//we are in shadow mode, we need to browse both SyncSample and ShadowSyncSample to get
 	//the desired sample...
@@ -1842,7 +1847,9 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 
 	e = Media_GetSample(trak->Media, sampleNumber, sample, StreamDescriptionIndex, GF_FALSE, data_offset);
 	if (e) {
-		gf_isom_sample_del(sample);
+		if (!static_sample)
+			gf_isom_sample_del(sample);
+
 		return e;
 	}
 	if (sample && ! (*sample)->IsRAP) {
@@ -1874,6 +1881,9 @@ GF_Err gf_isom_get_sample_for_media_time(GF_ISOFile *the_file, u32 trackNumber, 
 		shadow->dataLength = 0;
 		gf_isom_sample_del(&shadow);
 	}
+	if (static_sample && ! (*sample)->alloc_size )
+		 (*sample)->alloc_size =  (*sample)->dataLength;
+		 
 	return GF_OK;
 }
 
@@ -1894,7 +1904,6 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	//check 0-duration tracks (BIFS and co). Check we're not searching forward
 	if (!trak->Header->duration) {
 		if (movieTime && ( (SearchMode == GF_ISOM_SEARCH_SYNC_FORWARD) || (SearchMode == GF_ISOM_SEARCH_FORWARD)) ) {
-			*sample = NULL;
 			if (sampleNumber) *sampleNumber = 0;
 			*StreamDescriptionIndex = 0;
 			return GF_EOS;
@@ -1905,7 +1914,6 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 	         && !trak->dts_at_seg_start
 #endif
 	        ) {
-		*sample = NULL;
 		if (sampleNumber) *sampleNumber = 0;
 		*StreamDescriptionIndex = 0;
 		return GF_EOS;
@@ -1931,8 +1939,10 @@ GF_Err gf_isom_get_sample_for_movie_time(GF_ISOFile *the_file, u32 trackNumber, 
 			return gf_isom_get_sample_for_movie_time(the_file, trackNumber, (u32) mediaTime, StreamDescriptionIndex, GF_ISOM_SEARCH_SYNC_FORWARD, sample, sampleNumber, data_offset);
 		}
 		if (sampleNumber) *sampleNumber = 0;
-		*sample = gf_isom_sample_new();
-		if (! *sample) return GF_OUT_OF_MEM;
+		if (! (*sample)) {
+			*sample = gf_isom_sample_new();
+			if (! *sample) return GF_OUT_OF_MEM;
+		}
 		(*sample)->DTS = movieTime;
 		return GF_OK;
 	}

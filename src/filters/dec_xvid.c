@@ -156,8 +156,8 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p && p->value.data && p->data_len) {
-		u32 ex_crc = gf_crc_32(p->value.data, p->data_len);
+	if (p && p->value.data.ptr && p->value.data.size) {
+		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
 			//shoud we flush ?
 			if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
@@ -169,7 +169,7 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 	/*decode DSI*/
-	e = gf_m4v_get_config(p->value.data, p->data_len, &dsi);
+	e = gf_m4v_get_config(p->value.data.ptr, p->value.data.size, &dsi);
 	if (e) return e;
 	if (!dsi.width || !dsi.height) return GF_NON_COMPLIANT_BITSTREAM;
 
@@ -195,8 +195,8 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 
 	/*init decoder*/
 	memset(&frame, 0, sizeof(frame));
-	frame.bitstream = (void *) p->value.data;
-	frame.length = p->data_len;
+	frame.bitstream = (void *) p->value.data.ptr;
+	frame.length = p->value.data.size;
 #ifndef XVID_USE_OLD_API
 	frame.version = XVID_VERSION;
 	xvid_decore(ctx->codec, XVID_DEC_DECODE, &frame, NULL);

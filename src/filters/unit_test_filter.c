@@ -96,9 +96,9 @@ static void ut_filter_finalize(GF_Filter *filter)
 				const GF_PropertyValue *p = gf_filter_pid_get_property(pidctx->src_pid, GF_4CC('s','h','a','1') );
 				if (!p) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d sha1 property not found on input pid\n", gf_filter_get_name(filter), i+1 ));
-				} else if (p->data_len != GF_SHA1_DIGEST_SIZE) {
+				} else if (p->value.data.size != GF_SHA1_DIGEST_SIZE) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d wrong size for sha1 property\n", gf_filter_get_name(filter), i+1 ));
-				} else if (memcmp(p->value.data, digest, p->data_len )) {
+				} else if (memcmp(p->value.data.ptr, digest, p->value.data.size )) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[%s] Pid %d wrong hash after execution\n", gf_filter_get_name(filter), i+1 ));
 				} else {
 					GF_LOG(GF_LOG_WARNING, GF_LOG_FILTER, ("[%s] Pid %d hash OK after execution :)\n", gf_filter_get_name(filter), i+1 ));
@@ -312,13 +312,13 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','9'), &p);
 
 		p.type = GF_PROP_DATA;
-		p.value.data = (char *) pidctx;
-		p.data_len = sizeof(pidctx);
+		p.value.data.ptr = (char *) pidctx;
+		p.value.data.size = sizeof(pidctx);
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','a'), &p);
 
 		p.type = GF_PROP_CONST_DATA;
-		p.value.data = (char *) pidctx;
-		p.data_len = sizeof(pidctx);
+		p.value.data.ptr = (char *) pidctx;
+		p.value.data.size = sizeof(pidctx);
 		gf_filter_pck_set_property(pck, GF_4CC('c','u','s','b'), &p);
 
 		p.type = GF_PROP_STRING;
@@ -342,8 +342,8 @@ static GF_Err ut_filter_process_source(GF_Filter *filter)
 			gf_sha1_finish(pidctx->sha_ctx, digest);
 			pidctx->sha_ctx = NULL;
 			p.type = GF_PROP_DATA;
-			p.data_len = GF_SHA1_DIGEST_SIZE;
-			p.value.data = (char *) digest;
+			p.value.data.size = GF_SHA1_DIGEST_SIZE;
+			p.value.data.ptr = (char *) digest;
 			//with this we test both:
 			//- SHA of send data is correct at the receiver side
 			//- property update on a PID
@@ -612,11 +612,11 @@ GF_Err utfilter_initialize(GF_Filter *filter)
 		p = gf_props_parse_value(GF_PROP_STRING, "prop", "test", NULL);
 		sprintf(szFmt, "%p:%d", stack, (u32) sizeof(stack));
 		p = gf_props_parse_value(GF_PROP_DATA, "prop", szFmt, NULL);
-		if ((p.value.data != (char *) stack) || (p.data_len != (u32) sizeof(stack))) {
+		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
 		p = gf_props_parse_value(GF_PROP_CONST_DATA, "prop", szFmt, NULL);
-		if ((p.value.data != (char *) stack) || (p.data_len != (u32) sizeof(stack))) {
+		if ((p.value.data.ptr != (char *) stack) || (p.value.data.size != (u32) sizeof(stack))) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("[UTFilter] Error parsing data value"));
 		}
 		sprintf(szFmt, "%p", stack);

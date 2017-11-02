@@ -494,12 +494,11 @@ ISOMChannel *isor_create_channel(ISOMReader *read, GF_FilterPid *pid, u32 track,
 
 	if (ch->nalu_extract_mode) {
 		if (ch->is_encrypted) {
-			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] using sample rewrite with encryption is not yet supported, patch welcome\n"));
+			GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[IsoMedia] using sample NAL rewrite with encryption is not yet supported, patch welcome\n"));
 		} else {
 			gf_isom_set_nalu_extract_mode(ch->owner->mov, ch->track, ch->nalu_extract_mode);
 		}
 	}
-
 	return ch;
 }
 
@@ -807,7 +806,7 @@ static GF_Err isoffin_process(GF_Filter *filter)
 					} else {
 						gf_filter_pck_set_property(pck, GF_PROP_PID_PCK_CENC_IV_SIZE, &PROP_UINT(ch->current_slh.IV_size) );
 					}
-					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->current_slh.sai, ch->current_slh.saiz) );
+					gf_filter_pck_set_property(pck, GF_PROP_PCK_CENC_SAI, &PROP_DATA(ch->sai_buffer, ch->sai_buffer_size) );
 				}
 				
 				gf_filter_pck_send(pck);
@@ -826,17 +825,6 @@ static GF_Err isoffin_process(GF_Filter *filter)
 	}
 	return is_active ? GF_OK : GF_EOS;
 }
-
-GF_FilterProbeScore isoffin_probe_url(const char *url, const char *mime_type)
-{
-	if (!strnicmp(url, "rtsp://", 7)) return GF_FPROBE_NOT_SUPPORTED;
-
-	if (gf_isom_probe_file(url)) {
-		return GF_FPROBE_SUPPORTED;
-	}
-	return GF_FPROBE_NOT_SUPPORTED;
-}
-
 
 #define OFFS(_n)	#_n, offsetof(ISOMReader, _n)
 
@@ -873,7 +861,6 @@ GF_FilterRegister ISOFFInRegister = {
 	INCAPS(ISOFFInInputs),
 	OUTCAPS(ISOFFInOutputs),
 	.process_event = isoffin_process_event
-//	.probe_url = isoffin_probe_url
 };
 
 

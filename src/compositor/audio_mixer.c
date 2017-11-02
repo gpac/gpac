@@ -273,7 +273,7 @@ Bool gf_mixer_reconfig(GF_AudioMixer *am)
 	max_bps = am->bits_per_sample;
 	cfg_changed = 0;
 //	max_sample_rate = am->sample_rate;
-	max_sample_rate = 0,
+	max_sample_rate = 0;
 
 	ch_cfg = 0;
 

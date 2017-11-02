@@ -2411,11 +2411,11 @@ s32 gf_media_avc_read_sps(const char *sps_data, u32 sps_size, AVCState *avc, u32
 		int CropUnitX, CropUnitY, SubWidthC = -1, SubHeightC = -1;
 
 		if (chroma_format_idc == 1) {
-			SubWidthC = 2, SubHeightC = 2;
+			SubWidthC = 2; SubHeightC = 2;
 		} else if (chroma_format_idc == 2) {
-			SubWidthC = 2, SubHeightC = 1;
+			SubWidthC = 2; SubHeightC = 1;
 		} else if ((chroma_format_idc == 3) && (separate_colour_plane_flag == 0)) {
-			SubWidthC = 1, SubHeightC = 1;
+			SubWidthC = 1; SubHeightC = 1;
 		}
 
 		if (ChromaArrayType == 0) {

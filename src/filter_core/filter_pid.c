@@ -1120,7 +1120,7 @@ static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
 	//when creating a new map, ref_count of old map is decremented
 	if (old_map) {
 		if (merge_props)
-			gf_props_merge_property(map, old_map);
+			gf_props_merge_property(map, old_map, NULL, NULL);
 		assert(old_map->reference_count);
 		if ( safe_int_dec(&old_map->reference_count) == 0) {
 			gf_list_del_item(pid->properties, old_map);
@@ -1313,7 +1313,7 @@ GF_Err gf_filter_pid_copy_properties(GF_FilterPid *dst_pid, GF_FilterPid *src_pi
 		return GF_OK;
 	}
 	gf_props_reset(dst_props);
-	return gf_props_merge_property(dst_props, src_props);
+	return gf_props_merge_property(dst_props, src_props, NULL, NULL);
 }
 
 u32 gf_filter_pid_get_packet_count(GF_FilterPid *pid)

@@ -50,6 +50,7 @@ typedef struct
 	char *pname;
 
 	GF_PropertyValue prop;
+	u32 alloc_size;
 
 } GF_PropertyEntry;
 
@@ -78,7 +79,7 @@ const GF_PropertyValue *gf_props_get_property(GF_PropertyMap *map, u32 prop_4cc,
 
 u32 gf_props_hash_djb2(u32 p4cc, const char *str);
 
-GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props);
+GF_Err gf_props_merge_property(GF_PropertyMap *dst_props, GF_PropertyMap *src_props, gf_filter_prop_filter filter_prop, void *cbk);
 
 const GF_PropertyValue *gf_props_enum_property(GF_PropertyMap *props, u32 *io_idx, u32 *prop_4cc, const char **prop_name);
 
@@ -236,6 +237,8 @@ struct __gf_media_session
 	GF_FilterQueue *prop_maps_list_reservoir;
 	//reservoir for property entries  - properties may be inherited between packets
 	GF_FilterQueue *prop_maps_entry_reservoir;
+	//reservoir for property entries with allocated data buffers - properties may be inherited between packets
+	GF_FilterQueue *prop_maps_entry_data_alloc_reservoir;
 
 	GF_Mutex *props_mx;
 

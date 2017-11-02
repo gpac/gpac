@@ -43,6 +43,9 @@ void isor_reset_reader(ISOMChannel *ch)
 	ch->start = ch->end = 0;
 	ch->to_init = 1;
 	ch->play_state = 0;
+	if (ch->sai_buffer) gf_free(ch->sai_buffer);
+	ch->sai_buffer = NULL;
+	ch->sai_alloc_size = 0;
 	memset(&ch->current_slh, 0, sizeof(GF_SLHeader));
 }
 
@@ -102,6 +105,9 @@ static void init_reader(ISOMChannel *ch)
 	ch->current_slh.randomAccessPointFlag = 0;
 
 	assert(ch->sample==NULL);
+	if (!ch->static_sample) {
+		ch->static_sample = gf_isom_sample_new();
+	}
 
 	if (ch->streamType==GF_STREAM_OCR) {
 		assert(!ch->sample);
@@ -115,16 +121,22 @@ static void init_reader(ISOMChannel *ch)
 
 		/*take care of seeking out of the track range*/
 		if (!ch->owner->frag_type && (ch->duration<ch->start)) {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &sample_desc_index, mode, &ch->sample, &ch->sample_num, NULL);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->duration, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, NULL);
 		} else {
-			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->sample, &ch->sample_num, NULL);
+			ch->last_state = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->start, &sample_desc_index, mode, &ch->static_sample, &ch->sample_num, NULL);
 		}
-		ch->last_state = GF_OK;
-
+		if (ch->last_state) {
+			ch->sample = NULL;
+			ch->last_state = GF_OK;
+		} else {
+			ch->sample = ch->static_sample;
+		}
+		
 		if (ch->has_rap && ch->has_edit_list) {
 			ch->edit_sync_frame = ch->sample_num;
 		}
 	}
+
 
 	/*no sample means we're not in the track range - stop*/
 	if (!ch->sample) {
@@ -141,8 +153,7 @@ static void init_reader(ISOMChannel *ch)
 		}
 		return;
 	}
-	ch->static_sample = ch->sample;
-	
+
 	if (ch->has_edit_list) {
 		ch->sample_time = ch->sample->DTS;
 	} else {
@@ -201,6 +212,7 @@ void isor_reader_get_sample(ISOMChannel *ch)
 {
 	GF_Err e;
 	u32 sample_desc_index;
+	Bool is_init = GF_FALSE;
 	if (ch->sample) return;
 
 	if (ch->next_track) {
@@ -210,25 +222,25 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	if (ch->to_init) {
 		init_reader(ch);
+		is_init = GF_TRUE;
 		sample_desc_index = ch->last_sample_desc_index;
 	} else if (ch->speed < 0) {
 		if (!ch->sample_time) {
 			ch->last_state = GF_EOS;
 			return;
 		} else {
-			e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num, NULL);
+			e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time - 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, NULL);
 			if (e) {
 				if ((e==GF_EOS) && !ch->owner->frag_type) {
 					ch->last_state = GF_EOS;
 				}
 				return;
 			}
+			ch->sample = ch->static_sample;
 		}
 		if (ch->sample->DTS + ch->dts_offset == ch->sample_time) {
 			if (!ch->owner->frag_type) {
 				ch->last_state = GF_EOS;
-			} else {
-				ch->sample = NULL;
 			}
 		}
 		if (ch->sample) {
@@ -240,9 +252,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 	} else if (ch->has_edit_list) {
 		u32 prev_sample = ch->sample_num;
-		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num, NULL);
+		e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, NULL);
 
 		if (e == GF_OK) {
+			ch->sample = ch->static_sample;
 
 			/*we are in forced seek mode: fetch all samples before the one matching the sample time*/
 			if (ch->edit_sync_frame) {
@@ -263,24 +276,16 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					} else {
 						u32 time_diff = 2;
 						u32 sample_num = ch->sample_num ? ch->sample_num : 1;
-						assert(0);
-#ifdef FILTER_FIXME
-						GF_ISOSample *s1 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num, NULL);
-						GF_ISOSample *s2 = gf_isom_get_sample(ch->owner->mov, ch->track, sample_num+1, NULL);
 
-						ch->sample = NULL;
-
-						if (s2 && s1) {
-							assert(s2->DTS >= s1->DTS);
-							time_diff = (u32) (s2->DTS - s1->DTS);
-							/*e = */gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->sample, &ch->sample_num, NULL);
-						} else if (s1 && !s2) {
-							/*e = GF_EOS;*/
+						if (sample_num >= gf_isom_get_sample_count(ch->owner->mov, ch->track) ) {
+							e = GF_EOS;
+						} else {
+							time_diff = gf_isom_get_sample_duration(ch->owner->mov, ch->track, sample_num);
+							e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + time_diff, &sample_desc_index, GF_ISOM_SEARCH_FORWARD, &ch->static_sample, &ch->sample_num, NULL);
+							if (e==GF_OK) {
+								ch->sample = ch->static_sample;
+							}
 						}
-						gf_isom_sample_del(&s1);
-						gf_isom_sample_del(&s2);
-#endif
-
 					}
 				}
 
@@ -290,8 +295,10 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					GF_ISOSample *found = ch->static_sample;
 					u32 samp_num = ch->sample_num;
 					ch->sample = NULL;
-					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->sample, &ch->sample_num, NULL);
-					assert (e == GF_OK);
+					e = gf_isom_get_sample_for_movie_time(ch->owner->mov, ch->track, ch->sample_time + 1, &sample_desc_index, GF_ISOM_SEARCH_SYNC_BACKWARD, &ch->static_sample, &ch->sample_num, NULL);
+
+					if (e == GF_OK) ch->sample = ch->static_sample;
+
 					/*if no sync point in the past, use the first non-sync for the given time*/
 					if (!ch->sample || !ch->sample->data) {
 						ch->sample = ch->static_sample = found;
@@ -409,7 +416,9 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			if (CTS<0) CTS=0;
 			ch->sample->DTS = (u64) DTS;
 			ch->sample->CTS_Offset = (s32) (CTS - DTS);
-		} else {
+		}
+		//if sample is fetched from init(), dts is already shifted
+		else if (!is_init) {
 			ch->sample->DTS = ch->sample->DTS + ch->dts_offset;
 		}
 	}
@@ -461,7 +470,6 @@ void isor_reader_get_sample(ISOMChannel *ch)
 			ch->current_slh.isma_encrypted = 0;
 			/*in case of CENC: we write sample auxiliary information to slh->sai; its size is in saiz*/
 			if (gf_isom_is_cenc_media(ch->owner->mov, ch->track, 1)) {
-				GF_CENCSampleAuxInfo *sai;
 				u32 Is_Encrypted;
 				u8 IV_size;
 				bin128 KID;
@@ -478,25 +486,15 @@ void isor_reader_get_sample(ISOMChannel *ch)
 					memmove(ch->current_slh.constant_IV, constant_IV, ch->current_slh.constant_IV_size);
 				}
 				if (Is_Encrypted) {
+					u32 out_size = ch->sai_alloc_size;
 					ch->current_slh.cenc_encrypted = 1;
-					sai = NULL;
-					gf_isom_cenc_get_sample_aux_info(ch->owner->mov, ch->track, ch->sample_num, &sai, NULL);
-					if (sai) {
-						u32 i;
-						GF_BitStream *bs;
-						bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-						/*write sample auxiliary information*/
-						gf_bs_write_data(bs, (char *)KID, 16);
-						gf_bs_write_data(bs, (char *)sai->IV, IV_size);
-						gf_bs_write_u16(bs, sai->subsample_count);
-						for (i = 0; i < sai->subsample_count; i++) {
-							gf_bs_write_u16(bs, sai->subsamples[i].bytes_clear_data);
-							gf_bs_write_u32(bs, sai->subsamples[i].bytes_encrypted_data);
-						}
-						gf_bs_get_content(bs, &ch->current_slh.sai, &ch->current_slh.saiz);
-						gf_bs_del(bs);
-						gf_isom_cenc_samp_aux_info_del(sai);
-						sai = NULL;
+
+					gf_isom_cenc_get_sample_aux_info_buffer(ch->owner->mov, ch->track, ch->sample_num, NULL, &ch->sai_buffer, &out_size);
+					if (out_size > ch->sai_alloc_size) ch->sai_alloc_size = out_size;
+					if (out_size) {
+						assert(out_size>=16);
+						memcpy(ch->sai_buffer, (char *)KID, 16);
+						ch->sai_buffer_size = out_size;
 					}
 				}
 				else
@@ -508,11 +506,8 @@ void isor_reader_get_sample(ISOMChannel *ch)
 
 void isor_reader_release_sample(ISOMChannel *ch)
 {
-	if (ch->current_slh.sai) {
-		gf_free(ch->current_slh.sai);
-		ch->current_slh.sai = NULL;
-	}
 	ch->sample = NULL;
+	ch->sai_buffer_size = 0;
 	ch->current_slh.AU_sequenceNumber++;
 	ch->current_slh.packetSequenceNumber++;
 }
