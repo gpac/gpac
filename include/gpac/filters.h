@@ -136,6 +136,12 @@ typedef enum
 
 typedef struct
 {
+	char *ptr;
+	u32 size;
+} GF_PropData;
+
+typedef struct
+{
 	GF_PropType type;
 	union {
 		u64 longuint;
@@ -147,14 +153,11 @@ typedef struct
 		Fixed fnumber;
 		Double number;
 		//alloc/freed by filter
-		char *data;
+		GF_PropData data;
 		//alloc/freed by filter if type is GF_PROP_STRING, otherwise const char *
 		char *string;
 		void *ptr;
-		GF_List *list;
 	} value;
-
-	u32 data_len;
 } GF_PropertyValue;
 
 const char *gf_props_get_type_name(u32 type);
@@ -173,9 +176,9 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
 #define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
-#define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data = _val, .data_len=_len}
-#define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data = _val, .data_len=_len}
-#define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data = _val, .data_len=_len}
+#define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data.ptr = _val, .value.data.size=_len}
+#define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data.ptr = _val, .value.data.size =_len}
+#define PROP_CONST_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_CONST_DATA, .value.data.ptr = _val, .value.data.size = _len}
 
 #define PROP_POINTER(_val) (GF_PropertyValue){.type=GF_PROP_POINTER, .value.ptr = (void*)_val}
 
@@ -474,7 +477,10 @@ GF_Err gf_filter_pck_set_property_dyn(GF_FilterPacket *pck, char *name, const GF
 
 //by defaults packet do not share properties with each-other, this functions enable passing the properties of
 //one packet to another
+typedef Bool (*gf_filter_prop_filter)(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop);
+
 GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst);
+GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk);
 const GF_PropertyValue *gf_filter_pck_get_property(GF_FilterPacket *pck, u32 prop_4cc);
 const GF_PropertyValue *gf_filter_pck_get_property_str(GF_FilterPacket *pck, const char *prop_name);
 

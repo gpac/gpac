@@ -503,7 +503,7 @@ Bool gf_mesh_closest_face_aabb(GF_Mesh *mesh, AABBNode *node, SFVec3f pos, Fixed
 		return gf_mesh_closest_face_aabb(mesh, node->neg, pos, min_dist, min_sq_dist, min_col_dist, outPoint);
 	}
 
-	need_norm = (mesh->flags & MESH_IS_SMOOTHED) ? GF_TRUE : GF_FALSE,
+	need_norm = (mesh->flags & MESH_IS_SMOOTHED) ? GF_TRUE : GF_FALSE;
 	r.orig = pos;
 	has_inter = GF_FALSE;
 	for (i=0; i<node->nb_idx; i++) {
@@ -562,7 +562,7 @@ Bool gf_mesh_closest_face(GF_Mesh *mesh, SFVec3f pos, Fixed min_dist, SFVec3f *o
 		return gf_mesh_closest_face_aabb(mesh, mesh->aabb_root, pos, min_dist, d, &dmax, outPoint);
 	}
 
-	need_norm = (mesh->flags & MESH_IS_SMOOTHED) ? GF_TRUE : GF_FALSE,
+	need_norm = (mesh->flags & MESH_IS_SMOOTHED) ? GF_TRUE : GF_FALSE;
 
 	r.orig = pos;
 	has_inter = GF_FALSE;

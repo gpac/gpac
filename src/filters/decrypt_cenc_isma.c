@@ -60,6 +60,9 @@ typedef struct
 	char *buffer;
 	u32 buffer_alloc_size;
 
+	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
+	GF_CENCSampleAuxInfo sai;
+
 	GF_DownloadManager *dm;
 } GF_CENCDecCtx;
 
@@ -313,8 +316,8 @@ static GF_Err decenc_setup_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *pid, u32 schem
 
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_CENC_PSSH);
 	if (prop) {
-		pssh_data = (char *) prop->value.data;
-		bs = gf_bs_new(prop->value.data, prop->data_len, GF_BITSTREAM_READ);
+		pssh_data = (char *) prop->value.data.ptr;
+		bs = gf_bs_new(prop->value.data.ptr, prop->value.data.size, GF_BITSTREAM_READ);
 	}
 
 	if ((scheme_type == GF_ISOM_CENC_SCHEME) || (scheme_type == GF_ISOM_CENS_SCHEME))
@@ -422,14 +425,26 @@ static GF_Err decenc_access_cenc(GF_CENCDecCtx *ctx, Bool is_play)
 	return GF_BAD_PARAM;
 }
 
+static Bool cenc_prop_filter(void *cbk, u32 prop_4cc, const char *prop_name, const GF_PropertyValue *src_prop)
+{
+	switch (prop_4cc) {
+	case GF_PROP_PCK_ENCRYPTED:
+	case GF_PROP_PCK_CENC_SAI:
+	case GF_PROP_PID_PCK_CENC_IV_SIZE:
+	case GF_PROP_PID_PCK_CENC_IV_CONST:
+	case GF_PROP_PID_PCK_CENC_PATTERN:
+		return GF_FALSE;
+	default:
+		return GF_TRUE;
+	}
+}
+
 static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_FilterPid *opid)
 {
 	GF_Err e;
-	GF_BitStream *plaintext_bs, *cyphertext_bs, *sai_bs;
 	char IV[17];
 	bin128 KID;
-	u32 i, subsample_count;
-	GF_CENCSampleAuxInfo *sai;
+	u32 i, subsample_idx, subsample_count, max_size;
 	u32 data_size;
 	const char *in_data;
 	char *out_data;
@@ -454,52 +469,69 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[CENC] Packet encrypted but no SAI info\n" ) );
 		return GF_SERVICE_ERROR;
 	}
-	sai_payload = prop->value.data;
-	saiz = prop->data_len;
+	sai_payload = prop->value.data.ptr;
+	saiz = prop->value.data.size;
 
-	plaintext_bs = cyphertext_bs = sai_bs = NULL;
-
-	sai = (GF_CENCSampleAuxInfo *)gf_malloc(sizeof(GF_CENCSampleAuxInfo));
-	if (!sai) {
-		e = GF_IO_ERR;
-		goto exit;
-	}
-	memset(sai, 0, sizeof(GF_CENCSampleAuxInfo));
+	ctx->sai.IV_size = 0;
+	memset(&ctx->sai.IV, 0, sizeof(bin128));
 
 	in_data = gf_filter_pck_get_data(in_pck, &data_size);
 	out_pck = gf_filter_pck_new_alloc(opid, data_size, &out_data);
 
-	cyphertext_bs = gf_bs_new(in_data, data_size, GF_BITSTREAM_READ);
-	sai_bs = gf_bs_new(sai_payload, saiz, GF_BITSTREAM_READ);
-	plaintext_bs = gf_bs_new(out_data, data_size, GF_BITSTREAM_WRITE);
+	if (!ctx->cyphertext_bs)
+		ctx->cyphertext_bs = gf_bs_new(in_data, data_size, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(ctx->cyphertext_bs, in_data, data_size);
+
+	if (!ctx->sai_bs)
+		ctx->sai_bs = gf_bs_new(sai_payload, saiz, GF_BITSTREAM_READ);
+	else
+		gf_bs_reassign_buffer(ctx->sai_bs, sai_payload, saiz);
+
+	if (!ctx->plaintext_bs)
+		ctx->plaintext_bs = gf_bs_new(out_data, data_size, GF_BITSTREAM_WRITE);
+	else
+		gf_bs_reassign_buffer(ctx->plaintext_bs, out_data, data_size);
 
 	if (!ctx->buffer) {
 		ctx->buffer_alloc_size = 4096;
 		ctx->buffer = (char*)gf_malloc(sizeof(char) * 4096);
 	}
 
-	sai->IV_size = 8;
+	ctx->sai.IV_size = 8;
 	prop = gf_filter_pck_get_property(in_pck, GF_PROP_PID_PCK_CENC_IV_SIZE);
 	if (!prop) {
 		const_IV = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_IV_CONST);
 		if (!const_IV) prop = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_IV_SIZE);
 	} else {
-		sai->IV_size = prop->value.uint;
+		ctx->sai.IV_size = prop->value.uint;
 	}
 	
 	cbc_pattern = gf_filter_pid_get_property(ipid, GF_PROP_PID_PCK_CENC_PATTERN);
 
 
 	/*read sample auxiliary information from bitstream*/
-	gf_bs_read_data(sai_bs,  (char *)KID, 16);
-	gf_bs_read_data(sai_bs, (char *)sai->IV, sai->IV_size);
-	sai->subsample_count = gf_bs_read_u16(sai_bs);
-	if (sai->subsample_count) {
-		sai->subsamples = (GF_CENCSubSampleEntry *)gf_malloc(sai->subsample_count*sizeof(GF_CENCSubSampleEntry));
-		for (i = 0; i < sai->subsample_count; i++) {
-			sai->subsamples[i].bytes_clear_data = gf_bs_read_u16(sai_bs);
-			sai->subsamples[i].bytes_encrypted_data = gf_bs_read_u32(sai_bs);
-		}
+	gf_bs_read_data(ctx->sai_bs,  (char *)KID, 16);
+	gf_bs_read_data(ctx->sai_bs, (char *)ctx->sai.IV, ctx->sai.IV_size);
+	subsample_count = gf_bs_read_u16(ctx->sai_bs);
+	if (ctx->sai.subsample_count < subsample_count) {
+		ctx->sai.subsamples = (GF_CENCSubSampleEntry *)gf_realloc(ctx->sai.subsamples, subsample_count*sizeof(GF_CENCSubSampleEntry));
+		ctx->sai.subsample_count = subsample_count;
+	}
+	max_size = 0;
+	for (i = 0; i < subsample_count; i++) {
+		ctx->sai.subsamples[i].bytes_clear_data = gf_bs_read_u16(ctx->sai_bs);
+		ctx->sai.subsamples[i].bytes_encrypted_data = gf_bs_read_u32(ctx->sai_bs);
+
+
+		if (ctx->sai.subsamples[i].bytes_clear_data > max_size)	max_size = ctx->sai.subsamples[i].bytes_clear_data;
+		if (ctx->sai.subsamples[i].bytes_encrypted_data > max_size) max_size = ctx->sai.subsamples[i].bytes_encrypted_data;
+	}
+	if (!subsample_count) max_size = data_size;
+
+	if (max_size >  ctx->buffer_alloc_size) {
+		ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*max_size);
+		ctx->buffer_alloc_size = max_size;
 	}
 
 	for (i = 0; i < ctx->KID_count; i++) {
@@ -511,12 +543,12 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 
 	if (ctx->first_crypted_samp) {
 		if (!const_IV) {
-			memmove(IV, sai->IV, sai->IV_size);
-			if (sai->IV_size == 8)
+			memmove(IV, ctx->sai.IV, ctx->sai.IV_size);
+			if (ctx->sai.IV_size == 8)
 				memset(IV+8, 0, sizeof(char)*8);
 		} else {
-			memmove(IV, const_IV->value.data, const_IV->data_len);
-			if (const_IV->data_len == 8)
+			memmove(IV, const_IV->value.data.ptr, const_IV->value.data.size);
+			if (const_IV->value.data.size == 8)
 				memset(IV+8, 0, sizeof(char)*8);
 		}
 		e = gf_crypt_init(ctx->crypt, ctx->key, 16, IV);
@@ -528,13 +560,11 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 		ctx->first_crypted_samp = GF_FALSE;
 	} else {
 		if (ctx->is_cenc) {
-			GF_BitStream *bs;
-			bs = gf_bs_new(IV, 17, GF_BITSTREAM_WRITE);
-			gf_bs_write_u8(bs, 0);	/*begin of counter*/
-			gf_bs_write_data(bs,(char *)sai->IV, sai->IV_size);
-			if (sai->IV_size == 8)
-				gf_bs_write_u64(bs, 0); /*0-padded if IV_size == 8*/
-			gf_bs_del(bs);
+			memset(IV, 0, sizeof(char)*17);
+
+			IV[0] = 0;	/*begin of counter*/
+			memcpy(&IV[1], (char *) ctx->sai.IV, sizeof(char)*ctx->sai.IV_size);
+//			if (ctx->sai.IV_size == 8)	/*0-padded if IV_size == 8*/
 			gf_crypt_set_state(ctx->crypt, IV, 17);
 		}
 		e = gf_crypt_set_key(ctx->crypt, ctx->key, 16, IV);
@@ -546,36 +576,28 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 	}
 
 	//sub-sample encryption
-	if (sai->subsample_count) {
-		subsample_count = 0;
-		while (gf_bs_available(cyphertext_bs)) {
-			if (subsample_count >= sai->subsample_count)
+	if (subsample_count) {
+		subsample_idx = 0;
+		while (gf_bs_available(ctx->cyphertext_bs)) {
+			if (subsample_idx >= subsample_count)
 				break;
 			if (const_IV) {
-				memmove(IV, const_IV->value.data, const_IV->data_len);
-				if (const_IV->data_len == 8)
+				memmove(IV, const_IV->value.data.ptr, const_IV->value.data.size);
+				if (const_IV->value.data.size == 8)
 					memset(IV+8, 0, sizeof(char)*8);
 				gf_crypt_set_state(ctx->crypt, IV, 16);
 			}
 
 			/*read clear data and write it to plaintext_bs bitstream*/
-			if (ctx->buffer_alloc_size < sai->subsamples[subsample_count].bytes_clear_data) {
-				ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_clear_data);
-				ctx->buffer_alloc_size = sai->subsamples[subsample_count].bytes_clear_data;
-			}
-			gf_bs_read_data(cyphertext_bs, ctx->buffer, sai->subsamples[subsample_count].bytes_clear_data);
-			gf_bs_write_data(plaintext_bs, ctx->buffer, sai->subsamples[subsample_count].bytes_clear_data);
+			gf_bs_read_data(ctx->cyphertext_bs, ctx->buffer, ctx->sai.subsamples[subsample_idx].bytes_clear_data);
+			gf_bs_write_data(ctx->plaintext_bs, ctx->buffer, ctx->sai.subsamples[subsample_idx].bytes_clear_data);
 
 			/*now read encrypted data, decrypted it and write to plaintext_bs bitstream*/
-			if (ctx->buffer_alloc_size < sai->subsamples[subsample_count].bytes_encrypted_data) {
-				ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*sai->subsamples[subsample_count].bytes_encrypted_data);
-				ctx->buffer_alloc_size = sai->subsamples[subsample_count].bytes_encrypted_data;
-			}
-			gf_bs_read_data(cyphertext_bs, ctx->buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			gf_bs_read_data(ctx->cyphertext_bs, ctx->buffer, ctx->sai.subsamples[subsample_idx].bytes_encrypted_data);
 			//pattern decryption
 			if (cbc_pattern && cbc_pattern->value.frac.den && cbc_pattern->value.frac.num) {
 				u32 pos = 0;
-				u32 res = sai->subsamples[subsample_count].bytes_encrypted_data;
+				u32 res = ctx->sai.subsamples[subsample_idx].bytes_encrypted_data;
 				u32 skip_byte_block = cbc_pattern->value.frac.num;
 				u32 crypt_byte_block = cbc_pattern->value.frac.den;
 				while (res) {
@@ -588,20 +610,16 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 					}
 			}
 			} else {
-				gf_crypt_decrypt(ctx->crypt, ctx->buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+				gf_crypt_decrypt(ctx->crypt, ctx->buffer, ctx->sai.subsamples[subsample_idx].bytes_encrypted_data);
 			}
-			gf_bs_write_data(plaintext_bs, ctx->buffer, sai->subsamples[subsample_count].bytes_encrypted_data);
+			gf_bs_write_data(ctx->plaintext_bs, ctx->buffer, ctx->sai.subsamples[subsample_idx].bytes_encrypted_data);
 
-			subsample_count++;
+			subsample_idx++;
 		}
 	}
 	//full sample encryption
 	else {
-		if (ctx->buffer_alloc_size < data_size) {
-			ctx->buffer = (char*)gf_realloc(ctx->buffer, sizeof(char)*data_size);
-			ctx->buffer_alloc_size = data_size;
-		}
-		gf_bs_read_data(cyphertext_bs, ctx->buffer, data_size);
+		gf_bs_read_data(ctx->cyphertext_bs, ctx->buffer, data_size);
 		if (ctx->is_cenc) {
 			gf_crypt_decrypt(ctx->crypt, ctx->buffer, data_size);
 		} else {
@@ -612,15 +630,11 @@ static GF_Err decenc_process_cenc(GF_CENCDecCtx *ctx, GF_FilterPid *ipid, GF_Fil
 		}
 	}
 
-	gf_filter_pck_merge_properties(in_pck, out_pck);
+	gf_filter_pck_merge_properties_filter(in_pck, out_pck, cenc_prop_filter, NULL);
 	gf_filter_pck_send(out_pck);
 
 exit:
-	if (plaintext_bs) gf_bs_del(plaintext_bs);
-	if (sai_bs) gf_bs_del(sai_bs);
-	if (cyphertext_bs) gf_bs_del(cyphertext_bs);
-	if (sai && sai->subsamples) gf_free(sai->subsamples);
-	if (sai) gf_free(sai);
+
 	if (e && out_pck) {
 		gf_filter_pck_discard(out_pck);
 	}
@@ -756,8 +770,12 @@ static void decenc_finalize(GF_Filter *filter)
 	if (ctx->crypt) gf_crypt_close(ctx->crypt);
 	if (ctx->KIDs) gf_free(ctx->KIDs);
 	if (ctx->keys) gf_free(ctx->keys);
-	if (ctx->buffer) gf_free(ctx->buffer);
 
+	if (ctx->buffer) gf_free(ctx->buffer);
+	if (ctx->plaintext_bs) gf_bs_del(ctx->plaintext_bs);
+	if (ctx->sai_bs) gf_bs_del(ctx->sai_bs);
+	if (ctx->cyphertext_bs) gf_bs_del(ctx->cyphertext_bs);
+	if (ctx->sai.subsamples) gf_free(ctx->sai.subsamples);
 }
 
 

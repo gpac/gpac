@@ -121,8 +121,8 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p && p->value.data && p->data_len) {
-		u32 ex_crc = gf_crc_32(p->value.data, p->data_len);
+	if (p && p->value.data.ptr && p->value.data.size) {
+		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
 			//shoud we flush ?
 			if (ctx->codec) NeAACDecClose(ctx->codec);
@@ -142,10 +142,10 @@ static GF_Err faaddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	}
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	e = gf_m4a_get_config(p->value.data, p->data_len, &a_cfg);
+	e = gf_m4a_get_config(p->value.data.ptr, p->value.data.size, &a_cfg);
 	if (e) return e;
 #endif
-	if (NeAACDecInit2(ctx->codec, (unsigned char *)p->value.data, p->data_len, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
+	if (NeAACDecInit2(ctx->codec, (unsigned char *)p->value.data.ptr, p->value.data.size, (unsigned long*)&ctx->sample_rate, (u8*)&ctx->num_channels) < 0)
 	{
 #ifndef GPAC_DISABLE_AV_PARSERS
 		s8 res;

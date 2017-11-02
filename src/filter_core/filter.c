@@ -541,7 +541,7 @@ static GF_Err gf_filter_process_check_alloc(GF_Filter *filter)
 	nb_reallocs -= prev_nb_reallocs;
 	nb_free -= prev_nb_free;
 
-	if (nb_allocs || nb_callocs || nb_reallocs || nb_free) {
+	if (nb_allocs || nb_callocs || nb_reallocs /* || nb_free */) {
 		filter->stats_nb_alloc += nb_allocs;
 		filter->stats_nb_calloc += nb_callocs;
 		filter->stats_nb_realloc += nb_reallocs;

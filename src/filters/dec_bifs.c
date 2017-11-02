@@ -56,7 +56,7 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 
 	//we must have a dsi
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!prop || !prop->value.data || !prop->data_len) {
+	if (!prop || !prop->value.data.ptr || !prop->value.data.size) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -72,7 +72,7 @@ static GF_Err bifs_dec_configure_bifs_dec(GF_BIFSDecCtx *ctx, GF_FilterPid *pid)
 	}
 
 
-	e = gf_bifs_decoder_configure_stream(ctx->bifs_dec, es_id, prop->value.data, prop->data_len, oti);
+	e = gf_bifs_decoder_configure_stream(ctx->bifs_dec, es_id, prop->value.data.ptr, prop->value.data.size, oti);
 	if (e) return e;
 
 	return GF_OK;
@@ -104,7 +104,7 @@ GF_Err bifs_dec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remo
 	}
 	//we must have a dsi
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!prop || !prop->value.data || !prop->data_len) {
+	if (!prop || !prop->value.data.ptr || !prop->value.data.size) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 

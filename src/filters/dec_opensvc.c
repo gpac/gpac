@@ -123,8 +123,8 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	if (p) id = p->value.uint;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p && p->value.data && p->data_len) {
-		cfg_crc = gf_crc_32(p->value.data, p->data_len);
+	if (p && p->value.data.ptr && p->value.data.size) {
+		cfg_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		for (i=0; i<ctx->nb_streams; i++) {
 			if ((ctx->streams[i].ipid == pid) && (ctx->streams[i].cfg_crc == cfg_crc)) return GF_OK;
 		}
@@ -185,8 +185,8 @@ static GF_Err osvcdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->active_streams = ctx->nb_streams;
 	}
 
-	if (p && p->value.data) {
-		GF_AVCConfig *cfg = gf_odf_avc_cfg_read(p->value.data, p->data_len);
+	if (p && p->value.data.ptr) {
+		GF_AVCConfig *cfg = gf_odf_avc_cfg_read(p->value.data.ptr, p->value.data.size);
 		if (!cfg) return GF_NON_COMPLIANT_BITSTREAM;
 		if (!dep_id) {
 			ctx->nalu_size_length = cfg->nal_unit_size;

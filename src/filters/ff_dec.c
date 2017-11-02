@@ -700,8 +700,8 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 				return GF_NOT_SUPPORTED;
 			}
 			prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-			if (prop && prop->value.data && prop->data_len) {
-				cfg_crc = gf_crc_32(prop->value.data, prop->data_len);
+			if (prop && prop->value.data.ptr && prop->value.data.size) {
+				cfg_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 			}
 			if (cfg_crc == ffdec->extra_data_crc) return GF_OK;
 
@@ -724,13 +724,13 @@ static GF_Err ffdec_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is_r
 
 		//we may have a dsi here!
 		prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-		if (prop && prop->value.data && prop->data_len) {
-			ffdec->codec_ctx->extradata_size = prop->data_len;
-			ffdec->codec_ctx->extradata = gf_malloc(sizeof(char) * (FF_INPUT_BUFFER_PADDING_SIZE + prop->data_len));
-			memcpy(ffdec->codec_ctx->extradata, prop->value.data, prop->data_len);
-			memset(ffdec->codec_ctx->extradata + sizeof(char) * prop->data_len, 0, sizeof(char) * FF_INPUT_BUFFER_PADDING_SIZE);
+		if (prop && prop->value.data.ptr && prop->value.data.size) {
+			ffdec->codec_ctx->extradata_size = prop->value.data.size;
+			ffdec->codec_ctx->extradata = gf_malloc(sizeof(char) * (FF_INPUT_BUFFER_PADDING_SIZE + prop->value.data.size));
+			memcpy(ffdec->codec_ctx->extradata, prop->value.data.ptr, prop->value.data.size);
+			memset(ffdec->codec_ctx->extradata + sizeof(char) * prop->value.data.size, 0, sizeof(char) * FF_INPUT_BUFFER_PADDING_SIZE);
 
-			ffdec->extra_data_crc = gf_crc_32(prop->value.data, prop->data_len);
+			ffdec->extra_data_crc = gf_crc_32(prop->value.data.ptr, prop->value.data.size);
 		}
 
 		res = avcodec_open2(ffdec->codec_ctx, codec, NULL );

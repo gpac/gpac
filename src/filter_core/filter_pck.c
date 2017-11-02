@@ -33,7 +33,7 @@ static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
 	pck->info.data_block_start = pck->info.data_block_end = GF_TRUE;
 }
 
-GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst)
+GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk)
 {
 	if (PCK_IS_INPUT(pck_dst)) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set property on an input packet in filter %s\n", pck_dst->pid->filter->name));
@@ -58,8 +58,13 @@ GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket 
 
 		if (!pck_dst->props) return GF_OUT_OF_MEM;
 	}
-	return gf_props_merge_property(pck_dst->props, pck_src->props);
+	return gf_props_merge_property(pck_dst->props, pck_src->props, filter_prop, cbk);
 }
+GF_Err gf_filter_pck_merge_properties(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst)
+{
+	return gf_filter_pck_merge_properties_filter(pck_src, pck_dst, NULL, NULL);
+}
+
 static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 data_size, char **data, Bool no_block_check)
 {
 	GF_FilterPacket *pck=NULL;
@@ -593,7 +598,7 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 						GF_Err e;
 						inst->pck->props = gf_props_new(pck->pid->filter);
 						if (inst->pck->props) {
-							e = gf_props_merge_property(inst->pck->props, pck->props);
+							e = gf_props_merge_property(inst->pck->props, pck->props, NULL, NULL);
 						} else {
 							e = GF_OUT_OF_MEM;
 						}

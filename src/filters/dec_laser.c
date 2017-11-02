@@ -66,7 +66,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	//we must have a dsi
 	prop = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (!prop || !prop->value.data || !prop->data_len) {
+	if (!prop || !prop->value.data.ptr || !prop->value.data.size) {
 		return GF_NON_COMPLIANT_BITSTREAM;
 	}
 
@@ -82,7 +82,7 @@ static GF_Err lsrdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	//this is a reconfigure
 	if (gf_filter_pid_get_udta(pid)) {
 		gf_laser_decoder_remove_stream(ctx->codec, ESID);
-		return gf_laser_decoder_configure_stream(ctx->codec, ESID, prop->value.data, prop->data_len);
+		return gf_laser_decoder_configure_stream(ctx->codec, ESID, prop->value.data.ptr, prop->value.data.size);
 	}
 
 	//check our namespace

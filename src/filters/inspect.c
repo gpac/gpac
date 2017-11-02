@@ -117,12 +117,12 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 	case GF_PROP_DATA_NO_COPY:
 		if (ctx->dump_data) {
 			u32 i;
-			fprintf(dump, "%d bytes 0x", att->data_len);
-			for (i=0; i<att->data_len; i++) {
-				fprintf(dump, "%02X", (unsigned char) att->value.data[i]);
+			fprintf(dump, "%d bytes 0x", att->value.data.size);
+			for (i=0; i<att->value.data.size; i++) {
+				fprintf(dump, "%02X", (unsigned char) att->value.data.ptr[i]);
 			}
 		} else {
-			fprintf(dump, "%d bytes CRC32 0x%08X", att->data_len, gf_crc_32(att->value.data, att->data_len));
+			fprintf(dump, "%d bytes CRC32 0x%08X", att->value.data.size, gf_crc_32(att->value.data.ptr, att->value.data.size));
 		}
 		break;
 	case GF_PROP_POINTER:

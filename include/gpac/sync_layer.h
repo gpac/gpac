@@ -125,9 +125,8 @@ typedef struct
 	u64 isma_BSO;
 	/*CENC extensions*/
 	u8 cenc_encrypted;
-	char *sai;
 	u8 IV_size;
-	u32 saiz;
+
 	//for CENC pattern encryption mode
 	u8 crypt_byte_block, skip_byte_block;
 	u8 constant_IV_size;

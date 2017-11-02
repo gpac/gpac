@@ -1782,7 +1782,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	Fixed m0, m1, m2, m3, s;
 	Fixed *r0, *r1, *r2, *r3;
 	GF_Matrix res;
-	r0 = wtmp[0], r1 = wtmp[1], r2 = wtmp[2], r3 = wtmp[3];
+	r0 = wtmp[0]; r1 = wtmp[1]; r2 = wtmp[2]; r3 = wtmp[3];
 	r0[0] = mx->m[0];
 	r0[1] = mx->m[4];
 	r0[2] = mx->m[8];
@@ -1950,7 +1950,7 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx)
 	res.m[8] = r0[6];
 	res.m[12] = r0[7];
 	res.m[1] = r1[4];
-	res.m[5] = r1[5], res.m[9] = r1[6];
+	res.m[5] = r1[5]; res.m[9] = r1[6];
 	res.m[13] = r1[7];
 	res.m[2] = r2[4];
 	res.m[6] = r2[5];

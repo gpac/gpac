@@ -68,13 +68,13 @@ static GF_Err j2kdec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is
 		return GF_NOT_SUPPORTED;
 
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
-	if (p && p->value.data && p->data_len) {
-		u32 ex_crc = gf_crc_32(p->value.data, p->data_len);
+	if (p && p->value.data.ptr && p->value.data.size) {
+		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
 		if (ctx->cfg_crc == ex_crc) {
 			return GF_OK;
 		}
 		ctx->cfg_crc = ex_crc;
-		bs = gf_bs_new(p->value.data, p->data_len, GF_BITSTREAM_READ);
+		bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
 		ctx->height = gf_bs_read_u32(bs);
 		ctx->width = gf_bs_read_u32(bs);
 		ctx->nb_comp = gf_bs_read_u16(bs);

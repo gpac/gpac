@@ -130,6 +130,9 @@ typedef struct
 	u32 nalu_extract_mode;
 
 	u32 last_sample_desc_index;
+
+	char *sai_buffer;
+	u32 sai_alloc_size, sai_buffer_size;
 } ISOMChannel;
 
 void isor_reset_reader(ISOMChannel *ch);

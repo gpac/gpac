@@ -2342,8 +2342,12 @@ GF_Err gf_isom_get_cenc_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDe
 
 void gf_isom_cenc_samp_aux_info_del(GF_CENCSampleAuxInfo *samp_aux_info);
 
-/*boxType is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC*/
+/*container_type is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC*/
 GF_Err gf_isom_cenc_get_sample_aux_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, GF_CENCSampleAuxInfo **sai, u32 *container_type);
+
+/*container_type is type of box which contains the sample auxiliary information. Now we have two type: GF_ISOM_BOX_UUID_PSEC and GF_ISOM_BOX_TYPE_SENC
+alloc/realloc output buffer, containing 16-bytes unused at the begining, then IV on IV_size bytes, then subsample count if any an [clear_bytes(u16), crypt_bytes(u32)] subsamples*/
+GF_Err gf_isom_cenc_get_sample_aux_info_buffer(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *container_type, char **out_buffer, u32 *outSize);
 
 void gf_isom_cenc_get_default_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex, u32 *default_IsEncrypted, u8 *default_IV_size, bin128 *default_KID);
 
