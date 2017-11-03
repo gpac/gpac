@@ -6309,6 +6309,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!stricmp(fmt, "RAW")) {
 		return gf_import_raw_unit(importer);
 	}
+	/*SC3DMC*/
+	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
+		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 
 
 	e = GF_OK;
@@ -6498,9 +6501,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	/*DIMS*/
 	if (!strnicmp(ext, ".dml", 4) || !stricmp(fmt, "DIMS") )
 		return gf_import_nhml_dims(importer, GF_TRUE);
-	/*SC3DMC*/
-	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
-		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 
 	if (!strnicmp(ext, ".txt", 4) || !strnicmp(ext, ".chap", 5) || !stricmp(fmt, "CHAP") )
 		return gf_media_import_chapters_file(importer);
