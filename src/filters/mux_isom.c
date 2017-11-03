@@ -49,6 +49,8 @@ typedef struct
 	u32 nb_frames_per_sample;
 	u64 ts_shift;
 
+	Bool is_3gpp;
+
 	Bool next_is_first_sample;
 
 } TrackWriter;
@@ -104,7 +106,8 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	Bool needs_track = GF_FALSE;
 	Bool needs_sample_entry = GF_FALSE;
 	Bool use_gen_sample_entry = GF_FALSE;
-	Bool use_3gpp_audio_config = GF_FALSE;
+	Bool use_3gpp_config = GF_FALSE;
+	Bool use_ac3_entry = GF_FALSE;
 	Bool use_dref = GF_FALSE;
 	u32 m_subtype=0;
 	u32 amr_mode_set = 0;
@@ -277,31 +280,46 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	case GPAC_OTI_AUDIO_AMR:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_AMR;
 		comp_name = "AMR";
-		use_3gpp_audio_config = GF_TRUE;
+		use_3gpp_config = GF_TRUE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p) amr_mode_set = p->value.uint;
 		break;
 	case GPAC_OTI_AUDIO_AMR_WB:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_AMR_WB;
 		comp_name = "AMR-WB";
-		use_3gpp_audio_config = GF_TRUE;
+		use_3gpp_config = GF_TRUE;
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_AMR_MODE_SET);
 		if (p) amr_mode_set = p->value.uint;
 		break;
 	case GPAC_OTI_AUDIO_EVRC:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_EVRC;
 		comp_name = "EVRC";
-		use_3gpp_audio_config = GF_TRUE;
+		use_3gpp_config = GF_TRUE;
 		break;
 	case GPAC_OTI_AUDIO_SMV:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_SMV;
 		comp_name = "SMV";
-		use_3gpp_audio_config = GF_TRUE;
+		use_3gpp_config = GF_TRUE;
 		break;
 	case GPAC_OTI_AUDIO_QCELP:
 		m_subtype = GF_ISOM_SUBTYPE_3GP_QCELP;
 		comp_name = "QCELP";
-		use_3gpp_audio_config = GF_TRUE;
+		use_3gpp_config = GF_TRUE;
+		break;
+	case GPAC_OTI_VIDEO_H263:
+		m_subtype = GF_ISOM_SUBTYPE_3GP_H263;
+		comp_name = "H263";
+		use_3gpp_config = GF_TRUE;
+		break;
+	case GPAC_OTI_AUDIO_AC3:
+		m_subtype = GF_ISOM_SUBTYPE_AC3;
+		comp_name = "AC-3";
+		use_ac3_entry = GF_TRUE;
+		break;
+	case GPAC_OTI_AUDIO_EAC3:
+		m_subtype = GF_ISOM_SUBTYPE_AC3;
+		comp_name = "EAC-3";
+		use_ac3_entry = GF_TRUE;
 		break;
 
 	default:
@@ -352,7 +370,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (reuse_stsd) {
 		tkw->stsd_idx = reuse_stsd;
 
-		if (use_3gpp_audio_config && amr_mode_set) {
+		if (use_3gpp_config && amr_mode_set) {
 			GF_3GPConfig *gpp_cfg = gf_isom_3gp_config_get(ctx->mov, tkw->track_num, tkw->stsd_idx);
 			if (gpp_cfg->AMR_mode_set != amr_mode_set) {
 				gpp_cfg->AMR_mode_set = amr_mode_set;
@@ -388,10 +406,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
-	} else if (use_3gpp_audio_config) {
+	} else if (use_3gpp_config) {
 		GF_3GPConfig gpp_cfg;
 		memset(&gpp_cfg, 0, sizeof(GF_3GPConfig));
 		gpp_cfg.type = m_subtype;
+		gpp_cfg.vendor = GF_VENDOR_GPAC;
+
 		if (use_dref) {
 			gpp_cfg.frames_per_sample  = 1;
 		} else {
@@ -399,15 +419,50 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			if (!gpp_cfg.frames_per_sample) gpp_cfg.frames_per_sample  = 1;
 			else if (gpp_cfg.frames_per_sample >15) gpp_cfg.frames_per_sample = 15;
 		}
+		if (tkw->stream_type==GF_STREAM_VISUAL) {
+			/*FIXME - we need more in-depth parsing of the bitstream to detect P3@L10 (streaming wireless)*/
+			gpp_cfg.H263_profile = 0;
+			gpp_cfg.H263_level = 10;
+			gpp_cfg.frames_per_sample = 0;
+		}
 		tkw->nb_frames_per_sample = gpp_cfg.frames_per_sample;
-		gpp_cfg.vendor = GF_VENDOR_GPAC;
+
 		e = gf_isom_3gp_config_new(ctx->mov, tkw->track_num, &gpp_cfg, (char *) src_url, NULL, &tkw->stsd_idx);
 		if (e) {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new 3GPP audio sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
-		gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_3G2A, 65536);
+
+		if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_QCELP) {
+			gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_3G2A, 65536);
+		} else if (gpp_cfg.type==GF_ISOM_SUBTYPE_3GP_H263) {
+			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_3GG6, 1);
+			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_3GG5, 1);
+		}
+		tkw->is_3gpp = GF_TRUE;
+	} else if (use_ac3_entry) {
+		GF_AC3Config ac3cfg;
+		memset(&ac3cfg, 0, sizeof(GF_AC3Config));
+
+		p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_AC3_CFG);
+		if (p) {
+			GF_BitStream *bs = gf_bs_new(p->value.data.ptr, p->value.data.size, GF_BITSTREAM_READ);
+			ac3cfg.nb_streams = 1;
+			ac3cfg.streams[0].fscod = gf_bs_read_int(bs, 2);
+			ac3cfg.streams[0].bsid = gf_bs_read_int(bs, 5);
+			ac3cfg.streams[0].bsmod = gf_bs_read_int(bs, 3);
+			ac3cfg.streams[0].acmod = gf_bs_read_int(bs, 3);
+			ac3cfg.streams[0].lfon = gf_bs_read_int(bs, 1);
+			ac3cfg.brcode = gf_bs_read_int(bs, 5);
+			gf_bs_del(bs);
+		}
+		e = gf_isom_ac3_config_new(ctx->mov, tkw->track_num, &ac3cfg, (char *)src_url, NULL, &tkw->stsd_idx);
+		if (e) {
+			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Error creating new AC3 audio sample description for stream type %d OTI %d: %s\n", tkw->stream_type, tkw->oti, gf_error_to_string(e) ));
+			return e;
+		}
+		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
 	} else if (use_gen_sample_entry) {
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
@@ -563,6 +618,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			}
 			
 			if (mdur * ctx->dur.den > tkw->timescale * ctx->dur.num) {
+				GF_FilterEvent evt;
+				GF_FEVT_INIT(evt, GF_FEVT_STOP, tkw->ipid);
+				gf_filter_pid_send_event(tkw->ipid, &evt);
+
 				tkw->aborted = GF_TRUE;
 			}
 		} else if (ctx->verbose) {
@@ -570,6 +629,10 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE);
 			if (p) {
 				gf_set_progress("Import", data_offset, p->value.uint);
+			} else {
+				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
+				gf_set_progress("Import", tkw->sample.DTS, p->value.frac.num);
+
 			}
 		}
 
@@ -605,7 +668,8 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->mov, tkw->track_num);
 
-		gf_media_update_bitrate(ctx->mov, tkw->track_num);
+		if (!tkw->is_3gpp)
+			gf_media_update_bitrate(ctx->mov, tkw->track_num);
 
 		if ((tkw->nb_samples == 1) && ctx->dur.num && ctx->dur.den) {
 			u32 dur = tkw->timescale * ctx->dur.num;

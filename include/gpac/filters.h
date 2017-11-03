@@ -660,6 +660,8 @@ enum
 	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
 	//(uint)
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
+	//(data)
+	GF_PROP_PID_AC3_CFG = GF_4CC('A','C','3','C'),
 
 
 };

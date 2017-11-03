@@ -152,12 +152,21 @@ static void vtbdec_on_frame(void *opaque, void *sourceFrameRefCon, OSStatus stat
         GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] No output buffer - status %d\n", status));
         return;
     }
+	if (gf_filter_pck_get_seek_flag(ctx->cur_pck) ) {
+        GF_LOG(GF_LOG_DEBUG, GF_LOG_CODEC, ("[VTB] Frame marked as seek, not dispatching - status %d\n", status));
+		return;
+	}
+
+
 	frame = gf_list_pop_back(ctx->frames_res);
 	if (!frame) {
 		GF_SAFEALLOC(frame, GF_VTBHWFrame);
 	} else {
 		memset(frame, 0, sizeof(GF_VTBHWFrame));
 	}
+
+	assert( gf_filter_pck_get_seek_flag(ctx->cur_pck) == 0 );
+
 	frame->hw_frame.user_data = frame;
 	frame->frame = CVPixelBufferRetain(image);
 	frame->cts = gf_filter_pck_get_cts(ctx->cur_pck);
@@ -236,6 +245,8 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	CFDataRef data = NULL;
 	char *dsi_data=NULL;
 	u32 dsi_data_size=0;
+	u32 w, h;
+	w = h = 0;
 	
     dec_dsi = CFDictionaryCreateMutable(kCFAllocatorDefault, 1, &kCFTypeDictionaryKeyCallBacks, &kCFTypeDictionaryValueCallBacks);
 	
@@ -246,6 +257,12 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
 	ctx->pix_fmt = GF_PIXEL_NV12;
 	ctx->reorder_probe = ctx->reorder;
 	ctx->reorder_detected = GF_FALSE;
+
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_WIDTH);
+	if (p) w = p->value.uint;
+	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_HEIGHT);
+	if (p) h = p->value.uint;
+
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_DECODER_CONFIG);
 
@@ -430,7 +447,14 @@ static GF_Err vtbdec_init_decoder(GF_Filter *filter, GF_VTBDecCtx *ctx)
         break;
     }
 	case GPAC_OTI_VIDEO_H263:
-			ctx->reorder_probe = 0;
+		ctx->reorder_probe = 0;
+		if (w && h) {
+			ctx->width = w;
+			ctx->height = h;
+			ctx->vtb_type = kCMVideoCodecType_H263;
+			break;
+		}
+		//fallthrough
 	case GPAC_OTI_MEDIA_GENERIC:
 		if (p && p->value.data.ptr && p->value.data.size) {
 			char *dsi = p->value.data.ptr;

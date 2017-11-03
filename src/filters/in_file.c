@@ -281,7 +281,6 @@ static GF_Err filein_process(GF_Filter *filter)
 		return GF_EOS;
 
 	//until packet is released we return EOS (no processing), and ask for processing again upon release
-	assert(!ctx->pck_out);
 	if (ctx->pck_out)
 		return GF_EOS;
 	if (ctx->pid && gf_filter_pid_would_block(ctx->pid)) {

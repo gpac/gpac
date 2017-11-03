@@ -327,6 +327,12 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 		case AV_CODEC_ID_SMV:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_SMV) );
 			break;
+		case AV_CODEC_ID_AC3:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+			break;
+		case AV_CODEC_ID_EAC3:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
+			break;
 		//todo - map all possible MPEG and common types to internal GPAC OTI
 		default:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_MEDIA_FFMPEG) );
