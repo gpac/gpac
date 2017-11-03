@@ -148,6 +148,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
@@ -293,7 +294,9 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
-
+			if (byte_offset != GF_FILTER_NO_BO) {
+				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
+			}
 			gf_filter_pck_send(dst_pck);
 		}
 

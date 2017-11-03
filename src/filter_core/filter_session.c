@@ -34,6 +34,7 @@ const GF_FilterRegister *ut_sink2_register(GF_FilterSession *session);
 const GF_FilterRegister *ffdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *ffdec_register(GF_FilterSession *session);
 const GF_FilterRegister *inspect_register(GF_FilterSession *session);
+const GF_FilterRegister *probe_register(GF_FilterSession *session);
 const GF_FilterRegister *compose_filter_register(GF_FilterSession *session);
 const GF_FilterRegister *isoffin_register(GF_FilterSession *session);
 const GF_FilterRegister *bifs_dec_register(GF_FilterSession *session);
@@ -66,11 +67,13 @@ const GF_FilterRegister *osvcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *ohevcdec_register(GF_FilterSession *session);
 const GF_FilterRegister *dashdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *decenc_register(GF_FilterSession *session);
+const GF_FilterRegister *mp4_mux_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 {
 	gf_fs_add_filter_registry(fsess, inspect_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, probe_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, compose_filter_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, isoffin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, bifs_dec_register(a_sess) );
@@ -96,16 +99,17 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, m2tsdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, udpin_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, dvblin_register(a_sess) );
-//	gf_fs_add_filter_registry(fsess, osvcdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, osvcdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, vtbdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, lsrdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, safdmx_register(a_sess) );
-//	gf_fs_add_filter_registry(fsess, ohevcdec_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ohevcdec_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, dashdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, decenc_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, mp4_mux_register(a_sess) );
 
-	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
-	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
+//	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+//	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 }
 
 static GFINLINE void gf_fs_sema_io(GF_FilterSession *fsess, Bool notify, Bool main)
@@ -276,6 +280,7 @@ GF_FilterSession *gf_fs_new(u32 nb_threads, GF_FilterSchedulerType sched_type, G
 
 	fsess->disable_blocking = GF_FALSE;
 	fsess->run_status = GF_EOS;
+	fsess->nb_threads_stopped = 1+nb_threads;
 	fsess->default_pid_buffer_max_us = 1000;
 	fsess->decoder_pid_buffer_max_us = 1000000;
 	return fsess;
@@ -830,6 +835,14 @@ static u32 gf_fs_thread_proc(GF_SessionThread *sess_thread)
 			if (prev_current_filter)
 				check_task_list(prev_current_filter->tasks, task);
 
+			{
+				u32 k, c2 = gf_list_count(fsess->filters);
+				for (k=0; k<c2; k++) {
+					GF_Filter *af = gf_list_get(fsess->filters, k);
+					check_task_list(af->tasks, task);
+				}
+			}
+
 			memset(task, 0, sizeof(GF_FSTask));
 			gf_fq_add(fsess->tasks_reservoir, task);
 		}
@@ -1072,18 +1085,19 @@ void gf_fs_send_update(GF_FilterSession *fsess, const char *fid, const char *nam
 }
 
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter)
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *user_args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter)
 {
 	GF_FilterProbeScore score = GF_FPROBE_NOT_SUPPORTED;
 	GF_FilterRegister *candidate_freg=NULL;
 	const GF_FilterArgs *src_arg=NULL;
-	u32 i, count;
+	u32 i, count, user_args_len;
 	GF_Err e;
 	char *sURL, *mime_type, *args, *sep;
 	char szExt[50];
 	memset(szExt, 0, sizeof(szExt));
 
-
+	if (err) *err = GF_OK;
+	
 	sURL = NULL;
 	if (!url || !strncmp(url, "\\\\", 2) ) {
 		return NULL;
@@ -1151,16 +1165,21 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	}
 	if (sep) sep[0] = ':';
 
-	args = gf_malloc(sizeof(char)*(5+strlen(sURL)) );
+	user_args_len = user_args ? strlen(user_args) : 0;
+	args = gf_malloc(sizeof(char)*(5+strlen(sURL) + (user_args_len ? user_args_len + 1  :0) ) );
 	strcpy(args, "src=");
 	strcat(args, sURL);
+	if (user_args_len) {
+		strcat(args, ":");
+		strcat(args, user_args);
+	}
 
 	e = GF_OK;
 	if (!filter) {
 		filter = gf_filter_new(fsess, candidate_freg, args, GF_FILTER_ARG_GLOBAL_SOURCE, err);
 	} else {
 		filter->freg = candidate_freg;
-		e = gf_filter_new_finalize(filter, args, GF_TRUE);
+		e = gf_filter_new_finalize(filter, args, GF_FILTER_ARG_GLOBAL_SOURCE);
 		if (err) *err = e;
 	}
 	
@@ -1178,9 +1197,9 @@ GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, 
 	return filter;
 }
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err)
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_internal(fsess, url, parent_url, err, NULL, NULL);
+	return gf_fs_load_source_internal(fsess, url, args, parent_url, err, NULL, NULL);
 }
 
 

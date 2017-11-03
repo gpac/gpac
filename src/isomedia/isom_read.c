@@ -1641,7 +1641,7 @@ u8 gf_isom_get_sample_sync(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumb
 
 //same as gf_isom_get_sample but doesn't fetch media data
 GF_EXPORT
-GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset)
+GF_ISOSample *gf_isom_get_sample_info_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset, GF_ISOSample *static_sample)
 {
 	GF_Err e;
 	GF_TrackBox *trak;
@@ -1654,12 +1654,18 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32
 	if (sampleNumber<=trak->sample_count_at_seg_start) return NULL;
 	sampleNumber -= trak->sample_count_at_seg_start;
 #endif
-	samp = gf_isom_sample_new();
-	if (!samp) return NULL;
+	if (static_sample) {
+		samp = static_sample;
+	} else {
+		samp = gf_isom_sample_new();
+		if (!samp) return NULL;
+	}
+
 	e = Media_GetSample(trak->Media, sampleNumber, &samp, sampleDescriptionIndex, GF_TRUE, data_offset);
 	if (e) {
 		gf_isom_set_last_error(the_file, e);
-		gf_isom_sample_del(&samp);
+		if (!static_sample)
+			gf_isom_sample_del(&samp);
 		return NULL;
 	}
 #ifndef	GPAC_DISABLE_ISOM_FRAGMENTS
@@ -1668,7 +1674,14 @@ GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32
 	return samp;
 }
 
-//same as gf_isom_get_sample but doesn't fetch media data
+GF_EXPORT
+GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset)
+{
+	return gf_isom_get_sample_info_ex(the_file, trackNumber, sampleNumber, sampleDescriptionIndex, data_offset, NULL);
+}
+
+
+//get sample dts
 GF_EXPORT
 u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber)
 {
@@ -1685,7 +1698,6 @@ u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumb
 	if (stbl_GetSampleDTS(trak->Media->information->sampleTable->TimeToSample, sampleNumber, &dts) != GF_OK) return 0;
 	return dts;
 }
-
 
 GF_EXPORT
 Bool gf_isom_is_self_contained(GF_ISOFile *the_file, u32 trackNumber, u32 sampleDescriptionIndex)
@@ -3372,13 +3384,13 @@ u32 gf_isom_guess_specification(GF_ISOFile *file)
 					case GPAC_OTI_AUDIO_MPEG1:
 						nb_mp3++;
 						break;
-					case GPAC_OTI_AUDIO_EVRC_VOICE:
+					case GPAC_OTI_AUDIO_EVRC:
 						nb_evrc++;
 						break;
-					case GPAC_OTI_AUDIO_SMV_VOICE:
+					case GPAC_OTI_AUDIO_SMV:
 						nb_smv++;
 						break;
-					case GPAC_OTI_AUDIO_13K_VOICE:
+					case GPAC_OTI_AUDIO_QCELP:
 						nb_qcelp++;
 						break;
 					default:

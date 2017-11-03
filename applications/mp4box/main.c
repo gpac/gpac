@@ -3469,7 +3469,7 @@ int mp4boxMain(int argc, char **argv)
 	Frag = force_ocr = remove_sys_tracks = agg_samples = remove_hint = keep_sys_tracks = remove_root_od = single_group = clean_groups = GF_FALSE;
 	conv_type = HintIt = needSave = print_sdp = print_info = regular_iod = dump_std = open_edit = dump_rtp = dump_cr = dump_srt = dump_ttxt = force_new = dump_timestamps = dump_m2ts = dump_cart = import_subtitle = force_cat = pack_wgt = dash_live = GF_FALSE;
 	no_fragments_defaults = GF_FALSE;
-	single_traf_per_moof = GF_FALSE,
+	single_traf_per_moof = GF_FALSE;
 	dump_isom = 0;
 	/*align cat is the new default behaviour for -cat*/
 	align_cat = GF_TRUE;

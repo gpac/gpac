@@ -419,7 +419,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter);
 
 GF_Err gf_filter_new_finalize(GF_Filter *filter, const char *args, GF_FilterArgType arg_type);
 
-GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter);
+GF_Filter *gf_fs_load_source_internal(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err, GF_Filter *filter, GF_Filter *dst_filter);
 
 void gf_filter_pid_inst_delete_task(GF_FSTask *task);
 

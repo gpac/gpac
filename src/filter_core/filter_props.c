@@ -90,10 +90,10 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 			p.value.frac.num = 0;
 			p.value.frac.den = 1;
 		} else {
-			if (sscanf(value, LLD"/"LLU, &p.value.frac.num, &p.value.frac.den) != 2) {
-				if (sscanf(value, LLD"-"LLU, &p.value.frac.num, &p.value.frac.den) != 2) {
+			if (sscanf(value, "%d/%u", &p.value.frac.num, &p.value.frac.den) != 2) {
+				if (sscanf(value, "%d-%u", &p.value.frac.num, &p.value.frac.den) != 2) {
 					p.value.frac.den=1;
-					if (sscanf(value, LLD, &p.value.frac.num) != 1) {
+					if (sscanf(value, "%d", &p.value.frac.num) != 1) {
 						GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Wrong argument value %s for fraction arg %s - using 0/1\n", value, name));
 						p.value.frac.num = 0;
 						p.value.frac.den = 1;
@@ -489,41 +489,67 @@ struct _gf_prop_typedef {
 
 	{ GF_PROP_PID_ID, "ID", "Stream ID of PID", GF_PROP_UINT},
 	{ GF_PROP_PID_ESID, "ESID", "MPEG-4 ESID of PID - mandatory if MPEG-4 Systems used", GF_PROP_UINT},
+	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_CLOCK_ID, "ClockID", "ID of clock reference PID for this PID", GF_PROP_UINT},
 	{ GF_PROP_PID_DEPENDENCY_ID, "DependencyID", "ID of layer dependended on for this PID", GF_PROP_UINT},
-
-	{ GF_PROP_PID_SERVICE_ID, "ServiceID", "ID of parent service of this PID", GF_PROP_UINT},
+	{ GF_PROP_PID_SCALABLE, "Scalable", "Stream is a scalable stream", GF_PROP_BOOL},
 	{ GF_PROP_PID_LANGUAGE, "Language", "Language name for this PID", GF_PROP_NAME},
-
-
+	{ GF_PROP_PID_SERVICE_NAME, "ServiceName", "Name of parent service of this PID", GF_PROP_STRING},
+	{ GF_PROP_PID_SERVICE_PROVIDER, "ServiceProvider", "Provider of parent service of this PID", GF_PROP_STRING},
 	{ GF_PROP_PID_STREAM_TYPE, "StreamType", "media stream type", GF_PROP_UINT},
-	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as register for MPEG-4", GF_PROP_UINT},
-	{ GF_PROP_PID_IN_IOD, "InInitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},
+	{ GF_PROP_PID_ORIG_STREAM_TYPE, "OrigStreamType", "Original stream type before encryption", GF_PROP_UINT},
+	{ GF_PROP_PID_OTI, "ObjectTypeIndication", "codec format as registered for MPEG-4", GF_PROP_UINT},
+	{ GF_PROP_PID_IN_IOD, "InitialObjectDescriptor", "indicates if PID is declared in the IOD for MPEG-4", GF_PROP_BOOL},
+	{ GF_PROP_PID_UNFRAMED, "Unframed", "indicates the media data is not framed (eg each PACKET is not a complete AU/frame)", GF_PROP_BOOL},
 	{ GF_PROP_PID_DURATION, "Duration", "indicates the PID duration", GF_PROP_FRACTION},
-
+	{ GF_PROP_PID_TIMESHIFT, "TimeshiftDepth", "indicates the depth of the timeshift buffer", GF_PROP_FRACTION},
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
+	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level of the stream", GF_PROP_UINT},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "data property containing the decoder config", GF_PROP_DATA},
 	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "audio sample rate", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
-	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp)", GF_PROP_UINT},
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
+	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp)", GF_PROP_UINT},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visualheight (video / text / graphics)", GF_PROP_UINT},
-	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
-	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
-	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
-
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_UINT},
 	{ GF_PROP_PID_STRIDE, "Stride", "image or Y/alpha plane stride", GF_PROP_UINT},
 	{ GF_PROP_PID_STRIDE_UV, "StrideUV", "U/V plane stride", GF_PROP_UINT},
-
+	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
+	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
+	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_BITRATE, "Bitrate", "PID bitrate in bps", GF_PROP_UINT},
-
+	{ GF_PROP_PID_CAN_DATAREF, "DataRef", "Inidcates this PID can use data ref", GF_PROP_BOOL},
+	{ GF_PROP_PID_URL, "URL", "URL of source", GF_PROP_STRING},
+	{ GF_PROP_PID_REMOTE_URL, "RemoteURL", "Remote URL of source", GF_PROP_STRING},
 	{ GF_PROP_PID_FILEPATH, "SourcePath", "Path of source file on file system", GF_PROP_STRING},
-
-	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Indicate sender NTP time if known", GF_PROP_LUINT},
-
+	{ GF_PROP_PID_MIME, "MIME Type", "MIME type of source", GF_PROP_STRING},
+	{ GF_PROP_PID_FILE_EXT, "Extension", "File extension of source", GF_PROP_STRING},
+	{ GF_PROP_PID_FILE_CACHED, "Cached", "indicates the file is completely cached", GF_PROP_BOOL},
+	{ GF_PROP_PID_DOWN_RATE, "DownloadRate", "dowload rate of resource in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_DOWN_SIZE, "DownloadSize", "dowload size of resource in bps", GF_PROP_UINT},
+	{ GF_PROP_PID_DOWN_BYTES, "DownBytes", "number of bytes downloaded", GF_PROP_UINT},
+	{ GF_PROP_PID_FILE_RANGE, "ByteRange", "byte range of resource", GF_PROP_FRACTION},
+	{ GF_PROP_SERVICE_WIDTH, "ServiceWidth", "display width of service", GF_PROP_UINT},
+	{ GF_PROP_SERVICE_HEIGHT, "ServiceHeight", "display height of service", GF_PROP_UINT},
+	{ GF_PROP_PID_UTC_TIME, "UTC", "UTC date and time of PID", GF_PROP_LUINT},
+	{ GF_PROP_PID_UTC_TIMESTAMP, "UTCTimestamp", "timestamp corresponding to UTC date and time of PID", GF_PROP_LUINT},
+	{ GF_PROP_PID_REVERSE_PLAYBACK, "ReversePlayback", "PID is capable of reverse playback", GF_PROP_BOOL},
+	{ GF_PROP_PID_PROTECTION_SCHEME_TYPE, "ProtectionScheme", "protection scheme type (4CC) used", GF_PROP_UINT},
+	{ GF_PROP_PID_PROTECTION_SCHEME_VERSION, "SchemeVersion", "protection scheme version used", GF_PROP_UINT},
+	{ GF_PROP_PID_PROTECTION_SCHEME_URI, "SchemeURI", "protection scheme URI", GF_PROP_STRING},
+	{ GF_PROP_PID_PROTECTION_KMS_URI, "KMS_URI", "URI for key management system", GF_PROP_STRING},
+	{ GF_PROP_PCK_SENDER_NTP, "SenderNTP", "Sender NTP time", GF_PROP_LUINT},
+	{ GF_PROP_PCK_ENCRYPTED, "Encrypted", "Indicates the stream is encrypted", GF_PROP_BOOL},
+	{ GF_PROP_PCK_ISMA_BSO, "ISMA_BSO", "Indicates ISMA BSO of the packet", GF_PROP_LUINT},
+	{ GF_PROP_PID_OMA_PREVIEW_RANGE, "OMAPreview", "Indicates OMA Preview range ", GF_PROP_LUINT},
+	{ GF_PROP_PID_CENC_PSSH, "CENC_PSSH", "Carries PSSH blob for CENC, formatted as (u32)NbSystems [(bin128)SystemID(u32)KID_count[(bin128)keyID](u32)priv_size(char*priv_size)priv_data]", GF_PROP_DATA},
+	{ GF_PROP_PCK_CENC_SAI, "CENC_SAI", "Carries CENC SAI for the sample, formated as (bin128)KeyID(char(IV_Size))IV(u16)NbSubSamples [(u16)ClearBytes(u32)CryptedBytes]", GF_PROP_DATA},
+	{ GF_PROP_PID_PCK_CENC_IV_SIZE, "IVSize", "IV size of the sample", GF_PROP_UINT},
+	{ GF_PROP_PID_PCK_CENC_IV_CONST, "ConstantIV", "Constant IV the PID", GF_PROP_DATA},
+	{ GF_PROP_PID_PCK_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
+	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

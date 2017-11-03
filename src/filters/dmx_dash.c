@@ -663,8 +663,8 @@ static GF_Err dashdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 			gf_filter_pid_set_info(opid, GF_PROP_PID_REVERSE_PLAYBACK, &PROP_BOOL(GF_TRUE));
 		}
 		if (ctx->max_res && gf_filter_pid_get_property(pid, GF_PROP_PID_WIDTH)) {
-			gf_filter_pid_set_info(opid, GF_PROP_PID_MAX_WIDTH, &PROP_UINT(ctx->width));
-			gf_filter_pid_set_info(opid, GF_PROP_PID_MAX_HEIGHT, &PROP_UINT(ctx->height));
+			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_WIDTH, &PROP_UINT(ctx->width));
+			gf_filter_pid_set_info(opid, GF_PROP_SERVICE_HEIGHT, &PROP_UINT(ctx->height));
 		}
 
 		dur = (1000*gf_dash_get_duration(ctx->dash) );

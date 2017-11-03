@@ -371,7 +371,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					}
 				}
 				/*QCELP audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && (oti==GPAC_OTI_AUDIO_13K_VOICE)) {
+				else if ((streamType==GF_STREAM_AUDIO) && (oti==GPAC_OTI_AUDIO_QCELP)) {
 					hintType = GF_RTP_PAYT_QCELP;
 					OfficialPayloadID = 12;
 					required_rate = 8000;
@@ -379,7 +379,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 					nb_ch = 1;
 				}
 				/*EVRC/SVM audio*/
-				else if ((streamType==GF_STREAM_AUDIO) && ((oti==GPAC_OTI_AUDIO_EVRC_VOICE) || (oti==GPAC_OTI_AUDIO_SMV_VOICE)) ) {
+				else if ((streamType==GF_STREAM_AUDIO) && ((oti==GPAC_OTI_AUDIO_EVRC) || (oti==GPAC_OTI_AUDIO_SMV)) ) {
 					hintType = GF_RTP_PAYT_EVRC_SMV;
 					required_rate = 8000;
 					streamType = GF_STREAM_AUDIO;
@@ -488,7 +488,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
-			oti = GPAC_OTI_AUDIO_13K_VOICE;
+			oti = GPAC_OTI_AUDIO_QCELP;
 			OfficialPayloadID = 12;
 			nb_ch = 1;
 			break;
@@ -497,7 +497,7 @@ GF_RTPHinter *gf_hinter_track_new(GF_ISOFile *file, u32 TrackNum,
 			required_rate = 8000;
 			hintType = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
-			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
+			oti = (TrackMediaSubType==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC : GPAC_OTI_AUDIO_SMV;
 			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_3GP_DIMS:

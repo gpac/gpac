@@ -78,7 +78,6 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 		}
 	}
 
-
 	pkt.stream_index = -1;
 	/*EOF*/
 	if (av_read_frame(ffd->ctx, &pkt) <0) {
@@ -312,6 +311,21 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 			break;
 		case CODEC_ID_H263:
 			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_VIDEO_H263) );
+			break;
+		case CODEC_ID_AMR_NB:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AMR) );
+			break;
+		case CODEC_ID_AMR_WB:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_AMR_WB) );
+			break;
+		case CODEC_ID_QCELP:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_QCELP) );
+			break;
+		case AV_CODEC_ID_EVRC:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_EVRC) );
+			break;
+		case AV_CODEC_ID_SMV:
+			gf_filter_pid_set_property(pid, GF_PROP_PID_OTI, &PROP_UINT(GPAC_OTI_AUDIO_SMV) );
 			break;
 		//todo - map all possible MPEG and common types to internal GPAC OTI
 		default:

@@ -48,7 +48,7 @@ typedef struct _dash_segment_input GF_DashSegInput;
 struct _dash_component
 {
 	u32 ID;/*audio/video/text/ ...*/
-	u32 media_type;/*audio/video/text/ ...*/
+	u32 stream_type;/*audio/video/text/ ...*/
 	char szCodec[RFC6381_CODEC_NAME_SIZE_MAX];
 	/*for video */
 	u32 width, height, fps_num, fps_denum, sar_num, sar_denum, max_sap;
@@ -2774,7 +2774,24 @@ static GF_Err dasher_isom_get_components_info(GF_DashSegInput *input, GF_DASHSeg
 		input->components[input->nb_components].duration = dur;
 
 		input->components[input->nb_components].ID = gf_isom_get_track_id(in, i+1);
-		input->components[input->nb_components].media_type = mtype;
+		switch (mtype) {
+		case GF_ISOM_MEDIA_VISUAL:
+			input->components[input->nb_components].stream_type = GF_STREAM_VISUAL;
+			break;
+		case GF_ISOM_MEDIA_AUDIO:
+			input->components[input->nb_components].stream_type = GF_STREAM_AUDIO;
+			break;
+		case GF_ISOM_MEDIA_SCENE:
+			input->components[input->nb_components].stream_type = GF_STREAM_SCENE;
+			break;
+		case GF_ISOM_MEDIA_OD:
+			input->components[input->nb_components].stream_type = GF_STREAM_OD;
+			break;
+		case GF_ISOM_MEDIA_TEXT:
+			input->components[input->nb_components].stream_type = GF_STREAM_TEXT;
+			break;
+		}
+
 		gf_isom_get_media_language(in, i+1, &input->components[input->nb_components].lang);
 
 		if (mtype == GF_ISOM_MEDIA_VISUAL) {
@@ -3438,18 +3455,22 @@ static GF_Err dasher_generic_classify_input(GF_DashSegInput *dash_inputs, u32 nb
 			probe_tk = &probe.tk_info[k];
 
 			/*make sure we use the same media type*/
-			if (src_tk->type != probe_tk->type) {
+			if (src_tk->stream_type != probe_tk->stream_type) {
 				valid_in_adaptation_set = GF_FALSE;
 				assign_to_group = GF_FALSE;
 				break;
 			}
 			/*make sure we use the same codec type*/
-			if (src_tk->media_type != probe_tk->media_type) {
+			if (src_tk->media_oti != probe_tk->media_oti) {
+				valid_in_adaptation_set = GF_FALSE;
+				break;
+			}
+			if (src_tk->media_4cc != probe_tk->media_4cc) {
 				valid_in_adaptation_set = GF_FALSE;
 				break;
 			}
 			/*make sure we use the same aspect ratio*/
-			if (src_tk->type==GF_ISOM_MEDIA_VISUAL) {
+			if (src_tk->stream_type==GF_STREAM_VISUAL) {
 				if (src_tk->video_info.width * probe_tk->video_info.height != src_tk->video_info.height * probe_tk->video_info.width) {
 					valid_in_adaptation_set = GF_FALSE;
 					break;
@@ -3499,7 +3520,7 @@ static GF_Err dasher_generic_get_components_info(GF_DashSegInput *input, GF_DASH
 	for (i=0; i<in.nb_tracks; i++) {
 		input->components[i].width = in.tk_info[i].video_info.width;
 		input->components[i].height = in.tk_info[i].video_info.height;
-		input->components[i].media_type = in.tk_info[i].type;
+		input->components[i].stream_type = in.tk_info[i].stream_type;
 		input->components[i].channels = in.tk_info[i].audio_info.nb_channels;
 		input->components[i].sample_rate = in.tk_info[i].audio_info.sample_rate;
 		input->components[i].ID = in.tk_info[i].track_num;
@@ -5237,7 +5258,7 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 		if (bitstream_switching_mode) {
 			for (i=0; i<first_rep->nb_components; i++) {
 				struct _dash_component *comp = &first_rep->components[i];
-				if (comp->media_type == GF_ISOM_MEDIA_AUDIO) {
+				if (comp->stream_type == GF_STREAM_AUDIO) {
 					fprintf(mpd, "   <AudioChannelConfiguration schemeIdUri=\"urn:mpeg:dash:23003:3:audio_channel_configuration:2011\" value=\"%d\"/>\n", comp->channels);
 				}
 			}
@@ -5266,18 +5287,18 @@ static GF_Err write_adaptation_header(FILE *mpd, GF_DashProfile profile, Bool us
 				struct _dash_component *comp = &first_rep->components[i];
 
 				fprintf(mpd, "   <ContentComponent id=\"%d\" ", comp->ID);
-				switch (comp->media_type ) {
-				case GF_ISOM_MEDIA_TEXT:
+				switch (comp->stream_type ) {
+				case GF_STREAM_TEXT:
 					fprintf(mpd, "contentType=\"text\" ");
 					break;
-				case GF_ISOM_MEDIA_VISUAL:
+				case GF_STREAM_VISUAL:
 					fprintf(mpd, "contentType=\"video\" ");
 					break;
-				case GF_ISOM_MEDIA_AUDIO:
+				case GF_STREAM_AUDIO:
 					fprintf(mpd, "contentType=\"audio\" ");
 					break;
-				case GF_ISOM_MEDIA_SCENE:
-				case GF_ISOM_MEDIA_DIMS:
+				case GF_STREAM_SCENE:
+//				case GF_ISOM_MEDIA_DIMS:
 				default:
 					fprintf(mpd, "contentType=\"application\" ");
 					break;
@@ -6404,7 +6425,7 @@ GF_Err gf_dasher_process(GF_DASHSegmenter *dasher, Double sub_duration)
 				if (!cdur)
 					cdur = dur;
 
-				if (dash_input->components[k].media_type == GF_ISOM_MEDIA_AUDIO) {
+				if (dash_input->components[k].stream_type == GF_STREAM_AUDIO) {
 					if (min_audio_duration == -1 || min_audio_duration > cdur) {
 						min_audio_duration = cdur;
 					}

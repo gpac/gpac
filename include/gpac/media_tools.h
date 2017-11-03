@@ -238,6 +238,8 @@ struct __track_audio_info
 	u32 sample_rate;
 	/*! number of channels*/
 	u32 nb_channels;
+	/*! samples per frame*/
+	u32 samples_per_frame;
 };
 
 /*!
@@ -247,10 +249,12 @@ struct __track_import_info
 {
 	/*! ID of the track (PID, TrackID, etc ...)*/
 	u32 track_num;
-	/*! track type (one of GF_ISOM_MEDIA_XXXX)*/
-	u32 type;
-	/*! media type expressed as 4CC ('MPG1', 'MPG2', ISO 4CC, AVI 4CC)*/
-	u32 media_type;
+	/*! stream type (one of GF_STREAM_XXXX)*/
+	u32 stream_type;
+	/*! object type ( one of GPAC_OTI_*)*/
+	u32 media_oti;
+	/*! object type expressed as 4CC ('MPG1', 'MPG2', ISO 4CC, AVI 4CC)*/
+	u32 media_4cc;
 	/*! import flags supported by the importer*/
 	u32 flags;
 	/*! video format info*/

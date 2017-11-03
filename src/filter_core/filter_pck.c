@@ -258,6 +258,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 {
 	u32 size=0, pos=0;
 	u64 byte_offset = 0;
+	u64 first_offset = 0;
 	char *data;
 	GF_FilterPacket *final;
 	u32 i, count;
@@ -286,11 +287,12 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		assert(!pck->pck->info.data_block_start || !pck->pck->info.data_block_end);
 		size += pck->pck->data_length;
 		if (!i) {
-			byte_offset = pck->pck->info.byte_offset + pck->pck->data_length;
+			first_offset = byte_offset = pck->pck->info.byte_offset;
+			if (byte_offset != GF_FILTER_NO_BO) byte_offset += pck->pck->data_length;
 		}else if (byte_offset == pck->pck->info.byte_offset) {
 			byte_offset += pck->pck->data_length;
 		} else {
-			byte_offset = -1;
+			byte_offset = GF_FILTER_NO_BO;
 		}
 	}
 
@@ -303,8 +305,26 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		pck = pcki->pck;
 		memcpy(data+pos, pcki->pck->data, pcki->pck->data_length);
 		pos += pcki->pck->data_length;
+
 		gf_filter_pck_merge_properties(pcki->pck, final);
 		final->info.data_block_start = final->info.data_block_end = GF_TRUE;
+
+		if (pcki->pck->info.duration > final->info.duration)
+			final->info.duration = pcki->pck->info.duration;
+		if (pcki->pck->info.dts > final->info.dts)
+			final->info.dts = pcki->pck->info.dts;
+		if (pcki->pck->info.cts > final->info.cts)
+			final->info.cts = pcki->pck->info.cts;
+		if (pcki->pck->info.corrupted > final->info.corrupted)
+			final->info.corrupted = pcki->pck->info.corrupted;
+		if (pcki->pck->info.carousel_version_number > final->info.carousel_version_number)
+			final->info.carousel_version_number = pcki->pck->info.carousel_version_number;
+		if (pcki->pck->info.interlaced > final->info.interlaced)
+			final->info.interlaced = pcki->pck->info.interlaced;
+		if (pcki->pck->info.sap_type > final->info.sap_type)
+			final->info.sap_type = pcki->pck->info.sap_type;
+		if (pcki->pck->info.seek_flag > final->info.seek_flag)
+			final->info.seek_flag = pcki->pck->info.seek_flag;
 
 		if (pcki->pck->pid_props) {
 			final->pid_props = pcki->pck->pid_props;
@@ -332,6 +352,7 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 			}
 			//not continous set of bytes reaggregated
 			if (byte_offset == GF_FILTER_NO_BO) final->info.byte_offset = GF_FILTER_NO_BO;
+			else final->info.byte_offset = first_offset;
 
 			gf_fq_add(dst->packets, pcki);
 
@@ -453,6 +474,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 				pid->last_pck_cts = pck->info.cts;
 			} else {
 				duration = pck->info.duration;
+				pid->last_pck_dts = pck->info.dts;
+				pid->last_pck_cts = pck->info.cts;
 			}
 		} else {
 			duration = pck->info.duration;

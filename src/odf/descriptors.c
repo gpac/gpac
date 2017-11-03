@@ -1217,9 +1217,9 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 		break;
 		case GPAC_OTI_MEDIA_FFMPEG:
 			return "GPAC FFMPEG Private Audio";
-		case GPAC_OTI_AUDIO_EVRC_VOICE:
+		case GPAC_OTI_AUDIO_EVRC:
 			return "EVRC Voice";
-		case GPAC_OTI_AUDIO_SMV_VOICE:
+		case GPAC_OTI_AUDIO_SMV:
 			return "SMV Voice";
 		case GPAC_OTI_AUDIO_AC3:
 			return "AC-3 audio";

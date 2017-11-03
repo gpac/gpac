@@ -354,7 +354,7 @@ void gf_filter_remove(GF_Filter *filter, GF_Filter *until_filter);
 GF_FilterSession *gf_filter_get_session(GF_Filter *filter);
 void gf_filter_session_abort(GF_FilterSession *fsess, GF_Err error_code);
 
-GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *parent_url, GF_Err *err);
+GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const char *args, const char *parent_url, GF_Err *err);
 
 GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
@@ -390,6 +390,8 @@ void *gf_filter_pid_get_udta(GF_FilterPid *pid);
 void gf_filter_pid_set_name(GF_FilterPid *pid, const char *name);
 const char *gf_filter_pid_get_name(GF_FilterPid *pid);
 const char *gf_filter_pid_get_filter_name(GF_FilterPid *pid);
+
+const char *gf_filter_pid_get_args(GF_FilterPid *pid);
 
 Bool gf_filter_pid_is_filter_in_parents(GF_FilterPid *pid, GF_Filter *filter);
 
@@ -538,16 +540,15 @@ enum
 	//(uint) PID ID
 	GF_PROP_PID_ID = GF_4CC('P','I','D','I'),
 	GF_PROP_PID_ESID = GF_4CC('E','S','I','D'),
-
 	//(uint) ID of originating service
 	GF_PROP_PID_SERVICE_ID = GF_4CC('P','S','I','D'),
 	GF_PROP_PID_CLOCK_ID = GF_4CC('C','K','I','D'),
 	GF_PROP_PID_DEPENDENCY_ID = GF_4CC('D','P','I','D'),
+	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
+	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
 	GF_PROP_PID_LANGUAGE = GF_4CC('P','L','A','N'),
-
 	GF_PROP_PID_SERVICE_NAME = GF_4CC('S','N','A','M'),
 	GF_PROP_PID_SERVICE_PROVIDER = GF_4CC('S','P','R','O'),
-
 	//(uint) media stream type, matching gpac stream types
 	GF_PROP_PID_STREAM_TYPE = GF_4CC('P','M','S','T'),
 	//(uint) media stream type before encryption
@@ -556,18 +557,16 @@ enum
 	GF_PROP_PID_OTI = GF_4CC('P','O','T','I'),
 	//(bool) indicates if PID is present in IOD
 	GF_PROP_PID_IN_IOD = GF_4CC('P','I','O','D'),
-
 	//(bool) indicates the PID is not framed (framed= one full packet <=> one compressed framed). Only used for compressed media, raw media shall only be framed
 	GF_PROP_PID_UNFRAMED = GF_4CC('P','F','R','M'),
-
 	//(rational) PID duration
 	GF_PROP_PID_DURATION = GF_4CC('P','D','U','R'),
 	//(rational) PID timeshift depth
 	GF_PROP_PID_TIMESHIFT = GF_4CC('P','T','S','H'),
-
-
 	//(uint) timescale of pid
 	GF_PROP_PID_TIMESCALE = GF_4CC('T','I','M','S'),
+	//(uint) profile and level
+	GF_PROP_PID_PROFILE_LEVEL = GF_4CC('P','R','P','L'),
 	//(data) decoder config
 	GF_PROP_PID_DECODER_CONFIG = GF_4CC('D','C','F','G'),
 	//(uint) sample rate
@@ -590,14 +589,6 @@ enum
 	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	//(uint) U/V plane stride
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
-	//(string) remote URL where stream data is available - NOT YET SUPPORTED
-	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
-	//(bool) indicates single PID has scalable layers not signaled - TODO: change that to the actual number of layers
-	GF_PROP_PID_SCALABLE = GF_4CC('S','C','A','L'),
-
-	//(uint) PCR/OCR timescale of pid
-	GF_PROP_PID_OCR_TIMESCALE = GF_4CC('O','C','T','S'),
-
 	//(rational) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
 	//(fraction) sample (ie pixel) aspect ratio
@@ -606,9 +597,12 @@ enum
 	GF_PROP_PID_PAR = GF_4CC('V','P','A','R'),
 	//(uint) average bitrate
 	GF_PROP_PID_BITRATE = GF_4CC('R','A','T','E'),
-
+	//(bool) data ref is possible
+	GF_PROP_PID_CAN_DATAREF = GF_4CC('D','R','E','F'),
 	//(string) URL of source file
 	GF_PROP_PID_URL = GF_4CC('F','U','R','L'),
+	//(string) remote URL where stream data is available - NOT YET SUPPORTED
+	GF_PROP_PID_REMOTE_URL = GF_4CC('R','U','R','L'),
 	//(string) URL of source file on the local file system, if any
 	GF_PROP_PID_FILEPATH = GF_4CC('F','S','R','C'),
 	//(string) mime type of source file if known
@@ -639,8 +633,6 @@ enum
 
 	//(bool) reverse playback capability of the pid
 	GF_PROP_PID_REVERSE_PLAYBACK = GF_4CC('R','P','B','C'),
-	GF_PROP_PID_MAX_WIDTH = GF_4CC('M','W','I','D'),
-	GF_PROP_PID_MAX_HEIGHT = GF_4CC('M','H','E','I'),
 
 
 	GF_PROP_PID_PROTECTION_SCHEME_TYPE = GF_4CC('S','C','H','T'),
@@ -666,6 +658,9 @@ enum
 	GF_PROP_PID_PCK_CENC_IV_CONST = GF_4CC('C','B','I','V'),
 	//(fraction) CENC pattern, skip as num crypt as den
 	GF_PROP_PID_PCK_CENC_PATTERN = GF_4CC('C','P','T','R'),
+	//(uint)
+	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
+
 
 };
 

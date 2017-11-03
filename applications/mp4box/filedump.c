@@ -2382,13 +2382,13 @@ void DumpTrackInfo(GF_ISOFile *file, u32 trackID, Bool full_dump)
 					fprintf(stderr, "Ogg/%s audio / GPAC Mux - Sample Rate %d - %d channel(s)\n", szName, sr, nb_ch);
 				}
 				break;
-				case GPAC_OTI_AUDIO_EVRC_VOICE:
+				case GPAC_OTI_AUDIO_EVRC:
 					fprintf(stderr, "EVRC Audio - Sample Rate 8000 - 1 channel\n");
 					break;
-				case GPAC_OTI_AUDIO_SMV_VOICE:
+				case GPAC_OTI_AUDIO_SMV:
 					fprintf(stderr, "SMV Audio - Sample Rate 8000 - 1 channel\n");
 					break;
-				case GPAC_OTI_AUDIO_13K_VOICE:
+				case GPAC_OTI_AUDIO_QCELP:
 					fprintf(stderr, "QCELP Audio - Sample Rate 8000 - 1 channel\n");
 					break;
 				/*packetVideo hack for EVRC...*/

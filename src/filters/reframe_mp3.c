@@ -151,6 +151,7 @@ static void mp3_dmx_check_dur(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
 static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
@@ -187,7 +188,6 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(gf_mp3_object_type_indication(ctx->hdr) ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(gf_mp3_window_size(ctx->hdr) ) );
-
 }
 
 static Bool mp3_dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -310,7 +310,9 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
-
+			if (byte_offset != GF_FILTER_NO_BO) {
+				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
+			}
 			gf_filter_pck_send(dst_pck);
 		}
 
@@ -343,6 +345,33 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 		if (cts != GF_FILTER_NO_TS)
 			ctx->cts = cts;
 	}
+
+#if FILTER_FIXME
+	//check MP3 ID3 tags
+	{
+		unsigned char id3v2[10];
+		u32 pos = (u32) fread(id3v2, sizeof(unsigned char), 10, in);
+		if ((s32) pos < 0) return gf_import_message(import, GF_IO_ERR, "IO error reading file %s", import->in_name);
+
+		if (pos == 10) {
+			/* Did we read an ID3v2 ? */
+			if (id3v2[0] == 'I' && id3v2[1] == 'D' && id3v2[2] == '3') {
+				u32 sz = ((id3v2[9] & 0x7f) + ((id3v2[8] & 0x7f) << 7) + ((id3v2[7] & 0x7f) << 14) + ((id3v2[6] & 0x7f) << 21));
+
+				while (sz) {
+					u32 r = (u32) fread(id3v2, sizeof(unsigned char), 1, in);
+					if (r != 1) {
+						GF_LOG(GF_LOG_WARNING, GF_LOG_PARSER, ("[MP3 import] failed to read ID3\n"));
+					}
+					sz--;
+				}
+				id3_end = (u32) gf_ftell(in);
+			}
+		}
+		fseek(in, id3_end, SEEK_SET);
+	}
+#endif
+
 
 	while (remain) {
 		u8 *sync;
@@ -411,6 +440,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, nb_samp);
+			gf_filter_pck_set_sap(dst_pck, 1);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);
 
 			if (byte_offset != GF_FILTER_NO_BO) {
