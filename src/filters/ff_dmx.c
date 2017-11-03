@@ -270,6 +270,9 @@ static GF_Err ffdmx_initialize(GF_Filter *filter)
 
 		gf_filter_pid_set_property(pid, GF_PROP_PID_TIMESCALE, &PROP_UINT(stream->time_base.den) );
 
+		if (stream->duration)
+			gf_filter_pid_set_property(pid, GF_PROP_PID_DURATION, &PROP_FRAC_INT(stream->duration, stream->time_base.den) );
+
 		if (stream->sample_aspect_ratio.num && stream->sample_aspect_ratio.den)
 			gf_filter_pid_set_property(pid, GF_PROP_PID_SAR, &PROP_FRAC_INT( stream->sample_aspect_ratio.num, stream->sample_aspect_ratio.den ) );
 

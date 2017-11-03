@@ -631,7 +631,11 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 				gf_set_progress("Import", data_offset, p->value.uint);
 			} else {
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
-				gf_set_progress("Import", tkw->sample.DTS, p->value.frac.num);
+				if (p) {
+					gf_set_progress("Import", tkw->sample.DTS, p->value.frac.num);
+				} else {
+					gf_set_progress("Import", 0, 1);
+				}
 
 			}
 		}
