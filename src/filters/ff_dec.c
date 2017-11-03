@@ -69,6 +69,7 @@ typedef struct _gf_ffdec_ctx
 	//audio state
 	u32 channels, sample_rate, sample_fmt, channel_layout;
 	u32 frame_start;
+	u32 nb_samples_already_in_frame;
 
 	//video state
 	u32 width, height, pixel_fmt, stride, stride_uv;
@@ -487,8 +488,21 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Raw Audio format %d not supported\n", frame->format ));
 	}
 
-	if (frame->pkt_pts != AV_NOPTS_VALUE)
-		gf_filter_pck_set_cts(dst_pck, frame->pkt_pts);
+	if (frame->pkt_pts != AV_NOPTS_VALUE) {
+		u64 pts = frame->pkt_pts;
+		u32 timescale = gf_filter_pck_get_timescale(pck);
+		if (ffdec->nb_samples_already_in_frame) {
+			if (ffdec->sample_rate == timescale) {
+				pts += ffdec->nb_samples_already_in_frame;
+			} else {
+				u64 diff = ffdec->nb_samples_already_in_frame;
+				diff *= timescale;
+				diff /= ffdec->sample_rate;
+			}
+		}
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] out PTS "LLU"\n", pts));
+		gf_filter_pck_set_cts(dst_pck, pts);
+	}
 
 	//copy over SAP and duration indication
 	if (frame->pkt_dts) {
@@ -499,19 +513,22 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	gf_filter_pck_send(dst_pck);
 
-	frame->nb_samples = 0;
-
 	ffdec->frame_start += len;
 	//done with this input packet
 	if (in_size <= ffdec->frame_start) {
+		frame->nb_samples = 0;
 		ffdec->frame_start = 0;
+		ffdec->nb_samples_already_in_frame = 0;
 		gf_filter_pid_drop_packet(ffdec->in_pid);
 		return GF_OK;
 	}
 	//still some data to decode in packet, don't drop it
 	//todo: check if frame->pkt_pts or frame->pts is updated by ffmpeg, otherwise do it ourselves !
-	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested !\n" ));
-	return GF_OK;
+	GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[FFDec] Code not yet tested  - frame PTS was "LLU" - nb samples dec %d\n", frame->pkt_pts, frame->nb_samples));
+	ffdec->nb_samples_already_in_frame += frame->nb_samples;
+	frame->nb_samples = 0;
+
+	return ffdec_process_audio(filter, ffdec);
 }
 
 //#defined FFDEC_SUB_SUPPORT
@@ -597,6 +614,7 @@ static u32 ff_gpac_oti_to_codec_id(u32 oti)
 	case GPAC_OTI_AUDIO_MPEG2_PART3: return CODEC_ID_MP3;
 	case GPAC_OTI_AUDIO_AAC_MPEG4: return CODEC_ID_AAC;
 	case GPAC_OTI_AUDIO_AC3: return CODEC_ID_AC3;
+	case GPAC_OTI_AUDIO_EAC3: return CODEC_ID_EAC3;
 	case GPAC_OTI_AUDIO_AMR: return CODEC_ID_AMR_NB;
 	case GPAC_OTI_AUDIO_AMR_WB: return CODEC_ID_AMR_WB;
 	case GPAC_OTI_AUDIO_QCELP: return CODEC_ID_QCELP;
@@ -840,8 +858,6 @@ static const GF_FilterCapability FFDecodeInputs[] =
 {
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_VISUAL),
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_ENCRYPTED),
-	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
 	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_RAW_MEDIA_STREAM),
 	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_VIDEO_SVC),

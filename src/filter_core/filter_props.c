@@ -550,6 +550,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PCK_CENC_IV_CONST, "ConstantIV", "Constant IV the PID", GF_PROP_DATA},
 	{ GF_PROP_PID_PCK_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
+	{ GF_PROP_PID_AC3_CFG, "AC3Config", "24 bits of AC3 config as 3GPP", GF_PROP_DATA},
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

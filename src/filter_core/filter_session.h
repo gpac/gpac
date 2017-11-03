@@ -511,10 +511,10 @@ struct __gf_filter_pid
 	volatile u32 nb_buffer_unit;
 
 	//times in us
-	u32 max_buffer_time;
+	u64 max_buffer_time;
 	u32 user_max_buffer_time, user_max_playout_time;
 	//max buffered duration of packets in each of the destination pids - concurrent inc/dec
-	u32 buffer_duration;
+	u64 buffer_duration;
 
 	volatile u32 would_block; // concurrent set
 	volatile u32 nb_decoder_inputs;

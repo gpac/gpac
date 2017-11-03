@@ -214,7 +214,7 @@ static GF_Err inspect_process(GF_Filter *filter)
 		for (i=0; i<count; i++) {
 			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
 			GF_FilterEvent evt;
-			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pctx->src_pid);
+			GF_FEVT_INIT(evt, GF_FEVT_STOP, pctx->src_pid);
 			gf_filter_pid_send_event(pctx->src_pid, &evt);
 		}
 		ctx->probe_done = GF_TRUE;

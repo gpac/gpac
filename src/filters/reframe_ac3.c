@@ -62,6 +62,9 @@ typedef struct
 	Bool is_file, file_loaded;
 	Bool initial_play_done;
 
+	Bool is_eac3;
+	Bool (*ac3_parser_bs)(GF_BitStream*, GF_AC3Header*, Bool);
+
 	AC3Idx *indexes;
 	u32 index_alloc_size, index_size;
 } GF_AC3DmxCtx;
@@ -85,6 +88,23 @@ GF_Err ac3dmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remove
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
 	if (p) ctx->timescale = p->value.uint;
+
+	ctx->ac3_parser_bs = gf_ac3_parser_bs;
+
+	p = gf_filter_pid_get_property(pid, GF_PROP_PID_OTI);
+	if (p && p->value.uint==GPAC_OTI_AUDIO_EAC3) ctx->is_eac3 = GF_TRUE;
+	else {
+		p = gf_filter_pid_get_property(pid, GF_PROP_PID_MIME);
+		if (p && p->value.string && strstr(p->value.string, "eac3")) ctx->is_eac3 = GF_TRUE;
+		else {
+			p = gf_filter_pid_get_property(pid, GF_PROP_PID_FILE_EXT);
+			if (p && p->value.string && strstr(p->value.string, "eac3")) ctx->is_eac3 = GF_TRUE;
+		}
+	}
+	if (ctx->is_eac3) {
+		ctx->ac3_parser_bs = gf_eac3_parser_bs;
+	}
+
 	return GF_OK;
 }
 
@@ -112,7 +132,7 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 	bs = gf_bs_from_file(stream, GF_BITSTREAM_READ);
 	duration = 0;
-	while (	gf_ac3_parser_bs(bs, &hdr, GF_FALSE) ) {
+	while (	ctx->ac3_parser_bs(bs, &hdr, GF_FALSE) ) {
 		if ((sr>=0) && (sr != hdr.sample_rate)) {
 			duration *= hdr.sample_rate;
 			duration /= sr;
@@ -153,6 +173,9 @@ static void ac3dmx_check_dur(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 
 static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 {
+	GF_BitStream *bs;
+	char *data;
+	u32 size;
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
@@ -176,7 +199,24 @@ static void ac3dmx_check_pid(GF_Filter *filter, GF_AC3DmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->timescale ? ctx->timescale : ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLE_RATE, & PROP_UINT(ctx->sample_rate));
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(ctx->nb_ch) );
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+
+	if (!ctx->is_eac3) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_AC3) );
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_AUDIO_EAC3) );
+	}
+	bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_bs_write_int(bs, ctx->hdr.fscod, 2);
+	gf_bs_write_int(bs, ctx->hdr.bsid, 5);
+	gf_bs_write_int(bs, ctx->hdr.bsmod, 3);
+	gf_bs_write_int(bs, ctx->hdr.acmod, 3);
+	gf_bs_write_int(bs, ctx->hdr.lfon, 1);
+	gf_bs_write_int(bs, ctx->hdr.brcode, 5);
+	gf_bs_write_int(bs, 0, 5);
+
+	gf_bs_get_content(bs, &data, &size);
+	gf_bs_del(bs);
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AC3_CFG, & PROP_DATA_NO_COPY(data, size) );
 }
 
 static Bool ac3dmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -262,6 +302,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 	//always reparse duration
 	if (!ctx->duration.num)
 		ac3dmx_check_dur(filter, ctx);
+
+	if (!ctx->is_playing && ctx->opid) return GF_OK;
 
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
@@ -351,7 +393,8 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 				gf_bs_reassign_buffer(ctx->bs, start, remain);
 			}
 		}
-		res = gf_ac3_parser_bs(ctx->bs, &ctx->hdr, GF_FALSE);
+
+		res = ctx->ac3_parser_bs(ctx->bs, &ctx->hdr, GF_TRUE);
 		if (!res) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] Could not find sync word in packet, droping\n"));
 			if (alread_sync) {
@@ -365,6 +408,11 @@ GF_Err ac3dmx_process(GF_Filter *filter)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[AC3Dmx] %d bytes unrecovered before sync word\n", sync_pos));
 		}
 		sync = start + sync_pos;
+
+		if (ctx->is_eac3) {
+			ctx->hdr.framesize = 2*(1+ctx->hdr.framesize);
+		}
+
 
 		//ready to send packet
 		if (ctx->hdr.framesize < remain) {
@@ -456,14 +504,18 @@ static void ac3dmx_finalize(GF_Filter *filter)
 	if (ctx->indexes) gf_free(ctx->indexes);
 }
 
+//TODO - eac3 needs more testing
 static const GF_FilterCapability AC3DmxInputs[] =
 {
+//	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3|audio/x-eac3|audio/eac3"),
 	CAP_INC_STRING(GF_PROP_PID_MIME, "audio/x-ac3|audio/ac3"),
 	{},
+//	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3|eac3"),
 	CAP_INC_STRING(GF_PROP_PID_FILE_EXT, "ac3"),
 	{},
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AC3),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EAC3),
 	CAP_INC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE),
 };
 

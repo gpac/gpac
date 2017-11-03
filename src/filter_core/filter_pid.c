@@ -1863,7 +1863,7 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 			return;
 		}
 		if (evt->base.on_pid->nb_decoder_inputs) {
-			evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
+			evt->base.on_pid->max_buffer_time = evt->base.on_pid->user_max_buffer_time = evt->buffer_req.max_buffer_us;
 			evt->base.on_pid->user_max_playout_time = evt->buffer_req.max_playout_us;
 			//update blocking state
 			if (evt->base.on_pid->would_block)

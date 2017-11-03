@@ -69,6 +69,7 @@ const GF_FilterRegister *dashdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *decenc_register(GF_FilterSession *session);
 const GF_FilterRegister *mp4_mux_register(GF_FilterSession *session);
 const GF_FilterRegister *qcpdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *h263dmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -109,8 +110,9 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, decenc_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, mp4_mux_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, qcpdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, h263dmx_register(a_sess) );
 
-//	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
 }
 
