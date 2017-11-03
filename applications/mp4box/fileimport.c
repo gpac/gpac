@@ -145,29 +145,31 @@ void convert_file_info(char *inName, u32 trackID)
 		if (!trackID) fprintf(stderr, "\tTrack %d type: ", import.tk_info[i].track_num);
 		else fprintf(stderr, "Track type: ");
 
-		switch (import.tk_info[i].type) {
-		case GF_ISOM_MEDIA_VISUAL:
-			fprintf(stderr, "Video (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		switch (import.tk_info[i].stream_type) {
+		case GF_STREAM_VISUAL:
+			fprintf(stderr, "Video ");
 			break;
-		case GF_ISOM_MEDIA_AUDIO:
-			fprintf(stderr, "Audio (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		case GF_STREAM_AUDIO:
+			fprintf(stderr, "Audio ");
 			break;
-		case GF_ISOM_MEDIA_TEXT:
-			fprintf(stderr, "Text (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		case GF_STREAM_TEXT:
+			fprintf(stderr, "Text ");
 			break;
-		case GF_ISOM_MEDIA_SCENE:
-			fprintf(stderr, "Scene (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		case GF_STREAM_SCENE:
+			fprintf(stderr, "Scene ");
 			break;
-		case GF_ISOM_MEDIA_OD:
-			fprintf(stderr, "OD (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		case GF_STREAM_OD:
+			fprintf(stderr, "OD ");
 			break;
-		case GF_ISOM_MEDIA_META:
-			fprintf(stderr, "Metadata (%s)", gf_4cc_to_str(import.tk_info[i].media_type));
+		case GF_STREAM_METADATA:
+			fprintf(stderr, "Metadata ");
 			break;
 		default:
-			fprintf(stderr, "Other (4CC: %s)", gf_4cc_to_str(import.tk_info[i].type));
+			fprintf(stderr, "Other (%s) ", gf_4cc_to_str(import.tk_info[i].stream_type));
 			break;
 		}
+		if (import.tk_info[i].media_oti) fprintf(stderr, "OTI %d ", import.tk_info[i].media_oti);
+		if (import.tk_info[i].media_4cc) fprintf(stderr, "4cc %s ", gf_4cc_to_str(import.tk_info[i].media_4cc));
 
 		if (import.tk_info[i].lang) fprintf(stderr, " - lang %s", gf_4cc_to_str(import.tk_info[i].lang));
 
@@ -186,21 +188,18 @@ void convert_file_info(char *inName, u32 trackID)
 			}
 		}
 		fprintf(stderr, "\n");
-		if (!trackID) continue;
 
-		if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)
+		if ((import.tk_info[i].stream_type==GF_STREAM_VISUAL)
 		        && import.tk_info[i].video_info.width
 		        && import.tk_info[i].video_info.height
 		   ) {
-			fprintf(stderr, "Source: %s %dx%d", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
+			fprintf(stderr, "\tSize %dx%d", import.tk_info[i].video_info.width, import.tk_info[i].video_info.height);
 			if (import.tk_info[i].video_info.FPS) fprintf(stderr, " @ %g FPS", import.tk_info[i].video_info.FPS);
 			if (import.tk_info[i].video_info.par) fprintf(stderr, " PAR: %d:%d", import.tk_info[i].video_info.par >> 16, import.tk_info[i].video_info.par & 0xFFFF);
 			fprintf(stderr, "\n");
 		}
-		else if ((import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO) && import.tk_info[i].audio_info.sample_rate) {
-			fprintf(stderr, "Source: %s - SampleRate %d - %d channels\n", gf_4cc_to_str(import.tk_info[i].media_type), import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
-		} else {
-			fprintf(stderr, "Source: %s\n", gf_4cc_to_str(import.tk_info[i].media_type));
+		else if ((import.tk_info[i].stream_type==GF_STREAM_AUDIO) && import.tk_info[i].audio_info.sample_rate) {
+			fprintf(stderr, "\tSampleRate %d - %d channels\n", import.tk_info[i].audio_info.sample_rate, import.tk_info[i].audio_info.nb_channels);
 		}
 
 
@@ -756,11 +755,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				track_id = 0;
 				e = gf_media_import(&import);
 			}
-			else if (do_audio && (import.tk_info[i].type==GF_ISOM_MEDIA_AUDIO)) {
+			else if (do_audio && (import.tk_info[i].stream_type==GF_STREAM_VISUAL)) {
 				do_audio = 0;
 				e = gf_media_import(&import);
 			}
-			else if (do_video && (import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL)) {
+			else if (do_video && (import.tk_info[i].stream_type==GF_STREAM_AUDIO)) {
 				do_video = 0;
 				e = gf_media_import(&import);
 			}
@@ -789,7 +788,7 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 					}
 				}
 			}
-			if ((import.tk_info[i].type==GF_ISOM_MEDIA_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
+			if ((import.tk_info[i].stream_type==GF_STREAM_VISUAL) && (par_n>=-1) && (par_d>=-1)) {
 				e = gf_media_change_par(import.dest, track, par_n, par_d);
 			}
 			if (rap_only) {

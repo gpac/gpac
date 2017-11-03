@@ -80,7 +80,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	/*official mapping to MPEG-4*/
 	switch (entry->type) {
 	case GF_ISOM_SUBTYPE_3GP_EVRC:
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EVRC_VOICE;
+		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_EVRC;
 		return GF_OK;
 	case GF_ISOM_SUBTYPE_3GP_QCELP:
 	{
@@ -88,7 +88,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 		GF_SttsEntry *ent;
 		/*only map CBR*/
 		sample_size = stbl->SampleSize->sampleSize;
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_13K_VOICE;
+		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_QCELP;
 		bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 		gf_bs_write_data(bs, "QLCMfmt ", 8);
 		gf_bs_write_u32_le(bs, 150);/*fmt chunk size*/
@@ -127,7 +127,7 @@ static GF_Err gf_isom_get_3gpp_audio_esd(GF_SampleTableBox *stbl, GF_GenericAudi
 	}
 	return GF_OK;
 	case GF_ISOM_SUBTYPE_3GP_SMV:
-		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_SMV_VOICE;
+		(*out_esd)->decoderConfig->objectTypeIndication = GPAC_OTI_AUDIO_SMV;
 		return GF_OK;
 	default:
 		break;

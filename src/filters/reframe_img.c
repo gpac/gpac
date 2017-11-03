@@ -111,6 +111,8 @@ GF_Err img_process(GF_Filter *filter)
 		u8 anOTI;
 		char *dsi=NULL;
 #endif
+		const char *ext, *mime;
+		const GF_PropertyValue *prop;
 		u32 oti = 0;
 
 		if (!oti) {
@@ -128,12 +130,12 @@ GF_Err img_process(GF_Filter *filter)
 #endif
 		}
 
+		prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
+		ext = (prop && prop->value.string) ? prop->value.string : "";
+		prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MIME);
+		mime = (prop && prop->value.string) ? prop->value.string : "";
+
 		if (!oti) {
-			const char *ext, *mime;
-			const GF_PropertyValue *prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_EXT);
-			ext = (prop && prop->value.string) ? prop->value.string : "";
-			prop = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_MIME);
-			mime = (prop && prop->value.string) ? prop->value.string : "";
 			if (!stricmp(ext, "jpeg") || !stricmp(ext, "jpg") || !strcmp(mime, "image/jpg")) {
 				oti = GPAC_OTI_IMAGE_JPEG;
 			} else if (!stricmp(ext, "png") || !strcmp(mime, "image/png")) {
@@ -165,6 +167,8 @@ GF_Err img_process(GF_Filter *filter)
 		if (h) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 		if (dsi) gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dsi, dsi_size));
 
+		if (ext || mime)
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 	}
 	if (! ctx->is_bmp) {
 		e = gf_filter_pck_forward(pck, ctx->opid);
@@ -200,6 +204,7 @@ GF_Err img_process(GF_Filter *filter)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT(h));
 
 	dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &output);
+	gf_filter_pck_merge_properties(pck, dst_pck);
 
 	in_stride = out_stride;
 	while (in_stride % 4) in_stride++;

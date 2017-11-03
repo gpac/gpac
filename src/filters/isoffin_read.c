@@ -850,7 +850,7 @@ static const GF_FilterCapability ISOFFInOutputs[] =
 };
 
 GF_FilterRegister ISOFFInRegister = {
-	.name = "mp4in",
+	.name = "mp4dmx",
 	.description = "ISOFF Demuxer",
 	.private_size = sizeof(ISOMReader),
 	.args = ISOFFInArgs,

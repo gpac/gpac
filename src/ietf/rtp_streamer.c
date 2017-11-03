@@ -237,7 +237,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 		/*QCELP audio*/
-		case GPAC_OTI_AUDIO_13K_VOICE:
+		case GPAC_OTI_AUDIO_QCELP:
 			rtp_type = GF_RTP_PAYT_QCELP;
 			OfficialPayloadType = 12;
 			required_rate = 8000;
@@ -245,8 +245,8 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			break;
 
 		/*EVRC/SVM audio*/
-		case GPAC_OTI_AUDIO_EVRC_VOICE:
-		case GPAC_OTI_AUDIO_SMV_VOICE:
+		case GPAC_OTI_AUDIO_EVRC:
+		case GPAC_OTI_AUDIO_SMV:
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			required_rate = 8000;
 			//nb_ch = 1;
@@ -377,7 +377,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 8000;
 			rtp_type = GF_RTP_PAYT_QCELP;
 			streamType = GF_STREAM_AUDIO;
-			oti = GPAC_OTI_AUDIO_13K_VOICE;
+			oti = GPAC_OTI_AUDIO_QCELP;
 			OfficialPayloadType = 12;
 //			nb_ch = 1;
 			break;
@@ -386,7 +386,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			required_rate = 8000;
 			rtp_type = GF_RTP_PAYT_EVRC_SMV;
 			streamType = GF_STREAM_AUDIO;
-			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC_VOICE : GPAC_OTI_AUDIO_SMV_VOICE;
+			oti = (oti==GF_ISOM_SUBTYPE_3GP_EVRC) ? GPAC_OTI_AUDIO_EVRC : GPAC_OTI_AUDIO_SMV;
 //			nb_ch = 1;
 			break;
 		case GF_ISOM_SUBTYPE_MP3:

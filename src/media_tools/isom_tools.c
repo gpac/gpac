@@ -643,9 +643,9 @@ GF_Err gf_media_make_3gpp(GF_ISOFile *mp4file)
 			{
 				GF_ESD *esd = gf_isom_get_esd(mp4file, i+1, 1);
 				switch (esd->decoderConfig->objectTypeIndication) {
-				case GPAC_OTI_AUDIO_13K_VOICE:
-				case GPAC_OTI_AUDIO_EVRC_VOICE:
-				case GPAC_OTI_AUDIO_SMV_VOICE:
+				case GPAC_OTI_AUDIO_QCELP:
+				case GPAC_OTI_AUDIO_EVRC:
+				case GPAC_OTI_AUDIO_SMV:
 					is_3g2 = 1;
 				case GPAC_OTI_AUDIO_AAC_MPEG4:
 					nb_aud++;

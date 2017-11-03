@@ -88,6 +88,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 		if (err) *err = e;
 		return NULL;
 	}
+	if (filter) filter->orig_args = args;
 
 	return filter;
 }
@@ -125,9 +126,10 @@ static void reset_filter_args(GF_Filter *filter);
 
 //when destroying the filter queue we have to skip tasks marked as notified, since they are also present in the
 //session task list
-void task_del(void *task)
+void task_del(void *_task)
 {
-	if (!((GF_FSTask*)task)->notified) gf_free(task);
+	GF_FSTask *task = _task;
+	if (!task->notified) gf_free(task);
 }
 
 void gf_filter_del(GF_Filter *filter)
@@ -497,9 +499,11 @@ skip_arg:
 
 static void reset_filter_args(GF_Filter *filter)
 {
-	u32 i;
-	//instantiate all others with defauts value
-	i=0;
+	u32 i=0;
+	//removed or no stack
+	if (!filter->filter_udta) return;
+
+	//instantiate all args with defauts value
 	while (filter->freg->args) {
 		GF_PropertyValue argv;
 		const GF_FilterArgs *a = &filter->freg->args[i];
@@ -698,6 +702,8 @@ GF_FilterSession *gf_filter_get_session(GF_Filter *filter)
 
 void gf_filter_post_process_task(GF_Filter *filter)
 {
+	if (filter->finalized || filter->removed) return;
+	
 	safe_int_inc(&filter->process_task_queued);
 	if (filter->process_task_queued<=1) {
 		assert(!filter->finalized);
@@ -739,7 +745,7 @@ static void gf_filter_setup_failure_task(GF_FSTask *task)
 	GF_Filter *f = ((struct _gf_filter_setup_failure *)task->udta)->filter;
 	gf_free(task->udta);
 
-	if (f->freg->finalize) {
+	if (!f->finalized && f->freg->finalize) {
 		FSESS_CHECK_THREAD(f)
 		f->freg->finalize(f);
 	}
@@ -957,6 +963,7 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	if (filter->freg->finalize) {
 		FSESS_CHECK_THREAD(filter)
 		filter->freg->finalize(filter);
+		filter->finalized = GF_TRUE;
 	}
 	gf_list_add(filter->blacklisted, (void *)filter->freg);
 
@@ -982,9 +989,12 @@ Bool gf_filter_swap_source_registry(GF_Filter *filter)
 	filter->filter_udta = NULL;
 	if (!src_url) return GF_FALSE;
 
-	gf_fs_load_source_internal(filter->session, src_url, NULL, &e, filter, filter->dst_filter);
+	gf_fs_load_source_internal(filter->session, src_url, NULL, NULL, &e, filter, filter->dst_filter);
 	//we manage to reassign an input registry
-	if (e==GF_OK) return GF_TRUE;
+	if (e==GF_OK) {
+		filter->finalized = GF_FALSE;
+		return GF_TRUE;
+	}
 	//nope ...
 	gf_filter_setup_failure(filter, e);
 	return GF_FALSE;
@@ -1027,7 +1037,7 @@ void gf_filter_forward_clock(GF_Filter *filter)
 
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err)
 {
-	return gf_fs_load_source_internal(filter->session, url, parent_url, err, NULL, filter);
+	return gf_fs_load_source_internal(filter->session, url, NULL, parent_url, err, NULL, filter);
 }
 
 

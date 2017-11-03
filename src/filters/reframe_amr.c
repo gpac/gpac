@@ -48,6 +48,8 @@ typedef struct
 
 	u64 file_pos, cts;
 
+	u16 amr_mode_set;
+
 	GF_Fraction duration;
 	Double start_range;
 	Bool in_seek;
@@ -136,11 +138,11 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	else if (!strnicmp(magic, "#!EVRC\n", 7)) {
 		fseek(stream, 7, SEEK_SET);
 		ctx->start_offset = 7;
-		ctx->oti = GPAC_OTI_AUDIO_EVRC_VOICE;
+		ctx->oti = GPAC_OTI_AUDIO_EVRC;
 	}
 	else if (!strnicmp(magic, "#!SMV\n", 6)) {
 		fseek(stream, 6, SEEK_SET);
-		ctx->oti = GPAC_OTI_AUDIO_SMV_VOICE;
+		ctx->oti = GPAC_OTI_AUDIO_SMV;
 	}
 	else if (!strnicmp(magic, "#!AMR-WB\n", 9)) {
 		ctx->oti = GPAC_OTI_AUDIO_AMR_WB;
@@ -207,11 +209,19 @@ static void amrdmx_check_dur(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 
 	p = gf_filter_pid_get_property(ctx->ipid, GF_PROP_PID_FILE_CACHED);
 	if (p && p->value.boolean) ctx->file_loaded = GF_TRUE;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
-static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx)
+static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx, u16 amr_mode_set)
 {
-	if (ctx->opid) return;
+	if (ctx->opid) {
+		if (ctx->amr_mode_set != amr_mode_set) {
+			ctx->amr_mode_set = amr_mode_set;
+			gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMR_MODE_SET, & PROP_UINT( amr_mode_set));
+		}
+		return;
+	}
+
 	ctx->opid = gf_filter_pid_new(filter);
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
 
@@ -222,6 +232,7 @@ static void amrdmx_check_pid(GF_Filter *filter, GF_AMRDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_NUM_CHANNELS, & PROP_UINT(1) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(ctx->oti ) );
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAMPLES_PER_FRAME, & PROP_UINT(ctx->block_size ) );
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_AMR_MODE_SET, & PROP_UINT(ctx->amr_mode_set));
 
 }
 
@@ -345,8 +356,11 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+			gf_filter_pck_set_sap(dst_pck, 1);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
-
+			if (byte_offset != GF_FILTER_NO_BO) {
+				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
+			}
 			gf_filter_pck_send(dst_pck);
 		}
 
@@ -378,6 +392,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 
 	while (remain) {
 		u8 toc, ft;
+		u16 amr_mode_set = ctx->amr_mode_set;
 		u32 size=0, i;
 
 		toc = start[0];
@@ -388,11 +403,17 @@ GF_Err amrdmx_process(GF_Filter *filter)
 		switch (ctx->oti) {
 		case GPAC_OTI_AUDIO_AMR:
 			ft = (toc >> 3) & 0x0F;
+
+			/*update mode set (same mechanism for both AMR and AMR-WB*/
+			amr_mode_set |= (1<<ft);
 			size = (u32)GF_AMR_FRAME_SIZE[ft];
 			break;
 		case GPAC_OTI_AUDIO_AMR_WB:
 			ft = (toc >> 3) & 0x0F;
 			size = (u32)GF_AMR_WB_FRAME_SIZE[ft];
+
+			/*update mode set (same mechanism for both AMR and AMR-WB*/
+			amr_mode_set |= (1<<ft);
 			break;
 		default:
 			for (i=0; i<GF_SMV_EVRC_RATE_TO_SIZE_NB; i++) {
@@ -412,7 +433,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			continue;
 		}
 		//ready to send packet
-		amrdmx_check_pid(filter, ctx);
+		amrdmx_check_pid(filter, ctx, amr_mode_set);
 
 		if (!ctx->is_playing) return GF_OK;
 		size++;
@@ -434,6 +455,7 @@ GF_Err amrdmx_process(GF_Filter *filter)
 			memcpy(output, start, size);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+			gf_filter_pck_set_sap(dst_pck, 1);
 			gf_filter_pck_set_duration(dst_pck, ctx->block_size);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);
 
@@ -483,8 +505,8 @@ static const GF_FilterCapability AMRDmxOutputs[] =
 	CAP_INC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_AUDIO),
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR),
 	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_AMR_WB),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_SMV_VOICE),
-	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EVRC_VOICE),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_SMV),
+	CAP_INC_UINT(GF_PROP_PID_OTI, GPAC_OTI_AUDIO_EVRC),
 	{}
 };
 

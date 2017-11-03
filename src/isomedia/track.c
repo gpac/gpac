@@ -1109,8 +1109,9 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 			break;
 
 		default:
-			//gf_odf_desc_del((GF_Descriptor *) esd);
-			break;
+			//silently fail, not an MPEG-4 esd
+			gf_odf_desc_del((GF_Descriptor *) esd);
+			return GF_OK;
 		}
 	} else {
 		//need to check we're not in URL mode where only ONE description is allowed...

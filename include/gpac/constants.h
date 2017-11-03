@@ -70,6 +70,8 @@ typedef enum {
 */
 enum
 {
+	/*!Unknown stream type*/
+	GF_STREAM_UNKNOWN = 0,
 	/*!MPEG-4 Object Descriptor Stream*/
 	GF_STREAM_OD		= 0x01,
 	/*!MPEG-4 Object Clock Reference Stream*/
@@ -138,6 +140,8 @@ enum
 	*the objectTypeIndication currently in use for these streams are documented below\n
 	*/
 	GF_STREAM_PRIVATE_MEDIA	= 0x21,
+
+	GF_STREAM_METADATA = 0x22,
 
 	/*used internally to signal that the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
 	GF_STREAM_4CC		= 0xF0,
@@ -279,6 +283,8 @@ typedef enum
 */
 enum
 {
+	/*!Never used by PID declarations, but used by filters caps*/
+	GPAC_OTI_FORBIDDEN = 0,
 	/*!OTI for BIFS v1*/
 	GPAC_OTI_SCENE_BIFS = 0x01,
 	/*!OTI for OD v1*/
@@ -354,6 +360,8 @@ enum
 	/*!OTI for JPEG-2000 streams*/
 	GPAC_OTI_IMAGE_JPEG_2000 = 0x6E,
 
+	GPAC_OTI_ID3 = 0x6F,
+
 	/*!
 	 * \brief Extra ObjectTypeIndication
 	 *
@@ -395,9 +403,9 @@ enum
 	GPAC_OTI_VIDEO_H263 = 0x82,
 
 	/*!OTI for EVRC Voice streams*/
-	GPAC_OTI_AUDIO_EVRC_VOICE = 0xA0,
+	GPAC_OTI_AUDIO_EVRC = 0xA0,
 	/*!OTI for SMV Voice streams*/
-	GPAC_OTI_AUDIO_SMV_VOICE = 0xA1,
+	GPAC_OTI_AUDIO_SMV = 0xA1,
 	/*!OTI for 3GPP2 CMF streams*/
 	GPAC_OTI_3GPP2_CMF = 0xA2,
 	/*!OTI for SMPTE VC-1 Video streams*/
@@ -473,7 +481,7 @@ enum
 	GPAC_OTI_MEDIA_SUBPIC = 0xE0,
 
 	/*!OTI for 13K Voice / QCELP audio streams*/
-	GPAC_OTI_AUDIO_13K_VOICE = 0xE1,
+	GPAC_OTI_AUDIO_QCELP = 0xE1,
 
 	/*!OTI for RAW media streams. Input data is directly dispatched to the composition memory.  The DSI contains is formated (MSBF) as follows:\n
 	*	DSI Syntax for audio streams

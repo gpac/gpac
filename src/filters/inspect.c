@@ -24,6 +24,7 @@
  */
 
 #include <gpac/filters.h>
+#include <gpac/constants.h>
 #include <gpac/list.h>
 
 typedef struct
@@ -42,10 +43,11 @@ typedef struct
 	Bool pid_only;
 	const char *logfile;
 
-
 	FILE *dump;
 
 	GF_List *src_pids;
+
+	Bool is_prober, probe_done;
 } GF_InspectCtx;
 
 static void inspect_finalize(GF_Filter *filter)
@@ -95,10 +97,10 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		fprintf(dump, ""LLU, att->value.longuint);
 		break;
 	case GF_PROP_FRACTION:
-		fprintf(dump, LLD"/"LLU, att->value.frac.num, att->value.frac.den);
+		fprintf(dump, "%d/%u", att->value.frac.num, att->value.frac.den);
 		break;
 	case GF_PROP_BOOL:
-		fprintf(dump, "%s", att->value.boolean ? "true" : "fale");
+		fprintf(dump, "%s", att->value.boolean ? "true" : "false");
 		break;
 	case GF_PROP_FLOAT:
 		fprintf(dump, "%f", FIX2FLT(att->value.fnumber) );
@@ -192,7 +194,7 @@ static void inspect_dump_pid(GF_InspectCtx *ctx, FILE *dump, GF_FilterPid *pid, 
 
 static GF_Err inspect_process(GF_Filter *filter)
 {
-	u32 i, count;
+	u32 i, count, nb_done=0;
 	GF_InspectCtx *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
 
 	count = gf_list_count(ctx->src_pids);
@@ -201,8 +203,22 @@ static GF_Err inspect_process(GF_Filter *filter)
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(pctx->src_pid);
 		if (!pck) continue;
 		pctx->pck_num++;
-		inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+		if (ctx->is_prober) {
+			nb_done++;
+		} else {
+			inspect_dump_packet(ctx, pctx->tmp, pck, pctx->idx, pctx->pck_num);
+		}
 		gf_filter_pid_drop_packet(pctx->src_pid);
+	}
+	if (ctx->is_prober && !ctx->probe_done && (nb_done==count)) {
+		for (i=0; i<count; i++) {
+			PidCtx *pctx = gf_list_get(ctx->src_pids, i);
+			GF_FilterEvent evt;
+			GF_FEVT_INIT(evt, GF_FEVT_PLAY, pctx->src_pid);
+			gf_filter_pid_send_event(pctx->src_pid, &evt);
+		}
+		ctx->probe_done = GF_TRUE;
+		return GF_EOS;
 	}
 	return GF_OK;
 }
@@ -217,7 +233,8 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 	pctx = gf_filter_pid_get_udta(pid);
 	if (pctx) {
 		assert(pctx->src_pid == pid);
-		inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_FALSE, is_remove);
+		if (!ctx->is_prober)
+			inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_FALSE, is_remove);
 		return GF_OK;
 	}
 	GF_SAFEALLOC(pctx, PidCtx);
@@ -233,14 +250,26 @@ static GF_Err inspect_config_input(GF_Filter *filter, GF_FilterPid *pid, Bool is
 
 	gf_filter_pid_set_framing_mode(pid, ctx->framing);
 
-	inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_TRUE, GF_FALSE);
+	if (ctx->is_prober) {
+		GF_FilterEvent evt;
+		GF_FEVT_INIT(evt, GF_FEVT_PLAY, pid);
+		gf_filter_pid_send_event(pid, &evt);
+	} else {
+		inspect_dump_pid(ctx, pctx->tmp, pid, pctx->idx, GF_TRUE, GF_FALSE);
+	}
 
 	return GF_OK;
 }
 
 GF_Err inspect_initialize(GF_Filter *filter)
 {
+	const char *name = gf_filter_get_name(filter);
 	GF_InspectCtx  *ctx = (GF_InspectCtx *) gf_filter_get_udta(filter);
+
+	if (name && !strcmp(name, "probe") ) {
+		ctx->is_prober = GF_TRUE;
+		return GF_OK;
+	}
 
 	if (!ctx->logfile) return GF_BAD_PARAM;
 	if (!strcmp(ctx->logfile, "stderr")) ctx->dump = stderr;
@@ -282,9 +311,36 @@ const GF_FilterRegister InspectRegister = {
 	.configure_pid = inspect_config_input,
 };
 
+static const GF_FilterCapability ProberInputs[] =
+{
+	//accept any stream but files, framed
+	CAP_EXC_UINT(GF_PROP_PID_STREAM_TYPE, GF_STREAM_FILE),
+	CAP_EXC_UINT(GF_PROP_PID_OTI, GPAC_OTI_FORBIDDEN),
+	CAP_EXC_BOOL(GF_PROP_PID_UNFRAMED, GF_TRUE)
+};
+
+
+const GF_FilterRegister ProbeRegister = {
+	.name = "probe",
+	.description = "Inspect packets on demux pids (not file)",
+	.private_size = sizeof(GF_InspectCtx),
+	.max_extra_pids = (u32) -1,
+	.args = InspectArgs,
+	.initialize = inspect_initialize,
+	INCAPS(ProberInputs),
+	.finalize = inspect_finalize,
+	.process = inspect_process,
+	.configure_pid = inspect_config_input,
+};
+
 const GF_FilterRegister *inspect_register(GF_FilterSession *session)
 {
 	return &InspectRegister;
+}
+
+const GF_FilterRegister *probe_register(GF_FilterSession *session)
+{
+	return &ProbeRegister;
 }
 
 

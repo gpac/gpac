@@ -938,19 +938,19 @@ GF_Err gf_media_export_native(GF_MediaExporter *dumper)
 				is_ogg = GF_TRUE;
 				gf_export_message(dumper, GF_OK, "Extracting Ogg audio");
 				break;
-			case GPAC_OTI_AUDIO_13K_VOICE:
+			case GPAC_OTI_AUDIO_QCELP:
 				if (add_ext)
 					strcat(szName, ".qcp");
 				qcp_type = 1;
 				memcpy(GUID, QCP_QCELP_GUID_1, sizeof(char)*16);
 				gf_export_message(dumper, GF_OK, "Extracting QCELP-13K (QCP file)");
 				break;
-			case GPAC_OTI_AUDIO_EVRC_VOICE:
+			case GPAC_OTI_AUDIO_EVRC:
 				memcpy(GUID, QCP_EVRC_GUID, sizeof(char)*16);
 				qcp_type = 3;
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;
 				break;
-			case GPAC_OTI_AUDIO_SMV_VOICE:
+			case GPAC_OTI_AUDIO_SMV:
 				qcp_type = 2;
 				memcpy(GUID, QCP_SMV_GUID, sizeof(char)*16);
 				if (dumper->flags & GF_EXPORT_PROBE_ONLY) dumper->flags |= GF_EXPORT_USE_QCP;

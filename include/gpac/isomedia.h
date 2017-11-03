@@ -751,6 +751,9 @@ retrieved (faster)
 */
 GF_ISOSample *gf_isom_get_sample_info(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *StreamDescriptionIndex, u64 *data_offset);
 
+//same as gf_isom_get_sample_info but uses a static allocated sample as input
+GF_ISOSample *gf_isom_get_sample_info_ex(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber, u32 *sampleDescriptionIndex, u64 *data_offset, GF_ISOSample *static_sample);
+
 /*retrieves given sample DTS*/
 u64 gf_isom_get_sample_dts(GF_ISOFile *the_file, u32 trackNumber, u32 sampleNumber);
 

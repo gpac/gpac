@@ -896,7 +896,7 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 		if (!pid->filter->num_input_pids) {
 			if (! gf_filter_swap_source_registry(pid->filter) ) {
 				//no filter found for this pid !
-				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable source filter found - NOT CONNECTED\n"));
+				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("No suitable filter chain found - NOT CONNECTED\n"));
 			}
 			*filter_reassigned = GF_TRUE;
 		} else {
@@ -1100,7 +1100,6 @@ void gf_filter_pid_del(GF_FilterPid *pid)
 void gf_filter_pid_del_task(GF_FSTask *task)
 {
 	gf_filter_pid_del(task->pid);
-	task->filter = NULL;
 }
 
 static GF_PropertyMap *check_new_pid_props(GF_FilterPid *pid, Bool merge_props)
@@ -2096,4 +2095,15 @@ void gf_filter_pid_set_clock_mode(GF_FilterPid *pid, Bool filter_in_charge)
 	}
 	pidi->handles_clock_references = filter_in_charge;
 }
+
+const char *gf_filter_pid_get_args(GF_FilterPid *pid)
+{
+	if (PID_IS_OUTPUT(pid)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Querying args on output PID %s in filter %s\n", pid->pid->name, pid->filter->name));
+		return NULL;
+	}
+	if (pid->pid->filter->src_args) return pid->pid->filter->src_args;
+	return pid->pid->filter->orig_args;
+}
+
 
