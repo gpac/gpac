@@ -758,8 +758,16 @@ static u32 filter_caps_to_caps_match(const GF_FilterRegister *src, const GF_Filt
 
 			//we found a property of that type and it is equal
 			prop_equal = gf_props_equal(&in_cap->val, &out_cap->val);
-			if (in_cap->exclude && !out_cap->exclude) prop_equal = !prop_equal;
-			else if (!in_cap->exclude && out_cap->exclude) prop_equal = !prop_equal;
+			if (in_cap->exclude && !out_cap->exclude) {
+				//prop type matched and prop is excluded, for no match
+				if (prop_equal) matched = GF_FALSE;
+				prop_equal = !prop_equal;
+			}
+			else if (!in_cap->exclude && out_cap->exclude) {
+				//prop type matched and prop is excluded, for no match
+				if (prop_equal) matched = GF_FALSE;
+				prop_equal = !prop_equal;
+			}
 
 			if (prop_equal) {
 				matched = GF_TRUE;
@@ -811,7 +819,9 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 		}
 		//check this filter
 		else {
-			path_weight += gf_filter_check_dst_caps(fsess, freg, black_list, filter_chain, dst_filter);
+			u32 sub_weight = gf_filter_check_dst_caps(fsess, freg, black_list, filter_chain, dst_filter);
+			if (!sub_weight) continue;
+			path_weight += sub_weight;
 		}
 		if (path_weight>nb_matched) {
 			//remove all entries added in recursive gf_filter_check_dst_caps
@@ -875,6 +885,17 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 			}
 			continue;
 		}
+
+#ifndef GPAC_DISABLE_LOG
+		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
+			count = gf_list_count(filter_chain);
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Possible filter chain from filter %s PID %s to filter %s:\n", pid->filter->name, pid->name, dst_filter->name));
+			for (i=0; i<count; i++) {
+				const GF_FilterRegister *freg = gf_list_get(filter_chain, i);
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", freg->name));
+			}
+		}
+#endif
 		//
 		if (path_weight+freg_weight > max_weight) {
 			max_weight = path_weight+freg_weight;
