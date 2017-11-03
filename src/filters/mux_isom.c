@@ -407,6 +407,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 			return e;
 		}
 		tkw->use_dref = src_url ? GF_TRUE : GF_FALSE;
+		gf_isom_set_brand_info(ctx->mov, GF_ISOM_BRAND_3G2A, 65536);
 	} else if (use_gen_sample_entry) {
 		u32 len = 0;
 		GF_GenericSampleDescription udesc;
