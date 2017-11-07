@@ -6461,12 +6461,6 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 #endif
 
 #ifndef GPAC_DISABLE_AV_PARSERS
-	/*MPEG-4 video*/
-	if (!strnicmp(ext, ".cmp", 4) || !strnicmp(ext, ".m4v", 4) || !stricmp(fmt, "CMP") || !stricmp(fmt, "MPEG4-Video") )
-		return gf_import_cmp(importer, GF_FALSE);
-	/*MPEG-1/2 video*/
-	if (!strnicmp(ext, ".m2v", 4) || !strnicmp(ext, ".m1v", 4) || !stricmp(fmt, "MPEG2-Video") || !stricmp(fmt, "MPEG1-Video") )
-		return gf_import_cmp(importer, 2);
 	/*H264/AVC video*/
 	if (!strnicmp(ext, ".h264", 5) || !strnicmp(ext, ".264", 4) || !strnicmp(ext, ".x264", 5)
 	        || !strnicmp(ext, ".h26L", 5) || !strnicmp(ext, ".26l", 4) || !strnicmp(ext, ".avc", 4)

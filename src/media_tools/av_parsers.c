@@ -258,20 +258,6 @@ s32 gf_mv12_next_slice_start(unsigned char *pbuffer, u32 startoffset, u32 buflen
 	MPEG-4 video (14496-2)
 */
 
-#define M4V_VO_START_CODE					0x00
-#define M4V_VOL_START_CODE					0x20
-#define M4V_VOP_START_CODE					0xB6
-#define M4V_VISOBJ_START_CODE				0xB5
-#define M4V_VOS_START_CODE					0xB0
-#define M4V_GOV_START_CODE					0xB3
-#define M4V_UDTA_START_CODE					0xB2
-
-
-#define M2V_PIC_START_CODE					0x00
-#define M2V_SEQ_START_CODE					0xB3
-#define M2V_EXT_START_CODE					0xB5
-#define M2V_GOP_START_CODE					0xB8
-
 struct __tag_m4v_parser
 {
 	GF_BitStream *bs;
