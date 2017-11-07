@@ -6433,6 +6433,8 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 			gf_fs_del(fsess);
 			return gf_import_message(importer, importer->last_error, "[Importer] Error probing %s", importer->in_name);
 		}
+
+		importer->final_trackID = gf_isom_get_last_created_track_id(importer->dest);
 	}
 	gf_fs_del(fsess);
 	return GF_OK;

@@ -296,6 +296,12 @@ void gf_m4v_parser_del(GF_M4VParser *m4v)
 	gf_free(m4v);
 }
 
+GF_EXPORT
+void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v)
+{
+	gf_free(m4v);
+}
+
 
 #define M4V_CACHE_SIZE		4096
 s32 M4V_LoadObject(GF_M4VParser *m4v)
@@ -371,7 +377,11 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 	return GF_OK;
 }
 
-
+void gf_m4v_parser_reset(GF_M4VParser *m4v)
+{
+	m4v->current_object_start = 0;
+	m4v->current_object_type = 0;
+}
 static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
 	unsigned char p[4];

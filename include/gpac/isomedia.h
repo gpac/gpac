@@ -1347,6 +1347,8 @@ GF_Err gf_isom_remove_sample_description(GF_ISOFile *the_file, u32 trackNumber, 
 /*sets the RVC config for the given track sample description*/
 GF_Err gf_isom_set_rvc_config(GF_ISOFile *movie, u32 track, u32 sampleDescriptionIndex, u16 rvc_predefined, char *mime, char *data, u32 size);
 
+u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie);
+
 /*
 	some authoring extensions
 */
