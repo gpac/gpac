@@ -2353,7 +2353,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 	if (for_temporal_sublayers) {
 		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
 	} else {
-		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
+		e = gf_isom_lhvc_config_update(file, track, 1, NULL, GF_ISOM_LEHVC_WITH_BASE_BACKWARD);
 	}
 	if (e) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_AUTHOR, ("[HEVC] Failed to update HEVC/LHVC config\n"));
