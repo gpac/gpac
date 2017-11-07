@@ -554,5 +554,21 @@ GF_Err gf_webvtt_parser_dump_done(GF_WebVTTParser *parser, u32 duration);
 
 #endif /* GPAC_DISABLE_VTT */
 
+
+#define M4V_VO_START_CODE					0x00
+#define M4V_VOL_START_CODE					0x20
+#define M4V_VOP_START_CODE					0xB6
+#define M4V_VISOBJ_START_CODE				0xB5
+#define M4V_VOS_START_CODE					0xB0
+#define M4V_GOV_START_CODE					0xB3
+#define M4V_UDTA_START_CODE					0xB2
+
+
+#define M2V_PIC_START_CODE					0x00
+#define M2V_SEQ_START_CODE					0xB3
+#define M2V_EXT_START_CODE					0xB5
+#define M2V_GOP_START_CODE					0xB8
+
+
 #endif		/*_GF_MEDIA_DEV_H_*/
 
