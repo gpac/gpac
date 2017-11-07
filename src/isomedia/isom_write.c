@@ -494,6 +494,11 @@ GF_Err gf_isom_set_root_od_url(GF_ISOFile *movie, char *url_string)
 	return GF_OK;
 }
 
+GF_EXPORT
+u32 gf_isom_get_last_created_track_id(GF_ISOFile *movie)
+{
+	return movie ? movie->last_created_track_id : 0;
+}
 
 
 //creates a new Track. If trackID = 0, the trackID is chosen by the API
@@ -586,8 +591,7 @@ u32 gf_isom_new_track(GF_ISOFile *movie, u32 trakID, u32 MediaType, u32 TimeScal
 	if (e) goto err_exit;
 	e = trak_AddBox((GF_Box*)trak, (GF_Box *) mdia);
 	if (e) goto err_exit;
-	tkhd->trackID = trakID;
-
+	movie->last_created_track_id = tkhd->trackID = trakID;
 
 	//some default properties for Audio, Visual or private tracks
 	switch (MediaType) {

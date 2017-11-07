@@ -3198,6 +3198,7 @@ struct __tag_isom {
 	GF_DataMap *editFileMap;
 	/*the interleaving time for dummy mode (in movie TimeScale)*/
 	u32 interleavingTime;
+	u32 last_created_track_id;
 #endif
 
 	u8 openMode;

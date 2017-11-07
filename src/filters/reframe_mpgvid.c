@@ -39,6 +39,7 @@ typedef struct
 	//filter args
 	GF_Fraction fps;
 	Double index_dur;
+	Bool vfr;
 
 	//only one input pid declared
 	GF_FilterPid *ipid;
@@ -46,7 +47,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	GF_BitStream *bs;
-	u64 cts;
+	u64 cts, dts;
 	u32 width, height;
 	GF_Fraction duration;
 	Double start_range;
@@ -55,9 +56,13 @@ typedef struct
 
 	u32 resume_from;
 
-	Bool is_mpg12, need_init;
+	Bool is_mpg12, forced_packed;
 	GF_M4VParser *vparser;
 	GF_M4VDecSpecInfo dsi;
+	u32 b_frames;
+	Bool is_packed, is_vfr;
+	GF_List *pck_queue;
+	u64 last_ref_cts;
 
 	u32 bytes_in_header;
 	char hdr_store[8];
@@ -115,7 +120,7 @@ GF_Err mpgviddmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_rem
 	}
 
 	if (ctx->vparser && (was_mpeg12 != ctx->is_mpg12)) {
-		gf_m4v_parser_del(ctx->vparser);
+		gf_m4v_parser_del_no_bs(ctx->vparser);
 		ctx->vparser = NULL;
 	}
 
@@ -152,7 +157,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	vparser = gf_m4v_parser_bs_new(bs, ctx->is_mpg12);
 	e = gf_m4v_parse_config(vparser, &dsi);
 	if (e) {
-		GF_LOG(GF_LOG_INFO, GF_LOG_MEDIA, ("[MPGVid] Could not parse video header - duration  not estimated\n"));
+		GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Could not parse video header - duration  not estimated\n"));
 		ctx->file_loaded = GF_TRUE;
 		return;
 	}
@@ -182,7 +187,6 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		}
 	}
 	gf_m4v_parser_del(vparser);
-	gf_bs_del(bs);
 	gf_fclose(stream);
 
 	if (!ctx->duration.num || (ctx->duration.num  * ctx->fps.num != duration * ctx->duration.den)) {
@@ -197,24 +201,95 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_CAN_DATAREF, & PROP_BOOL(GF_TRUE ) );
 }
 
-static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 width, u32 height)
-{
 
+static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket *pck, Bool flush_ref)
+{
+	if (ctx->timescale) {
+		gf_filter_pck_send(pck);
+	}
+
+	if (flush_ref && ctx->pck_queue) {
+		//send all reference packet queued
+		u32 i, count = gf_list_count(ctx->pck_queue);
+		for (i=0; i<count; i++) {
+			u64 cts;
+			GF_FilterPacket *pck = gf_list_get(ctx->pck_queue, i);
+			cts = gf_filter_pck_get_cts(pck);
+			if (ctx->last_ref_cts == cts) {
+				cts += ctx->b_frames * ctx->fps.den;
+				gf_filter_pck_set_cts(pck, cts);
+			} else {
+				//shift all other frames (pending Bs) by 1 frame in the past since we move the ref frame after them
+				assert(cts >= ctx->fps.den);
+				cts -= ctx->fps.den;
+				gf_filter_pck_set_cts(pck, cts);
+			}
+			gf_filter_pck_send(pck);
+		}
+		gf_list_reset(ctx->pck_queue);
+	}
+	if (!pck) return;
+
+	if (!ctx->pck_queue) ctx->pck_queue = gf_list_new();
+	gf_list_add(ctx->pck_queue, pck);
+}
+
+static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vosh_size, u8 *data)
+{
 	if (!ctx->opid) {
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_H263));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_TIMESCALE, & PROP_UINT(ctx->fps.num));
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_FPS, & PROP_FRAC(ctx->fps));
 
 		mpgviddmx_check_dur(filter, ctx);
 	}
-	if ((ctx->width == width) && (ctx->height == height)) return;
-	ctx->width = width;
-	ctx->height = height;
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT( width));
-	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT( height));
+	if ((ctx->width == ctx->dsi.width) && (ctx->height == ctx->dsi.height)) return;
+
+	mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+
+	ctx->width = ctx->dsi.width;
+	ctx->height = ctx->dsi.height;
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_WIDTH, & PROP_UINT( ctx->dsi.width));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_HEIGHT, & PROP_UINT( ctx->dsi.height));
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(ctx->dsi.par_num, ctx->dsi.par_den));
+
+	if (ctx->is_mpg12) {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN));
+	} else {
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2));
+	}
+	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_PROFILE_LEVEL, & PROP_UINT (ctx->dsi.VideoPL) );
+
+	ctx->b_frames = 0;
+
+	if (vosh_size) {
+		u32 i;
+		char * dcd = gf_malloc(sizeof(char)*vosh_size);
+		memcpy(dcd, data, sizeof(char)*vosh_size);
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_DECODER_CONFIG, & PROP_DATA_NO_COPY(dcd, vosh_size));
+
+		/*remove packed flag if any (VOSH user data)*/
+		ctx->is_packed = ctx->is_vfr = ctx->forced_packed = GF_FALSE;
+		i=0;
+		while (1) {
+			char *frame = data;
+			while ((i+3<vosh_size)  && ((frame[i]!=0) || (frame[i+1]!=0) || (frame[i+2]!=1))) i++;
+			if (i+4>=vosh_size) break;
+			if (strncmp(frame+i+4, "DivX", 4)) {
+				i += 4;
+				continue;
+			}
+			frame = data + i + 4;
+			frame = strchr(frame, 'p');
+			if (frame) {
+				ctx->forced_packed = GF_TRUE;
+				frame[0] = 'n';
+			}
+			break;
+		}
+	}
 }
 
 static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
@@ -275,7 +350,7 @@ static Bool mpgviddmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt
 	return GF_FALSE;
 }
 
-static GFINLINE void mpgviddmx_update_cts(GF_MPGVidDmxCtx *ctx)
+static GFINLINE void mpgviddmx_update_time(GF_MPGVidDmxCtx *ctx)
 {
 	assert(ctx->fps.num);
 	assert(ctx->fps.den);
@@ -285,8 +360,10 @@ static GFINLINE void mpgviddmx_update_cts(GF_MPGVidDmxCtx *ctx)
 		inc *= ctx->timescale;
 		inc /= ctx->fps.num;
 		ctx->cts += inc;
+		ctx->dts += inc;
 	} else {
 		ctx->cts += ctx->fps.den;
+		ctx->dts += ctx->fps.den;
 	}
 }
 
@@ -317,13 +394,13 @@ static s32 mpgviddmx_next_start_code(u8 *data, u32 size)
 	return (s32) (end - start);
 }
 
-
 GF_Err mpgviddmx_process(GF_Filter *filter)
 {
 	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
 	GF_FilterPacket *pck, *dst_pck;
 	u64 byte_offset;
 	s64 vosh_start = -1;
+	s64 vosh_end = -1;
 	GF_Err e;
 	char *data;
 	u8 *start;
@@ -338,6 +415,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	pck = gf_filter_pid_get_packet(ctx->ipid);
 	if (!pck) {
 		if (gf_filter_pid_is_eos(ctx->ipid)) {
+			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 			gf_filter_pid_set_eos(ctx->opid);
 			return GF_EOS;
 		}
@@ -350,29 +428,14 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	start = data;
 	remain = pck_size;
 
-
-	if (ctx->bytes_in_header) {
-#if 0
-		if (ctx->bytes_in_header + remain < 7) {
-			memcpy(ctx->header + ctx->bytes_in_header, start, remain);
-			ctx->bytes_in_header += remain;
-			gf_filter_pid_drop_packet(ctx->ipid);
-			return GF_OK;
-		}
-		alread_sync = 7 - ctx->bytes_in_header;
-		memcpy(ctx->header + ctx->bytes_in_header, start, alread_sync);
-		start += alread_sync;
-		remain -= alread_sync;
-		ctx->bytes_in_header = 0;
-		alread_sync = GF_TRUE;
-#endif
-
-	}
 	//input pid sets some timescale - we flushed pending data , update cts
-	else if (ctx->timescale) {
-		u64 cts = gf_filter_pck_get_cts(pck);
-		if (cts != GF_FILTER_NO_TS)
-			ctx->cts = cts;
+	if (ctx->timescale) {
+		u64 ts = gf_filter_pck_get_cts(pck);
+		if (ts != GF_FILTER_NO_TS)
+			ctx->cts = ts;
+		ts = gf_filter_pck_get_dts(pck);
+		if (ts != GF_FILTER_NO_TS)
+			ctx->dts = ts;
 	}
 
 	if (ctx->resume_from) {
@@ -390,16 +453,20 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	}
 	if (!ctx->vparser) {
 		ctx->vparser = gf_m4v_parser_bs_new(ctx->bs, ctx->is_mpg12);
-		ctx->need_init = GF_TRUE;
 	}
 
 	while (remain) {
-		u32 size=0;
 		Bool full_frame;
 		char *pck_data;
-		s32 current, next;
+		s32 current;
 		u32 w, h;
 		u8 sc_type;
+		Bool skip_pck = GF_FALSE;
+		u8 ftype;
+		u32 tinc;
+		u64 size=0;
+		u64 fstart;
+		Bool is_coded;
 
 		//not enough bytes
 		if (remain<5) {
@@ -420,13 +487,16 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
 				gf_filter_pck_set_cts(dst_pck, ctx->cts);
+				gf_filter_pck_set_dts(dst_pck, ctx->dts);
 				gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 				if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
 				}
-				gf_filter_pck_send(dst_pck);
+
+				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+
 				ctx->bytes_in_header = 0;
 
 				current = mpgviddmx_next_start_code(start, remain);
@@ -443,6 +513,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			assert(0);
 		}
 
+		if ((vosh_start>=0) && current) {
+			start += current;
+			remain -= current;
+			current = 0;
+		}
 		if (current>0) {
 			assert(!first_frame_found);
 			//flush remaining
@@ -463,11 +538,13 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			}
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+			gf_filter_pck_set_dts(dst_pck, ctx->dts);
 			gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 			if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
-			gf_filter_pck_send(dst_pck);
 
-			mpgviddmx_update_cts(ctx);
+			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+
+			mpgviddmx_update_time(ctx);
 			first_frame_found = GF_TRUE;
 		}
 
@@ -481,18 +558,50 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		if (ctx->is_mpg12) {
 
 		} else {
+			u8 PL;
 			switch (sc_type) {
 			case M4V_VOS_START_CODE:
 				ctx->dsi.VideoPL = (u8) gf_bs_read_u8(ctx->bs);
-				vosh_start = start - data;
+				vosh_start = start - (u8 *)data;
+				skip_pck = GF_TRUE;
+				start += 5;
+				remain -= 5;
 				break;
 			case M4V_VOL_START_CODE:
 				gf_bs_reassign_buffer(ctx->bs, start, remain);
+				PL = ctx->dsi.VideoPL;
+				e = gf_m4v_parse_config(ctx->vparser, &ctx->dsi);
+				ctx->dsi.VideoPL = PL;
+				if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
+				} else {
+					u32 size = gf_m4v_get_object_start(ctx->vparser);
+					vosh_end = start - (u8 *)data + size;
+					vosh_end -= vosh_start;
+					mpgviddmx_check_pid(filter, ctx, vosh_end, data+vosh_start);
+					skip_pck = GF_TRUE;
+					start += size;
+					remain -= size;
+				}
+				break;
+			case M4V_VOP_START_CODE:
+			case M4V_GOV_START_CODE:
+				break;
+			case M4V_VO_START_CODE:
+			case M4V_VISOBJ_START_CODE:
+			default:
+				if (vosh_start>=0) {
+					skip_pck = GF_TRUE;
+					start += 4;
+					remain -= 4;
+				}
 				break;
 			}
 		}
 
-		mpgviddmx_check_pid(filter, ctx, w, h);
+		if (skip_pck) {
+			continue;
+		}
 
 
 		if (!ctx->is_playing) {
@@ -509,24 +618,62 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		//good to go
-		next = mpgviddmx_next_start_code(start+1, remain-1);
+		gf_m4v_parser_reset(ctx->vparser);
+		e = gf_m4v_parse_frame(ctx->vparser, ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
 
-		if (next>0) {
-			size = next+1 + ctx->bytes_in_header;
-			full_frame = GF_TRUE;
-		} else {
+		if (e == GF_EOS) {
 			u8 b3 = start[remain-3];
 			u8 b2 = start[remain-2];
 			u8 b1 = start[remain-1];
 			//we may have a startcode here !
 			if (!b1 || !b2 || !b3) {
 				memcpy(ctx->hdr_store, start+remain-3, 3);
-				remain -= 3;
+				size -= 3;
 				ctx->bytes_in_header = 3;
 			}
-			size = remain;
 			full_frame = GF_FALSE;
+		} else {
+			full_frame = GF_TRUE;
 		}
+
+		if (!is_coded) {
+			/*if prev is B and we're parsing a packed bitstream discard n-vop*/
+			if (ctx->forced_packed && ctx->b_frames) {
+				ctx->is_packed = GF_TRUE;
+				start += size;
+				remain -= size;
+				continue;
+			}
+			/*policy is to import at variable frame rate, skip*/
+			if (ctx->vfr) {
+				ctx->is_vfr = GF_TRUE;
+				mpgviddmx_update_time(ctx);
+				start += size;
+				remain -= size;
+				continue;
+			}
+			/*policy is to keep non coded frame (constant frame rate), add*/
+		}
+
+		if (ftype==2) {
+			ctx->b_frames++;
+#if FILTER_FIXME
+			/*adjust CTS*/
+			if (!has_cts_offset) {
+				u32 i;
+				for (i=0; i<gf_isom_get_sample_count(import->dest, track); i++) {
+					gf_isom_modify_cts_offset(import->dest, track, i+1, dts_inc);
+				}
+				has_cts_offset = GF_TRUE;
+			}
+#endif
+		} else {
+			//flush all pending packets
+			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+			ctx->last_ref_cts = ctx->cts;
+			ctx->b_frames = 0;
+		}
+
 
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
 		if (ctx->bytes_in_header && current) {
@@ -546,16 +693,18 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
-		gf_filter_pck_set_sap(dst_pck, (start[4]&0x02) ? 0 : 1);
+		gf_filter_pck_set_dts(dst_pck, ctx->dts);
+		gf_filter_pck_set_sap(dst_pck, ftype ? 0 : 1);
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
-		gf_filter_pck_send(dst_pck);
+
+		mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
 
 		first_frame_found = GF_TRUE;
 		start += size;
 		remain -= size;
 		if (!full_frame) break;
-		mpgviddmx_update_cts(ctx);
+		mpgviddmx_update_time(ctx);
 
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
@@ -574,7 +723,15 @@ static void mpgviddmx_finalize(GF_Filter *filter)
 {
 	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
+	if (ctx->vparser) gf_m4v_parser_del_no_bs(ctx->vparser);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->pck_queue) {
+		while (gf_list_count(ctx->pck_queue)) {
+			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
+			gf_filter_pck_discard(pck);
+		}
+		gf_list_del(ctx->pck_queue);
+	}
 }
 
 static const GF_FilterCapability MPGVidDmxInputs[] =
@@ -613,7 +770,7 @@ static const GF_FilterCapability MPGVidDmxOutputs[] =
 #define OFFS(_n)	#_n, offsetof(GF_MPGVidDmxCtx, _n)
 static const GF_FilterArgs MPGVidDmxArgs[] =
 {
-	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "15000/1000", NULL, GF_FALSE},
+	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
 	{}
 };

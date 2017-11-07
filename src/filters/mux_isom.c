@@ -26,6 +26,7 @@
 #include <gpac/filters.h>
 #include <gpac/constants.h>
 #include <gpac/internal/isomedia_dev.h>
+#include <gpac/internal/media_dev.h>
 
 
 
@@ -45,6 +46,7 @@ typedef struct
 	Bool use_dref;
 	Bool aborted;
 	Bool has_append;
+	s64 min_neg_ctts;
 	u32 nb_samples;
 	u32 nb_frames_per_sample;
 	u64 ts_shift;
@@ -52,6 +54,8 @@ typedef struct
 	Bool is_3gpp;
 
 	Bool next_is_first_sample;
+
+	u32 media_profile_level;
 
 } TrackWriter;
 
@@ -64,6 +68,8 @@ typedef struct
 	GF_Fraction dur;
 	u32 pack3gp;
 	Bool verbose;
+	Bool no_edit;
+
 
 	//internal
 	u64 first_cts_min;
@@ -171,6 +177,9 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		u32 cfg_crc = gf_crc_32(dsi->value.data.ptr, dsi->value.data.size);
 		if (cfg_crc!=tkw->cfg_crc) needs_sample_entry = GF_TRUE;
 		tkw->cfg_crc = cfg_crc;
+	} else if (tkw->cfg_crc) {
+		tkw->cfg_crc = 0;
+		needs_sample_entry = GF_TRUE;
 	}
 
 	p = gf_filter_pid_get_info(pid, GF_PROP_PID_URL);
@@ -207,9 +216,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		}
 		tkw->next_is_first_sample = GF_TRUE;
 		gf_isom_set_track_enabled(ctx->mov, tkw->track_num, 1);
+		//by default use cttsv1 (negative ctts)
+		gf_isom_set_composition_offset_mode(ctx->mov, tkw->track_num, GF_TRUE);
 
 		p = gf_filter_pid_get_property(pid, GF_PROP_PID_PROFILE_LEVEL);
 		if (p) {
+			tkw->media_profile_level = p->value.uint;
 			if (tkw->stream_type == GF_STREAM_AUDIO) {
 				gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_AUDIO, p->value.uint);
 			} else if (tkw->stream_type == GF_STREAM_VISUAL) {
@@ -321,7 +333,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		comp_name = "EAC-3";
 		use_ac3_entry = GF_TRUE;
 		break;
-
+	case GPAC_OTI_VIDEO_MPEG4_PART2:
+		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
+		use_m4sys = GF_TRUE;
+		comp_name = "MPEG-4 Visual Part 2";
+		use_gen_sample_entry = GF_FALSE;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Importing OTI %d not yet implemented - patch welcome\n", tkw->oti));
 		return GF_NOT_SUPPORTED;
@@ -355,16 +372,23 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		u32 existing_subtype = gf_isom_get_media_subtype(ctx->mov, tkw->track_num, i+1);
 		if (existing_subtype != m_subtype) continue;
 		if (use_m4sys) {
+			Bool same_entry = GF_TRUE;
 			GF_ESD *esd = gf_isom_get_esd(ctx->mov, tkw->track_num, i+1);
-			if (!esd || (esd->decoderConfig->streamType!=tkw->stream_type) || (esd->decoderConfig->objectTypeIndication != tkw->oti) ) {
-				if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
-				continue;
+			if (!esd) continue;
+			if (esd->decoderConfig->streamType!=tkw->stream_type) same_entry = GF_FALSE;
+			else if (esd->decoderConfig->objectTypeIndication != tkw->oti) same_entry = GF_FALSE;
+			else if (esd->decoderConfig->decoderSpecificInfo && esd->decoderConfig->decoderSpecificInfo->data) {
+				u32 crc1 = gf_crc_32(esd->decoderConfig->decoderSpecificInfo->data, esd->decoderConfig->decoderSpecificInfo->dataLength);
+				if (crc1 != tkw->cfg_crc) same_entry = GF_FALSE;
 			}
-			if (esd) gf_odf_desc_del((GF_Descriptor *)esd);
+
+			gf_odf_desc_del((GF_Descriptor *)esd);
+			if (!same_entry) continue;
 		}
 		//same type, need to check for other info ?
 		//for now we allow creating a single track with different configs (sample rates, etc ...), might need to change that
 		reuse_stsd = 1;
+		break;
 	}
 
 	if (reuse_stsd) {
@@ -586,6 +610,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			duration *= tkw->timescale;
 			duration /= timescale;
 		}
+		if (tkw->sample.CTS_Offset < tkw->min_neg_ctts) tkw->min_neg_ctts = tkw->sample.CTS_Offset;
 
 		if (tkw->use_dref) {
 			u64 data_offset = gf_filter_pck_get_byte_offset(pck);
@@ -659,6 +684,36 @@ static GF_Err mp4_mux_initialize(GF_Filter *filter)
 	return GF_OK;
 }
 
+
+static void mp4_mux_update_edit_list_for_bframes(GF_ISOFile *file, u32 track)
+{
+	u32 i, count, di;
+	u64 max_cts, min_cts, doff;
+
+	count = gf_isom_get_sample_count(file, track);
+	max_cts = 0;
+	min_cts = (u64) -1;
+	for (i=0; i<count; i++) {
+		GF_ISOSample *s = gf_isom_get_sample_info(file, track, i+1, &di, &doff);
+		if (s->DTS + s->CTS_Offset > max_cts)
+			max_cts = s->DTS + s->CTS_Offset;
+
+		if (min_cts > s->DTS + s->CTS_Offset)
+			min_cts = s->DTS + s->CTS_Offset;
+
+		gf_isom_sample_del(&s);
+	}
+
+	if (min_cts) {
+		max_cts -= min_cts;
+		max_cts += gf_isom_get_sample_duration(file, track, count);
+
+		max_cts *= gf_isom_get_timescale(file);
+		max_cts /= gf_isom_get_media_timescale(file, track);
+		gf_isom_set_edit_segment(file, track, 0, max_cts, min_cts, GF_ISOM_EDIT_NORMAL);
+	}
+}
+
 //todo: move this func from media_import.c to here once done
 void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
 
@@ -667,8 +722,46 @@ static void mp4_mux_finalize(GF_Filter *filter)
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->tracks)) {
+		Bool has_bframes = GF_FALSE;
 		TrackWriter *tkw = gf_list_pop_back(ctx->tracks);
 
+		//keep the old importer behaviour: use ctts v0
+		if (tkw->min_neg_ctts<0) {
+			gf_isom_set_cts_packing(ctx->mov, tkw->track_num, GF_TRUE);
+			gf_isom_shift_cts_offset(ctx->mov, tkw->track_num, tkw->min_neg_ctts);
+			gf_isom_set_cts_packing(ctx->mov, tkw->track_num, GF_FALSE);
+			gf_isom_set_composition_offset_mode(ctx->mov, tkw->track_num, GF_FALSE);
+
+			if (! ctx->no_edit)
+				mp4_mux_update_edit_list_for_bframes(ctx->mov, tkw->track_num);
+
+			has_bframes = GF_TRUE;
+		}
+
+		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
+		 we force the system video_pl to ASP@L5 since we have I, P, B in base layer*/
+		if (tkw->oti == GPAC_OTI_VIDEO_MPEG4_PART2) {
+			Bool force_rewrite = GF_FALSE;
+			u32 PL = tkw->media_profile_level;
+			if (!PL) PL = 0x01;
+
+			if (has_bframes && (tkw->media_profile_level <= 3)) {
+				PL = 0xF5;
+				GF_LOG(GF_LOG_WARNING, GF_LOG_CONTAINER, ("[MP4Mux] Indicated profile doesn't include B-VOPs - forcing %s", gf_m4v_get_profile_name((u8) PL) ));
+				force_rewrite = GF_TRUE;
+			}
+			if (PL != tkw->media_profile_level) {
+				if (force_rewrite) {
+					GF_ESD *esd = gf_isom_get_esd(ctx->mov, tkw->track_num, tkw->stsd_idx);
+					assert(esd);
+					gf_m4v_rewrite_pl(&esd->decoderConfig->decoderSpecificInfo->data, &esd->decoderConfig->decoderSpecificInfo->dataLength, (u8) PL);
+					gf_isom_change_mpeg4_description(ctx->mov, tkw->track_num, tkw->stsd_idx, esd);
+					gf_odf_desc_del((GF_Descriptor*)esd);
+				}
+				gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, PL);
+			}
+
+		}
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->mov, tkw->track_num);
 
@@ -679,7 +772,6 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			u32 dur = tkw->timescale * ctx->dur.num;
 			dur /= ctx->dur.den;
 			gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, dur);
-
 		}
 
 		gf_free(tkw);
@@ -714,6 +806,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(dur), "only imports the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(pack3gp), "packs a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FALSE},
 	{ OFFS(verbose), "compatibility with old importer, displys import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(no_edit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{}
 };

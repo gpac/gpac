@@ -4236,4 +4236,5 @@ GF_Err gf_isom_set_byte_offset(GF_ISOFile *file, u64 byte_offset)
 	file->read_byte_offset = byte_offset;
 	return GF_OK;
 }
+
 #endif /*GPAC_DISABLE_ISOM*/
