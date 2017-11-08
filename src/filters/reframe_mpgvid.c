@@ -63,9 +63,11 @@ typedef struct
 	Bool is_packed, is_vfr;
 	GF_List *pck_queue;
 	u64 last_ref_cts;
+	Bool frame_started;
 
 	u32 bytes_in_header;
-	char hdr_store[8];
+	char *hdr_store;
+	u32 hdr_store_size, hdr_store_alloc;
 
 	Bool is_playing;
 	Bool is_file, file_loaded;
@@ -175,7 +177,7 @@ static void mpgviddmx_check_dur(GF_Filter *filter, GF_MPGVidDmxCtx *ctx)
 		duration += ctx->fps.den;
 		cur_dur += ctx->fps.den;
 		//only index at I-frame start
-		if (pos && (ftype==0) && (cur_dur > ctx->index_dur * ctx->fps.num) ) {
+		if (pos && (ftype==0) && (cur_dur >= ctx->index_dur * ctx->fps.num) ) {
 			if (!ctx->index_alloc_size) ctx->index_alloc_size = 10;
 			else if (ctx->index_alloc_size == ctx->index_size) ctx->index_alloc_size *= 2;
 			ctx->indexes = gf_realloc(ctx->indexes, sizeof(MPGVidIdx)*ctx->index_alloc_size);
@@ -207,7 +209,8 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 	if (ctx->timescale) {
 		gf_filter_pck_send(pck);
 	}
-
+	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
+	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue) {
 		//send all reference packet queued
 		u32 i, count = gf_list_count(ctx->pck_queue);
@@ -215,14 +218,17 @@ static void mpgviddmx_enqueue_or_dispatch(GF_MPGVidDmxCtx *ctx, GF_FilterPacket 
 			u64 cts;
 			GF_FilterPacket *pck = gf_list_get(ctx->pck_queue, i);
 			cts = gf_filter_pck_get_cts(pck);
-			if (ctx->last_ref_cts == cts) {
-				cts += ctx->b_frames * ctx->fps.den;
-				gf_filter_pck_set_cts(pck, cts);
-			} else {
-				//shift all other frames (pending Bs) by 1 frame in the past since we move the ref frame after them
-				assert(cts >= ctx->fps.den);
-				cts -= ctx->fps.den;
-				gf_filter_pck_set_cts(pck, cts);
+			if (cts != GF_FILTER_NO_TS) {
+				//offset the cts of the ref frame to the number of B frames inbetween
+				if (ctx->last_ref_cts == cts) {
+					cts += ctx->b_frames * ctx->fps.den;
+					gf_filter_pck_set_cts(pck, cts);
+				} else {
+					//shift all other frames (i.e. pending Bs) by 1 frame in the past since we move the ref frame after them
+					assert(cts >= ctx->fps.den);
+					cts -= ctx->fps.den;
+					gf_filter_pck_set_cts(pck, cts);
+				}
 			}
 			gf_filter_pck_send(pck);
 		}
@@ -380,7 +386,8 @@ static s32 mpgviddmx_next_start_code(u8 *data, u32 size)
 
 	v = 0xffffffff;
 	while (!end) {
-		if (bpos == size) return -1;
+		if (bpos == size)
+			return -1;
 		v = ( (v<<8) & 0xFFFFFF00) | data[bpos];
 
 		bpos++;
@@ -390,7 +397,9 @@ static s32 mpgviddmx_next_start_code(u8 *data, u32 size)
 			break;
 		}
 	}
-	if (!found) return -1;
+	if (!found)
+		return -1;
+	assert(end >= start);
 	return (s32) (end - start);
 }
 
@@ -404,7 +413,6 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	GF_Err e;
 	char *data;
 	u8 *start;
-	Bool first_frame_found = GF_FALSE;
 	u32 pck_size;
 	s32 remain;
 
@@ -438,11 +446,37 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			ctx->dts = ts;
 	}
 
+	//we stored some data to find the complete vosh, aggregate this packet with current one
+	if (!ctx->resume_from && ctx->hdr_store_size) {
+		if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size) {
+			ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size;
+			ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+		}
+		memcpy(ctx->hdr_store + ctx->hdr_store_size, data, sizeof(char)*pck_size);
+		if (byte_offset != GF_FILTER_NO_BO) {
+			if (byte_offset >= ctx->hdr_store_size)
+				byte_offset -= ctx->hdr_store_size;
+			else
+				byte_offset = GF_FILTER_NO_BO;
+		}
+		ctx->hdr_store_size += pck_size;
+		start = data = ctx->hdr_store;
+		remain = pck_size = ctx->hdr_store_size;
+	}
+
 	if (ctx->resume_from) {
 		if (gf_filter_pid_would_block(ctx->opid))
 			return GF_OK;
-		start += ctx->resume_from;
-		remain -= ctx->resume_from;
+
+		//resume from data copied internally
+		if (ctx->hdr_store_size) {
+			assert(ctx->resume_from <= ctx->hdr_store_size);
+			start = data = ctx->hdr_store + ctx->resume_from;
+			remain = pck_size = ctx->hdr_store_size - ctx->resume_from;
+		} else {
+			start += ctx->resume_from;
+			remain -= ctx->resume_from;
+		}
 		ctx->resume_from = 0;
 	}
 
@@ -455,28 +489,34 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		ctx->vparser = gf_m4v_parser_bs_new(ctx->bs, ctx->is_mpg12);
 	}
 
+
 	while (remain) {
 		Bool full_frame;
 		char *pck_data;
 		s32 current;
 		u32 w, h;
-		u8 sc_type;
+		u8 sc_type, force_sc_type=0;
 		Bool skip_pck = GF_FALSE;
 		u8 ftype;
 		u32 tinc;
 		u64 size=0;
 		u64 fstart;
 		Bool is_coded;
+		u32 bytes_from_store = 0;
+		u32 hdr_offset = 0;
+		Bool copy_last_bytes = GF_FALSE;
 
-		//not enough bytes
+		//not enough bytes to parse start code
 		if (remain<5) {
 			memcpy(ctx->hdr_store, start, remain);
 			ctx->bytes_in_header = remain;
 			break;
 		}
+		current = -1;
 
+		//we have some potential bytes of a start code in the store, copy some more bytes and check if valid start code.
+		//if not, dispatch these bytes as continuation of the data
 		if (ctx->bytes_in_header) {
-			assert(!first_frame_found);
 
 			memcpy(ctx->hdr_store + ctx->bytes_in_header, start, 8 - ctx->bytes_in_header);
 			current = mpgviddmx_next_start_code(ctx->hdr_store, 8);
@@ -486,74 +526,122 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				dst_pck = gf_filter_pck_new_alloc(ctx->opid, ctx->bytes_in_header, &pck_data);
 				memcpy(pck_data, ctx->hdr_store, ctx->bytes_in_header);
 				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
-				gf_filter_pck_set_cts(dst_pck, ctx->cts);
-				gf_filter_pck_set_dts(dst_pck, ctx->dts);
-				gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
-				if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
 				}
 
 				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
-
 				ctx->bytes_in_header = 0;
-
-				current = mpgviddmx_next_start_code(start, remain);
+			} else {
+				//we have a valid start code, check which byte in our store or in the packet payload is the start code type
+				//and remember its location to reinit the parser from there
+				hdr_offset = 4 - ctx->bytes_in_header + current;
+				//bytes still to dispatch
+				bytes_from_store = ctx->bytes_in_header;
+				ctx->bytes_in_header = 0;
+				if (!hdr_offset) {
+					force_sc_type = ctx->hdr_store[current+3];
+				} else {
+					force_sc_type = start[hdr_offset-1];
+				}
 			}
-		} else {
+		}
+		//no starcode in store, look for startcode in packet
+		if (current == -1) {
 			//locate next start code
 			current = mpgviddmx_next_start_code(start, remain);
-			assert(current>=0);
+			//no start code, dispatch the block
+			if (current<0) {
+				u8 b3, b2, b1;
+				if (! ctx->frame_started) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] no start code in block and no frame started, discarding data\n" ));
+					break;
+				}
+				size = remain;
+				b3 = start[remain-3];
+				b2 = start[remain-2];
+				b1 = start[remain-1];
+				//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
+				if (!b1 || !b2 || !b3) {
+					copy_last_bytes = GF_TRUE;
+					assert(size >= 3);
+					size -= 3;
+					ctx->bytes_in_header = 3;
+				}
+
+				dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
+				memcpy(pck_data, start, size);
+				gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_FALSE);
+
+				if (byte_offset != GF_FILTER_NO_BO) {
+					gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
+				}
+
+				mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
+				if (copy_last_bytes) {
+					memcpy(ctx->hdr_store, start+remain-3, 3);
+				}
+				break;
+			}
 		}
 
+		assert(current>=0);
 
-		if (current<0) {
-			//not enough bytes to process start code !!
-			assert(0);
-		}
-
+		//if we are in the middle of parsing the vosh, skip over bytes remaining from previous obj not parsed
 		if ((vosh_start>=0) && current) {
+			assert(remain>=current);
 			start += current;
 			remain -= current;
 			current = 0;
 		}
+		//also skip if no output pid
+		if (!ctx->opid && current) {
+			assert(remain>=current);
+			start += current;
+			remain -= current;
+			current = 0;
+		}
+		//dispatch remaining bytes
 		if (current>0) {
-			assert(!first_frame_found);
 			//flush remaining
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, current, &pck_data);
-			if (ctx->bytes_in_header) {
+			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
+			//bytes were partly in store, partly in packet
+			if (bytes_from_store) {
 				if (byte_offset != GF_FILTER_NO_BO) {
-					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - ctx->bytes_in_header);
+					gf_filter_pck_set_byte_offset(dst_pck, byte_offset - bytes_from_store);
 				}
-				ctx->bytes_in_header -= current;
+				assert(bytes_from_store>=current);
+				bytes_from_store -= current;
 				memcpy(pck_data, ctx->hdr_store, current);
 			} else {
+				//bytes were only in packet
 				if (byte_offset != GF_FILTER_NO_BO) {
 					gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
 				}
 				memcpy(pck_data, start, current);
+				assert(remain>=current);
 				start += current;
 				remain -= current;
+				current = 0;
 			}
-			gf_filter_pck_set_framing(dst_pck, GF_FALSE, GF_TRUE);
-			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_dts(dst_pck, ctx->dts);
-			gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
-			if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 
 			mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
-
-			mpgviddmx_update_time(ctx);
-			first_frame_found = GF_TRUE;
 		}
 
 		//parse headers
 		w = h = 0;
 
-		gf_bs_reassign_buffer(ctx->bs, start, remain);
-		gf_bs_read_int(ctx->bs, 24);
-		sc_type = gf_bs_read_int(ctx->bs, 8);
+		//we have a start code loaded, eg the data packet does not have a full start code at the begining
+		if (force_sc_type) {
+			gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);
+			sc_type = force_sc_type;
+		} else {
+			gf_bs_reassign_buffer(ctx->bs, start, remain);
+			gf_bs_read_int(ctx->bs, 24);
+			sc_type = gf_bs_read_int(ctx->bs, 8);
+		}
 
 		if (ctx->is_mpg12) {
 
@@ -564,6 +652,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				ctx->dsi.VideoPL = (u8) gf_bs_read_u8(ctx->bs);
 				vosh_start = start - (u8 *)data;
 				skip_pck = GF_TRUE;
+				assert(remain>=5);
 				start += 5;
 				remain -= 5;
 				break;
@@ -572,7 +661,18 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				PL = ctx->dsi.VideoPL;
 				e = gf_m4v_parse_config(ctx->vparser, &ctx->dsi);
 				ctx->dsi.VideoPL = PL;
-				if (e != GF_OK) {
+				//not enough data, accumulate until we can parse the full header
+				if (e==GF_EOS) {
+					if (vosh_start<0) vosh_start = 0;
+					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
+						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size - vosh_start;
+						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					}
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
+					ctx->hdr_store_size += pck_size - vosh_start;
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_OK;
+				} else if (e != GF_OK) {
 					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
 				} else {
 					u32 size = gf_m4v_get_object_start(ctx->vparser);
@@ -580,6 +680,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 					vosh_end -= vosh_start;
 					mpgviddmx_check_pid(filter, ctx, vosh_end, data+vosh_start);
 					skip_pck = GF_TRUE;
+					assert(remain>=size);
 					start += size;
 					remain -= size;
 				}
@@ -587,11 +688,13 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			case M4V_VOP_START_CODE:
 			case M4V_GOV_START_CODE:
 				break;
+
 			case M4V_VO_START_CODE:
 			case M4V_VISOBJ_START_CODE:
 			default:
 				if (vosh_start>=0) {
 					skip_pck = GF_TRUE;
+					assert(remain>=4);
 					start += 4;
 					remain -= 4;
 				}
@@ -603,11 +706,12 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			continue;
 		}
 
-
 		if (!ctx->is_playing) {
 			ctx->resume_from = (char *)start -  (char *)data;
 			return GF_OK;
 		}
+		//at this point, we no longer reaggregate packets
+		ctx->hdr_store_size = 0;
 
 		if (ctx->in_seek) {
 			u64 nb_frames_at_seek = ctx->start_range * ctx->fps.num;
@@ -616,18 +720,30 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				ctx->in_seek = GF_FALSE;
 			}
 		}
+		//may happen that after all our checks, only 4 bytes are left, continue to store these 4 bytes
+		if (remain<5)
+			continue;
 
 		//good to go
-		gf_m4v_parser_reset(ctx->vparser);
+		gf_m4v_parser_reset(ctx->vparser, force_sc_type);
+		size = 0;
 		e = gf_m4v_parse_frame(ctx->vparser, ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
+
+		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
+		//needs adjustement
+		if (bytes_from_store) {
+			size += bytes_from_store + hdr_offset;
+		}
 
 		if (e == GF_EOS) {
 			u8 b3 = start[remain-3];
 			u8 b2 = start[remain-2];
 			u8 b1 = start[remain-1];
-			//we may have a startcode here !
+
+			//we may have a startcode at the end of the packet, store it and don't dispatch the last 3 bytes !
 			if (!b1 || !b2 || !b3) {
-				memcpy(ctx->hdr_store, start+remain-3, 3);
+				copy_last_bytes = GF_TRUE;
+				assert(size >= 3);
 				size -= 3;
 				ctx->bytes_in_header = 3;
 			}
@@ -656,40 +772,36 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		if (ftype==2) {
+			//count number of B-frames since last ref
 			ctx->b_frames++;
-#if FILTER_FIXME
-			/*adjust CTS*/
-			if (!has_cts_offset) {
-				u32 i;
-				for (i=0; i<gf_isom_get_sample_count(import->dest, track); i++) {
-					gf_isom_modify_cts_offset(import->dest, track, i+1, dts_inc);
-				}
-				has_cts_offset = GF_TRUE;
-			}
-#endif
 		} else {
 			//flush all pending packets
 			mpgviddmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
+			//remeber the CTS of the last ref
 			ctx->last_ref_cts = ctx->cts;
 			ctx->b_frames = 0;
 		}
 
-
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, size, &pck_data);
-		if (ctx->bytes_in_header && current) {
-			memcpy(pck_data, ctx->hdr_store+current, ctx->bytes_in_header);
-			size -= ctx->bytes_in_header;
-			ctx->bytes_in_header = 0;
+		//bytes come from both our store and the data packet
+		if (bytes_from_store) {
+			memcpy(pck_data, ctx->hdr_store+current, bytes_from_store);
+			assert(size >= bytes_from_store);
+			size -= bytes_from_store;
 			if (byte_offset != GF_FILTER_NO_BO) {
-				gf_filter_pck_set_byte_offset(dst_pck, byte_offset + ctx->bytes_in_header);
+				gf_filter_pck_set_byte_offset(dst_pck, byte_offset - bytes_from_store);
 			}
-			memcpy(pck_data, start, size);
+			memcpy(pck_data + bytes_from_store, start, size);
 		} else {
+			//bytes only come the data packet
 			memcpy(pck_data, start, size);
 			if (byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset + start - (u8 *) data);
 			}
 		}
+		assert(pck_data[0] == 0);
+		assert(pck_data[1] == 0);
+		assert(pck_data[2] == 0x01);
 
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
@@ -697,14 +809,21 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		gf_filter_pck_set_sap(dst_pck, ftype ? 0 : 1);
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
+		ctx->frame_started = GF_TRUE;
 
 		mpgviddmx_enqueue_or_dispatch(ctx, dst_pck, GF_FALSE);
 
-		first_frame_found = GF_TRUE;
+		mpgviddmx_update_time(ctx);
+
+		if (!full_frame) {
+			if (copy_last_bytes) {
+				memcpy(ctx->hdr_store, start+remain-3, 3);
+			}
+			break;
+		}
+		assert(remain>=size);
 		start += size;
 		remain -= size;
-		if (!full_frame) break;
-		mpgviddmx_update_time(ctx);
 
 
 		//don't demux too much of input, abort when we would block. This avoid dispatching
@@ -719,12 +838,22 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 	return GF_OK;
 }
 
+static GF_Err mpgviddmx_initialize(GF_Filter *filter)
+{
+	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
+	ctx->hdr_store_size = 0;
+	ctx->hdr_store_alloc = 8;
+	ctx->hdr_store = gf_malloc(sizeof(char)*8);
+	return GF_OK;
+}
+
 static void mpgviddmx_finalize(GF_Filter *filter)
 {
 	GF_MPGVidDmxCtx *ctx = gf_filter_get_udta(filter);
 	if (ctx->bs) gf_bs_del(ctx->bs);
 	if (ctx->vparser) gf_m4v_parser_del_no_bs(ctx->vparser);
 	if (ctx->indexes) gf_free(ctx->indexes);
+	if (ctx->hdr_store) gf_free(ctx->hdr_store);
 	if (ctx->pck_queue) {
 		while (gf_list_count(ctx->pck_queue)) {
 			GF_FilterPacket *pck = gf_list_pop_back(ctx->pck_queue);
@@ -772,6 +901,7 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 {
 	{ OFFS(fps), "import frame rate", GF_PROP_FRACTION, "25000/1000", NULL, GF_FALSE},
 	{ OFFS(index_dur), "indexing window length", GF_PROP_DOUBLE, "1.0", NULL, GF_FALSE},
+	{ OFFS(vfr), "set variable frame rate import", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 
@@ -781,6 +911,7 @@ GF_FilterRegister MPGVidDmxRegister = {
 	.description = "MPEG-1/2/4 (Part2) Video Demux",
 	.private_size = sizeof(GF_MPGVidDmxCtx),
 	.args = MPGVidDmxArgs,
+	.initialize = mpgviddmx_initialize,
 	.finalize = mpgviddmx_finalize,
 	INCAPS(MPGVidDmxInputs),
 	OUTCAPS(MPGVidDmxOutputs),

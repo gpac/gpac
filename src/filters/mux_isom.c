@@ -516,7 +516,10 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	}
 
 	if (sr) gf_isom_set_audio_info(ctx->mov, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
-	else if (width) gf_isom_set_visual_info(ctx->mov, tkw->track_num, tkw->stsd_idx, width, height);
+	else if (width) {
+		gf_isom_set_visual_info(ctx->mov, tkw->track_num, tkw->stsd_idx, width, height);
+		gf_isom_set_pixel_aspect_ratio(ctx->mov, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
+	}
 
 
 	if (ctx->verbose) {
@@ -554,7 +557,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 	nb_eos = 0;
 
 	for (i=0; i<count; i++) {
-		u64 cts;
+		u64 cts, prev_dts;
 		u32 duration = 0;
 		u32 timescale = 0;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
@@ -572,7 +575,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 		timescale = gf_filter_pck_get_timescale(pck);
 
-
+		prev_dts = tkw->sample.DTS;
 		tkw->sample.CTS_Offset = 0;
 		tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
 		tkw->sample.DTS = gf_filter_pck_get_dts(pck);
@@ -587,7 +590,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			tkw->sample.CTS_Offset = (s32) ((s64) cts - (s64) tkw->sample.DTS);
 		}
 		tkw->sample.IsRAP = gf_filter_pck_get_sap(pck);
-
+			
 		if (tkw->next_is_first_sample && tkw->sample.DTS) {
 			if (!ctx->first_cts_min) {
 				ctx->first_cts_min = tkw->sample.DTS * 1000000;
@@ -616,18 +619,23 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			u64 data_offset = gf_filter_pck_get_byte_offset(pck);
 			if (data_offset != GF_FILTER_NO_BO) {
 				e = gf_isom_add_sample_reference(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample, data_offset);
+				if (e) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" as reference: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+				}
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Cannot add sample reference at DTS "LLU" , input sample data is not continous in source\n", tkw->sample.DTS ));
-
 			}
 		} else if (tkw->nb_frames_per_sample && (tkw->nb_samples % tkw->nb_frames_per_sample)) {
 			e = gf_isom_append_sample_data(ctx->mov, tkw->track_num, tkw->sample.data, tkw->sample.dataLength);
 			tkw->has_append = GF_TRUE;
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to append sample DTS "LLU" data: %s\n", tkw->sample.DTS, gf_error_to_string(e) ));
+			}
 		} else {
 			e = gf_isom_add_sample(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample);
-		}
-		if (e) {
-			GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample: %s\n", gf_error_to_string(e) ));
+			if (e) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" - prev DTS "LLU": %s\n", tkw->sample.DTS, prev_dts, gf_error_to_string(e) ));
+			}
 		}
 
 		tkw->nb_samples++;
@@ -765,14 +773,14 @@ static void mp4_mux_finalize(GF_Filter *filter)
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->mov, tkw->track_num);
 
-		if (!tkw->is_3gpp)
-			gf_media_update_bitrate(ctx->mov, tkw->track_num);
-
 		if ((tkw->nb_samples == 1) && ctx->dur.num && ctx->dur.den) {
 			u32 dur = tkw->timescale * ctx->dur.num;
 			dur /= ctx->dur.den;
 			gf_isom_set_last_sample_duration(ctx->mov, tkw->track_num, dur);
 		}
+
+		if (!tkw->is_3gpp)
+			gf_media_update_bitrate(ctx->mov, tkw->track_num);
 
 		gf_free(tkw);
 	}

@@ -262,6 +262,8 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 	char *data;
 	GF_FilterPacket *final;
 	u32 i, count;
+	GF_FilterPckInfo info;
+
 	//no need to lock the packet list since only the dispatch thread operates on it
 
 	count=gf_list_count(dst->pck_reassembly);
@@ -298,33 +300,37 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 
 	final = gf_filter_pck_new_alloc(dst->pid, size, &data);
 	pos=0;
+
 	for (i=0; i<count; i++) {
 		GF_FilterPacket *pck;
 		GF_FilterPacketInstance *pcki = gf_list_get(dst->pck_reassembly, i);
 		assert(pcki);
 		pck = pcki->pck;
+
+		if (!pos) {
+			info = pck->info;
+		} else {
+			if (pcki->pck->info.duration > info.duration)
+				info.duration = pcki->pck->info.duration;
+			if ((pcki->pck->info.dts != GF_FILTER_NO_TS) && pcki->pck->info.dts > info.dts)
+				info.dts = pcki->pck->info.dts;
+			if ((pcki->pck->info.cts != GF_FILTER_NO_TS) && pcki->pck->info.cts > info.cts)
+				info.cts = pcki->pck->info.cts;
+			if (pcki->pck->info.corrupted > final->info.corrupted)
+				info.corrupted = pcki->pck->info.corrupted;
+			if (pcki->pck->info.carousel_version_number > info.carousel_version_number)
+				info.carousel_version_number = pcki->pck->info.carousel_version_number;
+			if (pcki->pck->info.interlaced > info.interlaced)
+				info.interlaced = pcki->pck->info.interlaced;
+			if (pcki->pck->info.sap_type > info.sap_type)
+				info.sap_type = pcki->pck->info.sap_type;
+			if (pcki->pck->info.seek_flag > info.seek_flag)
+				info.seek_flag = pcki->pck->info.seek_flag;
+		}
 		memcpy(data+pos, pcki->pck->data, pcki->pck->data_length);
 		pos += pcki->pck->data_length;
 
 		gf_filter_pck_merge_properties(pcki->pck, final);
-		final->info.data_block_start = final->info.data_block_end = GF_TRUE;
-
-		if (pcki->pck->info.duration > final->info.duration)
-			final->info.duration = pcki->pck->info.duration;
-		if (pcki->pck->info.dts > final->info.dts)
-			final->info.dts = pcki->pck->info.dts;
-		if (pcki->pck->info.cts > final->info.cts)
-			final->info.cts = pcki->pck->info.cts;
-		if (pcki->pck->info.corrupted > final->info.corrupted)
-			final->info.corrupted = pcki->pck->info.corrupted;
-		if (pcki->pck->info.carousel_version_number > final->info.carousel_version_number)
-			final->info.carousel_version_number = pcki->pck->info.carousel_version_number;
-		if (pcki->pck->info.interlaced > final->info.interlaced)
-			final->info.interlaced = pcki->pck->info.interlaced;
-		if (pcki->pck->info.sap_type > final->info.sap_type)
-			final->info.sap_type = pcki->pck->info.sap_type;
-		if (pcki->pck->info.seek_flag > final->info.seek_flag)
-			final->info.seek_flag = pcki->pck->info.seek_flag;
 
 		if (pcki->pck->pid_props) {
 			final->pid_props = pcki->pck->pid_props;
@@ -342,11 +348,13 @@ static Bool gf_filter_aggregate_packets(GF_FilterPidInst *dst)
 		} else {
 			pcki->pck = final;
 			safe_int_inc(&final->reference_count);
+			final->info = info;
+			final->info.data_block_start = final->info.data_block_end = GF_TRUE;
 
 			safe_int_inc(&dst->filter->pending_packets);
 
-			if (pck->info.duration && pck->pid_props->timescale) {
-				s64 duration = ((u64)pck->info.duration) * 1000000;
+			if (info.duration && pck->pid_props->timescale) {
+				s64 duration = ((u64) info.duration) * 1000000;
 				duration /= pck->pid_props->timescale;
 				safe_int_add(&dst->buffer_duration, duration);
 			}
@@ -496,15 +504,15 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
 			if ((pck->info.dts != GF_FILTER_NO_TS) && (pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" CTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration, pck->info.data_block_start, pck->info.data_block_end));
 			}
 			else if ((pck->info.cts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet CTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.cts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration, pck->info.data_block_start, pck->info.data_block_end));
 			}
 			else if ((pck->info.dts != GF_FILTER_NO_TS) ) {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet DTS "LLU" SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.dts, pck->info.sap_type, pck->info.seek_flag, pck->info.duration, pck->info.data_block_start, pck->info.data_block_end));
 			} else {
-				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d\n", pck->pid->filter->name, pck->pid->name, pck->info.sap_type, pck->info.seek_flag, pck->info.duration));
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s sent packet no DTS/PTS SAP %d seek %d duration %d S/E %d/%d\n", pck->pid->filter->name, pck->pid->name, pck->info.sap_type, pck->info.seek_flag, pck->info.duration, pck->info.data_block_start, pck->info.data_block_end));
 			}
 		}
 #endif

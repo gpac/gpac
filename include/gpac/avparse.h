@@ -100,7 +100,8 @@ GF_M4VParser *gf_m4v_parser_bs_new(GF_BitStream *bs, Bool mpeg12video);
 void gf_m4v_parser_del(GF_M4VParser *m4v);
 void gf_m4v_parser_del_no_bs(GF_M4VParser *m4v);
 GF_Err gf_m4v_parse_config(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi);
-void gf_m4v_parser_reset(GF_M4VParser *m4v);
+//if obj_type is not 0, skip next start code and use obj_type for next obj parsing
+void gf_m4v_parser_reset(GF_M4VParser *m4v, u8 obj_type);
 
 /*get a frame. The parser ALWAYS resync on the next object in the bitstream
 thus you can seek the bitstream to copy the payload without re-seeking it */

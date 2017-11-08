@@ -263,6 +263,7 @@ struct __tag_m4v_parser
 	GF_BitStream *bs;
 	Bool mpeg12;
 	u32 current_object_type;
+	u32 force_next_obj_type;
 	u64 current_object_start;
 	u32 tc_dec, prev_tc_dec, tc_disp, prev_tc_disp;
 };
@@ -310,6 +311,12 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 	char m4v_cache[M4V_CACHE_SIZE];
 	u64 end, cache_start, load_size;
 	if (!m4v) return 0;
+	if (m4v->force_next_obj_type) {
+		m4v->current_object_type = m4v->force_next_obj_type;
+		m4v->force_next_obj_type = 0;
+		return (s32) m4v->current_object_type;
+	}
+	
 	bpos = 0;
 	found = 0;
 	load_size = 0;
@@ -377,10 +384,11 @@ static GF_Err M4V_Reset(GF_M4VParser *m4v, u64 start)
 	return GF_OK;
 }
 
-void gf_m4v_parser_reset(GF_M4VParser *m4v)
+void gf_m4v_parser_reset(GF_M4VParser *m4v, u8 sc_type)
 {
 	m4v->current_object_start = 0;
 	m4v->current_object_type = 0;
+	m4v->force_next_obj_type = sc_type;
 }
 static GF_Err gf_m4v_parse_config_mpeg12(GF_M4VParser *m4v, GF_M4VDecSpecInfo *dsi)
 {
@@ -589,7 +597,7 @@ static GF_Err gf_m4v_parse_config_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo *ds
 		case -1:
 			go = 0;
 			m4v->current_object_start = gf_bs_get_position(m4v->bs);
-			break;
+			return GF_EOS;
 		/*don't interest us*/
 		case M4V_UDTA_START_CODE:
 		default:
@@ -693,7 +701,8 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 	*is_coded = 0;
 	m4v->current_object_type = (u32) -1;
 	*frame_type = 0;
-
+	*start = 0;
+	
 	M4V_Reset(m4v, m4v->current_object_start);
 	go = 1;
 	while (go) {
@@ -765,6 +774,7 @@ static GF_Err gf_m4v_parse_frame_mpeg4(GF_M4VParser *m4v, GF_M4VDecSpecInfo dsi,
 			return GF_EOS;
 		}
 	}
+	assert(m4v->current_object_start >= *start);
 	*size = m4v->current_object_start - *start;
 	return GF_OK;
 }

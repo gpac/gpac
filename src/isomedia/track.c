@@ -980,7 +980,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	}
 
 	//get the REF box if needed
-	if (esd->dependsOnESID  || esd->OCRESID ) {
+	if (esd->dependsOnESID || (esd->OCRESID  && (esd->OCRESID != trak->moov->mov->es_id_default_sync)) ) {
 		if (!trak->References) {
 			tref = (GF_TrackReferenceBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_TREF);
 			e = trak_AddBox((GF_Box*)trak, (GF_Box *)tref);
@@ -1007,7 +1007,7 @@ GF_Err Track_SetStreamDescriptor(GF_TrackBox *trak, u32 StreamDescriptionIndex, 
 	//Update GF_Clock dependancies
 	e = Track_FindRef(trak, GF_ISOM_REF_OCR, &dpnd);
 	if (e) return e;
-	if (!dpnd && esd->OCRESID) {
+	if (!dpnd && esd->OCRESID && (esd->OCRESID != trak->moov->mov->es_id_default_sync)) {
 		dpnd = (GF_TrackReferenceTypeBox *) gf_isom_box_new(GF_ISOM_BOX_TYPE_REFT);
 		dpnd->reference_type = GF_ISOM_BOX_TYPE_SYNC;
 		e = tref_AddBox((GF_Box*)tref, (GF_Box *) dpnd);
