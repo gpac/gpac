@@ -312,7 +312,7 @@ s32 M4V_LoadObject(GF_M4VParser *m4v)
 	u64 end, cache_start, load_size;
 	if (!m4v) return 0;
 	if (m4v->force_next_obj_type) {
-		m4v->current_object_type = m4v->force_next_obj_type;
+		m4v->current_object_type = m4v->force_next_obj_type - 1;
 		m4v->force_next_obj_type = 0;
 		return (s32) m4v->current_object_type;
 	}

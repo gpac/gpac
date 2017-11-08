@@ -262,7 +262,9 @@ static void mpgviddmx_check_pid(GF_Filter *filter, GF_MPGVidDmxCtx *ctx, u32 vos
 	gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_SAR, & PROP_FRAC_INT(ctx->dsi.par_num, ctx->dsi.par_den));
 
 	if (ctx->is_mpg12) {
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_MPEG2_MAIN));
+		u32 PL = ctx->dsi.VideoPL;
+		if (!PL) PL = GPAC_OTI_VIDEO_MPEG2_MAIN;
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(PL));
 	} else {
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_OTI, & PROP_UINT(GPAC_OTI_VIDEO_MPEG4_PART2));
 	}
@@ -495,7 +497,8 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		char *pck_data;
 		s32 current;
 		u32 w, h;
-		u8 sc_type, force_sc_type=0;
+		u8 sc_type, forced_sc_type;
+		Bool sc_type_forced = GF_FALSE;
 		Bool skip_pck = GF_FALSE;
 		u8 ftype;
 		u32 tinc;
@@ -541,10 +544,11 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 				bytes_from_store = ctx->bytes_in_header;
 				ctx->bytes_in_header = 0;
 				if (!hdr_offset) {
-					force_sc_type = ctx->hdr_store[current+3];
+					forced_sc_type = ctx->hdr_store[current+3];
 				} else {
-					force_sc_type = start[hdr_offset-1];
+					forced_sc_type = start[hdr_offset-1];
 				}
+				sc_type_forced = GF_TRUE;
 			}
 		}
 		//no starcode in store, look for startcode in packet
@@ -634,9 +638,9 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		w = h = 0;
 
 		//we have a start code loaded, eg the data packet does not have a full start code at the begining
-		if (force_sc_type) {
+		if (sc_type_forced) {
 			gf_bs_reassign_buffer(ctx->bs, start + hdr_offset, remain - hdr_offset);
-			sc_type = force_sc_type;
+			sc_type = forced_sc_type;
 		} else {
 			gf_bs_reassign_buffer(ctx->bs, start, remain);
 			gf_bs_read_int(ctx->bs, 24);
@@ -644,6 +648,33 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		}
 
 		if (ctx->is_mpg12) {
+			switch (sc_type) {
+			case M2V_SEQ_START_CODE:
+			case M2V_EXT_START_CODE:
+				gf_bs_reassign_buffer(ctx->bs, start, remain);
+				e = gf_m4v_parse_config(ctx->vparser, &ctx->dsi);
+				//not enough data, accumulate until we can parse the full header
+				if (e==GF_EOS) {
+					if (vosh_start<0) vosh_start = 0;
+					if (ctx->hdr_store_alloc < ctx->hdr_store_size + pck_size - vosh_start) {
+						ctx->hdr_store_alloc = ctx->hdr_store_size + pck_size - vosh_start;
+						ctx->hdr_store = gf_realloc(ctx->hdr_store, sizeof(char)*ctx->hdr_store_alloc);
+					}
+					memcpy(ctx->hdr_store + ctx->hdr_store_size, data + vosh_start, sizeof(char)*(pck_size - vosh_start) );
+					ctx->hdr_store_size += pck_size - vosh_start;
+					gf_filter_pid_drop_packet(ctx->ipid);
+					return GF_OK;
+				} else if (e != GF_OK) {
+					GF_LOG(GF_LOG_ERROR, GF_LOG_MEDIA, ("[MPGVid] Failed to parse VOS header: %s\n", gf_error_to_string(e) ));
+				} else {
+					mpgviddmx_check_pid(filter, ctx, 0, NULL);
+				}
+				break;
+			case M2V_PIC_START_CODE:
+				break;
+			default:
+				break;
+			}
 
 		} else {
 			u8 PL;
@@ -725,9 +756,10 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 			continue;
 
 		//good to go
-		gf_m4v_parser_reset(ctx->vparser, force_sc_type);
+		gf_m4v_parser_reset(ctx->vparser, sc_type_forced ? forced_sc_type + 1 : 0);
 		size = 0;
 		e = gf_m4v_parse_frame(ctx->vparser, ctx->dsi, &ftype, &tinc, &size, &fstart, &is_coded);
+		assert(!fstart);
 
 		//we skipped bytes already in store + end of start code present in packet, so the size of the first object
 		//needs adjustement
