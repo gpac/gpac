@@ -339,6 +339,18 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		comp_name = "MPEG-4 Visual Part 2";
 		use_gen_sample_entry = GF_FALSE;
 		break;
+	case GPAC_OTI_VIDEO_MPEG1:
+	case GPAC_OTI_VIDEO_MPEG2_422:
+	case GPAC_OTI_VIDEO_MPEG2_SNR:
+	case GPAC_OTI_VIDEO_MPEG2_HIGH:
+	case GPAC_OTI_VIDEO_MPEG2_MAIN:
+	case GPAC_OTI_VIDEO_MPEG2_SIMPLE:
+	case GPAC_OTI_VIDEO_MPEG2_SPATIAL:
+		m_subtype = GF_ISOM_SUBTYPE_MPEG4;
+		use_m4sys = GF_TRUE;
+		comp_name = "MPEG-2 Video";
+		use_gen_sample_entry = GF_FALSE;
+		break;
 	default:
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Importing OTI %d not yet implemented - patch welcome\n", tkw->oti));
 		return GF_NOT_SUPPORTED;
@@ -558,13 +570,15 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 	for (i=0; i<count; i++) {
 		u64 cts, prev_dts;
+		u32 prev_size=0;
 		u32 duration = 0;
 		u32 timescale = 0;
 		TrackWriter *tkw = gf_list_get(ctx->tracks, i);
 		GF_FilterPacket *pck = gf_filter_pid_get_packet(tkw->ipid);
 
 		if (!pck) {
-			if (gf_filter_pid_is_eos(tkw->ipid)) nb_eos++;
+			if (gf_filter_pid_is_eos(tkw->ipid))
+				nb_eos++;
 			continue;
 		}
 		if (tkw->aborted) {
@@ -576,13 +590,16 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		timescale = gf_filter_pck_get_timescale(pck);
 
 		prev_dts = tkw->sample.DTS;
+		prev_size = tkw->sample.dataLength;
 		tkw->sample.CTS_Offset = 0;
 		tkw->sample.data = (char *)gf_filter_pck_get_data(pck, &tkw->sample.dataLength);
 		tkw->sample.DTS = gf_filter_pck_get_dts(pck);
 		cts = gf_filter_pck_get_cts(pck);
 		if (tkw->sample.DTS == GF_FILTER_NO_TS) {
 			if (cts == GF_FILTER_NO_TS) {
-				tkw->sample.DTS = 0;
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Sample with no DTS/CTS, cannot add (last DTS "LLU", last size %d)\n", prev_dts, prev_size ));
+				gf_filter_pid_drop_packet(tkw->ipid);
+				continue;
 			} else {
 				tkw->sample.DTS = cts;
 			}
@@ -635,6 +652,9 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			e = gf_isom_add_sample(ctx->mov, tkw->track_num, tkw->stsd_idx, &tkw->sample);
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" - prev DTS "LLU": %s\n", tkw->sample.DTS, prev_dts, gf_error_to_string(e) ));
+			} else {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
+
 			}
 		}
 

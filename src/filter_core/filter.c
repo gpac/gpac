@@ -520,8 +520,13 @@ static void reset_filter_args(GF_Filter *filter)
 
 static void gf_filter_check_pending_tasks(GF_Filter *filter, GF_FSTask *task)
 {
-	safe_int_dec(&filter->process_task_queued);
+//	if (filter->nb_pck_drop_in_process)
+		safe_int_dec(&filter->process_task_queued);
+
 	if (filter->process_task_queued) {
+		task->requeue_request = GF_TRUE;
+	} else if (filter->pending_packets) {
+		safe_int_inc(&filter->process_task_queued);
 		task->requeue_request = GF_TRUE;
 	}
 }
@@ -614,6 +619,7 @@ static void gf_filter_process_task(GF_FSTask *task)
 	}
 	FSESS_CHECK_THREAD(filter)
 
+	filter->nb_pck_drop_in_process = 0;
 
 #ifdef GPAC_MEMORY_TRACKING
 	if (filter->session->check_allocs)
