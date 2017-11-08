@@ -525,7 +525,11 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 				txt_mode = GF_ISOM_TEXT_FLAGS_UNTOGGLE;
 			}
 		}
-
+		else if (!strcmp(ext+1, "gpac")) {
+			if (ext2) ext2[0] = ':';
+			ext = NULL;
+			break;
+		}
 		/*unrecognized, assume name has colon in it*/
 		else {
 			fprintf(stderr, "Unrecognized import option %s, ignoring\n", ext+1);
