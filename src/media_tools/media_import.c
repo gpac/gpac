@@ -389,7 +389,7 @@ static Bool LOAS_LoadFrame(GF_BitStream *bs, GF_M4ADecSpecInfo *acfg, u32 *nb_by
 	return GF_FALSE;
 }
 
-GF_Err gf_import_aac_loas(GF_MediaImporter *import)
+static GF_Err gf_import_aac_loas(GF_MediaImporter *import)
 {
 	u8 oti;
 	Bool destroy_esd;
@@ -922,7 +922,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_import_avi_audio(GF_MediaImporter *import)
+static GF_Err gf_import_avi_audio(GF_MediaImporter *import)
 {
 	GF_Err e;
 	FILE *test;
@@ -1433,7 +1433,7 @@ exit:
 
 #include "mpeg2_ps.h"
 
-GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
+static GF_Err gf_import_mpeg_ps_video(GF_MediaImporter *import)
 {
 	GF_Err e;
 	mpeg2ps_t *ps;
@@ -1607,7 +1607,7 @@ exit:
 	return e;
 }
 
-GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
+static GF_Err gf_import_mpeg_ps_audio(GF_MediaImporter *import)
 {
 	GF_Err e;
 	mpeg2ps_t *ps;
@@ -1727,7 +1727,7 @@ exit:
 #endif /*GPAC_DISABLE_MPEG2PS*/
 
 
-GF_Err gf_import_nhnt(GF_MediaImporter *import)
+static GF_Err gf_import_nhnt(GF_MediaImporter *import)
 {
 	GF_Err e;
 	Bool destroy_esd, next_is_start;
@@ -2028,7 +2028,7 @@ static void nhml_node_end(void *sax_cbck, const char *node_name, const char *nam
 }
 
 
-GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo, u32 *max_size)
+static GF_Err gf_import_sample_from_xml(GF_MediaImporter *import, GF_ISOSample *samp, char *xml_file, char *xmlFrom, char *xmlTo, u32 *max_size)
 {
 	GF_Err e;
 	u32 read;
@@ -2197,7 +2197,7 @@ static void nhml_on_progress(void *cbk, u64 done, u64 tot)
 
 
 /*FIXME - need LARGE FILE support in NHNT - add a new version*/
-GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
+static GF_Err gf_import_nhml_dims(GF_MediaImporter *import, Bool dims_doc)
 {
 	GF_Err e;
 	GF_DIMSDescription dims;
@@ -5351,7 +5351,7 @@ exit:
 
 #endif /*GPAC_DISABLE_AV_PARSERS*/
 
-GF_Err gf_import_raw_unit(GF_MediaImporter *import)
+static GF_Err gf_import_raw_unit(GF_MediaImporter *import)
 {
 	GF_Err e;
 	GF_ISOSample *samp;
@@ -5445,20 +5445,7 @@ exit:
 }
 
 
-GF_Err gf_import_saf(GF_MediaImporter *import)
-{
-	//TODO
-	return GF_OK;
-}
-
-/* Warning: we start importing only after finding the PMT */
-GF_Err gf_import_mpeg_ts(GF_MediaImporter *import)
-{
-	//TODO
-	return GF_OK;
-}
-
-GF_Err gf_import_vobsub(GF_MediaImporter *import)
+static GF_Err gf_import_vobsub(GF_MediaImporter *import)
 {
 #ifndef GPAC_DISABLE_VOBSUB
 	static const u8 null_subpic[] = { 0x00, 0x09, 0x00, 0x04, 0x00, 0x00, 0x00, 0x04, 0xFF };
@@ -6031,6 +6018,9 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 	if (!strnicmp(ext, ".s3d", 4) || !stricmp(fmt, "SC3DMC") )
 		return gf_import_afx_sc3dmc(importer, GF_TRUE);
 
+#ifdef FILTER_FIXME
+	#error "importer TODO: SAF, TS"
+#endif
 
 	e = GF_OK;
 	fsess = gf_fs_new(0, GF_FS_SCHEDULER_LOCK_FREE, NULL, GF_FALSE);
