@@ -1534,6 +1534,7 @@ typedef enum
 	GF_ISOM_HVCC_SET_LHVC,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD,
+	GF_ISOM_LHCC_SET_INBAND
 } HevcConfigUpdateType;
 
 static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand_type)
@@ -1679,6 +1680,10 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			if ((entry->type==GF_ISOM_BOX_TYPE_HEV1) || (entry->type==GF_ISOM_BOX_TYPE_HEV2)) entry->type = GF_ISOM_BOX_TYPE_LHE1;
 			else entry->type = GF_ISOM_BOX_TYPE_LHV1;
 		}
+		/*LHEVC inband, no config change*/
+		else if (operand_type==GF_ISOM_LHCC_SET_INBAND) {
+			entry->type = GF_ISOM_BOX_TYPE_LHE1;
+		}
 	}
 
 	HEVC_RewriteESDescriptor(entry);
@@ -1696,6 +1701,13 @@ GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32
 {
 	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_HVCC_SET_INBAND);
 }
+
+GF_EXPORT
+GF_Err gf_isom_lhvc_force_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_LHCC_SET_INBAND);
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_base_track)
