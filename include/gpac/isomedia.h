@@ -2023,11 +2023,14 @@ GF_Err gf_isom_mvc_config_new(GF_ISOFile *the_file, u32 trackNumber, GF_AVCConfi
 /*deletes MVC config*/
 GF_Err gf_isom_mvc_config_del(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-/*sets avc3 entry type (inband SPS/PPS) instead of of avc1 (SPS/PPS in avcC box)*/
+/*sets avc3 entry type (inband SPS/PPS) instead of avc1 (SPS/PPS in avcC box)*/
 GF_Err gf_isom_avc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
-/*sets hev1 entry type (inband SPS/PPS) instead of of hvc1 (SPS/PPS in avcC box)*/
+/*sets hev1 entry type (inband SPS/PPS) instead of hvc1 (SPS/PPS in hvcC box)*/
 GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
+
+/*sets lhe1 entry type instead of lhc1 but keep lhcC box intact*/
+GF_Err gf_isom_lhvc_force_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex);
 
 /*sets hvt1 entry type (tile track) or hev2/hvc2 type if is_base_track is set - cfg may be set to indicate sub-profile of the tile. It is the use responsability to set the tbas track reference to the base hevc track*/
 GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_base_track);
