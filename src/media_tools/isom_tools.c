@@ -2531,7 +2531,7 @@ reparse:
 						sti[j].lhvccfg->is_lhvc = 1;
 						sti[j].lhvccfg->complete_representation = 1;
 					}
-					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, (extractor_mode != GF_LHVC_EXTRACTORS_ON)  ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
+					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, (extractor_mode == GF_LHVC_EXTRACTORS_ON)  ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
 					if (e) goto exit;
 
 					if (extractor_mode == GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND)
