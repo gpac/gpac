@@ -520,6 +520,7 @@ void PrintImportUsage()
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
+	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"

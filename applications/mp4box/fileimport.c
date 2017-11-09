@@ -391,6 +391,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 
 			if (!stricmp(mode, "splitnox"))
 				svc_mode = 3;
+			else if (!stricmp(mode, "splitnoxib"))
+				svc_mode = 4;
 			else if (!stricmp(mode, "splitall") || !stricmp(mode, "split"))
 				svc_mode = 2;
 			else if (!stricmp(mode, "splitbase"))
@@ -961,7 +963,10 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 #ifndef GPAC_DISABLE_HEVC
 	if (check_track_for_lhvc) {
 		if (svc_mode) {
-			e = gf_media_split_lhvc(import.dest, check_track_for_lhvc, GF_FALSE, (svc_mode==1) ? 0 : 1, (svc_mode==3) ? 0 : 1 );
+			GF_LHVCExtractoreMode xmode = GF_LHVC_EXTRACTORS_ON;
+			if (svc_mode==3) xmode = GF_LHVC_EXTRACTORS_OFF;
+			else if (svc_mode==4) xmode = GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND;
+			e = gf_media_split_lhvc(import.dest, check_track_for_lhvc, GF_FALSE, (svc_mode==1) ? 0 : 1, xmode );
 			if (e) goto exit;
 		} else {
 			//TODO - merge, temporal sublayers
@@ -973,7 +978,8 @@ GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double forc
 			if (e) goto exit;
 		}
 		if (temporal_mode) {
-			e = gf_media_split_lhvc(import.dest, check_track_for_hevc, GF_TRUE, (temporal_mode==1) ? GF_FALSE : GF_TRUE, (temporal_mode==3) ? GF_FALSE : GF_TRUE );
+			GF_LHVCExtractoreMode xmode = (temporal_mode==3) ? GF_LHVC_EXTRACTORS_OFF : GF_LHVC_EXTRACTORS_ON;
+			e = gf_media_split_lhvc(import.dest, check_track_for_hevc, GF_TRUE, (temporal_mode==1) ? GF_FALSE : GF_TRUE, xmode );
 			if (e) goto exit;
 		}
 	}

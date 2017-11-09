@@ -4028,6 +4028,9 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 	u8 dimension_id_len[16], dim_bit_offset[16];
 	u8 /*avc_base_layer_flag, */NumLayerSets, /*default_one_target_output_layer_flag, */rep_format_idx_present_flag, ols_ids_to_ls_idx;
 	u8 layer_set_idx_for_ols_minus1[MAX_LHVC_LAYERS];
+	u8 nb_output_layers_in_output_layer_set[MAX_LHVC_LAYERS+1];
+	u8 ols_highest_output_layer_id[MAX_LHVC_LAYERS+1];
+
 	u32 k,d, r, p, iNuhLId, jNuhLId;
 	u8 num_direct_ref_layers[64], num_pred_layers[64], num_layers_in_tree_partition[MAX_LHVC_LAYERS];
 	u8 dependency_flag[MAX_LHVC_LAYERS][MAX_LHVC_LAYERS], id_pred_layers[64][MAX_LHVC_LAYERS];
@@ -4273,8 +4276,17 @@ static Bool hevc_parse_vps_extension(HEVC_VPS *vps, GF_BitStream *bs)
 				vps->profile_tier_level_idx[i][j] = gf_bs_read_int(bs, nb_bits);
 			else
 				vps->profile_tier_level_idx[i][j] = 0;
-		//if (NumOutputLayersInOutputLayerSet[i] == 1 && num_direct_ref_layers[OlsHighestOutputLayerId[i] > 0)
-		vps->alt_output_layer_flag[i] = gf_bs_read_int(bs, 1);
+
+
+		nb_output_layers_in_output_layer_set[i] = 0;
+		for (j = 0; j < vps->num_layers_in_id_list[ols_ids_to_ls_idx]; j++) {
+			nb_output_layers_in_output_layer_set[i] += OutputLayerFlag[i][j];
+			if (OutputLayerFlag[i][j]) {
+				ols_highest_output_layer_id[i] = vps->LayerSetLayerIdList[ols_ids_to_ls_idx][j];
+			}
+		}
+		if (nb_output_layers_in_output_layer_set[i] == 1 && ols_highest_output_layer_id[i] > 0)
+			 vps->alt_output_layer_flag[i] = gf_bs_read_int(bs, 1);
 	}
 
 	vps->num_rep_formats = 1 + bs_get_ue(bs);

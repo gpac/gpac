@@ -2226,7 +2226,7 @@ exit:
 }
 
 GF_EXPORT
-GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, Bool use_extractors)
+GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode)
 {
 	LHVCTrackInfo sti[64];
 	GF_HEVCConfig *hevccfg, *lhvccfg;
@@ -2271,21 +2271,45 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 	nal_unit_size = lhvccfg ? lhvccfg->nal_unit_size : hevccfg->nal_unit_size;
 
 	if (!for_temporal_sublayers) {
-		u32 i;
+		u32 i, pass, base_layer_pass = GF_TRUE;
+		GF_HEVCConfig *cur_cfg = hevccfg;
+
+reparse:
 		//split all SPS/PPS/VPS from lhvccfg
-		count = gf_list_count(lhvccfg->param_array);
+		for (pass=0; pass<3; pass++) {
+		count = gf_list_count(cur_cfg->param_array);
 		for (i=0; i<count; i++) {
 			u32 count2;
 			GF_HEVCParamArray *s_ar;
-			GF_HEVCParamArray *ar = gf_list_get(lhvccfg->param_array, i);
+			GF_HEVCParamArray *ar = gf_list_get(cur_cfg->param_array, i);
+			if ((pass==0) && (ar->type!=GF_HEVC_NALU_VID_PARAM)) continue;
+			else if ((pass==1) && (ar->type!=GF_HEVC_NALU_SEQ_PARAM)) continue;
+			else if ((pass==2) && (ar->type!=GF_HEVC_NALU_PIC_PARAM)) continue;
+
 			count2 = gf_list_count(ar->nalus);
 			for (j=0; j<count2; j++) {
 				GF_AVCConfigSlot *sl = gf_list_get(ar->nalus, j);
 //				u8 nal_type = (sl->data[0] & 0x7E) >> 1;
 				u8 layer_id = ((sl->data[0] & 0x1) << 5) | (sl->data[1] >> 3);
 
-				//this should not happen
-				if (!layer_id) continue;
+				if (ar->type==GF_HEVC_NALU_SEQ_PARAM) {
+					u32 lw, lh;
+					s32 idx = gf_hevc_get_sps_info_with_state(&hevc_state, sl->data, sl->size, NULL, &lw, &lh, NULL, NULL);
+					if (idx>=0) {
+						if (lw > sti[layer_id].width) sti[layer_id].width = lw;
+						if (lh > sti[layer_id].height) sti[layer_id].height = lh;
+					}
+				} else if (ar->type==GF_HEVC_NALU_PIC_PARAM) {
+					gf_media_hevc_read_pps(sl->data, sl->size, &hevc_state);
+				} else if (ar->type==GF_HEVC_NALU_VID_PARAM) {
+					gf_media_hevc_read_vps(sl->data, sl->size, &hevc_state);
+				}
+
+				//don't touch base layer
+				if (!layer_id) {
+					assert(base_layer_pass);
+					continue;
+				}
 
 				if (!splitAll) layer_id = 1;
 
@@ -2309,6 +2333,12 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 				j--;
 				count2--;
 			}
+			}
+		}
+		if (base_layer_pass) {
+			base_layer_pass = GF_FALSE;
+			cur_cfg = lhvccfg;
+			goto reparse;
 		}
 	} else {
 		gf_isom_set_cts_packing(file, track, GF_TRUE);
@@ -2317,7 +2347,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 	//CLARIFY wether this is correct: we duplicate all VPS in the enhancement layer ...
 	//we do this because if we split the tracks some info for setting up the enhancement layer
 	//is in the VPS
-	if (!use_extractors) {
+	if (extractor_mode != GF_LHVC_EXTRACTORS_ON) {
 		u32 i;
 		count = gf_list_count(hevccfg->param_array);
 		for (i=0; i<count; i++) {
@@ -2475,7 +2505,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 		//reset all samples on all layers found - we may have layers not present in this sample, we still need to process these layers when extractors are used
 		for (j=0; j<=max_layer_id; j++) {
 			if (!for_temporal_sublayers && ! sti[j].bs) {
-				if (!sti[j].track_num || !use_extractors) {
+				if (!sti[j].track_num || (extractor_mode != GF_LHVC_EXTRACTORS_ON) ) {
 					sti[j].data_offset =  sti[j].data_size = 0;
 					continue;
 				}
@@ -2499,8 +2529,11 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 						sti[j].lhvccfg->is_lhvc = 1;
 						sti[j].lhvccfg->complete_representation = 1;
 					}
-					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, use_extractors ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
+					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, sti[j].lhvccfg, (extractor_mode != GF_LHVC_EXTRACTORS_ON)  ? GF_ISOM_LEHVC_WITH_BASE : GF_ISOM_LEHVC_ONLY);
 					if (e) goto exit;
+
+					if (extractor_mode == GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND)
+						gf_isom_lhvc_force_inband_config(file, sti[j].track_num, 1);
 				} else {
 					e = gf_isom_lhvc_config_update(file, sti[j].track_num, 1, NULL, GF_ISOM_LEHVC_WITH_BASE);
 					if (e) goto exit;
@@ -2522,7 +2555,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 				gf_isom_set_nalu_extract_mode(file, sti[j].track_num, GF_ISOM_NALU_EXTRACT_INSPECT);
 
 				//get lower layer
-				if (use_extractors) {
+				if (extractor_mode == GF_LHVC_EXTRACTORS_ON) {
 					for (k=j; k>0; k--) {
 						if (sti[k-1].track_num) {
 							u32 track_id = gf_isom_get_track_id(file, sti[k-1].track_num);
@@ -2538,7 +2571,7 @@ GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublay
 					gf_isom_set_visual_info(file, sti[j].track_num, 1, sti[j].width, sti[j].height);
 			}
 
-			if (j && use_extractors) {
+			if (j && (extractor_mode == GF_LHVC_EXTRACTORS_ON)) {
 				GF_BitStream *xbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
 				//get all lower layers
 				for (k=0; k<j; k++) {
@@ -2709,7 +2742,7 @@ exit:
 	}
 	gf_isom_set_nalu_extract_mode(file, track, cur_extract_mode);
 
-	if (use_extractors) {
+	if (extractor_mode == GF_LHVC_EXTRACTORS_ON) {
 		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCE, 1);
 		gf_isom_modify_alternate_brand(file, GF_ISOM_BRAND_HVCI, 0);
 	}
