@@ -1137,6 +1137,8 @@ typedef struct _audio_render
 
 	Bool step_mode;
 
+	Fixed yaw, pitch, roll;
+
 } GF_AudioRenderer;
 
 /*creates audio renderer*/
