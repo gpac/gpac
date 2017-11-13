@@ -46,6 +46,7 @@ typedef struct
 	Bool use_dref;
 	Bool aborted;
 	Bool has_append;
+	Bool has_ctts;
 	s64 min_neg_ctts;
 	u32 nb_samples;
 	u32 nb_frames_per_sample;
@@ -68,7 +69,7 @@ typedef struct
 	GF_Fraction dur;
 	u32 pack3gp;
 	Bool verbose;
-	Bool no_edit;
+	Bool noedit;
 
 
 	//internal
@@ -539,7 +540,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		if (sr) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - SampleRate %d Num Channels %d\n", imp_name, sr, nb_chan));
 		} else if (width) {
-			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - Width %d Height %d FPS %d SAR %d/%u/%u\n", imp_name, width, height, fps.num, fps.den, sar.num, sar.den));
+			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - Width %d Height %d FPS %d/%d SAR %d/%u\n", imp_name, width, height, fps.num, fps.den, sar.num, sar.den));
 		} else {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s\n", imp_name));
 		}
@@ -607,7 +608,8 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			tkw->sample.CTS_Offset = (s32) ((s64) cts - (s64) tkw->sample.DTS);
 		}
 		tkw->sample.IsRAP = gf_filter_pck_get_sap(pck);
-			
+		if (tkw->sample.CTS_Offset) tkw->has_ctts = GF_TRUE;
+		
 		if (tkw->next_is_first_sample && tkw->sample.DTS) {
 			if (!ctx->first_cts_min) {
 				ctx->first_cts_min = tkw->sample.DTS * 1000000;
@@ -653,8 +655,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 			if (e) {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] Failed to add sample DTS "LLU" - prev DTS "LLU": %s\n", tkw->sample.DTS, prev_dts, gf_error_to_string(e) ));
 			} else {
-				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
-
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_CONTAINER, ("[MP4Mux] added sample DTS "LLU" - prev DTS "LLU" - prev size %d\n", tkw->sample.DTS, prev_dts, prev_size));
 			}
 		}
 
@@ -760,10 +761,16 @@ static void mp4_mux_finalize(GF_Filter *filter)
 			gf_isom_set_cts_packing(ctx->mov, tkw->track_num, GF_FALSE);
 			gf_isom_set_composition_offset_mode(ctx->mov, tkw->track_num, GF_FALSE);
 
-			if (! ctx->no_edit)
+			if (! ctx->noedit)
 				mp4_mux_update_edit_list_for_bframes(ctx->mov, tkw->track_num);
 
 			has_bframes = GF_TRUE;
+		} else if (tkw->has_ctts && (tkw->stream_type==GF_STREAM_VISUAL) ) {
+			if (! ctx->noedit)
+				mp4_mux_update_edit_list_for_bframes(ctx->mov, tkw->track_num);
+
+			has_bframes = GF_TRUE;
+
 		}
 
 		/*this is plain ugly but since some encoders (divx) don't use the video PL correctly
@@ -834,7 +841,7 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(dur), "only imports the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(pack3gp), "packs a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FALSE},
 	{ OFFS(verbose), "compatibility with old importer, displys import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-	{ OFFS(no_edit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(noedit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 
 	{}
 };

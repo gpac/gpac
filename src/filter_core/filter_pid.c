@@ -1649,8 +1649,6 @@ void gf_filter_pid_drop_packet(GF_FilterPid *pid)
 
 	if (pidinst->filter)
 		gf_filter_forward_clock(pidinst->filter);
-
-	pidinst->filter->nb_pck_drop_in_process++;
 }
 
 Bool gf_filter_pid_is_eos(GF_FilterPid *pid)
