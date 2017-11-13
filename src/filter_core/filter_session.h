@@ -358,8 +358,6 @@ struct __gf_filter
 	//pointer to the target filter to connect to - only used for graph setup, reset after
 	GF_Filter *dst_filter;
 
-	u32 nb_pck_drop_in_process;
-
 	//statistics
 	//number of tasks executed by this filter
 	u64 nb_tasks_done;
