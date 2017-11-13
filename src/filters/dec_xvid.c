@@ -158,11 +158,13 @@ static GF_Err xviddec_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_DECODER_CONFIG);
 	if (p && p->value.data.ptr && p->value.data.size) {
 		u32 ex_crc = gf_crc_32(p->value.data.ptr, p->value.data.size);
-		if (ctx->cfg_crc && (ctx->cfg_crc != ex_crc)) {
-			//shoud we flush ?
-			if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
-			ctx->codec = NULL;
-		}
+		if (ctx->cfg_crc == ex_crc) return GF_OK;
+
+		//shoud we flush ?
+		if (ctx->codec) xvid_decore(ctx->codec, XVID_DEC_DESTROY, NULL, NULL);
+		ctx->codec = NULL;
+
+		ctx->cfg_crc = ex_crc;
 	} else {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[XVID] Reconfiguring without DSI not yet supported\n"));
 		return GF_NOT_SUPPORTED;
@@ -379,6 +381,8 @@ packed_frame :
 		gf_filter_pck_send(dst_pck);
 	else
 		gf_filter_pck_discard(dst_pck);
+
+	xviddec_drop_frameinfo(ctx);
 
 	if (res + 6 < frame.length) {
 		frame.bitstream += res;
