@@ -1229,7 +1229,7 @@ GF_DownloadSession *gf_service_download_new(GF_ClientService *service, const cha
 {
 	GF_Err e;
 	GF_DownloadSession * sess;
-	char *sURL, *orig_url;
+	char *sURL, *orig_url, *frag;
 	if (!service) {
 		GF_LOG(GF_LOG_ERROR, GF_LOG_NETWORK, ("[HTTP] service is null, cannot create new download session for %s.\n", url));
 		return NULL;
@@ -1238,6 +1238,9 @@ GF_DownloadSession *gf_service_download_new(GF_ClientService *service, const cha
 	sURL = gf_url_concatenate(service->url, url);
 	/*path was absolute*/
 	if (!sURL) sURL = gf_strdup(url);
+	frag = strchr(sURL, '#');
+	if (frag) frag[0] = 0;
+	
 	assert( service->term );
 
 	orig_url = service->pending_service_session ? (char *) gf_dm_sess_get_original_resource_name(service->pending_service_session) : NULL;
