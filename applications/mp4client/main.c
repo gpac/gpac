@@ -1757,7 +1757,7 @@ int mp4client_main(int argc, char **argv)
 
 			if (has_command && is_connected) {
 				has_command = GF_FALSE;
-				for (i=0; i<argc; i++) {
+				for (i=0; i<(u32)argc; i++) {
 					if (!strcmp(argv[i], "-com")) {
 						gf_term_scene_update(term, NULL, argv[i+1]);
 						i++;

@@ -95,7 +95,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 	char*buffer = NULL;
 	u32 max_size = 0;
 	u32 last_byte, ref_sample_num, prev_ref_sample_num;
-
+	Bool header_written = GF_FALSE;
 	nb_bytes_nalh = is_hevc ? 2 : 1;
 
 	switch (extractor_mode) {
@@ -107,15 +107,26 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			//hevc extractors use constructors
 			if (is_hevc) xmode = gf_bs_read_u8(src_bs);
 			if (xmode) {
-				u8 len = gf_bs_read_u8(src_bs);
-				while (len) {
+				u8 done=0, len = gf_bs_read_u8(src_bs);
+				while (done<len) {
 					u8 c = gf_bs_read_u8(src_bs);
-					gf_bs_write_u8(dst_bs, c);
-					len--;
+					done++;
+					if (header_written) {
+						gf_bs_write_u8(dst_bs, c);
+					} else if (done==nal_unit_size_field) {
+						if (rewrite_start_codes) {
+							gf_bs_write_int(dst_bs, 1, 32);
+						} else {
+							gf_bs_write_u8(dst_bs, c);
+						}
+						header_written = GF_TRUE;
+					} else if (!rewrite_start_codes) {
+						gf_bs_write_u8(dst_bs, c);
+					}
 				}
 				continue;
 			}
-			
+
 			ref_track_index = gf_bs_read_u8(src_bs);
 			sample_offset = (s8) gf_bs_read_int(src_bs, 8);
 			data_offset = gf_bs_read_int(src_bs, nal_unit_size_field*8);
@@ -154,7 +165,8 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			e = Media_GetSample(ref_trak->Media, ref_sample_num, &ref_samp, &di, GF_FALSE, NULL);
 			if (e) return e;
 
-			if (rewrite_start_codes) {
+#if 0
+			if (!header_written && rewrite_start_codes) {
 				gf_bs_write_int(dst_bs, 1, 32);
 				if (is_hevc) {
 					gf_bs_write_int(dst_bs, 0, 1);
@@ -168,15 +180,26 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 					gf_bs_write_int(dst_bs, 0xF0 , 8); /*7 "all supported NALUs" (=111) + rbsp trailing (10000)*/;
 				}
 			}
+#endif
 			ref_bs = gf_bs_new(ref_samp->data + data_offset, ref_samp->dataLength - data_offset, GF_BITSTREAM_READ);
-			if (!data_length)
-				data_length = ref_samp->dataLength - data_offset;
 
 			if (ref_samp->dataLength - data_offset >= data_length) {
 
 				while (data_length && gf_bs_available(ref_bs)) {
-					ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
-					assert(ref_nalu_size <= data_length);
+					if (!header_written) {
+						ref_nalu_size = gf_bs_read_int(ref_bs, 8*nal_unit_size_field);
+
+						if (!data_length)
+							data_length = ref_nalu_size + nal_unit_size_field;
+
+						assert(data_length>nal_unit_size_field);
+						data_length -= nal_unit_size_field;
+						if (data_length > gf_bs_available(ref_bs)) {
+							data_length = (u32)gf_bs_available(ref_bs);
+						}
+					} else {
+						ref_nalu_size = data_length;
+					}
 
 					if (ref_nalu_size > max_size) {
 						buffer = (char*) gf_realloc(buffer, sizeof(char) * ref_nalu_size );
@@ -184,13 +207,18 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 					}
 					gf_bs_read_data(ref_bs, buffer, ref_nalu_size);
 
-					if (rewrite_start_codes)
-						gf_bs_write_u32(dst_bs, 1);
-					else
-						gf_bs_write_int(dst_bs, ref_nalu_size, 8*nal_unit_size_field);
-
+					if (!header_written) {
+						if (rewrite_start_codes)
+							gf_bs_write_u32(dst_bs, 1);
+						else
+							gf_bs_write_int(dst_bs, ref_nalu_size, 8*nal_unit_size_field);
+					}
+					assert(data_length >= ref_nalu_size);
 					gf_bs_write_data(dst_bs, buffer, ref_nalu_size);
-					data_length -= ref_nalu_size + nal_unit_size_field;
+					data_length -= ref_nalu_size;
+
+					header_written = GF_FALSE;
+
 				}
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_CONTAINER, ("ISOBMF: Extractor size is larger than refered sample size - skipping.\n"));
@@ -202,7 +230,7 @@ static GF_Err process_extractor(GF_ISOFile *file, GF_MediaBox *mdia, u32 sampleN
 			if (buffer) gf_free(buffer);
 			buffer = NULL;
 			gf_isom_set_nalu_extract_mode(file, ref_track_num, cur_extract_mode);
-			
+
 			if (!is_hevc) break;
 		}
 		break;
@@ -436,7 +464,7 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		}
 
 		sabt_ref = gf_isom_get_reference_count(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT);
-		if ((s32) sabt_ref >= 0) {
+		if ((s32) sabt_ref > 0) {
 			for (i=0; i<sabt_ref; i++) {
 				GF_ISOSample *tile_samp;
 				gf_isom_get_reference(mdia->mediaTrack->moov->mov, track_num, GF_ISOM_REF_SABT, i+1, &ref_track);
@@ -523,7 +551,8 @@ GF_Err gf_isom_nalu_sample_rewrite(GF_MediaBox *mdia, GF_ISOSample *sample, u32 
 		//we are SVC, don't write NALU delim, only insert VDRD NALU
 		if (insert_vdrd_code) {
 			if (is_hevc) {
-				//spec is not clear here, we insert a NALU AU delimiter before the layer starts
+				//spec is not clear here, we don't insert an NALU AU delimiter before the layer starts since it breaks openHEVC
+//				insert_nalu_delim=0;
 			} else {
 				gf_bs_write_int(dst_bs, 1, 32);
 				gf_bs_write_int(dst_bs, GF_AVC_NALU_VDRD , 8);
@@ -770,6 +799,7 @@ exit:
 	if (src_bs) gf_bs_del(src_bs);
 	if (ref_bs) gf_bs_del(ref_bs);
 	if (dst_bs) gf_bs_del(dst_bs);
+	if (ps_bs)  gf_bs_del(ps_bs);
 	if (buffer) gf_free(buffer);
 	return e;
 }
@@ -853,7 +883,7 @@ static void merge_avc_config(GF_AVCConfig *dst_cfg, GF_AVCConfig *src_cfg)
 {
 	GF_AVCConfig *cfg = AVC_DuplicateConfig(src_cfg);
 	if (!cfg || !dst_cfg) return;
-	
+
 	while (gf_list_count(cfg->sequenceParameterSets)) {
 		GF_AVCConfigSlot *p = (GF_AVCConfigSlot*)gf_list_get(cfg->sequenceParameterSets, 0);
 		gf_list_rem(cfg->sequenceParameterSets, 0);
@@ -1504,6 +1534,7 @@ typedef enum
 	GF_ISOM_HVCC_SET_LHVC,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE,
 	GF_ISOM_HVCC_SET_LHVC_WITH_BASE_BACKWARD,
+	GF_ISOM_LHCC_SET_INBAND
 } HevcConfigUpdateType;
 
 static Bool hevc_cleanup_config(GF_HEVCConfig *cfg, HevcConfigUpdateType operand_type)
@@ -1649,6 +1680,10 @@ GF_Err gf_isom_hevc_config_update_ex(GF_ISOFile *the_file, u32 trackNumber, u32 
 			if ((entry->type==GF_ISOM_BOX_TYPE_HEV1) || (entry->type==GF_ISOM_BOX_TYPE_HEV2)) entry->type = GF_ISOM_BOX_TYPE_LHE1;
 			else entry->type = GF_ISOM_BOX_TYPE_LHV1;
 		}
+		/*LHEVC inband, no config change*/
+		else if (operand_type==GF_ISOM_LHCC_SET_INBAND) {
+			entry->type = GF_ISOM_BOX_TYPE_LHE1;
+		}
 	}
 
 	HEVC_RewriteESDescriptor(entry);
@@ -1666,6 +1701,13 @@ GF_Err gf_isom_hevc_set_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32
 {
 	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_HVCC_SET_INBAND);
 }
+
+GF_EXPORT
+GF_Err gf_isom_lhvc_force_inband_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex)
+{
+	return gf_isom_hevc_config_update_ex(the_file, trackNumber, DescriptionIndex, NULL, GF_ISOM_LHCC_SET_INBAND);
+}
+
 
 GF_EXPORT
 GF_Err gf_isom_hevc_set_tile_config(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, Bool is_base_track)
@@ -1690,8 +1732,8 @@ GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 Des
 
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
-GF_EXPORT 
-GF_Box *gf_isom_clone_config_box(GF_Box *box) 
+GF_EXPORT
+GF_Box *gf_isom_clone_config_box(GF_Box *box)
 {
 	GF_Box *clone;
 	switch (box->type)
@@ -2268,7 +2310,7 @@ GF_Err hvcc_Size(GF_Box *s)
 		ptr->size = 0;
 		return GF_OK;
 	}
-	
+
 	if (!ptr->config->is_lhvc)
 		ptr->size += 23;
 	else
@@ -2501,7 +2543,7 @@ u32 gf_isom_oinf_size_entry(void *entry)
 	count=gf_list_count(ptr->dependency_layers);
 	for (i = 0; i < count; i++) {
 		LHEVC_DependentLayer *dep = (LHEVC_DependentLayer *)gf_list_get(ptr->dependency_layers, i);
-		size += 1/*dependent_layerID*/ + 1/*num_layers_dependent_on*/; 
+		size += 1/*dependent_layerID*/ + 1/*num_layers_dependent_on*/;
 		size += dep->num_layers_dependent_on * 1;//dependent_on_layerID
 		for (j = 0; j < 16; j++) {
 			if (ptr->scalability_mask & (1 << j))
@@ -2517,7 +2559,7 @@ GF_LHVCLayerInformation *gf_isom_linf_new_entry()
 	GF_LHVCLayerInformation* ptr;
 	GF_SAFEALLOC(ptr, GF_LHVCLayerInformation);
 	if (ptr) ptr->num_layers_in_track = gf_list_new();
-	
+
 	return ptr;
 
 }

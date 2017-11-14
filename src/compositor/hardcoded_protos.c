@@ -1292,7 +1292,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 	GF_TextureHandler *txh;
 	GF_MediaObjectVRInfo vrinfo;
 	GF_MeshSphereAngles sphere_angles;
-
+	Bool mesh_was_reset = GF_FALSE;
 	GF_TraverseState *tr_state = (GF_TraverseState *)rs;
 	Drawable3D *stack = (Drawable3D *)gf_node_get_private(node);
 
@@ -1334,6 +1334,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_S;
 				txh->flags &= ~GF_SR_TEXTURE_REPEAT_T;
 			}
+			mesh_was_reset = GF_TRUE;
 			gf_node_dirty_clear(node, GF_SG_NODE_DIRTY);
 		}
 		
@@ -1341,7 +1342,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 		if (tr_state->traversing_mode==TRAVERSE_DRAW_3D) {
 			Bool visible = GF_FALSE;
 
-			if (! tr_state->camera_was_dirty) {
+			if (! tr_state->camera_was_dirty && !mesh_was_reset) {
 				visible = (stack->mesh->flags & MESH_WAS_VISIBLE) ? GF_TRUE : GF_FALSE;
 			} else if ((vrinfo.srd_w==vrinfo.srd_max_x) && (vrinfo.srd_h==vrinfo.srd_max_y)) {
 				visible = GF_TRUE;

@@ -71,7 +71,13 @@ void convert_file_info(char *inName, u32 trackID);
 
 #ifndef GPAC_DISABLE_ISOM_WRITE
 
+#ifndef GPAC_DISABLE_MEDIA_IMPORT
 GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample);
+#else
+GF_Err import_file(GF_ISOFile *dest, char *inName, u32 import_flags, Double force_fps, u32 frames_per_sample) {
+	return GF_NOT_SUPPORTED;
+}
+#endif
 GF_Err split_isomedia_file(GF_ISOFile *mp4, Double split_dur, u64 split_size_kb, char *inName, Double interleaving_time, Double chunk_start, Bool adjust_split_end, char *outName, const char *tmpdir);
 GF_Err cat_isomedia_file(GF_ISOFile *mp4, char *fileName, u32 import_flags, Double force_fps, u32 frames_per_sample, char *tmp_dir, Bool force_cat, Bool align_timelines, Bool allow_add_in_command);
 
@@ -514,6 +520,7 @@ void PrintImportUsage()
 	        " \"                       merge : all layers are merged in a single track\n"
 	        " \"                       splitbase : all layers are merged in a track, and the AVC base in another\n"
 	        " \"                       splitnox : each layer is in its own track, and no extractors are written\n"
+	        " \"                       splitnoxib : each layer is in its own track, no extractors are written, using inband param set signaling\n"
 	        " \":subsamples\"        adds SubSample information for AVC+SVC\n"
 	        " \":forcesync\"         forces non IDR samples with I slices to be marked as sync points (AVC GDR)\n"
 	        "       !! RESULTING FILE IS NOT COMPLIANT WITH THE SPEC but will fix seeking in most players\n"
@@ -1224,7 +1231,7 @@ GF_FileType get_file_type_by_ext(char *inName)
 	return type;
 }
 
-#ifndef GPAC_DISABLE_ISOM_WRITE
+#if !defined(GPAC_DISABLE_MEDIA_IMPORT) && !defined(GPAC_DISABLE_ISOM_WRITE)
 static Bool can_convert_to_isma(GF_ISOFile *file)
 {
 	u32 spec = gf_isom_guess_specification(file);
@@ -1876,6 +1883,7 @@ char **mpd_base_urls = NULL;
 u32 nb_mpd_base_urls = 0;
 u32 dash_scale = 1000;
 Bool insert_utc = GF_FALSE;
+const char *udp_dest = NULL;
 
 #ifndef GPAC_DISABLE_MPD
 Bool do_mpd = GF_FALSE;
@@ -3078,6 +3086,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 				if (!strcmp(szTk, argv[i + 1])) i++;
 				else trackID = 0;
 			}
+			else if ((i + 1<(u32)argc) && !strcmp(argv[i + 1], "*")) {
+				trackID = (u32)-1;
+				i++;
+			}
 			else {
 				trackID = 0;
 			}
@@ -3429,6 +3441,10 @@ Bool mp4box_parse_args(int argc, char **argv)
 		else if (!stricmp(arg, "-insert-utc")) {
 			insert_utc = GF_TRUE;
 		}
+		else if (!stricmp(arg, "-udp-write")) {
+			udp_dest = argv[i+1];
+			i++;
+		}
 		else {
 			u32 ret = mp4box_parse_args_continue(argc, argv, &i);
 			if (ret) return ret;
@@ -3626,6 +3642,25 @@ int mp4boxMain(int argc, char **argv)
 		return mp4box_cleanup(1);
 	}
 #endif
+
+	if (udp_dest) {
+		GF_Socket *sock = gf_sk_new(GF_SOCK_TYPE_UDP);
+		u16 port = 2345;
+		char *sep = strrchr(udp_dest, ':');
+		if (sep) {
+			sep[0] = 0;
+			port = atoi(sep+1);
+		}
+		e = gf_sk_bind( sock, "127.0.0.1", 0, udp_dest, port, 0);
+		if (sep) sep[0] = ':';
+		if (e) fprintf(stderr, "Failed to bind socket to %s: %s\n", udp_dest, gf_error_to_string(e) );
+		else {
+			e = gf_sk_send(sock, inName, (u32)strlen(inName));
+			if (e) fprintf(stderr, "Failed to send datagram: %s\n", gf_error_to_string(e) );
+		}
+		gf_sk_del(sock);
+		return 0;
+	}
 
 #ifndef GPAC_DISABLE_MPD
 	if (do_mpd) {
@@ -3873,7 +3908,7 @@ int mp4boxMain(int argc, char **argv)
 		needSave = GF_TRUE;
 		if (conv_type && can_convert_to_isma(file)) conv_type = GF_ISOM_CONV_TYPE_ISMA;
 	}
-#endif
+#endif /*!GPAC_DISABLE_MEDIA_IMPORT && !GPAC_DISABLE_ISOM_WRITE*/
 
 #if !defined(GPAC_DISABLE_ISOM_WRITE) && !defined(GPAC_DISABLE_SCENE_ENCODER) && !defined(GPAC_DISABLE_MEDIA_IMPORT)
 	else if (chunk_mode) {
@@ -4360,9 +4395,23 @@ int mp4boxMain(int argc, char **argv)
 		if (e) goto err_exit;
 	}
 	if (dump_cr) dump_isom_ismacryp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
-	if ((dump_ttxt || dump_srt) && trackID)
-		dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
-							  GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+	if ((dump_ttxt || dump_srt) && trackID) {
+
+		if (trackID == (u32)-1) {
+
+			u32 j;
+			for (j=0; j<gf_isom_get_track_count(file); j++) {
+				trackID = gf_isom_get_track_id(file, j+1);
+				dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+									GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+			}
+
+		}
+		else {
+			dump_isom_timed_text(file, trackID, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE,
+								GF_FALSE, dump_srt ? GF_TEXTDUMPTYPE_SRT : GF_TEXTDUMPTYPE_TTXT);
+		}
+	}
 
 #ifndef GPAC_DISABLE_ISOM_HINTING
 	if (dump_rtp) dump_isom_rtp(file, dump_std ? NULL : (outName ? outName : outfile), outName ? GF_TRUE : GF_FALSE);
@@ -5251,38 +5300,27 @@ exit:
 #if defined(WIN32) && !defined(NO_WMAIN)
 #include <windows.h>
 
-char* wstr_to_windows_multibyte(wchar_t* wstr) {
-
-	int size_needed;
-	char* res;
-
-	if (!wstr)
-		return NULL;
-
-	size_needed = WideCharToMultiByte(GetACP(), 0, wstr, -1, NULL, 0, NULL, NULL);
-
-	res = (char *)malloc(size_needed*sizeof(char));
-
-	WideCharToMultiByte(GetACP(), 0, wstr, -1, res, size_needed, NULL, NULL);
-
-	return res;
-
-
-}
-
 int wmain( int argc, wchar_t** wargv )
 {
 	int i;
 	int res;
-
+	size_t len;
+	size_t res_len;
 	char **argv;
-	argv = (char **)malloc(argc*sizeof(char *));
-
+	argv = (char **)malloc(argc*sizeof(wchar_t *));
 	for (i = 0; i < argc; i++) {
 		wchar_t *src_str = wargv[i];
-		argv[i] = wstr_to_windows_multibyte(src_str);
-
+		len = UTF8_MAX_BYTES_PER_CHAR*gf_utf8_wcslen(wargv[i]);
+		argv[i] = (char *)malloc(len + 1);
+		res_len = gf_utf8_wcstombs(argv[i], len, (const unsigned short**)&src_str);
+		argv[i][res_len] = 0;
+		if (res_len > len) {
+			fprintf(stderr, "Length allocated for conversion of wide char to UTF-8 not sufficient\n");
+			return -1;
+		}
 	}
+	/* force windows console codepage to utf8 to display (some, but not all) characters properly */
+	SetConsoleOutputCP(65001);
 	res = mp4boxMain(argc, argv);
 	for (i = 0; i < argc; i++) {
 		free(argv[i]);

@@ -68,6 +68,15 @@ only, since the OTI used when emulated is not standard...
 GF_ESD *gf_media_map_esd(GF_ISOFile *mp4, u32 track);
 
 /*!
+Creates (if needed) a GF_ESD for the given image item - THIS IS RESERVED for local playback
+only, since the OTI used when emulated is not standard...
+* \param mp4 source file
+* \param item_id item for which the esd is to be emulated
+* \return rebuilt ESD. It is the caller responsibility to delete it.
+*/
+GF_ESD *gf_media_map_item_esd(GF_ISOFile *mp4, u32 item_id);
+
+/*!
  * Get RFC 6381 description for a given track.
  * \param movie source movie
  * \param track track to check
@@ -442,6 +451,17 @@ GF_Err gf_media_split_svc(GF_ISOFile *file, u32 track, Bool splitAll);
 */
 GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
 
+
+typedef enum
+{
+	//use extractors
+	GF_LHVC_EXTRACTORS_ON,
+	//don't use extractors and keep base track inband/outofband param set signaling
+	GF_LHVC_EXTRACTORS_OFF,
+	//don't use extractors and force inband signaling in enhancement layer (for ATSC3)
+	GF_LHVC_EXTRACTORS_OFF_FORCE_INBAND,
+} GF_LHVCExtractoreMode;
+
 /* !
  Split L-HEVC layers
  \param file the target movie
@@ -451,7 +471,7 @@ GF_Err gf_media_merge_svc(GF_ISOFile *file, u32 track, Bool mergeAll);
  \param use_extractors if set, extractors are used in the enhancement layers.
  \return error if any
  */
-GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, Bool use_extractors);
+GF_Err gf_media_split_lhvc(GF_ISOFile *file, u32 track, Bool for_temporal_sublayers, Bool splitAll, GF_LHVCExtractoreMode extractor_mode);
 
 /* !
  Split HEVC tiles into different tracks

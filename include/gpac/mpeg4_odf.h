@@ -935,6 +935,8 @@ typedef struct
 	u8 chroma_bit_depth;
 	/*may be NULL*/
 	GF_List *sequenceParameterSetExtensions;
+
+	Bool write_annex_b;
 } GF_AVCConfig;
 
 
@@ -983,6 +985,9 @@ typedef struct
 	
 	//set by libisomedia at import/export/parsing time to differentiate between lhcC and hvcC time
 	Bool is_lhvc;
+
+	Bool write_annex_b;
+
 } GF_HEVCConfig;
 
 /*! Media Segment Descriptor used for Media Control Extensions*/
@@ -1231,13 +1236,21 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg);
  \return the decoded AVC config
  */
 GF_AVCConfig *gf_odf_avc_cfg_read(char *dsi, u32 dsi_size);
-/*! writes GF_AVCConfig as MPEG-4 DSI
+/*! writes GF_AVCConfig
  \param cfg the AVC config to encode
  \param outData encoded dsi buffer - it is the caller responsability to free this
  \param outSize  encoded dsi buffer size
  \return error if any
  */
 GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize);
+
+/*! writes GF_AVCConfig to bitstream
+ \param cfg the AVC config to encode
+ \param bs bitstream in WRITE mode
+ \return error if any
+ */
+GF_EXPORT
+GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs);
 
 
 /*! HEVC config constructor

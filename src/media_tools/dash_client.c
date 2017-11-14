@@ -5128,6 +5128,8 @@ static DownloadGroupStatus dash_download_group_download(GF_DashClient *dash, GF_
 				/* if not, we are really at the end of the playlist, we can quit */
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[DASH] End of period reached for group\n"));
 				group->done = 1;
+				if (!dash->request_period_switch && !group->has_pending_enhancement && !has_dep_following)
+					dash->dash_io->on_dash_event(dash->dash_io, GF_DASH_EVENT_SEGMENT_AVAILABLE, gf_list_find(dash->groups, base_group), GF_OK);
 				return GF_DASH_DownloadCancel;
 			}
 		}

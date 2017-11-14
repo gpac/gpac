@@ -2582,6 +2582,7 @@ void gf_scene_reset_addon(GF_AddonMedia *addon, Bool disconnect)
 	if (addon->root_od) {
 		addon->root_od->addon = NULL;
 		if (disconnect) {
+			gf_scene_remove_object(addon->root_od->parentscene, addon->root_od, 2);
 			gf_odm_disconnect(addon->root_od, 1);
 		}
 	}
@@ -2640,7 +2641,7 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 		addon = gf_list_get(scene->declared_addons, i);
 		if ((addon_info->timeline_id>=0) && addon->timeline_id==addon_info->timeline_id) {
 			my_addon = 1;
-		} else if ((addon_info->timeline_id>=0) && addon->url && addon_info->external_URL && !strcmp(addon->url, addon_info->external_URL)) {
+		} else if (addon->url && addon_info->external_URL && !strcmp(addon->url, addon_info->external_URL)) {
 			my_addon = 1;
 			//send message to service handler
 		}
@@ -2663,6 +2664,21 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 			if (addon_info->enable_if_defined)
 				addon->enabled = GF_TRUE;
 
+			//declaration of start time
+			if (addon->is_splicing && (addon->splice_start<0) && addon_info->is_splicing) {
+				addon->splice_in_pts = addon_info->splice_time_pts;
+
+				if (addon->splice_in_pts) {
+					addon->media_pts = (u64) (addon_info->splice_start_time);
+					addon->splice_start = addon_info->splice_start_time / 90;
+					addon->splice_end = addon_info->splice_end_time / 90;
+				} else {
+					addon->media_pts = (u64)(addon_info->splice_start_time * 90000);
+					addon->splice_start = addon_info->splice_start_time * 1000;
+					addon->splice_end = addon_info->splice_end_time * 1000;
+				}
+			}
+			
 			//restart addon
 			if (!addon->root_od && addon->timeline_ready && addon->enabled) {
 				load_associated_media(scene, addon);
@@ -2701,12 +2717,24 @@ void gf_scene_register_associated_media(GF_Scene *scene, GF_AssociatedContentLoc
 	addon->url = gf_strdup(addon_info->external_URL);
 	addon->media_timescale = 1;
 	addon->timeline_ready = (addon_info->timeline_id<0) ? 1 : 0;
-	addon->splice_start = addon_info->splice_start_time;
-	addon->splice_end = addon_info->splice_end_time;
+	addon->splice_in_pts = addon_info->splice_time_pts;
 	if (addon_info->is_splicing) {
 		addon->addon_type = GF_ADDON_TYPE_SPLICED;
 		scene->has_splicing_addons = GF_TRUE;
-		addon->media_pts = addon->splice_start * 90000;
+
+		if (addon->splice_in_pts) {
+			addon->media_pts = (u64) (addon_info->splice_start_time);
+			addon->splice_start = addon_info->splice_start_time / 90;
+			addon->splice_end = addon_info->splice_end_time / 90;
+		} else {
+			addon->media_pts = (u64)(addon_info->splice_start_time * 90000);
+
+			addon->splice_start = addon_info->splice_start_time * 1000;
+			addon->splice_end = addon_info->splice_end_time * 1000;
+		}
+	} else {
+		addon->splice_start = addon_info->splice_start_time;
+		addon->splice_end = addon_info->splice_end_time;
 	}
 
 	if (!new_addon) return;
@@ -2867,6 +2895,10 @@ Double gf_scene_adjust_time_for_addon(GF_AddonMedia *addon, Double clock_time, u
 	if (timestamp_based)
 		*timestamp_based = (addon->timeline_id>=0) ? 0 : 1;
 
+	if (addon->is_splicing) {
+		return ((Double)addon->media_timestamp) / addon->media_timescale;
+	}
+
 	//get PTS diff (clock is in ms, pt is in 90k)
 	media_time = clock_time;
 	media_time -= addon->media_pts/90000.0;
@@ -2880,6 +2912,13 @@ s64 gf_scene_adjust_timestamp_for_addon(GF_AddonMedia *addon, u64 orig_ts)
 {
 	s64 media_ts_ms;
 	assert(addon->timeline_ready);
+	if (addon->is_splicing) {
+		if (!addon->min_dts_set || (orig_ts<addon->splice_min_dts)) {
+			addon->splice_min_dts = orig_ts;
+			addon->min_dts_set = GF_TRUE;
+		}
+		orig_ts -= addon->splice_min_dts;
+	}
 	media_ts_ms = orig_ts;
 	media_ts_ms -= (addon->media_timestamp*1000) / addon->media_timescale;
 	media_ts_ms += (addon->media_pts/90);
