@@ -846,17 +846,17 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck)
 	//get true packet pointer
 	return pck->pck->pid_props->timescale ? pck->pck->pid_props->timescale : 1000;
 }
-GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, u32 sap_type)
+GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type)
 {
 	PCK_SETTER_CHECK("SAP")
 	pck->info.sap_type = sap_type;
 	return GF_OK;
 }
-u32 gf_filter_pck_get_sap(GF_FilterPacket *pck)
+GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck)
 {
 	assert(pck);
 	//get true packet pointer
-	return pck->pck->info.sap_type;
+	return (GF_FilterSAPType) pck->pck->info.sap_type;
 }
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced)
 {

@@ -641,7 +641,8 @@ static void gf_filter_process_task(GF_FSTask *task)
 		filter->process_task_queued = 0;
 		return;
 	}
-
+	if (e) filter->session->last_process_error = e;
+	
 	//source filters, flush data if enough space available. If the sink  returns EOS, don't repost the task
 	if (!filter->would_block && !filter->input_pids && (e!=GF_EOS)) {
 		task->requeue_request = GF_TRUE;

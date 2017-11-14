@@ -125,7 +125,7 @@ static GF_Err ffdmx_process(GF_Filter *filter)
 	
 	//fixme: try to identify SAP type 2 and more
 	if (pkt.flags & AV_PKT_FLAG_KEY) 
-		gf_filter_pck_set_sap(pck_dst, 1);
+		gf_filter_pck_set_sap(pck_dst, GF_FILTER_SAP_1);
 
 	if (pkt.flags & AV_PKT_FLAG_CORRUPT)
 		gf_filter_pck_set_corrupted(pck_dst, GF_TRUE);

@@ -316,7 +316,7 @@ static GF_Err filein_process(GF_Filter *filter)
 	if (ctx->file_pos == ctx->file_size)
 		ctx->is_end = GF_TRUE;
 	gf_filter_pck_set_framing(pck, ctx->file_pos ? GF_FALSE : GF_TRUE, ctx->is_end);
-	gf_filter_pck_set_sap(pck, 1);
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 	ctx->pck_out = GF_TRUE;
 	gf_filter_pck_send(pck);

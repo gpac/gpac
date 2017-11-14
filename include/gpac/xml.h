@@ -32,6 +32,7 @@ extern "C" {
 
 #include <gpac/tools.h>
 #include <gpac/list.h>
+#include <gpac/bitstream.h>
 
 #ifndef GPAC_DISABLE_CORE_TOOLS
 
@@ -278,6 +279,30 @@ void gf_xml_dom_node_del(GF_XMLNode *node);
  *\return error code or GF_OK
  */
 GF_Err gf_xml_parse_bit_sequence(GF_XMLNode *bsroot, char **out_data, u32 *out_data_size);
+
+/*
+ *\brief bitsequence parser.
+ *
+ * inspects all child elements of the node and converts <BS> children into bits. BS take the following attributes:.
+ *bits: value gives the number of bits used to code a value or a length
+ *value: value is a 32 bit signed value
+ *dataOffset: value gives an offset into a file
+ *dataLength: value gives the number of bits bytes to copy in a file
+ *dataFile: value gives the name of the source file
+ *textmode: indicates whether the file shall be opened in text or binary mode before reading
+ *text: or string: value gives a string (length is first coded on number of bits in bits attribute)
+ *fcc: value gives a four character code, coded on 32 bits
+ *ID128: value gives a 128 bit vlue in hexadecimal
+ *data64: value gives data coded as base64
+ *data: value gives data coded in hexa
+ *
+ *
+ *
+ *\param node the root node of the bitstream to create
+ *\param bs dynamic write bitstream object
+ *\return error code or GF_OK
+ */
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs);
 
 /*
  *\brief get the element and check that the namespace is known ('xmlns'-only supported for now)

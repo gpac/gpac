@@ -336,13 +336,13 @@ void oggdmx_send_packet(GF_OGGDmxCtx *ctx, GF_OGGStream *st, ogg_packet *oggpack
 		pck = gf_filter_pck_new_alloc(st->opid, oggpacket->bytes, &data);
 		memcpy(data, (char *) oggpacket->packet, oggpacket->bytes);
 		gf_filter_pck_set_cts(pck, st->recomputed_ts);
-		gf_filter_pck_set_sap(pck, oggpackB_read(&opb, 1) );
+		gf_filter_pck_set_sap(pck, oggpackB_read(&opb, 1) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE );
 		st->recomputed_ts += st->info.frame_rate.num;
 	} else {
 		pck = gf_filter_pck_new_alloc(st->opid, oggpacket->bytes, &data);
 		memcpy(data, (char *) oggpacket->packet, oggpacket->bytes);
 		gf_filter_pck_set_cts(pck, st->recomputed_ts);
-		gf_filter_pck_set_sap(pck, 1);
+		gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 		if (st->info.type==GPAC_OTI_VORBIS) {
 			st->recomputed_ts += gf_vorbis_check_frame(&st->vp, (char *) oggpacket->packet, oggpacket->bytes);

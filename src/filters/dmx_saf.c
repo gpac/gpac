@@ -48,7 +48,6 @@ typedef struct
 
 
 	GF_List *streams;
-	Bool needs_connection;
 
 	u32 saf_type;
 
@@ -185,7 +184,8 @@ static void safdmx_demux(GF_Filter *filter, GF_SAFDmxCtx *ctx, char *data, u32 d
 				//TODO: map AU SN  ?
 
 				gf_filter_pck_set_cts(pck, cts);
-				gf_filter_pck_set_sap(pck, is_rap ? 1 : 0);
+				if (is_rap)
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 
 				if (ctx->start_range && (ctx->start_range * st->ts_res > cts*1000)) {
 					gf_filter_pck_set_seek_flag(pck, GF_TRUE);

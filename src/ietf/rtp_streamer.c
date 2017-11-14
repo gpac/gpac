@@ -328,7 +328,7 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 		break;
 
 
-	case GF_STREAM_4CC:
+	default:
 		switch (oti) {
 		case GF_ISOM_SUBTYPE_3GP_H263:
 			rtp_type = GF_RTP_PAYT_H263;
@@ -395,12 +395,11 @@ GF_RTPStreamer *gf_rtp_streamer_new_extended(u32 streamType, u32 oti, u32 timeSc
 			OfficialPayloadType = 14;
 			required_rate = 90000;
 			break;
+		default:
+			GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Unsupported stream type %x\n", streamType));
+			return NULL;
 		}
 		break;
-
-	default:
-		GF_LOG(GF_LOG_ERROR, GF_LOG_RTP, ("[RTP Packetizer] Unsupported stream type %x\n", streamType));
-		return NULL;
 	}
 
 	/*not supported*/

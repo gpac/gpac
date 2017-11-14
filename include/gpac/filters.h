@@ -121,6 +121,9 @@ typedef enum
 	GF_PROP_DOUBLE,
 	//string property, memory is duplicated when setting the property and managed internally
 	GF_PROP_STRING,
+	//string property, memory is NOT duplicated when setting the property but is then managed (and free) internally
+	//only used when setting a property, the type then defaults to GF_PROP_STRING
+	GF_PROP_STRING_NO_COPY,
 	//data property, memory is duplicated when setting the property and managed internally
 	GF_PROP_DATA,
 	//const string property, memory is NOT duplicated when setting the property, stays user-managed
@@ -175,6 +178,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 #define PROP_FRAC(_val) (GF_PropertyValue){.type=GF_PROP_FRACTION, .value.frac = _val}
 #define PROP_DOUBLE(_val) (GF_PropertyValue){.type=GF_PROP_DOUBLE, .value.number = _val}
 #define PROP_STRING(_val) (GF_PropertyValue){.type=GF_PROP_STRING, .value.string = _val}
+#define PROP_STRING_NO_COPY(_val) (GF_PropertyValue){.type=GF_PROP_STRING_NO_COPY, .value.string = _val}
 #define PROP_NAME(_val) (GF_PropertyValue){.type=GF_PROP_NAME, .value.string = _val}
 #define PROP_DATA(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA, .value.data.ptr = _val, .value.data.size=_len}
 #define PROP_DATA_NO_COPY(_val, _len) (GF_PropertyValue){.type=GF_PROP_DATA_NO_COPY, .value.data.ptr = _val, .value.data.size =_len}
@@ -358,6 +362,9 @@ GF_Filter *gf_fs_load_source(GF_FilterSession *fsess, const char *url, const cha
 
 GF_User *gf_fs_get_user(GF_FilterSession *fsess);
 
+GF_Err gf_fs_get_last_connect_error(GF_FilterSession *fsess);
+GF_Err gf_fs_get_last_process_error(GF_FilterSession *fsess);
+
 GF_Filter *gf_filter_connect_source(GF_Filter *filter, const char *url, const char *parent_url, GF_Err *err);
 
 u32 gf_filter_get_ipid_count(GF_Filter *filter);
@@ -501,8 +508,26 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration);
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 
-GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, u32 sap_type);
-u32 gf_filter_pck_get_sap(GF_FilterPacket *pck);
+//SAP types as defined in annex I of ISOBMFF
+typedef enum
+{
+	//no SAP
+	GF_FILTER_SAP_NONE = 0,
+	//closed gop no leading
+	GF_FILTER_SAP_1,
+	//closed gop leading
+	GF_FILTER_SAP_2,
+	//open gop
+	GF_FILTER_SAP_3,
+	//GDR
+	GF_FILTER_SAP_4,
+
+	//redundant SAP1 for shadow sync / carousel
+	GF_FILTER_SAP_REDUNDANT = 10
+} GF_FilterSAPType;
+
+GF_Err gf_filter_pck_set_sap(GF_FilterPacket *pck, GF_FilterSAPType sap_type);
+GF_FilterSAPType gf_filter_pck_get_sap(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_interlaced(GF_FilterPacket *pck, u32 is_interlaced);
 u32 gf_filter_pck_get_interlaced(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_corrupted(GF_FilterPacket *pck, Bool is_corrupted);
@@ -579,6 +604,8 @@ enum
 	GF_PROP_PID_CHANNEL_LAYOUT = GF_4CC('C','H','L','O'),
 	//(uint) audio format: u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp
 	GF_PROP_PID_AUDIO_FORMAT = GF_4CC('A','F','M','T'),
+	//(uint) bits per sample
+	GF_PROP_PID_BPS = GF_4CC('A','B','P','S'),
 	//(uint) frame width
 	GF_PROP_PID_WIDTH = GF_4CC('W','I','D','T'),
 	//(uint) frame height
@@ -589,6 +616,10 @@ enum
 	GF_PROP_PID_STRIDE = GF_4CC('V','S','T','Y'),
 	//(uint) U/V plane stride
 	GF_PROP_PID_STRIDE_UV = GF_4CC('V','S','T','C'),
+	//(uint) bit depth of Y samples
+	GF_PROP_PID_BIT_DEPTH_Y = GF_4CC('Y','B','P','S'),
+	//(uint) bit depth of UV samples
+	GF_PROP_PID_BIT_DEPTH_UV = GF_4CC('C','B','P','S'),
 	//(rational) video FPS
 	GF_PROP_PID_FPS = GF_4CC('V','F','P','F'),
 	//(fraction) sample (ie pixel) aspect ratio
@@ -662,7 +693,8 @@ enum
 	GF_PROP_PID_AMR_MODE_SET = GF_4CC('A','M','S','T'),
 	//(data)
 	GF_PROP_PID_AC3_CFG = GF_4CC('A','C','3','C'),
-
+	//(data) binary blob containing N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
+	GF_PROP_PCK_SUBS = GF_4CC('S','U','B','S'),
 
 };
 

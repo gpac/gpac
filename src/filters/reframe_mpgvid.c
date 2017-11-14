@@ -838,7 +838,7 @@ GF_Err mpgviddmx_process(GF_Filter *filter)
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
 		gf_filter_pck_set_dts(dst_pck, ctx->dts);
-		gf_filter_pck_set_sap(dst_pck, ftype ? 0 : 1);
+		gf_filter_pck_set_sap(dst_pck, ftype ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		ctx->frame_started = GF_TRUE;

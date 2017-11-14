@@ -792,7 +792,11 @@ static GF_Err isoffin_process(GF_Filter *filter)
 
 				gf_filter_pck_set_dts(pck, ch->current_slh.decodingTimeStamp);
 				gf_filter_pck_set_cts(pck, ch->current_slh.compositionTimeStamp);
-				gf_filter_pck_set_sap(pck, ch->sample->IsRAP);
+				if (ch->sample->IsRAP==-1)
+					gf_filter_pck_set_sap(pck, GF_FILTER_SAP_REDUNDANT);
+				else
+					gf_filter_pck_set_sap(pck, (GF_FilterSAPType) ch->sample->IsRAP);
+
 				sample_dur = gf_isom_get_sample_duration(read->mov, ch->track, ch->sample_num);
 				gf_filter_pck_set_duration(pck, sample_dur);
 				gf_filter_pck_set_seek_flag(pck, ch->current_slh.seekFlag);

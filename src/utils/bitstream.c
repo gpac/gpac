@@ -65,6 +65,7 @@ struct __tag_bitstream
 
 GF_Err gf_bs_reassign_buffer(GF_BitStream *bs, const char *buffer, u64 BufferSize)
 {
+	if (!bs) return GF_BAD_PARAM;
 	if (bs->bsmode == GF_BITSTREAM_READ) {
 		bs->original = (char*)buffer;
 		bs->size = BufferSize;

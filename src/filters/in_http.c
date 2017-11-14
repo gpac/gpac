@@ -327,7 +327,7 @@ static GF_Err httpin_process(GF_Filter *filter)
 	gf_filter_pck_set_cts(pck, 0);
 
 	gf_filter_pck_set_framing(pck, is_start, ctx->is_end);
-	gf_filter_pck_set_sap(pck, 1);
+	gf_filter_pck_set_sap(pck, GF_FILTER_SAP_1);
 	gf_filter_pck_set_byte_offset(pck, ctx->nb_read);
 
 	//mark packet out BEFORE sending, since the call to send() may destroy the packet if cloned

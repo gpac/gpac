@@ -143,12 +143,11 @@ enum
 
 	GF_STREAM_METADATA = 0x22,
 
-	/*used internally to signal that the OTI carries a 4CC code, typically media subtype (stsd entry in file format)*/
-	GF_STREAM_4CC		= 0xF0,
-
 	GF_STREAM_ENCRYPTED		= 0xE0,
 	/*stream carries files, each file being a complete AU*/
 	GF_STREAM_FILE		= 0xE1
+
+	//other stream types may be declared using their handler 4CC as defined in ISOBMFF
 };
 
 

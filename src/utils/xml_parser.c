@@ -1995,8 +1995,6 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	return node;
 }
 
-
-#include <gpac/bitstream.h>
 #include <gpac/base_coding.h>
 
 #define XML_SCAN_INT(_fmt, _value)	\
@@ -2007,7 +2005,7 @@ GF_XMLNode* gf_xml_dom_node_new(const char* ns, const char* name) {
 	}\
  
 
-static GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
+GF_Err gf_xml_parse_bit_sequence_bs(GF_XMLNode *bsroot, GF_BitStream *bs)
 {
 	u32 i, j;
 	GF_XMLNode *node;

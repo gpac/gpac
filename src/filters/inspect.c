@@ -112,6 +112,7 @@ static void inspect_dump_property(GF_InspectCtx *ctx, FILE *dump, u32 p4cc, cons
 		fprintf(dump, "%s", att->value.string);
 		break;
 	case GF_PROP_STRING:
+	case GF_PROP_STRING_NO_COPY:
 		fprintf(dump, "%s", att->value.string);
 		break;
 	case GF_PROP_DATA:

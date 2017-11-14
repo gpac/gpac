@@ -440,7 +440,7 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_duration(dst_pck, nb_samp);
-			gf_filter_pck_set_sap(dst_pck, 1);
+			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);
 
 			if (byte_offset != GF_FILTER_NO_BO) {

@@ -432,7 +432,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 			memcpy(output, data, to_send);
 
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_sap(dst_pck, 1);
+			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
 			if (byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);
@@ -605,7 +605,7 @@ GF_Err qcpdmx_process(GF_Filter *filter)
 
 			gf_filter_pck_set_framing(dst_pck, GF_TRUE, ctx->remaining ? GF_FALSE : GF_TRUE);
 			gf_filter_pck_set_cts(dst_pck, ctx->cts);
-			gf_filter_pck_set_sap(dst_pck, 1);
+			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 			gf_filter_pck_set_duration(dst_pck, ctx->block_size);
 			if (b_offset != GF_FILTER_NO_BO)
 				gf_filter_pck_set_byte_offset(dst_pck, b_offset);
