@@ -58,7 +58,6 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 
 	switch (action) {
 	case GF_TERM_EXT_START:
-		netctrl->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
 		netctrl->term = (GF_Terminal *) param;
 
 		sOpt = gf_modules_get_option((GF_BaseInterface*)termext, "NetControler", "Enabled");
@@ -71,12 +70,13 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 		else port = 20320;
 
 		termext->caps |= GF_TERM_EXTENSION_NOT_THREADED;
+		netctrl->sock = gf_sk_new(GF_SOCK_TYPE_UDP);
 
 		if (netctrl->sock < 0)   {
 			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[NetControl] Failed to open socket for %s:%d\n", server_ip, port));
 			return 0;
 		}
-		  
+
 		e = gf_sk_bind(netctrl->sock, server_ip, port, NULL, 0, 0);
 		if (e != GF_OK) {
 			if (netctrl->sock) gf_sk_del(netctrl->sock);
@@ -84,7 +84,7 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 			GF_LOG(GF_LOG_ERROR, GF_LOG_INTERACT, ("[NetControl] Failed to bind to socket %s:%d\n", server_ip, port));
 			return 0;
 		}
-		  
+
 		return 1;
 
 	case GF_TERM_EXT_STOP:
@@ -96,6 +96,13 @@ static Bool netctrl_process(GF_TermExt *termext, u32 action, void *param)
 		if (!bytes) break;
 		message[bytes] = '\0';
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_INTERACT, ("[NetControl] received message %s\n", message));
+
+		if (!strncmp(message, "gpac splice ", 12) || !strncmp(message, "gpac add ", 9)
+			|| !strncmp(message, "gpac select ", 12)
+		) {
+			gf_term_scene_update(netctrl->term, NULL, message);
+			break;
+		}
 
 		if (strncmp(message, "gpac:face=", 10)) break;
 

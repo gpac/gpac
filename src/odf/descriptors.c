@@ -558,47 +558,75 @@ void gf_odf_avc_cfg_del(GF_AVCConfig *cfg)
 }
 
 GF_EXPORT
-GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
+GF_Err gf_odf_avc_cfg_write_bs(GF_AVCConfig *cfg, GF_BitStream *bs)
 {
 	u32 i, count;
-	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
-	gf_bs_write_int(bs, cfg->configurationVersion, 8);
-	gf_bs_write_int(bs, cfg->AVCProfileIndication , 8);
-	gf_bs_write_int(bs, cfg->profile_compatibility, 8);
-	gf_bs_write_int(bs, cfg->AVCLevelIndication, 8);
-	gf_bs_write_int(bs, 0x3F, 6);
-	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
-	gf_bs_write_int(bs, 0x7, 3);
+
 	count = gf_list_count(cfg->sequenceParameterSets);
-	gf_bs_write_int(bs, count, 5);
+
+	if (!cfg->write_annex_b) {
+		gf_bs_write_int(bs, cfg->configurationVersion, 8);
+		gf_bs_write_int(bs, cfg->AVCProfileIndication , 8);
+		gf_bs_write_int(bs, cfg->profile_compatibility, 8);
+		gf_bs_write_int(bs, cfg->AVCLevelIndication, 8);
+		gf_bs_write_int(bs, 0x3F, 6);
+		gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
+		gf_bs_write_int(bs, 0x7, 3);
+		gf_bs_write_int(bs, count, 5);
+	}
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->sequenceParameterSets, i);
-		gf_bs_write_int(bs, sl->size, 16);
+		if (!cfg->write_annex_b) {
+			gf_bs_write_u16(bs, sl->size);
+		} else {
+			gf_bs_write_u32(bs, 1);
+		}
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
 	count = gf_list_count(cfg->pictureParameterSets);
-	gf_bs_write_int(bs, count, 8);
+	if (!cfg->write_annex_b) {
+		gf_bs_write_int(bs, count, 8);
+	}
 	for (i=0; i<count; i++) {
 		GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(cfg->pictureParameterSets, i);
-		gf_bs_write_int(bs, sl->size, 16);
+		if (!cfg->write_annex_b) {
+			gf_bs_write_u16(bs, sl->size);
+		} else {
+			gf_bs_write_u32(bs, 1);
+		}
 		gf_bs_write_data(bs, sl->data, sl->size);
 	}
 	if (gf_avc_is_rext_profile(cfg->AVCProfileIndication)) {
-		gf_bs_write_int(bs, 0xFF, 6);
-		gf_bs_write_int(bs, cfg->chroma_format, 2);
-		gf_bs_write_int(bs, 0xFF, 5);
-		gf_bs_write_int(bs, cfg->luma_bit_depth - 8, 3);
-		gf_bs_write_int(bs, 0xFF, 5);
-		gf_bs_write_int(bs, cfg->chroma_bit_depth - 8, 3);
-
+		if (!cfg->write_annex_b) {
+			gf_bs_write_int(bs, 0xFF, 6);
+			gf_bs_write_int(bs, cfg->chroma_format, 2);
+			gf_bs_write_int(bs, 0xFF, 5);
+			gf_bs_write_int(bs, cfg->luma_bit_depth - 8, 3);
+			gf_bs_write_int(bs, 0xFF, 5);
+			gf_bs_write_int(bs, cfg->chroma_bit_depth - 8, 3);
+		}
 		count = cfg->sequenceParameterSetExtensions ? gf_list_count(cfg->sequenceParameterSetExtensions) : 0;
-		gf_bs_write_u8(bs, count);
+		if (!cfg->write_annex_b) {
+			gf_bs_write_u8(bs, count);
+		}
 		for (i=0; i<count; i++) {
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *) gf_list_get(cfg->sequenceParameterSetExtensions, i);
-			gf_bs_write_u16(bs, sl->size);
+			if (!cfg->write_annex_b) {
+				gf_bs_write_u16(bs, sl->size);
+			} else {
+				gf_bs_write_u32(bs, 1);
+			}
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
 	}
+	return GF_OK;
+}
+
+GF_EXPORT
+GF_Err gf_odf_avc_cfg_write(GF_AVCConfig *cfg, char **outData, u32 *outSize)
+{
+	GF_BitStream *bs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+	gf_odf_avc_cfg_write_bs(cfg, bs);
 	*outSize = 0;
 	*outData = NULL;
 	gf_bs_get_content(bs, outData, outSize);
@@ -855,60 +883,72 @@ GF_Err gf_odf_hevc_cfg_write_bs(GF_HEVCConfig *cfg, GF_BitStream *bs)
 {
 	u32 i, count;
 
-	gf_bs_write_int(bs, cfg->configurationVersion, 8);
-
-	if (!cfg->is_lhvc) {
-		gf_bs_write_int(bs, cfg->profile_space, 2);
-		gf_bs_write_int(bs, cfg->tier_flag, 1);
-		gf_bs_write_int(bs, cfg->profile_idc, 5);
-		gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
-		gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
-		gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
-		gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
-		gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
-		/*only lowest 44 bits used*/
-		gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
-		gf_bs_write_int(bs, cfg->level_idc, 8);
-	}
-
-	gf_bs_write_int(bs, 0xFF, 4);
-	gf_bs_write_int(bs, cfg->min_spatial_segmentation_idc, 12);
-
-	gf_bs_write_int(bs, 0xFF, 6);
-	gf_bs_write_int(bs, cfg->parallelismType, 2);
-
-	if (!cfg->is_lhvc) {
-		gf_bs_write_int(bs, 0xFF, 6);
-		gf_bs_write_int(bs, cfg->chromaFormat, 2);
-		gf_bs_write_int(bs, 0xFF, 5);
-		gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
-		gf_bs_write_int(bs, 0xFF, 5);
-		gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
-		gf_bs_write_int(bs, cfg->avgFrameRate, 16);
-	}
-
-	if (!cfg->is_lhvc)
-		gf_bs_write_int(bs, cfg->constantFrameRate, 2);
-	else
-		gf_bs_write_int(bs, 0xFF, 2);
-
-	gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
-	gf_bs_write_int(bs, cfg->temporalIdNested, 1);
-	gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
-
 	count = gf_list_count(cfg->param_array);
-	gf_bs_write_int(bs, count, 8);
+
+	if (!cfg->write_annex_b) {
+		gf_bs_write_int(bs, cfg->configurationVersion, 8);
+
+		if (!cfg->is_lhvc) {
+			gf_bs_write_int(bs, cfg->profile_space, 2);
+			gf_bs_write_int(bs, cfg->tier_flag, 1);
+			gf_bs_write_int(bs, cfg->profile_idc, 5);
+			gf_bs_write_int(bs, cfg->general_profile_compatibility_flags, 32);
+			gf_bs_write_int(bs, cfg->progressive_source_flag, 1);
+			gf_bs_write_int(bs, cfg->interlaced_source_flag, 1);
+			gf_bs_write_int(bs, cfg->non_packed_constraint_flag, 1);
+			gf_bs_write_int(bs, cfg->frame_only_constraint_flag, 1);
+			/*only lowest 44 bits used*/
+			gf_bs_write_long_int(bs, cfg->constraint_indicator_flags, 44);
+			gf_bs_write_int(bs, cfg->level_idc, 8);
+		}
+
+		gf_bs_write_int(bs, 0xFF, 4);
+		gf_bs_write_int(bs, cfg->min_spatial_segmentation_idc, 12);
+
+		gf_bs_write_int(bs, 0xFF, 6);
+		gf_bs_write_int(bs, cfg->parallelismType, 2);
+
+		if (!cfg->is_lhvc) {
+			gf_bs_write_int(bs, 0xFF, 6);
+			gf_bs_write_int(bs, cfg->chromaFormat, 2);
+			gf_bs_write_int(bs, 0xFF, 5);
+			gf_bs_write_int(bs, cfg->luma_bit_depth-8, 3);
+			gf_bs_write_int(bs, 0xFF, 5);
+			gf_bs_write_int(bs, cfg->chroma_bit_depth-8, 3);
+			gf_bs_write_int(bs, cfg->avgFrameRate, 16);
+		}
+
+		if (!cfg->is_lhvc)
+			gf_bs_write_int(bs, cfg->constantFrameRate, 2);
+		else
+			gf_bs_write_int(bs, 0xFF, 2);
+
+		gf_bs_write_int(bs, cfg->numTemporalLayers, 3);
+		gf_bs_write_int(bs, cfg->temporalIdNested, 1);
+		gf_bs_write_int(bs, cfg->nal_unit_size - 1, 2);
+
+		gf_bs_write_int(bs, count, 8);
+	}
+
 	for (i=0; i<count; i++) {
 		u32 nalucount, j;
 		GF_HEVCParamArray *ar = (GF_HEVCParamArray*)gf_list_get(cfg->param_array, i);
-		gf_bs_write_int(bs, ar->array_completeness, 1);
-		gf_bs_write_int(bs, 0, 1);
-		gf_bs_write_int(bs, ar->type, 6);
+
 		nalucount = gf_list_count(ar->nalus);
-		gf_bs_write_int(bs, nalucount, 16);
+		if (!cfg->write_annex_b) {
+			gf_bs_write_int(bs, ar->array_completeness, 1);
+			gf_bs_write_int(bs, 0, 1);
+			gf_bs_write_int(bs, ar->type, 6);
+			gf_bs_write_int(bs, nalucount, 16);
+		}
+
 		for (j=0; j<nalucount; j++) {
 			GF_AVCConfigSlot *sl = (GF_AVCConfigSlot *)gf_list_get(ar->nalus, j);
-			gf_bs_write_int(bs, sl->size, 16);
+			if (!cfg->write_annex_b) {
+				gf_bs_write_int(bs, sl->size, 16);
+			} else {
+				gf_bs_write_u32(bs, 1);
+			}
 			gf_bs_write_data(bs, sl->data, sl->size);
 		}
 	}

@@ -272,6 +272,26 @@ void isor_declare_objects(ISOMReader *read)
 			}
 		}
 	}
+	count = gf_isom_get_meta_item_count(read->mov, GF_TRUE, 0);
+	if (count) {
+		u32 item_id = gf_isom_get_meta_primary_item_id(read->mov, GF_TRUE, 0);
+		if (item_id) {
+			esd = gf_media_map_item_esd(read->mov, item_id);
+			if (esd) {
+				od = (GF_ObjectDescriptor *)gf_odf_desc_new(GF_ODF_OD_TAG);
+				od->service_ifce = read->input;
+				od->objectDescriptorID = 0;
+				gf_list_add(od->ESDescriptors, esd);
+
+				if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
+					send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, (GF_Descriptor*)od, NULL);
+				}
+				else {
+					gf_service_declare_media(read->service, (GF_Descriptor*)od, GF_TRUE);
+				}
+			}
+		}
+	}
 	if (read->input->query_proxy && read->input->proxy_udta && read->input->proxy_type) {
 		send_proxy_command(read, GF_FALSE, GF_TRUE, GF_OK, NULL, NULL);
 	} else {

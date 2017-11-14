@@ -584,6 +584,7 @@ typedef struct
 	Double activation_countdown;
 	//start and end times of splicing if any
 	Double splice_start_time, splice_end_time;
+	Bool splice_time_pts;
 } GF_AssociatedContentLocation;
 
 /*GF_NET_ASSOCIATED_CONTENT_TIMING*/

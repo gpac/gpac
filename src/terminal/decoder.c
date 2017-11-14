@@ -627,6 +627,11 @@ refetch_AU:
 				if ((*nextAU)->flags & GF_DB_AU_REAGGREGATED) {
 					scalable_check = 2;
 				} else {
+					if (codec->last_unit_dts && (AU->DTS<codec->last_unit_dts)) {
+						gf_es_drop_au(ch);
+						ch->stream_state = 1;
+						goto refetch_AU;
+					}
 					GF_LOG(GF_LOG_INFO, GF_LOG_CODEC, ("AU in enhancement layer DTS %u - CTS %d too early for this AU\n", AU->DTS, AU->CTS));
 				}
 			}
@@ -648,12 +653,12 @@ refetch_AU:
 			assert(addon->addon_type==GF_ADDON_TYPE_SCALABLE);
 			if (addon->is_splicing) {
 				//addon start not yet reached
-				if (addon->splice_start * 1000 > (*nextAU)->CTS ) check_addon = GF_FALSE;
+				if (addon->splice_start > (*nextAU)->CTS ) check_addon = GF_FALSE;
 				//addon end reached
-				if (addon->is_over || ((addon->splice_end>=0) && addon->splice_end * 1000 <= (*nextAU)->CTS) ) {
+				if ((addon->is_over==2) || ((addon->splice_end>=0) && (addon->splice_end <= (*nextAU)->CTS) ) ) {
 					check_addon = GF_FALSE;
 					//switch off enhancement layer
-					if (addon->coding_config_changed) {
+					if (codec->coding_config_changed) {
 						cap.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 						cap.cap.valueInt = 0;
 						gf_codec_set_capability(codec, cap);
@@ -665,8 +670,8 @@ refetch_AU:
 					*prev_channel_unreliable = GF_TRUE;
 				}
 				//switch on enhancement layer
-				if (check_addon && !addon->coding_config_changed) {
-					addon->coding_config_changed = GF_TRUE;
+				if (check_addon && !codec->coding_config_changed) {
+					codec->coding_config_changed = GF_TRUE;
 					cap.CapCode = GF_CODEC_MEDIA_SWITCH_QUALITY;
 					cap.cap.valueInt = 1;
 					gf_codec_set_capability(codec, cap);
@@ -698,18 +703,25 @@ refetch_AU:
 		for (i=0; i<count; i++) {
 			GF_AddonMedia *an_addon = gf_list_get(codec->odm->parentscene->declared_addons, i);
 			if (an_addon->addon_type!=GF_ADDON_TYPE_SPLICED) continue;
-			//addon start not yet reached
-			if (an_addon->splice_start * 1000 > (*nextAU)->CTS ) continue;
+			if (an_addon->splice_start<0) continue;
+			if (an_addon->splice_start > (*nextAU)->CTS ) continue;
 			//addon end reached
-			if (an_addon->is_over ||
-				((an_addon->splice_end>=0) && an_addon->splice_end * 1000 <= (*nextAU)->CTS )
+			if ((an_addon->is_over==2) ||
+				((an_addon->splice_end>=0) && an_addon->splice_end  <= (*nextAU)->CTS )
 			) {
-				check_coding_config = an_addon->coding_config_changed;
-				gf_scene_reset_addon(an_addon, GF_TRUE);
-				gf_list_rem(codec->odm->parentscene->declared_addons, i);
-				i--;
-				count--;
-				*prev_channel_unreliable = GF_TRUE;
+				if (codec->in_splice) {
+					assert(an_addon->nb_splicing);
+					an_addon->nb_splicing --;
+					codec->in_splice = GF_FALSE;
+					check_coding_config = codec->coding_config_changed;
+				}
+				if (!an_addon->nb_splicing) {
+					gf_scene_reset_addon(an_addon, GF_TRUE);
+					gf_list_rem(codec->odm->parentscene->declared_addons, i);
+					i--;
+					count--;
+					*prev_channel_unreliable = GF_TRUE;
+				}
 				continue;
 			}
 
@@ -717,6 +729,7 @@ refetch_AU:
 			break;
 		}
 		if (!addon && check_coding_config) {
+			codec->coding_config_changed = GF_FALSE;
 			gf_codec_change_decoder(codec, (*activeChannel)->esd, GF_FALSE);
 		}
 		//we found our addon, browse for same codec
@@ -738,22 +751,39 @@ refetch_AU:
 		}
 	}
 	if (splice_check) {
-		if (!addon->is_over) {
-			assert(*nextAU);
-			if (spliced_AU && spliced_AU->CTS <= (*nextAU)->CTS) {
+		Bool is_over = *nextAU ? 0 : addon->is_over;
+		if (!is_over) {
+			//nextAU might be NULL if no RAP yet arrived on spliced channel
+			if (*nextAU && spliced_AU && spliced_AU->CTS <= (*nextAU)->CTS) {
 				gf_es_drop_au(spliced_channel);
 			}
-			if (!addon->coding_config_changed && spliced_channel->esd->decoderConfig->objectTypeIndication != (*activeChannel)->esd->decoderConfig->objectTypeIndication) {
 
-				gf_codec_change_decoder(codec, (*activeChannel)->esd, GF_FALSE);
-				addon->coding_config_changed = GF_TRUE;
+			if (!codec->in_splice) {
+				GF_DefaultDescriptor *dsi1, *dsi2;
+				dsi1 = spliced_channel->esd->decoderConfig->decoderSpecificInfo;
+				dsi2 = (*activeChannel)->esd->decoderConfig->decoderSpecificInfo;
+				if (!codec->coding_config_changed
+				&& (
+				(spliced_channel->esd->decoderConfig->objectTypeIndication != (*activeChannel)->esd->decoderConfig->objectTypeIndication)
+				|| (!dsi1 || ! dsi2 || (dsi1->dataLength != dsi2->dataLength)
+
+				|| memcmp(dsi1->data, dsi2->data, dsi1->dataLength)	)
+				)
+				) {
+
+					gf_codec_change_decoder(codec, (*activeChannel)->esd, GF_FALSE);
+					codec->coding_config_changed = GF_TRUE;
+				}
+				codec->in_splice = GF_TRUE;
+				addon->nb_splicing++;
 			}
 		} else {
+			if (addon->is_over) addon->is_over = 2;
 			*activeChannel = spliced_channel;
 			*nextAU = spliced_AU;
-			if (addon->coding_config_changed) {
+			if (codec->coding_config_changed) {
 				gf_codec_change_decoder(codec, (*activeChannel)->esd, GF_FALSE);
-				addon->coding_config_changed = GF_FALSE;
+				codec->coding_config_changed = GF_FALSE;
 			}
 		}
 	}
@@ -1090,7 +1120,8 @@ static GFINLINE GF_Err UnlockCompositionUnit(GF_Codec *dec, GF_CMUnit *CU, u32 c
 		if (dec->trusted_cts && (CU->prev->dataLength && CU->prev->TS > CU->TS) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODEC, ("[%s] ODM%d codec is reordering but CTSs are out of order (%u vs %u prev) - forcing CTS recomputing\n", dec->decio->module_name, dec->odm->OD->objectDescriptorID, CU->TS, CU->prev->TS));
 
-			dec->trusted_cts = GF_FALSE;
+			//dec->trusted_cts = GF_FALSE;
+			CU->TS = CU->prev->TS;
 		}
 		if (!dec->trusted_cts) {
 			/*first dispatch from decoder, store CTS*/

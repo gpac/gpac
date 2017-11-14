@@ -476,6 +476,11 @@ struct _webvtt_parser {
 	void (*on_cue_read)(void *, GF_WebVTTCue *);
 };
 
+static Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
+{
+	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
+}
+
 #ifndef GPAC_DISABLE_MEDIA_IMPORT
 
 
@@ -1182,11 +1187,6 @@ GF_List *gf_webvtt_parse_cues_from_data(const char *data, u32 dataLength, u64 st
 	return cues;
 }
 
-Bool gf_webvtt_timestamp_is_zero(GF_WebVTTTimestamp *ts)
-{
-	return (ts->hour == 0 && ts->min == 0 && ts->sec == 0 && ts->ms == 0) ? GF_TRUE : GF_FALSE;
-}
-
 GF_Err gf_webvtt_merge_cues(GF_WebVTTParser *parser, u64 start, GF_List *cues)
 {
 	GF_WebVTTSample *wsample;
@@ -1481,6 +1481,8 @@ GF_Err gf_webvtt_dump_sample(FILE *dump, GF_WebVTTSample *samp)
 	return gf_webvtt_dump_cues(dump, samp->cues);
 }
 
+#ifndef GPAC_DISABLE_MEDIA_EXPORT
+
 GF_EXPORT
 GF_Err gf_webvtt_dump_iso_track(GF_MediaExporter *dumper, char *szName, u32 track, Bool merge, Bool box_dump)
 {
@@ -1535,6 +1537,8 @@ exit:
 #endif
 }
 
-#endif //GPAC_DISABLE_ISOM_DUMP
+#endif /*GPAC_DISABLE_MEDIA_EXPORT*/
 
-#endif /* GPAC_DISABLE_VTT */
+#endif /*GPAC_DISABLE_ISOM_DUMP*/
+
+#endif /*GPAC_DISABLE_VTT*/

@@ -993,7 +993,7 @@ static GF_Err M2TS_QueryNextFile(void *udta, DASHQueryType query_type, const cha
 		GF_LOG(GF_LOG_DEBUG, GF_LOG_DASH, ("[M2TS In] Cannot query next file: not yet downloaded\n"));
 	} else if ((query_ret==GF_OK) && query_type && !param.url_query.next_url) {
 		GF_LOG(GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: no file provided but no error raised\n"));
-	} else if (query_ret) {
+	} else if (query_ret && query_type!=INIT_RANGE && query_type!=DROP_NEXT_SEGMENT) {
 		GF_LOG((query_ret<0) ? GF_LOG_ERROR : GF_LOG_INFO, GF_LOG_DASH, ("[M2TS In] Cannot query next file: error: %s\n", gf_error_to_string(query_ret)));
 	} else {
 		if (out_url) *out_url = param.url_query.next_url;
