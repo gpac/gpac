@@ -646,6 +646,15 @@ void mesh_new_sphere(GF_Mesh *mesh, Fixed radius, Bool low_res, GF_MeshSphereAng
 	if (radius<0) num_steps = 72;
 
 	if (low_res) num_steps /= 2;
+	if (sphere_angles) {
+		Fixed min_subd1, min_subd2;
+		min_subd1 = gf_divfix(sphere_angles->max_phi - sphere_angles->min_phi, GF_PI);
+		min_subd2 = gf_divfix(sphere_angles->max_theta - sphere_angles->min_theta, GF_2PI);
+		if (min_subd1<0) min_subd1 = -min_subd1;
+		if (min_subd2<0) min_subd2 = -min_subd2;
+		if (min_subd2<min_subd1) min_subd1=min_subd2;
+		num_steps = FIX2INT(num_steps * min_subd1);
+	}
 	npts = num_steps * num_steps;
 
 	coords = (SFVec3f*)gf_malloc(sizeof(SFVec3f)*npts);
