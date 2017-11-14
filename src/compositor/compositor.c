@@ -1519,6 +1519,12 @@ void gf_sc_reload_config(GF_Compositor *compositor)
 	} else if (!strcmp(sOpt, "yes")) {
 		compositor->tile_visibility_debug = GF_TRUE;
 	}
+	sOpt = gf_cfg_get_key(compositor->user->config, "Compositor", "TileVisibilityForced");
+	if (!sOpt) {
+		gf_cfg_set_key(compositor->user->config, "Compositor", "TileVisibilityForced", "no");
+	} else if (!strcmp(sOpt, "yes")) {
+		compositor->force_all_tiles_visible = GF_TRUE;
+	}
 
 #endif //GPAC_DISABLE_3D
 
