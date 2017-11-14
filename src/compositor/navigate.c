@@ -617,6 +617,13 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 				return 1;
 			}
 			break;
+		case GF_KEY_D:
+			if (keys & GF_KEY_MOD_CTRL) {
+				compositor->tile_visibility_debug = !compositor->tile_visibility_debug;
+				gf_sc_invalidate(compositor, NULL);
+				return 1;
+			}
+			break;
 		}
 		break;
 	case GF_EVENT_SENSOR_ORIENTATION:

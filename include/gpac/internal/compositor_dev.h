@@ -567,6 +567,7 @@ struct __tag_compositor
 	u32 screen_buffer_alloc_size;
 
 	u32 tile_visibility_nb_tests, tile_visibility_threshold;
+	Bool tile_visibility_debug;
 #endif
 
 	Bool orientation_sensors_active;

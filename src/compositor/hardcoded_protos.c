@@ -1419,7 +1419,9 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					if (txh->data) {
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_FALSE);
 						visual_3d_enable_antialias(tr_state->visual, GF_FALSE);
-						visual_3d_draw(tr_state, stack->mesh);
+						if (!tr_state->visual->compositor->tile_visibility_debug ||  (vrinfo.srd_w != vrinfo.srd_max_x)) {
+							visual_3d_draw(tr_state, stack->mesh);
+						}
 						visual_3d_enable_depth_buffer(tr_state->visual, GF_TRUE);
 					}
 				} else {
