@@ -1269,7 +1269,6 @@ static GF_Node *load_vr_proto_node(GF_SceneGraph *sg, const char *def_name)
 			return NULL;
 		}
 		url->count=1;
-		url->vals = gf_malloc(sizeof(SFURL));
 		url->vals[0].url = gf_strdup(name);
 	}
 	node = gf_sg_proto_create_instance(sg, proto);
