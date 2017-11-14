@@ -221,6 +221,7 @@
 		927AAD0E1E44F492008C8E69 /* libgpac.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 9201F93718D5A38A003D1ACA /* libgpac.dylib */; };
 		9288E8641FB1BF07005460C5 /* reframe_mpgvid.c in Sources */ = {isa = PBXBuildFile; fileRef = 9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */; };
 		928E7AC51FB9F2B800D2470E /* dmx_nhnt.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */; };
+		928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */ = {isa = PBXBuildFile; fileRef = 928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */; };
 		9290F5111FAB4C2C0038C30D /* mux_isom.c in Sources */ = {isa = PBXBuildFile; fileRef = 9290F5101FAB4C2C0038C30D /* mux_isom.c */; };
 		92A5CBE51F66ED2A005D2A6A /* gpac_js.c in Sources */ = {isa = PBXBuildFile; fileRef = 92A5CBE41F66ED2A005D2A6A /* gpac_js.c */; };
 		92AAF0E418D6DB8600E2FF12 /* audio.c in Sources */ = {isa = PBXBuildFile; fileRef = 92AAF0D818D6DB5500E2FF12 /* audio.c */; };
@@ -1075,6 +1076,7 @@
 		927AACFD1E44EEDC008C8E69 /* gpac */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = gpac; sourceTree = BUILT_PRODUCTS_DIR; };
 		9288E8631FB1BF07005460C5 /* reframe_mpgvid.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_mpgvid.c; path = filters/reframe_mpgvid.c; sourceTree = "<group>"; };
 		928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhnt.c; path = filters/dmx_nhnt.c; sourceTree = "<group>"; };
+		928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = dmx_nhml.c; path = filters/dmx_nhml.c; sourceTree = "<group>"; };
 		9290F5101FAB4C2C0038C30D /* mux_isom.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = mux_isom.c; path = filters/mux_isom.c; sourceTree = "<group>"; };
 		92A5CBE41F66ED2A005D2A6A /* gpac_js.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = gpac_js.c; path = ../modules/gpac_js/gpac_js.c; sourceTree = "<group>"; };
 		92AAF0D318D6DB2D00E2FF12 /* gm_sdl_out.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = gm_sdl_out.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -2517,6 +2519,7 @@
 				92BB9A661F9C827600524E5B /* dmx_dash.c */,
 				926656C51F7D45F700299CC6 /* dmx_ogg.c */,
 				926656C71F7E92C200299CC6 /* dmx_m2ts.c */,
+				928E7AC61FB9FCDD00D2470E /* dmx_nhml.c */,
 				928E7AC41FB9F2B800D2470E /* dmx_nhnt.c */,
 				92B9A5BE1F8695FA00A24FE4 /* dmx_saf.c */,
 				92BB855C1F7BFB61009BC9C8 /* ff_common.c */,
@@ -3340,6 +3343,7 @@
 				92B9A57F1F8660D700A24FE4 /* offscreen_cache.c in Sources */,
 				92B9A59E1F8660D700A24FE4 /* mesh.c in Sources */,
 				92C1FF561E7C42DF0093B61E /* raster_565.c in Sources */,
+				928E7AC71FB9FCDD00D2470E /* dmx_nhml.c in Sources */,
 				9201017618D5A445003D1ACA /* swf_parse.c in Sources */,
 				9201017718D5A445003D1ACA /* swf_svg.c in Sources */,
 				92BB857F1F7C30AF009BC9C8 /* dec_j2k.c in Sources */,

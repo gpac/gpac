@@ -1008,7 +1008,7 @@ static const struct box_registry_entry {
 	//part30 boxes
 #ifndef GPAC_DISABLE_TTXT
 	BOX_DEFINE( GF_ISOM_BOX_TYPE_STXT, metx, "stsd"),
-	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TXTC, txtc, "stxt", 0),
+	FBOX_DEFINE( GF_ISOM_BOX_TYPE_TXTC, txtc, "stxt mett sbtt", 0),
 #ifndef GPAC_DISABLE_VTT
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_WVTT, wvtt, "stsd", "p30"),
 	BOX_DEFINE_S( GF_ISOM_BOX_TYPE_VTCC_CUE, vtcu, "vtt_sample", "p30"),

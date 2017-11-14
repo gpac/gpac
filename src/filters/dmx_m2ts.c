@@ -352,7 +352,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 		if (pck->DTS != pck->PTS) {
 			gf_filter_pck_set_dts(dst_pck, pck->DTS);
 		}
-		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? 1 : 0);
+		gf_filter_pck_set_sap(dst_pck, (pck->flags & GF_M2TS_PES_PCK_RAP) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
 	gf_filter_pck_send(dst_pck);
 }
@@ -407,7 +407,7 @@ static GFINLINE void m2tsdmx_send_sl_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_SL_PCK *
 		gf_filter_pck_set_cts(dst_pck, slh.compositionTimeStamp);
 
 	if (slc->hasRandomAccessUnitsOnlyFlag || slh.randomAccessPointFlag)
-		gf_filter_pck_set_sap(dst_pck, 1);
+		gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 
 	gf_filter_pck_set_carousel_version(dst_pck, pck->version_number);
 

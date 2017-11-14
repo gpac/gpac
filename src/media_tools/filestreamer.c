@@ -602,7 +602,7 @@ GF_ISOMRTPStreamer *gf_isom_streamer_new(const char *file_name, const char *ip_d
 		}
 		break;
 		default:
-			streamType = GF_STREAM_4CC;
+			streamType = TrackMediaType;
 			oti = TrackMediaSubType;
 			break;
 		}

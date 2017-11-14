@@ -280,6 +280,7 @@ struct __gf_media_session
 #ifdef GPAC_MEMORY_TRACKING
 	Bool check_allocs;
 #endif
+	GF_Err last_connect_error, last_process_error;
 
 	GF_FilterSessionCaps caps;
 };

@@ -538,7 +538,7 @@ GF_Err h263dmx_process(GF_Filter *filter)
 
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, full_frame);
 		gf_filter_pck_set_cts(dst_pck, ctx->cts);
-		gf_filter_pck_set_sap(dst_pck, (start[4]&0x02) ? 0 : 1);
+		gf_filter_pck_set_sap(dst_pck, (start[4]&0x02) ? GF_FILTER_SAP_NONE : GF_FILTER_SAP_1);
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
 		gf_filter_pck_send(dst_pck);

@@ -72,6 +72,7 @@ const GF_FilterRegister *qcpdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *h263dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhntdmx_register(GF_FilterSession *session);
+const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -115,6 +116,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, h263dmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, mpgviddmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nhntdmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, nhmldmx_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );
@@ -1335,8 +1337,28 @@ void gf_fs_cleanup_filters(GF_FilterSession *fsess)
 	}
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 #endif
-
 }
+
+GF_EXPORT
+GF_Err gf_fs_get_last_connect_error(GF_FilterSession *fs)
+{
+	GF_Err e;
+	if (!fs) return GF_BAD_PARAM;
+	e = fs->last_connect_error;
+	fs->last_connect_error = GF_OK;
+	return e;
+}
+
+GF_EXPORT
+GF_Err gf_fs_get_last_process_error(GF_FilterSession *fs)
+{
+	GF_Err e;
+	if (!fs) return GF_BAD_PARAM;
+	e = fs->last_process_error;
+	fs->last_process_error = GF_OK;
+	return e;
+}
+
 
 #ifdef FILTER_FIXME
 

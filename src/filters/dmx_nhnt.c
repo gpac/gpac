@@ -48,8 +48,6 @@ typedef struct
 	GF_FilterPid *ipid;
 	GF_FilterPid *opid;
 
-	Bool needs_connection;
-
 	Double start_range;
 	u64 first_dts;
 
@@ -416,7 +414,8 @@ GF_Err nhntdmx_process(GF_Filter *filter)
 		dst_pck = gf_filter_pck_new_alloc(ctx->opid, len, &data);
 		fread(data, 1, len, ctx->mdia);
 		gf_filter_pck_set_framing(dst_pck, is_start, is_end);
-		gf_filter_pck_set_sap(dst_pck, is_rap ? 1 : 0);
+		if (is_rap)
+			gf_filter_pck_set_sap(dst_pck, GF_FILTER_SAP_1);
 		gf_filter_pck_set_dts(dst_pck, dts);
 		gf_filter_pck_set_cts(dst_pck, cts);
 		gf_filter_pck_set_byte_offset(dst_pck, offset);
@@ -471,7 +470,7 @@ static const GF_FilterCapability NHNTDmxOutputs[] =
 
 
 GF_FilterRegister NHNTDmxRegister = {
-	.name = "hnntdmx",
+	.name = "nhntdmx",
 	.description = "NHNT Demux",
 	.private_size = sizeof(GF_NHNTDmxCtx),
 	.args = GF_NHNTDmxArgs,

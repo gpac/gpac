@@ -130,7 +130,7 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	s32 gotpic;
 	const char *data = NULL;
 	Bool seek_flag = GF_FALSE;
-	u8 sap_type = 0;
+	GF_FilterSAPType sap_type = GF_FILTER_SAP_NONE;
 	u32 pck_duration = 0;
 	u32 size=0, pix_fmt, outsize, pix_out, stride;
 	char *out_buffer;
@@ -261,11 +261,11 @@ static GF_Err ffdec_process_video(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 
 	//copy over SAP and duration indication
 	seek_flag = GF_FALSE;
-	sap_type = 0;
+	sap_type = GF_FILTER_SAP_NONE;
 	if (frame->pkt_dts) {
 		u32 flags = frame->pkt_dts>>32;
 		seek_flag = flags & 0xFFFF;
-		sap_type = (flags>>16) & 0xFFFF;
+		sap_type = ((flags>>16) & 0xFFFF) ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE;
 		pck_duration = (frame->pkt_dts & 0xFFFFFFFFUL);
 	}
 	//this was a seek frame, do not dispatch
@@ -508,7 +508,7 @@ static GF_Err ffdec_process_audio(GF_Filter *filter, struct _gf_ffdec_ctx *ffdec
 	if (frame->pkt_dts) {
 		u32 sap = frame->pkt_dts>>32;
 		gf_filter_pck_set_duration(dst_pck, frame->pkt_dts & 0xFFFFFFFFUL);
-		gf_filter_pck_set_sap(dst_pck, sap);
+		gf_filter_pck_set_sap(dst_pck, sap ? GF_FILTER_SAP_1 : GF_FILTER_SAP_NONE);
 	}
 
 	gf_filter_pck_send(dst_pck);

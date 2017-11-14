@@ -1307,9 +1307,7 @@ const char *gf_esd_get_textual_description(GF_ESD *esd)
 		break;
 	case GF_STREAM_PRIVATE_MEDIA:
 		return "Opaque Decoder";
-	case GF_STREAM_4CC:
-		return gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
 	default:
-		return "Unknown Media Type";
+		return gf_4cc_to_str(esd->decoderConfig->objectTypeIndication);
 	}
 }

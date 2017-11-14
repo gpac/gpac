@@ -124,6 +124,7 @@ GF_PropertyValue gf_props_parse_value(u32 type, const char *name, const char *va
 		break;
 	case GF_PROP_NAME:
 	case GF_PROP_STRING:
+	case GF_PROP_STRING_NO_COPY:
 		p.type=GF_PROP_STRING;
 		p.value.string = value ? gf_strdup(value) : NULL;
 		break;
@@ -353,10 +354,12 @@ GF_Err gf_props_insert_property(GF_PropertyMap *map, u32 hash, u32 p4cc, const c
 	//copy prop value
 	memcpy(&prop->prop, value, sizeof(GF_PropertyValue));
 
-	if (prop->prop.type == GF_PROP_STRING)
+	if (prop->prop.type == GF_PROP_STRING) {
 		prop->prop.value.string = value->value.string ? gf_strdup(value->value.string) : NULL;
-
-	if (prop->prop.type == GF_PROP_DATA) {
+	} else if (prop->prop.type == GF_PROP_STRING_NO_COPY) {
+		prop->prop.value.string = value->value.string;
+		prop->prop.type = GF_PROP_STRING;
+	} else if (prop->prop.type == GF_PROP_DATA) {
 		//restore source pointer, realloc if needed
 		prop->prop.value.data.ptr = src_ptr;
 		if (prop->alloc_size < value->value.data.size) {
@@ -511,11 +514,14 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
 	{ GF_PROP_PID_CHANNEL_LAYOUT, "ChannelLayout", "Channel Layout", GF_PROP_UINT},
 	{ GF_PROP_PID_AUDIO_FORMAT, "AudioFormat", "audio sample format (u8|s16|s32|flt|dbl|u8p|s16p|s32p|fltp|dblp)", GF_PROP_UINT},
+	{ GF_PROP_PID_BPS, "BitsPerSample", "Number of bits per sample", GF_PROP_UINT},
 	{ GF_PROP_PID_WIDTH, "Width", "Visual width (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_HEIGHT, "Height", "Visualheight (video / text / graphics)", GF_PROP_UINT},
 	{ GF_PROP_PID_PIXFMT, "PixelFormat", "Pixel format", GF_PROP_UINT},
 	{ GF_PROP_PID_STRIDE, "Stride", "image or Y/alpha plane stride", GF_PROP_UINT},
 	{ GF_PROP_PID_STRIDE_UV, "StrideUV", "U/V plane stride", GF_PROP_UINT},
+	{ GF_PROP_PID_BIT_DEPTH_Y, "BitDepthLuma", "Bit depth for luma components", GF_PROP_UINT},
+	{ GF_PROP_PID_BIT_DEPTH_UV, "BitDepthChroma", "Bit depth for chroma components", GF_PROP_UINT},
 	{ GF_PROP_PID_FPS, "FPS", "Video framerate", GF_PROP_FRACTION},
 	{ GF_PROP_PID_SAR, "SAR", "Sample (ie pixel) aspect ratio", GF_PROP_FRACTION},
 	{ GF_PROP_PID_PAR, "PAR", "Picture aspect ratio", GF_PROP_FRACTION},
@@ -551,6 +557,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_PCK_CENC_PATTERN, "CENCPattern", "CENC crypt pattern, CENC pattern, skip as frac.num crypt as frac.den", GF_PROP_FRACTION},
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
 	{ GF_PROP_PID_AC3_CFG, "AC3Config", "24 bits of AC3 config as 3GPP", GF_PROP_DATA},
+	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

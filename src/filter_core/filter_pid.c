@@ -372,6 +372,7 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 
 					unload_filter = GF_FALSE;
 				}
+				if (!filter->session->last_connect_error) filter->session->last_connect_error = e;
 				if (is_connect) {
 					assert(pid->filter->pid_connection_pending);
 					safe_int_dec(&pid->filter->pid_connection_pending);
@@ -389,7 +390,10 @@ static GF_Err gf_filter_pid_configure(GF_Filter *filter, GF_FilterPid *pid, Bool
 			} else {
 				GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Failed to reconfigure input of sink %s, cannot rebuild graph\n", filter->name));
 			}
+		} else {
+			filter->session->last_connect_error = GF_OK;
 		}
+
 		//try to run filter no matter what
 		if (filter->session->requires_solved_graph )
 			return e;
