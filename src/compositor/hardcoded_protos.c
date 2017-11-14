@@ -1381,6 +1381,7 @@ static void TraverseVRGeometry(GF_Node *node, void *rs, Bool is_destroy)
 					visible = GF_TRUE;
 				GF_LOG(GF_LOG_INFO, GF_LOG_COMPOSE, ("[Compositor] Texture %d Partial sphere is %s - %d sample points visible out of %d\n", txh->stream->OD_ID, visible ? "visible" : "hidden",  nb_visible, i));
 			}
+
 			if (visible) {
 				stack->mesh->flags |= MESH_WAS_VISIBLE;
 			} else {
