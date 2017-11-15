@@ -1034,6 +1034,7 @@ typedef struct _audiointerface
 	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
 	/*updated cfg, or 0 otherwise*/
 	u32 chan, bps, samplerate, ch_cfg;
+	Bool forced_layout;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
