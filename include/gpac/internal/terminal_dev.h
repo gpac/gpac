@@ -213,6 +213,8 @@ struct _scene
 	Bool is_tiled_srd;
 	u32 srd_type;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
+	//ambisonic type of the scene
+	u32 ambisonic_type;
 
 
 	Bool end_of_scene;
@@ -1102,6 +1104,9 @@ struct _od_manager
 	struct _od_manager *upper_layer_odm;
 	//for a scalable ODM, this indicates the lower layer odm associated
 	struct _od_manager *lower_layer_odm;
+
+	//indicates channel order (1->N) if the object is a ambisonic channel
+	u32 ambi_ch_id;
 };
 
 GF_ObjectManager *gf_odm_new();
