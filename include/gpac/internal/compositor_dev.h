@@ -1069,6 +1069,7 @@ typedef struct _audiointerface
 	Bool (*GetConfig)(struct _audiointerface *ai, Bool for_reconf);
 	/*updated cfg, or 0 otherwise*/
 	u32 chan, bps, samplerate, ch_cfg;
+	Bool forced_layout;
 } GF_AudioInterface;
 
 typedef struct __audiomix GF_AudioMixer;
@@ -1648,6 +1649,7 @@ struct _gf_scene
 	u32 srd_type;
 	s32 srd_min_x, srd_max_x, srd_min_y, srd_max_y;
 
+	u32 ambisonic_type;
 
 	Bool end_of_scene;
 #ifndef GPAC_DISABLE_VRML
@@ -2071,6 +2073,7 @@ struct _od_manager
 	struct _od_manager *lower_layer_odm;
 
 	s32 last_drawn_frame_ntp_diff;
+	u32 ambi_ch_id;
 };
 
 GF_ObjectManager *gf_odm_new();

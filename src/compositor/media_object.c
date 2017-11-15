@@ -238,7 +238,7 @@ void gf_mo_get_nb_layers(GF_MediaObject *mo, int * nb_layers)
 }
 
 GF_EXPORT
-Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config)
+Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sample, u32 *num_channels, u32 *channel_config, Bool *forced_layout)
 {
 	if (!mo->odm || (mo->type != GF_MEDIA_OBJECT_AUDIO)) return GF_FALSE;
 
@@ -250,6 +250,19 @@ Bool gf_mo_get_audio_info(GF_MediaObject *mo, u32 *sample_rate, u32 *bits_per_sa
 	if (bits_per_sample) *bits_per_sample = mo->bits_per_sample;
 	if (num_channels) *num_channels = mo->num_channels;
 	if (channel_config) *channel_config = mo->channel_config;
+	if (forced_layout) *forced_layout = GF_FALSE;
+
+	if (mo->odm->ambi_ch_id) {
+		if (mo->num_channels>1) {
+			GF_LOG(GF_LOG_WARNING, GF_LOG_MEDIA, ("[ODM%d]: tagged as ambisonic channel %d but has %d channels, ignoring ambisonic tag\n",  mo->odm->ID, mo->odm->ambi_ch_id, mo->num_channels ));
+		} else {
+			if (num_channels) *num_channels = 1;
+			if (channel_config) *channel_config = 1 << (mo->odm->ambi_ch_id - 1);
+			if (forced_layout) *forced_layout = GF_TRUE;
+
+		}
+	}
+
 	return GF_TRUE;
 }
 

@@ -370,13 +370,30 @@ static GFINLINE u32 get_channel_out_pos(u32 in_ch, u32 out_cfg)
 }
 
 /*this is crude, we'd need a matrix or something*/
-static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, u32 nb_out, u32 out_cfg)
+static GFINLINE void gf_mixer_map_channels(s32 *inChan, u32 nb_in, u32 in_cfg, Bool forced_layout, u32 nb_out, u32 out_cfg)
 {
 	u32 i;
 	if (nb_in==1) {
 		/*mono to stereo*/
 		if (nb_out==2) {
-			inChan[1] = inChan[0];
+			//layout forced, don't copy
+			if (in_cfg && forced_layout) {
+				u32 idx = 0;
+				while (1) {
+					in_cfg >>= 1;
+					if (!in_cfg) break;
+					idx++;
+				}
+				if (idx) {
+//					inChan[idx] = inChan[0];
+//					inChan[0] = 0;
+					inChan[1] = inChan[0];
+				} else {
+					inChan[1] = inChan[0];
+				}
+			} else {
+				inChan[1] = inChan[0];
+			}
 		}
 		else if (nb_out>2) {
 			/*if center channel use it (we assume we always have stereo channels)*/
@@ -555,11 +572,17 @@ static void gf_mixer_fetch_input(GF_AudioMixer *am, MixerInput *in, u32 audio_de
 				inChan[j] = (frac*inChanNext[j] + (255-frac)*inChan[j]) / 255;
 			}
 		}
-
-		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, out_ch, am->channel_cfg);
-		//Fixe me - we nee to uderstand how to map pan from N channels to K channels ...
-		for (j=0; j<out_ch ; j++) {
-			*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+		//map inChannel to the output channel config
+		gf_mixer_map_channels(inChan, in_ch, in->src->ch_cfg, in->src->forced_layout, out_ch, am->channel_cfg);
+		//don't apply pan when forced layout is used
+		if (!in->src->forced_layout) {
+			for (j=0; j<out_ch ; j++) {
+				*(in->ch_buf[j] + in->out_samples_written) = (s32) (inChan[j] * FIX2INT(100*in->pan[j]) / 100 );
+			}
+		} else {
+			for (j=0; j<out_ch ; j++) {
+				*(in->ch_buf[j] + in->out_samples_written) = (s32) inChan[j];
+			}
 		}
 
 		in->out_samples_written ++;
@@ -838,8 +861,6 @@ do_mix:
 		for (i = 0; i < nb_written; i++) {
 			for (j = 0; j < am->nb_channels; j++) {
 				s32 samp = (*out_mix);
-				if (samp > GF_SHORT_MAX) samp = GF_INT_MAX;
-				else if (samp < GF_SHORT_MIN) samp = GF_INT_MIN;
 				(*out_s32) = samp;
 				out_s32 += 1;
 				out_mix += 1;

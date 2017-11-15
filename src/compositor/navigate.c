@@ -394,7 +394,7 @@ static Bool compositor_handle_navigation_3d(GF_Compositor *compositor, GF_Event 
 		key_trans*=4;
 	}
 
-	if (!gf_term_get_option(compositor->term, GF_OPT_ORIENTATION_SENSORS_ACTIVE)) {
+	if (! compositor->orientation_sensors_active) {
 		Fixed yaw, pitch, roll;
 		gf_mx_get_yaw_pitch_roll(&compositor->visual->camera.modelview, &yaw, &pitch, &roll);
 		compositor->audio_renderer->yaw = yaw;
