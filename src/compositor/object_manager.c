@@ -511,6 +511,13 @@ void gf_odm_setup_object(GF_ObjectManager *odm, GF_SceneNamespace *parent_ns, GF
 			gf_sc_send_event(odm->parentscene->compositor, &evt);
 			return;
 		}
+	} else if (odm->parentscene) {
+		const GF_PropertyValue *prop = gf_filter_pid_get_property_str(for_pid ? for_pid : odm->pid, "role");
+		if (prop && prop->value.string && !strncmp(prop->value.string, "ambi", 4)) {
+			odm->ambi_ch_id = atoi(prop->value.string + 4);
+			if (odm->ambi_ch_id > odm->parentscene->ambisonic_type)
+				odm->parentscene->ambisonic_type = odm->ambi_ch_id;
+		}
 	}
 }
 
@@ -1758,7 +1765,7 @@ GF_Err gf_odm_get_object_info(GF_ObjectManager *odm, GF_MediaInfo *info)
 			gf_mo_get_visual_info(odm->mo, &info->width, &info->height, NULL, &info->par, &info->pixelFormat, NULL);
 			break;
 		case GF_STREAM_AUDIO:
-			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->bits_per_sample, &info->num_channels, NULL);
+			gf_mo_get_audio_info(odm->mo, &info->sample_rate, &info->bits_per_sample, &info->num_channels, NULL, NULL);
 			info->clock_drift = 0;
 			break;
 		case GF_STREAM_TEXT:
