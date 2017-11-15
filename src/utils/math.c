@@ -1562,7 +1562,7 @@ void gf_mx_lookat(GF_Matrix *mx, GF_Vec eye, GF_Vec center, GF_Vec upVector)
 GF_Vec4 gf_quat_from_matrix(GF_Matrix *mx);
 
 GF_EXPORT
-void gf_mx_compute_angles(GF_Matrix *mx, Fixed *yaw, Fixed *pitch, Fixed *roll)
+void gf_mx_get_yaw_pitch_roll(GF_Matrix *mx, Fixed *yaw, Fixed *pitch, Fixed *roll)
 {
 	Fixed locmat[16];
 	assert(mx->m[15]);
