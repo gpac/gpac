@@ -863,6 +863,17 @@ Bool gf_mx_inverse_4x4(GF_Matrix *mx);
  *\param vec pointer to the vector. Once the function is called, contains the transformed vector
 */
 void gf_mx_apply_vec_4x4(GF_Matrix *mx, GF_Vec4 *vec);
+
+/*!\brief matrix yaw pitch roll decomposition
+*
+*Extracts yaw, pitch and roll info from a matrix
+*\param mx the matrix to decompose
+*\param yaw the extracted yaw angle in radians
+*\param pitch the extracted pitch angle in radians
+*\param roll the extracted roll angle in radians
+*/
+void gf_mx_get_yaw_pitch_roll(GF_Matrix *mx, Fixed *yaw, Fixed *pitch, Fixed *roll);
+
 /*!\brief matrix decomposition
  *
  *Decomposes a matrix into translation, scale, shear and rotate
