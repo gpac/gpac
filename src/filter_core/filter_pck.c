@@ -25,12 +25,14 @@
 
 #include "filter_session.h"
 
-static void gf_filter_pck_reset_props(GF_FilterPacket *pck)
+static void gf_filter_pck_reset_props(GF_FilterPacket *pck, GF_FilterPid *pid)
 {
 	memset(&pck->info, 0, sizeof(GF_FilterPckInfo));
 	pck->info.dts = pck->info.cts = GF_FILTER_NO_TS;
 	pck->info.byte_offset =  GF_FILTER_NO_BO;
 	pck->info.data_block_start = pck->info.data_block_end = GF_TRUE;
+	pck->pid = pid;
+	pck->src_filter = pid->filter;
 }
 
 GF_Err gf_filter_pck_merge_properties_filter(GF_FilterPacket *pck_src, GF_FilterPacket *pck_dst, gf_filter_prop_filter filter_prop, void *cbk)
@@ -125,11 +127,10 @@ static GF_FilterPacket *gf_filter_pck_new_alloc_internal(GF_FilterPid *pid, u32 
 
 	pck->pck = pck;
 	pck->data_length = data_size;
-	pck->pid = pid;
 	if (data) *data = pck->data;
 	pck->filter_owns_mem = GF_FALSE;
 
-	gf_filter_pck_reset_props(pck);
+	gf_filter_pck_reset_props(pck, pid);
 	return pck;
 }
 
@@ -155,13 +156,12 @@ GF_FilterPacket *gf_filter_pck_new_shared(GF_FilterPid *pid, const char *data, u
 		if (!pck) return NULL;
 	}
 	pck->pck = pck;
-	pck->pid = pid;
 	pck->data = (char *) data;
 	pck->data_length = data_size;
 	pck->filter_owns_mem = GF_TRUE;
 	pck->destructor = destruct;
 
-	gf_filter_pck_reset_props(pck);
+	gf_filter_pck_reset_props(pck, pid);
 
 	assert(pck->pid);
 	return pck;
@@ -215,9 +215,16 @@ GF_Err gf_filter_pck_forward(GF_FilterPacket *reference, GF_FilterPid *pid)
 
 void gf_filter_packet_destroy(GF_FilterPacket *pck)
 {
+	Bool is_filter_destroyed = GF_FALSE;
 	GF_FilterPid *pid = pck->pid;
-	assert(pck->pid);
-	GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
+
+	if (pck->src_filter)
+		is_filter_destroyed = pck->src_filter->finalized;
+
+	if (!is_filter_destroyed) {
+		assert(pck->pid);
+		GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s PID %s destroying packet\n", pck->pid->filter->name, pck->pid->name));
+	}
 	if (pck->destructor) pck->destructor(pid->filter, pid, pck);
 
 	if (pck->pid_props) {
@@ -225,7 +232,7 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 		pck->pid_props = NULL;
 		assert(props->reference_count);
 		if (safe_int_dec(&props->reference_count) == 0) {
-			gf_list_del_item(pck->pid->properties, props);
+			if (!is_filter_destroyed) gf_list_del_item(pck->pid->properties, props);
 			gf_props_del(props);
 		}
 	}
@@ -238,16 +245,17 @@ void gf_filter_packet_destroy(GF_FilterPacket *pck)
 	pck->data_length = 0;
 	pck->pid = NULL;
 
-	if (pck->filter_owns_mem) {
-
-		if (pck->reference) {
-			assert(pck->reference->reference_count);
-			if (safe_int_dec(&pck->reference->reference_count) == 0) {
-				gf_filter_packet_destroy(pck->reference);
-			}
-			pck->reference = NULL;
+	if (pck->reference) {
+		assert(pck->reference->reference_count);
+		if (safe_int_dec(&pck->reference->reference_count) == 0) {
+			gf_filter_packet_destroy(pck->reference);
 		}
-
+		pck->reference = NULL;
+	}
+	if (is_filter_destroyed) {
+		if (!pck->filter_owns_mem && pck->data) gf_free(pck->data);
+		gf_free(pck);
+	} else if (pck->filter_owns_mem) {
 		gf_fq_add(pid->filter->pcks_shared_reservoir, pck);
 	} else {
 		gf_fq_add(pid->filter->pcks_alloc_reservoir, pck);
@@ -395,6 +403,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 	s64 duration=0;
 	u32 timescale=0;
 
+	if (!pck->src_filter) return GF_BAD_PARAM;
+
 	assert(pck);
 	assert(pck->pid);
 	pid = pck->pid;
@@ -448,6 +458,8 @@ GF_Err gf_filter_pck_send(GF_FilterPacket *pck)
 		gf_list_add(pid->filter->postponed_packets, pck);
 		return GF_OK;
 	}
+	//now dispatched
+	pck->src_filter = NULL;
 
 	assert(pck->pid);
 	pid->nb_pck_sent++;
@@ -791,7 +803,7 @@ const GF_PropertyValue *gf_filter_pck_enum_properties(GF_FilterPacket *pck, u32 
 
 #define PCK_SETTER_CHECK(_pname) \
 	if (PCK_IS_INPUT(pck)) { \
-		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set _pname on an input packet in filter %s\n", pck->pid->filter->name));\
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to set %s on an input packet in filter %s\n", _pname, pck->pid->filter->name));\
 		return GF_BAD_PARAM; \
 	} \
 
@@ -947,4 +959,32 @@ GF_FilterHWFrame *gf_filter_pck_get_hw_frame(GF_FilterPacket *pck)
 	return pck->pck->hw_frame;
 }
 
+GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size)
+{
+	assert(pck);
+	if (PCK_IS_INPUT(pck)) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate input packet on output PID in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (! pck->src_filter) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate an already sent packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (pck->filter_owns_mem) {
+		GF_LOG(GF_LOG_ERROR, GF_LOG_FILTER, ("Attempt to reallocate a shared memory packet in filter %s\n", pck->pid->filter->name));
+		return GF_BAD_PARAM;
+	}
+	if (pck->data_length + nb_bytes_to_add > pck->alloc_size) {
+		pck->alloc_size = pck->data_length + nb_bytes_to_add;
+		pck->data = gf_realloc(pck->data, pck->alloc_size);
+	}
+	pck->info.byte_offset = GF_FILTER_NO_BO;
+	*data_start = pck->data;
+	*new_range_start = pck->data + pck->data_length;
+	pck->data_length += nb_bytes_to_add;
+	*new_size = pck->data_length;
+
+
+	return GF_OK;
+}
 

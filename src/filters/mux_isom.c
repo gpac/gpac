@@ -68,8 +68,9 @@ typedef struct
 	Bool dref;
 	GF_Fraction dur;
 	u32 pack3gp;
-	Bool verbose;
+	Bool importer;
 	Bool noedit;
+	Bool pack_nal;
 
 
 	//internal
@@ -264,7 +265,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		comp_name = "AAC";
 		use_gen_sample_entry = GF_FALSE;
 
-		if (ctx->verbose) {
+		if (ctx->importer) {
 			const char *pid_args = gf_filter_pid_get_args(pid);
 			if (pid_args) {
 				Bool sbr_i = strstr(pid_args, "sbr=imp") ? GF_TRUE : GF_FALSE;
@@ -351,6 +352,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		comp_name = "MPEG-4 Visual Part 2";
 		use_gen_sample_entry = GF_FALSE;
 		break;
+	case GPAC_OTI_VIDEO_AVC:
+		m_subtype = GF_ISOM_SUBTYPE_AVC_H264;
+		use_m4sys = GF_TRUE;
+		comp_name = "MPEG-4 AVC";
+		use_gen_sample_entry = GF_FALSE;
+		break;
 	case GPAC_OTI_VIDEO_MPEG1:
 	case GPAC_OTI_VIDEO_MPEG2_422:
 	case GPAC_OTI_VIDEO_MPEG2_SNR:
@@ -371,6 +378,7 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 		m_subtype = tkw->oti;
 		use_gen_sample_entry = GF_TRUE;
 		use_m4sys = GF_FALSE;
+		comp_name = gf_4cc_to_str(m_subtype);
 
 		p = gf_filter_pid_get_property_str(pid, "meta:mime");
 		if (p) meta_mime = p->value.string;
@@ -589,11 +597,12 @@ GF_Err mp4_mux_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 	if (sr) gf_isom_set_audio_info(ctx->mov, tkw->track_num, tkw->stsd_idx, sr, nb_chan, nb_bps);
 	else if (width) {
 		gf_isom_set_visual_info(ctx->mov, tkw->track_num, tkw->stsd_idx, width, height);
-		gf_isom_set_pixel_aspect_ratio(ctx->mov, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
+		if (sar.num != sar.den)
+			gf_isom_set_pixel_aspect_ratio(ctx->mov, tkw->track_num, tkw->stsd_idx, sar.num, sar.den);
 	}
 
 
-	if (ctx->verbose) {
+	if (ctx->importer) {
 		if (!imp_name) imp_name = comp_name;
 		if (sr) {
 			GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("Importing %s - SampleRate %d Num Channels %d\n", imp_name, sr, nb_chan));
@@ -751,7 +760,7 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 		if (ctx->dur.num) {
 			u32 mdur = gf_isom_get_media_duration(ctx->mov, tkw->track_num);
 
-			if (ctx->verbose) {
+			if (ctx->importer) {
 				gf_set_progress("Import", mdur * ctx->dur.den, tkw->timescale * ctx->dur.num);
 			}
 			
@@ -762,10 +771,16 @@ GF_Err mp4_mux_process(GF_Filter *filter)
 
 				tkw->aborted = GF_TRUE;
 			}
-		} else if (ctx->verbose) {
+		} else if (ctx->importer) {
+			const GF_PropertyValue *p;
 			u64 data_offset = gf_filter_pck_get_byte_offset(pck);
-			const GF_PropertyValue *p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE);
-			if (p) {
+			if (data_offset == GF_FILTER_NO_BO) {
+				p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_BYTES);
+				if (p) data_offset = p->value.longuint;
+			}
+
+			p = gf_filter_pid_get_info(tkw->ipid, GF_PROP_PID_DOWN_SIZE);
+			if ((data_offset != GF_FILTER_NO_BO) && p) {
 				gf_set_progress("Import", data_offset, p->value.uint);
 			} else {
 				p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_DURATION);
@@ -832,6 +847,7 @@ void gf_media_update_bitrate(GF_ISOFile *file, u32 track);
 
 static void mp4_mux_finalize(GF_Filter *filter)
 {
+	Bool is_nalu = GF_FALSE;
 	GF_MP4MuxCtx *ctx = gf_filter_get_udta(filter);
 
 	while (gf_list_count(ctx->tracks)) {
@@ -879,7 +895,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 				}
 				gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, PL);
 			}
-
+		} else if (tkw->oti == GPAC_OTI_VIDEO_AVC) {
+			gf_isom_set_pl_indication(ctx->mov, GF_ISOM_PL_VISUAL, 0x7F);
+			gf_isom_modify_alternate_brand(ctx->mov, GF_ISOM_BRAND_AVC1, 1);
+			is_nalu = GF_TRUE;
 		}
 		if (tkw->has_append)
 			gf_isom_refresh_size_info(ctx->mov, tkw->track_num);
@@ -892,6 +911,34 @@ static void mp4_mux_finalize(GF_Filter *filter)
 
 		if (!tkw->is_3gpp)
 			gf_media_update_bitrate(ctx->mov, tkw->track_num);
+
+
+		if (is_nalu && ctx->pack_nal && (gf_isom_get_mode(ctx->mov)!=GF_ISOM_OPEN_WRITE)) {
+
+			GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size);
+
+			u32 msize = 0;
+			Bool do_rewrite = GF_FALSE;
+			u32 i, count = gf_isom_get_sample_description_count(ctx->mov, tkw->track_num);
+			const GF_PropertyValue *p = gf_filter_pid_get_property(tkw->ipid, GF_PROP_PID_MAX_NALU_SIZE);
+			msize = gf_get_bit_size(p->value.uint);
+			if (msize<8) msize = 8;
+			else if (msize<16) msize = 16;
+			else msize = 32;
+
+			if (msize<=0xFFFF) {
+				for (i=0; i<count; i++) {
+					u32 k = 8 * gf_isom_get_nalu_length_field(ctx->mov, tkw->track_num, i+1);
+					if (k > msize) {
+						do_rewrite = GF_TRUE;
+					}
+				}
+				if (do_rewrite) {
+					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Adjusting NALU SizeLength to %d bits\n", msize ));
+					gf_media_nal_rewrite_samples(ctx->mov, tkw->track_num, msize);
+				}
+			}
+		}
 
 		gf_free(tkw);
 	}
@@ -926,9 +973,9 @@ static const GF_FilterArgs MP4MuxArgs[] =
 	{ OFFS(dref), "only references data from source file - not compatible with all media sources", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(dur), "only imports the specified duration", GF_PROP_FRACTION, "0", NULL, GF_FALSE},
 	{ OFFS(pack3gp), "packs a given number of 3GPP audio frames in one sample", GF_PROP_UINT, "1", NULL, GF_FALSE},
-	{ OFFS(verbose), "compatibility with old importer, displys import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
+	{ OFFS(importer), "compatibility with old importer, displays import progress", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{ OFFS(noedit), "disable edit lists on video tracks", GF_PROP_BOOL, "false", NULL, GF_FALSE},
-
+	{ OFFS(pack_nal), "repacks NALU size length to minimum possible size for AVC/HEVC/...", GF_PROP_BOOL, "false", NULL, GF_FALSE},
 	{}
 };
 

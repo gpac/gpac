@@ -811,6 +811,11 @@ static GF_Err vtbdec_parse_nal_units(GF_Filter *filter, GF_VTBDecCtx *ctx, char 
 			for (i=0; i<ctx->nalu_size_length; i++) {
 				nal_size = (nal_size<<8) + ((u8) ptr[i]);
 			}
+
+			if (nal_size > inBufferLength) {
+				GF_LOG(GF_LOG_ERROR, GF_LOG_CODEC, ("[VTB] Error parsing NAL: size indicated %d but %d bytes onnly in payload\n", nal_size, inBufferLength));
+				break;
+			}
 			ptr += ctx->nalu_size_length;
 		} else {
 			nal_size = gf_media_nalu_next_start_code((const u8 *) ptr, inBufferLength, &sc_size);

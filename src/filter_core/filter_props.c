@@ -509,6 +509,7 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_TIMESCALE, "Timescale", "timescale of PID (a timestamp of N is N/timescale seconds)", GF_PROP_UINT},
 	{ GF_PROP_PID_PROFILE_LEVEL, "ProfileLevel", "MPEG-4 profile and level of the stream", GF_PROP_UINT},
 	{ GF_PROP_PID_DECODER_CONFIG, "DecoderConfig", "data property containing the decoder config", GF_PROP_DATA},
+	{ GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT, "DecoderConfigEnhancement", "data property containing the decoder config of the enhancement layer", GF_PROP_DATA},
 	{ GF_PROP_PID_SAMPLE_RATE, "SampleRate", "audio sample rate", GF_PROP_UINT},
 	{ GF_PROP_PID_SAMPLES_PER_FRAME, "SamplesPerFrame", "number of audio sample in one coded frame", GF_PROP_UINT},
 	{ GF_PROP_PID_NUM_CHANNELS, "NumChannels", "number of audio channels", GF_PROP_UINT},
@@ -558,6 +559,9 @@ struct _gf_prop_typedef {
 	{ GF_PROP_PID_AMR_MODE_SET, "AMRModeSet", "ModeSet for AMR and AMR-WideBand", GF_PROP_UINT},
 	{ GF_PROP_PID_AC3_CFG, "AC3Config", "24 bits of AC3 config as 3GPP", GF_PROP_DATA},
 	{ GF_PROP_PCK_SUBS, "SubSampleInfo", "binary blob describing N subsamples of the sample, formatted as N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]", GF_PROP_DATA},
+
+	{ GF_PROP_PID_MAX_NALU_SIZE, "NALUMaxSize", "Max size of NAL units in stream - set as info, not property", GF_PROP_UINT},
+
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc)

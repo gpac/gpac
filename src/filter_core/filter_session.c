@@ -73,6 +73,7 @@ const GF_FilterRegister *h263dmx_register(GF_FilterSession *session);
 const GF_FilterRegister *mpgviddmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhntdmx_register(GF_FilterSession *session);
 const GF_FilterRegister *nhmldmx_register(GF_FilterSession *session);
+const GF_FilterRegister *naludmx_register(GF_FilterSession *session);
 
 
 static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
@@ -117,6 +118,7 @@ static void gf_fs_reg_all(GF_FilterSession *fsess, GF_FilterSession *a_sess)
 	gf_fs_add_filter_registry(fsess, mpgviddmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nhntdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, nhmldmx_register(a_sess) );
+	gf_fs_add_filter_registry(fsess, naludmx_register(a_sess) );
 
 	gf_fs_add_filter_registry(fsess, ffdmx_register(a_sess) );
 	gf_fs_add_filter_registry(fsess, ffdec_register(a_sess) );

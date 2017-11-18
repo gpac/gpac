@@ -940,7 +940,7 @@ static const GF_FilterArgs MPGVidDmxArgs[] =
 
 GF_FilterRegister MPGVidDmxRegister = {
 	.name = "reframe_mpgvid",
-	.description = "MPEG-1/2/4 (Part2) Video Demux",
+	.description = "MPEG-1/2/4 (Part2) Video Demux\n\tThe demux uses negative CTS offsets: CTS is corrrect, but some frames may have DTS > CTS.",
 	.private_size = sizeof(GF_MPGVidDmxCtx),
 	.args = MPGVidDmxArgs,
 	.initialize = mpgviddmx_initialize,

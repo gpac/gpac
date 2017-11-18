@@ -1513,6 +1513,12 @@ void gnrv_del(GF_Box *s)
 	GF_GenericVisualSampleEntryBox *ptr = (GF_GenericVisualSampleEntryBox *)s;
 	gf_isom_sample_entry_predestroy((GF_SampleEntryBox *)ptr);
 	if (ptr->data) gf_free(ptr->data);
+
+	if (ptr->pasp) gf_isom_box_del((GF_Box *)ptr->pasp);
+	if (ptr->clap) gf_isom_box_del((GF_Box *)ptr->clap);
+	if (ptr->rinf) gf_isom_box_del((GF_Box *)ptr->rinf);
+	if (ptr->rvcc) gf_isom_box_del((GF_Box *)ptr->rvcc);
+
 	gf_free(ptr);
 }
 
