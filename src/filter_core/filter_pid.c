@@ -816,6 +816,7 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 
 		path_weight = filter_caps_to_caps_match(filter_reg, freg);
 		if (!path_weight) continue;
+		path_weight *= (255-freg->priority);
 
 		//we found our target filter
 		if (freg==dst_filter) {
@@ -832,8 +833,13 @@ u32 gf_filter_check_dst_caps(GF_FilterSession *fsess, const GF_FilterRegister *f
 			while (gf_list_count(filter_chain)>count_at_input) {
 				gf_list_rem_last(filter_chain);
 			}
+			if (candidate) {
+				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has lower priority/pid matching (%d) than filter %s (%d), replacing it in filter chain\n", candidate->name, nb_matched, freg->name, path_weight));
+			}
 			nb_matched = path_weight;
 			candidate = freg;
+		} else {
+			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Filter %s has lower priority/pid matching (%d) than filter %s (%d), ignoring\n", freg->name, path_weight, candidate->name, nb_matched));
 		}
 	}
 	if (candidate) gf_list_add(filter_chain, (void *) candidate);
@@ -892,10 +898,10 @@ static GF_Filter *gf_filter_pid_resolve_link(GF_FilterPid *pid, GF_Filter *dst, 
 
 #ifndef GPAC_DISABLE_LOG
 		if (gf_log_tool_level_on(GF_LOG_FILTER, GF_LOG_DEBUG)) {
-			count = gf_list_count(filter_chain);
+			u32 k, nb_filters = gf_list_count(filter_chain);
 			GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("Possible filter chain from filter %s PID %s to filter %s:\n", pid->filter->name, pid->name, dst_filter->name));
-			for (i=0; i<count; i++) {
-				const GF_FilterRegister *freg = gf_list_get(filter_chain, i);
+			for (k=0; k<nb_filters; k++) {
+				const GF_FilterRegister *freg = gf_list_get(filter_chain, k);
 				GF_LOG(GF_LOG_DEBUG, GF_LOG_FILTER, ("\t%s\n", freg->name));
 			}
 		}

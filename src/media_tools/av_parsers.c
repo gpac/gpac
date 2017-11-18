@@ -2873,7 +2873,11 @@ static void avc_compute_poc(AVCSliceInfo *si)
 		AVC_PIC_FIELD_BOTTOM,
 	} pic_type;
 	s32 field_poc[2] = {0,0};
-	s32 max_frame_num = 1 << (si->sps->log2_max_frame_num);
+	s32 max_frame_num;
+
+	if (!si->sps) return;
+
+	max_frame_num = 1 << (si->sps->log2_max_frame_num);
 
 	/* picture type */
 	if (si->sps->frame_mbs_only_flag || !si->field_pic_flag) pic_type = AVC_PIC_FRAME;

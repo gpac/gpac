@@ -1734,7 +1734,7 @@ exit:
 
 
 GF_EXPORT
-GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, u32 new_size)
+GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size)
 {
 	u32 i, count, di, remain, msize;
 	char *buffer;
@@ -1746,6 +1746,9 @@ GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size, 
 		GF_ISOSample *samp = gf_isom_get_sample(file, track, i+1, &di);
 		GF_BitStream *oldbs = gf_bs_new(samp->data, samp->dataLength, GF_BITSTREAM_READ);
 		GF_BitStream *newbs = gf_bs_new(NULL, 0, GF_BITSTREAM_WRITE);
+		u32 prev_size = 8*gf_isom_get_nalu_length_field(file, track, di);
+		if (!prev_size) return GF_NON_COMPLIANT_BITSTREAM;
+		
 		remain = samp->dataLength;
 		while (remain) {
 			u32 size = gf_bs_read_int(oldbs, prev_size);
@@ -2356,7 +2359,7 @@ restart_import:
 				if (size_length+diff_size == 24) diff_size+=8;
 
 				gf_import_message(import, GF_OK, "Adjusting AVC SizeLength to %d bits", size_length+diff_size);
-				gf_media_avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
+				gf_media_nal_rewrite_samples(import->dest, track, size_length+diff_size);
 
 				/*rewrite current sample*/
 				if (sample_data) {
@@ -3611,7 +3614,7 @@ restart_import:
 				if (size_length+diff_size == 24) diff_size+=8;
 
 				gf_import_message(import, GF_OK, "Adjusting HEVC SizeLength to %d bits", size_length+diff_size);
-				gf_media_avc_rewrite_samples(import->dest, track, size_length, size_length+diff_size);
+				gf_media_nal_rewrite_samples(import->dest, track, size_length+diff_size);
 
 				/*rewrite current sample*/
 				if (sample_data) {
@@ -4837,10 +4840,11 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		GF_Filter *isobmff_mux;
 
 		//mux args
-		sprintf(szArgs, "mp4mx:mov=%p:verbose", importer->dest);
+		sprintf(szArgs, "mp4mx:mov=%p:importer", importer->dest);
 		if (importer->flags & GF_IMPORT_FORCE_MPEG4) strcat(szArgs, ":m4sys:mpeg4");
 		if (importer->flags & GF_IMPORT_USE_DATAREF) strcat(szArgs, ":dref");
 		if (importer->flags & GF_IMPORT_NO_EDIT_LIST) strcat(szArgs, ":noedit");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":pack_nal");
 
 		if (importer->duration) {
 			sprintf(szSubArg, ":dur=%d/1000", importer->duration);
@@ -4858,12 +4862,13 @@ GF_Err gf_media_import(GF_MediaImporter *importer)
 		}
 
 		//source args
-		strcpy(szArgs, "");
+		strcpy(szArgs, "importer");
 		if (importer->flags & GF_IMPORT_SBR_IMPLICIT) strcat(szArgs, ":sbr=imp");
 		else if (importer->flags & GF_IMPORT_SBR_EXPLICIT) strcat(szArgs, ":sbr=exp");
 		if (importer->flags & GF_IMPORT_PS_IMPLICIT) strcat(szArgs, ":ps=imp");
 		else if (importer->flags & GF_IMPORT_PS_EXPLICIT) strcat(szArgs, ":ps=exp");
 		if (importer->flags & GF_IMPORT_OVSBR) strcat(szArgs, ":ovsbr");
+		if (importer->flags & GF_IMPORT_FORCE_PACKED) strcat(szArgs, ":nal_length=0");
 
 		gf_fs_load_source(fsess, importer->in_name, szArgs, NULL, &e);
 		if (e) {

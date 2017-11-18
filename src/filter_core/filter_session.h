@@ -145,6 +145,9 @@ struct __gf_filter_pck
 {
 	struct __gf_filter_pck *pck; //this object
 	GF_FilterPid *pid;
+	//filter emiting the packet - this is only needed to handle destruction of packets never dispatched
+	//by the filter upon destruction. Set to NULL once the packet is dispatched
+	GF_Filter *src_filter;
 
 	//nb references of this packet
 	volatile u32 reference_count;

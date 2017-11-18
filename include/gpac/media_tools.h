@@ -428,14 +428,13 @@ GF_Err gf_media_make_psp(GF_ISOFile *file);
 GF_Err gf_media_change_pl(GF_ISOFile *file, u32 track, u32 profile, u32 level);
 
 /*! 
- Rewrite AVC samples if nalu size_length has to be changed
+ Rewrite NAL-based samples (AVC/HEVC/...) samples if nalu size_length has to be changed
  \param file the target movie
  \param track the target track
- \param prev_size_in_bits previous size in bits of the NALU length field in the track
- \param new_size_in_bits new size in bits of the NALU length field in the track
+ \param new_size_in_bits new size in bits of the NALU length field in the track, for all samples description of the track
  \return error if any
  */
-GF_Err gf_media_avc_rewrite_samples(GF_ISOFile *file, u32 track, u32 prev_size_in_bits, u32 new_size_in_bits);
+GF_Err gf_media_nal_rewrite_samples(GF_ISOFile *file, u32 track, u32 new_size_in_bits);
 
 /*!
  Split SVC layers 

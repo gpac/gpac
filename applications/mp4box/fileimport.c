@@ -1698,10 +1698,10 @@ static u32 merge_avc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 s
 	else {
 		/*rewrite all samples if using different NALU size*/
 		if (avc_src->nal_unit_size > avc_dst->nal_unit_size) {
-			gf_media_avc_rewrite_samples(dest, dst_tk, 8*avc_dst->nal_unit_size, 8*avc_src->nal_unit_size);
+			gf_media_nal_rewrite_samples(dest, dst_tk, 8*avc_src->nal_unit_size);
 			avc_dst->nal_unit_size = avc_src->nal_unit_size;
 		} else if (avc_src->nal_unit_size < avc_dst->nal_unit_size) {
-			gf_media_avc_rewrite_samples(orig, src_track, 8*avc_src->nal_unit_size, 8*avc_dst->nal_unit_size);
+			gf_media_nal_rewrite_samples(orig, src_track, 8*avc_dst->nal_unit_size);
 		}
 
 		/*merge PS*/
@@ -1744,10 +1744,10 @@ static u32 merge_hevc_config(GF_ISOFile *dest, u32 tk_id, GF_ISOFile *orig, u32 
 	else {
 		/*rewrite all samples if using different NALU size*/
 		if (hevc_src->nal_unit_size > hevc_dst->nal_unit_size) {
-			gf_media_avc_rewrite_samples(dest, dst_tk, 8*hevc_dst->nal_unit_size, 8*hevc_src->nal_unit_size);
+			gf_media_nal_rewrite_samples(dest, dst_tk, 8*hevc_src->nal_unit_size);
 			hevc_dst->nal_unit_size = hevc_src->nal_unit_size;
 		} else if (hevc_src->nal_unit_size < hevc_dst->nal_unit_size) {
-			gf_media_avc_rewrite_samples(orig, src_track, 8*hevc_src->nal_unit_size, 8*hevc_dst->nal_unit_size);
+			gf_media_nal_rewrite_samples(orig, src_track, 8*hevc_dst->nal_unit_size);
 		}
 
 		/*merge PS*/

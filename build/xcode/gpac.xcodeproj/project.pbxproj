@@ -464,6 +464,7 @@
 		92C1FF591E7C42DF0093B61E /* raster_rgb.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF511E7C42DF0093B61E /* raster_rgb.c */; };
 		92C1FF5A1E7C42DF0093B61E /* stencil.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF521E7C42DF0093B61E /* stencil.c */; };
 		92C1FF5B1E7C42DF0093B61E /* surface.c in Sources */ = {isa = PBXBuildFile; fileRef = 92C1FF531E7C42DF0093B61E /* surface.c */; };
+		92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */ = {isa = PBXBuildFile; fileRef = 92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */; };
 		92D535711A5C0D1400F2442A /* carbon_events.c in Sources */ = {isa = PBXBuildFile; fileRef = 92D5356F1A5C0CF700F2442A /* carbon_events.c */; };
 		92DB148D1E4F05B500382A81 /* filters.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148B1E4F05B500382A81 /* filters.h */; };
 		92DB148E1E4F05B500382A81 /* main.h in Headers */ = {isa = PBXBuildFile; fileRef = 92DB148C1E4F05B500382A81 /* main.h */; };
@@ -1321,6 +1322,7 @@
 		92C1FF521E7C42DF0093B61E /* stencil.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = stencil.c; path = ../modules/soft_raster/stencil.c; sourceTree = "<group>"; };
 		92C1FF531E7C42DF0093B61E /* surface.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = surface.c; path = ../modules/soft_raster/surface.c; sourceTree = "<group>"; };
 		92CC44F91DC0D22C0084D6A6 /* libopensvc.dylib */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.dylib"; includeInIndex = 0; path = libopensvc.dylib; sourceTree = BUILT_PRODUCTS_DIR; };
+		92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = reframe_nalu.c; path = filters/reframe_nalu.c; sourceTree = "<group>"; };
 		92D5356F1A5C0CF700F2442A /* carbon_events.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; name = carbon_events.c; path = ../../applications/mp4client/carbon_events.c; sourceTree = "<group>"; };
 		92DB148B1E4F05B500382A81 /* filters.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = filters.h; path = ../include/gpac/filters.h; sourceTree = "<group>"; };
 		92DB148C1E4F05B500382A81 /* main.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = main.h; path = ../include/gpac/main.h; sourceTree = "<group>"; };
@@ -2500,6 +2502,7 @@
 		92F8D47E1F71643600616F7C /* filters */ = {
 			isa = PBXGroup;
 			children = (
+				92CDAEE71FBD9D0C0007C1C0 /* reframe_nalu.c */,
 				92BB85581F7BFB61009BC9C8 /* compose.c */,
 				92BB85821F7C5773009BC9C8 /* dec_ac52.c */,
 				92BB85521F7BFB60009BC9C8 /* dec_bifs.c */,
@@ -3255,6 +3258,7 @@
 				92B9A5891F8660D700A24FE4 /* svg_text.c in Sources */,
 				9201014218D5A445003D1ACA /* ait.c in Sources */,
 				9201014318D5A445003D1ACA /* av_parsers.c in Sources */,
+				92CDAEE81FBD9D0C0007C1C0 /* reframe_nalu.c in Sources */,
 				9201014418D5A445003D1ACA /* avilib.c in Sources */,
 				92B9A5A31F8660D700A24FE4 /* visual_manager_2d.c in Sources */,
 				92B9A57C1F8660D700A24FE4 /* svg_filters.c in Sources */,

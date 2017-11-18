@@ -508,6 +508,9 @@ u32 gf_filter_pck_get_timescale(GF_FilterPacket *pck);
 GF_Err gf_filter_pck_set_duration(GF_FilterPacket *pck, u32 duration);
 u32 gf_filter_pck_get_duration(GF_FilterPacket *pck);
 
+//realloc packet not already sent. Returns data start and new range of data. This will reset byte offset information
+GF_Err gf_filter_pck_expand(GF_FilterPacket *pck, u32 nb_bytes_to_add, char **data_start, char **new_range_start, u32 *new_size);
+
 //SAP types as defined in annex I of ISOBMFF
 typedef enum
 {
@@ -594,6 +597,9 @@ enum
 	GF_PROP_PID_PROFILE_LEVEL = GF_4CC('P','R','P','L'),
 	//(data) decoder config
 	GF_PROP_PID_DECODER_CONFIG = GF_4CC('D','C','F','G'),
+	//(data) decoder config for enhancement
+	GF_PROP_PID_DECODER_CONFIG_ENHANCEMENT = GF_4CC('E','C','F','G'),
+
 	//(uint) sample rate
 	GF_PROP_PID_SAMPLE_RATE = GF_4CC('A','U','S','R'),
 	//(uint) nb samples per audio frame
@@ -695,7 +701,8 @@ enum
 	GF_PROP_PID_AC3_CFG = GF_4CC('A','C','3','C'),
 	//(data) binary blob containing N [(u32)flags(u32)size(u32)reserved(u8)priority(u8) discardable]
 	GF_PROP_PCK_SUBS = GF_4CC('S','U','B','S'),
-
+	//(uint)
+	GF_PROP_PID_MAX_NALU_SIZE = GF_4CC('N','A','L','S'),
 };
 
 const char *gf_props_4cc_get_name(u32 prop_4cc);
