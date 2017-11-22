@@ -57,7 +57,6 @@ typedef struct
 	Bool in_seek;
 	Bool initial_play_done;
 	u32 nb_playing;
-	u32 declaration_pendings;
 
 	//duration estimation
 	GF_Fraction duration;
@@ -164,15 +163,18 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_VIDEO_MPEG1:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_MPEG1;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_MPEG2:
 	case GF_M2TS_VIDEO_DCII:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_MPEG2_422;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_MPEG4:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_MPEG4_PART2;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_H264:
 		stype = GF_STREAM_VISUAL;
@@ -185,10 +187,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_SVC;
 		has_scal_layer = GF_TRUE;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_VIDEO_HEVC:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_HEVC;
+		unframed = GF_TRUE;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
 		break;
@@ -203,10 +207,12 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_AUDIO_MPEG1:
 		stype = GF_STREAM_AUDIO;
 		oti = GPAC_OTI_AUDIO_MPEG1;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_MPEG2:
 		stype = GF_STREAM_AUDIO;
 		oti = GPAC_OTI_AUDIO_MPEG2_PART3;
+		unframed = GF_TRUE;
 		break;
 	case GF_M2TS_AUDIO_LATM_AAC:
 	case GF_M2TS_AUDIO_AAC:
@@ -488,15 +494,12 @@ static void m2tsdmx_on_event(GF_M2TS_Demuxer *ts, u32 evt_type, void *param)
 	case GF_M2TS_EVT_PAT_UPDATE:
 		break;
 	case GF_M2TS_EVT_AIT_FOUND:
-		ctx->declaration_pendings = gf_list_count(ctx->ts->programs);
 		break;
 	case GF_M2TS_EVT_PAT_FOUND:
 		break;
 	case GF_M2TS_EVT_DSMCC_FOUND:
 		break;
 	case GF_M2TS_EVT_PMT_FOUND:
-		assert(ctx->declaration_pendings);
-		ctx->declaration_pendings --;
 		m2tsdmx_setup_program(ctx, param);
 		break;
 	case GF_M2TS_EVT_PMT_REPEAT:
@@ -841,7 +844,6 @@ static GF_Err m2tsdmx_initialize(GF_Filter *filter)
 
 	ctx->ts->on_event = m2tsdmx_on_event;
 	ctx->ts->user = filter;
-	ctx->declaration_pendings = 1;
 
 	ctx->filter = filter;
 	if (ctx->dsmcc) {
@@ -882,9 +884,8 @@ static GF_Err m2tsdmx_process(GF_Filter *filter)
 		}
 		return GF_OK;
 	}
-	if (!ctx->declaration_pendings && !ctx->nb_playing)
-		return GF_EOS;
-
+	//we process even if no stream playing: since we use unframed dispatch we may need to send packets to configure reframers
+	//which will in turn connect to the sink which will send the PLAY event marking stream(s) as playing
 	if (ctx->in_seek) {
 		gf_m2ts_reset_parsers(ctx->ts);
 		ctx->in_seek = GF_FALSE;

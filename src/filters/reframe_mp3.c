@@ -44,7 +44,7 @@ typedef struct
 	GF_FilterPid *opid;
 
 	GF_BitStream *bs;
-	u64 file_pos, cts;
+	u64 file_pos, cts, prev_cts;
 	u32 sr, nb_ch, oti;
 	GF_Fraction duration;
 	Double start_range;
@@ -162,7 +162,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT( GF_STREAM_AUDIO));
-		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, & PROP_BOOL(GF_FALSE) );
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL );
 
 		mp3_dmx_check_dur(filter, ctx);
 	}
@@ -177,7 +177,7 @@ static void mp3_dmx_check_pid(GF_Filter *filter, GF_MP3DmxCtx *ctx)
 	sr = gf_mp3_sampling_rate(ctx->hdr);
 
 	//we change sample rate, change cts
-	if (ctx->cts && (ctx->sr != sr)) {
+	if (ctx->cts && ctx->sr && (ctx->sr != sr)) {
 		ctx->cts *= sr;
 		ctx->cts /= ctx->sr;
 	}
@@ -308,7 +308,6 @@ GF_Err mp3_dmx_process(GF_Filter *filter)
 			dst_pck = gf_filter_pck_new_alloc(ctx->opid, to_send, &output);
 			memcpy(output, data, to_send);
 
-			gf_filter_pck_set_cts(dst_pck, ctx->cts);
 			gf_filter_pck_set_framing(dst_pck, GF_FALSE, ctx->remaining ? GF_FALSE : GF_TRUE);
 			if (byte_offset != GF_FILTER_NO_BO) {
 				gf_filter_pck_set_byte_offset(dst_pck, byte_offset);

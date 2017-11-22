@@ -79,6 +79,7 @@ GF_Filter *gf_filter_new(GF_FilterSession *fsess, const GF_FilterRegister *regis
 	gf_list_add(fsess->filters, filter);
 	if (fsess->filters_mx) gf_mx_v(fsess->filters_mx);
 
+	filter->arg_type = arg_type;
 	e = gf_filter_new_finalize(filter, args, arg_type);
 	if (e) {
 		if (!filter->setup_notified) {
@@ -671,7 +672,7 @@ void gf_filter_send_update(GF_Filter *filter, const char *fid, const char *name,
 
 GF_Filter *gf_filter_clone(GF_Filter *filter)
 {
-	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, GF_FILTER_ARG_LOCAL, NULL);
+	GF_Filter *new_filter = gf_filter_new(filter->session, filter->freg, filter->orig_args, filter->arg_type, NULL);
 	if (!new_filter) return NULL;
 	new_filter->cloned_from = filter;
 

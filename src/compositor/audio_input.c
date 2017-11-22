@@ -55,7 +55,7 @@ static char *gf_audio_input_fetch_frame(void *callback, u32 *size, u32 audio_del
 
 	/*no more data or not enough data, reset syncro drift*/
 	if (!frame) {
-		if (!ai->stream_finished) {
+		if (!ai->stream_finished && gf_clock_is_started(ai->stream->odm->ck) ) {
 			GF_LOG(GF_LOG_WARNING, GF_LOG_AUDIO, ("[Audio Input] No data in audio object\n"));
 		}
 		gf_mo_adjust_clock(ai->stream, 0);
