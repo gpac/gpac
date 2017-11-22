@@ -936,6 +936,10 @@ static void mp4_mux_finalize(GF_Filter *filter)
 				if (do_rewrite) {
 					GF_LOG(GF_LOG_INFO, GF_LOG_AUTHOR, ("[MP4Mux] Adjusting NALU SizeLength to %d bits\n", msize ));
 					gf_media_nal_rewrite_samples(ctx->mov, tkw->track_num, msize);
+					msize /= 8;
+					for (i=0; i<count; i++) {
+						gf_isom_set_nalu_length_field(ctx->mov, tkw->track_num, i+1, msize);
+					}
 				}
 			}
 		}

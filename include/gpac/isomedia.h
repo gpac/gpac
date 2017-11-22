@@ -2055,6 +2055,9 @@ typedef enum {
 } GF_ISOMLHEVCTrackType;
 GF_Err gf_isom_lhvc_config_update(GF_ISOFile *the_file, u32 trackNumber, u32 DescriptionIndex, GF_HEVCConfig *cfg, GF_ISOMLHEVCTrackType track_type);
 
+//sets nalu size length - samles must be rewritten by the caller
+GF_Err gf_isom_set_nalu_length_field(GF_ISOFile *file, u32 track, u32 StreamDescriptionIndex, u32 nalu_size_length);
+
 #endif /*GPAC_DISABLE_ISOM_WRITE*/
 
 
