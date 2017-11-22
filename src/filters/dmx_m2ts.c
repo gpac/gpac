@@ -177,6 +177,7 @@ static void m2tsdmx_declare_pid(GF_M2TSDmxCtx *ctx, GF_M2TS_PES *stream, GF_ESD 
 	case GF_M2TS_VIDEO_H264:
 		stype = GF_STREAM_VISUAL;
 		oti = GPAC_OTI_VIDEO_AVC;
+		unframed = GF_TRUE;
 		if (stream->program->is_scalable)
 			has_scal_layer = GF_TRUE;
 		break;
@@ -345,7 +346,7 @@ static void m2tsdmx_send_packet(GF_M2TSDmxCtx *ctx, GF_M2TS_PES_PCK *pck)
 	dst_pck = gf_filter_pck_new_alloc(opid, pck->data_len, &data);
 	memcpy(data, pck->data, pck->data_len);
 	//we don't have end of frame signaling
-	gf_filter_pck_set_framing(dst_pck, (pck->flags & GF_M2TS_PES_PCK_AU_START), GF_FALSE);
+	gf_filter_pck_set_framing(dst_pck, (pck->flags & GF_M2TS_PES_PCK_AU_START) ? GF_TRUE : GF_FALSE, GF_FALSE);
 
 	if (pck->flags & GF_M2TS_PES_PCK_AU_START) {
 		gf_filter_pck_set_cts(dst_pck, pck->PTS);
@@ -680,7 +681,7 @@ static GF_Err m2tsdmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool i
 		ctx->ts = gf_m2ts_demux_new();
 		ctx->ts->on_event = m2tsdmx_on_event;
 		ctx->ts->user = filter;
-	} else {
+	} else if (!p) {
 		ctx->duration.num = 1;
 	}
 	return GF_OK;

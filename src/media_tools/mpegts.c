@@ -3444,8 +3444,9 @@ GF_Err gf_m2ts_set_pes_framing(GF_M2TS_PES *pes, u32 mode)
 			break;
 		case GF_M2TS_VIDEO_H264:
 		case GF_M2TS_VIDEO_SVC:
-			pes->reframe = gf_m2ts_reframe_avc_h264;
-			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
+//			pes->reframe = gf_m2ts_reframe_avc_h264;
+//			pes->single_nal_mode = (mode==GF_M2TS_PES_FRAMING_DEFAULT_NAL) ? 1 : 0;
+			pes->reframe = gf_m2ts_reframe_default;
 			break;
 		case GF_M2TS_VIDEO_HEVC:
 		case GF_M2TS_VIDEO_SHVC:
