@@ -531,6 +531,7 @@ struct __gf_filter_pid
 	//1000x speed value
 	u32 playback_speed_scaler;
 
+	Bool initial_play_done;
 	void *udta;
 };
 

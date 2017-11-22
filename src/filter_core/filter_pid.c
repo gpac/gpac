@@ -1889,13 +1889,30 @@ void gf_filter_pid_send_event_downstream(GF_FSTask *task)
 	}
 	GF_LOG(GF_LOG_INFO, GF_LOG_FILTER, ("Filter %s PID %s processed event %s - canceled %s\n", f->name, evt->base.on_pid ? evt->base.on_pid->name : "none", get_fevt_name(evt->base.type), canceled ? "yes" : "no" ));
 
-	if (evt->base.on_pid && ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK)) ) {
+	if (evt->base.on_pid && ((evt->base.type == GF_FEVT_STOP) || (evt->base.type==GF_FEVT_SOURCE_SEEK) || (evt->base.type==GF_FEVT_PLAY)) ) {
 		u32 i;
+		Bool do_reset = GF_TRUE;
+		Bool is_play_reset = GF_FALSE;
 		GF_FilterPidInst *p = (GF_FilterPidInst *) evt->base.on_pid;
 		GF_FilterPid *pid = p->pid;
-		for (i=0; i<pid->num_destinations; i++) {
+		//we need to force a PID reset when the first PLAY is > 0, since some filters may have dispatched packets during the initialization
+		//phase
+		if (evt->base.type==GF_FEVT_PLAY) {
+			if (pid->initial_play_done) {
+				do_reset = GF_FALSE;
+			} else {
+				pid->initial_play_done = GF_TRUE;
+				is_play_reset = GF_TRUE;
+				if (evt->play.start_range < 0.1)
+					do_reset = GF_FALSE;
+			}
+		}
+		for (i=0; i<pid->num_destinations && do_reset; i++) {
 			GF_FilterPidInst *pidi = gf_list_get(pid->destinations, i);
 			pidi->discard_packets = GF_TRUE;
+			if (is_play_reset)
+				safe_int_inc(& pid->discard_input_packets );
+				
 			safe_int_inc(& pid->filter->stream_reset_pending );
 			//post task on destination filter
 			gf_fs_post_task(pidi->filter->session, gf_filter_pid_reset_task, pidi->filter, NULL, "reset_pid", pidi);

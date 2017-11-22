@@ -812,8 +812,8 @@ GF_Err gf_filter_pck_set_framing(GF_FilterPacket *pck, Bool is_start, Bool is_en
 {
 	PCK_SETTER_CHECK("framing info")
 
-	pck->info.data_block_start = is_start;
-	pck->info.data_block_end = is_end;
+	pck->info.data_block_start = is_start ? GF_TRUE : GF_FALSE;
+	pck->info.data_block_end = is_end ? GF_TRUE : GF_FALSE;
 	return GF_OK;
 }
 

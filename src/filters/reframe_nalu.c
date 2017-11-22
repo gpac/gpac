@@ -54,7 +54,7 @@ typedef struct
 	//write bitstream for nalus size length rewrite
 	GF_BitStream *bs_w;
 	//current CTS/DTS of the stream, may be overriden by input packet if not file (eg TS PES)
-	u64 cts, dts;
+	u64 cts, dts, prev_dts;
 	//basic config stored here: with, height CRC of base and enh layer decoder config, sample aspect ratio
 	//when changing, a new pid config will be emitted
 	u32 width, height;
@@ -81,6 +81,9 @@ typedef struct
 
 	//timescale of the input pid if any, 0 otherwise
 	u32 timescale;
+	//framing flag of input packet when input pid has timing (eg is not a file)
+	Bool input_is_au_start;
+
 	//total delay in frames between decode and presentation
 	s32 max_total_delay;
 	//max size codable with our nal_length setting
@@ -164,7 +167,11 @@ GF_Err naludmx_configure_pid(GF_Filter *filter, GF_FilterPid *pid, Bool is_remov
 
 	ctx->ipid = pid;
 	p = gf_filter_pid_get_property(pid, GF_PROP_PID_TIMESCALE);
-	if (p) ctx->timescale = p->value.uint;
+	if (p) {
+		ctx->timescale = p->value.uint;
+		ctx->fps.den = 0;
+		ctx->fps.num = ctx->timescale;
+	}
 
 	was_hevc = ctx->is_hevc;
 
@@ -332,21 +339,30 @@ static void naludmx_check_dur(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 
 static void naludmx_enqueue_or_dispatch(GF_NALUDmxCtx *ctx, GF_FilterPacket *n_pck, Bool flush_ref)
 {
-	if (ctx->timescale) {
-		gf_filter_pck_send(n_pck);
-	}
 	//TODO: we are dispacthing frames in "negctts mode", ie we may have DTS>CTS
 	//need to signal this for consumers using DTS (eg MPEG-2 TS)
 	if (flush_ref && ctx->pck_queue) {
 		//send all reference packet queued
 		u32 i, count = gf_list_count(ctx->pck_queue);
 		for (i=0; i<count; i++) {
-			u64 dts, cts, poc_ts;
+			u64 dts;
 			GF_FilterPacket *q_pck = gf_list_get(ctx->pck_queue, i);
-			poc_ts = gf_filter_pck_get_cts(q_pck);
+
 			dts = gf_filter_pck_get_dts(q_pck);
 			if (dts != GF_FILTER_NO_TS) {
 				s32 poc;
+				u64 poc_ts, cts;
+				u8 carousel_info = gf_filter_pck_get_carousel_version(q_pck);
+
+				//we reused timing from source packets
+				if (!carousel_info) {
+					assert(ctx->timescale);
+					gf_filter_pck_send(q_pck);
+					continue;
+				}
+				gf_filter_pck_set_carousel_version(q_pck, 0);
+
+				poc_ts = gf_filter_pck_get_cts(q_pck);
 				assert(poc_ts != GF_FILTER_NO_TS);
 				poc = (s32) ((s64) poc_ts - CTS_POC_OFFSET_SAFETY);
 				//poc is stored as diff since last IDR which has min_poc
@@ -530,6 +546,7 @@ static void naludmx_check_pid(GF_Filter *filter, GF_NALUDmxCtx *ctx)
 		ctx->opid = gf_filter_pid_new(filter);
 		gf_filter_pid_copy_properties(ctx->opid, ctx->ipid);
 		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_STREAM_TYPE, & PROP_UINT(GF_STREAM_VISUAL));
+		gf_filter_pid_set_property(ctx->opid, GF_PROP_PID_UNFRAMED, NULL);
 
 		naludmx_check_dur(filter, ctx);
 		ctx->first_slice_in_au = GF_TRUE;
@@ -585,6 +602,12 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 			ctx->bytes_in_header = 0;
 		}
 		if (! ctx->is_file) {
+			if (!ctx->initial_play_done) {
+				ctx->initial_play_done = GF_TRUE;
+				if (evt->play.start_range<0.1)
+					return GF_FALSE;
+			}
+			ctx->resume_from = 0;
 			return GF_FALSE;
 		}
 		ctx->start_range = evt->play.start_range;
@@ -633,15 +656,14 @@ static Bool naludmx_process_event(GF_Filter *filter, const GF_FilterEvent *evt)
 static GFINLINE void naludmx_update_time(GF_NALUDmxCtx *ctx)
 {
 	assert(ctx->fps.num);
-	assert(ctx->fps.den);
 
 	if (ctx->timescale) {
-		u64 inc = ctx->fps.den;
-		inc *= ctx->timescale;
-		inc /= ctx->fps.num;
-		ctx->cts += inc;
-		ctx->dts += inc;
+		//very first frame, no dts diff, assume 3000/90k. It should only hurt if we have several frames packet in the first packet sent
+		u64 dts_inc = ctx->fps.den ? ctx->fps.den : 3000;
+		ctx->cts += dts_inc;
+		ctx->dts += dts_inc;
 	} else {
+		assert(ctx->fps.den);
 		ctx->cts += ctx->fps.den;
 		ctx->dts += ctx->fps.den;
 	}
@@ -702,6 +724,7 @@ static void naludmx_queue_param_set(GF_NALUDmxCtx *ctx, char *data, u32 size, u3
 
 void naludmx_update_packet_flags(GF_NALUDmxCtx *ctx)
 {
+	u64 ts;
 	if (!ctx->first_pck_in_au)
 		return;
 	if (ctx->au_is_rap) {
@@ -716,13 +739,21 @@ void naludmx_update_packet_flags(GF_NALUDmxCtx *ctx)
 			GF_LOG(GF_LOG_WARNING, GF_LOG_CODING, ("[%s] Forcing non-IDR samples with I slices to be marked as sync points - resulting file will not be ISOBMFF conformant\n", ctx->log_name));
 		}
 	}
-
-	/*CTS recomuting is much trickier than with MPEG-4 ASP due to b-slice used as references - we therefore
-	store the POC as the CTS offset and update the whole table at the end*/
-	assert(ctx->last_poc >= ctx->poc_shift);
-	gf_filter_pck_set_cts(ctx->first_pck_in_au, CTS_POC_OFFSET_SAFETY + ctx->last_poc - ctx->poc_shift);
-
-	if (!ctx->strict_poc && ctx->poc_probe_done)
+	//if TS is set, the packet was the first in AU in the input timed packet (eg PES), we reuse the input timing
+	ts = gf_filter_pck_get_cts(ctx->first_pck_in_au);
+	if (ts == GF_FILTER_NO_TS) {
+		/*we store the POC (last POC minus the poc shift) as the CTS offset and re-update the CTS when dispatching*/
+		assert(ctx->last_poc >= ctx->poc_shift);
+		gf_filter_pck_set_cts(ctx->first_pck_in_au, CTS_POC_OFFSET_SAFETY + ctx->last_poc - ctx->poc_shift);
+		//we use the carrousel flag temporarly to indicate the cts must be recomputed
+		gf_filter_pck_set_carousel_version(ctx->first_pck_in_au, 1);
+	} else {
+		assert(ctx->timescale);
+	}
+	//if we reuse input packets timing, we can dispatch asap.
+	//otherwise if poc probe is done (we now the min_poc_diff between images) and we are not in struct mode, dispatch asap
+	//otherwise we will need to wait for the next ref frame to make sure we know all pocs ...
+	if (ctx->timescale || (!ctx->strict_poc && ctx->poc_probe_done) )
 		naludmx_enqueue_or_dispatch(ctx, NULL, GF_TRUE);
 }
 
@@ -768,8 +799,15 @@ void naludmx_set_pck_flags(GF_NALUDmxCtx *ctx, GF_FilterPacket *dst_pck, Bool au
 	if (au_start) {
 		ctx->first_pck_in_au = dst_pck;
 		gf_filter_pck_set_framing(dst_pck, GF_TRUE, GF_FALSE);
-		gf_filter_pck_set_dts(dst_pck, ctx->dts);
-		//we don't set the CTS, it will be set once we detect frame end
+		//we reuse the timing of the input packet for the first nal of the first frame starting in this packet
+		if (ctx->input_is_au_start) {
+			ctx->input_is_au_start = GF_FALSE;
+			gf_filter_pck_set_dts(dst_pck, ctx->dts);
+			gf_filter_pck_set_cts(dst_pck, ctx->cts);
+		} else {
+			//we don't set the CTS, it will be set once we detect frame end
+			gf_filter_pck_set_dts(dst_pck, ctx->dts);
+		}
 
 		gf_filter_pck_set_duration(dst_pck, ctx->fps.den);
 		if (ctx->in_seek) gf_filter_pck_set_seek_flag(dst_pck, GF_TRUE);
@@ -824,8 +862,20 @@ GF_Err naludmx_process(GF_Filter *filter)
 		if (ts != GF_FILTER_NO_TS)
 			ctx->cts = ts;
 		ts = gf_filter_pck_get_dts(pck);
-		if (ts != GF_FILTER_NO_TS)
+		if (ts != GF_FILTER_NO_TS) {
 			ctx->dts = ts;
+			if (!ctx->prev_dts) ctx->prev_dts = ts;
+			else if (ctx->prev_dts != ts) {
+				u64 diff = ts;
+				diff -= ctx->prev_dts;
+				if (!ctx->fps.den) ctx->fps.den = diff;
+				else if (ctx->fps.den > diff)
+					ctx->fps.den = diff;
+			}
+		}
+		//store framing flags. If input_is_au_start, the first NAL of the first frame begining in this packet will
+		//use the DTS/CTS of the inout packet, otherwise we will use our internal POC recompute
+		gf_filter_pck_get_framing(pck, &ctx->input_is_au_start, NULL);
 	}
 
 	//we stored some data to find the complete vosh, aggregate this packet with current one
